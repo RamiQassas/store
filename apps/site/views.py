@@ -9,9 +9,13 @@ from django.db.models import Q, Sum, Count
 from django.http import Http404
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
+from django.utils.http import urlsafe_base64_decode
+from django.utils.encoding import force_str
+from django.contrib.auth.tokens import default_token_generator
 from datetime import timedelta
 
 from apps.accounts.models import User, ModerationLog, ActivityLog
+from apps.accounts.services import send_verification_email
 from apps.catalog.models import Category, Product, ProductVariant
 from apps.common.models import Currency
 from apps.notifications.models import Notification
@@ -21,6 +25,7 @@ from apps.payments.models import DepositRequest, PaymentMethod, WithdrawalReques
 from apps.site.forms import LoginForm, RegisterForm, TicketForm, PaymentMethodForm, CurrencyForm, ModerateUserForm, ProductForm, VariantForm
 from apps.support.models import Ticket, TicketMessage, CannedReply
 from apps.wallets.models import LedgerEntry, Wallet, WalletTransaction
+from apps.wallets.services import get_or_create_wallet
 
 
 def home(request):
@@ -62,12 +67,17 @@ def product_detail(request, slug):
     product = get_object_or_404(Product.objects.select_related("category").prefetch_related("variants", "form_fields"), slug=slug, is_active=True)
     variants = product.variants.filter(is_active=True).order_by("sort_order", "price")
     selected_variant = variants.first()
-    wallet, _ = Wallet.objects.get_or_create(user=request.user) if request.user.is_authenticated else (None, False)
+    wallet = get_or_create_wallet(request.user) if request.user.is_authenticated else None
     if request.method == "POST":
         if not request.user.is_authenticated:
             messages.info(request, "سجّل الدخول أولاً لإتمام الطلب.")
             return redirect("site_login")
         
+        # Check if email is verified
+        if not request.user.email_verified:
+            messages.error(request, "يرجى تفعيل بريدك الإلكتروني أولاً لتتمكن من الشراء.")
+            return redirect("dashboard")
+
         # Check if user is restricted from purchases
         if request.user.status != User.Status.ACTIVE and request.user.restriction_purchases:
             messages.error(request, "حسابك مقيد من عمليات الشراء. يرجى التواصل مع الدعم.")
@@ -85,7 +95,7 @@ def product_detail(request, slug):
             try:
                 variant = variants.get(id=variant_id)
                 total = variant.price * Decimal(quantity)
-                wallet, _ = Wallet.objects.get_or_create(user=request.user)
+                wallet = get_or_create_wallet(request.user)
                 if wallet.available_balance < total:
                     messages.error(request, "الرصيد غير كافٍ. أضف رصيدًا أولًا.")
                 else:
@@ -145,6 +155,9 @@ def login_view(request):
                 user_agent=request.META.get('HTTP_USER_AGENT', '')
             )
             
+            if not user.email_verified:
+                messages.warning(request, "حسابك غير مفعل بعد. يرجى تفعيل البريد الإلكتروني للوصول لكافة الميزات.")
+            
             return redirect("dashboard")
         messages.error(request, "بيانات الدخول غير صحيحة.")
     return render(request, "site/auth_login.html", {"form": form})
@@ -155,23 +168,28 @@ def register_view(request):
         return redirect("dashboard")
     form = RegisterForm(request.POST or None)
     if request.method == "POST" and form.is_valid():
-        user = User.objects.create_user(
-            email=form.cleaned_data["email"],
-            password=form.cleaned_data["password"],
-            first_name=form.cleaned_data["first_name"],
-            last_name=form.cleaned_data["last_name"],
-            phone=form.cleaned_data["phone"],
-        )
-        login(request, user)
-        messages.success(request, "تم إنشاء الحساب وربطه بمحفظة تلقائيًا.")
-        
-        ActivityLog.objects.create(
-            user=user,
-            action="Register",
-            description="New account registered"
-        )
-        
-        return redirect("dashboard")
+        with transaction.atomic():
+            user = User.objects.create_user(
+                email=form.cleaned_data["email"],
+                password=form.cleaned_data["password"],
+                first_name=form.cleaned_data["first_name"],
+                last_name=form.cleaned_data["last_name"],
+                phone=form.cleaned_data["phone"],
+            )
+            get_or_create_wallet(user)
+            
+            ActivityLog.objects.create(
+                user=user,
+                action="Register",
+                description="New account registered"
+            )
+            
+            send_verification_email(request, user)
+            
+            login(request, user)
+            messages.success(request, "تم إنشاء الحساب بنجاح. يرجى تفعيل بريدك الإلكتروني.")
+            return redirect("dashboard")
+            
     return render(request, "site/auth_register.html", {"form": form})
 
 
@@ -187,12 +205,45 @@ def logout_view(request):
     return redirect("home")
 
 
+def email_verify(request, uidb64, token):
+    try:
+        uid = force_str(urlsafe_base64_decode(uidb64))
+        user = User.objects.get(pk=uid)
+    except (TypeError, ValueError, OverflowError, User.DoesNotExist):
+        user = None
+
+    if user is not None and default_token_generator.check_token(user, token):
+        user.email_verified = True
+        user.save(update_fields=["email_verified"])
+        ActivityLog.objects.create(user=user, action="Email Verified", description="User verified their email address")
+        messages.success(request, "تم تفعيل بريدك الإلكتروني بنجاح!")
+        if request.user.is_authenticated:
+            return redirect("dashboard")
+        return redirect("site_login")
+    else:
+        messages.error(request, "رابط التفعيل غير صالح أو انتهت صلاحيته.")
+        return redirect("home")
+
+
+@login_required
+def resend_verification(request):
+    if request.user.email_verified:
+        messages.info(request, "بريدك الإلكتروني مفعل بالفعل.")
+    else:
+        send_verification_email(request, request.user)
+        messages.success(request, "تم إعادة إرسال رابط التفعيل إلى بريدك الإلكتروني.")
+    return redirect("dashboard")
+
+
 @login_required
 def dashboard(request):
+    if not request.user.email_verified:
+        messages.warning(request, "حسابك غير مفعل. يرجى تفعيل البريد الإلكتروني.")
+        
     if request.user.status != User.Status.ACTIVE:
         messages.warning(request, f"تنبيه: حسابك في حالة ({request.user.get_status_display()}). بعض الميزات قد تكون مقيدة.")
     
-    wallet, _ = Wallet.objects.get_or_create(user=request.user)
+    wallet = get_or_create_wallet(request.user)
     recent_ledger = wallet.ledger_entries.select_related("created_by")[:8]
     recent_transactions = wallet.transactions.all()[:8]
     orders = request.user.orders.select_related("invoice", "coupon").prefetch_related("items__variant__product")[:6]
@@ -223,7 +274,7 @@ def dashboard(request):
 
 @login_required
 def wallet_page(request):
-    wallet, _ = Wallet.objects.get_or_create(user=request.user)
+    wallet = get_or_create_wallet(request.user)
     return render(
         request,
         "site/wallet.html",
@@ -237,6 +288,10 @@ def wallet_page(request):
 
 @login_required
 def deposits(request):
+    if not request.user.email_verified:
+        messages.error(request, "يرجى تفعيل بريدك الإلكتروني أولاً لتتمكن من الإيداع.")
+        return redirect("dashboard")
+
     if request.user.status != User.Status.ACTIVE and request.user.restriction_deposits:
         messages.error(request, "حسابك مقيد من عمليات الإيداع. يرجى التواصل مع الدعم.")
         return redirect("dashboard")
@@ -272,7 +327,7 @@ def deposits(request):
                     metadata={"source": "site"},
                 )
                 from apps.wallets.services import track_pending_deposit
-                wallet, _ = Wallet.objects.get_or_create(user=request.user)
+                wallet = get_or_create_wallet(request.user)
                 track_pending_deposit(
                     wallet_id=wallet.id,
                     amount=amount,
@@ -461,6 +516,10 @@ def currency_edit(request, pk):
 
 @login_required
 def withdrawals(request):
+    if not request.user.email_verified:
+        messages.error(request, "يرجى تفعيل بريدك الإلكتروني أولاً لتتمكن من السحب.")
+        return redirect("dashboard")
+
     if request.user.status != User.Status.ACTIVE and request.user.restriction_withdrawals:
         messages.error(request, "حسابك مقيد من عمليات السحب. يرجى التواصل مع الدعم.")
         return redirect("dashboard")
@@ -474,7 +533,7 @@ def withdrawals(request):
         
         method = get_object_or_404(methods, id=method_id)
         currency = get_object_or_404(Currency, id=currency_id)
-        wallet, _ = Wallet.objects.get_or_create(user=request.user)
+        wallet = get_or_create_wallet(request.user)
         
         if amount < method.min_amount or amount > method.max_amount:
             messages.error(request, f"المبلغ يجب أن يكون بين {method.min_amount} و {method.max_amount}.")
@@ -697,7 +756,7 @@ def control_order_detail(request, pk):
 
                 # Handle refund logic if status is REFUNDED
                 if new_status == Order.Status.REFUNDED:
-                    wallet, _ = Wallet.objects.get_or_create(user=order.customer)
+                    wallet = get_or_create_wallet(order.customer)
                     from apps.wallets.services import credit_wallet
                     credit_wallet(wallet.id, order.total_amount, reference=f"refund:{order.id}", description=f"استرداد ثمن الطلب {order.number}", created_by=request.user)
                     
@@ -768,3 +827,16 @@ def control_reports(request):
     }
     
     return render(request, "site/control_reports.html", {"stats": stats})
+
+
+def privacy_policy(request):
+    return render(request, "site/privacy_policy.html")
+
+def terms_of_service(request):
+    return render(request, "site/terms_of_service.html")
+
+def refund_policy(request):
+    return render(request, "site/refund_policy.html")
+
+def contact_page(request):
+    return render(request, "site/contact.html")

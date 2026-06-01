@@ -4,7 +4,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>{% block title %}Raqamiyat | روقميات{% endblock %}</title>
+  <title>{% block title %}Raqamiyat | رقميات{% endblock %}</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&display=swap" rel="stylesheet">
@@ -64,11 +64,12 @@
         <div class="brand justify-center">
             <i class="fas fa-bolt"></i> Raqamiyat
         </div>
-        <p>© 2024 جميع الحقوق محفوظة لـ روقميات - Raqamiyat</p>
+        <p>© 2024 جميع الحقوق محفوظة لـ رقميات - Raqamiyat</p>
         <div class="flex gap-4 justify-center text-xs">
-            <a href="#" class="hover:text-cyan">شروط الاستخدام</a>
-            <a href="#" class="hover:text-cyan">سياسة الخصوصية</a>
-            <a href="#" class="hover:text-cyan">تواصل معنا</a>
+            <a href="{% url 'terms_of_service' %}" class="hover:text-cyan">شروط الاستخدام</a>
+            <a href="{% url 'privacy_policy' %}" class="hover:text-cyan">سياسة الخصوصية</a>
+            <a href="{% url 'refund_policy' %}" class="hover:text-cyan">سياسة الاسترجاع</a>
+            <a href="{% url 'contact' %}" class="hover:text-cyan">تواصل معنا</a>
         </div>
       </div>
     </footer>

@@ -1,0 +1,46 @@
+{% extends "site/base.html" %}
+{% block title %}تواصل معنا | Raqamiyat - رقميات{% endblock %}
+{% block content %}
+<section class="page-head">
+  <div>
+    <span class="eyebrow">Support</span>
+    <h1>تواصل معنا</h1>
+    <p>فريقنا متاح لمساعدتك في أي وقت.</p>
+  </div>
+</section>
+
+<div class="grid grid-2 gap-8">
+    <article class="panel p-10">
+        <h2 class="text-2xl font-bold mb-6">قنوات التواصل المباشر</h2>
+        <div class="stack gap-6">
+            <div class="flex items-center gap-4">
+                <div class="w-12 h-12 bg-cyan/10 rounded-full flex items-center justify-center text-cyan"><i class="fab fa-whatsapp text-2xl"></i></div>
+                <div>
+                    <strong class="block">واتساب</strong>
+                    <span class="text-slate-400 font-mono">+963 900 000 000</span>
+                </div>
+            </div>
+            <div class="flex items-center gap-4">
+                <div class="w-12 h-12 bg-blue-500/10 rounded-full flex items-center justify-center text-blue-500"><i class="fab fa-telegram-plane text-2xl"></i></div>
+                <div>
+                    <strong class="block">تيليجرام</strong>
+                    <span class="text-slate-400 font-mono">@Raqamiyat_Support</span>
+                </div>
+            </div>
+            <div class="flex items-center gap-4">
+                <div class="w-12 h-12 bg-purple-500/10 rounded-full flex items-center justify-center text-purple-500"><i class="fas fa-envelope text-2xl"></i></div>
+                <div>
+                    <strong class="block">البريد الإلكتروني</strong>
+                    <span class="text-slate-400 font-mono">support@raqamiyat.com</span>
+                </div>
+            </div>
+        </div>
+    </article>
+
+    <article class="panel p-10">
+        <h2 class="text-2xl font-bold mb-4">فتح تذكرة دعم</h2>
+        <p class="text-slate-400 mb-6">إذا كنت تملك حساباً، يرجى فتح تذكرة دعم فني من لوحة التحكم لضمان سرعة الاستجابة وربط الطلب بحسابك.</p>
+        <a href="{% url 'dashboard_tickets' %}" class="btn btn-primary w-full">الانتقال إلى التذاكر</a>
+    </article>
+</div>
+{% endblock %}

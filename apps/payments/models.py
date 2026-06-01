@@ -10,7 +10,6 @@ class PaymentMethod(TimeStampedModel):
     class MethodType(models.TextChoices):
         BANK = "bank", "بنك"
         WALLET = "wallet", "محفظة إلكترونية"
-        CRYPTO = "crypto", "عملات رقمية"
         CASH = "cash", "نقدي"
         MOBILE_PAYMENT = "mobile_payment", "دفع عبر الهاتف"
 

@@ -3,6 +3,7 @@ from decimal import Decimal
 from django.db import transaction
 
 from apps.wallets.models import LedgerEntry, Wallet, WalletTransaction
+from apps.common.models import Currency
 
 
 class WalletError(Exception):
@@ -235,4 +236,27 @@ def cancel_pending_deposit(wallet_id, amount, reference="", description="", crea
             created_by=created_by,
             metadata=metadata or {},
         )
+        return wallet
+
+
+def get_or_create_wallet(user):
+    """
+    Safely gets or creates a wallet for a user with the default currency.
+    """
+    with transaction.atomic():
+        wallet = Wallet.objects.filter(user=user).select_related("currency").first()
+        if not wallet:
+            default_currency = Currency.objects.filter(is_default=True).first()
+            if not default_currency:
+                # Fallback to USD or first available
+                default_currency = Currency.objects.filter(code="USD").first() or Currency.objects.first()
+            
+            if not default_currency:
+                raise WalletError("No default currency defined in the system.")
+                
+            wallet = Wallet.objects.create(
+                user=user,
+                currency=default_currency,
+                available_balance=Decimal("0.00")
+            )
         return wallet
