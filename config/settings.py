@@ -17,12 +17,33 @@ def env_bool(name, default=False):
     return value.lower() in {"1", "true", "yes", "on"}
 
 
-SECRET_KEY = env("DJANGO_SECRET_KEY", "dev-only-secret-key-change-me-please-use-env-in-production-2026")
+SECRET_KEY = env(
+    "DJANGO_SECRET_KEY",
+    "dev-only-secret-key-change-me-please-use-env-in-production-2026"
+)
+
 DEBUG = env_bool("DJANGO_DEBUG", True)
-ALLOWED_HOSTS = [host.strip() for host in env("DJANGO_ALLOWED_HOSTS", "127.0.0.1,localhost").split(",") if host.strip()]
+
+ALLOWED_HOSTS = [
+    host.strip()
+    for host in env(
+        "DJANGO_ALLOWED_HOSTS",
+        "127.0.0.1,localhost,testserver,raqamiyat.onrender.com"
+    ).split(",")
+    if host.strip()
+]
+
 if DEBUG and "testserver" not in ALLOWED_HOSTS:
     ALLOWED_HOSTS.append("testserver")
-CSRF_TRUSTED_ORIGINS = [origin.strip() for origin in env("DJANGO_CSRF_TRUSTED_ORIGINS", "").split(",") if origin.strip()]
+
+CSRF_TRUSTED_ORIGINS = [
+    origin.strip()
+    for origin in env(
+        "DJANGO_CSRF_TRUSTED_ORIGINS",
+        "https://raqamiyat.onrender.com"
+    ).split(",")
+    if origin.strip()
+]
 
 INSTALLED_APPS = [
     "django.contrib.admin",
@@ -49,6 +70,10 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
+
+    # Render static files
+    "whitenoise.middleware.WhiteNoiseMiddleware",
+
     "corsheaders.middleware.CorsMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.locale.LocaleMiddleware",
@@ -120,9 +145,14 @@ TIME_ZONE = "Asia/Damascus"
 USE_I18N = True
 USE_TZ = True
 
-STATIC_URL = "static/"
+STATIC_URL = "/static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"
-MEDIA_URL = "media/"
+
+STATICFILES_STORAGE = (
+    "whitenoise.storage.CompressedManifestStaticFilesStorage"
+)
+
+MEDIA_URL = "/media/"
 MEDIA_ROOT = BASE_DIR / "media"
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
