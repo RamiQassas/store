@@ -20,7 +20,7 @@ urlpatterns = [
     path("dashboard/deposits/", views.deposits, name="dashboard_deposits"),
     path("dashboard/withdrawals/", views.withdrawals, name="dashboard_withdrawals"),
     path("dashboard/tickets/", views.tickets, name="dashboard_tickets"),
-    path("dashboard/tickets/<int:pk>/", views.ticket_detail, name="ticket_detail"),
+    path("dashboard/tickets/<uuid:pk>/", views.ticket_detail, name="ticket_detail"),
     
     # Admin Control
     path("control/", views.control_dashboard, name="control_dashboard"),
