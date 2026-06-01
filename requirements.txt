@@ -8,3 +8,4 @@ psycopg[binary]==3.2.13
 redis==5.0.8
 celery==5.4.0
 gunicorn==23.0.0
+whitenoise==6.12.0
