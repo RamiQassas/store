@@ -1,6 +1,7 @@
 from rest_framework import serializers
 
 from apps.payments.models import DepositRequest, PaymentMethod, WithdrawalRequest
+from apps.wallets.services import get_or_create_wallet
 
 
 class PaymentMethodSerializer(serializers.ModelSerializer):
@@ -96,8 +97,7 @@ class WithdrawalRequestSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError({"amount": f"المبلغ أكبر من الحد الأقصى المسموح به ({payment_method.max_amount})."})
 
         # Check balance
-        from apps.wallets.models import Wallet
-        wallet, _ = Wallet.objects.get_or_create(user=user)
+        wallet = get_or_create_wallet(user)
         if wallet.available_balance < amount:
             raise serializers.ValidationError({"amount": "الرصيد غير كافٍ لإجراء عملية السحب."})
 

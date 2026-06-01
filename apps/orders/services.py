@@ -5,8 +5,7 @@ from django.utils import timezone
 
 from apps.catalog.models import ProductVariant
 from apps.orders.models import Invoice, Order, OrderItem, OrderLog
-from apps.wallets.models import Wallet
-from apps.wallets.services import debit_wallet
+from apps.wallets.services import debit_wallet, get_or_create_wallet
 
 
 def next_order_number():
@@ -36,8 +35,10 @@ def create_order(customer, variant_id, quantity=1, fulfillment_data=None, coupon
         fulfillment_data=fulfillment_data or {},
     )
     OrderItem.objects.create(order=order, variant=variant, quantity=quantity, unit_price=variant.price, total_price=subtotal)
-    wallet, _ = Wallet.objects.get_or_create(user=customer)
+    
+    wallet = get_or_create_wallet(customer)
     debit_wallet(wallet.id, total, reference=f"order:{order.id}", description=f"Order {order.number}", created_by=customer)
+    
     OrderLog.objects.create(order=order, status=order.status, note="Order created and wallet debited.", created_by=customer)
     Invoice.objects.create(order=order, invoice_number=order.number.replace("ORD", "INV", 1), total_amount=total)
     return order

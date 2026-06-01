@@ -5,14 +5,14 @@ from rest_framework import decorators, response, status, viewsets, permissions
 from apps.common.permissions import ReadOnlyOrAdmin
 from apps.payments.models import DepositRequest, PaymentMethod, WithdrawalRequest
 from apps.payments.serializers import DepositRequestSerializer, PaymentMethodSerializer, WithdrawalRequestSerializer
-from apps.wallets.models import Wallet
 from apps.wallets.services import (
     credit_wallet, 
     freeze_funds, 
     release_funds, 
     finalize_withdrawal, 
     track_pending_deposit, 
-    cancel_pending_deposit
+    cancel_pending_deposit,
+    get_or_create_wallet
 )
 from apps.notifications.services import notify_user
 
@@ -42,7 +42,7 @@ class DepositRequestViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         with transaction.atomic():
             deposit = serializer.save()
-            wallet, _ = Wallet.objects.get_or_create(user=deposit.user)
+            wallet = get_or_create_wallet(deposit.user)
             track_pending_deposit(
                 wallet_id=wallet.id,
                 amount=deposit.amount,
@@ -70,7 +70,7 @@ class DepositRequestViewSet(viewsets.ModelViewSet):
             deposit.reviewed_at = timezone.now()
             deposit.save(update_fields=["status", "reviewed_by", "reviewed_at", "updated_at"])
 
-            wallet, _ = Wallet.objects.get_or_create(user=deposit.user)
+            wallet = get_or_create_wallet(deposit.user)
             credit_wallet(
                 wallet_id=wallet.id,
                 amount=deposit.final_amount,
@@ -104,7 +104,7 @@ class DepositRequestViewSet(viewsets.ModelViewSet):
                 return response.Response({"detail": "لا يمكن رفض طلب مكتمل."}, status=status.HTTP_400_BAD_REQUEST)
 
             if deposit.status != DepositRequest.Status.REJECTED:
-                wallet, _ = Wallet.objects.get_or_create(user=deposit.user)
+                wallet = get_or_create_wallet(deposit.user)
                 cancel_pending_deposit(
                     wallet_id=wallet.id,
                     amount=deposit.amount,
@@ -144,7 +144,7 @@ class WithdrawalRequestViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         with transaction.atomic():
             withdrawal = serializer.save()
-            wallet, _ = Wallet.objects.get_or_create(user=withdrawal.user)
+            wallet = get_or_create_wallet(withdrawal.user)
             # Freeze funds immediately upon request
             freeze_funds(
                 wallet_id=wallet.id,
@@ -209,7 +209,7 @@ class WithdrawalRequestViewSet(viewsets.ModelViewSet):
             withdrawal.reviewed_at = timezone.now()
             withdrawal.save()
 
-            wallet, _ = Wallet.objects.get_or_create(user=withdrawal.user)
+            wallet = get_or_create_wallet(withdrawal.user)
             finalize_withdrawal(
                 wallet_id=wallet.id,
                 amount=withdrawal.amount,
@@ -246,7 +246,7 @@ class WithdrawalRequestViewSet(viewsets.ModelViewSet):
             withdrawal.save()
 
             # Release funds back to available balance
-            wallet, _ = Wallet.objects.get_or_create(user=withdrawal.user)
+            wallet = get_or_create_wallet(withdrawal.user)
             release_funds(
                 wallet_id=wallet.id,
                 amount=withdrawal.amount,
@@ -280,7 +280,7 @@ class WithdrawalRequestViewSet(viewsets.ModelViewSet):
             withdrawal.save(update_fields=["status", "updated_at"])
 
             # Release funds back to available balance
-            wallet, _ = Wallet.objects.get_or_create(user=withdrawal.user)
+            wallet = get_or_create_wallet(withdrawal.user)
             release_funds(
                 wallet_id=wallet.id,
                 amount=withdrawal.amount,
