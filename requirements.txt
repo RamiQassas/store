@@ -4,7 +4,7 @@ djangorestframework-simplejwt==5.3.1
 django-cors-headers==4.4.0
 django-filter==24.3
 Pillow==10.4.0
-psycopg[binary]==3.2.1
+psycopg[binary]==3.2.13
 redis==5.0.8
 celery==5.4.0
 gunicorn==23.0.0
