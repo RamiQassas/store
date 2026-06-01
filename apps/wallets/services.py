@@ -239,20 +239,52 @@ def cancel_pending_deposit(wallet_id, amount, reference="", description="", crea
         return wallet
 
 
+def auto_seed_currencies():
+    """Emergency seeding of initial currencies if table is empty."""
+    from apps.common.models import Currency
+    if not Currency.objects.exists():
+        Currency.objects.create(
+            code="USD",
+            name="US Dollar",
+            symbol="$",
+            exchange_rate=1.0,
+            is_default=True,
+            is_active=True
+        )
+        Currency.objects.create(
+            code="TRY",
+            name="Turkish Lira",
+            symbol="₺",
+            exchange_rate=Decimal("32.50"),
+            is_active=True
+        )
+        Currency.objects.create(
+            code="SYP",
+            name="Syrian Pound",
+            symbol="£S",
+            exchange_rate=Decimal("15000.0"),
+            is_active=True
+        )
+
+
 def get_or_create_wallet(user):
     """
     Safely gets or creates a wallet for a user with the default currency.
+    Ensures currencies exist before creation.
     """
     with transaction.atomic():
         wallet = Wallet.objects.filter(user=user).select_related("currency").first()
         if not wallet:
+            # Emergency seed if table is empty
+            auto_seed_currencies()
+            
             default_currency = Currency.objects.filter(is_default=True).first()
             if not default_currency:
                 # Fallback to USD or first available
                 default_currency = Currency.objects.filter(code="USD").first() or Currency.objects.first()
             
             if not default_currency:
-                raise WalletError("No default currency defined in the system.")
+                raise WalletError("Critical Error: No currencies found in system even after emergency seeding.")
                 
             wallet = Wallet.objects.create(
                 user=user,
