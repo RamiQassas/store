@@ -1,0 +1,44 @@
+{% extends "site/base.html" %}
+{% block title %}التذاكر | منصة الخدمات الرقمية{% endblock %}
+{% block content %}
+<section class="page-head">
+  <div>
+    <span class="eyebrow">Support</span>
+    <h1>التذاكر</h1>
+    <p>أنشئ تذكرة جديدة وتابع المحادثة من نفس الصفحة.</p>
+  </div>
+</section>
+
+<section class="two-col">
+  <article class="panel auth-panel">
+    <h2>تذكرة جديدة</h2>
+    <form method="post" class="stack">
+      {% csrf_token %}
+      <label>العنوان</label>
+      {{ form.subject }}
+      <label>الأولوية</label>
+      {{ form.priority }}
+      <label>الرسالة</label>
+      {{ form.initial_message }}
+      <button class="btn btn-primary" type="submit">إرسال التذكرة</button>
+    </form>
+  </article>
+
+  <article class="panel">
+    <h2>تذاكري</h2>
+    <div class="stack-list">
+      {% for ticket in tickets %}
+        <div class="line-item">
+          <div>
+            <strong>{{ ticket.subject }}</strong>
+            <p>{{ ticket.get_status_display }} - {{ ticket.priority }} - {{ ticket.messages.count }} رسالة</p>
+          </div>
+          <span class="badge">{{ ticket.created_at|date:"Y-m-d" }}</span>
+        </div>
+      {% empty %}
+        <div class="empty">لا توجد تذاكر.</div>
+      {% endfor %}
+    </div>
+  </article>
+</section>
+{% endblock %}

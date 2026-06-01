@@ -1,0 +1,35 @@
+{% extends "admin/base_site.html" %}
+{% block content %}
+<div class="admin-hero">
+  <div>
+    <h1>لوحة إدارة منصة الخدمات الرقمية</h1>
+    <p>من هنا تدير المستخدمين والمنتجات والطلبات والإيداعات والخدمات.</p>
+  </div>
+  <a class="button" href="{% url 'control_dashboard' %}">لوحة الموظفين</a>
+</div>
+<div class="grid">
+  {% for app in app_list %}
+    <div class="module">
+      <table>
+        <caption>{{ app.name }}</caption>
+        {% for model in app.models %}
+          <tr>
+            <th scope="row">
+              {% if model.admin_url %}
+                <a href="{{ model.admin_url }}">{{ model.name }}</a>
+              {% else %}
+                {{ model.name }}
+              {% endif %}
+            </th>
+            <td>
+              {% if model.add_url %}<a href="{{ model.add_url }}">إضافة</a>{% endif %}
+            </td>
+          </tr>
+        {% endfor %}
+      </table>
+    </div>
+  {% empty %}
+    <div class="module"><p>لا توجد تطبيقات متاحة حاليًا.</p></div>
+  {% endfor %}
+</div>
+{% endblock %}

@@ -1,0 +1,146 @@
+{% extends "site/base.html" %}
+{% block title %}لوحتي | منصة الخدمات الرقمية{% endblock %}
+{% block content %}
+<section class="page-head">
+  <div>
+    <span class="eyebrow">Dashboard</span>
+    <h1>لوحة المستخدم</h1>
+    <p>كل ما يحتاجه المستخدم في مكان واحد: الرصيد، الطلبات، الإيداعات، الإشعارات، والدعم.</p>
+  </div>
+  <div class="mini-box">
+    <strong>{{ wallet.available_balance }} {{ wallet.currency }}</strong>
+    <span>الرصيد المتاح</span>
+  </div>
+</section>
+
+<section class="stats-grid">
+  <article class="stat"><strong>{{ stats.orders }}</strong><span>طلبات</span></article>
+  <article class="stat"><strong>{{ stats.deposits }}</strong><span>إيداعات</span></article>
+  <article class="stat"><strong>{{ stats.tickets }}</strong><span>تذاكر</span></article>
+  <article class="stat"><strong>{{ stats.notifications }}</strong><span>غير مقروء</span></article>
+</section>
+
+<section class="two-col">
+  <article class="panel">
+    <div class="section-head"><h2>المحفظة</h2><a href="{% url 'dashboard_wallet' %}">عرض المحفظة</a></div>
+    <div class="mini-box" style="margin-bottom:12px;">
+      <strong>{{ wallet.available_balance }} {{ wallet.currency }}</strong>
+      <span>الرصيد المتاح</span>
+    </div>
+    <div class="stack-list">
+      {% for entry in recent_ledger|slice:":3" %}
+        <div class="line-item">
+          <div>
+            <strong>{{ entry.get_entry_type_display }}</strong>
+            <p>{{ entry.description|default:"" }}</p>
+          </div>
+          <span class="badge">{{ entry.amount }}</span>
+        </div>
+      {% empty %}
+        <div class="empty">لا توجد حركات محفظة بعد.</div>
+      {% endfor %}
+    </div>
+  </article>
+
+  <article class="panel">
+    <div class="section-head"><h2>الطلبات الأخيرة</h2><a href="{% url 'catalog' %}">طلب جديد</a></div>
+    <div class="stack-list">
+      {% for order in orders %}
+        <div class="line-item">
+          <div>
+            <strong>{{ order.number }}</strong>
+            <p>{{ order.get_status_display }} - {{ order.total_amount }}</p>
+          </div>
+          <span class="badge">{{ order.created_at|date:"Y-m-d" }}</span>
+        </div>
+      {% empty %}
+        <div class="empty">لا توجد طلبات بعد.</div>
+      {% endfor %}
+    </div>
+  </article>
+
+  <article class="panel">
+    <div class="section-head"><h2>الإشعارات</h2><a href="{% url 'dashboard_tickets' %}">الدعم</a></div>
+    <div class="stack-list">
+      {% for notification in notifications %}
+        <div class="line-item">
+          <div>
+            <strong>{{ notification.title }}</strong>
+            <p>{{ notification.body|default:"" }}</p>
+          </div>
+          <span class="badge {% if notification.is_read %}muted{% endif %}">{% if notification.is_read %}مقروء{% else %}جديد{% endif %}</span>
+        </div>
+      {% empty %}
+        <div class="empty">لا توجد إشعارات.</div>
+      {% endfor %}
+    </div>
+  </article>
+</section>
+
+<section class="two-col">
+  <article class="panel">
+    <div class="section-head"><h2>الإيداعات</h2><a href="{% url 'dashboard_deposits' %}">طلب إيداع</a></div>
+    <div class="stack-list">
+      {% for deposit in deposits %}
+        <div class="line-item">
+          <div>
+            <strong>{{ deposit.amount }} {{ deposit.currency }}</strong>
+            <p>{{ deposit.provider.name }} - {{ deposit.get_status_display }}</p>
+          </div>
+          <span class="badge">{{ deposit.created_at|date:"Y-m-d" }}</span>
+        </div>
+      {% empty %}
+        <div class="empty">لا توجد طلبات إيداع.</div>
+      {% endfor %}
+    </div>
+  </article>
+
+  <article class="panel">
+    <div class="section-head"><h2>التذاكر</h2><a href="{% url 'dashboard_tickets' %}">عرض الكل</a></div>
+    <div class="stack-list">
+      {% for ticket in tickets %}
+        <div class="line-item">
+          <div>
+            <strong>{{ ticket.subject }}</strong>
+            <p>{{ ticket.get_status_display }} - {{ ticket.priority }}</p>
+          </div>
+          <span class="badge">{{ ticket.messages.count }} رد</span>
+        </div>
+      {% empty %}
+        <div class="empty">لا توجد تذاكر.</div>
+      {% endfor %}
+    </div>
+  </article>
+</section>
+
+<section class="section">
+  <div class="section-head">
+    <h2>حركات المحفظة</h2>
+    <a href="{% url 'dashboard_wallet' %}">تفاصيل كاملة</a>
+  </div>
+  <div class="table-wrap">
+    <table class="table">
+      <thead>
+        <tr>
+          <th>النوع</th>
+          <th>المبلغ</th>
+          <th>الرصيد بعد الحركة</th>
+          <th>المرجع</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for entry in recent_ledger %}
+          <tr>
+            <td>{{ entry.get_entry_type_display }}</td>
+            <td>{{ entry.amount }}</td>
+            <td>{{ entry.balance_after }}</td>
+            <td>{{ entry.reference|default:"-" }}</td>
+          </tr>
+        {% empty %}
+          <tr><td colspan="4">لا توجد حركات بعد.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+{% endblock %}

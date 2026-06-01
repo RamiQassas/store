@@ -1,0 +1,75 @@
+{% load i18n static %}
+<!doctype html>
+<html lang="ar" dir="rtl" data-theme="dark" style="min-height:100%; background:#0d1220;">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}تسجيل دخول الإدارة{% endblock %}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{% static 'site/css/admin.css' %}">
+  <style>
+    html, body { min-height: 100%; }
+    body.admin-login {
+      margin: 0;
+      min-height: 100vh;
+      background:
+        radial-gradient(circle at top right, rgba(124,156,255,0.16), transparent 30%),
+        radial-gradient(circle at bottom left, rgba(89,215,198,0.12), transparent 25%),
+        #0d1220;
+      color: #eef2ff;
+    }
+    .admin-login-shell { min-height: 100vh; display: grid; place-items: center; padding: 24px; }
+    .admin-login-card {
+      width: min(100%, 520px);
+      padding: 28px;
+      background: rgba(17,24,39,0.92);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 8px;
+      box-shadow: 0 24px 70px rgba(0,0,0,.35);
+    }
+    .admin-login-card h1 { margin: 6px 0 12px; }
+    .admin-login-card p { color: #a7b2cf; }
+    .admin-login-card .stack { display: grid; gap: 10px; }
+    .admin-login-card label { display: block; margin-top: 10px; margin-bottom: 6px; }
+    .admin-login-card input[type=text], .admin-login-card input[type=password] {
+      width: 100%;
+      padding: 12px 14px;
+      border-radius: 8px;
+      border: 1px solid rgba(255,255,255,0.08);
+      background: rgba(255,255,255,0.05);
+      color: #eef2ff;
+    }
+    .admin-login-card .btn { margin-top: 8px; display: inline-flex; align-items: center; justify-content: center; text-decoration: none; }
+    .errornote { color: #ffb4bc !important; }
+  </style>
+</head>
+<body class="admin-login" style="margin:0; min-height:100vh; background:#0d1220; color:#eef2ff;">
+  <main class="admin-login-shell">
+    <section class="admin-login-card">
+      <span class="eyebrow">Admin Access</span>
+      <h1>تسجيل دخول الإدارة</h1>
+      <p>استخدم بيانات الموظف للوصول إلى اللوحة ولوحة Django Admin.</p>
+      {% if form.errors and not form.non_field_errors %}
+        <p class="errornote">{% blocktrans count counter=form.errors.items|length %}Please correct the error below.{% plural %}Please correct the errors below.{% endblocktrans %}</p>
+      {% endif %}
+      {% if form.non_field_errors %}
+        {% for error in form.non_field_errors %}
+          <p class="errornote">{{ error }}</p>
+        {% endfor %}
+      {% endif %}
+      <form action="{{ app_path }}" method="post" id="login-form" class="stack">
+        {% csrf_token %}
+        <input type="hidden" name="next" value="{{ next }}">
+        <label for="id_username">البريد الإلكتروني</label>
+        {{ form.username }}
+        <label for="id_password">كلمة المرور</label>
+        {{ form.password }}
+        <button type="submit" class="btn btn-primary">دخول</button>
+      </form>
+      <a class="link" href="{% url 'home' %}">العودة إلى الموقع</a>
+    </section>
+  </main>
+</body>
+</html>

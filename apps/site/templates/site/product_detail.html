@@ -1,0 +1,80 @@
+{% extends "site/base.html" %}
+{% block title %}{{ product.name }} | منصة الخدمات الرقمية{% endblock %}
+{% block content %}
+<section class="page-head">
+  <div>
+    <span class="eyebrow">{{ product.category.name }}</span>
+    <h1>{{ product.name }}</h1>
+    <p>{{ product.description|default:"صفحة منتج ديناميكية." }}</p>
+  </div>
+  <div class="mini-box">
+    <strong>{{ product.get_delivery_type_display }}</strong>
+    <span>نوع التسليم</span>
+  </div>
+</section>
+
+<section class="two-col">
+  <article class="panel">
+    <h2>الباقات</h2>
+    <form method="post" class="stack">
+      {% csrf_token %}
+      <label>اختر الباقة</label>
+      <select name="variant_id" required>
+        {% for variant in variants %}
+          <option value="{{ variant.id }}" {% if selected_variant and selected_variant.id == variant.id %}selected{% endif %}>
+            {{ variant.name }} - {{ variant.price }}
+          </option>
+        {% endfor %}
+      </select>
+      <label>الكمية</label>
+      <input type="number" name="quantity" min="1" value="1">
+      {% for field in product.form_fields.all %}
+        <label>{{ field.label }}</label>
+        {% if field.field_type == "select" %}
+          <select name="{{ field.key }}" {% if field.required %}required{% endif %}>
+            <option value="">اختر...</option>
+            {% for option in field.options %}
+              <option value="{{ option }}">{{ option }}</option>
+            {% endfor %}
+          </select>
+        {% else %}
+          <input type="{{ field.field_type }}" name="{{ field.key }}" placeholder="{{ field.placeholder }}" {% if field.required %}required{% endif %}>
+        {% endif %}
+      {% endfor %}
+      <button class="btn btn-primary" type="submit">إنشاء الطلب</button>
+    </form>
+  </article>
+
+  <aside class="panel">
+    <h2>معلومات</h2>
+    <ul class="check-list">
+      <li>واجهة الطلب تستخدم نفس خدمة `create_order`</li>
+      <li>الخصم يتم من المحفظة مباشرة</li>
+      <li>يُنشأ Invoice و OrderLog تلقائيًا</li>
+      <li>يمكن إضافة حقول مخصصة من لوحة الإدارة</li>
+    </ul>
+  </aside>
+</section>
+
+<section class="section">
+  <div class="section-head">
+    <h2>كل الباقات</h2>
+  </div>
+  <div class="grid">
+    {% for variant in variants %}
+      <article class="panel">
+        <div class="panel-top">
+          <span class="badge">{{ variant.sku }}</span>
+          <span class="muted">{{ variant.estimated_delivery_minutes }} دقيقة</span>
+        </div>
+        <h3>{{ variant.name }}</h3>
+        <p>السعر: {{ variant.price }} | الخصم: {{ variant.discount_percent }}%</p>
+        <div class="meta-row">
+          <span>تكلفة: {{ variant.cost }}</span>
+          <span>{% if variant.is_active %}نشطة{% else %}متوقفة{% endif %}</span>
+        </div>
+      </article>
+    {% endfor %}
+  </div>
+</section>
+{% endblock %}

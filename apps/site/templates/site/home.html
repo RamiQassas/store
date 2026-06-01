@@ -1,0 +1,108 @@
+{% extends "site/base.html" %}
+{% block title %}الرئيسية | منصة الخدمات الرقمية{% endblock %}
+{% block content %}
+<section class="hero">
+  <div class="hero-copy">
+    <span class="eyebrow">Digital Services & Marketplace</span>
+    <h1>منصة عربية احترافية لبيع الخدمات الرقمية والمنتجات والاشتراكات.</h1>
+    <p>واجهة عملية للمستخدم، ومحطة إدارة واضحة للموظفين، مع محفظة، طلبات، إيداعات، دعم، وإشعارات مترابطة من نفس قاعدة Django.</p>
+    <div class="hero-actions">
+      <a class="btn btn-primary" href="{% url 'catalog' %}">تصفح الكتالوج</a>
+      <a class="btn btn-ghost" href="{% url 'site_register' %}">ابدأ الآن</a>
+    </div>
+    <div class="stats-grid">
+      <article class="stat">
+        <strong>{{ stats.products }}</strong>
+        <span>منتج</span>
+      </article>
+      <article class="stat">
+        <strong>{{ stats.categories }}</strong>
+        <span>تصنيف</span>
+      </article>
+      <article class="stat">
+        <strong>{{ stats.orders }}</strong>
+        <span>طلب</span>
+      </article>
+      <article class="stat">
+        <strong>{{ stats.tickets }}</strong>
+        <span>تذكرة دعم</span>
+      </article>
+    </div>
+  </div>
+  <aside class="hero-panel">
+    <h2>خدمات جاهزة للنمو</h2>
+    <ul class="check-list">
+      <li>محفظة داخلية وسجل حركات كامل</li>
+      <li>إيداع يدوي وواجهة بنك جاهزة للربط</li>
+      <li>منتجات بصفحات ديناميكية وحقول مخصصة</li>
+      <li>لوحة للموظفين ولوحة Django Admin</li>
+    </ul>
+  </aside>
+</section>
+
+<section class="section">
+  <div class="section-head">
+    <h2>التصنيفات</h2>
+    <a href="{% url 'catalog' %}">عرض الكل</a>
+  </div>
+  <div class="chips">
+    {% for category in categories %}
+      <a class="chip" href="{% url 'catalog' %}?category={{ category.slug }}">{{ category.name }}</a>
+    {% empty %}
+      <div class="empty">لا توجد تصنيفات بعد.</div>
+    {% endfor %}
+  </div>
+</section>
+
+<section class="section">
+  <div class="section-head">
+    <h2>المنتجات المميزة</h2>
+    <a href="{% url 'catalog' %}">استعراض المزيد</a>
+  </div>
+  <div class="grid">
+    {% for product in featured_products %}
+      <article class="panel">
+        <div class="panel-top">
+          <span class="badge">{{ product.category.name }}</span>
+          <span class="muted">{{ product.variants.count }} باقة</span>
+        </div>
+        <h3>{{ product.name }}</h3>
+        <p>{{ product.description|default:"وصف مختصر للمنتج." }}</p>
+        <a class="btn btn-soft" href="{% url 'product_detail' product.slug %}">فتح الصفحة</a>
+      </article>
+    {% empty %}
+      <div class="empty">أضف بيانات تجريبية عبر `py manage.py seed_demo`.</div>
+    {% endfor %}
+  </div>
+</section>
+
+<section class="section">
+  <div class="section-head">
+    <h2>أفضل المنتجات</h2>
+  </div>
+  <div class="table-wrap">
+    <table class="table">
+      <thead>
+        <tr><th>المنتج</th><th>التصنيف</th><th>نوع التسليم</th><th>الحالة</th></tr>
+      </thead>
+      <tbody>
+        {% for product in top_products %}
+          <tr>
+            <td><a href="{% url 'product_detail' product.slug %}">{{ product.name }}</a></td>
+            <td>{{ product.category.name }}</td>
+            <td>{{ product.get_delivery_type_display }}</td>
+            <td>{% if product.is_active %}نشط{% else %}غير نشط{% endif %}</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section class="section faq">
+  <div class="panel">
+    <h2>كيف تبدأ؟</h2>
+    <p>سجّل حسابًا، أضف رصيدًا إلى المحفظة، ثم افتح صفحة المنتج وأكمل الحقول المطلوبة. الموظفون يديرون الطلبات والإيداعات من لوحة الإدارة الخاصة بهم.</p>
+  </div>
+</section>
+{% endblock %}

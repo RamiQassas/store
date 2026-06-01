@@ -1,0 +1,57 @@
+{% extends "site/base.html" %}
+{% block title %}المحفظة | منصة الخدمات الرقمية{% endblock %}
+{% block content %}
+<section class="page-head">
+  <div>
+    <span class="eyebrow">Wallet</span>
+    <h1>المحفظة</h1>
+    <p>عرض شامل للرصيد وسجل الحركات والمعاملات المالية.</p>
+  </div>
+  <div class="mini-box">
+    <strong>{{ wallet.available_balance }} {{ wallet.currency }}</strong>
+    <span>الرصيد المتاح</span>
+  </div>
+</section>
+
+<section class="two-col">
+  <article class="panel">
+    <div class="section-head">
+      <h2>سجل الحركات</h2>
+      <a href="{% url 'dashboard_deposits' %}">إيداع جديد</a>
+    </div>
+    <div class="stack-list">
+      {% for entry in ledger_entries %}
+        <div class="line-item">
+          <div>
+            <strong>{{ entry.get_entry_type_display }}</strong>
+            <p>{{ entry.description|default:"" }}</p>
+          </div>
+          <span class="badge">{{ entry.amount }}</span>
+        </div>
+      {% empty %}
+        <div class="empty">لا توجد حركات بعد.</div>
+      {% endfor %}
+    </div>
+  </article>
+
+  <article class="panel">
+    <div class="section-head">
+      <h2>المعاملات</h2>
+      <a href="{% url 'dashboard' %}">العودة للوحة</a>
+    </div>
+    <div class="stack-list">
+      {% for tx in transactions %}
+        <div class="line-item">
+          <div>
+            <strong>{{ tx.transaction_type }}</strong>
+            <p>{{ tx.get_status_display }}</p>
+          </div>
+          <span class="badge">{{ tx.amount }}</span>
+        </div>
+      {% empty %}
+        <div class="empty">لا توجد معاملات بعد.</div>
+      {% endfor %}
+    </div>
+  </article>
+</section>
+{% endblock %}

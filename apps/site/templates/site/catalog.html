@@ -1,0 +1,43 @@
+{% extends "site/base.html" %}
+{% block title %}الكتالوج | منصة الخدمات الرقمية{% endblock %}
+{% block content %}
+<section class="page-head">
+  <div>
+    <span class="eyebrow">Catalog</span>
+    <h1>الكتالوج</h1>
+    <p>تصفح المنتجات الرقمية، الاشتراكات، والبطاقات من واجهة واحدة.</p>
+  </div>
+  <form class="search-bar" method="get">
+    <input type="search" name="q" value="{{ query }}" placeholder="ابحث باسم المنتج أو التصنيف">
+    {% if active_category %}<input type="hidden" name="category" value="{{ active_category }}">{% endif %}
+    <button class="btn btn-primary" type="submit">بحث</button>
+  </form>
+</section>
+
+<div class="chips">
+  <a class="chip {% if not active_category %}active{% endif %}" href="{% url 'catalog' %}">الكل</a>
+  {% for category in categories %}
+    <a class="chip {% if active_category == category.slug %}active{% endif %}" href="{% url 'catalog' %}?category={{ category.slug }}">{{ category.name }}</a>
+  {% endfor %}
+</div>
+
+<section class="grid">
+  {% for product in products %}
+    <article class="panel">
+      <div class="panel-top">
+        <span class="badge">{{ product.category.name }}</span>
+        <span class="muted">{{ product.get_delivery_type_display }}</span>
+      </div>
+      <h3>{{ product.name }}</h3>
+      <p>{{ product.description|default:"صفحة منتج ديناميكية مع حقول وباقات." }}</p>
+      <div class="meta-row">
+        <span>{{ product.variants.count }} باقة</span>
+        <span>{% if product.is_featured %}مميز{% endif %}</span>
+      </div>
+      <a class="btn btn-soft" href="{% url 'product_detail' product.slug %}">تفاصيل المنتج</a>
+    </article>
+  {% empty %}
+    <div class="empty">لا توجد نتائج مطابقة.</div>
+  {% endfor %}
+</section>
+{% endblock %}

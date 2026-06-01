@@ -1,0 +1,49 @@
+:root {
+  --admin-bg: #0d1220;
+  --admin-panel: #12192c;
+  --admin-border: rgba(255,255,255,0.08);
+  --admin-text: #eef2ff;
+  --admin-muted: #a7b2cf;
+  --admin-accent: #7c9cff;
+}
+body, #container { font-family: "Cairo", sans-serif !important; }
+body { background: var(--admin-bg) !important; color: var(--admin-text) !important; }
+#header { background: rgba(17,24,39,0.95) !important; border-bottom: 1px solid var(--admin-border); }
+#branding h1, #branding h1 a, #user-tools a, #user-tools, .module caption, .breadcrumbs { color: var(--admin-text) !important; }
+.module, .inline-group, .dashboard .module, .admin-hero {
+  background: var(--admin-panel);
+  border: 1px solid var(--admin-border);
+  border-radius: 8px;
+  box-shadow: 0 16px 40px rgba(0,0,0,.28);
+}
+.module caption { background: transparent !important; }
+.button, input[type=submit], .submit-row input { background: linear-gradient(135deg, var(--admin-accent), #59d7c6) !important; color: #08111f !important; border: 0 !important; border-radius: 8px !important; }
+.admin-hero { padding: 20px; margin-bottom: 20px; display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+.admin-hero h1 { margin: 0 0 8px; }
+.admin-hero p, .help, .form-row, .aligned .form-row label { color: var(--admin-muted) !important; }
+.admin-login { margin: 0; min-height: 100vh; background:
+  radial-gradient(circle at top right, rgba(124,156,255,0.16), transparent 30%),
+  radial-gradient(circle at bottom left, rgba(89,215,198,0.12), transparent 25%),
+  var(--admin-bg); }
+.admin-login-shell { min-height: 100vh; display: grid; place-items: center; padding: 24px; }
+.admin-login-card {
+  width: min(100%, 520px);
+  padding: 28px;
+  background: rgba(17,24,39,0.92);
+  border: 1px solid var(--admin-border);
+  border-radius: 8px;
+  box-shadow: 0 24px 70px rgba(0,0,0,.35);
+}
+.admin-login-card h1 { margin: 6px 0 12px; }
+.admin-login-card p { color: var(--admin-muted); }
+.admin-login-card .stack { display: grid; gap: 10px; }
+.admin-login-card input[type=text], .admin-login-card input[type=password] {
+  width: 100%;
+  padding: 12px 14px;
+  border-radius: 8px;
+  border: 1px solid var(--admin-border);
+  background: rgba(255,255,255,0.05);
+  color: var(--admin-text);
+}
+.errornote { color: #ffb4bc !important; }
+.btn { display: inline-flex; align-items: center; justify-content: center; text-decoration: none; }

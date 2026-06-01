@@ -1,0 +1,73 @@
+{% load static %}
+<!doctype html>
+<html lang="ar" dir="rtl" data-theme="dark">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}منصة الخدمات الرقمية{% endblock %}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{% static 'site/css/app.css' %}">
+  <script defer src="https://cdn.jsdelivr.net/npm/lucide@0.468.0/dist/umd/lucide.min.js"></script>
+  <script defer src="{% static 'site/js/app.js' %}"></script>
+</head>
+<body>
+  <div class="backdrop"></div>
+  <header class="topbar">
+    <div class="brand">
+      <a href="{% url 'home' %}">منصة الخدمات الرقمية</a>
+      <span>Marketplace</span>
+    </div>
+    <nav class="nav">
+      <a href="{% url 'home' %}">الرئيسية</a>
+      <a href="{% url 'catalog' %}">الكتالوج</a>
+      <a href="{% url 'dashboard' %}">لوحتي</a>
+      {% if user.is_authenticated %}
+        <a href="{% url 'dashboard_wallet' %}">المحفظة</a>
+        <a href="{% url 'dashboard_deposits' %}">إيداع</a>
+      {% endif %}
+      {% if user.is_staff %}
+        <a href="{% url 'control_dashboard' %}">لوحة الإدارة</a>
+        <a href="{% url 'admin:index' %}">Django Admin</a>
+      {% endif %}
+    </nav>
+    <div class="actions">
+      <button class="icon-btn" type="button" data-theme-toggle title="تبديل المظهر">
+        <i data-lucide="sun"></i>
+      </button>
+      {% if user.is_authenticated %}
+        <a class="btn btn-ghost" href="{% url 'site_logout' %}">خروج</a>
+      {% else %}
+        <a class="btn btn-ghost" href="{% url 'site_login' %}">دخول</a>
+        <a class="btn btn-primary" href="{% url 'site_register' %}">إنشاء حساب</a>
+      {% endif %}
+    </div>
+  </header>
+
+  <main class="shell">
+    {% if messages %}
+      <section class="messages">
+        {% for message in messages %}
+          <div class="message {{ message.tags }}">{{ message }}</div>
+        {% endfor %}
+      </section>
+    {% endif %}
+    {% block content %}{% endblock %}
+  </main>
+
+  <footer class="footer">
+    <div>
+      <strong>منصة الخدمات الرقمية</strong>
+      <p>بنية Django قابلة للنمو، RTL جاهز، ومحفظة وطلبات وإيداعات ولوحة موظفين من نفس النواة.</p>
+    </div>
+    <div class="footer-links">
+      <a href="{% url 'catalog' %}">المنتجات</a>
+      <a href="{% url 'dashboard' %}">الحساب</a>
+      {% if user.is_staff %}
+        <a href="{% url 'admin:index' %}">الإدارة</a>
+      {% endif %}
+    </div>
+  </footer>
+</body>
+</html>

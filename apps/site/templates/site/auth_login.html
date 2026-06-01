@@ -1,0 +1,21 @@
+{% extends "site/base.html" %}
+{% block title %}تسجيل الدخول | منصة الخدمات الرقمية{% endblock %}
+{% block content %}
+<section class="auth-shell">
+  <article class="panel auth-panel">
+    <span class="eyebrow">Sign in</span>
+    <h1>تسجيل الدخول</h1>
+    <p>ادخل إلى حسابك لمتابعة الطلبات والمحفظة والإشعارات.</p>
+    <form method="post" class="stack">
+      {% csrf_token %}
+      {{ form.non_field_errors }}
+      <label>البريد الإلكتروني</label>
+      {{ form.email }}
+      <label>كلمة المرور</label>
+      {{ form.password }}
+      <button class="btn btn-primary" type="submit">دخول</button>
+    </form>
+    <a class="link" href="{% url 'site_register' %}">ليس لديك حساب؟ أنشئ حسابًا جديدًا</a>
+  </article>
+</section>
+{% endblock %}

@@ -1,0 +1,32 @@
+{% extends "site/base.html" %}
+{% block title %}الإيداعات | منصة الخدمات الرقمية{% endblock %}
+{% block content %}
+<section class="page-head">
+  <div>
+    <span class="eyebrow">Deposits</span>
+    <h1>طلب إيداع</h1>
+    <p>ارفع إثبات الدفع وأرسل الطلب للمراجعة اليدوية أو جهّز الربط البنكي لاحقًا.</p>
+  </div>
+</section>
+
+<section class="auth-shell">
+  <article class="panel auth-panel">
+    <form method="post" enctype="multipart/form-data" class="stack">
+      {% csrf_token %}
+      <label>طريقة الدفع</label>
+      <select name="provider" required>
+        {% for provider in providers %}
+          <option value="{{ provider.id }}">{{ provider.name }}</option>
+        {% endfor %}
+      </select>
+      <label>المبلغ</label>
+      <input type="number" name="amount" step="0.01" min="1" required>
+      <label>إثبات الدفع</label>
+      <input type="file" name="proof_image">
+      <label>ملاحظة</label>
+      <textarea name="customer_note" rows="4"></textarea>
+      <button class="btn btn-primary" type="submit">إرسال الطلب</button>
+    </form>
+  </article>
+</section>
+{% endblock %}

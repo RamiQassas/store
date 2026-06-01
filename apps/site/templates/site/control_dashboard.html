@@ -1,0 +1,85 @@
+{% extends "site/base.html" %}
+{% block title %}لوحة الإدارة | منصة الخدمات الرقمية{% endblock %}
+{% block content %}
+<section class="page-head">
+  <div>
+    <span class="eyebrow">Admin Control</span>
+    <h1>لوحة الإدارة</h1>
+    <p>واجهة تشغيل للموظفين تعرض الأرقام الأساسية والمهام السريعة، مع رابط مباشر إلى Django Admin.</p>
+  </div>
+  <div class="mini-box">
+    <strong>{{ stats.pending_deposits }}</strong>
+    <span>إيداعات معلقة</span>
+  </div>
+</section>
+
+<section class="stats-grid">
+  <article class="stat"><strong>{{ stats.users }}</strong><span>مستخدم</span></article>
+  <article class="stat"><strong>{{ stats.products }}</strong><span>منتج</span></article>
+  <article class="stat"><strong>{{ stats.orders }}</strong><span>طلب</span></article>
+  <article class="stat"><strong>{{ stats.open_tickets }}</strong><span>تذكرة مفتوحة</span></article>
+</section>
+
+<section class="two-col">
+  <article class="panel">
+    <div class="section-head"><h2>الطلبات الأخيرة</h2><a href="{% url 'admin:orders_order_changelist' %}">إدارة الطلبات</a></div>
+    <div class="stack-list">
+      {% for order in recent_orders %}
+        <div class="line-item">
+          <div>
+            <strong>{{ order.number }}</strong>
+            <p>{{ order.customer.email }} - {{ order.get_status_display }}</p>
+          </div>
+          <span class="badge">{{ order.total_amount }}</span>
+        </div>
+      {% empty %}
+        <div class="empty">لا توجد طلبات.</div>
+      {% endfor %}
+    </div>
+  </article>
+  <article class="panel">
+    <div class="section-head"><h2>الإيداعات الأخيرة</h2><a href="{% url 'admin:payments_depositrequest_changelist' %}">إدارة الإيداعات</a></div>
+    <div class="stack-list">
+      {% for deposit in recent_deposits %}
+        <div class="line-item">
+          <div>
+            <strong>{{ deposit.user.email }}</strong>
+            <p>{{ deposit.provider.name }} - {{ deposit.get_status_display }}</p>
+          </div>
+          <span class="badge">{{ deposit.amount }}</span>
+        </div>
+      {% empty %}
+        <div class="empty">لا توجد إيداعات.</div>
+      {% endfor %}
+    </div>
+  </article>
+</section>
+
+<section class="two-col">
+  <article class="panel">
+    <div class="section-head"><h2>أحدث المستخدمين</h2><a href="{% url 'admin:accounts_user_changelist' %}">إدارة المستخدمين</a></div>
+    <div class="stack-list">
+      {% for user in recent_users %}
+        <div class="line-item">
+          <div>
+            <strong>{{ user.email }}</strong>
+            <p>{{ user.get_role_display }}</p>
+          </div>
+          <span class="badge">{{ user.date_joined|date:"Y-m-d" }}</span>
+        </div>
+      {% empty %}
+        <div class="empty">لا يوجد مستخدمون بعد.</div>
+      {% endfor %}
+    </div>
+  </article>
+  <article class="panel">
+    <h2>روابط سريعة</h2>
+    <div class="quick-links">
+      <a href="{% url 'admin:index' %}">Django Admin</a>
+      <a href="{% url 'admin:catalog_product_changelist' %}">المنتجات</a>
+      <a href="{% url 'admin:orders_order_changelist' %}">الطلبات</a>
+      <a href="{% url 'admin:payments_depositrequest_changelist' %}">الإيداعات</a>
+    </div>
+  </article>
+</section>
+{% endblock %}
