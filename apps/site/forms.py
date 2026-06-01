@@ -33,3 +33,72 @@ class TicketForm(forms.Form):
         label="الرسالة",
         widget=forms.Textarea(attrs={"rows": 5, "placeholder": "اكتب تفاصيل المشكلة أو الطلب"}),
     )
+
+
+from apps.common.models import Currency
+from apps.payments.models import PaymentMethod
+
+class CurrencyForm(forms.ModelForm):
+    class Meta:
+        model = Currency
+        fields = ["name", "code", "symbol", "exchange_rate", "decimal_places", "display_order", "is_active", "is_default"]
+
+
+class PaymentMethodForm(forms.ModelForm):
+    class Meta:
+        model = PaymentMethod
+        fields = [
+            "name", "method_type", "provider_name", "logo", "icon", "description",
+            "display_order", "is_active", "is_maintenance_mode",
+            "can_deposit", "can_withdraw", "supported_currencies",
+            "account_number", "account_name", "iban", "wallet_address", "qr_image",
+            "instructions", "custom_notes", "min_amount", "max_amount",
+            "fixed_fee", "percentage_fee"
+        ]
+        widgets = {
+            "description": forms.Textarea(attrs={"rows": 3}),
+            "instructions": forms.Textarea(attrs={"rows": 3}),
+            "custom_notes": forms.Textarea(attrs={"rows": 3}),
+            "supported_currencies": forms.CheckboxSelectMultiple(),
+        }
+
+
+class ModerateUserForm(forms.ModelForm):
+    class Meta:
+        model = User
+        fields = [
+            "status", "tier", "restriction_withdrawals", "restriction_deposits", "restriction_purchases",
+            "suspension_reason", "admin_notes", "suspension_expires_at", "is_permanently_suspended"
+        ]
+        widgets = {
+            "suspension_expires_at": forms.DateTimeInput(attrs={"type": "datetime-local"}),
+            "suspension_reason": forms.Textarea(attrs={"rows": 3}),
+            "admin_notes": forms.Textarea(attrs={"rows": 3}),
+        }
+
+
+from apps.catalog.models import Category, Product, ProductVariant
+
+class CategoryForm(forms.ModelForm):
+    class Meta:
+        model = Category
+        fields = ["name", "slug", "parent", "icon", "is_active", "sort_order"]
+
+
+class ProductForm(forms.ModelForm):
+    class Meta:
+        model = Product
+        fields = [
+            "name", "slug", "category", "image", "cover_image", "thumbnail", "icon",
+            "description", "instructions", "delivery_type", "is_active", "is_featured", "sort_order"
+        ]
+        widgets = {
+            "description": forms.Textarea(attrs={"rows": 4}),
+            "instructions": forms.Textarea(attrs={"rows": 4}),
+        }
+
+
+class VariantForm(forms.ModelForm):
+    class Meta:
+        model = ProductVariant
+        fields = ["name", "sku", "price", "cost", "discount_percent", "estimated_delivery_minutes", "is_active", "sort_order"]

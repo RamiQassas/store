@@ -1,0 +1,75 @@
+{% extends "site/base.html" %}
+{% block title %}إدارة المستخدمين | Raqamiyat Admin{% endblock %}
+{% block content %}
+<section class="page-head">
+  <div>
+    <span class="eyebrow">Admin / Accounts</span>
+    <h1>إدارة المستخدمين</h1>
+    <p>عرض جميع المستخدمين وحالات حساباتهم مع إمكانية البحث والفلترة.</p>
+  </div>
+</section>
+
+<section class="section">
+  <div class="mb-6">
+    <form method="get" class="flex gap-2">
+      <input type="text" name="q" value="{{ query }}" placeholder="بحث بالبريد، الهاتف، أو الاسم..." class="w-full bg-slate-800 border-slate-700 rounded p-2 text-white">
+      <button type="submit" class="btn btn-primary">بحث</button>
+      {% if query %}
+        <a href="{% url 'control_users_list' %}" class="btn btn-outline">مسح</a>
+      {% endif %}
+    </form>
+  </div>
+
+  <div class="table-wrap">
+    <table class="table">
+      <thead>
+        <tr>
+          <th>المستخدم</th>
+          <th>الدور</th>
+          <th>الحالة</th>
+          <th>الرصيد المتاح</th>
+          <th>تاريخ الانضمام</th>
+          <th>إجراءات</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for u in users %}
+          <tr>
+            <td>
+              <div class="flex flex-col">
+                <strong>{{ u.email }}</strong>
+                <small class="text-slate-500">{{ u.first_name }} {{ u.last_name }}</small>
+                {% if u.phone %}<small class="text-slate-500">{{ u.phone }}</small>{% endif %}
+              </div>
+            </td>
+            <td><span class="badge muted">{{ u.get_role_display }}</span></td>
+            <td>
+              <span class="badge 
+                {% if u.status == 'active' %}success
+                {% elif u.status == 'suspended' %}warning
+                {% elif u.status == 'banned' %}danger
+                {% else %}info{% endif %}">
+                {{ u.get_status_display }}
+              </span>
+            </td>
+            <td><strong>{{ u.wallet.available_balance }}</strong> {{ u.wallet.currency.code }}</td>
+            <td>{{ u.date_joined|date:"Y-m-d" }}</td>
+            <td>
+              <a href="{% url 'control_user_moderate' u.pk %}" class="btn btn-sm btn-outline">إدارة وحظر</a>
+            </td>
+          </tr>
+        {% empty %}
+          <tr><td colspan="6">لا يوجد مستخدمون مطابقون للبحث.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<style>
+.badge.danger { background: #ef4444; }
+.badge.success { background: #22c55e; }
+.badge.warning { background: #f59e0b; }
+.badge.info { background: #3b82f6; }
+</style>
+{% endblock %}

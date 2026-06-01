@@ -1,0 +1,136 @@
+{% extends "site/base.html" %}
+{% block title %}سحب رصيد | Raqamiyat{% endblock %}
+{% block content %}
+<section class="page-head">
+  <div>
+    <span class="eyebrow">Withdraw</span>
+    <h1>سحب رصيد من المحفظة</h1>
+    <p>اختر وسيلة السحب المفضلة، أدخل المبلغ وبيانات الاستلام، وسيتم معالجة طلبك قريباً.</p>
+  </div>
+</section>
+
+<section class="auth-shell">
+  <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+    <!-- Withdrawal Methods List -->
+    <div class="md:col-span-1 stack gap-4">
+      <h3 class="font-bold text-lg">اختر وسيلة السحب</h3>
+      {% for method in payment_methods %}
+      <div class="panel p-4 cursor-pointer hover:border-cyan transition method-card {% if forloop.first %}border-cyan{% endif %}" 
+           onclick="selectMethod('{{ method.id }}', '{{ method.name }}', '{{ method.min_amount }}', '{{ method.max_amount }}', '{{ method.fixed_fee }}', '{{ method.percentage_fee }}', '{{ method.description|linebreaksbr }}', [{% for c in method.supported_currencies.all %}{id:'{{c.id}}', code:'{{c.code}}', symbol:'{{c.symbol}}'}{% if not forloop.last %},{% endif %}{% endfor %}])">
+        <div class="flex items-center gap-3">
+          {% if method.logo %}
+            <img src="{{ method.logo.url }}" alt="{{ method.name }}" class="w-10 h-10 rounded object-contain bg-white">
+          {% else %}
+            <div class="w-10 h-10 bg-slate-800 rounded flex items-center justify-center">
+              <i class="fas {{ method.icon|default:'fa-university' }} text-cyan"></i>
+            </div>
+          {% endif %}
+          <div>
+            <div class="font-bold">{{ method.name }}</div>
+            <div class="text-xs text-slate-400">{{ method.get_method_type_display }}</div>
+          </div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+
+    <!-- Withdrawal Form -->
+    <div class="md:col-span-2">
+      <article class="panel p-6 stack gap-6">
+        <div id="method-details" class="stack gap-4 pb-6 border-b border-slate-700">
+          <h3 class="font-bold text-xl text-cyan" id="detail-name">اختر وسيلة سحب</h3>
+          <p id="detail-description" class="text-sm text-slate-300"></p>
+          
+          <div class="text-xs text-amber-400" id="detail-limits">
+            الحد الأدنى: <span id="limit-min">0</span> | الحد الأقصى: <span id="limit-max">0</span>
+          </div>
+          <div class="text-xs text-slate-400" id="detail-fees">
+            الرسوم: <span id="fee-fixed">0</span> + <span id="fee-percent">0</span>%
+          </div>
+        </div>
+
+        <form method="post" class="stack gap-4">
+          {% csrf_token %}
+          <input type="hidden" name="payment_method" id="selected-method-id">
+          
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label class="block mb-2 text-sm">العملة</label>
+              <select name="currency" id="currency-select" required class="w-full bg-slate-800 border-slate-700 rounded p-2 text-white">
+                <!-- Populated by JS -->
+              </select>
+            </div>
+            <div>
+              <label class="block mb-2 text-sm">المبلغ المراد سحبه</label>
+              <input type="number" name="amount" id="amount-input" step="1" required class="w-full bg-slate-800 border-slate-700 rounded p-2 text-white">
+            </div>
+          </div>
+
+          <div>
+            <label class="block mb-2 text-sm">بيانات التحويل (رقم الحساب / المحفظة)</label>
+            <input type="text" name="payout_details" placeholder="أدخل رقم حسابك أو عنوان محفظتك" required class="w-full bg-slate-800 border-slate-700 rounded p-2 text-white">
+          </div>
+
+          <div class="bg-cyan/10 p-4 rounded border border-cyan/20 flex justify-between items-center">
+            <div>
+              <div class="text-xs text-slate-400">المبلغ النهائي الذي ستستلمه:</div>
+              <div class="text-xl font-bold text-cyan"><span id="net-amount">0</span> <span id="net-currency"></span></div>
+            </div>
+            <button class="btn btn-primary px-8" type="submit">تأكيد طلب السحب</button>
+          </div>
+        </form>
+      </article>
+    </div>
+  </div>
+</section>
+
+<script>
+function selectMethod(id, name, min, max, fixed, percent, desc, currencies) {
+    document.getElementById('selected-method-id').value = id;
+    document.getElementById('detail-name').innerText = name;
+    document.getElementById('detail-description').innerHTML = desc;
+    document.getElementById('limit-min').innerText = min;
+    document.getElementById('limit-max').innerText = max;
+    document.getElementById('fee-fixed').innerText = fixed;
+    document.getElementById('fee-percent').innerText = percent;
+    
+    // Populate currencies
+    const select = document.getElementById('currency-select');
+    select.innerHTML = '';
+    currencies.forEach(c => {
+        const opt = document.createElement('option');
+        opt.value = c.id;
+        opt.text = `${c.code} (${c.symbol})`;
+        select.appendChild(opt);
+    });
+
+    // Highlight card
+    document.querySelectorAll('.method-card').forEach(c => c.classList.remove('border-cyan'));
+    event.currentTarget.classList.add('border-cyan');
+    
+    calculateNet();
+}
+
+function calculateNet() {
+    const amount = parseFloat(document.getElementById('amount-input').value) || 0;
+    const fixed = parseFloat(document.getElementById('fee-fixed').innerText) || 0;
+    const percent = parseFloat(document.getElementById('fee-percent').innerText) || 0;
+    
+    const totalFee = fixed + (amount * percent / 100);
+    const net = Math.max(0, amount - totalFee);
+    
+    const currencyText = document.getElementById('currency-select').selectedOptions[0]?.text.split(' ')[0] || '';
+    document.getElementById('net-amount').innerText = net.toLocaleString();
+    document.getElementById('net-currency').innerText = currencyText;
+}
+
+document.getElementById('amount-input').addEventListener('input', calculateNet);
+document.getElementById('currency-select').addEventListener('change', calculateNet);
+
+// Select first method on load
+window.onload = () => {
+    const firstCard = document.querySelector('.method-card');
+    if (firstCard) firstCard.click();
+};
+</script>
+{% endblock %}

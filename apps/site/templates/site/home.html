@@ -1,108 +1,127 @@
 {% extends "site/base.html" %}
-{% block title %}الرئيسية | منصة الخدمات الرقمية{% endblock %}
+{% block title %}Raqamiyat | متجر الخدمات الرقمية الأول{% endblock %}
 {% block content %}
-<section class="hero">
-  <div class="hero-copy">
-    <span class="eyebrow">Digital Services & Marketplace</span>
-    <h1>منصة عربية احترافية لبيع الخدمات الرقمية والمنتجات والاشتراكات.</h1>
-    <p>واجهة عملية للمستخدم، ومحطة إدارة واضحة للموظفين، مع محفظة، طلبات، إيداعات، دعم، وإشعارات مترابطة من نفس قاعدة Django.</p>
-    <div class="hero-actions">
-      <a class="btn btn-primary" href="{% url 'catalog' %}">تصفح الكتالوج</a>
-      <a class="btn btn-ghost" href="{% url 'site_register' %}">ابدأ الآن</a>
+<section class="hero-section">
+    <span class="eyebrow">أهلاً بك في روقميات</span>
+    <h1>أسرع منصة لشحن الألعاب والخدمات الرقمية</h1>
+    <p>اشحن شدات ببجي، بطاقات جوجل بلاي، اشتراكات بريميوم، وأكثر من 500 خدمة رقمية بضغطة زر واحدة وتسليم فوري.</p>
+    <div class="flex justify-center gap-4">
+        <a href="{% url 'catalog' %}" class="btn btn-primary px-10 py-4 text-lg">تصفح الخدمات الآن</a>
+        {% if not user.is_authenticated %}
+            <a href="{% url 'site_register' %}" class="btn btn-outline px-10 py-4 text-lg">إنشاء حساب مجاني</a>
+        {% endif %}
     </div>
-    <div class="stats-grid">
-      <article class="stat">
-        <strong>{{ stats.products }}</strong>
-        <span>منتج</span>
-      </article>
-      <article class="stat">
-        <strong>{{ stats.categories }}</strong>
-        <span>تصنيف</span>
-      </article>
-      <article class="stat">
-        <strong>{{ stats.orders }}</strong>
-        <span>طلب</span>
-      </article>
-      <article class="stat">
-        <strong>{{ stats.tickets }}</strong>
-        <span>تذكرة دعم</span>
-      </article>
+</section>
+
+<!-- Stats Bar -->
+<section class="grid grid-4 gap-6 mb-16">
+    <div class="panel p-6 text-center">
+        <i class="fas fa-shopping-basket text-3xl text-cyan mb-3"></i>
+        <strong class="text-3xl block">{{ stats.orders|add:1500 }}+</strong>
+        <span class="text-sm text-slate-400">طلب مكتمل</span>
     </div>
-  </div>
-  <aside class="hero-panel">
-    <h2>خدمات جاهزة للنمو</h2>
-    <ul class="check-list">
-      <li>محفظة داخلية وسجل حركات كامل</li>
-      <li>إيداع يدوي وواجهة بنك جاهزة للربط</li>
-      <li>منتجات بصفحات ديناميكية وحقول مخصصة</li>
-      <li>لوحة للموظفين ولوحة Django Admin</li>
-    </ul>
-  </aside>
+    <div class="panel p-6 text-center">
+        <i class="fas fa-users text-3xl text-cyan mb-3"></i>
+        <strong class="text-3xl block">{{ stats.users|add:800 }}+</strong>
+        <span class="text-sm text-slate-400">عميل نشط</span>
+    </div>
+    <div class="panel p-6 text-center">
+        <i class="fas fa-bolt text-3xl text-cyan mb-3"></i>
+        <strong class="text-3xl block">30 ثانية</strong>
+        <span class="text-sm text-slate-400">متوسط وقت التسليم</span>
+    </div>
+    <div class="panel p-6 text-center">
+        <i class="fas fa-headset text-3xl text-cyan mb-3"></i>
+        <strong class="text-3xl block">24/7</strong>
+        <span class="text-sm text-slate-400">دعم فني مباشر</span>
+    </div>
 </section>
 
-<section class="section">
-  <div class="section-head">
-    <h2>التصنيفات</h2>
-    <a href="{% url 'catalog' %}">عرض الكل</a>
-  </div>
-  <div class="chips">
-    {% for category in categories %}
-      <a class="chip" href="{% url 'catalog' %}?category={{ category.slug }}">{{ category.name }}</a>
-    {% empty %}
-      <div class="empty">لا توجد تصنيفات بعد.</div>
-    {% endfor %}
-  </div>
-</section>
-
-<section class="section">
-  <div class="section-head">
-    <h2>المنتجات المميزة</h2>
-    <a href="{% url 'catalog' %}">استعراض المزيد</a>
-  </div>
-  <div class="grid">
-    {% for product in featured_products %}
-      <article class="panel">
-        <div class="panel-top">
-          <span class="badge">{{ product.category.name }}</span>
-          <span class="muted">{{ product.variants.count }} باقة</span>
-        </div>
-        <h3>{{ product.name }}</h3>
-        <p>{{ product.description|default:"وصف مختصر للمنتج." }}</p>
-        <a class="btn btn-soft" href="{% url 'product_detail' product.slug %}">فتح الصفحة</a>
-      </article>
-    {% empty %}
-      <div class="empty">أضف بيانات تجريبية عبر `py manage.py seed_demo`.</div>
-    {% endfor %}
-  </div>
-</section>
-
-<section class="section">
-  <div class="section-head">
-    <h2>أفضل المنتجات</h2>
-  </div>
-  <div class="table-wrap">
-    <table class="table">
-      <thead>
-        <tr><th>المنتج</th><th>التصنيف</th><th>نوع التسليم</th><th>الحالة</th></tr>
-      </thead>
-      <tbody>
-        {% for product in top_products %}
-          <tr>
-            <td><a href="{% url 'product_detail' product.slug %}">{{ product.name }}</a></td>
-            <td>{{ product.category.name }}</td>
-            <td>{{ product.get_delivery_type_display }}</td>
-            <td>{% if product.is_active %}نشط{% else %}غير نشط{% endif %}</td>
-          </tr>
+<!-- Featured Categories -->
+<section class="mb-16">
+    <div class="section-head">
+        <h2>أقسام الخدمات</h2>
+        <a href="{% url 'catalog' %}" class="text-cyan text-sm">عرض الكل <i class="fas fa-arrow-left"></i></a>
+    </div>
+    <div class="grid grid-4 gap-6">
+        {% for cat in categories %}
+            <a href="{% url 'catalog' %}?category={{ cat.slug }}" class="panel p-6 hover:border-cyan transition group text-center">
+                <div class="w-16 h-16 bg-slate-800 rounded-2xl mx-auto flex items-center justify-center mb-4 group-hover:bg-cyan/10 transition">
+                    <i class="fas {{ cat.icon|default:'fa-folder' }} text-2xl text-cyan"></i>
+                </div>
+                <h3 class="font-bold text-lg mb-1">{{ cat.name }}</h3>
+                <p class="text-xs text-slate-500">{{ cat.products.count }} منتج متاح</p>
+            </a>
         {% endfor %}
-      </tbody>
-    </table>
-  </div>
+    </div>
 </section>
 
-<section class="section faq">
-  <div class="panel">
-    <h2>كيف تبدأ؟</h2>
-    <p>سجّل حسابًا، أضف رصيدًا إلى المحفظة، ثم افتح صفحة المنتج وأكمل الحقول المطلوبة. الموظفون يديرون الطلبات والإيداعات من لوحة الإدارة الخاصة بهم.</p>
-  </div>
+<!-- Featured Products -->
+<section class="mb-16">
+    <div class="section-head">
+        <h2>الخدمات الأكثر طلباً</h2>
+    </div>
+    <div class="grid grid-3 gap-8">
+        {% for p in featured_products %}
+            <div class="panel overflow-hidden group">
+                <div class="relative h-48 overflow-hidden">
+                    {% if p.image %}
+                        <img src="{{ p.image.url }}" class="w-full h-full object-cover group-hover:scale-110 transition duration-500">
+                    {% else %}
+                        <div class="w-full h-full bg-slate-800 flex items-center justify-center">
+                            <i class="fas fa-box-open text-5xl text-slate-700"></i>
+                        </div>
+                    {% endif %}
+                    <div class="absolute top-4 right-4">
+                        <span class="badge success">فوري</span>
+                    </div>
+                </div>
+                <div class="p-6">
+                    <span class="eyebrow" style="font-size: 0.7rem;">{{ p.category.name }}</span>
+                    <h3 class="font-bold text-xl mb-2">{{ p.name }}</h3>
+                    <p class="text-sm text-slate-400 mb-6 line-clamp-2">{{ p.description }}</p>
+                    <div class="flex justify-between items-center">
+                        <div>
+                            <small class="text-slate-500 block">يبدأ من</small>
+                            <strong class="text-xl text-cyan">{{ p.variants.first.price }}</strong>
+                        </div>
+                        <a href="{% url 'product_detail' p.slug %}" class="btn btn-primary btn-sm">اطلب الآن</a>
+                    </div>
+                </div>
+            </div>
+        {% endfor %}
+    </div>
 </section>
+
+<!-- Trust Section -->
+<section class="panel p-10 bg-gradient-to-l from-slate-900 to-slate-800 border-none mb-16">
+    <div class="grid grid-2 gap-10 items-center">
+        <div>
+            <h2 class="text-3xl font-black mb-6">لماذا تختار روقميات؟</h2>
+            <div class="stack gap-6">
+                <div class="flex gap-4">
+                    <div class="w-12 h-12 bg-cyan/20 rounded-full flex shrink-0 items-center justify-center text-cyan"><i class="fas fa-shield-alt"></i></div>
+                    <div>
+                        <strong class="block mb-1">أمان كامل وضمان 100%</strong>
+                        <p class="text-sm text-slate-400">نحن وسيط معتمد ونضمن لك وصول الخدمة أو استعادة أموالك فوراً.</p>
+                    </div>
+                </div>
+                <div class="flex gap-4">
+                    <div class="w-12 h-12 bg-cyan/20 rounded-full flex shrink-0 items-center justify-center text-cyan"><i class="fas fa-wallet"></i></div>
+                    <div>
+                        <strong class="block mb-1">تعدد وسائل الدفع</strong>
+                        <p class="text-sm text-slate-400">ندعم جميع المحافظ الإلكترونية، التحويلات البنكية، والعملات الرقمية.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="text-center hidden md:block">
+            <i class="fas fa-rocket text-[120px] text-cyan/20 animate-bounce"></i>
+        </div>
+    </div>
+</section>
+
+<style>
+.line-clamp-2 { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+</style>
 {% endblock %}

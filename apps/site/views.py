@@ -4,17 +4,22 @@ from django.contrib import messages
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
 from django.contrib.admin.views.decorators import staff_member_required
-from django.db.models import Q
+from django.db import transaction
+from django.db.models import Q, Sum, Count
 from django.http import Http404
 from django.shortcuts import get_object_or_404, redirect, render
+from django.utils import timezone
+from datetime import timedelta
 
-from apps.accounts.models import User
+from apps.accounts.models import User, ModerationLog, ActivityLog
 from apps.catalog.models import Category, Product, ProductVariant
+from apps.common.models import Currency
 from apps.notifications.models import Notification
-from apps.orders.models import Order
-from apps.payments.models import DepositRequest, PaymentProvider
-from apps.site.forms import LoginForm, RegisterForm, TicketForm
-from apps.support.models import Ticket
+from apps.notifications.services import notify_user
+from apps.orders.models import Order, OrderItem, OrderLog, Coupon
+from apps.payments.models import DepositRequest, PaymentMethod, WithdrawalRequest
+from apps.site.forms import LoginForm, RegisterForm, TicketForm, PaymentMethodForm, CurrencyForm, ModerateUserForm, ProductForm, VariantForm
+from apps.support.models import Ticket, TicketMessage, CannedReply
 from apps.wallets.models import LedgerEntry, Wallet, WalletTransaction
 
 
@@ -27,6 +32,7 @@ def home(request):
         "categories": categories.count(),
         "orders": Order.objects.count(),
         "tickets": Ticket.objects.count(),
+        "users": User.objects.count(),
     }
     return render(
         request,
@@ -61,6 +67,12 @@ def product_detail(request, slug):
         if not request.user.is_authenticated:
             messages.info(request, "سجّل الدخول أولاً لإتمام الطلب.")
             return redirect("site_login")
+        
+        # Check if user is restricted from purchases
+        if request.user.status != User.Status.ACTIVE and request.user.restriction_purchases:
+            messages.error(request, "حسابك مقيد من عمليات الشراء. يرجى التواصل مع الدعم.")
+            return redirect("dashboard")
+
         variant_id = request.POST.get("variant_id")
         quantity = max(int(request.POST.get("quantity", 1)), 1)
         fulfillment_data = {}
@@ -81,6 +93,22 @@ def product_detail(request, slug):
 
                     order = create_order(request.user, variant.id, quantity=quantity, fulfillment_data=fulfillment_data)
                     messages.success(request, f"تم إنشاء الطلب {order.number} بنجاح.")
+                    
+                    notify_user(
+                        user=request.user,
+                        title="تم إنشاء الطلب بنجاح",
+                        body=f"طلبك رقم {order.number} قيد المعالجة الآن.",
+                        action_url="/dashboard/",
+                        priority="normal"
+                    )
+                    
+                    ActivityLog.objects.create(
+                        user=request.user,
+                        action="Order Created",
+                        description=f"Created order {order.number} for {total} SYP",
+                        metadata={"order_id": str(order.id)}
+                    )
+                    
                     return redirect("dashboard")
             except ProductVariant.DoesNotExist:
                 messages.error(request, "الباقة المختارة غير موجودة.")
@@ -102,8 +130,21 @@ def login_view(request):
     if request.method == "POST" and form.is_valid():
         user = authenticate(username=form.cleaned_data["email"], password=form.cleaned_data["password"])
         if user:
+            if not user.is_account_active:
+                messages.error(request, f"هذا الحساب معطل أو موقوف. السبب: {user.suspension_reason or 'غير محدد'}")
+                return render(request, "site/auth_login.html", {"form": form})
+            
             login(request, user)
             messages.success(request, "مرحبًا بك مرة أخرى.")
+            
+            ActivityLog.objects.create(
+                user=user,
+                action="Login",
+                description="User logged into the platform",
+                ip_address=request.META.get('REMOTE_ADDR'),
+                user_agent=request.META.get('HTTP_USER_AGENT', '')
+            )
+            
             return redirect("dashboard")
         messages.error(request, "بيانات الدخول غير صحيحة.")
     return render(request, "site/auth_login.html", {"form": form})
@@ -123,11 +164,24 @@ def register_view(request):
         )
         login(request, user)
         messages.success(request, "تم إنشاء الحساب وربطه بمحفظة تلقائيًا.")
+        
+        ActivityLog.objects.create(
+            user=user,
+            action="Register",
+            description="New account registered"
+        )
+        
         return redirect("dashboard")
     return render(request, "site/auth_register.html", {"form": form})
 
 
 def logout_view(request):
+    if request.user.is_authenticated:
+        ActivityLog.objects.create(
+            user=request.user,
+            action="Logout",
+            description="User logged out"
+        )
     logout(request)
     messages.info(request, "تم تسجيل الخروج.")
     return redirect("home")
@@ -135,13 +189,16 @@ def logout_view(request):
 
 @login_required
 def dashboard(request):
+    if request.user.status != User.Status.ACTIVE:
+        messages.warning(request, f"تنبيه: حسابك في حالة ({request.user.get_status_display()}). بعض الميزات قد تكون مقيدة.")
+    
     wallet, _ = Wallet.objects.get_or_create(user=request.user)
     recent_ledger = wallet.ledger_entries.select_related("created_by")[:8]
     recent_transactions = wallet.transactions.all()[:8]
     orders = request.user.orders.select_related("invoice", "coupon").prefetch_related("items__variant__product")[:6]
-    deposits = request.user.deposits.select_related("provider")[:6]
-    notifications = request.user.notifications.order_by("-created_at")[:8]
-    tickets = request.user.tickets.prefetch_related("messages")[:5]
+    deposits_list = request.user.deposits.select_related("payment_method", "currency")[:6]
+    notifications_list = request.user.notifications.all()[:8]
+    tickets_list = request.user.tickets.all()[:5]
     stats = {
         "orders": request.user.orders.count(),
         "deposits": request.user.deposits.count(),
@@ -156,9 +213,9 @@ def dashboard(request):
             "recent_ledger": recent_ledger,
             "recent_transactions": recent_transactions,
             "orders": orders,
-            "deposits": deposits,
-            "notifications": notifications,
-            "tickets": tickets,
+            "deposits": deposits_list,
+            "notifications": notifications_list,
+            "tickets": tickets_list,
             "stats": stats,
         },
     )
@@ -180,53 +237,165 @@ def wallet_page(request):
 
 @login_required
 def deposits(request):
-    providers = PaymentProvider.objects.filter(is_active=True)
+    if request.user.status != User.Status.ACTIVE and request.user.restriction_deposits:
+        messages.error(request, "حسابك مقيد من عمليات الإيداع. يرجى التواصل مع الدعم.")
+        return redirect("dashboard")
+
+    methods = PaymentMethod.objects.filter(is_active=True, can_deposit=True).prefetch_related("supported_currencies")
     if request.method == "POST":
-        provider_id = request.POST.get("provider")
-        amount = request.POST.get("amount")
+        method_id = request.POST.get("payment_method")
+        currency_id = request.POST.get("currency")
+        amount = Decimal(request.POST.get("amount", "0"))
+        transaction_id = request.POST.get("transaction_id", "")
         proof = request.FILES.get("proof_image")
         customer_note = request.POST.get("customer_note", "")
-        provider = get_object_or_404(providers, id=provider_id)
-        deposit = DepositRequest.objects.create(
-            user=request.user,
-            provider=provider,
-            amount=amount,
-            currency="SYP",
-            proof_image=proof,
-            customer_note=customer_note,
-            metadata={"source": "site"},
-        )
-        messages.success(request, f"تم إنشاء طلب الإيداع رقم {deposit.id}.")
-        return redirect("dashboard")
-    return render(request, "site/deposits.html", {"providers": providers})
+        
+        method = get_object_or_404(methods, id=method_id)
+        currency = get_object_or_404(Currency, id=currency_id)
+        
+        if amount < method.min_amount or amount > method.max_amount:
+            messages.error(request, f"المبلغ يجب أن يكون بين {method.min_amount} و {method.max_amount}.")
+        elif method.is_maintenance_mode:
+            messages.error(request, "وسيلة الدفع هذه حالياً في وضع الصيانة.")
+        elif not method.supported_currencies.filter(id=currency.id).exists():
+             messages.error(request, "هذه العملة غير مدعومة لوسيلة الدفع المختارة.")
+        else:
+            with transaction.atomic():
+                deposit = DepositRequest.objects.create(
+                    user=request.user,
+                    payment_method=method,
+                    amount=amount,
+                    currency=currency,
+                    transaction_id=transaction_id,
+                    proof_image=proof,
+                    customer_note=customer_note,
+                    metadata={"source": "site"},
+                )
+                from apps.wallets.services import track_pending_deposit
+                wallet, _ = Wallet.objects.get_or_create(user=request.user)
+                track_pending_deposit(
+                    wallet_id=wallet.id,
+                    amount=amount,
+                    reference=f"deposit:{deposit.id}",
+                    description=f"إيداع معلق ({currency.code}) عبر {method.name}",
+                    created_by=request.user
+                )
+                messages.success(request, f"تم استلام طلب الإيداع رقم {deposit.id} وهو قيد المراجعة.")
+                
+                ActivityLog.objects.create(
+                    user=request.user,
+                    action="Deposit Request",
+                    description=f"Requested deposit of {amount} {currency.code}",
+                    metadata={"deposit_id": str(deposit.id)}
+                )
+                
+                return redirect("dashboard")
+            
+    return render(request, "site/deposits.html", {"payment_methods": methods})
 
 
 @login_required
 def tickets(request):
-    form = TicketForm(request.POST or None)
-    if request.method == "POST" and form.is_valid():
-        ticket = Ticket.objects.create(
-            user=request.user,
-            subject=form.cleaned_data["subject"],
-            priority=form.cleaned_data["priority"],
-        )
-        ticket.messages.create(sender=request.user, message=form.cleaned_data["initial_message"])
-        messages.success(request, "تم إنشاء التذكرة بنجاح.")
-        return redirect("dashboard_tickets")
-    return render(request, "site/tickets.html", {"tickets": request.user.tickets.prefetch_related("messages"), "form": form})
+    if request.method == "POST":
+        subject = request.POST.get("subject")
+        message = request.POST.get("message")
+        priority = request.POST.get("priority", "normal")
+        attachment = request.FILES.get("attachment")
+        
+        if not subject or not message:
+            messages.error(request, "يرجى إدخال العنوان والرسالة.")
+        else:
+            with transaction.atomic():
+                ticket = Ticket.objects.create(
+                    user=request.user,
+                    subject=subject,
+                    priority=priority,
+                    is_read_by_user=True,
+                    is_read_by_staff=False
+                )
+                TicketMessage.objects.create(
+                    ticket=ticket,
+                    sender=request.user,
+                    message=message,
+                    attachment=attachment
+                )
+                messages.success(request, "تم إنشاء التذكرة بنجاح.")
+                return redirect("ticket_detail", pk=ticket.pk)
+                
+    tickets_list = request.user.tickets.all()
+    return render(request, "site/tickets.html", {"tickets": tickets_list})
+
+
+@login_required
+def ticket_detail(request, pk):
+    ticket = get_object_or_404(Ticket.objects.select_related("user"), pk=pk)
+    if not request.user.is_staff and ticket.user != request.user:
+        raise Http404
+        
+    if request.method == "POST":
+        message_text = request.POST.get("message")
+        attachment = request.FILES.get("attachment")
+        
+        if message_text:
+            with transaction.atomic():
+                TicketMessage.objects.create(
+                    ticket=ticket,
+                    sender=request.user,
+                    message=message_text,
+                    attachment=attachment,
+                    is_staff_reply=request.user.is_staff
+                )
+                ticket.last_reply_at = timezone.now()
+                if request.user.is_staff:
+                    ticket.status = Ticket.Status.ANSWERED
+                    ticket.is_read_by_user = False
+                    ticket.is_read_by_staff = True
+                    
+                    notify_user(
+                        user=ticket.user,
+                        title="رد جديد على تذكرة الدعم",
+                        body=f"لقد قام فريق الدعم بالرد على تذكرتك: {ticket.subject}",
+                        action_url=f"/dashboard/tickets/{ticket.pk}/",
+                        priority="high"
+                    )
+                else:
+                    ticket.status = Ticket.Status.OPEN
+                    ticket.is_read_by_user = True
+                    ticket.is_read_by_staff = False
+                ticket.save()
+                
+            return redirect("ticket_detail", pk=ticket.pk)
+
+    if not request.user.is_staff:
+        ticket.is_read_by_user = True
+        ticket.save(update_fields=["is_read_by_user"])
+    else:
+        ticket.is_read_by_staff = True
+        ticket.save(update_fields=["is_read_by_staff"])
+        
+    messages_list = ticket.messages.select_related("sender").all()
+    canned_replies = CannedReply.objects.filter(is_active=True) if request.user.is_staff else None
+    
+    template = "site/control_ticket_detail.html" if request.user.is_staff else "site/ticket_detail.html"
+    return render(request, template, {
+        "ticket": ticket, 
+        "messages_list": messages_list,
+        "canned_replies": canned_replies
+    })
 
 
 @staff_member_required
 def control_dashboard(request):
     recent_orders = Order.objects.select_related("customer").order_by("-created_at")[:8]
-    recent_deposits = DepositRequest.objects.select_related("user", "provider").order_by("-created_at")[:8]
-    recent_users = User.objects.order_by("-date_joined")[:8]
+    recent_deposits = DepositRequest.objects.select_related("user", "payment_method", "currency").order_by("-created_at")[:8]
+    recent_users = User.objects.select_related("wallet").order_by("-date_joined")[:8]
     stats = {
         "users": User.objects.count(),
         "products": Product.objects.count(),
         "orders": Order.objects.count(),
         "deposits": DepositRequest.objects.count(),
         "pending_deposits": DepositRequest.objects.filter(status=DepositRequest.Status.PENDING).count(),
+        "pending_withdrawals": WithdrawalRequest.objects.filter(status=WithdrawalRequest.Status.PENDING).count(),
         "open_tickets": Ticket.objects.filter(status=Ticket.Status.OPEN).count(),
     }
     return render(
@@ -234,3 +403,368 @@ def control_dashboard(request):
         "site/control_dashboard.html",
         {"recent_orders": recent_orders, "recent_deposits": recent_deposits, "recent_users": recent_users, "stats": stats},
     )
+
+
+@staff_member_required
+def payment_methods_list(request):
+    methods = PaymentMethod.objects.all().order_by("display_order", "name")
+    return render(request, "site/payment_methods_list.html", {"methods": methods})
+
+
+@staff_member_required
+def payment_method_create(request):
+    form = PaymentMethodForm(request.POST or None, request.FILES or None)
+    if request.method == "POST" and form.is_valid():
+        form.save()
+        messages.success(request, "تمت إضافة وسيلة الدفع بنجاح.")
+        return redirect("payment_methods_list")
+    return render(request, "site/payment_method_form.html", {"form": form, "title": "إضافة وسيلة دفع"})
+
+
+@staff_member_required
+def payment_method_edit(request, pk):
+    method = get_object_or_404(PaymentMethod, pk=pk)
+    form = PaymentMethodForm(request.POST or None, request.FILES or None, instance=method)
+    if request.method == "POST" and form.is_valid():
+        form.save()
+        messages.success(request, "تم تحديث وسيلة الدفع بنجاح.")
+        return redirect("payment_methods_list")
+    return render(request, "site/payment_method_form.html", {"form": form, "title": "تعديل وسيلة دفع", "method": method})
+
+
+@staff_member_required
+def currencies_list(request):
+    currencies = Currency.objects.all().order_by("display_order", "code")
+    return render(request, "site/currencies_list.html", {"currencies": currencies})
+
+
+@staff_member_required
+def currency_create(request):
+    form = CurrencyForm(request.POST or None)
+    if request.method == "POST" and form.is_valid():
+        form.save()
+        messages.success(request, "تمت إضافة العملة بنجاح.")
+        return redirect("currencies_list")
+    return render(request, "site/currency_form.html", {"form": form, "title": "إضافة عملة جديدة"})
+
+
+@staff_member_required
+def currency_edit(request, pk):
+    currency = get_object_or_404(Currency, pk=pk)
+    form = CurrencyForm(request.POST or None, instance=currency)
+    if request.method == "POST" and form.is_valid():
+        form.save()
+        messages.success(request, "تم تحديث بيانات العملة بنجاح.")
+        return redirect("currencies_list")
+    return render(request, "site/currency_form.html", {"form": form, "title": "تعديل العملة", "currency": currency})
+
+
+@login_required
+def withdrawals(request):
+    if request.user.status != User.Status.ACTIVE and request.user.restriction_withdrawals:
+        messages.error(request, "حسابك مقيد من عمليات السحب. يرجى التواصل مع الدعم.")
+        return redirect("dashboard")
+
+    methods = PaymentMethod.objects.filter(is_active=True, can_withdraw=True).prefetch_related("supported_currencies")
+    if request.method == "POST":
+        method_id = request.POST.get("payment_method")
+        currency_id = request.POST.get("currency")
+        amount = Decimal(request.POST.get("amount", "0"))
+        payout_details = request.POST.get("payout_details", "")
+        
+        method = get_object_or_404(methods, id=method_id)
+        currency = get_object_or_404(Currency, id=currency_id)
+        wallet, _ = Wallet.objects.get_or_create(user=request.user)
+        
+        if amount < method.min_amount or amount > method.max_amount:
+            messages.error(request, f"المبلغ يجب أن يكون بين {method.min_amount} و {method.max_amount}.")
+        elif method.is_maintenance_mode:
+            messages.error(request, "وسيلة السحب هذه حالياً في وضع الصيانة.")
+        elif wallet.available_balance < amount:
+            messages.error(request, "الرصيد غير كافٍ لإجراء عملية السحب.")
+        elif not method.supported_currencies.filter(id=currency.id).exists():
+             messages.error(request, "هذه العملة غير مدعومة لوسيلة السحب المختارة.")
+        elif not payout_details:
+            messages.error(request, "يرجى إدخال بيانات التحويل.")
+        else:
+            with transaction.atomic():
+                withdrawal = WithdrawalRequest.objects.create(
+                    user=request.user,
+                    payment_method=method,
+                    amount=amount,
+                    currency=currency,
+                    payout_details={"address": payout_details},
+                    metadata={"source": "site"},
+                )
+                from apps.wallets.services import freeze_funds
+                freeze_funds(
+                    wallet_id=wallet.id,
+                    amount=amount,
+                    reference=f"withdrawal:{withdrawal.id}",
+                    description=f"سحب رصيد ({currency.code}) عبر {method.name}",
+                    created_by=request.user
+                )
+                messages.success(request, f"تم استلام طلب السحب رقم {withdrawal.id} وهو قيد المراجعة.")
+                
+                ActivityLog.objects.create(
+                    user=request.user,
+                    action="Withdrawal Request",
+                    description=f"Requested withdrawal of {amount} {currency.code}",
+                    metadata={"withdrawal_id": str(withdrawal.id)}
+                )
+                
+                return redirect("dashboard")
+            
+    return render(request, "site/withdrawals.html", {"payment_methods": methods})
+
+
+@staff_member_required
+def control_withdrawals(request):
+    withdrawals = WithdrawalRequest.objects.select_related("user", "payment_method", "currency").order_by("-created_at")
+    return render(request, "site/control_withdrawals.html", {"withdrawals": withdrawals})
+
+
+@staff_member_required
+def control_users_list(request):
+    query = request.GET.get("q", "").strip()
+    users = User.objects.select_related("wallet").order_by("-date_joined")
+    if query:
+        users = users.filter(Q(email__icontains=query) | Q(phone__icontains=query) | Q(first_name__icontains=query) | Q(last_name__icontains=query))
+    return render(request, "site/control_users_list.html", {"users": users, "query": query})
+
+
+@staff_member_required
+def control_user_moderate(request, pk):
+    user_to_moderate = get_object_or_404(User.objects.select_related("wallet"), pk=pk)
+    previous_state = {
+        "status": user_to_moderate.status,
+        "tier": user_to_moderate.tier,
+        "restriction_withdrawals": user_to_moderate.restriction_withdrawals,
+        "restriction_deposits": user_to_moderate.restriction_deposits,
+        "restriction_purchases": user_to_moderate.restriction_purchases,
+    }
+    
+    form = ModerateUserForm(request.POST or None, instance=user_to_moderate)
+    if request.method == "POST" and form.is_valid():
+        with transaction.atomic():
+            user_to_moderate = form.save()
+            new_state = {
+                "status": user_to_moderate.status,
+                "tier": user_to_moderate.tier,
+                "restriction_withdrawals": user_to_moderate.restriction_withdrawals,
+                "restriction_deposits": user_to_moderate.restriction_deposits,
+                "restriction_purchases": user_to_moderate.restriction_purchases,
+            }
+            
+            ModerationLog.objects.create(
+                user=user_to_moderate,
+                moderator=request.user,
+                action="Account Moderation Update",
+                previous_state=previous_state,
+                new_state=new_state,
+                reason=user_to_moderate.suspension_reason,
+                internal_notes=user_to_moderate.admin_notes
+            )
+            
+            messages.success(request, f"تم تحديث حالة حساب {user_to_moderate.email} بنجاح.")
+            return redirect("control_users_list")
+            
+    moderation_logs = user_to_moderate.moderation_history.select_related("moderator").all()
+    return render(request, "site/control_user_moderate.html", {
+        "form": form, 
+        "user_to_moderate": user_to_moderate,
+        "moderation_logs": moderation_logs
+    })
+
+
+@staff_member_required
+def control_products_list(request):
+    query = request.GET.get("q", "").strip()
+    products = Product.objects.select_related("category").prefetch_related("variants").order_by("sort_order", "name")
+    if query:
+        products = products.filter(Q(name__icontains=query) | Q(slug__icontains=query) | Q(category__name__icontains=query))
+    return render(request, "site/control_products_list.html", {"products": products, "query": query})
+
+
+@staff_member_required
+def control_product_create(request):
+    form = ProductForm(request.POST or None, request.FILES or None)
+    if request.method == "POST" and form.is_valid():
+        product = form.save()
+        messages.success(request, f"تم إنشاء المنتج {product.name} بنجاح.")
+        return redirect("control_product_edit", pk=product.pk)
+    return render(request, "site/control_product_form.html", {"form": form, "title": "إضافة منتج جديد"})
+
+
+@staff_member_required
+def control_product_edit(request, pk):
+    product = get_object_or_404(Product, pk=pk)
+    form = ProductForm(request.POST or None, request.FILES or None, instance=product)
+    if request.method == "POST" and form.is_valid():
+        form.save()
+        messages.success(request, "تم تحديث بيانات المنتج.")
+        return redirect("control_products_list")
+    
+    variants = product.variants.all().order_by("sort_order", "price")
+    return render(request, "site/control_product_form.html", {
+        "form": form, 
+        "title": f"تعديل منتج: {product.name}", 
+        "product": product,
+        "variants": variants
+    })
+
+
+@staff_member_required
+def control_variant_create(request, product_pk):
+    product = get_object_or_404(Product, pk=product_pk)
+    form = VariantForm(request.POST or None)
+    if request.method == "POST" and form.is_valid():
+        variant = form.save(commit=False)
+        variant.product = product
+        variant.save()
+        messages.success(request, "تمت إضافة الباقة بنجاح.")
+        return redirect("control_product_edit", pk=product.pk)
+    return render(request, "site/control_variant_form.html", {"form": form, "product": product, "title": "إضافة باقة جديدة"})
+
+
+@staff_member_required
+def control_variant_edit(request, pk):
+    variant = get_object_or_404(ProductVariant, pk=pk)
+    form = VariantForm(request.POST or None, instance=variant)
+    if request.method == "POST" and form.is_valid():
+        form.save()
+        messages.success(request, "تم تحديث الباقة بنجاح.")
+        return redirect("control_product_edit", pk=variant.product.pk)
+    return render(request, "site/control_variant_form.html", {"form": form, "product": variant.product, "title": "تعديل باقة"})
+
+
+@staff_member_required
+def control_tickets_list(request):
+    status_filter = request.GET.get("status")
+    tickets_qs = Ticket.objects.select_related("user").all()
+    if status_filter:
+        tickets_qs = tickets_qs.filter(status=status_filter)
+    
+    return render(request, "site/control_tickets_list.html", {"tickets": tickets_qs, "current_status": status_filter})
+
+
+@staff_member_required
+def control_orders_list(request):
+    status_filter = request.GET.get("status")
+    query = request.GET.get("q", "").strip()
+    orders = Order.objects.select_related("customer", "invoice").prefetch_related("items__variant__product").all()
+    
+    if status_filter:
+        orders = orders.filter(status=status_filter)
+    if query:
+        orders = orders.filter(Q(number__icontains=query) | Q(customer__email__icontains=query))
+        
+    return render(request, "site/control_orders_list.html", {"orders": orders, "current_status": status_filter, "query": query})
+
+
+@staff_member_required
+def control_order_detail(request, pk):
+    order = get_object_or_404(Order.objects.select_related("customer", "invoice").prefetch_related("items__variant__product", "logs__created_by"), pk=pk)
+    
+    if request.method == "POST":
+        new_status = request.POST.get("status")
+        admin_note = request.POST.get("admin_note", "")
+        
+        if new_status in Order.Status.values:
+            with transaction.atomic():
+                order.status = new_status
+                if admin_note:
+                    order.admin_note = admin_note
+                order.save()
+                OrderLog.objects.create(order=order, status=new_status, note=f"Status updated to {new_status}. {admin_note}", created_by=request.user)
+                
+                # Notifications
+                if new_status == Order.Status.DELIVERED:
+                    notify_user(
+                        user=order.customer,
+                        title="تم تسليم طلبك",
+                        body=f"طلبك رقم {order.number} متاح الآن للتنزيل أو الاستخدام.",
+                        action_url="/dashboard/",
+                        priority="high"
+                    )
+                elif new_status == Order.Status.COMPLETED:
+                    notify_user(
+                        user=order.customer,
+                        title="تم اكتمال الطلب",
+                        body=f"تم إغلاق طلبك رقم {order.number} بنجاح. شكراً لثقتك بنا.",
+                        priority="normal"
+                    )
+
+                # Handle refund logic if status is REFUNDED
+                if new_status == Order.Status.REFUNDED:
+                    wallet, _ = Wallet.objects.get_or_create(user=order.customer)
+                    from apps.wallets.services import credit_wallet
+                    credit_wallet(wallet.id, order.total_amount, reference=f"refund:{order.id}", description=f"استرداد ثمن الطلب {order.number}", created_by=request.user)
+                    
+                    notify_user(
+                        user=order.customer,
+                        title="تم استرداد مبلغ الطلب",
+                        body=f"تمت إعادة {order.total_amount} {wallet.currency.code} إلى محفظتك للطلب رقم {order.number}.",
+                        action_url="/dashboard/wallet/",
+                        priority="high"
+                    )
+                
+            messages.success(request, f"تم تحديث الطلب {order.number} بنجاح.")
+            return redirect("control_order_detail", pk=order.pk)
+
+    return render(request, "site/control_order_detail.html", {"order": order})
+
+
+@staff_member_required
+def control_wallets_list(request):
+    query = request.GET.get("q", "").strip()
+    wallets = Wallet.objects.select_related("user", "currency").all()
+    if query:
+        wallets = wallets.filter(Q(user__email__icontains=query) | Q(user__phone__icontains=query))
+    return render(request, "site/control_wallets_list.html", {"wallets": wallets, "query": query})
+
+
+@staff_member_required
+def control_reports(request):
+    today = timezone.now().date()
+    last_30_days = today - timedelta(days=30)
+    
+    # Revenue data
+    revenue_30 = Order.objects.filter(
+        status__in=[Order.Status.COMPLETED, Order.Status.DELIVERED], 
+        created_at__date__gte=last_30_days
+    ).aggregate(total=Sum('total_amount'))['total'] or 0
+    
+    # Deposits/Withdrawals
+    deposits_30 = DepositRequest.objects.filter(status=DepositRequest.Status.COMPLETED, created_at__date__gte=last_30_days).aggregate(total=Sum('amount'))['total'] or 0
+    withdrawals_30 = WithdrawalRequest.objects.filter(status=WithdrawalRequest.Status.COMPLETED, created_at__date__gte=last_30_days).aggregate(total=Sum('amount'))['total'] or 0
+    
+    # Growth
+    users_30 = User.objects.filter(date_joined__date__gte=last_30_days).count()
+    orders_30 = Order.objects.filter(created_at__date__gte=last_30_days).count()
+    
+    # Wallet Balances System-wide
+    wallet_stats = Wallet.objects.aggregate(
+        total_available=Sum('available_balance'),
+        total_frozen=Sum('frozen_balance'),
+        total_held=Sum('held_balance')
+    )
+    
+    # Top Products
+    top_products = Product.objects.filter(is_active=True).annotate(
+        order_count=Count('variants__order_items')
+    ).order_by('-order_count')[:5]
+    
+    stats = {
+        "revenue_30": revenue_30,
+        "deposits_30": deposits_30,
+        "withdrawals_30": withdrawals_30,
+        "users_30": users_30,
+        "orders_30": orders_30,
+        "total_users": User.objects.count(),
+        "total_orders": Order.objects.count(),
+        "wallet_stats": wallet_stats,
+        "top_products": top_products
+    }
+    
+    return render(request, "site/control_reports.html", {"stats": stats})

@@ -3,12 +3,12 @@ from decimal import Decimal
 from django.core.management.base import BaseCommand
 
 from apps.catalog.models import Category, Product, ProductFormField, ProductVariant
-from apps.payments.models import PaymentProvider
+from apps.payments.models import PaymentMethod
 from apps.services.models import Service, ServiceField
 
 
 class Command(BaseCommand):
-    help = "Create starter categories, products, payment providers, and services."
+    help = "Create starter categories, products, payment methods, and services."
 
     def handle(self, *args, **options):
         games, _ = Category.objects.get_or_create(name="شحن ألعاب", slug="game-topups")
@@ -48,8 +48,31 @@ class Command(BaseCommand):
         Product.objects.get_or_create(name="YouTube Premium", slug="youtube-premium", defaults={"category": subs, "delivery_type": Product.DeliveryType.MANUAL})
         Product.objects.get_or_create(name="Gift Card", slug="gift-card", defaults={"category": cards, "delivery_type": Product.DeliveryType.AUTOMATIC})
 
-        PaymentProvider.objects.get_or_create(name="Sham Cash", provider_type=PaymentProvider.ProviderType.SHAM_CASH, defaults={"config": {"mode": "placeholder"}})
-        manual, _ = PaymentProvider.objects.get_or_create(name="Manual Verification", provider_type=PaymentProvider.ProviderType.MANUAL)
+        PaymentMethod.objects.get_or_create(
+            name="شام كاش",
+            method_type=PaymentMethod.MethodType.MOBILE_PAYMENT,
+            defaults={
+                "provider_name": "Sham Cash",
+                "account_number": "0912345678",
+                "account_name": "Raqamiyat Store",
+                "instructions": "يرجى تحويل المبلغ إلى الرقم المذكور وإرفاق وصل العملية.",
+                "min_deposit": Decimal("1000"),
+                "max_deposit": Decimal("1000000"),
+            }
+        )
+        PaymentMethod.objects.get_or_create(
+            name="تحويل بنكي",
+            method_type=PaymentMethod.MethodType.BANK,
+            defaults={
+                "provider_name": "بنك بيمو",
+                "account_number": "123456789",
+                "account_name": "Raqamiyat Store",
+                "iban": "SY000123456789000000",
+                "instructions": "يرجى التحويل إلى حسابنا البنكي وإرفاق إشعار التحويل.",
+                "min_deposit": Decimal("50000"),
+                "max_deposit": Decimal("10000000"),
+            }
+        )
 
         service, _ = Service.objects.get_or_create(
             name="دفع فواتير",
@@ -58,4 +81,4 @@ class Command(BaseCommand):
         )
         ServiceField.objects.get_or_create(service=service, key="account_number", defaults={"label": "رقم الحساب"})
 
-        self.stdout.write(self.style.SUCCESS("Demo data created."))
+        self.stdout.write(self.style.SUCCESS("Demo data created with new PaymentMethods."))

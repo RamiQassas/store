@@ -1,0 +1,55 @@
+{% extends "site/base.html" %}
+{% block title %}{{ title }} | Raqamiyat Admin{% endblock %}
+{% block content %}
+<section class="page-head">
+  <div>
+    <span class="eyebrow">Admin / Settings</span>
+    <h1>{{ title }}</h1>
+    <p>أدخل بيانات العملة وسعر الصرف مقابل الدولار الأمريكي.</p>
+  </div>
+  <a href="{% url 'currencies_list' %}" class="btn btn-outline">عودة للقائمة</a>
+</section>
+
+<section class="auth-shell">
+  <article class="panel p-6">
+    <form method="post" class="stack gap-6">
+      {% csrf_token %}
+      
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {% for field in form %}
+          <div class="field-group">
+            <label class="block mb-1 text-sm">{{ field.label }}</label>
+            {{ field }}
+            {% if field.help_text %}
+              <small class="text-slate-500 block mt-1">{{ field.help_text }}</small>
+            {% endif %}
+            {% if field.errors %}
+              <div class="text-red-500 text-xs mt-1">{{ field.errors }}</div>
+            {% endif %}
+          </div>
+        {% endfor %}
+      </div>
+
+      <div class="pt-6 border-t border-slate-700 flex justify-end gap-4">
+        <a href="{% url 'currencies_list' %}" class="btn btn-outline">إلغاء</a>
+        <button type="submit" class="btn btn-primary px-8">حفظ العملة</button>
+      </div>
+    </form>
+  </article>
+</section>
+
+<style>
+  input[type="text"], input[type="number"], select, textarea {
+    width: 100%;
+    background: #1e293b;
+    border: 1px solid #334155;
+    border-radius: 0.375rem;
+    padding: 0.5rem 0.75rem;
+    color: white;
+  }
+  input[type="checkbox"] {
+    width: auto;
+    margin-right: 0.5rem;
+  }
+</style>
+{% endblock %}

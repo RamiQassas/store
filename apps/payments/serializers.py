@@ -1,44 +1,108 @@
 from rest_framework import serializers
 
-from apps.payments.gateways import gateway_for
-from apps.payments.models import DepositRequest, PaymentProvider
+from apps.payments.models import DepositRequest, PaymentMethod, WithdrawalRequest
 
 
-class PaymentProviderSerializer(serializers.ModelSerializer):
+class PaymentMethodSerializer(serializers.ModelSerializer):
     class Meta:
-        model = PaymentProvider
-        fields = ("id", "name", "provider_type", "is_active", "config")
-        read_only_fields = ("id",)
+        model = PaymentMethod
+        fields = "__all__"
+        read_only_fields = ("id", "created_at", "updated_at")
 
 
 class DepositRequestSerializer(serializers.ModelSerializer):
-    gateway_payload = serializers.SerializerMethodField()
-
     class Meta:
         model = DepositRequest
         fields = (
             "id",
-            "provider",
+            "payment_method",
             "amount",
+            "fee_amount",
+            "final_amount",
             "currency",
             "status",
-            "external_reference",
+            "transaction_id",
             "proof_image",
             "customer_note",
             "admin_note",
             "reviewed_at",
-            "gateway_payload",
             "created_at",
         )
-        read_only_fields = ("id", "status", "external_reference", "admin_note", "reviewed_at", "gateway_payload", "created_at")
+        read_only_fields = ("id", "status", "fee_amount", "final_amount", "admin_note", "reviewed_at", "created_at")
+
+    def validate(self, data):
+        payment_method = data["payment_method"]
+        amount = data["amount"]
+
+        if not payment_method.can_deposit:
+            raise serializers.ValidationError({"payment_method": "وسيلة الدفع هذه غير متاحة للإيداع."})
+
+        if not payment_method.is_active:
+            raise serializers.ValidationError({"payment_method": "وسيلة الدفع هذه غير نشطة حالياً."})
+        
+        if payment_method.is_maintenance_mode:
+            raise serializers.ValidationError({"payment_method": "وسيلة الدفع هذه في وضع الصيانة حالياً."})
+
+        if amount < payment_method.min_amount:
+            raise serializers.ValidationError({"amount": f"المبلغ أقل من الحد الأدنى المسموح به ({payment_method.min_amount})."})
+
+        if amount > payment_method.max_amount:
+            raise serializers.ValidationError({"amount": f"المبلغ أكبر من الحد الأقصى المسموح به ({payment_method.max_amount})."})
+
+        return data
 
     def create(self, validated_data):
-        request = self.context["request"]
-        deposit = DepositRequest.objects.create(user=request.user, **validated_data)
-        payload = gateway_for(deposit.provider).create_payment(deposit)
-        deposit.metadata["gateway_payload"] = payload
-        deposit.save(update_fields=["metadata", "updated_at"])
-        return deposit
+        validated_data["user"] = self.context["request"].user
+        return super().create(validated_data)
 
-    def get_gateway_payload(self, obj):
-        return obj.metadata.get("gateway_payload", {})
+
+class WithdrawalRequestSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = WithdrawalRequest
+        fields = (
+            "id",
+            "payment_method",
+            "amount",
+            "fee_amount",
+            "final_amount",
+            "currency",
+            "status",
+            "payout_details",
+            "admin_note",
+            "proof_image",
+            "reviewed_at",
+            "created_at",
+        )
+        read_only_fields = ("id", "status", "fee_amount", "final_amount", "admin_note", "proof_image", "reviewed_at", "created_at")
+
+    def validate(self, data):
+        payment_method = data["payment_method"]
+        amount = data["amount"]
+        user = self.context["request"].user
+
+        if not payment_method.can_withdraw:
+            raise serializers.ValidationError({"payment_method": "وسيلة الدفع هذه غير متاحة للسحب."})
+
+        if not payment_method.is_active:
+            raise serializers.ValidationError({"payment_method": "وسيلة السحب هذه غير نشطة حالياً."})
+        
+        if payment_method.is_maintenance_mode:
+            raise serializers.ValidationError({"payment_method": "وسيلة السحب هذه في وضع الصيانة حالياً."})
+
+        if amount < payment_method.min_amount:
+            raise serializers.ValidationError({"amount": f"المبلغ أقل من الحد الأدنى المسموح به ({payment_method.min_amount})."})
+
+        if amount > payment_method.max_amount:
+            raise serializers.ValidationError({"amount": f"المبلغ أكبر من الحد الأقصى المسموح به ({payment_method.max_amount})."})
+
+        # Check balance
+        from apps.wallets.models import Wallet
+        wallet, _ = Wallet.objects.get_or_create(user=user)
+        if wallet.available_balance < amount:
+            raise serializers.ValidationError({"amount": "الرصيد غير كافٍ لإجراء عملية السحب."})
+
+        return data
+
+    def create(self, validated_data):
+        validated_data["user"] = self.context["request"].user
+        return super().create(validated_data)

@@ -1,0 +1,149 @@
+{% extends "site/base.html" %}
+{% block title %}{{ title }} | Raqamiyat Admin{% endblock %}
+{% block content %}
+<section class="page-head">
+  <div>
+    <span class="eyebrow">Admin / Catalog / Product</span>
+    <h1>{{ title }}</h1>
+    <p>أدخل بيانات المنتج بدقة، الصور المميزة تساعد على زيادة المبيعات.</p>
+  </div>
+  <div class="flex gap-2">
+    <a href="{% url 'control_products_list' %}" class="btn btn-outline">عودة للقائمة</a>
+  </div>
+</section>
+
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+  <!-- Main Form -->
+  <div class="lg:col-span-2">
+    <article class="panel p-6">
+      <form method="post" enctype="multipart/form-data" class="stack gap-6">
+        {% csrf_token %}
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div class="field-group">
+            <label class="block mb-1 text-sm font-bold">{{ form.name.label }}</label>
+            {{ form.name }}
+            {% if form.name.errors %}<div class="text-red-500 text-xs mt-1">{{ form.name.errors }}</div>{% endif %}
+          </div>
+          <div class="field-group">
+            <label class="block mb-1 text-sm font-bold">{{ form.slug.label }}</label>
+            {{ form.slug }}
+            {% if form.slug.errors %}<div class="text-red-500 text-xs mt-1">{{ form.slug.errors }}</div>{% endif %}
+          </div>
+          <div class="field-group">
+            <label class="block mb-1 text-sm font-bold">{{ form.category.label }}</label>
+            {{ form.category }}
+            {% if form.category.errors %}<div class="text-red-500 text-xs mt-1">{{ form.category.errors }}</div>{% endif %}
+          </div>
+          <div class="field-group">
+            <label class="block mb-1 text-sm font-bold">{{ form.delivery_type.label }}</label>
+            {{ form.delivery_type }}
+            {% if form.delivery_type.errors %}<div class="text-red-500 text-xs mt-1">{{ form.delivery_type.errors }}</div>{% endif %}
+          </div>
+        </div>
+
+        <div class="field-group">
+          <label class="block mb-1 text-sm font-bold">{{ form.description.label }}</label>
+          {{ form.description }}
+          {% if form.description.errors %}<div class="text-red-500 text-xs mt-1">{{ form.description.errors }}</div>{% endif %}
+        </div>
+
+        <div class="field-group">
+          <label class="block mb-1 text-sm font-bold">{{ form.instructions.label }}</label>
+          {{ form.instructions }}
+          {% if form.instructions.errors %}<div class="text-red-500 text-xs mt-1">{{ form.instructions.errors }}</div>{% endif %}
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 bg-slate-800 p-4 rounded">
+          <div class="field-group">
+            <label class="block mb-1 text-sm font-bold">{{ form.image.label }}</label>
+            {{ form.image }}
+          </div>
+          <div class="field-group">
+            <label class="block mb-1 text-sm font-bold">{{ form.cover_image.label }}</label>
+            {{ form.cover_image }}
+          </div>
+          <div class="field-group">
+            <label class="block mb-1 text-sm font-bold">{{ form.thumbnail.label }}</label>
+            {{ form.thumbnail }}
+          </div>
+          <div class="field-group">
+            <label class="block mb-1 text-sm font-bold">{{ form.icon.label }}</label>
+            {{ form.icon }}
+          </div>
+        </div>
+
+        <div class="flex gap-4 p-4 bg-slate-800 rounded">
+            <div class="flex items-center gap-2">
+                {{ form.is_active }} <label class="text-sm">{{ form.is_active.label }}</label>
+            </div>
+            <div class="flex items-center gap-2">
+                {{ form.is_featured }} <label class="text-sm">{{ form.is_featured.label }}</label>
+            </div>
+            <div class="flex items-center gap-2">
+                <label class="text-sm">{{ form.sort_order.label }}:</label>
+                {{ form.sort_order }}
+            </div>
+        </div>
+
+        <div class="pt-6 border-t border-slate-700 flex justify-end gap-4">
+          <button type="submit" class="btn btn-primary px-8">حفظ المنتج</button>
+        </div>
+      </form>
+    </article>
+  </div>
+
+  <!-- Variants Sidebar -->
+  <div class="lg:col-span-1 stack gap-6">
+    {% if product %}
+      <article class="panel p-6">
+        <div class="flex justify-between items-center mb-4">
+          <h3 class="font-bold text-lg">باقات المنتج</h3>
+          <a href="{% url 'control_variant_create' product.pk %}" class="btn btn-sm btn-primary">إضافة</a>
+        </div>
+        <div class="stack gap-2">
+          {% for v in variants %}
+            <div class="bg-slate-800 p-3 rounded flex justify-between items-center border border-slate-700">
+              <div>
+                <div class="font-bold text-sm">{{ v.name }}</div>
+                <div class="text-cyan text-xs font-mono">{{ v.price }} SYP</div>
+              </div>
+              <a href="{% url 'control_variant_edit' v.pk %}" class="btn btn-sm btn-outline py-1 px-2"><i class="fas fa-edit"></i></a>
+            </div>
+          {% empty %}
+            <p class="text-slate-500 text-xs text-center">لا توجد باقات مضافة.</p>
+          {% endfor %}
+        </div>
+      </article>
+
+      <article class="panel p-6">
+        <h3 class="font-bold text-lg mb-4">معاينة الصور</h3>
+        <div class="grid grid-cols-2 gap-2">
+            {% if product.image %}
+              <img src="{{ product.image.url }}" class="w-full aspect-square object-cover rounded border border-slate-700">
+            {% endif %}
+            {% if product.cover_image %}
+              <img src="{{ product.cover_image.url }}" class="w-full aspect-video object-cover rounded border border-slate-700 col-span-2">
+            {% endif %}
+        </div>
+      </article>
+    {% else %}
+      <article class="panel p-6 bg-slate-800/50">
+        <p class="text-slate-400 text-sm text-center">قم بحفظ المنتج أولاً لتتمكن من إضافة باقات وصور للمعرض.</p>
+      </article>
+    {% endif %}
+  </div>
+</div>
+
+<style>
+  input[type="text"], input[type="number"], input[type="slug"], select, textarea {
+    width: 100%;
+    background: #1e293b;
+    border: 1px solid #334155;
+    border-radius: 0.375rem;
+    padding: 0.5rem 0.75rem;
+    color: white;
+  }
+  input[type="checkbox"] { width: auto; }
+</style>
+{% endblock %}

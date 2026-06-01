@@ -1,32 +1,57 @@
 {% extends "site/base.html" %}
-{% block title %}المحفظة | منصة الخدمات الرقمية{% endblock %}
+{% block title %}المحفظة | Raqamiyat{% endblock %}
 {% block content %}
 <section class="page-head">
   <div>
     <span class="eyebrow">Wallet</span>
-    <h1>المحفظة</h1>
-    <p>عرض شامل للرصيد وسجل الحركات والمعاملات المالية.</p>
+    <h1>المحفظة الرقمية</h1>
+    <p>عرض شامل للرصيد وتفاصيل العمليات المالية.</p>
   </div>
-  <div class="mini-box">
-    <strong>{{ wallet.available_balance }} {{ wallet.currency }}</strong>
-    <span>الرصيد المتاح</span>
+</section>
+
+<section class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+  <div class="panel p-4 border-l-4 border-cyan">
+    <span class="text-xs text-slate-400 block mb-1">الرصيد المتاح</span>
+    <strong class="text-2xl text-cyan">{{ wallet.available_balance }}</strong>
+    <span class="text-xs text-slate-400">{{ wallet.currency }}</span>
+  </div>
+  <div class="panel p-4 border-l-4 border-amber-500">
+    <span class="text-xs text-slate-400 block mb-1">المجمد (سحوبات)</span>
+    <strong class="text-2xl text-amber-500">{{ wallet.frozen_balance }}</strong>
+    <span class="text-xs text-slate-400">{{ wallet.currency }}</span>
+  </div>
+  <div class="panel p-4 border-l-4 border-red-500">
+    <span class="text-xs text-slate-400 block mb-1">المحجوز (إداري)</span>
+    <strong class="text-2xl text-red-500">{{ wallet.held_balance }}</strong>
+    <span class="text-xs text-slate-400">{{ wallet.currency }}</span>
+  </div>
+  <div class="panel p-4 border-l-4 border-blue-500">
+    <span class="text-xs text-slate-400 block mb-1">المعلق (إيداعات)</span>
+    <strong class="text-2xl text-blue-500">{{ wallet.pending_balance }}</strong>
+    <span class="text-xs text-slate-400">{{ wallet.currency }}</span>
   </div>
 </section>
 
 <section class="two-col">
   <article class="panel">
     <div class="section-head">
-      <h2>سجل الحركات</h2>
-      <a href="{% url 'dashboard_deposits' %}">إيداع جديد</a>
+      <h2>سجل الحركات (Ledger)</h2>
+      <a href="{% url 'dashboard_deposits' %}" class="btn btn-sm btn-primary">إيداع</a>
     </div>
     <div class="stack-list">
       {% for entry in ledger_entries %}
         <div class="line-item">
           <div>
             <strong>{{ entry.get_entry_type_display }}</strong>
-            <p>{{ entry.description|default:"" }}</p>
+            <p class="text-xs text-slate-400">{{ entry.description|default:"" }}</p>
+            <small class="text-[10px] text-slate-500">{{ entry.created_at|date:"Y-m-d H:i" }}</small>
           </div>
-          <span class="badge">{{ entry.amount }}</span>
+          <div class="text-right">
+             <div class="font-bold {% if entry.entry_type == 'credit' %}text-green-500{% elif entry.entry_type == 'debit' %}text-red-500{% endif %}">
+               {{ entry.amount }}
+             </div>
+             <div class="text-[10px] text-slate-500">بعد: {{ entry.balance_after }}</div>
+          </div>
         </div>
       {% empty %}
         <div class="empty">لا توجد حركات بعد.</div>
@@ -36,15 +61,17 @@
 
   <article class="panel">
     <div class="section-head">
-      <h2>المعاملات</h2>
-      <a href="{% url 'dashboard' %}">العودة للوحة</a>
+      <h2>المعاملات المالية</h2>
+      <a href="{% url 'dashboard_withdrawals' %}" class="btn btn-sm btn-outline">سحب</a>
     </div>
     <div class="stack-list">
       {% for tx in transactions %}
         <div class="line-item">
           <div>
-            <strong>{{ tx.transaction_type }}</strong>
-            <p>{{ tx.get_status_display }}</p>
+            <strong>{{ tx.transaction_type|capfirst }}</strong>
+            <p class="text-xs {% if tx.status == 'completed' %}text-green-500{% elif tx.status == 'pending' %}text-amber-500{% else %}text-red-500{% endif %}">
+              {{ tx.get_status_display }}
+            </p>
           </div>
           <span class="badge">{{ tx.amount }}</span>
         </div>

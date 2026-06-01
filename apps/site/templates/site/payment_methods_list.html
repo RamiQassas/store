@@ -1,0 +1,65 @@
+{% extends "site/base.html" %}
+{% block title %}إدارة وسائل الدفع | Raqamiyat Admin{% endblock %}
+{% block content %}
+<section class="page-head">
+  <div>
+    <span class="eyebrow">Admin / Payments</span>
+    <h1>إدارة وسائل الدفع</h1>
+    <p>تحكم بوسائل الدفع المتاحة للعملاء، قم بتفعيلها أو تعطيلها أو تعديل بياناتها.</p>
+  </div>
+  <a href="{% url 'payment_method_create' %}" class="btn btn-primary">إضافة وسيلة جديدة</a>
+</section>
+
+<section class="section">
+  <div class="table-wrap">
+    <table class="table">
+      <thead>
+        <tr>
+          <th>الترتيب</th>
+          <th>الوسيلة</th>
+          <th>النوع</th>
+          <th>الحالة</th>
+          <th>الحدود (أدنى/أقصى)</th>
+          <th>الرسوم</th>
+          <th>إجراءات</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for method in methods %}
+          <tr>
+            <td>{{ method.display_order }}</td>
+            <td>
+              <div class="flex items-center gap-2">
+                {% if method.logo %}
+                  <img src="{{ method.logo.url }}" class="w-8 h-8 rounded bg-white object-contain">
+                {% else %}
+                  <i class="fas {{ method.icon|default:'fa-wallet' }} text-cyan"></i>
+                {% endif %}
+                <strong>{{ method.name }}</strong>
+              </div>
+            </td>
+            <td>{{ method.get_method_type_display }}</td>
+            <td>
+              {% if method.is_active %}
+                <span class="badge">نشط</span>
+              {% else %}
+                <span class="badge muted">معطل</span>
+              {% endif %}
+              {% if method.is_maintenance_mode %}
+                <span class="badge warning">صيانة</span>
+              {% endif %}
+            </td>
+            <td>{{ method.min_deposit }} / {{ method.max_deposit }}</td>
+            <td>{{ method.fixed_fee }} + {{ method.percentage_fee }}%</td>
+            <td>
+              <a href="{% url 'payment_method_edit' method.pk %}" class="btn btn-sm btn-outline">تعديل</a>
+            </td>
+          </tr>
+        {% empty %}
+          <tr><td colspan="7">لا توجد وسائل دفع مضافة حالياً.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+{% endblock %}

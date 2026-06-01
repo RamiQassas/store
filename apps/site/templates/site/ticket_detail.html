@@ -1,0 +1,94 @@
+{% extends "site/base.html" %}
+{% block title %}{{ ticket.subject }} | Raqamiyat Support{% endblock %}
+{% block content %}
+<section class="page-head">
+  <div>
+    <span class="eyebrow">Support / #{{ ticket.id }}</span>
+    <h1>{{ ticket.subject }}</h1>
+    <div class="flex gap-4 mt-2">
+        <span class="badge {% if ticket.status == 'answered' %}success{% else %}warning{% endif %}">{{ ticket.get_status_display }}</span>
+        <span class="text-slate-500 text-xs">الأولوية: {{ ticket.get_priority_display }}</span>
+    </div>
+  </div>
+  <a href="{% url 'dashboard_tickets' %}" class="btn btn-outline">العودة للتذاكر</a>
+</section>
+
+<div class="auth-shell max-w-4xl mx-auto">
+  <article class="panel overflow-hidden flex flex-col h-[600px]">
+    <!-- Chat Messages -->
+    <div class="flex-1 overflow-y-auto p-6 stack gap-6 bg-slate-900/50" id="chat-box">
+      {% for msg in messages_list %}
+        <div class="flex {% if msg.is_staff_reply %}justify-start{% else %}justify-end{% endif %}">
+          <div class="max-w-[80%] stack gap-1">
+            <div class="p-4 rounded-2xl text-sm 
+                {% if msg.is_staff_reply %}
+                    bg-slate-800 text-white rounded-tl-none border border-slate-700
+                {% else %}
+                    bg-cyan text-black rounded-tr-none
+                {% endif %}">
+              {{ msg.message|linebreaksbr }}
+              
+              {% if msg.attachment %}
+                <div class="mt-2 pt-2 border-t {% if msg.is_staff_reply %}border-slate-700{% else %}border-black/10{% endif %}">
+                    <a href="{{ msg.attachment.url }}" target="_blank" class="flex items-center gap-2 text-xs font-bold underline">
+                        <i class="fas fa-paperclip"></i> تحميل المرفق
+                    </a>
+                </div>
+              {% endif %}
+            </div>
+            <small class="text-[10px] text-slate-500 {% if not msg.is_staff_reply %}text-left{% endif %}">
+                {% if msg.is_staff_reply %}فريق الدعم{% else %}أنت{% endif %} • {{ msg.created_at|date:"H:i" }}
+            </small>
+          </div>
+        </div>
+      {% endfor %}
+    </div>
+
+    <!-- Message Input -->
+    <div class="p-4 bg-slate-800 border-t border-slate-700">
+      {% if ticket.status == 'closed' %}
+        <p class="text-center text-slate-500 text-sm py-2">هذه التذكرة مغلقة. لا يمكنك الرد عليها حالياً.</p>
+      {% else %}
+        <form method="post" enctype="multipart/form-data" class="flex flex-col gap-2">
+          {% csrf_token %}
+          <div class="flex gap-2">
+            <textarea name="message" rows="2" placeholder="اكتب ردك هنا..." required 
+                class="flex-1 bg-slate-900 border-slate-700 rounded-xl p-3 text-white focus:border-cyan outline-none transition"></textarea>
+            <button type="submit" class="btn btn-primary rounded-xl px-6 flex items-center justify-center">
+                <i class="fas fa-paper-plane"></i>
+            </button>
+          </div>
+          <div class="flex justify-between items-center">
+             <input type="file" name="attachment" id="file-input" class="hidden" onchange="updateFileName()">
+             <label for="file-input" class="cursor-pointer text-xs text-slate-400 hover:text-cyan transition">
+                 <i class="fas fa-paperclip"></i> <span id="file-name">إرفاق ملف</span>
+             </label>
+             <span class="text-[10px] text-slate-500">سيصل ردك فوراً لفريق الدعم.</span>
+          </div>
+        </form>
+      {% endif %}
+    </div>
+  </article>
+</div>
+
+<script>
+    const chatBox = document.getElementById('chat-box');
+    chatBox.scrollTop = chatBox.scrollHeight;
+
+    function updateFileName() {
+        const input = document.getElementById('file-input');
+        const name = document.getElementById('file-name');
+        if (input.files.length > 0) {
+            name.innerText = input.files[0].name;
+            name.classList.add('text-cyan');
+        }
+    }
+</script>
+
+<style>
+    /* Custom Scrollbar for Chat */
+    #chat-box::-webkit-scrollbar { width: 4px; }
+    #chat-box::-webkit-scrollbar-track { background: transparent; }
+    #chat-box::-webkit-scrollbar-thumb { background: #334155; border-radius: 10px; }
+</style>
+{% endblock %}

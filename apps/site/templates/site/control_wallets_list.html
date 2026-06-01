@@ -1,0 +1,87 @@
+{% extends "site/base.html" %}
+{% block title %}إدارة المحافظ | Raqamiyat Admin{% endblock %}
+{% block content %}
+<section class="page-head">
+  <div>
+    <span class="eyebrow">Admin / Wallets</span>
+    <h1>إدارة المحافظ</h1>
+    <p>مراقبة أرصدة المستخدمين والتحكم في المبالغ المحجوزة والمعلقة.</p>
+  </div>
+</section>
+
+<section class="section">
+  <div class="mb-6">
+    <form method="get" class="flex gap-2">
+      <input type="text" name="q" value="{{ query }}" placeholder="بحث ببريد المستخدم أو الهاتف..." class="w-full bg-slate-800 border-slate-700 rounded p-2 text-white">
+      <button type="submit" class="btn btn-primary">بحث</button>
+    </form>
+  </div>
+
+  <div class="table-wrap">
+    <table class="table">
+      <thead>
+        <tr>
+          <th>المستخدم</th>
+          <th>المتاح</th>
+          <th>المجمد</th>
+          <th>المحجوز</th>
+          <th>المعلق</th>
+          <th>إجراءات</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for w in wallets %}
+          <tr>
+            <td>
+              <div class="flex flex-col">
+                <strong>{{ w.user.email }}</strong>
+                <small class="text-slate-500">العملة: {{ w.currency.code }}</small>
+              </div>
+            </td>
+            <td><strong class="text-cyan">{{ w.available_balance }}</strong></td>
+            <td><span class="text-amber-500">{{ w.frozen_balance }}</span></td>
+            <td><span class="text-red-500">{{ w.held_balance }}</span></td>
+            <td><span class="text-blue-500">{{ w.pending_balance }}</span></td>
+            <td>
+              <div class="flex gap-1">
+                <button class="btn btn-sm btn-outline py-1 px-2" onclick="holdFunds('{{ w.id }}')">حجز</button>
+                <button class="btn btn-sm btn-outline py-1 px-2" onclick="unholdFunds('{{ w.id }}')">فك</button>
+              </div>
+            </td>
+          </tr>
+        {% empty %}
+          <tr><td colspan="6">لا توجد محافظ مطابقة.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<script>
+async function holdFunds(walletId) {
+    const amount = prompt("المبلغ المراد حجزه:");
+    if (!amount) return;
+    const reason = prompt("السبب:");
+    const response = await fetch(`/api/wallets/${walletId}/hold/`, {
+        method: 'POST',
+        headers: {'X-CSRFToken': '{{ csrf_token }}', 'Content-Type': 'application/json'},
+        body: JSON.stringify({ amount, reason })
+    });
+    if (response.ok) { alert("تم الحجز بنجاح"); location.reload(); }
+    else { const data = await response.json(); alert("خطأ: " + (data.detail || "تعذر التنفيذ")); }
+}
+
+async function unholdFunds(walletId) {
+    const amount = prompt("المبلغ المراد فك حجزه:");
+    if (!amount) return;
+    const reason = prompt("السبب:");
+    const response = await fetch(`/api/wallets/${walletId}/unhold/`, {
+        method: 'POST',
+        headers: {'X-CSRFToken': '{{ csrf_token }}', 'Content-Type': 'application/json'},
+        body: JSON.stringify({ amount, reason })
+    });
+    if (response.ok) { alert("تم فك الحجز بنجاح"); location.reload(); }
+    else { const data = await response.json(); alert("خطأ: " + (data.detail || "تعذر التنفيذ")); }
+}
+</script>
+{% endblock %}

@@ -1,44 +1,81 @@
 {% extends "site/base.html" %}
-{% block title %}التذاكر | منصة الخدمات الرقمية{% endblock %}
+{% block title %}الدعم الفني | Raqamiyat{% endblock %}
 {% block content %}
 <section class="page-head">
   <div>
     <span class="eyebrow">Support</span>
-    <h1>التذاكر</h1>
-    <p>أنشئ تذكرة جديدة وتابع المحادثة من نفس الصفحة.</p>
+    <h1>تذاكر الدعم الفني</h1>
+    <p>تواصل مع فريق الدعم لحل أي مشكلة تقنية أو استفسار مالي.</p>
   </div>
 </section>
 
-<section class="two-col">
-  <article class="panel auth-panel">
-    <h2>تذكرة جديدة</h2>
-    <form method="post" class="stack">
-      {% csrf_token %}
-      <label>العنوان</label>
-      {{ form.subject }}
-      <label>الأولوية</label>
-      {{ form.priority }}
-      <label>الرسالة</label>
-      {{ form.initial_message }}
-      <button class="btn btn-primary" type="submit">إرسال التذكرة</button>
-    </form>
-  </article>
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+  <!-- Tickets List -->
+  <div class="lg:col-span-2">
+    <article class="panel">
+      <div class="section-head p-4 border-b border-slate-700"><h2>تذاكري السابقة</h2></div>
+      <div class="stack-list">
+        {% for ticket in tickets %}
+          <a href="{% url 'ticket_detail' ticket.pk %}" class="line-item hover:bg-slate-800 transition">
+            <div class="flex items-center gap-3">
+               <div class="w-10 h-10 rounded-full bg-slate-700 flex items-center justify-center">
+                  <i class="fas fa-ticket-alt text-cyan"></i>
+               </div>
+               <div>
+                  <strong class="block text-white">{{ ticket.subject }}</strong>
+                  <small class="text-slate-500">آخر تحديث: {{ ticket.last_reply_at|date:"Y-m-d H:i" }}</small>
+               </div>
+            </div>
+            <div class="text-right">
+                <span class="badge 
+                    {% if ticket.status == 'open' %}warning
+                    {% elif ticket.status == 'answered' %}success
+                    {% elif ticket.status == 'waiting_user' %}info
+                    {% else %}muted{% endif %}">
+                    {{ ticket.get_status_display }}
+                </span>
+                {% if not ticket.is_read_by_user %}
+                    <span class="inline-block w-2 h-2 rounded-full bg-cyan ml-2 animate-pulse"></span>
+                {% endif %}
+            </div>
+          </a>
+        {% empty %}
+          <div class="empty p-10 text-center text-slate-500">لا يوجد لديك تذاكر دعم حالياً.</div>
+        {% endfor %}
+      </div>
+    </article>
+  </div>
 
-  <article class="panel">
-    <h2>تذاكري</h2>
-    <div class="stack-list">
-      {% for ticket in tickets %}
-        <div class="line-item">
-          <div>
-            <strong>{{ ticket.subject }}</strong>
-            <p>{{ ticket.get_status_display }} - {{ ticket.priority }} - {{ ticket.messages.count }} رسالة</p>
-          </div>
-          <span class="badge">{{ ticket.created_at|date:"Y-m-d" }}</span>
-        </div>
-      {% empty %}
-        <div class="empty">لا توجد تذاكر.</div>
-      {% endfor %}
-    </div>
-  </article>
-</section>
+  <!-- New Ticket Form -->
+  <div class="lg:col-span-1">
+    <article class="panel p-6">
+        <h3 class="font-bold text-lg mb-4 text-cyan">فتح تذكرة جديدة</h3>
+        <form method="post" enctype="multipart/form-data" class="stack gap-4">
+            {% csrf_token %}
+            <div>
+                <label class="block mb-1 text-sm">عنوان التذكرة</label>
+                <input type="text" name="subject" required class="w-full bg-slate-800 border-slate-700 rounded p-2 text-white">
+            </div>
+            <div>
+                <label class="block mb-1 text-sm">الأولوية</label>
+                <select name="priority" class="w-full bg-slate-800 border-slate-700 rounded p-2 text-white">
+                    <option value="low">منخفضة</option>
+                    <option value="normal" selected>عادية</option>
+                    <option value="high">عالية</option>
+                    <option value="urgent">عاجلة جداً</option>
+                </select>
+            </div>
+            <div>
+                <label class="block mb-1 text-sm">تفاصيل المشكلة</label>
+                <textarea name="message" rows="4" required class="w-full bg-slate-800 border-slate-700 rounded p-2 text-white"></textarea>
+            </div>
+            <div>
+                <label class="block mb-1 text-sm">إرفاق ملف (اختياري)</label>
+                <input type="file" name="attachment" class="text-xs text-slate-400">
+            </div>
+            <button class="btn btn-primary w-full mt-2" type="submit">إرسال التذكرة</button>
+        </form>
+    </article>
+  </div>
+</div>
 {% endblock %}

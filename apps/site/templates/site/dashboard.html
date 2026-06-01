@@ -10,6 +10,12 @@
   <div class="mini-box">
     <strong>{{ wallet.available_balance }} {{ wallet.currency }}</strong>
     <span>الرصيد المتاح</span>
+    {% if wallet.frozen_balance > 0 or wallet.held_balance > 0 or wallet.pending_balance > 0 %}
+      <div class="text-[10px] text-slate-400 mt-1">
+        إجمالي: {{ wallet.total_balance }} | 
+        معلق: {{ wallet.pending_balance }}
+      </div>
+    {% endif %}
   </div>
 </section>
 
@@ -85,7 +91,7 @@
         <div class="line-item">
           <div>
             <strong>{{ deposit.amount }} {{ deposit.currency }}</strong>
-            <p>{{ deposit.provider.name }} - {{ deposit.get_status_display }}</p>
+            <p>{{ deposit.payment_method.name }} - {{ deposit.get_status_display }}</p>
           </div>
           <span class="badge">{{ deposit.created_at|date:"Y-m-d" }}</span>
         </div>

@@ -7,9 +7,15 @@
     <h1>لوحة الإدارة</h1>
     <p>واجهة تشغيل للموظفين تعرض الأرقام الأساسية والمهام السريعة، مع رابط مباشر إلى Django Admin.</p>
   </div>
-  <div class="mini-box">
-    <strong>{{ stats.pending_deposits }}</strong>
-    <span>إيداعات معلقة</span>
+  <div class="flex gap-4">
+    <div class="mini-box">
+      <strong>{{ stats.pending_deposits }}</strong>
+      <span>إيداعات معلقة</span>
+    </div>
+    <div class="mini-box">
+      <strong>{{ stats.pending_withdrawals }}</strong>
+      <span>سحوبات معلقة</span>
+    </div>
   </div>
 </section>
 
@@ -44,7 +50,7 @@
         <div class="line-item">
           <div>
             <strong>{{ deposit.user.email }}</strong>
-            <p>{{ deposit.provider.name }} - {{ deposit.get_status_display }}</p>
+            <p>{{ deposit.payment_method.name }} - {{ deposit.get_status_display }}</p>
           </div>
           <span class="badge">{{ deposit.amount }}</span>
         </div>
@@ -63,23 +69,96 @@
         <div class="line-item">
           <div>
             <strong>{{ user.email }}</strong>
-            <p>{{ user.get_role_display }}</p>
+            <p>{{ user.get_role_display }} - <span class="text-cyan">{{ user.wallet.available_balance }} {{ user.wallet.currency }}</span></p>
           </div>
-          <span class="badge">{{ user.date_joined|date:"Y-m-d" }}</span>
+          <div class="flex gap-1">
+             <button class="btn btn-sm btn-outline text-[10px] py-1" onclick="holdFunds('{{ user.wallet.id }}')">حجز</button>
+             <button class="btn btn-sm btn-outline text-[10px] py-1" onclick="unholdFunds('{{ user.wallet.id }}')">فك</button>
+          </div>
         </div>
       {% empty %}
         <div class="empty">لا يوجد مستخدمون بعد.</div>
       {% endfor %}
     </div>
   </article>
+
+<script>
+async function holdFunds(walletId) {
+    const amount = prompt("المبلغ المراد حجزه:");
+    if (!amount) return;
+    const reason = prompt("السبب:");
+    
+    const response = await fetch(`/api/wallets/${walletId}/hold/`, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': '{{ csrf_token }}',
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ amount, reason })
+    });
+    
+    if (response.ok) {
+        alert("تم حجز المبلغ بنجاح");
+        location.reload();
+    } else {
+        const data = await response.json();
+        alert("خطأ: " + (data.detail || "تعذر التنفيذ"));
+    }
+}
+
+async function unholdFunds(walletId) {
+    const amount = prompt("المبلغ المراد فك حجزه:");
+    if (!amount) return;
+    const reason = prompt("السبب:");
+    
+    const response = await fetch(`/api/wallets/${walletId}/unhold/`, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': '{{ csrf_token }}',
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ amount, reason })
+    });
+    
+    if (response.ok) {
+        alert("تم فك حجز المبلغ بنجاح");
+        location.reload();
+    } else {
+        const data = await response.json();
+        alert("خطأ: " + (data.detail || "تعذر التنفيذ"));
+    }
+}
+</script>
   <article class="panel">
     <h2>روابط سريعة</h2>
-    <div class="quick-links">
+    <div class="quick-links stack gap-2">
+      <a href="{% url 'control_orders_list' %}" class="btn-cyan-glow">إدارة الطلبات (جديد)</a>
+      <a href="{% url 'control_users_list' %}" class="btn-cyan-glow">إدارة المستخدمين (جديد)</a>
+      <a href="{% url 'control_products_list' %}" class="btn-cyan-glow">إدارة المنتجات (جديد)</a>
+      <a href="{% url 'control_wallets_list' %}" class="btn-cyan-glow">إدارة المحافظ (جديد)</a>
+      <a href="{% url 'control_reports' %}" class="btn-cyan-glow">التقارير والتحليلات (جديد)</a>
+      <a href="{% url 'payment_methods_list' %}" class="btn-cyan-glow">إدارة وسائل الدفع (جديد)</a>
+      <a href="{% url 'control_withdrawals' %}" class="btn-cyan-glow">إدارة السحوبات (جديد)</a>
+      <a href="{% url 'currencies_list' %}" class="btn-cyan-glow">إدارة العملات (جديد)</a>
+      <a href="{% url 'control_tickets_list' %}" class="btn-cyan-glow">إدارة التذاكر (جديد)</a>
       <a href="{% url 'admin:index' %}">Django Admin</a>
       <a href="{% url 'admin:catalog_product_changelist' %}">المنتجات</a>
       <a href="{% url 'admin:orders_order_changelist' %}">الطلبات</a>
+      <a href="{% url 'admin:payments_paymentmethod_changelist' %}">وسائل الدفع (Django)</a>
       <a href="{% url 'admin:payments_depositrequest_changelist' %}">الإيداعات</a>
     </div>
   </article>
 </section>
+
+<style>
+.btn-cyan-glow {
+  background: linear-gradient(135deg, #00f2fe 0%, #4facfe 100%);
+  color: #000 !important;
+  font-weight: bold;
+  padding: 10px;
+  text-align: center;
+  border-radius: 8px;
+  box-shadow: 0 0 15px rgba(79, 172, 254, 0.4);
+}
+</style>
 {% endblock %}

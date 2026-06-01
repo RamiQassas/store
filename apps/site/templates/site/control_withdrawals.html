@@ -1,0 +1,113 @@
+{% extends "site/base.html" %}
+{% block title %}إدارة طلبات السحب | Raqamiyat Admin{% endblock %}
+{% block content %}
+<section class="page-head">
+  <div>
+    <span class="eyebrow">Admin / Payments</span>
+    <h1>إدارة طلبات السحب</h1>
+    <p>راجع طلبات السحب المقدمة من العملاء، قم بمعالجتها أو الموافقة عليها أو رفضها.</p>
+  </div>
+</section>
+
+<section class="section">
+  <div class="table-wrap">
+    <table class="table">
+      <thead>
+        <tr>
+          <th>التاريخ</th>
+          <th>المستخدم</th>
+          <th>الوسيلة</th>
+          <th>المبلغ (الصافي)</th>
+          <th>البيانات</th>
+          <th>الحالة</th>
+          <th>إجراءات</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for withdrawal in withdrawals %}
+          <tr>
+            <td>{{ withdrawal.created_at|date:"Y-m-d H:i" }}</td>
+            <td>{{ withdrawal.user.email }}</td>
+            <td>{{ withdrawal.payment_method.name }}</td>
+            <td><strong>{{ withdrawal.amount }}</strong> <br> <small class="text-slate-400">({{ withdrawal.final_amount }})</small></td>
+            <td>
+              <code class="text-xs bg-slate-800 p-1 rounded">{{ withdrawal.payout_details.address }}</code>
+            </td>
+            <td>
+              <span class="badge 
+                {% if withdrawal.status == 'pending' %}warning
+                {% elif withdrawal.status == 'processing' %}info
+                {% elif withdrawal.status == 'approved' %}success
+                {% elif withdrawal.status == 'completed' %}primary
+                {% elif withdrawal.status == 'rejected' or withdrawal.status == 'cancelled' %}muted
+                {% endif %}">
+                {{ withdrawal.get_status_display }}
+              </span>
+            </td>
+            <td>
+              <div class="flex gap-1">
+                {% if withdrawal.status == 'pending' %}
+                  <button class="btn btn-sm btn-outline" onclick="actionWithdrawal('{{ withdrawal.id }}', 'process')">بدء المعالجة</button>
+                {% endif %}
+                
+                {% if withdrawal.status == 'pending' or withdrawal.status == 'processing' %}
+                  <button class="btn btn-sm btn-primary" onclick="actionWithdrawal('{{ withdrawal.id }}', 'approve')">موافقة</button>
+                  <button class="btn btn-sm btn-danger" onclick="actionWithdrawal('{{ withdrawal.id }}', 'reject')">رفض</button>
+                {% endif %}
+
+                {% if withdrawal.status == 'processing' or withdrawal.status == 'approved' %}
+                   <button class="btn btn-sm btn-success" onclick="actionWithdrawal('{{ withdrawal.id }}', 'complete')">إكمال</button>
+                {% endif %}
+              </div>
+            </td>
+          </tr>
+        {% empty %}
+          <tr><td colspan="7">لا توجد طلبات سحب حالياً.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<script>
+async function actionWithdrawal(id, action) {
+    let note = "";
+    if (action === 'reject') {
+        note = prompt("سبب الرفض:");
+        if (note === null) return;
+    }
+    
+    if (!confirm(`هل أنت متأكد من تنفيذ إجراء "${action}" على الطلب رقم ${id}؟`)) return;
+
+    try {
+        const response = await fetch(`/api/withdrawals/${id}/${action}/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': '{{ csrf_token }}',
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ admin_note: note })
+        });
+
+        if (response.ok) {
+            location.reload();
+        } else {
+            const data = await response.json();
+            alert("خطأ: " + (data.detail || "تعذر تنفيذ الإجراء"));
+        }
+    } catch (error) {
+        alert("خطأ في الاتصال بالخادم");
+    }
+}
+</script>
+
+<style>
+.btn-danger { background: #ef4444; color: white; }
+.btn-success { background: #22c55e; color: white; }
+.btn-info { background: #3b82f6; color: white; }
+.badge.info { background: #3b82f6; }
+.badge.success { background: #22c55e; }
+.badge.primary { background: #06b6d4; }
+.badge.warning { background: #f59e0b; }
+</style>
+{% endblock %}

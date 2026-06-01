@@ -12,7 +12,7 @@ from apps.accounts.views import LoginView, RegisterView, UserSessionViewSet
 from apps.catalog.views import CategoryViewSet, ProductViewSet
 from apps.notifications.views import NotificationViewSet
 from apps.orders.views import CouponViewSet, OrderViewSet
-from apps.payments.views import DepositRequestViewSet, PaymentProviderViewSet
+from apps.payments.views import DepositRequestViewSet, PaymentMethodViewSet, WithdrawalRequestViewSet
 from apps.services.views import ServiceViewSet
 from apps.support.views import TicketViewSet
 from apps.wallets.views import WalletViewSet
@@ -21,8 +21,9 @@ router = DefaultRouter()
 router.register("categories", CategoryViewSet, basename="category")
 router.register("products", ProductViewSet, basename="product")
 router.register("wallets", WalletViewSet, basename="wallet")
-router.register("payment-providers", PaymentProviderViewSet, basename="payment-provider")
+router.register("payment-methods", PaymentMethodViewSet, basename="payment-method")
 router.register("deposits", DepositRequestViewSet, basename="deposit")
+router.register("withdrawals", WithdrawalRequestViewSet, basename="withdrawal")
 router.register("orders", OrderViewSet, basename="order")
 router.register("coupons", CouponViewSet, basename="coupon")
 router.register("notifications", NotificationViewSet, basename="notification")

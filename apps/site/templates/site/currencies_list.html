@@ -1,0 +1,57 @@
+{% extends "site/base.html" %}
+{% block title %}إدارة العملات | Raqamiyat Admin{% endblock %}
+{% block content %}
+<section class="page-head">
+  <div>
+    <span class="eyebrow">Admin / Settings</span>
+    <h1>إدارة العملات</h1>
+    <p>تحكم بالعملات المتاحة في المنصة وحدد أسعار الصرف مقابل الدولار الأمريكي (USD).</p>
+  </div>
+  <a href="{% url 'currency_create' %}" class="btn btn-primary">إضافة عملة جديدة</a>
+</section>
+
+<section class="section">
+  <div class="table-wrap">
+    <table class="table">
+      <thead>
+        <tr>
+          <th>الترتيب</th>
+          <th>العملة</th>
+          <th>الرمز (ISO)</th>
+          <th>سعر الصرف (1 USD =)</th>
+          <th>الحالة</th>
+          <th>إجراءات</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for currency in currencies %}
+          <tr>
+            <td>{{ currency.display_order }}</td>
+            <td><strong>{{ currency.name }}</strong> ({{ currency.symbol }})</td>
+            <td><code>{{ currency.code }}</code></td>
+            <td>
+               {{ currency.exchange_rate }}
+               {% if currency.code == 'USD' %}<small class="text-slate-500">(الأساس)</small>{% endif %}
+            </td>
+            <td>
+              {% if currency.is_default %}
+                <span class="badge primary">افتراضية</span>
+              {% endif %}
+              {% if currency.is_active %}
+                <span class="badge">نشطة</span>
+              {% else %}
+                <span class="badge muted">معطلة</span>
+              {% endif %}
+            </td>
+            <td>
+              <a href="{% url 'currency_edit' currency.pk %}" class="btn btn-sm btn-outline">تعديل</a>
+            </td>
+          </tr>
+        {% empty %}
+          <tr><td colspan="6">لا توجد عملات مضافة حالياً.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+{% endblock %}

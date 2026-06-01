@@ -1,73 +1,78 @@
 {% load static %}
-<!doctype html>
-<html lang="ar" dir="rtl" data-theme="dark">
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>{% block title %}منصة رقمياتي{% endblock %}</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}Raqamiyat | روقميات{% endblock %}</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
   <link rel="stylesheet" href="{% static 'site/css/app.css' %}">
-  <script defer src="https://cdn.jsdelivr.net/npm/lucide@0.468.0/dist/umd/lucide.min.js"></script>
-  <script defer src="{% static 'site/js/app.js' %}"></script>
+  {% block extra_head %}{% endblock %}
 </head>
 <body>
-  <div class="backdrop"></div>
-  <header class="topbar">
-    <div class="brand">
-      <a href="{% url 'home' %}">منصة رقمياتي</a>
-      <span>Marketplace</span>
-    </div>
-    <nav class="nav">
-      <a href="{% url 'home' %}">الرئيسية</a>
-      <a href="{% url 'catalog' %}">المنتجات</a>
-      <a href="{% url 'dashboard' %}">لوحتي</a>
-      {% if user.is_authenticated %}
-        <a href="{% url 'dashboard_wallet' %}">المحفظة</a>
-        <a href="{% url 'dashboard_deposits' %}">إيداع</a>
-      {% endif %}
-      {% if user.is_staff %}
-        <a href="{% url 'control_dashboard' %}">لوحة الإدارة</a>
-        <a href="{% url 'admin:index' %}">Django Admin</a>
-      {% endif %}
-    </nav>
-    <div class="actions">
-      <button class="icon-btn" type="button" data-theme-toggle title="تبديل المظهر">
-        <i data-lucide="sun"></i>
-      </button>
-      {% if user.is_authenticated %}
-        <a class="btn btn-ghost" href="{% url 'site_logout' %}">خروج</a>
-      {% else %}
-        <a class="btn btn-ghost" href="{% url 'site_login' %}">دخول</a>
-        <a class="btn btn-primary" href="{% url 'site_register' %}">إنشاء حساب</a>
-      {% endif %}
-    </div>
-  </header>
+  <div class="shell">
+    <header class="topbar">
+      <a href="{% url 'home' %}" class="brand">
+        <i class="fas fa-bolt"></i> Raqamiyat<span>.</span>
+      </a>
+      
+      <nav class="nav">
+        <a href="{% url 'home' %}" class="{% if request.resolver_match.url_name == 'home' %}active{% endif %}">الرئيسية</a>
+        <a href="{% url 'catalog' %}" class="{% if request.resolver_match.url_name == 'catalog' %}active{% endif %}">المنتجات</a>
+        {% if user.is_authenticated %}
+            <a href="{% url 'dashboard' %}" class="{% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}">لوحتي</a>
+            <a href="{% url 'dashboard_wallet' %}" class="{% if request.resolver_match.url_name == 'dashboard_wallet' %}active{% endif %}">المحفظة</a>
+            <a href="{% url 'dashboard_tickets' %}" class="{% if request.resolver_match.url_name == 'dashboard_tickets' %}active{% endif %}">الدعم</a>
+        {% endif %}
+      </nav>
 
-  <main class="shell">
+      <div class="actions">
+        {% if user.is_authenticated %}
+          {% if user.is_staff %}
+            <a href="{% url 'control_dashboard' %}" class="btn btn-sm btn-outline text-cyan">لوحة الإدارة</a>
+          {% endif %}
+          <div class="flex items-center gap-3">
+             <span class="text-xs font-bold text-slate-400">{{ user.first_name }}</span>
+             <a href="{% url 'site_logout' %}" class="btn btn-sm btn-outline"><i class="fas fa-sign-out-alt"></i></a>
+          </div>
+        {% else %}
+          <a href="{% url 'site_login' %}" class="btn btn-sm btn-outline">دخول</a>
+          <a href="{% url 'site_register' %}" class="btn btn-sm btn-primary">حساب جديد</a>
+        {% endif %}
+      </div>
+    </header>
+
     {% if messages %}
-      <section class="messages">
+      <div class="messages-container stack gap-2 mb-6">
         {% for message in messages %}
-          <div class="message {{ message.tags }}">{{ message }}</div>
+          <div class="badge {% if message.tags == 'error' %}danger{% elif message.tags == 'success' %}success{% else %}primary{% endif %} p-4 w-full justify-between">
+            <span>{{ message }}</span>
+          </div>
         {% endfor %}
-      </section>
+      </div>
     {% endif %}
-    {% block content %}{% endblock %}
-  </main>
 
-  <footer class="footer">
-    <div>
-      <strong>منصة رقمياتي</strong>
-      <p>منصة موثوقة.تنفيذ سريع.اسعار منافسة</p>
-    </div>
-    <div class="footer-links">
-      <a href="{% url 'catalog' %}">المنتجات</a>
-      <a href="{% url 'dashboard' %}">الحساب</a>
-      {% if user.is_staff %}
-        <a href="{% url 'admin:index' %}">الإدارة</a>
-      {% endif %}
-    </div>
-  </footer>
+    <main>
+      {% block content %}{% endblock %}
+    </main>
+
+    <footer>
+      <div class="flex flex-col gap-4">
+        <div class="brand justify-center">
+            <i class="fas fa-bolt"></i> Raqamiyat
+        </div>
+        <p>© 2024 جميع الحقوق محفوظة لـ روقميات - Raqamiyat</p>
+        <div class="flex gap-4 justify-center text-xs">
+            <a href="#" class="hover:text-cyan">شروط الاستخدام</a>
+            <a href="#" class="hover:text-cyan">سياسة الخصوصية</a>
+            <a href="#" class="hover:text-cyan">تواصل معنا</a>
+        </div>
+      </div>
+    </footer>
+  </div>
+  {% block extra_js %}{% endblock %}
 </body>
 </html>

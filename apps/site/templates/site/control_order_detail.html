@@ -1,0 +1,110 @@
+{% extends "site/base.html" %}
+{% block title %}تفاصيل الطلب {{ order.number }} | Raqamiyat Admin{% endblock %}
+{% block content %}
+<section class="page-head">
+  <div>
+    <span class="eyebrow">Admin / Orders / #{{ order.number }}</span>
+    <h1>تفاصيل الطلب: {{ order.number }}</h1>
+    <div class="flex gap-4 mt-2">
+        <span class="badge primary">{{ order.get_status_display }}</span>
+        <span class="text-slate-500 text-sm">بواسطة: {{ order.customer.email }}</span>
+    </div>
+  </div>
+  <a href="{% url 'control_orders_list' %}" class="btn btn-outline">عودة للقائمة</a>
+</section>
+
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+  <!-- Items & Payout Info -->
+  <div class="lg:col-span-2 stack gap-6">
+    <article class="panel p-6">
+      <h3 class="font-bold text-lg mb-4 border-b border-slate-700 pb-2">بنود الطلب</h3>
+      <div class="stack gap-4">
+        {% for item in order.items.all %}
+          <div class="flex justify-between items-center bg-slate-800 p-4 rounded border border-slate-700">
+            <div class="flex items-center gap-4">
+               {% if item.variant.product.thumbnail %}
+                 <img src="{{ item.variant.product.thumbnail.url }}" class="w-12 h-12 rounded object-cover">
+               {% endif %}
+               <div>
+                  <strong class="block">{{ item.variant.product.name }}</strong>
+                  <small class="text-slate-400">باقة: {{ item.variant.name }} x {{ item.quantity }}</small>
+               </div>
+            </div>
+            <div class="text-right">
+                <strong>{{ item.total_price }}</strong>
+                <small class="block text-slate-500">SYP</small>
+            </div>
+          </div>
+        {% endfor %}
+      </div>
+      
+      <div class="mt-6 p-4 bg-cyan/10 border border-cyan/20 rounded flex justify-between">
+          <span class="font-bold">المبلغ الإجمالي المدفوع:</span>
+          <strong class="text-xl text-cyan">{{ order.total_amount }} SYP</strong>
+      </div>
+    </article>
+
+    <article class="panel p-6">
+        <h3 class="font-bold text-lg mb-4 border-b border-slate-700 pb-2">بيانات التنفيذ (Fulfillment)</h3>
+        <div class="bg-slate-900 p-4 rounded font-mono text-sm text-cyan">
+            {% for key, val in order.fulfillment_data.items %}
+                <div class="flex gap-2">
+                    <span class="text-slate-500">{{ key }}:</span>
+                    <span>{{ val }}</span>
+                </div>
+            {% empty %}
+                <p class="text-slate-500">لا توجد بيانات تنفيذ إضافية.</p>
+            {% endfor %}
+        </div>
+    </article>
+    
+    <article class="panel p-6">
+        <h3 class="font-bold text-lg mb-4 border-b border-slate-700 pb-2">سجل الحالات (Logs)</h3>
+        <div class="stack gap-3">
+            {% for log in order.logs.all %}
+                <div class="text-xs flex gap-2 border-r-2 border-slate-700 pr-3">
+                    <span class="text-slate-500">{{ log.created_at|date:"H:i" }}</span>
+                    <strong class="text-white">{{ log.get_status_display }}</strong>
+                    <span class="text-slate-400">{{ log.note }}</span>
+                    {% if log.created_by %}<small class="text-slate-600">بواسطة {{ log.created_by.first_name }}</small>{% endif %}
+                </div>
+            {% endfor %}
+        </div>
+    </article>
+  </div>
+
+  <!-- Management Sidebar -->
+  <div class="lg:col-span-1 stack gap-6">
+    <article class="panel p-6">
+        <h3 class="font-bold text-lg mb-4 text-cyan">تغيير حالة الطلب</h3>
+        <form method="post" class="stack gap-4">
+            {% csrf_token %}
+            <div>
+                <label class="block mb-1 text-sm">الحالة الجديدة</label>
+                <select name="status" class="w-full bg-slate-800 border-slate-700 rounded p-2 text-white">
+                    {% for val, label in order.Status.choices %}
+                        <option value="{{ val }}" {% if order.status == val %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div>
+                <label class="block mb-1 text-sm">ملاحظة إدارية (اختيارية)</label>
+                <textarea name="admin_note" rows="3" class="w-full bg-slate-800 border-slate-700 rounded p-2 text-white"></textarea>
+            </div>
+            <button type="submit" class="btn btn-primary w-full">حفظ التحديث</button>
+        </form>
+    </article>
+
+    <article class="panel p-6">
+        <h3 class="font-bold mb-3">معلومات العميل</h3>
+        <div class="text-sm stack gap-2">
+            <p>الاسم: {{ order.customer.first_name }} {{ order.customer.last_name }}</p>
+            <p>البريد: {{ order.customer.email }}</p>
+            <p>الرصيد المتاح: <span class="text-cyan font-bold">{{ order.customer.wallet.available_balance }}</span></p>
+            <hr class="border-slate-700 my-2">
+            <a href="{% url 'control_user_moderate' order.customer.pk %}" class="btn btn-sm btn-outline w-full text-xs">إدارة حساب العميل</a>
+        </div>
+    </article>
+  </div>
+</div>
+{% endblock %}

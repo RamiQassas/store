@@ -1,0 +1,72 @@
+{% extends "site/base.html" %}
+{% block title %}إدارة الطلبات | Raqamiyat Admin{% endblock %}
+{% block content %}
+<section class="page-head">
+  <div>
+    <span class="eyebrow">Admin / Orders</span>
+    <h1>إدارة الطلبات</h1>
+    <p>تابع حالة الطلبات، وقم بمعالجتها أو رد المبالغ للعملاء.</p>
+  </div>
+</section>
+
+<section class="section">
+  <div class="mb-6 stack gap-4">
+    <div class="flex gap-2 overflow-x-auto pb-2">
+        <a href="{% url 'control_orders_list' %}" class="btn btn-sm {% if not current_status %}btn-primary{% else %}btn-outline{% endif %}">الكل</a>
+        {% for val, label in orders.0.Status.choices %}
+            <a href="{% url 'control_orders_list' %}?status={{ val }}" class="btn btn-sm {% if current_status == val %}btn-primary{% else %}btn-outline{% endif %}">{{ label }}</a>
+        {% endfor %}
+    </div>
+    <form method="get" class="flex gap-2">
+      <input type="text" name="q" value="{{ query }}" placeholder="بحث برقم الطلب أو بريد العميل..." class="w-full bg-slate-800 border-slate-700 rounded p-2 text-white">
+      <button type="submit" class="btn btn-primary">بحث</button>
+    </form>
+  </div>
+
+  <div class="table-wrap">
+    <table class="table">
+      <thead>
+        <tr>
+          <th>رقم الطلب</th>
+          <th>العميل</th>
+          <th>المنتج</th>
+          <th>المبلغ</th>
+          <th>الحالة</th>
+          <th>التاريخ</th>
+          <th>إجراءات</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for o in orders %}
+          <tr>
+            <td><strong>{{ o.number }}</strong></td>
+            <td><small>{{ o.customer.email }}</small></td>
+            <td>
+                {% for item in o.items.all %}
+                    <div class="text-xs">{{ item.variant.product.name }} ({{ item.variant.name }})</div>
+                {% endfor %}
+            </td>
+            <td><strong>{{ o.total_amount }}</strong></td>
+            <td>
+              <span class="badge 
+                {% if o.status == 'completed' %}success
+                {% elif o.status == 'pending_payment' %}warning
+                {% elif o.status == 'processing' %}info
+                {% elif o.status == 'refunded' or o.status == 'cancelled' %}muted
+                {% else %}primary{% endif %}">
+                {{ o.get_status_display }}
+              </span>
+            </td>
+            <td><small>{{ o.created_at|date:"Y-m-d" }}</small></td>
+            <td>
+              <a href="{% url 'control_order_detail' o.pk %}" class="btn btn-sm btn-outline">تفاصيل</a>
+            </td>
+          </tr>
+        {% empty %}
+          <tr><td colspan="7">لا توجد طلبات مطابقة.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+{% endblock %}

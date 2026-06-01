@@ -1,0 +1,82 @@
+{% extends "site/base.html" %}
+{% block title %}التقارير والتحليلات | Raqamiyat Admin{% endblock %}
+{% block content %}
+<section class="page-head">
+  <div>
+    <span class="eyebrow">Admin / Analytics</span>
+    <h1>تحليلات المنصة والتقارير</h1>
+    <p>نظرة عميقة على الأداء المالي، نمو المستخدمين، والخدمات الأكثر مبيعاً.</p>
+  </div>
+</section>
+
+<!-- Top Stats -->
+<section class="grid grid-4 gap-6 mb-8">
+  <article class="panel p-6 border-r-4 border-cyan">
+    <span class="text-slate-400 block mb-1">إيرادات (30 يوم)</span>
+    <strong class="text-2xl text-white">{{ stats.revenue_30 }} SYP</strong>
+    <div class="text-[10px] text-green-500 mt-1"><i class="fas fa-trending-up"></i> +{{ stats.orders_30 }} طلب جديد</div>
+  </article>
+  
+  <article class="panel p-6 border-r-4 border-blue-500">
+    <span class="text-slate-400 block mb-1">نمو المستخدمين</span>
+    <strong class="text-2xl text-white">{{ stats.total_users }}</strong>
+    <div class="text-[10px] text-blue-400 mt-1">+{{ stats.users_30 }} خلال الشهر الأخير</div>
+  </article>
+
+  <article class="panel p-6 border-r-4 border-amber-500">
+    <span class="text-slate-400 block mb-1">صافي الإيداعات</span>
+    <strong class="text-2xl text-white">{{ stats.deposits_30 }} SYP</strong>
+  </article>
+
+  <article class="panel p-6 border-r-4 border-red-500">
+    <span class="text-slate-400 block mb-1">إجمالي السحوبات</span>
+    <strong class="text-2xl text-white">{{ stats.withdrawals_30 }} SYP</strong>
+  </article>
+</section>
+
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+    <!-- Wallet Exposure -->
+    <div class="lg:col-span-1 stack gap-6">
+        <article class="panel p-6">
+            <h3 class="font-bold text-lg mb-4 border-b border-slate-700 pb-2">توزيع الأرصدة (النظام)</h3>
+            <div class="stack gap-4">
+                <div class="flex justify-between">
+                    <span class="text-sm text-slate-400">إجمالي المتاح:</span>
+                    <strong class="text-cyan">{{ stats.wallet_stats.total_available|default:0 }}</strong>
+                </div>
+                <div class="flex justify-between">
+                    <span class="text-sm text-slate-400">إجمالي المجمد:</span>
+                    <strong class="text-amber-500">{{ stats.wallet_stats.total_frozen|default:0 }}</strong>
+                </div>
+                <div class="flex justify-between">
+                    <span class="text-sm text-slate-400">إجمالي المحجوز:</span>
+                    <strong class="text-red-500">{{ stats.wallet_stats.total_held|default:0 }}</strong>
+                </div>
+            </div>
+        </article>
+
+        <article class="panel p-6 bg-cyan/5">
+            <h3 class="font-bold text-lg mb-4">أعلى المنتجات مبيعاً</h3>
+            <div class="stack gap-3">
+                {% for p in stats.top_products %}
+                    <div class="flex justify-between items-center text-sm">
+                        <span>{{ p.name }}</span>
+                        <span class="badge primary">{{ p.order_count }} طلب</span>
+                    </div>
+                {% endfor %}
+            </div>
+        </article>
+    </div>
+
+    <!-- Charts Placeholder -->
+    <div class="lg:col-span-2">
+        <article class="panel p-6 h-full flex flex-col justify-center items-center text-center">
+            <div class="w-20 h-20 bg-slate-800 rounded-full flex items-center justify-center mb-6">
+                <i class="fas fa-chart-pie text-3xl text-cyan"></i>
+            </div>
+            <h2 class="text-2xl font-bold mb-2">الرسوم البيانية التفاعلية</h2>
+            <p class="text-slate-400 max-w-md">سيتم دمج Chart.js في التحديث القادم لعرض منحنيات النمو اليومي وتوزيع المبيعات حسب التصنيفات بشكل مرئي.</p>
+        </article>
+    </div>
+</div>
+{% endblock %}
