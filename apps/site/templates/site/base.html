@@ -4,7 +4,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>{% block title %}منصة الخدمات الرقمية{% endblock %}</title>
+  <title>{% block title %}منصة رقمياتي{% endblock %}</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -16,12 +16,12 @@
   <div class="backdrop"></div>
   <header class="topbar">
     <div class="brand">
-      <a href="{% url 'home' %}">منصة الخدمات الرقمية</a>
+      <a href="{% url 'home' %}">منصة رقمياتي</a>
       <span>Marketplace</span>
     </div>
     <nav class="nav">
       <a href="{% url 'home' %}">الرئيسية</a>
-      <a href="{% url 'catalog' %}">الكتالوج</a>
+      <a href="{% url 'catalog' %}">المنتجات</a>
       <a href="{% url 'dashboard' %}">لوحتي</a>
       {% if user.is_authenticated %}
         <a href="{% url 'dashboard_wallet' %}">المحفظة</a>
@@ -58,8 +58,8 @@
 
   <footer class="footer">
     <div>
-      <strong>منصة الخدمات الرقمية</strong>
-      <p>بنية Django قابلة للنمو، RTL جاهز، ومحفظة وطلبات وإيداعات ولوحة موظفين من نفس النواة.</p>
+      <strong>منصة رقمياتي</strong>
+      <p>منصة موثوقة.تنفيذ سريع.اسعار منافسة</p>
     </div>
     <div class="footer-links">
       <a href="{% url 'catalog' %}">المنتجات</a>
