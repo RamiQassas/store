@@ -184,10 +184,13 @@ def register_view(request):
                 description="New account registered"
             )
             
-            send_verification_email(request, user)
+            success = send_verification_email(request, user)
             
             login(request, user)
-            messages.success(request, "تم إنشاء الحساب بنجاح. يرجى تفعيل بريدك الإلكتروني.")
+            if success:
+                messages.success(request, "تم إنشاء الحساب بنجاح. يرجى تفعيل بريدك الإلكتروني.")
+            else:
+                messages.warning(request, "تم إنشاء الحساب، ولكن تعذر إرسال بريد التفعيل حالياً. يمكنك إعادة المحاولة من لوحة التحكم.")
             return redirect("dashboard")
             
     return render(request, "site/auth_register.html", {"form": form})
@@ -230,8 +233,11 @@ def resend_verification(request):
     if request.user.email_verified:
         messages.info(request, "بريدك الإلكتروني مفعل بالفعل.")
     else:
-        send_verification_email(request, request.user)
-        messages.success(request, "تم إعادة إرسال رابط التفعيل إلى بريدك الإلكتروني.")
+        success = send_verification_email(request, request.user)
+        if success:
+            messages.success(request, "تم إعادة إرسال رابط التفعيل إلى بريدك الإلكتروني بنجاح.")
+        else:
+            messages.error(request, "تعذر إرسال البريد حالياً. يرجى المحاولة مرة أخرى لاحقاً أو التواصل مع الدعم.")
     return redirect("dashboard")
 
 

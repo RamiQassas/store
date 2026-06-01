@@ -208,12 +208,14 @@ else:
 CELERY_BROKER_URL = REDIS_URL
 CELERY_RESULT_BACKEND = REDIS_URL
 
-EMAIL_BACKEND = env("EMAIL_BACKEND", "django.core.mail.backends.smtp.EmailBackend")
+EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
 EMAIL_HOST = env("EMAIL_HOST", "smtp-relay.brevo.com")
-EMAIL_PORT = int(env("EMAIL_PORT", "587"))
+EMAIL_PORT = int(env("EMAIL_PORT", 587))
 EMAIL_HOST_USER = env("EMAIL_HOST_USER", "")
 EMAIL_HOST_PASSWORD = env("EMAIL_HOST_PASSWORD", "")
-EMAIL_USE_TLS = env_bool("EMAIL_USE_TLS", True)
+EMAIL_USE_TLS = env("EMAIL_USE_TLS", "True").lower() == "true"
+EMAIL_USE_SSL = env("EMAIL_USE_SSL", "False").lower() == "true"
+EMAIL_TIMEOUT = int(env("EMAIL_TIMEOUT", 15))
 DEFAULT_FROM_EMAIL = env("DEFAULT_FROM_EMAIL", "Raqamiyat Support <noreply@raqamiyat.com>")
 
 SESSION_COOKIE_HTTPONLY = True

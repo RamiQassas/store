@@ -4,6 +4,10 @@ from django.utils.http import urlsafe_base64_encode
 from django.utils.encoding import force_bytes
 from django.urls import reverse
 from django.conf import settings
+from django.core.mail import send_mail
+import logging
+
+logger = logging.getLogger(__name__)
 
 def send_verification_email(request, user):
     token = default_token_generator.make_token(user)
@@ -26,25 +30,33 @@ def send_verification_email(request, user):
     فريق رقميات.
     """
     
-    # We will use Django's core send_mail if configured, 
-    # but for now we log it and send an in-app notification as fallback 
-    # since we want to keep it "FREE" and the user might not have SMTP yet.
-    # However, standard practice is send_mail.
-    
-    from django.core.mail import send_mail
+    success = False
     try:
-        send_mail(subject, body, settings.DEFAULT_FROM_EMAIL, [user.email], fail_silently=False)
+        # Standard practice is send_mail with a timeout from settings
+        send_mail(
+            subject, 
+            body, 
+            settings.DEFAULT_FROM_EMAIL, 
+            [user.email], 
+            fail_silently=False
+        )
+        success = True
     except Exception as e:
-        print(f"Mail delivery failed: {e}")
+        logger.error(f"SMTP delivery failed for {user.email}: {str(e)}")
         # Log to activity for admin review
         from apps.accounts.models import ActivityLog
-        ActivityLog.objects.create(user=user, action="Email Failed", description=f"Verification email failed to send: {str(e)}")
+        ActivityLog.objects.create(
+            user=user, 
+            action="Email Failed", 
+            description=f"Verification email failed to send (SMTP error). {str(e)[:200]}"
+        )
 
-    # Also notify in-app so they see the link if email fails in dev/free environment
+    # Always notify in-app so they see the link even if SMTP is acting up
     notify_user(
         user=user,
         title="تفعيل البريد الإلكتروني",
-        body="يرجى مراجعة بريدك الإلكتروني لتفعيل الحساب والتمكن من الوصول لجميع الميزات.",
+        body="يرجى مراجعة بريدك الإلكتروني لتفعيل الحساب. إذا لم يصلك البريد، يمكنك إعادة الإرسال من لوحة التحكم.",
         action_url=path,
         priority="high"
     )
+    return success
