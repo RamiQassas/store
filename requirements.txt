@@ -7,5 +7,6 @@ Pillow==10.4.0
 psycopg[binary]==3.2.13
 redis==5.0.8
 celery==5.4.0
+requests==2.32.3
 gunicorn==23.0.0
 whitenoise==6.12.0
