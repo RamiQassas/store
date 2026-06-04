@@ -1,6 +1,7 @@
 from django.contrib.auth.models import AbstractUser
 from django.db import models
 from django.utils import timezone
+import uuid
 
 from apps.accounts.managers import UserManager
 from apps.common.models import TimeStampedModel
@@ -49,6 +50,7 @@ class User(AbstractUser, TimeStampedModel):
     suspension_expires_at = models.DateTimeField(null=True, blank=True, verbose_name="تاريخ انتهاء الإيقاف")
     is_permanently_suspended = models.BooleanField(default=False, verbose_name="إيقاف نهائي")
 
+    public_uuid = models.UUIDField(default=uuid.uuid4, editable=False, unique=True)
     email_verified = models.BooleanField(default=False)
     two_factor_enabled = models.BooleanField(default=False)
 

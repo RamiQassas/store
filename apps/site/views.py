@@ -626,8 +626,8 @@ def control_users_list(request):
 
 
 @staff_member_required
-def control_user_moderate(request, pk):
-    user_to_moderate = get_object_or_404(User.objects.select_related("wallet"), pk=pk)
+def control_user_moderate(request, public_uuid):
+    user_to_moderate = get_object_or_404(User.objects.select_related("wallet"), public_uuid=public_uuid)
     previous_state = {
         "status": user_to_moderate.status,
         "tier": user_to_moderate.tier,

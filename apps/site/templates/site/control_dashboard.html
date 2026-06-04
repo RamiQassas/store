@@ -144,7 +144,7 @@
                             <button class="btn btn-sm btn-outline text-[10px] py-1 px-3" onclick="holdFunds('{{ user.wallet.id }}')">
                                 <i class="fas fa-lock ml-1"></i> حجز رصيد
                             </button>
-                            <a href="{% url 'control_user_moderate' user.id %}" class="btn btn-sm btn-primary text-[10px] py-1 px-3">
+                            <a href="{% url 'control_user_moderate' user.public_uuid %}" class="btn btn-sm btn-primary text-[10px] py-1 px-3">
                                 <i class="fas fa-user-shield ml-1"></i> إدارة الحساب
                             </a>
                         </div>
