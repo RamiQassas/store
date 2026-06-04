@@ -7,7 +7,7 @@ from apps.accounts.managers import UserManager
 from apps.common.models import TimeStampedModel
 
 
-class User(AbstractUser, TimeStampedModel):
+class User(AbstractUser):
     class Role(models.TextChoices):
         SUPER_ADMIN = "super_admin", "مدير عام"
         ADMIN = "admin", "مدير"
@@ -49,6 +49,9 @@ class User(AbstractUser, TimeStampedModel):
     admin_notes = models.TextField(blank=True, verbose_name="ملاحظات المشرف (داخلية)")
     suspension_expires_at = models.DateTimeField(null=True, blank=True, verbose_name="تاريخ انتهاء الإيقاف")
     is_permanently_suspended = models.BooleanField(default=False, verbose_name="إيقاف نهائي")
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
 
     public_uuid = models.UUIDField(default=uuid.uuid4, editable=False, unique=True)
     email_verified = models.BooleanField(default=False)
