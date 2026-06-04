@@ -141,6 +141,21 @@
         {% for msg in chat_messages %}
         <div class="message {% if msg.sender == user %}received{% else %}sent{% endif %}">
             <div class="message-bubble">
+                {% if msg.file %}
+                    {% if msg.is_image %}
+                        <a href="{{ msg.file.url }}" target="_blank">
+                            <img src="{{ msg.file.url }}" class="rounded-lg max-w-full h-auto mb-2 border border-white/10">
+                        </a>
+                    {% else %}
+                        <div class="flex items-center gap-3 p-3 bg-white/5 rounded-lg border border-white/5">
+                            <i class="fas fa-file-alt text-2xl text-cyan"></i>
+                            <div class="flex-grow overflow-hidden">
+                                <div class="text-xs font-bold truncate">{{ msg.file.name|slice:"14:" }}</div>
+                                <a href="{{ msg.file.url }}" download class="text-[10px] text-cyan hover:underline">تحميل الملف</a>
+                            </div>
+                        </div>
+                    {% endif %}
+                {% endif %}
                 {{ msg.text }}
             </div>
             <div class="message-info">
@@ -159,11 +174,14 @@
         {% endfor %}
     </div>
 
-    <!-- Input Area -->
     <div class="chat-input-area">
         <div class="typing-indicator" id="typing-indicator"></div>
         <div class="input-wrapper">
-            <input type="text" id="chat-input" placeholder="اكتب رسالتك هنا..." autocomplete="off">
+            <button class="btn btn-outline" onclick="document.getElementById('file-input').click()" title="إرفاق ملف">
+                <i class="fas fa-paperclip"></i>
+            </button>
+            <input type="file" id="file-input" class="hidden" onchange="uploadFile(this)">
+            <input type="text" id="chat-input" placeholder="اكتب رسالتك هنا..." autocomplete="off" class="flex-grow">
             <button class="btn btn-primary" id="send-btn">
                 <i class="fas fa-paper-plane"></i>
             </button>
@@ -217,10 +235,39 @@
         }
     };
 
+    async function uploadFile(input) {
+        if (!input.files || !input.files[0]) return;
+        
+        const formData = new FormData();
+        formData.append('file', input.files[0]);
+        formData.append('csrfmiddlewaretoken', '{{ csrf_token }}');
+        
+        try {
+            const response = await fetch('{% url "chat_file_upload" room.id %}', {
+                method: 'POST',
+                body: formData
+            });
+            
+            if (response.ok) {
+                const data = await response.json();
+                // Notify via WS so it appears for the other person instantly
+                chatSocket.send(JSON.stringify({
+                    'type': 'chat_message',
+                    'message': '' // Message already saved in DB with file
+                }));
+                input.value = '';
+            } else {
+                alert("فشل رفع الملف.");
+            }
+        } catch (e) {
+            alert("خطأ في الاتصال.");
+        }
+    }
+
     function sendMessage() {
         const message = chatInput.value.trim();
         if (message) {
-            chatSocket.send(json.stringify({
+            chatSocket.send(JSON.stringify({
                 'type': 'chat_message',
                 'message': message
             }));

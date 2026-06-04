@@ -11,7 +11,6 @@ from django.utils.text import slugify
 class Category(TimeStampedModel):
     name = models.CharField(max_length=120, verbose_name="اسم التصنيف")
     parent = models.ForeignKey("self", null=True, blank=True, related_name="children", on_delete=models.CASCADE)
-    icon = models.CharField(max_length=80, blank=True, verbose_name="الأيقونة")
     is_active = models.BooleanField(default=True, verbose_name="نشط")
     sort_order = models.PositiveIntegerField(default=0, verbose_name="ترتيب العرض")
 

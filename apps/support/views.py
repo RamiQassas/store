@@ -62,6 +62,42 @@ def create_chat(request):
     return redirect('chat_room', room_id=room.id)
 
 
+from django.http import JsonResponse
+
+@login_required
+def chat_file_upload(request, room_id):
+    if request.method == "POST" and request.FILES.get("file"):
+        room = get_object_or_404(ChatRoom, id=room_id)
+        if not (request.user.is_staff or room.user == request.user):
+            return JsonResponse({"status": "error", "message": "Permission denied"}, status=403)
+            
+        file = request.FILES.get("file")
+        is_image = file.content_type.startswith("image/")
+        
+        message = ChatMessage.objects.create(
+            room=room,
+            sender=request.user,
+            file=file,
+            is_image=is_image,
+            is_staff_reply=can_manage_support(request.user)
+        )
+        
+        # Trigger room updates
+        room.last_message_at = timezone.now()
+        if message.is_staff_reply:
+            room.unread_user_count += 1
+        else:
+            room.unread_staff_count += 1
+        room.save()
+        
+        return JsonResponse({
+            "status": "success",
+            "message_id": str(message.id),
+            "file_url": message.file.url,
+            "is_image": is_image,
+            "timestamp": message.created_at.strftime("%H:%M"),
+            "sender_name": f"{request.user.first_name} {request.user.last_name}"
+        })
 @login_required
 def close_chat(request, room_id):
     """Allows staff to close a chat room."""

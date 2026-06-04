@@ -1,8 +1,9 @@
+import json
 from decimal import Decimal
 
 from django.contrib import messages
 from django.contrib.auth import authenticate, login, logout
-from django.contrib.auth.decorators import login_required
+from django.contrib.auth.decorators import login_required, permission_required
 from django.contrib.admin.views.decorators import staff_member_required
 from django.db import transaction
 from django.db.models import Q, Sum, Count
@@ -23,7 +24,7 @@ from apps.notifications.services import notify_user
 from apps.orders.models import Order, OrderItem, OrderLog, Coupon
 from apps.payments.models import DepositRequest, PaymentMethod, WithdrawalRequest
 from apps.site.forms import LoginForm, RegisterForm, TicketForm, PaymentMethodForm, CurrencyForm, ModerateUserForm, ProductForm, VariantForm
-from apps.support.models import Ticket, TicketMessage, ChatCannedReply
+from apps.support.models import ChatRoom, ChatMessage, ChatCannedReply
 from apps.wallets.models import LedgerEntry, Wallet, WalletTransaction
 from apps.wallets.services import get_or_create_wallet
 
@@ -36,7 +37,7 @@ def home(request):
         "products": Product.objects.filter(is_active=True).count(),
         "categories": categories.count(),
         "orders": Order.objects.count(),
-        "tickets": Ticket.objects.count(),
+        "tickets": ChatRoom.objects.exclude(status=ChatRoom.Status.CLOSED).count(),
         "users": User.objects.count(),
     }
     return render(
@@ -515,7 +516,7 @@ def control_dashboard(request):
     )
 
 
-@staff_member_required
+@permission_required("payments.view_depositrequest", raise_exception=True)
 def control_deposits(request):
     status_filter = request.GET.get("status")
     query = request.GET.get("q", "").strip()
@@ -657,7 +658,7 @@ def control_withdrawals(request):
     return render(request, "site/control_withdrawals.html", {"withdrawals": withdrawals})
 
 
-@staff_member_required
+@permission_required("accounts.view_user", raise_exception=True)
 def control_users_list(request):
     query = request.GET.get("q", "").strip()
     users = User.objects.select_related("wallet").order_by("-date_joined")
@@ -739,12 +740,11 @@ def control_category_create_ajax(request):
     if request.method == "POST":
         name = request.POST.get("name")
         if name:
-            from django.utils.text import slugify
-            category = Category.objects.create(name=name, slug=slugify(name))
+            category = Category.objects.create(name=name)
             return JsonResponse({"status": "success", "id": str(category.id), "name": category.name})
     return JsonResponse({"status": "error", "message": "Invalid request"}, status=400)
 
-@staff_member_required
+@permission_required("catalog.view_product", raise_exception=True)
 def control_products_list(request):
     query = request.GET.get("q", "").strip()
     products = Product.objects.select_related("category").prefetch_related("variants").order_by("sort_order", "name")
@@ -958,7 +958,7 @@ def control_order_detail(request, pk):
     return render(request, "site/control_order_detail.html", {"order": order})
 
 
-@staff_member_required
+@permission_required("wallets.view_wallet", raise_exception=True)
 def control_wallets_list(request):
     query = request.GET.get("q", "").strip()
     wallets = Wallet.objects.select_related("user", "currency").all()

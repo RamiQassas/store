@@ -3,6 +3,12 @@ from django.urls import path
 from apps.site import views, api_views
 
 urlpatterns = [
+    # User Dashboard
+    path("dashboard/", views.dashboard, name="dashboard"),
+    path("dashboard/wallet/", views.wallet_page, name="dashboard_wallet"),
+    path("dashboard/deposits/", views.deposits, name="dashboard_deposits"),
+    path("dashboard/withdrawals/", views.withdrawals, name="dashboard_withdrawals"),
+
     path("", views.home, name="home"),
     path("catalog/", views.catalog, name="catalog"),
     path("catalog/<uuid:pk>/", views.product_detail, name="product_detail"),
@@ -16,21 +22,13 @@ urlpatterns = [
     path("api/withdrawals/<uuid:pk>/approve/", api_views.api_withdrawal_approve, name="api_withdrawal_approve"),
     path("api/withdrawals/<uuid:pk>/complete/", api_views.api_withdrawal_complete, name="api_withdrawal_complete"),
     path("api/withdrawals/<uuid:pk>/reject/", api_views.api_withdrawal_reject, name="api_withdrawal_reject"),
-    
+
     # Auth
     path("auth/login/", views.login_view, name="site_login"),
     path("auth/register/", views.register_view, name="site_register"),
     path("auth/verify/<str:uidb64>/<str:token>/", views.email_verify, name="email_verify"),
     path("auth/resend-verification/", views.resend_verification, name="resend_verification"),
     path("logout/", views.logout_view, name="site_logout"),
-    
-    # User Dashboard
-    path("dashboard/", views.dashboard, name="dashboard"),
-    path("dashboard/wallet/", views.wallet_page, name="dashboard_wallet"),
-    path("dashboard/deposits/", views.deposits, name="dashboard_deposits"),
-    path("dashboard/withdrawals/", views.withdrawals, name="dashboard_withdrawals"),
-    
-    # Admin Control
     path("control/", views.control_dashboard, name="control_dashboard"),
     path("control/payment-methods/", views.payment_methods_list, name="payment_methods_list"),
     path("control/payment-methods/create/", views.payment_method_create, name="payment_method_create"),

@@ -1,14 +1,20 @@
+import json
 from decimal import Decimal
-
 from django.db import transaction
-
 from apps.wallets.models import LedgerEntry, Wallet, WalletTransaction
 from apps.common.models import Currency
-
 
 class WalletError(Exception):
     pass
 
+def json_serialize_safe(data):
+    if not data: return {}
+    class CustomEncoder(json.JSONEncoder):
+        def default(self, obj):
+            if isinstance(obj, Decimal): return str(obj)
+            if hasattr(obj, 'hex'): return str(obj) # UUID
+            return super().default(obj)
+    return json.loads(json.dumps(data, cls=CustomEncoder))
 
 def credit_wallet(wallet_id, amount, reference="", description="", created_by=None, metadata=None, source="system", reason=""):
     amount = Decimal(amount)
@@ -35,7 +41,7 @@ def credit_wallet(wallet_id, amount, reference="", description="", created_by=No
             source=source,
             reason=reason,
             created_by=created_by,
-            metadata=metadata or {},
+            metadata=json_serialize_safe(metadata),
         )
         
         WalletTransaction.objects.create(
@@ -43,7 +49,7 @@ def credit_wallet(wallet_id, amount, reference="", description="", created_by=No
             amount=amount,
             transaction_type="credit",
             reference=reference,
-            metadata=metadata or {},
+            metadata=json_serialize_safe(metadata),
         )
         return wallet
 
@@ -69,7 +75,7 @@ def debit_wallet(wallet_id, amount, reference="", description="", created_by=Non
             source=source,
             reason=reason,
             created_by=created_by,
-            metadata=metadata or {},
+            metadata=json_serialize_safe(metadata),
         )
         
         WalletTransaction.objects.create(
@@ -77,7 +83,7 @@ def debit_wallet(wallet_id, amount, reference="", description="", created_by=Non
             amount=amount,
             transaction_type="debit",
             reference=reference,
-            metadata=metadata or {},
+            metadata=json_serialize_safe(metadata),
         )
         return wallet
 
@@ -104,7 +110,7 @@ def freeze_funds(wallet_id, amount, reference="", description="", created_by=Non
             source=source,
             reason=reason,
             created_by=created_by,
-            metadata=metadata or {},
+            metadata=json_serialize_safe(metadata),
         )
         return wallet
 
@@ -131,7 +137,7 @@ def release_funds(wallet_id, amount, reference="", description="", created_by=No
             source=source,
             reason=reason,
             created_by=created_by,
-            metadata=metadata or {},
+            metadata=json_serialize_safe(metadata),
         )
         return wallet
 
@@ -160,7 +166,7 @@ def finalize_withdrawal(wallet_id, amount, reference="", description="", created
             source=source,
             reason=reason or "Finalized withdrawal",
             created_by=created_by,
-            metadata=metadata or {},
+            metadata=json_serialize_safe(metadata),
         )
         
         WalletTransaction.objects.create(
@@ -168,7 +174,7 @@ def finalize_withdrawal(wallet_id, amount, reference="", description="", created
             amount=amount,
             transaction_type="withdrawal",
             reference=reference,
-            metadata=metadata or {},
+            metadata=json_serialize_safe(metadata),
             status=WalletTransaction.Status.COMPLETED,
         )
         return wallet
@@ -197,7 +203,7 @@ def hold_funds(wallet_id, amount, reference="", description="", created_by=None,
             source=source,
             reason=reason,
             created_by=created_by,
-            metadata=metadata or {},
+            metadata=json_serialize_safe(metadata),
         )
         
         # SystemAuditLog should be handled by the caller (view/admin) to include IP/UserAgent
@@ -227,7 +233,7 @@ def unhold_funds(wallet_id, amount, reference="", description="", created_by=Non
             source=source,
             reason=reason,
             created_by=created_by,
-            metadata=metadata or {},
+            metadata=json_serialize_safe(metadata),
         )
         return wallet
 
@@ -254,7 +260,7 @@ def reserve_funds(wallet_id, amount, reference="", description="", created_by=No
             source=source,
             reason=reason,
             created_by=created_by,
-            metadata=metadata or {"is_reserve": True},
+            metadata=json_serialize_safe(metadata),
         )
         return wallet
 
@@ -281,7 +287,7 @@ def release_reserved_funds(wallet_id, amount, reference="", description="", crea
             source=source,
             reason=reason,
             created_by=created_by,
-            metadata=metadata or {"is_reserve_release": True},
+            metadata=json_serialize_safe(metadata),
         )
         return wallet
 
@@ -305,7 +311,7 @@ def track_pending_deposit(wallet_id, amount, reference="", description="", creat
             source=source,
             reason=reason,
             created_by=created_by,
-            metadata=metadata or {},
+            metadata=json_serialize_safe(metadata),
         )
         return wallet
 
@@ -329,7 +335,7 @@ def cancel_pending_deposit(wallet_id, amount, reference="", description="", crea
             source=source,
             reason=reason,
             created_by=created_by,
-            metadata=metadata or {},
+            metadata=json_serialize_safe(metadata),
         )
         return wallet
 

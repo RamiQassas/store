@@ -86,6 +86,8 @@ class CategoryForm(forms.ModelForm):
 
 
 class ProductForm(forms.ModelForm):
+    sort_order = forms.IntegerField(required=False, initial=0, label="ترتيب العرض")
+    
     class Meta:
         model = Product
         fields = [

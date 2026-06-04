@@ -189,10 +189,13 @@
 
 <script>
 // --- State Management ---
-let packages = JSON.parse(document.getElementById('packages-data').textContent || '[]');
-let schema = JSON.parse(document.getElementById('schema-data').textContent || '{"version": 1, "fields": []}');
+const rawPackages = document.getElementById('packages-data').textContent;
+const rawSchema = document.getElementById('schema-data').textContent;
 
-// Handle double serialization if it happened
+let packages = JSON.parse(rawPackages || '[]');
+let schema = JSON.parse(rawSchema || '{"version": 1, "fields": []}');
+
+// Handle double serialization if it happened (common with JSONField)
 if (typeof packages === 'string') packages = JSON.parse(packages);
 if (typeof schema === 'string') schema = JSON.parse(schema);
 
