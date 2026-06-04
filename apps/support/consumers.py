@@ -10,20 +10,30 @@ User = get_user_model()
 class SupportConsumer(AsyncWebsocketConsumer):
     async def connect(self):
         self.user = self.scope["user"]
-        if not self.user.is_authenticated:
-            await self.close()
-            return
-
         self.room_id = self.scope["url_route"]["kwargs"]["room_id"]
         self.room_group_name = f"chat_{self.room_id}"
 
+        print(f"WS Connect Attempt: User={self.user}, Room={self.room_id}")
+
+        if not self.user.is_authenticated:
+            print("WS Reject: User not authenticated")
+            await self.close()
+            return
+
         # Verify access
-        if not await self.can_access_room():
+        try:
+            if not await self.can_access_room():
+                print(f"WS Reject: User {self.user.email} has no access to room {self.room_id}")
+                await self.close()
+                return
+        except Exception as e:
+            print(f"WS Error during access check: {str(e)}")
             await self.close()
             return
 
         await self.channel_layer.group_add(self.room_group_name, self.channel_name)
         await self.accept()
+        print(f"WS Accepted: Room {self.room_id} for {self.user.email}")
 
     async def disconnect(self, close_code):
         if hasattr(self, 'room_group_name'):
