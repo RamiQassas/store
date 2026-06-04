@@ -470,6 +470,8 @@ def ticket_detail(request, pk):
     })
 
 
+from apps.support.models import ChatRoom, ChatMessage, ChatCannedReply
+
 @staff_member_required
 def control_dashboard(request):
     recent_orders = Order.objects.select_related("customer").order_by("-created_at")[:8]
@@ -482,7 +484,7 @@ def control_dashboard(request):
         "deposits": DepositRequest.objects.count(),
         "pending_deposits": DepositRequest.objects.filter(status=DepositRequest.Status.PENDING).count(),
         "pending_withdrawals": WithdrawalRequest.objects.filter(status=WithdrawalRequest.Status.PENDING).count(),
-        "open_tickets": Ticket.objects.filter(status=Ticket.Status.OPEN).count(),
+        "open_tickets": ChatRoom.objects.exclude(status=ChatRoom.Status.CLOSED).count(),
     }
     return render(
         request,
