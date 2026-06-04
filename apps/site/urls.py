@@ -5,7 +5,7 @@ from apps.site import views
 urlpatterns = [
     path("", views.home, name="home"),
     path("catalog/", views.catalog, name="catalog"),
-    path("catalog/<slug:slug>/", views.product_detail, name="product_detail"),
+    path("catalog/<uuid:pk>/", views.product_detail, name="product_detail"),
     
     # Auth
     path("auth/login/", views.login_view, name="site_login"),

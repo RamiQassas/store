@@ -63,8 +63,8 @@ def catalog(request):
     return render(request, "site/catalog.html", {"categories": categories, "products": products.order_by("sort_order", "name"), "active_category": category_slug, "query": query})
 
 
-def product_detail(request, slug):
-    product = get_object_or_404(Product.objects.select_related("category").prefetch_related("variants", "form_fields"), slug=slug, is_active=True)
+def product_detail(request, pk):
+    product = get_object_or_404(Product.objects.select_related("category").prefetch_related("variants"), pk=pk, is_active=True)
     variants = product.variants.filter(is_active=True).order_by("sort_order", "price")
     selected_variant = variants.first()
     wallet = get_or_create_wallet(request.user) if request.user.is_authenticated else None
@@ -85,10 +85,16 @@ def product_detail(request, slug):
 
         variant_id = request.POST.get("variant_id")
         quantity = max(int(request.POST.get("quantity", 1)), 1)
+        
+        # New Dynamic Form Logic
         fulfillment_data = {}
-        for field in product.form_fields.all():
-            if value := request.POST.get(field.key):
-                fulfillment_data[field.key] = value
+        schema = product.form_schema or {}
+        fields = schema.get("fields", [])
+        for field in fields:
+            name = field.get("name") or field.get("label")
+            if value := request.POST.get(f"custom_{name}"):
+                fulfillment_data[name] = value
+
         if not variant_id:
             messages.error(request, "اختر باقة قبل المتابعة.")
         else:
@@ -714,29 +720,105 @@ def control_products_list(request):
 
 @staff_member_required
 def control_product_create(request):
-    form = ProductForm(request.POST or None, request.FILES or None)
-    if request.method == "POST" and form.is_valid():
-        product = form.save()
-        messages.success(request, f"تم إنشاء المنتج {product.name} بنجاح.")
-        return redirect("control_product_edit", pk=product.pk)
-    return render(request, "site/control_product_form.html", {"form": form, "title": "إضافة منتج جديد"})
+    if request.method == "POST":
+        form = ProductForm(request.POST, request.FILES)
+        if form.is_valid():
+            try:
+                with transaction.atomic():
+                    product = form.save()
+                    
+                    # Handle Packages (Variants)
+                    variants_data = json.loads(request.POST.get("variants_json", "[]"))
+                    for v_data in variants_data:
+                        ProductVariant.objects.create(
+                            product=product,
+                            name=v_data.get("name"),
+                            sku=v_data.get("sku") or f"{product.id[:8]}-{v_data.get('name')[:10]}",
+                            price=Decimal(v_data.get("price", 0)),
+                            wholesale_price=Decimal(v_data.get("wholesale_price", 0)),
+                            vip_price=Decimal(v_data.get("vip_price", 0)),
+                            cost=Decimal(v_data.get("cost", 0)),
+                            sort_order=int(v_data.get("sort_order", 0)),
+                            is_active=True
+                        )
+                    
+                    messages.success(request, f"تم إنشاء المنتج {product.name} بنجاح.")
+                    return redirect("control_product_edit", pk=product.pk)
+            except Exception as e:
+                messages.error(request, f"حدث خطأ أثناء الحفظ: {str(e)}")
+    else:
+        form = ProductForm()
+    
+    return render(request, "site/control_product_builder.html", {
+        "form": form,
+        "title": "إنشاء منتج جديد",
+        "is_create": True
+    })
 
 
 @staff_member_required
 def control_product_edit(request, pk):
-    product = get_object_or_404(Product, pk=pk)
-    form = ProductForm(request.POST or None, request.FILES or None, instance=product)
-    if request.method == "POST" and form.is_valid():
-        form.save()
-        messages.success(request, "تم تحديث بيانات المنتج.")
-        return redirect("control_products_list")
+    product = get_object_or_404(Product.objects.prefetch_related("variants"), pk=pk)
     
-    variants = product.variants.all().order_by("sort_order", "price")
-    return render(request, "site/control_product_form.html", {
+    if request.method == "POST":
+        form = ProductForm(request.POST, request.FILES, instance=product)
+        if form.is_valid():
+            try:
+                with transaction.atomic():
+                    product = form.save()
+                    
+                    # Handle Packages (Variants) - Delete and Re-create for simplicity in builder
+                    # In production with high traffic, a sync logic would be better
+                    variants_data = json.loads(request.POST.get("variants_json", "[]"))
+                    
+                    # Keep track of existing IDs to not break orders if possible, 
+                    # but for this visual builder requirements, we'll sync by name/sku or just refresh.
+                    # Let's do a basic sync.
+                    incoming_skus = [v.get("sku") for v in variants_data if v.get("sku")]
+                    product.variants.exclude(sku__in=incoming_skus).delete()
+                    
+                    for v_data in variants_data:
+                        ProductVariant.objects.update_or_create(
+                            product=product,
+                            sku=v_data.get("sku"),
+                            defaults={
+                                "name": v_data.get("name"),
+                                "price": Decimal(v_data.get("price", 0)),
+                                "wholesale_price": Decimal(v_data.get("wholesale_price", 0)),
+                                "vip_price": Decimal(v_data.get("vip_price", 0)),
+                                "cost": Decimal(v_data.get("cost", 0)),
+                                "sort_order": int(v_data.get("sort_order", 0)),
+                                "is_active": v_data.get("is_active", True)
+                            }
+                        )
+                    
+                    messages.success(request, "تم تحديث بيانات المنتج بنجاح.")
+                    return redirect("control_products_list")
+            except Exception as e:
+                messages.error(request, f"خطأ في معالجة البيانات: {str(e)}")
+    else:
+        form = ProductForm(instance=product)
+    
+    variants = product.variants.all().order_by("sort_order")
+    # Pass variants to JS as JSON
+    variants_list = []
+    for v in variants:
+        variants_list.append({
+            "name": v.name,
+            "sku": v.sku,
+            "price": str(v.price),
+            "wholesale_price": str(v.wholesale_price),
+            "vip_price": str(v.vip_price),
+            "cost": str(v.cost),
+            "sort_order": v.sort_order,
+            "is_active": v.is_active
+        })
+
+    return render(request, "site/control_product_builder.html", {
         "form": form, 
         "title": f"تعديل منتج: {product.name}", 
         "product": product,
-        "variants": variants
+        "variants_json_data": json.dumps(variants_list)
     })
 
 

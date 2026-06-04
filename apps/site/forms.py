@@ -82,14 +82,14 @@ from apps.catalog.models import Category, Product, ProductVariant
 class CategoryForm(forms.ModelForm):
     class Meta:
         model = Category
-        fields = ["name", "slug", "parent", "icon", "is_active", "sort_order"]
+        fields = ["name", "parent", "icon", "is_active", "sort_order"]
 
 
 class ProductForm(forms.ModelForm):
     class Meta:
         model = Product
         fields = [
-            "name", "slug", "category", "image", "cover_image", "thumbnail", "icon",
+            "name", "category", "image", "cover_image", "thumbnail", "icon",
             "description", "instructions", "is_active", "is_featured", "sort_order", "form_schema"
         ]
         widgets = {

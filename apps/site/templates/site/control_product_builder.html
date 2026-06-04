@@ -1,0 +1,382 @@
+{% extends "site/control_base.html" %}
+{% load static %}
+
+{% block title %}{{ title }} | Raqamiyat Builder{% endblock %}
+
+{% block control_head %}
+<style>
+    .builder-section {
+        background: var(--panel);
+        border: 1px solid var(--panel-border);
+        border-radius: var(--radius);
+        margin-bottom: 2rem;
+        overflow: hidden;
+    }
+    .builder-section-header {
+        padding: 1.25rem 2rem;
+        background: rgba(255, 255, 255, 0.02);
+        border-bottom: 1px solid var(--panel-border);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    .builder-body { padding: 2rem; }
+
+    /* Package Row */
+    .package-item {
+        background: var(--bg-soft);
+        border: 1px solid var(--panel-border);
+        border-radius: 12px;
+        padding: 1.25rem;
+        margin-bottom: 1rem;
+        display: grid;
+        grid-template-columns: 2fr 1fr 1fr 1fr 1fr auto;
+        gap: 1rem;
+        align-items: center;
+        transition: all 0.2s;
+    }
+    .package-item:hover { border-color: var(--cyan); }
+
+    /* Field Builder */
+    .field-builder-item {
+        background: var(--bg-soft);
+        border: 1px solid var(--panel-border);
+        border-radius: 12px;
+        padding: 1.5rem;
+        margin-bottom: 1rem;
+        position: relative;
+    }
+    .field-controls {
+        position: absolute;
+        top: 1rem;
+        left: 1rem;
+        display: flex;
+        gap: 0.5rem;
+    }
+
+    .mini-label { font-size: 10px; color: var(--muted); font-weight: bold; margin-bottom: 4px; display: block; }
+    .builder-input {
+        background: var(--bg) !important;
+        border: 1px solid var(--panel-border) !important;
+        border-radius: 8px !important;
+        padding: 8px 12px !important;
+        font-size: 12px !important;
+        width: 100%;
+    }
+
+    .drag-handle { cursor: grab; color: var(--slate-600); }
+    
+    @media (max-width: 1024px) {
+        .package-item { grid-template-columns: 1fr 1fr; }
+    }
+</style>
+{% endblock %}
+
+{% block control_content %}
+<div class="page-head">
+    <div>
+        <span class="eyebrow">Visual Product Builder</span>
+        <h1>{{ title }}</h1>
+        <p class="text-muted">نظام إنشاء الخدمات الرقمية المتطور. تحكم كامل بالباقات والحقول المطلوبة.</p>
+    </div>
+    <div class="flex gap-3">
+        <a href="{% url 'control_products_list' %}" class="btn btn-outline btn-sm">إلغاء</a>
+        <button type="button" class="btn btn-primary btn-sm" onclick="submitBuilder()">
+            <i class="fas fa-save ml-2"></i> حفظ المنتج النهائي
+        </button>
+    </div>
+</div>
+
+<form id="builder-form" method="post" enctype="multipart/form-data">
+    {% csrf_token %}
+    <input type="hidden" name="form_schema" id="id_form_schema">
+    <input type="hidden" name="variants_json" id="id_variants_json">
+
+    <!-- Section A: Product Information -->
+    <div class="builder-section shadow-xl">
+        <div class="builder-section-header">
+            <h3 class="font-bold text-lg"><i class="fas fa-info-circle ml-2 text-cyan"></i> معلومات المنتج الأساسية</h3>
+        </div>
+        <div class="builder-body grid grid-cols-12 gap-8">
+            <div class="col-span-12 lg:col-span-8 stack gap-6">
+                <div class="field-group">
+                    <label>اسم المنتج</label>
+                    {{ form.name }}
+                </div>
+                <div class="field-group">
+                    <label>التصنيف</label>
+                    {{ form.category }}
+                </div>
+                <div class="field-group">
+                    <label>الوصف (يظهر في صفحة المنتج)</label>
+                    {{ form.description }}
+                </div>
+                <div class="field-group">
+                    <label>تعليمات بعد الشراء (تظهر للعميل في الفاتورة)</label>
+                    {{ form.instructions }}
+                </div>
+            </div>
+            <div class="col-span-12 lg:col-span-4 stack gap-6">
+                <div class="panel p-4 bg-slate-800/30 border-white/5">
+                    <label class="mini-label">الصورة الأساسية</label>
+                    {{ form.image }}
+                    {% if product.image %}
+                    <img src="{{ product.image.url }}" class="mt-2 w-full h-32 object-cover rounded-lg border border-white/10">
+                    {% endif %}
+                </div>
+                <div class="panel p-4 bg-slate-800/30 border-white/5">
+                    <label class="mini-label">الحالة</label>
+                    <div class="flex items-center gap-4 mt-2">
+                        <div class="flex items-center gap-2">
+                            {{ form.is_active }} <span class="text-xs">نشط</span>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            {{ form.is_featured }} <span class="text-xs">مميز</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="field-group">
+                    <label>أيقونة (FontAwesome)</label>
+                    {{ form.icon }}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Section B: Product Packages -->
+    <div class="builder-section shadow-xl">
+        <div class="builder-section-header">
+            <h3 class="font-bold text-lg"><i class="fas fa-layer-group ml-2 text-amber-500"></i> باقات المنتج وأسعارها</h3>
+            <button type="button" class="btn btn-sm btn-outline" onclick="addPackage()">
+                <i class="fas fa-plus ml-1"></i> إضافة باقة جديدة
+            </button>
+        </div>
+        <div class="builder-body">
+            <div id="packages-container">
+                <!-- JS Populates this -->
+            </div>
+            <div id="empty-packages" class="p-12 text-center text-slate-500 hidden">
+                <i class="fas fa-box-open text-4xl mb-4 opacity-20"></i>
+                <p>لا توجد باقات لهذا المنتج. أضف باقة واحدة على الأقل.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Section C: Customer Required Data Builder -->
+    <div class="builder-section shadow-xl">
+        <div class="builder-section-header">
+            <h3 class="font-bold text-lg"><i class="fas fa-form ml-2 text-purple-500"></i> منشئ حقول العميل (Fulfillment)</h3>
+            <button type="button" class="btn btn-sm btn-outline" onclick="addField()">
+                <i class="fas fa-plus ml-1"></i> إضافة حقل إدخال
+            </button>
+        </div>
+        <div class="builder-body">
+            <div id="fields-container">
+                <!-- JS Populates this -->
+            </div>
+            <div id="empty-fields" class="p-12 text-center text-slate-500">
+                <i class="fas fa-keyboard text-4xl mb-4 opacity-20"></i>
+                <p>لم يتم تحديد أي حقول مطلوبة من العميل.</p>
+            </div>
+        </div>
+    </div>
+</form>
+
+<script>
+// --- State Management ---
+let packages = {{ variants_json_data|default:"[]"|safe }};
+let schema = {{ form.instance.form_schema|default:'{"version": 1, "fields": []}'|safe }};
+
+// --- Package Manager ---
+function renderPackages() {
+    const container = document.getElementById('packages-container');
+    container.innerHTML = '';
+    
+    if (packages.length === 0) {
+        document.getElementById('empty-packages').classList.remove('hidden');
+        return;
+    }
+    document.getElementById('empty-packages').classList.add('hidden');
+
+    packages.forEach((pkg, index) => {
+        const row = document.createElement('div');
+        row.className = 'package-item';
+        row.innerHTML = `
+            <div>
+                <span class="mini-label">اسم الباقة (مثلاً: 60 UC)</span>
+                <input type="text" class="builder-input" value="${pkg.name}" onchange="updatePackage(${index}, 'name', this.value)">
+            </div>
+            <div>
+                <span class="mini-label">السعر (Retail)</span>
+                <input type="number" class="builder-input" value="${pkg.price}" onchange="updatePackage(${index}, 'price', this.value)">
+            </div>
+            <div>
+                <span class="mini-label">سعر الجملة</span>
+                <input type="number" class="builder-input" value="${pkg.wholesale_price}" onchange="updatePackage(${index}, 'wholesale_price', this.value)">
+            </div>
+            <div>
+                <span class="mini-label">سعر VIP</span>
+                <input type="number" class="builder-input" value="${pkg.vip_price}" onchange="updatePackage(${index}, 'vip_price', this.value)">
+            </div>
+            <div>
+                <span class="mini-label">التكلفة (Cost)</span>
+                <input type="number" class="builder-input" value="${pkg.cost}" onchange="updatePackage(${index}, 'cost', this.value)">
+            </div>
+            <div class="flex gap-2">
+                <button type="button" class="btn btn-sm btn-outline p-2" title="تكرار" onclick="duplicatePackage(${index})"><i class="fas fa-copy"></i></button>
+                <button type="button" class="btn btn-sm btn-outline danger p-2" title="حذف" onclick="deletePackage(${index})"><i class="fas fa-trash"></i></button>
+            </div>
+            <input type="hidden" class="sku-input" value="${pkg.sku || ''}">
+        `;
+        container.appendChild(row);
+    });
+}
+
+function addPackage() {
+    packages.push({
+        name: 'باقة جديدة',
+        price: '0.00',
+        wholesale_price: '0.00',
+        vip_price: '0.00',
+        cost: '0.00',
+        sort_order: packages.length,
+        is_active: true,
+        sku: 'new-' + Math.random().toString(36).substr(2, 9)
+    });
+    renderPackages();
+}
+
+function updatePackage(index, key, value) {
+    packages[index][key] = value;
+}
+
+function deletePackage(index) {
+    if (confirm("هل أنت متأكد من حذف هذه الباقة؟")) {
+        packages.splice(index, 1);
+        renderPackages();
+    }
+}
+
+function duplicatePackage(index) {
+    const pkg = {...packages[index]};
+    pkg.name += " (نسخة)";
+    pkg.sku = 'copy-' + Math.random().toString(36).substr(2, 9);
+    packages.push(pkg);
+    renderPackages();
+}
+
+// --- Field Builder ---
+function renderFields() {
+    const container = document.getElementById('fields-container');
+    container.innerHTML = '';
+    
+    if (!schema.fields || schema.fields.length === 0) {
+        document.getElementById('empty-fields').classList.remove('hidden');
+        return;
+    }
+    document.getElementById('empty-fields').classList.add('hidden');
+
+    schema.fields.forEach((field, index) => {
+        const item = document.createElement('div');
+        item.className = 'field-builder-item shadow-sm';
+        item.innerHTML = `
+            <div class="field-controls">
+                <button type="button" class="text-slate-500 hover:text-white" onclick="moveField(${index}, -1)"><i class="fas fa-arrow-up"></i></button>
+                <button type="button" class="text-slate-500 hover:text-white" onclick="moveField(${index}, 1)"><i class="fas fa-arrow-down"></i></button>
+                <button type="button" class="text-red-500 hover:text-red-400 ml-4" onclick="deleteField(${index})"><i class="fas fa-trash"></i></button>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mt-4">
+                <div class="md:col-span-1">
+                    <span class="mini-label">نوع الحقل</span>
+                    <select class="builder-input" onchange="updateField(${index}, 'type', this.value)">
+                        <option value="text" ${field.type === 'text' ? 'selected' : ''}>Text</option>
+                        <option value="textarea" ${field.type === 'textarea' ? 'selected' : ''}>Textarea</option>
+                        <option value="number" ${field.type === 'number' ? 'selected' : ''}>Number</option>
+                        <option value="select" ${field.type === 'select' ? 'selected' : ''}>Dropdown Select</option>
+                        <option value="password" ${field.type === 'password' ? 'selected' : ''}>Password</option>
+                        <option value="checkbox" ${field.type === 'checkbox' ? 'selected' : ''}>Checkbox</option>
+                        <option value="image" ${field.type === 'image' ? 'selected' : ''}>Image Upload</option>
+                        <option value="file" ${field.type === 'file' ? 'selected' : ''}>File Upload</option>
+                    </select>
+                </div>
+                <div class="md:col-span-1">
+                    <span class="mini-label">العنوان (Label)</span>
+                    <input type="text" class="builder-input" value="${field.label}" onchange="updateField(${index}, 'label', this.value)">
+                </div>
+                <div class="md:col-span-1">
+                    <span class="mini-label">نص المساعدة (Placeholder)</span>
+                    <input type="text" class="builder-input" value="${field.placeholder || ''}" onchange="updateField(${index}, 'placeholder', this.value)">
+                </div>
+                <div class="md:col-span-1 flex items-end">
+                    <div class="flex items-center gap-2 mb-2">
+                        <input type="checkbox" ${field.required ? 'checked' : ''} onchange="updateField(${index}, 'required', this.checked)">
+                        <span class="text-xs font-bold">إلزامي</span>
+                    </div>
+                </div>
+            </div>
+            ${field.type === 'select' ? `
+            <div class="mt-4 pt-4 border-t border-white/5">
+                <span class="mini-label">خيارات القائمة (مفصولة بفاصلة)</span>
+                <input type="text" class="builder-input" value="${(field.options || []).join(', ')}" placeholder="Option 1, Option 2, Option 3" onchange="updateField(${index}, 'options', this.value.split(',').map(s => s.trim()))">
+            </div>
+            ` : ''}
+        `;
+        container.appendChild(item);
+    });
+}
+
+function addField() {
+    if (!schema.fields) schema.fields = [];
+    schema.fields.push({
+        label: 'حقل جديد',
+        type: 'text',
+        required: true,
+        placeholder: '',
+        name: 'field_' + Math.random().toString(36).substr(2, 5)
+    });
+    renderFields();
+}
+
+function updateField(index, key, value) {
+    schema.fields[index][key] = value;
+    if (key === 'type') renderFields(); // Re-render to show/hide options
+}
+
+function deleteField(index) {
+    schema.fields.splice(index, 1);
+    renderFields();
+}
+
+function moveField(index, delta) {
+    const newIndex = index + delta;
+    if (newIndex >= 0 && newIndex < schema.fields.length) {
+        const temp = schema.fields[index];
+        schema.fields[index] = schema.fields[newIndex];
+        schema.fields[newIndex] = temp;
+        renderFields();
+    }
+}
+
+// --- Submit ---
+function submitBuilder() {
+    // Basic validation
+    if (packages.length === 0) {
+        alert("يرجى إضافة باقة واحدة على الأقل للمنتج.");
+        return;
+    }
+    
+    // Sync JSON state to hidden fields
+    document.getElementById('id_form_schema').value = JSON.stringify(schema);
+    document.getElementById('id_variants_json').value = JSON.stringify(packages);
+    
+    // Submit form
+    document.getElementById('builder-form').submit();
+}
+
+// Initial Render
+window.onload = () => {
+    renderPackages();
+    renderFields();
+};
+</script>
+{% endblock %}

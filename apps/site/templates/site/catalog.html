@@ -17,7 +17,7 @@
 <div class="chips">
   <a class="chip {% if not active_category %}active{% endif %}" href="{% url 'catalog' %}">الكل</a>
   {% for category in categories %}
-    <a class="chip {% if active_category == category.slug %}active{% endif %}" href="{% url 'catalog' %}?category={{ category.slug }}">{{ category.name }}</a>
+    <a class="chip {% if active_category == category.id|stringformat:'s' %}active{% endif %}" href="{% url 'catalog' %}?category={{ category.id }}">{{ category.name }}</a>
   {% endfor %}
 </div>
 
@@ -34,7 +34,7 @@
         <span>{{ product.variants.count }} باقة</span>
         <span>{% if product.is_featured %}مميز{% endif %}</span>
       </div>
-      <a class="btn btn-soft" href="{% url 'product_detail' product.slug %}">تفاصيل المنتج</a>
+      <a class="btn btn-soft" href="{% url 'product_detail' product.id %}">تفاصيل المنتج</a>
     </article>
   {% empty %}
     <div class="empty">لا توجد نتائج مطابقة.</div>

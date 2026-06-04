@@ -10,12 +10,6 @@ from django.utils.text import slugify
 
 class Category(TimeStampedModel):
     name = models.CharField(max_length=120, verbose_name="اسم التصنيف")
-    slug = models.SlugField(max_length=140, unique=True, blank=True)
-    
-    def save(self, *args, **kwargs):
-        if not self.slug:
-            self.slug = slugify(self.name)
-        super().save(*args, **kwargs)
     parent = models.ForeignKey("self", null=True, blank=True, related_name="children", on_delete=models.CASCADE)
     icon = models.CharField(max_length=80, blank=True, verbose_name="الأيقونة")
     is_active = models.BooleanField(default=True, verbose_name="نشط")
@@ -32,12 +26,6 @@ class Category(TimeStampedModel):
 
 class Product(TimeStampedModel):
     name = models.CharField(max_length=160, verbose_name="اسم المنتج")
-    slug = models.SlugField(max_length=180, unique=True, blank=True)
-    
-    def save(self, *args, **kwargs):
-        if not self.slug:
-            self.slug = slugify(self.name)
-        super().save(*args, **kwargs)
     category = models.ForeignKey(Category, related_name="products", on_delete=models.PROTECT, verbose_name="التصنيف")
     
     # Media
@@ -68,7 +56,6 @@ class Product(TimeStampedModel):
         verbose_name_plural = "المنتجات"
         ordering = ("sort_order", "name")
         indexes = [
-            models.Index(fields=["slug"]),
             models.Index(fields=["is_active", "is_featured"]),
         ]
 

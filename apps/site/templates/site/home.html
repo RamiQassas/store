@@ -45,7 +45,7 @@
     </div>
     <div class="grid grid-4 gap-6">
         {% for cat in categories %}
-            <a href="{% url 'catalog' %}?category={{ cat.slug }}" class="panel p-6 hover:border-cyan transition group text-center">
+            <a href="{% url 'catalog' %}?category={{ cat.id }}" class="panel p-6 hover:border-cyan transition group text-center">
                 <div class="w-16 h-16 bg-slate-800 rounded-2xl mx-auto flex items-center justify-center mb-4 group-hover:bg-cyan/10 transition">
                     <i class="fas {{ cat.icon|default:'fa-folder' }} text-2xl text-cyan"></i>
                 </div>
@@ -85,7 +85,7 @@
                             <small class="text-slate-500 block">يبدأ من</small>
                             <strong class="text-xl text-cyan">{{ p.variants.first.price }}</strong>
                         </div>
-                        <a href="{% url 'product_detail' p.slug %}" class="btn btn-primary btn-sm">اطلب الآن</a>
+                        <a href="{% url 'product_detail' p.id %}" class="btn btn-primary btn-sm">اطلب الآن</a>
                     </div>
                 </div>
             </div>
