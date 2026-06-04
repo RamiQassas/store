@@ -36,13 +36,15 @@ ALLOWED_HOSTS = [
 if DEBUG and "testserver" not in ALLOWED_HOSTS:
     ALLOWED_HOSTS.append("testserver")
 
+SESSION_COOKIE_SAMESITE = 'Lax'
+CSRF_COOKIE_SAMESITE = 'Lax'
+SESSION_COOKIE_SECURE = not DEBUG
+CSRF_COOKIE_SECURE = not DEBUG
+
 CSRF_TRUSTED_ORIGINS = [
-    origin.strip()
-    for origin in env(
-        "DJANGO_CSRF_TRUSTED_ORIGINS",
-        "https://raqamiyat.onrender.com"
-    ).split(",")
-    if origin.strip()
+    "https://raqamiyat.onrender.com",
+    "http://127.0.0.1",
+    "http://localhost"
 ]
 
 INSTALLED_APPS = [
