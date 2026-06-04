@@ -105,7 +105,13 @@
                 </div>
                 <div class="field-group">
                     <label>التصنيف</label>
-                    {{ form.category }}
+                    <div class="flex gap-2">
+                        {{ form.category }}
+                        <button type="button" class="btn btn-outline btn-sm px-4 flex items-center gap-2 whitespace-nowrap" onclick="quickCreateCategory()">
+                            <i class="fas fa-plus"></i>
+                            <span class="text-[10px] font-bold">تصنيف جديد</span>
+                        </button>
+                    </div>
                 </div>
                 <div class="field-group">
                     <label>الوصف (يظهر في صفحة المنتج)</label>
@@ -178,10 +184,50 @@
     </div>
 </form>
 
+{{ variants_json_data|json_script:"packages-data" }}
+{{ form.instance.form_schema|json_script:"schema-data" }}
+
 <script>
 // --- State Management ---
-let packages = {{ variants_json_data|default:"[]"|safe }};
-let schema = {{ form.instance.form_schema|default:'{"version": 1, "fields": []}'|safe }};
+let packages = JSON.parse(document.getElementById('packages-data').textContent || '[]');
+let schema = JSON.parse(document.getElementById('schema-data').textContent || '{"version": 1, "fields": []}');
+
+// Handle double serialization if it happened
+if (typeof packages === 'string') packages = JSON.parse(packages);
+if (typeof schema === 'string') schema = JSON.parse(schema);
+
+// --- Category Quick Add ---
+async function quickCreateCategory() {
+    const name = prompt("اسم التصنيف الجديد:");
+    if (!name) return;
+    
+    const formData = new FormData();
+    formData.append('name', name);
+    formData.append('csrfmiddlewaretoken', '{{ csrf_token }}');
+    
+    try {
+        const response = await fetch("{% url 'control_category_create_ajax' %}", {
+            method: 'POST',
+            body: formData
+        });
+        
+        if (response.ok) {
+            const data = await response.json();
+            const select = document.querySelector('select[name="category"]');
+            const opt = document.createElement('option');
+            opt.value = data.id;
+            opt.text = data.name;
+            select.appendChild(opt);
+            select.value = data.id; // Auto select the new category
+            alert("تم إنشاء التصنيف بنجاح واختياره.");
+        } else {
+            const err = await response.json();
+            alert("فشل إنشاء التصنيف: " + (err.message || "خطأ غير معروف"));
+        }
+    } catch (e) {
+        alert("خطأ في الاتصال بالخادم.");
+    }
+}
 
 // --- Package Manager ---
 function renderPackages() {

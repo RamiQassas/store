@@ -19,8 +19,6 @@ urlpatterns = [
     path("dashboard/wallet/", views.wallet_page, name="dashboard_wallet"),
     path("dashboard/deposits/", views.deposits, name="dashboard_deposits"),
     path("dashboard/withdrawals/", views.withdrawals, name="dashboard_withdrawals"),
-    path("dashboard/tickets/", views.tickets, name="dashboard_tickets"),
-    path("dashboard/tickets/<uuid:pk>/", views.ticket_detail, name="ticket_detail"),
     
     # Admin Control
     path("control/", views.control_dashboard, name="control_dashboard"),
@@ -39,7 +37,6 @@ urlpatterns = [
     path("control/products/<uuid:pk>/edit/", views.control_product_edit, name="control_product_edit"),
     path("control/products/<uuid:product_pk>/variants/create/", views.control_variant_create, name="control_variant_create"),
     path("control/variants/<uuid:pk>/edit/", views.control_variant_edit, name="control_variant_edit"),
-    path("control/tickets/", views.control_tickets_list, name="control_tickets_list"),
     path("control/orders/", views.control_orders_list, name="control_orders_list"),
     path("control/orders/<uuid:pk>/", views.control_order_detail, name="control_order_detail"),
     path("control/wallets/", views.control_wallets_list, name="control_wallets_list"),
