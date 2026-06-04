@@ -5,10 +5,16 @@ from django.db.models import Q
 from .models import ChatRoom, ChatMessage, ChatCannedReply
 
 
+def can_manage_support(user):
+    if user.is_staff or user.is_superuser:
+        return True
+    return user.groups.filter(name__in=["Support Agent", "Super Admin", "Moderator"]).exists()
+
+
 @login_required
 def chat_list(request):
     """Lists available chat rooms for the user or staff."""
-    if request.user.is_staff:
+    if can_manage_support(request.user):
         rooms = ChatRoom.objects.all().select_related('user', 'assigned_agent')
     else:
         rooms = ChatRoom.objects.filter(user=request.user).select_related('assigned_agent')
@@ -19,7 +25,8 @@ def chat_list(request):
 @login_required
 def chat_room(request, room_id):
     """Displays an individual chat room with message history."""
-    if request.user.is_staff:
+    is_manager = can_manage_support(request.user)
+    if is_manager:
         room = get_object_or_404(ChatRoom, id=room_id)
     else:
         room = get_object_or_404(ChatRoom, id=room_id, user=request.user)
@@ -27,13 +34,13 @@ def chat_room(request, room_id):
     messages_history = room.messages.all().select_related('sender')
     
     # Reset unread count
-    if request.user.is_staff:
+    if is_manager:
         room.unread_staff_count = 0
     else:
         room.unread_user_count = 0
     room.save()
     
-    canned_replies = ChatCannedReply.objects.filter(is_active=True) if request.user.is_staff else None
+    canned_replies = ChatCannedReply.objects.filter(is_active=True) if is_manager else None
     
     return render(request, 'site/chat_room.html', {
         'room': room,

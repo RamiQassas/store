@@ -69,23 +69,42 @@ class SupportConsumer(AsyncWebsocketConsumer):
     def can_access_room(self):
         try:
             room = ChatRoom.objects.get(id=self.room_id)
-            return room.user == self.user or self.user.is_staff
+            if room.user == self.user:
+                return True
+            # Staff / Support Agent check
+            if self.user.is_staff or self.user.is_superuser:
+                return True
+            return self.user.groups.filter(name__in=["Support Agent", "Super Admin", "Moderator"]).exists()
         except ChatRoom.DoesNotExist:
             return False
 
     @database_sync_to_async
     def save_message(self, text):
         room = ChatRoom.objects.get(id=self.room_id)
+        is_staff = self.user.is_staff or self.user.groups.filter(name__in=["Support Agent", "Super Admin", "Moderator"]).exists()
+        
         msg = ChatMessage.objects.create(
             room=room,
             sender=self.user,
             text=text,
-            is_staff_reply=self.user.is_staff
+            is_staff_reply=is_staff
         )
+        
         room.last_message_at = timezone.now()
-        if self.user.is_staff:
+        
+        if is_staff:
             room.unread_user_count += 1
+            if room.status == ChatRoom.Status.WAITING:
+                room.status = ChatRoom.Status.IN_PROGRESS
         else:
             room.unread_staff_count += 1
+            # If user sends message, mark as waiting (action required)
+            if room.status == ChatRoom.Status.CLOSED:
+                room.status = ChatRoom.Status.REOPENED
+            elif room.status in [ChatRoom.Status.ASSIGNED, ChatRoom.Status.IN_PROGRESS]:
+                room.status = ChatRoom.Status.WAITING
+            elif room.status == ChatRoom.Status.WAITING:
+                pass # Already waiting
+
         room.save()
         return {"timestamp": msg.created_at.strftime("%H:%M")}

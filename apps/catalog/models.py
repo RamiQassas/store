@@ -32,7 +32,6 @@ class Product(TimeStampedModel):
     image = models.ImageField(upload_to="products/main/", blank=True, null=True, verbose_name="الصورة الأساسية")
     cover_image = models.ImageField(upload_to="products/covers/", blank=True, null=True, verbose_name="صورة الغلاف")
     thumbnail = models.ImageField(upload_to="products/thumbs/", blank=True, null=True, verbose_name="مصغرة")
-    icon = models.CharField(max_length=80, blank=True, verbose_name="أيقونة (FA)")
 
     description = models.TextField(blank=True, verbose_name="الوصف")
     instructions = models.TextField(blank=True, verbose_name="تعليمات الاستخدام")
@@ -170,3 +169,4 @@ class ProductUserPrice(TimeStampedModel):
 
 
 # Legacy model removed (ProductFormField)
+
