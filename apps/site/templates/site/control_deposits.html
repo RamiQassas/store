@@ -1,0 +1,132 @@
+{% extends "site/control_base.html" %}
+{% load static %}
+
+{% block title %}إدارة الإيداعات | Raqamiyat Admin{% endblock %}
+
+{% block control_content %}
+<div class="page-head">
+    <div>
+        <span class="eyebrow">Financial Operations</span>
+        <h1>إدارة طلبات الإيداع</h1>
+        <p class="text-muted">مراجعة والتحقق من الحوالات المالية وإضافتها لمحفظة المستخدمين.</p>
+    </div>
+</div>
+
+<div class="management-card">
+    <div class="management-header flex-col sm:flex-row gap-4">
+        <form method="get" class="flex-grow w-full max-w-md">
+            <div class="input-wrapper">
+                <input type="text" name="q" value="{{ query }}" placeholder="بحث برقم المرجع أو بريد المستخدم..." class="text-xs">
+                <button type="submit" class="btn btn-primary btn-sm px-4"><i class="fas fa-search"></i></button>
+            </div>
+        </form>
+        <div class="flex gap-2">
+            <a href="?status=pending" class="badge {% if current_status == 'pending' %}primary{% else %}outline{% endif %} cursor-pointer">قيد الانتظار</a>
+            <a href="?status=completed" class="badge {% if current_status == 'completed' %}success{% else %}outline{% endif %} cursor-pointer">مكتملة</a>
+        </div>
+    </div>
+    
+    <div class="p-0 overflow-x-auto">
+        <table class="w-full text-sm text-right">
+            <thead class="text-[11px] text-slate-500 border-b border-white/5 uppercase bg-white/[0.01]">
+                <tr>
+                    <th class="p-4">التاريخ</th>
+                    <th class="p-4">المستخدم</th>
+                    <th class="p-4">المبلغ والوسيلة</th>
+                    <th class="p-4">رقم المرجع / المرفق</th>
+                    <th class="p-4">الحالة</th>
+                    <th class="p-4 text-left">إجراءات</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for d in deposits %}
+                <tr class="border-b border-white/[0.02] last:border-0 hover:bg-white/[0.02] transition">
+                    <td class="p-4 text-[10px] text-slate-500">
+                        {{ d.created_at|date:"d M Y" }}<br>{{ d.created_at|date:"H:i" }}
+                    </td>
+                    <td class="p-4">
+                        <div class="font-bold text-slate-200">{{ d.user.email }}</div>
+                        <div class="text-[9px] text-muted">ID: {{ d.user.id|stringformat:"s"|slice:":8" }}</div>
+                    </td>
+                    <td class="p-4">
+                        <div class="flex flex-col">
+                            <span class="font-bold text-success">{{ d.amount }} {{ d.currency.code }}</span>
+                            <span class="text-[9px] text-muted">الصافي المتوقع: {{ d.final_amount }}</span>
+                        </div>
+                        <div class="text-[10px] text-slate-500 mt-1">{{ d.payment_method.name }}</div>
+                    </td>
+                    <td class="p-4">
+                        <div class="flex items-center gap-3">
+                            <span class="font-mono text-xs">{{ d.transaction_id|default:"---" }}</span>
+                            {% if d.proof_image %}
+                            <a href="{{ d.proof_image.url }}" target="_blank" class="w-8 h-8 rounded bg-slate-800 flex items-center justify-center text-cyan hover:bg-cyan hover:text-black transition">
+                                <i class="fas fa-image text-xs"></i>
+                            </a>
+                            {% endif %}
+                        </div>
+                    </td>
+                    <td class="p-4">
+                        <span class="badge 
+                            {% if d.status == 'completed' %}success
+                            {% elif d.status == 'rejected' %}danger
+                            {% elif d.status == 'pending' %}warning
+                            {% else %}primary
+                            {% endif %} text-[9px]">
+                            {{ d.get_status_display }}
+                        </span>
+                    </td>
+                    <td class="p-4 text-left">
+                        <div class="flex justify-end gap-2">
+                            {% if d.status == 'pending' or d.status == 'under_review' %}
+                            <button class="btn btn-sm btn-primary text-[10px] py-1 px-3" onclick="actionDeposit('{{ d.id }}', 'approve')">
+                                <i class="fas fa-check ml-1"></i> موافقة
+                            </button>
+                            <button class="btn btn-sm btn-outline danger text-[10px] py-1 px-3" onclick="actionDeposit('{{ d.id }}', 'reject')">
+                                <i class="fas fa-times ml-1"></i> رفض
+                            </button>
+                            {% endif %}
+                        </div>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="6" class="p-12 text-center text-slate-500 italic">لا توجد طلبات إيداع مطابقة.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<script>
+async function actionDeposit(id, action) {
+    let note = "";
+    if (action === 'reject') {
+        note = prompt("سبب الرفض:");
+        if (note === null) return;
+    }
+    
+    if (!confirm(`هل أنت متأكد من تنفيذ إجراء "${action}"؟`)) return;
+
+    try {
+        const response = await fetch(`/api/deposits/${id}/${action}/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': '{{ csrf_token }}',
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ admin_note: note })
+        });
+
+        if (response.ok) {
+            location.reload();
+        } else {
+            const data = await response.json();
+            alert("خطأ: " + (data.detail || data.message || "تعذر تنفيذ الإجراء"));
+        }
+    } catch (e) {
+        alert("خطأ في الاتصال.");
+    }
+}
+</script>
+{% endblock %}

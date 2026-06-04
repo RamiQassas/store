@@ -52,15 +52,15 @@ def home(request):
 
 
 def catalog(request):
-    category_slug = request.GET.get("category")
+    category_id = request.GET.get("category")
     categories = Category.objects.filter(is_active=True).order_by("sort_order", "name")
     products = Product.objects.filter(is_active=True).select_related("category").prefetch_related("variants")
-    if category_slug:
-        products = products.filter(category__slug=category_slug)
+    if category_id:
+        products = products.filter(category_id=category_id)
     query = request.GET.get("q", "").strip()
     if query:
         products = products.filter(Q(name__icontains=query) | Q(description__icontains=query) | Q(category__name__icontains=query))
-    return render(request, "site/catalog.html", {"categories": categories, "products": products.order_by("sort_order", "name"), "active_category": category_slug, "query": query})
+    return render(request, "site/catalog.html", {"categories": categories, "products": products.order_by("sort_order", "name"), "active_category": category_id, "query": query})
 
 
 def product_detail(request, pk):
@@ -102,20 +102,20 @@ def product_detail(request, pk):
                 variant = variants.get(id=variant_id)
                 total = variant.price * Decimal(quantity)
                 wallet = get_or_create_wallet(request.user)
-                if wallet.available_balance < total:
-                    messages.error(request, "الرصيد غير كافٍ. أضف رصيدًا أولًا.")
-                else:
-                    from apps.orders.services import create_order
+                
+                from apps.orders.services import create_order
+                from apps.wallets.services import WalletError
 
+                try:
                     order = create_order(request.user, variant.id, quantity=quantity, fulfillment_data=fulfillment_data)
-                    messages.success(request, f"تم إنشاء الطلب {order.number} بنجاح.")
-                    
+                    messages.success(request, f"تم إنشاء الطلب {order.number} بنجاح. رصيدك الحالي: {request.user.wallet.available_balance} SYP")
+
                     notify_user(
                         user=request.user,
                         title="تم إنشاء الطلب بنجاح",
                         body=f"طلبك رقم {order.number} قيد المعالجة الآن.",
                         action_url="/dashboard/",
-                        priority="normal"
+                        priority="high"
                     )
                     
                     ActivityLog.objects.create(
@@ -124,10 +124,16 @@ def product_detail(request, pk):
                         description=f"Created order {order.number} for {total} SYP",
                         metadata={"order_id": str(order.id)}
                     )
-                    
                     return redirect("dashboard")
+                except WalletError as e:
+                    messages.error(request, f"فشل الطلب: {str(e)}")
+                except ValueError as e:
+                    messages.error(request, str(e))
+                except Exception as e:
+                    messages.error(request, f"حدث خطأ غير متوقع: {str(e)}")
+
             except ProductVariant.DoesNotExist:
-                messages.error(request, "الباقة المختارة غير موجودة.")
+                messages.error(request, "الباقة المختارة غير متوفرة.")
     return render(
         request,
         "site/product_detail.html",
@@ -338,9 +344,7 @@ def deposits(request):
         method_id = request.POST.get("payment_method")
         currency_id = request.POST.get("currency")
         amount = Decimal(request.POST.get("amount", "0"))
-        transaction_id = request.POST.get("transaction_id", "")
         proof = request.FILES.get("proof_image")
-        customer_note = request.POST.get("customer_note", "")
         
         method = get_object_or_404(methods, id=method_id)
         currency = get_object_or_404(Currency, id=currency_id)
@@ -352,16 +356,23 @@ def deposits(request):
         elif not method.supported_currencies.filter(id=currency.id).exists():
              messages.error(request, "هذه العملة غير مدعومة لوسيلة الدفع المختارة.")
         else:
+            # Handle Dynamic Fields
+            dynamic_data = {}
+            for key, value in request.POST.items():
+                if key.startswith("custom_"):
+                    field_name = key.replace("custom_", "")
+                    dynamic_data[field_name] = value
+
             with transaction.atomic():
                 deposit = DepositRequest.objects.create(
                     user=request.user,
                     payment_method=method,
                     amount=amount,
                     currency=currency,
-                    transaction_id=transaction_id,
+                    transaction_id=dynamic_data.get("ref_id", ""),
                     proof_image=proof,
-                    customer_note=customer_note,
-                    metadata={"source": "site"},
+                    metadata={"dynamic_fields": dynamic_data, "source": "multi_step_ui"},
+                    status=DepositRequest.Status.PENDING
                 )
                 from apps.wallets.services import track_pending_deposit
                 wallet = get_or_create_wallet(request.user)
@@ -369,18 +380,20 @@ def deposits(request):
                     wallet_id=wallet.id,
                     amount=amount,
                     reference=f"deposit:{deposit.id}",
-                    description=f"إيداع معلق ({currency.code}) عبر {method.name}",
-                    created_by=request.user
+                    description=f"إيداع معلق عبر {method.name}",
+                    created_by=request.user,
+                    source="user_deposit",
+                    reason="Verification pending"
                 )
-                messages.success(request, f"تم استلام طلب الإيداع رقم {deposit.id} وهو قيد المراجعة.")
                 
                 ActivityLog.objects.create(
                     user=request.user,
-                    action="Deposit Request",
-                    description=f"Requested deposit of {amount} {currency.code}",
+                    action="Deposit Requested",
+                    description=f"Requested deposit of {amount} {currency.code} via {method.name}",
                     metadata={"deposit_id": str(deposit.id)}
                 )
                 
+                messages.success(request, f"تم استلام طلب الإيداع وهو قيد المراجعة حالياً.")
                 return redirect("dashboard")
             
     return render(request, "site/deposits.html", {"payment_methods": methods})
@@ -483,6 +496,9 @@ def control_dashboard(request):
     recent_orders = Order.objects.select_related("customer").order_by("-created_at")[:8]
     recent_deposits = DepositRequest.objects.select_related("user", "payment_method", "currency").order_by("-created_at")[:8]
     recent_users = User.objects.select_related("wallet").order_by("-date_joined")[:8]
+    
+    from apps.support.models import ChatRoom
+    
     stats = {
         "users": User.objects.count(),
         "products": Product.objects.count(),
@@ -497,6 +513,25 @@ def control_dashboard(request):
         "site/control_dashboard.html",
         {"recent_orders": recent_orders, "recent_deposits": recent_deposits, "recent_users": recent_users, "stats": stats},
     )
+
+
+@staff_member_required
+def control_deposits(request):
+    status_filter = request.GET.get("status")
+    query = request.GET.get("q", "").strip()
+    
+    deposits = DepositRequest.objects.select_related("user", "payment_method", "currency").all()
+    
+    if status_filter:
+        deposits = deposits.filter(status=status_filter)
+    if query:
+        deposits = deposits.filter(Q(transaction_id__icontains=query) | Q(user__email__icontains=query))
+        
+    return render(request, "site/control_deposits.html", {
+        "deposits": deposits,
+        "current_status": status_filter,
+        "query": query
+    })
 
 
 @staff_member_required

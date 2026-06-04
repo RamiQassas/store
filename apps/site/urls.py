@@ -1,11 +1,21 @@
 from django.urls import path
 
-from apps.site import views
+from apps.site import views, api_views
 
 urlpatterns = [
     path("", views.home, name="home"),
     path("catalog/", views.catalog, name="catalog"),
     path("catalog/<uuid:pk>/", views.product_detail, name="product_detail"),
+    
+    # API Endpoints (for staff/JS)
+    path("api/deposits/<uuid:pk>/approve/", api_views.api_deposit_approve, name="api_deposit_approve"),
+    path("api/deposits/<uuid:pk>/reject/", api_views.api_deposit_reject, name="api_deposit_reject"),
+    path("api/wallets/<uuid:pk>/hold/", api_views.api_wallet_hold, name="api_wallet_hold"),
+    path("api/wallets/<uuid:pk>/unhold/", api_views.api_wallet_unhold, name="api_wallet_unhold"),
+    path("api/withdrawals/<uuid:pk>/process/", api_views.api_withdrawal_process, name="api_withdrawal_process"),
+    path("api/withdrawals/<uuid:pk>/approve/", api_views.api_withdrawal_approve, name="api_withdrawal_approve"),
+    path("api/withdrawals/<uuid:pk>/complete/", api_views.api_withdrawal_complete, name="api_withdrawal_complete"),
+    path("api/withdrawals/<uuid:pk>/reject/", api_views.api_withdrawal_reject, name="api_withdrawal_reject"),
     
     # Auth
     path("auth/login/", views.login_view, name="site_login"),
@@ -25,6 +35,7 @@ urlpatterns = [
     path("control/payment-methods/", views.payment_methods_list, name="payment_methods_list"),
     path("control/payment-methods/create/", views.payment_method_create, name="payment_method_create"),
     path("control/payment-methods/<uuid:pk>/edit/", views.payment_method_edit, name="payment_method_edit"),
+    path("control/deposits/", views.control_deposits, name="control_deposits"),
     path("control/withdrawals/", views.control_withdrawals, name="control_withdrawals"),
     path("control/currencies/", views.currencies_list, name="currencies_list"),
     path("control/currencies/create/", views.currency_create, name="currency_create"),
