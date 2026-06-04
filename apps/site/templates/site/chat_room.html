@@ -123,8 +123,9 @@
                     {% if user.is_staff %}دعم: {{ room.user.email }}{% else %}الدعم الفني{% endif %}
                 </h2>
                 <div class="flex items-center gap-2">
-                    <span class="w-2 h-2 rounded-full bg-success"></span>
-                    <span class="text-[10px] text-muted">محادثة مباشرة</span>
+                    <div id="connection-status">
+                        <span class="text-muted text-[10px]">محادثة مباشرة</span>
+                    </div>
                 </div>
             </div>
         </div>
@@ -201,39 +202,67 @@
     const typingIndicator = document.getElementById('typing-indicator');
 
     const protocol = window.location.protocol === 'https:' ? 'wss://' : 'ws://';
-    const chatSocket = new WebSocket(
-        protocol + window.location.host + '/ws/support/chat/' + roomId + '/'
-    );
+    let chatSocket = null;
+    let reconnectAttempts = 0;
 
-    function scrollToBottom() {
-        messagesContainer.scrollTop = messagesContainer.scrollHeight;
-    }
-    scrollToBottom();
+    function connect() {
+        console.log("Attempting WebSocket connection...");
+        chatSocket = new WebSocket(
+            protocol + window.location.host + '/ws/support/chat/' + roomId + '/'
+        );
 
-    chatSocket.onmessage = function(e) {
-        const data = JSON.parse(e.data);
-        
-        if (data.type === 'chat.message') {
-            const isMe = data.sender_email === userEmail;
-            const msgHtml = `
-                <div class="message ${isMe ? 'received' : 'sent'} animate-in">
-                    <div class="message-bubble">${data.message}</div>
-                    <div class="message-info">
-                        <span>${data.sender_name}</span>
-                        <span>${data.timestamp}</span>
-                    </div>
-                </div>
-            `;
-            messagesContainer.insertAdjacentHTML('beforeend', msgHtml);
-            scrollToBottom();
-            typingIndicator.innerText = '';
-        } 
-        else if (data.type === 'chat.typing') {
-            if (data.sender_name !== "{{ user.first_name }}") {
-                typingIndicator.innerText = data.is_typing ? `${data.sender_name} يكتب الآن...` : '';
+        chatSocket.onopen = function(e) {
+            console.log("WebSocket connected!");
+            reconnectAttempts = 0;
+            document.getElementById('connection-status').innerHTML = '<span class="text-success text-[10px]">● متصل</span>';
+        };
+
+        chatSocket.onmessage = function(e) {
+            try {
+                const data = JSON.parse(e.data);
+                console.log("Received:", data);
+                
+                if (data.type === 'chat.message') {
+                    const isMe = data.sender_email === userEmail;
+                    const msgHtml = `
+                        <div class="message ${isMe ? 'received' : 'sent'} animate-in">
+                            <div class="message-bubble">${data.message || '<i>تم إرسال ملف</i>'}</div>
+                            <div class="message-info">
+                                <span>${data.sender_name}</span>
+                                <span>${data.timestamp}</span>
+                            </div>
+                        </div>
+                    `;
+                    messagesContainer.insertAdjacentHTML('beforeend', msgHtml);
+                    scrollToBottom();
+                    typingIndicator.innerText = '';
+                } 
+                else if (data.type === 'chat.typing') {
+                    if (data.sender_name !== "{{ user.first_name }}") {
+                        typingIndicator.innerText = data.is_typing ? `${data.sender_name} يكتب الآن...` : '';
+                    }
+                }
+            } catch (err) {
+                console.error("Msg Parse Error:", err);
             }
-        }
-    };
+        };
+
+        chatSocket.onclose = function(e) {
+            console.error('Chat socket closed. Reconnecting...', e.reason);
+            document.getElementById('connection-status').innerHTML = '<span class="text-danger text-[10px]">○ جارِ إعادة الاتصال...</span>';
+            setTimeout(function() {
+                reconnectAttempts++;
+                connect();
+            }, Math.min(10000, 1000 * reconnectAttempts));
+        };
+
+        chatSocket.onerror = function(err) {
+            console.error('Socket encountered error: ', err.message, 'Closing socket');
+            chatSocket.close();
+        };
+    }
+
+    connect();
 
     async function uploadFile(input) {
         if (!input.files || !input.files[0]) return;
