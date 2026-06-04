@@ -1,57 +1,77 @@
-{% extends "site/base.html" %}
-{% block title %}إدارة العملات | Raqamiyat Admin{% endblock %}
-{% block content %}
-<section class="page-head">
-  <div>
-    <span class="eyebrow">Admin / Settings</span>
-    <h1>إدارة العملات</h1>
-    <p>تحكم بالعملات المتاحة في المنصة وحدد أسعار الصرف مقابل الدولار الأمريكي (USD).</p>
-  </div>
-  <a href="{% url 'currency_create' %}" class="btn btn-primary">إضافة عملة جديدة</a>
-</section>
+{% extends "site/control_base.html" %}
+{% load static %}
 
-<section class="section">
-  <div class="table-wrap">
-    <table class="table">
-      <thead>
-        <tr>
-          <th>الترتيب</th>
-          <th>العملة</th>
-          <th>الرمز (ISO)</th>
-          <th>سعر الصرف (1 USD =)</th>
-          <th>الحالة</th>
-          <th>إجراءات</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for currency in currencies %}
-          <tr>
-            <td>{{ currency.display_order }}</td>
-            <td><strong>{{ currency.name }}</strong> ({{ currency.symbol }})</td>
-            <td><code>{{ currency.code }}</code></td>
-            <td>
-               {{ currency.exchange_rate }}
-               {% if currency.code == 'USD' %}<small class="text-slate-500">(الأساس)</small>{% endif %}
-            </td>
-            <td>
-              {% if currency.is_default %}
-                <span class="badge primary">افتراضية</span>
-              {% endif %}
-              {% if currency.is_active %}
-                <span class="badge">نشطة</span>
-              {% else %}
-                <span class="badge muted">معطلة</span>
-              {% endif %}
-            </td>
-            <td>
-              <a href="{% url 'currency_edit' currency.pk %}" class="btn btn-sm btn-outline">تعديل</a>
-            </td>
-          </tr>
-        {% empty %}
-          <tr><td colspan="6">لا توجد عملات مضافة حالياً.</td></tr>
-        {% endfor %}
-      </tbody>
-    </table>
-  </div>
-</section>
+{% block title %}إدارة العملات | Raqamiyat Admin{% endblock %}
+
+{% block control_content %}
+<div class="page-head">
+    <div>
+        <span class="eyebrow">Financial Management</span>
+        <h1>العملات وأسعار الصرف</h1>
+        <p class="text-muted">إدارة العملات المدعومة وتحديث أسعار الصرف العالمية مقارنة بالدولار.</p>
+    </div>
+    <a href="{% url 'currency_create' %}" class="btn btn-primary btn-sm">
+        <i class="fas fa-plus ml-2"></i> إضافة عملة
+    </a>
+</div>
+
+<div class="management-card">
+    <div class="p-0 overflow-x-auto">
+        <table class="w-full text-sm text-right">
+            <thead class="text-[11px] text-slate-500 border-b border-white/5 uppercase bg-white/[0.01]">
+                <tr>
+                    <th class="p-4">العملة</th>
+                    <th class="p-4">الرمز</th>
+                    <th class="p-4">سعر الصرف (1 USD)</th>
+                    <th class="p-4">الحالة</th>
+                    <th class="p-4 text-left">إجراءات</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for c in currencies %}
+                <tr class="border-b border-white/[0.02] last:border-0 hover:bg-white/[0.02] transition">
+                    <td class="p-4">
+                        <div class="flex items-center gap-3">
+                            <div class="w-10 h-10 rounded bg-slate-800 flex items-center justify-center text-xs text-amber-500 border border-white/5 font-bold">
+                                {{ c.code }}
+                            </div>
+                            <div>
+                                <div class="font-bold text-slate-200">{{ c.name }}</div>
+                                {% if c.is_default %}<span class="badge primary text-[8px]">العملة الأساسية</span>{% endif %}
+                            </div>
+                        </div>
+                    </td>
+                    <td class="p-4">
+                        <span class="font-bold text-slate-400">{{ c.symbol }}</span>
+                    </td>
+                    <td class="p-4">
+                        <div class="font-mono text-cyan">{{ c.exchange_rate }}</div>
+                    </td>
+                    <td class="p-4">
+                        <span class="badge {% if c.is_active %}success{% else %}muted{% endif %} text-[9px]">{% if c.is_active %}نشطة{% else %}معطلة{% endif %}</span>
+                    </td>
+                    <td class="p-4 text-left">
+                        <div class="flex justify-end gap-2">
+                            <a href="{% url 'currency_edit' c.id %}" class="btn btn-sm btn-outline text-[10px] py-1 px-4 hover:bg-cyan hover:text-black transition">
+                                <i class="fas fa-edit ml-1"></i> تعديل
+                            </a>
+                        </div>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="5" class="p-12 text-center text-slate-500 italic">لم يتم تعريف عملات بعد.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<div class="panel p-6 bg-slate-900/50 mt-8 border-r-4 border-cyan">
+    <h3 class="text-sm font-bold text-cyan mb-2">معلومة هامة</h3>
+    <p class="text-xs text-slate-400 leading-relaxed">
+        يتم حساب أسعار كافة الباقات بناءً على سعر الصرف المحدد هنا. في حال تغيير سعر الصرف، سيتم تحديث أسعار العرض لكافة المستخدمين فوراً، ولكن الطلبات السابقة ستحتفظ بقيمتها التاريخية.
+    </p>
+</div>
 {% endblock %}

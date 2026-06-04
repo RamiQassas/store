@@ -1,13 +1,21 @@
 from decimal import Decimal
 
 from django.db import models
+from django.conf import settings
 
 from apps.common.models import TimeStampedModel
 
 
+from django.utils.text import slugify
+
 class Category(TimeStampedModel):
     name = models.CharField(max_length=120, verbose_name="اسم التصنيف")
-    slug = models.SlugField(max_length=140, unique=True)
+    slug = models.SlugField(max_length=140, unique=True, blank=True)
+    
+    def save(self, *args, **kwargs):
+        if not self.slug:
+            self.slug = slugify(self.name)
+        super().save(*args, **kwargs)
     parent = models.ForeignKey("self", null=True, blank=True, related_name="children", on_delete=models.CASCADE)
     icon = models.CharField(max_length=80, blank=True, verbose_name="الأيقونة")
     is_active = models.BooleanField(default=True, verbose_name="نشط")
@@ -23,14 +31,13 @@ class Category(TimeStampedModel):
 
 
 class Product(TimeStampedModel):
-    class DeliveryType(models.TextChoices):
-        AUTOMATIC = "automatic", "تسليم تلقائي"
-        MANUAL = "manual", "تسليم يدوي"
-        API = "api", "تسليم عبر API"
-        CUSTOM_FORM = "custom_form", "نموذج مخصص"
-
     name = models.CharField(max_length=160, verbose_name="اسم المنتج")
-    slug = models.SlugField(max_length=180, unique=True)
+    slug = models.SlugField(max_length=180, unique=True, blank=True)
+    
+    def save(self, *args, **kwargs):
+        if not self.slug:
+            self.slug = slugify(self.name)
+        super().save(*args, **kwargs)
     category = models.ForeignKey(Category, related_name="products", on_delete=models.PROTECT, verbose_name="التصنيف")
     
     # Media
@@ -41,11 +48,19 @@ class Product(TimeStampedModel):
 
     description = models.TextField(blank=True, verbose_name="الوصف")
     instructions = models.TextField(blank=True, verbose_name="تعليمات الاستخدام")
-    delivery_type = models.CharField(max_length=30, choices=DeliveryType.choices, default=DeliveryType.MANUAL, verbose_name="نوع التسليم")
     
     is_active = models.BooleanField(default=True, verbose_name="نشط")
     is_featured = models.BooleanField(default=False, verbose_name="مميز (عرض في الرئيسية)")
     sort_order = models.PositiveIntegerField(default=0, verbose_name="ترتيب العرض")
+    
+    # Dynamic Form Engine
+    form_schema = models.JSONField(
+        default=dict,
+        blank=True,
+        verbose_name="نموذج البيانات المطلوبة من العميل",
+        help_text='مثال: {"version": 1, "fields": [{"label": "اسم المستخدم", "type": "text", "required": true}]}'
+    )
+    
     metadata = models.JSONField(default=dict, blank=True)
 
     class Meta:
@@ -77,8 +92,13 @@ class ProductVariant(TimeStampedModel):
     product = models.ForeignKey(Product, related_name="variants", on_delete=models.CASCADE, verbose_name="المنتج")
     name = models.CharField(max_length=120, verbose_name="اسم الباقة")
     sku = models.CharField(max_length=80, unique=True, verbose_name="SKU")
-    price = models.DecimalField(max_digits=12, decimal_places=2, verbose_name="السعر")
+    
+    # Default Prices
+    price = models.DecimalField(max_digits=12, decimal_places=2, verbose_name="السعر الافتراضي (Retail)")
+    wholesale_price = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal("0.00"), verbose_name="سعر الجملة")
+    vip_price = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal("0.00"), verbose_name="سعر VIP")
     cost = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal("0.00"), verbose_name="التكلفة")
+    
     discount_percent = models.DecimalField(max_digits=5, decimal_places=2, default=Decimal("0.00"), verbose_name="خصم (%)")
     estimated_delivery_minutes = models.PositiveIntegerField(default=0, verbose_name="وقت التسليم المتوقع (دقيقة)")
     is_active = models.BooleanField(default=True, verbose_name="نشط")
@@ -93,27 +113,73 @@ class ProductVariant(TimeStampedModel):
     def __str__(self):
         return f"{self.product.name} - {self.name}"
 
+    @property
+    def margin(self):
+        """Calculates the absolute margin based on the base price and cost."""
+        return self.price - self.cost
 
-class ProductFormField(TimeStampedModel):
-    class FieldType(models.TextChoices):
-        TEXT = "text", "Text"
-        EMAIL = "email", "Email"
-        NUMBER = "number", "Number"
-        SELECT = "select", "Select"
-        PASSWORD = "password", "Password"
+    @property
+    def margin_percent(self):
+        """Calculates the margin percentage."""
+        if self.price > 0:
+            return (self.margin / self.price) * 100
+        return 0
 
-    product = models.ForeignKey(Product, related_name="form_fields", on_delete=models.CASCADE)
-    label = models.CharField(max_length=120)
-    key = models.SlugField(max_length=80)
-    field_type = models.CharField(max_length=20, choices=FieldType.choices, default=FieldType.TEXT)
-    required = models.BooleanField(default=True)
-    placeholder = models.CharField(max_length=160, blank=True)
-    options = models.JSONField(default=list, blank=True)
-    sort_order = models.PositiveIntegerField(default=0)
+    def get_price_for_user(self, user):
+        """
+        Returns the appropriate price based on the user's tier.
+        Checks for:
+        1. User-specific override
+        2. Tier-specific override
+        3. Default tier prices
+        4. Base price
+        """
+        # 1. Check for user-specific override
+        user_override = self.user_prices.filter(user=user).first()
+        if user_override:
+            return user_override.price
+
+        # 2. Check for specific tier override
+        override = self.tier_prices.filter(tier=user.tier).first()
+        if override:
+            return override.price
+            
+        # 3 & 4. Fallback to default prices based on tier
+        from apps.accounts.models import User
+        if user.tier == User.Tier.VIP:
+            return self.vip_price or self.price
+        elif user.tier == User.Tier.GOLD:
+            return self.wholesale_price or self.price
+        return self.price
+
+
+class ProductTierPrice(TimeStampedModel):
+    """
+    Explicit price override for a specific user tier.
+    """
+    variant = models.ForeignKey(ProductVariant, related_name="tier_prices", on_delete=models.CASCADE)
+    tier = models.CharField(max_length=20, verbose_name="الفئة")
+    price = models.DecimalField(max_digits=12, decimal_places=2, verbose_name="السعر")
 
     class Meta:
-        ordering = ("sort_order",)
-        unique_together = ("product", "key")
+        unique_together = ("variant", "tier")
+        verbose_name = "سعر فئة"
+        verbose_name_plural = "أسعار الفئات"
 
-    def __str__(self):
-        return f"{self.product.name} - {self.label}"
+
+class ProductUserPrice(TimeStampedModel):
+    """
+    Manual price override for a specific individual user.
+    Highest priority in pricing logic.
+    """
+    variant = models.ForeignKey(ProductVariant, related_name="user_prices", on_delete=models.CASCADE)
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    price = models.DecimalField(max_digits=12, decimal_places=2)
+
+    class Meta:
+        unique_together = ("variant", "user")
+        verbose_name = "سعر مخصص لمستخدم"
+        verbose_name_plural = "أسعار مخصصة لمستخدمين"
+
+
+# Legacy model removed (ProductFormField)

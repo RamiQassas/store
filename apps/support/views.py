@@ -1,24 +1,69 @@
-from rest_framework import decorators, response, status, viewsets
+from django.shortcuts import render, get_object_or_404, redirect
+from django.contrib.auth.decorators import login_required
+from django.contrib import messages
+from django.db.models import Q
+from .models import ChatRoom, ChatMessage, ChatCannedReply
 
-from apps.support.models import Ticket, TicketMessage
-from apps.support.serializers import TicketSerializer
+
+@login_required
+def chat_list(request):
+    """Lists available chat rooms for the user or staff."""
+    if request.user.is_staff:
+        rooms = ChatRoom.objects.all().select_related('user', 'assigned_agent')
+    else:
+        rooms = ChatRoom.objects.filter(user=request.user).select_related('assigned_agent')
+    
+    return render(request, 'site/chat_list.html', {'rooms': rooms})
 
 
-class TicketViewSet(viewsets.ModelViewSet):
-    serializer_class = TicketSerializer
-    filterset_fields = ("status", "priority")
+@login_required
+def chat_room(request, room_id):
+    """Displays an individual chat room with message history."""
+    if request.user.is_staff:
+        room = get_object_or_404(ChatRoom, id=room_id)
+    else:
+        room = get_object_or_404(ChatRoom, id=room_id, user=request.user)
+    
+    messages_history = room.messages.all().select_related('sender')
+    
+    # Reset unread count
+    if request.user.is_staff:
+        room.unread_staff_count = 0
+    else:
+        room.unread_user_count = 0
+    room.save()
+    
+    canned_replies = ChatCannedReply.objects.filter(is_active=True) if request.user.is_staff else None
+    
+    return render(request, 'site/chat_room.html', {
+        'room': room,
+        'chat_messages': messages_history,
+        'canned_replies': canned_replies
+    })
 
-    def get_queryset(self):
-        queryset = Ticket.objects.select_related("user").prefetch_related("messages")
-        if self.request.user.is_staff:
-            return queryset
-        return queryset.filter(user=self.request.user)
 
-    @decorators.action(detail=True, methods=["post"])
-    def reply(self, request, pk=None):
-        ticket = self.get_object()
-        message = request.data.get("message", "").strip()
-        if not message:
-            return response.Response({"message": "الرسالة مطلوبة."}, status=status.HTTP_400_BAD_REQUEST)
-        TicketMessage.objects.create(ticket=ticket, sender=request.user, message=message, is_staff_reply=request.user.is_staff)
-        return response.Response(self.get_serializer(ticket).data)
+@login_required
+def create_chat(request):
+    """Initializes a new support chat room."""
+    # Check if there's already an active (not closed) chat for this user
+    active_chat = ChatRoom.objects.filter(user=request.user).exclude(status=ChatRoom.Status.CLOSED).first()
+    if active_chat:
+        return redirect('chat_room', room_id=active_chat.id)
+        
+    subject = request.GET.get('subject', 'طلب دعم فني')
+    room = ChatRoom.objects.create(user=request.user, subject=subject)
+    return redirect('chat_room', room_id=room.id)
+
+
+@login_required
+def close_chat(request, room_id):
+    """Allows staff to close a chat room."""
+    if not request.user.is_staff:
+        messages.error(request, "غير مصرح لك بإغلاق المحادثات.")
+        return redirect('chat_list')
+        
+    room = get_object_or_404(ChatRoom, id=room_id)
+    room.status = ChatRoom.Status.CLOSED
+    room.save()
+    messages.success(request, f"تم إغلاق المحادثة #{room.id} بنجاح.")
+    return redirect('chat_list')

@@ -1,0 +1,265 @@
+{% extends "site/base.html" %}
+{% load static %}
+
+{% block title %}محادثة الدعم | Raqamiyat{% endblock %}
+
+{% block extra_head %}
+<style>
+    .chat-container {
+        height: 70vh;
+        display: grid;
+        grid-template-rows: auto 1fr auto;
+        border: 1px solid var(--panel-border);
+        border-radius: var(--radius);
+        background: var(--panel);
+        overflow: hidden;
+    }
+
+    .chat-header {
+        padding: 1.25rem 2rem;
+        background: rgba(255, 255, 255, 0.02);
+        border-bottom: 1px solid var(--panel-border);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .chat-messages {
+        padding: 2rem;
+        overflow-y: auto;
+        display: flex;
+        flex-direction: column;
+        gap: 1.5rem;
+    }
+
+    .message {
+        max-width: 80%;
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+
+    .message.sent { align-self: flex-start; }
+    .message.received { align-self: flex-end; }
+
+    .message-bubble {
+        padding: 1rem 1.5rem;
+        border-radius: 18px;
+        font-size: 0.9375rem;
+        line-height: 1.5;
+        position: relative;
+    }
+
+    .sent .message-bubble {
+        background: var(--bg-soft);
+        color: var(--text);
+        border-top-right-radius: 4px;
+        border: 1px solid var(--panel-border);
+    }
+
+    .received .message-bubble {
+        background: linear-gradient(135deg, var(--cyan) 0%, #0891b2 100%);
+        color: #000;
+        border-top-left-radius: 4px;
+        font-weight: 600;
+    }
+
+    .message-info {
+        font-size: 0.625rem;
+        color: var(--muted);
+        display: flex;
+        gap: 0.5rem;
+        margin: 0 0.5rem;
+    }
+    .received .message-info { flex-direction: row-reverse; }
+
+    .chat-input-area {
+        padding: 1.5rem 2rem;
+        background: rgba(255, 255, 255, 0.02);
+        border-top: 1px solid var(--panel-border);
+    }
+
+    .input-wrapper {
+        display: flex;
+        gap: 1rem;
+        background: var(--bg);
+        border: 1px solid var(--panel-border);
+        border-radius: 14px;
+        padding: 0.5rem;
+    }
+
+    .input-wrapper input {
+        border: none;
+        background: transparent;
+        padding: 0.75rem 1rem;
+    }
+    .input-wrapper input:focus { outline: none; }
+
+    .typing-indicator {
+        font-size: 0.75rem;
+        color: var(--cyan);
+        height: 20px;
+        padding: 0 1rem;
+        font-weight: bold;
+    }
+
+    @media (max-width: 640px) {
+        .chat-container { height: 80vh; }
+        .message { max-width: 90%; }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="chat-container max-w-5xl mx-auto shadow-2xl">
+    <!-- Header -->
+    <div class="chat-header">
+        <div class="flex items-center gap-4">
+            <a href="{% url 'chat_list' %}" class="w-10 h-10 rounded-full bg-slate-800 flex items-center justify-center hover:bg-slate-700 transition">
+                <i class="fas fa-arrow-right text-sm"></i>
+            </a>
+            <div>
+                <h2 class="font-bold text-lg">
+                    {% if user.is_staff %}دعم: {{ room.user.email }}{% else %}الدعم الفني{% endif %}
+                </h2>
+                <div class="flex items-center gap-2">
+                    <span class="w-2 h-2 rounded-full bg-success"></span>
+                    <span class="text-[10px] text-muted">محادثة مباشرة</span>
+                </div>
+            </div>
+        </div>
+        <div class="flex gap-3">
+            {% if user.is_staff and room.status != 'closed' %}
+            <a href="{% url 'close_chat' room.id %}" class="btn btn-sm btn-outline danger text-xs">إغلاق المحادثة</a>
+            {% endif %}
+            <span class="badge primary text-[10px]">#{{ room.id|stringformat:"s"|truncatechars:8 }}</span>
+        </div>
+    </div>
+
+    <!-- Messages Area -->
+    <div class="chat-messages" id="chat-messages">
+        {% for msg in chat_messages %}
+        <div class="message {% if msg.sender == user %}received{% else %}sent{% endif %}">
+            <div class="message-bubble">
+                {{ msg.text }}
+            </div>
+            <div class="message-info">
+                <span>{{ msg.sender.first_name }}</span>
+                <span>{{ msg.created_at|date:"H:i" }}</span>
+            </div>
+        </div>
+        {% empty %}
+        <div class="my-auto text-center p-12">
+            <div class="w-16 h-16 bg-slate-800 rounded-full flex items-center justify-center mx-auto mb-4 text-cyan opacity-50">
+                <i class="fas fa-shield-halved text-2xl"></i>
+            </div>
+            <h4 class="font-bold mb-1">ابدأ المحادثة</h4>
+            <p class="text-xs text-muted">فريقنا متواجد لمساعدتك، أرسل رسالتك الآن.</p>
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- Input Area -->
+    <div class="chat-input-area">
+        <div class="typing-indicator" id="typing-indicator"></div>
+        <div class="input-wrapper">
+            <input type="text" id="chat-input" placeholder="اكتب رسالتك هنا..." autocomplete="off">
+            <button class="btn btn-primary" id="send-btn">
+                <i class="fas fa-paper-plane"></i>
+            </button>
+        </div>
+    </div>
+</div>
+
+{{ room.id|json_script:"room-id" }}
+{{ user.email|json_script:"user-email" }}
+
+<script>
+    const roomId = JSON.parse(document.getElementById('room-id').textContent);
+    const userEmail = JSON.parse(document.getElementById('user-email').textContent);
+    const messagesContainer = document.getElementById('chat-messages');
+    const chatInput = document.getElementById('chat-input');
+    const sendBtn = document.getElementById('send-btn');
+    const typingIndicator = document.getElementById('typing-indicator');
+
+    const protocol = window.location.protocol === 'https:' ? 'wss://' : 'ws://';
+    const chatSocket = new WebSocket(
+        protocol + window.location.host + '/ws/support/chat/' + roomId + '/'
+    );
+
+    function scrollToBottom() {
+        messagesContainer.scrollTop = messagesContainer.scrollHeight;
+    }
+    scrollToBottom();
+
+    chatSocket.onmessage = function(e) {
+        const data = JSON.parse(e.data);
+        
+        if (data.type === 'chat.message') {
+            const isMe = data.sender_email === userEmail;
+            const msgHtml = `
+                <div class="message ${isMe ? 'received' : 'sent'} animate-in">
+                    <div class="message-bubble">${data.message}</div>
+                    <div class="message-info">
+                        <span>${data.sender_name}</span>
+                        <span>${data.timestamp}</span>
+                    </div>
+                </div>
+            `;
+            messagesContainer.insertAdjacentHTML('beforeend', msgHtml);
+            scrollToBottom();
+            typingIndicator.innerText = '';
+        } 
+        else if (data.type === 'chat.typing') {
+            if (data.sender_name !== "{{ user.first_name }}") {
+                typingIndicator.innerText = data.is_typing ? `${data.sender_name} يكتب الآن...` : '';
+            }
+        }
+    };
+
+    function sendMessage() {
+        const message = chatInput.value.trim();
+        if (message) {
+            chatSocket.send(json.stringify({
+                'type': 'chat_message',
+                'message': message
+            }));
+            chatInput.value = '';
+            sendTyping(false);
+        }
+    }
+
+    sendBtn.onclick = sendMessage;
+    chatInput.onkeyup = function(e) {
+        if (e.keyCode === 13) sendMessage();
+    };
+
+    let typingTimeout;
+    chatInput.oninput = function() {
+        sendTyping(true);
+        clearTimeout(typingTimeout);
+        typingTimeout = setTimeout(() => sendTyping(false), 2000);
+    };
+
+    function sendTyping(isTyping) {
+        chatSocket.send(JSON.stringify({
+            'type': 'typing',
+            'is_typing': isTyping
+        }));
+    }
+
+    chatSocket.onclose = function(e) {
+        console.error('Chat socket closed unexpectedly');
+    };
+</script>
+
+<style>
+    .animate-in {
+        animation: slideUp 0.3s ease-out;
+    }
+    @keyframes slideUp {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+</style>
+{% endblock %}

@@ -1,6 +1,7 @@
 import uuid
 
 from django.db import models
+from django.conf import settings
 
 
 class TimeStampedModel(models.Model):
@@ -35,3 +36,48 @@ class Currency(TimeStampedModel):
         if self.is_default:
             Currency.objects.filter(is_default=True).update(is_default=False)
         super().save(*args, **kwargs)
+
+
+class SystemAuditLog(TimeStampedModel):
+    """
+    Universal audit log for tracking administrative and sensitive actions.
+    Records 'who', 'what', 'when', 'where', and 'why'.
+    """
+    actor = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="performed_audit_logs",
+        verbose_name="المنفذ"
+    )
+    action_type = models.CharField(max_length=100, verbose_name="نوع الإجراء")
+    
+    # Generic relation to target object
+    content_type = models.ForeignKey("contenttypes.ContentType", on_delete=models.SET_NULL, null=True, blank=True)
+    object_id = models.CharField(max_length=255, null=True, blank=True)
+    
+    description = models.TextField(blank=True, verbose_name="الوصف")
+    
+    # State tracking
+    before_state = models.JSONField(default=dict, blank=True, verbose_name="الحالة قبل")
+    after_state = models.JSONField(default=dict, blank=True, verbose_name="الحالة بعد")
+    
+    # Context
+    ip_address = models.GenericIPAddressField(null=True, blank=True, verbose_name="IP عنوان")
+    user_agent = models.TextField(blank=True, verbose_name="متصفح المستخدم")
+    reason = models.TextField(blank=True, verbose_name="السبب")
+    
+    metadata = models.JSONField(default=dict, blank=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+        verbose_name = "سجل تدقيق النظام"
+        verbose_name_plural = "سجلات تدقيق النظام"
+        indexes = [
+            models.Index(fields=["action_type"]),
+            models.Index(fields=["content_type", "object_id"]),
+        ]
+
+    def __str__(self):
+        return f"{self.actor} - {self.action_type} - {self.created_at}"

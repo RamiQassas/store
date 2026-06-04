@@ -10,7 +10,7 @@ class WalletError(Exception):
     pass
 
 
-def credit_wallet(wallet_id, amount, reference="", description="", created_by=None, metadata=None):
+def credit_wallet(wallet_id, amount, reference="", description="", created_by=None, metadata=None, source="system", reason=""):
     amount = Decimal(amount)
     if amount <= 0:
         raise WalletError("Amount must be positive.")
@@ -24,16 +24,20 @@ def credit_wallet(wallet_id, amount, reference="", description="", created_by=No
 
         wallet.available_balance += amount
         wallet.save(update_fields=["available_balance", "pending_balance", "updated_at"])
-        LedgerEntry.objects.create(
+        
+        entry = LedgerEntry.objects.create(
             wallet=wallet,
             entry_type=LedgerEntry.EntryType.CREDIT,
             amount=amount,
             balance_after=wallet.available_balance,
             reference=reference,
             description=description,
+            source=source,
+            reason=reason,
             created_by=created_by,
             metadata=metadata or {},
         )
+        
         WalletTransaction.objects.create(
             wallet=wallet,
             amount=amount,
@@ -44,7 +48,7 @@ def credit_wallet(wallet_id, amount, reference="", description="", created_by=No
         return wallet
 
 
-def debit_wallet(wallet_id, amount, reference="", description="", created_by=None, metadata=None):
+def debit_wallet(wallet_id, amount, reference="", description="", created_by=None, metadata=None, source="system", reason=""):
     amount = Decimal(amount)
     if amount <= 0:
         raise WalletError("Amount must be positive.")
@@ -54,16 +58,20 @@ def debit_wallet(wallet_id, amount, reference="", description="", created_by=Non
             raise WalletError("Insufficient wallet balance.")
         wallet.available_balance -= amount
         wallet.save(update_fields=["available_balance", "updated_at"])
-        LedgerEntry.objects.create(
+        
+        entry = LedgerEntry.objects.create(
             wallet=wallet,
             entry_type=LedgerEntry.EntryType.DEBIT,
             amount=amount,
             balance_after=wallet.available_balance,
             reference=reference,
             description=description,
+            source=source,
+            reason=reason,
             created_by=created_by,
             metadata=metadata or {},
         )
+        
         WalletTransaction.objects.create(
             wallet=wallet,
             amount=amount,
@@ -74,7 +82,7 @@ def debit_wallet(wallet_id, amount, reference="", description="", created_by=Non
         return wallet
 
 
-def freeze_funds(wallet_id, amount, reference="", description="", created_by=None, metadata=None):
+def freeze_funds(wallet_id, amount, reference="", description="", created_by=None, metadata=None, source="system", reason=""):
     amount = Decimal(amount)
     if amount <= 0:
         raise WalletError("Amount must be positive.")
@@ -85,6 +93,7 @@ def freeze_funds(wallet_id, amount, reference="", description="", created_by=Non
         wallet.available_balance -= amount
         wallet.frozen_balance += amount
         wallet.save(update_fields=["available_balance", "frozen_balance", "updated_at"])
+        
         LedgerEntry.objects.create(
             wallet=wallet,
             entry_type=LedgerEntry.EntryType.FREEZE,
@@ -92,13 +101,15 @@ def freeze_funds(wallet_id, amount, reference="", description="", created_by=Non
             balance_after=wallet.available_balance,
             reference=reference,
             description=description,
+            source=source,
+            reason=reason,
             created_by=created_by,
             metadata=metadata or {},
         )
         return wallet
 
 
-def release_funds(wallet_id, amount, reference="", description="", created_by=None, metadata=None):
+def release_funds(wallet_id, amount, reference="", description="", created_by=None, metadata=None, source="system", reason=""):
     amount = Decimal(amount)
     if amount <= 0:
         raise WalletError("Amount must be positive.")
@@ -109,6 +120,7 @@ def release_funds(wallet_id, amount, reference="", description="", created_by=No
         wallet.frozen_balance -= amount
         wallet.available_balance += amount
         wallet.save(update_fields=["available_balance", "frozen_balance", "updated_at"])
+        
         LedgerEntry.objects.create(
             wallet=wallet,
             entry_type=LedgerEntry.EntryType.RELEASE,
@@ -116,13 +128,15 @@ def release_funds(wallet_id, amount, reference="", description="", created_by=No
             balance_after=wallet.available_balance,
             reference=reference,
             description=description,
+            source=source,
+            reason=reason,
             created_by=created_by,
             metadata=metadata or {},
         )
         return wallet
 
 
-def finalize_withdrawal(wallet_id, amount, reference="", description="", created_by=None, metadata=None):
+def finalize_withdrawal(wallet_id, amount, reference="", description="", created_by=None, metadata=None, source="withdrawal", reason=""):
     """Finalizes a withdrawal by deducting from frozen balance and logging a debit transaction."""
     amount = Decimal(amount)
     if amount <= 0:
@@ -133,6 +147,21 @@ def finalize_withdrawal(wallet_id, amount, reference="", description="", created
             raise WalletError("Insufficient frozen balance to finalize withdrawal.")
         wallet.frozen_balance -= amount
         wallet.save(update_fields=["frozen_balance", "updated_at"])
+        
+        # Note: Available balance doesn't change here because it was already deducted when frozen.
+        # But we still create a LedgerEntry for audit trail.
+        LedgerEntry.objects.create(
+            wallet=wallet,
+            entry_type=LedgerEntry.EntryType.DEBIT,
+            amount=amount,
+            balance_after=wallet.available_balance,
+            reference=reference,
+            description=description,
+            source=source,
+            reason=reason or "Finalized withdrawal",
+            created_by=created_by,
+            metadata=metadata or {},
+        )
         
         WalletTransaction.objects.create(
             wallet=wallet,
@@ -145,7 +174,7 @@ def finalize_withdrawal(wallet_id, amount, reference="", description="", created
         return wallet
 
 
-def hold_funds(wallet_id, amount, reference="", description="", created_by=None, metadata=None):
+def hold_funds(wallet_id, amount, reference="", description="", created_by=None, metadata=None, source="admin", reason=""):
     """Holds funds for moderation or disputes. Deducts from available, adds to held."""
     amount = Decimal(amount)
     if amount <= 0:
@@ -157,6 +186,7 @@ def hold_funds(wallet_id, amount, reference="", description="", created_by=None,
         wallet.available_balance -= amount
         wallet.held_balance += amount
         wallet.save(update_fields=["available_balance", "held_balance", "updated_at"])
+        
         LedgerEntry.objects.create(
             wallet=wallet,
             entry_type=LedgerEntry.EntryType.HOLD,
@@ -164,13 +194,18 @@ def hold_funds(wallet_id, amount, reference="", description="", created_by=None,
             balance_after=wallet.available_balance,
             reference=reference,
             description=description,
+            source=source,
+            reason=reason,
             created_by=created_by,
             metadata=metadata or {},
         )
+        
+        # SystemAuditLog should be handled by the caller (view/admin) to include IP/UserAgent
+        
         return wallet
 
 
-def unhold_funds(wallet_id, amount, reference="", description="", created_by=None, metadata=None):
+def unhold_funds(wallet_id, amount, reference="", description="", created_by=None, metadata=None, source="admin", reason=""):
     """Releases held funds back to available balance."""
     amount = Decimal(amount)
     if amount <= 0:
@@ -189,13 +224,69 @@ def unhold_funds(wallet_id, amount, reference="", description="", created_by=Non
             balance_after=wallet.available_balance,
             reference=reference,
             description=description,
+            source=source,
+            reason=reason,
             created_by=created_by,
             metadata=metadata or {},
         )
         return wallet
 
 
-def track_pending_deposit(wallet_id, amount, reference="", description="", created_by=None, metadata=None):
+def reserve_funds(wallet_id, amount, reference="", description="", created_by=None, metadata=None, source="order", reason=""):
+    """Reserves funds for pending orders. Deducts from available, adds to reserved."""
+    amount = Decimal(amount)
+    if amount <= 0:
+        raise WalletError("Amount must be positive.")
+    with transaction.atomic():
+        wallet = Wallet.objects.select_for_update().get(id=wallet_id)
+        if wallet.available_balance < amount:
+            raise WalletError("Insufficient wallet balance to reserve.")
+        wallet.available_balance -= amount
+        wallet.reserved_balance += amount
+        wallet.save(update_fields=["available_balance", "reserved_balance", "updated_at"])
+        LedgerEntry.objects.create(
+            wallet=wallet,
+            entry_type=LedgerEntry.EntryType.RESERVE,
+            amount=amount,
+            balance_after=wallet.available_balance,
+            reference=reference,
+            description=description or "Reserve funds",
+            source=source,
+            reason=reason,
+            created_by=created_by,
+            metadata=metadata or {"is_reserve": True},
+        )
+        return wallet
+
+
+def release_reserved_funds(wallet_id, amount, reference="", description="", created_by=None, metadata=None, source="order", reason=""):
+    """Releases reserved funds back to available balance."""
+    amount = Decimal(amount)
+    if amount <= 0:
+        raise WalletError("Amount must be positive.")
+    with transaction.atomic():
+        wallet = Wallet.objects.select_for_update().get(id=wallet_id)
+        if wallet.reserved_balance < amount:
+            raise WalletError("Insufficient reserved balance to release.")
+        wallet.reserved_balance -= amount
+        wallet.available_balance += amount
+        wallet.save(update_fields=["available_balance", "reserved_balance", "updated_at"])
+        LedgerEntry.objects.create(
+            wallet=wallet,
+            entry_type=LedgerEntry.EntryType.UNRESERVE,
+            amount=amount,
+            balance_after=wallet.available_balance,
+            reference=reference,
+            description=description or "Release reserved funds",
+            source=source,
+            reason=reason,
+            created_by=created_by,
+            metadata=metadata or {"is_reserve_release": True},
+        )
+        return wallet
+
+
+def track_pending_deposit(wallet_id, amount, reference="", description="", created_by=None, metadata=None, source="deposit", reason=""):
     """Tracks a potential incoming deposit."""
     amount = Decimal(amount)
     if amount <= 0:
@@ -211,13 +302,15 @@ def track_pending_deposit(wallet_id, amount, reference="", description="", creat
             balance_after=wallet.available_balance,
             reference=reference,
             description=description,
+            source=source,
+            reason=reason,
             created_by=created_by,
             metadata=metadata or {},
         )
         return wallet
 
 
-def cancel_pending_deposit(wallet_id, amount, reference="", description="", created_by=None, metadata=None):
+def cancel_pending_deposit(wallet_id, amount, reference="", description="", created_by=None, metadata=None, source="deposit", reason=""):
     """Cancels a pending deposit tracking."""
     amount = Decimal(amount)
     if amount <= 0:
@@ -233,6 +326,8 @@ def cancel_pending_deposit(wallet_id, amount, reference="", description="", crea
             balance_after=wallet.available_balance,
             reference=reference,
             description=description,
+            source=source,
+            reason=reason,
             created_by=created_by,
             metadata=metadata or {},
         )

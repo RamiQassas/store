@@ -1,113 +1,343 @@
 {% extends "site/base.html" %}
+{% load static %}
+
 {% block title %}لوحتي | Raqamiyat - رقميات{% endblock %}
+
+{% block extra_head %}
+<style>
+    /* Premium Fintech Dashboard Styles */
+    .dashboard-grid {
+        display: grid;
+        grid-template-columns: repeat(12, 1fr);
+        gap: 1.5rem;
+    }
+
+    .dashboard-sidebar {
+        grid-column: span 3;
+    }
+
+    .dashboard-main {
+        grid-column: span 9;
+    }
+
+    /* Wallet Card */
+    .premium-wallet-card {
+        background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+        border: 1px solid rgba(6, 182, 212, 0.2);
+        position: relative;
+        overflow: hidden;
+    }
+
+    .premium-wallet-card::before {
+        content: "";
+        position: absolute;
+        top: -50%;
+        left: -50%;
+        width: 200%;
+        height: 200%;
+        background: radial-gradient(circle, rgba(6, 182, 212, 0.05) 0%, transparent 70%);
+        pointer-events: none;
+    }
+
+    .balance-display {
+        font-size: 2.5rem;
+        font-weight: 900;
+        letter-spacing: -1px;
+        background: linear-gradient(to right, #fff, var(--cyan));
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+    }
+
+    /* Quick Actions */
+    .quick-actions {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 1rem;
+    }
+
+    .action-btn {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 0.75rem;
+        padding: 1.25rem;
+        background: var(--panel);
+        border: 1px solid var(--panel-border);
+        border-radius: var(--radius);
+        transition: all 0.3s ease;
+    }
+
+    .action-btn:hover {
+        border-color: var(--cyan);
+        background: rgba(6, 182, 212, 0.05);
+        transform: translateY(-3px);
+    }
+
+    .action-btn i {
+        font-size: 1.5rem;
+        color: var(--cyan);
+    }
+
+    .action-btn span {
+        font-size: 0.875rem;
+        font-weight: 700;
+        color: var(--text);
+    }
+
+    /* Activity Items */
+    .activity-item {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        padding: 1rem;
+        border-radius: 10px;
+        transition: background 0.2s;
+    }
+
+    .activity-item:hover {
+        background: rgba(255, 255, 255, 0.02);
+    }
+
+    .activity-icon {
+        width: 40px;
+        height: 40px;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+    }
+
+    .activity-icon.order { background: rgba(59, 130, 246, 0.1); color: var(--blue); }
+    .activity-icon.deposit { background: rgba(34, 197, 94, 0.1); color: var(--success); }
+    .activity-icon.ticket { background: rgba(168, 85, 247, 0.1); color: #a855f7; }
+
+    /* Account Status Card */
+    .status-badge {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        display: inline-block;
+        margin-left: 8px;
+    }
+    .status-badge.active { background-color: var(--success); box-shadow: 0 0 10px var(--success); }
+
+    @media (max-width: 1024px) {
+        .dashboard-sidebar, .dashboard-main { grid-column: span 12; }
+        .dashboard-sidebar { order: 2; }
+        .dashboard-main { order: 1; }
+    }
+
+    @media (max-width: 640px) {
+        .quick-actions { grid-template-columns: repeat(2, 1fr); }
+    }
+</style>
+{% endblock %}
+
 {% block content %}
-<section class="page-head">
-  <div>
-    <span class="eyebrow">Dashboard</span>
-    <h1>لوحة المستخدم</h1>
-    <p>كل ما يحتاجه المستخدم في مكان واحد: الرصيد، الطلبات، الإيداعات، والإشعارات.</p>
-  </div>
-  <div class="flex gap-4">
-    <div class="mini-box">
-      <strong>{{ wallet.available_balance }} {{ wallet.currency.code }}</strong>
-      <span>الرصيد المتاح</span>
-      {% if wallet.frozen_balance > 0 or wallet.held_balance > 0 or wallet.pending_balance > 0 %}
-        <div class="text-[10px] text-slate-400 mt-1">
-          إجمالي: {{ wallet.total_balance }} | 
-          معلق: {{ wallet.pending_balance }}
-        </div>
-      {% endif %}
+<div class="page-head">
+    <div>
+        <span class="eyebrow">أهلاً بك، {{ user.first_name }}</span>
+        <h1>لوحة التحكم</h1>
+        <p class="text-muted">مرحباً بك مجدداً في منصة رقميات. إليك نظرة سريعة على حسابك.</p>
     </div>
-  </div>
-</section>
+    <div class="hidden sm:block">
+        <span class="badge primary p-2 px-4">
+            <i class="fas fa-crown text-amber-400 ml-2"></i>
+            {{ user.get_tier_display }}
+        </span>
+    </div>
+</div>
 
 {% if not user.email_verified %}
-<section class="panel p-6 border-l-4 border-amber-500 mb-8 flex justify-between items-center bg-amber-500/10">
+<div class="panel p-6 border-r-4 border-amber-500 mb-8 flex flex-col sm:row justify-between items-center bg-amber-500/5 gap-4">
     <div class="flex items-center gap-4">
-        <i class="fas fa-exclamation-triangle text-amber-500 text-2xl"></i>
+        <div class="w-12 h-12 bg-amber-500/10 text-amber-500 rounded-full flex items-center justify-center flex-shrink-0">
+            <i class="fas fa-envelope-open-text text-xl"></i>
+        </div>
         <div>
-            <h3 class="font-bold text-amber-500">حسابك غير مفعل!</h3>
-            <p class="text-xs text-slate-300">يرجى تفعيل بريدك الإلكتروني للتمكن من الإيداع والشراء.</p>
+            <h3 class="font-bold text-amber-500">يرجى تفعيل بريدك الإلكتروني</h3>
+            <p class="text-sm text-slate-400">تفعيل حسابك ضروري للتمكن من القيام بعمليات الشراء والإيداع بشكل آمن.</p>
         </div>
     </div>
-    <a href="{% url 'resend_verification' %}" class="btn btn-sm btn-primary">إعادة إرسال الرابط</a>
-</section>
+    <a href="{% url 'resend_verification' %}" class="btn btn-sm btn-primary whitespace-nowrap">إعادة إرسال الرابط</a>
+</div>
 {% endif %}
 
-<section class="stats-grid">
-  <article class="stat"><strong>{{ stats.orders }}</strong><span>طلبات</span></article>
-  <article class="stat"><strong>{{ stats.deposits }}</strong><span>عمليات إيداع</span></article>
-  <article class="stat"><strong>{{ stats.tickets }}</strong><span>تذاكر دعم</span></article>
-  <article class="stat"><strong>{{ stats.notifications }}</strong><span>تنبيهات غير مقروءة</span></article>
-</section>
+<div class="dashboard-grid">
+    <!-- Main Content -->
+    <div class="dashboard-main stack gap-6">
+        
+        <!-- Wallet Summary Section -->
+        <div class="panel premium-wallet-card p-8">
+            <div class="flex justify-between items-start mb-6">
+                <div>
+                    <span class="text-sm font-bold text-cyan uppercase tracking-wider">الرصيد المتاح</span>
+                    <div class="balance-display mt-2">{{ wallet.available_balance }} <span class="text-xl">{{ wallet.currency.code }}</span></div>
+                </div>
+                <div class="text-left">
+                    <i class="fas fa-wallet text-4xl text-slate-700 opacity-50"></i>
+                </div>
+            </div>
+            
+            {% if wallet.frozen_balance > 0 or wallet.held_balance > 0 or wallet.pending_balance > 0 %}
+            <div class="grid grid-3 gap-4 pt-6 border-t border-white/5">
+                {% if wallet.pending_balance > 0 %}
+                <div>
+                    <span class="text-xs text-muted block mb-1">قيد الانتظار</span>
+                    <span class="text-sm font-bold">{{ wallet.pending_balance }} {{ wallet.currency.code }}</span>
+                </div>
+                {% endif %}
+                {% if wallet.frozen_balance > 0 %}
+                <div>
+                    <span class="text-xs text-muted block mb-1">مجمد</span>
+                    <span class="text-sm font-bold">{{ wallet.frozen_balance }} {{ wallet.currency.code }}</span>
+                </div>
+                {% endif %}
+                {% if wallet.held_balance > 0 %}
+                <div>
+                    <span class="text-xs text-muted block mb-1">محجوز</span>
+                    <span class="text-sm font-bold text-red-400">{{ wallet.held_balance }} {{ wallet.currency.code }}</span>
+                </div>
+                {% endif %}
+            </div>
+            {% endif %}
+        </div>
 
-<section class="two-col">
-  <article class="panel">
-    <div class="section-head"><h2>أحدث الطلبات</h2><a href="{% url 'catalog' %}">طلب جديد</a></div>
-    <div class="stack-list">
-      {% for order in orders %}
-        <div class="line-item">
-          <div>
-            <strong>{{ order.number }}</strong>
-            <p>{{ order.get_status_display }} - {{ order.total_amount }} SYP</p>
-          </div>
-          <span class="badge">{{ order.created_at|date:"Y-m-d" }}</span>
+        <!-- Quick Actions -->
+        <div class="quick-actions">
+            <a href="{% url 'catalog' %}" class="action-btn">
+                <i class="fas fa-shopping-cart"></i>
+                <span>شراء منتج</span>
+            </a>
+            <a href="{% url 'dashboard_deposits' %}" class="action-btn">
+                <i class="fas fa-plus-circle"></i>
+                <span>إيداع رصيد</span>
+            </a>
+            <a href="{% url 'dashboard_withdrawals' %}" class="action-btn">
+                <i class="fas fa-arrow-alt-circle-down"></i>
+                <span>طلب سحب</span>
+            </a>
+            <a href="{% url 'dashboard_tickets' %}" class="action-btn">
+                <i class="fas fa-headset"></i>
+                <span>الدعم الفني</span>
+            </a>
         </div>
-      {% empty %}
-        <div class="empty">لا توجد طلبات بعد.</div>
-      {% endfor %}
-    </div>
-  </article>
-  <article class="panel">
-    <div class="section-head"><h2>آخر الإيداعات</h2><a href="{% url 'dashboard_deposits' %}">إيداع رصيد</a></div>
-    <div class="stack-list">
-      {% for deposit in deposits %}
-        <div class="line-item">
-          <div>
-            <strong>{{ deposit.amount }} {{ deposit.currency.code }}</strong>
-            <p>{{ deposit.payment_method.name }} - {{ deposit.get_status_display }}</p>
-          </div>
-          <span class="badge">{{ deposit.created_at|date:"Y-m-d" }}</span>
-        </div>
-      {% empty %}
-        <div class="empty">لا توجد طلبات إيداع.</div>
-      {% endfor %}
-    </div>
-  </article>
-</section>
 
-<section class="two-col">
-  <article class="panel">
-    <div class="section-head"><h2>الإشعارات</h2></div>
-    <div class="stack-list">
-      {% for n in notifications %}
-        <div class="line-item">
-          <div>
-            <strong>{{ n.title }}</strong>
-            <p class="text-xs">{{ n.body }}</p>
-          </div>
-          <span class="text-[10px] text-slate-500">{{ n.created_at|timesince }}</span>
+        <!-- Recent Activity Sections -->
+        <div class="grid grid-2 gap-6">
+            <!-- Recent Orders -->
+            <div class="panel stack">
+                <div class="section-head p-6 pb-0">
+                    <h2 class="text-lg">أحدث الطلبات</h2>
+                    <a href="{% url 'catalog' %}" class="text-cyan text-sm font-bold">كل الطلبات</a>
+                </div>
+                <div class="p-4 stack">
+                    {% for order in orders %}
+                    <div class="activity-item">
+                        <div class="activity-icon order">
+                            <i class="fas fa-box"></i>
+                        </div>
+                        <div class="flex-grow">
+                            <div class="flex justify-between">
+                                <span class="font-bold text-sm">طلب رقم {{ order.number|truncatechars:10 }}</span>
+                                <span class="text-xs text-muted">{{ order.created_at|date:"d M" }}</span>
+                            </div>
+                            <div class="flex justify-between mt-1">
+                                <span class="text-xs text-muted">{{ order.get_status_display }}</span>
+                                <span class="text-xs font-bold">{{ order.total_amount }} SYP</span>
+                            </div>
+                        </div>
+                    </div>
+                    {% empty %}
+                    <div class="p-8 text-center stack gap-3">
+                        <i class="fas fa-box-open text-3xl text-slate-700"></i>
+                        <p class="text-sm text-muted">لا توجد طلبات سابقة</p>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <!-- Recent Deposits -->
+            <div class="panel stack">
+                <div class="section-head p-6 pb-0">
+                    <h2 class="text-lg">آخر الإيداعات</h2>
+                    <a href="{% url 'dashboard_deposits' %}" class="text-cyan text-sm font-bold">سجل العمليات</a>
+                </div>
+                <div class="p-4 stack">
+                    {% for deposit in deposits %}
+                    <div class="activity-item">
+                        <div class="activity-icon deposit">
+                            <i class="fas fa-arrow-up"></i>
+                        </div>
+                        <div class="flex-grow">
+                            <div class="flex justify-between">
+                                <span class="font-bold text-sm">{{ deposit.amount }} {{ deposit.currency.code }}</span>
+                                <span class="text-xs text-muted">{{ deposit.created_at|date:"d M" }}</span>
+                            </div>
+                            <div class="flex justify-between mt-1">
+                                <span class="text-xs text-muted">{{ deposit.payment_method.name }}</span>
+                                <span class="badge {% if deposit.status == 'completed' %}success{% elif deposit.status == 'rejected' %}danger{% else %}warning{% endif %} text-[10px]">
+                                    {{ deposit.get_status_display }}
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                    {% empty %}
+                    <div class="p-8 text-center stack gap-3">
+                        <i class="fas fa-receipt text-3xl text-slate-700"></i>
+                        <p class="text-sm text-muted">لا توجد عمليات إيداع</p>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
         </div>
-      {% empty %}
-        <div class="empty">لا توجد إشعارات.</div>
-      {% endfor %}
     </div>
-  </article>
-  <article class="panel">
-    <div class="section-head"><h2>تذاكر الدعم</h2><a href="{% url 'dashboard_tickets' %}">تذكرة جديدة</a></div>
-    <div class="stack-list">
-      {% for t in tickets %}
-        <div class="line-item">
-          <div>
-            <strong>{{ t.subject }}</strong>
-            <p>{{ t.get_status_display }}</p>
-          </div>
-          <span class="badge">{{ t.last_reply_at|date:"Y-m-d" }}</span>
+
+    <!-- Sidebar Section -->
+    <div class="dashboard-sidebar stack gap-6">
+        <!-- Account Status Card -->
+        <div class="panel p-6">
+            <h2 class="text-lg mb-4">حالة الحساب</h2>
+            <div class="stack gap-4">
+                <div class="flex items-center justify-between p-3 bg-slate-800/30 rounded-lg">
+                    <span class="text-sm text-muted">الحالة</span>
+                    <div class="flex items-center">
+                        <span class="status-badge active"></span>
+                        <span class="text-sm font-bold text-success">{{ user.get_status_display }}</span>
+                    </div>
+                </div>
+                <div class="flex items-center justify-between p-3 bg-slate-800/30 rounded-lg">
+                    <span class="text-sm text-muted">الفئة</span>
+                    <span class="text-sm font-bold text-amber-400">{{ user.get_tier_display }}</span>
+                </div>
+                <div class="flex items-center justify-between p-3 bg-slate-800/30 rounded-lg">
+                    <span class="text-sm text-muted">عضو منذ</span>
+                    <span class="text-sm font-bold">{{ user.date_joined|date:"M Y" }}</span>
+                </div>
+            </div>
         </div>
-      {% empty %}
-        <div class="empty">لا توجد تذاكر دعم.</div>
-      {% endfor %}
+
+        <!-- Notifications Card -->
+        <div class="panel stack">
+            <div class="section-head p-6 pb-0">
+                <h2 class="text-lg">تنبيهات هامة</h2>
+                <i class="fas fa-bell text-slate-600"></i>
+            </div>
+            <div class="p-4 stack gap-2">
+                {% for n in notifications %}
+                <div class="p-3 border-b border-white/5 last:border-0 hover:bg-white/5 rounded transition-colors cursor-pointer">
+                    <h4 class="text-sm font-bold mb-1">{{ n.title }}</h4>
+                    <p class="text-xs text-muted line-clamp-2">{{ n.body }}</p>
+                    <span class="text-[10px] text-slate-500 mt-2 block">{{ n.created_at|timesince }}</span>
+                </div>
+                {% empty %}
+                <div class="p-6 text-center">
+                    <p class="text-xs text-muted italic">لا توجد تنبيهات جديدة</p>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
     </div>
-  </article>
-</section>
+</div>
 {% endblock %}

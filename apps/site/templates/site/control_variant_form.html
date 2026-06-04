@@ -1,46 +1,100 @@
-{% extends "site/base.html" %}
+{% extends "site/control_base.html" %}
+{% load static %}
+
 {% block title %}{{ title }} | Raqamiyat Admin{% endblock %}
-{% block content %}
-<section class="page-head">
-  <div>
-    <span class="eyebrow">Admin / Catalog / Variant</span>
-    <h1>{{ title }}</h1>
-    <p>حدد سعر الباقة والاسم بدقة. سيتم خصم السعر من محفظة العميل عند الطلب.</p>
-  </div>
-  <a href="{% url 'control_product_edit' product.pk %}" class="btn btn-outline">عودة للمنتج</a>
-</section>
 
-<section class="auth-shell">
-  <article class="panel p-6">
-    <form method="post" class="stack gap-6">
-      {% csrf_token %}
-      
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {% for field in form %}
-          <div class="field-group">
-            <label class="block mb-1 text-sm font-bold">{{ field.label }}</label>
-            {{ field }}
-            {% if field.errors %}<div class="text-red-500 text-xs mt-1">{{ field.errors }}</div>{% endif %}
-          </div>
-        {% endfor %}
-      </div>
+{% block control_content %}
+<div class="page-head">
+    <div>
+        <span class="eyebrow">Product Management / Variant</span>
+        <h1>{{ title }}</h1>
+        <p class="text-muted">إدارة تسعير باقة المنتج للمستويات المختلفة (Retail, Wholesale, VIP).</p>
+    </div>
+    <div class="flex gap-3">
+        <a href="{% url 'control_product_edit' product.pk %}" class="btn btn-outline btn-sm">العودة للمنتج</a>
+        <button class="btn btn-primary btn-sm" onclick="document.querySelector('form').submit()">حفظ الباقة</button>
+    </div>
+</div>
 
-      <div class="pt-6 border-t border-slate-700 flex justify-end gap-4">
-        <button type="submit" class="btn btn-primary px-8">حفظ الباقة</button>
-      </div>
-    </form>
-  </article>
-</section>
+<form method="post" class="grid grid-cols-12 gap-8">
+    {% csrf_token %}
+    
+    <div class="col-span-12 lg:col-span-8 stack gap-8">
+        <div class="management-card">
+            <div class="management-header">
+                <h3 class="font-bold">المعلومات الأساسية والأسعار</h3>
+            </div>
+            <div class="management-body stack gap-8">
+                <div class="grid grid-2 gap-6">
+                    <div class="field-group">
+                        <label>{{ form.name.label }}</label>
+                        {{ form.name }}
+                    </div>
+                    <div class="field-group">
+                        <label>{{ form.sku.label }}</label>
+                        {{ form.sku }}
+                    </div>
+                </div>
 
-<style>
-  input[type="text"], input[type="number"], select {
-    width: 100%;
-    background: #1e293b;
-    border: 1px solid #334155;
-    border-radius: 0.375rem;
-    padding: 0.5rem 0.75rem;
-    color: white;
-  }
-  input[type="checkbox"] { width: auto; }
-</style>
+                <div class="p-6 bg-slate-900/50 rounded-2xl border border-white/5">
+                    <h4 class="text-sm font-bold mb-4 text-cyan"><i class="fas fa-tags ml-2"></i> هيكل التسعير (Multi-tier)</h4>
+                    <div class="grid grid-2 gap-6">
+                        <div class="field-group">
+                            <label class="text-xs">السعر الافتراضي (Retail)</label>
+                            {{ form.price }}
+                        </div>
+                        <div class="field-group">
+                            <label class="text-xs">سعر الجملة (Gold)</label>
+                            {{ form.wholesale_price }}
+                        </div>
+                        <div class="field-group">
+                            <label class="text-xs">سعر VIP</label>
+                            {{ form.vip_price }}
+                        </div>
+                        <div class="field-group">
+                            <label class="text-xs text-danger font-bold">التكلفة (Cost)</label>
+                            {{ form.cost }}
+                            <p class="text-[10px] text-muted mt-1">يستخدم لحساب هامش الربح الداخلي.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="grid grid-2 gap-6">
+                    <div class="field-group">
+                        <label>{{ form.estimated_delivery_minutes.label }}</label>
+                        {{ form.estimated_delivery_minutes }}
+                    </div>
+                    <div class="field-group">
+                        <label>{{ form.discount_percent.label }}</label>
+                        {{ form.discount_percent }}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Flags -->
+    <div class="col-span-12 lg:col-span-4">
+        <div class="management-card p-6">
+            <h3 class="font-bold text-sm mb-4">الحالة والترتيب</h3>
+            <div class="stack gap-4">
+                <div class="flex items-center justify-between p-3 bg-slate-800/30 rounded-xl">
+                    <label class="text-sm font-bold">{{ form.is_active.label }}</label>
+                    {{ form.is_active }}
+                </div>
+                <div class="field-group">
+                    <label class="text-xs">{{ form.sort_order.label }}</label>
+                    {{ form.sort_order }}
+                </div>
+            </div>
+        </div>
+        
+        <div class="panel p-6 bg-blue-500/[0.03] border-blue-500/20 mt-6">
+            <h4 class="text-blue-400 font-bold text-xs mb-2">تلميح التسعير</h4>
+            <p class="text-[10px] text-slate-500 leading-relaxed">
+                في حال ترك أسعار الجملة أو VIP كـ 0، سيقوم النظام تلقائياً باستخدام السعر الافتراضي لتلك الفئات.
+            </p>
+        </div>
+    </div>
+</form>
 {% endblock %}

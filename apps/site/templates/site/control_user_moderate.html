@@ -1,135 +1,168 @@
-{% extends "site/base.html" %}
-{% block title %}إدارة المستخدم: {{ user_to_moderate.email }} | Raqamiyat Admin{% endblock %}
-{% block content %}
-<section class="page-head">
-  <div>
-    <span class="eyebrow">Admin / Accounts / Moderate</span>
-    <h1>إدارة حساب: {{ user_to_moderate.email }}</h1>
-    <p>تحكم في حالة الحساب، التقييدات، والإيقاف المؤقت أو الدائم.</p>
-  </div>
-  <a href="{% url 'control_users_list' %}" class="btn btn-outline">عودة للقائمة</a>
-</section>
+{% extends "site/control_base.html" %}
+{% load static %}
 
-<div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-  <!-- Moderation Form -->
-  <div class="lg:col-span-2">
-    <article class="panel p-6">
-      <form method="post" class="stack gap-6">
-        {% csrf_token %}
-        
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div class="field-group">
-            <label class="block mb-1 text-sm font-bold">{{ form.status.label }}</label>
-            {{ form.status }}
-            {% if form.status.errors %}<div class="text-red-500 text-xs mt-1">{{ form.status.errors }}</div>{% endif %}
-          </div>
-          <div class="field-group">
-            <label class="block mb-1 text-sm font-bold">{{ form.suspension_expires_at.label }}</label>
-            {{ form.suspension_expires_at }}
-            {% if form.suspension_expires_at.errors %}<div class="text-red-500 text-xs mt-1">{{ form.suspension_expires_at.errors }}</div>{% endif %}
-          </div>
-        </div>
+{% block title %}إدارة الحساب | {{ user_to_moderate.email }}{% endblock %}
 
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 bg-slate-800 p-4 rounded">
-          <div class="flex items-center gap-2">
-            {{ form.restriction_withdrawals }} <label class="text-sm">{{ form.restriction_withdrawals.label }}</label>
-          </div>
-          <div class="flex items-center gap-2">
-            {{ form.restriction_deposits }} <label class="text-sm">{{ form.restriction_deposits.label }}</label>
-          </div>
-          <div class="flex items-center gap-2">
-            {{ form.restriction_purchases }} <label class="text-sm">{{ form.restriction_purchases.label }}</label>
-          </div>
-          <div class="flex items-center gap-2 md:col-span-3 border-t border-slate-700 pt-2 mt-2">
-            {{ form.is_permanently_suspended }} <label class="text-sm font-bold text-red-400">{{ form.is_permanently_suspended.label }}</label>
-          </div>
-        </div>
+{% block control_content %}
+<div class="page-head">
+    <div>
+        <span class="eyebrow">User Management / Moderate</span>
+        <h1>إدارة حساب: {{ user_to_moderate.get_full_name|default:user_to_moderate.username }}</h1>
+        <p class="text-muted">التحكم في صلاحيات المستخدم، التقييدات المالية، وحالة الحساب.</p>
+    </div>
+    <div class="flex gap-3">
+        <a href="{% url 'control_users_list' %}" class="btn btn-outline btn-sm">العودة للقائمة</a>
+        <button class="btn btn-primary btn-sm" onclick="document.getElementById('mod-form').submit()">حفظ كافة التغييرات</button>
+    </div>
+</div>
 
-        <div class="field-group">
-          <label class="block mb-1 text-sm font-bold">{{ form.suspension_reason.label }} (يظهر للمستخدم)</label>
-          {{ form.suspension_reason }}
-          {% if form.suspension_reason.errors %}<div class="text-red-500 text-xs mt-1">{{ form.suspension_reason.errors }}</div>{% endif %}
-        </div>
-
-        <div class="field-group">
-          <label class="block mb-1 text-sm font-bold">{{ form.admin_notes.label }} (داخلي فقط)</label>
-          {{ form.admin_notes }}
-          {% if form.admin_notes.errors %}<div class="text-red-500 text-xs mt-1">{{ form.admin_notes.errors }}</div>{% endif %}
-        </div>
-
-        <div class="pt-6 border-t border-slate-700 flex justify-end gap-4">
-          <button type="submit" class="btn btn-primary px-8">حفظ التغييرات</button>
-        </div>
-      </form>
-    </article>
-    
-    <!-- Moderation History -->
-    <article class="panel mt-6 p-6">
-        <h3 class="font-bold text-lg mb-4">سجل الإجراءات السابقة</h3>
-        <div class="stack gap-4">
-            {% for log in moderation_logs %}
-                <div class="bg-slate-800 p-4 rounded text-sm border-l-4 border-cyan">
-                    <div class="flex justify-between items-start mb-2">
-                        <strong>{{ log.action }}</strong>
-                        <small class="text-slate-500">{{ log.created_at|date:"Y-m-d H:i" }}</small>
+<div class="grid grid-cols-12 gap-8">
+    <!-- Main Settings -->
+    <div class="col-span-12 lg:col-span-8 stack gap-8">
+        <form method="post" id="mod-form" class="management-card">
+            {% csrf_token %}
+            <div class="management-header">
+                <h3 class="font-bold"><i class="fas fa-user-cog ml-2"></i> إعدادات التقييد والحظر</h3>
+                <span class="text-[10px] text-muted">ID: {{ user_to_moderate.id }}</span>
+            </div>
+            <div class="management-body stack gap-8">
+                <!-- Status & Expiry -->
+                <div class="grid grid-2 gap-6">
+                    <div class="field-group">
+                        <label>حالة الحساب العامة</label>
+                        {{ form.status }}
+                        <p class="text-[10px] text-muted mt-2">الحالة الحالية: <span class="badge primary">{{ user_to_moderate.get_status_display }}</span></p>
                     </div>
-                    <p class="mb-2">المشرف: {{ log.moderator.email }}</p>
-                    <div class="text-xs text-slate-400 grid grid-cols-2 gap-2 mb-2">
-                        <div><span class="block font-bold">الحالة السابقة:</span> {{ log.previous_state.status }}</div>
-                        <div><span class="block font-bold">الحالة الجديدة:</span> {{ log.new_state.status }}</div>
+                    <div class="field-group">
+                        <label>تاريخ انتهاء الإيقاف (إن وجد)</label>
+                        {{ form.suspension_expires_at }}
                     </div>
-                    <p class="italic">السبب: {{ log.reason|default:"غير محدد" }}</p>
                 </div>
-            {% empty %}
-                <p class="text-slate-500 text-center">لا يوجد سجل إشراف لهذا المستخدم.</p>
-            {% endfor %}
-        </div>
-    </article>
-  </div>
 
-  <!-- User Info Sidebar -->
-  <div class="lg:col-span-1 stack gap-6">
-    <article class="panel p-6">
-      <h3 class="font-bold text-lg mb-4">معلومات الحساب</h3>
-      <ul class="stack gap-3 text-sm">
-        <li class="flex justify-between"><span>الرصيد المتاح:</span> <strong>{{ user_to_moderate.wallet.available_balance }} {{ user_to_moderate.wallet.currency.code }}</strong></li>
-        <li class="flex justify-between"><span>الرصيد المحجوز:</span> <strong class="text-red-400">{{ user_to_moderate.wallet.held_balance }}</strong></li>
-        <li class="flex justify-between"><span>البريد:</span> <span>{{ user_to_moderate.email }}</span></li>
-        <li class="flex justify-between"><span>الهاتف:</span> <span>{{ user_to_moderate.phone|default:"-" }}</span></li>
-        <li class="flex justify-between"><span>الدور:</span> <span class="badge muted">{{ user_to_moderate.get_role_display }}</span></li>
-        <li class="flex justify-between"><span>تاريخ الانضمام:</span> <span>{{ user_to_moderate.date_joined|date:"Y-m-d" }}</span></li>
-      </ul>
-    </article>
-    
-    <article class="panel p-6 bg-red-500/10 border-red-500/20">
-        <h3 class="font-bold text-red-400 mb-2">منطقة الخطر</h3>
-        <p class="text-xs text-slate-400 mb-4">تذكر أن الحظر النهائي يمنع المستخدم من تسجيل الدخول تماماً.</p>
-        <button class="btn btn-danger w-full" onclick="quickBan()">حظر سريع (Banned)</button>
-    </article>
-  </div>
+                <!-- Restrictions -->
+                <div class="p-6 bg-slate-900/50 rounded-2xl border border-white/5">
+                    <h4 class="text-sm font-bold mb-4 text-slate-300">القيود التشغيلية</h4>
+                    <div class="grid grid-3 gap-6">
+                        <div class="flex items-center gap-3 p-3 bg-slate-800/30 rounded-xl">
+                            {{ form.restriction_withdrawals }}
+                            <label class="text-xs font-bold cursor-pointer" for="{{ form.restriction_withdrawals.id_for_label }}">تقييد السحب</label>
+                        </div>
+                        <div class="flex items-center gap-3 p-3 bg-slate-800/30 rounded-xl">
+                            {{ form.restriction_deposits }}
+                            <label class="text-xs font-bold cursor-pointer" for="{{ form.restriction_deposits.id_for_label }}">تقييد الإيداع</label>
+                        </div>
+                        <div class="flex items-center gap-3 p-3 bg-slate-800/30 rounded-xl">
+                            {{ form.restriction_purchases }}
+                            <label class="text-xs font-bold cursor-pointer" for="{{ form.restriction_purchases.id_for_label }}">تقييد الشراء</label>
+                        </div>
+                    </div>
+                    <div class="mt-6 pt-4 border-t border-white/5 flex items-center gap-3">
+                        {{ form.is_permanently_suspended }}
+                        <label class="text-sm font-bold text-danger cursor-pointer" for="{{ form.is_permanently_suspended.id_for_label }}">
+                            <i class="fas fa-user-slash ml-1"></i> إيقاف نهائي (Permanent Ban)
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Reason & Notes -->
+                <div class="field-group">
+                    <label>سبب الإجراء (يظهر للمستخدم في حال الإيقاف)</label>
+                    {{ form.suspension_reason }}
+                </div>
+
+                <div class="field-group">
+                    <label>ملاحظات إدارية (داخلية فقط)</label>
+                    {{ form.admin_notes }}
+                </div>
+            </div>
+        </form>
+
+        <!-- Audit & Activity Log -->
+        <div class="management-card">
+            <div class="management-header">
+                <h3 class="font-bold"><i class="fas fa-history ml-2"></i> سجل التدقيق والنشاط (Audit Log)</h3>
+            </div>
+            <div class="p-4 stack gap-4">
+                {% for log in audit_logs %}
+                <div class="p-4 border-b border-white/5 last:border-0 hover:bg-white/[0.01] transition">
+                    <div class="flex justify-between items-start mb-2">
+                        <div>
+                            <span class="badge primary text-[9px] ml-2">{{ log.action_type|upper }}</span>
+                            <strong class="text-sm">{{ log.description }}</strong>
+                        </div>
+                        <span class="text-[10px] text-slate-500">{{ log.created_at|date:"d M Y, H:i" }}</span>
+                    </div>
+                    <div class="text-xs text-slate-400 mb-2">المنفذ: {{ log.actor.email }} | IP: {{ log.ip_address }}</div>
+                    {% if log.reason %}
+                    <p class="text-xs italic bg-white/5 p-2 rounded text-slate-300">السبب: {{ log.reason }}</p>
+                    {% endif %}
+                </div>
+                {% empty %}
+                <p class="p-8 text-center text-xs text-muted">لا توجد سجلات تدقيق سابقة لهذا المستخدم.</p>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    <!-- User Sidebar Info -->
+    <div class="col-span-12 lg:col-span-4 stack gap-6">
+        <div class="management-card p-6">
+            <div class="flex flex-col items-center text-center mb-6">
+                <div class="w-20 h-20 bg-slate-800 rounded-full flex items-center justify-center text-3xl text-cyan mb-4 border-4 border-white/5">
+                    <i class="fas fa-user-shield"></i>
+                </div>
+                <h3 class="font-bold">{{ user_to_moderate.email }}</h3>
+                <span class="text-[10px] text-muted">{{ user_to_moderate.get_role_display }}</span>
+            </div>
+            
+            <div class="stack gap-4 pt-6 border-t border-white/5">
+                <div class="flex justify-between text-sm">
+                    <span class="text-muted">الرصيد المتاح:</span>
+                    <strong class="text-cyan">{{ user_to_moderate.wallet.available_balance }} {{ user_to_moderate.wallet.currency.code }}</strong>
+                </div>
+                <div class="flex justify-between text-sm">
+                    <span class="text-muted">الرصيد المحجوز:</span>
+                    <strong class="text-red-400">{{ user_to_moderate.wallet.held_balance }}</strong>
+                </div>
+                <div class="flex justify-between text-sm">
+                    <span class="text-muted">العملات المفضلة:</span>
+                    <span>{{ user_to_moderate.wallet.currency.code }}</span>
+                </div>
+                <div class="flex justify-between text-sm">
+                    <span class="text-muted">تاريخ الانضمام:</span>
+                    <span>{{ user_to_moderate.date_joined|date:"d M Y" }}</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Danger Actions -->
+        <div class="management-card p-6 border-danger/20 bg-danger/[0.02]">
+            <h3 class="text-danger font-bold text-sm mb-4"><i class="fas fa-exclamation-triangle ml-2"></i> إجراءات سريعة خطيرة</h3>
+            <div class="stack gap-3">
+                <button class="btn btn-outline danger w-full text-xs py-3" onclick="quickBan()">
+                    <i class="fas fa-ban ml-2"></i> حظر الحساب فوراً
+                </button>
+                <button class="btn btn-outline w-full text-xs py-3" onclick="resetPassword()">
+                    <i class="fas fa-key ml-2"></i> إرسال رابط إعادة كلمة السر
+                </button>
+            </div>
+        </div>
+    </div>
 </div>
 
 <script>
 function quickBan() {
-    if (confirm("هل أنت متأكد من رغبتك في حظر هذا المستخدم نهائياً؟")) {
+    if (confirm("هل أنت متأكد من رغبتك في حظر هذا المستخدم نهائياً؟ سيتم منعه من الدخول وإيقاف كافة عملياته.")) {
         document.querySelector('select[name="status"]').value = 'banned';
         document.querySelector('input[name="is_permanently_suspended"]').checked = true;
-        document.querySelector('textarea[name="suspension_reason"]').value = "لقد تم حظر حسابك لمخالفة شروط الاستخدام.";
-        document.querySelector('form').submit();
+        document.querySelector('textarea[name="suspension_reason"]').value = "لقد تم حظر حسابك نهائياً لمخالفة قوانين المنصة.";
+        document.getElementById('mod-form').submit();
     }
 }
 </script>
 
 <style>
-  input[type="text"], input[type="number"], input[type="datetime-local"], select, textarea {
-    width: 100%;
-    background: #1e293b;
-    border: 1px solid #334155;
-    border-radius: 0.375rem;
-    padding: 0.5rem 0.75rem;
-    color: white;
-  }
-  input[type="checkbox"] { width: auto; }
-  .btn-danger { background: #ef4444; color: white; }
+    .btn-outline.danger { border-color: rgba(239, 68, 68, 0.3); color: var(--danger); }
+    .btn-outline.danger:hover { background: var(--danger); color: #fff; }
 </style>
 {% endblock %}

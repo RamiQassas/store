@@ -1,164 +1,188 @@
-{% extends "site/base.html" %}
-{% block title %}لوحة الإدارة | منصة الخدمات الرقمية{% endblock %}
-{% block content %}
-<section class="page-head">
-  <div>
-    <span class="eyebrow">Admin Control</span>
-    <h1>لوحة الإدارة</h1>
-    <p>واجهة تشغيل للموظفين تعرض الأرقام الأساسية والمهام السريعة، مع رابط مباشر إلى Django Admin.</p>
-  </div>
-  <div class="flex gap-4">
-    <div class="mini-box">
-      <strong>{{ stats.pending_deposits }}</strong>
-      <span>إيداعات معلقة</span>
-    </div>
-    <div class="mini-box">
-      <strong>{{ stats.pending_withdrawals }}</strong>
-      <span>سحوبات معلقة</span>
-    </div>
-  </div>
-</section>
+{% extends "site/control_base.html" %}
+{% load static %}
 
-<section class="stats-grid">
-  <article class="stat"><strong>{{ stats.users }}</strong><span>مستخدم</span></article>
-  <article class="stat"><strong>{{ stats.products }}</strong><span>منتج</span></article>
-  <article class="stat"><strong>{{ stats.orders }}</strong><span>طلب</span></article>
-  <article class="stat"><strong>{{ stats.open_tickets }}</strong><span>تذكرة مفتوحة</span></article>
-</section>
+{% block title %}لوحة الإدارة | Raqamiyat{% endblock %}
 
-<section class="two-col">
-  <article class="panel">
-    <div class="section-head"><h2>الطلبات الأخيرة</h2><a href="{% url 'admin:orders_order_changelist' %}">إدارة الطلبات</a></div>
-    <div class="stack-list">
-      {% for order in recent_orders %}
-        <div class="line-item">
-          <div>
-            <strong>{{ order.number }}</strong>
-            <p>{{ order.customer.email }} - {{ order.get_status_display }}</p>
-          </div>
-          <span class="badge">{{ order.total_amount }}</span>
-        </div>
-      {% empty %}
-        <div class="empty">لا توجد طلبات.</div>
-      {% endfor %}
+{% block control_content %}
+<div class="page-head">
+    <div>
+        <span class="eyebrow">Administrative Overview</span>
+        <h1>الرئيسية</h1>
+        <p class="text-muted">نظرة عامة على أداء المنصة والعمليات التي تتطلب اهتمامك.</p>
     </div>
-  </article>
-  <article class="panel">
-    <div class="section-head"><h2>الإيداعات الأخيرة</h2><a href="{% url 'admin:payments_depositrequest_changelist' %}">إدارة الإيداعات</a></div>
-    <div class="stack-list">
-      {% for deposit in recent_deposits %}
-        <div class="line-item">
-          <div>
-            <strong>{{ deposit.user.email }}</strong>
-            <p>{{ deposit.payment_method.name }} - {{ deposit.get_status_display }}</p>
-          </div>
-          <span class="badge">{{ deposit.amount }}</span>
-        </div>
-      {% empty %}
-        <div class="empty">لا توجد إيداعات.</div>
-      {% endfor %}
-    </div>
-  </article>
-</section>
+</div>
 
-<section class="two-col">
-  <article class="panel">
-    <div class="section-head"><h2>أحدث المستخدمين</h2><a href="{% url 'admin:accounts_user_changelist' %}">إدارة المستخدمين</a></div>
-    <div class="stack-list">
-      {% for user in recent_users %}
-        <div class="line-item">
-          <div>
-            <strong>{{ user.email }}</strong>
-            <p>{{ user.get_role_display }} - <span class="text-cyan">{{ user.wallet.available_balance }} {{ user.wallet.currency }}</span></p>
-          </div>
-          <div class="flex gap-1">
-             <button class="btn btn-sm btn-outline text-[10px] py-1" onclick="holdFunds('{{ user.wallet.id }}')">حجز</button>
-             <button class="btn btn-sm btn-outline text-[10px] py-1" onclick="unholdFunds('{{ user.wallet.id }}')">فك</button>
-          </div>
+<!-- Stats Grid -->
+<div class="grid grid-4 gap-6 mb-8">
+    <div class="admin-stats-card">
+        <div class="asc-icon"><i class="fas fa-users"></i></div>
+        <div>
+            <span class="text-xs text-muted block">المستخدمين</span>
+            <strong class="text-xl">{{ stats.users }}</strong>
         </div>
-      {% empty %}
-        <div class="empty">لا يوجد مستخدمون بعد.</div>
-      {% endfor %}
     </div>
-  </article>
+    <div class="admin-stats-card">
+        <div class="asc-icon" style="color: var(--warning); background: rgba(245, 158, 11, 0.1);"><i class="fas fa-money-bill-wave"></i></div>
+        <div>
+            <span class="text-xs text-muted block">إيداعات معلقة</span>
+            <strong class="text-xl text-warning">{{ stats.pending_deposits }}</strong>
+        </div>
+    </div>
+    <div class="admin-stats-card">
+        <div class="asc-icon" style="color: var(--danger); background: rgba(239, 68, 68, 0.1);"><i class="fas fa-university"></i></div>
+        <div>
+            <span class="text-xs text-muted block">سحوبات معلقة</span>
+            <strong class="text-xl text-danger">{{ stats.pending_withdrawals }}</strong>
+        </div>
+    </div>
+    <div class="admin-stats-card">
+        <div class="asc-icon" style="color: #a855f7; background: rgba(168, 85, 247, 0.1);"><i class="fas fa-headset"></i></div>
+        <div>
+            <span class="text-xs text-muted block">تذاكر مفتوحة</span>
+            <strong class="text-xl" style="color: #a855f7;">{{ stats.open_tickets }}</strong>
+        </div>
+    </div>
+</div>
+
+<div class="grid grid-2 gap-8">
+    <!-- Recent Orders -->
+    <div class="management-card">
+        <div class="management-header">
+            <h3 class="font-bold">أحدث الطلبات</h3>
+            <a href="{% url 'control_orders_list' %}" class="text-xs text-cyan font-bold">عرض الكل</a>
+        </div>
+        <div class="stack">
+            {% for order in recent_orders %}
+            <div class="line-item hover:bg-white/[0.02] transition">
+                <div class="flex items-center gap-4">
+                    <div class="w-8 h-8 rounded bg-slate-800 flex items-center justify-center text-[10px] text-muted">
+                        <i class="fas fa-shopping-bag"></i>
+                    </div>
+                    <div>
+                        <strong class="text-xs block mb-1">#{{ order.number }}</strong>
+                        <span class="text-[10px] text-slate-500">{{ order.customer.email }}</span>
+                    </div>
+                </div>
+                <div class="text-left">
+                    <span class="badge {% if order.status == 'completed' %}success{% elif order.status == 'cancelled' %}danger{% else %}warning{% endif %} text-[9px] mb-1">
+                        {{ order.get_status_display }}
+                    </span>
+                    <div class="text-xs font-bold">{{ order.total_amount }} SYP</div>
+                </div>
+            </div>
+            {% empty %}
+            <p class="p-8 text-center text-xs text-muted italic">لا توجد طلبات حديثة.</p>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- Recent Deposits -->
+    <div class="management-card">
+        <div class="management-header">
+            <h3 class="font-bold">عمليات الإيداع</h3>
+            <a href="#" class="text-xs text-cyan font-bold">إدارة الإيداعات</a>
+        </div>
+        <div class="stack">
+            {% for deposit in recent_deposits %}
+            <div class="line-item hover:bg-white/[0.02] transition">
+                <div class="flex items-center gap-4">
+                    <div class="w-8 h-8 rounded bg-slate-800 flex items-center justify-center text-[10px] text-success">
+                        <i class="fas fa-arrow-up"></i>
+                    </div>
+                    <div>
+                        <strong class="text-xs block mb-1">{{ deposit.user.email }}</strong>
+                        <span class="text-[10px] text-slate-500">{{ deposit.payment_method.name }}</span>
+                    </div>
+                </div>
+                <div class="text-left">
+                    <span class="badge {% if deposit.status == 'completed' %}success{% elif deposit.status == 'rejected' %}danger{% else %}warning{% endif %} text-[9px] mb-1">
+                        {{ deposit.get_status_display }}
+                    </span>
+                    <div class="text-xs font-bold">{{ deposit.amount }} {{ deposit.currency.code }}</div>
+                </div>
+            </div>
+            {% empty %}
+            <p class="p-8 text-center text-xs text-muted italic">لا توجد إيداعات للمراجعة.</p>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+<div class="management-card mt-8">
+    <div class="management-header">
+        <h3 class="font-bold">آخر المستخدمين والتحكم المالي</h3>
+        <a href="{% url 'control_users_list' %}" class="text-xs text-cyan font-bold">إدارة المستخدمين</a>
+    </div>
+    <div class="p-4 overflow-x-auto">
+        <table class="w-full text-sm text-right">
+            <thead class="text-[11px] text-slate-500 border-b border-white/5 uppercase">
+                <tr>
+                    <th class="p-3">المستخدم</th>
+                    <th class="p-3">الرصيد المتاح</th>
+                    <th class="p-3">الحالة</th>
+                    <th class="p-3 text-left">إجراءات سريعة</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for user in recent_users %}
+                <tr class="border-b border-white/[0.02] last:border-0 hover:bg-white/[0.01]">
+                    <td class="p-3">
+                        <div class="font-bold">{{ user.get_full_name|default:user.username }}</div>
+                        <div class="text-[10px] text-slate-500">{{ user.email }}</div>
+                    </td>
+                    <td class="p-3">
+                        <span class="font-mono">{{ user.wallet.available_balance }}</span>
+                        <span class="text-[10px] text-muted">{{ user.wallet.currency.code }}</span>
+                    </td>
+                    <td class="p-3">
+                        <span class="badge {% if user.status == 'active' %}success{% else %}danger{% endif %} text-[9px]">
+                            {{ user.get_status_display }}
+                        </span>
+                    </td>
+                    <td class="p-3 text-left">
+                        <div class="flex justify-end gap-2">
+                            <button class="btn btn-sm btn-outline text-[10px] py-1 px-3" onclick="holdFunds('{{ user.wallet.id }}')">
+                                <i class="fas fa-lock ml-1"></i> حجز رصيد
+                            </button>
+                            <a href="{% url 'control_user_moderate' user.id %}" class="btn btn-sm btn-primary text-[10px] py-1 px-3">
+                                <i class="fas fa-user-shield ml-1"></i> إدارة الحساب
+                            </a>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
 
 <script>
 async function holdFunds(walletId) {
-    const amount = prompt("المبلغ المراد حجزه:");
+    const amount = prompt("المبلغ المراد حجزه (سيتم سحبه من الرصيد المتاح حالياً):");
     if (!amount) return;
-    const reason = prompt("السبب:");
+    const reason = prompt("السبب (يظهر في سجلات التدقيق):");
+    if (!reason) return;
     
-    const response = await fetch(`/api/wallets/${walletId}/hold/`, {
-        method: 'POST',
-        headers: {
-            'X-CSRFToken': '{{ csrf_token }}',
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ amount, reason })
-    });
-    
-    if (response.ok) {
-        alert("تم حجز المبلغ بنجاح");
-        location.reload();
-    } else {
-        const data = await response.json();
-        alert("خطأ: " + (data.detail || "تعذر التنفيذ"));
-    }
-}
-
-async function unholdFunds(walletId) {
-    const amount = prompt("المبلغ المراد فك حجزه:");
-    if (!amount) return;
-    const reason = prompt("السبب:");
-    
-    const response = await fetch(`/api/wallets/${walletId}/unhold/`, {
-        method: 'POST',
-        headers: {
-            'X-CSRFToken': '{{ csrf_token }}',
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ amount, reason })
-    });
-    
-    if (response.ok) {
-        alert("تم فك حجز المبلغ بنجاح");
-        location.reload();
-    } else {
-        const data = await response.json();
-        alert("خطأ: " + (data.detail || "تعذر التنفيذ"));
+    try {
+        const response = await fetch(`/api/wallets/${walletId}/hold/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': '{{ csrf_token }}',
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ amount, reason })
+        });
+        
+        if (response.ok) {
+            alert("تم حجز المبلغ بنجاح وتوثيق العملية في سجل التدقيق.");
+            location.reload();
+        } else {
+            const data = await response.json();
+            alert("خطأ: " + (data.detail || data.message || "تعذر التنفيذ. تأكد من كفاية الرصيد."));
+        }
+    } catch (e) {
+        alert("حدث خطأ في الاتصال بالخادم.");
     }
 }
 </script>
-  <article class="panel">
-    <h2>روابط سريعة</h2>
-    <div class="quick-links stack gap-2">
-      <a href="{% url 'control_orders_list' %}" class="btn-cyan-glow">إدارة الطلبات (جديد)</a>
-      <a href="{% url 'control_users_list' %}" class="btn-cyan-glow">إدارة المستخدمين (جديد)</a>
-      <a href="{% url 'control_products_list' %}" class="btn-cyan-glow">إدارة المنتجات (جديد)</a>
-      <a href="{% url 'control_wallets_list' %}" class="btn-cyan-glow">إدارة المحافظ (جديد)</a>
-      <a href="{% url 'control_reports' %}" class="btn-cyan-glow">التقارير والتحليلات (جديد)</a>
-      <a href="{% url 'payment_methods_list' %}" class="btn-cyan-glow">إدارة وسائل الدفع (جديد)</a>
-      <a href="{% url 'control_withdrawals' %}" class="btn-cyan-glow">إدارة السحوبات (جديد)</a>
-      <a href="{% url 'currencies_list' %}" class="btn-cyan-glow">إدارة العملات (جديد)</a>
-      <a href="{% url 'control_tickets_list' %}" class="btn-cyan-glow">إدارة التذاكر (جديد)</a>
-      <a href="{% url 'admin:index' %}">Django Admin</a>
-      <a href="{% url 'admin:catalog_product_changelist' %}">المنتجات</a>
-      <a href="{% url 'admin:orders_order_changelist' %}">الطلبات</a>
-      <a href="{% url 'admin:payments_paymentmethod_changelist' %}">وسائل الدفع (Django)</a>
-      <a href="{% url 'admin:payments_depositrequest_changelist' %}">الإيداعات</a>
-    </div>
-  </article>
-</section>
-
-<style>
-.btn-cyan-glow {
-  background: linear-gradient(135deg, #00f2fe 0%, #4facfe 100%);
-  color: #000 !important;
-  font-weight: bold;
-  padding: 10px;
-  text-align: center;
-  border-radius: 8px;
-  box-shadow: 0 0 15px rgba(79, 172, 254, 0.4);
-}
-</style>
 {% endblock %}

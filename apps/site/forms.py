@@ -90,11 +90,12 @@ class ProductForm(forms.ModelForm):
         model = Product
         fields = [
             "name", "slug", "category", "image", "cover_image", "thumbnail", "icon",
-            "description", "instructions", "delivery_type", "is_active", "is_featured", "sort_order"
+            "description", "instructions", "is_active", "is_featured", "sort_order", "form_schema"
         ]
         widgets = {
             "description": forms.Textarea(attrs={"rows": 4}),
             "instructions": forms.Textarea(attrs={"rows": 4}),
+            "form_schema": forms.Textarea(attrs={"rows": 5, "placeholder": '{"version": 1, "fields": []}'}),
         }
 
 

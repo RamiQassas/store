@@ -6,7 +6,7 @@ from apps.accounts.managers import UserManager
 from apps.common.models import TimeStampedModel
 
 
-class User(AbstractUser):
+class User(AbstractUser, TimeStampedModel):
     class Role(models.TextChoices):
         SUPER_ADMIN = "super_admin", "مدير عام"
         ADMIN = "admin", "مدير"
@@ -142,3 +142,16 @@ class SecurityEvent(TimeStampedModel):
 
     def __str__(self):
         return f"{self.event_type} - {self.user.email}"
+
+
+class EmailVerificationToken(TimeStampedModel):
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="verification_tokens")
+    token = models.CharField(max_length=100, unique=True)
+    is_used = models.BooleanField(default=False)
+    expires_at = models.DateTimeField()
+
+    def is_expired(self):
+        return timezone.now() > self.expires_at
+
+    def __str__(self):
+        return f"{self.user.email} - {self.token}"

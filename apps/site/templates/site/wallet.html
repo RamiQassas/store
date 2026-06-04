@@ -1,84 +1,256 @@
 {% extends "site/base.html" %}
-{% block title %}المحفظة | Raqamiyat{% endblock %}
+{% load static %}
+
+{% block title %}المحفظة الرقمية | Raqamiyat{% endblock %}
+
+{% block extra_head %}
+<style>
+    .wallet-hero {
+        background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+        border: 1px solid rgba(6, 182, 212, 0.2);
+        border-radius: var(--radius);
+        padding: 3rem;
+        text-align: center;
+        position: relative;
+        overflow: hidden;
+        margin-bottom: 2rem;
+    }
+
+    .wallet-hero::before {
+        content: "";
+        position: absolute;
+        top: -50%;
+        left: -50%;
+        width: 200%;
+        height: 200%;
+        background: radial-gradient(circle, rgba(6, 182, 212, 0.08) 0%, transparent 70%);
+        pointer-events: none;
+    }
+
+    .main-balance {
+        font-size: 4rem;
+        font-weight: 900;
+        letter-spacing: -2px;
+        background: linear-gradient(to right, #fff, var(--cyan));
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        line-height: 1;
+        margin: 1rem 0;
+    }
+
+    .secondary-balances {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1.5rem;
+        margin-bottom: 2.5rem;
+    }
+
+    .sub-wallet-card {
+        padding: 1.5rem;
+        border-radius: var(--radius);
+        background: var(--panel);
+        border: 1px solid var(--panel-border);
+        transition: all 0.3s ease;
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+    }
+
+    .sub-wallet-card:hover {
+        border-color: var(--panel-light);
+        transform: translateY(-3px);
+        box-shadow: var(--shadow);
+    }
+
+    .sw-icon {
+        width: 44px;
+        height: 44px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.25rem;
+    }
+
+    .sw-info span { font-size: 0.75rem; color: var(--muted); font-weight: 600; display: block; }
+    .sw-info strong { font-size: 1.125rem; color: var(--text); }
+
+    /* Icons and Colors */
+    .icon-frozen { background: rgba(245, 158, 11, 0.1); color: var(--warning); }
+    .icon-held { background: rgba(239, 68, 68, 0.1); color: var(--danger); }
+    .icon-pending { background: rgba(59, 130, 246, 0.1); color: var(--blue); }
+    .icon-reserved { background: rgba(168, 85, 247, 0.1); color: #a855f7; }
+
+    /* Ledger Table */
+    .ledger-row {
+        display: grid;
+        grid-template-columns: auto 1fr auto auto;
+        align-items: center;
+        gap: 1.5rem;
+        padding: 1.25rem;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        transition: background 0.2s;
+    }
+
+    .ledger-row:last-child { border-bottom: none; }
+    .ledger-row:hover { background: rgba(255, 255, 255, 0.02); }
+
+    .type-indicator {
+        width: 36px;
+        height: 36px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.875rem;
+    }
+
+    .type-credit { background: rgba(34, 197, 94, 0.1); color: var(--success); }
+    .type-debit { background: rgba(239, 68, 68, 0.1); color: var(--danger); }
+    .type-other { background: rgba(148, 163, 184, 0.1); color: var(--muted); }
+
+    @media (max-width: 640px) {
+        .main-balance { font-size: 2.5rem; }
+        .ledger-row { grid-template-columns: auto 1fr auto; gap: 1rem; }
+        .ledger-row .balance-after { display: none; }
+    }
+</style>
+{% endblock %}
+
 {% block content %}
-<section class="page-head">
-  <div>
-    <span class="eyebrow">Wallet</span>
-    <h1>المحفظة الرقمية</h1>
-    <p>عرض شامل للرصيد وتفاصيل العمليات المالية.</p>
-  </div>
-</section>
-
-<section class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
-  <div class="panel p-4 border-l-4 border-cyan">
-    <span class="text-xs text-slate-400 block mb-1">الرصيد المتاح</span>
-    <strong class="text-2xl text-cyan">{{ wallet.available_balance }}</strong>
-    <span class="text-xs text-slate-400">{{ wallet.currency }}</span>
-  </div>
-  <div class="panel p-4 border-l-4 border-amber-500">
-    <span class="text-xs text-slate-400 block mb-1">المجمد (سحوبات)</span>
-    <strong class="text-2xl text-amber-500">{{ wallet.frozen_balance }}</strong>
-    <span class="text-xs text-slate-400">{{ wallet.currency }}</span>
-  </div>
-  <div class="panel p-4 border-l-4 border-red-500">
-    <span class="text-xs text-slate-400 block mb-1">المحجوز (إداري)</span>
-    <strong class="text-2xl text-red-500">{{ wallet.held_balance }}</strong>
-    <span class="text-xs text-slate-400">{{ wallet.currency }}</span>
-  </div>
-  <div class="panel p-4 border-l-4 border-blue-500">
-    <span class="text-xs text-slate-400 block mb-1">المعلق (إيداعات)</span>
-    <strong class="text-2xl text-blue-500">{{ wallet.pending_balance }}</strong>
-    <span class="text-xs text-slate-400">{{ wallet.currency }}</span>
-  </div>
-</section>
-
-<section class="two-col">
-  <article class="panel">
-    <div class="section-head">
-      <h2>سجل الحركات (Ledger)</h2>
-      <a href="{% url 'dashboard_deposits' %}" class="btn btn-sm btn-primary">إيداع</a>
+<div class="page-head">
+    <div>
+        <span class="eyebrow">Digital Wallet</span>
+        <h1>المحفظة الرقمية</h1>
+        <p class="text-muted">إدارة أرصدتك ومتابعة كافة العمليات المالية بدقة.</p>
     </div>
-    <div class="stack-list">
-      {% for entry in ledger_entries %}
-        <div class="line-item">
-          <div>
-            <strong>{{ entry.get_entry_type_display }}</strong>
-            <p class="text-xs text-slate-400">{{ entry.description|default:"" }}</p>
-            <small class="text-[10px] text-slate-500">{{ entry.created_at|date:"Y-m-d H:i" }}</small>
-          </div>
-          <div class="text-right">
-             <div class="font-bold {% if entry.entry_type == 'credit' %}text-green-500{% elif entry.entry_type == 'debit' %}text-red-500{% endif %}">
-               {{ entry.amount }}
-             </div>
-             <div class="text-[10px] text-slate-500">بعد: {{ entry.balance_after }}</div>
-          </div>
+    <div class="flex gap-3">
+        <a href="{% url 'dashboard_withdrawals' %}" class="btn btn-outline btn-sm">طلب سحب</a>
+        <a href="{% url 'dashboard_deposits' %}" class="btn btn-primary btn-sm">إيداع رصيد</a>
+    </div>
+</div>
+
+<!-- Prominent Available Balance -->
+<div class="wallet-hero">
+    <span class="text-cyan font-bold uppercase tracking-widest text-sm">الرصيد المتاح حالياً</span>
+    <div class="main-balance">{{ wallet.available_balance }} <span class="text-2xl font-normal opacity-50">{{ wallet.currency.code }}</span></div>
+    <p class="text-slate-400 text-sm">هذا الرصيد جاهز للاستخدام في الشراء أو السحب.</p>
+</div>
+
+<!-- Secondary Balances (Conditional) -->
+<div class="secondary-balances">
+    {% if wallet.pending_balance > 0 %}
+    <div class="sub-wallet-card">
+        <div class="sw-icon icon-pending"><i class="fas fa-hourglass-half"></i></div>
+        <div class="sw-info">
+            <span>إيداعات معلقة</span>
+            <strong>{{ wallet.pending_balance }} {{ wallet.currency.code }}</strong>
         </div>
-      {% empty %}
-        <div class="empty">لا توجد حركات بعد.</div>
-      {% endfor %}
     </div>
-  </article>
+    {% endif %}
 
-  <article class="panel">
-    <div class="section-head">
-      <h2>المعاملات المالية</h2>
-      <a href="{% url 'dashboard_withdrawals' %}" class="btn btn-sm btn-outline">سحب</a>
-    </div>
-    <div class="stack-list">
-      {% for tx in transactions %}
-        <div class="line-item">
-          <div>
-            <strong>{{ tx.transaction_type|capfirst }}</strong>
-            <p class="text-xs {% if tx.status == 'completed' %}text-green-500{% elif tx.status == 'pending' %}text-amber-500{% else %}text-red-500{% endif %}">
-              {{ tx.get_status_display }}
-            </p>
-          </div>
-          <span class="badge">{{ tx.amount }}</span>
+    {% if wallet.frozen_balance > 0 %}
+    <div class="sub-wallet-card">
+        <div class="sw-icon icon-frozen"><i class="fas fa-snowflake"></i></div>
+        <div class="sw-info">
+            <span>رصيد مجمد</span>
+            <strong>{{ wallet.frozen_balance }} {{ wallet.currency.code }}</strong>
         </div>
-      {% empty %}
-        <div class="empty">لا توجد معاملات بعد.</div>
-      {% endfor %}
     </div>
-  </article>
-</section>
+    {% endif %}
+
+    {% if wallet.held_balance > 0 %}
+    <div class="sub-wallet-card">
+        <div class="sw-icon icon-held"><i class="fas fa-hand-holding-usd"></i></div>
+        <div class="sw-info">
+            <span>حجز إداري</span>
+            <strong>{{ wallet.held_balance }} {{ wallet.currency.code }}</strong>
+        </div>
+    </div>
+    {% endif %}
+
+    {% if wallet.reserved_balance > 0 %}
+    <div class="sub-wallet-card">
+        <div class="sw-icon icon-reserved"><i class="fas fa-lock"></i></div>
+        <div class="sw-info">
+            <span>محجوز للطلبات</span>
+            <strong>{{ wallet.reserved_balance }} {{ wallet.currency.code }}</strong>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Financial Activity / Ledger -->
+<div class="panel stack mb-8">
+    <div class="section-head p-6 border-b border-white/5">
+        <h2 class="text-xl">سجل الحركات المالية</h2>
+        <div class="flex items-center gap-4">
+            <span class="text-xs text-muted"><i class="fas fa-shield-alt ml-1"></i> سجل محاسبي آمن</span>
+        </div>
+    </div>
+    
+    <div class="stack">
+        {% for entry in ledger_entries %}
+        <div class="ledger-row">
+            <div class="type-indicator {% if entry.entry_type == 'credit' %}type-credit{% elif entry.entry_type == 'debit' %}type-debit{% else %}type-other{% endif %}">
+                {% if entry.entry_type == 'credit' %}<i class="fas fa-plus"></i>
+                {% elif entry.entry_type == 'debit' %}<i class="fas fa-minus"></i>
+                {% else %}<i class="fas fa-exchange-alt"></i>{% endif %}
+            </div>
+            <div>
+                <div class="flex items-center gap-2">
+                    <strong class="text-sm">{{ entry.get_entry_type_display }}</strong>
+                    <span class="text-[10px] bg-white/5 px-2 py-0.5 rounded text-slate-500">{{ entry.source|upper }}</span>
+                </div>
+                <p class="text-xs text-muted mt-1">{{ entry.description|default:"بدون وصف" }}</p>
+                <div class="text-[10px] text-slate-600 mt-1">{{ entry.created_at|date:"d M Y, H:i" }}</div>
+            </div>
+            <div class="text-right">
+                <div class="font-bold text-sm {% if entry.entry_type == 'credit' %}text-success{% elif entry.entry_type == 'debit' %}text-danger{% endif %}">
+                    {% if entry.entry_type == 'credit' %}+{% elif entry.entry_type == 'debit' %}-{% endif %}{{ entry.amount }}
+                </div>
+                <div class="text-[10px] text-slate-500 mt-1 balance-after">الرصيد بعدها: {{ entry.balance_after }}</div>
+            </div>
+            <div class="hidden sm:block">
+                <span class="text-[10px] text-slate-600 font-mono">REF: {{ entry.reference|truncatechars:12 }}</span>
+            </div>
+        </div>
+        {% empty %}
+        <div class="p-12 text-center stack gap-4">
+            <div class="w-16 h-16 bg-slate-800/50 rounded-full flex items-center justify-center mx-auto text-slate-600">
+                <i class="fas fa-receipt text-2xl"></i>
+            </div>
+            <p class="text-muted">لا توجد حركات مالية مسجلة في حسابك بعد.</p>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+<!-- Transactions Summary (Simplified) -->
+<div class="grid grid-1 gap-6">
+    <div class="panel">
+        <div class="section-head p-6 border-b border-white/5">
+            <h2 class="text-lg">حالة العمليات الأخيرة</h2>
+            <a href="#" class="text-sm text-cyan font-bold">كل العمليات</a>
+        </div>
+        <div class="p-4">
+            <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+                {% for tx in transactions %}
+                <div class="p-4 rounded-xl border border-white/5 bg-white/[0.02] flex flex-col gap-2">
+                    <div class="flex justify-between items-center">
+                        <span class="text-xs font-bold">{{ tx.get_transaction_type_display|default:tx.transaction_type }}</span>
+                        <span class="badge {% if tx.status == 'completed' %}success{% elif tx.status == 'pending' %}warning{% else %}danger{% endif %} text-[10px]">
+                            {{ tx.get_status_display }}
+                        </span>
+                    </div>
+                    <div class="text-lg font-bold">{{ tx.amount }} <small class="text-xs font-normal opacity-50">{{ wallet.currency.code }}</small></div>
+                    <div class="text-[10px] text-slate-500">{{ tx.created_at|date:"d M Y" }}</div>
+                </div>
+                {% empty %}
+                <p class="col-span-full text-center text-sm text-muted p-4">لا توجد عمليات مكتملة مؤخراً.</p>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
 {% endblock %}

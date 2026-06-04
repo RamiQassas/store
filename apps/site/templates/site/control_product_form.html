@@ -1,149 +1,213 @@
-{% extends "site/base.html" %}
+{% extends "site/control_base.html" %}
+{% load static %}
+
 {% block title %}{{ title }} | Raqamiyat Admin{% endblock %}
-{% block content %}
-<section class="page-head">
-  <div>
-    <span class="eyebrow">Admin / Catalog / Product</span>
-    <h1>{{ title }}</h1>
-    <p>أدخل بيانات المنتج بدقة، الصور المميزة تساعد على زيادة المبيعات.</p>
-  </div>
-  <div class="flex gap-2">
-    <a href="{% url 'control_products_list' %}" class="btn btn-outline">عودة للقائمة</a>
-  </div>
-</section>
 
-<div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-  <!-- Main Form -->
-  <div class="lg:col-span-2">
-    <article class="panel p-6">
-      <form method="post" enctype="multipart/form-data" class="stack gap-6">
-        {% csrf_token %}
-        
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div class="field-group">
-            <label class="block mb-1 text-sm font-bold">{{ form.name.label }}</label>
-            {{ form.name }}
-            {% if form.name.errors %}<div class="text-red-500 text-xs mt-1">{{ form.name.errors }}</div>{% endif %}
-          </div>
-          <div class="field-group">
-            <label class="block mb-1 text-sm font-bold">{{ form.slug.label }}</label>
-            {{ form.slug }}
-            {% if form.slug.errors %}<div class="text-red-500 text-xs mt-1">{{ form.slug.errors }}</div>{% endif %}
-          </div>
-          <div class="field-group">
-            <label class="block mb-1 text-sm font-bold">{{ form.category.label }}</label>
-            {{ form.category }}
-            {% if form.category.errors %}<div class="text-red-500 text-xs mt-1">{{ form.category.errors }}</div>{% endif %}
-          </div>
-          <div class="field-group">
-            <label class="block mb-1 text-sm font-bold">{{ form.delivery_type.label }}</label>
-            {{ form.delivery_type }}
-            {% if form.delivery_type.errors %}<div class="text-red-500 text-xs mt-1">{{ form.delivery_type.errors }}</div>{% endif %}
-          </div>
-        </div>
-
-        <div class="field-group">
-          <label class="block mb-1 text-sm font-bold">{{ form.description.label }}</label>
-          {{ form.description }}
-          {% if form.description.errors %}<div class="text-red-500 text-xs mt-1">{{ form.description.errors }}</div>{% endif %}
-        </div>
-
-        <div class="field-group">
-          <label class="block mb-1 text-sm font-bold">{{ form.instructions.label }}</label>
-          {{ form.instructions }}
-          {% if form.instructions.errors %}<div class="text-red-500 text-xs mt-1">{{ form.instructions.errors }}</div>{% endif %}
-        </div>
-
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 bg-slate-800 p-4 rounded">
-          <div class="field-group">
-            <label class="block mb-1 text-sm font-bold">{{ form.image.label }}</label>
-            {{ form.image }}
-          </div>
-          <div class="field-group">
-            <label class="block mb-1 text-sm font-bold">{{ form.cover_image.label }}</label>
-            {{ form.cover_image }}
-          </div>
-          <div class="field-group">
-            <label class="block mb-1 text-sm font-bold">{{ form.thumbnail.label }}</label>
-            {{ form.thumbnail }}
-          </div>
-          <div class="field-group">
-            <label class="block mb-1 text-sm font-bold">{{ form.icon.label }}</label>
-            {{ form.icon }}
-          </div>
-        </div>
-
-        <div class="flex gap-4 p-4 bg-slate-800 rounded">
-            <div class="flex items-center gap-2">
-                {{ form.is_active }} <label class="text-sm">{{ form.is_active.label }}</label>
-            </div>
-            <div class="flex items-center gap-2">
-                {{ form.is_featured }} <label class="text-sm">{{ form.is_featured.label }}</label>
-            </div>
-            <div class="flex items-center gap-2">
-                <label class="text-sm">{{ form.sort_order.label }}:</label>
-                {{ form.sort_order }}
-            </div>
-        </div>
-
-        <div class="pt-6 border-t border-slate-700 flex justify-end gap-4">
-          <button type="submit" class="btn btn-primary px-8">حفظ المنتج</button>
-        </div>
-      </form>
-    </article>
-  </div>
-
-  <!-- Variants Sidebar -->
-  <div class="lg:col-span-1 stack gap-6">
-    {% if product %}
-      <article class="panel p-6">
-        <div class="flex justify-between items-center mb-4">
-          <h3 class="font-bold text-lg">باقات المنتج</h3>
-          <a href="{% url 'control_variant_create' product.pk %}" class="btn btn-sm btn-primary">إضافة</a>
-        </div>
-        <div class="stack gap-2">
-          {% for v in variants %}
-            <div class="bg-slate-800 p-3 rounded flex justify-between items-center border border-slate-700">
-              <div>
-                <div class="font-bold text-sm">{{ v.name }}</div>
-                <div class="text-cyan text-xs font-mono">{{ v.price }} SYP</div>
-              </div>
-              <a href="{% url 'control_variant_edit' v.pk %}" class="btn btn-sm btn-outline py-1 px-2"><i class="fas fa-edit"></i></a>
-            </div>
-          {% empty %}
-            <p class="text-slate-500 text-xs text-center">لا توجد باقات مضافة.</p>
-          {% endfor %}
-        </div>
-      </article>
-
-      <article class="panel p-6">
-        <h3 class="font-bold text-lg mb-4">معاينة الصور</h3>
-        <div class="grid grid-cols-2 gap-2">
-            {% if product.image %}
-              <img src="{{ product.image.url }}" class="w-full aspect-square object-cover rounded border border-slate-700">
-            {% endif %}
-            {% if product.cover_image %}
-              <img src="{{ product.cover_image.url }}" class="w-full aspect-video object-cover rounded border border-slate-700 col-span-2">
-            {% endif %}
-        </div>
-      </article>
-    {% else %}
-      <article class="panel p-6 bg-slate-800/50">
-        <p class="text-slate-400 text-sm text-center">قم بحفظ المنتج أولاً لتتمكن من إضافة باقات وصور للمعرض.</p>
-      </article>
-    {% endif %}
-  </div>
+{% block control_content %}
+<div class="page-head">
+    <div>
+        <span class="eyebrow">Product Management / Edit</span>
+        <h1>{{ title }}</h1>
+        <p class="text-muted">إدارة بيانات المنتج، الصور، والبيانات المطلوبة من العميل.</p>
+    </div>
+    <div class="flex gap-3">
+        <a href="{% url 'control_products_list' %}" class="btn btn-outline btn-sm">العودة للقائمة</a>
+        <button class="btn btn-primary btn-sm" onclick="document.querySelector('form').submit()">حفظ المنتج</button>
+    </div>
 </div>
 
-<style>
-  input[type="text"], input[type="number"], input[type="slug"], select, textarea {
-    width: 100%;
-    background: #1e293b;
-    border: 1px solid #334155;
-    border-radius: 0.375rem;
-    padding: 0.5rem 0.75rem;
-    color: white;
-  }
-  input[type="checkbox"] { width: auto; }
-</style>
+<form method="post" enctype="multipart/form-data" class="grid grid-cols-12 gap-8">
+    {% csrf_token %}
+    
+    <!-- Main Info -->
+    <div class="col-span-12 lg:col-span-8 stack gap-8">
+        <div class="management-card">
+            <div class="management-header">
+                <h3 class="font-bold">المعلومات الأساسية</h3>
+            </div>
+            <div class="management-body stack gap-6">
+                <div class="grid grid-2 gap-6">
+                    <div class="field-group">
+                        <label>{{ form.name.label }}</label>
+                        {{ form.name }}
+                    </div>
+                    <div class="field-group">
+                        <label>{{ form.slug.label }}</label>
+                        {{ form.slug }}
+                        <p class="text-[10px] text-muted mt-1">يترك فارغاً للتوليد التلقائي.</p>
+                    </div>
+                </div>
+
+                <div class="field-group">
+                    <label>{{ form.category.label }}</label>
+                    <div class="flex gap-2">
+                        {{ form.category }}
+                        <button type="button" class="btn btn-outline btn-sm px-4" onclick="quickCreateCategory()">
+                            <i class="fas fa-plus"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="field-group">
+                    <label>{{ form.description.label }}</label>
+                    {{ form.description }}
+                </div>
+
+                <div class="field-group">
+                    <label>{{ form.instructions.label }}</label>
+                    {{ form.instructions }}
+                    <p class="text-[10px] text-muted mt-1">تعليمات تظهر للعميل بعد الشراء.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Dynamic Form Fields -->
+        <div class="management-card">
+            <div class="management-header">
+                <h3 class="font-bold">البيانات المطلوبة من العميل (JSON Schema)</h3>
+                <span class="badge primary text-[9px]">Engine V2</span>
+            </div>
+            <div class="management-body">
+                <div class="field-group">
+                    <label>تنسيق نموذج البيانات</label>
+                    {{ form.form_schema }}
+                    <div class="mt-4 p-4 bg-slate-900 rounded-xl border border-white/5">
+                        <h4 class="text-xs font-bold mb-2 text-cyan">أمثلة سريعة:</h4>
+                        <div class="grid grid-2 gap-4">
+                            <button type="button" class="text-[10px] text-right bg-white/5 p-2 rounded hover:bg-white/10" onclick="applyTemplate('game')">باقة شحن ألعاب (ID + Server)</button>
+                            <button type="button" class="text-[10px] text-right bg-white/5 p-2 rounded hover:bg-white/10" onclick="applyTemplate('account')">حساب كامل (Email + Pass)</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Media -->
+        <div class="management-card">
+            <div class="management-header">
+                <h3 class="font-bold">الصور والأيقونات</h3>
+            </div>
+            <div class="management-body grid grid-2 gap-8">
+                <div class="field-group">
+                    <label>{{ form.image.label }}</label>
+                    {{ form.image }}
+                    {% if product.image %}
+                    <img src="{{ product.image.url }}" class="mt-2 w-20 h-20 object-cover rounded-lg border border-white/10">
+                    {% endif %}
+                </div>
+                <div class="field-group">
+                    <label>{{ form.cover_image.label }}</label>
+                    {{ form.cover_image }}
+                    {% if product.cover_image %}
+                    <img src="{{ product.cover_image.url }}" class="mt-2 w-full aspect-video object-cover rounded-lg border border-white/10">
+                    {% endif %}
+                </div>
+                <div class="field-group">
+                    <label>{{ form.thumbnail.label }}</label>
+                    {{ form.thumbnail }}
+                </div>
+                <div class="field-group">
+                    <label>{{ form.icon.label }}</label>
+                    {{ form.icon }}
+                    <p class="text-[10px] text-muted mt-1">مثال: fa-gamepad</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Sidebar Stats & Flags -->
+    <div class="col-span-12 lg:col-span-4 stack gap-6">
+        <div class="management-card p-6">
+            <h3 class="font-bold text-sm mb-4">الحالة والظهور</h3>
+            <div class="stack gap-4">
+                <div class="flex items-center justify-between p-3 bg-slate-800/30 rounded-xl">
+                    <label class="text-sm font-bold">{{ form.is_active.label }}</label>
+                    {{ form.is_active }}
+                </div>
+                <div class="flex items-center justify-between p-3 bg-slate-800/30 rounded-xl">
+                    <label class="text-sm font-bold">{{ form.is_featured.label }}</label>
+                    {{ form.is_featured }}
+                </div>
+                <div class="field-group">
+                    <label class="text-xs">{{ form.sort_order.label }}</label>
+                    {{ form.sort_order }}
+                </div>
+            </div>
+        </div>
+
+        {% if product %}
+        <div class="management-card">
+            <div class="management-header">
+                <h3 class="font-bold text-sm">باقات المنتج</h3>
+                <a href="{% url 'control_variant_create' product.pk %}" class="btn btn-primary btn-sm text-[10px] py-1 px-2">إضافة</a>
+            </div>
+            <div class="p-2 stack gap-2">
+                {% for v in variants %}
+                <div class="p-3 bg-slate-800/30 rounded-lg border border-white/5 flex justify-between items-center">
+                    <div>
+                        <div class="text-xs font-bold">{{ v.name }}</div>
+                        <div class="text-[10px] text-cyan font-mono">{{ v.price }} SYP</div>
+                    </div>
+                    <a href="{% url 'control_variant_edit' v.pk %}" class="w-8 h-8 rounded bg-slate-800 flex items-center justify-center hover:text-cyan transition">
+                        <i class="fas fa-edit text-xs"></i>
+                    </a>
+                </div>
+                {% empty %}
+                <p class="p-4 text-center text-[10px] text-muted italic">لا توجد باقات.</p>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</form>
+
+<script>
+async function quickCreateCategory() {
+    const name = prompt("اسم التصنيف الجديد:");
+    if (!name) return;
+    
+    const formData = new FormData();
+    formData.append('name', name);
+    formData.append('csrfmiddlewaretoken', '{{ csrf_token }}');
+    
+    const response = await fetch("{% url 'control_category_create_ajax' %}", {
+        method: 'POST',
+        body: formData
+    });
+    
+    if (response.ok) {
+        const data = await response.json();
+        const select = document.querySelector('select[name="category"]');
+        const opt = document.createElement('option');
+        opt.value = data.id;
+        opt.text = data.name;
+        opt.selected = true;
+        select.appendChild(opt);
+        alert("تم إنشاء التصنيف بنجاح.");
+    } else {
+        alert("فشل إنشاء التصنيف.");
+    }
+}
+
+function applyTemplate(type) {
+    const schemaField = document.querySelector('textarea[name="form_schema"]');
+    const templates = {
+        'game': {
+            "version": 1,
+            "fields": [
+                {"label": "Player ID", "name": "player_id", "type": "text", "required": true, "placeholder": "12345678"},
+                {"label": "Server Name", "name": "server", "type": "text", "required": true, "placeholder": "Europe"}
+            ]
+        },
+        'account': {
+            "version": 1,
+            "fields": [
+                {"label": "Email Address", "name": "email", "type": "email", "required": true},
+                {"label": "Password", "name": "password", "type": "text", "required": true}
+            ]
+        }
+    };
+    schemaField.value = JSON.stringify(templates[type], null, 4);
+}
+</script>
 {% endblock %}

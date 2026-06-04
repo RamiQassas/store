@@ -1,75 +1,87 @@
-{% extends "site/base.html" %}
+{% extends "site/control_base.html" %}
+{% load static %}
+
 {% block title %}إدارة المستخدمين | Raqamiyat Admin{% endblock %}
-{% block content %}
-<section class="page-head">
-  <div>
-    <span class="eyebrow">Admin / Accounts</span>
-    <h1>إدارة المستخدمين</h1>
-    <p>عرض جميع المستخدمين وحالات حساباتهم مع إمكانية البحث والفلترة.</p>
-  </div>
-</section>
 
-<section class="section">
-  <div class="mb-6">
-    <form method="get" class="flex gap-2">
-      <input type="text" name="q" value="{{ query }}" placeholder="بحث بالبريد، الهاتف، أو الاسم..." class="w-full bg-slate-800 border-slate-700 rounded p-2 text-white">
-      <button type="submit" class="btn btn-primary">بحث</button>
-      {% if query %}
-        <a href="{% url 'control_users_list' %}" class="btn btn-outline">مسح</a>
-      {% endif %}
-    </form>
-  </div>
+{% block control_content %}
+<div class="page-head">
+    <div>
+        <span class="eyebrow">User Management</span>
+        <h1>قائمة المستخدمين</h1>
+        <p class="text-muted">إدارة كافة حسابات المستخدمين، التحقق من الأرصدة، وإجراء التعديلات اللازمة.</p>
+    </div>
+</div>
 
-  <div class="table-wrap">
-    <table class="table">
-      <thead>
-        <tr>
-          <th>المستخدم</th>
-          <th>الدور</th>
-          <th>الحالة</th>
-          <th>الرصيد المتاح</th>
-          <th>تاريخ الانضمام</th>
-          <th>إجراءات</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for u in users %}
-          <tr>
-            <td>
-              <div class="flex flex-col">
-                <strong>{{ u.email }}</strong>
-                <small class="text-slate-500">{{ u.first_name }} {{ u.last_name }}</small>
-                {% if u.phone %}<small class="text-slate-500">{{ u.phone }}</small>{% endif %}
-              </div>
-            </td>
-            <td><span class="badge muted">{{ u.get_role_display }}</span></td>
-            <td>
-              <span class="badge 
-                {% if u.status == 'active' %}success
-                {% elif u.status == 'suspended' %}warning
-                {% elif u.status == 'banned' %}danger
-                {% else %}info{% endif %}">
-                {{ u.get_status_display }}
-              </span>
-            </td>
-            <td><strong>{{ u.wallet.available_balance }}</strong> {{ u.wallet.currency.code }}</td>
-            <td>{{ u.date_joined|date:"Y-m-d" }}</td>
-            <td>
-              <a href="{% url 'control_user_moderate' u.pk %}" class="btn btn-sm btn-outline">إدارة وحظر</a>
-            </td>
-          </tr>
-        {% empty %}
-          <tr><td colspan="6">لا يوجد مستخدمون مطابقون للبحث.</td></tr>
-        {% endfor %}
-      </tbody>
-    </table>
-  </div>
-</section>
-
-<style>
-.badge.danger { background: #ef4444; }
-.badge.success { background: #22c55e; }
-.badge.warning { background: #f59e0b; }
-.badge.info { background: #3b82f6; }
-</style>
+<div class="management-card">
+    <div class="management-header flex-col sm:flex-row gap-4">
+        <form method="get" class="flex-grow w-full max-w-md">
+            <div class="input-wrapper">
+                <input type="text" name="q" value="{{ query }}" placeholder="بحث بالبريد، الهاتف، أو الاسم..." class="text-xs">
+                <button type="submit" class="btn btn-primary btn-sm px-4"><i class="fas fa-search"></i></button>
+            </div>
+        </form>
+        <div class="flex gap-2">
+            <span class="text-[10px] text-muted">إجمالي المستخدمين: <strong>{{ users.count }}</strong></span>
+        </div>
+    </div>
+    
+    <div class="p-0 overflow-x-auto">
+        <table class="w-full text-sm text-right">
+            <thead class="text-[11px] text-slate-500 border-b border-white/5 uppercase bg-white/[0.01]">
+                <tr>
+                    <th class="p-4">المستخدم</th>
+                    <th class="p-4">الرصيد</th>
+                    <th class="p-4">الفئة / الدور</th>
+                    <th class="p-4">الحالة</th>
+                    <th class="p-4">تاريخ الانضمام</th>
+                    <th class="p-4 text-left">إجراءات</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for user in users %}
+                <tr class="border-b border-white/[0.02] last:border-0 hover:bg-white/[0.02] transition">
+                    <td class="p-4">
+                        <div class="flex items-center gap-3">
+                            <div class="w-10 h-10 rounded-full bg-slate-800 flex items-center justify-center text-xs text-muted border border-white/5">
+                                {{ user.username|slice:":1"|upper }}
+                            </div>
+                            <div>
+                                <div class="font-bold text-slate-200">{{ user.get_full_name|default:user.username }}</div>
+                                <div class="text-[10px] text-slate-500">{{ user.email }}</div>
+                            </div>
+                        </div>
+                    </td>
+                    <td class="p-4">
+                        <div class="font-mono text-cyan">{{ user.wallet.available_balance }}</div>
+                        <div class="text-[9px] text-slate-500">{{ user.wallet.currency.code }}</div>
+                    </td>
+                    <td class="p-4">
+                        <span class="badge primary text-[9px] mb-1 block w-fit">{{ user.get_tier_display }}</span>
+                        <span class="text-[10px] text-slate-500">{{ user.get_role_display }}</span>
+                    </td>
+                    <td class="p-4">
+                        <span class="badge {% if user.status == 'active' %}success{% elif user.status == 'suspended' %}warning{% else %}danger{% endif %} text-[9px]">
+                            {{ user.get_status_display }}
+                        </span>
+                    </td>
+                    <td class="p-4 text-[10px] text-slate-500">
+                        {{ user.date_joined|date:"d M Y" }}
+                    </td>
+                    <td class="p-4 text-left">
+                        <div class="flex justify-end gap-2">
+                            <a href="{% url 'control_user_moderate' user.id %}" class="btn btn-sm btn-outline text-[10px] py-1 px-4 hover:bg-cyan hover:text-black transition">
+                                <i class="fas fa-shield-alt ml-1"></i> إدارة
+                            </a>
+                        </div>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="6" class="p-12 text-center text-slate-500 italic">لا يوجد مستخدمون مطابقون للبحث.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
 {% endblock %}

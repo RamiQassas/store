@@ -1,8 +1,29 @@
 from django.contrib import admin
+from apps.support.models import ChatRoom, ChatMessage, ChatCannedReply, Ticket, TicketMessage
 
-from apps.support.models import CannedReply, Ticket, TicketMessage
+
+class ChatMessageInline(admin.TabularInline):
+    model = ChatMessage
+    extra = 0
+    readonly_fields = ("sender", "is_staff_reply", "read_at")
 
 
+@admin.register(ChatRoom)
+class ChatRoomAdmin(admin.ModelAdmin):
+    list_display = ("id", "user", "assigned_agent", "status", "last_message_at", "unread_staff_count")
+    list_filter = ("status", "assigned_agent")
+    search_fields = ("user__email", "subject")
+    inlines = [ChatMessageInline]
+
+
+@admin.register(ChatCannedReply)
+class ChatCannedReplyAdmin(admin.ModelAdmin):
+    list_display = ("title", "is_active", "created_at")
+    list_filter = ("is_active",)
+    search_fields = ("title", "body")
+
+
+# Legacy
 class TicketMessageInline(admin.TabularInline):
     model = TicketMessage
     extra = 0
@@ -10,14 +31,7 @@ class TicketMessageInline(admin.TabularInline):
 
 @admin.register(Ticket)
 class TicketAdmin(admin.ModelAdmin):
-    list_display = ("subject", "user", "status", "priority", "created_at")
+    list_display = ("id", "subject", "user", "status", "priority", "created_at")
     list_filter = ("status", "priority")
     search_fields = ("subject", "user__email")
     inlines = [TicketMessageInline]
-
-
-@admin.register(CannedReply)
-class CannedReplyAdmin(admin.ModelAdmin):
-    list_display = ("title", "is_active", "created_at")
-    list_filter = ("is_active",)
-    search_fields = ("title", "body")

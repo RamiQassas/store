@@ -1,136 +1,288 @@
 {% extends "site/base.html" %}
+{% load static %}
+
 {% block title %}سحب رصيد | Raqamiyat{% endblock %}
+
+{% block extra_head %}
+<style>
+    .withdrawal-container {
+        max-width: 1000px;
+        margin: 0 auto;
+    }
+
+    .method-list {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+    }
+
+    .withdrawal-method-card {
+        padding: 1.25rem;
+        cursor: pointer;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        border: 1px solid var(--panel-border);
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        position: relative;
+    }
+
+    .withdrawal-method-card:hover {
+        border-color: var(--cyan);
+        background: rgba(6, 182, 212, 0.02);
+        transform: translateX(-5px);
+    }
+
+    .withdrawal-method-card.selected {
+        border-color: var(--cyan);
+        background: rgba(6, 182, 212, 0.05);
+        box-shadow: var(--shadow);
+    }
+
+    .withdrawal-method-card.selected::before {
+        content: "";
+        position: absolute;
+        right: -1px;
+        top: 0;
+        bottom: 0;
+        width: 4px;
+        background: var(--cyan);
+        border-radius: 0 4px 4px 0;
+    }
+
+    .method-icon {
+        width: 48px;
+        height: 48px;
+        border-radius: 12px;
+        background: var(--bg-soft);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.25rem;
+        color: var(--cyan);
+    }
+
+    .fee-calc-box {
+        background: var(--bg-soft);
+        border-radius: var(--radius);
+        padding: 1.5rem;
+        border: 1px solid var(--panel-border);
+    }
+
+    .fee-row {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 0.75rem;
+        font-size: 0.875rem;
+    }
+    .fee-row.total {
+        margin-top: 1rem;
+        padding-top: 1rem;
+        border-top: 1px solid var(--panel-border);
+        font-weight: 800;
+        color: var(--text);
+        font-size: 1.125rem;
+    }
+
+    .status-area {
+        margin-top: 3rem;
+    }
+
+    .withdrawal-status-card {
+        background: var(--panel);
+        border: 1px solid var(--panel-border);
+        border-radius: var(--radius);
+        padding: 1rem;
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+    }
+
+    @media (max-width: 768px) {
+        .withdrawal-container { grid-template-columns: 1fr; }
+    }
+</style>
+{% endblock %}
+
 {% block content %}
-<section class="page-head">
-  <div>
-    <span class="eyebrow">Withdraw</span>
-    <h1>سحب رصيد من المحفظة</h1>
-    <p>اختر وسيلة السحب المفضلة، أدخل المبلغ وبيانات الاستلام، وسيتم معالجة طلبك قريباً.</p>
-  </div>
-</section>
+<div class="page-head">
+    <div>
+        <span class="eyebrow">Funds Withdrawal</span>
+        <h1>سحب رصيد من المحفظة</h1>
+        <p class="text-muted">قم بسحب أرباحك أو رصيدك المتاح بسهولة وأمان.</p>
+    </div>
+</div>
 
-<section class="auth-shell">
-  <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-    <!-- Withdrawal Methods List -->
-    <div class="md:col-span-1 stack gap-4">
-      <h3 class="font-bold text-lg">اختر وسيلة السحب</h3>
-      {% for method in payment_methods %}
-      <div class="panel p-4 cursor-pointer hover:border-cyan transition method-card {% if forloop.first %}border-cyan{% endif %}" 
-           onclick="selectMethod('{{ method.id }}', '{{ method.name }}', '{{ method.min_amount }}', '{{ method.max_amount }}', '{{ method.fixed_fee }}', '{{ method.percentage_fee }}', '{{ method.description|linebreaksbr }}', [{% for c in method.supported_currencies.all %}{id:'{{c.id}}', code:'{{c.code}}', symbol:'{{c.symbol}}'}{% if not forloop.last %},{% endif %}{% endfor %}])">
-        <div class="flex items-center gap-3">
-          {% if method.logo %}
-            <img src="{{ method.logo.url }}" alt="{{ method.name }}" class="w-10 h-10 rounded object-contain bg-white">
-          {% else %}
-            <div class="w-10 h-10 bg-slate-800 rounded flex items-center justify-center">
-              <i class="fas {{ method.icon|default:'fa-university' }} text-cyan"></i>
+<div class="withdrawal-container grid grid-cols-1 md:grid-cols-12 gap-8">
+    <!-- Selection Column -->
+    <div class="md:col-span-4 stack gap-6">
+        <h3 class="font-bold text-lg px-2">اختر وسيلة الاستلام</h3>
+        <div class="method-list">
+            {% for method in payment_methods %}
+            <div class="panel withdrawal-method-card" data-method-id="{{ method.id }}" onclick="handleMethodSelect(this)">
+                <div class="method-icon">
+                    {% if method.logo %}
+                    <img src="{{ method.logo.url }}" alt="{{ method.name }}" class="w-full h-full object-contain">
+                    {% else %}
+                    <i class="fas {{ method.icon|default:'fa-university' }}"></i>
+                    {% endif %}
+                </div>
+                <div class="flex-grow">
+                    <h4 class="font-bold text-sm">{{ method.name }}</h4>
+                    <p class="text-[10px] text-muted">{{ method.get_method_type_display }}</p>
+                </div>
+                <!-- Hidden Data -->
+                <script type="application/json" class="method-data">
+                    {
+                        "id": "{{ method.id }}",
+                        "name": "{{ method.name }}",
+                        "min": "{{ method.min_amount }}",
+                        "max": "{{ method.max_amount }}",
+                        "fixed": "{{ method.fixed_fee }}",
+                        "percent": "{{ method.percentage_fee }}",
+                        "currencies": [{% for c in method.supported_currencies.all %}{"id":"{{c.id}}","code":"{{c.code}}","symbol":"{{c.symbol}}"} {% if not forloop.last %},{% endif %}{% endfor %}]
+                    }
+                </script>
             </div>
-          {% endif %}
-          <div>
-            <div class="font-bold">{{ method.name }}</div>
-            <div class="text-xs text-slate-400">{{ method.get_method_type_display }}</div>
-          </div>
+            {% endfor %}
         </div>
-      </div>
-      {% endfor %}
+        
+        <div class="panel p-6 bg-amber-500/[0.03] border-amber-500/20 mt-4">
+            <h4 class="text-amber-500 font-bold text-sm mb-2"><i class="fas fa-info-circle ml-1"></i> تنبيهات السحب</h4>
+            <ul class="text-xs text-slate-400 space-y-2 leading-relaxed">
+                <li>• يتم معالجة طلبات السحب خلال 24-48 ساعة عمل.</li>
+                <li>• تأكد من صحة بيانات الحساب/المحفظة لتجنب رفض الطلب.</li>
+                <li>• الرسوم الموضحة يتم خصمها من المبلغ الإجمالي المسحوب.</li>
+            </ul>
+        </div>
     </div>
 
-    <!-- Withdrawal Form -->
-    <div class="md:col-span-2">
-      <article class="panel p-6 stack gap-6">
-        <div id="method-details" class="stack gap-4 pb-6 border-b border-slate-700">
-          <h3 class="font-bold text-xl text-cyan" id="detail-name">اختر وسيلة سحب</h3>
-          <p id="detail-description" class="text-sm text-slate-300"></p>
-          
-          <div class="text-xs text-amber-400" id="detail-limits">
-            الحد الأدنى: <span id="limit-min">0</span> | الحد الأقصى: <span id="limit-max">0</span>
-          </div>
-          <div class="text-xs text-slate-400" id="detail-fees">
-            الرسوم: <span id="fee-fixed">0</span> + <span id="fee-percent">0</span>%
-          </div>
-        </div>
-
-        <form method="post" class="stack gap-4">
-          {% csrf_token %}
-          <input type="hidden" name="payment_method" id="selected-method-id">
-          
-          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <label class="block mb-2 text-sm">العملة</label>
-              <select name="currency" id="currency-select" required class="w-full bg-slate-800 border-slate-700 rounded p-2 text-white">
-                <!-- Populated by JS -->
-              </select>
+    <!-- Form Column -->
+    <div class="md:col-span-8">
+        <form method="post" id="withdrawal-form" class="panel p-8 stack gap-8 shadow-xl">
+            {% csrf_token %}
+            <input type="hidden" name="payment_method" id="selected-method-id">
+            
+            <div class="text-center mb-4">
+                <h3 class="text-xl font-bold" id="form-title">بيانات طلب السحب</h3>
+                <p class="text-sm text-muted">يرجى إدخال المبلغ وتفاصيل الاستلام بدقة</p>
             </div>
-            <div>
-              <label class="block mb-2 text-sm">المبلغ المراد سحبه</label>
-              <input type="number" name="amount" id="amount-input" step="1" required class="w-full bg-slate-800 border-slate-700 rounded p-2 text-white">
-            </div>
-          </div>
 
-          <div>
-            <label class="block mb-2 text-sm">بيانات التحويل (رقم الحساب / المحفظة)</label>
-            <input type="text" name="payout_details" placeholder="أدخل رقم حسابك أو عنوان محفظتك" required class="w-full bg-slate-800 border-slate-700 rounded p-2 text-white">
-          </div>
-
-          <div class="bg-cyan/10 p-4 rounded border border-cyan/20 flex justify-between items-center">
-            <div>
-              <div class="text-xs text-slate-400">المبلغ النهائي الذي ستستلمه:</div>
-              <div class="text-xl font-bold text-cyan"><span id="net-amount">0</span> <span id="net-currency"></span></div>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                <div class="field-group">
+                    <label>العملة</label>
+                    <select name="currency" id="currency-select" required></select>
+                </div>
+                <div class="field-group">
+                    <label>المبلغ المراد سحبه</label>
+                    <input type="number" name="amount" id="amount-input" step="0.01" required placeholder="0.00" oninput="calculateWithdrawal()">
+                    <p class="text-[10px] text-muted mt-2">المتاح: <span class="text-cyan">{{ wallet.available_balance }} {{ wallet.currency.code }}</span></p>
+                </div>
             </div>
-            <button class="btn btn-primary px-8" type="submit">تأكيد طلب السحب</button>
-          </div>
+
+            <div class="field-group">
+                <label>بيانات الاستلام (رقم الحساب / المحفظة)</label>
+                <textarea name="payout_details" rows="3" required placeholder="أدخل تفاصيل حسابك البنكي أو عنوان محفظتك الرقمية التي ترغب باستلام المبلغ عليها..." class="text-sm"></textarea>
+            </div>
+
+            <!-- Calculation Summary -->
+            <div class="fee-calc-box stack">
+                <div class="fee-row">
+                    <span class="text-muted">المبلغ المطلوب</span>
+                    <span id="calc-amount">0.00</span>
+                </div>
+                <div class="fee-row">
+                    <span class="text-muted">رسوم السحب</span>
+                    <span id="calc-fees" class="text-danger">0.00</span>
+                </div>
+                <div class="fee-row total">
+                    <span>المبلغ الصافي الذي ستستلمه</span>
+                    <span id="calc-net" class="text-cyan">0.00</span>
+                </div>
+                <div class="text-[10px] text-center text-slate-500 mt-4">
+                    * الحدود المسموحة لهذه الوسيلة: <span id="method-limits" class="font-bold">--</span>
+                </div>
+            </div>
+
+            <div class="flex flex-col gap-4">
+                <button type="submit" class="btn btn-primary w-full py-4 text-lg disabled:opacity-50" id="submit-btn" disabled>
+                    تأكيد وإرسال طلب السحب
+                </button>
+            </div>
         </form>
-      </article>
+
+        <!-- Recent Status -->
+        <div class="status-area stack gap-4">
+            <h3 class="font-bold text-lg px-2">آخر طلبات السحب</h3>
+            {% for request in recent_withdrawals %}
+            <div class="withdrawal-status-card">
+                <div class="w-10 h-10 rounded-full bg-slate-800 flex items-center justify-center text-xs text-muted">
+                    <i class="fas fa-history"></i>
+                </div>
+                <div class="flex-grow">
+                    <div class="flex justify-between items-center">
+                        <span class="font-bold text-sm">{{ request.amount }} {{ request.currency.code }}</span>
+                        <span class="badge {% if request.status == 'completed' %}success{% elif request.status == 'pending' %}warning{% else %}danger{% endif %} text-[9px]">
+                            {{ request.get_status_display }}
+                        </span>
+                    </div>
+                    <p class="text-[10px] text-muted mt-1">{{ request.payment_method.name }} • {{ request.created_at|date:"d M Y" }}</p>
+                </div>
+            </div>
+            {% empty %}
+            <p class="text-sm text-muted text-center italic p-8">لا توجد طلبات سحب سابقة.</p>
+            {% endfor %}
+        </div>
     </div>
-  </div>
-</section>
+</div>
 
 <script>
-function selectMethod(id, name, min, max, fixed, percent, desc, currencies) {
-    document.getElementById('selected-method-id').value = id;
-    document.getElementById('detail-name').innerText = name;
-    document.getElementById('detail-description').innerHTML = desc;
-    document.getElementById('limit-min').innerText = min;
-    document.getElementById('limit-max').innerText = max;
-    document.getElementById('fee-fixed').innerText = fixed;
-    document.getElementById('fee-percent').innerText = percent;
+let currentMethod = null;
+
+function handleMethodSelect(card) {
+    document.querySelectorAll('.withdrawal-method-card').forEach(c => c.classList.remove('selected'));
+    card.classList.add('selected');
     
-    // Populate currencies
+    const data = JSON.parse(card.querySelector('.method-data').textContent);
+    currentMethod = data;
+    
+    document.getElementById('selected-method-id').value = data.id;
+    document.getElementById('submit-btn').disabled = false;
+    document.getElementById('method-limits').innerText = `${data.min} - ${data.max}`;
+
+    // Populate Currencies
     const select = document.getElementById('currency-select');
     select.innerHTML = '';
-    currencies.forEach(c => {
+    data.currencies.forEach(c => {
         const opt = document.createElement('option');
         opt.value = c.id;
-        opt.text = `${c.code} (${c.symbol})`;
+        opt.textContent = `${c.code} (${c.symbol})`;
         select.appendChild(opt);
     });
 
-    // Highlight card
-    document.querySelectorAll('.method-card').forEach(c => c.classList.remove('border-cyan'));
-    event.currentTarget.classList.add('border-cyan');
-    
-    calculateNet();
+    calculateWithdrawal();
 }
 
-function calculateNet() {
+function calculateWithdrawal() {
+    if (!currentMethod) return;
+
     const amount = parseFloat(document.getElementById('amount-input').value) || 0;
-    const fixed = parseFloat(document.getElementById('fee-fixed').innerText) || 0;
-    const percent = parseFloat(document.getElementById('fee-percent').innerText) || 0;
+    const fixed = parseFloat(currentMethod.fixed) || 0;
+    const percent = parseFloat(currentMethod.percent) || 0;
     
     const totalFee = fixed + (amount * percent / 100);
     const net = Math.max(0, amount - totalFee);
-    
-    const currencyText = document.getElementById('currency-select').selectedOptions[0]?.text.split(' ')[0] || '';
-    document.getElementById('net-amount').innerText = net.toLocaleString();
-    document.getElementById('net-currency').innerText = currencyText;
-}
+    const currency = document.getElementById('currency-select').selectedOptions[0]?.text.split(' ')[0] || '';
 
-document.getElementById('amount-input').addEventListener('input', calculateNet);
-document.getElementById('currency-select').addEventListener('change', calculateNet);
+    document.getElementById('calc-amount').innerText = `${amount.toLocaleString()} ${currency}`;
+    document.getElementById('calc-fees').innerText = `${totalFee.toLocaleString()} ${currency}`;
+    document.getElementById('calc-net').innerText = `${net.toLocaleString()} ${currency}`;
+}
 
 // Select first method on load
 window.onload = () => {
-    const firstCard = document.querySelector('.method-card');
-    if (firstCard) firstCard.click();
+    const firstCard = document.querySelector('.withdrawal-method-card');
+    if (firstCard) handleMethodSelect(firstCard);
 };
 </script>
 {% endblock %}

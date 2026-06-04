@@ -14,7 +14,6 @@ from apps.notifications.views import NotificationViewSet
 from apps.orders.views import CouponViewSet, OrderViewSet
 from apps.payments.views import DepositRequestViewSet, PaymentMethodViewSet, WithdrawalRequestViewSet
 from apps.services.views import ServiceViewSet
-from apps.support.views import TicketViewSet
 from apps.wallets.views import WalletViewSet
 
 router = DefaultRouter()
@@ -27,7 +26,6 @@ router.register("withdrawals", WithdrawalRequestViewSet, basename="withdrawal")
 router.register("orders", OrderViewSet, basename="order")
 router.register("coupons", CouponViewSet, basename="coupon")
 router.register("notifications", NotificationViewSet, basename="notification")
-router.register("tickets", TicketViewSet, basename="ticket")
 router.register("services", ServiceViewSet, basename="service")
 router.register("sessions", UserSessionViewSet, basename="session")
 
@@ -40,6 +38,7 @@ def health(request):
 
 urlpatterns = [
     path("", include("apps.site.urls")),
+    path("support/", include("apps.support.urls")),
     path("admin/", admin.site.urls),
     path("api/health/", health),
     path("api/auth/register/", RegisterView.as_view(), name="register"),

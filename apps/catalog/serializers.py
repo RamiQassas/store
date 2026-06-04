@@ -1,6 +1,6 @@
 from rest_framework import serializers
 
-from apps.catalog.models import Category, Product, ProductFormField, ProductVariant
+from apps.catalog.models import Category, Product, ProductVariant, ProductTierPrice, ProductUserPrice
 
 
 class CategorySerializer(serializers.ModelSerializer):
@@ -9,21 +9,22 @@ class CategorySerializer(serializers.ModelSerializer):
         fields = ("id", "name", "slug", "parent", "icon", "is_active", "sort_order")
 
 
+class ProductTierPriceSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ProductTierPrice
+        fields = ("id", "tier", "price")
+
+
 class ProductVariantSerializer(serializers.ModelSerializer):
+    tier_prices = ProductTierPriceSerializer(many=True, read_only=True)
+    
     class Meta:
         model = ProductVariant
-        fields = ("id", "name", "sku", "price", "discount_percent", "estimated_delivery_minutes", "is_active")
-
-
-class ProductFormFieldSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = ProductFormField
-        fields = ("id", "label", "key", "field_type", "required", "placeholder", "options", "sort_order")
+        fields = ("id", "name", "sku", "price", "wholesale_price", "vip_price", "discount_percent", "estimated_delivery_minutes", "is_active", "tier_prices")
 
 
 class ProductSerializer(serializers.ModelSerializer):
     variants = ProductVariantSerializer(many=True, read_only=True)
-    form_fields = ProductFormFieldSerializer(many=True, read_only=True)
     category_name = serializers.CharField(source="category.name", read_only=True)
 
     class Meta:
@@ -37,11 +38,10 @@ class ProductSerializer(serializers.ModelSerializer):
             "image",
             "description",
             "instructions",
-            "delivery_type",
             "is_active",
             "is_featured",
             "sort_order",
+            "form_schema",
             "metadata",
             "variants",
-            "form_fields",
         )

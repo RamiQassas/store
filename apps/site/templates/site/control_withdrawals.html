@@ -1,83 +1,107 @@
-{% extends "site/base.html" %}
+{% extends "site/control_base.html" %}
+{% load static %}
+
 {% block title %}إدارة طلبات السحب | Raqamiyat Admin{% endblock %}
-{% block content %}
-<section class="page-head">
-  <div>
-    <span class="eyebrow">Admin / Payments</span>
-    <h1>إدارة طلبات السحب</h1>
-    <p>راجع طلبات السحب المقدمة من العملاء، قم بمعالجتها أو الموافقة عليها أو رفضها.</p>
-  </div>
-</section>
 
-<section class="section">
-  <div class="table-wrap">
-    <table class="table">
-      <thead>
-        <tr>
-          <th>التاريخ</th>
-          <th>المستخدم</th>
-          <th>الوسيلة</th>
-          <th>المبلغ (الصافي)</th>
-          <th>البيانات</th>
-          <th>الحالة</th>
-          <th>إجراءات</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for withdrawal in withdrawals %}
-          <tr>
-            <td>{{ withdrawal.created_at|date:"Y-m-d H:i" }}</td>
-            <td>{{ withdrawal.user.email }}</td>
-            <td>{{ withdrawal.payment_method.name }}</td>
-            <td><strong>{{ withdrawal.amount }}</strong> <br> <small class="text-slate-400">({{ withdrawal.final_amount }})</small></td>
-            <td>
-              <code class="text-xs bg-slate-800 p-1 rounded">{{ withdrawal.payout_details.address }}</code>
-            </td>
-            <td>
-              <span class="badge 
-                {% if withdrawal.status == 'pending' %}warning
-                {% elif withdrawal.status == 'processing' %}info
-                {% elif withdrawal.status == 'approved' %}success
-                {% elif withdrawal.status == 'completed' %}primary
-                {% elif withdrawal.status == 'rejected' or withdrawal.status == 'cancelled' %}muted
-                {% endif %}">
-                {{ withdrawal.get_status_display }}
-              </span>
-            </td>
-            <td>
-              <div class="flex gap-1">
-                {% if withdrawal.status == 'pending' %}
-                  <button class="btn btn-sm btn-outline" onclick="actionWithdrawal('{{ withdrawal.id }}', 'process')">بدء المعالجة</button>
-                {% endif %}
-                
-                {% if withdrawal.status == 'pending' or withdrawal.status == 'processing' %}
-                  <button class="btn btn-sm btn-primary" onclick="actionWithdrawal('{{ withdrawal.id }}', 'approve')">موافقة</button>
-                  <button class="btn btn-sm btn-danger" onclick="actionWithdrawal('{{ withdrawal.id }}', 'reject')">رفض</button>
-                {% endif %}
+{% block control_content %}
+<div class="page-head">
+    <div>
+        <span class="eyebrow">Financial Operations</span>
+        <h1>إدارة طلبات السحب</h1>
+        <p class="text-muted">مراجعة ومعالجة طلبات سحب الأرصدة المقدمة من قبل العملاء.</p>
+    </div>
+</div>
 
-                {% if withdrawal.status == 'processing' or withdrawal.status == 'approved' %}
-                   <button class="btn btn-sm btn-success" onclick="actionWithdrawal('{{ withdrawal.id }}', 'complete')">إكمال</button>
-                {% endif %}
-              </div>
-            </td>
-          </tr>
-        {% empty %}
-          <tr><td colspan="7">لا توجد طلبات سحب حالياً.</td></tr>
-        {% endfor %}
-      </tbody>
-    </table>
-  </div>
-</section>
+<div class="management-card">
+    <div class="p-0 overflow-x-auto">
+        <table class="w-full text-sm text-right">
+            <thead class="text-[11px] text-slate-500 border-b border-white/5 uppercase bg-white/[0.01]">
+                <tr>
+                    <th class="p-4">التاريخ</th>
+                    <th class="p-4">المستخدم</th>
+                    <th class="p-4">الوسيلة والمبلغ</th>
+                    <th class="p-4">بيانات الاستلام</th>
+                    <th class="p-4">الحالة</th>
+                    <th class="p-4 text-left">إجراءات المعالجة</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for w in withdrawals %}
+                <tr class="border-b border-white/[0.02] last:border-0 hover:bg-white/[0.02] transition">
+                    <td class="p-4 text-[10px] text-slate-500">
+                        {{ w.created_at|date:"d M Y" }}<br>{{ w.created_at|date:"H:i" }}
+                    </td>
+                    <td class="p-4">
+                        <div class="font-bold text-slate-200">{{ w.user.email }}</div>
+                        <div class="text-[9px] text-muted">ID: {{ w.user.id|stringformat:"s"|slice:":8" }}</div>
+                    </td>
+                    <td class="p-4">
+                        <div class="flex flex-col">
+                            <span class="font-bold text-cyan">{{ w.amount }} {{ w.currency.code }}</span>
+                            <span class="text-[9px] text-danger">صافي: {{ w.final_amount }}</span>
+                        </div>
+                        <div class="text-[10px] text-slate-500 mt-1">{{ w.payment_method.name }}</div>
+                    </td>
+                    <td class="p-4">
+                        <code class="text-[10px] bg-slate-800 p-2 rounded block border border-white/5 font-mono max-w-[200px] truncate" title="{{ w.payout_details.address }}">
+                            {{ w.payout_details.address }}
+                        </code>
+                    </td>
+                    <td class="p-4">
+                        <span class="badge 
+                            {% if w.status == 'pending' %}warning
+                            {% elif w.status == 'processing' %}primary
+                            {% elif w.status == 'approved' %}success
+                            {% elif w.status == 'completed' %}success
+                            {% elif w.status == 'rejected' or w.status == 'cancelled' %}danger
+                            {% endif %} text-[9px]">
+                            {{ w.get_status_display }}
+                        </span>
+                    </td>
+                    <td class="p-4 text-left">
+                        <div class="flex justify-end gap-2">
+                            {% if w.status == 'pending' %}
+                            <button class="btn btn-sm btn-outline text-[10px] py-1 px-3" onclick="actionWithdrawal('{{ w.id }}', 'process')">
+                                <i class="fas fa-play ml-1"></i> بدء
+                            </button>
+                            {% endif %}
+                            
+                            {% if w.status == 'pending' or w.status == 'processing' %}
+                            <button class="btn btn-sm btn-primary text-[10px] py-1 px-3" onclick="actionWithdrawal('{{ w.id }}', 'approve')">
+                                <i class="fas fa-check ml-1"></i> موافقة
+                            </button>
+                            <button class="btn btn-sm btn-outline danger text-[10px] py-1 px-3" onclick="actionWithdrawal('{{ w.id }}', 'reject')">
+                                <i class="fas fa-times ml-1"></i> رفض
+                            </button>
+                            {% endif %}
+
+                            {% if w.status == 'processing' or w.status == 'approved' %}
+                            <button class="btn btn-sm btn-success text-[10px] py-1 px-3" onclick="actionWithdrawal('{{ w.id }}', 'complete')">
+                                <i class="fas fa-check-double ml-1"></i> إكمال
+                            </button>
+                            {% endif %}
+                        </div>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="6" class="p-12 text-center text-slate-500 italic">لا توجد طلبات سحب حالياً.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
 
 <script>
 async function actionWithdrawal(id, action) {
     let note = "";
     if (action === 'reject') {
-        note = prompt("سبب الرفض:");
+        note = prompt("يرجى إدخال سبب الرفض (سيظهر للمستخدم):");
         if (note === null) return;
     }
     
-    if (!confirm(`هل أنت متأكد من تنفيذ إجراء "${action}" على الطلب رقم ${id}؟`)) return;
+    if (!confirm(`هل أنت متأكد من تنفيذ إجراء "${action}" على طلب السحب هذا؟`)) return;
 
     try {
         const response = await fetch(`/api/withdrawals/${id}/${action}/`, {
@@ -93,7 +117,7 @@ async function actionWithdrawal(id, action) {
             location.reload();
         } else {
             const data = await response.json();
-            alert("خطأ: " + (data.detail || "تعذر تنفيذ الإجراء"));
+            alert("خطأ: " + (data.detail || data.message || "تعذر تنفيذ الإجراء"));
         }
     } catch (error) {
         alert("خطأ في الاتصال بالخادم");
@@ -102,12 +126,8 @@ async function actionWithdrawal(id, action) {
 </script>
 
 <style>
-.btn-danger { background: #ef4444; color: white; }
-.btn-success { background: #22c55e; color: white; }
-.btn-info { background: #3b82f6; color: white; }
-.badge.info { background: #3b82f6; }
-.badge.success { background: #22c55e; }
-.badge.primary { background: #06b6d4; }
-.badge.warning { background: #f59e0b; }
+    .btn-success { background: var(--success); color: #000; font-weight: bold; }
+    .btn-outline.danger { border-color: rgba(239, 68, 68, 0.3); color: var(--danger); }
+    .btn-outline.danger:hover { background: var(--danger); color: #fff; }
 </style>
 {% endblock %}

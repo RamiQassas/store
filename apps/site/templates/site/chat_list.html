@@ -1,0 +1,93 @@
+{% extends "site/base.html" %}
+{% load static %}
+
+{% block title %}مركز المساعدة | Raqamiyat{% endblock %}
+
+{% block extra_head %}
+<style>
+    .chat-card {
+        transition: all 0.3s ease;
+        border: 1px solid var(--panel-border);
+    }
+    .chat-card:hover {
+        border-color: var(--cyan);
+        transform: translateY(-3px);
+        background: rgba(6, 182, 212, 0.02);
+    }
+    .status-dot {
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        display: inline-block;
+    }
+    .status-waiting { background-color: var(--warning); box-shadow: 0 0 8px var(--warning); }
+    .status-in_progress { background-color: var(--success); box-shadow: 0 0 8px var(--success); }
+    .status-closed { background-color: var(--muted); }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-head">
+    <div>
+        <span class="eyebrow">Customer Support</span>
+        <h1>محادثات الدعم المباشر</h1>
+        <p class="text-muted">تواصل مع فريقنا مباشرة لحل أي مشكلة تواجهك.</p>
+    </div>
+    {% if not user.is_staff %}
+    <a href="{% url 'create_chat' %}" class="btn btn-primary">
+        <i class="fas fa-plus ml-2"></i> محادثة جديدة
+    </a>
+    {% endif %}
+</div>
+
+<div class="max-w-4xl mx-auto stack gap-4">
+    {% for room in rooms %}
+    <a href="{% url 'chat_room' room.id %}" class="panel p-6 chat-card flex justify-between items-center">
+        <div class="flex items-center gap-6">
+            <div class="w-12 h-12 bg-slate-800 rounded-xl flex items-center justify-center text-cyan text-xl">
+                <i class="fas fa-comments"></i>
+            </div>
+            <div>
+                <div class="flex items-center gap-3">
+                    <h3 class="font-bold text-lg">
+                        {% if user.is_staff %}{{ room.user.get_full_name|default:room.user.email }}{% else %}{{ room.subject|default:"محادثة دعم" }}{% endif %}
+                    </h3>
+                    <span class="text-[10px] text-muted font-mono">#{{ room.id|stringformat:"s"|truncatechars:8 }}</span>
+                </div>
+                <div class="flex items-center gap-4 mt-1">
+                    <div class="flex items-center gap-2">
+                        <span class="status-dot status-{{ room.status }}"></span>
+                        <span class="text-xs text-muted">{{ room.get_status_display }}</span>
+                    </div>
+                    <span class="text-[10px] text-slate-500">آخر نشاط: {{ room.last_message_at|timesince }}</span>
+                </div>
+            </div>
+        </div>
+        
+        <div class="flex items-center gap-4">
+            {% if user.is_staff %}
+                {% if room.unread_staff_count > 0 %}
+                <span class="badge danger">{{ room.unread_staff_count }}</span>
+                {% endif %}
+            {% else %}
+                {% if room.unread_user_count > 0 %}
+                <span class="badge danger">{{ room.unread_user_count }}</span>
+                {% endif %}
+            {% endif %}
+            <i class="fas fa-chevron-left text-slate-700"></i>
+        </div>
+    </a>
+    {% empty %}
+    <div class="p-20 text-center panel bg-slate-900/50">
+        <div class="w-20 h-20 bg-slate-800 rounded-full flex items-center justify-center mx-auto mb-6 text-slate-600">
+            <i class="fas fa-comment-slash text-4xl"></i>
+        </div>
+        <h3 class="text-xl font-bold mb-2">لا توجد محادثات نشطة</h3>
+        <p class="text-muted mb-8">هل لديك استفسار؟ ابدأ محادثة مباشرة مع فريق الدعم الآن.</p>
+        {% if not user.is_staff %}
+        <a href="{% url 'create_chat' %}" class="btn btn-primary px-12">بدء محادثة الآن</a>
+        {% endif %}
+    </div>
+    {% endfor %}
+</div>
+{% endblock %}

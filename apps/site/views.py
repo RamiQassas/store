@@ -23,7 +23,7 @@ from apps.notifications.services import notify_user
 from apps.orders.models import Order, OrderItem, OrderLog, Coupon
 from apps.payments.models import DepositRequest, PaymentMethod, WithdrawalRequest
 from apps.site.forms import LoginForm, RegisterForm, TicketForm, PaymentMethodForm, CurrencyForm, ModerateUserForm, ProductForm, VariantForm
-from apps.support.models import Ticket, TicketMessage, CannedReply
+from apps.support.models import Ticket, TicketMessage, ChatCannedReply
 from apps.wallets.models import LedgerEntry, Wallet, WalletTransaction
 from apps.wallets.services import get_or_create_wallet
 
@@ -215,16 +215,34 @@ def email_verify(request, uidb64, token):
     except (TypeError, ValueError, OverflowError, User.DoesNotExist):
         user = None
 
-    if user is not None and default_token_generator.check_token(user, token):
-        user.email_verified = True
-        user.save(update_fields=["email_verified"])
-        ActivityLog.objects.create(user=user, action="Email Verified", description="User verified their email address")
-        messages.success(request, "تم تفعيل بريدك الإلكتروني بنجاح!")
-        if request.user.is_authenticated:
-            return redirect("dashboard")
-        return redirect("site_login")
+    if user is not None:
+        try:
+            token_obj = EmailVerificationToken.objects.get(user=user, token=token)
+            if token_obj.is_used:
+                messages.warning(request, "رابط التفعيل هذا تم استخدامه مسبقاً.")
+                return redirect("site_login")
+            
+            if token_obj.is_expired():
+                messages.error(request, "رابط التفعيل انتهت صلاحيته. يمكنك طلب رابط جديد.")
+                return render(request, "site/email_verify_expired.html", {"user_id": user.id})
+                
+            with transaction.atomic():
+                user.email_verified = True
+                user.save(update_fields=["email_verified"])
+                token_obj.is_used = True
+                token_obj.save(update_fields=["is_used"])
+                
+                ActivityLog.objects.create(user=user, action="Email Verified", description="User verified their email address")
+                
+            messages.success(request, "تم تفعيل بريدك الإلكتروني بنجاح!")
+            if request.user.is_authenticated:
+                return redirect("dashboard")
+            return redirect("site_login")
+        except EmailVerificationToken.DoesNotExist:
+            messages.error(request, "رابط التفعيل غير صالح.")
+            return redirect("home")
     else:
-        messages.error(request, "رابط التفعيل غير صالح أو انتهت صلاحيته.")
+        messages.error(request, "المستخدم غير موجود.")
         return redirect("home")
 
 
@@ -232,12 +250,19 @@ def email_verify(request, uidb64, token):
 def resend_verification(request):
     if request.user.email_verified:
         messages.info(request, "بريدك الإلكتروني مفعل بالفعل.")
+        return redirect("dashboard")
+
+    # Cooldown check: 5 minutes
+    last_token = EmailVerificationToken.objects.filter(user=request.user).order_by("-created_at").first()
+    if last_token and (timezone.now() - last_token.created_at) < timedelta(minutes=5):
+        messages.warning(request, "يرجى الانتظار قليلاً قبل طلب رابط تفعيل جديد.")
+        return redirect("dashboard")
+
+    success = send_verification_email(request, request.user)
+    if success:
+        messages.success(request, "تم إعادة إرسال رابط التفعيل إلى بريدك الإلكتروني بنجاح.")
     else:
-        success = send_verification_email(request, request.user)
-        if success:
-            messages.success(request, "تم إعادة إرسال رابط التفعيل إلى بريدك الإلكتروني بنجاح.")
-        else:
-            messages.error(request, "تعذر إرسال البريد حالياً. يرجى المحاولة مرة أخرى لاحقاً أو التواصل مع الدعم.")
+        messages.error(request, "تعذر إرسال البريد حالياً. يرجى المحاولة مرة أخرى لاحقاً أو التواصل مع الدعم.")
     return redirect("dashboard")
 
 
@@ -608,7 +633,7 @@ def control_user_moderate(request, pk):
         "restriction_deposits": user_to_moderate.restriction_deposits,
         "restriction_purchases": user_to_moderate.restriction_purchases,
     }
-    
+
     form = ModerateUserForm(request.POST or None, instance=user_to_moderate)
     if request.method == "POST" and form.is_valid():
         with transaction.atomic():
@@ -620,7 +645,8 @@ def control_user_moderate(request, pk):
                 "restriction_deposits": user_to_moderate.restriction_deposits,
                 "restriction_purchases": user_to_moderate.restriction_purchases,
             }
-            
+
+            # Local moderation log
             ModerationLog.objects.create(
                 user=user_to_moderate,
                 moderator=request.user,
@@ -630,17 +656,50 @@ def control_user_moderate(request, pk):
                 reason=user_to_moderate.suspension_reason,
                 internal_notes=user_to_moderate.admin_notes
             )
-            
+
+            # Universal System Audit Log
+            from apps.common.services import log_system_action
+            log_system_action(
+                actor=request.user,
+                action_type="USER_MODERATION",
+                target=user_to_moderate,
+                description=f"Updated account settings for {user_to_moderate.email}",
+                before_state=previous_state,
+                after_state=new_state,
+                ip_address=request.META.get('REMOTE_ADDR'),
+                user_agent=request.META.get('HTTP_USER_AGENT'),
+                reason=user_to_moderate.suspension_reason
+            )
+
             messages.success(request, f"تم تحديث حالة حساب {user_to_moderate.email} بنجاح.")
             return redirect("control_users_list")
-            
+
+    # Fetch both logs for comprehensive view
+    from apps.common.models import SystemAuditLog
+    from django.contrib.contenttypes.models import ContentType
+
+    user_ct = ContentType.objects.get_for_model(User)
+    audit_logs = SystemAuditLog.objects.filter(content_type=user_ct, object_id=str(user_to_moderate.id))
     moderation_logs = user_to_moderate.moderation_history.select_related("moderator").all()
+
     return render(request, "site/control_user_moderate.html", {
-        "form": form, 
+        "form": form,
         "user_to_moderate": user_to_moderate,
-        "moderation_logs": moderation_logs
+        "moderation_logs": moderation_logs,
+        "audit_logs": audit_logs
     })
 
+from django.http import JsonResponse
+
+@staff_member_required
+def control_category_create_ajax(request):
+    if request.method == "POST":
+        name = request.POST.get("name")
+        if name:
+            from django.utils.text import slugify
+            category = Category.objects.create(name=name, slug=slugify(name))
+            return JsonResponse({"status": "success", "id": str(category.id), "name": category.name})
+    return JsonResponse({"status": "error", "message": "Invalid request"}, status=400)
 
 @staff_member_required
 def control_products_list(request):

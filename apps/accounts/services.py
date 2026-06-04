@@ -59,13 +59,30 @@ def send_brevo_email(to_email, to_name, subject, html_content, text_content=None
         return False
 
 
+import secrets
+from datetime import timedelta
+from django.utils import timezone
+from apps.accounts.models import EmailVerificationToken
+
 def send_verification_email(request, user):
     """
-    Generates a verification link and sends a branded HTML email via Brevo API.
+    Generates a secure verification link and sends a branded HTML email via Brevo API.
+    Uses EmailVerificationToken model to decouple from session state.
     """
-    token = default_token_generator.make_token(user)
+    # Invalidate previous unused tokens
+    EmailVerificationToken.objects.filter(user=user, is_used=False).update(is_used=True)
+    
+    token_str = secrets.token_urlsafe(64)
+    expires_at = timezone.now() + timedelta(hours=24)
+    
+    EmailVerificationToken.objects.create(
+        user=user,
+        token=token_str,
+        expires_at=expires_at
+    )
+    
     uid = urlsafe_base64_encode(force_bytes(user.pk))
-    path = reverse('email_verify', kwargs={'uidb64': uid, 'token': token})
+    path = reverse('email_verify', kwargs={'uidb64': uid, 'token': token_str})
     protocol = 'https' if request.is_secure() else 'http'
     domain = request.get_host()
     link = f"{protocol}://{domain}{path}"

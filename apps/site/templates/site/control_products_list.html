@@ -1,82 +1,93 @@
-{% extends "site/base.html" %}
+{% extends "site/control_base.html" %}
+{% load static %}
+
 {% block title %}إدارة المنتجات | Raqamiyat Admin{% endblock %}
-{% block content %}
-<section class="page-head">
-  <div>
-    <span class="eyebrow">Admin / Catalog</span>
-    <h1>إدارة المنتجات</h1>
-    <p>تحكم في كتالوج المنتجات، الباقات، والتصنيفات المتاحة في المتجر.</p>
-  </div>
-  <a href="{% url 'control_product_create' %}" class="btn btn-primary">إضافة منتج جديد</a>
-</section>
 
-<section class="section">
-  <div class="mb-6">
-    <form method="get" class="flex gap-2">
-      <input type="text" name="q" value="{{ query }}" placeholder="بحث باسم المنتج، الرابط، أو التصنيف..." class="w-full bg-slate-800 border-slate-700 rounded p-2 text-white">
-      <button type="submit" class="btn btn-primary">بحث</button>
-      {% if query %}
-        <a href="{% url 'control_products_list' %}" class="btn btn-outline">مسح</a>
-      {% endif %}
-    </form>
-  </div>
+{% block control_content %}
+<div class="page-head">
+    <div>
+        <span class="eyebrow">Catalog Management</span>
+        <h1>قائمة المنتجات</h1>
+        <p class="text-muted">إدارة مخزون الخدمات الرقمية، تحديث الأسعار، والتحكم في ظهور المنتجات.</p>
+    </div>
+    <a href="{% url 'control_product_create' %}" class="btn btn-primary btn-sm">
+        <i class="fas fa-plus ml-2"></i> إضافة منتج جديد
+    </a>
+</div>
 
-  <div class="table-wrap">
-    <table class="table">
-      <thead>
-        <tr>
-          <th>المنتج</th>
-          <th>التصنيف</th>
-          <th>الباقات</th>
-          <th>النوع</th>
-          <th>الحالة</th>
-          <th>إجراءات</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for p in products %}
-          <tr>
-            <td>
-              <div class="flex items-center gap-3">
-                {% if p.thumbnail %}
-                  <img src="{{ p.thumbnail.url }}" class="w-10 h-10 rounded bg-slate-700 object-cover">
-                {% elif p.image %}
-                  <img src="{{ p.image.url }}" class="w-10 h-10 rounded bg-slate-700 object-cover">
-                {% else %}
-                  <div class="w-10 h-10 rounded bg-slate-700 flex items-center justify-center">
-                    <i class="fas {{ p.icon|default:'fa-box' }} text-cyan"></i>
-                  </div>
-                {% endif %}
-                <div class="flex flex-col">
-                  <strong>{{ p.name }}</strong>
-                  <small class="text-slate-500">{{ p.slug }}</small>
-                </div>
-              </div>
-            </td>
-            <td><span class="badge muted">{{ p.category.name }}</span></td>
-            <td>
-              <span class="text-xs">{{ p.variants.count }} باقة</span>
-            </td>
-            <td><small>{{ p.get_delivery_type_display }}</small></td>
-            <td>
-              {% if p.is_active %}
-                <span class="badge">نشط</span>
-              {% else %}
-                <span class="badge warning">معطل</span>
-              {% endif %}
-              {% if p.is_featured %}
-                <span class="badge primary">مميز</span>
-              {% endif %}
-            </td>
-            <td>
-              <a href="{% url 'control_product_edit' p.pk %}" class="btn btn-sm btn-outline">تعديل</a>
-            </td>
-          </tr>
-        {% empty %}
-          <tr><td colspan="6">لا توجد منتجات مضافة حالياً.</td></tr>
-        {% endfor %}
-      </tbody>
-    </table>
-  </div>
-</section>
+<div class="management-card">
+    <div class="management-header flex-col sm:flex-row gap-4">
+        <form method="get" class="flex-grow w-full max-w-md">
+            <div class="input-wrapper">
+                <input type="text" name="q" value="{{ query }}" placeholder="بحث بالاسم، التصنيف، أو Slug..." class="text-xs">
+                <button type="submit" class="btn btn-primary btn-sm px-4"><i class="fas fa-search"></i></button>
+            </div>
+        </form>
+    </div>
+    
+    <div class="p-0 overflow-x-auto">
+        <table class="w-full text-sm text-right">
+            <thead class="text-[11px] text-slate-500 border-b border-white/5 uppercase bg-white/[0.01]">
+                <tr>
+                    <th class="p-4">المنتج</th>
+                    <th class="p-4">التصنيف</th>
+                    <th class="p-4">الباقات</th>
+                    <th class="p-4">الحالة</th>
+                    <th class="p-4">الترتيب</th>
+                    <th class="p-4 text-left">إجراءات</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for p in products %}
+                <tr class="border-b border-white/[0.02] last:border-0 hover:bg-white/[0.02] transition">
+                    <td class="p-4">
+                        <div class="flex items-center gap-3">
+                            <div class="w-12 h-12 rounded bg-slate-800 border border-white/5 overflow-hidden">
+                                {% if p.image %}
+                                <img src="{{ p.image.url }}" class="w-full h-full object-cover">
+                                {% else %}
+                                <div class="w-full h-full flex items-center justify-center text-slate-600"><i class="fas fa-box"></i></div>
+                                {% endif %}
+                            </div>
+                            <div>
+                                <div class="font-bold text-slate-200">{{ p.name }}</div>
+                                <div class="text-[10px] text-slate-500 font-mono">{{ p.slug }}</div>
+                            </div>
+                        </div>
+                    </td>
+                    <td class="p-4">
+                        <span class="text-xs bg-slate-800 px-3 py-1 rounded-full border border-white/5">{{ p.category.name }}</span>
+                    </td>
+                    <td class="p-4">
+                        <div class="flex flex-col gap-1">
+                            <span class="text-[10px] text-muted">{{ p.variants.count }} باقات</span>
+                            {% if p.variants.first %}
+                            <span class="font-mono text-cyan text-[11px]">{{ p.variants.first.price }} SYP+</span>
+                            {% endif %}
+                        </div>
+                    </td>
+                    <td class="p-4">
+                        <div class="flex flex-col gap-1">
+                            <span class="badge {% if p.is_active %}success{% else %}muted{% endif %} text-[9px]">{% if p.is_active %}نشط{% else %}مسودة{% endif %}</span>
+                            {% if p.is_featured %}<span class="badge primary text-[9px]"><i class="fas fa-star ml-1"></i> مميز</span>{% endif %}
+                        </div>
+                    </td>
+                    <td class="p-4 text-xs font-mono">{{ p.sort_order }}</td>
+                    <td class="p-4 text-left">
+                        <div class="flex justify-end gap-2">
+                            <a href="{% url 'control_product_edit' p.id %}" class="btn btn-sm btn-outline text-[10px] py-1 px-4 hover:bg-cyan hover:text-black transition">
+                                <i class="fas fa-edit ml-1"></i> تعديل
+                            </a>
+                        </div>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="6" class="p-12 text-center text-slate-500 italic">لا توجد منتجات مضافة بعد.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
 {% endblock %}

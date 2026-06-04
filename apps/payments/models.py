@@ -24,9 +24,17 @@ class PaymentMethod(TimeStampedModel):
     is_active = models.BooleanField(default=True, verbose_name="نشط")
     is_maintenance_mode = models.BooleanField(default=False, verbose_name="وضع الصيانة")
 
-    # Payment Details (For Deposits)
-    account_number = models.CharField(max_length=120, blank=True, verbose_name="رقم الحساب")
-    account_name = models.CharField(max_length=120, blank=True, verbose_name="اسم صاحب الحساب")
+    # Dynamic Form Engine
+    form_schema = models.JSONField(
+        default=dict,
+        blank=True,
+        verbose_name="نموذج البيانات الديناميكي",
+        help_text='مثال: {"version": 1, "fields": [{"label": "رقم الحوالة", "type": "text", "required": true}]}'
+    )
+
+    # Legacy fields (keeping some for bank info if needed, but primarily moving to form_schema)
+    account_number = models.CharField(max_length=120, blank=True, verbose_name="رقم الحساب (افتراضي)")
+    account_name = models.CharField(max_length=120, blank=True, verbose_name="اسم صاحب الحساب (افتراضي)")
     iban = models.CharField(max_length=120, blank=True, verbose_name="IBAN")
     wallet_address = models.CharField(max_length=255, blank=True, verbose_name="عنوان المحفظة / معرف")
     qr_image = models.ImageField(upload_to="payment-methods/qr/", blank=True, null=True, verbose_name="صورة QR")

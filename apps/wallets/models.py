@@ -15,11 +15,34 @@ class Wallet(TimeStampedModel):
     frozen_balance = models.DecimalField(max_digits=14, decimal_places=2, default=Decimal("0.00"), verbose_name="الرصيد المجمد (سحوبات/طلبات)")
     held_balance = models.DecimalField(max_digits=14, decimal_places=2, default=Decimal("0.00"), verbose_name="الرصيد المحجوز (إداري/نزاعات)")
     pending_balance = models.DecimalField(max_digits=14, decimal_places=2, default=Decimal("0.00"), verbose_name="الرصيد المعلق (إيداعات قيد الانتظار)")
+    reserved_balance = models.DecimalField(max_digits=14, decimal_places=2, default=Decimal("0.00"), verbose_name="الرصيد المحجوز (طلبات قيد التنفيذ)")
 
     class Meta:
         indexes = [models.Index(fields=["currency"])]
         verbose_name = "محفظة"
         verbose_name_plural = "المحافظ"
+        constraints = [
+            models.CheckConstraint(
+                check=models.Q(available_balance__gte=0),
+                name="available_balance_non_negative"
+            ),
+            models.CheckConstraint(
+                check=models.Q(frozen_balance__gte=0),
+                name="frozen_balance_non_negative"
+            ),
+            models.CheckConstraint(
+                check=models.Q(held_balance__gte=0),
+                name="held_balance_non_negative"
+            ),
+            models.CheckConstraint(
+                check=models.Q(pending_balance__gte=0),
+                name="pending_balance_non_negative"
+            ),
+            models.CheckConstraint(
+                check=models.Q(reserved_balance__gte=0),
+                name="reserved_balance_non_negative"
+            ),
+        ]
 
     def __str__(self):
         return f"{self.user} - {self.available_balance} {self.currency}"
@@ -37,6 +60,8 @@ class LedgerEntry(TimeStampedModel):
         RELEASE = "release", "فك تجميد"
         HOLD = "hold", "حجز إداري"
         UNHOLD = "unhold", "فك حجز"
+        RESERVE = "reserve", "حجز طلب"
+        UNRESERVE = "unreserve", "فك حجز طلب"
         REFUND = "refund", "استرداد"
         PENDING_DEPOSIT = "pending_deposit", "إيداع معلق"
         PENDING_CANCEL = "pending_cancel", "إلغاء إيداع معلق"
@@ -47,6 +72,11 @@ class LedgerEntry(TimeStampedModel):
     balance_after = models.DecimalField(max_digits=14, decimal_places=2, help_text="Available balance after this operation")
     reference = models.CharField(max_length=120, blank=True, db_index=True)
     description = models.CharField(max_length=255, blank=True)
+    
+    # Enhanced tracking
+    source = models.CharField(max_length=100, blank=True, help_text="Source of the transaction (e.g. order, deposit, admin)")
+    reason = models.CharField(max_length=255, blank=True, help_text="Reason for the transaction")
+    
     metadata = models.JSONField(default=dict, blank=True)
     created_by = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL)
 
@@ -55,6 +85,7 @@ class LedgerEntry(TimeStampedModel):
             models.Index(fields=["wallet", "created_at"]),
             models.Index(fields=["entry_type"]),
             models.Index(fields=["reference"]),
+            models.Index(fields=["source"]),
         ]
         verbose_name = "سجل حركة"
         verbose_name_plural = "سجلات الحركة"

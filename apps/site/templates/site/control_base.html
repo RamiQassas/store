@@ -1,0 +1,161 @@
+{% extends "site/base.html" %}
+{% load static %}
+
+{% block extra_head %}
+<style>
+    .admin-layout {
+        display: grid;
+        grid-template-columns: 240px 1fr;
+        gap: 2rem;
+        min-height: 80vh;
+    }
+
+    .admin-sidebar {
+        background: var(--panel);
+        border: 1px solid var(--panel-border);
+        border-radius: var(--radius);
+        padding: 1.5rem 1rem;
+        height: fit-content;
+        position: sticky;
+        top: 2rem;
+    }
+
+    .admin-nav {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+
+    .admin-nav-link {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        padding: 0.875rem 1.25rem;
+        border-radius: 10px;
+        color: var(--muted);
+        font-weight: 600;
+        font-size: 0.875rem;
+        transition: all 0.2s ease;
+    }
+
+    .admin-nav-link i {
+        width: 20px;
+        text-align: center;
+        font-size: 1rem;
+    }
+
+    .admin-nav-link:hover {
+        background: rgba(255, 255, 255, 0.03);
+        color: var(--text);
+    }
+
+    .admin-nav-link.active {
+        background: rgba(6, 182, 212, 0.1);
+        color: var(--cyan);
+    }
+
+    .admin-main {
+        min-width: 0; /* Prevent grid overflow */
+    }
+
+    .management-card {
+        background: var(--panel);
+        border: 1px solid var(--panel-border);
+        border-radius: var(--radius);
+        overflow: hidden;
+    }
+
+    .management-header {
+        padding: 1.5rem 2rem;
+        border-bottom: 1px solid var(--panel-border);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        background: rgba(255, 255, 255, 0.01);
+    }
+
+    .management-body {
+        padding: 2rem;
+    }
+
+    .admin-stats-card {
+        padding: 1.5rem;
+        border-radius: var(--radius);
+        background: var(--panel);
+        border: 1px solid var(--panel-border);
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+    }
+
+    .asc-icon {
+        width: 48px;
+        height: 48px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.25rem;
+        background: rgba(6, 182, 212, 0.1);
+        color: var(--cyan);
+    }
+
+    @media (max-width: 1024px) {
+        .admin-layout { grid-template-columns: 1fr; }
+        .admin-sidebar { position: static; }
+    }
+</style>
+{% block control_head %}{% endblock %}
+{% endblock %}
+
+{% block content %}
+<div class="admin-layout">
+    <!-- Sidebar -->
+    <aside class="admin-sidebar">
+        <div class="mb-6 px-4">
+            <span class="eyebrow">Staff Operations</span>
+            <h4 class="font-bold text-sm text-slate-400">لوحة الإدارة</h4>
+        </div>
+        
+        <nav class="admin-nav">
+            <a href="{% url 'control_dashboard' %}" class="admin-nav-link {% if request.resolver_match.url_name == 'control_dashboard' %}active{% endif %}">
+                <i class="fas fa-chart-pie"></i> الرئيسية
+            </a>
+            <a href="{% url 'control_orders_list' %}" class="admin-nav-link {% if 'order' in request.path %}active{% endif %}">
+                <i class="fas fa-shopping-bag"></i> الطلبات
+            </a>
+            <a href="{% url 'control_users_list' %}" class="admin-nav-link {% if 'user' in request.path %}active{% endif %}">
+                <i class="fas fa-users"></i> المستخدمين
+            </a>
+            <a href="{% url 'control_products_list' %}" class="admin-nav-link {% if 'product' in request.path %}active{% endif %}">
+                <i class="fas fa-box"></i> المنتجات
+            </a>
+            <a href="{% url 'currencies_list' %}" class="admin-nav-link {% if 'currenc' in request.path %}active{% endif %}">
+                <i class="fas fa-coins"></i> العملات
+            </a>
+            <a href="{% url 'payment_methods_list' %}" class="admin-nav-link {% if 'payment-method' in request.path %}active{% endif %}">
+                <i class="fas fa-credit-card"></i> وسائل الدفع
+            </a>
+            <a href="{% url 'control_withdrawals' %}" class="admin-nav-link {% if 'withdrawal' in request.path %}active{% endif %}">
+                <i class="fas fa-bank"></i> السحوبات
+            </a>
+            <a href="{% url 'chat_list' %}" class="admin-nav-link {% if 'chat' in request.path %}active{% endif %}">
+                <i class="fas fa-headset"></i> محادثات الدعم
+            </a>
+            <a href="{% url 'control_reports' %}" class="admin-nav-link {% if 'report' in request.path %}active{% endif %}">
+                <i class="fas fa-file-invoice"></i> التقارير
+            </a>
+            <div class="mt-4 pt-4 border-t border-white/5 px-4">
+                <a href="{% url 'admin:index' %}" class="text-[10px] text-slate-600 hover:text-cyan transition">
+                    <i class="fas fa-cog ml-1"></i> Django Admin
+                </a>
+            </div>
+        </nav>
+    </aside>
+
+    <!-- Main -->
+    <main class="admin-main">
+        {% block control_content %}{% endblock %}
+    </main>
+</div>
+{% endblock %}
