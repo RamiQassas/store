@@ -662,9 +662,34 @@ def control_withdrawals(request):
 def control_users_list(request):
     query = request.GET.get("q", "").strip()
     users = User.objects.select_related("wallet").order_by("-date_joined")
+    
+    if request.method == "POST" and request.POST.get("action") == "bulk_tier":
+        target_tier = request.POST.get("target_tier")
+        user_ids = request.POST.getlist("user_ids")
+        if target_tier in User.Tier.values and user_ids:
+            with transaction.atomic():
+                updated_count = User.objects.filter(id__in=user_ids).update(tier=target_tier)
+                messages.success(request, f"تم تحديث فئة {updated_count} مستخدم بنجاح.")
+                
+                # Audit log for bulk action
+                from apps.common.services import log_system_action
+                log_system_action(
+                    actor=request.user,
+                    action_type="BULK_TIER_UPDATE",
+                    description=f"Bulk updated {updated_count} users to {target_tier}",
+                    ip_address=request.META.get('REMOTE_ADDR'),
+                    metadata={"user_ids": user_ids, "new_tier": target_tier}
+                )
+            return redirect("control_users_list")
+
     if query:
         users = users.filter(Q(email__icontains=query) | Q(phone__icontains=query) | Q(first_name__icontains=query) | Q(last_name__icontains=query))
-    return render(request, "site/control_users_list.html", {"users": users, "query": query})
+    
+    return render(request, "site/control_users_list.html", {
+        "users": users, 
+        "query": query,
+        "tiers": User.Tier.choices
+    })
 
 
 @staff_member_required

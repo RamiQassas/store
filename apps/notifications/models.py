@@ -53,3 +53,16 @@ class NotificationSetting(TimeStampedModel):
     class Meta:
         verbose_name = "إعدادات التنبيهات"
         verbose_name_plural = "إعدادات التنبيهات"
+
+
+class PushSubscription(TimeStampedModel):
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, related_name="push_subscriptions", on_delete=models.CASCADE)
+    endpoint = models.TextField()
+    auth = models.CharField(max_length=255)
+    p256dh = models.CharField(max_length=255)
+    browser = models.CharField(max_length=100, blank=True)
+
+    class Meta:
+        unique_together = ("user", "endpoint")
+        verbose_name = "اشتراك دفع"
+        verbose_name_plural = "اشتراكات الدفع"

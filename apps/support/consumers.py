@@ -128,6 +128,18 @@ class SupportConsumer(AsyncWebsocketConsumer):
 
         room.save()
         
+        # Real-time Web Push Trigger
+        from apps.notifications.services import notify_user
+        if is_staff:
+            notify_user(
+                user=room.user,
+                title="رد جديد من الدعم الفني",
+                body=text[:100] if text else "قام الموظف بإرسال ملف/صورة",
+                action_url=f"/support/chats/{room.id}/",
+                priority="high",
+                metadata={"type": "chat_reply", "room_id": str(room.id)}
+            )
+        
         res = {"timestamp": msg.created_at.strftime("%H:%M")}
         if msg.file:
             res.update({

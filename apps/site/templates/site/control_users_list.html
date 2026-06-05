@@ -12,16 +12,25 @@
     </div>
 </div>
 
-<div class="management-card">
+<form method="post" id="bulk-form" class="management-card">
+    {% csrf_token %}
+    <input type="hidden" name="action" value="bulk_tier">
+    
     <div class="management-header flex-col sm:flex-row gap-4">
-        <form method="get" class="flex-grow w-full max-w-md">
+        <div class="flex-grow w-full max-w-md">
             <div class="input-wrapper">
                 <input type="text" name="q" value="{{ query }}" placeholder="بحث بالبريد، الهاتف، أو الاسم..." class="text-xs">
-                <button type="submit" class="btn btn-primary btn-sm px-4"><i class="fas fa-search"></i></button>
+                <button type="button" onclick="this.form.method='get'; this.form.submit();" class="btn btn-primary btn-sm px-4"><i class="fas fa-search"></i></button>
             </div>
-        </form>
-        <div class="flex gap-2">
-            <span class="text-[10px] text-muted">إجمالي المستخدمين: <strong>{{ users.count }}</strong></span>
+        </div>
+        <div class="flex items-center gap-4">
+            <select name="target_tier" class="text-xs bg-slate-800 border-white/5 py-1 px-3 rounded-lg" style="width: auto;">
+                <option value="">تغيير الفئة المحددة إلى...</option>
+                {% for val, label in tiers %}
+                <option value="{{ val }}">{{ label }}</option>
+                {% endfor %}
+            </select>
+            <button type="submit" class="btn btn-sm btn-outline text-[10px]">تطبيق</button>
         </div>
     </div>
     
@@ -29,6 +38,7 @@
         <table class="w-full text-sm text-right">
             <thead class="text-[11px] text-slate-500 border-b border-white/5 uppercase bg-white/[0.01]">
                 <tr>
+                    <th class="p-4 w-10"><input type="checkbox" id="select-all"></th>
                     <th class="p-4">المستخدم</th>
                     <th class="p-4">الرصيد</th>
                     <th class="p-4">الفئة / الدور</th>
@@ -40,6 +50,7 @@
             <tbody>
                 {% for user in users %}
                 <tr class="border-b border-white/[0.02] last:border-0 hover:bg-white/[0.02] transition">
+                    <td class="p-4"><input type="checkbox" name="user_ids" value="{{ user.id }}" class="user-checkbox"></td>
                     <td class="p-4">
                         <div class="flex items-center gap-3">
                             <div class="w-10 h-10 rounded-full bg-slate-800 flex items-center justify-center text-xs text-muted border border-white/5">
@@ -83,5 +94,14 @@
             </tbody>
         </table>
     </div>
-</div>
+</form>
+
+<script>
+    document.getElementById('select-all').onclick = function() {
+        var checkboxes = document.querySelectorAll('.user-checkbox');
+        for (var checkbox of checkboxes) {
+            checkbox.checked = this.checked;
+        }
+    }
+</script>
 {% endblock %}
