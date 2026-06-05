@@ -385,11 +385,16 @@ def deposits(request):
                     field_name = key.replace("custom_", "")
                     dynamic_data[field_name] = value
 
+            wallet = get_or_create_wallet(request.user)
+            base_amount = currency.to_base(amount, "deposit")
+            wallet_amount = wallet.currency.from_base(base_amount, "deposit")
+
             with transaction.atomic():
                 deposit = DepositRequest.objects.create(
                     user=request.user,
                     payment_method=method,
                     amount=amount,
+                    wallet_amount=wallet_amount,
                     currency=currency,
                     transaction_id=dynamic_data.get("ref_id", ""),
                     proof_image=proof,
@@ -397,10 +402,9 @@ def deposits(request):
                     status=DepositRequest.Status.PENDING
                 )
                 from apps.wallets.services import track_pending_deposit
-                wallet = get_or_create_wallet(request.user)
                 track_pending_deposit(
                     wallet_id=wallet.id,
-                    amount=amount,
+                    amount=wallet_amount,
                     reference=f"deposit:{deposit.id}",
                     description=f"إيداع معلق عبر {method.name}",
                     created_by=request.user,
@@ -634,11 +638,16 @@ def withdrawals(request):
             messages.error(request, f"المبلغ يجب أن يكون بين {method.withdrawal_min_amount} و {method.withdrawal_max_amount}.")
         elif method.is_maintenance_mode:
             messages.error(request, "وسيلة السحب هذه حالياً في وضع الصيانة.")
-        elif wallet.available_balance < amount:
-            messages.error(request, "الرصيد غير كافٍ لإجراء عملية السحب.")
         elif not method.supported_currencies.filter(id=currency.id).exists():
              messages.error(request, "هذه العملة غير مدعومة لوسيلة السحب المختارة.")
         else:
+            base_amount = currency.to_base(amount, "withdrawal")
+            wallet_amount = wallet.currency.from_base(base_amount, "withdrawal")
+
+            if wallet.available_balance < wallet_amount:
+                messages.error(request, "الرصيد غير كافٍ لإجراء عملية السحب بعد التحويل.")
+                return redirect("dashboard_withdrawals")
+
             # Handle Dynamic Fields
             dynamic_data = {}
             for key, value in request.POST.items():
@@ -651,6 +660,7 @@ def withdrawals(request):
                     user=request.user,
                     payment_method=method,
                     amount=amount,
+                    wallet_amount=wallet_amount,
                     currency=currency,
                     payout_details={"address": dynamic_data.get("address", ""), "dynamic": dynamic_data},
                     metadata={"dynamic_fields": dynamic_data, "source": "multi_step_ui"},
@@ -659,7 +669,7 @@ def withdrawals(request):
                 from apps.wallets.services import freeze_funds
                 freeze_funds(
                     wallet_id=wallet.id,
-                    amount=amount,
+                    amount=wallet_amount,
                     reference=f"with:{withdrawal.id}",
                     description=f"سحب رصيد معلق عبر {method.name}",
                     created_by=request.user,

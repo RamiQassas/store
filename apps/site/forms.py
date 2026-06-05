@@ -41,7 +41,16 @@ from apps.payments.models import PaymentMethod
 class CurrencyForm(forms.ModelForm):
     class Meta:
         model = Currency
-        fields = ["name", "code", "symbol", "exchange_rate", "decimal_places", "display_order", "is_active", "is_default"]
+        fields = ["name", "code", "symbol", "buy_rate", "sell_rate", "decimal_places", "display_order", "is_active", "is_default"]
+        widgets = {
+            "name": forms.TextInput(attrs={"class": "builder-input"}),
+            "code": forms.TextInput(attrs={"class": "builder-input"}),
+            "symbol": forms.TextInput(attrs={"class": "builder-input"}),
+            "buy_rate": forms.NumberInput(attrs={"class": "builder-input", "step": "0.000001"}),
+            "sell_rate": forms.NumberInput(attrs={"class": "builder-input", "step": "0.000001"}),
+            "decimal_places": forms.NumberInput(attrs={"class": "builder-input"}),
+            "display_order": forms.NumberInput(attrs={"class": "builder-input"}),
+        }
 
 
 class PaymentMethodForm(forms.ModelForm):

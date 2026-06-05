@@ -16,6 +16,7 @@ urlpatterns = [
     # API Endpoints (for staff/JS)
     path("api/deposits/<uuid:pk>/approve/", api_views.api_deposit_approve, name="api_deposit_approve"),
     path("api/deposits/<uuid:pk>/reject/", api_views.api_deposit_reject, name="api_deposit_reject"),
+    path("api/deposits/<uuid:pk>/correct/", api_views.api_deposit_correct, name="api_deposit_correct"),
     path("api/wallets/<uuid:pk>/hold/", api_views.api_wallet_hold, name="api_wallet_hold"),
     path("api/wallets/<uuid:pk>/unhold/", api_views.api_wallet_unhold, name="api_wallet_unhold"),
     path("api/withdrawals/<uuid:pk>/process/", api_views.api_withdrawal_process, name="api_withdrawal_process"),

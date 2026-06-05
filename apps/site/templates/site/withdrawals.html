@@ -140,12 +140,24 @@ function renderStep2() {
     fieldBox.innerHTML = '';
     if(m.form_schema && m.form_schema.fields) {
         m.form_schema.fields.forEach(f => {
+            let inputHtml = '';
+            const nameAttr = `custom_${f.name||f.label}`;
+            const reqAttr = f.required ? 'required' : '';
+            const classAttr = 'builder-input';
+            
+            if (f.type === 'textarea') {
+                inputHtml = `<textarea name="${nameAttr}" class="${classAttr}" rows="3" placeholder="${f.placeholder||''}" ${reqAttr}></textarea>`;
+            } else if (f.type === 'image') {
+                inputHtml = `<input type="file" name="${nameAttr}" class="${classAttr}" accept="image/*" ${reqAttr}>`;
+            } else {
+                const inputType = (f.type === 'number') ? 'number' : (f.type === 'phone' ? 'tel' : 'text');
+                inputHtml = `<input type="${inputType}" name="${nameAttr}" class="${classAttr}" placeholder="${f.placeholder||''}" ${reqAttr}>`;
+            }
+            
             fieldBox.innerHTML += `
                 <div class="field-group">
                     <label>${f.label} ${f.required?'<span class="text-danger">*</span>':''}</label>
-                    <input class="builder-input" type="${f.type==='number'?'number':'text'}" 
-                           name="custom_${f.name||f.label}" placeholder="${f.placeholder||''}" 
-                           ${f.required?'required':''}>
+                    ${inputHtml}
                 </div>`;
         });
     }

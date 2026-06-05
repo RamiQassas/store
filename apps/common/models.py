@@ -1,4 +1,5 @@
 import uuid
+from decimal import Decimal
 
 from django.db import models
 from django.conf import settings
@@ -18,7 +19,8 @@ class Currency(TimeStampedModel):
     name = models.CharField(max_length=50, verbose_name="اسم العملة")
     code = models.CharField(max_length=3, unique=True, verbose_name="رمز العملة (ISO)")
     symbol = models.CharField(max_length=10, verbose_name="رمز العملة")
-    exchange_rate = models.DecimalField(max_digits=14, decimal_places=6, default=1.0, help_text="نسبة الصرف مقابل العملة الأساسية (USD)")
+    buy_rate = models.DecimalField(max_digits=14, decimal_places=6, default=1.0, verbose_name="سعر الشراء (للإيداع)", help_text="كم تساوي 1 وحدة من العملة الأساسية (مثال: 1 دولار = 10500 ليرة)")
+    sell_rate = models.DecimalField(max_digits=14, decimal_places=6, default=1.0, verbose_name="سعر المبيع (للسحب)", help_text="كم تساوي 1 وحدة من العملة الأساسية (مثال: 1 دولار = 10000 ليرة)")
     decimal_places = models.PositiveIntegerField(default=2, verbose_name="عدد الخانات العشرية")
     display_order = models.PositiveIntegerField(default=0, verbose_name="ترتيب العرض")
     is_active = models.BooleanField(default=True, verbose_name="نشط")
@@ -31,6 +33,17 @@ class Currency(TimeStampedModel):
 
     def __str__(self):
         return f"{self.code} ({self.symbol})"
+
+    def to_base(self, amount, operation="deposit"):
+        """Convert an amount in this currency to the base currency (e.g., USD)."""
+        rate = self.buy_rate if operation == "deposit" else self.sell_rate
+        if rate <= 0: return Decimal("0.00")
+        return Decimal(str(amount)) / Decimal(str(rate))
+
+    def from_base(self, base_amount, operation="deposit"):
+        """Convert a base currency amount to this currency."""
+        rate = self.buy_rate if operation == "deposit" else self.sell_rate
+        return Decimal(str(base_amount)) * Decimal(str(rate))
 
     def save(self, *args, **kwargs):
         if self.is_default:

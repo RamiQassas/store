@@ -296,11 +296,12 @@ function renderFields() {
             <div class="card-controls"><button type="button" class="text-red-500" onclick="removeField(${idx})"><i class="fas fa-trash"></i></button></div>
             <div class="grid grid-4 gap-4">
                 <div><span class="mini-label">نوع الحقل</span><select class="builder-input" onchange="updateField(${idx}, 'type', this.value)">
-                    <option value="text" ${f.type==='text'?'selected':''}>Text</option>
-                    <option value="number" ${f.type==='number'?'selected':''}>Number</option>
-                    <option value="phone" ${f.type==='phone'?'selected':''}>Phone</option>
-                    <option value="textarea" ${f.type==='textarea'?'selected':''}>Textarea</option>
-                    <option value="image" ${f.type==='image'?'selected':''}>Image</option>
+                    <option value="text" ${f.type==='text'?'selected':''}>نص (Text)</option>
+                    <option value="number" ${f.type==='number'?'selected':''}>رقم (Number)</option>
+                    <option value="phone" ${f.type==='phone'?'selected':''}>رقم هاتف (Phone)</option>
+                    <option value="email" ${f.type==='email'?'selected':''}>بريد إلكتروني (Email)</option>
+                    <option value="textarea" ${f.type==='textarea'?'selected':''}>نص طويل (Textarea)</option>
+                    <option value="image" ${f.type==='image'?'selected':''}>صورة (Image Upload)</option>
                 </select></div>
                 <div><span class="mini-label">التسمية</span><input type="text" class="builder-input" value="${f.label}" onchange="updateField(${idx}, 'label', this.value)"></div>
                 <div><span class="mini-label">Placeholder</span><input type="text" class="builder-input" value="${f.placeholder||''}" onchange="updateField(${idx}, 'placeholder', this.value)"></div>

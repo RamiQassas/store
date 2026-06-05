@@ -36,15 +36,20 @@
                 </div>
             </div>
 
-            <div class="grid grid-2 gap-6">
+            <div class="grid grid-3 gap-6">
                 <div class="field-group">
                     <label>{{ form.symbol.label }}</label>
                     {{ form.symbol }}
                 </div>
                 <div class="field-group">
-                    <label>{{ form.exchange_rate.label }}</label>
-                    {{ form.exchange_rate }}
-                    <p class="text-[10px] text-amber-500 mt-1">مقارنة بالعملة الأساسية (USD). مثال: 1 USD = 15000 SYP</p>
+                    <label>{{ form.buy_rate.label }}</label>
+                    {{ form.buy_rate }}
+                    <p class="text-[10px] text-success mt-1">يستخدم عند الإيداع.</p>
+                </div>
+                <div class="field-group">
+                    <label>{{ form.sell_rate.label }}</label>
+                    {{ form.sell_rate }}
+                    <p class="text-[10px] text-cyan mt-1">يستخدم عند السحب.</p>
                 </div>
             </div>
 

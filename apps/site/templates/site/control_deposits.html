@@ -99,6 +99,10 @@
                             <button class="btn btn-sm btn-outline danger text-[10px] py-1 px-3" onclick="actionDeposit('{{ d.id }}', 'reject')">
                                 <i class="fas fa-times ml-1"></i> رفض
                             </button>
+                            {% elif d.status == 'completed' %}
+                            <button class="btn btn-sm btn-outline text-[10px] py-1 px-3" onclick="actionDeposit('{{ d.id }}', 'correct', '{{ d.amount }}')">
+                                <i class="fas fa-edit ml-1"></i> تصحيح
+                            </button>
                             {% endif %}
                         </div>
                     </td>
@@ -131,13 +135,14 @@
         </div>
         <div class="flex gap-4">
             <button class="btn btn-outline flex-1" onclick="closeModal()">إلغاء</button>
-            <button class="btn btn-primary flex-1 py-4" onclick="confirmApproval()">تأكيد الإضافة</button>
+            <button class="btn btn-primary flex-1 py-4" id="modal-submit-btn">تأكيد الإضافة</button>
         </div>
     </div>
 </div>
 
 <script>
 const modal = document.getElementById('approve-modal');
+let currentAction = 'approve';
 
 function closeModal() { modal.classList.add('hidden'); }
 
@@ -147,18 +152,35 @@ async function actionDeposit(id, action, amount = "") {
         if (note === null) return;
         executeAction(id, action, { admin_note: note });
     } else {
+        currentAction = action;
         document.getElementById('modal-dep-id').value = id;
         document.getElementById('modal-amount').value = amount;
         document.getElementById('modal-note').value = "";
+        
+        const title = document.querySelector('#approve-modal h3');
+        const submitBtn = document.getElementById('modal-submit-btn');
+        if (action === 'correct') {
+            title.innerText = "تصحيح مبلغ الإيداع";
+            submitBtn.innerText = "تأكيد التصحيح";
+        } else {
+            title.innerText = "تأكيد معالجة الإيداع";
+            submitBtn.innerText = "تأكيد الإضافة";
+        }
+        
+        submitBtn.onclick = async () => {
+            const depId = document.getElementById('modal-dep-id').value;
+            const amt = document.getElementById('modal-amount').value;
+            const note = document.getElementById('modal-note').value;
+            
+            const payload = { admin_note: note };
+            if (currentAction === 'correct') payload.new_amount = amt;
+            else payload.adjusted_amount = amt;
+            
+            executeAction(depId, currentAction, payload);
+        };
+        
         modal.classList.remove('hidden');
     }
-}
-
-async function confirmApproval() {
-    const id = document.getElementById('modal-dep-id').value;
-    const amount = document.getElementById('modal-amount').value;
-    const note = document.getElementById('modal-note').value;
-    executeAction(id, 'approve', { admin_note: note, adjusted_amount: amount });
 }
 
 async function executeAction(id, action, body) {

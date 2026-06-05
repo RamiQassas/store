@@ -22,7 +22,8 @@
                 <tr>
                     <th class="p-4">العملة</th>
                     <th class="p-4">الرمز</th>
-                    <th class="p-4">سعر الصرف (1 USD)</th>
+                    <th class="p-4">سعر الشراء (للإيداع)</th>
+                    <th class="p-4">سعر المبيع (للسحب)</th>
                     <th class="p-4">الحالة</th>
                     <th class="p-4 text-left">إجراءات</th>
                 </tr>
@@ -45,7 +46,10 @@
                         <span class="font-bold text-slate-400">{{ c.symbol }}</span>
                     </td>
                     <td class="p-4">
-                        <div class="font-mono text-cyan">{{ c.exchange_rate }}</div>
+                        <div class="font-mono text-success">{{ c.buy_rate }}</div>
+                    </td>
+                    <td class="p-4">
+                        <div class="font-mono text-cyan">{{ c.sell_rate }}</div>
                     </td>
                     <td class="p-4">
                         <span class="badge {% if c.is_active %}success{% else %}muted{% endif %} text-[9px]">{% if c.is_active %}نشطة{% else %}معطلة{% endif %}</span>
