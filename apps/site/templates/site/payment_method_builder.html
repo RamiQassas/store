@@ -1,0 +1,364 @@
+{% extends "site/control_base.html" %}
+{% load static %}
+
+{% block title %}{{ title }} | Raqamiyat Payment Builder{% endblock %}
+
+{% block control_head %}
+<style>
+    .builder-section {
+        background: var(--panel);
+        border: 1px solid var(--panel-border);
+        border-radius: var(--radius);
+        margin-bottom: 2rem;
+        overflow: hidden;
+    }
+    .builder-section-header {
+        padding: 1.25rem 2rem;
+        background: rgba(255, 255, 255, 0.02);
+        border-bottom: 1px solid var(--panel-border);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    .builder-body { padding: 2rem; }
+
+    /* Field Builder Item */
+    .field-builder-item {
+        background: var(--bg-soft);
+        border: 1px solid var(--panel-border);
+        border-radius: 12px;
+        padding: 1.5rem;
+        margin-bottom: 1rem;
+        position: relative;
+        transition: border-color 0.2s;
+    }
+    .field-builder-item:hover { border-color: var(--cyan); }
+    
+    .field-controls {
+        position: absolute;
+        top: 1rem;
+        left: 1rem;
+        display: flex;
+        gap: 0.5rem;
+    }
+
+    .mini-label { font-size: 10px; color: var(--muted); font-weight: bold; margin-bottom: 4px; display: block; }
+    .builder-input {
+        background: var(--bg) !important;
+        border: 1px solid var(--panel-border) !important;
+        border-radius: 8px !important;
+        padding: 8px 12px !important;
+        font-size: 12px !important;
+        width: 100%;
+        color: var(--text);
+    }
+    select.builder-input { height: 35px; }
+
+    .field-type-badge {
+        font-size: 9px;
+        padding: 2px 8px;
+        background: rgba(6, 182, 212, 0.1);
+        color: var(--cyan);
+        border-radius: 4px;
+        font-weight: bold;
+    }
+</style>
+{% endblock %}
+
+{% block control_content %}
+<div class="page-head">
+    <div>
+        <span class="eyebrow">Financial Engine / Payment Builder</span>
+        <h1>{{ title }}</h1>
+        <p class="text-muted">نظام بناء وسائل الدفع المتطور. قم بتخصيص الحقول المطلوبة لكل وسيلة بشكل مرن.</p>
+    </div>
+    <div class="flex gap-3">
+        <a href="{% url 'payment_methods_list' %}" class="btn btn-outline btn-sm">إلغاء</a>
+        <button type="button" class="btn btn-primary btn-sm" onclick="savePaymentMethod()">
+            <i class="fas fa-save ml-2"></i> حفظ الوسيلة
+        </button>
+    </div>
+</div>
+
+<form id="payment-builder-form" method="post" enctype="multipart/form-data">
+    {% csrf_token %}
+    <!-- Hidden fields for the dynamic JSON schemas -->
+    <input type="hidden" name="form_schema" id="id_form_schema">
+    <input type="hidden" name="withdrawal_form_schema" id="id_withdrawal_form_schema">
+
+    <div class="grid grid-cols-12 gap-8">
+        <!-- Main Configuration -->
+        <div class="col-span-12 lg:col-span-7 stack gap-8">
+            <div class="builder-section">
+                <div class="builder-section-header">
+                    <h3 class="font-bold text-lg"><i class="fas fa-cog ml-2 text-cyan"></i> الإعدادات الأساسية</h3>
+                </div>
+                <div class="builder-body stack gap-6">
+                    <div class="grid grid-2 gap-6">
+                        <div class="field-group">
+                            <label>اسم وسيلة الدفع (مثلاً: زين كاش، بنك سورية)</label>
+                            {{ form.name }}
+                        </div>
+                        <div class="field-group">
+                            <label>اسم المزود (داخلي)</label>
+                            {{ form.provider_name }}
+                        </div>
+                    </div>
+                    
+                    <div class="grid grid-2 gap-6">
+                        <div class="field-group">
+                            <label>نوع الوسيلة</label>
+                            {{ form.method_type }}
+                        </div>
+                        <div class="field-group">
+                            <label>ترتيب العرض</label>
+                            {{ form.display_order }}
+                        </div>
+                    </div>
+
+                    <div class="field-group">
+                        <label>وصف الوسيلة (يظهر للعملاء)</label>
+                        {{ form.description }}
+                    </div>
+
+                    <div class="field-group">
+                        <label>تعليمات التحويل (تظهر في خطوة الدفع)</label>
+                        {{ form.instructions }}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Deposit Fields Builder -->
+            <div class="builder-section">
+                <div class="builder-section-header">
+                    <h3 class="font-bold text-lg"><i class="fas fa-arrow-down ml-2 text-success"></i> حقول الإيداع المطلوبة</h3>
+                    <button type="button" class="btn btn-sm btn-outline" onclick="addField('deposit')">
+                        <i class="fas fa-plus ml-1"></i> إضافة حقل
+                    </button>
+                </div>
+                <div class="builder-body">
+                    <div id="deposit-fields-container"></div>
+                    <div id="empty-deposit" class="text-center p-8 opacity-20 hidden">
+                        <i class="fas fa-list text-4xl mb-2"></i>
+                        <p class="text-xs">لم يتم إضافة حقول إيداع مخصصة.</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Withdrawal Fields Builder -->
+            <div class="builder-section">
+                <div class="builder-section-header">
+                    <h3 class="font-bold text-lg"><i class="fas fa-arrow-up ml-2 text-danger"></i> حقول السحب المطلوبة</h3>
+                    <button type="button" class="btn btn-sm btn-outline" onclick="addField('withdrawal')">
+                        <i class="fas fa-plus ml-1"></i> إضافة حقل
+                    </button>
+                </div>
+                <div class="builder-body">
+                    <div id="withdrawal-fields-container"></div>
+                    <div id="empty-withdrawal" class="text-center p-8 opacity-20 hidden">
+                        <i class="fas fa-list text-4xl mb-2"></i>
+                        <p class="text-xs">لم يتم إضافة حقول سحب مخصصة.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Sidebar / Media & Limits -->
+        <div class="col-span-12 lg:col-span-5 stack gap-8">
+            <div class="builder-section">
+                <div class="builder-section-header">
+                    <h3 class="font-bold text-sm">الحالة والوسائط</h3>
+                </div>
+                <div class="builder-body stack gap-6">
+                    <div class="grid grid-2 gap-4">
+                        <div class="flex items-center gap-2 p-3 bg-slate-800/30 rounded-xl">
+                            {{ form.is_active }} <span class="text-xs font-bold">نشطة</span>
+                        </div>
+                        <div class="flex items-center gap-2 p-3 bg-slate-800/30 rounded-xl">
+                            {{ form.is_maintenance_mode }} <span class="text-xs font-bold">صيانة</span>
+                        </div>
+                    </div>
+                    <div class="grid grid-2 gap-4">
+                        <div class="flex items-center gap-2 p-3 bg-slate-800/30 rounded-xl">
+                            {{ form.can_deposit }} <span class="text-xs font-bold">إيداع</span>
+                        </div>
+                        <div class="flex items-center gap-2 p-3 bg-slate-800/30 rounded-xl">
+                            {{ form.can_withdraw }} <span class="text-xs font-bold">سحب</span>
+                        </div>
+                    </div>
+
+                    <div class="field-group">
+                        <label>شعار الوسيلة</label>
+                        {{ form.logo }}
+                        {% if method.logo %}
+                        <img src="{{ method.logo.url }}" class="mt-2 h-16 w-16 object-contain rounded-lg border border-white/10">
+                        {% endif %}
+                    </div>
+                    <div class="field-group">
+                        <label>رمز QR (اختياري)</label>
+                        {{ form.qr_image }}
+                        {% if method.qr_image %}
+                        <img src="{{ method.qr_image.url }}" class="mt-2 h-32 w-32 object-contain rounded-lg border border-white/10 p-2 bg-white">
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <div class="builder-section">
+                <div class="builder-section-header">
+                    <h3 class="font-bold text-sm">الحدود والرسوم</h3>
+                </div>
+                <div class="builder-body stack gap-6">
+                    <div class="grid grid-2 gap-6">
+                        <div class="field-group">
+                            <label>أقل مبلغ</label>
+                            {{ form.min_amount }}
+                        </div>
+                        <div class="field-group">
+                            <label>أقصى مبلغ</label>
+                            {{ form.max_amount }}
+                        </div>
+                    </div>
+                    <div class="grid grid-2 gap-6">
+                        <div class="field-group">
+                            <label>رسوم ثابتة</label>
+                            {{ form.fixed_fee }}
+                        </div>
+                        <div class="field-group">
+                            <label>رسوم نسبة (%)</label>
+                            {{ form.percentage_fee }}
+                        </div>
+                    </div>
+                    <div class="field-group">
+                        <label>العملات المدعومة</label>
+                        <div class="p-4 bg-slate-800/30 rounded-xl">
+                            {{ form.supported_currencies }}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</form>
+
+{{ form.instance.form_schema|json_script:"deposit-schema-data" }}
+{{ form.instance.withdrawal_form_schema|json_script:"withdrawal-schema-data" }}
+
+<script>
+// --- State Management ---
+function getSafeJSON(elementId, fallback) {
+    try {
+        const element = document.getElementById(elementId);
+        if (!element) return fallback;
+        let data = JSON.parse(element.textContent || 'null');
+        if (typeof data === 'string') data = JSON.parse(data);
+        return (data && data.fields) ? data : fallback;
+    } catch (e) {
+        return fallback;
+    }
+}
+
+let depositSchema = getSafeJSON('deposit-schema-data', { version: 1, fields: [] });
+let withdrawalSchema = getSafeJSON('withdrawal-schema-data', { version: 1, fields: [] });
+
+// --- Field Builder ---
+function renderFields(type) {
+    const container = document.getElementById(`${type}-fields-container`);
+    const schema = type === 'deposit' ? depositSchema : withdrawalSchema;
+    container.innerHTML = '';
+    
+    if (schema.fields.length === 0) {
+        document.getElementById(`empty-${type}`).classList.remove('hidden');
+        return;
+    }
+    document.getElementById(`empty-${type}`).classList.add('hidden');
+
+    schema.fields.forEach((field, index) => {
+        const item = document.createElement('div');
+        item.className = 'field-builder-item shadow-sm';
+        item.innerHTML = `
+            <div class="field-controls">
+                <button type="button" class="text-slate-500 hover:text-white" onclick="moveField('${type}', ${index}, -1)"><i class="fas fa-arrow-up"></i></button>
+                <button type="button" class="text-slate-500 hover:text-white" onclick="moveField('${type}', ${index}, 1)"><i class="fas fa-arrow-down"></i></button>
+                <button type="button" class="text-red-500 hover:text-red-400 ml-4" onclick="deleteField('${type}', ${index})"><i class="fas fa-trash"></i></button>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mt-2">
+                <div>
+                    <span class="mini-label">نوع الحقل</span>
+                    <select class="builder-input" onchange="updateField('${type}', ${index}, 'type', this.value)">
+                        <option value="text" ${field.type === 'text' ? 'selected' : ''}>Text</option>
+                        <option value="number" ${field.type === 'number' ? 'selected' : ''}>Number</option>
+                        <option value="phone" ${field.type === 'phone' ? 'selected' : ''}>Phone</option>
+                        <option value="textarea" ${field.type === 'textarea' ? 'selected' : ''}>Textarea</option>
+                        <option value="select" ${field.type === 'select' ? 'selected' : ''}>Select</option>
+                        <option value="image" ${field.type === 'image' ? 'selected' : ''}>Image</option>
+                        <option value="file" ${field.type === 'file' ? 'selected' : ''}>File</option>
+                    </select>
+                </div>
+                <div>
+                    <span class="mini-label">التسمية (Label)</span>
+                    <input type="text" class="builder-input" value="${field.label}" onchange="updateField('${type}', ${index}, 'label', this.value)">
+                </div>
+                <div>
+                    <span class="mini-label">Placeholder</span>
+                    <input type="text" class="builder-input" value="${field.placeholder || ''}" onchange="updateField('${type}', ${index}, 'placeholder', this.value)">
+                </div>
+                <div class="flex items-end pb-2">
+                    <label class="flex items-center gap-2 cursor-pointer">
+                        <input type="checkbox" ${field.required ? 'checked' : ''} onchange="updateField('${type}', ${index}, 'required', this.checked)">
+                        <span class="text-[10px] font-bold">إلزامي</span>
+                    </label>
+                </div>
+            </div>
+        `;
+        container.appendChild(item);
+    });
+}
+
+function addField(type) {
+    const schema = type === 'deposit' ? depositSchema : withdrawalSchema;
+    schema.fields.push({
+        label: 'حقل جديد',
+        type: 'text',
+        required: true,
+        placeholder: '',
+        name: 'field_' + Math.random().toString(36).substr(2, 5)
+    });
+    renderFields(type);
+}
+
+function updateField(type, index, key, value) {
+    const schema = type === 'deposit' ? depositSchema : withdrawalSchema;
+    schema.fields[index][key] = value;
+}
+
+function deleteField(type, index) {
+    const schema = type === 'deposit' ? depositSchema : withdrawalSchema;
+    schema.fields.splice(index, 1);
+    renderFields(type);
+}
+
+function moveField(type, index, delta) {
+    const schema = type === 'deposit' ? depositSchema : withdrawalSchema;
+    const newIndex = index + delta;
+    if (newIndex >= 0 && newIndex < schema.fields.length) {
+        const temp = schema.fields[index];
+        schema.fields[index] = schema.fields[newIndex];
+        schema.fields[newIndex] = temp;
+        renderFields(type);
+    }
+}
+
+// --- Submit ---
+function savePaymentMethod() {
+    document.getElementById('id_form_schema').value = JSON.stringify(depositSchema);
+    document.getElementById('id_withdrawal_form_schema').value = JSON.stringify(withdrawalSchema);
+    document.getElementById('payment-builder-form').submit();
+}
+
+window.onload = () => {
+    renderFields('deposit');
+    renderFields('withdrawal');
+};
+</script>
+{% endblock %}

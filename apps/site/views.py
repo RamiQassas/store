@@ -548,7 +548,7 @@ def payment_method_create(request):
         form.save()
         messages.success(request, "تمت إضافة وسيلة الدفع بنجاح.")
         return redirect("payment_methods_list")
-    return render(request, "site/payment_method_form.html", {"form": form, "title": "إضافة وسيلة دفع"})
+    return render(request, "site/payment_method_builder.html", {"form": form, "title": "إضافة وسيلة دفع جديدة"})
 
 
 @staff_member_required
@@ -559,7 +559,7 @@ def payment_method_edit(request, pk):
         form.save()
         messages.success(request, "تم تحديث وسيلة الدفع بنجاح.")
         return redirect("payment_methods_list")
-    return render(request, "site/payment_method_form.html", {"form": form, "title": "تعديل وسيلة دفع", "method": method})
+    return render(request, "site/payment_method_builder.html", {"form": form, "title": f"تعديل وسيلة: {method.name}", "method": method})
 
 
 @staff_member_required

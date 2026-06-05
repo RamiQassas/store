@@ -114,102 +114,286 @@
 </div>
 
 <div class="withdrawal-container grid grid-cols-1 md:grid-cols-12 gap-8">
-    <!-- Selection Column -->
-    <div class="md:col-span-4 stack gap-6">
-        <h3 class="font-bold text-lg px-2">اختر وسيلة الاستلام</h3>
-        <div class="method-list">
-            {% for method in payment_methods %}
-            <div class="panel withdrawal-method-card" data-method-id="{{ method.id }}" onclick="handleMethodSelect(this)">
-                <div class="method-icon">
-                    {% if method.logo %}
-                    <img src="{{ method.logo.url }}" alt="{{ method.name }}" class="w-full h-full object-contain">
-                    {% else %}
-                    <i class="fas {{ method.icon|default:'fa-university' }}"></i>
-                    {% endif %}
-                </div>
-                <div class="flex-grow">
-                    <h4 class="font-bold text-sm">{{ method.name }}</h4>
-                    <p class="text-[10px] text-muted">{{ method.get_method_type_display }}</p>
-                </div>
-                <!-- Hidden Data -->
-                <script type="application/json" class="method-data">
-                    {
-                        "id": "{{ method.id }}",
-                        "name": "{{ method.name }}",
-                        "min": "{{ method.min_amount }}",
-                        "max": "{{ method.max_amount }}",
-                        "fixed": "{{ method.fixed_fee }}",
-                        "percent": "{{ method.percentage_fee }}",
-                        "currencies": [{% for c in method.supported_currencies.all %}{"id":"{{c.id}}","code":"{{c.code}}","symbol":"{{c.symbol}}"} {% if not forloop.last %},{% endif %}{% endfor %}]
-                    }
-                </script>
-            </div>
-            {% endfor %}
-        </div>
-        
-        <div class="panel p-6 bg-amber-500/[0.03] border-amber-500/20 mt-4">
-            <h4 class="text-amber-500 font-bold text-sm mb-2"><i class="fas fa-info-circle ml-1"></i> تنبيهات السحب</h4>
-            <ul class="text-xs text-slate-400 space-y-2 leading-relaxed">
-                <li>• يتم معالجة طلبات السحب خلال 24-48 ساعة عمل.</li>
-                <li>• تأكد من صحة بيانات الحساب/المحفظة لتجنب رفض الطلب.</li>
-                <li>• الرسوم الموضحة يتم خصمها من المبلغ الإجمالي المسحوب.</li>
-            </ul>
+    <!-- Progress Indicator (Top level) -->
+    <div class="md:col-span-12 mb-8">
+        <div class="step-indicator">
+            <div class="step active" id="step-dot-1">1 <span class="step-label">وسيلة السحب</span></div>
+            <div class="step" id="step-dot-2">2 <span class="step-label">تفاصيل الحساب</span></div>
+            <div class="step" id="step-dot-3">3 <span class="step-label">المبلغ والرسوم</span></div>
+            <div class="step" id="step-dot-4">4 <span class="step-label">تأكيد الطلب</span></div>
         </div>
     </div>
 
-    <!-- Form Column -->
-    <div class="md:col-span-8">
-        <form method="post" id="withdrawal-form" class="panel p-8 stack gap-8 shadow-xl">
+    <!-- Selection Column (Step 1) -->
+    <div id="step-1" class="step-content active md:col-span-12">
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+            <div class="md:col-span-1 stack gap-6">
+                <h3 class="font-bold text-lg px-2">اختر وسيلة الاستلام</h3>
+                <div class="method-list">
+                    {% for method in payment_methods %}
+                    <div class="panel withdrawal-method-card" data-method-id="{{ method.id }}" onclick="handleMethodSelect(this)">
+                        <div class="method-icon">
+                            {% if method.logo %}
+                            <img src="{{ method.logo.url }}" alt="{{ method.name }}" class="w-full h-full object-contain">
+                            {% else %}
+                            <i class="fas {{ method.icon|default:'fa-university' }}"></i>
+                            {% endif %}
+                        </div>
+                        <div class="flex-grow">
+                            <h4 class="font-bold text-sm">{{ method.name }}</h4>
+                            <p class="text-[10px] text-muted">{{ method.get_method_type_display }}</p>
+                        </div>
+                        <script type="application/json" class="method-data">
+                            {
+                                "id": "{{ method.id }}",
+                                "name": "{{ method.name }}",
+                                "min": "{{ method.min_amount }}",
+                                "max": "{{ method.max_amount }}",
+                                "fixed": "{{ method.fixed_fee }}",
+                                "percent": "{{ method.percentage_fee }}",
+                                "schema": {{ method.withdrawal_form_schema|default:'{"fields":[]}'|safe }},
+                                "currencies": [{% for c in method.supported_currencies.all %}{"id":"{{c.id}}","code":"{{c.code}}","symbol":"{{c.symbol}}"} {% if not forloop.last %},{% endif %}{% endfor %}]
+                            }
+                        </script>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            <div class="md:col-span-2">
+                <div class="panel p-12 text-center bg-slate-900/30 border-dashed">
+                    <i class="fas fa-hand-holding-usd text-5xl text-slate-700 mb-4"></i>
+                    <h3 class="text-xl font-bold">بدء طلب سحب جديد</h3>
+                    <p class="text-sm text-muted mt-2 max-w-sm mx-auto">يرجى اختيار وسيلة السحب المفضلة لديك من القائمة الجانبية للمتابعة.</p>
+                    <button type="button" class="btn btn-primary mt-8 px-12 disabled:opacity-50" id="to-step-2" disabled onclick="goToStep(2)">المتابعة للخطوة التالية</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Step 2: Account Details (Dynamic) -->
+    <div id="step-2" class="step-content md:col-span-12">
+        <div class="max-w-2xl mx-auto">
+            <div class="panel p-8 stack gap-8">
+                <h3 class="text-xl font-bold text-center">بيانات الحساب / المحفظة</h3>
+                <div id="dynamic-fields-container" class="stack gap-6"></div>
+                <div class="flex justify-between mt-4">
+                    <button type="button" class="btn btn-outline px-8" onclick="goToStep(1)">العودة</button>
+                    <button type="button" class="btn btn-primary px-12" onclick="goToStep(3)">المتابعة</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Step 3: Amount -->
+    <div id="step-3" class="step-content md:col-span-12">
+        <div class="max-w-2xl mx-auto">
+            <div class="panel p-8 stack gap-8">
+                <h3 class="text-xl font-bold text-center">تحديد المبلغ والرسوم</h3>
+                <div class="grid grid-2 gap-6">
+                    <div class="field-group">
+                        <label>العملة</label>
+                        <select name="currency" id="currency-select" required></select>
+                    </div>
+                    <div class="field-group">
+                        <label>المبلغ المراد سحبه</label>
+                        <input type="number" name="amount" id="amount-input" step="0.01" required placeholder="0.00" oninput="calculateWithdrawal()">
+                        <p class="text-[10px] text-muted mt-2">المتاح: <span class="text-cyan">{{ wallet.available_balance }} {{ wallet.currency.code }}</span></p>
+                    </div>
+                </div>
+
+                <div class="fee-calc-box stack">
+                    <div class="fee-row"><span class="text-muted">المبلغ المطلوب</span><span id="calc-amount">0.00</span></div>
+                    <div class="fee-row"><span class="text-muted">رسوم السحب</span><span id="calc-fees" class="text-danger">0.00</span></div>
+                    <div class="fee-row total"><span>المبلغ الصافي</span><span id="calc-net" class="text-cyan">0.00</span></div>
+                </div>
+                
+                <div class="flex justify-between">
+                    <button type="button" class="btn btn-outline px-8" onclick="goToStep(2)">العودة</button>
+                    <button type="button" class="btn btn-primary px-12" onclick="goToStep(4)">مراجعة الطلب</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Step 4: Final Confirmation -->
+    <div id="step-4" class="step-content md:col-span-12">
+        <form method="post" id="withdrawal-form" class="max-w-2xl mx-auto">
             {% csrf_token %}
             <input type="hidden" name="payment_method" id="selected-method-id">
+            <!-- Dynamic fields values will be captured automatically by browser if I keep them in one form, but here they are across steps. 
+                 Actually, I'll move all inputs into one hidden container or just use one large form wrapping everything. 
+                 Standard multi-step with JS is safer. -->
             
-            <div class="text-center mb-4">
-                <h3 class="text-xl font-bold" id="form-title">بيانات طلب السحب</h3>
-                <p class="text-sm text-muted">يرجى إدخال المبلغ وتفاصيل الاستلام بدقة</p>
-            </div>
+            <div class="panel p-8 stack gap-8">
+                <div class="text-center">
+                    <i class="fas fa-check-circle text-4xl text-cyan mb-4"></i>
+                    <h3 class="text-xl font-bold">تأكيد طلب السحب</h3>
+                    <p class="text-sm text-muted">يرجى مراجعة كافة البيانات قبل الإرسال النهائي</p>
+                </div>
 
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                <div class="field-group">
-                    <label>العملة</label>
-                    <select name="currency" id="currency-select" required></select>
+                <div class="bg-slate-800/50 rounded-2xl p-6 stack gap-4">
+                    <div class="flex justify-between border-b border-white/5 pb-3">
+                        <span class="text-muted">وسيلة السحب:</span>
+                        <strong id="final-method">--</strong>
+                    </div>
+                    <div class="flex justify-between border-b border-white/5 pb-3">
+                        <span class="text-muted">المبلغ الإجمالي:</span>
+                        <strong id="final-amount">--</strong>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-cyan font-bold">المبلغ الصافي:</span>
+                        <strong id="final-net" class="text-cyan text-xl">--</strong>
+                    </div>
                 </div>
-                <div class="field-group">
-                    <label>المبلغ المراد سحبه</label>
-                    <input type="number" name="amount" id="amount-input" step="0.01" required placeholder="0.00" oninput="calculateWithdrawal()">
-                    <p class="text-[10px] text-muted mt-2">المتاح: <span class="text-cyan">{{ wallet.available_balance }} {{ wallet.currency.code }}</span></p>
-                </div>
-            </div>
 
-            <div class="field-group">
-                <label>بيانات الاستلام (رقم الحساب / المحفظة)</label>
-                <textarea name="payout_details" rows="3" required placeholder="أدخل تفاصيل حسابك البنكي أو عنوان محفظتك الرقمية التي ترغب باستلام المبلغ عليها..." class="text-sm"></textarea>
-            </div>
-
-            <!-- Calculation Summary -->
-            <div class="fee-calc-box stack">
-                <div class="fee-row">
-                    <span class="text-muted">المبلغ المطلوب</span>
-                    <span id="calc-amount">0.00</span>
+                <div class="flex flex-col gap-4">
+                    <button type="submit" class="btn btn-primary w-full py-4 text-lg">إرسال طلب السحب الآن</button>
+                    <button type="button" class="btn btn-outline w-full" onclick="goToStep(3)">تعديل المبلغ</button>
                 </div>
-                <div class="fee-row">
-                    <span class="text-muted">رسوم السحب</span>
-                    <span id="calc-fees" class="text-danger">0.00</span>
-                </div>
-                <div class="fee-row total">
-                    <span>المبلغ الصافي الذي ستستلمه</span>
-                    <span id="calc-net" class="text-cyan">0.00</span>
-                </div>
-                <div class="text-[10px] text-center text-slate-500 mt-4">
-                    * الحدود المسموحة لهذه الوسيلة: <span id="method-limits" class="font-bold">--</span>
-                </div>
-            </div>
-
-            <div class="flex flex-col gap-4">
-                <button type="submit" class="btn btn-primary w-full py-4 text-lg disabled:opacity-50" id="submit-btn" disabled>
-                    تأكيد وإرسال طلب السحب
-                </button>
             </div>
         </form>
+    </div>
+</div>
+
+<style>
+    .step-indicator { display: flex; justify-content: space-between; margin-bottom: 2rem; position: relative; }
+    .step-indicator::before { content: ''; position: absolute; top: 20px; left: 0; right: 0; height: 2px; background: var(--panel-border); z-index: 1; }
+    .step { width: 40px; height: 40px; border-radius: 50%; background: var(--bg-soft); border: 2px solid var(--panel-border); display: flex; align-items: center; justify-content: center; z-index: 2; font-weight: bold; position: relative; }
+    .step.active { border-color: var(--cyan); color: var(--cyan); box-shadow: 0 0 15px rgba(6, 182, 212, 0.3); }
+    .step.completed { background: var(--cyan); border-color: var(--cyan); color: #000; }
+    .step-label { position: absolute; top: 45px; font-size: 10px; white-space: nowrap; color: var(--muted); }
+    .step.active .step-label { color: var(--cyan); font-weight: bold; }
+    .step-content { display: none; }
+    .step-content.active { display: block; animation: fadeIn 0.4s ease; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+</style>
+
+<script>
+let currentMethod = null;
+
+function handleMethodSelect(card) {
+    document.querySelectorAll('.withdrawal-method-card').forEach(c => c.classList.remove('selected'));
+    card.classList.add('selected');
+    
+    const data = JSON.parse(card.querySelector('.method-data').textContent);
+    currentMethod = data;
+    
+    document.getElementById('selected-method-id').value = data.id;
+    document.getElementById('to-step-2').disabled = false;
+
+    // Populate Currencies
+    const select = document.getElementById('currency-select');
+    select.innerHTML = '';
+    data.currencies.forEach(c => {
+        const opt = document.createElement('option');
+        opt.value = c.id;
+        opt.textContent = `${c.code} (${c.symbol})`;
+        select.appendChild(opt);
+    });
+
+    renderDynamicFields(data.schema);
+}
+
+function renderDynamicFields(schema) {
+    const container = document.getElementById('dynamic-fields-container');
+    container.innerHTML = '';
+    if (!schema.fields) return;
+
+    schema.fields.forEach(field => {
+        const group = document.createElement('div');
+        group.className = 'field-group';
+        group.innerHTML = `<label>${field.label} ${field.required ? '<span class="text-danger">*</span>' : ''}</label>`;
+        
+        let input;
+        if (field.type === 'textarea') {
+            input = document.createElement('textarea');
+            input.rows = 3;
+        } else {
+            input = document.createElement('input');
+            input.type = field.type === 'number' ? 'number' : (field.type === 'phone' ? 'tel' : 'text');
+        }
+        
+        input.name = `custom_${field.name || field.label}`;
+        input.placeholder = field.placeholder || '';
+        input.required = field.required;
+        input.className = 'dynamic-input';
+        
+        // Move value to form on change if steps are outside form
+        input.onchange = () => syncInputsToForm();
+
+        group.appendChild(input);
+        container.appendChild(group);
+    });
+}
+
+function syncInputsToForm() {
+    const form = document.getElementById('withdrawal-form');
+    // Remove old hidden custom inputs
+    form.querySelectorAll('.hidden-custom').forEach(i => i.remove());
+    
+    // Add current ones
+    document.querySelectorAll('.dynamic-input').forEach(i => {
+        const hidden = document.createElement('input');
+        hidden.type = 'hidden';
+        hidden.className = 'hidden-custom';
+        hidden.name = i.name;
+        hidden.value = i.value;
+        form.appendChild(hidden);
+    });
+}
+
+function goToStep(n) {
+    document.querySelectorAll('.step-content').forEach(s => s.classList.remove('active'));
+    document.getElementById(`step-${n}`).classList.add('active');
+    
+    document.querySelectorAll('.step').forEach((dot, idx) => {
+        dot.classList.remove('active', 'completed');
+        if (idx + 1 < n) dot.classList.add('completed');
+        if (idx + 1 === n) dot.classList.add('active');
+    });
+
+    if (n === 4) prepareFinal();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function calculateWithdrawal() {
+    if (!currentMethod) return;
+    const amount = parseFloat(document.getElementById('amount-input').value) || 0;
+    const totalFee = parseFloat(currentMethod.fixed) + (amount * parseFloat(currentMethod.percent) / 100);
+    const net = Math.max(0, amount - totalFee);
+    const currency = document.getElementById('currency-select').selectedOptions[0]?.text.split(' ')[0] || '';
+
+    document.getElementById('calc-amount').innerText = `${amount.toLocaleString()} ${currency}`;
+    document.getElementById('calc-fees').innerText = `${totalFee.toLocaleString()} ${currency}`;
+    document.getElementById('calc-net').innerText = `${net.toLocaleString()} ${currency}`;
+}
+
+function prepareFinal() {
+    calculateWithdrawal();
+    const currency = document.getElementById('currency-select').selectedOptions[0]?.text.split(' ')[0] || '';
+    document.getElementById('final-method').innerText = currentMethod.name;
+    document.getElementById('final-amount').innerText = document.getElementById('calc-amount').innerText;
+    document.getElementById('final-net').innerText = document.getElementById('calc-net').innerText;
+    
+    // Sync final values to the main form
+    const form = document.getElementById('withdrawal-form');
+    form.querySelector('input[name="payment_method"]').value = currentMethod.id;
+    
+    // Add currency and amount as hidden to the final form
+    if (!form.querySelector('input[name="currency"]')) {
+        const cInp = document.createElement('input'); cInp.type = 'hidden'; cInp.name = 'currency';
+        form.appendChild(cInp);
+    }
+    if (!form.querySelector('input[name="amount"]')) {
+        const aInp = document.createElement('input'); aInp.type = 'hidden'; aInp.name = 'amount';
+        form.appendChild(aInp);
+    }
+    form.querySelector('input[name="currency"]').value = document.getElementById('currency-select').value;
+    form.querySelector('input[name="amount"]').value = document.getElementById('amount-input').value;
+    
+    syncInputsToForm();
+}
+</script>
 
         <!-- Recent Status -->
         <div class="status-area stack gap-4">
