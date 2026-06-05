@@ -5,230 +5,181 @@
 
 {% block extra_head %}
 <style>
-    .product-hero {
-        background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
-        border-radius: var(--radius);
-        padding: 3rem;
-        margin-bottom: 2rem;
-        border: 1px solid rgba(6, 182, 212, 0.1);
-        display: grid;
-        grid-template-columns: auto 1fr;
-        gap: 3rem;
-        align-items: center;
-    }
+    .product-layout { display: grid; grid-template-columns: 450px 1fr; gap: 4rem; }
+    
+    /* Gallery */
+    .p-gallery { position: sticky; top: 100px; }
+    .main-img-box { aspect-ratio: 1; border-radius: 32px; overflow: hidden; background: var(--bg-soft); border: 1px solid var(--panel-border); margin-bottom: 1.5rem; }
+    .main-img-box img { width: 100%; height: 100%; object-fit: cover; }
+    .thumb-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; }
+    .thumb-item { aspect-ratio: 1; border-radius: 12px; overflow: hidden; border: 2px solid transparent; cursor: pointer; opacity: 0.6; transition: all 0.2s; }
+    .thumb-item:hover, .thumb-item.active { opacity: 1; border-color: var(--cyan); }
+    .thumb-item img { width: 100%; height: 100%; object-fit: cover; }
 
-    .product-img-box {
-        width: 180px;
-        height: 180px;
-        border-radius: 24px;
-        background: var(--bg);
-        border: 1px solid var(--panel-border);
-        overflow: hidden;
-        box-shadow: var(--shadow);
+    /* Info */
+    .variant-card { 
+        padding: 1.5rem; border-radius: 20px; background: var(--panel); border: 1px solid var(--panel-border); 
+        cursor: pointer; transition: all 0.3s; display: flex; justify-content: space-between; align-items: center;
+        margin-bottom: 1rem;
     }
+    .variant-card:hover { border-color: var(--cyan); background: rgba(6, 182, 212, 0.03); }
+    .variant-card.selected { border-color: var(--cyan); background: rgba(6, 182, 212, 0.08); box-shadow: 0 10px 30px rgba(0,0,0,0.2); }
+    .variant-card .radio-circle { width: 20px; height: 20px; border-radius: 50%; border: 2px solid var(--muted); position: relative; }
+    .variant-card.selected .radio-circle { border-color: var(--cyan); }
+    .variant-card.selected .radio-circle::after { content: ''; position: absolute; top: 4px; left: 4px; width: 8px; height: 8px; background: var(--cyan); border-radius: 50%; }
 
-    .variant-selector {
-        display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-        gap: 1rem;
-        margin-bottom: 2rem;
-    }
+    .price-tag { font-size: 1.5rem; font-weight: 900; color: var(--text); }
+    .selected .price-tag { color: var(--cyan); }
 
-    .variant-card {
-        padding: 1.25rem;
-        border: 1px solid var(--panel-border);
-        border-radius: 16px;
-        cursor: pointer;
-        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        background: var(--panel);
-        position: relative;
+    .buy-btn-v2 { 
+        width: 100%; padding: 1.25rem; border-radius: 100px; font-size: 1.125rem; font-weight: 800; 
+        background: var(--cyan); color: #000; border: none; cursor: pointer; transition: all 0.3s;
+        display: flex; justify-content: center; align-items: center; gap: 0.75rem;
     }
-
-    .variant-card:hover {
-        border-color: var(--cyan);
-        transform: translateY(-3px);
-    }
-
-    .variant-card.selected {
-        border-color: var(--cyan);
-        background: rgba(6, 182, 212, 0.05);
-        box-shadow: 0 0 20px rgba(6, 182, 212, 0.15);
-    }
-
-    .variant-card.selected::after {
-        content: '\f058';
-        font-family: 'Font Awesome 6 Free';
-        font-weight: 900;
-        position: absolute;
-        top: 0.75rem;
-        left: 0.75rem;
-        color: var(--cyan);
-        font-size: 14px;
-    }
-
-    .checkout-panel {
-        background: var(--panel);
-        border: 1px solid var(--panel-border);
-        border-radius: var(--radius);
-        padding: 2.5rem;
-        position: sticky;
-        top: 2rem;
-    }
-
-    .dynamic-form-grid {
-        display: grid;
-        grid-template-columns: 1fr;
-        gap: 1.5rem;
-    }
+    .buy-btn-v2:hover { transform: scale(1.02); box-shadow: 0 15px 40px rgba(6, 182, 212, 0.4); }
 
     @media (max-width: 1024px) {
-        .product-hero { grid-template-columns: 1fr; text-align: center; justify-items: center; gap: 1.5rem; }
+        .product-layout { grid-template-columns: 1fr; gap: 2rem; }
+        .p-gallery { position: static; }
     }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="page-head mb-0">
-    <div>
-        <span class="eyebrow">{{ product.category.name }}</span>
-        <h1>{{ product.name }}</h1>
-    </div>
-</div>
-
-<div class="product-hero shadow-2xl">
-    <div class="product-img-box">
-        {% if product.image %}
-        <img src="{{ product.image.url }}" class="w-full h-full object-cover">
-        {% else %}
-        <div class="w-full h-full flex items-center justify-center text-4xl text-slate-700">
-            <i class="fas fa-box-open"></i>
+<div class="product-layout container py-12">
+    <!-- Left: Gallery -->
+    <div class="p-gallery">
+        <div class="main-img-box">
+            {% if product.image %}
+            <img id="main-product-img" src="{{ product.image.url }}" alt="{{ product.name }}">
+            {% else %}
+            <div class="w-full h-full flex items-center justify-center text-slate-800 bg-slate-900"><i class="fas fa-box text-8xl"></i></div>
+            {% endif %}
         </div>
-        {% endif %}
-    </div>
-    <div>
-        <h2 class="text-3xl font-black mb-4 text-white">{{ product.name }}</h2>
-        <p class="text-slate-400 text-lg leading-relaxed max-w-3xl">{{ product.description }}</p>
-        
-        <div class="flex gap-6 mt-8">
-            <div class="flex items-center gap-2 text-cyan font-bold">
-                <i class="fas fa-bolt"></i>
-                <span class="text-sm">تسليم سريع</span>
-            </div>
-            <div class="flex items-center gap-2 text-success font-bold">
-                <i class="fas fa-shield-check"></i>
-                <span class="text-sm">ضمان 100%</span>
-            </div>
-        </div>
-    </div>
-</div>
-
-<div class="grid grid-cols-12 gap-10">
-    <!-- Selection Column -->
-    <div class="col-span-12 lg:col-span-7">
-        <h3 class="text-xl font-bold mb-6"><i class="fas fa-layer-group ml-2 text-cyan"></i> اختر الباقة المناسبة</h3>
-        <div class="variant-selector" id="variant-grid">
-            {% for v in variants %}
-            <div class="variant-card {% if forloop.first %}selected{% endif %}" data-id="{{ v.id }}" data-price="{{ v.price }}" onclick="selectVariant(this)">
-                <div class="text-xs text-muted mb-1">{{ v.sku }}</div>
-                <h4 class="font-bold text-lg mb-4">{{ v.name }}</h4>
-                <div class="flex items-end gap-1">
-                    <strong class="text-2xl text-cyan">{{ v.price }}</strong>
-                    <span class="text-[10px] text-slate-500 mb-1">SYP</span>
-                </div>
-                {% if v.discount_percent > 0 %}
-                <span class="absolute top-2 right-2 badge danger text-[8px]">-{{ v.discount_percent|floatformat:0 }}%</span>
-                {% endif %}
-            </div>
+        <div class="thumb-grid">
+            {% if product.image %}
+            <div class="thumb-item active" onclick="changeImg('{{ product.image.url }}', this)"><img src="{{ product.image.url }}"></div>
+            {% endif %}
+            {% for img in product.gallery.all %}
+            <div class="thumb-item" onclick="changeImg('{{ img.image.url }}', this)"><img src="{{ img.image.url }}"></div>
             {% endfor %}
         </div>
-
-        <div class="panel p-8 bg-slate-900/50 border-white/5">
-            <h3 class="text-lg font-bold mb-6"><i class="fas fa-info-circle ml-2 text-amber-500"></i> تفاصيل إضافية</h3>
-            <div class="text-sm text-slate-400 leading-relaxed space-y-4">
-                {{ product.instructions|linebreaks }}
+        
+        <!-- Trust Box -->
+        <div class="panel p-6 mt-10 bg-white/[0.01] stack gap-4">
+            <div class="flex items-center gap-4 text-xs font-bold text-muted">
+                <i class="fas fa-shield-check text-success text-xl"></i>
+                <span>ضمان استلام الخدمة 100% أو استعادة الرصيد.</span>
+            </div>
+            <div class="flex items-center gap-4 text-xs font-bold text-muted">
+                <i class="fas fa-bolt text-amber-500 text-xl"></i>
+                <span>تسليم فوري خلال دقائق لمعظم الباقات.</span>
             </div>
         </div>
     </div>
 
-    <!-- Checkout Column -->
-    <div class="col-span-12 lg:col-span-5">
-        <div class="checkout-panel shadow-2xl">
-            <h3 class="text-xl font-bold mb-8 text-center">تفاصيل الطلب</h3>
-            
-            <form method="post" id="purchase-form" class="stack gap-8">
-                {% csrf_token %}
-                <input type="hidden" name="variant_id" id="selected-variant-id" value="{{ variants.0.id }}">
-                
-                <!-- Dynamic Fields -->
-                <div class="dynamic-form-grid">
-                    {% for field in product.form_schema.fields %}
+    <!-- Right: Purchase -->
+    <div class="p-info stack gap-8">
+        <div>
+            <span class="eyebrow">{{ product.category.name }}</span>
+            <h1 class="text-4xl font-black mb-4">{{ product.name }}</h1>
+            <p class="text-slate-400 leading-relaxed">{{ product.description }}</p>
+        </div>
+
+        <form method="post" action="{% url 'order_create' %}" id="purchase-form">
+            {% csrf_token %}
+            <input type="hidden" name="product" value="{{ product.id }}">
+            <input type="hidden" name="variant" id="selected-variant-id">
+
+            <div class="stack gap-4">
+                <h3 class="font-bold text-sm text-muted uppercase tracking-wider">اختر الباقة المناسبة</h3>
+                {% for v in variants %}
+                <div class="variant-card" onclick="selectVariant('{{ v.id }}', this)">
+                    <div class="flex items-center gap-4">
+                        <div class="radio-circle"></div>
+                        <div>
+                            <div class="font-bold text-base">{{ v.name }}</div>
+                            <div class="text-[10px] text-muted">وقت التسليم: {{ v.estimated_delivery_minutes }} دقيقة</div>
+                        </div>
+                    </div>
+                    <div class="price-tag">{{ v.price }} <small class="text-xs">SYP</small></div>
+                </div>
+                {% endfor %}
+            </div>
+
+            <!-- Dynamic Form Fields -->
+            {% if product.form_schema.fields %}
+            <div class="panel p-8 mt-8 stack gap-6 bg-cyan/[0.02] border-cyan/10">
+                <h3 class="font-bold text-lg"><i class="fas fa-edit ml-2"></i> البيانات المطلوبة</h3>
+                <div class="grid grid-1 gap-4">
+                    {% for f in product.form_schema.fields %}
                     <div class="field-group">
-                        <label>{{ field.label }} {% if field.required %}<span class="text-danger">*</span>{% endif %}</label>
-                        {% if field.type == 'textarea' %}
-                            <textarea name="custom_{{ field.name|default:field.label }}" rows="3" placeholder="{{ field.placeholder }}" {% if field.required %}required{% endif %}></textarea>
-                        {% elif field.type == 'select' %}
-                            <select name="custom_{{ field.name|default:field.label }}" {% if field.required %}required{% endif %}>
-                                <option value="">اختر...</option>
-                                {% for opt in field.options %}
-                                <option value="{{ opt }}">{{ opt }}</option>
-                                {% endfor %}
-                            </select>
+                        <label>{{ f.label }} {% if f.required %}<span class="text-danger">*</span>{% endif %}</label>
+                        {% if f.type == 'textarea' %}
+                        <textarea name="custom_{{ f.name|default:f.label }}" placeholder="{{ f.placeholder }}" {% if f.required %}required{% endif %}></textarea>
                         {% else %}
-                            <input type="{{ field.type|default:'text' }}" name="custom_{{ field.name|default:field.label }}" placeholder="{{ field.placeholder }}" {% if field.required %}required{% endif %}>
+                        <input type="text" name="custom_{{ f.name|default:f.label }}" placeholder="{{ f.placeholder }}" {% if f.required %}required{% endif %}>
                         {% endif %}
                     </div>
                     {% endfor %}
-
-                    <div class="field-group">
-                        <label>الكمية</label>
-                        <input type="number" name="quantity" value="1" min="1" oninput="updateTotal()">
-                    </div>
                 </div>
+            </div>
+            {% endif %}
 
-                <!-- Total Box -->
-                <div class="bg-slate-800/50 rounded-2xl p-6 stack gap-3 mt-4">
-                    <div class="flex justify-between text-sm">
-                        <span class="text-muted">سعر الوحدة:</span>
-                        <strong id="display-unit-price">--</strong>
-                    </div>
-                    <div class="flex justify-between items-center pt-3 border-t border-white/5">
-                        <span class="text-lg font-bold">الإجمالي:</span>
-                        <strong class="text-3xl text-cyan" id="display-total-price">--</strong>
-                    </div>
-                </div>
-
-                <button type="submit" class="btn btn-primary w-full py-4 text-lg">
-                    <i class="fas fa-shopping-cart ml-2"></i> تأكيد وشراء الآن
+            <div class="mt-10">
+                <button type="submit" class="buy-btn-v2" id="submit-btn" disabled>
+                    <i class="fas fa-shopping-cart"></i> شراء هذه الباقة الآن
                 </button>
-                
-                <p class="text-[10px] text-center text-slate-500">
-                    * سيتم خصم المبلغ من رصيد محفظتك المتاح فوراً.
-                </p>
-            </form>
+                <p class="text-[10px] text-center text-muted mt-4">بمجرد الشراء، سيتم خصم المبلغ من محفظتك وتجهيز الطلب فوراً.</p>
+            </div>
+        </form>
+
+        <!-- Instructions -->
+        {% if product.instructions %}
+        <div class="panel p-8 stack gap-4 border-dashed">
+            <h3 class="font-bold text-base"><i class="fas fa-circle-info ml-2 text-cyan"></i> تعليمات هامة</h3>
+            <div class="text-sm text-slate-300 leading-loose">{{ product.instructions|linebreaks }}</div>
+        </div>
+        {% endif %}
+        
+        <!-- Related Products -->
+        <div class="stack gap-6 mt-12">
+            <h3 class="font-bold text-xl">خدمات قد تهمك أيضاً</h3>
+            <div class="grid grid-3 gap-4">
+                {% for rp in related_products %}
+                <a href="{% url 'product_detail' rp.id %}" class="panel p-4 flex gap-4 items-center hover:border-cyan transition">
+                    <div class="w-12 h-12 rounded-lg bg-slate-800 overflow-hidden">
+                        {% if rp.image %}<img src="{{ rp.image.url }}" class="w-full h-full object-cover">{% endif %}
+                    </div>
+                    <div class="flex-grow">
+                        <div class="text-xs font-bold line-clamp-1">{{ rp.name }}</div>
+                        <div class="text-[10px] text-cyan mt-1">{{ rp.variants.first.price }} SYP</div>
+                    </div>
+                </a>
+                {% endfor %}
+            </div>
         </div>
     </div>
 </div>
 
 <script>
-    function selectVariant(card) {
-        document.querySelectorAll('.variant-card').forEach(c => c.classList.remove('selected'));
-        card.classList.add('selected');
-        document.getElementById('selected-variant-id').value = card.dataset.id;
-        updateTotal();
-    }
+function changeImg(url, el) {
+    document.getElementById('main-product-img').src = url;
+    document.querySelectorAll('.thumb-item').forEach(t => t.classList.remove('active'));
+    el.classList.add('active');
+}
 
-    function updateTotal() {
-        const selectedCard = document.querySelector('.variant-card.selected');
-        if (!selectedCard) return;
+function selectVariant(id, el) {
+    document.getElementById('selected-variant-id').value = id;
+    document.querySelectorAll('.variant-card').forEach(c => c.classList.remove('selected'));
+    el.classList.add('selected');
+    document.getElementById('submit-btn').disabled = false;
+}
 
-        const price = parseFloat(selectedCard.dataset.price);
-        const quantity = parseInt(document.querySelector('input[name="quantity"]').value) || 1;
-        const total = price * quantity;
-
-        document.getElementById('display-unit-price').innerText = price.toLocaleString() + ' SYP';
-        document.getElementById('display-total-price').innerText = total.toLocaleString() + ' SYP';
-    }
-
-    window.onload = updateTotal;
+// Select first variant by default
+window.onload = () => {
+    const first = document.querySelector('.variant-card');
+    if(first) first.click();
+}
 </script>
 {% endblock %}

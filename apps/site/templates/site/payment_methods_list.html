@@ -43,12 +43,24 @@
 
             <div class="stack gap-3 border-t border-white/5 pt-4">
                 <div class="flex justify-between text-[11px]">
-                    <span class="text-muted">الرسوم الثابتة:</span>
-                    <strong class="text-slate-200">{{ method.fixed_fee }}</strong>
+                    <span class="text-muted">رسوم الإيداع:</span>
+                    <strong class="text-slate-200">
+                        {% if method.deposit_fee_settings.enabled %}
+                            {{ method.deposit_fee_settings.fixed }} + {{ method.deposit_fee_settings.percent }}%
+                        {% else %}
+                            <span class="text-muted opacity-50">معطلة</span>
+                        {% endif %}
+                    </strong>
                 </div>
                 <div class="flex justify-between text-[11px]">
-                    <span class="text-muted">النسبة المئوية:</span>
-                    <strong class="text-slate-200">{{ method.percentage_fee }}%</strong>
+                    <span class="text-muted">رسوم السحب:</span>
+                    <strong class="text-slate-200">
+                        {% if method.withdrawal_fee_settings.enabled %}
+                            {{ method.withdrawal_fee_settings.fixed }} + {{ method.withdrawal_fee_settings.percent }}%
+                        {% else %}
+                            <span class="text-muted opacity-50">معطلة</span>
+                        {% endif %}
+                    </strong>
                 </div>
             </div>
         </div>

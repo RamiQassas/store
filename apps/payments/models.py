@@ -7,55 +7,43 @@ from apps.common.models import TimeStampedModel
 
 
 class PaymentMethod(TimeStampedModel):
-    class MethodType(models.TextChoices):
-        BANK = "bank", "بنك"
-        WALLET = "wallet", "محفظة إلكترونية"
-        CASH = "cash", "نقدي"
-        MOBILE_PAYMENT = "mobile_payment", "دفع عبر الهاتف"
-
     # General Information
     name = models.CharField(max_length=120, verbose_name="اسم الوسيلة")
     logo = models.ImageField(upload_to="payment-methods/logos/", blank=True, null=True, verbose_name="الشعار")
-    icon = models.CharField(max_length=50, blank=True, verbose_name="الأيقونة (FontAwesome)")
-    method_type = models.CharField(max_length=40, choices=MethodType.choices, verbose_name="نوع الوسيلة")
-    provider_name = models.CharField(max_length=120, blank=True, verbose_name="اسم المزود أو البنك")
+    method_type = models.CharField(max_length=100, verbose_name="نوع الوسيلة (مثلاً: بنك، محفظة)")
     description = models.TextField(blank=True, verbose_name="وصف الوسيلة")
     display_order = models.PositiveIntegerField(default=0, verbose_name="ترتيب العرض")
     is_active = models.BooleanField(default=True, verbose_name="نشط")
     is_maintenance_mode = models.BooleanField(default=False, verbose_name="وضع الصيانة")
 
-    # Dynamic Form Engine
-    form_schema = models.JSONField(
-        default=dict,
-        blank=True,
-        verbose_name="نموذج بيانات الإيداع (JSON)",
-        help_text='مثال: {"version": 1, "fields": [{"label": "رقم الحوالة", "type": "text", "required": true}]}'
+    # --- Static Information Blocks (Display only to user) ---
+    # Structure: {"version": 1, "rows": [{"title": "IBAN", "value": "TR...", "copyable": true}]}
+    deposit_info_schema = models.JSONField(default=dict, blank=True, verbose_name="بيانات الإيداع الثابتة (للعرض)")
+    withdrawal_info_schema = models.JSONField(default=dict, blank=True, verbose_name="بيانات السحب الثابتة (للعرض)")
+
+    # --- Dynamic Form Engine (Customer Input Fields) ---
+    # Structure: {"version": 1, "fields": [{"label": "Sender Name", "type": "text", "required": true}]}
+    form_schema = models.JSONField(default=dict, blank=True, verbose_name="حقول الإيداع المطلوبة من العميل")
+    withdrawal_form_schema = models.JSONField(default=dict, blank=True, verbose_name="حقول السحب المطلوبة من العميل")
+
+    # --- Fees Configuration (Separated) ---
+    deposit_fee_settings = models.JSONField(
+        default=dict, 
+        blank=True, 
+        verbose_name="إعدادات رسوم الإيداع",
+        help_text='{"fixed": 0, "percent": 0, "min": 0, "max": 0, "enabled": true}'
     )
-    
-    withdrawal_form_schema = models.JSONField(
-        default=dict,
-        blank=True,
-        verbose_name="نموذج بيانات السحب (JSON)",
-        help_text='مثال: {"version": 1, "fields": [{"label": "رقم المحفظة", "type": "text", "required": true}]}'
+    withdrawal_fee_settings = models.JSONField(
+        default=dict, 
+        blank=True, 
+        verbose_name="إعدادات رسوم السحب",
+        help_text='{"fixed": 0, "percent": 0, "min": 0, "max": 0, "enabled": true}'
     )
 
-    # Legacy fields (keeping some for bank info if needed, but primarily moving to form_schema)
-    account_number = models.CharField(max_length=120, blank=True, verbose_name="رقم الحساب (افتراضي)")
-    account_name = models.CharField(max_length=120, blank=True, verbose_name="اسم صاحب الحساب (افتراضي)")
-    iban = models.CharField(max_length=120, blank=True, verbose_name="IBAN")
-    wallet_address = models.CharField(max_length=255, blank=True, verbose_name="عنوان المحفظة / معرف")
     qr_image = models.ImageField(upload_to="payment-methods/qr/", blank=True, null=True, verbose_name="صورة QR")
-    instructions = models.TextField(blank=True, verbose_name="تعليمات الدفع")
-    custom_notes = models.TextField(blank=True, verbose_name="ملاحظات إضافية")
-
-    # Limits and Fees
-    min_amount = models.DecimalField(max_digits=14, decimal_places=2, default=Decimal("0.00"), verbose_name="الحد الأدنى")
-    max_amount = models.DecimalField(max_digits=14, decimal_places=2, default=Decimal("10000000.00"), verbose_name="الحد الأقصى")
-    fixed_fee = models.DecimalField(max_digits=14, decimal_places=2, default=Decimal("0.00"), verbose_name="رسوم ثابتة")
-    percentage_fee = models.DecimalField(max_digits=5, decimal_places=2, default=Decimal("0.00"), verbose_name="رسوم مئوية (%)")
+    instructions = models.TextField(blank=True, verbose_name="تعليمات إضافية")
+    
     supported_currencies = models.ManyToManyField("common.Currency", blank=True, verbose_name="العملات المدعومة")
-
-    # Capabilities
     can_deposit = models.BooleanField(default=True, verbose_name="متاحة للإيداع")
     can_withdraw = models.BooleanField(default=False, verbose_name="متاحة للسحب")
 
@@ -66,6 +54,26 @@ class PaymentMethod(TimeStampedModel):
 
     def __str__(self):
         return self.name
+
+    def calculate_fee(self, amount, mode="deposit"):
+        """Calculates granular fee based on mode."""
+        settings = self.deposit_fee_settings if mode == "deposit" else self.withdrawal_fee_settings
+        if not settings or not settings.get("enabled", True):
+            return Decimal("0.00")
+            
+        fixed = Decimal(str(settings.get("fixed", 0)))
+        percent = Decimal(str(settings.get("percent", 0)))
+        min_fee = Decimal(str(settings.get("min", 0)))
+        max_fee = Decimal(str(settings.get("max", 0)))
+        
+        calculated = fixed + (Decimal(str(amount)) * percent / 100)
+        
+        if min_fee > 0:
+            calculated = max(calculated, min_fee)
+        if max_fee > 0:
+            calculated = min(calculated, max_fee)
+            
+        return calculated
 
 
 class DepositRequest(TimeStampedModel):
@@ -99,9 +107,7 @@ class DepositRequest(TimeStampedModel):
     metadata = models.JSONField(default=dict, blank=True)
 
     def calculate_fees(self):
-        fixed_fee = self.payment_method.fixed_fee
-        percentage_fee = (self.amount * self.payment_method.percentage_fee) / 100
-        self.fee_amount = fixed_fee + percentage_fee
+        self.fee_amount = self.payment_method.calculate_fee(self.amount, mode="deposit")
         self.final_amount = self.amount - self.fee_amount
 
     def save(self, *args, **kwargs):
@@ -158,9 +164,7 @@ class WithdrawalRequest(TimeStampedModel):
     metadata = models.JSONField(default=dict, blank=True)
 
     def calculate_fees(self):
-        fixed_fee = self.payment_method.fixed_fee
-        percentage_fee = (self.amount * self.payment_method.percentage_fee) / 100
-        self.fee_amount = fixed_fee + percentage_fee
+        self.fee_amount = self.payment_method.calculate_fee(self.amount, mode="withdrawal")
         self.final_amount = self.amount - self.fee_amount
 
     def save(self, *args, **kwargs):

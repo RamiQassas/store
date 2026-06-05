@@ -3,78 +3,180 @@
 <html lang="ar" dir="rtl">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <title>{% block title %}Raqamiyat | رقميات{% endblock %}</title>
+  
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
-  <link rel="stylesheet" href="{% static 'site/css/app.css' %}">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <link rel="stylesheet" href="{% static 'site/css/app.css' %}?v=2">
+  
+  <style>
+    /* Mobile Navigation Fixes */
+    .mobile-header {
+        position: sticky;
+        top: 0;
+        z-index: 1000;
+        background: rgba(5, 8, 17, 0.9);
+        backdrop-filter: blur(10px);
+        border-bottom: 1px solid var(--panel-border);
+        padding: 0.75rem 1rem;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .mobile-nav-bar {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        height: 65px;
+        background: #0f172a;
+        border-top: 1px solid var(--panel-border);
+        display: flex;
+        justify-content: space-around;
+        align-items: center;
+        z-index: 1000;
+        padding-bottom: env(safe-area-inset-bottom);
+    }
+
+    .mobile-nav-item {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        color: var(--muted);
+        font-size: 10px;
+        font-weight: bold;
+        text-decoration: none;
+        transition: all 0.3s;
+    }
+
+    .mobile-nav-item i { font-size: 1.25rem; margin-bottom: 4px; }
+    .mobile-nav-item.active { color: var(--cyan); }
+
+    @media (min-width: 1024px) {
+        .mobile-nav-bar { display: none; }
+        .mobile-header { display: none; }
+    }
+
+    @media (max-width: 1023px) {
+        header.desktop-header { display: none; }
+        .shell { padding-top: 1rem; padding-bottom: 80px; }
+    }
+  </style>
   {% block extra_head %}{% endblock %}
 </head>
 <body>
-  <div class="shell">
-    <header class="topbar">
-      <a href="{% url 'home' %}" class="brand">
-        <i class="fas fa-bolt"></i> Raqamiyat<span>.</span>
+  <!-- Mobile Header -->
+  <div class="mobile-header">
+      <a href="{% url 'home' %}" class="brand" style="font-size: 1.25rem;">
+          <i class="fas fa-bolt"></i> <span>RAQAMIYAT</span>
       </a>
-      
-      <nav class="nav">
-        <a href="{% url 'home' %}" class="{% if request.resolver_match.url_name == 'home' %}active{% endif %}">الرئيسية</a>
-        <a href="{% url 'catalog' %}" class="{% if request.resolver_match.url_name == 'catalog' %}active{% endif %}">المنتجات</a>
-        {% if user.is_authenticated %}
-            <a href="{% url 'dashboard' %}" class="{% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}">لوحتي</a>
-            <a href="{% url 'dashboard_wallet' %}" class="{% if request.resolver_match.url_name == 'dashboard_wallet' %}active{% endif %}">المحفظة</a>
-            <a href="{% url 'chat_list' %}" class="{% if 'chat' in request.path %}active{% endif %}">الدعم المباشر</a>
-
-        {% endif %}
-      </nav>
-
-      <div class="actions">
-        {% if user.is_authenticated %}
-          {% if user.is_staff %}
-            <a href="{% url 'control_dashboard' %}" class="btn btn-sm btn-outline text-cyan">لوحة الإدارة</a>
+      <div class="flex items-center gap-3">
+          {% if user.is_authenticated %}
+          <a href="{% url 'chat_list' %}" class="relative">
+              <i class="fas fa-bell text-slate-400"></i>
+          </a>
+          <a href="{% url 'dashboard' %}" class="w-8 h-8 rounded-full bg-slate-800 border border-white/5 flex items-center justify-center text-[10px]">
+              {{ user.first_name|slice:":1" }}
+          </a>
+          {% else %}
+          <a href="{% url 'site_login' %}" class="btn btn-sm btn-primary">دخول</a>
           {% endif %}
-          <div class="flex items-center gap-3">
-             <span class="text-xs font-bold text-slate-400">{{ user.first_name }}</span>
-             <a href="{% url 'site_logout' %}" class="btn btn-sm btn-outline"><i class="fas fa-sign-out-alt"></i></a>
-          </div>
-        {% else %}
-          <a href="{% url 'site_login' %}" class="btn btn-sm btn-outline">دخول</a>
-          <a href="{% url 'site_register' %}" class="btn btn-sm btn-primary">حساب جديد</a>
-        {% endif %}
+      </div>
+  </div>
+
+  <div class="shell">
+    <!-- Desktop Header -->
+    <header class="desktop-header">
+      <div class="topbar">
+        <a href="{% url 'home' %}" class="brand">
+          <i class="fas fa-bolt"></i> <span>RAQAMIYAT</span>
+        </a>
+
+        <nav class="nav">
+          <a href="{% url 'home' %}" class="{% if request.resolver_match.url_name == 'home' %}active{% endif %}">الرئيسية</a>
+          <a href="{% url 'catalog' %}" class="{% if request.resolver_match.url_name == 'catalog' %}active{% endif %}">الخدمات</a>
+          {% if user.is_authenticated %}
+             <a href="{% url 'dashboard' %}" class="{% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}">لوحتي</a>
+             <a href="{% url 'dashboard_wallet' %}" class="{% if request.resolver_match.url_name == 'dashboard_wallet' %}active{% endif %}">المحفظة</a>
+             <a href="{% url 'chat_list' %}" class="{% if 'chat' in request.path %}active{% endif %}">الدعم المباشر</a>
+          {% endif %}
+        </nav>
+
+        <div class="actions">
+          {% if user.is_authenticated %}
+            <div class="flex items-center gap-4">
+                <div class="text-left hide-mobile">
+                    <div class="text-[10px] text-muted font-bold">الرصيد المتاح</div>
+                    <div class="text-sm font-black text-cyan">{{ user.wallet.available_balance }} {{ user.wallet.currency.code }}</div>
+                </div>
+                <a href="{% url 'site_logout' %}" class="btn btn-sm btn-outline"><i class="fas fa-sign-out-alt"></i></a>
+            </div>
+          {% else %}
+            <a href="{% url 'site_login' %}" class="btn btn-sm btn-outline">تسجيل الدخول</a>
+            <a href="{% url 'site_register' %}" class="btn btn-sm btn-primary">حساب جديد</a>
+          {% endif %}
+        </div>
       </div>
     </header>
 
     {% if messages %}
       <div class="messages-container stack gap-2 mb-6">
         {% for message in messages %}
-          <div class="badge {% if message.tags == 'error' %}danger{% elif message.tags == 'success' %}success{% else %}primary{% endif %} p-4 w-full justify-between">
-            <span>{{ message }}</span>
+          <div class="panel p-4 {% if message.tags == 'error' %}border-danger/30 bg-danger/5 text-danger{% else %}border-success/30 bg-success/5 text-success{% endif %} flex justify-between items-center">
+            <span class="text-sm font-bold">{{ message }}</span>
+            <i class="fas {% if message.tags == 'error' %}fa-exclamation-circle{% else %}fa-check-circle{% endif %}"></i>
           </div>
         {% endfor %}
       </div>
     {% endif %}
 
-    <main>
-      {% block content %}{% endblock %}
-    </main>
+    {% block content %}{% endblock %}
 
     <footer>
-      <div class="flex flex-col gap-4">
-        <div class="brand justify-center">
-            <i class="fas fa-bolt"></i> Raqamiyat
-        </div>
-        <p>© 2024 جميع الحقوق محفوظة لـ رقميات - Raqamiyat</p>
-        <div class="flex gap-4 justify-center text-xs">
-            <a href="{% url 'terms_of_service' %}" class="hover:text-cyan">شروط الاستخدام</a>
-            <a href="{% url 'privacy_policy' %}" class="hover:text-cyan">سياسة الخصوصية</a>
-            <a href="{% url 'refund_policy' %}" class="hover:text-cyan">سياسة الاسترجاع</a>
-            <a href="{% url 'contact' %}" class="hover:text-cyan">تواصل معنا</a>
+      <div class="container">
+        <div class="flex flex-col md:row justify-between items-center gap-6">
+            <div class="brand" style="font-size: 1.5rem;">
+                <i class="fas fa-bolt"></i> <span>RAQAMIYAT</span>
+            </div>
+            <div class="flex gap-6 text-sm">
+                <a href="{% url 'privacy_policy' %}" class="hover:text-cyan">الخصوصية</a>
+                <a href="{% url 'terms_of_service' %}" class="hover:text-cyan">الشروط</a>
+                <a href="{% url 'contact' %}" class="hover:text-cyan">تواصل معنا</a>
+            </div>
+            <div class="text-[10px] text-slate-600 font-bold">© 2026 RAQAMIYAT LTD. ALL RIGHTS RESERVED.</div>
         </div>
       </div>
     </footer>
   </div>
+
+  <!-- Mobile Nav Bar -->
+  <div class="mobile-nav-bar">
+      <a href="{% url 'home' %}" class="mobile-nav-item {% if request.resolver_match.url_name == 'home' %}active{% endif %}">
+          <i class="fas fa-house"></i>
+          <span>الرئيسية</span>
+      </a>
+      <a href="{% url 'catalog' %}" class="mobile-nav-item {% if request.resolver_match.url_name == 'catalog' %}active{% endif %}">
+          <i class="fas fa-grid-2"></i>
+          <span>الخدمات</span>
+      </a>
+      <a href="{% url 'dashboard_wallet' %}" class="mobile-nav-item {% if request.resolver_match.url_name == 'dashboard_wallet' %}active{% endif %}">
+          <i class="fas fa-wallet"></i>
+          <span>المحفظة</span>
+      </a>
+      <a href="{% url 'chat_list' %}" class="mobile-nav-item {% if 'chat' in request.path %}active{% endif %}">
+          <i class="fas fa-headset"></i>
+          <span>الدعم</span>
+      </a>
+      <a href="{% url 'dashboard' %}" class="mobile-nav-item {% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}">
+          <i class="fas fa-user"></i>
+          <span>حسابي</span>
+      </a>
+  </div>
+
   <script>
       window.isUserAuthenticated = {% if user.is_authenticated %}true{% else %}false{% endif %};
       window.VAPID_PUBLIC_KEY = "{{ VAPID_PUBLIC_KEY }}";

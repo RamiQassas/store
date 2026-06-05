@@ -54,14 +54,34 @@ def home(request):
 
 def catalog(request):
     category_id = request.GET.get("category")
-    categories = Category.objects.filter(is_active=True).order_by("sort_order", "name")
+    query = request.GET.get("q", "").strip()
+    sort = request.GET.get("sort", "newest")
+    
+    categories = Category.objects.filter(is_active=True).annotate(product_count=Count('products', filter=Q(products__is_active=True))).order_by("sort_order", "name")
     products = Product.objects.filter(is_active=True).select_related("category").prefetch_related("variants")
+    
     if category_id:
         products = products.filter(category_id=category_id)
-    query = request.GET.get("q", "").strip()
     if query:
         products = products.filter(Q(name__icontains=query) | Q(description__icontains=query) | Q(category__name__icontains=query))
-    return render(request, "site/catalog.html", {"categories": categories, "products": products.order_by("sort_order", "name"), "active_category": category_id, "query": query})
+    
+    # Sorting Logic
+    if sort == "price_low":
+        products = products.order_by("variants__price")
+    elif sort == "price_high":
+        products = products.order_by("-variants__price")
+    elif sort == "popular":
+        products = products.annotate(order_count=Count('orderitem')).order_by("-order_count")
+    else: # newest
+        products = products.order_by("-created_at")
+        
+    return render(request, "site/catalog.html", {
+        "categories": categories, 
+        "products": products.distinct(), 
+        "active_category": category_id, 
+        "query": query,
+        "sort": sort
+    })
 
 
 def product_detail(request, pk):

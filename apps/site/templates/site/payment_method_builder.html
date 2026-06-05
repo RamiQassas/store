@@ -5,63 +5,22 @@
 
 {% block control_head %}
 <style>
-    .builder-section {
-        background: var(--panel);
-        border: 1px solid var(--panel-border);
-        border-radius: var(--radius);
-        margin-bottom: 2rem;
-        overflow: hidden;
-    }
-    .builder-section-header {
-        padding: 1.25rem 2rem;
-        background: rgba(255, 255, 255, 0.02);
-        border-bottom: 1px solid var(--panel-border);
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-    }
+    .builder-section { background: var(--panel); border: 1px solid var(--panel-border); border-radius: var(--radius); margin-bottom: 2rem; overflow: hidden; }
+    .builder-section-header { padding: 1.25rem 2rem; background: rgba(255, 255, 255, 0.02); border-bottom: 1px solid var(--panel-border); display: flex; justify-content: space-between; align-items: center; }
     .builder-body { padding: 2rem; }
 
-    /* Field Builder Item */
-    .field-builder-item {
-        background: var(--bg-soft);
-        border: 1px solid var(--panel-border);
-        border-radius: 12px;
-        padding: 1.5rem;
-        margin-bottom: 1rem;
-        position: relative;
-        transition: border-color 0.2s;
-    }
-    .field-builder-item:hover { border-color: var(--cyan); }
-    
-    .field-controls {
-        position: absolute;
-        top: 1rem;
-        left: 1rem;
-        display: flex;
-        gap: 0.5rem;
-    }
+    /* Builder Card */
+    .builder-card { background: var(--bg-soft); border: 1px solid var(--panel-border); border-radius: 12px; padding: 1.25rem; margin-bottom: 1rem; position: relative; transition: all 0.2s; }
+    .builder-card:hover { border-color: var(--cyan); }
+    .card-controls { position: absolute; top: 0.75rem; left: 0.75rem; display: flex; gap: 0.5rem; }
 
     .mini-label { font-size: 10px; color: var(--muted); font-weight: bold; margin-bottom: 4px; display: block; }
-    .builder-input {
-        background: var(--bg) !important;
-        border: 1px solid var(--panel-border) !important;
-        border-radius: 8px !important;
-        padding: 8px 12px !important;
-        font-size: 12px !important;
-        width: 100%;
-        color: var(--text);
-    }
-    select.builder-input { height: 35px; }
+    .builder-input { background: var(--bg) !important; border: 1px solid var(--panel-border) !important; border-radius: 8px !important; padding: 8px 12px !important; font-size: 12px !important; width: 100%; color: var(--text); }
+    
+    .tab-btn { padding: 0.75rem 1.5rem; cursor: pointer; border-bottom: 2px solid transparent; color: var(--muted); font-weight: 700; transition: all 0.3s; }
+    .tab-btn.active { color: var(--cyan); border-color: var(--cyan); background: rgba(6, 182, 212, 0.05); }
 
-    .field-type-badge {
-        font-size: 9px;
-        padding: 2px 8px;
-        background: rgba(6, 182, 212, 0.1);
-        color: var(--cyan);
-        border-radius: 4px;
-        font-weight: bold;
-    }
+    .fee-config-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 1rem; }
 </style>
 {% endblock %}
 
@@ -70,295 +29,252 @@
     <div>
         <span class="eyebrow">Financial Engine / Payment Builder</span>
         <h1>{{ title }}</h1>
-        <p class="text-muted">نظام بناء وسائل الدفع المتطور. قم بتخصيص الحقول المطلوبة لكل وسيلة بشكل مرن.</p>
+        <p class="text-muted">نظام بناء وسائل الدفع المتطور. تحكم كامل في الرسوم، الحقول، والبيانات الثابتة.</p>
     </div>
     <div class="flex gap-3">
         <a href="{% url 'payment_methods_list' %}" class="btn btn-outline btn-sm">إلغاء</a>
-        <button type="button" class="btn btn-primary btn-sm" onclick="savePaymentMethod()">
-            <i class="fas fa-save ml-2"></i> حفظ الوسيلة
-        </button>
+        <button type="button" class="btn btn-primary btn-sm" onclick="submitBuilder()">حفظ الوسيلة</button>
     </div>
 </div>
 
 <form id="payment-builder-form" method="post" enctype="multipart/form-data">
     {% csrf_token %}
-    <!-- Hidden fields for the dynamic JSON schemas -->
+    <input type="hidden" name="deposit_info_schema" id="id_deposit_info_schema">
+    <input type="hidden" name="withdrawal_info_schema" id="id_withdrawal_info_schema">
     <input type="hidden" name="form_schema" id="id_form_schema">
     <input type="hidden" name="withdrawal_form_schema" id="id_withdrawal_form_schema">
+    <input type="hidden" name="deposit_fee_settings" id="id_deposit_fee_settings">
+    <input type="hidden" name="withdrawal_fee_settings" id="id_withdrawal_fee_settings">
 
-    <div class="grid grid-cols-12 gap-8">
-        <!-- Main Configuration -->
-        <div class="col-span-12 lg:col-span-7 stack gap-8">
-            <div class="builder-section">
-                <div class="builder-section-header">
-                    <h3 class="font-bold text-lg"><i class="fas fa-cog ml-2 text-cyan"></i> الإعدادات الأساسية</h3>
+    <!-- A) General Information -->
+    <div class="builder-section shadow-lg">
+        <div class="builder-section-header"><h3 class="font-bold">المعلومات الأساسية</h3></div>
+        <div class="builder-body grid grid-cols-12 gap-8">
+            <div class="col-span-12 lg:col-span-8 stack gap-6">
+                <div class="grid grid-2 gap-6">
+                    <div class="field-group"><label>اسم وسيلة الدفع</label>{{ form.name }}</div>
+                    <div class="field-group"><label>نوع الوسيلة (نص حر)</label>{{ form.method_type }}</div>
                 </div>
-                <div class="builder-body stack gap-6">
-                    <div class="grid grid-2 gap-6">
-                        <div class="field-group">
-                            <label>اسم وسيلة الدفع (مثلاً: زين كاش، بنك سورية)</label>
-                            {{ form.name }}
-                        </div>
-                        <div class="field-group">
-                            <label>اسم المزود (داخلي)</label>
-                            {{ form.provider_name }}
-                        </div>
-                    </div>
-                    
-                    <div class="grid grid-2 gap-6">
-                        <div class="field-group">
-                            <label>نوع الوسيلة</label>
-                            {{ form.method_type }}
-                        </div>
-                        <div class="field-group">
-                            <label>ترتيب العرض</label>
-                            {{ form.display_order }}
-                        </div>
-                    </div>
+                <div class="field-group"><label>الوصف العام</label>{{ form.description }}</div>
+                <div class="field-group"><label>تعليمات إضافية</label>{{ form.instructions }}</div>
+            </div>
+            <div class="col-span-12 lg:col-span-4 stack gap-6">
+                <div class="panel p-4 bg-slate-800/30 border-white/5">
+                    <label class="mini-label">شعار الوسيلة</label>{{ form.logo }}
+                    {% if method.logo %}<img src="{{ method.logo.url }}" class="mt-2 h-16 w-16 object-contain rounded-lg">{% endif %}
+                </div>
+                <div class="panel p-4 bg-slate-800/30 border-white/5">
+                    <label class="mini-label">رمز QR</label>{{ form.qr_image }}
+                    {% if method.qr_image %}<img src="{{ method.qr_image.url }}" class="mt-2 h-24 w-24 object-contain rounded-lg bg-white p-1">{% endif %}
+                </div>
+                <div class="grid grid-2 gap-4">
+                    <div class="flex items-center gap-2 p-3 bg-slate-800/20 rounded-lg">{{ form.is_active }} <span class="text-xs">نشط</span></div>
+                    <div class="flex items-center gap-2 p-3 bg-slate-800/20 rounded-lg">{{ form.is_maintenance_mode }} <span class="text-xs">صيانة</span></div>
+                    <div class="flex items-center gap-2 p-3 bg-slate-800/20 rounded-lg">{{ form.can_deposit }} <span class="text-xs">إيداع</span></div>
+                    <div class="flex items-center gap-2 p-3 bg-slate-800/20 rounded-lg">{{ form.can_withdraw }} <span class="text-xs">سحب</span></div>
+                </div>
+                <div class="field-group"><label>العملات المدعومة</label><div class="p-3 bg-slate-800/30 rounded-xl">{{ form.supported_currencies }}</div></div>
+            </div>
+        </div>
+    </div>
 
-                    <div class="field-group">
-                        <label>وصف الوسيلة (يظهر للعملاء)</label>
-                        {{ form.description }}
-                    </div>
+    <!-- Mode Selector Tabs -->
+    <div class="flex border-b border-white/5 mb-8">
+        <div class="tab-btn active" id="tab-deposit" onclick="switchMode('deposit')"><i class="fas fa-arrow-down ml-2"></i> إعدادات الإيداع</div>
+        <div class="tab-btn" id="tab-withdrawal" onclick="switchMode('withdrawal')"><i class="fas fa-arrow-up ml-2"></i> إعدادات السحب</div>
+    </div>
 
-                    <div class="field-group">
-                        <label>تعليمات التحويل (تظهر في خطوة الدفع)</label>
-                        {{ form.instructions }}
-                    </div>
+    <!-- B) Dynamic Configuration Area -->
+    <div id="config-area" class="stack gap-8">
+        <!-- Fee Configuration -->
+        <div class="builder-section">
+            <div class="builder-section-header">
+                <h3 class="font-bold text-sm"><i class="fas fa-percentage ml-2 text-cyan"></i> إعدادات الرسوم</h3>
+                <div class="flex items-center gap-2">
+                    <input type="checkbox" id="fee-enabled" checked onchange="updateFeeState()"> <span class="text-xs">تفعيل الرسوم</span>
                 </div>
             </div>
-
-            <!-- Deposit Fields Builder -->
-            <div class="builder-section">
-                <div class="builder-section-header">
-                    <h3 class="font-bold text-lg"><i class="fas fa-arrow-down ml-2 text-success"></i> حقول الإيداع المطلوبة</h3>
-                    <button type="button" class="btn btn-sm btn-outline" onclick="addField('deposit')">
-                        <i class="fas fa-plus ml-1"></i> إضافة حقل
-                    </button>
-                </div>
-                <div class="builder-body">
-                    <div id="deposit-fields-container"></div>
-                    <div id="empty-deposit" class="text-center p-8 opacity-20 hidden">
-                        <i class="fas fa-list text-4xl mb-2"></i>
-                        <p class="text-xs">لم يتم إضافة حقول إيداع مخصصة.</p>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Withdrawal Fields Builder -->
-            <div class="builder-section">
-                <div class="builder-section-header">
-                    <h3 class="font-bold text-lg"><i class="fas fa-arrow-up ml-2 text-danger"></i> حقول السحب المطلوبة</h3>
-                    <button type="button" class="btn btn-sm btn-outline" onclick="addField('withdrawal')">
-                        <i class="fas fa-plus ml-1"></i> إضافة حقل
-                    </button>
-                </div>
-                <div class="builder-body">
-                    <div id="withdrawal-fields-container"></div>
-                    <div id="empty-withdrawal" class="text-center p-8 opacity-20 hidden">
-                        <i class="fas fa-list text-4xl mb-2"></i>
-                        <p class="text-xs">لم يتم إضافة حقول سحب مخصصة.</p>
-                    </div>
+            <div class="builder-body">
+                <div class="fee-config-grid">
+                    <div class="field-group"><label class="text-[10px]">رسوم ثابتة</label><input type="number" id="fee-fixed" class="builder-input" value="0"></div>
+                    <div class="field-group"><label class="text-[10px]">نسبة مئوية (%)</label><input type="number" id="fee-percent" class="builder-input" value="0"></div>
+                    <div class="field-group"><label class="text-[10px]">أقل عمولة</label><input type="number" id="fee-min" class="builder-input" value="0"></div>
+                    <div class="field-group"><label class="text-[10px]">أقصى عمولة</label><input type="number" id="fee-max" class="builder-input" value="0"></div>
                 </div>
             </div>
         </div>
 
-        <!-- Sidebar / Media & Limits -->
-        <div class="col-span-12 lg:col-span-5 stack gap-8">
-            <div class="builder-section">
-                <div class="builder-section-header">
-                    <h3 class="font-bold text-sm">الحالة والوسائط</h3>
-                </div>
-                <div class="builder-body stack gap-6">
-                    <div class="grid grid-2 gap-4">
-                        <div class="flex items-center gap-2 p-3 bg-slate-800/30 rounded-xl">
-                            {{ form.is_active }} <span class="text-xs font-bold">نشطة</span>
-                        </div>
-                        <div class="flex items-center gap-2 p-3 bg-slate-800/30 rounded-xl">
-                            {{ form.is_maintenance_mode }} <span class="text-xs font-bold">صيانة</span>
-                        </div>
-                    </div>
-                    <div class="grid grid-2 gap-4">
-                        <div class="flex items-center gap-2 p-3 bg-slate-800/30 rounded-xl">
-                            {{ form.can_deposit }} <span class="text-xs font-bold">إيداع</span>
-                        </div>
-                        <div class="flex items-center gap-2 p-3 bg-slate-800/30 rounded-xl">
-                            {{ form.can_withdraw }} <span class="text-xs font-bold">سحب</span>
-                        </div>
-                    </div>
-
-                    <div class="field-group">
-                        <label>شعار الوسيلة</label>
-                        {{ form.logo }}
-                        {% if method.logo %}
-                        <img src="{{ method.logo.url }}" class="mt-2 h-16 w-16 object-contain rounded-lg border border-white/10">
-                        {% endif %}
-                    </div>
-                    <div class="field-group">
-                        <label>رمز QR (اختياري)</label>
-                        {{ form.qr_image }}
-                        {% if method.qr_image %}
-                        <img src="{{ method.qr_image.url }}" class="mt-2 h-32 w-32 object-contain rounded-lg border border-white/10 p-2 bg-white">
-                        {% endif %}
-                    </div>
-                </div>
+        <!-- Static Info Builder -->
+        <div class="builder-section">
+            <div class="builder-section-header">
+                <h3 class="font-bold text-sm"><i class="fas fa-id-card ml-2 text-success"></i> بيانات التحويل الثابتة (تظهر للعميل)</h3>
+                <button type="button" class="btn btn-sm btn-outline" onclick="addInfoRow()"><i class="fas fa-plus ml-1"></i> إضافة صف</button>
             </div>
+            <div class="builder-body">
+                <div id="info-rows-container"></div>
+                <div id="empty-info" class="text-center p-8 opacity-20 hidden"><p>لا توجد بيانات ثابتة.</p></div>
+            </div>
+        </div>
 
-            <div class="builder-section">
-                <div class="builder-section-header">
-                    <h3 class="font-bold text-sm">الحدود والرسوم</h3>
-                </div>
-                <div class="builder-body stack gap-6">
-                    <div class="grid grid-2 gap-6">
-                        <div class="field-group">
-                            <label>أقل مبلغ</label>
-                            {{ form.min_amount }}
-                        </div>
-                        <div class="field-group">
-                            <label>أقصى مبلغ</label>
-                            {{ form.max_amount }}
-                        </div>
-                    </div>
-                    <div class="grid grid-2 gap-6">
-                        <div class="field-group">
-                            <label>رسوم ثابتة</label>
-                            {{ form.fixed_fee }}
-                        </div>
-                        <div class="field-group">
-                            <label>رسوم نسبة (%)</label>
-                            {{ form.percentage_fee }}
-                        </div>
-                    </div>
-                    <div class="field-group">
-                        <label>العملات المدعومة</label>
-                        <div class="p-4 bg-slate-800/30 rounded-xl">
-                            {{ form.supported_currencies }}
-                        </div>
-                    </div>
-                </div>
+        <!-- Required Fields Builder -->
+        <div class="builder-section">
+            <div class="builder-section-header">
+                <h3 class="font-bold text-sm"><i class="fas fa-list-check ml-2 text-purple-500"></i> حقول الإدخال المطلوبة (يقدمها العميل)</h3>
+                <button type="button" class="btn btn-sm btn-outline" onclick="addField()"><i class="fas fa-plus ml-1"></i> إضافة حقل</button>
+            </div>
+            <div class="builder-body">
+                <div id="fields-container"></div>
+                <div id="empty-fields" class="text-center p-8 opacity-20 hidden"><p>لا توجد حقول مطلوبة.</p></div>
             </div>
         </div>
     </div>
 </form>
 
-{{ form.instance.form_schema|json_script:"deposit-schema-data" }}
-{{ form.instance.withdrawal_form_schema|json_script:"withdrawal-schema-data" }}
+<!-- Data Storage -->
+{{ form.instance.deposit_info_schema|json_script:"deposit-info-data" }}
+{{ form.instance.withdrawal_info_schema|json_script:"withdrawal-info-data" }}
+{{ form.instance.form_schema|json_script:"deposit-form-data" }}
+{{ form.instance.withdrawal_form_schema|json_script:"withdrawal-form-data" }}
+{{ form.instance.deposit_fee_settings|json_script:"deposit-fee-data" }}
+{{ form.instance.withdrawal_fee_settings|json_script:"withdrawal-fee-data" }}
 
 <script>
-// --- State Management ---
-function getSafeJSON(elementId, fallback) {
-    try {
-        const element = document.getElementById(elementId);
-        if (!element) return fallback;
-        let data = JSON.parse(element.textContent || 'null');
-        if (typeof data === 'string') data = JSON.parse(data);
-        return (data && data.fields) ? data : fallback;
-    } catch (e) {
-        return fallback;
+let currentMode = 'deposit';
+let state = {
+    deposit: {
+        info: [],
+        fields: [],
+        fees: { fixed: 0, percent: 0, min: 0, max: 0, enabled: true }
+    },
+    withdrawal: {
+        info: [],
+        fields: [],
+        fees: { fixed: 0, percent: 0, min: 0, max: 0, enabled: true }
     }
+};
+
+function init() {
+    state.deposit.info = getJSON('deposit-info-data', {rows:[]}).rows || [];
+    state.withdrawal.info = getJSON('withdrawal-info-data', {rows:[]}).rows || [];
+    state.deposit.fields = getJSON('deposit-form-data', {fields:[]}).fields || [];
+    state.withdrawal.fields = getJSON('withdrawal-form-data', {fields:[]}).fields || [];
+    state.deposit.fees = getJSON('deposit-fee-data', {fixed:0, percent:0, min:0, max:0, enabled:true});
+    state.withdrawal.fees = getJSON('withdrawal-fee-data', {fixed:0, percent:0, min:0, max:0, enabled:true});
+    render();
 }
 
-let depositSchema = getSafeJSON('deposit-schema-data', { version: 1, fields: [] });
-let withdrawalSchema = getSafeJSON('withdrawal-schema-data', { version: 1, fields: [] });
+function getJSON(id, fallback) {
+    const el = document.getElementById(id);
+    if (!el) return fallback;
+    try {
+        let d = JSON.parse(el.textContent);
+        if (typeof d === 'string') d = JSON.parse(d);
+        return d || fallback;
+    } catch(e) { return fallback; }
+}
 
-// --- Field Builder ---
-function renderFields(type) {
-    const container = document.getElementById(`${type}-fields-container`);
-    const schema = type === 'deposit' ? depositSchema : withdrawalSchema;
-    container.innerHTML = '';
+function switchMode(m) {
+    saveCurrentToState();
+    currentMode = m;
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById(`tab-${m}`).classList.add('active');
+    render();
+}
+
+function saveCurrentToState() {
+    const fees = state[currentMode].fees;
+    fees.fixed = document.getElementById('fee-fixed').value;
+    fees.percent = document.getElementById('fee-percent').value;
+    fees.min = document.getElementById('fee-min').value;
+    fees.max = document.getElementById('fee-max').value;
+    fees.enabled = document.getElementById('fee-enabled').checked;
+}
+
+function render() {
+    const s = state[currentMode];
+    // Fees
+    document.getElementById('fee-fixed').value = s.fees.fixed || 0;
+    document.getElementById('fee-percent').value = s.fees.percent || 0;
+    document.getElementById('fee-min').value = s.fees.min || 0;
+    document.getElementById('fee-max').value = s.fees.max || 0;
+    document.getElementById('fee-enabled').checked = s.fees.enabled;
     
-    if (schema.fields.length === 0) {
-        document.getElementById(`empty-${type}`).classList.remove('hidden');
-        return;
-    }
-    document.getElementById(`empty-${type}`).classList.add('hidden');
+    renderInfo();
+    renderFields();
+}
 
-    schema.fields.forEach((field, index) => {
-        const item = document.createElement('div');
-        item.className = 'field-builder-item shadow-sm';
-        item.innerHTML = `
-            <div class="field-controls">
-                <button type="button" class="text-slate-500 hover:text-white" onclick="moveField('${type}', ${index}, -1)"><i class="fas fa-arrow-up"></i></button>
-                <button type="button" class="text-slate-500 hover:text-white" onclick="moveField('${type}', ${index}, 1)"><i class="fas fa-arrow-down"></i></button>
-                <button type="button" class="text-red-500 hover:text-red-400 ml-4" onclick="deleteField('${type}', ${index})"><i class="fas fa-trash"></i></button>
+function renderInfo() {
+    const container = document.getElementById('info-rows-container');
+    container.innerHTML = '';
+    const rows = state[currentMode].info;
+    document.getElementById('empty-info').classList.toggle('hidden', rows.length > 0);
+
+    rows.forEach((row, idx) => {
+        const div = document.createElement('div');
+        div.className = 'builder-card';
+        div.innerHTML = `
+            <div class="card-controls">
+                <button type="button" class="text-red-500" onclick="removeInfo(${idx})"><i class="fas fa-trash"></i></button>
             </div>
-            <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mt-2">
-                <div>
-                    <span class="mini-label">نوع الحقل</span>
-                    <select class="builder-input" onchange="updateField('${type}', ${index}, 'type', this.value)">
-                        <option value="text" ${field.type === 'text' ? 'selected' : ''}>Text</option>
-                        <option value="number" ${field.type === 'number' ? 'selected' : ''}>Number</option>
-                        <option value="phone" ${field.type === 'phone' ? 'selected' : ''}>Phone</option>
-                        <option value="textarea" ${field.type === 'textarea' ? 'selected' : ''}>Textarea</option>
-                        <option value="select" ${field.type === 'select' ? 'selected' : ''}>Select</option>
-                        <option value="image" ${field.type === 'image' ? 'selected' : ''}>Image</option>
-                        <option value="file" ${field.type === 'file' ? 'selected' : ''}>File</option>
-                    </select>
-                </div>
-                <div>
-                    <span class="mini-label">التسمية (Label)</span>
-                    <input type="text" class="builder-input" value="${field.label}" onchange="updateField('${type}', ${index}, 'label', this.value)">
-                </div>
-                <div>
-                    <span class="mini-label">Placeholder</span>
-                    <input type="text" class="builder-input" value="${field.placeholder || ''}" onchange="updateField('${type}', ${index}, 'placeholder', this.value)">
-                </div>
-                <div class="flex items-end pb-2">
-                    <label class="flex items-center gap-2 cursor-pointer">
-                        <input type="checkbox" ${field.required ? 'checked' : ''} onchange="updateField('${type}', ${index}, 'required', this.checked)">
-                        <span class="text-[10px] font-bold">إلزامي</span>
-                    </label>
-                </div>
+            <div class="grid grid-2 gap-4">
+                <div><span class="mini-label">العنوان</span><input type="text" class="builder-input" value="${row.title}" onchange="updateInfo(${idx}, 'title', this.value)"></div>
+                <div><span class="mini-label">القيمة</span><input type="text" class="builder-input" value="${row.value}" onchange="updateInfo(${idx}, 'value', this.value)"></div>
+            </div>
+            <div class="mt-2 flex items-center gap-2"><input type="checkbox" ${row.copyable ? 'checked' : ''} onchange="updateInfo(${idx}, 'copyable', this.checked)"> <span class="text-[10px]">قابلة للنسخ</span></div>
+        `;
+        container.appendChild(div);
+    });
+}
+
+function addInfoRow() { state[currentMode].info.push({title: '', value: '', copyable: true}); renderInfo(); }
+function updateInfo(idx, key, val) { state[currentMode].info[idx][key] = val; }
+function removeInfo(idx) { state[currentMode].info.splice(idx, 1); renderInfo(); }
+
+function renderFields() {
+    const container = document.getElementById('fields-container');
+    container.innerHTML = '';
+    const fields = state[currentMode].fields;
+    document.getElementById('empty-fields').classList.toggle('hidden', fields.length > 0);
+
+    fields.forEach((f, idx) => {
+        const div = document.createElement('div');
+        div.className = 'builder-card';
+        div.innerHTML = `
+            <div class="card-controls">
+                <button type="button" class="text-red-500" onclick="removeField(${idx})"><i class="fas fa-trash"></i></button>
+            </div>
+            <div class="grid grid-4 gap-4">
+                <div><span class="mini-label">نوع الحقل</span><select class="builder-input" onchange="updateField(${idx}, 'type', this.value)">
+                    <option value="text" ${f.type==='text'?'selected':''}>Text</option>
+                    <option value="number" ${f.type==='number'?'selected':''}>Number</option>
+                    <option value="phone" ${f.type==='phone'?'selected':''}>Phone</option>
+                    <option value="textarea" ${f.type==='textarea'?'selected':''}>Textarea</option>
+                    <option value="image" ${f.type==='image'?'selected':''}>Image</option>
+                </select></div>
+                <div><span class="mini-label">التسمية</span><input type="text" class="builder-input" value="${f.label}" onchange="updateField(${idx}, 'label', this.value)"></div>
+                <div><span class="mini-label">Placeholder</span><input type="text" class="builder-input" value="${f.placeholder||''}" onchange="updateField(${idx}, 'placeholder', this.value)"></div>
+                <div class="flex items-end pb-2"><input type="checkbox" ${f.required ? 'checked' : ''} onchange="updateField(${idx}, 'required', this.checked)"> <span class="text-[10px] mr-2">إلزامي</span></div>
             </div>
         `;
-        container.appendChild(item);
+        container.appendChild(div);
     });
 }
 
-function addField(type) {
-    const schema = type === 'deposit' ? depositSchema : withdrawalSchema;
-    schema.fields.push({
-        label: 'حقل جديد',
-        type: 'text',
-        required: true,
-        placeholder: '',
-        name: 'field_' + Math.random().toString(36).substr(2, 5)
-    });
-    renderFields(type);
-}
+function addField() { state[currentMode].fields.push({label: 'حقل جديد', type: 'text', required: true, name: 'f_'+Math.random().toString(36).substr(2,5)}); renderFields(); }
+function updateField(idx, key, val) { state[currentMode].fields[idx][key] = val; }
+function removeField(idx) { state[currentMode].fields.splice(idx, 1); renderFields(); }
 
-function updateField(type, index, key, value) {
-    const schema = type === 'deposit' ? depositSchema : withdrawalSchema;
-    schema.fields[index][key] = value;
-}
-
-function deleteField(type, index) {
-    const schema = type === 'deposit' ? depositSchema : withdrawalSchema;
-    schema.fields.splice(index, 1);
-    renderFields(type);
-}
-
-function moveField(type, index, delta) {
-    const schema = type === 'deposit' ? depositSchema : withdrawalSchema;
-    const newIndex = index + delta;
-    if (newIndex >= 0 && newIndex < schema.fields.length) {
-        const temp = schema.fields[index];
-        schema.fields[index] = schema.fields[newIndex];
-        schema.fields[newIndex] = temp;
-        renderFields(type);
-    }
-}
-
-// --- Submit ---
-function savePaymentMethod() {
-    document.getElementById('id_form_schema').value = JSON.stringify(depositSchema);
-    document.getElementById('id_withdrawal_form_schema').value = JSON.stringify(withdrawalSchema);
+function submitBuilder() {
+    saveCurrentToState();
+    document.getElementById('id_deposit_info_schema').value = JSON.stringify({version: 1, rows: state.deposit.info});
+    document.getElementById('id_withdrawal_info_schema').value = JSON.stringify({version: 1, rows: state.withdrawal.info});
+    document.getElementById('id_form_schema').value = JSON.stringify({version: 1, fields: state.deposit.fields});
+    document.getElementById('id_withdrawal_form_schema').value = JSON.stringify({version: 1, fields: state.withdrawal.fields});
+    document.getElementById('id_deposit_fee_settings').value = JSON.stringify(state.deposit.fees);
+    document.getElementById('id_withdrawal_fee_settings').value = JSON.stringify(state.withdrawal.fees);
     document.getElementById('payment-builder-form').submit();
 }
 
-window.onload = () => {
-    renderFields('deposit');
-    renderFields('withdrawal');
-};
+window.onload = init;
 </script>
 {% endblock %}
