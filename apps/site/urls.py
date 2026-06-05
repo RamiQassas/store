@@ -50,6 +50,7 @@ urlpatterns = [
     path("control/orders/<uuid:pk>/", views.control_order_detail, name="control_order_detail"),
     path("control/wallets/", views.control_wallets_list, name="control_wallets_list"),
     path("control/reports/", views.control_reports, name="control_reports"),
+    path("control/notifications/send/", views.control_send_notification, name="control_send_notification"),
 
     # Legal & Support Pages
     path("privacy-policy/", views.privacy_policy, name="privacy_policy"),

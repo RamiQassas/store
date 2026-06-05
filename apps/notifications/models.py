@@ -22,6 +22,7 @@ class Notification(TimeStampedModel):
     title = models.CharField(max_length=160, verbose_name="العنوان")
     body = models.TextField(blank=True, verbose_name="النص")
     action_url = models.CharField(max_length=255, blank=True, null=True, verbose_name="رابط الإجراء")
+    image_url = models.URLField(blank=True, null=True, verbose_name="رابط الصورة")
     
     is_read = models.BooleanField(default=False, verbose_name="مقروء")
     read_at = models.DateTimeField(null=True, blank=True)
@@ -36,3 +37,19 @@ class Notification(TimeStampedModel):
 
     def __str__(self):
         return f"{self.user.email} - {self.title}"
+
+
+class NotificationSetting(TimeStampedModel):
+    user = models.OneToOneField(settings.AUTH_USER_MODEL, related_name="notification_settings", on_delete=models.CASCADE)
+    
+    # Preferences
+    support_replies = models.BooleanField(default=True, verbose_name="ردود الدعم")
+    order_updates = models.BooleanField(default=True, verbose_name="تحديثات الطلبات")
+    financial_updates = models.BooleanField(default=True, verbose_name="العمليات المالية")
+    system_announcements = models.BooleanField(default=True, verbose_name="إعلانات النظام")
+    
+    push_token = models.TextField(blank=True, help_text="Browser push registration token")
+
+    class Meta:
+        verbose_name = "إعدادات التنبيهات"
+        verbose_name_plural = "إعدادات التنبيهات"

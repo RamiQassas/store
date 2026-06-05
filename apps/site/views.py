@@ -968,6 +968,36 @@ def control_wallets_list(request):
 
 
 @staff_member_required
+@permission_required("notifications.add_notification", raise_exception=True)
+def control_send_notification(request):
+    if request.method == "POST":
+        target_type = request.POST.get("target_type") # all, single, tier
+        title = request.POST.get("title")
+        body = request.POST.get("body")
+        action_url = request.POST.get("action_url")
+        image_url = request.POST.get("image_url")
+        
+        users = User.objects.none()
+        if target_type == "all":
+            users = User.objects.filter(is_active=True)
+        elif target_type == "tier":
+            tier = request.POST.get("tier")
+            users = User.objects.filter(tier=tier, is_active=True)
+        elif target_type == "single":
+            user_email = request.POST.get("user_email")
+            users = User.objects.filter(email=user_email, is_active=True)
+            
+        from apps.notifications.services import notify_bulk
+        notify_bulk(users, title, body, action_url=action_url, image_url=image_url)
+        
+        messages.success(request, f"تم إرسال الإشعار لـ {users.count()} مستخدم بنجاح.")
+        return redirect("control_reports") # For now, or create a dedicated panel
+    
+    return render(request, "site/control_notification_form.html", {
+        "tiers": User.Tier.choices
+    })
+
+@staff_member_required
 def control_reports(request):
     today = timezone.now().date()
     last_30_days = today - timedelta(days=30)

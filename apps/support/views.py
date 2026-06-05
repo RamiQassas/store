@@ -95,6 +95,7 @@ def chat_file_upload(request, room_id):
         return JsonResponse({
             "status": "success",
             "message_id": str(message.id),
+            "file_id": str(message.id),
             "file_url": message.file.url,
             "is_image": is_image,
             "timestamp": message.created_at.strftime("%H:%M"),
