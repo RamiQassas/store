@@ -11,8 +11,8 @@ self.addEventListener('push', function(event) {
         const title = payload.title || 'Raqamiyat | رقميات';
         const options = {
             body: payload.body || '',
-            icon: payload.icon || '/static/site/img/icon-192.png',
-            badge: '/static/site/img/badge-96.png',
+            icon: payload.icon || null,
+            badge: payload.badge || null,
             image: payload.image || null,
             data: {
                 url: payload.action_url || '/dashboard/'
