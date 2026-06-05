@@ -86,10 +86,10 @@
             <p class="text-slate-400 leading-relaxed">{{ product.description }}</p>
         </div>
 
-        <form method="post" action="{% url 'order_create' %}" id="purchase-form">
+        <form method="post" action="{% url 'product_detail' product.id %}" id="purchase-form">
             {% csrf_token %}
             <input type="hidden" name="product" value="{{ product.id }}">
-            <input type="hidden" name="variant" id="selected-variant-id">
+            <input type="hidden" name="variant_id" id="selected-variant-id">
 
             <div class="stack gap-4">
                 <h3 class="font-bold text-sm text-muted uppercase tracking-wider">اختر الباقة المناسبة</h3>
