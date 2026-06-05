@@ -5,24 +5,50 @@
 
 {% block extra_head %}
 <style>
+    .chat-list-wrapper {
+        max-width: 800px;
+        margin: 0 auto;
+    }
     .chat-card {
-        transition: all 0.3s ease;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         border: 1px solid var(--panel-border);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 1.25rem 1.5rem;
     }
     .chat-card:hover {
         border-color: var(--cyan);
-        transform: translateY(-3px);
-        background: rgba(6, 182, 212, 0.02);
+        background: rgba(6, 182, 212, 0.03);
+        transform: translateY(-2px);
     }
-    .status-dot {
+    .status-badge-dot {
         width: 10px;
         height: 10px;
         border-radius: 50%;
         display: inline-block;
+        margin-left: 8px;
     }
     .status-waiting { background-color: var(--warning); box-shadow: 0 0 8px var(--warning); }
     .status-in_progress { background-color: var(--success); box-shadow: 0 0 8px var(--success); }
     .status-closed { background-color: var(--muted); }
+    
+    .chat-icon-box {
+        width: 48px;
+        height: 48px;
+        border-radius: 14px;
+        background: var(--bg-soft);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.25rem;
+        color: var(--cyan);
+    }
+
+    @media (max-width: 640px) {
+        .chat-card { flex-direction: column; align-items: flex-start; gap: 1rem; }
+        .chat-card .actions { align-self: flex-end; }
+    }
 </style>
 {% endblock %}
 
@@ -31,61 +57,61 @@
     <div>
         <span class="eyebrow">Customer Support</span>
         <h1>محادثات الدعم المباشر</h1>
-        <p class="text-muted">تواصل مع فريقنا مباشرة لحل أي مشكلة تواجهك.</p>
+        <p class="text-muted">تواصل مع فريقنا التقني والمالي مباشرة.</p>
     </div>
     {% if not user.is_staff %}
-    <a href="{% url 'create_chat' %}" class="btn btn-primary px-8 py-3 shadow-lg shadow-cyan/20">
-        <i class="fas fa-comment-medical ml-2"></i> بدء محادثة جديدة الآن
+    <a href="{% url 'create_chat' %}" class="btn btn-primary shadow-lg shadow-cyan/20">
+        <i class="fas fa-plus ml-2"></i> محادثة جديدة
     </a>
     {% endif %}
 </div>
 
-<div class="max-w-4xl mx-auto stack gap-4">
+<div class="chat-list-wrapper stack gap-4">
     {% for room in rooms %}
-    <a href="{% url 'chat_room' room.id %}" class="panel p-6 chat-card flex justify-between items-center">
-        <div class="flex items-center gap-6">
-            <div class="w-12 h-12 bg-slate-800 rounded-xl flex items-center justify-center text-cyan text-xl">
+    <a href="{% url 'chat_room' room.id %}" class="panel chat-card">
+        <div class="flex items-center gap-4">
+            <div class="chat-icon-box">
                 <i class="fas fa-comments"></i>
             </div>
             <div>
-                <div class="flex items-center gap-3">
-                    <h3 class="font-bold text-lg">
-                        {% if user.is_staff %}{{ room.user.get_full_name|default:room.user.email }}{% else %}{{ room.subject|default:"محادثة دعم" }}{% endif %}
+                <div class="flex items-center gap-2">
+                    <h3 class="font-bold text-base m-0">
+                        {% if user.is_staff %}{{ room.user.email }}{% else %}{{ room.subject|default:"طلب دعم فني" }}{% endif %}
                     </h3>
-                    <span class="text-[10px] text-muted font-mono">#{{ room.id|stringformat:"s"|truncatechars:8 }}</span>
+                    {% if user.is_staff %}
+                        {% if room.unread_staff_count > 0 %}
+                        <span class="badge danger text-[10px]">{{ room.unread_staff_count }}</span>
+                        {% endif %}
+                    {% else %}
+                        {% if room.unread_user_count > 0 %}
+                        <span class="badge danger text-[10px]">{{ room.unread_user_count }}</span>
+                        {% endif %}
+                    {% endif %}
                 </div>
-                <div class="flex items-center gap-4 mt-1">
-                    <div class="flex items-center gap-2">
-                        <span class="status-dot status-{{ room.status }}"></span>
+                <div class="flex items-center gap-3 mt-1">
+                    <div class="flex items-center">
+                        <span class="status-badge-dot status-{{ room.status }}"></span>
                         <span class="text-xs text-muted">{{ room.get_status_display }}</span>
                     </div>
-                    <span class="text-[10px] text-slate-500">آخر نشاط: {{ room.last_message_at|timesince }}</span>
+                    <span class="text-[10px] text-slate-500">منذ {{ room.last_message_at|timesince }}</span>
                 </div>
             </div>
         </div>
         
-        <div class="flex items-center gap-4">
-            {% if user.is_staff %}
-                {% if room.unread_staff_count > 0 %}
-                <span class="badge danger">{{ room.unread_staff_count }}</span>
-                {% endif %}
-            {% else %}
-                {% if room.unread_user_count > 0 %}
-                <span class="badge danger">{{ room.unread_user_count }}</span>
-                {% endif %}
-            {% endif %}
+        <div class="actions flex items-center gap-4">
+            <span class="text-[10px] font-mono text-slate-600 hide-mobile">#{{ room.id|stringformat:"s"|slice:":8" }}</span>
             <i class="fas fa-chevron-left text-slate-700"></i>
         </div>
     </a>
     {% empty %}
-    <div class="p-20 text-center panel bg-slate-900/50">
+    <div class="panel p-16 text-center bg-slate-900/30 border-dashed">
         <div class="w-20 h-20 bg-slate-800 rounded-full flex items-center justify-center mx-auto mb-6 text-slate-600">
             <i class="fas fa-comment-slash text-4xl"></i>
         </div>
-        <h3 class="text-xl font-bold mb-2">لا توجد محادثات نشطة</h3>
-        <p class="text-muted mb-8">هل لديك استفسار؟ ابدأ محادثة مباشرة مع فريق الدعم الآن.</p>
+        <h3 class="font-bold text-xl mb-2">لا توجد محادثات</h3>
+        <p class="text-muted mb-8">ابدأ أول محادثة لك مع فريق الدعم الآن.</p>
         {% if not user.is_staff %}
-        <a href="{% url 'create_chat' %}" class="btn btn-primary px-12">بدء محادثة الآن</a>
+        <a href="{% url 'create_chat' %}" class="btn btn-primary px-12">بدء المحادثة</a>
         {% endif %}
     </div>
     {% endfor %}

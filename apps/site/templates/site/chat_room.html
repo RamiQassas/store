@@ -5,205 +5,311 @@
 
 {% block extra_head %}
 <style>
-    .chat-wrapper {
-        height: calc(100vh - 180px);
-        min-height: 500px;
-        display: flex;
-        flex-direction: column;
+    /* Premium Support UI - Modern Fintech Standards */
+    :root {
+        --chat-bg: #050811;
+        --bubble-sent: #1e293b;
+        --bubble-received: #06b6d4;
+        --composer-bg: #0f172a;
+        --chat-radius: 20px;
     }
 
-    .chat-container {
-        flex-grow: 1;
-        display: grid;
-        grid-template-rows: auto 1fr auto;
-        border: 1px solid var(--panel-border);
-        border-radius: var(--radius);
-        background: var(--panel);
-        overflow: hidden;
+    /* Layout & Container */
+    .chat-page-wrapper {
+        height: calc(100vh - 120px);
+        display: flex;
+        flex-direction: column;
+        max-width: 1100px;
+        margin: 0 auto;
         position: relative;
     }
 
+    .chat-main-card {
+        flex-grow: 1;
+        display: flex;
+        flex-direction: column;
+        background: var(--panel);
+        border: 1px solid var(--panel-border);
+        border-radius: var(--radius);
+        overflow: hidden;
+        box-shadow: var(--shadow);
+    }
+
+    /* Header Refinement */
     .chat-header {
-        padding: 1rem 1.5rem;
+        padding: 0.75rem 1.5rem;
         background: rgba(255, 255, 255, 0.02);
         border-bottom: 1px solid var(--panel-border);
         display: flex;
         justify-content: space-between;
         align-items: center;
+        z-index: 10;
     }
 
+    .agent-info { display: flex; align-items: center; gap: 0.75rem; }
+    .agent-avatar {
+        width: 40px;
+        height: 40px;
+        border-radius: 12px;
+        background: var(--bg-soft);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--cyan);
+        font-size: 1.25rem;
+    }
+
+    /* Messages Area */
     .chat-messages {
+        flex-grow: 1;
         padding: 1.5rem;
         overflow-y: auto;
         display: flex;
         flex-direction: column;
-        gap: 1.25rem;
-        scrollbar-width: thin;
-        scrollbar-color: var(--panel-light) transparent;
+        gap: 0.75rem;
+        background-image: radial-gradient(circle at 50% 50%, rgba(6, 182, 212, 0.02) 0%, transparent 100%);
     }
 
-    .message {
-        max-width: 85%;
+    /* Modern Bubbles */
+    .msg-group {
         display: flex;
         flex-direction: column;
-        gap: 0.4rem;
+        max-width: 75%;
     }
+    .msg-group.sent { align-self: flex-start; }
+    .msg-group.received { align-self: flex-end; }
 
-    .message.sent { align-self: flex-start; }
-    .message.received { align-self: flex-end; }
-
-    .message-bubble {
-        padding: 0.875rem 1.25rem;
-        border-radius: 18px;
+    .bubble {
+        padding: 0.75rem 1rem;
+        border-radius: var(--chat-radius);
         font-size: 0.9375rem;
         line-height: 1.5;
-        word-break: break-word;
+        position: relative;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.1);
     }
 
-    .sent .message-bubble {
-        background: var(--bg-soft);
+    .sent .bubble {
+        background: var(--bubble-sent);
         color: var(--text);
         border-top-right-radius: 4px;
-        border: 1px solid var(--panel-border);
+        border: 1px solid rgba(255,255,255,0.05);
     }
 
-    .received .message-bubble {
+    .received .bubble {
         background: linear-gradient(135deg, var(--cyan) 0%, #0891b2 100%);
         color: #000;
         border-top-left-radius: 4px;
         font-weight: 600;
     }
 
-    .message-info {
-        font-size: 0.625rem;
+    .msg-meta {
+        font-size: 10px;
         color: var(--muted);
+        margin: 4px 8px 0;
         display: flex;
-        gap: 0.5rem;
-        margin: 0 0.5rem;
+        gap: 6px;
     }
-    .received .message-info { flex-direction: row-reverse; }
+    .received .msg-meta { flex-direction: row-reverse; }
 
-    .chat-input-area {
+    /* Compact Attachments */
+    .attachment-box {
+        max-width: 260px;
+        border-radius: 12px;
+        overflow: hidden;
+        margin-bottom: 0.5rem;
+        cursor: pointer;
+        transition: opacity 0.2s;
+    }
+    .attachment-box:hover { opacity: 0.9; }
+    .attachment-box img { width: 100%; height: auto; display: block; object-fit: cover; max-height: 200px; }
+
+    .file-card {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        padding: 0.75rem;
+        background: rgba(255,255,255,0.05);
+        border-radius: 10px;
+        font-size: 12px;
+        border: 1px solid rgba(255,255,255,0.1);
+    }
+
+    /* Modern Composer */
+    .chat-composer {
         padding: 1rem 1.5rem;
-        background: rgba(255, 255, 255, 0.03);
+        background: var(--composer-bg);
         border-top: 1px solid var(--panel-border);
     }
 
-    .input-wrapper {
+    .composer-inner {
         display: flex;
+        align-items: flex-end;
         gap: 0.75rem;
         background: var(--bg);
         border: 1px solid var(--panel-border);
-        border-radius: 14px;
-        padding: 0.4rem;
-        align-items: center;
+        border-radius: 24px;
+        padding: 0.4rem 0.6rem;
     }
 
-    .input-wrapper input {
-        border: none;
-        background: transparent;
-        padding: 0.75rem 0.5rem;
+    .composer-input {
         flex-grow: 1;
-        min-width: 0;
+        border: none !important;
+        background: transparent !important;
+        padding: 0.6rem 0.5rem !important;
+        max-height: 120px;
+        min-height: 40px;
+        resize: none;
+        box-shadow: none !important;
+        color: var(--text);
+        font-size: 14px;
     }
-    .input-wrapper input:focus { outline: none; }
 
-    .typing-indicator {
-        font-size: 0.7rem;
+    .composer-btn {
+        width: 38px;
+        height: 38px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+        transition: all 0.2s;
+        cursor: pointer;
+    }
+    .btn-attach { color: var(--muted); }
+    .btn-attach:hover { color: var(--cyan); background: rgba(6, 182, 212, 0.1); }
+    
+    .btn-send {
+        background: var(--cyan);
+        color: #000;
+        border: none;
+    }
+    .btn-send:hover { transform: scale(1.05); box-shadow: 0 0 15px rgba(6, 182, 212, 0.3); }
+    .btn-send:active { transform: scale(0.95); }
+
+    /* Typing Indicator */
+    .typing-status {
+        height: 20px;
+        font-size: 11px;
         color: var(--cyan);
-        height: 18px;
-        padding: 0 0.5rem;
         font-weight: bold;
+        padding: 0 1.5rem;
+        transition: opacity 0.3s;
     }
 
+    /* Modal for Images */
+    .image-modal {
+        position: fixed;
+        inset: 0;
+        background: rgba(0,0,0,0.9);
+        z-index: 1000;
+        display: none;
+        align-items: center;
+        justify-content: center;
+        padding: 2rem;
+    }
+    .image-modal.active { display: flex; }
+    .image-modal img { max-width: 100%; max-height: 90vh; border-radius: 12px; }
+
+    /* Mobile Adjustments */
     @media (max-width: 768px) {
-        .chat-wrapper { height: calc(100vh - 120px); margin: -1rem -1.25rem; }
-        .chat-container { border-radius: 0; border: none; }
-        .message { max-width: 90%; }
-        .chat-messages { padding: 1rem; }
+        .chat-page-wrapper { height: calc(100vh - 80px); margin: 0; padding: 0; }
+        .chat-main-card { border: none; border-radius: 0; }
+        .msg-group { max-width: 88%; }
+        .chat-header { padding: 0.5rem 1rem; }
+        .composer-inner { border-radius: 18px; }
     }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="chat-wrapper max-w-5xl mx-auto">
-    <div class="chat-container shadow-2xl">
+<div class="chat-page-wrapper">
+    <div class="chat-main-card">
         <!-- Header -->
         <div class="chat-header">
-            <div class="flex items-center gap-4">
-                <a href="{% url 'chat_list' %}" class="w-9 h-9 rounded-full bg-slate-800 flex items-center justify-center hover:bg-slate-700 transition">
-                    <i class="fas fa-arrow-right text-xs"></i>
+            <div class="agent-info">
+                <a href="{% url 'chat_list' %}" class="w-8 h-8 rounded-full bg-slate-800 flex items-center justify-center hover:bg-slate-700 transition">
+                    <i class="fas fa-arrow-right text-[10px]"></i>
                 </a>
+                <div class="agent-avatar">
+                    <i class="fas fa-headset"></i>
+                </div>
                 <div>
-                    <h2 class="font-bold text-base md:text-lg">
-                        {% if user.is_staff %}دعم: {{ room.user.email }}{% else %}الدعم الفني{% endif %}
+                    <h2 class="font-bold text-sm md:text-base m-0">
+                        {% if user.is_staff %}دعم: {{ room.user.first_name }}{% else %}الدعم المباشر{% endif %}
                     </h2>
                     <div id="connection-status">
-                        <span class="text-muted text-[10px]">محادثة مباشرة</span>
+                        <span class="text-muted text-[10px]">محادثة مشفرة</span>
                     </div>
                 </div>
             </div>
-            <div class="flex gap-2">
+            <div class="flex items-center gap-3">
                 {% if user.is_staff and room.status != 'closed' %}
-                <a href="{% url 'close_chat' room.id %}" class="btn btn-sm btn-outline danger text-[10px] px-3 py-1">إغلاق</a>
+                <a href="{% url 'close_chat' room.id %}" class="btn btn-sm btn-outline danger text-[10px] px-3 py-1">إنهاء</a>
                 {% endif %}
-                <span class="badge primary text-[9px] hide-mobile">#{{ room.id|stringformat:"s"|slice:":8" }}</span>
+                <span class="badge primary text-[9px] hide-mobile">ID: {{ room.id|stringformat:"s"|slice:":8" }}</span>
             </div>
         </div>
 
-        <!-- Messages Area -->
+        <!-- Messages area -->
         <div class="chat-messages" id="chat-messages">
             {% for msg in chat_messages %}
-            <div class="message {% if msg.sender == user %}received{% else %}sent{% endif %}">
-                <div class="message-bubble">
-                    {% if msg.file %}
-                        {% if msg.is_image %}
-                            <a href="{{ msg.file.url }}" target="_blank">
-                                <img src="{{ msg.file.url }}" class="rounded-lg max-w-full h-auto mb-2 border border-white/10">
-                            </a>
-                        {% else %}
-                            <div class="flex items-center gap-3 p-3 bg-white/5 rounded-lg border border-white/5">
-                                <i class="fas fa-file-alt text-2xl text-cyan"></i>
-                                <div class="flex-grow overflow-hidden">
-                                    <div class="text-[11px] font-bold truncate">{{ msg.file.name|slice:"14:" }}</div>
-                                    <a href="{{ msg.file.url }}" download class="text-[9px] text-cyan hover:underline">تحميل الملف</a>
-                                </div>
-                            </div>
-                        {% endif %}
+            <div class="msg-group {% if msg.sender == user %}received{% else %}sent{% endif %}">
+                {% if msg.file %}
+                <div class="attachment-box" onclick="openImageModal('{{ msg.file.url }}')">
+                    {% if msg.is_image %}
+                        <img src="{{ msg.file.url }}" alt="Attachment">
+                    {% else %}
+                        <div class="file-card">
+                            <i class="fas fa-file-alt text-xl text-cyan"></i>
+                            <span class="truncate">{{ msg.file.name|slice:"14:" }}</span>
+                        </div>
                     {% endif %}
+                </div>
+                {% endif %}
+                
+                {% if msg.text %}
+                <div class="bubble">
                     {{ msg.text }}
                 </div>
-                <div class="message-info">
+                {% endif %}
+                
+                <div class="msg-meta">
                     <span>{{ msg.sender.first_name }}</span>
                     <span>{{ msg.created_at|date:"H:i" }}</span>
                 </div>
             </div>
             {% empty %}
-            <div class="my-auto text-center p-12">
-                <div class="w-16 h-16 bg-slate-800 rounded-full flex items-center justify-center mx-auto mb-4 text-cyan opacity-30">
-                    <i class="fas fa-shield-halved text-2xl"></i>
-                </div>
-                <h4 class="font-bold mb-1">مرحباً بك</h4>
-                <p class="text-[11px] text-muted">فريقنا متواجد لمساعدتك، أرسل استفسارك الآن.</p>
+            <div class="my-auto text-center p-12 opacity-30">
+                <i class="fas fa-comments text-5xl mb-4"></i>
+                <p class="text-sm">ابدأ المحادثة الآن..</p>
             </div>
             {% endfor %}
         </div>
 
-        <!-- Input Area -->
-        <div class="chat-input-area">
-            <div class="typing-indicator" id="typing-indicator"></div>
-            <div class="input-wrapper">
-                <button class="w-10 h-10 flex items-center justify-center text-slate-500 hover:text-cyan transition" onclick="document.getElementById('file-input').click()" title="إرفاق ملف">
+        <!-- Status area -->
+        <div class="typing-status" id="typing-indicator"></div>
+
+        <!-- Composer area -->
+        <div class="chat-composer">
+            <div class="composer-inner">
+                <button class="composer-btn btn-attach" onclick="document.getElementById('file-input').click()" title="إرفاق">
                     <i class="fas fa-paperclip"></i>
                 </button>
                 <input type="file" id="file-input" class="hidden" onchange="uploadFile(this)">
-                <input type="text" id="chat-input" placeholder="اكتب رسالتك هنا..." autocomplete="off">
-                <button class="btn btn-primary w-10 h-10 p-0 rounded-xl" id="send-btn">
+                
+                <textarea id="chat-input" class="composer-input" placeholder="اكتب رسالتك هنا..." rows="1" oninput="autoResize(this)"></textarea>
+                
+                <button class="composer-btn btn-send" id="send-btn">
                     <i class="fas fa-paper-plane"></i>
                 </button>
             </div>
         </div>
     </div>
+</div>
+
+<!-- Image Modal -->
+<div id="img-modal" class="image-modal" onclick="this.classList.remove('active')">
+    <img id="modal-img" src="" alt="Full size">
 </div>
 
 {{ room.id|json_script:"room-id" }}
@@ -217,7 +323,6 @@
     const sendBtn = document.getElementById('send-btn');
     const typingIndicator = document.getElementById('typing-indicator');
 
-    const protocol = window.location.protocol === 'https:' ? 'wss://' : 'ws://';
     let chatSocket = null;
     let reconnectAttempts = 0;
     let typingTimeout;
@@ -227,139 +332,100 @@
     }
     scrollToBottom();
 
-    function connect() {
-        console.log("Attempting WebSocket connection to:", roomId);
-        chatSocket = new WebSocket(
-            protocol + window.location.host + '/ws/support/chat/' + roomId + '/'
-        );
+    function autoResize(textarea) {
+        textarea.style.height = 'auto';
+        textarea.style.height = textarea.scrollHeight + 'px';
+    }
 
-        chatSocket.onopen = function(e) {
-            console.log("WebSocket connected successfully!");
+    function openImageModal(url) {
+        const modal = document.getElementById('img-modal');
+        const img = document.getElementById('modal-img');
+        img.src = url;
+        modal.classList.add('active');
+    }
+
+    function connect() {
+        const protocol = window.location.protocol === 'https:' ? 'wss://' : 'ws://';
+        chatSocket = new WebSocket(protocol + window.location.host + '/ws/support/chat/' + roomId + '/');
+
+        chatSocket.onopen = () => {
             reconnectAttempts = 0;
             document.getElementById('connection-status').innerHTML = '<span class="text-success text-[10px]">● متصل الآن</span>';
         };
 
-        chatSocket.onmessage = function(e) {
-            try {
-                const data = JSON.parse(e.data);
-                if (data.type === 'chat.message') {
-                    const isMe = data.sender_email === userEmail;
-                    const msgHtml = `
-                        <div class="message ${isMe ? 'received' : 'sent'} animate-in">
-                            <div class="message-bubble">${data.message || '<i>تم إرسال ملف</i>'}</div>
-                            <div class="message-info">
-                                <span>${data.sender_name}</span>
-                                <span>${data.timestamp}</span>
-                            </div>
+        chatSocket.onmessage = (e) => {
+            const data = JSON.parse(e.data);
+            if (data.type === 'chat.message') {
+                const isMe = data.sender_email === userEmail;
+                const msgHtml = `
+                    <div class="msg-group ${isMe ? 'received' : 'sent'} animate-in">
+                        <div class="bubble">${data.message || '<i>تم إرسال ملف</i>'}</div>
+                        <div class="msg-meta">
+                            <span>${data.sender_name}</span>
+                            <span>${data.timestamp}</span>
                         </div>
-                    `;
-                    messagesContainer.insertAdjacentHTML('beforeend', msgHtml);
-                    scrollToBottom();
-                    typingIndicator.innerText = '';
-                } 
-                else if (data.type === 'chat.typing') {
-                    if (data.sender_email !== userEmail) {
-                        typingIndicator.innerText = data.is_typing ? `${data.sender_name} يكتب الآن...` : '';
-                    }
+                    </div>
+                `;
+                messagesContainer.insertAdjacentHTML('beforeend', msgHtml);
+                scrollToBottom();
+                typingIndicator.innerText = '';
+            }
+            else if (data.type === 'chat.typing') {
+                if (data.sender_email !== userEmail) {
+                    typingIndicator.innerText = data.is_typing ? `${data.sender_name} يكتب الآن...` : '';
                 }
-            } catch (err) {
-                console.error("Message Processing Error:", err);
             }
         };
 
-        chatSocket.onclose = function(e) {
-            console.warn('Chat socket closed. Code:', e.code, 'Reason:', e.reason);
-            document.getElementById('connection-status').innerHTML = '<span class="text-danger text-[10px]">○ جاري محاولة الاتصال...</span>';
-            
-            // Reconnect logic
-            setTimeout(function() {
-                reconnectAttempts++;
-                connect();
-            }, Math.min(10000, 1000 * reconnectAttempts));
-        };
-
-        chatSocket.onerror = function(err) {
-            console.error('WebSocket Error:', err);
-            chatSocket.close();
+        chatSocket.onclose = () => {
+            document.getElementById('connection-status').innerHTML = '<span class="text-danger text-[10px]">○ جاري الاتصال...</span>';
+            setTimeout(connect, Math.min(10000, 1000 * ++reconnectAttempts));
         };
     }
 
-    // --- Actions ---
     function sendMessage() {
         const message = chatInput.value.trim();
-        if (message && chatSocket && chatSocket.readyState === WebSocket.OPEN) {
-            chatSocket.send(JSON.stringify({
-                'type': 'chat_message',
-                'message': message
-            }));
+        if (message && chatSocket.readyState === WebSocket.OPEN) {
+            chatSocket.send(JSON.stringify({'type': 'chat_message', 'message': message}));
             chatInput.value = '';
+            chatInput.style.height = 'auto';
             sendTyping(false);
-        } else if (chatSocket.readyState !== WebSocket.OPEN) {
-            console.error("Cannot send message: Socket is not open.");
         }
     }
 
     async function uploadFile(input) {
-        if (!input.files || !input.files[0]) return;
-        
+        if (!input.files[0]) return;
         const formData = new FormData();
         formData.append('file', input.files[0]);
         formData.append('csrfmiddlewaretoken', '{{ csrf_token }}');
         
-        try {
-            const response = await fetch('{% url "chat_file_upload" room.id %}', {
-                method: 'POST',
-                body: formData
-            });
-            
-            if (response.ok) {
-                if (chatSocket && chatSocket.readyState === WebSocket.OPEN) {
-                    chatSocket.send(JSON.stringify({
-                        'type': 'chat_message',
-                        'message': ''
-                    }));
-                }
-                input.value = '';
-            } else {
-                alert("فشل رفع الملف. يرجى التأكد من الحجم والصيغة.");
-            }
-        } catch (e) {
-            alert("خطأ في الاتصال أثناء رفع الملف.");
+        const response = await fetch('{% url "chat_file_upload" room.id %}', { method: 'POST', body: formData });
+        if (response.ok) {
+            chatSocket.send(JSON.stringify({'type': 'chat_message', 'message': ''}));
+            input.value = '';
         }
     }
 
     function sendTyping(isTyping) {
-        if (chatSocket && chatSocket.readyState === WebSocket.OPEN) {
-            chatSocket.send(JSON.stringify({
-                'type': 'typing',
-                'is_typing': isTyping
-            }));
+        if (chatSocket.readyState === WebSocket.OPEN) {
+            chatSocket.send(JSON.stringify({'type': 'typing', 'is_typing': isTyping}));
         }
     }
 
-    // --- Event Listeners ---
     sendBtn.onclick = sendMessage;
-    chatInput.onkeyup = function(e) {
-        if (e.keyCode === 13) sendMessage();
-    };
-
-    chatInput.oninput = function() {
+    chatInput.onkeydown = (e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); } };
+    chatInput.oninput = () => {
+        autoResize(chatInput);
         sendTyping(true);
         clearTimeout(typingTimeout);
         typingTimeout = setTimeout(() => sendTyping(false), 3000);
     };
 
-    // Initialize
     connect();
 </script>
 
 <style>
-    .animate-in {
-        animation: slideUp 0.3s ease-out;
-    }
-    @keyframes slideUp {
-        from { opacity: 0; transform: translateY(10px); }
-        to { opacity: 1; transform: translateY(0); }
-    }
+    .animate-in { animation: slideUp 0.3s ease-out; }
+    @keyframes slideUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 </style>
 {% endblock %}
