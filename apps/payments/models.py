@@ -43,6 +43,10 @@ class PaymentMethod(TimeStampedModel):
     qr_image = models.ImageField(upload_to="payment-methods/qr/", blank=True, null=True, verbose_name="صورة QR")
     instructions = models.TextField(blank=True, verbose_name="تعليمات إضافية")
     
+    # Limits
+    min_amount = models.DecimalField(max_digits=14, decimal_places=2, default=Decimal("10.00"), verbose_name="الحد الأدنى")
+    max_amount = models.DecimalField(max_digits=14, decimal_places=2, default=Decimal("10000.00"), verbose_name="الحد الأقصى")
+    
     supported_currencies = models.ManyToManyField("common.Currency", blank=True, verbose_name="العملات المدعومة")
     can_deposit = models.BooleanField(default=True, verbose_name="متاحة للإيداع")
     can_withdraw = models.BooleanField(default=False, verbose_name="متاحة للسحب")
@@ -63,6 +67,8 @@ class PaymentMethod(TimeStampedModel):
             "name": self.name,
             "instructions": self.instructions,
             "qr": self.qr_image.url if self.qr_image else "",
+            "min_amount": float(self.min_amount),
+            "max_amount": float(self.max_amount),
             "static_info": self.deposit_info_schema if isinstance(self.deposit_info_schema, dict) and "rows" in self.deposit_info_schema else {"rows": []},
             "form_schema": self.form_schema if isinstance(self.form_schema, dict) and "fields" in self.form_schema else {"fields": []},
             "fees": self.deposit_fee_settings if isinstance(self.deposit_fee_settings, dict) and "enabled" in self.deposit_fee_settings else {"fixed": 0, "percent": 0, "enabled": True},
@@ -76,6 +82,8 @@ class PaymentMethod(TimeStampedModel):
             "id": str(self.id),
             "name": self.name,
             "instructions": self.instructions,
+            "min_amount": float(self.min_amount),
+            "max_amount": float(self.max_amount),
             "static_info": self.withdrawal_info_schema if isinstance(self.withdrawal_info_schema, dict) and "rows" in self.withdrawal_info_schema else {"rows": []},
             "form_schema": self.withdrawal_form_schema if isinstance(self.withdrawal_form_schema, dict) and "fields" in self.withdrawal_form_schema else {"fields": []},
             "fees": self.withdrawal_fee_settings if isinstance(self.withdrawal_fee_settings, dict) and "enabled" in self.withdrawal_fee_settings else {"fixed": 0, "percent": 0, "enabled": True},

@@ -72,9 +72,19 @@
             <!-- Left: Static Info -->
             <div class="stack gap-6">
                 <h3 class="text-lg font-bold"><i class="fas fa-university ml-2 text-cyan"></i> بيانات التحويل</h3>
-                <div id="static-info-container"></div>
-                <div id="qr-container" class="panel p-4 bg-white hidden text-center"><img id="method-qr" class="w-40 h-40 mx-auto"></div>
-                <div class="panel p-6 bg-cyan/[0.02] border-cyan/10"><p class="text-xs leading-relaxed text-slate-400" id="method-instr"></p></div>
+                
+                <!-- QR Code at the TOP -->
+                <div id="qr-container" class="panel p-4 bg-white hidden text-center">
+                    <span class="mini-label mb-2">QR Code للتحويل السريع</span>
+                    <img id="method-qr" class="w-48 h-48 mx-auto object-contain">
+                </div>
+
+                <div id="static-info-container" class="stack gap-3"></div>
+                
+                <div class="panel p-6 bg-cyan/[0.02] border-cyan/10">
+                    <span class="mini-label mb-2">تعليمات إضافية</span>
+                    <p class="text-xs leading-relaxed text-slate-400" id="method-instr"></p>
+                </div>
             </div>
             <!-- Right: Customer Inputs -->
             <div class="panel p-8 stack gap-6">
@@ -154,14 +164,26 @@ function handleMethodSelect(card) {
 
     // QR
     const qrBox = document.getElementById('qr-container');
-    if(current.qr) { qrBox.classList.remove('hidden'); document.getElementById('method-qr').src = current.qr; }
-    else { qrBox.classList.add('hidden'); }
+    if(current.qr) { 
+        qrBox.classList.remove('hidden'); 
+        document.getElementById('method-qr').src = current.qr; 
+    } else { 
+        qrBox.classList.add('hidden'); 
+    }
     
-    document.getElementById('method-instr').innerText = current.instructions;
+    document.getElementById('method-instr').innerText = current.instructions || 'لا توجد تعليمات إضافية.';
 
     // Render Form Fields
     const fieldContainer = document.getElementById('dynamic-fields-container');
     fieldContainer.innerHTML = '';
+    
+    // Limits Warning (Optional but good for UX)
+    fieldContainer.innerHTML += `
+        <div class="p-3 bg-cyan/5 border border-cyan/10 rounded-xl mb-2">
+            <p class="text-[10px] text-cyan font-bold text-center">الحد الأدنى: ${current.min_amount} | الحد الأقصى: ${current.max_amount}</p>
+        </div>
+    `;
+
     current.form_schema.fields.forEach(f => {
         fieldContainer.innerHTML += `
             <div class="field-group">
@@ -169,6 +191,7 @@ function handleMethodSelect(card) {
                 <input class="dynamic-input" type="${f.type==='number'?'number':'text'}" name="custom_${f.name||f.label}" placeholder="${f.placeholder||''}" ${f.required?'required':''}>
             </div>`;
     });
+}
 }
 
 function goToStep(n) {
