@@ -37,14 +37,25 @@
     </div>
 </div>
 
+{% if form.errors %}
+<div class="panel p-6 border-danger/30 bg-danger/5 text-danger mb-8">
+    <h4 class="font-bold mb-2">يرجى تصحيح الأخطاء التالية:</h4>
+    <ul class="text-xs list-disc list-inside">
+        {% for field, errors in form.errors.items %}
+            <li><strong>{{ field }}:</strong> {{ errors|striptags }}</li>
+        {% endfor %}
+    </ul>
+</div>
+{% endif %}
+
 <form id="payment-builder-form" method="post" enctype="multipart/form-data">
     {% csrf_token %}
-    <input type="hidden" name="deposit_info_schema" id="id_deposit_info_schema">
-    <input type="hidden" name="withdrawal_info_schema" id="id_withdrawal_info_schema">
-    <input type="hidden" name="form_schema" id="id_form_schema">
-    <input type="hidden" name="withdrawal_form_schema" id="id_withdrawal_form_schema">
-    <input type="hidden" name="deposit_fee_settings" id="id_deposit_fee_settings">
-    <input type="hidden" name="withdrawal_fee_settings" id="id_withdrawal_fee_settings">
+    {{ form.deposit_info_schema.as_hidden }}
+    {{ form.withdrawal_info_schema.as_hidden }}
+    {{ form.form_schema.as_hidden }}
+    {{ form.withdrawal_form_schema.as_hidden }}
+    {{ form.deposit_fee_settings.as_hidden }}
+    {{ form.withdrawal_fee_settings.as_hidden }}
 
     <!-- A) General Information -->
     <div class="builder-section shadow-lg">
@@ -154,17 +165,26 @@ let state = {
 };
 
 function init() {
-    state.deposit.info = getJSON('deposit-info-data', {rows:[]}).rows || [];
-    state.withdrawal.info = getJSON('withdrawal-info-data', {rows:[]}).rows || [];
-    state.deposit.fields = getJSON('deposit-form-data', {fields:[]}).fields || [];
-    state.withdrawal.fields = getJSON('withdrawal-form-data', {fields:[]}).fields || [];
-    state.deposit.fees = getJSON('deposit-fee-data', {fixed:0, percent:0, min:0, max:0, enabled:true});
-    state.withdrawal.fees = getJSON('withdrawal-fee-data', {fixed:0, percent:0, min:0, max:0, enabled:true});
+    state.deposit.info = getJSON('id_deposit_info_schema', 'deposit-info-data', {rows:[]}).rows || [];
+    state.withdrawal.info = getJSON('id_withdrawal_info_schema', 'withdrawal-info-data', {rows:[]}).rows || [];
+    state.deposit.fields = getJSON('id_form_schema', 'deposit-form-data', {fields:[]}).fields || [];
+    state.withdrawal.fields = getJSON('id_withdrawal_form_schema', 'withdrawal-form-data', {fields:[]}).fields || [];
+    state.deposit.fees = getJSON('id_deposit_fee_settings', 'deposit-fee-data', {fixed:0, percent:0, min:0, max:0, enabled:true});
+    state.withdrawal.fees = getJSON('id_withdrawal_fee_settings', 'withdrawal-fee-data', {fixed:0, percent:0, min:0, max:0, enabled:true});
     render();
 }
 
-function getJSON(id, fallback) {
-    const el = document.getElementById(id);
+function getJSON(inputId, scriptId, fallback) {
+    // Try reading from the input first (contains POST data if validation failed)
+    const input = document.getElementById(inputId);
+    if (input && input.value && input.value !== 'None' && input.value !== '{}') {
+        try {
+            return JSON.parse(input.value);
+        } catch(e) { console.error("Error parsing input value", inputId, e); }
+    }
+
+    // Fallback to json_script (contains initial instance data)
+    const el = document.getElementById(scriptId);
     if (!el) return fallback;
     try {
         let d = JSON.parse(el.textContent);

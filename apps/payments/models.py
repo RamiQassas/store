@@ -55,6 +55,33 @@ class PaymentMethod(TimeStampedModel):
     def __str__(self):
         return self.name
 
+    def to_deposit_json(self):
+        import json
+        from django.core.serializers.json import DjangoJSONEncoder
+        return json.dumps({
+            "id": str(self.id),
+            "name": self.name,
+            "instructions": self.instructions,
+            "qr": self.qr_image.url if self.qr_image else "",
+            "static_info": self.deposit_info_schema if isinstance(self.deposit_info_schema, dict) and "rows" in self.deposit_info_schema else {"rows": []},
+            "form_schema": self.form_schema if isinstance(self.form_schema, dict) and "fields" in self.form_schema else {"fields": []},
+            "fees": self.deposit_fee_settings if isinstance(self.deposit_fee_settings, dict) and "enabled" in self.deposit_fee_settings else {"fixed": 0, "percent": 0, "enabled": True},
+            "currencies": [{"id": str(c.id), "code": c.code, "symbol": c.symbol} for c in self.supported_currencies.all()]
+        }, cls=DjangoJSONEncoder)
+
+    def to_withdrawal_json(self):
+        import json
+        from django.core.serializers.json import DjangoJSONEncoder
+        return json.dumps({
+            "id": str(self.id),
+            "name": self.name,
+            "instructions": self.instructions,
+            "static_info": self.withdrawal_info_schema if isinstance(self.withdrawal_info_schema, dict) and "rows" in self.withdrawal_info_schema else {"rows": []},
+            "form_schema": self.withdrawal_form_schema if isinstance(self.withdrawal_form_schema, dict) and "fields" in self.withdrawal_form_schema else {"fields": []},
+            "fees": self.withdrawal_fee_settings if isinstance(self.withdrawal_fee_settings, dict) and "enabled" in self.withdrawal_fee_settings else {"fixed": 0, "percent": 0, "enabled": True},
+            "currencies": [{"id": str(c.id), "code": c.code, "symbol": c.symbol} for c in self.supported_currencies.all()]
+        }, cls=DjangoJSONEncoder)
+
     def calculate_fee(self, amount, mode="deposit"):
         """Calculates granular fee based on mode."""
         settings = self.deposit_fee_settings if mode == "deposit" else self.withdrawal_fee_settings

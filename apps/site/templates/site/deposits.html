@@ -58,16 +58,7 @@
                 <p class="text-[10px] text-muted mt-1">{{ m.method_type }}</p>
                 
                 <script type="application/json" class="method-data">
-                    {
-                        "id": "{{ m.id }}",
-                        "name": "{{ m.name }}",
-                        "instructions": "{{ m.instructions|escapejs }}",
-                        "qr": "{{ m.qr_image.url|default:'' }}",
-                        "static_info": {{ m.deposit_info_schema|default:'{"rows":[]}'|safe }},
-                        "form_schema": {{ m.form_schema|default:'{"fields":[]}'|safe }},
-                        "fees": {{ m.deposit_fee_settings|default:'{"fixed":0,"percent":0,"enabled":true}'|safe }},
-                        "currencies": [{% for c in m.supported_currencies.all %}{"id":"{{c.id}}","code":"{{c.code}}","symbol":"{{c.symbol}}"} {% if not forloop.last %},{% endif %}{% endfor %}]
-                    }
+                    {{ m.to_deposit_json|safe }}
                 </script>
             </div>
             {% endfor %}
