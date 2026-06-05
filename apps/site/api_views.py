@@ -53,7 +53,8 @@ def api_deposit_approve(request, pk):
             title="✅ تم تأكيد الإيداع",
             body=f"تمت إضافة {deposit.amount} {deposit.currency.code} إلى محفظتك بنجاح.",
             action_url="/dashboard/wallet/",
-            priority="high"
+            priority="high",
+            metadata={"type": "deposit_update"}
         )
         
         return Response({"status": "success"})

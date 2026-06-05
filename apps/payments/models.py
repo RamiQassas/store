@@ -28,8 +28,15 @@ class PaymentMethod(TimeStampedModel):
     form_schema = models.JSONField(
         default=dict,
         blank=True,
-        verbose_name="نموذج البيانات الديناميكي",
+        verbose_name="نموذج بيانات الإيداع (JSON)",
         help_text='مثال: {"version": 1, "fields": [{"label": "رقم الحوالة", "type": "text", "required": true}]}'
+    )
+    
+    withdrawal_form_schema = models.JSONField(
+        default=dict,
+        blank=True,
+        verbose_name="نموذج بيانات السحب (JSON)",
+        help_text='مثال: {"version": 1, "fields": [{"label": "رقم المحفظة", "type": "text", "required": true}]}'
     )
 
     # Legacy fields (keeping some for bank info if needed, but primarily moving to form_schema)

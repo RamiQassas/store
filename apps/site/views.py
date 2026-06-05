@@ -604,7 +604,6 @@ def withdrawals(request):
         method_id = request.POST.get("payment_method")
         currency_id = request.POST.get("currency")
         amount = Decimal(request.POST.get("amount", "0"))
-        payout_details = request.POST.get("payout_details", "")
         
         method = get_object_or_404(methods, id=method_id)
         currency = get_object_or_404(Currency, id=currency_id)
@@ -618,38 +617,50 @@ def withdrawals(request):
             messages.error(request, "الرصيد غير كافٍ لإجراء عملية السحب.")
         elif not method.supported_currencies.filter(id=currency.id).exists():
              messages.error(request, "هذه العملة غير مدعومة لوسيلة السحب المختارة.")
-        elif not payout_details:
-            messages.error(request, "يرجى إدخال بيانات التحويل.")
         else:
+            # Handle Dynamic Fields
+            dynamic_data = {}
+            for key, value in request.POST.items():
+                if key.startswith("custom_"):
+                    field_name = key.replace("custom_", "")
+                    dynamic_data[field_name] = value
+
             with transaction.atomic():
                 withdrawal = WithdrawalRequest.objects.create(
                     user=request.user,
                     payment_method=method,
                     amount=amount,
                     currency=currency,
-                    payout_details={"address": payout_details},
-                    metadata={"source": "site"},
+                    payout_details={"address": dynamic_data.get("address", ""), "dynamic": dynamic_data},
+                    metadata={"dynamic_fields": dynamic_data, "source": "multi_step_ui"},
+                    status=WithdrawalRequest.Status.PENDING
                 )
                 from apps.wallets.services import freeze_funds
                 freeze_funds(
                     wallet_id=wallet.id,
                     amount=amount,
-                    reference=f"withdrawal:{withdrawal.id}",
-                    description=f"سحب رصيد ({currency.code}) عبر {method.name}",
-                    created_by=request.user
+                    reference=f"with:{withdrawal.id}",
+                    description=f"سحب رصيد معلق عبر {method.name}",
+                    created_by=request.user,
+                    source="user_withdrawal",
+                    reason="Verification pending"
                 )
-                messages.success(request, f"تم استلام طلب السحب رقم {withdrawal.id} وهو قيد المراجعة.")
                 
                 ActivityLog.objects.create(
                     user=request.user,
                     action="Withdrawal Request",
-                    description=f"Requested withdrawal of {amount} {currency.code}",
+                    description=f"Requested withdrawal of {amount} {currency.code} via {method.name}",
                     metadata={"withdrawal_id": str(withdrawal.id)}
                 )
                 
+                messages.success(request, f"تم استلام طلب السحب بنجاح وهو قيد المراجعة حالياً.")
                 return redirect("dashboard")
-            
-    return render(request, "site/withdrawals.html", {"payment_methods": methods})
+
+    recent_withdrawals = WithdrawalRequest.objects.filter(user=request.user).order_by("-created_at")[:5]
+    return render(request, "site/withdrawals.html", {
+        "payment_methods": methods,
+        "recent_withdrawals": recent_withdrawals
+    })
 
 
 @staff_member_required
