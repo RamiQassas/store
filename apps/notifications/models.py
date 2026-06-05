@@ -58,9 +58,9 @@ class NotificationSetting(TimeStampedModel):
 class PushSubscription(TimeStampedModel):
     user = models.ForeignKey(settings.AUTH_USER_MODEL, related_name="push_subscriptions", on_delete=models.CASCADE)
     endpoint = models.TextField()
-    auth = models.CharField(max_length=255)
-    p256dh = models.CharField(max_length=255)
-    browser = models.CharField(max_length=100, blank=True)
+    auth = models.TextField()
+    p256dh = models.TextField()
+    browser = models.TextField(blank=True)
 
     class Meta:
         unique_together = ("user", "endpoint")
