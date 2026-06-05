@@ -193,7 +193,12 @@ SIMPLE_JWT = {
 CORS_ALLOWED_ORIGINS = [origin.strip() for origin in env("CORS_ALLOWED_ORIGINS", "").split(",") if origin.strip()]
 CORS_ALLOW_CREDENTIALS = True
 
-REDIS_URL = env("REDIS_URL", "redis://127.0.0.1:6379/0")
+REDIS_URL = env("REDIS_URL")
+
+if not REDIS_URL:
+    # Fallback only for local development if not provided in env
+    REDIS_URL = "redis://127.0.0.1:6379/0"
+
 if DEBUG and not env_bool("DJANGO_USE_REDIS_CACHE", False):
     CACHES = {
         "default": {
