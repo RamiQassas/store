@@ -97,7 +97,11 @@
         
         <div class="flex flex-col sm:row justify-center gap-4">
             <a href="{% url 'catalog' %}" class="btn btn-primary px-12 py-4 text-lg">تصفح الخدمات الآن</a>
-            <a href="{% url 'site_register' %}" class="btn btn-outline px-12 py-4 text-lg">إنشاء حساب جديد</a>
+            {% if user.is_authenticated %}
+                <a href="{% url 'dashboard' %}" class="btn btn-outline px-12 py-4 text-lg">لوحة التحكم الخاصة بي</a>
+            {% else %}
+                <a href="{% url 'site_register' %}" class="btn btn-outline px-12 py-4 text-lg">إنشاء حساب جديد</a>
+            {% endif %}
         </div>
 
         <!-- Stats -->
