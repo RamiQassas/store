@@ -371,8 +371,8 @@ def deposits(request):
         method = get_object_or_404(methods, id=method_id)
         currency = get_object_or_404(Currency, id=currency_id)
         
-        if amount < method.min_amount or amount > method.max_amount:
-            messages.error(request, f"المبلغ يجب أن يكون بين {method.min_amount} و {method.max_amount}.")
+        if amount < method.deposit_min_amount or amount > method.deposit_max_amount:
+            messages.error(request, f"المبلغ يجب أن يكون بين {method.deposit_min_amount} و {method.deposit_max_amount}.")
         elif method.is_maintenance_mode:
             messages.error(request, "وسيلة الدفع هذه حالياً في وضع الصيانة.")
         elif not method.supported_currencies.filter(id=currency.id).exists():

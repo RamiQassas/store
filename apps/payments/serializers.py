@@ -44,11 +44,11 @@ class DepositRequestSerializer(serializers.ModelSerializer):
         if payment_method.is_maintenance_mode:
             raise serializers.ValidationError({"payment_method": "وسيلة الدفع هذه في وضع الصيانة حالياً."})
 
-        if amount < payment_method.min_amount:
-            raise serializers.ValidationError({"amount": f"المبلغ أقل من الحد الأدنى المسموح به ({payment_method.min_amount})."})
+        if amount < payment_method.deposit_min_amount:
+            raise serializers.ValidationError({"amount": f"المبلغ أقل من الحد الأدنى المسموح به ({payment_method.deposit_min_amount})."})
 
-        if amount > payment_method.max_amount:
-            raise serializers.ValidationError({"amount": f"المبلغ أكبر من الحد الأقصى المسموح به ({payment_method.max_amount})."})
+        if amount > payment_method.deposit_max_amount:
+            raise serializers.ValidationError({"amount": f"المبلغ أكبر من الحد الأقصى المسموح به ({payment_method.deposit_max_amount})."})
 
         return data
 
@@ -90,11 +90,11 @@ class WithdrawalRequestSerializer(serializers.ModelSerializer):
         if payment_method.is_maintenance_mode:
             raise serializers.ValidationError({"payment_method": "وسيلة السحب هذه في وضع الصيانة حالياً."})
 
-        if amount < payment_method.min_amount:
-            raise serializers.ValidationError({"amount": f"المبلغ أقل من الحد الأدنى المسموح به ({payment_method.min_amount})."})
+        if amount < payment_method.withdrawal_min_amount:
+            raise serializers.ValidationError({"amount": f"المبلغ أقل من الحد الأدنى المسموح به ({payment_method.withdrawal_min_amount})."})
 
-        if amount > payment_method.max_amount:
-            raise serializers.ValidationError({"amount": f"المبلغ أكبر من الحد الأقصى المسموح به ({payment_method.max_amount})."})
+        if amount > payment_method.withdrawal_max_amount:
+            raise serializers.ValidationError({"amount": f"المبلغ أكبر من الحد الأقصى المسموح به ({payment_method.withdrawal_max_amount})."})
 
         # Check balance
         wallet = get_or_create_wallet(user)
