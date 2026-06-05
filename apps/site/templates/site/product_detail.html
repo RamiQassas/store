@@ -1,5 +1,5 @@
 {% extends "site/base.html" %}
-{% load static %}
+{% load static site_tags %}
 
 {% block title %}{{ product.name }} | Raqamiyat{% endblock %}
 
@@ -102,7 +102,7 @@
                             <div class="text-[10px] text-muted">وقت التسليم: {{ v.estimated_delivery_minutes }} دقيقة</div>
                         </div>
                     </div>
-                    <div class="price-tag">{{ v.price }} <small class="text-xs">SYP</small></div>
+                    <div class="price-tag">{% currency_format v.price %}</div>
                 </div>
                 {% endfor %}
             </div>
@@ -153,7 +153,7 @@
                     </div>
                     <div class="flex-grow">
                         <div class="text-xs font-bold line-clamp-1">{{ rp.name }}</div>
-                        <div class="text-[10px] text-cyan mt-1">{{ rp.variants.first.price }} SYP</div>
+                        <div class="text-[10px] text-cyan mt-1">{% currency_format rp.variants.first.price %}</div>
                     </div>
                 </a>
                 {% endfor %}

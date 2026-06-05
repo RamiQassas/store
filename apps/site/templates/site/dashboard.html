@@ -1,5 +1,5 @@
 {% extends "site/base.html" %}
-{% load static %}
+{% load static site_tags %}
 
 {% block title %}لوحتي | Raqamiyat - رقميات{% endblock %}
 
@@ -173,7 +173,7 @@
             <div class="flex justify-between items-start mb-6">
                 <div>
                     <span class="text-sm font-bold text-cyan uppercase tracking-wider">الرصيد المتاح</span>
-                    <div class="balance-display mt-2">{{ wallet.available_balance }} <span class="text-xl">{{ wallet.currency.code }}</span></div>
+                    <div class="balance-display mt-2">{% currency_format wallet.available_balance wallet.currency %}</div>
                 </div>
                 <div class="text-left">
                     <i class="fas fa-wallet text-4xl text-slate-700 opacity-50"></i>
@@ -185,19 +185,19 @@
                 {% if wallet.pending_balance > 0 %}
                 <div>
                     <span class="text-xs text-muted block mb-1">قيد الانتظار</span>
-                    <span class="text-sm font-bold">{{ wallet.pending_balance }} {{ wallet.currency.code }}</span>
+                    <span class="text-sm font-bold">{% currency_format wallet.pending_balance wallet.currency %}</span>
                 </div>
                 {% endif %}
                 {% if wallet.frozen_balance > 0 %}
                 <div>
                     <span class="text-xs text-muted block mb-1">مجمد</span>
-                    <span class="text-sm font-bold">{{ wallet.frozen_balance }} {{ wallet.currency.code }}</span>
+                    <span class="text-sm font-bold">{% currency_format wallet.frozen_balance wallet.currency %}</span>
                 </div>
                 {% endif %}
                 {% if wallet.held_balance > 0 %}
                 <div>
                     <span class="text-xs text-muted block mb-1">محجوز</span>
-                    <span class="text-sm font-bold text-red-400">{{ wallet.held_balance }} {{ wallet.currency.code }}</span>
+                    <span class="text-sm font-bold text-red-400">{% currency_format wallet.held_balance wallet.currency %}</span>
                 </div>
                 {% endif %}
             </div>
@@ -245,7 +245,7 @@
                             </div>
                             <div class="flex justify-between mt-1">
                                 <span class="text-xs text-muted">{{ order.get_status_display }}</span>
-                                <span class="text-xs font-bold">{{ order.total_amount }} SYP</span>
+                                <span class="text-xs font-bold">{% currency_format order.total_amount %}</span>
                             </div>
                         </div>
                     </div>

@@ -1,4 +1,4 @@
-{% load static %}
+{% load static site_tags %}
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
@@ -110,11 +110,18 @@
         </nav>
 
         <div class="actions">
+          <div class="flex items-center gap-2 ml-4">
+              <select class="text-[10px] bg-slate-800 border-none rounded p-1 text-slate-400 font-bold cursor-pointer" onchange="location.href='{% url 'set_currency' %}?currency=' + this.value">
+                  {% for c in ALL_CURRENCIES %}
+                  <option value="{{ c.id }}" {% if c.id == CURRENCY.id %}selected{% endif %}>{{ c.code }}</option>
+                  {% endfor %}
+              </select>
+          </div>
           {% if user.is_authenticated %}
             <div class="flex items-center gap-4">
                 <div class="text-left hide-mobile">
                     <div class="text-[10px] text-muted font-bold">الرصيد المتاح</div>
-                    <div class="text-sm font-black text-cyan">{{ user.wallet.available_balance }} {{ user.wallet.currency.code }}</div>
+                    <div class="text-sm font-black text-cyan">{% currency_format user.wallet.available_balance user.wallet.currency %}</div>
                 </div>
                 <a href="{% url 'site_logout' %}" class="btn btn-sm btn-outline"><i class="fas fa-sign-out-alt"></i></a>
             </div>

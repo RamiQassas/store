@@ -129,7 +129,7 @@ def product_detail(request, pk):
 
                 try:
                     order = create_order(request.user, variant.id, quantity=quantity, fulfillment_data=fulfillment_data)
-                    messages.success(request, f"تم إنشاء الطلب {order.number} بنجاح. رصيدك الحالي: {request.user.wallet.available_balance} SYP")
+                    messages.success(request, f"تم إنشاء الطلب {order.number} بنجاح. رصيدك المتبقي: {request.user.wallet.available_balance} {request.user.wallet.currency.code}")
 
                     notify_user(
                         user=request.user,
@@ -303,11 +303,14 @@ def resend_verification(request):
 def dashboard(request):
     if not request.user.email_verified:
         messages.warning(request, "حسابك غير مفعل. يرجى تفعيل البريد الإلكتروني.")
-        
+
     if request.user.status != User.Status.ACTIVE:
         messages.warning(request, f"تنبيه: حسابك في حالة ({request.user.get_status_display()}). بعض الميزات قد تكون مقيدة.")
-    
-    wallet = get_or_create_wallet(request.user)
+
+    wallet = Wallet.objects.filter(user=request.user).select_related("currency").first()
+    if not wallet:
+        wallet = get_or_create_wallet(request.user)
+
     recent_ledger = wallet.ledger_entries.select_related("created_by")[:8]
     recent_transactions = wallet.transactions.all()[:8]
     orders = request.user.orders.select_related("invoice", "coupon").prefetch_related("items__variant__product")[:6]
@@ -338,7 +341,9 @@ def dashboard(request):
 
 @login_required
 def wallet_page(request):
-    wallet = get_or_create_wallet(request.user)
+    wallet = Wallet.objects.filter(user=request.user).select_related("currency").first()
+    if not wallet:
+        wallet = get_or_create_wallet(request.user)
     return render(
         request,
         "site/wallet.html",
@@ -1112,6 +1117,21 @@ def control_reports(request):
     }
     
     return render(request, "site/control_reports.html", {"stats": stats})
+
+
+def set_currency(request):
+    """Updates the user's preferred currency in session or account."""
+    currency_id = request.GET.get("currency")
+    if currency_id:
+        currency = get_object_or_404(Currency, id=currency_id, is_active=True)
+        if request.user.is_authenticated:
+            request.user.preferred_currency = currency
+            request.user.save(update_fields=["preferred_currency"])
+        
+        request.session["preferred_currency_id"] = str(currency.id)
+        messages.success(request, f"تم تغيير العملة المفضلة إلى {currency.code}")
+    
+    return redirect(request.META.get("HTTP_REFERER", "home"))
 
 
 def privacy_policy(request):

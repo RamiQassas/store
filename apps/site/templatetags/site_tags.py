@@ -1,0 +1,59 @@
+from django import template
+from decimal import Decimal
+from apps.common.models import Currency
+
+register = template.Library()
+
+@register.filter
+def convert_price(amount, target_currency):
+    """
+    Converts an amount from the base currency (usually USD or what's defined as base) 
+    to the target currency.
+    Note: The project seems to use SYP as a base in many places or SYP is just hardcoded.
+    Looking at Currency model, 'to_base' and 'from_base' use SYP-like rates.
+    If 1 USD = 10500 SYP, then SYP is the 'base' in terms of the rate definition.
+    """
+    if not amount or not target_currency:
+        return amount
+        
+    try:
+        # Assume amount is in the platform's default/base currency.
+        # Based on existing code, prices in models are often treated as 'base' values.
+        # We'll use 'from_base' logic.
+        converted = target_currency.from_base(amount)
+        
+        # Format based on decimal places
+        return f"{converted:,.{target_currency.decimal_places}f}"
+    except Exception:
+        return amount
+
+@register.simple_tag(takes_context=True)
+def currency_format(context, amount, source_currency=None):
+    """
+    Formats a price according to the current preferred currency in context.
+    If source_currency is provided, it converts from it to preferred.
+    Otherwise, assumes amount is in SYSTEM_CURRENCY.
+    """
+    target_currency = context.get('CURRENCY')
+    system_currency = context.get('SYSTEM_CURRENCY')
+    
+    if not target_currency:
+        return f"{amount} SYP"
+    
+    try:
+        # 1. Convert to base first if source_currency is different from base (USD)
+        # Using SYP as the fallback source if none provided
+        source = source_currency or system_currency
+        
+        base_amount = amount
+        if source and source.code != "USD": # Assuming USD is the logic base with rate 1.0
+            base_amount = source.to_base(amount)
+        
+        # 2. Convert from base to target
+        converted = target_currency.from_base(base_amount)
+        
+        # 3. Format
+        formatted = f"{converted:,.{target_currency.decimal_places}f}"
+        return f"{formatted} {target_currency.symbol}"
+    except Exception:
+        return f"{amount} {target_currency.symbol if target_currency else 'SYP'}"

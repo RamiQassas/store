@@ -1,5 +1,5 @@
 {% extends "site/base.html" %}
-{% load static %}
+{% load static site_tags %}
 
 {% block title %}Raqamiyat | متجر الخدمات الرقمية الأول{% endblock %}
 
@@ -194,7 +194,7 @@
                     <h3 class="text-base mt-1 line-clamp-2">{{ p.name }}</h3>
                 </div>
                 <div class="flex justify-between items-center mt-auto">
-                    <div class="p-v2-price">{{ p.variants.first.price }} <small class="text-[10px] text-muted">SYP</small></div>
+                    <div class="p-v2-price">{% currency_format p.variants.first.price %}</div>
                     <a href="{% url 'product_detail' p.id %}" class="btn btn-primary btn-sm px-4">اطلب</a>
                 </div>
             </div>

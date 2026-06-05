@@ -59,4 +59,5 @@ urlpatterns = [
     path("refund-policy/", views.refund_policy, name="refund_policy"),
     path("contact/", views.contact_page, name="contact"),
     path("sw.js", views.service_worker, name="service_worker"),
+    path("set-currency/", views.set_currency, name="set_currency"),
 ]

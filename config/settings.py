@@ -102,6 +102,7 @@ TEMPLATES = [
                 "django.contrib.auth.context_processors.auth",
                 "django.contrib.messages.context_processors.messages",
                 "apps.common.context_processors.webpush_settings",
+                "apps.site.context_processors.preferred_currency",
             ],
         },
     },
