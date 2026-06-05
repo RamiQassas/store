@@ -99,33 +99,39 @@
                 <div class="builder-body stack gap-4">
                     <div class="flex items-center gap-2 p-3 bg-slate-800/20 rounded-lg">{{ form.can_deposit }} <span class="text-xs">تفعيل الإيداع لهذه الوسيلة</span></div>
                     <div class="panel p-4 bg-slate-800/30 border-white/5">
-                        <label class="mini-label">صورة QR (خاص بالإيداع)</label>{{ form.qr_image }}
-                        {% if method.qr_image %}<img src="{{ method.qr_image.url }}" class="mt-2 h-24 w-24 object-contain">{% endif %}
+                        <label class="mini-label">صورة QR (خاص بالإيداع)</label>{{ form.deposit_qr_image }}
+                        {% if method.deposit_qr_image %}<img src="{{ method.deposit_qr_image.url }}" class="mt-2 h-24 w-24 object-contain">{% endif %}
                     </div>
                 </div>
              </div>
              <div class="builder-section">
-                <div class="builder-section-header"><h3 class="font-bold text-sm">تعليمات إضافية (تظهر للعميل)</h3></div>
+                <div class="builder-section-header"><h3 class="font-bold text-sm">تعليمات الإيداع الثابتة (تظهر للعميل)</h3></div>
                 <div class="builder-body">
-                    {{ form.instructions }}
+                    {{ form.deposit_instructions }}
                 </div>
              </div>
         </div>
 
         <!-- Withdrawal Status (Only for Withdrawal mode) -->
-        <div id="withdrawal-only-controls" class="hidden">
+        <div id="withdrawal-only-controls" class="grid grid-cols-1 md:grid-cols-2 gap-8 hidden">
             <div class="builder-section">
                 <div class="builder-section-header"><h3 class="font-bold text-sm">حالة السحب</h3></div>
-                <div class="builder-body">
+                <div class="builder-body stack gap-4">
                     <div class="flex items-center gap-2 p-3 bg-slate-800/20 rounded-lg">{{ form.can_withdraw }} <span class="text-xs">تفعيل السحب لهذه الوسيلة</span></div>
                 </div>
             </div>
+            <div class="builder-section">
+                <div class="builder-section-header"><h3 class="font-bold text-sm">تعليمات السحب الثابتة (تظهر للعميل)</h3></div>
+                <div class="builder-body">
+                    {{ form.withdrawal_instructions }}
+                </div>
+             </div>
         </div>
 
         <!-- Fee Configuration -->
         <div class="builder-section">
             <div class="builder-section-header">
-                <h3 class="font-bold text-sm"><i class="fas fa-percentage ml-2 text-cyan"></i> إعدادات الرسوم والحدود</h3>
+                <h3 class="font-bold text-sm"><i class="fas fa-percentage ml-2 text-cyan"></i> إعدادات الرسوم والحدود (لكل وضع بشكل منفصل)</h3>
                 <div class="flex items-center gap-2">
                     <input type="checkbox" id="fee-enabled" checked onchange="updateFeeState()"> <span class="text-xs">تفعيل الرسوم</span>
                 </div>
@@ -138,9 +144,13 @@
                         <div class="field-group"><label class="text-[10px]">أقل عمولة</label><input type="number" id="fee-min" class="builder-input" value="0"></div>
                         <div class="field-group"><label class="text-[10px]">أقصى عمولة</label><input type="number" id="fee-max" class="builder-input" value="0"></div>
                     </div>
-                    <div class="grid grid-2 gap-4">
-                        <div class="field-group"><label class="text-[10px]">الحد الأدنى للعملية</label>{{ form.min_amount }}</div>
-                        <div class="field-group"><label class="text-[10px]">الحد الأقصى للعملية</label>{{ form.max_amount }}</div>
+                    <div class="grid grid-2 gap-4" id="deposit-limits-group">
+                        <div class="field-group"><label class="text-[10px]">الحد الأدنى للإيداع</label>{{ form.deposit_min_amount }}</div>
+                        <div class="field-group"><label class="text-[10px]">الحد الأقصى للإيداع</label>{{ form.deposit_max_amount }}</div>
+                    </div>
+                    <div class="grid grid-2 gap-4 hidden" id="withdrawal-limits-group">
+                        <div class="field-group"><label class="text-[10px]">الحد الأدنى للسحب</label>{{ form.withdrawal_min_amount }}</div>
+                        <div class="field-group"><label class="text-[10px]">الحد الأقصى للسحب</label>{{ form.withdrawal_max_amount }}</div>
                     </div>
                 </div>
             </div>

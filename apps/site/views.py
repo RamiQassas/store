@@ -630,8 +630,8 @@ def withdrawals(request):
         currency = get_object_or_404(Currency, id=currency_id)
         wallet = get_or_create_wallet(request.user)
         
-        if amount < method.min_amount or amount > method.max_amount:
-            messages.error(request, f"المبلغ يجب أن يكون بين {method.min_amount} و {method.max_amount}.")
+        if amount < method.withdrawal_min_amount or amount > method.withdrawal_max_amount:
+            messages.error(request, f"المبلغ يجب أن يكون بين {method.withdrawal_min_amount} و {method.withdrawal_max_amount}.")
         elif method.is_maintenance_mode:
             messages.error(request, "وسيلة السحب هذه حالياً في وضع الصيانة.")
         elif wallet.available_balance < amount:
