@@ -1,0 +1,200 @@
+{% extends "site/control_base.html" %}
+{% load static %}
+
+{% block title %}تفاصيل طلب السحب | Raqamiyat Admin{% endblock %}
+
+{% block control_content %}
+<div class="page-head">
+    <div>
+        <span class="eyebrow">Financial Operations / Withdrawals / Detail</span>
+        <h1>طلب سحب #{{ withdrawal.id|stringformat:"s"|slice:":8" }}</h1>
+        <p class="text-muted">مراجعة بيانات السحب وتدقيق الحساب وتحديث الحالة.</p>
+    </div>
+    <div class="flex gap-3">
+        <a href="{% url 'control_withdrawals' %}" class="btn btn-outline btn-sm">العودة للقائمة</a>
+    </div>
+</div>
+
+<div class="grid grid-3 gap-6">
+    <!-- Main Detail Card -->
+    <div class="col-span-2 stack gap-6">
+        <div class="management-card p-8">
+            <div class="flex justify-between items-center border-b border-white/5 pb-6 mb-6">
+                <h3 class="text-lg font-black"><i class="fas fa-info-circle ml-2 text-cyan"></i> معلومات الطلب</h3>
+                <span class="badge 
+                    {% if withdrawal.status == 'pending' %}warning
+                    {% elif withdrawal.status == 'processing' %}primary
+                    {% elif withdrawal.status == 'approved' %}success
+                    {% elif withdrawal.status == 'completed' %}success
+                    {% elif withdrawal.status == 'rejected' or withdrawal.status == 'cancelled' %}danger
+                    {% endif %} px-4 py-1.5 text-xs font-black uppercase">
+                    {{ withdrawal.get_status_display }}
+                </span>
+            </div>
+
+            <div class="grid grid-2 gap-y-8 gap-x-12">
+                <div class="stack gap-1">
+                    <span class="text-[10px] font-black text-muted uppercase tracking-widest">المستخدم (العميل)</span>
+                    <div class="flex items-center gap-3">
+                        <div class="w-8 h-8 rounded-full bg-slate-800 flex items-center justify-center font-bold text-xs">{{ withdrawal.user.email|slice:":1"|upper }}</div>
+                        <strong class="text-sm">{{ withdrawal.user.email }}</strong>
+                    </div>
+                </div>
+                <div class="stack gap-1">
+                    <span class="text-[10px] font-black text-muted uppercase tracking-widest">تاريخ التقديم</span>
+                    <strong class="text-sm">{{ withdrawal.created_at|date:"d M Y, H:i" }}</strong>
+                </div>
+                <div class="stack gap-1">
+                    <span class="text-[10px] font-black text-muted uppercase tracking-widest">وسيلة السحب</span>
+                    <div class="flex items-center gap-2">
+                        <i class="fas fa-credit-card text-cyan"></i>
+                        <strong class="text-sm">{{ withdrawal.payment_method.name }}</strong>
+                    </div>
+                </div>
+                <div class="stack gap-1">
+                    <span class="text-[10px] font-black text-muted uppercase tracking-widest">العملة المستهدفة</span>
+                    <strong class="text-sm text-cyan">{{ withdrawal.currency.name }} ({{ withdrawal.currency.code }})</strong>
+                </div>
+            </div>
+
+            <div class="bg-slate-900/50 rounded-3xl p-8 mt-10 border border-white/5">
+                <div class="grid grid-3 gap-8 text-center">
+                    <div class="stack gap-1">
+                        <span class="text-[10px] font-black text-muted uppercase">المبلغ المطلوب</span>
+                        <div class="text-xl font-black">{{ withdrawal.amount }} {{ withdrawal.currency.code }}</div>
+                    </div>
+                    <div class="stack gap-1">
+                        <span class="text-[10px] font-black text-danger uppercase">الرسوم (Fees)</span>
+                        <div class="text-xl font-black text-danger">- {{ withdrawal.fee_amount }} {{ withdrawal.currency.code }}</div>
+                    </div>
+                    <div class="stack gap-1">
+                        <span class="text-[10px] font-black text-success uppercase">الصافي للاستلام</span>
+                        <div class="text-2xl font-black text-success">{{ withdrawal.final_amount }} {{ withdrawal.currency.code }}</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="mt-8 p-4 bg-cyan/5 border border-cyan/10 rounded-2xl flex justify-between items-center">
+                <div class="text-[11px] font-bold text-slate-400">
+                    <i class="fas fa-wallet ml-1"></i> المبلغ المخصوم من محفظة العميل:
+                </div>
+                <div class="text-sm font-black text-cyan">
+                    {{ withdrawal.wallet_amount }} {{ withdrawal.user.wallet.currency.code }}
+                </div>
+            </div>
+        </div>
+
+        <!-- Payout Details Card -->
+        <div class="management-card p-8">
+            <h3 class="text-lg font-black mb-6"><i class="fas fa-money-bill-transfer ml-2 text-cyan"></i> بيانات التحويل</h3>
+            <div class="stack gap-4">
+                {% for key, val in withdrawal.payout_details.dynamic.items %}
+                <div class="flex justify-between items-center p-4 bg-white/[0.02] border border-white/5 rounded-2xl">
+                    <span class="text-xs font-bold text-slate-400">{{ key }}</span>
+                    <div class="flex items-center gap-4">
+                        <strong class="font-mono text-sm">{{ val }}</strong>
+                        <button class="copy-btn" onclick="copyText('{{ val }}', this)">نسخ</button>
+                    </div>
+                </div>
+                {% empty %}
+                <div class="flex justify-between items-center p-4 bg-white/[0.02] border border-white/5 rounded-2xl">
+                    <span class="text-xs font-bold text-slate-400">العنوان / الحساب</span>
+                    <div class="flex items-center gap-4">
+                        <strong class="font-mono text-sm">{{ withdrawal.payout_details.address }}</strong>
+                        <button class="copy-btn" onclick="copyText('{{ withdrawal.payout_details.address }}', this)">نسخ</button>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Sidebar: Actions & Logs -->
+    <div class="stack gap-6">
+        <!-- Status Update Panel -->
+        <div class="management-card p-6">
+            <h4 class="font-black text-xs uppercase tracking-widest text-muted mb-4">تحديث الحالة</h4>
+            <form method="post" class="stack gap-4">
+                {% csrf_token %}
+                <div class="field-group">
+                    <label class="text-[10px]">تعديل المبلغ (اختياري)</label>
+                    <input type="number" name="adj_amount" step="0.01" value="{{ withdrawal.amount }}" class="builder-input text-xs" {% if withdrawal.status != 'pending' %}disabled{% endif %}>
+                </div>
+                
+                <div class="field-group">
+                    <label class="text-[10px]">ملاحظات العميل / المدير</label>
+                    <textarea name="admin_note" class="builder-input text-xs" rows="3" placeholder="اكتب ملاحظة هنا...">{{ withdrawal.admin_note }}</textarea>
+                </div>
+
+                <div class="stack gap-2 mt-2">
+                    {% if withdrawal.status == 'pending' %}
+                    <button name="action" value="process" class="btn btn-sm btn-primary w-full py-3">بدء المعالجة</button>
+                    {% endif %}
+
+                    {% if withdrawal.status == 'pending' or withdrawal.status == 'processing' %}
+                    <button name="action" value="approve" class="btn btn-sm btn-outline w-full py-3">الموافقة المبدئية</button>
+                    <button name="action" value="reject" class="btn btn-sm btn-outline danger w-full py-3" onclick="return confirm('هل أنت متأكد من رفض الطلب؟ سيتم إعادة الرصيد للعميل.')">رفض الطلب</button>
+                    {% endif %}
+
+                    {% if withdrawal.status == 'approved' or withdrawal.status == 'processing' %}
+                    <button name="action" value="complete" class="btn btn-sm btn-success w-full py-3 font-black" onclick="return confirm('هل قمت بالتحويل الفعلي؟ سيتم إغلاق الطلب نهائياً.')">إتمام التحويل بنجاح</button>
+                    {% endif %}
+                    
+                    {% if withdrawal.status == 'pending' %}
+                    <button name="action" value="cancel" class="btn btn-sm btn-outline muted w-full py-3" onclick="return confirm('إلغاء الطلب؟')">إلغاء</button>
+                    {% endif %}
+                </div>
+            </form>
+        </div>
+
+        <!-- Timeline / Logs -->
+        <div class="management-card p-6">
+            <h4 class="font-black text-xs uppercase tracking-widest text-muted mb-4">سجل النشاط</h4>
+            <div class="stack gap-4 relative">
+                <div class="absolute right-2 top-0 bottom-0 w-0.5 bg-white/5"></div>
+                <div class="stack gap-6">
+                    <div class="relative pr-8">
+                        <div class="absolute right-0 top-1 w-4 h-4 rounded-full bg-success border-4 border-slate-900"></div>
+                        <div class="text-[11px] font-bold">تم تقديم الطلب</div>
+                        <div class="text-[9px] text-muted">{{ withdrawal.created_at|timesince }}</div>
+                    </div>
+                    {% if withdrawal.reviewed_at %}
+                    <div class="relative pr-8">
+                        <div class="absolute right-0 top-1 w-4 h-4 rounded-full bg-cyan border-4 border-slate-900"></div>
+                        <div class="text-[11px] font-bold">آخر تحديث حالة</div>
+                        <div class="text-[9px] text-muted">{{ withdrawal.reviewed_at|timesince }} بواسطة {{ withdrawal.reviewed_by.first_name }}</div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .copy-btn { 
+        padding: 4px 10px; border-radius: 8px; background: rgba(6, 182, 212, 0.1); color: var(--cyan); 
+        font-size: 10px; font-weight: 800; cursor: pointer; transition: all 0.2s; border: none;
+    }
+    .copy-btn:hover { background: var(--cyan); color: #000; }
+    .btn-success { background: var(--success); color: #000; }
+    .btn-outline.danger { border-color: rgba(239, 68, 68, 0.2); color: var(--danger); }
+    .btn-outline.muted { border-color: rgba(255, 255, 255, 0.1); color: var(--muted); }
+</style>
+
+<script>
+function copyText(text, btn) {
+    navigator.clipboard.writeText(text).then(() => {
+        const old = btn.innerText;
+        btn.innerText = 'تم النسخ ✓';
+        btn.style.background = 'var(--success)';
+        btn.style.color = '#fff';
+        setTimeout(() => {
+            btn.innerText = old;
+            btn.style.background = '';
+            btn.style.color = '';
+        }, 2000);
+    });
+}
+</script>
+{% endblock %}

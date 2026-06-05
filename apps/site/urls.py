@@ -36,6 +36,7 @@ urlpatterns = [
     path("control/payment-methods/<uuid:pk>/edit/", views.payment_method_edit, name="payment_method_edit"),
     path("control/deposits/", views.control_deposits, name="control_deposits"),
     path("control/withdrawals/", views.control_withdrawals, name="control_withdrawals"),
+    path("control/withdrawals/<uuid:pk>/", views.control_withdrawal_detail, name="control_withdrawal_detail"),
     path("control/currencies/", views.currencies_list, name="currencies_list"),
     path("control/currencies/create/", views.currency_create, name="currency_create"),
     path("control/currencies/<uuid:pk>/edit/", views.currency_edit, name="currency_edit"),

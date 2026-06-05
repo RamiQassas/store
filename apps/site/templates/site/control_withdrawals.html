@@ -10,9 +10,47 @@
         <h1>إدارة طلبات السحب</h1>
         <p class="text-muted">مراجعة ومعالجة طلبات سحب الأرصدة المقدمة من قبل العملاء.</p>
     </div>
-    <a href="{% url 'payment_methods_list' %}" class="btn btn-outline btn-sm">
-        <i class="fas fa-credit-card ml-2"></i> إدارة وسائل السحب
-    </a>
+    <div class="flex gap-3">
+        <a href="{% url 'payment_methods_list' %}" class="btn btn-outline btn-sm">
+            <i class="fas fa-credit-card ml-2"></i> إدارة وسائل السحب
+        </a>
+    </div>
+</div>
+
+<!-- Filters Bar -->
+<div class="panel p-6 mb-8 bg-white/[0.01] border-white/5">
+    <form method="get" class="grid grid-5 gap-4">
+        <div class="field-group">
+            <label class="text-[10px]">البحث (بريد، ID)</label>
+            <input type="text" name="q" value="{{ query }}" class="builder-input text-xs" placeholder="مثال: user@example.com">
+        </div>
+        <div class="field-group">
+            <label class="text-[10px]">الحالة</label>
+            <select name="status" class="builder-input text-xs">
+                <option value="">كل الحالات</option>
+                {% for val, label in statuses %}
+                <option value="{{ val }}" {% if current_status == val %}selected{% endif %}>{{ label }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="field-group">
+            <label class="text-[10px]">العملة</label>
+            <select name="currency" class="builder-input text-xs">
+                <option value="">كل العملات</option>
+                {% for c in currencies %}
+                <option value="{{ c.id }}" {% if current_currency == c.id|stringformat:"s" %}selected{% endif %}>{{ c.code }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="field-group">
+            <label class="text-[10px]">من تاريخ</label>
+            <input type="date" name="date_from" value="{{ date_from }}" class="builder-input text-xs">
+        </div>
+        <div class="flex items-end gap-2">
+            <button type="submit" class="btn btn-primary btn-sm flex-grow">تصفية</button>
+            <a href="{% url 'control_withdrawals' %}" class="btn btn-outline btn-sm"><i class="fas fa-undo"></i></a>
+        </div>
+    </form>
 </div>
 
 <div class="management-card">
@@ -20,40 +58,35 @@
         <table class="w-full text-sm text-right">
             <thead class="text-[11px] text-slate-500 border-b border-white/5 uppercase bg-white/[0.01]">
                 <tr>
-                    <th class="p-4">التاريخ</th>
+                    <th class="p-4">رقم الطلب / التاريخ</th>
                     <th class="p-4">المستخدم</th>
                     <th class="p-4">الوسيلة والمبلغ</th>
                     <th class="p-4">بيانات الاستلام</th>
                     <th class="p-4">الحالة</th>
-                    <th class="p-4 text-left">إجراءات المعالجة</th>
+                    <th class="p-4 text-left">إجراءات</th>
                 </tr>
             </thead>
             <tbody>
                 {% for w in withdrawals %}
                 <tr class="border-b border-white/[0.02] last:border-0 hover:bg-white/[0.02] transition">
-                    <td class="p-4 text-[10px] text-slate-500">
-                        {{ w.created_at|date:"d M Y" }}<br>{{ w.created_at|date:"H:i" }}
+                    <td class="p-4">
+                        <div class="font-bold text-xs text-slate-400">#{{ w.id|stringformat:"s"|slice:":8" }}</div>
+                        <div class="text-[10px] text-slate-600 mt-1">{{ w.created_at|date:"d M Y, H:i" }}</div>
                     </td>
                     <td class="p-4">
                         <div class="font-bold text-slate-200">{{ w.user.email }}</div>
-                        <div class="text-[9px] text-muted">ID: {{ w.user.id|stringformat:"s"|slice:":8" }}</div>
+                        <div class="text-[10px] text-muted">{{ w.user.get_tier_display }}</div>
                     </td>
                     <td class="p-4">
                         <div class="flex flex-col">
-                            <span class="font-bold text-cyan">{{ w.amount }} {{ w.currency.code }}</span>
-                            <span class="text-[9px] text-danger">صافي: {{ w.final_amount }}</span>
+                            <span class="font-black text-cyan">{{ w.amount }} {{ w.currency.code }}</span>
+                            <span class="text-[10px] text-danger font-bold mt-1">الرسوم: {{ w.fee_amount }}</span>
                         </div>
                         <div class="text-[10px] text-slate-500 mt-1">{{ w.payment_method.name }}</div>
                     </td>
                     <td class="p-4">
-                        <div class="flex flex-col gap-1">
-                            {% for key, val in w.payout_details.dynamic.items %}
-                            <div class="text-[10px]"><span class="text-muted">{{ key }}:</span> <span class="font-mono">{{ val }}</span></div>
-                            {% empty %}
-                            <code class="text-[10px] bg-slate-800 p-2 rounded block border border-white/5 font-mono max-w-[200px] truncate">
-                                {{ w.payout_details.address }}
-                            </code>
-                            {% endfor %}
+                        <div class="max-w-[200px] truncate text-[11px] font-mono text-slate-400">
+                            {{ w.payout_details.address|default:w.payout_details.dynamic.values|first }}
                         </div>
                     </td>
                     <td class="p-4">
@@ -63,80 +96,26 @@
                             {% elif w.status == 'approved' %}success
                             {% elif w.status == 'completed' %}success
                             {% elif w.status == 'rejected' or w.status == 'cancelled' %}danger
-                            {% endif %} text-[9px]">
+                            {% endif %} text-[9px] px-3">
                             {{ w.get_status_display }}
                         </span>
                     </td>
                     <td class="p-4 text-left">
-                        <div class="flex justify-end gap-2">
-                            {% if w.status == 'pending' %}
-                            <button class="btn btn-sm btn-outline text-[10px] py-1 px-3" onclick="actionWithdrawal('{{ w.id }}', 'process')">
-                                <i class="fas fa-play ml-1"></i> بدء
-                            </button>
-                            {% endif %}
-                            
-                            {% if w.status == 'pending' or w.status == 'processing' %}
-                            <button class="btn btn-sm btn-primary text-[10px] py-1 px-3" onclick="actionWithdrawal('{{ w.id }}', 'approve')">
-                                <i class="fas fa-check ml-1"></i> موافقة
-                            </button>
-                            <button class="btn btn-sm btn-outline danger text-[10px] py-1 px-3" onclick="actionWithdrawal('{{ w.id }}', 'reject')">
-                                <i class="fas fa-times ml-1"></i> رفض
-                            </button>
-                            {% endif %}
-
-                            {% if w.status == 'processing' or w.status == 'approved' %}
-                            <button class="btn btn-sm btn-success text-[10px] py-1 px-3" onclick="actionWithdrawal('{{ w.id }}', 'complete')">
-                                <i class="fas fa-check-double ml-1"></i> إكمال
-                            </button>
-                            {% endif %}
-                        </div>
+                        <a href="{% url 'control_withdrawal_detail' w.pk %}" class="btn btn-sm btn-outline text-[10px] py-1 px-4">
+                            تفاصيل ومعالجة
+                        </a>
                     </td>
                 </tr>
                 {% empty %}
                 <tr>
-                    <td colspan="6" class="p-12 text-center text-slate-500 italic">لا توجد طلبات سحب حالياً.</td>
+                    <td colspan="6" class="p-20 text-center text-slate-500 italic">
+                        <i class="fas fa-search text-3xl mb-4 opacity-20 block"></i>
+                        لم يتم العثور على أي طلبات سحب تطابق الفلتر.
+                    </td>
                 </tr>
                 {% endfor %}
             </tbody>
         </table>
     </div>
 </div>
-
-<script>
-async function actionWithdrawal(id, action) {
-    let note = "";
-    if (action === 'reject') {
-        note = prompt("يرجى إدخال سبب الرفض (سيظهر للمستخدم):");
-        if (note === null) return;
-    }
-    
-    if (!confirm(`هل أنت متأكد من تنفيذ إجراء "${action}" على طلب السحب هذا؟`)) return;
-
-    try {
-        const response = await fetch(`/api/withdrawals/${id}/${action}/`, {
-            method: 'POST',
-            headers: {
-                'X-CSRFToken': '{{ csrf_token }}',
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({ admin_note: note })
-        });
-
-        if (response.ok) {
-            location.reload();
-        } else {
-            const data = await response.json();
-            alert("خطأ: " + (data.detail || data.message || "تعذر تنفيذ الإجراء"));
-        }
-    } catch (error) {
-        alert("خطأ في الاتصال بالخادم");
-    }
-}
-</script>
-
-<style>
-    .btn-success { background: var(--success); color: #000; font-weight: bold; }
-    .btn-outline.danger { border-color: rgba(239, 68, 68, 0.3); color: var(--danger); }
-    .btn-outline.danger:hover { background: var(--danger); color: #fff; }
-</style>
 {% endblock %}

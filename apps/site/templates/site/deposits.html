@@ -379,7 +379,18 @@ function nextStep(n) {
 function validateFinal() {
     let valid = true;
     const amt = parseFloat(document.getElementById('input-amount').value) || 0;
-    if(!amt || (state.currency && (amt < state.currency.min || amt > state.currency.max))) {
+    const errText = document.getElementById('amount-error-text');
+    
+    if(!amt) {
+        errText.innerText = 'يرجى إدخال المبلغ.';
+        document.getElementById('amount-group').classList.add('has-error');
+        valid = false;
+    } else if(state.currency && amt < state.currency.min) {
+        errText.innerText = `المبلغ أقل من الحد الأدنى (${state.currency.min.toLocaleString()} ${state.currency.code}).`;
+        document.getElementById('amount-group').classList.add('has-error');
+        valid = false;
+    } else if(state.currency && amt > state.currency.max) {
+        errText.innerText = `المبلغ يتجاوز الحد الأقصى (${state.currency.max.toLocaleString()} ${state.currency.code}).`;
         document.getElementById('amount-group').classList.add('has-error');
         valid = false;
     } else {

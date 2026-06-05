@@ -649,8 +649,10 @@ def withdrawals(request):
         min_limit = currency.from_base(method.withdrawal_min_amount) if usd else method.withdrawal_min_amount
         max_limit = currency.from_base(method.withdrawal_max_amount) if usd else method.withdrawal_max_amount
 
-        if amount < min_limit or amount > max_limit:
-            messages.error(request, f"المبلغ يجب أن يكون بين {min_limit:.2f} و {max_limit:.2f} {currency.code}.")
+        if amount < min_limit:
+            messages.error(request, f"المبلغ أقل من الحد الأدنى المسموح ({min_limit:.2f} {currency.code}).")
+        elif amount > max_limit:
+            messages.error(request, f"المبلغ يتجاوز الحد الأقصى المسموح ({max_limit:.2f} {currency.code}).")
         elif method.is_maintenance_mode:
             messages.error(request, "وسيلة السحب هذه حالياً في وضع الصيانة.")
         elif not method.supported_currencies.filter(id=currency.id).exists():
@@ -711,8 +713,130 @@ def withdrawals(request):
 
 @staff_member_required
 def control_withdrawals(request):
-    withdrawals = WithdrawalRequest.objects.select_related("user", "payment_method", "currency").order_by("-created_at")
-    return render(request, "site/control_withdrawals.html", {"withdrawals": withdrawals})
+    status_filter = request.GET.get("status")
+    currency_filter = request.GET.get("currency")
+    query = request.GET.get("q", "").strip()
+    date_from = request.GET.get("date_from")
+    date_to = request.GET.get("date_to")
+    
+    withdrawals_qs = WithdrawalRequest.objects.select_related("user", "payment_method", "currency").order_by("-created_at")
+    
+    if status_filter:
+        withdrawals_qs = withdrawals_qs.filter(status=status_filter)
+    if currency_filter:
+        withdrawals_qs = withdrawals_qs.filter(currency__id=currency_filter)
+    if query:
+        withdrawals_qs = withdrawals_qs.filter(
+            Q(user__email__icontains=query) | 
+            Q(id__icontains=query)
+        )
+    if date_from:
+        withdrawals_qs = withdrawals_qs.filter(created_at__date__gte=date_from)
+    if date_to:
+        withdrawals_qs = withdrawals_qs.filter(created_at__date__lte=date_to)
+        
+    currencies = Currency.objects.filter(is_active=True)
+    
+    return render(request, "site/control_withdrawals.html", {
+        "withdrawals": withdrawals_qs,
+        "current_status": status_filter,
+        "current_currency": currency_filter,
+        "query": query,
+        "date_from": date_from,
+        "date_to": date_to,
+        "currencies": currencies,
+        "statuses": WithdrawalRequest.Status.choices
+    })
+
+
+@staff_member_required
+def control_withdrawal_detail(request, pk):
+    withdrawal = get_object_or_404(WithdrawalRequest.objects.select_related("user", "payment_method", "currency"), pk=pk)
+    
+    if request.method == "POST":
+        action = request.POST.get("action")
+        admin_note = request.POST.get("admin_note", "")
+        
+        # Admin amount adjustment logic
+        new_amount_str = request.POST.get("adj_amount")
+        if new_amount_str:
+            try:
+                new_amount = Decimal(new_amount_str)
+                if new_amount != withdrawal.amount:
+                    # Logic to safely adjust requested amount
+                    # 1. Update wallet_amount (the amount frozen in user's wallet)
+                    # We assume requested amount adjustment means updating the base logic
+                    old_wallet_amount = withdrawal.wallet_amount
+                    
+                    wallet = get_or_create_wallet(withdrawal.user)
+                    base_val = withdrawal.currency.to_base(new_amount, "withdrawal")
+                    new_wallet_amount = wallet.currency.from_base(base_val, "withdrawal")
+                    
+                    from apps.wallets.services import release_funds, freeze_funds
+                    with transaction.atomic():
+                        # Release old freeze, freeze new amount
+                        # (More efficient than calculating diff)
+                        release_funds(wallet.id, old_wallet_amount, reference=f"adj_rel:{withdrawal.id}", description="Adjustment release")
+                        freeze_funds(wallet.id, new_wallet_amount, reference=f"adj_frz:{withdrawal.id}", description="Adjustment freeze")
+                        
+                        withdrawal.amount = new_amount
+                        withdrawal.wallet_amount = new_wallet_amount
+                        # Save will trigger calculate_fees()
+                        withdrawal.save()
+                        
+                    messages.info(request, f"تم تعديل المبلغ إلى {new_amount} {withdrawal.currency.code}")
+            except Exception as e:
+                messages.error(request, f"خطأ في تعديل المبلغ: {str(e)}")
+
+        if action in ["approve", "reject", "complete", "process", "cancel"]:
+            # Logic similar to API but for Template POST
+            try:
+                from apps.site.api_views import (
+                    api_withdrawal_approve, api_withdrawal_reject, 
+                    api_withdrawal_complete, api_withdrawal_process
+                )
+                # Since these are internal calls, we simulate or call services directly
+                # Prefer calling services directly for integrity
+                from apps.wallets.services import release_funds, finalize_withdrawal
+                
+                with transaction.atomic():
+                    if action == "process":
+                        withdrawal.status = WithdrawalRequest.Status.PROCESSING
+                    elif action == "approve":
+                        withdrawal.status = WithdrawalRequest.Status.APPROVED
+                    elif action == "reject":
+                        wallet = get_or_create_wallet(withdrawal.user)
+                        release_funds(wallet.id, withdrawal.wallet_amount, reference=f"with:{withdrawal.id}", description="Withdrawal rejected")
+                        withdrawal.status = WithdrawalRequest.Status.REJECTED
+                    elif action == "complete":
+                        wallet = get_or_create_wallet(withdrawal.user)
+                        finalize_withdrawal(wallet.id, withdrawal.wallet_amount, reference=f"with:{withdrawal.id}", description="Withdrawal completed")
+                        withdrawal.status = WithdrawalRequest.Status.COMPLETED
+                        withdrawal.reviewed_at = timezone.now()
+                    
+                    withdrawal.admin_note = admin_note
+                    withdrawal.reviewed_by = request.user
+                    withdrawal.save()
+                    
+                    # Notify
+                    from apps.notifications.services import notify_user
+                    notify_user(
+                        user=withdrawal.user,
+                        title=f"تحديث طلب السحب: {withdrawal.get_status_display()}",
+                        body=f"تم تحديث حالة طلب السحب الخاص بك. {admin_note}",
+                        priority="high" if action in ["complete", "reject"] else "normal"
+                    )
+                    
+                messages.success(request, f"تم تنفيذ إجراء ({action}) بنجاح.")
+            except Exception as e:
+                messages.error(request, f"فشل الإجراء: {str(e)}")
+        
+        return redirect("control_withdrawal_detail", pk=withdrawal.pk)
+
+    return render(request, "site/control_withdrawal_detail.html", {
+        "withdrawal": withdrawal,
+        "logs": withdrawal.user.activity_logs.filter(metadata__withdrawal_id=str(withdrawal.id))
+    })
 
 
 @permission_required("accounts.view_user", raise_exception=True)

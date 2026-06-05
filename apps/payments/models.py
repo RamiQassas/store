@@ -71,7 +71,13 @@ class PaymentMethod(TimeStampedModel):
             "qr": self.deposit_qr_image.url if self.deposit_qr_image else "",
             "static_info": self.deposit_info_schema if isinstance(self.deposit_info_schema, dict) and "rows" in self.deposit_info_schema else {"rows": []},
             "form_schema": self.deposit_form_schema if isinstance(self.deposit_form_schema, dict) and "fields" in self.deposit_form_schema else {"fields": []},
-            "fees": self.deposit_fee_settings if isinstance(self.deposit_fee_settings, dict) and "enabled" in self.deposit_fee_settings else {"fixed": 0, "percent": 0, "enabled": True},
+            "fees": {
+                "fixed": float(self.deposit_fee_settings.get("fixed", 0)) if isinstance(self.deposit_fee_settings, dict) else 0,
+                "percent": float(self.deposit_fee_settings.get("percent", 0)) if isinstance(self.deposit_fee_settings, dict) else 0,
+                "min": float(self.deposit_fee_settings.get("min", 0)) if isinstance(self.deposit_fee_settings, dict) else 0,
+                "max": float(self.deposit_fee_settings.get("max", 0)) if isinstance(self.deposit_fee_settings, dict) else 0,
+                "enabled": self.deposit_fee_settings.get("enabled", True) if isinstance(self.deposit_fee_settings, dict) else True
+            },
             "currencies": currencies_data
         }, cls=DjangoJSONEncoder)
 
@@ -100,7 +106,13 @@ class PaymentMethod(TimeStampedModel):
             "instructions": self.withdrawal_instructions,
             "static_info": self.withdrawal_info_schema if isinstance(self.withdrawal_info_schema, dict) and "rows" in self.withdrawal_info_schema else {"rows": []},
             "form_schema": self.withdrawal_form_schema if isinstance(self.withdrawal_form_schema, dict) and "fields" in self.withdrawal_form_schema else {"fields": []},
-            "fees": self.withdrawal_fee_settings if isinstance(self.withdrawal_fee_settings, dict) and "enabled" in self.withdrawal_fee_settings else {"fixed": 0, "percent": 0, "enabled": True},
+            "fees": {
+                "fixed": float(self.withdrawal_fee_settings.get("fixed", 0)) if isinstance(self.withdrawal_fee_settings, dict) else 0,
+                "percent": float(self.withdrawal_fee_settings.get("percent", 0)) if isinstance(self.withdrawal_fee_settings, dict) else 0,
+                "min": float(self.withdrawal_fee_settings.get("min", 0)) if isinstance(self.withdrawal_fee_settings, dict) else 0,
+                "max": float(self.withdrawal_fee_settings.get("max", 0)) if isinstance(self.withdrawal_fee_settings, dict) else 0,
+                "enabled": self.withdrawal_fee_settings.get("enabled", True) if isinstance(self.withdrawal_fee_settings, dict) else True
+            },
             "currencies": currencies_data
         }, cls=DjangoJSONEncoder)
 

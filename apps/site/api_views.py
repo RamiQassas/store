@@ -269,8 +269,9 @@ def api_withdrawal_process(request, pk):
 @api_view(["POST"])
 @permission_classes([IsAdminUser])
 def api_withdrawal_approve(request, pk):
-    withdrawal = get_object_or_404(WithdrawalRequest, pk=pk, status=WithdrawalRequest.Status.PROCESSING)
+    withdrawal = get_object_or_404(WithdrawalRequest, pk=pk, status__in=[WithdrawalRequest.Status.PENDING, WithdrawalRequest.Status.PROCESSING])
     withdrawal.status = WithdrawalRequest.Status.APPROVED
+    withdrawal.reviewed_by = request.user
     withdrawal.save()
     return Response({"status": "success"})
 
@@ -278,12 +279,13 @@ def api_withdrawal_approve(request, pk):
 @api_view(["POST"])
 @permission_classes([IsAdminUser])
 def api_withdrawal_complete(request, pk):
-    withdrawal = get_object_or_404(WithdrawalRequest, pk=pk, status__in=[WithdrawalRequest.Status.APPROVED, WithdrawalRequest.Status.PROCESSING])
+    withdrawal = get_object_or_404(WithdrawalRequest, pk=pk, status__in=[WithdrawalRequest.Status.APPROVED, WithdrawalRequest.Status.PROCESSING, WithdrawalRequest.Status.PENDING])
     admin_note = request.data.get("admin_note", "")
     
     try:
+        from apps.wallets.services import finalize_withdrawal
         wallet = Wallet.objects.get(user=withdrawal.user)
-        # Use service to finalize (atomic + ledger)
+        # Finalize (deduct from frozen)
         finalize_withdrawal(
             wallet_id=wallet.id,
             amount=withdrawal.wallet_amount,
