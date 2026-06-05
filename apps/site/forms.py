@@ -57,14 +57,17 @@ class PaymentMethodForm(forms.ModelForm):
             "deposit_fee_settings", "withdrawal_fee_settings"
         ]
         widgets = {
-            "description": forms.Textarea(attrs={"rows": 3}),
-            "instructions": forms.Textarea(attrs={"rows": 3}),
-            "deposit_info_schema": forms.Textarea(attrs={"rows": 5, "class": "font-mono text-xs"}),
-            "withdrawal_info_schema": forms.Textarea(attrs={"rows": 5, "class": "font-mono text-xs"}),
-            "form_schema": forms.Textarea(attrs={"rows": 5, "class": "font-mono text-xs"}),
-            "withdrawal_form_schema": forms.Textarea(attrs={"rows": 5, "class": "font-mono text-xs"}),
-            "deposit_fee_settings": forms.Textarea(attrs={"rows": 3, "class": "font-mono text-xs"}),
-            "withdrawal_fee_settings": forms.Textarea(attrs={"rows": 3, "class": "font-mono text-xs"}),
+            "name": forms.TextInput(attrs={"class": "builder-input"}),
+            "method_type": forms.TextInput(attrs={"class": "builder-input"}),
+            "display_order": forms.NumberInput(attrs={"class": "builder-input"}),
+            "description": forms.Textarea(attrs={"rows": 3, "class": "builder-input"}),
+            "instructions": forms.Textarea(attrs={"rows": 3, "class": "builder-input"}),
+            "deposit_info_schema": forms.Textarea(attrs={"rows": 5, "class": "font-mono text-xs builder-input"}),
+            "withdrawal_info_schema": forms.Textarea(attrs={"rows": 5, "class": "font-mono text-xs builder-input"}),
+            "form_schema": forms.Textarea(attrs={"rows": 5, "class": "font-mono text-xs builder-input"}),
+            "withdrawal_form_schema": forms.Textarea(attrs={"rows": 5, "class": "font-mono text-xs builder-input"}),
+            "deposit_fee_settings": forms.Textarea(attrs={"rows": 3, "class": "font-mono text-xs builder-input"}),
+            "withdrawal_fee_settings": forms.Textarea(attrs={"rows": 3, "class": "font-mono text-xs builder-input"}),
             "supported_currencies": forms.CheckboxSelectMultiple(),
         }
 

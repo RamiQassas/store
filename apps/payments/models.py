@@ -12,7 +12,7 @@ class PaymentMethod(TimeStampedModel):
     logo = models.ImageField(upload_to="payment-methods/logos/", blank=True, null=True, verbose_name="الشعار")
     method_type = models.CharField(max_length=100, verbose_name="نوع الوسيلة (مثلاً: بنك، محفظة)")
     description = models.TextField(blank=True, verbose_name="وصف الوسيلة")
-    display_order = models.PositiveIntegerField(default=0, verbose_name="ترتيب العرض")
+    display_order = models.PositiveIntegerField(default=0, blank=True, verbose_name="ترتيب العرض")
     is_active = models.BooleanField(default=True, verbose_name="نشط")
     is_maintenance_mode = models.BooleanField(default=False, verbose_name="وضع الصيانة")
 
