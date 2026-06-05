@@ -5,267 +5,196 @@
 
 {% block extra_head %}
 <style>
-    .deposit-container { max-width: 900px; margin: 0 auto; }
-    .step-indicator { display: flex; justify-content: space-between; margin-bottom: 3rem; position: relative; }
-    .step-indicator::before { content: ''; position: absolute; top: 20px; left: 0; right: 0; height: 2px; background: var(--panel-border); z-index: 1; }
-    .step { width: 40px; height: 40px; border-radius: 50%; background: var(--bg-soft); border: 2px solid var(--panel-border); display: flex; align-items: center; justify-content: center; z-index: 2; font-weight: bold; position: relative; transition: all 0.3s; }
-    .step.active { border-color: var(--cyan); color: var(--cyan); box-shadow: 0 0 15px rgba(6, 182, 212, 0.3); }
-    .step.completed { background: var(--cyan); border-color: var(--cyan); color: #000; }
-    .step-label { position: absolute; top: 45px; font-size: 10px; white-space: nowrap; color: var(--muted); }
-    .step.active .step-label { color: var(--cyan); font-weight: bold; }
-    .step-content { display: none; }
-    .step-content.active { display: block; animation: fadeIn 0.4s ease; }
-    @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+    .deposit-container { max-width: 600px; margin: 0 auto; }
+    .method-card { 
+        padding: 1.5rem; cursor: pointer; border: 1px solid var(--panel-border); 
+        transition: all 0.3s; border-radius: 20px; text-align: center; background: var(--panel);
+    }
+    .method-card:hover { border-color: var(--cyan); transform: translateY(-3px); }
+    .method-card.selected { border-color: var(--cyan); background: rgba(6, 182, 212, 0.05); box-shadow: 0 0 20px rgba(6, 182, 212, 0.1); }
+    
+    .step-box { display: none; }
+    .step-box.active { display: block; animation: fadeIn 0.3s ease; }
+    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 
-    .method-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 1.5rem; }
-    .premium-method-card { padding: 1.5rem; cursor: pointer; border: 1px solid var(--panel-border); transition: all 0.3s; position: relative; border-radius: 20px; text-align: center; }
-    .premium-method-card:hover { border-color: var(--cyan); transform: translateY(-5px); }
-    .premium-method-card.selected { border-color: var(--cyan); background: rgba(6, 182, 212, 0.05); }
-
-    /* Info Block */
-    .info-block { background: var(--bg-soft); border: 1px solid var(--panel-border); border-radius: 12px; padding: 1rem; margin-bottom: 0.75rem; display: flex; justify-content: space-between; align-items: center; }
-    .info-block span { font-size: 10px; color: var(--muted); font-weight: bold; display: block; margin-bottom: 2px; }
-    .info-block strong { font-size: 14px; color: var(--text); }
+    .info-row { display: flex; justify-content: space-between; padding: 0.75rem; background: var(--bg-soft); border-radius: 10px; margin-bottom: 0.5rem; border: 1px solid var(--panel-border); }
+    .info-row span { color: var(--muted); font-size: 11px; }
+    .info-row strong { color: var(--text); font-size: 13px; }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="page-head">
-    <div>
-        <span class="eyebrow">Financial Services</span>
-        <h1>إيداع رصيد جديد</h1>
-        <p class="text-muted">نظام إيداع فائق المرونة لخدمتك بشكل أسرع.</p>
-    </div>
+<div class="page-head text-center">
+    <span class="eyebrow">Financial Engine</span>
+    <h1>إيداع رصيد جديد</h1>
 </div>
 
-<div class="deposit-container">
-    <!-- Progress -->
-    <div class="step-indicator">
-        <div class="step active" id="step-dot-1">1 <span class="step-label">وسيلة الدفع</span></div>
-        <div class="step" id="step-dot-2">2 <span class="step-label">بيانات التحويل</span></div>
-        <div class="step" id="step-dot-3">3 <span class="step-label">تأكيد الوصل</span></div>
-        <div class="step" id="step-dot-4">4 <span class="step-label">المراجعة</span></div>
-    </div>
-
-    <!-- Step 1: Methods -->
-    <div id="step-1" class="step-content active">
-        <h3 class="text-xl font-bold mb-8 text-center">اختر وسيلة الدفع المناسبة</h3>
-        <div class="method-grid">
-            {% for m in payment_methods %}
-            {% if m.can_deposit %}
-            <div class="panel premium-method-card" onclick="handleMethodSelect(this)" data-id="{{ m.id }}">
-                {% if m.logo %}<img src="{{ m.logo.url }}" class="w-16 h-16 object-contain mb-4 mx-auto">{% endif %}
-                <h4 class="font-bold">{{ m.name }}</h4>
-                <p class="text-[10px] text-muted mt-1">{{ m.method_type }}</p>
-                
-                <script type="application/json" class="method-data">
-                    {{ m.to_deposit_json|safe }}
-                </script>
-            </div>
-            {% endif %}
-            {% endfor %}
-        </div>
-        <div class="flex justify-center mt-12"><button type="button" class="btn btn-primary px-16 disabled:opacity-30" id="to-step-2" disabled onclick="goToStep(2)">المتابعة</button></div>
-    </div>
-
-    <!-- Step 2: Static Info + Custom Fields -->
-    <div id="step-2" class="step-content">
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-10">
-            <!-- Left: Static Info -->
-            <div class="stack gap-6">
-                <h3 class="text-lg font-bold"><i class="fas fa-university ml-2 text-cyan"></i> بيانات التحويل</h3>
-                
-                <!-- QR Code at the TOP -->
-                <div id="qr-container" class="panel p-4 bg-white hidden text-center">
-                    <span class="mini-label mb-2">QR Code للتحويل السريع</span>
-                    <img id="method-qr" class="w-48 h-48 mx-auto object-contain">
+<div class="deposit-container py-10">
+    <form method="post" enctype="multipart/form-data" id="main-deposit-form" class="stack gap-8">
+        {% csrf_token %}
+        
+        <!-- Step 1: Method & Currency -->
+        <div id="step-1" class="step-box active stack gap-6">
+            <h3 class="font-bold text-center">1. اختر الوسيلة والعملة</h3>
+            
+            <div class="grid grid-cols-2 gap-4">
+                {% for m in payment_methods %}
+                <div class="method-card" onclick="selectMethod('{{ m.id }}', this)" id="card-{{ m.id }}">
+                    {% if m.logo %}<img src="{{ m.logo.url }}" class="w-12 h-12 mx-auto mb-3 object-contain">{% endif %}
+                    <div class="font-bold text-sm">{{ m.name }}</div>
+                    <script type="application/json" id="data-{{ m.id }}">
+                        {{ m.to_deposit_json|safe }}
+                    </script>
                 </div>
+                {% endfor %}
+            </div>
 
-                <div id="static-info-container" class="stack gap-3"></div>
-                
-                <div class="panel p-6 bg-cyan/[0.02] border-cyan/10">
-                    <span class="mini-label mb-2">تعليمات إضافية</span>
-                    <p class="text-xs leading-relaxed text-slate-400" id="method-instr"></p>
-                </div>
-            </div>
-            <!-- Right: Customer Inputs -->
-            <div class="panel p-8 stack gap-6">
-                <h3 class="text-lg font-bold text-center">بياناتك (مطلوب)</h3>
-                <div id="dynamic-fields-container" class="stack gap-4"></div>
-                <div class="flex justify-between mt-6">
-                    <button type="button" class="btn btn-outline px-8" onclick="goToStep(1)">العودة</button>
-                    <button type="button" class="btn btn-primary px-12" onclick="goToStep(3)">المتابعة</button>
-                </div>
-            </div>
-        </div>
-    </div>
+            <input type="hidden" name="payment_method" id="input-method-id" required>
 
-    <!-- Step 3: Amount & Proof -->
-    <div id="step-3" class="step-content">
-        <div class="max-w-xl mx-auto panel p-10 stack gap-8">
-            <h3 class="text-xl font-bold text-center">المبلغ وصورة الوصل</h3>
-            <div class="grid grid-2 gap-6">
-                <div class="field-group"><label>العملة</label><select id="currency-select"></select></div>
-                <div class="field-group"><label>المبلغ المرسل</label><input type="number" id="amount-input" step="0.01" placeholder="0.00" oninput="calcPreview()"></div>
-            </div>
             <div class="field-group">
-                <label>إرفاق صورة الوصل</label>
-                <input type="file" id="proof-input" onchange="previewImg(this)">
-                <img id="img-preview" class="hidden mt-4 w-full h-40 object-contain rounded-xl border border-white/5">
+                <label>العملة المفضلة</label>
+                <select name="currency" id="input-currency" class="builder-input" required>
+                    <option value="">اختر الوسيلة أولاً...</option>
+                </select>
             </div>
-            <div class="flex justify-between mt-4">
-                <button type="button" class="btn btn-outline px-8" onclick="goToStep(2)">العودة</button>
-                <button type="button" class="btn btn-primary px-12" onclick="goToStep(4)">مراجعة</button>
+
+            <button type="button" class="btn btn-primary w-full py-4" onclick="nextStep(2)" id="btn-to-2" disabled>المتابعة</button>
+        </div>
+
+        <!-- Step 2: Transfer Details & Dynamic Fields -->
+        <div id="step-2" class="step-box stack gap-6">
+            <h3 class="font-bold text-center">2. بيانات التحويل</h3>
+            
+            <div id="qr-section" class="text-center hidden">
+                <div class="mini-label mb-2">QR Code للتحويل</div>
+                <img id="qr-img" class="w-40 h-40 mx-auto rounded-lg border-2 border-white bg-white p-1">
+            </div>
+
+            <div id="static-info" class="stack"></div>
+
+            <div class="panel p-4 bg-cyan/5 border-cyan/10">
+                <span class="mini-label mb-1">تعليمات</span>
+                <p class="text-xs text-slate-400" id="instr-text"></p>
+            </div>
+
+            <div class="divider"></div>
+
+            <div id="dynamic-fields" class="stack gap-4"></div>
+
+            <div class="flex gap-4">
+                <button type="button" class="btn btn-outline flex-1" onclick="nextStep(1)">العودة</button>
+                <button type="button" class="btn btn-primary flex-1" onclick="nextStep(3)">المتابعة</button>
             </div>
         </div>
-    </div>
 
-    <!-- Step 4: Final Review -->
-    <div id="step-4" class="step-content">
-        <form method="post" id="deposit-form" enctype="multipart/form-data" class="max-w-xl mx-auto panel p-10 stack gap-8">
-            {% csrf_token %}
-            <input type="hidden" name="payment_method" id="final-method-id">
-            <div class="text-center"><i class="fas fa-file-shield text-4xl text-cyan mb-4"></i><h3 class="text-xl font-bold">تأكيد عملية الإيداع</h3></div>
-            <div class="bg-slate-800/50 rounded-2xl p-6 stack gap-4">
-                <div class="flex justify-between"><span>الوسيلة:</span><strong id="rev-method"></strong></div>
-                <div class="flex justify-between"><span>المبلغ:</span><strong id="rev-amount"></strong></div>
-                <div class="flex justify-between"><span>الرسوم:</span><strong id="rev-fees" class="text-danger"></strong></div>
-                <div class="flex justify-between border-t border-white/5 pt-4 text-lg font-black text-cyan"><span>المبلغ الصافي:</span><strong id="rev-net"></strong></div>
+        <!-- Step 3: Amount & Proof -->
+        <div id="step-3" class="step-box stack gap-6">
+            <h3 class="font-bold text-center">3. المبلغ والوصل</h3>
+            
+            <div class="field-group">
+                <label>المبلغ المرسل</label>
+                <input type="number" name="amount" id="input-amount" step="0.01" class="builder-input text-lg font-bold" placeholder="0.00" required oninput="updateSummary()">
+                <p class="text-[10px] text-cyan mt-1" id="limits-hint"></p>
             </div>
-            <div class="flex flex-col gap-4">
-                <button type="submit" class="btn btn-primary w-full py-4 text-lg">إرسال الطلب للمراجعة</button>
-                <button type="button" class="btn btn-outline w-full" onclick="goToStep(3)">تعديل المبلغ</button>
+
+            <div class="field-group">
+                <label>صورة الوصل (Proof)</label>
+                <input type="file" name="proof_image" id="input-proof" accept="image/*" class="builder-input" required onchange="previewFile(this)">
+                <img id="proof-preview" class="hidden mt-4 w-full h-40 object-contain rounded-xl border border-white/5">
             </div>
-        </form>
-    </div>
+
+            <div class="bg-slate-800/50 p-6 rounded-2xl stack gap-3 border border-white/5">
+                <div class="flex justify-between text-xs"><span>العمولة:</span><strong id="sum-fee">0.00</strong></div>
+                <div class="flex justify-between font-black text-cyan"><span>الصافي للمحفظة:</span><strong id="sum-net">0.00</strong></div>
+            </div>
+
+            <div class="flex gap-4">
+                <button type="button" class="btn btn-outline flex-1" onclick="nextStep(2)">العودة</button>
+                <button type="submit" class="btn btn-primary flex-1 py-4">تأكيد وإرسال الطلب</button>
+            </div>
+        </div>
+    </form>
 </div>
 
 <script>
-let current = null;
-let selectedCurrencyId = null;
+let state = { method: null };
 
-function handleMethodSelect(card) {
-    document.querySelectorAll('.premium-method-card').forEach(c => c.classList.remove('selected'));
-    card.classList.add('selected');
-    current = JSON.parse(card.querySelector('.method-data').textContent);
-    document.getElementById('to-step-2').disabled = false;
-    document.getElementById('final-method-id').value = current.id;
-    
-    // Setup Currencies
-    const sel = document.getElementById('currency-select'); 
-    sel.innerHTML = '';
-    current.currencies.forEach(c => { 
-        sel.innerHTML += `<option value="${c.id}">${c.code} (${c.symbol})</option>`; 
-    });
-    
-    // Capture initial selection
-    if(current.currencies.length) selectedCurrencyId = current.currencies[0].id;
-    sel.onchange = (e) => { selectedCurrencyId = e.target.value; calcPreview(); };
+function selectMethod(id, el) {
+    state.method = JSON.parse(document.getElementById('data-'+id).textContent);
+    document.querySelectorAll('.method-card').forEach(c => c.classList.remove('selected'));
+    el.classList.add('selected');
+    document.getElementById('input-method-id').value = id;
+    document.getElementById('btn-to-2').disabled = false;
 
-    // Render Static Info
-    const infoContainer = document.getElementById('static-info-container');
-    infoContainer.innerHTML = '';
-    current.static_info.rows.forEach(r => {
-        infoContainer.innerHTML += `
-            <div class="info-block">
-                <div><span>${r.title}</span><strong>${r.value}</strong></div>
-                ${r.copyable ? `<button type="button" class="btn btn-sm btn-outline px-3" onclick="copyText('${r.value}')"><i class="fas fa-copy"></i></button>` : ''}
-            </div>`;
+    // Update Currencies
+    const cSel = document.getElementById('input-currency');
+    cSel.innerHTML = '';
+    state.method.currencies.forEach(c => {
+        cSel.innerHTML += `<option value="${c.id}">${c.code} (${c.symbol})</option>`;
     });
 
-    // QR
-    const qrBox = document.getElementById('qr-container');
-    if(current.qr) { 
-        qrBox.classList.remove('hidden'); 
-        document.getElementById('method-qr').src = current.qr; 
-    } else { 
-        qrBox.classList.add('hidden'); 
-    }
-    
-    document.getElementById('method-instr').innerText = current.instructions || 'لا توجد تعليمات إضافية.';
-
-    // Render Form Fields
-    const fieldContainer = document.getElementById('dynamic-fields-container');
-    fieldContainer.innerHTML = '';
-    
-    // Limits Warning (Optional but good for UX)
-    fieldContainer.innerHTML += `
-        <div class="p-3 bg-cyan/5 border border-cyan/10 rounded-xl mb-2">
-            <p class="text-[10px] text-cyan font-bold text-center">الحد الأدنى: ${current.min_amount} | الحد الأقصى: ${current.max_amount}</p>
-        </div>
-    `;
-
-    current.form_schema.fields.forEach(f => {
-        fieldContainer.innerHTML += `
-            <div class="field-group">
-                <label>${f.label} ${f.required?'<span class="text-danger">*</span>':''}</label>
-                <input class="dynamic-input" type="${f.type==='number'?'number':'text'}" name="custom_${f.name||f.label}" placeholder="${f.placeholder||''}" ${f.required?'required':''}>
-            </div>`;
-    });
+    // Update Steps UX
+    renderStep2();
 }
 
-function goToStep(n) {
-    document.querySelectorAll('.step-content').forEach(s => s.classList.remove('active'));
-    document.getElementById(`step-${n}`).classList.add('active');
-    document.querySelectorAll('.step').forEach((s, idx) => {
-        s.classList.remove('active', 'completed');
-        if(idx+1 < n) s.classList.add('completed');
-        if(idx+1 === n) s.classList.add('active');
+function renderStep2() {
+    const m = state.method;
+    // QR
+    const qrSec = document.getElementById('qr-section');
+    if(m.qr) { qrSec.classList.remove('hidden'); document.getElementById('qr-img').src = m.qr; }
+    else { qrSec.classList.add('hidden'); }
+
+    // Instructions
+    document.getElementById('instr-text').innerText = m.instructions || 'لا توجد تعليمات.';
+
+    // Static Info
+    const infoBox = document.getElementById('static-info');
+    infoBox.innerHTML = '';
+    m.static_info.rows.forEach(r => {
+        infoBox.innerHTML += `<div class="info-row"><span>${r.title}</span><strong>${r.value}</strong></div>`;
     });
-    if(n === 4) prepareReview();
+
+    // Dynamic Fields
+    const fieldBox = document.getElementById('dynamic-fields');
+    fieldBox.innerHTML = '';
+    m.form_schema.fields.forEach(f => {
+        fieldBox.innerHTML += `
+            <div class="field-group">
+                <label>${f.label} ${f.required?'<span class="text-danger">*</span>':''}</label>
+                <input class="builder-input" type="${f.type==='number'?'number':'text'}" 
+                       name="custom_${f.name||f.label}" placeholder="${f.placeholder||''}" 
+                       ${f.required?'required':''}>
+            </div>`;
+    });
+
+    // Limits
+    document.getElementById('limits-hint').innerText = `الحدود: ${m.min_amount} - ${m.max_amount}`;
+}
+
+function updateSummary() {
+    const amount = parseFloat(document.getElementById('input-amount').value) || 0;
+    const f = state.method.fees;
+    let fee = parseFloat(f.fixed) + (amount * parseFloat(f.percent) / 100);
+    const net = Math.max(0, amount - fee);
+    const sym = document.getElementById('input-currency').selectedOptions[0]?.text.split(' ')[0] || '';
+    document.getElementById('sum-fee').innerText = `${fee.toFixed(2)} ${sym}`;
+    document.getElementById('sum-net').innerText = `${net.toFixed(2)} ${sym}`;
+}
+
+function nextStep(n) {
+    document.querySelectorAll('.step-box').forEach(b => b.classList.remove('active'));
+    document.getElementById('step-'+n).classList.add('active');
     window.scrollTo({top:0, behavior:'smooth'});
 }
 
-function calcPreview() {
-    const amount = parseFloat(document.getElementById('amount-input').value) || 0;
-    const f = current.fees;
-    let fee = parseFloat(f.fixed) + (amount * parseFloat(f.percent) / 100);
-    if(f.min && fee < f.min) fee = f.min;
-    if(f.max && fee > f.max) fee = f.max;
-    const net = Math.max(0, amount - fee);
-    const sel = document.getElementById('currency-select');
-    const sym = sel.selectedOptions.length ? sel.selectedOptions[0].text.split(' ')[0] : '';
-    return {amount, fee, net, sym};
-}
-
-function prepareReview() {
-    const p = calcPreview();
-    document.getElementById('rev-method').innerText = current.name;
-    document.getElementById('rev-amount').innerText = `${p.amount} ${p.sym}`;
-    document.getElementById('rev-fees').innerText = `${p.fee.toFixed(2)} ${p.sym}`;
-    document.getElementById('rev-net').innerText = `${p.net.toFixed(2)} ${p.sym}`;
-
-    const form = document.getElementById('deposit-form');
-    form.querySelectorAll('.hidden-sync').forEach(i => i.remove());
-    const add = (n,v) => { 
-        if(!v) return;
-        const i=document.createElement('input'); 
-        i.type='hidden'; i.name=n; i.value=v; i.className='hidden-sync'; 
-        form.appendChild(i); 
-    };
-    
-    add('currency', selectedCurrencyId || document.getElementById('currency-select').value);
-    add('amount', document.getElementById('amount-input').value);
-    
-    // Add Dynamic Fields
-    document.querySelectorAll('.dynamic-input').forEach(i => {
-        add(i.name, i.value);
-    });
-    
-    const f = document.getElementById('proof-input');
-    if(f.files.length) { 
-        const c = f.cloneNode(); 
-        c.className='hidden-sync hidden'; 
-        form.appendChild(c); 
-    }
-}
-
-function copyText(t) { navigator.clipboard.writeText(t); alert("تم النسخ!"); }
-function previewImg(i) {
-    if(i.files && i.files[0]) {
-        const r = new FileReader();
-        r.onload = e => { const img = document.getElementById('img-preview'); img.src = e.target.result; img.classList.remove('hidden'); };
-        r.readAsDataURL(i.files[0]);
+function previewFile(input) {
+    if (input.files && input.files[0]) {
+        const reader = new FileReader();
+        reader.onload = e => { 
+            const img = document.getElementById('proof-preview');
+            img.src = e.target.result; img.classList.remove('hidden'); 
+        };
+        reader.readAsDataURL(input.files[0]);
     }
 }
 </script>

@@ -5,203 +5,170 @@
 
 {% block extra_head %}
 <style>
-    .withdrawal-container { max-width: 900px; margin: 0 auto; }
-    .step-indicator { display: flex; justify-content: space-between; margin-bottom: 3rem; position: relative; }
-    .step-indicator::before { content: ''; position: absolute; top: 20px; left: 0; right: 0; height: 2px; background: var(--panel-border); z-index: 1; }
-    .step { width: 40px; height: 40px; border-radius: 50%; background: var(--bg-soft); border: 2px solid var(--panel-border); display: flex; align-items: center; justify-content: center; z-index: 2; font-weight: bold; position: relative; transition: all 0.3s; }
-    .step.active { border-color: var(--cyan); color: var(--cyan); box-shadow: 0 0 15px rgba(6, 182, 212, 0.3); }
-    .step.completed { background: var(--cyan); border-color: var(--cyan); color: #000; }
-    .step-label { position: absolute; top: 45px; font-size: 10px; white-space: nowrap; color: var(--muted); }
-    .step.active .step-label { color: var(--cyan); font-weight: bold; }
-    .step-content { display: none; }
-    .step-content.active { display: block; animation: fadeIn 0.4s ease; }
-    @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+    .withdrawal-container { max-width: 600px; margin: 0 auto; }
+    .method-card { 
+        padding: 1.5rem; cursor: pointer; border: 1px solid var(--panel-border); 
+        transition: all 0.3s; border-radius: 20px; text-align: center; background: var(--panel);
+    }
+    .method-card:hover { border-color: var(--cyan); transform: translateY(-3px); }
+    .method-card.selected { border-color: var(--cyan); background: rgba(6, 182, 212, 0.05); box-shadow: 0 0 20px rgba(6, 182, 212, 0.1); }
+    
+    .step-box { display: none; }
+    .step-box.active { display: block; animation: fadeIn 0.3s ease; }
+    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 
-    .method-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 1.5rem; }
-    .premium-method-card { padding: 1.5rem; cursor: pointer; border: 1px solid var(--panel-border); transition: all 0.3s; position: relative; border-radius: 20px; text-align: center; }
-    .premium-method-card:hover { border-color: var(--cyan); transform: translateY(-5px); }
-    .premium-method-card.selected { border-color: var(--cyan); background: rgba(6, 182, 212, 0.05); }
-
-    .info-block { background: var(--bg-soft); border: 1px solid var(--panel-border); border-radius: 12px; padding: 1rem; margin-bottom: 0.75rem; display: flex; justify-content: space-between; align-items: center; }
-    .info-block span { font-size: 10px; color: var(--muted); font-weight: bold; display: block; margin-bottom: 2px; }
-    .info-block strong { font-size: 14px; color: var(--text); }
+    .info-row { display: flex; justify-content: space-between; padding: 0.75rem; background: var(--bg-soft); border-radius: 10px; margin-bottom: 0.5rem; border: 1px solid var(--panel-border); }
+    .info-row span { color: var(--muted); font-size: 11px; }
+    .info-row strong { color: var(--text); font-size: 13px; }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="page-head">
-    <div>
-        <span class="eyebrow">Financial Services</span>
-        <h1>طلب سحب رصيد</h1>
-        <p class="text-muted">قم بسحب رصيدك المتاح إلى حسابك البنكي أو محفظتك بسهولة.</p>
-    </div>
+<div class="page-head text-center">
+    <span class="eyebrow">Financial Services</span>
+    <h1>سحب رصيد من المحفظة</h1>
 </div>
 
-<div class="withdrawal-container">
-    <div class="step-indicator">
-        <div class="step active" id="step-dot-1">1 <span class="step-label">وسيلة السحب</span></div>
-        <div class="step" id="step-dot-2">2 <span class="step-label">بيانات الاستلام</span></div>
-        <div class="step" id="step-dot-3">3 <span class="step-label">المبلغ والرسوم</span></div>
-        <div class="step" id="step-dot-4">4 <span class="step-label">تأكيد الطلب</span></div>
-    </div>
-
-    <!-- Step 1: Methods -->
-    <div id="step-1" class="step-content active">
-        <h3 class="text-xl font-bold mb-8 text-center">اختر وسيلة الاستلام المفضلة</h3>
-        <div class="method-grid">
-            {% for m in payment_methods %}
-            {% if m.can_withdraw %}
-            <div class="panel premium-method-card" onclick="handleMethodSelect(this)" data-id="{{ m.id }}">
-                {% if m.logo %}<img src="{{ m.logo.url }}" class="w-16 h-16 object-contain mb-4 mx-auto">{% endif %}
-                <h4 class="font-bold">{{ m.name }}</h4>
-                <p class="text-[10px] text-muted mt-1">{{ m.method_type }}</p>
-                
-                <script type="application/json" class="method-data">
-                    {{ m.to_withdrawal_json|safe }}
-                </script>
+<div class="withdrawal-container py-10">
+    <form method="post" id="main-withdrawal-form" class="stack gap-8">
+        {% csrf_token %}
+        
+        <!-- Step 1: Method & Currency -->
+        <div id="step-1" class="step-box active stack gap-6">
+            <h3 class="font-bold text-center">1. اختر وسيلة الاستلام والعملة</h3>
+            
+            <div class="grid grid-cols-2 gap-4">
+                {% for m in payment_methods %}
+                <div class="method-card" onclick="selectMethod('{{ m.id }}', this)" id="card-{{ m.id }}">
+                    {% if m.logo %}<img src="{{ m.logo.url }}" class="w-12 h-12 mx-auto mb-3 object-contain">{% endif %}
+                    <div class="font-bold text-sm">{{ m.name }}</div>
+                    <script type="application/json" id="data-{{ m.id }}">
+                        {{ m.to_withdrawal_json|safe }}
+                    </script>
+                </div>
+                {% endfor %}
             </div>
-            {% endif %}
-            {% endfor %}
+
+            <input type="hidden" name="payment_method" id="input-method-id" required>
+
+            <div class="field-group">
+                <label>العملة المفضلة</label>
+                <select name="currency" id="input-currency" class="builder-input" required>
+                    <option value="">اختر الوسيلة أولاً...</option>
+                </select>
+            </div>
+
+            <button type="button" class="btn btn-primary w-full py-4" onclick="nextStep(2)" id="btn-to-2" disabled>المتابعة</button>
         </div>
-        <div class="flex justify-center mt-12"><button type="button" class="btn btn-primary px-16 disabled:opacity-30" id="to-step-2" disabled onclick="goToStep(2)">المتابعة</button></div>
-    </div>
 
-    <!-- Step 2: User Inputs -->
-    <div id="step-2" class="step-content">
-        <div class="max-w-xl mx-auto panel p-10 stack gap-8">
-            <div class="text-center">
-                <h3 class="text-xl font-bold">بيانات الاستلام</h3>
-                <p class="text-xs text-muted mt-2">يرجى إدخال البيانات المطلوبة لإتمام عملية السحب بنجاح.</p>
+        <!-- Step 2: Withdrawal Details & Dynamic Fields -->
+        <div id="step-2" class="step-box stack gap-6">
+            <h3 class="font-bold text-center">2. بيانات الاستلام</h3>
+            
+            <div id="static-info" class="stack"></div>
+
+            <div class="panel p-4 bg-cyan/5 border-cyan/10">
+                <span class="mini-label mb-1">ملاحظات هامة</span>
+                <p class="text-xs text-slate-400" id="instr-text"></p>
             </div>
 
-            <!-- Limits Info -->
-            <div id="withdrawal-limits-info" class="p-3 bg-cyan/5 border border-cyan/10 rounded-xl text-center">
-                <p class="text-[10px] text-cyan font-bold" id="limits-text"></p>
-            </div>
+            <div class="divider"></div>
 
-            <div id="dynamic-fields-container" class="stack gap-6"></div>
+            <div id="dynamic-fields" class="stack gap-4"></div>
 
-            <div class="panel p-6 bg-cyan/[0.02] border-cyan/10">
-                <span class="mini-label mb-2">ملاحظات إضافية</span>
-                <p class="text-xs leading-relaxed text-slate-400" id="method-instr"></p>
-            </div>
-
-            <div class="flex justify-between mt-4">
-                <button type="button" class="btn btn-outline px-8" onclick="goToStep(1)">العودة</button>
-                <button type="button" class="btn btn-primary px-12" onclick="goToStep(3)">المتابعة</button>
+            <div class="flex gap-4">
+                <button type="button" class="btn btn-outline flex-1" onclick="nextStep(1)">العودة</button>
+                <button type="button" class="btn btn-primary flex-1" onclick="nextStep(3)">المتابعة</button>
             </div>
         </div>
-    </div>
 
-    <!-- Step 3: Amount -->
-    <div id="step-3" class="step-content">
-        <div class="max-w-xl mx-auto panel p-10 stack gap-8">
-            <h3 class="text-xl font-bold text-center">تحديد المبلغ المطلوب</h3>
-            <div class="grid grid-2 gap-6">
-                <div class="field-group"><label>العملة</label><select id="currency-select"></select></div>
-                <div class="field-group"><label>المبلغ المراد سحبه</label><input type="number" id="amount-input" step="0.01" placeholder="0.00" oninput="calcPreview()"></div>
+        <!-- Step 3: Amount -->
+        <div id="step-3" class="step-box stack gap-6">
+            <h3 class="font-bold text-center">3. المبلغ المطلوب</h3>
+            
+            <div class="field-group">
+                <label>المبلغ المراد سحبه</label>
+                <input type="number" name="amount" id="input-amount" step="0.01" class="builder-input text-lg font-bold" placeholder="0.00" required oninput="updateSummary()">
+                <p class="text-[10px] text-cyan mt-1" id="limits-hint"></p>
             </div>
-            <div class="bg-slate-800/50 rounded-2xl p-6 stack gap-3">
-                <div class="flex justify-between text-sm"><span class="text-muted">رسوم السحب:</span><strong id="calc-fees" class="text-danger">0.00</strong></div>
-                <div class="flex justify-between items-center pt-3 border-t border-white/5"><span class="text-lg font-bold">الصافي المتوقع:</span><strong class="text-2xl text-cyan" id="calc-net">0.00</strong></div>
+
+            <div class="bg-slate-800/50 p-6 rounded-2xl stack gap-3 border border-white/5">
+                <div class="flex justify-between text-xs"><span>رسوم السحب:</span><strong id="sum-fee">0.00</strong></div>
+                <div class="flex justify-between font-black text-cyan"><span>المبلغ الصافي للاستلام:</span><strong id="sum-net">0.00</strong></div>
             </div>
-            <div class="flex justify-between mt-4">
-                <button type="button" class="btn btn-outline px-8" onclick="goToStep(2)">العودة</button>
-                <button type="button" class="btn btn-primary px-12" onclick="goToStep(4)">مراجعة</button>
+
+            <div class="flex gap-4">
+                <button type="button" class="btn btn-outline flex-1" onclick="nextStep(2)">العودة</button>
+                <button type="submit" class="btn btn-primary flex-1 py-4">تأكيد وإرسال الطلب</button>
             </div>
         </div>
-    </div>
-
-    <!-- Step 4: Final Confirmation -->
-    <div id="step-4" class="step-content">
-        <form method="post" id="withdrawal-form" class="max-w-xl mx-auto panel p-10 stack gap-8">
-            {% csrf_token %}
-            <input type="hidden" name="payment_method" id="final-method-id">
-            <div class="text-center"><i class="fas fa-check-double text-4xl text-cyan mb-4"></i><h3 class="text-xl font-bold">تأكيد طلب السحب</h3></div>
-            <div class="bg-slate-800/50 rounded-2xl p-6 stack gap-4">
-                <div class="flex justify-between"><span>وسيلة السحب:</span><strong id="rev-method"></strong></div>
-                <div class="flex justify-between"><span>المبلغ المطلوب:</span><strong id="rev-amount"></strong></div>
-                <div class="flex justify-between border-t border-white/5 pt-4 text-lg font-black text-cyan"><span>الصافي للاستلام:</span><strong id="rev-net"></strong></div>
-            </div>
-            <div class="flex flex-col gap-4">
-                <button type="submit" class="btn btn-primary w-full py-4 text-lg">تأكيد وإرسال الطلب</button>
-                <button type="button" class="btn btn-outline w-full" onclick="goToStep(3)">تعديل المبلغ</button>
-            </div>
-        </form>
-    </div>
+    </form>
 </div>
 
 <script>
-let current = null;
-let selectedCurrencyId = null;
+let state = { method: null };
 
-function handleMethodSelect(card) {
-    document.querySelectorAll('.premium-method-card').forEach(c => c.classList.remove('selected'));
-    card.classList.add('selected');
-    current = JSON.parse(card.querySelector('.method-data').textContent);
-    document.getElementById('to-step-2').disabled = false;
-    document.getElementById('final-method-id').value = current.id;
-    
-    const sel = document.getElementById('currency-select'); 
-    sel.innerHTML = '';
-    current.currencies.forEach(c => { 
-        sel.innerHTML += `<option value="${c.id}">${c.code} (${c.symbol})</option>`; 
+function selectMethod(id, el) {
+    state.method = JSON.parse(document.getElementById('data-'+id).textContent);
+    document.querySelectorAll('.method-card').forEach(c => c.classList.remove('selected'));
+    el.classList.add('selected');
+    document.getElementById('input-method-id').value = id;
+    document.getElementById('btn-to-2').disabled = false;
+
+    const cSel = document.getElementById('input-currency');
+    cSel.innerHTML = '';
+    state.method.currencies.forEach(c => {
+        cSel.innerHTML += `<option value="${c.id}">${c.code} (${c.symbol})</option>`;
     });
 
-    if(current.currencies.length) selectedCurrencyId = current.currencies[0].id;
-    sel.onchange = (e) => { selectedCurrencyId = e.target.value; calcPreview(); };
+    renderStep2();
+}
 
-    // Limits info
-    document.getElementById('limits-text').innerText = `الحد الأدنى: ${current.min_amount} | الحد الأقصى: ${current.max_amount}`;
-    document.getElementById('method-instr').innerText = current.instructions || 'لا توجد ملاحظات إضافية.';
+function renderStep2() {
+    const m = state.method;
+    document.getElementById('instr-text').innerText = m.instructions || 'لا توجد ملاحظات إضافية.';
 
-    const fieldContainer = document.getElementById('dynamic-fields-container');
-    fieldContainer.innerHTML = '';
-    if(current.form_schema && current.form_schema.fields) {
-        current.form_schema.fields.forEach(f => {
-            fieldContainer.innerHTML += `<div class="field-group"><label>${f.label} ${f.required?'<span class="text-danger">*</span>':''}</label><input class="dynamic-input" type="${f.type==='number'?'number':'text'}" name="custom_${f.name||f.label}" placeholder="${f.placeholder||''}" ${f.required?'required':''}></div>`;
+    const infoBox = document.getElementById('static-info');
+    infoBox.innerHTML = '';
+    if(m.static_info && m.static_info.rows) {
+        m.static_info.rows.forEach(r => {
+            infoBox.innerHTML += `<div class="info-row"><span>${r.title}</span><strong>${r.value}</strong></div>`;
         });
     }
+
+    const fieldBox = document.getElementById('dynamic-fields');
+    fieldBox.innerHTML = '';
+    if(m.form_schema && m.form_schema.fields) {
+        m.form_schema.fields.forEach(f => {
+            fieldBox.innerHTML += `
+                <div class="field-group">
+                    <label>${f.label} ${f.required?'<span class="text-danger">*</span>':''}</label>
+                    <input class="builder-input" type="${f.type==='number'?'number':'text'}" 
+                           name="custom_${f.name||f.label}" placeholder="${f.placeholder||''}" 
+                           ${f.required?'required':''}>
+                </div>`;
+        });
+    }
+
+    document.getElementById('limits-hint').innerText = `الحدود: ${m.min_amount} - ${m.max_amount}`;
 }
 
-function goToStep(n) {
-    document.querySelectorAll('.step-content').forEach(s => s.classList.remove('active'));
-    document.getElementById(`step-${n}`).classList.add('active');
-    document.querySelectorAll('.step').forEach((s, idx) => {
-        s.classList.remove('active', 'completed');
-        if(idx+1 < n) s.classList.add('completed');
-        if(idx+1 === n) s.classList.add('active');
-    });
-    if(n === 4) prepareReview();
-    window.scrollTo({top:0, behavior:'smooth'});
-}
-
-function calcPreview() {
-    const amount = parseFloat(document.getElementById('amount-input').value) || 0;
-    const f = current.fees;
+function updateSummary() {
+    const amount = parseFloat(document.getElementById('input-amount').value) || 0;
+    const f = state.method.fees;
     let fee = parseFloat(f.fixed) + (amount * parseFloat(f.percent) / 100);
     if(f.min && fee < f.min) fee = f.min;
     if(f.max && fee > f.max) fee = f.max;
     const net = Math.max(0, amount - fee);
-    const sel = document.getElementById('currency-select');
-    const sym = sel.selectedOptions.length ? sel.selectedOptions[0].text.split(' ')[0] : '';
-    document.getElementById('calc-fees').innerText = `${fee.toFixed(2)} ${sym}`;
-    document.getElementById('calc-net').innerText = `${net.toFixed(2)} ${sym}`;
-    return {amount, fee, net, sym};
+    const sym = document.getElementById('input-currency').selectedOptions[0]?.text.split(' ')[0] || '';
+    document.getElementById('sum-fee').innerText = `${fee.toFixed(2)} ${sym}`;
+    document.getElementById('sum-net').innerText = `${net.toFixed(2)} ${sym}`;
 }
 
-function prepareReview() {
-    const p = calcPreview();
-    document.getElementById('rev-method').innerText = current.name;
-    document.getElementById('rev-amount').innerText = `${p.amount} ${p.sym}`;
-    document.getElementById('rev-net').innerText = `${p.net.toFixed(2)} ${p.sym}`;
-
-    const form = document.getElementById('withdrawal-form');
-    form.querySelectorAll('.hidden-sync').forEach(i => i.remove());
-    const add = (n,v) => { const i=document.createElement('input'); i.type='hidden'; i.name=n; i.value=v; i.className='hidden-sync'; form.appendChild(i); };
-    add('currency', selectedCurrencyId || document.getElementById('currency-select').value);
-    add('amount', document.getElementById('amount-input').value);
-    document.querySelectorAll('.dynamic-input').forEach(i => add(i.name, i.value));
+function nextStep(n) {
+    document.querySelectorAll('.step-box').forEach(b => b.classList.remove('active'));
+    document.getElementById('step-'+n).classList.add('active');
+    window.scrollTo({top:0, behavior:'smooth'});
 }
 </script>
 {% endblock %}
