@@ -50,6 +50,7 @@
         <h3 class="text-xl font-bold mb-8 text-center">اختر وسيلة الاستلام المفضلة</h3>
         <div class="method-grid">
             {% for m in payment_methods %}
+            {% if m.can_withdraw %}
             <div class="panel premium-method-card" onclick="handleMethodSelect(this)" data-id="{{ m.id }}">
                 {% if m.logo %}<img src="{{ m.logo.url }}" class="w-16 h-16 object-contain mb-4 mx-auto">{% endif %}
                 <h4 class="font-bold">{{ m.name }}</h4>
@@ -59,6 +60,7 @@
                     {{ m.to_withdrawal_json|safe }}
                 </script>
             </div>
+            {% endif %}
             {% endfor %}
         </div>
         <div class="flex justify-center mt-12"><button type="button" class="btn btn-primary px-16 disabled:opacity-30" id="to-step-2" disabled onclick="goToStep(2)">المتابعة</button></div>

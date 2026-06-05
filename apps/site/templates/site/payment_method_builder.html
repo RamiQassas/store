@@ -52,7 +52,7 @@
     {% csrf_token %}
     {{ form.deposit_info_schema.as_hidden }}
     {{ form.withdrawal_info_schema.as_hidden }}
-    {{ form.form_schema.as_hidden }}
+    {{ form.deposit_form_schema.as_hidden }}
     {{ form.withdrawal_form_schema.as_hidden }}
     {{ form.deposit_fee_settings.as_hidden }}
     {{ form.withdrawal_fee_settings.as_hidden }}
@@ -174,7 +174,7 @@ let state = {
 function init() {
     state.deposit.info = getJSON('id_deposit_info_schema', 'deposit-info-data', {rows:[]}).rows || [];
     state.withdrawal.info = getJSON('id_withdrawal_info_schema', 'withdrawal-info-data', {rows:[]}).rows || [];
-    state.deposit.fields = getJSON('id_form_schema', 'deposit-form-data', {fields:[]}).fields || [];
+    state.deposit.fields = getJSON('id_deposit_form_schema', 'deposit-form-data', {fields:[]}).fields || [];
     state.withdrawal.fields = getJSON('id_withdrawal_form_schema', 'withdrawal-form-data', {fields:[]}).fields || [];
     state.deposit.fees = getJSON('id_deposit_fee_settings', 'deposit-fee-data', {fixed:0, percent:0, min:0, max:0, enabled:true});
     state.withdrawal.fees = getJSON('id_withdrawal_fee_settings', 'withdrawal-fee-data', {fixed:0, percent:0, min:0, max:0, enabled:true});
@@ -295,7 +295,7 @@ function submitBuilder() {
     saveCurrentToState();
     document.getElementById('id_deposit_info_schema').value = JSON.stringify({version: 1, rows: state.deposit.info});
     document.getElementById('id_withdrawal_info_schema').value = JSON.stringify({version: 1, rows: state.withdrawal.info});
-    document.getElementById('id_form_schema').value = JSON.stringify({version: 1, fields: state.deposit.fields});
+    document.getElementById('id_deposit_form_schema').value = JSON.stringify({version: 1, fields: state.deposit.fields});
     document.getElementById('id_withdrawal_form_schema').value = JSON.stringify({version: 1, fields: state.withdrawal.fields});
     document.getElementById('id_deposit_fee_settings').value = JSON.stringify(state.deposit.fees);
     document.getElementById('id_withdrawal_fee_settings').value = JSON.stringify(state.withdrawal.fees);

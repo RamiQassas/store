@@ -23,7 +23,7 @@ class PaymentMethod(TimeStampedModel):
 
     # --- Dynamic Form Engine (Customer Input Fields) ---
     # Structure: {"version": 1, "fields": [{"label": "Sender Name", "type": "text", "required": true}]}
-    form_schema = models.JSONField(default=dict, blank=True, verbose_name="حقول الإيداع المطلوبة من العميل")
+    deposit_form_schema = models.JSONField(default=dict, blank=True, verbose_name="حقول الإيداع المطلوبة من العميل")
     withdrawal_form_schema = models.JSONField(default=dict, blank=True, verbose_name="حقول السحب المطلوبة من العميل")
 
     # --- Fees Configuration (Separated) ---
@@ -70,7 +70,7 @@ class PaymentMethod(TimeStampedModel):
             "min_amount": float(self.min_amount),
             "max_amount": float(self.max_amount),
             "static_info": self.deposit_info_schema if isinstance(self.deposit_info_schema, dict) and "rows" in self.deposit_info_schema else {"rows": []},
-            "form_schema": self.form_schema if isinstance(self.form_schema, dict) and "fields" in self.form_schema else {"fields": []},
+            "form_schema": self.deposit_form_schema if isinstance(self.deposit_form_schema, dict) and "fields" in self.deposit_form_schema else {"fields": []},
             "fees": self.deposit_fee_settings if isinstance(self.deposit_fee_settings, dict) and "enabled" in self.deposit_fee_settings else {"fixed": 0, "percent": 0, "enabled": True},
             "currencies": [{"id": str(c.id), "code": c.code, "symbol": c.symbol} for c in self.supported_currencies.all()]
         }, cls=DjangoJSONEncoder)

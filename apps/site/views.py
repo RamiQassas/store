@@ -364,7 +364,8 @@ def deposits(request):
     if request.method == "POST":
         method_id = request.POST.get("payment_method")
         currency_id = request.POST.get("currency")
-        amount = Decimal(request.POST.get("amount", "0"))
+        amount_str = request.POST.get("amount", "0")
+        amount = Decimal(amount_str) if amount_str else Decimal("0")
         proof = request.FILES.get("proof_image")
         
         method = get_object_or_404(methods, id=method_id)

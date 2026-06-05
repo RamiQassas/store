@@ -54,7 +54,7 @@ class PaymentMethodForm(forms.ModelForm):
             "min_amount", "max_amount",
             "qr_image", "instructions", 
             "deposit_info_schema", "withdrawal_info_schema",
-            "form_schema", "withdrawal_form_schema",
+            "deposit_form_schema", "withdrawal_form_schema",
             "deposit_fee_settings", "withdrawal_fee_settings"
         ]
         widgets = {
@@ -67,7 +67,7 @@ class PaymentMethodForm(forms.ModelForm):
             "instructions": forms.Textarea(attrs={"rows": 3, "class": "builder-input"}),
             "deposit_info_schema": forms.Textarea(attrs={"rows": 5, "class": "font-mono text-xs builder-input"}),
             "withdrawal_info_schema": forms.Textarea(attrs={"rows": 5, "class": "font-mono text-xs builder-input"}),
-            "form_schema": forms.Textarea(attrs={"rows": 5, "class": "font-mono text-xs builder-input"}),
+            "deposit_form_schema": forms.Textarea(attrs={"rows": 5, "class": "font-mono text-xs builder-input"}),
             "withdrawal_form_schema": forms.Textarea(attrs={"rows": 5, "class": "font-mono text-xs builder-input"}),
             "deposit_fee_settings": forms.Textarea(attrs={"rows": 3, "class": "font-mono text-xs builder-input"}),
             "withdrawal_fee_settings": forms.Textarea(attrs={"rows": 3, "class": "font-mono text-xs builder-input"}),
