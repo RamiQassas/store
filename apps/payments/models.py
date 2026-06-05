@@ -226,6 +226,27 @@ class WithdrawalRequest(TimeStampedModel):
     reviewed_at = models.DateTimeField(null=True, blank=True, verbose_name="تاريخ المراجعة")
     metadata = models.JSONField(default=dict, blank=True)
 
+    @property
+    def display_payout_value(self):
+        """Safely returns a primary value for display in lists."""
+        if not self.payout_details:
+            return ""
+        
+        # 1. Check direct address
+        addr = self.payout_details.get("address")
+        if addr:
+            return str(addr)
+            
+        # 2. Check dynamic fields
+        dynamic = self.payout_details.get("dynamic")
+        if isinstance(dynamic, dict) and dynamic:
+            # Safely get the first non-empty value
+            for val in dynamic.values():
+                if val:
+                    return str(val)
+        
+        return ""
+
     def calculate_fees(self):
         self.fee_amount = self.payment_method.calculate_fee(self.amount, mode="withdrawal")
         self.final_amount = self.amount - self.fee_amount
