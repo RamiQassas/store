@@ -16,8 +16,8 @@ async function registerPush() {
     }
 
     try {
-        const registration = await navigator.serviceWorker.register('/static/site/js/sw.js', { scope: '/' });
-        console.log('Service Worker registered');
+        const registration = await navigator.serviceWorker.register('/sw.js', { scope: '/' });
+        console.log('Service Worker registered at root scope');
 
         // Check if already subscribed
         let subscription = await registration.pushManager.getSubscription();

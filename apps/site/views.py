@@ -1079,3 +1079,16 @@ def refund_policy(request):
 
 def contact_page(request):
     return render(request, "site/contact.html")
+
+
+def service_worker(request):
+    """Serves the service worker from the root for correct scoping."""
+    from django.http import HttpResponse
+    from django.conf import settings
+    import os
+    
+    sw_path = os.path.join(settings.BASE_DIR, 'apps', 'site', 'static', 'site', 'js', 'sw.js')
+    with open(sw_path, 'r', encoding='utf-8') as f:
+        content = f.read()
+    
+    return HttpResponse(content, content_type='application/javascript')
