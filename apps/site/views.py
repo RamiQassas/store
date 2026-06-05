@@ -375,9 +375,14 @@ def deposits(request):
         
         method = get_object_or_404(methods, id=method_id)
         currency = get_object_or_404(Currency, id=currency_id)
-        
-        if amount < method.deposit_min_amount or amount > method.deposit_max_amount:
-            messages.error(request, f"المبلغ يجب أن يكون بين {method.deposit_min_amount} و {method.deposit_max_amount}.")
+
+        from apps.common.models import Currency as CommonCurrency
+        usd = Currency.objects.filter(code="USD").first()
+        min_limit = currency.from_base(method.deposit_min_amount) if usd else method.deposit_min_amount
+        max_limit = currency.from_base(method.deposit_max_amount) if usd else method.deposit_max_amount
+
+        if amount < min_limit or amount > max_limit:
+            messages.error(request, f"المبلغ يجب أن يكون بين {min_limit:.2f} و {max_limit:.2f} {currency.code}.")
         elif method.is_maintenance_mode:
             messages.error(request, "وسيلة الدفع هذه حالياً في وضع الصيانة.")
         elif not method.supported_currencies.filter(id=currency.id).exists():
@@ -639,8 +644,13 @@ def withdrawals(request):
         currency = get_object_or_404(Currency, id=currency_id)
         wallet = get_or_create_wallet(request.user)
         
-        if amount < method.withdrawal_min_amount or amount > method.withdrawal_max_amount:
-            messages.error(request, f"المبلغ يجب أن يكون بين {method.withdrawal_min_amount} و {method.withdrawal_max_amount}.")
+        from apps.common.models import Currency as CommonCurrency
+        usd = Currency.objects.filter(code="USD").first()
+        min_limit = currency.from_base(method.withdrawal_min_amount) if usd else method.withdrawal_min_amount
+        max_limit = currency.from_base(method.withdrawal_max_amount) if usd else method.withdrawal_max_amount
+
+        if amount < min_limit or amount > max_limit:
+            messages.error(request, f"المبلغ يجب أن يكون بين {min_limit:.2f} و {max_limit:.2f} {currency.code}.")
         elif method.is_maintenance_mode:
             messages.error(request, "وسيلة السحب هذه حالياً في وضع الصيانة.")
         elif not method.supported_currencies.filter(id=currency.id).exists():
@@ -650,7 +660,7 @@ def withdrawals(request):
             wallet_amount = wallet.currency.from_base(base_amount, "withdrawal")
 
             if wallet.available_balance < wallet_amount:
-                messages.error(request, "الرصيد غير كافٍ لإجراء عملية السحب بعد التحويل.")
+                messages.error(request, f"الرصيد غير كافٍ. تحتاج إلى {wallet_amount:.2f} {wallet.currency.code} ولكن رصيدك الحالي هو {wallet.available_balance:.2f}.")
                 return redirect("dashboard_withdrawals")
 
             # Handle Dynamic Fields

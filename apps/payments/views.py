@@ -45,7 +45,7 @@ class DepositRequestViewSet(viewsets.ModelViewSet):
             wallet = get_or_create_wallet(deposit.user)
             track_pending_deposit(
                 wallet_id=wallet.id,
-                amount=deposit.amount,
+                amount=deposit.wallet_amount,
                 reference=f"deposit:{deposit.id}",
                 description=f"إيداع معلق عبر {deposit.payment_method.name}",
                 created_by=deposit.user
@@ -71,15 +71,24 @@ class DepositRequestViewSet(viewsets.ModelViewSet):
             deposit.save(update_fields=["status", "reviewed_by", "reviewed_at", "updated_at"])
 
             wallet = get_or_create_wallet(deposit.user)
+            # Calculate final wallet amount (amount - fee) converted to wallet currency
+            # Since fees are calculated on 'amount', we should convert the 'final_amount' (which is amount - fee)
+            # But wait, wallet_amount was stored as 'amount' converted.
+            # Let's be precise: wallet_final_amount = (final_amount / amount) * wallet_amount
+            if deposit.amount > 0:
+                wallet_final_amount = (deposit.final_amount / deposit.amount) * deposit.wallet_amount
+            else:
+                wallet_final_amount = Decimal("0.00")
+
             credit_wallet(
                 wallet_id=wallet.id,
-                amount=deposit.final_amount,
+                amount=wallet_final_amount,
                 reference=f"deposit:{deposit.id}",
                 description=f"إيداع عبر {deposit.payment_method.name}",
                 created_by=request.user,
                 metadata={
                     "from_pending": True,
-                    "pending_amount": deposit.amount
+                    "pending_amount": deposit.wallet_amount
                 }
             )
             
@@ -107,7 +116,7 @@ class DepositRequestViewSet(viewsets.ModelViewSet):
                 wallet = get_or_create_wallet(deposit.user)
                 cancel_pending_deposit(
                     wallet_id=wallet.id,
-                    amount=deposit.amount,
+                    amount=deposit.wallet_amount,
                     reference=f"deposit_reject:{deposit.id}",
                     description=f"إلغاء إيداع معلق مرفوض عبر {deposit.payment_method.name}",
                     created_by=request.user
@@ -212,7 +221,7 @@ class WithdrawalRequestViewSet(viewsets.ModelViewSet):
             wallet = get_or_create_wallet(withdrawal.user)
             finalize_withdrawal(
                 wallet_id=wallet.id,
-                amount=withdrawal.amount,
+                amount=withdrawal.wallet_amount,
                 reference=f"withdrawal:{withdrawal.id}",
                 description=f"سحب مكتمل عبر {withdrawal.payment_method.name}",
                 created_by=request.user
@@ -249,7 +258,7 @@ class WithdrawalRequestViewSet(viewsets.ModelViewSet):
             wallet = get_or_create_wallet(withdrawal.user)
             release_funds(
                 wallet_id=wallet.id,
-                amount=withdrawal.amount,
+                amount=withdrawal.wallet_amount,
                 reference=f"withdrawal_reject:{withdrawal.id}",
                 description=f"استرداد سحب مرفوض عبر {withdrawal.payment_method.name}",
                 created_by=request.user
@@ -283,7 +292,7 @@ class WithdrawalRequestViewSet(viewsets.ModelViewSet):
             wallet = get_or_create_wallet(withdrawal.user)
             release_funds(
                 wallet_id=wallet.id,
-                amount=withdrawal.amount,
+                amount=withdrawal.wallet_amount,
                 reference=f"withdrawal_cancel:{withdrawal.id}",
                 description=f"إلغاء طلب سحب عبر {withdrawal.payment_method.name}",
                 created_by=request.user

@@ -20,8 +20,8 @@ class PaymentMethod(TimeStampedModel):
     deposit_info_schema = models.JSONField(default=dict, blank=True, verbose_name="بيانات الإيداع الثابتة (للعرض)", help_text='{"version": 1, "rows": [{"title": "IBAN", "value": "TR...", "copyable": true}]}')
     deposit_form_schema = models.JSONField(default=dict, blank=True, verbose_name="حقول الإيداع المطلوبة من العميل", help_text='{"version": 1, "fields": [{"label": "TXID", "type": "text", "required": true}]}')
     deposit_fee_settings = models.JSONField(default=dict, blank=True, verbose_name="إعدادات رسوم الإيداع", help_text='{"fixed": 0, "percent": 0, "min": 0, "max": 0, "enabled": true}')
-    deposit_min_amount = models.DecimalField(max_digits=14, decimal_places=2, default=Decimal("10.00"), verbose_name="الحد الأدنى للإيداع")
-    deposit_max_amount = models.DecimalField(max_digits=14, decimal_places=2, default=Decimal("10000.00"), verbose_name="الحد الأقصى للإيداع")
+    deposit_min_amount = models.DecimalField(max_digits=14, decimal_places=2, default=Decimal("10.00"), verbose_name="الحد الأدنى للإيداع", help_text="القيمة بالدولار USD وسيتم تحويلها تلقائياً")
+    deposit_max_amount = models.DecimalField(max_digits=14, decimal_places=2, default=Decimal("10000.00"), verbose_name="الحد الأقصى للإيداع", help_text="القيمة بالدولار USD وسيتم تحويلها تلقائياً")
     deposit_instructions = models.TextField(blank=True, verbose_name="تعليمات الإيداع")
     deposit_qr_image = models.ImageField(upload_to="payment-methods/qr/", blank=True, null=True, verbose_name="صورة QR للإيداع")
 
@@ -29,8 +29,8 @@ class PaymentMethod(TimeStampedModel):
     withdrawal_info_schema = models.JSONField(default=dict, blank=True, verbose_name="بيانات السحب الثابتة (للعرض)", help_text='{"version": 1, "rows": [{"title": "Processing Time", "value": "24h"}]}')
     withdrawal_form_schema = models.JSONField(default=dict, blank=True, verbose_name="حقول السحب المطلوبة من العميل", help_text='{"version": 1, "fields": [{"label": "Binance UID", "type": "text", "required": true}]}')
     withdrawal_fee_settings = models.JSONField(default=dict, blank=True, verbose_name="إعدادات رسوم السحب", help_text='{"fixed": 0, "percent": 0, "min": 0, "max": 0, "enabled": true}')
-    withdrawal_min_amount = models.DecimalField(max_digits=14, decimal_places=2, default=Decimal("10.00"), verbose_name="الحد الأدنى للسحب")
-    withdrawal_max_amount = models.DecimalField(max_digits=14, decimal_places=2, default=Decimal("10000.00"), verbose_name="الحد الأقصى للسحب")
+    withdrawal_min_amount = models.DecimalField(max_digits=14, decimal_places=2, default=Decimal("10.00"), verbose_name="الحد الأدنى للسحب", help_text="القيمة بالدولار USD وسيتم تحويلها تلقائياً")
+    withdrawal_max_amount = models.DecimalField(max_digits=14, decimal_places=2, default=Decimal("10000.00"), verbose_name="الحد الأقصى للسحب", help_text="القيمة بالدولار USD وسيتم تحويلها تلقائياً")
     withdrawal_instructions = models.TextField(blank=True, verbose_name="تعليمات السحب")
     
     supported_currencies = models.ManyToManyField("common.Currency", blank=True, verbose_name="العملات المدعومة")
@@ -48,32 +48,60 @@ class PaymentMethod(TimeStampedModel):
     def to_deposit_json(self):
         import json
         from django.core.serializers.json import DjangoJSONEncoder
+        from apps.common.models import Currency
+        usd = Currency.objects.filter(code="USD").first()
+        
+        currencies_data = []
+        for c in self.supported_currencies.all():
+            # Convert USD limits to this currency
+            min_val = c.from_base(self.deposit_min_amount) if usd else self.deposit_min_amount
+            max_val = c.from_base(self.deposit_max_amount) if usd else self.deposit_max_amount
+            currencies_data.append({
+                "id": str(c.id), 
+                "code": c.code, 
+                "symbol": c.symbol,
+                "min_amount": float(min_val),
+                "max_amount": float(max_val)
+            })
+
         return json.dumps({
             "id": str(self.id),
             "name": self.name,
             "instructions": self.deposit_instructions,
             "qr": self.deposit_qr_image.url if self.deposit_qr_image else "",
-            "min_amount": float(self.deposit_min_amount),
-            "max_amount": float(self.deposit_max_amount),
             "static_info": self.deposit_info_schema if isinstance(self.deposit_info_schema, dict) and "rows" in self.deposit_info_schema else {"rows": []},
             "form_schema": self.deposit_form_schema if isinstance(self.deposit_form_schema, dict) and "fields" in self.deposit_form_schema else {"fields": []},
             "fees": self.deposit_fee_settings if isinstance(self.deposit_fee_settings, dict) and "enabled" in self.deposit_fee_settings else {"fixed": 0, "percent": 0, "enabled": True},
-            "currencies": [{"id": str(c.id), "code": c.code, "symbol": c.symbol} for c in self.supported_currencies.all()]
+            "currencies": currencies_data
         }, cls=DjangoJSONEncoder)
 
     def to_withdrawal_json(self):
         import json
         from django.core.serializers.json import DjangoJSONEncoder
+        from apps.common.models import Currency
+        usd = Currency.objects.filter(code="USD").first()
+
+        currencies_data = []
+        for c in self.supported_currencies.all():
+            # Convert USD limits to this currency
+            min_val = c.from_base(self.withdrawal_min_amount) if usd else self.withdrawal_min_amount
+            max_val = c.from_base(self.withdrawal_max_amount) if usd else self.withdrawal_max_amount
+            currencies_data.append({
+                "id": str(c.id), 
+                "code": c.code, 
+                "symbol": c.symbol,
+                "min_amount": float(min_val),
+                "max_amount": float(max_val)
+            })
+
         return json.dumps({
             "id": str(self.id),
             "name": self.name,
             "instructions": self.withdrawal_instructions,
-            "min_amount": float(self.withdrawal_min_amount),
-            "max_amount": float(self.withdrawal_max_amount),
             "static_info": self.withdrawal_info_schema if isinstance(self.withdrawal_info_schema, dict) and "rows" in self.withdrawal_info_schema else {"rows": []},
             "form_schema": self.withdrawal_form_schema if isinstance(self.withdrawal_form_schema, dict) and "fields" in self.withdrawal_form_schema else {"fields": []},
             "fees": self.withdrawal_fee_settings if isinstance(self.withdrawal_fee_settings, dict) and "enabled" in self.withdrawal_fee_settings else {"fixed": 0, "percent": 0, "enabled": True},
-            "currencies": [{"id": str(c.id), "code": c.code, "symbol": c.symbol} for c in self.supported_currencies.all()]
+            "currencies": currencies_data
         }, cls=DjangoJSONEncoder)
 
     def calculate_fee(self, amount, mode="deposit"):

@@ -1,46 +1,115 @@
 {% extends "site/base.html" %}
-{% load static %}
+{% load static site_tags %}
 
 {% block title %}إيداع رصيد | Raqamiyat{% endblock %}
 
 {% block extra_head %}
 <style>
-    .deposit-container { max-width: 600px; margin: 0 auto; }
+    .deposit-wrapper { max-width: 800px; margin: 0 auto; }
+    
+    /* Step Indicators */
+    .step-indicator { display: flex; justify-content: space-between; margin-bottom: 3rem; position: relative; }
+    .step-indicator::before { content: ""; position: absolute; top: 20px; left: 0; right: 0; height: 2px; background: rgba(255,255,255,0.05); z-index: 1; }
+    .step-dot { 
+        width: 42px; height: 42px; border-radius: 50%; background: var(--panel); border: 2px solid var(--panel-border);
+        display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 14px;
+        position: relative; z-index: 2; transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1); color: var(--muted);
+    }
+    .step-item { flex: 1; display: flex; flex-direction: column; align-items: center; position: relative; }
+    .step-item.active .step-dot { background: var(--cyan); border-color: var(--cyan); color: #000; box-shadow: 0 0 20px rgba(6, 182, 212, 0.4); }
+    .step-item.completed .step-dot { background: var(--success); border-color: var(--success); color: #fff; }
+    .step-label { font-size: 10px; font-weight: 800; text-transform: uppercase; margin-top: 10px; display: block; color: var(--muted); text-align: center; }
+    .step-item.active .step-label { color: var(--cyan); }
+
+    /* Method Cards */
+    .method-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 1.25rem; }
     .method-card { 
         padding: 1.5rem; cursor: pointer; border: 1px solid var(--panel-border); 
-        transition: all 0.3s; border-radius: 20px; text-align: center; background: var(--panel);
+        transition: all 0.3s; border-radius: 24px; text-align: center; background: var(--panel);
+        display: flex; flex-direction: column; align-items: center; gap: 1rem;
     }
-    .method-card:hover { border-color: var(--cyan); transform: translateY(-3px); }
-    .method-card.selected { border-color: var(--cyan); background: rgba(6, 182, 212, 0.05); box-shadow: 0 0 20px rgba(6, 182, 212, 0.1); }
-    
-    .step-box { display: none; }
-    .step-box.active { display: block; animation: fadeIn 0.3s ease; }
-    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+    .method-card:hover { border-color: rgba(6, 182, 212, 0.3); transform: translateY(-5px); background: rgba(255,255,255,0.02); }
+    .method-card.selected { border-color: var(--cyan); background: rgba(6, 182, 212, 0.05); box-shadow: 0 15px 35px -5px rgba(6, 182, 212, 0.2); }
+    .method-logo { width: 48px; height: 48px; object-fit: contain; }
 
-    .info-row { display: flex; justify-content: space-between; padding: 0.75rem; background: var(--bg-soft); border-radius: 10px; margin-bottom: 0.5rem; border: 1px solid var(--panel-border); }
-    .info-row span { color: var(--muted); font-size: 11px; }
-    .info-row strong { color: var(--text); font-size: 13px; }
+    /* Step Animation */
+    .step-box { display: none; }
+    .step-box.active { display: block; animation: slideUp 0.4s ease-out; }
+    @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+
+    /* Info & Fields */
+    .info-panel { background: rgba(255,255,255,0.02); border-radius: 20px; border: 1px solid var(--panel-border); overflow: hidden; }
+    .info-row { display: flex; justify-content: space-between; align-items: center; padding: 1.25rem 1.5rem; border-bottom: 1px solid rgba(255,255,255,0.05); }
+    .info-row:last-child { border-bottom: none; }
+    .info-row span { color: var(--muted); font-size: 12px; font-weight: 600; }
+    .info-row strong { color: var(--text); font-size: 14px; font-family: monospace; }
+    
+    .copy-btn { 
+        padding: 4px 12px; border-radius: 8px; background: rgba(6, 182, 212, 0.1); color: var(--cyan); 
+        font-size: 11px; font-weight: 800; cursor: pointer; transition: all 0.2s; border: none;
+    }
+    .copy-btn:hover { background: var(--cyan); color: #000; }
+
+    /* Proof Image */
+    .proof-upload-area {
+        border: 2px dashed var(--panel-border); border-radius: 24px; padding: 3rem;
+        text-align: center; cursor: pointer; transition: all 0.3s; background: rgba(255,255,255,0.01);
+    }
+    .proof-upload-area:hover { border-color: var(--cyan); background: rgba(6, 182, 212, 0.02); }
+    .preview-container { 
+        width: 100%; max-height: 300px; aspect-ratio: 16/9; border-radius: 16px; overflow: hidden; 
+        background: #000; border: 1px solid var(--panel-border); margin-top: 1.5rem;
+        display: flex; align-items: center; justify-content: center;
+    }
+    .preview-container img { width: 100%; height: 100%; object-fit: contain; }
+
+    /* Validation Errors */
+    .error-hint { font-size: 11px; color: var(--danger); font-weight: 700; margin-top: 6px; display: none; }
+    .field-group.has-error .builder-input { border-color: var(--danger); box-shadow: 0 0 0 4px rgba(239, 68, 68, 0.1); }
+    .field-group.has-error .error-hint { display: block; }
 </style>
 {% endblock %}
 
 {% block content %}
 <div class="page-head text-center">
-    <span class="eyebrow">Financial Engine</span>
+    <span class="eyebrow">Financial Gateway</span>
     <h1>إيداع رصيد جديد</h1>
+    <p class="text-muted">اشحن محفظتك الرقمية عبر أكثر وسائل الدفع أماناً وسرعة.</p>
 </div>
 
-<div class="deposit-container py-10">
-    <form method="post" enctype="multipart/form-data" id="main-deposit-form" class="stack gap-8">
+<div class="deposit-wrapper py-10">
+    <!-- Progress Indicator -->
+    <div class="step-indicator">
+        <div class="step-item active" id="dot-1">
+            <div class="step-dot">1</div>
+            <span class="step-label">الوسيلة</span>
+        </div>
+        <div class="step-item" id="dot-2">
+            <div class="step-dot">2</div>
+            <span class="step-label">البيانات</span>
+        </div>
+        <div class="step-item" id="dot-3">
+            <div class="step-dot">3</div>
+            <span class="step-label">التأكيد</span>
+        </div>
+    </div>
+
+    <form method="post" enctype="multipart/form-data" id="main-deposit-form" class="stack gap-8" onsubmit="return validateFinal()">
         {% csrf_token %}
         
         <!-- Step 1: Method & Currency -->
-        <div id="step-1" class="step-box active stack gap-6">
-            <h3 class="font-bold text-center">1. اختر الوسيلة والعملة</h3>
+        <div id="step-1" class="step-box active stack gap-8">
+            <div class="section-title">
+                <h3 class="text-xl font-black">اختر وسيلة الدفع</h3>
+                <p class="text-xs text-muted">كافة العمليات تخضع لمراجعة دقيقة لضمان أمان أموالك.</p>
+            </div>
             
-            <div class="grid grid-cols-2 gap-4">
+            <div class="method-grid">
                 {% for m in payment_methods %}
                 <div class="method-card" onclick="selectMethod('{{ m.id }}', this)" id="card-{{ m.id }}">
-                    {% if m.logo %}<img src="{{ m.logo.url }}" class="w-12 h-12 mx-auto mb-3 object-contain">{% endif %}
+                    <div class="w-16 h-16 rounded-2xl bg-white/5 flex items-center justify-center mb-2">
+                        {% if m.logo %}<img src="{{ m.logo.url }}" class="method-logo">{% else %}<i class="fas fa-wallet text-2xl opacity-20"></i>{% endif %}
+                    </div>
                     <div class="font-bold text-sm">{{ m.name }}</div>
                     <script type="application/json" id="data-{{ m.id }}">
                         {{ m.to_deposit_json|safe }}
@@ -49,75 +118,118 @@
                 {% endfor %}
             </div>
 
-            <input type="hidden" name="payment_method" id="input-method-id" required>
+            <input type="hidden" name="payment_method" id="input-method-id">
 
-            <div class="field-group">
-                <label>العملة المفضلة</label>
-                <select name="currency" id="input-currency" class="builder-input" required>
-                    <option value="">اختر الوسيلة أولاً...</option>
+            <div class="field-group" id="currency-group">
+                <label>عملة التحويل</label>
+                <select name="currency" id="input-currency" class="builder-input" onchange="updateLimits()">
+                    <option value="">اختر وسيلة الدفع أولاً...</option>
                 </select>
+                <p class="error-hint">يرجى اختيار العملة.</p>
             </div>
 
-            <button type="button" class="btn btn-primary w-full py-4" onclick="nextStep(2)" id="btn-to-2" disabled>المتابعة</button>
+            <button type="button" class="btn btn-primary w-full py-4 text-lg font-black" onclick="tryNext(2)" id="btn-to-2" disabled>المتابعة للخطوة التالية</button>
         </div>
 
         <!-- Step 2: Transfer Details & Dynamic Fields -->
-        <div id="step-2" class="step-box stack gap-6">
-            <h3 class="font-bold text-center">2. بيانات التحويل</h3>
+        <div id="step-2" class="step-box stack gap-8">
+            <div class="section-title">
+                <h3 class="text-xl font-black">بيانات التحويل البنكي</h3>
+                <p class="text-xs text-muted">يرجى تحويل المبلغ المطلوب إلى الحساب أدناه بدقة.</p>
+            </div>
             
-            <div id="qr-section" class="text-center hidden">
-                <div class="mini-label mb-2">QR Code للتحويل</div>
-                <img id="qr-img" class="w-40 h-40 mx-auto rounded-lg border-2 border-white bg-white p-1">
+            <div id="qr-section" class="panel p-6 text-center hidden bg-white/[0.02]">
+                <div class="text-[10px] font-black text-cyan uppercase tracking-widest mb-4">مسح كود التحويل (QR)</div>
+                <div class="relative inline-block">
+                    <img id="qr-img" class="w-48 h-48 mx-auto rounded-3xl border-4 border-white/5 shadow-2xl">
+                    <div class="absolute inset-0 border-2 border-cyan/20 rounded-3xl pointer-events-none"></div>
+                </div>
             </div>
 
-            <div id="static-info" class="stack"></div>
+            <div id="static-info" class="info-panel stack"></div>
 
-            <div class="panel p-4 bg-cyan/5 border-cyan/10">
-                <span class="mini-label mb-1">تعليمات</span>
-                <p class="text-xs text-slate-400" id="instr-text"></p>
+            <div class="panel p-6 bg-cyan/5 border-cyan/10 rounded-3xl">
+                <div class="flex items-center gap-3 mb-3">
+                    <i class="fas fa-circle-info text-cyan"></i>
+                    <span class="text-xs font-black uppercase text-cyan">تعليمات الإيداع</span>
+                </div>
+                <p class="text-sm text-slate-300 leading-relaxed" id="instr-text"></p>
             </div>
 
             <div class="divider"></div>
 
-            <div id="dynamic-fields" class="stack gap-4"></div>
+            <div id="dynamic-fields" class="stack gap-6"></div>
 
             <div class="flex gap-4">
-                <button type="button" class="btn btn-outline flex-1" onclick="nextStep(1)">العودة</button>
-                <button type="button" class="btn btn-primary flex-1" onclick="nextStep(3)">المتابعة</button>
+                <button type="button" class="btn btn-outline flex-1 py-4" onclick="nextStep(1)">العودة</button>
+                <button type="button" class="btn btn-primary flex-1 py-4 font-black" onclick="tryNext(3)">المتابعة</button>
             </div>
         </div>
 
         <!-- Step 3: Amount & Proof -->
-        <div id="step-3" class="step-box stack gap-6">
-            <h3 class="font-bold text-center">3. المبلغ والوصل</h3>
+        <div id="step-3" class="step-box stack gap-8">
+            <div class="section-title">
+                <h3 class="text-xl font-black">المبلغ والوصل</h3>
+                <p class="text-xs text-muted">قم بإدخال المبلغ الذي قمت بتحويله وإرفاق صورة الوصل.</p>
+            </div>
             
-            <div class="field-group">
-                <label>المبلغ المرسل</label>
-                <input type="number" name="amount" id="input-amount" step="0.01" class="builder-input text-lg font-bold" placeholder="0.00" required oninput="updateSummary()">
-                <p class="text-[10px] text-cyan mt-1" id="limits-hint"></p>
+            <div class="field-group" id="amount-group">
+                <label>المبلغ المرسل (بالعملة المختارة)</label>
+                <div class="relative">
+                    <input type="number" name="amount" id="input-amount" step="0.01" class="builder-input text-2xl font-black h-20 px-8" placeholder="0.00" oninput="updateSummary()">
+                    <div class="absolute left-6 top-1/2 -translate-y-1/2 text-xl font-black text-slate-600" id="currency-code-display">---</div>
+                </div>
+                <div class="flex justify-between mt-3 px-2">
+                    <span class="text-[10px] text-muted font-bold" id="limits-hint">الحدود: ---</span>
+                    <span class="text-[10px] text-danger font-black uppercase hidden" id="limit-error">تجاوزت الحدود المسموحة!</span>
+                </div>
+                <p class="error-hint" id="amount-error-text">يرجى إدخال مبلغ صحيح ضمن الحدود.</p>
             </div>
 
-            <div class="field-group">
-                <label>صورة الوصل (Proof)</label>
-                <input type="file" name="proof_image" id="input-proof" accept="image/*" class="builder-input" required onchange="previewFile(this)">
-                <img id="proof-preview" class="hidden mt-4 w-full h-40 object-contain rounded-xl border border-white/5">
+            <div class="field-group" id="proof-group">
+                <label>إثبات التحويل (صورة الوصل)</label>
+                <div class="proof-upload-area" onclick="document.getElementById('input-proof').click()">
+                    <div id="upload-placeholder">
+                        <i class="fas fa-cloud-upload-alt text-4xl text-cyan mb-4"></i>
+                        <div class="text-sm font-bold">اضغط هنا أو اسحب الملف لرفعه</div>
+                        <div class="text-[10px] text-muted mt-2">الملفات المدعومة: JPG, PNG, WEBP (بحد أقصى 5MB)</div>
+                    </div>
+                    <div id="preview-box" class="hidden">
+                        <div class="preview-container">
+                            <img id="proof-preview">
+                        </div>
+                        <div class="mt-4 text-xs font-bold text-cyan">تم اختيار الملف ✓ - انقر للتغيير</div>
+                    </div>
+                </div>
+                <input type="file" name="proof_image" id="input-proof" accept="image/*" class="hidden" onchange="previewFile(this)">
+                <p class="error-hint">يرجى رفع صورة الوصل.</p>
             </div>
 
-            <div class="bg-slate-800/50 p-6 rounded-2xl stack gap-3 border border-white/5">
-                <div class="flex justify-between text-xs"><span>العمولة:</span><strong id="sum-fee">0.00</strong></div>
-                <div class="flex justify-between font-black text-cyan"><span>الصافي للمحفظة:</span><strong id="sum-net">0.00</strong></div>
+            <div class="info-panel p-8 bg-slate-900/50 stack gap-4">
+                <h4 class="text-xs font-black text-muted uppercase tracking-widest border-b border-white/5 pb-4 mb-2">ملخص العملية</h4>
+                <div class="flex justify-between text-sm">
+                    <span class="text-slate-400">عمولة الشبكة/الوسيلة:</span>
+                    <strong id="sum-fee" class="text-slate-200">0.00</strong>
+                </div>
+                <div class="flex justify-between items-center pt-2">
+                    <span class="font-bold text-cyan text-lg">الصافي للمحفظة:</span>
+                    <div class="text-right">
+                        <div id="sum-net" class="text-2xl font-black text-cyan">0.00</div>
+                        <div class="text-[10px] text-muted mt-1">سيتم إضافة الرصيد بعد المراجعة</div>
+                    </div>
+                </div>
             </div>
 
             <div class="flex gap-4">
-                <button type="button" class="btn btn-outline flex-1" onclick="nextStep(2)">العودة</button>
-                <button type="submit" class="btn btn-primary flex-1 py-4">تأكيد وإرسال الطلب</button>
+                <button type="button" class="btn btn-outline flex-1 py-4" onclick="nextStep(2)">العودة</button>
+                <button type="submit" class="btn btn-primary flex-1 py-4 text-lg font-black shadow-cyan">تأكيد وإرسال الطلب</button>
             </div>
         </div>
     </form>
 </div>
 
 <script>
-let state = { method: null };
+let state = { method: null, currency: null };
 
 function selectMethod(id, el) {
     state.method = JSON.parse(document.getElementById('data-'+id).textContent);
@@ -125,89 +237,191 @@ function selectMethod(id, el) {
     el.classList.add('selected');
     document.getElementById('input-method-id').value = id;
     document.getElementById('btn-to-2').disabled = false;
+    document.getElementById('input-method-id').parentElement.classList.remove('has-error');
 
     // Update Currencies
     const cSel = document.getElementById('input-currency');
-    cSel.innerHTML = '';
+    cSel.innerHTML = '<option value="">اختر العملة...</option>';
     state.method.currencies.forEach(c => {
-        cSel.innerHTML += `<option value="${c.id}">${c.code} (${c.symbol})</option>`;
+        cSel.innerHTML += `<option value="${c.id}" data-min="${c.min_amount}" data-max="${c.max_amount}">${c.code} (${c.symbol})</option>`;
     });
+    
+    // Select first if only one
+    if(state.method.currencies.length === 1) {
+        cSel.selectedIndex = 1;
+        updateLimits();
+    }
 
-    // Update Steps UX
     renderStep2();
+}
+
+function updateLimits() {
+    const sel = document.getElementById('input-currency');
+    const opt = sel.selectedOptions[0];
+    if(opt && opt.value) {
+        state.currency = {
+            id: opt.value,
+            code: opt.text.split(' ')[0],
+            min: parseFloat(opt.dataset.min),
+            max: parseFloat(opt.dataset.max)
+        };
+        document.getElementById('limits-hint').innerText = `الحدود: ${state.currency.min.toLocaleString()} - ${state.currency.max.toLocaleString()} ${state.currency.code}`;
+        document.getElementById('currency-code-display').innerText = state.currency.code;
+    } else {
+        state.currency = null;
+        document.getElementById('limits-hint').innerText = 'الحدود: ---';
+        document.getElementById('currency-code-display').innerText = '---';
+    }
+    updateSummary();
 }
 
 function renderStep2() {
     const m = state.method;
-    // QR
     const qrSec = document.getElementById('qr-section');
     if(m.qr) { qrSec.classList.remove('hidden'); document.getElementById('qr-img').src = m.qr; }
     else { qrSec.classList.add('hidden'); }
 
-    // Instructions
-    document.getElementById('instr-text').innerText = m.instructions || 'لا توجد تعليمات.';
+    document.getElementById('instr-text').innerText = m.instructions || 'يرجى اتباع تعليمات التحويل القياسية لهذه الوسيلة.';
 
-    // Static Info
     const infoBox = document.getElementById('static-info');
     infoBox.innerHTML = '';
     m.static_info.rows.forEach(r => {
-        infoBox.innerHTML += `<div class="info-row"><span>${r.title}</span><strong>${r.value}</strong></div>`;
+        const copyHtml = r.copyable ? `<button type="button" class="copy-btn" onclick="copyText('${r.value}', this)">نسخ</button>` : '';
+        infoBox.innerHTML += `
+            <div class="info-row">
+                <div class="stack gap-1">
+                    <span>${r.title}</span>
+                    <strong id="val-${r.title}">${r.value}</strong>
+                </div>
+                ${copyHtml}
+            </div>`;
     });
 
-    // Dynamic Fields
     const fieldBox = document.getElementById('dynamic-fields');
     fieldBox.innerHTML = '';
     m.form_schema.fields.forEach(f => {
-        let inputHtml = '';
         const nameAttr = `custom_${f.name||f.label}`;
-        const reqAttr = f.required ? 'required' : '';
-        const classAttr = 'builder-input';
+        const req = f.required ? 'required' : '';
+        let inputHtml = '';
         
         if (f.type === 'textarea') {
-            inputHtml = `<textarea name="${nameAttr}" class="${classAttr}" rows="3" placeholder="${f.placeholder||''}" ${reqAttr}></textarea>`;
+            inputHtml = `<textarea name="${nameAttr}" class="builder-input" rows="3" placeholder="${f.placeholder||''}" ${req}></textarea>`;
         } else if (f.type === 'image') {
-            inputHtml = `<input type="file" name="${nameAttr}" class="${classAttr}" accept="image/*" ${reqAttr}>`;
+            inputHtml = `<input type="file" name="${nameAttr}" class="builder-input" accept="image/*" ${req}>`;
         } else {
             const inputType = (f.type === 'number') ? 'number' : (f.type === 'phone' ? 'tel' : 'text');
-            inputHtml = `<input type="${inputType}" name="${nameAttr}" class="${classAttr}" placeholder="${f.placeholder||''}" ${reqAttr}>`;
+            inputHtml = `<input type="${inputType}" name="${nameAttr}" class="builder-input" placeholder="${f.placeholder||''}" ${req}>`;
         }
         
         fieldBox.innerHTML += `
             <div class="field-group">
                 <label>${f.label} ${f.required?'<span class="text-danger">*</span>':''}</label>
                 ${inputHtml}
+                <p class="error-hint">هذا الحقل مطلوب.</p>
             </div>`;
     });
-
-    // Limits
-    document.getElementById('limits-hint').innerText = `الحدود: ${m.min_amount} - ${m.max_amount}`;
 }
 
 function updateSummary() {
     const amount = parseFloat(document.getElementById('input-amount').value) || 0;
+    const errEl = document.getElementById('limit-error');
+    
+    if(state.currency && (amount < state.currency.min || amount > state.currency.max) && amount > 0) {
+        errEl.classList.remove('hidden');
+    } else {
+        errEl.classList.add('hidden');
+    }
+
     const f = state.method.fees;
     let fee = parseFloat(f.fixed) + (amount * parseFloat(f.percent) / 100);
     const net = Math.max(0, amount - fee);
-    const sym = document.getElementById('input-currency').selectedOptions[0]?.text.split(' ')[0] || '';
-    document.getElementById('sum-fee').innerText = `${fee.toFixed(2)} ${sym}`;
-    document.getElementById('sum-net').innerText = `${net.toFixed(2)} ${sym}`;
+    const sym = state.currency ? state.currency.code : '';
+    
+    document.getElementById('sum-fee').innerText = `${fee.toLocaleString(undefined, {minimumFractionDigits: 2})} ${sym}`;
+    document.getElementById('sum-net').innerText = `${net.toLocaleString(undefined, {minimumFractionDigits: 2})} ${sym}`;
+}
+
+function tryNext(n) {
+    let valid = true;
+    if(n === 2) {
+        if(!document.getElementById('input-method-id').value) valid = false;
+        if(!document.getElementById('input-currency').value) {
+            document.getElementById('currency-group').classList.add('has-error');
+            valid = false;
+        } else {
+            document.getElementById('currency-group').classList.remove('has-error');
+        }
+    } else if(n === 3) {
+        document.querySelectorAll('#step-2 [required]').forEach(el => {
+            if(!el.value) {
+                el.parentElement.classList.add('has-error');
+                valid = false;
+            } else {
+                el.parentElement.classList.remove('has-error');
+            }
+        });
+    }
+
+    if(valid) nextStep(n);
 }
 
 function nextStep(n) {
     document.querySelectorAll('.step-box').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.step-item').forEach((dot, idx) => {
+        dot.classList.remove('active', 'completed');
+        if(idx + 1 < n) dot.classList.add('completed');
+        if(idx + 1 === n) dot.classList.add('active');
+    });
     document.getElementById('step-'+n).classList.add('active');
     window.scrollTo({top:0, behavior:'smooth'});
+}
+
+function validateFinal() {
+    let valid = true;
+    const amt = parseFloat(document.getElementById('input-amount').value) || 0;
+    if(!amt || (state.currency && (amt < state.currency.min || amt > state.currency.max))) {
+        document.getElementById('amount-group').classList.add('has-error');
+        valid = false;
+    } else {
+        document.getElementById('amount-group').classList.remove('has-error');
+    }
+
+    const proof = document.getElementById('input-proof');
+    if(!proof.files || !proof.files[0]) {
+        document.getElementById('proof-group').classList.add('has-error');
+        valid = false;
+    } else {
+        document.getElementById('proof-group').classList.remove('has-error');
+    }
+
+    return valid;
 }
 
 function previewFile(input) {
     if (input.files && input.files[0]) {
         const reader = new FileReader();
         reader.onload = e => { 
-            const img = document.getElementById('proof-preview');
-            img.src = e.target.result; img.classList.remove('hidden'); 
+            document.getElementById('proof-preview').src = e.target.result;
+            document.getElementById('upload-placeholder').classList.add('hidden');
+            document.getElementById('preview-box').classList.remove('hidden');
+            document.getElementById('proof-group').classList.remove('has-error');
         };
         reader.readAsDataURL(input.files[0]);
     }
+}
+
+function copyText(text, btn) {
+    navigator.clipboard.writeText(text).then(() => {
+        const old = btn.innerText;
+        btn.innerText = 'تم النسخ ✓';
+        btn.style.background = 'var(--success)';
+        btn.style.color = '#fff';
+        setTimeout(() => {
+            btn.innerText = old;
+            btn.style.background = '';
+            btn.style.color = '';
+        }, 2000);
+    });
 }
 </script>
 {% endblock %}
