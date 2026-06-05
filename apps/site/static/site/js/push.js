@@ -48,20 +48,34 @@ async function registerPush() {
 }
 
 async function saveSubscription(subscription) {
-    const data = subscription.toJSON();
-    await fetch('/api/notifications/subscribe/', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'X-CSRFToken': getCookie('csrftoken')
-        },
-        body: JSON.stringify({
-            endpoint: data.endpoint,
-            p256dh: data.keys.p256dh,
-            auth: data.keys.auth,
-            browser: navigator.userAgent
-        })
-    });
+    const subscriptionData = subscription.toJSON();
+    console.log('Sending subscription to server:', subscriptionData);
+    
+    try {
+        const response = await fetch('/api/notifications/subscribe/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCookie('csrftoken')
+            },
+            credentials: 'same-origin',
+            body: JSON.stringify({
+                endpoint: subscriptionData.endpoint,
+                p256dh: subscriptionData.keys.p256dh,
+                auth: subscriptionData.keys.auth,
+                browser: navigator.userAgent
+            })
+        });
+        
+        if (response.ok) {
+            console.log('Successfully saved push subscription on server');
+        } else {
+            const errorText = await response.text();
+            console.error('Failed to save subscription:', response.status, errorText);
+        }
+    } catch (err) {
+        console.error('Error in saveSubscription fetch:', err);
+    }
 }
 
 function urlBase64ToUint8Array(base64String) {
