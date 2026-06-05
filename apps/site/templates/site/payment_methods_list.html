@@ -7,7 +7,7 @@
 <div class="page-head">
     <div>
         <span class="eyebrow">Financial Management</span>
-        <h1>وسائل الدفع والإيداع</h1>
+        <h1>وسائل الدفع والسحب</h1>
         <p class="text-muted">التحكم في بوابات الدفع، الرسوم، وحدود الإيداع والسحب.</p>
     </div>
     <a href="{% url 'payment_method_create' %}" class="btn btn-primary btn-sm">
@@ -36,6 +36,11 @@
             <h3 class="font-bold text-lg mb-2">{{ method.name }}</h3>
             <p class="text-[10px] text-slate-500 mb-6 line-clamp-2">{{ method.description|default:"لا يوجد وصف لهذه الوسيلة." }}</p>
             
+            <div class="flex gap-2 mb-4">
+                {% if method.can_deposit %}<span class="badge primary text-[8px]">يدعم الإيداع</span>{% endif %}
+                {% if method.can_withdraw %}<span class="badge danger text-[8px]">يدعم السحب</span>{% endif %}
+            </div>
+
             <div class="stack gap-3 border-t border-white/5 pt-4">
                 <div class="flex justify-between text-[11px]">
                     <span class="text-muted">الرسوم الثابتة:</span>
@@ -45,20 +50,12 @@
                     <span class="text-muted">النسبة المئوية:</span>
                     <strong class="text-slate-200">{{ method.percentage_fee }}%</strong>
                 </div>
-                <div class="flex justify-between text-[11px]">
-                    <span class="text-muted">العملات المدعومة:</span>
-                    <div class="flex gap-1">
-                        {% for c in method.supported_currencies.all %}
-                        <span class="text-cyan font-bold">{{ c.code }}</span>
-                        {% endfor %}
-                    </div>
-                </div>
             </div>
         </div>
         
         <div class="p-4 bg-white/[0.02] border-t border-white/5 flex gap-2">
             <a href="{% url 'payment_method_edit' method.id %}" class="btn btn-outline btn-sm w-full text-[10px]">
-                <i class="fas fa-edit ml-1"></i> تعديل الإعدادات
+                <i class="fas fa-edit ml-1"></i> تعديل البناء المخصص
             </a>
         </div>
     </div>
@@ -66,7 +63,7 @@
     <div class="col-span-full p-20 text-center panel bg-slate-900/30 border-dashed border-slate-800">
         <i class="fas fa-credit-card text-4xl text-slate-700 mb-4"></i>
         <h3 class="text-lg font-bold text-slate-500">لا توجد وسائل دفع مضافة</h3>
-        <p class="text-xs text-slate-600 mt-2">ابدأ بإضافة أول وسيلة دفع لتفعيل عمليات الإيداع.</p>
+        <p class="text-xs text-slate-600 mt-2">ابدأ بإضافة أول وسيلة دفع لتفعيل عمليات الإيداع والسحب.</p>
     </div>
     {% endfor %}
 </div>

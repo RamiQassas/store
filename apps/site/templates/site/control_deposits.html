@@ -10,6 +10,9 @@
         <h1>إدارة طلبات الإيداع</h1>
         <p class="text-muted">مراجعة والتحقق من الحوالات المالية وإضافتها لمحفظة المستخدمين.</p>
     </div>
+    <a href="{% url 'payment_methods_list' %}" class="btn btn-outline btn-sm">
+        <i class="fas fa-credit-card ml-2"></i> إدارة وسائل الإيداع
+    </a>
 </div>
 
 <div class="management-card">
@@ -33,7 +36,7 @@
                     <th class="p-4">التاريخ</th>
                     <th class="p-4">المستخدم</th>
                     <th class="p-4">المبلغ والوسيلة</th>
-                    <th class="p-4">رقم المرجع / المرفق</th>
+                    <th class="p-4">البيانات / المرفق</th>
                     <th class="p-4">الحالة</th>
                     <th class="p-4 text-left">إجراءات</th>
                 </tr>
@@ -51,13 +54,19 @@
                     <td class="p-4">
                         <div class="flex flex-col">
                             <span class="font-bold text-success">{{ d.amount }} {{ d.currency.code }}</span>
-                            <span class="text-[9px] text-muted">الصافي المتوقع: {{ d.final_amount }}</span>
+                            <span class="text-[9px] text-muted">الصافي: {{ d.final_amount }}</span>
                         </div>
                         <div class="text-[10px] text-slate-500 mt-1">{{ d.payment_method.name }}</div>
                     </td>
                     <td class="p-4">
                         <div class="flex items-center gap-3">
-                            <span class="font-mono text-xs">{{ d.transaction_id|default:"---" }}</span>
+                            <div class="flex flex-col gap-1 min-w-[150px]">
+                                {% for key, val in d.metadata.dynamic_fields.items %}
+                                <div class="text-[9px] line-clamp-1"><span class="text-muted">{{ key }}:</span> {{ val }}</div>
+                                {% empty %}
+                                <span class="font-mono text-xs text-muted">{{ d.transaction_id|default:"---" }}</span>
+                                {% endfor %}
+                            </div>
                             {% if d.proof_image %}
                             <a href="{{ d.proof_image.url }}" target="_blank" class="w-8 h-8 rounded bg-slate-800 flex items-center justify-center text-cyan hover:bg-cyan hover:text-black transition">
                                 <i class="fas fa-image text-xs"></i>
@@ -105,28 +114,16 @@ async function actionDeposit(id, action) {
         note = prompt("سبب الرفض:");
         if (note === null) return;
     }
-    
     if (!confirm(`هل أنت متأكد من تنفيذ إجراء "${action}"؟`)) return;
-
     try {
         const response = await fetch(`/api/deposits/${id}/${action}/`, {
             method: 'POST',
-            headers: {
-                'X-CSRFToken': '{{ csrf_token }}',
-                'Content-Type': 'application/json'
-            },
+            headers: {'X-CSRFToken': '{{ csrf_token }}', 'Content-Type': 'application/json'},
             body: JSON.stringify({ admin_note: note })
         });
-
-        if (response.ok) {
-            location.reload();
-        } else {
-            const data = await response.json();
-            alert("خطأ: " + (data.detail || data.message || "تعذر تنفيذ الإجراء"));
-        }
-    } catch (e) {
-        alert("خطأ في الاتصال.");
-    }
+        if (response.ok) { location.reload(); }
+        else { const data = await response.json(); alert("خطأ: " + (data.detail || data.message || "تعذر التنفيذ")); }
+    } catch (e) { alert("خطأ في الاتصال."); }
 }
 </script>
 {% endblock %}
