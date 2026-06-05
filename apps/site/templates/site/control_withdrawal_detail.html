@@ -156,13 +156,23 @@
                     <div class="relative pr-8">
                         <div class="absolute right-0 top-1 w-4 h-4 rounded-full bg-success border-4 border-slate-900"></div>
                         <div class="text-[11px] font-bold">تم تقديم الطلب</div>
-                        <div class="text-[9px] text-muted">{{ withdrawal.created_at|timesince }}</div>
+                        <div class="text-[9px] text-muted">{{ withdrawal.created_at|date:"d M, H:i" }} ({{ withdrawal.created_at|timesince }})</div>
                     </div>
-                    {% if withdrawal.reviewed_at %}
+                    
+                    {% for log in logs %}
                     <div class="relative pr-8">
                         <div class="absolute right-0 top-1 w-4 h-4 rounded-full bg-cyan border-4 border-slate-900"></div>
-                        <div class="text-[11px] font-bold">آخر تحديث حالة</div>
-                        <div class="text-[9px] text-muted">{{ withdrawal.reviewed_at|timesince }} بواسطة {{ withdrawal.reviewed_by.first_name }}</div>
+                        <div class="text-[11px] font-bold">{{ log.action }}</div>
+                        <p class="text-[10px] text-slate-400 mt-1">{{ log.description }}</p>
+                        <div class="text-[9px] text-muted mt-1">{{ log.created_at|date:"d M, H:i" }}</div>
+                    </div>
+                    {% endfor %}
+
+                    {% if withdrawal.reviewed_at and not logs %}
+                    <div class="relative pr-8">
+                        <div class="absolute right-0 top-1 w-4 h-4 rounded-full bg-slate-500 border-4 border-slate-900"></div>
+                        <div class="text-[11px] font-bold">آخر مراجعة</div>
+                        <div class="text-[9px] text-muted">{{ withdrawal.reviewed_at|date:"d M, H:i" }}</div>
                     </div>
                     {% endif %}
                 </div>

@@ -835,7 +835,7 @@ def control_withdrawal_detail(request, pk):
 
     return render(request, "site/control_withdrawal_detail.html", {
         "withdrawal": withdrawal,
-        "logs": withdrawal.user.activity_logs.filter(metadata__withdrawal_id=str(withdrawal.id))
+        "logs": ActivityLog.objects.filter(user=withdrawal.user, metadata__withdrawal_id=str(withdrawal.id))
     })
 
 
