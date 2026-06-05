@@ -16,29 +16,15 @@ class PaymentMethod(TimeStampedModel):
     is_active = models.BooleanField(default=True, verbose_name="نشط")
     is_maintenance_mode = models.BooleanField(default=False, verbose_name="وضع الصيانة")
 
-    # --- Static Information Blocks (Display only to user) ---
-    # Structure: {"version": 1, "rows": [{"title": "IBAN", "value": "TR...", "copyable": true}]}
-    deposit_info_schema = models.JSONField(default=dict, blank=True, verbose_name="بيانات الإيداع الثابتة (للعرض)")
-    withdrawal_info_schema = models.JSONField(default=dict, blank=True, verbose_name="بيانات السحب الثابتة (للعرض)")
+    # --- Deposit Configuration ---
+    deposit_info_schema = models.JSONField(default=dict, blank=True, verbose_name="بيانات الإيداع الثابتة (للعرض)", help_text='{"version": 1, "rows": [{"title": "IBAN", "value": "TR...", "copyable": true}]}')
+    deposit_form_schema = models.JSONField(default=dict, blank=True, verbose_name="حقول الإيداع المطلوبة من العميل", help_text='{"version": 1, "fields": [{"label": "TXID", "type": "text", "required": true}]}')
+    deposit_fee_settings = models.JSONField(default=dict, blank=True, verbose_name="إعدادات رسوم الإيداع", help_text='{"fixed": 0, "percent": 0, "min": 0, "max": 0, "enabled": true}')
 
-    # --- Dynamic Form Engine (Customer Input Fields) ---
-    # Structure: {"version": 1, "fields": [{"label": "Sender Name", "type": "text", "required": true}]}
-    deposit_form_schema = models.JSONField(default=dict, blank=True, verbose_name="حقول الإيداع المطلوبة من العميل")
-    withdrawal_form_schema = models.JSONField(default=dict, blank=True, verbose_name="حقول السحب المطلوبة من العميل")
-
-    # --- Fees Configuration (Separated) ---
-    deposit_fee_settings = models.JSONField(
-        default=dict, 
-        blank=True, 
-        verbose_name="إعدادات رسوم الإيداع",
-        help_text='{"fixed": 0, "percent": 0, "min": 0, "max": 0, "enabled": true}'
-    )
-    withdrawal_fee_settings = models.JSONField(
-        default=dict, 
-        blank=True, 
-        verbose_name="إعدادات رسوم السحب",
-        help_text='{"fixed": 0, "percent": 0, "min": 0, "max": 0, "enabled": true}'
-    )
+    # --- Withdrawal Configuration ---
+    withdrawal_info_schema = models.JSONField(default=dict, blank=True, verbose_name="بيانات السحب الثابتة (للعرض)", help_text='{"version": 1, "rows": [{"title": "Processing Time", "value": "24h"}]}')
+    withdrawal_form_schema = models.JSONField(default=dict, blank=True, verbose_name="حقول السحب المطلوبة من العميل", help_text='{"version": 1, "fields": [{"label": "Binance UID", "type": "text", "required": true}]}')
+    withdrawal_fee_settings = models.JSONField(default=dict, blank=True, verbose_name="إعدادات رسوم السحب", help_text='{"fixed": 0, "percent": 0, "min": 0, "max": 0, "enabled": true}')
 
     qr_image = models.ImageField(upload_to="payment-methods/qr/", blank=True, null=True, verbose_name="صورة QR")
     instructions = models.TextField(blank=True, verbose_name="تعليمات إضافية")

@@ -133,6 +133,8 @@
 
 <script>
 let current = null;
+let selectedCurrencyId = null;
+
 function handleMethodSelect(card) {
     document.querySelectorAll('.premium-method-card').forEach(c => c.classList.remove('selected'));
     card.classList.add('selected');
@@ -140,8 +142,14 @@ function handleMethodSelect(card) {
     document.getElementById('to-step-2').disabled = false;
     document.getElementById('final-method-id').value = current.id;
     
-    const sel = document.getElementById('currency-select'); sel.innerHTML = '';
-    current.currencies.forEach(c => { sel.innerHTML += `<option value="${c.id}">${c.code} (${c.symbol})</option>`; });
+    const sel = document.getElementById('currency-select'); 
+    sel.innerHTML = '';
+    current.currencies.forEach(c => { 
+        sel.innerHTML += `<option value="${c.id}">${c.code} (${c.symbol})</option>`; 
+    });
+
+    if(current.currencies.length) selectedCurrencyId = current.currencies[0].id;
+    sel.onchange = (e) => { selectedCurrencyId = e.target.value; calcPreview(); };
 
     // Limits info
     document.getElementById('limits-text').innerText = `الحد الأدنى: ${current.min_amount} | الحد الأقصى: ${current.max_amount}`;
@@ -191,7 +199,7 @@ function prepareReview() {
     const form = document.getElementById('withdrawal-form');
     form.querySelectorAll('.hidden-sync').forEach(i => i.remove());
     const add = (n,v) => { const i=document.createElement('input'); i.type='hidden'; i.name=n; i.value=v; i.className='hidden-sync'; form.appendChild(i); };
-    add('currency', document.getElementById('currency-select').value);
+    add('currency', selectedCurrencyId || document.getElementById('currency-select').value);
     add('amount', document.getElementById('amount-input').value);
     document.querySelectorAll('.dynamic-input').forEach(i => add(i.name, i.value));
 }

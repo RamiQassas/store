@@ -142,6 +142,8 @@
 
 <script>
 let current = null;
+let selectedCurrencyId = null;
+
 function handleMethodSelect(card) {
     document.querySelectorAll('.premium-method-card').forEach(c => c.classList.remove('selected'));
     card.classList.add('selected');
@@ -150,8 +152,15 @@ function handleMethodSelect(card) {
     document.getElementById('final-method-id').value = current.id;
     
     // Setup Currencies
-    const sel = document.getElementById('currency-select'); sel.innerHTML = '';
-    current.currencies.forEach(c => { sel.innerHTML += `<option value="${c.id}">${c.code} (${c.symbol})</option>`; });
+    const sel = document.getElementById('currency-select'); 
+    sel.innerHTML = '';
+    current.currencies.forEach(c => { 
+        sel.innerHTML += `<option value="${c.id}">${c.code} (${c.symbol})</option>`; 
+    });
+    
+    // Capture initial selection
+    if(current.currencies.length) selectedCurrencyId = current.currencies[0].id;
+    sel.onchange = (e) => { selectedCurrencyId = e.target.value; calcPreview(); };
 
     // Render Static Info
     const infoContainer = document.getElementById('static-info-container');
@@ -235,7 +244,7 @@ function prepareReview() {
         form.appendChild(i); 
     };
     
-    add('currency', document.getElementById('currency-select').value);
+    add('currency', selectedCurrencyId || document.getElementById('currency-select').value);
     add('amount', document.getElementById('amount-input').value);
     
     // Add Dynamic Fields

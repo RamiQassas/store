@@ -59,37 +59,24 @@
 
     <!-- A) General Information -->
     <div class="builder-section shadow-lg">
-        <div class="builder-section-header"><h3 class="font-bold">المعلومات الأساسية</h3></div>
+        <div class="builder-section-header"><h3 class="font-bold">المعلومات الأساسية المشتركة</h3></div>
         <div class="builder-body grid grid-cols-12 gap-8">
             <div class="col-span-12 lg:col-span-8 stack gap-6">
                 <div class="grid grid-2 gap-6">
                     <div class="field-group"><label>اسم وسيلة الدفع</label>{{ form.name }}</div>
                     <div class="field-group"><label>نوع الوسيلة (نص حر)</label>{{ form.method_type }}</div>
                 </div>
-                <div class="grid grid-2 gap-6">
+                <div class="grid grid-3 gap-6">
                     <div class="field-group"><label>ترتيب العرض</label>{{ form.display_order }}</div>
+                    <div class="flex items-center gap-2 pt-6">{{ form.is_active }} <span class="text-xs">نشط (ظاهر للعملاء)</span></div>
+                    <div class="flex items-center gap-2 pt-6">{{ form.is_maintenance_mode }} <span class="text-xs">وضع الصيانة</span></div>
                 </div>
-                <div class="grid grid-2 gap-6">
-                    <div class="field-group"><label>الحد الأدنى (للعملية)</label>{{ form.min_amount }}</div>
-                    <div class="field-group"><label>الحد الأقصى (للعملية)</label>{{ form.max_amount }}</div>
-                </div>
-                <div class="field-group"><label>الوصف العام</label>{{ form.description }}</div>
-                <div class="field-group"><label>تعليمات إضافية</label>{{ form.instructions }}</div>
+                <div class="field-group"><label>الوصف العام (يظهر في القائمة)</label>{{ form.description }}</div>
             </div>
             <div class="col-span-12 lg:col-span-4 stack gap-6">
                 <div class="panel p-4 bg-slate-800/30 border-white/5">
-                    <label class="mini-label">شعار الوسيلة</label>{{ form.logo }}
+                    <label class="mini-label">شعار الوسيلة الرئيسي</label>{{ form.logo }}
                     {% if method.logo %}<img src="{{ method.logo.url }}" class="mt-2 h-16 w-16 object-contain rounded-lg">{% endif %}
-                </div>
-                <div class="panel p-4 bg-slate-800/30 border-white/5">
-                    <label class="mini-label">رمز QR</label>{{ form.qr_image }}
-                    {% if method.qr_image %}<img src="{{ method.qr_image.url }}" class="mt-2 h-24 w-24 object-contain rounded-lg bg-white p-1">{% endif %}
-                </div>
-                <div class="grid grid-2 gap-4">
-                    <div class="flex items-center gap-2 p-3 bg-slate-800/20 rounded-lg">{{ form.is_active }} <span class="text-xs">نشط</span></div>
-                    <div class="flex items-center gap-2 p-3 bg-slate-800/20 rounded-lg">{{ form.is_maintenance_mode }} <span class="text-xs">صيانة</span></div>
-                    <div class="flex items-center gap-2 p-3 bg-slate-800/20 rounded-lg">{{ form.can_deposit }} <span class="text-xs">إيداع</span></div>
-                    <div class="flex items-center gap-2 p-3 bg-slate-800/20 rounded-lg">{{ form.can_withdraw }} <span class="text-xs">سحب</span></div>
                 </div>
                 <div class="field-group"><label>العملات المدعومة</label><div class="p-3 bg-slate-800/30 rounded-xl">{{ form.supported_currencies }}</div></div>
             </div>
@@ -98,26 +85,63 @@
 
     <!-- Mode Selector Tabs -->
     <div class="flex border-b border-white/5 mb-8">
-        <div class="tab-btn active" id="tab-deposit" onclick="switchMode('deposit')"><i class="fas fa-arrow-down ml-2"></i> إعدادات الإيداع</div>
-        <div class="tab-btn" id="tab-withdrawal" onclick="switchMode('withdrawal')"><i class="fas fa-arrow-up ml-2"></i> إعدادات السحب</div>
+        <div class="tab-btn active" id="tab-deposit" onclick="switchMode('deposit')"><i class="fas fa-arrow-down ml-2"></i> إعدادات الإيداع (Deposit)</div>
+        <div class="tab-btn" id="tab-withdrawal" onclick="switchMode('withdrawal')"><i class="fas fa-arrow-up ml-2"></i> إعدادات السحب (Withdrawal)</div>
     </div>
 
     <!-- B) Dynamic Configuration Area -->
     <div id="config-area" class="stack gap-8">
+        
+        <!-- Status & QR (Only for Deposit mode) -->
+        <div id="deposit-only-controls" class="grid grid-cols-1 md:grid-cols-2 gap-8">
+             <div class="builder-section">
+                <div class="builder-section-header"><h3 class="font-bold text-sm">حالة الإيداع وصورة QR</h3></div>
+                <div class="builder-body stack gap-4">
+                    <div class="flex items-center gap-2 p-3 bg-slate-800/20 rounded-lg">{{ form.can_deposit }} <span class="text-xs">تفعيل الإيداع لهذه الوسيلة</span></div>
+                    <div class="panel p-4 bg-slate-800/30 border-white/5">
+                        <label class="mini-label">صورة QR (خاص بالإيداع)</label>{{ form.qr_image }}
+                        {% if method.qr_image %}<img src="{{ method.qr_image.url }}" class="mt-2 h-24 w-24 object-contain">{% endif %}
+                    </div>
+                </div>
+             </div>
+             <div class="builder-section">
+                <div class="builder-section-header"><h3 class="font-bold text-sm">تعليمات إضافية (تظهر للعميل)</h3></div>
+                <div class="builder-body">
+                    {{ form.instructions }}
+                </div>
+             </div>
+        </div>
+
+        <!-- Withdrawal Status (Only for Withdrawal mode) -->
+        <div id="withdrawal-only-controls" class="hidden">
+            <div class="builder-section">
+                <div class="builder-section-header"><h3 class="font-bold text-sm">حالة السحب</h3></div>
+                <div class="builder-body">
+                    <div class="flex items-center gap-2 p-3 bg-slate-800/20 rounded-lg">{{ form.can_withdraw }} <span class="text-xs">تفعيل السحب لهذه الوسيلة</span></div>
+                </div>
+            </div>
+        </div>
+
         <!-- Fee Configuration -->
         <div class="builder-section">
             <div class="builder-section-header">
-                <h3 class="font-bold text-sm"><i class="fas fa-percentage ml-2 text-cyan"></i> إعدادات الرسوم</h3>
+                <h3 class="font-bold text-sm"><i class="fas fa-percentage ml-2 text-cyan"></i> إعدادات الرسوم والحدود</h3>
                 <div class="flex items-center gap-2">
                     <input type="checkbox" id="fee-enabled" checked onchange="updateFeeState()"> <span class="text-xs">تفعيل الرسوم</span>
                 </div>
             </div>
             <div class="builder-body">
-                <div class="fee-config-grid">
-                    <div class="field-group"><label class="text-[10px]">رسوم ثابتة</label><input type="number" id="fee-fixed" class="builder-input" value="0"></div>
-                    <div class="field-group"><label class="text-[10px]">نسبة مئوية (%)</label><input type="number" id="fee-percent" class="builder-input" value="0"></div>
-                    <div class="field-group"><label class="text-[10px]">أقل عمولة</label><input type="number" id="fee-min" class="builder-input" value="0"></div>
-                    <div class="field-group"><label class="text-[10px]">أقصى عمولة</label><input type="number" id="fee-max" class="builder-input" value="0"></div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    <div class="fee-config-grid">
+                        <div class="field-group"><label class="text-[10px]">رسوم ثابتة</label><input type="number" id="fee-fixed" class="builder-input" value="0"></div>
+                        <div class="field-group"><label class="text-[10px]">نسبة مئوية (%)</label><input type="number" id="fee-percent" class="builder-input" value="0"></div>
+                        <div class="field-group"><label class="text-[10px]">أقل عمولة</label><input type="number" id="fee-min" class="builder-input" value="0"></div>
+                        <div class="field-group"><label class="text-[10px]">أقصى عمولة</label><input type="number" id="fee-max" class="builder-input" value="0"></div>
+                    </div>
+                    <div class="grid grid-2 gap-4">
+                        <div class="field-group"><label class="text-[10px]">الحد الأدنى للعملية</label>{{ form.min_amount }}</div>
+                        <div class="field-group"><label class="text-[10px]">الحد الأقصى للعملية</label>{{ form.max_amount }}</div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -130,7 +154,7 @@
             </div>
             <div class="builder-body">
                 <div id="info-rows-container"></div>
-                <div id="empty-info" class="text-center p-8 opacity-20 hidden"><p>لا توجد بيانات ثابتة.</p></div>
+                <div id="empty-info" class="text-center p-8 opacity-20 hidden"><p>لا توجد بيانات ثابتة لهذا الوضع.</p></div>
             </div>
         </div>
 
@@ -142,7 +166,7 @@
             </div>
             <div class="builder-body">
                 <div id="fields-container"></div>
-                <div id="empty-fields" class="text-center p-8 opacity-20 hidden"><p>لا توجد حقول مطلوبة.</p></div>
+                <div id="empty-fields" class="text-center p-8 opacity-20 hidden"><p>لا توجد حقول مطلوبة لهذا الوضع.</p></div>
             </div>
         </div>
     </div>
@@ -151,7 +175,7 @@
 <!-- Data Storage -->
 {{ form.instance.deposit_info_schema|json_script:"deposit-info-data" }}
 {{ form.instance.withdrawal_info_schema|json_script:"withdrawal-info-data" }}
-{{ form.instance.form_schema|json_script:"deposit-form-data" }}
+{{ form.instance.deposit_form_schema|json_script:"deposit-form-data" }}
 {{ form.instance.withdrawal_form_schema|json_script:"withdrawal-form-data" }}
 {{ form.instance.deposit_fee_settings|json_script:"deposit-fee-data" }}
 {{ form.instance.withdrawal_fee_settings|json_script:"withdrawal-fee-data" }}
@@ -182,15 +206,10 @@ function init() {
 }
 
 function getJSON(inputId, scriptId, fallback) {
-    // Try reading from the input first (contains POST data if validation failed)
     const input = document.getElementById(inputId);
     if (input && input.value && input.value !== 'None' && input.value !== '{}') {
-        try {
-            return JSON.parse(input.value);
-        } catch(e) { console.error("Error parsing input value", inputId, e); }
+        try { return JSON.parse(input.value); } catch(e) {}
     }
-
-    // Fallback to json_script (contains initial instance data)
     const el = document.getElementById(scriptId);
     if (!el) return fallback;
     try {
@@ -205,6 +224,10 @@ function switchMode(m) {
     currentMode = m;
     document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
     document.getElementById(`tab-${m}`).classList.add('active');
+    
+    document.getElementById('deposit-only-controls').classList.toggle('hidden', m !== 'deposit');
+    document.getElementById('withdrawal-only-controls').classList.toggle('hidden', m !== 'withdrawal');
+    
     render();
 }
 
@@ -219,13 +242,11 @@ function saveCurrentToState() {
 
 function render() {
     const s = state[currentMode];
-    // Fees
     document.getElementById('fee-fixed').value = s.fees.fixed || 0;
     document.getElementById('fee-percent').value = s.fees.percent || 0;
     document.getElementById('fee-min').value = s.fees.min || 0;
     document.getElementById('fee-max').value = s.fees.max || 0;
     document.getElementById('fee-enabled').checked = s.fees.enabled;
-    
     renderInfo();
     renderFields();
 }
@@ -235,14 +256,11 @@ function renderInfo() {
     container.innerHTML = '';
     const rows = state[currentMode].info;
     document.getElementById('empty-info').classList.toggle('hidden', rows.length > 0);
-
     rows.forEach((row, idx) => {
         const div = document.createElement('div');
         div.className = 'builder-card';
         div.innerHTML = `
-            <div class="card-controls">
-                <button type="button" class="text-red-500" onclick="removeInfo(${idx})"><i class="fas fa-trash"></i></button>
-            </div>
+            <div class="card-controls"><button type="button" class="text-red-500" onclick="removeInfo(${idx})"><i class="fas fa-trash"></i></button></div>
             <div class="grid grid-2 gap-4">
                 <div><span class="mini-label">العنوان</span><input type="text" class="builder-input" value="${row.title}" onchange="updateInfo(${idx}, 'title', this.value)"></div>
                 <div><span class="mini-label">القيمة</span><input type="text" class="builder-input" value="${row.value}" onchange="updateInfo(${idx}, 'value', this.value)"></div>
@@ -252,7 +270,6 @@ function renderInfo() {
         container.appendChild(div);
     });
 }
-
 function addInfoRow() { state[currentMode].info.push({title: '', value: '', copyable: true}); renderInfo(); }
 function updateInfo(idx, key, val) { state[currentMode].info[idx][key] = val; }
 function removeInfo(idx) { state[currentMode].info.splice(idx, 1); renderInfo(); }
@@ -262,14 +279,11 @@ function renderFields() {
     container.innerHTML = '';
     const fields = state[currentMode].fields;
     document.getElementById('empty-fields').classList.toggle('hidden', fields.length > 0);
-
     fields.forEach((f, idx) => {
         const div = document.createElement('div');
         div.className = 'builder-card';
         div.innerHTML = `
-            <div class="card-controls">
-                <button type="button" class="text-red-500" onclick="removeField(${idx})"><i class="fas fa-trash"></i></button>
-            </div>
+            <div class="card-controls"><button type="button" class="text-red-500" onclick="removeField(${idx})"><i class="fas fa-trash"></i></button></div>
             <div class="grid grid-4 gap-4">
                 <div><span class="mini-label">نوع الحقل</span><select class="builder-input" onchange="updateField(${idx}, 'type', this.value)">
                     <option value="text" ${f.type==='text'?'selected':''}>Text</option>
@@ -286,7 +300,6 @@ function renderFields() {
         container.appendChild(div);
     });
 }
-
 function addField() { state[currentMode].fields.push({label: 'حقل جديد', type: 'text', required: true, name: 'f_'+Math.random().toString(36).substr(2,5)}); renderFields(); }
 function updateField(idx, key, val) { state[currentMode].fields[idx][key] = val; }
 function removeField(idx) { state[currentMode].fields.splice(idx, 1); renderFields(); }
