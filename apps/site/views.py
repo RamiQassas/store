@@ -976,6 +976,18 @@ def control_orders_list(request):
 def control_order_detail(request, pk):
     order = get_object_or_404(Order.objects.select_related("customer", "invoice").prefetch_related("items__variant__product", "logs__created_by"), pk=pk)
     
+    # Map fulfillment keys to labels
+    readable_fulfillment = {}
+    first_item = order.items.first()
+    if first_item and first_item.variant.product.form_schema:
+        schema_fields = first_item.variant.product.form_schema.get("fields", [])
+        field_map = {f.get("name") or f.get("label"): f.get("label") for f in schema_fields}
+        for key, value in order.fulfillment_data.items():
+            label = field_map.get(key, key)
+            readable_fulfillment[label] = value
+    else:
+        readable_fulfillment = order.fulfillment_data
+
     if request.method == "POST":
         new_status = request.POST.get("status")
         admin_note = request.POST.get("admin_note", "")
@@ -989,15 +1001,7 @@ def control_order_detail(request, pk):
                 OrderLog.objects.create(order=order, status=new_status, note=f"Status updated to {new_status}. {admin_note}", created_by=request.user)
                 
                 # Notifications
-                if new_status == Order.Status.DELIVERED:
-                    notify_user(
-                        user=order.customer,
-                        title="تم تسليم طلبك",
-                        body=f"طلبك رقم {order.number} متاح الآن للتنزيل أو الاستخدام.",
-                        action_url="/dashboard/",
-                        priority="high"
-                    )
-                elif new_status == Order.Status.COMPLETED:
+                if new_status == Order.Status.COMPLETED:
                     notify_user(
                         user=order.customer,
                         title="تم اكتمال الطلب",
@@ -1005,8 +1009,8 @@ def control_order_detail(request, pk):
                         priority="normal"
                     )
 
-                # Handle refund logic if status is REFUNDED
-                if new_status == Order.Status.REFUNDED:
+                # Handle refund logic if status is REFUNDED or CANCELLED
+                if new_status in [Order.Status.REFUNDED, Order.Status.CANCELLED]:
                     wallet = get_or_create_wallet(order.customer)
                     from apps.wallets.services import credit_wallet
                     credit_wallet(wallet.id, order.total_amount, reference=f"refund:{order.id}", description=f"استرداد ثمن الطلب {order.number}", created_by=request.user)
@@ -1022,7 +1026,7 @@ def control_order_detail(request, pk):
             messages.success(request, f"تم تحديث الطلب {order.number} بنجاح.")
             return redirect("control_order_detail", pk=order.pk)
 
-    return render(request, "site/control_order_detail.html", {"order": order})
+    return render(request, "site/control_order_detail.html", {"order": order, "readable_fulfillment": readable_fulfillment})
 
 
 @permission_required("wallets.view_wallet", raise_exception=True)
@@ -1071,7 +1075,7 @@ def control_reports(request):
     
     # Revenue data
     revenue_30 = Order.objects.filter(
-        status__in=[Order.Status.COMPLETED, Order.Status.DELIVERED], 
+        status=Order.Status.COMPLETED, 
         created_at__date__gte=last_30_days
     ).aggregate(total=Sum('total_amount'))['total'] or 0
     

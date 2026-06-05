@@ -25,10 +25,7 @@ class Coupon(TimeStampedModel):
 
 class Order(TimeStampedModel):
     class Status(models.TextChoices):
-        PENDING_PAYMENT = "pending_payment", "في انتظار الدفع"
-        PAID = "paid", "مدفوع"
         PROCESSING = "processing", "قيد المعالجة"
-        DELIVERED = "delivered", "تم التسليم"
         COMPLETED = "completed", "مكتمل"
         REFUNDED = "refunded", "مسترد"
         CANCELLED = "cancelled", "ملغى"
@@ -36,7 +33,7 @@ class Order(TimeStampedModel):
 
     customer = models.ForeignKey(settings.AUTH_USER_MODEL, related_name="orders", on_delete=models.PROTECT, verbose_name="العميل")
     number = models.CharField(max_length=32, unique=True, db_index=True, verbose_name="رقم الطلب")
-    status = models.CharField(max_length=20, choices=Status.choices, default=Status.PENDING_PAYMENT, verbose_name="الحالة")
+    status = models.CharField(max_length=20, choices=Status.choices, default=Status.PROCESSING, verbose_name="الحالة")
     total_amount = models.DecimalField(max_digits=14, decimal_places=2, default=Decimal("0.00"), verbose_name="إجمالي المبلغ")
     coupon = models.ForeignKey(Coupon, null=True, blank=True, on_delete=models.SET_NULL, verbose_name="الكوبون")
     fulfillment_data = models.JSONField(default=dict, blank=True, verbose_name="بيانات التنفيذ")

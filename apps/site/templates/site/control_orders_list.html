@@ -50,7 +50,6 @@
             <td>
               <span class="badge 
                 {% if o.status == 'completed' %}success
-                {% elif o.status == 'pending_payment' %}warning
                 {% elif o.status == 'processing' %}info
                 {% elif o.status == 'refunded' or o.status == 'cancelled' %}muted
                 {% else %}primary{% endif %}">
