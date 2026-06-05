@@ -64,24 +64,29 @@
         <div class="flex justify-center mt-12"><button type="button" class="btn btn-primary px-16 disabled:opacity-30" id="to-step-2" disabled onclick="goToStep(2)">المتابعة</button></div>
     </div>
 
-    <!-- Step 2: Static Info + User Inputs -->
+    <!-- Step 2: User Inputs -->
     <div id="step-2" class="step-content">
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-10">
-            <div class="stack gap-6">
-                <h3 class="text-lg font-bold"><i class="fas fa-info-circle ml-2 text-cyan"></i> معلومات هامة</h3>
-                <div id="static-info-container" class="stack gap-3"></div>
-                <div class="panel p-6 bg-cyan/[0.02] border-cyan/10">
-                    <span class="mini-label mb-2">ملاحظات</span>
-                    <p class="text-xs leading-relaxed text-slate-400" id="method-instr"></p>
-                </div>
+        <div class="max-w-xl mx-auto panel p-10 stack gap-8">
+            <div class="text-center">
+                <h3 class="text-xl font-bold">بيانات الاستلام</h3>
+                <p class="text-xs text-muted mt-2">يرجى إدخال البيانات المطلوبة لإتمام عملية السحب بنجاح.</p>
             </div>
-            <div class="panel p-8 stack gap-6">
-                <h3 class="text-lg font-bold text-center">بيانات الاستلام (مطلوب)</h3>
-                <div id="dynamic-fields-container" class="stack gap-4"></div>
-                <div class="flex justify-between mt-6">
-                    <button type="button" class="btn btn-outline px-8" onclick="goToStep(1)">العودة</button>
-                    <button type="button" class="btn btn-primary px-12" onclick="goToStep(3)">المتابعة</button>
-                </div>
+
+            <!-- Limits Info -->
+            <div id="withdrawal-limits-info" class="p-3 bg-cyan/5 border border-cyan/10 rounded-xl text-center">
+                <p class="text-[10px] text-cyan font-bold" id="limits-text"></p>
+            </div>
+
+            <div id="dynamic-fields-container" class="stack gap-6"></div>
+
+            <div class="panel p-6 bg-cyan/[0.02] border-cyan/10">
+                <span class="mini-label mb-2">ملاحظات إضافية</span>
+                <p class="text-xs leading-relaxed text-slate-400" id="method-instr"></p>
+            </div>
+
+            <div class="flex justify-between mt-4">
+                <button type="button" class="btn btn-outline px-8" onclick="goToStep(1)">العودة</button>
+                <button type="button" class="btn btn-primary px-12" onclick="goToStep(3)">المتابعة</button>
             </div>
         </div>
     </div>
@@ -136,18 +141,17 @@ function handleMethodSelect(card) {
     const sel = document.getElementById('currency-select'); sel.innerHTML = '';
     current.currencies.forEach(c => { sel.innerHTML += `<option value="${c.id}">${c.code} (${c.symbol})</option>`; });
 
-    const infoContainer = document.getElementById('static-info-container');
-    infoContainer.innerHTML = '';
-    current.static_info.rows.forEach(r => {
-        infoContainer.innerHTML += `<div class="info-block"><div><span>${r.title}</span><strong>${r.value}</strong></div></div>`;
-    });
-    document.getElementById('method-instr').innerText = current.instructions;
+    // Limits info
+    document.getElementById('limits-text').innerText = `الحد الأدنى: ${current.min_amount} | الحد الأقصى: ${current.max_amount}`;
+    document.getElementById('method-instr').innerText = current.instructions || 'لا توجد ملاحظات إضافية.';
 
     const fieldContainer = document.getElementById('dynamic-fields-container');
     fieldContainer.innerHTML = '';
-    current.form_schema.fields.forEach(f => {
-        fieldContainer.innerHTML += `<div class="field-group"><label>${f.label} ${f.required?'<span class="text-danger">*</span>':''}</label><input class="dynamic-input" type="${f.type==='number'?'number':'text'}" name="custom_${f.name||f.label}" placeholder="${f.placeholder||''}" ${f.required?'required':''}></div>`;
-    });
+    if(current.form_schema && current.form_schema.fields) {
+        current.form_schema.fields.forEach(f => {
+            fieldContainer.innerHTML += `<div class="field-group"><label>${f.label} ${f.required?'<span class="text-danger">*</span>':''}</label><input class="dynamic-input" type="${f.type==='number'?'number':'text'}" name="custom_${f.name||f.label}" placeholder="${f.placeholder||''}" ${f.required?'required':''}></div>`;
+        });
+    }
 }
 
 function goToStep(n) {
@@ -169,7 +173,8 @@ function calcPreview() {
     if(f.min && fee < f.min) fee = f.min;
     if(f.max && fee > f.max) fee = f.max;
     const net = Math.max(0, amount - fee);
-    const sym = document.getElementById('currency-select').selectedOptions[0]?.text.split(' ')[0] || '';
+    const sel = document.getElementById('currency-select');
+    const sym = sel.selectedOptions.length ? sel.selectedOptions[0].text.split(' ')[0] : '';
     document.getElementById('calc-fees').innerText = `${fee.toFixed(2)} ${sym}`;
     document.getElementById('calc-net').innerText = `${net.toFixed(2)} ${sym}`;
     return {amount, fee, net, sym};

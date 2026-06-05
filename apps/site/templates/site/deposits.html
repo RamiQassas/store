@@ -192,7 +192,6 @@ function handleMethodSelect(card) {
             </div>`;
     });
 }
-}
 
 function goToStep(n) {
     document.querySelectorAll('.step-content').forEach(s => s.classList.remove('active'));
@@ -210,8 +209,11 @@ function calcPreview() {
     const amount = parseFloat(document.getElementById('amount-input').value) || 0;
     const f = current.fees;
     let fee = parseFloat(f.fixed) + (amount * parseFloat(f.percent) / 100);
+    if(f.min && fee < f.min) fee = f.min;
+    if(f.max && fee > f.max) fee = f.max;
     const net = Math.max(0, amount - fee);
-    const sym = document.getElementById('currency-select').selectedOptions[0]?.text.split(' ')[0] || '';
+    const sel = document.getElementById('currency-select');
+    const sym = sel.selectedOptions.length ? sel.selectedOptions[0].text.split(' ')[0] : '';
     return {amount, fee, net, sym};
 }
 
