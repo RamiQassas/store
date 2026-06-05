@@ -102,7 +102,7 @@
             <p>البريد: {{ order.customer.email }}</p>
             <p>الرصيد المتاح: <span class="text-cyan font-bold">{{ order.customer.wallet.available_balance }}</span></p>
             <hr class="border-slate-700 my-2">
-            <a href="{% url 'control_user_moderate' order.customer.pk %}" class="btn btn-sm btn-outline w-full text-xs">إدارة حساب العميل</a>
+            <a href="{% url 'control_user_moderate' order.customer.public_uuid %}" class="btn btn-sm btn-outline w-full text-xs">إدارة حساب العميل</a>
         </div>
     </article>
   </div>
