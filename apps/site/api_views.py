@@ -17,19 +17,28 @@ from apps.common.services import log_system_action
 def api_deposit_approve(request, pk):
     deposit = get_object_or_404(DepositRequest, pk=pk, status=DepositRequest.Status.PENDING)
     admin_note = request.data.get("admin_note", "")
+    adjusted_amount_str = request.data.get("adjusted_amount")
     
     try:
+        final_amount = deposit.amount
+        if adjusted_amount_str:
+            final_amount = Decimal(str(adjusted_amount_str))
+            if final_amount != deposit.amount:
+                if not deposit.metadata: deposit.metadata = {}
+                deposit.metadata["adjusted_from"] = str(deposit.amount)
+                deposit.amount = final_amount # Update original record to reflect approved amount
+
         wallet = Wallet.objects.get(user=deposit.user)
         # Use service to credit wallet (atomic + ledger)
         credit_wallet(
             wallet_id=wallet.id,
-            amount=deposit.amount,
+            amount=final_amount,
             reference=f"dep:{deposit.id}",
             description=f"Approved deposit via {deposit.payment_method.name}",
             created_by=request.user,
             source="admin_approval",
             reason=admin_note,
-            metadata={"from_pending": True, "pending_amount": deposit.amount}
+            metadata={"from_pending": True, "pending_amount": deposit.amount, "is_adjusted": final_amount != deposit.amount}
         )
         
         deposit.status = DepositRequest.Status.COMPLETED
@@ -42,7 +51,7 @@ def api_deposit_approve(request, pk):
             actor=request.user,
             action_type="DEPOSIT_APPROVE",
             target=deposit,
-            description=f"Approved deposit of {deposit.amount} for {deposit.user.email}",
+            description=f"Approved deposit of {final_amount} for {deposit.user.email} (Adjusted: {final_amount != deposit.amount})",
             ip_address=request.META.get('REMOTE_ADDR'),
             reason=admin_note
         )
@@ -51,7 +60,7 @@ def api_deposit_approve(request, pk):
         notify_user(
             user=deposit.user,
             title="✅ تم تأكيد الإيداع",
-            body=f"تمت إضافة {deposit.amount} {deposit.currency.code} إلى محفظتك بنجاح.",
+            body=f"تمت إضافة {final_amount} {deposit.currency.code} إلى محفظتك بنجاح.",
             action_url="/dashboard/wallet/",
             priority="high",
             metadata={"type": "deposit_update"}

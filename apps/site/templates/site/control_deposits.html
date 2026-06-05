@@ -10,9 +10,11 @@
         <h1>إدارة طلبات الإيداع</h1>
         <p class="text-muted">مراجعة والتحقق من الحوالات المالية وإضافتها لمحفظة المستخدمين.</p>
     </div>
-    <a href="{% url 'payment_methods_list' %}" class="btn btn-outline btn-sm">
-        <i class="fas fa-credit-card ml-2"></i> إدارة وسائل الإيداع
-    </a>
+    <div class="flex gap-3">
+        <a href="{% url 'payment_methods_list' %}" class="btn btn-outline btn-sm">
+            <i class="fas fa-credit-card ml-2"></i> إدارة وسائل الدفع
+        </a>
+    </div>
 </div>
 
 <div class="management-card">
@@ -24,8 +26,10 @@
             </div>
         </form>
         <div class="flex gap-2">
+            <a href="?" class="badge {% if not current_status %}primary{% else %}outline{% endif %} cursor-pointer">الكل</a>
             <a href="?status=pending" class="badge {% if current_status == 'pending' %}primary{% else %}outline{% endif %} cursor-pointer">قيد الانتظار</a>
             <a href="?status=completed" class="badge {% if current_status == 'completed' %}success{% else %}outline{% endif %} cursor-pointer">مكتملة</a>
+            <a href="?status=rejected" class="badge {% if current_status == 'rejected' %}danger{% else %}outline{% endif %} cursor-pointer">مرفوضة</a>
         </div>
     </div>
     
@@ -54,7 +58,9 @@
                     <td class="p-4">
                         <div class="flex flex-col">
                             <span class="font-bold text-success">{{ d.amount }} {{ d.currency.code }}</span>
-                            <span class="text-[9px] text-muted">الصافي: {{ d.final_amount }}</span>
+                            {% if d.metadata.adjusted_from %}
+                            <span class="text-[9px] text-warning">معدل من: {{ d.metadata.adjusted_from }}</span>
+                            {% endif %}
                         </div>
                         <div class="text-[10px] text-slate-500 mt-1">{{ d.payment_method.name }}</div>
                     </td>
@@ -87,8 +93,8 @@
                     <td class="p-4 text-left">
                         <div class="flex justify-end gap-2">
                             {% if d.status == 'pending' or d.status == 'under_review' %}
-                            <button class="btn btn-sm btn-primary text-[10px] py-1 px-3" onclick="actionDeposit('{{ d.id }}', 'approve')">
-                                <i class="fas fa-check ml-1"></i> موافقة
+                            <button class="btn btn-sm btn-primary text-[10px] py-1 px-3" onclick="actionDeposit('{{ d.id }}', 'approve', '{{ d.amount }}')">
+                                <i class="fas fa-check ml-1"></i> معالجة
                             </button>
                             <button class="btn btn-sm btn-outline danger text-[10px] py-1 px-3" onclick="actionDeposit('{{ d.id }}', 'reject')">
                                 <i class="fas fa-times ml-1"></i> رفض
@@ -107,19 +113,60 @@
     </div>
 </div>
 
+<!-- Approval Modal -->
+<div id="approve-modal" class="fixed inset-0 bg-black/80 flex items-center justify-center z-50 hidden p-4">
+    <div class="panel max-w-md w-full p-8 stack gap-6 border-cyan/20">
+        <div class="text-center">
+            <h3 class="text-xl font-bold">تأكيد معالجة الإيداع</h3>
+            <p class="text-xs text-muted mt-2">يمكنك تعديل المبلغ إذا قام العميل بإدخال قيمة غير صحيحة.</p>
+        </div>
+        <input type="hidden" id="modal-dep-id">
+        <div class="field-group">
+            <label>المبلغ المعتمد (الذي سيضاف للمحفظة)</label>
+            <input type="number" id="modal-amount" step="0.01" class="builder-input text-lg font-bold text-success">
+        </div>
+        <div class="field-group">
+            <label>ملاحظات إضافية (اختياري)</label>
+            <textarea id="modal-note" class="builder-input text-xs" rows="3" placeholder="أدخل سبباً إذا قمت بتغيير المبلغ..."></textarea>
+        </div>
+        <div class="flex gap-4">
+            <button class="btn btn-outline flex-1" onclick="closeModal()">إلغاء</button>
+            <button class="btn btn-primary flex-1 py-4" onclick="confirmApproval()">تأكيد الإضافة</button>
+        </div>
+    </div>
+</div>
+
 <script>
-async function actionDeposit(id, action) {
-    let note = "";
+const modal = document.getElementById('approve-modal');
+
+function closeModal() { modal.classList.add('hidden'); }
+
+async function actionDeposit(id, action, amount = "") {
     if (action === 'reject') {
-        note = prompt("سبب الرفض:");
+        const note = prompt("سبب الرفض:");
         if (note === null) return;
+        executeAction(id, action, { admin_note: note });
+    } else {
+        document.getElementById('modal-dep-id').value = id;
+        document.getElementById('modal-amount').value = amount;
+        document.getElementById('modal-note').value = "";
+        modal.classList.remove('hidden');
     }
-    if (!confirm(`هل أنت متأكد من تنفيذ إجراء "${action}"؟`)) return;
+}
+
+async function confirmApproval() {
+    const id = document.getElementById('modal-dep-id').value;
+    const amount = document.getElementById('modal-amount').value;
+    const note = document.getElementById('modal-note').value;
+    executeAction(id, 'approve', { admin_note: note, adjusted_amount: amount });
+}
+
+async function executeAction(id, action, body) {
     try {
         const response = await fetch(`/api/deposits/${id}/${action}/`, {
             method: 'POST',
             headers: {'X-CSRFToken': '{{ csrf_token }}', 'Content-Type': 'application/json'},
-            body: JSON.stringify({ admin_note: note })
+            body: JSON.stringify(body)
         });
         if (response.ok) { location.reload(); }
         else { const data = await response.json(); alert("خطأ: " + (data.detail || data.message || "تعذر التنفيذ")); }

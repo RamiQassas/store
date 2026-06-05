@@ -124,6 +124,9 @@
             <a href="{% url 'control_orders_list' %}" class="admin-nav-link {% if 'order' in request.path %}active{% endif %}">
                 <i class="fas fa-shopping-bag"></i> الطلبات
             </a>
+            <a href="{% url 'control_deposits' %}" class="admin-nav-link {% if 'control/deposits' in request.path %}active{% endif %}">
+                <i class="fas fa-wallet"></i> الإيداعات
+            </a>
             <a href="{% url 'control_users_list' %}" class="admin-nav-link {% if 'user' in request.path %}active{% endif %}">
                 <i class="fas fa-users"></i> المستخدمين
             </a>
