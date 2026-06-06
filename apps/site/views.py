@@ -96,7 +96,7 @@ def v3_login_view(request):
             if v3_send_otp_email(user, otp):
                 request.session["v3_auth_uid"] = str(user.id)
                 request.session["v3_auth_purpose"] = OTPToken.Purpose.LOGIN
-                return redirect("v3_verify_otp")
+                return redirect("site_verify_otp")
             else:
                 messages.error(request, "فشل إرسال رمز التحقق. يرجى المحاولة لاحقاً.")
         else:
@@ -128,10 +128,10 @@ def v3_register_view(request):
             if v3_send_otp_email(user, otp):
                 request.session["v3_auth_uid"] = str(user.id)
                 request.session["v3_auth_purpose"] = OTPToken.Purpose.REGISTRATION
-                return redirect("v3_verify_otp")
+                return redirect("site_verify_otp")
             else:
                 messages.warning(request, "تم إنشاء الحساب، ولكن تعذر إرسال رمز التحقق حالياً. يرجى تسجيل الدخول.")
-                return redirect("v3_login")
+                return redirect("site_login")
 
     return render(request, "site/auth_register.html", {"form": form})
 
@@ -142,7 +142,7 @@ def v3_verify_otp_view(request):
     
     if not uid or not purpose:
         messages.error(request, "انتهت جلسة التحقق. يرجى البدء من جديد.")
-        return redirect("v3_login")
+        return redirect("site_login")
         
     user = get_object_or_404(User, id=uid)
     
@@ -151,7 +151,7 @@ def v3_verify_otp_view(request):
             otp = v3_generate_otp(user, purpose)
             v3_send_otp_email(user, otp)
             messages.success(request, "تم إعادة إرسال رمز التحقق.")
-            return redirect("v3_verify_otp")
+            return redirect("site_verify_otp")
             
         code = request.POST.get("code")
         if v3_verify_otp_logic(user, code, purpose):
@@ -161,7 +161,7 @@ def v3_verify_otp_view(request):
             
             if purpose == OTPToken.Purpose.PASSWORD_RESET:
                 request.session["v3_recovery_verified"] = True
-                return redirect("v3_reset_password")
+                return redirect("site_reset_password")
             
             # Login for Registration and standard Login flows
             login(request, user)
@@ -186,7 +186,7 @@ def v3_forgot_password_view(request):
                 request.session["v3_auth_uid"] = str(user.id)
                 request.session["v3_auth_purpose"] = OTPToken.Purpose.PASSWORD_RESET
                 messages.success(request, "تم إرسال رمز التحقق لإعادة تعيين كلمة المرور.")
-                return redirect("v3_verify_otp")
+                return redirect("site_verify_otp")
             else:
                 messages.error(request, "فشل إرسال الرمز. يرجى المحاولة لاحقاً.")
         else:
@@ -201,7 +201,7 @@ def v3_reset_password_view(request):
     
     if not uid or not is_verified:
         messages.error(request, "يرجى التحقق من هويتك أولاً.")
-        return redirect("v3_forgot_password")
+        return redirect("site_forgot_password")
         
     user = get_object_or_404(User, id=uid)
     
@@ -222,7 +222,7 @@ def v3_reset_password_view(request):
             
             ActivityLog.objects.create(user=user, action="Password Reset Success", description="User reset password via V3 OTP flow")
             messages.success(request, "تم تغيير كلمة المرور بنجاح. يمكنك الآن تسجيل الدخول.")
-            return redirect("v3_login")
+            return redirect("site_login")
             
     return render(request, "registration/password_reset_new.html", {"user_email": user.email})
 

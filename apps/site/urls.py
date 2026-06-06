@@ -24,12 +24,12 @@ urlpatterns = [
     path("api/withdrawals/<uuid:pk>/complete/", api_views.api_withdrawal_complete, name="api_withdrawal_complete"),
     path("api/withdrawals/<uuid:pk>/reject/", api_views.api_withdrawal_reject, name="api_withdrawal_reject"),
 
-    # AUTH V3 (FINAL - RESTORED NAMES)
+    # AUTHENTICATION (STANDARDIZED NAMES)
     path("auth/login/", views.v3_login_view, name="site_login"),
     path("auth/register/", views.v3_register_view, name="site_register"),
-    path("auth/verify/", views.v3_verify_otp_view, name="verify_otp"),
-    path("auth/forgot-password/", views.v3_forgot_password_view, name="v3_forgot_password"),
-    path("auth/reset-password/", views.v3_reset_password_view, name="v3_reset_password"),
+    path("auth/verify/", views.v3_verify_otp_view, name="site_verify_otp"),
+    path("auth/forgot-password/", views.v3_forgot_password_view, name="site_forgot_password"),
+    path("auth/reset-password/", views.v3_reset_password_view, name="site_reset_password"),
     path("auth/logout/", views.v3_logout_view, name="site_logout"),
     
     # Control Panel
