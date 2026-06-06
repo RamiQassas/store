@@ -24,16 +24,16 @@ urlpatterns = [
     path("api/withdrawals/<uuid:pk>/complete/", api_views.api_withdrawal_complete, name="api_withdrawal_complete"),
     path("api/withdrawals/<uuid:pk>/reject/", api_views.api_withdrawal_reject, name="api_withdrawal_reject"),
 
-    # Auth & Custom Password Recovery Flow
-    path("auth/login/", views.login_view, name="site_login"),
-    path("auth/verify-otp/", views.verify_otp_view, name="verify_otp"),
-    path("auth/register/", views.register_view, name="site_register"),
-    path("auth/password-reset/", views.password_reset_request_view, name="site_password_reset"),
-    path("auth/password-reset/new/", views.password_reset_new_view, name="password_reset_new"),
-    path("auth/verify/<str:uidb64>/<str:token>/", views.email_verify, name="email_verify"),
-    path("auth/resend-verification/", views.resend_verification, name="resend_verification"),
-    path("logout/", views.logout_view, name="site_logout"),
+    # AUTH REBUILD (ZERO interference from Django defaults)
+    path("auth/login/", views.rebuilt_login_view, name="site_login"),
+    path("auth/register/", views.rebuilt_register_view, name="site_register"),
+    path("auth/verify-otp/", views.rebuilt_verify_otp_view, name="site_verify_otp"),
+    path("auth/logout/", views.rebuilt_logout_view, name="site_logout"),
     
+    # PASSWORD RECOVERY REBUILD
+    path("auth/recovery/", views.rebuilt_recovery_request_view, name="site_recovery_request"),
+    path("auth/recovery/reset/", views.rebuilt_recovery_reset_view, name="site_recovery_reset"),
+
     # Control Panel
     path("control/", views.control_dashboard, name="control_dashboard"),
     path("control/payment-methods/", views.payment_methods_list, name="payment_methods_list"),

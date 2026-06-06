@@ -29,22 +29,160 @@ from apps.wallets.models import LedgerEntry, Wallet, WalletTransaction
 from apps.wallets.services import get_or_create_wallet
 
 
-def service_worker(request):
-    """Serves the service worker from the root for correct scoping."""
-    from django.http import HttpResponse
-    from django.conf import settings
-    import os
+def rebuilt_login_view(request):
+    if request.user.is_authenticated:
+        return redirect("dashboard")
+    form = LoginForm(request.POST or None)
+    if request.method == "POST" and form.is_valid():
+        user = authenticate(username=form.cleaned_data["email"], password=form.cleaned_data["password"])
+        if user:
+            if not user.is_account_active:
+                messages.error(request, f"هذا الحساب معطل أو موقوف. السبب: {user.suspension_reason or 'غير محدد'}")
+                return render(request, "site/auth_login.html", {"form": form})
+
+            # Send OTP for login security
+            otp = generate_otp(user, OTPToken.Purpose.LOGIN)
+            if send_otp_email(user, otp):
+                request.session["rebuilt_otp_user_id"] = str(user.id)
+                request.session["rebuilt_otp_purpose"] = OTPToken.Purpose.LOGIN
+                return redirect("site_verify_otp")
+            else:
+                messages.error(request, "فشل إرسال رمز التحقق. يرجى المحاولة لاحقاً.")
+        else:
+            messages.error(request, "بيانات الدخول غير صحيحة.")
+    return render(request, "site/auth_login.html", {"form": form})
+
+
+def rebuilt_register_view(request):
+    if request.user.is_authenticated:
+        return redirect("dashboard")
+    form = RegisterForm(request.POST or None)
+    if request.method == "POST" and form.is_valid():
+        with transaction.atomic():
+            user = User.objects.create_user(
+                email=form.cleaned_data["email"],
+                password=form.cleaned_data["password"],
+                first_name=form.cleaned_data["first_name"],
+                last_name=form.cleaned_data["last_name"],
+                phone=form.cleaned_data["phone"],
+            )
+            get_or_create_wallet(user)
+            
+            ActivityLog.objects.create(user=user, action="Register", description="Rebuilt registration flow")
+
+            # Send OTP for registration verification
+            otp = generate_otp(user, OTPToken.Purpose.REGISTRATION)
+            if send_otp_email(user, otp):
+                request.session["rebuilt_otp_user_id"] = str(user.id)
+                request.session["rebuilt_otp_purpose"] = OTPToken.Purpose.REGISTRATION
+                return redirect("site_verify_otp")
+            else:
+                messages.warning(request, "تم إنشاء الحساب، ولكن تعذر إرسال رمز التحقق حالياً.")
+                return redirect("site_login")
+
+    return render(request, "site/auth_register.html", {"form": form})
+
+
+def rebuilt_verify_otp_view(request):
+    user_id = request.session.get("rebuilt_otp_user_id")
+    purpose = request.session.get("rebuilt_otp_purpose")
     
-    sw_path = os.path.join(settings.BASE_DIR, 'apps', 'site', 'static', 'site', 'js', 'sw.js')
-    try:
-        with open(sw_path, 'r', encoding='utf-8') as f:
-            content = f.read()
-        return HttpResponse(content, content_type='application/javascript')
-    except FileNotFoundError:
-        return HttpResponse("// Service worker file not found", content_type='application/javascript', status=404)
+    if not user_id or not purpose:
+        messages.error(request, "انتهت جلسة التحقق. يرجى إعادة المحاولة.")
+        return redirect("site_login")
+        
+    user = get_object_or_404(User, id=user_id)
+    
+    if request.method == "POST":
+        action = request.POST.get("action")
+        if action == "resend":
+            otp = generate_otp(user, purpose)
+            send_otp_email(user, otp)
+            messages.success(request, "تم إعادة إرسال الرمز.")
+            return redirect("site_verify_otp")
+            
+        code = request.POST.get("code")
+        if verify_otp(user, code, purpose):
+            # Success logic based on purpose
+            if purpose == OTPToken.Purpose.REGISTRATION:
+                user.email_verified = True
+                user.save(update_fields=["email_verified"])
+                login(request, user)
+                messages.success(request, "تم تفعيل حسابك بنجاح. مرحبًا بك!")
+            
+            elif purpose == OTPToken.Purpose.LOGIN:
+                login(request, user)
+                messages.success(request, "تم تسجيل الدخول بنجاح.")
+                
+            elif purpose == OTPToken.Purpose.PASSWORD_RESET:
+                request.session["rebuilt_otp_verified_recovery"] = True
+                request.session["rebuilt_recovery_user_id"] = str(user.id)
+                return redirect("site_recovery_reset")
+
+            # Finalize session for standard flows
+            if purpose != OTPToken.Purpose.PASSWORD_RESET:
+                request.session.pop("rebuilt_otp_user_id", None)
+                request.session.pop("rebuilt_otp_purpose", None)
+                return redirect("dashboard")
+            return redirect("site_recovery_reset")
+        else:
+            messages.error(request, "رمز التحقق غير صحيح.")
+            
+    return render(request, "site/verify_otp.html", {"user": user, "purpose": purpose})
 
 
-def home(request):
+def rebuilt_logout_view(request):
+    logout(request)
+    messages.info(request, "تم تسجيل الخروج بنجاح.")
+    return redirect("home")
+
+
+def rebuilt_recovery_request_view(request):
+    if request.method == "POST":
+        email = request.POST.get("email", "").lower()
+        user = User.objects.filter(email=email).first()
+        if user:
+            otp = generate_otp(user, OTPToken.Purpose.PASSWORD_RESET)
+            if send_otp_email(user, otp):
+                request.session["rebuilt_otp_user_id"] = str(user.id)
+                request.session["rebuilt_otp_purpose"] = OTPToken.Purpose.PASSWORD_RESET
+                messages.success(request, "تم إرسال رمز التحقق لإعادة تعيين كلمة المرور.")
+                return redirect("site_verify_otp")
+            else:
+                messages.error(request, "فشل إرسال الرمز.")
+        else:
+            messages.error(request, "عذراً، هذا البريد الإلكتروني غير مسجل.")
+    return render(request, "registration/password_reset_form.html")
+
+
+def rebuilt_recovery_reset_view(request):
+    user_id = request.session.get("rebuilt_recovery_user_id")
+    is_verified = request.session.get("rebuilt_otp_verified_recovery") == True
+    
+    if not user_id or not is_verified:
+        messages.error(request, "يرجى التحقق من هويتك أولاً.")
+        return redirect("site_recovery_request")
+        
+    user = get_object_or_404(User, id=user_id)
+    
+    if request.method == "POST":
+        password = request.POST.get("password")
+        confirm = request.POST.get("confirm_password")
+        
+        if not password or len(password) < 10:
+            messages.error(request, "كلمة المرور قصيرة جداً.")
+        elif password != confirm:
+            messages.error(request, "كلمات المرور غير متطابقة.")
+        else:
+            user.set_password(password)
+            user.save()
+            request.session.pop("rebuilt_recovery_user_id", None)
+            request.session.pop("rebuilt_otp_verified_recovery", None)
+            messages.success(request, "تم تغيير كلمة المرور بنجاح. يمكنك الآن الدخول.")
+            return redirect("site_login")
+            
+    return render(request, "registration/password_reset_new.html", {"user_email": user.email})
+
     featured_products = Product.objects.filter(is_active=True, is_featured=True).select_related("category").prefetch_related("variants")[:6]
     top_products = Product.objects.filter(is_active=True).select_related("category").prefetch_related("variants").order_by("sort_order", "name")[:8]
     categories = Category.objects.filter(is_active=True).order_by("sort_order", "name")
