@@ -1,5 +1,32 @@
 {% extends "site/control_base.html" %}
-{% block title %}مراجعة طلب التوثيق | {{ kyc.user.email }}{% endblock %}
+{% block title %}مراجعة وتعديل التوثيق | {{ kyc.user.email }}{% endblock %}
+
+{% block extra_head %}
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+<style>
+    /* Modern Lightbox Viewer */
+    .lightbox-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.95); z-index: 10000; display: none; flex-direction: column; align-items: center; justify-content: center; backdrop-filter: blur(15px); }
+    .lightbox-content { position: relative; max-width: 90vw; max-height: 80vh; display: flex; align-items: center; justify-content: center; }
+    .lightbox-img { max-width: 100%; max-height: 100%; object-fit: contain; border-radius: 12px; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5); transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1); cursor: zoom-in; }
+    .lightbox-controls { position: absolute; top: 30px; right: 30px; display: flex; gap: 15px; z-index: 10001; }
+    .lightbox-btn { width: 50px; height: 50px; border-radius: 50%; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); color: white; display: flex; align-items: center; justify-content: center; font-size: 20px; transition: all 0.2s; cursor: pointer; }
+    .lightbox-btn:hover { background: var(--cyan); color: black; border-color: var(--cyan); transform: scale(1.1); }
+    .lightbox-nav { position: absolute; top: 50%; width: 100%; display: flex; justify-content: space-between; padding: 0 40px; pointer-events: none; }
+    .lightbox-nav button { pointer-events: auto; }
+    
+    .builder-input { width: 100%; padding: 12px 16px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); border-radius: 12px; color: #fff; }
+    .builder-input:focus { border-color: var(--cyan); outline: none; }
+    .btn-outline.danger { border-color: rgba(244, 63, 94, 0.2); color: #f43f5e; }
+    .btn-outline.danger:hover { background: #f43f5e; color: white; }
+    .thumbnail-wrapper { width: 100%; max-width: 200px; }
+    .fixed-thumb { width: 100%; aspect-ratio: 4/3; border-radius: 16px; overflow: hidden; background: #000; border: 1px solid rgba(255,255,255,0.05); position: relative; }
+    .fixed-thumb img { width: 100%; height: 100%; object-fit: contain; }
+    
+    /* Limit Grid */
+    .limit-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 1.5rem; }
+    .limit-card { background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.05); border-radius: 20px; padding: 1.5rem; }
+</style>
+{% endblock %}
 
 {% block control_content %}
 <div class="page-head flex justify-between items-center">
@@ -19,12 +46,61 @@
 </div>
 
 <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 mt-8">
-    <!-- Main Content: Data and Images -->
     <div class="lg:col-span-2 stack gap-8">
-        <!-- Editable Data Section -->
+        <!-- 1. Custom Limits Section -->
+        <div class="management-card p-8 border-cyan/20">
+            <h3 class="text-sm font-black uppercase tracking-widest text-cyan mb-8 flex items-center gap-2">
+                <i class="fas fa-sliders-h"></i> حدود الحساب المخصصة (VIP Overrides)
+            </h3>
+            <form method="post" class="stack gap-8">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="update_limits">
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    <div class="field-group">
+                        <label class="text-[10px] text-slate-500 font-bold uppercase">الحد اليومي للإيداع (USD)</label>
+                        <input type="number" name="global_deposit_limit" step="0.01" value="{{ kyc.user.daily_deposit_limit }}" class="builder-input font-mono">
+                    </div>
+                    <div class="field-group">
+                        <label class="text-[10px] text-slate-500 font-bold uppercase">الحد اليومي للسحب (USD)</label>
+                        <input type="number" name="global_withdrawal_limit" step="0.01" value="{{ kyc.user.daily_withdrawal_limit }}" class="builder-input font-mono">
+                    </div>
+                </div>
+
+                <div class="h-px bg-white/5 my-4"></div>
+                <h4 class="text-xs font-bold text-slate-400 mb-4">حدود وسائل الدفع (اختياري)</h4>
+                
+                <div class="limit-grid">
+                    {% for method in payment_methods %}
+                    <div class="limit-card stack gap-4">
+                        <div class="font-bold text-xs text-slate-300 border-b border-white/5 pb-2">{{ method.name }}</div>
+                        <div class="field-group">
+                            <label class="text-[9px] text-slate-500">حد الإيداع</label>
+                            <input type="number" name="method_dep_{{ method.id }}" step="0.01" 
+                                   value="{% with key=method.id|stringformat:'s' %}{{ kyc.user.custom_payment_limits.key.deposit|default:'' }}{% endwith %}" 
+                                   class="builder-input text-xs font-mono py-2" placeholder="{{ method.daily_deposit_limit }}">
+                        </div>
+                        <div class="field-group">
+                            <label class="text-[9px] text-slate-500">حد السحب</label>
+                            <input type="number" name="method_with_{{ method.id }}" step="0.01" 
+                                   value="{% with key=method.id|stringformat:'s' %}{{ kyc.user.custom_payment_limits.key.withdraw|default:'' }}{% endwith %}" 
+                                   class="builder-input text-xs font-mono py-2" placeholder="{{ method.daily_withdrawal_limit }}">
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+
+                <div class="pt-4">
+                    <button type="submit" class="btn btn-sm btn-primary px-8">تحديث الحدود المخصصة</button>
+                    <p class="text-[9px] text-slate-600 mt-2">ملاحظة: القيم الفارغة ستتبع الحدود الافتراضية للوسيلة أو الحساب.</p>
+                </div>
+            </form>
+        </div>
+
+        <!-- 2. Personal Data Section -->
         <div class="management-card p-8">
             <div class="flex justify-between items-center mb-6 border-b border-white/5 pb-4">
-                <h3 class="text-sm font-bold uppercase tracking-widest text-slate-500">البيانات الشخصية (قابلة للتعديل)</h3>
+                <h3 class="text-sm font-bold uppercase tracking-widest text-slate-500">البيانات الشخصية</h3>
                 <span class="text-[10px] text-slate-600 bg-slate-800 px-2 py-1 rounded">يمكنك تصحيح أي أخطاء إملائية مباشرة</span>
             </div>
 
@@ -34,11 +110,19 @@
                 
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div class="field-group">
+                        <label class="text-[10px] text-slate-500 uppercase block mb-1">الجنسية</label>
+                        {{ form.nationality }}
+                    </div>
+                    <div class="field-group">
+                        <label class="text-[10px] text-slate-500 uppercase block mb-1">بلد إصدار الوثيقة</label>
+                        {{ form.issuing_country }}
+                    </div>
+                    <div class="field-group">
                         <label class="text-[10px] text-slate-500 uppercase block mb-1">نوع الوثيقة</label>
                         {{ form.document_type }}
                     </div>
                     <div class="field-group">
-                        <label class="text-[10px] text-slate-500 uppercase block mb-1">رقم الوثيقة / الهوية</label>
+                        <label class="text-[10px] text-slate-500 uppercase block mb-1">رقم الوطني / الوثيقة</label>
                         {{ form.id_number }}
                     </div>
                     <div class="field-group">
@@ -54,7 +138,7 @@
                         {{ form.last_name }}
                     </div>
                     <div class="field-group">
-                        <label class="text-[10px] text-slate-500 uppercase block mb-1">اسم الأم بالكامل</label>
+                        <label class="text-[10px] text-slate-500 uppercase block mb-1">اسم الأم ونسبتها</label>
                         {{ form.mother_name }}
                     </div>
                     <div class="field-group">
@@ -81,97 +165,43 @@
             </form>
         </div>
 
-        <!-- Verification Images with Fixed Small Layout -->
+        <!-- 3. Modern Lightbox Images -->
         <div class="management-card p-8">
-            <h3 class="text-sm font-bold uppercase tracking-widest text-slate-500 mb-6 border-b border-white/5 pb-4">وثائق الهوية المرفقة (معاينة مصغرة)</h3>
+            <h3 class="text-sm font-bold uppercase tracking-widest text-slate-500 mb-6 border-b border-white/5 pb-4">وثائق الهوية المرفقة (اضغط للتكبير)</h3>
             <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
-                <!-- Front Image -->
-                <div class="stack gap-3">
-                    <span class="text-[10px] font-black uppercase text-slate-500 tracking-wider text-center">وجه الوثيقة</span>
-                    <div class="thumbnail-wrapper mx-auto">
-                        <div class="fixed-thumb aspect-video bg-black rounded-xl overflow-hidden border border-white/10 relative group cursor-pointer" onclick="openImageViewer('{{ kyc.identity_front.url }}', 'وجه الوثيقة')">
-                            <img src="{{ kyc.identity_front.url }}" class="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity">
-                            <div class="absolute inset-0 bg-cyan/10 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                                <i class="fas fa-search-plus text-white shadow-lg"></i>
-                            </div>
+                <div class="stack gap-3 text-center">
+                    <span class="text-[10px] font-black uppercase text-slate-500 tracking-wider">وجه الوثيقة</span>
+                    <div class="fixed-thumb group cursor-pointer" onclick="openLightbox(0, ['{{ kyc.identity_front.url }}', '{{ kyc.identity_back.url }}', '{{ kyc.selfie_verification.url }}'])">
+                        <img src="{{ kyc.identity_front.url }}" class="opacity-80 group-hover:opacity-100 transition-opacity">
+                        <div class="absolute inset-0 bg-cyan/10 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                            <i class="fas fa-search-plus text-white text-xl"></i>
                         </div>
                     </div>
-                    <button type="button" class="btn btn-outline btn-xs w-fit mx-auto text-[9px] py-1 px-3 opacity-60 hover:opacity-100" onclick="openImageViewer('{{ kyc.identity_front.url }}', 'وجه الوثيقة')">عرض الحجم الكامل</button>
                 </div>
-
-                <!-- Back Image -->
-                <div class="stack gap-3">
-                    <span class="text-[10px] font-black uppercase text-slate-500 tracking-wider text-center">ظهر الوثيقة</span>
-                    <div class="thumbnail-wrapper mx-auto">
-                        <div class="fixed-thumb aspect-video bg-black rounded-xl overflow-hidden border border-white/10 relative group cursor-pointer" onclick="openImageViewer('{{ kyc.identity_back.url }}', 'ظهر الوثيقة')">
-                            <img src="{{ kyc.identity_back.url }}" class="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity">
-                            <div class="absolute inset-0 bg-cyan/10 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                                <i class="fas fa-search-plus text-white shadow-lg"></i>
-                            </div>
+                <div class="stack gap-3 text-center">
+                    <span class="text-[10px] font-black uppercase text-slate-500 tracking-wider">ظهر الوثيقة</span>
+                    <div class="fixed-thumb group cursor-pointer" onclick="openLightbox(1, ['{{ kyc.identity_front.url }}', '{{ kyc.identity_back.url }}', '{{ kyc.selfie_verification.url }}'])">
+                        <img src="{{ kyc.identity_back.url }}" class="opacity-80 group-hover:opacity-100 transition-opacity">
+                        <div class="absolute inset-0 bg-cyan/10 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                            <i class="fas fa-search-plus text-white text-xl"></i>
                         </div>
                     </div>
-                    <button type="button" class="btn btn-outline btn-xs w-fit mx-auto text-[9px] py-1 px-3 opacity-60 hover:opacity-100" onclick="openImageViewer('{{ kyc.identity_back.url }}', 'ظهر الوثيقة')">عرض الحجم الكامل</button>
                 </div>
-
-                <!-- Selfie Image -->
-                <div class="stack gap-3">
-                    <span class="text-[10px] font-black uppercase text-slate-500 tracking-wider text-center">صورة السيلفي</span>
-                    <div class="thumbnail-wrapper mx-auto">
-                        <div class="fixed-thumb aspect-video bg-black rounded-xl overflow-hidden border border-white/10 relative group cursor-pointer" onclick="openImageViewer('{{ kyc.selfie_verification.url }}', 'صورة السيلفي مع الوثيقة')">
-                            <img src="{{ kyc.selfie_verification.url }}" class="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity">
-                            <div class="absolute inset-0 bg-cyan/10 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                                <i class="fas fa-search-plus text-white shadow-lg"></i>
-                            </div>
+                <div class="stack gap-3 text-center">
+                    <span class="text-[10px] font-black uppercase text-slate-500 tracking-wider">صورة السيلفي</span>
+                    <div class="fixed-thumb group cursor-pointer" onclick="openLightbox(2, ['{{ kyc.identity_front.url }}', '{{ kyc.identity_back.url }}', '{{ kyc.selfie_verification.url }}'])">
+                        <img src="{{ kyc.selfie_verification.url }}" class="opacity-80 group-hover:opacity-100 transition-opacity">
+                        <div class="absolute inset-0 bg-cyan/10 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                            <i class="fas fa-search-plus text-white text-xl"></i>
                         </div>
                     </div>
-                    <button type="button" class="btn btn-outline btn-xs w-fit mx-auto text-[9px] py-1 px-3 opacity-60 hover:opacity-100" onclick="openImageViewer('{{ kyc.selfie_verification.url }}', 'صورة السيلفي')">عرض الحجم الكامل</button>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Modal Viewer -->
-    <div id="image-viewer-modal" class="fixed inset-0 z-[9999] bg-black/95 backdrop-blur-sm hidden flex-col items-center justify-center p-4">
-        <div class="absolute top-6 right-6 flex gap-4">
-            <button class="w-12 h-12 bg-white/10 hover:bg-rose-500 rounded-full flex items-center justify-center text-white transition-colors" onclick="closeImageViewer()">
-                <i class="fas fa-times text-xl"></i>
-            </button>
-        </div>
-        <div class="text-center mb-6">
-            <h4 id="viewer-title" class="text-white font-bold tracking-widest uppercase text-sm">معاينة الصورة</h4>
-        </div>
-        <div class="relative max-w-5xl max-h-[80vh] w-full h-full flex items-center justify-center">
-            <img id="full-image-display" src="" class="max-w-full max-h-full object-contain shadow-2xl rounded-lg">
-        </div>
-        <div class="mt-8">
-            <button class="btn btn-outline py-3 px-12 rounded-xl text-white font-bold" onclick="closeImageViewer()">إغلاق المعاينة</button>
-        </div>
-    </div>
-
-    <script>
-        function openImageViewer(url, title) {
-            document.getElementById('full-image-display').src = url;
-            document.getElementById('viewer-title').textContent = title;
-            document.getElementById('image-viewer-modal').classList.remove('hidden');
-            document.getElementById('image-viewer-modal').classList.add('flex');
-            document.body.style.overflow = 'hidden';
-        }
-
-        function closeImageViewer() {
-            document.getElementById('image-viewer-modal').classList.add('hidden');
-            document.getElementById('image-viewer-modal').classList.remove('flex');
-            document.body.style.overflow = 'auto';
-        }
-
-        // Close on ESC
-        document.addEventListener('keydown', (e) => {
-            if(e.key === 'Escape') closeImageViewer();
-        });
-    </script>
-
-    <!-- Sidebar: Review Actions and User Info -->
+    <!-- 4. Sidebar Decisions -->
     <div class="stack gap-8">
-        <!-- Review Action Card -->
         <div class="management-card p-8 border-cyan/10">
             <h3 class="text-sm font-bold uppercase tracking-widest text-slate-500 mb-6 border-b border-white/5 pb-4">اتخاذ قرار نهائي</h3>
             
@@ -179,7 +209,7 @@
                 {% csrf_token %}
                 <div class="field-group">
                     <label class="text-[10px] text-slate-500 mb-2 block">ملاحظات الإدارة / سبب الرفض</label>
-                    <textarea name="rejection_reason" class="builder-input text-xs" rows="4" placeholder="سيظهر هذا النص للمستخدم في حال الرفض..."></textarea>
+                    <textarea name="rejection_reason" class="builder-input text-xs" rows="4" placeholder="سيظهر هذا النص للمستخدم في حال الرفض...">{{ kyc.rejection_reason }}</textarea>
                 </div>
                 
                 <div class="stack gap-3">
@@ -204,7 +234,6 @@
             {% endif %}
         </div>
 
-        <!-- User Stats Card -->
         <div class="management-card p-8">
             <h3 class="text-sm font-bold uppercase tracking-widest text-slate-500 mb-4 pb-2 border-b border-white/5">معلومات الحساب</h3>
             <div class="stack gap-4">
@@ -220,23 +249,78 @@
                     <span class="text-slate-500">تاريخ الطلب:</span>
                     <strong class="text-white">{{ kyc.created_at|date:"d M Y" }}</strong>
                 </div>
-                <div class="flex justify-between text-xs">
-                    <span class="text-slate-500">آخر تحديث:</span>
-                    <strong class="text-white">{{ kyc.updated_at|date:"d M Y" }}</strong>
-                </div>
             </div>
         </div>
     </div>
 </div>
 
-<style>
-    .builder-input { width: 100%; padding: 12px 16px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); border-radius: 12px; color: #fff; }
-    .builder-input:focus { border-color: var(--cyan); outline: none; }
-    .btn-outline.danger { border-color: rgba(244, 63, 94, 0.2); color: #f43f5e; }
-    .btn-outline.danger:hover { background: #f43f5e; color: white; }
-    .thumbnail-wrapper { width: 180px; }
-    .fixed-thumb { width: 180px; height: 120px; border-radius: 12px; overflow: hidden; background: #000; border: 1px solid var(--panel-border); position: relative; }
-    .fixed-thumb img { width: 100%; height: 100%; object-fit: contain; }
-    .fixed-frame { position: relative; width: 100%; }
-</style>
+<!-- Modern Lightbox Modal -->
+<div id="lightbox" class="lightbox-overlay" onclick="closeLightbox(event)">
+    <div class="lightbox-controls">
+        <button class="lightbox-btn" onclick="zoomIn(event)"><i class="fas fa-search-plus"></i></button>
+        <button class="lightbox-btn" onclick="zoomOut(event)"><i class="fas fa-search-minus"></i></button>
+        <button class="lightbox-btn" onclick="closeLightbox(event)"><i class="fas fa-times"></i></button>
+    </div>
+    
+    <div class="lightbox-nav">
+        <button class="lightbox-btn" onclick="prevImg(event)"><i class="fas fa-chevron-right"></i></button>
+        <button class="lightbox-btn" onclick="nextImg(event)"><i class="fas fa-chevron-left"></i></button>
+    </div>
+
+    <div class="lightbox-content">
+        <img id="lightbox-img" src="" class="lightbox-img">
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+<script>
+    $(document).ready(function() {
+        $('.searchable-select').select2({ width: '100%', dir: 'rtl' });
+    });
+
+    let currentImgIdx = 0;
+    let imgList = [];
+    let currentZoom = 1;
+
+    function openLightbox(idx, list) {
+        imgList = list;
+        currentImgIdx = idx;
+        currentZoom = 1;
+        updateLightbox();
+        document.getElementById('lightbox').style.display = 'flex';
+        document.body.style.overflow = 'hidden';
+    }
+
+    function updateLightbox() {
+        const img = document.getElementById('lightbox-img');
+        img.src = imgList[currentImgIdx];
+        img.style.transform = `scale(${currentZoom})`;
+    }
+
+    function closeLightbox(e) {
+        if (e.target.id === 'lightbox' || e.target.closest('.fa-times')) {
+            document.getElementById('lightbox').style.display = 'none';
+            document.body.style.overflow = 'auto';
+        }
+    }
+
+    function nextImg(e) { e.stopPropagation(); currentImgIdx = (currentImgIdx + 1) % imgList.length; currentZoom = 1; updateLightbox(); }
+    function prevImg(e) { e.stopPropagation(); currentImgIdx = (currentImgIdx - 1 + imgList.length) % imgList.length; currentZoom = 1; updateLightbox(); }
+    
+    function zoomIn(e) { e.stopPropagation(); currentZoom += 0.2; updateLightbox(); }
+    function zoomOut(e) { e.stopPropagation(); currentZoom = Math.max(0.5, currentZoom - 0.2); updateLightbox(); }
+
+    // Key handlers
+    document.addEventListener('keydown', (e) => {
+        if (document.getElementById('lightbox').style.display === 'flex') {
+            if (e.key === 'Escape') closeLightbox({target: {id: 'lightbox'}});
+            if (e.key === 'ArrowRight') prevImg(e);
+            if (e.key === 'ArrowLeft') nextImg(e);
+        }
+    });
+</script>
 {% endblock %}

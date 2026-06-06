@@ -204,7 +204,7 @@ def v3_reset_password_view(request):
     
     if not uid or not is_verified:
         messages.error(request, "يرجى التحقق من هويتك أولاً.")
-        return redirect("v3_forgot_password")
+        return redirect("site_forgot_password")
         
     user = get_object_or_404(User, id=uid)
     
@@ -315,15 +315,10 @@ def product_detail(request, pk):
 def dashboard(request):
     request.user.reset_daily_limits_if_needed()
     wallet = Wallet.objects.filter(user=request.user).select_related("currency").first() or get_or_create_wallet(request.user)
-    
-    # Check if a KYC request exists
     kyc_request = getattr(request.user, 'kyc_request', None)
-    
     return render(request, "site/dashboard.html", {
-        "wallet": wallet,
-        "orders": request.user.orders.all()[:6],
-        "deposits": request.user.deposits.all()[:6],
-        "stats": {"orders": request.user.orders.count()},
+        "wallet": wallet, "orders": request.user.orders.all()[:6],
+        "deposits": request.user.deposits.all()[:6], "stats": {"orders": request.user.orders.count()},
         "kyc_request": kyc_request
     })
 
@@ -332,10 +327,7 @@ def dashboard(request):
 def wallet_page(request):
     request.user.reset_daily_limits_if_needed()
     wallet = Wallet.objects.filter(user=request.user).select_related("currency").first() or get_or_create_wallet(request.user)
-    return render(request, "site/wallet.html", {
-        "wallet": wallet,
-        "ledger_entries": wallet.ledger_entries.all()[:20]
-    })
+    return render(request, "site/wallet.html", {"wallet": wallet, "ledger_entries": wallet.ledger_entries.all()[:20]})
 
 
 @login_required
@@ -355,23 +347,21 @@ def deposits(request):
         amount = Decimal(amount_str) if amount_str else Decimal("0")
         proof = request.FILES.get("proof_image")
         
-        # 1. Check user total daily limit
         if amount > remaining_limit:
-            messages.error(request, f"لقد تجاوزت الحد اليومي للإيداع. المتبقي لك اليوم: {remaining_limit}")
+            messages.error(request, f"تجاوزت الحد اليومي للإيداع. المتبقي: {remaining_limit}")
             return redirect("dashboard_deposits")
             
         method = get_object_or_404(methods, id=method_id)
-        
-        # 2. Check payment-method specific daily limit
+        user_custom = request.user.custom_payment_limits.get(str(method.id), {})
+        method_limit = Decimal(str(user_custom['deposit'])) if user_custom.get('deposit') else method.daily_deposit_limit
+
         method_usage_today = DepositRequest.objects.filter(
-            user=request.user, 
-            payment_method=method, 
-            created_at__date=timezone.now().date()
+            user=request.user, payment_method=method, created_at__date=timezone.now().date()
         ).exclude(status=DepositRequest.Status.REJECTED).aggregate(Sum('amount'))['amount__sum'] or Decimal("0.00")
         
-        method_remaining = max(Decimal("0.00"), method.daily_deposit_limit - method_usage_today)
+        method_remaining = max(Decimal("0.00"), method_limit - method_usage_today)
         if amount > method_remaining:
-            messages.error(request, f"لقد تجاوزت الحد اليومي لهذه الوسيلة ({method.name}). المتبقي لهذه الوسيلة اليوم: {method_remaining}")
+            messages.error(request, f"تجاوزت حد الإيداع لهذه الوسيلة. المتبقي: {method_remaining}")
             return redirect("dashboard_deposits")
 
         currency = get_object_or_404(Currency, id=currency_id)
@@ -383,18 +373,13 @@ def deposits(request):
                 currency=currency, proof_image=proof, status=DepositRequest.Status.PENDING
             )
             track_pending_deposit(wallet.id, amount, reference=f"deposit:{deposit.id}")
-            
-            # Record global usage
             request.user.daily_deposit_usage += amount
             request.user.save(update_fields=["daily_deposit_usage"])
-            
             messages.success(request, "طلب الإيداع قيد المراجعة.")
             return redirect("dashboard")
             
     return render(request, "site/deposits.html", {
-        "payment_methods": methods,
-        "remaining_limit": remaining_limit,
-        "daily_limit": request.user.daily_deposit_limit
+        "payment_methods": methods, "remaining_limit": remaining_limit, "daily_limit": request.user.daily_deposit_limit
     })
 
 
@@ -413,23 +398,21 @@ def withdrawals(request):
         currency_id = request.POST.get("currency")
         amount = Decimal(request.POST.get("amount", "0"))
         
-        # 1. Check global limit
         if amount > remaining_limit:
-            messages.error(request, f"لقد تجاوزت الحد اليومي للسحب. المتبقي لك اليوم: {remaining_limit}")
+            messages.error(request, f"تجاوزت الحد اليومي للسحب. المتبقي: {remaining_limit}")
             return redirect("dashboard_withdrawals")
             
         method = get_object_or_404(methods, id=method_id)
+        user_custom = request.user.custom_payment_limits.get(str(method.id), {})
+        method_limit = Decimal(str(user_custom['withdraw'])) if user_custom.get('withdraw') else method.daily_withdrawal_limit
         
-        # 2. Check payment-method limit
         method_usage_today = WithdrawalRequest.objects.filter(
-            user=request.user,
-            payment_method=method,
-            created_at__date=timezone.now().date()
+            user=request.user, payment_method=method, created_at__date=timezone.now().date()
         ).exclude(status=WithdrawalRequest.Status.REJECTED).aggregate(Sum('amount'))['amount__sum'] or Decimal("0.00")
         
-        method_remaining = max(Decimal("0.00"), method.daily_withdrawal_limit - method_usage_today)
+        method_remaining = max(Decimal("0.00"), method_limit - method_usage_today)
         if amount > method_remaining:
-            messages.error(request, f"تجاوزت حد السحب لهذه الوسيلة. المتبقي اليوم: {method_remaining}")
+            messages.error(request, f"تجاوزت حد السحب لهذه الوسيلة. المتبقي: {method_remaining}")
             return redirect("dashboard_withdrawals")
 
         currency = get_object_or_404(Currency, id=currency_id)
@@ -442,105 +425,71 @@ def withdrawals(request):
                     currency=currency, status=WithdrawalRequest.Status.PENDING
                 )
                 freeze_funds(wallet.id, amount, reference=f"with:{withdrawal.id}")
-                
-                # Record global usage
                 request.user.daily_withdrawal_usage += amount
                 request.user.save(update_fields=["daily_withdrawal_usage"])
-                
                 messages.success(request, "طلب السحب قيد المراجعة.")
                 return redirect("dashboard")
         else:
             messages.error(request, "رصيد غير كافٍ.")
             
     return render(request, "site/withdrawals.html", {
-        "payment_methods": methods,
-        "remaining_limit": remaining_limit,
-        "daily_limit": request.user.daily_withdrawal_limit
+        "payment_methods": methods, "remaining_limit": remaining_limit, "daily_limit": request.user.daily_withdrawal_limit
     })
 
 
 @login_required
 def kyc_request_view(request):
-    # Check if request already exists
     existing = getattr(request.user, 'kyc_request', None)
     settings_obj = KYCSettings.get_settings()
-    
-    # Context data for better UX feedback
     kyc_status = existing.status if existing else 'none'
     kyc_rejection_reason = existing.rejection_reason if existing else ''
 
-    if existing and existing.status in [KYCRequest.Status.PENDING, KYCRequest.Status.APPROVED]:
-        pass
-        
-    # IP detection for default country (simplified native version)
     client_ip = request.META.get('HTTP_X_FORWARDED_FOR', request.META.get('REMOTE_ADDR', '')).split(',')[0].strip()
-    default_country = "SY" # Global default
-    
+    default_country = "SY"
     if client_ip and client_ip not in ['127.0.0.1', 'localhost']:
         try:
             import requests
-            # Use a free public IP API that returns ISO codes
             response = requests.get(f"https://ipapi.co/{client_ip}/json/", timeout=3)
             if response.status_code == 200:
                 default_country = response.json().get("country_code", "SY")
-        except:
-            pass
+        except: pass
 
-    initial_data = {}
-    if not existing:
-        initial_data = {"nationality": default_country, "issuing_country": default_country}
-
+    initial_data = {"nationality": default_country, "issuing_country": default_country} if not existing else None
     form = KYCRequestForm(request.POST or None, request.FILES or None, 
                           instance=existing if existing and existing.status == KYCRequest.Status.REJECTED else None,
                           initial=initial_data)
     
     if request.method == "POST" and form.is_valid():
         if existing and existing.status in [KYCRequest.Status.PENDING, KYCRequest.Status.APPROVED]:
-            messages.error(request, "لديك طلب توثيق قيد المعالجة بالفعل.")
+            messages.error(request, "طلب قيد المعالجة.")
             return redirect("dashboard")
             
         kyc = form.save(commit=False)
-        
-        # Check Restricted Countries (using ISO codes)
         blocked = False
         if settings_obj.restricted_countries:
-            if settings_obj.block_by_nationality and kyc.nationality in settings_obj.restricted_countries:
-                blocked = True
-            if settings_obj.block_by_issuing_country and kyc.issuing_country in settings_obj.restricted_countries:
+            if (settings_obj.block_by_nationality and kyc.nationality in settings_obj.restricted_countries) or \
+               (settings_obj.block_by_issuing_country and kyc.issuing_country in settings_obj.restricted_countries):
                 blocked = True
                 
         if blocked:
-            messages.error(request, "عذراً، دولتك أو بلد إصدار الوثيقة غير مدعوم حالياً في المنصة.")
+            messages.error(request, "دولتك غير مدعومة حالياً.")
             return redirect("site_kyc_request")
 
         kyc.user = request.user
         kyc.status = KYCRequest.Status.PENDING
         kyc.save()
-        messages.success(request, "تم تقديم طلب التوثيق بنجاح. سيتم مراجعته من قبل الإدارة.")
+        messages.success(request, "تم تقديم الطلب.")
         return redirect("dashboard")
         
     return render(request, "site/v3/v3_kyc_form.html", {
-        "form": form,
-        "kyc_status": kyc_status,
-        "kyc_rejection_reason": kyc_rejection_reason,
-        "restricted_countries": settings_obj.restricted_countries,
-        "all_countries": COUNTRIES
+        "form": form, "kyc_status": kyc_status, "kyc_rejection_reason": kyc_rejection_reason,
+        "restricted_countries": settings_obj.restricted_countries, "all_countries": COUNTRIES
     })
 
 
-# ==========================================
-# --- ADMIN CONTROL PANEL VIEWS ---
-# ==========================================
-
 @staff_member_required
 def control_dashboard(request):
-    stats = {
-        "users": User.objects.count(),
-        "products": Product.objects.count(),
-        "orders": Order.objects.count(),
-        "deposits": DepositRequest.objects.count(),
-        "pending_kycs": KYCRequest.objects.filter(status=KYCRequest.Status.PENDING).count(),
-    }
+    stats = {"users": User.objects.count(), "products": Product.objects.count(), "orders": Order.objects.count(), "deposits": DepositRequest.objects.count(), "pending_kycs": KYCRequest.objects.filter(status=KYCRequest.Status.PENDING).count()}
     return render(request, "site/control_dashboard.html", {"stats": stats})
 
 @staff_member_required
@@ -552,45 +501,45 @@ def control_kycs_list(request):
 def control_kyc_detail(request, pk):
     kyc = get_object_or_404(KYCRequest.objects.select_related("user"), pk=pk)
     global_settings = KYCSettings.get_settings()
-    
-    # Use the form for editing capabilities
     form = KYCRequestForm(request.POST or None, request.FILES or None, instance=kyc)
+    payment_methods = PaymentMethod.objects.filter(is_active=True)
     
     if request.method == "POST":
         action = request.POST.get("action")
-        
-        # 1. Update/Edit Information
-        if action == "update_info":
-            if form.is_valid():
-                form.save()
-                messages.success(request, "تم تحديث بيانات التوثيق بنجاح.")
-                return redirect("control_kyc_detail", pk=pk)
-        
-        # 2. Approve Verification
+        if action == "update_info" and form.is_valid():
+            form.save()
+            messages.success(request, "تم التحديث.")
+            return redirect("control_kyc_detail", pk=pk)
+        elif action == "update_limits":
+            user = kyc.user
+            user.daily_deposit_limit = Decimal(request.POST.get("global_deposit_limit", "100.00"))
+            user.daily_withdrawal_limit = Decimal(request.POST.get("global_withdrawal_limit", "100.00"))
+            user.has_custom_limits = True
+            custom_limits = {}
+            for method in payment_methods:
+                dep = request.POST.get(f"method_dep_{method.id}")
+                withd = request.POST.get(f"method_with_{method.id}")
+                if dep or withd: custom_limits[str(method.id)] = {"deposit": dep, "withdraw": withd}
+            user.custom_payment_limits = custom_limits
+            user.save()
+            messages.success(request, "تم تحديث الحدود.")
+            return redirect("control_kyc_detail", pk=pk)
         elif action == "approve":
             with transaction.atomic():
                 kyc.status = KYCRequest.Status.APPROVED
                 kyc.reviewed_by = request.user
                 kyc.reviewed_at = timezone.now()
                 kyc.save()
-                
                 user = kyc.user
                 user.is_kyc_verified = True
-                
-                # Apply Global Verified Limits unless they have custom limits
                 if not user.has_custom_limits:
                     user.daily_deposit_limit = global_settings.verified_daily_deposit_limit
                     user.daily_withdrawal_limit = global_settings.verified_daily_withdrawal_limit
-                
-                # Automatically update user display name (Reliable update)
                 user.first_name = kyc.first_name
                 user.last_name = f"{kyc.father_name} {kyc.last_name}"
-                user.save() # Full save to ensure all fields reflect change
-                
-                messages.success(request, f"تم توثيق حساب {user.email} بنجاح وتحديث الاسم الرسمي.")
+                user.save()
+                messages.success(request, "تم القبول.")
                 return redirect("control_kyc_detail", pk=pk)
-        
-        # 3. Reject Verification
         elif action == "reject":
             with transaction.atomic():
                 kyc.status = KYCRequest.Status.REJECTED
@@ -598,81 +547,64 @@ def control_kyc_detail(request, pk):
                 kyc.reviewed_by = request.user
                 kyc.reviewed_at = timezone.now()
                 kyc.save()
-                
                 user = kyc.user
                 user.is_kyc_verified = False
-                # Revert to Global Unverified Limits
-                if not user.has_custom_limits:
-                    user.daily_deposit_limit = global_settings.unverified_daily_deposit_limit
-                    user.daily_withdrawal_limit = global_settings.unverified_daily_withdrawal_limit
+                user.daily_deposit_limit = global_settings.unverified_daily_deposit_limit
+                user.daily_withdrawal_limit = global_settings.unverified_daily_withdrawal_limit
+                user.has_custom_limits = False
                 user.save()
-                
-                messages.warning(request, f"تم رفض طلب توثيق {kyc.user.email} وإعادة الحدود للمستوى الأساسي.")
+                messages.warning(request, "تم الرفض.")
                 return redirect("control_kyc_detail", pk=pk)
-            
-        # 4. Revert to Under Review
         elif action == "revert":
             with transaction.atomic():
                 kyc.status = KYCRequest.Status.PENDING
                 kyc.save(update_fields=["status"])
                 user = kyc.user
                 user.is_kyc_verified = False
-                if not user.has_custom_limits:
-                    user.daily_deposit_limit = global_settings.unverified_daily_deposit_limit
-                    user.daily_withdrawal_limit = global_settings.unverified_daily_withdrawal_limit
+                user.daily_deposit_limit = global_settings.unverified_daily_deposit_limit
+                user.daily_withdrawal_limit = global_settings.unverified_daily_withdrawal_limit
                 user.save()
-                messages.info(request, "تمت إعادة الطلب إلى حالة قيد المراجعة.")
+                messages.info(request, "تمت الإعادة.")
                 return redirect("control_kyc_detail", pk=pk)
-            
-        # 5. Remove Verification (Unverify)
         elif action == "unverify":
             with transaction.atomic():
                 user = kyc.user
                 user.is_kyc_verified = False
-                if not user.has_custom_limits:
-                    user.daily_deposit_limit = global_settings.unverified_daily_deposit_limit
-                    user.daily_withdrawal_limit = global_settings.unverified_daily_withdrawal_limit
+                user.has_custom_limits = False
+                user.daily_deposit_limit = global_settings.unverified_daily_deposit_limit
+                user.daily_withdrawal_limit = global_settings.unverified_daily_withdrawal_limit
                 user.save()
                 kyc.status = KYCRequest.Status.REJECTED
-                kyc.rejection_reason = "تم إلغاء التوثيق من قبل الإدارة."
+                kyc.rejection_reason = "تم إلغاء التوثيق."
                 kyc.save()
-                messages.error(request, f"تم إلغاء توثيق حساب {user.email}.")
+                messages.error(request, "تم إلغاء التوثيق.")
                 return redirect("control_kycs_list")
             
-    return render(request, "site/control_kyc_detail.html", {"kyc": kyc, "form": form})
+    return render(request, "site/control_kyc_detail.html", {"kyc": kyc, "form": form, "payment_methods": payment_methods})
 
 @staff_member_required
 def control_kyc_settings(request):
     settings_obj = KYCSettings.get_settings()
     form = KYCSettingsForm(request.POST or None, instance=settings_obj)
-    
     if request.method == "POST":
         action = request.POST.get("action")
-        
         if action == "unblock_country":
-            country_code = request.POST.get("country_code")
-            if country_code in settings_obj.restricted_countries:
-                settings_obj.restricted_countries.remove(country_code)
-                settings_obj.save(update_fields=["restricted_countries"])
-                messages.success(request, f"تم فك الحظر عن {country_code} بنجاح.")
+            code = request.POST.get("country_code")
+            if code in settings_obj.restricted_countries:
+                settings_obj.restricted_countries.remove(code)
+                settings_obj.save()
+                messages.success(request, f"فك الحظر عن {code}.")
             return redirect("control_kyc_settings")
-            
         elif form.is_valid():
             form.save()
-            messages.success(request, "تم حفظ إعدادات التوثيق والحدود بنجاح.")
+            messages.success(request, "تم الحفظ.")
             return redirect("control_kyc_settings")
-    
-    verified_count = User.objects.filter(is_kyc_verified=True).count()
-    return render(request, "site/control_kyc_settings.html", {
-        "form": form, 
-        "settings": settings_obj,
-        "stats_verified_count": verified_count
-    })
+    return render(request, "site/control_kyc_settings.html", {"form": form, "settings": settings_obj, "stats_verified_count": User.objects.filter(is_kyc_verified=True).count()})
 
 @staff_member_required
 def control_user_moderate(request, public_uuid):
-    target_user = get_object_or_404(User, public_uuid=public_uuid)
-    form = ModerateUserForm(request.POST or None, instance=target_user)
+    user = get_object_or_404(User, public_uuid=public_uuid)
+    form = ModerateUserForm(request.POST or None, instance=user)
     if request.method == "POST" and form.is_valid():
         user = form.save()
         if not user.is_account_active:
@@ -680,39 +612,25 @@ def control_user_moderate(request, public_uuid):
              sessions = Session.objects.filter(expire_date__gte=timezone.now())
              for s in sessions:
                  if str(user.id) == s.get_decoded().get('_auth_user_id'): s.delete()
-        messages.success(request, "تم تحديث بيانات المستخدم.")
+        messages.success(request, "تم التحديث.")
         return redirect("control_users_list")
-    return render(request, "site/control_user_moderate.html", {"form": form, "user_to_moderate": target_user})
+    return render(request, "site/control_user_moderate.html", {"form": form, "user_to_moderate": user})
 
 @staff_member_required
-def payment_methods_list(request):
-    methods = PaymentMethod.objects.all().order_by("display_order")
-    return render(request, "site/payment_methods_list.html", {"methods": methods})
-
+def payment_methods_list(request): return render(request, "site/payment_methods_list.html", {"methods": PaymentMethod.objects.all().order_by("display_order")})
 @staff_member_required
 def payment_method_create(request):
     form = PaymentMethodForm(request.POST or None, request.FILES or None)
-    if request.method == "POST" and form.is_valid():
-        form.save()
-        return redirect("payment_methods_list")
+    if request.method == "POST" and form.is_valid(): form.save(); return redirect("payment_methods_list")
     return render(request, "site/payment_method_builder.html", {"form": form})
-
 @staff_member_required
 def payment_method_edit(request, pk):
     method = get_object_or_404(PaymentMethod, pk=pk)
     form = PaymentMethodForm(request.POST or None, request.FILES or None, instance=method)
-    if request.method == "POST" and form.is_valid():
-        form.save()
-        return redirect("payment_methods_list")
+    if request.method == "POST" and form.is_valid(): form.save(); return redirect("payment_methods_list")
     return render(request, "site/payment_method_builder.html", {"form": form, "method": method})
-
 @staff_member_required
-def control_users_list(request):
-    users = User.objects.select_related("wallet").order_by("-date_joined")
-    return render(request, "site/control_users_list.html", {"users": users, "tiers": User.Tier.choices, "roles": User.Role.choices})
-
-
-# --- STATIC / SHARED VIEWS ---
+def control_users_list(request): return render(request, "site/control_users_list.html", {"users": User.objects.select_related("wallet").order_by("-date_joined"), "tiers": User.Tier.choices, "roles": User.Role.choices})
 def privacy_policy(request): return render(request, "site/privacy_policy.html")
 def terms_of_service(request): return render(request, "site/terms_of_service.html")
 def refund_policy(request): return render(request, "site/refund_policy.html")
