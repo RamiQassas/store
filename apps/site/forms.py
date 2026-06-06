@@ -205,7 +205,7 @@ class KYCRequestForm(forms.ModelForm):
         model = KYCRequest
         fields = [
             "document_type", "id_number", "first_name", "father_name", "last_name",
-            "date_of_birth", "place_of_birth", "current_residence",
+            "mother_name", "gender", "date_of_birth", "place_of_birth", "current_residence",
             "identity_front", "identity_back", "selfie_verification"
         ]
         widgets = {
@@ -215,9 +215,17 @@ class KYCRequestForm(forms.ModelForm):
             "first_name": forms.TextInput(attrs={"class": "builder-input"}),
             "father_name": forms.TextInput(attrs={"class": "builder-input"}),
             "last_name": forms.TextInput(attrs={"class": "builder-input"}),
+            "mother_name": forms.TextInput(attrs={"class": "builder-input"}),
             "place_of_birth": forms.TextInput(attrs={"class": "builder-input"}),
             "document_type": forms.Select(attrs={"class": "builder-input"}),
+            "gender": forms.Select(attrs={"class": "builder-input"}),
         }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Ensure all fields are required
+        for field in self.fields:
+            self.fields[field].required = True
 
 
 from apps.catalog.models import Category, Product, ProductVariant

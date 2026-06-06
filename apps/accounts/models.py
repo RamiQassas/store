@@ -207,14 +207,20 @@ class KYCRequest(TimeStampedModel):
         PASSPORT = "passport", "جواز السفر"
         DRIVER_LICENSE = "license", "رخصة القيادة"
 
+    class Gender(models.TextChoices):
+        MALE = "male", "ذكر"
+        FEMALE = "female", "أنثى"
+
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name="kyc_request")
     status = models.CharField(max_length=20, choices=Status.choices, default=Status.PENDING)
     
     # Personal Info
-    id_number = models.CharField(max_length=50, verbose_name="رقم الهوية")
+    id_number = models.CharField(max_length=50, verbose_name="رقم الهوية / الوثيقة")
     first_name = models.CharField(max_length=100, verbose_name="الاسم الأول")
     father_name = models.CharField(max_length=100, verbose_name="اسم الأب")
     last_name = models.CharField(max_length=100, verbose_name="النسبة / الكنية")
+    mother_name = models.CharField(max_length=255, default="", verbose_name="اسم الأم بالكامل")
+    gender = models.CharField(max_length=10, choices=Gender.choices, default=Gender.MALE, verbose_name="الجنس")
     date_of_birth = models.DateField(verbose_name="تاريخ الميلاد")
     place_of_birth = models.CharField(max_length=255, verbose_name="مكان الميلاد")
     current_residence = models.TextField(verbose_name="عنوان الإقامة الحالي")

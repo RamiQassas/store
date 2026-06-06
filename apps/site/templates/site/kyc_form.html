@@ -77,6 +77,14 @@
                         {{ form.last_name }}
                     </div>
                     <div class="field-group">
+                        <label class="text-xs font-bold text-slate-400 mb-2 block">اسم الأم بالكامل</label>
+                        {{ form.mother_name }}
+                    </div>
+                    <div class="field-group">
+                        <label class="text-xs font-bold text-slate-400 mb-2 block">الجنس</label>
+                        {{ form.gender }}
+                    </div>
+                    <div class="field-group">
                         <label class="text-xs font-bold text-slate-400 mb-2 block">تاريخ الميلاد</label>
                         {{ form.date_of_birth }}
                     </div>
@@ -99,25 +107,43 @@
                 </h3>
 
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    <div class="upload-box p-6 bg-slate-800/40 border border-dashed border-white/10 rounded-2xl text-center group hover:border-cyan/50 transition-all">
-                        <i class="fas fa-id-card text-3xl mb-4 text-slate-600 group-hover:text-cyan"></i>
-                        <h4 class="text-xs font-bold mb-2">وجه الوثيقة</h4>
-                        <p class="text-[9px] text-slate-500 mb-4">صورة واضحة لوجه الهوية</p>
-                        {{ form.identity_front }}
+                    <div class="upload-card stack gap-4">
+                        <div class="fixed-frame aspect-[4/3] bg-slate-800/40 border border-dashed border-white/10 rounded-2xl flex items-center justify-center relative overflow-hidden group hover:border-cyan/50 transition-all">
+                            <div class="text-center group-hover:scale-110 transition-transform">
+                                <i class="fas fa-id-card text-3xl mb-2 text-slate-600 group-hover:text-cyan"></i>
+                                <div class="text-[8px] font-black text-slate-500 uppercase tracking-widest">وجه الوثيقة</div>
+                            </div>
+                        </div>
+                        <div class="px-2">
+                            <label class="text-[10px] font-bold text-slate-400 mb-2 block">تحميل الوجه الأمامي</label>
+                            {{ form.identity_front }}
+                        </div>
                     </div>
 
-                    <div class="upload-box p-6 bg-slate-800/40 border border-dashed border-white/10 rounded-2xl text-center group hover:border-cyan/50 transition-all">
-                        <i class="fas fa-id-card-alt text-3xl mb-4 text-slate-600 group-hover:text-cyan"></i>
-                        <h4 class="text-xs font-bold mb-2">ظهر الوثيقة</h4>
-                        <p class="text-[9px] text-slate-500 mb-4">صورة واضحة لظهر الهوية</p>
-                        {{ form.identity_back }}
+                    <div class="upload-card stack gap-4">
+                        <div class="fixed-frame aspect-[4/3] bg-slate-800/40 border border-dashed border-white/10 rounded-2xl flex items-center justify-center relative overflow-hidden group hover:border-cyan/50 transition-all">
+                            <div class="text-center group-hover:scale-110 transition-transform">
+                                <i class="fas fa-id-card-alt text-3xl mb-2 text-slate-600 group-hover:text-cyan"></i>
+                                <div class="text-[8px] font-black text-slate-500 uppercase tracking-widest">ظهر الوثيقة</div>
+                            </div>
+                        </div>
+                        <div class="px-2">
+                            <label class="text-[10px] font-bold text-slate-400 mb-2 block">تحميل الوجه الخلفي</label>
+                            {{ form.identity_back }}
+                        </div>
                     </div>
 
-                    <div class="upload-box p-6 bg-slate-800/40 border border-dashed border-white/10 rounded-2xl text-center group hover:border-cyan/50 transition-all">
-                        <i class="fas fa-user-circle text-3xl mb-4 text-slate-600 group-hover:text-cyan"></i>
-                        <h4 class="text-xs font-bold mb-2">صورة سيلفي</h4>
-                        <p class="text-[9px] text-slate-500 mb-4">صورة سيلفي وأنت تحمل هويتك</p>
-                        {{ form.selfie_verification }}
+                    <div class="upload-card stack gap-4">
+                        <div class="fixed-frame aspect-[4/3] bg-slate-800/40 border border-dashed border-white/10 rounded-2xl flex items-center justify-center relative overflow-hidden group hover:border-cyan/50 transition-all">
+                            <div class="text-center group-hover:scale-110 transition-transform">
+                                <i class="fas fa-user-circle text-3xl mb-2 text-slate-600 group-hover:text-cyan"></i>
+                                <div class="text-[8px] font-black text-slate-500 uppercase tracking-widest">صورة سيلفي</div>
+                            </div>
+                        </div>
+                        <div class="px-2">
+                            <label class="text-[10px] font-bold text-slate-400 mb-2 block">تحميل صورة السيلفي</label>
+                            {{ form.selfie_verification }}
+                        </div>
                     </div>
                 </div>
 
