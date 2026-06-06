@@ -1511,7 +1511,7 @@ def password_reset_new_view(request):
     
     if not user_id or not is_verified:
         messages.error(request, "يرجى التحقق من هويتك أولاً.")
-        return redirect("password_reset")
+        return redirect("site_password_reset")
         
     user = get_object_or_404(User, id=user_id)
     
