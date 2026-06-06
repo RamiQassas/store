@@ -37,6 +37,12 @@
                         <span class="badge primary text-[9px]">{{ kyc.get_document_type_display }}</span>
                     </td>
                     <td class="p-4">
+                        <div class="flex flex-col gap-1">
+                            <div class="text-[10px] text-slate-300">{{ kyc.get_nationality_display }}</div>
+                            <div class="text-[8px] text-slate-500 uppercase tracking-tighter">صادر عن: {{ kyc.get_issuing_country_display }}</div>
+                        </div>
+                    </td>
+                    <td class="p-4">
                         <span class="badge {% if kyc.status == 'approved' %}success{% elif kyc.status == 'rejected' %}danger{% else %}warning{% endif %} text-[9px]">
                             {{ kyc.get_status_display }}
                         </span>
@@ -52,19 +58,7 @@
                 </tr>
                 {% empty %}
                 <tr>
-                    <td colspan="6" class="p-12 text-center text-slate-500 italic">لا توجد طلبات توثيق حالياً.</td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-    </div>
-</div>
-{% endblock %}
-td>
-                </tr>
-                {% empty %}
-                <tr>
-                    <td colspan="6" class="p-12 text-center text-slate-500 italic">لا توجد طلبات توثيق حالياً.</td>
+                    <td colspan="7" class="p-12 text-center text-slate-500 italic">لا توجد طلبات توثيق حالياً.</td>
                 </tr>
                 {% endfor %}
             </tbody>

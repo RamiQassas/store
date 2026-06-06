@@ -1,6 +1,20 @@
 {% extends "site/control_base.html" %}
 {% block title %}إعدادات التوثيق والحدود | Raqamiyat Admin{% endblock %}
 
+{% block extra_head %}
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+<style>
+    .select2-container--default .select2-selection--multiple { background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); border-radius: 12px; min-height: 48px; }
+    .select2-dropdown { background: #0f172a; border: 1px solid #334155; color: #fff; }
+    .select2-container--default .select2-selection--multiple .select2-selection__choice { background-color: #1e293b; border: 1px solid #334155; color: #fff; border-radius: 6px; }
+    .select2-search__field { background: transparent !important; color: #fff !important; }
+    
+    .builder-input { width: 100%; padding: 12px 16px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); border-radius: 12px; color: #fff; }
+    .builder-input:focus { border-color: var(--cyan); outline: none; }
+    input[type="checkbox"] { width: 18px; height: 18px; cursor: pointer; }
+</style>
+{% endblock %}
+
 {% block control_content %}
 <div class="page-head">
     <div>
@@ -48,36 +62,14 @@
                 </div>
             </div>
 
-            <div class="h-px bg-white/5 my-4"></div>
+            <div class="h-px bg-white/5 my-8"></div>
 
             <h3 class="text-sm font-bold uppercase tracking-widest text-slate-500 mb-6">قواعد الحظر والامتثال</h3>
             
             <div class="grid grid-cols-1 gap-6">
                 <div class="field-group">
-                    <label class="text-[10px] text-slate-500 mb-2 block">الدول المحظورة (اختيار متعدد)</label>
+                    <label class="text-[10px] text-slate-500 mb-2 block">إضافة دول للمحظر (بحث + عربية)</label>
                     {{ form.restricted_countries_list }}
-                    <p class="text-[9px] text-slate-600 mt-2 leading-relaxed">
-                        اختر الدول التي ترغب بحظرها. يمكنك البحث وكتابة اسم الدولة للاختيار.
-                    </p>
-                </div>
-                
-                <!-- Display Blocked List Clearly -->
-                <div class="bg-slate-900/40 p-6 rounded-2xl border border-white/5">
-                    <h4 class="text-[10px] font-black text-rose-500 uppercase tracking-widest mb-4">قائمة الحظر النشطة:</h4>
-                    <div class="flex flex-wrap gap-2">
-                        {% for code in settings.restricted_countries %}
-                            <div class="flex items-center gap-2 bg-rose-500/10 border border-rose-500/20 px-3 py-1 rounded-full">
-                                <span class="text-[10px] font-bold text-rose-500">{{ code }}</span>
-                                <span class="text-[10px] text-rose-400/70">
-                                    {% for c_code, c_name in form.fields.restricted_countries_list.choices %}
-                                        {% if c_code == code %}{{ c_name }}{% endif %}
-                                    {% endfor %}
-                                </span>
-                            </div>
-                        {% empty %}
-                            <p class="text-[10px] text-slate-600 italic">لا توجد دول محظورة حالياً.</p>
-                        {% endfor %}
-                    </div>
                 </div>
                 
                 <div class="flex flex-wrap gap-6 bg-slate-900/30 p-4 rounded-xl border border-white/5">
@@ -100,8 +92,52 @@
         </form>
     </div>
 
-    <!-- Active Statistics & Info -->
+    <!-- Restricted Countries Table -->
     <div class="stack gap-8">
+        <div class="management-card p-8">
+            <h3 class="text-sm font-bold uppercase tracking-widest text-slate-500 mb-6 border-b border-white/5 pb-4">الدول المحظورة حالياً</h3>
+            
+            <div class="table-responsive">
+                <table class="w-full text-right">
+                    <thead>
+                        <tr class="text-[9px] uppercase tracking-widest text-slate-600 border-b border-white/5">
+                            <th class="p-3">رمز الدولة</th>
+                            <th class="p-3">اسم الدولة</th>
+                            <th class="p-3">الحالة</th>
+                            <th class="p-3">إجراء</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for code in settings.restricted_countries %}
+                        <tr class="border-b border-white/[0.02] last:border-0 hover:bg-white/[0.02] transition">
+                            <td class="p-3 text-xs font-mono font-bold text-cyan">{{ code }}</td>
+                            <td class="p-3 text-xs">
+                                {% for c_code, c_name in form.fields.restricted_countries_list.choices %}
+                                    {% if c_code == code %}{{ c_name }}{% endif %}
+                                {% endfor %}
+                            </td>
+                            <td class="p-3">
+                                <span class="badge danger text-[8px]">محظورة</span>
+                            </td>
+                            <td class="p-3">
+                                <form method="post" class="inline">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="action" value="unblock_country">
+                                    <input type="hidden" name="country_code" value="{{ code }}">
+                                    <button type="submit" class="text-[9px] text-rose-500 font-bold hover:underline">فك الحظر</button>
+                                </form>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="4" class="p-8 text-center text-slate-500 italic text-xs">لا توجد دول محظورة حالياً.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
         <div class="management-card p-8">
             <h3 class="text-sm font-bold uppercase tracking-widest text-slate-500 mb-4 pb-2 border-b border-white/5">إحصائيات حالية</h3>
             <div class="grid grid-cols-2 gap-4">
@@ -115,21 +151,20 @@
                 </div>
             </div>
         </div>
-
-        <div class="p-6 bg-cyan/5 border border-cyan/10 rounded-3xl">
-            <h4 class="text-xs font-black text-cyan uppercase mb-3 flex items-center gap-2">
-                <i class="fas fa-info-circle"></i> ملاحظة برمجية
-            </h4>
-            <p class="text-[11px] text-slate-400 leading-relaxed">
-                تغيير هذه الإعدادات سيطبق فقط على العمليات الجديدة أو طلبات التوثيق المستقبلية. الحسابات التي لديها "حدود مخصصة" لن تتأثر بالتغييرات هنا.
-            </p>
-        </div>
     </div>
 </div>
+{% endblock %}
 
-<style>
-    .builder-input { width: 100%; padding: 12px 16px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); border-radius: 12px; color: #fff; }
-    .builder-input:focus { border-color: var(--cyan); outline: none; }
-    input[type="checkbox"] { width: 18px; height: 18px; cursor: pointer; }
-</style>
+{% block extra_js %}
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+<script>
+    $(document).ready(function() {
+        $('.select2').select2({
+            width: '100%',
+            dir: 'rtl',
+            placeholder: 'اختر دولة للبحث والحظر...'
+        });
+    });
+</script>
 {% endblock %}

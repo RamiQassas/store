@@ -1,12 +1,49 @@
 {% extends "site/base.html" %}
 {% block title %}توثيق الحساب | Raqamiyat{% endblock %}
+{% block extra_head %}
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+<style>
+    .select2-container--default .select2-selection--single {
+        background: rgba(255,255,255,0.03);
+        border: 1px solid rgba(255,255,255,0.08);
+        border-radius: 12px;
+        height: 48px;
+        display: flex;
+        align-items: center;
+        color: #fff;
+    }
+    .select2-container--default .select2-selection--single .select2-selection__rendered {
+        color: #fff;
+        padding-right: 15px;
+        text-align: right;
+    }
+    .select2-dropdown {
+        background: #0f172a;
+        border: 1px solid #334155;
+        color: #fff;
+    }
+    .select2-search__field {
+        background: #1e293b !important;
+        color: #fff !important;
+        border: 1px solid #475569 !important;
+    }
+    .select2-results__option--highlighted[aria-selected] { background-color: #06b6d4 !important; }
+    
+    .builder-input { width: 100%; padding: 12px 16px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); border-radius: 12px; color: #fff; }
+    .builder-input:focus { border-color: var(--cyan); outline: none; }
+    input[type="file"] { font-size: 10px; color: #64748b; }
+    .fixed-frame { position: relative; overflow: hidden; width: 100% !important; max-width: 100%; height: auto; border: 1px solid rgba(255,255,255,0.05); }
+    .fixed-frame img { width: 100%; height: 100%; object-fit: contain; }
+</style>
+{% endblock %}
+
 {% block content %}
 <div class="container py-12">
     <div class="max-w-3xl mx-auto">
-        <div class="page-head mb-8">
+        <div class="page-head mb-8 text-center">
             <span class="eyebrow">Identity Verification</span>
-            <h1>توثيق الهوية والتحقق من الحساب</h1>
-            <p class="text-slate-500 mt-2">التوثيق **اختياري** تماماً، ولكنه مطلوب فقط إذا كنت ترغب في رفع حدود العمليات المالية على حسابك.</p>
+            <h1 class="text-3xl font-black">توثيق الهوية والتحقق من الحساب</h1>
+            <p class="text-slate-500 mt-4 leading-relaxed">التوثيق **اختياري** تماماً، ولكنه مطلوب فقط إذا كنت ترغب في رفع حدود العمليات المالية على حسابك.</p>
         </div>
 
         {% if user.is_kyc_verified %}
@@ -30,7 +67,7 @@
         </div>
 
         {% else %}
-        <div class="panel p-8 bg-slate-900/40 border-white/5 rounded-3xl">
+        <div class="panel p-8 bg-slate-900/40 border-white/5 rounded-3xl shadow-2xl">
             {% if kyc_status == 'rejected' %}
             <div class="p-6 bg-rose-500/10 border border-rose-500/20 rounded-2xl mb-8">
                 <div class="flex items-center gap-3 text-rose-500 font-bold mb-2">
@@ -44,80 +81,89 @@
             </div>
             {% endif %}
 
-            <div class="flex items-start gap-4 p-4 bg-cyan/5 border border-cyan/10 rounded-2xl mb-8">
+            <div class="flex items-start gap-4 p-5 bg-cyan/5 border border-cyan/10 rounded-2xl mb-10">
                 <i class="fas fa-info-circle text-cyan mt-1"></i>
                 <p class="text-sm text-cyan leading-relaxed">
                     بصفتنا منصة مالية مسؤولة، نقوم بطلب التوثيق لضمان سلامة العمليات ومنع الاحتيال. بمجرد قبول طلبك، سيتم رفع حدود الإيداع والسحب اليومية الخاصة بك بشكل كبير.
                 </p>
             </div>
 
-            <form method="post" enctype="multipart/form-data" class="stack gap-8">
+            <form method="post" enctype="multipart/form-data" class="stack gap-10" id="kyc-form">
                 {% csrf_token %}
                 
-                <!-- Personal Info Section -->
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- Geographical Info (TOP) -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
                     <div class="field-group">
-                        <label class="text-xs font-bold text-slate-400 mb-2 block">نوع الوثيقة</label>
-                        {{ form.document_type }}
-                    </div>
-                    <div class="field-group">
-                        <label class="text-xs font-bold text-slate-400 mb-2 block">رقم الوثيقة / الهوية</label>
-                        {{ form.id_number }}
-                    </div>
-                    <div class="field-group">
-                        <label class="text-xs font-bold text-slate-400 mb-2 block">الجنسية</label>
+                        <label class="text-xs font-black text-slate-400 mb-3 block uppercase tracking-widest">الجنسية</label>
                         {{ form.nationality }}
                     </div>
                     <div class="field-group">
-                        <label class="text-xs font-bold text-slate-400 mb-2 block">بلد إصدار الوثيقة</label>
+                        <label class="text-xs font-black text-slate-400 mb-3 block uppercase tracking-widest">بلد إصدار الوثيقة</label>
                         {{ form.issuing_country }}
                     </div>
+                </div>
+
+                <div class="h-px bg-white/5"></div>
+
+                <!-- Identity Info Section -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
                     <div class="field-group">
-                        <label class="text-xs font-bold text-slate-400 mb-2 block">الاسم الأول</label>
+                        <label class="text-xs font-black text-slate-400 mb-3 block uppercase tracking-widest">نوع الوثيقة</label>
+                        {{ form.document_type }}
+                    </div>
+                    <div class="field-group">
+                        <label class="text-xs font-black text-slate-400 mb-3 block uppercase tracking-widest">رقم الوطني / الوثيقة</label>
+                        {{ form.id_number }}
+                    </div>
+                    <div class="field-group">
+                        <label class="text-xs font-black text-slate-400 mb-3 block uppercase tracking-widest">الاسم الأول</label>
                         {{ form.first_name }}
                     </div>
                     <div class="field-group">
-                        <label class="text-xs font-bold text-slate-400 mb-2 block">اسم الأب</label>
+                        <label class="text-xs font-black text-slate-400 mb-3 block uppercase tracking-widest">اسم الأب</label>
                         {{ form.father_name }}
                     </div>
                     <div class="field-group">
-                        <label class="text-xs font-bold text-slate-400 mb-2 block">النسبة / الكنية</label>
+                        <label class="text-xs font-black text-slate-400 mb-3 block uppercase tracking-widest">النسبة / الكنية</label>
                         {{ form.last_name }}
                     </div>
                     <div class="field-group">
-                        <label class="text-xs font-bold text-slate-400 mb-2 block">اسم الأم بالكامل</label>
+                        <label class="text-xs font-black text-slate-400 mb-3 block uppercase tracking-widest">اسم الأم ونسبتها</label>
                         {{ form.mother_name }}
                     </div>
                     <div class="field-group">
-                        <label class="text-xs font-bold text-slate-400 mb-2 block">الجنس</label>
+                        <label class="text-xs font-black text-slate-400 mb-3 block uppercase tracking-widest">الجنس</label>
                         {{ form.gender }}
                     </div>
                     <div class="field-group">
-                        <label class="text-xs font-bold text-slate-400 mb-2 block">تاريخ الميلاد</label>
+                        <label class="text-xs font-black text-slate-400 mb-3 block uppercase tracking-widest">تاريخ الميلاد</label>
                         {{ form.date_of_birth }}
                     </div>
                     <div class="field-group md:col-span-2">
-                        <label class="text-xs font-bold text-slate-400 mb-2 block">مكان الميلاد</label>
+                        <label class="text-xs font-black text-slate-400 mb-3 block uppercase tracking-widest">مكان الميلاد</label>
                         {{ form.place_of_birth }}
                     </div>
                     <div class="field-group md:col-span-2">
-                        <label class="text-xs font-bold text-slate-400 mb-2 block">عنوان الإقامة الحالي</label>
+                        <label class="text-xs font-black text-slate-400 mb-3 block uppercase tracking-widest">عنوان الإقامة الحالي</label>
                         {{ form.current_residence }}
                     </div>
                 </div>
 
-                <div class="h-px bg-white/5 my-4"></div>
+                <div class="h-px bg-white/5"></div>
 
                 <!-- Document Uploads -->
-                <h3 class="text-lg font-bold flex items-center gap-2 mb-6">
+                <h3 class="text-xl font-black flex items-center gap-3 mb-2">
                     <i class="fas fa-camera text-cyan"></i> 
                     تحميل صور الوثائق
                 </h3>
+                <p class="text-xs text-slate-500 mb-8">يجب أن تكون الصور واضحة وجميع البيانات مقروءة.</p>
 
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                    <!-- Image Cards with Fixed Preview -->
                     <div class="upload-card stack gap-4">
-                        <div class="fixed-frame aspect-[4/3] bg-slate-800/40 border border-dashed border-white/10 rounded-2xl flex items-center justify-center relative overflow-hidden group hover:border-cyan/50 transition-all">
-                            <div class="text-center group-hover:scale-110 transition-transform">
+                        <div class="fixed-frame aspect-[4/3] w-full bg-slate-800/40 border border-dashed border-white/10 rounded-2xl flex items-center justify-center relative overflow-hidden group hover:border-cyan/50 transition-all">
+                            <img id="preview-front" src="" class="hidden w-full h-full object-contain">
+                            <div class="text-center placeholder-icon">
                                 <i class="fas fa-id-card text-3xl mb-2 text-slate-600 group-hover:text-cyan"></i>
                                 <div class="text-[8px] font-black text-slate-500 uppercase tracking-widest">وجه الوثيقة</div>
                             </div>
@@ -129,8 +175,9 @@
                     </div>
 
                     <div class="upload-card stack gap-4">
-                        <div class="fixed-frame aspect-[4/3] bg-slate-800/40 border border-dashed border-white/10 rounded-2xl flex items-center justify-center relative overflow-hidden group hover:border-cyan/50 transition-all">
-                            <div class="text-center group-hover:scale-110 transition-transform">
+                        <div class="fixed-frame aspect-[4/3] w-full bg-slate-800/40 border border-dashed border-white/10 rounded-2xl flex items-center justify-center relative overflow-hidden group hover:border-cyan/50 transition-all">
+                            <img id="preview-back" src="" class="hidden w-full h-full object-contain">
+                            <div class="text-center placeholder-icon">
                                 <i class="fas fa-id-card-alt text-3xl mb-2 text-slate-600 group-hover:text-cyan"></i>
                                 <div class="text-[8px] font-black text-slate-500 uppercase tracking-widest">ظهر الوثيقة</div>
                             </div>
@@ -143,33 +190,62 @@
 
                     <div class="upload-card stack gap-4">
                         <div class="fixed-frame aspect-[4/3] w-full bg-slate-800/40 border border-dashed border-white/10 rounded-2xl flex items-center justify-center relative overflow-hidden group hover:border-cyan/50 transition-all">
-                            <div class="text-center group-hover:scale-110 transition-transform">
+                            <img id="preview-selfie" src="" class="hidden w-full h-full object-contain">
+                            <div class="text-center placeholder-icon">
                                 <i class="fas fa-user-circle text-3xl mb-2 text-slate-600 group-hover:text-cyan"></i>
                                 <div class="text-[8px] font-black text-slate-500 uppercase tracking-widest">صورة سيلفي</div>
                             </div>
                         </div>
                         <div class="px-2">
                             <label class="text-[10px] font-bold text-slate-400 mb-2 block">تحميل صورة السيلفي</label>
-                            <p class="text-[9px] text-slate-500 mb-3 leading-relaxed">يرجى رفع صورة سيلفي واضحة وأنت تحمل نفس وثيقة الهوية بجانب وجهك. تأكد من وضوح ملامح وجهك وبيانات الوثيقة لتجنب رفض الطلب.</p>
+                            <p class="text-[8px] text-slate-500 mb-2">سيلفي وأنت تحمل هويتك بجانب وجهك.</p>
                             {{ form.selfie_verification }}
                         </div>
                     </div>
                 </div>
 
-                <div class="mt-8 flex items-center gap-4">
-                    <button type="submit" class="btn btn-primary px-12 py-4 rounded-2xl font-bold">تقديم الطلب للمراجعة</button>
-                    <a href="{% url 'dashboard' %}" class="btn btn-outline px-8 py-4 rounded-2xl font-bold">إلغاء</a>
+                <div class="mt-8 pt-8 border-t border-white/5 flex items-center gap-6">
+                    <button type="submit" class="btn btn-primary px-16 py-4 rounded-2xl font-black shadow-cyan hover:scale-[1.02] transition-transform">تقديم الطلب للمراجعة</button>
+                    <a href="{% url 'dashboard' %}" class="btn btn-outline px-10 py-4 rounded-2xl font-bold opacity-60 hover:opacity-100">إلغاء</a>
                 </div>
             </form>
         </div>
         {% endif %}
     </div>
 </div>
+{% endblock %}
 
-<style>
-    .builder-input { width: 100%; padding: 12px 16px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); border-radius: 12px; color: #fff; }
-    .builder-input:focus { border-color: var(--cyan); outline: none; }
-    input[type="file"] { font-size: 10px; color: #64748b; }
-    .fixed-frame { position: relative; overflow: hidden; width: 100% !important; max-width: 100%; height: auto; }
-</style>
+{% block extra_js %}
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+<script>
+    $(document).ready(function() {
+        $('.searchable-select').select2({
+            width: '100%',
+            dir: 'rtl'
+        });
+        
+        // Image Previews
+        function handlePreview(input, previewId) {
+            if (!input) return;
+            input.onchange = evt => {
+                const [file] = input.files;
+                if (file) {
+                    const preview = document.getElementById(previewId);
+                    preview.src = URL.createObjectURL(file);
+                    preview.classList.remove('hidden');
+                    const uploadCard = input.closest('.upload-card');
+                    if (uploadCard) {
+                        const placeholder = uploadCard.querySelector('.placeholder-icon');
+                        if (placeholder) placeholder.classList.add('hidden');
+                    }
+                }
+            }
+        }
+        
+        handlePreview(document.querySelector('input[name="identity_front"]'), 'preview-front');
+        handlePreview(document.querySelector('input[name="identity_back"]'), 'preview-back');
+        handlePreview(document.querySelector('input[name="selfie_verification"]'), 'preview-selfie');
+    });
+</script>
 {% endblock %}

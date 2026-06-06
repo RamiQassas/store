@@ -645,10 +645,22 @@ def control_kyc_detail(request, pk):
 def control_kyc_settings(request):
     settings_obj = KYCSettings.get_settings()
     form = KYCSettingsForm(request.POST or None, instance=settings_obj)
-    if request.method == "POST" and form.is_valid():
-        form.save()
-        messages.success(request, "تم حفظ إعدادات التوثيق والحدود بنجاح.")
-        return redirect("control_kyc_settings")
+    
+    if request.method == "POST":
+        action = request.POST.get("action")
+        
+        if action == "unblock_country":
+            country_code = request.POST.get("country_code")
+            if country_code in settings_obj.restricted_countries:
+                settings_obj.restricted_countries.remove(country_code)
+                settings_obj.save(update_fields=["restricted_countries"])
+                messages.success(request, f"تم فك الحظر عن {country_code} بنجاح.")
+            return redirect("control_kyc_settings")
+            
+        elif form.is_valid():
+            form.save()
+            messages.success(request, "تم حفظ إعدادات التوثيق والحدود بنجاح.")
+            return redirect("control_kyc_settings")
     
     verified_count = User.objects.filter(is_kyc_verified=True).count()
     return render(request, "site/control_kyc_settings.html", {

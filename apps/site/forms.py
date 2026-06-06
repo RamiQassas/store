@@ -241,21 +241,21 @@ class KYCRequestForm(forms.ModelForm):
     class Meta:
         model = KYCRequest
         fields = [
-            "document_type", "id_number", "nationality", "issuing_country",
+            "nationality", "issuing_country", "document_type", "id_number",
             "first_name", "father_name", "last_name",
             "mother_name", "gender", "date_of_birth", "place_of_birth", "current_residence",
             "identity_front", "identity_back", "selfie_verification"
         ]
         widgets = {
-            "nationality": forms.Select(attrs={"class": "builder-input search-select"}),
-            "issuing_country": forms.Select(attrs={"class": "builder-input search-select"}),
+            "nationality": forms.Select(attrs={"class": "builder-input searchable-select"}),
+            "issuing_country": forms.Select(attrs={"class": "builder-input searchable-select"}),
             "date_of_birth": forms.DateInput(attrs={"type": "date", "class": "builder-input"}),
             "current_residence": forms.Textarea(attrs={"rows": 3, "class": "builder-input"}),
             "id_number": forms.TextInput(attrs={"class": "builder-input"}),
             "first_name": forms.TextInput(attrs={"class": "builder-input"}),
             "father_name": forms.TextInput(attrs={"class": "builder-input"}),
             "last_name": forms.TextInput(attrs={"class": "builder-input"}),
-            "mother_name": forms.TextInput(attrs={"class": "builder-input"}),
+            "mother_name": forms.TextInput(attrs={"class": "builder-input", "placeholder": "الاسم الثلاثي للأم"}),
             "place_of_birth": forms.TextInput(attrs={"class": "builder-input"}),
             "document_type": forms.Select(attrs={"class": "builder-input"}),
             "gender": forms.Select(attrs={"class": "builder-input"}),
