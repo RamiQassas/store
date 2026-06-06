@@ -19,17 +19,17 @@ from django.utils.encoding import force_str
 from django.conf import settings
 
 from apps.accounts.models import User, ModerationLog, ActivityLog, EmailVerificationToken, OTPToken
-from apps.accounts.services import send_brevo_email
+from apps.accounts.services import send_brevo_email, send_verification_email
 from apps.catalog.models import Category, Product, ProductVariant
 from apps.common.models import Currency
 from apps.notifications.models import Notification, NotificationSetting
-from apps.notifications.services import notify_user
+from apps.notifications.services import notify_user, notify_bulk
 from apps.orders.models import Order, OrderItem, OrderLog, Coupon
 from apps.payments.models import DepositRequest, PaymentMethod, WithdrawalRequest
 from apps.site.forms import LoginForm, RegisterForm, TicketForm, PaymentMethodForm, CurrencyForm, ModerateUserForm, ProductForm, VariantForm
 from apps.support.models import ChatRoom, ChatMessage, ChatCannedReply
 from apps.wallets.models import LedgerEntry, Wallet, WalletTransaction
-from apps.wallets.services import get_or_create_wallet
+from apps.wallets.services import get_or_create_wallet, track_pending_deposit, freeze_funds, credit_wallet, release_funds, finalize_withdrawal
 
 
 # ==========================================
@@ -333,7 +333,27 @@ def deposits(request):
     if request.user.restriction_deposits:
         messages.error(request, "حسابك مقيد من الإيداع.")
         return redirect("dashboard")
-    methods = PaymentMethod.objects.filter(is_active=True, can_deposit=True)
+    methods = PaymentMethod.objects.filter(is_active=True, can_deposit=True).prefetch_related("supported_currencies")
+    if request.method == "POST":
+        method_id = request.POST.get("payment_method")
+        currency_id = request.POST.get("currency")
+        amount_str = request.POST.get("amount", "0")
+        amount = Decimal(amount_str) if amount_str else Decimal("0")
+        proof = request.FILES.get("proof_image")
+        
+        method = get_object_or_404(methods, id=method_id)
+        currency = get_object_or_404(Currency, id=currency_id)
+        wallet = get_or_create_wallet(request.user)
+
+        with transaction.atomic():
+            deposit = DepositRequest.objects.create(
+                user=request.user, payment_method=method, amount=amount,
+                currency=currency, proof_image=proof, status=DepositRequest.Status.PENDING
+            )
+            track_pending_deposit(wallet.id, amount, reference=f"deposit:{deposit.id}")
+            messages.success(request, "طلب الإيداع قيد المراجعة.")
+            return redirect("dashboard")
+            
     return render(request, "site/deposits.html", {"payment_methods": methods})
 
 
@@ -342,7 +362,28 @@ def withdrawals(request):
     if request.user.restriction_withdrawals:
         messages.error(request, "حسابك مقيد من السحب.")
         return redirect("dashboard")
-    methods = PaymentMethod.objects.filter(is_active=True, can_withdraw=True)
+    methods = PaymentMethod.objects.filter(is_active=True, can_withdraw=True).prefetch_related("supported_currencies")
+    if request.method == "POST":
+        method_id = request.POST.get("payment_method")
+        currency_id = request.POST.get("currency")
+        amount = Decimal(request.POST.get("amount", "0"))
+        
+        method = get_object_or_404(methods, id=method_id)
+        currency = get_object_or_404(Currency, id=currency_id)
+        wallet = get_or_create_wallet(request.user)
+        
+        if wallet.available_balance >= amount:
+            with transaction.atomic():
+                withdrawal = WithdrawalRequest.objects.create(
+                    user=request.user, payment_method=method, amount=amount,
+                    currency=currency, status=WithdrawalRequest.Status.PENDING
+                )
+                freeze_funds(wallet.id, amount, reference=f"with:{withdrawal.id}")
+                messages.success(request, "طلب السحب قيد المراجعة.")
+                return redirect("dashboard")
+        else:
+            messages.error(request, "رصيد غير كافٍ.")
+            
     return render(request, "site/withdrawals.html", {"payment_methods": methods})
 
 
@@ -352,7 +393,13 @@ def withdrawals(request):
 
 @staff_member_required
 def control_dashboard(request):
-    return render(request, "site/control_dashboard.html", {"stats": {"users": User.objects.count()}})
+    stats = {
+        "users": User.objects.count(),
+        "products": Product.objects.count(),
+        "orders": Order.objects.count(),
+        "deposits": DepositRequest.objects.count(),
+    }
+    return render(request, "site/control_dashboard.html", {"stats": stats})
 
 @staff_member_required
 def control_users_list(request):
@@ -364,13 +411,152 @@ def control_user_moderate(request, public_uuid):
     target_user = get_object_or_404(User, public_uuid=public_uuid)
     form = ModerateUserForm(request.POST or None, instance=target_user)
     if request.method == "POST" and form.is_valid():
-        form.save()
+        user = form.save()
+        if not user.is_account_active:
+             from django.contrib.sessions.models import Session
+             sessions = Session.objects.filter(expire_date__gte=timezone.now())
+             for s in sessions:
+                 if str(user.id) == s.get_decoded().get('_auth_user_id'): s.delete()
         messages.success(request, "تم تحديث بيانات المستخدم.")
         return redirect("control_users_list")
     return render(request, "site/control_user_moderate.html", {"form": form, "user_to_moderate": target_user})
 
+@staff_member_required
+def control_deposits(request):
+    deposits = DepositRequest.objects.select_related("user", "payment_method", "currency").all()
+    return render(request, "site/control_deposits.html", {"deposits": deposits})
 
-# --- PLACEHOLDER / STATIC VIEWS ---
+@staff_member_required
+def control_withdrawals(request):
+    withdrawals = WithdrawalRequest.objects.select_related("user", "payment_method", "currency").all()
+    return render(request, "site/control_withdrawals.html", {"withdrawals": withdrawals})
+
+@staff_member_required
+def control_withdrawal_detail(request, pk):
+    withdrawal = get_object_or_404(WithdrawalRequest.objects.select_related("user"), pk=pk)
+    return render(request, "site/control_withdrawal_detail.html", {"withdrawal": withdrawal})
+
+@staff_member_required
+def payment_methods_list(request):
+    methods = PaymentMethod.objects.all().order_by("display_order")
+    return render(request, "site/payment_methods_list.html", {"methods": methods})
+
+@staff_member_required
+def payment_method_create(request):
+    form = PaymentMethodForm(request.POST or None, request.FILES or None)
+    if request.method == "POST" and form.is_valid():
+        form.save()
+        return redirect("payment_methods_list")
+    return render(request, "site/payment_method_builder.html", {"form": form})
+
+@staff_member_required
+def payment_method_edit(request, pk):
+    method = get_object_or_404(PaymentMethod, pk=pk)
+    form = PaymentMethodForm(request.POST or None, request.FILES or None, instance=method)
+    if request.method == "POST" and form.is_valid():
+        form.save()
+        return redirect("payment_methods_list")
+    return render(request, "site/payment_method_builder.html", {"form": form, "method": method})
+
+@staff_member_required
+def currencies_list(request):
+    currencies = Currency.objects.all()
+    return render(request, "site/currencies_list.html", {"currencies": currencies})
+
+@staff_member_required
+def currency_create(request):
+    form = CurrencyForm(request.POST or None)
+    if request.method == "POST" and form.is_valid():
+        form.save()
+        return redirect("currencies_list")
+    return render(request, "site/currency_form.html", {"form": form})
+
+@staff_member_required
+def currency_edit(request, pk):
+    currency = get_object_or_404(Currency, pk=pk)
+    form = CurrencyForm(request.POST or None, instance=currency)
+    if request.method == "POST" and form.is_valid():
+        form.save()
+        return redirect("currencies_list")
+    return render(request, "site/currency_form.html", {"form": form, "currency": currency})
+
+@staff_member_required
+def control_products_list(request):
+    products = Product.objects.all()
+    return render(request, "site/control_products_list.html", {"products": products})
+
+@staff_member_required
+def control_product_create(request):
+    form = ProductForm(request.POST or None, request.FILES or None)
+    if request.method == "POST" and form.is_valid():
+        form.save()
+        return redirect("control_products_list")
+    return render(request, "site/control_product_builder.html", {"form": form})
+
+@staff_member_required
+def control_product_edit(request, pk):
+    product = get_object_or_404(Product, pk=pk)
+    form = ProductForm(request.POST or None, request.FILES or None, instance=product)
+    if request.method == "POST" and form.is_valid():
+        form.save()
+        return redirect("control_products_list")
+    return render(request, "site/control_product_builder.html", {"form": form, "product": product})
+
+@staff_member_required
+def control_variant_create(request, product_pk):
+    product = get_object_or_404(Product, pk=product_pk)
+    form = VariantForm(request.POST or None)
+    if request.method == "POST" and form.is_valid():
+        v = form.save(commit=False)
+        v.product = product
+        v.save()
+        return redirect("control_product_edit", pk=product.pk)
+    return render(request, "site/control_variant_form.html", {"form": form, "product": product})
+
+@staff_member_required
+def control_variant_edit(request, pk):
+    variant = get_object_or_404(ProductVariant, pk=pk)
+    form = VariantForm(request.POST or None, instance=variant)
+    if request.method == "POST" and form.is_valid():
+        form.save()
+        return redirect("control_product_edit", pk=variant.product.pk)
+    return render(request, "site/control_variant_form.html", {"form": form})
+
+@staff_member_required
+def control_orders_list(request):
+    orders = Order.objects.all()
+    return render(request, "site/control_orders_list.html", {"orders": orders})
+
+@staff_member_required
+def control_order_detail(request, pk):
+    order = get_object_or_404(Order, pk=pk)
+    return render(request, "site/control_order_detail.html", {"order": order})
+
+@staff_member_required
+def control_wallets_list(request):
+    wallets = Wallet.objects.all()
+    return render(request, "site/control_wallets_list.html", {"wallets": wallets})
+
+@staff_member_required
+def control_reports(request):
+    return render(request, "site/control_reports.html")
+
+@staff_member_required
+def control_send_notification(request):
+    if request.method == "POST":
+        notify_bulk(User.objects.filter(is_active=True), request.POST.get("title"), request.POST.get("body"))
+        return redirect("control_send_notification")
+    return render(request, "site/control_notification_form.html")
+
+@staff_member_required
+def control_category_create_ajax(request):
+    if request.method == "POST":
+        c = Category.objects.create(name=request.POST.get("name"))
+        return JsonResponse({"status":"ok", "id": str(c.id), "name": c.name})
+    return JsonResponse({"status":"error"}, status=400)
+
+
+# --- ADDITIONAL SITE VIEWS ---
 def privacy_policy(request): return render(request, "site/privacy_policy.html")
 def terms_of_service(request): return render(request, "site/terms_of_service.html")
 def refund_policy(request): return render(request, "site/refund_policy.html")
@@ -379,22 +565,5 @@ def set_currency(request): return redirect("home")
 def email_verify(request, uidb64, token): return redirect("v3_login")
 def resend_verification(request): return redirect("dashboard")
 def notification_settings(request): return render(request, "site/notification_settings.html")
-def control_deposits(request): return render(request, "site/control_deposits.html")
-def control_withdrawals(request): return render(request, "site/control_withdrawals.html")
-def control_withdrawal_detail(request, pk): return render(request, "site/control_withdrawal_detail.html")
-def currencies_list(request): return render(request, "site/currencies_list.html")
-def currency_create(request): return render(request, "site/currency_form.html")
-def currency_edit(request, pk): return render(request, "site/currency_form.html")
-def control_products_list(request): return render(request, "site/control_products_list.html")
-def control_product_create(request): return render(request, "site/control_product_builder.html")
-def control_category_create_ajax(request): return JsonResponse({"status":"ok"})
-def control_product_edit(request, pk): return render(request, "site/control_product_builder.html")
-def control_variant_create(request, product_pk): return render(request, "site/control_variant_form.html")
-def control_variant_edit(request, pk): return render(request, "site/control_variant_form.html")
-def control_orders_list(request): return render(request, "site/control_orders_list.html")
-def control_order_detail(request, pk): return render(request, "site/control_order_detail.html")
-def control_wallets_list(request): return render(request, "site/control_wallets_list.html")
-def control_reports(request): return render(request, "site/control_reports.html")
-def control_send_notification(request): return render(request, "site/control_notification_form.html")
 def tickets(request): return render(request, "site/tickets.html")
 def ticket_detail(request, pk): return render(request, "site/ticket_detail.html")

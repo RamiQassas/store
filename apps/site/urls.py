@@ -24,7 +24,7 @@ urlpatterns = [
     path("api/withdrawals/<uuid:pk>/complete/", api_views.api_withdrawal_complete, name="api_withdrawal_complete"),
     path("api/withdrawals/<uuid:pk>/reject/", api_views.api_withdrawal_reject, name="api_withdrawal_reject"),
 
-    # AUTH V3 (ABSOLUTE ISOLATION)
+    # AUTH V3 (FINAL)
     path("auth/login/", views.v3_login_view, name="v3_login"),
     path("auth/register/", views.v3_register_view, name="v3_register"),
     path("auth/verify/", views.v3_verify_otp_view, name="v3_verify_otp"),
@@ -32,11 +32,6 @@ urlpatterns = [
     path("auth/reset-password/", views.v3_reset_password_view, name="v3_reset_password"),
     path("auth/logout/", views.v3_logout_view, name="v3_logout"),
     
-    # Map legacy names for template compatibility where needed, but point to V3
-    path("auth/v2/login/", views.v3_login_view, name="v2_login"),
-    path("auth/verify-otp/", views.v3_verify_otp_view, name="verify_otp"),
-    path("auth/password-reset/", views.v3_forgot_password_view, name="site_password_reset"),
-
     # Control Panel
     path("control/", views.control_dashboard, name="control_dashboard"),
     path("control/payment-methods/", views.payment_methods_list, name="payment_methods_list"),
