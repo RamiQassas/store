@@ -1527,3 +1527,18 @@ def password_reset_new_view(request):
             return redirect("site_login")
             
     return render(request, "registration/password_reset_new.html", {"user_email": user.email})
+
+
+def service_worker(request):
+    """Serves the service worker from the root for correct scoping."""
+    from django.http import HttpResponse
+    from django.conf import settings
+    import os
+    
+    sw_path = os.path.join(settings.BASE_DIR, 'apps', 'site', 'static', 'site', 'js', 'sw.js')
+    try:
+        with open(sw_path, 'r', encoding='utf-8') as f:
+            content = f.read()
+        return HttpResponse(content, content_type='application/javascript')
+    except FileNotFoundError:
+        return HttpResponse("// Service worker file not found", content_type='application/javascript', status=404)
