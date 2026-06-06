@@ -14,7 +14,7 @@ def next_order_number():
 
 @transaction.atomic
 def create_order(customer, variant_id, quantity=1, fulfillment_data=None, coupon=None):
-    if customer.status != "active" and customer.restriction_purchases:
+    if customer.restriction_purchases:
         raise ValueError("حسابك مقيد من عمليات الشراء.")
     
     quantity = int(quantity)

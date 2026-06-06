@@ -92,7 +92,7 @@ class ModerateUserForm(forms.ModelForm):
     class Meta:
         model = User
         fields = [
-            "status", "tier", "restriction_withdrawals", "restriction_deposits", "restriction_purchases",
+            "role", "status", "tier", "phone", "restriction_withdrawals", "restriction_deposits", "restriction_purchases",
             "suspension_reason", "admin_notes", "suspension_expires_at", "is_permanently_suspended"
         ]
         widgets = {

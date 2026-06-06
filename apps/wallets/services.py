@@ -76,14 +76,15 @@ def credit_wallet(wallet_id, amount, reference="", description="", created_by=No
 
 
 def add_debt(wallet_id, amount, reference="", description="", created_by=None, metadata=None, source="admin", reason=""):
-    """Assigns debt to a user."""
+    """Assigns debt to a user and adds it to their available balance as credit."""
     amount = Decimal(amount)
     if amount <= 0:
         raise WalletError("Amount must be positive.")
     with transaction.atomic():
         wallet = Wallet.objects.select_for_update().get(id=wallet_id)
         wallet.debt_balance += amount
-        wallet.save(update_fields=["debt_balance", "updated_at"])
+        wallet.available_balance += amount # Add to available balance so they can spend it
+        wallet.save(update_fields=["debt_balance", "available_balance", "updated_at"])
         
         LedgerEntry.objects.create(
             wallet=wallet,
@@ -101,7 +102,7 @@ def add_debt(wallet_id, amount, reference="", description="", created_by=None, m
 
 
 def pay_debt(wallet_id, amount, reference="", description="", created_by=None, metadata=None, source="admin", reason=""):
-    """Manually pays off debt using available balance."""
+    """Manually pays off debt using available balance. Reduces both available balance and debt balance."""
     amount = Decimal(amount)
     if amount <= 0:
         raise WalletError("Amount must be positive.")

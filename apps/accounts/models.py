@@ -15,6 +15,7 @@ class User(AbstractUser):
         FINANCE = "finance", "مالية"
         SUPPORT = "support", "دعم"
         EMPLOYEE = "employee", "موظف"
+        VERIFIED_MERCHANT = "verified_merchant", "تاجر معتمد"
         CUSTOMER = "customer", "عميل"
 
     class Status(models.TextChoices):
@@ -81,6 +82,8 @@ class User(AbstractUser):
 
     @property
     def is_account_active(self):
+        if not self.is_active:
+            return False
         if self.status == self.Status.BANNED:
             return False
         if self.status == self.Status.SUSPENDED:
@@ -88,7 +91,7 @@ class User(AbstractUser):
                 return False
             if self.suspension_expires_at and self.suspension_expires_at > timezone.now():
                 return False
-        return self.is_active
+        return True
 
 
 class ModerationLog(TimeStampedModel):

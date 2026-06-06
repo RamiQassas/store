@@ -3,6 +3,24 @@
 
 {% block title %}إدارة الحساب | {{ user_to_moderate.email }}{% endblock %}
 
+{% block extra_head %}
+<style>
+    .management-card { border-radius: 32px; border: 1px solid rgba(255,255,255,0.05); overflow: hidden; background: rgba(18, 25, 44, 0.4); backdrop-filter: blur(10px); }
+    .management-header { background: linear-gradient(to right, rgba(255,255,255,0.02), transparent); }
+    .field-group label { display: block; margin-bottom: 0.75rem; font-weight: 700; color: #a7b2cf; }
+    .builder-input, select, textarea { 
+        width: 100%; padding: 12px 16px; background: rgba(255,255,255,0.03); 
+        border: 1px solid rgba(255,255,255,0.08); border-radius: 16px; color: #fff;
+        transition: all 0.2s;
+    }
+    .builder-input:focus, select:focus { border-color: var(--cyan); box-shadow: 0 0 0 4px rgba(6, 182, 212, 0.1); outline: none; background: rgba(255,255,255,0.05); }
+    .btn-primary { background: linear-gradient(135deg, var(--cyan), #0891b2); color: #000; border: 0; box-shadow: 0 10px 20px -5px rgba(6, 182, 212, 0.4); }
+    .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 15px 25px -5px rgba(6, 182, 212, 0.5); }
+    .badge { padding: 4px 10px; border-radius: 8px; font-weight: 800; letter-spacing: 0.5px; }
+    .badge.primary { background: rgba(6, 182, 212, 0.1); color: var(--cyan); border: 1px solid rgba(6, 182, 212, 0.2); }
+</style>
+{% endblock %}
+
 {% block control_content %}
 <div class="page-head">
     <div>
@@ -25,97 +43,157 @@
                 <h3 class="font-bold"><i class="fas fa-user-cog ml-2"></i> إعدادات التقييد والحظر</h3>
                 <span class="text-[10px] text-muted">ID: {{ user_to_moderate.id }}</span>
             </div>
-            <div class="management-body stack gap-8">
-                <!-- Status & Expiry -->
-                <div class="grid grid-2 gap-6">
+            <div class="management-body stack gap-8 p-8">
+                <!-- User Core Info -->
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
                     <div class="field-group">
-                        <label>حالة الحساب العامة</label>
-                        {{ form.status }}
-                        <p class="text-[10px] text-muted mt-2">الحالة الحالية: <span class="badge primary">{{ user_to_moderate.get_status_display }}</span></p>
+                        <label class="text-[11px] uppercase tracking-widest text-slate-500 mb-2">الدور / الرتبة</label>
+                        {{ form.role }}
                     </div>
                     <div class="field-group">
-                        <label>تاريخ انتهاء الإيقاف (إن وجد)</label>
+                        <label class="text-[11px] uppercase tracking-widest text-slate-500 mb-2">الفئة (Tier)</label>
+                        {{ form.tier }}
+                    </div>
+                    <div class="field-group">
+                        <label class="text-[11px] uppercase tracking-widest text-slate-500 mb-2">رقم الهاتف</label>
+                        {{ form.phone }}
+                    </div>
+                </div>
+
+                <div class="h-px bg-white/5"></div>
+
+                <!-- Status & Expiry -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    <div class="field-group">
+                        <label class="text-[11px] uppercase tracking-widest text-slate-500 mb-2">حالة الحساب العامة</label>
+                        {{ form.status }}
+                        <div class="flex items-center gap-2 mt-3">
+                            <span class="text-[10px] text-slate-400">الحالة الحالية:</span>
+                            <span class="badge primary text-[9px]">{{ user_to_moderate.get_status_display }}</span>
+                        </div>
+                    </div>
+                    <div class="field-group">
+                        <label class="text-[11px] uppercase tracking-widest text-slate-500 mb-2">تاريخ انتهاء الإيقاف (إن وجد)</label>
                         {{ form.suspension_expires_at }}
+                        <p class="text-[9px] text-slate-500 mt-2">اتركه فارغاً للحظر الدائم أو النشط.</p>
                     </div>
                 </div>
 
                 <!-- Restrictions -->
-                <div class="p-6 bg-slate-900/50 rounded-2xl border border-white/5">
-                    <h4 class="text-sm font-bold mb-4 text-slate-300">القيود التشغيلية</h4>
-                    <div class="grid grid-3 gap-6">
-                        <div class="flex items-center gap-3 p-3 bg-slate-800/30 rounded-xl">
-                            {{ form.restriction_withdrawals }}
-                            <label class="text-xs font-bold cursor-pointer" for="{{ form.restriction_withdrawals.id_for_label }}">تقييد السحب</label>
-                        </div>
-                        <div class="flex items-center gap-3 p-3 bg-slate-800/30 rounded-xl">
-                            {{ form.restriction_deposits }}
-                            <label class="text-xs font-bold cursor-pointer" for="{{ form.restriction_deposits.id_for_label }}">تقييد الإيداع</label>
-                        </div>
-                        <div class="flex items-center gap-3 p-3 bg-slate-800/30 rounded-xl">
-                            {{ form.restriction_purchases }}
-                            <label class="text-xs font-bold cursor-pointer" for="{{ form.restriction_purchases.id_for_label }}">تقييد الشراء</label>
-                        </div>
+                <div class="p-8 bg-slate-900/30 rounded-3xl border border-white/5 relative overflow-hidden">
+                    <div class="absolute top-0 left-0 w-1 h-full {% if user_to_moderate.status == 'active' %}bg-emerald-500/50{% else %}bg-rose-500/50{% endif %}"></div>
+                    <h4 class="text-sm font-bold mb-6 text-slate-200 flex items-center">
+                        <i class="fas fa-user-lock ml-2 text-cyan opacity-50"></i>
+                        القيود والتحكم في الصلاحيات
+                    </h4>
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                        <label class="flex items-center justify-between p-4 bg-slate-800/40 rounded-2xl border border-white/5 hover:border-cyan/30 transition-all cursor-pointer group">
+                            <span class="text-xs font-bold text-slate-300 group-hover:text-cyan transition-colors">تقييد السحب</span>
+                            <div class="relative">
+                                {{ form.restriction_withdrawals }}
+                            </div>
+                        </label>
+                        <label class="flex items-center justify-between p-4 bg-slate-800/40 rounded-2xl border border-white/5 hover:border-cyan/30 transition-all cursor-pointer group">
+                            <span class="text-xs font-bold text-slate-300 group-hover:text-cyan transition-colors">تقييد الإيداع</span>
+                            <div class="relative">
+                                {{ form.restriction_deposits }}
+                            </div>
+                        </label>
+                        <label class="flex items-center justify-between p-4 bg-slate-800/40 rounded-2xl border border-white/5 hover:border-cyan/30 transition-all cursor-pointer group">
+                            <span class="text-xs font-bold text-slate-300 group-hover:text-cyan transition-colors">تقييد الشراء</span>
+                            <div class="relative">
+                                {{ form.restriction_purchases }}
+                            </div>
+                        </label>
                     </div>
-                    <div class="mt-6 pt-4 border-t border-white/5 flex items-center gap-3">
-                        {{ form.is_permanently_suspended }}
-                        <label class="text-sm font-bold text-danger cursor-pointer" for="{{ form.is_permanently_suspended.id_for_label }}">
-                            <i class="fas fa-user-slash ml-1"></i> إيقاف نهائي (Permanent Ban)
+                    
+                    <div class="mt-8 pt-6 border-t border-white/5">
+                        <label class="flex items-center gap-4 p-4 bg-rose-500/5 border border-rose-500/10 rounded-2xl cursor-pointer hover:bg-rose-500/10 transition-colors">
+                            {{ form.is_permanently_suspended }}
+                            <div>
+                                <div class="text-xs font-black text-rose-500 uppercase tracking-wider">إيقاف نهائي (Permanent Ban)</div>
+                                <div class="text-[10px] text-rose-500/60 mt-0.5">سيتم منع المستخدم من الوصول للنظام بشكل دائم.</div>
+                            </div>
                         </label>
                     </div>
                 </div>
 
                 <!-- Reason & Notes -->
-                <div class="field-group">
-                    <label>سبب الإجراء (يظهر للمستخدم في حال الإيقاف)</label>
-                    {{ form.suspension_reason }}
-                </div>
+                <div class="grid grid-cols-1 gap-6">
+                    <div class="field-group">
+                        <label class="text-[11px] uppercase tracking-widest text-slate-500 mb-2">سبب الإجراء (يظهر للمستخدم)</label>
+                        {{ form.suspension_reason }}
+                    </div>
 
-                <div class="field-group">
-                    <label>ملاحظات إدارية (داخلية فقط)</label>
-                    {{ form.admin_notes }}
+                    <div class="field-group">
+                        <label class="text-[11px] uppercase tracking-widest text-slate-500 mb-2">ملاحظات إدارية داخلية</label>
+                        {{ form.admin_notes }}
+                    </div>
                 </div>
             </div>
         </form>
 
         <!-- Financial Management -->
         <div class="management-card">
-            <div class="management-header">
-                <h3 class="font-bold"><i class="fas fa-hand-holding-usd ml-2"></i> إدارة الديون والالتزامات المالية</h3>
+            <div class="management-header bg-slate-900/10 border-b border-white/5 p-6">
+                <h3 class="font-bold flex items-center gap-2">
+                    <i class="fas fa-hand-holding-usd text-cyan"></i> 
+                    إدارة الديون والالتزامات المالية
+                </h3>
             </div>
-            <div class="management-body grid grid-2 gap-8">
+            <div class="management-body grid grid-cols-1 lg:grid-cols-2 gap-8 p-8">
                 <!-- Add Debt -->
-                <form method="post" class="stack gap-4 p-6 bg-slate-900/40 rounded-2xl border border-white/5">
+                <form method="post" class="stack gap-6 p-8 bg-slate-900/40 rounded-3xl border border-white/5 relative overflow-hidden group hover:border-rose-500/30 transition-all">
+                    <div class="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
+                        <i class="fas fa-plus-circle text-6xl"></i>
+                    </div>
                     {% csrf_token %}
                     <input type="hidden" name="action" value="assign_debt">
-                    <h4 class="text-xs font-bold uppercase tracking-widest text-slate-400">إضافة دين جديد</h4>
+                    <h4 class="text-xs font-black uppercase tracking-[0.2em] text-slate-500">إضافة دين جديد (ائتمان)</h4>
                     <div class="field-group">
-                        <label class="text-[10px]">المبلغ</label>
-                        <input type="number" name="amount" step="0.01" class="builder-input" placeholder="0.00" required>
+                        <label class="text-[10px] text-slate-400 mb-2 block">المبلغ المراد إضافته</label>
+                        <div class="relative">
+                            <span class="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 font-mono text-xs">{{ user_to_moderate.wallet.currency.code }}</span>
+                            <input type="number" name="amount" step="0.01" class="builder-input pl-16 text-sm font-bold" placeholder="0.00" required>
+                        </div>
                     </div>
                     <div class="field-group">
-                        <label class="text-[10px]">السبب / الملاحظات</label>
-                        <input type="text" name="reason" class="builder-input" placeholder="مثلاً: دفعة مقدمة، غرامة..." required>
+                        <label class="text-[10px] text-slate-400 mb-2 block">السبب أو الملاحظات</label>
+                        <input type="text" name="reason" class="builder-input text-xs" placeholder="مثلاً: دفعة مقدمة، غرامة..." required>
                     </div>
-                    <button type="submit" class="btn btn-sm btn-outline danger w-full py-2">تأكيد إضافة الدين</button>
+                    <button type="submit" class="btn btn-sm btn-outline danger w-full py-3 rounded-2xl font-bold transition-all hover:shadow-[0_0_20px_rgba(244,63,94,0.2)]">
+                        تأكيد وإضافة الرصيد
+                    </button>
                 </form>
 
                 <!-- Pay Debt -->
-                <form method="post" class="stack gap-4 p-6 bg-slate-900/40 rounded-2xl border border-white/5">
+                <form method="post" class="stack gap-6 p-8 bg-slate-900/40 rounded-3xl border border-white/5 relative overflow-hidden group hover:border-cyan/30 transition-all">
+                    <div class="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
+                        <i class="fas fa-check-circle text-6xl text-cyan"></i>
+                    </div>
                     {% csrf_token %}
                     <input type="hidden" name="action" value="pay_debt">
-                    <h4 class="text-xs font-bold uppercase tracking-widest text-slate-400">سداد دين من الرصيد</h4>
+                    <h4 class="text-xs font-black uppercase tracking-[0.2em] text-slate-500">سداد يدوي من الرصيد</h4>
                     <div class="field-group">
-                        <label class="text-[10px]">المبلغ المراد سداده</label>
-                        <input type="number" name="amount" step="0.01" max="{{ user_to_moderate.wallet.debt_balance }}" class="builder-input" placeholder="0.00" required>
-                        <p class="text-[9px] text-muted mt-1">الحد الأقصى: {{ user_to_moderate.wallet.debt_balance }}</p>
+                        <label class="text-[10px] text-slate-400 mb-2 block">مبلغ السداد</label>
+                        <div class="relative">
+                            <span class="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 font-mono text-xs">{{ user_to_moderate.wallet.currency.code }}</span>
+                            <input type="number" name="amount" step="0.01" max="{{ user_to_moderate.wallet.debt_balance }}" class="builder-input pl-16 text-sm font-bold" placeholder="0.00" required>
+                        </div>
+                        <div class="flex justify-between mt-2 px-1">
+                            <p class="text-[9px] text-slate-500 italic">الحد الأقصى المتاح للسداد: {{ user_to_moderate.wallet.debt_balance }}</p>
+                            <button type="button" class="text-[9px] text-cyan font-bold hover:underline" onclick="this.form.amount.value='{{ user_to_moderate.wallet.debt_balance }}'">سداد الكل</button>
+                        </div>
                     </div>
-                    <div class="p-3 bg-cyan/5 border border-cyan/10 rounded-xl">
-                        <p class="text-[10px] text-cyan leading-relaxed">
-                            <i class="fas fa-info-circle ml-1"></i>
-                            سيتم خصم المبلغ مباشرة من الرصيد المتاح للمستخدم وتقليص قيمة الدين المستحق.
+                    <div class="p-4 bg-cyan/5 border border-cyan/10 rounded-2xl">
+                        <p class="text-[10px] text-cyan leading-relaxed flex items-start gap-2">
+                            <i class="fas fa-info-circle mt-0.5"></i>
+                            <span>سيتم خصم المبلغ من الرصيد المتاح وتقليص قيمة الدين.</span>
                         </p>
                     </div>
-                    <button type="submit" class="btn btn-sm btn-primary w-full py-2" {% if user_to_moderate.wallet.debt_balance == 0 %}disabled{% endif %}>معالجة السداد</button>
+                    <button type="submit" class="btn btn-sm btn-primary w-full py-3 rounded-2xl font-bold transition-all hover:shadow-[0_0_20px_rgba(6,182,212,0.3)]" {% if user_to_moderate.wallet.debt_balance == 0 %}disabled{% endif %}>
+                        تنفيذ عملية السداد
+                    </button>
                 </form>
             </div>
         </div>

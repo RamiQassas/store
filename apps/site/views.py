@@ -100,7 +100,7 @@ def product_detail(request, pk):
             return redirect("dashboard")
 
         # Check if user is restricted from purchases
-        if request.user.status != User.Status.ACTIVE and request.user.restriction_purchases:
+        if request.user.restriction_purchases:
             messages.error(request, "حسابك مقيد من عمليات الشراء. يرجى التواصل مع الدعم.")
             return redirect("dashboard")
 
@@ -632,7 +632,7 @@ def withdrawals(request):
         messages.error(request, "يرجى تفعيل بريدك الإلكتروني أولاً لتتمكن من السحب.")
         return redirect("dashboard")
 
-    if request.user.status != User.Status.ACTIVE and request.user.restriction_withdrawals:
+    if request.user.restriction_withdrawals:
         messages.error(request, "حسابك مقيد من عمليات السحب. يرجى التواصل مع الدعم.")
         return redirect("dashboard")
 
@@ -847,32 +847,52 @@ def control_users_list(request):
     query = request.GET.get("q", "").strip()
     users = User.objects.select_related("wallet").order_by("-date_joined")
     
-    if request.method == "POST" and request.POST.get("action") == "bulk_tier":
-        target_tier = request.POST.get("target_tier")
+    if request.method == "POST":
+        action = request.POST.get("action")
         user_ids = request.POST.getlist("user_ids")
-        if target_tier in User.Tier.values and user_ids:
-            with transaction.atomic():
-                updated_count = User.objects.filter(id__in=user_ids).update(tier=target_tier)
-                messages.success(request, f"تم تحديث فئة {updated_count} مستخدم بنجاح.")
-                
-                # Audit log for bulk action
-                from apps.common.services import log_system_action
-                log_system_action(
-                    actor=request.user,
-                    action_type="BULK_TIER_UPDATE",
-                    description=f"Bulk updated {updated_count} users to {target_tier}",
-                    ip_address=request.META.get('REMOTE_ADDR'),
-                    metadata={"user_ids": user_ids, "new_tier": target_tier}
-                )
-            return redirect("control_users_list")
+
+        if action == "bulk_tier":
+            target_tier = request.POST.get("target_tier")
+            if target_tier in User.Tier.values and user_ids:
+                with transaction.atomic():
+                    updated_count = User.objects.filter(id__in=user_ids).update(tier=target_tier)
+                    messages.success(request, f"تم تحديث فئة {updated_count} مستخدم بنجاح.")
+
+                    from apps.common.services import log_system_action
+                    log_system_action(
+                        actor=request.user,
+                        action_type="BULK_TIER_UPDATE",
+                        description=f"Bulk updated {updated_count} users to {target_tier}",
+                        ip_address=request.META.get('REMOTE_ADDR'),
+                        metadata={"user_ids": user_ids, "new_tier": target_tier}
+                    )
+                return redirect("control_users_list")
+
+        elif action == "bulk_role":
+            target_role = request.POST.get("target_role")
+            if target_role in User.Role.values and user_ids:
+                with transaction.atomic():
+                    updated_count = User.objects.filter(id__in=user_ids).update(role=target_role)
+                    messages.success(request, f"تم تحديث دور {updated_count} مستخدم بنجاح.")
+
+                    from apps.common.services import log_system_action
+                    log_system_action(
+                        actor=request.user,
+                        action_type="BULK_ROLE_UPDATE",
+                        description=f"Bulk updated {updated_count} users to {target_role}",
+                        ip_address=request.META.get('REMOTE_ADDR'),
+                        metadata={"user_ids": user_ids, "new_role": target_role}
+                    )
+                return redirect("control_users_list")
 
     if query:
         users = users.filter(Q(email__icontains=query) | Q(phone__icontains=query) | Q(first_name__icontains=query) | Q(last_name__icontains=query))
     
     return render(request, "site/control_users_list.html", {
-        "users": users, 
+        "users": users,
         "query": query,
-        "tiers": User.Tier.choices
+        "tiers": User.Tier.choices,
+        "roles": User.Role.choices
     })
 
 
