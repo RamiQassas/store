@@ -6,6 +6,7 @@ from decimal import Decimal
 
 from apps.accounts.managers import UserManager
 from apps.common.models import TimeStampedModel
+from apps.common.countries import COUNTRIES
 
 
 class User(AbstractUser):
@@ -197,8 +198,6 @@ class EmailVerificationToken(TimeStampedModel):
         return f"{self.user.email} - {self.token}"
 
 
-from django_countries.fields import CountryField
-
 class KYCRequest(TimeStampedModel):
     class Status(models.TextChoices):
         PENDING = "pending", "قيد المراجعة"
@@ -218,9 +217,9 @@ class KYCRequest(TimeStampedModel):
     status = models.CharField(max_length=20, choices=Status.choices, default=Status.PENDING)
     
     # Personal Info
-    nationality = CountryField(verbose_name="الجنسية")
+    nationality = models.CharField(max_length=2, choices=COUNTRIES, verbose_name="الجنسية")
     id_number = models.CharField(max_length=50, unique=True, verbose_name="رقم الهوية / الوثيقة")
-    issuing_country = CountryField(verbose_name="بلد إصدار الوثيقة")
+    issuing_country = models.CharField(max_length=2, choices=COUNTRIES, verbose_name="بلد إصدار الوثيقة")
     first_name = models.CharField(max_length=100, verbose_name="الاسم الأول")
     father_name = models.CharField(max_length=100, verbose_name="اسم الأب")
     last_name = models.CharField(max_length=100, verbose_name="النسبة / الكنية")
@@ -261,22 +260,11 @@ class KYCSettings(TimeStampedModel):
     verified_daily_withdrawal_limit = models.DecimalField(max_digits=14, decimal_places=2, default=Decimal("10000.00"), verbose_name="حد سحب الموثقين")
     
     # Restricted Countries
-    restricted_countries = CountryField(multiple=True, blank=True, verbose_name="الدول المحظورة")
+    restricted_countries = models.JSONField(default=list, blank=True, verbose_name="الدول المحظورة (قائمة رموز ISO)")
     block_by_nationality = models.BooleanField(default=True, verbose_name="حظر حسب الجنسية")
     block_by_issuing_country = models.BooleanField(default=True, verbose_name="حظر حسب بلد إصدار الوثيقة")
 
     class Meta:
-        verbose_name = "إعدادات التوثيق والحدود"
-        verbose_name_plural = "إعدادات التوثيق والحدود"
-
-    def __str__(self):
-        return "إعدادات التوثيق العالمية"
-
-    @classmethod
-    def get_settings(cls):
-        obj, created = cls.objects.get_or_create(id=1)
-        return obj
-
         verbose_name = "إعدادات التوثيق والحدود"
         verbose_name_plural = "إعدادات التوثيق والحدود"
 

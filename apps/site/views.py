@@ -471,26 +471,27 @@ def kyc_request_view(request):
     if existing and existing.status in [KYCRequest.Status.PENDING, KYCRequest.Status.APPROVED]:
         pass
         
-    # IP detection for default country
-    from ipware import get_client_ip
-    client_ip, is_routable = get_client_ip(request)
-    default_country = None
-    if client_ip and is_routable:
+    # IP detection for default country (simplified native version)
+    client_ip = request.META.get('HTTP_X_FORWARDED_FOR', request.META.get('REMOTE_ADDR', '')).split(',')[0].strip()
+    default_country = "SY" # Global default
+    
+    if client_ip and client_ip not in ['127.0.0.1', 'localhost']:
         try:
             import requests
-            response = requests.get(f"https://ipapi.co/{client_ip}/json/", timeout=5)
+            # Use a free public IP API that returns ISO codes
+            response = requests.get(f"https://ipapi.co/{client_ip}/json/", timeout=3)
             if response.status_code == 200:
-                default_country = response.json().get("country_code")
+                default_country = response.json().get("country_code", "SY")
         except:
             pass
 
     initial_data = {}
-    if default_country:
+    if not existing:
         initial_data = {"nationality": default_country, "issuing_country": default_country}
 
     form = KYCRequestForm(request.POST or None, request.FILES or None, 
                           instance=existing if existing and existing.status == KYCRequest.Status.REJECTED else None,
-                          initial=initial_data if not existing else None)
+                          initial=initial_data)
     
     if request.method == "POST" and form.is_valid():
         if existing and existing.status in [KYCRequest.Status.PENDING, KYCRequest.Status.APPROVED]:
@@ -499,7 +500,7 @@ def kyc_request_view(request):
             
         kyc = form.save(commit=False)
         
-        # Check Restricted Countries
+        # Check Restricted Countries (using ISO codes)
         blocked = False
         if settings_obj.restricted_countries:
             if settings_obj.block_by_nationality and kyc.nationality in settings_obj.restricted_countries:
@@ -508,7 +509,7 @@ def kyc_request_view(request):
                 blocked = True
                 
         if blocked:
-            messages.error(request, "عذراً، دولتك أو بلد إصدار الوثيقة غير مدعوم حالياً في المنصة. يرجى التواصل مع الدعم.")
+            messages.error(request, "عذراً، دولتك أو بلد إصدار الوثيقة غير مدعوم حالياً في المنصة.")
             return redirect("site_kyc_request")
 
         kyc.user = request.user
@@ -521,7 +522,8 @@ def kyc_request_view(request):
         "form": form,
         "kyc_status": kyc_status,
         "kyc_rejection_reason": kyc_rejection_reason,
-        "restricted_countries": settings_obj.restricted_countries
+        "restricted_countries": settings_obj.restricted_countries,
+        "all_countries": COUNTRIES
     })
 
 

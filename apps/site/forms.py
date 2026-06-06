@@ -199,14 +199,14 @@ class ModerateUserForm(forms.ModelForm):
 
 
 from apps.accounts.models import KYCRequest, KYCSettings
-from django_countries.fields import CountryField
-from django_countries.widgets import CountrySelectWidget
+from apps.common.countries import COUNTRIES
 
 class KYCSettingsForm(forms.ModelForm):
-    restricted_countries = CountryField(multiple=True).formfield(
+    restricted_countries_list = forms.MultipleChoiceField(
         label="الدول المحظورة",
+        choices=COUNTRIES,
         required=False,
-        widget=forms.SelectMultiple(attrs={"class": "builder-input select2", "style": "height: 150px;"}),
+        widget=forms.SelectMultiple(attrs={"class": "builder-input select2", "style": "height: 200px;"}),
         help_text="اختر دولة أو أكثر لمنع التوثيق منها."
     )
 
@@ -215,7 +215,7 @@ class KYCSettingsForm(forms.ModelForm):
         fields = [
             "unverified_daily_deposit_limit", "unverified_daily_withdrawal_limit",
             "verified_daily_deposit_limit", "verified_daily_withdrawal_limit",
-            "block_by_nationality", "block_by_issuing_country", "restricted_countries"
+            "block_by_nationality", "block_by_issuing_country"
         ]
         widgets = {
             "unverified_daily_deposit_limit": forms.NumberInput(attrs={"class": "builder-input"}),
@@ -224,17 +224,20 @@ class KYCSettingsForm(forms.ModelForm):
             "verified_daily_withdrawal_limit": forms.NumberInput(attrs={"class": "builder-input"}),
         }
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if self.instance and self.instance.restricted_countries:
+            self.fields["restricted_countries_list"].initial = self.instance.restricted_countries
+
+    def save(self, commit=True):
+        instance = super().save(commit=False)
+        instance.restricted_countries = self.cleaned_data.get("restricted_countries_list", [])
+        if commit:
+            instance.save()
+        return instance
+
 
 class KYCRequestForm(forms.ModelForm):
-    nationality = CountryField().formfield(
-        label="الجنسية",
-        widget=CountrySelectWidget(attrs={"class": "builder-input search-select"})
-    )
-    issuing_country = CountryField().formfield(
-        label="بلد إصدار الوثيقة",
-        widget=CountrySelectWidget(attrs={"class": "builder-input search-select"})
-    )
-
     class Meta:
         model = KYCRequest
         fields = [
@@ -244,6 +247,8 @@ class KYCRequestForm(forms.ModelForm):
             "identity_front", "identity_back", "selfie_verification"
         ]
         widgets = {
+            "nationality": forms.Select(attrs={"class": "builder-input search-select"}),
+            "issuing_country": forms.Select(attrs={"class": "builder-input search-select"}),
             "date_of_birth": forms.DateInput(attrs={"type": "date", "class": "builder-input"}),
             "current_residence": forms.Textarea(attrs={"rows": 3, "class": "builder-input"}),
             "id_number": forms.TextInput(attrs={"class": "builder-input"}),
