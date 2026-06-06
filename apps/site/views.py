@@ -89,7 +89,7 @@ def v3_login_view(request):
         if user:
             if not user.is_account_active:
                 messages.error(request, f"الحساب معطل أو موقوف. السبب: {user.suspension_reason or 'غير محدد'}")
-                return render(request, "site/auth_login.html", {"form": form})
+                return render(request, "site/v3/v3_login.html", {"form": form})
 
             # Start OTP verification for Login
             otp = v3_generate_otp(user, OTPToken.Purpose.LOGIN)
@@ -102,7 +102,7 @@ def v3_login_view(request):
         else:
             messages.error(request, "بيانات الدخول غير صحيحة.")
     
-    return render(request, "site/auth_login.html", {"form": form})
+    return render(request, "site/v3/v3_login.html", {"form": form})
 
 
 def v3_register_view(request):
@@ -133,7 +133,7 @@ def v3_register_view(request):
                 messages.warning(request, "تم إنشاء الحساب، ولكن تعذر إرسال رمز التحقق حالياً. يرجى تسجيل الدخول.")
                 return redirect("site_login")
 
-    return render(request, "site/auth_register.html", {"form": form})
+    return render(request, "site/v3/v3_register.html", {"form": form})
 
 
 def v3_verify_otp_view(request):
@@ -172,7 +172,7 @@ def v3_verify_otp_view(request):
         else:
             messages.error(request, "رمز التحقق غير صحيح أو منتهي الصلاحية.")
             
-    return render(request, "site/verify_otp.html", {"user": user, "purpose": purpose})
+    return render(request, "site/v3/v3_verify_otp.html", {"user": user, "purpose": purpose})
 
 
 def v3_forgot_password_view(request):
@@ -192,7 +192,7 @@ def v3_forgot_password_view(request):
         else:
             messages.error(request, "عذراً، هذا البريد الإلكتروني غير مسجل لدينا.")
             
-    return render(request, "registration/password_reset_form.html")
+    return render(request, "site/v3/v3_forgot_password.html")
 
 
 def v3_reset_password_view(request):
@@ -224,7 +224,7 @@ def v3_reset_password_view(request):
             messages.success(request, "تم تغيير كلمة المرور بنجاح. يمكنك الآن تسجيل الدخول.")
             return redirect("site_login")
             
-    return render(request, "registration/password_reset_new.html", {"user_email": user.email})
+    return render(request, "site/v3/v3_reset_password.html", {"user_email": user.email})
 
 
 def v3_logout_view(request):
@@ -285,7 +285,7 @@ def product_detail(request, pk):
     
     if request.method == "POST":
         if not request.user.is_authenticated:
-            return redirect("v3_login")
+            return redirect("site_login")
         if not request.user.email_verified:
             messages.error(request, "يرجى تفعيل بريدك الإلكتروني أولاً.")
             return redirect("dashboard")
@@ -562,7 +562,7 @@ def terms_of_service(request): return render(request, "site/terms_of_service.htm
 def refund_policy(request): return render(request, "site/refund_policy.html")
 def contact_page(request): return render(request, "site/contact.html")
 def set_currency(request): return redirect("home")
-def email_verify(request, uidb64, token): return redirect("v3_login")
+def email_verify(request, uidb64, token): return redirect("site_login")
 def resend_verification(request): return redirect("dashboard")
 def notification_settings(request): return render(request, "site/notification_settings.html")
 def tickets(request): return render(request, "site/tickets.html")
