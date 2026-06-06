@@ -81,40 +81,93 @@
             </form>
         </div>
 
-        <!-- Verification Images with Fixed Layout -->
+        <!-- Verification Images with Fixed Small Layout -->
         <div class="management-card p-8">
-            <h3 class="text-sm font-bold uppercase tracking-widest text-slate-500 mb-6 border-b border-white/5 pb-4">وثائق الهوية المصورة</h3>
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div class="stack gap-3 text-center">
-                    <span class="text-[10px] font-black uppercase text-slate-500 tracking-wider">وجه الوثيقة</span>
-                    <div class="fixed-frame aspect-[4/3] bg-black rounded-2xl overflow-hidden border border-white/10 relative group">
-                        <img src="{{ kyc.identity_front.url }}" class="w-full h-full object-cover">
-                        <a href="{{ kyc.identity_front.url }}" target="_blank" class="absolute inset-0 bg-black/60 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                            <i class="fas fa-search-plus text-white text-xl"></i>
-                        </a>
+            <h3 class="text-sm font-bold uppercase tracking-widest text-slate-500 mb-6 border-b border-white/5 pb-4">وثائق الهوية المرفقة (معاينة مصغرة)</h3>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                <!-- Front Image -->
+                <div class="stack gap-3">
+                    <span class="text-[10px] font-black uppercase text-slate-500 tracking-wider text-center">وجه الوثيقة</span>
+                    <div class="thumbnail-wrapper mx-auto">
+                        <div class="fixed-thumb aspect-video bg-black rounded-xl overflow-hidden border border-white/10 relative group cursor-pointer" onclick="openImageViewer('{{ kyc.identity_front.url }}', 'وجه الوثيقة')">
+                            <img src="{{ kyc.identity_front.url }}" class="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity">
+                            <div class="absolute inset-0 bg-cyan/10 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                <i class="fas fa-search-plus text-white shadow-lg"></i>
+                            </div>
+                        </div>
                     </div>
+                    <button type="button" class="btn btn-outline btn-xs w-fit mx-auto text-[9px] py-1 px-3 opacity-60 hover:opacity-100" onclick="openImageViewer('{{ kyc.identity_front.url }}', 'وجه الوثيقة')">عرض الحجم الكامل</button>
                 </div>
-                <div class="stack gap-3 text-center">
-                    <span class="text-[10px] font-black uppercase text-slate-500 tracking-wider">ظهر الوثيقة</span>
-                    <div class="fixed-frame aspect-[4/3] bg-black rounded-2xl overflow-hidden border border-white/10 relative group">
-                        <img src="{{ kyc.identity_back.url }}" class="w-full h-full object-cover">
-                        <a href="{{ kyc.identity_back.url }}" target="_blank" class="absolute inset-0 bg-black/60 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                            <i class="fas fa-search-plus text-white text-xl"></i>
-                        </a>
+
+                <!-- Back Image -->
+                <div class="stack gap-3">
+                    <span class="text-[10px] font-black uppercase text-slate-500 tracking-wider text-center">ظهر الوثيقة</span>
+                    <div class="thumbnail-wrapper mx-auto">
+                        <div class="fixed-thumb aspect-video bg-black rounded-xl overflow-hidden border border-white/10 relative group cursor-pointer" onclick="openImageViewer('{{ kyc.identity_back.url }}', 'ظهر الوثيقة')">
+                            <img src="{{ kyc.identity_back.url }}" class="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity">
+                            <div class="absolute inset-0 bg-cyan/10 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                <i class="fas fa-search-plus text-white shadow-lg"></i>
+                            </div>
+                        </div>
                     </div>
+                    <button type="button" class="btn btn-outline btn-xs w-fit mx-auto text-[9px] py-1 px-3 opacity-60 hover:opacity-100" onclick="openImageViewer('{{ kyc.identity_back.url }}', 'ظهر الوثيقة')">عرض الحجم الكامل</button>
                 </div>
-                <div class="stack gap-3 text-center">
-                    <span class="text-[10px] font-black uppercase text-slate-500 tracking-wider">صورة السيلفي</span>
-                    <div class="fixed-frame aspect-[4/3] bg-black rounded-2xl overflow-hidden border border-white/10 relative group">
-                        <img src="{{ kyc.selfie_verification.url }}" class="w-full h-full object-cover">
-                        <a href="{{ kyc.selfie_verification.url }}" target="_blank" class="absolute inset-0 bg-black/60 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                            <i class="fas fa-search-plus text-white text-xl"></i>
-                        </a>
+
+                <!-- Selfie Image -->
+                <div class="stack gap-3">
+                    <span class="text-[10px] font-black uppercase text-slate-500 tracking-wider text-center">صورة السيلفي</span>
+                    <div class="thumbnail-wrapper mx-auto">
+                        <div class="fixed-thumb aspect-video bg-black rounded-xl overflow-hidden border border-white/10 relative group cursor-pointer" onclick="openImageViewer('{{ kyc.selfie_verification.url }}', 'صورة السيلفي مع الوثيقة')">
+                            <img src="{{ kyc.selfie_verification.url }}" class="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity">
+                            <div class="absolute inset-0 bg-cyan/10 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                <i class="fas fa-search-plus text-white shadow-lg"></i>
+                            </div>
+                        </div>
                     </div>
+                    <button type="button" class="btn btn-outline btn-xs w-fit mx-auto text-[9px] py-1 px-3 opacity-60 hover:opacity-100" onclick="openImageViewer('{{ kyc.selfie_verification.url }}', 'صورة السيلفي')">عرض الحجم الكامل</button>
                 </div>
             </div>
         </div>
     </div>
+
+    <!-- Modal Viewer -->
+    <div id="image-viewer-modal" class="fixed inset-0 z-[9999] bg-black/95 backdrop-blur-sm hidden flex-col items-center justify-center p-4">
+        <div class="absolute top-6 right-6 flex gap-4">
+            <button class="w-12 h-12 bg-white/10 hover:bg-rose-500 rounded-full flex items-center justify-center text-white transition-colors" onclick="closeImageViewer()">
+                <i class="fas fa-times text-xl"></i>
+            </button>
+        </div>
+        <div class="text-center mb-6">
+            <h4 id="viewer-title" class="text-white font-bold tracking-widest uppercase text-sm">معاينة الصورة</h4>
+        </div>
+        <div class="relative max-w-5xl max-h-[80vh] w-full h-full flex items-center justify-center">
+            <img id="full-image-display" src="" class="max-w-full max-h-full object-contain shadow-2xl rounded-lg">
+        </div>
+        <div class="mt-8">
+            <button class="btn btn-outline py-3 px-12 rounded-xl text-white font-bold" onclick="closeImageViewer()">إغلاق المعاينة</button>
+        </div>
+    </div>
+
+    <script>
+        function openImageViewer(url, title) {
+            document.getElementById('full-image-display').src = url;
+            document.getElementById('viewer-title').textContent = title;
+            document.getElementById('image-viewer-modal').classList.remove('hidden');
+            document.getElementById('image-viewer-modal').classList.add('flex');
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeImageViewer() {
+            document.getElementById('image-viewer-modal').classList.add('hidden');
+            document.getElementById('image-viewer-modal').classList.remove('flex');
+            document.body.style.overflow = 'auto';
+        }
+
+        // Close on ESC
+        document.addEventListener('keydown', (e) => {
+            if(e.key === 'Escape') closeImageViewer();
+        });
+    </script>
 
     <!-- Sidebar: Review Actions and User Info -->
     <div class="stack gap-8">

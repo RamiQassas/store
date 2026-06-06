@@ -516,30 +516,44 @@ def control_kyc_detail(request, pk):
                 user.daily_deposit_limit = Decimal("5000.00")
                 user.daily_withdrawal_limit = Decimal("5000.00")
                 
-                # Automatically update user display name
+                # Automatically update user display name (Reliable update)
                 user.first_name = kyc.first_name
                 user.last_name = f"{kyc.father_name} {kyc.last_name}"
-                user.save(update_fields=["is_kyc_verified", "daily_deposit_limit", "daily_withdrawal_limit", "first_name", "last_name"])
+                user.save() # Full save to ensure all fields and properties reflect change
                 
-                messages.success(request, f"تم توثيق حساب {user.email} بنجاح وتحديث الاسم.")
-                return redirect("control_kycs_list")
+                messages.success(request, f"تم توثيق حساب {user.email} بنجاح وتحديث الاسم الرسمي.")
+                return redirect("control_kyc_detail", pk=pk)
         
         # 3. Reject Verification
         elif action == "reject":
-            kyc.status = KYCRequest.Status.REJECTED
-            kyc.rejection_reason = request.POST.get("rejection_reason", "")
-            kyc.reviewed_by = request.user
-            kyc.reviewed_at = timezone.now()
-            kyc.save()
-            messages.warning(request, f"تم رفض طلب توثيق {kyc.user.email}.")
-            return redirect("control_kycs_list")
+            with transaction.atomic():
+                kyc.status = KYCRequest.Status.REJECTED
+                kyc.rejection_reason = request.POST.get("rejection_reason", "")
+                kyc.reviewed_by = request.user
+                kyc.reviewed_at = timezone.now()
+                kyc.save()
+                
+                # Ensure user flag is false
+                user = kyc.user
+                user.is_kyc_verified = False
+                user.save(update_fields=["is_kyc_verified"])
+                
+                messages.warning(request, f"تم رفض طلب توثيق {kyc.user.email}.")
+                return redirect("control_kyc_detail", pk=pk)
             
         # 4. Revert to Under Review
         elif action == "revert":
-            kyc.status = KYCRequest.Status.PENDING
-            kyc.save(update_fields=["status"])
-            messages.info(request, "تمت إعادة الطلب إلى حالة قيد المراجعة.")
-            return redirect("control_kyc_detail", pk=pk)
+            with transaction.atomic():
+                kyc.status = KYCRequest.Status.PENDING
+                kyc.save(update_fields=["status"])
+                
+                # Ensure user flag is false while re-reviewing
+                user = kyc.user
+                user.is_kyc_verified = False
+                user.save(update_fields=["is_kyc_verified"])
+                
+                messages.info(request, "تمت إعادة الطلب إلى حالة قيد المراجعة.")
+                return redirect("control_kyc_detail", pk=pk)
             
         # 5. Remove Verification (Unverify)
         elif action == "unverify":
