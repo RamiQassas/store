@@ -471,7 +471,27 @@ def kyc_request_view(request):
     if existing and existing.status in [KYCRequest.Status.PENDING, KYCRequest.Status.APPROVED]:
         pass
         
-    form = KYCRequestForm(request.POST or None, request.FILES or None, instance=existing if existing and existing.status == KYCRequest.Status.REJECTED else None)
+    # IP detection for default country
+    from ipware import get_client_ip
+    client_ip, is_routable = get_client_ip(request)
+    default_country = None
+    if client_ip and is_routable:
+        try:
+            import requests
+            response = requests.get(f"https://ipapi.co/{client_ip}/json/", timeout=5)
+            if response.status_code == 200:
+                default_country = response.json().get("country_code")
+        except:
+            pass
+
+    initial_data = {}
+    if default_country:
+        initial_data = {"nationality": default_country, "issuing_country": default_country}
+
+    form = KYCRequestForm(request.POST or None, request.FILES or None, 
+                          instance=existing if existing and existing.status == KYCRequest.Status.REJECTED else None,
+                          initial=initial_data if not existing else None)
+    
     if request.method == "POST" and form.is_valid():
         if existing and existing.status in [KYCRequest.Status.PENDING, KYCRequest.Status.APPROVED]:
             messages.error(request, "لديك طلب توثيق قيد المعالجة بالفعل.")

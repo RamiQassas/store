@@ -199,13 +199,15 @@ class ModerateUserForm(forms.ModelForm):
 
 
 from apps.accounts.models import KYCRequest, KYCSettings
+from django_countries.fields import CountryField
+from django_countries.widgets import CountrySelectWidget
 
 class KYCSettingsForm(forms.ModelForm):
-    restricted_countries_list = forms.CharField(
+    restricted_countries = CountryField(multiple=True).formfield(
         label="الدول المحظورة",
         required=False,
-        widget=forms.Textarea(attrs={"rows": 3, "class": "builder-input", "placeholder": "أدخل أسماء الدول مفصولة بفاصلة..."}),
-        help_text="مثال: سوريا، لبنان، العراق"
+        widget=forms.SelectMultiple(attrs={"class": "builder-input select2", "style": "height: 150px;"}),
+        help_text="اختر دولة أو أكثر لمنع التوثيق منها."
     )
 
     class Meta:
@@ -213,7 +215,7 @@ class KYCSettingsForm(forms.ModelForm):
         fields = [
             "unverified_daily_deposit_limit", "unverified_daily_withdrawal_limit",
             "verified_daily_deposit_limit", "verified_daily_withdrawal_limit",
-            "block_by_nationality", "block_by_issuing_country"
+            "block_by_nationality", "block_by_issuing_country", "restricted_countries"
         ]
         widgets = {
             "unverified_daily_deposit_limit": forms.NumberInput(attrs={"class": "builder-input"}),
@@ -222,25 +224,22 @@ class KYCSettingsForm(forms.ModelForm):
             "verified_daily_withdrawal_limit": forms.NumberInput(attrs={"class": "builder-input"}),
         }
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        if self.instance and self.instance.restricted_countries:
-            self.fields["restricted_countries_list"].initial = "، ".join(self.instance.restricted_countries)
-
-    def save(self, commit=True):
-        instance = super().save(commit=False)
-        countries_str = self.cleaned_data.get("restricted_countries_list", "")
-        instance.restricted_countries = [c.strip() for c in countries_str.split("،") if c.strip()] or [c.strip() for c in countries_str.split(",") if c.strip()]
-        if commit:
-            instance.save()
-        return instance
-
 
 class KYCRequestForm(forms.ModelForm):
+    nationality = CountryField().formfield(
+        label="الجنسية",
+        widget=CountrySelectWidget(attrs={"class": "builder-input search-select"})
+    )
+    issuing_country = CountryField().formfield(
+        label="بلد إصدار الوثيقة",
+        widget=CountrySelectWidget(attrs={"class": "builder-input search-select"})
+    )
+
     class Meta:
         model = KYCRequest
         fields = [
-            "document_type", "id_number", "first_name", "father_name", "last_name",
+            "document_type", "id_number", "nationality", "issuing_country",
+            "first_name", "father_name", "last_name",
             "mother_name", "gender", "date_of_birth", "place_of_birth", "current_residence",
             "identity_front", "identity_back", "selfie_verification"
         ]
