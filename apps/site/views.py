@@ -19,7 +19,7 @@ from apps.accounts.models import User, ModerationLog, ActivityLog
 from apps.accounts.services import send_verification_email
 from apps.catalog.models import Category, Product, ProductVariant
 from apps.common.models import Currency
-from apps.notifications.models import Notification
+from apps.notifications.models import Notification, NotificationSetting
 from apps.notifications.services import notify_user
 from apps.orders.models import Order, OrderItem, OrderLog, Coupon
 from apps.payments.models import DepositRequest, PaymentMethod, WithdrawalRequest
