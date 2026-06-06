@@ -38,10 +38,10 @@
         <table class="w-full text-sm text-right">
             <thead class="text-[11px] text-slate-500 border-b border-white/5 uppercase bg-white/[0.01]">
                 <tr>
-                    <th class="p-4 w-10"><input type="checkbox" id="select-all"></th>
+                    <th class="p-4 w-10"><input type="checkbox" id="select-all" class="rounded border-white/10 bg-white/5"></th>
                     <th class="p-4">المستخدم</th>
-                    <th class="p-4">الرصيد</th>
-                    <th class="p-4">الفئة / الدور</th>
+                    <th class="p-4">الرصيد / الديون</th>
+                    <th class="p-4">الفئة</th>
                     <th class="p-4">الحالة</th>
                     <th class="p-4">تاريخ الانضمام</th>
                     <th class="p-4 text-left">إجراءات</th>
@@ -50,29 +50,48 @@
             <tbody>
                 {% for user in users %}
                 <tr class="border-b border-white/[0.02] last:border-0 hover:bg-white/[0.02] transition">
-                    <td class="p-4"><input type="checkbox" name="user_ids" value="{{ user.id }}" class="user-checkbox"></td>
+                    <td class="p-4"><input type="checkbox" name="user_ids" value="{{ user.id }}" class="user-checkbox rounded border-white/10 bg-white/5"></td>
                     <td class="p-4">
                         <div class="flex items-center gap-3">
-                            <div class="w-10 h-10 rounded-full bg-slate-800 flex items-center justify-center text-xs text-muted border border-white/5">
-                                {{ user.username|slice:":1"|upper }}
+                            <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-slate-800 to-slate-900 flex items-center justify-center text-xs font-bold text-slate-400 border border-white/5 shadow-inner">
+                                {{ user.email|slice:":1"|upper }}
                             </div>
                             <div>
-                                <div class="font-bold text-slate-200">{{ user.get_full_name|default:user.username }}</div>
-                                <div class="text-[10px] text-slate-500">{{ user.email }}</div>
+                                <div class="font-bold text-slate-200">{{ user.get_full_name|default:user.username|default:"بدون اسم" }}</div>
+                                <div class="text-[10px] text-slate-500 flex items-center gap-1">
+                                    <i class="far fa-envelope opacity-50"></i> {{ user.email }}
+                                </div>
                             </div>
                         </div>
                     </td>
                     <td class="p-4">
-                        <div class="font-mono text-cyan">{{ user.wallet.available_balance }}</div>
-                        <div class="text-[9px] text-slate-500">{{ user.wallet.currency.code }}</div>
+                        <div class="flex flex-col">
+                            <div class="font-mono text-cyan flex items-center gap-1">
+                                <span class="text-[10px] opacity-50 font-sans">Available:</span>
+                                {{ user.wallet.available_balance }}
+                            </div>
+                            {% if user.wallet.debt_balance > 0 %}
+                            <div class="font-mono text-danger flex items-center gap-1 mt-1">
+                                <span class="text-[10px] opacity-50 font-sans">Debt:</span>
+                                {{ user.wallet.debt_balance }}
+                            </div>
+                            {% else %}
+                            <div class="text-[9px] text-slate-600 mt-1">No outstanding debt</div>
+                            {% endif %}
+                        </div>
                     </td>
                     <td class="p-4">
-                        <span class="badge primary text-[9px] mb-1 block w-fit">{{ user.get_tier_display }}</span>
-                        <span class="text-[10px] text-slate-500">{{ user.get_role_display }}</span>
+                        <div class="flex flex-col gap-1">
+                            <span class="badge primary text-[9px] w-fit font-bold uppercase tracking-wider">{{ user.get_tier_display }}</span>
+                            <span class="text-[10px] text-slate-500">{{ user.get_role_display }}</span>
+                        </div>
                     </td>
                     <td class="p-4">
-                        <span class="badge {% if user.status == 'active' %}success{% elif user.status == 'suspended' %}warning{% else %}danger{% endif %} text-[9px]">
-                            {{ user.get_status_display }}
+                        <span class="flex items-center gap-2">
+                            <span class="w-2 h-2 rounded-full {% if user.status == 'active' %}bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.4)]{% elif user.status == 'suspended' %}bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.4)]{% else %}bg-rose-500 shadow-[0_0_8px_rgba(244,63,94,0.4)]{% endif %}"></span>
+                            <span class="text-xs {% if user.status == 'active' %}text-emerald-400{% elif user.status == 'suspended' %}text-amber-400{% else %}text-rose-400{% endif %}">
+                                {{ user.get_status_display }}
+                            </span>
                         </span>
                     </td>
                     <td class="p-4 text-[10px] text-slate-500">

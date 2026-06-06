@@ -40,6 +40,7 @@ urlpatterns = [
     path("", include("apps.site.urls")),
     path("support/", include("apps.support.urls")),
     path("admin/", admin.site.urls),
+    path("auth/", include("django.contrib.auth.urls")),
     path("api/health/", health),
     path("api/auth/register/", RegisterView.as_view(), name="register"),
     path("api/auth/login/", LoginView.as_view(), name="login"),

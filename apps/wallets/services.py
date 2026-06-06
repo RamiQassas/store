@@ -28,8 +28,29 @@ def credit_wallet(wallet_id, amount, reference="", description="", created_by=No
             pending_amount = Decimal(metadata.get("pending_amount", amount))
             wallet.pending_balance = max(Decimal("0.00"), wallet.pending_balance - pending_amount)
 
+        # Auto-deduct debt if it's a deposit
+        debt_paid = Decimal("0.00")
+        if source in ["admin_approval", "deposit"] and wallet.debt_balance > 0:
+            debt_paid = min(amount, wallet.debt_balance)
+            wallet.debt_balance -= debt_paid
+            amount -= debt_paid
+            
+            if debt_paid > 0:
+                LedgerEntry.objects.create(
+                    wallet=wallet,
+                    entry_type=LedgerEntry.EntryType.DEBT_PAYMENT,
+                    amount=debt_paid,
+                    balance_after=wallet.available_balance,
+                    reference=reference,
+                    description=f"Auto-deduction for debt from deposit. {description}",
+                    source=source,
+                    reason="Auto debt deduction",
+                    created_by=created_by,
+                    metadata=json_serialize_safe({"original_credit_amount": str(amount + debt_paid), "debt_paid": str(debt_paid)})
+                )
+
         wallet.available_balance += amount
-        wallet.save(update_fields=["available_balance", "pending_balance", "updated_at"])
+        wallet.save(update_fields=["available_balance", "pending_balance", "debt_balance", "updated_at"])
         
         entry = LedgerEntry.objects.create(
             wallet=wallet,
@@ -46,9 +67,65 @@ def credit_wallet(wallet_id, amount, reference="", description="", created_by=No
         
         WalletTransaction.objects.create(
             wallet=wallet,
-            amount=amount,
+            amount=amount + debt_paid, # Track total amount in transaction
             transaction_type="credit",
             reference=reference,
+            metadata=json_serialize_safe(metadata),
+        )
+        return wallet
+
+
+def add_debt(wallet_id, amount, reference="", description="", created_by=None, metadata=None, source="admin", reason=""):
+    """Assigns debt to a user."""
+    amount = Decimal(amount)
+    if amount <= 0:
+        raise WalletError("Amount must be positive.")
+    with transaction.atomic():
+        wallet = Wallet.objects.select_for_update().get(id=wallet_id)
+        wallet.debt_balance += amount
+        wallet.save(update_fields=["debt_balance", "updated_at"])
+        
+        LedgerEntry.objects.create(
+            wallet=wallet,
+            entry_type=LedgerEntry.EntryType.DEBT_ADD,
+            amount=amount,
+            balance_after=wallet.available_balance,
+            reference=reference,
+            description=description,
+            source=source,
+            reason=reason,
+            created_by=created_by,
+            metadata=json_serialize_safe(metadata),
+        )
+        return wallet
+
+
+def pay_debt(wallet_id, amount, reference="", description="", created_by=None, metadata=None, source="admin", reason=""):
+    """Manually pays off debt using available balance."""
+    amount = Decimal(amount)
+    if amount <= 0:
+        raise WalletError("Amount must be positive.")
+    with transaction.atomic():
+        wallet = Wallet.objects.select_for_update().get(id=wallet_id)
+        if wallet.debt_balance < amount:
+            raise WalletError("Payment exceeds outstanding debt.")
+        if wallet.available_balance < amount:
+            raise WalletError("Insufficient available balance to pay debt.")
+            
+        wallet.available_balance -= amount
+        wallet.debt_balance -= amount
+        wallet.save(update_fields=["available_balance", "debt_balance", "updated_at"])
+        
+        LedgerEntry.objects.create(
+            wallet=wallet,
+            entry_type=LedgerEntry.EntryType.DEBT_PAYMENT,
+            amount=amount,
+            balance_after=wallet.available_balance,
+            reference=reference,
+            description=description,
+            source=source,
+            reason=reason,
+            created_by=created_by,
             metadata=json_serialize_safe(metadata),
         )
         return wallet

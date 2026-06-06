@@ -887,45 +887,99 @@ def control_user_moderate(request, public_uuid):
         "restriction_purchases": user_to_moderate.restriction_purchases,
     }
 
-    form = ModerateUserForm(request.POST or None, instance=user_to_moderate)
-    if request.method == "POST" and form.is_valid():
-        with transaction.atomic():
-            user_to_moderate = form.save()
-            new_state = {
-                "status": user_to_moderate.status,
-                "tier": user_to_moderate.tier,
-                "restriction_withdrawals": user_to_moderate.restriction_withdrawals,
-                "restriction_deposits": user_to_moderate.restriction_deposits,
-                "restriction_purchases": user_to_moderate.restriction_purchases,
-            }
+    if request.method == "POST":
+        action = request.POST.get("action")
+        
+        # Debt Management
+        if action == "assign_debt":
+            amount = Decimal(request.POST.get("amount", "0"))
+            reason = request.POST.get("reason", "Administrative Debt")
+            if amount > 0:
+                from apps.wallets.services import add_debt
+                add_debt(
+                    wallet_id=user_to_moderate.wallet.id,
+                    amount=amount,
+                    description=reason,
+                    created_by=request.user,
+                    source="admin_manual",
+                    reason=reason
+                )
+                messages.success(request, f"تم إضافة دين بقيمة {amount} للمستخدم.")
+                return redirect("control_user_moderate", public_uuid=public_uuid)
+        
+        elif action == "pay_debt":
+            amount = Decimal(request.POST.get("amount", "0"))
+            if amount > 0:
+                from apps.wallets.services import pay_debt
+                try:
+                    pay_debt(
+                        wallet_id=user_to_moderate.wallet.id,
+                        amount=amount,
+                        description="Manual debt payment by admin",
+                        created_by=request.user,
+                        source="admin_manual"
+                    )
+                    messages.success(request, f"تم خصم {amount} من رصيد المستخدم لسداد الدين.")
+                except Exception as e:
+                    messages.error(request, f"خطأ: {str(e)}")
+                return redirect("control_user_moderate", public_uuid=public_uuid)
 
-            # Local moderation log
-            ModerationLog.objects.create(
-                user=user_to_moderate,
-                moderator=request.user,
-                action="Account Moderation Update",
-                previous_state=previous_state,
-                new_state=new_state,
-                reason=user_to_moderate.suspension_reason,
-                internal_notes=user_to_moderate.admin_notes
-            )
+        # Password Reset
+        elif action == "reset_password":
+            from django.contrib.auth.forms import PasswordResetForm
+            form = PasswordResetForm({"email": user_to_moderate.email})
+            if form.is_valid():
+                form.save(
+                    request=request,
+                    use_https=request.is_secure(),
+                    email_template_name="registration/password_reset_email.html",
+                )
+                messages.success(request, "تم إرسال رابط إعادة تعيين كلمة المرور للمستخدم.")
+                return redirect("control_user_moderate", public_uuid=public_uuid)
 
-            # Universal System Audit Log
-            from apps.common.services import log_system_action
-            log_system_action(
-                actor=request.user,
-                action_type="USER_MODERATION",
-                target=user_to_moderate,
-                description=f"Updated account settings for {user_to_moderate.email}",
-                before_state=previous_state,
-                after_state=new_state,
-                ip_address=request.META.get('REMOTE_ADDR'),
-                user_agent=request.META.get('HTTP_USER_AGENT'),
-                reason=user_to_moderate.suspension_reason
-            )
+        # Standard Moderation
+        else:
+            form = ModerateUserForm(request.POST, instance=user_to_moderate)
+            if form.is_valid():
+                with transaction.atomic():
+                    user_to_moderate = form.save()
+                    new_state = {
+                        "status": user_to_moderate.status,
+                        "tier": user_to_moderate.tier,
+                        "restriction_withdrawals": user_to_moderate.restriction_withdrawals,
+                        "restriction_deposits": user_to_moderate.restriction_deposits,
+                        "restriction_purchases": user_to_moderate.restriction_purchases,
+                    }
 
-            messages.success(request, f"تم تحديث حالة حساب {user_to_moderate.email} بنجاح.")
-            return redirect("control_users_list")
+                    # Local moderation log
+                    ModerationLog.objects.create(
+                        user=user_to_moderate,
+                        moderator=request.user,
+                        action="Account Moderation Update",
+                        previous_state=previous_state,
+                        new_state=new_state,
+                        reason=user_to_moderate.suspension_reason,
+                        internal_notes=user_to_moderate.admin_notes
+                    )
+
+                    # Universal System Audit Log
+                    from apps.common.services import log_system_action
+                    log_system_action(
+                        actor=request.user,
+                        action_type="USER_MODERATION",
+                        target=user_to_moderate,
+                        description=f"Updated account settings for {user_to_moderate.email}",
+                        before_state=previous_state,
+                        after_state=new_state,
+                        ip_address=request.META.get('REMOTE_ADDR'),
+                        user_agent=request.META.get('HTTP_USER_AGENT'),
+                        reason=user_to_moderate.suspension_reason
+                    )
+
+                    messages.success(request, f"تم تحديث حالة حساب {user_to_moderate.email} بنجاح.")
+                    return redirect("control_user_moderate", public_uuid=public_uuid)
+    else:
+        form = ModerateUserForm(instance=user_to_moderate)
 
     # Fetch both logs for comprehensive view
     from apps.common.models import SystemAuditLog

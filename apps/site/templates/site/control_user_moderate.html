@@ -77,6 +77,49 @@
             </div>
         </form>
 
+        <!-- Financial Management -->
+        <div class="management-card">
+            <div class="management-header">
+                <h3 class="font-bold"><i class="fas fa-hand-holding-usd ml-2"></i> إدارة الديون والالتزامات المالية</h3>
+            </div>
+            <div class="management-body grid grid-2 gap-8">
+                <!-- Add Debt -->
+                <form method="post" class="stack gap-4 p-6 bg-slate-900/40 rounded-2xl border border-white/5">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="assign_debt">
+                    <h4 class="text-xs font-bold uppercase tracking-widest text-slate-400">إضافة دين جديد</h4>
+                    <div class="field-group">
+                        <label class="text-[10px]">المبلغ</label>
+                        <input type="number" name="amount" step="0.01" class="builder-input" placeholder="0.00" required>
+                    </div>
+                    <div class="field-group">
+                        <label class="text-[10px]">السبب / الملاحظات</label>
+                        <input type="text" name="reason" class="builder-input" placeholder="مثلاً: دفعة مقدمة، غرامة..." required>
+                    </div>
+                    <button type="submit" class="btn btn-sm btn-outline danger w-full py-2">تأكيد إضافة الدين</button>
+                </form>
+
+                <!-- Pay Debt -->
+                <form method="post" class="stack gap-4 p-6 bg-slate-900/40 rounded-2xl border border-white/5">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="pay_debt">
+                    <h4 class="text-xs font-bold uppercase tracking-widest text-slate-400">سداد دين من الرصيد</h4>
+                    <div class="field-group">
+                        <label class="text-[10px]">المبلغ المراد سداده</label>
+                        <input type="number" name="amount" step="0.01" max="{{ user_to_moderate.wallet.debt_balance }}" class="builder-input" placeholder="0.00" required>
+                        <p class="text-[9px] text-muted mt-1">الحد الأقصى: {{ user_to_moderate.wallet.debt_balance }}</p>
+                    </div>
+                    <div class="p-3 bg-cyan/5 border border-cyan/10 rounded-xl">
+                        <p class="text-[10px] text-cyan leading-relaxed">
+                            <i class="fas fa-info-circle ml-1"></i>
+                            سيتم خصم المبلغ مباشرة من الرصيد المتاح للمستخدم وتقليص قيمة الدين المستحق.
+                        </p>
+                    </div>
+                    <button type="submit" class="btn btn-sm btn-primary w-full py-2" {% if user_to_moderate.wallet.debt_balance == 0 %}disabled{% endif %}>معالجة السداد</button>
+                </form>
+            </div>
+        </div>
+
         <!-- Audit & Activity Log -->
         <div class="management-card">
             <div class="management-header">
@@ -121,16 +164,16 @@
                     <strong class="text-cyan">{{ user_to_moderate.wallet.available_balance }} {{ user_to_moderate.wallet.currency.code }}</strong>
                 </div>
                 <div class="flex justify-between text-sm">
+                    <span class="text-muted">الديون المستحقة:</span>
+                    <strong class="text-rose-500">{{ user_to_moderate.wallet.debt_balance }}</strong>
+                </div>
+                <div class="flex justify-between text-sm">
                     <span class="text-muted">الرصيد المحجوز:</span>
-                    <strong class="text-red-400">{{ user_to_moderate.wallet.held_balance }}</strong>
+                    <strong class="text-amber-500">{{ user_to_moderate.wallet.held_balance }}</strong>
                 </div>
                 <div class="flex justify-between text-sm">
-                    <span class="text-muted">العملات المفضلة:</span>
-                    <span>{{ user_to_moderate.wallet.currency.code }}</span>
-                </div>
-                <div class="flex justify-between text-sm">
-                    <span class="text-muted">تاريخ الانضمام:</span>
-                    <span>{{ user_to_moderate.date_joined|date:"d M Y" }}</span>
+                    <span class="text-muted">الفئة الحالية:</span>
+                    <span class="badge primary text-[9px]">{{ user_to_moderate.get_tier_display }}</span>
                 </div>
             </div>
         </div>
@@ -142,6 +185,10 @@
                 <button class="btn btn-outline danger w-full text-xs py-3" onclick="quickBan()">
                     <i class="fas fa-ban ml-2"></i> حظر الحساب فوراً
                 </button>
+                <form method="post" id="reset-pass-form" class="hidden">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="reset_password">
+                </form>
                 <button class="btn btn-outline w-full text-xs py-3" onclick="resetPassword()">
                     <i class="fas fa-key ml-2"></i> إرسال رابط إعادة كلمة السر
                 </button>
@@ -157,6 +204,12 @@ function quickBan() {
         document.querySelector('input[name="is_permanently_suspended"]').checked = true;
         document.querySelector('textarea[name="suspension_reason"]').value = "لقد تم حظر حسابك نهائياً لمخالفة قوانين المنصة.";
         document.getElementById('mod-form').submit();
+    }
+}
+
+function resetPassword() {
+    if (confirm("هل تريد إرسال بريد إلكتروني للمستخدم لإعادة تعيين كلمة المرور؟")) {
+        document.getElementById('reset-pass-form').submit();
     }
 }
 </script>

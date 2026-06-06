@@ -16,6 +16,7 @@ class Wallet(TimeStampedModel):
     held_balance = models.DecimalField(max_digits=14, decimal_places=2, default=Decimal("0.00"), verbose_name="الرصيد المحجوز (إداري/نزاعات)")
     pending_balance = models.DecimalField(max_digits=14, decimal_places=2, default=Decimal("0.00"), verbose_name="الرصيد المعلق (إيداعات قيد الانتظار)")
     reserved_balance = models.DecimalField(max_digits=14, decimal_places=2, default=Decimal("0.00"), verbose_name="الرصيد المحجوز (طلبات قيد التنفيذ)")
+    debt_balance = models.DecimalField(max_digits=14, decimal_places=2, default=Decimal("0.00"), verbose_name="الرصيد المستحق (ديون)")
 
     class Meta:
         indexes = [models.Index(fields=["currency"])]
@@ -42,6 +43,10 @@ class Wallet(TimeStampedModel):
                 check=models.Q(reserved_balance__gte=0),
                 name="reserved_balance_non_negative"
             ),
+            models.CheckConstraint(
+                check=models.Q(debt_balance__gte=0),
+                name="debt_balance_non_negative"
+            ),
         ]
 
     def __str__(self):
@@ -65,6 +70,8 @@ class LedgerEntry(TimeStampedModel):
         REFUND = "refund", "استرداد"
         PENDING_DEPOSIT = "pending_deposit", "إيداع معلق"
         PENDING_CANCEL = "pending_cancel", "إلغاء إيداع معلق"
+        DEBT_ADD = "debt_add", "إضافة دين"
+        DEBT_PAYMENT = "debt_payment", "سداد دين"
 
     wallet = models.ForeignKey(Wallet, related_name="ledger_entries", on_delete=models.PROTECT)
     entry_type = models.CharField(max_length=20, choices=EntryType.choices)
