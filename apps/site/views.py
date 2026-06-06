@@ -251,20 +251,23 @@ def verify_otp_view(request):
                 user.email_verified = True
                 user.save(update_fields=["email_verified"])
                 messages.success(request, "تم تفعيل حسابك بنجاح.")
+                login(request, user)
+                messages.success(request, "مرحبًا بك في رقميات.")
             
-            # Use request_ip helper if available or standard REMOTE_ADDR
-            try:
-                from apps.accounts.views import request_ip
-                ip = request_ip(request)
-            except:
-                ip = request.META.get('REMOTE_ADDR')
+            elif purpose == OTPToken.Purpose.LOGIN:
+                login(request, user)
+                messages.success(request, "مرحبًا بك في رقميات.")
+                
+            elif purpose == OTPToken.Purpose.PASSWORD_RESET:
+                request.session["otp_verified_reset"] = True
+                messages.success(request, "تم التحقق بنجاح. يرجى تعيين كلمة مرور جديدة.")
+                # Don't clean session yet, need reset_user_id
+                return redirect("password_reset_new")
 
-            login(request, user)
-            messages.success(request, "مرحبًا بك في رقميات.")
-            
-            # Clean session safely
-            request.session.pop("otp_user_id", None)
-            request.session.pop("otp_purpose", None)
+            # Clean session safely for standard flows
+            if purpose != OTPToken.Purpose.PASSWORD_RESET:
+                request.session.pop("otp_user_id", None)
+                request.session.pop("otp_purpose", None)
             
             ActivityLog.objects.create(
                 user=user,
@@ -1463,14 +1466,64 @@ def contact_page(request):
     return render(request, "site/contact.html")
 
 
-def service_worker(request):
-    """Serves the service worker from the root for correct scoping."""
-    from django.http import HttpResponse
-    from django.conf import settings
-    import os
+def password_reset_request_view(request):
+    if request.method == "POST":
+        email = request.POST.get("email", "").lower()
+        user = User.objects.filter(email=email).first()
+        
+        if user:
+            # Generate OTP for password reset
+            otp = generate_otp(user, OTPToken.Purpose.PASSWORD_RESET)
+            if send_otp_email(user, otp):
+                request.session["reset_user_id"] = str(user.id)
+                request.session["otp_user_id"] = str(user.id) # For verify_otp_view
+                request.session["otp_purpose"] = OTPToken.Purpose.PASSWORD_RESET
+                messages.success(request, "تم إرسال رمز التحقق إلى بريدك الإلكتروني.")
+                return redirect("verify_otp")
+            else:
+                messages.error(request, "فشل إرسال الرمز. يرجى المحاولة لاحقاً.")
+        else:
+            messages.error(request, "عذراً، هذا البريد الإلكتروني غير مسجل لدينا.")
+            
+    return render(request, "registration/password_reset_form.html")
+
+
+def password_reset_new_view(request):
+    # Ensure the user has verified their OTP
+    user_id = request.session.get("reset_user_id")
+    # Also check if they just came from a successful OTP verification for password_reset
+    is_verified = request.session.get("otp_verified_reset") == True
     
-    sw_path = os.path.join(settings.BASE_DIR, 'apps', 'site', 'static', 'site', 'js', 'sw.js')
-    with open(sw_path, 'r', encoding='utf-8') as f:
-        content = f.read()
+    if not user_id or not is_verified:
+        messages.error(request, "يرجى التحقق من هويتك أولاً.")
+        return redirect("password_reset")
+        
+    user = get_object_or_404(User, id=user_id)
     
-    return HttpResponse(content, content_type='application/javascript')
+    if request.method == "POST":
+        password = request.POST.get("password")
+        confirm_password = request.POST.get("confirm_password")
+        
+        if not password or len(password) < 10:
+            messages.error(request, "يجب أن تكون كلمة المرور 10 خانات على الأقل.")
+        elif password != confirm_password:
+            messages.error(request, "كلمات المرور غير متطابقة.")
+        else:
+            user.set_password(password)
+            user.save()
+            
+            # Clean up session
+            request.session.pop("reset_user_id", None)
+            request.session.pop("otp_verified_reset", None)
+            
+            ActivityLog.objects.create(
+                user=user,
+                action="Password Reset",
+                description="User reset their password via OTP flow",
+                ip_address=request.META.get('REMOTE_ADDR')
+            )
+            
+            messages.success(request, "تم تغيير كلمة المرور بنجاح. يمكنك الآن تسجيل الدخول.")
+            return redirect("site_login")
+            
+    return render(request, "registration/password_reset_new.html", {"user_email": user.email})

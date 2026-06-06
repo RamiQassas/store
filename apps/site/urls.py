@@ -1,7 +1,5 @@
 from django.urls import path
-from django.contrib.auth import views as auth_views
 from apps.site import views, api_views
-from apps.site.forms import CustomPasswordResetForm
 
 urlpatterns = [
     # User Dashboard
@@ -15,7 +13,7 @@ urlpatterns = [
     path("catalog/", views.catalog, name="catalog"),
     path("catalog/<uuid:pk>/", views.product_detail, name="product_detail"),
     
-    # API Endpoints (for staff/JS)
+    # API Endpoints
     path("api/deposits/<uuid:pk>/approve/", api_views.api_deposit_approve, name="api_deposit_approve"),
     path("api/deposits/<uuid:pk>/reject/", api_views.api_deposit_reject, name="api_deposit_reject"),
     path("api/deposits/<uuid:pk>/correct/", api_views.api_deposit_correct, name="api_deposit_correct"),
@@ -26,20 +24,17 @@ urlpatterns = [
     path("api/withdrawals/<uuid:pk>/complete/", api_views.api_withdrawal_complete, name="api_withdrawal_complete"),
     path("api/withdrawals/<uuid:pk>/reject/", api_views.api_withdrawal_reject, name="api_withdrawal_reject"),
 
-    # Auth
+    # Auth & Custom Password Recovery Flow
     path("auth/login/", views.login_view, name="site_login"),
     path("auth/verify-otp/", views.verify_otp_view, name="verify_otp"),
     path("auth/register/", views.register_view, name="site_register"),
+    path("auth/password-reset/", views.password_reset_request_view, name="password_reset"),
+    path("auth/password-reset/new/", views.password_reset_new_view, name="password_reset_new"),
     path("auth/verify/<str:uidb64>/<str:token>/", views.email_verify, name="email_verify"),
     path("auth/resend-verification/", views.resend_verification, name="resend_verification"),
     path("logout/", views.logout_view, name="site_logout"),
     
-    # Password Reset
-    path("auth/password-reset/", auth_views.PasswordResetView.as_view(form_class=CustomPasswordResetForm, template_name="registration/password_reset_form.html"), name="password_reset"),
-    path("auth/password-reset/done/", auth_views.PasswordResetDoneView.as_view(template_name="registration/password_reset_done.html"), name="password_reset_done"),
-    path("auth/reset/<uidb64>/<token>/", auth_views.PasswordResetConfirmView.as_view(template_name="registration/password_reset_confirm.html"), name="password_reset_confirm"),
-    path("auth/reset/done/", auth_views.PasswordResetCompleteView.as_view(template_name="registration/password_reset_complete.html"), name="password_reset_complete"),
-
+    # Control Panel
     path("control/", views.control_dashboard, name="control_dashboard"),
     path("control/payment-methods/", views.payment_methods_list, name="payment_methods_list"),
     path("control/payment-methods/create/", views.payment_method_create, name="payment_method_create"),
