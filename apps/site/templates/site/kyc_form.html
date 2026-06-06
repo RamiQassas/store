@@ -134,7 +134,7 @@
                     </div>
 
                     <div class="upload-card stack gap-4">
-                        <div class="fixed-frame aspect-[4/3] bg-slate-800/40 border border-dashed border-white/10 rounded-2xl flex items-center justify-center relative overflow-hidden group hover:border-cyan/50 transition-all">
+                        <div class="fixed-frame aspect-[4/3] w-full bg-slate-800/40 border border-dashed border-white/10 rounded-2xl flex items-center justify-center relative overflow-hidden group hover:border-cyan/50 transition-all">
                             <div class="text-center group-hover:scale-110 transition-transform">
                                 <i class="fas fa-user-circle text-3xl mb-2 text-slate-600 group-hover:text-cyan"></i>
                                 <div class="text-[8px] font-black text-slate-500 uppercase tracking-widest">صورة سيلفي</div>
@@ -142,6 +142,7 @@
                         </div>
                         <div class="px-2">
                             <label class="text-[10px] font-bold text-slate-400 mb-2 block">تحميل صورة السيلفي</label>
+                            <p class="text-[9px] text-slate-500 mb-3 leading-relaxed">يرجى رفع صورة سيلفي واضحة وأنت تحمل نفس وثيقة الهوية بجانب وجهك. تأكد من وضوح ملامح وجهك وبيانات الوثيقة لتجنب رفض الطلب.</p>
                             {{ form.selfie_verification }}
                         </div>
                     </div>
@@ -161,5 +162,6 @@
     .builder-input { width: 100%; padding: 12px 16px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); border-radius: 12px; color: #fff; }
     .builder-input:focus { border-color: var(--cyan); outline: none; }
     input[type="file"] { font-size: 10px; color: #64748b; }
+    .fixed-frame { position: relative; overflow: hidden; width: 100% !important; max-width: 100%; height: auto; }
 </style>
 {% endblock %}

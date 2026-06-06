@@ -221,6 +221,16 @@ class KYCRequestForm(forms.ModelForm):
             "gender": forms.Select(attrs={"class": "builder-input"}),
         }
 
+    def clean_id_number(self):
+        id_number = self.cleaned_data.get("id_number")
+        if id_number:
+            qs = KYCRequest.objects.filter(id_number=id_number)
+            if self.instance.pk:
+                qs = qs.exclude(pk=self.instance.pk)
+            if qs.exists():
+                raise forms.ValidationError("يوجد حساب موثق بالفعل باستخدام بيانات الهوية هذه. يُسمح بحساب موثق واحد فقط لكل وثيقة هوية.")
+        return id_number
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         # Ensure all fields are required

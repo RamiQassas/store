@@ -215,7 +215,7 @@ class KYCRequest(TimeStampedModel):
     status = models.CharField(max_length=20, choices=Status.choices, default=Status.PENDING)
     
     # Personal Info
-    id_number = models.CharField(max_length=50, verbose_name="رقم الهوية / الوثيقة")
+    id_number = models.CharField(max_length=50, unique=True, verbose_name="رقم الهوية / الوثيقة")
     first_name = models.CharField(max_length=100, verbose_name="الاسم الأول")
     father_name = models.CharField(max_length=100, verbose_name="اسم الأب")
     last_name = models.CharField(max_length=100, verbose_name="النسبة / الكنية")

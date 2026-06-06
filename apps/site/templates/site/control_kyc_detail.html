@@ -234,7 +234,9 @@
     .builder-input:focus { border-color: var(--cyan); outline: none; }
     .btn-outline.danger { border-color: rgba(244, 63, 94, 0.2); color: #f43f5e; }
     .btn-outline.danger:hover { background: #f43f5e; color: white; }
+    .thumbnail-wrapper { width: 180px; }
+    .fixed-thumb { width: 180px; height: 120px; border-radius: 12px; overflow: hidden; background: #000; border: 1px solid var(--panel-border); position: relative; }
+    .fixed-thumb img { width: 100%; height: 100%; object-fit: contain; }
     .fixed-frame { position: relative; width: 100%; }
-    .fixed-frame img { width: 100%; height: 100%; object-fit: cover; }
 </style>
 {% endblock %}
