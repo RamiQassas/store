@@ -457,7 +457,7 @@ def kyc_request_view(request):
     initial_data = {"nationality": default_country, "issuing_country": default_country} if not existing else None
     form = KYCRequestForm(request.POST or None, request.FILES or None, 
                           instance=existing if existing and existing.status == KYCRequest.Status.REJECTED else None,
-                          initial=initial_data)
+                          initial=initial_data, is_admin=False)
     
     if request.method == "POST" and form.is_valid():
         if existing and existing.status in [KYCRequest.Status.PENDING, KYCRequest.Status.APPROVED]:
@@ -501,15 +501,20 @@ def control_kycs_list(request):
 def control_kyc_detail(request, pk):
     kyc = get_object_or_404(KYCRequest.objects.select_related("user"), pk=pk)
     global_settings = KYCSettings.get_settings()
-    form = KYCRequestForm(request.POST or None, request.FILES or None, instance=kyc)
+    
+    # Use is_admin=True to make images optional for editing text data
+    form = KYCRequestForm(request.POST or None, request.FILES or None, instance=kyc, is_admin=True)
     payment_methods = PaymentMethod.objects.filter(is_active=True)
     
     if request.method == "POST":
         action = request.POST.get("action")
-        if action == "update_info" and form.is_valid():
-            form.save()
-            messages.success(request, "تم التحديث.")
-            return redirect("control_kyc_detail", pk=pk)
+        
+        # 1. Update/Edit Information (Including image replacement)
+        if action == "update_info":
+            if form.is_valid():
+                form.save()
+                messages.success(request, "تم تحديث بيانات وصور التوثيق بنجاح.")
+                return redirect("control_kyc_detail", pk=pk)
         elif action == "update_limits":
             user = kyc.user
             user.daily_deposit_limit = Decimal(request.POST.get("global_deposit_limit", "100.00"))

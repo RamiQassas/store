@@ -272,10 +272,14 @@ class KYCRequestForm(forms.ModelForm):
         return id_number
 
     def __init__(self, *args, **kwargs):
+        is_admin = kwargs.pop('is_admin', False)
         super().__init__(*args, **kwargs)
-        # Ensure all fields are required
-        for field in self.fields:
-            self.fields[field].required = True
+        # Ensure all fields are required for users, but allow optional images for admin updates
+        for field_name, field in self.fields.items():
+            if is_admin and field_name in ["identity_front", "identity_back", "selfie_verification"]:
+                field.required = False
+            else:
+                field.required = True
 
 
 from apps.catalog.models import Category, Product, ProductVariant
