@@ -97,6 +97,7 @@ class DepositRequestViewSet(viewsets.ModelViewSet):
                 title="تم قبول طلب الإيداع",
                 body=f"تمت إضافة {deposit.final_amount} {deposit.currency.code} إلى محفظتك بنجاح.",
                 action_url="/dashboard/wallet/",
+                category='financial',
                 priority="high"
             )
 
@@ -133,6 +134,7 @@ class DepositRequestViewSet(viewsets.ModelViewSet):
                 title="تم رفض طلب الإيداع",
                 body=f"نعتذر، تم رفض طلب الإيداع رقم {deposit.id}. السبب: {deposit.admin_note}",
                 action_url="/dashboard/tickets/",
+                category='financial',
                 priority="normal"
             )
         
@@ -229,9 +231,10 @@ class WithdrawalRequestViewSet(viewsets.ModelViewSet):
             
             notify_user(
                 user=withdrawal.user,
-                title="تم اكتمال طلب السحب",
-                body=f"تم تحويل المبلغ {withdrawal.final_amount} {withdrawal.currency.code} إلى حسابك بنجاح.",
-                action_url="/dashboard/wallet/",
+                title="💰 تم اكتمال السحب",
+                body=f"تم تحويل {withdrawal.amount} {withdrawal.currency.code} إلى حسابك بنجاح.",
+                action_url="/dashboard/withdrawals/",
+                category="financial",
                 priority="high"
             )
 
@@ -269,6 +272,7 @@ class WithdrawalRequestViewSet(viewsets.ModelViewSet):
                 title="تم رفض طلب السحب",
                 body=f"نعتذر، تم رفض طلب السحب رقم {withdrawal.id}. تم إعادة المبلغ لمحفظتك. السبب: {withdrawal.admin_note}",
                 action_url="/dashboard/wallet/",
+                category="financial",
                 priority="normal"
             )
         

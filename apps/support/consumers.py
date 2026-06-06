@@ -136,6 +136,7 @@ class SupportConsumer(AsyncWebsocketConsumer):
                 title="رد جديد من الدعم الفني",
                 body=text[:100] if text else "قام الموظف بإرسال ملف/صورة",
                 action_url=f"/support/chats/{room.id}/",
+                category="support",
                 priority="high",
                 metadata={"type": "chat_reply", "room_id": str(room.id)}
             )

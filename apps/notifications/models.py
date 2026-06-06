@@ -42,13 +42,17 @@ class Notification(TimeStampedModel):
 class NotificationSetting(TimeStampedModel):
     user = models.OneToOneField(settings.AUTH_USER_MODEL, related_name="notification_settings", on_delete=models.CASCADE)
     
-    # Preferences
-    support_replies = models.BooleanField(default=True, verbose_name="ردود الدعم")
-    order_updates = models.BooleanField(default=True, verbose_name="تحديثات الطلبات")
-    financial_updates = models.BooleanField(default=True, verbose_name="العمليات المالية")
-    system_announcements = models.BooleanField(default=True, verbose_name="إعلانات النظام")
+    # In-App Preferences
+    in_app_orders = models.BooleanField(default=True, verbose_name="تحديثات الطلبات (داخل التطبيق)")
+    in_app_financial = models.BooleanField(default=True, verbose_name="العمليات المالية (داخل التطبيق)")
+    in_app_support = models.BooleanField(default=True, verbose_name="ردود الدعم (داخل التطبيق)")
+    in_app_promotions = models.BooleanField(default=True, verbose_name="العروض والترويج (داخل التطبيق)")
     
-    push_token = models.TextField(blank=True, help_text="Browser push registration token")
+    # Push Preferences
+    push_orders = models.BooleanField(default=True, verbose_name="تحديثات الطلبات (Push)")
+    push_financial = models.BooleanField(default=True, verbose_name="العمليات المالية (Push)")
+    push_support = models.BooleanField(default=True, verbose_name="ردود الدعم (Push)")
+    push_promotions = models.BooleanField(default=False, verbose_name="العروض والترويج (Push)")
 
     class Meta:
         verbose_name = "إعدادات التنبيهات"

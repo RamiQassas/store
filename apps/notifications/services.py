@@ -1,10 +1,17 @@
 import json
 import logging
+import hashlib
 from pywebpush import webpush, WebPushException
 from django.conf import settings
+from django.utils import timezone
 from apps.notifications.models import Notification, NotificationSetting, PushSubscription
 
 logger = logging.getLogger(__name__)
+
+def generate_deduplication_hash(user_id, title, body, metadata):
+    """Generates a unique hash for a notification to prevent spam within a short window."""
+    raw_str = f"{user_id}:{title}:{body}:{json.dumps(metadata or {}, sort_keys=True)}"
+    return hashlib.md5(raw_str.encode()).hexdigest()
 
 def send_web_push(subscription, payload):
     """Internal helper to deliver a single push via pywebpush."""
@@ -26,7 +33,6 @@ def send_web_push(subscription, payload):
         return True
     except WebPushException as e:
         logger.error(f"WebPush Error: {str(e)}")
-        # If the subscription is no longer valid, we should delete it
         if e.response and e.response.status_code in [404, 410]:
             subscription.delete()
         return False
@@ -34,31 +40,48 @@ def send_web_push(subscription, payload):
         logger.error(f"Unexpected Push Error: {str(e)}")
         return False
 
-def notify_user(user, title, body, action_url=None, image_url=None, channel=None, priority=Notification.Priority.NORMAL, metadata=None):
+def notify_user(user, title, body, action_url=None, image_url=None, category='system', priority=Notification.Priority.NORMAL, metadata=None):
     """
     Centralized service to notify users via multiple channels.
-    channel: can be 'in_app', 'push', 'email', or 'multi' (defaults based on type)
+    category: 'orders', 'financial', 'support', 'promotions', 'system'
     """
+    if not user.is_active:
+        return False
+
+    # 1. Deduplication (Short window: 1 minute)
+    # Check if a similar notification was sent recently to avoid spam
+    dedup_hash = generate_deduplication_hash(user.id, title, body, metadata)
+    one_minute_ago = timezone.now() - timezone.timedelta(minutes=1)
+    if Notification.objects.filter(user=user, metadata__dedup_hash=dedup_hash, created_at__gte=one_minute_ago).exists():
+        return False
+
+    if metadata is None: metadata = {}
+    metadata['dedup_hash'] = dedup_hash
+
+    # 2. Check User Preferences
     settings_obj, _ = NotificationSetting.objects.get_or_create(user=user)
     
-    # Smart Defaults: Support and Financial always get Push + In-App unless specified otherwise
-    is_critical = False
-    if metadata and metadata.get('type') in ['chat_reply', 'deposit_update', 'withdrawal_update', 'order_critical']:
-        is_critical = True
+    send_in_app = False
+    send_push = False
 
-    # If no channel specified, determine based on criticality
-    target_channels = []
-    if channel == 'multi':
-        target_channels = ['in_app', 'push']
-    elif channel:
-        target_channels = [channel]
-    elif is_critical:
-        target_channels = ['in_app', 'push']
-    else:
-        target_channels = ['in_app']
+    if category == 'orders':
+        send_in_app = settings_obj.in_app_orders
+        send_push = settings_obj.push_orders
+    elif category == 'financial':
+        send_in_app = settings_obj.in_app_financial
+        send_push = settings_obj.push_financial
+    elif category == 'support':
+        send_in_app = settings_obj.in_app_support
+        send_push = settings_obj.push_support
+    elif category == 'promotions':
+        send_in_app = settings_obj.in_app_promotions
+        send_push = settings_obj.push_promotions
+    else: # system
+        send_in_app = True
+        send_push = True
 
-    # 1. Create In-App Notification record if requested
-    if 'in_app' in target_channels:
+    # 3. Create In-App Notification
+    if send_in_app:
         Notification.objects.create(
             user=user,
             title=title,
@@ -67,18 +90,19 @@ def notify_user(user, title, body, action_url=None, image_url=None, channel=None
             image_url=image_url,
             channel=Notification.Channel.IN_APP,
             priority=priority,
-            metadata=metadata or {}
+            metadata=metadata
         )
 
-    # 2. Trigger Web Push if requested and subscribed
-    if 'push' in target_channels:
+    # 4. Trigger Web Push
+    if send_push:
         subscriptions = PushSubscription.objects.filter(user=user)
         if subscriptions.exists():
             payload = {
                 "title": title,
                 "body": body,
                 "action_url": action_url or "/dashboard/",
-                "image": image_url
+                "image": image_url,
+                "tag": dedup_hash # For browser-side dedup
             }
             for sub in subscriptions:
                 send_web_push(sub, payload)

@@ -136,7 +136,8 @@ def product_detail(request, pk):
                         title="تم إنشاء الطلب بنجاح",
                         body=f"طلبك رقم {order.number} قيد المعالجة الآن.",
                         action_url="/dashboard/",
-                        priority="high"
+                        category="orders",
+                        priority="normal"
                     )
                     
                     ActivityLog.objects.create(
@@ -497,6 +498,7 @@ def ticket_detail(request, pk):
                         title="رد جديد على تذكرة الدعم",
                         body=f"لقد قام فريق الدعم بالرد على تذكرتك: {ticket.subject}",
                         action_url=f"/dashboard/tickets/{ticket.pk}/",
+                        category="support",
                         priority="high"
                     )
                 else:
@@ -824,6 +826,7 @@ def control_withdrawal_detail(request, pk):
                         user=withdrawal.user,
                         title=f"تحديث طلب السحب: {withdrawal.get_status_display()}",
                         body=f"تم تحديث حالة طلب السحب الخاص بك. {admin_note}",
+                        category="financial",
                         priority="high" if action in ["complete", "reject"] else "normal"
                     )
                     
@@ -1145,6 +1148,7 @@ def control_order_detail(request, pk):
                         user=order.customer,
                         title="تم اكتمال الطلب",
                         body=f"تم إغلاق طلبك رقم {order.number} بنجاح. شكراً لثقتك بنا.",
+                        category="orders",
                         priority="normal"
                     )
 
@@ -1159,6 +1163,7 @@ def control_order_detail(request, pk):
                         title="تم استرداد مبلغ الطلب",
                         body=f"تمت إعادة {order.total_amount} {wallet.currency.code} إلى محفظتك للطلب رقم {order.number}.",
                         action_url="/dashboard/wallet/",
+                        category="financial",
                         priority="high"
                     )
                 
@@ -1181,30 +1186,46 @@ def control_wallets_list(request):
 @permission_required("notifications.add_notification", raise_exception=True)
 def control_send_notification(request):
     if request.method == "POST":
-        target_type = request.POST.get("target_type") # all, single, tier
+        target_type = request.POST.get("target_type") # all, single, tier, balance, activity
         title = request.POST.get("title")
         body = request.POST.get("body")
+        category = request.POST.get("category", "system")
         action_url = request.POST.get("action_url")
         image_url = request.POST.get("image_url")
-        
-        users = User.objects.none()
-        if target_type == "all":
-            users = User.objects.filter(is_active=True)
+
+        users = User.objects.filter(is_active=True)
+
+        if target_type == "single":
+            user_email = request.POST.get("user_email")
+            users = users.filter(email=user_email)
         elif target_type == "tier":
             tier = request.POST.get("tier")
-            users = User.objects.filter(tier=tier, is_active=True)
-        elif target_type == "single":
-            user_email = request.POST.get("user_email")
-            users = User.objects.filter(email=user_email, is_active=True)
-            
+            users = users.filter(tier=tier)
+        elif target_type == "balance":
+            min_bal = Decimal(request.POST.get("min_balance", "0"))
+            users = users.filter(wallet__available_balance__gte=min_bal)
+        elif target_type == "inactive":
+            days = int(request.POST.get("inactive_days", "30"))
+            cutoff = timezone.now() - timedelta(days=days)
+            users = users.filter(last_login__lt=cutoff)
+        elif target_type == "customers":
+            users = users.filter(orders__isnull=False).distinct()
+
         from apps.notifications.services import notify_bulk
-        notify_bulk(users, title, body, action_url=action_url, image_url=image_url)
-        
+        notify_bulk(users, title, body, category=category, action_url=action_url, image_url=image_url)
+
         messages.success(request, f"تم إرسال الإشعار لـ {users.count()} مستخدم بنجاح.")
-        return redirect("control_reports") # For now, or create a dedicated panel
-    
+        return redirect("control_send_notification")
+
     return render(request, "site/control_notification_form.html", {
-        "tiers": User.Tier.choices
+        "tiers": User.Tier.choices,
+        "categories": [
+            ("orders", "تحديثات الطلبات"),
+            ("financial", "العمليات المالية"),
+            ("support", "ردود الدعم"),
+            ("promotions", "العروض والترويج"),
+            ("system", "إشعارات النظام"),
+        ]
     })
 
 @staff_member_required
@@ -1251,6 +1272,30 @@ def control_reports(request):
     }
     
     return render(request, "site/control_reports.html", {"stats": stats})
+
+
+@login_required
+def notification_settings(request):
+    settings_obj, _ = NotificationSetting.objects.get_or_create(user=request.user)
+    
+    if request.method == "POST":
+        # In-App
+        settings_obj.in_app_orders = request.POST.get("in_app_orders") == "on"
+        settings_obj.in_app_financial = request.POST.get("in_app_financial") == "on"
+        settings_obj.in_app_support = request.POST.get("in_app_support") == "on"
+        settings_obj.in_app_promotions = request.POST.get("in_app_promotions") == "on"
+        
+        # Push
+        settings_obj.push_orders = request.POST.get("push_orders") == "on"
+        settings_obj.push_financial = request.POST.get("push_financial") == "on"
+        settings_obj.push_support = request.POST.get("push_support") == "on"
+        settings_obj.push_promotions = request.POST.get("push_promotions") == "on"
+        
+        settings_obj.save()
+        messages.success(request, "تم تحديث إعدادات التنبيهات بنجاح.")
+        return redirect("notification_settings")
+
+    return render(request, "site/notification_settings.html", {"settings": settings_obj})
 
 
 def set_currency(request):

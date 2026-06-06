@@ -69,6 +69,7 @@ def api_deposit_approve(request, pk):
             title="✅ تم تأكيد الإيداع",
             body=f"تمت إضافة {final_amount} {deposit.currency.code} إلى محفظتك بنجاح.",
             action_url="/dashboard/wallet/",
+            category="financial",
             priority="high",
             metadata={"type": "deposit_update"}
         )
@@ -116,6 +117,7 @@ def api_deposit_reject(request, pk):
         title="❌ تم رفض الإيداع",
         body=f"عذراً، تم رفض طلب الإيداع. السبب: {admin_note or 'بيانات غير مكتملة'}",
         action_url="/dashboard/deposits/",
+        category="financial",
         priority="high"
     )
 
@@ -317,6 +319,7 @@ def api_withdrawal_complete(request, pk):
             title="💰 تم اكتمال السحب",
             body=f"تم تحويل {withdrawal.amount} {withdrawal.currency.code} إلى حسابك بنجاح.",
             action_url="/dashboard/withdrawals/",
+            category="financial",
             priority="high"
         )
         
@@ -367,6 +370,7 @@ def api_withdrawal_reject(request, pk):
             title="❌ تم رفض السحب",
             body=f"تم رفض طلب السحب وإعادة {withdrawal.amount} {withdrawal.currency.code} إلى رصيدك المتاح.",
             action_url="/dashboard/withdrawals/",
+            category="financial",
             priority="high"
         )
         

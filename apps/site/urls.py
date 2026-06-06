@@ -8,6 +8,7 @@ urlpatterns = [
     path("dashboard/wallet/", views.wallet_page, name="dashboard_wallet"),
     path("dashboard/deposits/", views.deposits, name="dashboard_deposits"),
     path("dashboard/withdrawals/", views.withdrawals, name="dashboard_withdrawals"),
+    path("dashboard/notifications/settings/", views.notification_settings, name="notification_settings"),
 
     path("", views.home, name="home"),
     path("catalog/", views.catalog, name="catalog"),

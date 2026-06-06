@@ -24,8 +24,11 @@
                 <label>الجمهور المستهدف</label>
                 <select name="target_type" id="target-type" required onchange="toggleTargets()">
                     <option value="all">كافة المستخدمين النشطين</option>
-                    <option value="tier">فئة محددة من المستخدمين</option>
+                    <option value="tier">فئة محددة (Tier)</option>
                     <option value="single">مستخدم واحد (بالبريد)</option>
+                    <option value="balance">مستخدمين برصيد محدد</option>
+                    <option value="inactive">مستخدمين غير نشطين</option>
+                    <option value="customers">العملاء (من لديهم طلبات)</option>
                 </select>
             </div>
 
@@ -40,16 +43,34 @@
 
             <div id="single-target" class="field-group hidden">
                 <label>البريد الإلكتروني للمستخدم</label>
-                <input type="email" name="user_email" placeholder="example@domain.com">
+                <input type="email" name="user_email" class="builder-input" placeholder="example@domain.com">
+            </div>
+
+            <div id="balance-target" class="field-group hidden">
+                <label>الحد الأدنى للرصيد المتوفر</label>
+                <input type="number" name="min_balance" class="builder-input" value="0" step="0.01">
+            </div>
+
+            <div id="inactive-target" class="field-group hidden">
+                <label>عدد أيام عدم النشاط (منذ آخر تسجيل دخول)</label>
+                <input type="number" name="inactive_days" class="builder-input" value="30">
             </div>
         </div>
     </div>
 
     <div class="management-card">
         <div class="management-header">
-            <h3 class="font-bold">محتوى الإشعار</h3>
+            <h3 class="font-bold">محتوى الإشعار والقنوات</h3>
         </div>
         <div class="management-body stack gap-6">
+            <div class="field-group">
+                <label>تصنيف الإشعار (للقنوات والخصوصية)</label>
+                <select name="category" class="builder-input" required>
+                    {% for val, label in categories %}
+                    <option value="{{ val }}">{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
             <div class="field-group">
                 <label>العنوان (Title)</label>
                 <input type="text" name="title" required placeholder="أدخل عنواناً جذاباً...">
@@ -86,6 +107,8 @@ function toggleTargets() {
     const type = document.getElementById('target-type').value;
     document.getElementById('tier-target').classList.toggle('hidden', type !== 'tier');
     document.getElementById('single-target').classList.toggle('hidden', type !== 'single');
+    document.getElementById('balance-target').classList.toggle('hidden', type !== 'balance');
+    document.getElementById('inactive-target').classList.toggle('hidden', type !== 'inactive');
 }
 </script>
 {% endblock %}

@@ -102,6 +102,7 @@
           {% if user.is_authenticated %}
              <a href="{% url 'dashboard' %}" class="{% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}">لوحتي</a>
              <a href="{% url 'dashboard_wallet' %}" class="{% if request.resolver_match.url_name == 'dashboard_wallet' %}active{% endif %}">المحفظة</a>
+             <a href="{% url 'notification_settings' %}" class="{% if request.resolver_match.url_name == 'notification_settings' %}active{% endif %}">الإشعارات</a>
              <a href="{% url 'chat_list' %}" class="{% if 'chat' in request.path %}active{% endif %}">الدعم المباشر</a>
              {% if user.is_staff or user.is_superuser %}
                 <a href="{% url 'control_dashboard' %}" class="{% if 'control' in request.path %}active{% endif %}">لوحة التحكم</a>

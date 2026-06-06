@@ -131,7 +131,8 @@ def send_verification_email(request, user):
         title="تفعيل البريد الإلكتروني",
         body="يرجى مراجعة بريدك الإلكتروني لتفعيل الحساب. إذا لم يصلك البريد، يمكنك إعادة الإرسال من لوحة التحكم.",
         action_url=path,
+        category='system',
         priority="high"
     )
-    
+
     return success
