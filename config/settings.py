@@ -60,7 +60,6 @@ INSTALLED_APPS = [
     "django_filters",
     "corsheaders",
     "channels",
-    "django_countries",
     "apps.common.apps.CommonConfig",
     "apps.accounts.apps.AccountsConfig",
     "apps.catalog.apps.CatalogConfig",
