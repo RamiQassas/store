@@ -2,6 +2,7 @@ from django.contrib.auth.models import AbstractUser
 from django.db import models
 from django.utils import timezone
 import uuid
+from decimal import Decimal
 
 from apps.accounts.managers import UserManager
 from apps.common.models import TimeStampedModel
@@ -59,6 +60,16 @@ class User(AbstractUser):
     email_verified = models.BooleanField(default=False)
     two_factor_enabled = models.BooleanField(default=False)
 
+    # KYC & Limits
+    is_kyc_verified = models.BooleanField(default=False, verbose_name="موثق الهوية")
+    daily_deposit_limit = models.DecimalField(max_digits=14, decimal_places=2, default=Decimal("100.00"), verbose_name="حد الإيداع اليومي")
+    daily_withdrawal_limit = models.DecimalField(max_digits=14, decimal_places=2, default=Decimal("100.00"), verbose_name="حد السحب اليومي")
+
+    # Tracking daily usage
+    daily_deposit_usage = models.DecimalField(max_digits=14, decimal_places=2, default=Decimal("0.00"))
+    daily_withdrawal_usage = models.DecimalField(max_digits=14, decimal_places=2, default=Decimal("0.00"))
+    last_limit_reset = models.DateTimeField(default=timezone.now)
+
     USERNAME_FIELD = "email"
     REQUIRED_FIELDS = []
     objects = UserManager()
@@ -75,6 +86,25 @@ class User(AbstractUser):
 
     def __str__(self):
         return self.email
+
+    def reset_daily_limits_if_needed(self):
+        """Resets daily usage if 24 hours have passed since last reset."""
+        now = timezone.now()
+        if (now - self.last_limit_reset).days >= 1 or self.last_limit_reset.date() < now.date():
+            self.daily_deposit_usage = Decimal("0.00")
+            self.daily_withdrawal_usage = Decimal("0.00")
+            self.last_limit_reset = now
+            self.save(update_fields=["daily_deposit_usage", "daily_withdrawal_usage", "last_limit_reset"])
+
+    @property
+    def remaining_deposit_limit(self):
+        self.reset_daily_limits_if_needed()
+        return max(Decimal("0.00"), self.daily_deposit_limit - self.daily_deposit_usage)
+
+    @property
+    def remaining_withdrawal_limit(self):
+        self.reset_daily_limits_if_needed()
+        return max(Decimal("0.00"), self.daily_withdrawal_limit - self.daily_withdrawal_usage)
 
     @property
     def is_platform_staff(self):
@@ -164,6 +194,49 @@ class EmailVerificationToken(TimeStampedModel):
 
     def __str__(self):
         return f"{self.user.email} - {self.token}"
+
+
+class KYCRequest(TimeStampedModel):
+    class Status(models.TextChoices):
+        PENDING = "pending", "قيد المراجعة"
+        APPROVED = "approved", "تم التوثيق"
+        REJECTED = "rejected", "مرفوض"
+
+    class DocumentType(models.TextChoices):
+        NATIONAL_ID = "id", "الهوية الوطنية"
+        PASSPORT = "passport", "جواز السفر"
+        DRIVER_LICENSE = "license", "رخصة القيادة"
+
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name="kyc_request")
+    status = models.CharField(max_length=20, choices=Status.choices, default=Status.PENDING)
+    
+    # Personal Info
+    id_number = models.CharField(max_length=50, verbose_name="رقم الهوية")
+    first_name = models.CharField(max_length=100, verbose_name="الاسم الأول")
+    father_name = models.CharField(max_length=100, verbose_name="اسم الأب")
+    last_name = models.CharField(max_length=100, verbose_name="النسبة / الكنية")
+    date_of_birth = models.DateField(verbose_name="تاريخ الميلاد")
+    place_of_birth = models.CharField(max_length=255, verbose_name="مكان الميلاد")
+    current_residence = models.TextField(verbose_name="عنوان الإقامة الحالي")
+    
+    document_type = models.CharField(max_length=20, choices=DocumentType.choices, verbose_name="نوع الوثيقة")
+    
+    # Images
+    identity_front = models.ImageField(upload_to="kyc/front/", verbose_name="وجه الوثيقة")
+    identity_back = models.ImageField(upload_to="kyc/back/", verbose_name="ظهر الوثيقة")
+    selfie_verification = models.ImageField(upload_to="kyc/selfie/", verbose_name="صورة سيلفي مع الوثيقة")
+    
+    # Admin review
+    reviewed_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name="reviewed_kycs")
+    reviewed_at = models.DateTimeField(null=True, blank=True)
+    rejection_reason = models.TextField(blank=True, verbose_name="سبب الرفض")
+
+    class Meta:
+        verbose_name = "طلب توثيق هوية"
+        verbose_name_plural = "طلبات توثيق الهوية"
+
+    def __str__(self):
+        return f"KYC: {self.user.email} ({self.get_status_display()})"
 
 
 class OTPToken(TimeStampedModel):

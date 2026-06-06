@@ -1,0 +1,129 @@
+{% extends "site/control_base.html" %}
+{% block title %}مراجعة طلب التوثيق | {{ kyc.user.email }}{% endblock %}
+
+{% block control_content %}
+<div class="page-head flex justify-between items-center">
+    <div>
+        <span class="eyebrow">KYC Review</span>
+        <h1>مراجعة بيانات المستخدم: {{ kyc.user.email }}</h1>
+    </div>
+    <a href="{% url 'control_kycs_list' %}" class="btn btn-outline btn-sm">العودة للقائمة</a>
+</div>
+
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-8 mt-8">
+    <!-- User Information -->
+    <div class="lg:col-span-2 stack gap-8">
+        <div class="management-card p-8">
+            <h3 class="text-sm font-bold uppercase tracking-widest text-slate-500 mb-6 border-b border-white/5 pb-4">البيانات الشخصية</h3>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div>
+                    <label class="text-[10px] text-slate-500 uppercase block mb-1">الاسم الكامل</label>
+                    <div class="text-sm font-bold">{{ kyc.first_name }} {{ kyc.father_name }} {{ kyc.last_name }}</div>
+                </div>
+                <div>
+                    <label class="text-[10px] text-slate-500 uppercase block mb-1">رقم الهوية / الوثيقة</label>
+                    <div class="text-sm font-mono font-bold text-cyan">{{ kyc.id_number }} ({{ kyc.get_document_type_display }})</div>
+                </div>
+                <div>
+                    <label class="text-[10px] text-slate-500 uppercase block mb-1">تاريخ الميلاد</label>
+                    <div class="text-sm font-bold">{{ kyc.date_of_birth }}</div>
+                </div>
+                <div>
+                    <label class="text-[10px] text-slate-500 uppercase block mb-1">مكان الميلاد</label>
+                    <div class="text-sm font-bold">{{ kyc.place_of_birth }}</div>
+                </div>
+                <div class="md:col-span-2">
+                    <label class="text-[10px] text-slate-500 uppercase block mb-1">عنوان الإقامة الحالي</label>
+                    <div class="text-sm leading-relaxed">{{ kyc.current_residence }}</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Verification Images -->
+        <div class="management-card p-8">
+            <h3 class="text-sm font-bold uppercase tracking-widest text-slate-500 mb-6 border-b border-white/5 pb-4">وثائق الهوية</h3>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div class="stack gap-2">
+                    <span class="text-[10px] text-center text-slate-500">وجه الوثيقة</span>
+                    <a href="{{ kyc.identity_front.url }}" target="_blank" class="block aspect-video rounded-xl overflow-hidden border border-white/10 hover:border-cyan/50 transition-all">
+                        <img src="{{ kyc.identity_front.url }}" class="w-full h-full object-cover">
+                    </a>
+                </div>
+                <div class="stack gap-2">
+                    <span class="text-[10px] text-center text-slate-500">ظهر الوثيقة</span>
+                    <a href="{{ kyc.identity_back.url }}" target="_blank" class="block aspect-video rounded-xl overflow-hidden border border-white/10 hover:border-cyan/50 transition-all">
+                        <img src="{{ kyc.identity_back.url }}" class="w-full h-full object-cover">
+                    </a>
+                </div>
+                <div class="stack gap-2">
+                    <span class="text-[10px] text-center text-slate-500">صورة السيلفي</span>
+                    <a href="{{ kyc.selfie_verification.url }}" target="_blank" class="block aspect-video rounded-xl overflow-hidden border border-white/10 hover:border-cyan/50 transition-all">
+                        <img src="{{ kyc.selfie_verification.url }}" class="w-full h-full object-cover">
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Decision Sidebar -->
+    <div class="stack gap-8">
+        <div class="management-card p-8">
+            <h3 class="text-sm font-bold uppercase tracking-widest text-slate-500 mb-6 border-b border-white/5 pb-4">اتخاذ قرار</h3>
+            
+            {% if kyc.status == 'pending' %}
+            <form method="post" class="stack gap-6">
+                {% csrf_token %}
+                <div class="field-group">
+                    <label class="text-[10px] text-slate-500 mb-2 block">ملاحظات الرفض (في حال الرفض)</label>
+                    <textarea name="rejection_reason" class="builder-input text-xs" rows="4" placeholder="اكتب سبب الرفض بوضوح ليظهر للمستخدم..."></textarea>
+                </div>
+                
+                <div class="grid grid-cols-2 gap-4">
+                    <button type="submit" name="action" value="approve" class="btn btn-primary py-3 rounded-xl font-bold">قبول التوثيق</button>
+                    <button type="submit" name="action" value="reject" class="btn btn-outline danger py-3 rounded-xl font-bold">رفض الطلب</button>
+                </div>
+            </form>
+            {% else %}
+            <div class="p-6 bg-slate-900/50 rounded-2xl text-center">
+                <span class="badge {% if kyc.status == 'approved' %}success{% else %}danger{% endif %} text-xs px-6 py-2 mb-4 inline-block">
+                    {{ kyc.get_status_display }}
+                </span>
+                <p class="text-[10px] text-slate-500">تمت المراجعة بواسطة: {{ kyc.reviewed_by.email }}</p>
+                <p class="text-[10px] text-slate-500">بتاريخ: {{ kyc.reviewed_at|date:"d M Y, H:i" }}</p>
+                {% if kyc.rejection_reason %}
+                <div class="mt-4 pt-4 border-t border-white/5 text-rose-500 text-xs text-right">
+                    <strong>سبب الرفض:</strong><br>
+                    {{ kyc.rejection_reason }}
+                </div>
+                {% endif %}
+            </div>
+            {% endif %}
+        </div>
+
+        <div class="management-card p-8">
+            <h3 class="text-sm font-bold uppercase tracking-widest text-slate-500 mb-4 pb-2 border-b border-white/5">إحصائيات الحساب</h3>
+            <div class="stack gap-4">
+                <div class="flex justify-between text-xs">
+                    <span class="text-slate-500">الطلبات المكتملة:</span>
+                    <strong class="text-white">{{ kyc.user.orders.count }}</strong>
+                </div>
+                <div class="flex justify-between text-xs">
+                    <span class="text-slate-500">إجمالي الإيداعات:</span>
+                    <strong class="text-cyan">{{ kyc.user.wallet.available_balance }} {{ kyc.user.wallet.currency.code }}</strong>
+                </div>
+                <div class="flex justify-between text-xs">
+                    <span class="text-slate-500">تاريخ التسجيل:</span>
+                    <strong class="text-white">{{ kyc.user.date_joined|date:"d M Y" }}</strong>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .builder-input { width: 100%; padding: 12px 16px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); border-radius: 12px; color: #fff; }
+    .builder-input:focus { border-color: var(--cyan); outline: none; }
+    .btn-outline.danger { border-color: rgba(244, 63, 94, 0.2); color: #f43f5e; }
+    .btn-outline.danger:hover { background: #f43f5e; color: white; }
+</style>
+{% endblock %}

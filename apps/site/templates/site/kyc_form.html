@@ -1,0 +1,104 @@
+{% extends "site/base.html" %}
+{% block title %}توثيق الحساب | Raqamiyat{% endblock %}
+{% block content %}
+<div class="container py-12">
+    <div class="max-w-3xl mx-auto">
+        <div class="page-head mb-8">
+            <span class="eyebrow">Identity Verification</span>
+            <h1>توثيق الهوية والتحقق من الحساب</h1>
+            <p class="text-slate-500 mt-2">التوثيق **اختياري** تماماً، ولكنه مطلوب فقط إذا كنت ترغب في رفع حدود العمليات المالية على حسابك.</p>
+        </div>
+
+        <div class="panel p-8 bg-slate-900/40 border-white/5 rounded-3xl">
+            <div class="flex items-start gap-4 p-4 bg-cyan/5 border border-cyan/10 rounded-2xl mb-8">
+                <i class="fas fa-info-circle text-cyan mt-1"></i>
+                <p class="text-sm text-cyan leading-relaxed">
+                    بصفتنا منصة مالية مسؤولة، نقوم بطلب التوثيق لضمان سلامة العمليات ومنع الاحتيال. بمجرد قبول طلبك، سيتم رفع حدود الإيداع والسحب اليومية الخاصة بك بشكل كبير.
+                </p>
+            </div>
+
+            <form method="post" enctype="multipart/form-data" class="stack gap-8">
+                {% csrf_token %}
+                
+                <!-- Personal Info Section -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div class="field-group">
+                        <label class="text-xs font-bold text-slate-400 mb-2 block">نوع الوثيقة</label>
+                        {{ form.document_type }}
+                    </div>
+                    <div class="field-group">
+                        <label class="text-xs font-bold text-slate-400 mb-2 block">رقم الوثيقة / الهوية</label>
+                        {{ form.id_number }}
+                    </div>
+                    <div class="field-group">
+                        <label class="text-xs font-bold text-slate-400 mb-2 block">الاسم الأول</label>
+                        {{ form.first_name }}
+                    </div>
+                    <div class="field-group">
+                        <label class="text-xs font-bold text-slate-400 mb-2 block">اسم الأب</label>
+                        {{ form.father_name }}
+                    </div>
+                    <div class="field-group">
+                        <label class="text-xs font-bold text-slate-400 mb-2 block">النسبة / الكنية</label>
+                        {{ form.last_name }}
+                    </div>
+                    <div class="field-group">
+                        <label class="text-xs font-bold text-slate-400 mb-2 block">تاريخ الميلاد</label>
+                        {{ form.date_of_birth }}
+                    </div>
+                    <div class="field-group md:col-span-2">
+                        <label class="text-xs font-bold text-slate-400 mb-2 block">مكان الميلاد</label>
+                        {{ form.place_of_birth }}
+                    </div>
+                    <div class="field-group md:col-span-2">
+                        <label class="text-xs font-bold text-slate-400 mb-2 block">عنوان الإقامة الحالي</label>
+                        {{ form.current_residence }}
+                    </div>
+                </div>
+
+                <div class="h-px bg-white/5 my-4"></div>
+
+                <!-- Document Uploads -->
+                <h3 class="text-lg font-bold flex items-center gap-2 mb-6">
+                    <i class="fas fa-camera text-cyan"></i> 
+                    تحميل صور الوثائق
+                </h3>
+
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div class="upload-box p-6 bg-slate-800/40 border border-dashed border-white/10 rounded-2xl text-center group hover:border-cyan/50 transition-all">
+                        <i class="fas fa-id-card text-3xl mb-4 text-slate-600 group-hover:text-cyan"></i>
+                        <h4 class="text-xs font-bold mb-2">وجه الوثيقة</h4>
+                        <p class="text-[9px] text-slate-500 mb-4">صورة واضحة لوجه الهوية</p>
+                        {{ form.identity_front }}
+                    </div>
+
+                    <div class="upload-box p-6 bg-slate-800/40 border border-dashed border-white/10 rounded-2xl text-center group hover:border-cyan/50 transition-all">
+                        <i class="fas fa-id-card-alt text-3xl mb-4 text-slate-600 group-hover:text-cyan"></i>
+                        <h4 class="text-xs font-bold mb-2">ظهر الوثيقة</h4>
+                        <p class="text-[9px] text-slate-500 mb-4">صورة واضحة لظهر الهوية</p>
+                        {{ form.identity_back }}
+                    </div>
+
+                    <div class="upload-box p-6 bg-slate-800/40 border border-dashed border-white/10 rounded-2xl text-center group hover:border-cyan/50 transition-all">
+                        <i class="fas fa-user-circle text-3xl mb-4 text-slate-600 group-hover:text-cyan"></i>
+                        <h4 class="text-xs font-bold mb-2">صورة سيلفي</h4>
+                        <p class="text-[9px] text-slate-500 mb-4">صورة سيلفي وأنت تحمل هويتك</p>
+                        {{ form.selfie_verification }}
+                    </div>
+                </div>
+
+                <div class="mt-8 flex items-center gap-4">
+                    <button type="submit" class="btn btn-primary px-12 py-4 rounded-2xl font-bold">تقديم الطلب للمراجعة</button>
+                    <a href="{% url 'dashboard' %}" class="btn btn-outline px-8 py-4 rounded-2xl font-bold">إلغاء</a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<style>
+    .builder-input { width: 100%; padding: 12px 16px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); border-radius: 12px; color: #fff; }
+    .builder-input:focus { border-color: var(--cyan); outline: none; }
+    input[type="file"] { font-size: 10px; color: #64748b; }
+</style>
+{% endblock %}

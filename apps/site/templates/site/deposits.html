@@ -78,6 +78,31 @@
 </div>
 
 <div class="deposit-wrapper py-10">
+    <!-- Daily Limits Banner -->
+    <div class="panel p-6 bg-slate-900/40 border-white/5 rounded-3xl mb-10 flex flex-wrap items-center justify-between gap-6 relative overflow-hidden">
+        <div class="absolute top-0 right-0 p-4 opacity-5 pointer-events-none"><i class="fas fa-chart-line text-6xl"></i></div>
+        <div class="flex items-center gap-4">
+            <div class="w-12 h-12 bg-cyan/10 rounded-2xl flex items-center justify-center text-cyan">
+                <i class="fas fa-history"></i>
+            </div>
+            <div>
+                <span class="text-[10px] text-slate-500 font-bold uppercase tracking-widest block">حد الإيداع اليومي المتبقي</span>
+                <strong class="text-xl font-black text-cyan">{{ remaining_limit }} {{ CURRENCY.code }}</strong>
+                <span class="text-[9px] text-slate-600 block">من إجمالي: {{ daily_limit }} {{ CURRENCY.code }}</span>
+            </div>
+        </div>
+        
+        {% if not user.is_kyc_verified %}
+        <div class="flex items-center gap-4 p-4 bg-amber-500/5 border border-amber-500/10 rounded-2xl max-w-sm">
+            <i class="fas fa-shield-alt text-amber-500"></i>
+            <p class="text-[10px] text-amber-200/70 leading-relaxed">
+                <strong class="text-amber-400 block mb-0.5">هل تحتاج إلى حدود أعلى؟</strong>
+                التوثيق اختياري، ومطلوب فقط لزيادة حدود حسابك. <a href="{% url 'site_kyc_request' %}" class="text-amber-400 underline font-bold">وثق الآن</a>
+            </p>
+        </div>
+        {% endif %}
+    </div>
+
     <!-- Progress Indicator -->
     <div class="step-indicator">
         <div class="step-item active" id="dot-1">

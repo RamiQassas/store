@@ -312,17 +312,24 @@ def product_detail(request, pk):
 
 @login_required
 def dashboard(request):
+    request.user.reset_daily_limits_if_needed()
     wallet = Wallet.objects.filter(user=request.user).select_related("currency").first() or get_or_create_wallet(request.user)
+    
+    # Check if a KYC request exists
+    kyc_request = getattr(request.user, 'kyc_request', None)
+    
     return render(request, "site/dashboard.html", {
         "wallet": wallet,
         "orders": request.user.orders.all()[:6],
         "deposits": request.user.deposits.all()[:6],
-        "stats": {"orders": request.user.orders.count()}
+        "stats": {"orders": request.user.orders.count()},
+        "kyc_request": kyc_request
     })
 
 
 @login_required
 def wallet_page(request):
+    request.user.reset_daily_limits_if_needed()
     wallet = Wallet.objects.filter(user=request.user).select_related("currency").first() or get_or_create_wallet(request.user)
     return render(request, "site/wallet.html", {
         "wallet": wallet,
@@ -335,6 +342,10 @@ def deposits(request):
     if request.user.restriction_deposits:
         messages.error(request, "حسابك مقيد من الإيداع.")
         return redirect("dashboard")
+    
+    request.user.reset_daily_limits_if_needed()
+    remaining_limit = request.user.remaining_deposit_limit
+    
     methods = PaymentMethod.objects.filter(is_active=True, can_deposit=True).prefetch_related("supported_currencies")
     if request.method == "POST":
         method_id = request.POST.get("payment_method")
@@ -343,6 +354,11 @@ def deposits(request):
         amount = Decimal(amount_str) if amount_str else Decimal("0")
         proof = request.FILES.get("proof_image")
         
+        # Check daily limit
+        if amount > remaining_limit:
+            messages.error(request, f"لقد تجاوزت الحد اليومي للإيداع. المتبقي لك اليوم: {remaining_limit}")
+            return redirect("dashboard_deposits")
+            
         method = get_object_or_404(methods, id=method_id)
         currency = get_object_or_404(Currency, id=currency_id)
         wallet = get_or_create_wallet(request.user)
@@ -353,10 +369,19 @@ def deposits(request):
                 currency=currency, proof_image=proof, status=DepositRequest.Status.PENDING
             )
             track_pending_deposit(wallet.id, amount, reference=f"deposit:{deposit.id}")
+            
+            # Record usage
+            request.user.daily_deposit_usage += amount
+            request.user.save(update_fields=["daily_deposit_usage"])
+            
             messages.success(request, "طلب الإيداع قيد المراجعة.")
             return redirect("dashboard")
             
-    return render(request, "site/deposits.html", {"payment_methods": methods})
+    return render(request, "site/deposits.html", {
+        "payment_methods": methods,
+        "remaining_limit": remaining_limit,
+        "daily_limit": request.user.daily_deposit_limit
+    })
 
 
 @login_required
@@ -364,12 +389,21 @@ def withdrawals(request):
     if request.user.restriction_withdrawals:
         messages.error(request, "حسابك مقيد من السحب.")
         return redirect("dashboard")
+    
+    request.user.reset_daily_limits_if_needed()
+    remaining_limit = request.user.remaining_withdrawal_limit
+    
     methods = PaymentMethod.objects.filter(is_active=True, can_withdraw=True).prefetch_related("supported_currencies")
     if request.method == "POST":
         method_id = request.POST.get("payment_method")
         currency_id = request.POST.get("currency")
         amount = Decimal(request.POST.get("amount", "0"))
         
+        # Check daily limit
+        if amount > remaining_limit:
+            messages.error(request, f"لقد تجاوزت الحد اليومي للسحب. المتبقي لك اليوم: {remaining_limit}")
+            return redirect("dashboard_withdrawals")
+            
         method = get_object_or_404(methods, id=method_id)
         currency = get_object_or_404(Currency, id=currency_id)
         wallet = get_or_create_wallet(request.user)
@@ -381,12 +415,40 @@ def withdrawals(request):
                     currency=currency, status=WithdrawalRequest.Status.PENDING
                 )
                 freeze_funds(wallet.id, amount, reference=f"with:{withdrawal.id}")
+                
+                # Record usage
+                request.user.daily_withdrawal_usage += amount
+                request.user.save(update_fields=["daily_withdrawal_usage"])
+                
                 messages.success(request, "طلب السحب قيد المراجعة.")
                 return redirect("dashboard")
         else:
             messages.error(request, "رصيد غير كافٍ.")
             
-    return render(request, "site/withdrawals.html", {"payment_methods": methods})
+    return render(request, "site/withdrawals.html", {
+        "payment_methods": methods,
+        "remaining_limit": remaining_limit,
+        "daily_limit": request.user.daily_withdrawal_limit
+    })
+
+
+@login_required
+def kyc_request_view(request):
+    # Check if request already exists
+    existing = getattr(request.user, 'kyc_request', None)
+    if existing and existing.status in [KYCRequest.Status.PENDING, KYCRequest.Status.APPROVED]:
+        return redirect("dashboard")
+        
+    form = KYCRequestForm(request.POST or None, request.FILES or None, instance=existing)
+    if request.method == "POST" and form.is_valid():
+        kyc = form.save(commit=False)
+        kyc.user = request.user
+        kyc.status = KYCRequest.Status.PENDING
+        kyc.save()
+        messages.success(request, "تم تقديم طلب التوثيق بنجاح. سيتم مراجعته من قبل الإدارة.")
+        return redirect("dashboard")
+        
+    return render(request, "site/kyc_form.html", {"form": form})
 
 
 # ==========================================
@@ -400,8 +462,49 @@ def control_dashboard(request):
         "products": Product.objects.count(),
         "orders": Order.objects.count(),
         "deposits": DepositRequest.objects.count(),
+        "pending_kycs": KYCRequest.objects.filter(status=KYCRequest.Status.PENDING).count(),
     }
     return render(request, "site/control_dashboard.html", {"stats": stats})
+
+@staff_member_required
+def control_kycs_list(request):
+    kycs = KYCRequest.objects.select_related("user").all().order_by("-created_at")
+    return render(request, "site/control_kycs_list.html", {"kycs": kycs})
+
+@staff_member_required
+def control_kyc_detail(request, pk):
+    kyc = get_object_or_404(KYCRequest.objects.select_related("user"), pk=pk)
+    if request.method == "POST":
+        action = request.POST.get("action")
+        reason = request.POST.get("rejection_reason", "")
+        
+        if action == "approve":
+            with transaction.atomic():
+                kyc.status = KYCRequest.Status.APPROVED
+                kyc.reviewed_by = request.user
+                kyc.reviewed_at = timezone.now()
+                kyc.save()
+                
+                user = kyc.user
+                user.is_kyc_verified = True
+                # Increase limits upon verification
+                user.daily_deposit_limit = Decimal("5000.00")
+                user.daily_withdrawal_limit = Decimal("5000.00")
+                user.save(update_fields=["is_kyc_verified", "daily_deposit_limit", "daily_withdrawal_limit"])
+                
+                messages.success(request, f"تم توثيق حساب {user.email} بنجاح.")
+                return redirect("control_kycs_list")
+        
+        elif action == "reject":
+            kyc.status = KYCRequest.Status.REJECTED
+            kyc.rejection_reason = reason
+            kyc.reviewed_by = request.user
+            kyc.reviewed_at = timezone.now()
+            kyc.save()
+            messages.warning(request, f"تم رفض طلب توثيق {kyc.user.email}.")
+            return redirect("control_kycs_list")
+            
+    return render(request, "site/control_kyc_detail.html", {"kyc": kyc})
 
 @staff_member_required
 def control_users_list(request):

@@ -176,7 +176,9 @@ class ModerateUserForm(forms.ModelForm):
     class Meta:
         model = User
         fields = [
-            "role", "status", "tier", "phone", "restriction_withdrawals", "restriction_deposits", "restriction_purchases",
+            "role", "status", "tier", "phone", "is_kyc_verified",
+            "daily_deposit_limit", "daily_withdrawal_limit",
+            "restriction_withdrawals", "restriction_deposits", "restriction_purchases",
             "suspension_reason", "admin_notes", "suspension_expires_at", "is_permanently_suspended"
         ]
         widgets = {
@@ -194,6 +196,28 @@ class ModerateUserForm(forms.ModelForm):
             if qs.exists():
                 raise forms.ValidationError("رقم الهاتف هذا مسجل مسبقاً لمستخدم آخر.")
         return phone
+
+
+from apps.accounts.models import KYCRequest
+
+class KYCRequestForm(forms.ModelForm):
+    class Meta:
+        model = KYCRequest
+        fields = [
+            "document_type", "id_number", "first_name", "father_name", "last_name",
+            "date_of_birth", "place_of_birth", "current_residence",
+            "identity_front", "identity_back", "selfie_verification"
+        ]
+        widgets = {
+            "date_of_birth": forms.DateInput(attrs={"type": "date", "class": "builder-input"}),
+            "current_residence": forms.Textarea(attrs={"rows": 3, "class": "builder-input"}),
+            "id_number": forms.TextInput(attrs={"class": "builder-input"}),
+            "first_name": forms.TextInput(attrs={"class": "builder-input"}),
+            "father_name": forms.TextInput(attrs={"class": "builder-input"}),
+            "last_name": forms.TextInput(attrs={"class": "builder-input"}),
+            "place_of_birth": forms.TextInput(attrs={"class": "builder-input"}),
+            "document_type": forms.Select(attrs={"class": "builder-input"}),
+        }
 
 
 from apps.catalog.models import Category, Product, ProductVariant

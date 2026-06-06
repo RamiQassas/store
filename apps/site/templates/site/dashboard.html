@@ -312,15 +312,43 @@
                         <span class="status-badge active"></span>
                         <span class="text-sm font-bold text-success">{{ user.get_status_display }}</span>
                     </div>
-                </div>
-                <div class="flex items-center justify-between p-3 bg-slate-800/30 rounded-lg">
-                    <span class="text-sm text-muted">ديون معلقة</span>
-                    <span class="text-sm font-bold {% if wallet.debt_balance > 0 %}text-rose-500{% else %}text-slate-500{% endif %}">{% currency_format wallet.debt_balance wallet.currency %}</span>
-                </div>
-                <div class="flex items-center justify-between p-3 bg-slate-800/30 rounded-lg">
-                    <span class="text-sm text-muted">الفئة</span>
-                    <span class="text-sm font-bold text-amber-400">{{ user.get_tier_display }}</span>
-                </div>
+                <div class="stack gap-4">
+                    {% if not user.is_kyc_verified %}
+                        <div class="p-4 bg-amber-500/5 border border-amber-500/10 rounded-xl">
+                            <div class="flex items-center justify-between mb-2">
+                                <span class="text-xs font-bold text-amber-500">حالة التوثيق</span>
+                                <span class="badge warning text-[8px]">غير موثق</span>
+                            </div>
+                            <p class="text-[10px] text-slate-500 leading-relaxed mb-4">
+                                حسابك يعمل بحدود مالية أساسية. وثق حسابك لرفع حدود الإيداع والسحب اليومية.
+                            </p>
+                            {% if kyc_request %}
+                                <div class="flex items-center gap-2 text-[10px] text-amber-400 font-bold">
+                                    <i class="fas fa-clock"></i>
+                                    طلب التوثيق {{ kyc_request.get_status_display }}
+                                </div>
+                            {% else %}
+                                <a href="{% url 'site_kyc_request' %}" class="btn btn-sm btn-outline w-full text-[10px] py-2">بدء عملية التوثيق</a>
+                            {% endif %}
+                        </div>
+                    {% else %}
+                        <div class="p-4 bg-emerald-500/5 border border-emerald-500/10 rounded-xl">
+                            <div class="flex items-center justify-between">
+                                <span class="text-xs font-bold text-emerald-500">حساب موثق</span>
+                                <i class="fas fa-check-circle text-emerald-500"></i>
+                            </div>
+                            <p class="text-[10px] text-slate-500 mt-2">لقد تم التحقق من هويتك بنجاح. تم رفع حدود حسابك.</p>
+                        </div>
+                    {% endif %}
+
+                    <div class="flex items-center justify-between p-3 bg-slate-800/30 rounded-lg">
+                        <span class="text-sm text-muted">ديون معلقة</span>
+                        <span class="text-sm font-bold {% if wallet.debt_balance > 0 %}text-rose-500{% else %}text-slate-500{% endif %}">{% currency_format wallet.debt_balance wallet.currency %}</span>
+                    </div>
+                    <div class="flex items-center justify-between p-3 bg-slate-800/30 rounded-lg">
+                        <span class="text-sm text-muted">الفئة</span>
+                        <span class="text-sm font-bold text-amber-400">{{ user.get_tier_display }}</span>
+                    </div>
                 <div class="flex items-center justify-between p-3 bg-slate-800/30 rounded-lg">
                     <span class="text-sm text-muted">عضو منذ</span>
                     <span class="text-sm font-bold">{{ user.date_joined|date:"M Y" }}</span>

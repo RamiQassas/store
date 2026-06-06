@@ -1,0 +1,61 @@
+{% extends "site/control_base.html" %}
+{% block title %}طلبات توثيق الهوية | Raqamiyat Admin{% endblock %}
+
+{% block control_content %}
+<div class="page-head">
+    <div>
+        <span class="eyebrow">KYC Management</span>
+        <h1>طلبات توثيق هوية المستخدمين</h1>
+    </div>
+</div>
+
+<div class="management-card mt-8">
+    <div class="table-responsive">
+        <table class="w-full text-right">
+            <thead>
+                <tr class="text-[10px] uppercase tracking-widest text-slate-500 border-b border-white/5 bg-slate-900/20">
+                    <th class="p-4">المستخدم</th>
+                    <th class="p-4">الاسم بالكامل</th>
+                    <th class="p-4">الوثيقة</th>
+                    <th class="p-4">الحالة</th>
+                    <th class="p-4">تاريخ الطلب</th>
+                    <th class="p-4">إجراءات</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for kyc in kycs %}
+                <tr class="border-b border-white/[0.02] last:border-0 hover:bg-white/[0.02] transition">
+                    <td class="p-4">
+                        <div class="font-bold text-slate-200">{{ kyc.user.email }}</div>
+                        <div class="text-[10px] text-slate-500">{{ kyc.user.phone }}</div>
+                    </td>
+                    <td class="p-4">
+                        <div class="text-sm">{{ kyc.first_name }} {{ kyc.father_name }} {{ kyc.last_name }}</div>
+                    </td>
+                    <td class="p-4">
+                        <span class="badge primary text-[9px]">{{ kyc.get_document_type_display }}</span>
+                    </td>
+                    <td class="p-4">
+                        <span class="badge {% if kyc.status == 'approved' %}success{% elif kyc.status == 'rejected' %}danger{% else %}warning{% endif %} text-[9px]">
+                            {{ kyc.get_status_display }}
+                        </span>
+                    </td>
+                    <td class="p-4 text-xs text-slate-500">
+                        {{ kyc.created_at|date:"d M Y, H:i" }}
+                    </td>
+                    <td class="p-4">
+                        <a href="{% url 'control_kyc_detail' kyc.pk %}" class="btn btn-sm btn-outline text-[10px] py-1 px-4 hover:bg-cyan hover:text-black transition">
+                            مراجعة الطلب
+                        </a>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="6" class="p-12 text-center text-slate-500 italic">لا توجد طلبات توثيق حالياً.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
