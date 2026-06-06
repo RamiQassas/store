@@ -198,7 +198,43 @@ class ModerateUserForm(forms.ModelForm):
         return phone
 
 
-from apps.accounts.models import KYCRequest
+from apps.accounts.models import KYCRequest, KYCSettings
+
+class KYCSettingsForm(forms.ModelForm):
+    restricted_countries_list = forms.CharField(
+        label="الدول المحظورة",
+        required=False,
+        widget=forms.Textarea(attrs={"rows": 3, "class": "builder-input", "placeholder": "أدخل أسماء الدول مفصولة بفاصلة..."}),
+        help_text="مثال: سوريا، لبنان، العراق"
+    )
+
+    class Meta:
+        model = KYCSettings
+        fields = [
+            "unverified_daily_deposit_limit", "unverified_daily_withdrawal_limit",
+            "verified_daily_deposit_limit", "verified_daily_withdrawal_limit",
+            "block_by_nationality", "block_by_issuing_country"
+        ]
+        widgets = {
+            "unverified_daily_deposit_limit": forms.NumberInput(attrs={"class": "builder-input"}),
+            "unverified_daily_withdrawal_limit": forms.NumberInput(attrs={"class": "builder-input"}),
+            "verified_daily_deposit_limit": forms.NumberInput(attrs={"class": "builder-input"}),
+            "verified_daily_withdrawal_limit": forms.NumberInput(attrs={"class": "builder-input"}),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if self.instance and self.instance.restricted_countries:
+            self.fields["restricted_countries_list"].initial = "، ".join(self.instance.restricted_countries)
+
+    def save(self, commit=True):
+        instance = super().save(commit=False)
+        countries_str = self.cleaned_data.get("restricted_countries_list", "")
+        instance.restricted_countries = [c.strip() for c in countries_str.split("،") if c.strip()] or [c.strip() for c in countries_str.split(",") if c.strip()]
+        if commit:
+            instance.save()
+        return instance
+
 
 class KYCRequestForm(forms.ModelForm):
     class Meta:

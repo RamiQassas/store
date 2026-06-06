@@ -1,0 +1,116 @@
+{% extends "site/control_base.html" %}
+{% block title %}إعدادات التوثيق والحدود | Raqamiyat Admin{% endblock %}
+
+{% block control_content %}
+<div class="page-head">
+    <div>
+        <span class="eyebrow">Global Configurations</span>
+        <h1>إعدادات التوثيق والحدود المالية</h1>
+        <p class="text-slate-500 mt-1">إدارة حدود العمليات التلقائية وقائمة الدول المحظورة.</p>
+    </div>
+</div>
+
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mt-10">
+    <!-- Global Limits Form -->
+    <div class="management-card p-8">
+        <h3 class="text-sm font-bold uppercase tracking-widest text-slate-500 mb-8 border-b border-white/5 pb-4">الحدود اليومية الافتراضية</h3>
+        
+        <form method="post" class="stack gap-8">
+            {% csrf_token %}
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div class="md:col-span-2">
+                    <h4 class="text-xs font-black text-amber-500 uppercase tracking-tighter mb-4 flex items-center gap-2">
+                        <i class="fas fa-user-slash"></i> حسابات غير موثقة (Unverified)
+                    </h4>
+                </div>
+                <div class="field-group">
+                    <label class="text-[10px] text-slate-500 mb-2 block">حد الإيداع اليومي ($)</label>
+                    {{ form.unverified_daily_deposit_limit }}
+                </div>
+                <div class="field-group">
+                    <label class="text-[10px] text-slate-500 mb-2 block">حد السحب اليومي ($)</label>
+                    {{ form.unverified_daily_withdrawal_limit }}
+                </div>
+
+                <div class="md:col-span-2 mt-4 pt-4 border-t border-white/5">
+                    <h4 class="text-xs font-black text-emerald-500 uppercase tracking-tighter mb-4 flex items-center gap-2">
+                        <i class="fas fa-user-check"></i> حسابات موثقة (Verified)
+                    </h4>
+                </div>
+                <div class="field-group">
+                    <label class="text-[10px] text-slate-500 mb-2 block">حد الإيداع اليومي ($)</label>
+                    {{ form.verified_daily_deposit_limit }}
+                </div>
+                <div class="field-group">
+                    <label class="text-[10px] text-slate-500 mb-2 block">حد السحب اليومي ($)</label>
+                    {{ form.verified_daily_withdrawal_limit }}
+                </div>
+            </div>
+
+            <div class="h-px bg-white/5 my-4"></div>
+
+            <h3 class="text-sm font-bold uppercase tracking-widest text-slate-500 mb-6">قواعد الحظر والامتثال</h3>
+            
+            <div class="grid grid-cols-1 gap-6">
+                <div class="field-group">
+                    <label class="text-[10px] text-slate-500 mb-2 block">الدول المحظورة (تفصل بينها فاصلة)</label>
+                    {{ form.restricted_countries_list }}
+                    <p class="text-[9px] text-slate-600 mt-2 leading-relaxed">
+                        سيتم منع أي مستخدم ينتمي لهذه الدول أو يحمل وثائق صادرة منها من تقديم طلب التوثيق.
+                    </p>
+                </div>
+                
+                <div class="flex flex-wrap gap-6 bg-slate-900/30 p-4 rounded-xl border border-white/5">
+                    <label class="flex items-center gap-3 cursor-pointer group">
+                        {{ form.block_by_nationality }}
+                        <span class="text-xs text-slate-400 group-hover:text-white transition-colors">تفعيل الحظر حسب الجنسية</span>
+                    </label>
+                    <label class="flex items-center gap-3 cursor-pointer group">
+                        {{ form.block_by_issuing_country }}
+                        <span class="text-xs text-slate-400 group-hover:text-white transition-colors">تفعيل الحظر حسب بلد الإصدار</span>
+                    </label>
+                </div>
+            </div>
+
+            <div class="pt-6">
+                <button type="submit" class="btn btn-primary px-12 py-4 rounded-xl font-black shadow-cyan hover:scale-[1.02] transition-transform">
+                    <i class="fas fa-save ml-2"></i> حفظ الإعدادات العالمية
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <!-- Active Statistics & Info -->
+    <div class="stack gap-8">
+        <div class="management-card p-8">
+            <h3 class="text-sm font-bold uppercase tracking-widest text-slate-500 mb-4 pb-2 border-b border-white/5">إحصائيات حالية</h3>
+            <div class="grid grid-cols-2 gap-4">
+                <div class="p-4 bg-slate-900/50 rounded-2xl border border-white/5">
+                    <span class="text-[9px] text-slate-500 block mb-1">دول محظورة</span>
+                    <strong class="text-xl font-black text-rose-500">{{ settings.restricted_countries|length }}</strong>
+                </div>
+                <div class="p-4 bg-slate-900/50 rounded-2xl border border-white/5">
+                    <span class="text-[9px] text-slate-500 block mb-1">حسابات موثقة</span>
+                    <strong class="text-xl font-black text-emerald-500">{{ stats_verified_count|default:"0" }}</strong>
+                </div>
+            </div>
+        </div>
+
+        <div class="p-6 bg-cyan/5 border border-cyan/10 rounded-3xl">
+            <h4 class="text-xs font-black text-cyan uppercase mb-3 flex items-center gap-2">
+                <i class="fas fa-info-circle"></i> ملاحظة برمجية
+            </h4>
+            <p class="text-[11px] text-slate-400 leading-relaxed">
+                تغيير هذه الإعدادات سيطبق فقط على العمليات الجديدة أو طلبات التوثيق المستقبلية. الحسابات التي لديها "حدود مخصصة" لن تتأثر بالتغييرات هنا.
+            </p>
+        </div>
+    </div>
+</div>
+
+<style>
+    .builder-input { width: 100%; padding: 12px 16px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); border-radius: 12px; color: #fff; }
+    .builder-input:focus { border-color: var(--cyan); outline: none; }
+    input[type="checkbox"] { width: 18px; height: 18px; cursor: pointer; }
+</style>
+{% endblock %}

@@ -62,6 +62,7 @@ class User(AbstractUser):
 
     # KYC & Limits
     is_kyc_verified = models.BooleanField(default=False, verbose_name="موثق الهوية")
+    has_custom_limits = models.BooleanField(default=False, verbose_name="له حدود مخصصة")
     daily_deposit_limit = models.DecimalField(max_digits=14, decimal_places=2, default=Decimal("100.00"), verbose_name="حد الإيداع اليومي")
     daily_withdrawal_limit = models.DecimalField(max_digits=14, decimal_places=2, default=Decimal("100.00"), verbose_name="حد السحب اليومي")
 
@@ -215,7 +216,9 @@ class KYCRequest(TimeStampedModel):
     status = models.CharField(max_length=20, choices=Status.choices, default=Status.PENDING)
     
     # Personal Info
+    nationality = models.CharField(max_length=100, default="", verbose_name="الجنسية")
     id_number = models.CharField(max_length=50, unique=True, verbose_name="رقم الهوية / الوثيقة")
+    issuing_country = models.CharField(max_length=100, default="", verbose_name="بلد إصدار الوثيقة")
     first_name = models.CharField(max_length=100, verbose_name="الاسم الأول")
     father_name = models.CharField(max_length=100, verbose_name="اسم الأب")
     last_name = models.CharField(max_length=100, verbose_name="النسبة / الكنية")
@@ -243,6 +246,34 @@ class KYCRequest(TimeStampedModel):
 
     def __str__(self):
         return f"KYC: {self.user.email} ({self.get_status_display()})"
+
+
+class KYCSettings(TimeStampedModel):
+    """Global KYC and Limit Settings."""
+    # Unverified defaults
+    unverified_daily_deposit_limit = models.DecimalField(max_digits=14, decimal_places=2, default=Decimal("100.00"), verbose_name="حد إيداع غير الموثقين")
+    unverified_daily_withdrawal_limit = models.DecimalField(max_digits=14, decimal_places=2, default=Decimal("100.00"), verbose_name="حد سحب غير الموثقين")
+    
+    # Verified defaults
+    verified_daily_deposit_limit = models.DecimalField(max_digits=14, decimal_places=2, default=Decimal("10000.00"), verbose_name="حد إيداع الموثقين")
+    verified_daily_withdrawal_limit = models.DecimalField(max_digits=14, decimal_places=2, default=Decimal("10000.00"), verbose_name="حد سحب الموثقين")
+    
+    # Restricted Countries
+    restricted_countries = models.JSONField(default=list, blank=True, verbose_name="الدول المحظورة (قائمة أسماء أو رموز)")
+    block_by_nationality = models.BooleanField(default=True, verbose_name="حظر حسب الجنسية")
+    block_by_issuing_country = models.BooleanField(default=True, verbose_name="حظر حسب بلد إصدار الوثيقة")
+
+    class Meta:
+        verbose_name = "إعدادات التوثيق والحدود"
+        verbose_name_plural = "إعدادات التوثيق والحدود"
+
+    def __str__(self):
+        return "إعدادات التوثيق العالمية"
+
+    @classmethod
+    def get_settings(cls):
+        obj, created = cls.objects.get_or_create(id=1)
+        return obj
 
 
 class OTPToken(TimeStampedModel):

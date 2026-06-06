@@ -18,7 +18,7 @@ from django.utils.http import urlsafe_base64_decode
 from django.utils.encoding import force_str
 from django.conf import settings
 
-from apps.accounts.models import User, ModerationLog, ActivityLog, EmailVerificationToken, OTPToken, KYCRequest
+from apps.accounts.models import User, ModerationLog, ActivityLog, EmailVerificationToken, OTPToken, KYCRequest, KYCSettings
 from apps.accounts.services import send_brevo_email, send_verification_email
 from apps.catalog.models import Category, Product, ProductVariant
 from apps.common.models import Currency
@@ -26,7 +26,7 @@ from apps.notifications.models import Notification, NotificationSetting
 from apps.notifications.services import notify_user, notify_bulk
 from apps.orders.models import Order, OrderItem, OrderLog, Coupon
 from apps.payments.models import DepositRequest, PaymentMethod, WithdrawalRequest
-from apps.site.forms import LoginForm, RegisterForm, TicketForm, PaymentMethodForm, CurrencyForm, ModerateUserForm, ProductForm, VariantForm, KYCRequestForm
+from apps.site.forms import LoginForm, RegisterForm, TicketForm, PaymentMethodForm, CurrencyForm, ModerateUserForm, ProductForm, VariantForm, KYCRequestForm, KYCSettingsForm
 from apps.support.models import ChatRoom, ChatMessage, ChatCannedReply
 from apps.wallets.models import LedgerEntry, Wallet, WalletTransaction
 from apps.wallets.services import get_or_create_wallet, track_pending_deposit, freeze_funds, credit_wallet, release_funds, finalize_withdrawal
@@ -163,7 +163,7 @@ def v3_verify_otp_view(request):
             
             if purpose == OTPToken.Purpose.PASSWORD_RESET:
                 request.session["v3_recovery_verified"] = True
-                return redirect("site_reset_password")
+                return redirect("v3_reset_password")
             
             # Login for Registration and standard Login flows
             login(request, user)
@@ -203,7 +203,7 @@ def v3_reset_password_view(request):
     
     if not uid or not is_verified:
         messages.error(request, "يرجى التحقق من هويتك أولاً.")
-        return redirect("site_forgot_password")
+        return redirect("v3_forgot_password")
         
     user = get_object_or_404(User, id=uid)
     
@@ -354,12 +354,25 @@ def deposits(request):
         amount = Decimal(amount_str) if amount_str else Decimal("0")
         proof = request.FILES.get("proof_image")
         
-        # Check daily limit
+        # 1. Check user total daily limit
         if amount > remaining_limit:
             messages.error(request, f"لقد تجاوزت الحد اليومي للإيداع. المتبقي لك اليوم: {remaining_limit}")
             return redirect("dashboard_deposits")
             
         method = get_object_or_404(methods, id=method_id)
+        
+        # 2. Check payment-method specific daily limit
+        method_usage_today = DepositRequest.objects.filter(
+            user=request.user, 
+            payment_method=method, 
+            created_at__date=timezone.now().date()
+        ).exclude(status=DepositRequest.Status.REJECTED).aggregate(Sum('amount'))['amount__sum'] or Decimal("0.00")
+        
+        method_remaining = max(Decimal("0.00"), method.daily_deposit_limit - method_usage_today)
+        if amount > method_remaining:
+            messages.error(request, f"لقد تجاوزت الحد اليومي لهذه الوسيلة ({method.name}). المتبقي لهذه الوسيلة اليوم: {method_remaining}")
+            return redirect("dashboard_deposits")
+
         currency = get_object_or_404(Currency, id=currency_id)
         wallet = get_or_create_wallet(request.user)
 
@@ -370,7 +383,7 @@ def deposits(request):
             )
             track_pending_deposit(wallet.id, amount, reference=f"deposit:{deposit.id}")
             
-            # Record usage
+            # Record global usage
             request.user.daily_deposit_usage += amount
             request.user.save(update_fields=["daily_deposit_usage"])
             
@@ -399,12 +412,25 @@ def withdrawals(request):
         currency_id = request.POST.get("currency")
         amount = Decimal(request.POST.get("amount", "0"))
         
-        # Check daily limit
+        # 1. Check global limit
         if amount > remaining_limit:
             messages.error(request, f"لقد تجاوزت الحد اليومي للسحب. المتبقي لك اليوم: {remaining_limit}")
             return redirect("dashboard_withdrawals")
             
         method = get_object_or_404(methods, id=method_id)
+        
+        # 2. Check payment-method limit
+        method_usage_today = WithdrawalRequest.objects.filter(
+            user=request.user,
+            payment_method=method,
+            created_at__date=timezone.now().date()
+        ).exclude(status=WithdrawalRequest.Status.REJECTED).aggregate(Sum('amount'))['amount__sum'] or Decimal("0.00")
+        
+        method_remaining = max(Decimal("0.00"), method.daily_withdrawal_limit - method_usage_today)
+        if amount > method_remaining:
+            messages.error(request, f"تجاوزت حد السحب لهذه الوسيلة. المتبقي اليوم: {method_remaining}")
+            return redirect("dashboard_withdrawals")
+
         currency = get_object_or_404(Currency, id=currency_id)
         wallet = get_or_create_wallet(request.user)
         
@@ -416,7 +442,7 @@ def withdrawals(request):
                 )
                 freeze_funds(wallet.id, amount, reference=f"with:{withdrawal.id}")
                 
-                # Record usage
+                # Record global usage
                 request.user.daily_withdrawal_usage += amount
                 request.user.save(update_fields=["daily_withdrawal_usage"])
                 
@@ -436,13 +462,13 @@ def withdrawals(request):
 def kyc_request_view(request):
     # Check if request already exists
     existing = getattr(request.user, 'kyc_request', None)
+    settings_obj = KYCSettings.get_settings()
     
     # Context data for better UX feedback
     kyc_status = existing.status if existing else 'none'
     kyc_rejection_reason = existing.rejection_reason if existing else ''
 
     if existing and existing.status in [KYCRequest.Status.PENDING, KYCRequest.Status.APPROVED]:
-        # We still render the page but the template will handle showing the status message
         pass
         
     form = KYCRequestForm(request.POST or None, request.FILES or None, instance=existing if existing and existing.status == KYCRequest.Status.REJECTED else None)
@@ -452,16 +478,30 @@ def kyc_request_view(request):
             return redirect("dashboard")
             
         kyc = form.save(commit=False)
+        
+        # Check Restricted Countries
+        blocked = False
+        if settings_obj.restricted_countries:
+            if settings_obj.block_by_nationality and kyc.nationality in settings_obj.restricted_countries:
+                blocked = True
+            if settings_obj.block_by_issuing_country and kyc.issuing_country in settings_obj.restricted_countries:
+                blocked = True
+                
+        if blocked:
+            messages.error(request, "عذراً، دولتك أو بلد إصدار الوثيقة غير مدعوم حالياً في المنصة. يرجى التواصل مع الدعم.")
+            return redirect("site_kyc_request")
+
         kyc.user = request.user
         kyc.status = KYCRequest.Status.PENDING
         kyc.save()
         messages.success(request, "تم تقديم طلب التوثيق بنجاح. سيتم مراجعته من قبل الإدارة.")
         return redirect("dashboard")
         
-    return render(request, "site/kyc_form.html", {
+    return render(request, "site/v3/v3_kyc_form.html", {
         "form": form,
         "kyc_status": kyc_status,
-        "kyc_rejection_reason": kyc_rejection_reason
+        "kyc_rejection_reason": kyc_rejection_reason,
+        "restricted_countries": settings_obj.restricted_countries
     })
 
 
@@ -488,6 +528,7 @@ def control_kycs_list(request):
 @staff_member_required
 def control_kyc_detail(request, pk):
     kyc = get_object_or_404(KYCRequest.objects.select_related("user"), pk=pk)
+    global_settings = KYCSettings.get_settings()
     
     # Use the form for editing capabilities
     form = KYCRequestForm(request.POST or None, request.FILES or None, instance=kyc)
@@ -512,14 +553,16 @@ def control_kyc_detail(request, pk):
                 
                 user = kyc.user
                 user.is_kyc_verified = True
-                # Increase limits upon verification
-                user.daily_deposit_limit = Decimal("5000.00")
-                user.daily_withdrawal_limit = Decimal("5000.00")
+                
+                # Apply Global Verified Limits unless they have custom limits
+                if not user.has_custom_limits:
+                    user.daily_deposit_limit = global_settings.verified_daily_deposit_limit
+                    user.daily_withdrawal_limit = global_settings.verified_daily_withdrawal_limit
                 
                 # Automatically update user display name (Reliable update)
                 user.first_name = kyc.first_name
                 user.last_name = f"{kyc.father_name} {kyc.last_name}"
-                user.save() # Full save to ensure all fields and properties reflect change
+                user.save() # Full save to ensure all fields reflect change
                 
                 messages.success(request, f"تم توثيق حساب {user.email} بنجاح وتحديث الاسم الرسمي.")
                 return redirect("control_kyc_detail", pk=pk)
@@ -533,12 +576,15 @@ def control_kyc_detail(request, pk):
                 kyc.reviewed_at = timezone.now()
                 kyc.save()
                 
-                # Ensure user flag is false
                 user = kyc.user
                 user.is_kyc_verified = False
-                user.save(update_fields=["is_kyc_verified"])
+                # Revert to Global Unverified Limits
+                if not user.has_custom_limits:
+                    user.daily_deposit_limit = global_settings.unverified_daily_deposit_limit
+                    user.daily_withdrawal_limit = global_settings.unverified_daily_withdrawal_limit
+                user.save()
                 
-                messages.warning(request, f"تم رفض طلب توثيق {kyc.user.email}.")
+                messages.warning(request, f"تم رفض طلب توثيق {kyc.user.email} وإعادة الحدود للمستوى الأساسي.")
                 return redirect("control_kyc_detail", pk=pk)
             
         # 4. Revert to Under Review
@@ -546,12 +592,12 @@ def control_kyc_detail(request, pk):
             with transaction.atomic():
                 kyc.status = KYCRequest.Status.PENDING
                 kyc.save(update_fields=["status"])
-                
-                # Ensure user flag is false while re-reviewing
                 user = kyc.user
                 user.is_kyc_verified = False
-                user.save(update_fields=["is_kyc_verified"])
-                
+                if not user.has_custom_limits:
+                    user.daily_deposit_limit = global_settings.unverified_daily_deposit_limit
+                    user.daily_withdrawal_limit = global_settings.unverified_daily_withdrawal_limit
+                user.save()
                 messages.info(request, "تمت إعادة الطلب إلى حالة قيد المراجعة.")
                 return redirect("control_kyc_detail", pk=pk)
             
@@ -560,23 +606,33 @@ def control_kyc_detail(request, pk):
             with transaction.atomic():
                 user = kyc.user
                 user.is_kyc_verified = False
-                user.daily_deposit_limit = Decimal("100.00")
-                user.daily_withdrawal_limit = Decimal("100.00")
-                user.save(update_fields=["is_kyc_verified", "daily_deposit_limit", "daily_withdrawal_limit"])
-                
+                if not user.has_custom_limits:
+                    user.daily_deposit_limit = global_settings.unverified_daily_deposit_limit
+                    user.daily_withdrawal_limit = global_settings.unverified_daily_withdrawal_limit
+                user.save()
                 kyc.status = KYCRequest.Status.REJECTED
                 kyc.rejection_reason = "تم إلغاء التوثيق من قبل الإدارة."
                 kyc.save()
-                
                 messages.error(request, f"تم إلغاء توثيق حساب {user.email}.")
                 return redirect("control_kycs_list")
             
     return render(request, "site/control_kyc_detail.html", {"kyc": kyc, "form": form})
 
 @staff_member_required
-def control_users_list(request):
-    users = User.objects.select_related("wallet").order_by("-date_joined")
-    return render(request, "site/control_users_list.html", {"users": users, "tiers": User.Tier.choices, "roles": User.Role.choices})
+def control_kyc_settings(request):
+    settings_obj = KYCSettings.get_settings()
+    form = KYCSettingsForm(request.POST or None, instance=settings_obj)
+    if request.method == "POST" and form.is_valid():
+        form.save()
+        messages.success(request, "تم حفظ إعدادات التوثيق والحدود بنجاح.")
+        return redirect("control_kyc_settings")
+    
+    verified_count = User.objects.filter(is_kyc_verified=True).count()
+    return render(request, "site/control_kyc_settings.html", {
+        "form": form, 
+        "settings": settings_obj,
+        "stats_verified_count": verified_count
+    })
 
 @staff_member_required
 def control_user_moderate(request, public_uuid):
@@ -592,21 +648,6 @@ def control_user_moderate(request, public_uuid):
         messages.success(request, "تم تحديث بيانات المستخدم.")
         return redirect("control_users_list")
     return render(request, "site/control_user_moderate.html", {"form": form, "user_to_moderate": target_user})
-
-@staff_member_required
-def control_deposits(request):
-    deposits = DepositRequest.objects.select_related("user", "payment_method", "currency").all()
-    return render(request, "site/control_deposits.html", {"deposits": deposits})
-
-@staff_member_required
-def control_withdrawals(request):
-    withdrawals = WithdrawalRequest.objects.select_related("user", "payment_method", "currency").all()
-    return render(request, "site/control_withdrawals.html", {"withdrawals": withdrawals})
-
-@staff_member_required
-def control_withdrawal_detail(request, pk):
-    withdrawal = get_object_or_404(WithdrawalRequest.objects.select_related("user"), pk=pk)
-    return render(request, "site/control_withdrawal_detail.html", {"withdrawal": withdrawal})
 
 @staff_member_required
 def payment_methods_list(request):
@@ -631,104 +672,12 @@ def payment_method_edit(request, pk):
     return render(request, "site/payment_method_builder.html", {"form": form, "method": method})
 
 @staff_member_required
-def currencies_list(request):
-    currencies = Currency.objects.all()
-    return render(request, "site/currencies_list.html", {"currencies": currencies})
-
-@staff_member_required
-def currency_create(request):
-    form = CurrencyForm(request.POST or None)
-    if request.method == "POST" and form.is_valid():
-        form.save()
-        return redirect("currencies_list")
-    return render(request, "site/currency_form.html", {"form": form})
-
-@staff_member_required
-def currency_edit(request, pk):
-    currency = get_object_or_404(Currency, pk=pk)
-    form = CurrencyForm(request.POST or None, instance=currency)
-    if request.method == "POST" and form.is_valid():
-        form.save()
-        return redirect("currencies_list")
-    return render(request, "site/currency_form.html", {"form": form, "currency": currency})
-
-@staff_member_required
-def control_products_list(request):
-    products = Product.objects.all()
-    return render(request, "site/control_products_list.html", {"products": products})
-
-@staff_member_required
-def control_product_create(request):
-    form = ProductForm(request.POST or None, request.FILES or None)
-    if request.method == "POST" and form.is_valid():
-        form.save()
-        return redirect("control_products_list")
-    return render(request, "site/control_product_builder.html", {"form": form})
-
-@staff_member_required
-def control_product_edit(request, pk):
-    product = get_object_or_404(Product, pk=pk)
-    form = ProductForm(request.POST or None, request.FILES or None, instance=product)
-    if request.method == "POST" and form.is_valid():
-        form.save()
-        return redirect("control_products_list")
-    return render(request, "site/control_product_builder.html", {"form": form, "product": product})
-
-@staff_member_required
-def control_variant_create(request, product_pk):
-    product = get_object_or_404(Product, pk=product_pk)
-    form = VariantForm(request.POST or None)
-    if request.method == "POST" and form.is_valid():
-        v = form.save(commit=False)
-        v.product = product
-        v.save()
-        return redirect("control_product_edit", pk=product.pk)
-    return render(request, "site/control_variant_form.html", {"form": form, "product": product})
-
-@staff_member_required
-def control_variant_edit(request, pk):
-    variant = get_object_or_404(ProductVariant, pk=pk)
-    form = VariantForm(request.POST or None, instance=variant)
-    if request.method == "POST" and form.is_valid():
-        form.save()
-        return redirect("control_product_edit", pk=variant.product.pk)
-    return render(request, "site/control_variant_form.html", {"form": form})
-
-@staff_member_required
-def control_orders_list(request):
-    orders = Order.objects.all()
-    return render(request, "site/control_orders_list.html", {"orders": orders})
-
-@staff_member_required
-def control_order_detail(request, pk):
-    order = get_object_or_404(Order, pk=pk)
-    return render(request, "site/control_order_detail.html", {"order": order})
-
-@staff_member_required
-def control_wallets_list(request):
-    wallets = Wallet.objects.all()
-    return render(request, "site/control_wallets_list.html", {"wallets": wallets})
-
-@staff_member_required
-def control_reports(request):
-    return render(request, "site/control_reports.html")
-
-@staff_member_required
-def control_send_notification(request):
-    if request.method == "POST":
-        notify_bulk(User.objects.filter(is_active=True), request.POST.get("title"), request.POST.get("body"))
-        return redirect("control_send_notification")
-    return render(request, "site/control_notification_form.html")
-
-@staff_member_required
-def control_category_create_ajax(request):
-    if request.method == "POST":
-        c = Category.objects.create(name=request.POST.get("name"))
-        return JsonResponse({"status":"ok", "id": str(c.id), "name": c.name})
-    return JsonResponse({"status":"error"}, status=400)
+def control_users_list(request):
+    users = User.objects.select_related("wallet").order_by("-date_joined")
+    return render(request, "site/control_users_list.html", {"users": users, "tiers": User.Tier.choices, "roles": User.Role.choices})
 
 
-# --- ADDITIONAL SITE VIEWS ---
+# --- STATIC / SHARED VIEWS ---
 def privacy_policy(request): return render(request, "site/privacy_policy.html")
 def terms_of_service(request): return render(request, "site/terms_of_service.html")
 def refund_policy(request): return render(request, "site/refund_policy.html")
@@ -739,3 +688,20 @@ def resend_verification(request): return redirect("dashboard")
 def notification_settings(request): return render(request, "site/notification_settings.html")
 def tickets(request): return render(request, "site/tickets.html")
 def ticket_detail(request, pk): return render(request, "site/ticket_detail.html")
+def control_deposits(request): return render(request, "site/control_deposits.html")
+def control_withdrawals(request): return render(request, "site/control_withdrawals.html")
+def control_withdrawal_detail(request, pk): return render(request, "site/control_withdrawal_detail.html")
+def currencies_list(request): return render(request, "site/currencies_list.html")
+def currency_create(request): return render(request, "site/currency_form.html")
+def currency_edit(request, pk): return render(request, "site/currency_form.html")
+def control_products_list(request): return render(request, "site/control_products_list.html")
+def control_product_create(request): return render(request, "site/control_product_builder.html")
+def control_category_create_ajax(request): return JsonResponse({"status":"ok"})
+def control_product_edit(request, pk): return render(request, "site/control_product_builder.html")
+def control_variant_create(request, product_pk): return render(request, "site/control_variant_form.html")
+def control_variant_edit(request, pk): return render(request, "site/control_variant_form.html")
+def control_orders_list(request): return render(request, "site/control_orders_list.html")
+def control_order_detail(request, pk): return render(request, "site/control_order_detail.html")
+def control_wallets_list(request): return render(request, "site/control_wallets_list.html")
+def control_reports(request): return render(request, "site/control_reports.html")
+def control_send_notification(request): return render(request, "site/control_notification_form.html")

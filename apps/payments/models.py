@@ -15,6 +15,10 @@ class PaymentMethod(TimeStampedModel):
     display_order = models.PositiveIntegerField(default=0, blank=True, verbose_name="ترتيب العرض")
     is_active = models.BooleanField(default=True, verbose_name="نشط")
     is_maintenance_mode = models.BooleanField(default=False, verbose_name="وضع الصيانة")
+    
+    # --- New Limit Fields ---
+    daily_deposit_limit = models.DecimalField(max_digits=14, decimal_places=2, default=Decimal("10000.00"), verbose_name="حد الإيداع اليومي لهذه الوسيلة", help_text="القيمة بالدولار USD")
+    daily_withdrawal_limit = models.DecimalField(max_digits=14, decimal_places=2, default=Decimal("10000.00"), verbose_name="حد السحب اليومي لهذه الوسيلة", help_text="القيمة بالدولار USD")
 
     # --- Deposit Configuration ---
     deposit_info_schema = models.JSONField(default=dict, blank=True, verbose_name="بيانات الإيداع الثابتة (للعرض)", help_text='{"version": 1, "rows": [{"title": "IBAN", "value": "TR...", "copyable": true}]}')

@@ -38,6 +38,7 @@ urlpatterns = [
     # Control Panel
     path("control/", views.control_dashboard, name="control_dashboard"),
     path("control/kyc/", views.control_kycs_list, name="control_kycs_list"),
+    path("control/kyc/settings/", views.control_kyc_settings, name="control_kyc_settings"),
     path("control/kyc/<uuid:pk>/", views.control_kyc_detail, name="control_kyc_detail"),
     path("control/payment-methods/", views.payment_methods_list, name="payment_methods_list"),
     path("control/payment-methods/create/", views.payment_method_create, name="payment_method_create"),
