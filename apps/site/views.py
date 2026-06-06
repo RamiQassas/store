@@ -111,17 +111,19 @@ def v3_register_view(request):
     
     form = RegisterForm(request.POST or None)
     if request.method == "POST" and form.is_valid():
+        phone = request.POST.get("phone") # Value from iti.getNumber() hidden input
+        
         with transaction.atomic():
             user = User.objects.create_user(
                 email=form.cleaned_data["email"],
                 password=form.cleaned_data["password"],
                 first_name=form.cleaned_data["first_name"],
                 last_name=form.cleaned_data["last_name"],
-                phone=form.cleaned_data["phone"],
+                phone=phone,
             )
             get_or_create_wallet(user)
             
-            ActivityLog.objects.create(user=user, action="V3 Register", description="User registered via V3 flow")
+            ActivityLog.objects.create(user=user, action="V3 Register", description="User registered via V3 flow with enhanced validation")
 
             # Send OTP for registration verification
             otp = v3_generate_otp(user, OTPToken.Purpose.REGISTRATION)

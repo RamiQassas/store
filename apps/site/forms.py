@@ -73,14 +73,38 @@ class RegisterForm(forms.Form):
     first_name = forms.CharField(label="الاسم الأول", max_length=150, widget=forms.TextInput(attrs={"placeholder": "الاسم الأول"}))
     last_name = forms.CharField(label="الاسم الأخير", max_length=150, required=False, widget=forms.TextInput(attrs={"placeholder": "الاسم الأخير"}))
     email = forms.EmailField(label="البريد الإلكتروني", widget=forms.EmailInput(attrs={"placeholder": "name@example.com"}))
-    phone = forms.CharField(label="الهاتف", max_length=32, required=False, widget=forms.TextInput(attrs={"placeholder": "05xxxxxxxx"}))
+    phone = forms.CharField(label="الهاتف", max_length=32, widget=forms.TextInput(attrs={"placeholder": "05xxxxxxxx"}))
     password = forms.CharField(label="كلمة المرور", widget=forms.PasswordInput(attrs={"placeholder": "كلمة مرور قوية"}), min_length=10)
+    confirm_password = forms.CharField(label="تأكيد كلمة المرور", widget=forms.PasswordInput(attrs={"placeholder": "تأكيد كلمة المرور"}))
 
     def clean_email(self):
         email = self.cleaned_data["email"].lower()
         if User.objects.filter(email=email).exists():
-            raise forms.ValidationError("This email is already registered.")
+            raise forms.ValidationError("هذا البريد الإلكتروني مسجل مسبقاً.")
         return email
+
+    def clean_phone(self):
+        phone = self.cleaned_data.get("phone")
+        if phone and User.objects.filter(phone=phone).exists():
+            raise forms.ValidationError("رقم الهاتف هذا مسجل مسبقاً.")
+        return phone
+
+    def clean(self):
+        cleaned_data = super().clean()
+        password = cleaned_data.get("password")
+        confirm_password = cleaned_data.get("confirm_password")
+
+        if password and confirm_password and password != confirm_password:
+            self.add_error("confirm_password", "كلمات المرور غير متطابقة.")
+        
+        # Basic strength check if not already handled by min_length
+        if password:
+            if not any(char.isdigit() for char in password):
+                self.add_error("password", "يجب أن تحتوي كلمة المرور على رقم واحد على الأقل.")
+            if not any(char.isupper() for char in password):
+                self.add_error("password", "يجب أن تحتوي كلمة المرور على حرف كبير واحد على الأقل.")
+        
+        return cleaned_data
 
 
 class TicketForm(forms.Form):
@@ -160,6 +184,16 @@ class ModerateUserForm(forms.ModelForm):
             "suspension_reason": forms.Textarea(attrs={"rows": 3}),
             "admin_notes": forms.Textarea(attrs={"rows": 3}),
         }
+
+    def clean_phone(self):
+        phone = self.cleaned_data.get("phone")
+        if phone:
+            qs = User.objects.filter(phone=phone)
+            if self.instance.pk:
+                qs = qs.exclude(pk=self.instance.pk)
+            if qs.exists():
+                raise forms.ValidationError("رقم الهاتف هذا مسجل مسبقاً لمستخدم آخر.")
+        return phone
 
 
 from apps.catalog.models import Category, Product, ProductVariant

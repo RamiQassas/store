@@ -39,10 +39,22 @@
       <div class="field-group">
         <label>{{ form.password.label }}</label>
         {{ form.password }}
-        <small class="text-slate-500">10 خانات على الأقل</small>
+        <div id="password-strength-bar" class="h-1 bg-slate-800 rounded-full mt-2 overflow-hidden">
+            <div id="strength-fill" class="h-full w-0 transition-all duration-300"></div>
+        </div>
+        <div class="flex justify-between items-center mt-1">
+            <small class="text-slate-500">10 خانات على الأقل (حرف كبير ورقم)</small>
+            <small id="strength-text" class="text-[9px] font-bold uppercase tracking-widest text-slate-600">جديد</small>
+        </div>
       </div>
 
-      <p class="text-[10px] text-slate-500 text-center">بضغطك على زر التسجيل، أنت توافق على <a href="{% url 'terms_of_service' %}" class="text-cyan underline">شروط الخدمة</a> و <a href="{% url 'privacy_policy' %}" class="text-cyan underline">سياسة الخصوصية</a>.</p>
+      <div class="field-group">
+        <label>{{ form.confirm_password.label }}</label>
+        {{ form.confirm_password }}
+        {% if form.confirm_password.errors %}<small class="text-red-500">{{ form.confirm_password.errors.0 }}</small>{% endif %}
+      </div>
+
+      <p class="text-[10px] text-slate-500 text-center">بضغطك على زر التسجيل، أنت توافق على <a href="{% url 'privacy_policy' %}" class="text-cyan underline">شروط الخدمة</a> و <a href="{% url 'terms_of_service' %}" class="text-cyan underline">سياسة الخصوصية</a>.</p>
       
       <button class="btn btn-primary w-full py-4 text-lg" type="submit">إنشاء الحساب</button>
     </form>
@@ -69,11 +81,57 @@
   document.querySelector("#register-form").addEventListener("submit", function() {
     fullPhoneInput.value = iti.getNumber();
   });
+
+  // Password Strength Logic
+  const passwordInput = document.querySelector('input[name="password"]');
+  const strengthFill = document.querySelector('#strength-fill');
+  const strengthText = document.querySelector('#strength-text');
+
+  passwordInput.addEventListener('input', function() {
+    const val = this.value;
+    let score = 0;
+    
+    if (val.length >= 10) score += 25;
+    if (/[A-Z]/.test(val)) score += 25;
+    if (/[0-9]/.test(val)) score += 25;
+    if (/[^A-Za-z0-9]/.test(val)) score += 25;
+    
+    strengthFill.style.width = score + '%';
+    
+    if (score === 0) {
+        strengthFill.className = 'h-full w-0 transition-all duration-300';
+        strengthText.textContent = 'جديد';
+        strengthText.style.color = '#64748b';
+    } else if (score <= 25) {
+        strengthFill.className = 'h-full bg-rose-500 transition-all duration-300';
+        strengthText.textContent = 'ضعيف جداً';
+        strengthText.style.color = '#f43f5e';
+    } else if (score <= 50) {
+        strengthFill.className = 'h-full bg-amber-500 transition-all duration-300';
+        strengthText.textContent = 'متوسط';
+        strengthText.style.color = '#f59e0b';
+    } else if (score <= 75) {
+        strengthFill.className = 'h-full bg-cyan transition-all duration-300';
+        strengthText.textContent = 'قوي';
+        strengthText.style.color = '#06b6d4';
+    } else {
+        strengthFill.className = 'h-full bg-emerald-500 transition-all duration-300';
+        strengthText.textContent = 'قوي جداً';
+        strengthText.style.color = '#10b981';
+    }
+  });
 </script>
 <style>
     .iti { width: 100%; }
     .iti__country-list { background-color: #0f172a; color: white; border: 1px solid #334155; }
     .iti__country:hover { background-color: #1e293b; }
     .iti__selected-country { background-color: #1e293b; }
+    
+    /* CSS Override for Syria Flag (ensure two stars Arab Republic version) */
+    .iti__flag.iti__sy {
+        background-image: url("https://flagcdn.com/w40/sy.png") !important;
+        background-position: center !important;
+        background-size: cover !important;
+    }
 </style>
 {% endblock %}
