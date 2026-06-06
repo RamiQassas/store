@@ -24,15 +24,20 @@ urlpatterns = [
     path("api/withdrawals/<uuid:pk>/complete/", api_views.api_withdrawal_complete, name="api_withdrawal_complete"),
     path("api/withdrawals/<uuid:pk>/reject/", api_views.api_withdrawal_reject, name="api_withdrawal_reject"),
 
-    # AUTH REBUILD (ZERO interference from Django defaults)
-    path("auth/login/", views.rebuilt_login_view, name="site_login"),
-    path("auth/register/", views.rebuilt_register_view, name="site_register"),
-    path("auth/verify-otp/", views.rebuilt_verify_otp_view, name="site_verify_otp"),
-    path("auth/logout/", views.rebuilt_logout_view, name="site_logout"),
+    # NEW CUSTOM AUTH (V2 - FINAL ISOLATION)
+    path("auth/v2/login/", views.v2_login_view, name="v2_login"),
+    path("auth/v2/register/", views.v2_register_view, name="v2_register"),
+    path("auth/v2/verify/", views.v2_verify_otp_view, name="v2_verify_otp"),
+    path("auth/v2/forgot-password/", views.v2_forgot_password_view, name="v2_forgot_password"),
+    path("auth/v2/reset-password/", views.v2_reset_password_view, name="v2_reset_password"),
+    path("auth/v2/logout/", views.v2_logout_view, name="v2_logout"),
     
-    # PASSWORD RECOVERY REBUILD
-    path("auth/recovery/", views.rebuilt_recovery_request_view, name="site_recovery_request"),
-    path("auth/recovery/reset/", views.rebuilt_recovery_reset_view, name="site_recovery_reset"),
+    # Legacy routes (redirecting to V2)
+    path("auth/login/", views.v2_login_view),
+    path("auth/register/", views.v2_register_view),
+    path("auth/verify-otp/", views.v2_verify_otp_view),
+    path("auth/logout/", views.v2_logout_view),
+    path("auth/password-reset/", views.v2_forgot_password_view),
 
     # Control Panel
     path("control/", views.control_dashboard, name="control_dashboard"),
