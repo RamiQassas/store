@@ -15,7 +15,7 @@ from django.utils.encoding import force_str
 from django.contrib.auth.tokens import default_token_generator
 from datetime import timedelta
 
-from apps.accounts.models import User, ModerationLog, ActivityLog
+from apps.accounts.models import User, ModerationLog, ActivityLog, EmailVerificationToken, OTPToken
 from apps.accounts.services import send_verification_email
 from apps.catalog.models import Category, Product, ProductVariant
 from apps.common.models import Currency
@@ -167,6 +167,8 @@ def product_detail(request, pk):
     )
 
 
+from apps.accounts.otp_services import generate_otp, send_otp_email, verify_otp
+
 def login_view(request):
     if request.user.is_authenticated:
         return redirect("dashboard")
@@ -177,22 +179,15 @@ def login_view(request):
             if not user.is_account_active:
                 messages.error(request, f"هذا الحساب معطل أو موقوف. السبب: {user.suspension_reason or 'غير محدد'}")
                 return render(request, "site/auth_login.html", {"form": form})
-            
-            login(request, user)
-            messages.success(request, "مرحبًا بك مرة أخرى.")
-            
-            ActivityLog.objects.create(
-                user=user,
-                action="Login",
-                description="User logged into the platform",
-                ip_address=request.META.get('REMOTE_ADDR'),
-                user_agent=request.META.get('HTTP_USER_AGENT', '')
-            )
-            
-            if not user.email_verified:
-                messages.warning(request, "حسابك غير مفعل بعد. يرجى تفعيل البريد الإلكتروني للوصول لكافة الميزات.")
-            
-            return redirect("dashboard")
+
+            # OTP Flow for Login
+            otp = generate_otp(user, OTPToken.Purpose.LOGIN)
+            send_otp_email(user, otp)
+
+            request.session["otp_user_id"] = str(user.id)
+            request.session["otp_purpose"] = OTPToken.Purpose.LOGIN
+            return redirect("verify_otp")
+
         messages.error(request, "بيانات الدخول غير صحيحة.")
     return render(request, "site/auth_login.html", {"form": form})
 
@@ -211,25 +206,70 @@ def register_view(request):
                 phone=form.cleaned_data["phone"],
             )
             get_or_create_wallet(user)
-            
+
             ActivityLog.objects.create(
                 user=user,
                 action="Register",
                 description="New account registered"
             )
-            
-            success = send_verification_email(request, user)
-            
-            login(request, user)
-            if success:
-                messages.success(request, "تم إنشاء الحساب بنجاح. يرجى تفعيل بريدك الإلكتروني.")
-            else:
-                messages.warning(request, "تم إنشاء الحساب، ولكن تعذر إرسال بريد التفعيل حالياً. يمكنك إعادة المحاولة من لوحة التحكم.")
-            return redirect("dashboard")
-            
+
+            # OTP Flow for Registration
+            otp = generate_otp(user, OTPToken.Purpose.REGISTRATION)
+            send_otp_email(user, otp)
+
+            request.session["otp_user_id"] = str(user.id)
+            request.session["otp_purpose"] = OTPToken.Purpose.REGISTRATION
+            return redirect("verify_otp")
+
     return render(request, "site/auth_register.html", {"form": form})
 
 
+def verify_otp_view(request):
+    user_id = request.session.get("otp_user_id")
+    purpose = request.session.get("otp_purpose")
+
+    if not user_id or not purpose:
+        return redirect("site_login")
+
+    user = get_object_or_404(User, id=user_id)
+
+    if request.method == "POST":
+        action = request.POST.get("action")
+
+        if action == "resend":
+            otp = generate_otp(user, purpose)
+            if send_otp_email(user, otp):
+                messages.success(request, "تم إعادة إرسال رمز التحقق إلى بريدك الإلكتروني.")
+            else:
+                messages.error(request, "فشل إرسال الرمز. يرجى المحاولة لاحقاً.")
+            return redirect("verify_otp")
+
+        code = request.POST.get("code")
+        if verify_otp(user, code, purpose):
+            if purpose == OTPToken.Purpose.REGISTRATION:
+                user.email_verified = True
+                user.save(update_fields=["email_verified"])
+                messages.success(request, "تم تفعيل حسابك بنجاح.")
+
+            login(request, user)
+            messages.success(request, "مرحبًا بك في رقميات.")
+
+            # Clean session
+            del request.session["otp_user_id"]
+            del request.session["otp_purpose"]
+
+            ActivityLog.objects.create(
+                user=user,
+                action="OTP Verified",
+                description=f"User verified OTP for {purpose}",
+                ip_address=request.META.get('REMOTE_ADDR'),
+                user_agent=request.META.get('HTTP_USER_AGENT', '')
+            )
+            return redirect("dashboard")
+        else:
+            messages.error(request, "رمز التحقق غير صحيح أو منتهي الصلاحية.")
+
+    return render(request, "site/verify_otp.html", {"user": user, "purpose": purpose})
 def logout_view(request):
     if request.user.is_authenticated:
         ActivityLog.objects.create(
@@ -362,7 +402,7 @@ def deposits(request):
         messages.error(request, "يرجى تفعيل بريدك الإلكتروني أولاً لتتمكن من الإيداع.")
         return redirect("dashboard")
 
-    if request.user.status != User.Status.ACTIVE and request.user.restriction_deposits:
+    if request.user.restriction_deposits:
         messages.error(request, "حسابك مقيد من عمليات الإيداع. يرجى التواصل مع الدعم.")
         return redirect("dashboard")
 
@@ -995,6 +1035,21 @@ def control_user_moderate(request, public_uuid):
                         user_agent=request.META.get('HTTP_USER_AGENT'),
                         reason=user_to_moderate.suspension_reason
                     )
+
+                    # Force logout if banned or suspended
+                    if not user_to_moderate.is_account_active:
+                        from django.contrib.sessions.models import Session
+                        from django.utils import timezone
+                        
+                        # Invalidate all web sessions
+                        sessions = Session.objects.filter(expire_date__gte=timezone.now())
+                        for session in sessions:
+                            data = session.get_decoded()
+                            if str(user_to_moderate.id) == data.get('_auth_user_id'):
+                                session.delete()
+                        
+                        # Invalidate JWT sessions if tracked
+                        user_to_moderate.device_sessions.update(is_active=False)
 
                     messages.success(request, f"تم تحديث حالة حساب {user_to_moderate.email} بنجاح.")
                     return redirect("control_user_moderate", public_uuid=public_uuid)

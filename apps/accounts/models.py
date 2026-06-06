@@ -164,3 +164,22 @@ class EmailVerificationToken(TimeStampedModel):
 
     def __str__(self):
         return f"{self.user.email} - {self.token}"
+
+
+class OTPToken(TimeStampedModel):
+    class Purpose(models.TextChoices):
+        REGISTRATION = "registration", "Registration"
+        LOGIN = "login", "Login"
+        PASSWORD_RESET = "password_reset", "Password Reset"
+
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="otp_tokens")
+    code = models.CharField(max_length=6)
+    purpose = models.CharField(max_length=20, choices=Purpose.choices)
+    is_used = models.BooleanField(default=False)
+    expires_at = models.DateTimeField()
+
+    def is_expired(self):
+        return timezone.now() > self.expires_at
+
+    def __str__(self):
+        return f"{self.user.email} - {self.code} ({self.purpose})"

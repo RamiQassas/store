@@ -180,8 +180,14 @@
                 </div>
             </div>
             
-            {% if wallet.frozen_balance > 0 or wallet.held_balance > 0 or wallet.pending_balance > 0 %}
-            <div class="grid grid-3 gap-4 pt-6 border-t border-white/5">
+            {% if wallet.frozen_balance > 0 or wallet.held_balance > 0 or wallet.pending_balance > 0 or wallet.debt_balance > 0 %}
+            <div class="grid grid-4 gap-4 pt-6 border-t border-white/5">
+                {% if wallet.debt_balance > 0 %}
+                <div>
+                    <span class="text-xs text-rose-400 font-bold block mb-1">الديون المستحقة</span>
+                    <span class="text-sm font-bold text-rose-500">{% currency_format wallet.debt_balance wallet.currency %}</span>
+                </div>
+                {% endif %}
                 {% if wallet.pending_balance > 0 %}
                 <div>
                     <span class="text-xs text-muted block mb-1">قيد الانتظار</span>

@@ -4,6 +4,66 @@ from django.contrib.auth import get_user_model
 User = get_user_model()
 
 
+from django.contrib.auth.forms import PasswordResetForm
+from django.contrib.auth.tokens import default_token_generator
+from django.utils.http import urlsafe_base64_encode
+from django.utils.encoding import force_bytes
+from django.urls import reverse
+from apps.accounts.services import send_brevo_email
+
+class CustomPasswordResetForm(PasswordResetForm):
+    def save(self, domain_override=None, subject_template_name=None,
+             email_template_name=None, use_https=False, token_generator=default_token_generator,
+             from_email=None, request=None, html_email_template_name=None,
+             extra_email_context=None):
+        """
+        Custom save method to use Brevo API for sending password reset emails.
+        """
+        email = self.cleaned_data["email"]
+        active_users = User.objects.filter(email__iexact=email, is_active=True)
+        
+        for user in active_users:
+            if not user.has_usable_password():
+                continue
+            
+            uid = urlsafe_base64_encode(force_bytes(user.pk))
+            token = token_generator.make_token(user)
+            protocol = 'https' if use_https else 'http'
+            domain = domain_override or (request.get_host() if request else 'raqamiyat.onrender.com')
+            
+            reset_url = f"{protocol}://{domain}{reverse('password_reset_confirm', kwargs={'uidb64': uid, 'token': token})}"
+            
+            subject = "إعادة تعيين كلمة المرور | Raqamiyat"
+            
+            html_content = f"""
+            <div dir="rtl" style="font-family: 'Cairo', sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e2e8f0; border-radius: 12px; background-color: #ffffff; color: #1e293b;">
+                <div style="text-align: center; margin-bottom: 30px;">
+                    <h1 style="color: #06b6d4; margin: 0; font-size: 28px;">رقميات | Raqamiyat</h1>
+                </div>
+                <p style="font-size: 16px;">مرحباً <strong>{user.first_name or user.email}</strong>،</p>
+                <p style="font-size: 16px; line-height: 1.6;">لقد طلبت إعادة تعيين كلمة المرور لحسابك في رقميات.</p>
+                <p style="font-size: 16px; line-height: 1.6;">يرجى الضغط على الزر أدناه لتعيين كلمة مرور جديدة:</p>
+                
+                <div style="text-align: center; margin: 40px 0;">
+                    <a href="{reset_url}" style="background-color: #06b6d4; color: #ffffff; padding: 14px 40px; text-decoration: none; border-radius: 8px; font-weight: bold; font-size: 18px; display: inline-block;">إعادة تعيين كلمة المرور</a>
+                </div>
+                
+                <p style="font-size: 14px; color: #64748b;">إذا لم تطلب هذا التغيير، يمكنك تجاهل هذا البريد بأمان.</p>
+                <p style="font-size: 12px; word-break: break-all; color: #06b6d4;">{reset_url}</p>
+                
+                <hr style="border: 0; border-top: 1px solid #e2e8f0; margin: 30px 0;">
+                <p style="font-size: 12px; color: #94a3b8; text-align: center;">© 2024 رقميات - Raqamiyat. جميع الحقوق محفوظة.</p>
+            </div>
+            """
+            
+            send_brevo_email(
+                to_email=user.email,
+                to_name=f"{user.first_name} {user.last_name}",
+                subject=subject,
+                html_content=html_content
+            )
+
+
 class LoginForm(forms.Form):
     email = forms.EmailField(label="البريد الإلكتروني", widget=forms.EmailInput(attrs={"placeholder": "name@example.com"}))
     password = forms.CharField(label="كلمة المرور", widget=forms.PasswordInput(attrs={"placeholder": "********"}))
