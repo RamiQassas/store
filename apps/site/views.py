@@ -227,15 +227,16 @@ def register_view(request):
 def verify_otp_view(request):
     user_id = request.session.get("otp_user_id")
     purpose = request.session.get("otp_purpose")
-
+    
     if not user_id or not purpose:
+        messages.error(request, "انتهت جلسة التحقق. يرجى تسجيل الدخول مرة أخرى.")
         return redirect("site_login")
-
+        
     user = get_object_or_404(User, id=user_id)
-
+    
     if request.method == "POST":
         action = request.POST.get("action")
-
+        
         if action == "resend":
             otp = generate_otp(user, purpose)
             if send_otp_email(user, otp):
@@ -243,32 +244,39 @@ def verify_otp_view(request):
             else:
                 messages.error(request, "فشل إرسال الرمز. يرجى المحاولة لاحقاً.")
             return redirect("verify_otp")
-
+            
         code = request.POST.get("code")
         if verify_otp(user, code, purpose):
             if purpose == OTPToken.Purpose.REGISTRATION:
                 user.email_verified = True
                 user.save(update_fields=["email_verified"])
                 messages.success(request, "تم تفعيل حسابك بنجاح.")
+            
+            # Use request_ip helper if available or standard REMOTE_ADDR
+            try:
+                from apps.accounts.views import request_ip
+                ip = request_ip(request)
+            except:
+                ip = request.META.get('REMOTE_ADDR')
 
             login(request, user)
             messages.success(request, "مرحبًا بك في رقميات.")
-
-            # Clean session
-            del request.session["otp_user_id"]
-            del request.session["otp_purpose"]
-
+            
+            # Clean session safely
+            request.session.pop("otp_user_id", None)
+            request.session.pop("otp_purpose", None)
+            
             ActivityLog.objects.create(
                 user=user,
                 action="OTP Verified",
                 description=f"User verified OTP for {purpose}",
-                ip_address=request.META.get('REMOTE_ADDR'),
+                ip_address=ip,
                 user_agent=request.META.get('HTTP_USER_AGENT', '')
             )
             return redirect("dashboard")
         else:
             messages.error(request, "رمز التحقق غير صحيح أو منتهي الصلاحية.")
-
+            
     return render(request, "site/verify_otp.html", {"user": user, "purpose": purpose})
 def logout_view(request):
     if request.user.is_authenticated:
