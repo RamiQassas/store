@@ -17,6 +17,7 @@
                     <th class="p-4">المستخدم</th>
                     <th class="p-4">الاسم بالكامل</th>
                     <th class="p-4">الوثيقة</th>
+                    <th class="p-4">الجنسية / المصدر</th>
                     <th class="p-4">الحالة</th>
                     <th class="p-4">تاريخ الطلب</th>
                     <th class="p-4">إجراءات</th>
@@ -48,6 +49,18 @@
                             مراجعة الطلب
                         </a>
                     </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="6" class="p-12 text-center text-slate-500 italic">لا توجد طلبات توثيق حالياً.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
+td>
                 </tr>
                 {% empty %}
                 <tr>

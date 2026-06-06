@@ -20,6 +20,7 @@ from django.conf import settings
 
 from apps.accounts.models import User, ModerationLog, ActivityLog, EmailVerificationToken, OTPToken, KYCRequest, KYCSettings
 from apps.accounts.services import send_brevo_email, send_verification_email
+from apps.common.countries import COUNTRIES
 from apps.catalog.models import Category, Product, ProductVariant
 from apps.common.models import Currency
 from apps.notifications.models import Notification, NotificationSetting
