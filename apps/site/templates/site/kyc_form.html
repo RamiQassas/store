@@ -9,7 +9,41 @@
             <p class="text-slate-500 mt-2">التوثيق **اختياري** تماماً، ولكنه مطلوب فقط إذا كنت ترغب في رفع حدود العمليات المالية على حسابك.</p>
         </div>
 
+        {% if user.is_kyc_verified %}
+        <div class="panel p-12 bg-emerald-500/5 border-emerald-500/10 rounded-3xl text-center">
+            <div class="w-20 h-20 bg-emerald-500/20 rounded-full flex items-center justify-center text-4xl text-emerald-500 mx-auto mb-6">
+                <i class="fas fa-check-double"></i>
+            </div>
+            <h2 class="text-2xl font-black text-emerald-500 mb-4">حسابك موثق بالكامل</h2>
+            <p class="text-slate-400 mb-8">لقد تم التحقق من هويتك بنجاح، وتتمتع الآن بحدود عمليات مالية مرتفعة.</p>
+            <a href="{% url 'dashboard' %}" class="btn btn-primary px-8 py-3 rounded-xl font-bold">العودة للوحة التحكم</a>
+        </div>
+
+        {% elif kyc_status == 'pending' %}
+        <div class="panel p-12 bg-amber-500/5 border-amber-500/10 rounded-3xl text-center">
+            <div class="w-20 h-20 bg-amber-500/20 rounded-full flex items-center justify-center text-4xl text-amber-500 mx-auto mb-6 animate-pulse">
+                <i class="fas fa-clock"></i>
+            </div>
+            <h2 class="text-2xl font-black text-amber-500 mb-4">طلبك قيد المراجعة</h2>
+            <p class="text-slate-400 mb-8">لقد استلمنا طلب التوثيق الخاص بك وهو الآن قيد المراجعة من قبل فريقنا المختص. يرجى الانتظار، سنقوم بإعلامك فور معالجته.</p>
+            <a href="{% url 'dashboard' %}" class="btn btn-outline px-8 py-3 rounded-xl font-bold">مراقبة حالة الحساب</a>
+        </div>
+
+        {% else %}
         <div class="panel p-8 bg-slate-900/40 border-white/5 rounded-3xl">
+            {% if kyc_status == 'rejected' %}
+            <div class="p-6 bg-rose-500/10 border border-rose-500/20 rounded-2xl mb-8">
+                <div class="flex items-center gap-3 text-rose-500 font-bold mb-2">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    <span>تم رفض طلبك السابق</span>
+                </div>
+                <p class="text-xs text-rose-500/80 leading-relaxed">
+                    <strong>سبب الرفض:</strong> {{ kyc_rejection_reason }}
+                </p>
+                <p class="text-[10px] text-slate-500 mt-4">يرجى تصحيح البيانات المذكورة أعلاه وتقديم طلب جديد بصور أكثر وضوحاً.</p>
+            </div>
+            {% endif %}
+
             <div class="flex items-start gap-4 p-4 bg-cyan/5 border border-cyan/10 rounded-2xl mb-8">
                 <i class="fas fa-info-circle text-cyan mt-1"></i>
                 <p class="text-sm text-cyan leading-relaxed">
@@ -93,6 +127,7 @@
                 </div>
             </form>
         </div>
+        {% endif %}
     </div>
 </div>
 

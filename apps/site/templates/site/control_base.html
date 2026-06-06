@@ -124,6 +124,12 @@
             <a href="{% url 'control_orders_list' %}" class="admin-nav-link {% if 'order' in request.path %}active{% endif %}">
                 <i class="fas fa-shopping-bag"></i> الطلبات
             </a>
+            <a href="{% url 'control_kycs_list' %}" class="admin-nav-link {% if 'control/kyc' in request.path %}active{% endif %}">
+                <i class="fas fa-user-shield"></i> طلبات التوثيق
+                {% if PENDING_KYC_COUNT > 0 %}
+                <span class="badge danger text-[8px] mr-auto">{{ PENDING_KYC_COUNT }}</span>
+                {% endif %}
+            </a>
             <a href="{% url 'control_deposits' %}" class="admin-nav-link {% if 'control/deposits' in request.path %}active{% endif %}">
                 <i class="fas fa-wallet"></i> الإيداعات
             </a>

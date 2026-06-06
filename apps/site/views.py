@@ -436,11 +436,21 @@ def withdrawals(request):
 def kyc_request_view(request):
     # Check if request already exists
     existing = getattr(request.user, 'kyc_request', None)
+    
+    # Context data for better UX feedback
+    kyc_status = existing.status if existing else 'none'
+    kyc_rejection_reason = existing.rejection_reason if existing else ''
+
     if existing and existing.status in [KYCRequest.Status.PENDING, KYCRequest.Status.APPROVED]:
-        return redirect("dashboard")
+        # We still render the page but the template will handle showing the status message
+        pass
         
-    form = KYCRequestForm(request.POST or None, request.FILES or None, instance=existing)
+    form = KYCRequestForm(request.POST or None, request.FILES or None, instance=existing if existing and existing.status == KYCRequest.Status.REJECTED else None)
     if request.method == "POST" and form.is_valid():
+        if existing and existing.status in [KYCRequest.Status.PENDING, KYCRequest.Status.APPROVED]:
+            messages.error(request, "لديك طلب توثيق قيد المعالجة بالفعل.")
+            return redirect("dashboard")
+            
         kyc = form.save(commit=False)
         kyc.user = request.user
         kyc.status = KYCRequest.Status.PENDING
@@ -448,7 +458,11 @@ def kyc_request_view(request):
         messages.success(request, "تم تقديم طلب التوثيق بنجاح. سيتم مراجعته من قبل الإدارة.")
         return redirect("dashboard")
         
-    return render(request, "site/kyc_form.html", {"form": form})
+    return render(request, "site/kyc_form.html", {
+        "form": form,
+        "kyc_status": kyc_status,
+        "kyc_rejection_reason": kyc_rejection_reason
+    })
 
 
 # ==========================================
