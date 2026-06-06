@@ -82,6 +82,21 @@
     fullPhoneInput.value = iti.getNumber();
   });
 
+  // Password Visibility Toggle
+  document.querySelectorAll('.toggle-password').forEach(button => {
+    button.addEventListener('click', function() {
+        const input = document.getElementById(this.getAttribute('data-target'));
+        const icon = this.querySelector('i');
+        if (input.type === 'password') {
+            input.type = 'text';
+            icon.classList.replace('fa-eye', 'fa-eye-slash');
+        } else {
+            input.type = 'password';
+            icon.classList.replace('fa-eye-slash', 'fa-eye');
+        }
+    });
+  });
+
   // Password Strength Logic
   const passwordInput = document.querySelector('input[name="password"]');
   const strengthFill = document.querySelector('#strength-fill');
@@ -132,6 +147,10 @@
         background-image: url("https://flagcdn.com/w40/sy.png") !important;
         background-position: center !important;
         background-size: cover !important;
+    }
+</style>
+{% endblock %}
+nt;
     }
 </style>
 {% endblock %}

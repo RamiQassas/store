@@ -25,9 +25,41 @@
         <form method="post" id="resend-form">
             {% csrf_token %}
             <input type="hidden" name="action" value="resend">
-            <button type="submit" class="text-cyan text-xs font-bold hover:underline">إعادة إرسال الرمز</button>
+            <button type="submit" id="resend-btn" class="text-cyan text-xs font-bold hover:underline disabled:opacity-50 disabled:no-underline disabled:cursor-not-allowed">إعادة إرسال الرمز</button>
         </form>
+        <p id="cooldown-timer" class="text-[10px] text-slate-600 mt-2 hidden">يمكنك إعادة الإرسال خلال <span id="timer-count">60</span> ثانية</p>
     </div>
+
+    <script>
+        const resendBtn = document.getElementById('resend-btn');
+        const timerContainer = document.getElementById('cooldown-timer');
+        const timerCount = document.getElementById('timer-count');
+        let timeLeft = 60;
+
+        function startCooldown() {
+            resendBtn.disabled = true;
+            timerContainer.classList.remove('hidden');
+            
+            const interval = setInterval(() => {
+                timeLeft--;
+                timerCount.textContent = timeLeft;
+                
+                if (timeLeft <= 0) {
+                    clearInterval(interval);
+                    resendBtn.disabled = false;
+                    timerContainer.classList.add('hidden');
+                    timeLeft = 60;
+                }
+            }, 1000);
+        }
+
+        // Start timer on page load
+        startCooldown();
+
+        document.getElementById('resend-form').onsubmit = function() {
+            if (resendBtn.disabled) return false;
+        };
+    </script>
     
     <div class="mt-4">
         <a href="{% url 'site_login' %}" class="text-slate-500 text-[10px] hover:text-white transition-colors">العودة لتسجيل الدخول</a>
