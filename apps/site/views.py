@@ -29,6 +29,21 @@ from apps.wallets.models import LedgerEntry, Wallet, WalletTransaction
 from apps.wallets.services import get_or_create_wallet
 
 
+def service_worker(request):
+    """Serves the service worker from the root for correct scoping."""
+    from django.http import HttpResponse
+    from django.conf import settings
+    import os
+    
+    sw_path = os.path.join(settings.BASE_DIR, 'apps', 'site', 'static', 'site', 'js', 'sw.js')
+    try:
+        with open(sw_path, 'r', encoding='utf-8') as f:
+            content = f.read()
+        return HttpResponse(content, content_type='application/javascript')
+    except FileNotFoundError:
+        return HttpResponse("// Service worker file not found", content_type='application/javascript', status=404)
+
+
 def rebuilt_login_view(request):
     if request.user.is_authenticated:
         return redirect("dashboard")
@@ -183,6 +198,8 @@ def rebuilt_recovery_reset_view(request):
             
     return render(request, "registration/password_reset_new.html", {"user_email": user.email})
 
+
+def home(request):
     featured_products = Product.objects.filter(is_active=True, is_featured=True).select_related("category").prefetch_related("variants")[:6]
     top_products = Product.objects.filter(is_active=True).select_related("category").prefetch_related("variants").order_by("sort_order", "name")[:8]
     categories = Category.objects.filter(is_active=True).order_by("sort_order", "name")
@@ -318,132 +335,6 @@ def product_detail(request, pk):
             "selected_variant": selected_variant,
         },
     )
-
-
-from apps.accounts.otp_services import generate_otp, send_otp_email, verify_otp
-
-def login_view(request):
-    if request.user.is_authenticated:
-        return redirect("dashboard")
-    form = LoginForm(request.POST or None)
-    if request.method == "POST" and form.is_valid():
-        user = authenticate(username=form.cleaned_data["email"], password=form.cleaned_data["password"])
-        if user:
-            if not user.is_account_active:
-                messages.error(request, f"هذا الحساب معطل أو موقوف. السبب: {user.suspension_reason or 'غير محدد'}")
-                return render(request, "site/auth_login.html", {"form": form})
-
-            # OTP Flow for Login
-            otp = generate_otp(user, OTPToken.Purpose.LOGIN)
-            send_otp_email(user, otp)
-
-            request.session["otp_user_id"] = str(user.id)
-            request.session["otp_purpose"] = OTPToken.Purpose.LOGIN
-            return redirect("verify_otp")
-
-        messages.error(request, "بيانات الدخول غير صحيحة.")
-    return render(request, "site/auth_login.html", {"form": form})
-
-
-def register_view(request):
-    if request.user.is_authenticated:
-        return redirect("dashboard")
-    form = RegisterForm(request.POST or None)
-    if request.method == "POST" and form.is_valid():
-        with transaction.atomic():
-            user = User.objects.create_user(
-                email=form.cleaned_data["email"],
-                password=form.cleaned_data["password"],
-                first_name=form.cleaned_data["first_name"],
-                last_name=form.cleaned_data["last_name"],
-                phone=form.cleaned_data["phone"],
-            )
-            get_or_create_wallet(user)
-
-            ActivityLog.objects.create(
-                user=user,
-                action="Register",
-                description="New account registered"
-            )
-
-            # OTP Flow for Registration
-            otp = generate_otp(user, OTPToken.Purpose.REGISTRATION)
-            send_otp_email(user, otp)
-
-            request.session["otp_user_id"] = str(user.id)
-            request.session["otp_purpose"] = OTPToken.Purpose.REGISTRATION
-            return redirect("verify_otp")
-
-    return render(request, "site/auth_register.html", {"form": form})
-
-
-def verify_otp_view(request):
-    user_id = request.session.get("otp_user_id")
-    purpose = request.session.get("otp_purpose")
-    
-    if not user_id or not purpose:
-        messages.error(request, "انتهت جلسة التحقق. يرجى تسجيل الدخول مرة أخرى.")
-        return redirect("site_login")
-        
-    user = get_object_or_404(User, id=user_id)
-    
-    if request.method == "POST":
-        action = request.POST.get("action")
-        
-        if action == "resend":
-            otp = generate_otp(user, purpose)
-            if send_otp_email(user, otp):
-                messages.success(request, "تم إعادة إرسال رمز التحقق إلى بريدك الإلكتروني.")
-            else:
-                messages.error(request, "فشل إرسال الرمز. يرجى المحاولة لاحقاً.")
-            return redirect("verify_otp")
-            
-        code = request.POST.get("code")
-        if verify_otp(user, code, purpose):
-            if purpose == OTPToken.Purpose.REGISTRATION:
-                user.email_verified = True
-                user.save(update_fields=["email_verified"])
-                messages.success(request, "تم تفعيل حسابك بنجاح.")
-                login(request, user)
-                messages.success(request, "مرحبًا بك في رقميات.")
-            
-            elif purpose == OTPToken.Purpose.LOGIN:
-                login(request, user)
-                messages.success(request, "مرحبًا بك في رقميات.")
-                
-            elif purpose == OTPToken.Purpose.PASSWORD_RESET:
-                request.session["otp_verified_reset"] = True
-                messages.success(request, "تم التحقق بنجاح. يرجى تعيين كلمة مرور جديدة.")
-                # Don't clean session yet, need reset_user_id
-                return redirect("password_reset_new")
-
-            # Clean session safely for standard flows
-            if purpose != OTPToken.Purpose.PASSWORD_RESET:
-                request.session.pop("otp_user_id", None)
-                request.session.pop("otp_purpose", None)
-            
-            ActivityLog.objects.create(
-                user=user,
-                action="OTP Verified",
-                description=f"User verified OTP for {purpose}",
-                ip_address=ip,
-                user_agent=request.META.get('HTTP_USER_AGENT', '')
-            )
-            return redirect("dashboard")
-        else:
-            messages.error(request, "رمز التحقق غير صحيح أو منتهي الصلاحية.")
-            
-    return render(request, "site/verify_otp.html", {"user": user, "purpose": purpose})
-def logout_view(request):
-    if request.user.is_authenticated:
-        ActivityLog.objects.create(
-            user=request.user,
-            action="Logout",
-            description="User logged out"
-        )
-    logout(request)
-    messages.info(request, "تم تسجيل الخروج.")
-    return redirect("home")
 
 
 def email_verify(request, uidb64, token):
@@ -1618,80 +1509,3 @@ def refund_policy(request):
 def contact_page(request):
     return render(request, "site/contact.html")
 
-
-def password_reset_request_view(request):
-    if request.method == "POST":
-        email = request.POST.get("email", "").lower()
-        user = User.objects.filter(email=email).first()
-        
-        if user:
-            # Generate OTP for password reset
-            otp = generate_otp(user, OTPToken.Purpose.PASSWORD_RESET)
-            if send_otp_email(user, otp):
-                request.session["reset_user_id"] = str(user.id)
-                request.session["otp_user_id"] = str(user.id) # For verify_otp_view
-                request.session["otp_purpose"] = OTPToken.Purpose.PASSWORD_RESET
-                messages.success(request, "تم إرسال رمز التحقق إلى بريدك الإلكتروني.")
-                return redirect("verify_otp")
-            else:
-                messages.error(request, "فشل إرسال الرمز. يرجى المحاولة لاحقاً.")
-        else:
-            messages.error(request, "عذراً، هذا البريد الإلكتروني غير مسجل لدينا.")
-            
-    return render(request, "registration/password_reset_form.html")
-
-
-def password_reset_new_view(request):
-    # Ensure the user has verified their OTP
-    user_id = request.session.get("reset_user_id")
-    # Also check if they just came from a successful OTP verification for password_reset
-    is_verified = request.session.get("otp_verified_reset") == True
-    
-    if not user_id or not is_verified:
-        messages.error(request, "يرجى التحقق من هويتك أولاً.")
-        return redirect("site_password_reset")
-        
-    user = get_object_or_404(User, id=user_id)
-    
-    if request.method == "POST":
-        password = request.POST.get("password")
-        confirm_password = request.POST.get("confirm_password")
-        
-        if not password or len(password) < 10:
-            messages.error(request, "يجب أن تكون كلمة المرور 10 خانات على الأقل.")
-        elif password != confirm_password:
-            messages.error(request, "كلمات المرور غير متطابقة.")
-        else:
-            user.set_password(password)
-            user.save()
-            
-            # Clean up session
-            request.session.pop("reset_user_id", None)
-            request.session.pop("otp_verified_reset", None)
-            
-            ActivityLog.objects.create(
-                user=user,
-                action="Password Reset",
-                description="User reset their password via OTP flow",
-                ip_address=request.META.get('REMOTE_ADDR')
-            )
-            
-            messages.success(request, "تم تغيير كلمة المرور بنجاح. يمكنك الآن تسجيل الدخول.")
-            return redirect("site_login")
-            
-    return render(request, "registration/password_reset_new.html", {"user_email": user.email})
-
-
-def service_worker(request):
-    """Serves the service worker from the root for correct scoping."""
-    from django.http import HttpResponse
-    from django.conf import settings
-    import os
-    
-    sw_path = os.path.join(settings.BASE_DIR, 'apps', 'site', 'static', 'site', 'js', 'sw.js')
-    try:
-        with open(sw_path, 'r', encoding='utf-8') as f:
-            content = f.read()
-        return HttpResponse(content, content_type='application/javascript')
-    except FileNotFoundError:
-        return HttpResponse("// Service worker file not found", content_type='application/javascript', status=404)
