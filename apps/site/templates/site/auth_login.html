@@ -14,11 +14,11 @@
       <label>كلمة المرور</label>
       {{ form.password }}
       <div class="flex justify-between items-center mb-4">
-        <a class="text-[10px] text-cyan hover:underline" href="{% url 'site_recovery_request' %}">نسيت كلمة المرور؟</a>
+        <a class="text-[10px] text-cyan hover:underline" href="{% url 'v3_forgot_password' %}">نسيت كلمة المرور؟</a>
       </div>
       <button class="btn btn-primary" type="submit">دخول</button>
     </form>
-    <a class="link" href="{% url 'site_register' %}">ليس لديك حساب؟ أنشئ حسابًا جديدًا</a>
+    <a class="link" href="{% url 'v3_register' %}">ليس لديك حساب؟ أنشئ حسابًا جديدًا</a>
   </article>
 </section>
 {% endblock %}

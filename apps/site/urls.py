@@ -24,20 +24,18 @@ urlpatterns = [
     path("api/withdrawals/<uuid:pk>/complete/", api_views.api_withdrawal_complete, name="api_withdrawal_complete"),
     path("api/withdrawals/<uuid:pk>/reject/", api_views.api_withdrawal_reject, name="api_withdrawal_reject"),
 
-    # NEW CUSTOM AUTH (V2 - FINAL ISOLATION)
-    path("auth/v2/login/", views.v2_login_view, name="v2_login"),
-    path("auth/v2/register/", views.v2_register_view, name="v2_register"),
-    path("auth/v2/verify/", views.v2_verify_otp_view, name="v2_verify_otp"),
-    path("auth/v2/forgot-password/", views.v2_forgot_password_view, name="v2_forgot_password"),
-    path("auth/v2/reset-password/", views.v2_reset_password_view, name="v2_reset_password"),
-    path("auth/v2/logout/", views.v2_logout_view, name="v2_logout"),
+    # AUTH V3 (ABSOLUTE ISOLATION)
+    path("auth/login/", views.v3_login_view, name="v3_login"),
+    path("auth/register/", views.v3_register_view, name="v3_register"),
+    path("auth/verify/", views.v3_verify_otp_view, name="v3_verify_otp"),
+    path("auth/forgot-password/", views.v3_forgot_password_view, name="v3_forgot_password"),
+    path("auth/reset-password/", views.v3_reset_password_view, name="v3_reset_password"),
+    path("auth/logout/", views.v3_logout_view, name="v3_logout"),
     
-    # Legacy routes (redirecting to V2)
-    path("auth/login/", views.v2_login_view),
-    path("auth/register/", views.v2_register_view),
-    path("auth/verify-otp/", views.v2_verify_otp_view),
-    path("auth/logout/", views.v2_logout_view),
-    path("auth/password-reset/", views.v2_forgot_password_view),
+    # Map legacy names for template compatibility where needed, but point to V3
+    path("auth/v2/login/", views.v3_login_view, name="v2_login"),
+    path("auth/verify-otp/", views.v3_verify_otp_view, name="verify_otp"),
+    path("auth/password-reset/", views.v3_forgot_password_view, name="site_password_reset"),
 
     # Control Panel
     path("control/", views.control_dashboard, name="control_dashboard"),
