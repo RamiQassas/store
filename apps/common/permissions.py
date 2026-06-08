@@ -22,7 +22,25 @@ class HasStaffRole(BasePermission):
     def has_permission(self, request, view):
         if not request.user or not request.user.is_authenticated:
             return False
-        if request.user.is_superuser:
+        if request.user.is_superuser or request.user.role == "super_admin":
             return True
         required_roles = getattr(view, "required_roles", self.required_roles)
         return bool(required_roles and request.user.role in required_roles)
+
+class IsFinanceManager(BasePermission):
+    def has_permission(self, request, view):
+        from apps.accounts.models import User
+        if not request.user or not request.user.is_authenticated: return False
+        return bool(request.user.is_superuser or request.user.role in [User.Role.SUPER_ADMIN, User.Role.ADMIN, User.Role.FINANCE])
+
+class IsKYCManager(BasePermission):
+    def has_permission(self, request, view):
+        from apps.accounts.models import User
+        if not request.user or not request.user.is_authenticated: return False
+        return bool(request.user.is_superuser or request.user.role in [User.Role.SUPER_ADMIN, User.Role.ADMIN, User.Role.MODERATOR])
+
+class IsSupportAgent(BasePermission):
+    def has_permission(self, request, view):
+        from apps.accounts.models import User
+        if not request.user or not request.user.is_authenticated: return False
+        return bool(request.user.is_superuser or request.user.role in [User.Role.SUPER_ADMIN, User.Role.ADMIN, User.Role.SUPPORT])

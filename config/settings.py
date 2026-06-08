@@ -22,7 +22,7 @@ SECRET_KEY = env(
     "dev-only-secret-key-change-me-please-use-env-in-production-2026"
 )
 
-DEBUG = env_bool("DJANGO_DEBUG", True)
+DEBUG = env_bool("DJANGO_DEBUG", False)
 
 ALLOWED_HOSTS = [
     host.strip()

@@ -515,17 +515,20 @@ def kyc_request_view(request):
     })
 
 
-@staff_member_required
+from apps.common.decorators import finance_required, support_required, kyc_required, admin_required
+from apps.payments.models import DepositRequest, PaymentMethod, WithdrawalRequest
+
+@admin_required
 def control_dashboard(request):
     stats = {"users": User.objects.count(), "products": Product.objects.count(), "orders": Order.objects.count(), "deposits": DepositRequest.objects.count(), "pending_kycs": KYCRequest.objects.filter(status=KYCRequest.Status.PENDING).count()}
     return render(request, "site/control_dashboard.html", {"stats": stats})
 
-@staff_member_required
+@kyc_required
 def control_kycs_list(request):
     kycs = KYCRequest.objects.select_related("user").all().order_by("-created_at")
     return render(request, "site/control_kycs_list.html", {"kycs": kycs})
 
-@staff_member_required
+@kyc_required
 def control_kyc_detail(request, pk):
     kyc = get_object_or_404(KYCRequest.objects.select_related("user"), pk=pk)
     global_settings = KYCSettings.get_settings()
@@ -615,7 +618,7 @@ def control_kyc_detail(request, pk):
             
     return render(request, "site/control_kyc_detail.html", {"kyc": kyc, "form": form, "payment_methods": payment_methods})
 
-@staff_member_required
+@kyc_required
 def control_kyc_settings(request):
     settings_obj = KYCSettings.get_settings()
     form = KYCSettingsForm(request.POST or None, instance=settings_obj)
@@ -634,7 +637,7 @@ def control_kyc_settings(request):
             return redirect("control_kyc_settings")
     return render(request, "site/control_kyc_settings.html", {"form": form, "settings": settings_obj, "stats_verified_count": User.objects.filter(is_kyc_verified=True).count()})
 
-@staff_member_required
+@admin_required
 def control_user_moderate(request, public_uuid):
     user = get_object_or_404(User, public_uuid=public_uuid)
     form = ModerateUserForm(request.POST or None, instance=user)
@@ -649,20 +652,20 @@ def control_user_moderate(request, public_uuid):
         return redirect("control_users_list")
     return render(request, "site/control_user_moderate.html", {"form": form, "user_to_moderate": user})
 
-@staff_member_required
+@admin_required
 def payment_methods_list(request): return render(request, "site/payment_methods_list.html", {"methods": PaymentMethod.objects.all().order_by("display_order")})
-@staff_member_required
+@admin_required
 def payment_method_create(request):
     form = PaymentMethodForm(request.POST or None, request.FILES or None)
     if request.method == "POST" and form.is_valid(): form.save(); return redirect("payment_methods_list")
     return render(request, "site/payment_method_builder.html", {"form": form})
-@staff_member_required
+@admin_required
 def payment_method_edit(request, pk):
     method = get_object_or_404(PaymentMethod, pk=pk)
     form = PaymentMethodForm(request.POST or None, request.FILES or None, instance=method)
     if request.method == "POST" and form.is_valid(): form.save(); return redirect("payment_methods_list")
     return render(request, "site/payment_method_builder.html", {"form": form, "method": method})
-@staff_member_required
+@admin_required
 def control_users_list(request): return render(request, "site/control_users_list.html", {"users": User.objects.select_related("wallet").order_by("-date_joined"), "tiers": User.Tier.choices, "roles": User.Role.choices})
 def privacy_policy(request): return render(request, "site/privacy_policy.html")
 def terms_of_service(request): return render(request, "site/terms_of_service.html")
@@ -674,20 +677,148 @@ def resend_verification(request): return redirect("dashboard")
 def notification_settings(request): return render(request, "site/notification_settings.html")
 def tickets(request): return render(request, "site/tickets.html")
 def ticket_detail(request, pk): return render(request, "site/ticket_detail.html")
-def control_deposits(request): return render(request, "site/control_deposits.html")
-def control_withdrawals(request): return render(request, "site/control_withdrawals.html")
-def control_withdrawal_detail(request, pk): return render(request, "site/control_withdrawal_detail.html")
+
+@finance_required
+def control_deposits(request):
+    status_filter = request.GET.get('status')
+    deposits = DepositRequest.objects.select_related('user', 'currency', 'payment_method').all().order_by('-created_at')
+    if status_filter:
+        deposits = deposits.filter(status=status_filter)
+    
+    return render(request, "site/control_deposits.html", {
+        "deposits": deposits,
+        "status_choices": DepositRequest.Status.choices,
+        "current_status": status_filter
+    })
+
+@finance_required
+def control_withdrawals(request):
+    status_filter = request.GET.get('status')
+    withdrawals = WithdrawalRequest.objects.select_related('user', 'currency', 'payment_method').all().order_by('-created_at')
+    if status_filter:
+        withdrawals = withdrawals.filter(status=status_filter)
+        
+    return render(request, "site/control_withdrawals.html", {
+        "withdrawals": withdrawals,
+        "status_choices": WithdrawalRequest.Status.choices,
+        "current_status": status_filter
+    })
+
+@finance_required
+def control_withdrawal_detail(request, pk):
+    withdrawal = get_object_or_404(WithdrawalRequest.objects.select_related('user', 'user__wallet'), pk=pk)
+    if request.method == "POST":
+        action = request.POST.get("action")
+        admin_note = request.POST.get("admin_note", "")
+        
+        from apps.wallets.services import release_funds, finalize_withdrawal
+        
+        if action == "approve":
+            withdrawal.status = WithdrawalRequest.Status.APPROVED
+            withdrawal.admin_note = admin_note
+            messages.success(request, "تمت الموافقة المبدئية على الطلب.")
+        elif action == "process":
+            withdrawal.status = WithdrawalRequest.Status.PROCESSING
+            withdrawal.admin_note = admin_note
+            messages.info(request, "بدأت معالجة الطلب.")
+        elif action == "complete":
+            finalize_withdrawal(
+                withdrawal.user.wallet.id, 
+                withdrawal.amount, 
+                reference=f"with_complete:{withdrawal.id}", 
+                description=f"Withdrawal completed. {admin_note}",
+                created_by=request.user
+            )
+            withdrawal.status = WithdrawalRequest.Status.COMPLETED
+            withdrawal.admin_note = admin_note
+            withdrawal.reviewed_by = request.user
+            withdrawal.reviewed_at = timezone.now()
+            withdrawal.save()
+            messages.success(request, "تم إتمام عملية السحب بنجاح.")
+            return redirect("control_withdrawals")
+        elif action == "reject":
+            release_funds(
+                withdrawal.user.wallet.id, 
+                withdrawal.amount, 
+                reference=f"with_rej:{withdrawal.id}", 
+                description=f"Withdrawal rejected: {admin_note}",
+                created_by=request.user
+            )
+            withdrawal.status = WithdrawalRequest.Status.REJECTED
+            withdrawal.admin_note = admin_note
+            withdrawal.reviewed_by = request.user
+            withdrawal.reviewed_at = timezone.now()
+            withdrawal.save()
+            messages.error(request, "تم رفض طلب السحب وإعادة الرصيد للمستخدم.")
+            return redirect("control_withdrawals")
+        
+        withdrawal.save()
+        return redirect("control_withdrawal_detail", pk=pk)
+
+    return render(request, "site/control_withdrawal_detail.html", {"withdrawal": withdrawal})
+
+@finance_required
+def control_debts(request):
+    from django.db.models import Q
+    q = request.GET.get('q', '')
+    users = User.objects.select_related('wallet').all()
+    if q:
+        users = users.filter(Q(email__icontains=q) | Q(phone__icontains=q) | Q(first_name__icontains=q) | Q(last_name__icontains=q))
+    
+    if request.method == "POST":
+        user_id = request.POST.get("user_id")
+        action = request.POST.get("action")
+        amount = Decimal(request.POST.get("amount", "0"))
+        reason = request.POST.get("reason", "")
+        
+        target_user = get_object_or_404(User, id=user_id)
+        wallet = target_user.wallet
+        
+        try:
+            if action == "add_debt":
+                from apps.wallets.services import add_debt
+                add_debt(wallet.id, amount, reference=f"admin_debt_{timezone.now().timestamp()}", reason=reason, created_by=request.user)
+                messages.success(request, f"تم إضافة دين بقيمة {amount} للمستخدم {target_user.email}")
+            elif action == "pay_debt":
+                from apps.wallets.services import pay_debt
+                pay_debt(wallet.id, amount, reference=f"admin_pay_{timezone.now().timestamp()}", reason=reason, created_by=request.user)
+                messages.success(request, f"تم تسجيل سداد بقيمة {amount} للمستخدم {target_user.email}")
+        except Exception as e:
+            messages.error(request, str(e))
+            
+        return redirect(f"{request.path}?q={q}")
+
+    return render(request, "site/control_debts.html", {"users": users, "query": q})
+
+@admin_required
 def currencies_list(request): return render(request, "site/currencies_list.html")
+@admin_required
 def currency_create(request): return render(request, "site/currency_form.html")
+@admin_required
 def currency_edit(request, pk): return render(request, "site/currency_form.html")
+
+@support_required
 def control_products_list(request): return render(request, "site/control_products_list.html")
+@support_required
 def control_product_create(request): return render(request, "site/control_product_builder.html")
+@support_required
 def control_category_create_ajax(request): return JsonResponse({"status":"ok"})
+@support_required
 def control_product_edit(request, pk): return render(request, "site/control_product_builder.html")
+@support_required
 def control_variant_create(request, product_pk): return render(request, "site/control_variant_form.html")
+@support_required
 def control_variant_edit(request, pk): return render(request, "site/control_variant_form.html")
+
+@support_required
 def control_orders_list(request): return render(request, "site/control_orders_list.html")
+@support_required
 def control_order_detail(request, pk): return render(request, "site/control_order_detail.html")
+
+@finance_required
 def control_wallets_list(request): return render(request, "site/control_wallets_list.html")
+@finance_required
 def control_reports(request): return render(request, "site/control_reports.html")
+
+@support_required
 def control_send_notification(request): return render(request, "site/control_notification_form.html")

@@ -4,7 +4,7 @@
 {% block title %}إدارة الإيداعات | Raqamiyat Admin{% endblock %}
 
 {% block control_content %}
-<div class="page-head">
+<div class="page-head flex justify-between items-center">
     <div>
         <span class="eyebrow">Financial Operations</span>
         <h1>إدارة طلبات الإيداع</h1>
@@ -12,7 +12,7 @@
     </div>
     <div class="flex gap-3">
         <a href="{% url 'payment_methods_list' %}" class="btn btn-outline btn-sm">
-            <i class="fas fa-credit-card ml-2"></i> إدارة وسائل الدفع
+            <i class="fas fa-credit-card ml-2"></i> وسائل الدفع
         </a>
     </div>
 </div>
@@ -20,22 +20,22 @@
 <div class="management-card">
     <div class="management-header flex-col sm:flex-row gap-4">
         <form method="get" class="flex-grow w-full max-w-md">
-            <div class="input-wrapper">
-                <input type="text" name="q" value="{{ query }}" placeholder="بحث برقم المرجع أو بريد المستخدم..." class="text-xs">
-                <button type="submit" class="btn btn-primary btn-sm px-4"><i class="fas fa-search"></i></button>
+            <div class="relative group">
+                <i class="fas fa-search absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-cyan transition-colors"></i>
+                <input type="text" name="q" value="{{ query|default:'' }}" placeholder="بحث برقم المرجع أو بريد المستخدم..." class="w-full pr-11 bg-slate-900/50 border-white/10 rounded-xl focus:border-cyan/50 focus:ring-4 focus:ring-cyan/10 transition-all text-xs py-2.5">
             </div>
         </form>
-        <div class="flex gap-2">
-            <a href="?" class="badge {% if not current_status %}primary{% else %}outline{% endif %} cursor-pointer">الكل</a>
-            <a href="?status=pending" class="badge {% if current_status == 'pending' %}primary{% else %}outline{% endif %} cursor-pointer">قيد الانتظار</a>
-            <a href="?status=completed" class="badge {% if current_status == 'completed' %}success{% else %}outline{% endif %} cursor-pointer">مكتملة</a>
-            <a href="?status=rejected" class="badge {% if current_status == 'rejected' %}danger{% else %}outline{% endif %} cursor-pointer">مرفوضة</a>
+        <div class="flex items-center gap-2 bg-slate-900/40 p-1.5 rounded-xl border border-white/5">
+            <a href="?" class="px-4 py-1.5 rounded-lg text-[10px] font-bold transition-all {% if not current_status %}bg-cyan text-black{% else %}text-slate-400 hover:text-white{% endif %}">الكل</a>
+            {% for val, label in status_choices %}
+            <a href="?status={{ val }}" class="px-4 py-1.5 rounded-lg text-[10px] font-bold transition-all {% if current_status == val %}bg-white/10 text-white{% else %}text-slate-500 hover:text-slate-300{% endif %}">{{ label }}</a>
+            {% endfor %}
         </div>
     </div>
     
-    <div class="p-0 overflow-x-auto">
-        <table class="w-full text-sm text-right">
-            <thead class="text-[11px] text-slate-500 border-b border-white/5 uppercase bg-white/[0.01]">
+    <div class="table-responsive">
+        <table class="admin-table w-full text-right">
+            <thead>
                 <tr>
                     <th class="p-4">التاريخ</th>
                     <th class="p-4">المستخدم</th>
@@ -47,34 +47,39 @@
             </thead>
             <tbody>
                 {% for d in deposits %}
-                <tr class="border-b border-white/[0.02] last:border-0 hover:bg-white/[0.02] transition">
-                    <td class="p-4 text-[10px] text-slate-500">
-                        {{ d.created_at|date:"d M Y" }}<br>{{ d.created_at|date:"H:i" }}
+                <tr>
+                    <td class="p-4">
+                        <div class="text-[10px] text-slate-400 font-mono">{{ d.created_at|date:"d M Y" }}</div>
+                        <div class="text-[9px] text-slate-600 mt-0.5">{{ d.created_at|date:"H:i:s" }}</div>
                     </td>
                     <td class="p-4">
-                        <div class="font-bold text-slate-200">{{ d.user.email }}</div>
-                        <div class="text-[9px] text-muted">ID: {{ d.user.id|stringformat:"s"|slice:":8" }}</div>
+                        <div class="font-bold text-slate-200">{{ d.user.get_full_name|default:d.user.email }}</div>
+                        <div class="text-[9px] text-slate-500 font-mono">{{ d.user.email }}</div>
                     </td>
                     <td class="p-4">
                         <div class="flex flex-col">
-                            <span class="font-bold text-success">{{ d.amount }} {{ d.currency.code }}</span>
-                            {% if d.metadata.adjusted_from %}
-                            <span class="text-[9px] text-warning">معدل من: {{ d.metadata.adjusted_from }}</span>
+                            <span class="font-black text-emerald-400 text-sm">{{ d.amount|floatformat:2 }} {{ d.currency.code }}</span>
+                            {% if d.currency.code != "USD" %}
+                            <span class="text-[9px] text-slate-500 tracking-tighter">≈ {{ d.wallet_amount|floatformat:2 }} USD</span>
                             {% endif %}
                         </div>
-                        <div class="text-[10px] text-slate-500 mt-1">{{ d.payment_method.name }}</div>
+                        <div class="flex items-center gap-1.5 mt-1">
+                            <i class="fas fa-credit-card text-[8px] text-slate-600"></i>
+                            <span class="text-[10px] text-slate-400 font-bold">{{ d.payment_method.name }}</span>
+                        </div>
                     </td>
                     <td class="p-4">
                         <div class="flex items-center gap-3">
-                            <div class="flex flex-col gap-1 min-w-[150px]">
-                                {% for key, val in d.metadata.dynamic_fields.items %}
-                                <div class="text-[9px] line-clamp-1"><span class="text-muted">{{ key }}:</span> {{ val }}</div>
-                                {% empty %}
-                                <span class="font-mono text-xs text-muted">{{ d.transaction_id|default:"---" }}</span>
-                                {% endfor %}
+                            <div class="flex flex-col gap-1 min-w-[120px]">
+                                <span class="font-mono text-[10px] text-slate-400">{{ d.transaction_id|default:"N/A" }}</span>
+                                {% if d.customer_note %}
+                                <div class="text-[8px] text-slate-500 italic max-w-[150px] truncate" title="{{ d.customer_note }}">
+                                    <i class="fas fa-comment-dots ml-1"></i> {{ d.customer_note }}
+                                </div>
+                                {% endif %}
                             </div>
                             {% if d.proof_image %}
-                            <a href="{{ d.proof_image.url }}" target="_blank" class="w-8 h-8 rounded bg-slate-800 flex items-center justify-center text-cyan hover:bg-cyan hover:text-black transition">
+                            <a href="{{ d.proof_image.url }}" target="_blank" class="w-8 h-8 rounded-lg bg-slate-800 flex items-center justify-center text-cyan border border-white/5 hover:bg-cyan hover:text-black transition-all shadow-lg">
                                 <i class="fas fa-image text-xs"></i>
                             </a>
                             {% endif %}
@@ -82,26 +87,26 @@
                     </td>
                     <td class="p-4">
                         <span class="badge 
-                            {% if d.status == 'completed' %}success
+                            {% if d.status == 'completed' or d.status == 'approved' %}success
                             {% elif d.status == 'rejected' %}danger
                             {% elif d.status == 'pending' %}warning
                             {% else %}primary
-                            {% endif %} text-[9px]">
+                            {% endif %}">
                             {{ d.get_status_display }}
                         </span>
                     </td>
                     <td class="p-4 text-left">
                         <div class="flex justify-end gap-2">
                             {% if d.status == 'pending' or d.status == 'under_review' %}
-                            <button class="btn btn-sm btn-primary text-[10px] py-1 px-3" onclick="actionDeposit('{{ d.id }}', 'approve', '{{ d.amount }}')">
-                                <i class="fas fa-check ml-1"></i> معالجة
+                            <button class="btn btn-sm btn-primary text-[10px] py-1.5 px-4 rounded-lg" onclick="actionDeposit('{{ d.id }}', 'approve', '{{ d.amount }}')">
+                                <i class="fas fa-check-double ml-1"></i> مراجعة
                             </button>
-                            <button class="btn btn-sm btn-outline danger text-[10px] py-1 px-3" onclick="actionDeposit('{{ d.id }}', 'reject')">
-                                <i class="fas fa-times ml-1"></i> رفض
+                            <button class="btn btn-sm btn-outline danger text-[10px] py-1.5 px-4 rounded-lg" onclick="actionDeposit('{{ d.id }}', 'reject')">
+                                <i class="fas fa-ban ml-1"></i> رفض
                             </button>
-                            {% elif d.status == 'completed' %}
-                            <button class="btn btn-sm btn-outline text-[10px] py-1 px-3" onclick="actionDeposit('{{ d.id }}', 'correct', '{{ d.amount }}')">
-                                <i class="fas fa-edit ml-1"></i> تصحيح
+                            {% elif d.status == 'completed' or d.status == 'approved' %}
+                            <button class="btn btn-sm btn-outline text-[10px] py-1.5 px-4 rounded-lg border-white/10 hover:bg-white/5" onclick="actionDeposit('{{ d.id }}', 'correct', '{{ d.amount }}')">
+                                <i class="fas fa-pen-to-square ml-1"></i> تصحيح
                             </button>
                             {% endif %}
                         </div>
@@ -109,7 +114,12 @@
                 </tr>
                 {% empty %}
                 <tr>
-                    <td colspan="6" class="p-12 text-center text-slate-500 italic">لا توجد طلبات إيداع مطابقة.</td>
+                    <td colspan="6" class="p-16 text-center">
+                        <div class="w-16 h-16 bg-slate-900 rounded-full flex items-center justify-center mx-auto mb-4 opacity-20">
+                            <i class="fas fa-inbox text-2xl"></i>
+                        </div>
+                        <p class="text-slate-500 font-bold italic">لا توجد طلبات إيداع في هذا القسم حالياً.</p>
+                    </td>
                 </tr>
                 {% endfor %}
             </tbody>
@@ -117,25 +127,35 @@
     </div>
 </div>
 
-<!-- Approval Modal -->
-<div id="approve-modal" class="fixed inset-0 bg-black/80 flex items-center justify-center z-50 hidden p-4">
-    <div class="panel max-w-md w-full p-8 stack gap-6 border-cyan/20">
+<!-- Approval Modal Redesigned -->
+<div id="approve-modal" class="fixed inset-0 bg-black/90 backdrop-blur-sm flex items-center justify-center z-[1000] hidden p-4">
+    <div class="management-card max-w-md w-full p-8 stack gap-6 border-white/10 shadow-2xl">
         <div class="text-center">
-            <h3 class="text-xl font-bold">تأكيد معالجة الإيداع</h3>
-            <p class="text-xs text-muted mt-2">يمكنك تعديل المبلغ إذا قام العميل بإدخال قيمة غير صحيحة.</p>
+            <div class="w-12 h-12 rounded-2xl bg-cyan/10 flex items-center justify-center mx-auto mb-4">
+                <i class="fas fa-shield-check text-cyan text-xl"></i>
+            </div>
+            <h3 class="text-lg font-black text-white">معالجة طلب الإيداع</h3>
+            <p class="text-[10px] text-slate-500 mt-2">يرجى التأكد من المبلغ الفعلي المستلم قبل الإضافة للمحفظة.</p>
         </div>
+        
         <input type="hidden" id="modal-dep-id">
+        
         <div class="field-group">
-            <label>المبلغ المعتمد (الذي سيضاف للمحفظة)</label>
-            <input type="number" id="modal-amount" step="0.01" class="builder-input text-lg font-bold text-success">
+            <label class="text-[10px] font-bold uppercase text-slate-500 mb-2 block">المبلغ المعتمد للإضافة</label>
+            <div class="relative">
+                <input type="number" id="modal-amount" step="0.01" class="w-full bg-slate-900 border-white/10 rounded-xl p-4 text-xl font-black text-emerald-400 focus:border-emerald-500 transition-all">
+                <span class="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 font-bold text-xs uppercase" id="modal-currency-label">USD</span>
+            </div>
         </div>
+        
         <div class="field-group">
-            <label>ملاحظات إضافية (اختياري)</label>
-            <textarea id="modal-note" class="builder-input text-xs" rows="3" placeholder="أدخل سبباً إذا قمت بتغيير المبلغ..."></textarea>
+            <label class="text-[10px] font-bold uppercase text-slate-500 mb-2 block">ملاحظات إدارية (داخلية)</label>
+            <textarea id="modal-note" class="w-full bg-slate-900 border-white/10 rounded-xl p-4 text-xs text-white focus:border-cyan/50" rows="3" placeholder="أدخل سبباً للتعديل أو ملاحظات للمراجعة..."></textarea>
         </div>
-        <div class="flex gap-4">
-            <button class="btn btn-outline flex-1" onclick="closeModal()">إلغاء</button>
-            <button class="btn btn-primary flex-1 py-4" id="modal-submit-btn">تأكيد الإضافة</button>
+        
+        <div class="flex gap-4 pt-2">
+            <button class="btn btn-outline flex-1 py-3 rounded-xl font-bold border-white/5 hover:bg-white/5" onclick="closeModal()">إلغاء</button>
+            <button class="btn btn-primary flex-1 py-3 rounded-xl font-black shadow-lg shadow-cyan/20" id="modal-submit-btn">تأكيد العملية</button>
         </div>
     </div>
 </div>
@@ -148,7 +168,7 @@ function closeModal() { modal.classList.add('hidden'); }
 
 async function actionDeposit(id, action, amount = "") {
     if (action === 'reject') {
-        const note = prompt("سبب الرفض:");
+        const note = prompt("سبب رفض الإيداع (سيظهر للمستخدم):");
         if (note === null) return;
         executeAction(id, action, { admin_note: note });
     } else {
@@ -159,12 +179,15 @@ async function actionDeposit(id, action, amount = "") {
         
         const title = document.querySelector('#approve-modal h3');
         const submitBtn = document.getElementById('modal-submit-btn');
+        
         if (action === 'correct') {
-            title.innerText = "تصحيح مبلغ الإيداع";
-            submitBtn.innerText = "تأكيد التصحيح";
+            title.innerText = "تصحيح سجل الإيداع";
+            submitBtn.innerText = "حفظ التصحيح";
+            submitBtn.classList.replace('btn-primary', 'btn-outline');
         } else {
-            title.innerText = "تأكيد معالجة الإيداع";
-            submitBtn.innerText = "تأكيد الإضافة";
+            title.innerText = "الموافقة على الإيداع";
+            submitBtn.innerText = "اعتماد الإضافة";
+            submitBtn.classList.replace('btn-outline', 'btn-primary');
         }
         
         submitBtn.onclick = async () => {
@@ -192,7 +215,13 @@ async function executeAction(id, action, body) {
         });
         if (response.ok) { location.reload(); }
         else { const data = await response.json(); alert("خطأ: " + (data.detail || data.message || "تعذر التنفيذ")); }
-    } catch (e) { alert("خطأ في الاتصال."); }
+    } catch (e) { alert("خطأ في الاتصال بالسيرفر."); }
 }
 </script>
+
+<style>
+    .input-wrapper { position: relative; }
+    .btn-outline.danger { border-color: rgba(239, 68, 68, 0.2); color: #ef4444; }
+    .btn-outline.danger:hover { background: #ef4444; color: white; }
+</style>
 {% endblock %}

@@ -60,6 +60,7 @@ urlpatterns = [
     path("control/orders/", views.control_orders_list, name="control_orders_list"),
     path("control/orders/<uuid:pk>/", views.control_order_detail, name="control_order_detail"),
     path("control/wallets/", views.control_wallets_list, name="control_wallets_list"),
+    path("control/debts/", views.control_debts, name="control_debts"),
     path("control/reports/", views.control_reports, name="control_reports"),
     path("control/notifications/send/", views.control_send_notification, name="control_send_notification"),
 

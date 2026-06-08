@@ -6,6 +6,7 @@ from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
 from rest_framework.permissions import IsAdminUser
+from apps.common.permissions import IsFinanceManager, IsKYCManager, IsSupportAgent
 
 from apps.wallets.models import Wallet
 from apps.payments.models import DepositRequest, WithdrawalRequest
@@ -14,7 +15,7 @@ from apps.common.services import log_system_action
 
 
 @api_view(["POST"])
-@permission_classes([IsAdminUser])
+@permission_classes([IsFinanceManager])
 def api_deposit_approve(request, pk):
     deposit = get_object_or_404(DepositRequest, pk=pk, status=DepositRequest.Status.PENDING)
     admin_note = request.data.get("admin_note", "")
@@ -68,7 +69,7 @@ def api_deposit_approve(request, pk):
 
 
 @api_view(["POST"])
-@permission_classes([IsAdminUser])
+@permission_classes([IsFinanceManager])
 def api_deposit_reject(request, pk):
     deposit = get_object_or_404(DepositRequest, pk=pk, status=DepositRequest.Status.PENDING)
     admin_note = request.data.get("admin_note", "")
@@ -101,7 +102,7 @@ def api_deposit_reject(request, pk):
     return Response({"status": "success"})
 
 @api_view(["POST"])
-@permission_classes([IsAdminUser])
+@permission_classes([IsFinanceManager])
 def api_deposit_correct(request, pk):
     deposit = get_object_or_404(DepositRequest, pk=pk, status=DepositRequest.Status.COMPLETED)
     admin_note = request.data.get("admin_note", "")
@@ -133,7 +134,7 @@ def api_deposit_correct(request, pk):
         return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
 @api_view(["POST"])
-@permission_classes([IsAdminUser])
+@permission_classes([IsFinanceManager])
 def api_wallet_hold(request, pk):
     wallet = get_object_or_404(Wallet, pk=pk)
     amount = Decimal(request.data.get("amount", "0"))
@@ -141,7 +142,7 @@ def api_wallet_hold(request, pk):
     return Response({"status": "success"})
 
 @api_view(["POST"])
-@permission_classes([IsAdminUser])
+@permission_classes([IsFinanceManager])
 def api_wallet_unhold(request, pk):
     wallet = get_object_or_404(Wallet, pk=pk)
     amount = Decimal(request.data.get("amount", "0"))
@@ -149,7 +150,7 @@ def api_wallet_unhold(request, pk):
     return Response({"status": "success"})
 
 @api_view(["POST"])
-@permission_classes([IsAdminUser])
+@permission_classes([IsFinanceManager])
 def api_withdrawal_process(request, pk):
     withdrawal = get_object_or_404(WithdrawalRequest, pk=pk)
     withdrawal.status = WithdrawalRequest.Status.PROCESSING
@@ -157,7 +158,7 @@ def api_withdrawal_process(request, pk):
     return Response({"status": "success"})
 
 @api_view(["POST"])
-@permission_classes([IsAdminUser])
+@permission_classes([IsFinanceManager])
 def api_withdrawal_approve(request, pk):
     withdrawal = get_object_or_404(WithdrawalRequest, pk=pk)
     withdrawal.status = WithdrawalRequest.Status.APPROVED
@@ -165,7 +166,7 @@ def api_withdrawal_approve(request, pk):
     return Response({"status": "success"})
 
 @api_view(["POST"])
-@permission_classes([IsAdminUser])
+@permission_classes([IsFinanceManager])
 def api_withdrawal_complete(request, pk):
     withdrawal = get_object_or_404(WithdrawalRequest, pk=pk)
     admin_note = request.data.get("admin_note", "")
@@ -187,7 +188,7 @@ def api_withdrawal_complete(request, pk):
     return Response({"status": "success"})
 
 @api_view(["POST"])
-@permission_classes([IsAdminUser])
+@permission_classes([IsFinanceManager])
 def api_withdrawal_reject(request, pk):
     withdrawal = get_object_or_404(WithdrawalRequest, pk=pk)
     admin_note = request.data.get("admin_note", "")
