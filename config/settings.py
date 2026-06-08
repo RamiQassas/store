@@ -24,6 +24,9 @@ SECRET_KEY = env(
 
 DEBUG = env_bool("DJANGO_DEBUG", False)
 
+# Render Reverse Proxy Configuration
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+
 ALLOWED_HOSTS = [
     host.strip()
     for host in env(
