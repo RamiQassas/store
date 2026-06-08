@@ -278,12 +278,12 @@
                         </div>
                         <div class="flex-grow">
                             <div class="flex justify-between">
-                                <span class="font-bold text-sm">{{ deposit.amount }} {{ deposit.currency.code }}</span>
+                                <span class="font-bold text-sm">{{ deposit.amount|floatformat:2 }} {{ deposit.currency.code }}</span>
                                 <span class="text-xs text-muted">{{ deposit.created_at|date:"d M" }}</span>
                             </div>
                             <div class="flex justify-between mt-1">
                                 <span class="text-xs text-muted">{{ deposit.payment_method.name }}</span>
-                                <span class="badge {% if deposit.status == 'completed' %}success{% elif deposit.status == 'rejected' %}danger{% else %}warning{% endif %} text-[10px]">
+                                <span class="badge {% if deposit.status == 'completed' or deposit.status == 'approved' %}success{% elif deposit.status == 'rejected' %}danger{% else %}warning{% endif %} text-[10px]">
                                     {{ deposit.get_status_display }}
                                 </span>
                             </div>

@@ -348,6 +348,7 @@ def deposits(request):
         proof = request.FILES.get("proof_image")
         
         currency = get_object_or_404(Currency, id=currency_id)
+        # amount is in local currency (e.g., SYP). Convert to base (USD) for limits and wallet.
         amount_base = currency.to_base(amount, operation="deposit")
         
         if amount_base > remaining_limit:
@@ -380,7 +381,8 @@ def deposits(request):
             return redirect("dashboard_deposits")
 
         wallet = get_or_create_wallet(request.user)
-        wallet_amount = wallet.currency.from_base(amount_base, operation="deposit")
+        # wallet_amount is the base USD amount.
+        wallet_amount = amount_base
 
         with transaction.atomic():
             deposit = DepositRequest.objects.create(
@@ -446,7 +448,7 @@ def withdrawals(request):
             return redirect("dashboard_withdrawals")
 
         wallet = get_or_create_wallet(request.user)
-        wallet_amount = wallet.currency.from_base(amount_base, operation="withdraw")
+        wallet_amount = amount_base
         
         if wallet.available_balance >= wallet_amount:
             with transaction.atomic():
@@ -674,16 +676,15 @@ def terms_of_service(request): return render(request, "site/terms_of_service.htm
 def refund_policy(request): return render(request, "site/refund_policy.html")
 def contact_page(request): return render(request, "site/contact.html")
 def set_currency(request):
-    if request.method == "POST":
-        currency_id = request.POST.get("currency")
-        if currency_id:
-            currency = Currency.objects.filter(id=currency_id, is_active=True).first()
-            if currency:
-                request.session["preferred_currency_id"] = str(currency.id)
-                if request.user.is_authenticated:
-                    request.user.preferred_currency = currency
-                    request.user.save(update_fields=["preferred_currency"])
-                messages.success(request, f"تم تغيير العملة المفضلة إلى {currency.name}.")
+    currency_id = request.GET.get("currency") or request.POST.get("currency")
+    if currency_id:
+        currency = Currency.objects.filter(id=currency_id, is_active=True).first()
+        if currency:
+            request.session["preferred_currency_id"] = str(currency.id)
+            if request.user.is_authenticated:
+                request.user.preferred_currency = currency
+                request.user.save(update_fields=["preferred_currency"])
+            messages.success(request, f"تم تغيير العملة المفضلة إلى {currency.name}.")
     
     # Redirect back to referring page or home
     next_url = request.META.get('HTTP_REFERER', 'home')

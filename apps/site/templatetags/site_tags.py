@@ -39,20 +39,19 @@ def currency_format(context, amount, source_currency=None):
     
     if not target_currency:
         return f"{amount} SYP"
-    
+        
     try:
-        # 1. Convert to base first if source_currency is different from base (USD)
-        # Using SYP as the fallback source if none provided
         source = source_currency or system_currency
         
+        if source and target_currency and source.code == target_currency.code:
+             formatted = f"{Decimal(str(amount)):,.{target_currency.decimal_places}f}"
+             return f"{formatted} {target_currency.symbol}"
+
         base_amount = amount
-        if source and source.code != "USD": # Assuming USD is the logic base with rate 1.0
+        if source and source.code != "USD":
             base_amount = source.to_base(amount)
         
-        # 2. Convert from base to target
         converted = target_currency.from_base(base_amount)
-        
-        # 3. Format
         formatted = f"{converted:,.{target_currency.decimal_places}f}"
         return f"{formatted} {target_currency.symbol}"
     except Exception:
