@@ -79,9 +79,14 @@
                                 {% endif %}
                             </div>
                             {% if d.proof_image %}
-                            <a href="{{ d.proof_image.url }}" target="_blank" class="w-8 h-8 rounded-lg bg-slate-800 flex items-center justify-center text-cyan border border-white/5 hover:bg-cyan hover:text-black transition-all shadow-lg">
-                                <i class="fas fa-image text-xs"></i>
-                            </a>
+                            <div class="relative group">
+                                <img src="{{ d.proof_image.url }}" class="w-12 h-12 rounded-lg object-cover border border-white/10 hover:scale-150 transition-transform cursor-pointer z-10" onclick="window.open(this.src)">
+                                <div class="absolute -top-1 -right-1 w-3 h-3 bg-cyan rounded-full border-2 border-slate-900 z-20"></div>
+                            </div>
+                            {% else %}
+                            <div class="w-12 h-12 rounded-lg bg-slate-800/50 flex items-center justify-center text-slate-600 border border-dashed border-white/5">
+                                <i class="fas fa-image-slash text-xs"></i>
+                            </div>
                             {% endif %}
                         </div>
                     </td>

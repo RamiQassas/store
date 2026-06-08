@@ -428,7 +428,8 @@ def auto_seed_currencies():
             code="USD",
             name="US Dollar",
             symbol="$",
-            exchange_rate=1.0,
+            buy_rate=1.0,
+            sell_rate=1.0,
             is_default=True,
             is_active=True
         )
@@ -436,14 +437,16 @@ def auto_seed_currencies():
             code="TRY",
             name="Turkish Lira",
             symbol="₺",
-            exchange_rate=Decimal("32.50"),
+            buy_rate=Decimal("32.50"),
+            sell_rate=Decimal("32.00"),
             is_active=True
         )
         Currency.objects.create(
             code="SYP",
             name="Syrian Pound",
             symbol="£S",
-            exchange_rate=Decimal("15000.0"),
+            buy_rate=Decimal("15000.0"),
+            sell_rate=Decimal("14500.0"),
             is_active=True
         )
 

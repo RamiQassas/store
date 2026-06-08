@@ -826,7 +826,10 @@ def control_debts(request):
     return render(request, "site/control_debts.html", {"users": users, "query": q})
 
 @admin_required
-def currencies_list(request): return render(request, "site/currencies_list.html")
+def currencies_list(request):
+    from apps.common.models import Currency
+    currencies = Currency.objects.all().order_by('display_order', 'code')
+    return render(request, "site/currencies_list.html", {"currencies": currencies})
 @admin_required
 def currency_create(request): return render(request, "site/currency_form.html")
 @admin_required

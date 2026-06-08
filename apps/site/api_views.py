@@ -77,7 +77,7 @@ def api_deposit_reject(request, pk):
     
     cancel_pending_deposit(
         wallet_id=wallet.id,
-        amount=deposit.wallet_amount,
+        amount=deposit.wallet_amount or Decimal("0.00"),
         reference=f"dep:{deposit.id}",
         description="Deposit rejected by admin",
         created_by=request.user
@@ -90,13 +90,14 @@ def api_deposit_reject(request, pk):
     deposit.save()
     
     from apps.notifications.services import notify_user
+    from apps.notifications.models import Notification
     notify_user(
         user=deposit.user,
         title="❌ تم رفض الإيداع",
         body=f"عذراً، تم رفض طلب الإيداع. السبب: {admin_note or 'بيانات غير مكتملة'}",
         action_url="/dashboard/deposits/",
         category="financial",
-        priority="high"
+        priority=Notification.Priority.HIGH
     )
 
     return Response({"status": "success"})

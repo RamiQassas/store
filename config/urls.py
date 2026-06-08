@@ -47,5 +47,6 @@ urlpatterns = [
     path("api/", include(router.urls)),
 ]
 
-if settings.DEBUG:
-    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+# Serve media files in all environments since we are using persistent disks on Render
+# without a separate web server like Nginx.
+urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
