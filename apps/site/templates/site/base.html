@@ -80,7 +80,7 @@
               <i class="fas fa-bell text-slate-400"></i>
           </a>
           <a href="{% url 'dashboard' %}" class="w-8 h-8 rounded-full bg-slate-800 border border-white/5 flex items-center justify-center text-[10px]">
-              {{ user.first_name|slice:":1" }}
+              {{ user.get_full_name|default:user.email|slice:":1"|upper }}
           </a>
           {% else %}
           <a href="{% url 'site_login' %}" class="btn btn-sm btn-primary">دخول</a>

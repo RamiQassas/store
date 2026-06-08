@@ -347,24 +347,38 @@ def deposits(request):
         amount = Decimal(amount_str) if amount_str else Decimal("0")
         proof = request.FILES.get("proof_image")
         
-        if amount > remaining_limit:
-            messages.error(request, f"تجاوزت الحد اليومي للإيداع. المتبقي: {remaining_limit}")
+        currency = get_object_or_404(Currency, id=currency_id)
+        amount_base = currency.to_base(amount, operation="deposit")
+        
+        if amount_base > remaining_limit:
+            messages.error(
+                request, 
+                f"تجاوزت الحد اليومي للإيداع. حدك المتبقي هو {remaining_limit:.2f} USD، "
+                f"بينما تبلغ قيمة هذه العملية {amount_base:.2f} USD."
+            )
             return redirect("dashboard_deposits")
             
         method = get_object_or_404(methods, id=method_id)
         user_custom = request.user.custom_payment_limits.get(str(method.id), {})
         method_limit = Decimal(str(user_custom['deposit'])) if user_custom.get('deposit') else method.daily_deposit_limit
 
-        method_usage_today = DepositRequest.objects.filter(
+        method_usage_today = Decimal("0.00")
+        today_deposits = DepositRequest.objects.filter(
             user=request.user, payment_method=method, created_at__date=timezone.now().date()
-        ).exclude(status=DepositRequest.Status.REJECTED).aggregate(Sum('amount'))['amount__sum'] or Decimal("0.00")
+        ).exclude(status=DepositRequest.Status.REJECTED).select_related("currency")
+        
+        for d in today_deposits:
+            method_usage_today += d.currency.to_base(d.amount, operation="deposit")
         
         method_remaining = max(Decimal("0.00"), method_limit - method_usage_today)
-        if amount > method_remaining:
-            messages.error(request, f"تجاوزت حد الإيداع لهذه الوسيلة. المتبقي: {method_remaining}")
+        if amount_base > method_remaining:
+            messages.error(
+                request, 
+                f"تجاوزت حد الإيداع لهذه الوسيلة. الحد المتبقي للوسيلة هو {method_remaining:.2f} USD، "
+                f"بينما تبلغ قيمة هذه العملية {amount_base:.2f} USD."
+            )
             return redirect("dashboard_deposits")
 
-        currency = get_object_or_404(Currency, id=currency_id)
         wallet = get_or_create_wallet(request.user)
 
         with transaction.atomic():
@@ -373,7 +387,7 @@ def deposits(request):
                 currency=currency, proof_image=proof, status=DepositRequest.Status.PENDING
             )
             track_pending_deposit(wallet.id, amount, reference=f"deposit:{deposit.id}")
-            request.user.daily_deposit_usage += amount
+            request.user.daily_deposit_usage += amount_base
             request.user.save(update_fields=["daily_deposit_usage"])
             messages.success(request, "طلب الإيداع قيد المراجعة.")
             return redirect("dashboard")
@@ -398,24 +412,38 @@ def withdrawals(request):
         currency_id = request.POST.get("currency")
         amount = Decimal(request.POST.get("amount", "0"))
         
-        if amount > remaining_limit:
-            messages.error(request, f"تجاوزت الحد اليومي للسحب. المتبقي: {remaining_limit}")
+        currency = get_object_or_404(Currency, id=currency_id)
+        amount_base = currency.to_base(amount, operation="withdraw")
+        
+        if amount_base > remaining_limit:
+            messages.error(
+                request, 
+                f"تجاوزت الحد اليومي للسحب. حدك المتبقي هو {remaining_limit:.2f} USD، "
+                f"بينما تبلغ قيمة هذه العملية {amount_base:.2f} USD."
+            )
             return redirect("dashboard_withdrawals")
             
         method = get_object_or_404(methods, id=method_id)
         user_custom = request.user.custom_payment_limits.get(str(method.id), {})
         method_limit = Decimal(str(user_custom['withdraw'])) if user_custom.get('withdraw') else method.daily_withdrawal_limit
         
-        method_usage_today = WithdrawalRequest.objects.filter(
+        method_usage_today = Decimal("0.00")
+        today_withdrawals = WithdrawalRequest.objects.filter(
             user=request.user, payment_method=method, created_at__date=timezone.now().date()
-        ).exclude(status=WithdrawalRequest.Status.REJECTED).aggregate(Sum('amount'))['amount__sum'] or Decimal("0.00")
+        ).exclude(status=WithdrawalRequest.Status.REJECTED).select_related("currency")
+
+        for w in today_withdrawals:
+            method_usage_today += w.currency.to_base(w.amount, operation="withdraw")
         
         method_remaining = max(Decimal("0.00"), method_limit - method_usage_today)
-        if amount > method_remaining:
-            messages.error(request, f"تجاوزت حد السحب لهذه الوسيلة. المتبقي: {method_remaining}")
+        if amount_base > method_remaining:
+            messages.error(
+                request, 
+                f"تجاوزت حد السحب لهذه الوسيلة. الحد المتبقي للوسيلة هو {method_remaining:.2f} USD، "
+                f"بينما تبلغ قيمة هذه العملية {amount_base:.2f} USD."
+            )
             return redirect("dashboard_withdrawals")
 
-        currency = get_object_or_404(Currency, id=currency_id)
         wallet = get_or_create_wallet(request.user)
         
         if wallet.available_balance >= amount:
@@ -425,7 +453,7 @@ def withdrawals(request):
                     currency=currency, status=WithdrawalRequest.Status.PENDING
                 )
                 freeze_funds(wallet.id, amount, reference=f"with:{withdrawal.id}")
-                request.user.daily_withdrawal_usage += amount
+                request.user.daily_withdrawal_usage += amount_base
                 request.user.save(update_fields=["daily_withdrawal_usage"])
                 messages.success(request, "طلب السحب قيد المراجعة.")
                 return redirect("dashboard")

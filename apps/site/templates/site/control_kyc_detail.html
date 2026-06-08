@@ -74,18 +74,20 @@
                     {% for method in payment_methods %}
                     <div class="limit-card stack gap-4">
                         <div class="font-bold text-xs text-slate-300 border-b border-white/5 pb-2">{{ method.name }}</div>
+                        {% with user_limit=kyc.user.custom_payment_limits|get_item:method.id %}
                         <div class="field-group">
                             <label class="text-[9px] text-slate-500">حد الإيداع</label>
                             <input type="number" name="method_dep_{{ method.id }}" step="0.01" 
-                                   value="{% with key=method.id|stringformat:'s' %}{{ kyc.user.custom_payment_limits.key.deposit|default:'' }}{% endwith %}" 
+                                   value="{{ user_limit.deposit|default:'' }}" 
                                    class="builder-input text-xs font-mono py-2" placeholder="{{ method.daily_deposit_limit }}">
                         </div>
                         <div class="field-group">
                             <label class="text-[9px] text-slate-500">حد السحب</label>
                             <input type="number" name="method_with_{{ method.id }}" step="0.01" 
-                                   value="{% with key=method.id|stringformat:'s' %}{{ kyc.user.custom_payment_limits.key.withdraw|default:'' }}{% endwith %}" 
+                                   value="{{ user_limit.withdraw|default:'' }}" 
                                    class="builder-input text-xs font-mono py-2" placeholder="{{ method.daily_withdrawal_limit }}">
                         </div>
+                        {% endwith %}
                     </div>
                     {% endfor %}
                 </div>

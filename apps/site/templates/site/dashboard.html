@@ -137,7 +137,7 @@
 {% block content %}
 <div class="page-head">
     <div>
-        <span class="eyebrow">أهلاً بك، {{ user.first_name }}</span>
+        <span class="eyebrow">أهلاً بك، {{ user.get_full_name|default:user.email }}</span>
         <h1>لوحة التحكم</h1>
         <p class="text-muted">مرحباً بك مجدداً في منصة رقميات. إليك نظرة سريعة على حسابك.</p>
     </div>
@@ -349,6 +349,41 @@
                         <span class="text-sm text-muted">الفئة</span>
                         <span class="text-sm font-bold text-amber-400">{{ user.get_tier_display }}</span>
                     </div>
+
+                    <!-- Limits Section -->
+                    <div class="p-4 bg-slate-800/20 border border-white/5 rounded-xl mt-4">
+                        <div class="flex justify-between items-center mb-3">
+                            <span class="text-xs font-bold text-slate-300">حدود الحساب (USD)</span>
+                            {% if user.has_custom_limits %}
+                                <span class="badge primary text-[8px]">حدود مخصصة</span>
+                            {% else %}
+                                <span class="text-[8px] text-slate-500">حدود افتراضية</span>
+                            {% endif %}
+                        </div>
+                        <div class="stack gap-3">
+                            <div class="flex justify-between text-xs">
+                                <span class="text-slate-500">الإيداع اليومي:</span>
+                                <span class="text-white font-mono">{{ user.daily_deposit_limit|floatformat:2 }}</span>
+                            </div>
+                            <div class="flex justify-between text-xs">
+                                <span class="text-slate-500">المتبقي للإيداع:</span>
+                                <span class="text-emerald-400 font-bold font-mono">{{ user.remaining_deposit_limit|floatformat:2 }}</span>
+                            </div>
+                            <div class="h-px bg-white/5 my-1"></div>
+                            <div class="flex justify-between text-xs">
+                                <span class="text-slate-500">السحب اليومي:</span>
+                                <span class="text-white font-mono">{{ user.daily_withdrawal_limit|floatformat:2 }}</span>
+                            </div>
+                            <div class="flex justify-between text-xs">
+                                <span class="text-slate-500">المتبقي للسحب:</span>
+                                <span class="text-emerald-400 font-bold font-mono">{{ user.remaining_withdrawal_limit|floatformat:2 }}</span>
+                            </div>
+                        </div>
+                        <p class="text-[9px] text-slate-600 mt-3 leading-tight">
+                            * يتم حساب الحدود بناءً على القيمة المعادلة بالدولار (USD).
+                        </p>
+                    </div>
+
                 <div class="flex items-center justify-between p-3 bg-slate-800/30 rounded-lg">
                     <span class="text-sm text-muted">عضو منذ</span>
                     <span class="text-sm font-bold">{{ user.date_joined|date:"M Y" }}</span>

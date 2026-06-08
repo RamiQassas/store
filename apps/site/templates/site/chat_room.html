@@ -239,7 +239,7 @@
                 </div>
                 <div>
                     <h2 class="font-bold text-base m-0">
-                        {% if user.is_staff %}دعم: {{ room.user.first_name|default:room.user.email }}{% else %}الدعم المباشر{% endif %}
+                        {% if user.is_staff %}دعم: {{ room.user.get_full_name|default:room.user.email }}{% else %}الدعم المباشر{% endif %}
                     </h2>
                     <div id="connection-status">
                         <span class="text-muted text-[10px] uppercase tracking-widest">تشفير تام بين الطرفين</span>
@@ -282,7 +282,7 @@
                 {% endif %}
                 
                 <div class="msg-meta">
-                    <span class="font-bold">{{ msg.sender.first_name }}</span>
+                    <span class="font-bold">{{ msg.sender.get_full_name|default:msg.sender.email }}</span>
                     <span>{{ msg.created_at|date:"H:i" }}</span>
                 </div>
             </div>

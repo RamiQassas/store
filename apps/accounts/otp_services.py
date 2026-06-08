@@ -33,7 +33,7 @@ def send_otp_email(user, otp_token):
         <div style="text-align: center; margin-bottom: 30px;">
             <h1 style="color: #06b6d4; margin: 0; font-size: 28px;">رقميات | Raqamiyat</h1>
         </div>
-        <p style="font-size: 16px;">مرحباً <strong>{user.first_name or user.email}</strong>،</p>
+        <p style="font-size: 16px;">مرحباً <strong>{user.get_full_name() or user.email}</strong>،</p>
         <p style="font-size: 16px; line-height: 1.6;">رمز التحقق الخاص بك {purpose_text} هو:</p>
         
         <div style="text-align: center; margin: 40px 0;">

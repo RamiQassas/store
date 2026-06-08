@@ -91,7 +91,8 @@ class User(AbstractUser):
         verbose_name_plural = "المستخدمون"
 
     def __str__(self):
-        return self.email
+        full_name = self.get_full_name()
+        return full_name if full_name else self.email
 
     def reset_daily_limits_if_needed(self):
         """Resets daily usage if 24 hours have passed since last reset."""

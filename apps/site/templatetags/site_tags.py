@@ -57,3 +57,9 @@ def currency_format(context, amount, source_currency=None):
         return f"{formatted} {target_currency.symbol}"
     except Exception:
         return f"{amount} {target_currency.symbol if target_currency else 'SYP'}"
+
+@register.filter
+def get_item(dictionary, key):
+    if not dictionary:
+        return None
+    return dictionary.get(str(key))
