@@ -101,8 +101,8 @@ def add_debt(wallet_id, amount, reference="", description="", created_by=None, m
         return wallet
 
 
-def pay_debt(wallet_id, amount, reference="", description="", created_by=None, metadata=None, source="admin", reason=""):
-    """Manually pays off debt using available balance. Reduces both available balance and debt balance."""
+def pay_debt(wallet_id, amount, reference="", description="", created_by=None, metadata=None, source="admin", reason="", deduct_from_balance=True):
+    """Manually pays off debt. If deduct_from_balance is True, reduces available_balance."""
     amount = Decimal(amount)
     if amount <= 0:
         raise WalletError("Amount must be positive.")
@@ -110,10 +110,12 @@ def pay_debt(wallet_id, amount, reference="", description="", created_by=None, m
         wallet = Wallet.objects.select_for_update().get(id=wallet_id)
         if wallet.debt_balance < amount:
             raise WalletError("Payment exceeds outstanding debt.")
-        if wallet.available_balance < amount:
-            raise WalletError("Insufficient available balance to pay debt.")
             
-        wallet.available_balance -= amount
+        if deduct_from_balance:
+            if wallet.available_balance < amount:
+                raise WalletError("Insufficient available balance to pay debt.")
+            wallet.available_balance -= amount
+            
         wallet.debt_balance -= amount
         wallet.save(update_fields=["available_balance", "debt_balance", "updated_at"])
         

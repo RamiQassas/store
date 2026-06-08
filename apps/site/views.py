@@ -380,13 +380,14 @@ def deposits(request):
             return redirect("dashboard_deposits")
 
         wallet = get_or_create_wallet(request.user)
+        wallet_amount = wallet.currency.from_base(amount_base, operation="deposit")
 
         with transaction.atomic():
             deposit = DepositRequest.objects.create(
                 user=request.user, payment_method=method, amount=amount,
-                currency=currency, proof_image=proof, status=DepositRequest.Status.PENDING
+                currency=currency, wallet_amount=wallet_amount, proof_image=proof, status=DepositRequest.Status.PENDING
             )
-            track_pending_deposit(wallet.id, amount, reference=f"deposit:{deposit.id}")
+            track_pending_deposit(wallet.id, wallet_amount, reference=f"deposit:{deposit.id}")
             request.user.daily_deposit_usage += amount_base
             request.user.save(update_fields=["daily_deposit_usage"])
             messages.success(request, "طلب الإيداع قيد المراجعة.")
@@ -445,14 +446,15 @@ def withdrawals(request):
             return redirect("dashboard_withdrawals")
 
         wallet = get_or_create_wallet(request.user)
+        wallet_amount = wallet.currency.from_base(amount_base, operation="withdraw")
         
-        if wallet.available_balance >= amount:
+        if wallet.available_balance >= wallet_amount:
             with transaction.atomic():
                 withdrawal = WithdrawalRequest.objects.create(
                     user=request.user, payment_method=method, amount=amount,
-                    currency=currency, status=WithdrawalRequest.Status.PENDING
+                    currency=currency, wallet_amount=wallet_amount, status=WithdrawalRequest.Status.PENDING
                 )
-                freeze_funds(wallet.id, amount, reference=f"with:{withdrawal.id}")
+                freeze_funds(wallet.id, wallet_amount, reference=f"with:{withdrawal.id}")
                 request.user.daily_withdrawal_usage += amount_base
                 request.user.save(update_fields=["daily_withdrawal_usage"])
                 messages.success(request, "طلب السحب قيد المراجعة.")
@@ -671,10 +673,42 @@ def privacy_policy(request): return render(request, "site/privacy_policy.html")
 def terms_of_service(request): return render(request, "site/terms_of_service.html")
 def refund_policy(request): return render(request, "site/refund_policy.html")
 def contact_page(request): return render(request, "site/contact.html")
-def set_currency(request): return redirect("home")
+def set_currency(request):
+    if request.method == "POST":
+        currency_id = request.POST.get("currency")
+        if currency_id:
+            currency = Currency.objects.filter(id=currency_id, is_active=True).first()
+            if currency:
+                request.session["preferred_currency_id"] = str(currency.id)
+                if request.user.is_authenticated:
+                    request.user.preferred_currency = currency
+                    request.user.save(update_fields=["preferred_currency"])
+                messages.success(request, f"تم تغيير العملة المفضلة إلى {currency.name}.")
+    
+    # Redirect back to referring page or home
+    next_url = request.META.get('HTTP_REFERER', 'home')
+    return redirect(next_url)
 def email_verify(request, uidb64, token): return redirect("site_login")
 def resend_verification(request): return redirect("dashboard")
-def notification_settings(request): return render(request, "site/notification_settings.html")
+@login_required
+def notification_settings(request):
+    from apps.notifications.models import NotificationSetting
+    settings_obj, created = NotificationSetting.objects.get_or_create(user=request.user)
+    
+    if request.method == "POST":
+        settings_obj.in_app_orders = request.POST.get("in_app_orders") == "on"
+        settings_obj.push_orders = request.POST.get("push_orders") == "on"
+        settings_obj.in_app_financial = request.POST.get("in_app_financial") == "on"
+        settings_obj.push_financial = request.POST.get("push_financial") == "on"
+        settings_obj.in_app_support = request.POST.get("in_app_support") == "on"
+        settings_obj.push_support = request.POST.get("push_support") == "on"
+        settings_obj.in_app_promotions = request.POST.get("in_app_promotions") == "on"
+        settings_obj.push_promotions = request.POST.get("push_promotions") == "on"
+        settings_obj.save()
+        messages.success(request, "تم حفظ إعدادات الإشعارات بنجاح.")
+        return redirect("notification_settings")
+        
+    return render(request, "site/notification_settings.html", {"settings": settings_obj})
 def tickets(request): return render(request, "site/tickets.html")
 def ticket_detail(request, pk): return render(request, "site/ticket_detail.html")
 
@@ -781,7 +815,7 @@ def control_debts(request):
                 messages.success(request, f"تم إضافة دين بقيمة {amount} للمستخدم {target_user.email}")
             elif action == "pay_debt":
                 from apps.wallets.services import pay_debt
-                pay_debt(wallet.id, amount, reference=f"admin_pay_{timezone.now().timestamp()}", reason=reason, created_by=request.user)
+                pay_debt(wallet.id, amount, reference=f"admin_pay_{timezone.now().timestamp()}", reason=reason, created_by=request.user, deduct_from_balance=False)
                 messages.success(request, f"تم تسجيل سداد بقيمة {amount} للمستخدم {target_user.email}")
         except Exception as e:
             messages.error(request, str(e))
@@ -813,10 +847,46 @@ def control_variant_edit(request, pk): return render(request, "site/control_vari
 @support_required
 def control_orders_list(request): return render(request, "site/control_orders_list.html")
 @support_required
-def control_order_detail(request, pk): return render(request, "site/control_order_detail.html")
+def control_order_detail(request, pk):
+    order = get_object_or_404(Order.objects.select_related('customer', 'customer__wallet').prefetch_related('items__variant__product', 'logs'), pk=pk)
+    
+    if request.method == "POST":
+        action = request.POST.get("action")
+        
+        if action == "update_status":
+            new_status = request.POST.get("status")
+            admin_note = request.POST.get("admin_note", "")
+            if new_status and new_status != order.status:
+                order.status = new_status
+                order.save()
+                OrderLog.objects.create(order=order, status=new_status, note=admin_note, created_by=request.user)
+                messages.success(request, "تم تحديث حالة الطلب بنجاح.")
+        
+        elif action == "update_fulfillment":
+            # Extract dynamic key-value pairs
+            keys = request.POST.getlist("ff_key[]")
+            values = request.POST.getlist("ff_value[]")
+            
+            new_fulfillment = {}
+            for k, v in zip(keys, values):
+                if k.strip():
+                    new_fulfillment[k.strip()] = v.strip()
+                    
+            order.fulfillment_data = new_fulfillment
+            order.save(update_fields=["fulfillment_data"])
+            messages.success(request, "تم تحديث بيانات التنفيذ.")
+            
+        return redirect("control_order_detail", pk=pk)
+        
+    return render(request, "site/control_order_detail.html", {"order": order, "readable_fulfillment": order.fulfillment_data})
 
 @finance_required
-def control_wallets_list(request): return render(request, "site/control_wallets_list.html")
+def control_wallets_list(request):
+    q = request.GET.get('q', '')
+    wallets = Wallet.objects.select_related('user', 'currency').all().order_by('-updated_at')
+    if q:
+        wallets = wallets.filter(Q(user__email__icontains=q) | Q(user__first_name__icontains=q))
+    return render(request, "site/control_wallets_list.html", {"wallets": wallets, "query": q})
 @finance_required
 def control_reports(request): return render(request, "site/control_reports.html")
 

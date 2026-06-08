@@ -28,6 +28,7 @@
                 <tr>
                     <th class="p-4">المستخدم</th>
                     <th class="p-4">المتاح</th>
+                    <th class="p-4">ديون</th>
                     <th class="p-4">المجمد</th>
                     <th class="p-4">المحجوز</th>
                     <th class="p-4">المعلق</th>
@@ -41,10 +42,11 @@
                         <div class="font-bold text-slate-200">{{ w.user.email }}</div>
                         <div class="text-[10px] text-slate-500">العملة: {{ w.currency.code }}</div>
                     </td>
-                    <td class="p-4"><strong class="text-cyan">{{ w.available_balance }}</strong></td>
-                    <td class="p-4"><span class="text-amber-500">{{ w.frozen_balance }}</span></td>
-                    <td class="p-4"><span class="text-red-500">{{ w.held_balance }}</span></td>
-                    <td class="p-4"><span class="text-blue-500">{{ w.pending_balance }}</span></td>
+                    <td class="p-4"><strong class="text-cyan">{{ w.available_balance|floatformat:2 }}</strong></td>
+                    <td class="p-4"><strong class="text-rose-500">{{ w.debt_balance|floatformat:2 }}</strong></td>
+                    <td class="p-4"><span class="text-amber-500">{{ w.frozen_balance|floatformat:2 }}</span></td>
+                    <td class="p-4"><span class="text-red-500">{{ w.held_balance|floatformat:2 }}</span></td>
+                    <td class="p-4"><span class="text-blue-500">{{ w.pending_balance|floatformat:2 }}</span></td>
                     <td class="p-4 text-left">
                         <div class="flex justify-end gap-2">
                             <button class="btn btn-sm btn-outline text-[10px] py-1 px-3" onclick="holdFunds('{{ w.id }}')">

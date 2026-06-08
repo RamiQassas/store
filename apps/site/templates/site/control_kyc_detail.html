@@ -174,30 +174,42 @@
             <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
                 <div class="stack gap-3 text-center">
                     <span class="text-[10px] font-black uppercase text-slate-500 tracking-wider">وجه الوثيقة</span>
-                    <div class="fixed-thumb group cursor-pointer" onclick="openLightbox(0, ['{{ kyc.identity_front.url }}', '{{ kyc.identity_back.url }}', '{{ kyc.selfie_verification.url }}'])">
+                    {% if kyc.identity_front %}
+                    <div class="fixed-thumb group cursor-pointer" onclick="openLightbox(0, ['{{ kyc.identity_front.url }}', '{% if kyc.identity_back %}{{ kyc.identity_back.url }}{% endif %}', '{% if kyc.selfie_verification %}{{ kyc.selfie_verification.url }}{% endif %}'])">
                         <img src="{{ kyc.identity_front.url }}" class="opacity-80 group-hover:opacity-100 transition-opacity">
                         <div class="absolute inset-0 bg-cyan/10 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                             <i class="fas fa-search-plus text-white text-xl"></i>
                         </div>
                     </div>
+                    {% else %}
+                    <div class="fixed-thumb flex items-center justify-center text-slate-600 text-xs italic">لا توجد صورة</div>
+                    {% endif %}
                 </div>
                 <div class="stack gap-3 text-center">
                     <span class="text-[10px] font-black uppercase text-slate-500 tracking-wider">ظهر الوثيقة</span>
-                    <div class="fixed-thumb group cursor-pointer" onclick="openLightbox(1, ['{{ kyc.identity_front.url }}', '{{ kyc.identity_back.url }}', '{{ kyc.selfie_verification.url }}'])">
+                    {% if kyc.identity_back %}
+                    <div class="fixed-thumb group cursor-pointer" onclick="openLightbox(1, ['{% if kyc.identity_front %}{{ kyc.identity_front.url }}{% endif %}', '{{ kyc.identity_back.url }}', '{% if kyc.selfie_verification %}{{ kyc.selfie_verification.url }}{% endif %}'])">
                         <img src="{{ kyc.identity_back.url }}" class="opacity-80 group-hover:opacity-100 transition-opacity">
                         <div class="absolute inset-0 bg-cyan/10 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                             <i class="fas fa-search-plus text-white text-xl"></i>
                         </div>
                     </div>
+                    {% else %}
+                    <div class="fixed-thumb flex items-center justify-center text-slate-600 text-xs italic">لا توجد صورة</div>
+                    {% endif %}
                 </div>
                 <div class="stack gap-3 text-center">
                     <span class="text-[10px] font-black uppercase text-slate-500 tracking-wider">صورة السيلفي</span>
-                    <div class="fixed-thumb group cursor-pointer" onclick="openLightbox(2, ['{{ kyc.identity_front.url }}', '{{ kyc.identity_back.url }}', '{{ kyc.selfie_verification.url }}'])">
+                    {% if kyc.selfie_verification %}
+                    <div class="fixed-thumb group cursor-pointer" onclick="openLightbox(2, ['{% if kyc.identity_front %}{{ kyc.identity_front.url }}{% endif %}', '{% if kyc.identity_back %}{{ kyc.identity_back.url }}{% endif %}', '{{ kyc.selfie_verification.url }}'])">
                         <img src="{{ kyc.selfie_verification.url }}" class="opacity-80 group-hover:opacity-100 transition-opacity">
                         <div class="absolute inset-0 bg-cyan/10 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                             <i class="fas fa-search-plus text-white text-xl"></i>
                         </div>
                     </div>
+                    {% else %}
+                    <div class="fixed-thumb flex items-center justify-center text-slate-600 text-xs italic">لا توجد صورة</div>
+                    {% endif %}
                 </div>
             </div>
         </div>
