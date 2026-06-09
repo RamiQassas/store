@@ -65,6 +65,8 @@ urlpatterns = [
     path("control/wallets/", views.control_wallets_list, name="control_wallets_list"),
     path("control/debts/", views.control_debts, name="control_debts"),
     path("control/reports/", views.control_reports, name="control_reports"),
+    path("control/settings/social-media/", views.control_social_media, name="control_social_media"),
+    path("control/settings/social-media/<uuid:pk>/delete/", views.control_social_media_delete, name="control_social_media_delete"),
     path("control/notifications/send/", views.control_send_notification, name="control_send_notification"),
 
     # Legal & Support Pages

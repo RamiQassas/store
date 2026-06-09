@@ -201,6 +201,19 @@ class ModerateUserForm(forms.ModelForm):
 from apps.accounts.models import KYCRequest, KYCSettings
 from apps.common.countries import COUNTRIES
 
+from apps.common.models import SocialMediaLink
+
+class SocialMediaLinkForm(forms.ModelForm):
+    class Meta:
+        model = SocialMediaLink
+        fields = ["name", "url", "icon_image", "icon_class", "is_active", "display_order"]
+        widgets = {
+            "name": forms.TextInput(attrs={"class": "builder-input"}),
+            "url": forms.URLInput(attrs={"class": "builder-input", "placeholder": "https://..."}),
+            "icon_class": forms.TextInput(attrs={"class": "builder-input", "placeholder": "fab fa-facebook"}),
+            "display_order": forms.NumberInput(attrs={"class": "builder-input"}),
+        }
+
 class KYCSettingsForm(forms.ModelForm):
     restricted_countries_list = forms.MultipleChoiceField(
         label="الدول المحظورة",

@@ -3,65 +3,113 @@
 
 {% block title %}طلباتي | Raqamiyat{% endblock %}
 
+{% block extra_head %}
+<style>
+    .order-card-v3 {
+        background: var(--panel);
+        border: 1px solid var(--panel-border);
+        border-radius: 24px;
+        padding: 1.5rem;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        display: grid;
+        grid-template-columns: 80px 1fr auto;
+        gap: 1.5rem;
+        align-items: center;
+        text-decoration: none;
+    }
+    
+    .order-card-v3:hover {
+        transform: scale(1.01);
+        border-color: var(--cyan);
+        background: rgba(6, 182, 212, 0.03);
+    }
+
+    .order-img-v3 {
+        width: 80px;
+        height: 80px;
+        border-radius: 18px;
+        background: #0f172a;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        overflow: hidden;
+        border: 1px solid rgba(255,255,255,0.05);
+    }
+    .order-img-v3 img { width: 100%; height: 100%; object-fit: cover; }
+
+    .status-badge-v3 {
+        padding: 6px 12px;
+        border-radius: 10px;
+        font-size: 10px;
+        font-weight: 900;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+    }
+    
+    .status-pending, .status-processing { background: rgba(245, 158, 11, 0.1); color: #f59e0b; }
+    .status-completed { background: rgba(16, 185, 129, 0.1); color: #10b981; }
+    .status-cancelled, .status-rejected, .status-refunded { background: rgba(244, 63, 94, 0.1); color: #f43f5e; }
+
+    @media (max-width: 768px) {
+        .order-card-v3 { grid-template-columns: 1fr; text-align: center; gap: 1rem; }
+        .order-img-v3 { margin: 0 auto; }
+        .order-actions-v3 { text-align: center !important; }
+    }
+</style>
+{% endblock %}
+
 {% block content %}
-<div class="page-head">
+<div class="page-head flex justify-between items-center">
     <div>
-        <span class="eyebrow">Dashboard / My Orders</span>
+        <span class="eyebrow">User Dashboard</span>
         <h1>سجل الطلبات</h1>
-        <p class="text-muted">استعرض تاريخ مشترياتك وحالة طلباتك وتفاصيل التنفيذ.</p>
+        <p class="text-muted">تتبع حالة مشترياتك وقم بالوصول إلى خدماتك الرقمية.</p>
     </div>
 </div>
 
-<div class="panel">
-    <div class="p-0 overflow-x-auto">
-        <table class="w-full text-sm text-right">
-            <thead class="text-[11px] text-slate-500 border-b border-white/5 uppercase bg-white/[0.01]">
-                <tr>
-                    <th class="p-4">رقم الطلب</th>
-                    <th class="p-4">المنتجات</th>
-                    <th class="p-4">التاريخ</th>
-                    <th class="p-4">الإجمالي</th>
-                    <th class="p-4">الحالة</th>
-                    <th class="p-4 text-left">إجراءات</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for order in orders %}
-                <tr class="border-b border-white/[0.02] last:border-0 hover:bg-white/[0.02] transition">
-                    <td class="p-4 font-mono font-bold text-slate-300">#{{ order.number }}</td>
-                    <td class="p-4">
-                        <div class="flex flex-col gap-1">
-                            {% for item in order.items.all %}
-                            <span class="text-xs text-slate-200">{{ item.variant.product.name }} ({{ item.variant.name }})</span>
-                            {% endfor %}
-                        </div>
-                    </td>
-                    <td class="p-4 text-xs text-slate-500">{{ order.created_at|date:"d M Y, H:i" }}</td>
-                    <td class="p-4 font-black text-white">{% currency_format order.total_amount %}</td>
-                    <td class="p-4">
-                        <span class="badge {% if order.status == 'completed' %}success{% elif order.status == 'cancelled' or order.status == 'refunded' %}danger{% else %}warning{% endif %} text-[9px]">
-                            {{ order.get_status_display }}
-                        </span>
-                    </td>
-                    <td class="p-4 text-left">
-                        <a href="{% url 'dashboard_order_detail' order.id %}" class="btn btn-sm btn-outline text-[10px] py-1 px-4 border-white/10 hover:bg-cyan hover:text-black">
-                            التفاصيل
-                        </a>
-                    </td>
-                </tr>
-                {% empty %}
-                <tr>
-                    <td colspan="6" class="p-16 text-center">
-                        <div class="w-16 h-16 bg-slate-800/50 rounded-full flex items-center justify-center mx-auto mb-4 text-slate-600">
-                            <i class="fas fa-box-open text-2xl"></i>
-                        </div>
-                        <p class="text-slate-500 italic">لا توجد طلبات سابقة في حسابك.</p>
-                        <a href="{% url 'catalog' %}" class="btn btn-primary btn-sm mt-6">تصفح المتجر الآن</a>
-                    </td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+<div class="stack gap-4">
+    {% for order in orders %}
+    <a href="{% url 'dashboard_order_detail' order.id %}" class="order-card-v3">
+        <div class="order-img-v3">
+            {% with order.items.first as item %}
+                {% if item.variant.product.thumbnail %}
+                <img src="{{ item.variant.product.thumbnail.url }}">
+                {% else %}
+                <i class="fas fa-box text-2xl text-slate-700"></i>
+                {% endif %}
+            {% endwith %}
+        </div>
+        
+        <div class="order-info-v3">
+            <div class="flex items-center gap-3 mb-1">
+                <span class="text-[10px] font-mono text-slate-500">#{{ order.number }}</span>
+                <span class="status-badge-v3 status-{{ order.status }}">
+                    {{ order.get_status_display }}
+                </span>
+            </div>
+            <h3 class="font-bold text-white mb-1">
+                {% with order.items.first as item %}{{ item.variant.product.name }}{% endwith %}
+                {% if order.items.count > 1 %}
+                <span class="text-xs text-muted">(+{{ order.items.count|add:"-1" }} أخرى)</span>
+                {% endif %}
+            </h3>
+            <div class="text-[10px] text-slate-500 font-bold uppercase tracking-widest">
+                {{ order.created_at|date:"d M Y, H:i" }}
+            </div>
+        </div>
+
+        <div class="order-actions-v3 text-left">
+            <div class="font-black text-xl text-white mb-2">{% currency_format order.total_amount %}</div>
+            <div class="btn btn-outline btn-sm rounded-xl px-6">التفاصيل</div>
+        </div>
+    </a>
+    {% empty %}
+    <div class="panel p-24 text-center border-dashed opacity-50">
+        <i class="fas fa-shopping-cart text-5xl mb-6 text-slate-800"></i>
+        <h3 class="text-xl font-bold">لا توجد طلبات بعد</h3>
+        <p class="text-muted mt-2">ابدأ بالتسوق الآن من خلال تصفح الكتالوج الخاص بنا.</p>
+        <a href="{% url 'catalog' %}" class="btn btn-primary mt-8">تصفح الخدمات</a>
     </div>
+    {% endfor %}
 </div>
 {% endblock %}

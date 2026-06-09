@@ -111,3 +111,19 @@ class SystemAuditLog(TimeStampedModel):
 
     def __str__(self):
         return f"{self.actor} - {self.action_type} - {self.created_at}"
+
+class SocialMediaLink(TimeStampedModel):
+    name = models.CharField(max_length=50, verbose_name="اسم المنصة")
+    url = models.URLField(verbose_name="رابط الحساب")
+    icon_image = models.ImageField(upload_to="social_icons/", blank=True, null=True, verbose_name="أيقونة/شعار")
+    icon_class = models.CharField(max_length=50, blank=True, help_text="FontAwesome class (e.g. fab fa-facebook)", verbose_name="كود الأيقونة")
+    is_active = models.BooleanField(default=True, verbose_name="نشط")
+    display_order = models.PositiveIntegerField(default=0, verbose_name="ترتيب العرض")
+
+    class Meta:
+        ordering = ["display_order", "name"]
+        verbose_name = "رابط تواصل اجتماعي"
+        verbose_name_plural = "روابط التواصل الاجتماعي"
+
+    def __str__(self):
+        return self.name

@@ -325,13 +325,26 @@ def product_detail(request, pk):
 
 @login_required
 def dashboard(request):
+    from apps.orders.models import Order
     request.user.reset_daily_limits_if_needed()
     wallet = Wallet.objects.filter(user=request.user).select_related("currency").first() or get_or_create_wallet(request.user)
     kyc_request = getattr(request.user, 'kyc_request', None)
+    
+    # Digital deliveries (completed orders with keys/files)
+    digital_deliveries = Order.objects.filter(customer=request.user, status=Order.Status.COMPLETED).exclude(fulfillment_data={}).order_by("-updated_at")[:6]
+    
+    # Recent notifications
+    from apps.notifications.models import Notification
+    notifications = Notification.objects.filter(user=request.user).order_by("-created_at")[:5]
+
     return render(request, "site/dashboard.html", {
-        "wallet": wallet, "orders": request.user.orders.all()[:6],
-        "deposits": request.user.deposits.all()[:6], "stats": {"orders": request.user.orders.count()},
-        "kyc_request": kyc_request
+        "wallet": wallet, 
+        "orders": request.user.orders.all()[:6],
+        "deposits": request.user.deposits.all()[:6], 
+        "stats": {"orders": request.user.orders.count()},
+        "kyc_request": kyc_request,
+        "digital_deliveries": digital_deliveries,
+        "notifications": notifications
     })
 
 
@@ -1337,6 +1350,34 @@ def control_reports(request):
     }
 
     return render(request, "site/control_reports.html", {"stats": stats})
+
+@admin_required
+def control_social_media(request):
+    from apps.site.forms import SocialMediaLinkForm
+    links = SocialMediaLink.objects.all()
+    form = SocialMediaLinkForm()
+    
+    if request.method == "POST":
+        pk = request.POST.get("pk")
+        if pk:
+            instance = get_object_or_404(SocialMediaLink, pk=pk)
+            form = SocialMediaLinkForm(request.POST, request.FILES, instance=instance)
+        else:
+            form = SocialMediaLinkForm(request.POST, request.FILES)
+            
+        if form.is_valid():
+            form.save()
+            messages.success(request, "تم حفظ الرابط بنجاح.")
+            return redirect("control_social_media")
+            
+    return render(request, "site/control_social_media.html", {"links": links, "form": form})
+
+@admin_required
+def control_social_media_delete(request, pk):
+    link = get_object_or_404(SocialMediaLink, pk=pk)
+    link.delete()
+    messages.success(request, "تم حذف الرابط.")
+    return redirect("control_social_media")
 
 @support_required
 def control_send_notification(request): return render(request, "site/control_notification_form.html")

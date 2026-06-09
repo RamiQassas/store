@@ -1,202 +1,273 @@
 {% extends "site/base.html" %}
 {% load static site_tags %}
 
-{% block title %}Raqamiyat | متجر الخدمات الرقمية الأول{% endblock %}
+{% block title %}الرئيسية | Raqamiyat - متجر الخدمات الرقمية الموثوق{% endblock %}
 
 {% block extra_head %}
 <style>
-    /* Hero Section */
-    .hero-v2 {
-        padding: 6rem 0;
-        text-align: center;
-        background: radial-gradient(circle at 50% 50%, rgba(6, 182, 212, 0.1) 0%, transparent 70%);
+    /* Modern Premium Hero */
+    .hero-v3 {
+        padding: clamp(4rem, 15vh, 10rem) 0;
         position: relative;
+        overflow: hidden;
+        background: radial-gradient(circle at 80% 20%, rgba(6, 182, 212, 0.15) 0%, transparent 50%),
+                    radial-gradient(circle at 20% 80%, rgba(37, 99, 235, 0.1) 0%, transparent 50%);
     }
-    .hero-v2 h1 { font-size: clamp(2.5rem, 10vw, 5rem); line-height: 1; margin-bottom: 1.5rem; }
-    .hero-v2 p { font-size: 1.25rem; color: var(--muted); max-width: 800px; margin: 0 auto 3rem; }
-    
-    /* Stats Section */
-    .stats-v2 {
-        display: grid;
-        grid-template-columns: repeat(4, 1fr);
-        gap: 2rem;
-        margin-top: 4rem;
-    }
-    .stat-card { text-align: center; padding: 2rem; background: rgba(255,255,255,0.02); border-radius: var(--radius); border: 1px solid var(--panel-border); }
-    .stat-card strong { display: block; font-size: 2.5rem; color: var(--cyan); margin-bottom: 0.5rem; }
-    .stat-card span { font-size: 0.875rem; color: var(--muted); font-weight: bold; text-transform: uppercase; }
 
-    /* Benefit Cards */
-    .benefit-grid {
+    .hero-v3 h1 {
+        font-size: clamp(2.5rem, 8vw, 5.5rem);
+        font-weight: 950;
+        line-height: 0.95;
+        letter-spacing: -0.04em;
+        margin-bottom: 2rem;
+        background: linear-gradient(to bottom, #fff 40%, rgba(255,255,255,0.7));
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+    }
+
+    .hero-v3 p {
+        font-size: clamp(1rem, 2vw, 1.25rem);
+        color: var(--muted);
+        max-width: 650px;
+        line-height: 1.6;
+        margin-bottom: 3.5rem;
+    }
+
+    .cta-group {
+        display: flex;
+        gap: 1rem;
+        flex-wrap: wrap;
+    }
+
+    /* Mobile Optimization: Hide some elements on mobile */
+    @media (max-width: 768px) {
+        .hero-v3 { text-align: center; padding: 6rem 0 4rem; }
+        .hero-v3 p { margin-left: auto; margin-right: auto; }
+        .cta-group { justify-content: center; flex-direction: column; }
+        .hide-on-mobile { display: none !important; }
+    }
+
+    /* Feature Cards */
+    .feature-grid-v3 {
         display: grid;
         grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-        gap: 2rem;
-        margin-bottom: 6rem;
+        gap: 1.5rem;
     }
-    .benefit-card {
-        padding: 3rem 2rem;
+
+    .feature-card-v3 {
+        padding: 2.5rem;
+        background: rgba(255,255,255,0.02);
+        border: 1px solid rgba(255,255,255,0.05);
+        border-radius: 32px;
+        transition: all 0.4s cubic-bezier(0.23, 1, 0.32, 1);
+    }
+
+    .feature-card-v3:hover {
+        background: rgba(255,255,255,0.04);
+        border-color: var(--cyan);
+        transform: translateY(-8px);
+    }
+
+    .feature-icon-v3 {
+        width: 56px;
+        height: 56px;
+        border-radius: 16px;
+        background: rgba(6, 182, 212, 0.1);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.5rem;
+        color: var(--cyan);
+        margin-bottom: 1.5rem;
+    }
+
+    /* Step Section */
+    .step-v3 {
+        padding: 1.5rem;
         background: var(--panel);
         border: 1px solid var(--panel-border);
         border-radius: 24px;
-        text-align: center;
-        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    }
-    .benefit-card:hover { transform: translateY(-10px); border-color: var(--cyan); box-shadow: 0 20px 40px rgba(0,0,0,0.4); }
-    .benefit-card i { font-size: 3rem; color: var(--cyan); margin-bottom: 1.5rem; }
-    .benefit-card h3 { font-size: 1.5rem; margin-bottom: 1rem; }
-    .benefit-card p { color: var(--muted); font-size: 0.9375rem; line-height: 1.7; }
-
-    /* Category Cards */
-    .cat-v2-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
-        gap: 1.5rem;
-    }
-    .cat-v2-card {
-        padding: 2rem;
-        background: var(--panel);
-        border-radius: var(--radius);
-        text-align: center;
-        border: 1px solid var(--panel-border);
-        transition: all 0.3s;
-    }
-    .cat-v2-card:hover { border-color: var(--cyan); background: rgba(6, 182, 212, 0.03); }
-    .cat-v2-card i { font-size: 2.5rem; color: var(--cyan); margin-bottom: 1rem; opacity: 0.8; }
-    .cat-v2-card h4 { font-weight: 800; font-size: 1rem; }
-
-    /* Product Cards */
-    .product-v2-card {
-        background: var(--panel);
-        border-radius: 20px;
-        border: 1px solid var(--panel-border);
-        overflow: hidden;
-        transition: all 0.3s;
         display: flex;
-        flex-direction: column;
+        gap: 1.5rem;
+        align-items: center;
     }
-    .product-v2-card:hover { transform: scale(1.02); border-color: var(--cyan); }
-    .p-v2-img { aspect-ratio: 1; overflow: hidden; background: var(--bg-soft); position: relative; }
-    .p-v2-img img { width: 100%; height: 100%; object-fit: cover; }
-    .p-v2-body { padding: 1.5rem; flex-grow: 1; }
-    .p-v2-price { font-size: 1.5rem; font-weight: 900; color: var(--cyan); }
 
-    @media (max-width: 768px) {
-        .hero-v2 h1 { font-size: 3rem; }
-        .stats-v2 { grid-template-columns: repeat(2, 1fr); gap: 1rem; }
+    .step-num {
+        width: 48px;
+        height: 48px;
+        border-radius: 12px;
+        background: var(--cyan);
+        color: #000;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 900;
+        font-size: 1.25rem;
+        flex-shrink: 0;
+    }
+
+    /* Animations */
+    .reveal {
+        opacity: 0;
+        transform: translateY(30px);
+        transition: all 0.8s ease-out;
+    }
+    .reveal.visible {
+        opacity: 1;
+        transform: translateY(0);
     }
 </style>
 {% endblock %}
 
 {% block content %}
-<!-- Section A: Hero -->
-<section class="hero-v2">
+<!-- Section: Hero -->
+<section class="hero-v3">
     <div class="container">
-        <span class="eyebrow">أهلاً بك في رقميات - RAQAMIYAT</span>
-        <h1>اشترِ الخدمات الرقمية <br> <span class="text-cyan">بسرعة وأمان فائق</span></h1>
-        <p>المنصة رقم #1 لشحن الألعاب، اشتراكات البث، والبطاقات الرقمية. تسليم فوري ودعم فني على مدار الساعة.</p>
+        <div class="reveal">
+            <span class="eyebrow flex items-center gap-2">
+                <span class="w-2 h-2 rounded-full bg-cyan animate-pulse"></span>
+                المنصة الرقمية الأكثر موثوقية في المنطقة
+            </span>
+            <h1>بوابتك للحصول على <br> <span class="text-cyan">أفضل الخدمات الرقمية</span></h1>
+            <p>استمتع بتجربة شراء سلسة وآمنة لجميع بطاقات الشحن، اشتراكات البث، وحسابات الألعاب بأسعار تنافسية وتسليم فوري.</p>
+            
+            <div class="cta-group">
+                <a href="{% url 'catalog' %}" class="btn btn-primary px-10 py-4 text-lg rounded-2xl shadow-lg shadow-cyan/20">
+                    <i class="fas fa-shopping-bag ml-2"></i> تصفح الخدمات
+                </a>
+                {% if not user.is_authenticated %}
+                <a href="{% url 'site_register' %}" class="btn btn-outline px-10 py-4 text-lg rounded-2xl">
+                    إنشاء حساب مجاني
+                </a>
+                {% else %}
+                <a href="{% url 'dashboard' %}" class="btn btn-outline px-10 py-4 text-lg rounded-2xl">
+                    لوحة التحكم
+                </a>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Decorative Elements (Hidden on mobile for performance) -->
+    <div class="hide-on-mobile absolute top-1/4 left-2/3 w-64 h-64 bg-cyan/10 rounded-full blur-[100px]"></div>
+</section>
+
+<!-- Section: Core Capabilities -->
+<section class="container py-24 border-t border-white/5">
+    <div class="section-head text-center mb-16 reveal">
+        <span class="eyebrow">لماذا رقميات؟</span>
+        <h2 class="text-3xl md:text-5xl font-black">حلول مالية وتقنية متكاملة</h2>
+        <p class="text-muted max-w-2xl mx-auto mt-4">نحن لا نبيع البطاقات فحسب، بل نوفر لك بيئة رقمية آمنة لإدارة مشترياتك وأموالك.</p>
+    </div>
+
+    <div class="feature-grid-v3">
+        <div class="feature-card-v3 reveal">
+            <div class="feature-icon-v3"><i class="fas fa-wallet"></i></div>
+            <h3 class="font-bold text-xl mb-3">محفظة متعددة العملات</h3>
+            <p class="text-sm text-slate-400 leading-relaxed">نظام محفظة متطور يدعم عدة عملات مع تحويل تلقائي للرصيد لسهولة الشراء.</p>
+        </div>
+        <div class="feature-card-v3 reveal">
+            <div class="feature-icon-v3"><i class="fas fa-shield-check"></i></div>
+            <h3 class="font-bold text-xl mb-3">دفع آمن وموثوق</h3>
+            <p class="text-sm text-slate-400 leading-relaxed">كافة المعاملات المالية مشفرة ومحمية، مع دعم لوسائل الدفع المحلية والعالمية.</p>
+        </div>
+        <div class="feature-card-v3 reveal">
+            <div class="feature-icon-v3"><i class="fas fa-bolt"></i></div>
+            <h3 class="font-bold text-xl mb-3">تسليم رقمي فوري</h3>
+            <p class="text-sm text-slate-400 leading-relaxed">احصل على أكواد البطاقات والخدمات الرقمية فور إتمام الطلب مباشرة في حسابك.</p>
+        </div>
+        <div class="feature-card-v3 reveal">
+            <div class="feature-icon-v3"><i class="fas fa-user-tag"></i></div>
+            <h3 class="font-bold text-xl mb-3">أسعار خاصة للتجار</h3>
+            <p class="text-sm text-slate-400 leading-relaxed">نظام فئات الأسعار (Dealer/VIP) يوفر خصومات حصرية للمستخدمين النشطين والتجار.</p>
+        </div>
+        <div class="feature-card-v3 reveal">
+            <div class="feature-icon-v3"><i class="fas fa-id-card"></i></div>
+            <h3 class="font-bold text-xl mb-3">نظام توثيق متقدم</h3>
+            <p class="text-sm text-slate-400 leading-relaxed">نظام KYC متكامل لضمان أمن الحسابات وحماية المستخدمين من الاحتيال.</p>
+        </div>
+        <div class="feature-card-v3 reveal">
+            <div class="feature-icon-v3"><i class="fas fa-headset"></i></div>
+            <h3 class="font-bold text-xl mb-3">دعم فني مباشر</h3>
+            <p class="text-sm text-slate-400 leading-relaxed">نظام تذاكر ودردشة داخلية للتواصل المباشر مع فريق الدعم لحل أي مشكلة.</p>
+        </div>
+    </div>
+</section>
+
+<!-- Section: How It Works -->
+<section class="container py-24 bg-white/[0.01] rounded-[48px] p-8 md:p-16 border border-white/5">
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
+        <div class="reveal">
+            <span class="eyebrow">البداية</span>
+            <h2 class="text-4xl font-black mb-6">ابدأ رحلتك الرقمية <br> في 4 خطوات بسيطة</h2>
+            <p class="text-slate-400 leading-relaxed mb-8">لقد قمنا بتبسيط عملية الشراء لتكون أسرع وأسهل ما يمكن. لا داعي للانتظار الطويل أو التعقيدات.</p>
+            <a href="{% url 'site_register' %}" class="btn btn-primary px-8 py-3 rounded-xl">سجل الآن مجاناً</a>
+        </div>
         
-        <div class="flex flex-col sm:row justify-center gap-4">
-            <a href="{% url 'catalog' %}" class="btn btn-primary px-12 py-4 text-lg">تصفح الخدمات الآن</a>
-            {% if user.is_authenticated %}
-                <a href="{% url 'dashboard' %}" class="btn btn-outline px-12 py-4 text-lg">لوحة التحكم الخاصة بي</a>
-            {% else %}
-                <a href="{% url 'site_register' %}" class="btn btn-outline px-12 py-4 text-lg">إنشاء حساب جديد</a>
-            {% endif %}
-        </div>
-
-        <!-- Stats -->
-        <div class="stats-v2">
-            <div class="stat-card">
-                <strong>+10K</strong>
-                <span>طلبات مكتملة</span>
+        <div class="stack gap-4 reveal">
+            <div class="step-v3">
+                <div class="step-num">1</div>
+                <div>
+                    <h4 class="font-bold text-white">إنشاء حساب</h4>
+                    <p class="text-xs text-slate-500">قم بالتسجيل وتفعيل بريدك الإلكتروني في ثوانٍ.</p>
+                </div>
             </div>
-            <div class="stat-card">
-                <strong>+5K</strong>
-                <span>عميل سعيد</span>
+            <div class="step-v3">
+                <div class="step-num">2</div>
+                <div>
+                    <h4 class="font-bold text-white">إضافة رصيد</h4>
+                    <p class="text-xs text-slate-500">استخدم وسيلة الدفع المفضلة لديك لشحن محفظتك.</p>
+                </div>
             </div>
-            <div class="stat-card">
-                <strong>24/7</strong>
-                <span>دعم فني</span>
+            <div class="step-v3">
+                <div class="step-num">3</div>
+                <div>
+                    <h4 class="font-bold text-white">اختيار الخدمة</h4>
+                    <p class="text-xs text-slate-500">تصفح الكتالوج واختر الباقة التي تناسب احتياجك.</p>
+                </div>
             </div>
-            <div class="stat-card">
-                <strong>99%</strong>
-                <span>تسليم فوري</span>
+            <div class="step-v3">
+                <div class="step-num">4</div>
+                <div>
+                    <h4 class="font-bold text-white">استلام فوري</h4>
+                    <p class="text-xs text-slate-500">احصل على منتجك الرقمي فوراً في لوحة التحكم.</p>
+                </div>
             </div>
         </div>
     </div>
 </section>
 
-<!-- Section B: Why Choose Us -->
-<section class="container py-20">
-    <div class="section-head text-center mb-16">
-        <span class="eyebrow">لماذا نحن؟</span>
-        <h2>نقدم تجربة رقمية لا مثيل لها</h2>
-    </div>
-    <div class="benefit-grid">
-        <div class="benefit-card">
-            <i class="fas fa-bolt"></i>
-            <h3>تسليم فوري</h3>
-            <p>يتم تنفيذ 95% من الطلبات خلال دقائق معدودة بفضل نظام الأتمتة المتقدم لدينا.</p>
-        </div>
-        <div class="benefit-card">
-            <i class="fas fa-shield-halved"></i>
-            <h3>دفع آمن</h3>
-            <p>كافة عملياتك المالية مشفرة ومحمية ببروتوكولات أمنية عالمية لضمان سلامة بياناتك.</p>
-        </div>
-        <div class="benefit-card">
-            <i class="fas fa-headset"></i>
-            <h3>دعم مباشر</h3>
-            <p>فريقنا متواجد للرد على استفساراتك عبر الدردشة المباشرة في أي وقت ومن أي مكان.</p>
-        </div>
-    </div>
-</section>
-
-<!-- Section C: Popular Categories -->
-<section class="container py-20 bg-white/[0.01] rounded-[40px] p-10 border border-white/5">
-    <div class="section-head flex justify-between items-end mb-12">
+<!-- Section: Featured Products Preview -->
+<section class="container py-24">
+    <div class="flex flex-col md:flex-row justify-between items-end mb-12 reveal gap-4">
         <div>
-            <span class="eyebrow">الأقسام</span>
-            <h2>تصفح حسب الفئة</h2>
+            <span class="eyebrow">عروض مختارة</span>
+            <h2 class="text-3xl font-black">أشهر الخدمات المطلوبة</h2>
         </div>
-        <a href="{% url 'catalog' %}" class="text-cyan font-bold">كل الأقسام <i class="fas fa-arrow-left mr-2"></i></a>
-    </div>
-    <div class="cat-v2-grid">
-        {% for cat in categories|slice:":6" %}
-        <a href="{% url 'catalog' %}?category={{ cat.id }}" class="cat-v2-card">
-            <i class="fas fa-folder"></i>
-            <h4>{{ cat.name }}</h4>
+        <a href="{% url 'catalog' %}" class="text-cyan font-bold flex items-center gap-2 hover:gap-4 transition-all">
+            عرض الكل <i class="fas fa-arrow-left"></i>
         </a>
-        {% empty %}
-        <p class="col-span-full text-center text-muted">لا توجد أقسام حالياً.</p>
-        {% endfor %}
     </div>
-</section>
 
-<!-- Section D: Featured Products -->
-<section class="container py-20">
-    <div class="section-head text-center mb-16">
-        <span class="eyebrow">خدمات مميزة</span>
-        <h2>أفضل العروض المختارة لك</h2>
-    </div>
-    <div class="grid grid-4 gap-6">
-        {% for p in featured_products %}
-        <div class="product-v2-card group">
-            <div class="p-v2-img">
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-8">
+        {% for p in featured_products|slice:":4" %}
+        <div class="product-v2-card reveal group">
+            <a href="{% url 'product_detail' p.id %}" class="p-v2-img">
                 {% if p.image %}
-                <img src="{{ p.image.url }}" alt="{{ p.name }}">
+                <img src="{{ p.image.url }}" alt="{{ p.name }}" class="group-hover:scale-110 transition-transform duration-500">
                 {% else %}
                 <div class="w-full h-full flex items-center justify-center text-slate-700 bg-slate-900"><i class="fas fa-box text-5xl"></i></div>
                 {% endif %}
-            </div>
+            </a>
             <div class="p-v2-body stack gap-4">
                 <div>
                     <span class="text-[10px] text-cyan font-bold uppercase">{{ p.category.name }}</span>
-                    <h3 class="text-base mt-1 line-clamp-2">{{ p.name }}</h3>
+                    <h3 class="text-sm md:text-base mt-1 line-clamp-2 font-bold">{{ p.name }}</h3>
                 </div>
-                <div class="flex justify-between items-center mt-auto">
+                <div class="flex justify-between items-center mt-auto border-t border-white/5 pt-4">
                     {% variant_price p.variants.first as v_price %}
-                    <div class="p-v2-price">{% currency_format v_price %}</div>
-                    <a href="{% url 'product_detail' p.id %}" class="btn btn-primary btn-sm px-4">اطلب</a>
+                    <div class="p-v2-price text-lg md:text-xl font-black">{% currency_format v_price %}</div>
+                    <a href="{% url 'product_detail' p.id %}" class="btn btn-primary btn-sm px-4 rounded-xl hide-on-mobile">اطلب</a>
                 </div>
             </div>
         </div>
@@ -204,44 +275,17 @@
     </div>
 </section>
 
-<!-- Section E: Testimonials / Trust -->
-<section class="container py-20 border-t border-white/5">
-    <div class="grid grid-2 gap-20 items-center">
-        <div>
-            <span class="eyebrow">ثقة العملاء</span>
-            <h2 class="mb-8">انضم إلى آلاف المستخدمين الذين يثقون بنا يومياً</h2>
-            <p class="text-slate-400 leading-relaxed mb-12">نحن في رقميات نسعى دائماً لتوفير أفضل الأسعار وأسرع الخدمات لعملائنا في المنطقة. جرب خدماتنا اليوم واكتشف الفرق بنفسك.</p>
-            <div class="flex gap-10">
-                <div>
-                    <div class="text-2xl font-bold">4.9/5</div>
-                    <div class="text-xs text-muted">تقييم العملاء</div>
-                </div>
-                <div>
-                    <div class="text-2xl font-bold">100%</div>
-                    <div class="text-xs text-muted">ضمان الخدمة</div>
-                </div>
-            </div>
-        </div>
-        <div class="panel p-10 bg-cyan/[0.02] border-cyan/20">
-            <div class="stack gap-8">
-                <div class="flex gap-4">
-                    <div class="w-12 h-12 rounded-full bg-slate-800"></div>
-                    <div>
-                        <div class="text-sm font-bold">أحمد المحمد</div>
-                        <div class="text-[10px] text-muted">عميل VIP</div>
-                        <p class="text-xs mt-3 italic text-slate-300">"أفضل منصة شحن تعاملت معها على الإطلاق. السرعة في التنفيذ والدعم الفني جداً محترم وسريع."</p>
-                    </div>
-                </div>
-                <div class="flex gap-4">
-                    <div class="w-12 h-12 rounded-full bg-slate-800"></div>
-                    <div>
-                        <div class="text-sm font-bold">سارة يوسف</div>
-                        <div class="text-[10px] text-muted">تاجر معتمد</div>
-                        <p class="text-xs mt-3 italic text-slate-300">"أتعامل معهم منذ أكثر من سنة لشحن بطاقات جوجل وبلايستيشن، الأسعار جداً منافسة والتسليم دائماً فوري."</p>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-</section>
+<script>
+    // Reveal animation on scroll
+    const observerOptions = { threshold: 0.1 };
+    const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                entry.target.classList.add('visible');
+            }
+        });
+    }, observerOptions);
+
+    document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+</script>
 {% endblock %}

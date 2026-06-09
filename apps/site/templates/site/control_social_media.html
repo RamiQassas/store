@@ -1,0 +1,150 @@
+{% extends "site/control_base.html" %}
+{% load static %}
+
+{% block title %}إدارة روابط التواصل الاجتماعي | Raqamiyat Admin{% endblock %}
+
+{% block control_content %}
+<div class="page-head">
+    <div>
+        <span class="eyebrow">Settings / Social Media</span>
+        <h1>روابط التواصل الاجتماعي</h1>
+        <p class="text-muted">إدارة الروابط والأيقونات التي تظهر في تذييل الموقع والصفحة الرئيسية.</p>
+    </div>
+</div>
+
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+    <!-- List -->
+    <div class="lg:col-span-2 stack gap-6">
+        <div class="management-card">
+            <div class="management-header">
+                <h3 class="font-bold">الروابط الحالية</h3>
+            </div>
+            <div class="p-0 overflow-x-auto">
+                <table class="w-full text-sm text-right">
+                    <thead class="text-[11px] text-slate-500 border-b border-white/5 uppercase bg-white/[0.01]">
+                        <tr>
+                            <th class="p-4">المنصة</th>
+                            <th class="p-4">الأيقونة</th>
+                            <th class="p-4">الرابط</th>
+                            <th class="p-4">الحالة</th>
+                            <th class="p-4">الترتيب</th>
+                            <th class="p-4 text-left">إجراءات</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for link in links %}
+                        <tr class="border-b border-white/[0.02] last:border-0 hover:bg-white/[0.02] transition">
+                            <td class="p-4 font-bold">{{ link.name }}</td>
+                            <td class="p-4">
+                                {% if link.icon_image %}
+                                <img src="{{ link.icon_image.url }}" class="w-6 h-6 object-contain">
+                                {% elif link.icon_class %}
+                                <i class="{{ link.icon_class }} text-xl text-cyan"></i>
+                                {% else %}
+                                <span class="text-slate-600">---</span>
+                                {% endif %}
+                            </td>
+                            <td class="p-4 text-xs font-mono text-slate-400 truncate max-w-[200px]">{{ link.url }}</td>
+                            <td class="p-4">
+                                {% if link.is_active %}
+                                <span class="badge success text-[9px]">نشط</span>
+                                {% else %}
+                                <span class="badge muted text-[9px]">معطل</span>
+                                {% endif %}
+                            </td>
+                            <td class="p-4 font-mono text-xs">{{ link.display_order }}</td>
+                            <td class="p-4 text-left">
+                                <div class="flex justify-end gap-2">
+                                    <button onclick="editLink('{{ link.id }}', '{{ link.name }}', '{{ link.url }}', '{{ link.icon_class }}', '{{ link.display_order }}', {{ link.is_active|yesno:'true,false' }})" class="btn btn-sm btn-outline text-[10px] py-1 px-3">
+                                        تعديل
+                                    </button>
+                                    <a href="{% url 'control_social_media_delete' link.id %}" class="btn btn-sm btn-outline danger text-[10px] py-1 px-3" onclick="return confirm('هل أنت متأكد من الحذف؟')">
+                                        حذف
+                                    </a>
+                                </div>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="6" class="p-10 text-center text-slate-500 italic">لا توجد روابط مضافة.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Form -->
+    <div class="stack gap-6">
+        <div class="management-card">
+            <div class="management-header">
+                <h3 class="font-bold" id="form-title">إضافة رابط جديد</h3>
+            </div>
+            <div class="p-6">
+                <form method="post" enctype="multipart/form-data" class="stack gap-4">
+                    {% csrf_token %}
+                    <input type="hidden" name="pk" id="link-pk">
+                    
+                    <div class="field-group">
+                        <label>اسم المنصة</label>
+                        {{ form.name }}
+                    </div>
+                    
+                    <div class="field-group">
+                        <label>رابط الحساب</label>
+                        {{ form.url }}
+                    </div>
+
+                    <div class="field-group">
+                        <label>كود الأيقونة (FontAwesome)</label>
+                        {{ form.icon_class }}
+                    </div>
+
+                    <div class="field-group">
+                        <label>أو تحميل أيقونة (PNG/SVG)</label>
+                        {{ form.icon_image }}
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-4">
+                        <div class="field-group">
+                            <label>ترتيب العرض</label>
+                            {{ form.display_order }}
+                        </div>
+                        <div class="field-group flex items-center gap-2 pt-6">
+                            {{ form.is_active }}
+                            <label class="mb-0">نشط</label>
+                        </div>
+                    </div>
+
+                    <div class="flex gap-2 mt-4">
+                        <button type="submit" class="btn btn-primary flex-grow">حفظ الرابط</button>
+                        <button type="button" onclick="resetForm()" class="btn btn-outline" id="cancel-btn" style="display:none">إلغاء</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function editLink(pk, name, url, icon_class, order, is_active) {
+    document.getElementById('form-title').innerText = 'تعديل الرابط';
+    document.getElementById('link-pk').value = pk;
+    document.querySelector('[name="name"]').value = name;
+    document.querySelector('[name="url"]').value = url;
+    document.querySelector('[name="icon_class"]').value = icon_class;
+    document.querySelector('[name="display_order"]').value = order;
+    document.querySelector('[name="is_active"]').checked = is_active;
+    document.getElementById('cancel-btn').style.display = 'block';
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function resetForm() {
+    document.getElementById('form-title').innerText = 'إضافة رابط جديد';
+    document.getElementById('link-pk').value = '';
+    document.querySelector('form').reset();
+    document.getElementById('cancel-btn').style.display = 'none';
+}
+</script>
+{% endblock %}

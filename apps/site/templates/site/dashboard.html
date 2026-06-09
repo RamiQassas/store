@@ -149,6 +149,46 @@
     </div>
 </div>
 
+<!-- Digital Deliveries Section (Prominent) -->
+{% if digital_deliveries %}
+<div class="mb-10">
+    <div class="section-head mb-4">
+        <h2 class="text-xl font-black text-cyan flex items-center gap-3">
+            <i class="fas fa-gift"></i> منتجاتك الرقمية المستلمة
+        </h2>
+    </div>
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {% for order in digital_deliveries %}
+        <div class="panel p-6 bg-cyan/5 border-cyan/20 flex flex-col justify-between">
+            <div class="flex gap-4 mb-4">
+                <div class="w-12 h-12 rounded-xl bg-slate-900 flex items-center justify-center text-cyan flex-shrink-0">
+                    <i class="fas fa-key text-xl"></i>
+                </div>
+                <div>
+                    <h4 class="font-bold text-white">{% with order.items.first as item %}{{ item.variant.product.name }}{% endwith %}</h4>
+                    <span class="text-[10px] text-slate-500 font-mono">الطلب #{{ order.number }}</span>
+                </div>
+            </div>
+            
+            <div class="stack gap-2 mb-4">
+                {% for key, val in order.fulfillment_data.items %}
+                <div class="flex justify-between items-center p-2 bg-slate-900/50 rounded-lg border border-white/5">
+                    <span class="text-[10px] text-slate-500 font-black uppercase">{{ key }}</span>
+                    <div class="flex items-center gap-2">
+                        <span class="text-xs font-mono text-cyan">{{ val|truncatechars:20 }}</span>
+                        <button onclick="copyToClipboard('{{ val }}', this)" class="text-[10px] text-slate-400 hover:text-white"><i class="fas fa-copy"></i></button>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+
+            <a href="{% url 'dashboard_order_detail' order.id %}" class="btn btn-primary btn-sm w-full py-2.5 rounded-xl font-bold">عرض كامل البيانات</a>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endif %}
+
 {% if not user.email_verified %}
 <div class="panel p-6 border-r-4 border-amber-500 mb-8 flex flex-col sm:row justify-between items-center bg-amber-500/5 gap-4">
     <div class="flex items-center gap-4">
@@ -312,77 +352,78 @@
                         <span class="status-badge active"></span>
                         <span class="text-sm font-bold text-success">{{ user.get_status_display }}</span>
                     </div>
-                <div class="stack gap-4">
-                    {% if not user.is_kyc_verified %}
-                        <div class="p-4 bg-amber-500/5 border border-amber-500/10 rounded-xl">
-                            <div class="flex items-center justify-between mb-2">
-                                <span class="text-xs font-bold text-amber-500">حالة التوثيق</span>
-                                <span class="badge warning text-[8px]">غير موثق</span>
-                            </div>
-                            <p class="text-[10px] text-slate-500 leading-relaxed mb-4">
-                                حسابك يعمل بحدود مالية أساسية. وثق حسابك لرفع حدود الإيداع والسحب اليومية.
-                            </p>
-                            {% if kyc_request %}
-                                <div class="flex items-center gap-2 text-[10px] text-amber-400 font-bold">
-                                    <i class="fas fa-clock"></i>
-                                    طلب التوثيق {{ kyc_request.get_status_display }}
-                                </div>
-                            {% else %}
-                                <a href="{% url 'site_kyc_request' %}" class="btn btn-sm btn-outline w-full text-[10px] py-2">بدء عملية التوثيق</a>
-                            {% endif %}
-                        </div>
-                    {% else %}
-                        <div class="p-4 bg-emerald-500/5 border border-emerald-500/10 rounded-xl">
-                            <div class="flex items-center justify-between">
-                                <span class="text-xs font-bold text-emerald-500">حساب موثق</span>
-                                <i class="fas fa-check-circle text-emerald-500"></i>
-                            </div>
-                            <p class="text-[10px] text-slate-500 mt-2">لقد تم التحقق من هويتك بنجاح. تم رفع حدود حسابك.</p>
-                        </div>
-                    {% endif %}
+                </div>
 
-                    <div class="flex items-center justify-between p-3 bg-slate-800/30 rounded-lg">
-                        <span class="text-sm text-muted">ديون معلقة</span>
-                        <span class="text-sm font-bold {% if wallet.debt_balance > 0 %}text-rose-500{% else %}text-slate-500{% endif %}">{% currency_format wallet.debt_balance wallet.currency %}</span>
-                    </div>
-                    <div class="flex items-center justify-between p-3 bg-slate-800/30 rounded-lg">
-                        <span class="text-sm text-muted">الفئة</span>
-                        <span class="text-sm font-bold text-amber-400">{{ user.get_tier_display }}</span>
-                    </div>
-
-                    <!-- Limits Section -->
-                    <div class="p-4 bg-slate-800/20 border border-white/5 rounded-xl mt-4">
-                        <div class="flex justify-between items-center mb-3">
-                            <span class="text-xs font-bold text-slate-300">حدود الحساب (USD)</span>
-                            {% if user.has_custom_limits %}
-                                <span class="badge primary text-[8px]">حدود مخصصة</span>
-                            {% else %}
-                                <span class="text-[8px] text-slate-500">حدود افتراضية</span>
-                            {% endif %}
+                {% if not user.is_kyc_verified %}
+                    <div class="p-4 bg-amber-500/5 border border-amber-500/10 rounded-xl">
+                        <div class="flex items-center justify-between mb-2">
+                            <span class="text-xs font-bold text-amber-500">حالة التوثيق</span>
+                            <span class="badge warning text-[8px]">غير موثق</span>
                         </div>
-                        <div class="stack gap-3">
-                            <div class="flex justify-between text-xs">
-                                <span class="text-slate-500">الإيداع اليومي:</span>
-                                <span class="text-white font-mono">{{ user.daily_deposit_limit|floatformat:2 }}</span>
-                            </div>
-                            <div class="flex justify-between text-xs">
-                                <span class="text-slate-500">المتبقي للإيداع:</span>
-                                <span class="text-emerald-400 font-bold font-mono">{{ user.remaining_deposit_limit|floatformat:2 }}</span>
-                            </div>
-                            <div class="h-px bg-white/5 my-1"></div>
-                            <div class="flex justify-between text-xs">
-                                <span class="text-slate-500">السحب اليومي:</span>
-                                <span class="text-white font-mono">{{ user.daily_withdrawal_limit|floatformat:2 }}</span>
-                            </div>
-                            <div class="flex justify-between text-xs">
-                                <span class="text-slate-500">المتبقي للسحب:</span>
-                                <span class="text-emerald-400 font-bold font-mono">{{ user.remaining_withdrawal_limit|floatformat:2 }}</span>
-                            </div>
-                        </div>
-                        <p class="text-[9px] text-slate-600 mt-3 leading-tight">
-                            * يتم حساب الحدود بناءً على القيمة المعادلة بالدولار (USD).
+                        <p class="text-[10px] text-slate-500 leading-relaxed mb-4">
+                            حسابك يعمل بحدود مالية أساسية. وثق حسابك لرفع حدود الإيداع والسحب اليومية.
                         </p>
+                        {% if kyc_request %}
+                            <div class="flex items-center gap-2 text-[10px] text-amber-400 font-bold">
+                                <i class="fas fa-clock"></i>
+                                طلب التوثيق {{ kyc_request.get_status_display }}
+                            </div>
+                        {% else %}
+                            <a href="{% url 'site_kyc_request' %}" class="btn btn-sm btn-outline w-full text-[10px] py-2">بدء عملية التوثيق</a>
+                        {% endif %}
                     </div>
+                {% else %}
+                    <div class="p-4 bg-emerald-500/5 border border-emerald-500/10 rounded-xl">
+                        <div class="flex items-center justify-between">
+                            <span class="text-xs font-bold text-emerald-500">حساب موثق</span>
+                            <i class="fas fa-check-circle text-emerald-500"></i>
+                        </div>
+                        <p class="text-[10px] text-slate-500 mt-2">لقد تم التحقق من هويتك بنجاح. تم رفع حدود حسابك.</p>
+                    </div>
+                {% endif %}
+
+                <div class="flex items-center justify-between p-3 bg-slate-800/30 rounded-lg">
+                    <span class="text-sm text-muted">ديون معلقة</span>
+                    <span class="text-sm font-bold {% if wallet.debt_balance > 0 %}text-rose-500{% else %}text-slate-500{% endif %}">{% currency_format wallet.debt_balance wallet.currency %}</span>
+                </div>
+                <div class="flex items-center justify-between p-3 bg-slate-800/30 rounded-lg">
+                    <span class="text-sm text-muted">الفئة</span>
+                    <span class="text-sm font-bold text-amber-400">{{ user.get_tier_display }}</span>
+                </div>
+
+                <!-- Limits Section -->
+                <div class="p-4 bg-slate-800/20 border border-white/5 rounded-xl mt-4">
+                    <div class="flex justify-between items-center mb-3">
+                        <span class="text-xs font-bold text-slate-300">حدود الحساب (USD)</span>
+                        {% if user.has_custom_limits %}
+                            <span class="badge primary text-[8px]">حدود مخصصة</span>
+                        {% else %}
+                            <span class="text-[8px] text-slate-500">حدود افتراضية</span>
+                        {% endif %}
+                    </div>
+                    <div class="stack gap-3">
+                        <div class="flex justify-between text-xs">
+                            <span class="text-slate-500">الإيداع اليومي:</span>
+                            <span class="text-white font-mono">{{ user.daily_deposit_limit|floatformat:2 }}</span>
+                        </div>
+                        <div class="flex justify-between text-xs">
+                            <span class="text-slate-500">المتبقي للإيداع:</span>
+                            <span class="text-emerald-400 font-bold font-mono">{{ user.remaining_deposit_limit|floatformat:2 }}</span>
+                        </div>
+                        <div class="h-px bg-white/5 my-1"></div>
+                        <div class="flex justify-between text-xs">
+                            <span class="text-slate-500">السحب اليومي:</span>
+                            <span class="text-white font-mono">{{ user.daily_withdrawal_limit|floatformat:2 }}</span>
+                        </div>
+                        <div class="flex justify-between text-xs">
+                            <span class="text-slate-500">المتبقي للسحب:</span>
+                            <span class="text-emerald-400 font-bold font-mono">{{ user.remaining_withdrawal_limit|floatformat:2 }}</span>
+                        </div>
+                    </div>
+                    <p class="text-[9px] text-slate-600 mt-3 leading-tight">
+                        * يتم حساب الحدود بناءً على القيمة المعادلة بالدولار (USD).
+                    </p>
+                </div>
 
                 <div class="flex items-center justify-between p-3 bg-slate-800/30 rounded-lg">
                     <span class="text-sm text-muted">عضو منذ</span>
@@ -413,4 +454,19 @@
         </div>
     </div>
 </div>
+
+{% block extra_js %}
+<script>
+function copyToClipboard(text, btn) {
+    navigator.clipboard.writeText(text).then(() => {
+        const icon = btn.querySelector('i');
+        const originalClass = icon.className;
+        icon.className = 'fas fa-check text-emerald-500';
+        setTimeout(() => {
+            icon.className = originalClass;
+        }, 2000);
+    });
+}
+</script>
+{% endblock %}
 {% endblock %}

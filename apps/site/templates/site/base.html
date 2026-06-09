@@ -148,18 +148,61 @@
 
     {% block content %}{% endblock %}
 
-    <footer>
+    <footer class="mt-24 pt-20 pb-10 border-t border-white/5 bg-white/[0.01]">
       <div class="container">
-        <div class="flex flex-col md:row justify-between items-center gap-6">
-            <div class="brand" style="font-size: 1.5rem;">
-                <i class="fas fa-bolt"></i> <span>RAQAMIYAT</span>
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-12 mb-16">
+            <div class="md:col-span-2">
+                <div class="brand mb-6" style="font-size: 1.75rem;">
+                    <i class="fas fa-bolt text-cyan"></i> <span>RAQAMIYAT</span>
+                </div>
+                <p class="text-slate-500 text-sm max-w-sm leading-relaxed mb-8">
+                    رقميات هي المنصة الرائدة في المنطقة لتوفير كافة الخدمات والبطاقات الرقمية بأمان تام وسرعة استثنائية. نسعى دائماً لتقديم أفضل تجربة شراء لعملائنا وتجارنا.
+                </p>
+                <div class="flex gap-4">
+                    {% for link in SOCIAL_LINKS %}
+                    <a href="{{ link.url }}" target="_blank" class="w-10 h-10 rounded-xl bg-slate-900 border border-white/5 flex items-center justify-center text-slate-400 hover:text-cyan hover:border-cyan/30 transition-all">
+                        {% if link.icon_image %}
+                        <img src="{{ link.icon_image.url }}" class="w-5 h-5 object-contain">
+                        {% else %}
+                        <i class="{{ link.icon_class|default:'fas fa-link' }} text-lg"></i>
+                        {% endif %}
+                    </a>
+                    {% endfor %}
+                </div>
             </div>
-            <div class="flex gap-6 text-sm">
-                <a href="{% url 'privacy_policy' %}" class="hover:text-cyan">الخصوصية</a>
-                <a href="{% url 'terms_of_service' %}" class="hover:text-cyan">الشروط</a>
-                <a href="{% url 'contact' %}" class="hover:text-cyan">تواصل معنا</a>
+            
+            <div>
+                <h4 class="font-black text-xs uppercase tracking-widest text-white mb-6">روابط سريعة</h4>
+                <div class="stack gap-4 text-sm text-slate-500">
+                    <a href="{% url 'catalog' %}" class="hover:text-cyan transition-colors">تصفح الخدمات</a>
+                    {% if not user.is_authenticated %}
+                    <a href="{% url 'site_login' %}" class="hover:text-cyan transition-colors">تسجيل الدخول</a>
+                    <a href="{% url 'site_register' %}" class="hover:text-cyan transition-colors">إنشاء حساب</a>
+                    {% else %}
+                    <a href="{% url 'dashboard' %}" class="hover:text-cyan transition-colors">لوحة التحكم</a>
+                    <a href="{% url 'dashboard_orders' %}" class="hover:text-cyan transition-colors">طلباتي</a>
+                    {% endif %}
+                </div>
             </div>
-            <div class="text-[10px] text-slate-600 font-bold">© 2026 RAQAMIYAT LTD. ALL RIGHTS RESERVED.</div>
+
+            <div>
+                <h4 class="font-black text-xs uppercase tracking-widest text-white mb-6">الدعم والخصوصية</h4>
+                <div class="stack gap-4 text-sm text-slate-500">
+                    <a href="{% url 'privacy_policy' %}" class="hover:text-cyan transition-colors">سياسة الخصوصية</a>
+                    <a href="{% url 'terms_of_service' %}" class="hover:text-cyan transition-colors">شروط الاستخدام</a>
+                    <a href="{% url 'refund_policy' %}" class="hover:text-cyan transition-colors">سياسة الاسترجاع</a>
+                    <a href="{% url 'contact' %}" class="hover:text-cyan transition-colors">اتصل بنا</a>
+                </div>
+            </div>
+        </div>
+        
+        <div class="flex flex-col md:row justify-between items-center pt-10 border-t border-white/5 gap-4">
+            <div class="text-[10px] text-slate-600 font-bold tracking-wider">© 2026 RAQAMIYAT LTD. ALL RIGHTS RESERVED.</div>
+            <div class="flex items-center gap-6 opacity-30 grayscale hover:opacity-100 hover:grayscale-0 transition-all">
+                <i class="fab fa-cc-visa text-2xl"></i>
+                <i class="fab fa-cc-mastercard text-2xl"></i>
+                <i class="fab fa-cc-paypal text-2xl"></i>
+            </div>
         </div>
       </div>
     </footer>
