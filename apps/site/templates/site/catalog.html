@@ -152,7 +152,8 @@
                     <div class="p-v2-footer mt-6 pt-4 border-t border-white/5 flex justify-between items-center">
                         <div class="p-v2-price-box">
                             <span>يبدأ من</span>
-                            <div class="p-v2-price">{% currency_format p.variants.first.price %}</div>
+                            {% variant_price p.variants.first as v_price %}
+                            <div class="p-v2-price">{% currency_format v_price %}</div>
                         </div>
                         <a href="{% url 'product_detail' p.id %}" class="btn btn-primary btn-sm rounded-full px-5">تفاصيل</a>
                     </div>

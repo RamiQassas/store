@@ -133,7 +133,7 @@ class ProductVariant(TimeStampedModel):
         from apps.accounts.models import User
         if user.tier == User.Tier.VIP:
             return self.vip_price or self.price
-        elif user.tier == User.Tier.GOLD:
+        elif user.tier == User.Tier.DEALER:
             return self.wholesale_price or self.price
         return self.price
 

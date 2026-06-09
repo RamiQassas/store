@@ -29,9 +29,8 @@ class User(AbstractUser):
         BANNED = "banned", "محظور نهائياً"
 
     class Tier(models.TextChoices):
-        BRONZE = "bronze", "برونزي"
-        SILVER = "silver", "فضي"
-        GOLD = "gold", "ذهبي"
+        CUSTOMER = "customer", "عميل"
+        DEALER = "dealer", "تاجر معتمد"
         VIP = "vip", "VIP"
 
     username = models.CharField(max_length=150, blank=True)
@@ -40,7 +39,7 @@ class User(AbstractUser):
     role = models.CharField(max_length=32, choices=Role.choices, default=Role.CUSTOMER)
     
     # Tiers
-    tier = models.CharField(max_length=20, choices=Tier.choices, default=Tier.BRONZE, verbose_name="الفئة")
+    tier = models.CharField(max_length=20, choices=Tier.choices, default=Tier.CUSTOMER, verbose_name="الفئة")
     
     # Account Status & Moderation
     status = models.CharField(max_length=32, choices=Status.choices, default=Status.ACTIVE, verbose_name="حالة الحساب")

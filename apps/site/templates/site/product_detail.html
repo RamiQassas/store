@@ -102,7 +102,8 @@
                             <div class="text-[10px] text-muted">وقت التسليم: {{ v.estimated_delivery_minutes }} دقيقة</div>
                         </div>
                     </div>
-                    <div class="price-tag">{% currency_format v.price %}</div>
+                    {% variant_price v as v_price %}
+                    <div class="price-tag">{% currency_format v_price %}</div>
                 </div>
                 {% endfor %}
             </div>
@@ -153,7 +154,8 @@
                     </div>
                     <div class="flex-grow">
                         <div class="text-xs font-bold line-clamp-1">{{ rp.name }}</div>
-                        <div class="text-[10px] text-cyan mt-1">{% currency_format rp.variants.first.price %}</div>
+                        {% variant_price rp.variants.first as rp_price %}
+                        <div class="text-[10px] text-cyan mt-1">{% currency_format rp_price %}</div>
                     </div>
                 </a>
                 {% endfor %}

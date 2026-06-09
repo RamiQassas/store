@@ -6,17 +6,17 @@ from apps.accounts.models import SecurityEvent, User, UserSession
 
 @admin.register(User)
 class CustomUserAdmin(UserAdmin):
-    list_display = ("email", "phone", "role", "email_verified", "is_active", "is_staff")
-    list_filter = ("role", "email_verified", "is_active", "is_staff")
+    list_display = ("email", "phone", "role", "tier", "email_verified", "is_active", "is_staff")
+    list_filter = ("role", "tier", "email_verified", "is_active", "is_staff")
     search_fields = ("email", "phone", "first_name", "last_name")
     ordering = ("email",)
     fieldsets = UserAdmin.fieldsets + (
-        ("Platform", {"fields": ("phone", "role", "email_verified", "two_factor_enabled")}),
+        ("Platform", {"fields": ("phone", "role", "tier", "email_verified", "two_factor_enabled")}),
     )
     add_fieldsets = (
         (None, {
             "classes": ("wide",),
-            "fields": ("email", "password1", "password2", "role", "is_staff", "is_superuser"),
+            "fields": ("email", "password1", "password2", "role", "tier", "is_staff", "is_superuser"),
         }),
     )
 

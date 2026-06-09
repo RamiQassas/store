@@ -28,6 +28,17 @@ def convert_price(amount, target_currency):
         return amount
 
 @register.simple_tag(takes_context=True)
+def variant_price(context, variant):
+    """
+    Returns the price of a variant for the current user in context.
+    """
+    request = context.get('request')
+    if not request or not request.user.is_authenticated:
+        return variant.price
+    
+    return variant.get_price_for_user(request.user)
+
+@register.simple_tag(takes_context=True)
 def currency_format(context, amount, source_currency=None):
     """
     Formats a price according to the current preferred currency in context.

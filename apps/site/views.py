@@ -797,7 +797,39 @@ def payment_method_edit(request, pk):
     if request.method == "POST" and form.is_valid(): form.save(); return redirect("payment_methods_list")
     return render(request, "site/payment_method_builder.html", {"form": form, "method": method})
 @admin_required
-def control_users_list(request): return render(request, "site/control_users_list.html", {"users": User.objects.select_related("wallet").order_by("-date_joined"), "tiers": User.Tier.choices, "roles": User.Role.choices})
+def control_users_list(request):
+    q = request.GET.get('q', '')
+    users = User.objects.select_related("wallet").order_by("-date_joined")
+    
+    if q:
+        users = users.filter(Q(email__icontains=q) | Q(phone__icontains=q) | Q(first_name__icontains=q) | Q(last_name__icontains=q))
+
+    if request.method == "POST":
+        action = request.POST.get("action")
+        user_ids = request.POST.getlist("user_ids")
+        
+        if not user_ids:
+            messages.warning(request, "لم يتم اختيار أي مستخدم.")
+        else:
+            if action == "bulk_tier":
+                target_tier = request.POST.get("target_tier")
+                if target_tier:
+                    User.objects.filter(id__in=user_ids).update(tier=target_tier)
+                    messages.success(request, f"تم تحديث فئة {len(user_ids)} مستخدم بنجاح.")
+            elif action == "bulk_role":
+                target_role = request.POST.get("target_role")
+                if target_role:
+                    User.objects.filter(id__in=user_ids).update(role=target_role)
+                    messages.success(request, f"تم تحديث دور {len(user_ids)} مستخدم بنجاح.")
+        
+        return redirect("control_users_list")
+
+    return render(request, "site/control_users_list.html", {
+        "users": users, 
+        "query": q,
+        "tiers": User.Tier.choices, 
+        "roles": User.Role.choices
+    })
 def privacy_policy(request): return render(request, "site/privacy_policy.html")
 def terms_of_service(request): return render(request, "site/terms_of_service.html")
 def refund_policy(request): return render(request, "site/refund_policy.html")
