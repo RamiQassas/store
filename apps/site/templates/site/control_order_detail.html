@@ -1,179 +1,240 @@
 {% extends "site/control_base.html" %}
-{% load site_tags %}
-{% block title %}تفاصيل الطلب {{ order.number }} | Raqamiyat Admin{% endblock %}
+{% load static site_tags %}
+
+{% block title %}تفاصيل الطلب #{{ order.number }} | Raqamiyat Admin{% endblock %}
+
+{% block extra_head %}
+<style>
+    .order-grid { display: grid; grid-template-columns: 1fr 350px; gap: 24px; }
+    @media (max-width: 1024px) { .order-grid { grid-template-columns: 1fr; } }
+    
+    .info-item { display: flex; flex-direction: column; gap: 4px; padding: 12px; background: rgba(255,255,255,0.02); border-radius: 12px; border: 1px solid rgba(255,255,255,0.05); }
+    .info-label { font-size: 10px; font-weight: 800; color: #64748b; text-transform: uppercase; }
+    .info-value { font-size: 14px; font-weight: 600; color: #f1f5f9; }
+    
+    .fulfillment-row { display: grid; grid-template-columns: 150px 1fr 50px; gap: 12px; align-items: start; }
+</style>
+{% endblock %}
+
 {% block control_content %}
-<section class="page-head flex justify-between items-center mb-8">
-  <div>
-    <span class="eyebrow">Admin / Orders / #{{ order.number }}</span>
-    <h1>تفاصيل الطلب: {{ order.number }}</h1>
-    <div class="flex gap-4 mt-2">
-        <span class="badge primary text-xs uppercase">{{ order.get_status_display }}</span>
-        <span class="text-slate-500 text-xs mt-1 font-mono">بواسطة: {{ order.customer.email }}</span>
+<nav class="breadcrumb">
+    <a href="{% url 'control_dashboard' %}" class="breadcrumb-item">الرئيسية</a>
+    <a href="{% url 'control_orders_list' %}" class="breadcrumb-item">إدارة الطلبات</a>
+    <span class="breadcrumb-item active">تفاصيل الطلب</span>
+</nav>
+
+<div class="page-head flex justify-between items-center">
+    <div>
+        <span class="eyebrow">Content Management / Orders</span>
+        <h1>تفاصيل الطلب: #{{ order.number }}</h1>
+        <p class="text-muted">مراجعة ومعالجة الطلب المقدم من {{ order.customer.email }}</p>
     </div>
-  </div>
-  <a href="{% url 'control_orders_list' %}" class="btn btn-outline btn-sm">عودة للقائمة</a>
-</section>
+    <div class="flex gap-3">
+        <a href="{% url 'control_orders_list' %}" class="btn btn-outline btn-sm">
+            <i class="fas fa-arrow-right ml-2"></i> العودة للقائمة
+        </a>
+    </div>
+</div>
 
-<div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
-  <!-- Items & Payout Info -->
-  <div class="lg:col-span-2 stack gap-8">
-    <article class="management-card p-8">
-      <h3 class="font-black text-sm uppercase tracking-widest text-slate-500 mb-6 flex items-center gap-2 border-b border-white/5 pb-4">
-        <i class="fas fa-box-open text-cyan"></i> بنود الطلب
-      </h3>
-      <div class="stack gap-4">
-        {% for item in order.items.all %}
-          <div class="flex justify-between items-center bg-slate-900/50 p-4 rounded-2xl border border-white/5">
-            <div class="flex items-center gap-4">
-               {% if item.variant.product.thumbnail %}
-                 <img src="{{ item.variant.product.thumbnail.url }}" class="w-12 h-12 rounded-xl object-cover border border-white/10">
-               {% else %}
-                 <div class="w-12 h-12 rounded-xl bg-white/5 flex items-center justify-center">
-                    <i class="fas fa-cube text-slate-500"></i>
-                 </div>
-               {% endif %}
-               <div>
-                  <strong class="block text-sm text-white">{{ item.variant.product.name }}</strong>
-                  <small class="text-slate-400 font-bold text-xs mt-1 block">باقة: <span class="text-cyan">{{ item.variant.name }}</span> x {{ item.quantity }}</small>
-               </div>
+<div class="order-grid">
+    <!-- Main Content -->
+    <div class="stack gap-6">
+        <!-- Order Items -->
+        <div class="management-card">
+            <div class="management-header">
+                <h3 class="font-bold flex items-center gap-2">
+                    <i class="fas fa-box text-cyan"></i> بنود الطلب
+                </h3>
             </div>
-            <div class="text-right">
-                <strong class="text-white">{% currency_format item.total_price %}</strong>
-                <small class="block text-slate-500 mt-1 text-[10px]">الوحدة: {% currency_format item.unit_price %}</small>
+            <div class="p-6">
+                <div class="stack gap-4">
+                    {% for item in order.items.all %}
+                    <div class="flex items-center justify-between p-4 bg-slate-900/40 rounded-2xl border border-white/5">
+                        <div class="flex items-center gap-4">
+                            {% if item.variant.product.thumbnail %}
+                            <img src="{{ item.variant.product.thumbnail.url }}" class="w-12 h-12 rounded-xl object-cover border border-white/10">
+                            {% else %}
+                            <div class="w-12 h-12 rounded-xl bg-slate-800 flex items-center justify-center text-slate-600">
+                                <i class="fas fa-cube text-xl"></i>
+                            </div>
+                            {% endif %}
+                            <div>
+                                <div class="font-bold text-white">{{ item.variant.product.name }}</div>
+                                <div class="text-[10px] text-slate-500">الباقة: <span class="text-cyan">{{ item.variant.name }}</span> × {{ item.quantity }}</div>
+                            </div>
+                        </div>
+                        <div class="text-left">
+                            <div class="font-black text-white">{% currency_format item.total_price %}</div>
+                            <div class="text-[9px] text-slate-500">سعر الوحدة: {% currency_format item.unit_price %}</div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                    
+                    <div class="flex justify-between items-center mt-4 p-4 bg-cyan/10 rounded-2xl border border-cyan/20">
+                        <span class="font-bold text-cyan text-sm">المبلغ الإجمالي المخصوم:</span>
+                        <span class="font-black text-cyan text-2xl">{% currency_format order.total_amount %}</span>
+                    </div>
+                </div>
             </div>
-          </div>
-        {% empty %}
-          <div class="p-8 text-center text-slate-500 italic text-xs">لا توجد منتجات مسجلة.</div>
-        {% endfor %}
-      </div>
-      
-      <div class="mt-8 p-5 bg-cyan/5 border border-cyan/10 rounded-2xl flex justify-between items-center">
-          <span class="font-black text-sm text-cyan uppercase tracking-widest">المبلغ الإجمالي المخصوم:</span>
-          <strong class="text-2xl font-black text-cyan">{% currency_format order.total_amount %}</strong>
-      </div>
-    </article>
+        </div>
 
-    <article class="management-card p-8 border-cyan/20 shadow-xl">
-        <div class="flex justify-between items-center mb-6 border-b border-white/5 pb-4">
-            <h3 class="font-black text-sm uppercase tracking-widest text-cyan flex items-center gap-2">
-                <i class="fas fa-list-check"></i> بيانات التنفيذ الفعالة (Fulfillment)
-            </h3>
+        <!-- Customer Metadata (Dynamic Fields) -->
+        <div class="management-card">
+            <div class="management-header">
+                <h3 class="font-bold flex items-center gap-2">
+                    <i class="fas fa-user-edit text-cyan"></i> البيانات المدخلة من العميل
+                </h3>
+            </div>
+            <div class="p-6">
+                {% if mapped_metadata %}
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {% for item in mapped_metadata %}
+                    <div class="info-item">
+                        <span class="info-label">{{ item.label }}</span>
+                        <span class="info-value">{{ item.value|default:"---" }}</span>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="p-10 text-center bg-slate-900/50 rounded-2xl border border-dashed border-white/10">
+                    <p class="text-slate-500 font-bold">لم يتم إدخال بيانات مخصصة لهذا الطلب.</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Fulfillment Data -->
+        <div class="management-card">
+            <div class="management-header">
+                <h3 class="font-bold flex items-center gap-2">
+                    <i class="fas fa-paper-plane text-cyan"></i> بيانات التنفيذ (Fulfillment)
+                </h3>
+            </div>
+            <div class="p-6">
+                <p class="text-[11px] text-slate-500 mb-6">هذه البيانات تظهر للمستخدم عند اكتمال الطلب (مثلاً: أكواد الشحن، روابط التحميل، أو رسالة تأكيد).</p>
+                
+                <form method="post" class="stack gap-4" id="fulfillment-form">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="update_fulfillment">
+                    <div id="ff-container" class="stack gap-3">
+                        {% for key, val in readable_fulfillment.items %}
+                        <div class="fulfillment-row">
+                            <input type="text" name="ff_key[]" value="{{ key }}" placeholder="المفتاح" class="bg-slate-900 border-white/10 rounded-xl p-3 text-xs text-white">
+                            <textarea name="ff_value[]" placeholder="القيمة" class="bg-slate-900 border-white/10 rounded-xl p-3 text-xs text-cyan font-mono" rows="1">{{ val }}</textarea>
+                            <button type="button" class="btn btn-outline danger h-full" onclick="this.parentElement.remove()"><i class="fas fa-times"></i></button>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    
+                    <div class="flex justify-between items-center mt-4">
+                        <button type="button" class="btn btn-outline btn-sm" onclick="addFfRow()">
+                            <i class="fas fa-plus ml-1"></i> إضافة حقل
+                        </button>
+                        <button type="submit" class="btn btn-primary px-8">حفظ بيانات التنفيذ</button>
+                    </div>
+                </form>
+            </div>
         </div>
         
-        <div class="bg-slate-900/50 p-6 rounded-2xl border border-white/5 mb-6">
-            <p class="text-xs text-slate-400 mb-4 leading-relaxed">
-                يمكنك هنا بناء الحقول المخصصة التي سيستلمها المستخدم كنتيجة لطلبه. أضف المفاتيح والقيم (مثلاً: "رابط التحميل", "الرقم السري", إلخ).
-            </p>
-            <form method="post" id="fulfillment-form">
-                {% csrf_token %}
-                <input type="hidden" name="action" value="update_fulfillment">
-                
-                <div id="ff-container" class="stack gap-3">
-                    {% for key, val in readable_fulfillment.items %}
-                    <div class="flex gap-2 items-start ff-row">
-                        <input type="text" name="ff_key[]" value="{{ key }}" placeholder="المفتاح (مثال: License Key)" class="w-1/3 bg-slate-800 border-white/10 rounded-xl p-3 text-xs font-bold text-white focus:border-cyan/50" required>
-                        <textarea name="ff_value[]" placeholder="القيمة" class="w-2/3 bg-slate-800 border-white/10 rounded-xl p-3 text-xs font-mono text-cyan focus:border-cyan/50 h-[45px]" required>{{ val }}</textarea>
-                        <button type="button" class="btn btn-sm btn-outline danger px-3 h-[45px] rounded-xl" onclick="this.parentElement.remove()"><i class="fas fa-times"></i></button>
-                    </div>
-                    {% endfor %}
-                </div>
-                
-                <div class="flex justify-between mt-6 pt-6 border-t border-white/5">
-                    <button type="button" class="btn btn-sm btn-outline border-dashed border-white/20 text-slate-300" onclick="addFfRow()">
-                        <i class="fas fa-plus ml-1"></i> إضافة حقل جديد
-                    </button>
-                    <button type="submit" class="btn btn-primary btn-sm px-8 shadow-cyan/20">
-                        <i class="fas fa-save ml-1"></i> حفظ وتحديث بيانات التنفيذ
-                    </button>
-                </div>
-            </form>
-        </div>
-    </article>
-    
-    <article class="management-card p-8 bg-slate-900/20">
-        <h3 class="font-black text-[10px] uppercase tracking-widest text-slate-500 mb-6">سجل الحالات (Logs)</h3>
-        <div class="stack gap-6">
-            {% for log in order.logs.all %}
-                <div class="flex gap-4">
-                    <div class="w-0.5 bg-white/5 relative">
-                        <div class="absolute top-0 -left-[3px] w-2 h-2 rounded-full bg-slate-500"></div>
-                    </div>
-                    <div class="flex-grow pb-2">
-                        <div class="flex items-center gap-2">
-                            <span class="text-[11px] font-black text-white uppercase">{{ log.get_status_display }}</span>
-                            {% if log.created_by %}<span class="badge primary text-[8px] px-2 py-0.5">{{ log.created_by.first_name|default:log.created_by.email }}</span>{% endif %}
+        <!-- Logs -->
+        <div class="management-card">
+            <div class="management-header">
+                <h3 class="font-bold">سجل الحالات (Logs)</h3>
+            </div>
+            <div class="p-6">
+                <div class="stack gap-4">
+                    {% for log in order.logs.all %}
+                    <div class="flex gap-4 items-start">
+                        <div class="w-2 h-2 rounded-full bg-slate-700 mt-1.5 flex-shrink-0"></div>
+                        <div class="flex-grow">
+                            <div class="flex items-center gap-2">
+                                <span class="font-bold text-xs text-white">{{ log.get_status_display }}</span>
+                                <span class="text-[9px] text-slate-600 font-mono">{{ log.created_at|date:"Y-m-d H:i" }}</span>
+                                {% if log.created_by %}
+                                <span class="badge primary text-[8px] py-0.5">{{ log.created_by.first_name|default:log.created_by.email }}</span>
+                                {% endif %}
+                            </div>
+                            {% if log.note %}
+                            <div class="text-[11px] text-slate-400 mt-1 p-2 bg-slate-900/50 rounded-lg border border-white/5">{{ log.note }}</div>
+                            {% endif %}
                         </div>
-                        <div class="text-[10px] text-slate-500 mt-1 font-mono">{{ log.created_at|date:"d/m/Y H:i:s" }}</div>
-                        {% if log.note %}<div class="text-xs text-slate-400 mt-2 bg-white/[0.02] p-2 rounded border border-white/5">{{ log.note }}</div>{% endif %}
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Sidebar -->
+    <div class="stack gap-6">
+        <!-- Update Status -->
+        <div class="management-card border-cyan/20">
+            <div class="management-header">
+                <h3 class="font-bold flex items-center gap-2">
+                    <i class="fas fa-sync text-cyan"></i> تحديث الحالة
+                </h3>
+            </div>
+            <div class="p-6">
+                <form method="post" class="stack gap-4">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="update_status">
+                    <div class="field-group">
+                        <label class="info-label">الحالة</label>
+                        <select name="status" class="w-full bg-slate-900 border-white/10 rounded-xl p-3 text-xs text-white">
+                            {% for val, label in order.Status.choices %}
+                            <option value="{{ val }}" {% if order.status == val %}selected{% endif %}>{{ label }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="field-group">
+                        <label class="info-label">ملاحظة المدير</label>
+                        <textarea name="admin_note" rows="3" class="w-full bg-slate-900 border-white/10 rounded-xl p-3 text-xs text-white" placeholder="سبب التحديث..."></textarea>
+                    </div>
+                    <button type="submit" class="btn btn-primary w-full py-3 font-bold">تحديث حالة الطلب</button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Customer Profile -->
+        <div class="management-card">
+            <div class="management-header">
+                <h3 class="font-bold">معلومات العميل</h3>
+            </div>
+            <div class="p-6 stack gap-4">
+                <div class="flex items-center gap-4 mb-2">
+                    <div class="w-12 h-12 rounded-2xl bg-gradient-to-br from-cyan to-blue-600 flex items-center justify-center text-black font-black text-lg">
+                        {{ order.customer.email|slice:":1"|upper }}
+                    </div>
+                    <div class="min-w-0">
+                        <div class="font-bold text-white truncate">{{ order.customer.get_full_name|default:order.customer.username }}</div>
+                        <div class="text-[10px] text-slate-500 truncate">{{ order.customer.email }}</div>
                     </div>
                 </div>
-            {% empty %}
-                <div class="text-xs text-slate-500 italic">لا يوجد سجل تاريخي.</div>
-            {% endfor %}
-        </div>
-    </article>
-  </div>
+                
+                <div class="info-item">
+                    <span class="info-label">الرصيد المتاح</span>
+                    <span class="info-value text-cyan">{% currency_format order.customer.wallet.available_balance order.customer.wallet.currency %}</span>
+                </div>
 
-  <!-- Management Sidebar -->
-  <div class="lg:col-span-1 stack gap-8">
-    <article class="management-card p-8 border-cyan/10">
-        <h3 class="font-black text-[10px] uppercase tracking-widest text-cyan mb-6 flex items-center gap-2">
-            <i class="fas fa-rotate"></i> تحديث حالة الطلب
-        </h3>
-        <form method="post" class="stack gap-6">
-            {% csrf_token %}
-            <input type="hidden" name="action" value="update_status">
-            <div class="field-group">
-                <label class="text-[10px] font-bold text-slate-500 uppercase block mb-2">الحالة الجديدة</label>
-                <select name="status" class="w-full bg-slate-900 border-white/10 rounded-xl p-3 text-xs text-white focus:border-cyan/50 outline-none cursor-pointer">
-                    {% for val, label in order.Status.choices %}
-                        <option value="{{ val }}" {% if order.status == val %}selected{% endif %}>{{ label }}</option>
-                    {% endfor %}
-                </select>
+                <a href="{% url 'control_user_moderate' order.customer.public_uuid %}" class="btn btn-outline btn-sm w-full">
+                    <i class="fas fa-user-shield ml-1"></i> إدارة الحساب
+                </a>
             </div>
-            <div class="field-group">
-                <label class="text-[10px] font-bold text-slate-500 uppercase block mb-2">ملاحظة إدارية (اختيارية)</label>
-                <textarea name="admin_note" rows="3" class="w-full bg-slate-900 border-white/10 rounded-xl p-3 text-xs text-white focus:border-cyan/50" placeholder="أضف ملاحظة توضح سبب التغيير..."></textarea>
-            </div>
-            <button type="submit" class="btn btn-primary w-full py-3 rounded-xl shadow-cyan/20">تحديث الحالة</button>
-        </form>
-    </article>
-
-    <article class="management-card p-8 bg-slate-900/30 border-white/5">
-        <h3 class="font-black text-[10px] uppercase tracking-widest text-slate-500 mb-6">معلومات العميل</h3>
-        <div class="stack gap-4 text-xs">
-            <div class="flex justify-between items-center pb-2 border-b border-white/5">
-                <span class="text-slate-500">الاسم</span>
-                <strong class="text-white">{{ order.customer.get_full_name|default:"---" }}</strong>
-            </div>
-            <div class="flex justify-between items-center pb-2 border-b border-white/5">
-                <span class="text-slate-500">البريد</span>
-                <strong class="text-cyan font-mono">{{ order.customer.email }}</strong>
-            </div>
-            <div class="flex justify-between items-center pb-4 border-b border-white/5">
-                <span class="text-slate-500">الرصيد المتاح حالياً</span>
-                <strong class="text-white">{% currency_format order.customer.wallet.available_balance order.customer.wallet.currency %}</strong>
-            </div>
-            
-            <a href="{% url 'control_user_moderate' order.customer.public_uuid %}" class="btn btn-sm btn-outline border-white/10 hover:bg-white/5 text-[10px] w-full mt-2">
-                <i class="fas fa-user-shield ml-1"></i> إدارة حساب العميل
-            </a>
         </div>
-    </article>
-  </div>
+    </div>
 </div>
 
 <script>
 function addFfRow() {
     const container = document.getElementById('ff-container');
-    const rowHtml = `
-        <div class="flex gap-2 items-start ff-row">
-            <input type="text" name="ff_key[]" placeholder="المفتاح (مثال: License Key)" class="w-1/3 bg-slate-800 border-white/10 rounded-xl p-3 text-xs font-bold text-white focus:border-cyan/50" required>
-            <textarea name="ff_value[]" placeholder="القيمة" class="w-2/3 bg-slate-800 border-white/10 rounded-xl p-3 text-xs font-mono text-cyan focus:border-cyan/50 h-[45px]" required></textarea>
-            <button type="button" class="btn btn-sm btn-outline danger px-3 h-[45px] rounded-xl" onclick="this.parentElement.remove()"><i class="fas fa-times"></i></button>
-        </div>
+    const row = document.createElement('div');
+    row.className = 'fulfillment-row';
+    row.innerHTML = `
+        <input type="text" name="ff_key[]" placeholder="المفتاح" class="bg-slate-900 border-white/10 rounded-xl p-3 text-xs text-white">
+        <textarea name="ff_value[]" placeholder="القيمة" class="bg-slate-900 border-white/10 rounded-xl p-3 text-xs text-cyan font-mono" rows="1"></textarea>
+        <button type="button" class="btn btn-outline danger h-full" onclick="this.parentElement.remove()"><i class="fas fa-times"></i></button>
     `;
-    container.insertAdjacentHTML('beforeend', rowHtml);
+    container.appendChild(row);
 }
 </script>
 {% endblock %}

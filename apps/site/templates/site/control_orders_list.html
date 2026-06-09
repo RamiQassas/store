@@ -1,71 +1,109 @@
-{% extends "site/base.html" %}
+{% extends "site/control_base.html" %}
+{% load static site_tags %}
+
 {% block title %}إدارة الطلبات | Raqamiyat Admin{% endblock %}
-{% block content %}
-<section class="page-head">
-  <div>
-    <span class="eyebrow">Admin / Orders</span>
-    <h1>إدارة الطلبات</h1>
-    <p>تابع حالة الطلبات، وقم بمعالجتها أو رد المبالغ للعملاء.</p>
-  </div>
-</section>
 
-<section class="section">
-  <div class="mb-6 stack gap-4">
-    <div class="flex gap-2 overflow-x-auto pb-2">
-        <a href="{% url 'control_orders_list' %}" class="btn btn-sm {% if not current_status %}btn-primary{% else %}btn-outline{% endif %}">الكل</a>
-        {% for val, label in orders.0.Status.choices %}
-            <a href="{% url 'control_orders_list' %}?status={{ val }}" class="btn btn-sm {% if current_status == val %}btn-primary{% else %}btn-outline{% endif %}">{{ label }}</a>
-        {% endfor %}
+{% block control_content %}
+<nav class="breadcrumb">
+    <a href="{% url 'control_dashboard' %}" class="breadcrumb-item">الرئيسية</a>
+    <span class="breadcrumb-item active">إدارة الطلبات</span>
+</nav>
+
+<div class="page-head flex justify-between items-center">
+    <div>
+        <span class="eyebrow">Content Management</span>
+        <h1>إدارة الطلبات</h1>
+        <p class="text-muted">متابعة ومعالجة طلبات الخدمات والمنتجات الرقمية.</p>
     </div>
-    <form method="get" class="flex gap-2">
-      <input type="text" name="q" value="{{ query }}" placeholder="بحث برقم الطلب أو بريد العميل..." class="w-full bg-slate-800 border-slate-700 rounded p-2 text-white">
-      <button type="submit" class="btn btn-primary">بحث</button>
-    </form>
-  </div>
+</div>
 
-  <div class="table-wrap">
-    <table class="table">
-      <thead>
-        <tr>
-          <th>رقم الطلب</th>
-          <th>العميل</th>
-          <th>المنتج</th>
-          <th>المبلغ</th>
-          <th>الحالة</th>
-          <th>التاريخ</th>
-          <th>إجراءات</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for o in orders %}
-          <tr>
-            <td><strong>{{ o.number }}</strong></td>
-            <td><small>{{ o.customer.email }}</small></td>
-            <td>
-                {% for item in o.items.all %}
-                    <div class="text-xs">{{ item.variant.product.name }} ({{ item.variant.name }})</div>
+<div class="management-card">
+    <div class="management-header flex-col sm:flex-row gap-4">
+        <form method="get" class="flex-grow w-full max-w-md">
+            <div class="relative group">
+                <i class="fas fa-search absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-cyan transition-colors"></i>
+                <input type="text" name="q" value="{{ query|default:'' }}" placeholder="بحث برقم الطلب أو بريد العميل..." class="w-full pr-11 bg-slate-900/50 border-white/10 rounded-xl focus:border-cyan/50 focus:ring-4 focus:ring-cyan/10 transition-all text-xs py-2.5">
+            </div>
+        </form>
+        <div class="flex items-center gap-2 bg-slate-900/40 p-1.5 rounded-xl border border-white/5">
+            <a href="?" class="px-4 py-1.5 rounded-lg text-[10px] font-bold transition-all {% if not current_status %}bg-cyan text-black{% else %}text-slate-400 hover:text-white{% endif %}">الكل</a>
+            {% for val, label in order_status_choices %}
+            <a href="?status={{ val }}" class="px-4 py-1.5 rounded-lg text-[10px] font-bold transition-all {% if current_status == val %}bg-white/10 text-white{% else %}text-slate-500 hover:text-slate-300{% endif %}">{{ label }}</a>
+            {% endfor %}
+        </div>
+    </div>
+    
+    <div class="table-responsive">
+        <table class="admin-table w-full text-right">
+            <thead>
+                <tr>
+                    <th class="p-4">رقم الطلب</th>
+                    <th class="p-4">العميل</th>
+                    <th class="p-4">المنتج / الباقة</th>
+                    <th class="p-4">المبلغ</th>
+                    <th class="p-4">الحالة</th>
+                    <th class="p-4 text-left">إجراءات</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for order in orders %}
+                <tr>
+                    <td class="p-4">
+                        <div class="font-bold text-white text-xs">#{{ order.number }}</div>
+                        <div class="text-[9px] text-slate-500 font-mono mt-1">{{ order.created_at|date:"Y-m-d H:i" }}</div>
+                    </td>
+                    <td class="p-4">
+                        <div class="font-bold text-slate-200">{{ order.customer.get_full_name|default:order.customer.username }}</div>
+                        <div class="text-[9px] text-slate-500 font-mono">{{ order.customer.email }}</div>
+                    </td>
+                    <td class="p-4">
+                        {% with item=order.items.first %}
+                        <div class="font-bold text-slate-300">{{ item.variant.product.name }}</div>
+                        <div class="text-[10px] text-cyan">{{ item.variant.name }} × {{ item.quantity }}</div>
+                        {% endwith %}
+                    </td>
+                    <td class="p-4">
+                        <div class="font-black text-white text-sm">{% currency_format order.total_amount %}</div>
+                    </td>
+                    <td class="p-4">
+                        <span class="badge 
+                            {% if order.status == 'completed' %}success
+                            {% elif order.status == 'cancelled' or order.status == 'refunded' %}danger
+                            {% elif order.status == 'processing' %}warning
+                            {% else %}primary
+                            {% endif %}">
+                            {{ order.get_status_display }}
+                        </span>
+                    </td>
+                    <td class="p-4 text-left">
+                        <div class="flex justify-end gap-2">
+                            <a href="{% url 'control_order_detail' order.id %}" class="btn btn-sm btn-primary text-[10px] py-1.5 px-4 rounded-lg">
+                                <i class="fas fa-cog ml-1"></i> إدارة الطلب
+                            </a>
+                        </div>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="6" class="p-16 text-center">
+                        <div class="w-16 h-16 bg-slate-900 rounded-full flex items-center justify-center mx-auto mb-4 opacity-20">
+                            <i class="fas fa-receipt text-2xl"></i>
+                        </div>
+                        <p class="text-slate-500 font-bold italic">لا توجد طلبات في هذا القسم حالياً.</p>
+                    </td>
+                </tr>
                 {% endfor %}
-            </td>
-            <td><strong>{{ o.total_amount }}</strong></td>
-            <td>
-              <span class="badge 
-                {% if o.status == 'completed' %}success
-                {% elif o.status == 'processing' %}info
-                {% elif o.status == 'refunded' or o.status == 'cancelled' %}muted
-                {% else %}primary{% endif %}">
-                {{ o.get_status_display }}
-              </span>
-            </td>
-            <td><small>{{ o.created_at|date:"Y-m-d" }}</small></td>
-            <td>
-              <a href="{% url 'control_order_detail' o.pk %}" class="btn btn-sm btn-outline">تفاصيل</a>
-            </td>
-          </tr>
-        {% empty %}
-          <tr><td colspan="7">لا توجد طلبات مطابقة.</td></tr>
-        {% endfor %}
-      </tbody>
-    </table>
-  </div>
-</section>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<script>
+// Search logic
+document.querySelector('input[name="q"]').addEventListener('keypress', function (e) {
+    if (e.key === 'Enter') {
+        this.form.submit();
+    }
+});
+</script>
 {% endblock %}

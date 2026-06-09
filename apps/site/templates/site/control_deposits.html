@@ -4,9 +4,13 @@
 {% block title %}إدارة الإيداعات | Raqamiyat Admin{% endblock %}
 
 {% block control_content %}
+<nav class="breadcrumb">
+    <a href="{% url 'control_dashboard' %}" class="breadcrumb-item">الرئيسية</a>
+    <span class="breadcrumb-item active">إدارة الإيداعات</span>
+</nav>
+
 <div class="page-head flex justify-between items-center">
     <div>
-        <span class="eyebrow">Financial Operations</span>
         <h1>إدارة طلبات الإيداع</h1>
         <p class="text-muted">مراجعة والتحقق من الحوالات المالية وإضافتها لمحفظة المستخدمين.</p>
     </div>

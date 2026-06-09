@@ -38,14 +38,14 @@ class OrderSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Order
-        fields = ("id", "number", "status", "total_amount", "coupon", "fulfillment_data", "admin_note", "items", "logs", "invoice", "created_at")
-        read_only_fields = ("id", "number", "status", "total_amount", "admin_note", "items", "logs", "invoice", "created_at")
+        fields = ("id", "number", "status", "total_amount", "coupon", "fulfillment_data", "metadata", "admin_note", "items", "logs", "invoice", "created_at")
 
 
 class OrderCreateSerializer(serializers.Serializer):
     variant_id = serializers.UUIDField()
     quantity = serializers.IntegerField(min_value=1, default=1)
     fulfillment_data = serializers.JSONField(default=dict)
+    metadata = serializers.JSONField(default=dict)
     coupon_code = serializers.CharField(required=False, allow_blank=True)
 
     def create(self, validated_data):
@@ -60,6 +60,7 @@ class OrderCreateSerializer(serializers.Serializer):
             variant_id=validated_data["variant_id"],
             quantity=validated_data["quantity"],
             fulfillment_data=validated_data.get("fulfillment_data", {}),
+            metadata=validated_data.get("metadata", {}),
             coupon=coupon,
         )
 

@@ -68,6 +68,12 @@
 {% endblock %}
 
 {% block control_content %}
+<nav class="breadcrumb">
+    <a href="{% url 'control_dashboard' %}" class="breadcrumb-item">الرئيسية</a>
+    <a href="{% url 'control_deposits' %}" class="breadcrumb-item">إدارة الإيداعات</a>
+    <span class="breadcrumb-item active">تفاصيل الإيداع</span>
+</nav>
+
 <div class="page-head flex justify-between items-center">
     <div>
         <span class="eyebrow">Financial Operations / Deposits</span>

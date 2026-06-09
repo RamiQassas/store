@@ -298,11 +298,18 @@ def product_detail(request, pk):
 
         vid = request.POST.get("variant_id")
         qty = max(int(request.POST.get("quantity", 1)), 1)
-        
+
+        # Capture custom metadata from the form
+        metadata = {}
+        for key, value in request.POST.items():
+            if key.startswith("custom_"):
+                field_name = key.replace("custom_", "", 1)
+                metadata[field_name] = value
+
         if vid:
             try:
                 from apps.orders.services import create_order
-                create_order(request.user, vid, quantity=qty)
+                create_order(request.user, vid, quantity=qty, metadata=metadata)
                 messages.success(request, "تم إنشاء الطلب بنجاح.")
                 return redirect("dashboard")
             except Exception as e:
@@ -1108,7 +1115,12 @@ def control_orders_list(request):
         orders = orders.filter(status=status_filter)
     if q:
         orders = orders.filter(Q(number__icontains=q) | Q(customer__email__icontains=q))
-    return render(request, "site/control_orders_list.html", {"orders": orders, "query": q, "current_status": status_filter})
+    return render(request, "site/control_orders_list.html", {
+        "orders": orders, 
+        "query": q, 
+        "current_status": status_filter,
+        "order_status_choices": Order.Status.choices
+    })
 @support_required
 def control_order_detail(request, pk):
     order = get_object_or_404(Order.objects.select_related('customer', 'customer__wallet').prefetch_related('items__variant__product', 'logs'), pk=pk)
@@ -1140,8 +1152,30 @@ def control_order_detail(request, pk):
             messages.success(request, "تم تحديث بيانات التنفيذ.")
             
         return redirect("control_order_detail", pk=pk)
-        
-    return render(request, "site/control_order_detail.html", {"order": order, "readable_fulfillment": order.fulfillment_data})
+    
+    # Map metadata labels
+    mapped_metadata = []
+    if order.metadata:
+        # Get labels from product form schema
+        # Assuming only one item per order for now as per create_order logic
+        first_item = order.items.first()
+        if first_item:
+            schema = first_item.variant.product.form_schema
+            fields = schema.get("fields", [])
+            label_map = {f.get("name") or f.get("label"): f.get("label") for f in fields}
+            
+            for key, val in order.metadata.items():
+                label = label_map.get(key, key)
+                mapped_metadata.append({"label": label, "value": val})
+        else:
+            for key, val in order.metadata.items():
+                mapped_metadata.append({"label": key, "value": val})
+
+    return render(request, "site/control_order_detail.html", {
+        "order": order, 
+        "readable_fulfillment": order.fulfillment_data,
+        "mapped_metadata": mapped_metadata
+    })
 
 @finance_required
 def control_wallets_list(request):

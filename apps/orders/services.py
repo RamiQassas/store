@@ -13,18 +13,18 @@ def next_order_number():
 
 
 @transaction.atomic
-def create_order(customer, variant_id, quantity=1, fulfillment_data=None, coupon=None):
+def create_order(customer, variant_id, quantity=1, fulfillment_data=None, coupon=None, metadata=None):
     if customer.restriction_purchases:
         raise ValueError("حسابك مقيد من عمليات الشراء.")
-    
+
     quantity = int(quantity)
     if quantity < 1:
         raise ValueError("Quantity must be at least 1.")
     variant = ProductVariant.objects.select_related("product").select_for_update().get(id=variant_id, is_active=True, product__is_active=True)
-    
+
     # Get price based on user tier
     price = variant.get_price_for_user(customer)
-    
+
     subtotal = price * Decimal(quantity)
     discount = Decimal("0.00")
     if coupon:
@@ -37,6 +37,7 @@ def create_order(customer, variant_id, quantity=1, fulfillment_data=None, coupon
         total_amount=total,
         coupon=coupon,
         fulfillment_data=fulfillment_data or {},
+        metadata=metadata or {},
     )
     OrderItem.objects.create(
         order=order, 

@@ -38,6 +38,7 @@ class Order(TimeStampedModel):
     coupon = models.ForeignKey(Coupon, null=True, blank=True, on_delete=models.SET_NULL, verbose_name="الكوبون")
     fulfillment_data = models.JSONField(default=dict, blank=True, verbose_name="بيانات التنفيذ")
     admin_note = models.TextField(blank=True, verbose_name="ملاحظات المدير")
+    metadata = models.JSONField(default=dict, blank=True, verbose_name="بيانات إضافية")
 
     class Meta:
         indexes = [
