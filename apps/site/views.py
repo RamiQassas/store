@@ -360,7 +360,7 @@ def deposits(request):
             return redirect("dashboard_deposits")
             
         method = get_object_or_404(methods, id=method_id)
-        user_custom = request.user.custom_payment_limits.get(str(method.id), {})
+        user_custom = request.user.custom_payment_limits.get(str(method.id)) or request.user.custom_payment_limits.get(method.id.hex) or {}
         method_limit = Decimal(str(user_custom['deposit'])) if user_custom.get('deposit') else method.daily_deposit_limit
 
         method_usage_today = Decimal("0.00")
@@ -427,7 +427,7 @@ def withdrawals(request):
             return redirect("dashboard_withdrawals")
             
         method = get_object_or_404(methods, id=method_id)
-        user_custom = request.user.custom_payment_limits.get(str(method.id), {})
+        user_custom = request.user.custom_payment_limits.get(str(method.id)) or request.user.custom_payment_limits.get(method.id.hex) or {}
         method_limit = Decimal(str(user_custom['withdraw'])) if user_custom.get('withdraw') else method.daily_withdrawal_limit
         
         method_usage_today = Decimal("0.00")

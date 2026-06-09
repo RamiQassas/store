@@ -68,8 +68,8 @@
             </div>
             <div>
                 <span class="text-[10px] text-slate-500 font-bold uppercase tracking-widest block">حد السحب اليومي المتبقي</span>
-                <strong class="text-xl font-black text-rose-500">{{ remaining_limit }} {{ CURRENCY.code }}</strong>
-                <span class="text-[9px] text-slate-600 block">من إجمالي: {{ daily_limit }} {{ CURRENCY.code }}</span>
+                <strong class="text-xl font-black text-rose-500">{{ remaining_limit|convert_price:CURRENCY }} {{ CURRENCY.code }}</strong>
+                <span class="text-[9px] text-slate-600 block">من إجمالي: {{ daily_limit|convert_price:CURRENCY }} {{ CURRENCY.code }}</span>
             </div>
         </div>
         
@@ -118,8 +118,9 @@
                     </div>
                     <div class="font-bold text-sm">{{ m.name }}</div>
                     <script type="application/json" id="data-{{ m.id }}">
-                        {{ m.to_withdrawal_json|safe }}
+                        {% get_withdrawal_config m user %}
                     </script>
+
                 </div>
                 {% endfor %}
             </div>

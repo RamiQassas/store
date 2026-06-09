@@ -81,3 +81,11 @@ def get_item(dictionary, key):
         res = dictionary.get(key.hex)
         
     return res
+
+@register.simple_tag
+def get_deposit_config(payment_method, user):
+    return payment_method.to_deposit_json(user=user)
+
+@register.simple_tag
+def get_withdrawal_config(payment_method, user):
+    return payment_method.to_withdrawal_json(user=user)
