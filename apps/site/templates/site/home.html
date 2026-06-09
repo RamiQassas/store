@@ -1,315 +1,377 @@
 {% extends "site/base.html" %}
 {% load static site_tags %}
 
-{% block title %}الرئيسية | Raqamiyat - متجر الخدمات الرقمية الموثوق{% endblock %}
+{% block title %}الرئيسية | Raqamiyat - سوق الخدمات الرقمية الأول{% endblock %}
 
 {% block extra_head %}
 <style>
-    /* Modern Premium Hero */
-    .hero-v3 {
-        padding: clamp(4rem, 15vh, 10rem) 0;
-        position: relative;
-        overflow: hidden;
-        background: radial-gradient(circle at 80% 20%, rgba(6, 182, 212, 0.15) 0%, transparent 50%),
-                    radial-gradient(circle at 20% 80%, rgba(37, 99, 235, 0.1) 0%, transparent 50%);
+    /* 
+       RAQAMIYAT V5 - Premium Digital Marketplace Design 
+       Focus: Cleanliness, Spacing, Visual Hierarchy, Mobile-First
+    */
+
+    /* --- Root & Utilities --- */
+    :root {
+        --h-cyan: #06b6d4;
+        --h-bg: #020617;
+        --h-panel: rgba(15, 23, 42, 0.6);
+        --h-border: rgba(255, 255, 255, 0.06);
     }
 
-    .hero-v3 h1 {
-        font-size: clamp(1.5rem, 6.5vw, 5rem);
+    .section-spacer { padding: 8rem 0; }
+    @media (max-width: 768px) { .section-spacer { padding: 4rem 0; } }
+
+    .h-reveal { opacity: 0; transform: translateY(20px); transition: all 0.6s cubic-bezier(0.22, 1, 0.36, 1); }
+    .h-reveal.visible { opacity: 1; transform: translateY(0); }
+
+    /* --- Hero Section --- */
+    .hero-v5 {
+        position: relative;
+        padding: clamp(6rem, 15vh, 12rem) 0;
+        background: radial-gradient(circle at 50% -20%, rgba(6, 182, 212, 0.12) 0%, transparent 60%);
+        overflow: hidden;
+        text-align: center;
+    }
+
+    .hero-v5 h1 {
+        font-size: clamp(2rem, 8vw, 4.5rem);
         font-weight: 950;
-        line-height: 1.15;
-        letter-spacing: -0.04em;
-        margin-bottom: 1.25rem;
-        background: linear-gradient(to bottom, #fff 40%, rgba(255,255,255,0.7));
+        line-height: 1.1;
+        letter-spacing: -0.03em;
+        margin-bottom: 1.5rem;
+        background: linear-gradient(to bottom, #fff 50%, rgba(255,255,255,0.6));
         -webkit-background-clip: text;
         -webkit-text-fill-color: transparent;
     }
 
-    .hero-v3 p {
-        font-size: clamp(0.875rem, 2vw, 1.125rem);
-        color: var(--muted);
-        max-width: 600px;
-        line-height: 1.6;
-        margin-bottom: 2.5rem;
+    .hero-v5 p {
+        font-size: clamp(0.9375rem, 2vw, 1.25rem);
+        color: #94a3b8;
+        max-width: 650px;
+        margin: 0 auto 3rem;
+        line-height: 1.7;
     }
 
-    .cta-group {
+    .h-cta-group {
         display: flex;
-        gap: 1rem;
+        gap: 1.25rem;
+        justify-content: center;
         flex-wrap: wrap;
     }
 
-    /* Mobile Optimization */
     @media (max-width: 768px) {
-        .hero-v3 { text-align: center; padding: 3.5rem 0 3rem; }
-        .hero-v3 h1 { line-height: 1.3; }
-        .hero-v3 p { margin-left: auto; margin-right: auto; margin-bottom: 2rem; }
-        .cta-group { justify-content: center; flex-direction: column; width: 100%; max-width: 320px; margin: 0 auto; }
-        .cta-group .btn { width: 100%; padding: 1.125rem; font-size: 0.9375rem; border-radius: 16px; }
-        .hide-on-mobile { display: none !important; }
+        .hero-v5 { padding: 4rem 0 3rem; }
+        .h-cta-group { flex-direction: column; width: 100%; max-width: 300px; margin: 0 auto; }
+        .h-cta-group .btn { width: 100%; padding: 1.125rem; border-radius: 16px; }
     }
 
-    /* Product Cards (Optimized & Compact) */
-    .product-v2-card { 
-        background: var(--panel); border: 1px solid var(--panel-border); border-radius: 24px; 
-        overflow: hidden; transition: all 0.4s cubic-bezier(0.23, 1, 0.32, 1);
-        display: flex; flex-direction: column; height: 100%; position: relative;
-    }
-    .product-v2-card:hover { transform: translateY(-5px); border-color: rgba(6, 182, 212, 0.4); box-shadow: 0 20px 40px -12px rgba(0, 0, 0, 0.5); }
-    
-    .p-v2-img { 
-        width: 100%; aspect-ratio: 1/1; background: #070b16; 
-        overflow: hidden; position: relative; display: flex; align-items: center; justify-content: center;
-        border-bottom: 1px solid rgba(255,255,255,0.02);
-    }
-    .p-v2-img img { width: 75%; height: 75%; object-fit: contain; transition: transform 0.6s cubic-bezier(0.23, 1, 0.32, 1); }
-    .product-v2-card:hover .p-v2-img img { transform: scale(1.08); }
-    
-    .p-v2-body { padding: 1.25rem; flex-grow: 1; display: flex; flex-direction: column; gap: 0.5rem; }
-    .p-v2-badge { font-size: 8px; font-weight: 900; text-transform: uppercase; color: var(--cyan); background: rgba(6, 182, 212, 0.1); padding: 3px 8px; border-radius: 100px; width: fit-content; }
-    .p-v2-title { font-size: 0.9375rem; font-weight: 800; color: #fff; line-height: 1.4; margin: 0; height: 2.8em; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
-
-    .p-v2-price { font-size: 1.125rem; font-weight: 900; color: var(--cyan); }
-    
-    @media (max-width: 768px) {
-        .featured-grid { grid-template-columns: repeat(2, 1fr) !important; gap: 0.75rem !important; }
-        .p-v2-body { padding: 0.875rem; gap: 0.35rem; }
-        .p-v2-title { font-size: 0.8125rem; height: 2.8em; }
-        .p-v2-price { font-size: 1rem; }
-        .p-v2-footer { pt-2 mt-2 !important; }
-        .p-v2-footer .btn { display: none; }
-    }
-
-    /* Feature Cards */
-    .feature-grid-v3 {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-        gap: 1.5rem;
-    }
-
-    .feature-card-v3 {
-        padding: 2.5rem;
-        background: rgba(255,255,255,0.01);
-        border: 1px solid rgba(255,255,255,0.04);
-        border-radius: 32px;
-        transition: all 0.4s cubic-bezier(0.23, 1, 0.32, 1);
-        position: relative;
-        overflow: hidden;
-    }
-
-    .feature-card-v3::after {
-        content: ""; position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-        background: radial-gradient(circle at top right, rgba(6, 182, 212, 0.05), transparent 70%);
-        opacity: 0; transition: opacity 0.4s;
-    }
-
-    .feature-card-v3:hover {
-        background: rgba(255,255,255,0.03);
-        border-color: rgba(6, 182, 212, 0.3);
-        transform: translateY(-8px);
-    }
-    .feature-card-v3:hover::after { opacity: 1; }
-
-    .feature-icon-v3 {
+    /* --- Consistent Icon System --- */
+    .icon-box-v5 {
         width: 56px;
         height: 56px;
-        border-radius: 16px;
-        background: rgba(6, 182, 212, 0.1);
+        border-radius: 18px;
+        background: rgba(6, 182, 212, 0.08);
+        border: 1px solid rgba(6, 182, 212, 0.15);
+        color: var(--h-cyan);
         display: flex;
         align-items: center;
         justify-content: center;
         font-size: 1.5rem;
-        color: var(--cyan);
         margin-bottom: 1.5rem;
+        transition: all 0.3s;
     }
 
-    /* Step Section */
-    .step-v3 {
-        padding: 1.5rem;
-        background: var(--panel);
-        border: 1px solid var(--panel-border);
-        border-radius: 24px;
+    /* --- Features Section --- */
+    .features-grid-v5 {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+        gap: 2rem;
+    }
+
+    .feature-card-v5 {
+        padding: 2.5rem;
+        background: var(--h-panel);
+        border: 1px solid var(--h-border);
+        border-radius: 32px;
+        transition: all 0.4s;
+    }
+
+    .feature-card-v5:hover {
+        border-color: rgba(6, 182, 212, 0.3);
+        background: rgba(15, 23, 42, 0.8);
+        transform: translateY(-8px);
+    }
+    
+    .feature-card-v5:hover .icon-box-v5 {
+        background: var(--h-cyan);
+        color: #000;
+        transform: scale(1.1);
+    }
+
+    /* --- Steps Section --- */
+    .steps-container-v5 {
+        background: rgba(255,255,255,0.01);
+        border: 1px solid var(--h-border);
+        border-radius: 48px;
+        padding: 4rem;
+    }
+
+    .step-item-v5 {
         display: flex;
-        gap: 1.5rem;
         align-items: center;
+        gap: 1.5rem;
+        padding: 1.5rem;
+        border-radius: 24px;
+        background: rgba(0,0,0,0.2);
+        border: 1px solid var(--h-border);
     }
 
-    .step-num {
-        width: 48px;
-        height: 48px;
+    .step-num-v5 {
+        width: 44px;
+        height: 44px;
         border-radius: 12px;
-        background: var(--cyan);
+        background: var(--h-cyan);
         color: #000;
         display: flex;
         align-items: center;
         justify-content: center;
         font-weight: 900;
-        font-size: 1.25rem;
         flex-shrink: 0;
     }
 
-    /* Animations */
-    .reveal {
-        opacity: 0;
-        transform: translateY(30px);
-        transition: all 0.8s ease-out;
+    @media (max-width: 768px) {
+        .steps-container-v5 { padding: 2rem; border-radius: 32px; }
+        .step-item-v5 { padding: 1.25rem; gap: 1rem; }
     }
-    .reveal.visible {
-        opacity: 1;
-        transform: translateY(0);
+
+    /* --- Compact Product Cards --- */
+    .h-product-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+        gap: 2rem;
+    }
+
+    .h-product-card {
+        background: var(--h-panel);
+        border: 1px solid var(--h-border);
+        border-radius: 28px;
+        overflow: hidden;
+        transition: all 0.4s cubic-bezier(0.23, 1, 0.32, 1);
+        display: flex;
+        flex-direction: column;
+        height: 100%;
+    }
+
+    .h-product-card:hover {
+        transform: translateY(-6px);
+        border-color: rgba(6, 182, 212, 0.4);
+        box-shadow: 0 20px 40px -15px rgba(0,0,0,0.5);
+    }
+
+    .h-product-img {
+        width: 100%;
+        aspect-ratio: 1/1;
+        background: #070b14;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 2rem;
+        border-bottom: 1px solid rgba(255,255,255,0.02);
+    }
+
+    .h-product-img img {
+        width: 100%;
+        height: 100%;
+        object-fit: contain;
+        transition: transform 0.6s;
+    }
+    .h-product-card:hover .h-product-img img { transform: scale(1.1); }
+
+    .h-product-body { padding: 1.5rem; flex-grow: 1; display: flex; flex-direction: column; }
+    .h-product-cat { font-size: 9px; font-weight: 900; color: var(--h-cyan); text-transform: uppercase; margin-bottom: 0.5rem; letter-spacing: 1px; }
+    .h-product-title { font-size: 1rem; font-weight: 800; color: #fff; margin-bottom: 1rem; line-height: 1.4; height: 2.8em; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+
+    .h-product-footer { margin-top: auto; padding-top: 1.25rem; border-top: 1px solid rgba(255,255,255,0.05); display: flex; justify-content: space-between; align-items: center; }
+    .h-product-price { font-size: 1.25rem; font-weight: 900; color: #fff; }
+    
+    @media (max-width: 768px) {
+        .h-product-grid { grid-template-columns: repeat(2, 1fr); gap: 0.75rem; }
+        .h-product-body { padding: 1rem; }
+        .h-product-title { font-size: 0.8125rem; }
+        .h-product-price { font-size: 1.0625rem; }
+        .h-product-img { padding: 1rem; }
+        .h-product-footer .btn { display: none; }
+    }
+
+    /* --- Social Media --- */
+    .social-section-v5 {
+        background: linear-gradient(to bottom, transparent, rgba(6, 182, 212, 0.03));
+        border-radius: 48px;
+        border: 1px solid var(--h-border);
+        padding: 5rem 3rem;
+        text-align: center;
+    }
+
+    .social-btn-v5 {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.75rem;
+        padding: 1rem 1.75rem;
+        background: #0f172a;
+        border: 1px solid var(--h-border);
+        border-radius: 100px;
+        color: #94a3b8;
+        font-weight: 700;
+        transition: all 0.3s;
+        text-decoration: none !important;
+    }
+
+    .social-btn-v5:hover {
+        border-color: var(--h-cyan);
+        color: #fff;
+        background: #1e293b;
+        transform: translateY(-3px);
     }
 </style>
 {% endblock %}
 
 {% block content %}
 <!-- Section: Hero -->
-<section class="hero-v3">
-    <div class="container">
-        <div class="reveal">
-            <span class="eyebrow flex items-center gap-2">
-                <span class="w-2 h-2 rounded-full bg-cyan animate-pulse"></span>
-                المنصة الرقمية الأكثر موثوقية في المنطقة
-            </span>
-            <h1>بوابتك للحصول على <br> <span class="text-cyan">أفضل الخدمات الرقمية</span></h1>
-            <p>استمتع بتجربة شراء سلسة وآمنة لجميع بطاقات الشحن، اشتراكات البث، وحسابات الألعاب بأسعار تنافسية وتسليم فوري.</p>
-            
-            <div class="cta-group">
-                <a href="{% url 'catalog' %}" class="btn btn-primary px-10 py-4 text-lg rounded-2xl shadow-lg shadow-cyan/20">
-                    <i class="fas fa-shopping-bag ml-2"></i> تصفح الخدمات
-                </a>
-                {% if not user.is_authenticated %}
-                <a href="{% url 'site_register' %}" class="btn btn-outline px-10 py-4 text-lg rounded-2xl">
-                    إنشاء حساب مجاني
-                </a>
-                {% else %}
-                <a href="{% url 'dashboard' %}" class="btn btn-outline px-10 py-4 text-lg rounded-2xl">
-                    لوحة التحكم
-                </a>
-                {% endif %}
-            </div>
+<section class="hero-v5">
+    <div class="container h-reveal">
+        <span class="eyebrow flex items-center justify-center gap-2 mb-6">
+            <span class="w-1.5 h-1.5 rounded-full bg-cyan animate-pulse"></span>
+            المنصة الأسرع لتوفير الخدمات الرقمية
+        </span>
+        <h1>بوابتك المتكاملة <br> للخدمات الرقمية</h1>
+        <p>استمتع بتجربة شراء آمنة، تسليم فوري، وأسعار تنافسية لكافة بطاقات الشحن والاشتراكات الرقمية في مكان واحد.</p>
+        
+        <div class="h-cta-group">
+            <a href="{% url 'catalog' %}" class="btn btn-primary px-12 py-4 text-lg rounded-2xl">
+                <i class="fas fa-shopping-bag ml-2"></i> تصفح المتجر
+            </a>
+            {% if not user.is_authenticated %}
+            <a href="{% url 'site_register' %}" class="btn btn-outline px-12 py-4 text-lg rounded-2xl">
+                إنشاء حساب مجاني
+            </a>
+            {% else %}
+            <a href="{% url 'dashboard' %}" class="btn btn-outline px-12 py-4 text-lg rounded-2xl">
+                لوحة التحكم
+            </a>
+            {% endif %}
         </div>
     </div>
-
-    <!-- Decorative Elements (Hidden on mobile for performance) -->
-    <div class="hide-on-mobile absolute top-1/4 left-2/3 w-64 h-64 bg-cyan/10 rounded-full blur-[100px]"></div>
 </section>
 
-<!-- Section: Core Capabilities -->
-<section class="container py-24 border-t border-white/5">
-    <div class="section-head text-center mb-16 reveal">
-        <span class="eyebrow">لماذا رقميات؟</span>
-        <h2 class="text-3xl md:text-5xl font-black">حلول مالية وتقنية متكاملة</h2>
-        <p class="text-muted max-w-2xl mx-auto mt-4">نحن لا نبيع البطاقات فحسب، بل نوفر لك بيئة رقمية آمنة لإدارة مشترياتك وأموالك.</p>
+<!-- Section: Features -->
+<section class="container section-spacer">
+    <div class="flex flex-col md:flex-row justify-between items-end mb-16 gap-6 h-reveal">
+        <div class="max-w-xl text-right">
+            <span class="eyebrow mb-2 block">لماذا رقميات؟</span>
+            <h2 class="text-3xl md:text-5xl font-black">نظام متطور للتجارة الرقمية</h2>
+        </div>
+        <p class="text-slate-500 max-w-sm">نوفر لك بيئة تكنولوجية متكاملة تضمن لك الأمان والسرعة في كل عملية شراء.</p>
     </div>
 
-    <div class="feature-grid-v3">
-        <div class="feature-card-v3 reveal">
-            <div class="feature-icon-v3"><i class="fas fa-wallet"></i></div>
-            <h3 class="font-bold text-xl mb-3">محفظة متعددة العملات</h3>
-            <p class="text-sm text-slate-400 leading-relaxed">نظام محفظة متطور يدعم عدة عملات مع تحويل تلقائي للرصيد لسهولة الشراء.</p>
+    <div class="features-grid-v5">
+        <div class="feature-card-v5 h-reveal">
+            <div class="icon-box-v5"><i class="fas fa-shield-check"></i></div>
+            <h3 class="font-bold text-xl mb-3">حماية كاملة</h3>
+            <p class="text-sm text-slate-500 leading-relaxed">كافة العمليات المالية والبيانات الشخصية مشفرة بالكامل لضمان أقصى درجات الأمان.</p>
         </div>
-        <div class="feature-card-v3 reveal">
-            <div class="feature-icon-v3"><i class="fas fa-shield-check"></i></div>
-            <h3 class="font-bold text-xl mb-3">دفع آمن وموثوق</h3>
-            <p class="text-sm text-slate-400 leading-relaxed">كافة المعاملات المالية مشفرة ومحمية، مع دعم لوسائل الدفع المحلية والعالمية.</p>
+        <div class="feature-card-v5 h-reveal">
+            <div class="icon-box-v5"><i class="fas fa-bolt"></i></div>
+            <h3 class="font-bold text-xl mb-3">تسليم فوري</h3>
+            <p class="text-sm text-slate-500 leading-relaxed">بمجرد إتمام الدفع، ستتلقى كود الخدمة أو بيانات المنتج فوراً في لوحة تحكمك.</p>
         </div>
-        <div class="feature-card-v3 reveal">
-            <div class="feature-icon-v3"><i class="fas fa-bolt"></i></div>
-            <h3 class="font-bold text-xl mb-3">تسليم رقمي فوري</h3>
-            <p class="text-sm text-slate-400 leading-relaxed">احصل على أكواد البطاقات والخدمات الرقمية فور إتمام الطلب مباشرة في حسابك.</p>
+        <div class="feature-card-v5 h-reveal">
+            <div class="icon-box-v5"><i class="fas fa-wallet"></i></div>
+            <h3 class="font-bold text-xl mb-3">محفظة ذكية</h3>
+            <p class="text-sm text-slate-500 leading-relaxed">اشحن محفظتك لمرة واحدة واستمتع بعمليات شراء بنقرة واحدة لاحقاً وبكل سهولة.</p>
         </div>
-        <div class="feature-card-v3 reveal">
-            <div class="feature-icon-v3"><i class="fas fa-user-tag"></i></div>
-            <h3 class="font-bold text-xl mb-3">أسعار خاصة للتجار</h3>
-            <p class="text-sm text-slate-400 leading-relaxed">نظام فئات الأسعار (Dealer/VIP) يوفر خصومات حصرية للمستخدمين النشطين والتجار.</p>
-        </div>
-        <div class="feature-card-v3 reveal">
-            <div class="feature-icon-v3"><i class="fas fa-id-card"></i></div>
-            <h3 class="font-bold text-xl mb-3">نظام توثيق متقدم</h3>
-            <p class="text-sm text-slate-400 leading-relaxed">نظام KYC متكامل لضمان أمن الحسابات وحماية المستخدمين من الاحتيال.</p>
-        </div>
-        <div class="feature-card-v3 reveal">
-            <div class="feature-icon-v3"><i class="fas fa-headset"></i></div>
-            <h3 class="font-bold text-xl mb-3">دعم فني مباشر</h3>
-            <p class="text-sm text-slate-400 leading-relaxed">نظام تذاكر ودردشة داخلية للتواصل المباشر مع فريق الدعم لحل أي مشكلة.</p>
+        <div class="feature-card-v5 h-reveal">
+            <div class="icon-box-v5"><i class="fas fa-user-tag"></i></div>
+            <h3 class="font-bold text-xl mb-3">أسعار التجار</h3>
+            <p class="text-sm text-slate-500 leading-relaxed">نقدم فئات أسعار خاصة للتجار والموزعين المعتمدين لضمان هامش ربح ممتاز.</p>
         </div>
     </div>
 </section>
 
 <!-- Section: How It Works -->
-<section class="container py-24 bg-white/[0.01] rounded-[48px] p-8 md:p-16 border border-white/5">
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
-        <div class="reveal">
-            <span class="eyebrow">البداية</span>
-            <h2 class="text-4xl font-black mb-6">ابدأ رحلتك الرقمية <br> في 4 خطوات بسيطة</h2>
-            <p class="text-slate-400 leading-relaxed mb-8">لقد قمنا بتبسيط عملية الشراء لتكون أسرع وأسهل ما يمكن. لا داعي للانتظار الطويل أو التعقيدات.</p>
-            <a href="{% url 'site_register' %}" class="btn btn-primary px-8 py-3 rounded-xl">سجل الآن مجاناً</a>
-        </div>
-        
-        <div class="stack gap-4 reveal">
-            <div class="step-v3">
-                <div class="step-num">1</div>
-                <div>
-                    <h4 class="font-bold text-white">إنشاء حساب</h4>
-                    <p class="text-xs text-slate-500">قم بالتسجيل وتفعيل بريدك الإلكتروني في ثوانٍ.</p>
-                </div>
+<section class="container section-spacer">
+    <div class="steps-container-v5 h-reveal">
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
+            <div>
+                <span class="eyebrow mb-3 block">دليل الاستخدام</span>
+                <h2 class="text-4xl font-black mb-6">احصل على منتجك <br> خلال دقيقة واحدة</h2>
+                <p class="text-slate-500 leading-relaxed mb-8">عملية الشراء لدينا تمر بأربع خطوات بسيطة وسريعة جداً، مصممة لتوفير وقتك وجهدك.</p>
+                <a href="{% url 'site_register' %}" class="btn btn-primary px-8 py-3 rounded-xl">ابدأ الآن</a>
             </div>
-            <div class="step-v3">
-                <div class="step-num">2</div>
-                <div>
-                    <h4 class="font-bold text-white">إضافة رصيد</h4>
-                    <p class="text-xs text-slate-500">استخدم وسيلة الدفع المفضلة لديك لشحن محفظتك.</p>
+            
+            <div class="stack gap-4">
+                <div class="step-item-v5">
+                    <div class="step-num-v5">1</div>
+                    <div>
+                        <h4 class="font-bold text-white mb-1">افتح حسابك</h4>
+                        <p class="text-[10px] text-slate-500">سجل مجاناً وقم بتفعيل بريدك.</p>
+                    </div>
                 </div>
-            </div>
-            <div class="step-v3">
-                <div class="step-num">3</div>
-                <div>
-                    <h4 class="font-bold text-white">اختيار الخدمة</h4>
-                    <p class="text-xs text-slate-500">تصفح الكتالوج واختر الباقة التي تناسب احتياجك.</p>
+                <div class="step-item-v5">
+                    <div class="step-num-v5">2</div>
+                    <div>
+                        <h4 class="font-bold text-white mb-1">اشحن الرصيد</h4>
+                        <p class="text-[10px] text-slate-500">أضف رصيداً لمحفظتك بوسيلة دفعك.</p>
+                    </div>
                 </div>
-            </div>
-            <div class="step-v3">
-                <div class="step-num">4</div>
-                <div>
-                    <h4 class="font-bold text-white">استلام فوري</h4>
-                    <p class="text-xs text-slate-500">احصل على منتجك الرقمي فوراً في لوحة التحكم.</p>
+                <div class="step-item-v5">
+                    <div class="step-num-v5">3</div>
+                    <div>
+                        <h4 class="font-bold text-white mb-1">اختر الخدمة</h4>
+                        <p class="text-[10px] text-slate-500">تصفح مئات الخدمات والبطاقات.</p>
+                    </div>
+                </div>
+                <div class="step-item-v5">
+                    <div class="step-num-v5">4</div>
+                    <div>
+                        <h4 class="font-bold text-white mb-1">استلم الكود</h4>
+                        <p class="text-[10px] text-slate-500">ستجد الكود في طلباتك فوراً.</p>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
 </section>
 
-<!-- Section: Featured Products Preview -->
-<section class="container py-24">
-    <div class="flex flex-col md:flex-row justify-between items-end mb-12 reveal gap-4">
+<!-- Section: Featured Products -->
+<section class="container section-spacer">
+    <div class="flex justify-between items-end mb-12 h-reveal">
         <div>
-            <span class="eyebrow">عروض مختارة</span>
-            <h2 class="text-3xl font-black">أشهر الخدمات المطلوبة</h2>
+            <span class="eyebrow mb-2 block">المتجر</span>
+            <h2 class="text-3xl font-black">أكثر المنتجات طلباً</h2>
         </div>
         <a href="{% url 'catalog' %}" class="text-cyan font-bold flex items-center gap-2 hover:gap-4 transition-all">
             عرض الكل <i class="fas fa-arrow-left"></i>
         </a>
     </div>
 
-    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-8 featured-grid">
-        {% for p in featured_products|slice:":4" %}
-        <div class="product-v2-card reveal group">
-            <a href="{% url 'product_detail' p.id %}" class="p-v2-img">
+    <div class="h-product-grid">
+        {% for p in featured_products|slice:":8" %}
+        <div class="h-product-card h-reveal">
+            <a href="{% url 'product_detail' p.id %}" class="h-product-img">
                 {% if p.image %}
-                <img src="{{ p.image.url }}" alt="{{ p.name }}" class="group-hover:scale-110 transition-transform duration-500">
+                <img src="{{ p.image.url }}" alt="{{ p.name }}" loading="lazy">
                 {% else %}
-                <div class="w-full h-full flex items-center justify-center text-slate-700 bg-slate-900"><i class="fas fa-box text-5xl"></i></div>
+                <div class="opacity-10"><i class="fas fa-box-open text-6xl"></i></div>
                 {% endif %}
             </a>
-            <div class="p-v2-body stack gap-4">
-                <div>
-                    <span class="text-[10px] text-cyan font-bold uppercase">{{ p.category.name }}</span>
-                    <h3 class="text-sm md:text-base mt-1 line-clamp-2 font-bold">{{ p.name }}</h3>
-                </div>
-                <div class="flex justify-between items-center mt-auto border-t border-white/5 pt-4">
+            <div class="h-product-body">
+                <span class="h-product-cat">{{ p.category.name }}</span>
+                <a href="{% url 'product_detail' p.id %}" class="h-product-title">{{ p.name }}</a>
+                
+                <div class="h-product-footer">
                     {% variant_price p.variants.first as v_price %}
-                    <div class="p-v2-price text-lg md:text-xl font-black">{% currency_format v_price %}</div>
-                    <a href="{% url 'product_detail' p.id %}" class="btn btn-primary btn-sm px-4 rounded-xl hide-on-mobile">اطلب</a>
+                    <div class="h-product-price">{% currency_format v_price %}</div>
+                    <a href="{% url 'product_detail' p.id %}" class="btn btn-primary btn-sm rounded-xl px-4">اطلب</a>
                 </div>
             </div>
         </div>
@@ -317,39 +379,39 @@
     </div>
 </section>
 
-<!-- Section: Social & Support -->
-<section class="container py-24 border-t border-white/5">
-    <div class="flex flex-col md:flex-row items-center justify-between gap-12">
-        <div class="reveal">
-            <h2 class="text-3xl font-black mb-4">انضم إلى مجتمعنا</h2>
-            <p class="text-slate-500">تابعنا على منصات التواصل الاجتماعي للحصول على آخر العروض والتحديثات.</p>
-        </div>
-        <div class="flex flex-wrap gap-4 reveal">
+<!-- Section: Social Media -->
+<section class="container section-spacer">
+    <div class="social-section-v5 h-reveal">
+        <h2 class="text-3xl font-black mb-4">انضم إلى مجتمع رقميات</h2>
+        <p class="text-slate-500 mb-12 max-w-lg mx-auto">تابعنا على منصات التواصل الاجتماعي لتكون أول من يعلم بالعروض الحصرية والخدمات الجديدة.</p>
+        
+        <div class="flex flex-wrap justify-center gap-4">
             {% for link in SOCIAL_LINKS %}
-            <a href="{{ link.url }}" target="_blank" class="btn btn-outline px-8 py-4 rounded-2xl flex items-center gap-3 hover:border-cyan hover:text-cyan transition-all">
+            <a href="{{ link.url }}" target="_blank" class="social-btn-v5">
                 {% if link.icon_image %}
-                <img src="{{ link.icon_image.url }}" class="w-6 h-6 object-contain">
+                <img src="{{ link.icon_image.url }}" class="w-5 h-5 object-contain">
                 {% else %}
                 <i class="{{ link.icon_class|default:'fas fa-link' }} text-xl"></i>
                 {% endif %}
-                <span class="font-bold">{{ link.name }}</span>
+                <span>{{ link.name }}</span>
             </a>
+            {% empty %}
+            <p class="text-slate-700 italic">تواصل معنا عبر قنواتنا الرسمية</p>
             {% endfor %}
         </div>
     </div>
 </section>
 
 <script>
-    // Reveal animation on scroll
-    const observerOptions = { threshold: 0.1 };
-    const observer = new IntersectionObserver((entries) => {
+    // Reveal animation logic
+    const h_observer = new IntersectionObserver((entries) => {
         entries.forEach(entry => {
             if (entry.isIntersecting) {
                 entry.target.classList.add('visible');
             }
         });
-    }, observerOptions);
+    }, { threshold: 0.1 });
 
-    document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+    document.querySelectorAll('.h-reveal').forEach(el => h_observer.observe(el));
 </script>
 {% endblock %}
