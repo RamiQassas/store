@@ -15,9 +15,9 @@
     }
 
     .hero-v3 h1 {
-        font-size: clamp(1.75rem, 7vw, 5rem);
+        font-size: clamp(1.5rem, 6.5vw, 5rem);
         font-weight: 950;
-        line-height: 1.1;
+        line-height: 1.15;
         letter-spacing: -0.04em;
         margin-bottom: 1.25rem;
         background: linear-gradient(to bottom, #fff 40%, rgba(255,255,255,0.7));
@@ -26,9 +26,9 @@
     }
 
     .hero-v3 p {
-        font-size: clamp(0.9375rem, 2vw, 1.25rem);
+        font-size: clamp(0.875rem, 2vw, 1.125rem);
         color: var(--muted);
-        max-width: 650px;
+        max-width: 600px;
         line-height: 1.6;
         margin-bottom: 2.5rem;
     }
@@ -41,32 +41,44 @@
 
     /* Mobile Optimization */
     @media (max-width: 768px) {
-        .hero-v3 { text-align: center; padding: 4rem 0 3rem; }
-        .hero-v3 h1 { line-height: 1.2; }
+        .hero-v3 { text-align: center; padding: 3.5rem 0 3rem; }
+        .hero-v3 h1 { line-height: 1.3; }
         .hero-v3 p { margin-left: auto; margin-right: auto; margin-bottom: 2rem; }
-        .cta-group { justify-content: center; flex-direction: column; width: 100%; }
-        .cta-group .btn { width: 100%; padding: 1.25rem; font-size: 1rem; }
+        .cta-group { justify-content: center; flex-direction: column; width: 100%; max-width: 320px; margin: 0 auto; }
+        .cta-group .btn { width: 100%; padding: 1.125rem; font-size: 0.9375rem; border-radius: 16px; }
         .hide-on-mobile { display: none !important; }
     }
 
-    /* Product Cards (Consolidated with catalog style) */
+    /* Product Cards (Optimized & Compact) */
     .product-v2-card { 
-        background: var(--panel); border: 1px solid var(--panel-border); border-radius: 32px; 
+        background: var(--panel); border: 1px solid var(--panel-border); border-radius: 24px; 
         overflow: hidden; transition: all 0.4s cubic-bezier(0.23, 1, 0.32, 1);
         display: flex; flex-direction: column; height: 100%; position: relative;
     }
-    .product-v2-card:hover { transform: translateY(-8px); border-color: rgba(6, 182, 212, 0.5); box-shadow: 0 30px 60px -12px rgba(0, 0, 0, 0.6); }
+    .product-v2-card:hover { transform: translateY(-5px); border-color: rgba(6, 182, 212, 0.4); box-shadow: 0 20px 40px -12px rgba(0, 0, 0, 0.5); }
     
     .p-v2-img { 
-        width: 100%; aspect-ratio: 1/1; background: radial-gradient(circle at center, #1e293b, #0f172a); 
+        width: 100%; aspect-ratio: 1/1; background: #070b16; 
         overflow: hidden; position: relative; display: flex; align-items: center; justify-content: center;
-        border-bottom: 1px solid rgba(255,255,255,0.03);
+        border-bottom: 1px solid rgba(255,255,255,0.02);
     }
-    .p-v2-img img { width: 80%; height: 80%; object-fit: contain; transition: transform 0.8s cubic-bezier(0.23, 1, 0.32, 1); filter: drop-shadow(0 10px 20px rgba(0,0,0,0.3)); }
-    .product-v2-card:hover .p-v2-img img { transform: scale(1.1) rotate(2deg); }
+    .p-v2-img img { width: 75%; height: 75%; object-fit: contain; transition: transform 0.6s cubic-bezier(0.23, 1, 0.32, 1); }
+    .product-v2-card:hover .p-v2-img img { transform: scale(1.08); }
     
-    .p-v2-body { padding: 1.5rem; flex-grow: 1; display: flex; flex-direction: column; gap: 0.75rem; }
-    .p-v2-title { font-size: 1rem; font-weight: 800; color: #fff; line-height: 1.4; margin: 0; height: 2.8em; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+    .p-v2-body { padding: 1.25rem; flex-grow: 1; display: flex; flex-direction: column; gap: 0.5rem; }
+    .p-v2-badge { font-size: 8px; font-weight: 900; text-transform: uppercase; color: var(--cyan); background: rgba(6, 182, 212, 0.1); padding: 3px 8px; border-radius: 100px; width: fit-content; }
+    .p-v2-title { font-size: 0.9375rem; font-weight: 800; color: #fff; line-height: 1.4; margin: 0; height: 2.8em; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+
+    .p-v2-price { font-size: 1.125rem; font-weight: 900; color: var(--cyan); }
+    
+    @media (max-width: 768px) {
+        .featured-grid { grid-template-columns: repeat(2, 1fr) !important; gap: 0.75rem !important; }
+        .p-v2-body { padding: 0.875rem; gap: 0.35rem; }
+        .p-v2-title { font-size: 0.8125rem; height: 2.8em; }
+        .p-v2-price { font-size: 1rem; }
+        .p-v2-footer { pt-2 mt-2 !important; }
+        .p-v2-footer .btn { display: none; }
+    }
 
     /* Feature Cards */
     .feature-grid-v3 {
@@ -279,7 +291,7 @@
         </a>
     </div>
 
-    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-8">
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-8 featured-grid">
         {% for p in featured_products|slice:":4" %}
         <div class="product-v2-card reveal group">
             <a href="{% url 'product_detail' p.id %}" class="p-v2-img">

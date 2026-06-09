@@ -22,7 +22,7 @@ from apps.accounts.models import User, ModerationLog, ActivityLog, EmailVerifica
 from apps.accounts.services import send_brevo_email, send_verification_email
 from apps.common.countries import COUNTRIES
 from apps.catalog.models import Category, Product, ProductVariant
-from apps.common.models import Currency
+from apps.common.models import Currency, SocialMediaLink
 from apps.notifications.models import Notification, NotificationSetting
 from apps.notifications.services import notify_user, notify_bulk
 from apps.orders.models import Order, OrderItem, OrderLog, Coupon
