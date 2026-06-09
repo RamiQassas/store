@@ -34,6 +34,8 @@ urlpatterns = [
     path("auth/forgot-password/", views.v3_forgot_password_view, name="site_forgot_password"),
     path("auth/reset-password/", views.v3_reset_password_view, name="site_reset_password"),
     path("auth/logout/", views.v3_logout_view, name="site_logout"),
+    path("auth/resend-verification/", views.resend_verification, name="resend_verification"),
+    path("auth/email-verify/<uidb64>/<token>/", views.email_verify, name="email_verify"),
     
     # KYC
     path("dashboard/verification/", views.kyc_request_view, name="site_kyc_request"),

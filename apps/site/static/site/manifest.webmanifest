@@ -1,0 +1,22 @@
+{
+  "name": "Raqamiyat",
+  "short_name": "Raqamiyat",
+  "description": "Digital products and wallet services marketplace.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "dir": "rtl",
+  "lang": "ar",
+  "background_color": "#07111f",
+  "theme_color": "#0f766e",
+  "categories": ["shopping", "finance", "utilities"],
+  "icons": [
+    {
+      "src": "/static/site/img/app-icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

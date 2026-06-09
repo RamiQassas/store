@@ -1,4 +1,4 @@
-from django.test import TestCase
+from django.test import TestCase, override_settings
 from django.contrib.auth import get_user_model
 from rest_framework.test import APIClient
 
@@ -6,7 +6,15 @@ from apps.wallets.models import Wallet
 
 User = get_user_model()
 
+TEST_CACHES = {
+    "default": {
+        "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
+        "LOCATION": "tests",
+    }
+}
 
+
+@override_settings(SECURE_SSL_REDIRECT=False, CACHES=TEST_CACHES)
 class AccountApiTests(TestCase):
     def test_register_creates_user_wallet_and_tokens(self):
         client = APIClient()

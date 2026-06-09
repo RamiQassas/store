@@ -32,6 +32,9 @@ def variant_price(context, variant):
     """
     Returns the price of a variant for the current user in context.
     """
+    if variant is None:
+        return None
+
     request = context.get('request')
     if not request or not request.user.is_authenticated:
         return variant.price
@@ -47,6 +50,9 @@ def currency_format(context, amount, source_currency=None):
     """
     target_currency = context.get('CURRENCY')
     system_currency = context.get('SYSTEM_CURRENCY')
+
+    if amount is None:
+        return "غير متوفر"
     
     if not target_currency:
         return f"{amount} SYP"
