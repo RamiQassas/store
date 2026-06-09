@@ -114,6 +114,30 @@
         header.desktop-header { display: none; }
         .shell { padding-top: 1rem; padding-bottom: 80px; }
     }
+
+    /* Standardized Social Icons */
+    .social-icon-btn {
+        width: 32px !important;
+        height: 32px !important;
+        display: inline-flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        background: rgba(255,255,255,0.03) !important;
+        border: 1px solid rgba(255,255,255,0.05) !important;
+        border-radius: 8px !important;
+        overflow: hidden !important;
+        color: #94a3b8 !important;
+        transition: all 0.2s ease !important;
+        vertical-align: middle;
+    }
+    .social-icon-btn:hover { border-color: #2dd4bf !important; color: #fff !important; transform: translateY(-2px); }
+    .social-icon-btn img, .social-icon-btn i {
+        width: 16px !important;
+        height: 16px !important;
+        object-fit: contain !important;
+        display: block !important;
+    }
+    .social-icon-btn i { line-height: 16px !important; text-align: center; font-size: 14px !important; }
   </style>
   {% block extra_head %}{% endblock %}
 </head>
@@ -272,11 +296,11 @@
                 </p>
                 <div class="flex gap-3">
                     {% for link in SOCIAL_LINKS %}
-                    <a href="{{ link.url }}" target="_blank" class="w-8 h-8 rounded-lg bg-slate-900 border border-white/5 flex items-center justify-center text-slate-400 hover:text-cyan hover:border-cyan/30 transition-all">
+                    <a href="{{ link.url }}" target="_blank" class="social-icon-btn" title="{{ link.name }}">
                         {% if link.icon_image %}
-                        <img src="{{ link.icon_image.url }}" class="w-4 h-4 object-contain">
+                        <img src="{{ link.icon_image.url }}" alt="{{ link.name }}">
                         {% else %}
-                        <i class="{{ link.icon_class|default:'fas fa-link' }} text-sm"></i>
+                        <i class="{{ link.icon_class|default:'fas fa-link' }}"></i>
                         {% endif %}
                     </a>
                     {% endfor %}
