@@ -159,34 +159,47 @@
         .p-footer-v6 .btn { display: none; }
     }
 
-    /* --- Social: Slim & Professional --- */
+    /* --- Social & Support: Refined --- */
     .social-v6 {
         margin: 6rem 0;
         padding: 4rem 2rem;
-        background: rgba(255,255,255,0.01);
-        border: 1px solid var(--border);
-        border-radius: 32px;
         text-align: center;
     }
 
-    .social-v6 h2 { font-size: 1.5rem; font-weight: 800; margin-bottom: 2rem; }
+    .social-v6 h2 { font-size: 1.5rem; font-weight: 800; margin-bottom: 1rem; }
     
-    .social-links-v6 { display: flex; flex-wrap: wrap; justify-content: center; gap: 1rem; }
-    .social-item-v6 {
+    .support-card-v6 {
+        max-width: 450px;
+        margin: 0 auto 4rem;
+        padding: 2.5rem;
+        background: linear-gradient(135deg, rgba(6, 182, 212, 0.08) 0%, rgba(5, 8, 17, 0) 100%);
+        border: 1px solid rgba(6, 182, 212, 0.15);
+        border-radius: 32px;
         display: flex;
+        flex-direction: column;
         align-items: center;
-        gap: 0.625rem;
-        padding: 0.75rem 1.25rem;
+        gap: 1.25rem;
+        transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        backdrop-filter: blur(10px);
+    }
+    .support-card-v6:hover { border-color: var(--accent); transform: translateY(-6px); box-shadow: 0 25px 50px -12px rgba(6, 182, 212, 0.2); }
+    
+    .social-links-v6 { display: flex; flex-wrap: wrap; justify-content: center; gap: 0.75rem; }
+    .social-icon-v6 {
+        width: 38px;
+        height: 38px;
+        border-radius: 10px;
         background: #0a0f1c;
         border: 1px solid var(--border);
-        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
         color: var(--text-dim);
-        font-size: 0.875rem;
-        font-weight: 600;
-        transition: all 0.2s;
+        font-size: 1rem;
+        transition: all 0.2s ease;
     }
-    .social-item-v6:hover { border-color: var(--accent); color: #fff; transform: translateY(-2px); }
-    .social-item-v6 i, .social-item-v6 img { width: 18px; height: 18px; object-fit: contain; font-size: 1rem; }
+    .social-icon-v6:hover { border-color: var(--accent); color: #fff; transform: scale(1.15); background: rgba(6, 182, 212, 0.05); }
+    .social-icon-v6 i, .social-icon-v6 img { width: 16px; height: 16px; object-fit: contain; }
 </style>
 {% endblock %}
 
@@ -294,24 +307,36 @@
         </div>
     </section>
 
-    <!-- Social -->
+    <!-- Social & Support -->
     <section class="social-v6 reveal">
-        <span class="text-[10px] font-black text-cyan uppercase mb-2 block">Community</span>
+        <span class="text-[10px] font-black text-cyan uppercase mb-2 block">Direct Support</span>
         <h2>تواصل معنا</h2>
-        <p class="text-slate-500 mb-8 max-w-sm mx-auto">نحن متواجدون على كافة منصات التواصل الاجتماعي للإجابة على استفساراتكم.</p>
+        <p class="text-slate-500 mb-8 max-w-sm mx-auto">فريقنا متاح دائماً لمساعدتك عبر نظام الدعم المباشر داخل المنصة.</p>
+
+        <!-- Internal Support Card -->
+        <div class="support-card-v6 reveal">
+            <div class="w-16 h-16 bg-cyan/10 rounded-3xl flex items-center justify-center text-cyan shadow-inner">
+                <i class="fas fa-headset text-2xl"></i>
+            </div>
+            <div class="stack gap-1">
+                <h3 class="text-xl font-black text-white">مركز الدعم المباشر</h3>
+                <p class="text-xs text-slate-500">تواصل مع خبرائنا فوراً لحل أي مشكلة أو استفسار.</p>
+            </div>
+            <a href="{% url 'chat_list' %}" class="btn btn-primary w-full py-4 rounded-2xl font-black shadow-lg shadow-cyan/20">ابدأ المحادثة الآن</a>
+        </div>
         
+        <span class="text-[9px] font-bold text-slate-600 uppercase tracking-widest mb-4 block">Follow Our Community</span>
         <div class="social-links-v6">
             {% for link in SOCIAL_LINKS %}
-            <a href="{{ link.url }}" target="_blank" class="social-item-v6">
-                {% if link.icon_image %}
-                <img src="{{ link.icon_image.url }}" alt="{{ link.name }}">
-                {% else %}
-                <i class="{{ link.icon_class|default:'fas fa-link' }}"></i>
+                {% if "whatsapp" not in link.name|lower and "telegram" not in link.name|lower and "واتساب" not in link.name and "تليجرام" not in link.name %}
+                <a href="{{ link.url }}" target="_blank" class="social-icon-v6" title="{{ link.name }}">
+                    {% if link.icon_image %}
+                    <img src="{{ link.icon_image.url }}" alt="{{ link.name }}">
+                    {% else %}
+                    <i class="{{ link.icon_class|default:'fas fa-link' }}"></i>
+                    {% endif %}
+                </a>
                 {% endif %}
-                <span>{{ link.name }}</span>
-            </a>
-            {% empty %}
-            <p class="text-slate-700 italic text-sm">القنوات الرسمية قيد التحديث</p>
             {% endfor %}
         </div>
     </section>
