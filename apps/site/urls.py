@@ -25,6 +25,7 @@ urlpatterns = [
     path("api/withdrawals/<uuid:pk>/approve/", api_views.api_withdrawal_approve, name="api_withdrawal_approve"),
     path("api/withdrawals/<uuid:pk>/complete/", api_views.api_withdrawal_complete, name="api_withdrawal_complete"),
     path("api/withdrawals/<uuid:pk>/reject/", api_views.api_withdrawal_reject, name="api_withdrawal_reject"),
+    path("api/orders/<uuid:pk>/mark-read/", api_views.api_order_mark_read, name="api_order_mark_read"),
 
     # AUTHENTICATION (STANDARDIZED NAMES)
     path("auth/login/", views.v3_login_view, name="site_login"),

@@ -330,8 +330,8 @@ def dashboard(request):
     wallet = Wallet.objects.filter(user=request.user).select_related("currency").first() or get_or_create_wallet(request.user)
     kyc_request = getattr(request.user, 'kyc_request', None)
     
-    # Digital deliveries (completed orders with keys/files)
-    digital_deliveries = Order.objects.filter(customer=request.user, status=Order.Status.COMPLETED).exclude(fulfillment_data={}).order_by("-updated_at")[:6]
+    # Digital deliveries (completed orders with keys/files) - only unread
+    digital_deliveries = Order.objects.filter(customer=request.user, status=Order.Status.COMPLETED, is_delivery_read=False).exclude(fulfillment_data={}).order_by("-updated_at")[:6]
     
     # Recent notifications
     from apps.notifications.models import Notification

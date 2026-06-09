@@ -189,6 +189,15 @@ def api_withdrawal_complete(request, pk):
     return Response({"status": "success"})
 
 @api_view(["POST"])
+@permission_classes([permissions.IsAuthenticated])
+def api_order_mark_read(request, pk):
+    from apps.orders.models import Order
+    order = get_object_or_404(Order, pk=pk, customer=request.user)
+    order.is_delivery_read = True
+    order.save(update_fields=["is_delivery_read"])
+    return Response({"status": "success"})
+
+@api_view(["POST"])
 @permission_classes([IsFinanceManager])
 def api_withdrawal_reject(request, pk):
     withdrawal = get_object_or_404(WithdrawalRequest, pk=pk)

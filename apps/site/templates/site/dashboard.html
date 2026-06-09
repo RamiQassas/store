@@ -182,7 +182,10 @@
                 {% endfor %}
             </div>
 
-            <a href="{% url 'dashboard_order_detail' order.id %}" class="btn btn-primary btn-sm w-full py-2.5 rounded-xl font-bold">عرض كامل البيانات</a>
+            <div class="flex gap-2">
+                <a href="{% url 'dashboard_order_detail' order.id %}" class="btn btn-outline btn-sm flex-grow py-2.5 rounded-xl font-bold">التفاصيل</a>
+                <button onclick="markRead('{{ order.id }}', this)" class="btn btn-primary btn-sm flex-grow py-2.5 rounded-xl font-bold">تم الاستلام</button>
+            </div>
         </div>
         {% endfor %}
     </div>
@@ -465,6 +468,28 @@ function copyToClipboard(text, btn) {
         setTimeout(() => {
             icon.className = originalClass;
         }, 2000);
+    });
+}
+
+function markRead(orderId, btn) {
+    fetch(`/api/orders/${orderId}/mark-read/`, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': '{{ csrf_token }}',
+            'Content-Type': 'application/json'
+        }
+    }).then(res => {
+        if(res.ok) {
+            const card = btn.closest('.panel');
+            card.style.opacity = '0';
+            card.style.transform = 'scale(0.9)';
+            setTimeout(() => {
+                card.remove();
+                if(document.querySelectorAll('.panel[bg-cyan]').length === 0) {
+                    // Logic to hide section if empty
+                }
+            }, 300);
+        }
     });
 }
 </script>

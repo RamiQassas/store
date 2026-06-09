@@ -15,22 +15,22 @@
     }
 
     .hero-v3 h1 {
-        font-size: clamp(2.5rem, 8vw, 5.5rem);
+        font-size: clamp(1.75rem, 7vw, 5rem);
         font-weight: 950;
-        line-height: 0.95;
+        line-height: 1.1;
         letter-spacing: -0.04em;
-        margin-bottom: 2rem;
+        margin-bottom: 1.25rem;
         background: linear-gradient(to bottom, #fff 40%, rgba(255,255,255,0.7));
         -webkit-background-clip: text;
         -webkit-text-fill-color: transparent;
     }
 
     .hero-v3 p {
-        font-size: clamp(1rem, 2vw, 1.25rem);
+        font-size: clamp(0.9375rem, 2vw, 1.25rem);
         color: var(--muted);
         max-width: 650px;
         line-height: 1.6;
-        margin-bottom: 3.5rem;
+        margin-bottom: 2.5rem;
     }
 
     .cta-group {
@@ -39,13 +39,34 @@
         flex-wrap: wrap;
     }
 
-    /* Mobile Optimization: Hide some elements on mobile */
+    /* Mobile Optimization */
     @media (max-width: 768px) {
-        .hero-v3 { text-align: center; padding: 6rem 0 4rem; }
-        .hero-v3 p { margin-left: auto; margin-right: auto; }
-        .cta-group { justify-content: center; flex-direction: column; }
+        .hero-v3 { text-align: center; padding: 4rem 0 3rem; }
+        .hero-v3 h1 { line-height: 1.2; }
+        .hero-v3 p { margin-left: auto; margin-right: auto; margin-bottom: 2rem; }
+        .cta-group { justify-content: center; flex-direction: column; width: 100%; }
+        .cta-group .btn { width: 100%; padding: 1.25rem; font-size: 1rem; }
         .hide-on-mobile { display: none !important; }
     }
+
+    /* Product Cards (Consolidated with catalog style) */
+    .product-v2-card { 
+        background: var(--panel); border: 1px solid var(--panel-border); border-radius: 32px; 
+        overflow: hidden; transition: all 0.4s cubic-bezier(0.23, 1, 0.32, 1);
+        display: flex; flex-direction: column; height: 100%; position: relative;
+    }
+    .product-v2-card:hover { transform: translateY(-8px); border-color: rgba(6, 182, 212, 0.5); box-shadow: 0 30px 60px -12px rgba(0, 0, 0, 0.6); }
+    
+    .p-v2-img { 
+        width: 100%; aspect-ratio: 1/1; background: radial-gradient(circle at center, #1e293b, #0f172a); 
+        overflow: hidden; position: relative; display: flex; align-items: center; justify-content: center;
+        border-bottom: 1px solid rgba(255,255,255,0.03);
+    }
+    .p-v2-img img { width: 80%; height: 80%; object-fit: contain; transition: transform 0.8s cubic-bezier(0.23, 1, 0.32, 1); filter: drop-shadow(0 10px 20px rgba(0,0,0,0.3)); }
+    .product-v2-card:hover .p-v2-img img { transform: scale(1.1) rotate(2deg); }
+    
+    .p-v2-body { padding: 1.5rem; flex-grow: 1; display: flex; flex-direction: column; gap: 0.75rem; }
+    .p-v2-title { font-size: 1rem; font-weight: 800; color: #fff; line-height: 1.4; margin: 0; height: 2.8em; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
 
     /* Feature Cards */
     .feature-grid-v3 {
@@ -56,17 +77,26 @@
 
     .feature-card-v3 {
         padding: 2.5rem;
-        background: rgba(255,255,255,0.02);
-        border: 1px solid rgba(255,255,255,0.05);
+        background: rgba(255,255,255,0.01);
+        border: 1px solid rgba(255,255,255,0.04);
         border-radius: 32px;
         transition: all 0.4s cubic-bezier(0.23, 1, 0.32, 1);
+        position: relative;
+        overflow: hidden;
+    }
+
+    .feature-card-v3::after {
+        content: ""; position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+        background: radial-gradient(circle at top right, rgba(6, 182, 212, 0.05), transparent 70%);
+        opacity: 0; transition: opacity 0.4s;
     }
 
     .feature-card-v3:hover {
-        background: rgba(255,255,255,0.04);
-        border-color: var(--cyan);
+        background: rgba(255,255,255,0.03);
+        border-color: rgba(6, 182, 212, 0.3);
         transform: translateY(-8px);
     }
+    .feature-card-v3:hover::after { opacity: 1; }
 
     .feature-icon-v3 {
         width: 56px;
@@ -272,6 +302,28 @@
             </div>
         </div>
         {% endfor %}
+    </div>
+</section>
+
+<!-- Section: Social & Support -->
+<section class="container py-24 border-t border-white/5">
+    <div class="flex flex-col md:flex-row items-center justify-between gap-12">
+        <div class="reveal">
+            <h2 class="text-3xl font-black mb-4">انضم إلى مجتمعنا</h2>
+            <p class="text-slate-500">تابعنا على منصات التواصل الاجتماعي للحصول على آخر العروض والتحديثات.</p>
+        </div>
+        <div class="flex flex-wrap gap-4 reveal">
+            {% for link in SOCIAL_LINKS %}
+            <a href="{{ link.url }}" target="_blank" class="btn btn-outline px-8 py-4 rounded-2xl flex items-center gap-3 hover:border-cyan hover:text-cyan transition-all">
+                {% if link.icon_image %}
+                <img src="{{ link.icon_image.url }}" class="w-6 h-6 object-contain">
+                {% else %}
+                <i class="{{ link.icon_class|default:'fas fa-link' }} text-xl"></i>
+                {% endif %}
+                <span class="font-bold">{{ link.name }}</span>
+            </a>
+            {% endfor %}
+        </div>
     </div>
 </section>
 

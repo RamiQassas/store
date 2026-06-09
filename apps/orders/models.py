@@ -39,8 +39,13 @@ class Order(TimeStampedModel):
     fulfillment_data = models.JSONField(default=dict, blank=True, verbose_name="بيانات التنفيذ")
     admin_note = models.TextField(blank=True, verbose_name="ملاحظات المدير")
     metadata = models.JSONField(default=dict, blank=True, verbose_name="بيانات إضافية")
+    is_delivery_read = models.BooleanField(default=False, verbose_name="تمت رؤية المنتج الرقمي")
 
-    @property
+    class Meta:
+        verbose_name = "طلب"
+        verbose_name_plural = "الطلبات"
+        ordering = ["-created_at"]
+
     def formatted_metadata(self):
         """Returns a list of dicts with 'label' and 'value' for metadata."""
         if not self.metadata:

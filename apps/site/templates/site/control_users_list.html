@@ -30,40 +30,38 @@
     {% csrf_token %}
     <input type="hidden" name="action" value="bulk_tier">
     
-    <div class="management-header flex flex-wrap items-center justify-between gap-6 p-6 border-b border-white/5 bg-slate-900/20">
-        <div class="flex-grow max-w-md">
-            <div class="input-wrapper group">
+    <div class="management-header p-6 border-b border-white/5 bg-slate-900/20">
+        <div class="grid grid-cols-1 xl:grid-cols-2 gap-6 items-center">
+            <div class="input-wrapper group relative">
                 <i class="fas fa-search absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-cyan transition-colors"></i>
-                <input type="text" name="q" value="{{ query }}" placeholder="بحث بالبريد، الهاتف، أو الاسم..." class="text-xs pr-10 bg-slate-900/50 border-white/10 rounded-xl focus:border-cyan/50 focus:ring-4 focus:ring-cyan/10 transition-all w-full">
+                <input type="text" name="q" value="{{ query }}" placeholder="بحث بالبريد، الهاتف، أو الاسم..." class="text-xs pr-10 bg-slate-900/50 border-white/10 rounded-xl focus:border-cyan/50 focus:ring-4 focus:ring-cyan/10 transition-all w-full py-3">
             </div>
-        </div>
-        
-        <div class="flex flex-wrap items-center gap-3">
-            <span class="text-[10px] text-slate-500 font-bold uppercase tracking-widest ml-2">إجراءات جماعية:</span>
             
-            <div class="flex items-center bg-slate-900/50 border border-white/5 rounded-xl p-1">
-                <select name="target_tier" class="text-[11px] bg-transparent border-0 focus:ring-0 py-1.5 px-3 min-w-[140px]">
-                    <option value="">تغيير الفئة إلى...</option>
-                    {% for val, label in tiers %}
-                    <option value="{{ val }}">{{ label }}</option>
-                    {% endfor %}
-                </select>
-                <button type="submit" onclick="this.form.action.value='bulk_tier';" class="btn btn-primary btn-sm px-4 py-1.5 rounded-lg text-[10px] font-bold">تغيير الفئة</button>
-            </div>
+            <div class="flex flex-wrap items-center justify-start xl:justify-end gap-3">
+                <div class="flex items-center bg-slate-900/50 border border-white/5 rounded-xl p-1 shadow-inner">
+                    <select name="target_tier" class="text-[11px] bg-transparent border-0 focus:ring-0 py-1.5 px-3 min-w-[120px] text-slate-300 font-bold">
+                        <option value="">تغيير الفئة...</option>
+                        {% for val, label in tiers %}
+                        <option value="{{ val }}">{{ label }}</option>
+                        {% endfor %}
+                    </select>
+                    <button type="submit" onclick="this.form.action.value='bulk_tier';" class="btn btn-primary btn-sm px-4 py-2 rounded-lg text-[10px] font-black uppercase">Apply</button>
+                </div>
 
-            <div class="flex items-center bg-slate-900/50 border border-white/5 rounded-xl p-1">
-                <select name="target_role" class="text-[11px] bg-transparent border-0 focus:ring-0 py-1.5 px-3 min-w-[140px]">
-                    <option value="">تغيير الدور إلى...</option>
-                    {% for val, label in roles %}
-                    <option value="{{ val }}">{{ label }}</option>
-                    {% endfor %}
-                </select>
-                <button type="submit" onclick="this.form.action.value='bulk_role';" class="btn btn-primary btn-sm px-4 py-1.5 rounded-lg text-[10px] font-bold">تغيير الدور</button>
+                <div class="flex items-center bg-slate-900/50 border border-white/5 rounded-xl p-1 shadow-inner">
+                    <select name="target_role" class="text-[11px] bg-transparent border-0 focus:ring-0 py-1.5 px-3 min-w-[120px] text-slate-300 font-bold">
+                        <option value="">تغيير الدور...</option>
+                        {% for val, label in roles %}
+                        <option value="{{ val }}">{{ label }}</option>
+                        {% endfor %}
+                    </select>
+                    <button type="submit" onclick="this.form.action.value='bulk_role';" class="btn btn-primary btn-sm px-4 py-2 rounded-lg text-[10px] font-black uppercase">Apply</button>
+                </div>
+                
+                <a href="?export=excel" class="btn btn-outline btn-sm px-4 py-2 rounded-xl text-[10px] border-white/5 hover:bg-white/5 font-black uppercase">
+                    Export
+                </a>
             </div>
-            
-            <a href="?export=excel" class="btn btn-outline btn-sm px-4 py-2 rounded-xl text-[10px] border-white/5 hover:bg-white/5">
-                <i class="fas fa-file-export ml-1 opacity-50"></i> تصدير
-            </a>
         </div>
     </div>
     
