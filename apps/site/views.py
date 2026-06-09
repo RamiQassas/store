@@ -335,6 +335,13 @@ def order_detail(request, pk):
 
 
 @login_required
+def wallet_page(request):
+    request.user.reset_daily_limits_if_needed()
+    wallet = Wallet.objects.filter(user=request.user).select_related("currency").first() or get_or_create_wallet(request.user)
+    return render(request, "site/wallet.html", {"wallet": wallet, "ledger_entries": wallet.ledger_entries.all()[:20]})
+
+
+@login_required
 def deposits(request):
     if request.user.restriction_deposits:
         messages.error(request, "حسابك مقيد من الإيداع.")
