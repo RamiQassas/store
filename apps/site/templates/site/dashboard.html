@@ -236,11 +236,11 @@
             <div class="panel stack">
                 <div class="section-head p-6 pb-0">
                     <h2 class="text-lg">أحدث الطلبات</h2>
-                    <a href="{% url 'catalog' %}" class="text-cyan text-sm font-bold">كل الطلبات</a>
+                    <a href="{% url 'dashboard_orders' %}" class="text-cyan text-sm font-bold">كل الطلبات</a>
                 </div>
                 <div class="p-4 stack">
                     {% for order in orders %}
-                    <div class="activity-item">
+                    <a href="{% url 'dashboard_order_detail' order.id %}" class="activity-item">
                         <div class="activity-icon order">
                             <i class="fas fa-box"></i>
                         </div>
@@ -254,7 +254,7 @@
                                 <span class="text-xs font-bold">{% currency_format order.total_amount %}</span>
                             </div>
                         </div>
-                    </div>
+                    </a>
                     {% empty %}
                     <div class="p-8 text-center stack gap-3">
                         <i class="fas fa-box-open text-3xl text-slate-700"></i>

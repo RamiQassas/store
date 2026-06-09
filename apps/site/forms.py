@@ -291,7 +291,7 @@ class CategoryForm(forms.ModelForm):
 
 
 class ProductForm(forms.ModelForm):
-    sort_order = forms.IntegerField(required=False, initial=0, label="ترتيب العرض")
+    sort_order = forms.IntegerField(required=False, initial=0, label="ترتيب العرض", widget=forms.NumberInput(attrs={"class": "builder-input"}))
     
     class Meta:
         model = Product
@@ -300,9 +300,14 @@ class ProductForm(forms.ModelForm):
             "description", "instructions", "is_active", "is_featured", "sort_order", "form_schema"
         ]
         widgets = {
-            "description": forms.Textarea(attrs={"rows": 4}),
-            "instructions": forms.Textarea(attrs={"rows": 4}),
-            "form_schema": forms.Textarea(attrs={"rows": 5, "placeholder": '{"version": 1, "fields": []}'}),
+            "name": forms.TextInput(attrs={"class": "builder-input"}),
+            "category": forms.Select(attrs={"class": "builder-input"}),
+            "description": forms.Textarea(attrs={"rows": 4, "class": "builder-input"}),
+            "instructions": forms.Textarea(attrs={"rows": 4, "class": "builder-input"}),
+            "form_schema": forms.Textarea(attrs={"rows": 5, "placeholder": '{"version": 1, "fields": []}', "class": "builder-input font-mono text-xs"}),
+            "image": forms.FileInput(attrs={"class": "builder-input"}),
+            "cover_image": forms.FileInput(attrs={"class": "builder-input"}),
+            "thumbnail": forms.FileInput(attrs={"class": "builder-input"}),
         }
 
 

@@ -5,6 +5,8 @@ urlpatterns = [
     # User Dashboard
     path("dashboard/", views.dashboard, name="dashboard"),
     path("dashboard/wallet/", views.wallet_page, name="dashboard_wallet"),
+    path("dashboard/orders/", views.orders_list, name="dashboard_orders"),
+    path("dashboard/orders/<uuid:pk>/", views.order_detail, name="dashboard_order_detail"),
     path("dashboard/deposits/", views.deposits, name="dashboard_deposits"),
     path("dashboard/withdrawals/", views.withdrawals, name="dashboard_withdrawals"),
     path("dashboard/notifications/settings/", views.notification_settings, name="notification_settings"),

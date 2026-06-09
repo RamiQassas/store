@@ -1,0 +1,176 @@
+{% extends "site/base.html" %}
+{% load static site_tags %}
+
+{% block title %}تفاصيل الطلب #{{ order.number }} | Raqamiyat{% endblock %}
+
+{% block extra_head %}
+<style>
+    .order-status-card {
+        background: var(--panel);
+        border: 1px solid var(--panel-border);
+        border-radius: 24px;
+        padding: 2.5rem;
+        text-align: center;
+    }
+    .fulfillment-card {
+        background: rgba(6, 182, 212, 0.03);
+        border: 1px solid rgba(6, 182, 212, 0.2);
+        border-radius: 24px;
+        padding: 2rem;
+    }
+    .fulfillment-item {
+        background: var(--bg);
+        border: 1px solid var(--panel-border);
+        border-radius: 16px;
+        padding: 1.25rem;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    .copy-button {
+        background: rgba(6, 182, 212, 0.1);
+        color: var(--cyan);
+        padding: 4px 12px;
+        border-radius: 8px;
+        font-size: 10px;
+        font-weight: 800;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+    .copy-button:hover { background: var(--cyan); color: #000; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-head flex justify-between items-center">
+    <div>
+        <span class="eyebrow">Dashboard / Orders / Detail</span>
+        <h1>طلب رقم #{{ order.number }}</h1>
+        <p class="text-muted">عرض تفاصيل الطلب، المنتجات، ومعلومات التنفيذ والاستلام.</p>
+    </div>
+    <a href="{% url 'dashboard_orders' %}" class="btn btn-outline btn-sm">العودة للسجل</a>
+</div>
+
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+    <div class="lg:col-span-2 stack gap-8">
+        <!-- Fulfillment Data (Delivery Info) -->
+        {% if order.status == 'completed' %}
+        <div class="fulfillment-card shadow-lg shadow-cyan/5">
+            <h3 class="text-xl font-black text-cyan mb-6 flex items-center gap-3">
+                <i class="fas fa-gift"></i> معلومات التسليم (Delivery Info)
+            </h3>
+            
+            {% if order.fulfillment_data %}
+            <div class="stack gap-4">
+                {% for key, val in order.fulfillment_data.items %}
+                <div class="fulfillment-item">
+                    <div>
+                        <span class="text-[10px] text-slate-500 font-black uppercase tracking-widest block mb-1">{{ key }}</span>
+                        <strong class="text-white font-mono text-sm">{{ val }}</strong>
+                    </div>
+                    <button class="copy-button" onclick="copyToClipboard('{{ val }}', this)">نسخ</button>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="text-center p-8 bg-white/5 rounded-2xl border border-dashed border-white/10">
+                <p class="text-sm text-slate-400">تم إتمام الطلب، ولكن لا توجد بيانات إضافية للتسليم.</p>
+            </div>
+            {% endif %}
+            
+            {% for item in order.items.all %}
+                {% if item.variant.product.instructions %}
+                <div class="mt-6 p-6 bg-slate-900/50 rounded-2xl border border-white/5">
+                    <h4 class="text-xs font-black text-slate-400 uppercase mb-3">
+                        <i class="fas fa-info-circle ml-1"></i> تعليمات استخدام: {{ item.variant.product.name }}
+                    </h4>
+                    <div class="text-xs text-slate-300 leading-relaxed">{{ item.variant.product.instructions|linebreaks }}</div>
+                </div>
+                {% endif %}
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="panel p-12 text-center border-dashed">
+            <div class="w-16 h-16 bg-slate-800 rounded-full flex items-center justify-center mx-auto mb-6 text-amber-500">
+                <i class="fas fa-clock text-3xl"></i>
+            </div>
+            <h3 class="text-xl font-bold mb-2">الطلب قيد المعالجة</h3>
+            <p class="text-slate-400 max-w-sm mx-auto">سيظهر كود البطاقة أو معلومات التسليم هنا فور قيام الإدارة بإتمام الطلب.</p>
+        </div>
+        {% endif %}
+
+        <!-- Order Items -->
+        <div class="panel p-8">
+            <h3 class="text-sm font-black text-slate-500 uppercase tracking-widest mb-6 border-b border-white/5 pb-4">محتويات الطلب</h3>
+            <div class="stack gap-4">
+                {% for item in order.items.all %}
+                <div class="flex justify-between items-center bg-slate-900/30 p-4 rounded-xl border border-white/5">
+                    <div class="flex items-center gap-4">
+                        <div class="w-12 h-12 rounded bg-slate-800 overflow-hidden border border-white/5">
+                            {% if item.variant.product.image %}<img src="{{ item.variant.product.image.url }}" class="w-full h-full object-cover">{% endif %}
+                        </div>
+                        <div>
+                            <div class="font-bold text-sm text-white">{{ item.variant.product.name }}</div>
+                            <div class="text-[10px] text-slate-500">الباقة: {{ item.variant.name }} x {{ item.quantity }}</div>
+                        </div>
+                    </div>
+                    <div class="text-white font-bold">{% currency_format item.total_price %}</div>
+                </div>
+                {% endfor %}
+            </div>
+            <div class="mt-8 pt-6 border-t border-white/5 flex justify-between items-center">
+                <span class="text-slate-500 text-sm">المبلغ الإجمالي المخصوم</span>
+                <strong class="text-2xl font-black text-white">{% currency_format order.total_amount %}</strong>
+            </div>
+        </div>
+    </div>
+
+    <!-- Sidebar Info -->
+    <div class="stack gap-6">
+        <div class="order-status-card">
+            <span class="text-[10px] font-black text-slate-500 uppercase tracking-widest block mb-2">حالة الطلب الحالية</span>
+            <div class="text-2xl font-black mb-6 
+                {% if order.status == 'completed' %}text-emerald-500
+                {% elif order.status == 'cancelled' or order.status == 'refunded' %}text-rose-500
+                {% else %}text-amber-500{% endif %}">
+                {{ order.get_status_display }}
+            </div>
+            
+            <div class="h-px bg-white/5 my-6"></div>
+            
+            <div class="text-right stack gap-4">
+                <div class="flex justify-between text-xs">
+                    <span class="text-slate-500">تاريخ الطلب</span>
+                    <span class="text-slate-300 font-bold">{{ order.created_at|date:"d M Y, H:i" }}</span>
+                </div>
+                <div class="flex justify-between text-xs">
+                    <span class="text-slate-500">طريقة الدفع</span>
+                    <span class="text-slate-300 font-bold">رصيد المحفظة</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="panel p-6">
+            <h4 class="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-4">هل لديك مشكلة؟</h4>
+            <p class="text-[11px] text-slate-400 leading-relaxed mb-6">إذا واجهت أي مشكلة في استلام الخدمة أو كان لديك استفسار، يرجى فتح تذكرة دعم فني.</p>
+            <a href="{% url 'chat_list' %}" class="btn btn-outline btn-sm w-full">فتح تذكرة دعم</a>
+        </div>
+    </div>
+</div>
+
+<script>
+function copyToClipboard(text, btn) {
+    navigator.clipboard.writeText(text).then(() => {
+        const originalText = btn.innerText;
+        btn.innerText = 'تم النسخ!';
+        btn.style.background = 'var(--success)';
+        btn.style.color = '#fff';
+        setTimeout(() => {
+            btn.innerText = originalText;
+            btn.style.background = '';
+            btn.style.color = '';
+        }, 2000);
+    });
+}
+</script>
+{% endblock %}

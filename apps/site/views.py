@@ -324,10 +324,14 @@ def dashboard(request):
 
 
 @login_required
-def wallet_page(request):
-    request.user.reset_daily_limits_if_needed()
-    wallet = Wallet.objects.filter(user=request.user).select_related("currency").first() or get_or_create_wallet(request.user)
-    return render(request, "site/wallet.html", {"wallet": wallet, "ledger_entries": wallet.ledger_entries.all()[:20]})
+def orders_list(request):
+    orders = request.user.orders.all().prefetch_related('items__variant__product')
+    return render(request, "site/orders_list.html", {"orders": orders})
+
+@login_required
+def order_detail(request, pk):
+    order = get_object_or_404(request.user.orders.prefetch_related('items__variant__product', 'logs'), pk=pk)
+    return render(request, "site/order_detail.html", {"order": order})
 
 
 @login_required
@@ -947,20 +951,128 @@ def currency_edit(request, pk):
     return render(request, "site/currency_form.html", {"form": form, "currency": currency, "title": f"تعديل العملة: {currency.code}"})
 
 @support_required
-def control_products_list(request): return render(request, "site/control_products_list.html")
+def control_products_list(request):
+    from apps.catalog.models import Product
+    q = request.GET.get('q', '')
+    products = Product.objects.select_related('category').prefetch_related('variants').all().order_by('sort_order', 'name')
+    if q:
+        products = products.filter(Q(name__icontains=q) | Q(category__name__icontains=q))
+    return render(request, "site/control_products_list.html", {"products": products, "query": q})
+
 @support_required
-def control_product_create(request): return render(request, "site/control_product_builder.html")
+@transaction.atomic
+def control_product_create(request):
+    from apps.site.forms import ProductForm
+    from apps.catalog.models import Product, ProductVariant
+    import json
+    
+    form = ProductForm(request.POST or None, request.FILES or None)
+    if request.method == "POST" and form.is_valid():
+        product = form.save()
+        
+        # Handle variants
+        variants_json = request.POST.get("variants_json")
+        if variants_json:
+            variants_data = json.loads(variants_json)
+            for v_data in variants_data:
+                ProductVariant.objects.create(
+                    product=product,
+                    name=v_data.get('name'),
+                    sku=v_data.get('sku'),
+                    price=Decimal(str(v_data.get('price', '0'))),
+                    wholesale_price=Decimal(str(v_data.get('wholesale_price', '0'))),
+                    vip_price=Decimal(str(v_data.get('vip_price', '0'))),
+                    cost=Decimal(str(v_data.get('cost', '0'))),
+                    sort_order=int(v_data.get('sort_order', 0)),
+                    is_active=v_data.get('is_active', True)
+                )
+        
+        messages.success(request, "تم إنشاء المنتج بنجاح.")
+        return redirect("control_products_list")
+        
+    return render(request, "site/control_product_builder.html", {
+        "form": form, "title": "إضافة منتج جديد", "variants_json_data": []
+    })
+
 @support_required
-def control_category_create_ajax(request): return JsonResponse({"status":"ok"})
+def control_category_create_ajax(request):
+    from apps.catalog.models import Category
+    name = request.POST.get('name')
+    if name:
+        cat = Category.objects.create(name=name)
+        return JsonResponse({"id": str(cat.id), "name": cat.name})
+    return JsonResponse({"error": "Name required"}, status=400)
+
 @support_required
-def control_product_edit(request, pk): return render(request, "site/control_product_builder.html")
+@transaction.atomic
+def control_product_edit(request, pk):
+    from apps.site.forms import ProductForm
+    from apps.catalog.models import Product, ProductVariant
+    import json
+    
+    product = get_object_or_404(Product, pk=pk)
+    form = ProductForm(request.POST or None, request.FILES or None, instance=product)
+    
+    if request.method == "POST" and form.is_valid():
+        product = form.save()
+        
+        # Handle variants (Sync strategy)
+        variants_json = request.POST.get("variants_json")
+        if variants_json:
+            variants_data = json.loads(variants_json)
+            incoming_skus = set(v.get('sku') for v in variants_data if v.get('sku'))
+            
+            # Delete removed ones
+            product.variants.exclude(sku__in=incoming_skus).delete()
+            
+            for v_data in variants_data:
+                sku = v_data.get('sku')
+                ProductVariant.objects.update_or_create(
+                    product=product, sku=sku,
+                    defaults={
+                        "name": v_data.get('name'),
+                        "price": Decimal(str(v_data.get('price', '0'))),
+                        "wholesale_price": Decimal(str(v_data.get('wholesale_price', '0'))),
+                        "vip_price": Decimal(str(v_data.get('vip_price', '0'))),
+                        "cost": Decimal(str(v_data.get('cost', '0'))),
+                        "sort_order": int(v_data.get('sort_order', 0)),
+                        "is_active": v_data.get('is_active', True)
+                    }
+                )
+        
+        messages.success(request, "تم تحديث المنتج بنجاح.")
+        return redirect("control_products_list")
+    
+    # Prepare variants for JSON script
+    variants = product.variants.all().order_by('sort_order')
+    variants_json_data = []
+    for v in variants:
+        variants_json_data.append({
+            "name": v.name, "sku": v.sku, "price": str(v.price),
+            "wholesale_price": str(v.wholesale_price), "vip_price": str(v.vip_price),
+            "cost": str(v.cost), "sort_order": v.sort_order, "is_active": v.is_active
+        })
+        
+    return render(request, "site/control_product_builder.html", {
+        "form": form, "product": product, "title": f"تعديل المنتج: {product.name}",
+        "variants_json_data": variants_json_data
+    })
 @support_required
 def control_variant_create(request, product_pk): return render(request, "site/control_variant_form.html")
 @support_required
 def control_variant_edit(request, pk): return render(request, "site/control_variant_form.html")
 
 @support_required
-def control_orders_list(request): return render(request, "site/control_orders_list.html")
+def control_orders_list(request):
+    from apps.orders.models import Order
+    status_filter = request.GET.get('status')
+    q = request.GET.get('q', '')
+    orders = Order.objects.select_related('customer').prefetch_related('items__variant__product').all().order_by('-created_at')
+    if status_filter:
+        orders = orders.filter(status=status_filter)
+    if q:
+        orders = orders.filter(Q(number__icontains=q) | Q(customer__email__icontains=q))
+    return render(request, "site/control_orders_list.html", {"orders": orders, "query": q, "current_status": status_filter})
 @support_required
 def control_order_detail(request, pk):
     order = get_object_or_404(Order.objects.select_related('customer', 'customer__wallet').prefetch_related('items__variant__product', 'logs'), pk=pk)
