@@ -4,6 +4,7 @@ import hashlib
 from pywebpush import webpush, WebPushException
 from django.conf import settings
 from django.utils import timezone
+from django.db import models
 from apps.notifications.models import Notification, NotificationSetting, PushSubscription
 
 logger = logging.getLogger(__name__)
@@ -113,3 +114,30 @@ def notify_bulk(users, title, body, **kwargs):
     """Sends notification to multiple users at once."""
     for user in users:
         notify_user(user, title, body, **kwargs)
+
+def notify_staff(title, body, action_url=None, roles=None, priority=Notification.Priority.NORMAL, metadata=None):
+    """
+    Sends notification to staff members.
+    If roles is provided, only notify users with those roles.
+    Otherwise, notify all admin/staff users.
+    """
+    from apps.accounts.models import User
+    
+    staff_query = User.objects.filter(is_active=True)
+    
+    if roles:
+        staff_query = staff_query.filter(role__in=roles)
+    else:
+        # Default staff roles that should receive notifications
+        staff_roles = [
+            User.Role.SUPER_ADMIN,
+            User.Role.ADMIN,
+            User.Role.MODERATOR,
+            User.Role.FINANCE,
+            User.Role.SUPPORT,
+            User.Role.EMPLOYEE
+        ]
+        staff_query = staff_query.filter(models.Q(role__in=staff_roles) | models.Q(is_staff=True) | models.Q(is_superuser=True))
+    
+    staff_users = staff_query.distinct()
+    return notify_bulk(staff_users, title, body, action_url=action_url, category='system', priority=priority, metadata=metadata)

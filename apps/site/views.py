@@ -428,11 +428,20 @@ def deposits(request):
         with transaction.atomic():
             deposit = DepositRequest.objects.create(
                 user=request.user, payment_method=method, amount=amount,
-                currency=currency, wallet_amount=wallet_amount, proof_image=proof, 
+                currency=currency, wallet_amount=wallet_amount, proof_image=proof,
                 status=DepositRequest.Status.PENDING, metadata=metadata
             )
             track_pending_deposit(wallet.id, wallet_amount, reference=f"deposit:{deposit.id}")
+
+            from apps.notifications.services import notify_staff
+            notify_staff(
+                title="طلب إيداع جديد",
+                body=f"تم استلام طلب إيداع جديد بقيمة {amount} {currency.code} من {request.user.email}",
+                action_url=f"/control/deposits/{deposit.id}/"
+            )
+
             request.user.daily_deposit_usage += amount_base
+
             request.user.save(update_fields=["daily_deposit_usage"])
             messages.success(request, "طلب الإيداع قيد المراجعة.")
             return redirect("dashboard")
@@ -524,6 +533,13 @@ def withdrawals(request):
                 )
                 freeze_funds(wallet.id, wallet_amount, reference=f"with:{withdrawal.id}")
 
+                from apps.notifications.services import notify_staff
+                notify_staff(
+                    title="طلب سحب جديد",
+                    body=f"تم استلام طلب سحب جديد بقيمة {amount} {currency.code} من {request.user.email}",
+                    action_url=f"/control/withdrawals/{withdrawal.id}/"
+                )
+
                 request.user.daily_withdrawal_usage += amount_base
                 request.user.save(update_fields=["daily_withdrawal_usage"])
                 messages.success(request, "طلب السحب قيد المراجعة.")
@@ -577,6 +593,14 @@ def kyc_request_view(request):
         kyc.user = request.user
         kyc.status = KYCRequest.Status.PENDING
         kyc.save()
+
+        from apps.notifications.services import notify_staff
+        notify_staff(
+            title="طلب توثيق هوية جديد",
+            body=f"قام المستخدم {request.user.email} بتقديم طلب لتوثيق الهوية.",
+            action_url=f"/control/kyc/{kyc.id}/"
+        )
+
         messages.success(request, "تم تقديم الطلب.")
         return redirect("dashboard")
         
@@ -1145,10 +1169,33 @@ def control_order_detail(request, pk):
             new_status = request.POST.get("status")
             admin_note = request.POST.get("admin_note", "")
             if new_status and new_status != order.status:
-                order.status = new_status
-                order.save()
-                OrderLog.objects.create(order=order, status=new_status, note=admin_note, created_by=request.user)
-                messages.success(request, "تم تحديث حالة الطلب بنجاح.")
+                with transaction.atomic():
+                    order = Order.objects.select_for_update().get(pk=pk)
+                    old_status = order.status
+                    order.status = new_status
+                    order.save()
+                    OrderLog.objects.create(order=order, status=new_status, note=admin_note, created_by=request.user)
+                    
+                    # Handle Automatic Refund
+                    if new_status in [Order.Status.REFUNDED, Order.Status.CANCELLED]:
+                        from apps.wallets.models import LedgerEntry
+                        refund_ref = f"refund:order:{order.id}"
+                        if not LedgerEntry.objects.filter(reference=refund_ref).exists():
+                            from apps.wallets.services import credit_wallet
+                            credit_wallet(
+                                wallet_id=order.customer.wallet.id,
+                                amount=order.total_amount,
+                                reference=refund_ref,
+                                description=f"Refund for order #{order.number}. Reason: {admin_note or 'Order ' + new_status}",
+                                created_by=request.user,
+                                source="order_refund",
+                                reason=f"Order {new_status}"
+                            )
+                            messages.success(request, f"تم تحديث الحالة وإعادة مبلغ {order.total_amount} لمحفظة العميل.")
+                        else:
+                            messages.info(request, "تم تحديث الحالة (المبلغ مسترد مسبقاً).")
+                    else:
+                        messages.success(request, "تم تحديث حالة الطلب بنجاح.")
         
         elif action == "update_fulfillment":
             # Extract dynamic key-value pairs

@@ -66,14 +66,38 @@
             <div class="p-6">
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {% for item in withdrawal.formatted_payout_details %}
-                    <div class="info-item">
+                    <div class="info-item relative group">
                         <span class="info-label">{{ item.label }}</span>
-                        <span class="info-value text-cyan font-mono">{{ item.value }}</span>
+                        <div class="flex items-center justify-between gap-2">
+                            <span class="info-value text-cyan font-mono truncate" id="copy-{{ forloop.counter }}">{{ item.value }}</span>
+                            <button type="button" 
+                                    onclick="copyToClipboard('copy-{{ forloop.counter }}', this)"
+                                    class="p-1.5 text-slate-500 hover:text-cyan transition-colors"
+                                    title="نسخ">
+                                <i class="fas fa-copy"></i>
+                            </button>
+                        </div>
                     </div>
                     {% endfor %}
                 </div>
             </div>
         </div>
+
+        <script>
+        function copyToClipboard(elementId, btn) {
+            const text = document.getElementById(elementId).innerText;
+            navigator.clipboard.writeText(text).then(() => {
+                const icon = btn.querySelector('i');
+                const originalClass = icon.className;
+                icon.className = 'fas fa-check text-emerald-400';
+                setTimeout(() => {
+                    icon.className = originalClass;
+                }, 2000);
+            }).catch(err => {
+                console.error('Failed to copy: ', err);
+            });
+        }
+        </script>
 
         <!-- Withdrawal Proof -->
         <div class="management-card">

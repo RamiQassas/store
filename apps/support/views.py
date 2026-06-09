@@ -61,6 +61,14 @@ def create_chat(request):
         
     subject = request.GET.get('subject', 'طلب دعم فني')
     room = ChatRoom.objects.create(user=request.user, subject=subject)
+    
+    from apps.notifications.services import notify_staff
+    notify_staff(
+        title="طلب دعم جديد",
+        body=f"قام {request.user.email} بفتح تذكرة دعم جديدة: {subject}",
+        action_url=f"/support/chats/{room.id}/"
+    )
+
     return redirect('chat_room', room_id=room.id)
 
 

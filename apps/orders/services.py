@@ -53,4 +53,12 @@ def create_order(customer, variant_id, quantity=1, fulfillment_data=None, coupon
     
     OrderLog.objects.create(order=order, status=order.status, note="Order created and wallet debited.", created_by=customer)
     Invoice.objects.create(order=order, invoice_number=order.number.replace("ORD", "INV", 1), total_amount=total)
+
+    from apps.notifications.services import notify_staff
+    notify_staff(
+        title="طلب جديد",
+        body=f"تم إنشاء طلب جديد برقم {order.number} بقيمة {total} من قبل {customer.email}",
+        action_url=f"/control/orders/{order.id}/"
+    )
+
     return order

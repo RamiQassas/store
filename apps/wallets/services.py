@@ -3,6 +3,7 @@ from decimal import Decimal
 from django.db import transaction
 from apps.wallets.models import LedgerEntry, Wallet, WalletTransaction
 from apps.common.models import Currency
+from apps.notifications.models import Notification
 
 class WalletError(Exception):
     pass
@@ -98,6 +99,22 @@ def add_debt(wallet_id, amount, reference="", description="", created_by=None, m
             created_by=created_by,
             metadata=json_serialize_safe(metadata),
         )
+
+        from apps.notifications.services import notify_user, notify_staff
+        notify_user(
+            user=wallet.user,
+            title="إضافة دين جديد",
+            body=f"تم إضافة دين بقيمة {amount} {wallet.currency.code} إلى حسابك. {reason}",
+            category='financial',
+            metadata={'amount': str(amount), 'currency': wallet.currency.code, 'reference': reference}
+        )
+        
+        notify_staff(
+            title="إضافة دين لمستخدم",
+            body=f"تم إضافة دين بقيمة {amount} {wallet.currency.code} للمستخدم {wallet.user.email}. السبب: {reason}",
+            priority=Notification.Priority.HIGH
+        )
+
         return wallet
 
 
@@ -131,6 +148,21 @@ def pay_debt(wallet_id, amount, reference="", description="", created_by=None, m
             created_by=created_by,
             metadata=json_serialize_safe(metadata),
         )
+
+        from apps.notifications.services import notify_user, notify_staff
+        notify_user(
+            user=wallet.user,
+            title="تسديد دين",
+            body=f"تم تسجيل سداد دين بقيمة {amount} {wallet.currency.code}. {reason}",
+            category='financial',
+            metadata={'amount': str(amount), 'currency': wallet.currency.code, 'reference': reference}
+        )
+
+        notify_staff(
+            title="سداد دين من مستخدم",
+            body=f"تم تسجيل سداد دين بقيمة {amount} {wallet.currency.code} للمستخدم {wallet.user.email}. السبب: {reason}"
+        )
+
         return wallet
 
 
@@ -192,6 +224,16 @@ def freeze_funds(wallet_id, amount, reference="", description="", created_by=Non
             created_by=created_by,
             metadata=json_serialize_safe(metadata),
         )
+
+        from apps.notifications.services import notify_user
+        notify_user(
+            user=wallet.user,
+            title="تجميد مبلغ",
+            body=f"تم تجميد مبلغ {amount} {wallet.currency.code} من رصيدك لعملية سحب أو معالجة. {reason}",
+            category='financial',
+            metadata={'amount': str(amount), 'currency': wallet.currency.code, 'reference': reference}
+        )
+
         return wallet
 
 
@@ -225,6 +267,16 @@ def release_funds(wallet_id, amount, reference="", description="", created_by=No
             created_by=created_by,
             metadata=json_serialize_safe(metadata),
         )
+
+        from apps.notifications.services import notify_user
+        notify_user(
+            user=wallet.user,
+            title="فك تجميد مبلغ",
+            body=f"تم فك تجميد مبلغ {amount} {wallet.currency.code} وإعادته إلى رصيدك. {reason}",
+            category='financial',
+            metadata={'amount': str(amount), 'currency': wallet.currency.code, 'reference': reference}
+        )
+
         return wallet
 
 
@@ -306,7 +358,21 @@ def hold_funds(wallet_id, amount, reference="", description="", created_by=None,
             created_by=created_by,
             metadata=json_serialize_safe(metadata),
         )
+
+        from apps.notifications.services import notify_user, notify_staff
+        notify_user(
+            user=wallet.user,
+            title="حجز أموال",
+            body=f"تم حجز مبلغ {amount} {wallet.currency.code} مؤقتاً من رصيدك. {reason}",
+            category='financial',
+            metadata={'amount': str(amount), 'currency': wallet.currency.code, 'reference': reference}
+        )
         
+        notify_staff(
+            title="حجز رصيد مستخدم",
+            body=f"تم حجز مبلغ {amount} {wallet.currency.code} من رصيد {wallet.user.email}. السبب: {reason}"
+        )
+
         # SystemAuditLog should be handled by the caller (view/admin) to include IP/UserAgent
         
         return wallet
@@ -336,6 +402,21 @@ def unhold_funds(wallet_id, amount, reference="", description="", created_by=Non
             created_by=created_by,
             metadata=json_serialize_safe(metadata),
         )
+
+        from apps.notifications.services import notify_user, notify_staff
+        notify_user(
+            user=wallet.user,
+            title="فك حجز الأموال",
+            body=f"تم إلغاء حجز مبلغ {amount} {wallet.currency.code} وإعادته إلى رصيدك المتاح. {reason}",
+            category='financial',
+            metadata={'amount': str(amount), 'currency': wallet.currency.code, 'reference': reference}
+        )
+
+        notify_staff(
+            title="فك حجز رصيد مستخدم",
+            body=f"تم إلغاء حجز مبلغ {amount} {wallet.currency.code} للمستخدم {wallet.user.email}. السبب: {reason}"
+        )
+
         return wallet
 
 
