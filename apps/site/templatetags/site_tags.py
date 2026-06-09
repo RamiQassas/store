@@ -59,6 +59,6 @@ def currency_format(context, amount, source_currency=None):
 
 @register.filter
 def get_item(dictionary, key):
-    if not dictionary:
+    if not isinstance(dictionary, dict):
         return None
     return dictionary.get(str(key))

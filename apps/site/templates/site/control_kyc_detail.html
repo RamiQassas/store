@@ -1,5 +1,5 @@
 {% extends "site/control_base.html" %}
-{% load site_tags %}
+{% load site_tags l10n %}
 {% block title %}مراجعة وتعديل التوثيق | {{ kyc.user.email }}{% endblock %}
 
 {% block extra_head %}
@@ -60,11 +60,11 @@
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
                     <div class="field-group">
                         <label class="text-[10px] text-slate-500 font-bold uppercase">الحد اليومي للإيداع (USD)</label>
-                        <input type="number" name="global_deposit_limit" step="0.01" value="{{ kyc.user.daily_deposit_limit }}" class="builder-input font-mono">
+                        <input type="number" name="global_deposit_limit" step="0.01" value="{{ kyc.user.daily_deposit_limit|unlocalize }}" class="builder-input font-mono">
                     </div>
                     <div class="field-group">
                         <label class="text-[10px] text-slate-500 font-bold uppercase">الحد اليومي للسحب (USD)</label>
-                        <input type="number" name="global_withdrawal_limit" step="0.01" value="{{ kyc.user.daily_withdrawal_limit }}" class="builder-input font-mono">
+                        <input type="number" name="global_withdrawal_limit" step="0.01" value="{{ kyc.user.daily_withdrawal_limit|unlocalize }}" class="builder-input font-mono">
                     </div>
                 </div>
 
@@ -79,14 +79,14 @@
                         <div class="field-group">
                             <label class="text-[9px] text-slate-500">حد الإيداع</label>
                             <input type="number" name="method_dep_{{ method.id }}" step="0.01" 
-                                   value="{{ user_limit.deposit|default:'' }}" 
-                                   class="builder-input text-xs font-mono py-2" placeholder="{{ method.daily_deposit_limit }}">
+                                   value="{{ user_limit.deposit|default:''|unlocalize }}" 
+                                   class="builder-input text-xs font-mono py-2" placeholder="{{ method.daily_deposit_limit|unlocalize }}">
                         </div>
                         <div class="field-group">
                             <label class="text-[9px] text-slate-500">حد السحب</label>
                             <input type="number" name="method_with_{{ method.id }}" step="0.01" 
-                                   value="{{ user_limit.withdraw|default:'' }}" 
-                                   class="builder-input text-xs font-mono py-2" placeholder="{{ method.daily_withdrawal_limit }}">
+                                   value="{{ user_limit.withdraw|default:''|unlocalize }}" 
+                                   class="builder-input text-xs font-mono py-2" placeholder="{{ method.daily_withdrawal_limit|unlocalize }}">
                         </div>
                         {% endwith %}
                     </div>

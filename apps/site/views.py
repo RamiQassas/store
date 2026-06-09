@@ -552,17 +552,34 @@ def control_kyc_detail(request, pk):
                 return redirect("control_kyc_detail", pk=pk)
         elif action == "update_limits":
             user = kyc.user
-            user.daily_deposit_limit = Decimal(request.POST.get("global_deposit_limit", "100.00"))
-            user.daily_withdrawal_limit = Decimal(request.POST.get("global_withdrawal_limit", "100.00"))
+            
+            def parse_decimal(val, default="0.00"):
+                if not val: return Decimal(default)
+                # Handle Arabic commas or other separators
+                sanitized = str(val).replace(',', '.')
+                try:
+                    return Decimal(sanitized)
+                except:
+                    return Decimal(default)
+
+            user.daily_deposit_limit = parse_decimal(request.POST.get("global_deposit_limit"), "100.00")
+            user.daily_withdrawal_limit = parse_decimal(request.POST.get("global_withdrawal_limit"), "100.00")
             user.has_custom_limits = True
+            
             custom_limits = {}
             for method in payment_methods:
-                dep = request.POST.get(f"method_dep_{method.id}")
-                withd = request.POST.get(f"method_with_{method.id}")
-                if dep or withd: custom_limits[str(method.id)] = {"deposit": dep, "withdraw": withd}
+                dep_raw = request.POST.get(f"method_dep_{method.id}")
+                withd_raw = request.POST.get(f"method_with_{method.id}")
+                
+                if dep_raw or withd_raw:
+                    # Sanitize for storage to ensure dot is used as decimal separator
+                    dep = str(dep_raw).replace(',', '.') if dep_raw else ""
+                    withd = str(withd_raw).replace(',', '.') if withd_raw else ""
+                    custom_limits[str(method.id)] = {"deposit": dep, "withdraw": withd}
+            
             user.custom_payment_limits = custom_limits
             user.save()
-            messages.success(request, "تم تحديث الحدود.")
+            messages.success(request, "تم تحديث الحدود بنجاح.")
             return redirect("control_kyc_detail", pk=pk)
         elif action == "approve":
             with transaction.atomic():
