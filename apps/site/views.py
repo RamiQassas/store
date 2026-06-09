@@ -976,6 +976,8 @@ def control_wallets_list(request):
 @finance_required
 def control_reports(request):
     from django.db.models import Sum, F, Count
+    from django.db.models.functions import Coalesce
+    from decimal import Decimal
     from django.utils import timezone
     from datetime import timedelta
     from apps.orders.models import Order, OrderItem
@@ -999,9 +1001,6 @@ def control_reports(request):
     ).aggregate(total=Coalesce(Sum('fee_amount'), Decimal("0.00")))['total']
 
     # 3. Product Profit Calculation
-    from django.db.models.functions import Coalesce
-    from decimal import Decimal
-    
     product_stats_30 = OrderItem.objects.filter(
         order__status__in=[Order.Status.COMPLETED, Order.Status.PROCESSING],
         created_at__date__gte=last_30_days
