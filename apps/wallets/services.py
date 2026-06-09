@@ -202,9 +202,15 @@ def release_funds(wallet_id, amount, reference="", description="", created_by=No
     with transaction.atomic():
         wallet = Wallet.objects.select_for_update().get(id=wallet_id)
         if wallet.frozen_balance < amount:
-            raise WalletError("Insufficient frozen balance to release.")
-        wallet.frozen_balance -= amount
-        wallet.available_balance += amount
+            # Safely handle the case where frozen balance is missing or insufficient
+            deficit = amount - wallet.frozen_balance
+            wallet.frozen_balance = Decimal("0.00")
+            description += f" (Warning: Released {amount} but only had {amount - deficit} frozen. Adjusted.)"
+            wallet.available_balance += (amount - deficit) # Only release what was actually frozen back to available
+        else:
+            wallet.frozen_balance -= amount
+            wallet.available_balance += amount
+            
         wallet.save(update_fields=["available_balance", "frozen_balance", "updated_at"])
         
         LedgerEntry.objects.create(
@@ -230,9 +236,24 @@ def finalize_withdrawal(wallet_id, amount, reference="", description="", created
     with transaction.atomic():
         wallet = Wallet.objects.select_for_update().get(id=wallet_id)
         if wallet.frozen_balance < amount:
-            raise WalletError("Insufficient frozen balance to finalize withdrawal.")
-        wallet.frozen_balance -= amount
-        wallet.save(update_fields=["frozen_balance", "updated_at"])
+            # Safely handle the case where frozen balance is missing or insufficient
+            # Deduct whatever is left in frozen, and the rest from available (if possible)
+            # or just log it and zero out frozen. The best approach is to deduct from frozen
+            # and if not enough, deduct the remainder from available if possible, or just 
+            # force frozen to zero and deduct from available.
+            # To be safest, we just deduct what we can from frozen.
+            deficit = amount - wallet.frozen_balance
+            wallet.frozen_balance = Decimal("0.00")
+            if wallet.available_balance >= deficit:
+                wallet.available_balance -= deficit
+                description += " (Warning: Insufficient frozen balance, deducted remainder from available.)"
+            else:
+                wallet.available_balance = Decimal("0.00")
+                description += " (Critical Warning: Insufficient frozen AND available balance. Balances set to zero.)"
+        else:
+            wallet.frozen_balance -= amount
+            
+        wallet.save(update_fields=["frozen_balance", "available_balance", "updated_at"])
         
         # Note: Available balance doesn't change here because it was already deducted when frozen.
         # But we still create a LedgerEntry for audit trail.

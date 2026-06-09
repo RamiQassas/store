@@ -465,14 +465,31 @@ def withdrawals(request):
 
         wallet = get_or_create_wallet(request.user)
         wallet_amount = amount_base
-        
+
+        # Extract dynamic form fields for payout details
+        dynamic_fields = {}
+        for key, value in request.POST.items():
+            if key.startswith("custom_"):
+                field_name = key[7:]
+                dynamic_fields[field_name] = value
+                
+        # Also check FILES just in case, though image support for dynamic withdrawal fields might need custom logic.
+        for key, file_obj in request.FILES.items():
+            if key.startswith("custom_"):
+                field_name = key[7:]
+                dynamic_fields[field_name] = f"File: {file_obj.name}"
+
+        payout_details = {"dynamic": dynamic_fields}
+
         if wallet.available_balance >= wallet_amount:
             with transaction.atomic():
                 withdrawal = WithdrawalRequest.objects.create(
                     user=request.user, payment_method=method, amount=amount,
-                    currency=currency, wallet_amount=wallet_amount, status=WithdrawalRequest.Status.PENDING
+                    currency=currency, wallet_amount=wallet_amount, status=WithdrawalRequest.Status.PENDING,
+                    payout_details=payout_details
                 )
                 freeze_funds(wallet.id, wallet_amount, reference=f"with:{withdrawal.id}")
+
                 request.user.daily_withdrawal_usage += amount_base
                 request.user.save(update_fields=["daily_withdrawal_usage"])
                 messages.success(request, "طلب السحب قيد المراجعة.")
@@ -791,9 +808,9 @@ def control_withdrawal_detail(request, pk):
             messages.info(request, "بدأت معالجة الطلب.")
         elif action == "complete":
             finalize_withdrawal(
-                withdrawal.user.wallet.id, 
-                withdrawal.amount, 
-                reference=f"with_complete:{withdrawal.id}", 
+                withdrawal.user.wallet.id,
+                withdrawal.wallet_amount,
+                reference=f"with_complete:{withdrawal.id}",
                 description=f"Withdrawal completed. {admin_note}",
                 created_by=request.user
             )
@@ -806,13 +823,14 @@ def control_withdrawal_detail(request, pk):
             return redirect("control_withdrawals")
         elif action == "reject":
             release_funds(
-                withdrawal.user.wallet.id, 
-                withdrawal.amount, 
-                reference=f"with_rej:{withdrawal.id}", 
+                withdrawal.user.wallet.id,
+                withdrawal.wallet_amount,
+                reference=f"with_rej:{withdrawal.id}",
                 description=f"Withdrawal rejected: {admin_note}",
                 created_by=request.user
             )
             withdrawal.status = WithdrawalRequest.Status.REJECTED
+
             withdrawal.admin_note = admin_note
             withdrawal.reviewed_by = request.user
             withdrawal.reviewed_at = timezone.now()
