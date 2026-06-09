@@ -911,11 +911,40 @@ def control_debts(request):
 def currencies_list(request):
     from apps.common.models import Currency
     currencies = Currency.objects.all().order_by('display_order', 'code')
+    
+    if request.method == "POST":
+        for c in currencies:
+            buy_rate = request.POST.get(f"buy_rate_{c.id}")
+            sell_rate = request.POST.get(f"sell_rate_{c.id}")
+            if buy_rate is not None and sell_rate is not None:
+                c.buy_rate = Decimal(buy_rate)
+                c.sell_rate = Decimal(sell_rate)
+                c.save()
+        messages.success(request, "تم تحديث أسعار الصرف بنجاح.")
+        return redirect("currencies_list")
+
     return render(request, "site/currencies_list.html", {"currencies": currencies})
 @admin_required
-def currency_create(request): return render(request, "site/currency_form.html")
+def currency_create(request):
+    from apps.site.forms import CurrencyForm
+    form = CurrencyForm(request.POST or None)
+    if request.method == "POST" and form.is_valid():
+        form.save()
+        messages.success(request, "تمت إضافة العملة بنجاح.")
+        return redirect("currencies_list")
+    return render(request, "site/currency_form.html", {"form": form, "title": "إضافة عملة"})
+
 @admin_required
-def currency_edit(request, pk): return render(request, "site/currency_form.html")
+def currency_edit(request, pk):
+    from apps.site.forms import CurrencyForm
+    from apps.common.models import Currency
+    currency = get_object_or_404(Currency, pk=pk)
+    form = CurrencyForm(request.POST or None, instance=currency)
+    if request.method == "POST" and form.is_valid():
+        form.save()
+        messages.success(request, "تم تحديث بيانات العملة.")
+        return redirect("currencies_list")
+    return render(request, "site/currency_form.html", {"form": form, "currency": currency, "title": f"تعديل العملة: {currency.code}"})
 
 @support_required
 def control_products_list(request): return render(request, "site/control_products_list.html")

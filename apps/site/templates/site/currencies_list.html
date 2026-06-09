@@ -4,15 +4,22 @@
 {% block title %}إدارة العملات | Raqamiyat Admin{% endblock %}
 
 {% block control_content %}
+<form method="post">
+{% csrf_token %}
 <div class="page-head">
     <div>
         <span class="eyebrow">Financial Management</span>
         <h1>العملات وأسعار الصرف</h1>
         <p class="text-muted">إدارة العملات المدعومة وتحديث أسعار الصرف العالمية مقارنة بالدولار.</p>
     </div>
-    <a href="{% url 'currency_create' %}" class="btn btn-primary btn-sm">
-        <i class="fas fa-plus ml-2"></i> إضافة عملة
-    </a>
+    <div class="flex gap-3">
+        <a href="{% url 'currency_create' %}" class="btn btn-outline btn-sm">
+            <i class="fas fa-plus ml-2"></i> إضافة عملة
+        </a>
+        <button type="submit" class="btn btn-primary btn-sm">
+            <i class="fas fa-save ml-2"></i> حفظ التغييرات
+        </button>
+    </div>
 </div>
 
 <div class="management-card">
@@ -46,10 +53,10 @@
                         <span class="font-bold text-slate-400">{{ c.symbol }}</span>
                     </td>
                     <td class="p-4">
-                        <div class="font-mono text-success">{{ c.buy_rate }}</div>
+                        <input type="number" name="buy_rate_{{ c.id }}" value="{{ c.buy_rate|stringformat:'.6f' }}" step="0.000001" class="bg-slate-900 border-white/10 rounded px-3 py-1.5 w-32 font-mono text-success focus:border-success/50 outline-none transition-all">
                     </td>
                     <td class="p-4">
-                        <div class="font-mono text-cyan">{{ c.sell_rate }}</div>
+                        <input type="number" name="sell_rate_{{ c.id }}" value="{{ c.sell_rate|stringformat:'.6f' }}" step="0.000001" class="bg-slate-900 border-white/10 rounded px-3 py-1.5 w-32 font-mono text-cyan focus:border-cyan/50 outline-none transition-all">
                     </td>
                     <td class="p-4">
                         <span class="badge {% if c.is_active %}success{% else %}muted{% endif %} text-[9px]">{% if c.is_active %}نشطة{% else %}معطلة{% endif %}</span>
@@ -64,13 +71,14 @@
                 </tr>
                 {% empty %}
                 <tr>
-                    <td colspan="5" class="p-12 text-center text-slate-500 italic">لم يتم تعريف عملات بعد.</td>
+                    <td colspan="6" class="p-12 text-center text-slate-500 italic">لم يتم تعريف عملات بعد.</td>
                 </tr>
                 {% endfor %}
             </tbody>
         </table>
     </div>
 </div>
+</form>
 
 <div class="panel p-6 bg-slate-900/50 mt-8 border-r-4 border-cyan">
     <h3 class="text-sm font-bold text-cyan mb-2">معلومة هامة</h3>
