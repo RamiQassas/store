@@ -168,27 +168,27 @@
                 <p class="text-xs text-muted">يرجى تحويل المبلغ المطلوب إلى الحساب أدناه بدقة.</p>
             </div>
             
-            <div id="qr-section" class="panel p-8 text-center hidden bg-white/[0.02] border-cyan/10">
-                <div class="text-[10px] font-black text-cyan uppercase tracking-widest mb-6">مسح كود التحويل (QR)</div>
+            <div id="qr-section" class="panel p-8 flex flex-col items-center hidden bg-white/[0.02] border-cyan/10">
+                <div class="text-[10px] font-black text-cyan uppercase tracking-widest mb-6 text-center">مسح كود التحويل (QR)</div>
                 
-                <div class="qr-download-wrapper inline-block p-4 bg-white rounded-[1.5rem] shadow-[0_15px_40px_rgba(0,0,0,0.2)] mb-6 relative group">
-                    <div class="qr-frame relative bg-white p-1 rounded-xl">
-                         <img id="qr-img" class="w-40 h-40 mx-auto object-contain block" alt="QR Code">
+                <div class="qr-download-wrapper inline-block p-3 bg-white rounded-[1.25rem] shadow-[0_10px_30px_rgba(0,0,0,0.2)] mb-6 relative group">
+                    <div class="qr-frame relative bg-white p-0.5 rounded-lg overflow-hidden">
+                         <img id="qr-img" class="w-36 h-36 object-contain block" alt="QR Code" style="max-width: 144px; max-height: 144px;">
                     </div>
                     
-                    <div class="absolute inset-0 bg-cyan/90 opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-[1.5rem] flex flex-col items-center justify-center gap-2 cursor-pointer" onclick="downloadQR()">
-                         <div class="bg-white text-cyan w-10 h-10 rounded-full flex items-center justify-center shadow-lg transform group-hover:scale-110 transition-transform">
-                            <i class="fas fa-download"></i>
+                    <div class="absolute inset-0 bg-cyan/90 opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-[1.25rem] flex flex-col items-center justify-center gap-2 cursor-pointer" onclick="downloadQR()">
+                         <div class="bg-white text-cyan w-9 h-9 rounded-full flex items-center justify-center shadow-lg transform group-hover:scale-110 transition-transform">
+                            <i class="fas fa-download text-sm"></i>
                          </div>
-                         <span class="text-white text-[9px] font-bold uppercase tracking-widest">حفظ الصورة</span>
+                         <span class="text-white text-[8px] font-bold uppercase tracking-widest">حفظ الصورة</span>
                     </div>
                 </div>
 
-                <div class="stack items-center gap-2">
-                    <button type="button" class="btn btn-primary btn-sm px-8 rounded-xl shadow-lg shadow-cyan/20 h-12" onclick="downloadQR()">
+                <div class="stack items-center gap-2 w-full max-w-xs">
+                    <button type="button" class="btn btn-primary btn-sm w-full rounded-xl shadow-lg shadow-cyan/20 h-10 text-xs" onclick="downloadQR()">
                         <i class="fas fa-download ml-2"></i> تحميل رمز QR للتحويل
                     </button>
-                    <p class="text-[9px] text-muted mt-2 font-bold opacity-50 uppercase tracking-tighter">استخدم تطبيق البنك أو المحفظة لمسح الكود</p>
+                    <p class="text-[9px] text-muted mt-2 font-bold opacity-50 uppercase tracking-tighter text-center">استخدم تطبيق البنك لمسح الكود</p>
                 </div>
             </div>
 
