@@ -1,7 +1,8 @@
 from django.conf import settings
 from django.conf.urls.static import static
 from django.contrib import admin
-from django.urls import include, path
+from django.urls import include, path, re_path
+from django.views.static import serve
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
@@ -45,8 +46,5 @@ urlpatterns = [
     path("api/auth/login/", LoginView.as_view(), name="login"),
     path("api/auth/token/refresh/", TokenRefreshView.as_view(), name="token_refresh"),
     path("api/", include(router.urls)),
+    re_path(r"^media/(?P<path>.*)$", serve, {"document_root": settings.MEDIA_ROOT}),
 ]
-
-# Serve media files in all environments since we are using persistent disks on Render
-# without a separate web server like Nginx.
-urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

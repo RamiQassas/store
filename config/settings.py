@@ -163,7 +163,9 @@ STATICFILES_STORAGE = (
 )
 
 MEDIA_URL = "/media/"
-MEDIA_ROOT = env("MEDIA_ROOT", BASE_DIR / "media")
+# Render persistence: /var/data is the standard mount point for disks
+MEDIA_ROOT_DEFAULT = "/var/data" if os.path.exists("/var/data") else BASE_DIR / "media"
+MEDIA_ROOT = env("MEDIA_ROOT", MEDIA_ROOT_DEFAULT)
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 LOGIN_URL = "/auth/login/"

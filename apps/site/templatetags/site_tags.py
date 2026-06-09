@@ -59,6 +59,25 @@ def currency_format(context, amount, source_currency=None):
 
 @register.filter
 def get_item(dictionary, key):
+    if dictionary is None:
+        return None
+        
+    # Handle JSON string if dictionary is passed as string
+    if isinstance(dictionary, str):
+        import json
+        try:
+            dictionary = json.loads(dictionary)
+        except:
+            return None
+            
     if not isinstance(dictionary, dict):
         return None
-    return dictionary.get(str(key))
+        
+    # Standard string lookup (common for JSONField)
+    res = dictionary.get(str(key))
+    
+    # Fallback for UUID hex format if standard str(key) fails
+    if res is None and hasattr(key, 'hex'):
+        res = dictionary.get(key.hex)
+        
+    return res
