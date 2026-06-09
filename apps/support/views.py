@@ -1,4 +1,5 @@
 from django.shortcuts import render, get_object_or_404, redirect
+from django.http import JsonResponse, Http404
 from django.contrib import messages
 from django.db.models import Q
 from django.utils import timezone
@@ -29,8 +30,11 @@ def chat_list(request):
         rooms = ChatRoom.objects.filter(user=request.user).select_related('assigned_agent')
     else:
         # Guest user - track by session
-        guest_id = get_guest_id(request)
-        rooms = ChatRoom.objects.filter(metadata__guest_id=guest_id).select_related('assigned_agent')
+        room_id = request.session.get('support_chat_room_id')
+        if room_id:
+            rooms = ChatRoom.objects.filter(id=room_id).select_related('assigned_agent')
+        else:
+            rooms = ChatRoom.objects.none()
     
     # If a guest/user has only one room, redirect directly to it
     if rooms.count() == 1 and not (request.user.is_authenticated and can_manage_support(request.user)):
@@ -49,8 +53,11 @@ def chat_room(request, room_id):
     elif request.user.is_authenticated:
         room = get_object_or_404(ChatRoom, id=room_id, user=request.user)
     else:
-        guest_id = get_guest_id(request)
-        room = get_object_or_404(ChatRoom, id=room_id, metadata__guest_id=guest_id)
+        # Guest check
+        session_room_id = request.session.get('support_chat_room_id')
+        if not session_room_id or str(session_room_id) != str(room_id):
+             raise Http404("Chat room not found or access denied.")
+        room = get_object_or_404(ChatRoom, id=room_id)
     
     messages_history = room.messages.all().select_related('sender')
     
@@ -82,29 +89,24 @@ def create_chat(request):
         room = ChatRoom.objects.create(user=request.user, subject=subject)
         user_label = request.user.email
     else:
-        # Guest user
-        guest_id = get_guest_id(request)
-        active_chat = ChatRoom.objects.filter(metadata__guest_id=guest_id).exclude(status=ChatRoom.Status.CLOSED).first()
-        if active_chat:
-            return redirect('chat_room', room_id=active_chat.id)
+        # Guest user - session tracking
+        session_room_id = request.session.get('support_chat_room_id')
+        if session_room_id:
+            active_chat = ChatRoom.objects.filter(id=session_room_id).exclude(status=ChatRoom.Status.CLOSED).first()
+            if active_chat:
+                return redirect('chat_room', room_id=active_chat.id)
             
-        # We need a placeholder user for ChatRoom if the model requires it
-        # Let's see if we have a designated 'Guest' user or if we can make user nullable
-        # For now, I'll assume we might need a system user or if nullable is allowed.
-        # Looking at models.py, user is NOT nullable. 
-        # I will look for a user named 'guest' or similar, or prompt to create one.
         from apps.accounts.models import User
         system_guest = User.objects.filter(email="guest@raqamiyat.com").first()
         if not system_guest:
-             # Fallback to any staff or first user if guest doesn't exist (safety)
              system_guest = User.objects.filter(is_staff=True).first()
         
         room = ChatRoom.objects.create(
             user=system_guest, 
-            subject=f"{subject} (زائر)",
-            metadata={"guest_id": guest_id, "is_guest": True}
+            subject=f"{subject} (زائر)"
         )
-        user_label = f"زائر ({guest_id[:8]})"
+        request.session['support_chat_room_id'] = str(room.id)
+        user_label = f"زائر ({str(room.id)[:8]})"
     
     from apps.notifications.services import notify_staff
     notify_staff(
@@ -126,8 +128,8 @@ def chat_file_upload(request, room_id):
         if request.user.is_authenticated and room.user == request.user:
             is_owner = True
         elif not request.user.is_authenticated:
-            guest_id = get_guest_id(request)
-            if room.metadata.get('guest_id') == guest_id:
+            session_room_id = request.session.get('support_chat_room_id')
+            if str(session_room_id) == str(room.id):
                 is_owner = True
                 
         if not (is_manager or is_owner):
