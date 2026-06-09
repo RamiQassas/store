@@ -67,6 +67,11 @@
     .error-hint { font-size: 11px; color: var(--danger); font-weight: 700; margin-top: 6px; display: none; }
     .field-group.has-error .builder-input { border-color: var(--danger); box-shadow: 0 0 0 4px rgba(239, 68, 68, 0.1); }
     .field-group.has-error .error-hint { display: block; }
+
+    /* QR Enhancement */
+    .qr-download-wrapper { transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1); border: 1px solid rgba(0,0,0,0.05); }
+    .qr-download-wrapper:hover { transform: translateY(-8px) scale(1.02); box-shadow: 0 30px 60px rgba(0,0,0,0.4); }
+    .qr-frame img { filter: contrast(1.1); mix-blend-mode: multiply; }
 </style>
 {% endblock %}
 
@@ -163,11 +168,27 @@
                 <p class="text-xs text-muted">يرجى تحويل المبلغ المطلوب إلى الحساب أدناه بدقة.</p>
             </div>
             
-            <div id="qr-section" class="panel p-6 text-center hidden bg-white/[0.02]">
-                <div class="text-[10px] font-black text-cyan uppercase tracking-widest mb-4">مسح كود التحويل (QR)</div>
-                <div class="relative inline-block">
-                    <img id="qr-img" class="w-48 h-48 mx-auto rounded-3xl border-4 border-white/5 shadow-2xl">
-                    <div class="absolute inset-0 border-2 border-cyan/20 rounded-3xl pointer-events-none"></div>
+            <div id="qr-section" class="panel p-8 text-center hidden bg-white/[0.02] border-cyan/10">
+                <div class="text-[10px] font-black text-cyan uppercase tracking-widest mb-6">مسح كود التحويل (QR)</div>
+                
+                <div class="qr-download-wrapper inline-block p-6 bg-white rounded-[2rem] shadow-[0_20px_50px_rgba(0,0,0,0.3)] mb-6 relative group">
+                    <div class="qr-frame relative bg-white p-2 rounded-2xl">
+                         <img id="qr-img" class="w-56 h-56 mx-auto object-contain block" alt="QR Code">
+                    </div>
+                    
+                    <div class="absolute inset-0 bg-cyan/90 opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-[2rem] flex flex-col items-center justify-center gap-3 cursor-pointer" onclick="downloadQR()">
+                         <div class="bg-white text-cyan w-12 h-12 rounded-full flex items-center justify-center shadow-lg transform group-hover:scale-110 transition-transform">
+                            <i class="fas fa-download"></i>
+                         </div>
+                         <span class="text-white text-[10px] font-bold uppercase tracking-widest">حفظ الصورة</span>
+                    </div>
+                </div>
+
+                <div class="stack items-center gap-2">
+                    <button type="button" class="btn btn-primary btn-sm px-8 rounded-xl shadow-lg shadow-cyan/20 h-12" onclick="downloadQR()">
+                        <i class="fas fa-download ml-2"></i> تحميل رمز QR للتحويل
+                    </button>
+                    <p class="text-[9px] text-muted mt-2 font-bold opacity-50 uppercase tracking-tighter">استخدم تطبيق البنك أو المحفظة لمسح الكود</p>
                 </div>
             </div>
 
@@ -255,6 +276,18 @@
 
 <script>
 let state = { method: null, currency: null };
+
+function downloadQR() {
+    const img = document.getElementById('qr-img');
+    if (!img || !img.src || img.src.includes('undefined')) return;
+    
+    const link = document.createElement('a');
+    link.href = img.src;
+    link.download = `QR_Deposit_${state.method ? state.method.name.replace(/\s+/g, '_') : 'Payment'}.png`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+}
 
 function selectMethod(id, el) {
     state.method = JSON.parse(document.getElementById('data-'+id).textContent);
