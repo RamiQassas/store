@@ -336,6 +336,9 @@ def order_detail(request, pk):
 
 @login_required
 def wallet_page(request):
+    """
+    Displays the user's wallet dashboard and recent ledger entries.
+    """
     request.user.reset_daily_limits_if_needed()
     wallet = Wallet.objects.filter(user=request.user).select_related("currency").first() or get_or_create_wallet(request.user)
     return render(request, "site/wallet.html", {"wallet": wallet, "ledger_entries": wallet.ledger_entries.all()[:20]})
