@@ -82,10 +82,12 @@ def get_item(dictionary, key):
         
     return res
 
+from django.utils.safestring import mark_safe
+
 @register.simple_tag
 def get_deposit_config(payment_method, user):
-    return payment_method.to_deposit_json(user=user)
+    return mark_safe(payment_method.to_deposit_json(user=user))
 
 @register.simple_tag
 def get_withdrawal_config(payment_method, user):
-    return payment_method.to_withdrawal_json(user=user)
+    return mark_safe(payment_method.to_withdrawal_json(user=user))

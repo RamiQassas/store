@@ -360,8 +360,16 @@ def deposits(request):
             return redirect("dashboard_deposits")
             
         method = get_object_or_404(methods, id=method_id)
-        user_custom = request.user.custom_payment_limits.get(str(method.id)) or request.user.custom_payment_limits.get(method.id.hex) or {}
-        method_limit = Decimal(str(user_custom['deposit'])) if user_custom.get('deposit') else method.daily_deposit_limit
+        
+        # Determine base method limit based on Priority Logic
+        if request.user.has_custom_limits:
+            user_custom = request.user.custom_payment_limits.get(str(method.id)) or request.user.custom_payment_limits.get(method.id.hex) or {}
+            if user_custom.get('deposit'):
+                method_limit = Decimal(str(user_custom['deposit']))
+            else:
+                method_limit = request.user.daily_deposit_limit
+        else:
+            method_limit = min(request.user.daily_deposit_limit, method.daily_deposit_limit)
 
         method_usage_today = Decimal("0.00")
         today_deposits = DepositRequest.objects.filter(
@@ -427,8 +435,16 @@ def withdrawals(request):
             return redirect("dashboard_withdrawals")
             
         method = get_object_or_404(methods, id=method_id)
-        user_custom = request.user.custom_payment_limits.get(str(method.id)) or request.user.custom_payment_limits.get(method.id.hex) or {}
-        method_limit = Decimal(str(user_custom['withdraw'])) if user_custom.get('withdraw') else method.daily_withdrawal_limit
+        
+        # Determine base method limit based on Priority Logic
+        if request.user.has_custom_limits:
+            user_custom = request.user.custom_payment_limits.get(str(method.id)) or request.user.custom_payment_limits.get(method.id.hex) or {}
+            if user_custom.get('withdraw'):
+                method_limit = Decimal(str(user_custom['withdraw']))
+            else:
+                method_limit = request.user.daily_withdrawal_limit
+        else:
+            method_limit = min(request.user.daily_withdrawal_limit, method.daily_withdrawal_limit)
         
         method_usage_today = Decimal("0.00")
         today_withdrawals = WithdrawalRequest.objects.filter(

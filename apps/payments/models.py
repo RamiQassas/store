@@ -52,42 +52,28 @@ class PaymentMethod(TimeStampedModel):
     def to_deposit_json(self, user=None):
         import json
         from django.core.serializers.json import DjangoJSONEncoder
-        from django.utils import timezone
         from apps.common.models import Currency
         usd = Currency.objects.filter(code="USD").first()
         
-        # 1. Base hard limit for this method
-        method_hard_limit = self.daily_deposit_limit
-        user_total_remaining = Decimal("999999999.99")
-        
+        # 1. Global/Default Ceiling
+        user_global_limit = Decimal("100.00")
         if user:
-            user_total_remaining = user.remaining_deposit_limit
-            # Check for user-specific method override
-            if user.custom_payment_limits:
-                user_custom = user.custom_payment_limits.get(str(self.id)) or user.custom_payment_limits.get(self.id.hex)
-                if user_custom and user_custom.get('deposit'):
-                    try:
-                        method_hard_limit = Decimal(str(user_custom['deposit']))
-                    except:
-                        pass
-            
-            # 2. Calculate today's usage for this method
-            # We need to import here to avoid potential issues if called during app init (though unlikely)
-            from apps.payments.models import DepositRequest
-            method_usage_today = Decimal("0.00")
-            today_deposits = DepositRequest.objects.filter(
-                user=user, payment_method=self, created_at__date=timezone.now().date()
-            ).exclude(status=DepositRequest.Status.REJECTED).select_related("currency")
-            
-            for d in today_deposits:
-                method_usage_today += d.currency.to_base(d.amount, operation="deposit")
-            
-            method_remaining = max(Decimal("0.00"), method_hard_limit - method_usage_today)
-        else:
-            method_remaining = method_hard_limit
+            user_global_limit = user.daily_deposit_limit
 
-        # Effective max is the smaller of method's remaining limit and user's total remaining daily limit
-        effective_deposit_max = min(method_remaining, user_total_remaining)
+        # 2. Determine Effective Limit based on Priorities
+        if user and user.has_custom_limits:
+            # VIP Override Priority: Check per-method then fallback to global custom
+            user_custom = user.custom_payment_limits.get(str(self.id)) or user.custom_payment_limits.get(self.id.hex)
+            if user_custom and user_custom.get('deposit'):
+                try:
+                    effective_deposit_max = Decimal(str(user_custom['deposit']))
+                except:
+                    effective_deposit_max = user_global_limit
+            else:
+                effective_deposit_max = user_global_limit
+        else:
+            # Normal User: Cap global limit by method limit
+            effective_deposit_max = min(user_global_limit, self.daily_deposit_limit)
 
         currencies_data = []
         for c in self.supported_currencies.all():
@@ -122,41 +108,28 @@ class PaymentMethod(TimeStampedModel):
     def to_withdrawal_json(self, user=None):
         import json
         from django.core.serializers.json import DjangoJSONEncoder
-        from django.utils import timezone
         from apps.common.models import Currency
         usd = Currency.objects.filter(code="USD").first()
 
-        # 1. Base hard limit for this method
-        method_hard_limit = self.daily_withdrawal_limit
-        user_total_remaining = Decimal("999999999.99")
-        
+        # 1. Global/Default Ceiling
+        user_global_limit = Decimal("100.00")
         if user:
-            user_total_remaining = user.remaining_withdrawal_limit
-            # Check for user-specific method override
-            if user.custom_payment_limits:
-                user_custom = user.custom_payment_limits.get(str(self.id)) or user.custom_payment_limits.get(self.id.hex)
-                if user_custom and user_custom.get('withdraw'):
-                    try:
-                        method_hard_limit = Decimal(str(user_custom['withdraw']))
-                    except:
-                        pass
-            
-            # 2. Calculate today's usage for this method
-            from apps.payments.models import WithdrawalRequest
-            method_usage_today = Decimal("0.00")
-            today_withdrawals = WithdrawalRequest.objects.filter(
-                user=user, payment_method=self, created_at__date=timezone.now().date()
-            ).exclude(status=WithdrawalRequest.Status.REJECTED).select_related("currency")
+            user_global_limit = user.daily_withdrawal_limit
 
-            for w in today_withdrawals:
-                method_usage_today += w.currency.to_base(w.amount, operation="withdraw")
-            
-            method_remaining = max(Decimal("0.00"), method_hard_limit - method_usage_today)
+        # 2. Determine Effective Limit based on Priorities
+        if user and user.has_custom_limits:
+            # VIP Override Priority: Check per-method then fallback to global custom
+            user_custom = user.custom_payment_limits.get(str(self.id)) or user.custom_payment_limits.get(self.id.hex)
+            if user_custom and user_custom.get('withdraw'):
+                try:
+                    effective_withdrawal_max = Decimal(str(user_custom['withdraw']))
+                except:
+                    effective_withdrawal_max = user_global_limit
+            else:
+                effective_withdrawal_max = user_global_limit
         else:
-            method_remaining = method_hard_limit
-
-        # Effective max is the smaller of method's remaining limit and user's total remaining daily limit
-        effective_withdrawal_max = min(method_remaining, user_total_remaining)
+            # Normal User: Cap global limit by method limit
+            effective_withdrawal_max = min(user_global_limit, self.daily_withdrawal_limit)
 
         currencies_data = []
         for c in self.supported_currencies.all():
