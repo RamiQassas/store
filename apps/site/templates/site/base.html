@@ -270,13 +270,13 @@
                 <p class="text-slate-500 text-sm max-w-sm leading-relaxed mb-8">
                     رقميات هي المنصة الرائدة في المنطقة لتوفير كافة الخدمات والبطاقات الرقمية بأمان تام وسرعة استثنائية. نسعى دائماً لتقديم أفضل تجربة شراء لعملائنا وتجارنا.
                 </p>
-                <div class="flex gap-4">
+                <div class="flex gap-3">
                     {% for link in SOCIAL_LINKS %}
-                    <a href="{{ link.url }}" target="_blank" class="w-10 h-10 rounded-xl bg-slate-900 border border-white/5 flex items-center justify-center text-slate-400 hover:text-cyan hover:border-cyan/30 transition-all">
+                    <a href="{{ link.url }}" target="_blank" class="w-8 h-8 rounded-lg bg-slate-900 border border-white/5 flex items-center justify-center text-slate-400 hover:text-cyan hover:border-cyan/30 transition-all">
                         {% if link.icon_image %}
-                        <img src="{{ link.icon_image.url }}" class="w-5 h-5 object-contain">
+                        <img src="{{ link.icon_image.url }}" class="w-4 h-4 object-contain">
                         {% else %}
-                        <i class="{{ link.icon_class|default:'fas fa-link' }} text-lg"></i>
+                        <i class="{{ link.icon_class|default:'fas fa-link' }} text-sm"></i>
                         {% endif %}
                     </a>
                     {% endfor %}
