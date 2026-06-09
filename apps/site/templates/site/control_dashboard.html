@@ -13,7 +13,7 @@
 </div>
 
 <!-- Stats Grid -->
-<div class="grid grid-4 gap-6 mb-8">
+<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
     <div class="admin-stats-card">
         <div class="asc-icon"><i class="fas fa-users"></i></div>
         <div>
@@ -22,20 +22,20 @@
         </div>
     </div>
     <div class="admin-stats-card">
-        <div class="asc-icon" style="color: var(--warning); background: rgba(245, 158, 11, 0.1);"><i class="fas fa-money-bill-wave"></i></div>
+        <div class="asc-icon" style="color: var(--warning); background: rgba(245, 158, 11, 0.1);"><i class="fas fa-money-bill-transfer"></i></div>
         <div>
             <span class="text-xs text-muted block">إيداعات معلقة</span>
             <strong class="text-xl text-warning">{{ stats.pending_deposits }}</strong>
         </div>
     </div>
     <div class="admin-stats-card">
-        <div class="asc-icon" style="color: var(--danger); background: rgba(239, 68, 68, 0.1);"><i class="fas fa-university"></i></div>
+        <div class="asc-icon" style="color: var(--danger); background: rgba(239, 68, 68, 0.1);"><i class="fas fa-building-columns"></i></div>
         <div>
             <span class="text-xs text-muted block">سحوبات معلقة</span>
             <strong class="text-xl text-danger">{{ stats.pending_withdrawals }}</strong>
         </div>
     </div>
-    <a href="{% url 'chat_list' %}" class="admin-stats-card hover:border-cyan transition">
+    <a href="{% url 'chat_list' %}" class="admin-stats-card hover:border-cyan transition no-underline">
         <div class="asc-icon" style="color: #a855f7; background: rgba(168, 85, 247, 0.1);"><i class="fas fa-headset"></i></div>
         <div>
             <span class="text-xs text-muted block">تذاكر مفتوحة</span>
@@ -44,7 +44,7 @@
     </a>
 </div>
 
-<div class="grid grid-2 gap-8">
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
     <!-- Recent Orders -->
     <div class="management-card">
         <div class="management-header">
@@ -80,17 +80,17 @@
     <div class="management-card">
         <div class="management-header">
             <h3 class="font-bold">عمليات الإيداع</h3>
-            <a href="#" class="text-xs text-cyan font-bold">إدارة الإيداعات</a>
+            <a href="{% url 'control_deposits' %}" class="text-xs text-cyan font-bold">إدارة الإيداعات</a>
         </div>
         <div class="stack">
             {% for deposit in recent_deposits %}
-            <div class="line-item hover:bg-white/[0.02] transition">
+            <a href="{% url 'control_deposit_detail' deposit.id %}" class="line-item hover:bg-white/[0.02] transition no-underline">
                 <div class="flex items-center gap-4">
                     <div class="w-8 h-8 rounded bg-slate-800 flex items-center justify-center text-[10px] text-success">
-                        <i class="fas fa-arrow-up"></i>
+                        <i class="fas fa-arrow-down"></i>
                     </div>
                     <div>
-                        <strong class="text-xs block mb-1">{{ deposit.user.email }}</strong>
+                        <strong class="text-xs block mb-1 text-white">{{ deposit.user.email }}</strong>
                         <span class="text-[10px] text-slate-500">{{ deposit.payment_method.name }}</span>
                     </div>
                 </div>
@@ -98,9 +98,9 @@
                     <span class="badge {% if deposit.status == 'completed' %}success{% elif deposit.status == 'rejected' %}danger{% else %}warning{% endif %} text-[9px] mb-1">
                         {{ deposit.get_status_display }}
                     </span>
-                    <div class="text-xs font-bold">{{ deposit.amount }} {{ deposit.currency.code }}</div>
+                    <div class="text-xs font-bold text-white">{{ deposit.amount }} {{ deposit.currency.code }}</div>
                 </div>
-            </div>
+            </a>
             {% empty %}
             <p class="p-8 text-center text-xs text-muted italic">لا توجد إيداعات للمراجعة.</p>
             {% endfor %}

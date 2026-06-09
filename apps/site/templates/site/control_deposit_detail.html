@@ -1,0 +1,374 @@
+{% extends "site/control_base.html" %}
+{% load static %}
+
+{% block title %}تفاصيل الإيداع #{{ deposit.id|stringformat:".8s" }} | Raqamiyat Admin{% endblock %}
+
+{% block extra_head %}
+<style>
+    .proof-container {
+        position: relative;
+        width: 100%;
+        height: 500px;
+        background: #0f172a;
+        border-radius: 16px;
+        overflow: hidden;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border: 1px solid var(--admin-border);
+    }
+    .proof-image {
+        max-width: 100%;
+        max-height: 100%;
+        transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        cursor: grab;
+        user-select: none;
+    }
+    .proof-image:active { cursor: grabbing; }
+    
+    .viewer-controls {
+        position: absolute;
+        bottom: 20px;
+        left: 50%;
+        transform: translateX(-50%);
+        display: flex;
+        gap: 8px;
+        background: rgba(15, 23, 42, 0.8);
+        backdrop-filter: blur(8px);
+        padding: 8px;
+        border-radius: 12px;
+        border: 1px solid rgba(255,255,255,0.1);
+        z-index: 10;
+    }
+    .viewer-btn {
+        width: 36px;
+        height: 36px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 8px;
+        color: #94a3b8;
+        transition: all 0.2s;
+        border: none;
+        background: transparent;
+        cursor: pointer;
+    }
+    .viewer-btn:hover { background: rgba(255,255,255,0.1); color: #fff; }
+    
+    .detail-grid { display: grid; grid-template-columns: 1fr 350px; gap: 24px; }
+    
+    @media (max-width: 1024px) {
+        .detail-grid { grid-template-columns: 1fr; }
+    }
+    
+    .info-item { display: flex; flex-direction: column; gap: 4px; padding: 12px; background: rgba(255,255,255,0.02); border-radius: 12px; border: 1px solid rgba(255,255,255,0.05); }
+    .info-label { font-size: 10px; font-weight: 800; color: #64748b; text-transform: uppercase; }
+    .info-value { font-size: 14px; font-weight: 600; color: #f1f5f9; }
+</style>
+{% endblock %}
+
+{% block control_content %}
+<div class="page-head flex justify-between items-center">
+    <div>
+        <span class="eyebrow">Financial Operations / Deposits</span>
+        <h1>تفاصيل طلب الإيداع</h1>
+        <p class="text-muted">مراجعة والتحقق من الحوالة المالية: #{{ deposit.id }}</p>
+    </div>
+    <div>
+        <a href="{% url 'control_deposits' %}" class="btn btn-outline btn-sm">
+            <i class="fas fa-arrow-right ml-2"></i> العودة للقائمة
+        </a>
+    </div>
+</div>
+
+<div class="detail-grid">
+    <!-- Main Content: Proof & Actions -->
+    <div class="stack gap-6">
+        <!-- Payment Proof Viewer -->
+        <div class="management-card">
+            <div class="management-header">
+                <h3 class="font-bold flex items-center gap-2">
+                    <i class="fas fa-image text-cyan"></i> إثبات الدفع (الوصل)
+                </h3>
+                <div class="flex gap-2">
+                     {% if deposit.proof_image %}
+                     <a href="{{ deposit.proof_image.url }}" download class="text-[10px] text-slate-400 hover:text-white transition">
+                        <i class="fas fa-download ml-1"></i> تحميل الصورة
+                     </a>
+                     {% endif %}
+                </div>
+            </div>
+            <div class="p-6">
+                {% if deposit.proof_image %}
+                <div class="proof-container" id="image-viewer">
+                    <img src="{{ deposit.proof_image.url }}" id="proof-img" class="proof-image" alt="Deposit Proof">
+                    
+                    <div class="viewer-controls">
+                        <button class="viewer-btn" onclick="zoomImg(1.2)" title="Zoom In"><i class="fas fa-search-plus"></i></button>
+                        <button class="viewer-btn" onclick="zoomImg(0.8)" title="Zoom Out"><i class="fas fa-search-minus"></i></button>
+                        <button class="viewer-btn" onclick="resetZoom()" title="Reset"><i class="fas fa-undo"></i></button>
+                        <button class="viewer-btn" onclick="toggleFullscreen()" title="Fullscreen"><i class="fas fa-expand"></i></button>
+                        <a href="{{ deposit.proof_image.url }}" target="_blank" class="viewer-btn" title="Open Original"><i class="fas fa-external-link-alt"></i></a>
+                    </div>
+                </div>
+                {% else %}
+                <div class="p-20 text-center bg-slate-900/50 rounded-2xl border border-dashed border-white/10">
+                    <i class="fas fa-image-slash text-4xl text-slate-700 mb-4"></i>
+                    <p class="text-slate-500 font-bold">لم يقم المستخدم بإرفاق صورة إثبات.</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Processing Actions -->
+        <div class="management-card">
+            <div class="management-header">
+                <h3 class="font-bold">اتخاذ إجراء</h3>
+            </div>
+            <div class="p-6">
+                {% if deposit.status == 'pending' or deposit.status == 'under_review' %}
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div class="stack gap-4">
+                        <h4 class="text-sm font-bold text-emerald-500">الموافقة والإضافة</h4>
+                        <p class="text-xs text-slate-500">سيتم إضافة المبلغ للمحفظة فوراً وإخطار العميل.</p>
+                        
+                        <div class="field-group">
+                            <label class="info-label">المبلغ المعتمد للإضافة</label>
+                            <div class="relative">
+                                <input type="number" id="approve-amount" value="{{ deposit.amount }}" step="0.01" class="w-full bg-slate-900 border-white/10 rounded-xl p-3 text-lg font-black text-emerald-400 focus:border-emerald-500 transition-all">
+                                <span class="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 font-bold text-xs uppercase">{{ deposit.currency.code }}</span>
+                            </div>
+                        </div>
+
+                        <div class="field-group">
+                            <label class="info-label">ملاحظات (اختياري)</label>
+                            <textarea id="approve-note" class="w-full bg-slate-900 border-white/10 rounded-xl p-3 text-xs text-white" rows="2" placeholder="ملاحظة تظهر للمستخدم..."></textarea>
+                        </div>
+
+                        <button class="btn btn-primary w-full py-3 font-bold" onclick="processAction('approve')">
+                            <i class="fas fa-check-circle ml-2"></i> تأكيد الموافقة
+                        </button>
+                    </div>
+
+                    <div class="stack gap-4 border-r border-white/5 pr-6">
+                        <h4 class="text-sm font-bold text-rose-500">رفض الطلب</h4>
+                        <p class="text-xs text-slate-500">سيتم إلغاء الطلب ولن يتم إضافة أي رصيد.</p>
+                        
+                        <div class="field-group">
+                            <label class="info-label">سبب الرفض</label>
+                            <textarea id="reject-note" class="w-full bg-slate-900 border-white/10 rounded-xl p-3 text-xs text-white" rows="4" placeholder="يرجى توضيح سبب الرفض للعميل..."></textarea>
+                        </div>
+
+                        <button class="btn btn-outline danger w-full py-3 font-bold" onclick="processAction('reject')">
+                            <i class="fas fa-ban ml-2"></i> رفض الطلب
+                        </button>
+                    </div>
+                </div>
+                {% elif deposit.status == 'completed' or deposit.status == 'approved' %}
+                <div class="bg-emerald-500/10 border border-emerald-500/20 p-4 rounded-xl flex items-center justify-between">
+                    <div class="flex items-center gap-3">
+                        <i class="fas fa-check-double text-emerald-500"></i>
+                        <div>
+                            <div class="text-xs font-bold text-emerald-500">طلب مكتمل</div>
+                            <div class="text-[10px] text-emerald-500/70">تمت معالجة هذا الطلب بواسطة {{ deposit.reviewed_by.get_full_name|default:deposit.reviewed_by.email }} في {{ deposit.reviewed_at|date:"Y-m-d H:i" }}</div>
+                        </div>
+                    </div>
+                    <button class="btn btn-outline btn-sm text-[10px]" onclick="document.getElementById('correction-area').classList.toggle('hidden')">تعديل/تصحيح</button>
+                </div>
+
+                <div id="correction-area" class="mt-6 p-6 bg-slate-900/40 border border-white/5 rounded-2xl hidden">
+                    <h4 class="text-sm font-bold mb-4">تصحيح بيانات الإيداع</h4>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div class="field-group">
+                            <label class="info-label">المبلغ الجديد</label>
+                            <input type="number" id="correct-amount" value="{{ deposit.amount }}" step="0.01" class="w-full bg-slate-900 border-white/10 rounded-xl p-3 text-xs text-white">
+                        </div>
+                        <div class="field-group">
+                            <label class="info-label">ملاحظة التصحيح</label>
+                            <input type="text" id="correct-note" class="w-full bg-slate-900 border-white/10 rounded-xl p-3 text-xs text-white" placeholder="سبب التعديل...">
+                        </div>
+                    </div>
+                    <button class="btn btn-outline w-full mt-4 py-2 font-bold" onclick="processAction('correct')">حفظ التغييرات</button>
+                </div>
+                {% else %}
+                <div class="bg-rose-500/10 border border-rose-500/20 p-4 rounded-xl flex items-center gap-3">
+                    <i class="fas fa-times-circle text-rose-500"></i>
+                    <div>
+                        <div class="text-xs font-bold text-rose-500">طلب مرفوض</div>
+                        <div class="text-[10px] text-rose-500/70">تم رفض الطلب. ملاحظة: {{ deposit.admin_note|default:"بدون ملاحظات" }}</div>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Sidebar: Customer & Deposit Info -->
+    <div class="stack gap-6">
+        <div class="management-card">
+            <div class="management-header">
+                <h3 class="font-bold">معلومات العميل</h3>
+            </div>
+            <div class="p-6 stack gap-4">
+                <div class="flex items-center gap-4 mb-2">
+                    <div class="w-12 h-12 rounded-2xl bg-gradient-to-br from-cyan to-blue-600 flex items-center justify-center text-black font-black text-lg">
+                        {{ deposit.user.email|slice:":1"|upper }}
+                    </div>
+                    <div>
+                        <div class="font-bold text-white">{{ deposit.user.get_full_name|default:deposit.user.username }}</div>
+                        <div class="text-[10px] text-slate-500">{{ deposit.user.email }}</div>
+                    </div>
+                </div>
+                
+                <div class="info-item">
+                    <span class="info-label">رصيد المحفظة الحالي</span>
+                    <span class="info-value text-cyan">{{ deposit.user.wallet.available_balance }} {{ deposit.user.wallet.currency.code }}</span>
+                </div>
+
+                <a href="{% url 'control_user_moderate' deposit.user.public_uuid %}" class="btn btn-outline btn-sm w-full">
+                    <i class="fas fa-user-gear ml-1"></i> عرض ملف المستخدم
+                </a>
+            </div>
+        </div>
+
+        <div class="management-card">
+            <div class="management-header">
+                <h3 class="font-bold">بيانات الإيداع</h3>
+            </div>
+            <div class="p-6 stack gap-3">
+                <div class="info-item">
+                    <span class="info-label">المبلغ المطلوب</span>
+                    <span class="info-value text-emerald-400">{{ deposit.amount }} {{ deposit.currency.code }}</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">الرسوم</span>
+                    <span class="info-value text-rose-400">{{ deposit.fee_amount }} {{ deposit.currency.code }}</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">المبلغ الصافي</span>
+                    <span class="info-value">{{ deposit.final_amount }} {{ deposit.currency.code }}</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">وسيلة الدفع</span>
+                    <span class="info-value">{{ deposit.payment_method.name }}</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">رقم العملية / المرجع</span>
+                    <span class="info-value font-mono text-[11px]">{{ deposit.transaction_id|default:"N/A" }}</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">تاريخ الطلب</span>
+                    <span class="info-value text-[11px]">{{ deposit.created_at|date:"Y-m-d H:i:s" }}</span>
+                </div>
+                {% if deposit.customer_note %}
+                <div class="info-item">
+                    <span class="info-label">ملاحظات العميل</span>
+                    <span class="info-value text-[11px] italic">{{ deposit.customer_note }}</span>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    let scale = 1;
+    const img = document.getElementById('proof-img');
+    const container = document.getElementById('image-viewer');
+
+    function zoomImg(factor) {
+        scale *= factor;
+        if (scale < 0.5) scale = 0.5;
+        if (scale > 5) scale = 5;
+        img.style.transform = `scale(${scale})`;
+    }
+
+    function resetZoom() {
+        scale = 1;
+        img.style.transform = `scale(1)`;
+        img.style.left = '0px';
+        img.style.top = '0px';
+    }
+
+    function toggleFullscreen() {
+        if (!document.fullscreenElement) {
+            container.requestFullscreen().catch(err => {
+                alert(`Error attempting to enable full-screen mode: ${err.message} (${err.name})`);
+            });
+        } else {
+            document.exitFullscreen();
+        }
+    }
+
+    // Drag to pan logic
+    let isDragging = false;
+    let startX, startY, initialX, initialY;
+
+    img.addEventListener('mousedown', (e) => {
+        if (scale === 1) return;
+        isDragging = true;
+        startX = e.clientX;
+        startY = e.clientY;
+        initialX = img.offsetLeft;
+        initialY = img.offsetTop;
+        img.style.transition = 'none';
+    });
+
+    window.addEventListener('mousemove', (e) => {
+        if (!isDragging) return;
+        const dx = e.clientX - startX;
+        const dy = e.clientY - startY;
+        img.style.position = 'relative';
+        img.style.left = `${initialX + dx}px`;
+        img.style.top = `${initialY + dy}px`;
+    });
+
+    window.addEventListener('mouseup', () => {
+        isDragging = false;
+        img.style.transition = 'transform 0.2s cubic-bezier(0.4, 0, 0.2, 1)';
+    });
+
+    // API Actions
+    async function processAction(action) {
+        let body = {};
+        if (action === 'approve') {
+            body = {
+                adjusted_amount: document.getElementById('approve-amount').value,
+                admin_note: document.getElementById('approve-note').value
+            };
+        } else if (action === 'reject') {
+            const note = document.getElementById('reject-note').value;
+            if (!note) { alert("يرجى ذكر سبب الرفض."); return; }
+            body = { admin_note: note };
+        } else if (action === 'correct') {
+            body = {
+                new_amount: document.getElementById('correct-amount').value,
+                admin_note: document.getElementById('correct-note').value
+            };
+        }
+
+        if (!confirm("هل أنت متأكد من تنفيذ هذا الإجراء؟")) return;
+
+        try {
+            const response = await fetch(`/api/deposits/{{ deposit.id }}/${action}/`, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': '{{ csrf_token }}',
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(body)
+            });
+            
+            if (response.ok) {
+                alert("تم تنفيذ العملية بنجاح.");
+                location.reload();
+            } else {
+                const data = await response.json();
+                alert("خطأ: " + (data.detail || data.message || "تعذر التنفيذ"));
+            }
+        } catch (e) {
+            alert("خطأ في الاتصال بالخادم.");
+        }
+    }
+</script>
+{% endblock %}

@@ -571,8 +571,27 @@ from apps.payments.models import DepositRequest, PaymentMethod, WithdrawalReques
 
 @admin_required
 def control_dashboard(request):
-    stats = {"users": User.objects.count(), "products": Product.objects.count(), "orders": Order.objects.count(), "deposits": DepositRequest.objects.count(), "pending_kycs": KYCRequest.objects.filter(status=KYCRequest.Status.PENDING).count()}
-    return render(request, "site/control_dashboard.html", {"stats": stats})
+    stats = {
+        "users": User.objects.count(),
+        "products": Product.objects.count(),
+        "orders": Order.objects.count(),
+        "deposits": DepositRequest.objects.count(),
+        "pending_deposits": DepositRequest.objects.filter(status=DepositRequest.Status.PENDING).count(),
+        "pending_withdrawals": WithdrawalRequest.objects.filter(status=WithdrawalRequest.Status.PENDING).count(),
+        "open_tickets": ChatRoom.objects.exclude(status=ChatRoom.Status.CLOSED).count(),
+        "pending_kycs": KYCRequest.objects.filter(status=KYCRequest.Status.PENDING).count()
+    }
+    
+    recent_orders = Order.objects.select_related('customer').all().order_by('-created_at')[:6]
+    recent_deposits = DepositRequest.objects.select_related('user', 'payment_method', 'currency').all().order_by('-created_at')[:6]
+    recent_users = User.objects.select_related('wallet', 'wallet__currency').all().order_by('-date_joined')[:6]
+    
+    return render(request, "site/control_dashboard.html", {
+        "stats": stats,
+        "recent_orders": recent_orders,
+        "recent_deposits": recent_deposits,
+        "recent_users": recent_users
+    })
 
 @kyc_required
 def control_kycs_list(request):
@@ -788,6 +807,13 @@ def control_deposits(request):
         "deposits": deposits,
         "status_choices": DepositRequest.Status.choices,
         "current_status": status_filter
+    })
+
+@finance_required
+def control_deposit_detail(request, pk):
+    deposit = get_object_or_404(DepositRequest.objects.select_related('user', 'currency', 'payment_method'), pk=pk)
+    return render(request, "site/control_deposit_detail.html", {
+        "deposit": deposit,
     })
 
 @finance_required

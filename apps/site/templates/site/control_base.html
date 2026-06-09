@@ -71,7 +71,7 @@
     }
 
     .management-header {
-        padding: 1.5rem 2rem;
+        padding: 1.25rem 1.5rem;
         border-bottom: 1px solid var(--admin-border);
         background: rgba(255, 255, 255, 0.02);
         display: flex;
@@ -79,14 +79,35 @@
         align-items: center;
     }
 
-    .table-responsive { width: 100%; overflow-x: auto; }
-    .admin-table { width: 100%; border-collapse: collapse; }
-    .admin-table th { padding: 1.25rem 1.5rem; text-align: right; font-size: 10px; font-weight: 800; color: #64748b; text-transform: uppercase; border-bottom: 1px solid var(--admin-border); }
-    .admin-table td { padding: 1.25rem 1.5rem; font-size: 13px; color: #cbd5e1; border-bottom: 1px solid rgba(255,255,255,0.03); }
-    .admin-table tr:last-child td { border-bottom: 0; }
-    .admin-table tr:hover { background: rgba(255, 255, 255, 0.02); }
+    .admin-stats-card {
+        background: var(--admin-panel);
+        border: 1px solid var(--admin-border);
+        border-radius: 20px;
+        padding: 1.5rem;
+        display: flex;
+        align-items: center;
+        gap: 1.25rem;
+        transition: all 0.3s ease;
+    }
+    .admin-stats-card:hover { transform: translateY(-4px); border-color: rgba(6, 182, 212, 0.3); box-shadow: 0 12px 20px -10px rgba(6, 182, 212, 0.1); }
+    .asc-icon { width: 48px; height: 48px; border-radius: 14px; background: rgba(6, 182, 212, 0.1); color: var(--cyan); display: flex; align-items: center; justify-content: center; font-size: 1.25rem; }
 
-    .badge { padding: 4px 10px; border-radius: 8px; font-size: 10px; font-weight: 800; letter-spacing: 0.02em; }
+    .line-item { display: flex; justify-content: space-between; align-items: center; padding: 1rem 1.5rem; border-bottom: 1px solid rgba(255,255,255,0.03); }
+    .line-item:last-child { border-bottom: 0; }
+
+    .table-responsive { width: 100%; overflow-x: auto; }
+    .admin-table { width: 100%; border-collapse: collapse; min-width: 800px; }
+    .admin-table th { padding: 1rem 1.5rem; text-align: right; font-size: 10px; font-weight: 800; color: #64748b; text-transform: uppercase; border-bottom: 1px solid var(--admin-border); background: rgba(0,0,0,0.2); }
+    .admin-table td { padding: 1rem 1.5rem; font-size: 12px; color: #cbd5e1; border-bottom: 1px solid rgba(255,255,255,0.03); vertical-align: middle; }
+
+    .btn { display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem; padding: 0.625rem 1.25rem; border-radius: 12px; font-weight: 700; font-size: 0.8125rem; transition: all 0.2s; cursor: pointer; border: 1px solid transparent; }
+    .btn-primary { background: var(--cyan); color: #000; }
+    .btn-primary:hover { background: #0891b2; transform: translateY(-1px); }
+    .btn-outline { background: transparent; border-color: var(--admin-border); color: #94a3b8; }
+    .btn-outline:hover { background: rgba(255,255,255,0.05); color: #fff; border-color: #475569; }
+    .btn-sm { padding: 0.4rem 0.8rem; font-size: 0.75rem; border-radius: 8px; }
+
+    .badge { padding: 4px 10px; border-radius: 8px; font-size: 10px; font-weight: 800; letter-spacing: 0.02em; display: inline-block; }
     .badge.warning { background: rgba(245, 158, 11, 0.1); color: #f59e0b; border: 1px solid rgba(245, 158, 11, 0.2); }
     .badge.success { background: rgba(16, 185, 129, 0.1); color: #10b981; border: 1px solid rgba(16, 185, 129, 0.2); }
     .badge.danger { background: rgba(239, 68, 68, 0.1); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.2); }
@@ -118,15 +139,15 @@
         
         <nav class="admin-nav">
             <a href="{% url 'control_dashboard' %}" class="admin-nav-link {% if request.resolver_match.url_name == 'control_dashboard' %}active{% endif %}">
-                <i class="fas fa-grid-2"></i> الرئيسية
+                <i class="fas fa-th-large"></i> الرئيسية
             </a>
 
             <div class="admin-nav-group"><span>العمليات المالية</span></div>
             <a href="{% url 'control_deposits' %}" class="admin-nav-link {% if 'deposits' in request.path %}active{% endif %}">
-                <i class="fas fa-arrow-down-to-bracket"></i> الإيداعات
+                <i class="fas fa-money-bill-wave"></i> الإيداعات
             </a>
             <a href="{% url 'control_withdrawals' %}" class="admin-nav-link {% if 'withdrawal' in request.path %}active{% endif %}">
-                <i class="fas fa-arrow-up-from-bracket"></i> السحوبات
+                <i class="fas fa-money-bill-transfer"></i> السحوبات
             </a>
             <a href="{% url 'control_debts' %}" class="admin-nav-link {% if 'debts' in request.path %}active{% endif %}">
                 <i class="fas fa-hand-holding-dollar"></i> إدارة الديون
@@ -145,13 +166,13 @@
 
             <div class="admin-nav-group"><span>المستخدمين والأمن</span></div>
             <a href="{% url 'control_users_list' %}" class="admin-nav-link {% if 'user' in request.path %}active{% endif %}">
-                <i class="fas fa-users-gear"></i> المستخدمين
+                <i class="fas fa-users-cog"></i> المستخدمين
             </a>
             <a href="{% url 'control_kycs_list' %}" class="admin-nav-link {% if 'control/kyc' in request.path and 'settings' not in request.path %}active{% endif %}">
                 <i class="fas fa-user-shield"></i> التوثيقات
             </a>
             <a href="{% url 'control_kyc_settings' %}" class="admin-nav-link {% if 'kyc/settings' in request.path %}active{% endif %}">
-                <i class="fas fa-gears"></i> إعدادات التوثيق
+                <i class="fas fa-cog"></i> إعدادات التوثيق
             </a>
 
             <div class="admin-nav-group"><span>النظام والتقارير</span></div>
@@ -162,7 +183,7 @@
                 <i class="fas fa-credit-card"></i> وسائل الدفع
             </a>
             <a href="{% url 'chat_list' %}" class="admin-nav-link {% if 'chat' in request.path %}active{% endif %}">
-                <i class="fas fa-messages"></i> الدعم المباشر
+                <i class="fas fa-comments"></i> الدعم المباشر
             </a>
             <a href="{% url 'control_reports' %}" class="admin-nav-link {% if 'report' in request.path %}active{% endif %}">
                 <i class="fas fa-chart-line"></i> التقارير

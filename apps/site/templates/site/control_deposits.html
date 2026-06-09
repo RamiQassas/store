@@ -102,18 +102,9 @@
                     </td>
                     <td class="p-4 text-left">
                         <div class="flex justify-end gap-2">
-                            {% if d.status == 'pending' or d.status == 'under_review' %}
-                            <button class="btn btn-sm btn-primary text-[10px] py-1.5 px-4 rounded-lg" onclick="actionDeposit('{{ d.id }}', 'approve', '{{ d.amount }}', {user: '{{ d.user.get_full_name|default:d.user.email }}', ref: '{{ d.transaction_id }}', img: '{% if d.proof_image %}{{ d.proof_image.url }}{% else %}{% endif %}', currency_code: '{{ d.currency.code }}'})">
-                                <i class="fas fa-check-double ml-1"></i> مراجعة
-                            </button>
-                            <button class="btn btn-sm btn-outline danger text-[10px] py-1.5 px-4 rounded-lg" onclick="actionDeposit('{{ d.id }}', 'reject')">
-                                <i class="fas fa-ban ml-1"></i> رفض
-                            </button>
-                            {% elif d.status == 'completed' or d.status == 'approved' %}
-                            <button class="btn btn-sm btn-outline text-[10px] py-1.5 px-4 rounded-lg border-white/10 hover:bg-white/5" onclick="actionDeposit('{{ d.id }}', 'correct', '{{ d.amount }}', {user: '{{ d.user.get_full_name|default:d.user.email }}', ref: '{{ d.transaction_id }}', img: '{% if d.proof_image %}{{ d.proof_image.url }}{% else %}{% endif %}', currency_code: '{{ d.currency.code }}'})">
-                                <i class="fas fa-pen-to-square ml-1"></i> تصحيح
-                            </button>
-                            {% endif %}
+                            <a href="{% url 'control_deposit_detail' d.id %}" class="btn btn-sm btn-primary text-[10px] py-1.5 px-4 rounded-lg">
+                                <i class="fas fa-eye ml-1"></i> عرض ومعالجة
+                            </a>
                         </div>
                     </td>
                 </tr>
@@ -132,112 +123,13 @@
     </div>
 </div>
 
-<!-- Approval Modal Redesigned -->
-<div id="approve-modal" class="fixed inset-0 bg-black/90 backdrop-blur-sm flex items-center justify-center z-[1000] hidden p-4 overflow-y-auto">
-    <div class="management-card max-w-lg w-full p-8 stack gap-6 border-white/10 shadow-2xl my-8">
-        <div class="text-center">
-            <div id="modal-header-icon" class="w-12 h-12 rounded-2xl bg-cyan/10 flex items-center justify-center mx-auto mb-4">
-                <i class="fas fa-shield-check text-cyan text-xl"></i>
-            </div>
-            <h3 class="text-lg font-black text-white" id="modal-title">معالجة طلب الإيداع</h3>
-            <p class="text-[10px] text-slate-500 mt-2" id="modal-subtitle">يرجى التأكد من المبلغ الفعلي المستلم قبل الإضافة للمحفظة.</p>
-        </div>
-        
-        <div id="modal-context-box" class="bg-slate-900/50 p-4 rounded-xl border border-white/5 text-xs text-slate-300">
-            <!-- Dynamic context injected here -->
-        </div>
-
-        <input type="hidden" id="modal-dep-id">
-        
-        <div class="field-group">
-            <label class="text-[10px] font-bold uppercase text-slate-500 mb-2 block" id="modal-amount-label">المبلغ المعتمد للإضافة</label>
-            <div class="relative">
-                <input type="number" id="modal-amount" step="0.01" class="w-full bg-slate-900 border-white/10 rounded-xl p-4 text-xl font-black text-emerald-400 focus:border-emerald-500 transition-all">
-                <span class="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 font-bold text-xs uppercase" id="modal-currency-label"></span>
-            </div>
-            <p class="text-[9px] text-slate-500 mt-2">يرجى التأكيد بناءً على عملة التحويل الأصلية. سيقوم النظام بتحويله تلقائياً لعملة المحفظة الأساسية.</p>
-        </div>
-        
-        <div class="field-group">
-            <label class="text-[10px] font-bold uppercase text-slate-500 mb-2 block">ملاحظات إدارية (داخلية أو للعميل)</label>
-            <textarea id="modal-note" class="w-full bg-slate-900 border-white/10 rounded-xl p-4 text-xs text-white focus:border-cyan/50" rows="3" placeholder="أدخل سبباً للتعديل أو ملاحظات للمراجعة..."></textarea>
-        </div>
-        
-        <div class="flex gap-4 pt-2">
-            <button class="btn btn-outline flex-1 py-3 rounded-xl font-bold border-white/5 hover:bg-white/5" onclick="closeModal()">إلغاء</button>
-            <button class="btn btn-primary flex-1 py-3 rounded-xl font-black shadow-lg shadow-cyan/20" id="modal-submit-btn">تأكيد العملية</button>
-        </div>
-    </div>
-</div>
-
 <script>
-const modal = document.getElementById('approve-modal');
-let currentAction = 'approve';
-
-function closeModal() { modal.classList.add('hidden'); }
-
-async function actionDeposit(id, action, amount = "", details = {}) {
-    if (action === 'reject') {
-        const note = prompt("سبب رفض الإيداع (سيظهر للمستخدم):");
-        if (note === null) return;
-        executeAction(id, action, { admin_note: note });
-    } else {
-        currentAction = action;
-        document.getElementById('modal-dep-id').value = id;
-        document.getElementById('modal-amount').value = amount;
-        document.getElementById('modal-note').value = "";
-        document.getElementById('modal-currency-label').innerText = details.currency_code || 'USD';
-        
-        const title = document.getElementById('modal-title');
-        const submitBtn = document.getElementById('modal-submit-btn');
-        const contextBox = document.getElementById('modal-context-box');
-        
-        let imgHtml = details.img ? `<img src="${details.img}" class="w-full rounded mt-2 border border-white/10">` : `<div class="text-rose-500 mt-2 text-[10px]"><i class="fas fa-exclamation-triangle"></i> لا يوجد إثبات مرفق.</div>`;
-        contextBox.innerHTML = `
-            <div class="grid grid-cols-2 gap-2">
-                <div><strong>المستخدم:</strong> ${details.user || 'N/A'}</div>
-                <div><strong>المرجع:</strong> <span class="font-mono text-[10px]">${details.ref || 'N/A'}</span></div>
-                <div class="col-span-2"><strong>إثبات التحويل:</strong> ${imgHtml}</div>
-            </div>
-        `;
-        
-        if (action === 'correct') {
-            title.innerText = "تصحيح سجل الإيداع";
-            submitBtn.innerText = "حفظ التصحيح";
-            submitBtn.className = "btn btn-outline flex-1 py-3 rounded-xl font-black";
-        } else {
-            title.innerText = "الموافقة على الإيداع";
-            submitBtn.innerText = "اعتماد الإضافة";
-            submitBtn.className = "btn btn-primary flex-1 py-3 rounded-xl font-black shadow-lg shadow-cyan/20";
-        }
-        
-        submitBtn.onclick = async () => {
-            const depId = document.getElementById('modal-dep-id').value;
-            const amt = document.getElementById('modal-amount').value;
-            const note = document.getElementById('modal-note').value;
-            
-            const payload = { admin_note: note };
-            if (currentAction === 'correct') payload.new_amount = amt;
-            else payload.adjusted_amount = amt;
-            
-            executeAction(depId, currentAction, payload);
-        };
-        
-        modal.classList.remove('hidden');
+// Search logic
+document.querySelector('input[name="q"]').addEventListener('keypress', function (e) {
+    if (e.key === 'Enter') {
+        this.form.submit();
     }
-}
-
-async function executeAction(id, action, body) {
-    try {
-        const response = await fetch(`/api/deposits/${id}/${action}/`, {
-            method: 'POST',
-            headers: {'X-CSRFToken': '{{ csrf_token }}', 'Content-Type': 'application/json'},
-            body: JSON.stringify(body)
-        });
-        if (response.ok) { location.reload(); }
-        else { const data = await response.json(); alert("خطأ: " + (data.detail || data.message || "تعذر التنفيذ")); }
-    } catch (e) { alert("خطأ في الاتصال بالسيرفر."); }
-}
+});
 </script>
 
 <style>
