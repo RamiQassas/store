@@ -81,6 +81,15 @@
                                     <i class="fas fa-comment-dots ml-1"></i> {{ d.customer_note }}
                                 </div>
                                 {% endif %}
+                                {% if d.formatted_metadata %}
+                                <div class="mt-1 space-y-0.5">
+                                    {% for meta in d.formatted_metadata %}
+                                    <div class="text-[8px] text-slate-400 max-w-[150px] truncate" title="{{ meta.label }}: {{ meta.value }}">
+                                        <span class="font-bold text-slate-500">{{ meta.label }}:</span> {{ meta.value }}
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                                {% endif %}
                             </div>
                             {% if d.proof_image %}
                             <div class="relative group">

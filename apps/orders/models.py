@@ -40,6 +40,34 @@ class Order(TimeStampedModel):
     admin_note = models.TextField(blank=True, verbose_name="ملاحظات المدير")
     metadata = models.JSONField(default=dict, blank=True, verbose_name="بيانات إضافية")
 
+    @property
+    def formatted_metadata(self):
+        """Returns a list of dicts with 'label' and 'value' for metadata."""
+        if not self.metadata:
+            return []
+            
+        results = []
+        first_item = self.items.first()
+        schema = {}
+        if first_item and first_item.variant and first_item.variant.product:
+            schema = first_item.variant.product.form_schema
+            
+        fields = schema.get("fields", []) if isinstance(schema, dict) else []
+        
+        # Create a mapping of field key to label
+        label_map = {}
+        for f in fields:
+            lbl = f.get("label", "")
+            fid = f.get("name") or f.get("id") or f.get("key") or lbl
+            if fid:
+                label_map[fid] = lbl
+        
+        for key, val in self.metadata.items():
+            label = label_map.get(key, key)
+            results.append({"label": label, "value": val})
+                
+        return results
+
     class Meta:
         indexes = [
             models.Index(fields=["customer", "created_at"]),

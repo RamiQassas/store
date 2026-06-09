@@ -212,6 +212,30 @@ class DepositRequest(TimeStampedModel):
     reviewed_at = models.DateTimeField(null=True, blank=True, verbose_name="تاريخ المراجعة")
     metadata = models.JSONField(default=dict, blank=True)
 
+    @property
+    def formatted_metadata(self):
+        """Returns a list of dicts with 'label' and 'value' for metadata."""
+        if not self.metadata:
+            return []
+            
+        results = []
+        schema = self.payment_method.deposit_form_schema
+        fields = schema.get("fields", []) if isinstance(schema, dict) else []
+        
+        # Create a mapping of field key to label
+        label_map = {}
+        for f in fields:
+            lbl = f.get("label", "")
+            fid = f.get("name") or f.get("id") or f.get("key") or lbl
+            if fid:
+                label_map[fid] = lbl
+        
+        for key, val in self.metadata.items():
+            label = label_map.get(key, key)
+            results.append({"label": label, "value": val})
+                
+        return results
+
     def calculate_fees(self):
         self.fee_amount = self.payment_method.calculate_fee(self.amount, mode="deposit")
         self.final_amount = self.amount - self.fee_amount

@@ -61,6 +61,15 @@
                         <div class="font-bold text-slate-300">{{ item.variant.product.name }}</div>
                         <div class="text-[10px] text-cyan">{{ item.variant.name }} × {{ item.quantity }}</div>
                         {% endwith %}
+                        {% if order.formatted_metadata %}
+                        <div class="mt-2 space-y-1">
+                            {% for meta in order.formatted_metadata %}
+                            <div class="text-[9px] text-slate-400 max-w-[150px] truncate" title="{{ meta.label }}: {{ meta.value }}">
+                                <span class="font-bold text-slate-500">{{ meta.label }}:</span> {{ meta.value }}
+                            </div>
+                            {% endfor %}
+                        </div>
+                        {% endif %}
                     </td>
                     <td class="p-4">
                         <div class="font-black text-white text-sm">{% currency_format order.total_amount %}</div>

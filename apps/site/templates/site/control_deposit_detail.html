@@ -136,10 +136,24 @@
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div class="stack gap-4">
                         <h4 class="text-sm font-bold text-emerald-500">الموافقة والإضافة</h4>
-                        <p class="text-xs text-slate-500">سيتم إضافة المبلغ للمحفظة فوراً وإخطار العميل.</p>
+                        <div class="bg-emerald-500/5 p-4 rounded-xl border border-emerald-500/10 mb-2">
+                            <div class="flex justify-between items-center text-[11px] mb-1">
+                                <span class="text-slate-500">مبلغ الإيداع:</span>
+                                <span class="font-bold text-white">{{ deposit.amount }} {{ deposit.currency.code }}</span>
+                            </div>
+                            <div class="flex justify-between items-center text-[11px] mb-2">
+                                <span class="text-slate-500">الرسوم المستقطعة:</span>
+                                <span class="font-bold text-rose-400">- {{ deposit.fee_amount }} {{ deposit.currency.code }}</span>
+                            </div>
+                            <div class="h-px bg-white/5 my-2"></div>
+                            <div class="flex justify-between items-center">
+                                <span class="text-xs font-bold text-slate-300">الصافي المعتمد:</span>
+                                <span class="text-lg font-black text-emerald-400">{{ deposit.final_amount }} {{ deposit.currency.code }}</span>
+                            </div>
+                        </div>
                         
                         <div class="field-group">
-                            <label class="info-label">المبلغ المعتمد للإضافة</label>
+                            <label class="info-label">المبلغ المعتمد للإضافة (قابل للتعديل)</label>
                             <div class="relative">
                                 <input type="number" id="approve-amount" value="{{ deposit.amount }}" step="0.01" class="w-full bg-slate-900 border-white/10 rounded-xl p-3 text-lg font-black text-emerald-400 focus:border-emerald-500 transition-all">
                                 <span class="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 font-bold text-xs uppercase">{{ deposit.currency.code }}</span>
@@ -246,6 +260,14 @@
                     <span class="info-label">المبلغ المطلوب</span>
                     <span class="info-value text-emerald-400">{{ deposit.amount }} {{ deposit.currency.code }}</span>
                 </div>
+                
+                {% for meta in deposit.formatted_metadata %}
+                <div class="info-item">
+                    <span class="info-label">{{ meta.label }}</span>
+                    <span class="info-value text-cyan font-mono">{{ meta.value }}</span>
+                </div>
+                {% endfor %}
+
                 <div class="info-item">
                     <span class="info-label">الرسوم</span>
                     <span class="info-value text-rose-400">{{ deposit.fee_amount }} {{ deposit.currency.code }}</span>

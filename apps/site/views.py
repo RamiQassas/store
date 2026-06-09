@@ -82,6 +82,8 @@ def v3_verify_otp_logic(user, code, purpose):
 
 def v3_login_view(request):
     if request.user.is_authenticated:
+        if request.user.role in [User.Role.ADMIN, User.Role.SUPPORT, User.Role.FINANCE]:
+            return redirect("control_dashboard")
         return redirect("dashboard")
     
     form = LoginForm(request.POST or None)
@@ -171,6 +173,9 @@ def v3_verify_otp_view(request):
             messages.success(request, "مرحبًا بك في رقميات.")
             request.session.pop("v3_auth_uid", None)
             request.session.pop("v3_auth_purpose", None)
+            
+            if user.role in [User.Role.ADMIN, User.Role.SUPPORT, User.Role.FINANCE]:
+                return redirect("control_dashboard")
             return redirect("dashboard")
         else:
             messages.error(request, "رمز التحقق غير صحيح أو منتهي الصلاحية.")
@@ -409,6 +414,13 @@ def deposits(request):
             )
             return redirect("dashboard_deposits")
 
+        # Capture custom metadata from the form
+        metadata = {}
+        for key, value in request.POST.items():
+            if key.startswith("custom_"):
+                field_name = key.replace("custom_", "", 1)
+                metadata[field_name] = value
+
         wallet = get_or_create_wallet(request.user)
         # wallet_amount is the base USD amount.
         wallet_amount = amount_base
@@ -416,7 +428,8 @@ def deposits(request):
         with transaction.atomic():
             deposit = DepositRequest.objects.create(
                 user=request.user, payment_method=method, amount=amount,
-                currency=currency, wallet_amount=wallet_amount, proof_image=proof, status=DepositRequest.Status.PENDING
+                currency=currency, wallet_amount=wallet_amount, proof_image=proof, 
+                status=DepositRequest.Status.PENDING, metadata=metadata
             )
             track_pending_deposit(wallet.id, wallet_amount, reference=f"deposit:{deposit.id}")
             request.user.daily_deposit_usage += amount_base
@@ -1153,28 +1166,10 @@ def control_order_detail(request, pk):
             
         return redirect("control_order_detail", pk=pk)
     
-    # Map metadata labels
-    mapped_metadata = []
-    if order.metadata:
-        # Get labels from product form schema
-        # Assuming only one item per order for now as per create_order logic
-        first_item = order.items.first()
-        if first_item:
-            schema = first_item.variant.product.form_schema
-            fields = schema.get("fields", [])
-            label_map = {f.get("name") or f.get("label"): f.get("label") for f in fields}
-            
-            for key, val in order.metadata.items():
-                label = label_map.get(key, key)
-                mapped_metadata.append({"label": label, "value": val})
-        else:
-            for key, val in order.metadata.items():
-                mapped_metadata.append({"label": key, "value": val})
-
     return render(request, "site/control_order_detail.html", {
         "order": order, 
         "readable_fulfillment": order.fulfillment_data,
-        "mapped_metadata": mapped_metadata
+        "mapped_metadata": order.formatted_metadata
     })
 
 @finance_required
