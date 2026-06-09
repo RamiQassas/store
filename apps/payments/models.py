@@ -273,23 +273,50 @@ class WithdrawalRequest(TimeStampedModel):
     @property
     def display_payout_value(self):
         """Safely returns a primary value for display in lists."""
+        details = self.formatted_payout_details
+        if details:
+            # Show the first field's label and value
+            item = details[0]
+            return f"{item['label']}: {item['value']}"
+        return ""
+
+    @property
+    def formatted_payout_details(self):
+        """Returns a list of dicts with 'label' and 'value' for payout information."""
         if not self.payout_details:
-            return ""
+            return []
+            
+        results = []
         
-        # 1. Check direct address
+        # 1. Standard address field (fallback)
         addr = self.payout_details.get("address")
         if addr:
-            return str(addr)
+            results.append({"label": "رقم الحساب / العنوان", "value": addr})
             
-        # 2. Check dynamic fields
+        # 2. Dynamic fields from schema
         dynamic = self.payout_details.get("dynamic")
         if isinstance(dynamic, dict) and dynamic:
-            # Safely get the first non-empty value
-            for val in dynamic.values():
-                if val:
-                    return str(val)
-        
-        return ""
+            schema = self.payment_method.withdrawal_form_schema
+            # If it's already a dict (JSONField handles this), just use it
+            fields = schema.get("fields", []) if isinstance(schema, dict) else []
+            
+            # Create a mapping of field key to label
+            label_map = {}
+            for f in fields:
+                lbl = f.get("label", "")
+                # If the schema stores fields by some ID, we need to know what it is.
+                # Usually, it's the label itself or a specific key.
+                # Based on user input 'f_cjq4k', it seems they use some generated IDs as keys.
+                # I'll check if the schema fields have a 'key' or 'id' property.
+                fid = f.get("id") or f.get("key") or lbl
+                if fid:
+                    label_map[fid] = lbl
+            
+            for key, val in dynamic.items():
+                label = label_map.get(key, key)
+                results.append({"label": label, "value": val})
+                
+        return results
 
     def calculate_fees(self):
         self.fee_amount = self.payment_method.calculate_fee(self.amount, mode="withdrawal")

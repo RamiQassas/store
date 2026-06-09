@@ -112,13 +112,13 @@
                 <i class="fas fa-money-bill-transfer text-cyan"></i> بيانات استلام العميل
             </h3>
             <div class="grid grid-cols-1 gap-4">
-                {% if withdrawal.payout_details.dynamic %}
-                    {% for key, val in withdrawal.payout_details.dynamic.items %}
+                {% if withdrawal.formatted_payout_details %}
+                    {% for item in withdrawal.formatted_payout_details %}
                     <div class="flex justify-between items-center p-5 bg-slate-900/50 border border-white/5 rounded-2xl group hover:border-cyan/20 transition-all">
-                        <span class="text-xs font-black text-slate-500 uppercase tracking-wider">{{ key }}</span>
+                        <span class="text-xs font-black text-slate-500 uppercase tracking-wider">{{ item.label }}</span>
                         <div class="flex items-center gap-4">
-                            <strong class="font-mono text-sm text-white select-all">{{ val }}</strong>
-                            <button class="copy-btn" onclick="copyText('{{ val }}', this)">نسخ <i class="fas fa-copy ml-1"></i></button>
+                            <strong class="font-mono text-sm text-white select-all">{{ item.value }}</strong>
+                            <button class="copy-btn" onclick="copyText('{{ item.value }}', this)">نسخ <i class="fas fa-copy ml-1"></i></button>
                         </div>
                     </div>
                     {% endfor %}
@@ -126,10 +126,7 @@
                     <div class="flex justify-between items-center p-5 bg-slate-900/50 border border-white/5 rounded-2xl group">
                         <span class="text-xs font-black text-slate-500 uppercase tracking-wider">رقم الحساب / العنوان</span>
                         <div class="flex items-center gap-4">
-                            <strong class="font-mono text-sm text-white select-all">{{ withdrawal.payout_details.address|default:"---" }}</strong>
-                            {% if withdrawal.payout_details.address %}
-                            <button class="copy-btn" onclick="copyText('{{ withdrawal.payout_details.address }}', this)">نسخ <i class="fas fa-copy ml-1"></i></button>
-                            {% endif %}
+                            <strong class="font-mono text-sm text-white select-all">---</strong>
                         </div>
                     </div>
                 {% endif %}
@@ -171,7 +168,14 @@
                     </button>
                     {% endif %}
 
-                    {% if withdrawal.status != 'completed' and withdrawal.status != 'rejected' %}
+                    {% if withdrawal.status == 'completed' %}
+                    <div class="h-px bg-white/5 my-2"></div>
+                    <button name="action" value="cancel_completed" class="btn btn-outline danger w-full py-3 rounded-xl font-bold" onclick="return confirm('هل أنت متأكد من إلغاء هذا السحب المكتمل؟ سيتم إعادة المبلغ المخصوم فوراً لمحفظة العميل.')">
+                        <i class="fas fa-undo ml-2"></i> إلغاء السحب وإعادة الرصيد
+                    </button>
+                    {% endif %}
+
+                    {% if withdrawal.status != 'completed' and withdrawal.status != 'rejected' and withdrawal.status != 'cancelled' %}
                     <div class="h-px bg-white/5 my-2"></div>
                     <button name="action" value="reject" class="btn btn-outline danger w-full py-3 rounded-xl font-bold" onclick="return confirm('هل أنت متأكد من رفض الطلب؟ سيتم إعادة الرصيد المجمد فوراً لمحفظة العميل.')">
                         <i class="fas fa-ban ml-2"></i> رفض الطلب وإعادة الرصيد

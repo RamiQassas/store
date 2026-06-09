@@ -793,53 +793,84 @@ def control_withdrawals(request):
 def control_withdrawal_detail(request, pk):
     withdrawal = get_object_or_404(WithdrawalRequest.objects.select_related('user', 'user__wallet'), pk=pk)
     if request.method == "POST":
-        action = request.POST.get("action")
-        admin_note = request.POST.get("admin_note", "")
-        
-        from apps.wallets.services import release_funds, finalize_withdrawal
-        
-        if action == "approve":
-            withdrawal.status = WithdrawalRequest.Status.APPROVED
-            withdrawal.admin_note = admin_note
-            messages.success(request, "تمت الموافقة المبدئية على الطلب.")
-        elif action == "process":
-            withdrawal.status = WithdrawalRequest.Status.PROCESSING
-            withdrawal.admin_note = admin_note
-            messages.info(request, "بدأت معالجة الطلب.")
-        elif action == "complete":
-            finalize_withdrawal(
-                withdrawal.user.wallet.id,
-                withdrawal.wallet_amount,
-                reference=f"with_complete:{withdrawal.id}",
-                description=f"Withdrawal completed. {admin_note}",
-                created_by=request.user
-            )
-            withdrawal.status = WithdrawalRequest.Status.COMPLETED
-            withdrawal.admin_note = admin_note
-            withdrawal.reviewed_by = request.user
-            withdrawal.reviewed_at = timezone.now()
-            withdrawal.save()
-            messages.success(request, "تم إتمام عملية السحب بنجاح.")
-            return redirect("control_withdrawals")
-        elif action == "reject":
-            release_funds(
-                withdrawal.user.wallet.id,
-                withdrawal.wallet_amount,
-                reference=f"with_rej:{withdrawal.id}",
-                description=f"Withdrawal rejected: {admin_note}",
-                created_by=request.user
-            )
-            withdrawal.status = WithdrawalRequest.Status.REJECTED
+        with transaction.atomic():
+            withdrawal = WithdrawalRequest.objects.select_for_update().get(pk=pk)
+            action = request.POST.get("action")
+            admin_note = request.POST.get("admin_note", "")
+            
+            from apps.wallets.services import release_funds, finalize_withdrawal
+            
+            if action == "approve":
+                withdrawal.status = WithdrawalRequest.Status.APPROVED
+                withdrawal.admin_note = admin_note
+                messages.success(request, "تمت الموافقة المبدئية على الطلب.")
+            elif action == "process":
+                withdrawal.status = WithdrawalRequest.Status.PROCESSING
+                withdrawal.admin_note = admin_note
+                messages.info(request, "بدأت معالجة الطلب.")
+            elif action == "complete":
+                if withdrawal.status == WithdrawalRequest.Status.COMPLETED:
+                     messages.error(request, "هذا الطلب مكتمل مسبقاً.")
+                     return redirect("control_withdrawals")
 
-            withdrawal.admin_note = admin_note
-            withdrawal.reviewed_by = request.user
-            withdrawal.reviewed_at = timezone.now()
+                finalize_withdrawal(
+                    withdrawal.user.wallet.id,
+                    withdrawal.wallet_amount,
+                    reference=f"with_complete:{withdrawal.id}",
+                    description=f"Withdrawal completed. {admin_note}",
+                    created_by=request.user
+                )
+                withdrawal.status = WithdrawalRequest.Status.COMPLETED
+                withdrawal.admin_note = admin_note
+                withdrawal.reviewed_by = request.user
+                withdrawal.reviewed_at = timezone.now()
+                withdrawal.save()
+                messages.success(request, "تم إتمام عملية السحب بنجاح.")
+                return redirect("control_withdrawals")
+            elif action == "reject":
+                if withdrawal.status in [WithdrawalRequest.Status.COMPLETED, WithdrawalRequest.Status.REJECTED, WithdrawalRequest.Status.CANCELLED]:
+                     messages.error(request, "لا يمكن رفض طلب منتهي.")
+                     return redirect("control_withdrawals")
+
+                release_funds(
+                    withdrawal.user.wallet.id,
+                    withdrawal.wallet_amount,
+                    reference=f"with_rej:{withdrawal.id}",
+                    description=f"Withdrawal rejected: {admin_note}",
+                    created_by=request.user
+                )
+                withdrawal.status = WithdrawalRequest.Status.REJECTED
+
+                withdrawal.admin_note = admin_note
+                withdrawal.reviewed_by = request.user
+                withdrawal.reviewed_at = timezone.now()
+                withdrawal.save()
+                messages.error(request, "تم رفض طلب السحب وإعادة الرصيد للمستخدم.")
+                return redirect("control_withdrawals")
+            elif action == "cancel_completed":
+                if withdrawal.status != WithdrawalRequest.Status.COMPLETED:
+                    messages.error(request, "لا يمكن إلغاء هذا الطلب لأنه ليس مكتمل.")
+                    return redirect("control_withdrawal_detail", pk=pk)
+                
+                from apps.wallets.services import credit_wallet
+                credit_wallet(
+                    wallet_id=withdrawal.user.wallet.id,
+                    amount=withdrawal.wallet_amount,
+                    reference=f"with_rev:{withdrawal.id}",
+                    description=f"Withdrawal reversed/cancelled: {admin_note}",
+                    created_by=request.user,
+                    reason="Admin reversal of completed withdrawal"
+                )
+                withdrawal.status = WithdrawalRequest.Status.CANCELLED
+                withdrawal.admin_note = admin_note
+                withdrawal.reviewed_by = request.user
+                withdrawal.reviewed_at = timezone.now()
+                withdrawal.save()
+                messages.warning(request, "تم إلغاء السحب المكتمل وإعادة المبلغ للمحفظة بنجاح.")
+                return redirect("control_withdrawals")
+            
             withdrawal.save()
-            messages.error(request, "تم رفض طلب السحب وإعادة الرصيد للمستخدم.")
-            return redirect("control_withdrawals")
-        
-        withdrawal.save()
-        return redirect("control_withdrawal_detail", pk=pk)
+            return redirect("control_withdrawal_detail", pk=pk)
 
     return render(request, "site/control_withdrawal_detail.html", {"withdrawal": withdrawal})
 

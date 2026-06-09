@@ -279,6 +279,45 @@ class WithdrawalRequestViewSet(viewsets.ModelViewSet):
         return response.Response(self.get_serializer(withdrawal).data)
 
     @decorators.action(detail=True, methods=["post"])
+    def reverse(self, request, pk=None):
+        if not request.user.is_staff:
+            return response.Response({"detail": "غير مصرح."}, status=status.HTTP_403_FORBIDDEN)
+            
+        with transaction.atomic():
+            withdrawal = WithdrawalRequest.objects.select_for_update().get(pk=pk)
+            
+            if withdrawal.status != WithdrawalRequest.Status.COMPLETED:
+                return response.Response({"detail": "يمكن عكس الطلبات المكتملة فقط."}, status=status.HTTP_400_BAD_REQUEST)
+
+            withdrawal.status = WithdrawalRequest.Status.CANCELLED
+            withdrawal.admin_note = request.data.get("admin_note", withdrawal.admin_note)
+            withdrawal.reviewed_by = request.user
+            withdrawal.reviewed_at = timezone.now()
+            withdrawal.save()
+
+            # Refund funds to available balance
+            wallet = get_or_create_wallet(withdrawal.user)
+            credit_wallet(
+                wallet_id=wallet.id,
+                amount=withdrawal.wallet_amount,
+                reference=f"withdrawal_reverse:{withdrawal.id}",
+                description=f"إلغاء وعكس سحب مكتمل عبر {withdrawal.payment_method.name}",
+                created_by=request.user,
+                reason="Withdrawal reversed by admin"
+            )
+            
+            notify_user(
+                user=withdrawal.user,
+                title="تم إلغاء عملية السحب",
+                body=f"تم إلغاء عملية السحب رقم {withdrawal.id} وإعادة المبلغ لمحفظتك.",
+                action_url="/dashboard/wallet/",
+                category="financial",
+                priority="high"
+            )
+        
+        return response.Response(self.get_serializer(withdrawal).data)
+
+    @decorators.action(detail=True, methods=["post"])
     def cancel(self, request, pk=None):
         with transaction.atomic():
             withdrawal = WithdrawalRequest.objects.select_for_update().get(pk=pk)
