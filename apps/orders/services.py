@@ -21,7 +21,11 @@ def create_order(customer, variant_id, quantity=1, fulfillment_data=None, coupon
     if quantity < 1:
         raise ValueError("Quantity must be at least 1.")
     variant = ProductVariant.objects.select_related("product").select_for_update().get(id=variant_id, is_active=True, product__is_active=True)
-    subtotal = variant.price * Decimal(quantity)
+    
+    # Get price based on user tier
+    price = variant.get_price_for_user(customer)
+    
+    subtotal = price * Decimal(quantity)
     discount = Decimal("0.00")
     if coupon:
         discount = subtotal * (coupon.discount_percent / Decimal("100.00"))
@@ -34,7 +38,14 @@ def create_order(customer, variant_id, quantity=1, fulfillment_data=None, coupon
         coupon=coupon,
         fulfillment_data=fulfillment_data or {},
     )
-    OrderItem.objects.create(order=order, variant=variant, quantity=quantity, unit_price=variant.price, total_price=subtotal)
+    OrderItem.objects.create(
+        order=order, 
+        variant=variant, 
+        quantity=quantity, 
+        unit_price=price, 
+        unit_cost=variant.cost,
+        total_price=subtotal
+    )
     
     wallet = get_or_create_wallet(customer)
     debit_wallet(wallet.id, total, reference=f"order:{order.id}", description=f"Order {order.number}", created_by=customer)

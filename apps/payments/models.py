@@ -304,11 +304,9 @@ class WithdrawalRequest(TimeStampedModel):
             label_map = {}
             for f in fields:
                 lbl = f.get("label", "")
-                # If the schema stores fields by some ID, we need to know what it is.
-                # Usually, it's the label itself or a specific key.
-                # Based on user input 'f_cjq4k', it seems they use some generated IDs as keys.
-                # I'll check if the schema fields have a 'key' or 'id' property.
-                fid = f.get("id") or f.get("key") or lbl
+                # Check all possible keys that might be used as identifiers in the POST data
+                # Typically it's 'name' if provided, otherwise 'id' or 'key'
+                fid = f.get("name") or f.get("id") or f.get("key") or lbl
                 if fid:
                     label_map[fid] = lbl
             

@@ -974,7 +974,76 @@ def control_wallets_list(request):
         wallets = wallets.filter(Q(user__email__icontains=q) | Q(user__first_name__icontains=q))
     return render(request, "site/control_wallets_list.html", {"wallets": wallets, "query": q})
 @finance_required
-def control_reports(request): return render(request, "site/control_reports.html")
+def control_reports(request):
+    from django.db.models import Sum, F, Count
+    from django.utils import timezone
+    from datetime import timedelta
+    from apps.orders.models import Order, OrderItem
+    from apps.payments.models import DepositRequest, WithdrawalRequest
+    from apps.wallets.models import Wallet
+    from apps.accounts.models import User
+
+    today = timezone.now().date()
+    last_30_days = today - timedelta(days=30)
+
+    # 1. Deposit Fees Profit
+    deposit_fees_30 = DepositRequest.objects.filter(
+        status=DepositRequest.Status.COMPLETED,
+        created_at__date__gte=last_30_days
+    ).aggregate(total=Sum('fee_amount'))['total'] or 0
+
+    # 2. Withdrawal Fees Profit
+    withdrawal_fees_30 = WithdrawalRequest.objects.filter(
+        status=WithdrawalRequest.Status.COMPLETED,
+        created_at__date__gte=last_30_days
+    ).aggregate(total=Sum('fee_amount'))['total'] or 0
+
+    # 3. Product Profit Calculation
+    product_stats_30 = OrderItem.objects.filter(
+        order__status__in=[Order.Status.COMPLETED, Order.Status.PROCESSING],
+        created_at__date__gte=last_30_days
+    ).aggregate(
+        revenue=Sum('total_price'),
+        cost=Sum(F('unit_cost') * F('quantity')),
+    )
+    
+    revenue_30 = product_stats_30['revenue'] or 0
+    cogs_30 = product_stats_30['cost'] or 0
+    product_profit_30 = revenue_30 - cogs_30
+
+    total_profit_30 = deposit_fees_30 + withdrawal_fees_30 + product_profit_30
+
+    # Wallet Stats
+    wallet_stats = Wallet.objects.aggregate(
+        total_available=Sum('available_balance'),
+        total_frozen=Sum('frozen_balance'),
+        total_held=Sum('held_balance'),
+    )
+
+    # Top Products
+    top_products = OrderItem.objects.values('variant__product__name').annotate(
+        order_count=Count('id')
+    ).order_by('-order_count')[:5]
+    
+    top_products_list = [{"name": p['variant__product__name'], "order_count": p['order_count']} for p in top_products]
+
+    stats = {
+        "deposit_fees_30": deposit_fees_30,
+        "withdrawal_fees_30": withdrawal_fees_30,
+        "revenue_30": revenue_30,
+        "cogs_30": cogs_30,
+        "product_profit_30": product_profit_30,
+        "total_profit_30": total_profit_30,
+        "total_users": User.objects.count(),
+        "users_30": User.objects.filter(date_joined__date__gte=last_30_days).count(),
+        "deposits_30": DepositRequest.objects.filter(status=DepositRequest.Status.COMPLETED, created_at__date__gte=last_30_days).aggregate(total=Sum('amount'))['total'] or 0,
+        "withdrawals_30": WithdrawalRequest.objects.filter(status=WithdrawalRequest.Status.COMPLETED, created_at__date__gte=last_30_days).aggregate(total=Sum('amount'))['total'] or 0,
+        "wallet_stats": wallet_stats,
+        "top_products": top_products_list,
+        "orders_30": Order.objects.filter(created_at__date__gte=last_30_days).count(),
+    }
+
+    return render(request, "site/control_reports.html", {"stats": stats})
 
 @support_required
 def control_send_notification(request): return render(request, "site/control_notification_form.html")

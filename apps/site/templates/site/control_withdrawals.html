@@ -40,6 +40,7 @@
                     <th class="p-4">رقم الطلب / التاريخ</th>
                     <th class="p-4">المستخدم</th>
                     <th class="p-4">الوسيلة والمبلغ</th>
+                    <th class="p-4">الصافي للدفع</th>
                     <th class="p-4">بيانات الاستلام</th>
                     <th class="p-4">الحالة</th>
                     <th class="p-4 text-left">إجراءات</th>
@@ -58,12 +59,18 @@
                     </td>
                     <td class="p-4">
                         <div class="flex flex-col">
-                            <span class="font-black text-cyan text-sm">{{ w.amount|floatformat:2 }} {{ w.currency.code }}</span>
+                            <span class="font-black text-slate-400 text-xs">{{ w.amount|floatformat:2 }} {{ w.currency.code }}</span>
                             <span class="text-[9px] text-rose-400/80 font-bold mt-1">الرسوم: {{ w.fee_amount|floatformat:2 }}</span>
                         </div>
                         <div class="flex items-center gap-1.5 mt-1.5">
                             <i class="fas fa-bank text-[8px] text-slate-600"></i>
                             <span class="text-[10px] text-slate-400 font-bold">{{ w.payment_method.name }}</span>
+                        </div>
+                    </td>
+                    <td class="p-4">
+                        <div class="flex flex-col">
+                            <span class="font-black text-emerald-400 text-sm">{{ w.final_amount|floatformat:2 }} {{ w.currency.code }}</span>
+                            <span class="text-[8px] text-slate-500 uppercase font-black tracking-tighter">Amount to Send</span>
                         </div>
                     </td>
                     <td class="p-4">
