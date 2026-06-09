@@ -49,7 +49,13 @@ def create_order(customer, variant_id, quantity=1, fulfillment_data=None, coupon
     )
     
     wallet = get_or_create_wallet(customer)
-    debit_wallet(wallet.id, total, reference=f"order:{order.id}", description=f"Order {order.number}", created_by=customer)
+    
+    # Convert total (USD) to wallet currency for debiting
+    debit_amount = total
+    if wallet.currency.code != "USD":
+        debit_amount = wallet.currency.from_base(total)
+        
+    debit_wallet(wallet.id, debit_amount, reference=f"order:{order.id}", description=f"Order {order.number}", created_by=customer)
     
     OrderLog.objects.create(order=order, status=order.status, note="Order created and wallet debited.", created_by=customer)
     Invoice.objects.create(order=order, invoice_number=order.number.replace("ORD", "INV", 1), total_amount=total)

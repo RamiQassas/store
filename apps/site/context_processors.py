@@ -28,7 +28,7 @@ def preferred_currency(request):
     if not pref_currency:
         pref_currency = all_currencies.first()
 
-    system_currency = Currency.objects.filter(code="SYP").first() or all_currencies.first()
+    system_currency = Currency.objects.filter(code="USD").first() or all_currencies.first()
 
     return {
         "CURRENCY": pref_currency,

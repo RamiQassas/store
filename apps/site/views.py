@@ -1182,16 +1182,22 @@ def control_order_detail(request, pk):
                         refund_ref = f"refund:order:{order.id}"
                         if not LedgerEntry.objects.filter(reference=refund_ref).exists():
                             from apps.wallets.services import credit_wallet
+                            
+                            # Convert USD order total back to wallet currency for refund
+                            refund_amount = order.total_amount
+                            if order.customer.wallet.currency.code != "USD":
+                                refund_amount = order.customer.wallet.currency.from_base(order.total_amount)
+
                             credit_wallet(
                                 wallet_id=order.customer.wallet.id,
-                                amount=order.total_amount,
+                                amount=refund_amount,
                                 reference=refund_ref,
                                 description=f"Refund for order #{order.number}. Reason: {admin_note or 'Order ' + new_status}",
                                 created_by=request.user,
                                 source="order_refund",
                                 reason=f"Order {new_status}"
                             )
-                            messages.success(request, f"تم تحديث الحالة وإعادة مبلغ {order.total_amount} لمحفظة العميل.")
+                            messages.success(request, f"تم تحديث الحالة وإعادة مبلغ {refund_amount} لمحفظة العميل.")
                         else:
                             messages.info(request, "تم تحديث الحالة (المبلغ مسترد مسبقاً).")
                     else:

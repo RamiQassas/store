@@ -1,5 +1,5 @@
 {% extends "site/control_base.html" %}
-{% load static %}
+{% load static site_tags %}
 
 {% block title %}إدارة المنتجات | Raqamiyat Admin{% endblock %}
 
@@ -62,7 +62,7 @@
                         <div class="flex flex-col gap-1">
                             <span class="text-[10px] text-muted">{{ p.variants.count }} باقات</span>
                             {% if p.variants.first %}
-                            <span class="font-mono text-cyan text-[11px]">{{ p.variants.first.price }} SYP+</span>
+                            <span class="font-mono text-cyan text-[11px]">{% currency_format p.variants.first.price %}+</span>
                             {% endif %}
                         </div>
                     </td>
