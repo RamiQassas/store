@@ -990,34 +990,37 @@ def control_reports(request):
     deposit_fees_30 = DepositRequest.objects.filter(
         status=DepositRequest.Status.COMPLETED,
         created_at__date__gte=last_30_days
-    ).aggregate(total=Sum('fee_amount'))['total'] or 0
+    ).aggregate(total=Coalesce(Sum('fee_amount'), Decimal("0.00")))['total']
 
     # 2. Withdrawal Fees Profit
     withdrawal_fees_30 = WithdrawalRequest.objects.filter(
         status=WithdrawalRequest.Status.COMPLETED,
         created_at__date__gte=last_30_days
-    ).aggregate(total=Sum('fee_amount'))['total'] or 0
+    ).aggregate(total=Coalesce(Sum('fee_amount'), Decimal("0.00")))['total']
 
     # 3. Product Profit Calculation
+    from django.db.models.functions import Coalesce
+    from decimal import Decimal
+    
     product_stats_30 = OrderItem.objects.filter(
         order__status__in=[Order.Status.COMPLETED, Order.Status.PROCESSING],
         created_at__date__gte=last_30_days
     ).aggregate(
-        revenue=Sum('total_price'),
-        cost=Sum(F('unit_cost') * F('quantity')),
+        revenue=Coalesce(Sum('total_price'), Decimal("0.00")),
+        cost=Coalesce(Sum(F('unit_cost') * F('quantity')), Decimal("0.00")),
     )
     
-    revenue_30 = product_stats_30['revenue'] or 0
-    cogs_30 = product_stats_30['cost'] or 0
+    revenue_30 = product_stats_30['revenue']
+    cogs_30 = product_stats_30['cost']
     product_profit_30 = revenue_30 - cogs_30
 
     total_profit_30 = deposit_fees_30 + withdrawal_fees_30 + product_profit_30
 
     # Wallet Stats
     wallet_stats = Wallet.objects.aggregate(
-        total_available=Sum('available_balance'),
-        total_frozen=Sum('frozen_balance'),
-        total_held=Sum('held_balance'),
+        total_available=Coalesce(Sum('available_balance'), Decimal("0.00")),
+        total_frozen=Coalesce(Sum('frozen_balance'), Decimal("0.00")),
+        total_held=Coalesce(Sum('held_balance'), Decimal("0.00")),
     )
 
     # Top Products
@@ -1036,8 +1039,8 @@ def control_reports(request):
         "total_profit_30": total_profit_30,
         "total_users": User.objects.count(),
         "users_30": User.objects.filter(date_joined__date__gte=last_30_days).count(),
-        "deposits_30": DepositRequest.objects.filter(status=DepositRequest.Status.COMPLETED, created_at__date__gte=last_30_days).aggregate(total=Sum('amount'))['total'] or 0,
-        "withdrawals_30": WithdrawalRequest.objects.filter(status=WithdrawalRequest.Status.COMPLETED, created_at__date__gte=last_30_days).aggregate(total=Sum('amount'))['total'] or 0,
+        "deposits_30": DepositRequest.objects.filter(status=DepositRequest.Status.COMPLETED, created_at__date__gte=last_30_days).aggregate(total=Coalesce(Sum('amount'), Decimal("0.00")))['total'],
+        "withdrawals_30": WithdrawalRequest.objects.filter(status=WithdrawalRequest.Status.COMPLETED, created_at__date__gte=last_30_days).aggregate(total=Coalesce(Sum('amount'), Decimal("0.00")))['total'],
         "wallet_stats": wallet_stats,
         "top_products": top_products_list,
         "orders_30": Order.objects.filter(created_at__date__gte=last_30_days).count(),
