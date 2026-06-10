@@ -10,12 +10,11 @@ def custom_set_language(request):
     response = set_language(request)
     
     # 2. If successful and user is logged in, save preference to DB
-    if request.user.is_authenticated and request.method == 'POST':
+    user = getattr(request, 'user', None)
+    if user and user.is_authenticated and request.method == 'POST':
         lang_code = request.POST.get('language')
         if lang_code:
-            # We don't need to validate choices here because User model 
-            # and Django's set_language already handle it.
-            request.user.preferred_language = lang_code
-            request.user.save(update_fields=['preferred_language'])
+            user.preferred_language = lang_code
+            user.save(update_fields=['preferred_language'])
             
     return response

@@ -10,15 +10,17 @@ class UserLanguageMiddleware:
         self.get_response = get_response
 
     def __call__(self, request):
-        if request.user.is_authenticated:
+        # 1. Safe access to user (avoid AttributeError if Middleware order is wrong or during ASGI startup)
+        user = getattr(request, 'user', None)
+        
+        if user and user.is_authenticated:
             # Sync user's saved preference to session if it's different.
-            # This handles the case where a user logs in from a new device.
-            user_pref = getattr(request.user, 'preferred_language', None)
+            user_pref = getattr(user, 'preferred_language', None)
             session_lang = request.session.get(translation.LANGUAGE_SESSION_KEY)
             
             if user_pref and user_pref != session_lang:
                 request.session[translation.LANGUAGE_SESSION_KEY] = user_pref
-                # Optional: Activate immediately so current request uses it
+                # Activate immediately so current request uses it
                 translation.activate(user_pref)
                 request.LANGUAGE_CODE = translation.get_language()
                 
