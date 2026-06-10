@@ -179,7 +179,7 @@ class SupportConsumer(AsyncWebsocketConsumer):
             # But only if the client is NOT also a staff member (prevents admin-to-admin chat double notifications)
             is_client_staff = room.user.is_staff or room.user.groups.filter(name__in=["Support Agent", "Super Admin", "Moderator"]).exists()
             
-            if not is_client_staff and not room.is_guest_room:
+            if not is_client_staff:
                 try:
                     notify_user(
                         user=room.user,
@@ -193,7 +193,12 @@ class SupportConsumer(AsyncWebsocketConsumer):
                     )
                 except: pass
         else:
-            # Client/Guest is sending -> Notify ALL staff except the sender (if they are somehow staff)
+            # Client/Guest is sending -> Notify ALL staff except the sender
+            # We only exclude the sender if they are authenticated and actually a staff member
+            exclude_u = None
+            if self.user.is_authenticated and (self.user.is_staff or self.user.is_superuser):
+                exclude_u = self.user
+
             try:
                 notify_staff(
                     title=f"رسالة جديدة من {actual_sender_name}",
@@ -201,7 +206,7 @@ class SupportConsumer(AsyncWebsocketConsumer):
                     action_url=f"/support/chats/{room.id}/",
                     priority="high",
                     metadata={"type": "chat_user_msg", "room_id": str(room.id)},
-                    exclude_user=self.user if self.user.is_authenticated else None
+                    exclude_user=exclude_u
                 )
             except: pass
         
