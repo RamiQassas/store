@@ -57,6 +57,7 @@ class User(AbstractUser):
 
     public_uuid = models.UUIDField(default=uuid.uuid4, editable=False, unique=True)
     preferred_currency = models.ForeignKey("common.Currency", on_delete=models.SET_NULL, null=True, blank=True, verbose_name="العملة المفضلة")
+    preferred_language = models.CharField(max_length=10, default="ar", verbose_name="اللغة المفضلة")
     email_verified = models.BooleanField(default=False)
     two_factor_enabled = models.BooleanField(default=False)
 

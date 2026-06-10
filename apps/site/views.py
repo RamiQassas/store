@@ -123,6 +123,7 @@ def v3_register_view(request):
                 first_name=form.cleaned_data["first_name"],
                 last_name=form.cleaned_data["last_name"],
                 phone=phone,
+                preferred_language=getattr(request, "LANGUAGE_CODE", "ar")
             )
             get_or_create_wallet(user)
             
