@@ -1,7 +1,7 @@
 {% extends "site/base.html" %}
-{% load static %}
+{% load i18n static %}
 
-{% block title %}محادثة الدعم | Raqamiyat{% endblock %}
+{% block title %}{% trans "Support Chat" %} | Raqamiyat{% endblock %}
 
 {% block extra_head %}
 <style>
@@ -242,7 +242,7 @@
         <!-- Header -->
         <div class="chat-header">
             <div class="agent-info">
-                <a href="{% url 'chat_list' %}" class="w-10 h-10 rounded-full bg-slate-800 flex items-center justify-center hover:bg-slate-700 transition" title="العودة للقائمة">
+                <a href="{% url 'chat_list' %}" class="w-10 h-10 rounded-full bg-slate-800 flex items-center justify-center hover:bg-slate-700 transition" title="{% trans 'Back to List' %}">
                     <i class="fas fa-arrow-right text-xs"></i>
                 </a>
                 <div class="agent-avatar">
@@ -251,26 +251,26 @@
                 <div>
                     <h2 class="font-bold text-base m-0">
                         {% if user.is_staff %}
-                            {{ room_display_name }} (زائر)
+                            {% blocktrans %}{{ room_display_name }} (Guest){% endblocktrans %}
                         {% else %}
-                            الدعم المباشر
+                            {% trans "Live Support" %}
                         {% endif %}
                     </h2>
                     <div id="connection-status">
                         {% if user.is_staff and room.staff_notes %}
                             <span class="text-[10px] text-cyan font-bold">{{ room.staff_notes|linebreaksbr }}</span>
                         {% else %}
-                            <span class="text-muted text-[10px] uppercase tracking-widest">تشفير تام بين الطرفين</span>
+                            <span class="text-muted text-[10px] uppercase tracking-widest">{% trans "End-to-End Encrypted" %}</span>
                         {% endif %}
                     </div>
                 </div>
             </div>
             <div class="flex items-center gap-3">
                 {% if user.is_staff and room.status != 'closed' %}
-                <a href="{% url 'close_chat' room.id %}" class="btn btn-sm btn-primary text-[10px] px-4">إغلاق المحادثة</a>
+                <a href="{% url 'close_chat' room.id %}" class="btn btn-sm btn-primary text-[10px] px-4">{% trans "Close Chat" %}</a>
                 {% elif not user.is_staff %}
                 <a href="{% url 'chat_list' %}" class="btn btn-sm btn-outline text-[10px] px-5 flex items-center gap-2">
-                    <i class="fas fa-sign-out-alt"></i> مغادرة الدردشة
+                    <i class="fas fa-sign-out-alt"></i> {% trans "Leave Chat" %}
                 </a>
                 {% endif %}
                 <span class="badge primary text-[9px] hide-mobile">SESSION: {{ room.id|stringformat:"s"|slice:":8" }}</span>
@@ -307,7 +307,7 @@
                 
                 <div class="msg-meta">
                     <span class="font-bold">
-                        {% if msg.is_staff_reply %}الدعم الفني{% else %}{{ room_display_name }}{% endif %}
+                        {% if msg.is_staff_reply %}{% trans "Technical Support" %}{% else %}{{ room_display_name }}{% endif %}
                     </span>
                     <span>{{ msg.created_at|date:"H:i" }}</span>
                 </div>
@@ -317,15 +317,15 @@
                 <div class="w-20 h-20 bg-slate-800/50 rounded-full flex items-center justify-center mx-auto mb-6 text-cyan opacity-20">
                     <i class="fas fa-shield-halved text-3xl"></i>
                 </div>
-                <h4 class="font-bold text-slate-500">نحن هنا لمساعدتك</h4>
-                <p class="text-xs text-slate-600">أرسل أي استفسار وسيقوم الفريق بالرد عليك في أقرب وقت.</p>
+                <h4 class="font-bold text-slate-500">{% trans "We are here to help" %}</h4>
+                <p class="text-xs text-slate-600">{% trans "Send any inquiry and the team will reply to you as soon as possible." %}</p>
             </div>
             {% endfor %}
         </div>
 
         <!-- Feedback Area -->
         <div class="status-area">
-            <div id="typing-indicator">جاري الكتابة...</div>
+            <div id="typing-indicator">{% trans "Typing..." %}</div>
             <div id="upload-status" class="text-[9px] text-muted"></div>
         </div>
 
@@ -343,12 +343,12 @@
             {% endif %}
 
             <div class="composer-unified shadow-lg">
-                <button class="action-btn btn-attach" onclick="document.getElementById('file-input').click()" title="إرفاق ملف أو صورة">
+                <button class="action-btn btn-attach" onclick="document.getElementById('file-input').click()" title="{% trans 'Attach file or image' %}">
                     <i class="fas fa-paperclip"></i>
                 </button>
                 <input type="file" id="file-input" class="hidden" onchange="handleFileUpload(this)">
                 
-                <textarea id="chat-input" class="composer-input" placeholder="اكتب رسالة هنا..." rows="1"></textarea>
+                <textarea id="chat-input" class="composer-input" placeholder="{% trans 'Write a message here...' %}" rows="1"></textarea>
                 
                 <button class="action-btn btn-send" id="send-btn">
                     <i class="fas fa-paper-plane"></i>
@@ -410,7 +410,7 @@
 
         chatSocket.onopen = () => {
             reconnectAttempts = 0;
-            document.getElementById('connection-status').innerHTML = '<span class="text-success text-[10px]">● متصل الآن</span>';
+            document.getElementById('connection-status').innerHTML = '<span class="text-success text-[10px]">● {% trans "Connected" %}</span>';
         };
 
         chatSocket.onmessage = (e) => {
@@ -466,7 +466,7 @@
         };
 
         chatSocket.onclose = () => {
-            document.getElementById('connection-status').innerHTML = '<span class="text-danger text-[10px]">○ جاري الاتصال...</span>';
+            document.getElementById('connection-status').innerHTML = '<span class="text-danger text-[10px]">○ {% trans "Connecting..." %}</span>';
             setTimeout(connect, Math.min(10000, 1000 * ++reconnectAttempts));
         };
     }
@@ -484,7 +484,7 @@
     async function handleFileUpload(input) {
         if (!input.files[0]) return;
         
-        uploadStatus.innerText = 'جاري الرفع...';
+        uploadStatus.innerText = '{% trans "Uploading..." %}';
         const formData = new FormData();
         formData.append('file', input.files[0]);
         formData.append('csrfmiddlewaretoken', '{{ csrf_token }}');
@@ -493,7 +493,7 @@
             const response = await fetch('{% url "chat_file_upload" room.id %}', { method: 'POST', body: formData });
             if (response.ok) {
                 const data = await response.json();
-                uploadStatus.innerText = 'تم الإرسال ✓';
+                uploadStatus.innerText = '{% trans "Sent ✓" %}';
                 // Broadcast the file_id via WebSocket for real-time rendering
                 chatSocket.send(JSON.stringify({
                     'type': 'chat_message',
@@ -502,10 +502,10 @@
                 }));
                 setTimeout(() => uploadStatus.innerText = '', 2000);
             } else {
-                uploadStatus.innerText = 'فشل الرفع ✗';
+                uploadStatus.innerText = '{% trans "Upload Failed ✗" %}';
             }
         } catch (e) {
-            uploadStatus.innerText = 'خطأ في الاتصال ✗';
+            uploadStatus.innerText = '{% trans "Connection Error ✗" %}';
         }
         input.value = '';
     }

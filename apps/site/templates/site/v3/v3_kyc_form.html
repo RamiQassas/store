@@ -1,5 +1,6 @@
 {% extends "site/base.html" %}
-{% block title %}توثيق الحساب | Raqamiyat{% endblock %}
+{% load i18n %}
+{% block title %}{% trans "توثيق الحساب" %} | Raqamiyat{% endblock %}
 {% block extra_head %}
 <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
 <style>
@@ -41,9 +42,9 @@
 <div class="container py-12">
     <div class="max-w-3xl mx-auto">
         <div class="page-head mb-8 text-center">
-            <span class="eyebrow">Identity Verification</span>
-            <h1 class="text-3xl font-black">توثيق الهوية والتحقق من الحساب</h1>
-            <p class="text-slate-500 mt-4 leading-relaxed">التوثيق **اختياري** تماماً، ولكنه مطلوب فقط إذا كنت ترغب في رفع حدود العمليات المالية على حسابك.</p>
+            <span class="eyebrow">{% trans "Identity Verification" %}</span>
+            <h1 class="text-3xl font-black">{% trans "توثيق الهوية والتحقق من الحساب" %}</h1>
+            <p class="text-slate-500 mt-4 leading-relaxed">{% trans "التوثيق **اختياري** تماماً، ولكنه مطلوب فقط إذا كنت ترغب في رفع حدود العمليات المالية على حسابك." %}</p>
         </div>
 
         {% if user.is_kyc_verified %}
@@ -51,9 +52,9 @@
             <div class="w-20 h-20 bg-emerald-500/20 rounded-full flex items-center justify-center text-4xl text-emerald-500 mx-auto mb-6">
                 <i class="fas fa-check-double"></i>
             </div>
-            <h2 class="text-2xl font-black text-emerald-500 mb-4">حسابك موثق بالكامل</h2>
-            <p class="text-slate-400 mb-8">لقد تم التحقق من هويتك بنجاح، وتتمتع الآن بحدود عمليات مالية مرتفعة.</p>
-            <a href="{% url 'dashboard' %}" class="btn btn-primary px-8 py-3 rounded-xl font-bold">العودة للوحة التحكم</a>
+            <h2 class="text-2xl font-black text-emerald-500 mb-4">{% trans "حسابك موثق بالكامل" %}</h2>
+            <p class="text-slate-400 mb-8">{% trans "لقد تم التحقق من هويتك بنجاح، وتتمتع الآن بحدود عمليات مالية مرتفعة." %}</p>
+            <a href="{% url 'dashboard' %}" class="btn btn-primary px-8 py-3 rounded-xl font-bold">{% trans "العودة للوحة التحكم" %}</a>
         </div>
 
         {% elif kyc_status == 'pending' %}
@@ -61,9 +62,9 @@
             <div class="w-20 h-20 bg-amber-500/20 rounded-full flex items-center justify-center text-4xl text-amber-500 mx-auto mb-6 animate-pulse">
                 <i class="fas fa-clock"></i>
             </div>
-            <h2 class="text-2xl font-black text-amber-500 mb-4">طلبك قيد المراجعة</h2>
-            <p class="text-slate-400 mb-8">لقد استلمنا طلب التوثيق الخاص بك وهو الآن قيد المراجعة من قبل فريقنا المختص. يرجى الانتظار، سنقوم بإعلامك فور معالجته.</p>
-            <a href="{% url 'dashboard' %}" class="btn btn-outline px-8 py-3 rounded-xl font-bold">مراقبة حالة الحساب</a>
+            <h2 class="text-2xl font-black text-amber-500 mb-4">{% trans "طلبك قيد المراجعة" %}</h2>
+            <p class="text-slate-400 mb-8">{% trans "لقد استلمنا طلب التوثيق الخاص بك وهو الآن قيد المراجعة من قبل فريقنا المختص. يرجى الانتظار، سنقوم بإعلامك فور معالجته." %}</p>
+            <a href="{% url 'dashboard' %}" class="btn btn-outline px-8 py-3 rounded-xl font-bold">{% trans "مراقبة حالة الحساب" %}</a>
         </div>
 
         {% else %}
@@ -72,19 +73,19 @@
             <div class="p-6 bg-rose-500/10 border border-rose-500/20 rounded-2xl mb-8">
                 <div class="flex items-center gap-3 text-rose-500 font-bold mb-2">
                     <i class="fas fa-exclamation-triangle"></i>
-                    <span>تم رفض طلبك السابق</span>
+                    <span>{% trans "تم رفض طلبك السابق" %}</span>
                 </div>
                 <p class="text-xs text-rose-500/80 leading-relaxed">
-                    <strong>سبب الرفض:</strong> {{ kyc_rejection_reason }}
+                    <strong>{% trans "سبب الرفض:" %}</strong> {{ kyc_rejection_reason }}
                 </p>
-                <p class="text-[10px] text-slate-500 mt-4">يرجى تصحيح البيانات المذكورة أعلاه وتقديم طلب جديد بصور أكثر وضوحاً.</p>
+                <p class="text-[10px] text-slate-500 mt-4">{% trans "يرجى تصحيح البيانات المذكورة أعلاه وتقديم طلب جديد بصور أكثر وضوحاً." %}</p>
             </div>
             {% endif %}
 
             <div class="flex items-start gap-4 p-5 bg-cyan/5 border border-cyan/10 rounded-2xl mb-10">
                 <i class="fas fa-info-circle text-cyan mt-1"></i>
                 <p class="text-sm text-cyan leading-relaxed">
-                    بصفتنا منصة مالية مسؤولة، نقوم بطلب التوثيق لضمان سلامة العمليات ومنع الاحتيال. بمجرد قبول طلبك، سيتم رفع حدود الإيداع والسحب اليومية الخاصة بك بشكل كبير.
+                    {% trans "بصفتنا منصة مالية مسؤولة، نقوم بطلب التوثيق لضمان سلامة العمليات ومنع الاحتيال. بمجرد قبول طلبك، سيتم رفع حدود الإيداع والسحب اليومية الخاصة بك بشكل كبير." %}
                 </p>
             </div>
 
@@ -94,11 +95,11 @@
                 <!-- Geographical Info (TOP) -->
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
                     <div class="field-group">
-                        <label class="text-xs font-black text-slate-400 mb-3 block uppercase tracking-widest">الجنسية</label>
+                        <label class="text-xs font-black text-slate-400 mb-3 block uppercase tracking-widest">{% trans "الجنسية" %}</label>
                         {{ form.nationality }}
                     </div>
                     <div class="field-group">
-                        <label class="text-xs font-black text-slate-400 mb-3 block uppercase tracking-widest">بلد إصدار الوثيقة</label>
+                        <label class="text-xs font-black text-slate-400 mb-3 block uppercase tracking-widest">{% trans "بلد إصدار الوثيقة" %}</label>
                         {{ form.issuing_country }}
                     </div>
                 </div>
@@ -108,43 +109,43 @@
                 <!-- Identity Info Section -->
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
                     <div class="field-group">
-                        <label class="text-xs font-black text-slate-400 mb-3 block uppercase tracking-widest">نوع الوثيقة</label>
+                        <label class="text-xs font-black text-slate-400 mb-3 block uppercase tracking-widest">{% trans "نوع الوثيقة" %}</label>
                         {{ form.document_type }}
                     </div>
                     <div class="field-group">
-                        <label class="text-xs font-black text-slate-400 mb-3 block uppercase tracking-widest">رقم الوطني / الوثيقة</label>
+                        <label class="text-xs font-black text-slate-400 mb-3 block uppercase tracking-widest">{% trans "رقم الوطني / الوثيقة" %}</label>
                         {{ form.id_number }}
                     </div>
                     <div class="field-group">
-                        <label class="text-xs font-black text-slate-400 mb-3 block uppercase tracking-widest">الاسم الأول</label>
+                        <label class="text-xs font-black text-slate-400 mb-3 block uppercase tracking-widest">{% trans "الاسم الأول" %}</label>
                         {{ form.first_name }}
                     </div>
                     <div class="field-group">
-                        <label class="text-xs font-black text-slate-400 mb-3 block uppercase tracking-widest">اسم الأب</label>
+                        <label class="text-xs font-black text-slate-400 mb-3 block uppercase tracking-widest">{% trans "اسم الأب" %}</label>
                         {{ form.father_name }}
                     </div>
                     <div class="field-group">
-                        <label class="text-xs font-black text-slate-400 mb-3 block uppercase tracking-widest">النسبة / الكنية</label>
+                        <label class="text-xs font-black text-slate-400 mb-3 block uppercase tracking-widest">{% trans "النسبة / الكنية" %}</label>
                         {{ form.last_name }}
                     </div>
                     <div class="field-group">
-                        <label class="text-xs font-black text-slate-400 mb-3 block uppercase tracking-widest">اسم الأم ونسبتها</label>
+                        <label class="text-xs font-black text-slate-400 mb-3 block uppercase tracking-widest">{% trans "اسم الأم ونسبتها" %}</label>
                         {{ form.mother_name }}
                     </div>
                     <div class="field-group">
-                        <label class="text-xs font-black text-slate-400 mb-3 block uppercase tracking-widest">الجنس</label>
+                        <label class="text-xs font-black text-slate-400 mb-3 block uppercase tracking-widest">{% trans "الجنس" %}</label>
                         {{ form.gender }}
                     </div>
                     <div class="field-group">
-                        <label class="text-xs font-black text-slate-400 mb-3 block uppercase tracking-widest">تاريخ الميلاد</label>
+                        <label class="text-xs font-black text-slate-400 mb-3 block uppercase tracking-widest">{% trans "تاريخ الميلاد" %}</label>
                         {{ form.date_of_birth }}
                     </div>
                     <div class="field-group md:col-span-2">
-                        <label class="text-xs font-black text-slate-400 mb-3 block uppercase tracking-widest">مكان الميلاد</label>
+                        <label class="text-xs font-black text-slate-400 mb-3 block uppercase tracking-widest">{% trans "مكان الميلاد" %}</label>
                         {{ form.place_of_birth }}
                     </div>
                     <div class="field-group md:col-span-2">
-                        <label class="text-xs font-black text-slate-400 mb-3 block uppercase tracking-widest">عنوان الإقامة الحالي</label>
+                        <label class="text-xs font-black text-slate-400 mb-3 block uppercase tracking-widest">{% trans "عنوان الإقامة الحالي" %}</label>
                         {{ form.current_residence }}
                     </div>
                 </div>
@@ -154,9 +155,9 @@
                 <!-- Document Uploads -->
                 <h3 class="text-xl font-black flex items-center gap-3 mb-2">
                     <i class="fas fa-camera text-cyan"></i> 
-                    تحميل صور الوثائق
+                    {% trans "تحميل صور الوثائق" %}
                 </h3>
-                <p class="text-xs text-slate-500 mb-8">يجب أن تكون الصور واضحة وجميع البيانات مقروءة.</p>
+                <p class="text-xs text-slate-500 mb-8">{% trans "يجب أن تكون الصور واضحة وجميع البيانات مقروءة." %}</p>
 
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
                     <!-- Image Cards with Fixed Preview -->
@@ -165,11 +166,11 @@
                             <img id="preview-front" src="" class="hidden w-full h-full object-contain">
                             <div class="text-center placeholder-icon">
                                 <i class="fas fa-id-card text-3xl mb-2 text-slate-600 group-hover:text-cyan"></i>
-                                <div class="text-[8px] font-black text-slate-500 uppercase tracking-widest">وجه الوثيقة</div>
+                                <div class="text-[8px] font-black text-slate-500 uppercase tracking-widest">{% trans "وجه الوثيقة" %}</div>
                             </div>
                         </div>
                         <div class="px-2">
-                            <label class="text-[10px] font-bold text-slate-400 mb-2 block">تحميل الوجه الأمامي</label>
+                            <label class="text-[10px] font-bold text-slate-400 mb-2 block">{% trans "تحميل الوجه الأمامي" %}</label>
                             {{ form.identity_front }}
                         </div>
                     </div>
@@ -179,11 +180,11 @@
                             <img id="preview-back" src="" class="hidden w-full h-full object-contain">
                             <div class="text-center placeholder-icon">
                                 <i class="fas fa-id-card-alt text-3xl mb-2 text-slate-600 group-hover:text-cyan"></i>
-                                <div class="text-[8px] font-black text-slate-500 uppercase tracking-widest">ظهر الوثيقة</div>
+                                <div class="text-[8px] font-black text-slate-500 uppercase tracking-widest">{% trans "ظهر الوثيقة" %}</div>
                             </div>
                         </div>
                         <div class="px-2">
-                            <label class="text-[10px] font-bold text-slate-400 mb-2 block">تحميل الوجه الخلفي</label>
+                            <label class="text-[10px] font-bold text-slate-400 mb-2 block">{% trans "تحميل الوجه الخلفي" %}</label>
                             {{ form.identity_back }}
                         </div>
                     </div>
@@ -193,20 +194,20 @@
                             <img id="preview-selfie" src="" class="hidden w-full h-full object-contain">
                             <div class="text-center placeholder-icon">
                                 <i class="fas fa-user-circle text-3xl mb-2 text-slate-600 group-hover:text-cyan"></i>
-                                <div class="text-[8px] font-black text-slate-500 uppercase tracking-widest">صورة سيلفي</div>
+                                <div class="text-[8px] font-black text-slate-500 uppercase tracking-widest">{% trans "صورة سيلفي" %}</div>
                             </div>
                         </div>
                         <div class="px-2">
-                            <label class="text-[10px] font-bold text-slate-400 mb-2 block">تحميل صورة السيلفي</label>
-                            <p class="text-[8px] text-slate-500 mb-2">سيلفي وأنت تحمل هويتك بجانب وجهك.</p>
+                            <label class="text-[10px] font-bold text-slate-400 mb-2 block">{% trans "تحميل صورة السيلفي" %}</label>
+                            <p class="text-[8px] text-slate-500 mb-2">{% trans "سيلفي وأنت تحمل هويتك بجانب وجهك." %}</p>
                             {{ form.selfie_verification }}
                         </div>
                     </div>
                 </div>
 
                 <div class="mt-8 pt-8 border-t border-white/5 flex items-center gap-6">
-                    <button type="submit" class="btn btn-primary px-16 py-4 rounded-2xl font-black shadow-cyan hover:scale-[1.02] transition-transform">تقديم الطلب للمراجعة</button>
-                    <a href="{% url 'dashboard' %}" class="btn btn-outline px-10 py-4 rounded-2xl font-bold opacity-60 hover:opacity-100">إلغاء</a>
+                    <button type="submit" class="btn btn-primary px-16 py-4 rounded-2xl font-black shadow-cyan hover:scale-[1.02] transition-transform">{% trans "تقديم الطلب للمراجعة" %}</button>
+                    <a href="{% url 'dashboard' %}" class="btn btn-outline px-10 py-4 rounded-2xl font-bold opacity-60 hover:opacity-100">{% trans "إلغاء" %}</a>
                 </div>
             </form>
         </div>

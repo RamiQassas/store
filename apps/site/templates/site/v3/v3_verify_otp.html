@@ -1,5 +1,6 @@
 {% extends "site/base.html" %}
-{% block title %}التحقق من الرمز | Raqamiyat{% endblock %}
+{% load i18n %}
+{% block title %}{% trans "Verify Code | Raqamiyat" %}{% endblock %}
 {% block content %}
 <section class="auth-shell">
   <article class="panel p-10 auth-panel text-center">
@@ -7,8 +8,8 @@
         <div class="w-20 h-20 bg-cyan/10 rounded-full flex items-center justify-center text-3xl text-cyan mx-auto mb-6">
             <i class="fas fa-shield-alt"></i>
         </div>
-        <h1 class="text-2xl font-black mb-2">أدخل رمز التحقق</h1>
-        <p class="text-slate-500">لقد أرسلنا رمزاً مكوناً من 6 أرقام إلى بريدك الإلكتروني:<br><strong class="text-slate-300">{{ user.email }}</strong></p>
+        <h1 class="text-2xl font-black mb-2">{% trans "Enter Verification Code" %}</h1>
+        <p class="text-slate-500">{% blocktrans with email=user.email %}We have sent a 6-digit code to your email:<br><strong class="text-slate-300">{{ email }}</strong>{% endblocktrans %}</p>
     </div>
     
     <form method="post" class="stack gap-6">
@@ -17,17 +18,17 @@
         <input type="text" name="code" maxlength="6" class="text-center text-3xl font-black tracking-[15px] py-4 bg-slate-900 border-white/10 rounded-2xl focus:border-cyan transition-all" placeholder="000000" required autofocus>
       </div>
       
-      <button class="btn btn-primary w-full py-4 text-lg font-bold" type="submit">تأكيد الرمز</button>
+      <button class="btn btn-primary w-full py-4 text-lg font-bold" type="submit">{% trans "Confirm Code" %}</button>
     </form>
 
     <div class="mt-8 pt-6 border-t border-white/5">
-        <p class="text-xs text-slate-500 mb-4">لم يصلك الرمز؟</p>
+        <p class="text-xs text-slate-500 mb-4">{% trans "Didn't receive the code?" %}</p>
         <form method="post" id="resend-form">
             {% csrf_token %}
             <input type="hidden" name="action" value="resend">
-            <button type="submit" id="resend-btn" class="text-cyan text-xs font-bold hover:underline disabled:opacity-50 disabled:no-underline disabled:cursor-not-allowed">إعادة إرسال الرمز</button>
+            <button type="submit" id="resend-btn" class="text-cyan text-xs font-bold hover:underline disabled:opacity-50 disabled:no-underline disabled:cursor-not-allowed">{% trans "Resend Code" %}</button>
         </form>
-        <p id="cooldown-timer" class="text-[10px] text-slate-600 mt-2 hidden">يمكنك إعادة الإرسال خلال <span id="timer-count">60</span> ثانية</p>
+        <p id="cooldown-timer" class="text-[10px] text-slate-600 mt-2 hidden">{% blocktrans %}You can resend in <span id="timer-count">60</span> seconds{% endblocktrans %}</p>
     </div>
 
     <script>
@@ -62,7 +63,7 @@
     </script>
     
     <div class="mt-4">
-        <a href="{% url 'site_login' %}" class="text-slate-500 text-[10px] hover:text-white transition-colors">العودة لتسجيل الدخول</a>
+        <a href="{% url 'site_login' %}" class="text-slate-500 text-[10px] hover:text-white transition-colors">{% trans "Back to Login" %}</a>
     </div>
   </article>
 </section>

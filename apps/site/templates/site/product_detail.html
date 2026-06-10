@@ -1,5 +1,5 @@
 {% extends "site/base.html" %}
-{% load static site_tags %}
+{% load i18n static site_tags %}
 
 {% block title %}{{ product.name }} | Raqamiyat{% endblock %}
 
@@ -84,11 +84,11 @@
         <div class="panel p-6 mt-10 bg-white/[0.01] stack gap-4">
             <div class="flex items-center gap-4 text-xs font-bold text-muted">
                 <i class="fas fa-shield-check text-success text-xl"></i>
-                <span>ضمان استلام الخدمة 100% أو استعادة الرصيد.</span>
+                <span>{% trans "ضمان استلام الخدمة 100% أو استعادة الرصيد." %}</span>
             </div>
             <div class="flex items-center gap-4 text-xs font-bold text-muted">
                 <i class="fas fa-bolt text-amber-500 text-xl"></i>
-                <span>تسليم فوري خلال دقائق لمعظم الباقات.</span>
+                <span>{% trans "تسليم فوري خلال دقائق لمعظم الباقات." %}</span>
             </div>
         </div>
     </div>

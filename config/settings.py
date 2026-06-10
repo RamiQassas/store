@@ -83,11 +83,11 @@ MIDDLEWARE = [
 
     "corsheaders.middleware.CorsMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
-    "django.middleware.locale.LocaleMiddleware",
-    "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
+    "django.middleware.locale.LocaleMiddleware",
     "apps.site.middleware.UserLanguageMiddleware",
+    "django.middleware.common.CommonMiddleware",
     "apps.accounts.middleware.AccountStatusMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
