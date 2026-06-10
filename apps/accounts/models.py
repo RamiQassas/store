@@ -27,7 +27,6 @@ class User(AbstractUser):
     Status = UserStatus
     Tier = UserTier
 
-    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     role = models.CharField(max_length=20, choices=UserRole.choices, default=UserRole.CUSTOMER, verbose_name="الدور")
     status = models.CharField(max_length=20, choices=UserStatus.choices, default=UserStatus.ACTIVE, verbose_name="الحالة")
     tier = models.CharField(max_length=20, choices=UserTier.choices, default=UserTier.STANDARD, verbose_name="الفئة")
