@@ -1342,35 +1342,19 @@ def control_order_detail(request, pk):
                             adj_ref = f"adj:order:{order.id}:{timezone.now().timestamp()}"
                             
                             if diff > 0:
-                                # Price increased -> Deduct from wallet or add debt
-                                if wallet.available_balance >= diff:
-                                    from apps.wallets.services import freeze_funds, release_funds
-                                    # We'll use a direct ledger entry for adjustment
-                                    from apps.wallets.models import LedgerEntry
-                                    LedgerEntry.objects.create(
-                                        wallet=wallet,
-                                        amount=-diff,
-                                        entry_type=LedgerEntry.EntryType.DEBIT,
-                                        reference=adj_ref,
-                                        description=f"تعديل سعر الطلب #{order.number} (زيادة). السبب: {reason}",
-                                        created_by=request.user
-                                    )
-                                    wallet.available_balance -= diff
-                                    wallet.save(update_fields=["available_balance", "updated_at"])
-                                else:
-                                    # Not enough balance? Add as debt or just fail? 
-                                    # Request said "خصم سعر جديد من محفظة عميل". We'll deduct and allow negative if needed or notify.
-                                    # For simplicity and to follow request, we deduct.
-                                    LedgerEntry.objects.create(
-                                        wallet=wallet,
-                                        amount=-diff,
-                                        entry_type=LedgerEntry.EntryType.DEBIT,
-                                        reference=adj_ref,
-                                        description=f"تعديل سعر الطلب #{order.number} (زيادة - رصيد مكشوف). السبب: {reason}",
-                                        created_by=request.user
-                                    )
-                                    wallet.available_balance -= diff
-                                    wallet.save(update_fields=["available_balance", "updated_at"])
+                                # Price increased -> Deduct from wallet
+                                wallet.available_balance -= diff
+                                wallet.save(update_fields=["available_balance", "updated_at"])
+                                
+                                LedgerEntry.objects.create(
+                                    wallet=wallet,
+                                    amount=-diff,
+                                    entry_type=LedgerEntry.EntryType.DEBIT,
+                                    balance_after=wallet.available_balance,
+                                    reference=adj_ref,
+                                    description=f"تعديل سعر الطلب #{order.number} (زيادة). السبب: {reason}",
+                                    created_by=request.user
+                                )
                                 
                                 notify_user(order.customer, "تعديل سعر الطلب", f"تم زيادة سعر طلبك #{order.number} بمقدار {diff} USD. السبب: {reason}")
                             
@@ -1510,35 +1494,19 @@ def control_order_detail(request, pk):
                             adj_ref = f"adj:order:{order.id}:{timezone.now().timestamp()}"
                             
                             if diff > 0:
-                                # Price increased -> Deduct from wallet or add debt
-                                if wallet.available_balance >= diff:
-                                    from apps.wallets.services import freeze_funds, release_funds
-                                    # We'll use a direct ledger entry for adjustment
-                                    from apps.wallets.models import LedgerEntry
-                                    LedgerEntry.objects.create(
-                                        wallet=wallet,
-                                        amount=-diff,
-                                        entry_type=LedgerEntry.EntryType.DEBIT,
-                                        reference=adj_ref,
-                                        description=f"تعديل سعر الطلب #{order.number} (زيادة). السبب: {reason}",
-                                        created_by=request.user
-                                    )
-                                    wallet.available_balance -= diff
-                                    wallet.save(update_fields=["available_balance", "updated_at"])
-                                else:
-                                    # Not enough balance? Add as debt or just fail? 
-                                    # Request said "خصم سعر جديد من محفظة عميل". We'll deduct and allow negative if needed or notify.
-                                    # For simplicity and to follow request, we deduct.
-                                    LedgerEntry.objects.create(
-                                        wallet=wallet,
-                                        amount=-diff,
-                                        entry_type=LedgerEntry.EntryType.DEBIT,
-                                        reference=adj_ref,
-                                        description=f"تعديل سعر الطلب #{order.number} (زيادة - رصيد مكشوف). السبب: {reason}",
-                                        created_by=request.user
-                                    )
-                                    wallet.available_balance -= diff
-                                    wallet.save(update_fields=["available_balance", "updated_at"])
+                                # Price increased -> Deduct from wallet
+                                wallet.available_balance -= diff
+                                wallet.save(update_fields=["available_balance", "updated_at"])
+                                
+                                LedgerEntry.objects.create(
+                                    wallet=wallet,
+                                    amount=-diff,
+                                    entry_type=LedgerEntry.EntryType.DEBIT,
+                                    balance_after=wallet.available_balance,
+                                    reference=adj_ref,
+                                    description=f"تعديل سعر الطلب #{order.number} (زيادة). السبب: {reason}",
+                                    created_by=request.user
+                                )
                                 
                                 notify_user(order.customer, "تعديل سعر الطلب", f"تم زيادة سعر طلبك #{order.number} بمقدار {diff} USD. السبب: {reason}")
                             

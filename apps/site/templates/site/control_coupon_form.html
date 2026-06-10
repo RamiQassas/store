@@ -2,6 +2,14 @@
 
 {% block title %}{{ title }} | Raqamiyat Admin{% endblock %}
 
+{% block extra_head %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+<style>
+    .flatpickr-calendar { background: #0f172a !important; border-color: #1e293b !important; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.5) !important; }
+    .flatpickr-day.selected { background: #06b6d4 !important; border-color: #06b6d4 !important; }
+</style>
+{% endblock %}
+
 {% block control_content %}
 <nav class="breadcrumb">
     <a href="{% url 'control_dashboard' %}" class="breadcrumb-item">الرئيسية</a>
@@ -110,6 +118,7 @@
     </div>
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
 <script>
 function toggleDiscountFields() {
     const type = document.querySelector('select[name="discount_type"]').value;
@@ -126,6 +135,14 @@ function toggleDiscountFields() {
 }
 
 document.addEventListener('DOMContentLoaded', function() {
+    // Initialize Flatpickr
+    flatpickr('input[name="expires_at"]', {
+        enableTime: true,
+        dateFormat: "Y-m-d H:i",
+        time_24hr: true,
+        locale: "ar"
+    });
+
     toggleDiscountFields(); // Initial call
     
     const applyToAll = document.querySelector('input[name="apply_to_all_products"]');
