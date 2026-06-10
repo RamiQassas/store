@@ -250,6 +250,29 @@ class KYCSettingsForm(forms.ModelForm):
         return instance
 
 
+class ChangePasswordForm(forms.Form):
+    current_password = forms.CharField(label="كلمة المرور الحالية", widget=forms.PasswordInput(attrs={"class": "builder-input", "placeholder": "********"}))
+    new_password = forms.CharField(label="كلمة المرور الجديدة", widget=forms.PasswordInput(attrs={"class": "builder-input", "placeholder": "********"}), min_length=10)
+    confirm_password = forms.CharField(label="تأكيد كلمة المرور الجديدة", widget=forms.PasswordInput(attrs={"class": "builder-input", "placeholder": "********"}))
+
+    def clean_new_password(self):
+        password = self.cleaned_data.get("new_password")
+        if not any(char.isdigit() for char in password):
+            raise forms.ValidationError("يجب أن تحتوي كلمة المرور على رقم واحد على الأقل.")
+        if not any(char.isupper() for char in password):
+            raise forms.ValidationError("يجب أن تحتوي كلمة المرور على حرف كبير واحد على الأقل.")
+        return password
+
+    def clean(self):
+        cleaned_data = super().clean()
+        new_password = cleaned_data.get("new_password")
+        confirm_password = cleaned_data.get("confirm_password")
+
+        if new_password and confirm_password and new_password != confirm_password:
+            self.add_error("confirm_password", "كلمات المرور غير متطابقة.")
+        return cleaned_data
+
+
 class KYCRequestForm(forms.ModelForm):
     class Meta:
         model = KYCRequest
@@ -275,13 +298,15 @@ class KYCRequestForm(forms.ModelForm):
         }
 
     def clean_id_number(self):
-        id_number = self.cleaned_data.get("id_number")
+        id_number = self.cleaned_data.get("id_number", "").strip()
         if id_number:
-            qs = KYCRequest.objects.filter(id_number=id_number)
+            # Check for duplicate ID number across all accounts (excluding current instance)
+            qs = KYCRequest.objects.filter(id_number__iexact=id_number)
             if self.instance.pk:
                 qs = qs.exclude(pk=self.instance.pk)
+            
             if qs.exists():
-                raise forms.ValidationError("يوجد حساب موثق بالفعل باستخدام بيانات الهوية هذه. يُسمح بحساب موثق واحد فقط لكل وثيقة هوية.")
+                raise forms.ValidationError("هذا الرقم الوطني مستخدم مسبقًا في حساب آخر.")
         return id_number
 
     def __init__(self, *args, **kwargs):

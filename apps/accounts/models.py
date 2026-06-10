@@ -59,6 +59,7 @@ class User(AbstractUser):
     preferred_currency = models.ForeignKey("common.Currency", on_delete=models.SET_NULL, null=True, blank=True, verbose_name="العملة المفضلة")
     preferred_language = models.CharField(max_length=10, default="ar", verbose_name="اللغة المفضلة")
     email_verified = models.BooleanField(default=False)
+    last_session_key = models.CharField(max_length=40, null=True, blank=True)
     two_factor_enabled = models.BooleanField(default=False)
 
     # KYC & Limits

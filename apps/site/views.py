@@ -6,7 +6,7 @@ import string
 from datetime import timedelta
 
 from django.contrib import messages
-from django.contrib.auth import authenticate, login, logout
+from django.contrib.auth import authenticate, login, logout, update_session_auth_hash
 from django.contrib.auth.decorators import login_required, permission_required
 from django.contrib.admin.views.decorators import staff_member_required
 from django.db import transaction
@@ -27,7 +27,7 @@ from apps.notifications.models import Notification, NotificationSetting
 from apps.notifications.services import notify_user, notify_bulk
 from apps.orders.models import Order, OrderItem, OrderLog, Coupon
 from apps.payments.models import DepositRequest, PaymentMethod, WithdrawalRequest
-from apps.site.forms import LoginForm, RegisterForm, TicketForm, PaymentMethodForm, CurrencyForm, ModerateUserForm, ProductForm, VariantForm, KYCRequestForm, KYCSettingsForm
+from apps.site.forms import LoginForm, RegisterForm, TicketForm, PaymentMethodForm, CurrencyForm, ModerateUserForm, ProductForm, VariantForm, KYCRequestForm, KYCSettingsForm, ChangePasswordForm
 from apps.support.models import ChatRoom, ChatMessage, ChatCannedReply
 from apps.wallets.models import LedgerEntry, Wallet, WalletTransaction
 from apps.wallets.services import get_or_create_wallet, track_pending_deposit, freeze_funds, credit_wallet, release_funds, finalize_withdrawal
@@ -171,6 +171,11 @@ def v3_verify_otp_view(request):
             
             # Login for Registration and standard Login flows
             login(request, user)
+            
+            # Record the new session key for Single Session Login enforcement
+            user.last_session_key = request.session.session_key
+            user.save(update_fields=["last_session_key"])
+            
             messages.success(request, "مرحبًا بك في رقميات.")
             request.session.pop("v3_auth_uid", None)
             request.session.pop("v3_auth_purpose", None)
@@ -622,6 +627,39 @@ def kyc_request_view(request):
         "form": form, "kyc_status": kyc_status, "kyc_rejection_reason": kyc_rejection_reason,
         "restricted_countries": settings_obj.restricted_countries, "all_countries": COUNTRIES
     })
+
+
+@login_required
+def v3_change_password_view(request):
+    form = ChangePasswordForm(request.POST or None)
+    if request.method == "POST" and form.is_valid():
+        user = request.user
+        current_password = form.cleaned_data["current_password"]
+        new_password = form.cleaned_data["new_password"]
+        
+        if user.check_password(current_password):
+            with transaction.atomic():
+                user.set_password(new_password)
+                user.save()
+                
+                # Update session to prevent logout of current session
+                update_session_auth_hash(request, user)
+                
+                # Invalidate other sessions
+                from django.contrib.sessions.models import Session
+                for session in Session.objects.all():
+                    decoded = session.get_decoded()
+                    if decoded.get('_auth_user_id') == str(user.id):
+                        if session.session_key != request.session.session_key:
+                            session.delete()
+                
+                ActivityLog.objects.create(user=user, action="Password Change", description="User changed password and invalidated other sessions")
+                messages.success(request, "تم تغيير كلمة المرور بنجاح وتم تسجيل الخروج من الأجهزة الأخرى.")
+                return redirect("dashboard")
+        else:
+            messages.error(request, "كلمة المرور الحالية غير صحيحة.")
+            
+    return render(request, "site/v3/v3_change_password.html", {"form": form})
 
 
 from apps.common.decorators import finance_required, support_required, kyc_required, admin_required
