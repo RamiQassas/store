@@ -88,8 +88,13 @@
                 </p>
             </div>
 
-            <form method="post" enctype="multipart/form-data" class="stack gap-10" id="kyc-form" onsubmit="return validateKYCForm()">
+            <form method="post" enctype="multipart/form-data" class="stack gap-10" id="kyc-form">
                 {% csrf_token %}
+                
+                <div id="duplicate-id-alert" class="hidden p-4 bg-rose-500/20 border border-rose-500/40 rounded-xl text-rose-500 text-sm font-bold mb-6">
+                    <i class="fas fa-exclamation-circle ml-2"></i>
+                    هذا الرقم الوطني مرتبط بحساب آخر. يرجى التأكد من الرقم أو التواصل مع الدعم.
+                </div>
                 
                 <!-- Geographical Info (TOP) -->
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
@@ -162,8 +167,8 @@
                     <!-- Image Cards with Fixed Preview -->
                     <div class="upload-card stack gap-4">
                         <div class="fixed-frame aspect-[4/3] w-full bg-slate-800/40 border border-dashed border-white/10 rounded-2xl flex items-center justify-center relative overflow-hidden group hover:border-cyan/50 transition-all">
-                            <img id="preview-front" src="" class="hidden w-full h-full object-contain">
-                            <div class="text-center placeholder-icon">
+                            <img id="preview-front" src="{{ temp_previews.front|default:'' }}" class="{% if not temp_previews.front %}hidden{% endif %} w-full h-full object-contain">
+                            <div class="text-center placeholder-icon {% if temp_previews.front %}hidden{% endif %}">
                                 <i class="fas fa-id-card text-3xl mb-2 text-slate-600 group-hover:text-cyan"></i>
                                 <div class="text-[8px] font-black text-slate-500 uppercase tracking-widest">وجه الوثيقة</div>
                             </div>
@@ -176,8 +181,8 @@
 
                     <div class="upload-card stack gap-4">
                         <div class="fixed-frame aspect-[4/3] w-full bg-slate-800/40 border border-dashed border-white/10 rounded-2xl flex items-center justify-center relative overflow-hidden group hover:border-cyan/50 transition-all">
-                            <img id="preview-back" src="" class="hidden w-full h-full object-contain">
-                            <div class="text-center placeholder-icon">
+                            <img id="preview-back" src="{{ temp_previews.back|default:'' }}" class="{% if not temp_previews.back %}hidden{% endif %} w-full h-full object-contain">
+                            <div class="text-center placeholder-icon {% if temp_previews.back %}hidden{% endif %}">
                                 <i class="fas fa-id-card-alt text-3xl mb-2 text-slate-600 group-hover:text-cyan"></i>
                                 <div class="text-[8px] font-black text-slate-500 uppercase tracking-widest">ظهر الوثيقة</div>
                             </div>
@@ -190,8 +195,8 @@
 
                     <div class="upload-card stack gap-4">
                         <div class="fixed-frame aspect-[4/3] w-full bg-slate-800/40 border border-dashed border-white/10 rounded-2xl flex items-center justify-center relative overflow-hidden group hover:border-cyan/50 transition-all">
-                            <img id="preview-selfie" src="" class="hidden w-full h-full object-contain">
-                            <div class="text-center placeholder-icon">
+                            <img id="preview-selfie" src="{{ temp_previews.selfie|default:'' }}" class="{% if not temp_previews.selfie %}hidden{% endif %} w-full h-full object-contain">
+                            <div class="text-center placeholder-icon {% if temp_previews.selfie %}hidden{% endif %}">
                                 <i class="fas fa-user-circle text-3xl mb-2 text-slate-600 group-hover:text-cyan"></i>
                                 <div class="text-[8px] font-black text-slate-500 uppercase tracking-widest">صورة سيلفي</div>
                             </div>
@@ -225,8 +230,24 @@
             dir: 'rtl'
         });
         
-        // Image Previews
-        function handlePreview(input, previewId) {
+        // Real-time Duplicate ID Check
+        $('input[name="id_number"]').on('blur', function() {
+            const idVal = $(this).val();
+            if (idVal.length > 5) {
+                $.get("{% url 'api_kyc_check_id' %}", {id_number: idVal}, function(data) {
+                    if (data.exists) {
+                        $('#duplicate-id-alert').removeClass('hidden');
+                        $('button[type="submit"]').prop('disabled', true).addClass('opacity-50 cursor-not-allowed');
+                    } else {
+                        $('#duplicate-id-alert').addClass('hidden');
+                        $('button[type="submit"]').prop('disabled', false).removeClass('opacity-50 cursor-not-allowed');
+                    }
+                });
+            }
+        });
+
+        // Image Previews & Temporary Uploads
+        function handlePreview(input, previewId, imageType) {
             if (!input) return;
             input.onchange = evt => {
                 const [file] = input.files;
@@ -238,27 +259,61 @@
                     if (uploadCard) {
                         const placeholder = uploadCard.querySelector('.placeholder-icon');
                         if (placeholder) placeholder.classList.add('hidden');
+                        
+                        // Show loading or overlay
+                        uploadCard.classList.add('opacity-50');
                     }
+
+                    // AJAX Temp Upload
+                    const formData = new FormData();
+                    formData.append('file', file);
+                    formData.append('image_type', imageType);
+                    
+                    $.ajax({
+                        url: "{% url 'api_kyc_temp_upload' %}",
+                        type: 'POST',
+                        data: formData,
+                        processData: false,
+                        contentType: false,
+                        headers: {'X-CSRFToken': '{{ csrf_token }}'},
+                        success: function(response) {
+                            console.log('Temp upload success:', imageType);
+                            uploadCard.classList.remove('opacity-50');
+                        },
+                        error: function() {
+                            alert('فشل رفع الصورة مؤقتاً. يرجى إعادة المحاولة.');
+                            uploadCard.classList.remove('opacity-50');
+                        }
+                    });
                 }
             }
         }
         
-        handlePreview(document.querySelector('input[name="identity_front"]'), 'preview-front');
-        handlePreview(document.querySelector('input[name="identity_back"]'), 'preview-back');
-        handlePreview(document.querySelector('input[name="selfie_verification"]'), 'preview-selfie');
-    });
+        handlePreview(document.querySelector('input[name="identity_front"]'), 'preview-front', 'front');
+        handlePreview(document.querySelector('input[name="identity_back"]'), 'preview-back', 'back');
+        handlePreview(document.querySelector('input[name="selfie_verification"]'), 'preview-selfie', 'selfie');
 
-    function validateKYCForm() {
-        const front = document.querySelector('input[name="identity_front"]').files.length;
-        const back = document.querySelector('input[name="identity_back"]').files.length;
-        const selfie = document.querySelector('input[name="selfie_verification"]').files.length;
-        
-        // If this is a new submission or images are required, check them
-        if (front === 0 || back === 0 || selfie === 0) {
-            alert("يجب رفع جميع صور التحقق المطلوبة قبل إرسال الطلب.");
-            return false;
-        }
-        return true;
-    }
+        // Form Submission Validation
+        $('#kyc-form').on('submit', function(e) {
+            const front = $('input[name="identity_front"]').get(0).files.length;
+            const back = $('input[name="identity_back"]').get(0).files.length;
+            const selfie = $('input[name="selfie_verification"]').get(0).files.length;
+            
+            // Check if we have files in input OR if they were uploaded to temp already
+            // For simplicity in this UX, we'll alert if inputs are empty, 
+            // but the backend will handle the actual merge.
+            // If the user sees the preview image, they assume it's there.
+            
+            const hasFront = front > 0 || !$('#preview-front').hasClass('hidden');
+            const hasBack = back > 0 || !$('#preview-back').hasClass('hidden');
+            const hasSelfie = selfie > 0 || !$('#preview-selfie').hasClass('hidden');
+
+            if (!hasFront || !hasBack || !hasSelfie) {
+                e.preventDefault();
+                alert("يجب رفع جميع صور التحقق المطلوبة قبل إرسال الطلب.");
+                return false;
+            }
+        });
+    });
 </script>
 {% endblock %}
