@@ -72,14 +72,16 @@
     @keyframes slideIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 
     .msg-group.sent { 
-        align-self: flex-start; 
-        align-items: flex-start;
-        margin-left: auto;
-    }
-    .msg-group.received { 
         align-self: flex-end; 
         align-items: flex-end;
         margin-right: auto;
+        margin-left: 0;
+    }
+    .msg-group.received { 
+        align-self: flex-start; 
+        align-items: flex-start;
+        margin-left: auto;
+        margin-right: 0;
     }
 
     .bubble {
@@ -304,7 +306,7 @@
                 
                 {% if msg.text %}
                 <div class="bubble">
-                    {{ msg.text }}
+                    {{ msg.text|urlize|linebreaksbr }}
                 </div>
                 {% endif %}
                 
@@ -373,12 +375,20 @@
 {{ user.email|default:"guest@raqamiyat.com"|json_script:"user-email" }}
 
 <script>
+    function formatMessageText(text) {
+        if (!text) return '';
+        let escaped = text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+        const urlRegex = /(https?:\/\/[^\s]+)/g;
+        escaped = escaped.replace(urlRegex, function(url) {
+            return '<a href="' + url + '" target="_blank" class="text-cyan underline" style="word-break: break-all;">' + url + '</a>';
+        });
+        return escaped.replace(/\n/g, '<br>');
+    }
+
     function insertCannedReply(text) {
         const input = document.getElementById('chat-input');
         input.value = text;
-        input.focus();
-        input.style.height = 'auto';
-        input.style.height = input.scrollHeight + 'px';
+        sendMessage();
     }
 
     const roomId = JSON.parse(document.getElementById('room-id').textContent);
@@ -444,7 +454,7 @@
                 const msgHtml = `
                     <div class="msg-group ${side}">
                         ${attachmentHtml}
-                        ${data.message ? `<div class="bubble">${data.message}</div>` : ''}
+                        ${data.message ? `<div class="bubble">${formatMessageText(data.message)}</div>` : ''}
                         <div class="msg-meta">
                             <span class="font-bold">${data.sender_name}</span>
                             <span>${data.timestamp}</span>
