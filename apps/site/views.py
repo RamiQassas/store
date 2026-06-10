@@ -27,7 +27,7 @@ from apps.notifications.models import Notification, NotificationSetting
 from apps.notifications.services import notify_user, notify_bulk
 from apps.orders.models import Order, OrderItem, OrderLog, Coupon
 from apps.payments.models import DepositRequest, PaymentMethod, WithdrawalRequest
-from apps.site.forms import LoginForm, RegisterForm, TicketForm, PaymentMethodForm, CurrencyForm, ModerateUserForm, ProductForm, VariantForm, KYCRequestForm, KYCSettingsForm, ChangePasswordForm
+from apps.site.forms import LoginForm, RegisterForm, TicketForm, PaymentMethodForm, CurrencyForm, ModerateUserForm, ProductForm, VariantForm, KYCRequestForm, KYCSettingsForm, ChangePasswordForm, CouponForm
 from apps.support.models import ChatRoom, ChatMessage, ChatCannedReply
 from apps.wallets.models import LedgerEntry, Wallet, WalletTransaction
 from apps.wallets.services import get_or_create_wallet, track_pending_deposit, freeze_funds, credit_wallet, release_funds, finalize_withdrawal
@@ -309,6 +309,7 @@ def product_detail(request, pk):
 
         vid = request.POST.get("variant_id")
         qty = max(int(request.POST.get("quantity", 1)), 1)
+        coupon_code = request.POST.get("coupon_code", "").strip()
 
         # Capture custom metadata from the form
         metadata = {}
@@ -320,7 +321,15 @@ def product_detail(request, pk):
         if vid:
             try:
                 from apps.orders.services import create_order
-                create_order(request.user, vid, quantity=qty, metadata=metadata)
+                coupon = None
+                if coupon_code:
+                    from apps.orders.models import Coupon
+                    coupon = Coupon.objects.filter(code__iexact=coupon_code, is_active=True).first()
+                    if not coupon:
+                         messages.error(request, "الكوبون المدخل غير صالح أو منتهي.")
+                         return render(request, "site/product_detail.html", {"product": product, "variants": variants})
+
+                create_order(request.user, vid, quantity=qty, metadata=metadata, coupon=coupon)
                 messages.success(request, "تم إنشاء الطلب بنجاح.")
                 return redirect("dashboard")
             except Exception as e:

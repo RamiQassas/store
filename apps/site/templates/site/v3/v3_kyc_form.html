@@ -96,10 +96,12 @@
                     <div class="field-group">
                         <label class="text-xs font-black text-slate-400 mb-3 block uppercase tracking-widest">الجنسية</label>
                         {{ form.nationality }}
+                        {% if form.nationality.errors %}<p class="text-rose-500 text-[10px] mt-2 font-bold">{{ form.nationality.errors.0 }}</p>{% endif %}
                     </div>
                     <div class="field-group">
                         <label class="text-xs font-black text-slate-400 mb-3 block uppercase tracking-widest">بلد إصدار الوثيقة</label>
                         {{ form.issuing_country }}
+                        {% if form.issuing_country.errors %}<p class="text-rose-500 text-[10px] mt-2 font-bold">{{ form.issuing_country.errors.0 }}</p>{% endif %}
                     </div>
                 </div>
 
@@ -110,42 +112,52 @@
                     <div class="field-group">
                         <label class="text-xs font-black text-slate-400 mb-3 block uppercase tracking-widest">نوع الوثيقة</label>
                         {{ form.document_type }}
+                        {% if form.document_type.errors %}<p class="text-rose-500 text-[10px] mt-2 font-bold">{{ form.document_type.errors.0 }}</p>{% endif %}
                     </div>
                     <div class="field-group">
                         <label class="text-xs font-black text-slate-400 mb-3 block uppercase tracking-widest">رقم الوطني / الوثيقة</label>
                         {{ form.id_number }}
+                        {% if form.id_number.errors %}<p class="text-rose-500 text-[10px] mt-2 font-bold">{{ form.id_number.errors.0 }}</p>{% endif %}
                     </div>
                     <div class="field-group">
                         <label class="text-xs font-black text-slate-400 mb-3 block uppercase tracking-widest">الاسم الأول</label>
                         {{ form.first_name }}
+                        {% if form.first_name.errors %}<p class="text-rose-500 text-[10px] mt-2 font-bold">{{ form.first_name.errors.0 }}</p>{% endif %}
                     </div>
                     <div class="field-group">
                         <label class="text-xs font-black text-slate-400 mb-3 block uppercase tracking-widest">اسم الأب</label>
                         {{ form.father_name }}
+                        {% if form.father_name.errors %}<p class="text-rose-500 text-[10px] mt-2 font-bold">{{ form.father_name.errors.0 }}</p>{% endif %}
                     </div>
                     <div class="field-group">
                         <label class="text-xs font-black text-slate-400 mb-3 block uppercase tracking-widest">النسبة / الكنية</label>
                         {{ form.last_name }}
+                        {% if form.last_name.errors %}<p class="text-rose-500 text-[10px] mt-2 font-bold">{{ form.last_name.errors.0 }}</p>{% endif %}
                     </div>
                     <div class="field-group">
                         <label class="text-xs font-black text-slate-400 mb-3 block uppercase tracking-widest">اسم الأم ونسبتها</label>
                         {{ form.mother_name }}
+                        {% if form.mother_name.errors %}<p class="text-rose-500 text-[10px] mt-2 font-bold">{{ form.mother_name.errors.0 }}</p>{% endif %}
                     </div>
                     <div class="field-group">
                         <label class="text-xs font-black text-slate-400 mb-3 block uppercase tracking-widest">الجنس</label>
                         {{ form.gender }}
+                        {% if form.gender.errors %}<p class="text-rose-500 text-[10px] mt-2 font-bold">{{ form.gender.errors.0 }}</p>{% endif %}
                     </div>
                     <div class="field-group">
                         <label class="text-xs font-black text-slate-400 mb-3 block uppercase tracking-widest">تاريخ الميلاد</label>
                         {{ form.date_of_birth }}
+                        {% if form.date_of_birth.errors %}<p class="text-rose-500 text-[10px] mt-2 font-bold">{{ form.date_of_birth.errors.0 }}</p>{% endif %}
                     </div>
                     <div class="field-group md:col-span-2">
                         <label class="text-xs font-black text-slate-400 mb-3 block uppercase tracking-widest">مكان الميلاد</label>
                         {{ form.place_of_birth }}
+                        {% if form.place_of_birth.errors %}<p class="text-rose-500 text-[10px] mt-2 font-bold">{{ form.place_of_birth.errors.0 }}</p>{% endif %}
                     </div>
                     <div class="field-group md:col-span-2">
                         <label class="text-xs font-black text-slate-400 mb-3 block uppercase tracking-widest">عنوان الإقامة الحالي</label>
                         {{ form.current_residence }}
+                        {% if form.current_residence.errors %}<p class="text-rose-500 text-[10px] mt-2 font-bold">{{ form.current_residence.errors.0 }}</p>{% endif %}
                     </div>
                 </div>
 
@@ -162,8 +174,8 @@
                     <!-- Image Cards with Fixed Preview -->
                     <div class="upload-card stack gap-4">
                         <div class="fixed-frame aspect-[4/3] w-full bg-slate-800/40 border border-dashed border-white/10 rounded-2xl flex items-center justify-center relative overflow-hidden group hover:border-cyan/50 transition-all">
-                            <img id="preview-front" src="" class="hidden w-full h-full object-contain">
-                            <div class="text-center placeholder-icon">
+                            <img id="preview-front" src="{% if form.instance.identity_front %}{{ form.instance.identity_front.url }}{% endif %}" class="{% if not form.instance.identity_front %}hidden{% endif %} w-full h-full object-contain">
+                            <div class="text-center placeholder-icon {% if form.instance.identity_front %}hidden{% endif %}">
                                 <i class="fas fa-id-card text-3xl mb-2 text-slate-600 group-hover:text-cyan"></i>
                                 <div class="text-[8px] font-black text-slate-500 uppercase tracking-widest">وجه الوثيقة</div>
                             </div>
@@ -171,13 +183,14 @@
                         <div class="px-2">
                             <label class="text-[10px] font-bold text-slate-400 mb-2 block">تحميل الوجه الأمامي</label>
                             {{ form.identity_front }}
+                            {% if form.identity_front.errors %}<p class="text-rose-500 text-[10px] mt-2 font-bold">{{ form.identity_front.errors.0 }}</p>{% endif %}
                         </div>
                     </div>
 
                     <div class="upload-card stack gap-4">
                         <div class="fixed-frame aspect-[4/3] w-full bg-slate-800/40 border border-dashed border-white/10 rounded-2xl flex items-center justify-center relative overflow-hidden group hover:border-cyan/50 transition-all">
-                            <img id="preview-back" src="" class="hidden w-full h-full object-contain">
-                            <div class="text-center placeholder-icon">
+                            <img id="preview-back" src="{% if form.instance.identity_back %}{{ form.instance.identity_back.url }}{% endif %}" class="{% if not form.instance.identity_back %}hidden{% endif %} w-full h-full object-contain">
+                            <div class="text-center placeholder-icon {% if form.instance.identity_back %}hidden{% endif %}">
                                 <i class="fas fa-id-card-alt text-3xl mb-2 text-slate-600 group-hover:text-cyan"></i>
                                 <div class="text-[8px] font-black text-slate-500 uppercase tracking-widest">ظهر الوثيقة</div>
                             </div>
@@ -185,13 +198,14 @@
                         <div class="px-2">
                             <label class="text-[10px] font-bold text-slate-400 mb-2 block">تحميل الوجه الخلفي</label>
                             {{ form.identity_back }}
+                            {% if form.identity_back.errors %}<p class="text-rose-500 text-[10px] mt-2 font-bold">{{ form.identity_back.errors.0 }}</p>{% endif %}
                         </div>
                     </div>
 
                     <div class="upload-card stack gap-4">
                         <div class="fixed-frame aspect-[4/3] w-full bg-slate-800/40 border border-dashed border-white/10 rounded-2xl flex items-center justify-center relative overflow-hidden group hover:border-cyan/50 transition-all">
-                            <img id="preview-selfie" src="" class="hidden w-full h-full object-contain">
-                            <div class="text-center placeholder-icon">
+                            <img id="preview-selfie" src="{% if form.instance.selfie_verification %}{{ form.instance.selfie_verification.url }}{% endif %}" class="{% if not form.instance.selfie_verification %}hidden{% endif %} w-full h-full object-contain">
+                            <div class="text-center placeholder-icon {% if form.instance.selfie_verification %}hidden{% endif %}">
                                 <i class="fas fa-user-circle text-3xl mb-2 text-slate-600 group-hover:text-cyan"></i>
                                 <div class="text-[8px] font-black text-slate-500 uppercase tracking-widest">صورة سيلفي</div>
                             </div>
@@ -200,6 +214,7 @@
                             <label class="text-[10px] font-bold text-slate-400 mb-2 block">تحميل صورة السيلفي</label>
                             <p class="text-[8px] text-slate-500 mb-2">سيلفي وأنت تحمل هويتك بجانب وجهك.</p>
                             {{ form.selfie_verification }}
+                            {% if form.selfie_verification.errors %}<p class="text-rose-500 text-[10px] mt-2 font-bold">{{ form.selfie_verification.errors.0 }}</p>{% endif %}
                         </div>
                     </div>
                 </div>
@@ -249,12 +264,15 @@
     });
 
     function validateKYCForm() {
-        const front = document.querySelector('input[name="identity_front"]').files.length;
-        const back = document.querySelector('input[name="identity_back"]').files.length;
-        const selfie = document.querySelector('input[name="selfie_verification"]').files.length;
+        const front = document.querySelector('input[name="identity_front"]');
+        const back = document.querySelector('input[name="identity_back"]');
+        const selfie = document.querySelector('input[name="selfie_verification"]');
         
-        // If this is a new submission or images are required, check them
-        if (front === 0 || back === 0 || selfie === 0) {
+        const hasFront = front.files.length > 0 || "{{ form.instance.identity_front }}" !== "";
+        const hasBack = back.files.length > 0 || "{{ form.instance.identity_back }}" !== "";
+        const hasSelfie = selfie.files.length > 0 || "{{ form.instance.selfie_verification }}" !== "";
+        
+        if (!hasFront || !hasBack || !hasSelfie) {
             alert("يجب رفع جميع صور التحقق المطلوبة قبل إرسال الطلب.");
             return false;
         }
