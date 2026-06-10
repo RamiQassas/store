@@ -140,4 +140,4 @@ def notify_staff(title, body, action_url=None, roles=None, priority=Notification
         staff_query = staff_query.filter(models.Q(role__in=staff_roles) | models.Q(is_staff=True) | models.Q(is_superuser=True))
     
     staff_users = staff_query.distinct()
-    return notify_bulk(staff_users, title, body, action_url=action_url, category='system', priority=priority, metadata=metadata)
+    return notify_bulk(staff_users, title, body, action_url=action_url, category='support', priority=priority, metadata=metadata)
