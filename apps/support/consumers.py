@@ -48,6 +48,7 @@ class SupportConsumer(AsyncWebsocketConsumer):
             is_staff_reply = saved_msg.get("is_staff_reply", False)
             
             # Determine sender details
+            is_staff = saved_msg.get("is_staff_reply", False)
             if self.user.is_authenticated:
                 sender_email = self.user.email
                 sender_name = f"{self.user.first_name} {self.user.last_name}"
@@ -60,7 +61,7 @@ class SupportConsumer(AsyncWebsocketConsumer):
                 "message": message,
                 "sender_email": sender_email,
                 "sender_name": sender_name,
-                "is_staff_reply": is_staff_reply,
+                "is_staff_reply": is_staff, # Explicitly use is_staff
                 "timestamp": saved_msg["timestamp"],
             }
             
