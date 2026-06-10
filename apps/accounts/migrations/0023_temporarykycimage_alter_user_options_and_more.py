@@ -81,11 +81,6 @@ class Migration(migrations.Migration):
         ),
         migrations.AlterField(
             model_name='user',
-            name='id',
-            field=models.UUIDField(default=uuid.uuid4, editable=False, primary_key=True, serialize=False),
-        ),
-        migrations.AlterField(
-            model_name='user',
             name='phone',
             field=models.CharField(blank=True, max_length=32, null=True, unique=True, verbose_name='رقم الهاتف'),
         ),
