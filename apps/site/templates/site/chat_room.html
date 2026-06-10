@@ -261,7 +261,8 @@
         <!-- Messages scrollable area -->
         <div class="chat-messages" id="chat-messages">
             {% for msg in chat_messages %}
-            <div class="msg-group {% if msg.sender == user %}received{% else %}sent{% endif %}">
+            {% with sender_email=msg.sender.email %}
+            <div class="msg-group {% if user.is_authenticated and sender_email == user.email %}received{% elif not user.is_authenticated and sender_email != "guest@raqamiyat.com" %}sent{% else %}received{% endif %}">
                 {% if msg.file %}
                 <div class="attachment-card" onclick="zoomImage('{{ msg.file.url }}')">
                     {% if msg.is_image %}
@@ -282,10 +283,13 @@
                 {% endif %}
                 
                 <div class="msg-meta">
-                    <span class="font-bold">{{ msg.sender.get_full_name|default:msg.sender.email }}</span>
+                    <span class="font-bold">
+                        {% if msg.is_staff_reply %}الدعم الفني{% elif "زائر:" in room.subject %}{{ room.subject|slice:"15:" }}{% else %}{{ msg.sender.get_full_name|default:msg.sender.email }}{% endif %}
+                    </span>
                     <span>{{ msg.created_at|date:"H:i" }}</span>
                 </div>
             </div>
+            {% endwith %}
             {% empty %}
             <div class="my-auto text-center p-12">
                 <div class="w-20 h-20 bg-slate-800/50 rounded-full flex items-center justify-center mx-auto mb-6 text-cyan opacity-20">

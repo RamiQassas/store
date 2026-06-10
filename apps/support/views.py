@@ -80,6 +80,8 @@ def chat_room(request, room_id):
 def create_chat(request):
     """Initializes a new support chat room."""
     subject = request.GET.get('subject', 'طلب دعم فني')
+    guest_name = request.POST.get('guest_name', '').strip()
+    guest_phone = request.POST.get('guest_phone', '').strip()
     
     if request.user.is_authenticated:
         # Check if there's already an active (not closed) chat for this user
@@ -95,18 +97,26 @@ def create_chat(request):
             active_chat = ChatRoom.objects.filter(id=session_room_id).exclude(status=ChatRoom.Status.CLOSED).first()
             if active_chat:
                 return redirect('chat_room', room_id=active_chat.id)
-            
+        
+        # If no POST data for name, we might need to show a small form or handle it
+        if request.method != "POST" and not guest_name:
+            return render(request, 'site/guest_support_init.html', {'subject': subject})
+
         from apps.accounts.models import User
         system_guest = User.objects.filter(email="guest@raqamiyat.com").first()
         if not system_guest:
              system_guest = User.objects.filter(is_staff=True).first()
         
+        metadata = {"is_guest": True, "guest_name": guest_name, "guest_phone": guest_phone}
+        # Since ChatRoom doesn't have metadata field in model (per FieldError earlier), 
+        # let's use the subject to store guest info or staff_notes
         room = ChatRoom.objects.create(
             user=system_guest, 
-            subject=f"{subject} (زائر)"
+            subject=f"{subject} - زائر: {guest_name}",
+            staff_notes=f"بيانات الزائر:\nالاسم: {guest_name}\nالهاتف: {guest_phone or 'غير متوفر'}"
         )
         request.session['support_chat_room_id'] = str(room.id)
-        user_label = f"زائر ({str(room.id)[:8]})"
+        user_label = f"الزائر {guest_name} ({str(room.id)[:8]})"
     
     from apps.notifications.services import notify_staff
     notify_staff(
