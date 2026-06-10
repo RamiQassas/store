@@ -45,6 +45,22 @@ class ChatRoom(TimeStampedModel):
     def __str__(self):
         return f"Chat with {self.user.email} ({self.get_status_display()})"
 
+    @property
+    def is_guest_room(self):
+        return " - زائر: " in self.subject or self.user.email == "guest@raqamiyat.com"
+
+    @property
+    def guest_name(self):
+        if " - زائر: " in self.subject:
+            return self.subject.split(" - زائر: ")[-1]
+        return None
+
+    @property
+    def display_name(self):
+        if self.is_guest_room and self.guest_name:
+            return self.guest_name
+        return self.user.get_full_name() or self.user.email
+
 
 class ChatMessage(TimeStampedModel):
     room = models.ForeignKey(ChatRoom, related_name="messages", on_delete=models.CASCADE, verbose_name="الغرفة")

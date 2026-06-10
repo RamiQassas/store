@@ -41,12 +41,12 @@ def send_web_push(subscription, payload):
         logger.error(f"Unexpected Push Error: {str(e)}")
         return False
 
-def notify_user(user, title, body, action_url=None, image_url=None, category='system', priority=Notification.Priority.NORMAL, metadata=None):
+def notify_user(user, title, body, action_url=None, image_url=None, category='system', priority=Notification.Priority.NORMAL, metadata=None, exclude_user=None):
     """
     Centralized service to notify users via multiple channels.
     category: 'orders', 'financial', 'support', 'promotions', 'system'
     """
-    if not user.is_active:
+    if not user.is_active or (exclude_user and user.id == exclude_user.id):
         return False
 
     # 1. Deduplication (Short window: 1 minute)
@@ -115,7 +115,7 @@ def notify_bulk(users, title, body, **kwargs):
     for user in users:
         notify_user(user, title, body, **kwargs)
 
-def notify_staff(title, body, action_url=None, roles=None, priority=Notification.Priority.NORMAL, metadata=None):
+def notify_staff(title, body, action_url=None, roles=None, priority=Notification.Priority.NORMAL, metadata=None, exclude_user=None):
     """
     Sends notification to staff members.
     If roles is provided, only notify users with those roles.
@@ -140,4 +140,4 @@ def notify_staff(title, body, action_url=None, roles=None, priority=Notification
         staff_query = staff_query.filter(models.Q(role__in=staff_roles) | models.Q(is_staff=True) | models.Q(is_superuser=True))
     
     staff_users = staff_query.distinct()
-    return notify_bulk(staff_users, title, body, action_url=action_url, category='support', priority=priority, metadata=metadata)
+    return notify_bulk(staff_users, title, body, action_url=action_url, category='support', priority=priority, metadata=metadata, exclude_user=exclude_user)

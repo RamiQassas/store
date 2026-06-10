@@ -70,15 +70,10 @@ def chat_room(request, room_id):
     
     canned_replies = ChatCannedReply.objects.filter(is_active=True) if is_manager else None
     
-    guest_name = None
-    if " - زائر: " in room.subject:
-        guest_name = room.subject.split(" - زائر: ")[-1]
-    
     return render(request, 'site/chat_room.html', {
         'room': room,
         'chat_messages': messages_history,
         'canned_replies': canned_replies,
-        'guest_name': guest_name
     })
 
 
@@ -110,7 +105,10 @@ def create_chat(request):
         from apps.accounts.models import User
         system_guest = User.objects.filter(email="guest@raqamiyat.com").first()
         if not system_guest:
-             system_guest = User.objects.filter(is_staff=True).first()
+             # Fallback to a non-staff user if possible to avoid notification loops
+             system_guest = User.objects.filter(is_staff=False, is_superuser=False).first()
+             if not system_guest:
+                 system_guest = User.objects.filter(is_staff=True).first()
         
         # Since ChatRoom doesn't have metadata field in model (per FieldError earlier), 
         # let's use the subject to store guest info or staff_notes
@@ -120,7 +118,7 @@ def create_chat(request):
             staff_notes=f"بيانات الزائر:\nالاسم: {guest_name}\nالهاتف: {guest_phone or 'غير متوفر'}"
         )
         request.session['support_chat_room_id'] = str(room.id)
-        user_label = f"الزائر {guest_name} ({str(room.id)[:8]})"
+        user_label = f"الزائر {guest_name}"
 
     # Auto-add welcome message (Admin Configurable)
     from apps.accounts.models import User

@@ -45,23 +45,13 @@ class SupportConsumer(AsyncWebsocketConsumer):
             file_id = data.get("file_id")
             
             saved_msg = await self.save_message(message, file_id)
-            is_staff_reply = saved_msg.get("is_staff_reply", False)
             
-            # Determine sender details
-            is_staff = saved_msg.get("is_staff_reply", False)
-            if self.user.is_authenticated:
-                sender_email = self.user.email
-                sender_name = f"{self.user.first_name} {self.user.last_name}"
-            else:
-                sender_email = f"guest_{self.room_id}@raqamiyat.com"
-                sender_name = f"Visitor #{self.room_id[:8]}"
-
             broadcast_data = {
                 "type": "chat.message",
                 "message": message,
-                "sender_email": sender_email,
-                "sender_name": sender_name,
-                "is_staff_reply": is_staff, # Explicitly use is_staff
+                "sender_email": saved_msg["sender_email"],
+                "sender_name": saved_msg["sender_name"],
+                "is_staff_reply": saved_msg["is_staff_reply"],
                 "timestamp": saved_msg["timestamp"],
             }
             
@@ -75,12 +65,15 @@ class SupportConsumer(AsyncWebsocketConsumer):
             await self.channel_layer.group_send(self.room_group_name, broadcast_data)
         
         elif action == "typing":
+            # Better sender name detection for typing
+            room_data = await self.get_room_data()
             if self.user.is_authenticated:
-                sender_name = f"{self.user.first_name} {self.user.last_name}"
+                sender_name = f"{self.user.first_name} {self.user.last_name}".strip() or self.user.email
                 sender_email = self.user.email
             else:
-                sender_name = f"Visitor #{self.room_id[:8]}"
+                sender_name = room_data.get('guest_name') or f"Visitor #{self.room_id[:8]}"
                 sender_email = f"guest_{self.room_id}@raqamiyat.com"
+
             await self.channel_layer.group_send(
                 self.room_group_name,
                 {
@@ -96,6 +89,19 @@ class SupportConsumer(AsyncWebsocketConsumer):
 
     async def chat_typing(self, event):
         await self.send(text_data=json.dumps(event))
+
+    @database_sync_to_async
+    def get_room_data(self):
+        try:
+            room = ChatRoom.objects.get(id=self.room_id)
+            return {
+                'guest_name': room.guest_name,
+                'user_email': room.user.email,
+                'is_guest_room': room.is_guest_room,
+                'display_name': room.display_name
+            }
+        except:
+            return {}
 
     @database_sync_to_async
     def can_access_room(self):
@@ -124,27 +130,27 @@ class SupportConsumer(AsyncWebsocketConsumer):
     def save_message(self, text, file_id=None):
         room = ChatRoom.objects.get(id=self.room_id)
         
-        is_staff = False
+        is_staff_user = False
         if self.user.is_authenticated:
-            is_staff = self.user.is_staff or self.user.groups.filter(name__in=["Support Agent", "Super Admin", "Moderator"]).exists()
+            # Check if user has staff/admin role
+            is_staff_user = self.user.is_staff or self.user.groups.filter(name__in=["Support Agent", "Super Admin", "Moderator"]).exists()
         
-        # Determine sender user instance (guest uses system guest user)
+        # Determine sender user instance (guest uses room's assigned user)
         sender = self.user if self.user.is_authenticated else room.user
 
-        # If we have a file_id (from an AJAX upload), we update that message rather than creating a new one
         if file_id:
             try:
                 msg = ChatMessage.objects.get(id=file_id, room=room)
                 if text: msg.text = text
                 msg.save()
             except ChatMessage.DoesNotExist:
-                msg = ChatMessage.objects.create(room=room, sender=sender, text=text, is_staff_reply=is_staff)
+                msg = ChatMessage.objects.create(room=room, sender=sender, text=text, is_staff_reply=is_staff_user)
         else:
-            msg = ChatMessage.objects.create(room=room, sender=sender, text=text, is_staff_reply=is_staff)
+            msg = ChatMessage.objects.create(room=room, sender=sender, text=text, is_staff_reply=is_staff_user)
         
         room.last_message_at = timezone.now()
         
-        if is_staff:
+        if is_staff_user:
             room.unread_user_count += 1
             if room.status == ChatRoom.Status.WAITING:
                 room.status = ChatRoom.Status.IN_PROGRESS
@@ -156,43 +162,54 @@ class SupportConsumer(AsyncWebsocketConsumer):
                 room.status = ChatRoom.Status.WAITING
 
         room.save()
-        
-        # Real-time Web Push Trigger
-        if is_staff:
-            # Notify the user (guest or authenticated) if it's a staff reply
-            try:
-                from apps.notifications.services import notify_user
-                notify_user(
-                    user=room.user, # The actual participant (guest or registered)
-                    title="رد جديد من الدعم الفني",
-                    body=text[:100] if text else "قام الموظف بإرسال ملف/صورة",
-                    action_url=f"/support/chats/{room.id}/",
-                    category="support",
-                    priority="high",
-                    metadata={"type": "chat_reply", "room_id": str(room.id)}
-                )
-            except: pass
+
+        # Determine names for broadcast and notifications
+        if self.user.is_authenticated:
+            actual_sender_name = f"{self.user.first_name} {self.user.last_name}".strip() or self.user.email
+            actual_sender_email = self.user.email
         else:
-            # Notify staff when user sends message
+            actual_sender_name = room.display_name
+            actual_sender_email = f"guest_{self.room_id}@raqamiyat.com"
+        
+        # Real-time Notification Trigger
+        from apps.notifications.services import notify_user, notify_staff
+        
+        if is_staff_user:
+            # Manager is replying -> Notify the client
+            # But only if the client is NOT also a staff member (prevents admin-to-admin chat double notifications)
+            is_client_staff = room.user.is_staff or room.user.groups.filter(name__in=["Support Agent", "Super Admin", "Moderator"]).exists()
+            
+            if not is_client_staff and not room.is_guest_room:
+                try:
+                    notify_user(
+                        user=room.user,
+                        title="رد جديد من الدعم الفني",
+                        body=text[:100] if text else "قام الموظف بإرسال ملف/صورة",
+                        action_url=f"/support/chats/{room.id}/",
+                        category="support",
+                        priority="high",
+                        metadata={"type": "chat_reply", "room_id": str(room.id)},
+                        exclude_user=self.user # Don't notify the sender
+                    )
+                except: pass
+        else:
+            # Client/Guest is sending -> Notify ALL staff except the sender (if they are somehow staff)
             try:
-                from apps.notifications.services import notify_staff
-                if self.user.is_authenticated:
-                    guest_name = self.user.get_full_name() or self.user.email
-                else:
-                    guest_name = f"Visitor #{self.room_id[:8]}"
-                
                 notify_staff(
-                    title=f"رسالة جديدة من {guest_name}",
+                    title=f"رسالة جديدة من {actual_sender_name}",
                     body=text[:100] if text else "قام العميل بإرسال ملف/صورة",
                     action_url=f"/support/chats/{room.id}/",
                     priority="high",
-                    metadata={"type": "chat_user_msg", "room_id": str(room.id)}
+                    metadata={"type": "chat_user_msg", "room_id": str(room.id)},
+                    exclude_user=self.user if self.user.is_authenticated else None
                 )
             except: pass
         
         res = {
             "timestamp": msg.created_at.strftime("%H:%M"),
-            "is_staff_reply": is_staff
+            "is_staff_reply": is_staff_user,
+            "sender_name": actual_sender_name,
+            "sender_email": actual_sender_email
         }
         if msg.file:
             res.update({

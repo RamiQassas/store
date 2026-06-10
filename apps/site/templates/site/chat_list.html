@@ -76,7 +76,7 @@
             <div>
                 <div class="flex items-center gap-2">
                     <h3 class="font-bold text-base m-0">
-                        {% if user.is_staff %}{{ room.user.email }}{% else %}{{ room.subject|default:"طلب دعم فني" }}{% endif %}
+                        {% if user.is_staff %}{{ room.display_name }}{% else %}{{ room.subject|default:"طلب دعم فني" }}{% endif %}
                     </h3>
                     {% if user.is_staff %}
                         {% if room.unread_staff_count > 0 %}
