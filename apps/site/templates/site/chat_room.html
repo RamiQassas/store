@@ -273,13 +273,7 @@
         <!-- Messages scrollable area -->
         <div class="chat-messages" id="chat-messages">
             {% for msg in chat_messages %}
-            {% if user.is_staff %}
-                {% if msg.is_staff_reply %}{% define "sent" as side %}{% else %}{% define "received" as side %}{% endif %}
-            {% else %}
-                {% if msg.is_staff_reply %}{% define "received" as side %}{% else %}{% define "sent" as side %}{% endif %}
-            {% endif %}
-            
-            <div class="msg-group {{ side }}">
+            <div class="msg-group {% if user.is_staff == msg.is_staff_reply %}sent{% else %}received{% endif %}">
                 {% if msg.file %}
                 <div class="attachment-card" onclick="zoomImage('{{ msg.file.url }}')">
                     {% if msg.is_image %}
