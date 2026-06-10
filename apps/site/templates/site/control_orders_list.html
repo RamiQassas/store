@@ -1,19 +1,19 @@
 {% extends "site/control_base.html" %}
-{% load static site_tags %}
+{% load static site_tags i18n %}
 
-{% block title %}إدارة الطلبات | Raqamiyat Admin{% endblock %}
+{% block title %}{% trans "إدارة الطلبات" %} | Raqamiyat Admin{% endblock %}
 
 {% block control_content %}
 <nav class="breadcrumb">
-    <a href="{% url 'control_dashboard' %}" class="breadcrumb-item">الرئيسية</a>
-    <span class="breadcrumb-item active">إدارة الطلبات</span>
+    <a href="{% url 'control_dashboard' %}" class="breadcrumb-item">{% trans "الرئيسية" %}</a>
+    <span class="breadcrumb-item active">{% trans "إدارة الطلبات" %}</span>
 </nav>
 
 <div class="page-head flex justify-between items-center">
     <div>
         <span class="eyebrow">Content Management</span>
-        <h1>إدارة الطلبات</h1>
-        <p class="text-muted">متابعة ومعالجة طلبات الخدمات والمنتجات الرقمية.</p>
+        <h1>{% trans "إدارة الطلبات" %}</h1>
+        <p class="text-muted">{% trans "متابعة ومعالجة طلبات الخدمات والمنتجات الرقمية." %}</p>
     </div>
 </div>
 
@@ -22,11 +22,11 @@
         <form method="get" class="flex-grow w-full max-w-md">
             <div class="relative group">
                 <i class="fas fa-search absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-cyan transition-colors"></i>
-                <input type="text" name="q" value="{{ query|default:'' }}" placeholder="بحث برقم الطلب أو بريد العميل..." class="w-full pr-11 bg-slate-900/50 border-white/10 rounded-xl focus:border-cyan/50 focus:ring-4 focus:ring-cyan/10 transition-all text-xs py-2.5">
+                <input type="text" name="q" value="{{ query|default:'' }}" placeholder="{% trans "بحث برقم الطلب أو بريد العميل..." %}" class="w-full pr-11 bg-slate-900/50 border-white/10 rounded-xl focus:border-cyan/50 focus:ring-4 focus:ring-cyan/10 transition-all text-xs py-2.5">
             </div>
         </form>
         <div class="flex items-center gap-2 bg-slate-900/40 p-1.5 rounded-xl border border-white/5">
-            <a href="?" class="px-4 py-1.5 rounded-lg text-[10px] font-bold transition-all {% if not current_status %}bg-cyan text-black{% else %}text-slate-400 hover:text-white{% endif %}">الكل</a>
+            <a href="?" class="px-4 py-1.5 rounded-lg text-[10px] font-bold transition-all {% if not current_status %}bg-cyan text-black{% else %}text-slate-400 hover:text-white{% endif %}">{% trans "الكل" %}</a>
             {% for val, label in order_status_choices %}
             <a href="?status={{ val }}" class="px-4 py-1.5 rounded-lg text-[10px] font-bold transition-all {% if current_status == val %}bg-white/10 text-white{% else %}text-slate-500 hover:text-slate-300{% endif %}">{{ label }}</a>
             {% endfor %}
@@ -37,12 +37,12 @@
         <table class="admin-table w-full text-right">
             <thead>
                 <tr>
-                    <th class="p-4">رقم الطلب</th>
-                    <th class="p-4">العميل</th>
-                    <th class="p-4">المنتج / الباقة</th>
-                    <th class="p-4">المبلغ</th>
-                    <th class="p-4">الحالة</th>
-                    <th class="p-4 text-left">إجراءات</th>
+                    <th class="p-4">{% trans "رقم الطلب" %}</th>
+                    <th class="p-4">{% trans "العميل" %}</th>
+                    <th class="p-4">{% trans "المنتج / الباقة" %}</th>
+                    <th class="p-4">{% trans "المبلغ" %}</th>
+                    <th class="p-4">{% trans "الحالة" %}</th>
+                    <th class="p-4 text-left">{% trans "إجراءات" %}</th>
                 </tr>
             </thead>
             <tbody>
@@ -87,7 +87,7 @@
                     <td class="p-4 text-left">
                         <div class="flex justify-end gap-2">
                             <a href="{% url 'control_order_detail' order.id %}" class="btn btn-sm btn-primary text-[10px] py-1.5 px-4 rounded-lg">
-                                <i class="fas fa-cog ml-1"></i> إدارة الطلب
+                                <i class="fas fa-cog ml-1"></i> {% trans "إدارة الطلب" %}
                             </a>
                         </div>
                     </td>
@@ -98,7 +98,7 @@
                         <div class="w-16 h-16 bg-slate-900 rounded-full flex items-center justify-center mx-auto mb-4 opacity-20">
                             <i class="fas fa-receipt text-2xl"></i>
                         </div>
-                        <p class="text-slate-500 font-bold italic">لا توجد طلبات في هذا القسم حالياً.</p>
+                        <p class="text-slate-500 font-bold italic">{% trans "لا توجد طلبات في هذا القسم حالياً." %}</p>
                     </td>
                 </tr>
                 {% endfor %}

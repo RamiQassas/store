@@ -1,14 +1,14 @@
 {% extends "site/control_base.html" %}
-{% load static %}
+{% load static i18n %}
 
-{% block title %}إدارة الديون | Raqamiyat Admin{% endblock %}
+{% block title %}{% trans "إدارة الديون" %} | Raqamiyat Admin{% endblock %}
 
 {% block control_content %}
 <div class="page-head flex justify-between items-center">
     <div>
         <span class="eyebrow">Financial Operations / Accounting</span>
-        <h1>إدارة ديون المستخدمين</h1>
-        <p class="text-muted">إضافة ديون جديدة، تسجيل دفعات السداد، ومراقبة المبالغ المستحقة.</p>
+        <h1>{% trans "إدارة ديون المستخدمين" %}</h1>
+        <p class="text-muted">{% trans "إضافة ديون جديدة، تسجيل دفعات السداد، ومراقبة المبالغ المستحقة." %}</p>
     </div>
 </div>
 
@@ -20,7 +20,7 @@
                 <form method="get" class="flex-grow w-full max-w-md">
                     <div class="relative group">
                         <i class="fas fa-search absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-cyan transition-colors"></i>
-                        <input type="text" name="q" value="{{ query|default:'' }}" placeholder="البحث عن مستخدم (بريد، اسم، هاتف)..." class="w-full pr-11 bg-slate-900/50 border-white/10 rounded-xl focus:border-cyan/50 focus:ring-4 focus:ring-cyan/10 transition-all text-xs py-2.5">
+                        <input type="text" name="q" value="{{ query|default:'' }}" placeholder="{% trans "البحث عن مستخدم (بريد، اسم، هاتف)..." %}" class="w-full pr-11 bg-slate-900/50 border-white/10 rounded-xl focus:border-cyan/50 focus:ring-4 focus:ring-cyan/10 transition-all text-xs py-2.5">
                     </div>
                 </form>
             </div>
@@ -29,10 +29,10 @@
                 <table class="admin-table w-full text-right">
                     <thead>
                         <tr>
-                            <th class="p-4">المستخدم</th>
-                            <th class="p-4">الرصيد المتاح</th>
-                            <th class="p-4">الدين المستحق</th>
-                            <th class="p-4 text-left">إجراءات</th>
+                            <th class="p-4">{% trans "المستخدم" %}</th>
+                            <th class="p-4">{% trans "الرصيد المتاح" %}</th>
+                            <th class="p-4">{% trans "الدين المستحق" %}</th>
+                            <th class="p-4 text-left">{% trans "إجراءات" %}</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -53,11 +53,11 @@
                             <td class="p-4 text-left">
                                 <div class="flex justify-end gap-2">
                                     <button class="btn btn-sm bg-cyan/10 text-cyan hover:bg-cyan hover:text-black border border-cyan/20 px-4 rounded-lg text-[10px] font-black" onclick="openDebtModal('{{ u.id }}', '{{ u.email }}', 'add')">
-                                        <i class="fas fa-plus-circle ml-1"></i> إضافة دين
+                                        <i class="fas fa-plus-circle ml-1"></i> {% trans "إضافة دين" %}
                                     </button>
                                     {% if u.wallet.debt_balance > 0 %}
                                     <button class="btn btn-sm bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500 hover:text-black border border-emerald-500/20 px-4 rounded-lg text-[10px] font-black" onclick="openDebtModal('{{ u.id }}', '{{ u.email }}', 'pay', '{{ u.wallet.debt_balance }}')">
-                                        <i class="fas fa-hand-holding-dollar ml-1"></i> سداد
+                                        <i class="fas fa-hand-holding-dollar ml-1"></i> {% trans "سداد" %}
                                     </button>
                                     {% endif %}
                                 </div>
@@ -65,7 +65,7 @@
                         </tr>
                         {% empty %}
                         <tr>
-                            <td colspan="4" class="p-16 text-center text-slate-500 italic">ابحث عن مستخدم للبدء في إدارة ديونه.</td>
+                            <td colspan="4" class="p-16 text-center text-slate-500 italic">{% trans "ابحث عن مستخدم للبدء في إدارة ديونه." %}</td>
                         </tr>
                         {% endfor %}
                     </tbody>
@@ -77,19 +77,19 @@
     <!-- Stats Sidebar -->
     <div class="stack gap-6">
         <div class="management-card p-8 border-rose-500/10 bg-rose-500/[0.01]">
-            <h4 class="text-[10px] font-black uppercase text-slate-500 tracking-widest mb-6">إحصائيات الديون</h4>
+            <h4 class="text-[10px] font-black uppercase text-slate-500 tracking-widest mb-6">{% trans "إحصائيات الديون" %}</h4>
             <div class="stack gap-6 text-center">
                 <div class="p-6 bg-slate-900/50 rounded-3xl border border-white/5">
-                    <span class="text-[9px] font-black text-rose-500 uppercase block mb-2">إجمالي الديون المعلقة</span>
+                    <span class="text-[9px] font-black text-rose-500 uppercase block mb-2">{% trans "إجمالي الديون المعلقة" %}</span>
                     <div class="text-3xl font-black text-white">--- <span class="text-xs text-slate-600">USD</span></div>
                 </div>
                 <div class="p-6 bg-slate-900/50 rounded-3xl border border-white/5">
-                    <span class="text-[9px] font-black text-emerald-500 uppercase block mb-2">تحصيلات اليوم</span>
+                    <span class="text-[9px] font-black text-emerald-500 uppercase block mb-2">{% trans "تحصيلات اليوم" %}</span>
                     <div class="text-3xl font-black text-white">--- <span class="text-xs text-slate-600">USD</span></div>
                 </div>
             </div>
             <p class="text-[9px] text-slate-600 mt-6 leading-relaxed italic text-center">
-                * الديون يتم خصمها تلقائياً من أول عملية إيداع يقوم بها المستخدم بعد تسجيل الدين.
+                {% trans "* الديون يتم خصمها تلقائياً من أول عملية إيداع يقوم بها المستخدم بعد تسجيل الدين." %}
             </p>
         </div>
     </div>
@@ -110,7 +110,7 @@
             <input type="hidden" name="action" id="modal-action">
             
             <div class="field-group">
-                <label class="text-[10px] font-bold uppercase text-slate-500 mb-2 block">المبلغ (USD)</label>
+                <label class="text-[10px] font-bold uppercase text-slate-500 mb-2 block">{% trans "المبلغ (USD)" %}</label>
                 <div class="relative">
                     <input type="number" name="amount" id="modal-amount" step="0.01" required class="w-full bg-slate-900 border-white/10 rounded-xl p-4 text-xl font-black text-white focus:border-cyan/50 transition-all">
                     <span class="absolute left-4 top-1/2 -translate-y-1/2 text-slate-600 font-bold text-xs uppercase">USD</span>
@@ -118,13 +118,13 @@
             </div>
             
             <div class="field-group">
-                <label class="text-[10px] font-bold uppercase text-slate-500 mb-2 block">السبب / ملاحظات (داخلية)</label>
-                <textarea name="reason" class="w-full bg-slate-900 border-white/10 rounded-xl p-4 text-xs text-white focus:border-cyan/50" rows="3" placeholder="اكتب ملاحظات توضح سبب هذه الحركة المالية..." required></textarea>
+                <label class="text-[10px] font-bold uppercase text-slate-500 mb-2 block">{% trans "السبب / ملاحظات (داخلية)" %}</label>
+                <textarea name="reason" class="w-full bg-slate-900 border-white/10 rounded-xl p-4 text-xs text-white focus:border-cyan/50" rows="3" placeholder="{% trans "اكتب ملاحظات توضح سبب هذه الحركة المالية..." %}" required></textarea>
             </div>
             
             <div class="flex gap-4 pt-2">
-                <button type="button" class="btn btn-outline flex-1 py-3 rounded-xl font-bold border-white/5 hover:bg-white/5" onclick="closeModal()">إلغاء</button>
-                <button type="submit" class="btn flex-1 py-3 rounded-xl font-black shadow-lg" id="modal-submit-btn">تأكيد العملية</button>
+                <button type="button" class="btn btn-outline flex-1 py-3 rounded-xl font-bold border-white/5 hover:bg-white/5" onclick="closeModal()">{% trans "إلغاء" %}</button>
+                <button type="submit" class="btn flex-1 py-3 rounded-xl font-black shadow-lg" id="modal-submit-btn">{% trans "تأكيد العملية" %}</button>
             </div>
         </form>
     </div>
@@ -149,17 +149,17 @@ function openDebtModal(userId, email, action, maxAmount = null) {
     if (action === 'add') {
         icon.className = "w-12 h-12 rounded-2xl bg-cyan/10 flex items-center justify-center mx-auto mb-4";
         icon.innerHTML = '<i class="fas fa-plus-circle text-cyan text-xl"></i>';
-        title.innerText = "إضافة دين جديد";
-        subtitle.innerText = `سيتم تسجيل دين مستحق على المستخدم ${email} وإضافته لرصيده المتاح حالياً.`;
-        submitBtn.innerText = "تسجيل الدين";
+        title.innerText = "{% trans "إضافة دين جديد" %}";
+        subtitle.innerText = "{% trans "سيتم تسجيل دين مستحق على المستخدم" %} " + email + " {% trans "وإضافته لرصيده المتاح حالياً." %}";
+        submitBtn.innerText = "{% trans "تسجيل الدين" %}";
         submitBtn.className = "btn btn-primary flex-1 py-3 rounded-xl font-black shadow-lg shadow-cyan/20";
         amountInput.max = "";
     } else {
         icon.className = "w-12 h-12 rounded-2xl bg-emerald-500/10 flex items-center justify-center mx-auto mb-4";
         icon.innerHTML = '<i class="fas fa-hand-holding-dollar text-emerald-500 text-xl"></i>';
-        title.innerText = "تسجيل سداد دين";
-        subtitle.innerText = `سيتم خصم المبلغ من رصيد المستخدم ${email} لإنقاص قيمة الدين المستحق.`;
-        submitBtn.innerText = "تأكيد السداد";
+        title.innerText = "{% trans "تسجيل سداد دين" %}";
+        subtitle.innerText = "{% trans "سيتم خصم المبلغ من رصيد المستخدم" %} " + email + " {% trans "لإنقاص قيمة الدين المستحق." %}";
+        submitBtn.innerText = "{% trans "تأكيد السداد" %}";
         submitBtn.className = "btn bg-emerald-500 text-black hover:bg-emerald-400 flex-1 py-3 rounded-xl font-black shadow-lg shadow-emerald-500/10";
         amountInput.value = maxAmount;
         amountInput.max = maxAmount;

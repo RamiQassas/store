@@ -296,10 +296,10 @@ def product_detail(request, pk):
         if not request.user.is_authenticated:
             return redirect("site_login")
         if not request.user.email_verified:
-            messages.error(request, "يرجى تفعيل بريدك الإلكتروني أولاً.")
+            messages.error(request, _("يرجى تفعيل بريدك الإلكتروني أولاً."))
             return redirect("dashboard")
         if request.user.restriction_purchases:
-            messages.error(request, "حسابك مقيد من الشراء.")
+            messages.error(request, _("حسابك مقيد من الشراء."))
             return redirect("dashboard")
 
         vid = request.POST.get("variant_id")
@@ -316,7 +316,7 @@ def product_detail(request, pk):
             try:
                 from apps.orders.services import create_order
                 create_order(request.user, vid, quantity=qty, metadata=metadata)
-                messages.success(request, "تم إنشاء الطلب بنجاح.")
+                messages.success(request, _("تم إنشاء الطلب بنجاح."))
                 return redirect("dashboard")
             except Exception as e:
                 messages.error(request, str(e))
@@ -373,7 +373,7 @@ def wallet_page(request):
 @login_required
 def deposits(request):
     if request.user.restriction_deposits:
-        messages.error(request, "حسابك مقيد من الإيداع.")
+        messages.error(request, _("حسابك مقيد من الإيداع."))
         return redirect("dashboard")
     
     request.user.reset_daily_limits_if_needed()
@@ -394,8 +394,7 @@ def deposits(request):
         if amount_base > remaining_limit:
             messages.error(
                 request, 
-                f"تجاوزت الحد اليومي للإيداع. حدك المتبقي هو {remaining_limit:.2f} USD، "
-                f"بينما تبلغ قيمة هذه العملية {amount_base:.2f} USD."
+                _("تجاوزت الحد اليومي للإيداع. حدك المتبقي هو %(remaining_limit).2f USD، بينما تبلغ قيمة هذه العملية %(amount_base).2f USD.") % {'remaining_limit': remaining_limit, 'amount_base': amount_base}
             )
             return redirect("dashboard_deposits")
             
@@ -423,8 +422,7 @@ def deposits(request):
         if amount_base > method_remaining:
             messages.error(
                 request, 
-                f"تجاوزت حد الإيداع لهذه الوسيلة. الحد المتبقي للوسيلة هو {method_remaining:.2f} USD، "
-                f"بينما تبلغ قيمة هذه العملية {amount_base:.2f} USD."
+                _("تجاوزت حد الإيداع لهذه الوسيلة. الحد المتبقي للوسيلة هو %(method_remaining).2f USD، بينما تبلغ قيمة هذه العملية %(amount_base).2f USD.") % {'method_remaining': method_remaining, 'amount_base': amount_base}
             )
             return redirect("dashboard_deposits")
 
@@ -449,15 +447,15 @@ def deposits(request):
 
             from apps.notifications.services import notify_staff
             notify_staff(
-                title="طلب إيداع جديد",
-                body=f"تم استلام طلب إيداع جديد بقيمة {amount} {currency.code} من {request.user.email}",
+                title=_("طلب إيداع جديد"),
+                body=_("تم استلام طلب إيداع جديد بقيمة %(amount)s %(currency_code)s من %(user_email)s") % {'amount': amount, 'currency_code': currency.code, 'user_email': request.user.email},
                 action_url=f"/control/deposits/{deposit.id}/"
             )
 
             request.user.daily_deposit_usage += amount_base
 
             request.user.save(update_fields=["daily_deposit_usage"])
-            messages.success(request, "طلب الإيداع قيد المراجعة.")
+            messages.success(request, _("طلب الإيداع قيد المراجعة."))
             return redirect("dashboard")
             
     return render(request, "site/deposits.html", {
@@ -468,7 +466,7 @@ def deposits(request):
 @login_required
 def withdrawals(request):
     if request.user.restriction_withdrawals:
-        messages.error(request, "حسابك مقيد من السحب.")
+        messages.error(request, _("حسابك مقيد من السحب."))
         return redirect("dashboard")
     
     request.user.reset_daily_limits_if_needed()
@@ -486,8 +484,7 @@ def withdrawals(request):
         if amount_base > remaining_limit:
             messages.error(
                 request, 
-                f"تجاوزت الحد اليومي للسحب. حدك المتبقي هو {remaining_limit:.2f} USD، "
-                f"بينما تبلغ قيمة هذه العملية {amount_base:.2f} USD."
+                _("تجاوزت الحد اليومي للسحب. حدك المتبقي هو %(remaining_limit).2f USD، بينما تبلغ قيمة هذه العملية %(amount_base).2f USD.") % {'remaining_limit': remaining_limit, 'amount_base': amount_base}
             )
             return redirect("dashboard_withdrawals")
             
@@ -755,9 +752,9 @@ def control_kyc_detail(request, pk):
                 user.daily_withdrawal_limit = global_settings.unverified_daily_withdrawal_limit
                 user.save()
                 kyc.status = KYCRequest.Status.REJECTED
-                kyc.rejection_reason = "تم إلغاء التوثيق."
+                kyc.rejection_reason = _("تم إلغاء التوثيق.")
                 kyc.save()
-                messages.error(request, "تم إلغاء التوثيق.")
+                messages.error(request, _("تم إلغاء التوثيق."))
                 return redirect("control_kycs_list")
             
     return render(request, "site/control_kyc_detail.html", {"kyc": kyc, "form": form, "payment_methods": payment_methods})
@@ -773,11 +770,11 @@ def control_kyc_settings(request):
             if code in settings_obj.restricted_countries:
                 settings_obj.restricted_countries.remove(code)
                 settings_obj.save()
-                messages.success(request, f"فك الحظر عن {code}.")
+                messages.success(request, _("فك الحظر عن %(code)s.") % {'code': code})
             return redirect("control_kyc_settings")
         elif form.is_valid():
             form.save()
-            messages.success(request, "تم الحفظ.")
+            messages.success(request, _("تم الحفظ."))
             return redirect("control_kyc_settings")
     return render(request, "site/control_kyc_settings.html", {"form": form, "settings": settings_obj, "stats_verified_count": User.objects.filter(is_kyc_verified=True).count()})
 
@@ -792,7 +789,7 @@ def control_user_moderate(request, public_uuid):
              sessions = Session.objects.filter(expire_date__gte=timezone.now())
              for s in sessions:
                  if str(user.id) == s.get_decoded().get('_auth_user_id'): s.delete()
-        messages.success(request, "تم التحديث.")
+        messages.success(request, _("تم التحديث."))
         return redirect("control_users_list")
     return render(request, "site/control_user_moderate.html", {"form": form, "user_to_moderate": user})
 
@@ -822,18 +819,18 @@ def control_users_list(request):
         user_ids = request.POST.getlist("user_ids")
         
         if not user_ids:
-            messages.warning(request, "لم يتم اختيار أي مستخدم.")
+            messages.warning(request, _("لم يتم اختيار أي مستخدم."))
         else:
             if action == "bulk_tier":
                 target_tier = request.POST.get("target_tier")
                 if target_tier:
                     User.objects.filter(id__in=user_ids).update(tier=target_tier)
-                    messages.success(request, f"تم تحديث فئة {len(user_ids)} مستخدم بنجاح.")
+                    messages.success(request, _("تم تحديث فئة %(count)d مستخدم بنجاح.") % {'count': len(user_ids)})
             elif action == "bulk_role":
                 target_role = request.POST.get("target_role")
                 if target_role:
                     User.objects.filter(id__in=user_ids).update(role=target_role)
-                    messages.success(request, f"تم تحديث دور {len(user_ids)} مستخدم بنجاح.")
+                    messages.success(request, _("تم تحديث دور %(count)d مستخدم بنجاح.") % {'count': len(user_ids)})
         
         return redirect("control_users_list")
 
@@ -856,7 +853,7 @@ def set_currency(request):
             if request.user.is_authenticated:
                 request.user.preferred_currency = currency
                 request.user.save(update_fields=["preferred_currency"])
-            messages.success(request, f"تم تغيير العملة المفضلة إلى {currency.name}.")
+            messages.success(request, _("تم تغيير العملة المفضلة إلى %(name)s.") % {'name': currency.name})
     
     # Redirect back to referring page or home
     next_url = request.META.get('HTTP_REFERER', 'home')
@@ -878,7 +875,7 @@ def notification_settings(request):
         settings_obj.in_app_promotions = request.POST.get("in_app_promotions") == "on"
         settings_obj.push_promotions = request.POST.get("push_promotions") == "on"
         settings_obj.save()
-        messages.success(request, "تم حفظ إعدادات الإشعارات بنجاح.")
+        messages.success(request, _("تم حفظ إعدادات الإشعارات بنجاح."))
         return redirect("notification_settings")
         
     return render(request, "site/notification_settings.html", {"settings": settings_obj})
@@ -932,14 +929,14 @@ def control_withdrawal_detail(request, pk):
             if action == "approve":
                 withdrawal.status = WithdrawalRequest.Status.APPROVED
                 withdrawal.admin_note = admin_note
-                messages.success(request, "تمت الموافقة المبدئية على الطلب.")
+                messages.success(request, _("تمت الموافقة المبدئية على الطلب."))
             elif action == "process":
                 withdrawal.status = WithdrawalRequest.Status.PROCESSING
                 withdrawal.admin_note = admin_note
-                messages.info(request, "بدأت معالجة الطلب.")
+                messages.info(request, _("بدأت معالجة الطلب."))
             elif action == "complete":
                 if withdrawal.status == WithdrawalRequest.Status.COMPLETED:
-                     messages.error(request, "هذا الطلب مكتمل مسبقاً.")
+                     messages.error(request, _("هذا الطلب مكتمل مسبقاً."))
                      return redirect("control_withdrawals")
 
                 finalize_withdrawal(
@@ -954,11 +951,11 @@ def control_withdrawal_detail(request, pk):
                 withdrawal.reviewed_by = request.user
                 withdrawal.reviewed_at = timezone.now()
                 withdrawal.save()
-                messages.success(request, "تم إتمام عملية السحب بنجاح.")
+                messages.success(request, _("تم إتمام عملية السحب بنجاح."))
                 return redirect("control_withdrawals")
             elif action == "reject":
                 if withdrawal.status in [WithdrawalRequest.Status.COMPLETED, WithdrawalRequest.Status.REJECTED, WithdrawalRequest.Status.CANCELLED]:
-                     messages.error(request, "لا يمكن رفض طلب منتهي.")
+                     messages.error(request, _("لا يمكن رفض طلب منتهي."))
                      return redirect("control_withdrawals")
 
                 release_funds(
@@ -974,11 +971,11 @@ def control_withdrawal_detail(request, pk):
                 withdrawal.reviewed_by = request.user
                 withdrawal.reviewed_at = timezone.now()
                 withdrawal.save()
-                messages.error(request, "تم رفض طلب السحب وإعادة الرصيد للمستخدم.")
+                messages.error(request, _("تم رفض طلب السحب وإعادة الرصيد للمستخدم."))
                 return redirect("control_withdrawals")
             elif action == "cancel_completed":
                 if withdrawal.status != WithdrawalRequest.Status.COMPLETED:
-                    messages.error(request, "لا يمكن إلغاء هذا الطلب لأنه ليس مكتمل.")
+                    messages.error(request, _("لا يمكن إلغاء هذا الطلب لأنه ليس مكتمل."))
                     return redirect("control_withdrawal_detail", pk=pk)
                 
                 from apps.wallets.services import credit_wallet
@@ -995,7 +992,7 @@ def control_withdrawal_detail(request, pk):
                 withdrawal.reviewed_by = request.user
                 withdrawal.reviewed_at = timezone.now()
                 withdrawal.save()
-                messages.warning(request, "تم إلغاء السحب المكتمل وإعادة المبلغ للمحفظة بنجاح.")
+                messages.warning(request, _("تم إلغاء السحب المكتمل وإعادة المبلغ للمحفظة بنجاح."))
                 return redirect("control_withdrawals")
             
             withdrawal.save()
@@ -1024,11 +1021,11 @@ def control_debts(request):
             if action == "add_debt":
                 from apps.wallets.services import add_debt
                 add_debt(wallet.id, amount, reference=f"admin_debt_{timezone.now().timestamp()}", reason=reason, created_by=request.user)
-                messages.success(request, f"تم إضافة دين بقيمة {amount} للمستخدم {target_user.email}")
+                messages.success(request, _("تم إضافة دين بقيمة %(amount)s للمستخدم %(email)s") % {'amount': amount, 'email': target_user.email})
             elif action == "pay_debt":
                 from apps.wallets.services import pay_debt
                 pay_debt(wallet.id, amount, reference=f"admin_pay_{timezone.now().timestamp()}", reason=reason, created_by=request.user, deduct_from_balance=False)
-                messages.success(request, f"تم تسجيل سداد بقيمة {amount} للمستخدم {target_user.email}")
+                messages.success(request, _("تم تسجيل سداد بقيمة %(amount)s للمستخدم %(email)s") % {'amount': amount, 'email': target_user.email})
         except Exception as e:
             messages.error(request, str(e))
             
@@ -1049,7 +1046,7 @@ def currencies_list(request):
                 c.buy_rate = Decimal(buy_rate)
                 c.sell_rate = Decimal(sell_rate)
                 c.save()
-        messages.success(request, "تم تحديث أسعار الصرف بنجاح.")
+        messages.success(request, _("تم تحديث أسعار الصرف بنجاح."))
         return redirect("currencies_list")
 
     return render(request, "site/currencies_list.html", {"currencies": currencies})
@@ -1059,9 +1056,9 @@ def currency_create(request):
     form = CurrencyForm(request.POST or None)
     if request.method == "POST" and form.is_valid():
         form.save()
-        messages.success(request, "تمت إضافة العملة بنجاح.")
+        messages.success(request, _("تمت إضافة العملة بنجاح."))
         return redirect("currencies_list")
-    return render(request, "site/currency_form.html", {"form": form, "title": "إضافة عملة"})
+    return render(request, "site/currency_form.html", {"form": form, "title": _("إضافة عملة")})
 
 @admin_required
 def currency_edit(request, pk):
@@ -1071,9 +1068,9 @@ def currency_edit(request, pk):
     form = CurrencyForm(request.POST or None, instance=currency)
     if request.method == "POST" and form.is_valid():
         form.save()
-        messages.success(request, "تم تحديث بيانات العملة.")
+        messages.success(request, _("تم تحديث بيانات العملة."))
         return redirect("currencies_list")
-    return render(request, "site/currency_form.html", {"form": form, "currency": currency, "title": f"تعديل العملة: {currency.code}"})
+    return render(request, "site/currency_form.html", {"form": form, "currency": currency, "title": _("تعديل العملة: %(code)s") % {'code': currency.code}})
 
 @support_required
 def control_products_list(request):

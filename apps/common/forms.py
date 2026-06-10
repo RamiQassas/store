@@ -1,6 +1,7 @@
 import re
 from django.core.exceptions import ValidationError
 from django.core.validators import validate_email
+from django.utils.translation import gettext_lazy as _
 
 class DynamicFormValidator:
     """
@@ -32,7 +33,7 @@ class DynamicFormValidator:
 
             # Required Check
             if is_required and (value is None or value == ""):
-                errors[name] = f"حقل {label} مطلوب."
+                errors[name] = _("حقل {label} مطلوب.").format(label=label)
                 continue
 
             if value is None or value == "":
@@ -50,7 +51,7 @@ class DynamicFormValidator:
                     cleaned_data[name] = str(value).lower() in ["true", "1", "yes", "on"]
                 elif field_type == "phone":
                     if not re.match(r"^\+?1?\d{9,15}$", str(value)):
-                        errors[name] = f"رقم هاتف {label} غير صالح."
+                        errors[name] = _("رقم هاتف {label} غير صالح.").format(label=label)
                     else:
                         cleaned_data[name] = value
                 elif field_type in ["file", "image"]:
@@ -59,7 +60,7 @@ class DynamicFormValidator:
                 else:
                     cleaned_data[name] = str(value)
             except (ValueError, ValidationError):
-                errors[name] = f"قيمة غير صالحة لحقل {label} ({field_type})."
+                errors[name] = _("قيمة غير صالحة لحقل {label} ({field_type}).").format(label=label, field_type=field_type)
 
         if errors:
             raise ValidationError(errors)

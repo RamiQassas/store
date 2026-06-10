@@ -1,14 +1,14 @@
 {% extends "site/control_base.html" %}
-{% load static %}
+{% load static i18n %}
 
-{% block title %}لوحة الإدارة | Raqamiyat{% endblock %}
+{% block title %}{% trans "لوحة الإدارة" %} | Raqamiyat{% endblock %}
 
 {% block control_content %}
 <div class="page-head">
     <div>
         <span class="eyebrow">Administrative Overview</span>
-        <h1>الرئيسية</h1>
-        <p class="text-muted">نظرة عامة على أداء المنصة والعمليات التي تتطلب اهتمامك.</p>
+        <h1>{% trans "الرئيسية" %}</h1>
+        <p class="text-muted">{% trans "نظرة عامة على أداء المنصة والعمليات التي تتطلب اهتمامك." %}</p>
     </div>
 </div>
 
@@ -17,28 +17,28 @@
     <div class="admin-stats-card">
         <div class="asc-icon"><i class="fas fa-users"></i></div>
         <div>
-            <span class="text-xs text-muted block">المستخدمين</span>
+            <span class="text-xs text-muted block">{% trans "المستخدمين" %}</span>
             <strong class="text-xl">{{ stats.users }}</strong>
         </div>
     </div>
     <div class="admin-stats-card">
         <div class="asc-icon" style="color: var(--warning); background: rgba(245, 158, 11, 0.1);"><i class="fas fa-money-bill-transfer"></i></div>
         <div>
-            <span class="text-xs text-muted block">إيداعات معلقة</span>
+            <span class="text-xs text-muted block">{% trans "إيداعات معلقة" %}</span>
             <strong class="text-xl text-warning">{{ stats.pending_deposits }}</strong>
         </div>
     </div>
     <div class="admin-stats-card">
         <div class="asc-icon" style="color: var(--danger); background: rgba(239, 68, 68, 0.1);"><i class="fas fa-building-columns"></i></div>
         <div>
-            <span class="text-xs text-muted block">سحوبات معلقة</span>
+            <span class="text-xs text-muted block">{% trans "سحوبات معلقة" %}</span>
             <strong class="text-xl text-danger">{{ stats.pending_withdrawals }}</strong>
         </div>
     </div>
     <a href="{% url 'chat_list' %}" class="admin-stats-card hover:border-cyan transition no-underline">
         <div class="asc-icon" style="color: #a855f7; background: rgba(168, 85, 247, 0.1);"><i class="fas fa-headset"></i></div>
         <div>
-            <span class="text-xs text-muted block">تذاكر مفتوحة</span>
+            <span class="text-xs text-muted block">{% trans "تذاكر مفتوحة" %}</span>
             <strong class="text-xl" style="color: #a855f7;">{{ stats.open_tickets }}</strong>
         </div>
     </a>
@@ -48,8 +48,8 @@
     <!-- Recent Orders -->
     <div class="management-card">
         <div class="management-header">
-            <h3 class="font-bold">أحدث الطلبات</h3>
-            <a href="{% url 'control_orders_list' %}" class="text-xs text-cyan font-bold">عرض الكل</a>
+            <h3 class="font-bold">{% trans "أحدث الطلبات" %}</h3>
+            <a href="{% url 'control_orders_list' %}" class="text-xs text-cyan font-bold">{% trans "عرض الكل" %}</a>
         </div>
         <div class="stack">
             {% for order in recent_orders %}
@@ -71,7 +71,7 @@
                 </div>
             </div>
             {% empty %}
-            <p class="p-8 text-center text-xs text-muted italic">لا توجد طلبات حديثة.</p>
+            <p class="p-8 text-center text-xs text-muted italic">{% trans "لا توجد طلبات حديثة." %}</p>
             {% endfor %}
         </div>
     </div>
@@ -79,8 +79,8 @@
     <!-- Recent Deposits -->
     <div class="management-card">
         <div class="management-header">
-            <h3 class="font-bold">عمليات الإيداع</h3>
-            <a href="{% url 'control_deposits' %}" class="text-xs text-cyan font-bold">إدارة الإيداعات</a>
+            <h3 class="font-bold">{% trans "عمليات الإيداع" %}</h3>
+            <a href="{% url 'control_deposits' %}" class="text-xs text-cyan font-bold">{% trans "إدارة الإيداعات" %}</a>
         </div>
         <div class="stack">
             {% for deposit in recent_deposits %}
@@ -102,7 +102,7 @@
                 </div>
             </a>
             {% empty %}
-            <p class="p-8 text-center text-xs text-muted italic">لا توجد إيداعات للمراجعة.</p>
+            <p class="p-8 text-center text-xs text-muted italic">{% trans "لا توجد إيداعات للمراجعة." %}</p>
             {% endfor %}
         </div>
     </div>
@@ -110,17 +110,17 @@
 
 <div class="management-card mt-8">
     <div class="management-header">
-        <h3 class="font-bold">آخر المستخدمين والتحكم المالي</h3>
-        <a href="{% url 'control_users_list' %}" class="text-xs text-cyan font-bold">إدارة المستخدمين</a>
+        <h3 class="font-bold">{% trans "آخر المستخدمين والتحكم المالي" %}</h3>
+        <a href="{% url 'control_users_list' %}" class="text-xs text-cyan font-bold">{% trans "إدارة المستخدمين" %}</a>
     </div>
     <div class="p-4 overflow-x-auto">
         <table class="w-full text-sm text-right">
             <thead class="text-[11px] text-slate-500 border-b border-white/5 uppercase">
                 <tr>
-                    <th class="p-3">المستخدم</th>
-                    <th class="p-3">الرصيد المتاح</th>
-                    <th class="p-3">الحالة</th>
-                    <th class="p-3 text-left">إجراءات سريعة</th>
+                    <th class="p-3">{% trans "المستخدم" %}</th>
+                    <th class="p-3">{% trans "الرصيد المتاح" %}</th>
+                    <th class="p-3">{% trans "الحالة" %}</th>
+                    <th class="p-3 text-left">{% trans "إجراءات سريعة" %}</th>
                 </tr>
             </thead>
             <tbody>
@@ -142,10 +142,10 @@
                     <td class="p-3 text-left">
                         <div class="flex justify-end gap-2">
                             <button class="btn btn-sm btn-outline text-[10px] py-1 px-3" onclick="holdFunds('{{ user.wallet.id }}')">
-                                <i class="fas fa-lock ml-1"></i> حجز رصيد
+                                <i class="fas fa-lock ml-1"></i> {% trans "حجز رصيد" %}
                             </button>
                             <a href="{% url 'control_user_moderate' user.public_uuid %}" class="btn btn-sm btn-primary text-[10px] py-1 px-3">
-                                <i class="fas fa-user-shield ml-1"></i> إدارة الحساب
+                                <i class="fas fa-user-shield ml-1"></i> {% trans "إدارة الحساب" %}
                             </a>
                         </div>
                     </td>
@@ -158,9 +158,11 @@
 
 <script>
 async function holdFunds(walletId) {
-    const amount = prompt("المبلغ المراد حجزه (سيتم سحبه من الرصيد المتاح حالياً):");
+    const amountPrompt = "{% trans "المبلغ المراد حجزه (سيتم سحبه من الرصيد المتاح حالياً):" %}";
+    const amount = prompt(amountPrompt);
     if (!amount) return;
-    const reason = prompt("السبب (يظهر في سجلات التدقيق):");
+    const reasonPrompt = "{% trans "السبب (يظهر في سجلات التدقيق):" %}";
+    const reason = prompt(reasonPrompt);
     if (!reason) return;
     
     try {
@@ -174,14 +176,15 @@ async function holdFunds(walletId) {
         });
         
         if (response.ok) {
-            alert("تم حجز المبلغ بنجاح وتوثيق العملية في سجل التدقيق.");
+            alert("{% trans "تم حجز المبلغ بنجاح وتوثيق العملية في سجل التدقيق." %}");
             location.reload();
         } else {
             const data = await response.json();
-            alert("خطأ: " + (data.detail || data.message || "تعذر التنفيذ. تأكد من كفاية الرصيد."));
+            const errorMsg = data.detail || data.message || "{% trans "تعذر التنفيذ. تأكد من كفاية الرصيد." %}";
+            alert("{% trans "خطأ:" %} " + errorMsg);
         }
     } catch (e) {
-        alert("حدث خطأ في الاتصال بالخادم.");
+        alert("{% trans "حدث خطأ في الاتصال بالخادم." %}");
     }
 }
 </script>

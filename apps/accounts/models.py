@@ -2,6 +2,7 @@ from django.contrib.auth.models import AbstractUser
 from django.db import models
 from django.utils import timezone
 from django.conf import settings
+from django.utils.translation import gettext_lazy as _
 import uuid
 from decimal import Decimal
 
@@ -12,27 +13,27 @@ from apps.common.countries import COUNTRIES
 
 class User(AbstractUser):
     class Role(models.TextChoices):
-        SUPER_ADMIN = "super_admin", "مدير عام"
-        ADMIN = "admin", "مدير"
-        MODERATOR = "moderator", "مشرف"
-        FINANCE = "finance", "مالية"
-        SUPPORT = "support", "دعم"
-        EMPLOYEE = "employee", "موظف"
-        VERIFIED_MERCHANT = "verified_merchant", "تاجر معتمد"
-        CUSTOMER = "customer", "عميل"
+        SUPER_ADMIN = "super_admin", _("Super Admin")
+        ADMIN = "admin", _("Admin")
+        MODERATOR = "moderator", _("Moderator")
+        FINANCE = "finance", _("Finance")
+        SUPPORT = "support", _("Support")
+        EMPLOYEE = "employee", _("Employee")
+        VERIFIED_MERCHANT = "verified_merchant", _("Verified Merchant")
+        CUSTOMER = "customer", _("Customer")
 
     class Status(models.TextChoices):
-        ACTIVE = "active", "نشط"
-        SUSPENDED = "suspended", "موقوف مؤقتاً"
-        FROZEN = "frozen", "مجمد"
-        RESTRICTED = "restricted", "مقيد"
-        UNDER_REVIEW = "under_review", "قيد المراجعة"
-        BANNED = "banned", "محظور نهائياً"
+        ACTIVE = "active", _("Active")
+        SUSPENDED = "suspended", _("Suspended")
+        FROZEN = "frozen", _("Frozen")
+        RESTRICTED = "restricted", _("Restricted")
+        UNDER_REVIEW = "under_review", _("Under Review")
+        BANNED = "banned", _("Banned")
 
     class Tier(models.TextChoices):
-        CUSTOMER = "customer", "عميل"
-        DEALER = "dealer", "تاجر معتمد"
-        VIP = "vip", "VIP"
+        CUSTOMER = "customer", _("Customer")
+        DEALER = "dealer", _("Dealer")
+        VIP = "vip", _("VIP")
 
     username = models.CharField(max_length=150, blank=True)
     email = models.EmailField(unique=True)
@@ -40,37 +41,37 @@ class User(AbstractUser):
     role = models.CharField(max_length=32, choices=Role.choices, default=Role.CUSTOMER)
     
     # Tiers
-    tier = models.CharField(max_length=20, choices=Tier.choices, default=Tier.CUSTOMER, verbose_name="الفئة")
+    tier = models.CharField(max_length=20, choices=Tier.choices, default=Tier.CUSTOMER, verbose_name=_("Tier"))
     
     # Account Status & Moderation
-    status = models.CharField(max_length=32, choices=Status.choices, default=Status.ACTIVE, verbose_name="حالة الحساب")
-    restriction_withdrawals = models.BooleanField(default=False, verbose_name="تقييد السحب")
-    restriction_deposits = models.BooleanField(default=False, verbose_name="تقييد الإيداع")
-    restriction_purchases = models.BooleanField(default=False, verbose_name="تقييد الشراء")
+    status = models.CharField(max_length=32, choices=Status.choices, default=Status.ACTIVE, verbose_name=_("Account Status"))
+    restriction_withdrawals = models.BooleanField(default=False, verbose_name=_("Restriction Withdrawals"))
+    restriction_deposits = models.BooleanField(default=False, verbose_name=_("Restriction Deposits"))
+    restriction_purchases = models.BooleanField(default=False, verbose_name=_("Restriction Purchases"))
     
-    suspension_reason = models.TextField(blank=True, verbose_name="سبب الإيقاف (للمستخدم)")
-    admin_notes = models.TextField(blank=True, verbose_name="ملاحظات المشرف (داخلية)")
-    suspension_expires_at = models.DateTimeField(null=True, blank=True, verbose_name="تاريخ انتهاء الإيقاف")
-    is_permanently_suspended = models.BooleanField(default=False, verbose_name="إيقاف نهائي")
+    suspension_reason = models.TextField(blank=True, verbose_name=_("Suspension Reason"))
+    admin_notes = models.TextField(blank=True, verbose_name=_("Admin Notes"))
+    suspension_expires_at = models.DateTimeField(null=True, blank=True, verbose_name=_("Suspension Expires At"))
+    is_permanently_suspended = models.BooleanField(default=False, verbose_name=_("Is Permanently Suspended"))
 
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
     public_uuid = models.UUIDField(default=uuid.uuid4, editable=False, unique=True)
-    preferred_currency = models.ForeignKey("common.Currency", on_delete=models.SET_NULL, null=True, blank=True, verbose_name="العملة المفضلة")
-    preferred_language = models.CharField(max_length=10, choices=settings.LANGUAGES, default=settings.LANGUAGE_CODE, verbose_name="اللغة المفضلة")
+    preferred_currency = models.ForeignKey("common.Currency", on_delete=models.SET_NULL, null=True, blank=True, verbose_name=_("Preferred Currency"))
+    preferred_language = models.CharField(max_length=10, choices=settings.LANGUAGES, default=settings.LANGUAGE_CODE, verbose_name=_("Preferred Language"))
     email_verified = models.BooleanField(default=False)
     two_factor_enabled = models.BooleanField(default=False)
 
     # KYC & Limits
-    is_kyc_verified = models.BooleanField(default=False, verbose_name="موثق الهوية")
-    has_custom_limits = models.BooleanField(default=False, verbose_name="له حدود مخصصة")
-    daily_deposit_limit = models.DecimalField(max_digits=14, decimal_places=2, default=Decimal("100.00"), verbose_name="حد الإيداع اليومي")
-    daily_withdrawal_limit = models.DecimalField(max_digits=14, decimal_places=2, default=Decimal("100.00"), verbose_name="حد السحب اليومي")
+    is_kyc_verified = models.BooleanField(default=False, verbose_name=_("Is KYC Verified"))
+    has_custom_limits = models.BooleanField(default=False, verbose_name=_("Has Custom Limits"))
+    daily_deposit_limit = models.DecimalField(max_digits=14, decimal_places=2, default=Decimal("100.00"), verbose_name=_("Daily Deposit Limit"))
+    daily_withdrawal_limit = models.DecimalField(max_digits=14, decimal_places=2, default=Decimal("100.00"), verbose_name=_("Daily Withdrawal Limit"))
     
     # Per-payment method custom limits for this user
     # Format: {"method_id": {"deposit": 500, "withdraw": 500}}
-    custom_payment_limits = models.JSONField(default=dict, blank=True, verbose_name="حدود وسائل الدفع المخصصة")
+    custom_payment_limits = models.JSONField(default=dict, blank=True, verbose_name=_("Custom Payment Limits"))
 
     # Tracking daily usage
     daily_deposit_usage = models.DecimalField(max_digits=14, decimal_places=2, default=Decimal("0.00"))
@@ -88,8 +89,8 @@ class User(AbstractUser):
             models.Index(fields=["status"]),
             models.Index(fields=["tier"]),
         ]
-        verbose_name = "مستخدم"
-        verbose_name_plural = "المستخدمون"
+        verbose_name = _("User")
+        verbose_name_plural = _("Users")
 
     def __str__(self):
         full_name = self.get_full_name()
@@ -133,18 +134,18 @@ class User(AbstractUser):
 
 
 class ModerationLog(TimeStampedModel):
-    user = models.ForeignKey(User, related_name="moderation_history", on_delete=models.CASCADE, verbose_name="المستخدم المستهدف")
-    moderator = models.ForeignKey(User, related_name="performed_moderations", on_delete=models.SET_NULL, null=True, verbose_name="المشرف")
-    action = models.CharField(max_length=100, verbose_name="الإجراء")
-    previous_state = models.JSONField(default=dict, blank=True, verbose_name="الحالة السابقة")
-    new_state = models.JSONField(default=dict, blank=True, verbose_name="الحالة الجديدة")
-    reason = models.TextField(verbose_name="السبب")
-    internal_notes = models.TextField(blank=True, verbose_name="ملاحظات داخلية")
+    user = models.ForeignKey(User, related_name="moderation_history", on_delete=models.CASCADE, verbose_name=_("Target User"))
+    moderator = models.ForeignKey(User, related_name="performed_moderations", on_delete=models.SET_NULL, null=True, verbose_name=_("Moderator"))
+    action = models.CharField(max_length=100, verbose_name=_("Action"))
+    previous_state = models.JSONField(default=dict, blank=True, verbose_name=_("Previous State"))
+    new_state = models.JSONField(default=dict, blank=True, verbose_name=_("New State"))
+    reason = models.TextField(verbose_name=_("Reason"))
+    internal_notes = models.TextField(blank=True, verbose_name=_("Internal Notes"))
 
     class Meta:
         ordering = ["-created_at"]
-        verbose_name = "سجل إشراف"
-        verbose_name_plural = "سجلات الإشراف"
+        verbose_name = _("Moderation Log")
+        verbose_name_plural = _("Moderation Logs")
 
 
 class ActivityLog(TimeStampedModel):
@@ -157,8 +158,8 @@ class ActivityLog(TimeStampedModel):
 
     class Meta:
         ordering = ["-created_at"]
-        verbose_name = "سجل نشاط"
-        verbose_name_plural = "سجلات النشاط"
+        verbose_name = _("Activity Log")
+        verbose_name_plural = _("Activity Logs")
 
 
 class UserSession(TimeStampedModel):
@@ -206,50 +207,50 @@ class EmailVerificationToken(TimeStampedModel):
 
 class KYCRequest(TimeStampedModel):
     class Status(models.TextChoices):
-        PENDING = "pending", "قيد المراجعة"
-        APPROVED = "approved", "تم التوثيق"
-        REJECTED = "rejected", "مرفوض"
+        PENDING = "pending", _("Under Review")
+        APPROVED = "approved", _("Approved")
+        REJECTED = "rejected", _("Rejected")
 
     class DocumentType(models.TextChoices):
-        NATIONAL_ID = "id", "الهوية الوطنية"
-        PASSPORT = "passport", "جواز السفر"
-        DRIVER_LICENSE = "license", "رخصة القيادة"
+        NATIONAL_ID = "id", _("National ID")
+        PASSPORT = "passport", _("Passport")
+        DRIVER_LICENSE = "license", _("Driver License")
 
     class Gender(models.TextChoices):
-        MALE = "male", "ذكر"
-        FEMALE = "female", "أنثى"
+        MALE = "male", _("Male")
+        FEMALE = "female", _("Female")
 
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name="kyc_request")
     status = models.CharField(max_length=20, choices=Status.choices, default=Status.PENDING)
     
     # Personal Info
-    nationality = models.CharField(max_length=2, choices=COUNTRIES, verbose_name="الجنسية")
-    id_number = models.CharField(max_length=50, unique=True, verbose_name="رقم الهوية / الوثيقة")
-    issuing_country = models.CharField(max_length=2, choices=COUNTRIES, verbose_name="بلد إصدار الوثيقة")
-    first_name = models.CharField(max_length=100, verbose_name="الاسم الأول")
-    father_name = models.CharField(max_length=100, verbose_name="اسم الأب")
-    last_name = models.CharField(max_length=100, verbose_name="النسبة / الكنية")
-    mother_name = models.CharField(max_length=255, default="", verbose_name="اسم الأم بالكامل")
-    gender = models.CharField(max_length=10, choices=Gender.choices, default=Gender.MALE, verbose_name="الجنس")
-    date_of_birth = models.DateField(verbose_name="تاريخ الميلاد")
-    place_of_birth = models.CharField(max_length=255, verbose_name="مكان الميلاد")
-    current_residence = models.TextField(verbose_name="عنوان الإقامة الحالي")
+    nationality = models.CharField(max_length=2, choices=COUNTRIES, verbose_name=_("Nationality"))
+    id_number = models.CharField(max_length=50, unique=True, verbose_name=_("ID Number"))
+    issuing_country = models.CharField(max_length=2, choices=COUNTRIES, verbose_name=_("Issuing Country"))
+    first_name = models.CharField(max_length=100, verbose_name=_("First Name"))
+    father_name = models.CharField(max_length=100, verbose_name=_("Father Name"))
+    last_name = models.CharField(max_length=100, verbose_name=_("Last Name"))
+    mother_name = models.CharField(max_length=255, default="", verbose_name=_("Mother Name"))
+    gender = models.CharField(max_length=10, choices=Gender.choices, default=Gender.MALE, verbose_name=_("Gender"))
+    date_of_birth = models.DateField(verbose_name=_("Date of Birth"))
+    place_of_birth = models.CharField(max_length=255, verbose_name=_("Place of Birth"))
+    current_residence = models.TextField(verbose_name=_("Current Residence"))
     
-    document_type = models.CharField(max_length=20, choices=DocumentType.choices, verbose_name="نوع الوثيقة")
+    document_type = models.CharField(max_length=20, choices=DocumentType.choices, verbose_name=_("Document Type"))
     
     # Images
-    identity_front = models.ImageField(upload_to="kyc/front/", verbose_name="وجه الوثيقة")
-    identity_back = models.ImageField(upload_to="kyc/back/", verbose_name="ظهر الوثيقة")
-    selfie_verification = models.ImageField(upload_to="kyc/selfie/", verbose_name="صورة سيلفي مع الوثيقة")
+    identity_front = models.ImageField(upload_to="kyc/front/", verbose_name=_("Identity Front"))
+    identity_back = models.ImageField(upload_to="kyc/back/", verbose_name=_("Identity Back"))
+    selfie_verification = models.ImageField(upload_to="kyc/selfie/", verbose_name=_("Selfie Verification"))
     
     # Admin review
     reviewed_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name="reviewed_kycs")
     reviewed_at = models.DateTimeField(null=True, blank=True)
-    rejection_reason = models.TextField(blank=True, verbose_name="سبب الرفض")
+    rejection_reason = models.TextField(blank=True, verbose_name=_("Rejection Reason"))
 
     class Meta:
-        verbose_name = "طلب توثيق هوية"
-        verbose_name_plural = "طلبات توثيق الهوية"
+        verbose_name = _("KYC Request")
+        verbose_name_plural = _("KYC Requests")
 
     def __str__(self):
         return f"KYC: {self.user.email} ({self.get_status_display()})"
@@ -258,24 +259,24 @@ class KYCRequest(TimeStampedModel):
 class KYCSettings(TimeStampedModel):
     """Global KYC and Limit Settings."""
     # Unverified defaults
-    unverified_daily_deposit_limit = models.DecimalField(max_digits=14, decimal_places=2, default=Decimal("100.00"), verbose_name="حد إيداع غير الموثقين")
-    unverified_daily_withdrawal_limit = models.DecimalField(max_digits=14, decimal_places=2, default=Decimal("100.00"), verbose_name="حد سحب غير الموثقين")
+    unverified_daily_deposit_limit = models.DecimalField(max_digits=14, decimal_places=2, default=Decimal("100.00"), verbose_name=_("Unverified Daily Deposit Limit"))
+    unverified_daily_withdrawal_limit = models.DecimalField(max_digits=14, decimal_places=2, default=Decimal("100.00"), verbose_name=_("Unverified Daily Withdrawal Limit"))
     
     # Verified defaults
-    verified_daily_deposit_limit = models.DecimalField(max_digits=14, decimal_places=2, default=Decimal("10000.00"), verbose_name="حد إيداع الموثقين")
-    verified_daily_withdrawal_limit = models.DecimalField(max_digits=14, decimal_places=2, default=Decimal("10000.00"), verbose_name="حد سحب الموثقين")
+    verified_daily_deposit_limit = models.DecimalField(max_digits=14, decimal_places=2, default=Decimal("10000.00"), verbose_name=_("Verified Daily Deposit Limit"))
+    verified_daily_withdrawal_limit = models.DecimalField(max_digits=14, decimal_places=2, default=Decimal("10000.00"), verbose_name=_("Verified Daily Withdrawal Limit"))
     
     # Restricted Countries
-    restricted_countries = models.JSONField(default=list, blank=True, verbose_name="الدول المحظورة (قائمة رموز ISO)")
-    block_by_nationality = models.BooleanField(default=True, verbose_name="حظر حسب الجنسية")
-    block_by_issuing_country = models.BooleanField(default=True, verbose_name="حظر حسب بلد إصدار الوثيقة")
+    restricted_countries = models.JSONField(default=list, blank=True, verbose_name=_("Restricted Countries (ISO Codes)"))
+    block_by_nationality = models.BooleanField(default=True, verbose_name=_("Block by Nationality"))
+    block_by_issuing_country = models.BooleanField(default=True, verbose_name=_("Block by Issuing Country"))
 
     class Meta:
-        verbose_name = "إعدادات التوثيق والحدود"
-        verbose_name_plural = "إعدادات التوثيق والحدود"
+        verbose_name = _("KYC Settings")
+        verbose_name_plural = _("KYC Settings")
 
     def __str__(self):
-        return "إعدادات التوثيق العالمية"
+        return str(_("Global KYC Settings"))
 
     @classmethod
     def get_settings(cls):

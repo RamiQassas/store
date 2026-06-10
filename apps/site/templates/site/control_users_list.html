@@ -1,7 +1,7 @@
 {% extends "site/control_base.html" %}
-{% load static %}
+{% load i18n static %}
 
-{% block title %}إدارة المستخدمين | Raqamiyat Admin{% endblock %}
+{% block title %}{% trans "User Management" %} | Raqamiyat Admin{% endblock %}
 
 {% block extra_head %}
 <style>
@@ -20,9 +20,9 @@
 {% block control_content %}
 <div class="page-head">
     <div>
-        <span class="eyebrow">User Management</span>
-        <h1>قائمة المستخدمين</h1>
-        <p class="text-muted">إدارة كافة حسابات المستخدمين، التحقق من الأرصدة، وإجراء التعديلات اللازمة.</p>
+        <span class="eyebrow">{% trans "User Management" %}</span>
+        <h1>{% trans "Users List" %}</h1>
+        <p class="text-muted">{% trans "Manage all user accounts, check balances, and perform necessary adjustments." %}</p>
     </div>
 </div>
 
@@ -34,32 +34,32 @@
         <div class="grid grid-cols-1 xl:grid-cols-2 gap-6 items-center">
             <div class="input-wrapper group relative">
                 <i class="fas fa-search absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-cyan transition-colors"></i>
-                <input type="text" name="q" value="{{ query }}" placeholder="بحث بالبريد، الهاتف، أو الاسم..." class="text-xs pr-10 bg-slate-900/50 border-white/10 rounded-xl focus:border-cyan/50 focus:ring-4 focus:ring-cyan/10 transition-all w-full py-3">
+                <input type="text" name="q" value="{{ query }}" placeholder="{% trans "Search by email, phone, or name..." %}" class="text-xs pr-10 bg-slate-900/50 border-white/10 rounded-xl focus:border-cyan/50 focus:ring-4 focus:ring-cyan/10 transition-all w-full py-3">
             </div>
             
             <div class="flex flex-wrap items-center justify-start xl:justify-end gap-3">
                 <div class="flex items-center bg-slate-900/50 border border-white/5 rounded-xl p-1 shadow-inner">
                     <select name="target_tier" class="text-[11px] bg-transparent border-0 focus:ring-0 py-1.5 px-3 min-w-[120px] text-slate-300 font-bold">
-                        <option value="">تغيير الفئة...</option>
+                        <option value="">{% trans "Change Tier..." %}</option>
                         {% for val, label in tiers %}
                         <option value="{{ val }}">{{ label }}</option>
                         {% endfor %}
                     </select>
-                    <button type="submit" onclick="this.form.action.value='bulk_tier';" class="btn btn-primary btn-sm px-4 py-2 rounded-lg text-[10px] font-black uppercase">Apply</button>
+                    <button type="submit" onclick="this.form.action.value='bulk_tier';" class="btn btn-primary btn-sm px-4 py-2 rounded-lg text-[10px] font-black uppercase">{% trans "Apply" %}</button>
                 </div>
 
                 <div class="flex items-center bg-slate-900/50 border border-white/5 rounded-xl p-1 shadow-inner">
                     <select name="target_role" class="text-[11px] bg-transparent border-0 focus:ring-0 py-1.5 px-3 min-w-[120px] text-slate-300 font-bold">
-                        <option value="">تغيير الدور...</option>
+                        <option value="">{% trans "Change Role..." %}</option>
                         {% for val, label in roles %}
                         <option value="{{ val }}">{{ label }}</option>
                         {% endfor %}
                     </select>
-                    <button type="submit" onclick="this.form.action.value='bulk_role';" class="btn btn-primary btn-sm px-4 py-2 rounded-lg text-[10px] font-black uppercase">Apply</button>
+                    <button type="submit" onclick="this.form.action.value='bulk_role';" class="btn btn-primary btn-sm px-4 py-2 rounded-lg text-[10px] font-black uppercase">{% trans "Apply" %}</button>
                 </div>
                 
                 <a href="?export=excel" class="btn btn-outline btn-sm px-4 py-2 rounded-xl text-[10px] border-white/5 hover:bg-white/5 font-black uppercase">
-                    Export
+                    {% trans "Export" %}
                 </a>
             </div>
         </div>
@@ -70,12 +70,12 @@
             <thead class="text-[11px] text-slate-500 border-b border-white/5 uppercase bg-white/[0.01]">
                 <tr>
                     <th class="p-4 w-10"><input type="checkbox" id="select-all" class="rounded border-white/10 bg-white/5"></th>
-                    <th class="p-4">المستخدم</th>
-                    <th class="p-4">الرصيد / الديون</th>
-                    <th class="p-4">الفئة</th>
-                    <th class="p-4">الحالة</th>
-                    <th class="p-4">تاريخ الانضمام</th>
-                    <th class="p-4 text-left">إجراءات</th>
+                    <th class="p-4">{% trans "User" %}</th>
+                    <th class="p-4">{% trans "Balance / Debts" %}</th>
+                    <th class="p-4">{% trans "Tier" %}</th>
+                    <th class="p-4">{% trans "Status" %}</th>
+                    <th class="p-4">{% trans "Joined Date" %}</th>
+                    <th class="p-4 text-left">{% trans "Actions" %}</th>
                 </tr>
             </thead>
             <tbody>
@@ -88,7 +88,7 @@
                                 {{ user.email|slice:":1"|upper }}
                             </div>
                             <div>
-                                <div class="font-bold text-slate-200">{{ user.get_full_name|default:user.username|default:"بدون اسم" }}</div>
+                                <div class="font-bold text-slate-200">{{ user.get_full_name|default:user.username|default:_("No name") }}</div>
                                 <div class="text-[10px] text-slate-500 flex items-center gap-1">
                                     <i class="far fa-envelope opacity-50"></i> {{ user.email }}
                                 </div>
@@ -98,16 +98,16 @@
                     <td class="p-4">
                         <div class="flex flex-col">
                             <div class="font-mono text-cyan flex items-center gap-1">
-                                <span class="text-[10px] opacity-50 font-sans">Available:</span>
+                                <span class="text-[10px] opacity-50 font-sans">{% trans "Available" %}:</span>
                                 {{ user.wallet.available_balance }}
                             </div>
                             {% if user.wallet.debt_balance > 0 %}
                             <div class="font-mono text-danger flex items-center gap-1 mt-1">
-                                <span class="text-[10px] opacity-50 font-sans">Debt:</span>
+                                <span class="text-[10px] opacity-50 font-sans">{% trans "Debt" %}:</span>
                                 {{ user.wallet.debt_balance }}
                             </div>
                             {% else %}
-                            <div class="text-[9px] text-slate-600 mt-1">No outstanding debt</div>
+                            <div class="text-[9px] text-slate-600 mt-1">{% trans "No outstanding debt" %}</div>
                             {% endif %}
                         </div>
                     </td>
@@ -131,14 +131,14 @@
                     <td class="p-4 text-left">
                         <div class="flex justify-end gap-2">
                             <a href="{% url 'control_user_moderate' user.public_uuid %}" class="btn btn-sm btn-outline text-[10px] py-1 px-4 hover:bg-cyan hover:text-black transition">
-                                <i class="fas fa-shield-alt ml-1"></i> إدارة
+                                <i class="fas fa-shield-alt ml-1"></i> {% trans "Manage" %}
                             </a>
                         </div>
                     </td>
                 </tr>
                 {% empty %}
                 <tr>
-                    <td colspan="6" class="p-12 text-center text-slate-500 italic">لا يوجد مستخدمون مطابقون للبحث.</td>
+                    <td colspan="6" class="p-12 text-center text-slate-500 italic">{% trans "No users match your search." %}</td>
                 </tr>
                 {% endfor %}
             </tbody>

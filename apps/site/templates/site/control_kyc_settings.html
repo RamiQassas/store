@@ -1,6 +1,6 @@
 {% extends "site/control_base.html" %}
-{% load l10n %}
-{% block title %}إعدادات التوثيق والحدود | Raqamiyat Admin{% endblock %}
+{% load l10n i18n %}
+{% block title %}{% trans "إعدادات التوثيق والحدود" %} | Raqamiyat Admin{% endblock %}
 
 {% block extra_head %}
 <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
@@ -20,15 +20,15 @@
 <div class="page-head">
     <div>
         <span class="eyebrow">Global Configurations</span>
-        <h1>إعدادات التوثيق والحدود المالية</h1>
-        <p class="text-slate-500 mt-1">إدارة حدود العمليات التلقائية وقائمة الدول المحظورة.</p>
+        <h1>{% trans "إعدادات التوثيق والحدود المالية" %}</h1>
+        <p class="text-slate-500 mt-1">{% trans "إدارة حدود العمليات التلقائية وقائمة الدول المحظورة." %}</p>
     </div>
 </div>
 
 <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mt-10">
     <!-- Global Limits Form -->
     <div class="management-card p-8">
-        <h3 class="text-sm font-bold uppercase tracking-widest text-slate-500 mb-8 border-b border-white/5 pb-4">الحدود اليومية الافتراضية</h3>
+        <h3 class="text-sm font-bold uppercase tracking-widest text-slate-500 mb-8 border-b border-white/5 pb-4">{% trans "الحدود اليومية الافتراضية" %}</h3>
         
         <form method="post" class="stack gap-8">
             {% csrf_token %}
@@ -36,29 +36,29 @@
             <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
                 <div class="md:col-span-2">
                     <h4 class="text-xs font-black text-amber-500 uppercase tracking-tighter mb-4 flex items-center gap-2">
-                        <i class="fas fa-user-slash"></i> حسابات غير موثقة (Unverified)
+                        <i class="fas fa-user-slash"></i> {% trans "حسابات غير موثقة (Unverified)" %}
                     </h4>
                 </div>
                 <div class="field-group">
-                    <label class="text-[10px] text-slate-500 mb-2 block">حد الإيداع اليومي ($)</label>
+                    <label class="text-[10px] text-slate-500 mb-2 block">{% trans "حد الإيداع اليومي ($)" %}</label>
                     {{ form.unverified_daily_deposit_limit }}
                 </div>
                 <div class="field-group">
-                    <label class="text-[10px] text-slate-500 mb-2 block">حد السحب اليومي ($)</label>
+                    <label class="text-[10px] text-slate-500 mb-2 block">{% trans "حد السحب اليومي ($)" %}</label>
                     {{ form.unverified_daily_withdrawal_limit }}
                 </div>
 
                 <div class="md:col-span-2 mt-4 pt-4 border-t border-white/5">
                     <h4 class="text-xs font-black text-emerald-500 uppercase tracking-tighter mb-4 flex items-center gap-2">
-                        <i class="fas fa-user-check"></i> حسابات موثقة (Verified)
+                        <i class="fas fa-user-check"></i> {% trans "حسابات موثقة (Verified)" %}
                     </h4>
                 </div>
                 <div class="field-group">
-                    <label class="text-[10px] text-slate-500 mb-2 block">حد الإيداع اليومي ($)</label>
+                    <label class="text-[10px] text-slate-500 mb-2 block">{% trans "حد الإيداع اليومي ($)" %}</label>
                     {{ form.verified_daily_deposit_limit }}
                 </div>
                 <div class="field-group">
-                    <label class="text-[10px] text-slate-500 mb-2 block">حد السحب اليومي ($)</label>
+                    <label class="text-[10px] text-slate-500 mb-2 block">{% trans "حد السحب اليومي ($)" %}</label>
                     {{ form.verified_daily_withdrawal_limit }}
                 </div>
             </div>
@@ -66,29 +66,29 @@
 
             <div class="h-px bg-white/5 my-8"></div>
 
-            <h3 class="text-sm font-bold uppercase tracking-widest text-slate-500 mb-6">قواعد الحظر والامتثال</h3>
+            <h3 class="text-sm font-bold uppercase tracking-widest text-slate-500 mb-6">{% trans "قواعد الحظر والامتثال" %}</h3>
             
             <div class="grid grid-cols-1 gap-6">
                 <div class="field-group">
-                    <label class="text-[10px] text-slate-500 mb-2 block">إضافة دول للمحظر (بحث + عربية)</label>
+                    <label class="text-[10px] text-slate-500 mb-2 block">{% trans "إضافة دول للمحظر (بحث + عربية)" %}</label>
                     {{ form.restricted_countries_list }}
                 </div>
                 
                 <div class="flex flex-wrap gap-6 bg-slate-900/30 p-4 rounded-xl border border-white/5">
                     <label class="flex items-center gap-3 cursor-pointer group">
                         {{ form.block_by_nationality }}
-                        <span class="text-xs text-slate-400 group-hover:text-white transition-colors">تفعيل الحظر حسب الجنسية</span>
+                        <span class="text-xs text-slate-400 group-hover:text-white transition-colors">{% trans "تفعيل الحظر حسب الجنسية" %}</span>
                     </label>
                     <label class="flex items-center gap-3 cursor-pointer group">
                         {{ form.block_by_issuing_country }}
-                        <span class="text-xs text-slate-400 group-hover:text-white transition-colors">تفعيل الحظر حسب بلد الإصدار</span>
+                        <span class="text-xs text-slate-400 group-hover:text-white transition-colors">{% trans "تفعيل الحظر حسب بلد الإصدار" %}</span>
                     </label>
                 </div>
             </div>
 
             <div class="pt-6">
                 <button type="submit" class="btn btn-primary px-12 py-4 rounded-xl font-black shadow-cyan hover:scale-[1.02] transition-transform">
-                    <i class="fas fa-save ml-2"></i> حفظ الإعدادات العالمية
+                    <i class="fas fa-save ml-2"></i> {% trans "حفظ الإعدادات العالمية" %}
                 </button>
             </div>
         </form>
@@ -97,16 +97,16 @@
     <!-- Restricted Countries Table -->
     <div class="stack gap-8">
         <div class="management-card p-8">
-            <h3 class="text-sm font-bold uppercase tracking-widest text-slate-500 mb-6 border-b border-white/5 pb-4">الدول المحظورة حالياً</h3>
+            <h3 class="text-sm font-bold uppercase tracking-widest text-slate-500 mb-6 border-b border-white/5 pb-4">{% trans "الدول المحظورة حالياً" %}</h3>
             
             <div class="table-responsive">
                 <table class="w-full text-right">
                     <thead>
                         <tr class="text-[9px] uppercase tracking-widest text-slate-600 border-b border-white/5">
-                            <th class="p-3">رمز الدولة</th>
-                            <th class="p-3">اسم الدولة</th>
-                            <th class="p-3">الحالة</th>
-                            <th class="p-3">إجراء</th>
+                            <th class="p-3">{% trans "رمز الدولة" %}</th>
+                            <th class="p-3">{% trans "اسم الدولة" %}</th>
+                            <th class="p-3">{% trans "الحالة" %}</th>
+                            <th class="p-3">{% trans "إجراء" %}</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -119,20 +119,20 @@
                                 {% endfor %}
                             </td>
                             <td class="p-3">
-                                <span class="badge danger text-[8px]">محظورة</span>
+                                <span class="badge danger text-[8px]">{% trans "محظورة" %}</span>
                             </td>
                             <td class="p-3">
                                 <form method="post" class="inline">
                                     {% csrf_token %}
                                     <input type="hidden" name="action" value="unblock_country">
                                     <input type="hidden" name="country_code" value="{{ code }}">
-                                    <button type="submit" class="text-[9px] text-rose-500 font-bold hover:underline">فك الحظر</button>
+                                    <button type="submit" class="text-[9px] text-rose-500 font-bold hover:underline">{% trans "فك الحظر" %}</button>
                                 </form>
                             </td>
                         </tr>
                         {% empty %}
                         <tr>
-                            <td colspan="4" class="p-8 text-center text-slate-500 italic text-xs">لا توجد دول محظورة حالياً.</td>
+                            <td colspan="4" class="p-8 text-center text-slate-500 italic text-xs">{% trans "لا توجد دول محظورة حالياً." %}</td>
                         </tr>
                         {% endfor %}
                     </tbody>
@@ -141,14 +141,14 @@
         </div>
 
         <div class="management-card p-8">
-            <h3 class="text-sm font-bold uppercase tracking-widest text-slate-500 mb-4 pb-2 border-b border-white/5">إحصائيات حالية</h3>
+            <h3 class="text-sm font-bold uppercase tracking-widest text-slate-500 mb-4 pb-2 border-b border-white/5">{% trans "إحصائيات حالية" %}</h3>
             <div class="grid grid-cols-2 gap-4">
                 <div class="p-4 bg-slate-900/50 rounded-2xl border border-white/5">
-                    <span class="text-[9px] text-slate-500 block mb-1">دول محظورة</span>
+                    <span class="text-[9px] text-slate-500 block mb-1">{% trans "دول محظورة" %}</span>
                     <strong class="text-xl font-black text-rose-500">{{ settings.restricted_countries|length }}</strong>
                 </div>
                 <div class="p-4 bg-slate-900/50 rounded-2xl border border-white/5">
-                    <span class="text-[9px] text-slate-500 block mb-1">حسابات موثقة</span>
+                    <span class="text-[9px] text-slate-500 block mb-1">{% trans "حسابات موثقة" %}</span>
                     <strong class="text-xl font-black text-emerald-500">{{ stats_verified_count|default:"0" }}</strong>
                 </div>
             </div>
@@ -165,7 +165,7 @@
         $('.select2').select2({
             width: '100%',
             dir: 'rtl',
-            placeholder: 'اختر دولة للبحث والحظر...'
+            placeholder: '{% trans "اختر دولة للبحث والحظر..." %}'
         });
     });
 </script>
