@@ -486,21 +486,6 @@
         const message = chatInput.value.trim();
         if (message && chatSocket.readyState === WebSocket.OPEN) {
             chatSocket.send(JSON.stringify({'type': 'chat_message', 'message': message}));
-            
-            // Render locally immediately
-            const side = 'sent';
-            const msgHtml = `
-                <div class="msg-group ${side}">
-                    <div class="bubble">${formatMessageText(message)}</div>
-                    <div class="msg-meta">
-                        <span class="font-bold">أنا</span>
-                        <span>${new Date().getHours()}:${String(new Date().getMinutes()).padStart(2, '0')}</span>
-                    </div>
-                </div>
-            `;
-            messagesContainer.insertAdjacentHTML('beforeend', msgHtml);
-            scrollToBottom();
-            
             chatInput.value = '';
             chatInput.style.height = 'auto';
             sendTyping(false);

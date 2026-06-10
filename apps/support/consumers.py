@@ -53,8 +53,8 @@ class SupportConsumer(AsyncWebsocketConsumer):
                 sender_email = self.user.email
                 sender_name = f"{self.user.first_name} {self.user.last_name}"
             else:
-                sender_email = "guest@raqamiyat.com"
-                sender_name = await self.get_guest_name()
+                sender_email = f"guest_{self.room_id}@raqamiyat.com"
+                sender_name = f"Visitor #{self.room_id[:8]}"
 
             broadcast_data = {
                 "type": "chat.message",
@@ -75,8 +75,12 @@ class SupportConsumer(AsyncWebsocketConsumer):
             await self.channel_layer.group_send(self.room_group_name, broadcast_data)
         
         elif action == "typing":
-            sender_name = self.user.first_name if self.user.is_authenticated else "زائر"
-            sender_email = self.user.email if self.user.is_authenticated else "guest@raqamiyat.com"
+            if self.user.is_authenticated:
+                sender_name = f"{self.user.first_name} {self.user.last_name}"
+                sender_email = self.user.email
+            else:
+                sender_name = f"Visitor #{self.room_id[:8]}"
+                sender_email = f"guest_{self.room_id}@raqamiyat.com"
             await self.channel_layer.group_send(
                 self.room_group_name,
                 {
@@ -172,11 +176,10 @@ class SupportConsumer(AsyncWebsocketConsumer):
             # Notify staff when user sends message
             try:
                 from apps.notifications.services import notify_staff
-                guest_name = "عميل"
-                if " - زائر: " in room.subject:
-                    guest_name = room.subject.split(" - زائر: ")[-1]
-                elif room.user.is_authenticated:
-                    guest_name = room.user.get_full_name() or room.user.email
+                if self.user.is_authenticated:
+                    guest_name = self.user.get_full_name() or self.user.email
+                else:
+                    guest_name = f"Visitor #{self.room_id[:8]}"
                 
                 notify_staff(
                     title=f"رسالة جديدة من {guest_name}",
