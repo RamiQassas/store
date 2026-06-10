@@ -47,22 +47,22 @@ def v3_generate_otp(user, purpose):
 
 def v3_send_otp_email(user, otp_token):
     """Sends OTP via Brevo API."""
-    subject = _("رمز التحقق | Raqamiyat")
-    purpose_text = _("لتفعيل حسابك") if otp_token.purpose == OTPToken.Purpose.REGISTRATION else \
-                   _("لتسجيل الدخول") if otp_token.purpose == OTPToken.Purpose.LOGIN else \
-                   _("لإعادة تعيين كلمة المرور")
+    subject = _("Verification Code | Raqamiyat")
+    purpose_text = _("to activate your account") if otp_token.purpose == OTPToken.Purpose.REGISTRATION else \
+                   _("to login") if otp_token.purpose == OTPToken.Purpose.LOGIN else \
+                   _("to reset your password")
     
     html_content = f"""
     <div dir="rtl" style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e2e8f0; border-radius: 12px; background-color: #ffffff;">
-        <h1 style="color: #06b6d4; text-align: center;">{_("رقميات | Raqamiyat")}</h1>
-        <p>{_("مرحباً،")}</p>
-        <p>{_("رمز التحقق الخاص بك %(purpose_text)s هو:") % {'purpose_text': purpose_text}}</p>
+        <h1 style="color: #06b6d4; text-align: center;">{_("Raqamiyat")}</h1>
+        <p>{_("Hello,")}</p>
+        <p>{_("Your verification code %(purpose_text)s is:") % {'purpose_text': purpose_text}}</p>
         <div style="text-align: center; margin: 40px 0;">
             <div style="background-color: #f1f5f9; padding: 20px; border-radius: 12px; font-weight: bold; font-size: 32px; letter-spacing: 10px; display: inline-block; border: 1px solid #e2e8f0;">
                 {otp_token.code}
             </div>
         </div>
-        <p style="font-size: 12px; color: #64748b; text-align: center;">{_("هذا الرمز صالح لمدة 10 دقائق فقط. لا تشارك هذا الرمز مع أي شخص.")}</p>
+        <p style="font-size: 12px; color: #64748b; text-align: center;">{_("This code is valid for 10 minutes only. Do not share this code with anyone.")}</p>
     </div>
     """
     return send_brevo_email(to_email=user.email, to_name=user.get_full_name() or user.email, subject=subject, html_content=html_content)
@@ -92,7 +92,7 @@ def v3_login_view(request):
         user = authenticate(username=form.cleaned_data["email"], password=form.cleaned_data["password"])
         if user:
             if not user.is_account_active:
-                messages.error(request, _("الحساب معطل أو موقوف. السبب: %(reason)s") % {'reason': user.suspension_reason or _('غير محدد')})
+                messages.error(request, _("Account is disabled or suspended. Reason: %(reason)s") % {'reason': user.suspension_reason or _('Not specified')})
                 return render(request, "site/v3/v3_login.html", {"form": form})
 
             # Start OTP verification for Login
@@ -102,9 +102,9 @@ def v3_login_view(request):
                 request.session["v3_auth_purpose"] = OTPToken.Purpose.LOGIN
                 return redirect("site_verify_otp")
             else:
-                messages.error(request, _("فشل إرسال رمز التحقق. يرجى المحاولة لاحقاً."))
+                messages.error(request, _("Failed to send verification code. Please try again later."))
         else:
-            messages.error(request, _("بيانات الدخول غير صحيحة."))
+            messages.error(request, _("Invalid login credentials."))
     
     return render(request, "site/v3/v3_login.html", {"form": form})
 
@@ -136,7 +136,7 @@ def v3_register_view(request):
                 request.session["v3_auth_purpose"] = OTPToken.Purpose.REGISTRATION
                 return redirect("site_verify_otp")
             else:
-                messages.warning(request, _("تم إنشاء الحساب، ولكن تعذر إرسال رمز التحقق حالياً. يرجى تسجيل الدخول."))
+                messages.warning(request, _("Account created, but verification code could not be sent at this time. Please log in."))
                 return redirect("site_login")
 
     return render(request, "site/v3/v3_register.html", {"form": form})
@@ -147,7 +147,7 @@ def v3_verify_otp_view(request):
     purpose = request.session.get("v3_auth_purpose")
     
     if not uid or not purpose:
-        messages.error(request, _("انتهت جلسة التحقق. يرجى البدء من جديد."))
+        messages.error(request, _("Verification session expired. Please start over."))
         return redirect("site_login")
         
     user = get_object_or_404(User, id=uid)
@@ -156,7 +156,7 @@ def v3_verify_otp_view(request):
         if request.POST.get("action") == "resend":
             otp = v3_generate_otp(user, purpose)
             v3_send_otp_email(user, otp)
-            messages.success(request, _("تم إعادة إرسال رمز التحقق."))
+            messages.success(request, _("Verification code resent successfully."))
             return redirect("site_verify_otp")
             
         code = request.POST.get("code")
@@ -171,7 +171,7 @@ def v3_verify_otp_view(request):
             
             # Login for Registration and standard Login flows
             login(request, user)
-            messages.success(request, _("مرحبًا بك في رقميات."))
+            messages.success(request, _("Welcome to Raqamiyat."))
             request.session.pop("v3_auth_uid", None)
             request.session.pop("v3_auth_purpose", None)
             
@@ -179,7 +179,7 @@ def v3_verify_otp_view(request):
                 return redirect("control_dashboard")
             return redirect("dashboard")
         else:
-            messages.error(request, _("رمز التحقق غير صحيح أو منتهي الصلاحية."))
+            messages.error(request, _("Invalid or expired verification code."))
             
     return render(request, "site/v3/v3_verify_otp.html", {"user": user, "purpose": purpose})
 
@@ -194,12 +194,12 @@ def v3_forgot_password_view(request):
             if v3_send_otp_email(user, otp):
                 request.session["v3_auth_uid"] = str(user.id)
                 request.session["v3_auth_purpose"] = OTPToken.Purpose.PASSWORD_RESET
-                messages.success(request, _("تم إرسال رمز التحقق لإعادة تعيين كلمة المرور."))
+                messages.success(request, _("Verification code sent to reset your password."))
                 return redirect("site_verify_otp")
             else:
-                messages.error(request, _("فشل إرسال الرمز. يرجى المحاولة لاحقاً."))
+                messages.error(request, _("Failed to send code. Please try again later."))
         else:
-            messages.error(request, _("عذراً، هذا البريد الإلكتروني غير مسجل لدينا."))
+            messages.error(request, _("Sorry, this email is not registered with us."))
             
     return render(request, "site/v3/v3_forgot_password.html")
 
@@ -209,7 +209,7 @@ def v3_reset_password_view(request):
     is_verified = request.session.get("v3_recovery_verified") == True
     
     if not uid or not is_verified:
-        messages.error(request, _("يرجى التحقق من هويتك أولاً."))
+        messages.error(request, _("Please verify your identity first."))
         return redirect("site_forgot_password")
         
     user = get_object_or_404(User, id=uid)
@@ -219,9 +219,9 @@ def v3_reset_password_view(request):
         p2 = request.POST.get("confirm_password")
         
         if not p1 or len(p1) < 10:
-            messages.error(request, _("يجب أن تكون كلمة المرور 10 خانات على الأقل."))
+            messages.error(request, _("Password must be at least 10 characters long."))
         elif p1 != p2:
-            messages.error(request, _("كلمات المرور غير متطابقة."))
+            messages.error(request, _("Passwords do not match."))
         else:
             user.set_password(p1)
             user.save()
@@ -230,7 +230,7 @@ def v3_reset_password_view(request):
             request.session.flush()
             
             ActivityLog.objects.create(user=user, action="Password Reset Success", description="User reset password via V3 OTP flow")
-            messages.success(request, _("تم تغيير كلمة المرور بنجاح. يمكنك الآن تسجيل الدخول."))
+            messages.success(request, _("Password changed successfully. You can now log in."))
             return redirect("site_login")
             
     return render(request, "site/v3/v3_reset_password.html", {"user_email": user.email})
@@ -238,7 +238,7 @@ def v3_reset_password_view(request):
 
 def v3_logout_view(request):
     logout(request)
-    messages.info(request, _("تم تسجيل الخروج بنجاح."))
+    messages.info(request, _("Logged out successfully."))
     return redirect("home")
 
 
@@ -296,10 +296,10 @@ def product_detail(request, pk):
         if not request.user.is_authenticated:
             return redirect("site_login")
         if not request.user.email_verified:
-            messages.error(request, _("يرجى تفعيل بريدك الإلكتروني أولاً."))
+            messages.error(request, _("Please verify your email first."))
             return redirect("dashboard")
         if request.user.restriction_purchases:
-            messages.error(request, _("حسابك مقيد من الشراء."))
+            messages.error(request, _("Your account is restricted from purchases."))
             return redirect("dashboard")
 
         vid = request.POST.get("variant_id")
@@ -316,7 +316,7 @@ def product_detail(request, pk):
             try:
                 from apps.orders.services import create_order
                 create_order(request.user, vid, quantity=qty, metadata=metadata)
-                messages.success(request, _("تم إنشاء الطلب بنجاح."))
+                messages.success(request, _("Order created successfully."))
                 return redirect("dashboard")
             except Exception as e:
                 messages.error(request, str(e))
@@ -373,7 +373,7 @@ def wallet_page(request):
 @login_required
 def deposits(request):
     if request.user.restriction_deposits:
-        messages.error(request, _("حسابك مقيد من الإيداع."))
+        messages.error(request, _("Your account is restricted from deposits."))
         return redirect("dashboard")
     
     request.user.reset_daily_limits_if_needed()
@@ -394,7 +394,7 @@ def deposits(request):
         if amount_base > remaining_limit:
             messages.error(
                 request, 
-                _("تجاوزت الحد اليومي للإيداع. حدك المتبقي هو %(remaining_limit).2f USD، بينما تبلغ قيمة هذه العملية %(amount_base).2f USD.") % {'remaining_limit': remaining_limit, 'amount_base': amount_base}
+                _("You have exceeded the daily deposit limit. Your remaining limit is %(remaining_limit).2f USD, while this transaction value is %(amount_base).2f USD.") % {'remaining_limit': remaining_limit, 'amount_base': amount_base}
             )
             return redirect("dashboard_deposits")
             
@@ -422,7 +422,7 @@ def deposits(request):
         if amount_base > method_remaining:
             messages.error(
                 request, 
-                _("تجاوزت حد الإيداع لهذه الوسيلة. الحد المتبقي للوسيلة هو %(method_remaining).2f USD، بينما تبلغ قيمة هذه العملية %(amount_base).2f USD.") % {'method_remaining': method_remaining, 'amount_base': amount_base}
+                _("You have exceeded the deposit limit for this method. The remaining limit for this method is %(method_remaining).2f USD, while this transaction value is %(amount_base).2f USD.") % {'method_remaining': method_remaining, 'amount_base': amount_base}
             )
             return redirect("dashboard_deposits")
 
@@ -447,15 +447,15 @@ def deposits(request):
 
             from apps.notifications.services import notify_staff
             notify_staff(
-                title=_("طلب إيداع جديد"),
-                body=_("تم استلام طلب إيداع جديد بقيمة %(amount)s %(currency_code)s من %(user_email)s") % {'amount': amount, 'currency_code': currency.code, 'user_email': request.user.email},
+                title=_("New Deposit Request"),
+                body=_("A new deposit request of %(amount)s %(currency_code)s has been received from %(user_email)s") % {'amount': amount, 'currency_code': currency.code, 'user_email': request.user.email},
                 action_url=f"/control/deposits/{deposit.id}/"
             )
 
             request.user.daily_deposit_usage += amount_base
 
             request.user.save(update_fields=["daily_deposit_usage"])
-            messages.success(request, _("طلب الإيداع قيد المراجعة."))
+            messages.success(request, _("Deposit request is under review."))
             return redirect("dashboard")
             
     return render(request, "site/deposits.html", {
@@ -466,7 +466,7 @@ def deposits(request):
 @login_required
 def withdrawals(request):
     if request.user.restriction_withdrawals:
-        messages.error(request, _("حسابك مقيد من السحب."))
+        messages.error(request, _("Your account is restricted from withdrawals."))
         return redirect("dashboard")
     
     request.user.reset_daily_limits_if_needed()
@@ -484,7 +484,7 @@ def withdrawals(request):
         if amount_base > remaining_limit:
             messages.error(
                 request, 
-                _("تجاوزت الحد اليومي للسحب. حدك المتبقي هو %(remaining_limit).2f USD، بينما تبلغ قيمة هذه العملية %(amount_base).2f USD.") % {'remaining_limit': remaining_limit, 'amount_base': amount_base}
+                _("You have exceeded the daily withdrawal limit. Your remaining limit is %(remaining_limit).2f USD, while this transaction value is %(amount_base).2f USD.") % {'remaining_limit': remaining_limit, 'amount_base': amount_base}
             )
             return redirect("dashboard_withdrawals")
             
@@ -512,7 +512,7 @@ def withdrawals(request):
         if amount_base > method_remaining:
             messages.error(
                 request, 
-                _("تجاوزت حد السحب لهذه الوسيلة. الحد المتبقي للوسيلة هو %(remaining).2f USD، بينما تبلغ قيمة هذه العملية %(amount).2f USD.") % {'remaining': method_remaining, 'amount': amount_base}
+                _("You have exceeded the withdrawal limit for this method. The remaining limit for this method is %(remaining).2f USD, while this transaction value is %(amount).2f USD.") % {'remaining': method_remaining, 'amount': amount_base}
             )
             return redirect("dashboard_withdrawals")
 
@@ -545,17 +545,17 @@ def withdrawals(request):
 
                 from apps.notifications.services import notify_staff
                 notify_staff(
-                    title=_("طلب سحب جديد"),
-                    body=_("تم استلام طلب سحب جديد بقيمة %(amount)s %(currency)s من %(email)s") % {'amount': amount, 'currency': currency.code, 'email': request.user.email},
+                    title=_("New Withdrawal Request"),
+                    body=_("A new withdrawal request of %(amount)s %(currency)s has been received from %(email)s") % {'amount': amount, 'currency': currency.code, 'email': request.user.email},
                     action_url=f"/control/withdrawals/{withdrawal.id}/"
                 )
 
                 request.user.daily_withdrawal_usage += amount_base
                 request.user.save(update_fields=["daily_withdrawal_usage"])
-                messages.success(request, _("طلب السحب قيد المراجعة."))
+                messages.success(request, _("Withdrawal request is under review."))
                 return redirect("dashboard")
         else:
-            messages.error(request, _("رصيد غير كافٍ."))
+            messages.error(request, _("Insufficient balance."))
             
     return render(request, "site/withdrawals.html", {
         "payment_methods": methods, "remaining_limit": remaining_limit, "daily_limit": request.user.daily_withdrawal_limit
@@ -586,7 +586,7 @@ def kyc_request_view(request):
     
     if request.method == "POST" and form.is_valid():
         if existing and existing.status in [KYCRequest.Status.PENDING, KYCRequest.Status.APPROVED]:
-            messages.error(request, _("طلب قيد المعالجة."))
+            messages.error(request, _("Request already in progress."))
             return redirect("dashboard")
             
         kyc = form.save(commit=False)
@@ -597,7 +597,7 @@ def kyc_request_view(request):
                 blocked = True
                 
         if blocked:
-            messages.error(request, _("دولتك غير مدعومة حالياً."))
+            messages.error(request, _("Your country is not currently supported."))
             return redirect("site_kyc_request")
 
         kyc.user = request.user
@@ -606,12 +606,12 @@ def kyc_request_view(request):
 
         from apps.notifications.services import notify_staff
         notify_staff(
-            title=_("طلب توثيق هوية جديد"),
-            body=_("قام المستخدم %(email)s بتقديم طلب لتوثيق الهوية.") % {'email': request.user.email},
+            title=_("New Identity Verification Request"),
+            body=_("User %(email)s has submitted a request for identity verification.") % {'email': request.user.email},
             action_url=f"/control/kyc/{kyc.id}/"
         )
 
-        messages.success(request, _("تم تقديم الطلب."))
+        messages.success(request, _("Request submitted successfully."))
         return redirect("dashboard")
         
     return render(request, "site/v3/v3_kyc_form.html", {
@@ -668,7 +668,7 @@ def control_kyc_detail(request, pk):
         if action == "update_info":
             if form.is_valid():
                 form.save()
-                messages.success(request, _("تم تحديث بيانات وصور التوثيق بنجاح."))
+                messages.success(request, _("Verification data and images updated successfully."))
                 return redirect("control_kyc_detail", pk=pk)
         elif action == "update_limits":
             user = kyc.user
@@ -699,7 +699,7 @@ def control_kyc_detail(request, pk):
             
             user.custom_payment_limits = custom_limits
             user.save()
-            messages.success(request, _("تم تحديث الحدود بنجاح."))
+            messages.success(request, _("Limits updated successfully."))
             return redirect("control_kyc_detail", pk=pk)
         elif action == "approve":
             with transaction.atomic():

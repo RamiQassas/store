@@ -1,0 +1,97 @@
+msgid ""
+msgstr ""
+"Project-Id-Version: Raqamiyat\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-06-10 12:42+0000\n"
+"PO-Revision-Date: 2026-06-10 12:42+0000\n"
+"Last-Translator: Gemini CLI\n"
+"Language-Team: Turkish\n"
+"Language: tr\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n > 1);\n"
+
+msgid "Home"
+msgstr "Ana Sayfa"
+
+msgid "Catalog"
+msgstr "Katalog"
+
+msgid "Store"
+msgstr "Mağaza"
+
+msgid "Dashboard"
+msgstr "Kontrol Paneli"
+
+msgid "My Panel"
+msgstr "Panelim"
+
+msgid "My Orders"
+msgstr "Siparişlerim"
+
+msgid "Wallet"
+msgstr "Cüzdan"
+
+msgid "Notifications"
+msgstr "Bildirimler"
+
+msgid "Live Support"
+msgstr "Canlı Destek"
+
+msgid "Sign In"
+msgstr "Giriş Yap"
+
+msgid "Login"
+msgstr "Giriş"
+
+msgid "Logout"
+msgstr "Çıkış"
+
+msgid "Sign Out"
+msgstr "Çıkış Yap"
+
+msgid "Create New Account"
+msgstr "Yeni Hesap Oluştur"
+
+msgid "Admin Center"
+msgstr "Yönetim Merkezi"
+
+msgid "Order Management"
+msgstr "Sipariş Yönetimi"
+
+msgid "Product Management"
+msgstr "Ürün Yönetimi"
+
+msgid "User Management"
+msgstr "Kullanıcı Yönetimi"
+
+msgid "Financial Operations"
+msgstr "Finansal İşlemler"
+
+msgid "Deposits"
+msgstr "Para Yatırma"
+
+msgid "Withdrawals"
+msgstr "Para Çekme"
+
+msgid "Wallets"
+msgstr "Cüzdanlar"
+
+msgid "Digital Services Store"
+msgstr "Dijital Hizmetler Mağazası"
+
+msgid "Search for service, product, or keyword..."
+msgstr "Hizmet, ürün veya anahtar kelime ara..."
+
+msgid "All"
+msgstr "Hepsi"
+
+msgid "Details"
+msgstr "Detaylar"
+
+msgid "Status"
+msgstr "Durum"
+
+msgid "Starts from"
+msgstr "Başlayan fiyatlarla"

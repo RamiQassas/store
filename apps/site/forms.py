@@ -195,7 +195,7 @@ class ModerateUserForm(forms.ModelForm):
             if self.instance.pk:
                 qs = qs.exclude(pk=self.instance.pk)
             if qs.exists():
-                raise forms.ValidationError("رقم الهاتف هذا مسجل مسبقاً لمستخدم آخر.")
+                raise forms.ValidationError(_("This phone number is already registered to another user."))
         return phone
 
 
@@ -217,11 +217,11 @@ class SocialMediaLinkForm(forms.ModelForm):
 
 class KYCSettingsForm(forms.ModelForm):
     restricted_countries_list = forms.MultipleChoiceField(
-        label="الدول المحظورة",
+        label=_("Restricted Countries"),
         choices=COUNTRIES,
         required=False,
         widget=forms.SelectMultiple(attrs={"class": "builder-input select2", "style": "height: 200px;"}),
-        help_text="اختر دولة أو أكثر لمنع التوثيق منها."
+        help_text=_("Choose one or more countries to block verification from.")
     )
 
     class Meta:
@@ -269,7 +269,7 @@ class KYCRequestForm(forms.ModelForm):
             "first_name": forms.TextInput(attrs={"class": "builder-input"}),
             "father_name": forms.TextInput(attrs={"class": "builder-input"}),
             "last_name": forms.TextInput(attrs={"class": "builder-input"}),
-            "mother_name": forms.TextInput(attrs={"class": "builder-input", "placeholder": "الاسم الثلاثي للأم"}),
+            "mother_name": forms.TextInput(attrs={"class": "builder-input", "placeholder": _("Mother's full name")}),
             "place_of_birth": forms.TextInput(attrs={"class": "builder-input"}),
             "document_type": forms.Select(attrs={"class": "builder-input"}),
             "gender": forms.Select(attrs={"class": "builder-input"}),
@@ -282,7 +282,7 @@ class KYCRequestForm(forms.ModelForm):
             if self.instance.pk:
                 qs = qs.exclude(pk=self.instance.pk)
             if qs.exists():
-                raise forms.ValidationError("يوجد حساب موثق بالفعل باستخدام بيانات الهوية هذه. يُسمح بحساب موثق واحد فقط لكل وثيقة هوية.")
+                raise forms.ValidationError(_("An account is already verified with this identity data. Only one verified account is allowed per identity document."))
         return id_number
 
     def __init__(self, *args, **kwargs):
@@ -305,7 +305,7 @@ class CategoryForm(forms.ModelForm):
 
 
 class ProductForm(forms.ModelForm):
-    sort_order = forms.IntegerField(required=False, initial=0, label="ترتيب العرض", widget=forms.NumberInput(attrs={"class": "builder-input"}))
+    sort_order = forms.IntegerField(required=False, initial=0, label=_("Display Order"), widget=forms.NumberInput(attrs={"class": "builder-input"}))
     
     class Meta:
         model = Product

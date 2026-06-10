@@ -1,0 +1,331 @@
+msgid ""
+msgstr ""
+"Project-Id-Version: Raqamiyat\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-06-10 12:40+0000\n"
+"PO-Revision-Date: 2026-06-10 12:40+0000\n"
+"Last-Translator: Gemini CLI\n"
+"Language-Team: Arabic\n"
+"Language: ar\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=6; plural=n==0 ? 0 : n==1 ? 1 : n==2 ? 2 : n%100>=3 && n%100<=10 ? 3 : n%100>=11 ? 4 : 5;\n"
+
+msgid "Home"
+msgstr "الرئيسية"
+
+msgid "Catalog"
+msgstr "الكتالوج"
+
+msgid "Store"
+msgstr "المتجر"
+
+msgid "Dashboard"
+msgstr "لوحة التحكم"
+
+msgid "My Panel"
+msgstr "لوحتي"
+
+msgid "My Orders"
+msgstr "طلباتي"
+
+msgid "Wallet"
+msgstr "المحفظة"
+
+msgid "Notifications"
+msgstr "التنبيهات"
+
+msgid "Live Support"
+msgstr "الدعم المباشر"
+
+msgid "Sign In"
+msgstr "تسجيل الدخول"
+
+msgid "Login"
+msgstr "تسجيل الدخول"
+
+msgid "Logout"
+msgstr "تسجيل الخروج"
+
+msgid "Sign Out"
+msgstr "تسجيل الخروج"
+
+msgid "Create New Account"
+msgstr "إنشاء حساب جديد"
+
+msgid "Admin Center"
+msgstr "مركز الإدارة"
+
+msgid "Order Management"
+msgstr "إدارة الطلبات"
+
+msgid "Product Management"
+msgstr "إدارة المنتجات"
+
+msgid "User Management"
+msgstr "إدارة المستخدمين"
+
+msgid "Financial Operations"
+msgstr "العمليات المالية"
+
+msgid "Deposits"
+msgstr "الإيداعات"
+
+msgid "Withdrawals"
+msgstr "السحوبات"
+
+msgid "Debt Management"
+msgstr "إدارة الديون"
+
+msgid "Wallets"
+msgstr "المحافظ"
+
+msgid "Products"
+msgstr "المنتجات"
+
+msgid "Users"
+msgstr "المستخدمين"
+
+msgid "Verifications"
+msgstr "التوثيقات"
+
+msgid "KYC Settings"
+msgstr "إعدادات KYC"
+
+msgid "Currencies"
+msgstr "العملات"
+
+msgid "Payment Methods"
+msgstr "وسائل الدفع"
+
+msgid "Social Media"
+msgstr "وسائل التواصل"
+
+msgid "Reports"
+msgstr "التقارير"
+
+msgid "Digital Services Store"
+msgstr "متجر الخدمات الرقمية"
+
+msgid "Service Marketplace"
+msgstr "متجر الخدمات"
+
+msgid "Choose from hundreds of reliable and secure digital services."
+msgstr "اختر من بين مئات الخدمات الرقمية الموثوقة والآمنة."
+
+msgid "Search for service, product, or keyword..."
+msgstr "ابحث عن خدمة، منتج، أو كلمة مفتاحية..."
+
+msgid "All"
+msgstr "الكل"
+
+msgid "Categories"
+msgstr "التصنيفات"
+
+msgid "Sort Order"
+msgstr "ترتيب العرض"
+
+msgid "Newest First"
+msgstr "الأحدث أولاً"
+
+msgid "Lowest Price"
+msgstr "الأقل سعراً"
+
+msgid "Highest Price"
+msgstr "الأعلى سعراً"
+
+msgid "Most Popular"
+msgstr "الأكثر شعبية"
+
+msgid "Details"
+msgstr "التفاصيل"
+
+msgid "Starts from"
+msgstr "يبدأ من"
+
+msgid "NO IMAGE"
+msgstr "لا توجد صورة"
+
+msgid "Manage Order"
+msgstr "إدارة الطلب"
+
+msgid "Order Number"
+msgstr "رقم الطلب"
+
+msgid "Customer"
+msgstr "العميل"
+
+msgid "Product / Variant"
+msgstr "المنتج / الباقة"
+
+msgid "Amount"
+msgstr "المبلغ"
+
+msgid "Status"
+msgstr "الحالة"
+
+msgid "Actions"
+msgstr "الإجراءات"
+
+msgid "Available Balance"
+msgstr "الرصيد المتاح"
+
+msgid "Recent Orders"
+msgstr "أحدث الطلبات"
+
+msgid "View All"
+msgstr "عرض الكل"
+
+msgid "Pending Deposits"
+msgstr "إيداعات معلقة"
+
+msgid "Pending Withdrawals"
+msgstr "سحوبات معلقة"
+
+msgid "Open Tickets"
+msgstr "تذاكر مفتوحة"
+
+msgid "Administrative Overview"
+msgstr "نظرة عامة إدارية"
+
+msgid "Home"
+msgstr "الرئيسية"
+
+msgid "Apply"
+msgstr "تطبيق"
+
+msgid "Change Tier..."
+msgstr "تغيير الفئة..."
+
+msgid "Change Role..."
+msgstr "تغيير الرتبة..."
+
+msgid "Export"
+msgstr "تصدير"
+
+msgid "Search by email, phone, or name..."
+msgstr "بحث بالبريد، الهاتف، أو الاسم..."
+
+msgid "Manage"
+msgstr "إدارة"
+
+msgid "Account Status"
+msgstr "حالة الحساب"
+
+msgid "Tier"
+msgstr "الفئة"
+
+msgid "Daily Deposit Limit"
+msgstr "حد الإيداع اليومي"
+
+msgid "Daily Withdrawal Limit"
+msgstr "حد السحب اليومي"
+
+msgid "Member Since"
+msgstr "عضو منذ"
+
+msgid "Account Limits (USD)"
+msgstr "حدود الحساب (USD)"
+
+msgid "Remaining for Deposit:"
+msgstr "المتبقي للإيداع:"
+
+msgid "Remaining for Withdrawal:"
+msgstr "المتبقي للسحب:"
+
+msgid "Important Alerts"
+msgstr "تنبيهات هامة"
+
+msgid "No new alerts"
+msgstr "لا توجد تنبيهات جديدة"
+
+msgid "Welcome back to Raqamiyat. Here is a quick look at your account."
+msgstr "مرحباً بك مجدداً في رقميات. إليك نظرة سريعة على حسابك."
+
+msgid "Your Received Digital Products"
+msgstr "منتجاتك الرقمية المستلمة"
+
+msgid "Received"
+msgstr "استلمت"
+
+msgid "Order #%(number)s"
+msgstr "طلب رقم #%(number)s"
+
+msgid "Please verify your email"
+msgstr "يرجى توثيق بريدك الإلكتروني"
+
+msgid "Verifying your account is necessary to perform purchases and deposits securely."
+msgstr "توثيق حسابك ضروري لإجراء عمليات الشراء والإيداع بأمان."
+
+msgid "Resend Link"
+msgstr "إعادة إرسال الرابط"
+
+msgid "Due Debts"
+msgstr "ديون مستحقة"
+
+msgid "Pending"
+msgstr "معلق"
+
+msgid "Frozen"
+msgstr "مجمد"
+
+msgid "Reserved"
+msgstr "محجوز"
+
+msgid "Buy Product"
+msgstr "شراء منتج"
+
+msgid "Deposit Balance"
+msgstr "إيداع رصيد"
+
+msgid "Withdraw Request"
+msgstr "طلب سحب"
+
+msgid "Latest Deposits"
+msgstr "آخر الإيداعات"
+
+msgid "Transaction History"
+msgstr "سجل العمليات"
+
+msgid "No previous orders"
+msgstr "لا توجد طلبات سابقة"
+
+msgid "No deposit transactions"
+msgstr "لا توجد عمليات إيداع"
+
+msgid "Verification Status"
+msgstr "حالة التوثيق"
+
+msgid "Unverified"
+msgstr "غير موثق"
+
+msgid "Your account operates with basic financial limits. Verify your account to increase daily deposit and withdrawal limits."
+msgstr "حسابك يعمل بحدود مالية أساسية. وثق حسابك لزيادة حدود الإيداع والسحب اليومية."
+
+msgid "Start Verification Process"
+msgstr "ابدأ عملية التوثيق"
+
+msgid "Verified Account"
+msgstr "حساب موثق"
+
+msgid "Your identity has been successfully verified. Your account limits have been increased."
+msgstr "تم توثيق هويتك بنجاح. تم رفع حدود حسابك."
+
+msgid "Amount to hold (will be deducted from current available balance):"
+msgstr "المبلغ المراد حجزه (سيتم سحبه من الرصيد المتاح حالياً):"
+
+msgid "Reason (shows in audit logs):"
+msgstr "السبب (يظهر في سجلات التدقيق):"
+
+msgid "Amount held successfully and logged in audit log."
+msgstr "تم حجز المبلغ بنجاح وتوثيق العملية في سجل التدقيق."
+
+msgid "Execution failed. Ensure sufficient balance."
+msgstr "تعذر التنفيذ. تأكد من كفاية الرصيد."
+
+msgid "Error:"
+msgstr "خطأ:"
+
+msgid "An error occurred while connecting to the server."
+msgstr "حدث خطأ في الاتصال بالخادم."

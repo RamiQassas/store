@@ -1,17 +1,17 @@
 {% extends "site/control_base.html" %}
-{% load static site_tags %}
+{% load static site_tags i18n %}
 
-{% block title %}إدارة المنتجات | Raqamiyat Admin{% endblock %}
+{% block title %}{% trans "Product Management" %} | Raqamiyat Admin{% endblock %}
 
 {% block control_content %}
 <div class="page-head">
     <div>
-        <span class="eyebrow">Catalog Management</span>
-        <h1>قائمة المنتجات</h1>
-        <p class="text-muted">إدارة مخزون الخدمات الرقمية، تحديث الأسعار، والتحكم في ظهور المنتجات.</p>
+        <span class="eyebrow">{% trans "Catalog Management" %}</span>
+        <h1>{% trans "Products List" %}</h1>
+        <p class="text-muted">{% trans "Manage digital services inventory, update prices, and control product visibility." %}</p>
     </div>
     <a href="{% url 'control_product_create' %}" class="btn btn-primary btn-sm">
-        <i class="fas fa-plus ml-2"></i> إضافة منتج جديد
+        <i class="fas fa-plus ml-2"></i> {% trans "Add New Product" %}
     </a>
 </div>
 
@@ -19,7 +19,7 @@
     <div class="management-header p-6 bg-slate-900/20">
         <form method="get" class="w-full max-w-md relative group">
             <i class="fas fa-search absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-cyan transition-colors"></i>
-            <input type="text" name="q" value="{{ query }}" placeholder="بحث بالاسم، التصنيف، أو Slug..." class="text-xs pr-10 bg-slate-900/50 border-white/10 rounded-xl focus:border-cyan/50 focus:ring-4 focus:ring-cyan/10 transition-all w-full py-2.5">
+            <input type="text" name="q" value="{{ query }}" placeholder="{% trans "Search by name, category, or slug..." %}" class="text-xs pr-10 bg-slate-900/50 border-white/10 rounded-xl focus:border-cyan/50 focus:ring-4 focus:ring-cyan/10 transition-all w-full py-2.5">
         </form>
     </div>
     
@@ -27,12 +27,12 @@
         <table class="w-full text-sm text-right">
             <thead class="text-[11px] text-slate-500 border-b border-white/5 uppercase bg-white/[0.01]">
                 <tr>
-                    <th class="p-4">المنتج</th>
-                    <th class="p-4">التصنيف</th>
-                    <th class="p-4">الباقات</th>
-                    <th class="p-4">الحالة</th>
-                    <th class="p-4">الترتيب</th>
-                    <th class="p-4 text-left">إجراءات</th>
+                    <th class="p-4">{% trans "Product" %}</th>
+                    <th class="p-4">{% trans "Category" %}</th>
+                    <th class="p-4">{% trans "Variants" %}</th>
+                    <th class="p-4">{% trans "Status" %}</th>
+                    <th class="p-4">{% trans "Sort" %}</th>
+                    <th class="p-4 text-left">{% trans "Actions" %}</th>
                 </tr>
             </thead>
             <tbody>
@@ -58,7 +58,7 @@
                     </td>
                     <td class="p-4">
                         <div class="flex flex-col gap-1">
-                            <span class="text-[10px] text-muted">{{ p.variants.count }} باقات</span>
+                            <span class="text-[10px] text-muted">{% blocktrans with count=p.variants.count %}{{ count }} variants{% endblocktrans %}</span>
                             {% if p.variants.first %}
                             <span class="font-mono text-cyan text-[11px]">{% currency_format p.variants.first.price %}+</span>
                             {% endif %}
@@ -66,22 +66,22 @@
                     </td>
                     <td class="p-4">
                         <div class="flex flex-col gap-1">
-                            <span class="badge {% if p.is_active %}success{% else %}muted{% endif %} text-[9px]">{% if p.is_active %}نشط{% else %}مسودة{% endif %}</span>
-                            {% if p.is_featured %}<span class="badge primary text-[9px]"><i class="fas fa-star ml-1"></i> مميز</span>{% endif %}
+                            <span class="badge {% if p.is_active %}success{% else %}muted{% endif %} text-[9px]">{% if p.is_active %}{% trans "Active" %}{% else %}{% trans "Draft" %}{% endif %}</span>
+                            {% if p.is_featured %}<span class="badge primary text-[9px]"><i class="fas fa-star ml-1"></i> {% trans "Featured" %}</span>{% endif %}
                         </div>
                     </td>
                     <td class="p-4 text-xs font-mono">{{ p.sort_order }}</td>
                     <td class="p-4 text-left">
                         <div class="flex justify-end gap-2">
                             <a href="{% url 'control_product_edit' p.id %}" class="btn btn-sm btn-outline text-[10px] py-1 px-4 hover:bg-cyan hover:text-black transition">
-                                <i class="fas fa-edit ml-1"></i> تعديل
+                                <i class="fas fa-edit ml-1"></i> {% trans "Edit" %}
                             </a>
                         </div>
                     </td>
                 </tr>
                 {% empty %}
                 <tr>
-                    <td colspan="6" class="p-12 text-center text-slate-500 italic">لا توجد منتجات مضافة بعد.</td>
+                    <td colspan="6" class="p-12 text-center text-slate-500 italic">{% trans "No products added yet." %}</td>
                 </tr>
                 {% endfor %}
             </tbody>

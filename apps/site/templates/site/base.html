@@ -98,44 +98,15 @@
         flex-direction: column;
         align-items: center;
         color: var(--muted);
-        font-size: 10px;
-        font-weight: bold;
-        text-decoration: none;
-        transition: all 0.3s;
+        gap: 0.25rem;
+        text-decoration: none !important;
     }
-
-    .mobile-nav-item i { font-size: 1.25rem; margin-bottom: 4px; }
+    .mobile-nav-item i { font-size: 1.2rem; }
+    .mobile-nav-item span { font-size: 9px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em; }
     .mobile-nav-item.active { color: var(--cyan); }
 
-    @media (min-width: 1024px) {
-        .mobile-nav-bar { display: none; }
-        .mobile-header { display: none; }
-    }
-
-    @media (max-width: 1023px) {
-        header.desktop-header { display: none; }
-        .shell { padding-top: 1rem; padding-bottom: 80px; }
-    }
-
-    /* Standardized Social Icons - Large (64px) */
-    .social-icon-btn {
-        width: 64px !important;
-        height: 64px !important;
-        display: inline-flex !important;
-        align-items: center !important;
-        justify-content: center !important;
-        background: rgba(255,255,255,0.03) !important;
-        border: 1px solid rgba(255,255,255,0.08) !important;
-        border-radius: 16px !important;
-        overflow: hidden !important;
-        color: #94a3b8 !important;
-        transition: all 0.2s ease !important;
-        vertical-align: middle;
-    }
-    .social-icon-btn:hover { border-color: #2dd4bf !important; color: #fff !important; transform: translateY(-4px) scale(1.05); shadow: 0 10px 25px rgba(0,0,0,0.3); }
-    .social-icon-btn img, .social-icon-btn i {
-        width: 32px !important;
-        height: 32px !important;
+    /* Fix image rendering in lists */
+    .p-v2-img img, .p-img-v6 img {
         object-fit: contain !important;
         display: block !important;
     }
@@ -288,123 +259,118 @@
                   </form>
               </div>
           </div>
+
           {% if user.is_authenticated %}
-            <div class="flex items-center gap-4">
-                <div class="text-left hide-mobile">
-                    <div class="text-[10px] text-muted font-bold">{% trans "Available Balance" %}</div>
-                    <div class="text-sm font-black text-cyan">{% currency_format user.wallet.available_balance user.wallet.currency %}</div>
-                </div>
-                <a href="{% url 'site_logout' %}" class="btn btn-sm btn-outline"><i class="fas fa-sign-out-alt"></i></a>
+          <div class="user-dropdown">
+            <div class="avatar">
+                {{ user.get_full_name|default:user.email|slice:":1"|upper }}
             </div>
+            <div class="dropdown-content">
+              <div class="user-info">
+                <strong>{{ user.get_full_name|default:user.username }}</strong>
+                <span>{{ user.email }}</span>
+              </div>
+              <hr>
+              <a href="{% url 'dashboard' %}"><i class="fas fa-th-large"></i> {% trans "Dashboard" %}</a>
+              <a href="{% url 'site_logout' %}" class="logout text-rose-500"><i class="fas fa-sign-out-alt"></i> {% trans "Logout" %}</a>
+            </div>
+          </div>
           {% else %}
-            <a href="{% url 'site_login' %}" class="btn btn-sm btn-outline">{% trans "Login" %}</a>
-            <a href="{% url 'site_register' %}" class="btn btn-sm btn-primary">{% trans "New Account" %}</a>
+          <a href="{% url 'site_login' %}" class="btn btn-primary px-6">{% trans "Sign In" %}</a>
           {% endif %}
         </div>
       </div>
     </header>
 
     {% if messages %}
-      <div class="messages-container stack gap-2 mb-6">
+    <div class="messages-container">
         {% for message in messages %}
-          <div class="panel p-4 {% if message.tags == 'error' %}border-danger/30 bg-danger/5 text-danger{% else %}border-success/30 bg-success/5 text-success{% endif %} flex justify-between items-center">
-            <span class="text-sm font-bold">{{ message }}</span>
-            <i class="fas {% if message.tags == 'error' %}fa-exclamation-circle{% else %}fa-check-circle{% endif %}"></i>
-          </div>
+        <div class="message-banner {{ message.tags }}">
+            <i class="fas {% if message.tags == 'success' %}fa-check-circle{% elif message.tags == 'error' %}fa-exclamation-circle{% else %}fa-info-circle{% endif %}"></i>
+            <span>{{ message }}</span>
+            <button onclick="this.parentElement.remove()"><i class="fas fa-times"></i></button>
+        </div>
         {% endfor %}
-      </div>
+    </div>
     {% endif %}
 
-    {% block content %}{% endblock %}
+    <main class="main-content">
+      {% block content %}{% endblock %}
+    </main>
 
-    <footer class="mt-24 pt-20 pb-10 border-t border-white/5 bg-white/[0.01]">
+    <!-- Mobile Navigation Bar -->
+    <nav class="mobile-nav-bar sm:hidden">
+        <a href="{% url 'home' %}" class="mobile-nav-item {% if request.resolver_match.url_name == 'home' %}active{% endif %}">
+            <i class="fas fa-house"></i>
+            <span>{% trans "Home" %}</span>
+        </a>
+        <a href="{% url 'catalog' %}" class="mobile-nav-item {% if request.resolver_match.url_name == 'catalog' %}active{% endif %}">
+            <i class="fas fa-grid-2"></i>
+            <span>{% trans "Store" %}</span>
+        </a>
+        <a href="{% url 'dashboard_orders' %}" class="mobile-nav-item {% if request.resolver_match.url_name == 'dashboard_orders' %}active{% endif %}">
+            <i class="fas fa-receipt"></i>
+            <span>{% trans "Orders" %}</span>
+        </a>
+        <a href="{% url 'dashboard' %}" class="mobile-nav-item {% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}">
+            <i class="fas fa-user-circle"></i>
+            <span>{% trans "Account" %}</span>
+        </a>
+    </nav>
+
+    <footer class="footer">
       <div class="container">
-        <div class="grid grid-cols-1 md:grid-cols-4 gap-12 mb-16">
-            <div class="md:col-span-2">
-                <div class="brand mb-6" style="font-size: 1.75rem;">
-                    <i class="fas fa-bolt text-cyan"></i> <span>RAQAMIYAT</span>
-                </div>
-                <p class="text-slate-500 text-sm max-w-sm leading-relaxed mb-8">
-                    {% trans "Raqamiyat is the region's leading platform for providing all digital services and cards with complete security and exceptional speed. We always strive to provide the best purchasing experience for our customers and merchants." %}
-                </p>
-                <div class="flex gap-3">
-                    {% for link in SOCIAL_LINKS %}
-                    <a href="{{ link.url }}" target="_blank" class="social-icon-btn" title="{{ link.name }}">
-                        {% if link.icon_image %}
-                        <img src="{{ link.icon_image.url }}" alt="{{ link.name }}">
-                        {% else %}
-                        <i class="{{ link.icon_class|default:'fas fa-link' }}"></i>
-                        {% endif %}
-                    </a>
-                    {% endfor %}
-                </div>
+        <div class="footer-grid">
+          <div class="footer-brand">
+            <div class="brand mb-6">
+                <i class="fas fa-bolt text-cyan"></i> <span>RAQAMIYAT</span>
             </div>
-            
-            <div>
-                <h4 class="font-black text-xs uppercase tracking-widest text-white mb-6">{% trans "Quick Links" %}</h4>
-                <div class="stack gap-4 text-sm text-slate-500">
-                    <a href="{% url 'catalog' %}" class="hover:text-cyan transition-colors">{% trans "Browse Services" %}</a>
-                    {% if not user.is_authenticated %}
-                    <a href="{% url 'site_login' %}" class="hover:text-cyan transition-colors">{% trans "Login" %}</a>
-                    <a href="{% url 'site_register' %}" class="hover:text-cyan transition-colors">{% trans "Create Account" %}</a>
+            <p class="text-sm text-slate-500 leading-relaxed mb-8">
+              {% trans "The leading platform for digital services and automated recharge cards. We aim to provide the best user experience with the highest standards of security and speed." %}
+            </p>
+            <div class="flex gap-4">
+                {% for link in SOCIAL_LINKS %}
+                <a href="{{ link.url }}" class="social-icon-btn" title="{{ link.name }}">
+                    {% if link.icon_image %}
+                    <img src="{{ link.icon_image.url }}" alt="{{ link.name }}" style="width: 20px; height: 20px;">
                     {% else %}
-                    <a href="{% url 'dashboard' %}" class="hover:text-cyan transition-colors">{% trans "Dashboard" %}</a>
-                    <a href="{% url 'dashboard_orders' %}" class="hover:text-cyan transition-colors">{% trans "My Orders" %}</a>
+                    <i class="{{ link.icon_class|default:'fas fa-link' }}"></i>
                     {% endif %}
-                </div>
+                </a>
+                {% endfor %}
             </div>
+          </div>
 
-            <div>
-                <h4 class="font-black text-xs uppercase tracking-widest text-white mb-6">{% trans "Support & Privacy" %}</h4>
-                <div class="stack gap-4 text-sm text-slate-500">
-                    <a href="{% url 'privacy_policy' %}" class="hover:text-cyan transition-colors">{% trans "Privacy Policy" %}</a>
-                    <a href="{% url 'terms_of_service' %}" class="hover:text-cyan transition-colors">{% trans "Terms of Service" %}</a>
-                    <a href="{% url 'refund_policy' %}" class="hover:text-cyan transition-colors">{% trans "Refund Policy" %}</a>
-                    <a href="{% url 'contact' %}" class="hover:text-cyan transition-colors">{% trans "Contact Us" %}</a>
-                </div>
-            </div>
+          <div class="footer-links">
+            <h4>{% trans "Important Links" %}</h4>
+            <ul>
+              <li><a href="{% url 'catalog' %}">{% trans "All Services" %}</a></li>
+              <li><a href="{% url 'chat_list' %}">{% trans "Direct Support" %}</a></li>
+              <li><a href="{% url 'home' %}#how-it-works">{% trans "How to Buy" %}</a></li>
+            </ul>
+          </div>
+
+          <div class="footer-links">
+            <h4>{% trans "Legal" %}</h4>
+            <ul>
+              <li><a href="{% url 'terms_of_service' %}">{% trans "Terms of Service" %}</a></li>
+              <li><a href="{% url 'privacy_policy' %}">{% trans "Privacy Policy" %}</a></li>
+              <li><a href="{% url 'refund_policy' %}">{% trans "Refund Policy" %}</a></li>
+            </ul>
+          </div>
         </div>
-        
-        <div class="flex flex-col md:row justify-between items-center pt-10 border-t border-white/5 gap-4">
-            <div class="text-[10px] text-slate-600 font-bold tracking-wider">© 2026 RAQAMIYAT LTD. ALL RIGHTS RESERVED.</div>
-            <div class="flex items-center gap-6 opacity-30 grayscale hover:opacity-100 hover:grayscale-0 transition-all">
-                <i class="fab fa-cc-visa text-2xl"></i>
-                <i class="fab fa-cc-mastercard text-2xl"></i>
-                <i class="fab fa-cc-paypal text-2xl"></i>
+
+        <div class="footer-bottom">
+            <div class="text-[10px] text-slate-600 font-bold tracking-wider">© 2026 RAQAMIYAT LTD. {% trans "ALL RIGHTS RESERVED." %}</div>
+            <div class="flex gap-6 mt-4 sm:mt-0">
+                <img src="{% static 'site/img/payment-icons.png' %}" alt="Payments" class="h-5 opacity-30 grayscale hover:grayscale-0 transition-all">
             </div>
         </div>
       </div>
     </footer>
   </div>
 
-  <!-- Mobile Nav Bar -->
-  <div class="mobile-nav-bar">
-      <a href="{% url 'home' %}" class="mobile-nav-item {% if request.resolver_match.url_name == 'home' %}active{% endif %}">
-          <i class="fas fa-house"></i>
-          <span>{% trans "Home" %}</span>
-      </a>
-      <a href="{% url 'catalog' %}" class="mobile-nav-item {% if request.resolver_match.url_name == 'catalog' %}active{% endif %}">
-          <i class="fas fa-grid-2"></i>
-          <span>{% trans "Services" %}</span>
-      </a>
-      <a href="{% url 'dashboard_wallet' %}" class="mobile-nav-item {% if request.resolver_match.url_name == 'dashboard_wallet' %}active{% endif %}">
-          <i class="fas fa-wallet"></i>
-          <span>{% trans "Wallet" %}</span>
-      </a>
-      <a href="{% url 'chat_list' %}" class="mobile-nav-item {% if 'chat' in request.path %}active{% endif %}">
-          <i class="fas fa-headset"></i>
-          <span>{% trans "Support" %}</span>
-      </a>
-      <a href="{% url 'dashboard' %}" class="mobile-nav-item {% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}">
-          <i class="fas fa-user"></i>
-          <span>{% trans "My Account" %}</span>
-      </a>
-  </div>
-
   <script>
-      window.isUserAuthenticated = {% if user.is_authenticated %}true{% else %}false{% endif %};
-      window.VAPID_PUBLIC_KEY = "{{ VAPID_PUBLIC_KEY }}";
-
       function toggleDrawer() {
           const drawer = document.getElementById('mobile-drawer');
           const overlay = document.getElementById('drawer-overlay');
@@ -413,8 +379,6 @@
           document.body.style.overflow = drawer.classList.contains('open') ? 'hidden' : '';
       }
   </script>
-  <script src="{% static 'site/js/app.js' %}?v=3"></script>
-  <script src="{% static 'site/js/push.js' %}?v=2"></script>
   {% block extra_js %}{% endblock %}
 </body>
 </html>
