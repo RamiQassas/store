@@ -150,10 +150,26 @@ AUTH_PASSWORD_VALIDATORS = [
     {"NAME": "django.contrib.auth.password_validation.NumericPasswordValidator"},
 ]
 
+from django.utils.translation import gettext_lazy as _
+
 LANGUAGE_CODE = "ar"
 TIME_ZONE = "Asia/Damascus"
 USE_I18N = True
 USE_TZ = True
+
+LANGUAGES = [
+    ("ar", _("Arabic")),
+    ("en", _("English")),
+    ("tr", _("Turkish")),
+    ("fr", _("French")),
+    ("es", _("Spanish")),
+    ("ru", _("Russian")),
+    ("zh-hans", _("Chinese")),
+]
+
+LOCALE_PATHS = [
+    BASE_DIR / "locale",
+]
 
 STATIC_URL = "/static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"

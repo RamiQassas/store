@@ -1,6 +1,8 @@
-{% load static site_tags %}
+{% load i18n static site_tags %}
+{% get_current_language as LANGUAGE_CODE %}
+{% get_current_language_bidi as LANGUAGE_BIDI %}
 <!DOCTYPE html>
-<html lang="ar" dir="rtl">
+<html lang="{{ LANGUAGE_CODE }}" dir="{% if LANGUAGE_BIDI %}rtl{% else %}ltr{% endif %}">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
@@ -149,6 +151,19 @@
           <i class="fas fa-bolt text-cyan"></i> <span>RAQAMIYAT</span>
       </a>
       <div class="flex items-center gap-3">
+          <form action="{% url 'set_language' %}" method="post" class="flex items-center">
+              {% csrf_token %}
+              <input name="next" type="hidden" value="{{ request.get_full_path }}">
+              <select name="language" class="text-[9px] bg-white/5 border-none rounded p-1 text-slate-400 font-bold cursor-pointer uppercase" onchange="this.form.submit()">
+                  {% get_available_languages as LANGUAGES %}
+                  {% get_language_info_list for LANGUAGES as languages %}
+                  {% for language in languages %}
+                      <option value="{{ language.code }}" {% if language.code == LANGUAGE_CODE %}selected{% endif %}>
+                          {{ language.code }}
+                      </option>
+                  {% endfor %}
+              </select>
+          </form>
           {% if user.is_authenticated %}
           <a href="{% url 'dashboard_wallet' %}" class="text-cyan font-black text-xs">{% currency_format user.wallet.available_balance user.wallet.currency %}</a>
           {% else %}
@@ -249,11 +264,27 @@
 
         <div class="actions">
           <div class="flex items-center gap-2 ml-4">
+              <!-- Currency Switcher -->
               <select class="text-[10px] bg-slate-800 border-none rounded p-1 text-slate-400 font-bold cursor-pointer" onchange="location.href='{% url 'set_currency' %}?currency=' + this.value">
                   {% for c in ALL_CURRENCIES %}
                   <option value="{{ c.id }}" {% if c.id == CURRENCY.id %}selected{% endif %}>{{ c.code }}</option>
                   {% endfor %}
               </select>
+
+              <!-- Language Switcher -->
+              <form action="{% url 'set_language' %}" method="post" class="flex items-center">
+                  {% csrf_token %}
+                  <input name="next" type="hidden" value="{{ request.get_full_path }}">
+                  <select name="language" class="text-[10px] bg-slate-800 border-none rounded p-1 text-slate-400 font-bold cursor-pointer uppercase" onchange="this.form.submit()">
+                      {% get_available_languages as LANGUAGES %}
+                      {% get_language_info_list for LANGUAGES as languages %}
+                      {% for language in languages %}
+                          <option value="{{ language.code }}" {% if language.code == LANGUAGE_CODE %}selected{% endif %}>
+                              {{ language.code }}
+                          </option>
+                      {% endfor %}
+                  </select>
+              </form>
           </div>
           {% if user.is_authenticated %}
             <div class="flex items-center gap-4">
