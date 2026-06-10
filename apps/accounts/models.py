@@ -1,52 +1,60 @@
+from django.contrib.auth.models import AbstractUser
 from django.db import models
 from django.utils import timezone
-from decimal import Decimal
 import uuid
-from django.contrib.auth.models import AbstractUser, BaseUserManager
+from decimal import Decimal
+
+from apps.accounts.managers import UserManager
 from apps.common.models import TimeStampedModel
 from apps.common.countries import COUNTRIES
 
-class UserRole(models.TextChoices):
-    CUSTOMER = "customer", "عميل"
-    SUPPORT = "support", "دعم فني"
-    FINANCE = "finance", "محاسب"
-    ADMIN = "admin", "مدير"
-
-class UserStatus(models.TextChoices):
-    ACTIVE = "active", "نشط"
-    SUSPENDED = "suspended", "موقوف"
-    BANNED = "banned", "محظور"
-
-class UserTier(models.TextChoices):
-    STANDARD = "standard", "عادي"
-    WHOLESALE = "wholesale", "جملة"
-    VIP = "vip", "VIP"
 
 class User(AbstractUser):
-    Role = UserRole
-    Status = UserStatus
-    Tier = UserTier
+    class Role(models.TextChoices):
+        SUPER_ADMIN = "super_admin", "مدير عام"
+        ADMIN = "admin", "مدير"
+        MODERATOR = "moderator", "مشرف"
+        FINANCE = "finance", "مالية"
+        SUPPORT = "support", "دعم"
+        EMPLOYEE = "employee", "موظف"
+        VERIFIED_MERCHANT = "verified_merchant", "تاجر معتمد"
+        CUSTOMER = "customer", "عميل"
 
-    role = models.CharField(max_length=20, choices=UserRole.choices, default=UserRole.CUSTOMER, verbose_name="الدور")
-    status = models.CharField(max_length=20, choices=UserStatus.choices, default=UserStatus.ACTIVE, verbose_name="الحالة")
-    tier = models.CharField(max_length=20, choices=UserTier.choices, default=UserTier.STANDARD, verbose_name="الفئة")
+    class Status(models.TextChoices):
+        ACTIVE = "active", "نشط"
+        SUSPENDED = "suspended", "موقوف مؤقتاً"
+        FROZEN = "frozen", "مجمد"
+        RESTRICTED = "restricted", "مقيد"
+        UNDER_REVIEW = "under_review", "قيد المراجعة"
+        BANNED = "banned", "محظور نهائياً"
+
+    class Tier(models.TextChoices):
+        CUSTOMER = "customer", "عميل"
+        DEALER = "dealer", "تاجر معتمد"
+        VIP = "vip", "VIP"
+
+    username = models.CharField(max_length=150, blank=True)
+    email = models.EmailField(unique=True)
+    phone = models.CharField(max_length=32, blank=True)
+    role = models.CharField(max_length=32, choices=Role.choices, default=Role.CUSTOMER)
     
-    phone = models.CharField(max_length=32, unique=True, null=True, blank=True, verbose_name="رقم الهاتف")
-    admin_notes = models.TextField(blank=True, verbose_name="ملاحظات المدير")
-    suspension_reason = models.TextField(blank=True, verbose_name="سبب الإيقاف")
-    suspension_expires_at = models.DateTimeField(null=True, blank=True, verbose_name="تاريخ انتهاء الإيقاف")
-    is_permanently_suspended = models.BooleanField(default=False, verbose_name="إيقاف نهائي")
+    # Tiers
+    tier = models.CharField(max_length=20, choices=Tier.choices, default=Tier.CUSTOMER, verbose_name="الفئة")
     
-    last_limit_reset = models.DateTimeField(default=timezone.now)
-    daily_deposit_limit = models.DecimalField(max_digits=14, decimal_places=2, default=Decimal("100.00"))
-    daily_deposit_usage = models.DecimalField(max_digits=14, decimal_places=2, default=Decimal("0.00"))
-    daily_withdrawal_limit = models.DecimalField(max_digits=14, decimal_places=2, default=Decimal("100.00"))
-    daily_withdrawal_usage = models.DecimalField(max_digits=14, decimal_places=2, default=Decimal("0.00"))
-    
+    # Account Status & Moderation
+    status = models.CharField(max_length=32, choices=Status.choices, default=Status.ACTIVE, verbose_name="حالة الحساب")
     restriction_withdrawals = models.BooleanField(default=False, verbose_name="تقييد السحب")
     restriction_deposits = models.BooleanField(default=False, verbose_name="تقييد الإيداع")
     restriction_purchases = models.BooleanField(default=False, verbose_name="تقييد الشراء")
     
+    suspension_reason = models.TextField(blank=True, verbose_name="سبب الإيقاف (للمستخدم)")
+    admin_notes = models.TextField(blank=True, verbose_name="ملاحظات المشرف (داخلية)")
+    suspension_expires_at = models.DateTimeField(null=True, blank=True, verbose_name="تاريخ انتهاء الإيقاف")
+    is_permanently_suspended = models.BooleanField(default=False, verbose_name="إيقاف نهائي")
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
     public_uuid = models.UUIDField(default=uuid.uuid4, editable=False, unique=True)
     preferred_currency = models.ForeignKey("common.Currency", on_delete=models.SET_NULL, null=True, blank=True, verbose_name="العملة المفضلة")
     preferred_language = models.CharField(max_length=10, default="ar", verbose_name="اللغة المفضلة")
@@ -57,11 +65,38 @@ class User(AbstractUser):
     # KYC & Limits
     is_kyc_verified = models.BooleanField(default=False, verbose_name="موثق الهوية")
     has_custom_limits = models.BooleanField(default=False, verbose_name="له حدود مخصصة")
+    daily_deposit_limit = models.DecimalField(max_digits=14, decimal_places=2, default=Decimal("100.00"), verbose_name="حد الإيداع اليومي")
+    daily_withdrawal_limit = models.DecimalField(max_digits=14, decimal_places=2, default=Decimal("100.00"), verbose_name="حد السحب اليومي")
+    
+    # Per-payment method custom limits for this user
+    # Format: {"method_id": {"deposit": 500, "withdraw": 500}}
+    custom_payment_limits = models.JSONField(default=dict, blank=True, verbose_name="حدود وسائل الدفع المخصصة")
 
-    updated_at = models.DateTimeField(auto_now=True)
-    created_at = models.DateTimeField(auto_now_add=True)
+    # Tracking daily usage
+    daily_deposit_usage = models.DecimalField(max_digits=14, decimal_places=2, default=Decimal("0.00"))
+    daily_withdrawal_usage = models.DecimalField(max_digits=14, decimal_places=2, default=Decimal("0.00"))
+    last_limit_reset = models.DateTimeField(default=timezone.now)
+
+    USERNAME_FIELD = "email"
+    REQUIRED_FIELDS = []
+    objects = UserManager()
+
+    class Meta:
+        indexes = [
+            models.Index(fields=["email"]),
+            models.Index(fields=["role"]),
+            models.Index(fields=["status"]),
+            models.Index(fields=["tier"]),
+        ]
+        verbose_name = "مستخدم"
+        verbose_name_plural = "المستخدمون"
+
+    def __str__(self):
+        full_name = self.get_full_name()
+        return full_name if full_name else self.email
 
     def reset_daily_limits_if_needed(self):
+        """Resets daily usage if 24 hours have passed since last reset."""
         now = timezone.now()
         if (now - self.last_limit_reset).days >= 1 or self.last_limit_reset.date() < now.date():
             self.daily_deposit_usage = Decimal("0.00")
@@ -218,16 +253,6 @@ class KYCRequest(TimeStampedModel):
 
     def __str__(self):
         return f"KYC: {self.user.email} ({self.get_status_display()})"
-
-
-class TemporaryKYCImage(TimeStampedModel):
-    session_key = models.CharField(max_length=40, db_index=True)
-    image_type = models.CharField(max_length=20, choices=[('front', 'Front'), ('back', 'Back'), ('selfie', 'Selfie')])
-    file = models.ImageField(upload_to="kyc/temp/")
-    
-    class Meta:
-        verbose_name = "صورة توثيق مؤقتة"
-        verbose_name_plural = "صور توثيق مؤقتة"
 
 
 class KYCSettings(TimeStampedModel):

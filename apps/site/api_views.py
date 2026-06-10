@@ -197,43 +197,6 @@ def api_order_mark_read(request, pk):
     order.save(update_fields=["is_delivery_read"])
     return Response({"status": "success"})
 
-
-@api_view(["GET"])
-@permission_classes([permissions.IsAuthenticated])
-def api_kyc_check_id(request):
-    id_number = request.GET.get("id_number", "").strip()
-    if not id_number:
-        return Response({"exists": False})
-    
-    from apps.accounts.models import KYCRequest
-    exists = KYCRequest.objects.filter(id_number__iexact=id_number).exclude(user=request.user).exists()
-    return Response({"exists": exists})
-
-
-@api_view(["POST"])
-@permission_classes([permissions.IsAuthenticated])
-def api_kyc_temp_upload(request):
-    image_type = request.data.get("image_type")
-    image_file = request.FILES.get("file")
-    
-    if not image_type or not image_file:
-        return Response({"detail": "بيانات ناقصة"}, status=400)
-    
-    if image_type not in ['front', 'back', 'selfie']:
-        return Response({"detail": "نوع صورة غير معروف"}, status=400)
-
-    from apps.accounts.models import TemporaryKYCImage
-    # Remove previous temp image of same type for this session
-    TemporaryKYCImage.objects.filter(session_key=request.session.session_key, image_type=image_type).delete()
-    
-    temp = TemporaryKYCImage.objects.create(
-        session_key=request.session.session_key,
-        image_type=image_type,
-        file=image_file
-    )
-    
-    return Response({"status": "success", "url": temp.file.url})
-
 @api_view(["POST"])
 @permission_classes([IsFinanceManager])
 def api_withdrawal_reject(request, pk):

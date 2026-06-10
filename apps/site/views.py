@@ -589,36 +589,17 @@ def kyc_request_view(request):
         except: pass
 
     initial_data = {"nationality": default_country, "issuing_country": default_country} if not existing else None
-
-    # Check for temporary images in session
-    from apps.accounts.models import TemporaryKYCImage
-    temp_images = TemporaryKYCImage.objects.filter(session_key=request.session.session_key)
-    temp_previews = {t.image_type: t.file.url for t in temp_images}
-
-    form = KYCRequestForm(request.POST or None, request.FILES or None,
+    form = KYCRequestForm(request.POST or None, request.FILES or None, 
                           instance=existing if existing and existing.status == KYCRequest.Status.REJECTED else None,
                           initial=initial_data, is_admin=False)
+    
     if request.method == "POST" and form.is_valid():
         if existing and existing.status in [KYCRequest.Status.PENDING, KYCRequest.Status.APPROVED]:
             messages.error(request, "طلب قيد المعالجة.")
             return redirect("dashboard")
-
+            
         kyc = form.save(commit=False)
-
-        # Check for temporary images if files were not explicitly uploaded in this POST
-        from apps.accounts.models import TemporaryKYCImage
-        temp_images = TemporaryKYCImage.objects.filter(session_key=request.session.session_key)
-
-        # Mapping temp files to model fields
-        field_map = {'front': 'identity_front', 'back': 'identity_back', 'selfie': 'selfie_verification'}
-        for temp in temp_images:
-            field_name = field_map.get(temp.image_type)
-            if field_name and not getattr(kyc, field_name):
-                # Copy the file from temp to final
-                setattr(kyc, field_name, temp.file)
-
         blocked = False
-
         if settings_obj.restricted_countries:
             if (settings_obj.block_by_nationality and kyc.nationality in settings_obj.restricted_countries) or \
                (settings_obj.block_by_issuing_country and kyc.issuing_country in settings_obj.restricted_countries):
@@ -631,9 +612,6 @@ def kyc_request_view(request):
         kyc.user = request.user
         kyc.status = KYCRequest.Status.PENDING
         kyc.save()
-        
-        # Clean up temporary images
-        TemporaryKYCImage.objects.filter(session_key=request.session.session_key).delete()
 
         from apps.notifications.services import notify_staff
         notify_staff(
@@ -644,10 +622,10 @@ def kyc_request_view(request):
 
         messages.success(request, "تم تقديم الطلب.")
         return redirect("dashboard")
-
+        
     return render(request, "site/v3/v3_kyc_form.html", {
         "form": form, "kyc_status": kyc_status, "kyc_rejection_reason": kyc_rejection_reason,
-        "temp_previews": temp_previews
+        "restricted_countries": settings_obj.restricted_countries, "all_countries": COUNTRIES
     })
 
 
