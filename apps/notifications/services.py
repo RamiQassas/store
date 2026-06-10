@@ -5,13 +5,14 @@ from pywebpush import webpush, WebPushException
 from django.conf import settings
 from django.utils import timezone
 from django.db import models
+from django.utils.encoding import force_str
 from apps.notifications.models import Notification, NotificationSetting, PushSubscription
 
 logger = logging.getLogger(__name__)
 
 def generate_deduplication_hash(user_id, title, body, metadata):
     """Generates a unique hash for a notification to prevent spam within a short window."""
-    raw_str = f"{user_id}:{title}:{body}:{json.dumps(metadata or {}, sort_keys=True)}"
+    raw_str = f"{user_id}:{title}:{body}:{json.dumps(metadata or {}, sort_keys=True, default=force_str)}"
     return hashlib.md5(raw_str.encode()).hexdigest()
 
 def send_web_push(subscription, payload):
@@ -25,7 +26,7 @@ def send_web_push(subscription, payload):
                     "auth": subscription.auth
                 }
             },
-            data=json.dumps(payload),
+            data=json.dumps(payload, default=force_str),
             vapid_private_key=settings.VAPID_PRIVATE_KEY,
             vapid_claims={
                 "sub": f"mailto:{settings.VAPID_ADMIN_EMAIL}"

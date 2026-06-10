@@ -10,11 +10,15 @@ class WalletError(Exception):
 
 def json_serialize_safe(data):
     if not data: return {}
+    from django.utils.encoding import force_str
     class CustomEncoder(json.JSONEncoder):
         def default(self, obj):
             if isinstance(obj, Decimal): return str(obj)
             if hasattr(obj, 'hex'): return str(obj) # UUID
-            return super().default(obj)
+            try:
+                return super().default(obj)
+            except TypeError:
+                return force_str(obj)
     return json.loads(json.dumps(data, cls=CustomEncoder))
 
 def credit_wallet(wallet_id, amount, reference="", description="", created_by=None, metadata=None, source="system", reason=""):

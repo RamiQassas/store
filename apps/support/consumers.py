@@ -2,6 +2,7 @@ import json
 from channels.generic.websocket import AsyncWebsocketConsumer
 from channels.db import database_sync_to_async
 from django.utils import timezone
+from django.utils.encoding import force_str
 from apps.support.models import ChatRoom, ChatMessage
 from django.contrib.auth import get_user_model
 
@@ -89,10 +90,10 @@ class SupportConsumer(AsyncWebsocketConsumer):
             )
 
     async def chat_message(self, event):
-        await self.send(text_data=json.dumps(event))
+        await self.send(text_data=json.dumps(event, default=force_str))
 
     async def chat_typing(self, event):
-        await self.send(text_data=json.dumps(event))
+        await self.send(text_data=json.dumps(event, default=force_str))
 
     @database_sync_to_async
     def is_user_in_support_group(self):
