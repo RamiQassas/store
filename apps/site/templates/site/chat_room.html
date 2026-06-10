@@ -93,6 +93,9 @@
         box-shadow: 0 4px 15px rgba(0,0,0,0.1);
         width: fit-content;
         max-width: 100%;
+        word-wrap: break-word; /* Fix long text break */
+        overflow-wrap: break-word;
+        white-space: pre-wrap;
     }
 
     .sent .bubble {
@@ -544,5 +547,10 @@
 
     // Start
     connect();
+    
+    // Request notification permission
+    if ('Notification' in window && Notification.permission !== 'granted') {
+        Notification.requestPermission();
+    }
 </script>
 {% endblock %}
