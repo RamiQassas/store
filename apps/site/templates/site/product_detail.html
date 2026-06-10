@@ -132,16 +132,22 @@
                     <div class="field-group">
                         <label>{{ f.label }} {% if f.required %}<span class="text-danger">*</span>{% endif %}</label>
                         {% if f.type == 'textarea' %}
-                        <textarea name="custom_{{ f.name|default:f.label|slugify|replace:'.','-' }}" placeholder="{{ f.placeholder }}" {% if f.required %}required{% endif %}></textarea>
+                        <textarea name="custom_{{ f.name|default:f.label|slugify|replace:".,-" }}" placeholder="{{ f.placeholder }}" {% if f.required %}required{% endif %}></textarea>
                         {% elif f.options %}
-                        <select name="custom_{{ f.name|default:f.label|slugify|replace:'.','-' }}" class="builder-input" {% if f.required %}required{% endif %}>
+                        <select name="custom_{{ f.name|default:f.label|slugify|replace:".,-" }}" class="builder-input" {% if f.required %}required{% endif %}>
                             <option value="">-- اختر من القائمة --</option>
-                            {% for opt in f.options|split:"," %}
-                            <option value="{{ opt|trim }}">{{ opt|trim }}</option>
-                            {% endfor %}
+                            {% if f.options|is_list %}
+                                {% for opt in f.options %}
+                                <option value="{{ opt|trim }}">{{ opt|trim }}</option>
+                                {% endfor %}
+                            {% else %}
+                                {% for opt in f.options|split:"," %}
+                                <option value="{{ opt|trim }}">{{ opt|trim }}</option>
+                                {% endfor %}
+                            {% endif %}
                         </select>
                         {% else %}
-                        <input type="text" name="custom_{{ f.name|default:f.label|slugify|replace:'.','-' }}" placeholder="{{ f.placeholder }}" {% if f.required %}required{% endif %}>
+                        <input type="text" name="custom_{{ f.name|default:f.label|slugify|replace:".,-" }}" placeholder="{{ f.placeholder }}" {% if f.required %}required{% endif %}>
                         {% endif %}
                     </div>
                     {% endfor %}

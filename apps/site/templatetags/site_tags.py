@@ -80,7 +80,13 @@ def split(value, arg):
 
 @register.filter
 def trim(value):
+    if not isinstance(value, str):
+        return value
     return value.strip()
+
+@register.filter
+def is_list(value):
+    return isinstance(value, list)
 
 @register.filter
 def replace(value, args):

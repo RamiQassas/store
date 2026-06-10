@@ -20,7 +20,7 @@
             <form method="post" class="stack gap-6">
                 {% csrf_token %}
                 
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
                     <div class="field-group">
                         <label class="info-label">كود الكوبون</label>
                         {{ form.code }}
@@ -30,6 +30,11 @@
                         <label class="info-label">نسبة الخصم (%)</label>
                         {{ form.discount_percent }}
                         {% if form.discount_percent.errors %}<p class="text-rose-500 text-[10px] mt-1">{{ form.discount_percent.errors.0 }}</p>{% endif %}
+                    </div>
+                    <div class="field-group">
+                        <label class="info-label">أو خصم بمبلغ ثابت (USD)</label>
+                        {{ form.discount_amount }}
+                        {% if form.discount_amount.errors %}<p class="text-rose-500 text-[10px] mt-1">{{ form.discount_amount.errors.0 }}</p>{% endif %}
                     </div>
                 </div>
 

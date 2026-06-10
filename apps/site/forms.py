@@ -355,7 +355,7 @@ class CouponForm(forms.ModelForm):
     class Meta:
         model = Coupon
         fields = [
-            "code", "discount_percent", "max_uses", "max_uses_per_user",
+            "code", "discount_percent", "discount_amount", "max_uses", "max_uses_per_user",
             "is_active", "is_verified_only", "expires_at",
             "limit_to_product", "apply_to_all_products"
         ]

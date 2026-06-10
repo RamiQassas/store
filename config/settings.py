@@ -155,6 +155,14 @@ TIME_ZONE = "Asia/Damascus"
 USE_I18N = True
 USE_TZ = True
 
+DATETIME_INPUT_FORMATS = [
+    '%Y-%m-%dT%H:%M:%S',
+    '%Y-%m-%dT%H:%M',
+    '%Y-%m-%d %H:%M:%S',
+    '%Y-%m-%d %H:%M',
+    '%Y-%m-%d',
+]
+
 STATIC_URL = "/static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"
 
