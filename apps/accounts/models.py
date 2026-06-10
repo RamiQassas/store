@@ -1,6 +1,7 @@
 from django.contrib.auth.models import AbstractUser
 from django.db import models
 from django.utils import timezone
+from django.conf import settings
 import uuid
 from decimal import Decimal
 
@@ -57,6 +58,7 @@ class User(AbstractUser):
 
     public_uuid = models.UUIDField(default=uuid.uuid4, editable=False, unique=True)
     preferred_currency = models.ForeignKey("common.Currency", on_delete=models.SET_NULL, null=True, blank=True, verbose_name="العملة المفضلة")
+    preferred_language = models.CharField(max_length=10, choices=settings.LANGUAGES, default=settings.LANGUAGE_CODE, verbose_name="اللغة المفضلة")
     email_verified = models.BooleanField(default=False)
     two_factor_enabled = models.BooleanField(default=False)
 

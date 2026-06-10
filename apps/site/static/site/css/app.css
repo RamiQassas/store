@@ -279,7 +279,7 @@ input:focus, select:focus, textarea:focus { border-color: var(--cyan); box-shado
 .rounded-full { border-radius: 999px; }
 .border { border: 1px solid var(--panel-border); }
 .border-t { border-top: 1px solid var(--panel-border); }
-.border-r-4 { border-right: 4px solid; }
+.border-r-4 { border-inline-end: 4px solid; }
 .border-dashed { border-style: dashed; }
 .object-cover { object-fit: cover; }
 .object-contain { object-fit: contain; }
@@ -510,7 +510,7 @@ textarea { min-height: 120px; resize: vertical; }
 }
 .admin-sidebar {
   background: rgba(11, 17, 16, .96) !important;
-  border-left-color: rgba(226, 232, 240, .1) !important;
+  border-inline-start-color: rgba(226, 232, 240, .1) !important;
 }
 .admin-main {
   padding: 1.25rem !important;
@@ -544,7 +544,7 @@ textarea { min-height: 120px; resize: vertical; }
     padding-bottom: 88px !important;
   }
   .mobile-drawer {
-    border-left: 1px solid rgba(226, 232, 240, .1);
+    border-inline-start: 1px solid rgba(226, 232, 240, .1);
     background: #0b1110 !important;
   }
   .catalog-wrapper,

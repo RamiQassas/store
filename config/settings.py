@@ -83,6 +83,7 @@ MIDDLEWARE = [
 
     "corsheaders.middleware.CorsMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
+    "apps.site.middleware.UserLanguageMiddleware",
     "django.middleware.locale.LocaleMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
@@ -170,6 +171,12 @@ LANGUAGES = [
 LOCALE_PATHS = [
     BASE_DIR / "locale",
 ]
+
+LANGUAGE_COOKIE_NAME = "raqamiyat_language"
+LANGUAGE_COOKIE_AGE = 31536000  # 1 year
+LANGUAGE_COOKIE_PATH = "/"
+LANGUAGE_COOKIE_SECURE = not DEBUG
+LANGUAGE_COOKIE_SAMESITE = "Lax"
 
 STATIC_URL = "/static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"

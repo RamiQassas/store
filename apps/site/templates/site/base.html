@@ -36,7 +36,7 @@
     .mobile-drawer {
         position: fixed;
         top: 0;
-        right: -100%;
+        inset-inline-end: -100%;
         width: 85%;
         max-width: 320px;
         height: 100vh;
@@ -49,7 +49,7 @@
         flex-direction: column;
     }
 
-    .mobile-drawer.open { right: 0; }
+    .mobile-drawer.open { inset-inline-end: 0; }
 
     .drawer-overlay {
         position: fixed;
@@ -81,8 +81,8 @@
     .mobile-nav-bar {
         position: fixed;
         bottom: 0;
-        left: 0;
-        right: 0;
+        inset-inline-start: 0;
+        inset-inline-end: 0;
         height: 65px;
         background: #0f172a;
         border-top: 1px solid var(--panel-border);
@@ -153,7 +153,7 @@
       <div class="flex items-center gap-3">
           <form action="{% url 'set_language' %}" method="post" id="lang-form-mobile" class="flex items-center m-0">
               {% csrf_token %}
-              <input name="next" type="hidden" value="/">
+              <input name="next" type="hidden" value="{{ request.get_full_path }}">
               <select name="language" class="text-[9px] bg-white/5 border-none rounded p-1 text-slate-400 font-bold cursor-pointer uppercase appearance-none px-2" onchange="this.form.submit()">
                   {% get_available_languages as LANGUAGES %}
                   {% get_language_info_list for LANGUAGES as languages %}
@@ -275,7 +275,7 @@
               <div class="relative group">
                   <form action="{% url 'set_language' %}" method="post" id="lang-form-desktop" class="flex items-center m-0">
                       {% csrf_token %}
-                      <input name="next" type="hidden" value="/">
+                      <input name="next" type="hidden" value="{{ request.get_full_path }}">
                       <select name="language" class="text-[10px] bg-slate-800 border-none rounded p-1 text-slate-400 font-bold cursor-pointer uppercase appearance-none px-2" onchange="this.form.submit()">
                           {% get_available_languages as LANGUAGES %}
                           {% get_language_info_list for LANGUAGES as languages %}

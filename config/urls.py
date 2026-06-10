@@ -39,7 +39,10 @@ def health(request):
 
 from django.conf.urls.i18n import i18n_patterns
 
+from apps.site.views_i18n import custom_set_language
+
 urlpatterns = [
+    path("i18n/setlang/", custom_set_language, name="set_language"),
     path("i18n/", include("django.conf.urls.i18n")),
 ]
 
