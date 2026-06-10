@@ -122,14 +122,21 @@ def create_chat(request):
         request.session['support_chat_room_id'] = str(room.id)
         user_label = f"الزائر {guest_name} ({str(room.id)[:8]})"
 
-    # Auto-add welcome message if one is defined in canned replies
+    # Auto-add welcome message (Admin Configurable via Canned Replies)
     from apps.accounts.models import User
     welcome_reply = ChatCannedReply.objects.filter(title__icontains="ترحيب", is_active=True).first()
-    if welcome_reply:
+    
+    # Fallback to a default if no canned reply with 'ترحيب' exists
+    welcome_text = welcome_reply.body if welcome_reply else "مرحباً بك! كيف يمكننا مساعدتك اليوم؟"
+    
+    # Get a staff/admin user to be the sender of the welcome message
+    welcome_sender = User.objects.filter(is_superuser=True).first() or User.objects.filter(is_staff=True).first()
+    
+    if welcome_sender:
         ChatMessage.objects.create(
             room=room,
-            sender=User.objects.filter(is_superuser=True).first() or room.user,
-            text=welcome_reply.body,
+            sender=welcome_sender,
+            text=welcome_text,
             is_staff_reply=True
         )
     

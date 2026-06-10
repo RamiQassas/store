@@ -249,11 +249,16 @@
                             الدعم المباشر
                         {% endif %}
                     </h2>
-                    <div id="connection-status">
-                        {% if user.is_staff and room.staff_notes %}
-                            <span class="text-[10px] text-cyan font-bold">{{ room.staff_notes|linebreaksbr }}</span>
-                        {% else %}
+                    <div class="flex flex-col gap-0.5">
+                        <div id="connection-status">
                             <span class="text-muted text-[10px] uppercase tracking-widest">تشفير تام بين الطرفين</span>
+                        </div>
+                        {% if user.is_staff and room.staff_notes %}
+                            <div class="visitor-info mt-1">
+                                <span class="text-[10px] text-cyan font-bold bg-cyan/5 px-2 py-0.5 rounded-full border border-cyan/10">
+                                    <i class="fas fa-info-circle ml-1"></i> {{ room.staff_notes|linebreaksbr }}
+                                </span>
+                            </div>
                         {% endif %}
                     </div>
                 </div>
@@ -273,7 +278,7 @@
         <!-- Messages scrollable area -->
         <div class="chat-messages" id="chat-messages">
             {% for msg in chat_messages %}
-            <div class="msg-group {% if user == msg.sender %}sent{% else %}received{% endif %}">
+            <div class="msg-group {% if user.is_authenticated %}{% if user == msg.sender %}sent{% else %}received{% endif %}{% else %}{% if not msg.is_staff_reply %}sent{% else %}received{% endif %}{% endif %}">
                 {% if msg.file %}
                 <div class="attachment-card" onclick="zoomImage('{{ msg.file.url }}')">
                     {% if msg.is_image %}
