@@ -273,8 +273,13 @@
         <!-- Messages scrollable area -->
         <div class="chat-messages" id="chat-messages">
             {% for msg in chat_messages %}
-            {% with sender_email=msg.sender.email %}
-            <div class="msg-group {% if user.is_authenticated and sender_email == user.email %}received{% elif not user.is_authenticated and sender_email != "guest@raqamiyat.com" %}sent{% else %}received{% endif %}">
+            {% if user.is_staff %}
+                {% if msg.is_staff_reply %}{% define "sent" as side %}{% else %}{% define "received" as side %}{% endif %}
+            {% else %}
+                {% if msg.is_staff_reply %}{% define "received" as side %}{% else %}{% define "sent" as side %}{% endif %}
+            {% endif %}
+            
+            <div class="msg-group {{ side }}">
                 {% if msg.file %}
                 <div class="attachment-card" onclick="zoomImage('{{ msg.file.url }}')">
                     {% if msg.is_image %}
@@ -296,12 +301,11 @@
                 
                 <div class="msg-meta">
                     <span class="font-bold">
-                        {% if msg.is_staff_reply %}الدعم الفني{% elif "زائر:" in room.subject %}{{ room.subject|slice:"15:" }}{% else %}{{ msg.sender.get_full_name|default:msg.sender.email }}{% endif %}
+                        {% if msg.is_staff_reply %}الدعم الفني{% else %}{% if "زائر:" in room.subject %}{{ room.subject|split:" - زائر: "|last }}{% else %}{{ msg.sender.get_full_name|default:msg.sender.email }}{% endif %}{% endif %}
                     </span>
                     <span>{{ msg.created_at|date:"H:i" }}</span>
                 </div>
             </div>
-            {% endwith %}
             {% empty %}
             <div class="my-auto text-center p-12">
                 <div class="w-20 h-20 bg-slate-800/50 rounded-full flex items-center justify-center mx-auto mb-6 text-cyan opacity-20">
@@ -321,6 +325,17 @@
 
         <!-- Modern Unified Composer -->
         <div class="chat-composer">
+            {% if user.is_staff and canned_replies %}
+            <div class="flex flex-wrap gap-2 mb-3 pb-3 border-b border-white/5 overflow-x-auto no-scrollbar" style="max-height: 80px;">
+                {% for reply in canned_replies %}
+                <button type="button" class="btn btn-sm btn-outline px-3 py-1 rounded-full text-[10px] whitespace-nowrap bg-white/5 border-transparent hover:border-cyan" 
+                        onclick="insertCannedReply(`{{ reply.body|escapejs }}`)">
+                    {{ reply.title }}
+                </button>
+                {% endfor %}
+            </div>
+            {% endif %}
+
             <div class="composer-unified shadow-lg">
                 <button class="action-btn btn-attach" onclick="document.getElementById('file-input').click()" title="إرفاق ملف أو صورة">
                     <i class="fas fa-paperclip"></i>
@@ -349,6 +364,14 @@
 {{ user.email|json_script:"user-email" }}
 
 <script>
+    function insertCannedReply(text) {
+        const input = document.getElementById('chat-input');
+        input.value = text;
+        input.focus();
+        input.style.height = 'auto';
+        input.style.height = input.scrollHeight + 'px';
+    }
+
     const roomId = JSON.parse(document.getElementById('room-id').textContent);
     const userEmail = JSON.parse(document.getElementById('user-email').textContent);
     const messagesContainer = document.getElementById('chat-messages');
@@ -356,6 +379,7 @@
     const sendBtn = document.getElementById('send-btn');
     const typingIndicator = document.getElementById('typing-indicator');
     const uploadStatus = document.getElementById('upload-status');
+    const isStaff = {% if user.is_staff %}true{% else %}false{% endif %};
 
     let chatSocket = null;
     let reconnectAttempts = 0;
@@ -386,7 +410,13 @@
         chatSocket.onmessage = (e) => {
             const data = JSON.parse(e.data);
             if (data.type === 'chat.message') {
-                const isMe = data.sender_email === userEmail;
+                // Determine alignment side
+                let side = '';
+                if (isStaff) {
+                    side = data.is_staff_reply ? 'sent' : 'received';
+                } else {
+                    side = data.is_staff_reply ? 'received' : 'sent';
+                }
                 
                 // Real-time Attachment Rendering
                 let attachmentHtml = '';
@@ -408,7 +438,7 @@
                 }
 
                 const msgHtml = `
-                    <div class="msg-group ${isMe ? 'received' : 'sent'}">
+                    <div class="msg-group ${side}">
                         ${attachmentHtml}
                         ${data.message ? `<div class="bubble">${data.message}</div>` : ''}
                         <div class="msg-meta">

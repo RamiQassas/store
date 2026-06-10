@@ -107,7 +107,6 @@ def create_chat(request):
         if not system_guest:
              system_guest = User.objects.filter(is_staff=True).first()
         
-        metadata = {"is_guest": True, "guest_name": guest_name, "guest_phone": guest_phone}
         # Since ChatRoom doesn't have metadata field in model (per FieldError earlier), 
         # let's use the subject to store guest info or staff_notes
         room = ChatRoom.objects.create(
@@ -117,6 +116,17 @@ def create_chat(request):
         )
         request.session['support_chat_room_id'] = str(room.id)
         user_label = f"الزائر {guest_name} ({str(room.id)[:8]})"
+
+    # Auto-add welcome message if one is defined in canned replies
+    from apps.accounts.models import User
+    welcome_reply = ChatCannedReply.objects.filter(title__icontains="ترحيب", is_active=True).first()
+    if welcome_reply:
+        ChatMessage.objects.create(
+            room=room,
+            sender=User.objects.filter(is_superuser=True).first() or room.user,
+            text=welcome_reply.body,
+            is_staff_reply=True
+        )
     
     from apps.notifications.services import notify_staff
     notify_staff(
@@ -181,13 +191,25 @@ def chat_file_upload(request, room_id):
 
 
 def close_chat(request, room_id):
-    """Allows staff to close a chat room."""
-    if not can_manage_support(request.user):
-        messages.error(request, "غير مصرح لك بإغلاق المحادثات.")
+    """Allows staff or owners to close a chat room."""
+    room = get_object_or_404(ChatRoom, id=room_id)
+    
+    # Permission Check: Staff OR Owner OR Guest with session
+    can_close = False
+    if can_manage_support(request.user):
+        can_close = True
+    elif request.user.is_authenticated and room.user == request.user:
+        can_close = True
+    elif not request.user.is_authenticated:
+        session_room_id = request.session.get('support_chat_room_id')
+        if str(session_room_id) == str(room.id):
+            can_close = True
+            
+    if not can_close:
+        messages.error(request, "غير مصرح لك بإغلاق هذه المحادثة.")
         return redirect('chat_list')
         
-    room = get_object_or_404(ChatRoom, id=room_id)
     room.status = ChatRoom.Status.CLOSED
     room.save()
-    messages.success(request, f"تم إغلاق المحادثة #{room.id} بنجاح.")
+    messages.success(request, f"تم إغلاق المحادثة بنجاح.")
     return redirect('chat_list')
