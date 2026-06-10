@@ -12,18 +12,15 @@ class SupportConsumer(AsyncWebsocketConsumer):
         self.user = self.scope["user"]
         self.room_id = self.scope["url_route"]["kwargs"]["room_id"]
         self.room_group_name = f"chat_{self.room_id}"
+        self.session = self.scope.get("session")
 
         print(f"WS Connect Attempt: User={self.user}, Room={self.room_id}")
 
-        if not self.user.is_authenticated:
-            print("WS Reject: User not authenticated")
-            await self.close()
-            return
-
-        # Verify access
+        # Verify access for both authenticated and guest users
         try:
-            if not await self.can_access_room():
-                print(f"WS Reject: User {self.user.email} has no access to room {self.room_id}")
+            has_access = await self.can_access_room()
+            if not has_access:
+                print(f"WS Reject: Access Denied for Room {self.room_id}")
                 await self.close()
                 return
         except Exception as e:
@@ -33,7 +30,7 @@ class SupportConsumer(AsyncWebsocketConsumer):
 
         await self.channel_layer.group_add(self.room_group_name, self.channel_name)
         await self.accept()
-        print(f"WS Accepted: Room {self.room_id} for {self.user.email}")
+        print(f"WS Accepted: Room {self.room_id}")
 
     async def disconnect(self, close_code):
         if hasattr(self, 'room_group_name'):
@@ -49,12 +46,20 @@ class SupportConsumer(AsyncWebsocketConsumer):
             
             saved_msg = await self.save_message(message, file_id)
             
+            # Determine sender details
+            if self.user.is_authenticated:
+                sender_email = self.user.email
+                sender_name = f"{self.user.first_name} {self.user.last_name}"
+            else:
+                sender_email = "guest@raqamiyat.com"
+                sender_name = await self.get_guest_name()
+
             broadcast_data = {
                 "type": "chat.message",
                 "message": message,
-                "sender_email": self.user.email,
-                "sender_name": f"{self.user.first_name} {self.user.last_name}",
-                "is_staff": self.user.is_staff,
+                "sender_email": sender_email,
+                "sender_name": sender_name,
+                "is_staff": self.user.is_authenticated and self.user.is_staff,
                 "timestamp": saved_msg["timestamp"],
             }
             
@@ -68,11 +73,12 @@ class SupportConsumer(AsyncWebsocketConsumer):
             await self.channel_layer.group_send(self.room_group_name, broadcast_data)
         
         elif action == "typing":
+            sender_name = self.user.first_name if self.user.is_authenticated else "زائر"
             await self.channel_layer.group_send(
                 self.room_group_name,
                 {
                     "type": "chat.typing",
-                    "sender_name": self.user.first_name,
+                    "sender_name": sender_name,
                     "is_typing": data.get("is_typing", False)
                 }
             )
@@ -87,31 +93,51 @@ class SupportConsumer(AsyncWebsocketConsumer):
     def can_access_room(self):
         try:
             room = ChatRoom.objects.get(id=self.room_id)
-            if room.user == self.user:
-                return True
-            # Staff / Support Agent check
-            if self.user.is_staff or self.user.is_superuser:
-                return True
-            return self.user.groups.filter(name__in=["Support Agent", "Super Admin", "Moderator"]).exists()
+            if self.user.is_authenticated:
+                if room.user == self.user:
+                    return True
+                # Staff / Support Agent check
+                if self.user.is_staff or self.user.is_superuser:
+                    return True
+                return self.user.groups.filter(name__in=["Support Agent", "Super Admin", "Moderator"]).exists()
+            else:
+                # Guest Check via Session
+                session_room_id = self.session.get('support_chat_room_id')
+                return str(session_room_id) == str(self.room_id)
         except ChatRoom.DoesNotExist:
             return False
 
     @database_sync_to_async
+    def get_guest_name(self):
+        try:
+            room = ChatRoom.objects.get(id=self.room_id)
+            if "زائر:" in room.subject:
+                return room.subject.split("زائر: ")[1]
+            return "زائر"
+        except:
+            return "زائر"
+
+    @database_sync_to_async
     def save_message(self, text, file_id=None):
         room = ChatRoom.objects.get(id=self.room_id)
-        is_staff = self.user.is_staff or self.user.groups.filter(name__in=["Support Agent", "Super Admin", "Moderator"]).exists()
         
+        is_staff = False
+        if self.user.is_authenticated:
+            is_staff = self.user.is_staff or self.user.groups.filter(name__in=["Support Agent", "Super Admin", "Moderator"]).exists()
+        
+        # Determine sender user instance (guest uses system guest user)
+        sender = self.user if self.user.is_authenticated else room.user
+
         # If we have a file_id (from an AJAX upload), we update that message rather than creating a new one
-        # This prevents duplicate messages when a user uploads a file.
         if file_id:
             try:
                 msg = ChatMessage.objects.get(id=file_id, room=room)
                 if text: msg.text = text
                 msg.save()
             except ChatMessage.DoesNotExist:
-                msg = ChatMessage.objects.create(room=room, sender=self.user, text=text, is_staff_reply=is_staff)
+                msg = ChatMessage.objects.create(room=room, sender=sender, text=text, is_staff_reply=is_staff)
         else:
-            msg = ChatMessage.objects.create(room=room, sender=self.user, text=text, is_staff_reply=is_staff)
+            msg = ChatMessage.objects.create(room=room, sender=sender, text=text, is_staff_reply=is_staff)
         
         room.last_message_at = timezone.now()
         
@@ -128,18 +154,20 @@ class SupportConsumer(AsyncWebsocketConsumer):
 
         room.save()
         
-        # Real-time Web Push Trigger
-        from apps.notifications.services import notify_user
-        if is_staff:
-            notify_user(
-                user=room.user,
-                title="رد جديد من الدعم الفني",
-                body=text[:100] if text else "قام الموظف بإرسال ملف/صورة",
-                action_url=f"/support/chats/{room.id}/",
-                category="support",
-                priority="high",
-                metadata={"type": "chat_reply", "room_id": str(room.id)}
-            )
+        # Real-time Web Push Trigger (only for authenticated users)
+        if is_staff and room.user.is_authenticated:
+            try:
+                from apps.notifications.services import notify_user
+                notify_user(
+                    user=room.user,
+                    title="رد جديد من الدعم الفني",
+                    body=text[:100] if text else "قام الموظف بإرسال ملف/صورة",
+                    action_url=f"/support/chats/{room.id}/",
+                    category="support",
+                    priority="high",
+                    metadata={"type": "chat_reply", "room_id": str(room.id)}
+                )
+            except: pass
         
         res = {"timestamp": msg.created_at.strftime("%H:%M")}
         if msg.file:

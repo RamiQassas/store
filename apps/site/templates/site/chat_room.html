@@ -239,10 +239,22 @@
                 </div>
                 <div>
                     <h2 class="font-bold text-base m-0">
-                        {% if user.is_staff %}دعم: {{ room.user.get_full_name|default:room.user.email }}{% else %}الدعم المباشر{% endif %}
+                        {% if user.is_staff %}
+                            {% if "زائر:" in room.subject %}
+                                {{ room.subject|slice:"15:" }} (زائر)
+                            {% else %}
+                                {{ room.user.get_full_name|default:room.user.email }}
+                            {% endif %}
+                        {% else %}
+                            الدعم المباشر
+                        {% endif %}
                     </h2>
                     <div id="connection-status">
-                        <span class="text-muted text-[10px] uppercase tracking-widest">تشفير تام بين الطرفين</span>
+                        {% if user.is_staff and room.staff_notes %}
+                            <span class="text-[10px] text-cyan font-bold">{{ room.staff_notes|linebreaksbr }}</span>
+                        {% else %}
+                            <span class="text-muted text-[10px] uppercase tracking-widest">تشفير تام بين الطرفين</span>
+                        {% endif %}
                     </div>
                 </div>
             </div>
