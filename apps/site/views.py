@@ -188,7 +188,7 @@ def dashboard(request):
     })
 
 @login_required
-def deposits_view(request):
+def deposits(request):
     methods = PaymentMethod.objects.filter(is_active=True)
     requests = DepositRequest.objects.filter(user=request.user).order_by('-created_at')
     
@@ -210,7 +210,7 @@ def deposits_view(request):
     return render(request, "site/v3/v3_deposits.html", {"methods": methods, "requests": requests})
 
 @login_required
-def withdrawals_view(request):
+def withdrawals(request):
     methods = PaymentMethod.objects.filter(is_active=True, allow_withdrawal=True)
     requests = WithdrawalRequest.objects.filter(user=request.user).order_by('-created_at')
     
@@ -380,7 +380,7 @@ def control_withdrawals(request):
     return render(request, "site/control_withdrawals.html", {"requests": requests})
 
 @support_required
-def control_kyc_list(request):
+def control_kycs_list(request):
     requests = KYCRequest.objects.select_related('user').all().order_by('-created_at')
     return render(request, "site/control_kyc_list.html", {"requests": requests})
 
@@ -665,3 +665,2525 @@ def service_worker(request):
 def terms_of_service(request): return render(request, "site/terms.html")
 def refund_policy(request): return render(request, "site/refund.html")
 def contact_page(request): return render(request, "site/contact.html")
+
+
+@login_required
+def wallet_page(request):
+    """
+    Displays the user's wallet dashboard and recent ledger entries.
+    """
+    request.user.reset_daily_limits_if_needed()
+    wallet = Wallet.objects.filter(user=request.user).select_related("currency").first() or get_or_create_wallet(request.user)
+    return render(request, "site/wallet.html", {"wallet": wallet, "ledger_entries": wallet.ledger_entries.all()[:20]})
+
+
+
+
+@login_required
+def orders_list(request):
+    orders = request.user.orders.all().prefetch_related('items__variant__product')
+    return render(request, "site/orders_list.html", {"orders": orders})
+
+
+
+@login_required
+def order_detail(request, pk):
+    order = get_object_or_404(request.user.orders.prefetch_related('items__variant__product', 'logs'), pk=pk)
+    return render(request, "site/order_detail.html", {"order": order})
+
+
+
+
+def home(request):
+    featured_products = Product.objects.filter(is_active=True, is_featured=True).select_related("category").prefetch_related("variants")[:6]
+    top_products = Product.objects.filter(is_active=True).select_related("category").prefetch_related("variants").order_by("sort_order", "name")[:8]
+    categories = Category.objects.filter(is_active=True).order_by("sort_order", "name")
+    stats = {
+        "products": Product.objects.filter(is_active=True).count(),
+        "categories": categories.count(),
+        "orders": Order.objects.count(),
+        "tickets": ChatRoom.objects.exclude(status=ChatRoom.Status.CLOSED).count(),
+        "users": User.objects.count(),
+    }
+    return render(request, "site/home.html", {"featured_products": featured_products, "top_products": top_products, "categories": categories, "stats": stats})
+
+
+
+
+def catalog(request):
+    cat_id = request.GET.get("category")
+    q = request.GET.get("q", "").strip()
+    sort = request.GET.get("sort", "newest")
+    
+    categories = Category.objects.filter(is_active=True).annotate(product_count=Count('products', filter=Q(products__is_active=True))).order_by("sort_order", "name")
+    products = Product.objects.filter(is_active=True).select_related("category").prefetch_related("variants")
+    
+    if cat_id: products = products.filter(category_id=cat_id)
+    if q: products = products.filter(Q(name__icontains=q) | Q(description__icontains=q))
+    
+    if sort == "price_low": products = products.order_by("variants__price")
+    elif sort == "price_high": products = products.order_by("-variants__price")
+    else: products = products.order_by("-created_at")
+        
+    return render(request, "site/catalog.html", {"categories": categories, "products": products.distinct(), "active_category": cat_id, "query": q, "sort": sort})
+
+
+
+
+@login_required
+def notification_settings(request):
+    from apps.notifications.models import NotificationSetting
+    settings_obj, created = NotificationSetting.objects.get_or_create(user=request.user)
+    
+    if request.method == "POST":
+        settings_obj.in_app_orders = request.POST.get("in_app_orders") == "on"
+        settings_obj.push_orders = request.POST.get("push_orders") == "on"
+        settings_obj.in_app_financial = request.POST.get("in_app_financial") == "on"
+        settings_obj.push_financial = request.POST.get("push_financial") == "on"
+        settings_obj.in_app_support = request.POST.get("in_app_support") == "on"
+        settings_obj.push_support = request.POST.get("push_support") == "on"
+        settings_obj.in_app_promotions = request.POST.get("in_app_promotions") == "on"
+        settings_obj.push_promotions = request.POST.get("push_promotions") == "on"
+        settings_obj.save()
+        messages.success(request, "╪ز┘à ╪ص┘╪╕ ╪ح╪╣╪»╪د╪»╪د╪ز ╪د┘╪ح╪┤╪╣╪د╪▒╪د╪ز ╪ذ┘╪ش╪د╪ص.")
+        return redirect("notification_settings")
+        
+    return render(request, "site/notification_settings.html", {"settings": settings_obj})
+
+
+@login_required
+def v3_change_password_view(request):
+    form = ChangePasswordForm(request.POST or None)
+    if request.method == "POST" and form.is_valid():
+        user = request.user
+        current_password = form.cleaned_data["current_password"]
+        new_password = form.cleaned_data["new_password"]
+        
+        if user.check_password(current_password):
+            with transaction.atomic():
+                user.set_password(new_password)
+                user.save()
+                
+                # Update session to prevent logout of current session
+                update_session_auth_hash(request, user)
+                
+                # Invalidate other sessions
+                from django.contrib.sessions.models import Session
+                for session in Session.objects.all():
+                    decoded = session.get_decoded()
+                    if decoded.get('_auth_user_id') == str(user.id):
+                        if session.session_key != request.session.session_key:
+                            session.delete()
+                
+                ActivityLog.objects.create(user=user, action="Password Change", description="User changed password and invalidated other sessions")
+                messages.success(request, "تم تغيير كلمة المرور بنجاح وتم تسجيل الخروج من الأجهزة الأخرى.")
+                return redirect("dashboard")
+        else:
+            messages.error(request, "كلمة المرور الحالية غير صحيحة.")
+            
+    return render(request, "site/v3/v3_change_password.html", {"form": form})
+
+
+from apps.common.decorators import finance_required, support_required, kyc_required, admin_required
+from apps.payments.models import DepositRequest, PaymentMethod, WithdrawalRequest
+
+
+
+def v3_forgot_password_view(request):
+    if request.method == "POST":
+        email = request.POST.get("email", "").lower().strip()
+        user = User.objects.filter(email=email).first()
+        
+        if user:
+            otp = v3_generate_otp(user, OTPToken.Purpose.PASSWORD_RESET)
+            if v3_send_otp_email(user, otp):
+                request.session["v3_auth_uid"] = str(user.id)
+                request.session["v3_auth_purpose"] = OTPToken.Purpose.PASSWORD_RESET
+                messages.success(request, "╪ز┘à ╪ح╪▒╪│╪د┘ ╪▒┘à╪▓ ╪د┘╪ز╪ص┘é┘é ┘╪ح╪╣╪د╪»╪ر ╪ز╪╣┘è┘è┘ ┘â┘┘à╪ر ╪د┘┘à╪▒┘ê╪▒.")
+                return redirect("site_verify_otp")
+            else:
+                messages.error(request, "┘╪┤┘ ╪ح╪▒╪│╪د┘ ╪د┘╪▒┘à╪▓. ┘è╪▒╪ش┘ë ╪د┘┘à╪ص╪د┘ê┘╪ر ┘╪د╪ص┘é╪د┘ï.")
+        else:
+            messages.error(request, "╪╣╪░╪▒╪د┘ï╪î ┘ç╪░╪د ╪د┘╪ذ╪▒┘è╪» ╪د┘╪ح┘┘â╪ز╪▒┘ê┘┘è ╪║┘è╪▒ ┘à╪│╪ش┘ ┘╪»┘è┘╪د.")
+            
+    return render(request, "site/v3/v3_forgot_password.html")
+
+
+
+
+def v3_reset_password_view(request):
+    uid = request.session.get("v3_auth_uid")
+    is_verified = request.session.get("v3_recovery_verified") == True
+    
+    if not uid or not is_verified:
+        messages.error(request, "┘è╪▒╪ش┘ë ╪د┘╪ز╪ص┘é┘é ┘à┘ ┘ç┘ê┘è╪ز┘â ╪ث┘ê┘╪د┘ï.")
+        return redirect("site_forgot_password")
+        
+    user = get_object_or_404(User, id=uid)
+    
+    if request.method == "POST":
+        p1 = request.POST.get("password")
+        p2 = request.POST.get("confirm_password")
+        
+        if not p1 or len(p1) < 10:
+            messages.error(request, "┘è╪ش╪ذ ╪ث┘ ╪ز┘â┘ê┘ ┘â┘┘à╪ر ╪د┘┘à╪▒┘ê╪▒ 10 ╪«╪د┘╪د╪ز ╪╣┘┘ë ╪د┘╪ث┘é┘.")
+        elif p1 != p2:
+            messages.error(request, "┘â┘┘à╪د╪ز ╪د┘┘à╪▒┘ê╪▒ ╪║┘è╪▒ ┘à╪ز╪╖╪د╪ذ┘é╪ر.")
+        else:
+            user.set_password(p1)
+            user.save()
+            
+            # Clean up all auth sessions
+            request.session.flush()
+            
+            ActivityLog.objects.create(user=user, action="Password Reset Success", description="User reset password via V3 OTP flow")
+            messages.success(request, "╪ز┘à ╪ز╪║┘è┘è╪▒ ┘â┘┘à╪ر ╪د┘┘à╪▒┘ê╪▒ ╪ذ┘╪ش╪د╪ص. ┘è┘à┘â┘┘â ╪د┘╪ت┘ ╪ز╪│╪ش┘è┘ ╪د┘╪»╪«┘ê┘.")
+            return redirect("site_login")
+            
+    return render(request, "site/v3/v3_reset_password.html", {"user_email": user.email})
+
+
+
+
+def resend_verification(request): return redirect("dashboard")
+
+
+def email_verify(request, uidb64, token): return redirect("site_login")
+
+
+@kyc_required
+def control_kyc_settings(request):
+    settings_obj = KYCSettings.get_settings()
+    form = KYCSettingsForm(request.POST or None, instance=settings_obj)
+    if request.method == "POST":
+        action = request.POST.get("action")
+        if action == "unblock_country":
+            code = request.POST.get("country_code")
+            if code in settings_obj.restricted_countries:
+                settings_obj.restricted_countries.remove(code)
+                settings_obj.save()
+                messages.success(request, f"┘┘â ╪د┘╪ص╪╕╪▒ ╪╣┘ {code}.")
+            return redirect("control_kyc_settings")
+        elif form.is_valid():
+            form.save()
+            messages.success(request, "╪ز┘à ╪د┘╪ص┘╪╕.")
+            return redirect("control_kyc_settings")
+    return render(request, "site/control_kyc_settings.html", {"form": form, "settings": settings_obj, "stats_verified_count": User.objects.filter(is_kyc_verified=True).count()})
+
+
+
+@admin_required
+def payment_methods_list(request): return render(request, "site/payment_methods_list.html", {"methods": PaymentMethod.objects.all().order_by("display_order")})
+
+
+@admin_required
+def payment_method_create(request):
+    form = PaymentMethodForm(request.POST or None, request.FILES or None)
+    if request.method == "POST" and form.is_valid(): form.save(); return redirect("payment_methods_list")
+    return render(request, "site/payment_method_builder.html", {"form": form})
+
+
+@admin_required
+def payment_method_edit(request, pk):
+    method = get_object_or_404(PaymentMethod, pk=pk)
+    form = PaymentMethodForm(request.POST or None, request.FILES or None, instance=method)
+    if request.method == "POST" and form.is_valid(): form.save(); return redirect("payment_methods_list")
+    return render(request, "site/payment_method_builder.html", {"form": form, "method": method})
+
+
+@finance_required
+def control_deposit_detail(request, pk):
+    deposit = get_object_or_404(DepositRequest.objects.select_related('user', 'currency', 'payment_method'), pk=pk)
+    return render(request, "site/control_deposit_detail.html", {
+        "deposit": deposit,
+    })
+
+
+
+@finance_required
+def control_withdrawal_detail(request, pk):
+    withdrawal = get_object_or_404(WithdrawalRequest.objects.select_related('user', 'user__wallet'), pk=pk)
+    if request.method == "POST":
+        with transaction.atomic():
+            withdrawal = WithdrawalRequest.objects.select_for_update().get(pk=pk)
+            action = request.POST.get("action")
+            admin_note = request.POST.get("admin_note", "")
+            
+            from apps.wallets.services import release_funds, finalize_withdrawal
+            
+            if action == "approve":
+                withdrawal.status = WithdrawalRequest.Status.APPROVED
+                withdrawal.admin_note = admin_note
+                messages.success(request, "╪ز┘à╪ز ╪د┘┘à┘ê╪د┘┘é╪ر ╪د┘┘à╪ذ╪»╪خ┘è╪ر ╪╣┘┘ë ╪د┘╪╖┘╪ذ.")
+            elif action == "process":
+                withdrawal.status = WithdrawalRequest.Status.PROCESSING
+                withdrawal.admin_note = admin_note
+                messages.info(request, "╪ذ╪»╪ث╪ز ┘à╪╣╪د┘╪ش╪ر ╪د┘╪╖┘╪ذ.")
+            elif action == "complete":
+                if withdrawal.status == WithdrawalRequest.Status.COMPLETED:
+                     messages.error(request, "┘ç╪░╪د ╪د┘╪╖┘╪ذ ┘à┘â╪ز┘à┘ ┘à╪│╪ذ┘é╪د┘ï.")
+                     return redirect("control_withdrawals")
+
+                finalize_withdrawal(
+                    withdrawal.user.wallet.id,
+                    withdrawal.wallet_amount,
+                    reference=f"with_complete:{withdrawal.id}",
+                    description=f"Withdrawal completed. {admin_note}",
+                    created_by=request.user
+                )
+                withdrawal.status = WithdrawalRequest.Status.COMPLETED
+                withdrawal.admin_note = admin_note
+                withdrawal.reviewed_by = request.user
+                withdrawal.reviewed_at = timezone.now()
+                withdrawal.save()
+                messages.success(request, "╪ز┘à ╪ح╪ز┘à╪د┘à ╪╣┘à┘┘è╪ر ╪د┘╪│╪ص╪ذ ╪ذ┘╪ش╪د╪ص.")
+                return redirect("control_withdrawals")
+            elif action == "reject":
+                if withdrawal.status in [WithdrawalRequest.Status.COMPLETED, WithdrawalRequest.Status.REJECTED, WithdrawalRequest.Status.CANCELLED]:
+                     messages.error(request, "┘╪د ┘è┘à┘â┘ ╪▒┘╪╢ ╪╖┘╪ذ ┘à┘╪ز┘ç┘è.")
+                     return redirect("control_withdrawals")
+
+                release_funds(
+                    withdrawal.user.wallet.id,
+                    withdrawal.wallet_amount,
+                    reference=f"with_rej:{withdrawal.id}",
+                    description=f"Withdrawal rejected: {admin_note}",
+                    created_by=request.user
+                )
+                withdrawal.status = WithdrawalRequest.Status.REJECTED
+
+                withdrawal.admin_note = admin_note
+                withdrawal.reviewed_by = request.user
+                withdrawal.reviewed_at = timezone.now()
+                withdrawal.save()
+                messages.error(request, "╪ز┘à ╪▒┘╪╢ ╪╖┘╪ذ ╪د┘╪│╪ص╪ذ ┘ê╪ح╪╣╪د╪»╪ر ╪د┘╪▒╪╡┘è╪» ┘┘┘à╪│╪ز╪«╪»┘à.")
+                return redirect("control_withdrawals")
+            elif action == "cancel_completed":
+                if withdrawal.status != WithdrawalRequest.Status.COMPLETED:
+                    messages.error(request, "┘╪د ┘è┘à┘â┘ ╪ح┘╪║╪د╪ة ┘ç╪░╪د ╪د┘╪╖┘╪ذ ┘╪ث┘┘ç ┘┘è╪│ ┘à┘â╪ز┘à┘.")
+                    return redirect("control_withdrawal_detail", pk=pk)
+                
+                from apps.wallets.services import credit_wallet
+                credit_wallet(
+                    wallet_id=withdrawal.user.wallet.id,
+                    amount=withdrawal.wallet_amount,
+                    reference=f"with_rev:{withdrawal.id}",
+                    description=f"Withdrawal reversed/cancelled: {admin_note}",
+                    created_by=request.user,
+                    reason="Admin reversal of completed withdrawal"
+                )
+                withdrawal.status = WithdrawalRequest.Status.CANCELLED
+                withdrawal.admin_note = admin_note
+                withdrawal.reviewed_by = request.user
+                withdrawal.reviewed_at = timezone.now()
+                withdrawal.save()
+                messages.warning(request, "╪ز┘à ╪ح┘╪║╪د╪ة ╪د┘╪│╪ص╪ذ ╪د┘┘à┘â╪ز┘à┘ ┘ê╪ح╪╣╪د╪»╪ر ╪د┘┘à╪ذ┘╪║ ┘┘┘à╪ص┘╪╕╪ر ╪ذ┘╪ش╪د╪ص.")
+                return redirect("control_withdrawals")
+            
+            withdrawal.save()
+            return redirect("control_withdrawal_detail", pk=pk)
+
+    return render(request, "site/control_withdrawal_detail.html", {"withdrawal": withdrawal})
+
+
+
+@admin_required
+def control_users_list(request): return render(request, "site/control_users_list.html", {"users": User.objects.select_related("wallet").order_by("-date_joined"), "tiers": User.Tier.choices, "roles": User.Role.choices})
+
+
+@support_required
+@transaction.atomic
+def control_product_create(request):
+    from apps.site.forms import ProductForm
+    from apps.catalog.models import Product, ProductVariant
+    import json
+    
+    form = ProductForm(request.POST or None, request.FILES or None)
+    if request.method == "POST" and form.is_valid():
+        product = form.save()
+        
+        # Handle variants
+        variants_json = request.POST.get("variants_json")
+        if variants_json:
+            variants_data = json.loads(variants_json)
+            for v_data in variants_data:
+                ProductVariant.objects.create(
+                    product=product,
+                    name=v_data.get('name'),
+                    sku=v_data.get('sku'),
+                    price=Decimal(str(v_data.get('price', '0'))),
+                    wholesale_price=Decimal(str(v_data.get('wholesale_price', '0'))),
+                    vip_price=Decimal(str(v_data.get('vip_price', '0'))),
+                    cost=Decimal(str(v_data.get('cost', '0'))),
+                    sort_order=int(v_data.get('sort_order', 0)),
+                    is_active=v_data.get('is_active', True)
+                )
+        
+        messages.success(request, "╪ز┘à ╪ح┘╪┤╪د╪ة ╪د┘┘à┘╪ز╪ش ╪ذ┘╪ش╪د╪ص.")
+        return redirect("control_products_list")
+        
+    return render(request, "site/control_product_builder.html", {
+        "form": form, "title": "╪ح╪╢╪د┘╪ر ┘à┘╪ز╪ش ╪ش╪»┘è╪»", "variants_json_data": []
+    })
+
+
+
+@support_required
+def control_category_create_ajax(request):
+    from apps.catalog.models import Category
+    name = request.POST.get('name')
+    if name:
+        cat = Category.objects.create(name=name)
+        return JsonResponse({"id": str(cat.id), "name": cat.name})
+    return JsonResponse({"error": "Name required"}, status=400)
+
+
+
+@admin_required
+def control_support_settings(request):
+    settings_obj, created = SupportSettings.objects.get_or_create(id=1)
+    form = SupportSettingsForm(request.POST or None, instance=settings_obj)
+    if request.method == "POST" and form.is_valid():
+        form.save()
+        messages.success(request, "تم حفظ إعدادات الدعم بنجاح.")
+        return redirect("control_support_settings")
+    return render(request, "site/control_support_settings.html", {"form": form})
+
+
+
+@support_required
+def control_quick_replies(request):
+    replies = ChatCannedReply.objects.all().order_by("-created_at")
+    return render(request, "site/control_quick_replies.html", {"replies": replies})
+
+
+
+@support_required
+def control_quick_reply_create(request):
+    form = ChatCannedReplyForm(request.POST or None)
+    if request.method == "POST" and form.is_valid():
+        form.save()
+        messages.success(request, "تم إضافة الرد الجاهز بنجاح.")
+        return redirect("control_quick_replies")
+    return render(request, "site/control_quick_reply_form.html", {"form": form})
+
+
+
+@support_required
+def control_quick_reply_edit(request, pk):
+    reply = get_object_or_404(ChatCannedReply, pk=pk)
+    form = ChatCannedReplyForm(request.POST or None, instance=reply)
+    if request.method == "POST" and form.is_valid():
+        form.save()
+        messages.success(request, "تم تعديل الرد الجاهز بنجاح.")
+        return redirect("control_quick_replies")
+    return render(request, "site/control_quick_reply_form.html", {"form": form})
+
+
+
+@support_required
+def control_quick_reply_delete(request, pk):
+    reply = get_object_or_404(ChatCannedReply, pk=pk)
+    reply.delete()
+    messages.success(request, "تم حذف الرد الجاهز بنجاح.")
+    return redirect("control_quick_replies")
+
+
+
+def privacy_policy(request): return render(request, "site/privacy_policy.html")
+
+
+@login_required
+def wallet_page(request):
+    """
+    Displays the user's wallet dashboard and recent ledger entries.
+    """
+    request.user.reset_daily_limits_if_needed()
+    wallet = Wallet.objects.filter(user=request.user).select_related("currency").first() or get_or_create_wallet(request.user)
+    return render(request, "site/wallet.html", {"wallet": wallet, "ledger_entries": wallet.ledger_entries.all()[:20]})
+
+
+
+
+@login_required
+def orders_list(request):
+    orders = request.user.orders.all().prefetch_related('items__variant__product')
+    return render(request, "site/orders_list.html", {"orders": orders})
+
+
+
+@login_required
+def order_detail(request, pk):
+    order = get_object_or_404(request.user.orders.prefetch_related('items__variant__product', 'logs'), pk=pk)
+    return render(request, "site/order_detail.html", {"order": order})
+
+
+
+
+def home(request):
+    featured_products = Product.objects.filter(is_active=True, is_featured=True).select_related("category").prefetch_related("variants")[:6]
+    top_products = Product.objects.filter(is_active=True).select_related("category").prefetch_related("variants").order_by("sort_order", "name")[:8]
+    categories = Category.objects.filter(is_active=True).order_by("sort_order", "name")
+    stats = {
+        "products": Product.objects.filter(is_active=True).count(),
+        "categories": categories.count(),
+        "orders": Order.objects.count(),
+        "tickets": ChatRoom.objects.exclude(status=ChatRoom.Status.CLOSED).count(),
+        "users": User.objects.count(),
+    }
+    return render(request, "site/home.html", {"featured_products": featured_products, "top_products": top_products, "categories": categories, "stats": stats})
+
+
+
+
+def catalog(request):
+    cat_id = request.GET.get("category")
+    q = request.GET.get("q", "").strip()
+    sort = request.GET.get("sort", "newest")
+    
+    categories = Category.objects.filter(is_active=True).annotate(product_count=Count('products', filter=Q(products__is_active=True))).order_by("sort_order", "name")
+    products = Product.objects.filter(is_active=True).select_related("category").prefetch_related("variants")
+    
+    if cat_id: products = products.filter(category_id=cat_id)
+    if q: products = products.filter(Q(name__icontains=q) | Q(description__icontains=q))
+    
+    if sort == "price_low": products = products.order_by("variants__price")
+    elif sort == "price_high": products = products.order_by("-variants__price")
+    else: products = products.order_by("-created_at")
+        
+    return render(request, "site/catalog.html", {"categories": categories, "products": products.distinct(), "active_category": cat_id, "query": q, "sort": sort})
+
+
+
+
+@login_required
+def notification_settings(request):
+    from apps.notifications.models import NotificationSetting
+    settings_obj, created = NotificationSetting.objects.get_or_create(user=request.user)
+    
+    if request.method == "POST":
+        settings_obj.in_app_orders = request.POST.get("in_app_orders") == "on"
+        settings_obj.push_orders = request.POST.get("push_orders") == "on"
+        settings_obj.in_app_financial = request.POST.get("in_app_financial") == "on"
+        settings_obj.push_financial = request.POST.get("push_financial") == "on"
+        settings_obj.in_app_support = request.POST.get("in_app_support") == "on"
+        settings_obj.push_support = request.POST.get("push_support") == "on"
+        settings_obj.in_app_promotions = request.POST.get("in_app_promotions") == "on"
+        settings_obj.push_promotions = request.POST.get("push_promotions") == "on"
+        settings_obj.save()
+        messages.success(request, "╪ز┘à ╪ص┘╪╕ ╪ح╪╣╪»╪د╪»╪د╪ز ╪د┘╪ح╪┤╪╣╪د╪▒╪د╪ز ╪ذ┘╪ش╪د╪ص.")
+        return redirect("notification_settings")
+        
+    return render(request, "site/notification_settings.html", {"settings": settings_obj})
+
+
+@login_required
+def v3_change_password_view(request):
+    form = ChangePasswordForm(request.POST or None)
+    if request.method == "POST" and form.is_valid():
+        user = request.user
+        current_password = form.cleaned_data["current_password"]
+        new_password = form.cleaned_data["new_password"]
+        
+        if user.check_password(current_password):
+            with transaction.atomic():
+                user.set_password(new_password)
+                user.save()
+                
+                # Update session to prevent logout of current session
+                update_session_auth_hash(request, user)
+                
+                # Invalidate other sessions
+                from django.contrib.sessions.models import Session
+                for session in Session.objects.all():
+                    decoded = session.get_decoded()
+                    if decoded.get('_auth_user_id') == str(user.id):
+                        if session.session_key != request.session.session_key:
+                            session.delete()
+                
+                ActivityLog.objects.create(user=user, action="Password Change", description="User changed password and invalidated other sessions")
+                messages.success(request, "تم تغيير كلمة المرور بنجاح وتم تسجيل الخروج من الأجهزة الأخرى.")
+                return redirect("dashboard")
+        else:
+            messages.error(request, "كلمة المرور الحالية غير صحيحة.")
+            
+    return render(request, "site/v3/v3_change_password.html", {"form": form})
+
+
+from apps.common.decorators import finance_required, support_required, kyc_required, admin_required
+from apps.payments.models import DepositRequest, PaymentMethod, WithdrawalRequest
+
+
+
+def v3_forgot_password_view(request):
+    if request.method == "POST":
+        email = request.POST.get("email", "").lower().strip()
+        user = User.objects.filter(email=email).first()
+        
+        if user:
+            otp = v3_generate_otp(user, OTPToken.Purpose.PASSWORD_RESET)
+            if v3_send_otp_email(user, otp):
+                request.session["v3_auth_uid"] = str(user.id)
+                request.session["v3_auth_purpose"] = OTPToken.Purpose.PASSWORD_RESET
+                messages.success(request, "╪ز┘à ╪ح╪▒╪│╪د┘ ╪▒┘à╪▓ ╪د┘╪ز╪ص┘é┘é ┘╪ح╪╣╪د╪»╪ر ╪ز╪╣┘è┘è┘ ┘â┘┘à╪ر ╪د┘┘à╪▒┘ê╪▒.")
+                return redirect("site_verify_otp")
+            else:
+                messages.error(request, "┘╪┤┘ ╪ح╪▒╪│╪د┘ ╪د┘╪▒┘à╪▓. ┘è╪▒╪ش┘ë ╪د┘┘à╪ص╪د┘ê┘╪ر ┘╪د╪ص┘é╪د┘ï.")
+        else:
+            messages.error(request, "╪╣╪░╪▒╪د┘ï╪î ┘ç╪░╪د ╪د┘╪ذ╪▒┘è╪» ╪د┘╪ح┘┘â╪ز╪▒┘ê┘┘è ╪║┘è╪▒ ┘à╪│╪ش┘ ┘╪»┘è┘╪د.")
+            
+    return render(request, "site/v3/v3_forgot_password.html")
+
+
+
+
+def v3_reset_password_view(request):
+    uid = request.session.get("v3_auth_uid")
+    is_verified = request.session.get("v3_recovery_verified") == True
+    
+    if not uid or not is_verified:
+        messages.error(request, "┘è╪▒╪ش┘ë ╪د┘╪ز╪ص┘é┘é ┘à┘ ┘ç┘ê┘è╪ز┘â ╪ث┘ê┘╪د┘ï.")
+        return redirect("site_forgot_password")
+        
+    user = get_object_or_404(User, id=uid)
+    
+    if request.method == "POST":
+        p1 = request.POST.get("password")
+        p2 = request.POST.get("confirm_password")
+        
+        if not p1 or len(p1) < 10:
+            messages.error(request, "┘è╪ش╪ذ ╪ث┘ ╪ز┘â┘ê┘ ┘â┘┘à╪ر ╪د┘┘à╪▒┘ê╪▒ 10 ╪«╪د┘╪د╪ز ╪╣┘┘ë ╪د┘╪ث┘é┘.")
+        elif p1 != p2:
+            messages.error(request, "┘â┘┘à╪د╪ز ╪د┘┘à╪▒┘ê╪▒ ╪║┘è╪▒ ┘à╪ز╪╖╪د╪ذ┘é╪ر.")
+        else:
+            user.set_password(p1)
+            user.save()
+            
+            # Clean up all auth sessions
+            request.session.flush()
+            
+            ActivityLog.objects.create(user=user, action="Password Reset Success", description="User reset password via V3 OTP flow")
+            messages.success(request, "╪ز┘à ╪ز╪║┘è┘è╪▒ ┘â┘┘à╪ر ╪د┘┘à╪▒┘ê╪▒ ╪ذ┘╪ش╪د╪ص. ┘è┘à┘â┘┘â ╪د┘╪ت┘ ╪ز╪│╪ش┘è┘ ╪د┘╪»╪«┘ê┘.")
+            return redirect("site_login")
+            
+    return render(request, "site/v3/v3_reset_password.html", {"user_email": user.email})
+
+
+
+
+def resend_verification(request): return redirect("dashboard")
+
+
+def email_verify(request, uidb64, token): return redirect("site_login")
+
+
+@kyc_required
+def control_kyc_settings(request):
+    settings_obj = KYCSettings.get_settings()
+    form = KYCSettingsForm(request.POST or None, instance=settings_obj)
+    if request.method == "POST":
+        action = request.POST.get("action")
+        if action == "unblock_country":
+            code = request.POST.get("country_code")
+            if code in settings_obj.restricted_countries:
+                settings_obj.restricted_countries.remove(code)
+                settings_obj.save()
+                messages.success(request, f"┘┘â ╪د┘╪ص╪╕╪▒ ╪╣┘ {code}.")
+            return redirect("control_kyc_settings")
+        elif form.is_valid():
+            form.save()
+            messages.success(request, "╪ز┘à ╪د┘╪ص┘╪╕.")
+            return redirect("control_kyc_settings")
+    return render(request, "site/control_kyc_settings.html", {"form": form, "settings": settings_obj, "stats_verified_count": User.objects.filter(is_kyc_verified=True).count()})
+
+
+
+@admin_required
+def payment_methods_list(request): return render(request, "site/payment_methods_list.html", {"methods": PaymentMethod.objects.all().order_by("display_order")})
+
+
+@admin_required
+def payment_method_create(request):
+    form = PaymentMethodForm(request.POST or None, request.FILES or None)
+    if request.method == "POST" and form.is_valid(): form.save(); return redirect("payment_methods_list")
+    return render(request, "site/payment_method_builder.html", {"form": form})
+
+
+@admin_required
+def payment_method_edit(request, pk):
+    method = get_object_or_404(PaymentMethod, pk=pk)
+    form = PaymentMethodForm(request.POST or None, request.FILES or None, instance=method)
+    if request.method == "POST" and form.is_valid(): form.save(); return redirect("payment_methods_list")
+    return render(request, "site/payment_method_builder.html", {"form": form, "method": method})
+
+
+@finance_required
+def control_deposit_detail(request, pk):
+    deposit = get_object_or_404(DepositRequest.objects.select_related('user', 'currency', 'payment_method'), pk=pk)
+    return render(request, "site/control_deposit_detail.html", {
+        "deposit": deposit,
+    })
+
+
+
+@finance_required
+def control_withdrawal_detail(request, pk):
+    withdrawal = get_object_or_404(WithdrawalRequest.objects.select_related('user', 'user__wallet'), pk=pk)
+    if request.method == "POST":
+        with transaction.atomic():
+            withdrawal = WithdrawalRequest.objects.select_for_update().get(pk=pk)
+            action = request.POST.get("action")
+            admin_note = request.POST.get("admin_note", "")
+            
+            from apps.wallets.services import release_funds, finalize_withdrawal
+            
+            if action == "approve":
+                withdrawal.status = WithdrawalRequest.Status.APPROVED
+                withdrawal.admin_note = admin_note
+                messages.success(request, "╪ز┘à╪ز ╪د┘┘à┘ê╪د┘┘é╪ر ╪د┘┘à╪ذ╪»╪خ┘è╪ر ╪╣┘┘ë ╪د┘╪╖┘╪ذ.")
+            elif action == "process":
+                withdrawal.status = WithdrawalRequest.Status.PROCESSING
+                withdrawal.admin_note = admin_note
+                messages.info(request, "╪ذ╪»╪ث╪ز ┘à╪╣╪د┘╪ش╪ر ╪د┘╪╖┘╪ذ.")
+            elif action == "complete":
+                if withdrawal.status == WithdrawalRequest.Status.COMPLETED:
+                     messages.error(request, "┘ç╪░╪د ╪د┘╪╖┘╪ذ ┘à┘â╪ز┘à┘ ┘à╪│╪ذ┘é╪د┘ï.")
+                     return redirect("control_withdrawals")
+
+                finalize_withdrawal(
+                    withdrawal.user.wallet.id,
+                    withdrawal.wallet_amount,
+                    reference=f"with_complete:{withdrawal.id}",
+                    description=f"Withdrawal completed. {admin_note}",
+                    created_by=request.user
+                )
+                withdrawal.status = WithdrawalRequest.Status.COMPLETED
+                withdrawal.admin_note = admin_note
+                withdrawal.reviewed_by = request.user
+                withdrawal.reviewed_at = timezone.now()
+                withdrawal.save()
+                messages.success(request, "╪ز┘à ╪ح╪ز┘à╪د┘à ╪╣┘à┘┘è╪ر ╪د┘╪│╪ص╪ذ ╪ذ┘╪ش╪د╪ص.")
+                return redirect("control_withdrawals")
+            elif action == "reject":
+                if withdrawal.status in [WithdrawalRequest.Status.COMPLETED, WithdrawalRequest.Status.REJECTED, WithdrawalRequest.Status.CANCELLED]:
+                     messages.error(request, "┘╪د ┘è┘à┘â┘ ╪▒┘╪╢ ╪╖┘╪ذ ┘à┘╪ز┘ç┘è.")
+                     return redirect("control_withdrawals")
+
+                release_funds(
+                    withdrawal.user.wallet.id,
+                    withdrawal.wallet_amount,
+                    reference=f"with_rej:{withdrawal.id}",
+                    description=f"Withdrawal rejected: {admin_note}",
+                    created_by=request.user
+                )
+                withdrawal.status = WithdrawalRequest.Status.REJECTED
+
+                withdrawal.admin_note = admin_note
+                withdrawal.reviewed_by = request.user
+                withdrawal.reviewed_at = timezone.now()
+                withdrawal.save()
+                messages.error(request, "╪ز┘à ╪▒┘╪╢ ╪╖┘╪ذ ╪د┘╪│╪ص╪ذ ┘ê╪ح╪╣╪د╪»╪ر ╪د┘╪▒╪╡┘è╪» ┘┘┘à╪│╪ز╪«╪»┘à.")
+                return redirect("control_withdrawals")
+            elif action == "cancel_completed":
+                if withdrawal.status != WithdrawalRequest.Status.COMPLETED:
+                    messages.error(request, "┘╪د ┘è┘à┘â┘ ╪ح┘╪║╪د╪ة ┘ç╪░╪د ╪د┘╪╖┘╪ذ ┘╪ث┘┘ç ┘┘è╪│ ┘à┘â╪ز┘à┘.")
+                    return redirect("control_withdrawal_detail", pk=pk)
+                
+                from apps.wallets.services import credit_wallet
+                credit_wallet(
+                    wallet_id=withdrawal.user.wallet.id,
+                    amount=withdrawal.wallet_amount,
+                    reference=f"with_rev:{withdrawal.id}",
+                    description=f"Withdrawal reversed/cancelled: {admin_note}",
+                    created_by=request.user,
+                    reason="Admin reversal of completed withdrawal"
+                )
+                withdrawal.status = WithdrawalRequest.Status.CANCELLED
+                withdrawal.admin_note = admin_note
+                withdrawal.reviewed_by = request.user
+                withdrawal.reviewed_at = timezone.now()
+                withdrawal.save()
+                messages.warning(request, "╪ز┘à ╪ح┘╪║╪د╪ة ╪د┘╪│╪ص╪ذ ╪د┘┘à┘â╪ز┘à┘ ┘ê╪ح╪╣╪د╪»╪ر ╪د┘┘à╪ذ┘╪║ ┘┘┘à╪ص┘╪╕╪ر ╪ذ┘╪ش╪د╪ص.")
+                return redirect("control_withdrawals")
+            
+            withdrawal.save()
+            return redirect("control_withdrawal_detail", pk=pk)
+
+    return render(request, "site/control_withdrawal_detail.html", {"withdrawal": withdrawal})
+
+
+
+@admin_required
+def control_users_list(request): return render(request, "site/control_users_list.html", {"users": User.objects.select_related("wallet").order_by("-date_joined"), "tiers": User.Tier.choices, "roles": User.Role.choices})
+
+
+@admin_required
+def control_user_moderate(request, public_uuid):
+    user = get_object_or_404(User, public_uuid=public_uuid)
+    form = ModerateUserForm(request.POST or None, instance=user)
+    if request.method == "POST" and form.is_valid():
+        user = form.save()
+        if not user.is_account_active:
+             from django.contrib.sessions.models import Session
+             sessions = Session.objects.filter(expire_date__gte=timezone.now())
+             for s in sessions:
+                 if str(user.id) == s.get_decoded().get('_auth_user_id'): s.delete()
+        messages.success(request, "╪ز┘à ╪د┘╪ز╪ص╪»┘è╪س.")
+        return redirect("control_users_list")
+    return render(request, "site/control_user_moderate.html", {"form": form, "user_to_moderate": user})
+
+
+
+@support_required
+@transaction.atomic
+def control_product_create(request):
+    from apps.site.forms import ProductForm
+    from apps.catalog.models import Product, ProductVariant
+    import json
+    
+    form = ProductForm(request.POST or None, request.FILES or None)
+    if request.method == "POST" and form.is_valid():
+        product = form.save()
+        
+        # Handle variants
+        variants_json = request.POST.get("variants_json")
+        if variants_json:
+            variants_data = json.loads(variants_json)
+            for v_data in variants_data:
+                ProductVariant.objects.create(
+                    product=product,
+                    name=v_data.get('name'),
+                    sku=v_data.get('sku'),
+                    price=Decimal(str(v_data.get('price', '0'))),
+                    wholesale_price=Decimal(str(v_data.get('wholesale_price', '0'))),
+                    vip_price=Decimal(str(v_data.get('vip_price', '0'))),
+                    cost=Decimal(str(v_data.get('cost', '0'))),
+                    sort_order=int(v_data.get('sort_order', 0)),
+                    is_active=v_data.get('is_active', True)
+                )
+        
+        messages.success(request, "╪ز┘à ╪ح┘╪┤╪د╪ة ╪د┘┘à┘╪ز╪ش ╪ذ┘╪ش╪د╪ص.")
+        return redirect("control_products_list")
+        
+    return render(request, "site/control_product_builder.html", {
+        "form": form, "title": "╪ح╪╢╪د┘╪ر ┘à┘╪ز╪ش ╪ش╪»┘è╪»", "variants_json_data": []
+    })
+
+
+
+@support_required
+def control_category_create_ajax(request):
+    from apps.catalog.models import Category
+    name = request.POST.get('name')
+    if name:
+        cat = Category.objects.create(name=name)
+        return JsonResponse({"id": str(cat.id), "name": cat.name})
+    return JsonResponse({"error": "Name required"}, status=400)
+
+
+
+@admin_required
+def control_support_settings(request):
+    settings_obj, created = SupportSettings.objects.get_or_create(id=1)
+    form = SupportSettingsForm(request.POST or None, instance=settings_obj)
+    if request.method == "POST" and form.is_valid():
+        form.save()
+        messages.success(request, "تم حفظ إعدادات الدعم بنجاح.")
+        return redirect("control_support_settings")
+    return render(request, "site/control_support_settings.html", {"form": form})
+
+
+
+@support_required
+def control_quick_replies(request):
+    replies = ChatCannedReply.objects.all().order_by("-created_at")
+    return render(request, "site/control_quick_replies.html", {"replies": replies})
+
+
+
+@support_required
+def control_quick_reply_create(request):
+    form = ChatCannedReplyForm(request.POST or None)
+    if request.method == "POST" and form.is_valid():
+        form.save()
+        messages.success(request, "تم إضافة الرد الجاهز بنجاح.")
+        return redirect("control_quick_replies")
+    return render(request, "site/control_quick_reply_form.html", {"form": form})
+
+
+
+@support_required
+def control_quick_reply_edit(request, pk):
+    reply = get_object_or_404(ChatCannedReply, pk=pk)
+    form = ChatCannedReplyForm(request.POST or None, instance=reply)
+    if request.method == "POST" and form.is_valid():
+        form.save()
+        messages.success(request, "تم تعديل الرد الجاهز بنجاح.")
+        return redirect("control_quick_replies")
+    return render(request, "site/control_quick_reply_form.html", {"form": form})
+
+
+
+@support_required
+def control_quick_reply_delete(request, pk):
+    reply = get_object_or_404(ChatCannedReply, pk=pk)
+    reply.delete()
+    messages.success(request, "تم حذف الرد الجاهز بنجاح.")
+    return redirect("control_quick_replies")
+
+
+
+def privacy_policy(request): return render(request, "site/privacy_policy.html")
+
+
+@login_required
+def wallet_page(request):
+    """
+    Displays the user's wallet dashboard and recent ledger entries.
+    """
+    request.user.reset_daily_limits_if_needed()
+    wallet = Wallet.objects.filter(user=request.user).select_related("currency").first() or get_or_create_wallet(request.user)
+    return render(request, "site/wallet.html", {"wallet": wallet, "ledger_entries": wallet.ledger_entries.all()[:20]})
+
+
+
+
+@login_required
+def orders_list(request):
+    orders = request.user.orders.all().prefetch_related('items__variant__product')
+    return render(request, "site/orders_list.html", {"orders": orders})
+
+
+
+@login_required
+def order_detail(request, pk):
+    order = get_object_or_404(request.user.orders.prefetch_related('items__variant__product', 'logs'), pk=pk)
+    return render(request, "site/order_detail.html", {"order": order})
+
+
+
+
+def home(request):
+    featured_products = Product.objects.filter(is_active=True, is_featured=True).select_related("category").prefetch_related("variants")[:6]
+    top_products = Product.objects.filter(is_active=True).select_related("category").prefetch_related("variants").order_by("sort_order", "name")[:8]
+    categories = Category.objects.filter(is_active=True).order_by("sort_order", "name")
+    stats = {
+        "products": Product.objects.filter(is_active=True).count(),
+        "categories": categories.count(),
+        "orders": Order.objects.count(),
+        "tickets": ChatRoom.objects.exclude(status=ChatRoom.Status.CLOSED).count(),
+        "users": User.objects.count(),
+    }
+    return render(request, "site/home.html", {"featured_products": featured_products, "top_products": top_products, "categories": categories, "stats": stats})
+
+
+
+
+def catalog(request):
+    cat_id = request.GET.get("category")
+    q = request.GET.get("q", "").strip()
+    sort = request.GET.get("sort", "newest")
+    
+    categories = Category.objects.filter(is_active=True).annotate(product_count=Count('products', filter=Q(products__is_active=True))).order_by("sort_order", "name")
+    products = Product.objects.filter(is_active=True).select_related("category").prefetch_related("variants")
+    
+    if cat_id: products = products.filter(category_id=cat_id)
+    if q: products = products.filter(Q(name__icontains=q) | Q(description__icontains=q))
+    
+    if sort == "price_low": products = products.order_by("variants__price")
+    elif sort == "price_high": products = products.order_by("-variants__price")
+    else: products = products.order_by("-created_at")
+        
+    return render(request, "site/catalog.html", {"categories": categories, "products": products.distinct(), "active_category": cat_id, "query": q, "sort": sort})
+
+
+
+
+@login_required
+def notification_settings(request):
+    from apps.notifications.models import NotificationSetting
+    settings_obj, created = NotificationSetting.objects.get_or_create(user=request.user)
+    
+    if request.method == "POST":
+        settings_obj.in_app_orders = request.POST.get("in_app_orders") == "on"
+        settings_obj.push_orders = request.POST.get("push_orders") == "on"
+        settings_obj.in_app_financial = request.POST.get("in_app_financial") == "on"
+        settings_obj.push_financial = request.POST.get("push_financial") == "on"
+        settings_obj.in_app_support = request.POST.get("in_app_support") == "on"
+        settings_obj.push_support = request.POST.get("push_support") == "on"
+        settings_obj.in_app_promotions = request.POST.get("in_app_promotions") == "on"
+        settings_obj.push_promotions = request.POST.get("push_promotions") == "on"
+        settings_obj.save()
+        messages.success(request, "╪ز┘à ╪ص┘╪╕ ╪ح╪╣╪»╪د╪»╪د╪ز ╪د┘╪ح╪┤╪╣╪د╪▒╪د╪ز ╪ذ┘╪ش╪د╪ص.")
+        return redirect("notification_settings")
+        
+    return render(request, "site/notification_settings.html", {"settings": settings_obj})
+
+
+@login_required
+def v3_change_password_view(request):
+    form = ChangePasswordForm(request.POST or None)
+    if request.method == "POST" and form.is_valid():
+        user = request.user
+        current_password = form.cleaned_data["current_password"]
+        new_password = form.cleaned_data["new_password"]
+        
+        if user.check_password(current_password):
+            with transaction.atomic():
+                user.set_password(new_password)
+                user.save()
+                
+                # Update session to prevent logout of current session
+                update_session_auth_hash(request, user)
+                
+                # Invalidate other sessions
+                from django.contrib.sessions.models import Session
+                for session in Session.objects.all():
+                    decoded = session.get_decoded()
+                    if decoded.get('_auth_user_id') == str(user.id):
+                        if session.session_key != request.session.session_key:
+                            session.delete()
+                
+                ActivityLog.objects.create(user=user, action="Password Change", description="User changed password and invalidated other sessions")
+                messages.success(request, "تم تغيير كلمة المرور بنجاح وتم تسجيل الخروج من الأجهزة الأخرى.")
+                return redirect("dashboard")
+        else:
+            messages.error(request, "كلمة المرور الحالية غير صحيحة.")
+            
+    return render(request, "site/v3/v3_change_password.html", {"form": form})
+
+
+from apps.common.decorators import finance_required, support_required, kyc_required, admin_required
+from apps.payments.models import DepositRequest, PaymentMethod, WithdrawalRequest
+
+
+
+def v3_forgot_password_view(request):
+    if request.method == "POST":
+        email = request.POST.get("email", "").lower().strip()
+        user = User.objects.filter(email=email).first()
+        
+        if user:
+            otp = v3_generate_otp(user, OTPToken.Purpose.PASSWORD_RESET)
+            if v3_send_otp_email(user, otp):
+                request.session["v3_auth_uid"] = str(user.id)
+                request.session["v3_auth_purpose"] = OTPToken.Purpose.PASSWORD_RESET
+                messages.success(request, "╪ز┘à ╪ح╪▒╪│╪د┘ ╪▒┘à╪▓ ╪د┘╪ز╪ص┘é┘é ┘╪ح╪╣╪د╪»╪ر ╪ز╪╣┘è┘è┘ ┘â┘┘à╪ر ╪د┘┘à╪▒┘ê╪▒.")
+                return redirect("site_verify_otp")
+            else:
+                messages.error(request, "┘╪┤┘ ╪ح╪▒╪│╪د┘ ╪د┘╪▒┘à╪▓. ┘è╪▒╪ش┘ë ╪د┘┘à╪ص╪د┘ê┘╪ر ┘╪د╪ص┘é╪د┘ï.")
+        else:
+            messages.error(request, "╪╣╪░╪▒╪د┘ï╪î ┘ç╪░╪د ╪د┘╪ذ╪▒┘è╪» ╪د┘╪ح┘┘â╪ز╪▒┘ê┘┘è ╪║┘è╪▒ ┘à╪│╪ش┘ ┘╪»┘è┘╪د.")
+            
+    return render(request, "site/v3/v3_forgot_password.html")
+
+
+
+
+def v3_reset_password_view(request):
+    uid = request.session.get("v3_auth_uid")
+    is_verified = request.session.get("v3_recovery_verified") == True
+    
+    if not uid or not is_verified:
+        messages.error(request, "┘è╪▒╪ش┘ë ╪د┘╪ز╪ص┘é┘é ┘à┘ ┘ç┘ê┘è╪ز┘â ╪ث┘ê┘╪د┘ï.")
+        return redirect("site_forgot_password")
+        
+    user = get_object_or_404(User, id=uid)
+    
+    if request.method == "POST":
+        p1 = request.POST.get("password")
+        p2 = request.POST.get("confirm_password")
+        
+        if not p1 or len(p1) < 10:
+            messages.error(request, "┘è╪ش╪ذ ╪ث┘ ╪ز┘â┘ê┘ ┘â┘┘à╪ر ╪د┘┘à╪▒┘ê╪▒ 10 ╪«╪د┘╪د╪ز ╪╣┘┘ë ╪د┘╪ث┘é┘.")
+        elif p1 != p2:
+            messages.error(request, "┘â┘┘à╪د╪ز ╪د┘┘à╪▒┘ê╪▒ ╪║┘è╪▒ ┘à╪ز╪╖╪د╪ذ┘é╪ر.")
+        else:
+            user.set_password(p1)
+            user.save()
+            
+            # Clean up all auth sessions
+            request.session.flush()
+            
+            ActivityLog.objects.create(user=user, action="Password Reset Success", description="User reset password via V3 OTP flow")
+            messages.success(request, "╪ز┘à ╪ز╪║┘è┘è╪▒ ┘â┘┘à╪ر ╪د┘┘à╪▒┘ê╪▒ ╪ذ┘╪ش╪د╪ص. ┘è┘à┘â┘┘â ╪د┘╪ت┘ ╪ز╪│╪ش┘è┘ ╪د┘╪»╪«┘ê┘.")
+            return redirect("site_login")
+            
+    return render(request, "site/v3/v3_reset_password.html", {"user_email": user.email})
+
+
+
+
+def resend_verification(request): return redirect("dashboard")
+
+
+def email_verify(request, uidb64, token): return redirect("site_login")
+
+
+@kyc_required
+def control_kyc_settings(request):
+    settings_obj = KYCSettings.get_settings()
+    form = KYCSettingsForm(request.POST or None, instance=settings_obj)
+    if request.method == "POST":
+        action = request.POST.get("action")
+        if action == "unblock_country":
+            code = request.POST.get("country_code")
+            if code in settings_obj.restricted_countries:
+                settings_obj.restricted_countries.remove(code)
+                settings_obj.save()
+                messages.success(request, f"┘┘â ╪د┘╪ص╪╕╪▒ ╪╣┘ {code}.")
+            return redirect("control_kyc_settings")
+        elif form.is_valid():
+            form.save()
+            messages.success(request, "╪ز┘à ╪د┘╪ص┘╪╕.")
+            return redirect("control_kyc_settings")
+    return render(request, "site/control_kyc_settings.html", {"form": form, "settings": settings_obj, "stats_verified_count": User.objects.filter(is_kyc_verified=True).count()})
+
+
+
+@admin_required
+def payment_methods_list(request): return render(request, "site/payment_methods_list.html", {"methods": PaymentMethod.objects.all().order_by("display_order")})
+
+
+@admin_required
+def payment_method_create(request):
+    form = PaymentMethodForm(request.POST or None, request.FILES or None)
+    if request.method == "POST" and form.is_valid(): form.save(); return redirect("payment_methods_list")
+    return render(request, "site/payment_method_builder.html", {"form": form})
+
+
+@admin_required
+def payment_method_edit(request, pk):
+    method = get_object_or_404(PaymentMethod, pk=pk)
+    form = PaymentMethodForm(request.POST or None, request.FILES or None, instance=method)
+    if request.method == "POST" and form.is_valid(): form.save(); return redirect("payment_methods_list")
+    return render(request, "site/payment_method_builder.html", {"form": form, "method": method})
+
+
+@finance_required
+def control_deposit_detail(request, pk):
+    deposit = get_object_or_404(DepositRequest.objects.select_related('user', 'currency', 'payment_method'), pk=pk)
+    return render(request, "site/control_deposit_detail.html", {
+        "deposit": deposit,
+    })
+
+
+
+@finance_required
+def control_withdrawal_detail(request, pk):
+    withdrawal = get_object_or_404(WithdrawalRequest.objects.select_related('user', 'user__wallet'), pk=pk)
+    if request.method == "POST":
+        with transaction.atomic():
+            withdrawal = WithdrawalRequest.objects.select_for_update().get(pk=pk)
+            action = request.POST.get("action")
+            admin_note = request.POST.get("admin_note", "")
+            
+            from apps.wallets.services import release_funds, finalize_withdrawal
+            
+            if action == "approve":
+                withdrawal.status = WithdrawalRequest.Status.APPROVED
+                withdrawal.admin_note = admin_note
+                messages.success(request, "╪ز┘à╪ز ╪د┘┘à┘ê╪د┘┘é╪ر ╪د┘┘à╪ذ╪»╪خ┘è╪ر ╪╣┘┘ë ╪د┘╪╖┘╪ذ.")
+            elif action == "process":
+                withdrawal.status = WithdrawalRequest.Status.PROCESSING
+                withdrawal.admin_note = admin_note
+                messages.info(request, "╪ذ╪»╪ث╪ز ┘à╪╣╪د┘╪ش╪ر ╪د┘╪╖┘╪ذ.")
+            elif action == "complete":
+                if withdrawal.status == WithdrawalRequest.Status.COMPLETED:
+                     messages.error(request, "┘ç╪░╪د ╪د┘╪╖┘╪ذ ┘à┘â╪ز┘à┘ ┘à╪│╪ذ┘é╪د┘ï.")
+                     return redirect("control_withdrawals")
+
+                finalize_withdrawal(
+                    withdrawal.user.wallet.id,
+                    withdrawal.wallet_amount,
+                    reference=f"with_complete:{withdrawal.id}",
+                    description=f"Withdrawal completed. {admin_note}",
+                    created_by=request.user
+                )
+                withdrawal.status = WithdrawalRequest.Status.COMPLETED
+                withdrawal.admin_note = admin_note
+                withdrawal.reviewed_by = request.user
+                withdrawal.reviewed_at = timezone.now()
+                withdrawal.save()
+                messages.success(request, "╪ز┘à ╪ح╪ز┘à╪د┘à ╪╣┘à┘┘è╪ر ╪د┘╪│╪ص╪ذ ╪ذ┘╪ش╪د╪ص.")
+                return redirect("control_withdrawals")
+            elif action == "reject":
+                if withdrawal.status in [WithdrawalRequest.Status.COMPLETED, WithdrawalRequest.Status.REJECTED, WithdrawalRequest.Status.CANCELLED]:
+                     messages.error(request, "┘╪د ┘è┘à┘â┘ ╪▒┘╪╢ ╪╖┘╪ذ ┘à┘╪ز┘ç┘è.")
+                     return redirect("control_withdrawals")
+
+                release_funds(
+                    withdrawal.user.wallet.id,
+                    withdrawal.wallet_amount,
+                    reference=f"with_rej:{withdrawal.id}",
+                    description=f"Withdrawal rejected: {admin_note}",
+                    created_by=request.user
+                )
+                withdrawal.status = WithdrawalRequest.Status.REJECTED
+
+                withdrawal.admin_note = admin_note
+                withdrawal.reviewed_by = request.user
+                withdrawal.reviewed_at = timezone.now()
+                withdrawal.save()
+                messages.error(request, "╪ز┘à ╪▒┘╪╢ ╪╖┘╪ذ ╪د┘╪│╪ص╪ذ ┘ê╪ح╪╣╪د╪»╪ر ╪د┘╪▒╪╡┘è╪» ┘┘┘à╪│╪ز╪«╪»┘à.")
+                return redirect("control_withdrawals")
+            elif action == "cancel_completed":
+                if withdrawal.status != WithdrawalRequest.Status.COMPLETED:
+                    messages.error(request, "┘╪د ┘è┘à┘â┘ ╪ح┘╪║╪د╪ة ┘ç╪░╪د ╪د┘╪╖┘╪ذ ┘╪ث┘┘ç ┘┘è╪│ ┘à┘â╪ز┘à┘.")
+                    return redirect("control_withdrawal_detail", pk=pk)
+                
+                from apps.wallets.services import credit_wallet
+                credit_wallet(
+                    wallet_id=withdrawal.user.wallet.id,
+                    amount=withdrawal.wallet_amount,
+                    reference=f"with_rev:{withdrawal.id}",
+                    description=f"Withdrawal reversed/cancelled: {admin_note}",
+                    created_by=request.user,
+                    reason="Admin reversal of completed withdrawal"
+                )
+                withdrawal.status = WithdrawalRequest.Status.CANCELLED
+                withdrawal.admin_note = admin_note
+                withdrawal.reviewed_by = request.user
+                withdrawal.reviewed_at = timezone.now()
+                withdrawal.save()
+                messages.warning(request, "╪ز┘à ╪ح┘╪║╪د╪ة ╪د┘╪│╪ص╪ذ ╪د┘┘à┘â╪ز┘à┘ ┘ê╪ح╪╣╪د╪»╪ر ╪د┘┘à╪ذ┘╪║ ┘┘┘à╪ص┘╪╕╪ر ╪ذ┘╪ش╪د╪ص.")
+                return redirect("control_withdrawals")
+            
+            withdrawal.save()
+            return redirect("control_withdrawal_detail", pk=pk)
+
+    return render(request, "site/control_withdrawal_detail.html", {"withdrawal": withdrawal})
+
+
+
+@admin_required
+def control_users_list(request): return render(request, "site/control_users_list.html", {"users": User.objects.select_related("wallet").order_by("-date_joined"), "tiers": User.Tier.choices, "roles": User.Role.choices})
+
+
+@admin_required
+def control_user_moderate(request, public_uuid):
+    user = get_object_or_404(User, public_uuid=public_uuid)
+    form = ModerateUserForm(request.POST or None, instance=user)
+    if request.method == "POST" and form.is_valid():
+        user = form.save()
+        if not user.is_account_active:
+             from django.contrib.sessions.models import Session
+             sessions = Session.objects.filter(expire_date__gte=timezone.now())
+             for s in sessions:
+                 if str(user.id) == s.get_decoded().get('_auth_user_id'): s.delete()
+        messages.success(request, "╪ز┘à ╪د┘╪ز╪ص╪»┘è╪س.")
+        return redirect("control_users_list")
+    return render(request, "site/control_user_moderate.html", {"form": form, "user_to_moderate": user})
+
+
+
+@support_required
+@transaction.atomic
+def control_product_create(request):
+    from apps.site.forms import ProductForm
+    from apps.catalog.models import Product, ProductVariant
+    import json
+    
+    form = ProductForm(request.POST or None, request.FILES or None)
+    if request.method == "POST" and form.is_valid():
+        product = form.save()
+        
+        # Handle variants
+        variants_json = request.POST.get("variants_json")
+        if variants_json:
+            variants_data = json.loads(variants_json)
+            for v_data in variants_data:
+                ProductVariant.objects.create(
+                    product=product,
+                    name=v_data.get('name'),
+                    sku=v_data.get('sku'),
+                    price=Decimal(str(v_data.get('price', '0'))),
+                    wholesale_price=Decimal(str(v_data.get('wholesale_price', '0'))),
+                    vip_price=Decimal(str(v_data.get('vip_price', '0'))),
+                    cost=Decimal(str(v_data.get('cost', '0'))),
+                    sort_order=int(v_data.get('sort_order', 0)),
+                    is_active=v_data.get('is_active', True)
+                )
+        
+        messages.success(request, "╪ز┘à ╪ح┘╪┤╪د╪ة ╪د┘┘à┘╪ز╪ش ╪ذ┘╪ش╪د╪ص.")
+        return redirect("control_products_list")
+        
+    return render(request, "site/control_product_builder.html", {
+        "form": form, "title": "╪ح╪╢╪د┘╪ر ┘à┘╪ز╪ش ╪ش╪»┘è╪»", "variants_json_data": []
+    })
+
+
+
+@support_required
+@transaction.atomic
+def control_product_edit(request, pk):
+    from apps.site.forms import ProductForm
+    from apps.catalog.models import Product, ProductVariant
+    import json
+    
+    product = get_object_or_404(Product, pk=pk)
+    form = ProductForm(request.POST or None, request.FILES or None, instance=product)
+    
+    if request.method == "POST" and form.is_valid():
+        product = form.save()
+        
+        # Handle variants (Sync strategy)
+        variants_json = request.POST.get("variants_json")
+        if variants_json:
+            variants_data = json.loads(variants_json)
+            incoming_skus = set(v.get('sku') for v in variants_data if v.get('sku'))
+            
+            # Delete removed ones
+            product.variants.exclude(sku__in=incoming_skus).delete()
+            
+            for v_data in variants_data:
+                sku = v_data.get('sku')
+                ProductVariant.objects.update_or_create(
+                    product=product, sku=sku,
+                    defaults={
+                        "name": v_data.get('name'),
+                        "price": Decimal(str(v_data.get('price', '0'))),
+                        "wholesale_price": Decimal(str(v_data.get('wholesale_price', '0'))),
+                        "vip_price": Decimal(str(v_data.get('vip_price', '0'))),
+                        "cost": Decimal(str(v_data.get('cost', '0'))),
+                        "sort_order": int(v_data.get('sort_order', 0)),
+                        "is_active": v_data.get('is_active', True)
+                    }
+                )
+        
+        messages.success(request, "╪ز┘à ╪ز╪ص╪»┘è╪س ╪د┘┘à┘╪ز╪ش ╪ذ┘╪ش╪د╪ص.")
+        return redirect("control_products_list")
+    
+    # Prepare variants for JSON script
+    variants = product.variants.all().order_by('sort_order')
+    variants_json_data = []
+    for v in variants:
+        variants_json_data.append({
+            "name": v.name, "sku": v.sku, "price": str(v.price),
+            "wholesale_price": str(v.wholesale_price), "vip_price": str(v.vip_price),
+            "cost": str(v.cost), "sort_order": v.sort_order, "is_active": v.is_active
+        })
+        
+    return render(request, "site/control_product_builder.html", {
+        "form": form, "product": product, "title": f"╪ز╪╣╪»┘è┘ ╪د┘┘à┘╪ز╪ش: {product.name}",
+        "variants_json_data": variants_json_data
+    })
+
+
+@support_required
+def control_category_create_ajax(request):
+    from apps.catalog.models import Category
+    name = request.POST.get('name')
+    if name:
+        cat = Category.objects.create(name=name)
+        return JsonResponse({"id": str(cat.id), "name": cat.name})
+    return JsonResponse({"error": "Name required"}, status=400)
+
+
+
+@admin_required
+def control_support_settings(request):
+    settings_obj, created = SupportSettings.objects.get_or_create(id=1)
+    form = SupportSettingsForm(request.POST or None, instance=settings_obj)
+    if request.method == "POST" and form.is_valid():
+        form.save()
+        messages.success(request, "تم حفظ إعدادات الدعم بنجاح.")
+        return redirect("control_support_settings")
+    return render(request, "site/control_support_settings.html", {"form": form})
+
+
+
+@support_required
+def control_quick_replies(request):
+    replies = ChatCannedReply.objects.all().order_by("-created_at")
+    return render(request, "site/control_quick_replies.html", {"replies": replies})
+
+
+
+@support_required
+def control_quick_reply_create(request):
+    form = ChatCannedReplyForm(request.POST or None)
+    if request.method == "POST" and form.is_valid():
+        form.save()
+        messages.success(request, "تم إضافة الرد الجاهز بنجاح.")
+        return redirect("control_quick_replies")
+    return render(request, "site/control_quick_reply_form.html", {"form": form})
+
+
+
+@support_required
+def control_quick_reply_edit(request, pk):
+    reply = get_object_or_404(ChatCannedReply, pk=pk)
+    form = ChatCannedReplyForm(request.POST or None, instance=reply)
+    if request.method == "POST" and form.is_valid():
+        form.save()
+        messages.success(request, "تم تعديل الرد الجاهز بنجاح.")
+        return redirect("control_quick_replies")
+    return render(request, "site/control_quick_reply_form.html", {"form": form})
+
+
+
+@support_required
+def control_quick_reply_delete(request, pk):
+    reply = get_object_or_404(ChatCannedReply, pk=pk)
+    reply.delete()
+    messages.success(request, "تم حذف الرد الجاهز بنجاح.")
+    return redirect("control_quick_replies")
+
+
+
+def privacy_policy(request): return render(request, "site/privacy_policy.html")
+
+
+@login_required
+def wallet_page(request):
+    """
+    Displays the user's wallet dashboard and recent ledger entries.
+    """
+    request.user.reset_daily_limits_if_needed()
+    wallet = Wallet.objects.filter(user=request.user).select_related("currency").first() or get_or_create_wallet(request.user)
+    return render(request, "site/wallet.html", {"wallet": wallet, "ledger_entries": wallet.ledger_entries.all()[:20]})
+
+
+
+
+@login_required
+def orders_list(request):
+    orders = request.user.orders.all().prefetch_related('items__variant__product')
+    return render(request, "site/orders_list.html", {"orders": orders})
+
+
+
+@login_required
+def order_detail(request, pk):
+    order = get_object_or_404(request.user.orders.prefetch_related('items__variant__product', 'logs'), pk=pk)
+    return render(request, "site/order_detail.html", {"order": order})
+
+
+
+
+def home(request):
+    featured_products = Product.objects.filter(is_active=True, is_featured=True).select_related("category").prefetch_related("variants")[:6]
+    top_products = Product.objects.filter(is_active=True).select_related("category").prefetch_related("variants").order_by("sort_order", "name")[:8]
+    categories = Category.objects.filter(is_active=True).order_by("sort_order", "name")
+    stats = {
+        "products": Product.objects.filter(is_active=True).count(),
+        "categories": categories.count(),
+        "orders": Order.objects.count(),
+        "tickets": ChatRoom.objects.exclude(status=ChatRoom.Status.CLOSED).count(),
+        "users": User.objects.count(),
+    }
+    return render(request, "site/home.html", {"featured_products": featured_products, "top_products": top_products, "categories": categories, "stats": stats})
+
+
+
+
+def catalog(request):
+    cat_id = request.GET.get("category")
+    q = request.GET.get("q", "").strip()
+    sort = request.GET.get("sort", "newest")
+    
+    categories = Category.objects.filter(is_active=True).annotate(product_count=Count('products', filter=Q(products__is_active=True))).order_by("sort_order", "name")
+    products = Product.objects.filter(is_active=True).select_related("category").prefetch_related("variants")
+    
+    if cat_id: products = products.filter(category_id=cat_id)
+    if q: products = products.filter(Q(name__icontains=q) | Q(description__icontains=q))
+    
+    if sort == "price_low": products = products.order_by("variants__price")
+    elif sort == "price_high": products = products.order_by("-variants__price")
+    else: products = products.order_by("-created_at")
+        
+    return render(request, "site/catalog.html", {"categories": categories, "products": products.distinct(), "active_category": cat_id, "query": q, "sort": sort})
+
+
+
+
+@login_required
+def notification_settings(request):
+    from apps.notifications.models import NotificationSetting
+    settings_obj, created = NotificationSetting.objects.get_or_create(user=request.user)
+    
+    if request.method == "POST":
+        settings_obj.in_app_orders = request.POST.get("in_app_orders") == "on"
+        settings_obj.push_orders = request.POST.get("push_orders") == "on"
+        settings_obj.in_app_financial = request.POST.get("in_app_financial") == "on"
+        settings_obj.push_financial = request.POST.get("push_financial") == "on"
+        settings_obj.in_app_support = request.POST.get("in_app_support") == "on"
+        settings_obj.push_support = request.POST.get("push_support") == "on"
+        settings_obj.in_app_promotions = request.POST.get("in_app_promotions") == "on"
+        settings_obj.push_promotions = request.POST.get("push_promotions") == "on"
+        settings_obj.save()
+        messages.success(request, "╪ز┘à ╪ص┘╪╕ ╪ح╪╣╪»╪د╪»╪د╪ز ╪د┘╪ح╪┤╪╣╪د╪▒╪د╪ز ╪ذ┘╪ش╪د╪ص.")
+        return redirect("notification_settings")
+        
+    return render(request, "site/notification_settings.html", {"settings": settings_obj})
+
+
+@login_required
+def v3_change_password_view(request):
+    form = ChangePasswordForm(request.POST or None)
+    if request.method == "POST" and form.is_valid():
+        user = request.user
+        current_password = form.cleaned_data["current_password"]
+        new_password = form.cleaned_data["new_password"]
+        
+        if user.check_password(current_password):
+            with transaction.atomic():
+                user.set_password(new_password)
+                user.save()
+                
+                # Update session to prevent logout of current session
+                update_session_auth_hash(request, user)
+                
+                # Invalidate other sessions
+                from django.contrib.sessions.models import Session
+                for session in Session.objects.all():
+                    decoded = session.get_decoded()
+                    if decoded.get('_auth_user_id') == str(user.id):
+                        if session.session_key != request.session.session_key:
+                            session.delete()
+                
+                ActivityLog.objects.create(user=user, action="Password Change", description="User changed password and invalidated other sessions")
+                messages.success(request, "تم تغيير كلمة المرور بنجاح وتم تسجيل الخروج من الأجهزة الأخرى.")
+                return redirect("dashboard")
+        else:
+            messages.error(request, "كلمة المرور الحالية غير صحيحة.")
+            
+    return render(request, "site/v3/v3_change_password.html", {"form": form})
+
+
+from apps.common.decorators import finance_required, support_required, kyc_required, admin_required
+from apps.payments.models import DepositRequest, PaymentMethod, WithdrawalRequest
+
+
+
+def v3_forgot_password_view(request):
+    if request.method == "POST":
+        email = request.POST.get("email", "").lower().strip()
+        user = User.objects.filter(email=email).first()
+        
+        if user:
+            otp = v3_generate_otp(user, OTPToken.Purpose.PASSWORD_RESET)
+            if v3_send_otp_email(user, otp):
+                request.session["v3_auth_uid"] = str(user.id)
+                request.session["v3_auth_purpose"] = OTPToken.Purpose.PASSWORD_RESET
+                messages.success(request, "╪ز┘à ╪ح╪▒╪│╪د┘ ╪▒┘à╪▓ ╪د┘╪ز╪ص┘é┘é ┘╪ح╪╣╪د╪»╪ر ╪ز╪╣┘è┘è┘ ┘â┘┘à╪ر ╪د┘┘à╪▒┘ê╪▒.")
+                return redirect("site_verify_otp")
+            else:
+                messages.error(request, "┘╪┤┘ ╪ح╪▒╪│╪د┘ ╪د┘╪▒┘à╪▓. ┘è╪▒╪ش┘ë ╪د┘┘à╪ص╪د┘ê┘╪ر ┘╪د╪ص┘é╪د┘ï.")
+        else:
+            messages.error(request, "╪╣╪░╪▒╪د┘ï╪î ┘ç╪░╪د ╪د┘╪ذ╪▒┘è╪» ╪د┘╪ح┘┘â╪ز╪▒┘ê┘┘è ╪║┘è╪▒ ┘à╪│╪ش┘ ┘╪»┘è┘╪د.")
+            
+    return render(request, "site/v3/v3_forgot_password.html")
+
+
+
+
+def v3_reset_password_view(request):
+    uid = request.session.get("v3_auth_uid")
+    is_verified = request.session.get("v3_recovery_verified") == True
+    
+    if not uid or not is_verified:
+        messages.error(request, "┘è╪▒╪ش┘ë ╪د┘╪ز╪ص┘é┘é ┘à┘ ┘ç┘ê┘è╪ز┘â ╪ث┘ê┘╪د┘ï.")
+        return redirect("site_forgot_password")
+        
+    user = get_object_or_404(User, id=uid)
+    
+    if request.method == "POST":
+        p1 = request.POST.get("password")
+        p2 = request.POST.get("confirm_password")
+        
+        if not p1 or len(p1) < 10:
+            messages.error(request, "┘è╪ش╪ذ ╪ث┘ ╪ز┘â┘ê┘ ┘â┘┘à╪ر ╪د┘┘à╪▒┘ê╪▒ 10 ╪«╪د┘╪د╪ز ╪╣┘┘ë ╪د┘╪ث┘é┘.")
+        elif p1 != p2:
+            messages.error(request, "┘â┘┘à╪د╪ز ╪د┘┘à╪▒┘ê╪▒ ╪║┘è╪▒ ┘à╪ز╪╖╪د╪ذ┘é╪ر.")
+        else:
+            user.set_password(p1)
+            user.save()
+            
+            # Clean up all auth sessions
+            request.session.flush()
+            
+            ActivityLog.objects.create(user=user, action="Password Reset Success", description="User reset password via V3 OTP flow")
+            messages.success(request, "╪ز┘à ╪ز╪║┘è┘è╪▒ ┘â┘┘à╪ر ╪د┘┘à╪▒┘ê╪▒ ╪ذ┘╪ش╪د╪ص. ┘è┘à┘â┘┘â ╪د┘╪ت┘ ╪ز╪│╪ش┘è┘ ╪د┘╪»╪«┘ê┘.")
+            return redirect("site_login")
+            
+    return render(request, "site/v3/v3_reset_password.html", {"user_email": user.email})
+
+
+
+
+def resend_verification(request): return redirect("dashboard")
+
+
+def email_verify(request, uidb64, token): return redirect("site_login")
+
+
+@kyc_required
+def control_kyc_settings(request):
+    settings_obj = KYCSettings.get_settings()
+    form = KYCSettingsForm(request.POST or None, instance=settings_obj)
+    if request.method == "POST":
+        action = request.POST.get("action")
+        if action == "unblock_country":
+            code = request.POST.get("country_code")
+            if code in settings_obj.restricted_countries:
+                settings_obj.restricted_countries.remove(code)
+                settings_obj.save()
+                messages.success(request, f"┘┘â ╪د┘╪ص╪╕╪▒ ╪╣┘ {code}.")
+            return redirect("control_kyc_settings")
+        elif form.is_valid():
+            form.save()
+            messages.success(request, "╪ز┘à ╪د┘╪ص┘╪╕.")
+            return redirect("control_kyc_settings")
+    return render(request, "site/control_kyc_settings.html", {"form": form, "settings": settings_obj, "stats_verified_count": User.objects.filter(is_kyc_verified=True).count()})
+
+
+
+@admin_required
+def payment_methods_list(request): return render(request, "site/payment_methods_list.html", {"methods": PaymentMethod.objects.all().order_by("display_order")})
+
+
+@admin_required
+def payment_method_create(request):
+    form = PaymentMethodForm(request.POST or None, request.FILES or None)
+    if request.method == "POST" and form.is_valid(): form.save(); return redirect("payment_methods_list")
+    return render(request, "site/payment_method_builder.html", {"form": form})
+
+
+@admin_required
+def payment_method_edit(request, pk):
+    method = get_object_or_404(PaymentMethod, pk=pk)
+    form = PaymentMethodForm(request.POST or None, request.FILES or None, instance=method)
+    if request.method == "POST" and form.is_valid(): form.save(); return redirect("payment_methods_list")
+    return render(request, "site/payment_method_builder.html", {"form": form, "method": method})
+
+
+@finance_required
+def control_deposit_detail(request, pk):
+    deposit = get_object_or_404(DepositRequest.objects.select_related('user', 'currency', 'payment_method'), pk=pk)
+    return render(request, "site/control_deposit_detail.html", {
+        "deposit": deposit,
+    })
+
+
+
+@finance_required
+def control_withdrawal_detail(request, pk):
+    withdrawal = get_object_or_404(WithdrawalRequest.objects.select_related('user', 'user__wallet'), pk=pk)
+    if request.method == "POST":
+        with transaction.atomic():
+            withdrawal = WithdrawalRequest.objects.select_for_update().get(pk=pk)
+            action = request.POST.get("action")
+            admin_note = request.POST.get("admin_note", "")
+            
+            from apps.wallets.services import release_funds, finalize_withdrawal
+            
+            if action == "approve":
+                withdrawal.status = WithdrawalRequest.Status.APPROVED
+                withdrawal.admin_note = admin_note
+                messages.success(request, "╪ز┘à╪ز ╪د┘┘à┘ê╪د┘┘é╪ر ╪د┘┘à╪ذ╪»╪خ┘è╪ر ╪╣┘┘ë ╪د┘╪╖┘╪ذ.")
+            elif action == "process":
+                withdrawal.status = WithdrawalRequest.Status.PROCESSING
+                withdrawal.admin_note = admin_note
+                messages.info(request, "╪ذ╪»╪ث╪ز ┘à╪╣╪د┘╪ش╪ر ╪د┘╪╖┘╪ذ.")
+            elif action == "complete":
+                if withdrawal.status == WithdrawalRequest.Status.COMPLETED:
+                     messages.error(request, "┘ç╪░╪د ╪د┘╪╖┘╪ذ ┘à┘â╪ز┘à┘ ┘à╪│╪ذ┘é╪د┘ï.")
+                     return redirect("control_withdrawals")
+
+                finalize_withdrawal(
+                    withdrawal.user.wallet.id,
+                    withdrawal.wallet_amount,
+                    reference=f"with_complete:{withdrawal.id}",
+                    description=f"Withdrawal completed. {admin_note}",
+                    created_by=request.user
+                )
+                withdrawal.status = WithdrawalRequest.Status.COMPLETED
+                withdrawal.admin_note = admin_note
+                withdrawal.reviewed_by = request.user
+                withdrawal.reviewed_at = timezone.now()
+                withdrawal.save()
+                messages.success(request, "╪ز┘à ╪ح╪ز┘à╪د┘à ╪╣┘à┘┘è╪ر ╪د┘╪│╪ص╪ذ ╪ذ┘╪ش╪د╪ص.")
+                return redirect("control_withdrawals")
+            elif action == "reject":
+                if withdrawal.status in [WithdrawalRequest.Status.COMPLETED, WithdrawalRequest.Status.REJECTED, WithdrawalRequest.Status.CANCELLED]:
+                     messages.error(request, "┘╪د ┘è┘à┘â┘ ╪▒┘╪╢ ╪╖┘╪ذ ┘à┘╪ز┘ç┘è.")
+                     return redirect("control_withdrawals")
+
+                release_funds(
+                    withdrawal.user.wallet.id,
+                    withdrawal.wallet_amount,
+                    reference=f"with_rej:{withdrawal.id}",
+                    description=f"Withdrawal rejected: {admin_note}",
+                    created_by=request.user
+                )
+                withdrawal.status = WithdrawalRequest.Status.REJECTED
+
+                withdrawal.admin_note = admin_note
+                withdrawal.reviewed_by = request.user
+                withdrawal.reviewed_at = timezone.now()
+                withdrawal.save()
+                messages.error(request, "╪ز┘à ╪▒┘╪╢ ╪╖┘╪ذ ╪د┘╪│╪ص╪ذ ┘ê╪ح╪╣╪د╪»╪ر ╪د┘╪▒╪╡┘è╪» ┘┘┘à╪│╪ز╪«╪»┘à.")
+                return redirect("control_withdrawals")
+            elif action == "cancel_completed":
+                if withdrawal.status != WithdrawalRequest.Status.COMPLETED:
+                    messages.error(request, "┘╪د ┘è┘à┘â┘ ╪ح┘╪║╪د╪ة ┘ç╪░╪د ╪د┘╪╖┘╪ذ ┘╪ث┘┘ç ┘┘è╪│ ┘à┘â╪ز┘à┘.")
+                    return redirect("control_withdrawal_detail", pk=pk)
+                
+                from apps.wallets.services import credit_wallet
+                credit_wallet(
+                    wallet_id=withdrawal.user.wallet.id,
+                    amount=withdrawal.wallet_amount,
+                    reference=f"with_rev:{withdrawal.id}",
+                    description=f"Withdrawal reversed/cancelled: {admin_note}",
+                    created_by=request.user,
+                    reason="Admin reversal of completed withdrawal"
+                )
+                withdrawal.status = WithdrawalRequest.Status.CANCELLED
+                withdrawal.admin_note = admin_note
+                withdrawal.reviewed_by = request.user
+                withdrawal.reviewed_at = timezone.now()
+                withdrawal.save()
+                messages.warning(request, "╪ز┘à ╪ح┘╪║╪د╪ة ╪د┘╪│╪ص╪ذ ╪د┘┘à┘â╪ز┘à┘ ┘ê╪ح╪╣╪د╪»╪ر ╪د┘┘à╪ذ┘╪║ ┘┘┘à╪ص┘╪╕╪ر ╪ذ┘╪ش╪د╪ص.")
+                return redirect("control_withdrawals")
+            
+            withdrawal.save()
+            return redirect("control_withdrawal_detail", pk=pk)
+
+    return render(request, "site/control_withdrawal_detail.html", {"withdrawal": withdrawal})
+
+
+
+@admin_required
+def control_users_list(request): return render(request, "site/control_users_list.html", {"users": User.objects.select_related("wallet").order_by("-date_joined"), "tiers": User.Tier.choices, "roles": User.Role.choices})
+
+
+@admin_required
+def control_user_moderate(request, public_uuid):
+    user = get_object_or_404(User, public_uuid=public_uuid)
+    form = ModerateUserForm(request.POST or None, instance=user)
+    if request.method == "POST" and form.is_valid():
+        user = form.save()
+        if not user.is_account_active:
+             from django.contrib.sessions.models import Session
+             sessions = Session.objects.filter(expire_date__gte=timezone.now())
+             for s in sessions:
+                 if str(user.id) == s.get_decoded().get('_auth_user_id'): s.delete()
+        messages.success(request, "╪ز┘à ╪د┘╪ز╪ص╪»┘è╪س.")
+        return redirect("control_users_list")
+    return render(request, "site/control_user_moderate.html", {"form": form, "user_to_moderate": user})
+
+
+
+@support_required
+@transaction.atomic
+def control_product_create(request):
+    from apps.site.forms import ProductForm
+    from apps.catalog.models import Product, ProductVariant
+    import json
+    
+    form = ProductForm(request.POST or None, request.FILES or None)
+    if request.method == "POST" and form.is_valid():
+        product = form.save()
+        
+        # Handle variants
+        variants_json = request.POST.get("variants_json")
+        if variants_json:
+            variants_data = json.loads(variants_json)
+            for v_data in variants_data:
+                ProductVariant.objects.create(
+                    product=product,
+                    name=v_data.get('name'),
+                    sku=v_data.get('sku'),
+                    price=Decimal(str(v_data.get('price', '0'))),
+                    wholesale_price=Decimal(str(v_data.get('wholesale_price', '0'))),
+                    vip_price=Decimal(str(v_data.get('vip_price', '0'))),
+                    cost=Decimal(str(v_data.get('cost', '0'))),
+                    sort_order=int(v_data.get('sort_order', 0)),
+                    is_active=v_data.get('is_active', True)
+                )
+        
+        messages.success(request, "╪ز┘à ╪ح┘╪┤╪د╪ة ╪د┘┘à┘╪ز╪ش ╪ذ┘╪ش╪د╪ص.")
+        return redirect("control_products_list")
+        
+    return render(request, "site/control_product_builder.html", {
+        "form": form, "title": "╪ح╪╢╪د┘╪ر ┘à┘╪ز╪ش ╪ش╪»┘è╪»", "variants_json_data": []
+    })
+
+
+
+@support_required
+@transaction.atomic
+def control_product_edit(request, pk):
+    from apps.site.forms import ProductForm
+    from apps.catalog.models import Product, ProductVariant
+    import json
+    
+    product = get_object_or_404(Product, pk=pk)
+    form = ProductForm(request.POST or None, request.FILES or None, instance=product)
+    
+    if request.method == "POST" and form.is_valid():
+        product = form.save()
+        
+        # Handle variants (Sync strategy)
+        variants_json = request.POST.get("variants_json")
+        if variants_json:
+            variants_data = json.loads(variants_json)
+            incoming_skus = set(v.get('sku') for v in variants_data if v.get('sku'))
+            
+            # Delete removed ones
+            product.variants.exclude(sku__in=incoming_skus).delete()
+            
+            for v_data in variants_data:
+                sku = v_data.get('sku')
+                ProductVariant.objects.update_or_create(
+                    product=product, sku=sku,
+                    defaults={
+                        "name": v_data.get('name'),
+                        "price": Decimal(str(v_data.get('price', '0'))),
+                        "wholesale_price": Decimal(str(v_data.get('wholesale_price', '0'))),
+                        "vip_price": Decimal(str(v_data.get('vip_price', '0'))),
+                        "cost": Decimal(str(v_data.get('cost', '0'))),
+                        "sort_order": int(v_data.get('sort_order', 0)),
+                        "is_active": v_data.get('is_active', True)
+                    }
+                )
+        
+        messages.success(request, "╪ز┘à ╪ز╪ص╪»┘è╪س ╪د┘┘à┘╪ز╪ش ╪ذ┘╪ش╪د╪ص.")
+        return redirect("control_products_list")
+    
+    # Prepare variants for JSON script
+    variants = product.variants.all().order_by('sort_order')
+    variants_json_data = []
+    for v in variants:
+        variants_json_data.append({
+            "name": v.name, "sku": v.sku, "price": str(v.price),
+            "wholesale_price": str(v.wholesale_price), "vip_price": str(v.vip_price),
+            "cost": str(v.cost), "sort_order": v.sort_order, "is_active": v.is_active
+        })
+        
+    return render(request, "site/control_product_builder.html", {
+        "form": form, "product": product, "title": f"╪ز╪╣╪»┘è┘ ╪د┘┘à┘╪ز╪ش: {product.name}",
+        "variants_json_data": variants_json_data
+    })
+
+
+@support_required
+def control_variant_create(request, product_pk): return render(request, "site/control_variant_form.html")
+
+
+@support_required
+def control_variant_edit(request, pk): return render(request, "site/control_variant_form.html")
+
+
+
+@finance_required
+def control_wallets_list(request):
+    q = request.GET.get('q', '')
+    wallets = Wallet.objects.select_related('user', 'currency').all().order_by('-updated_at')
+    if q:
+        wallets = wallets.filter(Q(user__email__icontains=q) | Q(user__first_name__icontains=q))
+    return render(request, "site/control_wallets_list.html", {"wallets": wallets, "query": q})
+
+
+@finance_required
+def control_debts(request):
+    from django.db.models import Q
+    q = request.GET.get('q', '')
+    users = User.objects.select_related('wallet').all()
+    if q:
+        users = users.filter(Q(email__icontains=q) | Q(phone__icontains=q) | Q(first_name__icontains=q) | Q(last_name__icontains=q))
+    
+    if request.method == "POST":
+        user_id = request.POST.get("user_id")
+        action = request.POST.get("action")
+        amount = Decimal(request.POST.get("amount", "0"))
+        reason = request.POST.get("reason", "")
+        
+        target_user = get_object_or_404(User, id=user_id)
+        wallet = target_user.wallet
+        
+        try:
+            if action == "add_debt":
+                from apps.wallets.services import add_debt
+                add_debt(wallet.id, amount, reference=f"admin_debt_{timezone.now().timestamp()}", reason=reason, created_by=request.user)
+                messages.success(request, f"╪ز┘à ╪ح╪╢╪د┘╪ر ╪»┘è┘ ╪ذ┘é┘è┘à╪ر {amount} ┘┘┘à╪│╪ز╪«╪»┘à {target_user.email}")
+            elif action == "pay_debt":
+                from apps.wallets.services import pay_debt
+                pay_debt(wallet.id, amount, reference=f"admin_pay_{timezone.now().timestamp()}", reason=reason, created_by=request.user, deduct_from_balance=False)
+                messages.success(request, f"╪ز┘à ╪ز╪│╪ش┘è┘ ╪│╪»╪د╪» ╪ذ┘é┘è┘à╪ر {amount} ┘┘┘à╪│╪ز╪«╪»┘à {target_user.email}")
+        except Exception as e:
+            messages.error(request, str(e))
+            
+        return redirect(f"{request.path}?q={q}")
+
+    return render(request, "site/control_debts.html", {"users": users, "query": q})
+
+
+
+def set_currency(request):
+    currency_id = request.GET.get("currency") or request.POST.get("currency")
+    if currency_id:
+        currency = Currency.objects.filter(id=currency_id, is_active=True).first()
+        if currency:
+            request.session["preferred_currency_id"] = str(currency.id)
+            if request.user.is_authenticated:
+                request.user.preferred_currency = currency
+                request.user.save(update_fields=["preferred_currency"])
+            messages.success(request, f"╪ز┘à ╪ز╪║┘è┘è╪▒ ╪د┘╪╣┘à┘╪ر ╪د┘┘à┘╪╢┘╪ر ╪ح┘┘ë {currency.name}.")
+    
+    # Redirect back to referring page or home
+    next_url = request.META.get('HTTP_REFERER', 'home')
+    return redirect(next_url)
+
+
+def tickets(request): return render(request, "site/tickets.html")
+
+
+def ticket_detail(request, pk): return render(request, "site/ticket_detail.html")
+
+
+
+@support_required
+def control_category_create_ajax(request):
+    from apps.catalog.models import Category
+    name = request.POST.get('name')
+    if name:
+        cat = Category.objects.create(name=name)
+        return JsonResponse({"id": str(cat.id), "name": cat.name})
+    return JsonResponse({"error": "Name required"}, status=400)
+
+
+
+@admin_required
+def control_support_settings(request):
+    settings_obj, created = SupportSettings.objects.get_or_create(id=1)
+    form = SupportSettingsForm(request.POST or None, instance=settings_obj)
+    if request.method == "POST" and form.is_valid():
+        form.save()
+        messages.success(request, "تم حفظ إعدادات الدعم بنجاح.")
+        return redirect("control_support_settings")
+    return render(request, "site/control_support_settings.html", {"form": form})
+
+
+
+@support_required
+def control_quick_replies(request):
+    replies = ChatCannedReply.objects.all().order_by("-created_at")
+    return render(request, "site/control_quick_replies.html", {"replies": replies})
+
+
+
+@support_required
+def control_quick_reply_create(request):
+    form = ChatCannedReplyForm(request.POST or None)
+    if request.method == "POST" and form.is_valid():
+        form.save()
+        messages.success(request, "تم إضافة الرد الجاهز بنجاح.")
+        return redirect("control_quick_replies")
+    return render(request, "site/control_quick_reply_form.html", {"form": form})
+
+
+
+@support_required
+def control_quick_reply_edit(request, pk):
+    reply = get_object_or_404(ChatCannedReply, pk=pk)
+    form = ChatCannedReplyForm(request.POST or None, instance=reply)
+    if request.method == "POST" and form.is_valid():
+        form.save()
+        messages.success(request, "تم تعديل الرد الجاهز بنجاح.")
+        return redirect("control_quick_replies")
+    return render(request, "site/control_quick_reply_form.html", {"form": form})
+
+
+
+@support_required
+def control_quick_reply_delete(request, pk):
+    reply = get_object_or_404(ChatCannedReply, pk=pk)
+    reply.delete()
+    messages.success(request, "تم حذف الرد الجاهز بنجاح.")
+    return redirect("control_quick_replies")
+
+
+
+def privacy_policy(request): return render(request, "site/privacy_policy.html")
+
+
+@login_required
+def wallet_page(request):
+    """
+    Displays the user's wallet dashboard and recent ledger entries.
+    """
+    request.user.reset_daily_limits_if_needed()
+    wallet = Wallet.objects.filter(user=request.user).select_related("currency").first() or get_or_create_wallet(request.user)
+    return render(request, "site/wallet.html", {"wallet": wallet, "ledger_entries": wallet.ledger_entries.all()[:20]})
+
+
+
+
+@login_required
+def orders_list(request):
+    orders = request.user.orders.all().prefetch_related('items__variant__product')
+    return render(request, "site/orders_list.html", {"orders": orders})
+
+
+
+@login_required
+def order_detail(request, pk):
+    order = get_object_or_404(request.user.orders.prefetch_related('items__variant__product', 'logs'), pk=pk)
+    return render(request, "site/order_detail.html", {"order": order})
+
+
+
+
+def home(request):
+    featured_products = Product.objects.filter(is_active=True, is_featured=True).select_related("category").prefetch_related("variants")[:6]
+    top_products = Product.objects.filter(is_active=True).select_related("category").prefetch_related("variants").order_by("sort_order", "name")[:8]
+    categories = Category.objects.filter(is_active=True).order_by("sort_order", "name")
+    stats = {
+        "products": Product.objects.filter(is_active=True).count(),
+        "categories": categories.count(),
+        "orders": Order.objects.count(),
+        "tickets": ChatRoom.objects.exclude(status=ChatRoom.Status.CLOSED).count(),
+        "users": User.objects.count(),
+    }
+    return render(request, "site/home.html", {"featured_products": featured_products, "top_products": top_products, "categories": categories, "stats": stats})
+
+
+
+
+def catalog(request):
+    cat_id = request.GET.get("category")
+    q = request.GET.get("q", "").strip()
+    sort = request.GET.get("sort", "newest")
+    
+    categories = Category.objects.filter(is_active=True).annotate(product_count=Count('products', filter=Q(products__is_active=True))).order_by("sort_order", "name")
+    products = Product.objects.filter(is_active=True).select_related("category").prefetch_related("variants")
+    
+    if cat_id: products = products.filter(category_id=cat_id)
+    if q: products = products.filter(Q(name__icontains=q) | Q(description__icontains=q))
+    
+    if sort == "price_low": products = products.order_by("variants__price")
+    elif sort == "price_high": products = products.order_by("-variants__price")
+    else: products = products.order_by("-created_at")
+        
+    return render(request, "site/catalog.html", {"categories": categories, "products": products.distinct(), "active_category": cat_id, "query": q, "sort": sort})
+
+
+
+
+@login_required
+def notification_settings(request):
+    from apps.notifications.models import NotificationSetting
+    settings_obj, created = NotificationSetting.objects.get_or_create(user=request.user)
+    
+    if request.method == "POST":
+        settings_obj.in_app_orders = request.POST.get("in_app_orders") == "on"
+        settings_obj.push_orders = request.POST.get("push_orders") == "on"
+        settings_obj.in_app_financial = request.POST.get("in_app_financial") == "on"
+        settings_obj.push_financial = request.POST.get("push_financial") == "on"
+        settings_obj.in_app_support = request.POST.get("in_app_support") == "on"
+        settings_obj.push_support = request.POST.get("push_support") == "on"
+        settings_obj.in_app_promotions = request.POST.get("in_app_promotions") == "on"
+        settings_obj.push_promotions = request.POST.get("push_promotions") == "on"
+        settings_obj.save()
+        messages.success(request, "╪ز┘à ╪ص┘╪╕ ╪ح╪╣╪»╪د╪»╪د╪ز ╪د┘╪ح╪┤╪╣╪د╪▒╪د╪ز ╪ذ┘╪ش╪د╪ص.")
+        return redirect("notification_settings")
+        
+    return render(request, "site/notification_settings.html", {"settings": settings_obj})
+
+
+@login_required
+def v3_change_password_view(request):
+    form = ChangePasswordForm(request.POST or None)
+    if request.method == "POST" and form.is_valid():
+        user = request.user
+        current_password = form.cleaned_data["current_password"]
+        new_password = form.cleaned_data["new_password"]
+        
+        if user.check_password(current_password):
+            with transaction.atomic():
+                user.set_password(new_password)
+                user.save()
+                
+                # Update session to prevent logout of current session
+                update_session_auth_hash(request, user)
+                
+                # Invalidate other sessions
+                from django.contrib.sessions.models import Session
+                for session in Session.objects.all():
+                    decoded = session.get_decoded()
+                    if decoded.get('_auth_user_id') == str(user.id):
+                        if session.session_key != request.session.session_key:
+                            session.delete()
+                
+                ActivityLog.objects.create(user=user, action="Password Change", description="User changed password and invalidated other sessions")
+                messages.success(request, "تم تغيير كلمة المرور بنجاح وتم تسجيل الخروج من الأجهزة الأخرى.")
+                return redirect("dashboard")
+        else:
+            messages.error(request, "كلمة المرور الحالية غير صحيحة.")
+            
+    return render(request, "site/v3/v3_change_password.html", {"form": form})
+
+
+from apps.common.decorators import finance_required, support_required, kyc_required, admin_required
+from apps.payments.models import DepositRequest, PaymentMethod, WithdrawalRequest
+
+
+
+def v3_forgot_password_view(request):
+    if request.method == "POST":
+        email = request.POST.get("email", "").lower().strip()
+        user = User.objects.filter(email=email).first()
+        
+        if user:
+            otp = v3_generate_otp(user, OTPToken.Purpose.PASSWORD_RESET)
+            if v3_send_otp_email(user, otp):
+                request.session["v3_auth_uid"] = str(user.id)
+                request.session["v3_auth_purpose"] = OTPToken.Purpose.PASSWORD_RESET
+                messages.success(request, "╪ز┘à ╪ح╪▒╪│╪د┘ ╪▒┘à╪▓ ╪د┘╪ز╪ص┘é┘é ┘╪ح╪╣╪د╪»╪ر ╪ز╪╣┘è┘è┘ ┘â┘┘à╪ر ╪د┘┘à╪▒┘ê╪▒.")
+                return redirect("site_verify_otp")
+            else:
+                messages.error(request, "┘╪┤┘ ╪ح╪▒╪│╪د┘ ╪د┘╪▒┘à╪▓. ┘è╪▒╪ش┘ë ╪د┘┘à╪ص╪د┘ê┘╪ر ┘╪د╪ص┘é╪د┘ï.")
+        else:
+            messages.error(request, "╪╣╪░╪▒╪د┘ï╪î ┘ç╪░╪د ╪د┘╪ذ╪▒┘è╪» ╪د┘╪ح┘┘â╪ز╪▒┘ê┘┘è ╪║┘è╪▒ ┘à╪│╪ش┘ ┘╪»┘è┘╪د.")
+            
+    return render(request, "site/v3/v3_forgot_password.html")
+
+
+
+
+def v3_reset_password_view(request):
+    uid = request.session.get("v3_auth_uid")
+    is_verified = request.session.get("v3_recovery_verified") == True
+    
+    if not uid or not is_verified:
+        messages.error(request, "┘è╪▒╪ش┘ë ╪د┘╪ز╪ص┘é┘é ┘à┘ ┘ç┘ê┘è╪ز┘â ╪ث┘ê┘╪د┘ï.")
+        return redirect("site_forgot_password")
+        
+    user = get_object_or_404(User, id=uid)
+    
+    if request.method == "POST":
+        p1 = request.POST.get("password")
+        p2 = request.POST.get("confirm_password")
+        
+        if not p1 or len(p1) < 10:
+            messages.error(request, "┘è╪ش╪ذ ╪ث┘ ╪ز┘â┘ê┘ ┘â┘┘à╪ر ╪د┘┘à╪▒┘ê╪▒ 10 ╪«╪د┘╪د╪ز ╪╣┘┘ë ╪د┘╪ث┘é┘.")
+        elif p1 != p2:
+            messages.error(request, "┘â┘┘à╪د╪ز ╪د┘┘à╪▒┘ê╪▒ ╪║┘è╪▒ ┘à╪ز╪╖╪د╪ذ┘é╪ر.")
+        else:
+            user.set_password(p1)
+            user.save()
+            
+            # Clean up all auth sessions
+            request.session.flush()
+            
+            ActivityLog.objects.create(user=user, action="Password Reset Success", description="User reset password via V3 OTP flow")
+            messages.success(request, "╪ز┘à ╪ز╪║┘è┘è╪▒ ┘â┘┘à╪ر ╪د┘┘à╪▒┘ê╪▒ ╪ذ┘╪ش╪د╪ص. ┘è┘à┘â┘┘â ╪د┘╪ت┘ ╪ز╪│╪ش┘è┘ ╪د┘╪»╪«┘ê┘.")
+            return redirect("site_login")
+            
+    return render(request, "site/v3/v3_reset_password.html", {"user_email": user.email})
+
+
+
+
+def resend_verification(request): return redirect("dashboard")
+
+
+def email_verify(request, uidb64, token): return redirect("site_login")
+
+
+@kyc_required
+def control_kyc_settings(request):
+    settings_obj = KYCSettings.get_settings()
+    form = KYCSettingsForm(request.POST or None, instance=settings_obj)
+    if request.method == "POST":
+        action = request.POST.get("action")
+        if action == "unblock_country":
+            code = request.POST.get("country_code")
+            if code in settings_obj.restricted_countries:
+                settings_obj.restricted_countries.remove(code)
+                settings_obj.save()
+                messages.success(request, f"┘┘â ╪د┘╪ص╪╕╪▒ ╪╣┘ {code}.")
+            return redirect("control_kyc_settings")
+        elif form.is_valid():
+            form.save()
+            messages.success(request, "╪ز┘à ╪د┘╪ص┘╪╕.")
+            return redirect("control_kyc_settings")
+    return render(request, "site/control_kyc_settings.html", {"form": form, "settings": settings_obj, "stats_verified_count": User.objects.filter(is_kyc_verified=True).count()})
+
+
+
+@admin_required
+def payment_methods_list(request): return render(request, "site/payment_methods_list.html", {"methods": PaymentMethod.objects.all().order_by("display_order")})
+
+
+@admin_required
+def payment_method_create(request):
+    form = PaymentMethodForm(request.POST or None, request.FILES or None)
+    if request.method == "POST" and form.is_valid(): form.save(); return redirect("payment_methods_list")
+    return render(request, "site/payment_method_builder.html", {"form": form})
+
+
+@admin_required
+def payment_method_edit(request, pk):
+    method = get_object_or_404(PaymentMethod, pk=pk)
+    form = PaymentMethodForm(request.POST or None, request.FILES or None, instance=method)
+    if request.method == "POST" and form.is_valid(): form.save(); return redirect("payment_methods_list")
+    return render(request, "site/payment_method_builder.html", {"form": form, "method": method})
+
+
+@finance_required
+def control_deposit_detail(request, pk):
+    deposit = get_object_or_404(DepositRequest.objects.select_related('user', 'currency', 'payment_method'), pk=pk)
+    return render(request, "site/control_deposit_detail.html", {
+        "deposit": deposit,
+    })
+
+
+
+@finance_required
+def control_withdrawal_detail(request, pk):
+    withdrawal = get_object_or_404(WithdrawalRequest.objects.select_related('user', 'user__wallet'), pk=pk)
+    if request.method == "POST":
+        with transaction.atomic():
+            withdrawal = WithdrawalRequest.objects.select_for_update().get(pk=pk)
+            action = request.POST.get("action")
+            admin_note = request.POST.get("admin_note", "")
+            
+            from apps.wallets.services import release_funds, finalize_withdrawal
+            
+            if action == "approve":
+                withdrawal.status = WithdrawalRequest.Status.APPROVED
+                withdrawal.admin_note = admin_note
+                messages.success(request, "╪ز┘à╪ز ╪د┘┘à┘ê╪د┘┘é╪ر ╪د┘┘à╪ذ╪»╪خ┘è╪ر ╪╣┘┘ë ╪د┘╪╖┘╪ذ.")
+            elif action == "process":
+                withdrawal.status = WithdrawalRequest.Status.PROCESSING
+                withdrawal.admin_note = admin_note
+                messages.info(request, "╪ذ╪»╪ث╪ز ┘à╪╣╪د┘╪ش╪ر ╪د┘╪╖┘╪ذ.")
+            elif action == "complete":
+                if withdrawal.status == WithdrawalRequest.Status.COMPLETED:
+                     messages.error(request, "┘ç╪░╪د ╪د┘╪╖┘╪ذ ┘à┘â╪ز┘à┘ ┘à╪│╪ذ┘é╪د┘ï.")
+                     return redirect("control_withdrawals")
+
+                finalize_withdrawal(
+                    withdrawal.user.wallet.id,
+                    withdrawal.wallet_amount,
+                    reference=f"with_complete:{withdrawal.id}",
+                    description=f"Withdrawal completed. {admin_note}",
+                    created_by=request.user
+                )
+                withdrawal.status = WithdrawalRequest.Status.COMPLETED
+                withdrawal.admin_note = admin_note
+                withdrawal.reviewed_by = request.user
+                withdrawal.reviewed_at = timezone.now()
+                withdrawal.save()
+                messages.success(request, "╪ز┘à ╪ح╪ز┘à╪د┘à ╪╣┘à┘┘è╪ر ╪د┘╪│╪ص╪ذ ╪ذ┘╪ش╪د╪ص.")
+                return redirect("control_withdrawals")
+            elif action == "reject":
+                if withdrawal.status in [WithdrawalRequest.Status.COMPLETED, WithdrawalRequest.Status.REJECTED, WithdrawalRequest.Status.CANCELLED]:
+                     messages.error(request, "┘╪د ┘è┘à┘â┘ ╪▒┘╪╢ ╪╖┘╪ذ ┘à┘╪ز┘ç┘è.")
+                     return redirect("control_withdrawals")
+
+                release_funds(
+                    withdrawal.user.wallet.id,
+                    withdrawal.wallet_amount,
+                    reference=f"with_rej:{withdrawal.id}",
+                    description=f"Withdrawal rejected: {admin_note}",
+                    created_by=request.user
+                )
+                withdrawal.status = WithdrawalRequest.Status.REJECTED
+
+                withdrawal.admin_note = admin_note
+                withdrawal.reviewed_by = request.user
+                withdrawal.reviewed_at = timezone.now()
+                withdrawal.save()
+                messages.error(request, "╪ز┘à ╪▒┘╪╢ ╪╖┘╪ذ ╪د┘╪│╪ص╪ذ ┘ê╪ح╪╣╪د╪»╪ر ╪د┘╪▒╪╡┘è╪» ┘┘┘à╪│╪ز╪«╪»┘à.")
+                return redirect("control_withdrawals")
+            elif action == "cancel_completed":
+                if withdrawal.status != WithdrawalRequest.Status.COMPLETED:
+                    messages.error(request, "┘╪د ┘è┘à┘â┘ ╪ح┘╪║╪د╪ة ┘ç╪░╪د ╪د┘╪╖┘╪ذ ┘╪ث┘┘ç ┘┘è╪│ ┘à┘â╪ز┘à┘.")
+                    return redirect("control_withdrawal_detail", pk=pk)
+                
+                from apps.wallets.services import credit_wallet
+                credit_wallet(
+                    wallet_id=withdrawal.user.wallet.id,
+                    amount=withdrawal.wallet_amount,
+                    reference=f"with_rev:{withdrawal.id}",
+                    description=f"Withdrawal reversed/cancelled: {admin_note}",
+                    created_by=request.user,
+                    reason="Admin reversal of completed withdrawal"
+                )
+                withdrawal.status = WithdrawalRequest.Status.CANCELLED
+                withdrawal.admin_note = admin_note
+                withdrawal.reviewed_by = request.user
+                withdrawal.reviewed_at = timezone.now()
+                withdrawal.save()
+                messages.warning(request, "╪ز┘à ╪ح┘╪║╪د╪ة ╪د┘╪│╪ص╪ذ ╪د┘┘à┘â╪ز┘à┘ ┘ê╪ح╪╣╪د╪»╪ر ╪د┘┘à╪ذ┘╪║ ┘┘┘à╪ص┘╪╕╪ر ╪ذ┘╪ش╪د╪ص.")
+                return redirect("control_withdrawals")
+            
+            withdrawal.save()
+            return redirect("control_withdrawal_detail", pk=pk)
+
+    return render(request, "site/control_withdrawal_detail.html", {"withdrawal": withdrawal})
+
+
+
+@admin_required
+def control_users_list(request): return render(request, "site/control_users_list.html", {"users": User.objects.select_related("wallet").order_by("-date_joined"), "tiers": User.Tier.choices, "roles": User.Role.choices})
+
+
+@admin_required
+def control_user_moderate(request, public_uuid):
+    user = get_object_or_404(User, public_uuid=public_uuid)
+    form = ModerateUserForm(request.POST or None, instance=user)
+    if request.method == "POST" and form.is_valid():
+        user = form.save()
+        if not user.is_account_active:
+             from django.contrib.sessions.models import Session
+             sessions = Session.objects.filter(expire_date__gte=timezone.now())
+             for s in sessions:
+                 if str(user.id) == s.get_decoded().get('_auth_user_id'): s.delete()
+        messages.success(request, "╪ز┘à ╪د┘╪ز╪ص╪»┘è╪س.")
+        return redirect("control_users_list")
+    return render(request, "site/control_user_moderate.html", {"form": form, "user_to_moderate": user})
+
+
+
+@support_required
+@transaction.atomic
+def control_product_create(request):
+    from apps.site.forms import ProductForm
+    from apps.catalog.models import Product, ProductVariant
+    import json
+    
+    form = ProductForm(request.POST or None, request.FILES or None)
+    if request.method == "POST" and form.is_valid():
+        product = form.save()
+        
+        # Handle variants
+        variants_json = request.POST.get("variants_json")
+        if variants_json:
+            variants_data = json.loads(variants_json)
+            for v_data in variants_data:
+                ProductVariant.objects.create(
+                    product=product,
+                    name=v_data.get('name'),
+                    sku=v_data.get('sku'),
+                    price=Decimal(str(v_data.get('price', '0'))),
+                    wholesale_price=Decimal(str(v_data.get('wholesale_price', '0'))),
+                    vip_price=Decimal(str(v_data.get('vip_price', '0'))),
+                    cost=Decimal(str(v_data.get('cost', '0'))),
+                    sort_order=int(v_data.get('sort_order', 0)),
+                    is_active=v_data.get('is_active', True)
+                )
+        
+        messages.success(request, "╪ز┘à ╪ح┘╪┤╪د╪ة ╪د┘┘à┘╪ز╪ش ╪ذ┘╪ش╪د╪ص.")
+        return redirect("control_products_list")
+        
+    return render(request, "site/control_product_builder.html", {
+        "form": form, "title": "╪ح╪╢╪د┘╪ر ┘à┘╪ز╪ش ╪ش╪»┘è╪»", "variants_json_data": []
+    })
+
+
+
+@support_required
+@transaction.atomic
+def control_product_edit(request, pk):
+    from apps.site.forms import ProductForm
+    from apps.catalog.models import Product, ProductVariant
+    import json
+    
+    product = get_object_or_404(Product, pk=pk)
+    form = ProductForm(request.POST or None, request.FILES or None, instance=product)
+    
+    if request.method == "POST" and form.is_valid():
+        product = form.save()
+        
+        # Handle variants (Sync strategy)
+        variants_json = request.POST.get("variants_json")
+        if variants_json:
+            variants_data = json.loads(variants_json)
+            incoming_skus = set(v.get('sku') for v in variants_data if v.get('sku'))
+            
+            # Delete removed ones
+            product.variants.exclude(sku__in=incoming_skus).delete()
+            
+            for v_data in variants_data:
+                sku = v_data.get('sku')
+                ProductVariant.objects.update_or_create(
+                    product=product, sku=sku,
+                    defaults={
+                        "name": v_data.get('name'),
+                        "price": Decimal(str(v_data.get('price', '0'))),
+                        "wholesale_price": Decimal(str(v_data.get('wholesale_price', '0'))),
+                        "vip_price": Decimal(str(v_data.get('vip_price', '0'))),
+                        "cost": Decimal(str(v_data.get('cost', '0'))),
+                        "sort_order": int(v_data.get('sort_order', 0)),
+                        "is_active": v_data.get('is_active', True)
+                    }
+                )
+        
+        messages.success(request, "╪ز┘à ╪ز╪ص╪»┘è╪س ╪د┘┘à┘╪ز╪ش ╪ذ┘╪ش╪د╪ص.")
+        return redirect("control_products_list")
+    
+    # Prepare variants for JSON script
+    variants = product.variants.all().order_by('sort_order')
+    variants_json_data = []
+    for v in variants:
+        variants_json_data.append({
+            "name": v.name, "sku": v.sku, "price": str(v.price),
+            "wholesale_price": str(v.wholesale_price), "vip_price": str(v.vip_price),
+            "cost": str(v.cost), "sort_order": v.sort_order, "is_active": v.is_active
+        })
+        
+    return render(request, "site/control_product_builder.html", {
+        "form": form, "product": product, "title": f"╪ز╪╣╪»┘è┘ ╪د┘┘à┘╪ز╪ش: {product.name}",
+        "variants_json_data": variants_json_data
+    })
+
+
+@support_required
+def control_variant_create(request, product_pk): return render(request, "site/control_variant_form.html")
+
+
+@support_required
+def control_variant_edit(request, pk): return render(request, "site/control_variant_form.html")
+
+
+
+@finance_required
+def control_wallets_list(request):
+    q = request.GET.get('q', '')
+    wallets = Wallet.objects.select_related('user', 'currency').all().order_by('-updated_at')
+    if q:
+        wallets = wallets.filter(Q(user__email__icontains=q) | Q(user__first_name__icontains=q))
+    return render(request, "site/control_wallets_list.html", {"wallets": wallets, "query": q})
+
+
+@finance_required
+def control_debts(request):
+    from django.db.models import Q
+    q = request.GET.get('q', '')
+    users = User.objects.select_related('wallet').all()
+    if q:
+        users = users.filter(Q(email__icontains=q) | Q(phone__icontains=q) | Q(first_name__icontains=q) | Q(last_name__icontains=q))
+    
+    if request.method == "POST":
+        user_id = request.POST.get("user_id")
+        action = request.POST.get("action")
+        amount = Decimal(request.POST.get("amount", "0"))
+        reason = request.POST.get("reason", "")
+        
+        target_user = get_object_or_404(User, id=user_id)
+        wallet = target_user.wallet
+        
+        try:
+            if action == "add_debt":
+                from apps.wallets.services import add_debt
+                add_debt(wallet.id, amount, reference=f"admin_debt_{timezone.now().timestamp()}", reason=reason, created_by=request.user)
+                messages.success(request, f"╪ز┘à ╪ح╪╢╪د┘╪ر ╪»┘è┘ ╪ذ┘é┘è┘à╪ر {amount} ┘┘┘à╪│╪ز╪«╪»┘à {target_user.email}")
+            elif action == "pay_debt":
+                from apps.wallets.services import pay_debt
+                pay_debt(wallet.id, amount, reference=f"admin_pay_{timezone.now().timestamp()}", reason=reason, created_by=request.user, deduct_from_balance=False)
+                messages.success(request, f"╪ز┘à ╪ز╪│╪ش┘è┘ ╪│╪»╪د╪» ╪ذ┘é┘è┘à╪ر {amount} ┘┘┘à╪│╪ز╪«╪»┘à {target_user.email}")
+        except Exception as e:
+            messages.error(request, str(e))
+            
+        return redirect(f"{request.path}?q={q}")
+
+    return render(request, "site/control_debts.html", {"users": users, "query": q})
+
+
+
+def set_currency(request):
+    currency_id = request.GET.get("currency") or request.POST.get("currency")
+    if currency_id:
+        currency = Currency.objects.filter(id=currency_id, is_active=True).first()
+        if currency:
+            request.session["preferred_currency_id"] = str(currency.id)
+            if request.user.is_authenticated:
+                request.user.preferred_currency = currency
+                request.user.save(update_fields=["preferred_currency"])
+            messages.success(request, f"╪ز┘à ╪ز╪║┘è┘è╪▒ ╪د┘╪╣┘à┘╪ر ╪د┘┘à┘╪╢┘╪ر ╪ح┘┘ë {currency.name}.")
+    
+    # Redirect back to referring page or home
+    next_url = request.META.get('HTTP_REFERER', 'home')
+    return redirect(next_url)
+
+
+def tickets(request): return render(request, "site/tickets.html")
+
+
+def ticket_detail(request, pk): return render(request, "site/ticket_detail.html")
+
+
+
+@support_required
+def control_category_create_ajax(request):
+    from apps.catalog.models import Category
+    name = request.POST.get('name')
+    if name:
+        cat = Category.objects.create(name=name)
+        return JsonResponse({"id": str(cat.id), "name": cat.name})
+    return JsonResponse({"error": "Name required"}, status=400)
+
+
+
+@support_required
+def control_send_notification(request): return render(request, "site/control_notification_form.html")
+
+
+@admin_required
+def control_support_settings(request):
+    settings_obj, created = SupportSettings.objects.get_or_create(id=1)
+    form = SupportSettingsForm(request.POST or None, instance=settings_obj)
+    if request.method == "POST" and form.is_valid():
+        form.save()
+        messages.success(request, "تم حفظ إعدادات الدعم بنجاح.")
+        return redirect("control_support_settings")
+    return render(request, "site/control_support_settings.html", {"form": form})
+
+
+
+@support_required
+def control_quick_replies(request):
+    replies = ChatCannedReply.objects.all().order_by("-created_at")
+    return render(request, "site/control_quick_replies.html", {"replies": replies})
+
+
+
+@support_required
+def control_quick_reply_create(request):
+    form = ChatCannedReplyForm(request.POST or None)
+    if request.method == "POST" and form.is_valid():
+        form.save()
+        messages.success(request, "تم إضافة الرد الجاهز بنجاح.")
+        return redirect("control_quick_replies")
+    return render(request, "site/control_quick_reply_form.html", {"form": form})
+
+
+
+@support_required
+def control_quick_reply_edit(request, pk):
+    reply = get_object_or_404(ChatCannedReply, pk=pk)
+    form = ChatCannedReplyForm(request.POST or None, instance=reply)
+    if request.method == "POST" and form.is_valid():
+        form.save()
+        messages.success(request, "تم تعديل الرد الجاهز بنجاح.")
+        return redirect("control_quick_replies")
+    return render(request, "site/control_quick_reply_form.html", {"form": form})
+
+
+
+@support_required
+def control_quick_reply_delete(request, pk):
+    reply = get_object_or_404(ChatCannedReply, pk=pk)
+    reply.delete()
+    messages.success(request, "تم حذف الرد الجاهز بنجاح.")
+    return redirect("control_quick_replies")
+
+
+
+def privacy_policy(request): return render(request, "site/privacy_policy.html")
