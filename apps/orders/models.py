@@ -8,9 +8,14 @@ from apps.common.models import TimeStampedModel
 
 
 class Coupon(TimeStampedModel):
+    class DiscountType(models.TextChoices):
+        PERCENTAGE = "percentage", "نسبة مئوية (%)"
+        FIXED_AMOUNT = "fixed_amount", "مبلغ ثابت (USD)"
+
     code = models.CharField(max_length=40, unique=True, verbose_name="الكود")
-    discount_percent = models.DecimalField(max_digits=5, decimal_places=2, default=Decimal("0.00"), verbose_name="خصم (%)")
-    discount_amount = models.DecimalField(max_digits=14, decimal_places=2, default=Decimal("0.00"), verbose_name="خصم بمبلغ ثابت (USD)")
+    discount_type = models.CharField(max_length=20, choices=DiscountType.choices, default=DiscountType.PERCENTAGE, verbose_name="نوع الخصم")
+    discount_percent = models.DecimalField(max_digits=5, decimal_places=2, default=Decimal("0.00"), verbose_name="قيمة الخصم (%)")
+    discount_amount = models.DecimalField(max_digits=14, decimal_places=2, default=Decimal("0.00"), verbose_name="قيمة الخصم (USD)")
     max_uses = models.PositiveIntegerField(default=0, verbose_name="أقصى عدد استخدام لجميع المستخدمين (0 = غير محدود)")
     max_uses_per_user = models.PositiveIntegerField(default=1, verbose_name="أقصى عدد استخدام لكل مستخدم")
     used_count = models.PositiveIntegerField(default=0, verbose_name="إجمالي عدد المرات التي تم استخدامه")

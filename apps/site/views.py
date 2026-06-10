@@ -1424,6 +1424,143 @@ def ajax_validate_coupon(request):
         return JsonResponse({"valid": False, "error": str(e)})
     except Exception as e:
         return JsonResponse({"valid": False, "error": "حدث خطأ غير متوقع."})
+
+
+@support_required
+def control_order_detail(request, pk):
+    order = get_object_or_404(Order.objects.select_related('customer', 'customer__wallet').prefetch_related('items__variant__product', 'logs'), pk=pk)
+    
+    if request.method == "POST":
+        action = request.POST.get("action")
+        
+        if action == "update_status":
+            new_status = request.POST.get("status")
+            admin_note = request.POST.get("admin_note", "")
+            if new_status and new_status != order.status:
+                with transaction.atomic():
+                    order = Order.objects.select_for_update().get(pk=pk)
+                    old_status = order.status
+                    order.status = new_status
+                    order.save()
+                    OrderLog.objects.create(order=order, status=new_status, note=admin_note, created_by=request.user)
+                    
+                    # Handle Automatic Refund
+                    if new_status in [Order.Status.REFUNDED, Order.Status.CANCELLED]:
+                        from apps.wallets.models import LedgerEntry
+                        refund_ref = f"refund:order:{order.id}"
+                        if not LedgerEntry.objects.filter(reference=refund_ref).exists():
+                            from apps.wallets.services import credit_wallet
+                            
+                            # Convert USD order total back to wallet currency for refund
+                            refund_amount = order.total_amount
+                            if order.customer.wallet.currency.code != "USD":
+                                refund_amount = order.customer.wallet.currency.from_base(order.total_amount)
+
+                            credit_wallet(
+                                wallet_id=order.customer.wallet.id,
+                                amount=refund_amount,
+                                reference=refund_ref,
+                                description=f"Refund for order #{order.number}. Reason: {admin_note or 'Order ' + new_status}",
+                                created_by=request.user,
+                                source="order_refund",
+                                reason=f"Order {new_status}"
+                            )
+                            messages.success(request, f"تم تحديث الحالة وإعادة مبلغ {refund_amount} لمحفظة العميل.")
+                        else:
+                            messages.info(request, "تم تحديث الحالة (المبلغ مسترد مسبقاً).")
+                    else:
+                        messages.success(request, "تم تحديث حالة الطلب بنجاح.")
+        
+        elif action == "update_fulfillment":
+            # Extract dynamic key-value pairs
+            keys = request.POST.getlist("ff_key[]")
+            values = request.POST.getlist("ff_value[]")
+            
+            new_fulfillment = {}
+            for k, v in zip(keys, values):
+                if k.strip():
+                    new_fulfillment[k.strip()] = v.strip()
+                    
+            order.fulfillment_data = new_fulfillment
+            order.save(update_fields=["fulfillment_data"])
+            messages.success(request, "تم تحديث بيانات التنفيذ.")
+
+        elif action == "update_price":
+            new_total = request.POST.get("total_amount")
+            reason = request.POST.get("adjustment_reason", "")
+            if new_total:
+                try:
+                    new_total = Decimal(new_total)
+                    old_total = order.total_amount
+                    
+                    if new_total != old_total:
+                        with transaction.atomic():
+                            # Update order
+                            if not order.original_total:
+                                order.original_total = old_total
+                            order.total_amount = new_total
+                            order.price_adjustment_reason = reason
+                            order.save(update_fields=["total_amount", "original_total", "price_adjustment_reason"])
+                            
+                            # Financial adjustment
+                            diff = new_total - old_total # Positive = Price increased (Deduct), Negative = Price decreased (Credit)
+                            wallet = order.customer.wallet
+                            
+                            from apps.wallets.services import credit_wallet, add_debt
+                            adj_ref = f"adj:order:{order.id}:{timezone.now().timestamp()}"
+                            
+                            if diff > 0:
+                                # Price increased -> Deduct from wallet or add debt
+                                if wallet.available_balance >= diff:
+                                    from apps.wallets.services import freeze_funds, release_funds
+                                    # We'll use a direct ledger entry for adjustment
+                                    from apps.wallets.models import LedgerEntry
+                                    LedgerEntry.objects.create(
+                                        wallet=wallet,
+                                        amount=-diff,
+                                        entry_type=LedgerEntry.EntryType.DEBIT,
+                                        reference=adj_ref,
+                                        description=f"تعديل سعر الطلب #{order.number} (زيادة). السبب: {reason}",
+                                        created_by=request.user
+                                    )
+                                    wallet.available_balance -= diff
+                                    wallet.save(update_fields=["available_balance", "updated_at"])
+                                else:
+                                    # Not enough balance? Add as debt or just fail? 
+                                    # Request said "خصم سعر جديد من محفظة عميل". We'll deduct and allow negative if needed or notify.
+                                    # For simplicity and to follow request, we deduct.
+                                    LedgerEntry.objects.create(
+                                        wallet=wallet,
+                                        amount=-diff,
+                                        entry_type=LedgerEntry.EntryType.DEBIT,
+                                        reference=adj_ref,
+                                        description=f"تعديل سعر الطلب #{order.number} (زيادة - رصيد مكشوف). السبب: {reason}",
+                                        created_by=request.user
+                                    )
+                                    wallet.available_balance -= diff
+                                    wallet.save(update_fields=["available_balance", "updated_at"])
+                                
+                                notify_user(order.customer, "تعديل سعر الطلب", f"تم زيادة سعر طلبك #{order.number} بمقدار {diff} USD. السبب: {reason}")
+                            
+                            else:
+                                # Price decreased -> Credit wallet
+                                credit_wallet(
+                                    wallet_id=wallet.id,
+                                    amount=abs(diff),
+                                    reference=adj_ref,
+                                    description=f"تعديل سعر الطلب #{order.number} (تخفيض). السبب: {reason}",
+                                    created_by=request.user,
+                                    source="order_adjustment",
+                                    reason="Price reduction"
+                                )
+                                notify_user(order.customer, "تعديل سعر الطلب", f"تم تخفيض سعر طلبك #{order.number} بمقدار {abs(diff)} USD. تم إعادة الفرق لمحفظتك.")
+
+                            OrderLog.objects.create(order=order, status=order.status, note=f"تعديل السعر من {old_total} إلى {new_total}. السبب: {reason}", created_by=request.user)
+                            messages.success(request, f"تم تحديث السعر وإجراء التسوية المالية ({diff} USD).")
+                except Exception as e:
+                    messages.error(request, f"خطأ في تعديل السعر: {str(e)}")
+            
+        return redirect("control_order_detail", pk=pk)
     
     return render(request, "site/control_order_detail.html", {
         "order": order, 

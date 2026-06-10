@@ -20,19 +20,27 @@
             <form method="post" class="stack gap-6">
                 {% csrf_token %}
                 
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div class="field-group">
                         <label class="info-label">كود الكوبون</label>
                         {{ form.code }}
                         {% if form.code.errors %}<p class="text-rose-500 text-[10px] mt-1">{{ form.code.errors.0 }}</p>{% endif %}
                     </div>
                     <div class="field-group">
-                        <label class="info-label">نسبة الخصم (%)</label>
+                        <label class="info-label">نوع الخصم</label>
+                        {{ form.discount_type }}
+                        {% if form.discount_type.errors %}<p class="text-rose-500 text-[10px] mt-1">{{ form.discount_type.errors.0 }}</p>{% endif %}
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div class="field-group" id="percent-field">
+                        <label class="info-label">قيمة الخصم (%)</label>
                         {{ form.discount_percent }}
                         {% if form.discount_percent.errors %}<p class="text-rose-500 text-[10px] mt-1">{{ form.discount_percent.errors.0 }}</p>{% endif %}
                     </div>
-                    <div class="field-group">
-                        <label class="info-label">أو خصم بمبلغ ثابت (USD)</label>
+                    <div class="field-group" id="amount-field">
+                        <label class="info-label">قيمة الخصم الثابتة (USD)</label>
                         {{ form.discount_amount }}
                         {% if form.discount_amount.errors %}<p class="text-rose-500 text-[10px] mt-1">{{ form.discount_amount.errors.0 }}</p>{% endif %}
                     </div>
@@ -103,7 +111,23 @@
 </div>
 
 <script>
+function toggleDiscountFields() {
+    const type = document.querySelector('select[name="discount_type"]').value;
+    const percentBox = document.getElementById('percent-field');
+    const amountBox = document.getElementById('amount-field');
+    
+    if (type === 'percentage') {
+        percentBox.style.display = 'block';
+        amountBox.style.display = 'none';
+    } else {
+        percentBox.style.display = 'none';
+        amountBox.style.display = 'block';
+    }
+}
+
 document.addEventListener('DOMContentLoaded', function() {
+    toggleDiscountFields(); // Initial call
+    
     const applyToAll = document.querySelector('input[name="apply_to_all_products"]');
     const productField = document.getElementById('product-limit-field');
     

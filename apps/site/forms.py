@@ -355,13 +355,15 @@ class CouponForm(forms.ModelForm):
     class Meta:
         model = Coupon
         fields = [
-            "code", "discount_percent", "discount_amount", "max_uses", "max_uses_per_user",
+            "code", "discount_type", "discount_percent", "discount_amount", "max_uses", "max_uses_per_user",
             "is_active", "is_verified_only", "expires_at",
             "limit_to_product", "apply_to_all_products"
         ]
         widgets = {
             "code": forms.TextInput(attrs={"class": "builder-input", "placeholder": "WELCOME2026"}),
+            "discount_type": forms.Select(attrs={"class": "builder-input", "onchange": "toggleDiscountFields()"}),
             "discount_percent": forms.NumberInput(attrs={"class": "builder-input", "step": "0.01"}),
+            "discount_amount": forms.NumberInput(attrs={"class": "builder-input", "step": "0.01"}),
             "max_uses": forms.NumberInput(attrs={"class": "builder-input"}),
             "max_uses_per_user": forms.NumberInput(attrs={"class": "builder-input"}),
             "expires_at": forms.DateTimeInput(attrs={"type": "datetime-local", "class": "builder-input"}),

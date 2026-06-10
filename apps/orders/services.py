@@ -41,9 +41,9 @@ def validate_coupon(coupon, user, variant, subtotal=None):
     # Calculate discount
     discount = Decimal("0.00")
     if subtotal:
-        if coupon.discount_percent > 0:
+        if coupon.discount_type == Coupon.DiscountType.PERCENTAGE:
             discount = subtotal * (coupon.discount_percent / Decimal("100.00"))
-        elif coupon.discount_amount > 0:
+        elif coupon.discount_type == Coupon.DiscountType.FIXED_AMOUNT:
             discount = coupon.discount_amount
             
     return discount
