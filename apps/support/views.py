@@ -70,10 +70,17 @@ def chat_room(request, room_id):
     
     canned_replies = ChatCannedReply.objects.filter(is_active=True) if is_manager else None
     
+    # Calculate display name for the header
+    if "زائر:" in room.subject:
+        room_display_name = room.subject.split("زائر: ")[-1]
+    else:
+        room_display_name = room.user.get_full_name() or room.user.email
+
     return render(request, 'site/chat_room.html', {
         'room': room,
         'chat_messages': messages_history,
-        'canned_replies': canned_replies
+        'canned_replies': canned_replies,
+        'room_display_name': room_display_name
     })
 
 

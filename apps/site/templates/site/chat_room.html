@@ -240,11 +240,7 @@
                 <div>
                     <h2 class="font-bold text-base m-0">
                         {% if user.is_staff %}
-                            {% if "زائر:" in room.subject %}
-                                {{ room.subject|slice:"15:" }} (زائر)
-                            {% else %}
-                                {{ room.user.get_full_name|default:room.user.email }}
-                            {% endif %}
+                            {{ room_display_name }} (زائر)
                         {% else %}
                             الدعم المباشر
                         {% endif %}
@@ -300,7 +296,7 @@
                 
                 <div class="msg-meta">
                     <span class="font-bold">
-                        {% if msg.is_staff_reply %}الدعم الفني{% else %}{% if "زائر:" in room.subject %}{{ room.subject|split:" - زائر: "|last }}{% else %}{{ msg.sender.get_full_name|default:msg.sender.email }}{% endif %}{% endif %}
+                        {% if msg.is_staff_reply %}الدعم الفني{% else %}{{ room_display_name }}{% endif %}
                     </span>
                     <span>{{ msg.created_at|date:"H:i" }}</span>
                 </div>
