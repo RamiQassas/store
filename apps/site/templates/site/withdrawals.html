@@ -1,7 +1,7 @@
 {% extends "site/base.html" %}
-{% load static site_tags %}
+{% load i18n static site_tags %}
 
-{% block title %}سحب رصيد | Raqamiyat{% endblock %}
+{% block title %}{% trans "Withdraw Funds" %} | Raqamiyat{% endblock %}
 
 {% block extra_head %}
 <style>
@@ -53,9 +53,9 @@
 
 {% block content %}
 <div class="page-head text-center">
-    <span class="eyebrow">Payout Services</span>
-    <h1>سحب رصيد من المحفظة</h1>
-    <p class="text-muted">قم بتحويل رصيدك المتاح إلى أموال نقدية أو عملات رقمية بسهولة.</p>
+    <span class="eyebrow">{% trans "Payout Services" %}</span>
+    <h1>{% trans "Withdraw Wallet Balance" %}</h1>
+    <p class="text-muted">{% trans "Convert your available balance into cash or digital currencies easily." %}</p>
 </div>
 
 <div class="withdrawal-wrapper py-10">
@@ -67,9 +67,9 @@
                 <i class="fas fa-history"></i>
             </div>
             <div>
-                <span class="text-[10px] text-slate-500 font-bold uppercase tracking-widest block">حد السحب اليومي المتبقي</span>
+                <span class="text-[10px] text-slate-500 font-bold uppercase tracking-widest block">{% trans "Remaining Daily Withdrawal Limit" %}</span>
                 <strong class="text-xl font-black text-rose-500">{{ remaining_limit|convert_price:CURRENCY }} {{ CURRENCY.code }}</strong>
-                <span class="text-[9px] text-slate-600 block">من إجمالي: {{ daily_limit|convert_price:CURRENCY }} {{ CURRENCY.code }}</span>
+                <span class="text-[9px] text-slate-600 block">{% trans "Of total:" %} {{ daily_limit|convert_price:CURRENCY }} {{ CURRENCY.code }}</span>
             </div>
         </div>
         
@@ -77,8 +77,8 @@
         <div class="flex items-center gap-4 p-4 bg-amber-500/5 border border-amber-500/10 rounded-2xl max-w-sm">
             <i class="fas fa-shield-alt text-amber-500"></i>
             <p class="text-[10px] text-amber-200/70 leading-relaxed">
-                <strong class="text-amber-400 block mb-0.5">هل تحتاج إلى حدود أعلى؟</strong>
-                التوثيق اختياري، ومطلوب فقط لزيادة حدود حسابك. <a href="{% url 'site_kyc_request' %}" class="text-amber-400 underline font-bold">وثق الآن</a>
+                <strong class="text-amber-400 block mb-0.5">{% trans "Need higher limits?" %}</strong>
+                {% trans "Verification is optional, and only required to increase your account limits." %} <a href="{% url 'site_kyc_request' %}" class="text-amber-400 underline font-bold">{% trans "Verify Now" %}</a>
             </p>
         </div>
         {% endif %}
@@ -88,15 +88,15 @@
     <div class="step-indicator">
         <div class="step-item active" id="dot-1">
             <div class="step-dot">1</div>
-            <span class="step-label">الوسيلة</span>
+            <span class="step-label">{% trans "Method" %}</span>
         </div>
         <div class="step-item" id="dot-2">
             <div class="step-dot">2</div>
-            <span class="step-label">البيانات</span>
+            <span class="step-label">{% trans "Details" %}</span>
         </div>
         <div class="step-item" id="dot-3">
             <div class="step-dot">3</div>
-            <span class="step-label">تأكيد السحب</span>
+            <span class="step-label">{% trans "Confirm Withdrawal" %}</span>
         </div>
     </div>
 
@@ -106,8 +106,8 @@
         <!-- Step 1: Method & Currency -->
         <div id="step-1" class="step-box active stack gap-8">
             <div class="section-title">
-                <h3 class="text-xl font-black">اختر وسيلة الاستلام</h3>
-                <p class="text-xs text-muted">اختر الوسيلة التي ترغب باستلام أموالك من خلالها.</p>
+                <h3 class="text-xl font-black">{% trans "Select Withdrawal Method" %}</h3>
+                <p class="text-xs text-muted">{% trans "Select the method you wish to receive your funds through." %}</p>
             </div>
             
             <div class="method-grid">
@@ -128,21 +128,21 @@
             <input type="hidden" name="payment_method" id="input-method-id">
 
             <div class="field-group" id="currency-group">
-                <label>عملة الاستلام</label>
+                <label>{% trans "Withdrawal Currency" %}</label>
                 <select name="currency" id="input-currency" class="builder-input" onchange="updateLimits()">
-                    <option value="">اختر وسيلة السحب أولاً...</option>
+                    <option value="">{% trans "Select a withdrawal method first..." %}</option>
                 </select>
-                <p class="error-hint">يرجى اختيار العملة.</p>
+                <p class="error-hint">{% trans "Please select a currency." %}</p>
             </div>
 
-            <button type="button" class="btn btn-primary w-full py-4 text-lg font-black" onclick="tryNext(2)" id="btn-to-2" disabled>المتابعة للخطوة التالية</button>
+            <button type="button" class="btn btn-primary w-full py-4 text-lg font-black" onclick="tryNext(2)" id="btn-to-2" disabled>{% trans "Continue to Next Step" %}</button>
         </div>
 
         <!-- Step 2: Withdrawal Details & Dynamic Fields -->
         <div id="step-2" class="step-box stack gap-8">
             <div class="section-title">
-                <h3 class="text-xl font-black">بيانات الاستلام</h3>
-                <p class="text-xs text-muted">يرجى تزويدنا بالبيانات الصحيحة لإرسال الأموال إليك.</p>
+                <h3 class="text-xl font-black">{% trans "Receiving Details" %}</h3>
+                <p class="text-xs text-muted">{% trans "Please provide accurate information to send the funds to you." %}</p>
             </div>
             
             <div id="static-info" class="info-panel stack"></div>
@@ -150,7 +150,7 @@
             <div class="panel p-6 bg-cyan/5 border-cyan/10 rounded-3xl">
                 <div class="flex items-center gap-3 mb-3">
                     <i class="fas fa-circle-info text-cyan"></i>
-                    <span class="text-xs font-black uppercase text-cyan">ملاحظات هامة</span>
+                    <span class="text-xs font-black uppercase text-cyan">{% trans "Important Notes" %}</span>
                 </div>
                 <p class="text-sm text-slate-300 leading-relaxed" id="instr-text"></p>
             </div>
@@ -160,49 +160,49 @@
             <div id="dynamic-fields" class="stack gap-6"></div>
 
             <div class="flex gap-4">
-                <button type="button" class="btn btn-outline flex-1 py-4" onclick="nextStep(1)">العودة</button>
-                <button type="button" class="btn btn-primary flex-1 py-4 font-black" onclick="tryNext(3)">المتابعة</button>
+                <button type="button" class="btn btn-outline flex-1 py-4" onclick="nextStep(1)">{% trans "Back" %}</button>
+                <button type="button" class="btn btn-primary flex-1 py-4 font-black" onclick="tryNext(3)">{% trans "Continue" %}</button>
             </div>
         </div>
 
         <!-- Step 3: Amount -->
         <div id="step-3" class="step-box stack gap-8">
             <div class="section-title">
-                <h3 class="text-xl font-black">المبلغ المطلوب</h3>
-                <p class="text-xs text-muted">حدد المبلغ الذي ترغب بسحبه من رصيدك المتاح.</p>
+                <h3 class="text-xl font-black">{% trans "Requested Amount" %}</h3>
+                <p class="text-xs text-muted">{% trans "Specify the amount you wish to withdraw from your available balance." %}</p>
             </div>
             
             <div class="field-group" id="amount-group">
-                <label>المبلغ المراد سحبه (بالعملة المختارة)</label>
+                <label>{% trans "Amount to Withdraw (In Selected Currency)" %}</label>
                 <div class="relative">
                     <input type="number" name="amount" id="input-amount" step="0.01" class="builder-input text-2xl font-black h-20 px-8" placeholder="0.00" oninput="updateSummary()">
                     <div class="absolute left-6 top-1/2 -translate-y-1/2 text-xl font-black text-slate-600" id="currency-code-display">---</div>
                 </div>
                 <div class="flex justify-between mt-3 px-2">
-                    <span class="text-[10px] text-muted font-bold" id="limits-hint">الحدود: ---</span>
-                    <span class="text-[10px] text-danger font-black uppercase hidden" id="limit-error">تجاوزت الحدود المسموحة!</span>
+                    <span class="text-[10px] text-muted font-bold" id="limits-hint">{% trans "Limits:" %} ---</span>
+                    <span class="text-[10px] text-danger font-black uppercase hidden" id="limit-error">{% trans "Exceeded allowed limits!" %}</span>
                 </div>
-                <p class="error-hint" id="amount-error-text">يرجى إدخال مبلغ صحيح ضمن الحدود.</p>
+                <p class="error-hint" id="amount-error-text">{% trans "Please enter a valid amount within limits." %}</p>
             </div>
 
             <div class="info-panel p-8 bg-slate-900/50 stack gap-4">
-                <h4 class="text-xs font-black text-muted uppercase tracking-widest border-b border-white/5 pb-4 mb-2">ملخص السحب</h4>
+                <h4 class="text-xs font-black text-muted uppercase tracking-widest border-b border-white/5 pb-4 mb-2">{% trans "Withdrawal Summary" %}</h4>
                 <div class="flex justify-between text-sm">
-                    <span class="text-slate-400">رسوم السحب (العمولة):</span>
+                    <span class="text-slate-400">{% trans "Withdrawal Fee (Commission):" %}</span>
                     <strong id="sum-fee" class="text-danger">0.00</strong>
                 </div>
                 <div class="flex justify-between items-center pt-2">
-                    <span class="font-bold text-success text-lg">الصافي للاستلام:</span>
+                    <span class="font-bold text-success text-lg">{% trans "Net to Receive:" %}</span>
                     <div class="text-right">
                         <div id="sum-net" class="text-2xl font-black text-success">0.00</div>
-                        <div class="text-[10px] text-muted mt-1">سيتم خصم المبلغ الإجمالي من محفظتك فوراً</div>
+                        <div class="text-[10px] text-muted mt-1">{% trans "The total amount will be deducted from your wallet immediately" %}</div>
                     </div>
                 </div>
             </div>
 
             <div class="flex gap-4">
-                <button type="button" class="btn btn-outline flex-1 py-4" onclick="nextStep(2)">العودة</button>
-                <button type="submit" class="btn btn-primary flex-1 py-4 text-lg font-black shadow-cyan">تأكيد وطلب السحب</button>
+                <button type="button" class="btn btn-outline flex-1 py-4" onclick="nextStep(2)">{% trans "Back" %}</button>
+                <button type="submit" class="btn btn-primary flex-1 py-4 text-lg font-black shadow-cyan">{% trans "Confirm and Request Withdrawal" %}</button>
             </div>
         </div>
     </form>
@@ -220,7 +220,7 @@ function selectMethod(id, el) {
     document.getElementById('input-method-id').parentElement.classList.remove('has-error');
 
     const cSel = document.getElementById('input-currency');
-    cSel.innerHTML = '<option value="">اختر العملة...</option>';
+    cSel.innerHTML = '<option value="">{% trans "Select Currency..." %}</option>';
     state.method.currencies.forEach(c => {
         cSel.innerHTML += `<option value="${c.id}" data-min="${c.min_amount}" data-max="${c.max_amount}">${c.code} (${c.symbol})</option>`;
     });
@@ -243,11 +243,11 @@ function updateLimits() {
             min: parseFloat(opt.dataset.min),
             max: parseFloat(opt.dataset.max)
         };
-        document.getElementById('limits-hint').innerText = `الحدود: ${state.currency.min.toLocaleString()} - ${state.currency.max.toLocaleString()} ${state.currency.code}`;
+        document.getElementById('limits-hint').innerText = `{% trans "Limits:" %} ${state.currency.min.toLocaleString()} - ${state.currency.max.toLocaleString()} ${state.currency.code}`;
         document.getElementById('currency-code-display').innerText = state.currency.code;
     } else {
         state.currency = null;
-        document.getElementById('limits-hint').innerText = 'الحدود: ---';
+        document.getElementById('limits-hint').innerText = '{% trans "Limits: ---" %}';
         document.getElementById('currency-code-display').innerText = '---';
     }
     updateSummary();
@@ -255,7 +255,7 @@ function updateLimits() {
 
 function renderStep2() {
     const m = state.method;
-    document.getElementById('instr-text').innerText = m.instructions || 'يرجى تزويدنا ببيانات دقيقة لتجنب تأخير عملية السحب.';
+    document.getElementById('instr-text').innerText = m.instructions || '{% trans "Please provide us with accurate information to avoid withdrawal delays." %}';
 
     const infoBox = document.getElementById('static-info');
     infoBox.innerHTML = '';
@@ -290,7 +290,7 @@ function renderStep2() {
                 <div class="field-group">
                     <label>${f.label} ${f.required?'<span class="text-danger">*</span>':''}</label>
                     ${inputHtml}
-                    <p class="error-hint">هذا الحقل مطلوب.</p>
+                    <p class="error-hint">{% trans "This field is required." %}</p>
                 </div>`;
         });
     }
@@ -359,15 +359,15 @@ function validateFinal() {
     const errText = document.getElementById('amount-error-text');
     
     if(!amt) {
-        errText.innerText = 'يرجى إدخال المبلغ.';
+        errText.innerText = '{% trans "Please enter the amount." %}';
         document.getElementById('amount-group').classList.add('has-error');
         valid = false;
     } else if(state.currency && amt < state.currency.min) {
-        errText.innerText = `المبلغ أقل من الحد الأدنى (${state.currency.min.toLocaleString()} ${state.currency.code}).`;
+        errText.innerText = `{% trans "Amount is less than the minimum" %} (${state.currency.min.toLocaleString()} ${state.currency.code}).`;
         document.getElementById('amount-group').classList.add('has-error');
         valid = false;
     } else if(state.currency && amt > state.currency.max) {
-        errText.innerText = `المبلغ يتجاوز الحد الأقصى (${state.currency.max.toLocaleString()} ${state.currency.code}).`;
+        errText.innerText = `{% trans "Amount exceeds the maximum" %} (${state.currency.max.toLocaleString()} ${state.currency.code}).`;
         document.getElementById('amount-group').classList.add('has-error');
         valid = false;
     } else {

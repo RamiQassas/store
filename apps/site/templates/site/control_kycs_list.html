@@ -1,12 +1,12 @@
 {% extends "site/control_base.html" %}
 {% load i18n %}
-{% block title %}{% trans "طلبات توثيق الهوية" %} | Raqamiyat Admin{% endblock %}
+{% block title %}{% trans "KYC Verification Requests" %} | Raqamiyat Admin{% endblock %}
 
 {% block control_content %}
 <div class="page-head">
     <div>
-        <span class="eyebrow">KYC Management</span>
-        <h1>{% trans "طلبات توثيق هوية المستخدمين" %}</h1>
+        <span class="eyebrow">{% trans "KYC Management" %}</span>
+        <h1>{% trans "User Identity Verification Requests" %}</h1>
     </div>
 </div>
 
@@ -15,13 +15,13 @@
         <table class="w-full text-right">
             <thead>
                 <tr class="text-[10px] uppercase tracking-widest text-slate-500 border-b border-white/5 bg-slate-900/20">
-                    <th class="p-4">{% trans "المستخدم" %}</th>
-                    <th class="p-4">{% trans "الاسم بالكامل" %}</th>
-                    <th class="p-4">{% trans "الوثيقة" %}</th>
-                    <th class="p-4">{% trans "الجنسية / المصدر" %}</th>
-                    <th class="p-4">{% trans "الحالة" %}</th>
-                    <th class="p-4">{% trans "تاريخ الطلب" %}</th>
-                    <th class="p-4">{% trans "إجراءات" %}</th>
+                    <th class="p-4">{% trans "User" %}</th>
+                    <th class="p-4">{% trans "Full Name" %}</th>
+                    <th class="p-4">{% trans "Document" %}</th>
+                    <th class="p-4">{% trans "Nationality / Issuing" %}</th>
+                    <th class="p-4">{% trans "Status" %}</th>
+                    <th class="p-4">{% trans "Request Date" %}</th>
+                    <th class="p-4">{% trans "Actions" %}</th>
                 </tr>
             </thead>
             <tbody>
@@ -40,7 +40,7 @@
                     <td class="p-4">
                         <div class="flex flex-col gap-1">
                             <div class="text-[10px] text-slate-300">{{ kyc.get_nationality_display }}</div>
-                            <div class="text-[8px] text-slate-500 uppercase tracking-tighter">{% trans "صادر عن:" %} {{ kyc.get_issuing_country_display }}</div>
+                            <div class="text-[8px] text-slate-500 uppercase tracking-tighter">{% trans "Issued by:" %} {{ kyc.get_issuing_country_display }}</div>
                         </div>
                     </td>
                     <td class="p-4">
@@ -53,13 +53,13 @@
                     </td>
                     <td class="p-4">
                         <a href="{% url 'control_kyc_detail' kyc.pk %}" class="btn btn-sm btn-outline text-[10px] py-1 px-4 hover:bg-cyan hover:text-black transition">
-                            {% trans "مراجعة الطلب" %}
+                            {% trans "Review Request" %}
                         </a>
                     </td>
                 </tr>
                 {% empty %}
                 <tr>
-                    <td colspan="7" class="p-12 text-center text-slate-500 italic">{% trans "لا توجد طلبات توثيق حالياً." %}</td>
+                    <td colspan="7" class="p-12 text-center text-slate-500 italic">{% trans "No verification requests currently." %}</td>
                 </tr>
                 {% endfor %}
             </tbody>

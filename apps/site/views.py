@@ -770,11 +770,11 @@ def control_kyc_settings(request):
             if code in settings_obj.restricted_countries:
                 settings_obj.restricted_countries.remove(code)
                 settings_obj.save()
-                messages.success(request, _("فك الحظر عن %(code)s.") % {'code': code})
+                messages.success(request, _("Release ban for %(code)s.") % {'code': code})
             return redirect("control_kyc_settings")
         elif form.is_valid():
             form.save()
-            messages.success(request, _("تم الحفظ."))
+            messages.success(request, _("Saved successfully."))
             return redirect("control_kyc_settings")
     return render(request, "site/control_kyc_settings.html", {"form": form, "settings": settings_obj, "stats_verified_count": User.objects.filter(is_kyc_verified=True).count()})
 
@@ -789,7 +789,7 @@ def control_user_moderate(request, public_uuid):
              sessions = Session.objects.filter(expire_date__gte=timezone.now())
              for s in sessions:
                  if str(user.id) == s.get_decoded().get('_auth_user_id'): s.delete()
-        messages.success(request, _("تم التحديث."))
+        messages.success(request, _("Updated successfully."))
         return redirect("control_users_list")
     return render(request, "site/control_user_moderate.html", {"form": form, "user_to_moderate": user})
 
@@ -819,18 +819,18 @@ def control_users_list(request):
         user_ids = request.POST.getlist("user_ids")
         
         if not user_ids:
-            messages.warning(request, _("لم يتم اختيار أي مستخدم."))
+            messages.warning(request, _("No users selected."))
         else:
             if action == "bulk_tier":
                 target_tier = request.POST.get("target_tier")
                 if target_tier:
                     User.objects.filter(id__in=user_ids).update(tier=target_tier)
-                    messages.success(request, _("تم تحديث فئة %(count)d مستخدم بنجاح.") % {'count': len(user_ids)})
+                    messages.success(request, _("Updated tier for %(count)d users successfully.") % {'count': len(user_ids)})
             elif action == "bulk_role":
                 target_role = request.POST.get("target_role")
                 if target_role:
                     User.objects.filter(id__in=user_ids).update(role=target_role)
-                    messages.success(request, _("تم تحديث دور %(count)d مستخدم بنجاح.") % {'count': len(user_ids)})
+                    messages.success(request, _("Updated role for %(count)d users successfully.") % {'count': len(user_ids)})
         
         return redirect("control_users_list")
 
@@ -853,8 +853,7 @@ def set_currency(request):
             if request.user.is_authenticated:
                 request.user.preferred_currency = currency
                 request.user.save(update_fields=["preferred_currency"])
-            messages.success(request, _("تم تغيير العملة المفضلة إلى %(name)s.") % {'name': currency.name})
-    
+            messages.success(request, _("Preferred currency changed to %(name)s.") % {'name': currency.name})
     # Redirect back to referring page or home
     next_url = request.META.get('HTTP_REFERER', 'home')
     return redirect(next_url)
@@ -875,7 +874,7 @@ def notification_settings(request):
         settings_obj.in_app_promotions = request.POST.get("in_app_promotions") == "on"
         settings_obj.push_promotions = request.POST.get("push_promotions") == "on"
         settings_obj.save()
-        messages.success(request, _("تم حفظ إعدادات الإشعارات بنجاح."))
+        messages.success(request, _("Notification settings saved successfully."))
         return redirect("notification_settings")
         
     return render(request, "site/notification_settings.html", {"settings": settings_obj})
@@ -929,14 +928,14 @@ def control_withdrawal_detail(request, pk):
             if action == "approve":
                 withdrawal.status = WithdrawalRequest.Status.APPROVED
                 withdrawal.admin_note = admin_note
-                messages.success(request, _("تمت الموافقة المبدئية على الطلب."))
+                messages.success(request, _("Request approved initially."))
             elif action == "process":
                 withdrawal.status = WithdrawalRequest.Status.PROCESSING
                 withdrawal.admin_note = admin_note
-                messages.info(request, _("بدأت معالجة الطلب."))
+                messages.info(request, _("Request processing started."))
             elif action == "complete":
                 if withdrawal.status == WithdrawalRequest.Status.COMPLETED:
-                     messages.error(request, _("هذا الطلب مكتمل مسبقاً."))
+                     messages.error(request, _("This request is already completed."))
                      return redirect("control_withdrawals")
 
                 finalize_withdrawal(
@@ -951,11 +950,11 @@ def control_withdrawal_detail(request, pk):
                 withdrawal.reviewed_by = request.user
                 withdrawal.reviewed_at = timezone.now()
                 withdrawal.save()
-                messages.success(request, _("تم إتمام عملية السحب بنجاح."))
+                messages.success(request, _("Withdrawal completed successfully."))
                 return redirect("control_withdrawals")
             elif action == "reject":
                 if withdrawal.status in [WithdrawalRequest.Status.COMPLETED, WithdrawalRequest.Status.REJECTED, WithdrawalRequest.Status.CANCELLED]:
-                     messages.error(request, _("لا يمكن رفض طلب منتهي."))
+                     messages.error(request, _("Cannot reject a finalized request."))
                      return redirect("control_withdrawals")
 
                 release_funds(
@@ -971,11 +970,11 @@ def control_withdrawal_detail(request, pk):
                 withdrawal.reviewed_by = request.user
                 withdrawal.reviewed_at = timezone.now()
                 withdrawal.save()
-                messages.error(request, _("تم رفض طلب السحب وإعادة الرصيد للمستخدم."))
+                messages.error(request, _("Withdrawal request rejected and balance released to user."))
                 return redirect("control_withdrawals")
             elif action == "cancel_completed":
                 if withdrawal.status != WithdrawalRequest.Status.COMPLETED:
-                    messages.error(request, _("لا يمكن إلغاء هذا الطلب لأنه ليس مكتمل."))
+                    messages.error(request, _("Cannot cancel this request because it is not completed."))
                     return redirect("control_withdrawal_detail", pk=pk)
                 
                 from apps.wallets.services import credit_wallet
@@ -992,7 +991,7 @@ def control_withdrawal_detail(request, pk):
                 withdrawal.reviewed_by = request.user
                 withdrawal.reviewed_at = timezone.now()
                 withdrawal.save()
-                messages.warning(request, _("تم إلغاء السحب المكتمل وإعادة المبلغ للمحفظة بنجاح."))
+                messages.warning(request, _("Completed withdrawal cancelled and amount returned to wallet successfully."))
                 return redirect("control_withdrawals")
             
             withdrawal.save()
@@ -1021,11 +1020,11 @@ def control_debts(request):
             if action == "add_debt":
                 from apps.wallets.services import add_debt
                 add_debt(wallet.id, amount, reference=f"admin_debt_{timezone.now().timestamp()}", reason=reason, created_by=request.user)
-                messages.success(request, _("تم إضافة دين بقيمة %(amount)s للمستخدم %(email)s") % {'amount': amount, 'email': target_user.email})
+                messages.success(request, _("Debt of %(amount)s assigned to user %(email)s") % {'amount': amount, 'email': target_user.email})
             elif action == "pay_debt":
                 from apps.wallets.services import pay_debt
                 pay_debt(wallet.id, amount, reference=f"admin_pay_{timezone.now().timestamp()}", reason=reason, created_by=request.user, deduct_from_balance=False)
-                messages.success(request, _("تم تسجيل سداد بقيمة %(amount)s للمستخدم %(email)s") % {'amount': amount, 'email': target_user.email})
+                messages.success(request, _("Repayment of %(amount)s recorded for user %(email)s") % {'amount': amount, 'email': target_user.email})
         except Exception as e:
             messages.error(request, str(e))
             

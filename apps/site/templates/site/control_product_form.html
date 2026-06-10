@@ -1,18 +1,18 @@
 {% extends "site/control_base.html" %}
-{% load static %}
+{% load i18n static %}
 
 {% block title %}{{ title }} | Raqamiyat Admin{% endblock %}
 
 {% block control_content %}
 <div class="page-head">
     <div>
-        <span class="eyebrow">Product Management / Edit</span>
+        <span class="eyebrow">{% trans "Product Management / Edit" %}</span>
         <h1>{{ title }}</h1>
-        <p class="text-muted">إدارة بيانات المنتج، الصور، والبيانات المطلوبة من العميل.</p>
+        <p class="text-muted">{% trans "Manage product data, images, and required customer information." %}</p>
     </div>
     <div class="flex gap-3">
-        <a href="{% url 'control_products_list' %}" class="btn btn-outline btn-sm">العودة للقائمة</a>
-        <button class="btn btn-primary btn-sm" onclick="document.querySelector('form').submit()">حفظ المنتج</button>
+        <a href="{% url 'control_products_list' %}" class="btn btn-outline btn-sm">{% trans "Back to List" %}</a>
+        <button class="btn btn-primary btn-sm" onclick="document.querySelector('form').submit()">{% trans "Save Product" %}</button>
     </div>
 </div>
 
@@ -23,7 +23,7 @@
     <div class="col-span-12 lg:col-span-8 stack gap-8">
         <div class="management-card">
             <div class="management-header">
-                <h3 class="font-bold">المعلومات الأساسية</h3>
+                <h3 class="font-bold">{% trans "Basic Information" %}</h3>
             </div>
             <div class="management-body stack gap-6">
                 <div class="grid grid-2 gap-6">
@@ -34,7 +34,7 @@
                     <div class="field-group">
                         <label>{{ form.slug.label }}</label>
                         {{ form.slug }}
-                        <p class="text-[10px] text-muted mt-1">يترك فارغاً للتوليد التلقائي.</p>
+                        <p class="text-[10px] text-muted mt-1">{% trans "Leave empty for automatic generation." %}</p>
                     </div>
                 </div>
 
@@ -56,7 +56,7 @@
                 <div class="field-group">
                     <label>{{ form.instructions.label }}</label>
                     {{ form.instructions }}
-                    <p class="text-[10px] text-muted mt-1">تعليمات تظهر للعميل بعد الشراء.</p>
+                    <p class="text-[10px] text-muted mt-1">{% trans "Instructions shown to the customer after purchase." %}</p>
                 </div>
             </div>
         </div>
@@ -64,18 +64,18 @@
         <!-- Dynamic Form Fields -->
         <div class="management-card">
             <div class="management-header">
-                <h3 class="font-bold">البيانات المطلوبة من العميل (JSON Schema)</h3>
-                <span class="badge primary text-[9px]">Engine V2</span>
+                <h3 class="font-bold">{% trans "Required Customer Data (JSON Schema)" %}</h3>
+                <span class="badge primary text-[9px]">{% trans "Engine V2" %}</span>
             </div>
             <div class="management-body">
                 <div class="field-group">
-                    <label>تنسيق نموذج البيانات</label>
+                    <label>{% trans "Data Model Format" %}</label>
                     {{ form.form_schema }}
                     <div class="mt-4 p-4 bg-slate-900 rounded-xl border border-white/5">
-                        <h4 class="text-xs font-bold mb-2 text-cyan">أمثلة سريعة:</h4>
+                        <h4 class="text-xs font-bold mb-2 text-cyan">{% trans "Quick Examples:" %}</h4>
                         <div class="grid grid-2 gap-4">
-                            <button type="button" class="text-[10px] text-right bg-white/5 p-2 rounded hover:bg-white/10" onclick="applyTemplate('game')">باقة شحن ألعاب (ID + Server)</button>
-                            <button type="button" class="text-[10px] text-right bg-white/5 p-2 rounded hover:bg-white/10" onclick="applyTemplate('account')">حساب كامل (Email + Pass)</button>
+                            <button type="button" class="text-[10px] text-right bg-white/5 p-2 rounded hover:bg-white/10" onclick="applyTemplate('game')">{% trans "Game Recharge (ID + Server)" %}</button>
+                            <button type="button" class="text-[10px] text-right bg-white/5 p-2 rounded hover:bg-white/10" onclick="applyTemplate('account')">{% trans "Full Account (Email + Pass)" %}</button>
                         </div>
                     </div>
                 </div>
@@ -85,7 +85,7 @@
         <!-- Media -->
         <div class="management-card">
             <div class="management-header">
-                <h3 class="font-bold">الصور والأيقونات</h3>
+                <h3 class="font-bold">{% trans "Images and Icons" %}</h3>
             </div>
             <div class="management-body grid grid-2 gap-8">
                 <div class="field-group">
@@ -109,7 +109,7 @@
                 <div class="field-group">
                     <label>{{ form.icon.label }}</label>
                     {{ form.icon }}
-                    <p class="text-[10px] text-muted mt-1">مثال: fa-gamepad</p>
+                    <p class="text-[10px] text-muted mt-1">{% trans "Example: fa-gamepad" %}</p>
                 </div>
             </div>
         </div>
@@ -118,7 +118,7 @@
     <!-- Sidebar Stats & Flags -->
     <div class="col-span-12 lg:col-span-4 stack gap-6">
         <div class="management-card p-6">
-            <h3 class="font-bold text-sm mb-4">الحالة والظهور</h3>
+            <h3 class="font-bold text-sm mb-4">{% trans "Status and Visibility" %}</h3>
             <div class="stack gap-4">
                 <div class="flex items-center justify-between p-3 bg-slate-800/30 rounded-xl">
                     <label class="text-sm font-bold">{{ form.is_active.label }}</label>
@@ -138,8 +138,8 @@
         {% if product %}
         <div class="management-card">
             <div class="management-header">
-                <h3 class="font-bold text-sm">باقات المنتج</h3>
-                <a href="{% url 'control_variant_create' product.pk %}" class="btn btn-primary btn-sm text-[10px] py-1 px-2">إضافة</a>
+                <h3 class="font-bold text-sm">{% trans "Product Variants" %}</h3>
+                <a href="{% url 'control_variant_create' product.pk %}" class="btn btn-primary btn-sm text-[10px] py-1 px-2">{% trans "Add" %}</a>
             </div>
             <div class="p-2 stack gap-2">
                 {% for v in variants %}
@@ -153,7 +153,7 @@
                     </a>
                 </div>
                 {% empty %}
-                <p class="p-4 text-center text-[10px] text-muted italic">لا توجد باقات.</p>
+                <p class="p-4 text-center text-[10px] text-muted italic">{% trans "No variants." %}</p>
                 {% endfor %}
             </div>
         </div>
@@ -163,7 +163,7 @@
 
 <script>
 async function quickCreateCategory() {
-    const name = prompt("اسم التصنيف الجديد:");
+    const name = prompt("{% trans "New category name:" %}");
     if (!name) return;
     
     const formData = new FormData();
@@ -183,9 +183,9 @@ async function quickCreateCategory() {
         opt.text = data.name;
         opt.selected = true;
         select.appendChild(opt);
-        alert("تم إنشاء التصنيف بنجاح.");
+        alert("{% trans "Category created successfully." %}");
     } else {
-        alert("فشل إنشاء التصنيف.");
+        alert("{% trans "Failed to create category." %}");
     }
 }
 

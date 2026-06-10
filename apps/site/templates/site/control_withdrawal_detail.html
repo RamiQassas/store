@@ -1,7 +1,7 @@
 {% extends "site/control_base.html" %}
-{% load static site_tags %}
+{% load static site_tags i18n %}
 
-{% block title %}تفاصيل طلب السحب #{{ withdrawal.id|stringformat:".8s" }} | Raqamiyat Admin{% endblock %}
+{% block title %}{% trans "Withdrawal Request Details" %} #{{ withdrawal.id|stringformat:".8s" }} | Raqamiyat Admin{% endblock %}
 
 {% block extra_head %}
 <style>
@@ -35,20 +35,22 @@
 
 {% block control_content %}
 <nav class="breadcrumb">
-    <a href="{% url 'control_dashboard' %}" class="breadcrumb-item">الرئيسية</a>
-    <a href="{% url 'control_withdrawals' %}" class="breadcrumb-item">إدارة السحوبات</a>
-    <span class="breadcrumb-item active">تفاصيل السحب</span>
+    <a href="{% url 'control_dashboard' %}" class="breadcrumb-item">{% trans "Home" %}</a>
+    <a href="{% url 'control_withdrawals' %}" class="breadcrumb-item">{% trans "Withdrawal Management" %}</a>
+    <span class="breadcrumb-item active">{% trans "Withdrawal Details" %}</span>
 </nav>
 
 <div class="page-head flex justify-between items-center">
     <div>
-        <span class="eyebrow">Financial Operations / Withdrawals</span>
-        <h1>تفاصيل طلب السحب</h1>
-        <p class="text-muted">مراجعة ومعالجة طلب سحب الأموال: #{{ withdrawal.id }}</p>
+        <span class="eyebrow">{% trans "Financial Operations / Withdrawals" %}</span>
+        <h1>{% trans "Withdrawal Request Details" %}</h1>
+        <p class="text-muted">
+            {% blocktrans with id=withdrawal.id %}Review and process fund withdrawal request: #{{ id }}{% endblocktrans %}
+        </p>
     </div>
     <div>
         <a href="{% url 'control_withdrawals' %}" class="btn btn-outline btn-sm">
-            <i class="fas fa-arrow-right ml-2"></i> العودة للقائمة
+            <i class="fas fa-arrow-right ml-2"></i> {% trans "Back to List" %}
         </a>
     </div>
 </div>
@@ -60,7 +62,7 @@
         <div class="management-card">
             <div class="management-header">
                 <h3 class="font-bold flex items-center gap-2">
-                    <i class="fas fa-university text-cyan"></i> بيانات استلام الأموال
+                    <i class="fas fa-university text-cyan"></i> {% trans "Payout Details" %}
                 </h3>
             </div>
             <div class="p-6">
@@ -73,7 +75,7 @@
                             <button type="button" 
                                     onclick="copyToClipboard('copy-{{ forloop.counter }}', this)"
                                     class="p-1.5 text-slate-500 hover:text-cyan transition-colors"
-                                    title="نسخ">
+                                    title="{% trans "Copy" %}">
                                 <i class="fas fa-copy"></i>
                             </button>
                         </div>
@@ -102,7 +104,7 @@
         <!-- Withdrawal Proof -->
         <div class="management-card">
             <div class="management-header">
-                <h3 class="font-bold">إثبات التحويل (بواسطة الإدارة)</h3>
+                <h3 class="font-bold">{% trans "Transfer Proof (by Admin)" %}</h3>
             </div>
             <div class="p-6">
                 {% if withdrawal.proof_image %}
@@ -112,7 +114,7 @@
                 {% else %}
                 <div class="p-10 text-center bg-slate-900/50 rounded-2xl border border-dashed border-white/10">
                     <i class="fas fa-file-invoice-dollar text-3xl text-slate-700 mb-3"></i>
-                    <p class="text-slate-500 font-bold">لم يتم إرفاق وصل تحويل بعد.</p>
+                    <p class="text-slate-500 font-bold">{% trans "No transfer proof attached yet." %}</p>
                 </div>
                 {% endif %}
             </div>
@@ -121,20 +123,20 @@
         <!-- Stats & Info -->
         <div class="management-card">
             <div class="management-header">
-                <h3 class="font-bold">ملخص العملية</h3>
+                <h3 class="font-bold">{% trans "Transaction Summary" %}</h3>
             </div>
             <div class="p-6">
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div class="info-item">
-                        <span class="info-label">المبلغ المطلوب</span>
+                        <span class="info-label">{% trans "Requested Amount" %}</span>
                         <span class="info-value text-white">{{ withdrawal.amount }} {{ withdrawal.currency.code }}</span>
                     </div>
                     <div class="info-item">
-                        <span class="info-label">الرسوم</span>
+                        <span class="info-label">{% trans "Fees" %}</span>
                         <span class="info-value text-rose-400">{{ withdrawal.fee_amount }} {{ withdrawal.currency.code }}</span>
                     </div>
                     <div class="info-item">
-                        <span class="info-label">المبلغ الصافي للإرسال</span>
+                        <span class="info-label">{% trans "Net Amount to Send" %}</span>
                         <span class="info-value text-emerald-400 font-black">{{ withdrawal.final_amount }} {{ withdrawal.currency.code }}</span>
                     </div>
                 </div>
@@ -147,27 +149,27 @@
         <!-- Actions -->
         <div class="management-card border-cyan/20">
             <div class="management-header">
-                <h3 class="font-bold">اتخاذ إجراء</h3>
+                <h3 class="font-bold">{% trans "Take Action" %}</h3>
             </div>
             <div class="p-6 stack gap-4">
                 <form method="post" enctype="multipart/form-data" class="stack gap-4">
                     {% csrf_token %}
                     <div class="field-group">
-                        <label class="info-label">الحالة</label>
+                        <label class="info-label">{% trans "Status" %}</label>
                         <select name="action" class="w-full bg-slate-900 border-white/10 rounded-xl p-3 text-xs text-white">
-                            <option value="process" {% if withdrawal.status == 'processing' %}selected{% endif %}>قيد المعالجة (Processing)</option>
-                            <option value="approve" {% if withdrawal.status == 'approved' %}selected{% endif %}>موافقة مبدئية (Approved)</option>
-                            <option value="complete" {% if withdrawal.status == 'completed' %}selected{% endif %}>إتمام وإرسال (Complete)</option>
-                            <option value="reject">رفض وإعادة الرصيد (Reject)</option>
+                            <option value="process" {% if withdrawal.status == 'processing' %}selected{% endif %}>{% trans "Processing" %}</option>
+                            <option value="approve" {% if withdrawal.status == 'approved' %}selected{% endif %}>{% trans "Approved" %}</option>
+                            <option value="complete" {% if withdrawal.status == 'completed' %}selected{% endif %}>{% trans "Complete" %}</option>
+                            <option value="reject">{% trans "Reject & Refund" %}</option>
                         </select>
                     </div>
                     
                     <div class="field-group">
-                        <label class="info-label">ملاحظات للمستخدم</label>
-                        <textarea name="admin_note" rows="3" class="w-full bg-slate-900 border-white/10 rounded-xl p-3 text-xs text-white" placeholder="أدخل ملاحظاتك هنا...">{{ withdrawal.admin_note }}</textarea>
+                        <label class="info-label">{% trans "Notes to User" %}</label>
+                        <textarea name="admin_note" rows="3" class="w-full bg-slate-900 border-white/10 rounded-xl p-3 text-xs text-white" placeholder="{% trans "Enter your notes here..." %}">{{ withdrawal.admin_note }}</textarea>
                     </div>
 
-                    <button type="submit" class="btn btn-primary w-full py-3 font-bold">تنفيذ الإجراء</button>
+                    <button type="submit" class="btn btn-primary w-full py-3 font-bold">{% trans "Execute Action" %}</button>
                 </form>
             </div>
         </div>
@@ -175,7 +177,7 @@
         <!-- User Info -->
         <div class="management-card">
             <div class="management-header">
-                <h3 class="font-bold">العميل</h3>
+                <h3 class="font-bold">{% trans "Customer" %}</h3>
             </div>
             <div class="p-6 stack gap-4">
                 <div class="flex items-center gap-4">
@@ -188,7 +190,7 @@
                     </div>
                 </div>
                 <div class="info-item">
-                    <span class="info-label">رصيد المحفظة</span>
+                    <span class="info-label">{% trans "Wallet Balance" %}</span>
                     <span class="info-value">{% currency_format withdrawal.user.wallet.available_balance withdrawal.user.wallet.currency %}</span>
                 </div>
             </div>

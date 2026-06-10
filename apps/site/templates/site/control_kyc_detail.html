@@ -1,6 +1,6 @@
 {% extends "site/control_base.html" %}
 {% load site_tags l10n i18n %}
-{% block title %}{% trans "مراجعة وتعديل التوثيق" %} | {{ kyc.user.email }}{% endblock %}
+{% block title %}{% trans "Review & Edit KYC" %} | {{ kyc.user.email }}{% endblock %}
 
 {% block extra_head %}
 <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
@@ -32,17 +32,17 @@
 {% block control_content %}
 <div class="page-head flex justify-between items-center">
     <div>
-        <span class="eyebrow">KYC Management & Review</span>
-        <h1>{% trans "مراجعة وتعديل بيانات:" %} {{ kyc.user.email }}</h1>
+        <span class="eyebrow">{% trans "KYC Management & Review" %}</span>
+        <h1>{% trans "Review & Edit Data for:" %} {{ kyc.user.email }}</h1>
     </div>
     <div class="flex gap-3">
         {% if kyc.status != 'pending' %}
         <form method="post" class="inline">
             {% csrf_token %}
-            <button type="submit" name="action" value="revert" class="btn btn-outline btn-sm border-amber-500/20 text-amber-500 hover:bg-amber-500 hover:text-white">{% trans "إعادة قيد المراجعة" %}</button>
+            <button type="submit" name="action" value="revert" class="btn btn-outline btn-sm border-amber-500/20 text-amber-500 hover:bg-amber-500 hover:text-white">{% trans "Return to Pending" %}</button>
         </form>
         {% endif %}
-        <a href="{% url 'control_kycs_list' %}" class="btn btn-outline btn-sm">{% trans "العودة للقائمة" %}</a>
+        <a href="{% url 'control_kycs_list' %}" class="btn btn-outline btn-sm">{% trans "Back to List" %}</a>
     </div>
 </div>
 
@@ -51,7 +51,7 @@
         <!-- 1. Custom Limits Section -->
         <div class="management-card p-8 border-cyan/20">
             <h3 class="text-sm font-black uppercase tracking-widest text-cyan mb-8 flex items-center gap-2">
-                <i class="fas fa-sliders-h"></i> {% trans "حدود الحساب المخصصة (VIP Overrides)" %}
+                <i class="fas fa-sliders-h"></i> {% trans "Custom Account Limits (VIP Overrides)" %}
             </h3>
             <form method="post" class="stack gap-8">
                 {% csrf_token %}
@@ -59,17 +59,17 @@
                 
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
                     <div class="field-group">
-                        <label class="text-[10px] text-slate-500 font-bold uppercase">{% trans "الحد اليومي للإيداع (USD)" %}</label>
+                        <label class="text-[10px] text-slate-500 font-bold uppercase">{% trans "Daily Deposit Limit (USD)" %}</label>
                         <input type="number" name="global_deposit_limit" step="0.01" value="{{ kyc.user.daily_deposit_limit|unlocalize }}" class="builder-input font-mono">
                     </div>
                     <div class="field-group">
-                        <label class="text-[10px] text-slate-500 font-bold uppercase">{% trans "الحد اليومي للسحب (USD)" %}</label>
+                        <label class="text-[10px] text-slate-500 font-bold uppercase">{% trans "Daily Withdrawal Limit (USD)" %}</label>
                         <input type="number" name="global_withdrawal_limit" step="0.01" value="{{ kyc.user.daily_withdrawal_limit|unlocalize }}" class="builder-input font-mono">
                     </div>
                 </div>
 
                 <div class="h-px bg-white/5 my-4"></div>
-                <h4 class="text-xs font-bold text-slate-400 mb-4">{% trans "حدود وسائل الدفع (اختياري)" %}</h4>
+                <h4 class="text-xs font-bold text-slate-400 mb-4">{% trans "Payment Method Limits (Optional)" %}</h4>
                 
                 <div class="limit-grid">
                     {% for method in payment_methods %}
@@ -77,13 +77,13 @@
                         <div class="font-bold text-xs text-slate-300 border-b border-white/5 pb-2">{{ method.name }}</div>
                         {% with user_limit=kyc.user.custom_payment_limits|get_item:method.id %}
                         <div class="field-group">
-                            <label class="text-[9px] text-slate-500">{% trans "حد الإيداع" %}</label>
+                            <label class="text-[9px] text-slate-500">{% trans "Deposit Limit" %}</label>
                             <input type="number" name="method_dep_{{ method.id }}" step="0.01" 
                                    value="{{ user_limit.deposit|default:''|unlocalize }}" 
                                    class="builder-input text-xs font-mono py-2" placeholder="{{ method.daily_deposit_limit|unlocalize }}">
                         </div>
                         <div class="field-group">
-                            <label class="text-[9px] text-slate-500">{% trans "حد السحب" %}</label>
+                            <label class="text-[9px] text-slate-500">{% trans "Withdrawal Limit" %}</label>
                             <input type="number" name="method_with_{{ method.id }}" step="0.01" 
                                    value="{{ user_limit.withdraw|default:''|unlocalize }}" 
                                    class="builder-input text-xs font-mono py-2" placeholder="{{ method.daily_withdrawal_limit|unlocalize }}">
@@ -94,8 +94,8 @@
                 </div>
 
                 <div class="pt-4">
-                    <button type="submit" class="btn btn-sm btn-primary px-8">{% trans "تحديث الحدود المخصصة" %}</button>
-                    <p class="text-[9px] text-slate-600 mt-2">{% trans "ملاحظة: القيم الفارغة ستتبع الحدود الافتراضية للوسيلة أو الحساب." %}</p>
+                    <button type="submit" class="btn btn-sm btn-primary px-8">{% trans "Update Custom Limits" %}</button>
+                    <p class="text-[9px] text-slate-600 mt-2">{% trans "Note: Empty values will follow default method or account limits." %}</p>
                 </div>
             </form>
         </div>
@@ -103,8 +103,8 @@
         <!-- 2. Personal Data Section -->
         <div class="management-card p-8">
             <div class="flex justify-between items-center mb-6 border-b border-white/5 pb-4">
-                <h3 class="text-sm font-bold uppercase tracking-widest text-slate-500">{% trans "البيانات الشخصية" %}</h3>
-                <span class="text-[10px] text-slate-600 bg-slate-800 px-2 py-1 rounded">{% trans "يمكنك تصحيح أي أخطاء إملائية مباشرة" %}</span>
+                <h3 class="text-sm font-bold uppercase tracking-widest text-slate-500">{% trans "Personal Data" %}</h3>
+                <span class="text-[10px] text-slate-600 bg-slate-800 px-2 py-1 rounded">{% trans "You can correct any typos directly" %}</span>
             </div>
 
             <form method="post" id="edit-kyc-form" class="stack gap-6">
@@ -113,67 +113,67 @@
                 
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div class="field-group">
-                        <label class="text-[10px] text-slate-500 uppercase block mb-1">{% trans "الجنسية" %}</label>
+                        <label class="text-[10px] text-slate-500 uppercase block mb-1">{% trans "Nationality" %}</label>
                         {{ form.nationality }}
                     </div>
                     <div class="field-group">
-                        <label class="text-[10px] text-slate-500 uppercase block mb-1">{% trans "بلد إصدار الوثيقة" %}</label>
+                        <label class="text-[10px] text-slate-500 uppercase block mb-1">{% trans "Document Issuing Country" %}</label>
                         {{ form.issuing_country }}
                     </div>
                     <div class="field-group">
-                        <label class="text-[10px] text-slate-500 uppercase block mb-1">{% trans "نوع الوثيقة" %}</label>
+                        <label class="text-[10px] text-slate-500 uppercase block mb-1">{% trans "Document Type" %}</label>
                         {{ form.document_type }}
                     </div>
                     <div class="field-group">
-                        <label class="text-[10px] text-slate-500 uppercase block mb-1">{% trans "رقم الوطني / الوثيقة" %}</label>
+                        <label class="text-[10px] text-slate-500 uppercase block mb-1">{% trans "ID / Document Number" %}</label>
                         {{ form.id_number }}
                     </div>
                     <div class="field-group">
-                        <label class="text-[10px] text-slate-500 uppercase block mb-1">{% trans "الاسم الأول" %}</label>
+                        <label class="text-[10px] text-slate-500 uppercase block mb-1">{% trans "First Name" %}</label>
                         {{ form.first_name }}
                     </div>
                     <div class="field-group">
-                        <label class="text-[10px] text-slate-500 uppercase block mb-1">{% trans "اسم الأب" %}</label>
+                        <label class="text-[10px] text-slate-500 uppercase block mb-1">{% trans "Father's Name" %}</label>
                         {{ form.father_name }}
                     </div>
                     <div class="field-group">
-                        <label class="text-[10px] text-slate-500 uppercase block mb-1">{% trans "النسبة / الكنية" %}</label>
+                        <label class="text-[10px] text-slate-500 uppercase block mb-1">{% trans "Last Name" %}</label>
                         {{ form.last_name }}
                     </div>
                     <div class="field-group">
-                        <label class="text-[10px] text-slate-500 uppercase block mb-1">{% trans "اسم الأم ونسبتها" %}</label>
+                        <label class="text-[10px] text-slate-500 uppercase block mb-1">{% trans "Mother's Name" %}</label>
                         {{ form.mother_name }}
                     </div>
                     <div class="field-group">
-                        <label class="text-[10px] text-slate-500 uppercase block mb-1">{% trans "الجنس" %}</label>
+                        <label class="text-[10px] text-slate-500 uppercase block mb-1">{% trans "Gender" %}</label>
                         {{ form.gender }}
                     </div>
                     <div class="field-group">
-                        <label class="text-[10px] text-slate-500 uppercase block mb-1">{% trans "تاريخ الميلاد" %}</label>
+                        <label class="text-[10px] text-slate-500 uppercase block mb-1">{% trans "Date of Birth" %}</label>
                         {{ form.date_of_birth }}
                     </div>
                     <div class="field-group md:col-span-2">
-                        <label class="text-[10px] text-slate-500 uppercase block mb-1">{% trans "مكان الميلاد" %}</label>
+                        <label class="text-[10px] text-slate-500 uppercase block mb-1">{% trans "Place of Birth" %}</label>
                         {{ form.place_of_birth }}
                     </div>
                     <div class="field-group md:col-span-2">
-                        <label class="text-[10px] text-slate-500 uppercase block mb-1">{% trans "عنوان الإقامة الحالي" %}</label>
+                        <label class="text-[10px] text-slate-500 uppercase block mb-1">{% trans "Current Residence Address" %}</label>
                         {{ form.current_residence }}
                     </div>
                 </div>
                 
                 <div class="pt-4">
-                    <button type="submit" class="btn btn-sm btn-primary px-8">{% trans "حفظ التعديلات على البيانات" %}</button>
+                    <button type="submit" class="btn btn-sm btn-primary px-8">{% trans "Save Data Changes" %}</button>
                 </div>
             </form>
         </div>
 
         <!-- 3. Modern Lightbox Images -->
         <div class="management-card p-8">
-            <h3 class="text-sm font-bold uppercase tracking-widest text-slate-500 mb-6 border-b border-white/5 pb-4">{% trans "وثائق الهوية المرفقة (اضغط للتكبير)" %}</h3>
+            <h3 class="text-sm font-bold uppercase tracking-widest text-slate-500 mb-6 border-b border-white/5 pb-4">{% trans "Attached Identity Documents (Click to enlarge)" %}</h3>
             <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
                 <div class="stack gap-3 text-center">
-                    <span class="text-[10px] font-black uppercase text-slate-500 tracking-wider">{% trans "وجه الوثيقة" %}</span>
+                    <span class="text-[10px] font-black uppercase text-slate-500 tracking-wider">{% trans "Document Front" %}</span>
                     {% if kyc.identity_front %}
                     <div class="fixed-thumb group cursor-pointer" onclick="openLightbox(0, ['{{ kyc.identity_front.url }}', '{% if kyc.identity_back %}{{ kyc.identity_back.url }}{% endif %}', '{% if kyc.selfie_verification %}{{ kyc.selfie_verification.url }}{% endif %}'])">
                         <img src="{{ kyc.identity_front.url }}" class="opacity-80 group-hover:opacity-100 transition-opacity">
@@ -182,11 +182,11 @@
                         </div>
                     </div>
                     {% else %}
-                    <div class="fixed-thumb flex items-center justify-center text-slate-600 text-xs italic">{% trans "لا توجد صورة" %}</div>
+                    <div class="fixed-thumb flex items-center justify-center text-slate-600 text-xs italic">{% trans "No image" %}</div>
                     {% endif %}
                 </div>
                 <div class="stack gap-3 text-center">
-                    <span class="text-[10px] font-black uppercase text-slate-500 tracking-wider">{% trans "ظهر الوثيقة" %}</span>
+                    <span class="text-[10px] font-black uppercase text-slate-500 tracking-wider">{% trans "Document Back" %}</span>
                     {% if kyc.identity_back %}
                     <div class="fixed-thumb group cursor-pointer" onclick="openLightbox(1, ['{% if kyc.identity_front %}{{ kyc.identity_front.url }}{% endif %}', '{{ kyc.identity_back.url }}', '{% if kyc.selfie_verification %}{{ kyc.selfie_verification.url }}{% endif %}'])">
                         <img src="{{ kyc.identity_back.url }}" class="opacity-80 group-hover:opacity-100 transition-opacity">
@@ -195,11 +195,11 @@
                         </div>
                     </div>
                     {% else %}
-                    <div class="fixed-thumb flex items-center justify-center text-slate-600 text-xs italic">{% trans "لا توجد صورة" %}</div>
+                    <div class="fixed-thumb flex items-center justify-center text-slate-600 text-xs italic">{% trans "No image" %}</div>
                     {% endif %}
                 </div>
                 <div class="stack gap-3 text-center">
-                    <span class="text-[10px] font-black uppercase text-slate-500 tracking-wider">{% trans "صورة السيلفي" %}</span>
+                    <span class="text-[10px] font-black uppercase text-slate-500 tracking-wider">{% trans "Selfie" %}</span>
                     {% if kyc.selfie_verification %}
                     <div class="fixed-thumb group cursor-pointer" onclick="openLightbox(2, ['{% if kyc.identity_front %}{{ kyc.identity_front.url }}{% endif %}', '{% if kyc.identity_back %}{{ kyc.identity_back.url }}{% endif %}', '{{ kyc.selfie_verification.url }}'])">
                         <img src="{{ kyc.selfie_verification.url }}" class="opacity-80 group-hover:opacity-100 transition-opacity">
@@ -208,7 +208,7 @@
                         </div>
                     </div>
                     {% else %}
-                    <div class="fixed-thumb flex items-center justify-center text-slate-600 text-xs italic">{% trans "لا توجد صورة" %}</div>
+                    <div class="fixed-thumb flex items-center justify-center text-slate-600 text-xs italic">{% trans "No image" %}</div>
                     {% endif %}
                 </div>
             </div>
@@ -218,31 +218,31 @@
     <!-- 4. Sidebar Decisions -->
     <div class="stack gap-8">
         <div class="management-card p-8 border-cyan/10">
-            <h3 class="text-sm font-bold uppercase tracking-widest text-slate-500 mb-6 border-b border-white/5 pb-4">{% trans "اتخاذ قرار نهائي" %}</h3>
+            <h3 class="text-sm font-bold uppercase tracking-widest text-slate-500 mb-6 border-b border-white/5 pb-4">{% trans "Take Final Decision" %}</h3>
             
             <form method="post" class="stack gap-6">
                 {% csrf_token %}
                 <div class="field-group">
-                    <label class="text-[10px] text-slate-500 mb-2 block">{% trans "ملاحظات الإدارة / سبب الرفض" %}</label>
-                    <textarea name="rejection_reason" class="builder-input text-xs" rows="4" placeholder="{% trans "سيظهر هذا النص للمستخدم في حال الرفض..." %}">{{ kyc.rejection_reason }}</textarea>
+                    <label class="text-[10px] text-slate-500 mb-2 block">{% trans "Admin Notes / Rejection Reason" %}</label>
+                    <textarea name="rejection_reason" class="builder-input text-xs" rows="4" placeholder="{% trans "This text will appear to the user in case of rejection..." %}">{{ kyc.rejection_reason }}</textarea>
                 </div>
                 
                 <div class="stack gap-3">
                     <button type="submit" name="action" value="approve" class="btn btn-primary w-full py-4 rounded-xl font-black text-sm shadow-cyan hover:scale-[1.02] transition-transform">
-                        <i class="fas fa-check-circle ml-2"></i> {% trans "قبول التوثيق وتفعيل الحدود" %}
+                        <i class="fas fa-check-circle ml-2"></i> {% trans "Approve KYC & Enable Limits" %}
                     </button>
                     <button type="submit" name="action" value="reject" class="btn btn-outline danger w-full py-3 rounded-xl font-bold">
-                        <i class="fas fa-times-circle ml-2"></i> {% trans "رفض الطلب" %}
+                        <i class="fas fa-times-circle ml-2"></i> {% trans "Reject Request" %}
                     </button>
                 </div>
             </form>
 
             {% if kyc.status == 'approved' %}
             <div class="mt-6 pt-6 border-t border-white/5">
-                <form method="post" onsubmit="return confirm('{% trans "هل أنت متأكد من رغبتك في إلغاء توثيق هذا الحساب؟ سيتم إعادة الحدود المالية للمستوى الأساسي." %}')">
+                <form method="post" onsubmit="return confirm('{% trans "Are you sure you want to unverify this account? Financial limits will be reset to basic level." %}')">
                     {% csrf_token %}
                     <button type="submit" name="action" value="unverify" class="btn btn-sm btn-outline danger w-full py-2 opacity-50 hover:opacity-100">
-                        {% trans "إلغاء التوثيق (Unverify)" %}
+                        {% trans "Unverify" %}
                     </button>
                 </form>
             </div>
@@ -250,18 +250,18 @@
         </div>
 
         <div class="management-card p-8">
-            <h3 class="text-sm font-bold uppercase tracking-widest text-slate-500 mb-4 pb-2 border-b border-white/5">{% trans "معلومات الحساب" %}</h3>
+            <h3 class="text-sm font-bold uppercase tracking-widest text-slate-500 mb-4 pb-2 border-b border-white/5">{% trans "Account Information" %}</h3>
             <div class="stack gap-4">
                 <div class="flex justify-between text-xs">
-                    <span class="text-slate-500">{% trans "حالة التوثيق:" %}</span>
+                    <span class="text-slate-500">{% trans "KYC Status:" %}</span>
                     <span class="badge {% if kyc.status == 'approved' %}success{% elif kyc.status == 'rejected' %}danger{% else %}warning{% endif %}">{{ kyc.get_status_display }}</span>
                 </div>
                 <div class="flex justify-between text-xs">
-                    <span class="text-slate-500">{% trans "الاسم الحالي:" %}</span>
-                    <strong class="text-white">{{ kyc.user.get_full_name|default:_("غير محدد") }}</strong>
+                    <span class="text-slate-500">{% trans "Current Name:" %}</span>
+                    <strong class="text-white">{{ kyc.user.get_full_name|default:_("Not specified") }}</strong>
                 </div>
                 <div class="flex justify-between text-xs">
-                    <span class="text-slate-500">{% trans "تاريخ الطلب:" %}</span>
+                    <span class="text-slate-500">{% trans "Request Date:" %}</span>
                     <strong class="text-white">{{ kyc.created_at|date:"d M Y" }}</strong>
                 </div>
             </div>
@@ -294,7 +294,7 @@
 <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 <script>
     $(document).ready(function() {
-        $('.searchable-select').select2({ width: '100%', dir: 'rtl' });
+        $('.searchable-select').select2({ width: '100%', dir: 'ltr' });
     });
 
     let currentImgIdx = 0;

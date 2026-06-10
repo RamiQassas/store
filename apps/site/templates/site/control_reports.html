@@ -1,38 +1,43 @@
 {% extends "site/control_base.html" %}
-{% block title %}التقارير والتحليلات | Raqamiyat Admin{% endblock %}
+{% load i18n %}
+{% block title %}{% trans "Reports & Analytics" %} | Raqamiyat Admin{% endblock %}
 {% block control_content %}
 <section class="page-head">
   <div>
-    <span class="eyebrow">Admin / Analytics</span>
-    <h1>تحليلات المنصة والتقارير</h1>
-    <p>نظرة عميقة على الأداء المالي، نمو المستخدمين، والخدمات الأكثر مبيعاً.</p>
+    <span class="eyebrow">{% trans "Admin / Analytics" %}</span>
+    <h1>{% trans "Platform Analytics & Reports" %}</h1>
+    <p>{% trans "Deep dive into financial performance, user growth, and top-selling services." %}</p>
   </div>
 </section>
 
 <!-- Top Stats -->
 <section class="grid grid-4 gap-6 mb-8">
   <article class="panel p-6 border-r-4 border-cyan">
-    <span class="text-slate-400 block mb-1">إجمالي الأرباح (30 يوم)</span>
+    <span class="text-slate-400 block mb-1">{% trans "Total Profit (30 Days)" %}</span>
     <strong class="text-2xl text-white">{{ stats.total_profit_30|floatformat:2 }} USD</strong>
-    <div class="text-[10px] text-cyan mt-1"><i class="fas fa-chart-line"></i> يشمل الرسوم والمنتجات</div>
+    <div class="text-[10px] text-cyan mt-1"><i class="fas fa-chart-line"></i> {% trans "Includes fees and products" %}</div>
   </article>
 
   <article class="panel p-6 border-r-4 border-emerald-500">
-    <span class="text-slate-400 block mb-1">صافي أرباح المنتجات</span>
+    <span class="text-slate-400 block mb-1">{% trans "Net Product Profit" %}</span>
     <strong class="text-2xl text-white">{{ stats.product_profit_30|floatformat:2 }} USD</strong>
-    <div class="text-[10px] text-slate-500 mt-1">الإيرادات: {{ stats.revenue_30|floatformat:2 }}</div>
+    <div class="text-[10px] text-slate-500 mt-1">{% trans "Revenue:" %} {{ stats.revenue_30|floatformat:2 }}</div>
   </article>
   
   <article class="panel p-6 border-r-4 border-blue-500">
-    <span class="text-slate-400 block mb-1">أرباح رسوم الإيداع</span>
+    <span class="text-slate-400 block mb-1">{% trans "Deposit Fee Profit" %}</span>
     <strong class="text-2xl text-white">{{ stats.deposit_fees_30|floatformat:2 }} USD</strong>
-    <div class="text-[10px] text-blue-400 mt-1">من إجمالي {{ stats.deposits_30|floatformat:2 }} إيداعات</div>
+    <div class="text-[10px] text-blue-400 mt-1">
+        {% blocktrans with deposits=stats.deposits_30|floatformat:2 %}From total {{ deposits }} deposits{% endblocktrans %}
+    </div>
   </article>
 
   <article class="panel p-6 border-r-4 border-rose-500">
-    <span class="text-slate-400 block mb-1">أرباح رسوم السحب</span>
+    <span class="text-slate-400 block mb-1">{% trans "Withdrawal Fee Profit" %}</span>
     <strong class="text-2xl text-white">{{ stats.withdrawal_fees_30|floatformat:2 }} USD</strong>
-    <div class="text-[10px] text-rose-400 mt-1">من إجمالي {{ stats.withdrawals_30|floatformat:2 }} سحوبات</div>
+    <div class="text-[10px] text-rose-400 mt-1">
+        {% blocktrans with withdrawals=stats.withdrawals_30|floatformat:2 %}From total {{ withdrawals }} withdrawals{% endblocktrans %}
+    </div>
   </article>
 </section>
 
@@ -40,49 +45,51 @@
     <!-- Financial Detail -->
     <div class="lg:col-span-1 stack gap-6">
         <article class="panel p-6">
-            <h3 class="font-bold text-lg mb-4 border-b border-slate-700 pb-2">تفاصيل مبيعات المنتجات</h3>
+            <h3 class="font-bold text-lg mb-4 border-b border-slate-700 pb-2">{% trans "Product Sales Details" %}</h3>
             <div class="stack gap-4">
                 <div class="flex justify-between">
-                    <span class="text-sm text-slate-400">إجمالي المبيعات (Revenue):</span>
+                    <span class="text-sm text-slate-400">{% trans "Total Sales (Revenue):" %}</span>
                     <strong class="text-white">{{ stats.revenue_30|floatformat:2 }}</strong>
                 </div>
                 <div class="flex justify-between">
-                    <span class="text-sm text-slate-400">تكلفة البضاعة (COGS):</span>
+                    <span class="text-sm text-slate-400">{% trans "Cost of Goods (COGS):" %}</span>
                     <strong class="text-rose-400">{{ stats.cogs_30|floatformat:2 }}</strong>
                 </div>
                 <div class="h-px bg-white/5"></div>
                 <div class="flex justify-between">
-                    <span class="text-sm font-bold text-emerald-400">صافي ربح المنتجات:</span>
+                    <span class="text-sm font-bold text-emerald-400">{% trans "Net Product Profit:" %}</span>
                     <strong class="text-emerald-400">{{ stats.product_profit_30|floatformat:2 }}</strong>
                 </div>
             </div>
         </article>
 
         <article class="panel p-6">
-            <h3 class="font-bold text-lg mb-4 border-b border-slate-700 pb-2">توزيع الأرصدة (النظام)</h3>
+            <h3 class="font-bold text-lg mb-4 border-b border-slate-700 pb-2">{% trans "Balance Distribution (System)" %}</h3>
             <div class="stack gap-4">
                 <div class="flex justify-between">
-                    <span class="text-sm text-slate-400">إجمالي المتاح:</span>
+                    <span class="text-sm text-slate-400">{% trans "Total Available:" %}</span>
                     <strong class="text-cyan">{{ stats.wallet_stats.total_available|default:0 }}</strong>
                 </div>
                 <div class="flex justify-between">
-                    <span class="text-sm text-slate-400">إجمالي المجمد:</span>
+                    <span class="text-sm text-slate-400">{% trans "Total Frozen:" %}</span>
                     <strong class="text-amber-500">{{ stats.wallet_stats.total_frozen|default:0 }}</strong>
                 </div>
                 <div class="flex justify-between">
-                    <span class="text-sm text-slate-400">إجمالي المحجوز:</span>
+                    <span class="text-sm text-slate-400">{% trans "Total Held:" %}</span>
                     <strong class="text-red-500">{{ stats.wallet_stats.total_held|default:0 }}</strong>
                 </div>
             </div>
         </article>
 
         <article class="panel p-6 bg-cyan/5">
-            <h3 class="font-bold text-lg mb-4">أعلى المنتجات مبيعاً</h3>
+            <h3 class="font-bold text-lg mb-4">{% trans "Top Selling Products" %}</h3>
             <div class="stack gap-3">
                 {% for p in stats.top_products %}
                     <div class="flex justify-between items-center text-sm">
                         <span>{{ p.name }}</span>
-                        <span class="badge primary">{{ p.order_count }} طلب</span>
+                        <span class="badge primary">
+                            {% blocktrans with count=p.order_count %}{{ count }} order{% plural %}{{ count }} orders{% endblocktrans %}
+                        </span>
                     </div>
                 {% endfor %}
             </div>
@@ -95,8 +102,8 @@
             <div class="w-20 h-20 bg-slate-800 rounded-full flex items-center justify-center mb-6">
                 <i class="fas fa-chart-pie text-3xl text-cyan"></i>
             </div>
-            <h2 class="text-2xl font-bold mb-2">الرسوم البيانية التفاعلية</h2>
-            <p class="text-slate-400 max-w-md">سيتم دمج Chart.js في التحديث القادم لعرض منحنيات النمو اليومي وتوزيع المبيعات حسب التصنيفات بشكل مرئي.</p>
+            <h2 class="text-2xl font-bold mb-2">{% trans "Interactive Charts" %}</h2>
+            <p class="text-slate-400 max-w-md">{% trans "Chart.js will be integrated in the next update to visually display daily growth curves and sales distribution by category." %}</p>
         </article>
     </div>
 </div>

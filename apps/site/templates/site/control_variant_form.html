@@ -1,18 +1,18 @@
 {% extends "site/control_base.html" %}
-{% load static %}
+{% load i18n static %}
 
 {% block title %}{{ title }} | Raqamiyat Admin{% endblock %}
 
 {% block control_content %}
 <div class="page-head">
     <div>
-        <span class="eyebrow">Product Management / Variant</span>
+        <span class="eyebrow">{% trans "Product Management / Variant" %}</span>
         <h1>{{ title }}</h1>
-        <p class="text-muted">إدارة تسعير باقة المنتج للمستويات المختلفة (Retail, Wholesale, VIP).</p>
+        <p class="text-muted">{% trans "Manage product variant pricing for different tiers (Retail, Wholesale, VIP)." %}</p>
     </div>
     <div class="flex gap-3">
-        <a href="{% url 'control_product_edit' product.pk %}" class="btn btn-outline btn-sm">العودة للمنتج</a>
-        <button class="btn btn-primary btn-sm" onclick="document.querySelector('form').submit()">حفظ الباقة</button>
+        <a href="{% url 'control_product_edit' product.pk %}" class="btn btn-outline btn-sm">{% trans "Back to Product" %}</a>
+        <button class="btn btn-primary btn-sm" onclick="document.querySelector('form').submit()">{% trans "Save Variant" %}</button>
     </div>
 </div>
 
@@ -22,7 +22,7 @@
     <div class="col-span-12 lg:col-span-8 stack gap-8">
         <div class="management-card">
             <div class="management-header">
-                <h3 class="font-bold">المعلومات الأساسية والأسعار</h3>
+                <h3 class="font-bold">{% trans "Basic Information and Prices" %}</h3>
             </div>
             <div class="management-body stack gap-8">
                 <div class="grid grid-2 gap-6">
@@ -37,24 +37,24 @@
                 </div>
 
                 <div class="p-6 bg-slate-900/50 rounded-2xl border border-white/5">
-                    <h4 class="text-sm font-bold mb-4 text-cyan"><i class="fas fa-tags ml-2"></i> هيكل التسعير (Multi-tier)</h4>
+                    <h4 class="text-sm font-bold mb-4 text-cyan"><i class="fas fa-tags ml-2"></i> {% trans "Pricing Structure (Multi-tier)" %}</h4>
                     <div class="grid grid-2 gap-6">
                         <div class="field-group">
-                            <label class="text-xs">السعر الافتراضي (Retail)</label>
+                            <label class="text-xs">{% trans "Default Price (Retail)" %}</label>
                             {{ form.price }}
                         </div>
                         <div class="field-group">
-                            <label class="text-xs">سعر الجملة (Gold)</label>
+                            <label class="text-xs">{% trans "Wholesale Price (Gold)" %}</label>
                             {{ form.wholesale_price }}
                         </div>
                         <div class="field-group">
-                            <label class="text-xs">سعر VIP</label>
+                            <label class="text-xs">{% trans "VIP Price" %}</label>
                             {{ form.vip_price }}
                         </div>
                         <div class="field-group">
-                            <label class="text-xs text-danger font-bold">التكلفة (Cost)</label>
+                            <label class="text-xs text-danger font-bold">{% trans "Cost" %}</label>
                             {{ form.cost }}
-                            <p class="text-[10px] text-muted mt-1">يستخدم لحساب هامش الربح الداخلي.</p>
+                            <p class="text-[10px] text-muted mt-1">{% trans "Used to calculate internal profit margin." %}</p>
                         </div>
                     </div>
                 </div>
@@ -76,7 +76,7 @@
     <!-- Flags -->
     <div class="col-span-12 lg:col-span-4">
         <div class="management-card p-6">
-            <h3 class="font-bold text-sm mb-4">الحالة والترتيب</h3>
+            <h3 class="font-bold text-sm mb-4">{% trans "Status and Order" %}</h3>
             <div class="stack gap-4">
                 <div class="flex items-center justify-between p-3 bg-slate-800/30 rounded-xl">
                     <label class="text-sm font-bold">{{ form.is_active.label }}</label>
@@ -90,9 +90,9 @@
         </div>
         
         <div class="panel p-6 bg-blue-500/[0.03] border-blue-500/20 mt-6">
-            <h4 class="text-blue-400 font-bold text-xs mb-2">تلميح التسعير</h4>
+            <h4 class="text-blue-400 font-bold text-xs mb-2">{% trans "Pricing Hint" %}</h4>
             <p class="text-[10px] text-slate-500 leading-relaxed">
-                في حال ترك أسعار الجملة أو VIP كـ 0، سيقوم النظام تلقائياً باستخدام السعر الافتراضي لتلك الفئات.
+                {% trans "If Wholesale or VIP prices are left as 0, the system will automatically use the default price for those tiers." %}
             </p>
         </div>
     </div>

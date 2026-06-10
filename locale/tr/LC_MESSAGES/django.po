@@ -3,7 +3,7 @@ msgstr ""
 "Project-Id-Version: Raqamiyat\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-06-10 12:42+0000\n"
-"PO-Revision-Date: 2026-06-10 12:42+0000\n"
+"PO-Revision-Date: 2026-06-10 13:40+0000\n"
 "Last-Translator: Gemini CLI\n"
 "Language-Team: Turkish\n"
 "Language: tr\n"
@@ -20,6 +20,9 @@ msgstr "Katalog"
 
 msgid "Store"
 msgstr "Mağaza"
+
+msgid "Services"
+msgstr "Hizmetler"
 
 msgid "Dashboard"
 msgstr "Kontrol Paneli"
@@ -95,3 +98,45 @@ msgstr "Durum"
 
 msgid "Starts from"
 msgstr "Başlayan fiyatlarla"
+
+msgid "Deposit Funds"
+msgstr "Para Yatır"
+
+msgid "Financial Gateway"
+msgstr "Finansal Geçit"
+
+msgid "Deposit New Funds"
+msgstr "Yeni Para Yatır"
+
+msgid "Method"
+msgstr "Yöntem"
+
+msgid "Details"
+msgstr "Detaylar"
+
+msgid "Confirmation"
+msgstr "Onay"
+
+msgid "Back"
+msgstr "Geri"
+
+msgid "Continue"
+msgstr "Devam Et"
+
+msgid "Withdraw Funds"
+msgstr "Para Çek"
+
+msgid "Digital Wallet"
+msgstr "Dijital Cüzdan"
+
+msgid "Balances (1 Currency)"
+msgstr "Bakiyeler (1 Para Birimi)"
+
+msgid "Frozen"
+msgstr "Dondurulmuş"
+
+msgid "Held"
+msgstr "Tutulan"
+
+msgid "Pending"
+msgstr "Beklemede"
