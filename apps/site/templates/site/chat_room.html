@@ -273,7 +273,7 @@
         <!-- Messages scrollable area -->
         <div class="chat-messages" id="chat-messages">
             {% for msg in chat_messages %}
-            <div class="msg-group {% if user.is_staff == msg.is_staff_reply %}sent{% else %}received{% endif %}">
+            <div class="msg-group {% if user == msg.sender %}sent{% else %}received{% endif %}">
                 {% if msg.file %}
                 <div class="attachment-card" onclick="zoomImage('{{ msg.file.url }}')">
                     {% if msg.is_image %}
@@ -355,7 +355,7 @@
 </div>
 
 {{ room.id|json_script:"room-id" }}
-{{ user.email|json_script:"user-email" }}
+{{ user.email|default:"guest@raqamiyat.com"|json_script:"user-email" }}
 
 <script>
     function insertCannedReply(text) {
@@ -405,12 +405,7 @@
             const data = JSON.parse(e.data);
             if (data.type === 'chat.message') {
                 // Determine alignment side
-                let side = '';
-                if (isStaff) {
-                    side = data.is_staff_reply ? 'sent' : 'received';
-                } else {
-                    side = data.is_staff_reply ? 'received' : 'sent';
-                }
+                const side = (data.sender_email === userEmail) ? 'sent' : 'received';
                 
                 // Real-time Attachment Rendering
                 let attachmentHtml = '';

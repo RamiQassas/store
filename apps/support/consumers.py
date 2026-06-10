@@ -45,6 +45,7 @@ class SupportConsumer(AsyncWebsocketConsumer):
             file_id = data.get("file_id")
             
             saved_msg = await self.save_message(message, file_id)
+            is_staff_reply = saved_msg.get("is_staff_reply", False)
             
             # Determine sender details
             if self.user.is_authenticated:
@@ -59,7 +60,7 @@ class SupportConsumer(AsyncWebsocketConsumer):
                 "message": message,
                 "sender_email": sender_email,
                 "sender_name": sender_name,
-                "is_staff_reply": is_staff,
+                "is_staff_reply": is_staff_reply,
                 "timestamp": saved_msg["timestamp"],
             }
             
@@ -74,11 +75,13 @@ class SupportConsumer(AsyncWebsocketConsumer):
         
         elif action == "typing":
             sender_name = self.user.first_name if self.user.is_authenticated else "زائر"
+            sender_email = self.user.email if self.user.is_authenticated else "guest@raqamiyat.com"
             await self.channel_layer.group_send(
                 self.room_group_name,
                 {
                     "type": "chat.typing",
                     "sender_name": sender_name,
+                    "sender_email": sender_email,
                     "is_typing": data.get("is_typing", False)
                 }
             )
@@ -169,7 +172,10 @@ class SupportConsumer(AsyncWebsocketConsumer):
                 )
             except: pass
         
-        res = {"timestamp": msg.created_at.strftime("%H:%M")}
+        res = {
+            "timestamp": msg.created_at.strftime("%H:%M"),
+            "is_staff_reply": is_staff
+        }
         if msg.file:
             res.update({
                 "file_url": msg.file.url,
