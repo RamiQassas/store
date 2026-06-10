@@ -155,11 +155,10 @@ class SupportConsumer(AsyncWebsocketConsumer):
         # Real-time Web Push Trigger
         if is_staff:
             # Notify the user (guest or authenticated) if it's a staff reply
-            # room.user is the owner/guest user for the room
             try:
                 from apps.notifications.services import notify_user
                 notify_user(
-                    user=room.user,
+                    user=room.user, # The actual participant (guest or registered)
                     title="رد جديد من الدعم الفني",
                     body=text[:100] if text else "قام الموظف بإرسال ملف/صورة",
                     action_url=f"/support/chats/{room.id}/",
@@ -169,18 +168,15 @@ class SupportConsumer(AsyncWebsocketConsumer):
                 )
             except: pass
         else:
-            # Notify staff when user (guest or authenticated) sends message
-            # Handle guest names in subject
-            guest_name = "عميل"
-            if " - زائر: " in room.subject:
-                guest_name = room.subject.split(" - زائر: ")[-1]
-            elif room.user.is_authenticated:
-                guest_name = room.user.get_full_name() or room.user.email
-            
-            # Don't notify staff if they are the ones messaging in a non-staff context
-            # (Though logic dictates they are is_staff)
+            # Notify staff when user sends message
             try:
                 from apps.notifications.services import notify_staff
+                guest_name = "عميل"
+                if " - زائر: " in room.subject:
+                    guest_name = room.subject.split(" - زائر: ")[-1]
+                elif room.user.is_authenticated:
+                    guest_name = room.user.get_full_name() or room.user.email
+                
                 notify_staff(
                     title=f"رسالة جديدة من {guest_name}",
                     body=text[:100] if text else "قام العميل بإرسال ملف/صورة",
