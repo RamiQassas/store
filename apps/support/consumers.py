@@ -65,7 +65,7 @@ class SupportConsumer(AsyncWebsocketConsumer):
                 "message": message,
                 "sender_email": sender_email,
                 "sender_name": sender_name,
-                "is_staff_reply": is_staff,
+                "is_staff": self.user.is_authenticated and self.user.is_staff,
                 "timestamp": saved_msg["timestamp"],
             }
             
