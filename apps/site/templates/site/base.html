@@ -194,46 +194,46 @@
 
       <nav class="stack gap-2">
           <a href="{% url 'home' %}" class="drawer-link {% if request.resolver_match.url_name == 'home' %}active{% endif %}">
-              <i class="fas fa-house"></i> الرئيسية
+              <i class="fas fa-house"></i> {% trans "Home" %}
           </a>
           <a href="{% url 'catalog' %}" class="drawer-link {% if request.resolver_match.url_name == 'catalog' %}active{% endif %}">
-              <i class="fas fa-grid-2"></i> الكتالوج
+              <i class="fas fa-grid-2"></i> {% trans "Catalog" %}
           </a>
 
           {% if user.is_authenticated %}
           <div class="h-px bg-white/5 my-4"></div>
           <a href="{% url 'dashboard' %}" class="drawer-link {% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}">
-              <i class="fas fa-th-large"></i> لوحة التحكم
+              <i class="fas fa-th-large"></i> {% trans "Dashboard" %}
           </a>
           <a href="{% url 'dashboard_orders' %}" class="drawer-link {% if request.resolver_match.url_name == 'dashboard_orders' %}active{% endif %}">
-              <i class="fas fa-receipt"></i> طلباتي
+              <i class="fas fa-receipt"></i> {% trans "My Orders" %}
           </a>
           <a href="{% url 'dashboard_wallet' %}" class="drawer-link {% if request.resolver_match.url_name == 'dashboard_wallet' %}active{% endif %}">
-              <i class="fas fa-wallet"></i> المحفظة
+              <i class="fas fa-wallet"></i> {% trans "Wallet" %}
           </a>
           <a href="{% url 'notification_settings' %}" class="drawer-link {% if request.resolver_match.url_name == 'notification_settings' %}active{% endif %}">
-              <i class="fas fa-bell"></i> الإشعارات
+              <i class="fas fa-bell"></i> {% trans "Notifications" %}
           </a>
           <a href="{% url 'chat_list' %}" class="drawer-link {% if 'chat' in request.path %}active{% endif %}">
-              <i class="fas fa-comments"></i> الدعم المباشر
+              <i class="fas fa-comments"></i> {% trans "Live Support" %}
           </a>
           
           {% if user.is_superuser or user.role == "super_admin" or user.role == "admin" %}
           <div class="h-px bg-white/5 my-4"></div>
           <a href="{% url 'control_dashboard' %}" class="drawer-link text-amber-400">
-              <i class="fas fa-shield-alt"></i> مركز التحكم
+              <i class="fas fa-shield-alt"></i> {% trans "Admin Center" %}
           </a>
           {% endif %}
 
           <div class="mt-auto pt-8">
               <a href="{% url 'site_logout' %}" class="drawer-link text-rose-500">
-                  <i class="fas fa-power-off"></i> تسجيل الخروج
+                  <i class="fas fa-power-off"></i> {% trans "Sign Out" %}
               </a>
           </div>
           {% else %}
           <div class="mt-8 stack gap-3">
-              <a href="{% url 'site_login' %}" class="btn btn-primary w-full py-3">تسجيل الدخول</a>
-              <a href="{% url 'site_register' %}" class="btn btn-outline w-full py-3">إنشاء حساب جديد</a>
+              <a href="{% url 'site_login' %}" class="btn btn-primary w-full py-3">{% trans "Login" %}</a>
+              <a href="{% url 'site_register' %}" class="btn btn-outline w-full py-3">{% trans "Create New Account" %}</a>
           </div>
           {% endif %}
       </nav>
@@ -248,16 +248,16 @@
         </a>
 
         <nav class="nav">
-          <a href="{% url 'home' %}" class="{% if request.resolver_match.url_name == 'home' %}active{% endif %}">الرئيسية</a>
-          <a href="{% url 'catalog' %}" class="{% if request.resolver_match.url_name == 'catalog' %}active{% endif %}">الخدمات</a>
+          <a href="{% url 'home' %}" class="{% if request.resolver_match.url_name == 'home' %}active{% endif %}">{% trans "Home" %}</a>
+          <a href="{% url 'catalog' %}" class="{% if request.resolver_match.url_name == 'catalog' %}active{% endif %}">{% trans "Services" %}</a>
           {% if user.is_authenticated %}
-             <a href="{% url 'dashboard' %}" class="{% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}">لوحتي</a>
-             <a href="{% url 'dashboard_orders' %}" class="{% if request.resolver_match.url_name == 'dashboard_orders' %}active{% endif %}">طلباتي</a>
-             <a href="{% url 'dashboard_wallet' %}" class="{% if request.resolver_match.url_name == 'dashboard_wallet' %}active{% endif %}">المحفظة</a>
-             <a href="{% url 'notification_settings' %}" class="{% if request.resolver_match.url_name == 'notification_settings' %}active{% endif %}">الإشعارات</a>
-             <a href="{% url 'chat_list' %}" class="{% if 'chat' in request.path %}active{% endif %}">الدعم المباشر</a>
+             <a href="{% url 'dashboard' %}" class="{% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}">{% trans "My Panel" %}</a>
+             <a href="{% url 'dashboard_orders' %}" class="{% if request.resolver_match.url_name == 'dashboard_orders' %}active{% endif %}">{% trans "My Orders" %}</a>
+             <a href="{% url 'dashboard_wallet' %}" class="{% if request.resolver_match.url_name == 'dashboard_wallet' %}active{% endif %}">{% trans "Wallet" %}</a>
+             <a href="{% url 'notification_settings' %}" class="{% if request.resolver_match.url_name == 'notification_settings' %}active{% endif %}">{% trans "Notifications" %}</a>
+             <a href="{% url 'chat_list' %}" class="{% if 'chat' in request.path %}active{% endif %}">{% trans "Live Support" %}</a>
              {% if user.is_superuser or user.role == "super_admin" or user.role == "admin" %}
-                <a href="{% url 'control_dashboard' %}" class="{% if 'control' in request.path %}active{% endif %}">لوحة التحكم</a>
+                <a href="{% url 'control_dashboard' %}" class="{% if 'control' in request.path %}active{% endif %}">{% trans "Dashboard" %}</a>
              {% endif %}
           {% endif %}
         </nav>
@@ -291,14 +291,14 @@
           {% if user.is_authenticated %}
             <div class="flex items-center gap-4">
                 <div class="text-left hide-mobile">
-                    <div class="text-[10px] text-muted font-bold">الرصيد المتاح</div>
+                    <div class="text-[10px] text-muted font-bold">{% trans "Available Balance" %}</div>
                     <div class="text-sm font-black text-cyan">{% currency_format user.wallet.available_balance user.wallet.currency %}</div>
                 </div>
                 <a href="{% url 'site_logout' %}" class="btn btn-sm btn-outline"><i class="fas fa-sign-out-alt"></i></a>
             </div>
           {% else %}
-            <a href="{% url 'site_login' %}" class="btn btn-sm btn-outline">تسجيل الدخول</a>
-            <a href="{% url 'site_register' %}" class="btn btn-sm btn-primary">حساب جديد</a>
+            <a href="{% url 'site_login' %}" class="btn btn-sm btn-outline">{% trans "Login" %}</a>
+            <a href="{% url 'site_register' %}" class="btn btn-sm btn-primary">{% trans "New Account" %}</a>
           {% endif %}
         </div>
       </div>
@@ -341,26 +341,26 @@
             </div>
             
             <div>
-                <h4 class="font-black text-xs uppercase tracking-widest text-white mb-6">روابط سريعة</h4>
+                <h4 class="font-black text-xs uppercase tracking-widest text-white mb-6">{% trans "Quick Links" %}</h4>
                 <div class="stack gap-4 text-sm text-slate-500">
-                    <a href="{% url 'catalog' %}" class="hover:text-cyan transition-colors">تصفح الخدمات</a>
+                    <a href="{% url 'catalog' %}" class="hover:text-cyan transition-colors">{% trans "Browse Services" %}</a>
                     {% if not user.is_authenticated %}
-                    <a href="{% url 'site_login' %}" class="hover:text-cyan transition-colors">تسجيل الدخول</a>
-                    <a href="{% url 'site_register' %}" class="hover:text-cyan transition-colors">إنشاء حساب</a>
+                    <a href="{% url 'site_login' %}" class="hover:text-cyan transition-colors">{% trans "Login" %}</a>
+                    <a href="{% url 'site_register' %}" class="hover:text-cyan transition-colors">{% trans "Create Account" %}</a>
                     {% else %}
-                    <a href="{% url 'dashboard' %}" class="hover:text-cyan transition-colors">لوحة التحكم</a>
-                    <a href="{% url 'dashboard_orders' %}" class="hover:text-cyan transition-colors">طلباتي</a>
+                    <a href="{% url 'dashboard' %}" class="hover:text-cyan transition-colors">{% trans "Dashboard" %}</a>
+                    <a href="{% url 'dashboard_orders' %}" class="hover:text-cyan transition-colors">{% trans "My Orders" %}</a>
                     {% endif %}
                 </div>
             </div>
 
             <div>
-                <h4 class="font-black text-xs uppercase tracking-widest text-white mb-6">الدعم والخصوصية</h4>
+                <h4 class="font-black text-xs uppercase tracking-widest text-white mb-6">{% trans "Support & Privacy" %}</h4>
                 <div class="stack gap-4 text-sm text-slate-500">
-                    <a href="{% url 'privacy_policy' %}" class="hover:text-cyan transition-colors">سياسة الخصوصية</a>
-                    <a href="{% url 'terms_of_service' %}" class="hover:text-cyan transition-colors">شروط الاستخدام</a>
-                    <a href="{% url 'refund_policy' %}" class="hover:text-cyan transition-colors">سياسة الاسترجاع</a>
-                    <a href="{% url 'contact' %}" class="hover:text-cyan transition-colors">اتصل بنا</a>
+                    <a href="{% url 'privacy_policy' %}" class="hover:text-cyan transition-colors">{% trans "Privacy Policy" %}</a>
+                    <a href="{% url 'terms_of_service' %}" class="hover:text-cyan transition-colors">{% trans "Terms of Service" %}</a>
+                    <a href="{% url 'refund_policy' %}" class="hover:text-cyan transition-colors">{% trans "Refund Policy" %}</a>
+                    <a href="{% url 'contact' %}" class="hover:text-cyan transition-colors">{% trans "Contact Us" %}</a>
                 </div>
             </div>
         </div>
@@ -381,23 +381,23 @@
   <div class="mobile-nav-bar">
       <a href="{% url 'home' %}" class="mobile-nav-item {% if request.resolver_match.url_name == 'home' %}active{% endif %}">
           <i class="fas fa-house"></i>
-          <span>الرئيسية</span>
+          <span>{% trans "Home" %}</span>
       </a>
       <a href="{% url 'catalog' %}" class="mobile-nav-item {% if request.resolver_match.url_name == 'catalog' %}active{% endif %}">
           <i class="fas fa-grid-2"></i>
-          <span>الخدمات</span>
+          <span>{% trans "Services" %}</span>
       </a>
       <a href="{% url 'dashboard_wallet' %}" class="mobile-nav-item {% if request.resolver_match.url_name == 'dashboard_wallet' %}active{% endif %}">
           <i class="fas fa-wallet"></i>
-          <span>المحفظة</span>
+          <span>{% trans "Wallet" %}</span>
       </a>
       <a href="{% url 'chat_list' %}" class="mobile-nav-item {% if 'chat' in request.path %}active{% endif %}">
           <i class="fas fa-headset"></i>
-          <span>الدعم</span>
+          <span>{% trans "Support" %}</span>
       </a>
       <a href="{% url 'dashboard' %}" class="mobile-nav-item {% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}">
           <i class="fas fa-user"></i>
-          <span>حسابي</span>
+          <span>{% trans "My Account" %}</span>
       </a>
   </div>
 

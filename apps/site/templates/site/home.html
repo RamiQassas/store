@@ -208,16 +208,16 @@
     <!-- Hero -->
     <section class="hero-v6">
         <div class="reveal">
-            <span class="text-[10px] font-black text-cyan uppercase tracking-widest mb-4 block">منصة رقميات الموثوقة</span>
-            <h1>بوابتك لأفضل الخدمات الرقمية</h1>
-            <p>منصة رقميات توفر لك كافة بطاقات الشحن والاشتراكات العالمية بأسعار تنافسية وتسليم آلي فوري على مدار الساعة.</p>
+            <span class="text-[10px] font-black text-cyan uppercase tracking-widest mb-4 block">{% trans "Trusted Digital Marketplace" %}</span>
+            <h1>{% trans "Your Gateway to the Best Digital Services" %}</h1>
+            <p>{% trans "Raqamiyat provides you with all global recharge cards and subscriptions at competitive prices and instant automated delivery around the clock." %}</p>
             
             <div class="cta-v6">
-                <a href="{% url 'catalog' %}" class="btn btn-primary px-10">تصفح المتجر</a>
+                <a href="{% url 'catalog' %}" class="btn btn-primary px-10">{% trans "Browse Store" %}</a>
                 {% if not user.is_authenticated %}
-                <a href="{% url 'site_register' %}" class="btn btn-outline px-10">إنشاء حساب</a>
+                <a href="{% url 'site_register' %}" class="btn btn-outline px-10">{% trans "Create Account" %}</a>
                 {% else %}
-                <a href="{% url 'dashboard' %}" class="btn btn-outline px-10">لوحة التحكم</a>
+                <a href="{% url 'dashboard' %}" class="btn btn-outline px-10">{% trans "Control Panel" %}</a>
                 {% endif %}
             </div>
         </div>
@@ -227,47 +227,47 @@
     <section class="grid-v6">
         <div class="card-v6 reveal">
             <div class="icon-box-small"><i class="fas fa-bolt"></i></div>
-            <h3>تسليم فوري</h3>
-            <p>نظام آلي متكامل يضمن وصول طلبك خلال ثوانٍ من إتمام عملية الدفع بنجاح.</p>
+            <h3>{% trans "Instant Delivery" %}</h3>
+            <p>{% trans "An integrated automated system ensures your order arrives within seconds after successfully completing the payment process." %}</p>
         </div>
         <div class="card-v6 reveal">
             <div class="icon-box-small"><i class="fas fa-shield-halved"></i></div>
-            <h3>أمان وموثوقية</h3>
-            <p>كافة المعاملات المالية محمية بأحدث بروتوكولات التشفير العالمية لضمان سلامة بياناتك.</p>
+            <h3>{% trans "Security & Reliability" %}</h3>
+            <p>{% trans "All financial transactions are protected by the latest global encryption protocols to ensure the safety of your data." %}</p>
         </div>
         <div class="card-v6 reveal">
             <div class="icon-box-small"><i class="fas fa-headset"></i></div>
-            <h3>دعم فني 24/7</h3>
-            <p>فريق دعم متخصص متاح دائماً لمساعدتك في أي استفسار أو مشكلة قد تواجهك.</p>
+            <h3>{% trans "24/7 Support" %}</h3>
+            <p>{% trans "A dedicated support team is always available to help you with any inquiries or problems you may face." %}</p>
         </div>
     </section>
 
     <!-- How It Works -->
     <section class="py-20 border-t border-white/5">
         <div class="text-center reveal">
-            <span class="text-[10px] font-black text-slate-500 uppercase mb-2 block">خطوات العمل</span>
-            <h2 class="text-3xl font-black mb-12">كيف يعمل رقميات؟</h2>
+            <span class="text-[10px] font-black text-slate-500 uppercase mb-2 block">{% trans "Process" %}</span>
+            <h2 class="text-3xl font-black mb-12">{% trans "How Raqamiyat Works?" %}</h2>
             
             <div class="steps-v6">
                 <div class="step-v6 reveal">
                     <span class="num">01</span>
-                    <h4>سجل حسابك</h4>
-                    <p>قم بإنشاء حساب مجاني وبسرعة.</p>
+                    <h4>{% trans "Register Your Account" %}</h4>
+                    <p>{% trans "Create a free account quickly." %}</p>
                 </div>
                 <div class="step-v6 reveal">
                     <span class="num">02</span>
-                    <h4>اشحن المحفظة</h4>
-                    <p>أضف رصيداً عبر وسائل الدفع المتاحة.</p>
+                    <h4>{% trans "Charge Wallet" %}</h4>
+                    <p>{% trans "Add balance via available payment methods." %}</p>
                 </div>
                 <div class="step-v6 reveal">
                     <span class="num">03</span>
-                    <h4>اختر الخدمة</h4>
-                    <p>تصفح واطلب ما يناسب احتياجك.</p>
+                    <h4>{% trans "Choose Service" %}</h4>
+                    <p>{% trans "Browse and order what suits your need." %}</p>
                 </div>
                 <div class="step-v6 reveal">
                     <span class="num">04</span>
-                    <h4>استلم فوراً</h4>
-                    <p>ستجد الكود في قائمة طلباتك.</p>
+                    <h4>{% trans "Receive Instantly" %}</h4>
+                    <p>{% trans "You will find the code in your orders list." %}</p>
                 </div>
             </div>
         </div>
@@ -277,10 +277,10 @@
     <section class="py-20 border-t border-white/5">
         <div class="products-head-v6 reveal">
             <div>
-                <span class="text-[10px] font-black text-cyan uppercase mb-2 block">المتجر</span>
-                <h2 class="font-black">المنتجات المميزة</h2>
+                <span class="text-[10px] font-black text-cyan uppercase mb-2 block">{% trans "Store" %}</span>
+                <h2 class="font-black">{% trans "Featured Products" %}</h2>
             </div>
-            <a href="{% url 'catalog' %}" class="text-sm font-bold text-slate-500 hover:text-cyan transition">عرض الكل <i class="fas fa-arrow-left mr-1"></i></a>
+            <a href="{% url 'catalog' %}" class="text-sm font-bold text-slate-500 hover:text-cyan transition">{% trans "View All" %} <i class="fas fa-arrow-left mr-1"></i></a>
         </div>
 
         <div class="p-grid-v6">
@@ -299,7 +299,7 @@
                     <div class="p-footer-v6">
                         {% variant_price p.variants.first as v_price %}
                         <span class="price">{% currency_format v_price %}</span>
-                        <a href="{% url 'product_detail' p.id %}" class="btn btn-primary btn-sm rounded-lg py-1 px-3 text-[10px]">اطلب</a>
+                        <a href="{% url 'product_detail' p.id %}" class="btn btn-primary btn-sm rounded-lg py-1 px-3 text-[10px]">{% trans "Order" %}</a>
                     </div>
                 </div>
             </div>
@@ -309,9 +309,9 @@
 
     <!-- Social & Support -->
     <section class="social-v6 reveal">
-        <span class="text-[10px] font-black text-cyan uppercase mb-2 block">الدعم المباشر</span>
-        <h2>تواصل معنا</h2>
-        <p class="text-slate-500 mb-8 max-w-sm mx-auto">فريقنا متاح دائماً لمساعدتك عبر نظام الدعم المباشر داخل المنصة.</p>
+        <span class="text-[10px] font-black text-cyan uppercase mb-2 block">{% trans "Direct Support" %}</span>
+        <h2>{% trans "Contact Us" %}</h2>
+        <p class="text-slate-500 mb-8 max-w-sm mx-auto">{% trans "Our team is always available to help you via the direct support system inside the platform." %}</p>
 
         <!-- Internal Support Card -->
         <div class="support-card-v6 reveal">
@@ -319,13 +319,13 @@
                 <i class="fas fa-headset text-2xl"></i>
             </div>
             <div class="stack gap-1">
-                <h3 class="text-xl font-black text-white">مركز الدعم المباشر</h3>
-                <p class="text-xs text-slate-500">تواصل مع خبرائنا فوراً لحل أي مشكلة أو استفسار.</p>
+                <h3 class="text-xl font-black text-white">{% trans "Live Support Center" %}</h3>
+                <p class="text-xs text-slate-500">{% trans "Contact our experts immediately to solve any problem or inquiry." %}</p>
             </div>
-            <a href="{% url 'chat_list' %}" class="btn btn-primary w-full py-4 rounded-2xl font-black shadow-lg shadow-cyan/20">ابدأ المحادثة الآن</a>
+            <a href="{% url 'chat_list' %}" class="btn btn-primary w-full py-4 rounded-2xl font-black shadow-lg shadow-cyan/20">{% trans "Start Chat Now" %}</a>
         </div>
         
-        <span class="text-[9px] font-bold text-slate-600 uppercase tracking-widest mb-4 block">تابع مجتمعنا</span>
+        <span class="text-[9px] font-bold text-slate-600 uppercase tracking-widest mb-4 block">{% trans "Follow Our Community" %}</span>
         <div class="social-links-v6">
             {% for link in SOCIAL_LINKS %}
                 {% if "whatsapp" not in link.name|lower and "telegram" not in link.name|lower and "واتساب" not in link.name and "تليجرام" not in link.name %}

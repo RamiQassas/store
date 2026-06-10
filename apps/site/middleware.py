@@ -10,7 +10,7 @@ class UserLanguageMiddleware:
         self.get_response = get_response
 
     def __call__(self, request):
-        # 1. Safe access to user and session
+        # 1. Safe access to user and session (Enterprise-grade defensive check)
         user = getattr(request, 'user', None)
         session = getattr(request, 'session', None)
         

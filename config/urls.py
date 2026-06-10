@@ -50,7 +50,7 @@ urlpatterns += i18n_patterns(
     path("", include("apps.site.urls")),
     path("support/", include("apps.support.urls")),
     path("admin/", admin.site.urls),
-    prefix_default_language=False
+    prefix_default_language=True
 )
 
 urlpatterns += [
