@@ -70,10 +70,15 @@ def chat_room(request, room_id):
     
     canned_replies = ChatCannedReply.objects.filter(is_active=True) if is_manager else None
     
+    guest_name = None
+    if " - زائر: " in room.subject:
+        guest_name = room.subject.split(" - زائر: ")[-1]
+    
     return render(request, 'site/chat_room.html', {
         'room': room,
         'chat_messages': messages_history,
-        'canned_replies': canned_replies
+        'canned_replies': canned_replies,
+        'guest_name': guest_name
     })
 
 
