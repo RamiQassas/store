@@ -75,6 +75,13 @@ def currency_format(context, amount, source_currency=None):
         return f"{amount} {target_currency.symbol if target_currency else 'SYP'}"
 
 @register.filter
+def subtract(value, arg):
+    try:
+        return Decimal(str(value)) - Decimal(str(arg))
+    except:
+        return 0
+
+@register.filter
 def split(value, arg):
     return value.split(arg)
 

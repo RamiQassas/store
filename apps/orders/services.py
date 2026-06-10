@@ -4,7 +4,7 @@ from django.db import transaction
 from django.utils import timezone
 
 from apps.catalog.models import ProductVariant
-from apps.orders.models import Invoice, Order, OrderItem, OrderLog
+from apps.orders.models import Invoice, Order, OrderItem, OrderLog, Coupon
 from apps.wallets.services import debit_wallet, get_or_create_wallet
 
 

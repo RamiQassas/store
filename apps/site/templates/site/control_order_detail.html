@@ -70,10 +70,25 @@
                     </div>
                     {% endfor %}
                     
-                    <div class="flex justify-between items-center mt-4 p-4 bg-cyan/10 rounded-2xl border border-cyan/20">
+            <div class="summary-card bg-slate-900/50 p-4 rounded-2xl border border-white/5 mt-4">
+                <div class="stack gap-2">
+                    <div class="flex justify-between text-[10px] text-slate-500 uppercase font-black">
+                        <span>إجمالي البنود:</span>
+                        <span class="text-white">{% currency_format order.original_total|default:order.total_amount %}</span>
+                    </div>
+                    {% if order.coupon %}
+                    <div class="flex justify-between text-[10px] text-rose-500 uppercase font-black">
+                        <span>الخصم (كوبون: {{ order.coupon.code }}):</span>
+                        <span>- {% currency_format order.original_total|subtract:order.total_amount %}</span>
+                    </div>
+                    {% endif %}
+                    <div class="h-px bg-white/5 my-1"></div>
+                    <div class="flex justify-between items-center">
                         <span class="font-bold text-cyan text-sm">المبلغ الإجمالي المخصوم:</span>
                         <span class="font-black text-cyan text-2xl">{% currency_format order.total_amount %}</span>
                     </div>
+                </div>
+            </div>
                 </div>
             </div>
         </div>
@@ -250,6 +265,18 @@
 </div>
 
 <script>
+document.addEventListener('DOMContentLoaded', function() {
+    const priceInput = document.querySelector('input[name="total_amount"]');
+    if (priceInput) {
+        priceInput.addEventListener('input', function(e) {
+            let val = e.target.value;
+            if (val.includes(',')) {
+                e.target.value = val.replace(',', '.');
+            }
+        });
+    }
+});
+
 function addFfRow() {
     const container = document.getElementById('ff-container');
     const row = document.createElement('div');
