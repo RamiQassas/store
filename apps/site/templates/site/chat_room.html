@@ -281,12 +281,17 @@
         <div class="chat-messages" id="chat-messages">
             {% for msg in chat_messages %}
 <<<<<<< HEAD
+<<<<<<< HEAD
             {% if user.is_staff %}
             <div class="msg-group {% if msg.is_staff_reply %}sent{% else %}received{% endif %}">
             {% else %}
             <div class="msg-group {% if msg.is_staff_reply %}received{% else %}sent{% endif %}">
             {% endif %}
             
+=======
+            {% with sender_email=msg.sender.email %}
+            <div class="msg-group {% if user.is_authenticated and sender_email == user.email %}received{% elif not user.is_authenticated and sender_email != "guest@raqamiyat.com" %}sent{% else %}received{% endif %}">
+>>>>>>> parent of 92aad52 (تحديث)
 =======
             {% with sender_email=msg.sender.email %}
             <div class="msg-group {% if user.is_authenticated and sender_email == user.email %}received{% elif not user.is_authenticated and sender_email != "guest@raqamiyat.com" %}sent{% else %}received{% endif %}">
@@ -313,7 +318,11 @@
                 <div class="msg-meta">
                     <span class="font-bold">
 <<<<<<< HEAD
+<<<<<<< HEAD
                         {% if msg.is_staff_reply %}{% trans "Technical Support" %}{% else %}{{ room_display_name }}{% endif %}
+=======
+                        {% if msg.is_staff_reply %}الدعم الفني{% elif "زائر:" in room.subject %}{{ room.subject|slice:"15:" }}{% else %}{{ msg.sender.get_full_name|default:msg.sender.email }}{% endif %}
+>>>>>>> parent of 92aad52 (تحديث)
 =======
                         {% if msg.is_staff_reply %}الدعم الفني{% elif "زائر:" in room.subject %}{{ room.subject|slice:"15:" }}{% else %}{{ msg.sender.get_full_name|default:msg.sender.email }}{% endif %}
 >>>>>>> parent of 92aad52 (تحديث)
