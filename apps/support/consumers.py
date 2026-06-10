@@ -111,14 +111,9 @@ class SupportConsumer(AsyncWebsocketConsumer):
             return False
 
     @database_sync_to_async
-    def get_guest_name(self):
-        try:
-            room = ChatRoom.objects.get(id=self.room_id)
-            if "زائر:" in room.subject:
-                return room.subject.split("زائر: ")[1]
-            return "زائر"
-        except:
-            return "زائر"
+    def get_room_owner(self, room):
+        return room.user
+
 
     @database_sync_to_async
     def save_message(self, text, file_id=None):
