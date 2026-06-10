@@ -104,7 +104,7 @@ def create_chat(request):
                 return redirect('chat_room', room_id=active_chat.id)
         
         # If no POST data for name, we might need to show a small form or handle it
-        if request.method != "POST" and not guest_name:
+        if request.method == "GET" and not guest_name:
             return render(request, 'site/guest_support_init.html', {'subject': subject})
 
         from apps.accounts.models import User

@@ -177,6 +177,8 @@ class SupportConsumer(AsyncWebsocketConsumer):
             elif room.user.is_authenticated:
                 guest_name = room.user.get_full_name() or room.user.email
             
+            # Don't notify staff if they are the ones messaging in a non-staff context
+            # (Though logic dictates they are is_staff)
             try:
                 from apps.notifications.services import notify_staff
                 notify_staff(
