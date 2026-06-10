@@ -190,7 +190,7 @@
           {% if user.is_authenticated %}
           <div class="h-px bg-white/5 my-4"></div>
           <a href="{% url 'dashboard' %}" class="drawer-link {% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}">
-              <i class="fas fa-th-large"></i> لوحة التحكم
+              <i class="fas fa-th-large"></i> لوحتي
           </a>
           <a href="{% url 'dashboard_orders' %}" class="drawer-link {% if request.resolver_match.url_name == 'dashboard_orders' %}active{% endif %}">
               <i class="fas fa-receipt"></i> طلباتي
@@ -371,7 +371,7 @@
       </a>
       <a href="{% url 'dashboard' %}" class="mobile-nav-item {% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}">
           <i class="fas fa-user"></i>
-          <span>حسابي</span>
+          <span>لوحتي</span>
       </a>
   </div>
 

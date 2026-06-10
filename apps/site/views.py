@@ -645,13 +645,20 @@ def v3_change_password_view(request):
                 # Update session to prevent logout of current session
                 update_session_auth_hash(request, user)
                 
-                # Invalidate other sessions
+                # Invalidate other sessions (Optimized)
                 from django.contrib.sessions.models import Session
-                for session in Session.objects.all():
-                    decoded = session.get_decoded()
-                    if decoded.get('_auth_user_id') == str(user.id):
-                        if session.session_key != request.session.session_key:
-                            session.delete()
+                current_key = request.session.session_key
+                user_id = str(user.id)
+                
+                # Filter only active sessions to reduce loop size
+                active_sessions = Session.objects.filter(expire_date__gte=timezone.now())
+                for session in active_sessions:
+                    try:
+                        decoded = session.get_decoded()
+                        if decoded.get('_auth_user_id') == user_id:
+                            if session.session_key != current_key:
+                                session.delete()
+                    except: continue
                 
                 ActivityLog.objects.create(user=user, action="Password Change", description="User changed password and invalidated other sessions")
                 messages.success(request, "تم تغيير كلمة المرور بنجاح وتم تسجيل الخروج من الأجهزة الأخرى.")

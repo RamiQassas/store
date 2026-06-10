@@ -84,9 +84,29 @@ class RegisterForm(forms.Form):
         return email
 
     def clean_phone(self):
-        phone = self.cleaned_data.get("phone")
-        if phone and User.objects.filter(phone=phone).exists():
+        phone = self.cleaned_data.get("phone", "").strip()
+        if not phone:
+            raise forms.ValidationError("رقم الهاتف مطلوب.")
+        
+        # Prevent non-numeric chars (except leading +)
+        import re
+        if not re.match(r'^\+?\d+$', phone):
+            raise forms.ValidationError("رقم الهاتف يجب أن يحتوي على أرقام فقط.")
+
+        # Check for duplicates
+        if User.objects.filter(phone=phone).exists():
             raise forms.ValidationError("رقم الهاتف هذا مسجل مسبقاً.")
+
+        # Country-specific length validation (Syria example)
+        # Syria international format: +963 9xx xxx xxx (13 chars total including +)
+        # Turkey international format: +90 5xx xxx xxxx (13 chars total including +)
+        if phone.startswith('+963'):
+            if len(phone) != 13:
+                raise forms.ValidationError("رقم الهاتف السوري يجب أن يكون 10 أرقام بعد رمز الدولة.")
+        elif phone.startswith('+90'):
+            if len(phone) != 13:
+                raise forms.ValidationError("رقم الهاتف التركي يجب أن يكون 10 أرقام بعد رمز الدولة.")
+        
         return phone
 
     def clean(self):

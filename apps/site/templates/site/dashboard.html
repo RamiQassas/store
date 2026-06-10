@@ -367,9 +367,14 @@
                             حسابك يعمل بحدود مالية أساسية. وثق حسابك لرفع حدود الإيداع والسحب اليومية.
                         </p>
                         {% if kyc_request %}
-                            <div class="flex items-center gap-2 text-[10px] text-amber-400 font-bold">
-                                <i class="fas fa-clock"></i>
-                                طلب التوثيق {{ kyc_request.get_status_display }}
+                            <div class="flex flex-col gap-2">
+                                <div class="flex items-center gap-2 text-[10px] text-amber-400 font-bold">
+                                    <i class="fas fa-clock"></i>
+                                    طلب التوثيق {{ kyc_request.get_status_display }}
+                                </div>
+                                {% if kyc_request.status == 'rejected' %}
+                                    <a href="{% url 'site_kyc_request' %}" class="btn btn-sm btn-primary w-full text-[10px] py-2">إعادة تقديم الطلب</a>
+                                {% endif %}
                             </div>
                         {% else %}
                             <a href="{% url 'site_kyc_request' %}" class="btn btn-sm btn-outline w-full text-[10px] py-2">بدء عملية التوثيق</a>

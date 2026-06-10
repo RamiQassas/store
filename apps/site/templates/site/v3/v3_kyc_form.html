@@ -88,7 +88,7 @@
                 </p>
             </div>
 
-            <form method="post" enctype="multipart/form-data" class="stack gap-10" id="kyc-form">
+            <form method="post" enctype="multipart/form-data" class="stack gap-10" id="kyc-form" onsubmit="return validateKYCForm()">
                 {% csrf_token %}
                 
                 <!-- Geographical Info (TOP) -->
@@ -247,5 +247,18 @@
         handlePreview(document.querySelector('input[name="identity_back"]'), 'preview-back');
         handlePreview(document.querySelector('input[name="selfie_verification"]'), 'preview-selfie');
     });
+
+    function validateKYCForm() {
+        const front = document.querySelector('input[name="identity_front"]').files.length;
+        const back = document.querySelector('input[name="identity_back"]').files.length;
+        const selfie = document.querySelector('input[name="selfie_verification"]').files.length;
+        
+        // If this is a new submission or images are required, check them
+        if (front === 0 || back === 0 || selfie === 0) {
+            alert("يجب رفع جميع صور التحقق المطلوبة قبل إرسال الطلب.");
+            return false;
+        }
+        return true;
+    }
 </script>
 {% endblock %}
