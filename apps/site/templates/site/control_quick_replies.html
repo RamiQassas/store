@@ -1,0 +1,59 @@
+{% extends "site/control_base.html" %}
+{% block title %}الردود الجاهزة | Raqamiyat Admin{% endblock %}
+
+{% block control_content %}
+<div class="page-head flex justify-between items-center">
+    <div>
+        <span class="eyebrow">Quick Replies</span>
+        <h1>الردود الجاهزة (محادثة)</h1>
+        <p class="text-slate-500 mt-1">إدارة قوالب الردود السريعة لموظفي الدعم.</p>
+    </div>
+    <a href="{% url 'control_quick_reply_create' %}" class="btn btn-primary px-6 py-2 rounded-xl text-sm font-bold shadow-cyan hover:scale-105 transition-transform">
+        <i class="fas fa-plus ml-2"></i> رد جديد
+    </a>
+</div>
+
+<div class="management-card p-6 mt-10">
+    <div class="table-responsive">
+        <table class="w-full text-right">
+            <thead>
+                <tr class="text-[10px] uppercase tracking-widest text-slate-500 border-b border-white/5 bg-slate-900/30">
+                    <th class="p-4 rounded-tr-lg">العنوان</th>
+                    <th class="p-4">النص</th>
+                    <th class="p-4 text-center">الحالة</th>
+                    <th class="p-4 rounded-tl-lg text-left">إجراءات</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for reply in replies %}
+                <tr class="border-b border-white/[0.02] last:border-0 hover:bg-white/[0.01] transition-colors">
+                    <td class="p-4 font-bold text-sm">{{ reply.title }}</td>
+                    <td class="p-4 text-xs text-slate-400 max-w-xs truncate">{{ reply.body }}</td>
+                    <td class="p-4 text-center">
+                        {% if reply.is_active %}
+                            <span class="badge success">نشط</span>
+                        {% else %}
+                            <span class="badge text-slate-500 bg-slate-800">معطل</span>
+                        {% endif %}
+                    </td>
+                    <td class="p-4 text-left">
+                        <div class="flex items-center justify-end gap-2">
+                            <a href="{% url 'control_quick_reply_edit' reply.pk %}" class="action-btn text-cyan hover:bg-cyan/10" title="تعديل">
+                                <i class="fas fa-edit"></i>
+                            </a>
+                            <a href="{% url 'control_quick_reply_delete' reply.pk %}" class="action-btn text-rose-500 hover:bg-rose-500/10" title="حذف" onclick="return confirm('هل أنت متأكد من الحذف؟');">
+                                <i class="fas fa-trash-alt"></i>
+                            </a>
+                        </div>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="4" class="p-8 text-center text-slate-500 italic">لا توجد ردود جاهزة مضافة.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

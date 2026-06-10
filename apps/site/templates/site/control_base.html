@@ -196,6 +196,12 @@
             <a href="{% url 'chat_list' %}" class="admin-nav-link {% if 'chat' in request.path %}active{% endif %}">
                 <i class="fas fa-comments"></i> الدعم المباشر
             </a>
+            <a href="{% url 'control_quick_replies' %}" class="admin-nav-link {% if 'quick-replies' in request.path %}active{% endif %}">
+                <i class="fas fa-reply-all"></i> الردود الجاهزة
+            </a>
+            <a href="{% url 'control_support_settings' %}" class="admin-nav-link {% if 'support/settings' in request.path %}active{% endif %}">
+                <i class="fas fa-cog"></i> إعدادات الدعم
+            </a>
             <a href="{% url 'control_reports' %}" class="admin-nav-link {% if 'report' in request.path %}active{% endif %}">
                 <i class="fas fa-chart-line"></i> التقارير
             </a>

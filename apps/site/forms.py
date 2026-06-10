@@ -328,3 +328,22 @@ class VariantForm(forms.ModelForm):
     class Meta:
         model = ProductVariant
         fields = ["name", "sku", "price", "cost", "discount_percent", "estimated_delivery_minutes", "is_active", "sort_order"]
+
+from apps.support.models import SupportSettings, ChatCannedReply
+
+class SupportSettingsForm(forms.ModelForm):
+    class Meta:
+        model = SupportSettings
+        fields = ["welcome_message"]
+        widgets = {
+            "welcome_message": forms.Textarea(attrs={"class": "builder-input", "rows": 3}),
+        }
+
+class ChatCannedReplyForm(forms.ModelForm):
+    class Meta:
+        model = ChatCannedReply
+        fields = ["title", "body", "is_active"]
+        widgets = {
+            "title": forms.TextInput(attrs={"class": "builder-input"}),
+            "body": forms.Textarea(attrs={"class": "builder-input", "rows": 4}),
+        }

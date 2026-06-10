@@ -80,6 +80,21 @@ class ChatCannedReply(TimeStampedModel):
         return self.title
 
 
+class SupportSettings(models.Model):
+    welcome_message = models.TextField(
+        default="مرحباً بك! كيف يمكننا مساعدتك اليوم؟", 
+        verbose_name="رسالة الترحيب التلقائية",
+        help_text="هذه الرسالة تظهر تلقائياً عند فتح محادثة جديدة"
+    )
+
+    class Meta:
+        verbose_name = "إعدادات الدعم"
+        verbose_name_plural = "إعدادات الدعم"
+
+    def __str__(self):
+        return "إعدادات الدعم الفني"
+
+
 # Legacy Ticket Models (Deprecating)
 class Ticket(TimeStampedModel):
     class Status(models.TextChoices):

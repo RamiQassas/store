@@ -1,11 +1,22 @@
 from django.contrib import admin
-from apps.support.models import ChatRoom, ChatMessage, ChatCannedReply, Ticket, TicketMessage
+from apps.support.models import ChatRoom, ChatMessage, ChatCannedReply, Ticket, TicketMessage, SupportSettings
 
 
 class ChatMessageInline(admin.TabularInline):
     model = ChatMessage
     extra = 0
     readonly_fields = ("sender", "is_staff_reply", "read_at")
+
+
+@admin.register(SupportSettings)
+class SupportSettingsAdmin(admin.ModelAdmin):
+    list_display = ("welcome_message",)
+    
+    def has_add_permission(self, request):
+        return not SupportSettings.objects.exists()
+    
+    def has_delete_permission(self, request, obj=None):
+        return False
 
 
 @admin.register(ChatRoom)

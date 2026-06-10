@@ -1,0 +1,42 @@
+{% extends "site/control_base.html" %}
+{% block title %}إضافة/تعديل رد جاهز | Raqamiyat Admin{% endblock %}
+
+{% block control_content %}
+<div class="page-head flex justify-between items-center">
+    <div>
+        <span class="eyebrow">Quick Replies</span>
+        <h1>إضافة / تعديل رد جاهز</h1>
+        <p class="text-slate-500 mt-1">تجهيز قوالب الردود لتسريع خدمة العملاء.</p>
+    </div>
+    <a href="{% url 'control_quick_replies' %}" class="btn btn-outline px-6 py-2 rounded-xl text-sm font-bold text-slate-300">
+        <i class="fas fa-arrow-right ml-2"></i> عودة للردود
+    </a>
+</div>
+
+<div class="management-card p-8 mt-10 max-w-2xl">
+    <form method="post" class="stack gap-6">
+        {% csrf_token %}
+        
+        {% for field in form %}
+        <div class="field-group">
+            <label class="text-xs font-bold text-slate-400 block mb-2">{{ field.label }}</label>
+            {{ field }}
+            {% if field.help_text %}
+                <p class="text-[10px] text-slate-500 mt-1">{{ field.help_text }}</p>
+            {% endif %}
+            {% if field.errors %}
+                <ul class="text-xs text-red-500 mt-1">
+                    {% for error in field.errors %}<li>{{ error }}</li>{% endfor %}
+                </ul>
+            {% endif %}
+        </div>
+        {% endfor %}
+
+        <div class="pt-4">
+            <button type="submit" class="btn btn-primary px-8 py-3 rounded-xl font-bold shadow-cyan hover:scale-105 transition-transform">
+                <i class="fas fa-save ml-2"></i> حفظ الرد
+            </button>
+        </div>
+    </form>
+</div>
+{% endblock %}

@@ -1,4 +1,4 @@
-import json
+﻿import json
 from decimal import Decimal
 import os
 import random
@@ -46,22 +46,22 @@ def v3_generate_otp(user, purpose):
 
 def v3_send_otp_email(user, otp_token):
     """Sends OTP via Brevo API."""
-    subject = "رمز التحقق | Raqamiyat"
-    purpose_text = "لتفعيل حسابك" if otp_token.purpose == OTPToken.Purpose.REGISTRATION else \
-                   "لتسجيل الدخول" if otp_token.purpose == OTPToken.Purpose.LOGIN else \
-                   "لإعادة تعيين كلمة المرور"
+    subject = "ط±ظ…ط² ط§ظ„طھط­ظ‚ظ‚ | Raqamiyat"
+    purpose_text = "ظ„طھظپط¹ظٹظ„ ط­ط³ط§ط¨ظƒ" if otp_token.purpose == OTPToken.Purpose.REGISTRATION else \
+                   "ظ„طھط³ط¬ظٹظ„ ط§ظ„ط¯ط®ظˆظ„" if otp_token.purpose == OTPToken.Purpose.LOGIN else \
+                   "ظ„ط¥ط¹ط§ط¯ط© طھط¹ظٹظٹظ† ظƒظ„ظ…ط© ط§ظ„ظ…ط±ظˆط±"
     
     html_content = f"""
     <div dir="rtl" style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e2e8f0; border-radius: 12px; background-color: #ffffff;">
-        <h1 style="color: #06b6d4; text-align: center;">رقميات | Raqamiyat</h1>
-        <p>مرحباً،</p>
-        <p>رمز التحقق الخاص بك {purpose_text} هو:</p>
+        <h1 style="color: #06b6d4; text-align: center;">ط±ظ‚ظ…ظٹط§طھ | Raqamiyat</h1>
+        <p>ظ…ط±ط­ط¨ط§ظ‹طŒ</p>
+        <p>ط±ظ…ط² ط§ظ„طھط­ظ‚ظ‚ ط§ظ„ط®ط§طµ ط¨ظƒ {purpose_text} ظ‡ظˆ:</p>
         <div style="text-align: center; margin: 40px 0;">
             <div style="background-color: #f1f5f9; padding: 20px; border-radius: 12px; font-weight: bold; font-size: 32px; letter-spacing: 10px; display: inline-block; border: 1px solid #e2e8f0;">
                 {otp_token.code}
             </div>
         </div>
-        <p style="font-size: 12px; color: #64748b; text-align: center;">هذا الرمز صالح لمدة 10 دقائق فقط. لا تشارك هذا الرمز مع أي شخص.</p>
+        <p style="font-size: 12px; color: #64748b; text-align: center;">ظ‡ط°ط§ ط§ظ„ط±ظ…ط² طµط§ظ„ط­ ظ„ظ…ط¯ط© 10 ط¯ظ‚ط§ط¦ظ‚ ظپظ‚ط·. ظ„ط§ طھط´ط§ط±ظƒ ظ‡ط°ط§ ط§ظ„ط±ظ…ط² ظ…ط¹ ط£ظٹ ط´ط®طµ.</p>
     </div>
     """
     return send_brevo_email(to_email=user.email, to_name=user.get_full_name() or user.email, subject=subject, html_content=html_content)
@@ -91,7 +91,7 @@ def v3_login_view(request):
         user = authenticate(username=form.cleaned_data["email"], password=form.cleaned_data["password"])
         if user:
             if not user.is_account_active:
-                messages.error(request, f"الحساب معطل أو موقوف. السبب: {user.suspension_reason or 'غير محدد'}")
+                messages.error(request, f"ط§ظ„ط­ط³ط§ط¨ ظ…ط¹ط·ظ„ ط£ظˆ ظ…ظˆظ‚ظˆظپ. ط§ظ„ط³ط¨ط¨: {user.suspension_reason or 'ط؛ظٹط± ظ…ط­ط¯ط¯'}")
                 return render(request, "site/v3/v3_login.html", {"form": form})
 
             # Start OTP verification for Login
@@ -101,9 +101,9 @@ def v3_login_view(request):
                 request.session["v3_auth_purpose"] = OTPToken.Purpose.LOGIN
                 return redirect("site_verify_otp")
             else:
-                messages.error(request, "فشل إرسال رمز التحقق. يرجى المحاولة لاحقاً.")
+                messages.error(request, "ظپط´ظ„ ط¥ط±ط³ط§ظ„ ط±ظ…ط² ط§ظ„طھط­ظ‚ظ‚. ظٹط±ط¬ظ‰ ط§ظ„ظ…ط­ط§ظˆظ„ط© ظ„ط§ط­ظ‚ط§ظ‹.")
         else:
-            messages.error(request, "بيانات الدخول غير صحيحة.")
+            messages.error(request, "ط¨ظٹط§ظ†ط§طھ ط§ظ„ط¯ط®ظˆظ„ ط؛ظٹط± طµط­ظٹط­ط©.")
     
     return render(request, "site/v3/v3_login.html", {"form": form})
 
@@ -135,7 +135,7 @@ def v3_register_view(request):
                 request.session["v3_auth_purpose"] = OTPToken.Purpose.REGISTRATION
                 return redirect("site_verify_otp")
             else:
-                messages.warning(request, "تم إنشاء الحساب، ولكن تعذر إرسال رمز التحقق حالياً. يرجى تسجيل الدخول.")
+                messages.warning(request, "طھظ… ط¥ظ†ط´ط§ط، ط§ظ„ط­ط³ط§ط¨طŒ ظˆظ„ظƒظ† طھط¹ط°ط± ط¥ط±ط³ط§ظ„ ط±ظ…ط² ط§ظ„طھط­ظ‚ظ‚ ط­ط§ظ„ظٹط§ظ‹. ظٹط±ط¬ظ‰ طھط³ط¬ظٹظ„ ط§ظ„ط¯ط®ظˆظ„.")
                 return redirect("site_login")
 
     return render(request, "site/v3/v3_register.html", {"form": form})
@@ -146,7 +146,7 @@ def v3_verify_otp_view(request):
     purpose = request.session.get("v3_auth_purpose")
     
     if not uid or not purpose:
-        messages.error(request, "انتهت جلسة التحقق. يرجى البدء من جديد.")
+        messages.error(request, "ط§ظ†طھظ‡طھ ط¬ظ„ط³ط© ط§ظ„طھط­ظ‚ظ‚. ظٹط±ط¬ظ‰ ط§ظ„ط¨ط¯ط، ظ…ظ† ط¬ط¯ظٹط¯.")
         return redirect("site_login")
         
     user = get_object_or_404(User, id=uid)
@@ -155,7 +155,7 @@ def v3_verify_otp_view(request):
         if request.POST.get("action") == "resend":
             otp = v3_generate_otp(user, purpose)
             v3_send_otp_email(user, otp)
-            messages.success(request, "تم إعادة إرسال رمز التحقق.")
+            messages.success(request, "طھظ… ط¥ط¹ط§ط¯ط© ط¥ط±ط³ط§ظ„ ط±ظ…ط² ط§ظ„طھط­ظ‚ظ‚.")
             return redirect("site_verify_otp")
             
         code = request.POST.get("code")
@@ -170,7 +170,7 @@ def v3_verify_otp_view(request):
             
             # Login for Registration and standard Login flows
             login(request, user)
-            messages.success(request, "مرحبًا بك في رقميات.")
+            messages.success(request, "ظ…ط±ط­ط¨ظ‹ط§ ط¨ظƒ ظپظٹ ط±ظ‚ظ…ظٹط§طھ.")
             request.session.pop("v3_auth_uid", None)
             request.session.pop("v3_auth_purpose", None)
             
@@ -178,7 +178,7 @@ def v3_verify_otp_view(request):
                 return redirect("control_dashboard")
             return redirect("dashboard")
         else:
-            messages.error(request, "رمز التحقق غير صحيح أو منتهي الصلاحية.")
+            messages.error(request, "ط±ظ…ط² ط§ظ„طھط­ظ‚ظ‚ ط؛ظٹط± طµط­ظٹط­ ط£ظˆ ظ…ظ†طھظ‡ظٹ ط§ظ„طµظ„ط§ط­ظٹط©.")
             
     return render(request, "site/v3/v3_verify_otp.html", {"user": user, "purpose": purpose})
 
@@ -193,12 +193,12 @@ def v3_forgot_password_view(request):
             if v3_send_otp_email(user, otp):
                 request.session["v3_auth_uid"] = str(user.id)
                 request.session["v3_auth_purpose"] = OTPToken.Purpose.PASSWORD_RESET
-                messages.success(request, "تم إرسال رمز التحقق لإعادة تعيين كلمة المرور.")
+                messages.success(request, "طھظ… ط¥ط±ط³ط§ظ„ ط±ظ…ط² ط§ظ„طھط­ظ‚ظ‚ ظ„ط¥ط¹ط§ط¯ط© طھط¹ظٹظٹظ† ظƒظ„ظ…ط© ط§ظ„ظ…ط±ظˆط±.")
                 return redirect("site_verify_otp")
             else:
-                messages.error(request, "فشل إرسال الرمز. يرجى المحاولة لاحقاً.")
+                messages.error(request, "ظپط´ظ„ ط¥ط±ط³ط§ظ„ ط§ظ„ط±ظ…ط². ظٹط±ط¬ظ‰ ط§ظ„ظ…ط­ط§ظˆظ„ط© ظ„ط§ط­ظ‚ط§ظ‹.")
         else:
-            messages.error(request, "عذراً، هذا البريد الإلكتروني غير مسجل لدينا.")
+            messages.error(request, "ط¹ط°ط±ط§ظ‹طŒ ظ‡ط°ط§ ط§ظ„ط¨ط±ظٹط¯ ط§ظ„ط¥ظ„ظƒطھط±ظˆظ†ظٹ ط؛ظٹط± ظ…ط³ط¬ظ„ ظ„ط¯ظٹظ†ط§.")
             
     return render(request, "site/v3/v3_forgot_password.html")
 
@@ -208,7 +208,7 @@ def v3_reset_password_view(request):
     is_verified = request.session.get("v3_recovery_verified") == True
     
     if not uid or not is_verified:
-        messages.error(request, "يرجى التحقق من هويتك أولاً.")
+        messages.error(request, "ظٹط±ط¬ظ‰ ط§ظ„طھط­ظ‚ظ‚ ظ…ظ† ظ‡ظˆظٹطھظƒ ط£ظˆظ„ط§ظ‹.")
         return redirect("site_forgot_password")
         
     user = get_object_or_404(User, id=uid)
@@ -218,9 +218,9 @@ def v3_reset_password_view(request):
         p2 = request.POST.get("confirm_password")
         
         if not p1 or len(p1) < 10:
-            messages.error(request, "يجب أن تكون كلمة المرور 10 خانات على الأقل.")
+            messages.error(request, "ظٹط¬ط¨ ط£ظ† طھظƒظˆظ† ظƒظ„ظ…ط© ط§ظ„ظ…ط±ظˆط± 10 ط®ط§ظ†ط§طھ ط¹ظ„ظ‰ ط§ظ„ط£ظ‚ظ„.")
         elif p1 != p2:
-            messages.error(request, "كلمات المرور غير متطابقة.")
+            messages.error(request, "ظƒظ„ظ…ط§طھ ط§ظ„ظ…ط±ظˆط± ط؛ظٹط± ظ…طھط·ط§ط¨ظ‚ط©.")
         else:
             user.set_password(p1)
             user.save()
@@ -229,7 +229,7 @@ def v3_reset_password_view(request):
             request.session.flush()
             
             ActivityLog.objects.create(user=user, action="Password Reset Success", description="User reset password via V3 OTP flow")
-            messages.success(request, "تم تغيير كلمة المرور بنجاح. يمكنك الآن تسجيل الدخول.")
+            messages.success(request, "طھظ… طھط؛ظٹظٹط± ظƒظ„ظ…ط© ط§ظ„ظ…ط±ظˆط± ط¨ظ†ط¬ط§ط­. ظٹظ…ظƒظ†ظƒ ط§ظ„ط¢ظ† طھط³ط¬ظٹظ„ ط§ظ„ط¯ط®ظˆظ„.")
             return redirect("site_login")
             
     return render(request, "site/v3/v3_reset_password.html", {"user_email": user.email})
@@ -237,7 +237,7 @@ def v3_reset_password_view(request):
 
 def v3_logout_view(request):
     logout(request)
-    messages.info(request, "تم تسجيل الخروج بنجاح.")
+    messages.info(request, "طھظ… طھط³ط¬ظٹظ„ ط§ظ„ط®ط±ظˆط¬ ط¨ظ†ط¬ط§ط­.")
     return redirect("home")
 
 
@@ -295,10 +295,10 @@ def product_detail(request, pk):
         if not request.user.is_authenticated:
             return redirect("site_login")
         if not request.user.email_verified:
-            messages.error(request, "يرجى تفعيل بريدك الإلكتروني أولاً.")
+            messages.error(request, "ظٹط±ط¬ظ‰ طھظپط¹ظٹظ„ ط¨ط±ظٹط¯ظƒ ط§ظ„ط¥ظ„ظƒطھط±ظˆظ†ظٹ ط£ظˆظ„ط§ظ‹.")
             return redirect("dashboard")
         if request.user.restriction_purchases:
-            messages.error(request, "حسابك مقيد من الشراء.")
+            messages.error(request, "ط­ط³ط§ط¨ظƒ ظ…ظ‚ظٹط¯ ظ…ظ† ط§ظ„ط´ط±ط§ط،.")
             return redirect("dashboard")
 
         vid = request.POST.get("variant_id")
@@ -315,7 +315,7 @@ def product_detail(request, pk):
             try:
                 from apps.orders.services import create_order
                 create_order(request.user, vid, quantity=qty, metadata=metadata)
-                messages.success(request, "تم إنشاء الطلب بنجاح.")
+                messages.success(request, "طھظ… ط¥ظ†ط´ط§ط، ط§ظ„ط·ظ„ط¨ ط¨ظ†ط¬ط§ط­.")
                 return redirect("dashboard")
             except Exception as e:
                 messages.error(request, str(e))
@@ -372,7 +372,7 @@ def wallet_page(request):
 @login_required
 def deposits(request):
     if request.user.restriction_deposits:
-        messages.error(request, "حسابك مقيد من الإيداع.")
+        messages.error(request, "ط­ط³ط§ط¨ظƒ ظ…ظ‚ظٹط¯ ظ…ظ† ط§ظ„ط¥ظٹط¯ط§ط¹.")
         return redirect("dashboard")
     
     request.user.reset_daily_limits_if_needed()
@@ -393,8 +393,8 @@ def deposits(request):
         if amount_base > remaining_limit:
             messages.error(
                 request, 
-                f"تجاوزت الحد اليومي للإيداع. حدك المتبقي هو {remaining_limit:.2f} USD، "
-                f"بينما تبلغ قيمة هذه العملية {amount_base:.2f} USD."
+                f"طھط¬ط§ظˆط²طھ ط§ظ„ط­ط¯ ط§ظ„ظٹظˆظ…ظٹ ظ„ظ„ط¥ظٹط¯ط§ط¹. ط­ط¯ظƒ ط§ظ„ظ…طھط¨ظ‚ظٹ ظ‡ظˆ {remaining_limit:.2f} USDطŒ "
+                f"ط¨ظٹظ†ظ…ط§ طھط¨ظ„ط؛ ظ‚ظٹظ…ط© ظ‡ط°ظ‡ ط§ظ„ط¹ظ…ظ„ظٹط© {amount_base:.2f} USD."
             )
             return redirect("dashboard_deposits")
             
@@ -422,8 +422,8 @@ def deposits(request):
         if amount_base > method_remaining:
             messages.error(
                 request, 
-                f"تجاوزت حد الإيداع لهذه الوسيلة. الحد المتبقي للوسيلة هو {method_remaining:.2f} USD، "
-                f"بينما تبلغ قيمة هذه العملية {amount_base:.2f} USD."
+                f"طھط¬ط§ظˆط²طھ ط­ط¯ ط§ظ„ط¥ظٹط¯ط§ط¹ ظ„ظ‡ط°ظ‡ ط§ظ„ظˆط³ظٹظ„ط©. ط§ظ„ط­ط¯ ط§ظ„ظ…طھط¨ظ‚ظٹ ظ„ظ„ظˆط³ظٹظ„ط© ظ‡ظˆ {method_remaining:.2f} USDطŒ "
+                f"ط¨ظٹظ†ظ…ط§ طھط¨ظ„ط؛ ظ‚ظٹظ…ط© ظ‡ط°ظ‡ ط§ظ„ط¹ظ…ظ„ظٹط© {amount_base:.2f} USD."
             )
             return redirect("dashboard_deposits")
 
@@ -448,15 +448,15 @@ def deposits(request):
 
             from apps.notifications.services import notify_staff
             notify_staff(
-                title="طلب إيداع جديد",
-                body=f"تم استلام طلب إيداع جديد بقيمة {amount} {currency.code} من {request.user.email}",
+                title="ط·ظ„ط¨ ط¥ظٹط¯ط§ط¹ ط¬ط¯ظٹط¯",
+                body=f"طھظ… ط§ط³طھظ„ط§ظ… ط·ظ„ط¨ ط¥ظٹط¯ط§ط¹ ط¬ط¯ظٹط¯ ط¨ظ‚ظٹظ…ط© {amount} {currency.code} ظ…ظ† {request.user.email}",
                 action_url=f"/control/deposits/{deposit.id}/"
             )
 
             request.user.daily_deposit_usage += amount_base
 
             request.user.save(update_fields=["daily_deposit_usage"])
-            messages.success(request, "طلب الإيداع قيد المراجعة.")
+            messages.success(request, "ط·ظ„ط¨ ط§ظ„ط¥ظٹط¯ط§ط¹ ظ‚ظٹط¯ ط§ظ„ظ…ط±ط§ط¬ط¹ط©.")
             return redirect("dashboard")
             
     return render(request, "site/deposits.html", {
@@ -467,7 +467,7 @@ def deposits(request):
 @login_required
 def withdrawals(request):
     if request.user.restriction_withdrawals:
-        messages.error(request, "حسابك مقيد من السحب.")
+        messages.error(request, "ط­ط³ط§ط¨ظƒ ظ…ظ‚ظٹط¯ ظ…ظ† ط§ظ„ط³ط­ط¨.")
         return redirect("dashboard")
     
     request.user.reset_daily_limits_if_needed()
@@ -485,8 +485,8 @@ def withdrawals(request):
         if amount_base > remaining_limit:
             messages.error(
                 request, 
-                f"تجاوزت الحد اليومي للسحب. حدك المتبقي هو {remaining_limit:.2f} USD، "
-                f"بينما تبلغ قيمة هذه العملية {amount_base:.2f} USD."
+                f"طھط¬ط§ظˆط²طھ ط§ظ„ط­ط¯ ط§ظ„ظٹظˆظ…ظٹ ظ„ظ„ط³ط­ط¨. ط­ط¯ظƒ ط§ظ„ظ…طھط¨ظ‚ظٹ ظ‡ظˆ {remaining_limit:.2f} USDطŒ "
+                f"ط¨ظٹظ†ظ…ط§ طھط¨ظ„ط؛ ظ‚ظٹظ…ط© ظ‡ط°ظ‡ ط§ظ„ط¹ظ…ظ„ظٹط© {amount_base:.2f} USD."
             )
             return redirect("dashboard_withdrawals")
             
@@ -514,8 +514,8 @@ def withdrawals(request):
         if amount_base > method_remaining:
             messages.error(
                 request, 
-                f"تجاوزت حد السحب لهذه الوسيلة. الحد المتبقي للوسيلة هو {method_remaining:.2f} USD، "
-                f"بينما تبلغ قيمة هذه العملية {amount_base:.2f} USD."
+                f"طھط¬ط§ظˆط²طھ ط­ط¯ ط§ظ„ط³ط­ط¨ ظ„ظ‡ط°ظ‡ ط§ظ„ظˆط³ظٹظ„ط©. ط§ظ„ط­ط¯ ط§ظ„ظ…طھط¨ظ‚ظٹ ظ„ظ„ظˆط³ظٹظ„ط© ظ‡ظˆ {method_remaining:.2f} USDطŒ "
+                f"ط¨ظٹظ†ظ…ط§ طھط¨ظ„ط؛ ظ‚ظٹظ…ط© ظ‡ط°ظ‡ ط§ظ„ط¹ظ…ظ„ظٹط© {amount_base:.2f} USD."
             )
             return redirect("dashboard_withdrawals")
 
@@ -548,17 +548,17 @@ def withdrawals(request):
 
                 from apps.notifications.services import notify_staff
                 notify_staff(
-                    title="طلب سحب جديد",
-                    body=f"تم استلام طلب سحب جديد بقيمة {amount} {currency.code} من {request.user.email}",
+                    title="ط·ظ„ط¨ ط³ط­ط¨ ط¬ط¯ظٹط¯",
+                    body=f"طھظ… ط§ط³طھظ„ط§ظ… ط·ظ„ط¨ ط³ط­ط¨ ط¬ط¯ظٹط¯ ط¨ظ‚ظٹظ…ط© {amount} {currency.code} ظ…ظ† {request.user.email}",
                     action_url=f"/control/withdrawals/{withdrawal.id}/"
                 )
 
                 request.user.daily_withdrawal_usage += amount_base
                 request.user.save(update_fields=["daily_withdrawal_usage"])
-                messages.success(request, "طلب السحب قيد المراجعة.")
+                messages.success(request, "ط·ظ„ط¨ ط§ظ„ط³ط­ط¨ ظ‚ظٹط¯ ط§ظ„ظ…ط±ط§ط¬ط¹ط©.")
                 return redirect("dashboard")
         else:
-            messages.error(request, "رصيد غير كافٍ.")
+            messages.error(request, "ط±طµظٹط¯ ط؛ظٹط± ظƒط§ظپظچ.")
             
     return render(request, "site/withdrawals.html", {
         "payment_methods": methods, "remaining_limit": remaining_limit, "daily_limit": request.user.daily_withdrawal_limit
@@ -589,7 +589,7 @@ def kyc_request_view(request):
     
     if request.method == "POST" and form.is_valid():
         if existing and existing.status in [KYCRequest.Status.PENDING, KYCRequest.Status.APPROVED]:
-            messages.error(request, "طلب قيد المعالجة.")
+            messages.error(request, "ط·ظ„ط¨ ظ‚ظٹط¯ ط§ظ„ظ…ط¹ط§ظ„ط¬ط©.")
             return redirect("dashboard")
             
         kyc = form.save(commit=False)
@@ -600,7 +600,7 @@ def kyc_request_view(request):
                 blocked = True
                 
         if blocked:
-            messages.error(request, "دولتك غير مدعومة حالياً.")
+            messages.error(request, "ط¯ظˆظ„طھظƒ ط؛ظٹط± ظ…ط¯ط¹ظˆظ…ط© ط­ط§ظ„ظٹط§ظ‹.")
             return redirect("site_kyc_request")
 
         kyc.user = request.user
@@ -609,12 +609,12 @@ def kyc_request_view(request):
 
         from apps.notifications.services import notify_staff
         notify_staff(
-            title="طلب توثيق هوية جديد",
-            body=f"قام المستخدم {request.user.email} بتقديم طلب لتوثيق الهوية.",
+            title="ط·ظ„ط¨ طھظˆط«ظٹظ‚ ظ‡ظˆظٹط© ط¬ط¯ظٹط¯",
+            body=f"ظ‚ط§ظ… ط§ظ„ظ…ط³طھط®ط¯ظ… {request.user.email} ط¨طھظ‚ط¯ظٹظ… ط·ظ„ط¨ ظ„طھظˆط«ظٹظ‚ ط§ظ„ظ‡ظˆظٹط©.",
             action_url=f"/control/kyc/{kyc.id}/"
         )
 
-        messages.success(request, "تم تقديم الطلب.")
+        messages.success(request, "طھظ… طھظ‚ط¯ظٹظ… ط§ظ„ط·ظ„ط¨.")
         return redirect("dashboard")
         
     return render(request, "site/v3/v3_kyc_form.html", {
@@ -671,7 +671,7 @@ def control_kyc_detail(request, pk):
         if action == "update_info":
             if form.is_valid():
                 form.save()
-                messages.success(request, "تم تحديث بيانات وصور التوثيق بنجاح.")
+                messages.success(request, "طھظ… طھط­ط¯ظٹط« ط¨ظٹط§ظ†ط§طھ ظˆطµظˆط± ط§ظ„طھظˆط«ظٹظ‚ ط¨ظ†ط¬ط§ط­.")
                 return redirect("control_kyc_detail", pk=pk)
         elif action == "update_limits":
             user = kyc.user
@@ -702,7 +702,7 @@ def control_kyc_detail(request, pk):
             
             user.custom_payment_limits = custom_limits
             user.save()
-            messages.success(request, "تم تحديث الحدود بنجاح.")
+            messages.success(request, "طھظ… طھط­ط¯ظٹط« ط§ظ„ط­ط¯ظˆط¯ ط¨ظ†ط¬ط§ط­.")
             return redirect("control_kyc_detail", pk=pk)
         elif action == "approve":
             with transaction.atomic():
@@ -718,7 +718,7 @@ def control_kyc_detail(request, pk):
                 user.first_name = kyc.first_name
                 user.last_name = f"{kyc.father_name} {kyc.last_name}"
                 user.save()
-                messages.success(request, "تم القبول.")
+                messages.success(request, "طھظ… ط§ظ„ظ‚ط¨ظˆظ„.")
                 return redirect("control_kyc_detail", pk=pk)
         elif action == "reject":
             with transaction.atomic():
@@ -733,7 +733,7 @@ def control_kyc_detail(request, pk):
                 user.daily_withdrawal_limit = global_settings.unverified_daily_withdrawal_limit
                 user.has_custom_limits = False
                 user.save()
-                messages.warning(request, "تم الرفض.")
+                messages.warning(request, "طھظ… ط§ظ„ط±ظپط¶.")
                 return redirect("control_kyc_detail", pk=pk)
         elif action == "revert":
             with transaction.atomic():
@@ -744,7 +744,7 @@ def control_kyc_detail(request, pk):
                 user.daily_deposit_limit = global_settings.unverified_daily_deposit_limit
                 user.daily_withdrawal_limit = global_settings.unverified_daily_withdrawal_limit
                 user.save()
-                messages.info(request, "تمت الإعادة.")
+                messages.info(request, "طھظ…طھ ط§ظ„ط¥ط¹ط§ط¯ط©.")
                 return redirect("control_kyc_detail", pk=pk)
         elif action == "unverify":
             with transaction.atomic():
@@ -755,9 +755,9 @@ def control_kyc_detail(request, pk):
                 user.daily_withdrawal_limit = global_settings.unverified_daily_withdrawal_limit
                 user.save()
                 kyc.status = KYCRequest.Status.REJECTED
-                kyc.rejection_reason = "تم إلغاء التوثيق."
+                kyc.rejection_reason = "طھظ… ط¥ظ„ط؛ط§ط، ط§ظ„طھظˆط«ظٹظ‚."
                 kyc.save()
-                messages.error(request, "تم إلغاء التوثيق.")
+                messages.error(request, "طھظ… ط¥ظ„ط؛ط§ط، ط§ظ„طھظˆط«ظٹظ‚.")
                 return redirect("control_kycs_list")
             
     return render(request, "site/control_kyc_detail.html", {"kyc": kyc, "form": form, "payment_methods": payment_methods})
@@ -773,11 +773,11 @@ def control_kyc_settings(request):
             if code in settings_obj.restricted_countries:
                 settings_obj.restricted_countries.remove(code)
                 settings_obj.save()
-                messages.success(request, f"فك الحظر عن {code}.")
+                messages.success(request, f"ظپظƒ ط§ظ„ط­ط¸ط± ط¹ظ† {code}.")
             return redirect("control_kyc_settings")
         elif form.is_valid():
             form.save()
-            messages.success(request, "تم الحفظ.")
+            messages.success(request, "طھظ… ط§ظ„ط­ظپط¸.")
             return redirect("control_kyc_settings")
     return render(request, "site/control_kyc_settings.html", {"form": form, "settings": settings_obj, "stats_verified_count": User.objects.filter(is_kyc_verified=True).count()})
 
@@ -792,7 +792,7 @@ def control_user_moderate(request, public_uuid):
              sessions = Session.objects.filter(expire_date__gte=timezone.now())
              for s in sessions:
                  if str(user.id) == s.get_decoded().get('_auth_user_id'): s.delete()
-        messages.success(request, "تم التحديث.")
+        messages.success(request, "طھظ… ط§ظ„طھط­ط¯ظٹط«.")
         return redirect("control_users_list")
     return render(request, "site/control_user_moderate.html", {"form": form, "user_to_moderate": user})
 
@@ -822,18 +822,18 @@ def control_users_list(request):
         user_ids = request.POST.getlist("user_ids")
         
         if not user_ids:
-            messages.warning(request, "لم يتم اختيار أي مستخدم.")
+            messages.warning(request, "ظ„ظ… ظٹطھظ… ط§ط®طھظٹط§ط± ط£ظٹ ظ…ط³طھط®ط¯ظ….")
         else:
             if action == "bulk_tier":
                 target_tier = request.POST.get("target_tier")
                 if target_tier:
                     User.objects.filter(id__in=user_ids).update(tier=target_tier)
-                    messages.success(request, f"تم تحديث فئة {len(user_ids)} مستخدم بنجاح.")
+                    messages.success(request, f"طھظ… طھط­ط¯ظٹط« ظپط¦ط© {len(user_ids)} ظ…ط³طھط®ط¯ظ… ط¨ظ†ط¬ط§ط­.")
             elif action == "bulk_role":
                 target_role = request.POST.get("target_role")
                 if target_role:
                     User.objects.filter(id__in=user_ids).update(role=target_role)
-                    messages.success(request, f"تم تحديث دور {len(user_ids)} مستخدم بنجاح.")
+                    messages.success(request, f"طھظ… طھط­ط¯ظٹط« ط¯ظˆط± {len(user_ids)} ظ…ط³طھط®ط¯ظ… ط¨ظ†ط¬ط§ط­.")
         
         return redirect("control_users_list")
 
@@ -856,7 +856,7 @@ def set_currency(request):
             if request.user.is_authenticated:
                 request.user.preferred_currency = currency
                 request.user.save(update_fields=["preferred_currency"])
-            messages.success(request, f"تم تغيير العملة المفضلة إلى {currency.name}.")
+            messages.success(request, f"طھظ… طھط؛ظٹظٹط± ط§ظ„ط¹ظ…ظ„ط© ط§ظ„ظ…ظپط¶ظ„ط© ط¥ظ„ظ‰ {currency.name}.")
     
     # Redirect back to referring page or home
     next_url = request.META.get('HTTP_REFERER', 'home')
@@ -878,7 +878,7 @@ def notification_settings(request):
         settings_obj.in_app_promotions = request.POST.get("in_app_promotions") == "on"
         settings_obj.push_promotions = request.POST.get("push_promotions") == "on"
         settings_obj.save()
-        messages.success(request, "تم حفظ إعدادات الإشعارات بنجاح.")
+        messages.success(request, "طھظ… ط­ظپط¸ ط¥ط¹ط¯ط§ط¯ط§طھ ط§ظ„ط¥ط´ط¹ط§ط±ط§طھ ط¨ظ†ط¬ط§ط­.")
         return redirect("notification_settings")
         
     return render(request, "site/notification_settings.html", {"settings": settings_obj})
@@ -932,14 +932,14 @@ def control_withdrawal_detail(request, pk):
             if action == "approve":
                 withdrawal.status = WithdrawalRequest.Status.APPROVED
                 withdrawal.admin_note = admin_note
-                messages.success(request, "تمت الموافقة المبدئية على الطلب.")
+                messages.success(request, "طھظ…طھ ط§ظ„ظ…ظˆط§ظپظ‚ط© ط§ظ„ظ…ط¨ط¯ط¦ظٹط© ط¹ظ„ظ‰ ط§ظ„ط·ظ„ط¨.")
             elif action == "process":
                 withdrawal.status = WithdrawalRequest.Status.PROCESSING
                 withdrawal.admin_note = admin_note
-                messages.info(request, "بدأت معالجة الطلب.")
+                messages.info(request, "ط¨ط¯ط£طھ ظ…ط¹ط§ظ„ط¬ط© ط§ظ„ط·ظ„ط¨.")
             elif action == "complete":
                 if withdrawal.status == WithdrawalRequest.Status.COMPLETED:
-                     messages.error(request, "هذا الطلب مكتمل مسبقاً.")
+                     messages.error(request, "ظ‡ط°ط§ ط§ظ„ط·ظ„ط¨ ظ…ظƒطھظ…ظ„ ظ…ط³ط¨ظ‚ط§ظ‹.")
                      return redirect("control_withdrawals")
 
                 finalize_withdrawal(
@@ -954,11 +954,11 @@ def control_withdrawal_detail(request, pk):
                 withdrawal.reviewed_by = request.user
                 withdrawal.reviewed_at = timezone.now()
                 withdrawal.save()
-                messages.success(request, "تم إتمام عملية السحب بنجاح.")
+                messages.success(request, "طھظ… ط¥طھظ…ط§ظ… ط¹ظ…ظ„ظٹط© ط§ظ„ط³ط­ط¨ ط¨ظ†ط¬ط§ط­.")
                 return redirect("control_withdrawals")
             elif action == "reject":
                 if withdrawal.status in [WithdrawalRequest.Status.COMPLETED, WithdrawalRequest.Status.REJECTED, WithdrawalRequest.Status.CANCELLED]:
-                     messages.error(request, "لا يمكن رفض طلب منتهي.")
+                     messages.error(request, "ظ„ط§ ظٹظ…ظƒظ† ط±ظپط¶ ط·ظ„ط¨ ظ…ظ†طھظ‡ظٹ.")
                      return redirect("control_withdrawals")
 
                 release_funds(
@@ -974,11 +974,11 @@ def control_withdrawal_detail(request, pk):
                 withdrawal.reviewed_by = request.user
                 withdrawal.reviewed_at = timezone.now()
                 withdrawal.save()
-                messages.error(request, "تم رفض طلب السحب وإعادة الرصيد للمستخدم.")
+                messages.error(request, "طھظ… ط±ظپط¶ ط·ظ„ط¨ ط§ظ„ط³ط­ط¨ ظˆط¥ط¹ط§ط¯ط© ط§ظ„ط±طµظٹط¯ ظ„ظ„ظ…ط³طھط®ط¯ظ….")
                 return redirect("control_withdrawals")
             elif action == "cancel_completed":
                 if withdrawal.status != WithdrawalRequest.Status.COMPLETED:
-                    messages.error(request, "لا يمكن إلغاء هذا الطلب لأنه ليس مكتمل.")
+                    messages.error(request, "ظ„ط§ ظٹظ…ظƒظ† ط¥ظ„ط؛ط§ط، ظ‡ط°ط§ ط§ظ„ط·ظ„ط¨ ظ„ط£ظ†ظ‡ ظ„ظٹط³ ظ…ظƒطھظ…ظ„.")
                     return redirect("control_withdrawal_detail", pk=pk)
                 
                 from apps.wallets.services import credit_wallet
@@ -995,7 +995,7 @@ def control_withdrawal_detail(request, pk):
                 withdrawal.reviewed_by = request.user
                 withdrawal.reviewed_at = timezone.now()
                 withdrawal.save()
-                messages.warning(request, "تم إلغاء السحب المكتمل وإعادة المبلغ للمحفظة بنجاح.")
+                messages.warning(request, "طھظ… ط¥ظ„ط؛ط§ط، ط§ظ„ط³ط­ط¨ ط§ظ„ظ…ظƒطھظ…ظ„ ظˆط¥ط¹ط§ط¯ط© ط§ظ„ظ…ط¨ظ„ط؛ ظ„ظ„ظ…ط­ظپط¸ط© ط¨ظ†ط¬ط§ط­.")
                 return redirect("control_withdrawals")
             
             withdrawal.save()
@@ -1024,11 +1024,11 @@ def control_debts(request):
             if action == "add_debt":
                 from apps.wallets.services import add_debt
                 add_debt(wallet.id, amount, reference=f"admin_debt_{timezone.now().timestamp()}", reason=reason, created_by=request.user)
-                messages.success(request, f"تم إضافة دين بقيمة {amount} للمستخدم {target_user.email}")
+                messages.success(request, f"طھظ… ط¥ط¶ط§ظپط© ط¯ظٹظ† ط¨ظ‚ظٹظ…ط© {amount} ظ„ظ„ظ…ط³طھط®ط¯ظ… {target_user.email}")
             elif action == "pay_debt":
                 from apps.wallets.services import pay_debt
                 pay_debt(wallet.id, amount, reference=f"admin_pay_{timezone.now().timestamp()}", reason=reason, created_by=request.user, deduct_from_balance=False)
-                messages.success(request, f"تم تسجيل سداد بقيمة {amount} للمستخدم {target_user.email}")
+                messages.success(request, f"طھظ… طھط³ط¬ظٹظ„ ط³ط¯ط§ط¯ ط¨ظ‚ظٹظ…ط© {amount} ظ„ظ„ظ…ط³طھط®ط¯ظ… {target_user.email}")
         except Exception as e:
             messages.error(request, str(e))
             
@@ -1049,7 +1049,7 @@ def currencies_list(request):
                 c.buy_rate = Decimal(buy_rate)
                 c.sell_rate = Decimal(sell_rate)
                 c.save()
-        messages.success(request, "تم تحديث أسعار الصرف بنجاح.")
+        messages.success(request, "طھظ… طھط­ط¯ظٹط« ط£ط³ط¹ط§ط± ط§ظ„طµط±ظپ ط¨ظ†ط¬ط§ط­.")
         return redirect("currencies_list")
 
     return render(request, "site/currencies_list.html", {"currencies": currencies})
@@ -1059,9 +1059,9 @@ def currency_create(request):
     form = CurrencyForm(request.POST or None)
     if request.method == "POST" and form.is_valid():
         form.save()
-        messages.success(request, "تمت إضافة العملة بنجاح.")
+        messages.success(request, "طھظ…طھ ط¥ط¶ط§ظپط© ط§ظ„ط¹ظ…ظ„ط© ط¨ظ†ط¬ط§ط­.")
         return redirect("currencies_list")
-    return render(request, "site/currency_form.html", {"form": form, "title": "إضافة عملة"})
+    return render(request, "site/currency_form.html", {"form": form, "title": "ط¥ط¶ط§ظپط© ط¹ظ…ظ„ط©"})
 
 @admin_required
 def currency_edit(request, pk):
@@ -1071,9 +1071,9 @@ def currency_edit(request, pk):
     form = CurrencyForm(request.POST or None, instance=currency)
     if request.method == "POST" and form.is_valid():
         form.save()
-        messages.success(request, "تم تحديث بيانات العملة.")
+        messages.success(request, "طھظ… طھط­ط¯ظٹط« ط¨ظٹط§ظ†ط§طھ ط§ظ„ط¹ظ…ظ„ط©.")
         return redirect("currencies_list")
-    return render(request, "site/currency_form.html", {"form": form, "currency": currency, "title": f"تعديل العملة: {currency.code}"})
+    return render(request, "site/currency_form.html", {"form": form, "currency": currency, "title": f"طھط¹ط¯ظٹظ„ ط§ظ„ط¹ظ…ظ„ط©: {currency.code}"})
 
 @support_required
 def control_products_list(request):
@@ -1112,11 +1112,11 @@ def control_product_create(request):
                     is_active=v_data.get('is_active', True)
                 )
         
-        messages.success(request, "تم إنشاء المنتج بنجاح.")
+        messages.success(request, "طھظ… ط¥ظ†ط´ط§ط، ط§ظ„ظ…ظ†طھط¬ ط¨ظ†ط¬ط§ط­.")
         return redirect("control_products_list")
         
     return render(request, "site/control_product_builder.html", {
-        "form": form, "title": "إضافة منتج جديد", "variants_json_data": []
+        "form": form, "title": "ط¥ط¶ط§ظپط© ظ…ظ†طھط¬ ط¬ط¯ظٹط¯", "variants_json_data": []
     })
 
 @support_required
@@ -1165,7 +1165,7 @@ def control_product_edit(request, pk):
                     }
                 )
         
-        messages.success(request, "تم تحديث المنتج بنجاح.")
+        messages.success(request, "طھظ… طھط­ط¯ظٹط« ط§ظ„ظ…ظ†طھط¬ ط¨ظ†ط¬ط§ط­.")
         return redirect("control_products_list")
     
     # Prepare variants for JSON script
@@ -1179,7 +1179,7 @@ def control_product_edit(request, pk):
         })
         
     return render(request, "site/control_product_builder.html", {
-        "form": form, "product": product, "title": f"تعديل المنتج: {product.name}",
+        "form": form, "product": product, "title": f"طھط¹ط¯ظٹظ„ ط§ظ„ظ…ظ†طھط¬: {product.name}",
         "variants_json_data": variants_json_data
     })
 @support_required
@@ -1242,11 +1242,11 @@ def control_order_detail(request, pk):
                                 source="order_refund",
                                 reason=f"Order {new_status}"
                             )
-                            messages.success(request, f"تم تحديث الحالة وإعادة مبلغ {refund_amount} لمحفظة العميل.")
+                            messages.success(request, f"طھظ… طھط­ط¯ظٹط« ط§ظ„ط­ط§ظ„ط© ظˆط¥ط¹ط§ط¯ط© ظ…ط¨ظ„ط؛ {refund_amount} ظ„ظ…ط­ظپط¸ط© ط§ظ„ط¹ظ…ظٹظ„.")
                         else:
-                            messages.info(request, "تم تحديث الحالة (المبلغ مسترد مسبقاً).")
+                            messages.info(request, "طھظ… طھط­ط¯ظٹط« ط§ظ„ط­ط§ظ„ط© (ط§ظ„ظ…ط¨ظ„ط؛ ظ…ط³طھط±ط¯ ظ…ط³ط¨ظ‚ط§ظ‹).")
                     else:
-                        messages.success(request, "تم تحديث حالة الطلب بنجاح.")
+                        messages.success(request, "طھظ… طھط­ط¯ظٹط« ط­ط§ظ„ط© ط§ظ„ط·ظ„ط¨ ط¨ظ†ط¬ط§ط­.")
         
         elif action == "update_fulfillment":
             # Extract dynamic key-value pairs
@@ -1260,7 +1260,7 @@ def control_order_detail(request, pk):
                     
             order.fulfillment_data = new_fulfillment
             order.save(update_fields=["fulfillment_data"])
-            messages.success(request, "تم تحديث بيانات التنفيذ.")
+            messages.success(request, "طھظ… طھط­ط¯ظٹط« ط¨ظٹط§ظ†ط§طھ ط§ظ„طھظ†ظپظٹط°.")
             
         return redirect("control_order_detail", pk=pk)
     
@@ -1367,7 +1367,7 @@ def control_social_media(request):
             
         if form.is_valid():
             form.save()
-            messages.success(request, "تم حفظ الرابط بنجاح.")
+            messages.success(request, "طھظ… ط­ظپط¸ ط§ظ„ط±ط§ط¨ط· ط¨ظ†ط¬ط§ط­.")
             return redirect("control_social_media")
             
     return render(request, "site/control_social_media.html", {"links": links, "form": form})
@@ -1376,8 +1376,53 @@ def control_social_media(request):
 def control_social_media_delete(request, pk):
     link = get_object_or_404(SocialMediaLink, pk=pk)
     link.delete()
-    messages.success(request, "تم حذف الرابط.")
+    messages.success(request, "طھظ… ط­ط°ظپ ط§ظ„ط±ط§ط¨ط·.")
     return redirect("control_social_media")
 
 @support_required
 def control_send_notification(request): return render(request, "site/control_notification_form.html")
+
+from apps.site.forms import SupportSettingsForm, ChatCannedReplyForm
+from apps.support.models import SupportSettings, ChatCannedReply
+
+@admin_required
+def control_support_settings(request):
+    settings_obj, created = SupportSettings.objects.get_or_create(id=1)
+    form = SupportSettingsForm(request.POST or None, instance=settings_obj)
+    if request.method == "POST" and form.is_valid():
+        form.save()
+        messages.success(request, "تم حفظ إعدادات الدعم بنجاح.")
+        return redirect("control_support_settings")
+    return render(request, "site/control_support_settings.html", {"form": form})
+
+@support_required
+def control_quick_replies(request):
+    replies = ChatCannedReply.objects.all().order_by("-created_at")
+    return render(request, "site/control_quick_replies.html", {"replies": replies})
+
+@support_required
+def control_quick_reply_create(request):
+    form = ChatCannedReplyForm(request.POST or None)
+    if request.method == "POST" and form.is_valid():
+        form.save()
+        messages.success(request, "تم إضافة الرد الجاهز بنجاح.")
+        return redirect("control_quick_replies")
+    return render(request, "site/control_quick_reply_form.html", {"form": form})
+
+@support_required
+def control_quick_reply_edit(request, pk):
+    reply = get_object_or_404(ChatCannedReply, pk=pk)
+    form = ChatCannedReplyForm(request.POST or None, instance=reply)
+    if request.method == "POST" and form.is_valid():
+        form.save()
+        messages.success(request, "تم تعديل الرد الجاهز بنجاح.")
+        return redirect("control_quick_replies")
+    return render(request, "site/control_quick_reply_form.html", {"form": form})
+
+@support_required
+def control_quick_reply_delete(request, pk):
+    reply = get_object_or_404(ChatCannedReply, pk=pk)
+    reply.delete()
+    messages.success(request, "تم حذف الرد الجاهز بنجاح.")
+    return redirect("control_quick_replies")
+
