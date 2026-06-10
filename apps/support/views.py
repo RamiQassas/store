@@ -36,12 +36,6 @@ def chat_list(request):
         else:
             rooms = ChatRoom.objects.none()
     
-    # If a guest/user has only one room, redirect directly to it
-    if rooms.count() == 1 and not (request.user.is_authenticated and can_manage_support(request.user)):
-        return redirect('chat_room', room_id=rooms.first().id)
-    elif rooms.count() == 0 and not (request.user.is_authenticated and can_manage_support(request.user)):
-        return redirect('create_chat')
-
     return render(request, 'site/chat_list.html', {'rooms': rooms})
 
 
