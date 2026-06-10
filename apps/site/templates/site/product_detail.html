@@ -272,6 +272,9 @@ function applyCoupon() {
                 document.getElementById('subtotal-display').innerText = (data.new_total + data.discount_amount).toFixed(2) + " USD";
                 document.getElementById('discount-display').innerText = "- " + data.discount_amount.toFixed(2) + " USD";
                 document.getElementById('total-display').innerText = data.new_total.toFixed(2) + " USD";
+                
+                // Update main button text
+                document.getElementById('submit-btn').innerHTML = `<i class="fas fa-shopping-cart"></i> شراء الآن بسعر ${data.new_total.toFixed(2)} USD`;
             } else {
                 feedback.innerText = data.error;
                 feedback.className = "mt-2 text-[10px] text-rose-500 block";

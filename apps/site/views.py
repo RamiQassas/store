@@ -30,7 +30,7 @@ from apps.payments.models import DepositRequest, PaymentMethod, WithdrawalReques
 from apps.site.forms import LoginForm, RegisterForm, TicketForm, PaymentMethodForm, CurrencyForm, ModerateUserForm, ProductForm, VariantForm, KYCRequestForm, KYCSettingsForm, ChangePasswordForm, CouponForm
 from apps.support.models import ChatRoom, ChatMessage, ChatCannedReply
 from apps.wallets.models import LedgerEntry, Wallet, WalletTransaction
-from apps.wallets.services import get_or_create_wallet, track_pending_deposit, freeze_funds, credit_wallet, release_funds, finalize_withdrawal
+from apps.wallets.services import get_or_create_wallet, track_pending_deposit, freeze_funds, credit_wallet, release_funds, finalize_withdrawal, debit_wallet
 
 
 # ==========================================
