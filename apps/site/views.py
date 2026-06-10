@@ -644,12 +644,10 @@ def kyc_request_view(request):
 
         messages.success(request, "تم تقديم الطلب.")
         return redirect("dashboard")
-        return render(request, "site/v3/v3_kyc_form.html", {
-            "form": form, "kyc_status": kyc_status, "kyc_rejection_reason": kyc_rejection_reason,
-            "temp_previews": temp_previews
-        })
 
-        "restricted_countries": settings_obj.restricted_countries, "all_countries": COUNTRIES
+    return render(request, "site/v3/v3_kyc_form.html", {
+        "form": form, "kyc_status": kyc_status, "kyc_rejection_reason": kyc_rejection_reason,
+        "temp_previews": temp_previews
     })
 
 
