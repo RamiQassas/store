@@ -132,9 +132,16 @@
                     <div class="field-group">
                         <label>{{ f.label }} {% if f.required %}<span class="text-danger">*</span>{% endif %}</label>
                         {% if f.type == 'textarea' %}
-                        <textarea name="custom_{{ f.name|default:f.label }}" placeholder="{{ f.placeholder }}" {% if f.required %}required{% endif %}></textarea>
+                        <textarea name="custom_{{ f.name|default:f.label|slugify|replace:'.','-' }}" placeholder="{{ f.placeholder }}" {% if f.required %}required{% endif %}></textarea>
+                        {% elif f.options %}
+                        <select name="custom_{{ f.name|default:f.label|slugify|replace:'.','-' }}" class="builder-input" {% if f.required %}required{% endif %}>
+                            <option value="">-- اختر من القائمة --</option>
+                            {% for opt in f.options|split:"," %}
+                            <option value="{{ opt|trim }}">{{ opt|trim }}</option>
+                            {% endfor %}
+                        </select>
                         {% else %}
-                        <input type="text" name="custom_{{ f.name|default:f.label }}" placeholder="{{ f.placeholder }}" {% if f.required %}required{% endif %}>
+                        <input type="text" name="custom_{{ f.name|default:f.label|slugify|replace:'.','-' }}" placeholder="{{ f.placeholder }}" {% if f.required %}required{% endif %}>
                         {% endif %}
                     </div>
                     {% endfor %}
@@ -149,7 +156,27 @@
                     <h3 class="font-bold text-sm text-muted uppercase tracking-wider">هل لديك كوبون خصم؟</h3>
                 </div>
                 <div class="flex gap-2">
-                    <input type="text" name="coupon_code" placeholder="أدخل كود الكوبون هنا..." class="flex-grow bg-slate-900/50 border-white/10 rounded-xl p-4 text-sm text-white focus:border-cyan transition">
+                    <input type="text" name="coupon_code" id="coupon-code-input" placeholder="أدخل كود الكوبون هنا..." class="flex-grow bg-slate-900/50 border-white/10 rounded-xl p-4 text-sm text-white focus:border-cyan transition">
+                    <button type="button" onclick="applyCoupon()" class="btn btn-outline px-6 py-4 rounded-xl font-bold border-cyan/20 text-cyan hover:bg-cyan hover:text-black transition-all">تطبيق</button>
+                </div>
+                <div id="coupon-feedback" class="mt-2 text-[10px] hidden"></div>
+            </div>
+
+            <div id="price-breakdown" class="mt-6 p-6 bg-white/[0.02] border border-white/5 rounded-2xl hidden">
+                <div class="stack gap-3">
+                    <div class="flex justify-between text-xs">
+                        <span class="text-slate-500">المجموع الفرعي:</span>
+                        <span id="subtotal-display" class="text-white font-bold"></span>
+                    </div>
+                    <div class="flex justify-between text-xs">
+                        <span class="text-slate-500">الخصم:</span>
+                        <span id="discount-display" class="text-emerald-500 font-bold"></span>
+                    </div>
+                    <div class="h-px bg-white/5 my-1"></div>
+                    <div class="flex justify-between text-lg">
+                        <span class="text-white font-black">الإجمالي الصافي:</span>
+                        <span id="total-display" class="text-cyan font-black"></span>
+                    </div>
                 </div>
             </div>
 
@@ -202,6 +229,54 @@ function selectVariant(id, el) {
     document.querySelectorAll('.variant-card').forEach(c => c.classList.remove('selected'));
     el.classList.add('selected');
     document.getElementById('submit-btn').disabled = false;
+    
+    // Reset coupon if variant changes
+    document.getElementById('price-breakdown').classList.add('hidden');
+    document.getElementById('coupon-feedback').classList.add('hidden');
+}
+
+function applyCoupon() {
+    const code = document.getElementById('coupon-code-input').value;
+    const variantId = document.getElementById('selected-variant-id').value;
+    const feedback = document.getElementById('coupon-feedback');
+    const breakdown = document.getElementById('price-breakdown');
+    
+    if (!code) {
+        feedback.innerText = "يرجى إدخال كود الكوبون.";
+        feedback.className = "mt-2 text-[10px] text-rose-500 block";
+        return;
+    }
+    
+    if (!variantId) {
+        feedback.innerText = "يرجى اختيار باقة أولاً.";
+        feedback.className = "mt-2 text-[10px] text-rose-500 block";
+        return;
+    }
+
+    fetch(`/ajax/validate-coupon/?code=${code}&variant_id=${variantId}`)
+        .then(response => response.json())
+        .then(data => {
+            feedback.classList.remove('hidden');
+            if (data.valid) {
+                feedback.innerText = data.message;
+                feedback.className = "mt-2 text-[10px] text-emerald-500 block";
+                
+                // Show breakdown
+                breakdown.classList.remove('hidden');
+                document.getElementById('subtotal-display').innerText = (data.new_total + data.discount_amount).toFixed(2) + " USD";
+                document.getElementById('discount-display').innerText = "- " + data.discount_amount.toFixed(2) + " USD";
+                document.getElementById('total-display').innerText = data.new_total.toFixed(2) + " USD";
+            } else {
+                feedback.innerText = data.error;
+                feedback.className = "mt-2 text-[10px] text-rose-500 block";
+                breakdown.classList.add('hidden');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            feedback.innerText = "خطأ في الاتصال بالسيرفر.";
+            feedback.className = "mt-2 text-[10px] text-rose-500 block";
+        });
 }
 
 // Select first variant by default

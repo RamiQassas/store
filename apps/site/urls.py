@@ -89,4 +89,5 @@ urlpatterns = [
     path("contact/", views.contact_page, name="contact"),
     path("sw.js", views.service_worker, name="service_worker"),
     path("set-currency/", views.set_currency, name="set_currency"),
+    path("ajax/validate-coupon/", views.ajax_validate_coupon, name="ajax_validate_coupon"),
 ]

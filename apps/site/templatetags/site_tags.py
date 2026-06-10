@@ -75,29 +75,19 @@ def currency_format(context, amount, source_currency=None):
         return f"{amount} {target_currency.symbol if target_currency else 'SYP'}"
 
 @register.filter
-def get_item(dictionary, key):
-    if dictionary is None:
-        return None
-        
-    # Handle JSON string if dictionary is passed as string
-    if isinstance(dictionary, str):
-        import json
-        try:
-            dictionary = json.loads(dictionary)
-        except:
-            return None
-            
-    if not isinstance(dictionary, dict):
-        return None
-        
-    # Standard string lookup (common for JSONField)
-    res = dictionary.get(str(key))
-    
-    # Fallback for UUID hex format if standard str(key) fails
-    if res is None and hasattr(key, 'hex'):
-        res = dictionary.get(key.hex)
-        
-    return res
+def split(value, arg):
+    return value.split(arg)
+
+@register.filter
+def trim(value):
+    return value.strip()
+
+@register.filter
+def replace(value, args):
+    if len(args.split(',')) != 2:
+        return value
+    old, new = args.split(',')
+    return value.replace(old, new)
 
 from django.utils.safestring import mark_safe
 

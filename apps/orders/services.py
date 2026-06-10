@@ -12,11 +12,12 @@ def next_order_number():
     return timezone.now().strftime("ORD%Y%m%d%H%M%S%f")
 
 
-def validate_coupon(coupon, user, variant):
+def validate_coupon(coupon, user, variant, subtotal=None):
     if not coupon.is_active:
         raise ValueError("هذا الكوبون غير نشط.")
     
-    if coupon.expires_at and coupon.expires_at < timezone.now():
+    now = timezone.now()
+    if coupon.expires_at and coupon.expires_at < now:
         raise ValueError("انتهت صلاحية هذا الكوبون.")
         
     if coupon.is_verified_only and not user.is_kyc_verified:
@@ -28,7 +29,7 @@ def validate_coupon(coupon, user, variant):
     # Check max uses per user
     user_uses = Order.objects.filter(customer=user, coupon=coupon).count()
     if user_uses >= coupon.max_uses_per_user:
-        raise ValueError("لقد استنفدت عدد مرات استخدام هذا الكوبون.")
+        raise ValueError("لقد استخدمت هذا الكوبون مسبقاً.")
         
     # Check product limit
     if not coupon.apply_to_all_products:
@@ -36,6 +37,16 @@ def validate_coupon(coupon, user, variant):
             raise ValueError(f"هذا الكوبون صالح فقط لمنتج: {coupon.limit_to_product.name}")
         elif not coupon.limit_to_product:
              raise ValueError("هذا الكوبون غير صالح لهذا المنتج.")
+             
+    # Calculate discount
+    discount = Decimal("0.00")
+    if subtotal:
+        if coupon.discount_percent > 0:
+            discount = subtotal * (coupon.discount_percent / Decimal("100.00"))
+        elif coupon.discount_amount > 0:
+            discount = coupon.discount_amount
+            
+    return discount
 
 
 @transaction.atomic
@@ -54,12 +65,12 @@ def create_order(customer, variant_id, quantity=1, fulfillment_data=None, coupon
     subtotal = price * Decimal(quantity)
     discount = Decimal("0.00")
     if coupon:
-        validate_coupon(coupon, customer, variant)
-        discount = subtotal * (coupon.discount_percent / Decimal("100.00"))
+        discount = validate_coupon(coupon, customer, variant, subtotal=subtotal)
         coupon.used_count += 1
         coupon.save(update_fields=["used_count"])
 
     total = subtotal - discount
+    if total < 0: total = Decimal("0.00")
     order = Order.objects.create(
         customer=customer,
         number=next_order_number(),

@@ -1323,17 +1323,107 @@ def control_order_detail(request, pk):
             if new_total:
                 try:
                     new_total = Decimal(new_total)
-                    if not order.original_total:
-                        order.original_total = order.total_amount
-                    order.total_amount = new_total
-                    order.price_adjustment_reason = reason
-                    order.save(update_fields=["total_amount", "original_total", "price_adjustment_reason"])
-                    OrderLog.objects.create(order=order, status=order.status, note=f"تعديل السعر إلى {new_total}. السبب: {reason}", created_by=request.user)
-                    messages.success(request, "تم تعديل سعر الطلب بنجاح.")
+                    old_total = order.total_amount
+                    
+                    if new_total != old_total:
+                        with transaction.atomic():
+                            # Update order
+                            if not order.original_total:
+                                order.original_total = old_total
+                            order.total_amount = new_total
+                            order.price_adjustment_reason = reason
+                            order.save(update_fields=["total_amount", "original_total", "price_adjustment_reason"])
+                            
+                            # Financial adjustment
+                            diff = new_total - old_total # Positive = Price increased (Deduct), Negative = Price decreased (Credit)
+                            wallet = order.customer.wallet
+                            
+                            from apps.wallets.services import credit_wallet, add_debt
+                            adj_ref = f"adj:order:{order.id}:{timezone.now().timestamp()}"
+                            
+                            if diff > 0:
+                                # Price increased -> Deduct from wallet or add debt
+                                if wallet.available_balance >= diff:
+                                    from apps.wallets.services import freeze_funds, release_funds
+                                    # We'll use a direct ledger entry for adjustment
+                                    from apps.wallets.models import LedgerEntry
+                                    LedgerEntry.objects.create(
+                                        wallet=wallet,
+                                        amount=-diff,
+                                        entry_type=LedgerEntry.EntryType.DEBIT,
+                                        reference=adj_ref,
+                                        description=f"تعديل سعر الطلب #{order.number} (زيادة). السبب: {reason}",
+                                        created_by=request.user
+                                    )
+                                    wallet.available_balance -= diff
+                                    wallet.save(update_fields=["available_balance", "updated_at"])
+                                else:
+                                    # Not enough balance? Add as debt or just fail? 
+                                    # Request said "خصم سعر جديد من محفظة عميل". We'll deduct and allow negative if needed or notify.
+                                    # For simplicity and to follow request, we deduct.
+                                    LedgerEntry.objects.create(
+                                        wallet=wallet,
+                                        amount=-diff,
+                                        entry_type=LedgerEntry.EntryType.DEBIT,
+                                        reference=adj_ref,
+                                        description=f"تعديل سعر الطلب #{order.number} (زيادة - رصيد مكشوف). السبب: {reason}",
+                                        created_by=request.user
+                                    )
+                                    wallet.available_balance -= diff
+                                    wallet.save(update_fields=["available_balance", "updated_at"])
+                                
+                                notify_user(order.customer, "تعديل سعر الطلب", f"تم زيادة سعر طلبك #{order.number} بمقدار {diff} USD. السبب: {reason}")
+                            
+                            else:
+                                # Price decreased -> Credit wallet
+                                credit_wallet(
+                                    wallet_id=wallet.id,
+                                    amount=abs(diff),
+                                    reference=adj_ref,
+                                    description=f"تعديل سعر الطلب #{order.number} (تخفيض). السبب: {reason}",
+                                    created_by=request.user,
+                                    source="order_adjustment",
+                                    reason="Price reduction"
+                                )
+                                notify_user(order.customer, "تعديل سعر الطلب", f"تم تخفيض سعر طلبك #{order.number} بمقدار {abs(diff)} USD. تم إعادة الفرق لمحفظتك.")
+
+                            OrderLog.objects.create(order=order, status=order.status, note=f"تعديل السعر من {old_total} إلى {new_total}. السبب: {reason}", created_by=request.user)
+                            messages.success(request, f"تم تعديل السعر وإجراء التسوية المالية ({diff} USD).")
                 except Exception as e:
                     messages.error(request, f"خطأ في تعديل السعر: {str(e)}")
             
         return redirect("control_order_detail", pk=pk)
+
+
+def ajax_validate_coupon(request):
+    code = request.GET.get("code", "").strip()
+    variant_id = request.GET.get("variant_id")
+    
+    if not code or not variant_id:
+        return JsonResponse({"valid": False, "error": "بيانات غير مكتملة."})
+        
+    try:
+        from apps.catalog.models import ProductVariant
+        variant = ProductVariant.objects.get(id=variant_id)
+        coupon = Coupon.objects.filter(code__iexact=code, is_active=True).first()
+        
+        if not coupon:
+            return JsonResponse({"valid": False, "error": "الكوبون غير موجود أو معطل."})
+            
+        from apps.orders.services import validate_coupon
+        subtotal = variant.get_price_for_user(request.user)
+        discount = validate_coupon(coupon, request.user, variant, subtotal=subtotal)
+        
+        return JsonResponse({
+            "valid": True,
+            "discount_amount": float(discount),
+            "new_total": float(subtotal - discount),
+            "message": f"تم تطبيق الخصم بنجاح: {discount} USD"
+        })
+    except ValueError as e:
+        return JsonResponse({"valid": False, "error": str(e)})
+    except Exception as e:
+        return JsonResponse({"valid": False, "error": "حدث خطأ غير متوقع."})
     
     return render(request, "site/control_order_detail.html", {
         "order": order, 
