@@ -1,0 +1,100 @@
+{% extends "site/control_base.html" %}
+
+{% block title %}إدارة الكوبونات | Raqamiyat Admin{% endblock %}
+
+{% block control_content %}
+<nav class="breadcrumb">
+    <a href="{% url 'control_dashboard' %}" class="breadcrumb-item">الرئيسية</a>
+    <span class="breadcrumb-item active">إدارة الكوبونات</span>
+</nav>
+
+<div class="page-head flex justify-between items-center">
+    <div>
+        <span class="eyebrow">Promotion Management</span>
+        <h1>قائمة الكوبونات</h1>
+        <p class="text-muted">إدارة كوبونات الخصم والتحكم في صلاحياتها</p>
+    </div>
+    <a href="{% url 'control_coupon_create' %}" class="btn btn-primary">
+        <i class="fas fa-plus ml-2"></i> إنشاء كوبون جديد
+    </a>
+</div>
+
+<div class="management-card">
+    <div class="table-responsive">
+        <table class="admin-table">
+            <thead>
+                <tr>
+                    <th>الكود</th>
+                    <th>الخصم</th>
+                    <th>الاستخدام</th>
+                    <th>الحالة</th>
+                    <th>للموثقين فقط</th>
+                    <th>المنتج المحدد</th>
+                    <th>تاريخ الانتهاء</th>
+                    <th>الإجراءات</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for coupon in coupons %}
+                <tr>
+                    <td class="font-mono font-bold text-cyan">{{ coupon.code }}</td>
+                    <td class="font-black">{{ coupon.discount_percent }}%</td>
+                    <td>
+                        <div class="flex flex-col gap-1">
+                            <span class="text-xs">{{ coupon.used_count }} / {{ coupon.max_uses|default:"∞" }}</span>
+                            <div class="w-20 h-1 bg-white/5 rounded-full overflow-hidden">
+                                <div class="h-full bg-cyan" style="width: {% if coupon.max_uses %}{% widthratio coupon.used_count coupon.max_uses 100 %}{% else %}0{% endif %}%"></div>
+                            </div>
+                            <span class="text-[9px] text-slate-500">لكل مستخدم: {{ coupon.max_uses_per_user }}</span>
+                        </div>
+                    </td>
+                    <td>
+                        {% if coupon.is_active %}
+                        <span class="badge success">نشط</span>
+                        {% else %}
+                        <span class="badge danger">معطل</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if coupon.is_verified_only %}
+                        <i class="fas fa-check-circle text-cyan"></i>
+                        {% else %}
+                        <i class="fas fa-times-circle text-slate-700"></i>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if coupon.apply_to_all_products %}
+                        <span class="text-[10px] text-slate-400">جميع المنتجات</span>
+                        {% else %}
+                        <span class="text-[10px] text-amber-500">{{ coupon.limit_to_product.name|default:"لم يحدد" }}</span>
+                        {% endif %}
+                    </td>
+                    <td class="text-[10px] font-mono">
+                        {{ coupon.expires_at|date:"Y-m-d H:i"|default:"---" }}
+                    </td>
+                    <td>
+                        <div class="flex gap-2">
+                            <a href="{% url 'control_coupon_edit' coupon.id %}" class="btn btn-outline btn-sm">
+                                <i class="fas fa-edit"></i>
+                            </a>
+                            <form method="post" action="{% url 'control_coupon_delete' coupon.id %}" onsubmit="return confirm('هل أنت متأكد من حذف هذا الكوبون؟')">
+                                {% csrf_token %}
+                                <button type="submit" class="btn btn-outline btn-sm text-rose-500">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </form>
+                        </div>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="8" class="text-center py-20 text-slate-500 font-bold">
+                        لا يوجد كوبونات حالياً. قم بإنشاء أول كوبون للبدء.
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

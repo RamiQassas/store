@@ -1,0 +1,112 @@
+{% extends "site/control_base.html" %}
+
+{% block title %}{{ title }} | Raqamiyat Admin{% endblock %}
+
+{% block control_content %}
+<nav class="breadcrumb">
+    <a href="{% url 'control_dashboard' %}" class="breadcrumb-item">الرئيسية</a>
+    <a href="{% url 'control_coupons_list' %}" class="breadcrumb-item">إدارة الكوبونات</a>
+    <span class="breadcrumb-item active">{{ title }}</span>
+</nav>
+
+<div class="page-head">
+    <span class="eyebrow">Coupon Editor</span>
+    <h1>{{ title }}</h1>
+</div>
+
+<div class="max-w-3xl">
+    <div class="management-card">
+        <div class="p-8">
+            <form method="post" class="stack gap-6">
+                {% csrf_token %}
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div class="field-group">
+                        <label class="info-label">كود الكوبون</label>
+                        {{ form.code }}
+                        {% if form.code.errors %}<p class="text-rose-500 text-[10px] mt-1">{{ form.code.errors.0 }}</p>{% endif %}
+                    </div>
+                    <div class="field-group">
+                        <label class="info-label">نسبة الخصم (%)</label>
+                        {{ form.discount_percent }}
+                        {% if form.discount_percent.errors %}<p class="text-rose-500 text-[10px] mt-1">{{ form.discount_percent.errors.0 }}</p>{% endif %}
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div class="field-group">
+                        <label class="info-label">أقصى عدد استخدام (لجميع المستخدمين)</label>
+                        {{ form.max_uses }}
+                        <p class="text-[9px] text-slate-500 mt-1">0 تعني غير محدود</p>
+                    </div>
+                    <div class="field-group">
+                        <label class="info-label">أقصى عدد استخدام (لكل مستخدم)</label>
+                        {{ form.max_uses_per_user }}
+                    </div>
+                </div>
+
+                <div class="field-group">
+                    <label class="info-label">تاريخ الانتهاء (اختياري)</label>
+                    {{ form.expires_at }}
+                </div>
+
+                <div class="divider border-white/5 my-2"></div>
+
+                <div class="stack gap-4">
+                    <label class="flex items-center gap-3 p-4 bg-slate-900/50 rounded-2xl border border-white/5 cursor-pointer hover:bg-slate-900 transition">
+                        {{ form.is_verified_only }}
+                        <div>
+                            <div class="font-bold text-sm text-white">للحسابات الموثقة فقط (KYC)</div>
+                            <div class="text-[10px] text-slate-500">منع الحسابات غير الموثقة من استخدام هذا الكوبون لتقليل الاحتيال.</div>
+                        </div>
+                    </label>
+
+                    <label class="flex items-center gap-3 p-4 bg-slate-900/50 rounded-2xl border border-white/5 cursor-pointer hover:bg-slate-900 transition">
+                        {{ form.is_active }}
+                        <div>
+                            <div class="font-bold text-sm text-white">الكوبون نشط</div>
+                            <div class="text-[10px] text-slate-500">تعطيل الكوبون سيمنع استخدامه فوراً حتى لو لم ينتهي تاريخه.</div>
+                        </div>
+                    </label>
+                </div>
+
+                <div class="divider border-white/5 my-2"></div>
+
+                <div class="stack gap-4">
+                    <label class="flex items-center gap-3 p-4 bg-slate-900/50 rounded-2xl border border-white/5 cursor-pointer hover:bg-slate-900 transition">
+                        {{ form.apply_to_all_products }}
+                        <div>
+                            <div class="font-bold text-sm text-white">يعمل على جميع المنتجات</div>
+                        </div>
+                    </label>
+
+                    <div class="field-group" id="product-limit-field" {% if form.apply_to_all_products.value %}style="display:none"{% endif %}>
+                        <label class="info-label">تحديد لمنتج معين</label>
+                        {{ form.limit_to_product }}
+                    </div>
+                </div>
+
+                <div class="flex gap-4 mt-4">
+                    <button type="submit" class="btn btn-primary flex-grow py-4 text-lg">
+                        <i class="fas fa-save ml-2"></i> حفظ الكوبون
+                    </button>
+                    <a href="{% url 'control_coupons_list' %}" class="btn btn-outline px-8">إلغاء</a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const applyToAll = document.querySelector('input[name="apply_to_all_products"]');
+    const productField = document.getElementById('product-limit-field');
+    
+    if (applyToAll) {
+        applyToAll.addEventListener('change', function() {
+            productField.style.display = this.checked ? 'none' : 'block';
+        });
+    }
+});
+</script>
+{% endblock %}

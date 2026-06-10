@@ -168,6 +168,9 @@
             <a href="{% url 'control_orders_list' %}" class="admin-nav-link {% if 'order' in request.path %}active{% endif %}">
                 <i class="fas fa-receipt"></i> الطلبات
             </a>
+            <a href="{% url 'control_coupons_list' %}" class="admin-nav-link {% if 'coupon' in request.path %}active{% endif %}">
+                <i class="fas fa-ticket-alt"></i> الكوبونات
+            </a>
             <a href="{% url 'control_products_list' %}" class="admin-nav-link {% if 'product' in request.path %}active{% endif %}">
                 <i class="fas fa-box-open"></i> المنتجات
             </a>

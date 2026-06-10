@@ -10,6 +10,7 @@ from django.utils.http import urlsafe_base64_encode
 from django.utils.encoding import force_bytes
 from django.urls import reverse
 from apps.accounts.services import send_brevo_email
+from apps.orders.models import Order, Coupon
 
 class CustomPasswordResetForm(PasswordResetForm):
     def save(self, domain_override=None, subject_template_name=None,
@@ -324,21 +325,24 @@ class KYCRequestForm(forms.ModelForm):
             qs = KYCRequest.objects.filter(id_number__iexact=id_number)
             if self.instance.pk:
                 qs = qs.exclude(pk=self.instance.pk)
-            
+
             if qs.exists():
-                raise forms.ValidationError("هذا الرقم الوطني مستخدم مسبقًا في حساب آخر.")
+                raise forms.ValidationError("هذا الرقم الوطني موجود سابقاً، إذا كنت تعتقد أن هذا خطأ تواصل مع الإدارة.")
         return id_number
 
     def __init__(self, *args, **kwargs):
         is_admin = kwargs.pop('is_admin', False)
         super().__init__(*args, **kwargs)
         # Ensure all fields are required for users, but allow optional images for admin updates
+        # OR if the user already has images uploaded (persistent images)
         for field_name, field in self.fields.items():
-            if is_admin and field_name in ["identity_front", "identity_back", "selfie_verification"]:
-                field.required = False
+            if field_name in ["identity_front", "identity_back", "selfie_verification"]:
+                if is_admin or (self.instance and self.instance.pk and getattr(self.instance, field_name)):
+                    field.required = False
+                else:
+                    field.required = True
             else:
                 field.required = True
-
 
 from apps.catalog.models import Category, Product, ProductVariant
 
@@ -346,6 +350,23 @@ class CategoryForm(forms.ModelForm):
     class Meta:
         model = Category
         fields = ["name", "parent", "is_active", "sort_order"]
+
+class CouponForm(forms.ModelForm):
+    class Meta:
+        model = Coupon
+        fields = [
+            "code", "discount_percent", "max_uses", "max_uses_per_user",
+            "is_active", "is_verified_only", "expires_at",
+            "limit_to_product", "apply_to_all_products"
+        ]
+        widgets = {
+            "code": forms.TextInput(attrs={"class": "builder-input", "placeholder": "WELCOME2026"}),
+            "discount_percent": forms.NumberInput(attrs={"class": "builder-input", "step": "0.01"}),
+            "max_uses": forms.NumberInput(attrs={"class": "builder-input"}),
+            "max_uses_per_user": forms.NumberInput(attrs={"class": "builder-input"}),
+            "expires_at": forms.DateTimeInput(attrs={"type": "datetime-local", "class": "builder-input"}),
+            "limit_to_product": forms.Select(attrs={"class": "builder-input searchable-select"}),
+        }
 
 
 class ProductForm(forms.ModelForm):

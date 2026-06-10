@@ -12,6 +12,32 @@ def next_order_number():
     return timezone.now().strftime("ORD%Y%m%d%H%M%S%f")
 
 
+def validate_coupon(coupon, user, variant):
+    if not coupon.is_active:
+        raise ValueError("هذا الكوبون غير نشط.")
+    
+    if coupon.expires_at and coupon.expires_at < timezone.now():
+        raise ValueError("انتهت صلاحية هذا الكوبون.")
+        
+    if coupon.is_verified_only and not user.is_kyc_verified:
+        raise ValueError("هذا الكوبون مخصص للحسابات الموثقة فقط.")
+        
+    if coupon.max_uses > 0 and coupon.used_count >= coupon.max_uses:
+        raise ValueError("تم استخدام هذا الكوبون لأقصى عدد مسموح به.")
+        
+    # Check max uses per user
+    user_uses = Order.objects.filter(customer=user, coupon=coupon).count()
+    if user_uses >= coupon.max_uses_per_user:
+        raise ValueError("لقد استنفدت عدد مرات استخدام هذا الكوبون.")
+        
+    # Check product limit
+    if not coupon.apply_to_all_products:
+        if coupon.limit_to_product and variant.product != coupon.limit_to_product:
+            raise ValueError(f"هذا الكوبون صالح فقط لمنتج: {coupon.limit_to_product.name}")
+        elif not coupon.limit_to_product:
+             raise ValueError("هذا الكوبون غير صالح لهذا المنتج.")
+
+
 @transaction.atomic
 def create_order(customer, variant_id, quantity=1, fulfillment_data=None, coupon=None, metadata=None):
     if customer.restriction_purchases:
@@ -28,7 +54,11 @@ def create_order(customer, variant_id, quantity=1, fulfillment_data=None, coupon
     subtotal = price * Decimal(quantity)
     discount = Decimal("0.00")
     if coupon:
+        validate_coupon(coupon, customer, variant)
         discount = subtotal * (coupon.discount_percent / Decimal("100.00"))
+        coupon.used_count += 1
+        coupon.save(update_fields=["used_count"])
+
     total = subtotal - discount
     order = Order.objects.create(
         customer=customer,

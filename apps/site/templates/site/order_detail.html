@@ -118,6 +118,14 @@
                 </div>
                 {% endfor %}
             </div>
+
+            {% if order.price_adjustment_reason %}
+            <div class="mt-4 p-4 bg-amber-500/10 rounded-xl border border-amber-500/20">
+                <div class="text-[10px] font-black text-amber-500 uppercase mb-1">ملاحظة من الإدارة حول السعر</div>
+                <div class="text-xs text-amber-200">{{ order.price_adjustment_reason }}</div>
+            </div>
+            {% endif %}
+
             <div class="mt-8 pt-6 border-t border-white/5 flex justify-between items-center">
                 <span class="text-slate-500 text-sm">المبلغ الإجمالي المخصوم</span>
                 <strong class="text-2xl font-black text-white">{% currency_format order.total_amount %}</strong>

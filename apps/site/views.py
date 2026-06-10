@@ -1307,6 +1307,22 @@ def control_order_detail(request, pk):
             order.fulfillment_data = new_fulfillment
             order.save(update_fields=["fulfillment_data"])
             messages.success(request, "تم تحديث بيانات التنفيذ.")
+
+        elif action == "update_price":
+            new_total = request.POST.get("total_amount")
+            reason = request.POST.get("adjustment_reason", "")
+            if new_total:
+                try:
+                    new_total = Decimal(new_total)
+                    if not order.original_total:
+                        order.original_total = order.total_amount
+                    order.total_amount = new_total
+                    order.price_adjustment_reason = reason
+                    order.save(update_fields=["total_amount", "original_total", "price_adjustment_reason"])
+                    OrderLog.objects.create(order=order, status=order.status, note=f"تعديل السعر إلى {new_total}. السبب: {reason}", created_by=request.user)
+                    messages.success(request, "تم تعديل سعر الطلب بنجاح.")
+                except Exception as e:
+                    messages.error(request, f"خطأ في تعديل السعر: {str(e)}")
             
         return redirect("control_order_detail", pk=pk)
     
@@ -1471,4 +1487,39 @@ def control_quick_reply_delete(request, pk):
     reply.delete()
     messages.success(request, "تم حذف الرد الجاهز بنجاح.")
     return redirect("control_quick_replies")
+
+
+# Coupon Management
+@admin_required
+def control_coupons_list(request):
+    coupons = Coupon.objects.all().order_by("-created_at")
+    return render(request, "site/control_coupons_list.html", {"coupons": coupons})
+
+@admin_required
+def control_coupon_create(request):
+    form = CouponForm(request.POST or None)
+    if request.method == "POST" and form.is_valid():
+        form.save()
+        messages.success(request, "تم إنشاء الكوبون بنجاح.")
+        return redirect("control_coupons_list")
+    return render(request, "site/control_coupon_form.html", {"form": form, "title": "إنشاء كوبون جديد"})
+
+@admin_required
+def control_coupon_edit(request, pk):
+    coupon = get_object_or_404(Coupon, pk=pk)
+    form = CouponForm(request.POST or None, instance=coupon)
+    if request.method == "POST" and form.is_valid():
+        form.save()
+        messages.success(request, "تم تحديث الكوبون بنجاح.")
+        return redirect("control_coupons_list")
+    return render(request, "site/control_coupon_form.html", {"form": form, "title": "تعديل الكوبون", "coupon": coupon})
+
+@admin_required
+def control_coupon_delete(request, pk):
+    coupon = get_object_or_404(Coupon, pk=pk)
+    if request.method == "POST":
+        coupon.delete()
+        messages.success(request, "تم حذف الكوبون بنجاح.")
+        return redirect("control_coupons_list")
+    return render(request, "site/control_confirm_delete.html", {"object": coupon, "type": "كوبون"})
 

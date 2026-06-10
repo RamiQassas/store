@@ -10,10 +10,15 @@ from apps.common.models import TimeStampedModel
 class Coupon(TimeStampedModel):
     code = models.CharField(max_length=40, unique=True, verbose_name="الكود")
     discount_percent = models.DecimalField(max_digits=5, decimal_places=2, default=Decimal("0.00"), verbose_name="خصم (%)")
-    max_uses = models.PositiveIntegerField(default=0, verbose_name="أقصى عدد استخدام")
-    used_count = models.PositiveIntegerField(default=0, verbose_name="تم استخدامه")
+    max_uses = models.PositiveIntegerField(default=0, verbose_name="أقصى عدد استخدام لجميع المستخدمين (0 = غير محدود)")
+    max_uses_per_user = models.PositiveIntegerField(default=1, verbose_name="أقصى عدد استخدام لكل مستخدم")
+    used_count = models.PositiveIntegerField(default=0, verbose_name="إجمالي عدد المرات التي تم استخدامه")
     is_active = models.BooleanField(default=True, verbose_name="نشط")
+    is_verified_only = models.BooleanField(default=True, verbose_name="للحسابات الموثقة فقط")
     expires_at = models.DateTimeField(null=True, blank=True, verbose_name="تاريخ الانتهاء")
+    
+    limit_to_product = models.ForeignKey("catalog.Product", null=True, blank=True, on_delete=models.SET_NULL, verbose_name="محدد لمنتج معين")
+    apply_to_all_products = models.BooleanField(default=True, verbose_name="يعمل على جميع المنتجات")
 
     class Meta:
         verbose_name = "كوبون"
@@ -35,6 +40,8 @@ class Order(TimeStampedModel):
     number = models.CharField(max_length=32, unique=True, db_index=True, verbose_name="رقم الطلب")
     status = models.CharField(max_length=20, choices=Status.choices, default=Status.PROCESSING, verbose_name="الحالة")
     total_amount = models.DecimalField(max_digits=14, decimal_places=2, default=Decimal("0.00"), verbose_name="إجمالي المبلغ")
+    original_total = models.DecimalField(max_digits=14, decimal_places=2, null=True, blank=True, verbose_name="المبلغ الأصلي قبل التعديل")
+    price_adjustment_reason = models.TextField(blank=True, verbose_name="سبب تعديل السعر")
     coupon = models.ForeignKey(Coupon, null=True, blank=True, on_delete=models.SET_NULL, verbose_name="الكوبون")
     fulfillment_data = models.JSONField(default=dict, blank=True, verbose_name="بيانات التنفيذ")
     admin_note = models.TextField(blank=True, verbose_name="ملاحظات المدير")

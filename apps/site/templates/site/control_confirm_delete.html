@@ -1,0 +1,34 @@
+{% extends "site/control_base.html" %}
+
+{% block title %}تأكيد الحذف | Raqamiyat Admin{% endblock %}
+
+{% block control_content %}
+<nav class="breadcrumb">
+    <a href="{% url 'control_dashboard' %}" class="breadcrumb-item">الرئيسية</a>
+    <span class="breadcrumb-item active">تأكيد الحذف</span>
+</nav>
+
+<div class="max-w-2xl mx-auto mt-10">
+    <div class="management-card border-rose-500/20">
+        <div class="p-10 text-center">
+            <div class="w-20 h-20 bg-rose-500/10 rounded-full flex items-center justify-center mx-auto mb-6 text-rose-500">
+                <i class="fas fa-exclamation-triangle text-4xl"></i>
+            </div>
+            
+            <h1 class="text-2xl font-black mb-4">هل أنت متأكد من الحذف؟</h1>
+            <p class="text-slate-400 mb-8 leading-relaxed">
+                أنت على وشك حذف {{ type }}: <strong class="text-white">{{ object }}</strong>.
+                <br>هذا الإجراء لا يمكن التراجع عنه وقد يؤثر على البيانات المرتبطة.
+            </p>
+            
+            <form method="post" class="flex gap-4 justify-center">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-primary bg-rose-600 border-rose-600 hover:bg-rose-700 text-white px-10">
+                    نعم، قم بالحذف الآن
+                </button>
+                <a href="javascript:history.back()" class="btn btn-outline px-10">إلغاء والعودة</a>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
