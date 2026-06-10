@@ -10,16 +10,18 @@ class UserLanguageMiddleware:
         self.get_response = get_response
 
     def __call__(self, request):
-        # 1. Safe access to user (avoid AttributeError if Middleware order is wrong or during ASGI startup)
+        # 1. Safe access to user and session
         user = getattr(request, 'user', None)
+        session = getattr(request, 'session', None)
         
-        if user and user.is_authenticated:
+        if user and user.is_authenticated and session is not None:
             # Sync user's saved preference to session if it's different.
             user_pref = getattr(user, 'preferred_language', None)
-            session_lang = request.session.get(translation.LANGUAGE_SESSION_KEY)
+            # '_language' is the standard Django session key for language
+            session_lang = session.get('_language')
             
             if user_pref and user_pref != session_lang:
-                request.session[translation.LANGUAGE_SESSION_KEY] = user_pref
+                session['_language'] = user_pref
                 # Activate immediately so current request uses it
                 translation.activate(user_pref)
                 request.LANGUAGE_CODE = translation.get_language()
