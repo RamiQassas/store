@@ -1,7 +1,7 @@
 {% extends "site/base.html" %}
-{% load i18n static site_tags %}
+{% load static site_tags %}
 
-{% block title %}{% trans "Catalog" %} | Raqamiyat{% endblock %}
+{% block title %}الكتالوج | Raqamiyat{% endblock %}
 
 {% block extra_head %}
 <style>
@@ -124,15 +124,15 @@
 {% block content %}
 <div class="page-head">
     <div>
-        <span class="eyebrow">{% trans "Service Marketplace" %}</span>
-        <h1>{% trans "Digital Services Store" %}</h1>
-        <p class="text-muted">{% trans "Choose from hundreds of reliable and secure digital services." %}</p>
+        <span class="eyebrow">Service Marketplace</span>
+        <h1>متجر الخدمات الرقمية</h1>
+        <p class="text-muted">اختر من بين مئات الخدمات الرقمية الموثوقة والآمنة.</p>
     </div>
 </div>
 
 <!-- Mobile Filter Bar -->
 <div class="mobile-filter-scroll">
-    <a href="{% url 'catalog' %}" class="m-chip {% if not active_category %}active{% endif %}">{% trans "All" %}</a>
+    <a href="{% url 'catalog' %}" class="m-chip {% if not active_category %}active{% endif %}">الكل</a>
     {% for cat in categories %}
     <a href="?category={{ cat.id }}" class="m-chip {% if active_category == cat.id|stringformat:'s' %}active{% endif %}">{{ cat.name }}</a>
     {% endfor %}
@@ -142,10 +142,10 @@
     <!-- Sidebar (Desktop) -->
     <aside class="filter-sidebar p-6">
         <div class="filter-group">
-            <span class="filter-label">{% trans "Categories" %}</span>
+            <span class="filter-label">التصنيفات</span>
             <div class="stack gap-1">
                 <a href="{% url 'catalog' %}" class="cat-link {% if not active_category %}active{% endif %}">
-                    <span>{% trans "All" %}</span>
+                    <span>الكل</span>
                 </a>
                 {% for cat in categories %}
                 <a href="?category={{ cat.id }}" class="cat-link {% if active_category == cat.id|stringformat:'s' %}active{% endif %}">
@@ -157,12 +157,12 @@
         </div>
 
         <div class="filter-group">
-            <span class="filter-label">{% trans "Sort Order" %}</span>
+            <span class="filter-label">ترتيب العرض</span>
             <select class="builder-input" onchange="location.href = '?sort=' + this.value">
-                <option value="newest" {% if sort == 'newest' %}selected{% endif %}>{% trans "Newest First" %}</option>
-                <option value="price_low" {% if sort == 'price_low' %}selected{% endif %}>{% trans "Lowest Price" %}</option>
-                <option value="price_high" {% if sort == 'price_high' %}selected{% endif %}>{% trans "Highest Price" %}</option>
-                <option value="popular" {% if sort == 'popular' %}selected{% endif %}>{% trans "Most Popular" %}</option>
+                <option value="newest" {% if sort == 'newest' %}selected{% endif %}>الأحدث أولاً</option>
+                <option value="price_low" {% if sort == 'price_low' %}selected{% endif %}>الأقل سعراً</option>
+                <option value="price_high" {% if sort == 'price_high' %}selected{% endif %}>الأعلى سعراً</option>
+                <option value="popular" {% if sort == 'popular' %}selected{% endif %}>الأكثر شعبية</option>
             </select>
         </div>
     </aside>
@@ -172,10 +172,10 @@
         <div class="catalog-header">
             <form class="search-box-v2" method="get">
                 <i class="fas fa-search"></i>
-                <input type="text" name="q" value="{{ query }}" placeholder="{% trans 'Search for service, product, or keyword...' %}">
+                <input type="text" name="q" value="{{ query }}" placeholder="ابحث عن خدمة، منتج، أو كلمة مفتاحية...">
             </form>
             <div class="hide-mobile">
-                <span class="text-xs text-muted">{% trans "Found" %} <strong>{{ products.count }}</strong> {% trans "results" %}</span>
+                <span class="text-xs text-muted">تم العثور على <strong>{{ products.count }}</strong> نتيجة</span>
             </div>
         </div>
 
@@ -184,11 +184,11 @@
             <div class="product-v2-card">
                 <a href="{% url 'product_detail' p.id %}" class="p-v2-img">
                     {% if p.image %}
-                    <img src="{{ p.image.url }}" alt="{{ p.name }}" loading="lazy" onerror="this.onerror=null; this.src='data:image/svg+xml;charset=UTF-8,%3Csvg%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%22%20fill%3D%22none%22%20stroke%3D%22%23334155%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%3E%3Crect%20x%3D%223%22%20y%3D%223%22%20width%3D%2218%22%20height%3D%2218%22%20rx%3D%222%22%20ry%3D%222%22%3E%3C%2Frect%3E%3Ccircle%20cx%3D%228.5%22%20cy%3D%228.5%22%20r%3D%221.5%22%3E%3C%2Fcircle%3E%3Cpolyline%20points%3D%2221%2015%2016%2010%205%2021%22%3E%3C%2Fpolyline%3E%3C%2Fsvg%3E';">
+                    <img src="{{ p.image.url }}" alt="{{ p.name }}" loading="lazy" onerror="this.onerror=null; this.src='data:image/svg+xml;charset=UTF-8,%3Csvg%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%23334155%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%3E%3Crect%20x%3D%223%22%20y%3D%223%22%20width%3D%2218%22%20height%3D%2218%22%20rx%3D%222%22%20ry%3D%222%22%3E%3C%2Frect%3E%3Ccircle%20cx%3D%228.5%22%20cy%3D%228.5%22%20r%3D%221.5%22%3E%3C%2Fcircle%3E%3Cpolyline%20points%3D%2221%2015%2016%2010%205%2021%22%3E%3C%2Fpolyline%3E%3C%2Fsvg%3E';">
                     {% else %}
                     <div class="flex flex-col items-center gap-3 opacity-20">
                         <i class="fas fa-box-open text-5xl"></i>
-                        <span class="text-[10px] font-bold">{% trans "NO IMAGE" %}</span>
+                        <span class="text-[10px] font-bold">NO IMAGE</span>
                     </div>
                     {% endif %}
                 </a>
@@ -198,11 +198,11 @@
                     
                     <div class="p-v2-footer mt-6 pt-4 border-t border-white/5 flex justify-between items-center">
                         <div class="p-v2-price-box">
-                            <span>{% trans "Starts from" %}</span>
+                            <span>يبدأ من</span>
                             {% variant_price p.variants.first as v_price %}
                             <div class="p-v2-price">{% currency_format v_price %}</div>
                         </div>
-                        <a href="{% url 'product_detail' p.id %}" class="btn btn-primary btn-sm rounded-full px-5">{% trans "Details" %}</a>
+                        <a href="{% url 'product_detail' p.id %}" class="btn btn-primary btn-sm rounded-full px-5">تفاصيل</a>
                     </div>
                 </div>
             </div>
@@ -211,12 +211,13 @@
                 <div class="w-20 h-20 bg-slate-800/50 rounded-full flex items-center justify-center mx-auto mb-6 text-slate-500">
                     <i class="fas fa-search text-3xl"></i>
                 </div>
-                <h3 class="text-xl font-bold mb-2">{% trans "No matching results" %}</h3>
-                <p class="text-muted">{% trans "Try searching with other words or choose a different category." %}</p>
-                <a href="{% url 'catalog' %}" class="btn btn-outline btn-sm mt-6">{% trans "Reset Search" %}</a>
+                <h3 class="text-xl font-bold mb-2">لا توجد نتائج مطابقة</h3>
+                <p class="text-muted">جرب البحث بكلمات أخرى أو اختر تصنيفاً مختلفاً.</p>
+                <a href="{% url 'catalog' %}" class="btn btn-outline btn-sm mt-6">إعادة ضبط البحث</a>
             </div>
             {% endfor %}
         </div>
     </main>
 </div>
 {% endblock %}
+

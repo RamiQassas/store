@@ -1,5 +1,5 @@
 {% extends "site/base.html" %}
-{% load i18n static site_tags %}
+{% load static site_tags %}
 
 {% block title %}{{ product.name }} | Raqamiyat{% endblock %}
 
@@ -84,11 +84,11 @@
         <div class="panel p-6 mt-10 bg-white/[0.01] stack gap-4">
             <div class="flex items-center gap-4 text-xs font-bold text-muted">
                 <i class="fas fa-shield-check text-success text-xl"></i>
-                <span>{% trans "100% service delivery guarantee or balance refund." %}</span>
+                <span>ضمان استلام الخدمة 100% أو استعادة الرصيد.</span>
             </div>
             <div class="flex items-center gap-4 text-xs font-bold text-muted">
                 <i class="fas fa-bolt text-amber-500 text-xl"></i>
-                <span>{% trans "Instant delivery within minutes for most variants." %}</span>
+                <span>تسليم فوري خلال دقائق لمعظم الباقات.</span>
             </div>
         </div>
     </div>
@@ -107,14 +107,14 @@
             <input type="hidden" name="variant_id" id="selected-variant-id">
 
             <div class="stack gap-4">
-                <h3 class="font-bold text-sm text-muted uppercase tracking-wider">{% trans "Choose Suitable Variant" %}</h3>
+                <h3 class="font-bold text-sm text-muted uppercase tracking-wider">اختر الباقة المناسبة</h3>
                 {% for v in variants %}
                 <div class="variant-card" onclick="selectVariant('{{ v.id }}', this)">
                     <div class="flex items-center gap-4">
                         <div class="radio-circle"></div>
                         <div>
                             <div class="font-bold text-base">{{ v.name }}</div>
-                            <div class="text-[10px] text-muted">{% trans "Delivery Time:" %} {{ v.estimated_delivery_minutes }} {% trans "minutes" %}</div>
+                            <div class="text-[10px] text-muted">وقت التسليم: {{ v.estimated_delivery_minutes }} دقيقة</div>
                         </div>
                     </div>
                     {% variant_price v as v_price %}
@@ -126,7 +126,7 @@
             <!-- Dynamic Form Fields -->
             {% if product.form_schema.fields %}
             <div class="panel p-8 mt-8 stack gap-6 bg-cyan/[0.02] border-cyan/10">
-                <h3 class="font-bold text-lg"><i class="fas fa-edit ml-2"></i> {% trans "Required Information" %}</h3>
+                <h3 class="font-bold text-lg"><i class="fas fa-edit ml-2"></i> البيانات المطلوبة</h3>
                 <div class="grid grid-1 gap-4">
                     {% for f in product.form_schema.fields %}
                     <div class="field-group">
@@ -144,23 +144,23 @@
 
             <div class="mt-10">
                 <button type="submit" class="buy-btn-v2" id="submit-btn" disabled>
-                    <i class="fas fa-shopping-cart"></i> {% trans "Buy This Variant Now" %}
+                    <i class="fas fa-shopping-cart"></i> شراء هذه الباقة الآن
                 </button>
-                <p class="text-[10px] text-center text-muted mt-4">{% trans "Once purchased, the amount will be deducted from your wallet and the order will be prepared immediately." %}</p>
+                <p class="text-[10px] text-center text-muted mt-4">بمجرد الشراء، سيتم خصم المبلغ من محفظتك وتجهيز الطلب فوراً.</p>
             </div>
         </form>
 
         <!-- Instructions -->
         {% if product.instructions %}
         <div class="panel p-8 stack gap-4 border-dashed">
-            <h3 class="font-bold text-base"><i class="fas fa-circle-info ml-2 text-cyan"></i> {% trans "Important Instructions" %}</h3>
+            <h3 class="font-bold text-base"><i class="fas fa-circle-info ml-2 text-cyan"></i> تعليمات هامة</h3>
             <div class="text-sm text-slate-300 leading-loose">{{ product.instructions|linebreaks }}</div>
         </div>
         {% endif %}
         
         <!-- Related Products -->
         <div class="stack gap-6 mt-12">
-            <h3 class="font-bold text-xl">{% trans "Services You Might Also Be Interested In" %}</h3>
+            <h3 class="font-bold text-xl">خدمات قد تهمك أيضاً</h3>
             <div class="grid grid-3 gap-4">
                 {% for rp in related_products %}
                 <a href="{% url 'product_detail' rp.id %}" class="panel p-4 flex gap-4 items-center hover:border-cyan transition">

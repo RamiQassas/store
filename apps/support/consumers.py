@@ -2,7 +2,6 @@ import json
 from channels.generic.websocket import AsyncWebsocketConsumer
 from channels.db import database_sync_to_async
 from django.utils import timezone
-from django.utils.encoding import force_str
 from apps.support.models import ChatRoom, ChatMessage
 from django.contrib.auth import get_user_model
 
@@ -45,12 +44,7 @@ class SupportConsumer(AsyncWebsocketConsumer):
             message = data.get("message", "")
             file_id = data.get("file_id")
             
-            # Determine staff status
-            is_staff = False
-            if self.user.is_authenticated:
-                is_staff = self.user.is_staff or await self.is_user_in_support_group()
-
-            saved_msg = await self.save_message(message, file_id, is_staff)
+            saved_msg = await self.save_message(message, file_id)
             
             # Determine sender details
             if self.user.is_authenticated:
@@ -65,7 +59,7 @@ class SupportConsumer(AsyncWebsocketConsumer):
                 "message": message,
                 "sender_email": sender_email,
                 "sender_name": sender_name,
-                "is_staff": self.user.is_authenticated and self.user.is_staff,
+                "is_staff_reply": is_staff,
                 "timestamp": saved_msg["timestamp"],
             }
             
@@ -90,15 +84,10 @@ class SupportConsumer(AsyncWebsocketConsumer):
             )
 
     async def chat_message(self, event):
-        await self.send(text_data=json.dumps(event, default=force_str))
+        await self.send(text_data=json.dumps(event))
 
     async def chat_typing(self, event):
-        await self.send(text_data=json.dumps(event, default=force_str))
-
-    @database_sync_to_async
-    def is_user_in_support_group(self):
-        if not self.user.is_authenticated: return False
-        return self.user.groups.filter(name__in=["Support Agent", "Super Admin", "Moderator"]).exists()
+        await self.send(text_data=json.dumps(event))
 
     @database_sync_to_async
     def can_access_room(self):
@@ -129,8 +118,12 @@ class SupportConsumer(AsyncWebsocketConsumer):
             return "زائر"
 
     @database_sync_to_async
-    def save_message(self, text, file_id=None, is_staff=False):
+    def save_message(self, text, file_id=None):
         room = ChatRoom.objects.get(id=self.room_id)
+        
+        is_staff = False
+        if self.user.is_authenticated:
+            is_staff = self.user.is_staff or self.user.groups.filter(name__in=["Support Agent", "Super Admin", "Moderator"]).exists()
         
         # Determine sender user instance (guest uses system guest user)
         sender = self.user if self.user.is_authenticated else room.user
@@ -140,7 +133,6 @@ class SupportConsumer(AsyncWebsocketConsumer):
             try:
                 msg = ChatMessage.objects.get(id=file_id, room=room)
                 if text: msg.text = text
-                msg.is_staff_reply = is_staff
                 msg.save()
             except ChatMessage.DoesNotExist:
                 msg = ChatMessage.objects.create(room=room, sender=sender, text=text, is_staff_reply=is_staff)

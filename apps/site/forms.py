@@ -1,6 +1,5 @@
 from django import forms
 from django.contrib.auth import get_user_model
-from django.utils.translation import gettext_lazy as _
 
 User = get_user_model()
 
@@ -34,26 +33,26 @@ class CustomPasswordResetForm(PasswordResetForm):
             
             reset_url = f"{protocol}://{domain}{reverse('password_reset_confirm', kwargs={'uidb64': uid, 'token': token})}"
             
-            subject = _("Password Reset | Raqamiyat")
+            subject = "إعادة تعيين كلمة المرور | Raqamiyat"
             
             html_content = f"""
             <div dir="rtl" style="font-family: 'Cairo', sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e2e8f0; border-radius: 12px; background-color: #ffffff; color: #1e293b;">
                 <div style="text-align: center; margin-bottom: 30px;">
-                    <h1 style="color: #06b6d4; margin: 0; font-size: 28px;">{_("Raqamiyat")}</h1>
+                    <h1 style="color: #06b6d4; margin: 0; font-size: 28px;">رقميات | Raqamiyat</h1>
                 </div>
-                <p style="font-size: 16px;">{_("Hello")} <strong>{user.first_name or user.email}</strong>،</p>
-                <p style="font-size: 16px; line-height: 1.6;">{_("You requested a password reset for your account.")}</p>
-                <p style="font-size: 16px; line-height: 1.6;">{_("Please click the button below to set a new password:")}</p>
+                <p style="font-size: 16px;">مرحباً <strong>{user.first_name or user.email}</strong>،</p>
+                <p style="font-size: 16px; line-height: 1.6;">لقد طلبت إعادة تعيين كلمة المرور لحسابك في رقميات.</p>
+                <p style="font-size: 16px; line-height: 1.6;">يرجى الضغط على الزر أدناه لتعيين كلمة مرور جديدة:</p>
                 
                 <div style="text-align: center; margin: 40px 0;">
-                    <a href="{reset_url}" style="background-color: #06b6d4; color: #ffffff; padding: 14px 40px; text-decoration: none; border-radius: 8px; font-weight: bold; font-size: 18px; display: inline-block;">{_("Reset Password")}</a>
+                    <a href="{reset_url}" style="background-color: #06b6d4; color: #ffffff; padding: 14px 40px; text-decoration: none; border-radius: 8px; font-weight: bold; font-size: 18px; display: inline-block;">إعادة تعيين كلمة المرور</a>
                 </div>
                 
-                <p style="font-size: 14px; color: #64748b;">{_("If you did not request this change, you can safely ignore this email.")}</p>
+                <p style="font-size: 14px; color: #64748b;">إذا لم تطلب هذا التغيير، يمكنك تجاهل هذا البريد بأمان.</p>
                 <p style="font-size: 12px; word-break: break-all; color: #06b6d4;">{reset_url}</p>
                 
                 <hr style="border: 0; border-top: 1px solid #e2e8f0; margin: 30px 0;">
-                <p style="font-size: 12px; color: #94a3b8; text-align: center;">© 2024 {_("Raqamiyat - All rights reserved.")}</p>
+                <p style="font-size: 12px; color: #94a3b8; text-align: center;">© 2024 رقميات - Raqamiyat. جميع الحقوق محفوظة.</p>
             </div>
             """
             
@@ -66,28 +65,28 @@ class CustomPasswordResetForm(PasswordResetForm):
 
 
 class LoginForm(forms.Form):
-    email = forms.EmailField(label=_("Email Address"), widget=forms.EmailInput(attrs={"placeholder": "name@example.com"}))
-    password = forms.CharField(label=_("Password"), widget=forms.PasswordInput(attrs={"placeholder": "********"}))
+    email = forms.EmailField(label="البريد الإلكتروني", widget=forms.EmailInput(attrs={"placeholder": "name@example.com"}))
+    password = forms.CharField(label="كلمة المرور", widget=forms.PasswordInput(attrs={"placeholder": "********"}))
 
 
 class RegisterForm(forms.Form):
-    first_name = forms.CharField(label=_("First Name"), max_length=150, widget=forms.TextInput(attrs={"placeholder": _("First Name")}))
-    last_name = forms.CharField(label=_("Last Name"), max_length=150, required=False, widget=forms.TextInput(attrs={"placeholder": _("Last Name")}))
-    email = forms.EmailField(label=_("Email Address"), widget=forms.EmailInput(attrs={"placeholder": "name@example.com"}))
-    phone = forms.CharField(label=_("Phone Number"), max_length=32, widget=forms.TextInput(attrs={"placeholder": "05xxxxxxxx"}))
-    password = forms.CharField(label=_("Password"), widget=forms.PasswordInput(attrs={"placeholder": _("Strong Password")}), min_length=10)
-    confirm_password = forms.CharField(label=_("Confirm Password"), widget=forms.PasswordInput(attrs={"placeholder": _("Confirm Password")}))
+    first_name = forms.CharField(label="الاسم الأول", max_length=150, widget=forms.TextInput(attrs={"placeholder": "الاسم الأول"}))
+    last_name = forms.CharField(label="الاسم الأخير", max_length=150, required=False, widget=forms.TextInput(attrs={"placeholder": "الاسم الأخير"}))
+    email = forms.EmailField(label="البريد الإلكتروني", widget=forms.EmailInput(attrs={"placeholder": "name@example.com"}))
+    phone = forms.CharField(label="الهاتف", max_length=32, widget=forms.TextInput(attrs={"placeholder": "05xxxxxxxx"}))
+    password = forms.CharField(label="كلمة المرور", widget=forms.PasswordInput(attrs={"placeholder": "كلمة مرور قوية"}), min_length=10)
+    confirm_password = forms.CharField(label="تأكيد كلمة المرور", widget=forms.PasswordInput(attrs={"placeholder": "تأكيد كلمة المرور"}))
 
     def clean_email(self):
         email = self.cleaned_data["email"].lower()
         if User.objects.filter(email=email).exists():
-            raise forms.ValidationError(_("This email address is already registered."))
+            raise forms.ValidationError("هذا البريد الإلكتروني مسجل مسبقاً.")
         return email
 
     def clean_phone(self):
         phone = self.cleaned_data.get("phone")
         if phone and User.objects.filter(phone=phone).exists():
-            raise forms.ValidationError(_("This phone number is already registered."))
+            raise forms.ValidationError("رقم الهاتف هذا مسجل مسبقاً.")
         return phone
 
     def clean(self):
@@ -96,27 +95,27 @@ class RegisterForm(forms.Form):
         confirm_password = cleaned_data.get("confirm_password")
 
         if password and confirm_password and password != confirm_password:
-            self.add_error("confirm_password", _("Passwords do not match."))
+            self.add_error("confirm_password", "كلمات المرور غير متطابقة.")
         
         # Basic strength check if not already handled by min_length
         if password:
             if not any(char.isdigit() for char in password):
-                self.add_error("password", _("Password must contain at least one digit."))
+                self.add_error("password", "يجب أن تحتوي كلمة المرور على رقم واحد على الأقل.")
             if not any(char.isupper() for char in password):
-                self.add_error("password", _("Password must contain at least one uppercase letter."))
+                self.add_error("password", "يجب أن تحتوي كلمة المرور على حرف كبير واحد على الأقل.")
         
         return cleaned_data
 
 
 class TicketForm(forms.Form):
-    subject = forms.CharField(label=_("Subject"), max_length=180, widget=forms.TextInput(attrs={"placeholder": _("Ticket Subject")}))
+    subject = forms.CharField(label="العنوان", max_length=180, widget=forms.TextInput(attrs={"placeholder": "عنوان التذكرة"}))
     priority = forms.ChoiceField(
-        label=_("Priority"),
-        choices=[("low", _("Low")), ("normal", _("Normal")), ("high", _("High"))],
+        label="الأولوية",
+        choices=[("low", "منخفض"), ("normal", "عادي"), ("high", "عالي")],
     )
     initial_message = forms.CharField(
-        label=_("Message"),
-        widget=forms.Textarea(attrs={"rows": 5, "placeholder": _("Write problem details or request")}),
+        label="الرسالة",
+        widget=forms.Textarea(attrs={"rows": 5, "placeholder": "اكتب تفاصيل المشكلة أو الطلب"}),
     )
 
 
@@ -195,7 +194,7 @@ class ModerateUserForm(forms.ModelForm):
             if self.instance.pk:
                 qs = qs.exclude(pk=self.instance.pk)
             if qs.exists():
-                raise forms.ValidationError(_("This phone number is already registered to another user."))
+                raise forms.ValidationError("رقم الهاتف هذا مسجل مسبقاً لمستخدم آخر.")
         return phone
 
 
@@ -217,11 +216,11 @@ class SocialMediaLinkForm(forms.ModelForm):
 
 class KYCSettingsForm(forms.ModelForm):
     restricted_countries_list = forms.MultipleChoiceField(
-        label=_("Restricted Countries"),
+        label="الدول المحظورة",
         choices=COUNTRIES,
         required=False,
         widget=forms.SelectMultiple(attrs={"class": "builder-input select2", "style": "height: 200px;"}),
-        help_text=_("Choose one or more countries to block verification from.")
+        help_text="اختر دولة أو أكثر لمنع التوثيق منها."
     )
 
     class Meta:
@@ -269,7 +268,7 @@ class KYCRequestForm(forms.ModelForm):
             "first_name": forms.TextInput(attrs={"class": "builder-input"}),
             "father_name": forms.TextInput(attrs={"class": "builder-input"}),
             "last_name": forms.TextInput(attrs={"class": "builder-input"}),
-            "mother_name": forms.TextInput(attrs={"class": "builder-input", "placeholder": _("Mother's full name")}),
+            "mother_name": forms.TextInput(attrs={"class": "builder-input", "placeholder": "الاسم الثلاثي للأم"}),
             "place_of_birth": forms.TextInput(attrs={"class": "builder-input"}),
             "document_type": forms.Select(attrs={"class": "builder-input"}),
             "gender": forms.Select(attrs={"class": "builder-input"}),
@@ -282,7 +281,7 @@ class KYCRequestForm(forms.ModelForm):
             if self.instance.pk:
                 qs = qs.exclude(pk=self.instance.pk)
             if qs.exists():
-                raise forms.ValidationError(_("An account is already verified with this identity data. Only one verified account is allowed per identity document."))
+                raise forms.ValidationError("يوجد حساب موثق بالفعل باستخدام بيانات الهوية هذه. يُسمح بحساب موثق واحد فقط لكل وثيقة هوية.")
         return id_number
 
     def __init__(self, *args, **kwargs):
@@ -305,7 +304,7 @@ class CategoryForm(forms.ModelForm):
 
 
 class ProductForm(forms.ModelForm):
-    sort_order = forms.IntegerField(required=False, initial=0, label=_("Display Order"), widget=forms.NumberInput(attrs={"class": "builder-input"}))
+    sort_order = forms.IntegerField(required=False, initial=0, label="ترتيب العرض", widget=forms.NumberInput(attrs={"class": "builder-input"}))
     
     class Meta:
         model = Product

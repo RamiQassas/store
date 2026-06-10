@@ -1,6 +1,5 @@
 from django.utils import timezone
 from django.db import transaction
-from django.utils.translation import gettext_lazy as _
 from rest_framework import decorators, response, status, viewsets, permissions
 
 from apps.common.permissions import ReadOnlyOrAdmin
@@ -95,11 +94,8 @@ class DepositRequestViewSet(viewsets.ModelViewSet):
             
             notify_user(
                 user=deposit.user,
-                title=_("Deposit Request Approved"),
-                body=_("Successfully added %(amount)s %(currency)s to your wallet.") % {
-                    'amount': deposit.final_amount,
-                    'currency': deposit.currency.code
-                },
+                title="تم قبول طلب الإيداع",
+                body=f"تمت إضافة {deposit.final_amount} {deposit.currency.code} إلى محفظتك بنجاح.",
                 action_url="/dashboard/wallet/",
                 category='financial',
                 priority="high"
@@ -135,11 +131,8 @@ class DepositRequestViewSet(viewsets.ModelViewSet):
             
             notify_user(
                 user=deposit.user,
-                title=_("Deposit Request Rejected"),
-                body=_("We're sorry, your deposit request #%(id)s has been rejected. Reason: %(note)s") % {
-                    'id': deposit.id,
-                    'note': deposit.admin_note
-                },
+                title="تم رفض طلب الإيداع",
+                body=f"نعتذر، تم رفض طلب الإيداع رقم {deposit.id}. السبب: {deposit.admin_note}",
                 action_url="/dashboard/tickets/",
                 category='financial',
                 priority="normal"
@@ -238,11 +231,8 @@ class WithdrawalRequestViewSet(viewsets.ModelViewSet):
             
             notify_user(
                 user=withdrawal.user,
-                title=_("💰 Withdrawal Completed"),
-                body=_("Successfully transferred %(amount)s %(currency)s to your account.") % {
-                    'amount': withdrawal.amount,
-                    'currency': withdrawal.currency.code
-                },
+                title="💰 تم اكتمال السحب",
+                body=f"تم تحويل {withdrawal.amount} {withdrawal.currency.code} إلى حسابك بنجاح.",
                 action_url="/dashboard/withdrawals/",
                 category="financial",
                 priority="high"
@@ -279,11 +269,8 @@ class WithdrawalRequestViewSet(viewsets.ModelViewSet):
             
             notify_user(
                 user=withdrawal.user,
-                title=_("Withdrawal Request Rejected"),
-                body=_("We're sorry, your withdrawal request #%(id)s has been rejected. Funds have been returned to your wallet. Reason: %(note)s") % {
-                    'id': withdrawal.id,
-                    'note': withdrawal.admin_note
-                },
+                title="تم رفض طلب السحب",
+                body=f"نعتذر، تم رفض طلب السحب رقم {withdrawal.id}. تم إعادة المبلغ لمحفظتك. السبب: {withdrawal.admin_note}",
                 action_url="/dashboard/wallet/",
                 category="financial",
                 priority="normal"
@@ -321,10 +308,8 @@ class WithdrawalRequestViewSet(viewsets.ModelViewSet):
             
             notify_user(
                 user=withdrawal.user,
-                title=_("Withdrawal Cancelled"),
-                body=_("Withdrawal process #%(id)s has been cancelled and funds have been returned to your wallet.") % {
-                    'id': withdrawal.id
-                },
+                title="تم إلغاء عملية السحب",
+                body=f"تم إلغاء عملية السحب رقم {withdrawal.id} وإعادة المبلغ لمحفظتك.",
                 action_url="/dashboard/wallet/",
                 category="financial",
                 priority="high"

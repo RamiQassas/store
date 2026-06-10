@@ -1,7 +1,7 @@
 {% extends "site/control_base.html" %}
-{% load i18n static %}
+{% load static %}
 
-{% block title %}{% trans "Account Management" %} | {{ user_to_moderate.email }}{% endblock %}
+{% block title %}إدارة الحساب | {{ user_to_moderate.email }}{% endblock %}
 
 {% block extra_head %}
 <style>
@@ -24,13 +24,13 @@
 {% block control_content %}
 <div class="page-head">
     <div>
-        <span class="eyebrow">{% trans "User Management / Moderate" %}</span>
-        <h1>{% trans "Moderate Account" %}: {{ user_to_moderate.get_full_name|default:user_to_moderate.username }}</h1>
-        <p class="text-muted">{% trans "Control user permissions, financial restrictions, and account status." %}</p>
+        <span class="eyebrow">User Management / Moderate</span>
+        <h1>إدارة حساب: {{ user_to_moderate.get_full_name|default:user_to_moderate.username }}</h1>
+        <p class="text-muted">التحكم في صلاحيات المستخدم، التقييدات المالية، وحالة الحساب.</p>
     </div>
     <div class="flex gap-3">
-        <a href="{% url 'control_users_list' %}" class="btn btn-outline btn-sm">{% trans "Back to List" %}</a>
-        <button class="btn btn-primary btn-sm" onclick="document.getElementById('mod-form').submit()">{% trans "Save All Changes" %}</button>
+        <a href="{% url 'control_users_list' %}" class="btn btn-outline btn-sm">العودة للقائمة</a>
+        <button class="btn btn-primary btn-sm" onclick="document.getElementById('mod-form').submit()">حفظ كافة التغييرات</button>
     </div>
 </div>
 
@@ -40,22 +40,22 @@
         <form method="post" id="mod-form" class="management-card">
             {% csrf_token %}
             <div class="management-header">
-                <h3 class="font-bold"><i class="fas fa-user-cog ml-2"></i> {% trans "Restriction and Ban Settings" %}</h3>
+                <h3 class="font-bold"><i class="fas fa-user-cog ml-2"></i> إعدادات التقييد والحظر</h3>
                 <span class="text-[10px] text-muted">ID: {{ user_to_moderate.id }}</span>
             </div>
             <div class="management-body stack gap-8 p-8">
                 <!-- User Core Info -->
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
                     <div class="field-group">
-                        <label class="text-[11px] uppercase tracking-widest text-slate-500 mb-2">{% trans "Role / Rank" %}</label>
+                        <label class="text-[11px] uppercase tracking-widest text-slate-500 mb-2">الدور / الرتبة</label>
                         {{ form.role }}
                     </div>
                     <div class="field-group">
-                        <label class="text-[11px] uppercase tracking-widest text-slate-500 mb-2">{% trans "Tier" %}</label>
+                        <label class="text-[11px] uppercase tracking-widest text-slate-500 mb-2">الفئة (Tier)</label>
                         {{ form.tier }}
                     </div>
                     <div class="field-group">
-                        <label class="text-[11px] uppercase tracking-widest text-slate-500 mb-2">{% trans "Phone Number" %}</label>
+                        <label class="text-[11px] uppercase tracking-widest text-slate-500 mb-2">رقم الهاتف</label>
                         {{ form.phone }}
                     </div>
                 </div>
@@ -65,17 +65,17 @@
                 <!-- Status & Expiry -->
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
                     <div class="field-group">
-                        <label class="text-[11px] uppercase tracking-widest text-slate-500 mb-2">{% trans "General Account Status" %}</label>
+                        <label class="text-[11px] uppercase tracking-widest text-slate-500 mb-2">حالة الحساب العامة</label>
                         {{ form.status }}
                         <div class="flex items-center gap-2 mt-3">
-                            <span class="text-[10px] text-slate-400">{% trans "Current Status:" %}</span>
+                            <span class="text-[10px] text-slate-400">الحالة الحالية:</span>
                             <span class="badge primary text-[9px]">{{ user_to_moderate.get_status_display }}</span>
                         </div>
                     </div>
                     <div class="field-group">
-                        <label class="text-[11px] uppercase tracking-widest text-slate-500 mb-2">{% trans "Suspension Expiry Date (if any)" %}</label>
+                        <label class="text-[11px] uppercase tracking-widest text-slate-500 mb-2">تاريخ انتهاء الإيقاف (إن وجد)</label>
                         {{ form.suspension_expires_at }}
-                        <p class="text-[9px] text-slate-500 mt-2">{% trans "Leave empty for permanent ban or active status." %}</p>
+                        <p class="text-[9px] text-slate-500 mt-2">اتركه فارغاً للحظر الدائم أو النشط.</p>
                     </div>
                 </div>
 
@@ -84,23 +84,23 @@
                     <div class="absolute top-0 left-0 w-1 h-full {% if user_to_moderate.status == 'active' %}bg-emerald-500/50{% else %}bg-rose-500/50{% endif %}"></div>
                     <h4 class="text-sm font-bold mb-6 text-slate-200 flex items-center">
                         <i class="fas fa-user-lock ml-2 text-cyan opacity-50"></i>
-                        {% trans "Restrictions and Permission Control" %}
+                        القيود والتحكم في الصلاحيات
                     </h4>
                     <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
                         <label class="flex items-center justify-between p-4 bg-slate-800/40 rounded-2xl border border-white/5 hover:border-cyan/30 transition-all cursor-pointer group">
-                            <span class="text-xs font-bold text-slate-300 group-hover:text-cyan transition-colors">{% trans "Restrict Withdrawals" %}</span>
+                            <span class="text-xs font-bold text-slate-300 group-hover:text-cyan transition-colors">تقييد السحب</span>
                             <div class="relative">
                                 {{ form.restriction_withdrawals }}
                             </div>
                         </label>
                         <label class="flex items-center justify-between p-4 bg-slate-800/40 rounded-2xl border border-white/5 hover:border-cyan/30 transition-all cursor-pointer group">
-                            <span class="text-xs font-bold text-slate-300 group-hover:text-cyan transition-colors">{% trans "Restrict Deposits" %}</span>
+                            <span class="text-xs font-bold text-slate-300 group-hover:text-cyan transition-colors">تقييد الإيداع</span>
                             <div class="relative">
                                 {{ form.restriction_deposits }}
                             </div>
                         </label>
                         <label class="flex items-center justify-between p-4 bg-slate-800/40 rounded-2xl border border-white/5 hover:border-cyan/30 transition-all cursor-pointer group">
-                            <span class="text-xs font-bold text-slate-300 group-hover:text-cyan transition-colors">{% trans "Restrict Purchases" %}</span>
+                            <span class="text-xs font-bold text-slate-300 group-hover:text-cyan transition-colors">تقييد الشراء</span>
                             <div class="relative">
                                 {{ form.restriction_purchases }}
                             </div>
@@ -111,8 +111,8 @@
                         <label class="flex items-center gap-4 p-4 bg-rose-500/5 border border-rose-500/10 rounded-2xl cursor-pointer hover:bg-rose-500/10 transition-colors">
                             {{ form.is_permanently_suspended }}
                             <div>
-                                <div class="text-xs font-black text-rose-500 uppercase tracking-wider">{% trans "Permanent Ban" %}</div>
-                                <div class="text-[10px] text-rose-500/60 mt-0.5">{% trans "User will be permanently blocked from accessing the system." %}</div>
+                                <div class="text-xs font-black text-rose-500 uppercase tracking-wider">إيقاف نهائي (Permanent Ban)</div>
+                                <div class="text-[10px] text-rose-500/60 mt-0.5">سيتم منع المستخدم من الوصول للنظام بشكل دائم.</div>
                             </div>
                         </label>
                     </div>
@@ -121,12 +121,12 @@
                 <!-- Reason & Notes -->
                 <div class="grid grid-cols-1 gap-6">
                     <div class="field-group">
-                        <label class="text-[11px] uppercase tracking-widest text-slate-500 mb-2">{% trans "Reason for Action (Visible to user)" %}</label>
+                        <label class="text-[11px] uppercase tracking-widest text-slate-500 mb-2">سبب الإجراء (يظهر للمستخدم)</label>
                         {{ form.suspension_reason }}
                     </div>
 
                     <div class="field-group">
-                        <label class="text-[11px] uppercase tracking-widest text-slate-500 mb-2">{% trans "Internal Administrative Notes" %}</label>
+                        <label class="text-[11px] uppercase tracking-widest text-slate-500 mb-2">ملاحظات إدارية داخلية</label>
                         {{ form.admin_notes }}
                     </div>
                 </div>
@@ -138,31 +138,31 @@
             <div class="management-header bg-slate-900/10 border-b border-white/5 p-6">
                 <h3 class="font-bold flex items-center gap-2">
                     <i class="fas fa-hand-holding-usd text-cyan"></i> 
-                    {% trans "Debt and Financial Obligations Management" %}
+                    إدارة الديون والالتزامات المالية
                 </h3>
             </div>
             <div class="management-body grid grid-cols-1 lg:grid-cols-2 gap-8 p-8">
-                <!-- Assign Debt -->
+                <!-- Add Debt -->
                 <form method="post" class="stack gap-6 p-8 bg-slate-900/40 rounded-3xl border border-white/5 relative overflow-hidden group hover:border-rose-500/30 transition-all">
                     <div class="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
                         <i class="fas fa-plus-circle text-6xl"></i>
                     </div>
                     {% csrf_token %}
                     <input type="hidden" name="action" value="assign_debt">
-                    <h4 class="text-xs font-black uppercase tracking-[0.2em] text-slate-500">{% trans "Add New Debt (Credit)" %}</h4>
+                    <h4 class="text-xs font-black uppercase tracking-[0.2em] text-slate-500">إضافة دين جديد (ائتمان)</h4>
                     <div class="field-group">
-                        <label class="text-[10px] text-slate-400 mb-2 block">{% trans "Amount to Add" %}</label>
+                        <label class="text-[10px] text-slate-400 mb-2 block">المبلغ المراد إضافته</label>
                         <div class="relative">
                             <span class="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 font-mono text-xs">{{ user_to_moderate.wallet.currency.code }}</span>
                             <input type="number" name="amount" step="0.01" class="builder-input pl-16 text-sm font-bold" placeholder="0.00" required>
                         </div>
                     </div>
                     <div class="field-group">
-                        <label class="text-[10px] text-slate-400 mb-2 block">{% trans "Reason or Notes" %}</label>
-                        <input type="text" name="reason" class="builder-input text-xs" placeholder="{% trans "e.g., Advance payment, fine..." %}" required>
+                        <label class="text-[10px] text-slate-400 mb-2 block">السبب أو الملاحظات</label>
+                        <input type="text" name="reason" class="builder-input text-xs" placeholder="مثلاً: دفعة مقدمة، غرامة..." required>
                     </div>
                     <button type="submit" class="btn btn-sm btn-outline danger w-full py-3 rounded-2xl font-bold transition-all hover:shadow-[0_0_20px_rgba(244,63,94,0.2)]">
-                        {% trans "Confirm and Add Balance" %}
+                        تأكيد وإضافة الرصيد
                     </button>
                 </form>
 
@@ -173,26 +173,26 @@
                     </div>
                     {% csrf_token %}
                     <input type="hidden" name="action" value="pay_debt">
-                    <h4 class="text-xs font-black uppercase tracking-[0.2em] text-slate-500">{% trans "Manual Debt Repayment from Balance" %}</h4>
+                    <h4 class="text-xs font-black uppercase tracking-[0.2em] text-slate-500">سداد يدوي من الرصيد</h4>
                     <div class="field-group">
-                        <label class="text-[10px] text-slate-400 mb-2 block">{% trans "Repayment Amount" %}</label>
+                        <label class="text-[10px] text-slate-400 mb-2 block">مبلغ السداد</label>
                         <div class="relative">
                             <span class="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 font-mono text-xs">{{ user_to_moderate.wallet.currency.code }}</span>
                             <input type="number" name="amount" step="0.01" max="{{ user_to_moderate.wallet.debt_balance }}" class="builder-input pl-16 text-sm font-bold" placeholder="0.00" required>
                         </div>
                         <div class="flex justify-between mt-2 px-1">
-                            <p class="text-[9px] text-slate-500 italic">{% trans "Max available for repayment:" %} {{ user_to_moderate.wallet.debt_balance }}</p>
-                            <button type="button" class="text-[9px] text-cyan font-bold hover:underline" onclick="this.form.amount.value='{{ user_to_moderate.wallet.debt_balance }}'">{% trans "Pay All" %}</button>
+                            <p class="text-[9px] text-slate-500 italic">الحد الأقصى المتاح للسداد: {{ user_to_moderate.wallet.debt_balance }}</p>
+                            <button type="button" class="text-[9px] text-cyan font-bold hover:underline" onclick="this.form.amount.value='{{ user_to_moderate.wallet.debt_balance }}'">سداد الكل</button>
                         </div>
                     </div>
                     <div class="p-4 bg-cyan/5 border border-cyan/10 rounded-2xl">
                         <p class="text-[10px] text-cyan leading-relaxed flex items-start gap-2">
                             <i class="fas fa-info-circle mt-0.5"></i>
-                            <span>{% trans "The amount will be deducted from the available balance and the debt value will be reduced." %}</span>
+                            <span>سيتم خصم المبلغ من الرصيد المتاح وتقليص قيمة الدين.</span>
                         </p>
                     </div>
                     <button type="submit" class="btn btn-sm btn-primary w-full py-3 rounded-2xl font-bold transition-all hover:shadow-[0_0_20px_rgba(6,182,212,0.3)]" {% if user_to_moderate.wallet.debt_balance == 0 %}disabled{% endif %}>
-                        {% trans "Execute Repayment" %}
+                        تنفيذ عملية السداد
                     </button>
                 </form>
             </div>
@@ -201,7 +201,7 @@
         <!-- Audit & Activity Log -->
         <div class="management-card">
             <div class="management-header">
-                <h3 class="font-bold"><i class="fas fa-history ml-2"></i> {% trans "Audit and Activity Log" %}</h3>
+                <h3 class="font-bold"><i class="fas fa-history ml-2"></i> سجل التدقيق والنشاط (Audit Log)</h3>
             </div>
             <div class="p-4 stack gap-4">
                 {% for log in audit_logs %}
@@ -213,13 +213,13 @@
                         </div>
                         <span class="text-[10px] text-slate-500">{{ log.created_at|date:"d M Y, H:i" }}</span>
                     </div>
-                    <div class="text-xs text-slate-400 mb-2">{% trans "Actor:" %} {{ log.actor.email }} | IP: {{ log.ip_address }}</div>
+                    <div class="text-xs text-slate-400 mb-2">المنفذ: {{ log.actor.email }} | IP: {{ log.ip_address }}</div>
                     {% if log.reason %}
-                    <p class="text-xs italic bg-white/5 p-2 rounded text-slate-300">{% trans "Reason:" %} {{ log.reason }}</p>
+                    <p class="text-xs italic bg-white/5 p-2 rounded text-slate-300">السبب: {{ log.reason }}</p>
                     {% endif %}
                 </div>
                 {% empty %}
-                <p class="p-8 text-center text-xs text-muted">{% trans "No previous audit logs for this user." %}</p>
+                <p class="p-8 text-center text-xs text-muted">لا توجد سجلات تدقيق سابقة لهذا المستخدم.</p>
                 {% endfor %}
             </div>
         </div>
@@ -238,19 +238,19 @@
             
             <div class="stack gap-4 pt-6 border-t border-white/5">
                 <div class="flex justify-between text-sm">
-                    <span class="text-muted">{% trans "Available Balance:" %}</span>
+                    <span class="text-muted">الرصيد المتاح:</span>
                     <strong class="text-cyan">{{ user_to_moderate.wallet.available_balance }} {{ user_to_moderate.wallet.currency.code }}</strong>
                 </div>
                 <div class="flex justify-between text-sm">
-                    <span class="text-muted">{% trans "Due Debts:" %}</span>
+                    <span class="text-muted">الديون المستحقة:</span>
                     <strong class="text-rose-500">{{ user_to_moderate.wallet.debt_balance }}</strong>
                 </div>
                 <div class="flex justify-between text-sm">
-                    <span class="text-muted">{% trans "Held Balance:" %}</span>
+                    <span class="text-muted">الرصيد المحجوز:</span>
                     <strong class="text-amber-500">{{ user_to_moderate.wallet.held_balance }}</strong>
                 </div>
                 <div class="flex justify-between text-sm">
-                    <span class="text-muted">{% trans "Current Tier:" %}</span>
+                    <span class="text-muted">الفئة الحالية:</span>
                     <span class="badge primary text-[9px]">{{ user_to_moderate.get_tier_display }}</span>
                 </div>
             </div>
@@ -258,17 +258,17 @@
 
         <!-- Danger Actions -->
         <div class="management-card p-6 border-danger/20 bg-danger/[0.02]">
-            <h3 class="text-danger font-bold text-sm mb-4"><i class="fas fa-exclamation-triangle ml-2"></i> {% trans "Dangerous Quick Actions" %}</h3>
+            <h3 class="text-danger font-bold text-sm mb-4"><i class="fas fa-exclamation-triangle ml-2"></i> إجراءات سريعة خطيرة</h3>
             <div class="stack gap-3">
                 <button class="btn btn-outline danger w-full text-xs py-3" onclick="quickBan()">
-                    <i class="fas fa-ban ml-2"></i> {% trans "Ban Account Immediately" %}
+                    <i class="fas fa-ban ml-2"></i> حظر الحساب فوراً
                 </button>
                 <form method="post" id="reset-pass-form" class="hidden">
                     {% csrf_token %}
                     <input type="hidden" name="action" value="reset_password">
                 </form>
                 <button class="btn btn-outline w-full text-xs py-3" onclick="resetPassword()">
-                    <i class="fas fa-key ml-2"></i> {% trans "Send Password Reset Link" %}
+                    <i class="fas fa-key ml-2"></i> إرسال رابط إعادة كلمة السر
                 </button>
             </div>
         </div>
@@ -277,16 +277,16 @@
 
 <script>
 function quickBan() {
-    if (confirm("{% trans "Are you sure you want to permanently ban this user? They will be blocked from logging in and all their operations will be stopped." %}")) {
+    if (confirm("هل أنت متأكد من رغبتك في حظر هذا المستخدم نهائياً؟ سيتم منعه من الدخول وإيقاف كافة عملياته.")) {
         document.querySelector('select[name="status"]').value = 'banned';
         document.querySelector('input[name="is_permanently_suspended"]').checked = true;
-        document.querySelector('textarea[name="suspension_reason"]').value = "{% trans "Your account has been permanently banned for violating platform rules." %}";
+        document.querySelector('textarea[name="suspension_reason"]').value = "لقد تم حظر حسابك نهائياً لمخالفة قوانين المنصة.";
         document.getElementById('mod-form').submit();
     }
 }
 
 function resetPassword() {
-    if (confirm("{% trans "Do you want to send a password reset email to the user?" %}")) {
+    if (confirm("هل تريد إرسال بريد إلكتروني للمستخدم لإعادة تعيين كلمة المرور؟")) {
         document.getElementById('reset-pass-form').submit();
     }
 }

@@ -1,13 +1,12 @@
 {% extends "site/base.html" %}
-{% load i18n %}
-{% block title %}{% trans "Notification Settings" %} | Raqamiyat{% endblock %}
+{% block title %}إعدادات التنبيهات | Raqamiyat{% endblock %}
 
 {% block content %}
 <div class="page-head">
     <div>
-        <span class="eyebrow">{% trans "Settings / Notifications" %}</span>
-        <h1>{% trans "Notification Settings" %}</h1>
-        <p class="text-muted">{% trans "Control how you receive alerts and important messages from the platform." %}</p>
+        <span class="eyebrow">Settings / Notifications</span>
+        <h1>إعدادات التنبيهات</h1>
+        <p class="text-muted">تحكم في كيفية استلام التنبيهات والرسائل الهامة من المنصة.</p>
     </div>
 </div>
 
@@ -17,23 +16,23 @@
         
         <div class="panel p-8">
             <h3 class="text-lg font-black mb-6 flex items-center gap-3">
-                <i class="fas fa-bell text-cyan"></i> {% trans "In-App Notifications" %}
+                <i class="fas fa-bell text-cyan"></i> تنبيهات داخل التطبيق (In-App)
             </h3>
             <div class="stack gap-4">
                 <label class="flex justify-between items-center p-4 bg-white/[0.02] rounded-2xl cursor-pointer hover:bg-white/[0.04] transition">
-                    <span class="text-sm font-bold">{% trans "Order Updates" %}</span>
+                    <span class="text-sm font-bold">تحديثات الطلبات</span>
                     <input type="checkbox" name="in_app_orders" class="w-5 h-5 accent-cyan" {% if settings.in_app_orders %}checked{% endif %}>
                 </label>
                 <label class="flex justify-between items-center p-4 bg-white/[0.02] rounded-2xl cursor-pointer hover:bg-white/[0.04] transition">
-                    <span class="text-sm font-bold">{% trans "Financial Transactions" %}</span>
+                    <span class="text-sm font-bold">العمليات المالية</span>
                     <input type="checkbox" name="in_app_financial" class="w-5 h-5 accent-cyan" {% if settings.in_app_financial %}checked{% endif %}>
                 </label>
                 <label class="flex justify-between items-center p-4 bg-white/[0.02] rounded-2xl cursor-pointer hover:bg-white/[0.04] transition">
-                    <span class="text-sm font-bold">{% trans "Support Replies" %}</span>
+                    <span class="text-sm font-bold">ردود الدعم الفني</span>
                     <input type="checkbox" name="in_app_support" class="w-5 h-5 accent-cyan" {% if settings.in_app_support %}checked{% endif %}>
                 </label>
                 <label class="flex justify-between items-center p-4 bg-white/[0.02] rounded-2xl cursor-pointer hover:bg-white/[0.04] transition">
-                    <span class="text-sm font-bold">{% trans "Offers & Promotions" %}</span>
+                    <span class="text-sm font-bold">العروض والترويج</span>
                     <input type="checkbox" name="in_app_promotions" class="w-5 h-5 accent-cyan" {% if settings.in_app_promotions %}checked{% endif %}>
                 </label>
             </div>
@@ -41,30 +40,30 @@
 
         <div class="panel p-8">
             <h3 class="text-lg font-black mb-6 flex items-center gap-3">
-                <i class="fas fa-mobile-screen text-cyan"></i> {% trans "Push Notifications" %}
+                <i class="fas fa-mobile-screen text-cyan"></i> تنبيهات المتصفح (Push Notifications)
             </h3>
-            <p class="text-xs text-muted mb-6">{% trans "Please ensure you allow the browser to send notifications to enable this feature." %}</p>
+            <p class="text-xs text-muted mb-6">يرجى التأكد من السماح للمتصفح بإرسال الإشعارات لتفعيل هذه الميزة.</p>
             <div class="stack gap-4">
                 <label class="flex justify-between items-center p-4 bg-white/[0.02] rounded-2xl cursor-pointer hover:bg-white/[0.04] transition">
-                    <span class="text-sm font-bold">{% trans "Order Updates" %}</span>
+                    <span class="text-sm font-bold">تحديثات الطلبات</span>
                     <input type="checkbox" name="push_orders" class="w-5 h-5 accent-cyan" {% if settings.push_orders %}checked{% endif %}>
                 </label>
                 <label class="flex justify-between items-center p-4 bg-white/[0.02] rounded-2xl cursor-pointer hover:bg-white/[0.04] transition">
-                    <span class="text-sm font-bold">{% trans "Financial Transactions" %}</span>
+                    <span class="text-sm font-bold">العمليات المالية</span>
                     <input type="checkbox" name="push_financial" class="w-5 h-5 accent-cyan" {% if settings.push_financial %}checked{% endif %}>
                 </label>
                 <label class="flex justify-between items-center p-4 bg-white/[0.02] rounded-2xl cursor-pointer hover:bg-white/[0.04] transition">
-                    <span class="text-sm font-bold">{% trans "Support Replies" %}</span>
+                    <span class="text-sm font-bold">ردود الدعم الفني</span>
                     <input type="checkbox" name="push_support" class="w-5 h-5 accent-cyan" {% if settings.push_support %}checked{% endif %}>
                 </label>
                 <label class="flex justify-between items-center p-4 bg-white/[0.02] rounded-2xl cursor-pointer hover:bg-white/[0.04] transition">
-                    <span class="text-sm font-bold">{% trans "Offers & Promotions" %}</span>
+                    <span class="text-sm font-bold">العروض والترويج</span>
                     <input type="checkbox" name="push_promotions" class="w-5 h-5 accent-cyan" {% if settings.push_promotions %}checked{% endif %}>
                 </label>
             </div>
         </div>
 
-        <button type="submit" class="btn btn-primary w-full py-4 text-lg font-black">{% trans "Save Changes" %}</button>
+        <button type="submit" class="btn btn-primary w-full py-4 text-lg font-black">حفظ التغييرات</button>
     </form>
 </div>
 {% endblock %}

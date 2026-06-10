@@ -212,10 +212,10 @@ input:focus, select:focus, textarea:focus { border-color: var(--cyan); box-shado
 .mb-10 { margin-bottom: 2.5rem; }
 .mb-12 { margin-bottom: 3rem; }
 .mb-16 { margin-bottom: 4rem; }
-.ml-1 { margin-inline-start: .25rem; }
-.ml-2 { margin-inline-start: .5rem; }
-.ml-4 { margin-inline-start: 1rem; }
-.mr-1 { margin-inline-end: .25rem; }
+.ml-1 { margin-left: .25rem; }
+.ml-2 { margin-left: .5rem; }
+.ml-4 { margin-left: 1rem; }
+.mr-1 { margin-right: .25rem; }
 .p-2 { padding: .5rem; }
 .p-3 { padding: .75rem; }
 .p-4 { padding: 1rem; }
@@ -242,8 +242,8 @@ input:focus, select:focus, textarea:focus { border-color: var(--cyan); box-shado
 .pt-20 { padding-top: 5rem; }
 .pb-10 { padding-bottom: 2.5rem; }
 .text-center { text-align: center; }
-.text-left { text-align: start; }
-.text-right { text-align: end; }
+.text-left { text-align: left; }
+.text-right { text-align: right; }
 .text-white { color: #fff; }
 .text-black { color: #020617; }
 .text-danger { color: var(--danger); }
@@ -279,7 +279,7 @@ input:focus, select:focus, textarea:focus { border-color: var(--cyan); box-shado
 .rounded-full { border-radius: 999px; }
 .border { border: 1px solid var(--panel-border); }
 .border-t { border-top: 1px solid var(--panel-border); }
-.border-r-4 { border-inline-end: 4px solid; }
+.border-r-4 { border-right: 4px solid; }
 .border-dashed { border-style: dashed; }
 .object-cover { object-fit: cover; }
 .object-contain { object-fit: contain; }
@@ -510,7 +510,7 @@ textarea { min-height: 120px; resize: vertical; }
 }
 .admin-sidebar {
   background: rgba(11, 17, 16, .96) !important;
-  border-inline-start-color: rgba(226, 232, 240, .1) !important;
+  border-left-color: rgba(226, 232, 240, .1) !important;
 }
 .admin-main {
   padding: 1.25rem !important;
@@ -544,7 +544,7 @@ textarea { min-height: 120px; resize: vertical; }
     padding-bottom: 88px !important;
   }
   .mobile-drawer {
-    border-inline-start: 1px solid rgba(226, 232, 240, .1);
+    border-left: 1px solid rgba(226, 232, 240, .1);
     background: #0b1110 !important;
   }
   .catalog-wrapper,

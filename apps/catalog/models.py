@@ -2,7 +2,6 @@ from decimal import Decimal
 
 from django.db import models
 from django.conf import settings
-from django.utils.translation import gettext_lazy as _
 
 from apps.common.models import TimeStampedModel
 
@@ -10,14 +9,14 @@ from apps.common.models import TimeStampedModel
 from django.utils.text import slugify
 
 class Category(TimeStampedModel):
-    name = models.CharField(max_length=120, verbose_name=_("اسم التصنيف"))
+    name = models.CharField(max_length=120, verbose_name="اسم التصنيف")
     parent = models.ForeignKey("self", null=True, blank=True, related_name="children", on_delete=models.CASCADE)
-    is_active = models.BooleanField(default=True, verbose_name=_("نشط"))
-    sort_order = models.PositiveIntegerField(default=0, verbose_name=_("ترتيب العرض"))
+    is_active = models.BooleanField(default=True, verbose_name="نشط")
+    sort_order = models.PositiveIntegerField(default=0, verbose_name="ترتيب العرض")
 
     class Meta:
-        verbose_name = _("تصنيف")
-        verbose_name_plural = _("التصنيفات")
+        verbose_name = "تصنيف"
+        verbose_name_plural = "التصنيفات"
         ordering = ("sort_order", "name")
 
     def __str__(self):
@@ -25,34 +24,34 @@ class Category(TimeStampedModel):
 
 
 class Product(TimeStampedModel):
-    name = models.CharField(max_length=160, verbose_name=_("اسم المنتج"))
-    category = models.ForeignKey(Category, related_name="products", on_delete=models.PROTECT, verbose_name=_("التصنيف"))
+    name = models.CharField(max_length=160, verbose_name="اسم المنتج")
+    category = models.ForeignKey(Category, related_name="products", on_delete=models.PROTECT, verbose_name="التصنيف")
     
     # Media
-    image = models.ImageField(upload_to="products/main/", blank=True, null=True, verbose_name=_("الصورة الأساسية"))
-    cover_image = models.ImageField(upload_to="products/covers/", blank=True, null=True, verbose_name=_("صورة الغلاف"))
-    thumbnail = models.ImageField(upload_to="products/thumbs/", blank=True, null=True, verbose_name=_("مصغرة"))
+    image = models.ImageField(upload_to="products/main/", blank=True, null=True, verbose_name="الصورة الأساسية")
+    cover_image = models.ImageField(upload_to="products/covers/", blank=True, null=True, verbose_name="صورة الغلاف")
+    thumbnail = models.ImageField(upload_to="products/thumbs/", blank=True, null=True, verbose_name="مصغرة")
 
-    description = models.TextField(blank=True, verbose_name=_("الوصف"))
-    instructions = models.TextField(blank=True, verbose_name=_("تعليمات الاستخدام"))
+    description = models.TextField(blank=True, verbose_name="الوصف")
+    instructions = models.TextField(blank=True, verbose_name="تعليمات الاستخدام")
     
-    is_active = models.BooleanField(default=True, verbose_name=_("نشط"))
-    is_featured = models.BooleanField(default=False, verbose_name=_("مميز (عرض في الرئيسية)"))
-    sort_order = models.PositiveIntegerField(default=0, verbose_name=_("ترتيب العرض"))
+    is_active = models.BooleanField(default=True, verbose_name="نشط")
+    is_featured = models.BooleanField(default=False, verbose_name="مميز (عرض في الرئيسية)")
+    sort_order = models.PositiveIntegerField(default=0, verbose_name="ترتيب العرض")
     
     # Dynamic Form Engine
     form_schema = models.JSONField(
         default=dict,
         blank=True,
-        verbose_name=_("نموذج البيانات المطلوبة من العميل"),
-        help_text=_('مثال: {"version": 1, "fields": [{"label": "اسم المستخدم", "type": "text", "required": true}]}')
+        verbose_name="نموذج البيانات المطلوبة من العميل",
+        help_text='مثال: {"version": 1, "fields": [{"label": "اسم المستخدم", "type": "text", "required": true}]}'
     )
     
     metadata = models.JSONField(default=dict, blank=True)
 
     class Meta:
-        verbose_name = _("منتج")
-        verbose_name_plural = _("المنتجات")
+        verbose_name = "منتج"
+        verbose_name_plural = "المنتجات"
         ordering = ("sort_order", "name")
         indexes = [
             models.Index(fields=["is_active", "is_featured"]),
@@ -70,29 +69,29 @@ class ProductImage(TimeStampedModel):
 
     class Meta:
         ordering = ("sort_order",)
-        verbose_name = _("صورة المنتج")
-        verbose_name_plural = _("معرض صور المنتج")
+        verbose_name = "صورة المنتج"
+        verbose_name_plural = "معرض صور المنتج"
 
 
 class ProductVariant(TimeStampedModel):
-    product = models.ForeignKey(Product, related_name="variants", on_delete=models.CASCADE, verbose_name=_("المنتج"))
-    name = models.CharField(max_length=120, verbose_name=_("اسم الباقة"))
-    sku = models.CharField(max_length=80, unique=True, verbose_name=_("SKU"))
+    product = models.ForeignKey(Product, related_name="variants", on_delete=models.CASCADE, verbose_name="المنتج")
+    name = models.CharField(max_length=120, verbose_name="اسم الباقة")
+    sku = models.CharField(max_length=80, unique=True, verbose_name="SKU")
     
     # Default Prices
-    price = models.DecimalField(max_digits=12, decimal_places=2, verbose_name=_("السعر الافتراضي (Retail)"))
-    wholesale_price = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal("0.00"), verbose_name=_("سعر الجملة"))
-    vip_price = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal("0.00"), verbose_name=_("سعر VIP"))
-    cost = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal("0.00"), verbose_name=_("التكلفة"))
+    price = models.DecimalField(max_digits=12, decimal_places=2, verbose_name="السعر الافتراضي (Retail)")
+    wholesale_price = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal("0.00"), verbose_name="سعر الجملة")
+    vip_price = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal("0.00"), verbose_name="سعر VIP")
+    cost = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal("0.00"), verbose_name="التكلفة")
     
-    discount_percent = models.DecimalField(max_digits=5, decimal_places=2, default=Decimal("0.00"), verbose_name=_("خصم (%)"))
-    estimated_delivery_minutes = models.PositiveIntegerField(default=0, verbose_name=_("وقت التسليم المتوقع (دقيقة)"))
-    is_active = models.BooleanField(default=True, verbose_name=_("نشط"))
-    sort_order = models.PositiveIntegerField(default=0, verbose_name=_("ترتيب العرض"))
+    discount_percent = models.DecimalField(max_digits=5, decimal_places=2, default=Decimal("0.00"), verbose_name="خصم (%)")
+    estimated_delivery_minutes = models.PositiveIntegerField(default=0, verbose_name="وقت التسليم المتوقع (دقيقة)")
+    is_active = models.BooleanField(default=True, verbose_name="نشط")
+    sort_order = models.PositiveIntegerField(default=0, verbose_name="ترتيب العرض")
 
     class Meta:
-        verbose_name = _("باقة منتج")
-        verbose_name_plural = _("باقات المنتجات")
+        verbose_name = "باقة منتج"
+        verbose_name_plural = "باقات المنتجات"
         ordering = ("sort_order", "price")
         indexes = [models.Index(fields=["sku"]), models.Index(fields=["is_active"])]
 
@@ -144,13 +143,13 @@ class ProductTierPrice(TimeStampedModel):
     Explicit price override for a specific user tier.
     """
     variant = models.ForeignKey(ProductVariant, related_name="tier_prices", on_delete=models.CASCADE)
-    tier = models.CharField(max_length=20, verbose_name=_("الفئة"))
-    price = models.DecimalField(max_digits=12, decimal_places=2, verbose_name=_("السعر"))
+    tier = models.CharField(max_length=20, verbose_name="الفئة")
+    price = models.DecimalField(max_digits=12, decimal_places=2, verbose_name="السعر")
 
     class Meta:
         unique_together = ("variant", "tier")
-        verbose_name = _("سعر فئة")
-        verbose_name_plural = _("أسعار الفئات")
+        verbose_name = "سعر فئة"
+        verbose_name_plural = "أسعار الفئات"
 
 
 class ProductUserPrice(TimeStampedModel):
@@ -164,8 +163,8 @@ class ProductUserPrice(TimeStampedModel):
 
     class Meta:
         unique_together = ("variant", "user")
-        verbose_name = _("سعر مخصص لمستخدم")
-        verbose_name_plural = _("أسعار مخصصة لمستخدمين")
+        verbose_name = "سعر مخصص لمستخدم"
+        verbose_name_plural = "أسعار مخصصة لمستخدمين"
 
 
 # Legacy model removed (ProductFormField)

@@ -1,12 +1,11 @@
 {% extends "site/base.html" %}
-{% load i18n %}
-{% block title %}{% trans "Contact Us" %} | Raqamiyat{% endblock %}
+{% block title %}تواصل معنا | Raqamiyat - رقميات{% endblock %}
 {% block content %}
 <section class="page-head">
   <div>
-    <span class="eyebrow">{% trans "Support" %}</span>
-    <h1>{% trans "Contact Us" %}</h1>
-    <p>{% trans "Our team is available to help you at any time." %}</p>
+    <span class="eyebrow">Support</span>
+    <h1>تواصل معنا</h1>
+    <p>فريقنا متاح لمساعدتك في أي وقت.</p>
   </div>
 </section>
 
@@ -15,16 +14,16 @@
         <div class="w-20 h-20 bg-cyan/10 rounded-[2rem] flex items-center justify-center text-cyan mx-auto mb-8 shadow-inner">
             <i class="fas fa-headset text-4xl"></i>
         </div>
-        <h2 class="text-3xl font-black mb-4">{% trans "Live Support Center" %}</h2>
+        <h2 class="text-3xl font-black mb-4">مركز الدعم المباشر</h2>
         <p class="text-slate-400 mb-8 max-w-lg mx-auto leading-relaxed">
-            {% trans "We are here to help you! You can start a live chat with our technical support team now. The service is available to all visitors and users around the clock." %}
+            نحن هنا لمساعدتك! يمكنك بدء محادثة مباشرة مع فريق الدعم الفني لدينا الآن. الخدمة متاحة لكافة الزوار والمستخدمين على مدار الساعة.
         </p>
         
         <div class="stack gap-4 max-w-sm mx-auto">
             <a href="{% url 'chat_list' %}" class="btn btn-primary w-full py-5 rounded-2xl font-black text-lg shadow-lg shadow-cyan/20">
-                <i class="fas fa-comments ml-2"></i> {% trans "Start Chat Now" %}
+                <i class="fas fa-comments ml-2"></i> ابدأ المحادثة الآن
             </a>
-            <p class="text-[10px] text-slate-600 font-bold uppercase tracking-widest mt-2">{% trans "Login is not required to start a conversation" %}</p>
+            <p class="text-[10px] text-slate-600 font-bold uppercase tracking-widest mt-2">لا يشترط تسجيل الدخول لبدء المحادثة</p>
         </div>
     </article>
 </div>

@@ -1,7 +1,7 @@
 {% extends "site/base.html" %}
-{% load i18n static site_tags %}
+{% load static site_tags %}
 
-{% block title %}{% blocktrans with number=order.number %}Order Details #{{ number }}{% endblocktrans %} | Raqamiyat{% endblock %}
+{% block title %}تفاصيل الطلب #{{ order.number }} | Raqamiyat{% endblock %}
 
 {% block extra_head %}
 <style>
@@ -44,11 +44,11 @@
 {% block content %}
 <div class="page-head flex justify-between items-center">
     <div>
-        <span class="eyebrow">{% trans "Dashboard / Orders / Detail" %}</span>
-        <h1>{% trans "Order #" %}{{ order.number }}</h1>
-        <p class="text-muted">{% trans "View order details, products, and fulfillment and reception information." %}</p>
+        <span class="eyebrow">Dashboard / Orders / Detail</span>
+        <h1>طلب رقم #{{ order.number }}</h1>
+        <p class="text-muted">عرض تفاصيل الطلب، المنتجات، ومعلومات التنفيذ والاستلام.</p>
     </div>
-    <a href="{% url 'dashboard_orders' %}" class="btn btn-outline btn-sm">{% trans "Back to History" %}</a>
+    <a href="{% url 'dashboard_orders' %}" class="btn btn-outline btn-sm">العودة للسجل</a>
 </div>
 
 <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -57,7 +57,7 @@
         {% if order.status == 'completed' %}
         <div class="fulfillment-card shadow-lg shadow-cyan/5">
             <h3 class="text-xl font-black text-cyan mb-6 flex items-center gap-3">
-                <i class="fas fa-gift"></i> {% trans "Delivery Information" %}
+                <i class="fas fa-gift"></i> معلومات التسليم (Delivery Info)
             </h3>
             
             {% if order.fulfillment_data %}
@@ -68,13 +68,13 @@
                         <span class="text-[10px] text-slate-500 font-black uppercase tracking-widest block mb-1">{{ key }}</span>
                         <strong class="text-white font-mono text-sm">{{ val }}</strong>
                     </div>
-                    <button class="copy-button" onclick="copyToClipboard('{{ val }}', this)">{% trans "Copy" %}</button>
+                    <button class="copy-button" onclick="copyToClipboard('{{ val }}', this)">نسخ</button>
                 </div>
                 {% endfor %}
             </div>
             {% else %}
             <div class="text-center p-8 bg-white/5 rounded-2xl border border-dashed border-white/10">
-                <p class="text-sm text-slate-400">{% trans "Order completed, but there is no additional delivery data." %}</p>
+                <p class="text-sm text-slate-400">تم إتمام الطلب، ولكن لا توجد بيانات إضافية للتسليم.</p>
             </div>
             {% endif %}
             
@@ -82,7 +82,7 @@
                 {% if item.variant.product.instructions %}
                 <div class="mt-6 p-6 bg-slate-900/50 rounded-2xl border border-white/5">
                     <h4 class="text-xs font-black text-slate-400 uppercase mb-3">
-                        <i class="fas fa-info-circle ml-1"></i> {% trans "Usage Instructions:" %} {{ item.variant.product.name }}
+                        <i class="fas fa-info-circle ml-1"></i> تعليمات استخدام: {{ item.variant.product.name }}
                     </h4>
                     <div class="text-xs text-slate-300 leading-relaxed">{{ item.variant.product.instructions|linebreaks }}</div>
                 </div>
@@ -94,14 +94,14 @@
             <div class="w-16 h-16 bg-slate-800 rounded-full flex items-center justify-center mx-auto mb-6 text-amber-500">
                 <i class="fas fa-clock text-3xl"></i>
             </div>
-            <h3 class="text-xl font-bold mb-2">{% trans "Order is processing" %}</h3>
-            <p class="text-slate-400 max-w-sm mx-auto">{% trans "The card code or delivery information will appear here once the administration completes the order." %}</p>
+            <h3 class="text-xl font-bold mb-2">الطلب قيد المعالجة</h3>
+            <p class="text-slate-400 max-w-sm mx-auto">سيظهر كود البطاقة أو معلومات التسليم هنا فور قيام الإدارة بإتمام الطلب.</p>
         </div>
         {% endif %}
 
         <!-- Order Items -->
         <div class="panel p-8">
-            <h3 class="text-sm font-black text-slate-500 uppercase tracking-widest mb-6 border-b border-white/5 pb-4">{% trans "Order Contents" %}</h3>
+            <h3 class="text-sm font-black text-slate-500 uppercase tracking-widest mb-6 border-b border-white/5 pb-4">محتويات الطلب</h3>
             <div class="stack gap-4">
                 {% for item in order.items.all %}
                 <div class="flex justify-between items-center bg-slate-900/30 p-4 rounded-xl border border-white/5">
@@ -111,7 +111,7 @@
                         </div>
                         <div>
                             <div class="font-bold text-sm text-white">{{ item.variant.product.name }}</div>
-                            <div class="text-[10px] text-slate-500">{% trans "Package:" %} {{ item.variant.name }} x {{ item.quantity }}</div>
+                            <div class="text-[10px] text-slate-500">الباقة: {{ item.variant.name }} x {{ item.quantity }}</div>
                         </div>
                     </div>
                     <div class="text-white font-bold">{% currency_format item.total_price %}</div>
@@ -119,7 +119,7 @@
                 {% endfor %}
             </div>
             <div class="mt-8 pt-6 border-t border-white/5 flex justify-between items-center">
-                <span class="text-slate-500 text-sm">{% trans "Total Amount Deducted" %}</span>
+                <span class="text-slate-500 text-sm">المبلغ الإجمالي المخصوم</span>
                 <strong class="text-2xl font-black text-white">{% currency_format order.total_amount %}</strong>
             </div>
         </div>
@@ -128,7 +128,7 @@
     <!-- Sidebar Info -->
     <div class="stack gap-6">
         <div class="order-status-card">
-            <span class="text-[10px] font-black text-slate-500 uppercase tracking-widest block mb-2">{% trans "Current Order Status" %}</span>
+            <span class="text-[10px] font-black text-slate-500 uppercase tracking-widest block mb-2">حالة الطلب الحالية</span>
             <div class="text-2xl font-black mb-6 
                 {% if order.status == 'completed' %}text-emerald-500
                 {% elif order.status == 'cancelled' or order.status == 'refunded' %}text-rose-500
@@ -140,20 +140,20 @@
             
             <div class="text-right stack gap-4">
                 <div class="flex justify-between text-xs">
-                    <span class="text-slate-500">{% trans "Order Date" %}</span>
+                    <span class="text-slate-500">تاريخ الطلب</span>
                     <span class="text-slate-300 font-bold">{{ order.created_at|date:"d M Y, H:i" }}</span>
                 </div>
                 <div class="flex justify-between text-xs">
-                    <span class="text-slate-500">{% trans "Payment Method" %}</span>
-                    <span class="text-slate-300 font-bold">{% trans "Wallet Balance" %}</span>
+                    <span class="text-slate-500">طريقة الدفع</span>
+                    <span class="text-slate-300 font-bold">رصيد المحفظة</span>
                 </div>
             </div>
         </div>
 
         <div class="panel p-6">
-            <h4 class="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-4">{% trans "Have a problem?" %}</h4>
-            <p class="text-[11px] text-slate-400 leading-relaxed mb-6">{% trans "If you encounter any problem in receiving the service or have an inquiry, please open a support ticket." %}</p>
-            <a href="{% url 'chat_list' %}" class="btn btn-outline btn-sm w-full">{% trans "Open Support Ticket" %}</a>
+            <h4 class="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-4">هل لديك مشكلة؟</h4>
+            <p class="text-[11px] text-slate-400 leading-relaxed mb-6">إذا واجهت أي مشكلة في استلام الخدمة أو كان لديك استفسار، يرجى فتح تذكرة دعم فني.</p>
+            <a href="{% url 'chat_list' %}" class="btn btn-outline btn-sm w-full">فتح تذكرة دعم</a>
         </div>
     </div>
 </div>
@@ -162,7 +162,7 @@
 function copyToClipboard(text, btn) {
     navigator.clipboard.writeText(text).then(() => {
         const originalText = btn.innerText;
-        btn.innerText = '{% trans "Copied!" %}';
+        btn.innerText = 'تم النسخ!';
         btn.style.background = 'var(--success)';
         btn.style.color = '#fff';
         setTimeout(() => {

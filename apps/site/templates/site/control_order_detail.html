@@ -1,7 +1,7 @@
 {% extends "site/control_base.html" %}
-{% load static site_tags i18n %}
+{% load static site_tags %}
 
-{% block title %}{% trans "Order Details" %} #{{ order.number }} | Raqamiyat Admin{% endblock %}
+{% block title %}تفاصيل الطلب #{{ order.number }} | Raqamiyat Admin{% endblock %}
 
 {% block extra_head %}
 <style>
@@ -18,20 +18,20 @@
 
 {% block control_content %}
 <nav class="breadcrumb">
-    <a href="{% url 'control_dashboard' %}" class="breadcrumb-item">{% trans "Home" %}</a>
-    <a href="{% url 'control_orders_list' %}" class="breadcrumb-item">{% trans "Order Management" %}</a>
-    <span class="breadcrumb-item active">{% trans "Order Details" %}</span>
+    <a href="{% url 'control_dashboard' %}" class="breadcrumb-item">الرئيسية</a>
+    <a href="{% url 'control_orders_list' %}" class="breadcrumb-item">إدارة الطلبات</a>
+    <span class="breadcrumb-item active">تفاصيل الطلب</span>
 </nav>
 
 <div class="page-head flex justify-between items-center">
     <div>
-        <span class="eyebrow">{% trans "Content Management / Orders" %}</span>
-        <h1>{% trans "Order Details" %}: #{{ order.number }}</h1>
-        <p class="text-muted">{% blocktrans with email=order.customer.email %}Reviewing and processing order submitted by {{ email }}{% endblocktrans %}</p>
+        <span class="eyebrow">Content Management / Orders</span>
+        <h1>تفاصيل الطلب: #{{ order.number }}</h1>
+        <p class="text-muted">مراجعة ومعالجة الطلب المقدم من {{ order.customer.email }}</p>
     </div>
     <div class="flex gap-3">
         <a href="{% url 'control_orders_list' %}" class="btn btn-outline btn-sm">
-            <i class="fas fa-arrow-right ml-2"></i> {% trans "Back to List" %}
+            <i class="fas fa-arrow-right ml-2"></i> العودة للقائمة
         </a>
     </div>
 </div>
@@ -43,7 +43,7 @@
         <div class="management-card">
             <div class="management-header">
                 <h3 class="font-bold flex items-center gap-2">
-                    <i class="fas fa-box text-cyan"></i> {% trans "Order Items" %}
+                    <i class="fas fa-box text-cyan"></i> بنود الطلب
                 </h3>
             </div>
             <div class="p-6">
@@ -60,18 +60,18 @@
                             {% endif %}
                             <div>
                                 <div class="font-bold text-white">{{ item.variant.product.name }}</div>
-                                <div class="text-[10px] text-slate-500">{% trans "Variant" %}: <span class="text-cyan">{{ item.variant.name }}</span> × {{ item.quantity }}</div>
+                                <div class="text-[10px] text-slate-500">الباقة: <span class="text-cyan">{{ item.variant.name }}</span> × {{ item.quantity }}</div>
                             </div>
                         </div>
                         <div class="text-left">
                             <div class="font-black text-white">{% currency_format item.total_price %}</div>
-                            <div class="text-[9px] text-slate-500">{% trans "Unit Price" %}: {% currency_format item.unit_price %}</div>
+                            <div class="text-[9px] text-slate-500">سعر الوحدة: {% currency_format item.unit_price %}</div>
                         </div>
                     </div>
                     {% endfor %}
                     
                     <div class="flex justify-between items-center mt-4 p-4 bg-cyan/10 rounded-2xl border border-cyan/20">
-                        <span class="font-bold text-cyan text-sm">{% trans "Total Amount Deducted" %}:</span>
+                        <span class="font-bold text-cyan text-sm">المبلغ الإجمالي المخصوم:</span>
                         <span class="font-black text-cyan text-2xl">{% currency_format order.total_amount %}</span>
                     </div>
                 </div>
@@ -82,7 +82,7 @@
         <div class="management-card">
             <div class="management-header">
                 <h3 class="font-bold flex items-center gap-2">
-                    <i class="fas fa-user-edit text-cyan"></i> {% trans "Customer Input Data" %}
+                    <i class="fas fa-user-edit text-cyan"></i> البيانات المدخلة من العميل
                 </h3>
             </div>
             <div class="p-6">
@@ -97,7 +97,7 @@
                 </div>
                 {% else %}
                 <div class="p-10 text-center bg-slate-900/50 rounded-2xl border border-dashed border-white/10">
-                    <p class="text-slate-500 font-bold">{% trans "No custom data entered for this order." %}</p>
+                    <p class="text-slate-500 font-bold">لم يتم إدخال بيانات مخصصة لهذا الطلب.</p>
                 </div>
                 {% endif %}
             </div>
@@ -107,11 +107,11 @@
         <div class="management-card">
             <div class="management-header">
                 <h3 class="font-bold flex items-center gap-2">
-                    <i class="fas fa-paper-plane text-cyan"></i> {% trans "Fulfillment Data" %}
+                    <i class="fas fa-paper-plane text-cyan"></i> بيانات التنفيذ (Fulfillment)
                 </h3>
             </div>
             <div class="p-6">
-                <p class="text-[11px] text-slate-500 mb-6">{% trans "This data appears to the user when the order is complete (e.g., recharge codes, download links, or confirmation message)." %}</p>
+                <p class="text-[11px] text-slate-500 mb-6">هذه البيانات تظهر للمستخدم عند اكتمال الطلب (مثلاً: أكواد الشحن، روابط التحميل، أو رسالة تأكيد).</p>
                 
                 <form method="post" class="stack gap-4" id="fulfillment-form">
                     {% csrf_token %}
@@ -119,8 +119,8 @@
                     <div id="ff-container" class="stack gap-3">
                         {% for key, val in readable_fulfillment.items %}
                         <div class="fulfillment-row">
-                            <input type="text" name="ff_key[]" value="{{ key }}" placeholder="{% trans "Key" %}" class="bg-slate-900 border-white/10 rounded-xl p-3 text-xs text-white">
-                            <textarea name="ff_value[]" placeholder="{% trans "Value" %}" class="bg-slate-900 border-white/10 rounded-xl p-3 text-xs text-cyan font-mono" rows="1">{{ val }}</textarea>
+                            <input type="text" name="ff_key[]" value="{{ key }}" placeholder="المفتاح" class="bg-slate-900 border-white/10 rounded-xl p-3 text-xs text-white">
+                            <textarea name="ff_value[]" placeholder="القيمة" class="bg-slate-900 border-white/10 rounded-xl p-3 text-xs text-cyan font-mono" rows="1">{{ val }}</textarea>
                             <button type="button" class="btn btn-outline danger h-full" onclick="this.parentElement.remove()"><i class="fas fa-times"></i></button>
                         </div>
                         {% endfor %}
@@ -128,9 +128,9 @@
                     
                     <div class="flex justify-between items-center mt-4">
                         <button type="button" class="btn btn-outline btn-sm" onclick="addFfRow()">
-                            <i class="fas fa-plus ml-1"></i> {% trans "Add Field" %}
+                            <i class="fas fa-plus ml-1"></i> إضافة حقل
                         </button>
-                        <button type="submit" class="btn btn-primary px-8">{% trans "Save Fulfillment Data" %}</button>
+                        <button type="submit" class="btn btn-primary px-8">حفظ بيانات التنفيذ</button>
                     </div>
                 </form>
             </div>
@@ -139,7 +139,7 @@
         <!-- Logs -->
         <div class="management-card">
             <div class="management-header">
-                <h3 class="font-bold">{% trans "Status Logs" %}</h3>
+                <h3 class="font-bold">سجل الحالات (Logs)</h3>
             </div>
             <div class="p-6">
                 <div class="stack gap-4">
@@ -171,7 +171,7 @@
         <div class="management-card border-cyan/20">
             <div class="management-header">
                 <h3 class="font-bold flex items-center gap-2">
-                    <i class="fas fa-sync text-cyan"></i> {% trans "Update Status" %}
+                    <i class="fas fa-sync text-cyan"></i> تحديث الحالة
                 </h3>
             </div>
             <div class="p-6">
@@ -179,7 +179,7 @@
                     {% csrf_token %}
                     <input type="hidden" name="action" value="update_status">
                     <div class="field-group">
-                        <label class="info-label">{% trans "Status" %}</label>
+                        <label class="info-label">الحالة</label>
                         <select name="status" class="w-full bg-slate-900 border-white/10 rounded-xl p-3 text-xs text-white">
                             {% for val, label in order.Status.choices %}
                             <option value="{{ val }}" {% if order.status == val %}selected{% endif %}>{{ label }}</option>
@@ -187,10 +187,10 @@
                         </select>
                     </div>
                     <div class="field-group">
-                        <label class="info-label">{% trans "Admin Note" %}</label>
-                        <textarea name="admin_note" rows="3" class="w-full bg-slate-900 border-white/10 rounded-xl p-3 text-xs text-white" placeholder="{% trans "Reason for update..." %}"></textarea>
+                        <label class="info-label">ملاحظة المدير</label>
+                        <textarea name="admin_note" rows="3" class="w-full bg-slate-900 border-white/10 rounded-xl p-3 text-xs text-white" placeholder="سبب التحديث..."></textarea>
                     </div>
-                    <button type="submit" class="btn btn-primary w-full py-3 font-bold">{% trans "Update Order Status" %}</button>
+                    <button type="submit" class="btn btn-primary w-full py-3 font-bold">تحديث حالة الطلب</button>
                 </form>
             </div>
         </div>
@@ -198,7 +198,7 @@
         <!-- Customer Profile -->
         <div class="management-card">
             <div class="management-header">
-                <h3 class="font-bold">{% trans "Customer Information" %}</h3>
+                <h3 class="font-bold">معلومات العميل</h3>
             </div>
             <div class="p-6 stack gap-4">
                 <div class="flex items-center gap-4 mb-2">
@@ -212,12 +212,12 @@
                 </div>
                 
                 <div class="info-item">
-                    <span class="info-label">{% trans "Available Balance" %}</span>
+                    <span class="info-label">الرصيد المتاح</span>
                     <span class="info-value text-cyan">{% currency_format order.customer.wallet.available_balance order.customer.wallet.currency %}</span>
                 </div>
 
                 <a href="{% url 'control_user_moderate' order.customer.public_uuid %}" class="btn btn-outline btn-sm w-full">
-                    <i class="fas fa-user-shield ml-1"></i> {% trans "Moderate Account" %}
+                    <i class="fas fa-user-shield ml-1"></i> إدارة الحساب
                 </a>
             </div>
         </div>
@@ -230,8 +230,8 @@ function addFfRow() {
     const row = document.createElement('div');
     row.className = 'fulfillment-row';
     row.innerHTML = `
-        <input type="text" name="ff_key[]" placeholder="{% trans "Key" %}" class="bg-slate-900 border-white/10 rounded-xl p-3 text-xs text-white">
-        <textarea name="ff_value[]" placeholder="{% trans "Value" %}" class="bg-slate-900 border-white/10 rounded-xl p-3 text-xs text-cyan font-mono" rows="1"></textarea>
+        <input type="text" name="ff_key[]" placeholder="المفتاح" class="bg-slate-900 border-white/10 rounded-xl p-3 text-xs text-white">
+        <textarea name="ff_value[]" placeholder="القيمة" class="bg-slate-900 border-white/10 rounded-xl p-3 text-xs text-cyan font-mono" rows="1"></textarea>
         <button type="button" class="btn btn-outline danger h-full" onclick="this.parentElement.remove()"><i class="fas fa-times"></i></button>
     `;
     container.appendChild(row);

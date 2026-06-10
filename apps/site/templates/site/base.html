@@ -1,13 +1,11 @@
-{% load i18n static site_tags %}
-{% get_current_language as LANGUAGE_CODE %}
-{% get_current_language_bidi as LANGUAGE_BIDI %}
+{% load static site_tags %}
 <!DOCTYPE html>
-<html lang="{{ LANGUAGE_CODE }}" dir="{% if LANGUAGE_BIDI %}rtl{% else %}ltr{% endif %}">
+<html lang="ar" dir="rtl">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <meta name="theme-color" content="#0f766e">
-  <title>{% block title %}{% trans "Raqamiyat" %}{% endblock %}</title>
+  <title>{% block title %}Raqamiyat | رقميات{% endblock %}</title>
   <link rel="manifest" href="{% static 'site/manifest.webmanifest' %}">
   <link rel="icon" href="{% static 'site/img/app-icon.svg' %}" type="image/svg+xml">
   <link rel="apple-touch-icon" href="{% static 'site/img/app-icon.svg' %}">
@@ -36,7 +34,7 @@
     .mobile-drawer {
         position: fixed;
         top: 0;
-        inset-inline-end: -100%;
+        right: -100%;
         width: 85%;
         max-width: 320px;
         height: 100vh;
@@ -49,7 +47,7 @@
         flex-direction: column;
     }
 
-    .mobile-drawer.open { inset-inline-end: 0; }
+    .mobile-drawer.open { right: 0; }
 
     .drawer-overlay {
         position: fixed;
@@ -81,8 +79,8 @@
     .mobile-nav-bar {
         position: fixed;
         bottom: 0;
-        inset-inline-start: 0;
-        inset-inline-end: 0;
+        left: 0;
+        right: 0;
         height: 65px;
         background: #0f172a;
         border-top: 1px solid var(--panel-border);
@@ -98,15 +96,44 @@
         flex-direction: column;
         align-items: center;
         color: var(--muted);
-        gap: 0.25rem;
-        text-decoration: none !important;
+        font-size: 10px;
+        font-weight: bold;
+        text-decoration: none;
+        transition: all 0.3s;
     }
-    .mobile-nav-item i { font-size: 1.2rem; }
-    .mobile-nav-item span { font-size: 9px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em; }
+
+    .mobile-nav-item i { font-size: 1.25rem; margin-bottom: 4px; }
     .mobile-nav-item.active { color: var(--cyan); }
 
-    /* Fix image rendering in lists */
-    .p-v2-img img, .p-img-v6 img {
+    @media (min-width: 1024px) {
+        .mobile-nav-bar { display: none; }
+        .mobile-header { display: none; }
+    }
+
+    @media (max-width: 1023px) {
+        header.desktop-header { display: none; }
+        .shell { padding-top: 1rem; padding-bottom: 80px; }
+    }
+
+    /* Standardized Social Icons - Large (64px) */
+    .social-icon-btn {
+        width: 64px !important;
+        height: 64px !important;
+        display: inline-flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        background: rgba(255,255,255,0.03) !important;
+        border: 1px solid rgba(255,255,255,0.08) !important;
+        border-radius: 16px !important;
+        overflow: hidden !important;
+        color: #94a3b8 !important;
+        transition: all 0.2s ease !important;
+        vertical-align: middle;
+    }
+    .social-icon-btn:hover { border-color: #2dd4bf !important; color: #fff !important; transform: translateY(-4px) scale(1.05); shadow: 0 10px 25px rgba(0,0,0,0.3); }
+    .social-icon-btn img, .social-icon-btn i {
+        width: 32px !important;
+        height: 32px !important;
         object-fit: contain !important;
         display: block !important;
     }
@@ -122,23 +149,10 @@
           <i class="fas fa-bolt text-cyan"></i> <span>RAQAMIYAT</span>
       </a>
       <div class="flex items-center gap-3">
-          <form action="{% url 'set_language' %}" method="post" id="lang-form-mobile" class="flex items-center m-0">
-              {% csrf_token %}
-              <input name="next" type="hidden" value="{{ request.get_full_path }}">
-              <select name="language" class="text-[9px] bg-white/5 border-none rounded p-1 text-slate-400 font-bold cursor-pointer uppercase appearance-none px-2" onchange="this.form.submit()">
-                  {% get_available_languages as LANGUAGES %}
-                  {% get_language_info_list for LANGUAGES as languages %}
-                  {% for language in languages %}
-                      <option value="{{ language.code }}" {% if language.code == LANGUAGE_CODE %}selected{% endif %}>
-                          {{ language.code }}
-                      </option>
-                  {% endfor %}
-              </select>
-          </form>
           {% if user.is_authenticated %}
           <a href="{% url 'dashboard_wallet' %}" class="text-cyan font-black text-xs">{% currency_format user.wallet.available_balance user.wallet.currency %}</a>
           {% else %}
-          <a href="{% url 'site_login' %}" class="btn btn-sm btn-primary">{% trans "Login" %}</a>
+          <a href="{% url 'site_login' %}" class="btn btn-sm btn-primary">دخول</a>
           {% endif %}
       </div>
   </div>
@@ -147,7 +161,7 @@
   <div class="drawer-overlay" id="drawer-overlay" onclick="toggleDrawer()"></div>
   <div class="mobile-drawer" id="mobile-drawer">
       <div class="flex justify-between items-center mb-8">
-          <span class="text-[10px] font-black uppercase tracking-widest text-slate-500">{% trans "Menu" %}</span>
+          <span class="text-[10px] font-black uppercase tracking-widest text-slate-500">القائمة</span>
           <button onclick="toggleDrawer()" class="text-slate-500"><i class="fas fa-times text-xl"></i></button>
       </div>
 
@@ -165,46 +179,46 @@
 
       <nav class="stack gap-2">
           <a href="{% url 'home' %}" class="drawer-link {% if request.resolver_match.url_name == 'home' %}active{% endif %}">
-              <i class="fas fa-house"></i> {% trans "Home" %}
+              <i class="fas fa-house"></i> الرئيسية
           </a>
           <a href="{% url 'catalog' %}" class="drawer-link {% if request.resolver_match.url_name == 'catalog' %}active{% endif %}">
-              <i class="fas fa-grid-2"></i> {% trans "Catalog" %}
+              <i class="fas fa-grid-2"></i> الكتالوج
           </a>
 
           {% if user.is_authenticated %}
           <div class="h-px bg-white/5 my-4"></div>
           <a href="{% url 'dashboard' %}" class="drawer-link {% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}">
-              <i class="fas fa-th-large"></i> {% trans "Dashboard" %}
+              <i class="fas fa-th-large"></i> لوحة التحكم
           </a>
           <a href="{% url 'dashboard_orders' %}" class="drawer-link {% if request.resolver_match.url_name == 'dashboard_orders' %}active{% endif %}">
-              <i class="fas fa-receipt"></i> {% trans "My Orders" %}
+              <i class="fas fa-receipt"></i> طلباتي
           </a>
           <a href="{% url 'dashboard_wallet' %}" class="drawer-link {% if request.resolver_match.url_name == 'dashboard_wallet' %}active{% endif %}">
-              <i class="fas fa-wallet"></i> {% trans "Wallet" %}
+              <i class="fas fa-wallet"></i> المحفظة
           </a>
           <a href="{% url 'notification_settings' %}" class="drawer-link {% if request.resolver_match.url_name == 'notification_settings' %}active{% endif %}">
-              <i class="fas fa-bell"></i> {% trans "Notifications" %}
+              <i class="fas fa-bell"></i> الإشعارات
           </a>
           <a href="{% url 'chat_list' %}" class="drawer-link {% if 'chat' in request.path %}active{% endif %}">
-              <i class="fas fa-comments"></i> {% trans "Live Support" %}
+              <i class="fas fa-comments"></i> الدعم المباشر
           </a>
           
           {% if user.is_superuser or user.role == "super_admin" or user.role == "admin" %}
           <div class="h-px bg-white/5 my-4"></div>
           <a href="{% url 'control_dashboard' %}" class="drawer-link text-amber-400">
-              <i class="fas fa-shield-alt"></i> {% trans "Admin Center" %}
+              <i class="fas fa-shield-alt"></i> مركز التحكم
           </a>
           {% endif %}
 
           <div class="mt-auto pt-8">
               <a href="{% url 'site_logout' %}" class="drawer-link text-rose-500">
-                  <i class="fas fa-power-off"></i> {% trans "Sign Out" %}
+                  <i class="fas fa-power-off"></i> تسجيل الخروج
               </a>
           </div>
           {% else %}
           <div class="mt-8 stack gap-3">
-              <a href="{% url 'site_login' %}" class="btn btn-primary w-full py-3">{% trans "Login" %}</a>
-              <a href="{% url 'site_register' %}" class="btn btn-outline w-full py-3">{% trans "Create New Account" %}</a>
+              <a href="{% url 'site_login' %}" class="btn btn-primary w-full py-3">تسجيل الدخول</a>
+              <a href="{% url 'site_register' %}" class="btn btn-outline w-full py-3">إنشاء حساب جديد</a>
           </div>
           {% endif %}
       </nav>
@@ -219,158 +233,145 @@
         </a>
 
         <nav class="nav">
-          <a href="{% url 'home' %}" class="{% if request.resolver_match.url_name == 'home' %}active{% endif %}">{% trans "Home" %}</a>
-          <a href="{% url 'catalog' %}" class="{% if request.resolver_match.url_name == 'catalog' %}active{% endif %}">{% trans "Services" %}</a>
+          <a href="{% url 'home' %}" class="{% if request.resolver_match.url_name == 'home' %}active{% endif %}">الرئيسية</a>
+          <a href="{% url 'catalog' %}" class="{% if request.resolver_match.url_name == 'catalog' %}active{% endif %}">الخدمات</a>
           {% if user.is_authenticated %}
-             <a href="{% url 'dashboard' %}" class="{% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}">{% trans "My Panel" %}</a>
-             <a href="{% url 'dashboard_orders' %}" class="{% if request.resolver_match.url_name == 'dashboard_orders' %}active{% endif %}">{% trans "My Orders" %}</a>
-             <a href="{% url 'dashboard_wallet' %}" class="{% if request.resolver_match.url_name == 'dashboard_wallet' %}active{% endif %}">{% trans "Wallet" %}</a>
-             <a href="{% url 'notification_settings' %}" class="{% if request.resolver_match.url_name == 'notification_settings' %}active{% endif %}">{% trans "Notifications" %}</a>
-             <a href="{% url 'chat_list' %}" class="{% if 'chat' in request.path %}active{% endif %}">{% trans "Live Support" %}</a>
+             <a href="{% url 'dashboard' %}" class="{% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}">لوحتي</a>
+             <a href="{% url 'dashboard_orders' %}" class="{% if request.resolver_match.url_name == 'dashboard_orders' %}active{% endif %}">طلباتي</a>
+             <a href="{% url 'dashboard_wallet' %}" class="{% if request.resolver_match.url_name == 'dashboard_wallet' %}active{% endif %}">المحفظة</a>
+             <a href="{% url 'notification_settings' %}" class="{% if request.resolver_match.url_name == 'notification_settings' %}active{% endif %}">الإشعارات</a>
+             <a href="{% url 'chat_list' %}" class="{% if 'chat' in request.path %}active{% endif %}">الدعم المباشر</a>
              {% if user.is_superuser or user.role == "super_admin" or user.role == "admin" %}
-                <a href="{% url 'control_dashboard' %}" class="{% if 'control' in request.path %}active{% endif %}">{% trans "Dashboard" %}</a>
+                <a href="{% url 'control_dashboard' %}" class="{% if 'control' in request.path %}active{% endif %}">لوحة التحكم</a>
              {% endif %}
           {% endif %}
         </nav>
 
         <div class="actions">
           <div class="flex items-center gap-2 ml-4">
-              <!-- Currency Switcher -->
               <select class="text-[10px] bg-slate-800 border-none rounded p-1 text-slate-400 font-bold cursor-pointer" onchange="location.href='{% url 'set_currency' %}?currency=' + this.value">
                   {% for c in ALL_CURRENCIES %}
                   <option value="{{ c.id }}" {% if c.id == CURRENCY.id %}selected{% endif %}>{{ c.code }}</option>
                   {% endfor %}
               </select>
-
-              <!-- Language Switcher -->
-              <div class="relative group">
-                  <form action="{% url 'set_language' %}" method="post" id="lang-form-desktop" class="flex items-center m-0">
-                      {% csrf_token %}
-                      <input name="next" type="hidden" value="{{ request.get_full_path }}">
-                      <select name="language" class="text-[10px] bg-slate-800 border-none rounded p-1 text-slate-400 font-bold cursor-pointer uppercase appearance-none px-2" onchange="this.form.submit()">
-                          {% get_available_languages as LANGUAGES %}
-                          {% get_language_info_list for LANGUAGES as languages %}
-                          {% for language in languages %}
-                              <option value="{{ language.code }}" {% if language.code == LANGUAGE_CODE %}selected{% endif %}>
-                                  {{ language.code }}
-                              </option>
-                          {% endfor %}
-                      </select>
-                  </form>
-              </div>
           </div>
-
           {% if user.is_authenticated %}
-          <div class="user-dropdown">
-            <div class="avatar">
-                {{ user.get_full_name|default:user.email|slice:":1"|upper }}
+            <div class="flex items-center gap-4">
+                <div class="text-left hide-mobile">
+                    <div class="text-[10px] text-muted font-bold">الرصيد المتاح</div>
+                    <div class="text-sm font-black text-cyan">{% currency_format user.wallet.available_balance user.wallet.currency %}</div>
+                </div>
+                <a href="{% url 'site_logout' %}" class="btn btn-sm btn-outline"><i class="fas fa-sign-out-alt"></i></a>
             </div>
-            <div class="dropdown-content">
-              <div class="user-info">
-                <strong>{{ user.get_full_name|default:user.username }}</strong>
-                <span>{{ user.email }}</span>
-              </div>
-              <hr>
-              <a href="{% url 'dashboard' %}"><i class="fas fa-th-large"></i> {% trans "Dashboard" %}</a>
-              <a href="{% url 'site_logout' %}" class="logout text-rose-500"><i class="fas fa-sign-out-alt"></i> {% trans "Logout" %}</a>
-            </div>
-          </div>
           {% else %}
-          <a href="{% url 'site_login' %}" class="btn btn-primary px-6">{% trans "Sign In" %}</a>
+            <a href="{% url 'site_login' %}" class="btn btn-sm btn-outline">تسجيل الدخول</a>
+            <a href="{% url 'site_register' %}" class="btn btn-sm btn-primary">حساب جديد</a>
           {% endif %}
         </div>
       </div>
     </header>
 
     {% if messages %}
-    <div class="messages-container">
+      <div class="messages-container stack gap-2 mb-6">
         {% for message in messages %}
-        <div class="message-banner {{ message.tags }}">
-            <i class="fas {% if message.tags == 'success' %}fa-check-circle{% elif message.tags == 'error' %}fa-exclamation-circle{% else %}fa-info-circle{% endif %}"></i>
-            <span>{{ message }}</span>
-            <button onclick="this.parentElement.remove()"><i class="fas fa-times"></i></button>
-        </div>
+          <div class="panel p-4 {% if message.tags == 'error' %}border-danger/30 bg-danger/5 text-danger{% else %}border-success/30 bg-success/5 text-success{% endif %} flex justify-between items-center">
+            <span class="text-sm font-bold">{{ message }}</span>
+            <i class="fas {% if message.tags == 'error' %}fa-exclamation-circle{% else %}fa-check-circle{% endif %}"></i>
+          </div>
         {% endfor %}
-    </div>
+      </div>
     {% endif %}
 
-    <main class="main-content">
-      {% block content %}{% endblock %}
-    </main>
+    {% block content %}{% endblock %}
 
-    <!-- Mobile Navigation Bar -->
-    <nav class="mobile-nav-bar sm:hidden">
-        <a href="{% url 'home' %}" class="mobile-nav-item {% if request.resolver_match.url_name == 'home' %}active{% endif %}">
-            <i class="fas fa-house"></i>
-            <span>{% trans "Home" %}</span>
-        </a>
-        <a href="{% url 'catalog' %}" class="mobile-nav-item {% if request.resolver_match.url_name == 'catalog' %}active{% endif %}">
-            <i class="fas fa-grid-2"></i>
-            <span>{% trans "Store" %}</span>
-        </a>
-        <a href="{% url 'dashboard_orders' %}" class="mobile-nav-item {% if request.resolver_match.url_name == 'dashboard_orders' %}active{% endif %}">
-            <i class="fas fa-receipt"></i>
-            <span>{% trans "Orders" %}</span>
-        </a>
-        <a href="{% url 'dashboard' %}" class="mobile-nav-item {% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}">
-            <i class="fas fa-user-circle"></i>
-            <span>{% trans "Account" %}</span>
-        </a>
-    </nav>
-
-    <footer class="footer">
+    <footer class="mt-24 pt-20 pb-10 border-t border-white/5 bg-white/[0.01]">
       <div class="container">
-        <div class="footer-grid">
-          <div class="footer-brand">
-            <div class="brand mb-6">
-                <i class="fas fa-bolt text-cyan"></i> <span>RAQAMIYAT</span>
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-12 mb-16">
+            <div class="md:col-span-2">
+                <div class="brand mb-6" style="font-size: 1.75rem;">
+                    <i class="fas fa-bolt text-cyan"></i> <span>RAQAMIYAT</span>
+                </div>
+                <p class="text-slate-500 text-sm max-w-sm leading-relaxed mb-8">
+                    رقميات هي المنصة الرائدة في المنطقة لتوفير كافة الخدمات والبطاقات الرقمية بأمان تام وسرعة استثنائية. نسعى دائماً لتقديم أفضل تجربة شراء لعملائنا وتجارنا.
+                </p>
+                <div class="flex gap-3">
+                    {% for link in SOCIAL_LINKS %}
+                    <a href="{{ link.url }}" target="_blank" class="social-icon-btn" title="{{ link.name }}">
+                        {% if link.icon_image %}
+                        <img src="{{ link.icon_image.url }}" alt="{{ link.name }}">
+                        {% else %}
+                        <i class="{{ link.icon_class|default:'fas fa-link' }}"></i>
+                        {% endif %}
+                    </a>
+                    {% endfor %}
+                </div>
             </div>
-            <p class="text-sm text-slate-500 leading-relaxed mb-8">
-              {% trans "The leading platform for digital services and automated recharge cards. We aim to provide the best user experience with the highest standards of security and speed." %}
-            </p>
-            <div class="flex gap-4">
-                {% for link in SOCIAL_LINKS %}
-                <a href="{{ link.url }}" class="social-icon-btn" title="{{ link.name }}">
-                    {% if link.icon_image %}
-                    <img src="{{ link.icon_image.url }}" alt="{{ link.name }}" style="width: 20px; height: 20px;">
+            
+            <div>
+                <h4 class="font-black text-xs uppercase tracking-widest text-white mb-6">روابط سريعة</h4>
+                <div class="stack gap-4 text-sm text-slate-500">
+                    <a href="{% url 'catalog' %}" class="hover:text-cyan transition-colors">تصفح الخدمات</a>
+                    {% if not user.is_authenticated %}
+                    <a href="{% url 'site_login' %}" class="hover:text-cyan transition-colors">تسجيل الدخول</a>
+                    <a href="{% url 'site_register' %}" class="hover:text-cyan transition-colors">إنشاء حساب</a>
                     {% else %}
-                    <i class="{{ link.icon_class|default:'fas fa-link' }}"></i>
+                    <a href="{% url 'dashboard' %}" class="hover:text-cyan transition-colors">لوحة التحكم</a>
+                    <a href="{% url 'dashboard_orders' %}" class="hover:text-cyan transition-colors">طلباتي</a>
                     {% endif %}
-                </a>
-                {% endfor %}
+                </div>
             </div>
-          </div>
 
-          <div class="footer-links">
-            <h4>{% trans "Important Links" %}</h4>
-            <ul>
-              <li><a href="{% url 'catalog' %}">{% trans "All Services" %}</a></li>
-              <li><a href="{% url 'chat_list' %}">{% trans "Direct Support" %}</a></li>
-              <li><a href="{% url 'home' %}#how-it-works">{% trans "How to Buy" %}</a></li>
-            </ul>
-          </div>
-
-          <div class="footer-links">
-            <h4>{% trans "Legal" %}</h4>
-            <ul>
-              <li><a href="{% url 'terms_of_service' %}">{% trans "Terms of Service" %}</a></li>
-              <li><a href="{% url 'privacy_policy' %}">{% trans "Privacy Policy" %}</a></li>
-              <li><a href="{% url 'refund_policy' %}">{% trans "Refund Policy" %}</a></li>
-            </ul>
-          </div>
+            <div>
+                <h4 class="font-black text-xs uppercase tracking-widest text-white mb-6">الدعم والخصوصية</h4>
+                <div class="stack gap-4 text-sm text-slate-500">
+                    <a href="{% url 'privacy_policy' %}" class="hover:text-cyan transition-colors">سياسة الخصوصية</a>
+                    <a href="{% url 'terms_of_service' %}" class="hover:text-cyan transition-colors">شروط الاستخدام</a>
+                    <a href="{% url 'refund_policy' %}" class="hover:text-cyan transition-colors">سياسة الاسترجاع</a>
+                    <a href="{% url 'contact' %}" class="hover:text-cyan transition-colors">اتصل بنا</a>
+                </div>
+            </div>
         </div>
-
-        <div class="footer-bottom">
-            <div class="text-[10px] text-slate-600 font-bold tracking-wider">© 2026 RAQAMIYAT LTD. {% trans "ALL RIGHTS RESERVED." %}</div>
-            <div class="flex gap-6 mt-4 sm:mt-0">
-                <img src="{% static 'site/img/payment-icons.png' %}" alt="Payments" class="h-5 opacity-30 grayscale hover:grayscale-0 transition-all">
+        
+        <div class="flex flex-col md:row justify-between items-center pt-10 border-t border-white/5 gap-4">
+            <div class="text-[10px] text-slate-600 font-bold tracking-wider">© 2026 RAQAMIYAT LTD. ALL RIGHTS RESERVED.</div>
+            <div class="flex items-center gap-6 opacity-30 grayscale hover:opacity-100 hover:grayscale-0 transition-all">
+                <i class="fab fa-cc-visa text-2xl"></i>
+                <i class="fab fa-cc-mastercard text-2xl"></i>
+                <i class="fab fa-cc-paypal text-2xl"></i>
             </div>
         </div>
       </div>
     </footer>
   </div>
 
+  <!-- Mobile Nav Bar -->
+  <div class="mobile-nav-bar">
+      <a href="{% url 'home' %}" class="mobile-nav-item {% if request.resolver_match.url_name == 'home' %}active{% endif %}">
+          <i class="fas fa-house"></i>
+          <span>الرئيسية</span>
+      </a>
+      <a href="{% url 'catalog' %}" class="mobile-nav-item {% if request.resolver_match.url_name == 'catalog' %}active{% endif %}">
+          <i class="fas fa-grid-2"></i>
+          <span>الخدمات</span>
+      </a>
+      <a href="{% url 'dashboard_wallet' %}" class="mobile-nav-item {% if request.resolver_match.url_name == 'dashboard_wallet' %}active{% endif %}">
+          <i class="fas fa-wallet"></i>
+          <span>المحفظة</span>
+      </a>
+      <a href="{% url 'chat_list' %}" class="mobile-nav-item {% if 'chat' in request.path %}active{% endif %}">
+          <i class="fas fa-headset"></i>
+          <span>الدعم</span>
+      </a>
+      <a href="{% url 'dashboard' %}" class="mobile-nav-item {% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}">
+          <i class="fas fa-user"></i>
+          <span>حسابي</span>
+      </a>
+  </div>
+
   <script>
+      window.isUserAuthenticated = {% if user.is_authenticated %}true{% else %}false{% endif %};
+      window.VAPID_PUBLIC_KEY = "{{ VAPID_PUBLIC_KEY }}";
+
       function toggleDrawer() {
           const drawer = document.getElementById('mobile-drawer');
           const overlay = document.getElementById('drawer-overlay');
@@ -379,6 +380,8 @@
           document.body.style.overflow = drawer.classList.contains('open') ? 'hidden' : '';
       }
   </script>
+  <script src="{% static 'site/js/app.js' %}?v=3"></script>
+  <script src="{% static 'site/js/push.js' %}?v=2"></script>
   {% block extra_js %}{% endblock %}
 </body>
 </html>

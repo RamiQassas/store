@@ -1,7 +1,7 @@
 {% extends "site/control_base.html" %}
-{% load static i18n %}
+{% load static %}
 
-{% block title %}{% trans "Deposit Details" %} #{{ deposit.id|stringformat:".8s" }} | Raqamiyat Admin{% endblock %}
+{% block title %}تفاصيل الإيداع #{{ deposit.id|stringformat:".8s" }} | Raqamiyat Admin{% endblock %}
 
 {% block extra_head %}
 <style>
@@ -69,20 +69,20 @@
 
 {% block control_content %}
 <nav class="breadcrumb">
-    <a href="{% url 'control_dashboard' %}" class="breadcrumb-item">{% trans "Home" %}</a>
-    <a href="{% url 'control_deposits' %}" class="breadcrumb-item">{% trans "Deposit Management" %}</a>
-    <span class="breadcrumb-item active">{% trans "Deposit Details" %}</span>
+    <a href="{% url 'control_dashboard' %}" class="breadcrumb-item">الرئيسية</a>
+    <a href="{% url 'control_deposits' %}" class="breadcrumb-item">إدارة الإيداعات</a>
+    <span class="breadcrumb-item active">تفاصيل الإيداع</span>
 </nav>
 
 <div class="page-head flex justify-between items-center">
     <div>
-        <span class="eyebrow">{% trans "Financial Operations / Deposits" %}</span>
-        <h1>{% trans "Deposit Request Details" %}</h1>
-        <p class="text-muted">{% trans "Reviewing and verifying financial transfer:" %} #{{ deposit.id }}</p>
+        <span class="eyebrow">Financial Operations / Deposits</span>
+        <h1>تفاصيل طلب الإيداع</h1>
+        <p class="text-muted">مراجعة والتحقق من الحوالة المالية: #{{ deposit.id }}</p>
     </div>
     <div>
         <a href="{% url 'control_deposits' %}" class="btn btn-outline btn-sm">
-            <i class="fas fa-arrow-right ml-2"></i> {% trans "Back to List" %}
+            <i class="fas fa-arrow-right ml-2"></i> العودة للقائمة
         </a>
     </div>
 </div>
@@ -94,12 +94,12 @@
         <div class="management-card">
             <div class="management-header">
                 <h3 class="font-bold flex items-center gap-2">
-                    <i class="fas fa-image text-cyan"></i> {% trans "Payment Proof (Receipt)" %}
+                    <i class="fas fa-image text-cyan"></i> إثبات الدفع (الوصل)
                 </h3>
                 <div class="flex gap-2">
                      {% if deposit.proof_image %}
                      <a href="{{ deposit.proof_image.url }}" download class="text-[10px] text-slate-400 hover:text-white transition">
-                        <i class="fas fa-download ml-1"></i> {% trans "Download Image" %}
+                        <i class="fas fa-download ml-1"></i> تحميل الصورة
                      </a>
                      {% endif %}
                 </div>
@@ -120,7 +120,7 @@
                 {% else %}
                 <div class="p-20 text-center bg-slate-900/50 rounded-2xl border border-dashed border-white/10">
                     <i class="fas fa-image-slash text-4xl text-slate-700 mb-4"></i>
-                    <p class="text-slate-500 font-bold">{% trans "User did not attach a proof image." %}</p>
+                    <p class="text-slate-500 font-bold">لم يقم المستخدم بإرفاق صورة إثبات.</p>
                 </div>
                 {% endif %}
             </div>
@@ -129,31 +129,31 @@
         <!-- Processing Actions -->
         <div class="management-card">
             <div class="management-header">
-                <h3 class="font-bold">{% trans "Take Action" %}</h3>
+                <h3 class="font-bold">اتخاذ إجراء</h3>
             </div>
             <div class="p-6">
                 {% if deposit.status == 'pending' or deposit.status == 'under_review' %}
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div class="stack gap-4">
-                        <h4 class="text-sm font-bold text-emerald-500">{% trans "Approve and Credit" %}</h4>
+                        <h4 class="text-sm font-bold text-emerald-500">الموافقة والإضافة</h4>
                         <div class="bg-emerald-500/5 p-4 rounded-xl border border-emerald-500/10 mb-2">
                             <div class="flex justify-between items-center text-[11px] mb-1">
-                                <span class="text-slate-500">{% trans "Deposit Amount:" %}</span>
+                                <span class="text-slate-500">مبلغ الإيداع:</span>
                                 <span class="font-bold text-white">{{ deposit.amount }} {{ deposit.currency.code }}</span>
                             </div>
                             <div class="flex justify-between items-center text-[11px] mb-2">
-                                <span class="text-slate-500">{% trans "Deducted Fee:" %}</span>
+                                <span class="text-slate-500">الرسوم المستقطعة:</span>
                                 <span class="font-bold text-rose-400">- {{ deposit.fee_amount }} {{ deposit.currency.code }}</span>
                             </div>
                             <div class="h-px bg-white/5 my-2"></div>
                             <div class="flex justify-between items-center">
-                                <span class="text-xs font-bold text-slate-300">{% trans "Approved Net:" %}</span>
+                                <span class="text-xs font-bold text-slate-300">الصافي المعتمد:</span>
                                 <span class="text-lg font-black text-emerald-400">{{ deposit.final_amount }} {{ deposit.currency.code }}</span>
                             </div>
                         </div>
                         
                         <div class="field-group">
-                            <label class="info-label">{% trans "Approved Amount to Credit (Adjustable)" %}</label>
+                            <label class="info-label">المبلغ المعتمد للإضافة (قابل للتعديل)</label>
                             <div class="relative">
                                 <input type="number" id="approve-amount" value="{{ deposit.amount }}" step="0.01" class="w-full bg-slate-900 border-white/10 rounded-xl p-3 text-lg font-black text-emerald-400 focus:border-emerald-500 transition-all">
                                 <span class="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 font-bold text-xs uppercase">{{ deposit.currency.code }}</span>
@@ -161,26 +161,26 @@
                         </div>
 
                         <div class="field-group">
-                            <label class="info-label">{% trans "Notes (Optional)" %}</label>
-                            <textarea id="approve-note" class="w-full bg-slate-900 border-white/10 rounded-xl p-3 text-xs text-white" rows="2" placeholder="{% trans "Note shown to the user..." %}"></textarea>
+                            <label class="info-label">ملاحظات (اختياري)</label>
+                            <textarea id="approve-note" class="w-full bg-slate-900 border-white/10 rounded-xl p-3 text-xs text-white" rows="2" placeholder="ملاحظة تظهر للمستخدم..."></textarea>
                         </div>
 
                         <button class="btn btn-primary w-full py-3 font-bold" onclick="processAction('approve')">
-                            <i class="fas fa-check-circle ml-2"></i> {% trans "Confirm Approval" %}
+                            <i class="fas fa-check-circle ml-2"></i> تأكيد الموافقة
                         </button>
                     </div>
 
                     <div class="stack gap-4 border-r border-white/5 pr-6">
-                        <h4 class="text-sm font-bold text-rose-500">{% trans "Reject Request" %}</h4>
-                        <p class="text-xs text-slate-500">{% trans "The request will be cancelled and no balance will be credited." %}</p>
+                        <h4 class="text-sm font-bold text-rose-500">رفض الطلب</h4>
+                        <p class="text-xs text-slate-500">سيتم إلغاء الطلب ولن يتم إضافة أي رصيد.</p>
                         
                         <div class="field-group">
-                            <label class="info-label">{% trans "Rejection Reason" %}</label>
-                            <textarea id="reject-note" class="w-full bg-slate-900 border-white/10 rounded-xl p-3 text-xs text-white" rows="4" placeholder="{% trans "Please explain the reason for rejection to the customer..." %}"></textarea>
+                            <label class="info-label">سبب الرفض</label>
+                            <textarea id="reject-note" class="w-full bg-slate-900 border-white/10 rounded-xl p-3 text-xs text-white" rows="4" placeholder="يرجى توضيح سبب الرفض للعميل..."></textarea>
                         </div>
 
                         <button class="btn btn-outline danger w-full py-3 font-bold" onclick="processAction('reject')">
-                            <i class="fas fa-ban ml-2"></i> {% trans "Reject Request" %}
+                            <i class="fas fa-ban ml-2"></i> رفض الطلب
                         </button>
                     </div>
                 </div>
@@ -189,33 +189,33 @@
                     <div class="flex items-center gap-3">
                         <i class="fas fa-check-double text-emerald-500"></i>
                         <div>
-                            <div class="text-xs font-bold text-emerald-500">{% trans "Completed Request" %}</div>
-                            <div class="text-[10px] text-emerald-500/70">{% trans "Processed by" %} {{ deposit.reviewed_by.get_full_name|default:deposit.reviewed_by.email }} {% trans "on" %} {{ deposit.reviewed_at|date:"Y-m-d H:i" }}</div>
+                            <div class="text-xs font-bold text-emerald-500">طلب مكتمل</div>
+                            <div class="text-[10px] text-emerald-500/70">تمت معالجة هذا الطلب بواسطة {{ deposit.reviewed_by.get_full_name|default:deposit.reviewed_by.email }} في {{ deposit.reviewed_at|date:"Y-m-d H:i" }}</div>
                         </div>
                     </div>
-                    <button class="btn btn-outline btn-sm text-[10px]" onclick="document.getElementById('correction-area').classList.toggle('hidden')">{% trans "Edit/Correct" %}</button>
+                    <button class="btn btn-outline btn-sm text-[10px]" onclick="document.getElementById('correction-area').classList.toggle('hidden')">تعديل/تصحيح</button>
                 </div>
 
                 <div id="correction-area" class="mt-6 p-6 bg-slate-900/40 border border-white/5 rounded-2xl hidden">
-                    <h4 class="text-sm font-bold mb-4">{% trans "Correct Deposit Data" %}</h4>
+                    <h4 class="text-sm font-bold mb-4">تصحيح بيانات الإيداع</h4>
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div class="field-group">
-                            <label class="info-label">{% trans "New Amount" %}</label>
+                            <label class="info-label">المبلغ الجديد</label>
                             <input type="number" id="correct-amount" value="{{ deposit.amount }}" step="0.01" class="w-full bg-slate-900 border-white/10 rounded-xl p-3 text-xs text-white">
                         </div>
                         <div class="field-group">
-                            <label class="info-label">{% trans "Correction Note" %}</label>
-                            <input type="text" id="correct-note" class="w-full bg-slate-900 border-white/10 rounded-xl p-3 text-xs text-white" placeholder="{% trans "Reason for correction..." %}">
+                            <label class="info-label">ملاحظة التصحيح</label>
+                            <input type="text" id="correct-note" class="w-full bg-slate-900 border-white/10 rounded-xl p-3 text-xs text-white" placeholder="سبب التعديل...">
                         </div>
                     </div>
-                    <button class="btn btn-outline w-full mt-4 py-2 font-bold" onclick="processAction('correct')">{% trans "Save Changes" %}</button>
+                    <button class="btn btn-outline w-full mt-4 py-2 font-bold" onclick="processAction('correct')">حفظ التغييرات</button>
                 </div>
                 {% else %}
                 <div class="bg-rose-500/10 border border-rose-500/20 p-4 rounded-xl flex items-center gap-3">
                     <i class="fas fa-times-circle text-rose-500"></i>
                     <div>
-                        <div class="text-xs font-bold text-rose-500">{% trans "Rejected Request" %}</div>
-                        <div class="text-[10px] text-rose-500/70">{% trans "Request rejected. Note:" %} {{ deposit.admin_note|default:_("No notes") }}</div>
+                        <div class="text-xs font-bold text-rose-500">طلب مرفوض</div>
+                        <div class="text-[10px] text-rose-500/70">تم رفض الطلب. ملاحظة: {{ deposit.admin_note|default:"بدون ملاحظات" }}</div>
                     </div>
                 </div>
                 {% endif %}
@@ -227,7 +227,7 @@
     <div class="stack gap-6">
         <div class="management-card">
             <div class="management-header">
-                <h3 class="font-bold">{% trans "Customer Information" %}</h3>
+                <h3 class="font-bold">معلومات العميل</h3>
             </div>
             <div class="p-6 stack gap-4">
                 <div class="flex items-center gap-4 mb-2">
@@ -241,23 +241,23 @@
                 </div>
                 
                 <div class="info-item">
-                    <span class="info-label">{% trans "Current Wallet Balance" %}</span>
+                    <span class="info-label">رصيد المحفظة الحالي</span>
                     <span class="info-value text-cyan">{{ deposit.user.wallet.available_balance }} {{ deposit.user.wallet.currency.code }}</span>
                 </div>
 
                 <a href="{% url 'control_user_moderate' deposit.user.public_uuid %}" class="btn btn-outline btn-sm w-full">
-                    <i class="fas fa-user-gear ml-1"></i> {% trans "View User Profile" %}
+                    <i class="fas fa-user-gear ml-1"></i> عرض ملف المستخدم
                 </a>
             </div>
         </div>
 
         <div class="management-card">
             <div class="management-header">
-                <h3 class="font-bold">{% trans "Deposit Data" %}</h3>
+                <h3 class="font-bold">بيانات الإيداع</h3>
             </div>
             <div class="p-6 stack gap-3">
                 <div class="info-item">
-                    <span class="info-label">{% trans "Requested Amount" %}</span>
+                    <span class="info-label">المبلغ المطلوب</span>
                     <span class="info-value text-emerald-400">{{ deposit.amount }} {{ deposit.currency.code }}</span>
                 </div>
                 
@@ -269,28 +269,28 @@
                 {% endfor %}
 
                 <div class="info-item">
-                    <span class="info-label">{% trans "Fee" %}</span>
+                    <span class="info-label">الرسوم</span>
                     <span class="info-value text-rose-400">{{ deposit.fee_amount }} {{ deposit.currency.code }}</span>
                 </div>
                 <div class="info-item">
-                    <span class="info-label">{% trans "Net Amount" %}</span>
+                    <span class="info-label">المبلغ الصافي</span>
                     <span class="info-value">{{ deposit.final_amount }} {{ deposit.currency.code }}</span>
                 </div>
                 <div class="info-item">
-                    <span class="info-label">{% trans "Payment Method" %}</span>
+                    <span class="info-label">وسيلة الدفع</span>
                     <span class="info-value">{{ deposit.payment_method.name }}</span>
                 </div>
                 <div class="info-item">
-                    <span class="info-label">{% trans "Transaction ID / Reference" %}</span>
+                    <span class="info-label">رقم العملية / المرجع</span>
                     <span class="info-value font-mono text-[11px]">{{ deposit.transaction_id|default:"N/A" }}</span>
                 </div>
                 <div class="info-item">
-                    <span class="info-label">{% trans "Requested Date" %}</span>
+                    <span class="info-label">تاريخ الطلب</span>
                     <span class="info-value text-[11px]">{{ deposit.created_at|date:"Y-m-d H:i:s" }}</span>
                 </div>
                 {% if deposit.customer_note %}
                 <div class="info-item">
-                    <span class="info-label">{% trans "Customer Notes" %}</span>
+                    <span class="info-label">ملاحظات العميل</span>
                     <span class="info-value text-[11px] italic">{{ deposit.customer_note }}</span>
                 </div>
                 {% endif %}
@@ -366,7 +366,7 @@
             };
         } else if (action === 'reject') {
             const note = document.getElementById('reject-note').value;
-            if (!note) { alert("{% trans "Please provide a reason for rejection." %}"); return; }
+            if (!note) { alert("يرجى ذكر سبب الرفض."); return; }
             body = { admin_note: note };
         } else if (action === 'correct') {
             body = {
@@ -375,7 +375,7 @@
             };
         }
 
-        if (!confirm("{% trans "Are you sure you want to perform this action?" %}")) return;
+        if (!confirm("هل أنت متأكد من تنفيذ هذا الإجراء؟")) return;
 
         try {
             const response = await fetch(`/api/deposits/{{ deposit.id }}/${action}/`, {
@@ -388,14 +388,14 @@
             });
             
             if (response.ok) {
-                alert("{% trans "Operation performed successfully." %}");
+                alert("تم تنفيذ العملية بنجاح.");
                 location.reload();
             } else {
                 const data = await response.json();
-                alert("{% trans "Error:" %} " + (data.detail || data.message || "{% trans "Execution failed" %}"));
+                alert("خطأ: " + (data.detail || data.message || "تعذر التنفيذ"));
             }
         } catch (e) {
-            alert("{% trans "Server connection error." %}");
+            alert("خطأ في الاتصال بالخادم.");
         }
     }
 </script>

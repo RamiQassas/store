@@ -1,8 +1,8 @@
 import json
 from decimal import Decimal
 from django.db import transaction
-from django.utils.translation import gettext_lazy as _
 from apps.wallets.models import LedgerEntry, Wallet, WalletTransaction
+from apps.common.models import Currency
 from apps.notifications.models import Notification
 
 class WalletError(Exception):
@@ -10,15 +10,11 @@ class WalletError(Exception):
 
 def json_serialize_safe(data):
     if not data: return {}
-    from django.utils.encoding import force_str
     class CustomEncoder(json.JSONEncoder):
         def default(self, obj):
             if isinstance(obj, Decimal): return str(obj)
             if hasattr(obj, 'hex'): return str(obj) # UUID
-            try:
-                return super().default(obj)
-            except TypeError:
-                return force_str(obj)
+            return super().default(obj)
     return json.loads(json.dumps(data, cls=CustomEncoder))
 
 def credit_wallet(wallet_id, amount, reference="", description="", created_by=None, metadata=None, source="system", reason=""):
@@ -107,24 +103,15 @@ def add_debt(wallet_id, amount, reference="", description="", created_by=None, m
         from apps.notifications.services import notify_user, notify_staff
         notify_user(
             user=wallet.user,
-            title=_("New Debt Added"),
-            body=_("A debt of %(amount)s %(currency)s has been added to your account. Reason: %(reason)s") % {
-                'amount': amount,
-                'currency': wallet.currency.code,
-                'reason': reason
-            },
+            title="إضافة دين جديد",
+            body=f"تم إضافة دين بقيمة {amount} {wallet.currency.code} إلى حسابك. {reason}",
             category='financial',
             metadata={'amount': str(amount), 'currency': wallet.currency.code, 'reference': reference}
         )
         
         notify_staff(
-            title=_("Debt Added to User"),
-            body=_("A debt of %(amount)s %(currency)s has been added to user %(email)s. Reason: %(reason)s") % {
-                'amount': amount,
-                'currency': wallet.currency.code,
-                'email': wallet.user.email,
-                'reason': reason
-            },
+            title="إضافة دين لمستخدم",
+            body=f"تم إضافة دين بقيمة {amount} {wallet.currency.code} للمستخدم {wallet.user.email}. السبب: {reason}",
             priority=Notification.Priority.HIGH
         )
 
@@ -165,24 +152,15 @@ def pay_debt(wallet_id, amount, reference="", description="", created_by=None, m
         from apps.notifications.services import notify_user, notify_staff
         notify_user(
             user=wallet.user,
-            title=_("Debt Repayment"),
-            body=_("A debt repayment of %(amount)s %(currency)s has been recorded. %(reason)s") % {
-                'amount': amount,
-                'currency': wallet.currency.code,
-                'reason': reason
-            },
+            title="تسديد دين",
+            body=f"تم تسجيل سداد دين بقيمة {amount} {wallet.currency.code}. {reason}",
             category='financial',
             metadata={'amount': str(amount), 'currency': wallet.currency.code, 'reference': reference}
         )
 
         notify_staff(
-            title=_("Debt Repayment from User"),
-            body=_("A debt repayment of %(amount)s %(currency)s has been recorded for user %(email)s. Reason: %(reason)s") % {
-                'amount': amount,
-                'currency': wallet.currency.code,
-                'email': wallet.user.email,
-                'reason': reason
-            }
+            title="سداد دين من مستخدم",
+            body=f"تم تسجيل سداد دين بقيمة {amount} {wallet.currency.code} للمستخدم {wallet.user.email}. السبب: {reason}"
         )
 
         return wallet
@@ -250,12 +228,8 @@ def freeze_funds(wallet_id, amount, reference="", description="", created_by=Non
         from apps.notifications.services import notify_user
         notify_user(
             user=wallet.user,
-            title=_("Funds Frozen"),
-            body=_("An amount of %(amount)s %(currency)s has been frozen from your balance for a withdrawal or processing. %(reason)s") % {
-                'amount': amount,
-                'currency': wallet.currency.code,
-                'reason': reason
-            },
+            title="تجميد مبلغ",
+            body=f"تم تجميد مبلغ {amount} {wallet.currency.code} من رصيدك لعملية سحب أو معالجة. {reason}",
             category='financial',
             metadata={'amount': str(amount), 'currency': wallet.currency.code, 'reference': reference}
         )
@@ -297,12 +271,8 @@ def release_funds(wallet_id, amount, reference="", description="", created_by=No
         from apps.notifications.services import notify_user
         notify_user(
             user=wallet.user,
-            title=_("Funds Unfrozen"),
-            body=_("An amount of %(amount)s %(currency)s has been unfrozen and returned to your balance. %(reason)s") % {
-                'amount': amount,
-                'currency': wallet.currency.code,
-                'reason': reason
-            },
+            title="فك تجميد مبلغ",
+            body=f"تم فك تجميد مبلغ {amount} {wallet.currency.code} وإعادته إلى رصيدك. {reason}",
             category='financial',
             metadata={'amount': str(amount), 'currency': wallet.currency.code, 'reference': reference}
         )
@@ -392,24 +362,15 @@ def hold_funds(wallet_id, amount, reference="", description="", created_by=None,
         from apps.notifications.services import notify_user, notify_staff
         notify_user(
             user=wallet.user,
-            title=_("Funds Held"),
-            body=_("An amount of %(amount)s %(currency)s has been temporarily held from your balance. %(reason)s") % {
-                'amount': amount,
-                'currency': wallet.currency.code,
-                'reason': reason
-            },
+            title="حجز أموال",
+            body=f"تم حجز مبلغ {amount} {wallet.currency.code} مؤقتاً من رصيدك. {reason}",
             category='financial',
             metadata={'amount': str(amount), 'currency': wallet.currency.code, 'reference': reference}
         )
         
         notify_staff(
-            title=_("User Funds Held"),
-            body=_("An amount of %(amount)s %(currency)s has been held from %(email)s's balance. Reason: %(reason)s") % {
-                'amount': amount,
-                'currency': wallet.currency.code,
-                'email': wallet.user.email,
-                'reason': reason
-            }
+            title="حجز رصيد مستخدم",
+            body=f"تم حجز مبلغ {amount} {wallet.currency.code} من رصيد {wallet.user.email}. السبب: {reason}"
         )
 
         # SystemAuditLog should be handled by the caller (view/admin) to include IP/UserAgent
@@ -445,24 +406,15 @@ def unhold_funds(wallet_id, amount, reference="", description="", created_by=Non
         from apps.notifications.services import notify_user, notify_staff
         notify_user(
             user=wallet.user,
-            title=_("Funds Released"),
-            body=_("The hold on %(amount)s %(currency)s has been cancelled and returned to your available balance. %(reason)s") % {
-                'amount': amount,
-                'currency': wallet.currency.code,
-                'reason': reason
-            },
+            title="فك حجز الأموال",
+            body=f"تم إلغاء حجز مبلغ {amount} {wallet.currency.code} وإعادته إلى رصيدك المتاح. {reason}",
             category='financial',
             metadata={'amount': str(amount), 'currency': wallet.currency.code, 'reference': reference}
         )
 
         notify_staff(
-            title=_("User Funds Released"),
-            body=_("The hold on %(amount)s %(currency)s for user %(email)s has been cancelled. Reason: %(reason)s") % {
-                'amount': amount,
-                'currency': wallet.currency.code,
-                'email': wallet.user.email,
-                'reason': reason
-            }
+            title="فك حجز رصيد مستخدم",
+            body=f"تم إلغاء حجز مبلغ {amount} {wallet.currency.code} للمستخدم {wallet.user.email}. السبب: {reason}"
         )
 
         return wallet

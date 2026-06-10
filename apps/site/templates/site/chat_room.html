@@ -1,7 +1,7 @@
 {% extends "site/base.html" %}
-{% load i18n static %}
+{% load static %}
 
-{% block title %}{% trans "Support Chat" %} | Raqamiyat{% endblock %}
+{% block title %}محادثة الدعم | Raqamiyat{% endblock %}
 
 {% block extra_head %}
 <style>
@@ -68,21 +68,11 @@
         flex-direction: column;
         max-width: 80%;
         animation: slideIn 0.3s ease-out;
-        width: fit-content;
     }
     @keyframes slideIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 
-    /* Sender (Me) -> Right side in RTL */
-    .msg-group.sent { 
-        margin-inline-end: auto;
-        align-self: flex-start;
-    }
-
-    /* Receiver (Them) -> Left side in RTL */
-    .msg-group.received { 
-        margin-inline-start: auto;
-        align-self: flex-end;
-    }
+    .msg-group.sent { align-self: flex-start; }
+    .msg-group.received { align-self: flex-end; }
 
     .bubble {
         padding: 0.875rem 1.25rem;
@@ -94,17 +84,17 @@
     }
 
     .sent .bubble {
-        background: linear-gradient(135deg, var(--cyan) 0%, #0891b2 100%);
-        color: #000;
+        background: var(--bg-soft);
+        color: var(--text);
         border-top-right-radius: 4px;
-        font-weight: 600;
+        border: 1px solid var(--panel-border);
     }
 
     .received .bubble {
-        background: var(--bg-soft);
-        color: var(--text);
+        background: linear-gradient(135deg, var(--cyan) 0%, #0891b2 100%);
+        color: #000;
         border-top-left-radius: 4px;
-        border: 1px solid var(--panel-border);
+        font-weight: 600;
     }
 
     .msg-meta {
@@ -114,7 +104,6 @@
         display: flex;
         gap: 8px;
     }
-    .sent .msg-meta { flex-direction: row; }
     .received .msg-meta { flex-direction: row-reverse; }
 
     /* Compact Attachments */
@@ -242,7 +231,7 @@
         <!-- Header -->
         <div class="chat-header">
             <div class="agent-info">
-                <a href="{% url 'chat_list' %}" class="w-10 h-10 rounded-full bg-slate-800 flex items-center justify-center hover:bg-slate-700 transition" title="{% trans 'Back to List' %}">
+                <a href="{% url 'chat_list' %}" class="w-10 h-10 rounded-full bg-slate-800 flex items-center justify-center hover:bg-slate-700 transition" title="العودة للقائمة">
                     <i class="fas fa-arrow-right text-xs"></i>
                 </a>
                 <div class="agent-avatar">
@@ -251,26 +240,30 @@
                 <div>
                     <h2 class="font-bold text-base m-0">
                         {% if user.is_staff %}
-                            {% blocktrans %}{{ room_display_name }} (Guest){% endblocktrans %}
+                            {% if "زائر:" in room.subject %}
+                                {{ room.subject|slice:"15:" }} (زائر)
+                            {% else %}
+                                {{ room.user.get_full_name|default:room.user.email }}
+                            {% endif %}
                         {% else %}
-                            {% trans "Live Support" %}
+                            الدعم المباشر
                         {% endif %}
                     </h2>
                     <div id="connection-status">
                         {% if user.is_staff and room.staff_notes %}
                             <span class="text-[10px] text-cyan font-bold">{{ room.staff_notes|linebreaksbr }}</span>
                         {% else %}
-                            <span class="text-muted text-[10px] uppercase tracking-widest">{% trans "End-to-End Encrypted" %}</span>
+                            <span class="text-muted text-[10px] uppercase tracking-widest">تشفير تام بين الطرفين</span>
                         {% endif %}
                     </div>
                 </div>
             </div>
             <div class="flex items-center gap-3">
                 {% if user.is_staff and room.status != 'closed' %}
-                <a href="{% url 'close_chat' room.id %}" class="btn btn-sm btn-primary text-[10px] px-4">{% trans "Close Chat" %}</a>
+                <a href="{% url 'close_chat' room.id %}" class="btn btn-sm btn-primary text-[10px] px-4">إغلاق المحادثة</a>
                 {% elif not user.is_staff %}
                 <a href="{% url 'chat_list' %}" class="btn btn-sm btn-outline text-[10px] px-5 flex items-center gap-2">
-                    <i class="fas fa-sign-out-alt"></i> {% trans "Leave Chat" %}
+                    <i class="fas fa-sign-out-alt"></i> مغادرة الدردشة
                 </a>
                 {% endif %}
                 <span class="badge primary text-[9px] hide-mobile">SESSION: {{ room.id|stringformat:"s"|slice:":8" }}</span>
@@ -280,22 +273,13 @@
         <!-- Messages scrollable area -->
         <div class="chat-messages" id="chat-messages">
             {% for msg in chat_messages %}
-<<<<<<< HEAD
-<<<<<<< HEAD
             {% if user.is_staff %}
-            <div class="msg-group {% if msg.is_staff_reply %}sent{% else %}received{% endif %}">
+                {% if msg.is_staff_reply %}{% define "sent" as side %}{% else %}{% define "received" as side %}{% endif %}
             {% else %}
-            <div class="msg-group {% if msg.is_staff_reply %}received{% else %}sent{% endif %}">
+                {% if msg.is_staff_reply %}{% define "received" as side %}{% else %}{% define "sent" as side %}{% endif %}
             {% endif %}
             
-=======
-            {% with sender_email=msg.sender.email %}
-            <div class="msg-group {% if user.is_authenticated and sender_email == user.email %}received{% elif not user.is_authenticated and sender_email != "guest@raqamiyat.com" %}sent{% else %}received{% endif %}">
->>>>>>> parent of 92aad52 (تحديث)
-=======
-            {% with sender_email=msg.sender.email %}
-            <div class="msg-group {% if user.is_authenticated and sender_email == user.email %}received{% elif not user.is_authenticated and sender_email != "guest@raqamiyat.com" %}sent{% else %}received{% endif %}">
->>>>>>> parent of 92aad52 (تحديث)
+            <div class="msg-group {{ side }}">
                 {% if msg.file %}
                 <div class="attachment-card" onclick="zoomImage('{{ msg.file.url }}')">
                     {% if msg.is_image %}
@@ -317,46 +301,48 @@
                 
                 <div class="msg-meta">
                     <span class="font-bold">
-<<<<<<< HEAD
-<<<<<<< HEAD
-                        {% if msg.is_staff_reply %}{% trans "Technical Support" %}{% else %}{{ room_display_name }}{% endif %}
-=======
-                        {% if msg.is_staff_reply %}الدعم الفني{% elif "زائر:" in room.subject %}{{ room.subject|slice:"15:" }}{% else %}{{ msg.sender.get_full_name|default:msg.sender.email }}{% endif %}
->>>>>>> parent of 92aad52 (تحديث)
-=======
-                        {% if msg.is_staff_reply %}الدعم الفني{% elif "زائر:" in room.subject %}{{ room.subject|slice:"15:" }}{% else %}{{ msg.sender.get_full_name|default:msg.sender.email }}{% endif %}
->>>>>>> parent of 92aad52 (تحديث)
+                        {% if msg.is_staff_reply %}الدعم الفني{% else %}{% if "زائر:" in room.subject %}{{ room.subject|split:" - زائر: "|last }}{% else %}{{ msg.sender.get_full_name|default:msg.sender.email }}{% endif %}{% endif %}
                     </span>
                     <span>{{ msg.created_at|date:"H:i" }}</span>
                 </div>
             </div>
-            {% endwith %}
             {% empty %}
             <div class="my-auto text-center p-12">
                 <div class="w-20 h-20 bg-slate-800/50 rounded-full flex items-center justify-center mx-auto mb-6 text-cyan opacity-20">
                     <i class="fas fa-shield-halved text-3xl"></i>
                 </div>
-                <h4 class="font-bold text-slate-500">{% trans "We are here to help" %}</h4>
-                <p class="text-xs text-slate-600">{% trans "Send any inquiry and the team will reply to you as soon as possible." %}</p>
+                <h4 class="font-bold text-slate-500">نحن هنا لمساعدتك</h4>
+                <p class="text-xs text-slate-600">أرسل أي استفسار وسيقوم الفريق بالرد عليك في أقرب وقت.</p>
             </div>
             {% endfor %}
         </div>
 
         <!-- Feedback Area -->
         <div class="status-area">
-            <div id="typing-indicator">{% trans "Typing..." %}</div>
+            <div id="typing-indicator">جاري الكتابة...</div>
             <div id="upload-status" class="text-[9px] text-muted"></div>
         </div>
 
         <!-- Modern Unified Composer -->
         <div class="chat-composer">
+            {% if user.is_staff and canned_replies %}
+            <div class="flex flex-wrap gap-2 mb-3 pb-3 border-b border-white/5 overflow-x-auto no-scrollbar" style="max-height: 80px;">
+                {% for reply in canned_replies %}
+                <button type="button" class="btn btn-sm btn-outline px-3 py-1 rounded-full text-[10px] whitespace-nowrap bg-white/5 border-transparent hover:border-cyan" 
+                        onclick="insertCannedReply(`{{ reply.body|escapejs }}`)">
+                    {{ reply.title }}
+                </button>
+                {% endfor %}
+            </div>
+            {% endif %}
+
             <div class="composer-unified shadow-lg">
-                <button class="action-btn btn-attach" onclick="document.getElementById('file-input').click()" title="{% trans 'Attach file or image' %}">
+                <button class="action-btn btn-attach" onclick="document.getElementById('file-input').click()" title="إرفاق ملف أو صورة">
                     <i class="fas fa-paperclip"></i>
                 </button>
                 <input type="file" id="file-input" class="hidden" onchange="handleFileUpload(this)">
                 
-                <textarea id="chat-input" class="composer-input" placeholder="{% trans 'Write a message here...' %}" rows="1"></textarea>
+                <textarea id="chat-input" class="composer-input" placeholder="اكتب رسالة هنا..." rows="1"></textarea>
                 
                 <button class="action-btn btn-send" id="send-btn">
                     <i class="fas fa-paper-plane"></i>
@@ -371,13 +357,21 @@
 
 <!-- Modal -->
 <div id="zoom-modal" class="full-screen-modal" onclick="this.classList.remove('active')">
-    <img id="zoomed-img" src="data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=" alt="Zoomed view">
+    <img id="zoomed-img" src="" alt="Zoomed view">
 </div>
 
 {{ room.id|json_script:"room-id" }}
 {{ user.email|json_script:"user-email" }}
 
 <script>
+    function insertCannedReply(text) {
+        const input = document.getElementById('chat-input');
+        input.value = text;
+        input.focus();
+        input.style.height = 'auto';
+        input.style.height = input.scrollHeight + 'px';
+    }
+
     const roomId = JSON.parse(document.getElementById('room-id').textContent);
     const userEmail = JSON.parse(document.getElementById('user-email').textContent);
     const messagesContainer = document.getElementById('chat-messages');
@@ -385,6 +379,7 @@
     const sendBtn = document.getElementById('send-btn');
     const typingIndicator = document.getElementById('typing-indicator');
     const uploadStatus = document.getElementById('upload-status');
+    const isStaff = {% if user.is_staff %}true{% else %}false{% endif %};
 
     let chatSocket = null;
     let reconnectAttempts = 0;
@@ -409,13 +404,19 @@
 
         chatSocket.onopen = () => {
             reconnectAttempts = 0;
-            document.getElementById('connection-status').innerHTML = '<span class="text-success text-[10px]">● {% trans "Connected" %}</span>';
+            document.getElementById('connection-status').innerHTML = '<span class="text-success text-[10px]">● متصل الآن</span>';
         };
 
         chatSocket.onmessage = (e) => {
             const data = JSON.parse(e.data);
             if (data.type === 'chat.message') {
-                const isMe = data.sender_email === userEmail;
+                // Determine alignment side
+                let side = '';
+                if (isStaff) {
+                    side = data.is_staff_reply ? 'sent' : 'received';
+                } else {
+                    side = data.is_staff_reply ? 'received' : 'sent';
+                }
                 
                 // Real-time Attachment Rendering
                 let attachmentHtml = '';
@@ -437,7 +438,7 @@
                 }
 
                 const msgHtml = `
-                    <div class="msg-group ${isMe ? 'received' : 'sent'}">
+                    <div class="msg-group ${side}">
                         ${attachmentHtml}
                         ${data.message ? `<div class="bubble">${data.message}</div>` : ''}
                         <div class="msg-meta">
@@ -459,7 +460,7 @@
         };
 
         chatSocket.onclose = () => {
-            document.getElementById('connection-status').innerHTML = '<span class="text-danger text-[10px]">○ {% trans "Connecting..." %}</span>';
+            document.getElementById('connection-status').innerHTML = '<span class="text-danger text-[10px]">○ جاري الاتصال...</span>';
             setTimeout(connect, Math.min(10000, 1000 * ++reconnectAttempts));
         };
     }
@@ -477,7 +478,7 @@
     async function handleFileUpload(input) {
         if (!input.files[0]) return;
         
-        uploadStatus.innerText = '{% trans "Uploading..." %}';
+        uploadStatus.innerText = 'جاري الرفع...';
         const formData = new FormData();
         formData.append('file', input.files[0]);
         formData.append('csrfmiddlewaretoken', '{{ csrf_token }}');
@@ -486,7 +487,7 @@
             const response = await fetch('{% url "chat_file_upload" room.id %}', { method: 'POST', body: formData });
             if (response.ok) {
                 const data = await response.json();
-                uploadStatus.innerText = '{% trans "Sent ✓" %}';
+                uploadStatus.innerText = 'تم الإرسال ✓';
                 // Broadcast the file_id via WebSocket for real-time rendering
                 chatSocket.send(JSON.stringify({
                     'type': 'chat_message',
@@ -495,10 +496,10 @@
                 }));
                 setTimeout(() => uploadStatus.innerText = '', 2000);
             } else {
-                uploadStatus.innerText = '{% trans "Upload Failed ✗" %}';
+                uploadStatus.innerText = 'فشل الرفع ✗';
             }
         } catch (e) {
-            uploadStatus.innerText = '{% trans "Connection Error ✗" %}';
+            uploadStatus.innerText = 'خطأ في الاتصال ✗';
         }
         input.value = '';
     }

@@ -1,14 +1,14 @@
 {% extends "site/control_base.html" %}
-{% load i18n static %}
+{% load static %}
 
-{% block title %}{% trans "Wallet Management" %} | Raqamiyat Admin{% endblock %}
+{% block title %}إدارة المحافظ | Raqamiyat Admin{% endblock %}
 
 {% block control_content %}
 <div class="page-head">
     <div>
-        <span class="eyebrow">{% trans "Financial Management" %}</span>
-        <h1>{% trans "Manage Wallets and Balances" %}</h1>
-        <p class="text-muted">{% trans "Monitor user balances and accurately control held and pending amounts." %}</p>
+        <span class="eyebrow">Financial Management</span>
+        <h1>إدارة المحافظ والأرصدة</h1>
+        <p class="text-muted">مراقبة أرصدة المستخدمين والتحكم في المبالغ المحجوزة والمعلقة بدقة.</p>
     </div>
 </div>
 
@@ -16,7 +16,7 @@
     <div class="management-header">
         <form method="get" class="flex-grow max-w-md">
             <div class="input-wrapper">
-                <input type="text" name="q" value="{{ query }}" placeholder="{% trans "Search by user email or phone..." %}" class="text-xs">
+                <input type="text" name="q" value="{{ query }}" placeholder="بحث ببريد المستخدم أو الهاتف..." class="text-xs">
                 <button type="submit" class="btn btn-primary btn-sm px-4"><i class="fas fa-search"></i></button>
             </div>
         </form>
@@ -26,13 +26,13 @@
         <table class="w-full text-sm text-right">
             <thead class="text-[11px] text-slate-500 border-b border-white/5 uppercase bg-white/[0.01]">
                 <tr>
-                    <th class="p-4">{% trans "User" %}</th>
-                    <th class="p-4">{% trans "Available" %}</th>
-                    <th class="p-4">{% trans "Debts" %}</th>
-                    <th class="p-4">{% trans "Frozen" %}</th>
-                    <th class="p-4">{% trans "Held" %}</th>
-                    <th class="p-4">{% trans "Pending" %}</th>
-                    <th class="p-4 text-left">{% trans "Financial Actions" %}</th>
+                    <th class="p-4">المستخدم</th>
+                    <th class="p-4">المتاح</th>
+                    <th class="p-4">ديون</th>
+                    <th class="p-4">المجمد</th>
+                    <th class="p-4">المحجوز</th>
+                    <th class="p-4">المعلق</th>
+                    <th class="p-4 text-left">إجراءات مالية</th>
                 </tr>
             </thead>
             <tbody>
@@ -40,7 +40,7 @@
                 <tr class="border-b border-white/[0.02] last:border-0 hover:bg-white/[0.02] transition">
                     <td class="p-4">
                         <div class="font-bold text-slate-200">{{ w.user.email }}</div>
-                        <div class="text-[10px] text-slate-500">{% trans "Currency:" %} {{ w.currency.code }}</div>
+                        <div class="text-[10px] text-slate-500">العملة: {{ w.currency.code }}</div>
                     </td>
                     <td class="p-4"><strong class="text-cyan">{{ w.available_balance|floatformat:2 }}</strong></td>
                     <td class="p-4"><strong class="text-rose-500">{{ w.debt_balance|floatformat:2 }}</strong></td>
@@ -50,17 +50,17 @@
                     <td class="p-4 text-left">
                         <div class="flex justify-end gap-2">
                             <button class="btn btn-sm btn-outline text-[10px] py-1 px-3" onclick="holdFunds('{{ w.id }}')">
-                                <i class="fas fa-lock ml-1"></i> {% trans "Hold" %}
+                                <i class="fas fa-lock ml-1"></i> حجز
                             </button>
                             <button class="btn btn-sm btn-outline text-[10px] py-1 px-3" onclick="unholdFunds('{{ w.id }}')">
-                                <i class="fas fa-unlock ml-1"></i> {% trans "Release" %}
+                                <i class="fas fa-unlock ml-1"></i> فك
                             </button>
                         </div>
                     </td>
                 </tr>
                 {% empty %}
                 <tr>
-                    <td colspan="7" class="p-12 text-center text-slate-500 italic">{% trans "No wallets matching search." %}</td>
+                    <td colspan="6" class="p-12 text-center text-slate-500 italic">لا توجد محافظ مطابقة للبحث.</td>
                 </tr>
                 {% endfor %}
             </tbody>
@@ -70,11 +70,9 @@
 
 <script>
 async function holdFunds(walletId) {
-    const amountPrompt = "{% trans "Amount to hold (deduct from available):" %}";
-    const amount = prompt(amountPrompt);
+    const amount = prompt("المبلغ المراد حجزه (خصمه من المتاح):");
     if (!amount) return;
-    const reasonPrompt = "{% trans "Reason:" %}";
-    const reason = prompt(reasonPrompt);
+    const reason = prompt("السبب:");
     if (!reason) return;
     
     const response = await fetch(`/api/wallets/${walletId}/hold/`, {
@@ -83,16 +81,14 @@ async function holdFunds(walletId) {
         body: JSON.stringify({ amount, reason })
     });
     
-    if (response.ok) { alert("{% trans "Held successfully and transaction logged." %}"); location.reload(); }
-    else { const data = await response.json(); alert("{% trans "Error:" %} " + (data.detail || "{% trans "Execution failed. Check balance." %}")); }
+    if (response.ok) { alert("تم الحجز بنجاح وتوثيق الحركة."); location.reload(); }
+    else { const data = await response.json(); alert("خطأ: " + (data.detail || "تعذر التنفيذ. تحقق من الرصيد.")); }
 }
 
 async function unholdFunds(walletId) {
-    const amountPrompt = "{% trans "Amount to release (return to available):" %}";
-    const amount = prompt(amountPrompt);
+    const amount = prompt("المبلغ المراد فك حجزه (إعادته للمتاح):");
     if (!amount) return;
-    const reasonPrompt = "{% trans "Reason:" %}";
-    const reason = prompt(reasonPrompt);
+    const reason = prompt("السبب:");
     if (!reason) return;
     
     const response = await fetch(`/api/wallets/${walletId}/unhold/`, {
@@ -101,8 +97,8 @@ async function unholdFunds(walletId) {
         body: JSON.stringify({ amount, reason })
     });
     
-    if (response.ok) { alert("{% trans "Released successfully." %}"); location.reload(); }
-    else { const data = await response.json(); alert("{% trans "Error:" %} " + (data.detail || "{% trans "Execution failed" %}")); }
+    if (response.ok) { alert("تم فك الحجز بنجاح."); location.reload(); }
+    else { const data = await response.json(); alert("خطأ: " + (data.detail || "تعذر التنفيذ")); }
 }
 </script>
 {% endblock %}

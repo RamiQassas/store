@@ -1,14 +1,14 @@
 {% extends "site/control_base.html" %}
-{% load static i18n %}
+{% load static %}
 
-{% block title %}{% trans "Send Bulk Notification" %} | Raqamiyat{% endblock %}
+{% block title %}إرسال إشعار جماعي | Raqamiyat{% endblock %}
 
 {% block control_content %}
 <div class="page-head">
     <div>
-        <span class="eyebrow">{% trans "Communication Center" %}</span>
-        <h1>{% trans "Send System Notification" %}</h1>
-        <p class="text-muted">{% trans "Send instant alerts to users or specific categories." %}</p>
+        <span class="eyebrow">Communication Center</span>
+        <h1>إرسال إشعار للنظام</h1>
+        <p class="text-muted">أرسل تنبيهات فورية للمستخدمين أو فئات محددة.</p>
     </div>
 </div>
 
@@ -17,23 +17,23 @@
     
     <div class="management-card">
         <div class="management-header">
-            <h3 class="font-bold">{% trans "Sending Settings & Target Audience" %}</h3>
+            <h3 class="font-bold">إعدادات الإرسال والجمهور المستهدف</h3>
         </div>
         <div class="management-body stack gap-6">
             <div class="field-group">
-                <label>{% trans "Target Audience" %}</label>
+                <label>الجمهور المستهدف</label>
                 <select name="target_type" id="target-type" required onchange="toggleTargets()">
-                    <option value="all">{% trans "All Active Users" %}</option>
-                    <option value="tier">{% trans "Specific Tier" %}</option>
-                    <option value="single">{% trans "Single User (by email)" %}</option>
-                    <option value="balance">{% trans "Users with specific balance" %}</option>
-                    <option value="inactive">{% trans "Inactive Users" %}</option>
-                    <option value="customers">{% trans "Customers (with orders)" %}</option>
+                    <option value="all">كافة المستخدمين النشطين</option>
+                    <option value="tier">فئة محددة (Tier)</option>
+                    <option value="single">مستخدم واحد (بالبريد)</option>
+                    <option value="balance">مستخدمين برصيد محدد</option>
+                    <option value="inactive">مستخدمين غير نشطين</option>
+                    <option value="customers">العملاء (من لديهم طلبات)</option>
                 </select>
             </div>
 
             <div id="tier-target" class="field-group hidden">
-                <label>{% trans "Select Tier" %}</label>
+                <label>اختر الفئة</label>
                 <select name="tier">
                     {% for val, label in tiers %}
                     <option value="{{ val }}">{{ label }}</option>
@@ -42,17 +42,17 @@
             </div>
 
             <div id="single-target" class="field-group hidden">
-                <label>{% trans "User Email" %}</label>
+                <label>البريد الإلكتروني للمستخدم</label>
                 <input type="email" name="user_email" class="builder-input" placeholder="example@domain.com">
             </div>
 
             <div id="balance-target" class="field-group hidden">
-                <label>{% trans "Minimum Available Balance" %}</label>
+                <label>الحد الأدنى للرصيد المتوفر</label>
                 <input type="number" name="min_balance" class="builder-input" value="0" step="0.01">
             </div>
 
             <div id="inactive-target" class="field-group hidden">
-                <label>{% trans "Inactivity Days (since last login)" %}</label>
+                <label>عدد أيام عدم النشاط (منذ آخر تسجيل دخول)</label>
                 <input type="number" name="inactive_days" class="builder-input" value="30">
             </div>
         </div>
@@ -60,11 +60,11 @@
 
     <div class="management-card">
         <div class="management-header">
-            <h3 class="font-bold">{% trans "Notification Content & Channels" %}</h3>
+            <h3 class="font-bold">محتوى الإشعار والقنوات</h3>
         </div>
         <div class="management-body stack gap-6">
             <div class="field-group">
-                <label>{% trans "Notification Category (for channels and privacy)" %}</label>
+                <label>تصنيف الإشعار (للقنوات والخصوصية)</label>
                 <select name="category" class="builder-input" required>
                     {% for val, label in categories %}
                     <option value="{{ val }}">{{ label }}</option>
@@ -72,22 +72,22 @@
                 </select>
             </div>
             <div class="field-group">
-                <label>{% trans "Title" %}</label>
-                <input type="text" name="title" required placeholder="{% trans "Enter a catchy title..." %}">
+                <label>العنوان (Title)</label>
+                <input type="text" name="title" required placeholder="أدخل عنواناً جذاباً...">
             </div>
             
             <div class="field-group">
-                <label>{% trans "Message Body" %}</label>
-                <textarea name="body" rows="4" required placeholder="{% trans "What do you want to say to your customers?" %}"></textarea>
+                <label>نص الإشعار (Body)</label>
+                <textarea name="body" rows="4" required placeholder="ماذا تريد أن تقول لعملائك؟"></textarea>
             </div>
 
             <div class="grid grid-2 gap-6">
                 <div class="field-group">
-                    <label>{% trans "Action URL" %}</label>
+                    <label>رابط الإجراء (URL)</label>
                     <input type="text" name="action_url" placeholder="https://...">
                 </div>
                 <div class="field-group">
-                    <label>{% trans "Image URL (optional)" %}</label>
+                    <label>رابط صورة (اختياري)</label>
                     <input type="url" name="image_url" placeholder="https://...">
                 </div>
             </div>
@@ -96,9 +96,9 @@
 
     <div class="flex gap-4">
         <button type="submit" class="btn btn-primary px-12 py-4 text-lg">
-            <i class="fas fa-paper-plane ml-2"></i> {% trans "Send Notification Now" %}
+            <i class="fas fa-paper-plane ml-2"></i> إرسال الإشعار الآن
         </button>
-        <a href="{% url 'control_dashboard' %}" class="btn btn-outline px-8">{% trans "Cancel" %}</a>
+        <a href="{% url 'control_dashboard' %}" class="btn btn-outline px-8">إلغاء</a>
     </div>
 </form>
 

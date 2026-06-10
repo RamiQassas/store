@@ -1,7 +1,7 @@
 {% extends "site/base.html" %}
-{% load i18n static site_tags %}
+{% load static site_tags %}
 
-{% block title %}{% trans "My Panel | Raqamiyat" %}{% endblock %}
+{% block title %}لوحتي | Raqamiyat - رقميات{% endblock %}
 
 {% block extra_head %}
 <style>
@@ -137,9 +137,9 @@
 {% block content %}
 <div class="page-head">
     <div>
-        <span class="eyebrow">{% blocktrans with name=user.get_full_name|default:user.email %}Welcome, {{ name }}{% endblocktrans %}</span>
-        <h1>{% trans "Dashboard" %}</h1>
-        <p class="text-muted">{% trans "Welcome back to Raqamiyat. Here is a quick look at your account." %}</p>
+        <span class="eyebrow">أهلاً بك، {{ user.get_full_name|default:user.email }}</span>
+        <h1>لوحة التحكم</h1>
+        <p class="text-muted">مرحباً بك مجدداً في منصة رقميات. إليك نظرة سريعة على حسابك.</p>
     </div>
     <div class="hidden sm:block">
         <span class="badge primary p-2 px-4">
@@ -154,7 +154,7 @@
 <div class="mb-10">
     <div class="section-head mb-4">
         <h2 class="text-xl font-black text-cyan flex items-center gap-3">
-            <i class="fas fa-gift"></i> {% trans "Your Received Digital Products" %}
+            <i class="fas fa-gift"></i> منتجاتك الرقمية المستلمة
         </h2>
     </div>
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -166,7 +166,7 @@
                 </div>
                 <div>
                     <h4 class="font-bold text-white">{% with order.items.first as item %}{{ item.variant.product.name }}{% endwith %}</h4>
-                    <span class="text-[10px] text-slate-500 font-mono">{% blocktrans with number=order.number %}Order #{{ number }}{% endblocktrans %}</span>
+                    <span class="text-[10px] text-slate-500 font-mono">الطلب #{{ order.number }}</span>
                 </div>
             </div>
             
@@ -183,8 +183,8 @@
             </div>
 
             <div class="flex gap-2">
-                <a href="{% url 'dashboard_order_detail' order.id %}" class="btn btn-outline btn-sm flex-grow py-2.5 rounded-xl font-bold">{% trans "Details" %}</a>
-                <button onclick="markRead('{{ order.id }}', this)" class="btn btn-primary btn-sm flex-grow py-2.5 rounded-xl font-bold">{% trans "Received" %}</button>
+                <a href="{% url 'dashboard_order_detail' order.id %}" class="btn btn-outline btn-sm flex-grow py-2.5 rounded-xl font-bold">التفاصيل</a>
+                <button onclick="markRead('{{ order.id }}', this)" class="btn btn-primary btn-sm flex-grow py-2.5 rounded-xl font-bold">تم الاستلام</button>
             </div>
         </div>
         {% endfor %}
@@ -199,11 +199,11 @@
             <i class="fas fa-envelope-open-text text-xl"></i>
         </div>
         <div>
-            <h3 class="font-bold text-amber-500">{% trans "Please verify your email" %}</h3>
-            <p class="text-sm text-slate-400">{% trans "Verifying your account is necessary to perform purchases and deposits securely." %}</p>
+            <h3 class="font-bold text-amber-500">يرجى تفعيل بريدك الإلكتروني</h3>
+            <p class="text-sm text-slate-400">تفعيل حسابك ضروري للتمكن من القيام بعمليات الشراء والإيداع بشكل آمن.</p>
         </div>
     </div>
-    <a href="{% url 'resend_verification' %}" class="btn btn-sm btn-primary whitespace-nowrap">{% trans "Resend Link" %}</a>
+    <a href="{% url 'resend_verification' %}" class="btn btn-sm btn-primary whitespace-nowrap">إعادة إرسال الرابط</a>
 </div>
 {% endif %}
 
@@ -215,7 +215,7 @@
         <div class="panel premium-wallet-card p-8">
             <div class="flex justify-between items-start mb-6">
                 <div>
-                    <span class="text-sm font-bold text-cyan uppercase tracking-wider">{% trans "Available Balance" %}</span>
+                    <span class="text-sm font-bold text-cyan uppercase tracking-wider">الرصيد المتاح</span>
                     <div class="balance-display mt-2">{% currency_format wallet.available_balance wallet.currency %}</div>
                 </div>
                 <div class="text-left">
@@ -227,25 +227,25 @@
             <div class="grid grid-4 gap-4 pt-6 border-t border-white/5">
                 {% if wallet.debt_balance > 0 %}
                 <div>
-                    <span class="text-xs text-rose-400 font-bold block mb-1">{% trans "Due Debts" %}</span>
+                    <span class="text-xs text-rose-400 font-bold block mb-1">الديون المستحقة</span>
                     <span class="text-sm font-bold text-rose-500">{% currency_format wallet.debt_balance wallet.currency %}</span>
                 </div>
                 {% endif %}
                 {% if wallet.pending_balance > 0 %}
                 <div>
-                    <span class="text-xs text-muted block mb-1">{% trans "Pending" %}</span>
+                    <span class="text-xs text-muted block mb-1">قيد الانتظار</span>
                     <span class="text-sm font-bold">{% currency_format wallet.pending_balance wallet.currency %}</span>
                 </div>
                 {% endif %}
                 {% if wallet.frozen_balance > 0 %}
                 <div>
-                    <span class="text-xs text-muted block mb-1">{% trans "Frozen" %}</span>
+                    <span class="text-xs text-muted block mb-1">مجمد</span>
                     <span class="text-sm font-bold">{% currency_format wallet.frozen_balance wallet.currency %}</span>
                 </div>
                 {% endif %}
                 {% if wallet.held_balance > 0 %}
                 <div>
-                    <span class="text-xs text-muted block mb-1">{% trans "Reserved" %}</span>
+                    <span class="text-xs text-muted block mb-1">محجوز</span>
                     <span class="text-sm font-bold text-red-400">{% currency_format wallet.held_balance wallet.currency %}</span>
                 </div>
                 {% endif %}
@@ -257,19 +257,19 @@
         <div class="quick-actions">
             <a href="{% url 'catalog' %}" class="action-btn">
                 <i class="fas fa-shopping-cart"></i>
-                <span>{% trans "Buy Product" %}</span>
+                <span>شراء منتج</span>
             </a>
             <a href="{% url 'dashboard_deposits' %}" class="action-btn">
                 <i class="fas fa-plus-circle"></i>
-                <span>{% trans "Deposit Balance" %}</span>
+                <span>إيداع رصيد</span>
             </a>
             <a href="{% url 'dashboard_withdrawals' %}" class="action-btn">
                 <i class="fas fa-arrow-alt-circle-down"></i>
-                <span>{% trans "Withdraw Request" %}</span>
+                <span>طلب سحب</span>
             </a>
             <a href="{% url 'chat_list' %}" class="action-btn">
                 <i class="fas fa-headset"></i>
-                <span>{% trans "Live Support" %}</span>
+                <span>الدعم المباشر</span>
             </a>
         </div>
 
@@ -278,8 +278,8 @@
             <!-- Recent Orders -->
             <div class="panel stack">
                 <div class="section-head p-6 pb-0">
-                    <h2 class="text-lg">{% trans "Recent Orders" %}</h2>
-                    <a href="{% url 'dashboard_orders' %}" class="text-cyan text-sm font-bold">{% trans "All Orders" %}</a>
+                    <h2 class="text-lg">أحدث الطلبات</h2>
+                    <a href="{% url 'dashboard_orders' %}" class="text-cyan text-sm font-bold">كل الطلبات</a>
                 </div>
                 <div class="p-4 stack">
                     {% for order in orders %}
@@ -289,7 +289,7 @@
                         </div>
                         <div class="flex-grow">
                             <div class="flex justify-between">
-                                <span class="font-bold text-sm">{% blocktrans with number=order.number|truncatechars:10 %}Order #{{ number }}{% endblocktrans %}</span>
+                                <span class="font-bold text-sm">طلب رقم {{ order.number|truncatechars:10 }}</span>
                                 <span class="text-xs text-muted">{{ order.created_at|date:"d M" }}</span>
                             </div>
                             <div class="flex justify-between mt-1">
@@ -301,7 +301,7 @@
                     {% empty %}
                     <div class="p-8 text-center stack gap-3">
                         <i class="fas fa-box-open text-3xl text-slate-700"></i>
-                        <p class="text-sm text-muted">{% trans "No previous orders" %}</p>
+                        <p class="text-sm text-muted">لا توجد طلبات سابقة</p>
                     </div>
                     {% endfor %}
                 </div>
@@ -310,8 +310,8 @@
             <!-- Recent Deposits -->
             <div class="panel stack">
                 <div class="section-head p-6 pb-0">
-                    <h2 class="text-lg">{% trans "Latest Deposits" %}</h2>
-                    <a href="{% url 'dashboard_deposits' %}" class="text-cyan text-sm font-bold">{% trans "Transaction History" %}</a>
+                    <h2 class="text-lg">آخر الإيداعات</h2>
+                    <a href="{% url 'dashboard_deposits' %}" class="text-cyan text-sm font-bold">سجل العمليات</a>
                 </div>
                 <div class="p-4 stack">
                     {% for deposit in deposits %}
@@ -335,7 +335,7 @@
                     {% empty %}
                     <div class="p-8 text-center stack gap-3">
                         <i class="fas fa-receipt text-3xl text-slate-700"></i>
-                        <p class="text-sm text-muted">{% trans "No deposit transactions" %}</p>
+                        <p class="text-sm text-muted">لا توجد عمليات إيداع</p>
                     </div>
                     {% endfor %}
                 </div>
@@ -347,10 +347,10 @@
     <div class="dashboard-sidebar stack gap-6">
         <!-- Account Status Card -->
         <div class="panel p-6">
-            <h2 class="text-lg mb-4">{% trans "Account Status" %}</h2>
+            <h2 class="text-lg mb-4">حالة الحساب</h2>
             <div class="stack gap-4">
                 <div class="flex items-center justify-between p-3 bg-slate-800/30 rounded-lg">
-                    <span class="text-sm text-muted">{% trans "Status" %}</span>
+                    <span class="text-sm text-muted">الحالة</span>
                     <div class="flex items-center">
                         <span class="status-badge active"></span>
                         <span class="text-sm font-bold text-success">{{ user.get_status_display }}</span>
@@ -360,76 +360,76 @@
                 {% if not user.is_kyc_verified %}
                     <div class="p-4 bg-amber-500/5 border border-amber-500/10 rounded-xl">
                         <div class="flex items-center justify-between mb-2">
-                            <span class="text-xs font-bold text-amber-500">{% trans "Verification Status" %}</span>
-                            <span class="badge warning text-[8px]">{% trans "Unverified" %}</span>
+                            <span class="text-xs font-bold text-amber-500">حالة التوثيق</span>
+                            <span class="badge warning text-[8px]">غير موثق</span>
                         </div>
                         <p class="text-[10px] text-slate-500 leading-relaxed mb-4">
-                            {% trans "Your account operates with basic financial limits. Verify your account to increase daily deposit and withdrawal limits." %}
+                            حسابك يعمل بحدود مالية أساسية. وثق حسابك لرفع حدود الإيداع والسحب اليومية.
                         </p>
                         {% if kyc_request %}
                             <div class="flex items-center gap-2 text-[10px] text-amber-400 font-bold">
                                 <i class="fas fa-clock"></i>
-                                {% blocktrans with status=kyc_request.get_status_display %}Verification request {{ status }}{% endblocktrans %}
+                                طلب التوثيق {{ kyc_request.get_status_display }}
                             </div>
                         {% else %}
-                            <a href="{% url 'site_kyc_request' %}" class="btn btn-sm btn-outline w-full text-[10px] py-2">{% trans "Start Verification Process" %}</a>
+                            <a href="{% url 'site_kyc_request' %}" class="btn btn-sm btn-outline w-full text-[10px] py-2">بدء عملية التوثيق</a>
                         {% endif %}
                     </div>
                 {% else %}
                     <div class="p-4 bg-emerald-500/5 border border-emerald-500/10 rounded-xl">
                         <div class="flex items-center justify-between">
-                            <span class="text-xs font-bold text-emerald-500">{% trans "Verified Account" %}</span>
+                            <span class="text-xs font-bold text-emerald-500">حساب موثق</span>
                             <i class="fas fa-check-circle text-emerald-500"></i>
                         </div>
-                        <p class="text-[10px] text-slate-500 mt-2">{% trans "Your identity has been successfully verified. Your account limits have been increased." %}</p>
+                        <p class="text-[10px] text-slate-500 mt-2">لقد تم التحقق من هويتك بنجاح. تم رفع حدود حسابك.</p>
                     </div>
                 {% endif %}
 
                 <div class="flex items-center justify-between p-3 bg-slate-800/30 rounded-lg">
-                    <span class="text-sm text-muted">{% trans "Pending Debts" %}</span>
+                    <span class="text-sm text-muted">ديون معلقة</span>
                     <span class="text-sm font-bold {% if wallet.debt_balance > 0 %}text-rose-500{% else %}text-slate-500{% endif %}">{% currency_format wallet.debt_balance wallet.currency %}</span>
                 </div>
                 <div class="flex items-center justify-between p-3 bg-slate-800/30 rounded-lg">
-                    <span class="text-sm text-muted">{% trans "Tier" %}</span>
+                    <span class="text-sm text-muted">الفئة</span>
                     <span class="text-sm font-bold text-amber-400">{{ user.get_tier_display }}</span>
                 </div>
 
                 <!-- Limits Section -->
                 <div class="p-4 bg-slate-800/20 border border-white/5 rounded-xl mt-4">
                     <div class="flex justify-between items-center mb-3">
-                        <span class="text-xs font-bold text-slate-300">{% trans "Account Limits (USD)" %}</span>
+                        <span class="text-xs font-bold text-slate-300">حدود الحساب (USD)</span>
                         {% if user.has_custom_limits %}
-                            <span class="badge primary text-[8px]">{% trans "Custom Limits" %}</span>
+                            <span class="badge primary text-[8px]">حدود مخصصة</span>
                         {% else %}
-                            <span class="text-[8px] text-slate-500">{% trans "Default Limits" %}</span>
+                            <span class="text-[8px] text-slate-500">حدود افتراضية</span>
                         {% endif %}
                     </div>
                     <div class="stack gap-3">
                         <div class="flex justify-between text-xs">
-                            <span class="text-slate-500">{% trans "Daily Deposit:" %}</span>
+                            <span class="text-slate-500">الإيداع اليومي:</span>
                             <span class="text-white font-mono">{{ user.daily_deposit_limit|floatformat:2 }}</span>
                         </div>
                         <div class="flex justify-between text-xs">
-                            <span class="text-slate-500">{% trans "Remaining for Deposit:" %}</span>
+                            <span class="text-slate-500">المتبقي للإيداع:</span>
                             <span class="text-emerald-400 font-bold font-mono">{{ user.remaining_deposit_limit|floatformat:2 }}</span>
                         </div>
                         <div class="h-px bg-white/5 my-1"></div>
                         <div class="flex justify-between text-xs">
-                            <span class="text-slate-500">{% trans "Daily Withdrawal:" %}</span>
+                            <span class="text-slate-500">السحب اليومي:</span>
                             <span class="text-white font-mono">{{ user.daily_withdrawal_limit|floatformat:2 }}</span>
                         </div>
                         <div class="flex justify-between text-xs">
-                            <span class="text-slate-500">{% trans "Remaining for Withdrawal:" %}</span>
+                            <span class="text-slate-500">المتبقي للسحب:</span>
                             <span class="text-emerald-400 font-bold font-mono">{{ user.remaining_withdrawal_limit|floatformat:2 }}</span>
                         </div>
                     </div>
                     <p class="text-[9px] text-slate-600 mt-3 leading-tight">
-                        {% trans "* Limits are calculated based on the equivalent value in US Dollars (USD)." %}
+                        * يتم حساب الحدود بناءً على القيمة المعادلة بالدولار (USD).
                     </p>
                 </div>
 
                 <div class="flex items-center justify-between p-3 bg-slate-800/30 rounded-lg">
-                    <span class="text-sm text-muted">{% trans "Member Since" %}</span>
+                    <span class="text-sm text-muted">عضو منذ</span>
                     <span class="text-sm font-bold">{{ user.date_joined|date:"M Y" }}</span>
                 </div>
             </div>
@@ -438,7 +438,7 @@
         <!-- Notifications Card -->
         <div class="panel stack">
             <div class="section-head p-6 pb-0">
-                <h2 class="text-lg">{% trans "Important Alerts" %}</h2>
+                <h2 class="text-lg">تنبيهات هامة</h2>
                 <i class="fas fa-bell text-slate-600"></i>
             </div>
             <div class="p-4 stack gap-2">
@@ -450,7 +450,7 @@
                 </div>
                 {% empty %}
                 <div class="p-6 text-center">
-                    <p class="text-xs text-muted italic">{% trans "No new alerts" %}</p>
+                    <p class="text-xs text-muted italic">لا توجد تنبيهات جديدة</p>
                 </div>
                 {% endfor %}
             </div>

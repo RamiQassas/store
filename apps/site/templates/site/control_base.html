@@ -1,5 +1,5 @@
 {% extends "site/base.html" %}
-{% load i18n static %}
+{% load static %}
 
 {% block extra_head %}
 <style>
@@ -142,62 +142,62 @@
             <a href="{% url 'home' %}" class="brand text-xl" style="text-decoration:none">
                 <i class="fas fa-bolt text-cyan"></i> <span class="font-black text-white">RAQAMIYAT</span>
             </a>
-            <div class="mt-2 text-[9px] font-bold text-slate-500 uppercase tracking-widest">{% trans "Control Center v4.0" %}</div>
+            <div class="mt-2 text-[9px] font-bold text-slate-500 uppercase tracking-widest">Control Center v4.0</div>
         </div>
         
         <nav class="admin-nav">
             <a href="{% url 'control_dashboard' %}" class="admin-nav-link {% if request.resolver_match.url_name == 'control_dashboard' %}active{% endif %}">
-                <i class="fas fa-th-large"></i> {% trans "Home" %}
+                <i class="fas fa-th-large"></i> الرئيسية
             </a>
 
-            <div class="admin-nav-group"><span>{% trans "Financial Operations" %}</span></div>
+            <div class="admin-nav-group"><span>العمليات المالية</span></div>
             <a href="{% url 'control_deposits' %}" class="admin-nav-link {% if 'deposits' in request.path %}active{% endif %}">
-                <i class="fas fa-money-bill-wave"></i> {% trans "Deposits" %}
+                <i class="fas fa-money-bill-wave"></i> الإيداعات
             </a>
             <a href="{% url 'control_withdrawals' %}" class="admin-nav-link {% if 'withdrawal' in request.path %}active{% endif %}">
-                <i class="fas fa-money-bill-transfer"></i> {% trans "Withdrawals" %}
+                <i class="fas fa-money-bill-transfer"></i> السحوبات
             </a>
             <a href="{% url 'control_debts' %}" class="admin-nav-link {% if 'debts' in request.path %}active{% endif %}">
-                <i class="fas fa-hand-holding-dollar"></i> {% trans "Debt Management" %}
+                <i class="fas fa-hand-holding-dollar"></i> إدارة الديون
             </a>
             <a href="{% url 'control_wallets_list' %}" class="admin-nav-link {% if 'wallets' in request.path %}active{% endif %}">
-                <i class="fas fa-wallet"></i> {% trans "Wallets" %}
+                <i class="fas fa-wallet"></i> المحافظ
             </a>
 
-            <div class="admin-nav-group"><span>{% trans "Content Management" %}</span></div>
+            <div class="admin-nav-group"><span>إدارة المحتوى</span></div>
             <a href="{% url 'control_orders_list' %}" class="admin-nav-link {% if 'order' in request.path %}active{% endif %}">
-                <i class="fas fa-receipt"></i> {% trans "Orders" %}
+                <i class="fas fa-receipt"></i> الطلبات
             </a>
             <a href="{% url 'control_products_list' %}" class="admin-nav-link {% if 'product' in request.path %}active{% endif %}">
-                <i class="fas fa-box-open"></i> {% trans "Products" %}
+                <i class="fas fa-box-open"></i> المنتجات
             </a>
 
-            <div class="admin-nav-group"><span>{% trans "Users & Security" %}</span></div>
+            <div class="admin-nav-group"><span>المستخدمين والأمن</span></div>
             <a href="{% url 'control_users_list' %}" class="admin-nav-link {% if 'user' in request.path %}active{% endif %}">
-                <i class="fas fa-users-cog"></i> {% trans "Users" %}
+                <i class="fas fa-users-cog"></i> المستخدمين
             </a>
             <a href="{% url 'control_kycs_list' %}" class="admin-nav-link {% if 'control/kyc' in request.path and 'settings' not in request.path %}active{% endif %}">
-                <i class="fas fa-user-shield"></i> {% trans "Verifications" %}
+                <i class="fas fa-user-shield"></i> التوثيقات
             </a>
             <a href="{% url 'control_kyc_settings' %}" class="admin-nav-link {% if 'kyc/settings' in request.path %}active{% endif %}">
-                <i class="fas fa-cog"></i> {% trans "KYC Settings" %}
+                <i class="fas fa-cog"></i> إعدادات التوثيق
             </a>
 
-            <div class="admin-nav-group"><span>{% trans "System & Reports" %}</span></div>
+            <div class="admin-nav-group"><span>النظام والتقارير</span></div>
             <a href="{% url 'currencies_list' %}" class="admin-nav-link {% if 'currenc' in request.path %}active{% endif %}">
-                <i class="fas fa-coins"></i> {% trans "Currencies" %}
+                <i class="fas fa-coins"></i> العملات
             </a>
             <a href="{% url 'payment_methods_list' %}" class="admin-nav-link {% if 'payment-method' in request.path %}active{% endif %}">
-                <i class="fas fa-credit-card"></i> {% trans "Payment Methods" %}
+                <i class="fas fa-credit-card"></i> وسائل الدفع
             </a>
             <a href="{% url 'control_social_media' %}" class="admin-nav-link {% if 'social-media' in request.path %}active{% endif %}">
-                <i class="fas fa-share-nodes"></i> {% trans "Social Media" %}
+                <i class="fas fa-share-nodes"></i> وسائل التواصل
             </a>
             <a href="{% url 'chat_list' %}" class="admin-nav-link {% if 'chat' in request.path %}active{% endif %}">
-                <i class="fas fa-comments"></i> {% trans "Live Support" %}
+                <i class="fas fa-comments"></i> الدعم المباشر
             </a>
             <a href="{% url 'control_reports' %}" class="admin-nav-link {% if 'report' in request.path %}active{% endif %}">
-                <i class="fas fa-chart-line"></i> {% trans "Reports" %}
+                <i class="fas fa-chart-line"></i> التقارير
             </a>
         </nav>
 
@@ -214,7 +214,7 @@
             </div>
             <div class="mt-4 text-center">
                 <a href="{% url 'admin:index' %}" class="text-[9px] text-slate-700 hover:text-cyan transition font-black uppercase tracking-widest">
-                    {% trans "Django Admin" %} <i class="fas fa-external-link-alt ml-1"></i>
+                    Django Admin <i class="fas fa-external-link-alt ml-1"></i>
                 </a>
             </div>
         </div>

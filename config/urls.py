@@ -37,23 +37,10 @@ def health(request):
     return Response({"status": "ok", "service": "digital-marketplace"})
 
 
-from django.conf.urls.i18n import i18n_patterns
-
-from apps.site.views_i18n import custom_set_language
-
 urlpatterns = [
-    path("i18n/setlang/", custom_set_language, name="set_language"),
-    path("i18n/", include("django.conf.urls.i18n")),
-]
-
-urlpatterns += i18n_patterns(
     path("", include("apps.site.urls")),
     path("support/", include("apps.support.urls")),
     path("admin/", admin.site.urls),
-    prefix_default_language=True
-)
-
-urlpatterns += [
     path("api/health/", health),
     path("api/auth/register/", RegisterView.as_view(), name="register"),
     path("api/auth/login/", LoginView.as_view(), name="login"),

@@ -1,25 +1,24 @@
 {% extends "site/base.html" %}
-{% load i18n %}
-{% block title %}{% trans "Login | Digital Services Platform" %}{% endblock %}
+{% block title %}تسجيل الدخول | منصة الخدمات الرقمية{% endblock %}
 {% block content %}
 <section class="auth-shell">
   <article class="panel auth-panel">
-    <span class="eyebrow">{% trans "Sign in" %}</span>
-    <h1>{% trans "Login" %}</h1>
-    <p>{% trans "Log in to your account to follow orders, wallet and notifications." %}</p>
+    <span class="eyebrow">Sign in</span>
+    <h1>تسجيل الدخول</h1>
+    <p>ادخل إلى حسابك لمتابعة الطلبات والمحفظة والإشعارات.</p>
     <form method="post" class="stack">
       {% csrf_token %}
       {{ form.non_field_errors }}
-      <label>{% trans "Email" %}</label>
+      <label>البريد الإلكتروني</label>
       {{ form.email }}
-      <label>{% trans "Password" %}</label>
+      <label>كلمة المرور</label>
       {{ form.password }}
       <div class="flex justify-between items-center mb-4">
-        <a class="text-[10px] text-cyan hover:underline" href="{% url 'site_forgot_password' %}">{% trans "Forgot your password?" %}</a>
+        <a class="text-[10px] text-cyan hover:underline" href="{% url 'site_forgot_password' %}">نسيت كلمة المرور؟</a>
       </div>
-      <button class="btn btn-primary" type="submit">{% trans "Login" %}</button>
+      <button class="btn btn-primary" type="submit">دخول</button>
     </form>
-    <a class="link" href="{% url 'site_register' %}">{% trans "Don't have an account? Create a new account" %}</a>
+    <a class="link" href="{% url 'site_register' %}">ليس لديك حساب؟ أنشئ حسابًا جديدًا</a>
   </article>
 </section>
 {% endblock %}

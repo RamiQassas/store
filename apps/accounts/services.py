@@ -5,7 +5,7 @@ from django.conf import settings
 from django.urls import reverse
 from django.contrib.auth.tokens import default_token_generator
 from django.utils.http import urlsafe_base64_encode
-from django.utils.encoding import force_bytes, force_str
+from django.utils.encoding import force_bytes
 from apps.notifications.services import notify_user
 
 logger = logging.getLogger(__name__)
@@ -46,7 +46,7 @@ def send_brevo_email(to_email, to_name, subject, html_content, text_content=None
         response = requests.post(
             settings.BREVO_API_URL,
             headers=headers,
-            data=json.dumps(payload, default=force_str),
+            data=json.dumps(payload),
             timeout=10
         )
         if response.status_code in [200, 201, 202]:

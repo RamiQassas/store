@@ -1,7 +1,7 @@
 {% extends "site/base.html" %}
-{% load i18n static site_tags %}
+{% load static site_tags %}
 
-{% block title %}{% trans "Digital Wallet" %} | Raqamiyat{% endblock %}
+{% block title %}المحفظة الرقمية | Raqamiyat{% endblock %}
 
 {% block extra_head %}
 <style>
@@ -83,13 +83,13 @@
 {% block content %}
 <div class="page-head">
     <div>
-        <span class="eyebrow">{% trans "Financial Overview" %}</span>
-        <h1>{% trans "Digital Wallet" %}</h1>
-        <p class="text-muted">{% trans "Manage your financial assets and view the total value of your savings." %}</p>
+        <span class="eyebrow">Financial Overview</span>
+        <h1>المحفظة الرقمية</h1>
+        <p class="text-muted">إدارة أصولك المالية وعرض القيمة الإجمالية لمدخراتك.</p>
     </div>
     <div class="flex gap-3">
-        <a href="{% url 'dashboard_withdrawals' %}" class="btn btn-outline btn-sm px-6">{% trans "Withdraw" %}</a>
-        <a href="{% url 'dashboard_deposits' %}" class="btn btn-primary btn-sm px-6">{% trans "Deposit" %}</a>
+        <a href="{% url 'dashboard_withdrawals' %}" class="btn btn-outline btn-sm px-6">سحب</a>
+        <a href="{% url 'dashboard_deposits' %}" class="btn btn-primary btn-sm px-6">إيداع</a>
     </div>
 </div>
 
@@ -97,18 +97,18 @@
     <div class="stack gap-6">
         <!-- Main Balance Hero -->
         <div class="balance-hero">
-            <span class="hero-currency-label">{% trans "Total Available Value" %}</span>
+            <span class="hero-currency-label">القيمة الإجمالية المتوفرة</span>
             <div class="hero-amount">
                 {% currency_format wallet.available_balance wallet.currency %}
             </div>
-            <p class="text-slate-500 font-medium">{% trans "Value calculated based on your selected preferred currency." %}</p>
+            <p class="text-slate-500 font-medium">تم احتساب القيمة بناءً على عملتك المفضلة المختارة.</p>
         </div>
 
         <!-- Ledger / History -->
         <div class="panel overflow-hidden" style="border-radius: 32px;">
             <div class="p-8 border-b border-white/5 flex justify-between items-center bg-white/[0.01]">
-                <h3 class="font-bold text-lg">{% trans "Financial Transaction Ledger" %}</h3>
-                <span class="text-xs text-muted">{% trans "Last 20 transactions" %}</span>
+                <h3 class="font-bold text-lg">سجل العمليات المالية</h3>
+                <span class="text-xs text-muted">آخر 20 حركة</span>
             </div>
             <div class="stack">
                 {% for entry in ledger_entries %}
@@ -134,13 +134,13 @@
                         <div class="font-black text-sm {% if entry.entry_type == 'credit' %}text-success{% elif entry.entry_type == 'debit' %}text-danger{% endif %}">
                             {% if entry.entry_type == 'credit' %}+{% elif entry.entry_type == 'debit' %}-{% endif %}{{ entry.amount }} {{ wallet.currency.code }}
                         </div>
-                        <div class="text-[9px] text-slate-500 mt-0.5">{% trans "Balance:" %} {{ entry.balance_after }}</div>
+                        <div class="text-[9px] text-slate-500 mt-0.5">الرصيد: {{ entry.balance_after }}</div>
                     </div>
                 </div>
                 {% empty %}
                 <div class="p-20 text-center opacity-20">
                     <i class="fas fa-receipt text-5xl mb-4"></i>
-                    <p>{% trans "No financial transactions yet." %}</p>
+                    <p>لا توجد حركات مالية حتى الآن.</p>
                 </div>
                 {% endfor %}
             </div>
@@ -150,7 +150,7 @@
     <aside class="stack gap-6">
         <!-- Currency Holdings Summary -->
         <div class="currency-summary-card">
-            <h3 class="font-bold text-sm text-muted uppercase tracking-widest mb-6">{% trans "Balances (1 Currency)" %}</h3>
+            <h3 class="font-bold text-sm text-muted uppercase tracking-widest mb-6">الأرصدة (1 عملة)</h3>
             
             <div class="stack gap-2">
                 <!-- In current system, we only show the actual wallet currency if balance > 0 -->
@@ -159,7 +159,7 @@
                     <div class="holding-info">
                         <div class="holding-icon">{{ wallet.currency.code|slice:":1" }}</div>
                         <div class="holding-meta">
-                            <span>{% trans "Base Currency" %}</span>
+                            <span>العملة الأساسية</span>
                             <strong>{{ wallet.currency.name }}</strong>
                         </div>
                     </div>
@@ -176,25 +176,25 @@
             <div class="wallet-stats">
                 {% if wallet.frozen_balance > 0 %}
                 <div class="stat-item">
-                    <span>{% trans "Frozen" %}</span>
+                    <span>مجمد</span>
                     <strong>{{ wallet.frozen_balance }}</strong>
                 </div>
                 {% endif %}
                 {% if wallet.held_balance > 0 %}
                 <div class="stat-item">
-                    <span>{% trans "Reserved" %}</span>
+                    <span>محجوز</span>
                     <strong>{{ wallet.held_balance }}</strong>
                 </div>
                 {% endif %}
                 {% if wallet.pending_balance > 0 %}
                 <div class="stat-item">
-                    <span>{% trans "Pending" %}</span>
+                    <span>معلق</span>
                     <strong>{{ wallet.pending_balance }}</strong>
                 </div>
                 {% endif %}
                 {% if wallet.reserved_balance > 0 %}
                 <div class="stat-item">
-                    <span>{% trans "Order Reserved" %}</span>
+                    <span>محجوز طلبات</span>
                     <strong>{{ wallet.reserved_balance }}</strong>
                 </div>
                 {% endif %}
@@ -203,7 +203,7 @@
 
         <!-- Conversion Quick Info -->
         <div class="panel p-6 bg-cyan/5 border-cyan/10">
-            <h4 class="text-xs font-black text-cyan uppercase mb-4">{% trans "Current Exchange Rates" %}</h4>
+            <h4 class="text-xs font-black text-cyan uppercase mb-4">أسعار الصرف الحالية</h4>
             <div class="stack gap-3">
                 {% for c in ALL_CURRENCIES %}
                 {% if c.code != CURRENCY.code %}
@@ -222,3 +222,4 @@
     </aside>
 </div>
 {% endblock %}
+

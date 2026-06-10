@@ -1,5 +1,5 @@
 {% extends "site/control_base.html" %}
-{% load i18n static %}
+{% load static %}
 
 {% block title %}{{ title }} | Raqamiyat Builder{% endblock %}
 
@@ -75,14 +75,14 @@
 {% block control_content %}
 <div class="page-head">
     <div>
-        <span class="eyebrow">{% trans "Visual Product Builder" %}</span>
+        <span class="eyebrow">Visual Product Builder</span>
         <h1>{{ title }}</h1>
-        <p class="text-muted">{% trans "Advanced digital services creation system. Full control over packages and required fields." %}</p>
+        <p class="text-muted">نظام إنشاء الخدمات الرقمية المتطور. تحكم كامل بالباقات والحقول المطلوبة.</p>
     </div>
     <div class="flex gap-3">
-        <a href="{% url 'control_products_list' %}" class="btn btn-outline btn-sm">{% trans "Cancel" %}</a>
+        <a href="{% url 'control_products_list' %}" class="btn btn-outline btn-sm">إلغاء</a>
         <button type="button" class="btn btn-primary btn-sm" onclick="submitBuilder()">
-            <i class="fas fa-save ml-2"></i> {% trans "Save Final Product" %}
+            <i class="fas fa-save ml-2"></i> حفظ المنتج النهائي
         </button>
     </div>
 </div>
@@ -95,49 +95,49 @@
     <!-- Section A: Product Information -->
     <div class="builder-section shadow-xl">
         <div class="builder-section-header">
-            <h3 class="font-bold text-lg"><i class="fas fa-info-circle ml-2 text-cyan"></i> {% trans "Basic Product Information" %}</h3>
+            <h3 class="font-bold text-lg"><i class="fas fa-info-circle ml-2 text-cyan"></i> معلومات المنتج الأساسية</h3>
         </div>
         <div class="builder-body grid grid-cols-12 gap-8">
             <div class="col-span-12 lg:col-span-8 stack gap-6">
                 <div class="field-group">
-                    <label>{% trans "Product Name" %}</label>
+                    <label>اسم المنتج</label>
                     {{ form.name }}
                 </div>
                 <div class="field-group">
-                    <label>{% trans "Category" %}</label>
+                    <label>التصنيف</label>
                     <div class="flex gap-2">
                         {{ form.category }}
                         <button type="button" class="btn btn-outline btn-sm px-4 flex items-center gap-2 whitespace-nowrap" onclick="quickCreateCategory()">
                             <i class="fas fa-plus"></i>
-                            <span class="text-[10px] font-bold">{% trans "New Category" %}</span>
+                            <span class="text-[10px] font-bold">تصنيف جديد</span>
                         </button>
                     </div>
                 </div>
                 <div class="field-group">
-                    <label>{% trans "Description (Appears on product page)" %}</label>
+                    <label>الوصف (يظهر في صفحة المنتج)</label>
                     {{ form.description }}
                 </div>
                 <div class="field-group">
-                    <label>{% trans "Post-Purchase Instructions (Appears to customer on invoice)" %}</label>
+                    <label>تعليمات بعد الشراء (تظهر للعميل في الفاتورة)</label>
                     {{ form.instructions }}
                 </div>
             </div>
             <div class="col-span-12 lg:col-span-4 stack gap-6">
                 <div class="panel p-4 bg-slate-800/30 border-white/5">
-                    <label class="mini-label">{% trans "Main Image" %}</label>
+                    <label class="mini-label">الصورة الأساسية</label>
                     {{ form.image }}
                     {% if product.image %}
                     <img src="{{ product.image.url }}" class="mt-2 w-full h-32 object-cover rounded-lg border border-white/10">
                     {% endif %}
                 </div>
                 <div class="panel p-4 bg-slate-800/30 border-white/5">
-                    <label class="mini-label">{% trans "Status" %}</label>
+                    <label class="mini-label">الحالة</label>
                     <div class="flex items-center gap-4 mt-2">
                         <div class="flex items-center gap-2">
-                            {{ form.is_active }} <span class="text-xs">{% trans "Active" %}</span>
+                            {{ form.is_active }} <span class="text-xs">نشط</span>
                         </div>
                         <div class="flex items-center gap-2">
-                            {{ form.is_featured }} <span class="text-xs">{% trans "Featured" %}</span>
+                            {{ form.is_featured }} <span class="text-xs">مميز</span>
                         </div>
                     </div>
                 </div>
@@ -148,9 +148,9 @@
     <!-- Section B: Product Packages -->
     <div class="builder-section shadow-xl">
         <div class="builder-section-header">
-            <h3 class="font-bold text-lg"><i class="fas fa-layer-group ml-2 text-amber-500"></i> {% trans "Product Packages and Prices" %}</h3>
+            <h3 class="font-bold text-lg"><i class="fas fa-layer-group ml-2 text-amber-500"></i> باقات المنتج وأسعارها</h3>
             <button type="button" class="btn btn-sm btn-outline" onclick="addPackage()">
-                <i class="fas fa-plus ml-1"></i> {% trans "Add New Package" %}
+                <i class="fas fa-plus ml-1"></i> إضافة باقة جديدة
             </button>
         </div>
         <div class="builder-body">
@@ -159,7 +159,7 @@
             </div>
             <div id="empty-packages" class="p-12 text-center text-slate-500 hidden">
                 <i class="fas fa-box-open text-4xl mb-4 opacity-20"></i>
-                <p>{% trans "No packages for this product. Add at least one package." %}</p>
+                <p>لا توجد باقات لهذا المنتج. أضف باقة واحدة على الأقل.</p>
             </div>
         </div>
     </div>
@@ -167,9 +167,9 @@
     <!-- Section C: Customer Required Data Builder -->
     <div class="builder-section shadow-xl">
         <div class="builder-section-header">
-            <h3 class="font-bold text-lg"><i class="fas fa-form ml-2 text-purple-500"></i> {% trans "Customer Data Builder (Fulfillment)" %}</h3>
+            <h3 class="font-bold text-lg"><i class="fas fa-form ml-2 text-purple-500"></i> منشئ حقول العميل (Fulfillment)</h3>
             <button type="button" class="btn btn-sm btn-outline" onclick="addField()">
-                <i class="fas fa-plus ml-1"></i> {% trans "Add Input Field" %}
+                <i class="fas fa-plus ml-1"></i> إضافة حقل إدخال
             </button>
         </div>
         <div class="builder-body">
@@ -178,7 +178,7 @@
             </div>
             <div id="empty-fields" class="p-12 text-center text-slate-500">
                 <i class="fas fa-keyboard text-4xl mb-4 opacity-20"></i>
-                <p>{% trans "No fields defined for customer input." %}</p>
+                <p>لم يتم تحديد أي حقول مطلوبة من العميل.</p>
             </div>
         </div>
     </div>
@@ -213,7 +213,7 @@ if (!schema.fields || !Array.isArray(schema.fields)) {
 
 // --- Category Quick Add ---
 async function quickCreateCategory() {
-    const name = prompt("{% trans "New category name:" %}");
+    const name = prompt("اسم التصنيف الجديد:");
     if (!name) return;
     
     const formData = new FormData();
@@ -234,13 +234,13 @@ async function quickCreateCategory() {
             opt.text = data.name;
             select.appendChild(opt);
             select.value = data.id; // Auto select the new category
-            alert("{% trans "Category created and selected successfully." %}");
+            alert("تم إنشاء التصنيف بنجاح واختياره.");
         } else {
             const err = await response.json();
-            alert("{% trans "Failed to create category:" %} " + (err.message || "{% trans "Unknown error" %}"));
+            alert("فشل إنشاء التصنيف: " + (err.message || "خطأ غير معروف"));
         }
     } catch (e) {
-        alert("{% trans "Server connection error." %}");
+        alert("خطأ في الاتصال بالخادم.");
     }
 }
 
@@ -260,28 +260,28 @@ function renderPackages() {
         row.className = 'package-item';
         row.innerHTML = `
             <div>
-                <span class="mini-label">{% trans "Package Name (e.g., 60 UC)" %}</span>
+                <span class="mini-label">اسم الباقة (مثلاً: 60 UC)</span>
                 <input type="text" class="builder-input" value="${pkg.name}" onchange="updatePackage(${index}, 'name', this.value)">
             </div>
             <div>
-                <span class="mini-label">{% trans "Retail Price" %}</span>
+                <span class="mini-label">السعر (Retail)</span>
                 <input type="number" class="builder-input" value="${pkg.price}" onchange="updatePackage(${index}, 'price', this.value)">
             </div>
             <div>
-                <span class="mini-label">{% trans "Wholesale Price" %}</span>
+                <span class="mini-label">سعر الجملة</span>
                 <input type="number" class="builder-input" value="${pkg.wholesale_price}" onchange="updatePackage(${index}, 'wholesale_price', this.value)">
             </div>
             <div>
-                <span class="mini-label">{% trans "VIP Price" %}</span>
+                <span class="mini-label">سعر VIP</span>
                 <input type="number" class="builder-input" value="${pkg.vip_price}" onchange="updatePackage(${index}, 'vip_price', this.value)">
             </div>
             <div>
-                <span class="mini-label">{% trans "Cost" %}</span>
+                <span class="mini-label">التكلفة (Cost)</span>
                 <input type="number" class="builder-input" value="${pkg.cost}" onchange="updatePackage(${index}, 'cost', this.value)">
             </div>
             <div class="flex gap-2">
-                <button type="button" class="btn btn-sm btn-outline p-2" title="{% trans "Duplicate" %}" onclick="duplicatePackage(${index})"><i class="fas fa-copy"></i></button>
-                <button type="button" class="btn btn-sm btn-outline danger p-2" title="{% trans "Delete" %}" onclick="deletePackage(${index})"><i class="fas fa-trash"></i></button>
+                <button type="button" class="btn btn-sm btn-outline p-2" title="تكرار" onclick="duplicatePackage(${index})"><i class="fas fa-copy"></i></button>
+                <button type="button" class="btn btn-sm btn-outline danger p-2" title="حذف" onclick="deletePackage(${index})"><i class="fas fa-trash"></i></button>
             </div>
             <input type="hidden" class="sku-input" value="${pkg.sku || ''}">
         `;
@@ -291,7 +291,7 @@ function renderPackages() {
 
 function addPackage() {
     packages.push({
-        name: '{% trans "New Package" %}',
+        name: 'باقة جديدة',
         price: '0.00',
         wholesale_price: '0.00',
         vip_price: '0.00',
@@ -308,7 +308,7 @@ function updatePackage(index, key, value) {
 }
 
 function deletePackage(index) {
-    if (confirm("{% trans "Are you sure you want to delete this package?" %}")) {
+    if (confirm("هل أنت متأكد من حذف هذه الباقة؟")) {
         packages.splice(index, 1);
         renderPackages();
     }
@@ -316,7 +316,7 @@ function deletePackage(index) {
 
 function duplicatePackage(index) {
     const pkg = {...packages[index]};
-    pkg.name += " ({% trans "Copy" %})";
+    pkg.name += " (نسخة)";
     pkg.sku = 'copy-' + Math.random().toString(36).substr(2, 9);
     packages.push(pkg);
     renderPackages();
@@ -344,7 +344,7 @@ function renderFields() {
             </div>
             <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mt-4">
                 <div class="md:col-span-1">
-                    <span class="mini-label">{% trans "Field Type" %}</span>
+                    <span class="mini-label">نوع الحقل</span>
                     <select class="builder-input" onchange="updateField(${index}, 'type', this.value)">
                         <option value="text" ${field.type === 'text' ? 'selected' : ''}>Text</option>
                         <option value="textarea" ${field.type === 'textarea' ? 'selected' : ''}>Textarea</option>
@@ -357,23 +357,23 @@ function renderFields() {
                     </select>
                 </div>
                 <div class="md:col-span-1">
-                    <span class="mini-label">{% trans "Label" %}</span>
+                    <span class="mini-label">العنوان (Label)</span>
                     <input type="text" class="builder-input" value="${field.label}" onchange="updateField(${index}, 'label', this.value)">
                 </div>
                 <div class="md:col-span-1">
-                    <span class="mini-label">{% trans "Placeholder" %}</span>
+                    <span class="mini-label">نص المساعدة (Placeholder)</span>
                     <input type="text" class="builder-input" value="${field.placeholder || ''}" onchange="updateField(${index}, 'placeholder', this.value)">
                 </div>
                 <div class="md:col-span-1 flex items-end">
                     <div class="flex items-center gap-2 mb-2">
                         <input type="checkbox" ${field.required ? 'checked' : ''} onchange="updateField(${index}, 'required', this.checked)">
-                        <span class="text-xs font-bold">{% trans "Required" %}</span>
+                        <span class="text-xs font-bold">إلزامي</span>
                     </div>
                 </div>
             </div>
             ${field.type === 'select' ? `
             <div class="mt-4 pt-4 border-t border-white/5">
-                <span class="mini-label">{% trans "Select Options (comma separated)" %}</span>
+                <span class="mini-label">خيارات القائمة (مفصولة بفاصلة)</span>
                 <input type="text" class="builder-input" value="${(field.options || []).join(', ')}" placeholder="Option 1, Option 2, Option 3" onchange="updateField(${index}, 'options', this.value.split(',').map(s => s.trim()))">
             </div>
             ` : ''}
@@ -385,7 +385,7 @@ function renderFields() {
 function addField() {
     if (!schema.fields) schema.fields = [];
     schema.fields.push({
-        label: '{% trans "New Field" %}',
+        label: 'حقل جديد',
         type: 'text',
         required: true,
         placeholder: '',
@@ -418,7 +418,7 @@ function moveField(index, delta) {
 function submitBuilder() {
     // Basic validation
     if (packages.length === 0) {
-        alert("{% trans "Please add at least one package to the product." %}");
+        alert("يرجى إضافة باقة واحدة على الأقل للمنتج.");
         return;
     }
     

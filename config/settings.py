@@ -83,11 +83,10 @@ MIDDLEWARE = [
 
     "corsheaders.middleware.CorsMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
+    "django.middleware.locale.LocaleMiddleware",
+    "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
-    "django.middleware.locale.LocaleMiddleware",
-    "apps.site.middleware.UserLanguageMiddleware",
-    "django.middleware.common.CommonMiddleware",
     "apps.accounts.middleware.AccountStatusMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
@@ -151,32 +150,10 @@ AUTH_PASSWORD_VALIDATORS = [
     {"NAME": "django.contrib.auth.password_validation.NumericPasswordValidator"},
 ]
 
-from django.utils.translation import gettext_lazy as _
-
 LANGUAGE_CODE = "ar"
 TIME_ZONE = "Asia/Damascus"
 USE_I18N = True
 USE_TZ = True
-
-LANGUAGES = [
-    ("ar", _("Arabic")),
-    ("en", _("English")),
-    ("tr", _("Turkish")),
-    ("fr", _("French")),
-    ("es", _("Spanish")),
-    ("ru", _("Russian")),
-    ("zh-hans", _("Chinese")),
-]
-
-LOCALE_PATHS = [
-    BASE_DIR / "locale",
-]
-
-LANGUAGE_COOKIE_NAME = "raqamiyat_language"
-LANGUAGE_COOKIE_AGE = 31536000  # 1 year
-LANGUAGE_COOKIE_PATH = "/"
-LANGUAGE_COOKIE_SECURE = not DEBUG
-LANGUAGE_COOKIE_SAMESITE = "Lax"
 
 STATIC_URL = "/static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"
