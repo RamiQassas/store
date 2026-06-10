@@ -158,17 +158,30 @@ class SupportConsumer(AsyncWebsocketConsumer):
         room.save()
         
         # Real-time Web Push Trigger (only for authenticated users)
-        if is_staff and room.user.is_authenticated:
+        if is_staff:
+            if room.user.is_authenticated:
+                try:
+                    from apps.notifications.services import notify_user
+                    notify_user(
+                        user=room.user,
+                        title="رد جديد من الدعم الفني",
+                        body=text[:100] if text else "قام الموظف بإرسال ملف/صورة",
+                        action_url=f"/support/chats/{room.id}/",
+                        category="support",
+                        priority="high",
+                        metadata={"type": "chat_reply", "room_id": str(room.id)}
+                    )
+                except: pass
+        else:
+            # Notify staff when user sends message
             try:
-                from apps.notifications.services import notify_user
-                notify_user(
-                    user=room.user,
-                    title="رد جديد من الدعم الفني",
-                    body=text[:100] if text else "قام الموظف بإرسال ملف/صورة",
+                from apps.notifications.services import notify_staff
+                notify_staff(
+                    title=f"رسالة جديدة من {room.user.get_full_name() or 'عميل'}",
+                    body=text[:100] if text else "قام العميل بإرسال ملف/صورة",
                     action_url=f"/support/chats/{room.id}/",
-                    category="support",
                     priority="high",
-                    metadata={"type": "chat_reply", "room_id": str(room.id)}
+                    metadata={"type": "chat_user_msg", "room_id": str(room.id)}
                 )
             except: pass
         
