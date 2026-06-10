@@ -157,27 +157,35 @@ class SupportConsumer(AsyncWebsocketConsumer):
 
         room.save()
         
-        # Real-time Web Push Trigger (only for authenticated users)
+        # Real-time Web Push Trigger
         if is_staff:
-            if room.user.is_authenticated:
-                try:
-                    from apps.notifications.services import notify_user
-                    notify_user(
-                        user=room.user,
-                        title="رد جديد من الدعم الفني",
-                        body=text[:100] if text else "قام الموظف بإرسال ملف/صورة",
-                        action_url=f"/support/chats/{room.id}/",
-                        category="support",
-                        priority="high",
-                        metadata={"type": "chat_reply", "room_id": str(room.id)}
-                    )
-                except: pass
+            # Notify the user (guest or authenticated) if it's a staff reply
+            # room.user is the owner/guest user for the room
+            try:
+                from apps.notifications.services import notify_user
+                notify_user(
+                    user=room.user,
+                    title="رد جديد من الدعم الفني",
+                    body=text[:100] if text else "قام الموظف بإرسال ملف/صورة",
+                    action_url=f"/support/chats/{room.id}/",
+                    category="support",
+                    priority="high",
+                    metadata={"type": "chat_reply", "room_id": str(room.id)}
+                )
+            except: pass
         else:
-            # Notify staff when user sends message
+            # Notify staff when user (guest or authenticated) sends message
+            # Handle guest names in subject
+            guest_name = "عميل"
+            if " - زائر: " in room.subject:
+                guest_name = room.subject.split(" - زائر: ")[-1]
+            elif room.user.is_authenticated:
+                guest_name = room.user.get_full_name() or room.user.email
+            
             try:
                 from apps.notifications.services import notify_staff
                 notify_staff(
-                    title=f"رسالة جديدة من {room.user.get_full_name() or 'عميل'}",
+                    title=f"رسالة جديدة من {guest_name}",
                     body=text[:100] if text else "قام العميل بإرسال ملف/صورة",
                     action_url=f"/support/chats/{room.id}/",
                     priority="high",
