@@ -34,8 +34,8 @@
 
       <div class="field-group">
         <label>{{ form.phone.label }}</label>
-        <input type="tel" name="phone_input" id="phone" class="w-full" required>
-        <input type="hidden" name="phone" id="full_phone">
+        <input type="tel" name="phone_input" id="phone" class="w-full" value="{{ request.POST.phone_input|default:'' }}" required>
+        <input type="hidden" name="phone" id="full_phone" value="{{ request.POST.phone|default:'' }}">
         {% for error in form.phone.errors %}<small class="text-red-500">{{ error }}</small>{% endfor %}
       </div>
 
