@@ -67,6 +67,15 @@ class User(AbstractUser):
     otp_lockout_until = models.DateTimeField(null=True, blank=True)
     otp_resend_count = models.IntegerField(default=0)
 
+    # 2FA / TOTP
+    totp_secret = models.CharField(max_length=32, null=True, blank=True)
+    totp_enabled = models.BooleanField(default=False)
+
+    # Security Triggers (User-defined restrictions)
+    require_otp_on_login = models.BooleanField(default=True)
+    require_otp_on_deposit = models.BooleanField(default=False)
+    require_otp_on_purchase = models.BooleanField(default=False)
+
     # KYC & Limits
     is_kyc_verified = models.BooleanField(default=False, verbose_name="موثق الهوية")
     has_custom_limits = models.BooleanField(default=False, verbose_name="له حدود مخصصة")

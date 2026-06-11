@@ -11,6 +11,10 @@ urlpatterns = [
     path("dashboard/withdrawals/", views.withdrawals, name="dashboard_withdrawals"),
     path("dashboard/notifications/settings/", views.notification_settings, name="notification_settings"),
     path("dashboard/change-password/", views.v3_change_password_view, name="change_password"),
+    path("dashboard/change-email/", views.v3_change_email_view, name="change_email"),
+    path("dashboard/2fa/setup/", views.v3_2fa_setup_view, name="site_2fa_setup"),
+    path("dashboard/security-triggers/", views.v3_security_triggers_view, name="site_security_triggers"),
+    path("auth/2fa-verify/", views.v3_2fa_verify_view, name="site_2fa_verify"),
 
     path("", views.home, name="home"),
     path("catalog/", views.catalog, name="catalog"),

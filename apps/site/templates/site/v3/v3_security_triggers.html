@@ -1,0 +1,62 @@
+{% extends "site/base.html" %}
+{% block title %}إعدادات مشغلات الأمان | Raqamiyat{% endblock %}
+{% block content %}
+<section class="auth-shell">
+  <article class="panel p-10 auth-panel">
+    <div class="text-center mb-8">
+        <div class="w-20 h-20 bg-cyan/10 rounded-full flex items-center justify-center text-3xl text-cyan mx-auto mb-6">
+            <i class="fas fa-lock"></i>
+        </div>
+        <h1 class="text-2xl font-black mb-2">مشغلات الأمان الذكية</h1>
+        <p class="text-slate-500 text-sm">حدد متى تريد من النظام طلب تأكيد هويتك عبر (البريد أو 2FA).</p>
+    </div>
+
+    <form method="post" class="stack gap-6 text-right">
+        {% csrf_token %}
+        
+        <div class="p-4 bg-slate-900/50 rounded-2xl border border-white/5 flex items-center justify-between">
+            <div>
+                <h3 class="text-sm font-bold text-slate-200">عند تسجيل الدخول</h3>
+                <p class="text-[10px] text-slate-500">طلب رمز تحقق في كل مرة تدخل فيها لحسابك.</p>
+            </div>
+            <label class="relative inline-flex items-center cursor-pointer">
+                <input type="checkbox" name="login" class="sr-only peer" {% if user.require_otp_on_login %}checked{% endif %}>
+                <div class="w-11 h-6 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-cyan"></div>
+            </label>
+        </div>
+
+        <div class="p-4 bg-slate-900/50 rounded-2xl border border-white/5 flex items-center justify-between">
+            <div>
+                <h3 class="text-sm font-bold text-slate-200">عند طلب إيداع</h3>
+                <p class="text-[10px] text-slate-500">طلب رمز تحقق قبل تأكيد أي عملية شحن رصيد.</p>
+            </div>
+            <label class="relative inline-flex items-center cursor-pointer">
+                <input type="checkbox" name="deposit" class="sr-only peer" {% if user.require_otp_on_deposit %}checked{% endif %}>
+                <div class="w-11 h-6 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-cyan"></div>
+            </label>
+        </div>
+
+        <div class="p-4 bg-slate-900/50 rounded-2xl border border-white/5 flex items-center justify-between">
+            <div>
+                <h3 class="text-sm font-bold text-slate-200">عند شراء منتج</h3>
+                <p class="text-[10px] text-slate-500">طلب رمز تحقق قبل إتمام أي عملية شراء من المتجر.</p>
+            </div>
+            <label class="relative inline-flex items-center cursor-pointer">
+                <input type="checkbox" name="purchase" class="sr-only peer" {% if user.require_otp_on_purchase %}checked{% endif %}>
+                <div class="w-11 h-6 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-cyan"></div>
+            </label>
+        </div>
+
+        <button type="submit" class="btn btn-primary w-full py-4 text-sm font-bold">حفظ إعدادات الأمان</button>
+    </form>
+    
+    <div class="mt-8 pt-6 border-t border-white/5 text-center">
+        <a href="{% url 'dashboard' %}" class="text-slate-500 text-xs hover:text-cyan transition-colors">العودة للوحة التحكم</a>
+    </div>
+  </article>
+</section>
+
+<style>
+    .auth-panel { max-width: 500px; margin: 0 auto; border: 1px solid rgba(255,255,255,0.05); }
+</style>
+{% endblock %}

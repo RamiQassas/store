@@ -304,6 +304,28 @@
             </form>
         </div>
 
+        <!-- 2FA Security Controls -->
+        <div class="management-card p-6 border-cyan/20 bg-cyan/[0.02]">
+            <h3 class="text-cyan font-bold text-sm mb-4"><i class="fas fa-shield-alt ml-2"></i> أمن المصادقة الثنائية (2FA)</h3>
+            <div class="flex justify-between text-[10px] text-slate-500 mb-4">
+                <span>حالة المصادقة الثنائية:</span>
+                {% if user_to_moderate.totp_enabled %}
+                <span class="text-emerald-500 font-bold">مفعلة</span>
+                {% else %}
+                <span class="text-slate-500">معطلة</span>
+                {% endif %}
+            </div>
+            <form method="post" class="stack gap-2">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="reset_2fa">
+                <button type="submit" class="btn btn-outline w-full text-xs py-3 border-cyan/30 text-cyan hover:bg-cyan hover:text-white transition-all" 
+                    {% if not user_to_moderate.totp_enabled %}disabled{% endif %}>
+                    إعادة ضبط / تعطيل 2FA
+                </button>
+            </form>
+            <p class="text-[9px] text-slate-500 italic text-center mt-2">استخدم هذا إذا فقد المستخدم الوصول لتطبيق Google Authenticator.</p>
+        </div>
+
         <!-- Danger Actions -->
         <div class="management-card p-6 border-danger/20 bg-danger/[0.02]">
             <h3 class="text-danger font-bold text-sm mb-4"><i class="fas fa-exclamation-triangle ml-2"></i> إجراءات سريعة خطيرة</h3>
