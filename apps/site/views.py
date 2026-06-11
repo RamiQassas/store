@@ -87,14 +87,21 @@ def v3_login_view(request):
 def v3_register_view(request):
     if request.user.is_authenticated: return redirect("dashboard")
     form = RegisterForm(request.POST or None)
-    if request.method == "POST" and form.is_valid():
-        with transaction.atomic():
-            user = User.objects.create_user(email=form.cleaned_data["email"], password=form.cleaned_data["password"], phone=request.POST.get("phone"), first_name=form.cleaned_data["first_name"], last_name=form.cleaned_data["last_name"])
-            get_or_create_wallet(user)
-            otp = v3_generate_otp(user, OTPToken.Purpose.REGISTRATION)
-            if v3_send_otp_email(user, otp):
-                request.session["v3_auth_uid"], request.session["v3_auth_purpose"] = str(user.id), OTPToken.Purpose.REGISTRATION
-                return redirect("site_verify_otp")
+    if request.method == "POST":
+        if form.is_valid():
+            try:
+                with transaction.atomic():
+                    user = User.objects.create_user(email=form.cleaned_data["email"], password=form.cleaned_data["password"], phone=request.POST.get("phone"), first_name=form.cleaned_data["first_name"], last_name=form.cleaned_data["last_name"])
+                    get_or_create_wallet(user)
+                    otp = v3_generate_otp(user, OTPToken.Purpose.REGISTRATION)
+                    if v3_send_otp_email(user, otp):
+                        request.session["v3_auth_uid"], request.session["v3_auth_purpose"] = str(user.id), OTPToken.Purpose.REGISTRATION
+                        return redirect("site_verify_otp")
+                    else:
+                        raise Exception("فشل إرسال البريد الإلكتروني.")
+            except Exception as e:
+                form.add_error(None, str(e))
+        
     return render(request, "site/v3/v3_register.html", {"form": form})
 
 def v3_verify_otp_view(request):
