@@ -438,6 +438,7 @@ def control_user_moderate(request, public_uuid):
     
     if request.method == "POST":
         action = request.POST.get("action")
+        
         if action == "reset_otp":
             user.otp_failed_attempts = 0
             user.otp_lockout_until = None
@@ -445,13 +446,35 @@ def control_user_moderate(request, public_uuid):
             user.save(update_fields=["otp_failed_attempts", "otp_lockout_until", "otp_resend_count", "updated_at"])
             messages.success(request, f"تم إعادة ضبط قيود الرمز (OTP) للمستخدم {user.email}")
             return redirect("control_user_moderate", public_uuid=public_uuid)
+        
+        elif action == "reset_password":
+            otp = v3_generate_otp(user, OTPToken.Purpose.PASSWORD_RESET)
+            if v3_send_otp_email(user, otp):
+                messages.success(request, f"تم إرسال رمز استعادة كلمة المرور إلى {user.email}")
+            else:
+                messages.error(request, "فشل إرسال البريد الإلكتروني.")
+            return redirect("control_user_moderate", public_uuid=public_uuid)
+
+        elif action == "manual_password":
+            new_pass = request.POST.get("new_password")
+            if new_pass and len(new_pass) >= 10:
+                user.set_password(new_pass)
+                user.save()
+                messages.success(request, f"تم تغيير كلمة المرور للمستخدم {user.email} بنجاح.")
+            else:
+                messages.error(request, "كلمة المرور يجب أن تكون 10 خانات على الأقل.")
+            return redirect("control_user_moderate", public_uuid=public_uuid)
             
-        if form.is_valid():
+        elif form.is_valid():
             form.save()
             messages.success(request, "تم تحديث بيانات المستخدم بنجاح.")
             return redirect("control_users_list")
             
-    return render(request, "site/control_user_moderate.html", {"form": form, "user_to_moderate": user})
+    return render(request, "site/control_user_moderate.html", {
+        "form": form, 
+        "user_to_moderate": user,
+        "now": timezone.now()
+    })
 
 @admin_required
 def control_social_media(request):
