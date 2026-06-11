@@ -32,6 +32,7 @@ from apps.site.forms import LoginForm, RegisterForm, PaymentMethodForm, Currency
 from apps.support.models import ChatRoom, ChatMessage, ChatCannedReply, SupportSettings
 from apps.wallets.models import LedgerEntry, Wallet, WalletTransaction
 from apps.wallets.services import get_or_create_wallet, track_pending_deposit, freeze_funds, credit_wallet, release_funds, finalize_withdrawal, debit_wallet
+from apps.common.decorators import staff_required, admin_required, support_required, finance_required, kyc_required
 
 
 # ==========================================
@@ -271,8 +272,6 @@ def ajax_validate_coupon(request):
 # --- ADMINISTRATIVE VIEWS (V4) ---
 # ==========================================
 
-from apps.common.decorators import staff_required, admin_required, support_required, finance_required, kyc_required
-
 @staff_required
 def control_dashboard(request):
     from apps.payments.models import DepositRequest, WithdrawalRequest
@@ -306,6 +305,12 @@ def control_kyc_detail(request, pk):
             kyc.status = KYCRequest.Status.VERIFIED; kyc.user.is_kyc_verified = True; kyc.user.save(); kyc.save()
         return redirect("control_kycs_list")
     return render(request, "site/control_kyc_detail.html", {"kyc": kyc})
+
+@kyc_required
+def control_kyc_settings(request):
+    settings_obj = KYCSettings.get_settings(); form = KYCSettingsForm(request.POST or None, instance=settings_obj)
+    if request.method == "POST" and form.is_valid(): form.save(); messages.success(request, "تم الحفظ."); return redirect("control_kyc_settings")
+    return render(request, "site/control_kyc_settings.html", {"form": form, "settings": settings_obj})
 
 @support_required
 def control_orders_list(request):
@@ -387,22 +392,6 @@ def control_coupon_delete(request, pk): get_object_or_404(Coupon, pk=pk).delete(
 @admin_required
 def control_reports(request): return render(request, "site/control_reports.html")
 
-@admin_required
-def control_social_media_delete(request, pk): get_object_or_404(SocialMediaLink, pk=pk).delete(); return redirect("control_social_media")
-
-@support_required
-
-def currency_create(request):
-    form = CurrencyForm(request.POST or None)
-    if request.method == "POST" and form.is_valid(): form.save(); return redirect("currencies_list")
-    return render(request, "site/currency_form.html", {"form": form})
-
-@admin_required
-def currency_edit(request, pk):
-    c = get_object_or_404(Currency, pk=pk); form = CurrencyForm(request.POST or None, instance=c)
-    if request.method == "POST" and form.is_valid(): form.save(); return redirect("currencies_list")
-    return render(request, "site/currency_form.html", {"form": form, "currency": c})
-
 @support_required
 def control_products_list(request): return render(request, "site/control_products_list.html", {"products": Product.objects.select_related('category').prefetch_related('variants').all().order_by('sort_order', 'name')})
 
@@ -449,24 +438,6 @@ def control_variant_create(request, product_pk): return redirect("control_produc
 def control_variant_edit(request, pk):
     v = get_object_or_404(ProductVariant, pk=pk); return redirect("control_product_edit", pk=v.product.id)
 
-@admin_required
-def control_coupons_list(request): return render(request, "site/control_coupons_list.html", {"coupons": Coupon.objects.all().order_by("-created_at")})
-
-@admin_required
-def control_coupon_create(request):
-    form = CouponForm(request.POST or None)
-    if request.method == "POST" and form.is_valid(): form.save(); return redirect("control_coupons_list")
-    return render(request, "site/control_coupon_form.html", {"form": form})
-
-@admin_required
-def control_coupon_edit(request, pk):
-    c = get_object_or_404(Coupon, pk=pk); form = CouponForm(request.POST or None, instance=c)
-    if request.method == "POST" and form.is_valid(): form.save(); return redirect("control_coupons_list")
-    return render(request, "site/control_coupon_form.html", {"form": form})
-
-@admin_required
-def control_coupon_delete(request, pk): get_object_or_404(Coupon, pk=pk).delete(); return redirect("control_coupons_list")
-
 @finance_required
 def control_wallets_list(request):
     q = request.GET.get('q', '')
@@ -486,9 +457,6 @@ def control_debts(request):
             add_debt(target.wallet.id, amt, f"admin_debt_{timezone.now().timestamp()}", request.POST.get("reason", ""), request.user)
         return redirect(f"{request.path}?q={q}")
     return render(request, "site/control_debts.html", {"users": users, "query": q})
-
-@admin_required
-def control_reports(request): return render(request, "site/control_reports.html")
 
 @support_required
 def control_send_notification(request):
@@ -581,3 +549,18 @@ def set_currency(request):
         request.session["preferred_currency_id"] = str(curr.id)
         if request.user.is_authenticated: request.user.preferred_currency = curr; request.user.save(update_fields=["preferred_currency"])
     return redirect(request.META.get('HTTP_REFERER', 'home'))
+
+@admin_required
+def payment_methods_list(request): return render(request, "site/payment_methods_list.html", {"methods": PaymentMethod.objects.all().order_by("display_order")})
+
+@admin_required
+def payment_method_create(request):
+    form = PaymentMethodForm(request.POST or None, request.FILES or None)
+    if request.method == "POST" and form.is_valid(): form.save(); return redirect("payment_methods_list")
+    return render(request, "site/payment_method_builder.html", {"form": form})
+
+@admin_required
+def payment_method_edit(request, pk):
+    method = get_object_or_404(PaymentMethod, pk=pk); form = PaymentMethodForm(request.POST or None, request.FILES or None, instance=method)
+    if request.method == "POST" and form.is_valid(): form.save(); return redirect("payment_methods_list")
+    return render(request, "site/payment_method_builder.html", {"form": form, "method": method})
