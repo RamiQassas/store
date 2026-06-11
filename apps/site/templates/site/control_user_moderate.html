@@ -256,6 +256,38 @@
             </div>
         </div>
 
+        <!-- OTP Security Actions -->
+        <div class="management-card p-6 border-cyan/20 bg-cyan/[0.02]">
+            <h3 class="text-cyan font-bold text-sm mb-4"><i class="fas fa-shield-alt ml-2"></i> تأمين الدخول (OTP)</h3>
+            <div class="stack gap-3">
+                <div class="p-3 bg-slate-900/50 rounded-2xl border border-white/5 mb-2">
+                    <div class="flex justify-between text-[10px] text-slate-500 mb-1">
+                        <span>المحاولات الفاشلة:</span>
+                        <span class="text-slate-300 font-bold">{{ user_to_moderate.otp_failed_attempts }}</span>
+                    </div>
+                    <div class="flex justify-between text-[10px] text-slate-500 mb-1">
+                        <span>مرات إعادة الإرسال:</span>
+                        <span class="text-slate-300 font-bold">{{ user_to_moderate.otp_resend_count }}</span>
+                    </div>
+                    <div class="flex justify-between text-[10px] text-slate-500">
+                        <span>حالة الحظر المؤقت:</span>
+                        {% if user_to_moderate.otp_lockout_until and user_to_moderate.otp_lockout_until > timezone.now %}
+                        <span class="text-rose-500 font-bold">مقيد حتى {{ user_to_moderate.otp_lockout_until|date:"H:i" }}</span>
+                        {% else %}
+                        <span class="text-emerald-500 font-bold">غير مقيد</span>
+                        {% endif %}
+                    </div>
+                </div>
+                <form method="post">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="reset_otp">
+                    <button type="submit" class="btn btn-outline w-full text-xs py-3 hover:border-cyan hover:text-cyan transition-all">
+                        <i class="fas fa-undo ml-2"></i> إعادة ضبط قيود OTP
+                    </button>
+                </form>
+            </div>
+        </div>
+
         <!-- Danger Actions -->
         <div class="management-card p-6 border-danger/20 bg-danger/[0.02]">
             <h3 class="text-danger font-bold text-sm mb-4"><i class="fas fa-exclamation-triangle ml-2"></i> إجراءات سريعة خطيرة</h3>

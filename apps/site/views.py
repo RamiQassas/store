@@ -96,9 +96,13 @@ def v3_login_view(request):
             if not user.is_account_active:
                 messages.error(request, f"الحساب معطل. السبب: {user.suspension_reason or 'غير محدد'}")
                 return render(request, "site/v3/v3_login.html", {"form": form})
-            otp = v3_generate_otp(user, OTPToken.Purpose.LOGIN)
+            
+            # Purpose depends on verification status
+            purpose = OTPToken.Purpose.LOGIN if user.email_verified else OTPToken.Purpose.REGISTRATION
+            
+            otp = v3_generate_otp(user, purpose)
             if v3_send_otp_email(user, otp):
-                request.session["v3_auth_uid"], request.session["v3_auth_purpose"] = str(user.id), OTPToken.Purpose.LOGIN
+                request.session["v3_auth_uid"], request.session["v3_auth_purpose"] = str(user.id), purpose
                 return redirect("site_verify_otp")
             messages.error(request, "فشل إرسال رمز التحقق.")
         else: messages.error(request, "بيانات الدخول غير صحيحة.")
@@ -132,32 +136,38 @@ def v3_verify_otp_view(request):
     
     # Check if locked out
     if user.otp_lockout_until and user.otp_lockout_until > timezone.now():
-        messages.error(request, f"تم تقييد محاولاتك مؤقتاً. يرجى الانتظار حتى {user.otp_lockout_until.strftime('%H:%M')}")
+        wait_minutes = int((user.otp_lockout_until - timezone.now()).total_seconds() / 60) + 1
+        messages.error(request, f"تم تقييد محاولاتك بسبب كثرة الأخطاء. يرجى الانتظار لمدة {wait_minutes} دقيقة.")
         return render(request, "site/v3/v3_otp_verify.html", {"user_email": user.email})
 
     if request.method == "POST":
         action = request.POST.get("action")
+        
+        # 1. Handling RESEND action
         if action == "resend":
-            # Exponential backoff for resend
             # Cooldown = base_cooldown * (2 ** resend_count), max 10 mins (600s)
             cooldown = min(settings.otp_base_cooldown * (2 ** user.otp_resend_count), 600)
             
-            # Check last OTP creation time
+            # Check time since last OTP creation for THIS purpose
             last_otp = OTPToken.objects.filter(user=user, purpose=purpose).order_by("-created_at").first()
-            if last_otp and (timezone.now() - last_otp.created_at).total_seconds() < cooldown:
-                wait_time = int(cooldown - (timezone.now() - last_otp.created_at).total_seconds())
-                messages.error(request, f"يرجى الانتظار {wait_time} ثانية قبل طلب رمز جديد.")
-                return render(request, "site/v3/v3_otp_verify.html", {"user_email": user.email})
+            if last_otp:
+                seconds_passed = (timezone.now() - last_otp.created_at).total_seconds()
+                if seconds_passed < cooldown:
+                    wait_time = int(cooldown - seconds_passed)
+                    messages.error(request, f"يرجى الانتظار {wait_time} ثانية قبل طلب رمز جديد.")
+                    return render(request, "site/v3/v3_otp_verify.html", {"user_email": user.email})
 
+            # Generate and Send
             otp = v3_generate_otp(user, purpose)
             if v3_send_otp_email(user, otp):
                 user.otp_resend_count += 1
                 user.save(update_fields=["otp_resend_count", "updated_at"])
-                messages.success(request, "تم إعادة إرسال رمز التحقق.")
+                messages.success(request, "تم إعادة إرسال رمز التحقق بنجاح.")
             else:
-                messages.error(request, "فشل إعادة إرسال الرمز.")
+                messages.error(request, "فشل إرسال البريد الإلكتروني. يرجى المحاولة لاحقاً.")
             return render(request, "site/v3/v3_otp_verify.html", {"user_email": user.email})
 
+        # 2. Handling VERIFY action
         code = request.POST.get("code")
         if v3_verify_otp_logic(user, code, purpose):
             if purpose == OTPToken.Purpose.REGISTRATION:
@@ -173,16 +183,16 @@ def v3_verify_otp_view(request):
             del request.session["v3_auth_uid"]; del request.session["v3_auth_purpose"]
             return redirect("control_dashboard" if user.is_staff else "dashboard")
         
-        # Failed attempt logic
+        # 3. Failed Attempt Logic
         user.otp_failed_attempts += 1
         if user.otp_failed_attempts >= settings.otp_max_attempts:
             # Lockout for 15 minutes
             user.otp_lockout_until = timezone.now() + timedelta(minutes=15)
-            user.otp_failed_attempts = 0 # reset attempts after locking
-            messages.error(request, "تجاوزت الحد الأقصى للمحاولات. تم حظر المحاولات لمدة 15 دقيقة.")
+            user.otp_failed_attempts = 0 # reset count after locking to start over after lockout
+            messages.error(request, "تجاوزت الحد الأقصى للمحاولات الخاطئة. تم تقييدك لمدة 15 دقيقة.")
         else:
             remaining = settings.otp_max_attempts - user.otp_failed_attempts
-            messages.error(request, f"رمز التحقق غير صحيح. تبقى لك {remaining} محاولات.")
+            messages.error(request, f"رمز التحقق غير صحيح. متبقي لك {remaining} محاولات.")
         
         user.save(update_fields=["otp_failed_attempts", "otp_lockout_until", "updated_at"])
         
@@ -412,8 +422,24 @@ def control_users_list(request): return render(request, "site/control_users_list
 
 @admin_required
 def control_user_moderate(request, public_uuid):
-    user = get_object_or_404(User, public_uuid=public_uuid); form = ModerateUserForm(request.POST or None, instance=user)
-    if request.method == "POST" and form.is_valid(): form.save(); return redirect("control_users_list")
+    user = get_object_or_404(User, public_uuid=public_uuid)
+    form = ModerateUserForm(request.POST or None, instance=user)
+    
+    if request.method == "POST":
+        action = request.POST.get("action")
+        if action == "reset_otp":
+            user.otp_failed_attempts = 0
+            user.otp_lockout_until = None
+            user.otp_resend_count = 0
+            user.save(update_fields=["otp_failed_attempts", "otp_lockout_until", "otp_resend_count", "updated_at"])
+            messages.success(request, f"تم إعادة ضبط قيود الرمز (OTP) للمستخدم {user.email}")
+            return redirect("control_user_moderate", public_uuid=public_uuid)
+            
+        if form.is_valid():
+            form.save()
+            messages.success(request, "تم تحديث بيانات المستخدم بنجاح.")
+            return redirect("control_users_list")
+            
     return render(request, "site/control_user_moderate.html", {"form": form, "user_to_moderate": user})
 
 @admin_required
