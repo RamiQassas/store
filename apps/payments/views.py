@@ -133,7 +133,7 @@ class DepositRequestViewSet(viewsets.ModelViewSet):
                 user=deposit.user,
                 title="تم رفض طلب الإيداع",
                 body=f"نعتذر، تم رفض طلب الإيداع رقم {deposit.id}. السبب: {deposit.admin_note}",
-                action_url="/dashboard/tickets/",
+                action_url="/dashboard/",
                 category='financial',
                 priority="normal"
             )

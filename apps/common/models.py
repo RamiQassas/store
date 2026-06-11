@@ -127,3 +127,17 @@ class SocialMediaLink(TimeStampedModel):
 
     def __str__(self):
         return self.name
+
+class SiteAnnouncement(TimeStampedModel):
+    text = models.TextField(verbose_name="نص الملاحظة")
+    link = models.URLField(blank=True, null=True, verbose_name="رابط (اختياري)")
+    is_active = models.BooleanField(default=True, verbose_name="نشط")
+    background_color = models.CharField(max_length=20, default="#06b6d4", verbose_name="لون الخلفية")
+    text_color = models.CharField(max_length=20, default="#ffffff", verbose_name="لون النص")
+
+    class Meta:
+        verbose_name = "ملاحظة شريط الموقع"
+        verbose_name_plural = "ملاحظات شريط الموقع"
+
+    def __str__(self):
+        return self.text[:50]

@@ -17,7 +17,7 @@
   - `/catalog/` الكتالوج
   - `/catalog/<slug>/` صفحة المنتج
   - `/auth/login/` و `/auth/register/`
-  - `/dashboard/` و `/dashboard/deposits/` و `/dashboard/tickets/`
+  - `/dashboard/` و `/dashboard/deposits/`
   - `/control/` لوحة الإدارة الداخلية
 
 ## التشغيل المحلي
@@ -49,9 +49,8 @@ py manage.py runserver
 - `POST /api/deposits/`
 - `POST /api/deposits/{id}/approve/` للموظفين
 - `POST /api/orders/`
-- `POST /api/orders/{id}/set_status/` للموظفين
-- `GET /api/tickets/`
-- `POST /api/tickets/{id}/reply/`
+- POST /api/orders/{id}/set_status/ للموظفين
+
 
 ## مثال إنشاء طلب
 

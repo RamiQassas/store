@@ -25,10 +25,10 @@ class Command(BaseCommand):
                 ]
             },
             "Support Agent": {
-                "description": "Handle customer support tickets and chat.",
+                "description": "Handle customer support chats and queries.",
                 "perms": [
-                    ("support", "ticket", ["view", "add", "change"]),
-                    ("support", "ticketmessage", ["view", "add"]),
+                    ("support", "chatroom", ["view", "add", "change"]),
+                    ("support", "chatmessage", ["view", "add"]),
                     ("accounts", "user", ["view"]),
                 ]
             },

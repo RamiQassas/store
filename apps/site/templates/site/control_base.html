@@ -187,6 +187,12 @@
             </a>
 
             <div class="admin-nav-group"><span>النظام والتقارير</span></div>
+            <a href="{% url 'control_send_notification' %}" class="admin-nav-link {% if 'notifications/send' in request.path %}active{% endif %}">
+                <i class="fas fa-paper-plane"></i> إرسال إشعارات
+            </a>
+            <a href="{% url 'control_announcements' %}" class="admin-nav-link {% if 'announcements' in request.path %}active{% endif %}">
+                <i class="fas fa-bullhorn"></i> شريط الموقع
+            </a>
             <a href="{% url 'currencies_list' %}" class="admin-nav-link {% if 'currenc' in request.path %}active{% endif %}">
                 <i class="fas fa-coins"></i> العملات
             </a>
@@ -196,8 +202,11 @@
             <a href="{% url 'control_social_media' %}" class="admin-nav-link {% if 'social-media' in request.path %}active{% endif %}">
                 <i class="fas fa-share-nodes"></i> وسائل التواصل
             </a>
-            <a href="{% url 'chat_list' %}" class="admin-nav-link {% if 'chat' in request.path %}active{% endif %}">
+            <a href="{% url 'chat_list' %}" class="admin-nav-link {% if 'chat' in request.path and 'open' not in request.path %}active{% endif %}">
                 <i class="fas fa-comments"></i> الدعم المباشر
+            </a>
+            <a href="{% url 'control_support_chat_open' %}" class="admin-nav-link {% if 'chat-open' in request.path %}active{% endif %}">
+                <i class="fas fa-comment-medical"></i> فتح تذكرة لعميل
             </a>
             <a href="{% url 'control_quick_replies' %}" class="admin-nav-link {% if 'quick-replies' in request.path %}active{% endif %}">
                 <i class="fas fa-reply-all"></i> الردود الجاهزة

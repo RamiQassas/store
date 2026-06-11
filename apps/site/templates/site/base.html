@@ -144,6 +144,17 @@
   {% block extra_head %}{% endblock %}
 </head>
 <body>
+  {% if active_announcement %}
+  <div class="announcement-bar" style="background: {{ active_announcement.background_color }}; color: {{ active_announcement.text_color }}; padding: 10px; text-align: center; font-size: 14px; position: sticky; top: 0; z-index: 9999; font-weight: bold; line-height: 1.5;">
+    <div class="container mx-auto px-4 flex items-center justify-center gap-2">
+      <i class="fas fa-bullhorn"></i>
+      <span>{{ active_announcement.text }}</span>
+      {% if active_announcement.link %}
+      <a href="{{ active_announcement.link }}" class="underline ml-2 hover:opacity-80">تعرف على المزيد</a>
+      {% endif %}
+    </div>
+  </div>
+  {% endif %}
   <!-- Mobile Header -->
   <div class="mobile-header">
       <button onclick="toggleDrawer()" class="text-slate-400 text-xl"><i class="fas fa-bars"></i></button>

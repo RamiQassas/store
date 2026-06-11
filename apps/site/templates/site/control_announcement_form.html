@@ -1,0 +1,68 @@
+{% extends "site/control_base.html" %}
+
+{% block control_content %}
+<div class="page-head">
+    <span class="eyebrow">إدارة النظام / شريط الموقع</span>
+    <h1>{% if form.instance.pk %}تعديل{% else %}إضافة{% endif %} ملاحظة</h1>
+</div>
+
+<div class="max-w-2xl">
+    <div class="management-card">
+        <div class="management-header">
+            <h3 class="font-bold">بيانات الملاحظة</h3>
+        </div>
+        <div class="p-8">
+            <form method="post" class="stack gap-6">
+                {% csrf_token %}
+                
+                <div>
+                    <label class="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2">نص الملاحظة</label>
+                    {{ form.text }}
+                </div>
+
+                <div>
+                    <label class="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2">الرابط (اختياري)</label>
+                    {{ form.link }}
+                </div>
+
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2">لون الخلفية</label>
+                        {{ form.background_color }}
+                    </div>
+                    <div>
+                        <label class="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2">لون النص</label>
+                        {{ form.text_color }}
+                    </div>
+                </div>
+
+                <div class="flex items-center gap-2 p-4 bg-white/[0.02] border border-white/5 rounded-2xl">
+                    {{ form.is_active }}
+                    <label for="{{ form.is_active.id_for_label }}" class="text-sm font-bold text-slate-400">تفعيل هذه الملاحظة الآن (سيتم إلغاء تفعيل أي ملاحظة أخرى)</label>
+                </div>
+
+                <div class="pt-4 flex gap-3">
+                    <button type="submit" class="btn btn-primary px-8">حفظ التغييرات</button>
+                    <a href="{% url 'control_announcements' %}" class="btn btn-outline">إلغاء</a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<style>
+    .builder-input {
+        width: 100%;
+        background: rgba(255, 255, 255, 0.03);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 12px;
+        padding: 0.75rem 1rem;
+        color: #fff;
+        font-size: 0.875rem;
+    }
+    input[type="color"].builder-input {
+        height: 45px;
+        padding: 5px;
+    }
+</style>
+{% endblock %}
