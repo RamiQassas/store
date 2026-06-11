@@ -46,11 +46,31 @@ def v3_generate_otp(user, purpose):
     return OTPToken.objects.create(user=user, code=code, purpose=purpose, expires_at=expires_at)
 
 def v3_send_otp_email(user, otp_token):
-    subject = "رمز التحقق | Raqamiyat"
+    subject = f"{otp_token.code} هو رمز التحقق الخاص بك | Raqamiyat"
     purpose_text = "لتفعيل حسابك" if otp_token.purpose == OTPToken.Purpose.REGISTRATION else \
                    "لتسجيل الدخول" if otp_token.purpose == OTPToken.Purpose.LOGIN else \
                    "لإعادة تعيين كلمة المرور"
-    html_content = f"<div dir='rtl'>رمز التحقق الخاص بك {purpose_text} هو: <b>{otp_token.code}</b></div>"
+    
+    html_content = f"""
+    <div dir="rtl" style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 500px; margin: 0 auto; padding: 20px; color: #1e293b; background-color: #ffffff; border-radius: 16px; border: 1px solid #e2e8f0;">
+        <div style="text-align: center; margin-bottom: 30px;">
+            <h2 style="color: #06b6d4; margin: 0; font-size: 24px; font-weight: 900;">رقميات | RAQAMIYAT</h2>
+        </div>
+        
+        <div style="background-color: #f8fafc; padding: 30px; border-radius: 12px; text-align: center;">
+            <p style="font-size: 16px; margin-bottom: 10px; color: #64748b;">رمز التحقق الخاص بك {purpose_text}:</p>
+            <h1 style="font-size: 42px; font-weight: 900; color: #0f172a; margin: 0; letter-spacing: 10px;">{otp_token.code}</h1>
+            <p style="font-size: 12px; margin-top: 20px; color: #94a3b8;">هذا الرمز صالح لمدة 10 دقائق فقط. لا تشارك هذا الرمز مع أي شخص.</p>
+        </div>
+        
+        <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #f1f5f9; text-align: center;">
+            <p style="font-size: 12px; color: #94a3b8; line-height: 1.6;">
+                إذا لم تطلب هذا الرمز، يمكنك تجاهل هذا البريد الإلكتروني.<br>
+                © 2026 رقميات لخدمات الوساطة الرقمية.
+            </p>
+        </div>
+    </div>
+    """
     return send_brevo_email(to_email=user.email, to_name=user.get_full_name() or user.email, subject=subject, html_content=html_content)
 
 def v3_verify_otp_logic(user, code, purpose):
@@ -108,8 +128,19 @@ def v3_verify_otp_view(request):
     uid, purpose = request.session.get("v3_auth_uid"), request.session.get("v3_auth_purpose")
     if not uid or not purpose: return redirect("site_login")
     user = get_object_or_404(User, id=uid)
+    
     if request.method == "POST":
-        if v3_verify_otp_logic(user, request.POST.get("otp_code"), purpose):
+        action = request.POST.get("action")
+        if action == "resend":
+            otp = v3_generate_otp(user, purpose)
+            if v3_send_otp_email(user, otp):
+                messages.success(request, "تم إعادة إرسال رمز التحقق.")
+            else:
+                messages.error(request, "فشل إعادة إرسال الرمز.")
+            return render(request, "site/v3/v3_otp_verify.html", {"user_email": user.email})
+
+        code = request.POST.get("code")
+        if v3_verify_otp_logic(user, code, purpose):
             if purpose == OTPToken.Purpose.REGISTRATION:
                 user.is_email_verified = True; user.save(update_fields=["is_email_verified", "updated_at"])
             login(request, user)
