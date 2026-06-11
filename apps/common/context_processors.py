@@ -9,7 +9,8 @@ def webpush_settings(request):
     }
 
 def common_context(request):
-    from apps.common.models import Currency, KYCRequest, SiteAnnouncement
+    from apps.common.models import Currency, SiteAnnouncement
+    from apps.accounts.models import KYCRequest
     return {
         "ALL_CURRENCIES": Currency.objects.filter(is_active=True).order_by("display_order"),
         "PENDING_KYC_COUNT": KYCRequest.objects.filter(status=KYCRequest.Status.PENDING).count() if request.user.is_staff else 0,
