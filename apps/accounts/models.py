@@ -62,6 +62,11 @@ class User(AbstractUser):
     last_session_key = models.CharField(max_length=40, null=True, blank=True)
     two_factor_enabled = models.BooleanField(default=False)
 
+    # OTP Security
+    otp_failed_attempts = models.IntegerField(default=0)
+    otp_lockout_until = models.DateTimeField(null=True, blank=True)
+    otp_resend_count = models.IntegerField(default=0)
+
     # KYC & Limits
     is_kyc_verified = models.BooleanField(default=False, verbose_name="موثق الهوية")
     has_custom_limits = models.BooleanField(default=False, verbose_name="له حدود مخصصة")
@@ -269,6 +274,10 @@ class KYCSettings(TimeStampedModel):
     restricted_countries = models.JSONField(default=list, blank=True, verbose_name="الدول المحظورة (قائمة رموز ISO)")
     block_by_nationality = models.BooleanField(default=True, verbose_name="حظر حسب الجنسية")
     block_by_issuing_country = models.BooleanField(default=True, verbose_name="حظر حسب بلد إصدار الوثيقة")
+
+    # OTP Global Settings
+    otp_max_attempts = models.IntegerField(default=5, verbose_name="الحد الأقصى لمحاولات الرمز الخاطئ")
+    otp_base_cooldown = models.IntegerField(default=60, verbose_name="المدة الأساسية لانتظار الرمز (بالثواني)")
 
     class Meta:
         verbose_name = "إعدادات التوثيق والحدود"

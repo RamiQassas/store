@@ -237,13 +237,16 @@ class KYCSettingsForm(forms.ModelForm):
         fields = [
             "unverified_daily_deposit_limit", "unverified_daily_withdrawal_limit",
             "verified_daily_deposit_limit", "verified_daily_withdrawal_limit",
-            "block_by_nationality", "block_by_issuing_country"
+            "block_by_nationality", "block_by_issuing_country",
+            "otp_max_attempts", "otp_base_cooldown"
         ]
         widgets = {
             "unverified_daily_deposit_limit": forms.NumberInput(attrs={"class": "builder-input"}),
             "unverified_daily_withdrawal_limit": forms.NumberInput(attrs={"class": "builder-input"}),
             "verified_daily_deposit_limit": forms.NumberInput(attrs={"class": "builder-input"}),
             "verified_daily_withdrawal_limit": forms.NumberInput(attrs={"class": "builder-input"}),
+            "otp_max_attempts": forms.NumberInput(attrs={"class": "builder-input"}),
+            "otp_base_cooldown": forms.NumberInput(attrs={"class": "builder-input"}),
         }
 
     def __init__(self, *args, **kwargs):

@@ -258,11 +258,11 @@ VAPID_PUBLIC_KEY = env("VAPID_PUBLIC_KEY")
 VAPID_PRIVATE_KEY = env("VAPID_PRIVATE_KEY")
 VAPID_ADMIN_EMAIL = env("VAPID_ADMIN_EMAIL", DEFAULT_FROM_EMAIL)
 
-CHANNEL_LAYERS = {
-    "default": {
-        "BACKEND": "channels_redis.core.RedisChannelLayer",
-        "CONFIG": {
-            "hosts": [REDIS_URL],
-        },
+# Celery Beat Schedule
+CELERY_BEAT_SCHEDULE = {
+    "cleanup_unverified_users_every_hour": {
+        "task": "apps.accounts.tasks.cleanup_unverified_users_task",
+        "schedule": 3600.0,  # Every hour
     },
 }
+
