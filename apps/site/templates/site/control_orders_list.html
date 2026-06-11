@@ -64,8 +64,12 @@
                         {% if order.formatted_metadata %}
                         <div class="mt-2 space-y-1">
                             {% for meta in order.formatted_metadata %}
-                            <div class="text-[9px] text-slate-400 max-w-[150px] truncate" title="{{ meta.label }}: {{ meta.value }}">
-                                <span class="font-bold text-slate-500">{{ meta.label }}:</span> {{ meta.value }}
+                            <div class="text-[9px] text-slate-400 flex items-center gap-2 group/meta" title="{{ meta.label }}: {{ meta.value }}">
+                                <span class="font-bold text-slate-500 shrink-0">{{ meta.label }}:</span> 
+                                <span class="truncate">{{ meta.value }}</span>
+                                <button onclick="copyToClipboard(\'{{ meta.value|escapejs }}\', this)" class="opacity-0 group-hover/meta:opacity-100 text-cyan hover:text-white transition-all">
+                                    <i class="fas fa-copy"></i>
+                                </button>
                             </div>
                             {% endfor %}
                         </div>
@@ -108,6 +112,17 @@
 </div>
 
 <script>
+function copyToClipboard(text, btn) {
+    navigator.clipboard.writeText(text).then(() => {
+        const icon = btn.querySelector('i');
+        const originalClass = icon.className;
+        icon.className = 'fas fa-check text-emerald-500';
+        setTimeout(() => {
+            icon.className = originalClass;
+        }, 2000);
+    });
+}
+
 // Search logic
 document.querySelector('input[name="q"]').addEventListener('keypress', function (e) {
     if (e.key === 'Enter') {

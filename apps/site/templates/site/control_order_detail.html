@@ -99,14 +99,22 @@
                 <h3 class="font-bold flex items-center gap-2">
                     <i class="fas fa-user-edit text-cyan"></i> البيانات المدخلة من العميل
                 </h3>
+                {% if mapped_metadata %}
+                <button onclick="copyAllMeta()" class="btn btn-sm btn-outline"><i class="fas fa-copy ml-1"></i> نسخ الكل</button>
+                {% endif %}
             </div>
             <div class="p-6">
                 {% if mapped_metadata %}
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4" id="metadata-container">
                     {% for item in mapped_metadata %}
-                    <div class="info-item">
-                        <span class="info-label">{{ item.label }}</span>
-                        <span class="info-value">{{ item.value|default:"---" }}</span>
+                    <div class="info-item p-4 bg-white/[0.02] border border-white/5 rounded-2xl flex justify-between items-center group/meta">
+                        <div>
+                            <span class="info-label block text-[10px] uppercase tracking-widest text-slate-500 mb-1">{{ item.label }}</span>
+                            <span class="info-value text-sm font-bold text-white meta-value">{{ item.value|default:"---" }}</span>
+                        </div>
+                        <button onclick="copyToClipboard('{{ item.value|escapejs }}', this)" class="text-slate-500 hover:text-cyan transition opacity-0 group-hover/meta:opacity-100">
+                            <i class="fas fa-copy"></i>
+                        </button>
                     </div>
                     {% endfor %}
                 </div>
@@ -265,6 +273,27 @@
 </div>
 
 <script>
+function copyToClipboard(text, btn) {
+    navigator.clipboard.writeText(text).then(() => {
+        const icon = btn.querySelector('i');
+        const originalClass = icon.className;
+        icon.className = 'fas fa-check text-emerald-500';
+        setTimeout(() => {
+            icon.className = originalClass;
+        }, 2000);
+    });
+}
+
+function copyAllMeta() {
+    const values = Array.from(document.querySelectorAll('#metadata-container .meta-value'))
+        .map(el => el.innerText.trim())
+        .join('\n');
+    
+    navigator.clipboard.writeText(values).then(() => {
+        alert('تم نسخ جميع البيانات بنجاح');
+    });
+}
+
 document.addEventListener('DOMContentLoaded', function() {
     const priceInput = document.querySelector('input[name="total_amount"]');
     if (priceInput) {

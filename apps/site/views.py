@@ -181,10 +181,32 @@ def v3_logout_view(request):
 @login_required
 def dashboard(request):
     wallet = get_or_create_wallet(request.user)
-    recent_orders = Order.objects.filter(customer=request.user).order_by('-created_at')[:5]
+    
+    # Fetch needed data for v3_dashboard.html
+    digital_deliveries = Order.objects.filter(
+        customer=request.user,
+        status=Order.Status.COMPLETED,
+        is_delivery_read=False
+    ).exclude(fulfillment_data={})
+    
+    recent_orders = Order.objects.filter(customer=request.user).order_by(\'-created_at\')[:5]
+    
+    # Get recent deposits
+    recent_deposits = DepositRequest.objects.filter(user=request.user).order_by(\'-created_at\')[:5]
+    
+    # Get KYC request
+    kyc_request = KYCRequest.objects.filter(user=request.user).first()
+    
+    # Get notifications
+    notifications = Notification.objects.filter(user=request.user, is_read=False)[:5]
+
     return render(request, "site/v3/v3_dashboard.html", {
         "wallet": wallet,
-        "recent_orders": recent_orders
+        "digital_deliveries": digital_deliveries,
+        "orders": recent_orders, # Template uses \'orders\'
+        "deposits": recent_deposits, # Template uses \'deposits\'
+        "kyc_request": kyc_request,
+        "notifications": notifications,
     })
 
 @login_required
