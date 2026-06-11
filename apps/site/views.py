@@ -189,10 +189,10 @@ def dashboard(request):
         is_delivery_read=False
     ).exclude(fulfillment_data={})
     
-    recent_orders = Order.objects.filter(customer=request.user).order_by(\'-created_at\')[:5]
+    recent_orders = Order.objects.filter(customer=request.user).order_by('-created_at')[:5]
     
     # Get recent deposits
-    recent_deposits = DepositRequest.objects.filter(user=request.user).order_by(\'-created_at\')[:5]
+    recent_deposits = DepositRequest.objects.filter(user=request.user).order_by('-created_at')[:5]
     
     # Get KYC request
     kyc_request = KYCRequest.objects.filter(user=request.user).first()
@@ -203,8 +203,8 @@ def dashboard(request):
     return render(request, "site/v3/v3_dashboard.html", {
         "wallet": wallet,
         "digital_deliveries": digital_deliveries,
-        "orders": recent_orders, # Template uses \'orders\'
-        "deposits": recent_deposits, # Template uses \'deposits\'
+        "orders": recent_orders, # Template uses 'orders'
+        "deposits": recent_deposits, # Template uses 'deposits'
         "kyc_request": kyc_request,
         "notifications": notifications,
     })

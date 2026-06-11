@@ -67,7 +67,7 @@
                             <div class="text-[9px] text-slate-400 flex items-center gap-2 group/meta" title="{{ meta.label }}: {{ meta.value }}">
                                 <span class="font-bold text-slate-500 shrink-0">{{ meta.label }}:</span> 
                                 <span class="truncate">{{ meta.value }}</span>
-                                <button onclick="copyToClipboard(\'{{ meta.value|escapejs }}\', this)" class="opacity-0 group-hover/meta:opacity-100 text-cyan hover:text-white transition-all">
+                                <button onclick="copyToClipboard('{{ meta.value|escapejs }}', this)" class="opacity-0 group-hover/meta:opacity-100 text-cyan hover:text-white transition-all">
                                     <i class="fas fa-copy"></i>
                                 </button>
                             </div>
