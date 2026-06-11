@@ -25,6 +25,9 @@ def role_required(allowed_roles):
     return decorator
 
 # Specific Role Decorators
+def staff_required(view_func):
+    return role_required([User.Role.SUPER_ADMIN, User.Role.ADMIN, User.Role.SUPPORT, User.Role.FINANCE, User.Role.MODERATOR])(view_func)
+
 def super_admin_required(view_func):
     return role_required([User.Role.SUPER_ADMIN])(view_func)
 

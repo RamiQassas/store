@@ -137,6 +137,9 @@ def v3_reset_password_view(request):
         messages.error(request, "تأكد من تطابق كلمة المرور وطولها.")
     return render(request, "site/v3/v3_reset_password.html", {"user_email": user.email})
 
+def email_verify(request, uidb64, token): return redirect("site_login")
+def resend_verification(request): return redirect("dashboard")
+
 
 # ==========================================
 # --- USER VIEWS (V3) ---
@@ -210,6 +213,16 @@ def notification_settings(request):
         settings_obj.save(); messages.success(request, "تم الحفظ."); return redirect("notification_settings")
     return render(request, "site/notification_settings.html", {"settings": settings_obj})
 
+@login_required
+def v3_change_password_view(request):
+    form = ChangePasswordForm(request.POST or None)
+    if request.method == "POST" and form.is_valid():
+        if request.user.check_password(form.cleaned_data["current_password"]):
+            request.user.set_password(form.cleaned_data["new_password"]); request.user.save(); update_session_auth_hash(request, request.user)
+            messages.success(request, "تم تغيير كلمة المرور بنجاح."); return redirect("dashboard")
+        else: messages.error(request, "كلمة المرور الحالية غير صحيحة.")
+    return render(request, "site/v3/v3_change_password.html", {"form": form})
+
 
 # ==========================================
 # --- CATALOG & AJAX ---
@@ -258,10 +271,7 @@ def ajax_validate_coupon(request):
 # --- ADMINISTRATIVE VIEWS (V4) ---
 # ==========================================
 
-def staff_required(v): return permission_required("accounts.can_view_control")(v)
-def admin_required(v): return permission_required("accounts.can_manage_system")(v)
-def support_required(v): return permission_required("accounts.can_manage_support")(v)
-def finance_required(v): return permission_required("accounts.can_manage_finance")(v)
+from apps.common.decorators import staff_required, admin_required, support_required, finance_required, kyc_required
 
 @staff_required
 def control_dashboard(request):
@@ -275,8 +285,27 @@ def control_deposits(request): return render(request, "site/control_deposits.htm
 @finance_required
 def control_withdrawals(request): return render(request, "site/control_withdrawals.html", {"requests": WithdrawalRequest.objects.select_related('user', 'payment_method').all().order_by('-created_at')})
 
+@finance_required
+def control_deposit_detail(request, pk):
+    deposit = get_object_or_404(DepositRequest.objects.select_related('user', 'currency', 'payment_method'), pk=pk)
+    return render(request, "site/control_deposit_detail.html", {"deposit": deposit})
+
+@finance_required
+def control_withdrawal_detail(request, pk):
+    withdrawal = get_object_or_404(WithdrawalRequest.objects.select_related('user'), pk=pk)
+    return render(request, "site/control_withdrawal_detail.html", {"withdrawal": withdrawal})
+
 @support_required
 def control_kycs_list(request): return render(request, "site/control_kycs_list.html", {"requests": KYCRequest.objects.select_related('user').all().order_by('-created_at')})
+
+@support_required
+def control_kyc_detail(request, pk):
+    kyc = get_object_or_404(KYCRequest.objects.select_related('user'), pk=pk)
+    if request.method == "POST":
+        if request.POST.get("action") == "approve":
+            kyc.status = KYCRequest.Status.VERIFIED; kyc.user.is_kyc_verified = True; kyc.user.save(); kyc.save()
+        return redirect("control_kycs_list")
+    return render(request, "site/control_kyc_detail.html", {"kyc": kyc})
 
 @support_required
 def control_orders_list(request):
@@ -297,12 +326,24 @@ def control_order_detail(request, pk):
     return render(request, "site/control_order_detail.html", {"order": order, "mapped_metadata": order.formatted_metadata})
 
 @admin_required
+def control_users_list(request): return render(request, "site/control_users_list.html", {"users": User.objects.select_related("wallet").order_by("-date_joined"), "tiers": User.Tier.choices, "roles": User.Role.choices})
+
+@admin_required
+def control_user_moderate(request, public_uuid):
+    user = get_object_or_404(User, public_uuid=public_uuid); form = ModerateUserForm(request.POST or None, instance=user)
+    if request.method == "POST" and form.is_valid(): form.save(); return redirect("control_users_list")
+    return render(request, "site/control_user_moderate.html", {"form": form, "user_to_moderate": user})
+
+@admin_required
 def control_social_media(request):
     from apps.site.forms import SocialMediaLinkForm
     if request.method == "POST":
         f = SocialMediaLinkForm(request.POST, request.FILES, instance=SocialMediaLink.objects.filter(pk=request.POST.get("pk")).first())
         if f.is_valid(): f.save(); messages.success(request, "تم الحفظ."); return redirect("control_social_media")
     return render(request, "site/control_social_media.html", {"links": SocialMediaLink.objects.all(), "form": SocialMediaLinkForm()})
+
+@admin_required
+def control_social_media_delete(request, pk): get_object_or_404(SocialMediaLink, pk=pk).delete(); return redirect("control_social_media")
 
 @admin_required
 def currencies_list(request):
@@ -312,6 +353,142 @@ def currencies_list(request):
             if buy and sell: c.buy_rate, c.sell_rate = Decimal(buy), Decimal(sell); c.save()
         return redirect("currencies_list")
     return render(request, "site/currencies_list.html", {"currencies": Currency.objects.all().order_by('display_order')})
+
+@admin_required
+def currency_create(request):
+    form = CurrencyForm(request.POST or None)
+    if request.method == "POST" and form.is_valid(): form.save(); return redirect("currencies_list")
+    return render(request, "site/currency_form.html", {"form": form})
+
+@admin_required
+def currency_edit(request, pk):
+    c = get_object_or_404(Currency, pk=pk); form = CurrencyForm(request.POST or None, instance=c)
+    if request.method == "POST" and form.is_valid(): form.save(); return redirect("currencies_list")
+    return render(request, "site/currency_form.html", {"form": form, "currency": c})
+
+@admin_required
+def control_coupons_list(request): return render(request, "site/control_coupons_list.html", {"coupons": Coupon.objects.all().order_by("-created_at")})
+
+@admin_required
+def control_coupon_create(request):
+    form = CouponForm(request.POST or None)
+    if request.method == "POST" and form.is_valid(): form.save(); return redirect("control_coupons_list")
+    return render(request, "site/control_coupon_form.html", {"form": form})
+
+@admin_required
+def control_coupon_edit(request, pk):
+    c = get_object_or_404(Coupon, pk=pk); form = CouponForm(request.POST or None, instance=c)
+    if request.method == "POST" and form.is_valid(): form.save(); return redirect("control_coupons_list")
+    return render(request, "site/control_coupon_form.html", {"form": form})
+
+@admin_required
+def control_coupon_delete(request, pk): get_object_or_404(Coupon, pk=pk).delete(); return redirect("control_coupons_list")
+
+@admin_required
+def control_reports(request): return render(request, "site/control_reports.html")
+
+@admin_required
+def control_social_media_delete(request, pk): get_object_or_404(SocialMediaLink, pk=pk).delete(); return redirect("control_social_media")
+
+@support_required
+
+def currency_create(request):
+    form = CurrencyForm(request.POST or None)
+    if request.method == "POST" and form.is_valid(): form.save(); return redirect("currencies_list")
+    return render(request, "site/currency_form.html", {"form": form})
+
+@admin_required
+def currency_edit(request, pk):
+    c = get_object_or_404(Currency, pk=pk); form = CurrencyForm(request.POST or None, instance=c)
+    if request.method == "POST" and form.is_valid(): form.save(); return redirect("currencies_list")
+    return render(request, "site/currency_form.html", {"form": form, "currency": c})
+
+@support_required
+def control_products_list(request): return render(request, "site/control_products_list.html", {"products": Product.objects.select_related('category').prefetch_related('variants').all().order_by('sort_order', 'name')})
+
+@support_required
+@transaction.atomic
+def control_product_create(request):
+    form = ProductForm(request.POST or None, request.FILES or None)
+    if request.method == "POST" and form.is_valid():
+        product = form.save()
+        v_json = request.POST.get("variants_json")
+        if v_json:
+            for v in json.loads(v_json):
+                ProductVariant.objects.create(product=product, name=v.get('name'), sku=v.get('sku'), price=Decimal(str(v.get('price', '0'))), wholesale_price=Decimal(str(v.get('wholesale_price', '0'))), vip_price=Decimal(str(v.get('vip_price', '0'))), cost=Decimal(str(v.get('cost', '0'))), sort_order=int(v.get('sort_order', 0)), is_active=v.get('is_active', True))
+        return redirect("control_products_list")
+    return render(request, "site/control_product_builder.html", {"form": form, "variants_json_data": []})
+
+@support_required
+@transaction.atomic
+def control_product_edit(request, pk):
+    product = get_object_or_404(Product, pk=pk); form = ProductForm(request.POST or None, request.FILES or None, instance=product)
+    if request.method == "POST" and form.is_valid():
+        product = form.save()
+        v_json = request.POST.get("variants_json")
+        if v_json:
+            v_data = json.loads(v_json)
+            product.variants.exclude(sku__in=[v.get('sku') for v in v_data if v.get('sku')]).delete()
+            for v in v_data:
+                ProductVariant.objects.update_or_create(product=product, sku=v.get('sku'), defaults={"name": v.get('name'), "price": Decimal(str(v.get('price', '0'))), "wholesale_price": Decimal(str(v.get('wholesale_price', '0'))), "vip_price": Decimal(str(v.get('vip_price', '0'))), "cost": Decimal(str(v.get('cost', '0'))), "sort_order": int(v.get('sort_order', 0)), "is_active": v.get('is_active', True)})
+        return redirect("control_products_list")
+    v_list = [{"name": v.name, "sku": v.sku, "price": str(v.price), "wholesale_price": str(v.wholesale_price), "vip_price": str(v.vip_price), "cost": str(v.cost), "sort_order": v.sort_order, "is_active": v.is_active} for v in product.variants.all().order_by('sort_order')]
+    return render(request, "site/control_product_builder.html", {"form": form, "product": product, "variants_json_data": v_list})
+
+@support_required
+def control_category_create_ajax(request):
+    if request.POST.get('name'):
+        cat = Category.objects.create(name=request.POST.get('name'))
+        return JsonResponse({"id": str(cat.id), "name": cat.name})
+    return JsonResponse({"error": "Name required"}, status=400)
+
+@support_required
+def control_variant_create(request, product_pk): return redirect("control_product_edit", pk=product_pk)
+
+@support_required
+def control_variant_edit(request, pk):
+    v = get_object_or_404(ProductVariant, pk=pk); return redirect("control_product_edit", pk=v.product.id)
+
+@admin_required
+def control_coupons_list(request): return render(request, "site/control_coupons_list.html", {"coupons": Coupon.objects.all().order_by("-created_at")})
+
+@admin_required
+def control_coupon_create(request):
+    form = CouponForm(request.POST or None)
+    if request.method == "POST" and form.is_valid(): form.save(); return redirect("control_coupons_list")
+    return render(request, "site/control_coupon_form.html", {"form": form})
+
+@admin_required
+def control_coupon_edit(request, pk):
+    c = get_object_or_404(Coupon, pk=pk); form = CouponForm(request.POST or None, instance=c)
+    if request.method == "POST" and form.is_valid(): form.save(); return redirect("control_coupons_list")
+    return render(request, "site/control_coupon_form.html", {"form": form})
+
+@admin_required
+def control_coupon_delete(request, pk): get_object_or_404(Coupon, pk=pk).delete(); return redirect("control_coupons_list")
+
+@finance_required
+def control_wallets_list(request):
+    q = request.GET.get('q', '')
+    wallets = Wallet.objects.select_related('user', 'currency').all().order_by('-updated_at')
+    if q: wallets = wallets.filter(Q(user__email__icontains=q) | Q(user__first_name__icontains=q))
+    return render(request, "site/control_wallets_list.html", {"wallets": wallets, "query": q})
+
+@finance_required
+def control_debts(request):
+    q = request.GET.get('q', '')
+    users = User.objects.select_related('wallet').filter(Q(email__icontains=q) | Q(phone__icontains=q)) if q else User.objects.select_related('wallet').all()
+    if request.method == "POST":
+        target = get_object_or_404(User, id=request.POST.get("user_id"))
+        amt = Decimal(request.POST.get("amount", "0"))
+        if request.POST.get("action") == "add_debt":
+            from apps.wallets.services import add_debt
+            add_debt(target.wallet.id, amt, f"admin_debt_{timezone.now().timestamp()}", request.POST.get("reason", ""), request.user)
+        return redirect(f"{request.path}?q={q}")
+    return render(request, "site/control_debts.html", {"users": users, "query": q})
+
+@admin_required
+def control_reports(request): return render(request, "site/control_reports.html")
 
 @support_required
 def control_send_notification(request):
@@ -362,6 +539,9 @@ def control_announcement_edit(request, pk):
         if form.cleaned_data.get("is_active"): SiteAnnouncement.objects.filter(is_active=True).exclude(pk=pk).update(is_active=False)
         form.save(); return redirect("control_announcements")
     return render(request, "site/control_announcement_form.html", {"form": form})
+
+@admin_required
+def control_announcement_delete(request, pk): get_object_or_404(SiteAnnouncement, pk=pk).delete(); return redirect("control_announcements")
 
 @admin_required
 def control_support_settings(request):
