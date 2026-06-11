@@ -46,3 +46,4 @@ constantly==23.10.4
 hyperlink==21.0.0
 incremental==24.11.0
 txaio==25.9.2
+pyotp==2.9.0
