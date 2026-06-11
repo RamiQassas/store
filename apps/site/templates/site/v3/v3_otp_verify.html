@@ -25,18 +25,28 @@
         <form method="post" id="resend-form">
             {% csrf_token %}
             <input type="hidden" name="action" value="resend">
-            <button type="submit" id="resend-btn" class="text-cyan text-xs font-bold hover:underline disabled:opacity-50 disabled:no-underline disabled:cursor-not-allowed">إعادة إرسال الرمز</button>
+            <button type="submit" id="resend-btn" class="text-cyan text-xs font-bold hover:underline disabled:opacity-50 disabled:no-underline disabled:cursor-not-allowed" 
+                {% if is_locked or remaining_cooldown > 0 %}disabled{% endif %}>
+                إعادة إرسال الرمز
+            </button>
         </form>
-        <p id="cooldown-timer" class="text-[10px] text-slate-600 mt-2 hidden">يمكنك إعادة الإرسال خلال <span id="timer-count">60</span> ثانية</p>
+        <p id="cooldown-timer" class="text-[10px] text-slate-600 mt-2 {% if remaining_cooldown == 0 %}hidden{% endif %}">
+            يمكنك إعادة الإرسال خلال <span id="timer-count">{{ remaining_cooldown }}</span> ثانية
+        </p>
+        {% if is_locked %}
+        <p class="text-[10px] text-rose-500 mt-2 font-bold">المحاولات مقيدة حالياً. يرجى الانتظار.</p>
+        {% endif %}
     </div>
 
     <script>
         const resendBtn = document.getElementById('resend-btn');
         const timerContainer = document.getElementById('cooldown-timer');
         const timerCount = document.getElementById('timer-count');
-        let timeLeft = 60;
+        let timeLeft = parseInt("{{ remaining_cooldown|default:0 }}");
 
         function startCooldown() {
+            if (timeLeft <= 0) return;
+            
             resendBtn.disabled = true;
             timerContainer.classList.remove('hidden');
             
@@ -46,9 +56,10 @@
                 
                 if (timeLeft <= 0) {
                     clearInterval(interval);
+                    {% if not is_locked %}
                     resendBtn.disabled = false;
+                    {% endif %}
                     timerContainer.classList.add('hidden');
-                    timeLeft = 60;
                 }
             }, 1000);
         }

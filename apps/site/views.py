@@ -134,38 +134,49 @@ def v3_verify_otp_view(request):
     user = get_object_or_404(User, id=uid)
     settings = KYCSettings.get_settings()
     
-    # Check if locked out
+    # Calculate current cooldown requirement
+    # Cooldown = base_cooldown * (2 ** resend_count), max 10 mins (600s)
+    current_cooldown_limit = min(settings.otp_base_cooldown * (2 ** user.otp_resend_count), 600)
+    
+    # Calculate time remaining for UI
+    last_otp = OTPToken.objects.filter(user=user, purpose=purpose).order_by("-created_at").first()
+    remaining_cooldown = 0
+    if last_otp:
+        seconds_passed = (timezone.now() - last_otp.created_at).total_seconds()
+        if seconds_passed < current_cooldown_limit:
+            remaining_cooldown = int(current_cooldown_limit - seconds_passed)
+
+    # Check if locked out (failed attempts)
+    is_locked = False
     if user.otp_lockout_until and user.otp_lockout_until > timezone.now():
+        is_locked = True
         wait_minutes = int((user.otp_lockout_until - timezone.now()).total_seconds() / 60) + 1
         messages.error(request, f"تم تقييد محاولاتك بسبب كثرة الأخطاء. يرجى الانتظار لمدة {wait_minutes} دقيقة.")
-        return render(request, "site/v3/v3_otp_verify.html", {"user_email": user.email})
 
     if request.method == "POST":
+        if is_locked:
+            return render(request, "site/v3/v3_otp_verify.html", {"user_email": user.email, "remaining_cooldown": remaining_cooldown, "is_locked": True})
+
         action = request.POST.get("action")
         
         # 1. Handling RESEND action
         if action == "resend":
-            # Cooldown = base_cooldown * (2 ** resend_count), max 10 mins (600s)
-            cooldown = min(settings.otp_base_cooldown * (2 ** user.otp_resend_count), 600)
-            
-            # Check time since last OTP creation for THIS purpose
-            last_otp = OTPToken.objects.filter(user=user, purpose=purpose).order_by("-created_at").first()
-            if last_otp:
-                seconds_passed = (timezone.now() - last_otp.created_at).total_seconds()
-                if seconds_passed < cooldown:
-                    wait_time = int(cooldown - seconds_passed)
-                    messages.error(request, f"يرجى الانتظار {wait_time} ثانية قبل طلب رمز جديد.")
-                    return render(request, "site/v3/v3_otp_verify.html", {"user_email": user.email})
+            if remaining_cooldown > 0:
+                messages.error(request, f"يرجى الانتظار {remaining_cooldown} ثانية قبل طلب رمز جديد.")
+                return render(request, "site/v3/v3_otp_verify.html", {"user_email": user.email, "remaining_cooldown": remaining_cooldown})
 
             # Generate and Send
             otp = v3_generate_otp(user, purpose)
             if v3_send_otp_email(user, otp):
                 user.otp_resend_count += 1
                 user.save(update_fields=["otp_resend_count", "updated_at"])
+                # Recalculate cooldown for the redirected/re-rendered page
+                new_cooldown = min(settings.otp_base_cooldown * (2 ** user.otp_resend_count), 600)
                 messages.success(request, "تم إعادة إرسال رمز التحقق بنجاح.")
+                return render(request, "site/v3/v3_otp_verify.html", {"user_email": user.email, "remaining_cooldown": new_cooldown})
             else:
                 messages.error(request, "فشل إرسال البريد الإلكتروني. يرجى المحاولة لاحقاً.")
-            return render(request, "site/v3/v3_otp_verify.html", {"user_email": user.email})
+            return render(request, "site/v3/v3_otp_verify.html", {"user_email": user.email, "remaining_cooldown": remaining_cooldown})
 
         # 2. Handling VERIFY action
         code = request.POST.get("code")
@@ -186,17 +197,17 @@ def v3_verify_otp_view(request):
         # 3. Failed Attempt Logic
         user.otp_failed_attempts += 1
         if user.otp_failed_attempts >= settings.otp_max_attempts:
-            # Lockout for 15 minutes
             user.otp_lockout_until = timezone.now() + timedelta(minutes=15)
-            user.otp_failed_attempts = 0 # reset count after locking to start over after lockout
+            user.otp_failed_attempts = 0 
             messages.error(request, "تجاوزت الحد الأقصى للمحاولات الخاطئة. تم تقييدك لمدة 15 دقيقة.")
+            is_locked = True
         else:
             remaining = settings.otp_max_attempts - user.otp_failed_attempts
             messages.error(request, f"رمز التحقق غير صحيح. متبقي لك {remaining} محاولات.")
         
         user.save(update_fields=["otp_failed_attempts", "otp_lockout_until", "updated_at"])
         
-    return render(request, "site/v3/v3_otp_verify.html", {"user_email": user.email})
+    return render(request, "site/v3/v3_otp_verify.html", {"user_email": user.email, "remaining_cooldown": remaining_cooldown, "is_locked": is_locked})
 
 @login_required
 def v3_logout_view(request):
