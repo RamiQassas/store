@@ -47,3 +47,4 @@ hyperlink==21.0.0
 incremental==24.11.0
 txaio==25.9.2
 pyotp==2.9.0
+qrcode[pil]==8.2
