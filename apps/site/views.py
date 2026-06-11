@@ -382,7 +382,7 @@ def control_withdrawals(request):
 @support_required
 def control_kycs_list(request):
     requests = KYCRequest.objects.select_related('user').all().order_by('-created_at')
-    return render(request, "site/control_kyc_list.html", {"requests": requests})
+    return render(request, "site/control_kycs_list.html", {"requests": requests})
 
 @support_required
 def control_kyc_detail(request, pk):
@@ -662,8 +662,8 @@ def set_currency(request):
 def service_worker(request):
     return HttpResponse(open("apps/site/static/site/js/sw.js").read(), content_type="application/javascript")
 
-def terms_of_service(request): return render(request, "site/terms.html")
-def refund_policy(request): return render(request, "site/refund.html")
+def terms_of_service(request): return render(request, "site/terms_of_service.html")
+def refund_policy(request): return render(request, "site/refund_policy.html")
 def contact_page(request): return render(request, "site/contact.html")
 
 

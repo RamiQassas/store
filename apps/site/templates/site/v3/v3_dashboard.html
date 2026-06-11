@@ -1,0 +1,502 @@
+{% extends "site/base.html" %}
+{% load static site_tags %}
+
+{% block title %}لوحتي | Raqamiyat - رقميات{% endblock %}
+
+{% block extra_head %}
+<style>
+    /* Premium Fintech Dashboard Styles */
+    .dashboard-grid {
+        display: grid;
+        grid-template-columns: repeat(12, 1fr);
+        gap: 1.5rem;
+    }
+
+    .dashboard-sidebar {
+        grid-column: span 3;
+    }
+
+    .dashboard-main {
+        grid-column: span 9;
+    }
+
+    /* Wallet Card */
+    .premium-wallet-card {
+        background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+        border: 1px solid rgba(6, 182, 212, 0.2);
+        position: relative;
+        overflow: hidden;
+    }
+
+    .premium-wallet-card::before {
+        content: "";
+        position: absolute;
+        top: -50%;
+        left: -50%;
+        width: 200%;
+        height: 200%;
+        background: radial-gradient(circle, rgba(6, 182, 212, 0.05) 0%, transparent 70%);
+        pointer-events: none;
+    }
+
+    .balance-display {
+        font-size: 2.5rem;
+        font-weight: 900;
+        letter-spacing: -1px;
+        background: linear-gradient(to right, #fff, var(--cyan));
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+    }
+
+    /* Quick Actions */
+    .quick-actions {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 1rem;
+    }
+
+    .action-btn {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 0.75rem;
+        padding: 1.25rem;
+        background: var(--panel);
+        border: 1px solid var(--panel-border);
+        border-radius: var(--radius);
+        transition: all 0.3s ease;
+    }
+
+    .action-btn:hover {
+        border-color: var(--cyan);
+        background: rgba(6, 182, 212, 0.05);
+        transform: translateY(-3px);
+    }
+
+    .action-btn i {
+        font-size: 1.5rem;
+        color: var(--cyan);
+    }
+
+    .action-btn span {
+        font-size: 0.875rem;
+        font-weight: 700;
+        color: var(--text);
+    }
+
+    /* Activity Items */
+    .activity-item {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        padding: 1rem;
+        border-radius: 10px;
+        transition: background 0.2s;
+    }
+
+    .activity-item:hover {
+        background: rgba(255, 255, 255, 0.02);
+    }
+
+    .activity-icon {
+        width: 40px;
+        height: 40px;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+    }
+
+    .activity-icon.order { background: rgba(59, 130, 246, 0.1); color: var(--blue); }
+    .activity-icon.deposit { background: rgba(34, 197, 94, 0.1); color: var(--success); }
+    .activity-icon.ticket { background: rgba(168, 85, 247, 0.1); color: #a855f7; }
+
+    /* Account Status Card */
+    .status-badge {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        display: inline-block;
+        margin-left: 8px;
+    }
+    .status-badge.active { background-color: var(--success); box-shadow: 0 0 10px var(--success); }
+
+    @media (max-width: 1024px) {
+        .dashboard-sidebar, .dashboard-main { grid-column: span 12; }
+        .dashboard-sidebar { order: 2; }
+        .dashboard-main { order: 1; }
+    }
+
+    @media (max-width: 640px) {
+        .quick-actions { grid-template-columns: repeat(2, 1fr); }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-head">
+    <div>
+        <span class="eyebrow">أهلاً بك، {{ user.get_full_name|default:user.email }}</span>
+        <h1>لوحة التحكم</h1>
+        <p class="text-muted">مرحباً بك مجدداً في منصة رقميات. إليك نظرة سريعة على حسابك.</p>
+    </div>
+    <div class="hidden sm:block">
+        <span class="badge primary p-2 px-4">
+            <i class="fas fa-crown text-amber-400 ml-2"></i>
+            {{ user.get_tier_display }}
+        </span>
+    </div>
+</div>
+
+<!-- Digital Deliveries Section (Prominent) -->
+{% if digital_deliveries %}
+<div class="mb-10">
+    <div class="section-head mb-4">
+        <h2 class="text-xl font-black text-cyan flex items-center gap-3">
+            <i class="fas fa-gift"></i> منتجاتك الرقمية المستلمة
+        </h2>
+    </div>
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {% for order in digital_deliveries %}
+        <div class="panel p-6 bg-cyan/5 border-cyan/20 flex flex-col justify-between">
+            <div class="flex gap-4 mb-4">
+                <div class="w-12 h-12 rounded-xl bg-slate-900 flex items-center justify-center text-cyan flex-shrink-0">
+                    <i class="fas fa-key text-xl"></i>
+                </div>
+                <div>
+                    <h4 class="font-bold text-white">{% with order.items.first as item %}{{ item.variant.product.name }}{% endwith %}</h4>
+                    <span class="text-[10px] text-slate-500 font-mono">الطلب #{{ order.number }}</span>
+                </div>
+            </div>
+            
+            <div class="stack gap-2 mb-4">
+                {% for key, val in order.fulfillment_data.items %}
+                <div class="flex justify-between items-center p-2 bg-slate-900/50 rounded-lg border border-white/5">
+                    <span class="text-[10px] text-slate-500 font-black uppercase">{{ key }}</span>
+                    <div class="flex items-center gap-2">
+                        <span class="text-xs font-mono text-cyan">{{ val|truncatechars:20 }}</span>
+                        <button onclick="copyToClipboard('{{ val }}', this)" class="text-[10px] text-slate-400 hover:text-white"><i class="fas fa-copy"></i></button>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+
+            <div class="flex gap-2">
+                <a href="{% url 'dashboard_order_detail' order.id %}" class="btn btn-outline btn-sm flex-grow py-2.5 rounded-xl font-bold">التفاصيل</a>
+                <button onclick="markRead('{{ order.id }}', this)" class="btn btn-primary btn-sm flex-grow py-2.5 rounded-xl font-bold">تم الاستلام</button>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endif %}
+
+{% if not user.email_verified %}
+<div class="panel p-6 border-r-4 border-amber-500 mb-8 flex flex-col sm:row justify-between items-center bg-amber-500/5 gap-4">
+    <div class="flex items-center gap-4">
+        <div class="w-12 h-12 bg-amber-500/10 text-amber-500 rounded-full flex items-center justify-center flex-shrink-0">
+            <i class="fas fa-envelope-open-text text-xl"></i>
+        </div>
+        <div>
+            <h3 class="font-bold text-amber-500">يرجى تفعيل بريدك الإلكتروني</h3>
+            <p class="text-sm text-slate-400">تفعيل حسابك ضروري للتمكن من القيام بعمليات الشراء والإيداع بشكل آمن.</p>
+        </div>
+    </div>
+    <a href="{% url 'resend_verification' %}" class="btn btn-sm btn-primary whitespace-nowrap">إعادة إرسال الرابط</a>
+</div>
+{% endif %}
+
+<div class="dashboard-grid">
+    <!-- Main Content -->
+    <div class="dashboard-main stack gap-6">
+        
+        <!-- Wallet Summary Section -->
+        <div class="panel premium-wallet-card p-8">
+            <div class="flex justify-between items-start mb-6">
+                <div>
+                    <span class="text-sm font-bold text-cyan uppercase tracking-wider">الرصيد المتاح</span>
+                    <div class="balance-display mt-2">{% currency_format wallet.available_balance wallet.currency %}</div>
+                </div>
+                <div class="text-left">
+                    <i class="fas fa-wallet text-4xl text-slate-700 opacity-50"></i>
+                </div>
+            </div>
+            
+            {% if wallet.frozen_balance > 0 or wallet.held_balance > 0 or wallet.pending_balance > 0 or wallet.debt_balance > 0 %}
+            <div class="grid grid-4 gap-4 pt-6 border-t border-white/5">
+                {% if wallet.debt_balance > 0 %}
+                <div>
+                    <span class="text-xs text-rose-400 font-bold block mb-1">الديون المستحقة</span>
+                    <span class="text-sm font-bold text-rose-500">{% currency_format wallet.debt_balance wallet.currency %}</span>
+                </div>
+                {% endif %}
+                {% if wallet.pending_balance > 0 %}
+                <div>
+                    <span class="text-xs text-muted block mb-1">قيد الانتظار</span>
+                    <span class="text-sm font-bold">{% currency_format wallet.pending_balance wallet.currency %}</span>
+                </div>
+                {% endif %}
+                {% if wallet.frozen_balance > 0 %}
+                <div>
+                    <span class="text-xs text-muted block mb-1">مجمد</span>
+                    <span class="text-sm font-bold">{% currency_format wallet.frozen_balance wallet.currency %}</span>
+                </div>
+                {% endif %}
+                {% if wallet.held_balance > 0 %}
+                <div>
+                    <span class="text-xs text-muted block mb-1">محجوز</span>
+                    <span class="text-sm font-bold text-red-400">{% currency_format wallet.held_balance wallet.currency %}</span>
+                </div>
+                {% endif %}
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Quick Actions -->
+        <div class="quick-actions">
+            <a href="{% url 'catalog' %}" class="action-btn">
+                <i class="fas fa-shopping-cart"></i>
+                <span>شراء منتج</span>
+            </a>
+            <a href="{% url 'dashboard_deposits' %}" class="action-btn">
+                <i class="fas fa-plus-circle"></i>
+                <span>إيداع رصيد</span>
+            </a>
+            <a href="{% url 'dashboard_withdrawals' %}" class="action-btn">
+                <i class="fas fa-arrow-alt-circle-down"></i>
+                <span>طلب سحب</span>
+            </a>
+            <a href="{% url 'chat_list' %}" class="action-btn">
+                <i class="fas fa-headset"></i>
+                <span>الدعم المباشر</span>
+            </a>
+        </div>
+
+        <!-- Recent Activity Sections -->
+        <div class="grid grid-2 gap-6">
+            <!-- Recent Orders -->
+            <div class="panel stack">
+                <div class="section-head p-6 pb-0">
+                    <h2 class="text-lg">أحدث الطلبات</h2>
+                    <a href="{% url 'dashboard_orders' %}" class="text-cyan text-sm font-bold">كل الطلبات</a>
+                </div>
+                <div class="p-4 stack">
+                    {% for order in orders %}
+                    <a href="{% url 'dashboard_order_detail' order.id %}" class="activity-item">
+                        <div class="activity-icon order">
+                            <i class="fas fa-box"></i>
+                        </div>
+                        <div class="flex-grow">
+                            <div class="flex justify-between">
+                                <span class="font-bold text-sm">طلب رقم {{ order.number|truncatechars:10 }}</span>
+                                <span class="text-xs text-muted">{{ order.created_at|date:"d M" }}</span>
+                            </div>
+                            <div class="flex justify-between mt-1">
+                                <span class="text-xs text-muted">{{ order.get_status_display }}</span>
+                                <span class="text-xs font-bold">{% currency_format order.total_amount %}</span>
+                            </div>
+                        </div>
+                    </a>
+                    {% empty %}
+                    <div class="p-8 text-center stack gap-3">
+                        <i class="fas fa-box-open text-3xl text-slate-700"></i>
+                        <p class="text-sm text-muted">لا توجد طلبات سابقة</p>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <!-- Recent Deposits -->
+            <div class="panel stack">
+                <div class="section-head p-6 pb-0">
+                    <h2 class="text-lg">آخر الإيداعات</h2>
+                    <a href="{% url 'dashboard_deposits' %}" class="text-cyan text-sm font-bold">سجل العمليات</a>
+                </div>
+                <div class="p-4 stack">
+                    {% for deposit in deposits %}
+                    <div class="activity-item">
+                        <div class="activity-icon deposit">
+                            <i class="fas fa-arrow-up"></i>
+                        </div>
+                        <div class="flex-grow">
+                            <div class="flex justify-between">
+                                <span class="font-bold text-sm">{{ deposit.amount|floatformat:2 }} {{ deposit.currency.code }}</span>
+                                <span class="text-xs text-muted">{{ deposit.created_at|date:"d M" }}</span>
+                            </div>
+                            <div class="flex justify-between mt-1">
+                                <span class="text-xs text-muted">{{ deposit.payment_method.name }}</span>
+                                <span class="badge {% if deposit.status == 'completed' or deposit.status == 'approved' %}success{% elif deposit.status == 'rejected' %}danger{% else %}warning{% endif %} text-[10px]">
+                                    {{ deposit.get_status_display }}
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                    {% empty %}
+                    <div class="p-8 text-center stack gap-3">
+                        <i class="fas fa-receipt text-3xl text-slate-700"></i>
+                        <p class="text-sm text-muted">لا توجد عمليات إيداع</p>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Sidebar Section -->
+    <div class="dashboard-sidebar stack gap-6">
+        <!-- Account Status Card -->
+        <div class="panel p-6">
+            <h2 class="text-lg mb-4">حالة الحساب</h2>
+            <div class="stack gap-4">
+                <div class="flex items-center justify-between p-3 bg-slate-800/30 rounded-lg">
+                    <span class="text-sm text-muted">الحالة</span>
+                    <div class="flex items-center">
+                        <span class="status-badge active"></span>
+                        <span class="text-sm font-bold text-success">{{ user.get_status_display }}</span>
+                    </div>
+                </div>
+
+                {% if not user.is_kyc_verified %}
+                    <div class="p-4 bg-amber-500/5 border border-amber-500/10 rounded-xl">
+                        <div class="flex items-center justify-between mb-2">
+                            <span class="text-xs font-bold text-amber-500">حالة التوثيق</span>
+                            <span class="badge warning text-[8px]">غير موثق</span>
+                        </div>
+                        <p class="text-[10px] text-slate-500 leading-relaxed mb-4">
+                            حسابك يعمل بحدود مالية أساسية. وثق حسابك لرفع حدود الإيداع والسحب اليومية.
+                        </p>
+                        {% if kyc_request %}
+                            <div class="flex flex-col gap-2">
+                                <div class="flex items-center gap-2 text-[10px] text-amber-400 font-bold">
+                                    <i class="fas fa-clock"></i>
+                                    طلب التوثيق {{ kyc_request.get_status_display }}
+                                </div>
+                                {% if kyc_request.status == 'rejected' %}
+                                    <a href="{% url 'site_kyc_request' %}" class="btn btn-sm btn-primary w-full text-[10px] py-2">إعادة تقديم الطلب</a>
+                                {% endif %}
+                            </div>
+                        {% else %}
+                            <a href="{% url 'site_kyc_request' %}" class="btn btn-sm btn-outline w-full text-[10px] py-2">بدء عملية التوثيق</a>
+                        {% endif %}
+                    </div>
+                {% else %}
+                    <div class="p-4 bg-emerald-500/5 border border-emerald-500/10 rounded-xl">
+                        <div class="flex items-center justify-between">
+                            <span class="text-xs font-bold text-emerald-500">حساب موثق</span>
+                            <i class="fas fa-check-circle text-emerald-500"></i>
+                        </div>
+                        <p class="text-[10px] text-slate-500 mt-2">لقد تم التحقق من هويتك بنجاح. تم رفع حدود حسابك.</p>
+                    </div>
+                {% endif %}
+
+                <div class="flex items-center justify-between p-3 bg-slate-800/30 rounded-lg">
+                    <span class="text-sm text-muted">ديون معلقة</span>
+                    <span class="text-sm font-bold {% if wallet.debt_balance > 0 %}text-rose-500{% else %}text-slate-500{% endif %}">{% currency_format wallet.debt_balance wallet.currency %}</span>
+                </div>
+                <div class="flex items-center justify-between p-3 bg-slate-800/30 rounded-lg">
+                    <span class="text-sm text-muted">الفئة</span>
+                    <span class="text-sm font-bold text-amber-400">{{ user.get_tier_display }}</span>
+                </div>
+
+                <!-- Limits Section -->
+                <div class="p-4 bg-slate-800/20 border border-white/5 rounded-xl mt-4">
+                    <div class="flex justify-between items-center mb-3">
+                        <span class="text-xs font-bold text-slate-300">حدود الحساب (USD)</span>
+                        {% if user.has_custom_limits %}
+                            <span class="badge primary text-[8px]">حدود مخصصة</span>
+                        {% else %}
+                            <span class="text-[8px] text-slate-500">حدود افتراضية</span>
+                        {% endif %}
+                    </div>
+                    <div class="stack gap-3">
+                        <div class="flex justify-between text-xs">
+                            <span class="text-slate-500">الإيداع اليومي:</span>
+                            <span class="text-white font-mono">{{ user.daily_deposit_limit|floatformat:2 }}</span>
+                        </div>
+                        <div class="flex justify-between text-xs">
+                            <span class="text-slate-500">المتبقي للإيداع:</span>
+                            <span class="text-emerald-400 font-bold font-mono">{{ user.remaining_deposit_limit|floatformat:2 }}</span>
+                        </div>
+                        <div class="h-px bg-white/5 my-1"></div>
+                        <div class="flex justify-between text-xs">
+                            <span class="text-slate-500">السحب اليومي:</span>
+                            <span class="text-white font-mono">{{ user.daily_withdrawal_limit|floatformat:2 }}</span>
+                        </div>
+                        <div class="flex justify-between text-xs">
+                            <span class="text-slate-500">المتبقي للسحب:</span>
+                            <span class="text-emerald-400 font-bold font-mono">{{ user.remaining_withdrawal_limit|floatformat:2 }}</span>
+                        </div>
+                    </div>
+                    <p class="text-[9px] text-slate-600 mt-3 leading-tight">
+                        * يتم حساب الحدود بناءً على القيمة المعادلة بالدولار (USD).
+                    </p>
+                </div>
+
+                <div class="flex items-center justify-between p-3 bg-slate-800/30 rounded-lg">
+                    <span class="text-sm text-muted">عضو منذ</span>
+                    <span class="text-sm font-bold">{{ user.date_joined|date:"M Y" }}</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Notifications Card -->
+        <div class="panel stack">
+            <div class="section-head p-6 pb-0">
+                <h2 class="text-lg">تنبيهات هامة</h2>
+                <i class="fas fa-bell text-slate-600"></i>
+            </div>
+            <div class="p-4 stack gap-2">
+                {% for n in notifications %}
+                <div class="p-3 border-b border-white/5 last:border-0 hover:bg-white/5 rounded transition-colors cursor-pointer">
+                    <h4 class="text-sm font-bold mb-1">{{ n.title }}</h4>
+                    <p class="text-xs text-muted line-clamp-2">{{ n.body }}</p>
+                    <span class="text-[10px] text-slate-500 mt-2 block">{{ n.created_at|timesince }}</span>
+                </div>
+                {% empty %}
+                <div class="p-6 text-center">
+                    <p class="text-xs text-muted italic">لا توجد تنبيهات جديدة</p>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+
+{% block extra_js %}
+<script>
+function copyToClipboard(text, btn) {
+    navigator.clipboard.writeText(text).then(() => {
+        const icon = btn.querySelector('i');
+        const originalClass = icon.className;
+        icon.className = 'fas fa-check text-emerald-500';
+        setTimeout(() => {
+            icon.className = originalClass;
+        }, 2000);
+    });
+}
+
+function markRead(orderId, btn) {
+    fetch(`/api/orders/${orderId}/mark-read/`, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': '{{ csrf_token }}',
+            'Content-Type': 'application/json'
+        }
+    }).then(res => {
+        if(res.ok) {
+            const card = btn.closest('.panel');
+            card.style.opacity = '0';
+            card.style.transform = 'scale(0.9)';
+            setTimeout(() => {
+                card.remove();
+                if(document.querySelectorAll('.panel[bg-cyan]').length === 0) {
+                    // Logic to hide section if empty
+                }
+            }, 300);
+        }
+    });
+}
+</script>
+{% endblock %}
+{% endblock %}
