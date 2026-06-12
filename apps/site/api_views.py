@@ -56,7 +56,7 @@ def api_deposit_approve(request, pk):
                 wallet_id=wallet.id,
                 amount=wallet_credit_amount,
                 reference=f"dep:{deposit.id}",
-                description=f"Approved deposit via {deposit.payment_method.name}",
+                description=f"إيداع رصيد عبر {deposit.payment_method.name} [رقم العملية: {deposit.id.hex[:6].upper()}]",
                 created_by=request.user,
                 source="admin_approval",
                 reason=admin_note,
@@ -202,7 +202,7 @@ def api_withdrawal_complete(request, pk):
         wallet_id=wallet.id,
         amount=withdrawal.wallet_amount,
         reference=f"with:{withdrawal.id}",
-        description="Withdrawal completed",
+        description=f"سحب رصيد عبر {withdrawal.payment_method.name} [رقم العملية: {withdrawal.id.hex[:6].upper()}]",
         created_by=request.user
     )
     

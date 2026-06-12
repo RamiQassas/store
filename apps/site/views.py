@@ -1073,7 +1073,7 @@ def control_order_detail(request, pk):
             OrderLog.objects.create(order=order, status=order.status, note=request.POST.get("admin_note", ""), created_by=request.user)
             
             if order.status in [Order.Status.REFUNDED, Order.Status.CANCELLED] and old_status not in [Order.Status.REFUNDED, Order.Status.CANCELLED]: 
-                credit_wallet(order.customer.wallet.id, order.total_amount, f"refund:{order.id}", f"Refund for #{order.number}", request.user)
+                credit_wallet(order.customer.wallet.id, order.total_amount, f"refund:{order.id}", f"استرداد مبلغ الطلب رقم #{order.number}", request.user)
             
             messages.success(request, f"تم تحديث حالة الطلب إلى: {order.get_status_display()}")
             
