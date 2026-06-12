@@ -29,6 +29,10 @@ def send_brevo_email(to_email, to_name, subject, html_content, text_content=None
             "name": settings.DEFAULT_FROM_NAME,
             "email": settings.DEFAULT_FROM_EMAIL
         },
+        "replyTo": {
+            "name": "Raqamiyat Support | دعم رقميات",
+            "email": settings.REPLY_TO_EMAIL
+        },
         "to": [
             {
                 "email": to_email,

@@ -104,7 +104,7 @@ def v3_init_verification(request, user, action_type):
     request.session["v3_auth_methods"] = methods
     request.session["v3_auth_purpose"] = action_type
     if methods[0] == "EMAIL":
-        v3_send_otp_email(user, v3_generate_otp(user, f"verify_{action_type}"))
+        v3_send_otp_email(user, v3_generate_otp(user, action_type))
     return False
 
 # ==========================================
@@ -175,6 +175,12 @@ def v3_verify_otp_view(request):
         if v3_verify_otp_logic(user, code, purpose):
             user.otp_failed_attempts = 0; user.otp_lockout_until = None; user.otp_resend_count = 0; user.save()
             if purpose == OTPToken.Purpose.REGISTRATION: user.email_verified = True; user.save()
+            if purpose == "email_change":
+                new_email = request.session.get("v3_new_email")
+                if new_email:
+                    user.email = new_email; user.username = new_email; user.save()
+                    messages.success(request, "تم تغيير البريد الإلكتروني بنجاح.")
+            
             remaining = [m for m in methods if m != "EMAIL"]
             request.session["v3_auth_methods"] = remaining
             if remaining and remaining[0] == "APP": return redirect("site_2fa_verify")
@@ -192,7 +198,6 @@ def v3_verify_otp_view(request):
         messages.error(request, "رمز التحقق غير صحيح.")
     return render(request, "site/v3/v3_otp_verify.html", {"user_email": user.email, "remaining_cooldown": remaining_cooldown, "is_locked": is_locked})
 
-@login_required
 def v3_2fa_verify_view(request):
     uid, purpose = request.session.get("v3_auth_uid"), request.session.get("v3_auth_purpose")
     if not uid: return redirect("site_login")
@@ -204,7 +209,7 @@ def v3_2fa_verify_view(request):
             remaining = [m for m in methods if m != "APP"]
             request.session["v3_auth_methods"] = remaining
             if remaining and remaining[0] == "EMAIL":
-                v3_send_otp_email(user, v3_generate_otp(user, f"verify_{purpose}"))
+                v3_send_otp_email(user, v3_generate_otp(user, purpose))
                 return redirect("site_verify_otp")
             login(request, user, backend='django.contrib.auth.backends.ModelBackend')
             request.session["v3_action_verified_at"] = timezone.now().isoformat()

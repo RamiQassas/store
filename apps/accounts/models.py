@@ -318,6 +318,10 @@ class OTPToken(TimeStampedModel):
         REGISTRATION = "registration", "Registration"
         LOGIN = "login", "Login"
         PASSWORD_RESET = "password_reset", "Password Reset"
+        DEPOSIT = "deposit", "Deposit"
+        PURCHASE = "purchase", "Purchase"
+        WITHDRAW = "withdraw", "Withdraw"
+        EMAIL_CHANGE = "email_change", "Email Change"
 
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="otp_tokens")
     code = models.CharField(max_length=6)
