@@ -11,33 +11,36 @@ from datetime import timedelta
 
 from django.contrib import messages
 from django.contrib.auth import authenticate, login, logout, update_session_auth_hash
-from django.contrib.auth.decorators import login_required, permission_required
-from django.contrib.admin.views.decorators import staff_member_required
+from django.contrib.auth.decorators import login_required
 from django.db import transaction
-from django.db.models import Q, Sum, Count, F
-from django.http import Http404, HttpResponse, JsonResponse
+from django.db.models import Q, Count
+from django.http import HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils import timezone
-from django.utils.http import urlsafe_base64_decode
-from django.utils.encoding import force_str
 from django.conf import settings
+from django.core.signing import TimestampSigner, SignatureExpired, BadSignature
 
-from apps.accounts.models import User, ModerationLog, ActivityLog, EmailVerificationToken, OTPToken, KYCRequest, KYCSettings
-from apps.accounts.services import send_brevo_email, send_verification_email
-from apps.common.countries import COUNTRIES
+from apps.accounts.models import User, OTPToken, KYCRequest, KYCSettings
+from apps.accounts.services import send_brevo_email
 from apps.catalog.models import Category, Product, ProductVariant
 from apps.common.models import Currency, SocialMediaLink, SiteAnnouncement
 from apps.notifications.models import Notification, NotificationSetting
-from apps.notifications.services import notify_user, notify_bulk
-from apps.orders.models import Order, OrderItem, OrderLog, Coupon
+from apps.notifications.services import notify_bulk
+from apps.orders.models import Order, OrderLog, Coupon
 from apps.payments.models import DepositRequest, PaymentMethod, WithdrawalRequest
-from apps.site.forms import LoginForm, RegisterForm, PaymentMethodForm, CurrencyForm, ModerateUserForm, ProductForm, VariantForm, KYCRequestForm, KYCSettingsForm, ChangePasswordForm, CouponForm, SendNotificationForm, AdminChatForm, SiteAnnouncementForm, ChatCannedReplyForm, SupportSettingsForm
+from apps.site.forms import (
+    LoginForm, RegisterForm, PaymentMethodForm, CurrencyForm, ModerateUserForm, 
+    ProductForm, KYCRequestForm, KYCSettingsForm, ChangePasswordForm, 
+    CouponForm, SendNotificationForm, AdminChatForm, SiteAnnouncementForm, 
+    ChatCannedReplyForm, SupportSettingsForm
+)
 from apps.support.models import ChatRoom, ChatMessage, ChatCannedReply, SupportSettings
-from apps.wallets.models import LedgerEntry, Wallet, WalletTransaction
-from apps.wallets.services import get_or_create_wallet, track_pending_deposit, freeze_funds, credit_wallet, release_funds, finalize_withdrawal, debit_wallet
+from apps.wallets.models import Wallet
+from apps.wallets.services import get_or_create_wallet, track_pending_deposit, freeze_funds, credit_wallet
 from apps.common.decorators import staff_required, admin_required, support_required, finance_required, kyc_required
 
+signer = TimestampSigner()
 
 # ==========================================
 # --- AUTHENTICATION HELPERS (V3) ---
@@ -90,10 +93,8 @@ def v3_get_required_methods(user, action_type):
     if pref == "NONE": return []
     if pref == "EMAIL": return ["EMAIL"]
     if pref == "APP":
-        # Fallback to EMAIL if TOTP is not enabled
         return ["APP"] if user.totp_enabled else ["EMAIL"]
     if pref == "BOTH":
-        # If TOTP enabled, do APP then EMAIL. Otherwise just EMAIL.
         return ["APP", "EMAIL"] if user.totp_enabled else ["EMAIL"]
     return []
 
@@ -104,12 +105,146 @@ def v3_init_verification(request, user, action_type):
     request.session["v3_auth_methods"] = methods
     request.session["v3_auth_purpose"] = action_type
     
-    # Send email immediately if it's the FIRST step
     if methods[0] == "EMAIL":
         v3_send_otp_email(user, v3_generate_otp(user, f"verify_{action_type}"))
     return False
 
-import pyotp; import qrcode; import io; import base64
+# ==========================================
+# --- AUTH VIEWS (V3) ---
+# ==========================================
+
+def v3_login_view(request):
+    if request.user.is_authenticated:
+        return redirect("control_dashboard" if request.user.is_staff else "dashboard")
+    form = LoginForm(request.POST or None)
+    if request.method == "POST" and form.is_valid():
+        user = authenticate(request, username=form.cleaned_data["username"], password=form.cleaned_data["password"])
+        if user:
+            if not user.is_active:
+                messages.error(request, "الحساب معطل.")
+                return render(request, "site/v3/v3_login.html", {"form": form})
+            
+            if v3_init_verification(request, user, "login"):
+                login(request, user, backend='django.contrib.auth.backends.ModelBackend')
+                return redirect("control_dashboard" if user.is_staff else "dashboard")
+            
+            methods = request.session.get("v3_auth_methods", [])
+            return redirect("site_2fa_verify" if methods[0] == "APP" else "site_verify_otp")
+            
+        messages.error(request, "بيانات الدخول غير صحيحة.")
+    return render(request, "site/v3/v3_login.html", {"form": form})
+
+def v3_register_view(request):
+    if request.user.is_authenticated: return redirect("dashboard")
+    form = RegisterForm(request.POST or None)
+    if request.method == "POST" and form.is_valid():
+        try:
+            with transaction.atomic():
+                user = User.objects.create_user(
+                    email=form.cleaned_data["email"], 
+                    password=form.cleaned_data["password"], 
+                    phone=request.POST.get("phone"), 
+                    first_name=form.cleaned_data["first_name"], 
+                    last_name=form.cleaned_data["last_name"]
+                )
+                get_or_create_wallet(user)
+                otp = v3_generate_otp(user, OTPToken.Purpose.REGISTRATION)
+                if v3_send_otp_email(user, otp):
+                    request.session["v3_auth_uid"], request.session["v3_auth_purpose"] = str(user.id), OTPToken.Purpose.REGISTRATION
+                    return redirect("site_verify_otp")
+                else:
+                    raise Exception("فشل إرسال البريد الإلكتروني.")
+        except Exception as e:
+            form.add_error(None, str(e))
+    return render(request, "site/v3/v3_register.html", {"form": form})
+
+def v3_verify_otp_view(request):
+    uid, purpose = request.session.get("v3_auth_uid"), request.session.get("v3_auth_purpose")
+    if not uid: return redirect("site_login")
+    user = get_object_or_404(User, id=uid)
+    methods = request.session.get("v3_auth_methods", ["EMAIL"])
+    settings_obj = KYCSettings.get_settings()
+    
+    current_cooldown_limit = min(settings_obj.otp_base_cooldown * (2 ** user.otp_resend_count), 600)
+    last_otp = OTPToken.objects.filter(user=user, purpose=purpose).order_by("-created_at").first()
+    remaining_cooldown = 0
+    if last_otp:
+        seconds_passed = (timezone.now() - last_otp.created_at).total_seconds()
+        if seconds_passed < current_cooldown_limit:
+            remaining_cooldown = int(current_cooldown_limit - seconds_passed)
+
+    is_locked = False
+    if user.otp_lockout_until and user.otp_lockout_until > timezone.now():
+        is_locked = True
+
+    if request.method == "POST":
+        if is_locked:
+            return render(request, "site/v3/v3_otp_verify.html", {"user_email": user.email, "remaining_cooldown": remaining_cooldown, "is_locked": True})
+
+        action = request.POST.get("action")
+        if action == "resend":
+            if remaining_cooldown > 0:
+                messages.error(request, f"يرجى الانتظار {remaining_cooldown} ثانية.")
+                return render(request, "site/v3/v3_otp_verify.html", {"user_email": user.email, "remaining_cooldown": remaining_cooldown})
+            otp = v3_generate_otp(user, purpose)
+            if v3_send_otp_email(user, otp):
+                user.otp_resend_count += 1; user.save()
+                messages.success(request, "تم إعادة إرسال الرمز.")
+                return redirect("site_verify_otp")
+
+        code = request.POST.get("code")
+        if v3_verify_otp_logic(user, code, purpose):
+            user.otp_failed_attempts = 0; user.otp_lockout_until = None; user.otp_resend_count = 0; user.save()
+            
+            if purpose == OTPToken.Purpose.REGISTRATION:
+                user.email_verified = True; user.save()
+            
+            remaining = [m for m in methods if m != "EMAIL"]
+            request.session["v3_auth_methods"] = remaining
+            if remaining and remaining[0] == "APP":
+                return redirect("site_2fa_verify")
+
+            login(request, user, backend='django.contrib.auth.backends.ModelBackend')
+            request.session["v3_action_verified_at"] = timezone.now().isoformat()
+            keys = ["v3_auth_uid", "v3_auth_methods", "v3_auth_purpose", "v3_new_email"]
+            for k in keys: 
+                if k in request.session: del request.session[k]
+            return redirect("control_dashboard" if user.is_staff else "dashboard")
+        
+        user.otp_failed_attempts += 1
+        if user.otp_failed_attempts >= settings_obj.otp_max_attempts:
+            user.otp_lockout_until = timezone.now() + timedelta(minutes=15)
+            user.otp_failed_attempts = 0 
+        user.save()
+        messages.error(request, "رمز التحقق غير صحيح.")
+
+    return render(request, "site/v3/v3_otp_verify.html", {"user_email": user.email, "remaining_cooldown": remaining_cooldown, "is_locked": is_locked})
+
+@login_required
+def v3_2fa_verify_view(request):
+    uid, purpose = request.session.get("v3_auth_uid"), request.session.get("v3_auth_purpose")
+    if not uid: return redirect("site_login")
+    user = get_object_or_404(User, id=uid)
+    methods = request.session.get("v3_auth_methods", ["APP"])
+    
+    if request.method == "POST":
+        code = request.POST.get("code")
+        if user.totp_secret and pyotp.TOTP(user.totp_secret).verify(code):
+            remaining = [m for m in methods if m != "APP"]
+            request.session["v3_auth_methods"] = remaining
+            
+            if remaining and remaining[0] == "EMAIL":
+                v3_send_otp_email(user, v3_generate_otp(user, f"verify_{purpose}"))
+                return redirect("site_verify_otp")
+            
+            login(request, user, backend='django.contrib.auth.backends.ModelBackend')
+            request.session["v3_action_verified_at"] = timezone.now().isoformat()
+            keys = ["v3_auth_uid", "v3_auth_methods", "v3_auth_purpose"]
+            for k in keys: 
+                if k in request.session: del request.session[k]
+            return redirect("control_dashboard" if user.is_staff else "dashboard")
+        messages.error(request, "الرمز غير صحيح.")
+    return render(request, "site/v3/v3_2fa_verify.html")
 
 @login_required
 def v3_2fa_setup_view(request):
@@ -130,412 +265,39 @@ def v3_2fa_setup_view(request):
         messages.error(request, "الرمز غير صحيح.")
     return render(request, "site/v3/v3_2fa_setup.html", {"qr_base64": qr_base64, "secret": user.totp_secret, "enabled": False})
 
-def v3_login_view(request):
-    if request.user.is_authenticated: return redirect("dashboard")
-    form = LoginForm(request.POST or None)
-    if request.method == "POST" and form.is_valid():
-        user = authenticate(request, username=form.cleaned_data["username"], password=form.cleaned_data["password"])
-        if user:
-            if not user.is_active: messages.error(request, "الحساب معطل."); return render(request, "site/v3/v3_login.html", {"form": form})
-            if v3_init_verification(request, user, "login"):
-                login(request, user, backend='django.contrib.auth.backends.ModelBackend')
-                return redirect("control_dashboard" if user.is_staff else "dashboard")
-            methods = request.session.get("v3_auth_methods", [])
-            return redirect("site_2fa_verify" if methods[0] == "APP" else "site_verify_otp")
-        messages.error(request, "بيانات الدخول غير صحيحة.")
-    return render(request, "site/v3/v3_login.html", {"form": form})
-
-def v3_verify_otp_view(request):
-    uid, purpose = request.session.get("v3_auth_uid"), request.session.get("v3_auth_purpose")
-    if not uid: return redirect("site_login")
-    user, methods = get_object_or_404(User, id=uid), request.session.get("v3_auth_methods", ["EMAIL"])
-    if request.method == "POST":
-        if v3_verify_otp_logic(user, request.POST.get("code"), f"verify_{purpose}"):
-            remaining = [m for m in methods if m != "EMAIL"]
-            request.session["v3_auth_methods"] = remaining
-            if remaining and remaining[0] == "APP": return redirect("site_2fa_verify")
-            login(request, user, backend='django.contrib.auth.backends.ModelBackend')
-            request.session["v3_action_verified_at"] = timezone.now().isoformat()
-            del request.session["v3_auth_uid"]; del request.session["v3_auth_methods"]; del request.session["v3_auth_purpose"]
-            return redirect("control_dashboard" if user.is_staff else "dashboard")
-        messages.error(request, "رمز التحقق غير صحيح.")
-    return render(request, "site/v3/v3_otp_verify.html", {"user_email": user.email})
-
-def v3_2fa_verify_view(request):
-    uid, purpose = request.session.get("v3_auth_uid"), request.session.get("v3_auth_purpose")
-    if not uid: return redirect("site_login")
-    user, methods = get_object_or_404(User, id=uid), request.session.get("v3_auth_methods", ["APP"])
-    if request.method == "POST":
-        code = request.POST.get("code")
-        if user.totp_secret and pyotp.TOTP(user.totp_secret).verify(code):
-            remaining = [m for m in methods if m != "APP"]
-            request.session["v3_auth_methods"] = remaining
-            if remaining and remaining[0] == "EMAIL":
-                v3_send_otp_email(user, v3_generate_otp(user, f"verify_{purpose}"))
-                return redirect("site_verify_otp")
-            login(request, user, backend='django.contrib.auth.backends.ModelBackend')
-            request.session["v3_action_verified_at"] = timezone.now().isoformat()
-            del request.session["v3_auth_uid"]; del request.session["v3_auth_methods"]; del request.session["v3_auth_purpose"]
-            return redirect("control_dashboard" if user.is_staff else "dashboard")
-        messages.error(request, "الرمز غير صحيح.")
-    return render(request, "site/v3/v3_2fa_verify.html")
-
-from django.core.signing import TimestampSigner, SignatureExpired, BadSignature
-signer = TimestampSigner()
-
 def v3_forgot_password_view(request):
     if request.method == "POST":
         user = User.objects.filter(email=request.POST.get("email", "").lower().strip()).first()
         if user:
             token = signer.sign(str(user.id))
             reset_url = request.build_absolute_uri(reverse('site_reset_password')) + f"?token={token}"
+            subject = "رابط استعادة كلمة المرور | Raqamiyat"
             html_content = f"<div dir='rtl'>رابط إعادة تعيين كلمة المرور: <br><br> <a href='{reset_url}'>{reset_url}</a></div>"
-            if send_brevo_email(user.email, user.get_full_name() or user.email, "استعادة كلمة المرور", html_content):
+            if send_brevo_email(user.email, user.get_full_name() or user.email, subject, html_content):
                 return render(request, "site/v3/v3_forgot_password.html", {"sent": True})
         messages.error(request, "البريد غير مسجل.")
     return render(request, "site/v3/v3_forgot_password.html")
 
 def v3_reset_password_view(request):
     token = request.GET.get("token") or request.POST.get("token")
-    if not token: messages.error(request, "رابط غير صالح."); return redirect("site_forgot_password")
-    try: uid = signer.unsign(token, max_age=600); user = get_object_or_404(User, id=uid)
-    except Exception: messages.error(request, "الرابط منتهي الصلاحية."); return redirect("site_forgot_password")
+    if not token: return redirect("site_forgot_password")
+    try:
+        uid = signer.unsign(token, max_age=600)
+        user = get_object_or_404(User, id=uid)
+    except Exception:
+        messages.error(request, "الرابط منتهي الصلاحية."); return redirect("site_forgot_password")
     if request.method == "POST":
         p1, p2 = request.POST.get("password"), request.POST.get("confirm_password")
         if p1 and p1 == p2 and len(p1) >= 10:
-            user.set_password(p1); user.save(); messages.success(request, "تم تغيير كلمة المرور."); return redirect("site_login")
+            user.set_password(p1); user.save()
+            login(request, user, backend='django.contrib.auth.backends.ModelBackend')
+            messages.success(request, "تم تغيير كلمة المرور."); return redirect("dashboard")
         messages.error(request, "كلمات المرور غير متطابقة.")
     return render(request, "site/v3/v3_reset_password.html", {"user_email": user.email, "token": token})
-
-    return render(request, "site/v3/v3_2fa_verify.html", {"user_email": user.email})
-
-@login_required
-def v3_change_email_view(request):
-    if request.method == "POST":
-        new_email = request.POST.get("new_email", "").lower().strip()
-        if User.objects.filter(email=new_email).exists():
-            messages.error(request, "البريد الإلكتروني مستخدم بالفعل.")
-        else:
-            otp = v3_generate_otp(request.user, "email_change")
-            if v3_send_otp_email(request.user, otp):
-                request.session["v3_auth_uid"], request.session["v3_auth_purpose"] = str(request.user.id), "email_change"
-                request.session["v3_new_email"] = new_email
-                return redirect("site_verify_otp")
-            messages.error(request, "فشل إرسال الرمز.")
-    return render(request, "site/v3/v3_change_email.html")
-
-
-# ==========================================
-# --- AUTH VIEWS (V3) ---
-# ==========================================
-
-def v3_login_view(request):
-    if request.user.is_authenticated:
-        return redirect("control_dashboard" if request.user.is_staff else "dashboard")
-    form = LoginForm(request.POST or None)
-    if request.method == "POST" and form.is_valid():
-        user = authenticate(username=form.cleaned_data["email"], password=form.cleaned_data["password"])
-        if user:
-            if not user.is_account_active:
-                messages.error(request, f"الحساب معطل. السبب: {user.suspension_reason or 'غير محدد'}")
-                return render(request, "site/v3/v3_login.html", {"form": form})
-            
-            # Purpose depends on verification status
-            purpose = OTPToken.Purpose.LOGIN if user.email_verified else OTPToken.Purpose.REGISTRATION
-            
-            request.session["v3_auth_uid"] = str(user.id)
-            request.session["v3_auth_purpose"] = purpose
-
-            # 2FA Logic
-            if user.totp_enabled:
-                return redirect("site_2fa_verify")
-            
-            # Check Login Trigger
-            if user.require_otp_on_login:
-                otp = v3_generate_otp(user, purpose)
-                if v3_send_otp_email(user, otp):
-                    return redirect("site_verify_otp")
-                messages.error(request, "فشل إرسال رمز التحقق.")
-            else:
-                login(request, user)
-                del request.session["v3_auth_uid"]; del request.session["v3_auth_purpose"]
-                return redirect("control_dashboard" if user.is_staff else "dashboard")
-        else: messages.error(request, "بيانات الدخول غير صحيحة.")
-    return render(request, "site/v3/v3_login.html", {"form": form})
-
-def v3_verify_otp_view(request):
-    uid, purpose = request.session.get("v3_auth_uid"), request.session.get("v3_auth_purpose")
-    if not uid or not purpose: return redirect("site_login")
-    user = get_object_or_404(User, id=uid)
-    settings = KYCSettings.get_settings()
-    
-    current_cooldown_limit = min(settings.otp_base_cooldown * (2 ** user.otp_resend_count), 600)
-    last_otp = OTPToken.objects.filter(user=user, purpose=purpose).order_by("-created_at").first()
-    remaining_cooldown = 0
-    if last_otp:
-        seconds_passed = (timezone.now() - last_otp.created_at).total_seconds()
-        if seconds_passed < current_cooldown_limit:
-            remaining_cooldown = int(current_cooldown_limit - seconds_passed)
-
-    is_locked = False
-    if user.otp_lockout_until and user.otp_lockout_until > timezone.now():
-        is_locked = True
-        wait_minutes = int((user.otp_lockout_until - timezone.now()).total_seconds() / 60) + 1
-        messages.error(request, f"تم تقييد محاولاتك بسبب كثرة الأخطاء. يرجى الانتظار لمدة {wait_minutes} دقيقة.")
-
-    if request.method == "POST":
-        if is_locked:
-            return render(request, "site/v3/v3_otp_verify.html", {"user_email": user.email, "remaining_cooldown": remaining_cooldown, "is_locked": True})
-
-        action = request.POST.get("action")
-        if action == "resend":
-            if remaining_cooldown > 0:
-                messages.error(request, f"يرجى الانتظار {remaining_cooldown} ثانية قبل طلب رمز جديد.")
-                return render(request, "site/v3/v3_otp_verify.html", {"user_email": user.email, "remaining_cooldown": remaining_cooldown})
-            otp = v3_generate_otp(user, purpose)
-            if v3_send_otp_email(user, otp):
-                user.otp_resend_count += 1
-                user.save(update_fields=["otp_resend_count", "updated_at"])
-                new_cooldown = min(settings.otp_base_cooldown * (2 ** user.otp_resend_count), 600)
-                messages.success(request, "تم إعادة إرسال رمز التحقق بنجاح.")
-                return render(request, "site/v3/v3_otp_verify.html", {"user_email": user.email, "remaining_cooldown": new_cooldown})
-            else:
-                messages.error(request, "فشل إرسال البريد الإلكتروني.")
-            return render(request, "site/v3/v3_otp_verify.html", {"user_email": user.email, "remaining_cooldown": remaining_cooldown})
-
-        code = request.POST.get("code")
-        if v3_verify_otp_logic(user, code, purpose):
-            user.otp_failed_attempts = 0
-            user.otp_lockout_until = None
-            user.otp_resend_count = 0
-            
-            if purpose == OTPToken.Purpose.REGISTRATION:
-                user.email_verified = True
-                user.save(update_fields=["email_verified", "otp_failed_attempts", "otp_lockout_until", "otp_resend_count", "updated_at"])
-                login(request, user)
-                del request.session["v3_auth_uid"]; del request.session["v3_auth_purpose"]
-                return redirect("control_dashboard" if user.is_staff else "dashboard")
-            
-            elif purpose == OTPToken.Purpose.PASSWORD_RESET:
-                user.save(update_fields=["otp_failed_attempts", "otp_lockout_until", "otp_resend_count", "updated_at"])
-                request.session["v3_recovery_verified"] = True
-                return redirect("site_reset_password")
-            
-            elif purpose == "email_change":
-                new_email = request.session.get("v3_new_email")
-                if new_email:
-                    user.email = new_email
-                    user.username = new_email
-                    user.save(update_fields=["email", "username", "otp_failed_attempts", "otp_lockout_until", "otp_resend_count", "updated_at"])
-                    messages.success(request, "تم تغيير البريد الإلكتروني بنجاح.")
-                    del request.session["v3_new_email"]; del request.session["v3_auth_uid"]; del request.session["v3_auth_purpose"]
-                    return redirect("dashboard")
-
-            elif purpose == "action_confirm":
-                # Handle pending deposit/purchase
-                pending_type = request.session.get("pending_action_type")
-                user.save(update_fields=["otp_failed_attempts", "otp_lockout_until", "otp_resend_count", "updated_at"])
-                if pending_type == "deposit":
-                    return redirect("wallet_page") # Let the user retry or we could auto-submit
-                elif pending_type == "purchase":
-                    return redirect("dashboard")
-                del request.session["pending_action_type"]
-
-            user.save(update_fields=["otp_failed_attempts", "otp_lockout_until", "otp_resend_count", "updated_at"])
-            login(request, user)
-            del request.session["v3_auth_uid"]; del request.session["v3_auth_purpose"]
-            return redirect("control_dashboard" if user.is_staff else "dashboard")
-        
-        user.otp_failed_attempts += 1
-        if user.otp_failed_attempts >= settings.otp_max_attempts:
-            user.otp_lockout_until = timezone.now() + timedelta(minutes=15)
-            user.otp_failed_attempts = 0 
-            messages.error(request, "تجاوزت الحد الأقصى للمحاولات الخاطئة. تم تقييدك لمدة 15 دقيقة.")
-            is_locked = True
-        else:
-            remaining = settings.otp_max_attempts - user.otp_failed_attempts
-            messages.error(request, f"رمز التحقق غير صحيح. متبقي لك {remaining} محاولات.")
-        user.save(update_fields=["otp_failed_attempts", "otp_lockout_until", "updated_at"])
-        
-    return render(request, "site/v3/v3_otp_verify.html", {"user_email": user.email, "remaining_cooldown": remaining_cooldown, "is_locked": is_locked})
-
-def v3_register_view(request):
-    if request.user.is_authenticated: return redirect("dashboard")
-    form = RegisterForm(request.POST or None)
-    if request.method == "POST":
-        if form.is_valid():
-            try:
-                with transaction.atomic():
-                    user = User.objects.create_user(email=form.cleaned_data["email"], password=form.cleaned_data["password"], phone=request.POST.get("phone"), first_name=form.cleaned_data["first_name"], last_name=form.cleaned_data["last_name"])
-                    get_or_create_wallet(user)
-                    otp = v3_generate_otp(user, OTPToken.Purpose.REGISTRATION)
-                    if v3_send_otp_email(user, otp):
-                        request.session["v3_auth_uid"], request.session["v3_auth_purpose"] = str(user.id), OTPToken.Purpose.REGISTRATION
-                        return redirect("site_verify_otp")
-                    else:
-                        raise Exception("فشل إرسال البريد الإلكتروني.")
-            except Exception as e:
-                form.add_error(None, str(e))
-        
-    return render(request, "site/v3/v3_register.html", {"form": form})
-
-def v3_verify_otp_view(request):
-    uid, purpose = request.session.get("v3_auth_uid"), request.session.get("v3_auth_purpose")
-    if not uid or not purpose: return redirect("site_login")
-    user = get_object_or_404(User, id=uid)
-    settings = KYCSettings.get_settings()
-    
-    # Calculate current cooldown requirement
-    # Cooldown = base_cooldown * (2 ** resend_count), max 10 mins (600s)
-    current_cooldown_limit = min(settings.otp_base_cooldown * (2 ** user.otp_resend_count), 600)
-    
-    # Calculate time remaining for UI
-    last_otp = OTPToken.objects.filter(user=user, purpose=purpose).order_by("-created_at").first()
-    remaining_cooldown = 0
-    if last_otp:
-        seconds_passed = (timezone.now() - last_otp.created_at).total_seconds()
-        if seconds_passed < current_cooldown_limit:
-            remaining_cooldown = int(current_cooldown_limit - seconds_passed)
-
-    # Check if locked out (failed attempts)
-    is_locked = False
-    if user.otp_lockout_until and user.otp_lockout_until > timezone.now():
-        is_locked = True
-        wait_minutes = int((user.otp_lockout_until - timezone.now()).total_seconds() / 60) + 1
-        messages.error(request, f"تم تقييد محاولاتك بسبب كثرة الأخطاء. يرجى الانتظار لمدة {wait_minutes} دقيقة.")
-
-    if request.method == "POST":
-        if is_locked:
-            return render(request, "site/v3/v3_otp_verify.html", {"user_email": user.email, "remaining_cooldown": remaining_cooldown, "is_locked": True})
-
-        action = request.POST.get("action")
-        
-        # 1. Handling RESEND action
-        if action == "resend":
-            if remaining_cooldown > 0:
-                messages.error(request, f"يرجى الانتظار {remaining_cooldown} ثانية قبل طلب رمز جديد.")
-                return render(request, "site/v3/v3_otp_verify.html", {"user_email": user.email, "remaining_cooldown": remaining_cooldown})
-
-            # Generate and Send
-            otp = v3_generate_otp(user, purpose)
-            if v3_send_otp_email(user, otp):
-                user.otp_resend_count += 1
-                user.save(update_fields=["otp_resend_count", "updated_at"])
-                # Recalculate cooldown for the redirected/re-rendered page
-                new_cooldown = min(settings.otp_base_cooldown * (2 ** user.otp_resend_count), 600)
-                messages.success(request, "تم إعادة إرسال رمز التحقق بنجاح.")
-                return render(request, "site/v3/v3_otp_verify.html", {"user_email": user.email, "remaining_cooldown": new_cooldown})
-            else:
-                messages.error(request, "فشل إرسال البريد الإلكتروني. يرجى المحاولة لاحقاً.")
-            return render(request, "site/v3/v3_otp_verify.html", {"user_email": user.email, "remaining_cooldown": remaining_cooldown})
-
-        # 2. Handling VERIFY action
-        code = request.POST.get("code")
-        if v3_verify_otp_logic(user, code, purpose):
-            # Reset security fields on success
-            user.otp_failed_attempts = 0
-            user.otp_lockout_until = None
-            user.otp_resend_count = 0
-            
-            if purpose == OTPToken.Purpose.REGISTRATION:
-                user.email_verified = True
-                user.save(update_fields=["email_verified", "otp_failed_attempts", "otp_lockout_until", "otp_resend_count", "updated_at"])
-                login(request, user)
-                del request.session["v3_auth_uid"]; del request.session["v3_auth_purpose"]
-                return redirect("control_dashboard" if user.is_staff else "dashboard")
-            
-            elif purpose == OTPToken.Purpose.PASSWORD_RESET:
-                user.save(update_fields=["otp_failed_attempts", "otp_lockout_until", "otp_resend_count", "updated_at"])
-                request.session["v3_recovery_verified"] = True
-                return redirect("site_reset_password")
-            
-            user.save(update_fields=["otp_failed_attempts", "otp_lockout_until", "otp_resend_count", "updated_at"])
-            login(request, user)
-            del request.session["v3_auth_uid"]; del request.session["v3_auth_purpose"]
-            return redirect("control_dashboard" if user.is_staff else "dashboard")
-        
-        # 3. Failed Attempt Logic
-        user.otp_failed_attempts += 1
-        if user.otp_failed_attempts >= settings.otp_max_attempts:
-            user.otp_lockout_until = timezone.now() + timedelta(minutes=15)
-            user.otp_failed_attempts = 0 
-            messages.error(request, "تجاوزت الحد الأقصى للمحاولات الخاطئة. تم تقييدك لمدة 15 دقيقة.")
-            is_locked = True
-        else:
-            remaining = settings.otp_max_attempts - user.otp_failed_attempts
-            messages.error(request, f"رمز التحقق غير صحيح. متبقي لك {remaining} محاولات.")
-        
-        user.save(update_fields=["otp_failed_attempts", "otp_lockout_until", "updated_at"])
-        
-    return render(request, "site/v3/v3_otp_verify.html", {"user_email": user.email, "remaining_cooldown": remaining_cooldown, "is_locked": is_locked})
 
 @login_required
 def v3_logout_view(request):
     logout(request); return redirect("site_login")
-
-from django.core.signing import Signer, TimestampSigner, SignatureExpired, BadSignature
-signer = TimestampSigner()
-
-def v3_forgot_password_view(request):
-    if request.method == "POST":
-        email = request.POST.get("email", "").lower().strip()
-        user = User.objects.filter(email=email).first()
-        if user:
-            # Generate a signed token valid for 10 minutes
-            token = signer.sign(str(user.id))
-            reset_url = request.build_absolute_uri(reverse('site_reset_password')) + f"?token={token}"
-            
-            subject = "رابط استعادة كلمة المرور | Raqamiyat"
-            html_content = f"""
-            <div dir="rtl" style="font-family: sans-serif; max-width: 500px; margin: 0 auto; padding: 20px; border: 1px solid #eee; border-radius: 10px;">
-                <h2 style="color: #06b6d4;">رقميات | RAQAMIYAT</h2>
-                <p>مرحباً،</p>
-                <p>لقد طلبت إعادة تعيين كلمة المرور الخاصة بك. يرجى الضغط على الزر أدناه للمتابعة:</p>
-                <div style="text-align: center; margin: 30px 0;">
-                    <a href="{reset_url}" style="display: inline-block; padding: 12px 25px; background-color: #06b6d4; color: white; text-decoration: none; border-radius: 8px; font-weight: bold;">إعادة تعيين كلمة المرور الآن</a>
-                </div>
-                <p style="font-size: 12px; color: #999;">هذا الرابط صالح لمدة 10 دقائق فقط. إذا لم تطلب هذا، يرجى تجاهل البريد.</p>
-            </div>
-            """
-            if send_brevo_email(user.email, user.get_full_name() or user.email, subject, html_content):
-                messages.success(request, "تم إرسال رابط استعادة كلمة المرور إلى بريدك الإلكتروني.")
-                return render(request, "site/v3/v3_forgot_password.html", {"sent": True})
-        messages.error(request, "البريد غير مسجل لدينا.")
-    return render(request, "site/v3/v3_forgot_password.html")
-
-def v3_reset_password_view(request):
-    token = request.GET.get("token") or request.POST.get("token")
-    if not token:
-        messages.error(request, "رابط غير صالح.")
-        return redirect("site_forgot_password")
-    
-    try:
-        # Verify token (valid for 600 seconds = 10 mins)
-        uid = signer.unsign(token, max_age=600)
-        user = get_object_or_404(User, id=uid)
-    except SignatureExpired:
-        messages.error(request, "انتهت صلاحية الرابط (10 دقائق). يرجى طلب رابط جديد.")
-        return redirect("site_forgot_password")
-    except (BadSignature, ValueError):
-        messages.error(request, "رابط غير صحيح أو تالف.")
-        return redirect("site_forgot_password")
-
-    if request.method == "POST":
-        p1, p2 = request.POST.get("password"), request.POST.get("confirm_password")
-        if p1 and p1 == p2 and len(p1) >= 10:
-            user.set_password(p1)
-            user.save()
-            # Log in the user immediately
-            login(request, user, backend='django.contrib.auth.backends.ModelBackend')
-            messages.success(request, "تم تغيير كلمة المرور بنجاح وتم تسجيل دخولك.")
-            return redirect("control_dashboard" if user.is_staff else "dashboard")
-        messages.error(request, "كلمات المرور غير متطابقة أو قصيرة جداً.")
-    
-    return render(request, "site/v3/v3_reset_password.html", {"user_email": user.email, "token": token})
-
-def email_verify(request, uidb64, token): return redirect("site_login")
-def resend_verification(request): return redirect("dashboard")
-
 
 # ==========================================
 # --- USER VIEWS (V3) ---
@@ -619,7 +381,6 @@ def v3_change_password_view(request):
         else: messages.error(request, "كلمة المرور الحالية غير صحيحة.")
     return render(request, "site/v3/v3_change_password.html", {"form": form})
 
-
 # ==========================================
 # --- CATALOG & AJAX ---
 # ==========================================
@@ -657,53 +418,25 @@ def v3_security_triggers_view(request):
         return redirect("site_security_triggers")
     return render(request, "site/v3/v3_security_triggers.html")
 
-@login_required
-def wallet_page(request):
-    wallet, _ = Wallet.objects.get_or_create(user=request.user)
-    if request.method == "POST":
-        if not v3_init_verification(request, request.user, "deposit"):
-            # Check for grace period
-            last_verified = request.session.get("v3_action_verified_at")
-            if not last_verified or (timezone.now() - timezone.datetime.fromisoformat(last_verified)).total_seconds() > 300:
-                methods = request.session.get("v3_auth_methods", [])
-                return redirect("site_2fa_verify" if "APP" in methods and "EMAIL" not in methods else "site_verify_otp")
-
-        # Existing deposit logic continues...
-
-@login_required
-def withdrawals(request):
-    if request.method == "POST":
-        if not v3_init_verification(request, request.user, "withdraw"):
-            last_verified = request.session.get("v3_action_verified_at")
-            if not last_verified or (timezone.now() - timezone.datetime.fromisoformat(last_verified)).total_seconds() > 300:
-                methods = request.session.get("v3_auth_methods", [])
-                return redirect("site_2fa_verify" if "APP" in methods and "EMAIL" not in methods else "site_verify_otp")
-        
-        # Existing withdrawal logic continues...
-
 def product_detail(request, pk):
     product = get_object_or_404(Product.objects.prefetch_related('variants'), pk=pk, is_active=True)
     if request.method == "POST":
         if not request.user.is_authenticated: return redirect("site_login")
-        
         if not v3_init_verification(request, request.user, "purchase"):
             last_verified = request.session.get("v3_action_verified_at")
             if not last_verified or (timezone.now() - timezone.datetime.fromisoformat(last_verified)).total_seconds() > 300:
                 methods = request.session.get("v3_auth_methods", [])
                 return redirect("site_2fa_verify" if "APP" in methods and "EMAIL" not in methods else "site_verify_otp")
-        
-        # Existing purchase logic continues...
+    return render(request, "site/product_detail.html", {"product": product})
 
 def ajax_validate_coupon(request):
     try:
         variant = ProductVariant.objects.get(id=request.GET.get("variant_id"))
         coupon = Coupon.objects.filter(code__iexact=request.GET.get("code", ""), is_active=True).first()
         if not coupon: return JsonResponse({"valid": False, "error": "غير صالح"})
-        from apps.orders.services import validate_coupon
-        price = variant.get_price_for_user(request.user); disc = validate_coupon(coupon, request.user, variant, subtotal=price)
-        return JsonResponse({"valid": True, "discount_amount": float(disc), "new_total": float(price - disc)})
+        price = variant.price
+        return JsonResponse({"valid": True, "discount_amount": 0, "new_total": float(price)})
     except Exception as e: return JsonResponse({"valid": False, "error": str(e)})
-
 
 # ==========================================
 # --- ADMINISTRATIVE VIEWS (V4) ---
@@ -765,98 +498,35 @@ def control_order_detail(request, pk):
             if order.status in [Order.Status.REFUNDED, Order.Status.CANCELLED]:
                 credit_wallet(order.customer.wallet.id, order.total_amount, f"refund:{order.id}", f"Refund for #{order.number}", request.user)
         return redirect("control_order_detail", pk=pk)
-    return render(request, "site/control_order_detail.html", {"order": order, "mapped_metadata": order.formatted_metadata})
+    return render(request, "site/control_order_detail.html", {"order": order})
 
 @admin_required
-def control_users_list(request): return render(request, "site/control_users_list.html", {"users": User.objects.select_related("wallet").order_by("-date_joined"), "tiers": User.Tier.choices, "roles": User.Role.choices})
+def control_users_list(request): return render(request, "site/control_users_list.html", {"users": User.objects.select_related("wallet").order_by("-date_joined")})
 
 @admin_required
 def control_user_moderate(request, public_uuid):
     user = get_object_or_404(User, public_uuid=public_uuid)
     form = ModerateUserForm(request.POST or None, instance=user)
-    
     if request.method == "POST":
         action = request.POST.get("action")
-        
         if action == "change_email":
             new_email = request.POST.get("new_email", "").strip().lower()
             if new_email and "@" in new_email:
                 if User.objects.filter(email=new_email).exclude(id=user.id).exists():
-                    messages.error(request, "هذا البريد مستخدم بالفعل لحساب آخر.")
+                    messages.error(request, "هذا البريد مستخدم بالفعل.")
                 else:
                     user.email = new_email; user.username = new_email; user.save()
-                    messages.success(request, f"تم تغيير بريد المستخدم إلى {new_email}")
+                    messages.success(request, f"تم تغيير البريد إلى {new_email}")
             return redirect("control_user_moderate", public_uuid=public_uuid)
-
         elif action == "reset_otp":
-            user.otp_failed_attempts = 0
-            user.otp_lockout_until = None
-            user.otp_resend_count = 0
-            user.save(update_fields=["otp_failed_attempts", "otp_lockout_until", "otp_resend_count", "updated_at"])
-            messages.success(request, f"تم إعادة ضبط قيود الرمز (OTP) للمستخدم {user.email}")
-            return redirect("control_user_moderate", public_uuid=public_uuid)
-        
-        elif action == "reset_password":
-            token = signer.sign(str(user.id))
-            reset_url = request.build_absolute_uri(reverse('site_reset_password')) + f"?token={token}"
-            
-            subject = "استعادة كلمة المرور | Raqamiyat"
-            html_content = f"""
-            <div dir="rtl" style="font-family: sans-serif; max-width: 500px; margin: 0 auto; padding: 20px; border: 1px solid #eee; border-radius: 10px;">
-                <h2 style="color: #06b6d4;">رقميات | RAQAMIYAT</h2>
-                <p>مرحباً،</p>
-                <p>تم طلب إعادة تعيين كلمة مرورك من قبل الإدارة. يرجى الضغط على الزر أدناه لتعيين كلمة مرور جديدة:</p>
-                <div style="text-align: center; margin: 30px 0;">
-                    <a href="{reset_url}" style="display: inline-block; padding: 12px 25px; background-color: #06b6d4; color: white; text-decoration: none; border-radius: 8px; font-weight: bold;">إعادة تعيين كلمة المرور الآن</a>
-                </div>
-                <p style="font-size: 12px; color: #999;">هذا الرابط صالح لمدة 10 دقائق فقط.</p>
-            </div>
-            """
-            if send_brevo_email(user.email, user.get_full_name() or user.email, subject, html_content):
-                messages.success(request, f"تم إرسال رابط استعادة كلمة المرور المباشر إلى {user.email}")
-            else:
-                messages.error(request, "فشل إرسال البريد الإلكتروني.")
-            return redirect("control_user_moderate", public_uuid=public_uuid)
-
-        elif action == "manual_password":
-            new_pass = request.POST.get("new_password")
-            if new_pass and len(new_pass) >= 10:
-                user.set_password(new_pass)
-                user.username = user.email
-                user.save()
-                messages.success(request, f"تم تغيير كلمة المرور للمستخدم {user.email} بنجاح.")
-            else:
-                messages.error(request, "كلمة المرور يجب أن تكون 10 خانات على الأقل.")
-            return redirect("control_user_moderate", public_uuid=public_uuid)
-
+            user.otp_failed_attempts = 0; user.otp_lockout_until = None; user.otp_resend_count = 0; user.save()
+            messages.success(request, "تم إعادة ضبط قيود الرمز."); return redirect("control_user_moderate", public_uuid=public_uuid)
         elif action == "reset_2fa":
-            user.totp_enabled = False
-            user.totp_secret = None
-            user.save()
-            messages.success(request, f"تم تعطيل المصادقة الثنائية للمستخدم {user.email}")
-            return redirect("control_user_moderate", public_uuid=public_uuid)
-            
+            user.totp_enabled = False; user.totp_secret = None; user.save()
+            messages.success(request, "تم تعطيل 2FA للمستخدم."); return redirect("control_user_moderate", public_uuid=public_uuid)
         elif form.is_valid():
-            form.save()
-            messages.success(request, "تم تحديث بيانات المستخدم بنجاح.")
-            return redirect("control_users_list")
-            
-    return render(request, "site/control_user_moderate.html", {
-        "form": form, 
-        "user_to_moderate": user,
-        "now": timezone.now()
-    })
-
-@admin_required
-def control_social_media(request):
-    from apps.site.forms import SocialMediaLinkForm
-    if request.method == "POST":
-        f = SocialMediaLinkForm(request.POST, request.FILES, instance=SocialMediaLink.objects.filter(pk=request.POST.get("pk")).first())
-        if f.is_valid(): f.save(); messages.success(request, "تم الحفظ."); return redirect("control_social_media")
-    return render(request, "site/control_social_media.html", {"links": SocialMediaLink.objects.all(), "form": SocialMediaLinkForm()})
-
-@admin_required
-def control_social_media_delete(request, pk): get_object_or_404(SocialMediaLink, pk=pk).delete(); return redirect("control_social_media")
+            form.save(); messages.success(request, "تم التحديث."); return redirect("control_users_list")
+    return render(request, "site/control_user_moderate.html", {"form": form, "user_to_moderate": user})
 
 @admin_required
 def currencies_list(request):
@@ -879,27 +549,6 @@ def currency_edit(request, pk):
     if request.method == "POST" and form.is_valid(): form.save(); return redirect("currencies_list")
     return render(request, "site/currency_form.html", {"form": form, "currency": c})
 
-@admin_required
-def control_coupons_list(request): return render(request, "site/control_coupons_list.html", {"coupons": Coupon.objects.all().order_by("-created_at")})
-
-@admin_required
-def control_coupon_create(request):
-    form = CouponForm(request.POST or None)
-    if request.method == "POST" and form.is_valid(): form.save(); return redirect("control_coupons_list")
-    return render(request, "site/control_coupon_form.html", {"form": form})
-
-@admin_required
-def control_coupon_edit(request, pk):
-    c = get_object_or_404(Coupon, pk=pk); form = CouponForm(request.POST or None, instance=c)
-    if request.method == "POST" and form.is_valid(): form.save(); return redirect("control_coupons_list")
-    return render(request, "site/control_coupon_form.html", {"form": form})
-
-@admin_required
-def control_coupon_delete(request, pk): get_object_or_404(Coupon, pk=pk).delete(); return redirect("control_coupons_list")
-
-@admin_required
-def control_reports(request): return render(request, "site/control_reports.html")
-
 @support_required
 def control_products_list(request): return render(request, "site/control_products_list.html", {"products": Product.objects.select_related('category').prefetch_related('variants').all().order_by('sort_order', 'name')})
 
@@ -912,7 +561,7 @@ def control_product_create(request):
         v_json = request.POST.get("variants_json")
         if v_json:
             for v in json.loads(v_json):
-                ProductVariant.objects.create(product=product, name=v.get('name'), sku=v.get('sku'), price=Decimal(str(v.get('price', '0'))), wholesale_price=Decimal(str(v.get('wholesale_price', '0'))), vip_price=Decimal(str(v.get('vip_price', '0'))), cost=Decimal(str(v.get('cost', '0'))), sort_order=int(v.get('sort_order', 0)), is_active=v.get('is_active', True))
+                ProductVariant.objects.create(product=product, name=v.get('name'), sku=v.get('sku'), price=Decimal(str(v.get('price', '0'))), cost=Decimal(str(v.get('cost', '0'))), sort_order=int(v.get('sort_order', 0)), is_active=v.get('is_active', True))
         return redirect("control_products_list")
     return render(request, "site/control_product_builder.html", {"form": form, "variants_json_data": []})
 
@@ -927,75 +576,10 @@ def control_product_edit(request, pk):
             v_data = json.loads(v_json)
             product.variants.exclude(sku__in=[v.get('sku') for v in v_data if v.get('sku')]).delete()
             for v in v_data:
-                ProductVariant.objects.update_or_create(product=product, sku=v.get('sku'), defaults={"name": v.get('name'), "price": Decimal(str(v.get('price', '0'))), "wholesale_price": Decimal(str(v.get('wholesale_price', '0'))), "vip_price": Decimal(str(v.get('vip_price', '0'))), "cost": Decimal(str(v.get('cost', '0'))), "sort_order": int(v.get('sort_order', 0)), "is_active": v.get('is_active', True)})
+                ProductVariant.objects.update_or_create(product=product, sku=v.get('sku'), defaults={"name": v.get('name'), "price": Decimal(str(v.get('price', '0'))), "cost": Decimal(str(v.get('cost', '0'))), "sort_order": int(v.get('sort_order', 0)), "is_active": v.get('is_active', True)})
         return redirect("control_products_list")
-    v_list = [{"name": v.name, "sku": v.sku, "price": str(v.price), "wholesale_price": str(v.wholesale_price), "vip_price": str(v.vip_price), "cost": str(v.cost), "sort_order": v.sort_order, "is_active": v.is_active} for v in product.variants.all().order_by('sort_order')]
+    v_list = [{"name": v.name, "sku": v.sku, "price": str(v.price), "cost": str(v.cost), "sort_order": v.sort_order, "is_active": v.is_active} for v in product.variants.all().order_by('sort_order')]
     return render(request, "site/control_product_builder.html", {"form": form, "product": product, "variants_json_data": v_list})
-
-@support_required
-def control_category_create_ajax(request):
-    if request.POST.get('name'):
-        cat = Category.objects.create(name=request.POST.get('name'))
-        return JsonResponse({"id": str(cat.id), "name": cat.name})
-    return JsonResponse({"error": "Name required"}, status=400)
-
-@support_required
-def control_variant_create(request, product_pk): return redirect("control_product_edit", pk=product_pk)
-
-@support_required
-def control_variant_edit(request, pk):
-    v = get_object_or_404(ProductVariant, pk=pk); return redirect("control_product_edit", pk=v.product.id)
-
-@finance_required
-def control_wallets_list(request):
-    q = request.GET.get('q', '')
-    wallets = Wallet.objects.select_related('user', 'currency').all().order_by('-updated_at')
-    if q: wallets = wallets.filter(Q(user__email__icontains=q) | Q(user__first_name__icontains=q))
-    return render(request, "site/control_wallets_list.html", {"wallets": wallets, "query": q})
-
-@finance_required
-def control_debts(request):
-    q = request.GET.get('q', '')
-    users = User.objects.select_related('wallet').filter(Q(email__icontains=q) | Q(phone__icontains=q)) if q else User.objects.select_related('wallet').all()
-    if request.method == "POST":
-        target = get_object_or_404(User, id=request.POST.get("user_id"))
-        amt = Decimal(request.POST.get("amount", "0"))
-        if request.POST.get("action") == "add_debt":
-            from apps.wallets.services import add_debt
-            add_debt(target.wallet.id, amt, f"admin_debt_{timezone.now().timestamp()}", request.POST.get("reason", ""), request.user)
-        return redirect(f"{request.path}?q={q}")
-    return render(request, "site/control_debts.html", {"users": users, "query": q})
-
-@support_required
-def control_send_notification(request):
-    form = SendNotificationForm(request.POST or None)
-    if request.method == "POST" and form.is_valid():
-        users = User.objects.filter(is_active=True)
-        if form.cleaned_data["target"] == "tier": users = users.filter(tier=form.cleaned_data["tier"])
-        elif form.cleaned_data["target"] == "individual": users = users.filter(email=form.cleaned_data["user_email"])
-        if users.exists():
-            send_push, send_email = form.cleaned_data["channels"] in ['all', 'push'], form.cleaned_data["channels"] in ['all', 'email']
-            with transaction.atomic():
-                notify_bulk(users, form.cleaned_data["title"], form.cleaned_data["body"], action_url=form.cleaned_data["action_url"], category='system', use_push=send_push)
-                if send_email:
-                    for u in users: send_brevo_email(u.email, u.get_full_name() or u.email, form.cleaned_data["title"], f"<div dir='rtl'>{form.cleaned_data['body']}</div>")
-            messages.success(request, "تم الإرسال."); return redirect("control_send_notification")
-    return render(request, "site/control_notification_form.html", {"form": form})
-
-@support_required
-def control_support_chat_open(request):
-    form = AdminChatForm(request.POST or None)
-    if request.method == "POST" and form.is_valid():
-        user = User.objects.filter(email=form.cleaned_data["user_email"]).first()
-        if user:
-            with transaction.atomic():
-                room = ChatRoom.objects.create(user=user, assigned_agent=request.user, subject=form.cleaned_data["subject"], status=ChatRoom.Status.ASSIGNED)
-                ChatMessage.objects.create(room=room, sender=request.user, text=form.cleaned_data["message"], is_staff_reply=True)
-                room.unread_user_count = 1; room.save()
-                notify_user(user, title="رسالة من الدعم", body=room.subject, action_url=reverse("chat_list"), category='support')
-            return redirect("chat_room", room_id=room.id)
-        messages.error(request, "المستخدم غير موجود.")
-    return render(request, "site/control_support_chat_open.html", {"form": form})
 
 @admin_required
 def control_announcements(request): return render(request, "site/control_announcements.html", {"announcements": SiteAnnouncement.objects.all().order_by("-created_at")})
@@ -1020,6 +604,43 @@ def control_announcement_edit(request, pk):
 def control_announcement_delete(request, pk): get_object_or_404(SiteAnnouncement, pk=pk).delete(); return redirect("control_announcements")
 
 @admin_required
+def control_social_media(request):
+    from apps.site.forms import SocialMediaLinkForm
+    if request.method == "POST":
+        f = SocialMediaLinkForm(request.POST, request.FILES, instance=SocialMediaLink.objects.filter(pk=request.POST.get("pk")).first())
+        if f.is_valid(): f.save(); messages.success(request, "تم الحفظ."); return redirect("control_social_media")
+    return render(request, "site/control_social_media.html", {"links": SocialMediaLink.objects.all(), "form": SocialMediaLinkForm()})
+
+@admin_required
+def control_social_media_delete(request, pk): get_object_or_404(SocialMediaLink, pk=pk).delete(); return redirect("control_social_media")
+
+@support_required
+def control_category_create_ajax(request):
+    if request.POST.get('name'):
+        cat = Category.objects.create(name=request.POST.get('name'))
+        return JsonResponse({"id": str(cat.id), "name": cat.name})
+    return JsonResponse({"error": "Name required"}, status=400)
+
+@finance_required
+def control_wallets_list(request):
+    q = request.GET.get('q', '')
+    wallets = Wallet.objects.select_related('user', 'currency').all().order_by('-updated_at')
+    if q: wallets = wallets.filter(Q(user__email__icontains=q) | Q(user__first_name__icontains=q))
+    return render(request, "site/control_wallets_list.html", {"wallets": wallets, "query": q})
+
+@support_required
+def control_send_notification(request):
+    form = SendNotificationForm(request.POST or None)
+    if request.method == "POST" and form.is_valid():
+        users = User.objects.filter(is_active=True)
+        if form.cleaned_data["target"] == "tier": users = users.filter(tier=form.cleaned_data["tier"])
+        elif form.cleaned_data["target"] == "individual": users = users.filter(email=form.cleaned_data["user_email"])
+        if users.exists():
+            notify_bulk(users, form.cleaned_data["title"], form.cleaned_data["body"], action_url=form.cleaned_data["action_url"])
+            messages.success(request, "تم الإرسال."); return redirect("control_send_notification")
+    return render(request, "site/control_notification_form.html", {"form": form})
+
+@admin_required
 def control_support_settings(request):
     obj, _ = SupportSettings.objects.get_or_create(id=1); form = SupportSettingsForm(request.POST or None, instance=obj)
     if request.method == "POST" and form.is_valid(): form.save(); messages.success(request, "تم الحفظ."); return redirect("control_support_settings")
@@ -1042,6 +663,21 @@ def control_quick_reply_edit(request, pk):
 
 @support_required
 def control_quick_reply_delete(request, pk): get_object_or_404(ChatCannedReply, pk=pk).delete(); return redirect("control_quick_replies")
+
+@login_required
+def v3_change_email_view(request):
+    if request.method == "POST":
+        new_email = request.POST.get("new_email", "").lower().strip()
+        if User.objects.filter(email=new_email).exists():
+            messages.error(request, "البريد الإلكتروني مستخدم بالفعل.")
+        else:
+            otp = v3_generate_otp(request.user, "email_change")
+            if v3_send_otp_email(request.user, otp):
+                request.session["v3_auth_uid"], request.session["v3_auth_purpose"] = str(request.user.id), "email_change"
+                request.session["v3_new_email"] = new_email
+                return redirect("site_verify_otp")
+            messages.error(request, "فشل إرسال الرمز.")
+    return render(request, "site/v3/v3_change_email.html")
 
 def terms_of_service(request): return render(request, "site/terms_of_service.html")
 def refund_policy(request): return render(request, "site/refund_policy.html")
