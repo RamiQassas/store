@@ -79,19 +79,34 @@ def v3_verify_otp_logic(user, code, purpose):
     return False
 
 def v3_get_required_methods(user, action_type):
-    method_map = {"login": user.security_login_method, "deposit": user.security_deposit_method, "purchase": user.security_purchase_method, "withdraw": user.security_withdraw_method}
+    method_map = {
+        "login": user.security_login_method,
+        "deposit": user.security_deposit_method,
+        "purchase": user.security_purchase_method,
+        "withdraw": user.security_withdraw_method
+    }
     pref = method_map.get(action_type, "NONE")
+    
     if pref == "NONE": return []
     if pref == "EMAIL": return ["EMAIL"]
-    if pref == "APP": return ["APP"]
-    if pref == "BOTH": return ["EMAIL", "APP"]
+    if pref == "APP":
+        # Fallback to EMAIL if TOTP is not enabled
+        return ["APP"] if user.totp_enabled else ["EMAIL"]
+    if pref == "BOTH":
+        # If TOTP enabled, do APP then EMAIL. Otherwise just EMAIL.
+        return ["APP", "EMAIL"] if user.totp_enabled else ["EMAIL"]
     return []
 
 def v3_init_verification(request, user, action_type):
     methods = v3_get_required_methods(user, action_type)
-    if not methods: return True 
-    request.session["v3_auth_uid"], request.session["v3_auth_methods"], request.session["v3_auth_purpose"] = str(user.id), methods, action_type
-    if "EMAIL" in methods: v3_send_otp_email(user, v3_generate_otp(user, f"verify_{action_type}"))
+    if not methods: return True
+    request.session["v3_auth_uid"] = str(user.id)
+    request.session["v3_auth_methods"] = methods
+    request.session["v3_auth_purpose"] = action_type
+    
+    # Send email immediately if it's the FIRST step
+    if methods[0] == "EMAIL":
+        v3_send_otp_email(user, v3_generate_otp(user, f"verify_{action_type}"))
     return False
 
 import pyotp; import qrcode; import io; import base64
