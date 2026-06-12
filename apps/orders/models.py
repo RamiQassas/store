@@ -1,3 +1,4 @@
+import uuid
 from decimal import Decimal
 
 from django.conf import settings
@@ -58,6 +59,11 @@ class Order(TimeStampedModel):
         verbose_name = "طلب"
         verbose_name_plural = "الطلبات"
         ordering = ["-created_at"]
+
+    def save(self, *args, **kwargs):
+        if not self.number:
+            self.number = f"ORD-{uuid.uuid4().hex[:8].upper()}"
+        super().save(*args, **kwargs)
 
     def formatted_metadata(self):
         """Returns a list of dicts with 'label' and 'value' for metadata."""
