@@ -755,7 +755,9 @@ def product_detail(request, pk):
             if not last_verified or (timezone.now() - timezone.datetime.fromisoformat(last_verified)).total_seconds() > 300:
                 methods = request.session.get("v3_auth_methods", [])
                 return redirect("site_2fa_verify" if methods[0] == "APP" else "site_verify_otp")
-    return render(request, "site/product_detail.html", {"product": product})
+    variants = product.variants.filter(is_active=True).order_by('sort_order')
+    related_products = Product.objects.filter(category=product.category, is_active=True).exclude(pk=product.pk)[:3]
+    return render(request, "site/product_detail.html", {"product": product, "variants": variants, "related_products": related_products})
 
 def ajax_validate_coupon(request):
     try:

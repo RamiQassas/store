@@ -369,13 +369,14 @@ class ProductForm(forms.ModelForm):
         model = Product
         fields = [
             "name", "category", "image", "cover_image", "thumbnail",
-            "description", "instructions", "is_active", "is_featured", "sort_order", "form_schema"
+            "description", "instructions", "is_active", "is_featured", "sort_order", "delivery_time_display", "form_schema"
         ]
         widgets = {
             "name": forms.TextInput(attrs={"class": "builder-input"}),
             "category": forms.Select(attrs={"class": "builder-input"}),
             "description": forms.Textarea(attrs={"rows": 4, "class": "builder-input"}),
             "instructions": forms.Textarea(attrs={"rows": 4, "class": "builder-input"}),
+            "delivery_time_display": forms.TextInput(attrs={"class": "builder-input", "placeholder": "مثال: 5-15 دقيقة"}),
             "form_schema": forms.Textarea(attrs={"rows": 5, "placeholder": '{"version": 1, "fields": []}', "class": "builder-input font-mono text-xs"}),
             "image": forms.FileInput(attrs={"class": "builder-input"}),
             "cover_image": forms.FileInput(attrs={"class": "builder-input"}),
