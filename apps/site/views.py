@@ -116,7 +116,7 @@ def v3_login_view(request):
         return redirect("control_dashboard" if request.user.is_staff else "dashboard")
     form = LoginForm(request.POST or None)
     if request.method == "POST" and form.is_valid():
-        user = authenticate(request, username=form.cleaned_data["username"], password=form.cleaned_data["password"])
+        user = authenticate(request, username=form.cleaned_data["email"], password=form.cleaned_data["password"])
         if user:
             if not user.is_active:
                 messages.error(request, "الحساب معطل.")
