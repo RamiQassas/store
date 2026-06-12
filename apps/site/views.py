@@ -223,7 +223,7 @@ def v3_verify_otp_view(request):
                     deposit.save(update_fields=["is_verified"])
                     messages.success(request, "تم التحقق وإرسال طلب الإيداع بنجاح.")
                     del request.session["v3_pending_action_id"]
-                    return redirect("deposits")
+                    return redirect("dashboard_deposits")
 
                 # Then withdrawal
                 withdrawal = WithdrawalRequest.objects.filter(id=pending_action_id, user=user).first()
@@ -232,7 +232,7 @@ def v3_verify_otp_view(request):
                     withdrawal.save(update_fields=["is_verified"])
                     messages.success(request, "تم التحقق وإرسال طلب السحب بنجاح.")
                     del request.session["v3_pending_action_id"]
-                    return redirect("withdrawals")
+                    return redirect("dashboard_withdrawals")
 
             keys = ["v3_auth_uid", "v3_auth_methods", "v3_auth_purpose", "v3_new_email", "v3_pending_action_id"]
             for k in keys:
@@ -385,7 +385,7 @@ def deposits(request):
         # Validation
         if not method_id or not currency_id:
             messages.error(request, "بيانات وسيلة الدفع أو العملة ناقصة.")
-            return redirect("deposits")
+            return redirect("dashboard_deposits")
             
         method = get_object_or_404(PaymentMethod, id=method_id, is_active=True, can_deposit=True)
         currency = get_object_or_404(Currency, id=currency_id, is_active=True)
@@ -393,14 +393,14 @@ def deposits(request):
         # Security check: Does currency belong to method?
         if not method.supported_currencies.filter(id=currency.id).exists():
             messages.error(request, "العملة المختارة غير مدعومة لهذه الوسيلة.")
-            return redirect("deposits")
+            return redirect("dashboard_deposits")
 
         try:
             amount = Decimal(amount_str)
             if amount <= 0: raise ValueError()
         except:
             messages.error(request, "يرجى إدخال مبلغ صحيح.")
-            return redirect("deposits")
+            return redirect("dashboard_deposits")
 
         # Extract metadata from custom fields
         metadata = {}
@@ -410,7 +410,7 @@ def deposits(request):
             val = request.POST.get(f"custom_{field_name}")
             if field.get("required") and not val:
                 messages.error(request, f"الحقل {field.get('label')} مطلوب.")
-                return redirect("deposits")
+                return redirect("dashboard_deposits")
             metadata[field_name] = val
 
         # Create the request (unverified first)
@@ -437,7 +437,7 @@ def deposits(request):
             deposit.is_verified = True
             deposit.save(update_fields=["is_verified"])
             messages.success(request, "تم تقديم طلب الإيداع بنجاح.")
-            return redirect("deposits")
+            return redirect("dashboard_deposits")
         else:
             # Save request ID in session for verification callback
             request.session["v3_pending_action_id"] = str(deposit.id)
@@ -459,21 +459,21 @@ def withdrawals(request):
         
         if not method_id or not currency_id:
             messages.error(request, "بيانات ناقصة.")
-            return redirect("withdrawals")
+            return redirect("dashboard_withdrawals")
 
         method = get_object_or_404(PaymentMethod, id=method_id, is_active=True, can_withdraw=True)
         currency = get_object_or_404(Currency, id=currency_id, is_active=True)
         
         if not method.supported_currencies.filter(id=currency.id).exists():
             messages.error(request, "العملة المختارة غير مدعومة.")
-            return redirect("withdrawals")
+            return redirect("dashboard_withdrawals")
 
         try:
             amount = Decimal(amount_str)
             if amount <= 0: raise ValueError()
         except:
             messages.error(request, "مبلغ غير صحيح.")
-            return redirect("withdrawals")
+            return redirect("dashboard_withdrawals")
 
         # Extract payout details
         payout_details = {"dynamic": {}}
@@ -483,7 +483,7 @@ def withdrawals(request):
             val = request.POST.get(f"custom_{field_name}")
             if field.get("required") and not val:
                 messages.error(request, f"الحقل {field.get('label')} مطلوب.")
-                return redirect("withdrawals")
+                return redirect("dashboard_withdrawals")
             payout_details["dynamic"][field_name] = val
 
         # Create unverified request
@@ -502,14 +502,14 @@ def withdrawals(request):
                 )
         except Exception as e:
             messages.error(request, str(e))
-            return redirect("withdrawals")
+            return redirect("dashboard_withdrawals")
 
         # AFTER creation: Verification
         if v3_init_verification(request, request.user, "withdraw"):
             withdrawal.is_verified = True
             withdrawal.save(update_fields=["is_verified"])
             messages.success(request, "تم تقديم طلب السحب بنجاح.")
-            return redirect("withdrawals")
+            return redirect("dashboard_withdrawals")
         else:
             request.session["v3_pending_action_id"] = str(withdrawal.id)
             messages.info(request, "يرجى التحقق لإكمال طلب السحب.")
