@@ -60,9 +60,13 @@ def currency_format(context, amount, source_currency=None):
     try:
         source = source_currency or system_currency
         
+        prefix = ""
+        if target_currency.code != "USD":
+            prefix = "≈ "
+        
         if source and target_currency and source.code == target_currency.code:
              formatted = f"{Decimal(str(amount)):,.{target_currency.decimal_places}f}"
-             return f"{formatted} {target_currency.symbol}"
+             return f"{prefix}{formatted} {target_currency.symbol}"
 
         base_amount = amount
         if source and source.code != "USD":
@@ -70,7 +74,7 @@ def currency_format(context, amount, source_currency=None):
         
         converted = target_currency.from_base(base_amount)
         formatted = f"{converted:,.{target_currency.decimal_places}f}"
-        return f"{formatted} {target_currency.symbol}"
+        return f"{prefix}{formatted} {target_currency.symbol}"
     except Exception:
         return f"{amount} {target_currency.symbol if target_currency else 'SYP'}"
 
