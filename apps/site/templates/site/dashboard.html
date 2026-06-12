@@ -440,6 +440,38 @@
             </div>
         </div>
 
+        <!-- Security Quick Settings -->
+        <div class="panel p-6 border-cyan/20">
+            <h2 class="text-lg mb-4 text-cyan"><i class="fas fa-shield-alt ml-2"></i> الأمن والحماية</h2>
+            <div class="stack gap-3">
+                <a href="{% url 'site_security_triggers' %}" class="flex items-center justify-between p-3 bg-slate-800/30 rounded-lg hover:bg-cyan/5 transition-colors">
+                    <div class="flex items-center gap-3">
+                        <i class="fas fa-toggle-on text-cyan"></i>
+                        <span class="text-sm">مشغلات الأمان</span>
+                    </div>
+                    <i class="fas fa-chevron-left text-[10px] text-slate-600"></i>
+                </a>
+                <a href="{% url 'site_2fa_setup' %}" class="flex items-center justify-between p-3 bg-slate-800/30 rounded-lg hover:bg-cyan/5 transition-colors">
+                    <div class="flex items-center gap-3">
+                        <i class="fas fa-key text-cyan"></i>
+                        <span class="text-sm">المصادقة الثنائية (2FA)</span>
+                    </div>
+                    {% if user.totp_enabled %}
+                    <span class="text-[8px] text-emerald-500 font-bold bg-emerald-500/10 px-2 py-1 rounded">مفعل</span>
+                    {% else %}
+                    <span class="text-[8px] text-slate-500 bg-slate-500/10 px-2 py-1 rounded">معطل</span>
+                    {% endif %}
+                </a>
+                <a href="{% url 'change_password' %}" class="flex items-center justify-between p-3 bg-slate-800/30 rounded-lg hover:bg-cyan/5 transition-colors">
+                    <div class="flex items-center gap-3">
+                        <i class="fas fa-lock text-cyan"></i>
+                        <span class="text-sm">تغيير كلمة المرور</span>
+                    </div>
+                    <i class="fas fa-chevron-left text-[10px] text-slate-600"></i>
+                </a>
+            </div>
+        </div>
+
         <!-- Notifications Card -->
         <div class="panel stack">
             <div class="section-head p-6 pb-0">

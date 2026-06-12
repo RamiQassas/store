@@ -415,28 +415,63 @@ def v3_verify_otp_view(request):
 def v3_logout_view(request):
     logout(request); return redirect("site_login")
 
+from django.core.signing import Signer, TimestampSigner, SignatureExpired, BadSignature
+signer = TimestampSigner()
+
 def v3_forgot_password_view(request):
     if request.method == "POST":
-        user = User.objects.filter(email=request.POST.get("email", "").lower().strip()).first()
+        email = request.POST.get("email", "").lower().strip()
+        user = User.objects.filter(email=email).first()
         if user:
-            otp = v3_generate_otp(user, OTPToken.Purpose.PASSWORD_RESET)
-            if v3_send_otp_email(user, otp):
-                request.session["v3_auth_uid"], request.session["v3_auth_purpose"] = str(user.id), OTPToken.Purpose.PASSWORD_RESET
-                messages.success(request, "تم إرسال رمز التحقق."); return redirect("site_verify_otp")
-        messages.error(request, "البريد غير مسجل أو فشل الإرسال.")
+            # Generate a signed token valid for 10 minutes
+            token = signer.sign(str(user.id))
+            reset_url = request.build_absolute_uri(reverse('site_reset_password')) + f"?token={token}"
+            
+            subject = "رابط استعادة كلمة المرور | Raqamiyat"
+            html_content = f"""
+            <div dir="rtl" style="font-family: sans-serif; max-width: 500px; margin: 0 auto; padding: 20px; border: 1px solid #eee; border-radius: 10px;">
+                <h2 style="color: #06b6d4;">رقميات | RAQAMIYAT</h2>
+                <p>مرحباً،</p>
+                <p>لقد طلبت إعادة تعيين كلمة المرور الخاصة بك. يرجى الضغط على الزر أدناه للمتابعة:</p>
+                <div style="text-align: center; margin: 30px 0;">
+                    <a href="{reset_url}" style="display: inline-block; padding: 12px 25px; background-color: #06b6d4; color: white; text-decoration: none; border-radius: 8px; font-weight: bold;">إعادة تعيين كلمة المرور الآن</a>
+                </div>
+                <p style="font-size: 12px; color: #999;">هذا الرابط صالح لمدة 10 دقائق فقط. إذا لم تطلب هذا، يرجى تجاهل البريد.</p>
+            </div>
+            """
+            if send_brevo_email(user.email, user.get_full_name() or user.email, subject, html_content):
+                messages.success(request, "تم إرسال رابط استعادة كلمة المرور إلى بريدك الإلكتروني.")
+                return render(request, "site/v3/v3_forgot_password.html", {"sent": True})
+        messages.error(request, "البريد غير مسجل لدينا.")
     return render(request, "site/v3/v3_forgot_password.html")
 
 def v3_reset_password_view(request):
-    uid, is_verified = request.session.get("v3_auth_uid"), request.session.get("v3_recovery_verified") == True
-    if not uid or not is_verified: return redirect("site_forgot_password")
-    user = get_object_or_404(User, id=uid)
+    token = request.GET.get("token") or request.POST.get("token")
+    if not token:
+        messages.error(request, "رابط غير صالح.")
+        return redirect("site_forgot_password")
+    
+    try:
+        # Verify token (valid for 600 seconds = 10 mins)
+        uid = signer.unsign(token, max_age=600)
+        user = get_object_or_404(User, id=uid)
+    except SignatureExpired:
+        messages.error(request, "انتهت صلاحية الرابط (10 دقائق). يرجى طلب رابط جديد.")
+        return redirect("site_forgot_password")
+    except (BadSignature, ValueError):
+        messages.error(request, "رابط غير صحيح أو تالف.")
+        return redirect("site_forgot_password")
+
     if request.method == "POST":
         p1, p2 = request.POST.get("password"), request.POST.get("confirm_password")
         if p1 and p1 == p2 and len(p1) >= 10:
-            user.set_password(p1); user.save(); request.session.flush()
-            messages.success(request, "تم تغيير كلمة المرور."); return redirect("site_login")
-        messages.error(request, "تأكد من تطابق كلمة المرور وطولها.")
-    return render(request, "site/v3/v3_reset_password.html", {"user_email": user.email, "now": timezone.now()})
+            user.set_password(p1)
+            user.save()
+            messages.success(request, "تم تغيير كلمة المرور بنجاح. يمكنك الدخول الآن.")
+            return redirect("site_login")
+        messages.error(request, "كلمات المرور غير متطابقة أو قصيرة جداً (أقل من 10 خانات).")
+    
+    return render(request, "site/v3/v3_reset_password.html", {"user_email": user.email, "token": token})
 
 def email_verify(request, uidb64, token): return redirect("site_login")
 def resend_verification(request): return redirect("dashboard")
@@ -949,7 +984,6 @@ def refund_policy(request): return render(request, "site/refund_policy.html")
 def contact_page(request): return render(request, "site/contact.html")
 def privacy_policy(request): return render(request, "site/privacy_policy.html")
 
-@staff_member_required
 def service_worker(request): return HttpResponse(open("apps/site/static/site/js/sw.js").read(), content_type="application/javascript")
 
 def set_currency(request):

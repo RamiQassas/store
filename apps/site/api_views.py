@@ -212,9 +212,37 @@ def api_withdrawal_reject(request, pk):
         created_by=request.user
     )
     
-    withdrawal.status = WithdrawalRequest.Status.REJECTED
     withdrawal.reviewed_at = timezone.now()
     withdrawal.admin_note = admin_note
     withdrawal.save()
     
     return Response({"status": "success"})
+
+
+@api_view(["GET"])
+@permission_classes([IsSupportAgent])
+def api_user_search(request):
+    from django.db.models import Q
+    from django.contrib.auth import get_user_model
+    User = get_user_model()
+    query = request.GET.get("q", "")
+    if len(query) < 2:
+        return Response([])
+    
+    users = User.objects.filter(
+        Q(email__icontains=query) | 
+        Q(username__icontains=query) | 
+        Q(first_name__icontains=query) | 
+        Q(last_name__icontains=query)
+    ).only("email", "username", "first_name", "last_name", "public_uuid")[:10]
+    
+    results = [
+        {
+            "id": str(u.id),
+            "email": u.email,
+            "username": u.username,
+            "full_name": u.get_full_name(),
+            "public_uuid": str(u.public_uuid)
+        } for u in users
+    ]
+    return Response(results)

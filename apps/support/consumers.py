@@ -18,19 +18,22 @@ class SupportConsumer(AsyncWebsocketConsumer):
 
         # Verify access for both authenticated and guest users
         try:
+            print(f"WS Checking access for Room {self.room_id}...")
             has_access = await self.can_access_room()
             if not has_access:
-                print(f"WS Reject: Access Denied for Room {self.room_id}")
-                await self.close()
+                print(f"WS Reject: Access Denied for Room {self.room_id} (User: {self.user})")
+                await self.close(code=4003)
                 return
         except Exception as e:
             print(f"WS Error during access check: {str(e)}")
-            await self.close()
+            import traceback
+            traceback.print_exc()
+            await self.close(code=4000)
             return
 
         await self.channel_layer.group_add(self.room_group_name, self.channel_name)
         await self.accept()
-        print(f"WS Accepted: Room {self.room_id}")
+        print(f"WS Accepted: Room {self.room_id} by User {self.user}")
 
     async def disconnect(self, close_code):
         if hasattr(self, 'room_group_name'):

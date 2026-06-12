@@ -34,8 +34,48 @@
         <div class="grid grid-cols-1 xl:grid-cols-2 gap-6 items-center">
             <div class="input-wrapper group relative">
                 <i class="fas fa-search absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-cyan transition-colors"></i>
-                <input type="text" name="q" value="{{ query }}" placeholder="بحث بالبريد، الهاتف، أو الاسم..." class="text-xs pr-10 bg-slate-900/50 border-white/10 rounded-xl focus:border-cyan/50 focus:ring-4 focus:ring-cyan/10 transition-all w-full py-3">
+                <input type="text" name="q" id="user-search-q" value="{{ query }}" placeholder="بحث بالبريد، الهاتف، أو الاسم..." class="text-xs pr-10 bg-slate-900/50 border-white/10 rounded-xl focus:border-cyan/50 focus:ring-4 focus:ring-cyan/10 transition-all w-full py-3" autocomplete="off">
+                <div id="user-search-results" class="absolute z-50 w-full mt-1 bg-slate-900 border border-white/10 rounded-xl shadow-2xl hidden overflow-hidden"></div>
             </div>
+
+            <script>
+                const searchInput = document.getElementById('user-search-q');
+                const searchResultsDiv = document.getElementById('user-search-results');
+                let searchDebounceTimer;
+
+                searchInput.addEventListener('input', function() {
+                    clearTimeout(searchDebounceTimer);
+                    const query = this.value.trim();
+                    if (query.length < 2) {
+                        searchResultsDiv.classList.add('hidden');
+                        return;
+                    }
+
+                    searchDebounceTimer = setTimeout(() => {
+                        fetch(`/api/users/search/?q=${encodeURIComponent(query)}`)
+                            .then(res => res.json())
+                            .then(data => {
+                                if (data.length > 0) {
+                                    searchResultsDiv.innerHTML = data.map(u => `
+                                        <div class="p-3 hover:bg-cyan/10 cursor-pointer border-b border-white/5 last:border-0" onclick="window.location.href='?q=${u.email}'">
+                                            <div class="font-bold text-sm text-white">${u.email}</div>
+                                            <div class="text-[10px] text-slate-500">${u.full_name || u.username}</div>
+                                        </div>
+                                    `).join('');
+                                    searchResultsDiv.classList.remove('hidden');
+                                } else {
+                                    searchResultsDiv.classList.add('hidden');
+                                }
+                            });
+                    }, 300);
+                });
+
+                document.addEventListener('click', (e) => {
+                    if (!searchInput.contains(e.target) && !searchResultsDiv.contains(e.target)) {
+                        searchResultsDiv.classList.add('hidden');
+                    }
+                });
+            </script>
             
             <div class="flex flex-wrap items-center justify-start xl:justify-end gap-3">
                 <div class="flex items-center bg-slate-900/50 border border-white/5 rounded-xl p-1 shadow-inner">

@@ -253,6 +253,15 @@ X_FRAME_OPTIONS = "DENY"
 
 ASGI_APPLICATION = "config.asgi.application"
 
+CHANNEL_LAYERS = {
+    "default": {
+        "BACKEND": "channels_redis.core.RedisChannelLayer",
+        "CONFIG": {
+            "hosts": [os.environ.get("REDIS_URL", "redis://127.0.0.1:6379/0")],
+        },
+    },
+}
+
 # Web Push Configuration
 VAPID_PUBLIC_KEY = env("VAPID_PUBLIC_KEY")
 VAPID_PRIVATE_KEY = env("VAPID_PRIVATE_KEY")

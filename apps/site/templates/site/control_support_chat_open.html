@@ -17,11 +17,56 @@
             <form method="post" class="stack gap-6">
                 {% csrf_token %}
                 
-                <div>
+                <div class="relative">
                     <label class="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2">بريد المستخدم المستهدف</label>
-                    {{ form.user_email }}
+                    <input type="email" name="user_email" id="id_user_email" class="builder-input" placeholder="ابحث بالبريد أو الاسم..." required autocomplete="off">
+                    <div id="user-results" class="absolute z-50 w-full mt-1 bg-slate-900 border border-white/10 rounded-xl shadow-2xl hidden overflow-hidden"></div>
                     <p class="mt-1 text-[10px] text-slate-500 italic">يجب أن يكون للمستخدم حساب مسجل في الموقع.</p>
                 </div>
+
+                <script>
+                    const emailInput = document.getElementById('id_user_email');
+                    const resultsDiv = document.getElementById('user-results');
+                    let debounceTimer;
+
+                    emailInput.addEventListener('input', function() {
+                        clearTimeout(debounceTimer);
+                        const query = this.value.trim();
+                        if (query.length < 2) {
+                            resultsDiv.classList.add('hidden');
+                            return;
+                        }
+
+                        debounceTimer = setTimeout(() => {
+                            fetch(`/api/users/search/?q=${encodeURIComponent(query)}`)
+                                .then(res => res.json())
+                                .then(data => {
+                                    if (data.length > 0) {
+                                        resultsDiv.innerHTML = data.map(u => `
+                                            <div class="p-3 hover:bg-cyan/10 cursor-pointer border-b border-white/5 last:border-0" onclick="selectUser('${u.email}')">
+                                                <div class="font-bold text-sm text-white">${u.email}</div>
+                                                <div class="text-[10px] text-slate-500">${u.full_name || u.username}</div>
+                                            </div>
+                                        `).join('');
+                                        resultsDiv.classList.remove('hidden');
+                                    } else {
+                                        resultsDiv.classList.add('hidden');
+                                    }
+                                });
+                        }, 300);
+                    });
+
+                    function selectUser(email) {
+                        emailInput.value = email;
+                        resultsDiv.classList.add('hidden');
+                    }
+
+                    document.addEventListener('click', (e) => {
+                        if (!emailInput.contains(e.target) && !resultsDiv.contains(e.target)) {
+                            resultsDiv.classList.add('hidden');
+                        }
+                    });
+                </script>
 
                 <div>
                     <label class="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2">موضوع التذكرة</label>
