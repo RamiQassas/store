@@ -22,7 +22,7 @@ SECRET_KEY = env(
     "dev-only-secret-key-change-me-please-use-env-in-production-2026"
 )
 
-DEBUG = env_bool("DEBUG", False)
+DEBUG = True # env_bool("DEBUG", False)
 
 # Render Reverse Proxy Configuration
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
