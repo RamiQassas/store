@@ -9,9 +9,30 @@
     </div>
 </div>
 
-<div class="management-card mt-8">
+<div class="management-card mt-8 p-6">
+    <!-- Search & Filters -->
+    <div class="panel p-6 mb-8 bg-white/[0.01] border-white/5">
+        <form method="GET" class="flex flex-wrap gap-4 items-end">
+            <div class="flex-grow">
+                <label class="text-[10px] font-black text-slate-500 uppercase block mb-2">بحث (بريد، اسم، أو رقم الهوية)</label>
+                <input type="text" name="q" value="{{ query }}" class="builder-input w-full" placeholder="ابحث هنا...">
+            </div>
+            <div style="width: 200px;">
+                <label class="text-[10px] font-black text-slate-500 uppercase block mb-2">تصفية بالحالة</label>
+                <select name="status" class="builder-input w-full">
+                    <option value="">جميع الحالات</option>
+                    {% for val, lbl in kyc_status_choices %}
+                    <option value="{{ val }}" {% if status_filter == val %}selected{% endif %}>{{ lbl }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <button type="submit" class="btn btn-primary h-[42px] px-8">تطبيق الفلاتر</button>
+            <a href="{% url 'control_kycs_list' %}" class="btn btn-outline h-[42px]">إعادة ضبط</a>
+        </form>
+    </div>
+
     <div class="table-responsive">
-        <table class="w-full text-right">
+        <table class="w-full text-right border-collapse">
             <thead>
                 <tr class="text-[10px] uppercase tracking-widest text-slate-500 border-b border-white/5 bg-slate-900/20">
                     <th class="p-4">المستخدم</th>
@@ -58,7 +79,7 @@
                 </tr>
                 {% empty %}
                 <tr>
-                    <td colspan="7" class="p-12 text-center text-slate-500 italic">لا توجد طلبات توثيق حالياً.</td>
+                    <td colspan="7" class="p-12 text-center text-slate-500 italic">لا توجد طلبات توثيق تطابق البحث.</td>
                 </tr>
                 {% endfor %}
             </tbody>

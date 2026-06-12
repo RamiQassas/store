@@ -1063,14 +1063,60 @@ def control_withdrawal_detail(request, pk):
     return render(request, "site/control_withdrawal_detail.html", {"withdrawal": withdrawal})
 
 @support_required
-def control_kycs_list(request): return render(request, "site/control_kycs_list.html", {"requests": KYCRequest.objects.select_related('user').all().order_by('-created_at')})
+def control_kycs_list(request):
+    q = request.GET.get('q', '')
+    status = request.GET.get('status', '') # This will refer to user.is_kyc_verified or kyc_request.status
+    
+    users = User.objects.filter(role=User.Role.CUSTOMER).select_related('kyc_request').all().order_by('-date_joined')
+    
+    if q:
+        users = users.filter(
+            Q(email__icontains=q) | 
+            Q(first_name__icontains=q) | 
+            Q(last_name__icontains=q) |
+            Q(kyc_request__id_number__icontains=q)
+        )
+    
+    if status == "verified":
+        users = users.filter(is_kyc_verified=True)
+    elif status == "pending":
+        users = users.filter(kyc_request__status=KYCRequest.Status.PENDING)
+    elif status == "unverified":
+        users = users.filter(is_kyc_verified=False).exclude(kyc_request__status=KYCRequest.Status.PENDING)
+    elif status == "rejected":
+        users = users.filter(kyc_request__status=KYCRequest.Status.REJECTED)
+        
+    return render(request, "site/control_kycs_list.html", {
+        "users": users, 
+        "query": q, 
+        "status_filter": status,
+    })
 
 @support_required
 def control_kyc_detail(request, pk):
     kyc = get_object_or_404(KYCRequest.objects.select_related('user'), pk=pk)
     if request.method == "POST":
-        if request.POST.get("action") == "approve": kyc.status = KYCRequest.Status.VERIFIED; kyc.user.is_kyc_verified = True; kyc.user.save(); kyc.save()
+        action = request.POST.get("action")
+        admin_note = request.POST.get("admin_note", "")
+        
+        if action == "approve":
+            kyc.status = KYCRequest.Status.APPROVED
+            kyc.user.is_kyc_verified = True
+            kyc.user.save()
+            messages.success(request, f"تم توثيق حساب {kyc.user.email} بنجاح.")
+        elif action == "reject":
+            kyc.status = KYCRequest.Status.REJECTED
+            kyc.rejection_reason = admin_note
+            kyc.user.is_kyc_verified = False
+            kyc.user.save()
+            messages.warning(request, f"تم رفض طلب توثيق {kyc.user.email}.")
+            
+        kyc.reviewed_by = request.user
+        kyc.reviewed_at = timezone.now()
+        kyc.save()
+        
         return redirect("control_kycs_list")
+        
     return render(request, "site/control_kyc_detail.html", {"kyc": kyc})
 
 @kyc_required
@@ -1527,18 +1573,22 @@ def control_reports(request):
         "payment_method_id": request.GET.get("payment_method_id"),
         "tier": request.GET.get("tier"),
         "user_id": request.GET.get("user_id"),
+        "include_pending": request.GET.get("include_pending") == "on",
+        "reporting_currency_code": request.GET.get("reporting_currency", "USD"),
     }
     
     # Clean empty strings
-    filters = {k: v for k, v in filters.items() if v}
+    clean_filters = {k: v for k, v in filters.items() if v}
     
-    analytics = FinancialAnalyticsService(filters)
+    analytics = FinancialAnalyticsService(clean_filters)
     
     ctx = {
         "kpis": analytics.get_dashboard_kpis(),
         "pnl": analytics.get_pnl_statement(),
         "treasury": analytics.get_treasury_status(),
         "payment_performance": analytics.get_payment_method_performance(),
+        "debt_aging": analytics.get_debt_aging(),
+        "trends": analytics.get_trends(),
         "filters": filters,
         "currencies": Currency.objects.filter(is_active=True),
         "payment_methods": PaymentMethod.objects.filter(is_active=True),
@@ -1547,39 +1597,108 @@ def control_reports(request):
     
     export_format = request.GET.get("export")
     if export_format == "excel":
-        return export_financial_report_excel(ctx, filters)
+        return export_financial_report_xlsx(ctx, clean_filters)
         
     return render(request, "site/control_reports.html", ctx)
 
-def export_financial_report_excel(ctx, filters):
-    response = HttpResponse(content_type='text/csv; charset=utf-8-sig')
-    response['Content-Disposition'] = f'attachment; filename="financial_report_{timezone.now().strftime("%Y%m%d")}.csv"'
+def export_financial_report_xlsx(ctx, filters):
+    import openpyxl
+    from openpyxl.styles import Font, Alignment, PatternFill, Border, Side
+    from openpyxl.utils import get_column_letter
+    from io import BytesIO
+
+    wb = openpyxl.Workbook()
     
-    writer = csv.writer(response)
-    writer.writerow(['Financial Report Overview'])
-    writer.writerow(['Generated At', timezone.now().strftime("%Y-%m-%d %H:%M:%S")])
-    writer.writerow([])
+    # --- Sheet 1: الملخص المالي ---
+    ws = wb.active
+    ws.title = "الملخص المالي"
+    ws.sheet_view.rightToLeft = True
     
-    writer.writerow(['--- KPIs ---'])
-    for key, val in ctx['kpis'].items():
-        writer.writerow([key.replace("_", " ").title(), val])
+    # Styles
+    header_font = Font(name='Arial', bold=True, color="FFFFFF", size=12)
+    header_fill = PatternFill(start_color="06b6d4", end_color="06b6d4", fill_type="solid")
+    center_align = Alignment(horizontal="center", vertical="center")
+    border = Border(left=Side(style='thin'), right=Side(style='thin'), top=Side(style='thin'), bottom=Side(style='thin'))
+
+    # Branding & Header
+    ws.merge_cells('A1:D1')
+    ws['A1'] = "تقرير رقميات المالي - Raqamiyat Financial Report"
+    ws['A1'].font = Font(bold=True, size=16)
+    ws['A1'].alignment = center_align
+    
+    ws['A2'] = "تاريخ الاستخراج:"
+    ws['B2'] = timezone.now().strftime("%Y-%m-%d %H:%M")
+    
+    ws['A3'] = "عملة التقرير:"
+    ws['B3'] = ctx['kpis']['reporting_currency']
+
+    # KPIs Section
+    ws['A5'] = "المؤشر"
+    ws['B5'] = "القيمة"
+    for cell in ['A5', 'B5']:
+        ws[cell].font = header_font
+        ws[cell].fill = header_fill
+        ws[cell].alignment = center_align
+
+    kpis_data = [
+        ("إجمالي الإيداعات", ctx['kpis']['total_deposits']),
+        ("إجمالي السحوبات", ctx['kpis']['total_withdrawals']),
+        ("صافي التدفق النقدي", ctx['kpis']['net_cashflow']),
+        ("رسوم العمليات", ctx['kpis']['total_fees_earned']),
+        ("أرباح المنتجات الصافية", ctx['kpis']['product_net_profit']),
+        ("الديون المستحقة", ctx['kpis']['total_outstanding_debt']),
+        ("التزامات المحافظ", ctx['kpis']['total_liabilities']),
+    ]
+    
+    row = 6
+    for label, val in kpis_data:
+        ws.cell(row=row, column=1, value=label).border = border
+        ws.cell(row=row, column=2, value=float(val)).border = border
+        ws.cell(row=row, column=2).number_format = '#,##0.00'
+        row += 1
+
+    # --- Sheet 2: الأداء والسيولة ---
+    ws2 = wb.create_sheet("أداء وسائل الدفع")
+    ws2.sheet_view.rightToLeft = True
+    
+    headers = ["الوسيلة", "حجم الإيداعات", "حجم السحوبات", "الصافي", "الرسوم", "الرصيد التقديري"]
+    for col, h in enumerate(headers, 1):
+        cell = ws2.cell(row=1, column=col, value=h)
+        cell.font = header_font
+        cell.fill = header_fill
+        cell.alignment = center_align
         
-    writer.writerow([])
-    writer.writerow(['--- P&L Statement ---'])
-    writer.writerow(['Gross Profit', ctx['pnl']['gross_profit']])
-    writer.writerow(['Net Profit', ctx['pnl']['net_profit']])
-    
-    writer.writerow([])
-    writer.writerow(['--- Treasury Status ---'])
-    for key, val in ctx['treasury'].items():
-        writer.writerow([key.replace("_", " ").title(), val])
-        
-    writer.writerow([])
-    writer.writerow(['--- Payment Methods Performance ---'])
-    writer.writerow(['Name', 'Deposits Vol', 'Withdrawals Vol', 'Net', 'Fees Generated', 'Capital Rate'])
+    row = 2
     for pm in ctx['payment_performance']:
-        writer.writerow([pm['name'], pm['deposits_volume'], pm['withdrawals_volume'], pm['net_movement'], pm['fees_generated'], pm['capital_rate']])
-        
+        ws2.cell(row=row, column=1, value=pm['name']).border = border
+        ws2.cell(row=row, column=2, value=float(pm['deposits_volume'])).border = border
+        ws2.cell(row=row, column=3, value=float(pm['withdrawals_volume'])).border = border
+        ws2.cell(row=row, column=4, value=float(pm['net_movement'])).border = border
+        ws2.cell(row=row, column=5, value=float(pm['fees_generated'])).border = border
+        ws2.cell(row=row, column=6, value=float(pm['real_balance'])).border = border
+        row += 1
+
+    # Auto-adjust column widths
+    for sheet in wb.worksheets:
+        for column in sheet.columns:
+            max_length = 0
+            column_letter = get_column_letter(column[0].column)
+            for cell in column:
+                try:
+                    if len(str(cell.value)) > max_length:
+                        max_length = len(str(cell.value))
+                except: pass
+            sheet.column_dimensions[column_letter].width = max_length + 2
+
+    output = BytesIO()
+    wb.save(output)
+    output.seek(0)
+    
+    response = HttpResponse(
+        output.read(),
+        content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    )
+    response['Content-Disposition'] = f'attachment; filename="Raqamiyat_Financial_{timezone.now().strftime("%Y%m%d")}.xlsx"'
     return response
 @support_required
 def control_variant_create(request, product_pk): return redirect("control_product_edit", pk=product_pk)

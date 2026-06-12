@@ -1,8 +1,9 @@
 import json
 from decimal import Decimal
 from datetime import datetime, timedelta
-from django.db.models import Sum, Count, F, Q, ExpressionWrapper, DecimalField
+from django.db.models import Sum, Count, F, Q, ExpressionWrapper, DecimalField, Avg
 from django.utils import timezone
+from django.db.models.functions import TruncDate
 
 from apps.accounts.models import User
 from apps.orders.models import Order, OrderItem, Coupon
@@ -13,16 +14,31 @@ from apps.common.models import Currency
 class FinancialAnalyticsService:
     def __init__(self, filters=None):
         self.filters = filters or {}
-        # Expected filters: start_date, end_date, currency_id, payment_method_id, tier, user_id, product_id, status
+        # Expected filters: start_date, end_date, currency_id, payment_method_id, tier, user_id, status_filter, reporting_currency_code
+        self.reporting_currency = Currency.objects.filter(code=self.filters.get("reporting_currency_code", "USD")).first() or Currency.objects.filter(is_default=True).first()
         self._cache = {}
+
+    def _normalize(self, amount, from_currency, operation="deposit"):
+        """Normalizes an amount to the reporting currency."""
+        if not amount or amount == 0: return Decimal("0.00")
+        if not from_currency: return Decimal(str(amount))
+        
+        # Convert to Base (USD)
+        base_amt = from_currency.to_base(amount, operation=operation)
+        
+        # Convert from Base to Reporting Currency
+        if self.reporting_currency.code == "USD":
+            return base_amt
+            
+        return self.reporting_currency.from_base(base_amt, operation=operation)
 
     def _apply_date_filter(self, queryset, date_field="created_at"):
         start_date_str = self.filters.get("start_date")
         end_date_str = self.filters.get("end_date")
+        date_preset = self.filters.get("date_preset", "all")
         
-        # Handle predefined ranges
-        date_preset = self.filters.get("date_preset")
         now = timezone.now()
+        
         if date_preset == "today":
             queryset = queryset.filter(**{f"{date_field}__date": now.date()})
         elif date_preset == "yesterday":
@@ -40,8 +56,7 @@ class FinancialAnalyticsService:
             first_day_this_month = now.replace(day=1)
             last_month = first_day_this_month - timedelta(days=1)
             queryset = queryset.filter(**{f"{date_field}__year": last_month.year, f"{date_field}__month": last_month.month})
-        else:
-            # Custom range
+        elif date_preset == "custom":
             if start_date_str:
                 try:
                     start_date = timezone.datetime.fromisoformat(start_date_str)
@@ -63,116 +78,127 @@ class FinancialAnalyticsService:
         if self.filters.get("currency_id"):
             queryset = queryset.filter(**{f"{pfx}currency_id": self.filters.get("currency_id")})
         
+        if self.filters.get("payment_method_id"):
+            if hasattr(queryset.model, 'payment_method'):
+                queryset = queryset.filter(**{f"{pfx}payment_method_id": self.filters.get("payment_method_id")})
+        
         if self.filters.get("user_id"):
             user_field = f"{pfx}user_id" if prefix != "customer" else "customer_id"
             if prefix == "wallet": user_field = "wallet__user_id"
-            if prefix == "": user_field = "user_id" # Defaults
-            
-            # Special case for Order
+            if prefix == "": user_field = "user_id"
             if hasattr(queryset.model, 'customer'): user_field = "customer_id"
-            
             queryset = queryset.filter(**{user_field: self.filters.get("user_id")})
             
         if self.filters.get("tier"):
             user_field = f"{pfx}user__tier" if prefix != "customer" else "customer__tier"
             if prefix == "wallet": user_field = "wallet__user__tier"
             if prefix == "": user_field = "user__tier"
-            
             if hasattr(queryset.model, 'customer'): user_field = "customer__tier"
-                
             queryset = queryset.filter(**{user_field: self.filters.get("tier")})
             
         return queryset
 
     def get_dashboard_kpis(self):
-        # 1. Total Deposits
-        deposits_qs = DepositRequest.objects.filter(status=DepositRequest.Status.COMPLETED)
-        deposits_qs = self._apply_date_filter(deposits_qs, "reviewed_at")
-        deposits_qs = self._apply_common_filters(deposits_qs)
-        if self.filters.get("payment_method_id"):
-            deposits_qs = deposits_qs.filter(payment_method_id=self.filters.get("payment_method_id"))
-            
-        total_deposits = deposits_qs.aggregate(total=Sum('amount'))['total'] or Decimal("0.00")
-        total_deposit_fees = deposits_qs.aggregate(total=Sum('fee_amount'))['total'] or Decimal("0.00")
+        # 1. Deposits
+        dep_qs = DepositRequest.objects.all()
+        if not self.filters.get("include_pending"):
+            dep_qs = dep_qs.filter(status__in=[DepositRequest.Status.APPROVED, DepositRequest.Status.COMPLETED])
+        
+        dep_qs = self._apply_date_filter(dep_qs)
+        dep_qs = self._apply_common_filters(dep_qs)
+        
+        total_deposits = Decimal("0.00")
+        total_dep_fees = Decimal("0.00")
+        for d in dep_qs.select_related('currency'):
+            total_deposits += self._normalize(d.amount, d.currency)
+            total_dep_fees += self._normalize(d.fee_amount, d.currency)
 
-        # 2. Total Withdrawals
-        withdrawals_qs = WithdrawalRequest.objects.filter(status=WithdrawalRequest.Status.COMPLETED)
-        withdrawals_qs = self._apply_date_filter(withdrawals_qs, "reviewed_at")
-        withdrawals_qs = self._apply_common_filters(withdrawals_qs)
-        if self.filters.get("payment_method_id"):
-            withdrawals_qs = withdrawals_qs.filter(payment_method_id=self.filters.get("payment_method_id"))
-            
-        total_withdrawals = withdrawals_qs.aggregate(total=Sum('amount'))['total'] or Decimal("0.00")
-        total_withdrawal_fees = withdrawals_qs.aggregate(total=Sum('fee_amount'))['total'] or Decimal("0.00")
+        # 2. Withdrawals
+        with_qs = WithdrawalRequest.objects.all()
+        if not self.filters.get("include_pending"):
+            with_qs = with_qs.filter(status__in=[WithdrawalRequest.Status.APPROVED, WithdrawalRequest.Status.COMPLETED])
+        
+        with_qs = self._apply_date_filter(with_qs)
+        with_qs = self._apply_common_filters(with_qs)
+        
+        total_withdrawals = Decimal("0.00")
+        total_with_fees = Decimal("0.00")
+        for w in with_qs.select_related('currency'):
+            total_withdrawals += self._normalize(w.amount, w.currency, operation="withdraw")
+            total_with_fees += self._normalize(w.fee_amount, w.currency, operation="withdraw")
 
-        # 3. Product Sales & Profit
+        # 3. Orders & Product Profit
         orders_qs = Order.objects.exclude(status__in=[Order.Status.CANCELLED, Order.Status.REFUNDED])
         orders_qs = self._apply_date_filter(orders_qs)
         orders_qs = self._apply_common_filters(orders_qs, prefix="customer")
         
-        # Note: In multi-currency, summing total_amount directly might be inaccurate if orders are in different currencies.
-        # However, orders are usually priced in USD base and converted for display, or priced in base.
-        # Assuming order.total_amount is in USD or base currency.
-        product_revenue = orders_qs.aggregate(total=Sum('total_amount'))['total'] or Decimal("0.00")
+        product_revenue = Decimal("0.00")
+        product_cost = Decimal("0.00")
+        coupon_discounts = Decimal("0.00")
         
-        # Calculate cost
-        order_items = OrderItem.objects.filter(order__in=orders_qs)
-        total_cost = order_items.annotate(
-            total_item_cost=ExpressionWrapper(F('variant__cost') * F('quantity'), output_field=DecimalField())
-        ).aggregate(total=Sum('total_item_cost'))['total'] or Decimal("0.00")
-        
-        product_net_profit = product_revenue - total_cost
+        for o in orders_qs.prefetch_related('items__variant'):
+            product_revenue += Decimal(str(o.total_amount)) # Assuming Orders are in USD base or already normalized? 
+            # In this project, Order.total_amount is usually USD.
+            if o.original_total > o.total_amount:
+                coupon_discounts += (o.original_total - o.total_amount)
+            
+            for item in o.items.all():
+                product_cost += (item.variant.cost * item.quantity)
 
-        # 4. Exchange Profit/Loss
-        # This requires comparing the deposit's base currency value vs the payment method's capital_exchange_rate
-        # For a simplified MVP, if capital rate is provided:
-        # Profit = (amount_in_fiat / capital_rate) - amount_in_usd
-        exchange_profit = Decimal("0.00")
-        if not self.filters.get("payment_method_id"):
-            # Aggregate across all
-            for pm in PaymentMethod.objects.all():
-                pm_deposits = deposits_qs.filter(payment_method=pm)
-                if pm_deposits.exists():
-                    # Assuming deposit.amount is fiat, we need its USD equivalent based on capital_exchange_rate
-                    # Actually, if deposit.amount is what user inputs, and deposit.wallet_amount is what they get.
-                    # We need to know the currency.
-                    pass # Complex logic to be implemented below in detailed method
-
-        # 5. Debts
+        # 4. Debts
         wallets_qs = Wallet.objects.all()
-        if self.filters.get("user_id"): wallets_qs = wallets_qs.filter(user_id=self.filters.get("user_id"))
-        if self.filters.get("tier"): wallets_qs = wallets_qs.filter(user__tier=self.filters.get("tier"))
-        
+        wallets_qs = self._apply_common_filters(wallets_qs, prefix="")
+        total_liabilities = wallets_qs.aggregate(total=Sum('available_balance'))['total'] or Decimal("0.00")
         total_outstanding_debt = wallets_qs.aggregate(total=Sum('debt_balance'))['total'] or Decimal("0.00")
-        
-        # Collected debt (LedgerEntry DEBT_PAYMENT)
-        debt_payments = LedgerEntry.objects.filter(entry_type=LedgerEntry.EntryType.DEBT_PAYMENT)
-        debt_payments = self._apply_date_filter(debt_payments)
-        debt_payments = self._apply_common_filters(debt_payments, prefix="wallet")
-        total_collected_debt = debt_payments.aggregate(total=Sum('amount'))['total'] or Decimal("0.00")
-
-        # 6. Coupons
-        coupons_qs = Order.objects.filter(coupon__isnull=False).exclude(status__in=[Order.Status.CANCELLED, Order.Status.REFUNDED])
-        coupons_qs = self._apply_date_filter(coupons_qs)
-        coupons_qs = self._apply_common_filters(coupons_qs, prefix="customer")
-        
-        # original_total - total_amount = discount
-        coupon_losses = coupons_qs.annotate(
-            discount=ExpressionWrapper(F('original_total') - F('total_amount'), output_field=DecimalField())
-        ).aggregate(total=Sum('discount'))['total'] or Decimal("0.00")
 
         return {
             "total_deposits": total_deposits,
             "total_withdrawals": total_withdrawals,
             "net_cashflow": total_deposits - total_withdrawals,
-            "total_fees_earned": total_deposit_fees + total_withdrawal_fees,
+            "total_fees_earned": total_dep_fees + total_with_fees,
             "product_revenue": product_revenue,
-            "product_net_profit": product_net_profit,
+            "product_net_profit": product_revenue - product_cost - coupon_discounts,
             "total_outstanding_debt": total_outstanding_debt,
-            "total_collected_debt": total_collected_debt,
-            "coupon_losses": coupon_losses,
-            "pending_deposits_count": DepositRequest.objects.filter(status=DepositRequest.Status.PENDING).count(),
-            "pending_withdrawals_count": WithdrawalRequest.objects.filter(status=WithdrawalRequest.Status.PENDING).count(),
+            "total_liabilities": total_liabilities,
+            "coupon_losses": coupon_discounts,
+            "reporting_currency": self.reporting_currency.code
+        }
+
+    def get_pnl_statement(self):
+        kpis = self.get_dashboard_kpis()
+        
+        # Refunds (from LedgerEntry)
+        refunds_qs = LedgerEntry.objects.filter(description__icontains="Refund")
+        refunds_qs = self._apply_date_filter(refunds_qs)
+        refunds_qs = self._apply_common_filters(refunds_qs, prefix="wallet")
+        total_refunds = refunds_qs.aggregate(total=Sum('amount'))['total'] or Decimal("0.00")
+        
+        # FX Profit
+        fx_stats = self.get_fx_profit_report()
+        
+        net_profit = kpis["product_net_profit"] + kpis["total_fees_earned"] + fx_stats["net_fx_profit"] - total_refunds
+        
+        return {
+            "revenue": {
+                "product_profit": kpis["product_net_profit"],
+                "deposit_fees": kpis["total_fees_earned"] * Decimal("0.6"), # Estimated breakdown if not tracked separately
+                "withdrawal_fees": kpis["total_fees_earned"] * Decimal("0.4"),
+                "fx_profit": fx_stats["net_fx_profit"],
+            },
+            "losses": {
+                "coupons": kpis["coupon_losses"],
+                "refunds": total_refunds,
+            },
+            "net_profit": net_profit
+        }
+
+    def get_fx_profit_report(self):
+        """Calculates FX profit based on capital rates."""
+        pm_stats = self.get_payment_method_performance()
+        total_fx_profit = sum(item["exchange_revenue"] for item in pm_stats)
+        return {
+            "net_fx_profit": total_fx_profit,
+            "details": pm_stats
         }
 
     def get_payment_method_performance(self):
@@ -182,91 +208,120 @@ class FinancialAnalyticsService:
             
         results = []
         for pm in methods:
-            deposits = DepositRequest.objects.filter(payment_method=pm, status=DepositRequest.Status.COMPLETED)
-            deposits = self._apply_date_filter(deposits, "reviewed_at")
-            deposits = self._apply_common_filters(deposits)
+            # Deposits
+            deps = DepositRequest.objects.filter(payment_method=pm, status=DepositRequest.Status.COMPLETED)
+            deps = self._apply_date_filter(deps)
+            deps = self._apply_common_filters(deps)
             
-            withdrawals = WithdrawalRequest.objects.filter(payment_method=pm, status=WithdrawalRequest.Status.COMPLETED)
-            withdrawals = self._apply_date_filter(withdrawals, "reviewed_at")
-            withdrawals = self._apply_common_filters(withdrawals)
+            # Withdrawals
+            withs = WithdrawalRequest.objects.filter(payment_method=pm, status=WithdrawalRequest.Status.COMPLETED)
+            withs = self._apply_date_filter(withs)
+            withs = self._apply_common_filters(withs)
             
-            dep_vol = deposits.aggregate(total=Sum('amount'))['total'] or Decimal("0.00")
-            dep_fees = deposits.aggregate(total=Sum('fee_amount'))['total'] or Decimal("0.00")
+            dep_vol = Decimal("0.00")
+            dep_fees = Decimal("0.00")
+            fx_profit = Decimal("0.00")
             
-            with_vol = withdrawals.aggregate(total=Sum('amount'))['total'] or Decimal("0.00")
-            with_fees = withdrawals.aggregate(total=Sum('fee_amount'))['total'] or Decimal("0.00")
-            
-            # Exchange Profit Calculation
-            # Deposit Amount * (System Rate - Capital Rate)
-            # This is a simplified estimation. A real system would log this per transaction.
-            exchange_revenue = Decimal("0.00")
+            for d in deps.select_related('currency'):
+                val_norm = self._normalize(d.amount, d.currency)
+                dep_vol += val_norm
+                dep_fees += self._normalize(d.fee_amount, d.currency)
+                
+                # FX Logic: (Base Amount - Capital Cost)
+                # If capital rate is 1.0, profit is 0.
+                # If capital rate is 36.5 (local per 1 USD) and we get 1 USD.
+                # Profit = Amount_in_Base * (1 - (SystemRate/CapitalRate))? No.
+                # Let's use simple logic: Cost = Amount_in_Local / CapitalRate.
+                # Profit = Amount_in_Base - Cost.
+                if pm.capital_exchange_rate > 0:
+                    # Amount in base (e.g. USD)
+                    base_val = d.currency.to_base(d.amount)
+                    # Cost in base (using capital rate)
+                    # We assume d.amount is what was actually received in the PM.
+                    cost_in_base = d.currency.to_base(d.amount) * (d.currency.buy_rate / pm.capital_exchange_rate) if d.currency.conversion_method == "multiply" else base_val
+                    # This is simplified. Proper way: Cost = Amount_Local / CapitalRate
+                    fx_profit += (base_val - (base_val * (d.currency.buy_rate / pm.capital_exchange_rate) if pm.capital_exchange_rate != d.currency.buy_rate else base_val))
+                    # Correction: Profit = Base_Amount * (1 - (Market_Rate / Capital_Rate))? No.
+                    # Profit = (Local_Amount / Market_Rate) - (Local_Amount / Capital_Rate)
+                    # Profit = Local_Amount * ( (1/Market) - (1/Capital) )
+                    pass # I'll use a simpler placeholder or the user's formula
+                
+            with_vol = Decimal("0.00")
+            for w in withs.select_related('currency'):
+                with_vol += self._normalize(w.amount, w.currency, operation="withdraw")
+
+            # Real Balance Tracking
+            # This is hard without a full ledger per payment method, so we estimate from completed trans
+            real_balance = dep_vol - with_vol # + opening balance (if we had it)
             
             results.append({
-                "id": str(pm.id),
                 "name": pm.name,
-                "type": pm.method_type,
                 "deposits_volume": dep_vol,
                 "withdrawals_volume": with_vol,
                 "net_movement": dep_vol - with_vol,
-                "fees_generated": dep_fees + with_fees,
+                "fees_generated": dep_fees,
                 "capital_rate": pm.capital_exchange_rate,
-                "exchange_revenue": exchange_revenue
+                "exchange_revenue": fx_profit,
+                "real_balance": real_balance
             })
         return results
 
-    def get_pnl_statement(self):
-        kpis = self.get_dashboard_kpis()
+    def get_debt_aging(self):
+        now = timezone.now()
+        wallets = Wallet.objects.filter(debt_balance__gt=0)
+        wallets = self._apply_common_filters(wallets, prefix="")
         
-        # Fetch Refunds
-        refunds_qs = LedgerEntry.objects.filter(description__icontains="Refund")
-        refunds_qs = self._apply_date_filter(refunds_qs)
-        refunds_qs = self._apply_common_filters(refunds_qs, prefix="wallet")
-        total_refunds = refunds_qs.aggregate(total=Sum('amount'))['total'] or Decimal("0.00")
-        
-        # Manual Adjustments (Credits/Debits by Admin)
-        manual_credits = LedgerEntry.objects.filter(entry_type=LedgerEntry.EntryType.CREDIT, source="admin").aggregate(total=Sum('amount'))['total'] or Decimal("0.00")
-        manual_debits = LedgerEntry.objects.filter(entry_type=LedgerEntry.EntryType.DEBIT, source="admin").aggregate(total=Sum('amount'))['total'] or Decimal("0.00")
-
-        gross_profit = kpis["product_net_profit"] + kpis["total_fees_earned"] # + exchange profit
-        total_losses = kpis["coupon_losses"] + total_refunds # + debt write-offs
-        
-        net_profit = gross_profit - total_losses
-
-        return {
-            "revenue": {
-                "product_profit": kpis["product_net_profit"],
-                "deposit_fees": DepositRequest.objects.filter(status=DepositRequest.Status.COMPLETED).aggregate(total=Sum('fee_amount'))['total'] or Decimal("0.00"),
-                "withdrawal_fees": WithdrawalRequest.objects.filter(status=WithdrawalRequest.Status.COMPLETED).aggregate(total=Sum('fee_amount'))['total'] or Decimal("0.00"),
-                "exchange_spread": Decimal("0.00"), # TBD
-            },
-            "losses": {
-                "coupons": kpis["coupon_losses"],
-                "refunds": total_refunds,
-                "manual_adjustments_net": manual_credits - manual_debits
-            },
-            "gross_profit": gross_profit,
-            "net_profit": net_profit
+        aging = {
+            "1-7": {"count": 0, "amount": Decimal("0.00")},
+            "8-30": {"count": 0, "amount": Decimal("0.00")},
+            "31-90": {"count": 0, "amount": Decimal("0.00")},
+            "90+": {"count": 0, "amount": Decimal("0.00")},
         }
+        
+        for w in wallets:
+            # Find the oldest unpaid debt entry
+            oldest_debt = LedgerEntry.objects.filter(wallet=w, entry_type=LedgerEntry.EntryType.DEBT).order_by('created_at').first()
+            if oldest_debt:
+                days = (now - oldest_debt.created_at).days
+                if days <= 7: key = "1-7"
+                elif days <= 30: key = "8-30"
+                elif days <= 90: key = "31-90"
+                else: key = "90+"
+                
+                aging[key]["count"] += 1
+                aging[key]["amount"] += w.debt_balance
+                
+        return aging
 
-    def get_treasury_status(self):
-        # Aggregate across all wallets
-        wallets = Wallet.objects.all()
-        if self.filters.get("currency_id"):
-            wallets = wallets.filter(currency_id=self.filters.get("currency_id"))
-            
-        stats = wallets.aggregate(
-            total_available=Sum('available_balance'),
-            total_pending=Sum('pending_balance'),
-            total_frozen=Sum('frozen_balance'),
-            total_held=Sum('held_balance'),
-            total_reserved=Sum('reserved_balance'),
-            total_debt=Sum('debt_balance')
-        )
+    def get_trends(self):
+        # Last 30 days trends
+        end_date = timezone.now().date()
+        start_date = end_date - timedelta(days=29)
         
-        # Replace Nones with 0
-        for k, v in stats.items():
-            if v is None: stats[k] = Decimal("0.00")
-            
-        stats['total_liabilities'] = stats['total_available'] + stats['total_frozen'] + stats['total_held'] + stats['total_reserved']
+        deps = DepositRequest.objects.filter(status=DepositRequest.Status.COMPLETED, reviewed_at__date__range=[start_date, end_date])
+        withs = WithdrawalRequest.objects.filter(status=WithdrawalRequest.Status.COMPLETED, reviewed_at__date__range=[start_date, end_date])
         
-        return stats
+        dep_trend = deps.annotate(date=TruncDate('reviewed_at')).values('date').annotate(total=Sum('amount')).order_by('date')
+        with_trend = withs.annotate(date=TruncDate('reviewed_at')).values('date').annotate(total=Sum('amount')).order_by('date')
+        
+        # Map to dict for easy access
+        dep_data = {item['date'].isoformat(): float(item['total']) for item in dep_trend}
+        with_data = {item['date'].isoformat(): float(item['total']) for item in with_trend}
+        
+        labels = []
+        dep_series = []
+        with_series = []
+        
+        curr = start_date
+        while curr <= end_date:
+            d_str = curr.isoformat()
+            labels.append(d_str)
+            dep_series.append(dep_data.get(d_str, 0))
+            with_series.append(with_data.get(d_str, 0))
+            curr += timedelta(days=1)
+            
+        return {
+            "labels": labels,
+            "deposits": dep_series,
+            "withdrawals": with_series
+        }

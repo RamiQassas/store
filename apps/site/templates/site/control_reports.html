@@ -1,55 +1,73 @@
 {% extends "site/control_base.html" %}
 {% load static %}
 
-{% block title %}الذكاء المالي والتحليلات | Raqamiyat Control{% endblock %}
+{% block title %}الذكاء المالي والتحليلات المتقدمة | Raqamiyat Control{% endblock %}
 
 {% block extra_head %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <style>
-    .analytics-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 1.5rem; }
-    .kpi-card { background: rgba(255, 255, 255, 0.02); border: 1px solid rgba(255, 255, 255, 0.05); border-radius: 16px; padding: 1.5rem; transition: transform 0.2s; }
+    .analytics-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.5rem; }
+    .kpi-card { background: rgba(255, 255, 255, 0.02); border: 1px solid rgba(255, 255, 255, 0.05); border-radius: 16px; padding: 1.5rem; transition: transform 0.2s, border-color 0.2s; position: relative; overflow: hidden; }
     .kpi-card:hover { transform: translateY(-2px); border-color: rgba(6, 182, 212, 0.3); }
     .kpi-title { font-size: 0.7rem; font-weight: 900; color: #64748b; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.5rem; }
-    .kpi-value { font-size: 1.5rem; font-weight: 900; color: #fff; }
+    .kpi-value { font-size: 1.75rem; font-weight: 900; color: #fff; }
     .kpi-value.positive { color: #10b981; }
     .kpi-value.negative { color: #ef4444; }
     .kpi-value.warning { color: #f59e0b; }
-
-    .section-title { font-size: 1.1rem; font-weight: 900; border-bottom: 1px solid rgba(255, 255, 255, 0.1); padding-bottom: 0.5rem; margin-bottom: 1.5rem; color: var(--cyan); }
     
-    /* Filter Sidebar */
+    .drill-down { position: absolute; top: 1rem; left: 1rem; font-size: 10px; color: #475569; opacity: 0; transition: opacity 0.2s; }
+    .kpi-card:hover .drill-down { opacity: 1; }
+
+    .section-title { font-size: 1.1rem; font-weight: 900; border-right: 4px solid var(--cyan); padding-right: 0.75rem; margin-bottom: 1.5rem; color: #fff; display: flex; justify-content: space-between; align-items: center; }
+    
     .filter-panel { background: rgba(10, 15, 28, 0.6); border: 1px solid rgba(255, 255, 255, 0.05); border-radius: 16px; padding: 1.5rem; }
     
     .table-container { overflow-x: auto; background: rgba(255, 255, 255, 0.01); border-radius: 16px; border: 1px solid rgba(255, 255, 255, 0.05); }
     .analytics-table { width: 100%; text-align: right; border-collapse: collapse; }
-    .analytics-table th { padding: 1rem; font-size: 0.75rem; font-weight: 900; color: #94a3b8; border-bottom: 1px solid rgba(255, 255, 255, 0.05); }
+    .analytics-table th { padding: 1rem; font-size: 0.75rem; font-weight: 900; color: #94a3b8; border-bottom: 1px solid rgba(255, 255, 255, 0.05); background: rgba(0,0,0,0.2); }
     .analytics-table td { padding: 1rem; font-size: 0.85rem; border-bottom: 1px solid rgba(255, 255, 255, 0.02); }
-    .analytics-table tr:last-child td { border-bottom: none; }
+    
+    .chart-container { background: rgba(255, 255, 255, 0.01); border: 1px solid rgba(255, 255, 255, 0.05); border-radius: 16px; padding: 1.5rem; height: 350px; }
+    
+    .aging-item { display: flex; justify-content: space-between; align-items: center; padding: 0.75rem; border-bottom: 1px solid rgba(255, 255, 255, 0.03); }
+    .aging-label { font-weight: bold; font-size: 12px; }
+    .aging-count { font-size: 10px; color: #64748b; }
+    .aging-amount { font-weight: 900; color: #fff; }
 </style>
 {% endblock %}
 
 {% block control_content %}
-<div class="flex justify-between items-end mb-8">
+<div class="flex justify-between items-center mb-8">
     <div>
-        <span class="eyebrow">Financial Intelligence</span>
-        <h1 class="text-3xl font-black text-white">التحليلات المالية المتقدمة</h1>
-        <p class="text-slate-500 mt-2">نظام احترافي دقيق لتقييم الأداء المالي، الأرباح، الخسائر، وحركة الخزينة.</p>
+        <span class="eyebrow">Production Grade Analytics</span>
+        <h1 class="text-3xl font-black text-white">الذكاء المالي والتحليلات الاستراتيجية</h1>
+        <p class="text-slate-500 mt-2">نظام المحاسبة المتقدم لضبط السيولة، الأرباح، والديون.</p>
     </div>
     <div class="flex gap-3">
         <a href="?{{ request.GET.urlencode }}&export=excel" class="btn btn-primary rounded-2xl font-bold">
-            <i class="fas fa-file-excel ml-2"></i> تصدير التقرير (Excel)
+            <i class="fas fa-file-excel ml-2"></i> تصدير التقرير الاحترافي (.xlsx)
         </a>
     </div>
 </div>
 
 <div class="grid grid-cols-1 lg:grid-cols-4 gap-8">
-    <!-- Global Filters Sidebar -->
+    <!-- Filters Sidebar -->
     <div class="lg:col-span-1">
         <div class="filter-panel sticky top-8">
-            <h3 class="font-bold text-sm mb-4"><i class="fas fa-filter text-cyan mr-2"></i> الفلاتر الشاملة</h3>
+            <h3 class="font-black text-xs mb-4 text-cyan uppercase tracking-widest"><i class="fas fa-filter mr-2"></i> محرك الفلاتر</h3>
             <form method="GET" class="stack gap-4">
                 <div>
-                    <label class="block text-[10px] font-bold text-slate-400 mb-1">الفترة الزمنية</label>
-                    <select name="date_preset" class="builder-input w-full">
+                    <label class="block text-[10px] font-black text-slate-400 mb-1">عملة التقرير الأساسية</label>
+                    <select name="reporting_currency" class="builder-input w-full">
+                        {% for c in currencies %}
+                        <option value="{{ c.code }}" {% if filters.reporting_currency_code == c.code %}selected{% endif %}>{{ c.code }} - {{ c.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block text-[10px] font-black text-slate-400 mb-1">الفترة الزمنية</label>
+                    <select name="date_preset" class="builder-input w-full" id="datePreset">
                         <option value="all" {% if filters.date_preset == 'all' %}selected{% endif %}>كل الوقت</option>
                         <option value="today" {% if filters.date_preset == 'today' %}selected{% endif %}>اليوم</option>
                         <option value="yesterday" {% if filters.date_preset == 'yesterday' %}selected{% endif %}>الأمس</option>
@@ -57,54 +75,38 @@
                         <option value="last_week" {% if filters.date_preset == 'last_week' %}selected{% endif %}>الأسبوع الماضي</option>
                         <option value="this_month" {% if filters.date_preset == 'this_month' %}selected{% endif %}>هذا الشهر</option>
                         <option value="last_month" {% if filters.date_preset == 'last_month' %}selected{% endif %}>الشهر الماضي</option>
-                        <option value="custom" {% if filters.date_preset == 'custom' %}selected{% endif %}>تخصيص...</option>
+                        <option value="custom" {% if filters.date_preset == 'custom' %}selected{% endif %}>نطاق مخصص...</option>
                     </select>
                 </div>
                 
-                <!-- Custom Dates (Hidden by default unless 'custom' is selected via JS ideally, but shown here for simplicity) -->
-                <div class="grid grid-cols-2 gap-2">
+                <div class="grid grid-cols-2 gap-2" id="customDates" {% if filters.date_preset != 'custom' %}style="display:none"{% endif %}>
                     <div>
-                        <label class="block text-[10px] font-bold text-slate-400 mb-1">من تاريخ</label>
+                        <label class="block text-[10px] font-bold text-slate-500 mb-1">من</label>
                         <input type="date" name="start_date" value="{{ filters.start_date|default:'' }}" class="builder-input w-full text-xs">
                     </div>
                     <div>
-                        <label class="block text-[10px] font-bold text-slate-400 mb-1">إلى تاريخ</label>
+                        <label class="block text-[10px] font-bold text-slate-500 mb-1">إلى</label>
                         <input type="date" name="end_date" value="{{ filters.end_date|default:'' }}" class="builder-input w-full text-xs">
                     </div>
                 </div>
 
                 <div>
-                    <label class="block text-[10px] font-bold text-slate-400 mb-1">العملة</label>
-                    <select name="currency_id" class="builder-input w-full">
-                        <option value="">جميع العملات</option>
-                        {% for c in currencies %}
-                        <option value="{{ c.id }}" {% if filters.currency_id == str|add:c.id %}selected{% endif %}>{{ c.code }} - {{ c.name }}</option>
-                        {% endfor %}
-                    </select>
-                </div>
-
-                <div>
-                    <label class="block text-[10px] font-bold text-slate-400 mb-1">وسيلة الدفع</label>
+                    <label class="block text-[10px] font-black text-slate-400 mb-1">وسيلة الدفع</label>
                     <select name="payment_method_id" class="builder-input w-full">
-                        <option value="">جميع الوسائل</option>
+                        <option value="">الكل</option>
                         {% for pm in payment_methods %}
-                        <option value="{{ pm.id }}" {% if filters.payment_method_id == str|add:pm.id %}selected{% endif %}>{{ pm.name }}</option>
+                        <option value="{{ pm.id }}" {% if filters.payment_method_id == pm.id|stringformat:"s" %}selected{% endif %}>{{ pm.name }}</option>
                         {% endfor %}
                     </select>
                 </div>
 
-                <div>
-                    <label class="block text-[10px] font-bold text-slate-400 mb-1">فئة العملاء</label>
-                    <select name="tier" class="builder-input w-full">
-                        <option value="">جميع الفئات</option>
-                        {% for value, label in tiers %}
-                        <option value="{{ value }}" {% if filters.tier == value %}selected{% endif %}>{{ label }}</option>
-                        {% endfor %}
-                    </select>
+                <div class="flex items-center gap-3 py-2 border-y border-white/5 my-2">
+                    <input type="checkbox" name="include_pending" id="incPend" class="w-4 h-4" {% if filters.include_pending %}checked{% endif %}>
+                    <label for="incPend" class="text-xs font-bold text-slate-300">تضمين الطلبات المعلقة</label>
                 </div>
                 
-                <button type="submit" class="btn btn-primary w-full mt-4">تطبيق الفلاتر</button>
-                <a href="{% url 'control_reports' %}" class="btn btn-outline w-full text-xs text-center block mt-2">إعادة ضبط</a>
+                <button type="submit" class="btn btn-primary w-full font-black">تحديث التقارير</button>
+                <a href="{% url 'control_reports' %}" class="btn btn-outline w-full text-[10px] py-2 mt-2">إعادة ضبط</a>
             </form>
         </div>
     </div>
@@ -112,146 +114,178 @@
     <!-- Main Reports Area -->
     <div class="lg:col-span-3 stack gap-8">
         
-        <!-- 1. Executive KPIs -->
+        <!-- 1. Executive Summary -->
         <section>
-            <h2 class="section-title">المؤشرات الرئيسية (KPIs)</h2>
+            <h2 class="section-title">الملخص المالي التنفيذي</h2>
             <div class="analytics-grid">
-                <div class="kpi-card">
+                <a href="{% url 'control_deposits' %}" class="kpi-card">
+                    <span class="drill-down">اضغط للتفاصيل <i class="fas fa-external-link-alt"></i></span>
                     <div class="kpi-title">إجمالي الإيداعات</div>
-                    <div class="kpi-value positive">{{ kpis.total_deposits|floatformat:2 }}</div>
-                </div>
-                <div class="kpi-card">
+                    <div class="kpi-value positive">{{ kpis.total_deposits|floatformat:2 }} <span class="text-xs opacity-50">{{ kpis.reporting_currency }}</span></div>
+                </a>
+                <a href="{% url 'control_withdrawals' %}" class="kpi-card">
+                    <span class="drill-down">اضغط للتفاصيل <i class="fas fa-external-link-alt"></i></span>
                     <div class="kpi-title">إجمالي السحوبات</div>
-                    <div class="kpi-value negative">{{ kpis.total_withdrawals|floatformat:2 }}</div>
-                </div>
+                    <div class="kpi-value negative">{{ kpis.total_withdrawals|floatformat:2 }} <span class="text-xs opacity-50">{{ kpis.reporting_currency }}</span></div>
+                </a>
                 <div class="kpi-card">
-                    <div class="kpi-title">صافي التدفق النقدي</div>
+                    <div class="kpi-title">صافي التدفق (Net Cashflow)</div>
                     <div class="kpi-value {% if kpis.net_cashflow >= 0 %}positive{% else %}negative{% endif %}">
                         {{ kpis.net_cashflow|floatformat:2 }}
                     </div>
                 </div>
                 <div class="kpi-card">
-                    <div class="kpi-title">إجمالي رسوم العمليات</div>
+                    <div class="kpi-title">إجمالي العمولات والرسوم</div>
                     <div class="kpi-value text-cyan">{{ kpis.total_fees_earned|floatformat:2 }}</div>
-                </div>
-                <div class="kpi-card">
-                    <div class="kpi-title">مبيعات المنتجات</div>
-                    <div class="kpi-value">{{ kpis.product_revenue|floatformat:2 }}</div>
                 </div>
                 <div class="kpi-card">
                     <div class="kpi-title">أرباح المنتجات الصافية</div>
                     <div class="kpi-value positive">{{ kpis.product_net_profit|floatformat:2 }}</div>
                 </div>
                 <div class="kpi-card">
-                    <div class="kpi-title">الديون المستحقة</div>
-                    <div class="kpi-value warning">{{ kpis.total_outstanding_debt|floatformat:2 }}</div>
-                </div>
-                <div class="kpi-card">
-                    <div class="kpi-title">خسائر الكوبونات</div>
-                    <div class="kpi-value negative">{{ kpis.coupon_losses|floatformat:2 }}</div>
+                    <div class="kpi-title">التزامات المحافظ (Liabilities)</div>
+                    <div class="kpi-value warning">{{ kpis.total_liabilities|floatformat:2 }}</div>
                 </div>
             </div>
         </section>
 
-        <!-- 2. Profit & Loss (P&L) Statement -->
+        <!-- 2. Trends Chart -->
         <section>
-            <h2 class="section-title">بيان الأرباح والخسائر (P&L)</h2>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <!-- Revenue -->
-                <div class="panel p-6 border-emerald-500/20">
-                    <h3 class="font-bold text-emerald-500 mb-4 border-b border-emerald-500/20 pb-2"><i class="fas fa-arrow-up mr-2"></i> الإيرادات</h3>
-                    <div class="stack gap-3 text-sm">
-                        <div class="flex justify-between"><span>أرباح المنتجات:</span> <strong>{{ pnl.revenue.product_profit|floatformat:2 }}</strong></div>
-                        <div class="flex justify-between"><span>رسوم الإيداع:</span> <strong>{{ pnl.revenue.deposit_fees|floatformat:2 }}</strong></div>
-                        <div class="flex justify-between"><span>رسوم السحب:</span> <strong>{{ pnl.revenue.withdrawal_fees|floatformat:2 }}</strong></div>
-                        <div class="flex justify-between border-t border-white/5 pt-2 mt-2">
-                            <span class="font-black text-cyan">إجمالي الإيرادات:</span> 
-                            <strong class="text-cyan">{{ pnl.gross_profit|floatformat:2 }}</strong>
-                        </div>
+            <h2 class="section-title">اتجاهات الحركة المالية (آخر 30 يوم)</h2>
+            <div class="chart-container">
+                <canvas id="financeChart"></canvas>
+            </div>
+        </section>
+
+        <!-- 3. P&L and Debt Aging -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <section>
+                <h2 class="section-title">تحليل الأرباح والخسائر (P&L)</h2>
+                <div class="panel p-6 stack gap-4 bg-white/[0.01]">
+                    <div class="flex justify-between items-end border-b border-white/5 pb-2">
+                        <span class="text-xs text-slate-400">إجمالي الإيرادات:</span>
+                        <span class="text-xl font-black text-emerald-400">+{{ pnl.revenue.product_profit|add:pnl.revenue.deposit_fees|add:pnl.revenue.fx_profit|floatformat:2 }}</span>
                     </div>
-                </div>
-                
-                <!-- Losses -->
-                <div class="panel p-6 border-rose-500/20">
-                    <h3 class="font-bold text-rose-500 mb-4 border-b border-rose-500/20 pb-2"><i class="fas fa-arrow-down mr-2"></i> المصروفات والخسائر</h3>
-                    <div class="stack gap-3 text-sm">
+                    <div class="stack gap-2 text-xs">
+                        <div class="flex justify-between"><span>أرباح بيع المنتجات:</span> <strong>{{ pnl.revenue.product_profit|floatformat:2 }}</strong></div>
+                        <div class="flex justify-between"><span>عمولات الشحن والسحب:</span> <strong>{{ pnl.revenue.deposit_fees|add:pnl.revenue.withdrawal_fees|floatformat:2 }}</strong></div>
+                        <div class="flex justify-between"><span>أرباح فروقات الصرف:</span> <strong class="text-cyan">{{ pnl.revenue.fx_profit|floatformat:2 }}</strong></div>
+                    </div>
+                    
+                    <div class="flex justify-between items-end border-b border-white/5 pb-2 mt-4">
+                        <span class="text-xs text-slate-400">إجمالي الخسائر والمصروفات:</span>
+                        <span class="text-xl font-black text-rose-400">-{{ pnl.losses.coupons|add:pnl.losses.refunds|floatformat:2 }}</span>
+                    </div>
+                    <div class="stack gap-2 text-xs">
                         <div class="flex justify-between"><span>خصومات الكوبونات:</span> <strong>{{ pnl.losses.coupons|floatformat:2 }}</strong></div>
-                        <div class="flex justify-between"><span>الاستردادات (Refunds):</span> <strong>{{ pnl.losses.refunds|floatformat:2 }}</strong></div>
-                        <div class="flex justify-between"><span>التسويات اليدوية (صافي):</span> <strong>{{ pnl.losses.manual_adjustments_net|floatformat:2 }}</strong></div>
-                        <div class="flex justify-between border-t border-white/5 pt-2 mt-2">
-                            <span class="font-black text-white">الربح الصافي (Net Profit):</span> 
-                            <strong class="{% if pnl.net_profit >= 0 %}text-emerald-500{% else %}text-rose-500{% endif %} text-lg">
-                                {{ pnl.net_profit|floatformat:2 }}
-                            </strong>
+                        <div class="flex justify-between"><span>مبالغ مستردة للعملاء:</span> <strong>{{ pnl.losses.refunds|floatformat:2 }}</strong></div>
+                    </div>
+                    
+                    <div class="panel p-4 bg-cyan/10 border-cyan/20 mt-4">
+                        <div class="flex justify-between items-center">
+                            <span class="font-black text-cyan">الربح الصافي النهائي:</span>
+                            <span class="text-2xl font-black {% if pnl.net_profit >= 0 %}text-emerald-500{% else %}text-rose-500{% endif %}">
+                                {{ pnl.net_profit|floatformat:2 }} {{ kpis.reporting_currency }}
+                            </span>
                         </div>
                     </div>
                 </div>
-            </div>
-        </section>
+            </section>
 
-        <!-- 3. Treasury & Liabilities -->
-        <section>
-            <h2 class="section-title">حالة الخزينة والالتزامات (Treasury)</h2>
-            <div class="table-container">
-                <table class="analytics-table">
-                    <thead>
-                        <tr>
-                            <th>الرصيد المتاح (حر)</th>
-                            <th>الرصيد المجمد</th>
-                            <th>الرصيد المحجوز (يدوياً)</th>
-                            <th>الرصيد المحجوز (طلبات)</th>
-                            <th>إجمالي التزامات المنصة (Liabilities)</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr class="font-bold">
-                            <td class="text-emerald-500">{{ treasury.total_available|floatformat:2 }}</td>
-                            <td>{{ treasury.total_frozen|floatformat:2 }}</td>
-                            <td>{{ treasury.total_held|floatformat:2 }}</td>
-                            <td>{{ treasury.total_reserved|floatformat:2 }}</td>
-                            <td class="text-cyan text-lg">{{ treasury.total_liabilities|floatformat:2 }}</td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
-        </section>
+            <section>
+                <h2 class="section-title">أعمار الديون (Debt Aging)</h2>
+                <div class="panel p-6 bg-white/[0.01]">
+                    {% for key, val in debt_aging.items %}
+                    <div class="aging-item">
+                        <div>
+                            <div class="aging-label">ديون متأخرة ({{ key }} يوم)</div>
+                            <div class="aging-count">{{ val.count }} عميل متأثر</div>
+                        </div>
+                        <div class="aging-amount">{{ val.amount|floatformat:2 }}</div>
+                    </div>
+                    {% endfor %}
+                    <div class="mt-6 p-4 border-t border-white/10 flex justify-between">
+                        <span class="font-bold text-slate-400">إجمالي الديون النشطة:</span>
+                        <span class="font-black text-warning text-lg">{{ kpis.total_outstanding_debt|floatformat:2 }}</span>
+                    </div>
+                </div>
+            </section>
+        </div>
 
-        <!-- 4. Payment Methods Performance -->
+        <!-- 4. Payment Methods Analytics -->
         <section>
-            <h2 class="section-title">أداء وسائل الدفع والتدفق النقدي</h2>
+            <h2 class="section-title">تحليل السيولة وأداء وسائل الدفع</h2>
             <div class="table-container">
                 <table class="analytics-table">
                     <thead>
                         <tr>
                             <th>الوسيلة</th>
-                            <th>سعر التكلفة (Capital Rate)</th>
                             <th>حجم الإيداعات</th>
                             <th>حجم السحوبات</th>
-                            <th>الرسوم المحصلة</th>
-                            <th>التدفق الصافي</th>
+                            <th>صافي الأرباح (FX)</th>
+                            <th>الرصيد الفعلي</th>
                         </tr>
                     </thead>
                     <tbody>
                         {% for pm in payment_performance %}
                         <tr class="hover:bg-white/[0.02]">
-                            <td class="font-bold">{{ pm.name }}</td>
-                            <td class="text-slate-400">{{ pm.capital_rate }}</td>
-                            <td class="text-emerald-500">{{ pm.deposits_volume|floatformat:2 }}</td>
-                            <td class="text-rose-500">{{ pm.withdrawals_volume|floatformat:2 }}</td>
-                            <td class="text-cyan">{{ pm.fees_generated|floatformat:2 }}</td>
-                            <td class="font-bold {% if pm.net_movement >= 0 %}text-emerald-500{% else %}text-rose-500{% endif %}">
-                                {{ pm.net_movement|floatformat:2 }}
-                            </td>
+                            <td class="font-black">{{ pm.name }}</td>
+                            <td class="text-emerald-500 font-bold">{{ pm.deposits_volume|floatformat:2 }}</td>
+                            <td class="text-rose-500 font-bold">{{ pm.withdrawals_volume|floatformat:2 }}</td>
+                            <td class="text-cyan font-black">{{ pm.exchange_revenue|floatformat:2 }}</td>
+                            <td class="bg-white/5 font-black text-white">{{ pm.real_balance|floatformat:2 }}</td>
                         </tr>
                         {% empty %}
-                        <tr><td colspan="6" class="text-center py-4 text-slate-500">لا توجد بيانات لهذه الفلاتر.</td></tr>
+                        <tr><td colspan="5" class="text-center py-12 text-slate-500">لا توجد بيانات متاحة حالياً.</td></tr>
                         {% endfor %}
                     </tbody>
                 </table>
             </div>
-            <p class="text-[10px] text-slate-500 mt-2"><i class="fas fa-info-circle"></i> يتم حساب "سعر التكلفة" بناءً على الحقل `capital_exchange_rate` لتقييم الأرباح الفعلية الناتجة عن فروق الصرف.</p>
         </section>
 
     </div>
 </div>
+
+<script>
+    document.getElementById('datePreset').addEventListener('change', function() {
+        document.getElementById('customDates').style.display = this.value === 'custom' ? 'grid' : 'none';
+    });
+
+    const ctx = document.getElementById('financeChart').getContext('2d');
+    new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: {{ trends.labels|safe }},
+            datasets: [
+                {
+                    label: 'إيداعات',
+                    data: {{ trends.deposits|safe }},
+                    borderColor: '#10b981',
+                    backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                    fill: true,
+                    tension: 0.4
+                },
+                {
+                    label: 'سحوبات',
+                    data: {{ trends.withdrawals|safe }},
+                    borderColor: '#ef4444',
+                    backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                    fill: true,
+                    tension: 0.4
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { labels: { color: '#94a3b8', font: { family: 'inherit', weight: 'bold' } } }
+            },
+            scales: {
+                y: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#64748b' } },
+                x: { grid: { display: false }, ticks: { color: '#64748b' } }
+            }
+        }
+    });
+</script>
 {% endblock %}
