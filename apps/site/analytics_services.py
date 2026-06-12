@@ -197,6 +197,28 @@ class FinancialAnalyticsService:
             "net_profit": net_profit
         }
 
+    def get_treasury_status(self):
+        # Aggregate across all wallets
+        wallets = Wallet.objects.all()
+        wallets = self._apply_common_filters(wallets, prefix="")
+            
+        stats = wallets.aggregate(
+            total_available=Sum('available_balance'),
+            total_pending=Sum('pending_balance'),
+            total_frozen=Sum('frozen_balance'),
+            total_held=Sum('held_balance'),
+            total_reserved=Sum('reserved_balance'),
+            total_debt=Sum('debt_balance')
+        )
+        
+        # Replace Nones with 0
+        for k, v in stats.items():
+            if v is None: stats[k] = Decimal("0.00")
+            
+        stats['total_liabilities'] = stats['total_available'] + stats['total_frozen'] + stats['total_held'] + stats['total_reserved']
+        
+        return stats
+
     def get_fx_profit_report(self):
         """Calculates FX profit based on capital rates."""
         pm_stats = self.get_payment_method_performance()
