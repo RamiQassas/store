@@ -21,7 +21,7 @@ from django.utils import timezone
 from django.conf import settings
 from django.core.signing import TimestampSigner, SignatureExpired, BadSignature
 
-from apps.accounts.models import User, OTPToken, KYCRequest, KYCSettings
+from apps.accounts.models import User, OTPToken, KYCRequest, KYCSettings, ActivityLog
 from apps.accounts.services import send_brevo_email
 from apps.catalog.models import Category, Product, ProductVariant
 from apps.common.models import Currency, SocialMediaLink, SiteAnnouncement
@@ -425,8 +425,11 @@ def deposits(request):
                 status=DepositRequest.Status.PENDING,
                 is_verified=False
             )
-            # Log pending activity
-            ActivityLog.objects.create(user=request.user, action="deposit_requested", description=f"Requested {amount} {currency.code} via {method.name}")
+            # Log pending activity safely
+            try:
+                ActivityLog.objects.create(user=request.user, action="deposit_requested", description=f"Requested {amount} {currency.code} via {method.name}")
+            except:
+                pass
 
         # AFTER creation: Check if verification is needed
         if v3_init_verification(request, request.user, "deposit"):
