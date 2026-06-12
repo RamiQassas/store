@@ -98,8 +98,21 @@ def v3_get_required_methods(user, action_type):
     return []
 
 def v3_init_verification(request, user, action_type):
+    # Check if user has any security methods enabled
     methods = v3_get_required_methods(user, action_type)
-    if not methods: return True
+    if not methods: 
+        return True # No security methods configured, bypass
+    
+    # Check for 5-minute cooldown
+    last_verified = request.session.get("v3_action_verified_at")
+    if last_verified:
+        try:
+            if (timezone.now() - timezone.datetime.fromisoformat(last_verified)).total_seconds() < 300:
+                return True # Within 5-minute cooldown, bypass
+        except:
+            pass
+            
+    # Proceed with verification
     request.session["v3_auth_uid"] = str(user.id)
     request.session["v3_auth_methods"] = methods
     request.session["v3_auth_purpose"] = action_type
@@ -289,9 +302,11 @@ def v3_reset_password_view(request):
     if request.method == "POST":
         p1, p2 = request.POST.get("password"), request.POST.get("confirm_password")
         if p1 and p1 == p2 and len(p1) >= 10:
-            user.set_password(p1); user.save(); login(request, user, backend='django.contrib.auth.backends.ModelBackend')
-            messages.success(request, "تم تغيير كلمة المرور."); return redirect("dashboard")
-        messages.error(request, "كلمات المرور غير متطابقة.")
+            user.set_password(p1); user.save(); 
+            login(request, user, backend='django.contrib.auth.backends.ModelBackend')
+            messages.success(request, "تم تغيير كلمة المرور بنجاح. تم تسجيل دخولك تلقائياً.")
+            return redirect("dashboard")
+        messages.error(request, "كلمات المرور غير متطابقة أو لا تستوفي شروط الطول (10 خانات على الأقل).")
     return render(request, "site/v3/v3_reset_password.html", {"user_email": user.email, "token": token, "uid": uid})
 
 @login_required
