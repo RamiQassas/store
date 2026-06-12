@@ -45,41 +45,71 @@
                 </tr>
             </thead>
             <tbody>
-                {% for kyc in kycs %}
+                {% for u in users %}
+                {% with kyc=u.kyc_request %}
                 <tr class="border-b border-white/[0.02] last:border-0 hover:bg-white/[0.02] transition">
                     <td class="p-4">
-                        <div class="font-bold text-slate-200">{{ kyc.user.email }}</div>
-                        <div class="text-[10px] text-slate-500">{{ kyc.user.phone }}</div>
+                        <div class="font-bold text-slate-200">{{ u.email }}</div>
+                        <div class="text-[10px] text-slate-500">{{ u.phone }}</div>
                     </td>
                     <td class="p-4">
-                        <div class="text-sm">{{ kyc.first_name }} {{ kyc.father_name }} {{ kyc.last_name }}</div>
-                    </td>
-                    <td class="p-4">
-                        <span class="badge primary text-[9px]">{{ kyc.get_document_type_display }}</span>
-                    </td>
-                    <td class="p-4">
-                        <div class="flex flex-col gap-1">
-                            <div class="text-[10px] text-slate-300">{{ kyc.get_nationality_display }}</div>
-                            <div class="text-[8px] text-slate-500 uppercase tracking-tighter">صادر عن: {{ kyc.get_issuing_country_display }}</div>
+                        <div class="text-sm">
+                            {% if kyc %}
+                                {{ kyc.first_name }} {{ kyc.father_name }} {{ kyc.last_name }}
+                            {% else %}
+                                {{ u.get_full_name|default:"لم يحدد" }}
+                            {% endif %}
                         </div>
                     </td>
                     <td class="p-4">
-                        <span class="badge {% if kyc.status == 'approved' %}success{% elif kyc.status == 'rejected' %}danger{% else %}warning{% endif %} text-[9px]">
-                            {{ kyc.get_status_display }}
-                        </span>
-                    </td>
-                    <td class="p-4 text-xs text-slate-500">
-                        {{ kyc.created_at|date:"d M Y, H:i" }}
+                        {% if kyc %}
+                            <span class="badge primary text-[9px]">{{ kyc.get_document_type_display }}</span>
+                        {% else %}
+                            <span class="text-[10px] text-slate-600">N/A</span>
+                        {% endif %}
                     </td>
                     <td class="p-4">
+                        {% if kyc %}
+                            <div class="flex flex-col gap-1">
+                                <div class="text-[10px] text-slate-300">{{ kyc.get_nationality_display }}</div>
+                                <div class="text-[8px] text-slate-500 uppercase tracking-tighter">صادر عن: {{ kyc.get_issuing_country_display }}</div>
+                            </div>
+                        {% else %}
+                            -
+                        {% endif %}
+                    </td>
+                    <td class="p-4">
+                        {% if u.is_kyc_verified %}
+                            <span class="badge success text-[9px]">موثق</span>
+                        {% elif kyc %}
+                            <span class="badge {% if kyc.status == 'rejected' %}danger{% else %}warning{% endif %} text-[9px]">
+                                {{ kyc.get_status_display }}
+                            </span>
+                        {% else %}
+                            <span class="badge text-[9px] bg-slate-800 text-slate-500">غير موثق</span>
+                        {% endif %}
+                    </td>
+                    <td class="p-4 text-xs text-slate-500">
+                        {% if kyc %}
+                            {{ kyc.created_at|date:"d M Y, H:i" }}
+                        {% else %}
+                            -
+                        {% endif %}
+                    </td>
+                    <td class="p-4">
+                        {% if kyc %}
                         <a href="{% url 'control_kyc_detail' kyc.pk %}" class="btn btn-sm btn-outline text-[10px] py-1 px-4 hover:bg-cyan hover:text-black transition">
                             مراجعة الطلب
                         </a>
+                        {% else %}
+                        <span class="text-[10px] text-slate-600 italic">لا يوجد طلب</span>
+                        {% endif %}
                     </td>
                 </tr>
+                {% endwith %}
                 {% empty %}
                 <tr>
-                    <td colspan="7" class="p-12 text-center text-slate-500 italic">لا توجد طلبات توثيق تطابق البحث.</td>
+                    <td colspan="7" class="p-12 text-center text-slate-500 italic">لا توجد سجلات تطابق البحث.</td>
                 </tr>
                 {% endfor %}
             </tbody>

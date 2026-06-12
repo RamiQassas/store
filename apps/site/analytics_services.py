@@ -137,13 +137,18 @@ class FinancialAnalyticsService:
         coupon_discounts = Decimal("0.00")
         
         for o in orders_qs.prefetch_related('items__variant'):
-            product_revenue += Decimal(str(o.total_amount)) # Assuming Orders are in USD base or already normalized? 
-            # In this project, Order.total_amount is usually USD.
-            if o.original_total > o.total_amount:
-                coupon_discounts += (o.original_total - o.total_amount)
+            total_amt = o.total_amount or Decimal("0.00")
+            product_revenue += total_amt
+            
+            # Calculate Coupon/Adjustment Discount
+            orig_total = o.original_total
+            if orig_total is not None:
+                if orig_total > total_amt:
+                    coupon_discounts += (orig_total - total_amt)
             
             for item in o.items.all():
-                product_cost += (item.variant.cost * item.quantity)
+                if item.variant and item.variant.cost is not None:
+                    product_cost += (item.variant.cost * (item.quantity or 1))
 
         # 4. Debts
         wallets_qs = Wallet.objects.all()
@@ -233,18 +238,24 @@ class FinancialAnalyticsService:
                 # Profit = Amount_in_Base * (1 - (SystemRate/CapitalRate))? No.
                 # Let's use simple logic: Cost = Amount_in_Local / CapitalRate.
                 # Profit = Amount_in_Base - Cost.
-                if pm.capital_exchange_rate > 0:
-                    # Amount in base (e.g. USD)
-                    base_val = d.currency.to_base(d.amount)
-                    # Cost in base (using capital rate)
-                    # We assume d.amount is what was actually received in the PM.
-                    cost_in_base = d.currency.to_base(d.amount) * (d.currency.buy_rate / pm.capital_exchange_rate) if d.currency.conversion_method == "multiply" else base_val
-                    # This is simplified. Proper way: Cost = Amount_Local / CapitalRate
-                    fx_profit += (base_val - (base_val * (d.currency.buy_rate / pm.capital_exchange_rate) if pm.capital_exchange_rate != d.currency.buy_rate else base_val))
-                    # Correction: Profit = Base_Amount * (1 - (Market_Rate / Capital_Rate))? No.
-                    # Profit = (Local_Amount / Market_Rate) - (Local_Amount / Capital_Rate)
-                    # Profit = Local_Amount * ( (1/Market) - (1/Capital) )
-                    pass # I'll use a simpler placeholder or the user's formula
+                # FX Logic: (Market_Base_Value - Capital_Cost_Base_Value)
+                cap_rate = pm.capital_exchange_rate or Decimal("1.000000")
+                if cap_rate > 0:
+                    base_val = d.currency.to_base(d.amount or 0)
+                    # Profit = Local_Amount * ( (1/Market_Rate) - (1/Capital_Rate) )
+                    # Since Currency.to_base handles (Local / Rate) or (Local * Rate), we mirror that.
+                    if d.currency.conversion_method == Currency.ConversionMethod.DIVIDE:
+                        # base = local / market_rate -> market_rate = local / base
+                        # cost = local / cap_rate
+                        # profit = base - cost
+                        cost = (d.amount or 0) / cap_rate
+                        fx_profit += (base_val - cost)
+                    else:
+                        # base = local * market_rate
+                        # cost = local * cap_rate
+                        # profit = base - cost
+                        cost = (d.amount or 0) * cap_rate
+                        fx_profit += (base_val - cost)
                 
             with_vol = Decimal("0.00")
             for w in withs.select_related('currency'):

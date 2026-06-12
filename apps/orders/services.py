@@ -76,6 +76,7 @@ def create_order(customer, variant_id, quantity=1, fulfillment_data=None, coupon
         number=next_order_number(),
         status=Order.Status.PROCESSING,
         total_amount=total,
+        original_total=subtotal,
         coupon=coupon,
         fulfillment_data=fulfillment_data or {},
         metadata=metadata or {},
