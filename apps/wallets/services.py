@@ -18,7 +18,7 @@ def json_serialize_safe(data):
     return json.loads(json.dumps(data, cls=CustomEncoder))
 
 def credit_wallet(wallet_id, amount, reference="", description="", created_by=None, metadata=None, source="system", reason=""):
-    amount = Decimal(amount)
+    amount = Decimal(amount).quantize(Decimal("0.01"))
     if amount <= 0:
         raise WalletError("Amount must be positive.")
     with transaction.atomic():
@@ -26,7 +26,7 @@ def credit_wallet(wallet_id, amount, reference="", description="", created_by=No
         
         # If we were tracking this as pending, reduce pending balance
         if metadata and metadata.get("from_pending"):
-            pending_amount = Decimal(metadata.get("pending_amount", amount))
+            pending_amount = Decimal(metadata.get("pending_amount", amount)).quantize(Decimal("0.01"))
             wallet.pending_balance = max(Decimal("0.00"), wallet.pending_balance - pending_amount)
 
         # Auto-deduct debt if it's a deposit
@@ -78,7 +78,7 @@ def credit_wallet(wallet_id, amount, reference="", description="", created_by=No
 
 def add_debt(wallet_id, amount, reference="", description="", created_by=None, metadata=None, source="admin", reason=""):
     """Assigns debt to a user and adds it to their available balance as credit."""
-    amount = Decimal(amount)
+    amount = Decimal(amount).quantize(Decimal("0.01"))
     if amount <= 0:
         raise WalletError("Amount must be positive.")
     with transaction.atomic():
@@ -104,14 +104,14 @@ def add_debt(wallet_id, amount, reference="", description="", created_by=None, m
         notify_user(
             user=wallet.user,
             title="إضافة دين جديد",
-            body=f"تم إضافة دين بقيمة {amount} {wallet.currency.code} إلى حسابك. {reason}",
+            body=f"تم إضافة دين بقيمة {amount:,.2f} {wallet.currency.code} إلى حسابك. {reason}",
             category='financial',
             metadata={'amount': str(amount), 'currency': wallet.currency.code, 'reference': reference}
         )
         
         notify_staff(
             title="إضافة دين لمستخدم",
-            body=f"تم إضافة دين بقيمة {amount} {wallet.currency.code} للمستخدم {wallet.user.email}. السبب: {reason}",
+            body=f"تم إضافة دين بقيمة {amount:,.2f} {wallet.currency.code} للمستخدم {wallet.user.email}. السبب: {reason}",
             priority=Notification.Priority.HIGH
         )
 
@@ -120,7 +120,7 @@ def add_debt(wallet_id, amount, reference="", description="", created_by=None, m
 
 def pay_debt(wallet_id, amount, reference="", description="", created_by=None, metadata=None, source="admin", reason="", deduct_from_balance=True):
     """Manually pays off debt. If deduct_from_balance is True, reduces available_balance."""
-    amount = Decimal(amount)
+    amount = Decimal(amount).quantize(Decimal("0.01"))
     if amount <= 0:
         raise WalletError("Amount must be positive.")
     with transaction.atomic():
@@ -153,21 +153,21 @@ def pay_debt(wallet_id, amount, reference="", description="", created_by=None, m
         notify_user(
             user=wallet.user,
             title="تسديد دين",
-            body=f"تم تسجيل سداد دين بقيمة {amount} {wallet.currency.code}. {reason}",
+            body=f"تم تسجيل سداد دين بقيمة {amount:,.2f} {wallet.currency.code}. {reason}",
             category='financial',
             metadata={'amount': str(amount), 'currency': wallet.currency.code, 'reference': reference}
         )
 
         notify_staff(
             title="سداد دين من مستخدم",
-            body=f"تم تسجيل سداد دين بقيمة {amount} {wallet.currency.code} للمستخدم {wallet.user.email}. السبب: {reason}"
+            body=f"تم تسجيل سداد دين بقيمة {amount:,.2f} {wallet.currency.code} للمستخدم {wallet.user.email}. السبب: {reason}"
         )
 
         return wallet
 
 
 def debit_wallet(wallet_id, amount, reference="", description="", created_by=None, metadata=None, source="system", reason=""):
-    amount = Decimal(amount)
+    amount = Decimal(amount).quantize(Decimal("0.01"))
     if amount <= 0:
         raise WalletError("Amount must be positive.")
     with transaction.atomic():
@@ -201,7 +201,7 @@ def debit_wallet(wallet_id, amount, reference="", description="", created_by=Non
 
 
 def freeze_funds(wallet_id, amount, reference="", description="", created_by=None, metadata=None, source="system", reason=""):
-    amount = Decimal(amount)
+    amount = Decimal(amount).quantize(Decimal("0.01"))
     if amount <= 0:
         raise WalletError("Amount must be positive.")
     with transaction.atomic():
@@ -229,7 +229,7 @@ def freeze_funds(wallet_id, amount, reference="", description="", created_by=Non
         notify_user(
             user=wallet.user,
             title="تجميد مبلغ",
-            body=f"تم تجميد مبلغ {amount} {wallet.currency.code} من رصيدك لعملية سحب أو معالجة. {reason}",
+            body=f"تم تجميد مبلغ {amount:,.2f} {wallet.currency.code} من رصيدك لعملية سحب أو معالجة. {reason}",
             category='financial',
             metadata={'amount': str(amount), 'currency': wallet.currency.code, 'reference': reference}
         )

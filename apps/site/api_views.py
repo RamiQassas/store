@@ -37,15 +37,24 @@ def api_deposit_approve(request, pk):
         
         # Recalculate wallet_amount based on final_amount if it's 0 or adjusted
         base_amount = deposit.currency.to_base(final_amount, "deposit")
-        deposit.wallet_amount = wallet.currency.from_base(base_amount, "deposit")
+        wallet_credit_amount = wallet.currency.from_base(base_amount, "deposit")
         
-        if deposit.wallet_amount <= 0:
-            return Response({"detail": "المبلغ المحول للمحفظة يجب أن يكون أكبر من الصفر."}, status=status.HTTP_400_BAD_REQUEST)
+        if wallet_credit_amount <= Decimal("0"):
+            return Response({"detail": "خطأ: القيمة المحولة للمحفظة يجب أن تكون أكبر من الصفر. تأكد من إدخال مبلغ صحيح وسعر صرف العملة."}, status=status.HTTP_400_BAD_REQUEST)
 
         with transaction.atomic():
+            # Update deposit record first
+            deposit.amount = final_amount
+            deposit.wallet_amount = wallet_credit_amount
+            deposit.status = DepositRequest.Status.COMPLETED
+            deposit.reviewed_by = request.user
+            deposit.reviewed_at = timezone.now()
+            deposit.admin_note = admin_note
+            deposit.save()
+
             credit_wallet(
                 wallet_id=wallet.id,
-                amount=deposit.wallet_amount,
+                amount=wallet_credit_amount,
                 reference=f"dep:{deposit.id}",
                 description=f"Approved deposit via {deposit.payment_method.name}",
                 created_by=request.user,
@@ -53,19 +62,13 @@ def api_deposit_approve(request, pk):
                 reason=admin_note,
                 metadata={"from_pending": True}
             )
-            
-            deposit.status = DepositRequest.Status.COMPLETED
-            deposit.reviewed_by = request.user
-            deposit.reviewed_at = timezone.now()
-            deposit.admin_note = admin_note
-            deposit.save()
         
         try:
             from apps.notifications.services import notify_user
             notify_user(
                 user=deposit.user,
                 title="✅ تم تأكيد الإيداع",
-                body=f"تمت إضافة {deposit.wallet_amount} {wallet.currency.code} إلى محفظتك بنجاح.",
+                body=f"تمت إضافة {deposit.wallet_amount:,.2f} {wallet.currency.code} إلى محفظتك بنجاح.",
                 action_url="/dashboard/wallet/",
                 category="financial",
                 priority="high"
@@ -83,34 +86,46 @@ def api_deposit_approve(request, pk):
 def api_deposit_reject(request, pk):
     deposit = get_object_or_404(DepositRequest, pk=pk, status=DepositRequest.Status.PENDING)
     admin_note = request.data.get("admin_note", "")
-    wallet = Wallet.objects.get(user=deposit.user)
     
-    cancel_pending_deposit(
-        wallet_id=wallet.id,
-        amount=deposit.wallet_amount or Decimal("0.00"),
-        reference=f"dep:{deposit.id}",
-        description="Deposit rejected by admin",
-        created_by=request.user
-    )
-    
-    deposit.status = DepositRequest.Status.REJECTED
-    deposit.reviewed_by = request.user
-    deposit.reviewed_at = timezone.now()
-    deposit.admin_note = admin_note
-    deposit.save()
-    
-    from apps.notifications.services import notify_user
-    from apps.notifications.models import Notification
-    notify_user(
-        user=deposit.user,
-        title="❌ تم رفض الإيداع",
-        body=f"عذراً، تم رفض طلب الإيداع. السبب: {admin_note or 'بيانات غير مكتملة'}",
-        action_url="/dashboard/deposits/",
-        category="financial",
-        priority=Notification.Priority.HIGH
-    )
+    try:
+        wallet = Wallet.objects.get(user=deposit.user)
+        
+        # Ensure we have a valid amount to cancel
+        cancel_amount = deposit.wallet_amount or Decimal("0.00")
+        
+        with transaction.atomic():
+            if cancel_amount > 0:
+                cancel_pending_deposit(
+                    wallet_id=wallet.id,
+                    amount=cancel_amount,
+                    reference=f"dep:{deposit.id}",
+                    description="Deposit rejected by admin",
+                    created_by=request.user
+                )
+            
+            deposit.status = DepositRequest.Status.REJECTED
+            deposit.reviewed_by = request.user
+            deposit.reviewed_at = timezone.now()
+            deposit.admin_note = admin_note
+            deposit.save()
+        
+        try:
+            from apps.notifications.services import notify_user
+            from apps.notifications.models import Notification
+            notify_user(
+                user=deposit.user,
+                title="❌ تم رفض الإيداع",
+                body=f"عذراً، تم رفض طلب الإيداع. السبب: {admin_note or 'بيانات غير مكتملة'}",
+                action_url="/dashboard/deposits/",
+                category="financial",
+                priority=Notification.Priority.HIGH
+            )
+        except:
+            pass
 
-    return Response({"status": "success"})
+        return Response({"status": "success"})
+    except Exception as e:
+        return Response({"detail": f"خطأ أثناء الرفض: {str(e)}"}, status=status.HTTP_400_BAD_REQUEST)
 
 @api_view(["POST"])
 @permission_classes([IsFinanceManager])

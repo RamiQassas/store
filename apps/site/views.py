@@ -559,13 +559,24 @@ def withdrawals(request):
         # Create unverified request
         try:
             with transaction.atomic():
+                # Correctly convert the withdrawal amount to the wallet's currency (usually USD)
+                # wallet_amount is the actual amount to be frozen from the balance
+                wallet_amount = currency.to_base(amount, "withdraw")
+                
                 # Wallet check happens in freeze_funds
-                freeze_funds(request.user.wallet.id, amount, reference=f"with_req_{timezone.now().timestamp()}", reason=f"Withdrawal via {method.name}")
+                freeze_funds(
+                    request.user.wallet.id, 
+                    wallet_amount, 
+                    reference=f"with_req_{timezone.now().timestamp()}", 
+                    reason=f"سحب {amount} {currency.code} عبر {method.name}"
+                )
+                
                 withdrawal = WithdrawalRequest.objects.create(
                     user=request.user,
                     payment_method=method,
                     currency=currency,
                     amount=amount,
+                    wallet_amount=wallet_amount, # Important: store the base amount
                     payout_details=payout_details,
                     status=WithdrawalRequest.Status.PENDING,
                     is_verified=False
