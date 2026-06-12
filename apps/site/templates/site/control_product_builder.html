@@ -30,7 +30,7 @@
         padding: 1.25rem;
         margin-bottom: 1rem;
         display: grid;
-        grid-template-columns: 2fr 1fr 1fr 1fr 1fr 0.5fr auto;
+        grid-template-columns: 2fr 1fr 1fr 1fr 1fr 1fr 0.5fr auto;
         gap: 1rem;
         align-items: center;
         transition: all 0.2s;
@@ -265,24 +265,28 @@ function renderPackages() {
         row.className = 'package-item';
         row.innerHTML = `
             <div>
-                <span class="mini-label">اسم الباقة (مثلاً: 60 UC)</span>
+                <span class="mini-label">اسم الباقة</span>
                 <input type="text" class="builder-input" value="${pkg.name}" onchange="updatePackage(${index}, 'name', this.value)">
             </div>
             <div>
-                <span class="mini-label">السعر (Retail)</span>
+                <span class="mini-label">سعر المفرق</span>
                 <input type="number" step="0.01" class="builder-input" value="${pkg.price}" onchange="updatePackage(${index}, 'price', this.value)">
             </div>
             <div>
                 <span class="mini-label">سعر الجملة</span>
-                <input type="number" step="0.01" class="builder-input" value="${pkg.wholesale_price}" onchange="updatePackage(${index}, 'wholesale_price', this.value)">
+                <input type="number" step="0.01" class="builder-input" value="${pkg.wholesale_price || '0.00'}" onchange="updatePackage(${index}, 'wholesale_price', this.value)">
             </div>
             <div>
                 <span class="mini-label">سعر VIP</span>
-                <input type="number" step="0.01" class="builder-input" value="${pkg.vip_price}" onchange="updatePackage(${index}, 'vip_price', this.value)">
+                <input type="number" step="0.01" class="builder-input" value="${pkg.vip_price || '0.00'}" onchange="updatePackage(${index}, 'vip_price', this.value)">
             </div>
             <div>
-                <span class="mini-label">التكلفة (Cost)</span>
+                <span class="mini-label">التكلفة</span>
                 <input type="number" step="0.01" class="builder-input" value="${pkg.cost}" onchange="updatePackage(${index}, 'cost', this.value)">
+            </div>
+            <div>
+                <span class="mini-label">التسليم (دقيقة)</span>
+                <input type="number" class="builder-input" value="${pkg.estimated_delivery_minutes || 0}" onchange="updatePackage(${index}, 'estimated_delivery_minutes', this.value)">
             </div>
             <div>
                 <span class="mini-label">ترتيب</span>
@@ -305,6 +309,7 @@ function addPackage() {
         wholesale_price: '0.00',
         vip_price: '0.00',
         cost: '0.00',
+        estimated_delivery_minutes: 0,
         sort_order: packages.length,
         is_active: true,
         sku: 'new-' + Math.random().toString(36).substr(2, 9)

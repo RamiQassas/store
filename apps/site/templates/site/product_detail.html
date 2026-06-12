@@ -5,56 +5,73 @@
 
 {% block extra_head %}
 <style>
-    .product-layout { display: grid; grid-template-columns: 480px 1fr; gap: 5rem; }
+    .product-layout { display: grid; grid-template-columns: 460px 1fr; gap: 4rem; align-items: start; }
     
+    /* Reveal Animation */
+    .reveal { opacity: 0; transform: translateY(20px); transition: all 0.6s cubic-bezier(0.2, 1, 0.3, 1); }
+    .reveal.visible { opacity: 1; transform: translateY(0); }
+
     /* Gallery */
     .p-gallery { position: sticky; top: 120px; }
     .main-img-box { 
-        aspect-ratio: 1; border-radius: 48px; overflow: hidden; 
-        background: radial-gradient(circle at center, #1e293b, #0f172a); 
-        border: 1px solid var(--panel-border); margin-bottom: 2rem; 
+        aspect-ratio: 1; border-radius: 40px; overflow: hidden; 
+        background: radial-gradient(circle at center, #1e293b, #050811); 
+        border: 1px solid rgba(255,255,255,0.05); margin-bottom: 2rem; 
         display: flex; align-items: center; justify-content: center;
-        box-shadow: 0 40px 80px -20px rgba(0,0,0,0.5);
+        box-shadow: 0 40px 80px -20px rgba(0,0,0,0.6);
+        padding: 3rem;
     }
-    .main-img-box img { width: 85%; height: 85%; object-fit: contain; filter: drop-shadow(0 20px 40px rgba(0,0,0,0.4)); }
+    .main-img-box img { width: 100%; height: 100%; object-fit: contain; filter: drop-shadow(0 20px 40px rgba(0,0,0,0.5)); transition: transform 0.5s; }
+    .main-img-box:hover img { transform: scale(1.05); }
     
-    .thumb-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1.25rem; }
+    .thumb-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; }
     .thumb-item { 
-        aspect-ratio: 1; border-radius: 20px; overflow: hidden; 
-        background: #0f172a; border: 2px solid transparent; cursor: pointer; 
-        opacity: 0.5; transition: all 0.3s cubic-bezier(0.23, 1, 0.32, 1); 
+        aspect-ratio: 1; border-radius: 16px; overflow: hidden; 
+        background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(255,255,255,0.05); cursor: pointer; 
+        opacity: 0.4; transition: all 0.3s; padding: 0.5rem;
         display: flex; align-items: center; justify-content: center;
     }
-    .thumb-item:hover, .thumb-item.active { opacity: 1; border-color: var(--cyan); transform: translateY(-4px); }
-    .thumb-item img { width: 80%; height: 80%; object-fit: contain; }
+    .thumb-item:hover, .thumb-item.active { opacity: 1; border-color: var(--cyan); background: rgba(6, 182, 212, 0.05); transform: translateY(-4px); }
+    .thumb-item img { width: 100%; height: 100%; object-fit: contain; }
 
-    /* Info */
+    /* Selection Styles */
     .variant-card { 
-        padding: 1.75rem; border-radius: 28px; background: var(--panel); border: 1px solid var(--panel-border); 
+        padding: 1.5rem; border-radius: 24px; background: rgba(15, 23, 42, 0.4); border: 1px solid rgba(255,255,255,0.04); 
         cursor: pointer; transition: all 0.4s cubic-bezier(0.23, 1, 0.32, 1); 
         display: flex; justify-content: space-between; align-items: center;
-        margin-bottom: 1.25rem;
+        margin-bottom: 1rem; position: relative; overflow: hidden;
     }
-    .variant-card:hover { border-color: var(--cyan); background: rgba(6, 182, 212, 0.04); transform: translateX(-8px); }
-    .variant-card.selected { border-color: var(--cyan); background: rgba(6, 182, 212, 0.1); box-shadow: 0 20px 40px -10px rgba(6, 182, 212, 0.2); }
+    .variant-card:hover { border-color: rgba(6, 182, 212, 0.4); background: rgba(6, 182, 212, 0.03); transform: translateX(-8px); }
+    .variant-card.selected { 
+        border-color: var(--cyan); background: rgba(6, 182, 212, 0.08); 
+        box-shadow: 0 20px 40px -10px rgba(6, 182, 212, 0.15); 
+    }
     
-    .price-tag { font-size: 1.625rem; font-weight: 950; color: #fff; letter-spacing: -0.5px; }
-    .selected .price-tag { color: var(--cyan); }
+    .variant-card .radio-circle { width: 20px; height: 20px; border: 2px solid rgba(255,255,255,0.1); border-radius: 50%; transition: all 0.3s; position: relative; }
+    .variant-card.selected .radio-circle { border-color: var(--cyan); }
+    .variant-card.selected .radio-circle::after { content: ''; position: absolute; top: 4px; right: 4px; width: 8px; height: 8px; background: var(--cyan); border-radius: 50%; }
 
-    .buy-btn-v2 { 
-        width: 100%; padding: 1.5rem; border-radius: 24px; font-size: 1.25rem; font-weight: 900; 
+    .price-tag { font-size: 1.5rem; font-weight: 950; color: #fff; letter-spacing: -0.5px; }
+    .selected .price-tag { color: var(--cyan); text-shadow: 0 0 20px rgba(6, 182, 212, 0.3); }
+
+    .buy-btn-v3 { 
+        width: 100%; padding: 1.35rem; border-radius: 20px; font-size: 1.15rem; font-weight: 900; 
         background: var(--cyan); color: #000; border: none; cursor: pointer; 
         transition: all 0.4s cubic-bezier(0.23, 1, 0.32, 1);
         display: flex; justify-content: center; align-items: center; gap: 1rem;
         box-shadow: 0 20px 40px -10px rgba(6, 182, 212, 0.4);
+        text-transform: uppercase; letter-spacing: 1px;
     }
-    .buy-btn-v2:hover:not(:disabled) { transform: translateY(-4px) scale(1.01); box-shadow: 0 30px 60px -10px rgba(6, 182, 212, 0.6); }
-    .buy-btn-v2:disabled { opacity: 0.5; cursor: not-allowed; filter: grayscale(1); }
+    .buy-btn-v3:hover:not(:disabled) { transform: translateY(-4px); box-shadow: 0 30px 60px -10px rgba(6, 182, 212, 0.6); }
+    .buy-btn-v3:disabled { opacity: 0.3; cursor: not-allowed; filter: grayscale(1); }
+
+    /* Section Headers */
+    .section-label { font-size: 10px; font-weight: 900; color: #475569; text-transform: uppercase; letter-spacing: 2px; margin-bottom: 1.25rem; display: block; }
 
     @media (max-width: 1024px) {
-        .product-layout { grid-template-columns: 1fr; gap: 3rem; padding-top: 1rem; }
+        .product-layout { grid-template-columns: 1fr; gap: 3rem; }
         .p-gallery { position: static; }
-        .main-img-box { border-radius: 32px; }
+        .main-img-box { border-radius: 32px; padding: 2rem; }
         .variant-card:hover { transform: none; }
     }
 </style>
@@ -63,42 +80,51 @@
 {% block content %}
 <div class="product-layout container py-12">
     <!-- Left: Gallery -->
-    <div class="p-gallery">
+    <div class="p-gallery reveal">
         <div class="main-img-box">
             {% if product.image %}
-            <img id="main-product-img" src="{{ product.image.url }}" alt="{{ product.name }}" onerror="this.onerror=null; this.src='data:image/svg+xml;charset=UTF-8,%3Csvg%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%23334155%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%3E%3Crect%20x%3D%223%22%20y%3D%223%22%20width%3D%2218%22%20height%3D%2218%22%20rx%3D%222%22%20ry%3D%222%22%3E%3C%2Frect%3E%3Ccircle%20cx%3D%228.5%22%20cy%3D%228.5%22%20r%3D%221.5%22%3E%3C%2Fcircle%3E%3Cpolyline%20points%3D%2221%2015%2016%2010%205%2021%22%3E%3C%2Fpolyline%3E%3C%2Fsvg%3E';">
+            <img id="main-product-img" src="{{ product.image.url }}" alt="{{ product.name }}">
             {% else %}
             <div class="w-full h-full flex items-center justify-center text-slate-800 bg-slate-900"><i class="fas fa-box text-8xl"></i></div>
             {% endif %}
         </div>
         <div class="thumb-grid">
             {% if product.image %}
-            <div class="thumb-item active" onclick="changeImg('{{ product.image.url }}', this)"><img src="{{ product.image.url }}" onerror="this.onerror=null; this.src='data:image/svg+xml;charset=UTF-8,%3Csvg%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%23334155%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%3E%3Crect%20x%3D%223%22%20y%3D%223%22%20width%3D%2218%22%20height%3D%2218%22%20rx%3D%222%22%20ry%3D%222%22%3E%3C%2Frect%3E%3Ccircle%20cx%3D%228.5%22%20cy%3D%228.5%22%20r%3D%221.5%22%3E%3C%2Fcircle%3E%3Cpolyline%20points%3D%2221%2015%2016%2010%205%2021%22%3E%3C%2Fpolyline%3E%3C%2Fsvg%3E';"></div>
+            <div class="thumb-item active" onclick="changeImg('{{ product.image.url }}', this)"><img src="{{ product.image.url }}"></div>
             {% endif %}
             {% for img in product.gallery.all %}
-            <div class="thumb-item" onclick="changeImg('{{ img.image.url }}', this)"><img src="{{ img.image.url }}" onerror="this.onerror=null; this.src='data:image/svg+xml;charset=UTF-8,%3Csvg%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%23334155%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%3E%3Crect%20x%3D%223%22%20y%3D%223%22%20width%3D%2218%22%20height%3D%2218%22%20rx%3D%222%22%20ry%3D%222%22%3E%3C%2Frect%3E%3Ccircle%20cx%3D%228.5%22%20cy%3D%228.5%22%20r%3D%221.5%22%3E%3C%2Fcircle%3E%3Cpolyline%20points%3D%2221%2015%2016%2010%205%2021%22%3E%3C%2Fpolyline%3E%3C%2Fsvg%3E';"></div>
+            <div class="thumb-item" onclick="changeImg('{{ img.image.url }}', this)"><img src="{{ img.image.url }}"></div>
             {% endfor %}
         </div>
         
         <!-- Trust Box -->
-        <div class="panel p-6 mt-10 bg-white/[0.01] stack gap-4">
-            <div class="flex items-center gap-4 text-xs font-bold text-muted">
-                <i class="fas fa-shield-check text-success text-xl"></i>
-                <span>ضمان استلام الخدمة 100% أو استعادة الرصيد.</span>
+        <div class="panel p-8 mt-10 bg-slate-900/20 border-white/5 stack gap-6 rounded-[2rem]">
+            <div class="flex items-center gap-4">
+                <div class="w-12 h-12 bg-emerald-500/10 rounded-2xl flex items-center justify-center text-emerald-500"><i class="fas fa-shield-check text-xl"></i></div>
+                <div class="stack">
+                    <span class="text-xs font-black text-white">ضمان كامل</span>
+                    <p class="text-[10px] text-slate-500">نضمن استلام الخدمة أو استعادة الرصيد.</p>
+                </div>
             </div>
-            <div class="flex items-center gap-4 text-xs font-bold text-muted">
-                <i class="fas fa-bolt text-amber-500 text-xl"></i>
-                <span>تسليم فوري خلال دقائق لمعظم الباقات.</span>
+            <div class="flex items-center gap-4">
+                <div class="w-12 h-12 bg-amber-500/10 rounded-2xl flex items-center justify-center text-amber-500"><i class="fas fa-bolt text-xl"></i></div>
+                <div class="stack">
+                    <span class="text-xs font-black text-white">تسليم فوري</span>
+                    <p class="text-[10px] text-slate-500">يتم معالجة الطلب آلياً خلال دقائق.</p>
+                </div>
             </div>
         </div>
     </div>
 
     <!-- Right: Purchase -->
-    <div class="p-info stack gap-8">
+    <div class="p-info stack gap-10 reveal">
         <div>
-            <span class="eyebrow">{{ product.category.name }}</span>
-            <h1 class="text-4xl font-black mb-4">{{ product.name }}</h1>
-            <p class="text-slate-400 leading-relaxed">{{ product.description }}</p>
+            <div class="flex items-center gap-3 mb-4">
+                <span class="p-badge-v3">{% if product.is_featured %}خدمة مميزة{% else %}{{ product.category.name }}{% endif %}</span>
+                {% if product.is_active %}<span class="text-[8px] font-black text-emerald-500 uppercase tracking-widest"><i class="fas fa-circle text-[6px] ml-1"></i> متوفر الآن</span>{% endif %}
+            </div>
+            <h1 class="text-4xl lg:text-5xl font-black mb-6 text-white">{{ product.name }}</h1>
+            <p class="text-slate-400 leading-relaxed text-lg">{{ product.description }}</p>
         </div>
 
         <form method="post" action="{% url 'product_detail' product.id %}" id="purchase-form">
@@ -107,14 +133,16 @@
             <input type="hidden" name="variant_id" id="selected-variant-id">
 
             <div class="stack gap-4">
-                <h3 class="font-bold text-sm text-muted uppercase tracking-wider">اختر الباقة المناسبة</h3>
+                <span class="section-label">اختر الباقة المناسبة</span>
                 {% for v in variants %}
                 <div class="variant-card" onclick="selectVariant('{{ v.id }}', this)">
-                    <div class="flex items-center gap-4">
+                    <div class="flex items-center gap-5">
                         <div class="radio-circle"></div>
                         <div>
-                            <div class="font-bold text-base">{{ v.name }}</div>
-                            <div class="text-[10px] text-muted">وقت التسليم: {{ v.estimated_delivery_minutes }} دقيقة</div>
+                            <div class="font-bold text-lg text-white">{{ v.name }}</div>
+                            <div class="flex items-center gap-2 mt-1">
+                                <span class="text-[9px] text-slate-500 font-bold uppercase tracking-wider"><i class="far fa-clock ml-1"></i> التسليم خلال: {{ v.estimated_delivery_minutes }} دقيقة</span>
+                            </div>
                         </div>
                     </div>
                     {% variant_price v as v_price %}
@@ -125,16 +153,19 @@
 
             <!-- Dynamic Form Fields -->
             {% if product.form_schema.fields %}
-            <div class="panel p-8 mt-8 stack gap-6 bg-cyan/[0.02] border-cyan/10">
-                <h3 class="font-bold text-lg"><i class="fas fa-edit ml-2"></i> البيانات المطلوبة</h3>
-                <div class="grid grid-1 gap-4">
+            <div class="panel p-8 mt-10 stack gap-8 bg-cyan/[0.03] border-cyan/10 rounded-[2.5rem]">
+                <div>
+                    <h3 class="font-black text-xl text-white">البيانات المطلوبة</h3>
+                    <p class="text-xs text-slate-500 mt-1">يرجى إدخال البيانات المطلوبة بعناية لضمان سرعة التنفيذ.</p>
+                </div>
+                <div class="grid grid-1 gap-6">
                     {% for f in product.form_schema.fields %}
                     <div class="field-group">
-                        <label>{{ f.label }} {% if f.required %}<span class="text-danger">*</span>{% endif %}</label>
+                        <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 block">{{ f.label }} {% if f.required %}<span class="text-rose-500">*</span>{% endif %}</label>
                         {% if f.type == 'textarea' %}
-                        <textarea name="custom_{{ f.name|default:f.label|slugify|replace:".,-" }}" placeholder="{{ f.placeholder }}" {% if f.required %}required{% endif %}></textarea>
+                        <textarea name="custom_{{ f.name|default:f.label|slugify|replace:".,-" }}" placeholder="{{ f.placeholder }}" class="w-full bg-slate-900 border-white/5 rounded-2xl p-4 text-white focus:border-cyan transition" {% if f.required %}required{% endif %}></textarea>
                         {% elif f.options %}
-                        <select name="custom_{{ f.name|default:f.label|slugify|replace:".,-" }}" class="builder-input" {% if f.required %}required{% endif %}>
+                        <select name="custom_{{ f.name|default:f.label|slugify|replace:".,-" }}" class="w-full bg-slate-900 border-white/5 rounded-2xl p-4 text-white focus:border-cyan transition" {% if f.required %}required{% endif %}>
                             <option value="">-- اختر من القائمة --</option>
                             {% if f.options|is_list %}
                                 {% for opt in f.options %}
@@ -146,8 +177,10 @@
                                 {% endfor %}
                             {% endif %}
                         </select>
+                        {% elif f.type == 'image' %}
+                        <input type="file" name="custom_{{ f.name|default:f.label|slugify|replace:".,-" }}" class="w-full bg-slate-900 border-white/5 rounded-2xl p-4 text-xs text-slate-500" accept="image/*" {% if f.required %}required{% endif %}>
                         {% else %}
-                        <input type="text" name="custom_{{ f.name|default:f.label|slugify|replace:".,-" }}" placeholder="{{ f.placeholder }}" {% if f.required %}required{% endif %}>
+                        <input type="text" name="custom_{{ f.name|default:f.label|slugify|replace:".,-" }}" placeholder="{{ f.placeholder }}" class="w-full bg-slate-900 border-white/5 rounded-2xl p-4 text-white focus:border-cyan transition" {% if f.required %}required{% endif %}>
                         {% endif %}
                     </div>
                     {% endfor %}
@@ -156,65 +189,68 @@
             {% endif %}
 
             <!-- Coupon Field -->
-            <div class="mt-8">
-                <div class="flex items-center gap-2 mb-3">
-                    <i class="fas fa-ticket-alt text-cyan"></i>
-                    <h3 class="font-bold text-sm text-muted uppercase tracking-wider">هل لديك كوبون خصم؟</h3>
+            <div class="mt-10">
+                <span class="section-label">كوبون الخصم</span>
+                <div class="flex gap-3">
+                    <input type="text" name="coupon_code" id="coupon-code-input" placeholder="لديك كود خصم؟ أدخله هنا..." class="flex-grow bg-slate-900/50 border-white/5 rounded-2xl p-4 text-sm text-white focus:border-cyan transition">
+                    <button type="button" onclick="applyCoupon()" class="btn btn-outline px-8 rounded-2xl font-bold border-white/5 text-cyan hover:bg-cyan/10 transition-all">تطبيق</button>
                 </div>
-                <div class="flex gap-2">
-                    <input type="text" name="coupon_code" id="coupon-code-input" placeholder="أدخل كود الكوبون هنا..." class="flex-grow bg-slate-900/50 border-white/10 rounded-xl p-4 text-sm text-white focus:border-cyan transition">
-                    <button type="button" onclick="applyCoupon()" class="btn btn-outline px-6 py-4 rounded-xl font-bold border-cyan/20 text-cyan hover:bg-cyan hover:text-black transition-all">تطبيق</button>
-                </div>
-                <div id="coupon-feedback" class="mt-2 text-[10px] hidden"></div>
+                <div id="coupon-feedback" class="mt-3 text-[10px] hidden"></div>
             </div>
 
-            <div id="price-breakdown" class="mt-6 p-6 bg-white/[0.02] border border-white/5 rounded-2xl hidden">
-                <div class="stack gap-3">
+            <div id="price-breakdown" class="mt-8 p-8 bg-slate-900/40 border border-white/5 rounded-[2rem] hidden">
+                <div class="stack gap-4">
                     <div class="flex justify-between text-xs">
-                        <span class="text-slate-500">المجموع الفرعي:</span>
-                        <span id="subtotal-display" class="text-white font-bold"></span>
+                        <span class="text-slate-500 font-bold uppercase tracking-widest">المجموع:</span>
+                        <span id="subtotal-display" class="text-white font-black"></span>
                     </div>
                     <div class="flex justify-between text-xs">
-                        <span class="text-slate-500">الخصم:</span>
-                        <span id="discount-display" class="text-emerald-500 font-bold"></span>
+                        <span class="text-slate-500 font-bold uppercase tracking-widest">الخصم:</span>
+                        <span id="discount-display" class="text-emerald-500 font-black"></span>
                     </div>
-                    <div class="h-px bg-white/5 my-1"></div>
-                    <div class="flex justify-between text-lg">
-                        <span class="text-white font-black">الإجمالي الصافي:</span>
+                    <div class="h-px bg-white/5 my-2"></div>
+                    <div class="flex justify-between text-xl">
+                        <span class="text-white font-black">الإجمالي النهائي:</span>
                         <span id="total-display" class="text-cyan font-black"></span>
                     </div>
                 </div>
             </div>
 
-            <div class="mt-10">
-                <button type="submit" class="buy-btn-v2" id="submit-btn" disabled>
-                    <i class="fas fa-shopping-cart"></i> شراء هذه الباقة الآن
+            <div class="mt-12">
+                <button type="submit" class="buy-btn-v3" id="submit-btn" disabled>
+                    <i class="fas fa-shopping-cart ml-2"></i> إتمام عملية الشراء
                 </button>
-                <p class="text-[10px] text-center text-muted mt-4">بمجرد الشراء، سيتم خصم المبلغ من محفظتك وتجهيز الطلب فوراً.</p>
+                <div class="flex items-center justify-center gap-4 mt-6 opacity-40">
+                    <div class="h-px flex-grow bg-white/10"></div>
+                    <span class="text-[8px] font-black text-slate-500 uppercase tracking-[0.2em]">Secure Checkout</span>
+                    <div class="h-px flex-grow bg-white/10"></div>
+                </div>
             </div>
         </form>
 
         <!-- Instructions -->
         {% if product.instructions %}
-        <div class="panel p-8 stack gap-4 border-dashed">
-            <h3 class="font-bold text-base"><i class="fas fa-circle-info ml-2 text-cyan"></i> تعليمات هامة</h3>
-            <div class="text-sm text-slate-300 leading-loose">{{ product.instructions|linebreaks }}</div>
+        <div class="mt-12">
+            <span class="section-label">تعليمات هامة</span>
+            <div class="p-8 bg-slate-900/20 border border-dashed border-white/10 rounded-[2rem] text-sm text-slate-300 leading-loose">
+                {{ product.instructions|linebreaks }}
+            </div>
         </div>
         {% endif %}
         
         <!-- Related Products -->
-        <div class="stack gap-6 mt-12">
-            <h3 class="font-bold text-xl">خدمات قد تهمك أيضاً</h3>
-            <div class="grid grid-3 gap-4">
+        <div class="stack gap-6 mt-16">
+            <h3 class="font-black text-2xl text-white">خدمات قد تهمك أيضاً</h3>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {% for rp in related_products %}
-                <a href="{% url 'product_detail' rp.id %}" class="panel p-4 flex gap-4 items-center hover:border-cyan transition">
-                    <div class="w-12 h-12 rounded-lg bg-slate-800 overflow-hidden">
-                        {% if rp.image %}<img src="{{ rp.image.url }}" class="w-full h-full object-cover">{% endif %}
+                <a href="{% url 'product_detail' rp.id %}" class="panel p-5 flex gap-4 items-center hover:border-cyan/30 hover:bg-cyan/[0.02] transition-all rounded-3xl">
+                    <div class="w-14 h-14 rounded-2xl bg-slate-900 overflow-hidden flex-shrink-0 border border-white/5 p-2">
+                        {% if rp.image %}<img src="{{ rp.image.url }}" class="w-full h-full object-contain">{% endif %}
                     </div>
-                    <div class="flex-grow">
-                        <div class="text-xs font-bold line-clamp-1">{{ rp.name }}</div>
+                    <div class="flex-grow min-w-0">
+                        <div class="text-xs font-black text-white truncate">{{ rp.name }}</div>
                         {% variant_price rp.variants.first as rp_price %}
-                        <div class="text-[10px] text-cyan mt-1">{% currency_format rp_price %}</div>
+                        <div class="text-[10px] font-black text-cyan mt-1">{% currency_format rp_price %}</div>
                     </div>
                 </a>
                 {% endfor %}
@@ -274,7 +310,7 @@ function applyCoupon() {
                 document.getElementById('total-display').innerText = data.new_total.toFixed(2) + " USD";
                 
                 // Update main button text
-                document.getElementById('submit-btn').innerHTML = `<i class="fas fa-shopping-cart"></i> شراء الآن بسعر ${data.new_total.toFixed(2)} USD`;
+                document.getElementById('submit-btn').innerHTML = `<i class="fas fa-shopping-cart ml-2"></i> شراء الآن بسعر ${data.new_total.toFixed(2)} USD`;
             } else {
                 feedback.innerText = data.error;
                 feedback.className = "mt-2 text-[10px] text-rose-500 block";
@@ -292,6 +328,13 @@ function applyCoupon() {
 window.onload = () => {
     const first = document.querySelector('.variant-card');
     if(first) first.click();
+    
+    const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) entry.target.classList.add('visible');
+        });
+    }, { threshold: 0.1 });
+    document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
 }
 </script>
 {% endblock %}

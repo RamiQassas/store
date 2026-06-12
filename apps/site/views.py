@@ -973,11 +973,12 @@ def control_product_create(request):
                     wholesale_price=Decimal(str(v.get('wholesale_price', '0'))),
                     vip_price=Decimal(str(v.get('vip_price', '0'))),
                     cost=Decimal(str(v.get('cost', '0'))), 
+                    estimated_delivery_minutes=int(v.get('estimated_delivery_minutes', 0)),
                     sort_order=int(v.get('sort_order', 0)), 
                     is_active=v.get('is_active', True)
                 )
         return redirect("control_products_list")
-    return render(request, "site/control_product_builder.html", {"form": form, "variants_json_data": []})
+    return render(request, "site/control_product_builder.html", {"form": form, "variants_json_data": [], "title": "إنشاء منتج جديد"})
 
 @support_required
 @transaction.atomic
@@ -997,13 +998,21 @@ def control_product_edit(request, pk):
                         "wholesale_price": Decimal(str(v.get('wholesale_price', '0'))),
                         "vip_price": Decimal(str(v.get('vip_price', '0'))),
                         "cost": Decimal(str(v.get('cost', '0'))), 
+                        "estimated_delivery_minutes": int(v.get('estimated_delivery_minutes', 0)),
                         "sort_order": int(v.get('sort_order', 0)), 
                         "is_active": v.get('is_active', True)
                     }
                 )
         return redirect("control_products_list")
-    v_list = [{"name": v.name, "sku": v.sku, "price": str(v.price), "cost": str(v.cost), "sort_order": v.sort_order, "is_active": v.is_active} for v in product.variants.all().order_by('sort_order')]
-    return render(request, "site/control_product_builder.html", {"form": form, "product": product, "variants_json_data": v_list})
+    v_list = [
+        {
+            "name": v.name, "sku": v.sku, "price": str(v.price), 
+            "wholesale_price": str(v.wholesale_price), "vip_price": str(v.vip_price),
+            "cost": str(v.cost), "estimated_delivery_minutes": v.estimated_delivery_minutes,
+            "sort_order": v.sort_order, "is_active": v.is_active
+        } for v in product.variants.all().order_by('sort_order')
+    ]
+    return render(request, "site/control_product_builder.html", {"form": form, "product": product, "variants_json_data": v_list, "title": f"تعديل: {product.name}"})
 
 @admin_required
 def control_announcements(request): return render(request, "site/control_announcements.html", {"announcements": SiteAnnouncement.objects.all().order_by("-created_at")})

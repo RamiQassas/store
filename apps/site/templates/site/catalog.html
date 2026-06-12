@@ -7,217 +7,236 @@
 <style>
     .catalog-wrapper { display: grid; grid-template-columns: 280px 1fr; gap: 2.5rem; align-items: start; }
     
+    /* Reveal Animation */
+    .reveal { opacity: 0; transform: translateY(20px); transition: all 0.6s cubic-bezier(0.2, 1, 0.3, 1); }
+    .reveal.visible { opacity: 1; transform: translateY(0); }
+
     /* Sidebar Filters */
-    .filter-sidebar { position: sticky; top: 100px; background: var(--panel); border: 1px solid var(--panel-border); border-radius: 24px; }
+    .filter-sidebar { position: sticky; top: 100px; background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(20px); border: 1px solid rgba(255,255,255,0.05); border-radius: 32px; padding: 2rem; }
     .filter-group { margin-bottom: 2.5rem; }
-    .filter-label { font-size: 11px; font-weight: 900; color: var(--muted); text-transform: uppercase; letter-spacing: 1.5px; margin-bottom: 1.25rem; display: block; }
+    .filter-label { font-size: 10px; font-weight: 900; color: #475569; text-transform: uppercase; letter-spacing: 2px; margin-bottom: 1.5rem; display: block; }
     
     .cat-link { 
         display: flex; justify-content: space-between; align-items: center; 
-        padding: 0.85rem 1.25rem; border-radius: 14px; font-size: 0.9rem; font-weight: 700;
-        transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1); color: var(--muted);
+        padding: 0.75rem 1rem; border-radius: 16px; font-size: 0.85rem; font-weight: 700;
+        transition: all 0.3s; color: #94a3b8; margin-bottom: 4px;
     }
-    .cat-link:hover { background: rgba(255,255,255,0.04); color: var(--text); transform: translateX(-5px); }
-    .cat-link.active { background: rgba(6, 182, 212, 0.1); color: var(--cyan); box-shadow: inset 0 0 20px rgba(6, 182, 212, 0.05); }
-    .cat-count { font-size: 10px; opacity: 0.6; background: rgba(255,255,255,0.08); padding: 2px 10px; border-radius: 8px; font-family: monospace; }
+    .cat-link:hover { background: rgba(255,255,255,0.03); color: #fff; transform: translateX(-5px); }
+    .cat-link.active { background: rgba(6, 182, 212, 0.1); color: var(--cyan); border: 1px solid rgba(6, 182, 212, 0.2); }
+    .cat-count { font-size: 9px; opacity: 0.5; background: rgba(255,255,255,0.05); padding: 2px 8px; border-radius: 6px; }
 
-    /* Top Bar */
-    .catalog-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 2.5rem; gap: 2rem; }
-    .search-box-v2 { flex-grow: 1; position: relative; }
-    .search-box-v2 input { 
-        padding: 1.125rem 3.5rem 1.125rem 1.5rem; border-radius: 18px; background: var(--panel); 
-        border: 1px solid var(--panel-border); width: 100%; transition: all 0.3s;
+    /* Header & Search */
+    .catalog-header { display: flex; flex-direction: column; gap: 1.5rem; margin-bottom: 3rem; }
+    .search-row { display: flex; gap: 1.5rem; align-items: center; }
+    .search-box-v3 { flex-grow: 1; position: relative; }
+    .search-box-v3 input { 
+        padding: 1.25rem 3.5rem 1.25rem 1.5rem; border-radius: 24px; background: rgba(15, 23, 42, 0.6); 
+        border: 1px solid rgba(255,255,255,0.05); width: 100%; transition: all 0.3s; color: #fff; font-size: 0.9rem;
     }
-    .search-box-v2 input:focus { border-color: var(--cyan); box-shadow: 0 0 0 4px rgba(6, 182, 212, 0.1); outline: none; }
-    .search-box-v2 i { position: absolute; right: 1.5rem; top: 50%; transform: translateY(-50%); color: var(--muted); font-size: 1.1rem; }
+    .search-box-v3 input:focus { border-color: var(--cyan); background: rgba(15, 23, 42, 0.8); box-shadow: 0 0 0 8px rgba(6, 182, 212, 0.05); outline: none; }
+    .search-box-v3 i { position: absolute; right: 1.5rem; top: 50%; transform: translateY(-50%); color: #475569; font-size: 1.1rem; }
 
-    /* Product Grid */
-    .p-grid-v2 { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 2rem; }
+    /* Modern Product Grid */
+    .p-grid-v3 { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 1.5rem; }
     
-    .product-v2-card { 
-        background: var(--panel); 
-        border: 1px solid var(--panel-border); 
+    .p-card-v3 { 
+        background: rgba(15, 23, 42, 0.4); 
+        border: 1px solid rgba(255,255,255,0.04); 
         border-radius: 32px; 
         overflow: hidden; 
-        transition: all 0.4s cubic-bezier(0.23, 1, 0.32, 1);
-        display: flex; 
-        flex-direction: column;
-        height: 100%;
-        position: relative;
+        transition: all 0.5s cubic-bezier(0.23, 1, 0.32, 1);
+        display: flex; flex-direction: column; height: 100%; position: relative;
     }
-    .product-v2-card:hover { 
-        transform: translateY(-8px); 
-        border-color: rgba(6, 182, 212, 0.5);
-        box-shadow: 0 30px 60px -12px rgba(0, 0, 0, 0.6);
+    .p-card-v3:hover { 
+        transform: translateY(-10px); 
+        border-color: rgba(6, 182, 212, 0.3);
+        background: rgba(15, 23, 42, 0.7);
+        box-shadow: 0 40px 80px -15px rgba(0, 0, 0, 0.8);
     }
     
-    .p-v2-img { 
-        width: 100%; 
-        aspect-ratio: 1/1; 
-        background: radial-gradient(circle at center, #1e293b, #0f172a); 
-        overflow: hidden; 
-        position: relative; 
-        display: flex; 
-        align-items: center; 
-        justify-content: center;
-        border-bottom: 1px solid rgba(255,255,255,0.03);
+    .p-img-v3 { 
+        width: 100%; aspect-ratio: 1/1; 
+        background: #0a0f1c; 
+        overflow: hidden; position: relative; display: flex; align-items: center; justify-content: center;
+        padding: 2.5rem;
     }
-    .p-v2-img img { 
-        width: 85%; 
-        height: 85%; 
-        object-fit: contain;
+    .p-img-v3 img { 
+        width: 100%; height: 100%; object-fit: contain;
         transition: transform 0.8s cubic-bezier(0.23, 1, 0.32, 1);
-        filter: drop-shadow(0 10px 20px rgba(0,0,0,0.3));
+        filter: drop-shadow(0 15px 30px rgba(0,0,0,0.5));
     }
-    .product-v2-card:hover .p-v2-img img { transform: scale(1.1) rotate(2deg); }
+    .p-card-v3:hover .p-img-v3 img { transform: scale(1.15) rotate(-3deg); }
     
-    .p-v2-body { padding: 1.75rem; flex-grow: 1; display: flex; flex-direction: column; gap: 1rem; }
-    .p-v2-badge { 
-        font-size: 9px; 
-        font-weight: 900; 
-        text-transform: uppercase; 
-        color: var(--cyan); 
-        background: rgba(6, 182, 212, 0.1); 
-        padding: 5px 12px; 
-        border-radius: 100px; 
-        display: inline-block; 
-        width: fit-content;
-        letter-spacing: 0.5px;
+    /* Featured Ribbon */
+    .p-featured-tag {
+        position: absolute; top: 1.5rem; right: 1.5rem; z-index: 10;
+        background: linear-gradient(135deg, #06b6d4, #0891b2);
+        color: #fff; font-size: 9px; font-weight: 900; padding: 4px 12px;
+        border-radius: 100px; box-shadow: 0 10px 20px -5px rgba(6, 182, 212, 0.5);
+        text-transform: uppercase; letter-spacing: 1px;
     }
-    .p-v2-title { 
-        font-size: 1.0625rem; 
-        font-weight: 800; 
-        color: #fff; 
-        line-height: 1.4; 
-        margin: 0;
-        height: 2.8em; 
-        overflow: hidden; 
-        display: -webkit-box; 
-        -webkit-line-clamp: 2; 
-        -webkit-box-orient: vertical;
+
+    .p-body-v3 { padding: 1.5rem; flex-grow: 1; display: flex; flex-direction: column; gap: 0.75rem; }
+    .p-meta-v3 { display: flex; justify-content: space-between; align-items: center; }
+    .p-badge-v3 { font-size: 8px; font-weight: 800; color: var(--cyan); background: rgba(6, 182, 212, 0.08); padding: 4px 10px; border-radius: 8px; text-transform: uppercase; }
+    .p-pkg-count { font-size: 8px; color: #475569; font-weight: 700; }
+
+    .p-title-v3 { 
+        font-size: 1rem; font-weight: 700; color: #fff; line-height: 1.5; margin: 0;
+        height: 3em; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
         transition: color 0.3s;
     }
-    .product-v2-card:hover .p-v2-title { color: var(--cyan); }
+    .p-card-v3:hover .p-title-v3 { color: var(--cyan); }
 
-    .p-v2-footer { 
-        margin-top: auto; 
-        padding-top: 1.25rem; 
-        border-t: 1px solid rgba(255,255,255,0.05); 
-        display: flex; 
-        justify-content: space-between; 
-        align-items: center; 
+    .p-footer-v3 { 
+        margin-top: auto; padding-top: 1.25rem; border-top: 1px solid rgba(255,255,255,0.03); 
+        display: flex; justify-content: space-between; align-items: center; 
     }
-    .p-v2-price-box span { font-size: 10px; font-weight: 700; color: #475569; display: block; margin-bottom: 2px; }
-    .p-v2-price { font-size: 1.35rem; font-weight: 950; color: #fff; letter-spacing: -0.5px; }
+    .p-price-v3 { display: flex; flex-direction: column; }
+    .p-price-v3 .label { font-size: 9px; font-weight: 700; color: #475569; margin-bottom: 2px; }
+    .p-price-v3 .amt { font-size: 1.15rem; font-weight: 900; color: #fff; }
 
+    /* Mobile Improvements */
     @media (max-width: 768px) {
-        .p-grid-v2 { gap: 1rem; grid-template-columns: repeat(2, 1fr); }
-        .p-v2-body { padding: 1rem; gap: 0.5rem; }
-        .p-v2-title { font-size: 0.9375rem; height: 2.6em; }
-        .p-v2-footer { padding-top: 0.75rem; flex-direction: column; align-items: flex-start; gap: 1rem; }
-        .p-v2-footer .btn { width: 100%; }
-        .p-v2-price { font-size: 1.125rem; }
+        .catalog-wrapper { grid-template-columns: 1fr; }
+        .filter-sidebar { display: none; }
+        .p-grid-v3 { grid-template-columns: repeat(2, 1fr); gap: 0.75rem; }
+        .p-img-v3 { padding: 1rem; }
+        .p-body-v3 { padding: 1rem; gap: 0.5rem; }
+        .p-title-v3 { font-size: 0.85rem; height: 3em; }
+        .p-footer-v3 { flex-direction: column; align-items: stretch; gap: 1rem; }
+        .p-price-v3 .amt { font-size: 1rem; }
+        .p-footer-v3 .btn { width: 100%; padding: 0.75rem; border-radius: 12px; }
+        .p-featured-tag { top: 0.75rem; right: 0.75rem; font-size: 7px; padding: 3px 8px; }
+    }
+
+    /* Tablet/Small Laptop */
+    @media (min-width: 769px) and (max-width: 1200px) {
+        .catalog-wrapper { grid-template-columns: 220px 1fr; gap: 1.5rem; }
+        .p-grid-v3 { grid-template-columns: repeat(2, 1fr); }
     }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="page-head">
-    <div>
-        <span class="eyebrow">Service Marketplace</span>
-        <h1>متجر الخدمات الرقمية</h1>
-        <p class="text-muted">اختر من بين مئات الخدمات الرقمية الموثوقة والآمنة.</p>
+<div class="container pb-20">
+    <div class="page-head reveal">
+        <div>
+            <span class="eyebrow">Service Marketplace</span>
+            <h1>متجر الخدمات الرقمية</h1>
+            <p class="text-muted">اختر من بين مئات الخدمات الرقمية الموثوقة والآمنة بأسعار تنافسية.</p>
+        </div>
+    </div>
+
+    <!-- Mobile Category Scroll -->
+    <div class="mobile-filter-scroll reveal">
+        <a href="{% url 'catalog' %}" class="m-chip {% if not active_category %}active{% endif %}">الكل</a>
+        {% for cat in categories %}
+        <a href="?category={{ cat.id }}" class="m-chip {% if active_category == cat.id|stringformat:'s' %}active{% endif %}">{{ cat.name }}</a>
+        {% endfor %}
+    </div>
+
+    <div class="catalog-wrapper">
+        <!-- Sidebar -->
+        <aside class="filter-sidebar reveal">
+            <div class="filter-group">
+                <span class="filter-label">التصنيفات</span>
+                <div class="stack">
+                    <a href="{% url 'catalog' %}" class="cat-link {% if not active_category %}active{% endif %}">
+                        <span>الكل</span>
+                        <i class="fas fa-chevron-left text-[10px] opacity-20"></i>
+                    </a>
+                    {% for cat in categories %}
+                    <a href="?category={{ cat.id }}" class="cat-link {% if active_category == cat.id|stringformat:'s' %}active{% endif %}">
+                        <span>{{ cat.name }}</span>
+                        <span class="cat-count">{{ cat.product_count }}</span>
+                    </a>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <div class="filter-group">
+                <span class="filter-label">ترتيب المنتجات</span>
+                <select class="w-full bg-slate-900/50 border-white/5 rounded-2xl p-4 text-xs text-white" onchange="location.href = '?sort=' + this.value">
+                    <option value="newest" {% if sort == 'newest' %}selected{% endif %}>الأحدث أولاً</option>
+                    <option value="price_low" {% if sort == 'price_low' %}selected{% endif %}>الأقل سعراً</option>
+                    <option value="price_high" {% if sort == 'price_high' %}selected{% endif %}>الأعلى سعراً</option>
+                </select>
+            </div>
+            
+            <div class="p-6 bg-cyan/5 rounded-2xl border border-cyan/10">
+                <h4 class="text-xs font-black text-cyan uppercase mb-2">هل تحتاج مساعدة؟</h4>
+                <p class="text-[10px] text-slate-500 leading-relaxed mb-4">تواصل مع فريق الدعم الفني لمساعدتك في اختيار الخدمة المناسبة.</p>
+                <a href="{% url 'chat_list' %}" class="btn btn-primary btn-sm w-full rounded-xl">تحدث معنا</a>
+            </div>
+        </aside>
+
+        <!-- Content -->
+        <main>
+            <div class="catalog-header reveal">
+                <div class="search-row">
+                    <form class="search-box-v3" method="get">
+                        <i class="fas fa-search"></i>
+                        <input type="text" name="q" value="{{ query }}" placeholder="ابحث عن باقة، لعبة، أو بطاقة شحن...">
+                    </form>
+                    <div class="hide-mobile">
+                        <span class="text-[10px] font-black text-slate-600 uppercase">نتائج البحث: {{ products.count }}</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="p-grid-v3">
+                {% for p in products %}
+                <div class="p-card-v3 reveal">
+                    {% if p.is_featured %}
+                    <div class="p-featured-tag">مميز</div>
+                    {% endif %}
+                    
+                    <a href="{% url 'product_detail' p.id %}" class="p-img-v3">
+                        {% if p.image %}
+                        <img src="{{ p.image.url }}" alt="{{ p.name }}" loading="lazy">
+                        {% else %}
+                        <i class="fas fa-box text-3xl opacity-10"></i>
+                        {% endif %}
+                    </a>
+
+                    <div class="p-body-v3">
+                        <div class="p-meta-v3">
+                            <span class="p-badge-v3">{{ p.category.name }}</span>
+                            <span class="p-pkg-count">{{ p.variants.count }} باقة</span>
+                        </div>
+                        <a href="{% url 'product_detail' p.id %}" class="p-title-v3">{{ p.name }}</a>
+                        
+                        <div class="p-footer-v3">
+                            <div class="p-price-v3">
+                                <span class="label">يبدأ من</span>
+                                {% variant_price p.variants.first as v_price %}
+                                <span class="amt">{% currency_format v_price %}</span>
+                            </div>
+                            <a href="{% url 'product_detail' p.id %}" class="btn btn-primary btn-sm px-6 rounded-2xl font-bold">اطلب</a>
+                        </div>
+                    </div>
+                </div>
+                {% empty %}
+                <div class="col-span-full py-32 text-center bg-slate-900/20 rounded-[3rem] border border-dashed border-white/5 reveal">
+                    <i class="fas fa-search text-4xl text-slate-800 mb-6"></i>
+                    <h3 class="text-xl font-black text-white">لم نجد ما تبحث عنه</h3>
+                    <p class="text-slate-500 mt-2">حاول استخدام كلمات بحث مختلفة أو تصفح الأقسام.</p>
+                    <a href="{% url 'catalog' %}" class="btn btn-outline btn-sm mt-8 px-10">إظهار كل الخدمات</a>
+                </div>
+                {% endfor %}
+            </div>
+        </main>
     </div>
 </div>
 
-<!-- Mobile Filter Bar -->
-<div class="mobile-filter-scroll">
-    <a href="{% url 'catalog' %}" class="m-chip {% if not active_category %}active{% endif %}">الكل</a>
-    {% for cat in categories %}
-    <a href="?category={{ cat.id }}" class="m-chip {% if active_category == cat.id|stringformat:'s' %}active{% endif %}">{{ cat.name }}</a>
-    {% endfor %}
-</div>
-
-<div class="catalog-wrapper">
-    <!-- Sidebar (Desktop) -->
-    <aside class="filter-sidebar p-6">
-        <div class="filter-group">
-            <span class="filter-label">التصنيفات</span>
-            <div class="stack gap-1">
-                <a href="{% url 'catalog' %}" class="cat-link {% if not active_category %}active{% endif %}">
-                    <span>الكل</span>
-                </a>
-                {% for cat in categories %}
-                <a href="?category={{ cat.id }}" class="cat-link {% if active_category == cat.id|stringformat:'s' %}active{% endif %}">
-                    <span>{{ cat.name }}</span>
-                    <span class="cat-count">{{ cat.product_count }}</span>
-                </a>
-                {% endfor %}
-            </div>
-        </div>
-
-        <div class="filter-group">
-            <span class="filter-label">ترتيب العرض</span>
-            <select class="builder-input" onchange="location.href = '?sort=' + this.value">
-                <option value="newest" {% if sort == 'newest' %}selected{% endif %}>الأحدث أولاً</option>
-                <option value="price_low" {% if sort == 'price_low' %}selected{% endif %}>الأقل سعراً</option>
-                <option value="price_high" {% if sort == 'price_high' %}selected{% endif %}>الأعلى سعراً</option>
-                <option value="popular" {% if sort == 'popular' %}selected{% endif %}>الأكثر شعبية</option>
-            </select>
-        </div>
-    </aside>
-
-    <!-- Main Grid -->
-    <main>
-        <div class="catalog-header">
-            <form class="search-box-v2" method="get">
-                <i class="fas fa-search"></i>
-                <input type="text" name="q" value="{{ query }}" placeholder="ابحث عن خدمة، منتج، أو كلمة مفتاحية...">
-            </form>
-            <div class="hide-mobile">
-                <span class="text-xs text-muted">تم العثور على <strong>{{ products.count }}</strong> نتيجة</span>
-            </div>
-        </div>
-
-        <div class="p-grid-v2">
-            {% for p in products %}
-            <div class="product-v2-card">
-                <a href="{% url 'product_detail' p.id %}" class="p-v2-img">
-                    {% if p.image %}
-                    <img src="{{ p.image.url }}" alt="{{ p.name }}" loading="lazy" onerror="this.onerror=null; this.src='data:image/svg+xml;charset=UTF-8,%3Csvg%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%23334155%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%3E%3Crect%20x%3D%223%22%20y%3D%223%22%20width%3D%2218%22%20height%3D%2218%22%20rx%3D%222%22%20ry%3D%222%22%3E%3C%2Frect%3E%3Ccircle%20cx%3D%228.5%22%20cy%3D%228.5%22%20r%3D%221.5%22%3E%3C%2Fcircle%3E%3Cpolyline%20points%3D%2221%2015%2016%2010%205%2021%22%3E%3C%2Fpolyline%3E%3C%2Fsvg%3E';">
-                    {% else %}
-                    <div class="flex flex-col items-center gap-3 opacity-20">
-                        <i class="fas fa-box-open text-5xl"></i>
-                        <span class="text-[10px] font-bold">NO IMAGE</span>
-                    </div>
-                    {% endif %}
-                </a>
-                <div class="p-v2-body">
-                    <span class="p-v2-badge">{{ p.category.name }}</span>
-                    <a href="{% url 'product_detail' p.id %}" class="p-v2-title">{{ p.name }}</a>
-                    
-                    <div class="p-v2-footer mt-6 pt-4 border-t border-white/5 flex justify-between items-center">
-                        <div class="p-v2-price-box">
-                            <span>يبدأ من</span>
-                            {% variant_price p.variants.first as v_price %}
-                            <div class="p-v2-price">{% currency_format v_price %}</div>
-                        </div>
-                        <a href="{% url 'product_detail' p.id %}" class="btn btn-primary btn-sm rounded-full px-5">تفاصيل</a>
-                    </div>
-                </div>
-            </div>
-            {% empty %}
-            <div class="col-span-full panel p-32 text-center bg-white/[0.01] border-dashed">
-                <div class="w-20 h-20 bg-slate-800/50 rounded-full flex items-center justify-center mx-auto mb-6 text-slate-500">
-                    <i class="fas fa-search text-3xl"></i>
-                </div>
-                <h3 class="text-xl font-bold mb-2">لا توجد نتائج مطابقة</h3>
-                <p class="text-muted">جرب البحث بكلمات أخرى أو اختر تصنيفاً مختلفاً.</p>
-                <a href="{% url 'catalog' %}" class="btn btn-outline btn-sm mt-6">إعادة ضبط البحث</a>
-            </div>
-            {% endfor %}
-        </div>
-    </main>
-</div>
+<script>
+    const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) entry.target.classList.add('visible');
+        });
+    }, { threshold: 0.1 });
+    document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+</script>
 {% endblock %}
 
