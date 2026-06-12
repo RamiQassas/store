@@ -338,7 +338,7 @@ def deposits(request):
             track_pending_deposit(request.user.wallet.id, amount, reference=f"dep_req_{timezone.now().timestamp()}", reason=f"Deposit via {method.name}")
             DepositRequest.objects.create(user=request.user, payment_method=method, amount=amount, status=DepositRequest.Status.PENDING)
             messages.success(request, "تم تقديم الطلب."); return redirect("dashboard_deposits")
-    return render(request, "site/v3/v3_deposits.html", {"methods": PaymentMethod.objects.filter(is_active=True), "requests": DepositRequest.objects.filter(user=request.user).order_by('-created_at')})
+    return render(request, "site/v3/v3_deposits.html", {"payment_methods": PaymentMethod.objects.filter(is_active=True), "requests": DepositRequest.objects.filter(user=request.user).order_by('-created_at')})
 
 @login_required
 def withdrawals(request):
@@ -356,7 +356,7 @@ def withdrawals(request):
                 WithdrawalRequest.objects.create(user=request.user, payment_method=method, amount=amount, withdrawal_address=address, status=WithdrawalRequest.Status.PENDING)
                 messages.success(request, "تم تقديم طلب السحب."); return redirect("dashboard_withdrawals")
             except Exception as e: messages.error(request, str(e))
-    return render(request, "site/v3/v3_withdrawals.html", {"methods": PaymentMethod.objects.filter(is_active=True, can_withdraw=True), "requests": WithdrawalRequest.objects.filter(user=request.user).order_by('-created_at')})
+    return render(request, "site/v3/v3_withdrawals.html", {"payment_methods": PaymentMethod.objects.filter(is_active=True, can_withdraw=True), "requests": WithdrawalRequest.objects.filter(user=request.user).order_by('-created_at')})
 
 @login_required
 def kyc_request_view(request):
@@ -523,6 +523,24 @@ def control_user_moderate(request, public_uuid):
             return redirect("control_user_moderate", public_uuid=public_uuid)
         elif action == "reset_otp": user.otp_failed_attempts = 0; user.otp_lockout_until = None; user.otp_resend_count = 0; user.save(); messages.success(request, "تم إعادة ضبط قيود الرمز."); return redirect("control_user_moderate", public_uuid=public_uuid)
         elif action == "reset_2fa": user.totp_enabled = False; user.totp_secret = None; user.save(); messages.success(request, "تم تعطيل 2FA للمستخدم."); return redirect("control_user_moderate", public_uuid=public_uuid)
+        elif action == "reset_password":
+            from django.contrib.auth.tokens import default_token_generator
+            from django.core.mail import send_mail
+            token = default_token_generator.make_token(user)
+            uid = user.id
+            reset_url = request.build_absolute_uri(reverse('site_reset_password')) + f"?token={token}&uid={uid}"
+            try:
+                send_mail(
+                    "إعادة تعيين كلمة المرور",
+                    f"استخدم الرابط التالي لإعادة تعيين كلمة المرور: {reset_url}",
+                    settings.DEFAULT_FROM_EMAIL,
+                    [user.email],
+                    fail_silently=False,
+                )
+                messages.success(request, "تم إرسال رابط إعادة تعيين كلمة المرور بنجاح.")
+            except Exception as e:
+                messages.error(request, f"فشل إرسال البريد: {str(e)}")
+            return redirect("control_user_moderate", public_uuid=public_uuid)
         elif form.is_valid(): form.save(); messages.success(request, "تم التحديث."); return redirect("control_users_list")
     return render(request, "site/control_user_moderate.html", {"form": form, "user_to_moderate": user})
 
