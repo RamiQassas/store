@@ -350,31 +350,70 @@ def order_detail(request, pk): return render(request, "site/order_detail.html", 
 @login_required
 def deposits(request):
     if request.method == "POST":
-        method_id, amount = request.POST.get("method_id"), Decimal(request.POST.get("amount", "0"))
+        # Verification check
+        if not v3_init_verification(request, request.user, "deposit"):
+            last_verified = request.session.get("v3_action_verified_at")
+            if not last_verified or (timezone.now() - timezone.datetime.fromisoformat(last_verified)).total_seconds() > 300:
+                methods = request.session.get("v3_auth_methods", [])
+                return redirect("site_2fa_verify" if methods[0] == "APP" else "site_verify_otp")
+            
+        method_id = request.POST.get("payment_method")
+        amount_str = request.POST.get("amount", "0")
+        
+        try:
+            amount = Decimal(amount_str)
+        except:
+            amount = Decimal(0)
+        
         if method_id and amount > 0:
             method = get_object_or_404(PaymentMethod, id=method_id)
             track_pending_deposit(request.user.wallet.id, amount, reference=f"dep_req_{timezone.now().timestamp()}", reason=f"Deposit via {method.name}")
             DepositRequest.objects.create(user=request.user, payment_method=method, amount=amount, status=DepositRequest.Status.PENDING)
-            messages.success(request, "تم تقديم الطلب."); return redirect("dashboard_deposits")
-    return render(request, "site/v3/v3_deposits.html", {"payment_methods": PaymentMethod.objects.filter(is_active=True), "requests": DepositRequest.objects.filter(user=request.user).order_by('-created_at')})
+            messages.success(request, "تم تقديم الطلب بنجاح.")
+            return redirect("deposits") # Stay on the page
+            
+        messages.error(request, "يرجى اختيار وسيلة دفع صحيحة وإدخال مبلغ أكبر من الصفر.")
+        
+    return render(request, "site/v3/v3_deposits.html", {
+        "payment_methods": PaymentMethod.objects.filter(is_active=True), 
+        "requests": DepositRequest.objects.filter(user=request.user).order_by('-created_at')
+    })
 
 @login_required
 def withdrawals(request):
     if request.method == "POST":
-        method_id, amount, address = request.POST.get("method_id"), Decimal(request.POST.get("amount", "0")), request.POST.get("address")
+        # Verification check
+        if not v3_init_verification(request, request.user, "withdraw"):
+            last_verified = request.session.get("v3_action_verified_at")
+            if not last_verified or (timezone.now() - timezone.datetime.fromisoformat(last_verified)).total_seconds() > 300:
+                methods = request.session.get("v3_auth_methods", [])
+                return redirect("site_2fa_verify" if methods[0] == "APP" else "site_verify_otp")
+        
+        method_id = request.POST.get("payment_method")
+        amount_str = request.POST.get("amount", "0")
+        address = request.POST.get("address")
+        
+        try:
+            amount = Decimal(amount_str)
+        except:
+            amount = Decimal(0)
+            
         if method_id and amount > 0:
-            if not v3_init_verification(request, request.user, "withdraw"):
-                last_verified = request.session.get("v3_action_verified_at")
-                if not last_verified or (timezone.now() - timezone.datetime.fromisoformat(last_verified)).total_seconds() > 300:
-                    methods = request.session.get("v3_auth_methods", [])
-                    return redirect("site_2fa_verify" if methods[0] == "APP" else "site_verify_otp")
             method = get_object_or_404(PaymentMethod, id=method_id)
             try:
                 freeze_funds(request.user.wallet.id, amount, reference=f"with_req_{timezone.now().timestamp()}", reason=f"Withdrawal via {method.name}")
                 WithdrawalRequest.objects.create(user=request.user, payment_method=method, amount=amount, withdrawal_address=address, status=WithdrawalRequest.Status.PENDING)
-                messages.success(request, "تم تقديم طلب السحب."); return redirect("dashboard_withdrawals")
-            except Exception as e: messages.error(request, str(e))
-    return render(request, "site/v3/v3_withdrawals.html", {"payment_methods": PaymentMethod.objects.filter(is_active=True, can_withdraw=True), "requests": WithdrawalRequest.objects.filter(user=request.user).order_by('-created_at')})
+                messages.success(request, "تم تقديم طلب السحب بنجاح.")
+                return redirect("withdrawals") # Stay on the page
+            except Exception as e:
+                messages.error(request, str(e))
+        else:
+            messages.error(request, "بيانات غير صحيحة.")
+            
+    return render(request, "site/v3/v3_withdrawals.html", {
+        "payment_methods": PaymentMethod.objects.filter(is_active=True, can_withdraw=True), 
+        "requests": WithdrawalRequest.objects.filter(user=request.user).order_by('-created_at')
+    })
 
 @login_required
 def kyc_request_view(request):
