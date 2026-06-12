@@ -237,6 +237,8 @@ DEFAULT_FROM_EMAIL = env("DEFAULT_FROM_EMAIL", "ramiqassas2002@gmail.com")
 DEFAULT_FROM_NAME = env("DEFAULT_FROM_NAME", "Raqamiyat | رقميات")
 REPLY_TO_EMAIL = env("REPLY_TO_EMAIL", "support@raqamiyatapp.com")
 
+EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
+
 SESSION_COOKIE_HTTPONLY = True
 CSRF_COOKIE_HTTPONLY = False
 SESSION_COOKIE_SECURE = not DEBUG

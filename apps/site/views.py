@@ -525,21 +525,25 @@ def control_user_moderate(request, public_uuid):
         elif action == "reset_2fa": user.totp_enabled = False; user.totp_secret = None; user.save(); messages.success(request, "تم تعطيل 2FA للمستخدم."); return redirect("control_user_moderate", public_uuid=public_uuid)
         elif action == "reset_password":
             from django.contrib.auth.tokens import default_token_generator
-            from django.core.mail import send_mail
+            from apps.accounts.services import send_brevo_email
             token = default_token_generator.make_token(user)
             uid = user.id
             reset_url = request.build_absolute_uri(reverse('site_reset_password')) + f"?token={token}&uid={uid}"
-            try:
-                send_mail(
-                    "إعادة تعيين كلمة المرور",
-                    f"استخدم الرابط التالي لإعادة تعيين كلمة المرور: {reset_url}",
-                    settings.DEFAULT_FROM_EMAIL,
-                    [user.email],
-                    fail_silently=False,
-                )
-                messages.success(request, "تم إرسال رابط إعادة تعيين كلمة المرور بنجاح.")
-            except Exception as e:
-                messages.error(request, f"فشل إرسال البريد: {str(e)}")
+            
+            html_content = f"""
+            <div dir="rtl" style="font-family: sans-serif; padding: 20px;">
+                <h2>طلب إعادة تعيين كلمة المرور</h2>
+                <p>مرحباً {user.get_full_name() or user.username}،</p>
+                <p>لقد طلبنا إعادة تعيين كلمة المرور لحسابك. يمكنك القيام بذلك عبر الضغط على الرابط التالي:</p>
+                <p><a href="{reset_url}" style="padding: 10px 20px; background-color: #06b6d4; color: white; text-decoration: none; border-radius: 5px;">إعادة تعيين كلمة المرور</a></p>
+                <p>إذا لم تطلب هذا، يمكنك تجاهل هذا البريد.</p>
+            </div>
+            """
+            
+            if send_brevo_email(user.email, user.get_full_name() or user.email, "إعادة تعيين كلمة المرور", html_content):
+                messages.success(request, "تم إرسال رابط إعادة تعيين كلمة المرور بنجاح عبر البريد الإلكتروني.")
+            else:
+                messages.error(request, "فشل إرسال البريد الإلكتروني. يرجى مراجعة إعدادات API.")
             return redirect("control_user_moderate", public_uuid=public_uuid)
         elif form.is_valid(): form.save(); messages.success(request, "تم التحديث."); return redirect("control_users_list")
     return render(request, "site/control_user_moderate.html", {"form": form, "user_to_moderate": user})
