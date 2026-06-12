@@ -793,7 +793,7 @@ def product_detail(request, pk):
                 )
                 
                 # Charge wallet
-                credit_wallet(request.user.wallet.id, -price, f"order:{order.id}", f"Purchase of {product.name}", request.user)
+                debit_wallet(request.user.wallet.id, price, f"order:{order.id}", f"Purchase of {product.name}", request.user)
                 
                 messages.success(request, "تم إتمام الطلب بنجاح.")
                 return redirect("dashboard_orders")
