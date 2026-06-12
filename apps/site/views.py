@@ -1,4 +1,5 @@
 import json
+import uuid
 from decimal import Decimal
 import os
 import random
@@ -762,20 +763,33 @@ def product_detail(request, pk):
         variant_id = request.POST.get("variant_id")
         variant = get_object_or_404(ProductVariant, id=variant_id, product=product)
         
+        # Collect custom fields
+        metadata = {}
+        for key in request.POST:
+            if key.startswith("custom_"):
+                metadata[key.replace("custom_", "")] = request.POST.get(key)
+        
         # Deduct balance & create order
         price = variant.get_price_for_user(request.user)
         if request.user.wallet.available_balance >= price:
             with transaction.atomic():
-                from apps.orders.models import Order
+                from apps.orders.models import Order, OrderItem
                 from apps.wallets.services import credit_wallet
                 
                 # Create order
                 order = Order.objects.create(
                     customer=request.user,
-                    product=product,
-                    variant=variant,
                     total_amount=price,
-                    status=Order.Status.PROCESSING
+                    status=Order.Status.PROCESSING,
+                    metadata=metadata
+                )
+                
+                # Create OrderItem
+                OrderItem.objects.create(
+                    order=order,
+                    variant=variant,
+                    unit_price=price,
+                    total_price=price
                 )
                 
                 # Charge wallet
