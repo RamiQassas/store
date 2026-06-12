@@ -356,7 +356,7 @@ def withdrawals(request):
                 WithdrawalRequest.objects.create(user=request.user, payment_method=method, amount=amount, withdrawal_address=address, status=WithdrawalRequest.Status.PENDING)
                 messages.success(request, "تم تقديم طلب السحب."); return redirect("dashboard_withdrawals")
             except Exception as e: messages.error(request, str(e))
-    return render(request, "site/v3/v3_withdrawals.html", {"methods": PaymentMethod.objects.filter(is_active=True, allow_withdrawal=True), "requests": WithdrawalRequest.objects.filter(user=request.user).order_by('-created_at')})
+    return render(request, "site/v3/v3_withdrawals.html", {"methods": PaymentMethod.objects.filter(is_active=True, can_withdraw=True), "requests": WithdrawalRequest.objects.filter(user=request.user).order_by('-created_at')})
 
 @login_required
 def kyc_request_view(request):
