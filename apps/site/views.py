@@ -670,10 +670,10 @@ def control_dashboard(request):
     return render(request, "site/control_dashboard.html", {"stats": stats, "recent_orders": Order.objects.select_related('customer').order_by('-created_at')[:5], "recent_deposits": DepositRequest.objects.filter(status=DepositRequest.Status.PENDING).order_by('-created_at')[:5], "recent_users": User.objects.order_by('-date_joined')[:5]})
 
 @finance_required
-def control_deposits(request): return render(request, "site/control_deposits.html", {"requests": DepositRequest.objects.select_related('user', 'payment_method').all().order_by('-created_at')})
+def control_deposits(request): return render(request, "site/control_deposits.html", {"deposits": DepositRequest.objects.select_related('user', 'payment_method').all().order_by('-created_at')})
 
 @finance_required
-def control_withdrawals(request): return render(request, "site/control_withdrawals.html", {"requests": WithdrawalRequest.objects.select_related('user', 'payment_method').all().order_by('-created_at')})
+def control_withdrawals(request): return render(request, "site/control_withdrawals.html", {"withdrawals": WithdrawalRequest.objects.select_related('user', 'payment_method').all().order_by('-created_at')})
 
 @finance_required
 def control_deposit_detail(request, pk): return render(request, "site/control_deposit_detail.html", {"deposit": get_object_or_404(DepositRequest.objects.select_related('user', 'currency', 'payment_method'), pk=pk)})
