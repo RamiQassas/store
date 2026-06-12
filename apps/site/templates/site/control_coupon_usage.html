@@ -10,8 +10,27 @@
             <p class="text-slate-500 mt-2">متابعة تفصيلية لمن استخدم الكوبونات وعلى أي منتجات.</p>
         </div>
         <div class="flex gap-3">
+            <a href="{% url 'control_coupon_usage_export' %}" class="btn btn-primary rounded-2xl font-bold">
+                <i class="fas fa-file-excel ml-2"></i> تصدير البيانات (CSV/Excel)
+            </a>
             <a href="{% url 'control_coupons_list' %}" class="btn btn-outline rounded-2xl font-bold">إدارة الكوبونات</a>
         </div>
+    </div>
+
+    <!-- Filters -->
+    <div class="panel p-6 mb-8 bg-white/[0.01] border-white/5">
+        <form method="GET" class="flex flex-wrap gap-4 items-end">
+            <div class="flex-grow">
+                <label class="text-[10px] font-black text-slate-500 uppercase block mb-2">بحث (بريد العميل أو رقم الطلب)</label>
+                <input type="text" name="q" value="{{ query }}" class="builder-input w-full" placeholder="ابحث هنا...">
+            </div>
+            <div style="width: 200px;">
+                <label class="text-[10px] font-black text-slate-500 uppercase block mb-2">تصفية بالكوبون</label>
+                <input type="text" name="coupon" value="{{ coupon_filter }}" class="builder-input w-full" placeholder="كود الكوبون">
+            </div>
+            <button type="submit" class="btn btn-primary h-[42px] px-8">تطبيق الفلاتر</button>
+            <a href="{% url 'control_coupon_usage' %}" class="btn btn-outline h-[42px]">إعادة ضبط</a>
+        </form>
     </div>
 
     <div class="overflow-x-auto">

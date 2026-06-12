@@ -919,11 +919,36 @@ def ajax_validate_coupon(request):
                     tier_display = dict(User.Tier.choices).get(request.user.tier, request.user.tier)
                     return JsonResponse({"valid": False, "error": f"هذا الكوبون غير متاح لفئة {tier_display}"})
             
-            # 3. Specific Area (Residence)
-            if coupon.limit_to_area:
+            # 3. Specific Area (Residence or Birth)
+            if coupon.limit_to_area or coupon.limit_to_place_of_birth:
                 kyc = getattr(request.user, 'kyc_request', None)
-                if not kyc or coupon.limit_to_area not in kyc.current_residence:
-                    return JsonResponse({"valid": False, "error": "هذا الكوبون غير متاح لمنطقتك الجغرافية"})
+                if not kyc:
+                    return JsonResponse({"valid": False, "error": "هذا الكوبون يتطلب حساباً موثقاً وتأكيد عنوان السكن"})
+                
+                area_valid = True
+                if coupon.limit_to_area:
+                    match_res = coupon.limit_to_area.lower() in kyc.current_residence.lower()
+                    if coupon.allow_area_type == Coupon.AreaType.RESIDENCE and not match_res:
+                        area_valid = False
+                    elif coupon.allow_area_type == Coupon.AreaType.BOTH and not match_res:
+                        # Will check birth below
+                        pass
+                    elif coupon.allow_area_type == Coupon.AreaType.BIRTH:
+                        # Handled by separate field check
+                        pass
+                
+                if coupon.limit_to_place_of_birth:
+                    match_birth = coupon.limit_to_place_of_birth.lower() in kyc.place_of_birth.lower()
+                    if coupon.allow_area_type == Coupon.AreaType.BIRTH and not match_birth:
+                        area_valid = False
+                    elif coupon.allow_area_type == Coupon.AreaType.BOTH:
+                        # If residence matched, we are good. If not, check birth.
+                        match_res = coupon.limit_to_area.lower() in kyc.current_residence.lower() if coupon.limit_to_area else False
+                        if not match_res and not match_birth:
+                            area_valid = False
+
+                if not area_valid:
+                    return JsonResponse({"valid": False, "error": "هذا الكوبون غير متاح لمنطقتك الجغرافية الحالية أو مكان ولادتك"})
 
         # Check expiration
         if coupon.expires_at and coupon.expires_at < timezone.now():
@@ -1444,13 +1469,118 @@ def control_coupon_edit(request, pk):
 @admin_required
 def control_coupon_delete(request, pk): get_object_or_404(Coupon, pk=pk).delete(); return redirect("control_coupons_list")
 
-@admin_required
-def control_coupon_usage(request):
-    orders = Order.objects.filter(coupon__isnull=False).select_related('customer', 'coupon').prefetch_related('items__variant__product').order_by('-created_at')
-    return render(request, "site/control_coupon_usage.html", {"orders": orders})
+import csv
+from django.http import HttpResponse
 
 @admin_required
-def control_reports(request): return render(request, "site/control_reports.html")
+def export_coupon_usage_csv(request):
+    response = HttpResponse(content_type='text/csv; charset=utf-8-sig')
+    response['Content-Disposition'] = f'attachment; filename="coupon_usage_{timezone.now().strftime("%Y%m%d")}.csv"'
+    
+    writer = csv.writer(response)
+    writer.writerow(['التاريخ', 'العميل', 'الكوبون', 'المنتج', 'الباقة', 'المبلغ الأصلي', 'المبلغ النهائي', 'رقم الطلب'])
+    
+    orders = Order.objects.filter(coupon__isnull=False).select_related('customer', 'coupon').prefetch_related('items__variant__product')
+    
+    for o in orders:
+        item = o.items.first()
+        writer.writerow([
+            o.created_at.strftime("%Y-%m-%d %H:%M"),
+            o.customer.email,
+            o.coupon.code,
+            item.variant.product.name if item else "N/A",
+            item.variant.name if item else "N/A",
+            o.original_total,
+            o.total_amount,
+            o.number
+        ])
+    return response
+
+@admin_required
+def control_coupon_usage(request):
+    q = request.GET.get('q', '')
+    coupon_filter = request.GET.get('coupon', '')
+    
+    orders = Order.objects.filter(coupon__isnull=False).select_related('customer', 'coupon').prefetch_related('items__variant__product').order_by('-created_at')
+    
+    if q:
+        orders = orders.filter(Q(customer__email__icontains=q) | Q(number__icontains=q))
+    if coupon_filter:
+        orders = orders.filter(coupon__code__iexact=coupon_filter)
+        
+    return render(request, "site/control_coupon_usage.html", {
+        "orders": orders, 
+        "query": q, 
+        "coupon_filter": coupon_filter
+    })
+
+@admin_required
+def control_reports(request):
+    from apps.site.analytics_services import FinancialAnalyticsService
+    
+    # Process GET parameters into filters
+    filters = {
+        "date_preset": request.GET.get("date_preset", "all"),
+        "start_date": request.GET.get("start_date"),
+        "end_date": request.GET.get("end_date"),
+        "currency_id": request.GET.get("currency_id"),
+        "payment_method_id": request.GET.get("payment_method_id"),
+        "tier": request.GET.get("tier"),
+        "user_id": request.GET.get("user_id"),
+    }
+    
+    # Clean empty strings
+    filters = {k: v for k, v in filters.items() if v}
+    
+    analytics = FinancialAnalyticsService(filters)
+    
+    ctx = {
+        "kpis": analytics.get_dashboard_kpis(),
+        "pnl": analytics.get_pnl_statement(),
+        "treasury": analytics.get_treasury_status(),
+        "payment_performance": analytics.get_payment_method_performance(),
+        "filters": filters,
+        "currencies": Currency.objects.filter(is_active=True),
+        "payment_methods": PaymentMethod.objects.filter(is_active=True),
+        "tiers": User.Tier.choices
+    }
+    
+    export_format = request.GET.get("export")
+    if export_format == "excel":
+        return export_financial_report_excel(ctx, filters)
+        
+    return render(request, "site/control_reports.html", ctx)
+
+def export_financial_report_excel(ctx, filters):
+    response = HttpResponse(content_type='text/csv; charset=utf-8-sig')
+    response['Content-Disposition'] = f'attachment; filename="financial_report_{timezone.now().strftime("%Y%m%d")}.csv"'
+    
+    writer = csv.writer(response)
+    writer.writerow(['Financial Report Overview'])
+    writer.writerow(['Generated At', timezone.now().strftime("%Y-%m-%d %H:%M:%S")])
+    writer.writerow([])
+    
+    writer.writerow(['--- KPIs ---'])
+    for key, val in ctx['kpis'].items():
+        writer.writerow([key.replace("_", " ").title(), val])
+        
+    writer.writerow([])
+    writer.writerow(['--- P&L Statement ---'])
+    writer.writerow(['Gross Profit', ctx['pnl']['gross_profit']])
+    writer.writerow(['Net Profit', ctx['pnl']['net_profit']])
+    
+    writer.writerow([])
+    writer.writerow(['--- Treasury Status ---'])
+    for key, val in ctx['treasury'].items():
+        writer.writerow([key.replace("_", " ").title(), val])
+        
+    writer.writerow([])
+    writer.writerow(['--- Payment Methods Performance ---'])
+    writer.writerow(['Name', 'Deposits Vol', 'Withdrawals Vol', 'Net', 'Fees Generated', 'Capital Rate'])
+    for pm in ctx['payment_performance']:
+        writer.writerow([pm['name'], pm['deposits_volume'], pm['withdrawals_volume'], pm['net_movement'], pm['fees_generated'], pm['capital_rate']])
+        
+    return response
 @support_required
 def control_variant_create(request, product_pk): return redirect("control_product_edit", pk=product_pk)
 @support_required
@@ -1477,6 +1607,19 @@ def payment_method_create(request):
     return render(request, "site/payment_method_builder.html", {"form": form})
 @admin_required
 def payment_method_edit(request, pk):
-    method = get_object_or_404(PaymentMethod, pk=pk); form = PaymentMethodForm(request.POST or None, request.FILES or None, instance=method)
-    if request.method == "POST" and form.is_valid(): form.save(); return redirect("payment_methods_list")
+    method = get_object_or_404(PaymentMethod, pk=pk)
+    old_rate = method.capital_exchange_rate
+    form = PaymentMethodForm(request.POST or None, request.FILES or None, instance=method)
+    if request.method == "POST" and form.is_valid():
+        saved_method = form.save()
+        if saved_method.capital_exchange_rate != old_rate:
+            from apps.payments.models import PaymentMethodExchangeRateLog
+            PaymentMethodExchangeRateLog.objects.create(
+                payment_method=saved_method,
+                old_rate=old_rate,
+                new_rate=saved_method.capital_exchange_rate,
+                changed_by=request.user,
+                reason="Admin Manual Update"
+            )
+        return redirect("payment_methods_list")
     return render(request, "site/payment_method_builder.html", {"form": form, "method": method})

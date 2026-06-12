@@ -30,7 +30,15 @@ class Coupon(TimeStampedModel):
     # New Restrictions
     limit_to_users = models.ManyToManyField(settings.AUTH_USER_MODEL, blank=True, verbose_name="محدد لعملاء معينين")
     limit_to_tiers = models.JSONField(default=list, blank=True, verbose_name="محدد لفئات معينة (Tiers)")
-    limit_to_area = models.CharField(max_length=255, blank=True, verbose_name="محدد لمنطقة معينة (كلمة دلالية في العنوان)")
+    limit_to_area = models.CharField(max_length=255, blank=True, verbose_name="محدد لمنطقة معينة (كلمة دلالية)")
+    
+    class AreaType(models.TextChoices):
+        RESIDENCE = "residence", "مكان الإقامة الحالي"
+        BIRTH = "birth", "مكان الولادة"
+        BOTH = "both", "كلاهما"
+        
+    allow_area_type = models.CharField(max_length=20, choices=AreaType.choices, default=AreaType.RESIDENCE, verbose_name="نوع المطابقة الجغرافية")
+    limit_to_place_of_birth = models.CharField(max_length=255, blank=True, verbose_name="محدد لمحل الولادة (كلمة دلالية)")
 
     class Meta:
         verbose_name = "كوبون"

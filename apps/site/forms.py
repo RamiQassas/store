@@ -158,7 +158,8 @@ class PaymentMethodForm(forms.ModelForm):
             "withdrawal_min_amount", "withdrawal_max_amount", "withdrawal_instructions",
             "deposit_info_schema", "withdrawal_info_schema",
             "deposit_form_schema", "withdrawal_form_schema",
-            "deposit_fee_settings", "withdrawal_fee_settings"
+            "deposit_fee_settings", "withdrawal_fee_settings",
+            "capital_exchange_rate"
         ]
         widgets = {
             "name": forms.TextInput(attrs={"class": "builder-input"}),
@@ -168,6 +169,7 @@ class PaymentMethodForm(forms.ModelForm):
             "deposit_max_amount": forms.NumberInput(attrs={"class": "builder-input"}),
             "withdrawal_min_amount": forms.NumberInput(attrs={"class": "builder-input"}),
             "withdrawal_max_amount": forms.NumberInput(attrs={"class": "builder-input"}),
+            "capital_exchange_rate": forms.NumberInput(attrs={"class": "builder-input", "step": "0.000001"}),
             "description": forms.Textarea(attrs={"rows": 3, "class": "builder-input"}),
             "deposit_instructions": forms.Textarea(attrs={"rows": 3, "class": "builder-input"}),
             "withdrawal_instructions": forms.Textarea(attrs={"rows": 3, "class": "builder-input"}),
@@ -356,7 +358,7 @@ class CouponForm(forms.ModelForm):
             "code", "discount_type", "discount_percent", "discount_amount", "max_uses", "max_uses_per_user",
             "is_active", "is_verified_only", "expires_at",
             "limit_to_product", "apply_to_all_products",
-            "limit_to_users", "limit_to_area"
+            "limit_to_users", "limit_to_area", "allow_area_type", "limit_to_place_of_birth"
         ]
         widgets = {
             "code": forms.TextInput(attrs={"class": "builder-input", "placeholder": "WELCOME2026"}),
@@ -368,7 +370,9 @@ class CouponForm(forms.ModelForm):
             "expires_at": forms.DateTimeInput(attrs={"type": "datetime-local", "class": "builder-input"}),
             "limit_to_product": forms.Select(attrs={"class": "builder-input searchable-select"}),
             "limit_to_users": forms.SelectMultiple(attrs={"class": "builder-input searchable-select", "style": "height: 150px;"}),
-            "limit_to_area": forms.TextInput(attrs={"class": "builder-input", "placeholder": "مثال: إدلب، ريف دمشق، الخ..."}),
+            "limit_to_area": forms.TextInput(attrs={"class": "builder-input", "placeholder": "كلمة دلالية للبحث في العنوان"}),
+            "allow_area_type": forms.Select(attrs={"class": "builder-input"}),
+            "limit_to_place_of_birth": forms.TextInput(attrs={"class": "builder-input", "placeholder": "كلمة دلالية للبحث في محل الولادة"}),
         }
 
     def __init__(self, *args, **kwargs):

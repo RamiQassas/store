@@ -37,6 +37,9 @@ class PaymentMethod(TimeStampedModel):
     withdrawal_max_amount = models.DecimalField(max_digits=14, decimal_places=2, default=Decimal("10000.00"), verbose_name="الحد الأقصى للسحب", help_text="القيمة بالدولار USD وسيتم تحويلها تلقائياً")
     withdrawal_instructions = models.TextField(blank=True, verbose_name="تعليمات السحب")
     
+    # --- Advanced Financial ---
+    capital_exchange_rate = models.DecimalField(max_digits=14, decimal_places=6, default=Decimal("1.000000"), verbose_name="سعر صرف رأس المال الداخلي (التكلفة)", help_text="سعر التكلفة الداخلي لهذه الوسيلة مقابل الدولار لحساب الأرباح الحقيقية.")
+    
     supported_currencies = models.ManyToManyField("common.Currency", blank=True, verbose_name="العملات المدعومة")
     can_deposit = models.BooleanField(default=True, verbose_name="متاحة للإيداع")
     can_withdraw = models.BooleanField(default=False, verbose_name="متاحة للسحب")
@@ -48,6 +51,21 @@ class PaymentMethod(TimeStampedModel):
 
     def __str__(self):
         return self.name
+
+class PaymentMethodExchangeRateLog(TimeStampedModel):
+    payment_method = models.ForeignKey(PaymentMethod, related_name="exchange_rate_logs", on_delete=models.CASCADE, verbose_name="وسيلة الدفع")
+    old_rate = models.DecimalField(max_digits=14, decimal_places=6, verbose_name="السعر القديم")
+    new_rate = models.DecimalField(max_digits=14, decimal_places=6, verbose_name="السعر الجديد")
+    changed_by = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL, verbose_name="بواسطة")
+    reason = models.TextField(blank=True, verbose_name="السبب")
+
+    class Meta:
+        ordering = ["-created_at"]
+        verbose_name = "سجل تعديل سعر الصرف"
+        verbose_name_plural = "سجلات تعديل أسعار الصرف"
+        
+    def __str__(self):
+        return f"{self.payment_method.name}: {self.old_rate} -> {self.new_rate}"
 
     def to_deposit_json(self, user=None):
         import json
