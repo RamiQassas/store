@@ -68,14 +68,22 @@
                     {% for item in withdrawal.formatted_payout_details %}
                     <div class="info-item relative group">
                         <span class="info-label">{{ item.label }}</span>
-                        <div class="flex items-center justify-between gap-2">
-                            <span class="info-value text-cyan font-mono truncate" id="copy-{{ forloop.counter }}">{{ item.value }}</span>
-                            <button type="button" 
-                                    onclick="copyToClipboard('copy-{{ forloop.counter }}', this)"
-                                    class="p-1.5 text-slate-500 hover:text-cyan transition-colors"
-                                    title="نسخ">
-                                <i class="fas fa-copy"></i>
-                            </button>
+                        <div class="flex flex-col gap-2">
+                            {% if item.value|stringformat:"s"|slice:":7" == "/media/" %}
+                            <div class="mt-2">
+                                <img src="{{ item.value }}" class="max-w-full h-auto rounded-xl border border-white/10 cursor-pointer hover:scale-105 transition-transform" onclick="window.open(this.src)">
+                            </div>
+                            {% else %}
+                            <div class="flex items-center justify-between gap-2">
+                                <span class="info-value text-cyan font-mono truncate" id="copy-{{ forloop.counter }}">{{ item.value }}</span>
+                                <button type="button" 
+                                        onclick="copyToClipboard('copy-{{ forloop.counter }}', this)"
+                                        class="p-1.5 text-slate-500 hover:text-cyan transition-colors"
+                                        title="نسخ">
+                                    <i class="fas fa-copy"></i>
+                                </button>
+                            </div>
+                            {% endif %}
                         </div>
                     </div>
                     {% endfor %}

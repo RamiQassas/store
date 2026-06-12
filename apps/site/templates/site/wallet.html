@@ -108,7 +108,11 @@
         <div class="panel overflow-hidden" style="border-radius: 32px;">
             <div class="p-8 border-b border-white/5 flex justify-between items-center bg-white/[0.01]">
                 <h3 class="font-bold text-lg">سجل العمليات المالية</h3>
-                <span class="text-xs text-muted">آخر 20 حركة</span>
+                {% if show_all %}
+                <a href="{% url 'wallet' %}" class="btn btn-sm btn-outline py-1 px-4 text-[10px] font-bold">عرض أقل</a>
+                {% else %}
+                <a href="{% url 'wallet' %}?show_all=1" class="btn btn-sm btn-outline py-1 px-4 text-[10px] font-bold">عرض جميع الحركات</a>
+                {% endif %}
             </div>
             <div class="stack">
                 {% for entry in ledger_entries %}
@@ -126,7 +130,12 @@
                                 {% else %}fa-exchange-alt{% endif %}"></i>
                         </div>
                         <div>
-                            <div class="font-bold text-sm">{{ entry.get_entry_type_display }}</div>
+                            <div class="font-bold text-sm">
+                                {{ entry.get_entry_type_display }}
+                                {% if entry.source == 'purchase' %}
+                                <a href="{% url 'dashboard_order_detail' entry.reference %}" class="mr-2 text-cyan hover:underline text-[10px]"><i class="fas fa-external-link-alt"></i> عرض الطلب</a>
+                                {% endif %}
+                            </div>
                             <div class="text-[10px] text-muted mt-0.5">{{ entry.created_at|date:"d M Y, H:i" }} • {{ entry.source|upper }}</div>
                         </div>
                     </div>

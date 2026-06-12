@@ -435,13 +435,17 @@ def dashboard(request):
 def wallet_page(request):
     request.user.reset_daily_limits_if_needed()
     wallet = Wallet.objects.filter(user=request.user).select_related("currency").first() or get_or_create_wallet(request.user)
-    if request.method == "POST":
-        if not v3_init_verification(request, request.user, "deposit"):
-            last_verified = request.session.get("v3_action_verified_at")
-            if not last_verified or (timezone.now() - timezone.datetime.fromisoformat(last_verified)).total_seconds() > 300:
-                methods = request.session.get("v3_auth_methods", [])
-                return redirect("site_2fa_verify" if methods[0] == "APP" else "site_verify_otp")
-    return render(request, "site/wallet.html", {"wallet": wallet, "ledger_entries": wallet.ledger_entries.all()[:20]})
+    
+    show_all = request.GET.get("show_all") == "1"
+    ledger_entries = wallet.ledger_entries.all()
+    if not show_all:
+        ledger_entries = ledger_entries[:20]
+        
+    return render(request, "site/wallet.html", {
+        "wallet": wallet, 
+        "ledger_entries": ledger_entries,
+        "show_all": show_all
+    })
 
 @login_required
 def orders_list(request): return render(request, "site/orders_list.html", {"orders": request.user.orders.all().prefetch_related('items__variant__product')})
@@ -559,7 +563,19 @@ def withdrawals(request):
         schema = method.withdrawal_form_schema
         for field in schema.get("fields", []) if isinstance(schema, dict) else []:
             field_name = field.get("name") or field.get("id") or field.get("key") or field.get("label")
-            val = request.POST.get(f"custom_{field_name}")
+            
+            if field.get("type") == "image":
+                val_file = request.FILES.get(f"custom_{field_name}")
+                if val_file:
+                    # Save file manually to media/withdrawal-proofs/customer/
+                    from django.core.files.storage import default_storage
+                    path = default_storage.save(f"withdrawal-proofs/customer/{val_file.name}", val_file)
+                    val = f"{settings.MEDIA_URL}{path}"
+                else:
+                    val = ""
+            else:
+                val = request.POST.get(f"custom_{field_name}")
+            
             if field.get("required") and not val:
                 messages.error(request, f"الحقل {field.get('label')} مطلوب.")
                 return redirect("dashboard_withdrawals")
