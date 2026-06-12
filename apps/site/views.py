@@ -775,7 +775,8 @@ def product_detail(request, pk):
                     product=product,
                     variant=variant,
                     total_amount=price,
-                    status=Order.Status.PENDING
+                    status=Order.Status.PROCESSING,
+                    number=f"ORD-{uuid.uuid4().hex[:8].upper()}"
                 )
                 
                 # Charge wallet
