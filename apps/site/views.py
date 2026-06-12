@@ -750,11 +750,43 @@ def product_detail(request, pk):
     product = get_object_or_404(Product.objects.prefetch_related('variants'), pk=pk, is_active=True)
     if request.method == "POST":
         if not request.user.is_authenticated: return redirect("site_login")
+        
+        # Verification check
         if not v3_init_verification(request, request.user, "purchase"):
             last_verified = request.session.get("v3_action_verified_at")
             if not last_verified or (timezone.now() - timezone.datetime.fromisoformat(last_verified)).total_seconds() > 300:
                 methods = request.session.get("v3_auth_methods", [])
                 return redirect("site_2fa_verify" if methods[0] == "APP" else "site_verify_otp")
+
+        # Purchase Logic
+        variant_id = request.POST.get("variant_id")
+        variant = get_object_or_404(ProductVariant, id=variant_id, product=product)
+        
+        # Deduct balance & create order
+        price = variant.get_price_for_user(request.user)
+        if request.user.wallet.available_balance >= price:
+            with transaction.atomic():
+                from apps.orders.models import Order
+                from apps.wallets.services import credit_wallet
+                
+                # Create order
+                order = Order.objects.create(
+                    customer=request.user,
+                    product=product,
+                    variant=variant,
+                    total_amount=price,
+                    status=Order.Status.PENDING
+                )
+                
+                # Charge wallet
+                credit_wallet(request.user.wallet.id, -price, f"order:{order.id}", f"Purchase of {product.name}", request.user)
+                
+                messages.success(request, "تم إتمام الطلب بنجاح.")
+                return redirect("dashboard_orders")
+        else:
+            messages.error(request, "رصيد غير كافٍ.")
+            return redirect("product_detail", pk=pk)
+
     variants = product.variants.filter(is_active=True).order_by('sort_order')
     related_products = Product.objects.filter(category=product.category, is_active=True).exclude(pk=product.pk)[:3]
     return render(request, "site/product_detail.html", {"product": product, "variants": variants, "related_products": related_products})
