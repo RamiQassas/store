@@ -22,19 +22,12 @@ SECRET_KEY = env(
     "dev-only-secret-key-change-me-please-use-env-in-production-2026"
 )
 
-DEBUG = env_bool("DJANGO_DEBUG", False)
+DEBUG = True
 
 # Render Reverse Proxy Configuration
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 
-ALLOWED_HOSTS = [
-    host.strip()
-    for host in env(
-        "DJANGO_ALLOWED_HOSTS",
-        "raqamiyatapp.com,www.raqamiyatapp.com,raqamiyat.onrender.com,127.0.0.1,localhost"
-    ).split(",")
-    if host.strip()
-]
+ALLOWED_HOSTS = ["*"]
 
 if DEBUG and "testserver" not in ALLOWED_HOSTS:
     ALLOWED_HOSTS.append("testserver")
