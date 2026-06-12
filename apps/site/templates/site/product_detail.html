@@ -227,17 +227,41 @@
                 </div>
             </div>
         </form>
+<!-- Instructions -->
+{% if product.instructions %}
+<div class="mt-12">
+    <span class="section-label">تعليمات هامة</span>
+    <div class="p-8 bg-slate-900/20 border border-dashed border-white/10 rounded-[2rem] text-sm text-slate-300 leading-loose">
+        {{ product.instructions|linebreaks }}
+    </div>
+</div>
+{% endif %}
+</div>
+</div>
 
-        <!-- Instructions -->
-        {% if product.instructions %}
-        <div class="mt-12">
-            <span class="section-label">تعليمات هامة</span>
-            <div class="p-8 bg-slate-900/20 border border-dashed border-white/10 rounded-[2rem] text-sm text-slate-300 leading-loose">
-                {{ product.instructions|linebreaks }}
-            </div>
-        </div>
-        {% endif %}
-        
+<!-- Insufficient Balance Modal -->
+<div id="balance-modal" class="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm hidden">
+<div class="bg-slate-900 border border-white/10 rounded-[2.5rem] w-full max-w-md overflow-hidden shadow-2xl reveal visible">
+<div class="p-8 text-center stack gap-6">
+    <div class="w-20 h-20 bg-amber-500/10 rounded-full flex items-center justify-center text-amber-500 mx-auto">
+        <i class="fas fa-wallet text-3xl"></i>
+    </div>
+    <div>
+        <h3 class="text-2xl font-black text-white mb-2">رصيد غير كافٍ</h3>
+        <p class="text-slate-400 text-sm">أنت بحاجة إلى <span id="modal-missing-amount" class="text-white font-bold"></span> إضافية لإتمام عملية الشراء بنجاح.</p>
+    </div>
+    <div class="stack gap-3 mt-2">
+        <a href="{% url 'dashboard_deposits' %}" class="btn btn-primary w-full py-4 font-black rounded-2xl">
+            <i class="fas fa-plus-circle ml-2"></i> اودع الآن
+        </a>
+        <button onclick="closeBalanceModal()" class="text-slate-500 text-xs font-bold hover:text-white transition">إغلاق</button>
+    </div>
+</div>
+<div class="bg-white/5 p-4 text-center">
+    <p class="text-[10px] text-slate-500 uppercase tracking-widest font-black">Raqamiyat Secure Financial System</p>
+</div>
+</div>
+</div>
         <!-- Related Products -->
         <div class="stack gap-6 mt-16">
             <h3 class="font-black text-2xl text-white">خدمات قد تهمك أيضاً</h3>
@@ -324,6 +348,10 @@ function applyCoupon() {
         });
 }
 
+function closeBalanceModal() {
+    document.getElementById('balance-modal').classList.add('hidden');
+}
+
 // Select first variant by default
 window.onload = () => {
     const first = document.querySelector('.variant-card');
@@ -335,6 +363,14 @@ window.onload = () => {
         });
     }, { threshold: 0.1 });
     document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+
+    // Handle missing amount modal
+    {% if missing_amount %}
+    const missingAmt = "{{ missing_amount }}";
+    const missingCurr = "{{ missing_currency }}";
+    document.getElementById('modal-missing-amount').innerText = missingAmt + " " + missingCurr;
+    document.getElementById('balance-modal').classList.remove('hidden');
+    {% endif %}
 }
 </script>
 {% endblock %}

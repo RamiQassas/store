@@ -28,7 +28,7 @@ from apps.catalog.models import Category, Product, ProductVariant
 from apps.common.models import Currency, SocialMediaLink, SiteAnnouncement
 from apps.notifications.models import Notification, NotificationSetting
 from apps.notifications.services import notify_bulk, notify_user
-from apps.orders.models import Order, OrderLog, Coupon
+from apps.orders.models import Order, OrderLog, Coupon, OrderItem
 from apps.payments.models import DepositRequest, PaymentMethod, WithdrawalRequest
 from apps.site.forms import (
     LoginForm, RegisterForm, PaymentMethodForm, CurrencyForm, ModerateUserForm, 
@@ -798,12 +798,32 @@ def product_detail(request, pk):
                 messages.success(request, "تم إتمام الطلب بنجاح.")
                 return redirect("dashboard_orders")
         else:
-            messages.error(request, "رصيد غير كافٍ.")
+            missing_amount = price - request.user.wallet.available_balance
+            # Convert missing amount to wallet currency if needed
+            wallet = request.user.wallet
+            display_missing = missing_amount
+            if wallet.currency.code != "USD":
+                display_missing = wallet.currency.from_base(missing_amount)
+            
+            currency_symbol = wallet.currency.symbol
+            messages.error(request, f"رصيد غير كافٍ. تحتاج إلى {display_missing:,.2f} {currency_symbol} إضافية لإتمام الطلب.")
+            request.session['missing_amount'] = str(display_missing)
+            request.session['missing_currency'] = wallet.currency.code
             return redirect("product_detail", pk=pk)
 
     variants = product.variants.filter(is_active=True).order_by('sort_order')
     related_products = Product.objects.filter(category=product.category, is_active=True).exclude(pk=product.pk)[:3]
-    return render(request, "site/product_detail.html", {"product": product, "variants": variants, "related_products": related_products})
+    
+    missing_amount = request.session.pop('missing_amount', None)
+    missing_currency = request.session.pop('missing_currency', None)
+    
+    return render(request, "site/product_detail.html", {
+        "product": product, 
+        "variants": variants, 
+        "related_products": related_products,
+        "missing_amount": missing_amount,
+        "missing_currency": missing_currency
+    })
 
 def ajax_validate_coupon(request):
     try:
@@ -955,10 +975,58 @@ def control_order_detail(request, pk):
             order.save()
             messages.success(request, "تم تحديث بيانات التنفيذ.")
         elif action == "update_price":
-            order.total_amount = Decimal(request.POST.get("total_amount", "0"))
-            order.price_adjustment_reason = request.POST.get("adjustment_reason", "")
-            order.save()
-            messages.success(request, "تم تحديث سعر الطلب.")
+            new_total = Decimal(request.POST.get("total_amount", "0"))
+            old_total = order.total_amount
+            diff = new_total - old_total
+            
+            if diff != 0:
+                wallet = order.customer.wallet
+                # Convert diff (USD) to wallet currency
+                adj_amount = diff
+                if wallet.currency.code != "USD":
+                    adj_amount = wallet.currency.from_base(diff)
+                
+                try:
+                    with transaction.atomic():
+                        if diff > 0:
+                            # Price increased, debit user
+                            debit_wallet(wallet.id, adj_amount, reference=f"order_adj:{order.id}", 
+                                         description=f"Adjustment for order #{order.number} (Price Increase)", 
+                                         created_by=request.user)
+                        else:
+                            # Price decreased, credit user
+                            credit_wallet(wallet.id, abs(adj_amount), reference=f"order_adj:{order.id}", 
+                                          description=f"Adjustment for order #{order.number} (Price Decrease)", 
+                                          created_by=request.user)
+                        
+                        if not order.original_total:
+                            order.original_total = old_total
+                        
+                        order.total_amount = new_total
+                        order.price_adjustment_reason = request.POST.get("adjustment_reason", "")
+                        order.save()
+                        
+                        # Update order items
+                        if order.items.count() == 1:
+                            item = order.items.first()
+                            item.total_price = new_total
+                            if item.quantity == 1:
+                                item.unit_price = new_total
+                            item.save()
+
+                        OrderLog.objects.create(
+                            order=order, 
+                            status=order.status, 
+                            note=f"تعديل السعر من {old_total} إلى {new_total}. السبب: {order.price_adjustment_reason}", 
+                            created_by=request.user
+                        )
+                    messages.success(request, "تم تحديث سعر الطلب وتعديل رصيد المحفظة.")
+                except Exception as e:
+                    messages.error(request, f"فشل في تعديل الرصيد: {str(e)}")
+            else:
+                order.price_adjustment_reason = request.POST.get("adjustment_reason", "")
+                order.save()
+                messages.success(request, "تم تحديث ملاحظات تعديل السعر.")
             
         return redirect("control_order_detail", pk=pk)
     
