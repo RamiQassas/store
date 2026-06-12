@@ -159,7 +159,7 @@ class PaymentMethodForm(forms.ModelForm):
             "deposit_info_schema", "withdrawal_info_schema",
             "deposit_form_schema", "withdrawal_form_schema",
             "deposit_fee_settings", "withdrawal_fee_settings",
-            "capital_exchange_rate"
+            "capital_exchange_rate", "deposit_exchange_rate", "withdrawal_exchange_rate"
         ]
         widgets = {
             "name": forms.TextInput(attrs={"class": "builder-input"}),
@@ -170,6 +170,8 @@ class PaymentMethodForm(forms.ModelForm):
             "withdrawal_min_amount": forms.NumberInput(attrs={"class": "builder-input"}),
             "withdrawal_max_amount": forms.NumberInput(attrs={"class": "builder-input"}),
             "capital_exchange_rate": forms.NumberInput(attrs={"class": "builder-input", "step": "0.000001"}),
+            "deposit_exchange_rate": forms.NumberInput(attrs={"class": "builder-input", "step": "0.000001"}),
+            "withdrawal_exchange_rate": forms.NumberInput(attrs={"class": "builder-input", "step": "0.000001"}),
             "description": forms.Textarea(attrs={"rows": 3, "class": "builder-input"}),
             "deposit_instructions": forms.Textarea(attrs={"rows": 3, "class": "builder-input"}),
             "withdrawal_instructions": forms.Textarea(attrs={"rows": 3, "class": "builder-input"}),

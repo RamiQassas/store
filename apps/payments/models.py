@@ -40,6 +40,9 @@ class PaymentMethod(TimeStampedModel):
     # --- Advanced Financial ---
     capital_exchange_rate = models.DecimalField(max_digits=14, decimal_places=6, default=Decimal("1.000000"), verbose_name="سعر صرف رأس المال الداخلي (التكلفة)", help_text="سعر التكلفة الداخلي لهذه الوسيلة مقابل الدولار لحساب الأرباح الحقيقية.")
     
+    deposit_exchange_rate = models.DecimalField(max_digits=14, decimal_places=6, null=True, blank=True, verbose_name="سعر صرف الإيداع (التكلفة)", help_text="سعر صرف مخصص لعمليات الإيداع لهذه الوسيلة. إذا ترك فارغاً سيتم اعتماد السعر الافتراضي.")
+    withdrawal_exchange_rate = models.DecimalField(max_digits=14, decimal_places=6, null=True, blank=True, verbose_name="سعر صرف السحب (الربح)", help_text="سعر صرف مخصص لعمليات السحب لهذه الوسيلة. إذا ترك فارغاً سيتم اعتماد السعر الافتراضي.")
+
     supported_currencies = models.ManyToManyField("common.Currency", blank=True, verbose_name="العملات المدعومة")
     can_deposit = models.BooleanField(default=True, verbose_name="متاحة للإيداع")
     can_withdraw = models.BooleanField(default=False, verbose_name="متاحة للسحب")
@@ -197,6 +200,24 @@ class PaymentMethodExchangeRateLog(TimeStampedModel):
             calculated = min(calculated, max_fee)
             
         return calculated
+
+    def get_effective_deposit_rate(self):
+        from apps.common.models import Currency
+        if self.deposit_exchange_rate:
+            return self.deposit_exchange_rate
+        default_currency = Currency.objects.filter(is_default=True).first()
+        if default_currency:
+            return default_currency.buy_rate
+        return Decimal("1.000000")
+
+    def get_effective_withdrawal_rate(self):
+        from apps.common.models import Currency
+        if self.withdrawal_exchange_rate:
+            return self.withdrawal_exchange_rate
+        default_currency = Currency.objects.filter(is_default=True).first()
+        if default_currency:
+            return default_currency.sell_rate
+        return Decimal("1.000000")
 
 
 class DepositRequest(TimeStampedModel):
