@@ -325,18 +325,16 @@
             <a href="{% url 'chat_list' %}" class="btn btn-primary w-full py-4 rounded-2xl font-black shadow-lg shadow-cyan/20">ابدأ المحادثة الآن</a>
         </div>
         
-        <span class="text-[9px] font-bold text-slate-600 uppercase tracking-widest mb-4 block">تابع مجتمعنا</span>
+        <span class="text-[9px] font-bold text-slate-600 uppercase tracking-widest mb-4 block">تابعنا على منصات التواصل الاجتماعي</span>
         <div class="social-links-v6">
-            {% for link in SOCIAL_LINKS %}
-                {% if "whatsapp" not in link.name|lower and "telegram" not in link.name|lower and "واتساب" not in link.name and "تليجرام" not in link.name %}
-                <a href="{{ link.url }}" target="_blank" class="social-icon-btn" title="{{ link.name }}">
+            {% for link in social_links %}
+                <a href="{{ link.url }}" target="_blank" class="social-icon-v6" title="{{ link.name }}">
                     {% if link.icon_image %}
                     <img src="{{ link.icon_image.url }}" alt="{{ link.name }}">
                     {% else %}
                     <i class="{{ link.icon_class|default:'fas fa-link' }}"></i>
                     {% endif %}
                 </a>
-                {% endif %}
             {% endfor %}
         </div>
     </section>

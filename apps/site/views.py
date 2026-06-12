@@ -3,6 +3,10 @@ from decimal import Decimal
 import os
 import random
 import string
+import pyotp
+import qrcode
+import io
+import base64
 from datetime import timedelta
 
 from django.contrib import messages
@@ -133,7 +137,8 @@ def v3_verify_otp_view(request):
             if "APP" in methods:
                 request.session["v3_auth_methods"] = [m for m in methods if m != "EMAIL"]
                 if request.session["v3_auth_methods"]: return redirect("site_2fa_verify")
-            login(request, user); request.session["v3_action_verified_at"] = timezone.now().isoformat()
+            login(request, user, backend='django.contrib.auth.backends.ModelBackend')
+            request.session["v3_action_verified_at"] = timezone.now().isoformat()
             del request.session["v3_auth_uid"]; del request.session["v3_auth_methods"]; del request.session["v3_auth_purpose"]
             return redirect("control_dashboard" if user.is_staff else "dashboard")
         messages.error(request, "رمز التحقق غير صحيح.")
@@ -148,7 +153,8 @@ def v3_2fa_verify_view(request):
             if "EMAIL" in methods:
                 request.session["v3_auth_methods"] = [m for m in methods if m != "APP"]
                 if request.session["v3_auth_methods"]: return redirect("site_verify_otp")
-            login(request, user); request.session["v3_action_verified_at"] = timezone.now().isoformat()
+            login(request, user, backend='django.contrib.auth.backends.ModelBackend')
+            request.session["v3_action_verified_at"] = timezone.now().isoformat()
             del request.session["v3_auth_uid"]; del request.session["v3_auth_methods"]; del request.session["v3_auth_purpose"]
             return redirect("control_dashboard" if user.is_staff else "dashboard")
         messages.error(request, "الرمز غير صحيح.")
@@ -499,9 +505,11 @@ def v3_reset_password_view(request):
         if p1 and p1 == p2 and len(p1) >= 10:
             user.set_password(p1)
             user.save()
-            messages.success(request, "تم تغيير كلمة المرور بنجاح. يمكنك الدخول الآن.")
-            return redirect("site_login")
-        messages.error(request, "كلمات المرور غير متطابقة أو قصيرة جداً (أقل من 10 خانات).")
+            # Log in the user immediately
+            login(request, user, backend='django.contrib.auth.backends.ModelBackend')
+            messages.success(request, "تم تغيير كلمة المرور بنجاح وتم تسجيل دخولك.")
+            return redirect("control_dashboard" if user.is_staff else "dashboard")
+        messages.error(request, "كلمات المرور غير متطابقة أو قصيرة جداً.")
     
     return render(request, "site/v3/v3_reset_password.html", {"user_email": user.email, "token": token})
 
@@ -599,7 +607,13 @@ def v3_change_password_view(request):
 def home(request):
     categories = Category.objects.filter(is_active=True).order_by("sort_order", "name")
     stats = {"products": Product.objects.filter(is_active=True).count(), "categories": categories.count(), "orders": Order.objects.count(), "tickets": ChatRoom.objects.exclude(status=ChatRoom.Status.CLOSED).count(), "users": User.objects.count()}
-    return render(request, "site/home.html", {"featured_products": Product.objects.filter(is_active=True, is_featured=True).select_related("category")[:6], "top_products": Product.objects.filter(is_active=True).order_by("sort_order")[:8], "categories": categories, "stats": stats})
+    return render(request, "site/home.html", {
+        "featured_products": Product.objects.filter(is_active=True, is_featured=True).select_related("category")[:6], 
+        "top_products": Product.objects.filter(is_active=True).order_by("sort_order")[:8], 
+        "categories": categories, 
+        "stats": stats,
+        "social_links": SocialMediaLink.objects.all()
+    })
 
 def catalog(request):
     cat_id, q, sort = request.GET.get("category"), request.GET.get("q", "").strip(), request.GET.get("sort", "newest")
@@ -745,7 +759,17 @@ def control_user_moderate(request, public_uuid):
     if request.method == "POST":
         action = request.POST.get("action")
         
-        if action == "reset_otp":
+        if action == "change_email":
+            new_email = request.POST.get("new_email", "").strip().lower()
+            if new_email and "@" in new_email:
+                if User.objects.filter(email=new_email).exclude(id=user.id).exists():
+                    messages.error(request, "هذا البريد مستخدم بالفعل لحساب آخر.")
+                else:
+                    user.email = new_email; user.username = new_email; user.save()
+                    messages.success(request, f"تم تغيير بريد المستخدم إلى {new_email}")
+            return redirect("control_user_moderate", public_uuid=public_uuid)
+
+        elif action == "reset_otp":
             user.otp_failed_attempts = 0
             user.otp_lockout_until = None
             user.otp_resend_count = 0
@@ -754,30 +778,23 @@ def control_user_moderate(request, public_uuid):
             return redirect("control_user_moderate", public_uuid=public_uuid)
         
         elif action == "reset_password":
-            # Direct Recovery Link strategy: 
-            # Send them to forgot password page which is the standard flow.
-            # But since we want "Direct Link", let's use the OTP strategy but with a dedicated purpose.
-            otp = v3_generate_otp(user, OTPToken.Purpose.PASSWORD_RESET)
-            reset_url = request.build_absolute_uri(reverse('site_verify_otp'))
-            request.session["v3_auth_uid"] = str(user.id)
-            request.session["v3_auth_purpose"] = OTPToken.Purpose.PASSWORD_RESET
+            token = signer.sign(str(user.id))
+            reset_url = request.build_absolute_uri(reverse('site_reset_password')) + f"?token={token}"
             
             subject = "استعادة كلمة المرور | Raqamiyat"
             html_content = f"""
             <div dir="rtl" style="font-family: sans-serif; max-width: 500px; margin: 0 auto; padding: 20px; border: 1px solid #eee; border-radius: 10px;">
                 <h2 style="color: #06b6d4;">رقميات | RAQAMIYAT</h2>
                 <p>مرحباً،</p>
-                <p>رمز التحقق الخاص بك لإعادة تعيين كلمة المرور هو:</p>
-                <h1 style="font-size: 32px; letter-spacing: 5px; text-align: center;">{otp.code}</h1>
-                <p>أو اضغط على الزر أدناه للمتابعة مباشرة:</p>
-                <div style="text-align: center;">
-                    <a href="{reset_url}" style="display: inline-block; padding: 12px 25px; background-color: #06b6d4; color: white; text-decoration: none; border-radius: 8px; font-weight: bold;">متابعة إعادة التعيين</a>
+                <p>تم طلب إعادة تعيين كلمة مرورك من قبل الإدارة. يرجى الضغط على الزر أدناه لتعيين كلمة مرور جديدة:</p>
+                <div style="text-align: center; margin: 30px 0;">
+                    <a href="{reset_url}" style="display: inline-block; padding: 12px 25px; background-color: #06b6d4; color: white; text-decoration: none; border-radius: 8px; font-weight: bold;">إعادة تعيين كلمة المرور الآن</a>
                 </div>
-                <p style="font-size: 12px; color: #999; margin-top: 20px;">هذا الرمز صالح لمدة 10 دقائق فقط.</p>
+                <p style="font-size: 12px; color: #999;">هذا الرابط صالح لمدة 10 دقائق فقط.</p>
             </div>
             """
             if send_brevo_email(user.email, user.get_full_name() or user.email, subject, html_content):
-                messages.success(request, f"تم إرسال رابط ورمز استعادة كلمة المرور إلى {user.email}")
+                messages.success(request, f"تم إرسال رابط استعادة كلمة المرور المباشر إلى {user.email}")
             else:
                 messages.error(request, "فشل إرسال البريد الإلكتروني.")
             return redirect("control_user_moderate", public_uuid=public_uuid)

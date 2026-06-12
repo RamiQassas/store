@@ -2,21 +2,21 @@
 {% block title %}التحقق الثنائي | Raqamiyat{% endblock %}
 {% block content %}
 <section class="auth-shell">
-  <article class="panel p-10 auth-panel text-center">
+  <article class="panel p-6 sm:p-10 auth-panel text-center">
     <div class="mb-8 text-center">
-        <div class="w-20 h-20 bg-cyan/10 rounded-full flex items-center justify-center text-3xl text-cyan mx-auto mb-6">
+        <div class="w-16 h-16 bg-cyan/10 rounded-2xl flex items-center justify-center text-2xl text-cyan mx-auto mb-6">
             <i class="fas fa-user-shield"></i>
         </div>
         <h1 class="text-2xl font-black mb-2">التحقق من الهوية</h1>
-        <p class="text-slate-500 text-sm">أدخل الرمز من تطبيق المصادقة (Google Authenticator)</p>
+        <p class="text-slate-500 text-sm">أدخل الرمز من تطبيق المصادقة (2FA)</p>
     </div>
 
     <form method="post" class="stack gap-6">
         {% csrf_token %}
         <div class="field-group">
-            <input type="text" name="code" class="builder-input text-center tracking-[1em] font-black text-2xl" placeholder="000000" maxlength="6" autofocus required>
+            <input type="text" name="code" class="otp-input-field w-full" placeholder="000000" maxlength="6" autofocus required>
         </div>
-        <button type="submit" class="btn btn-primary w-full py-4 text-sm font-bold">تحقق ودخول</button>
+        <button type="submit" class="btn btn-primary w-full py-4 text-sm font-bold shadow-lg shadow-cyan/20">تحقق ودخول</button>
     </form>
 
     <div class="mt-10 pt-6 border-t border-white/5">
@@ -33,8 +33,17 @@
 </section>
 
 <style>
-    .auth-panel { max-width: 400px; margin: 0 auto; border: 1px solid rgba(255,255,255,0.05); }
-    .builder-input { background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); border-radius: 16px; color: #fff; padding: 16px; width: 100%; transition: all 0.2s; }
-    .builder-input:focus { border-color: var(--cyan); outline: none; background: rgba(255,255,255,0.05); }
+    .auth-panel { max-width: 420px; margin: 0 auto; border-radius: 32px; background: rgba(15, 23, 42, 0.8); backdrop-filter: blur(20px); border: 1px solid rgba(255,255,255,0.05); }
+    
+    .otp-input-field {
+        height: 56px; background: rgba(15, 23, 42, 0.9); border: 2px solid rgba(255, 255, 255, 0.05);
+        border-radius: 16px; text-align: center; font-size: 24px; font-weight: 900; letter-spacing: 4px;
+        color: var(--cyan); outline: none; transition: all 0.2s;
+    }
+    .otp-input-field:focus { border-color: var(--cyan); box-shadow: 0 0 0 4px rgba(6, 182, 212, 0.1); }
+
+    @media (max-width: 640px) {
+        .auth-panel { border-radius: 0; min-height: 100vh; }
+    }
 </style>
 {% endblock %}

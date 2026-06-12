@@ -79,6 +79,7 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
+    "apps.common.middleware.DomainRedirectMiddleware",
 
     # Render static files
     "whitenoise.middleware.WhiteNoiseMiddleware",
