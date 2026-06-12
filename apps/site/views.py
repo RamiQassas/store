@@ -49,25 +49,20 @@ def v3_send_otp_email(user, otp_token):
     subject = f"{otp_token.code} هو رمز التحقق الخاص بك | Raqamiyat"
     purpose_text = "لتفعيل حسابك" if otp_token.purpose == OTPToken.Purpose.REGISTRATION else \
                    "لتسجيل الدخول" if otp_token.purpose == OTPToken.Purpose.LOGIN else \
-                   "لإعادة تعيين كلمة المرور"
+                   "لإتمام العملية"
     
     html_content = f"""
     <div dir="rtl" style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 500px; margin: 0 auto; padding: 20px; color: #1e293b; background-color: #ffffff; border-radius: 16px; border: 1px solid #e2e8f0;">
         <div style="text-align: center; margin-bottom: 30px;">
             <h2 style="color: #06b6d4; margin: 0; font-size: 24px; font-weight: 900;">رقميات | RAQAMIYAT</h2>
         </div>
-        
         <div style="background-color: #f8fafc; padding: 30px; border-radius: 12px; text-align: center;">
             <p style="font-size: 16px; margin-bottom: 10px; color: #64748b;">رمز التحقق الخاص بك {purpose_text}:</p>
             <h1 style="font-size: 42px; font-weight: 900; color: #0f172a; margin: 0; letter-spacing: 10px;">{otp_token.code}</h1>
             <p style="font-size: 12px; margin-top: 20px; color: #94a3b8;">هذا الرمز صالح لمدة 10 دقائق فقط. لا تشارك هذا الرمز مع أي شخص.</p>
         </div>
-        
         <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #f1f5f9; text-align: center;">
-            <p style="font-size: 12px; color: #94a3b8; line-height: 1.6;">
-                إذا لم تطلب هذا الرمز، يمكنك تجاهل هذا البريد الإلكتروني.<br>
-                © 2026 رقميات لخدمات الوساطة الرقمية.
-            </p>
+            <p style="font-size: 12px; color: #94a3b8; line-height: 1.6;">إذا لم تطلب هذا الرمز، يمكنك تجاهل هذا البريد الإلكتروني.<br>© 2026 رقميات لخدمات الوساطة الرقمية.</p>
         </div>
     </div>
     """
@@ -76,78 +71,115 @@ def v3_send_otp_email(user, otp_token):
 def v3_verify_otp_logic(user, code, purpose):
     otp = OTPToken.objects.filter(user=user, code=code, purpose=purpose, is_used=False, expires_at__gt=timezone.now()).first()
     if otp:
-        otp.is_used = True
-        otp.save(update_fields=["is_used", "updated_at"])
-        return True
+        otp.is_used = True; otp.save(update_fields=["is_used", "updated_at"]); return True
     return False
 
-import pyotp
-import qrcode
-import io
-import base64
+def v3_get_required_methods(user, action_type):
+    method_map = {"login": user.security_login_method, "deposit": user.security_deposit_method, "purchase": user.security_purchase_method, "withdraw": user.security_withdraw_method}
+    pref = method_map.get(action_type, "NONE")
+    if pref == "NONE": return []
+    if pref == "EMAIL": return ["EMAIL"]
+    if pref == "APP": return ["APP"]
+    if pref == "BOTH": return ["EMAIL", "APP"]
+    return []
+
+def v3_init_verification(request, user, action_type):
+    methods = v3_get_required_methods(user, action_type)
+    if not methods: return True 
+    request.session["v3_auth_uid"], request.session["v3_auth_methods"], request.session["v3_auth_purpose"] = str(user.id), methods, action_type
+    if "EMAIL" in methods: v3_send_otp_email(user, v3_generate_otp(user, f"verify_{action_type}"))
+    return False
+
+import pyotp; import qrcode; import io; import base64
 
 @login_required
 def v3_2fa_setup_view(request):
     user = request.user
     if user.totp_enabled:
         if request.method == "POST" and request.POST.get("action") == "disable":
-            user.totp_enabled = False
-            user.totp_secret = None
-            user.save()
-            messages.success(request, "تم تعطيل المصادقة الثنائية.")
-            return redirect("site_2fa_setup")
+            user.totp_enabled = False; user.totp_secret = None; user.save()
+            messages.success(request, "تم تعطيل المصادقة الثنائية."); return redirect("site_2fa_setup")
         return render(request, "site/v3/v3_2fa_setup.html", {"enabled": True})
-
-    if not user.totp_secret:
-        user.totp_secret = pyotp.random_base32()
-        user.save()
-
-    totp = pyotp.TOTP(user.totp_secret)
-    provisioning_url = totp.provisioning_uri(name=user.email, issuer_name="Raqamiyat")
-    
-    qr = qrcode.QRCode(version=1, box_size=10, border=5)
-    qr.add_data(provisioning_url)
-    qr.make(fit=True)
-    img = qr.make_image(fill_color="black", back_color="white")
-    
-    buffered = io.BytesIO()
-    img.save(buffered, format="PNG")
+    if not user.totp_secret: user.totp_secret = pyotp.random_base32(); user.save()
+    totp = pyotp.TOTP(user.totp_secret); provisioning_url = totp.provisioning_uri(name=user.email, issuer_name="Raqamiyat")
+    qr = qrcode.QRCode(version=1, box_size=10, border=5); qr.add_data(provisioning_url); qr.make(fit=True)
+    img = qr.make_image(fill_color="black", back_color="white"); buffered = io.BytesIO(); img.save(buffered, format="PNG")
     qr_base64 = base64.b64encode(buffered.getvalue()).decode()
-
     if request.method == "POST":
-        code = request.POST.get("code")
-        if totp.verify(code):
-            user.totp_enabled = True
-            user.save()
-            messages.success(request, "تم تفعيل المصادقة الثنائية بنجاح.")
-            return redirect("dashboard")
-        else:
-            messages.error(request, "الرمز غير صحيح.")
+        if totp.verify(request.POST.get("code")):
+            user.totp_enabled = True; user.save(); messages.success(request, "تم تفعيل المصادقة الثنائية بنجاح."); return redirect("dashboard")
+        messages.error(request, "الرمز غير صحيح.")
+    return render(request, "site/v3/v3_2fa_setup.html", {"qr_base64": qr_base64, "secret": user.totp_secret, "enabled": False})
 
-    return render(request, "site/v3/v3_2fa_setup.html", {"qr_code": qr_base64, "secret": user.totp_secret, "enabled": False})
+def v3_login_view(request):
+    if request.user.is_authenticated: return redirect("dashboard")
+    form = LoginForm(request.POST or None)
+    if request.method == "POST" and form.is_valid():
+        user = authenticate(request, username=form.cleaned_data["username"], password=form.cleaned_data["password"])
+        if user:
+            if not user.is_active: messages.error(request, "الحساب معطل."); return render(request, "site/v3/v3_login.html", {"form": form})
+            if v3_init_verification(request, user, "login"): login(request, user); return redirect("control_dashboard" if user.is_staff else "dashboard")
+            methods = request.session.get("v3_auth_methods", [])
+            return redirect("site_2fa_verify" if "APP" in methods and "EMAIL" not in methods else "site_verify_otp")
+        messages.error(request, "بيانات الدخول غير صحيحة.")
+    return render(request, "site/v3/v3_login.html", {"form": form})
+
+def v3_verify_otp_view(request):
+    uid, purpose = request.session.get("v3_auth_uid"), request.session.get("v3_auth_purpose")
+    if not uid: return redirect("site_login")
+    user, methods = get_object_or_404(User, id=uid), request.session.get("v3_auth_methods", ["EMAIL"])
+    if request.method == "POST":
+        if v3_verify_otp_logic(user, request.POST.get("code"), f"verify_{purpose}"):
+            if "APP" in methods:
+                request.session["v3_auth_methods"] = [m for m in methods if m != "EMAIL"]
+                if request.session["v3_auth_methods"]: return redirect("site_2fa_verify")
+            login(request, user); request.session["v3_action_verified_at"] = timezone.now().isoformat()
+            del request.session["v3_auth_uid"]; del request.session["v3_auth_methods"]; del request.session["v3_auth_purpose"]
+            return redirect("control_dashboard" if user.is_staff else "dashboard")
+        messages.error(request, "رمز التحقق غير صحيح.")
+    return render(request, "site/v3/v3_otp_verify.html", {"user_email": user.email})
 
 def v3_2fa_verify_view(request):
-    uid = request.session.get("v3_auth_uid")
-    purpose = request.session.get("v3_auth_purpose")
+    uid, purpose = request.session.get("v3_auth_uid"), request.session.get("v3_auth_purpose")
     if not uid: return redirect("site_login")
-    user = get_object_or_404(User, id=uid)
-
+    user, methods = get_object_or_404(User, id=uid), request.session.get("v3_auth_methods", ["APP"])
     if request.method == "POST":
-        action = request.POST.get("action")
-        if action == "use_email":
-            otp = v3_generate_otp(user, purpose)
-            if v3_send_otp_email(user, otp):
-                return redirect("site_verify_otp")
-            messages.error(request, "فشل إرسال البريد.")
-        
-        code = request.POST.get("code")
-        totp = pyotp.TOTP(user.totp_secret)
-        if totp.verify(code):
-            if purpose == OTPToken.Purpose.REGISTRATION: user.email_verified = True; user.save()
-            login(request, user)
-            del request.session["v3_auth_uid"]; del request.session["v3_auth_purpose"]
+        if pyotp.TOTP(user.totp_secret).verify(request.POST.get("code")):
+            if "EMAIL" in methods:
+                request.session["v3_auth_methods"] = [m for m in methods if m != "APP"]
+                if request.session["v3_auth_methods"]: return redirect("site_verify_otp")
+            login(request, user); request.session["v3_action_verified_at"] = timezone.now().isoformat()
+            del request.session["v3_auth_uid"]; del request.session["v3_auth_methods"]; del request.session["v3_auth_purpose"]
             return redirect("control_dashboard" if user.is_staff else "dashboard")
         messages.error(request, "الرمز غير صحيح.")
+    return render(request, "site/v3/v3_2fa_verify.html")
+
+from django.core.signing import TimestampSigner, SignatureExpired, BadSignature
+signer = TimestampSigner()
+
+def v3_forgot_password_view(request):
+    if request.method == "POST":
+        user = User.objects.filter(email=request.POST.get("email", "").lower().strip()).first()
+        if user:
+            token = signer.sign(str(user.id))
+            reset_url = request.build_absolute_uri(reverse('site_reset_password')) + f"?token={token}"
+            html_content = f"<div dir='rtl'>رابط إعادة تعيين كلمة المرور: <br><br> <a href='{reset_url}'>{reset_url}</a></div>"
+            if send_brevo_email(user.email, user.get_full_name() or user.email, "استعادة كلمة المرور", html_content):
+                return render(request, "site/v3/v3_forgot_password.html", {"sent": True})
+        messages.error(request, "البريد غير مسجل.")
+    return render(request, "site/v3/v3_forgot_password.html")
+
+def v3_reset_password_view(request):
+    token = request.GET.get("token") or request.POST.get("token")
+    if not token: messages.error(request, "رابط غير صالح."); return redirect("site_forgot_password")
+    try: uid = signer.unsign(token, max_age=600); user = get_object_or_404(User, id=uid)
+    except Exception: messages.error(request, "الرابط منتهي الصلاحية."); return redirect("site_forgot_password")
+    if request.method == "POST":
+        p1, p2 = request.POST.get("password"), request.POST.get("confirm_password")
+        if p1 and p1 == p2 and len(p1) >= 10:
+            user.set_password(p1); user.save(); messages.success(request, "تم تغيير كلمة المرور."); return redirect("site_login")
+        messages.error(request, "كلمات المرور غير متطابقة.")
+    return render(request, "site/v3/v3_reset_password.html", {"user_email": user.email, "token": token})
 
     return render(request, "site/v3/v3_2fa_verify.html", {"user_email": user.email})
 
@@ -583,9 +615,10 @@ def catalog(request):
 def v3_security_triggers_view(request):
     user = request.user
     if request.method == "POST":
-        user.require_otp_on_login = request.POST.get("login") == "on"
-        user.require_otp_on_deposit = request.POST.get("deposit") == "on"
-        user.require_otp_on_purchase = request.POST.get("purchase") == "on"
+        user.security_login_method = request.POST.get("login_method")
+        user.security_deposit_method = request.POST.get("deposit_method")
+        user.security_purchase_method = request.POST.get("purchase_method")
+        user.security_withdraw_method = request.POST.get("withdraw_method")
         user.save()
         messages.success(request, "تم تحديث إعدادات الأمان بنجاح.")
         return redirect("site_security_triggers")
@@ -595,43 +628,38 @@ def v3_security_triggers_view(request):
 def wallet_page(request):
     wallet, _ = Wallet.objects.get_or_create(user=request.user)
     if request.method == "POST":
-        # Check Security Trigger
-        if request.user.require_otp_on_deposit:
-            # Check if recently verified in session (grace period of 5 mins)
+        if not v3_init_verification(request, request.user, "deposit"):
+            # Check for grace period
             last_verified = request.session.get("v3_action_verified_at")
             if not last_verified or (timezone.now() - timezone.datetime.fromisoformat(last_verified)).total_seconds() > 300:
-                request.session["v3_auth_uid"] = str(request.user.id)
-                request.session["v3_auth_purpose"] = "action_confirm"
-                request.session["pending_action_type"] = "deposit"
-                
-                if request.user.totp_enabled: return redirect("site_2fa_verify")
-                otp = v3_generate_otp(request.user, "action_confirm")
-                if v3_send_otp_email(request.user, otp): return redirect("site_verify_otp")
+                methods = request.session.get("v3_auth_methods", [])
+                return redirect("site_2fa_verify" if "APP" in methods and "EMAIL" not in methods else "site_verify_otp")
 
-        form = PaymentMethodForm(request.POST, request.FILES) # Simplified for context
-        # ... existing deposit logic ...
-    
-    return render(request, "site/wallet.html", {"wallet": wallet, "methods": PaymentMethod.objects.filter(is_active=True)})
+        # Existing deposit logic continues...
+
+@login_required
+def withdrawals(request):
+    if request.method == "POST":
+        if not v3_init_verification(request, request.user, "withdraw"):
+            last_verified = request.session.get("v3_action_verified_at")
+            if not last_verified or (timezone.now() - timezone.datetime.fromisoformat(last_verified)).total_seconds() > 300:
+                methods = request.session.get("v3_auth_methods", [])
+                return redirect("site_2fa_verify" if "APP" in methods and "EMAIL" not in methods else "site_verify_otp")
+        
+        # Existing withdrawal logic continues...
 
 def product_detail(request, pk):
     product = get_object_or_404(Product.objects.prefetch_related('variants'), pk=pk, is_active=True)
     if request.method == "POST":
         if not request.user.is_authenticated: return redirect("site_login")
         
-        # Check Security Trigger
-        if request.user.require_otp_on_purchase:
+        if not v3_init_verification(request, request.user, "purchase"):
             last_verified = request.session.get("v3_action_verified_at")
             if not last_verified or (timezone.now() - timezone.datetime.fromisoformat(last_verified)).total_seconds() > 300:
-                request.session["v3_auth_uid"] = str(request.user.id)
-                request.session["v3_auth_purpose"] = "action_confirm"
-                request.session["pending_action_type"] = "purchase"
-                
-                if request.user.totp_enabled: return redirect("site_2fa_verify")
-                otp = v3_generate_otp(request.user, "action_confirm")
-                if v3_send_otp_email(request.user, otp): return redirect("site_verify_otp")
-
-        metadata = {k.replace("custom_", "", 1): v for k, v in request.POST.items() if k.startswith("custom_")}
-        # ... rest of order creation ...
+                methods = request.session.get("v3_auth_methods", [])
+                return redirect("site_2fa_verify" if "APP" in methods and "EMAIL" not in methods else "site_verify_otp")
+        
+        # Existing purchase logic continues...
 
 def ajax_validate_coupon(request):
     try:

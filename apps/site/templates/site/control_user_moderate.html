@@ -288,6 +288,20 @@
             </div>
         </div>
 
+        <!-- Email Management -->
+        <div class="management-card p-6 border-cyan/20 bg-cyan/[0.02] mb-6">
+            <h3 class="text-cyan font-bold text-sm mb-4"><i class="fas fa-envelope ml-2"></i> تغيير البريد الإلكتروني</h3>
+            <form method="post" class="stack gap-3">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="change_email">
+                <div class="field-group">
+                    <input type="email" name="new_email" class="builder-input text-xs" placeholder="البريد الإلكتروني الجديد" required>
+                </div>
+                <button type="submit" class="btn btn-primary w-full text-xs py-3">تحديث البريد الآن</button>
+            </form>
+            <p class="text-[9px] text-slate-500 italic text-center mt-2">تنبيه: سيتم تحديث اسم المستخدم (Username) تلقائياً ليتطابق مع البريد الجديد.</p>
+        </div>
+
         <!-- Manual Password Change -->
         <div class="management-card p-6 border-amber-500/20 bg-amber-500/[0.02]">
             <h3 class="text-amber-500 font-bold text-sm mb-4"><i class="fas fa-key ml-2"></i> تغيير كلمة المرور يدوياً</h3>

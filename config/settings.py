@@ -31,7 +31,7 @@ ALLOWED_HOSTS = [
     host.strip()
     for host in env(
         "DJANGO_ALLOWED_HOSTS",
-        "127.0.0.1,localhost,testserver,raqamiyat.onrender.com"
+        "raqamiyatapp.com,www.raqamiyatapp.com,raqamiyat.onrender.com,127.0.0.1,localhost"
     ).split(",")
     if host.strip()
 ]
@@ -45,6 +45,8 @@ SESSION_COOKIE_SECURE = not DEBUG
 CSRF_COOKIE_SECURE = not DEBUG
 
 CSRF_TRUSTED_ORIGINS = [
+    "https://raqamiyatapp.com",
+    "https://www.raqamiyatapp.com",
     "https://raqamiyat.onrender.com",
     "http://127.0.0.1",
     "http://localhost"

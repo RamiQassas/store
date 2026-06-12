@@ -72,6 +72,18 @@ class User(AbstractUser):
     totp_enabled = models.BooleanField(default=False)
 
     # Security Triggers (User-defined restrictions)
+    class SecurityMethod(models.TextChoices):
+        NONE = "NONE", "معطل"
+        EMAIL = "EMAIL", "البريد الإلكتروني فقط"
+        APP = "APP", "تطبيق المصادقة (2FA) فقط"
+        BOTH = "BOTH", "البريد الإلكتروني + تطبيق المصادقة"
+
+    security_login_method = models.CharField(max_length=10, choices=SecurityMethod.choices, default=SecurityMethod.EMAIL)
+    security_deposit_method = models.CharField(max_length=10, choices=SecurityMethod.choices, default=SecurityMethod.NONE)
+    security_purchase_method = models.CharField(max_length=10, choices=SecurityMethod.choices, default=SecurityMethod.NONE)
+    security_withdraw_method = models.CharField(max_length=10, choices=SecurityMethod.choices, default=SecurityMethod.NONE)
+    
+    # Deprecated fields (will keep for migration safety but stop using)
     require_otp_on_login = models.BooleanField(default=True)
     require_otp_on_deposit = models.BooleanField(default=False)
     require_otp_on_purchase = models.BooleanField(default=False)
