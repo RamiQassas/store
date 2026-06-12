@@ -18,6 +18,21 @@
 </div>
 
 <div class="management-card">
+    <style>
+        .admin-table img {
+            width: 40px !important;
+            height: 40px !important;
+            min-width: 40px;
+            object-fit: cover;
+            border-radius: 8px;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+        .proof-thumbnail-wrapper {
+            position: relative;
+            width: 40px;
+            height: 40px;
+        }
+    </style>
     <div class="management-header flex-col sm:flex-row gap-4">
         <form method="get" class="flex-grow w-full max-w-md">
             <div class="relative group">
@@ -40,7 +55,8 @@
                     <th class="p-4">التاريخ</th>
                     <th class="p-4">المستخدم</th>
                     <th class="p-4">المبلغ والوسيلة</th>
-                    <th class="p-4">بيانات السحب</th>
+                    <th class="p-4">بيانات العميل</th>
+                    <th class="p-4">إثبات الدفع</th>
                     <th class="p-4">الحالة</th>
                     <th class="p-4 text-left">إجراءات</th>
                 </tr>
@@ -67,8 +83,25 @@
                         </div>
                     </td>
                     <td class="p-4">
-                        <div class="max-w-[200px] truncate text-[10px] font-mono text-slate-400 bg-white/[0.03] p-2 rounded-lg border border-white/5">
+                        <div class="max-w-[150px] truncate text-[10px] font-mono text-slate-400 bg-white/[0.03] p-2 rounded-lg border border-white/5">
                             {{ w.display_payout_value|default:"---" }}
+                        </div>
+                    </td>
+                    <td class="p-4">
+                        <div class="flex items-center gap-2">
+                            {% if w.proof_image %}
+                            <div class="proof-thumbnail-wrapper group">
+                                <img src="{{ w.proof_image.url }}" class="rounded-lg object-cover border border-white/10 hover:scale-150 transition-transform cursor-pointer z-10" onclick="window.open(this.src)">
+                            </div>
+                            {% endif %}
+                            {% if w.proof_file %}
+                            <a href="{{ w.proof_file.url }}" target="_blank" class="w-10 h-10 rounded-lg bg-rose-500/10 flex items-center justify-center text-rose-500 border border-rose-500/20 hover:bg-rose-500/20 transition-colors" title="تحميل ملف PDF">
+                                <i class="fas fa-file-pdf text-xs"></i>
+                            </a>
+                            {% endif %}
+                            {% if not w.proof_image and not w.proof_file %}
+                            <span class="text-[9px] text-slate-600 italic">لا يوجد إثبات</span>
+                            {% endif %}
                         </div>
                     </td>
                     <td class="p-4">

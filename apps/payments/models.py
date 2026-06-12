@@ -282,7 +282,8 @@ class WithdrawalRequest(TimeStampedModel):
     payout_details = models.JSONField(default=dict, verbose_name="بيانات التحويل")
     
     admin_note = models.TextField(blank=True, verbose_name="ملاحظات المدير")
-    proof_image = models.ImageField(upload_to="withdrawal-proofs/", blank=True, null=True, verbose_name="إثبات التحويل")
+    proof_image = models.ImageField(upload_to="withdrawal-proofs/", blank=True, null=True, verbose_name="إثبات التحويل (صورة)")
+    proof_file = models.FileField(upload_to="withdrawal-proofs/docs/", blank=True, null=True, verbose_name="إثبات التحويل (ملف/PDF)")
     
     reviewed_by = models.ForeignKey(
         settings.AUTH_USER_MODEL,

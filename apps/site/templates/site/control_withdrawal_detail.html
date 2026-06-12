@@ -105,9 +105,30 @@
                 <h3 class="font-bold">إثبات التحويل (بواسطة الإدارة)</h3>
             </div>
             <div class="p-6">
-                {% if withdrawal.proof_image %}
-                <div class="proof-container">
-                    <img src="{{ withdrawal.proof_image.url }}" class="proof-image" onclick="window.open(this.src)">
+                {% if withdrawal.proof_image or withdrawal.proof_file %}
+                <div class="stack gap-4">
+                    {% if withdrawal.proof_image %}
+                    <div class="proof-container">
+                        <img src="{{ withdrawal.proof_image.url }}" class="proof-image" onclick="window.open(this.src)">
+                    </div>
+                    {% endif %}
+                    
+                    {% if withdrawal.proof_file %}
+                    <div class="p-4 bg-slate-900/50 rounded-xl border border-white/5 flex items-center justify-between gap-4">
+                        <div class="flex items-center gap-3">
+                            <div class="w-10 h-10 bg-rose-500/10 rounded-lg flex items-center justify-center text-rose-500">
+                                <i class="fas fa-file-pdf"></i>
+                            </div>
+                            <div>
+                                <div class="text-[10px] font-bold text-white">ملف إثبات الدفع</div>
+                                <div class="text-[9px] text-slate-500">تم رفعه بواسطة الإدارة</div>
+                            </div>
+                        </div>
+                        <a href="{{ withdrawal.proof_file.url }}" target="_blank" class="btn btn-sm btn-outline py-1 px-3 text-[9px]">
+                            <i class="fas fa-download ml-1"></i> تحميل / عرض
+                        </a>
+                    </div>
+                    {% endif %}
                 </div>
                 {% else %}
                 <div class="p-10 text-center bg-slate-900/50 rounded-2xl border border-dashed border-white/10">
@@ -165,6 +186,17 @@
                     <div class="field-group">
                         <label class="info-label">ملاحظات للمستخدم</label>
                         <textarea name="admin_note" rows="3" class="w-full bg-slate-900 border-white/10 rounded-xl p-3 text-xs text-white" placeholder="أدخل ملاحظاتك هنا...">{{ withdrawal.admin_note }}</textarea>
+                    </div>
+
+                    <div class="grid grid-cols-1 gap-3">
+                        <div class="field-group">
+                            <label class="info-label">إرفاق صورة إثبات (اختياري)</label>
+                            <input type="file" name="proof_image" accept="image/*" class="w-full bg-slate-900 border-white/10 rounded-xl p-2 text-[10px] text-slate-400">
+                        </div>
+                        <div class="field-group">
+                            <label class="info-label">إرفاق ملف/PDF إثبات (اختياري)</label>
+                            <input type="file" name="proof_file" accept=".pdf,.doc,.docx" class="w-full bg-slate-900 border-white/10 rounded-xl p-2 text-[10px] text-slate-400">
+                        </div>
                     </div>
 
                     <button type="submit" class="btn btn-primary w-full py-3 font-bold">تنفيذ الإجراء</button>

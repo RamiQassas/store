@@ -37,7 +37,10 @@ from apps.site.forms import (
 )
 from apps.support.models import ChatRoom, ChatMessage, ChatCannedReply, SupportSettings
 from apps.wallets.models import Wallet
-from apps.wallets.services import get_or_create_wallet, track_pending_deposit, freeze_funds, credit_wallet
+from apps.wallets.services import (
+    get_or_create_wallet, track_pending_deposit, freeze_funds, credit_wallet,
+    finalize_withdrawal, release_funds
+)
 from apps.common.decorators import staff_required, admin_required, support_required, finance_required, kyc_required
 
 signer = TimestampSigner()
@@ -760,7 +763,67 @@ def control_withdrawals(request): return render(request, "site/control_withdrawa
 def control_deposit_detail(request, pk): return render(request, "site/control_deposit_detail.html", {"deposit": get_object_or_404(DepositRequest.objects.select_related('user', 'currency', 'payment_method'), pk=pk)})
 
 @finance_required
-def control_withdrawal_detail(request, pk): return render(request, "site/control_withdrawal_detail.html", {"withdrawal": get_object_or_404(WithdrawalRequest.objects.select_related('user'), pk=pk)})
+def control_withdrawal_detail(request, pk):
+    withdrawal = get_object_or_404(WithdrawalRequest.objects.select_related('user', 'user__wallet', 'user__wallet__currency', 'payment_method'), pk=pk)
+    if request.method == "POST":
+        action = request.POST.get("action")
+        admin_note = request.POST.get("admin_note", "")
+        proof_image = request.FILES.get("proof_image")
+        proof_file = request.FILES.get("proof_file")
+        
+        try:
+            with transaction.atomic():
+                if action == "process":
+                    withdrawal.status = WithdrawalRequest.Status.PROCESSING
+                elif action == "approve":
+                    withdrawal.status = WithdrawalRequest.Status.APPROVED
+                elif action == "complete":
+                    if withdrawal.status != WithdrawalRequest.Status.COMPLETED:
+                        finalize_withdrawal(
+                            wallet_id=withdrawal.user.wallet.id,
+                            amount=withdrawal.wallet_amount,
+                            reference=f"with:{withdrawal.id}",
+                            description=f"Withdrawal completed via {withdrawal.payment_method.name}",
+                            created_by=request.user
+                        )
+                        withdrawal.status = WithdrawalRequest.Status.COMPLETED
+                        withdrawal.reviewed_at = timezone.now()
+                elif action == "reject":
+                    if withdrawal.status != WithdrawalRequest.Status.REJECTED:
+                        release_funds(
+                            wallet_id=withdrawal.user.wallet.id,
+                            amount=withdrawal.wallet_amount,
+                            reference=f"with:{withdrawal.id}",
+                            description="Withdrawal rejected",
+                            created_by=request.user
+                        )
+                        withdrawal.status = WithdrawalRequest.Status.REJECTED
+                        withdrawal.reviewed_at = timezone.now()
+                
+                if admin_note: withdrawal.admin_note = admin_note
+                if proof_image: withdrawal.proof_image = proof_image
+                if proof_file: withdrawal.proof_file = proof_file
+                withdrawal.reviewed_by = request.user
+                withdrawal.save()
+                messages.success(request, f"تم تحديث حالة الطلب إلى {withdrawal.get_status_display()}")
+                
+                # Send Notification
+                try:
+                    notify_user(
+                        user=withdrawal.user,
+                        title=f"تحديث طلب السحب",
+                        body=f"تم تغيير حالة طلب السحب الخاص بك إلى: {withdrawal.get_status_display()}",
+                        action_url="/dashboard/withdrawals/",
+                        category="financial"
+                    )
+                except: pass
+                
+        except Exception as e:
+            messages.error(request, f"خطأ: {str(e)}")
+            
+        return redirect("control_withdrawal_detail", pk=pk)
+        
+    return render(request, "site/control_withdrawal_detail.html", {"withdrawal": withdrawal})
 
 @support_required
 def control_kycs_list(request): return render(request, "site/control_kycs_list.html", {"requests": KYCRequest.objects.select_related('user').all().order_by('-created_at')})
