@@ -311,11 +311,11 @@
             <div class="panel stack">
                 <div class="section-head p-6 pb-0">
                     <h2 class="text-lg">آخر الإيداعات</h2>
-                    <a href="{% url 'dashboard_deposits' %}" class="text-cyan text-sm font-bold">سجل العمليات</a>
+                    <a href="{% url 'dashboard_deposits' %}" class="text-cyan text-sm font-bold">كل العمليات</a>
                 </div>
                 <div class="p-4 stack">
                     {% for deposit in deposits %}
-                    <div class="activity-item">
+                    <div class="activity-item group">
                         <div class="activity-icon deposit">
                             <i class="fas fa-arrow-up"></i>
                         </div>
@@ -324,11 +324,16 @@
                                 <span class="font-bold text-sm">{{ deposit.amount|floatformat:2 }} {{ deposit.currency.code }}</span>
                                 <span class="text-xs text-muted">{{ deposit.created_at|date:"d M" }}</span>
                             </div>
-                            <div class="flex justify-between mt-1">
-                                <span class="text-xs text-muted">{{ deposit.payment_method.name }}</span>
-                                <span class="badge {% if deposit.status == 'completed' or deposit.status == 'approved' %}success{% elif deposit.status == 'rejected' %}danger{% else %}warning{% endif %} text-[10px]">
-                                    {{ deposit.get_status_display }}
-                                </span>
+                            <div class="flex justify-between items-center mt-1">
+                                <span class="text-[10px] text-slate-500">{{ deposit.payment_method.name }}</span>
+                                <div class="flex gap-2">
+                                    {% if deposit.proof_image %}
+                                    <button onclick="window.open('{{ deposit.proof_image.url }}')" class="text-[9px] text-cyan hover:underline font-bold">الوصل</button>
+                                    {% endif %}
+                                    <span class="badge {% if deposit.status == 'completed' or deposit.status == 'approved' %}success{% elif deposit.status == 'rejected' %}danger{% else %}warning{% endif %} text-[9px]">
+                                        {{ deposit.get_status_display }}
+                                    </span>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -336,6 +341,48 @@
                     <div class="p-8 text-center stack gap-3">
                         <i class="fas fa-receipt text-3xl text-slate-700"></i>
                         <p class="text-sm text-muted">لا توجد عمليات إيداع</p>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <!-- Recent Withdrawals -->
+            <div class="panel stack">
+                <div class="section-head p-6 pb-0">
+                    <h2 class="text-lg">آخر السحوبات</h2>
+                    <a href="{% url 'dashboard_withdrawals' %}" class="text-cyan text-sm font-bold">سجل السحب</a>
+                </div>
+                <div class="p-4 stack">
+                    {% for withdrawal in withdrawals %}
+                    <div class="activity-item group">
+                        <div class="activity-icon order">
+                            <i class="fas fa-arrow-down text-rose-500"></i>
+                        </div>
+                        <div class="flex-grow">
+                            <div class="flex justify-between">
+                                <span class="font-bold text-sm text-rose-400">{{ withdrawal.amount|floatformat:2 }} {{ withdrawal.currency.code }}</span>
+                                <span class="text-xs text-muted">{{ withdrawal.created_at|date:"d M" }}</span>
+                            </div>
+                            <div class="flex justify-between items-center mt-1">
+                                <span class="text-[10px] text-slate-500">{{ withdrawal.payment_method.name }}</span>
+                                <div class="flex gap-2">
+                                    {% if withdrawal.proof_image %}
+                                    <button onclick="window.open('{{ withdrawal.proof_image.url }}')" class="text-[9px] text-cyan hover:underline font-bold">صورة</button>
+                                    {% endif %}
+                                    {% if withdrawal.proof_file %}
+                                    <a href="{{ withdrawal.proof_file.url }}" target="_blank" class="text-[9px] text-rose-400 hover:underline font-bold">PDF</a>
+                                    {% endif %}
+                                    <span class="badge {% if withdrawal.status == 'completed' %}success{% elif withdrawal.status == 'rejected' %}danger{% else %}warning{% endif %} text-[9px]">
+                                        {{ withdrawal.get_status_display }}
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% empty %}
+                    <div class="p-8 text-center stack gap-3">
+                        <i class="fas fa-money-bill-transfer text-3xl text-slate-700"></i>
+                        <p class="text-sm text-muted">لا توجد عمليات سحب</p>
                     </div>
                     {% endfor %}
                 </div>

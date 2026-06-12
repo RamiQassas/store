@@ -264,6 +264,60 @@
             </div>
         </div>
     </form>
+
+    <!-- Deposit History -->
+    <div class="mt-20">
+        <div class="section-head mb-6">
+            <h2 class="text-xl font-black text-white flex items-center gap-3">
+                <i class="fas fa-clock-rotate-left text-cyan"></i> سجل عمليات الإيداع
+            </h2>
+        </div>
+        
+        <div class="stack gap-4">
+            {% for r in requests %}
+            <div class="panel p-6 bg-slate-900/30 border-white/5 hover:border-white/10 transition-all">
+                <div class="flex flex-wrap justify-between items-start gap-4">
+                    <div class="flex gap-4">
+                        <div class="w-12 h-12 rounded-2xl bg-white/5 flex items-center justify-center text-slate-500 flex-shrink-0">
+                            <i class="fas fa-arrow-up-long"></i>
+                        </div>
+                        <div>
+                            <div class="flex items-center gap-3 mb-1">
+                                <strong class="text-lg font-black text-white">{{ r.amount|floatformat:2 }} {{ r.currency.code }}</strong>
+                                <span class="badge {% if r.status == 'completed' or r.status == 'approved' %}success{% elif r.status == 'rejected' %}danger{% else %}warning{% endif %} text-[10px]">
+                                    {{ r.get_status_display }}
+                                </span>
+                            </div>
+                            <div class="text-[10px] text-slate-500 font-bold uppercase tracking-widest">
+                                عبر {{ r.payment_method.name }} • {{ r.created_at|date:"d M Y, H:i" }}
+                            </div>
+                        </div>
+                    </div>
+                    
+                    {% if r.proof_image %}
+                    <button onclick="window.open('{{ r.proof_image.url }}')" class="btn btn-sm btn-outline py-2 px-4 rounded-xl text-[10px] font-bold">
+                        <i class="fas fa-image ml-2"></i> عرض الوصل المرفوع
+                    </button>
+                    {% endif %}
+                </div>
+
+                {% if r.admin_note %}
+                <div class="mt-4 p-4 bg-white/[0.02] rounded-xl border border-white/5">
+                    <span class="text-[9px] text-slate-600 font-black uppercase block mb-1">ملاحظة الإدارة:</span>
+                    <p class="text-xs text-slate-400">{{ r.admin_note }}</p>
+                </div>
+                {% endif %}
+            </div>
+            {% empty %}
+            <div class="p-20 text-center bg-slate-900/20 rounded-[2.5rem] border border-dashed border-white/5">
+                <div class="w-16 h-16 bg-slate-900 rounded-full flex items-center justify-center mx-auto mb-4 opacity-20">
+                    <i class="fas fa-receipt text-2xl"></i>
+                </div>
+                <p class="text-slate-500 font-bold italic">لا توجد عمليات إيداع سابقة.</p>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
 </div>
 
 <script>

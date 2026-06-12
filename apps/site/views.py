@@ -422,8 +422,14 @@ def dashboard(request):
     digital_deliveries = Order.objects.filter(customer=request.user, status=Order.Status.COMPLETED, is_delivery_read=False).exclude(fulfillment_data={})
     recent_orders = Order.objects.filter(customer=request.user).order_by('-created_at')[:5]
     recent_deposits = DepositRequest.objects.filter(user=request.user).order_by('-created_at')[:5]
+    recent_withdrawals = WithdrawalRequest.objects.filter(user=request.user).order_by('-created_at')[:5]
     kyc_request = KYCRequest.objects.filter(user=request.user).first(); notifications = Notification.objects.filter(user=request.user, is_read=False)[:5]
-    return render(request, "site/v3/v3_dashboard.html", {"wallet": wallet, "digital_deliveries": digital_deliveries, "orders": recent_orders, "deposits": recent_deposits, "kyc_request": kyc_request, "notifications": notifications})
+    return render(request, "site/v3/v3_dashboard.html", {
+        "wallet": wallet, "digital_deliveries": digital_deliveries, 
+        "orders": recent_orders, "deposits": recent_deposits, 
+        "withdrawals": recent_withdrawals, "kyc_request": kyc_request, 
+        "notifications": notifications
+    })
 
 @login_required
 def wallet_page(request):
