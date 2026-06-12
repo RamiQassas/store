@@ -95,6 +95,8 @@ def v3_get_required_methods(user, action_type):
         return ["APP"] if user.totp_enabled else ["EMAIL"]
     if pref == "BOTH":
         return ["APP", "EMAIL"] if user.totp_enabled else ["EMAIL"]
+    if pref == "SP":
+        return ["SP"] if user.security_password else ["EMAIL"]
     return []
 
 def v3_init_verification(request, user, action_type):
@@ -116,9 +118,77 @@ def v3_init_verification(request, user, action_type):
     request.session["v3_auth_uid"] = str(user.id)
     request.session["v3_auth_methods"] = methods
     request.session["v3_auth_purpose"] = action_type
-    if methods[0] == "EMAIL":
+    
+    first_method = methods[0]
+    if first_method == "EMAIL":
         v3_send_otp_email(user, v3_generate_otp(user, action_type))
+        return False # Stay for redirect or handle in caller
+    elif first_method == "SP":
+        # Handled by redirect in caller or here
+        pass
+    
     return False
+
+def v3_redirect_to_verification(request, methods):
+    if not methods: return redirect("dashboard")
+    first = methods[0]
+    if first == "EMAIL": return redirect("site_verify_otp")
+    if first == "APP": return redirect("site_2fa_verify")
+    if first == "SP": return redirect("site_sp_verify")
+    return redirect("dashboard")
+
+def v3_verify_sp_view(request):
+    uid, purpose = request.session.get("v3_auth_uid"), request.session.get("v3_auth_purpose")
+    if not uid: return redirect("site_login")
+    user = get_object_or_404(User, id=uid)
+    methods = request.session.get("v3_auth_methods", ["SP"])
+    
+    if request.method == "POST":
+        password = request.POST.get("password")
+        if user.security_password and check_password_hash(password, user.security_password):
+            remaining = [m for m in methods if m != "SP"]
+            request.session["v3_auth_methods"] = remaining
+            
+            if remaining:
+                next_method = remaining[0]
+                if next_method == "EMAIL":
+                    v3_send_otp_email(user, v3_generate_otp(user, purpose))
+                    return redirect("site_verify_otp")
+                elif next_method == "APP":
+                    return redirect("site_2fa_verify")
+            
+            # All verified
+            if not request.user.is_authenticated:
+                login(request, user, backend='django.contrib.auth.backends.ModelBackend')
+            
+            request.session["v3_action_verified_at"] = timezone.now().isoformat()
+            
+            # Completion logic for pending actions
+            pending_action_id = request.session.get("v3_pending_action_id")
+            if pending_action_id:
+                from apps.payments.models import DepositRequest, WithdrawalRequest
+                deposit = DepositRequest.objects.filter(id=pending_action_id, user=user).first()
+                if deposit:
+                    deposit.is_verified = True; deposit.save(update_fields=["is_verified"])
+                    messages.success(request, "تم التحقق والموافقة على الإيداع.")
+                    del request.session["v3_pending_action_id"]
+                    return redirect("dashboard_deposits")
+                
+                withdrawal = WithdrawalRequest.objects.filter(id=pending_action_id, user=user).first()
+                if withdrawal:
+                    withdrawal.is_verified = True; withdrawal.save(update_fields=["is_verified"])
+                    messages.success(request, "تم التحقق والموافقة على السحب.")
+                    del request.session["v3_pending_action_id"]
+                    return redirect("dashboard_withdrawals")
+
+            keys = ["v3_auth_uid", "v3_auth_methods", "v3_auth_purpose", "v3_new_email", "v3_pending_action_id"]
+            for k in keys:
+                if k in request.session: del request.session[k]
+            return redirect("control_dashboard" if user.is_staff else "dashboard")
+            
+        messages.error(request, "كلمة مرور الحماية غير صحيحة.")
+        
+    return render(request, "site/v3/v3_sp_verify.html", {"purpose": purpose})
 
 # ==========================================
 # --- AUTH VIEWS (V3) ---

@@ -24,44 +24,54 @@ def api_deposit_approve(request, pk):
     try:
         wallet = Wallet.objects.get(user=deposit.user)
         final_amount = deposit.amount
-        original_wallet_amount = deposit.wallet_amount
         
         if adjusted_amount_str:
             final_amount = Decimal(str(adjusted_amount_str))
+            if final_amount <= 0:
+                return Response({"detail": "المبلغ يجب أن يكون أكبر من الصفر."}, status=status.HTTP_400_BAD_REQUEST)
+            
             if final_amount != deposit.amount:
                 if not deposit.metadata: deposit.metadata = {}
                 deposit.metadata["adjusted_from"] = str(deposit.amount)
                 deposit.amount = final_amount
-                
-                base_amount = deposit.currency.to_base(final_amount, "deposit")
-                deposit.wallet_amount = wallet.currency.from_base(base_amount, "deposit")
+        
+        # Recalculate wallet_amount based on final_amount if it's 0 or adjusted
+        base_amount = deposit.currency.to_base(final_amount, "deposit")
+        deposit.wallet_amount = wallet.currency.from_base(base_amount, "deposit")
+        
+        if deposit.wallet_amount <= 0:
+            return Response({"detail": "المبلغ المحول للمحفظة يجب أن يكون أكبر من الصفر."}, status=status.HTTP_400_BAD_REQUEST)
 
-        credit_wallet(
-            wallet_id=wallet.id,
-            amount=deposit.wallet_amount,
-            reference=f"dep:{deposit.id}",
-            description=f"Approved deposit via {deposit.payment_method.name}",
-            created_by=request.user,
-            source="admin_approval",
-            reason=admin_note,
-            metadata={"from_pending": True, "pending_amount": str(original_wallet_amount)}
-        )
+        with transaction.atomic():
+            credit_wallet(
+                wallet_id=wallet.id,
+                amount=deposit.wallet_amount,
+                reference=f"dep:{deposit.id}",
+                description=f"Approved deposit via {deposit.payment_method.name}",
+                created_by=request.user,
+                source="admin_approval",
+                reason=admin_note,
+                metadata={"from_pending": True}
+            )
+            
+            deposit.status = DepositRequest.Status.COMPLETED
+            deposit.reviewed_by = request.user
+            deposit.reviewed_at = timezone.now()
+            deposit.admin_note = admin_note
+            deposit.save()
         
-        deposit.status = DepositRequest.Status.COMPLETED
-        deposit.reviewed_by = request.user
-        deposit.reviewed_at = timezone.now()
-        deposit.admin_note = admin_note
-        deposit.save()
-        
-        from apps.notifications.services import notify_user
-        notify_user(
-            user=deposit.user,
-            title="✅ تم تأكيد الإيداع",
-            body=f"تمت إضافة {final_amount} {deposit.currency.code} إلى محفظتك بنجاح.",
-            action_url="/dashboard/wallet/",
-            category="financial",
-            priority="high"
-        )
+        try:
+            from apps.notifications.services import notify_user
+            notify_user(
+                user=deposit.user,
+                title="✅ تم تأكيد الإيداع",
+                body=f"تمت إضافة {deposit.wallet_amount} {wallet.currency.code} إلى محفظتك بنجاح.",
+                action_url="/dashboard/wallet/",
+                category="financial",
+                priority="high"
+            )
+        except:
+            pass
         
         return Response({"status": "success"})
     except Exception as e:

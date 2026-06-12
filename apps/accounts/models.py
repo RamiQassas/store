@@ -80,7 +80,9 @@ class User(AbstractUser):
         NONE = "NONE", "معطل"
         EMAIL = "EMAIL", "البريد الإلكتروني فقط"
         APP = "APP", "تطبيق المصادقة (2FA) فقط"
-        BOTH = "BOTH", "البريد الإلكتروني + تطبيق المصادقة"
+        BOTH = "BOTH", "البريد الإلكتروني وتطبيق المصادقة معاً"
+        SP = "SP", "كلمة مرور الحماية"
+
 
     security_login_method = models.CharField(max_length=10, choices=SecurityMethod.choices, default=SecurityMethod.EMAIL)
     security_deposit_method = models.CharField(max_length=10, choices=SecurityMethod.choices, default=SecurityMethod.NONE)

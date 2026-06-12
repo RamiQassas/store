@@ -15,6 +15,7 @@ urlpatterns = [
     path("dashboard/2fa/setup/", views.v3_2fa_setup_view, name="site_2fa_setup"),
     path("dashboard/security-triggers/", views.v3_security_triggers_view, name="site_security_triggers"),
     path("auth/2fa-verify/", views.v3_2fa_verify_view, name="site_2fa_verify"),
+    path("auth/sp-verify/", views.v3_verify_sp_view, name="site_sp_verify"),
 
     path("", views.home, name="home"),
     path("catalog/", views.catalog, name="catalog"),
