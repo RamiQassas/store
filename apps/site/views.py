@@ -361,7 +361,9 @@ def withdrawals(request):
 @login_required
 def kyc_request_view(request):
     existing = KYCRequest.objects.filter(user=request.user).first()
-    if existing and existing.status in [KYCRequest.Status.PENDING, KYCRequest.Status.VERIFIED]: return render(request, "site/v3/v3_kyc_status.html", {"kyc": existing})
+    if existing and existing.status in [KYCRequest.Status.PENDING, KYCRequest.Status.APPROVED]: 
+        return render(request, "site/v3/v3_kyc_status.html", {"kyc": existing})
+
     form = KYCRequestForm(request.POST or None, request.FILES or None, instance=existing)
     if request.method == "POST" and form.is_valid():
         kyc = form.save(commit=False); kyc.user, kyc.status = request.user, KYCRequest.Status.PENDING; kyc.save()
