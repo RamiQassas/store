@@ -229,6 +229,39 @@
     }
     .payment-item-v6:hover { filter: none; transform: scale(1.1); }
     .payment-item-v6 img { height: 100%; width: auto; object-fit: contain; }
+    /* --- Modern Payment Methods Grid --- */
+    .payments-v6 { padding: 5rem 0; border-top: 1px solid var(--border); }
+    .payments-v6-grid { 
+        display: flex; 
+        flex-wrap: wrap; 
+        justify-content: center; 
+        gap: 1.5rem; 
+        margin-top: 2rem;
+    }
+    .payment-icon-v6 {
+        width: 100px;
+        height: 60px;
+        background: var(--glass);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0.75rem;
+        transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        filter: grayscale(1) opacity(0.5);
+    }
+    .payment-icon-v6:hover {
+        filter: grayscale(0) opacity(1);
+        border-color: var(--accent);
+        transform: translateY(-5px) scale(1.05);
+        box-shadow: 0 10px 20px -10px rgba(6, 182, 212, 0.4);
+    }
+    .payment-icon-v6 img {
+        max-width: 100%;
+        max-height: 100%;
+        object-fit: contain;
+    }
 </style>
 {% endblock %}
 
@@ -332,6 +365,25 @@
                     </div>
                 </div>
             </div>
+            {% endfor %}
+        </div>
+    </section>
+
+    <!-- Payment Methods Section -->
+    <section class="payments-v6 reveal">
+        <div class="text-center mb-8">
+            <span class="text-[10px] font-black uppercase tracking-[0.2em] text-cyan/60 block mb-2">الأمان والموثوقية</span>
+            <h2 class="text-2xl font-black text-white">طرق الدفع المتوفرة</h2>
+            <p class="text-sm text-slate-500 mt-2">ندعم مجموعة واسعة من وسائل الدفع العالمية والمحلية لتسهيل عملياتك</p>
+        </div>
+        
+        <div class="payments-v6-grid">
+            {% for method in PAYMENT_METHODS %}
+                {% if method.logo %}
+                <div class="payment-icon-v6" title="{{ method.name }}">
+                    <img src="{{ method.logo.url }}" alt="{{ method.name }}">
+                </div>
+                {% endif %}
             {% endfor %}
         </div>
     </section>

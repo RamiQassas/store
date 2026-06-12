@@ -121,10 +121,19 @@ def v3_login_view(request):
             if not user.is_active:
                 messages.error(request, "الحساب معطل.")
                 return render(request, "site/v3/v3_login.html", {"form": form})
+            
+            # Important: Set backend before checking verification to prevent 500 in login()
+            user.backend = 'django.contrib.auth.backends.ModelBackend'
+            
             if v3_init_verification(request, user, "login"):
-                login(request, user, backend='django.contrib.auth.backends.ModelBackend')
+                login(request, user)
                 return redirect("control_dashboard" if user.is_staff else "dashboard")
+            
             methods = request.session.get("v3_auth_methods", [])
+            if not methods: # Fallback if session failed
+                login(request, user)
+                return redirect("dashboard")
+                
             return redirect("site_2fa_verify" if methods[0] == "APP" else "site_verify_otp")
         messages.error(request, "بيانات الدخول غير صحيحة.")
     return render(request, "site/v3/v3_login.html", {"form": form})
@@ -241,14 +250,29 @@ def v3_2fa_setup_view(request):
 
 def v3_forgot_password_view(request):
     if request.method == "POST":
-        user = User.objects.filter(email=request.POST.get("email", "").lower().strip()).first()
+        email = request.POST.get("email", "").lower().strip()
+        user = User.objects.filter(email=email).first()
         if user:
             token = signer.sign(str(user.id))
             reset_url = request.build_absolute_uri(reverse('site_reset_password')) + f"?token={token}"
             subject = "رابط استعادة كلمة المرور | Raqamiyat"
-            html_content = f"<div dir='rtl'>رابط إعادة تعيين كلمة المرور: <br><br> <a href='{reset_url}'>{reset_url}</a></div>"
-            if send_brevo_email(user.email, user.get_full_name() or user.email, subject, html_content): return render(request, "site/v3/v3_forgot_password.html", {"sent": True})
-        messages.error(request, "البريد غير مسجل.")
+            html_content = f"""
+            <div dir="rtl" style="font-family: sans-serif; max-width: 500px; margin: 0 auto; padding: 20px; border: 1px solid #eee; border-radius: 10px;">
+                <h2 style="color: #06b6d4;">رقميات | RAQAMIYAT</h2>
+                <p>مرحباً،</p>
+                <p>لقد طلبت إعادة تعيين كلمة المرور لحسابك. يرجى الضغط على الزر أدناه للمتابعة:</p>
+                <div style="text-align: center; margin: 30px 0;">
+                    <a href="{reset_url}" style="display: inline-block; padding: 12px 25px; background-color: #06b6d4; color: white; text-decoration: none; border-radius: 8px; font-weight: bold;">إعادة تعيين كلمة المرور</a>
+                </div>
+                <p style="font-size: 12px; color: #999;">هذا الرابط صالح لمدة 10 دقائق فقط.</p>
+            </div>
+            """
+            if send_brevo_email(user.email, user.get_full_name() or user.email, subject, html_content):
+                return render(request, "site/v3/v3_forgot_password.html", {"sent": True})
+            else:
+                messages.error(request, "فشل إرسال البريد الإلكتروني. يرجى المحاولة لاحقاً.")
+        else:
+            messages.error(request, "البريد الإلكتروني غير مسجل لدينا.")
     return render(request, "site/v3/v3_forgot_password.html")
 
 def v3_reset_password_view(request):
