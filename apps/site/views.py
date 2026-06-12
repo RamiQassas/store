@@ -122,9 +122,11 @@ def v3_login_view(request):
         user = authenticate(request, username=form.cleaned_data["username"], password=form.cleaned_data["password"])
         if user:
             if not user.is_active: messages.error(request, "الحساب معطل."); return render(request, "site/v3/v3_login.html", {"form": form})
-            if v3_init_verification(request, user, "login"): login(request, user); return redirect("control_dashboard" if user.is_staff else "dashboard")
+            if v3_init_verification(request, user, "login"):
+                login(request, user, backend='django.contrib.auth.backends.ModelBackend')
+                return redirect("control_dashboard" if user.is_staff else "dashboard")
             methods = request.session.get("v3_auth_methods", [])
-            return redirect("site_2fa_verify" if "APP" in methods and "EMAIL" not in methods else "site_verify_otp")
+            return redirect("site_2fa_verify" if methods[0] == "APP" else "site_verify_otp")
         messages.error(request, "بيانات الدخول غير صحيحة.")
     return render(request, "site/v3/v3_login.html", {"form": form})
 
@@ -134,9 +136,9 @@ def v3_verify_otp_view(request):
     user, methods = get_object_or_404(User, id=uid), request.session.get("v3_auth_methods", ["EMAIL"])
     if request.method == "POST":
         if v3_verify_otp_logic(user, request.POST.get("code"), f"verify_{purpose}"):
-            if "APP" in methods:
-                request.session["v3_auth_methods"] = [m for m in methods if m != "EMAIL"]
-                if request.session["v3_auth_methods"]: return redirect("site_2fa_verify")
+            remaining = [m for m in methods if m != "EMAIL"]
+            request.session["v3_auth_methods"] = remaining
+            if remaining and remaining[0] == "APP": return redirect("site_2fa_verify")
             login(request, user, backend='django.contrib.auth.backends.ModelBackend')
             request.session["v3_action_verified_at"] = timezone.now().isoformat()
             del request.session["v3_auth_uid"]; del request.session["v3_auth_methods"]; del request.session["v3_auth_purpose"]
@@ -149,10 +151,13 @@ def v3_2fa_verify_view(request):
     if not uid: return redirect("site_login")
     user, methods = get_object_or_404(User, id=uid), request.session.get("v3_auth_methods", ["APP"])
     if request.method == "POST":
-        if pyotp.TOTP(user.totp_secret).verify(request.POST.get("code")):
-            if "EMAIL" in methods:
-                request.session["v3_auth_methods"] = [m for m in methods if m != "APP"]
-                if request.session["v3_auth_methods"]: return redirect("site_verify_otp")
+        code = request.POST.get("code")
+        if user.totp_secret and pyotp.TOTP(user.totp_secret).verify(code):
+            remaining = [m for m in methods if m != "APP"]
+            request.session["v3_auth_methods"] = remaining
+            if remaining and remaining[0] == "EMAIL":
+                v3_send_otp_email(user, v3_generate_otp(user, f"verify_{purpose}"))
+                return redirect("site_verify_otp")
             login(request, user, backend='django.contrib.auth.backends.ModelBackend')
             request.session["v3_action_verified_at"] = timezone.now().isoformat()
             del request.session["v3_auth_uid"]; del request.session["v3_auth_methods"]; del request.session["v3_auth_purpose"]
@@ -608,11 +613,10 @@ def home(request):
     categories = Category.objects.filter(is_active=True).order_by("sort_order", "name")
     stats = {"products": Product.objects.filter(is_active=True).count(), "categories": categories.count(), "orders": Order.objects.count(), "tickets": ChatRoom.objects.exclude(status=ChatRoom.Status.CLOSED).count(), "users": User.objects.count()}
     return render(request, "site/home.html", {
-        "featured_products": Product.objects.filter(is_active=True, is_featured=True).select_related("category")[:6], 
-        "top_products": Product.objects.filter(is_active=True).order_by("sort_order")[:8], 
-        "categories": categories, 
-        "stats": stats,
-        "social_links": SocialMediaLink.objects.all()
+        "featured_products": Product.objects.filter(is_active=True, is_featured=True).select_related("category")[:6],
+        "top_products": Product.objects.filter(is_active=True).order_by("sort_order")[:8],
+        "categories": categories,
+        "stats": stats
     })
 
 def catalog(request):

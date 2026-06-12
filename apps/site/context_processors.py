@@ -1,4 +1,5 @@
 from apps.common.models import Currency, SocialMediaLink
+from apps.payments.models import PaymentMethod
 
 def preferred_currency(request):
     """
@@ -34,5 +35,6 @@ def preferred_currency(request):
         "CURRENCY": pref_currency,
         "ALL_CURRENCIES": all_currencies,
         "SYSTEM_CURRENCY": system_currency,
-        "SOCIAL_LINKS": SocialMediaLink.objects.filter(is_active=True).order_by("display_order")
+        "SOCIAL_LINKS": SocialMediaLink.objects.filter(is_active=True).order_by("display_order"),
+        "PAYMENT_METHODS": PaymentMethod.objects.filter(is_active=True).order_by('display_order')
     }

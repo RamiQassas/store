@@ -184,22 +184,51 @@
     }
     .support-card-v6:hover { border-color: var(--accent); transform: translateY(-6px); box-shadow: 0 25px 50px -12px rgba(6, 182, 212, 0.2); }
     
-    .social-links-v6 { display: flex; flex-wrap: wrap; justify-content: center; gap: 0.6rem; }
+    .social-links-v6 { display: flex; flex-wrap: wrap; justify-content: center; gap: 1.5rem; }
     .social-icon-v6 {
-        width: 32px;
-        height: 32px;
-        border-radius: 8px;
+        width: 54px;
+        height: 54px;
+        border-radius: 18px;
         background: #0a0f1c;
         border: 1px solid var(--border);
         display: flex;
         align-items: center;
         justify-content: center;
         color: var(--text-dim);
-        font-size: 0.9rem;
-        transition: all 0.2s ease;
+        font-size: 1.5rem;
+        transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
     }
-    .social-icon-v6:hover { border-color: var(--accent); color: #fff; transform: scale(1.15); background: rgba(6, 182, 212, 0.05); }
-    .social-icon-v6 i, .social-icon-v6 img { width: 14px; height: 14px; object-fit: contain; }
+    .social-icon-v6:hover { 
+        border-color: var(--accent); 
+        color: #fff; 
+        transform: scale(1.2) rotate(8deg); 
+        background: rgba(6, 182, 212, 0.1);
+        box-shadow: 0 10px 25px -5px rgba(6, 182, 212, 0.4);
+    }
+    .social-icon-v6 i, .social-icon-v6 img { width: 24px; height: 24px; object-fit: contain; }
+
+    /* --- Payment Methods Footer --- */
+    .payment-footer-v6 {
+        padding: 4rem 0;
+        border-top: 1px solid rgba(255,255,255,0.05);
+        text-align: center;
+    }
+    .payment-methods-grid {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 2rem;
+        opacity: 0.6;
+        transition: opacity 0.3s;
+    }
+    .payment-methods-grid:hover { opacity: 1; }
+    .payment-item-v6 {
+        height: 30px;
+        filter: grayscale(1) brightness(2);
+        transition: all 0.3s;
+    }
+    .payment-item-v6:hover { filter: none; transform: scale(1.1); }
+    .payment-item-v6 img { height: 100%; width: auto; object-fit: contain; }
 </style>
 {% endblock %}
 
@@ -325,17 +354,19 @@
             <a href="{% url 'chat_list' %}" class="btn btn-primary w-full py-4 rounded-2xl font-black shadow-lg shadow-cyan/20">ابدأ المحادثة الآن</a>
         </div>
         
-        <span class="text-[9px] font-bold text-slate-600 uppercase tracking-widest mb-4 block">تابعنا على منصات التواصل الاجتماعي</span>
-        <div class="social-links-v6">
-            {% for link in social_links %}
-                <a href="{{ link.url }}" target="_blank" class="social-icon-v6" title="{{ link.name }}">
-                    {% if link.icon_image %}
-                    <img src="{{ link.icon_image.url }}" alt="{{ link.name }}">
-                    {% else %}
-                    <i class="{{ link.icon_class|default:'fas fa-link' }}"></i>
-                    {% endif %}
-                </a>
-            {% endfor %}
+        <div class="py-10">
+            <span class="text-[10px] font-black text-slate-600 uppercase tracking-widest mb-6 block">تابعنا على منصات التواصل الاجتماعي</span>
+            <div class="social-links-v6">
+                {% for link in SOCIAL_LINKS %}
+                    <a href="{{ link.url }}" target="_blank" class="social-icon-v6" title="{{ link.name }}">
+                        {% if link.icon_image %}
+                        <img src="{{ link.icon_image.url }}" alt="{{ link.name }}">
+                        {% else %}
+                        <i class="{{ link.icon_class|default:'fas fa-link' }}"></i>
+                        {% endif %}
+                    </a>
+                {% endfor %}
+            </div>
         </div>
     </section>
 </div>

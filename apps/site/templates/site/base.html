@@ -352,10 +352,12 @@
         
         <div class="flex flex-col md:row justify-between items-center pt-10 border-t border-white/5 gap-4">
             <div class="text-[10px] text-slate-600 font-bold tracking-wider">© 2026 RAQAMIYAT LTD. ALL RIGHTS RESERVED.</div>
-            <div class="flex items-center gap-6 opacity-30 grayscale hover:opacity-100 hover:grayscale-0 transition-all">
-                <i class="fab fa-cc-visa text-2xl"></i>
-                <i class="fab fa-cc-mastercard text-2xl"></i>
-                <i class="fab fa-cc-paypal text-2xl"></i>
+            <div class="flex items-center gap-4 opacity-40 grayscale hover:opacity-100 hover:grayscale-0 transition-all duration-500">
+                {% for method in PAYMENT_METHODS %}
+                    {% if method.logo %}
+                    <img src="{{ method.logo.url }}" alt="{{ method.name }}" class="h-5 w-auto object-contain" title="{{ method.name }}">
+                    {% endif %}
+                {% endfor %}
             </div>
         </div>
       </div>
