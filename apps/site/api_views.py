@@ -11,6 +11,32 @@ def is_staff(user):
     return user.is_staff
 
 @login_required
+def get_max_withdrawable(request):
+    """API to calculate max withdrawable amount in a chosen currency."""
+    currency_id = request.GET.get('currency_id')
+    method_id = request.GET.get('method_id')
+    
+    if not currency_id or not method_id:
+        return JsonResponse({"error": "Missing parameters"}, status=400)
+        
+    wallet = get_object_or_404(Wallet, user=request.user)
+    currency = get_object_or_404(Currency, id=currency_id)
+    method = get_object_or_404(PaymentMethod, id=method_id)
+    
+    available_usd = wallet.available_balance
+    fee = method.calculate_fee(available_usd, mode="withdrawal")
+    
+    net_available_usd = max(Decimal("0.00"), available_usd - fee)
+    
+    max_amount = currency.from_base(net_available_usd, operation="withdraw")
+    
+    return JsonResponse({
+        "max_amount": float(max_amount.quantize(Decimal("0.01"))),
+        "currency_symbol": currency.symbol,
+        "fee_estimate": float(fee.quantize(Decimal("0.01")))
+    })
+
+@login_required
 def get_conversion_preview(request):
     """API to get conversion preview for deposit/withdrawal."""
     amount = Decimal(request.GET.get('amount', 0))
