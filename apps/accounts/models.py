@@ -67,9 +67,13 @@ class User(AbstractUser):
     otp_lockout_until = models.DateTimeField(null=True, blank=True)
     otp_resend_count = models.IntegerField(default=0)
 
-    # 2FA / TOTP
+    # TOTP Secret for 2FA Apps
     totp_secret = models.CharField(max_length=32, null=True, blank=True)
     totp_enabled = models.BooleanField(default=False)
+
+    # Protected Security Settings
+    security_password = models.CharField(max_length=128, null=True, blank=True, verbose_name="كلمة مرور الحماية")
+    security_password_enabled = models.BooleanField(default=False, verbose_name="تفعيل حماية الإعدادات")
 
     # Security Triggers (User-defined restrictions)
     class SecurityMethod(models.TextChoices):

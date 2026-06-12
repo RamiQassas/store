@@ -11,72 +11,188 @@
         <p class="text-slate-500 text-sm">تحكم في كيفية حماية حسابك عند القيام بالعمليات الهامة.</p>
     </div>
 
-    <form method="post" class="stack gap-8 text-right">
-        {% csrf_token %}
-        
-        <!-- Login Security -->
-        <div class="security-trigger-card">
-            <div class="flex items-center gap-3 mb-4">
-                <div class="w-8 h-8 rounded-lg bg-slate-800 flex items-center justify-center text-xs text-slate-400">
-                    <i class="fas fa-sign-in-alt"></i>
-                </div>
-                <h3 class="text-sm font-bold text-slate-200">عند تسجيل الدخول</h3>
-            </div>
-            <select name="login_method" class="security-select">
-                {% for val, label in user.SecurityMethod.choices %}
-                <option value="{{ val }}" {% if user.security_login_method == val %}selected{% endif %}>{{ label }}</option>
-                {% endfor %}
-            </select>
-        </div>
-
-        <!-- Withdraw Security -->
+    <div class="stack gap-10">
+    
+        <!-- 1. Security Password Management -->
         <div class="security-trigger-card highlight">
-            <div class="flex items-center gap-3 mb-4">
-                <div class="w-8 h-8 rounded-lg bg-cyan/10 flex items-center justify-center text-xs text-cyan">
-                    <i class="fas fa-money-bill-transfer"></i>
+            <div class="flex items-center gap-3 mb-6">
+                <div class="w-10 h-10 rounded-xl bg-cyan/10 flex items-center justify-center text-cyan shadow-sm">
+                    <i class="fas fa-key"></i>
                 </div>
-                <h3 class="text-sm font-bold text-white">عند طلب سحب</h3>
+                <div>
+                    <h3 class="text-base font-black text-white">كلمة مرور الحماية الخاصة</h3>
+                    <p class="text-[11px] text-slate-500">طبقة حماية إضافية لمنع أي تعديلات غير مصرح بها على حسابك.</p>
+                </div>
             </div>
-            <select name="withdraw_method" class="security-select border-cyan/20">
-                {% for val, label in user.SecurityMethod.choices %}
-                <option value="{{ val }}" {% if user.security_withdraw_method == val %}selected{% endif %}>{{ label }}</option>
-                {% endfor %}
-            </select>
-            <p class="text-[10px] text-slate-500 mt-2 px-1">حماية إضافية تطلب منك التحقق قبل خصم أي مبلغ للسحب.</p>
+
+            <form method="post" class="stack gap-4">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="update_security_password">
+                
+                {% if user.security_password %}
+                <div class="field-group">
+                    <label class="text-xs text-slate-400 mb-1 block">كلمة المرور الحالية</label>
+                    <input type="password" name="current_security_password" class="security-select" placeholder="******" required>
+                </div>
+                {% endif %}
+                
+                <div class="grid grid-cols-2 gap-4">
+                    <div class="field-group">
+                        <label class="text-xs text-slate-400 mb-1 block">كلمة المرور الجديدة</label>
+                        <input type="password" name="new_security_password" class="security-select" placeholder="******" required>
+                    </div>
+                    <div class="field-group">
+                        <label class="text-xs text-slate-400 mb-1 block">تأكيد كلمة المرور</label>
+                        <input type="password" name="confirm_security_password" class="security-select" placeholder="******" required>
+                    </div>
+                </div>
+                
+                <button type="submit" class="btn btn-primary py-3 text-xs font-bold">{% if user.security_password %}تغيير كلمة المرور{% else %}إنشاء كلمة مرور الحماية{% endif %}</button>
+            </form>
         </div>
 
-        <!-- Deposit Security -->
-        <div class="security-trigger-card">
-            <div class="flex items-center gap-3 mb-4">
-                <div class="w-8 h-8 rounded-lg bg-slate-800 flex items-center justify-center text-xs text-slate-400">
-                    <i class="fas fa-wallet"></i>
+        {% if user.security_password %}
+        <!-- 2. Settings Protection Toggle -->
+        <div class="security-trigger-card {% if user.security_password_enabled %}border-green-500/30 bg-green-500/5{% endif %}">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-xl bg-slate-800 flex items-center justify-center {% if user.security_password_enabled %}text-green-500{% else %}text-slate-500{% endif %}">
+                        <i class="fas fa-shield-alt"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-sm font-bold text-slate-200">حماية تعديل الإعدادات</h3>
+                        <p class="text-[10px] text-slate-500">عند التفعيل، ستحتاج لإدخال كلمة مرور الحماية لتغيير أي من هذه الخيارات.</p>
+                    </div>
                 </div>
-                <h3 class="text-sm font-bold text-slate-200">عند طلب إيداع</h3>
+                <form method="post">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="toggle_protection">
+                    <!-- Trigger Modal or Simple Prompt -->
+                    <button type="button" onclick="showPrompt('toggle_protection')" class="btn {% if user.security_password_enabled %}btn-success{% else %}btn-secondary{% endif %} py-2 px-6 text-[11px] font-bold">
+                        {% if user.security_password_enabled %}إيقاف الحماية{% else %}تفعيل الحماية{% endif %}
+                    </button>
+                    
+                    <div id="prompt-toggle_protection" class="hidden fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+                        <div class="bg-slate-900 border border-white/10 p-8 rounded-3xl w-full max-width-[400px] stack gap-6">
+                            <h4 class="text-lg font-bold">تأكيد العملية</h4>
+                            <p class="text-sm text-slate-400">يرجى إدخال كلمة مرور الحماية للمتابعة:</p>
+                            <input type="password" name="security_password" class="security-select" placeholder="******">
+                            <div class="flex gap-4">
+                                <button type="submit" class="btn btn-primary flex-1">تأكيد</button>
+                                <button type="button" onclick="hidePrompt('toggle_protection')" class="btn btn-secondary flex-1">إلغاء</button>
+                            </div>
+                        </div>
+                    </div>
+                </form>
             </div>
-            <select name="deposit_method" class="security-select">
-                {% for val, label in user.SecurityMethod.choices %}
-                <option value="{{ val }}" {% if user.security_deposit_method == val %}selected{% endif %}>{{ label }}</option>
-                {% endfor %}
-            </select>
         </div>
+        {% endif %}
 
-        <!-- Purchase Security -->
-        <div class="security-trigger-card">
-            <div class="flex items-center gap-3 mb-4">
-                <div class="w-8 h-8 rounded-lg bg-slate-800 flex items-center justify-center text-xs text-slate-400">
-                    <i class="fas fa-shopping-bag"></i>
+        <!-- 3. Security Triggers Form -->
+        <div class="relative">
+            {% if user.security_password_enabled %}
+            <div id="trigger-overlay" class="absolute inset-0 bg-slate-900/40 backdrop-blur-[2px] z-10 rounded-3xl flex items-center justify-center cursor-pointer" onclick="showPrompt('triggers')">
+                <div class="text-center p-6">
+                    <i class="fas fa-lock text-3xl text-cyan mb-3"></i>
+                    <p class="text-sm font-bold text-white">الإعدادات محمية</p>
+                    <p class="text-[10px] text-slate-400">انقر هنا لفتح الحماية وتغيير الإعدادات</p>
                 </div>
-                <h3 class="text-sm font-bold text-slate-200">عند شراء منتج</h3>
             </div>
-            <select name="purchase_method" class="security-select">
-                {% for val, label in user.SecurityMethod.choices %}
-                <option value="{{ val }}" {% if user.security_purchase_method == val %}selected{% endif %}>{{ label }}</option>
-                {% endfor %}
-            </select>
-        </div>
+            {% endif %}
 
-        <button type="submit" class="btn btn-primary w-full py-4 text-sm font-bold shadow-lg shadow-cyan/20">تحديث إعدادات الحماية</button>
-    </form>
+            <form method="post" class="stack gap-6 text-right">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="update_triggers">
+                
+                <div id="prompt-triggers" class="hidden fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+                    <div class="bg-slate-900 border border-white/10 p-8 rounded-3xl w-full max-width-[400px] stack gap-6">
+                        <h4 class="text-lg font-bold">فتح الحماية</h4>
+                        <p class="text-sm text-slate-400">أدخل كلمة مرور الحماية لتعديل المشغلات:</p>
+                        <input type="password" name="security_password_verify" class="security-select" placeholder="******">
+                        <div class="flex gap-4">
+                            <button type="button" onclick="confirmTriggers()" class="btn btn-primary flex-1">متابعة التعديل</button>
+                            <button type="button" onclick="hidePrompt('triggers')" class="btn btn-secondary flex-1">إلغاء</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Login Security -->
+                <div class="security-trigger-card">
+                    <div class="flex items-center gap-3 mb-4">
+                        <div class="w-8 h-8 rounded-lg bg-slate-800 flex items-center justify-center text-xs text-slate-400">
+                            <i class="fas fa-sign-in-alt"></i>
+                        </div>
+                        <h3 class="text-sm font-bold text-slate-200">عند تسجيل الدخول</h3>
+                    </div>
+                    <select name="login_method" class="security-select">
+                        {% for val, label in user.SecurityMethod.choices %}
+                        <option value="{{ val }}" {% if user.security_login_method == val %}selected{% endif %}>{{ label }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <!-- Withdraw Security -->
+                <div class="security-trigger-card highlight">
+                    <div class="flex items-center gap-3 mb-4">
+                        <div class="w-8 h-8 rounded-lg bg-cyan/10 flex items-center justify-center text-xs text-cyan">
+                            <i class="fas fa-money-bill-transfer"></i>
+                        </div>
+                        <h3 class="text-sm font-bold text-white">عند طلب سحب</h3>
+                    </div>
+                    <select name="withdraw_method" class="security-select border-cyan/20">
+                        {% for val, label in user.SecurityMethod.choices %}
+                        <option value="{{ val }}" {% if user.security_withdraw_method == val %}selected{% endif %}>{{ label }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <!-- Deposit Security -->
+                <div class="security-trigger-card">
+                    <div class="flex items-center gap-3 mb-4">
+                        <div class="w-8 h-8 rounded-lg bg-slate-800 flex items-center justify-center text-xs text-slate-400">
+                            <i class="fas fa-wallet"></i>
+                        </div>
+                        <h3 class="text-sm font-bold text-slate-200">عند طلب إيداع</h3>
+                    </div>
+                    <select name="deposit_method" class="security-select">
+                        {% for val, label in user.SecurityMethod.choices %}
+                        <option value="{{ val }}" {% if user.security_deposit_method == val %}selected{% endif %}>{{ label }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <!-- Purchase Security -->
+                <div class="security-trigger-card">
+                    <div class="flex items-center gap-3 mb-4">
+                        <div class="w-8 h-8 rounded-lg bg-slate-800 flex items-center justify-center text-xs text-slate-400">
+                            <i class="fas fa-shopping-bag"></i>
+                        </div>
+                        <h3 class="text-sm font-bold text-slate-200">عند شراء منتج</h3>
+                    </div>
+                    <select name="purchase_method" class="security-select">
+                        {% for val, label in user.SecurityMethod.choices %}
+                        <option value="{{ val }}" {% if user.security_purchase_method == val %}selected{% endif %}>{{ label }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <button type="submit" id="submit-triggers" class="btn btn-primary w-full py-4 text-sm font-bold shadow-lg shadow-cyan/20">حفظ جميع الإعدادات</button>
+            </form>
+        </div>
+    </div>
+    
+    <script>
+        function showPrompt(id) {
+            document.getElementById('prompt-' + id).classList.remove('hidden');
+        }
+        function hidePrompt(id) {
+            document.getElementById('prompt-' + id).classList.add('hidden');
+        }
+        function confirmTriggers() {
+            document.getElementById('trigger-overlay')?.classList.add('hidden');
+            hidePrompt('triggers');
+        }
+    </script>
     
     <div class="mt-8 pt-6 border-t border-white/5 text-center">
         <a href="{% url 'dashboard' %}" class="text-slate-500 text-xs hover:text-cyan transition-colors">العودة للوحة التحكم</a>

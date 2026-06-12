@@ -211,8 +211,31 @@ def v3_verify_otp_view(request):
             if remaining and remaining[0] == "APP": return redirect("site_2fa_verify")
             login(request, user, backend='django.contrib.auth.backends.ModelBackend')
             request.session["v3_action_verified_at"] = timezone.now().isoformat()
-            keys = ["v3_auth_uid", "v3_auth_methods", "v3_auth_purpose", "v3_new_email"]
-            for k in keys: 
+
+            # Check for pending action (Deposit/Withdrawal)
+            pending_action_id = request.session.get("v3_pending_action_id")
+            if pending_action_id:
+                from apps.payments.models import DepositRequest, WithdrawalRequest
+                # Try deposit first
+                deposit = DepositRequest.objects.filter(id=pending_action_id, user=user).first()
+                if deposit:
+                    deposit.is_verified = True
+                    deposit.save(update_fields=["is_verified"])
+                    messages.success(request, "تم التحقق وإرسال طلب الإيداع بنجاح.")
+                    del request.session["v3_pending_action_id"]
+                    return redirect("deposits")
+
+                # Then withdrawal
+                withdrawal = WithdrawalRequest.objects.filter(id=pending_action_id, user=user).first()
+                if withdrawal:
+                    withdrawal.is_verified = True
+                    withdrawal.save(update_fields=["is_verified"])
+                    messages.success(request, "تم التحقق وإرسال طلب السحب بنجاح.")
+                    del request.session["v3_pending_action_id"]
+                    return redirect("withdrawals")
+
+            keys = ["v3_auth_uid", "v3_auth_methods", "v3_auth_purpose", "v3_new_email", "v3_pending_action_id"]
+            for k in keys:
                 if k in request.session: del request.session[k]
             return redirect("control_dashboard" if user.is_staff else "dashboard")
         user.otp_failed_attempts += 1
@@ -347,69 +370,149 @@ def orders_list(request): return render(request, "site/orders_list.html", {"orde
 @login_required
 def order_detail(request, pk): return render(request, "site/order_detail.html", {"order": get_object_or_404(request.user.orders.prefetch_related('items__variant__product', 'logs'), pk=pk)})
 
+from django.contrib.auth.hashers import make_password, check_password as check_password_hash
+
+# ... (rest of imports)
+
 @login_required
 def deposits(request):
     if request.method == "POST":
-        # Verification check
-        if not v3_init_verification(request, request.user, "deposit"):
-            last_verified = request.session.get("v3_action_verified_at")
-            if not last_verified or (timezone.now() - timezone.datetime.fromisoformat(last_verified)).total_seconds() > 300:
-                methods = request.session.get("v3_auth_methods", [])
-                return redirect("site_2fa_verify" if methods[0] == "APP" else "site_verify_otp")
-            
         method_id = request.POST.get("payment_method")
+        currency_id = request.POST.get("currency")
         amount_str = request.POST.get("amount", "0")
+        proof_image = request.FILES.get("proof_image")
         
+        # Validation
+        if not method_id or not currency_id:
+            messages.error(request, "بيانات وسيلة الدفع أو العملة ناقصة.")
+            return redirect("deposits")
+            
+        method = get_object_or_404(PaymentMethod, id=method_id, is_active=True, can_deposit=True)
+        currency = get_object_or_404(Currency, id=currency_id, is_active=True)
+        
+        # Security check: Does currency belong to method?
+        if not method.supported_currencies.filter(id=currency.id).exists():
+            messages.error(request, "العملة المختارة غير مدعومة لهذه الوسيلة.")
+            return redirect("deposits")
+
         try:
             amount = Decimal(amount_str)
+            if amount <= 0: raise ValueError()
         except:
-            amount = Decimal(0)
-        
-        if method_id and amount > 0:
-            method = get_object_or_404(PaymentMethod, id=method_id)
-            track_pending_deposit(request.user.wallet.id, amount, reference=f"dep_req_{timezone.now().timestamp()}", reason=f"Deposit via {method.name}")
-            DepositRequest.objects.create(user=request.user, payment_method=method, amount=amount, status=DepositRequest.Status.PENDING)
-            messages.success(request, "تم تقديم الطلب بنجاح.")
-            return redirect("deposits") # Stay on the page
-            
-        messages.error(request, "يرجى اختيار وسيلة دفع صحيحة وإدخال مبلغ أكبر من الصفر.")
-        
+            messages.error(request, "يرجى إدخال مبلغ صحيح.")
+            return redirect("deposits")
+
+        # Extract metadata from custom fields
+        metadata = {}
+        schema = method.deposit_form_schema
+        for field in schema.get("fields", []) if isinstance(schema, dict) else []:
+            field_name = field.get("name") or field.get("id") or field.get("key") or field.get("label")
+            val = request.POST.get(f"custom_{field_name}")
+            if field.get("required") and not val:
+                messages.error(request, f"الحقل {field.get('label')} مطلوب.")
+                return redirect("deposits")
+            metadata[field_name] = val
+
+        # Create the request (unverified first)
+        with transaction.atomic():
+            deposit = DepositRequest.objects.create(
+                user=request.user,
+                payment_method=method,
+                currency=currency,
+                amount=amount,
+                proof_image=proof_image,
+                metadata=metadata,
+                status=DepositRequest.Status.PENDING,
+                is_verified=False
+            )
+            # Log pending activity
+            ActivityLog.objects.create(user=request.user, action="deposit_requested", description=f"Requested {amount} {currency.code} via {method.name}")
+
+        # AFTER creation: Check if verification is needed
+        if v3_init_verification(request, request.user, "deposit"):
+            # If no security method enabled, auto-verify
+            deposit.is_verified = True
+            deposit.save(update_fields=["is_verified"])
+            messages.success(request, "تم تقديم طلب الإيداع بنجاح.")
+            return redirect("deposits")
+        else:
+            # Save request ID in session for verification callback
+            request.session["v3_pending_action_id"] = str(deposit.id)
+            messages.info(request, "يرجى التحقق لإكمال الطلب.")
+            methods = request.session.get("v3_auth_methods", [])
+            return redirect("site_2fa_verify" if methods[0] == "APP" else "site_verify_otp")
+
     return render(request, "site/v3/v3_deposits.html", {
-        "payment_methods": PaymentMethod.objects.filter(is_active=True), 
+        "payment_methods": PaymentMethod.objects.filter(is_active=True, can_deposit=True), 
         "requests": DepositRequest.objects.filter(user=request.user).order_by('-created_at')
     })
 
 @login_required
 def withdrawals(request):
     if request.method == "POST":
-        # Verification check
-        if not v3_init_verification(request, request.user, "withdraw"):
-            last_verified = request.session.get("v3_action_verified_at")
-            if not last_verified or (timezone.now() - timezone.datetime.fromisoformat(last_verified)).total_seconds() > 300:
-                methods = request.session.get("v3_auth_methods", [])
-                return redirect("site_2fa_verify" if methods[0] == "APP" else "site_verify_otp")
-        
         method_id = request.POST.get("payment_method")
+        currency_id = request.POST.get("currency")
         amount_str = request.POST.get("amount", "0")
-        address = request.POST.get("address")
         
+        if not method_id or not currency_id:
+            messages.error(request, "بيانات ناقصة.")
+            return redirect("withdrawals")
+
+        method = get_object_or_404(PaymentMethod, id=method_id, is_active=True, can_withdraw=True)
+        currency = get_object_or_404(Currency, id=currency_id, is_active=True)
+        
+        if not method.supported_currencies.filter(id=currency.id).exists():
+            messages.error(request, "العملة المختارة غير مدعومة.")
+            return redirect("withdrawals")
+
         try:
             amount = Decimal(amount_str)
+            if amount <= 0: raise ValueError()
         except:
-            amount = Decimal(0)
-            
-        if method_id and amount > 0:
-            method = get_object_or_404(PaymentMethod, id=method_id)
-            try:
+            messages.error(request, "مبلغ غير صحيح.")
+            return redirect("withdrawals")
+
+        # Extract payout details
+        payout_details = {"dynamic": {}}
+        schema = method.withdrawal_form_schema
+        for field in schema.get("fields", []) if isinstance(schema, dict) else []:
+            field_name = field.get("name") or field.get("id") or field.get("key") or field.get("label")
+            val = request.POST.get(f"custom_{field_name}")
+            if field.get("required") and not val:
+                messages.error(request, f"الحقل {field.get('label')} مطلوب.")
+                return redirect("withdrawals")
+            payout_details["dynamic"][field_name] = val
+
+        # Create unverified request
+        try:
+            with transaction.atomic():
+                # Wallet check happens in freeze_funds
                 freeze_funds(request.user.wallet.id, amount, reference=f"with_req_{timezone.now().timestamp()}", reason=f"Withdrawal via {method.name}")
-                WithdrawalRequest.objects.create(user=request.user, payment_method=method, amount=amount, withdrawal_address=address, status=WithdrawalRequest.Status.PENDING)
-                messages.success(request, "تم تقديم طلب السحب بنجاح.")
-                return redirect("withdrawals") # Stay on the page
-            except Exception as e:
-                messages.error(request, str(e))
+                withdrawal = WithdrawalRequest.objects.create(
+                    user=request.user,
+                    payment_method=method,
+                    currency=currency,
+                    amount=amount,
+                    payout_details=payout_details,
+                    status=WithdrawalRequest.Status.PENDING,
+                    is_verified=False
+                )
+        except Exception as e:
+            messages.error(request, str(e))
+            return redirect("withdrawals")
+
+        # AFTER creation: Verification
+        if v3_init_verification(request, request.user, "withdraw"):
+            withdrawal.is_verified = True
+            withdrawal.save(update_fields=["is_verified"])
+            messages.success(request, "تم تقديم طلب السحب بنجاح.")
+            return redirect("withdrawals")
         else:
-            messages.error(request, "بيانات غير صحيحة.")
-            
+            request.session["v3_pending_action_id"] = str(withdrawal.id)
+            messages.info(request, "يرجى التحقق لإكمال طلب السحب.")
+            methods = request.session.get("v3_auth_methods", [])
+            return redirect("site_2fa_verify" if methods[0] == "APP" else "site_verify_otp")
+
     return render(request, "site/v3/v3_withdrawals.html", {
         "payment_methods": PaymentMethod.objects.filter(is_active=True, can_withdraw=True), 
         "requests": WithdrawalRequest.objects.filter(user=request.user).order_by('-created_at')
@@ -482,11 +585,56 @@ def catalog(request):
 def v3_security_triggers_view(request):
     user = request.user
     if request.method == "POST":
+        action = request.POST.get("action")
+        
+        # 1. Update Security Password Logic
+        if action == "update_security_password":
+            current_sp = request.POST.get("current_security_password")
+            new_sp = request.POST.get("new_security_password")
+            confirm_sp = request.POST.get("confirm_security_password")
+            
+            # If already has one, verify it
+            if user.security_password:
+                if not check_password_hash(current_sp, user.security_password):
+                    messages.error(request, "كلمة مرور الحماية الحالية غير صحيحة.")
+                    return redirect("site_security_triggers")
+            
+            if new_sp and new_sp == confirm_sp:
+                if len(new_sp) < 6:
+                    messages.error(request, "كلمة المرور يجب أن تكون 6 خانات على الأقل.")
+                else:
+                    user.security_password = make_password(new_sp)
+                    user.security_password_enabled = True
+                    user.save()
+                    messages.success(request, "تم تحديث كلمة مرور الحماية وتفعيل الحماية بنجاح.")
+            else:
+                messages.error(request, "كلمات المرور غير متطابقة.")
+            return redirect("site_security_triggers")
+
+        # 2. Toggle Protection
+        if action == "toggle_protection":
+            sp = request.POST.get("security_password")
+            if not user.security_password or not check_password_hash(sp, user.security_password):
+                messages.error(request, "كلمة مرور الحماية غير صحيحة.")
+            else:
+                user.security_password_enabled = not user.security_password_enabled
+                user.save()
+                messages.success(request, "تم تغيير حالة حماية الإعدادات.")
+            return redirect("site_security_triggers")
+
+        # 3. Update Triggers (Requires SP if enabled)
+        if user.security_password_enabled:
+            sp = request.POST.get("security_password_verify")
+            if not sp or not check_password_hash(sp, user.security_password):
+                messages.error(request, "يرجى إدخال كلمة مرور الحماية لتغيير هذه الإعدادات.")
+                return redirect("site_security_triggers")
+
         user.security_login_method = request.POST.get("login_method")
         user.security_deposit_method = request.POST.get("deposit_method")
         user.security_purchase_method = request.POST.get("purchase_method")
         user.security_withdraw_method = request.POST.get("withdraw_method")
         user.save(); messages.success(request, "تم تحديث إعدادات الأمان بنجاح."); return redirect("site_security_triggers")
+        
     return render(request, "site/v3/v3_security_triggers.html")
 
 def product_detail(request, pk):

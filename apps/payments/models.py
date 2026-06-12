@@ -210,6 +210,7 @@ class DepositRequest(TimeStampedModel):
         verbose_name="تمت المراجعة من قبل"
     )
     reviewed_at = models.DateTimeField(null=True, blank=True, verbose_name="تاريخ المراجعة")
+    is_verified = models.BooleanField(default=False, verbose_name="تم التحقق")
     metadata = models.JSONField(default=dict, blank=True)
 
     @property
@@ -292,6 +293,7 @@ class WithdrawalRequest(TimeStampedModel):
         verbose_name="تمت المراجعة من قبل"
     )
     reviewed_at = models.DateTimeField(null=True, blank=True, verbose_name="تاريخ المراجعة")
+    is_verified = models.BooleanField(default=False, verbose_name="تم التحقق")
     metadata = models.JSONField(default=dict, blank=True)
 
     @property
