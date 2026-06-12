@@ -173,7 +173,10 @@
             </div>
             
             <div class="field-group" id="amount-group">
-                <label>المبلغ المراد سحبه (بالعملة المختارة)</label>
+                <div class="flex justify-between items-center mb-2">
+                    <label>المبلغ المراد سحبه (بالعملة المختارة)</label>
+                    <button type="button" onclick="withdrawMax()" class="text-[10px] font-black text-cyan hover:text-white underline uppercase">سحب كامل الرصيد</button>
+                </div>
                 <div class="relative">
                     <input type="number" name="amount" id="input-amount" step="0.01" class="builder-input text-2xl font-black h-20 px-8" placeholder="0.00" oninput="updateSummary()">
                     <div class="absolute left-6 top-1/2 -translate-y-1/2 text-xl font-black text-slate-600" id="currency-code-display">---</div>
@@ -297,7 +300,9 @@ function selectMethod(id, el) {
 function updateLimits() {
     const sel = document.getElementById('input-currency');
     const opt = sel.selectedOptions[0];
-    if(opt && opt.value) {
+    const methodId = document.getElementById('input-method-id').value;
+    
+    if(opt && opt.value && methodId) {
         state.currency = {
             id: opt.value,
             code: opt.text.split(' ')[0],
@@ -306,12 +311,27 @@ function updateLimits() {
         };
         document.getElementById('limits-hint').innerText = `الحدود: ${state.currency.min.toLocaleString()} - ${state.currency.max.toLocaleString()} ${state.currency.code}`;
         document.getElementById('currency-code-display').innerText = state.currency.code;
+        
+        // Fetch real-time max from API
+        fetch(`/api/withdrawals/max-amount/?currency_id=${opt.value}&method_id=${methodId}`)
+            .then(res => res.json())
+            .then(data => {
+                state.maxAvailable = data.max_amount;
+                document.getElementById('limits-hint').innerText += ` | متاح: ${data.max_amount} ${state.currency.code}`;
+            });
     } else {
         state.currency = null;
         document.getElementById('limits-hint').innerText = 'الحدود: ---';
         document.getElementById('currency-code-display').innerText = '---';
     }
     updateSummary();
+}
+
+function withdrawMax() {
+    if(state.maxAvailable) {
+        document.getElementById('input-amount').value = state.maxAvailable;
+        updateSummary();
+    }
 }
 
 function renderStep2() {

@@ -270,17 +270,29 @@ class FinancialAnalyticsService:
                     cap_rate = market_rate
 
                 if cap_rate > 0:
+                    # Consistent normalization to USD
                     base_val = d.currency.to_base(d.amount or 0, operation="deposit")
                     
-                    # Calculate cost using capital rate
+                    # Cost is the amount in USD at the capital rate
+                    # If we receive X amount in local currency, and 1 USD = cap_rate in local currency, 
+                    # then cost in USD = X / cap_rate
+                    # BUT our Currency.to_base already handles this conversion based on method.
+                    # We should rely on Currency.to_base() to convert to USD, 
+                    # and apply the capital rate to the local amount to find USD cost.
+                    
+                    # Need to be very careful here about DIVIDE vs MULTIPLY
+                    # Currency.to_base uses buy_rate. We want to use cap_rate as our cost basis rate.
+                    
+                    # Standardizing cost basis as USD:
                     if d.currency.conversion_method == Currency.ConversionMethod.DIVIDE:
-                        # base = local / market_rate
-                        # cost = local / cap_rate
-                        cost = (d.amount or 0) / cap_rate
+                        # base = local * rate (if div), or local / rate (if div in method?)
+                        # Looking at Currency.to_base:
+                        # if DIVIDE: return amount * rate
+                        # if MULTIPLY: return amount / rate
+                        # This seems inverse to standard def, let's trust to_base()
+                        cost = (d.amount or 0) * cap_rate # Using capital rate as cost-basis
                     else:
-                        # base = local * market_rate
-                        # cost = local * cap_rate
-                        cost = (d.amount or 0) * cap_rate
+                        cost = (d.amount or 0) / cap_rate
                         
                     fx_profit += (base_val - cost)
                 
