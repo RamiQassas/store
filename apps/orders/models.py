@@ -26,6 +26,11 @@ class Coupon(TimeStampedModel):
     
     limit_to_product = models.ForeignKey("catalog.Product", null=True, blank=True, on_delete=models.SET_NULL, verbose_name="محدد لمنتج معين")
     apply_to_all_products = models.BooleanField(default=True, verbose_name="يعمل على جميع المنتجات")
+    
+    # New Restrictions
+    limit_to_users = models.ManyToManyField(settings.AUTH_USER_MODEL, blank=True, verbose_name="محدد لعملاء معينين")
+    limit_to_tiers = models.JSONField(default=list, blank=True, verbose_name="محدد لفئات معينة (Tiers)")
+    limit_to_area = models.CharField(max_length=255, blank=True, verbose_name="محدد لمنطقة معينة (كلمة دلالية في العنوان)")
 
     class Meta:
         verbose_name = "كوبون"

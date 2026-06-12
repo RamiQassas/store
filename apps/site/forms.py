@@ -343,12 +343,20 @@ class CategoryForm(forms.ModelForm):
         fields = ["name", "parent", "is_active", "sort_order"]
 
 class CouponForm(forms.ModelForm):
+    limit_to_tiers_list = forms.MultipleChoiceField(
+        label="محدد لفئات معينة",
+        choices=User.Tier.choices,
+        required=False,
+        widget=forms.SelectMultiple(attrs={"class": "builder-input", "style": "height: 100px;"})
+    )
+
     class Meta:
         model = Coupon
         fields = [
             "code", "discount_type", "discount_percent", "discount_amount", "max_uses", "max_uses_per_user",
             "is_active", "is_verified_only", "expires_at",
-            "limit_to_product", "apply_to_all_products"
+            "limit_to_product", "apply_to_all_products",
+            "limit_to_users", "limit_to_area"
         ]
         widgets = {
             "code": forms.TextInput(attrs={"class": "builder-input", "placeholder": "WELCOME2026"}),
@@ -359,7 +367,22 @@ class CouponForm(forms.ModelForm):
             "max_uses_per_user": forms.NumberInput(attrs={"class": "builder-input"}),
             "expires_at": forms.DateTimeInput(attrs={"type": "datetime-local", "class": "builder-input"}),
             "limit_to_product": forms.Select(attrs={"class": "builder-input searchable-select"}),
+            "limit_to_users": forms.SelectMultiple(attrs={"class": "builder-input searchable-select", "style": "height: 150px;"}),
+            "limit_to_area": forms.TextInput(attrs={"class": "builder-input", "placeholder": "مثال: إدلب، ريف دمشق، الخ..."}),
         }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if self.instance and self.instance.limit_to_tiers:
+            self.fields["limit_to_tiers_list"].initial = self.instance.limit_to_tiers
+
+    def save(self, commit=True):
+        instance = super().save(commit=False)
+        instance.limit_to_tiers = self.cleaned_data.get("limit_to_tiers_list", [])
+        if commit:
+            instance.save()
+            self.save_m2m() # Required for ManyToManyField limit_to_users
+        return instance
 
 
 class ProductForm(forms.ModelForm):

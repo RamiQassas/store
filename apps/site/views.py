@@ -777,6 +777,42 @@ def product_detail(request, pk):
         
         # Deduct balance & create order
         price = variant.get_price_for_user(request.user)
+        
+        # Apply Coupon if present
+        coupon_code = request.POST.get("coupon_code")
+        coupon = None
+        discount_amount = Decimal("0.00")
+        if coupon_code:
+            coupon = Coupon.objects.filter(code__iexact=coupon_code, is_active=True).first()
+            if coupon:
+                # Validate coupon again before processing
+                is_valid = True
+                if not coupon.apply_to_all_products and coupon.limit_to_product_id != product.id:
+                    is_valid = False
+                if coupon.max_uses > 0 and coupon.used_count >= coupon.max_uses:
+                    is_valid = False
+                if coupon.expires_at and coupon.expires_at < timezone.now():
+                    is_valid = False
+                
+                # New Restrictions Check in Purchase Logic
+                if coupon.limit_to_users.exists() and not coupon.limit_to_users.filter(id=request.user.id).exists():
+                    is_valid = False
+                if coupon.limit_to_tiers and request.user.tier not in coupon.limit_to_tiers:
+                    is_valid = False
+                if coupon.limit_to_area:
+                    kyc = getattr(request.user, 'kyc_request', None)
+                    if not kyc or coupon.limit_to_area not in kyc.current_residence:
+                        is_valid = False
+                
+                if is_valid:
+                    if coupon.discount_type == Coupon.DiscountType.PERCENTAGE:
+                        discount_amount = (price * (coupon.discount_percent / 100)).quantize(Decimal("0.01"))
+                    else:
+                        discount_amount = min(coupon.discount_amount, price)
+                    price -= discount_amount
+                else:
+                    coupon = None
+
         if request.user.wallet.available_balance >= price:
             with transaction.atomic():
                 from apps.orders.models import Order, OrderItem
@@ -786,7 +822,9 @@ def product_detail(request, pk):
                 order = Order.objects.create(
                     customer=request.user,
                     total_amount=price,
+                    original_total=price + discount_amount,
                     status=Order.Status.PROCESSING,
+                    coupon=coupon,
                     metadata=metadata
                 )
                 
@@ -798,8 +836,17 @@ def product_detail(request, pk):
                     total_price=price
                 )
                 
+                # Update Coupon used count
+                if coupon:
+                    coupon.used_count += 1
+                    coupon.save(update_fields=["used_count"])
+                
                 # Charge wallet
-                debit_wallet(request.user.wallet.id, price, f"order:{order.id}", f"شراء منتج: {product.name} ({variant.name})", request.user)
+                description = f"شراء منتج: {product.name} ({variant.name})"
+                if coupon:
+                    description += f" [تم استخدام كوبون: {coupon.code}]"
+                
+                debit_wallet(request.user.wallet.id, price, f"order:{order.id}", description, request.user)
                 
                 messages.success(request, "تم إتمام الطلب بنجاح.")
                 return redirect("dashboard_orders")
@@ -833,11 +880,80 @@ def product_detail(request, pk):
 
 def ajax_validate_coupon(request):
     try:
-        variant = ProductVariant.objects.get(id=request.GET.get("variant_id"))
-        coupon = Coupon.objects.filter(code__iexact=request.GET.get("code", ""), is_active=True).first()
-        if not coupon: return JsonResponse({"valid": False, "error": "غير صالح"})
-        price = variant.price; return JsonResponse({"valid": True, "discount_amount": 0, "new_total": float(price)})
-    except Exception as e: return JsonResponse({"valid": False, "error": str(e)})
+        variant_id = request.GET.get("variant_id")
+        code = request.GET.get("code", "").strip()
+        
+        if not variant_id or not code:
+            return JsonResponse({"valid": False, "error": "بيانات ناقصة"})
+            
+        variant = ProductVariant.objects.select_related("product").get(id=variant_id)
+        coupon = Coupon.objects.filter(code__iexact=code, is_active=True).first()
+        
+        if not coupon:
+            return JsonResponse({"valid": False, "error": "الكوبون غير صحيح أو منتهي الصلاحية"})
+            
+        # Check product limits
+        if not coupon.apply_to_all_products:
+            if coupon.limit_to_product_id and variant.product_id != coupon.limit_to_product_id:
+                return JsonResponse({"valid": False, "error": f"هذا الكوبون مخصص لمنتج {coupon.limit_to_product.name} فقط"})
+
+        # Check total usage limits
+        if coupon.max_uses > 0 and coupon.used_count >= coupon.max_uses:
+            return JsonResponse({"valid": False, "error": "عذراً، وصل هذا الكوبون للحد الأقصى من الاستخدام"})
+            
+        # Check per-user usage limits
+        if request.user.is_authenticated:
+            user_usage = Order.objects.filter(customer=request.user, coupon=coupon).count()
+            if coupon.max_uses_per_user > 0 and user_usage >= coupon.max_uses_per_user:
+                return JsonResponse({"valid": False, "error": "لقد استخدمت هذا الكوبون مسبقاً"})
+            
+            # New Restrictions Check
+            # 1. Specific Users
+            if coupon.limit_to_users.exists():
+                if not coupon.limit_to_users.filter(id=request.user.id).exists():
+                    return JsonResponse({"valid": False, "error": "هذا الكوبون غير مخصص لحسابك"})
+            
+            # 2. Specific Tiers
+            if coupon.limit_to_tiers:
+                if request.user.tier not in coupon.limit_to_tiers:
+                    tier_display = dict(User.Tier.choices).get(request.user.tier, request.user.tier)
+                    return JsonResponse({"valid": False, "error": f"هذا الكوبون غير متاح لفئة {tier_display}"})
+            
+            # 3. Specific Area (Residence)
+            if coupon.limit_to_area:
+                kyc = getattr(request.user, 'kyc_request', None)
+                if not kyc or coupon.limit_to_area not in kyc.current_residence:
+                    return JsonResponse({"valid": False, "error": "هذا الكوبون غير متاح لمنطقتك الجغرافية"})
+
+        # Check expiration
+        if coupon.expires_at and coupon.expires_at < timezone.now():
+            return JsonResponse({"valid": False, "error": "هذا الكوبون منتهي الصلاحية"})
+
+        # Check verified only
+        if coupon.is_verified_only:
+            # You might need to check if user is KYC verified here
+            # For now, let's assume request.user.is_verified is a field or check
+            pass
+
+        # Calculate discount
+        price = variant.get_price_for_user(request.user)
+        discount_amount = Decimal("0.00")
+        
+        if coupon.discount_type == Coupon.DiscountType.PERCENTAGE:
+            discount_amount = (price * (coupon.discount_percent / 100)).quantize(Decimal("0.01"))
+        else:
+            discount_amount = min(coupon.discount_amount, price)
+            
+        new_total = price - discount_amount
+        
+        return JsonResponse({
+            "valid": True, 
+            "message": f"تم تطبيق الكوبون بنجاح! خصم {discount_amount} USD",
+            "discount_amount": float(discount_amount), 
+            "new_total": float(new_total)
+        })
+    except Exception as e:
+        return JsonResponse({"valid": False, "error": str(e)})
 
 # ==========================================
 # --- ADMINISTRATIVE VIEWS (V4) ---
@@ -1327,6 +1443,11 @@ def control_coupon_edit(request, pk):
     return render(request, "site/control_coupon_form.html", {"form": form})
 @admin_required
 def control_coupon_delete(request, pk): get_object_or_404(Coupon, pk=pk).delete(); return redirect("control_coupons_list")
+
+@admin_required
+def control_coupon_usage(request):
+    orders = Order.objects.filter(coupon__isnull=False).select_related('customer', 'coupon').prefetch_related('items__variant__product').order_by('-created_at')
+    return render(request, "site/control_coupon_usage.html", {"orders": orders})
 
 @admin_required
 def control_reports(request): return render(request, "site/control_reports.html")

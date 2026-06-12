@@ -1,0 +1,74 @@
+{% extends "site/control_base.html" %}
+
+{% block title %}سجل استخدام الكوبونات | Raqamiyat Control{% endblock %}
+
+{% block content %}
+<div class="panel p-8 reveal">
+    <div class="flex justify-between items-center mb-8">
+        <div>
+            <h1 class="text-3xl font-black text-white">سجل استخدام الكوبونات</h1>
+            <p class="text-slate-500 mt-2">متابعة تفصيلية لمن استخدم الكوبونات وعلى أي منتجات.</p>
+        </div>
+        <div class="flex gap-3">
+            <a href="{% url 'control_coupons_list' %}" class="btn btn-outline rounded-2xl font-bold">إدارة الكوبونات</a>
+        </div>
+    </div>
+
+    <div class="overflow-x-auto">
+        <table class="w-full text-right border-collapse">
+            <thead>
+                <tr class="border-b border-white/5">
+                    <th class="py-4 px-6 text-[10px] font-black text-slate-500 uppercase tracking-widest">التاريخ</th>
+                    <th class="py-4 px-6 text-[10px] font-black text-slate-500 uppercase tracking-widest">العميل</th>
+                    <th class="py-4 px-6 text-[10px] font-black text-slate-500 uppercase tracking-widest">الكوبون</th>
+                    <th class="py-4 px-6 text-[10px] font-black text-slate-500 uppercase tracking-widest">المنتج</th>
+                    <th class="py-4 px-6 text-[10px] font-black text-slate-500 uppercase tracking-widest">المبلغ الأصلي</th>
+                    <th class="py-4 px-6 text-[10px] font-black text-slate-500 uppercase tracking-widest">المبلغ بعد الخصم</th>
+                    <th class="py-4 px-6 text-[10px] font-black text-slate-500 uppercase tracking-widest">الطلب</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for o in orders %}
+                <tr class="border-b border-white/5 hover:bg-white/[0.02] transition-colors">
+                    <td class="py-4 px-6">
+                        <div class="text-xs text-white font-bold">{{ o.created_at|date:"d/m/Y" }}</div>
+                        <div class="text-[10px] text-slate-500 mt-1">{{ o.created_at|date:"H:i" }}</div>
+                    </td>
+                    <td class="py-4 px-6">
+                        <a href="{% url 'control_user_moderate' o.customer.public_uuid %}" class="text-xs font-black text-cyan hover:underline">
+                            {{ o.customer.email }}
+                        </a>
+                    </td>
+                    <td class="py-4 px-6">
+                        <span class="bg-emerald-500/10 text-emerald-500 px-3 py-1 rounded-lg text-[10px] font-black border border-emerald-500/20">
+                            {{ o.coupon.code }}
+                        </span>
+                    </td>
+                    <td class="py-4 px-6">
+                        {% with item=o.items.first %}
+                        <div class="text-xs text-white font-bold">{{ item.variant.product.name }}</div>
+                        <div class="text-[10px] text-slate-500 mt-1">{{ item.variant.name }}</div>
+                        {% endwith %}
+                    </td>
+                    <td class="py-4 px-6 text-xs text-slate-400 font-bold">
+                        {{ o.original_total }} USD
+                    </td>
+                    <td class="py-4 px-6 text-xs text-white font-black">
+                        {{ o.total_amount }} USD
+                    </td>
+                    <td class="py-4 px-6">
+                        <a href="{% url 'control_order_detail' o.id %}" class="text-[10px] font-black text-slate-500 hover:text-white transition">
+                            #{{ o.number }} <i class="fas fa-external-link-alt mr-1"></i>
+                        </a>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="7" class="py-20 text-center text-slate-500 font-bold">لا توجد عمليات استخدام كوبونات مسجلة حالياً.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

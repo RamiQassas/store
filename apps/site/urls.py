@@ -77,6 +77,7 @@ urlpatterns = [
     path("control/coupons/create/", views.control_coupon_create, name="control_coupon_create"),
     path("control/coupons/<uuid:pk>/edit/", views.control_coupon_edit, name="control_coupon_edit"),
     path("control/coupons/<uuid:pk>/delete/", views.control_coupon_delete, name="control_coupon_delete"),
+    path("control/coupons/usage/", views.control_coupon_usage, name="control_coupon_usage"),
     path("control/wallets/", views.control_wallets_list, name="control_wallets_list"),
     path("control/debts/", views.control_debts, name="control_debts"),
     path("control/reports/", views.control_reports, name="control_reports"),
