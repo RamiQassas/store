@@ -164,7 +164,7 @@
       <div class="flex items-center gap-3">
           {% if user.is_authenticated %}
           <div class="relative ml-2">
-              <a href="{% url 'notification_settings' %}" class="text-slate-400 text-xl relative">
+              <a href="{% url 'notifications_list' %}" class="text-slate-400 text-xl relative">
                   <i class="fas fa-bell"></i>
                   {% if UNREAD_NOTIFICATIONS_COUNT > 0 %}
                   <span class="absolute -top-1 -right-1 w-4 h-4 bg-rose-500 rounded-full border-2 border-[#050811] flex items-center justify-center text-[8px] text-white font-black">{{ UNREAD_NOTIFICATIONS_COUNT }}</span>
@@ -276,7 +276,7 @@
         <div class="actions">
           {% if user.is_authenticated %}
           <div class="relative ml-4">
-              <a href="{% url 'notification_settings' %}" class="text-slate-400 hover:text-white transition-colors relative">
+              <a href="{% url 'notifications_list' %}" class="text-slate-400 hover:text-white transition-colors relative">
                   <i class="fas fa-bell text-xl"></i>
                   {% if UNREAD_NOTIFICATIONS_COUNT > 0 %}
                   <span class="absolute -top-1.5 -right-1.5 w-5 h-5 bg-rose-500 rounded-full border-2 border-[#050811] flex items-center justify-center text-[10px] text-white font-black">{{ UNREAD_NOTIFICATIONS_COUNT }}</span>

@@ -9,6 +9,7 @@ urlpatterns = [
     path("dashboard/orders/<uuid:pk>/", views.order_detail, name="dashboard_order_detail"),
     path("dashboard/deposits/", views.deposits, name="dashboard_deposits"),
     path("dashboard/withdrawals/", views.withdrawals, name="dashboard_withdrawals"),
+    path("dashboard/notifications/", views.notifications_list, name="notifications_list"),
     path("dashboard/notifications/settings/", views.notification_settings, name="notification_settings"),
     path("dashboard/change-password/", views.v3_change_password_view, name="change_password"),
     path("dashboard/change-email/", views.v3_change_email_view, name="change_email"),

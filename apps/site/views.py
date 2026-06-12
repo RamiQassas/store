@@ -642,6 +642,12 @@ def kyc_request_view(request):
     return render(request, "site/v3/v3_kyc_form.html", {"form": form})
 
 @login_required
+def notifications_list(request):
+    notifications = Notification.objects.filter(user=request.user).order_by("-created_at")
+    Notification.objects.filter(user=request.user, is_read=False).update(is_read=True, read_at=timezone.now())
+    return render(request, "site/notifications_list.html", {"notifications": notifications})
+
+@login_required
 def notification_settings(request):
     settings_obj, _ = NotificationSetting.objects.get_or_create(user=request.user)
     if request.method == "POST":
@@ -793,7 +799,7 @@ def product_detail(request, pk):
                 )
                 
                 # Charge wallet
-                debit_wallet(request.user.wallet.id, price, f"order:{order.id}", f"Purchase of {product.name}", request.user)
+                debit_wallet(request.user.wallet.id, price, f"order:{order.id}", f"شراء منتج: {product.name} ({variant.name})", request.user)
                 
                 messages.success(request, "تم إتمام الطلب بنجاح.")
                 return redirect("dashboard_orders")
