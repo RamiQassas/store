@@ -633,7 +633,31 @@ def control_send_notification(request):
         users = User.objects.filter(is_active=True)
         if form.cleaned_data["target"] == "tier": users = users.filter(tier=form.cleaned_data["tier"])
         elif form.cleaned_data["target"] == "individual": users = users.filter(email=form.cleaned_data["user_email"])
-        if users.exists(): notify_bulk(users, form.cleaned_data["title"], form.cleaned_data["body"], action_url=form.cleaned_data["action_url"]); messages.success(request, "تم الإرسال."); return redirect("control_send_notification")
+        
+        if users.exists():
+            channel = form.cleaned_data["channels"]
+            title = form.cleaned_data["title"]
+            body = form.cleaned_data["body"]
+            action_url = form.cleaned_data["action_url"]
+            
+            for user in users:
+                # 1. In-App Notification
+                if channel in ['all', 'in_app']:
+                    Notification.objects.create(
+                        user=user, title=title, body=body, action_url=action_url,
+                        channel=Notification.Channel.IN_APP
+                    )
+                
+                # 2. Push Notification
+                if channel in ['all', 'push']:
+                    notify_user(user, title, body, action_url=action_url, category='system')
+                
+                # 3. Email Notification
+                if channel in ['all', 'email']:
+                    send_brevo_email(user.email, user.get_full_name() or user.email, title, body)
+            
+            messages.success(request, "تم الإرسال عبر القنوات المحددة.")
+            return redirect("control_send_notification")
     return render(request, "site/control_notification_form.html", {"form": form})
 
 @admin_required
