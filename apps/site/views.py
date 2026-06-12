@@ -40,7 +40,7 @@ from apps.support.models import ChatRoom, ChatMessage, ChatCannedReply, SupportS
 from apps.wallets.models import Wallet
 from apps.wallets.services import (
     get_or_create_wallet, track_pending_deposit, freeze_funds, credit_wallet,
-    finalize_withdrawal, release_funds
+    debit_wallet, finalize_withdrawal, release_funds
 )
 from apps.common.decorators import staff_required, admin_required, support_required, finance_required, kyc_required
 
