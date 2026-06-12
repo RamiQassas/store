@@ -122,19 +122,22 @@ def v3_login_view(request):
                 messages.error(request, "الحساب معطل.")
                 return render(request, "site/v3/v3_login.html", {"form": form})
             
-            # Important: Set backend before checking verification to prevent 500 in login()
+            # Ensure backend is set for session authentication
             user.backend = 'django.contrib.auth.backends.ModelBackend'
             
+            # Check security settings only if user exists
             if v3_init_verification(request, user, "login"):
                 login(request, user)
                 return redirect("control_dashboard" if user.is_staff else "dashboard")
             
             methods = request.session.get("v3_auth_methods", [])
-            if not methods: # Fallback if session failed
+            # Fallback if no specific security methods defined
+            if not methods:
                 login(request, user)
                 return redirect("dashboard")
                 
             return redirect("site_2fa_verify" if methods[0] == "APP" else "site_verify_otp")
+        messages.error(request, "بيانات الدخول غير صحيحة.")
         messages.error(request, "بيانات الدخول غير صحيحة.")
     return render(request, "site/v3/v3_login.html", {"form": form})
 
