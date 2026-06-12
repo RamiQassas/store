@@ -280,16 +280,19 @@ def v3_forgot_password_view(request):
 
 def v3_reset_password_view(request):
     token = request.GET.get("token") or request.POST.get("token")
-    if not token: return redirect("site_forgot_password")
-    try: uid = signer.unsign(token, max_age=600); user = get_object_or_404(User, id=uid)
-    except Exception: messages.error(request, "الرابط منتهي الصلاحية."); return redirect("site_forgot_password")
+    uid = request.GET.get("uid") or request.POST.get("uid")
+    if not token or not uid: return redirect("site_forgot_password")
+    user = get_object_or_404(User, id=uid)
+    from django.contrib.auth.tokens import default_token_generator
+    if not default_token_generator.check_token(user, token):
+        messages.error(request, "الرابط غير صالح أو منتهي الصلاحية."); return redirect("site_forgot_password")
     if request.method == "POST":
         p1, p2 = request.POST.get("password"), request.POST.get("confirm_password")
         if p1 and p1 == p2 and len(p1) >= 10:
             user.set_password(p1); user.save(); login(request, user, backend='django.contrib.auth.backends.ModelBackend')
             messages.success(request, "تم تغيير كلمة المرور."); return redirect("dashboard")
         messages.error(request, "كلمات المرور غير متطابقة.")
-    return render(request, "site/v3/v3_reset_password.html", {"user_email": user.email, "token": token})
+    return render(request, "site/v3/v3_reset_password.html", {"user_email": user.email, "token": token, "uid": uid})
 
 @login_required
 def v3_logout_view(request):
@@ -526,24 +529,35 @@ def control_user_moderate(request, public_uuid):
         elif action == "reset_password":
             from django.contrib.auth.tokens import default_token_generator
             from apps.accounts.services import send_brevo_email
+            
             token = default_token_generator.make_token(user)
             uid = user.id
             reset_url = request.build_absolute_uri(reverse('site_reset_password')) + f"?token={token}&uid={uid}"
             
+            # Professional Email Template
             html_content = f"""
-            <div dir="rtl" style="font-family: sans-serif; padding: 20px;">
-                <h2>طلب إعادة تعيين كلمة المرور</h2>
-                <p>مرحباً {user.get_full_name() or user.username}،</p>
-                <p>لقد طلبنا إعادة تعيين كلمة المرور لحسابك. يمكنك القيام بذلك عبر الضغط على الرابط التالي:</p>
-                <p><a href="{reset_url}" style="padding: 10px 20px; background-color: #06b6d4; color: white; text-decoration: none; border-radius: 5px;">إعادة تعيين كلمة المرور</a></p>
-                <p>إذا لم تطلب هذا، يمكنك تجاهل هذا البريد.</p>
+            <div dir="rtl" style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 500px; margin: 0 auto; padding: 20px; color: #1e293b; background-color: #ffffff; border-radius: 16px; border: 1px solid #e2e8f0;">
+                <div style="text-align: center; margin-bottom: 30px;">
+                    <h2 style="color: #06b6d4; margin: 0; font-size: 24px; font-weight: 900;">رقميات | RAQAMIYAT</h2>
+                </div>
+                <div style="background-color: #f8fafc; padding: 30px; border-radius: 12px;">
+                    <h3 style="margin-top: 0; color: #0f172a;">مرحباً {user.get_full_name() or user.username}،</h3>
+                    <p style="font-size: 16px; color: #64748b;">لقد تلقينا طلباً لإعادة تعيين كلمة المرور لحسابك.</p>
+                    <div style="text-align: center; margin: 30px 0;">
+                        <a href="{reset_url}" style="padding: 14px 28px; background-color: #06b6d4; color: #ffffff; text-decoration: none; border-radius: 8px; font-weight: bold; font-size: 16px;">إعادة تعيين كلمة المرور</a>
+                    </div>
+                    <p style="font-size: 14px; color: #94a3b8;">إذا لم تطلب ذلك، يمكنك تجاهل هذا البريد الإلكتروني بأمان. الرابط صالح لفترة محدودة.</p>
+                </div>
+                <div style="margin-top: 30px; text-align: center; font-size: 12px; color: #94a3b8;">
+                    <p>© 2026 رقميات لخدمات الوساطة الرقمية.</p>
+                </div>
             </div>
             """
             
-            if send_brevo_email(user.email, user.get_full_name() or user.email, "إعادة تعيين كلمة المرور", html_content):
-                messages.success(request, "تم إرسال رابط إعادة تعيين كلمة المرور بنجاح عبر البريد الإلكتروني.")
+            if send_brevo_email(user.email, user.get_full_name() or user.email, "إعادة تعيين كلمة المرور | رقميات", html_content):
+                messages.success(request, "تم إرسال رابط إعادة تعيين كلمة المرور بنجاح.")
             else:
-                messages.error(request, "فشل إرسال البريد الإلكتروني. يرجى مراجعة إعدادات API.")
+                messages.error(request, "فشل إرسال البريد الإلكتروني.")
             return redirect("control_user_moderate", public_uuid=public_uuid)
         elif form.is_valid(): form.save(); messages.success(request, "تم التحديث."); return redirect("control_users_list")
     return render(request, "site/control_user_moderate.html", {"form": form, "user_to_moderate": user})
