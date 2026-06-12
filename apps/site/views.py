@@ -1020,6 +1020,17 @@ def control_order_detail(request, pk):
                             note=f"تعديل السعر من {old_total} إلى {new_total}. السبب: {order.price_adjustment_reason}", 
                             created_by=request.user
                         )
+
+                        # Notify user about price adjustment
+                        try:
+                            notify_user(
+                                user=order.customer,
+                                title="تعديل سعر الطلب",
+                                body=f"تم تعديل سعر طلبك رقم #{order.number}. السعر الجديد: {new_total} USD. السبب: {order.price_adjustment_reason}",
+                                action_url=f"/dashboard/orders/{order.id}/",
+                                category="orders"
+                            )
+                        except: pass
                     messages.success(request, "تم تحديث سعر الطلب وتعديل رصيد المحفظة.")
                 except Exception as e:
                     messages.error(request, f"فشل في تعديل الرصيد: {str(e)}")
