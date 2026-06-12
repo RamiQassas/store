@@ -30,7 +30,7 @@
         padding: 1.25rem;
         margin-bottom: 1rem;
         display: grid;
-        grid-template-columns: 2fr 1fr 1fr 1fr 1fr auto;
+        grid-template-columns: 2fr 1fr 1fr 1fr 1fr 0.5fr auto;
         gap: 1rem;
         align-items: center;
         transition: all 0.2s;
@@ -140,6 +140,11 @@
                             {{ form.is_featured }} <span class="text-xs">مميز</span>
                         </div>
                     </div>
+                </div>
+                <div class="panel p-4 bg-slate-800/30 border-white/5">
+                    <label class="mini-label">ترتيب المنتج العام</label>
+                    {{ form.sort_order }}
+                    <p class="text-[9px] text-slate-500 mt-1">الأرقام الأصغر تظهر أولاً في الكتالوج.</p>
                 </div>
             </div>
         </div>
@@ -265,19 +270,23 @@ function renderPackages() {
             </div>
             <div>
                 <span class="mini-label">السعر (Retail)</span>
-                <input type="number" class="builder-input" value="${pkg.price}" onchange="updatePackage(${index}, 'price', this.value)">
+                <input type="number" step="0.01" class="builder-input" value="${pkg.price}" onchange="updatePackage(${index}, 'price', this.value)">
             </div>
             <div>
                 <span class="mini-label">سعر الجملة</span>
-                <input type="number" class="builder-input" value="${pkg.wholesale_price}" onchange="updatePackage(${index}, 'wholesale_price', this.value)">
+                <input type="number" step="0.01" class="builder-input" value="${pkg.wholesale_price}" onchange="updatePackage(${index}, 'wholesale_price', this.value)">
             </div>
             <div>
                 <span class="mini-label">سعر VIP</span>
-                <input type="number" class="builder-input" value="${pkg.vip_price}" onchange="updatePackage(${index}, 'vip_price', this.value)">
+                <input type="number" step="0.01" class="builder-input" value="${pkg.vip_price}" onchange="updatePackage(${index}, 'vip_price', this.value)">
             </div>
             <div>
                 <span class="mini-label">التكلفة (Cost)</span>
-                <input type="number" class="builder-input" value="${pkg.cost}" onchange="updatePackage(${index}, 'cost', this.value)">
+                <input type="number" step="0.01" class="builder-input" value="${pkg.cost}" onchange="updatePackage(${index}, 'cost', this.value)">
+            </div>
+            <div>
+                <span class="mini-label">ترتيب</span>
+                <input type="number" class="builder-input" value="${pkg.sort_order || 0}" onchange="updatePackage(${index}, 'sort_order', this.value)">
             </div>
             <div class="flex gap-2">
                 <button type="button" class="btn btn-sm btn-outline p-2" title="تكرار" onclick="duplicatePackage(${index})"><i class="fas fa-copy"></i></button>

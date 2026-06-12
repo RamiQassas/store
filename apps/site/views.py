@@ -964,7 +964,18 @@ def control_product_create(request):
     if request.method == "POST" and form.is_valid():
         product = form.save(); v_json = request.POST.get("variants_json")
         if v_json:
-            for v in json.loads(v_json): ProductVariant.objects.create(product=product, name=v.get('name'), sku=v.get('sku'), price=Decimal(str(v.get('price', '0'))), cost=Decimal(str(v.get('cost', '0'))), sort_order=int(v.get('sort_order', 0)), is_active=v.get('is_active', True))
+            for v in json.loads(v_json): 
+                ProductVariant.objects.create(
+                    product=product, 
+                    name=v.get('name'), 
+                    sku=v.get('sku'), 
+                    price=Decimal(str(v.get('price', '0'))), 
+                    wholesale_price=Decimal(str(v.get('wholesale_price', '0'))),
+                    vip_price=Decimal(str(v.get('vip_price', '0'))),
+                    cost=Decimal(str(v.get('cost', '0'))), 
+                    sort_order=int(v.get('sort_order', 0)), 
+                    is_active=v.get('is_active', True)
+                )
         return redirect("control_products_list")
     return render(request, "site/control_product_builder.html", {"form": form, "variants_json_data": []})
 
@@ -976,7 +987,20 @@ def control_product_edit(request, pk):
         product = form.save(); v_json = request.POST.get("variants_json")
         if v_json:
             v_data = json.loads(v_json); product.variants.exclude(sku__in=[v.get('sku') for v in v_data if v.get('sku')]).delete()
-            for v in v_data: ProductVariant.objects.update_or_create(product=product, sku=v.get('sku'), defaults={"name": v.get('name'), "price": Decimal(str(v.get('price', '0'))), "cost": Decimal(str(v.get('cost', '0'))), "sort_order": int(v.get('sort_order', 0)), "is_active": v.get('is_active', True)})
+            for v in v_data: 
+                ProductVariant.objects.update_or_create(
+                    product=product, 
+                    sku=v.get('sku'), 
+                    defaults={
+                        "name": v.get('name'), 
+                        "price": Decimal(str(v.get('price', '0'))), 
+                        "wholesale_price": Decimal(str(v.get('wholesale_price', '0'))),
+                        "vip_price": Decimal(str(v.get('vip_price', '0'))),
+                        "cost": Decimal(str(v.get('cost', '0'))), 
+                        "sort_order": int(v.get('sort_order', 0)), 
+                        "is_active": v.get('is_active', True)
+                    }
+                )
         return redirect("control_products_list")
     v_list = [{"name": v.name, "sku": v.sku, "price": str(v.price), "cost": str(v.cost), "sort_order": v.sort_order, "is_active": v.is_active} for v in product.variants.all().order_by('sort_order')]
     return render(request, "site/control_product_builder.html", {"form": form, "product": product, "variants_json_data": v_list})
