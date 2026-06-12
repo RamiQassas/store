@@ -119,6 +119,20 @@
                 {% endfor %}
             </div>
 
+            {% if order.metadata %}
+            <div class="mt-8 pt-6 border-t border-white/5">
+                <h4 class="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-4">بيانات الحقول المخصصة</h4>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {% for item in order.formatted_metadata %}
+                    <div class="bg-slate-900/50 p-4 rounded-xl border border-white/5">
+                        <span class="text-[10px] text-slate-500 block mb-1">{{ item.label }}</span>
+                        <strong class="text-white text-sm">{{ item.value }}</strong>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+
             {% if order.price_adjustment_reason %}
             <div class="mt-4 p-4 bg-amber-500/10 rounded-xl border border-amber-500/20">
                 <div class="text-[10px] font-black text-amber-500 uppercase mb-1">ملاحظة من الإدارة حول السعر</div>

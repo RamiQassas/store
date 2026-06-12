@@ -923,11 +923,51 @@ def control_orders_list(request):
 def control_order_detail(request, pk):
     order = get_object_or_404(Order.objects.select_related('customer'), pk=pk)
     if request.method == "POST":
-        if request.POST.get("action") == "update_status":
-            order.status = request.POST.get("status"); order.save(); OrderLog.objects.create(order=order, status=order.status, note=request.POST.get("admin_note", ""), created_by=request.user)
-            if order.status in [Order.Status.REFUNDED, Order.Status.CANCELLED]: credit_wallet(order.customer.wallet.id, order.total_amount, f"refund:{order.id}", f"Refund for #{order.number}", request.user)
+        action = request.POST.get("action")
+        if action == "update_status":
+            old_status = order.status
+            order.status = request.POST.get("status")
+            order.save()
+            OrderLog.objects.create(order=order, status=order.status, note=request.POST.get("admin_note", ""), created_by=request.user)
+            
+            if order.status in [Order.Status.REFUNDED, Order.Status.CANCELLED] and old_status not in [Order.Status.REFUNDED, Order.Status.CANCELLED]: 
+                credit_wallet(order.customer.wallet.id, order.total_amount, f"refund:{order.id}", f"Refund for #{order.number}", request.user)
+            
+            messages.success(request, f"تم تحديث حالة الطلب إلى: {order.get_status_display()}")
+            
+            # Notify user
+            try:
+                notify_user(
+                    user=order.customer,
+                    title="تحديث حالة الطلب",
+                    body=f"تم تغيير حالة طلبك رقم #{order.number} إلى: {order.get_status_display()}",
+                    action_url=f"/dashboard/orders/{order.id}/",
+                    category="orders"
+                )
+            except: pass
+        elif action == "update_fulfillment":
+            keys = request.POST.getlist("ff_key[]")
+            vals = request.POST.getlist("ff_value[]")
+            fulfillment_data = {}
+            for k, v in zip(keys, vals):
+                if k.strip(): fulfillment_data[k.strip()] = v
+            order.fulfillment_data = fulfillment_data
+            order.save()
+            messages.success(request, "تم تحديث بيانات التنفيذ.")
+        elif action == "update_price":
+            order.total_amount = Decimal(request.POST.get("total_amount", "0"))
+            order.price_adjustment_reason = request.POST.get("adjustment_reason", "")
+            order.save()
+            messages.success(request, "تم تحديث سعر الطلب.")
+            
         return redirect("control_order_detail", pk=pk)
-    return render(request, "site/control_order_detail.html", {"order": order})
+    
+    ctx = {
+        "order": order,
+        "mapped_metadata": order.formatted_metadata(),
+        "readable_fulfillment": order.fulfillment_data or {}
+    }
+    return render(request, "site/control_order_detail.html", ctx)
 
 @admin_required
 def control_users_list(request): return render(request, "site/control_users_list.html", {"users": User.objects.select_related("wallet").order_by("-date_joined")})

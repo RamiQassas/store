@@ -109,9 +109,9 @@
             <div class="p-8 border-b border-white/5 flex justify-between items-center bg-white/[0.01]">
                 <h3 class="font-bold text-lg">سجل العمليات المالية</h3>
                 {% if show_all %}
-                <a href="{% url 'wallet' %}" class="btn btn-sm btn-outline py-1 px-4 text-[10px] font-bold">عرض أقل</a>
+                <a href="{% url 'dashboard_wallet' %}" class="btn btn-sm btn-outline py-1 px-4 text-[10px] font-bold">عرض أقل</a>
                 {% else %}
-                <a href="{% url 'wallet' %}?show_all=1" class="btn btn-sm btn-outline py-1 px-4 text-[10px] font-bold">عرض جميع الحركات</a>
+                <a href="{% url 'dashboard_wallet' %}?show_all=1" class="btn btn-sm btn-outline py-1 px-4 text-[10px] font-bold">عرض جميع الحركات</a>
                 {% endif %}
             </div>
             <div class="stack">
