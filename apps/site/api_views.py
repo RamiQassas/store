@@ -11,29 +11,35 @@ def is_staff(user):
     return user.is_staff
 
 @login_required
-def get_max_withdrawable(request):
-    """API to calculate max withdrawable amount in a chosen currency."""
+def get_conversion_preview(request):
+    """API to get conversion preview for deposit/withdrawal."""
+    amount = Decimal(request.GET.get('amount', 0))
     currency_id = request.GET.get('currency_id')
-    method_id = request.GET.get('method_id')
+    operation = request.GET.get('operation', 'deposit') # deposit or withdraw
     
-    if not currency_id or not method_id:
-        return JsonResponse({"error": "Missing parameters"}, status=400)
+    if not currency_id:
+        return JsonResponse({"error": "Missing currency"}, status=400)
         
-    wallet = get_object_or_404(Wallet, user=request.user)
     currency = get_object_or_404(Currency, id=currency_id)
-    method = get_object_or_404(PaymentMethod, id=method_id)
     
-    available_usd = wallet.available_balance
-    fee = method.calculate_fee(available_usd, mode="withdrawal")
+    # If deposit: convert from local to USD (base)
+    # If withdraw: convert from local to USD (base) using sell_rate
+    # This logic seems to depend on `to_base` vs `from_base`.
+    # Based on models.py:
+    # to_base: amount in currency -> USD
+    # from_base: USD -> amount in currency
     
-    net_available_usd = max(Decimal("0.00"), available_usd - fee)
-    
-    max_amount = currency.from_base(net_available_usd, operation="withdraw")
-    
+    if operation == "deposit":
+        # User is depositing in local, what is it in USD?
+        usd_value = currency.to_base(amount, operation="deposit")
+    else:
+        # User is withdrawing in local, what is it in USD?
+        # Actually user wants to know what their USD balance is in local
+        usd_value = currency.to_base(amount, operation="withdraw")
+        
     return JsonResponse({
-        "max_amount": float(max_amount.quantize(Decimal("0.01"))),
-        "currency_symbol": currency.symbol,
-        "fee_estimate": float(fee.quantize(Decimal("0.01")))
+        "usd_value": float(usd_value.quantize(Decimal("0.01"))),
+        "currency_symbol": currency.symbol
     })
 
 @user_passes_test(is_staff)

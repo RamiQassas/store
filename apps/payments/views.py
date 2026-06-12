@@ -78,7 +78,8 @@ class DepositRequestViewSet(viewsets.ModelViewSet):
             if deposit.amount > 0:
                 wallet_final_amount = (deposit.final_amount / deposit.amount) * deposit.wallet_amount
             else:
-                wallet_final_amount = Decimal("0.00")
+                # Handle edge case where amount is 0 to avoid division by zero
+                wallet_final_amount = deposit.wallet_amount
 
             credit_wallet(
                 wallet_id=wallet.id,

@@ -245,6 +245,12 @@
 
             <div class="info-panel p-8 bg-slate-900/50 stack gap-4">
                 <h4 class="text-xs font-black text-muted uppercase tracking-widest border-b border-white/5 pb-4 mb-2">ملخص العملية</h4>
+                
+                <div class="flex justify-between items-center" id="usd-preview-box">
+                    <span class="text-xs font-bold text-slate-500">القيمة التقديرية بالدولار:</span>
+                    <strong id="usd-preview" class="text-cyan text-sm">---</strong>
+                </div>
+
                 <div class="flex justify-between text-sm">
                     <span class="text-slate-400">عمولة الشبكة/الوسيلة:</span>
                     <strong id="sum-fee" class="text-slate-200">0.00</strong>
@@ -434,6 +440,17 @@ function updateSummary() {
         errEl.classList.remove('hidden');
     } else {
         errEl.classList.add('hidden');
+    }
+
+    // Fetch USD Preview
+    if(amount > 0 && state.currency) {
+        fetch(`/api/conversion-preview/?amount=${amount}&currency_id=${state.currency.id}&operation=deposit`)
+            .then(res => res.json())
+            .then(data => {
+                document.getElementById('usd-preview').innerText = `≈ ${data.usd_value} USD`;
+            });
+    } else {
+        document.getElementById('usd-preview').innerText = '---';
     }
 
     const f = state.method.fees;
