@@ -219,6 +219,111 @@ class PaymentMethodExchangeRateLog(TimeStampedModel):
             return default_currency.sell_rate
         return Decimal("1.000000")
 
+    def to_deposit_json(self, user=None):
+        import json
+        from django.core.serializers.json import DjangoJSONEncoder
+        from apps.common.models import Currency
+        usd = Currency.objects.filter(code="USD").first()
+        
+        # 1. Global/Default Ceiling
+        user_global_limit = Decimal("100.00")
+        if user:
+            user_global_limit = user.daily_deposit_limit
+
+        # 2. Determine Effective Limit based on Priorities
+        if user and user.has_custom_limits:
+            user_custom = user.custom_payment_limits.get(str(self.id)) or user.custom_payment_limits.get(self.id.hex)
+            if user_custom and user_custom.get('deposit'):
+                try:
+                    effective_deposit_max = Decimal(str(user_custom['deposit']))
+                except:
+                    effective_deposit_max = user_global_limit
+            else:
+                effective_deposit_max = user_global_limit
+        else:
+            effective_deposit_max = min(user_global_limit, self.daily_deposit_limit)
+
+        currencies_data = []
+        for c in self.supported_currencies.all():
+            min_val = c.from_base(self.deposit_min_amount) if usd else self.deposit_min_amount
+            max_val = c.from_base(effective_deposit_max) if usd else effective_deposit_max
+            currencies_data.append({
+                "id": str(c.id), 
+                "code": c.code, 
+                "symbol": c.symbol,
+                "min_amount": float(min_val),
+                "max_amount": float(max_val)
+            })
+
+        return json.dumps({
+            "id": str(self.id),
+            "name": self.name,
+            "instructions": self.deposit_instructions,
+            "qr": self.deposit_qr_image.url if self.deposit_qr_image else "",
+            "static_info": self.deposit_info_schema if isinstance(self.deposit_info_schema, dict) and "rows" in self.deposit_info_schema else {"rows": []},
+            "form_schema": self.deposit_form_schema if isinstance(self.deposit_form_schema, dict) and "fields" in self.deposit_form_schema else {"fields": []},
+            "fees": {
+                "fixed": float(self.deposit_fee_settings.get("fixed", 0)) if isinstance(self.deposit_fee_settings, dict) else 0,
+                "percent": float(self.deposit_fee_settings.get("percent", 0)) if isinstance(self.deposit_fee_settings, dict) else 0,
+                "min": float(self.deposit_fee_settings.get("min", 0)) if isinstance(self.deposit_fee_settings, dict) else 0,
+                "max": float(self.deposit_fee_settings.get("max", 0)) if isinstance(self.deposit_fee_settings, dict) else 0,
+                "enabled": self.deposit_fee_settings.get("enabled", True) if isinstance(self.deposit_fee_settings, dict) else True
+            },
+            "currencies": currencies_data
+        }, cls=DjangoJSONEncoder)
+
+    def to_withdrawal_json(self, user=None):
+        import json
+        from django.core.serializers.json import DjangoJSONEncoder
+        from apps.common.models import Currency
+        usd = Currency.objects.filter(code="USD").first()
+
+        # 1. Global/Default Ceiling
+        user_global_limit = Decimal("100.00")
+        if user:
+            user_global_limit = user.daily_withdrawal_limit
+
+        # 2. Determine Effective Limit based on Priorities
+        if user and user.has_custom_limits:
+            user_custom = user.custom_payment_limits.get(str(self.id)) or user.custom_payment_limits.get(self.id.hex)
+            if user_custom and user_custom.get('withdraw'):
+                try:
+                    effective_withdrawal_max = Decimal(str(user_custom['withdraw']))
+                except:
+                    effective_withdrawal_max = user_global_limit
+            else:
+                effective_withdrawal_max = user_global_limit
+        else:
+            effective_withdrawal_max = min(user_global_limit, self.daily_withdrawal_limit)
+
+        currencies_data = []
+        for c in self.supported_currencies.all():
+            min_val = c.from_base(self.withdrawal_min_amount) if usd else self.withdrawal_min_amount
+            max_val = c.from_base(effective_withdrawal_max) if usd else effective_withdrawal_max
+            currencies_data.append({
+                "id": str(c.id), 
+                "code": c.code, 
+                "symbol": c.symbol,
+                "min_amount": float(min_val),
+                "max_amount": float(max_val)
+            })
+
+        return json.dumps({
+            "id": str(self.id),
+            "name": self.name,
+            "instructions": self.withdrawal_instructions,
+            "static_info": self.withdrawal_info_schema if isinstance(self.withdrawal_info_schema, dict) and "rows" in self.withdrawal_info_schema else {"rows": []},
+            "form_schema": self.withdrawal_form_schema if isinstance(self.withdrawal_form_schema, dict) and "fields" in self.withdrawal_form_schema else {"fields": []},
+            "fees": {
+                "fixed": float(self.withdrawal_fee_settings.get("fixed", 0)) if isinstance(self.withdrawal_fee_settings, dict) else 0,
+                "percent": float(self.withdrawal_fee_settings.get("percent", 0)) if isinstance(self.withdrawal_fee_settings, dict) else 0,
+                "min": float(self.withdrawal_fee_settings.get("min", 0)) if isinstance(self.withdrawal_fee_settings, dict) else 0,
+                "max": float(self.withdrawal_fee_settings.get("max", 0)) if isinstance(self.withdrawal_fee_settings, dict) else 0,
+                "enabled": self.withdrawal_fee_settings.get("enabled", True) if isinstance(self.withdrawal_fee_settings, dict) else True
+            },
+            "currencies": currencies_data
+        }, cls=DjangoJSONEncoder)
+
 
 class DepositRequest(TimeStampedModel):
     class Status(models.TextChoices):
