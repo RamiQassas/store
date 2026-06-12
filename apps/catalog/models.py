@@ -38,6 +38,7 @@ class Product(TimeStampedModel):
     is_active = models.BooleanField(default=True, verbose_name="نشط")
     is_featured = models.BooleanField(default=False, verbose_name="مميز (عرض في الرئيسية)")
     sort_order = models.PositiveIntegerField(default=0, verbose_name="ترتيب العرض")
+    delivery_time_display = models.CharField(max_length=60, blank=True, verbose_name="وقت التسليم المعروض", help_text="مثال: 5-15 دقيقة أو 1-2 ساعة")
     
     # Dynamic Form Engine
     form_schema = models.JSONField(

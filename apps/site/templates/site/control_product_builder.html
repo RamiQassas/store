@@ -121,6 +121,11 @@
                     <label>تعليمات بعد الشراء (تظهر للعميل في الفاتورة)</label>
                     {{ form.instructions }}
                 </div>
+                <div class="field-group">
+                    <label>وقت التسليم المعروض (مثلاً: 5-15 دقيقة)</label>
+                    {{ form.delivery_time_display }}
+                    <p class="text-[10px] text-slate-500 mt-1">يظهر هذا النص في الكتالوج الرئيسي لجذب العملاء.</p>
+                </div>
             </div>
             <div class="col-span-12 lg:col-span-4 stack gap-6">
                 <div class="panel p-4 bg-slate-800/30 border-white/5">

@@ -36,8 +36,15 @@
     .search-box-v3 input:focus { border-color: var(--cyan); background: rgba(15, 23, 42, 0.8); box-shadow: 0 0 0 8px rgba(6, 182, 212, 0.05); outline: none; }
     .search-box-v3 i { position: absolute; right: 1.5rem; top: 50%; transform: translateY(-50%); color: #475569; font-size: 1.1rem; }
 
+    /* Grid Toggle */
+    .grid-controls { display: flex; gap: 0.5rem; background: rgba(255,255,255,0.03); padding: 4px; border-radius: 12px; }
+    .grid-btn { width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; border-radius: 8px; color: #475569; transition: all 0.3s; cursor: pointer; border: none; background: transparent; }
+    .grid-btn.active { background: var(--cyan); color: #000; }
+
     /* Modern Product Grid */
-    .p-grid-v3 { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 1.5rem; }
+    .p-grid-v3 { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 1.5rem; }
+    .p-grid-v3.grid-3 { grid-template-columns: repeat(3, 1fr); }
+    .p-grid-v3.grid-2 { grid-template-columns: repeat(2, 1fr); }
     
     .p-card-v3 { 
         background: rgba(15, 23, 42, 0.4); 
@@ -58,16 +65,21 @@
         width: 100%; aspect-ratio: 1/1; 
         background: #0a0f1c; 
         overflow: hidden; position: relative; display: flex; align-items: center; justify-content: center;
-        padding: 2.5rem;
+        padding: 2rem;
     }
     .p-img-v3 img { 
         width: 100%; height: 100%; object-fit: contain;
         transition: transform 0.8s cubic-bezier(0.23, 1, 0.32, 1);
         filter: drop-shadow(0 15px 30px rgba(0,0,0,0.5));
     }
-    .p-card-v3:hover .p-img-v3 img { transform: scale(1.15) rotate(-3deg); }
+    .p-card-v3:hover .p-img-v3 img { transform: scale(1.1) rotate(-3deg); }
     
-    /* Featured Ribbon */
+    /* Package Preview */
+    .p-variants-preview { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 0.5rem; }
+    .p-v-chip { font-size: 7px; font-weight: 900; background: rgba(255,255,255,0.05); color: #94a3b8; padding: 2px 6px; border-radius: 4px; border: 1px solid rgba(255,255,255,0.03); }
+
+    .p-delivery-tag { position: absolute; top: 1.5rem; left: 1.5rem; background: rgba(0,0,0,0.6); backdrop-filter: blur(10px); color: #fff; font-size: 8px; font-weight: 900; padding: 4px 10px; border-radius: 8px; display: flex; align-items: center; gap: 4px; border: 1px solid rgba(255,255,255,0.05); }
+
     .p-featured-tag {
         position: absolute; top: 1.5rem; right: 1.5rem; z-index: 10;
         background: linear-gradient(135deg, #06b6d4, #0891b2);
@@ -76,39 +88,46 @@
         text-transform: uppercase; letter-spacing: 1px;
     }
 
-    .p-body-v3 { padding: 1.5rem; flex-grow: 1; display: flex; flex-direction: column; gap: 0.75rem; }
+    .p-body-v3 { padding: 1.25rem; flex-grow: 1; display: flex; flex-direction: column; gap: 0.5rem; }
     .p-meta-v3 { display: flex; justify-content: space-between; align-items: center; }
     .p-badge-v3 { font-size: 8px; font-weight: 800; color: var(--cyan); background: rgba(6, 182, 212, 0.08); padding: 4px 10px; border-radius: 8px; text-transform: uppercase; }
-    .p-pkg-count { font-size: 8px; color: #475569; font-weight: 700; }
 
     .p-title-v3 { 
-        font-size: 1rem; font-weight: 700; color: #fff; line-height: 1.5; margin: 0;
-        height: 3em; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+        font-size: 0.95rem; font-weight: 700; color: #fff; line-height: 1.4; margin: 0;
+        height: 2.8em; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
         transition: color 0.3s;
     }
     .p-card-v3:hover .p-title-v3 { color: var(--cyan); }
 
     .p-footer-v3 { 
-        margin-top: auto; padding-top: 1.25rem; border-top: 1px solid rgba(255,255,255,0.03); 
+        margin-top: auto; padding-top: 1rem; border-top: 1px solid rgba(255,255,255,0.03); 
         display: flex; justify-content: space-between; align-items: center; 
     }
     .p-price-v3 { display: flex; flex-direction: column; }
-    .p-price-v3 .label { font-size: 9px; font-weight: 700; color: #475569; margin-bottom: 2px; }
-    .p-price-v3 .amt { font-size: 1.15rem; font-weight: 900; color: #fff; }
+    .p-price-v3 .label { font-size: 8px; font-weight: 700; color: #475569; margin-bottom: 2px; }
+    .p-price-v3 .amt { font-size: 1rem; font-weight: 900; color: #fff; }
+
+    /* Grid layout overrides for smaller columns */
+    .grid-3 .p-img-v3 { padding: 1.25rem; }
+    .grid-3 .p-title-v3 { font-size: 0.8rem; }
+    .grid-3 .p-v-chip { display: none; }
 
     /* Mobile Improvements */
     @media (max-width: 768px) {
         .catalog-wrapper { grid-template-columns: 1fr; }
         .filter-sidebar { display: none; }
         .p-grid-v3 { grid-template-columns: repeat(2, 1fr); gap: 0.75rem; }
-        .p-img-v3 { padding: 1rem; }
-        .p-body-v3 { padding: 1rem; gap: 0.5rem; }
-        .p-title-v3 { font-size: 0.85rem; height: 3em; }
-        .p-footer-v3 { flex-direction: column; align-items: stretch; gap: 1rem; }
-        .p-price-v3 .amt { font-size: 1rem; }
-        .p-footer-v3 .btn { width: 100%; padding: 0.75rem; border-radius: 12px; }
+        .p-grid-v3.grid-1 { grid-template-columns: 1fr; }
+        .p-img-v3 { padding: 1.25rem; }
+        .p-body-v3 { padding: 0.85rem; gap: 0.4rem; }
+        .p-title-v3 { font-size: 0.8rem; }
+        .p-footer-v3 { flex-direction: column; align-items: stretch; gap: 0.75rem; }
+        .p-price-v3 .amt { font-size: 0.9rem; }
+        .p-footer-v3 .btn { width: 100%; padding: 0.6rem; border-radius: 10px; font-size: 10px; }
         .p-featured-tag { top: 0.75rem; right: 0.75rem; font-size: 7px; padding: 3px 8px; }
+        .p-delivery-tag { top: 0.75rem; left: 0.75rem; padding: 2px 6px; font-size: 7px; }
     }
+</style>
 
     /* Tablet/Small Laptop */
     @media (min-width: 769px) and (max-width: 1200px) {
@@ -179,17 +198,25 @@
                         <i class="fas fa-search"></i>
                         <input type="text" name="q" value="{{ query }}" placeholder="ابحث عن باقة، لعبة، أو بطاقة شحن...">
                     </form>
-                    <div class="hide-mobile">
-                        <span class="text-[10px] font-black text-slate-600 uppercase">نتائج البحث: {{ products.count }}</span>
+                    <div class="grid-controls">
+                        <button type="button" onclick="setGrid(1)" class="grid-btn hide-desktop" id="btn-grid-1"><i class="fas fa-stop"></i></button>
+                        <button type="button" onclick="setGrid(2)" class="grid-btn active" id="btn-grid-2"><i class="fas fa-th-large"></i></button>
+                        <button type="button" onclick="setGrid(3)" class="grid-btn hide-mobile" id="btn-grid-3"><i class="fas fa-th"></i></button>
                     </div>
                 </div>
             </div>
 
-            <div class="p-grid-v3">
+            <div class="p-grid-v3" id="catalog-grid">
                 {% for p in products %}
                 <div class="p-card-v3 reveal">
                     {% if p.is_featured %}
                     <div class="p-featured-tag">مميز</div>
+                    {% endif %}
+                    
+                    {% if p.delivery_time_display %}
+                    <div class="p-delivery-tag">
+                        <i class="far fa-clock"></i> {{ p.delivery_time_display }}
+                    </div>
                     {% endif %}
                     
                     <a href="{% url 'product_detail' p.id %}" class="p-img-v3">
@@ -203,10 +230,19 @@
                     <div class="p-body-v3">
                         <div class="p-meta-v3">
                             <span class="p-badge-v3">{{ p.category.name }}</span>
-                            <span class="p-pkg-count">{{ p.variants.count }} باقة</span>
                         </div>
                         <a href="{% url 'product_detail' p.id %}" class="p-title-v3">{{ p.name }}</a>
                         
+                        <!-- Packages Preview -->
+                        <div class="p-variants-preview">
+                            {% for v in p.variants.all|slice:":3" %}
+                            <span class="p-v-chip">{{ v.name }}</span>
+                            {% endfor %}
+                            {% if p.variants.count > 3 %}
+                            <span class="p-v-chip">+{{ p.variants.count|add:"-3" }}</span>
+                            {% endif %}
+                        </div>
+
                         <div class="p-footer-v3">
                             <div class="p-price-v3">
                                 <span class="label">يبدأ من</span>
@@ -231,6 +267,16 @@
 </div>
 
 <script>
+    function setGrid(cols) {
+        const grid = document.getElementById('catalog-grid');
+        grid.className = 'p-grid-v3';
+        if (cols === 3) grid.classList.add('grid-3');
+        if (cols === 2) grid.classList.add('grid-2');
+        if (cols === 1) grid.classList.add('grid-1');
+        
+        document.querySelectorAll('.grid-btn').forEach(b => b.classList.remove('active'));
+        document.getElementById(`btn-grid-${cols}`).classList.add('active');
+    }
     const observer = new IntersectionObserver((entries) => {
         entries.forEach(entry => {
             if (entry.isIntersecting) entry.target.classList.add('visible');
