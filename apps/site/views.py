@@ -1601,14 +1601,81 @@ def control_reports(request):
         
     return render(request, "site/control_reports.html", ctx)
 
-def export_financial_report_xlsx(ctx, filters):
-    import openpyxl
-    from openpyxl.styles import Font, Alignment, PatternFill, Border, Side
-    from openpyxl.utils import get_column_letter
-    from io import BytesIO
+import logging
+logger = logging.getLogger(__name__)
 
-    wb = openpyxl.Workbook()
-    
+@admin_required
+def control_db_maintenance(request):
+    if request.method == "POST":
+        action = request.POST.get("action")
+        if action == "cleanup":
+            targets = request.POST.getlist("targets")
+            deleted_counts = {}
+            
+            with transaction.atomic():
+                if "orders" in targets:
+                    from apps.orders.models import Order, OrderItem, OrderLog
+                    c1 = OrderItem.objects.all().delete()[0]
+                    c2 = OrderLog.objects.all().delete()[0]
+                    c3 = Order.objects.all().delete()[0]
+                    deleted_counts["الطلبات والمبيعات"] = c1 + c2 + c3
+                    
+                if "financials" in targets:
+                    from apps.payments.models import DepositRequest, WithdrawalRequest
+                    from apps.wallets.models import WalletTransaction, LedgerEntry
+                    c1 = DepositRequest.objects.all().delete()[0]
+                    c2 = WithdrawalRequest.objects.all().delete()[0]
+                    c3 = WalletTransaction.objects.all().delete()[0]
+                    c4 = LedgerEntry.objects.all().delete()[0]
+                    deleted_counts["العمليات المالية"] = c1 + c2 + c3 + c4
+                    
+                if "kyc" in targets:
+                    from apps.accounts.models import KYCRequest
+                    c1 = KYCRequest.objects.all().delete()[0]
+                    deleted_counts["طلبات التوثيق"] = c1
+                    
+                if "logs" in targets:
+                    from apps.accounts.models import ActivityLog
+                    from apps.notifications.models import Notification
+                    c1 = ActivityLog.objects.all().delete()[0]
+                    c2 = Notification.objects.all().delete()[0]
+                    deleted_counts["سجلات النشاط والتنبيهات"] = c1 + c2
+                    
+                if "users" in targets:
+                    # Delete ONLY customers, keep staff/admins
+                    c1 = User.objects.filter(role=User.Role.CUSTOMER).delete()[0]
+                    deleted_counts["المستخدمين (غير المدراء)"] = c1
+                    
+                if "catalog" in targets:
+                    from apps.catalog.models import Product, Category, ProductVariant
+                    c1 = ProductVariant.objects.all().delete()[0]
+                    c2 = Product.objects.all().delete()[0]
+                    c3 = Category.objects.all().delete()[0]
+                    deleted_counts["الكتالوج (المنتجات والأصناف)"] = c1 + c2 + c3
+
+            msg = "تم تصفير البيانات المختارة بنجاح: " + ", ".join([f"{k} ({v})" for k, v in deleted_counts.items()])
+            messages.success(request, msg)
+            return redirect("control_db_maintenance")
+            
+    return render(request, "site/control_db_maintenance.html")
+
+def export_financial_report_xlsx(ctx, filters):
+    try:
+        import openpyxl
+        from openpyxl.styles import Font, Alignment, PatternFill, Border, Side
+        from openpyxl.utils import get_column_letter
+        from io import BytesIO
+
+        wb = openpyxl.Workbook()
+        # ... rest of export logic ...
+    except Exception as e:
+        logger.exception("Excel export failed")
+        return HttpResponse(
+            "خدمة تصدير Excel غير متوفرة حالياً (تأكد من تثبيت openpyxl). يرجى التواصل مع المسؤول.",
+            status=503,
+            content_type="text/plain; charset=utf-8"
+        )
+
     # --- Sheet 1: الملخص المالي ---
     ws = wb.active
     ws.title = "الملخص المالي"
@@ -1653,7 +1720,7 @@ def export_financial_report_xlsx(ctx, filters):
     row = 6
     for label, val in kpis_data:
         ws.cell(row=row, column=1, value=label).border = border
-        ws.cell(row=row, column=2, value=float(val)).border = border
+        ws.cell(row=row, column=2, value=float(val or 0)).border = border
         ws.cell(row=row, column=2).number_format = '#,##0.00'
         row += 1
 
@@ -1671,11 +1738,11 @@ def export_financial_report_xlsx(ctx, filters):
     row = 2
     for pm in ctx['payment_performance']:
         ws2.cell(row=row, column=1, value=pm['name']).border = border
-        ws2.cell(row=row, column=2, value=float(pm['deposits_volume'])).border = border
-        ws2.cell(row=row, column=3, value=float(pm['withdrawals_volume'])).border = border
-        ws2.cell(row=row, column=4, value=float(pm['net_movement'])).border = border
-        ws2.cell(row=row, column=5, value=float(pm['fees_generated'])).border = border
-        ws2.cell(row=row, column=6, value=float(pm['real_balance'])).border = border
+        ws2.cell(row=row, column=2, value=float(pm['deposits_volume'] or 0)).border = border
+        ws2.cell(row=row, column=3, value=float(pm['withdrawals_volume'] or 0)).border = border
+        ws2.cell(row=row, column=4, value=float(pm['net_movement'] or 0)).border = border
+        ws2.cell(row=row, column=5, value=float(pm['fees_generated'] or 0)).border = border
+        ws2.cell(row=row, column=6, value=float(pm['real_balance'] or 0)).border = border
         row += 1
 
     # Auto-adjust column widths

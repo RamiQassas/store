@@ -196,6 +196,9 @@
             <a href="{% url 'control_announcements' %}" class="admin-nav-link {% if 'announcements' in request.path %}active{% endif %}">
                 <i class="fas fa-bullhorn"></i> شريط الموقع
             </a>
+            <a href="{% url 'control_db_maintenance' %}" class="admin-nav-link {% if 'maintenance' in request.path %}active{% endif %}">
+                <i class="fas fa-database"></i> صيانة البيانات
+            </a>
             <a href="{% url 'currencies_list' %}" class="admin-nav-link {% if 'currenc' in request.path %}active{% endif %}">
                 <i class="fas fa-coins"></i> العملات
             </a>

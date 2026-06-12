@@ -1,0 +1,135 @@
+{% extends "site/control_base.html" %}
+
+{% block title %}صيانة قاعدة البيانات | Raqamiyat Admin{% endblock %}
+
+{% block control_content %}
+<div class="page-head">
+    <div>
+        <span class="eyebrow">Database Maintenance</span>
+        <h1>تصفير وصيانة قاعدة البيانات</h1>
+        <p class="text-rose-400 font-bold mt-2"><i class="fas fa-exclamation-triangle"></i> تنبيه: هذه العمليات نهائية ولا يمكن التراجع عنها. يرجى أخذ نسخة احتياطية قبل البدء.</p>
+    </div>
+</div>
+
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mt-8">
+    <div class="panel p-8 bg-slate-900/40 border-white/5 rounded-3xl">
+        <h3 class="text-xl font-black mb-6 flex items-center gap-3">
+            <i class="fas fa-trash-alt text-rose-500"></i>
+            تنظيف البيانات الانتقائي
+        </h3>
+        
+        <form method="POST" id="maintenanceForm" onsubmit="return confirm('هل أنت متأكد تماماً؟ سيتم حذف كافة البيانات المختارة نهائياً!')">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="cleanup">
+            
+            <div class="stack gap-4">
+                <label class="flex items-center gap-4 p-4 rounded-2xl bg-white/[0.02] border border-white/5 cursor-pointer hover:bg-white/[0.05] transition">
+                    <input type="checkbox" name="targets" value="orders" class="w-6 h-6 rounded-lg text-rose-600 focus:ring-rose-500">
+                    <div>
+                        <div class="font-bold text-white">الطلبات والمبيعات</div>
+                        <div class="text-[10px] text-slate-500">حذف كافة الطلبات، سجلاتها، وبنود المنتجات المباعة.</div>
+                    </div>
+                </label>
+
+                <label class="flex items-center gap-4 p-4 rounded-2xl bg-white/[0.02] border border-white/5 cursor-pointer hover:bg-white/[0.05] transition">
+                    <input type="checkbox" name="targets" value="financials" class="w-6 h-6 rounded-lg text-rose-600 focus:ring-rose-500">
+                    <div>
+                        <div class="font-bold text-white">العمليات المالية والحركات</div>
+                        <div class="text-[10px] text-slate-500">حذف كافة طلبات الإيداع، السحب، سجلات المحفظة (Ledger)، والعمليات التاريخية.</div>
+                    </div>
+                </label>
+
+                <label class="flex items-center gap-4 p-4 rounded-2xl bg-white/[0.02] border border-white/5 cursor-pointer hover:bg-white/[0.05] transition">
+                    <input type="checkbox" name="targets" value="kyc" class="w-6 h-6 rounded-lg text-rose-600 focus:ring-rose-500">
+                    <div>
+                        <div class="font-bold text-white">طلبات توثيق الهوية (KYC)</div>
+                        <div class="text-[10px] text-slate-500">حذف كافة الوثائق والطلبات المرفوعة من قبل المستخدمين.</div>
+                    </div>
+                </label>
+
+                <label class="flex items-center gap-4 p-4 rounded-2xl bg-white/[0.02] border border-white/5 cursor-pointer hover:bg-white/[0.05] transition">
+                    <input type="checkbox" name="targets" value="logs" class="w-6 h-6 rounded-lg text-rose-600 focus:ring-rose-500">
+                    <div>
+                        <div class="font-bold text-white">السجلات والتنبيهات</div>
+                        <div class="text-[10px] text-slate-500">حذف سجلات النشاط (Activity Logs) وكافة التنبيهات المرسلة.</div>
+                    </div>
+                </label>
+
+                <label class="flex items-center gap-4 p-4 rounded-2xl bg-white/[0.02] border border-white/5 cursor-pointer hover:bg-white/[0.05] transition">
+                    <input type="checkbox" name="targets" value="users" class="w-6 h-6 rounded-lg text-rose-600 focus:ring-rose-500">
+                    <div>
+                        <div class="font-bold text-white">المستخدمين (الزبائن فقط)</div>
+                        <div class="text-[10px] text-slate-500">حذف كافة حسابات الزبائن. <span class="text-rose-400 font-black">لن يتم حذف حسابات المدراء أو الموظفين.</span></div>
+                    </div>
+                </label>
+
+                <label class="flex items-center gap-4 p-4 rounded-2xl bg-white/[0.02] border border-white/5 cursor-pointer hover:bg-white/[0.05] transition">
+                    <input type="checkbox" name="targets" value="catalog" class="w-6 h-6 rounded-lg text-rose-600 focus:ring-rose-500">
+                    <div>
+                        <div class="font-bold text-white">الكتالوج والمنتجات</div>
+                        <div class="text-[10px] text-slate-500">حذف كافة الأقسام، المنتجات، والباقات.</div>
+                    </div>
+                </label>
+            </div>
+
+            <div class="mt-8 p-6 bg-rose-500/10 border border-rose-500/20 rounded-2xl">
+                <p class="text-xs text-rose-300 mb-4">اكتب كلمة <span class="font-black text-rose-100 underline">DELETE</span> للتأكيد النهائي:</p>
+                <input type="text" id="confirmInput" class="builder-input w-full border-rose-500/30 focus:border-rose-500" placeholder="اكتب هنا...">
+                
+                <button type="submit" id="submitBtn" disabled class="btn btn-primary w-full mt-4 bg-rose-600 hover:bg-rose-700 border-none font-black py-4 opacity-50 cursor-not-allowed">
+                    تنفيذ الحذف النهائي للبيانات المختارة
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <div class="panel p-8 bg-slate-900/40 border-white/5 rounded-3xl">
+        <h3 class="text-xl font-black mb-6">إحصائيات قاعدة البيانات الحالية</h3>
+        <div class="grid grid-cols-2 gap-4">
+            <div class="p-4 bg-white/[0.02] border border-white/5 rounded-xl">
+                <div class="text-[10px] text-slate-500 uppercase">الطلبات</div>
+                <div class="text-2xl font-black text-white" id="stat-orders">-</div>
+            </div>
+            <div class="p-4 bg-white/[0.02] border border-white/5 rounded-xl">
+                <div class="text-[10px] text-slate-500 uppercase">المستخدمين</div>
+                <div class="text-2xl font-black text-white" id="stat-users">-</div>
+            </div>
+            <div class="p-4 bg-white/[0.02] border border-white/5 rounded-xl">
+                <div class="text-[10px] text-slate-500 uppercase">العمليات المالية</div>
+                <div class="text-2xl font-black text-white" id="stat-trans">-</div>
+            </div>
+            <div class="p-4 bg-white/[0.02] border border-white/5 rounded-xl">
+                <div class="text-[10px] text-slate-500 uppercase">المنتجات</div>
+                <div class="text-2xl font-black text-white" id="stat-products">-</div>
+            </div>
+        </div>
+        
+        <div class="mt-8">
+            <h4 class="text-xs font-bold text-slate-400 mb-4 uppercase tracking-widest">توصيات الصيانة</h4>
+            <ul class="stack gap-2 text-xs text-slate-500 list-disc list-inside">
+                <li>قم بتصفير سجلات النشاط شهرياً لتحسين أداء النظام.</li>
+                <li>لا تحذف الكتالوج إلا إذا كنت ترغب في إعادة بناء المتجر من الصفر.</li>
+                <li>تصفير العمليات المالية يؤثر على الأرصدة الظاهرة في لوحة التقارير.</li>
+            </ul>
+        </div>
+    </div>
+</div>
+
+<script>
+    const confirmInput = document.getElementById('confirmInput');
+    const submitBtn = document.getElementById('submitBtn');
+
+    confirmInput.addEventListener('input', function() {
+        if (this.value.trim().toUpperCase() === 'DELETE') {
+            submitBtn.disabled = false;
+            submitBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+        } else {
+            submitBtn.disabled = true;
+            submitBtn.classList.add('opacity-50', 'cursor-not-allowed');
+        }
+    });
+
+    // Simple stat loading simulation or real fetch if API exists
+    // For now we can pass them in context or leave as is
+</script>
+{% endblock %}

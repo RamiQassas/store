@@ -261,23 +261,28 @@ class FinancialAnalyticsService:
                 # Let's use simple logic: Cost = Amount_in_Local / CapitalRate.
                 # Profit = Amount_in_Base - Cost.
                 # FX Logic: (Market_Base_Value - Capital_Cost_Base_Value)
+                market_rate = d.currency.buy_rate
                 cap_rate = pm.capital_exchange_rate or Decimal("1.000000")
+                
+                # Fallback: If capital rate is 1.0 (default) but market rate is different,
+                # use market rate as cost basis to ensure 0 profit if not configured.
+                if cap_rate == Decimal("1.000000") and market_rate != Decimal("1.000000"):
+                    cap_rate = market_rate
+
                 if cap_rate > 0:
-                    base_val = d.currency.to_base(d.amount or 0)
-                    # Profit = Local_Amount * ( (1/Market_Rate) - (1/Capital_Rate) )
-                    # Since Currency.to_base handles (Local / Rate) or (Local * Rate), we mirror that.
+                    base_val = d.currency.to_base(d.amount or 0, operation="deposit")
+                    
+                    # Calculate cost using capital rate
                     if d.currency.conversion_method == Currency.ConversionMethod.DIVIDE:
-                        # base = local / market_rate -> market_rate = local / base
+                        # base = local / market_rate
                         # cost = local / cap_rate
-                        # profit = base - cost
                         cost = (d.amount or 0) / cap_rate
-                        fx_profit += (base_val - cost)
                     else:
                         # base = local * market_rate
                         # cost = local * cap_rate
-                        # profit = base - cost
                         cost = (d.amount or 0) * cap_rate
-                        fx_profit += (base_val - cost)
+                        
+                    fx_profit += (base_val - cost)
                 
             with_vol = Decimal("0.00")
             for w in withs.select_related('currency'):

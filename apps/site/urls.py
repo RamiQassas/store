@@ -95,6 +95,7 @@ urlpatterns = [
     path("control/settings/social-media/", views.control_social_media, name="control_social_media"),
     path("control/settings/social-media/<uuid:pk>/delete/", views.control_social_media_delete, name="control_social_media_delete"),
     path("control/notifications/send/", views.control_send_notification, name="control_send_notification"),
+    path("control/maintenance/db/", views.control_db_maintenance, name="control_db_maintenance"),
 
     # Legal & Support Pages
     path("privacy-policy/", views.privacy_policy, name="privacy_policy"),
