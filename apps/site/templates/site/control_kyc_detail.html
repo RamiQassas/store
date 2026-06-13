@@ -107,10 +107,11 @@
                 <span class="text-[10px] text-slate-600 bg-slate-800 px-2 py-1 rounded">يمكنك تصحيح أي أخطاء إملائية مباشرة</span>
             </div>
 
-            <form method="post" id="edit-kyc-form" class="stack gap-6">
+            <form method="post" id="edit-kyc-form" class="stack gap-6" enctype="multipart/form-data">
                 {% csrf_token %}
                 <input type="hidden" name="action" value="update_info">
                 
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div class="field-group">
                         <label class="text-[10px] text-slate-500 uppercase block mb-1">الجنسية</label>
                         {{ form.nationality|add_class:"builder-input searchable-select" }}
@@ -159,9 +160,26 @@
                         <label class="text-[10px] text-slate-500 uppercase block mb-1">عنوان الإقامة الحالي</label>
                         {{ form.current_residence|add_class:"builder-input" }}
                     </div>
+                    
+                    <div class="h-px bg-white/5 md:col-span-2 my-4"></div>
+                    <h4 class="text-[10px] font-black text-cyan uppercase tracking-widest md:col-span-2">تحديث المستندات (اختياري)</h4>
+                    
+                    <div class="field-group">
+                        <label class="text-[10px] text-slate-500 uppercase block mb-1">وجه الوثيقة</label>
+                        {{ form.identity_front|add_class:"builder-input" }}
+                    </div>
+                    <div class="field-group">
+                        <label class="text-[10px] text-slate-500 uppercase block mb-1">ظهر الوثيقة</label>
+                        {{ form.identity_back|add_class:"builder-input" }}
+                    </div>
+                    <div class="field-group md:col-span-2">
+                        <label class="text-[10px] text-slate-500 uppercase block mb-1">صورة السيلفي</label>
+                        {{ form.selfie_verification|add_class:"builder-input" }}
+                    </div>
+                </div>
                 
                 <div class="pt-4">
-                    <button type="submit" class="btn btn-sm btn-primary px-8">حفظ التعديلات على البيانات</button>
+                    <button type="submit" class="btn btn-sm btn-primary px-8">حفظ التعديلات على البيانات والملفات</button>
                 </div>
             </form>
         </div>

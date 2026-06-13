@@ -76,6 +76,9 @@ def send_verification_email(request, user):
         logger.error(f"Failed to send verification OTP: {str(e)}")
         return False
 
+from django.urls import reverse
+from urllib.parse import urljoin
+
 def send_kyc_status_email(user, status, reason=None):
     """
     Sends an email regarding KYC status change.
@@ -87,6 +90,10 @@ def send_kyc_status_email(user, status, reason=None):
     }
     
     subject = subjects.get(status, "تحديث حالة الحساب | Raqamiyat")
+    
+    # Securely build URLs
+    dashboard_url = urljoin(settings.SITE_URL, reverse('dashboard'))
+    kyc_request_url = urljoin(settings.SITE_URL, reverse('site_kyc_request'))
     
     if status == 'approved':
         content = f"""
@@ -129,7 +136,7 @@ def send_kyc_status_email(user, status, reason=None):
             </div>
 
             <div style="text-align: center;">
-                <a href="{settings.SITE_URL}/dashboard/" style="display: inline-block; background-color: #06b6d4; color: #ffffff; padding: 14px 35px; border-radius: 12px; text-decoration: none; font-weight: bold; font-size: 16px;">ابدأ التداول الآن</a>
+                <a href="{dashboard_url}" style="display: inline-block; background-color: #06b6d4; color: #ffffff; padding: 14px 35px; border-radius: 12px; text-decoration: none; font-weight: bold; font-size: 16px;">ابدأ التسوق الآن</a>
             </div>
 
             <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #f1f5f9; text-align: center; font-size: 12px; color: #94a3b8;">
@@ -162,7 +169,7 @@ def send_kyc_status_email(user, status, reason=None):
             </p>
 
             <div style="text-align: center;">
-                <a href="{settings.SITE_URL}/kyc/request/" style="display: inline-block; background-color: #0f172a; color: #ffffff; padding: 12px 30px; border-radius: 12px; text-decoration: none; font-weight: bold;">تقديم طلب جديد</a>
+                <a href="{kyc_request_url}" style="display: inline-block; background-color: #0f172a; color: #ffffff; padding: 12px 30px; border-radius: 12px; text-decoration: none; font-weight: bold;">تقديم طلب جديد</a>
             </div>
 
             <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #f1f5f9; text-align: center; font-size: 12px; color: #94a3b8;">

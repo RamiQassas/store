@@ -378,17 +378,20 @@ def v3_forgot_password_view(request):
         user = User.objects.filter(email=email).first()
         if user:
             token = signer.sign(str(user.id))
-            reset_url = request.build_absolute_uri(reverse('site_reset_password')) + f"?token={token}"
+            # Include uid and use urljoin for consistent URLs
+            reset_url = urljoin(settings.SITE_URL, reverse('site_reset_password')) + f"?token={token}&uid={user.id}"
             subject = "رابط استعادة كلمة المرور | Raqamiyat"
             html_content = f"""
-            <div dir="rtl" style="font-family: sans-serif; max-width: 500px; margin: 0 auto; padding: 20px; border: 1px solid #eee; border-radius: 10px;">
-                <h2 style="color: #06b6d4;">رقميات | RAQAMIYAT</h2>
+            <div dir="rtl" style="font-family: 'Segoe UI', sans-serif; max-width: 500px; margin: 0 auto; padding: 20px; border: 1px solid #e2e8f0; border-radius: 16px; background-color: #ffffff;">
+                <h2 style="color: #06b6d4; text-align: center;">رقميات | RAQAMIYAT</h2>
                 <p>مرحباً،</p>
                 <p>لقد طلبت إعادة تعيين كلمة المرور لحسابك. يرجى الضغط على الزر أدناه للمتابعة:</p>
                 <div style="text-align: center; margin: 30px 0;">
-                    <a href="{reset_url}" style="display: inline-block; padding: 12px 25px; background-color: #06b6d4; color: white; text-decoration: none; border-radius: 8px; font-weight: bold;">إعادة تعيين كلمة المرور</a>
+                    <a href="{reset_url}" style="display: inline-block; padding: 14px 30px; background-color: #06b6d4; color: white; text-decoration: none; border-radius: 12px; font-weight: bold;">إعادة تعيين كلمة المرور</a>
                 </div>
-                <p style="font-size: 12px; color: #999;">هذا الرابط صالح لمدة 10 دقائق فقط.</p>
+                <p style="font-size: 12px; color: #94a3b8; text-align: center;">هذا الرابط صالح لمدة 10 دقائق فقط. إذا لم تطلب هذا، يمكنك تجاهل هذا البريد.</p>
+                <hr style="border: 0; border-top: 1px solid #f1f5f9; margin: 20px 0;">
+                <p style="font-size: 10px; color: #cbd5e1; text-align: center;">© 2026 رقميات - جميع الحقوق محفوظة.</p>
             </div>
             """
             if send_brevo_email(user.email, user.get_full_name() or user.email, subject, html_content):
@@ -1542,16 +1545,17 @@ def control_kycs_list(request):
 @support_required
 def control_kyc_detail(request, pk):
     kyc = get_object_or_404(KYCRequest.objects.select_related('user'), pk=pk)
-    form = KYCRequestForm(request.POST or None, instance=kyc)
+    # Pass is_admin=True to allow optional images during updates
+    form = KYCRequestForm(request.POST or None, request.FILES or None, instance=kyc, is_admin=True)
     payment_methods = PaymentMethod.objects.filter(is_active=True).order_by("display_order")
 
     if request.method == "POST":
         action = request.POST.get("action")
 
-        # 1. Update Personal Info
+        # 1. Update Personal Info (Including Images)
         if action == "update_info" and form.is_valid():
             form.save()
-            messages.success(request, "تم تحديث البيانات الشخصية بنجاح.")
+            messages.success(request, "تم تحديث بيانات التوثيق والملفات المرفقة بنجاح.")
             return redirect("control_kyc_detail", pk=pk)
 
         # 2. Update Limits
@@ -1587,6 +1591,10 @@ def control_kyc_detail(request, pk):
             kyc.status = KYCRequest.Status.APPROVED
             kyc.user.is_kyc_verified = True
             
+            # Update User Display Name: First_Father_Last
+            kyc.user.first_name = f"{kyc.first_name}_{kyc.father_name}_{kyc.last_name}"
+            kyc.user.last_name = "" # Clear last name to avoid duplication in some templates
+            
             # Apply global limits if user doesn't have custom ones
             if not kyc.user.has_custom_limits:
                 kyc_settings = KYCSettings.get_settings()
@@ -1599,7 +1607,7 @@ def control_kyc_detail(request, pk):
             from apps.accounts.services import send_kyc_status_email
             send_kyc_status_email(kyc.user, 'approved')
             
-            messages.success(request, f"تم توثيق حساب {kyc.user.email} بنجاح وتم تحديث الحدود المالية.")
+            messages.success(request, f"تم توثيق حساب {kyc.user.email} بنجاح، وتحديث الاسم المعروض والحدود المالية.")
         elif action == "reject":
             kyc.status = KYCRequest.Status.REJECTED
             kyc.rejection_reason = admin_note
