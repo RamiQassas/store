@@ -53,6 +53,12 @@ class NotificationSetting(TimeStampedModel):
     push_financial = models.BooleanField(default=True, verbose_name="العمليات المالية (Push)")
     push_support = models.BooleanField(default=True, verbose_name="ردود الدعم (Push)")
     push_promotions = models.BooleanField(default=False, verbose_name="العروض والترويج (Push)")
+    
+    # Email Preferences
+    email_orders = models.BooleanField(default=True, verbose_name="تحديثات الطلبات (البريد)")
+    email_financial = models.BooleanField(default=True, verbose_name="العمليات المالية (البريد)")
+    email_support = models.BooleanField(default=True, verbose_name="ردود الدعم (البريد)")
+    email_promotions = models.BooleanField(default=True, verbose_name="العروض والترويج (البريد)")
 
     class Meta:
         verbose_name = "إعدادات التنبيهات"

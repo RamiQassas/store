@@ -98,7 +98,7 @@ document.addEventListener('DOMContentLoaded', function() {
     toggleFields(); // Initial state
 
     // Autocomplete Logic
-    const identifierInput = document.getElementById('id_user_identifier');
+    const identifierInput = document.querySelector('input[name="user_identifier"]');
     const resultsDiv = document.getElementById('user-results');
     let debounceTimer;
 

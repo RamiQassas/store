@@ -64,22 +64,28 @@ def notify_user(user, title, body, action_url=None, image_url=None, category='sy
     
     send_in_app = False
     send_push = False
+    send_email = False
 
     if category == 'orders':
         send_in_app = settings_obj.in_app_orders
         send_push = settings_obj.push_orders
+        send_email = settings_obj.email_orders
     elif category == 'financial':
         send_in_app = settings_obj.in_app_financial
         send_push = settings_obj.push_financial
+        send_email = settings_obj.email_financial
     elif category == 'support':
         send_in_app = settings_obj.in_app_support
         send_push = settings_obj.push_support
+        send_email = settings_obj.email_support
     elif category == 'promotions':
         send_in_app = settings_obj.in_app_promotions
         send_push = settings_obj.push_promotions
+        send_email = settings_obj.email_promotions
     else: # system
         send_in_app = True
         send_push = True
+        send_email = True
 
     # 3. Create In-App Notification
     if send_in_app:
@@ -107,6 +113,28 @@ def notify_user(user, title, body, action_url=None, image_url=None, category='sy
             }
             for sub in subscriptions:
                 send_web_push(sub, payload)
+                
+    # 5. Trigger Email
+    if send_email:
+        try:
+            from apps.accounts.services import send_brevo_email
+            html_content = f"""
+            <div dir="rtl" style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 500px; margin: 0 auto; padding: 20px; color: #1e293b; background-color: #ffffff; border-radius: 16px; border: 1px solid #e2e8f0;">
+                <div style="text-align: center; margin-bottom: 30px;">
+                    <h2 style="color: #06b6d4; margin: 0; font-size: 24px; font-weight: 900;">رقميات | RAQAMIYAT</h2>
+                </div>
+                <div style="background-color: #f8fafc; padding: 30px; border-radius: 12px; text-align: center;">
+                    <p style="font-size: 16px; margin-bottom: 10px; color: #64748b;">{title}</p>
+                    <h1 style="font-size: 20px; font-weight: bold; color: #0f172a; margin: 0;">{body}</h1>
+                </div>
+                <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #f1f5f9; text-align: center;">
+                    <p style="font-size: 12px; color: #94a3b8; line-height: 1.6;">هذه الرسالة تم إنشاؤها تلقائياً.<br>يمكنك تغيير تفضيلات الإشعارات من حسابك.</p>
+                </div>
+            </div>
+            """
+            send_brevo_email(to_email=user.email, to_name=user.get_full_name() or user.email, subject=title, html_content=html_content)
+        except Exception as e:
+            logger.error(f"Failed to send email notification to {user.email}: {e}")
     
     return True
 

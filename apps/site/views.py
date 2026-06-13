@@ -117,6 +117,10 @@ def v3_get_required_methods(user, action_type):
     return []
 
 def v3_init_verification(request, user, action_type):
+    # Clear any old pending action to prevent cross-contamination
+    if "v3_pending_action_id" in request.session:
+        del request.session["v3_pending_action_id"]
+        
     # Check if user has any security methods enabled
     methods = v3_get_required_methods(user, action_type)
     if not methods: 
@@ -604,7 +608,7 @@ def deposits(request):
 
     return render(request, "site/v3/v3_deposits.html", {
         "payment_methods": PaymentMethod.objects.filter(is_active=True, can_deposit=True), 
-        "requests": DepositRequest.objects.filter(user=request.user).order_by('-created_at'),
+        "requests": DepositRequest.objects.filter(user=request.user, is_verified=True).order_by('-created_at'),
         "daily_limit": request.user.daily_deposit_limit,
         "remaining_limit": request.user.remaining_deposit_limit,
         "kyc_request": KYCRequest.objects.filter(user=request.user).order_by('-created_at').first(),
@@ -721,7 +725,7 @@ def withdrawals(request):
 
     return render(request, "site/v3/v3_withdrawals.html", {
         "payment_methods": PaymentMethod.objects.filter(is_active=True, can_withdraw=True), 
-        "requests": WithdrawalRequest.objects.filter(user=request.user).order_by('-created_at'),
+        "requests": WithdrawalRequest.objects.filter(user=request.user, is_verified=True).order_by('-created_at'),
         "daily_limit": request.user.daily_withdrawal_limit,
         "remaining_limit": request.user.remaining_withdrawal_limit,
         "kyc_request": KYCRequest.objects.filter(user=request.user).order_by('-created_at').first(),
@@ -755,8 +759,17 @@ def notifications_list(request):
 def notification_settings(request):
     settings_obj, _ = NotificationSetting.objects.get_or_create(user=request.user)
     if request.method == "POST":
-        for field in ['in_app_orders', 'push_orders', 'in_app_financial', 'push_financial', 'in_app_support', 'push_support', 'in_app_promotions', 'push_promotions']: setattr(settings_obj, field, request.POST.get(field) == "on")
-        settings_obj.save(); messages.success(request, "تم الحفظ."); return redirect("notification_settings")
+        fields = [
+            'in_app_orders', 'push_orders', 'email_orders',
+            'in_app_financial', 'push_financial', 'email_financial',
+            'in_app_support', 'push_support', 'email_support',
+            'in_app_promotions', 'push_promotions', 'email_promotions'
+        ]
+        for field in fields:
+            setattr(settings_obj, field, request.POST.get(field) == "on")
+        settings_obj.save()
+        messages.success(request, "تم الحفظ.")
+        return redirect("notification_settings")
     return render(request, "site/notification_settings.html", {"settings": settings_obj})
 
 @login_required
@@ -1140,14 +1153,24 @@ def ajax_validate_coupon(request):
 @staff_required
 def control_dashboard(request):
     from apps.payments.models import DepositRequest, WithdrawalRequest
-    stats = {"users": User.objects.count(), "pending_deposits": DepositRequest.objects.filter(status=DepositRequest.Status.PENDING).count(), "pending_withdrawals": WithdrawalRequest.objects.filter(status=WithdrawalRequest.Status.PENDING).count(), "open_tickets": ChatRoom.objects.exclude(status=ChatRoom.Status.CLOSED).count()}
-    return render(request, "site/control_dashboard.html", {"stats": stats, "recent_orders": Order.objects.select_related('customer').order_by('-created_at')[:5], "recent_deposits": DepositRequest.objects.filter(status=DepositRequest.Status.PENDING).order_by('-created_at')[:5], "recent_users": User.objects.order_by('-date_joined')[:5]})
+    stats = {
+        "users": User.objects.count(), 
+        "pending_deposits": DepositRequest.objects.filter(status=DepositRequest.Status.PENDING, is_verified=True).count(), 
+        "pending_withdrawals": WithdrawalRequest.objects.filter(status=WithdrawalRequest.Status.PENDING, is_verified=True).count(), 
+        "open_tickets": ChatRoom.objects.exclude(status=ChatRoom.Status.CLOSED).count()
+    }
+    return render(request, "site/control_dashboard.html", {
+        "stats": stats, 
+        "recent_orders": Order.objects.select_related('customer').order_by('-created_at')[:5], 
+        "recent_deposits": DepositRequest.objects.filter(status=DepositRequest.Status.PENDING, is_verified=True).order_by('-created_at')[:5], 
+        "recent_users": User.objects.order_by('-date_joined')[:5]
+    })
 
 @finance_required
-def control_deposits(request): return render(request, "site/control_deposits.html", {"deposits": DepositRequest.objects.select_related('user', 'payment_method').all().order_by('-created_at')})
+def control_deposits(request): return render(request, "site/control_deposits.html", {"deposits": DepositRequest.objects.filter(is_verified=True).select_related('user', 'payment_method').order_by('-created_at')})
 
 @finance_required
-def control_withdrawals(request): return render(request, "site/control_withdrawals.html", {"withdrawals": WithdrawalRequest.objects.select_related('user', 'payment_method').all().order_by('-created_at')})
+def control_withdrawals(request): return render(request, "site/control_withdrawals.html", {"withdrawals": WithdrawalRequest.objects.filter(is_verified=True).select_related('user', 'payment_method').order_by('-created_at')})
 
 # ==========================================
 # --- FINANCIAL NOTIFICATION HELPERS ---
@@ -1156,10 +1179,17 @@ def control_withdrawals(request): return render(request, "site/control_withdrawa
 from urllib.parse import urljoin
 
 def send_financial_notification(user, title, body, action_url="/dashboard/wallet/"):
-    # 1. In-App/Push Notification
+    # Rely entirely on notify_user which now natively handles in-app, push, and email based on user preferences.
     try:
         notify_user(user=user, title=title, body=body, action_url=action_url, category='financial', priority="high")
-    except: pass
+    except Exception as e:
+        pass
+
+    # Check Email Preferences
+    from apps.notifications.models import NotificationSetting
+    settings_obj, _ = NotificationSetting.objects.get_or_create(user=user)
+    if not settings_obj.email_financial:
+        return
 
     # 2. Email Notification with Modern Design
     subject = f"{title} | Raqamiyat"
