@@ -99,7 +99,7 @@
         <div class="balance-hero">
             <span class="hero-currency-label">القيمة الإجمالية المتوفرة</span>
             <div class="hero-amount">
-                {% currency_format wallet.available_balance wallet.currency %}
+                {% currency_format wallet.available_balance wallet.currency mode="withdraw" %}
             </div>
             <p class="text-slate-500 font-medium">تم احتساب القيمة بناءً على عملتك المفضلة المختارة.</p>
         </div>

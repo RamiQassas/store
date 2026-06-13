@@ -41,8 +41,18 @@ def variant_price(context, variant):
     
     return variant.get_price_for_user(request.user)
 
+@register.filter
+def to_usd(amount, currency):
+    """Converts an amount in the given currency to USD."""
+    if not amount or not currency:
+        return Decimal("0.00")
+    try:
+        return currency.to_base(amount, "deposit")
+    except:
+        return Decimal("0.00")
+
 @register.simple_tag(takes_context=True)
-def currency_format(context, amount, source_currency=None):
+def currency_format(context, amount, source_currency=None, mode="deposit"):
     """
     Formats a price according to the current preferred currency in context.
     If source_currency is provided, it converts from it to preferred.
@@ -70,9 +80,9 @@ def currency_format(context, amount, source_currency=None):
 
         base_amount = amount
         if source and source.code != "USD":
-            base_amount = source.to_base(amount)
+            base_amount = source.to_base(amount, operation=mode)
         
-        converted = target_currency.from_base(base_amount)
+        converted = target_currency.from_base(base_amount, operation=mode)
         formatted = f"{converted:,.{target_currency.decimal_places}f}"
         return f"{prefix}{formatted} {target_currency.symbol}"
     except Exception:

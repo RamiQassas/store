@@ -271,7 +271,7 @@
                 {% if deposit.currency.code != "USD" %}
                 <div class="info-item bg-slate-800/50">
                     <span class="info-label text-cyan">المعادل بالدولار (حسب سعر الإيداع)</span>
-                    <span class="info-value text-cyan">≈ {{ deposit.wallet_amount|floatformat:2 }} USD</span>
+                    <span class="info-value text-cyan">≈ {{ deposit.usd_amount|floatformat:2 }} USD</span>
                 </div>
                 {% endif %}
                 

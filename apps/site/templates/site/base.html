@@ -171,7 +171,7 @@
                   {% endif %}
               </a>
           </div>
-          <a href="{% url 'dashboard_wallet' %}" class="text-cyan font-black text-xs">{% currency_format user.wallet.available_balance user.wallet.currency %}</a>
+          <a href="{% url 'dashboard_wallet' %}" class="text-cyan font-black text-xs">{% currency_format user.wallet.available_balance user.wallet.currency mode="withdraw" %}</a>
           {% else %}
           <a href="{% url 'site_login' %}" class="btn btn-sm btn-primary">دخول</a>
           {% endif %}
@@ -295,7 +295,7 @@
             <div class="flex items-center gap-4">
                 <div class="text-left hide-mobile">
                     <div class="text-[10px] text-muted font-bold">الرصيد المتاح</div>
-                    <div class="text-sm font-black text-cyan">{% currency_format user.wallet.available_balance user.wallet.currency %}</div>
+                    <div class="text-sm font-black text-cyan">{% currency_format user.wallet.available_balance user.wallet.currency mode="withdraw" %}</div>
                 </div>
                 <a href="{% url 'site_logout' %}" class="btn btn-sm btn-outline"><i class="fas fa-sign-out-alt"></i></a>
             </div>

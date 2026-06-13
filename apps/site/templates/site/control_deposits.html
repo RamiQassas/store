@@ -79,7 +79,7 @@
                         <div class="flex flex-col">
                             <span class="font-black text-emerald-400 text-sm">{{ d.amount|floatformat:2 }} {{ d.currency.code }}</span>
                             {% if d.currency.code != "USD" %}
-                            <span class="text-[9px] text-slate-500 tracking-tighter">≈ {{ d.wallet_amount|floatformat:2 }} USD</span>
+                            <span class="text-[9px] text-slate-500 tracking-tighter">≈ {{ d.usd_amount|floatformat:2 }} USD</span>
                             {% endif %}
                         </div>
                         <div class="flex items-center gap-1.5 mt-1">

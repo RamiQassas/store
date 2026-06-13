@@ -216,7 +216,7 @@
             <div class="flex justify-between items-start mb-6">
                 <div>
                     <span class="text-sm font-bold text-cyan uppercase tracking-wider">الرصيد المتاح</span>
-                    <div class="balance-display mt-2">{% currency_format wallet.available_balance wallet.currency %}</div>
+                    <div class="balance-display mt-2">{% currency_format wallet.available_balance wallet.currency mode="withdraw" %}</div>
                 </div>
                 <div class="text-left">
                     <i class="fas fa-wallet text-4xl text-slate-700 opacity-50"></i>

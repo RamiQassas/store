@@ -258,6 +258,13 @@ class DepositRequest(TimeStampedModel):
     metadata = models.JSONField(default=dict, blank=True)
 
     @property
+    def usd_amount(self):
+        try:
+            return self.currency.to_base(self.amount, "deposit")
+        except:
+            return Decimal("0.00")
+
+    @property
     def formatted_metadata(self):
         """Returns a list of dicts with 'label' and 'value' for metadata."""
         if not self.metadata:
@@ -285,7 +292,15 @@ class DepositRequest(TimeStampedModel):
         self.fee_amount = self.payment_method.calculate_fee(self.amount, mode="deposit")
         self.final_amount = self.amount - self.fee_amount
         if hasattr(self, 'currency') and self.currency:
-            self.wallet_amount = self.currency.to_base(self.amount, "deposit")
+            try:
+                wallet = self.user.wallet
+                if self.currency.code == wallet.currency.code:
+                    self.wallet_amount = self.amount
+                else:
+                    base_val = self.currency.to_base(self.amount, "deposit")
+                    self.wallet_amount = wallet.currency.from_base(base_val, "deposit")
+            except:
+                self.wallet_amount = self.currency.to_base(self.amount, "deposit")
 
     def save(self, *args, **kwargs):
         if self.amount and self.payment_method:
@@ -344,6 +359,13 @@ class WithdrawalRequest(TimeStampedModel):
     metadata = models.JSONField(default=dict, blank=True)
 
     @property
+    def usd_amount(self):
+        try:
+            return self.currency.to_base(self.amount, "withdraw")
+        except:
+            return Decimal("0.00")
+
+    @property
     def display_payout_value(self):
         """Safely returns a primary value for display in lists."""
         details = self.formatted_payout_details
@@ -394,7 +416,15 @@ class WithdrawalRequest(TimeStampedModel):
         self.final_amount = self.amount - self.fee_amount
         if hasattr(self, 'currency') and self.currency:
             if not self.wallet_amount or self.wallet_amount <= 0:
-                self.wallet_amount = self.currency.to_base(self.amount, "withdraw")
+                try:
+                    wallet = self.user.wallet
+                    if self.currency.code == wallet.currency.code:
+                        self.wallet_amount = self.amount
+                    else:
+                        base_val = self.currency.to_base(self.amount, "withdraw")
+                        self.wallet_amount = wallet.currency.from_base(base_val, "withdraw")
+                except:
+                    self.wallet_amount = self.currency.to_base(self.amount, "withdraw")
 
     def save(self, *args, **kwargs):
         if self.amount and self.payment_method:
