@@ -101,6 +101,11 @@ def v3_get_required_methods(user, action_type):
         "settings": "SP" if user.security_password_enabled else "NONE"
     }
     pref = method_map.get(action_type, "NONE")
+    
+    # Force Email OTP if never verified (one-time requirement for new accounts)
+    if action_type == "login" and not user.email_verified:
+        return ["EMAIL"]
+        
     if pref == "NONE": return []
     if pref == "EMAIL": return ["EMAIL"]
     if pref == "APP":
@@ -135,12 +140,8 @@ def v3_init_verification(request, user, action_type):
     first_method = methods[0]
     if first_method == "EMAIL":
         v3_send_otp_email(user, v3_generate_otp(user, action_type))
-        return False # Stay for redirect or handle in caller
-    elif first_method == "SP":
-        # Handled by redirect in caller or here
-        pass
-    
-    return False
+        
+    return False # Always return False to trigger redirect to verification
 
 def v3_redirect_to_verification(request, methods):
     if not methods: return redirect("dashboard")
@@ -246,12 +247,15 @@ def v3_login_view(request):
                 return redirect("control_dashboard" if user.is_staff else "dashboard")
             
             methods = request.session.get("v3_auth_methods", [])
-            # Fallback if no specific security methods defined
             if not methods:
                 login(request, user)
                 return redirect("dashboard")
                 
-            return redirect("site_2fa_verify" if methods[0] == "APP" else "site_verify_otp")
+            # If it's a login action, we don't want to redirect back to login page after verification
+            if request.session.get("v3_auth_purpose") == "login":
+                request.session["v3_auth_next"] = reverse("dashboard")
+
+            return v3_redirect_to_verification(request, methods)
         messages.error(request, "بيانات الدخول غير صحيحة.")
         messages.error(request, "بيانات الدخول غير صحيحة.")
     return render(request, "site/v3/v3_login.html", {"form": form})
@@ -301,7 +305,7 @@ def v3_verify_otp_view(request):
         code = request.POST.get("code")
         if v3_verify_otp_logic(user, code, purpose):
             user.otp_failed_attempts = 0; user.otp_lockout_until = None; user.otp_resend_count = 0; user.save()
-            if purpose == OTPToken.Purpose.REGISTRATION: user.email_verified = True; user.save()
+            if purpose in [OTPToken.Purpose.REGISTRATION, "login"]: user.email_verified = True; user.save()
             if purpose == "email_change":
                 new_email = request.session.get("v3_new_email")
                 if new_email:
