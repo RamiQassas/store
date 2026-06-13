@@ -133,10 +133,10 @@ class User(AbstractUser):
         return full_name if full_name else self.email
 
     def reset_daily_limits_if_needed(self):
-        """Resets daily usage if the date has changed (relative to UTC/Syria time)."""
-        # We'll use the date to ensure it resets once a day
-        now = timezone.now()
-        if self.last_limit_reset.date() < now.date():
+        """Resets daily usage if the date has changed in Damascus time."""
+        now = timezone.localtime(timezone.now())
+        last_reset_local = timezone.localtime(self.last_limit_reset)
+        if last_reset_local.date() < now.date():
             self.daily_deposit_usage = Decimal("0.00")
             self.daily_withdrawal_usage = Decimal("0.00")
             self.last_limit_reset = now

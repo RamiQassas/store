@@ -293,11 +293,12 @@ function renderPackages() {
                 <span class="mini-label">التسليم (دقيقة)</span>
                 <input type="number" class="builder-input" value="${pkg.estimated_delivery_minutes || 0}" onchange="updatePackage(${index}, 'estimated_delivery_minutes', this.value)">
             </div>
-            <div>
-                <span class="mini-label">ترتيب</span>
-                <input type="number" class="builder-input" value="${pkg.sort_order || 0}" onchange="updatePackage(${index}, 'sort_order', this.value)">
+            <div class="flex flex-col gap-1">
+                <button type="button" class="btn btn-xs btn-outline" onclick="movePackage(${index}, 'up')"><i class="fas fa-arrow-up"></i></button>
+                <button type="button" class="btn btn-xs btn-outline" onclick="movePackage(${index}, 'down')"><i class="fas fa-arrow-down"></i></button>
             </div>
-            <div>
+            <div class="flex gap-2">
+
                 <span class="mini-label" title="إيقاف مؤقت">إيقاف</span>
                 <input type="checkbox" ${pkg.is_temporarily_disabled ? 'checked' : ''} onchange="updatePackage(${index}, 'is_temporarily_disabled', this.checked)">
             </div>
@@ -335,6 +336,25 @@ function deletePackage(index) {
         packages.splice(index, 1);
         renderPackages();
     }
+}
+
+function movePackage(index, direction) {
+    if (direction === 'up' && index > 0) {
+        const temp = packages[index];
+        packages[index] = packages[index - 1];
+        packages[index - 1] = temp;
+    } else if (direction === 'down' && index < packages.length - 1) {
+        const temp = packages[index];
+        packages[index] = packages[index + 1];
+        packages[index + 1] = temp;
+    }
+    
+    // Update sort_order based on new index
+    packages.forEach((pkg, idx) => {
+        pkg.sort_order = idx;
+    });
+    
+    renderPackages();
 }
 
 function duplicatePackage(index) {

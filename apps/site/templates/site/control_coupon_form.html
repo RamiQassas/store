@@ -109,6 +109,39 @@
                     </div>
                 </div>
 
+                <div class="divider border-white/5 my-2"></div>
+
+                <div class="stack gap-6">
+                    <div class="field-group">
+                        <label class="info-label">مخصص لعملاء محددين (اختياري)</label>
+                        {{ form.limit_to_users }}
+                        <p class="text-[9px] text-slate-500 mt-1">إذا لم تختار أحداً، سيعمل الكوبون لجميع العملاء.</p>
+                    </div>
+
+                    <div class="field-group">
+                        <label class="info-label">مخصص لفئات معينة (Tiers)</label>
+                        {{ form.limit_to_tiers_list }}
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div class="field-group">
+                            <label class="info-label">محدد لمنطقة/دولة معينة</label>
+                            {{ form.limit_to_area }}
+                            <p class="text-[9px] text-slate-500 mt-1">مثال: سوريا (يبحث في عنوان السكن)</p>
+                        </div>
+                        <div class="field-group">
+                            <label class="info-label">نوع المطابقة الجغرافية</label>
+                            {{ form.allow_area_type }}
+                        </div>
+                    </div>
+
+                    <div class="field-group">
+                        <label class="info-label">محدد لمحل الولادة</label>
+                        {{ form.limit_to_place_of_birth }}
+                        <p class="text-[9px] text-slate-500 mt-1">مثال: حلب (يبحث في مكان الولادة بالهوية)</p>
+                    </div>
+                </div>
+
                 <div class="flex gap-4 mt-4">
                     <button type="submit" class="btn btn-primary flex-grow py-4 text-lg">
                         <i class="fas fa-save ml-2"></i> حفظ الكوبون

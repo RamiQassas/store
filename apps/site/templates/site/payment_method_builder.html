@@ -161,10 +161,12 @@
                     <div class="grid grid-2 gap-4" id="deposit-limits-group">
                         <div class="field-group"><label class="text-[10px]">الحد الأدنى للإيداع</label>{{ form.deposit_min_amount }}</div>
                         <div class="field-group"><label class="text-[10px]">الحد الأقصى للإيداع</label>{{ form.deposit_max_amount }}</div>
+                        <div class="field-group"><label class="text-[10px] text-amber-500 font-bold">حد الإيداع اليومي (Global Daily)</label>{{ form.daily_deposit_limit }}</div>
                     </div>
                     <div class="grid grid-2 gap-4 hidden" id="withdrawal-limits-group">
                         <div class="field-group"><label class="text-[10px]">الحد الأدنى للسحب</label>{{ form.withdrawal_min_amount }}</div>
                         <div class="field-group"><label class="text-[10px]">الحد الأقصى للسحب</label>{{ form.withdrawal_max_amount }}</div>
+                        <div class="field-group"><label class="text-[10px] text-amber-500 font-bold">حد السحب اليومي (Global Daily)</label>{{ form.daily_withdrawal_limit }}</div>
                     </div>
                 </div>
             </div>

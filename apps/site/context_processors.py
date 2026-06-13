@@ -31,14 +31,8 @@ def preferred_currency(request):
 
     system_currency = Currency.objects.filter(code="USD").first() or all_currencies.first()
 
-    # Task 9: Global KYC filtering for payment methods
+    # Task 9: KYC handling is now managed in templates/views with a message instead of hiding
     payment_methods = PaymentMethod.objects.filter(is_active=True).order_by('display_order')
-    if request.user.is_authenticated:
-        if not getattr(request.user, 'is_kyc_verified', False):
-            payment_methods = payment_methods.filter(requires_kyc=False)
-    else:
-        # For anonymous users, hide KYC-required methods by default
-        payment_methods = payment_methods.filter(requires_kyc=False)
 
     return {
         "CURRENCY": pref_currency,

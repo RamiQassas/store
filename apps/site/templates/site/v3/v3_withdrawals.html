@@ -117,7 +117,17 @@
             
             <div class="method-grid">
                 {% for m in payment_methods %}
-                <div class="method-card" onclick="selectMethod('{{ m.id }}', this)" id="card-{{ m.id }}">
+                <div class="method-card relative {% if m.requires_kyc and not user.is_kyc_verified %}opacity-60 kyc-restricted{% endif %}" 
+                     onclick="selectMethod('{{ m.id }}', this)" 
+                     id="card-{{ m.id }}"
+                     data-kyc="{{ m.requires_kyc|lower }}">
+
+                    {% if m.requires_kyc and not user.is_kyc_verified %}
+                    <div class="absolute top-3 right-3 w-6 h-6 bg-amber-500/20 text-amber-500 rounded-lg flex items-center justify-center text-[10px]" title="يتطلب توثيق الحساب">
+                        <i class="fas fa-lock"></i>
+                    </div>
+                    {% endif %}
+
                     <div class="w-16 h-16 rounded-2xl bg-white/5 flex items-center justify-center mb-2">
                         {% if m.logo %}<img src="{{ m.logo.url }}" class="method-logo">{% else %}<i class="fas fa-money-bill-transfer text-2xl opacity-20"></i>{% endif %}
                     </div>
@@ -299,6 +309,13 @@
 let state = { method: null, currency: null };
 
 function selectMethod(id, el) {
+    const isRestricted = el.classList.contains('kyc-restricted');
+    if (isRestricted) {
+        alert("لاستخدام طريقة الدفع هذه، يجب توثيق حسابك أولاً. يرجى التوجه لصفحة التوثيق (KYC) لإرسال بياناتك.");
+        window.location.href = "{% url 'site_kyc_request' %}";
+        return;
+    }
+
     state.method = JSON.parse(document.getElementById('data-'+id).textContent);
     document.querySelectorAll('.method-card').forEach(c => c.classList.remove('selected'));
     el.classList.add('selected');

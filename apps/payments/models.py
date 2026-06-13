@@ -2,6 +2,7 @@ from decimal import Decimal
 
 from django.conf import settings
 from django.db import models
+from django.utils import timezone
 
 from apps.common.models import TimeStampedModel
 
@@ -21,6 +22,11 @@ class PaymentMethod(TimeStampedModel):
     daily_deposit_limit = models.DecimalField(max_digits=14, decimal_places=2, default=Decimal("10000.00"), verbose_name="حد الإيداع اليومي لهذه الوسيلة", help_text="القيمة بالدولار USD")
     daily_withdrawal_limit = models.DecimalField(max_digits=14, decimal_places=2, default=Decimal("10000.00"), verbose_name="حد السحب اليومي لهذه الوسيلة", help_text="القيمة بالدولار USD")
     
+    # --- Daily Usage Tracking ---
+    daily_deposit_usage = models.DecimalField(max_digits=14, decimal_places=2, default=Decimal("0.00"))
+    daily_withdrawal_usage = models.DecimalField(max_digits=14, decimal_places=2, default=Decimal("0.00"))
+    last_limit_reset = models.DateTimeField(default=timezone.now)
+
     # --- Global Cap (New Task 5) ---
     global_deposit_cap = models.DecimalField(max_digits=14, decimal_places=2, default=Decimal("0.00"), verbose_name="الحد الإجمالي الأقصى للإيداعات", help_text="عند الوصول لهذا الحد، تتوقف الوسيلة تلقائياً. 0 تعني غير محدود.")
     global_deposit_usage = models.DecimalField(max_digits=14, decimal_places=2, default=Decimal("0.00"), verbose_name="إجمالي الإيداعات الحالية (للمتابعة والحد الأقصى)")
@@ -57,31 +63,65 @@ class PaymentMethod(TimeStampedModel):
         verbose_name = "وسيلة دفع"
         verbose_name_plural = "وسائل الدفع"
 
-    def __str__(self):
-        return self.name
+    def add_deposit_usage(self, amount_in_usd):
+        self.reset_daily_limits_if_needed()
+        self.daily_deposit_usage += Decimal(str(amount_in_usd))
+        self.save(update_fields=["daily_deposit_usage"])
+
+    def add_withdrawal_usage(self, amount_in_usd):
+        self.reset_daily_limits_if_needed()
+        self.daily_withdrawal_usage += Decimal(str(amount_in_usd))
+        self.save(update_fields=["daily_withdrawal_usage"])
+
+    def reset_daily_limits_if_needed(self):
+        """Resets daily usage if the date has changed in Damascus time."""
+        from django.utils import timezone
+        now = timezone.localtime(timezone.now())
+        last_reset_local = timezone.localtime(self.last_limit_reset)
+        if last_reset_local.date() < now.date():
+            self.daily_deposit_usage = Decimal("0.00")
+            self.daily_withdrawal_usage = Decimal("0.00")
+            self.last_limit_reset = now
+            self.save(update_fields=["daily_deposit_usage", "daily_withdrawal_usage", "last_limit_reset"])
 
     def to_deposit_json(self, user=None):
         import json
         from django.core.serializers.json import DjangoJSONEncoder
         from apps.common.models import Currency
+        from django.utils import timezone
+        
+        self.reset_daily_limits_if_needed()
         usd = Currency.objects.filter(code="USD").first()
         
-        # 1. Determine Method's Daily Ceiling for this user
-        method_daily_ceiling = self.daily_deposit_limit
+        # 1. Start with Global Method Daily Limit
+        method_remaining = max(Decimal("0.00"), self.daily_deposit_limit - self.daily_deposit_usage)
         
-        if user and user.has_custom_limits:
-            user_custom = user.custom_payment_limits.get(str(self.id)) or user.custom_payment_limits.get(self.id.hex)
-            if user_custom and user_custom.get('deposit'):
-                try:
-                    method_daily_ceiling = Decimal(str(user_custom['deposit']))
-                except: pass
+        # 2. Compare with User's Daily Limit (Total across all methods)
+        user_remaining = Decimal("9999999.99")
+        if user:
+            user.reset_daily_limits_if_needed()
+            user_remaining = max(Decimal("0.00"), user.daily_deposit_limit - user.daily_deposit_usage)
+            
+            # 3. Check for User-Specific Method Custom Limit
+            if user.has_custom_limits:
+                user_custom = user.custom_payment_limits.get(str(self.id)) or user.custom_payment_limits.get(self.id.hex)
+                if user_custom and user_custom.get('deposit'):
+                    try:
+                        custom_limit = Decimal(str(user_custom['deposit']))
+                        # User custom limit overrides the global method limit for THIS user
+                        method_remaining = custom_limit
+                    except: pass
         
-        # 2. Subtract current usage to get remaining
-        user_usage = user.daily_deposit_usage if user else Decimal("0.00")
-        effective_deposit_max = max(Decimal("0.00"), method_daily_ceiling - user_usage)
+        # Effective max is the MINIMUM of what's allowed by the user and the method
+        effective_deposit_max = min(method_remaining, user_remaining)
         
-        # 3. Cap by per-transaction max
+        # 4. Cap by per-transaction max
         effective_deposit_max = min(effective_deposit_max, self.deposit_max_amount)
+        
+        # 5. Check Global Cap (Task 5)
+        if self.global_deposit_cap > 0:
+            cap_remaining = max(Decimal("0.00"), self.global_deposit_cap - self.global_deposit_usage)
+            effective_deposit_max = min(effective_deposit_max, cap_remaining)
 
         currencies_data = []
         effective_rate = self.get_effective_deposit_rate()
@@ -119,21 +159,28 @@ class PaymentMethod(TimeStampedModel):
         import json
         from django.core.serializers.json import DjangoJSONEncoder
         from apps.common.models import Currency
+        from django.utils import timezone
+
+        self.reset_daily_limits_if_needed()
         usd = Currency.objects.filter(code="USD").first()
 
-        # 1. Determine Method's Daily Ceiling for this user
-        method_daily_ceiling = self.daily_withdrawal_limit
+        # 1. Global Method Remaining
+        method_remaining = max(Decimal("0.00"), self.daily_withdrawal_limit - self.daily_withdrawal_usage)
         
-        if user and user.has_custom_limits:
-            user_custom = user.custom_payment_limits.get(str(self.id)) or user.custom_payment_limits.get(self.id.hex)
-            if user_custom and user_custom.get('withdraw'):
-                try:
-                    method_daily_ceiling = Decimal(str(user_custom['withdraw']))
-                except: pass
+        # 2. User Remaining
+        user_remaining = Decimal("9999999.99")
+        if user:
+            user.reset_daily_limits_if_needed()
+            user_remaining = max(Decimal("0.00"), user.daily_withdrawal_limit - user.daily_withdrawal_usage)
+            
+            if user.has_custom_limits:
+                user_custom = user.custom_payment_limits.get(str(self.id)) or user.custom_payment_limits.get(self.id.hex)
+                if user_custom and user_custom.get('withdraw'):
+                    try:
+                        method_remaining = Decimal(str(user_custom['withdraw']))
+                    except: pass
         
-        # 2. Subtract current usage to get remaining
-        user_usage = user.daily_withdrawal_usage if user else Decimal("0.00")
-        effective_withdrawal_max = max(Decimal("0.00"), method_daily_ceiling - user_usage)
+        effective_withdrawal_max = min(method_remaining, user_remaining)
         
         # 3. Cap by per-transaction max
         effective_withdrawal_max = min(effective_withdrawal_max, self.withdrawal_max_amount)

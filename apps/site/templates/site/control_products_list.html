@@ -21,7 +21,7 @@
 </div>
 
 <div class="management-card">
-    <div class="management-header p-6 bg-slate-900/20">
+    <div class="management-header p-6 bg-slate-900/20 flex flex-wrap justify-between items-center gap-4">
         <form method="get" class="flex flex-grow gap-3 items-center max-w-2xl">
             <div class="relative flex-grow group">
                 <i class="fas fa-search absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-cyan transition-colors"></i>
@@ -31,9 +31,68 @@
             {% if query %}
             <a href="?" class="btn btn-outline btn-sm px-4 rounded-xl text-slate-500 hover:text-white">تصفير</a>
             {% endif %}
+            <input type="hidden" name="view" value="{{ view_mode|default:'list' }}">
         </form>
+
+        <div class="flex bg-slate-900/40 p-1 rounded-xl border border-white/5">
+            <a href="?view=grid&q={{ query }}" class="p-2 px-4 rounded-lg text-xs transition-all {% if view_mode == 'grid' %}bg-cyan text-black font-bold shadow-lg{% else %}text-slate-500 hover:text-white{% endif %}">
+                <i class="fas fa-th-large ml-1"></i> Grid
+            </a>
+            <a href="?view=list&q={{ query }}" class="p-2 px-4 rounded-lg text-xs transition-all {% if view_mode != 'grid' %}bg-cyan text-black font-bold shadow-lg{% else %}text-slate-500 hover:text-white{% endif %}">
+                <i class="fas fa-list ml-1"></i> List
+            </a>
+        </div>
     </div>
     
+    {% if view_mode == 'grid' %}
+    <div class="p-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6">
+        {% for p in products %}
+        <div class="group bg-slate-900/30 border border-white/5 rounded-2xl overflow-hidden hover:border-cyan/30 transition-all flex flex-col h-[380px]">
+            <div class="relative h-40 overflow-hidden">
+                {% if p.image %}
+                <img src="{{ p.image.url }}" class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500">
+                {% else %}
+                <div class="w-full h-full flex items-center justify-center text-slate-600 bg-slate-800"><i class="fas fa-box fa-3x opacity-20"></i></div>
+                {% endif %}
+                <div class="absolute top-3 left-3 flex flex-col gap-2">
+                    <span class="badge {% if p.is_active %}success{% else %}muted{% endif %} shadow-xl">{% if p.is_active %}نشط{% else %}مسودة{% endif %}</span>
+                </div>
+                {% if p.is_featured %}
+                <div class="absolute top-3 right-3">
+                    <i class="fas fa-star text-amber-400 drop-shadow-lg"></i>
+                </div>
+                {% endif %}
+            </div>
+            <div class="p-5 flex flex-col flex-grow">
+                <div class="text-[10px] font-bold text-cyan uppercase tracking-widest mb-1">{{ p.category.name }}</div>
+                <h3 class="font-bold text-white mb-2 line-clamp-1" title="{{ p.name }}">{{ p.name }}</h3>
+                <div class="text-[10px] text-slate-500 mb-4 font-mono line-clamp-1">{{ p.id }}</div>
+                
+                <div class="mt-auto space-y-3">
+                    <div class="flex justify-between items-center text-xs">
+                        <span class="text-slate-500">{{ p.variants.count }} باقات</span>
+                        {% if p.variants.first %}
+                        <span class="font-bold text-emerald-400">{% currency_format p.variants.first.price %}+</span>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="flex gap-2">
+                        <a href="{% url 'control_product_edit' p.id %}" class="flex-grow btn btn-sm btn-outline py-2.5 rounded-xl text-[10px] font-bold">
+                            <i class="fas fa-edit ml-1"></i> تعديل
+                        </a>
+                        <div class="flex flex-col bg-slate-900/50 rounded-xl border border-white/5">
+                            <a href="{% url 'control_reorder_product' p.id %}?direction=up" class="p-1.5 px-3 text-[10px] hover:text-cyan transition"><i class="fas fa-chevron-up"></i></a>
+                            <a href="{% url 'control_reorder_product' p.id %}?direction=down" class="p-1.5 px-3 border-t border-white/5 text-[10px] hover:text-cyan transition"><i class="fas fa-chevron-down"></i></a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% empty %}
+        <div class="col-span-full p-20 text-center text-slate-500 italic">لا توجد منتجات مطابقة.</div>
+        {% endfor %}
+    </div>
+    {% else %}
     <div class="p-0 overflow-x-auto">
         <table class="w-full text-sm text-right">
             <thead class="text-[11px] text-slate-500 border-b border-white/5 uppercase bg-white/[0.01]">
@@ -108,5 +167,18 @@
             </tbody>
         </table>
     </div>
+    {% endif %}
+
+    {% if products.has_other_pages %}
+    <div class="p-6 border-t border-white/5 flex justify-center gap-2">
+        {% if products.has_previous %}
+        <a href="?page={{ products.previous_page_number }}&q={{ query }}&view={{ view_mode }}" class="btn btn-outline btn-sm">السابق</a>
+        {% endif %}
+        <span class="px-4 py-2 text-xs text-slate-500">صفحة {{ products.number }} من {{ products.paginator.num_pages }}</span>
+        {% if products.has_next %}
+        <a href="?page={{ products.next_page_number }}&q={{ query }}&view={{ view_mode }}" class="btn btn-outline btn-sm">التالي</a>
+        {% endif %}
+    </div>
+    {% endif %}
 </div>
 {% endblock %}

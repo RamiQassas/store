@@ -551,6 +551,26 @@ def deposits(request):
             messages.error(request, "يرجى إدخال مبلغ صحيح.")
             return redirect("dashboard_deposits")
 
+        # --- Task 2 & 3: Limit Checks ---
+        amount_in_usd = currency.to_base(amount, "deposit")
+        
+        # 1. User Daily Limit
+        request.user.reset_daily_limits_if_needed()
+        if request.user.daily_deposit_usage + amount_in_usd > request.user.daily_deposit_limit:
+            messages.error(request, f"لقد تجاوزت حد الإيداع اليومي المسموح لك ({request.user.daily_deposit_limit} USD). المتبقي لك اليوم: {max(0, request.user.daily_deposit_limit - request.user.daily_deposit_usage):,.2f} USD")
+            return redirect("dashboard_deposits")
+            
+        # 2. Method Daily Limit
+        method.reset_daily_limits_if_needed()
+        if method.daily_deposit_usage + amount_in_usd > method.daily_deposit_limit:
+            messages.error(request, "عذراً، هذه الوسيلة وصلت للحد الأقصى للإيداعات اليومية. يرجى المحاولة غداً أو استخدام وسيلة أخرى.")
+            return redirect("dashboard_deposits")
+            
+        # 3. Global Cap (Task 5)
+        if method.global_deposit_cap > 0 and method.global_deposit_usage + amount_in_usd > method.global_deposit_cap:
+            messages.error(request, "عذراً، هذه الوسيلة غير متوفرة حالياً لتجاوزها الحد الإجمالي المسموح به.")
+            return redirect("dashboard_deposits")
+
         # Extract metadata from custom fields
         metadata = {}
         schema = method.deposit_form_schema
@@ -585,6 +605,10 @@ def deposits(request):
                 status=DepositRequest.Status.PENDING,
                 is_verified=False
             )
+            # Task 2 & 3: Increment Usage
+            request.user.add_deposit_usage(amount_in_usd)
+            method.add_deposit_usage(amount_in_usd)
+
             # Log pending activity safely
             try:
                 ActivityLog.objects.create(user=request.user, action="deposit_requested", description=f"Requested {amount} {currency.code} via {method.name}")
@@ -612,10 +636,8 @@ def deposits(request):
             methods = request.session.get("v3_auth_methods", [])
             return v3_redirect_to_verification(request, methods)
 
-    # Task 9: KYC Filtering
+    # Task 9: Show all methods, KYC check handled in template/POST
     methods = PaymentMethod.objects.filter(is_active=True, can_deposit=True)
-    if not request.user.is_kyc_verified:
-        methods = methods.filter(requires_kyc=False)
 
     return render(request, "site/v3/v3_deposits.html", {
         "payment_methods": methods, 
@@ -668,20 +690,49 @@ def withdrawals(request):
             messages.error(request, f"الحد الأقصى للسحب في العملية الواحدة عبر هذه الوسيلة هو {method.withdrawal_max_amount:,.2f} USD")
             return redirect("dashboard_withdrawals")
 
-        # 2. Daily limits check (Priority: Method Limit > Global Limit)
-        method_daily_limit = method.daily_withdrawal_limit
+        # --- Task 2 & 3: Daily Limits ---
+        # A) User Daily Limit
+        request.user.reset_daily_limits_if_needed()
+        if request.user.daily_withdrawal_usage + amount_in_usd > request.user.daily_withdrawal_limit:
+            messages.error(request, f"لقد تجاوزت حد السحب اليومي المسموح لك ({request.user.daily_withdrawal_limit} USD). المتبقي لك اليوم: {max(0, request.user.daily_withdrawal_limit - request.user.daily_withdrawal_usage):,.2f} USD")
+            return redirect("dashboard_withdrawals")
+
+        # B) Method Daily Limit
+        method.reset_daily_limits_if_needed()
+        if method.daily_withdrawal_usage + amount_in_usd > method.daily_withdrawal_limit:
+            messages.error(request, "عذراً، هذه الوسيلة وصلت للحد الأقصى للسحوبات اليومية. يرجى استخدام وسيلة أخرى.")
+            return redirect("dashboard_withdrawals")
+
+        # C) Priority/Custom Limits (Check if user has a smaller custom limit for this method)
         if request.user.has_custom_limits:
             user_custom = request.user.custom_payment_limits.get(str(method.id)) or request.user.custom_payment_limits.get(method.id.hex)
             if user_custom and user_custom.get('withdraw'):
                 try:
-                    method_daily_limit = Decimal(str(user_custom['withdraw']))
+                    custom_limit = Decimal(str(user_custom['withdraw']))
+                    if amount_in_usd > custom_limit:
+                         messages.error(request, f"عذراً، حد السحب المخصص لك لهذه الوسيلة هو {custom_limit:,.2f} USD")
+                         return redirect("dashboard_withdrawals")
                 except: pass
 
-        remaining_for_method = method_daily_limit - request.user.daily_withdrawal_usage
-        
-        if amount_in_usd > remaining_for_method:
-            messages.error(request, f"لقد تجاوزت حد السحب اليومي لهذه الوسيلة. المتبقي لك اليوم: {max(0, remaining_for_method):,.2f} USD")
-            return redirect("dashboard_withdrawals")
+        # Create request (unverified)
+        with transaction.atomic():
+            # Wallet check happens in freeze_funds
+            wallet_amount = currency.to_base(amount, "withdraw")
+            if request.user.wallet.currency.code != "USD":
+                wallet_amount = request.user.wallet.currency.from_base(wallet_amount, "withdraw")
+
+            withdrawal = WithdrawalRequest.objects.create(
+                user=request.user,
+                payment_method=method,
+                currency=currency,
+                amount=amount,
+                wallet_amount=wallet_amount,
+                status=WithdrawalRequest.Status.PENDING,
+                is_verified=False
+            )
+            # Increment Usage
+            request.user.add_withdrawal_usage(amount_in_usd)
+            method.add_withdrawal_usage(amount_in_usd)
 
         # Extract payout details
         payout_details = {"dynamic": {}}
@@ -761,10 +812,8 @@ def withdrawals(request):
             methods = request.session.get("v3_auth_methods", [])
             return v3_redirect_to_verification(request, methods)
 
-    # Task 9: KYC Filtering
+    # Task 9: Show all methods, KYC check handled in template/POST
     methods = PaymentMethod.objects.filter(is_active=True, can_withdraw=True)
-    if not request.user.is_kyc_verified:
-        methods = methods.filter(requires_kyc=False)
 
     return render(request, "site/v3/v3_withdrawals.html", {
         "payment_methods": methods, 
@@ -1086,12 +1135,12 @@ def ajax_validate_coupon(request):
         price = variant.get_price_for_user(request.user)
         try:
             discount = validate_coupon(coupon, request.user, variant, subtotal=price)
-            new_price = price - discount
+            new_total = price - discount
             return JsonResponse({
                 "valid": True,
-                "discount": str(discount),
-                "new_price": str(new_price),
-                "message": "تم تطبيق الكوبون بنجاح"
+                "discount_amount": float(discount),
+                "new_total": float(new_total),
+                "message": f"تم تطبيق الكوبون بنجاح: خصم بقيمة {discount} USD"
             })
         except ValueError as e:
             return JsonResponse({"valid": False, "error": str(e)})
@@ -1341,12 +1390,9 @@ def control_deposit_detail(request, pk):
                         deposit.admin_note = admin_note
                     deposit.save()
 
-                    # Update daily usage for the user (in base currency/USD)
+                    # Update Global Payment Method Cap (Task 5) - Still needed as it's a lifetime cap
                     try:
                         amount_in_usd = deposit.currency.to_base(deposit.final_amount, "deposit")
-                        deposit.user.add_deposit_usage(amount_in_usd)
-                        
-                        # Update Global Payment Method Cap (Task 5)
                         method = deposit.payment_method
                         method.global_deposit_usage += amount_in_usd
                         if method.global_deposit_cap > 0 and method.global_deposit_usage >= method.global_deposit_cap:
@@ -1360,7 +1406,6 @@ def control_deposit_detail(request, pk):
                             )
                         method.save()
                     except: pass
-
                     # Transparent body showing original vs approved if changed
                     amount_text = f"{deposit.final_amount:,.2f} {deposit.currency.code}"
                     if override_amount and Decimal(str(override_amount)) != original_requested_amount:
@@ -1380,7 +1425,7 @@ def control_deposit_detail(request, pk):
                         raise ValueError("لا يمكن رفض طلب مكتمل.")
                     
                     if deposit.status != DepositRequest.Status.REJECTED:
-                        wallet = get_or_create_wallet(deposit.user)
+                        wallet = get_object_or_404(Wallet, user=deposit.user)
                         from apps.wallets.services import cancel_pending_deposit
                         cancel_pending_deposit(
                             wallet_id=wallet.id,
@@ -1389,6 +1434,12 @@ def control_deposit_detail(request, pk):
                             description=f"إلغاء إيداع معلق مرفوض عبر {deposit.payment_method.name}",
                             created_by=request.user
                         )
+                        # Task 2 & 3: Reverse Usage
+                        try:
+                            amt_usd = deposit.currency.to_base(deposit.amount, "deposit")
+                            deposit.user.add_deposit_usage(-amt_usd)
+                            deposit.payment_method.add_deposit_usage(-amt_usd)
+                        except: pass
 
                     deposit.status = DepositRequest.Status.REJECTED
                     deposit.admin_note = admin_note
@@ -1517,6 +1568,7 @@ def control_withdrawal_detail(request, pk):
                         try:
                             amount_in_usd = withdrawal.currency.to_base(withdrawal.amount, "withdraw")
                             withdrawal.user.add_withdrawal_usage(-amount_in_usd)
+                            withdrawal.payment_method.add_withdrawal_usage(-amount_in_usd)
                         except: pass
 
                         withdrawal.status = WithdrawalRequest.Status.REJECTED
@@ -2000,6 +2052,8 @@ def control_users_list(request):
 def control_products_list(request):
     products = Product.objects.select_related('category').prefetch_related('variants').all().order_by('sort_order', 'name')
     q = request.GET.get('q', '').strip()
+    view_mode = request.GET.get('view', 'list')
+
     if q:
         # Check if q is a UUID-like string for ID search
         is_uuid = False
@@ -2043,7 +2097,18 @@ def control_products_list(request):
         ]
         return export_to_excel(data, "Products", columns)
 
-    return render(request, "site/control_products_list.html", {"products": products, "query": q})
+    # Pagination
+    from django.core.paginator import Paginator
+    per_page = 20 if view_mode == 'list' else 24
+    paginator = Paginator(products, per_page)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+
+    return render(request, "site/control_products_list.html", {
+        "products": page_obj, 
+        "query": q,
+        "view_mode": view_mode
+    })
 
 @support_required
 def control_orders_list(request):
@@ -2664,12 +2729,12 @@ def export_financial_report_xlsx(ctx, filters):
         
     row = 2
     for pm in ctx['payment_performance']:
-        ws2.cell(row=row, column=1, value=pm['name']).border = border
-        ws2.cell(row=row, column=2, value=float(pm['deposits_volume'] or 0)).border = border
-        ws2.cell(row=row, column=3, value=float(pm['withdrawals_volume'] or 0)).border = border
-        ws2.cell(row=row, column=4, value=float(pm['net_movement'] or 0)).border = border
-        ws2.cell(row=row, column=5, value=float(pm['fees_generated'] or 0)).border = border
-        ws2.cell(row=row, column=6, value=float(pm['real_balance'] or 0)).border = border
+        ws2.cell(row=row, column=1, value=pm.get('name', 'N/A')).border = border
+        ws2.cell(row=row, column=2, value=float(pm.get('deposits_volume', 0) or 0)).border = border
+        ws2.cell(row=row, column=3, value=float(pm.get('withdrawals_volume', 0) or 0)).border = border
+        ws2.cell(row=row, column=4, value=float(pm.get('net_movement', 0) or 0)).border = border
+        ws2.cell(row=row, column=5, value=float(pm.get('fees_generated', 0) or 0)).border = border
+        ws2.cell(row=row, column=6, value=float(pm.get('real_balance', 0) or 0)).border = border
         row += 1
 
     # Auto-adjust column widths
