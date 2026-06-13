@@ -157,16 +157,22 @@
                 </tr>
             </thead>
             <tbody>
-                {% for user in recent_users %}
                 <tr class="hover:bg-white/[0.01] transition-colors border-b border-white/[0.02] last:border-0">
                     <td class="p-4">
                         <div class="font-black text-white text-xs">{{ user.get_full_name|default:user.username }}</div>
                         <div class="text-[9px] text-slate-500 font-mono">{{ user.email }}</div>
                     </td>
                     <td class="p-4">
-                        <div class="flex items-center gap-2">
-                            <span class="font-mono text-xs font-black text-cyan">{{ user.wallet.available_balance }}</span>
-                            <span class="text-[8px] text-slate-600 font-bold">{{ user.wallet.currency.code }}</span>
+                        <div class="flex flex-col">
+                            <div class="flex items-center gap-2">
+                                <span class="font-mono text-xs font-black text-cyan">{{ user.wallet.available_balance }}</span>
+                                <span class="text-[8px] text-slate-600 font-bold uppercase">{{ user.wallet.currency.code }}</span>
+                            </div>
+                            {% if user.wallet.held_balance > 0 %}
+                            <div class="flex items-center gap-2 mt-1">
+                                <span class="text-[9px] text-rose-500 font-black">محجوز: {{ user.wallet.held_balance }}</span>
+                            </div>
+                            {% endif %}
                         </div>
                     </td>
                     <td class="p-4 text-center">
@@ -174,6 +180,11 @@
                     </td>
                     <td class="p-4 text-left">
                         <div class="flex justify-end gap-2">
+                            {% if user.wallet.held_balance > 0 %}
+                            <button class="btn btn-outline danger btn-sm py-1.5 text-[9px] font-black uppercase rounded-lg border-rose-500/10 hover:border-rose-500" onclick="unholdFunds('{{ user.wallet.id }}', '{{ user.wallet.held_balance }}')">
+                                <i class="fas fa-unlock text-[8px]"></i> فك حجز
+                            </button>
+                            {% endif %}
                             <button class="btn btn-outline btn-sm py-1.5 text-[9px] font-black uppercase rounded-lg border-white/5 hover:border-cyan" onclick="holdFunds('{{ user.wallet.id }}')">
                                 <i class="fas fa-lock text-[8px]"></i> حجز
                             </button>
@@ -211,7 +222,35 @@ async function holdFunds(walletId) {
             location.reload();
         } else {
             const data = await response.json();
-            alert("خطأ: " + (data.detail || data.message || "تعذر التنفيذ. تأكد من كفاية الرصيد."));
+            alert("خطأ: " + (data.message || "تعذر التنفيذ. تأكد من كفاية الرصيد."));
+        }
+    } catch (e) {
+        alert("حدث خطأ في الاتصال بالخادم.");
+    }
+}
+
+async function unholdFunds(walletId, maxAmount) {
+    const amount = prompt(`المبلغ المراد فك حجزه (الحد الأقصى المحجوز: ${maxAmount}):`, maxAmount);
+    if (!amount) return;
+    const reason = prompt("سبب فك الحجز:");
+    if (!reason) return;
+    
+    try {
+        const response = await fetch(`/api/wallets/${walletId}/unhold/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': '{{ csrf_token }}',
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ amount, reason })
+        });
+        
+        if (response.ok) {
+            alert("تم فك حجز المبلغ بنجاح وإعادته للرصيد المتاح.");
+            location.reload();
+        } else {
+            const data = await response.json();
+            alert("خطأ: " + (data.message || "تعذر التنفيذ."));
         }
     } catch (e) {
         alert("حدث خطأ في الاتصال بالخادم.");

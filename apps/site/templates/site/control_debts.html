@@ -169,6 +169,20 @@
                 </div>
             </div>
             
+            <div id="pay-mode-container" class="hidden">
+                <label class="text-[10px] font-black uppercase text-slate-500 mb-3 block tracking-widest">طريقة السداد</label>
+                <div class="grid grid-cols-2 gap-4">
+                    <label class="flex items-center gap-3 p-4 bg-slate-900/50 border border-white/10 rounded-2xl cursor-pointer has-[:checked]:border-cyan/50 has-[:checked]:bg-cyan/5 transition-all">
+                        <input type="radio" name="pay_mode" value="balance" checked class="accent-cyan">
+                        <span class="text-[10px] font-black text-white">من الرصيد المتاح</span>
+                    </label>
+                    <label class="flex items-center gap-3 p-4 bg-slate-900/50 border border-white/10 rounded-2xl cursor-pointer has-[:checked]:border-emerald-500/50 has-[:checked]:bg-emerald-500/5 transition-all">
+                        <input type="radio" name="pay_mode" value="cash" class="accent-emerald-500">
+                        <span class="text-[10px] font-black text-white">نقداً (خارج النظام)</span>
+                    </label>
+                </div>
+            </div>
+
             <div>
                 <label class="text-[10px] font-black uppercase text-slate-500 mb-3 block tracking-widest">السبب / الملاحظات الإدارية</label>
                 <textarea name="reason" class="w-full bg-slate-950/50 border-white/10 rounded-2xl p-5 text-xs text-white focus:border-cyan/50 leading-relaxed" rows="3" placeholder="اكتب تفاصيل توضح سبب هذه الحركة المالية لغايات التدقيق..." required></textarea>
@@ -196,9 +210,11 @@ function openDebtModal(userId, email, action, maxAmount = null) {
     const subtitle = document.getElementById('modal-subtitle');
     const submitBtn = document.getElementById('modal-submit-btn');
     const amountInput = document.getElementById('modal-amount');
+    const payModeContainer = document.getElementById('pay-mode-container');
     
     amountInput.value = "";
     if (action === 'add') {
+        payModeContainer.classList.add('hidden');
         icon.className = "w-16 h-16 rounded-3xl bg-cyan/10 flex items-center justify-center mx-auto mb-6 text-cyan";
         icon.innerHTML = '<i class="fas fa-hand-holding-dollar text-2xl"></i>';
         title.innerText = "تسجيل مديونية جديدة";
@@ -207,10 +223,11 @@ function openDebtModal(userId, email, action, maxAmount = null) {
         submitBtn.className = "btn btn-primary flex-1 py-4 rounded-2xl font-black";
         amountInput.max = "";
     } else {
+        payModeContainer.classList.remove('hidden');
         icon.className = "w-16 h-16 rounded-3xl bg-emerald-500/10 flex items-center justify-center mx-auto mb-6 text-emerald-500";
         icon.innerHTML = '<i class="fas fa-check-double text-2xl"></i>';
-        title.innerText = "سداد مديونية يدوياً";
-        subtitle.innerText = `سيتم خصم المبلغ من رصيد المستخدم (${email}) وتخفيض قيمة الدين المستحق عليه.`;
+        title.innerText = "سداد مديونية";
+        subtitle.innerText = `اختر طريقة السداد للمستخدم (${email}). السداد النقدي لن يخصم من رصيده المتاح.`;
         submitBtn.innerText = "تأكيد عملية السداد";
         submitBtn.className = "btn bg-emerald-500 text-black hover:bg-emerald-400 flex-1 py-4 rounded-2xl font-black shadow-lg shadow-emerald-500/20";
         amountInput.value = maxAmount;

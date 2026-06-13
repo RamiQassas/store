@@ -111,56 +111,54 @@
                 {% csrf_token %}
                 <input type="hidden" name="action" value="update_info">
                 
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div class="field-group">
                         <label class="text-[10px] text-slate-500 uppercase block mb-1">الجنسية</label>
-                        {{ form.nationality }}
+                        {{ form.nationality|add_class:"builder-input searchable-select" }}
                     </div>
                     <div class="field-group">
                         <label class="text-[10px] text-slate-500 uppercase block mb-1">بلد إصدار الوثيقة</label>
-                        {{ form.issuing_country }}
+                        {{ form.issuing_country|add_class:"builder-input searchable-select" }}
                     </div>
                     <div class="field-group">
                         <label class="text-[10px] text-slate-500 uppercase block mb-1">نوع الوثيقة</label>
-                        {{ form.document_type }}
+                        {{ form.document_type|add_class:"builder-input" }}
                     </div>
                     <div class="field-group">
                         <label class="text-[10px] text-slate-500 uppercase block mb-1">رقم الوطني / الوثيقة</label>
-                        {{ form.id_number }}
+                        {{ form.id_number|add_class:"builder-input" }}
                     </div>
                     <div class="field-group">
                         <label class="text-[10px] text-slate-500 uppercase block mb-1">الاسم الأول</label>
-                        {{ form.first_name }}
+                        {{ form.first_name|add_class:"builder-input" }}
                     </div>
                     <div class="field-group">
                         <label class="text-[10px] text-slate-500 uppercase block mb-1">اسم الأب</label>
-                        {{ form.father_name }}
+                        {{ form.father_name|add_class:"builder-input" }}
                     </div>
                     <div class="field-group">
                         <label class="text-[10px] text-slate-500 uppercase block mb-1">النسبة / الكنية</label>
-                        {{ form.last_name }}
+                        {{ form.last_name|add_class:"builder-input" }}
                     </div>
                     <div class="field-group">
                         <label class="text-[10px] text-slate-500 uppercase block mb-1">اسم الأم ونسبتها</label>
-                        {{ form.mother_name }}
+                        {{ form.mother_name|add_class:"builder-input" }}
                     </div>
                     <div class="field-group">
                         <label class="text-[10px] text-slate-500 uppercase block mb-1">الجنس</label>
-                        {{ form.gender }}
+                        {{ form.gender|add_class:"builder-input" }}
                     </div>
                     <div class="field-group">
                         <label class="text-[10px] text-slate-500 uppercase block mb-1">تاريخ الميلاد</label>
-                        {{ form.date_of_birth }}
+                        {{ form.date_of_birth|add_class:"builder-input" }}
                     </div>
                     <div class="field-group md:col-span-2">
                         <label class="text-[10px] text-slate-500 uppercase block mb-1">مكان الميلاد</label>
-                        {{ form.place_of_birth }}
+                        {{ form.place_of_birth|add_class:"builder-input" }}
                     </div>
                     <div class="field-group md:col-span-2">
                         <label class="text-[10px] text-slate-500 uppercase block mb-1">عنوان الإقامة الحالي</label>
-                        {{ form.current_residence }}
+                        {{ form.current_residence|add_class:"builder-input" }}
                     </div>
-                </div>
                 
                 <div class="pt-4">
                     <button type="submit" class="btn btn-sm btn-primary px-8">حفظ التعديلات على البيانات</button>

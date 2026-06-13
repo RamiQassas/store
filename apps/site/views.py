@@ -1524,10 +1524,47 @@ def control_kycs_list(request):
 @support_required
 def control_kyc_detail(request, pk):
     kyc = get_object_or_404(KYCRequest.objects.select_related('user'), pk=pk)
+    form = KYCRequestForm(request.POST or None, instance=kyc)
+    payment_methods = PaymentMethod.objects.filter(is_active=True).order_by("display_order")
+
     if request.method == "POST":
         action = request.POST.get("action")
-        admin_note = request.POST.get("admin_note", "")
-        
+
+        # 1. Update Personal Info
+        if action == "update_info" and form.is_valid():
+            form.save()
+            messages.success(request, "تم تحديث البيانات الشخصية بنجاح.")
+            return redirect("control_kyc_detail", pk=pk)
+
+        # 2. Update Limits
+        if action == "update_limits":
+            u = kyc.user
+            u.daily_deposit_limit = Decimal(request.POST.get("global_deposit_limit", u.daily_deposit_limit))
+            u.daily_withdrawal_limit = Decimal(request.POST.get("global_withdrawal_limit", u.daily_withdrawal_limit))
+
+            # Custom per-method limits
+            limits = u.custom_payment_limits or {}
+            for method in payment_methods:
+                m_id = str(method.id)
+                dep = request.POST.get(f"method_dep_{m_id}")
+                withd = request.POST.get(f"method_with_{m_id}")
+
+                if dep or withd:
+                    limits[m_id] = {
+                        "deposit": dep if dep else None,
+                        "withdraw": withd if withd else None
+                    }
+                elif m_id in limits:
+                    del limits[m_id]
+
+            u.custom_payment_limits = limits
+            u.has_custom_limits = True if limits else False
+            u.save()
+            messages.success(request, "تم تحديث الحدود المالية بنجاح.")
+            return redirect("control_kyc_detail", pk=pk)
+
+        # 3. Final Decisions
+        admin_note = request.POST.get("rejection_reason", "")
         if action == "approve":
             kyc.status = KYCRequest.Status.APPROVED
             kyc.user.is_kyc_verified = True
@@ -1539,14 +1576,26 @@ def control_kyc_detail(request, pk):
             kyc.user.is_kyc_verified = False
             kyc.user.save()
             messages.warning(request, f"تم رفض طلب توثيق {kyc.user.email}.")
-            
+        elif action == "unverify":
+            kyc.status = KYCRequest.Status.REJECTED
+            kyc.user.is_kyc_verified = False
+            kyc.user.save()
+            messages.info(request, "تم إلغاء توثيق الحساب.")
+        elif action == "revert":
+            kyc.status = KYCRequest.Status.PENDING
+            kyc.save()
+            messages.info(request, "تمت إعادة الطلب لحالة قيد المراجعة.")
+
         kyc.reviewed_by = request.user
         kyc.reviewed_at = timezone.now()
         kyc.save()
-        
         return redirect("control_kycs_list")
-        
-    return render(request, "site/control_kyc_detail.html", {"kyc": kyc})
+
+    return render(request, "site/control_kyc_detail.html", {
+        "kyc": kyc, 
+        "form": form,
+        "payment_methods": payment_methods
+    })
 
 @kyc_required
 def control_kyc_settings(request):
@@ -1884,13 +1933,64 @@ def control_wallets_list(request):
 
 @finance_required
 def control_debts(request):
-    q = request.GET.get('q', ''); users = User.objects.select_related('wallet').filter(Q(email__icontains=q) | Q(phone__icontains=q)) if q else User.objects.select_related('wallet').all()
+    q = request.GET.get('q', '')
+    users = User.objects.select_related('wallet').filter(Q(email__icontains=q) | Q(phone__icontains=q)) if q else User.objects.select_related('wallet').all()
+    
     if request.method == "POST":
-        target = get_object_or_404(User, id=request.POST.get("user_id")); amt = Decimal(request.POST.get("amount", "0"))
-        if request.POST.get("action") == "add_debt":
-            from apps.wallets.services import add_debt; add_debt(target.wallet.id, amt, f"admin_debt_{timezone.now().timestamp()}", request.POST.get("reason", ""), request.user)
+        target = get_object_or_404(User, id=request.POST.get("user_id"))
+        amt = Decimal(request.POST.get("amount", "0"))
+        action = request.POST.get("action")
+        reason = request.POST.get("reason", "")
+        
+        if action == "add_debt":
+            from apps.wallets.services import add_debt
+            add_debt(target.wallet.id, amt, f"admin_debt_{timezone.now().timestamp()}", reason, request.user)
+            messages.success(request, f"تم إضافة دين بقيمة {amt} للمستخدم {target.email}")
+            
+        elif action == "pay_debt":
+            from apps.wallets.services import pay_debt
+            pay_mode = request.POST.get("pay_mode", "balance") # balance or cash
+            
+            # If cash, we don't deduct from balance, just reduce debt_balance
+            deduct = True if pay_mode == "balance" else False
+            
+            try:
+                pay_debt(
+                    target.wallet.id, 
+                    amt, 
+                    f"admin_pay_{timezone.now().timestamp()}", 
+                    reason, 
+                    request.user, 
+                    deduct_from_balance=deduct,
+                    source="admin_cash" if pay_mode == "cash" else "admin"
+                )
+                messages.success(request, f"تم تسجيل سداد بقيمة {amt} للمستخدم {target.email} ({'نقداً' if pay_mode == 'cash' else 'من الرصيد'})")
+            except Exception as e:
+                messages.error(request, str(e))
+                
         return redirect(f"{request.path}?q={q}")
-    return render(request, "site/control_debts.html", {"users": users, "query": q})
+
+    # Stats for the sidebar
+    from django.db.models import Sum
+    from apps.wallets.models import LedgerEntry
+    total_debt = Wallet.objects.aggregate(total=Sum('debt_balance'))['total'] or 0
+    today_payments = LedgerEntry.objects.filter(
+        entry_type=LedgerEntry.EntryType.DEBT_PAYMENT,
+        created_at__date=timezone.now().date()
+    ).aggregate(total=Sum('amount'))['total'] or 0
+    
+    recent_logs = LedgerEntry.objects.filter(
+        entry_type__in=[LedgerEntry.EntryType.DEBT_ADD, LedgerEntry.EntryType.DEBT_PAYMENT]
+    ).select_related('wallet__user').order_by('-created_at')[:10]
+    
+    ctx = {
+        "users": users, 
+        "query": q,
+        "total_debt_balance": total_debt,
+        "today_debt_payments": today_payments,
+        "recent_debt_logs": recent_logs
+    }
+    return render(request, "site/control_debts.html", ctx)
 
 @support_required
 def control_send_notification(request):

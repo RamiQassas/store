@@ -98,11 +98,29 @@ def api_deposit_correct(request, pk):
 
 @user_passes_test(is_staff)
 def api_wallet_hold(request, pk):
-    return HttpResponse("Not implemented", status=501)
+    from apps.wallets.services import hold_funds
+    import json
+    try:
+        data = json.loads(request.body)
+        amount = Decimal(str(data.get("amount", "0")))
+        reason = data.get("reason", "Admin manual hold")
+        hold_funds(pk, amount, reason=reason, created_by=request.user)
+        return JsonResponse({"status": "success"})
+    except Exception as e:
+        return JsonResponse({"status": "error", "message": str(e)}, status=400)
 
 @user_passes_test(is_staff)
 def api_wallet_unhold(request, pk):
-    return HttpResponse("Not implemented", status=501)
+    from apps.wallets.services import unhold_funds
+    import json
+    try:
+        data = json.loads(request.body)
+        amount = Decimal(str(data.get("amount", "0")))
+        reason = data.get("reason", "Admin manual unhold")
+        unhold_funds(pk, amount, reason=reason, created_by=request.user)
+        return JsonResponse({"status": "success"})
+    except Exception as e:
+        return JsonResponse({"status": "error", "message": str(e)}, status=400)
 
 @user_passes_test(is_staff)
 def api_withdrawal_process(request, pk):
