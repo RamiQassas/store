@@ -71,6 +71,7 @@ urlpatterns = [
     path("control/products/create/", views.control_product_create, name="control_product_create"),
     path("control/products/categories/create-ajax/", views.control_category_create_ajax, name="control_category_create_ajax"),
     path("control/products/<uuid:pk>/edit/", views.control_product_edit, name="control_product_edit"),
+    path("control/products/<uuid:pk>/reorder/", views.control_reorder_product, name="control_reorder_product"),
     path("control/products/<uuid:product_pk>/variants/create/", views.control_variant_create, name="control_variant_create"),
     path("control/variants/<uuid:pk>/edit/", views.control_variant_edit, name="control_variant_edit"),
     path("control/orders/", views.control_orders_list, name="control_orders_list"),

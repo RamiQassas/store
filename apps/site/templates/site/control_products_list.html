@@ -10,16 +10,27 @@
         <h1>قائمة المنتجات</h1>
         <p class="text-muted">إدارة مخزون الخدمات الرقمية، تحديث الأسعار، والتحكم في ظهور المنتجات.</p>
     </div>
-    <a href="{% url 'control_product_create' %}" class="btn btn-primary btn-sm">
-        <i class="fas fa-plus ml-2"></i> إضافة منتج جديد
-    </a>
+    <div class="flex gap-3">
+        <a href="?export=excel" class="btn btn-outline btn-sm">
+            <i class="fas fa-file-excel ml-2"></i> تصدير Excel
+        </a>
+        <a href="{% url 'control_product_create' %}" class="btn btn-primary btn-sm">
+            <i class="fas fa-plus ml-2"></i> إضافة منتج جديد
+        </a>
+    </div>
 </div>
 
 <div class="management-card">
     <div class="management-header p-6 bg-slate-900/20">
-        <form method="get" class="w-full max-w-md relative group">
-            <i class="fas fa-search absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-cyan transition-colors"></i>
-            <input type="text" name="q" value="{{ query }}" placeholder="بحث بالاسم، التصنيف، أو Slug..." class="text-xs pr-10 bg-slate-900/50 border-white/10 rounded-xl focus:border-cyan/50 focus:ring-4 focus:ring-cyan/10 transition-all w-full py-2.5">
+        <form method="get" class="flex flex-grow gap-3 items-center max-w-2xl">
+            <div class="relative flex-grow group">
+                <i class="fas fa-search absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-cyan transition-colors"></i>
+                <input type="text" name="q" value="{{ query }}" placeholder="بحث بالاسم، التصنيف، SKU، أو ID..." class="text-xs pr-10 bg-slate-900/50 border-white/10 rounded-xl focus:border-cyan/50 focus:ring-4 focus:ring-cyan/10 transition-all w-full py-2.5">
+            </div>
+            <button type="submit" class="btn btn-primary btn-sm px-6 rounded-xl">بحث</button>
+            {% if query %}
+            <a href="?" class="btn btn-outline btn-sm px-4 rounded-xl text-slate-500 hover:text-white">تصفير</a>
+            {% endif %}
         </form>
     </div>
     
@@ -70,7 +81,17 @@
                             {% if p.is_featured %}<span class="badge primary text-[9px]"><i class="fas fa-star ml-1"></i> مميز</span>{% endif %}
                         </div>
                     </td>
-                    <td class="p-4 text-xs font-mono">{{ p.sort_order }}</td>
+                    <td class="p-4">
+                        <div class="flex items-center gap-2">
+                            <a href="{% url 'control_reorder_product' p.id %}?direction=up" class="text-slate-500 hover:text-cyan transition-colors" title="نقل للأعلى">
+                                <i class="fas fa-chevron-up"></i>
+                            </a>
+                            <a href="{% url 'control_reorder_product' p.id %}?direction=down" class="text-slate-500 hover:text-cyan transition-colors" title="نقل للأسفل">
+                                <i class="fas fa-chevron-down"></i>
+                            </a>
+                            <span class="text-[10px] font-mono text-slate-600 bg-slate-800 px-2 py-1 rounded ml-2">{{ p.sort_order }}</span>
+                        </div>
+                    </td>
                     <td class="p-4 text-left">
                         <div class="flex justify-end gap-2">
                             <a href="{% url 'control_product_edit' p.id %}" class="btn btn-sm btn-outline text-[10px] py-1 px-4 hover:bg-cyan hover:text-black transition">

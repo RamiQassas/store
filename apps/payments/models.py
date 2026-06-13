@@ -15,10 +15,15 @@ class PaymentMethod(TimeStampedModel):
     display_order = models.PositiveIntegerField(default=0, blank=True, verbose_name="ترتيب العرض")
     is_active = models.BooleanField(default=True, verbose_name="نشط")
     is_maintenance_mode = models.BooleanField(default=False, verbose_name="وضع الصيانة")
+    requires_kyc = models.BooleanField(default=False, verbose_name="يتطلب توثيق الهوية (KYC)", help_text="إذا تم تفعيله، لن تظهر هذه الوسيلة إلا للمستخدمين الموثقين.")
     
     # --- New Limit Fields ---
     daily_deposit_limit = models.DecimalField(max_digits=14, decimal_places=2, default=Decimal("10000.00"), verbose_name="حد الإيداع اليومي لهذه الوسيلة", help_text="القيمة بالدولار USD")
     daily_withdrawal_limit = models.DecimalField(max_digits=14, decimal_places=2, default=Decimal("10000.00"), verbose_name="حد السحب اليومي لهذه الوسيلة", help_text="القيمة بالدولار USD")
+    
+    # --- Global Cap (New Task 5) ---
+    global_deposit_cap = models.DecimalField(max_digits=14, decimal_places=2, default=Decimal("0.00"), verbose_name="الحد الإجمالي الأقصى للإيداعات", help_text="عند الوصول لهذا الحد، تتوقف الوسيلة تلقائياً. 0 تعني غير محدود.")
+    global_deposit_usage = models.DecimalField(max_digits=14, decimal_places=2, default=Decimal("0.00"), verbose_name="إجمالي الإيداعات الحالية (للمتابعة والحد الأقصى)")
 
     # --- Deposit Configuration ---
     deposit_info_schema = models.JSONField(default=dict, blank=True, verbose_name="بيانات الإيداع الثابتة (للعرض)", help_text='{"version": 1, "rows": [{"title": "IBAN", "value": "TR...", "copyable": true}]}')
@@ -61,27 +66,22 @@ class PaymentMethod(TimeStampedModel):
         from apps.common.models import Currency
         usd = Currency.objects.filter(code="USD").first()
         
-        # 1. Global/Default Ceiling
-        user_global_limit = Decimal("100.00")
-        if user:
-            # Respect the remaining daily limit
-            user_global_limit = user.remaining_deposit_limit
-
-        # 2. Determine Effective Limit based on Priorities
+        # 1. Determine Method's Daily Ceiling for this user
+        method_daily_ceiling = self.daily_deposit_limit
+        
         if user and user.has_custom_limits:
-            # VIP Override Priority: Check per-method then fallback to global custom
             user_custom = user.custom_payment_limits.get(str(self.id)) or user.custom_payment_limits.get(self.id.hex)
             if user_custom and user_custom.get('deposit'):
                 try:
-                    # Per-method custom limit capped by user's remaining daily limit
-                    effective_deposit_max = min(Decimal(str(user_custom['deposit'])), user_global_limit)
-                except:
-                    effective_deposit_max = user_global_limit
-            else:
-                effective_deposit_max = user_global_limit
-        else:
-            # Normal User: Cap global limit by method limit
-            effective_deposit_max = min(user_global_limit, self.daily_deposit_limit)
+                    method_daily_ceiling = Decimal(str(user_custom['deposit']))
+                except: pass
+        
+        # 2. Subtract current usage to get remaining
+        user_usage = user.daily_deposit_usage if user else Decimal("0.00")
+        effective_deposit_max = max(Decimal("0.00"), method_daily_ceiling - user_usage)
+        
+        # 3. Cap by per-transaction max
+        effective_deposit_max = min(effective_deposit_max, self.deposit_max_amount)
 
         currencies_data = []
         effective_rate = self.get_effective_deposit_rate()
@@ -121,27 +121,22 @@ class PaymentMethod(TimeStampedModel):
         from apps.common.models import Currency
         usd = Currency.objects.filter(code="USD").first()
 
-        # 1. Global/Default Ceiling
-        user_global_limit = Decimal("100.00")
-        if user:
-            # Respect the remaining daily limit
-            user_global_limit = user.remaining_withdrawal_limit
-
-        # 2. Determine Effective Limit based on Priorities
+        # 1. Determine Method's Daily Ceiling for this user
+        method_daily_ceiling = self.daily_withdrawal_limit
+        
         if user and user.has_custom_limits:
-            # VIP Override Priority: Check per-method then fallback to global custom
             user_custom = user.custom_payment_limits.get(str(self.id)) or user.custom_payment_limits.get(self.id.hex)
             if user_custom and user_custom.get('withdraw'):
                 try:
-                    # Per-method custom limit capped by user's remaining daily limit
-                    effective_withdrawal_max = min(Decimal(str(user_custom['withdraw'])), user_global_limit)
-                except:
-                    effective_withdrawal_max = user_global_limit
-            else:
-                effective_withdrawal_max = user_global_limit
-        else:
-            # Normal User: Cap global limit by method limit
-            effective_withdrawal_max = min(user_global_limit, self.daily_withdrawal_limit)
+                    method_daily_ceiling = Decimal(str(user_custom['withdraw']))
+                except: pass
+        
+        # 2. Subtract current usage to get remaining
+        user_usage = user.daily_withdrawal_usage if user else Decimal("0.00")
+        effective_withdrawal_max = max(Decimal("0.00"), method_daily_ceiling - user_usage)
+        
+        # 3. Cap by per-transaction max
+        effective_withdrawal_max = min(effective_withdrawal_max, self.withdrawal_max_amount)
 
         currencies_data = []
         effective_rate = self.get_effective_withdrawal_rate()

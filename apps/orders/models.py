@@ -20,6 +20,7 @@ class Coupon(TimeStampedModel):
     max_uses = models.PositiveIntegerField(default=0, verbose_name="أقصى عدد استخدام لجميع المستخدمين (0 = غير محدود)")
     max_uses_per_user = models.PositiveIntegerField(default=1, verbose_name="أقصى عدد استخدام لكل مستخدم")
     used_count = models.PositiveIntegerField(default=0, verbose_name="إجمالي عدد المرات التي تم استخدامه")
+    min_order_amount = models.DecimalField(max_digits=14, decimal_places=2, default=Decimal("0.00"), verbose_name="الحد الأدنى للطلب (USD)")
     is_active = models.BooleanField(default=True, verbose_name="نشط")
     is_verified_only = models.BooleanField(default=True, verbose_name="للحسابات الموثقة فقط")
     expires_at = models.DateTimeField(null=True, blank=True, verbose_name="تاريخ الانتهاء")

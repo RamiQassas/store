@@ -157,10 +157,12 @@ class PaymentMethodForm(forms.ModelForm):
         model = PaymentMethod
         fields = [
             "name", "method_type", "logo", "description",
-            "display_order", "is_active", "is_maintenance_mode",
+            "display_order", "is_active", "is_maintenance_mode", "requires_kyc",
             "can_deposit", "can_withdraw", "supported_currencies",
             "deposit_min_amount", "deposit_max_amount", "deposit_instructions", "deposit_qr_image",
             "withdrawal_min_amount", "withdrawal_max_amount", "withdrawal_instructions",
+            "daily_deposit_limit", "daily_withdrawal_limit",
+            "global_deposit_cap", "global_deposit_usage",
             "deposit_info_schema", "withdrawal_info_schema",
             "deposit_form_schema", "withdrawal_form_schema",
             "deposit_fee_settings", "withdrawal_fee_settings",
@@ -174,6 +176,10 @@ class PaymentMethodForm(forms.ModelForm):
             "deposit_max_amount": forms.NumberInput(attrs={"class": "builder-input"}),
             "withdrawal_min_amount": forms.NumberInput(attrs={"class": "builder-input"}),
             "withdrawal_max_amount": forms.NumberInput(attrs={"class": "builder-input"}),
+            "daily_deposit_limit": forms.NumberInput(attrs={"class": "builder-input"}),
+            "daily_withdrawal_limit": forms.NumberInput(attrs={"class": "builder-input"}),
+            "global_deposit_cap": forms.NumberInput(attrs={"class": "builder-input"}),
+            "global_deposit_usage": forms.NumberInput(attrs={"class": "builder-input"}),
             "capital_exchange_rate": forms.NumberInput(attrs={"class": "builder-input", "step": "0.000001"}),
             "deposit_exchange_rate": forms.NumberInput(attrs={"class": "builder-input", "step": "0.000001"}),
             "withdrawal_exchange_rate": forms.NumberInput(attrs={"class": "builder-input", "step": "0.000001"}),
@@ -362,7 +368,7 @@ class CouponForm(forms.ModelForm):
     class Meta:
         model = Coupon
         fields = [
-            "code", "discount_type", "discount_percent", "discount_amount", "max_uses", "max_uses_per_user",
+            "code", "discount_type", "discount_percent", "discount_amount", "min_order_amount", "max_uses", "max_uses_per_user",
             "is_active", "is_verified_only", "expires_at",
             "limit_to_product", "apply_to_all_products",
             "limit_to_users", "limit_to_area", "allow_area_type", "limit_to_place_of_birth"
@@ -372,6 +378,7 @@ class CouponForm(forms.ModelForm):
             "discount_type": forms.Select(attrs={"class": "builder-input", "onchange": "toggleDiscountFields()"}),
             "discount_percent": forms.NumberInput(attrs={"class": "builder-input", "step": "0.01"}),
             "discount_amount": forms.NumberInput(attrs={"class": "builder-input", "step": "0.01"}),
+            "min_order_amount": forms.NumberInput(attrs={"class": "builder-input", "step": "0.01"}),
             "max_uses": forms.NumberInput(attrs={"class": "builder-input"}),
             "max_uses_per_user": forms.NumberInput(attrs={"class": "builder-input"}),
             "expires_at": forms.DateTimeInput(attrs={"type": "datetime-local", "class": "builder-input"}),

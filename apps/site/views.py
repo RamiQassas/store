@@ -531,6 +531,12 @@ def deposits(request):
             return redirect("dashboard_deposits")
             
         method = get_object_or_404(PaymentMethod, id=method_id, is_active=True, can_deposit=True)
+        
+        # KYC Check (Task 9)
+        if method.requires_kyc and not request.user.is_kyc_verified:
+            messages.error(request, "هذه الوسيلة تتطلب توثيق الحساب (KYC) أولاً.")
+            return redirect("dashboard_deposits")
+            
         currency = get_object_or_404(Currency, id=currency_id, is_active=True)
         
         # Security check: Does currency belong to method?
@@ -606,8 +612,13 @@ def deposits(request):
             methods = request.session.get("v3_auth_methods", [])
             return v3_redirect_to_verification(request, methods)
 
+    # Task 9: KYC Filtering
+    methods = PaymentMethod.objects.filter(is_active=True, can_deposit=True)
+    if not request.user.is_kyc_verified:
+        methods = methods.filter(requires_kyc=False)
+
     return render(request, "site/v3/v3_deposits.html", {
-        "payment_methods": PaymentMethod.objects.filter(is_active=True, can_deposit=True), 
+        "payment_methods": methods, 
         "requests": DepositRequest.objects.filter(user=request.user, is_verified=True).order_by('-created_at'),
         "daily_limit": request.user.daily_deposit_limit,
         "remaining_limit": request.user.remaining_deposit_limit,
@@ -626,6 +637,12 @@ def withdrawals(request):
             return redirect("dashboard_withdrawals")
 
         method = get_object_or_404(PaymentMethod, id=method_id, is_active=True, can_withdraw=True)
+        
+        # Task 9: KYC Check
+        if method.requires_kyc and not request.user.is_kyc_verified:
+            messages.error(request, "هذه الوسيلة تتطلب توثيق الحساب (KYC) أولاً.")
+            return redirect("dashboard_withdrawals")
+
         currency = get_object_or_404(Currency, id=currency_id, is_active=True)
         
         if not method.supported_currencies.filter(id=currency.id).exists():
@@ -641,8 +658,29 @@ def withdrawals(request):
 
         # Limit checks (pre-request)
         amount_in_usd = currency.to_base(amount, "withdraw")
-        if amount_in_usd > request.user.remaining_withdrawal_limit:
-            messages.error(request, f"لقد تجاوزت حد السحب اليومي المتبقي ({request.user.remaining_withdrawal_limit:,.2f} USD).")
+
+        # 1. Method-specific transaction limits
+        if amount_in_usd < method.withdrawal_min_amount:
+            messages.error(request, f"الحد الأدنى للسحب عبر هذه الوسيلة هو {method.withdrawal_min_amount:,.2f} USD")
+            return redirect("dashboard_withdrawals")
+        
+        if amount_in_usd > method.withdrawal_max_amount:
+            messages.error(request, f"الحد الأقصى للسحب في العملية الواحدة عبر هذه الوسيلة هو {method.withdrawal_max_amount:,.2f} USD")
+            return redirect("dashboard_withdrawals")
+
+        # 2. Daily limits check (Priority: Method Limit > Global Limit)
+        method_daily_limit = method.daily_withdrawal_limit
+        if request.user.has_custom_limits:
+            user_custom = request.user.custom_payment_limits.get(str(method.id)) or request.user.custom_payment_limits.get(method.id.hex)
+            if user_custom and user_custom.get('withdraw'):
+                try:
+                    method_daily_limit = Decimal(str(user_custom['withdraw']))
+                except: pass
+
+        remaining_for_method = method_daily_limit - request.user.daily_withdrawal_usage
+        
+        if amount_in_usd > remaining_for_method:
+            messages.error(request, f"لقد تجاوزت حد السحب اليومي لهذه الوسيلة. المتبقي لك اليوم: {max(0, remaining_for_method):,.2f} USD")
             return redirect("dashboard_withdrawals")
 
         # Extract payout details
@@ -949,37 +987,18 @@ def product_detail(request, pk):
         coupon = None
         discount_amount = Decimal("0.00")
         if coupon_code:
-            coupon = Coupon.objects.filter(code__iexact=coupon_code, is_active=True).first()
+            from apps.orders.services import validate_coupon
+            coupon = Coupon.objects.filter(code__iexact=coupon_code).first()
             if coupon:
-                # Validate coupon again before processing
-                is_valid = True
-                if not coupon.apply_to_all_products and coupon.limit_to_product_id != product.id:
-                    is_valid = False
-                if coupon.max_uses > 0 and coupon.used_count >= coupon.max_uses:
-                    is_valid = False
-                if coupon.expires_at and coupon.expires_at < timezone.now():
-                    is_valid = False
-                
-                # New Restrictions Check in Purchase Logic
-                if coupon.limit_to_users.exists() and not coupon.limit_to_users.filter(id=request.user.id).exists():
-                    is_valid = False
-                if coupon.limit_to_tiers and request.user.tier not in coupon.limit_to_tiers:
-                    is_valid = False
-                if coupon.limit_to_area:
-                    kyc = getattr(request.user, 'kyc_request', None)
-                    if not kyc or coupon.limit_to_area not in kyc.current_residence:
-                        is_valid = False
-                
-                if is_valid:
-                    if coupon.discount_type == Coupon.DiscountType.PERCENTAGE:
-                        discount_amount = (price * (coupon.discount_percent / 100)).quantize(Decimal("0.01"))
-                    else:
-                        discount_amount = min(coupon.discount_amount, price)
+                try:
+                    discount_amount = validate_coupon(coupon, request.user, variant, subtotal=price)
                     price -= discount_amount
-                else:
+                except ValueError as e:
+                    messages.error(request, f"خطأ في الكوبون: {str(e)}")
                     coupon = None
 
         if request.user.wallet.available_balance >= price:
+
             with transaction.atomic():
                 from apps.orders.models import Order, OrderItem
                 from apps.wallets.services import credit_wallet
@@ -1046,6 +1065,7 @@ def product_detail(request, pk):
 
 def ajax_validate_coupon(request):
     try:
+        from apps.orders.services import validate_coupon
         variant_id = request.GET.get("variant_id")
         code = request.GET.get("code", "").strip()
         
@@ -1053,98 +1073,26 @@ def ajax_validate_coupon(request):
             return JsonResponse({"valid": False, "error": "بيانات ناقصة"})
             
         variant = ProductVariant.objects.select_related("product").get(id=variant_id)
-        coupon = Coupon.objects.filter(code__iexact=code, is_active=True).first()
+        coupon = Coupon.objects.filter(code__iexact=code).first()
         
         if not coupon:
-            return JsonResponse({"valid": False, "error": "الكوبون غير صحيح أو منتهي الصلاحية"})
+            return JsonResponse({"valid": False, "error": "الكوبون غير صحيح"})
             
-        # Check product limits
-        if not coupon.apply_to_all_products:
-            if coupon.limit_to_product_id and variant.product_id != coupon.limit_to_product_id:
-                return JsonResponse({"valid": False, "error": f"هذا الكوبون مخصص لمنتج {coupon.limit_to_product.name} فقط"})
-
-        # Check total usage limits
-        if coupon.max_uses > 0 and coupon.used_count >= coupon.max_uses:
-            return JsonResponse({"valid": False, "error": "عذراً، وصل هذا الكوبون للحد الأقصى من الاستخدام"})
-            
-        # Check per-user usage limits
-        if request.user.is_authenticated:
-            user_usage = Order.objects.filter(customer=request.user, coupon=coupon).count()
-            if coupon.max_uses_per_user > 0 and user_usage >= coupon.max_uses_per_user:
-                return JsonResponse({"valid": False, "error": "لقد استخدمت هذا الكوبون مسبقاً"})
-            
-            # New Restrictions Check
-            # 1. Specific Users
-            if coupon.limit_to_users.exists():
-                if not coupon.limit_to_users.filter(id=request.user.id).exists():
-                    return JsonResponse({"valid": False, "error": "هذا الكوبون غير مخصص لحسابك"})
-            
-            # 2. Specific Tiers
-            if coupon.limit_to_tiers:
-                if request.user.tier not in coupon.limit_to_tiers:
-                    tier_display = dict(User.Tier.choices).get(request.user.tier, request.user.tier)
-                    return JsonResponse({"valid": False, "error": f"هذا الكوبون غير متاح لفئة {tier_display}"})
-            
-            # 3. Specific Area (Residence or Birth)
-            if coupon.limit_to_area or coupon.limit_to_place_of_birth:
-                kyc = getattr(request.user, 'kyc_request', None)
-                if not kyc:
-                    return JsonResponse({"valid": False, "error": "هذا الكوبون يتطلب حساباً موثقاً وتأكيد عنوان السكن"})
-                
-                area_valid = True
-                if coupon.limit_to_area:
-                    match_res = coupon.limit_to_area.lower() in kyc.current_residence.lower()
-                    if coupon.allow_area_type == Coupon.AreaType.RESIDENCE and not match_res:
-                        area_valid = False
-                    elif coupon.allow_area_type == Coupon.AreaType.BOTH and not match_res:
-                        # Will check birth below
-                        pass
-                    elif coupon.allow_area_type == Coupon.AreaType.BIRTH:
-                        # Handled by separate field check
-                        pass
-                
-                if coupon.limit_to_place_of_birth:
-                    match_birth = coupon.limit_to_place_of_birth.lower() in kyc.place_of_birth.lower()
-                    if coupon.allow_area_type == Coupon.AreaType.BIRTH and not match_birth:
-                        area_valid = False
-                    elif coupon.allow_area_type == Coupon.AreaType.BOTH:
-                        # If residence matched, we are good. If not, check birth.
-                        match_res = coupon.limit_to_area.lower() in kyc.current_residence.lower() if coupon.limit_to_area else False
-                        if not match_res and not match_birth:
-                            area_valid = False
-
-                if not area_valid:
-                    return JsonResponse({"valid": False, "error": "هذا الكوبون غير متاح لمنطقتك الجغرافية الحالية أو مكان ولادتك"})
-
-        # Check expiration
-        if coupon.expires_at and coupon.expires_at < timezone.now():
-            return JsonResponse({"valid": False, "error": "هذا الكوبون منتهي الصلاحية"})
-
-        # Check verified only
-        if coupon.is_verified_only:
-            # You might need to check if user is KYC verified here
-            # For now, let's assume request.user.is_verified is a field or check
-            pass
-
-        # Calculate discount
         price = variant.get_price_for_user(request.user)
-        discount_amount = Decimal("0.00")
-        
-        if coupon.discount_type == Coupon.DiscountType.PERCENTAGE:
-            discount_amount = (price * (coupon.discount_percent / 100)).quantize(Decimal("0.01"))
-        else:
-            discount_amount = min(coupon.discount_amount, price)
-            
-        new_total = price - discount_amount
-        
-        return JsonResponse({
-            "valid": True, 
-            "message": f"تم تطبيق الكوبون بنجاح! خصم {discount_amount} USD",
-            "discount_amount": float(discount_amount), 
-            "new_total": float(new_total)
-        })
+        try:
+            discount = validate_coupon(coupon, request.user, variant, subtotal=price)
+            new_price = price - discount
+            return JsonResponse({
+                "valid": True,
+                "discount": str(discount),
+                "new_price": str(new_price),
+                "message": "تم تطبيق الكوبون بنجاح"
+            })
+        except ValueError as e:
+            return JsonResponse({"valid": False, "error": str(e)})
+
     except Exception as e:
-        return JsonResponse({"valid": False, "error": str(e)})
+        return JsonResponse({"valid": False, "error": "حدث خطأ أثناء التحقق من الكوبون"})
 
 # ==========================================
 # --- ADMINISTRATIVE VIEWS (V4) ---
@@ -1392,6 +1340,20 @@ def control_deposit_detail(request, pk):
                     try:
                         amount_in_usd = deposit.currency.to_base(deposit.final_amount, "deposit")
                         deposit.user.add_deposit_usage(amount_in_usd)
+                        
+                        # Update Global Payment Method Cap (Task 5)
+                        method = deposit.payment_method
+                        method.global_deposit_usage += amount_in_usd
+                        if method.global_deposit_cap > 0 and method.global_deposit_usage >= method.global_deposit_cap:
+                            method.is_maintenance_mode = True
+                            # Notify Admin
+                            from apps.notifications.services import notify_staff
+                            notify_staff(
+                                title="تجاوز الحد الأقصى لطريقة الدفع",
+                                body=f"وصلت طريقة الدفع {method.name} للحد الأقصى المسموح به ({method.global_deposit_cap:,.2f} USD). تم تحويلها لوضع الصيانة تلقائياً.",
+                                category="system"
+                            )
+                        method.save()
                     except: pass
 
                     # Transparent body showing original vs approved if changed
@@ -1849,7 +1811,16 @@ def control_order_detail(request, pk):
             order.save()
             messages.success(request, "تم تحديث بيانات التنفيذ.")
         elif action == "update_price":
-            new_total = Decimal(request.POST.get("total_amount", "0"))
+            val = request.POST.get("total_amount", "").strip()
+            if not val:
+                new_total = order.total_amount
+            else:
+                try:
+                    new_total = Decimal(val)
+                except:
+                    messages.error(request, "قيمة السعر غير صالحة.")
+                    return redirect("control_order_detail", pk=pk)
+
             old_total = order.total_amount
             diff = new_total - old_total
             
@@ -1862,22 +1833,27 @@ def control_order_detail(request, pk):
                 
                 try:
                     with transaction.atomic():
+                        reason = request.POST.get("adjustment_reason", "")
                         if diff > 0:
                             # Price increased, debit user
+                            desc = f"تعديل سعر الطلب #{order.number} (زيادة): من {old_total} إلى {new_total}"
+                            if reason: desc += f" | السبب: {reason}"
                             debit_wallet(wallet.id, adj_amount, reference=f"order_adj:{order.id}", 
-                                         description=f"Adjustment for order #{order.number} (Price Increase)", 
+                                         description=desc, 
                                          created_by=request.user)
                         else:
                             # Price decreased, credit user
+                            desc = f"تعديل سعر الطلب #{order.number} (تخفيض): من {old_total} إلى {new_total}"
+                            if reason: desc += f" | السبب: {reason}"
                             credit_wallet(wallet.id, abs(adj_amount), reference=f"order_adj:{order.id}", 
-                                          description=f"Adjustment for order #{order.number} (Price Decrease)", 
+                                          description=desc, 
                                           created_by=request.user)
                         
                         if not order.original_total:
                             order.original_total = old_total
                         
                         order.total_amount = new_total
-                        order.price_adjustment_reason = request.POST.get("adjustment_reason", "")
+                        order.price_adjustment_reason = reason
                         order.save()
                         
                         # Update order items
@@ -1891,7 +1867,7 @@ def control_order_detail(request, pk):
                         OrderLog.objects.create(
                             order=order, 
                             status=order.status, 
-                            note=f"تعديل السعر من {old_total} إلى {new_total}. السبب: {order.price_adjustment_reason}", 
+                            note=f"تم تعديل سعر الطلب بواسطة الإدارة من {old_total} إلى {new_total}. السبب: {order.price_adjustment_reason}", 
                             created_by=request.user
                         )
 
@@ -1899,8 +1875,8 @@ def control_order_detail(request, pk):
                         try:
                             notify_user(
                                 user=order.customer,
-                                title="تعديل سعر الطلب",
-                                body=f"تم تعديل سعر طلبك رقم #{order.number}. السعر الجديد: {new_total} USD. السبب: {order.price_adjustment_reason}",
+                                title="تم تعديل سعر الطلب",
+                                body=f"تم تعديل سعر طلبك رقم #{order.number} من قبل الإدارة. السعر الجديد: {new_total} USD. السبب: {order.price_adjustment_reason}",
                                 action_url=f"/dashboard/orders/{order.id}/",
                                 category="orders"
                             )
@@ -1922,47 +1898,189 @@ def control_order_detail(request, pk):
     }
     return render(request, "site/control_order_detail.html", ctx)
 
+def export_to_excel(queryset, filename, columns):
+    try:
+        import openpyxl
+        from openpyxl.styles import Font, Alignment, PatternFill
+        from io import BytesIO
+        from django.http import HttpResponse
+
+        wb = openpyxl.Workbook()
+        ws = wb.active
+        ws.title = "Data"
+        ws.sheet_view.rightToLeft = True
+
+        header_font = Font(bold=True, color="FFFFFF")
+        header_fill = PatternFill(start_color="06b6d4", end_color="06b6d4", fill_type="solid")
+        center_align = Alignment(horizontal="center", vertical="center")
+
+        # Write Headers
+        for col_idx, (header, _) in enumerate(columns, 1):
+            cell = ws.cell(row=1, column=col_idx, value=header)
+            cell.font = header_font
+            cell.fill = header_fill
+            cell.alignment = center_align
+
+        # Write Data
+        for row_idx, obj in enumerate(queryset, 2):
+            for col_idx, (_, getter) in enumerate(columns, 1):
+                val = getter(obj)
+                ws.cell(row=row_idx, column=col_idx, value=val)
+
+        # Auto-adjust column widths
+        from openpyxl.utils import get_column_letter
+        for column in ws.columns:
+            max_length = 0
+            column_letter = get_column_letter(column[0].column)
+            for cell in column:
+                try:
+                    if len(str(cell.value)) > max_length:
+                        max_length = len(str(cell.value))
+                except: pass
+            ws.column_dimensions[column_letter].width = max_length + 2
+
+        output = BytesIO()
+        wb.save(output)
+        output.seek(0)
+
+        response = HttpResponse(
+            output.read(),
+            content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        )
+        response['Content-Disposition'] = f'attachment; filename="{filename}_{timezone.now().strftime("%Y%m%d")}.xlsx"'
+        return response
+    except Exception as e:
+        return HttpResponse(f"Error generating Excel: {str(e)}", status=500)
+
 @admin_required
 def control_users_list(request):
     if request.method == "POST":
         action = request.POST.get("action")
         user_ids = request.POST.getlist("user_ids")
-
         if not user_ids:
             messages.warning(request, "يرجى اختيار مستخدمين لتنفيذ العملية.")
             return redirect("control_users_list")
-
         if action == "bulk_update":
             tier = request.POST.get("bulk_tier")
             if tier:
                 User.objects.filter(id__in=user_ids).update(tier=tier)
                 messages.success(request, f"تم تحديث فئة {len(user_ids)} مستخدم بنجاح.")
-
         return redirect("control_users_list")
 
     users = User.objects.select_related("wallet").order_by("-date_joined")
-
-    # Handle search - include last_name for more precise searches
     q = request.GET.get('q', '').strip()
     status = request.GET.get('status', '')
 
     if q:
-        users = users.filter(
-            Q(email__icontains=q) | 
-            Q(first_name__icontains=q) | 
-            Q(last_name__icontains=q) | 
-            Q(phone__icontains=q)
-        )
+        users = users.filter(Q(email__icontains=q) | Q(first_name__icontains=q) | Q(last_name__icontains=q) | Q(phone__icontains=q))
     if status:
         users = users.filter(status=status)
 
-    return render(request, "site/control_users_list.html", {
-        "users": users,
-        "query": q,
-        "current_status": status,
-        "tiers": User.Tier.choices
-    })
+    if request.GET.get("export") == "excel":
+        columns = [
+            ("الاسم", lambda u: u.get_full_name()),
+            ("البريد الإلكتروني", lambda u: u.email),
+            ("الهاتف", lambda u: u.phone),
+            ("الفئة", lambda u: u.get_tier_display()),
+            ("الحالة", lambda u: u.get_status_display()),
+            ("الرصيد المتاح", lambda u: u.wallet.available_balance),
+            ("الديون", lambda u: u.wallet.debt_balance),
+            ("تاريخ الانضمام", lambda u: u.date_joined.strftime("%Y-%m-%d")),
+        ]
+        return export_to_excel(users, "Users", columns)
 
+    return render(request, "site/control_users_list.html", {"users": users, "query": q, "current_status": status, "tiers": User.Tier.choices})
+
+@support_required
+def control_products_list(request):
+    products = Product.objects.select_related('category').prefetch_related('variants').all().order_by('sort_order', 'name')
+    q = request.GET.get('q', '').strip()
+    if q:
+        # Check if q is a UUID-like string for ID search
+        is_uuid = False
+        try:
+            uuid.UUID(q)
+            is_uuid = True
+        except ValueError: pass
+
+        if is_uuid:
+            products = products.filter(id=q)
+        else:
+            products = products.filter(
+                Q(name__icontains=q) | 
+                Q(category__name__icontains=q) | 
+                Q(slug__icontains=q) | 
+                Q(variants__sku__icontains=q) | 
+                Q(variants__name__icontains=q)
+            ).distinct()
+
+    if request.GET.get("export") == "excel":
+        data = []
+        for p in products:
+            for v in p.variants.all():
+                data.append({
+                    "product_name": p.name,
+                    "category": p.category.name,
+                    "variant_name": v.name,
+                    "sku": v.sku,
+                    "price": v.price,
+                    "cost": v.cost,
+                    "is_active": "نشط" if v.is_active else "معطل"
+                })
+        columns = [
+            ("المنتج", lambda x: x["product_name"]),
+            ("التصنيف", lambda x: x["category"]),
+            ("الباقة", lambda x: x["variant_name"]),
+            ("SKU", lambda x: x["sku"]),
+            ("السعر", lambda x: x["price"]),
+            ("التكلفة", lambda x: x["cost"]),
+            ("الحالة", lambda x: x["is_active"]),
+        ]
+        return export_to_excel(data, "Products", columns)
+
+    return render(request, "site/control_products_list.html", {"products": products, "query": q})
+
+@support_required
+def control_orders_list(request):
+    orders = Order.objects.select_related('customer').prefetch_related('items__variant__product').all().order_by('-created_at')
+    q = request.GET.get('q', '').strip()
+    status = request.GET.get('status', '')
+
+    if q: orders = orders.filter(Q(number__icontains=q) | Q(customer__email__icontains=q))
+    if status: orders = orders.filter(status=status)
+
+    if request.GET.get("export") == "excel":
+        columns = [
+            ("رقم الطلب", lambda o: o.number),
+            ("التاريخ", lambda o: o.created_at.strftime("%Y-%m-%d %H:%M")),
+            ("العميل", lambda o: o.customer.email),
+            ("المنتج", lambda o: o.items.first().variant.product.name if o.items.exists() else ""),
+            ("الباقة", lambda o: o.items.first().variant.name if o.items.exists() else ""),
+            ("المبلغ", lambda o: o.total_amount),
+            ("الحالة", lambda o: o.get_status_display()),
+        ]
+        return export_to_excel(orders, "Orders", columns)
+
+    return render(request, "site/control_orders_list.html", {"orders": orders, "query": q, "current_status": status, "order_status_choices": Order.Status.choices})
+
+@finance_required
+def control_wallets_list(request):
+    q = request.GET.get('q', ''); wallets = Wallet.objects.select_related('user', 'currency').all().order_by('-updated_at')
+    if q: wallets = wallets.filter(Q(user__email__icontains=q) | Q(user__first_name__icontains=q))
+
+    if request.GET.get("export") == "excel":
+        columns = [
+            ("المستخدم", lambda w: w.user.email),
+            ("العملة", lambda w: w.currency.code),
+            ("الرصيد المتاح", lambda w: w.available_balance),
+            ("الديون", lambda w: w.debt_balance),
+            ("المجمد", lambda w: w.frozen_balance),
+            ("المحجوز", lambda w: w.held_balance),
+            ("المعلق", lambda w: w.pending_balance),
+        ]
+        return export_to_excel(wallets, "Wallets", columns)
+
+    return render(request, "site/control_wallets_list.html", {"wallets": wallets, "query": q})
 @admin_required
 def control_user_moderate(request, public_uuid):
     user = get_object_or_404(User, public_uuid=public_uuid); form = ModerateUserForm(request.POST or None, instance=user)
@@ -2044,19 +2162,27 @@ def control_product_create(request):
     if request.method == "POST" and form.is_valid():
         product = form.save(); v_json = request.POST.get("variants_json")
         if v_json:
-            for v in json.loads(v_json): 
+            v_data = json.loads(v_json)
+            def safe_decimal(val, default="0"):
+                if not val or str(val).strip() == "": return Decimal(default)
+                try: return Decimal(str(val))
+                except: return Decimal(default)
+
+            for v in v_data:
                 ProductVariant.objects.create(
-                    product=product, 
-                    name=v.get('name'), 
-                    sku=v.get('sku'), 
-                    price=Decimal(str(v.get('price', '0'))), 
-                    wholesale_price=Decimal(str(v.get('wholesale_price', '0'))),
-                    vip_price=Decimal(str(v.get('vip_price', '0'))),
-                    cost=Decimal(str(v.get('cost', '0'))), 
-                    estimated_delivery_minutes=int(v.get('estimated_delivery_minutes', 0)),
-                    sort_order=int(v.get('sort_order', 0)), 
-                    is_active=v.get('is_active', True)
+                    product=product,
+                    name=v.get('name'),
+                    sku=v.get('sku'),
+                    price=safe_decimal(v.get('price')),
+                    wholesale_price=safe_decimal(v.get('wholesale_price')),
+                    vip_price=safe_decimal(v.get('vip_price')),
+                    cost=safe_decimal(v.get('cost')),
+                    estimated_delivery_minutes=int(v.get('estimated_delivery_minutes', 0) or 0),
+                    sort_order=int(v.get('sort_order', 0) or 0),
+                    is_active=v.get('is_active', True),
+                    is_temporarily_disabled=v.get('is_temporarily_disabled', False)
                 )
+
         return redirect("control_products_list")
     return render(request, "site/control_product_builder.html", {"form": form, "variants_json_data": [], "title": "إنشاء منتج جديد"})
 
@@ -2068,28 +2194,36 @@ def control_product_edit(request, pk):
         product = form.save(); v_json = request.POST.get("variants_json")
         if v_json:
             v_data = json.loads(v_json); product.variants.exclude(sku__in=[v.get('sku') for v in v_data if v.get('sku')]).delete()
-            for v in v_data: 
+            for v in v_data:
+                def safe_decimal(val, default="0"):
+                    if not val or str(val).strip() == "": return Decimal(default)
+                    try: return Decimal(str(val))
+                    except: return Decimal(default)
+
                 ProductVariant.objects.update_or_create(
-                    product=product, 
-                    sku=v.get('sku'), 
+                    product=product,
+                    sku=v.get('sku'),
                     defaults={
-                        "name": v.get('name'), 
-                        "price": Decimal(str(v.get('price', '0'))), 
-                        "wholesale_price": Decimal(str(v.get('wholesale_price', '0'))),
-                        "vip_price": Decimal(str(v.get('vip_price', '0'))),
-                        "cost": Decimal(str(v.get('cost', '0'))), 
-                        "estimated_delivery_minutes": int(v.get('estimated_delivery_minutes', 0)),
-                        "sort_order": int(v.get('sort_order', 0)), 
-                        "is_active": v.get('is_active', True)
+                        "name": v.get('name'),
+                        "price": safe_decimal(v.get('price')),
+                        "wholesale_price": safe_decimal(v.get('wholesale_price')),
+                        "vip_price": safe_decimal(v.get('vip_price')),
+                        "cost": safe_decimal(v.get('cost')),
+                        "estimated_delivery_minutes": int(v.get('estimated_delivery_minutes', 0) or 0),
+                        "sort_order": int(v.get('sort_order', 0) or 0),
+                        "is_active": v.get('is_active', True),
+                        "is_temporarily_disabled": v.get('is_temporarily_disabled', False)
                     }
                 )
+
         return redirect("control_products_list")
     v_list = [
         {
             "name": v.name, "sku": v.sku, "price": str(v.price), 
             "wholesale_price": str(v.wholesale_price), "vip_price": str(v.vip_price),
             "cost": str(v.cost), "estimated_delivery_minutes": v.estimated_delivery_minutes,
-            "sort_order": v.sort_order, "is_active": v.is_active
+            "sort_order": v.sort_order, "is_active": v.is_active,
+            "is_temporarily_disabled": v.is_temporarily_disabled
         } for v in product.variants.all().order_by('sort_order')
     ]
     return render(request, "site/control_product_builder.html", {"form": form, "product": product, "variants_json_data": v_list, "title": f"تعديل: {product.name}"})
@@ -2557,6 +2691,40 @@ def export_financial_report_xlsx(ctx, filters):
     return response
 @support_required
 def control_variant_create(request, product_pk): return redirect("control_product_edit", pk=product_pk)
+
+@support_required
+def control_reorder_product(request, pk):
+    product = get_object_or_404(Product, pk=pk)
+    direction = request.GET.get('direction')
+    
+    # Ensure all products have unique sort orders for reliable swapping
+    # This is a one-time-per-call normalization to handle duplicates/zeros
+    all_products = list(Product.objects.all().order_by('sort_order', 'id'))
+    for i, p in enumerate(all_products):
+        if p.sort_order != i:
+            p.sort_order = i
+            p.save(update_fields=['sort_order'])
+    
+    # Re-fetch after normalization
+    product.refresh_from_db()
+    
+    if direction == 'up':
+        other = Product.objects.filter(sort_order__lt=product.sort_order).order_by('-sort_order').first()
+    elif direction == 'down':
+        other = Product.objects.filter(sort_order__gt=product.sort_order).order_by('sort_order').first()
+    else:
+        return redirect('control_products_list')
+    
+    if other:
+        # Swap
+        p_order = product.sort_order
+        o_order = other.sort_order
+        product.sort_order = o_order
+        other.sort_order = p_order
+        product.save(update_fields=['sort_order'])
+        other.save(update_fields=['sort_order'])
+        
+    return redirect('control_products_list')
 @support_required
 def control_variant_edit(request, pk): v = get_object_or_404(ProductVariant, pk=pk); return redirect("control_product_edit", pk=v.product.id)
 

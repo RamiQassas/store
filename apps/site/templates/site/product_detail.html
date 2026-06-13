@@ -135,11 +135,17 @@
             <div class="stack gap-4">
                 <span class="section-label">اختر الباقة المناسبة</span>
                 {% for v in variants %}
-                <div class="variant-card" onclick="selectVariant('{{ v.id }}', this)">
+                <div class="variant-card {% if v.is_temporarily_disabled %}opacity-50 grayscale cursor-not-allowed{% endif %}" 
+                     {% if not v.is_temporarily_disabled %}onclick="selectVariant('{{ v.id }}', this)"{% endif %}>
                     <div class="flex items-center gap-5">
                         <div class="radio-circle"></div>
                         <div>
-                            <div class="font-bold text-lg text-white">{{ v.name }}</div>
+                            <div class="font-bold text-lg text-white">
+                                {{ v.name }}
+                                {% if v.is_temporarily_disabled %}
+                                <span class="bg-rose-500/20 text-rose-500 text-[8px] font-black uppercase px-2 py-1 rounded-lg ml-2 border border-rose-500/20">غير متوفر</span>
+                                {% endif %}
+                            </div>
                             <div class="flex items-center gap-2 mt-1">
                                 <span class="text-[9px] text-slate-500 font-bold uppercase tracking-wider"><i class="far fa-clock ml-1"></i> التسليم خلال: {{ v.estimated_delivery_minutes }} دقيقة</span>
                             </div>
@@ -352,9 +358,9 @@ function closeBalanceModal() {
     document.getElementById('balance-modal').classList.add('hidden');
 }
 
-// Select first variant by default
+// Select first available variant by default
 window.onload = () => {
-    const first = document.querySelector('.variant-card');
+    const first = document.querySelector('.variant-card:not(.cursor-not-allowed)');
     if(first) first.click();
     
     const observer = new IntersectionObserver((entries) => {

@@ -62,9 +62,15 @@
                     </div>
                 </div>
 
-                <div class="field-group">
-                    <label class="info-label">تاريخ الانتهاء (اختياري)</label>
-                    {{ form.expires_at }}
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div class="field-group">
+                        <label class="info-label">الحد الأدنى للطلب (USD)</label>
+                        {{ form.min_order_amount }}
+                    </div>
+                    <div class="field-group">
+                        <label class="info-label">تاريخ الانتهاء (اختياري)</label>
+                        {{ form.expires_at }}
+                    </div>
                 </div>
 
                 <div class="divider border-white/5 my-2"></div>

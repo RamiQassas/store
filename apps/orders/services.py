@@ -30,7 +30,49 @@ def validate_coupon(coupon, user, variant, subtotal=None):
     user_uses = Order.objects.filter(customer=user, coupon=coupon).count()
     if user_uses >= coupon.max_uses_per_user:
         raise ValueError("لقد استخدمت هذا الكوبون مسبقاً.")
+
+    # Check minimum order amount
+    if subtotal and subtotal < coupon.min_order_amount:
+        raise ValueError(f"الحد الأدنى للطلب لاستخدام هذا الكوبون هو {coupon.min_order_amount} USD")
         
+    # Check user restrictions
+    if coupon.limit_to_users.exists() and not coupon.limit_to_users.filter(id=user.id).exists():
+        raise ValueError("هذا الكوبون غير مخصص لحسابك.")
+
+    # Check tier restrictions
+    if coupon.limit_to_tiers and user.tier not in coupon.limit_to_tiers:
+        from apps.accounts.models import User
+        tier_display = dict(User.Tier.choices).get(user.tier, user.tier)
+        raise ValueError(f"هذا الكوبون غير متاح لفئة {tier_display}.")
+
+    # Check area restrictions
+    if coupon.limit_to_area or coupon.limit_to_place_of_birth:
+        kyc = getattr(user, 'kyc_request', None)
+        if not kyc:
+            raise ValueError("هذا الكوبون يتطلب حساباً موثقاً وتأكيد عنوان السكن.")
+        
+        area_valid = True
+        if coupon.limit_to_area:
+            match_res = coupon.limit_to_area.lower() in kyc.current_residence.lower()
+            if coupon.allow_area_type == Coupon.AreaType.RESIDENCE and not match_res:
+                area_valid = False
+            elif coupon.allow_area_type == Coupon.AreaType.BOTH and not match_res:
+                pass # Check birth below
+            elif coupon.allow_area_type == Coupon.AreaType.BIRTH:
+                pass
+        
+        if coupon.limit_to_place_of_birth:
+            match_birth = coupon.limit_to_place_of_birth.lower() in kyc.place_of_birth.lower()
+            if coupon.allow_area_type == Coupon.AreaType.BIRTH and not match_birth:
+                area_valid = False
+            elif coupon.allow_area_type == Coupon.AreaType.BOTH:
+                match_res = coupon.limit_to_area.lower() in kyc.current_residence.lower() if coupon.limit_to_area else False
+                if not match_res and not match_birth:
+                    area_valid = False
+
+        if not area_valid:
+            raise ValueError("هذا الكوبون غير متاح لمنطقتك الجغرافية.")
+
     # Check product limit
     if not coupon.apply_to_all_products:
         if coupon.limit_to_product and variant.product != coupon.limit_to_product:
@@ -42,9 +84,9 @@ def validate_coupon(coupon, user, variant, subtotal=None):
     discount = Decimal("0.00")
     if subtotal:
         if coupon.discount_type == Coupon.DiscountType.PERCENTAGE:
-            discount = subtotal * (coupon.discount_percent / Decimal("100.00"))
+            discount = (subtotal * (coupon.discount_percent / Decimal("100.00"))).quantize(Decimal("0.01"))
         elif coupon.discount_type == Coupon.DiscountType.FIXED_AMOUNT:
-            discount = coupon.discount_amount
+            discount = min(coupon.discount_amount, subtotal)
             
     return discount
 

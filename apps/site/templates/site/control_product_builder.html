@@ -30,7 +30,7 @@
         padding: 1.25rem;
         margin-bottom: 1rem;
         display: grid;
-        grid-template-columns: 2fr 1fr 1fr 1fr 1fr 1fr 0.5fr auto;
+        grid-template-columns: 2fr 1fr 1fr 1fr 1fr 1fr 0.5fr 0.5fr auto;
         gap: 1rem;
         align-items: center;
         transition: all 0.2s;
@@ -296,6 +296,10 @@ function renderPackages() {
             <div>
                 <span class="mini-label">ترتيب</span>
                 <input type="number" class="builder-input" value="${pkg.sort_order || 0}" onchange="updatePackage(${index}, 'sort_order', this.value)">
+            </div>
+            <div>
+                <span class="mini-label" title="إيقاف مؤقت">إيقاف</span>
+                <input type="checkbox" ${pkg.is_temporarily_disabled ? 'checked' : ''} onchange="updatePackage(${index}, 'is_temporarily_disabled', this.checked)">
             </div>
             <div class="flex gap-2">
                 <button type="button" class="btn btn-sm btn-outline p-2" title="تكرار" onclick="duplicatePackage(${index})"><i class="fas fa-copy"></i></button>

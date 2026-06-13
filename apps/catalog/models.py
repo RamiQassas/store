@@ -88,6 +88,7 @@ class ProductVariant(TimeStampedModel):
     discount_percent = models.DecimalField(max_digits=5, decimal_places=2, default=Decimal("0.00"), verbose_name="خصم (%)")
     estimated_delivery_minutes = models.PositiveIntegerField(default=0, verbose_name="وقت التسليم المتوقع (دقيقة)")
     is_active = models.BooleanField(default=True, verbose_name="نشط")
+    is_temporarily_disabled = models.BooleanField(default=False, verbose_name="إيقاف مؤقت (يظهر كغير متوفر)")
     sort_order = models.PositiveIntegerField(default=0, verbose_name="ترتيب العرض")
 
     class Meta:

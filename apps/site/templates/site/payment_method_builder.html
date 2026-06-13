@@ -70,8 +70,22 @@
                     <div class="field-group"><label>ترتيب العرض</label>{{ form.display_order }}</div>
                     <div class="flex items-center gap-2 pt-6">{{ form.is_active }} <span class="text-xs">نشط (ظاهر للعملاء)</span></div>
                     <div class="flex items-center gap-2 pt-6">{{ form.is_maintenance_mode }} <span class="text-xs">وضع الصيانة</span></div>
+                    <div class="flex items-center gap-2 pt-6">{{ form.requires_kyc }} <span class="text-xs font-bold text-amber-500">يتطلب KYC</span></div>
                 </div>
                 <div class="field-group"><label>الوصف العام (يظهر في القائمة)</label>{{ form.description }}</div>
+                
+                <div class="grid grid-2 gap-6 p-4 bg-amber-500/5 border border-amber-500/10 rounded-2xl">
+                    <div class="field-group">
+                        <label class="text-amber-500 font-bold">الحد الإجمالي الأقصى للإيداعات (Task 5)</label>
+                        {{ form.global_deposit_cap }}
+                        <p class="text-[9px] text-slate-500 mt-1">عند الوصول لهذا الحد، تتوقف الوسيلة تلقائياً. 0 تعني غير محدود.</p>
+                    </div>
+                    <div class="field-group">
+                        <label class="text-amber-500 font-bold">إجمالي الإيداعات الحالية (Manual Reset)</label>
+                        {{ form.global_deposit_usage }}
+                        <p class="text-[9px] text-slate-500 mt-1">يمكن تصفيره يدوياً لإعادة تفعيل الوسيلة بعد تجاوز الحد.</p>
+                    </div>
+                </div>
             </div>
             <div class="col-span-12 lg:col-span-4 stack gap-6">
                 <div class="panel p-4 bg-slate-800/30 border-white/5">
