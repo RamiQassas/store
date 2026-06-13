@@ -447,7 +447,7 @@ class SendNotificationForm(forms.Form):
     ]
     TIER_CHOICES = User.Tier.choices
 
-    target = forms.ChoiceField(label="المستهدف", choices=TARGET_CHOICES, widget=forms.RadioSelect(attrs={"class": "flex gap-4"}))
+    target = forms.ChoiceField(label="المستهدف", choices=TARGET_CHOICES, initial="all", widget=forms.RadioSelect(attrs={"class": "flex gap-4"}))
     tier = forms.ChoiceField(label="الفئة", choices=TIER_CHOICES, required=False, widget=forms.Select(attrs={"class": "builder-input"}))
     user_identifier = forms.CharField(label="معرف المستخدم", required=False, widget=forms.TextInput(attrs={"class": "builder-input", "placeholder": "البريد أو الاسم أو الهاتف", "autocomplete": "off"}))
     

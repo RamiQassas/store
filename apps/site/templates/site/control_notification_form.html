@@ -83,7 +83,9 @@ document.addEventListener('DOMContentLoaded', function() {
     const userDiv = document.getElementById('user-selection');
 
     function toggleFields() {
-        const selected = document.querySelector('input[name="target"]:checked').value;
+        const checkedRadio = document.querySelector('input[name="target"]:checked');
+        const selected = checkedRadio ? checkedRadio.value : 'all';
+        
         tierDiv.classList.add('hidden');
         userDiv.classList.add('hidden');
 
