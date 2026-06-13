@@ -1029,7 +1029,12 @@ def control_deposit_detail(request, pk):
                         reference=f"deposit:{deposit.id}",
                         description=f"إيداع عبر {deposit.payment_method.name}",
                         created_by=request.user,
-                        metadata={"from_pending": True, "pending_amount": deposit.wallet_amount}
+                        metadata={
+                            "from_pending": True, 
+                            "pending_amount": str(deposit.wallet_amount),
+                            "source_amount": str(final_amount),
+                            "source_currency": deposit.currency.code
+                        }
                     )
 
                     deposit.final_amount = final_amount
@@ -1123,6 +1128,17 @@ def control_deposit_detail(request, pk):
                     if admin_note:
                         deposit.admin_note = f"{deposit.admin_note or ''}\n[تصحيح {timezone.now().strftime('%Y-%m-%d %H:%M')}]: {admin_note}"
                     deposit.save()
+                    
+                    # Notify user about the correction
+                    try:
+                        notify_user(
+                            user=deposit.user,
+                            title="تعديل في طلب الإيداع",
+                            body=f"تم تعديل مبلغ طلب الإيداع رقم {deposit.id} ليصبح {deposit.final_amount} {deposit.currency.code}. رصيد محفظتك المضاف: {deposit.wallet_amount} {wallet.currency.code}.",
+                            category='financial'
+                        )
+                    except: pass
+                    
                     messages.success(request, f"تم تصحيح المبلغ بنجاح. الفرق: {wallet_diff} {wallet.currency.code}")
 
         except Exception as e:

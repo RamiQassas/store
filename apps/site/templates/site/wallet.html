@@ -136,6 +136,11 @@
                                 <a href="{% url 'dashboard_order_detail' entry.reference %}" class="mr-2 text-cyan hover:underline text-[10px]"><i class="fas fa-external-link-alt"></i> عرض الطلب</a>
                                 {% endif %}
                             </div>
+                            {% if entry.metadata.source_amount %}
+                            <div class="text-[10px] text-cyan font-bold mt-0.5">
+                                الأصل: {{ entry.metadata.source_amount }} {{ entry.metadata.source_currency }}
+                            </div>
+                            {% endif %}
                             {% if entry.description %}
                             <div class="text-[11px] text-white/80 font-medium mt-0.5 leading-relaxed">{{ entry.description }}</div>
                             {% endif %}

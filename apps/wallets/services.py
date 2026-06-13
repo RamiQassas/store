@@ -21,6 +21,12 @@ def credit_wallet(wallet_id, amount, reference="", description="", created_by=No
     amount = Decimal(amount).quantize(Decimal("0.01"))
     if amount <= 0:
         raise WalletError("Amount must be positive.")
+    
+    # Extract source currency info if provided in metadata
+    metadata = metadata or {}
+    source_amount = metadata.get("source_amount")
+    source_currency_code = metadata.get("source_currency")
+
     with transaction.atomic():
         wallet = Wallet.objects.select_for_update().get(id=wallet_id)
         
@@ -31,7 +37,7 @@ def credit_wallet(wallet_id, amount, reference="", description="", created_by=No
 
         # Auto-deduct debt if it's a deposit
         debt_paid = Decimal("0.00")
-        if source in ["admin_approval", "deposit"] and wallet.debt_balance > 0:
+        if source in ["admin_approval", "deposit", "admin_adjustment"] and wallet.debt_balance > 0:
             debt_paid = min(amount, wallet.debt_balance)
             wallet.debt_balance -= debt_paid
             amount -= debt_paid
@@ -47,7 +53,12 @@ def credit_wallet(wallet_id, amount, reference="", description="", created_by=No
                     source=source,
                     reason="Auto debt deduction",
                     created_by=created_by,
-                    metadata=json_serialize_safe({"original_credit_amount": str(amount + debt_paid), "debt_paid": str(debt_paid)})
+                    metadata=json_serialize_safe({
+                        "original_credit_amount": str(amount + debt_paid), 
+                        "debt_paid": str(debt_paid),
+                        "source_amount": str(source_amount) if source_amount else None,
+                        "source_currency": source_currency_code
+                    })
                 )
 
         wallet.available_balance += amount
