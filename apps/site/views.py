@@ -761,8 +761,13 @@ def withdrawals(request):
             methods = request.session.get("v3_auth_methods", [])
             return v3_redirect_to_verification(request, methods)
 
+    # Task 9: KYC Filtering
+    methods = PaymentMethod.objects.filter(is_active=True, can_withdraw=True)
+    if not request.user.is_kyc_verified:
+        methods = methods.filter(requires_kyc=False)
+
     return render(request, "site/v3/v3_withdrawals.html", {
-        "payment_methods": PaymentMethod.objects.filter(is_active=True, can_withdraw=True), 
+        "payment_methods": methods, 
         "requests": WithdrawalRequest.objects.filter(user=request.user, is_verified=True).order_by('-created_at'),
         "daily_limit": request.user.daily_withdrawal_limit,
         "remaining_limit": request.user.remaining_withdrawal_limit,

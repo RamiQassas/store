@@ -31,11 +31,20 @@ def preferred_currency(request):
 
     system_currency = Currency.objects.filter(code="USD").first() or all_currencies.first()
 
+    # Task 9: Global KYC filtering for payment methods
+    payment_methods = PaymentMethod.objects.filter(is_active=True).order_by('display_order')
+    if request.user.is_authenticated:
+        if not getattr(request.user, 'is_kyc_verified', False):
+            payment_methods = payment_methods.filter(requires_kyc=False)
+    else:
+        # For anonymous users, hide KYC-required methods by default
+        payment_methods = payment_methods.filter(requires_kyc=False)
+
     return {
         "CURRENCY": pref_currency,
         "ALL_CURRENCIES": all_currencies,
         "SYSTEM_CURRENCY": system_currency,
         "WITHDRAWAL_RATE": pref_currency.sell_rate if pref_currency else 1.0,
         "SOCIAL_LINKS": SocialMediaLink.objects.filter(is_active=True).order_by("display_order"),
-        "PAYMENT_METHODS": PaymentMethod.objects.filter(is_active=True).order_by('display_order')
+        "PAYMENT_METHODS": payment_methods
     }
