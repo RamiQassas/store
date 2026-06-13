@@ -179,10 +179,11 @@
                                 <i class="fas fa-id-card text-3xl mb-2 text-slate-600 group-hover:text-cyan"></i>
                                 <div class="text-[8px] font-black text-slate-500 uppercase tracking-widest">وجه الوثيقة</div>
                             </div>
-                            <input type="file" name="identity_front" id="id_identity_front" class="hidden" accept="image/*" onchange="previewFile(this, 'preview-front')">
+                            <input type="file" name="identity_front" id="id_identity_front" class="hidden" accept="image/*" capture="environment" onchange="previewFile(this, 'preview-front')">
                         </label>
                         <div class="px-2">
                             <label class="text-[10px] font-bold text-slate-400 mb-2 block text-center">تحميل الوجه الأمامي</label>
+                            <button type="button" class="btn btn-outline w-full py-2 text-[10px] hidden" id="confirm-front" onclick="confirmUpload('id_identity_front', 'confirm-front')">تأكيد الصورة</button>
                             {% if form.identity_front.errors %}<p class="text-rose-500 text-[10px] mt-2 font-bold">{{ form.identity_front.errors.0 }}</p>{% endif %}
                         </div>
                     </div>
@@ -194,10 +195,11 @@
                                 <i class="fas fa-id-card-alt text-3xl mb-2 text-slate-600 group-hover:text-cyan"></i>
                                 <div class="text-[8px] font-black text-slate-500 uppercase tracking-widest">ظهر الوثيقة</div>
                             </div>
-                            <input type="file" name="identity_back" id="id_identity_back" class="hidden" accept="image/*" onchange="previewFile(this, 'preview-back')">
+                            <input type="file" name="identity_back" id="id_identity_back" class="hidden" accept="image/*" capture="environment" onchange="previewFile(this, 'preview-back')">
                         </label>
                         <div class="px-2">
                             <label class="text-[10px] font-bold text-slate-400 mb-2 block text-center">تحميل الوجه الخلفي</label>
+                            <button type="button" class="btn btn-outline w-full py-2 text-[10px] hidden" id="confirm-back" onclick="confirmUpload('id_identity_back', 'confirm-back')">تأكيد الصورة</button>
                             {% if form.identity_back.errors %}<p class="text-rose-500 text-[10px] mt-2 font-bold">{{ form.identity_back.errors.0 }}</p>{% endif %}
                         </div>
                     </div>
@@ -209,11 +211,12 @@
                                 <i class="fas fa-user-circle text-3xl mb-2 text-slate-600 group-hover:text-cyan"></i>
                                 <div class="text-[8px] font-black text-slate-500 uppercase tracking-widest">صورة سيلفي</div>
                             </div>
-                            <input type="file" name="selfie_verification" id="id_selfie_verification" class="hidden" accept="image/*" onchange="previewFile(this, 'preview-selfie')">
+                            <input type="file" name="selfie_verification" id="id_selfie_verification" class="hidden" accept="image/*" capture="user" onchange="previewFile(this, 'preview-selfie')">
                         </label>
                         <div class="px-2">
                             <label class="text-[10px] font-bold text-slate-400 mb-2 block text-center">تحميل صورة السيلفي</label>
                             <p class="text-[7px] text-slate-500 mb-2 text-center">سيلفي مع هويتك بجانب وجهك</p>
+                            <button type="button" class="btn btn-outline w-full py-2 text-[10px] hidden" id="confirm-selfie" onclick="confirmUpload('id_selfie_verification', 'confirm-selfie')">تأكيد الصورة</button>
                             {% if form.selfie_verification.errors %}<p class="text-rose-500 text-[10px] mt-2 font-bold">{{ form.selfie_verification.errors.0 }}</p>{% endif %}
                         </div>
                     </div>
@@ -257,19 +260,17 @@
                 reader.readAsDataURL(input.files[0]);
             }
         }
-        
-        // Remove individual handlePreview calls as they are replaced by onchange inline
     });
 
     function validateKYCForm() {
         const front = document.querySelector('input[name="identity_front"]');
         const back = document.querySelector('input[name="identity_back"]');
         const selfie = document.querySelector('input[name="selfie_verification"]');
-        
+
         const hasFront = front.files.length > 0 || "{{ form.instance.identity_front }}" !== "";
         const hasBack = back.files.length > 0 || "{{ form.instance.identity_back }}" !== "";
         const hasSelfie = selfie.files.length > 0 || "{{ form.instance.selfie_verification }}" !== "";
-        
+
         if (!hasFront || !hasBack || !hasSelfie) {
             alert("يجب رفع جميع صور التحقق المطلوبة قبل إرسال الطلب.");
             return false;
@@ -277,4 +278,3 @@
         return true;
     }
 </script>
-{% endblock %}
