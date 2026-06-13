@@ -515,6 +515,13 @@ def deposits(request):
             except:
                 pass
 
+        # Notify user about the request submission
+        send_financial_notification(
+            user=request.user,
+            title="تم استلام طلب الإيداع",
+            body=f"تم استلام طلب الإيداع الخاص بك رقم {deposit.id} بقيمة {deposit.amount} {deposit.currency.code}. سيتم مراجعته من قبل الإدارة قريباً."
+        )
+
         # AFTER creation: Check if verification is needed
         if v3_init_verification(request, request.user, "deposit"):
             # If no security method enabled, auto-verify
@@ -607,6 +614,13 @@ def withdrawals(request):
                     status=WithdrawalRequest.Status.PENDING,
                     is_verified=False
                 )
+            
+            # Notify user about the request submission
+            send_financial_notification(
+                user=request.user,
+                title="تم استلام طلب السحب",
+                body=f"تم استلام طلب السحب الخاص بك رقم {withdrawal.id} بقيمة {withdrawal.amount} {withdrawal.currency.code}. سيتم مراجعته من قبل الإدارة قريباً."
+            )
         except Exception as e:
             messages.error(request, str(e))
             return redirect("dashboard_withdrawals")
@@ -1209,6 +1223,9 @@ def control_withdrawal_detail(request, pk):
                         withdrawal.status = WithdrawalRequest.Status.COMPLETED
                         withdrawal.reviewed_at = timezone.now()
                 elif action == "reject":
+                    if withdrawal.status in [WithdrawalRequest.Status.COMPLETED, WithdrawalRequest.Status.CANCELLED, WithdrawalRequest.Status.REJECTED]:
+                        raise ValueError("لا يمكن رفض طلب منتهي.")
+                    
                     if withdrawal.status != WithdrawalRequest.Status.REJECTED:
                         release_funds(
                             wallet_id=withdrawal.user.wallet.id,
@@ -1219,6 +1236,59 @@ def control_withdrawal_detail(request, pk):
                         )
                         withdrawal.status = WithdrawalRequest.Status.REJECTED
                         withdrawal.reviewed_at = timezone.now()
+
+                elif action == "correct":
+                    if withdrawal.status != WithdrawalRequest.Status.COMPLETED:
+                        raise ValueError("يمكن تصحيح الطلبات المكتملة فقط.")
+
+                    new_amount_str = request.POST.get("new_amount")
+                    if not new_amount_str:
+                        raise ValueError("المبلغ الجديد مطلوب.")
+
+                    new_amount = Decimal(str(new_amount_str))
+                    old_amount = withdrawal.amount
+                    diff_amount = new_amount - old_amount
+
+                    if diff_amount == 0:
+                        raise ValueError("لم يتم تغيير المبلغ.")
+
+                    wallet = get_or_create_wallet(withdrawal.user)
+                    # Calculate wallet difference (how much MORE or LESS to debit)
+                    wallet_diff = withdrawal.currency.to_base(diff_amount, "withdraw")
+
+                    if wallet_diff > 0:
+                        # User withdrew MORE than originally thought -> debit MORE
+                        debit_wallet(
+                            wallet_id=wallet.id,
+                            amount=wallet_diff,
+                            reference=f"with_adj:{withdrawal.id}",
+                            description=f"تصحيح مبلغ السحب (زيادة): {admin_note}",
+                            created_by=request.user,
+                            source="admin_adjustment"
+                        )
+                    else:
+                        # User withdrew LESS than originally thought -> credit BACK
+                        credit_wallet(
+                            wallet_id=wallet.id,
+                            amount=abs(wallet_diff),
+                            reference=f"with_adj:{withdrawal.id}",
+                            description=f"تصحيح مبلغ السحب (نقص): {admin_note}",
+                            created_by=request.user,
+                            source="admin_adjustment"
+                        )
+
+                    withdrawal.amount = new_amount
+                    withdrawal.wallet_amount += wallet_diff
+                    if admin_note:
+                        withdrawal.admin_note = f"{withdrawal.admin_note or ''}\n[تصحيح {timezone.now().strftime('%Y-%m-%d %H:%M')}]: {admin_note}"
+                    withdrawal.save()
+
+                    send_financial_notification(
+                        user=withdrawal.user,
+                        title="تعديل في مبلغ سحب مكتمل",
+                        body=f"تم تعديل المبلغ المرسل للسحب رقم {withdrawal.id}. القيمة النهائية: {withdrawal.amount:,.2f} {withdrawal.currency.code}. تم تعديل رصيد محفظتك بفرق: {-wallet_diff:,.2f} {wallet.currency.code}."
+                    )
+                    messages.success(request, f"تم تصحيح السحب بنجاح. الفرق: {-wallet_diff:,.2f} {wallet.currency.code}")
                 
                 if admin_note: withdrawal.admin_note = admin_note
                 if proof_image: withdrawal.proof_image = proof_image
