@@ -85,6 +85,15 @@ class DepositRequestViewSet(viewsets.ModelViewSet):
                 # Handle edge case where amount is 0 to avoid division by zero
                 wallet_final_amount = deposit.wallet_amount
 
+            # Log details before calling credit_wallet
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.error(f"Approving deposit {deposit.id}. Amount: {deposit.amount}, Final: {deposit.final_amount}, Wallet_amt: {deposit.wallet_amount}, Calculated: {wallet_final_amount}")
+            
+            if wallet_final_amount <= 0:
+                logger.error(f"CRITICAL: Attempting to credit invalid amount {wallet_final_amount} to wallet {wallet.id}")
+                return response.Response({"detail": "خطأ في حساب المبلغ المودع."}, status=status.HTTP_400_BAD_REQUEST)
+
             credit_wallet(
                 wallet_id=wallet.id,
                 amount=wallet_final_amount,
