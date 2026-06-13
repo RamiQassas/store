@@ -996,6 +996,40 @@ def control_deposits(request): return render(request, "site/control_deposits.htm
 @finance_required
 def control_withdrawals(request): return render(request, "site/control_withdrawals.html", {"withdrawals": WithdrawalRequest.objects.select_related('user', 'payment_method').all().order_by('-created_at')})
 
+# ==========================================
+# --- FINANCIAL NOTIFICATION HELPERS ---
+# ==========================================
+
+def send_financial_notification(user, title, body, action_url="/dashboard/wallet/"):
+    # 1. In-App/Push Notification
+    try:
+        notify_user(user=user, title=title, body=body, action_url=action_url, category='financial', priority="high")
+    except: pass
+
+    # 2. Email Notification with Security Warning
+    subject = f"{title} | Raqamiyat"
+    html_content = f"""
+    <div dir="rtl" style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; color: #1e293b; background-color: #ffffff; border-radius: 16px; border: 1px solid #e2e8f0;">
+        <div style="text-align: center; margin-bottom: 30px;">
+            <h2 style="color: #06b6d4; margin: 0; font-size: 24px; font-weight: 900;">رقميات | RAQAMIYAT</h2>
+        </div>
+        <div style="background-color: #f8fafc; padding: 30px; border-radius: 12px;">
+            <h3 style="color: #0f172a; margin-top: 0;">{title}</h3>
+            <p style="font-size: 16px; line-height: 1.6; color: #334155;">{body}</p>
+        </div>
+        <div style="margin-top: 30px; padding: 20px; background-color: #fff1f2; border-radius: 12px; border: 1px solid #fecdd3;">
+            <p style="margin: 0; font-size: 14px; color: #be123c; font-weight: bold;">⚠️ تنبيه أمني:</p>
+            <p style="margin: 5px 0 0 0; font-size: 13px; color: #e11d48; line-height: 1.5;">إذا لم تكن قد قمت بهذه العملية بنفسك، يرجى تغيير كلمة مرور حسابك فوراً والتواصل مع فريق الدعم الفني لحماية حسابك.</p>
+        </div>
+        <div style="margin-top: 30px; text-align: center; border-top: 1px solid #f1f5f9; padding-top: 20px;">
+            <p style="font-size: 12px; color: #94a3b8;">© 2026 رقميات لخدمات الوساطة الرقمية. جميع الحقوق محفوظة.</p>
+        </div>
+    </div>
+    """
+    try:
+        send_brevo_email(to_email=user.email, to_name=user.get_full_name() or user.email, subject=subject, html_content=html_content)
+    except: pass
+
 @finance_required
 def control_deposit_detail(request, pk):
     deposit = get_object_or_404(DepositRequest.objects.select_related('user', 'currency', 'payment_method'), pk=pk)
@@ -1044,12 +1078,10 @@ def control_deposit_detail(request, pk):
                     deposit.reviewed_at = timezone.now()
                     deposit.save()
                     
-                    notify_user(
+                    send_financial_notification(
                         user=deposit.user,
                         title="تم قبول طلب الإيداع",
-                        body=f"تمت إضافة {deposit.final_amount} {deposit.currency.code} إلى محفظتك بنجاح.",
-                        action_url="/dashboard/wallet/",
-                        category='financial'
+                        body=f"تم قبول طلب الإيداع رقم {deposit.id} بنجاح. المبلغ المعتمد: {deposit.final_amount:,.2f} {deposit.currency.code}. تم إضافة {deposit.wallet_amount:,.2f} {wallet.currency.code} إلى رصيد محفظتك."
                     )
                     messages.success(request, "تم قبول طلب الإيداع بنجاح.")
 
@@ -1074,11 +1106,10 @@ def control_deposit_detail(request, pk):
                     deposit.reviewed_at = timezone.now()
                     deposit.save()
                     
-                    notify_user(
+                    send_financial_notification(
                         user=deposit.user,
                         title="تم رفض طلب الإيداع",
-                        body=f"نعتذر، تم رفض طلب الإيداع رقم {deposit.id}. السبب: {admin_note}",
-                        category='financial'
+                        body=f"نعتذر، تم رفض طلب الإيداع رقم {deposit.id}. السبب: {admin_note}"
                     )
                     messages.warning(request, "تم رفض طلب الإيداع.")
 
@@ -1111,7 +1142,11 @@ def control_deposit_detail(request, pk):
                             reference=f"deposit_adj:{deposit.id}",
                             description=f"تصحيح مبلغ الإيداع (زيادة): {admin_note}",
                             created_by=request.user,
-                            source="admin_adjustment"
+                            source="admin_adjustment",
+                            metadata={
+                                "source_amount": str(diff_amount),
+                                "source_currency": deposit.currency.code
+                            }
                         )
                     else:
                         debit_wallet(
@@ -1120,7 +1155,11 @@ def control_deposit_detail(request, pk):
                             reference=f"deposit_adj:{deposit.id}",
                             description=f"تصحيح مبلغ الإيداع (نقص): {admin_note}",
                             created_by=request.user,
-                            source="admin_adjustment"
+                            source="admin_adjustment",
+                            metadata={
+                                "source_amount": str(diff_amount),
+                                "source_currency": deposit.currency.code
+                            }
                         )
 
                     deposit.final_amount = new_amount
@@ -1129,18 +1168,13 @@ def control_deposit_detail(request, pk):
                         deposit.admin_note = f"{deposit.admin_note or ''}\n[تصحيح {timezone.now().strftime('%Y-%m-%d %H:%M')}]: {admin_note}"
                     deposit.save()
                     
-                    # Notify user about the correction
-                    try:
-                        notify_user(
-                            user=deposit.user,
-                            title="تعديل في طلب الإيداع",
-                            body=f"تم تعديل مبلغ طلب الإيداع رقم {deposit.id} ليصبح {deposit.final_amount} {deposit.currency.code}. رصيد محفظتك المضاف: {deposit.wallet_amount} {wallet.currency.code}.",
-                            category='financial'
-                        )
-                    except: pass
+                    send_financial_notification(
+                        user=deposit.user,
+                        title="تعديل في مبلغ إيداع سابق",
+                        body=f"تم تعديل المبلغ المعتمد للإيداع رقم {deposit.id}. القيمة الجديدة: {deposit.final_amount:,.2f} {deposit.currency.code}. تم تعديل رصيد محفظتك بفرق: {wallet_diff:,.2f} {wallet.currency.code}."
+                    )
                     
-                    messages.success(request, f"تم تصحيح المبلغ بنجاح. الفرق: {wallet_diff} {wallet.currency.code}")
-
+                    messages.success(request, f"تم تصحيح المبلغ بنجاح. الفرق: {wallet_diff:,.2f} {wallet.currency.code}")
         except Exception as e:
             messages.error(request, f"خطأ: {str(e)}")
             
@@ -1194,15 +1228,12 @@ def control_withdrawal_detail(request, pk):
                 messages.success(request, f"تم تحديث حالة الطلب إلى {withdrawal.get_status_display()}")
                 
                 # Send Notification
-                try:
-                    notify_user(
-                        user=withdrawal.user,
-                        title=f"تحديث طلب السحب",
-                        body=f"تم تغيير حالة طلب السحب الخاص بك إلى: {withdrawal.get_status_display()}",
-                        action_url="/dashboard/withdrawals/",
-                        category="financial"
-                    )
-                except: pass
+                send_financial_notification(
+                    user=withdrawal.user,
+                    title=f"تحديث طلب السحب #{withdrawal.id}",
+                    body=f"تم تغيير حالة طلب السحب الخاص بك إلى: {withdrawal.get_status_display()}. ملاحظة الإدارة: {withdrawal.admin_note or 'لا يوجد'}",
+                    action_url="/dashboard/withdrawals/"
+                )
                 
         except Exception as e:
             messages.error(request, f"خطأ: {str(e)}")
