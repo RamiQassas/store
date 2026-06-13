@@ -1213,8 +1213,10 @@ def control_deposit_detail(request, pk):
                         metadata={
                             "from_pending": True,
                             "pending_amount": str(deposit.wallet_amount),
-                            "source_amount": str(final_amount),
-                            "source_currency": deposit.currency.code
+                            "source_amount": str(deposit.amount),
+                            "source_currency": deposit.currency.code,
+                            "final_amount": str(final_amount),
+                            "transaction_id": deposit.transaction_id
                         }
                     )
 
@@ -1307,7 +1309,9 @@ def control_deposit_detail(request, pk):
                             source="admin_adjustment",
                             metadata={
                                 "source_amount": str(diff_amount),
-                                "source_currency": deposit.currency.code
+                                "source_currency": deposit.currency.code,
+                                "transaction_id": deposit.transaction_id,
+                                "is_adjustment": True
                             }
                         )
                     else:

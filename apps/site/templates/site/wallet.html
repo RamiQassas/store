@@ -157,6 +157,11 @@
                                         النظام الآلي
                                     {% endif %}
                                 </span>
+                                {% if entry.metadata.transaction_id %}
+                                • <span class="text-cyan font-black">مرجع: {{ entry.metadata.transaction_id }}</span>
+                                {% elif entry.reference %}
+                                • <span>مرجع: {{ entry.reference }}</span>
+                                {% endif %}
                             </div>
                         </div>
                     </div>

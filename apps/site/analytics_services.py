@@ -235,86 +235,92 @@ class FinancialAnalyticsService:
             
         results = []
         for pm in methods:
-            # Deposits
-            deps = DepositRequest.objects.filter(payment_method=pm, status=DepositRequest.Status.COMPLETED)
-            deps = self._apply_date_filter(deps)
-            deps = self._apply_common_filters(deps)
-            
-            # Withdrawals
-            withs = WithdrawalRequest.objects.filter(payment_method=pm, status=WithdrawalRequest.Status.COMPLETED)
-            withs = self._apply_date_filter(withs)
-            withs = self._apply_common_filters(withs)
-            
-            dep_vol = Decimal("0.00")
-            dep_fees = Decimal("0.00")
-            fx_profit = Decimal("0.00")
-            
-            for d in deps.select_related('currency'):
-                val_norm = self._normalize(d.amount, d.currency)
-                dep_vol += val_norm
-                dep_fees += self._normalize(d.fee_amount, d.currency)
-                
-                # FX Logic: (Base Amount - Capital Cost)
-                # If capital rate is 1.0, profit is 0.
-                # If capital rate is 36.5 (local per 1 USD) and we get 1 USD.
-                # Profit = Amount_in_Base * (1 - (SystemRate/CapitalRate))? No.
-                # Let's use simple logic: Cost = Amount_in_Local / CapitalRate.
-                # Profit = Amount_in_Base - Cost.
-                # FX Logic: (Market_Base_Value - Capital_Cost_Base_Value)
-                market_rate = d.currency.buy_rate
-                cap_rate = pm.capital_exchange_rate or Decimal("1.000000")
-                
-                # Fallback: If capital rate is 1.0 (default) but market rate is different,
-                # use market rate as cost basis to ensure 0 profit if not configured.
-                if cap_rate == Decimal("1.000000") and market_rate != Decimal("1.000000"):
-                    cap_rate = market_rate
+            # Group by currency for this payment method
+            pm_currencies = pm.supported_currencies.all()
+            if not pm_currencies.exists():
+                pm_currencies = Currency.objects.filter(is_active=True)
 
-                if cap_rate > 0:
-                    # Consistent normalization to USD
-                    base_val = d.currency.to_base(d.amount or 0, operation="deposit")
-                    
-                    # Cost is the amount in USD at the capital rate
-                    # If we receive X amount in local currency, and 1 USD = cap_rate in local currency, 
-                    # then cost in USD = X / cap_rate
-                    # BUT our Currency.to_base already handles this conversion based on method.
-                    # We should rely on Currency.to_base() to convert to USD, 
-                    # and apply the capital rate to the local amount to find USD cost.
-                    
-                    # Need to be very careful here about DIVIDE vs MULTIPLY
-                    # Currency.to_base uses buy_rate. We want to use cap_rate as our cost basis rate.
-                    
-                    # Standardizing cost basis as USD:
-                    if d.currency.conversion_method == Currency.ConversionMethod.DIVIDE:
-                        # base = local * rate (if div), or local / rate (if div in method?)
-                        # Looking at Currency.to_base:
-                        # if DIVIDE: return amount * rate
-                        # if MULTIPLY: return amount / rate
-                        # This seems inverse to standard def, let's trust to_base()
-                        cost = (d.amount or 0) * cap_rate # Using capital rate as cost-basis
+            currency_details = []
+            pm_total_fx_profit = Decimal("0.00")
+            
+            for curr in pm_currencies:
+                # Deposits for this PM + Currency
+                deps = DepositRequest.objects.filter(payment_method=pm, currency=curr, status=DepositRequest.Status.COMPLETED)
+                deps = self._apply_date_filter(deps)
+                deps = self._apply_common_filters(deps)
+                
+                # Withdrawals for this PM + Currency
+                withs = WithdrawalRequest.objects.filter(payment_method=pm, currency=curr, status=WithdrawalRequest.Status.COMPLETED)
+                withs = self._apply_date_filter(withs)
+                withs = self._apply_common_filters(withs)
+                
+                dep_vol_raw = deps.aggregate(total=Sum('amount'))['total'] or Decimal("0.00")
+                dep_fees_raw = deps.aggregate(total=Sum('fee_amount'))['total'] or Decimal("0.00")
+                with_vol_raw = withs.aggregate(total=Sum('amount'))['total'] or Decimal("0.00")
+                
+                # FX Logic using the new Currency.capital_rate
+                market_buy_rate = curr.buy_rate
+                market_sell_rate = curr.sell_rate
+                
+                # Use Currency capital_rate, fallback to PM capital rate if PM rate is NOT 1.0
+                cap_rate = curr.capital_rate
+                if cap_rate == Decimal("1.000000") and pm.capital_exchange_rate != Decimal("1.000000"):
+                    cap_rate = pm.capital_exchange_rate
+                
+                # Fallback to spread if no capital rate configured
+                if cap_rate == Decimal("1.000000"):
+                    cap_rate_buy = market_sell_rate
+                    cap_rate_sell = market_buy_rate
+                else:
+                    cap_rate_buy = cap_rate
+                    cap_rate_sell = cap_rate
+
+                curr_fx_profit = Decimal("0.00")
+                
+                # FX for Deposits
+                if dep_vol_raw > 0:
+                    base_val = curr.to_base(dep_vol_raw, operation="deposit")
+                    if curr.conversion_method == Currency.ConversionMethod.DIVIDE:
+                        cost_val = dep_vol_raw * cap_rate_buy
                     else:
-                        cost = (d.amount or 0) / cap_rate
-                        
-                    fx_profit += (base_val - cost)
+                        cost_val = dep_vol_raw / cap_rate_buy
+                    curr_fx_profit += (cost_val - base_val)
                 
-            with_vol = Decimal("0.00")
-            for w in withs.select_related('currency'):
-                with_vol += self._normalize(w.amount, w.currency, operation="withdraw")
+                # FX for Withdrawals
+                if with_vol_raw > 0:
+                    base_val = curr.to_base(with_vol_raw, operation="withdraw")
+                    if curr.conversion_method == Currency.ConversionMethod.DIVIDE:
+                        cost_val = with_vol_raw * cap_rate_sell
+                    else:
+                        cost_val = with_vol_raw / cap_rate_sell
+                    curr_fx_profit += (base_val - cost_val)
 
-            # Real Balance Tracking
-            # This is hard without a full ledger per payment method, so we estimate from completed trans
-            real_balance = dep_vol - with_vol # + opening balance (if we had it)
+                pm_total_fx_profit += curr_fx_profit
+                
+                currency_details.append({
+                    "currency_code": curr.code,
+                    "deposits_raw": dep_vol_raw,
+                    "withdrawals_raw": with_vol_raw,
+                    "fees_raw": dep_fees_raw,
+                    "net_raw": dep_vol_raw - with_vol_raw,
+                    "fx_profit_usd": curr_fx_profit
+                })
+
+            # Main PM aggregates (normalized)
+            dep_vol_norm = sum(self._normalize(c['deposits_raw'], Currency.objects.get(code=c['currency_code'])) for c in currency_details)
+            with_vol_norm = sum(self._normalize(c['withdrawals_raw'], Currency.objects.get(code=c['currency_code']), operation="withdraw") for c in currency_details)
             
             results.append({
                 "name": pm.name,
-                "deposits_volume": dep_vol,
-                "withdrawals_volume": with_vol,
-                "net_movement": dep_vol - with_vol,
-                "fees_generated": dep_fees,
-                "capital_rate": pm.capital_exchange_rate,
-                "exchange_revenue": fx_profit,
-                "real_balance": real_balance
+                "deposits_volume": dep_vol_norm,
+                "withdrawals_volume": with_vol_norm,
+                "net_movement": dep_vol_norm - with_vol_norm,
+                "exchange_revenue": pm_total_fx_profit,
+                "currencies": currency_details,
+                "real_balance": dep_vol_norm - with_vol_norm # Estimate
             })
         return results
+
 
     def get_debt_aging(self):
         now = timezone.now()

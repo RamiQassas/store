@@ -25,6 +25,7 @@ class Currency(TimeStampedModel):
     symbol = models.CharField(max_length=10, verbose_name="رمز العملة")
     buy_rate = models.DecimalField(max_digits=14, decimal_places=6, default=1.0, verbose_name="سعر الشراء (للإيداع)", help_text="كم تساوي 1 وحدة من العملة الأساسية (مثال: 1 دولار = 10500 ليرة)")
     sell_rate = models.DecimalField(max_digits=14, decimal_places=6, default=1.0, verbose_name="سعر المبيع (للسحب)", help_text="كم تساوي 1 وحدة من العملة الأساسية (مثال: 1 دولار = 10000 ليرة)")
+    capital_rate = models.DecimalField(max_digits=14, decimal_places=6, default=1.0, verbose_name="سعر صرف التكلفة", help_text="سعر التكلفة الحقيقي (الداخلي) مقابل الدولار لحساب الأرباح بدقة.")
     conversion_method = models.CharField(
         max_length=10, 
         choices=ConversionMethod.choices, 

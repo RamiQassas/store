@@ -214,32 +214,54 @@
 
         <!-- 4. Payment Methods Analytics -->
         <section>
-            <h2 class="section-title">تحليل السيولة وأداء وسائل الدفع</h2>
-            <div class="table-container">
-                <table class="analytics-table">
-                    <thead>
-                        <tr>
-                            <th>الوسيلة</th>
-                            <th>حجم الإيداعات</th>
-                            <th>حجم السحوبات</th>
-                            <th>صافي الأرباح (FX)</th>
-                            <th>الرصيد الفعلي</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for pm in payment_performance %}
-                        <tr class="hover:bg-white/[0.02]">
-                            <td class="font-black">{{ pm.name }}</td>
-                            <td class="text-emerald-500 font-bold">{{ pm.deposits_volume|floatformat:2 }}</td>
-                            <td class="text-rose-500 font-bold">{{ pm.withdrawals_volume|floatformat:2 }}</td>
-                            <td class="text-cyan font-black">{{ pm.exchange_revenue|floatformat:2 }}</td>
-                            <td class="bg-white/5 font-black text-white">{{ pm.real_balance|floatformat:2 }}</td>
-                        </tr>
-                        {% empty %}
-                        <tr><td colspan="5" class="text-center py-12 text-slate-500">لا توجد بيانات متاحة حالياً.</td></tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
+            <h2 class="section-title">تحليل السيولة وأداء وسائل الدفع (بالعملات)</h2>
+            <div class="stack gap-6">
+                {% for pm in payment_performance %}
+                <div class="panel overflow-hidden border-white/5 bg-white/[0.01]">
+                    <div class="p-4 bg-white/[0.03] flex justify-between items-center border-b border-white/5">
+                        <h3 class="font-black text-sm text-cyan"><i class="fas fa-university ml-2"></i> {{ pm.name }}</h3>
+                        <div class="text-[10px] text-slate-500 font-bold uppercase tracking-widest">
+                            الصافي الموحد: <span class="text-white">{{ pm.net_movement|floatformat:2 }} {{ kpis.reporting_currency }}</span>
+                        </div>
+                    </div>
+                    <div class="table-container border-0 rounded-none">
+                        <table class="analytics-table">
+                            <thead>
+                                <tr>
+                                    <th>العملة</th>
+                                    <th>إيداعات (خام)</th>
+                                    <th>سحوبات (خام)</th>
+                                    <th>الصافي (خام)</th>
+                                    <th>ربح الصرف (USD)</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for curr in pm.currencies %}
+                                <tr>
+                                    <td class="font-black text-white">{{ curr.currency_code }}</td>
+                                    <td class="text-emerald-500 font-bold">{{ curr.deposits_raw|floatformat:2 }}</td>
+                                    <td class="text-rose-500 font-bold">{{ curr.withdrawals_raw|floatformat:2 }}</td>
+                                    <td class="bg-white/5 font-black text-white">{{ curr.net_raw|floatformat:2 }}</td>
+                                    <td class="text-cyan font-black">{{ curr.fx_profit_usd|floatformat:2 }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                            <tfoot class="bg-black/20">
+                                <tr>
+                                    <td class="text-[10px] font-black uppercase text-slate-500">إجمالي الأرباح</td>
+                                    <td colspan="3"></td>
+                                    <td class="text-cyan font-black">+{{ pm.exchange_revenue|floatformat:2 }} USD</td>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+                </div>
+                {% empty %}
+                <div class="p-12 text-center text-slate-500 opacity-20">
+                    <i class="fas fa-chart-pie text-5xl mb-4"></i>
+                    <p>لا توجد بيانات حركة مالية لعرضها.</p>
+                </div>
+                {% endfor %}
             </div>
         </section>
 
