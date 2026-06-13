@@ -69,9 +69,24 @@
             <h3 class="text-sm font-bold uppercase tracking-widest text-slate-500 mb-6">قواعد الحظر والامتثال</h3>
             
             <div class="grid grid-cols-1 gap-6">
-                <div class="field-group">
-                    <label class="text-[10px] text-slate-500 mb-2 block">إضافة دول للمحظر (بحث + عربية)</label>
-                    {{ form.restricted_countries_list }}
+                <!-- Add Country Section -->
+                <div class="bg-rose-500/5 border border-rose-500/10 p-6 rounded-2xl">
+                    <h4 class="text-[10px] font-black text-rose-500 uppercase tracking-widest mb-4">إضافة دولة لقائمة الحظر</h4>
+                    <form method="post" action="{% url 'control_kyc_settings' %}" class="flex gap-4">
+                        {% csrf_token %}
+                        <input type="hidden" name="action" value="block_country">
+                        <div class="flex-1">
+                            <select name="country_code" class="select2 w-full">
+                                <option value="">اختر الدولة المراد حظرها...</option>
+                                {% for code, name in form.fields.restricted_countries_list.choices %}
+                                <option value="{{ code }}">{{ name }} ({{ code }})</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <button type="submit" class="btn btn-primary bg-rose-600 hover:bg-rose-500 px-6 rounded-xl font-bold text-xs whitespace-nowrap">
+                            <i class="fas fa-ban ml-1"></i> حظر الدولة
+                        </button>
+                    </form>
                 </div>
                 
                 <div class="flex flex-wrap gap-6 bg-slate-900/30 p-4 rounded-xl border border-white/5">

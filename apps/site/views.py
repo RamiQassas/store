@@ -1639,11 +1639,21 @@ def control_kyc_settings(request):
         if action == "unblock_country":
             code = request.POST.get("country_code")
             if code and code in obj.restricted_countries:
-                # Remove from list (JSONField/List)
                 new_list = [c for c in obj.restricted_countries if c != code]
                 obj.restricted_countries = new_list
                 obj.save()
                 messages.success(request, f"تم إلغاء حظر الدولة ({code}) بنجاح.")
+            return redirect("control_kyc_settings")
+        
+        elif action == "block_country":
+            code = request.POST.get("country_code")
+            if code:
+                current_list = list(obj.restricted_countries or [])
+                if code not in current_list:
+                    current_list.append(code)
+                    obj.restricted_countries = current_list
+                    obj.save()
+                    messages.success(request, "تمت إضافة الدولة لقائمة الحظر.")
             return redirect("control_kyc_settings")
             
         if form.is_valid():
