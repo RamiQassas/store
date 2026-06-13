@@ -1631,8 +1631,26 @@ def control_kyc_detail(request, pk):
 
 @kyc_required
 def control_kyc_settings(request):
-    obj = KYCSettings.get_settings(); form = KYCSettingsForm(request.POST or None, instance=obj)
-    if request.method == "POST" and form.is_valid(): form.save(); messages.success(request, "تم الحفظ."); return redirect("control_kyc_settings")
+    obj = KYCSettings.get_settings()
+    form = KYCSettingsForm(request.POST or None, instance=obj)
+    
+    if request.method == "POST":
+        action = request.POST.get("action")
+        if action == "unblock_country":
+            code = request.POST.get("country_code")
+            if code and code in obj.restricted_countries:
+                # Remove from list (JSONField/List)
+                new_list = [c for c in obj.restricted_countries if c != code]
+                obj.restricted_countries = new_list
+                obj.save()
+                messages.success(request, f"تم إلغاء حظر الدولة ({code}) بنجاح.")
+            return redirect("control_kyc_settings")
+            
+        if form.is_valid():
+            form.save()
+            messages.success(request, "تم حفظ الإعدادات بنجاح.")
+            return redirect("control_kyc_settings")
+            
     return render(request, "site/control_kyc_settings.html", {"form": form, "settings": obj})
 
 @support_required
