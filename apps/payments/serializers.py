@@ -29,7 +29,7 @@ class DepositRequestSerializer(serializers.ModelSerializer):
             "reviewed_at",
             "created_at",
         )
-        read_only_fields = ("id", "status", "fee_amount", "final_amount", "admin_note", "reviewed_at", "created_at")
+        read_only_fields = ("id", "status", "fee_amount", "admin_note", "reviewed_at", "created_at")
 
     def validate(self, data):
         payment_method = data["payment_method"]
