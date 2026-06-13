@@ -1,148 +1,109 @@
 {% extends "site/control_base.html" %}
 {% load static %}
 
-{% block title %}إدارة الإيداعات | Raqamiyat Admin{% endblock %}
+{% block title %}إدارة الإيداعات الاستراتيجية | Raqamiyat Elite{% endblock %}
 
 {% block control_content %}
-<nav class="breadcrumb">
-    <a href="{% url 'control_dashboard' %}" class="breadcrumb-item">الرئيسية</a>
-    <span class="breadcrumb-item active">إدارة الإيداعات</span>
-</nav>
-
-<div class="page-head flex justify-between items-center">
+<div class="page-head reveal">
     <div>
+        <span class="eyebrow">Financial Liquidity / Inbound</span>
         <h1>إدارة طلبات الإيداع</h1>
-        <p class="text-muted">مراجعة والتحقق من الحوالات المالية وإضافتها لمحفظة المستخدمين.</p>
-    </div>
-    <div class="flex gap-3">
-        <a href="{% url 'payment_methods_list' %}" class="btn btn-outline btn-sm">
-            <i class="fas fa-credit-card ml-2"></i> وسائل الدفع
-        </a>
+        <p class="text-slate-500 mt-2">مراجعة والتحقق من الحوالات المالية الواردة وإضافتها لمحفظة المستخدمين.</p>
     </div>
 </div>
 
-<div class="management-card">
-    <style>
-        .admin-table img {
-            width: 50px !important;
-            height: 50px !important;
-            min-width: 50px;
-            object-fit: cover;
-            border-radius: 10px;
-            border: 1px solid rgba(255,255,255,0.1);
-        }
-        .proof-thumbnail-wrapper {
-            position: relative;
-            width: 50px;
-            height: 50px;
-        }
-    </style>
-    <div class="management-header flex-col sm:flex-row gap-4">
+<div class="glass-panel overflow-hidden reveal">
+    <div class="p-6 border-b border-white/5 bg-white/[0.01] flex flex-wrap gap-4 items-center justify-between">
         <form method="get" class="flex-grow w-full max-w-md">
             <div class="relative group">
                 <i class="fas fa-search absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-cyan transition-colors"></i>
-                <input type="text" name="q" value="{{ query|default:'' }}" placeholder="بحث برقم المرجع أو بريد المستخدم..." class="w-full pr-11 bg-slate-900/50 border-white/10 rounded-xl focus:border-cyan/50 focus:ring-4 focus:ring-cyan/10 transition-all text-xs py-2.5">
+                <input type="text" name="q" value="{{ query|default:'' }}" placeholder="بحث برقم المرجع أو بريد المستخدم..." class="w-full pr-11 bg-slate-900/50 border-white/10 rounded-xl focus:border-cyan/50 text-xs py-3">
             </div>
         </form>
         <div class="flex items-center gap-2 bg-slate-900/40 p-1.5 rounded-xl border border-white/5">
-            <a href="?" class="px-4 py-1.5 rounded-lg text-[10px] font-bold transition-all {% if not current_status %}bg-cyan text-black{% else %}text-slate-400 hover:text-white{% endif %}">الكل</a>
+            <a href="?" class="px-4 py-1.5 rounded-lg text-[10px] font-black transition-all {% if not current_status %}bg-cyan text-black{% else %}text-slate-400 hover:text-white{% endif %}">الكل</a>
             {% for val, label in status_choices %}
-            <a href="?status={{ val }}" class="px-4 py-1.5 rounded-lg text-[10px] font-bold transition-all {% if current_status == val %}bg-white/10 text-white{% else %}text-slate-500 hover:text-slate-300{% endif %}">{{ label }}</a>
+            <a href="?status={{ val }}" class="px-4 py-1.5 rounded-lg text-[10px] font-black transition-all {% if current_status == val %}bg-white/10 text-white{% else %}text-slate-500 hover:text-slate-300{% endif %}">{{ label }}</a>
             {% endfor %}
         </div>
     </div>
     
-    <div class="table-responsive">
-        <table class="admin-table w-full text-right">
-            <thead>
+    <div class="overflow-x-auto">
+        <table class="w-full text-right text-sm">
+            <thead class="bg-black/20">
                 <tr>
-                    <th class="p-4">التاريخ</th>
-                    <th class="p-4">المستخدم</th>
-                    <th class="p-4">المبلغ والوسيلة</th>
-                    <th class="p-4">البيانات / المرفق</th>
-                    <th class="p-4">الحالة</th>
-                    <th class="p-4 text-left">إجراءات</th>
+                    <th class="p-5 text-[10px] font-black text-slate-500 uppercase tracking-widest">التوقيت</th>
+                    <th class="p-5 text-[10px] font-black text-slate-500 uppercase tracking-widest">المستخدم</th>
+                    <th class="p-5 text-[10px] font-black text-slate-500 uppercase tracking-widest">المبلغ والوسيلة</th>
+                    <th class="p-5 text-[10px] font-black text-slate-500 uppercase tracking-widest">البيانات / المرفق</th>
+                    <th class="p-5 text-[10px] font-black text-slate-500 uppercase tracking-widest text-center">الحالة</th>
+                    <th class="p-5 text-[10px] font-black text-slate-500 uppercase tracking-widest text-left">إجراءات</th>
                 </tr>
             </thead>
-            <tbody>
+            <tbody class="divide-y divide-white/[0.02]">
                 {% for d in deposits %}
-                <tr>
-                    <td class="p-4">
+                <tr class="hover:bg-white/[0.01] transition-colors">
+                    <td class="p-5">
                         <div class="text-[10px] text-slate-400 font-mono">{{ d.created_at|date:"d M Y" }}</div>
-                        <div class="text-[9px] text-slate-600 mt-0.5">{{ d.created_at|date:"H:i:s" }}</div>
+                        <div class="text-[9px] text-slate-600 mt-1 font-bold">{{ d.created_at|date:"H:i:s" }}</div>
                     </td>
-                    <td class="p-4">
-                        <div class="font-bold text-slate-200">{{ d.user.get_full_name|default:d.user.email }}</div>
+                    <td class="p-5">
+                        <div class="font-black text-white text-xs">{{ d.user.get_full_name|default:d.user.email }}</div>
                         <div class="text-[9px] text-slate-500 font-mono">{{ d.user.email }}</div>
                     </td>
-                    <td class="p-4">
+                    <td class="p-5">
                         <div class="flex flex-col">
                             <span class="font-black text-emerald-400 text-sm">{{ d.amount|floatformat:2 }} {{ d.currency.code }}</span>
                             {% if d.currency.code != "USD" %}
-                            <span class="text-[9px] text-slate-500 tracking-tighter">≈ {{ d.usd_amount|floatformat:2 }} USD</span>
+                            <span class="text-[9px] text-slate-600 tracking-tighter">≈ {{ d.usd_amount|floatformat:2 }} USD</span>
                             {% endif %}
                         </div>
-                        <div class="flex items-center gap-1.5 mt-1">
+                        <div class="flex items-center gap-1.5 mt-1.5">
                             <i class="fas fa-credit-card text-[8px] text-slate-600"></i>
-                            <span class="text-[10px] text-slate-400 font-bold">{{ d.payment_method.name }}</span>
+                            <span class="text-[9px] text-cyan font-black uppercase">{{ d.payment_method.name }}</span>
                         </div>
                     </td>
-                    <td class="p-4">
-                        <div class="flex items-center gap-3">
+                    <td class="p-5">
+                        <div class="flex items-center gap-4">
                             <div class="flex flex-col gap-1 min-w-[120px]">
-                                <span class="font-mono text-[10px] text-slate-400">{{ d.transaction_id|default:"N/A" }}</span>
+                                <span class="font-mono text-[10px] text-slate-300">{{ d.transaction_id|default:"بلا مرجع" }}</span>
                                 {% if d.customer_note %}
-                                <div class="text-[8px] text-slate-500 italic max-w-[150px] truncate" title="{{ d.customer_note }}">
+                                <div class="text-[9px] text-slate-500 italic max-w-[150px] truncate" title="{{ d.customer_note }}">
                                     <i class="fas fa-comment-dots ml-1"></i> {{ d.customer_note }}
-                                </div>
-                                {% endif %}
-                                {% if d.formatted_metadata %}
-                                <div class="mt-1 space-y-0.5">
-                                    {% for meta in d.formatted_metadata %}
-                                    <div class="text-[8px] text-slate-400 max-w-[150px] truncate" title="{{ meta.label }}: {{ meta.value }}">
-                                        <span class="font-bold text-slate-500">{{ meta.label }}:</span> {{ meta.value }}
-                                    </div>
-                                    {% endfor %}
                                 </div>
                                 {% endif %}
                             </div>
                             {% if d.proof_image %}
-                            <div class="proof-thumbnail-wrapper group">
-                                <img src="{{ d.proof_image.url }}" class="rounded-lg object-cover border border-white/10 hover:scale-150 transition-transform cursor-pointer z-10" onclick="window.open(this.src)">
-                                <div class="absolute -top-1 -right-1 w-3 h-3 bg-cyan rounded-full border-2 border-slate-900 z-20"></div>
-                            </div>
-                            {% else %}
-                            <div class="w-12 h-12 rounded-lg bg-slate-800/50 flex items-center justify-center text-slate-600 border border-dashed border-white/5">
-                                <i class="fas fa-image-slash text-xs"></i>
+                            <div class="relative group">
+                                <img src="{{ d.proof_image.url }}" class="w-10 h-10 rounded-lg object-cover border border-white/10 group-hover:scale-[3] group-hover:z-50 group-hover:shadow-2xl transition-all cursor-zoom-in" onclick="window.open(this.src)">
+                                <div class="absolute -top-1 -right-1 w-2 h-2 bg-cyan rounded-full border-2 border-slate-900 animate-pulse"></div>
                             </div>
                             {% endif %}
                         </div>
                     </td>
-                    <td class="p-4">
+                    <td class="p-5 text-center">
                         <span class="badge 
                             {% if d.status == 'completed' or d.status == 'approved' %}success
                             {% elif d.status == 'rejected' %}danger
-                            {% elif d.status == 'pending' %}warning
+                            {% elif d.status == 'pending' %}primary
                             {% else %}primary
-                            {% endif %}">
+                            {% endif %} text-[8px]">
                             {{ d.get_status_display }}
                         </span>
                     </td>
-                    <td class="p-4 text-left">
-                        <div class="flex justify-end gap-2">
-                            <a href="{% url 'control_deposit_detail' d.id %}" class="btn btn-sm btn-primary text-[10px] py-1.5 px-4 rounded-lg">
-                                <i class="fas fa-eye ml-1"></i> عرض ومعالجة
-                            </a>
-                        </div>
+                    <td class="p-5 text-left">
+                        <a href="{% url 'control_deposit_detail' d.id %}" class="btn btn-primary btn-sm py-1.5 px-4 rounded-lg text-[9px] font-black uppercase">
+                            <i class="fas fa-eye text-[8px]"></i> عرض
+                        </a>
                     </td>
                 </tr>
                 {% empty %}
                 <tr>
-                    <td colspan="6" class="p-16 text-center">
+                    <td colspan="6" class="p-20 text-center">
                         <div class="w-16 h-16 bg-slate-900 rounded-full flex items-center justify-center mx-auto mb-4 opacity-20">
                             <i class="fas fa-inbox text-2xl"></i>
                         </div>
-                        <p class="text-slate-500 font-bold italic">لا توجد طلبات إيداع في هذا القسم حالياً.</p>
+                        <p class="text-slate-600 font-bold italic text-xs">لا توجد طلبات إيداع مطابقة حالياً.</p>
                     </td>
                 </tr>
                 {% endfor %}
@@ -158,11 +119,26 @@ document.querySelector('input[name="q"]').addEventListener('keypress', function 
         this.form.submit();
     }
 });
-</script>
 
-<style>
-    .input-wrapper { position: relative; }
-    .btn-outline.danger { border-color: rgba(239, 68, 68, 0.2); color: #ef4444; }
-    .btn-outline.danger:hover { background: #ef4444; color: white; }
-</style>
+// Reveal animation
+const observer = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+        if (entry.isIntersecting) entry.target.classList.add('visible');
+    });
+}, { threshold: 0.05 });
+document.querySelectorAll('.reveal').forEach(el => {
+    el.style.opacity = '0';
+    el.style.transform = 'translateY(20px)';
+    el.style.transition = 'all 0.6s cubic-bezier(0.2, 1, 0.3, 1)';
+    observer.observe(el);
+});
+document.addEventListener('DOMContentLoaded', () => {
+    document.querySelectorAll('.reveal').forEach(el => {
+        setTimeout(() => {
+            el.style.opacity = '1';
+            el.style.transform = 'translateY(0)';
+        }, 100);
+    });
+});
+</script>
 {% endblock %}

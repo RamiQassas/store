@@ -101,7 +101,11 @@
             <i class="fas fa-shield-alt text-amber-500"></i>
             <p class="text-[10px] text-amber-200/70 leading-relaxed">
                 <strong class="text-amber-400 block mb-0.5">هل تحتاج إلى حدود أعلى؟</strong>
+                {% if user.kyc_request and user.kyc_request.status == 'pending' %}
+                طلب التوثيق الخاص بك <span class="text-amber-400 font-bold">قيد المراجعة</span> حالياً. سنقوم بإشعارك فور اكتمال التدقيق.
+                {% else %}
                 التوثيق اختياري، ومطلوب فقط لزيادة حدود حسابك. <a href="{% url 'site_kyc_request' %}" class="text-amber-400 underline font-bold">وثق الآن</a>
+                {% endif %}
             </p>
         </div>
         {% endif %}

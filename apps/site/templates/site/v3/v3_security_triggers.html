@@ -1,85 +1,153 @@
 {% extends "site/base.html" %}
 {% block title %}إعدادات مشغلات الأمان | Raqamiyat{% endblock %}
+
+{% block extra_head %}
+<style>
+    .auth-shell { display: flex; justify-content: center; padding: 2rem 1rem; min-height: calc(100vh - 200px); }
+    .auth-panel { width: 100%; max-width: 600px; border-radius: 32px; border: 1px solid rgba(255,255,255,0.05); background: rgba(15, 23, 42, 0.8); backdrop-filter: blur(20px); }
+    
+    .security-trigger-card { 
+        padding: 1.5rem; 
+        background: rgba(255,255,255,0.02); 
+        border: 1px solid rgba(255,255,255,0.05); 
+        border-radius: 24px; 
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); 
+    }
+    .security-trigger-card:hover { background: rgba(255,255,255,0.04); border-color: rgba(6, 182, 212, 0.2); }
+    .security-trigger-card.highlight { border-color: rgba(6, 182, 212, 0.2); background: rgba(6, 182, 212, 0.03); }
+    
+    .security-select {
+        width: 100%;
+        padding: 12px 16px;
+        background: rgba(15, 23, 42, 0.9);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 14px;
+        color: #fff;
+        font-size: 14px;
+        font-weight: 600;
+        cursor: pointer;
+        outline: none;
+        transition: all 0.2s;
+        appearance: none;
+        /* RTL Arrow support */
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%2364748b'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E");
+        background-repeat: no-repeat;
+        background-position: left 1rem center;
+        background-size: 1.1rem;
+        padding-left: 3rem;
+        text-align: right;
+    }
+    .security-select:focus { border-color: var(--cyan); box-shadow: 0 0 0 4px rgba(6, 182, 212, 0.1); }
+    
+    .overlay-lock {
+        position: absolute;
+        inset: 0;
+        background: rgba(15, 23, 42, 0.6);
+        backdrop-filter: blur(4px);
+        z-index: 20;
+        border-radius: 24px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        transition: all 0.3s;
+    }
+    .overlay-lock:hover { background: rgba(15, 23, 42, 0.4); }
+
+    /* Fix grid overlapping */
+    @media (max-width: 640px) {
+        .responsive-grid { grid-template-columns: 1fr !important; }
+    }
+</style>
+{% endblock %}
+
 {% block content %}
 <section class="auth-shell">
-  <article class="panel p-10 auth-panel">
-    <div class="text-center mb-8">
-        <div class="w-16 h-16 bg-cyan/10 rounded-2xl flex items-center justify-center text-2xl text-cyan mx-auto mb-6 shadow-xl shadow-cyan/5">
+  <article class="panel p-8 sm:p-12 auth-panel">
+    <div class="text-center mb-10">
+        <div class="w-20 h-20 bg-cyan/10 rounded-3xl flex items-center justify-center text-3xl text-cyan mx-auto mb-6 shadow-2xl shadow-cyan/10">
             <i class="fas fa-user-shield"></i>
         </div>
-        <h1 class="text-2xl font-black mb-2">مشغلات الأمان الذكية</h1>
-        <p class="text-slate-500 text-sm">تحكم في كيفية حماية حسابك عند القيام بالعمليات الهامة.</p>
+        <h1 class="text-3xl font-black mb-3">مشغلات الأمان الذكية</h1>
+        <p class="text-slate-500 text-sm max-w-sm mx-auto">تحكم مركزي في طبقات الحماية لجميع العمليات الحساسة في حسابك.</p>
     </div>
 
-    <div class="stack gap-10">
+    <div class="stack gap-8">
     
-        <!-- 1. Security Password Management -->
+        <!-- Section 1: Master Security Password -->
         <div class="security-trigger-card highlight">
-            <div class="flex items-center gap-3 mb-6">
-                <div class="w-10 h-10 rounded-xl bg-cyan/10 flex items-center justify-center text-cyan shadow-sm">
-                    <i class="fas fa-key"></i>
+            <div class="flex items-center gap-4 mb-8">
+                <div class="w-12 h-12 rounded-2xl bg-cyan/10 flex items-center justify-center text-cyan shadow-inner">
+                    <i class="fas fa-key-skeleton"></i>
                 </div>
                 <div>
-                    <h3 class="text-base font-black text-white">كلمة مرور الحماية الخاصة</h3>
-                    <p class="text-[11px] text-slate-500">طبقة حماية إضافية لمنع أي تعديلات غير مصرح بها على حسابك.</p>
+                    <h3 class="text-lg font-black text-white">كلمة مرور الحماية (SP)</h3>
+                    <p class="text-[11px] text-slate-500 uppercase tracking-widest font-bold">Security Password Control</p>
                 </div>
             </div>
 
-            <form method="post" class="stack gap-4">
+            <form method="post" class="stack gap-6">
                 {% csrf_token %}
                 <input type="hidden" name="action" value="update_security_password">
                 
                 {% if user.security_password %}
                 <div class="field-group">
-                    <label class="text-xs text-slate-400 mb-1 block">كلمة المرور الحالية</label>
-                    <input type="password" name="current_security_password" class="security-select" placeholder="******" required>
+                    <label class="text-[10px] font-black text-slate-500 uppercase mb-2 block tracking-wider">كلمة مرور الحماية الحالية</label>
+                    <input type="password" name="current_security_password" class="security-select" placeholder="••••••" required>
                 </div>
                 {% endif %}
                 
-                <div class="grid grid-cols-2 gap-4">
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-6 responsive-grid">
                     <div class="field-group">
-                        <label class="text-xs text-slate-400 mb-1 block">كلمة المرور الجديدة</label>
-                        <input type="password" name="new_security_password" class="security-select" placeholder="******" required>
+                        <label class="text-[10px] font-black text-slate-500 uppercase mb-2 block tracking-wider">كلمة المرور الجديدة</label>
+                        <input type="password" name="new_security_password" class="security-select" placeholder="••••••" required>
                     </div>
                     <div class="field-group">
-                        <label class="text-xs text-slate-400 mb-1 block">تأكيد كلمة المرور</label>
-                        <input type="password" name="confirm_security_password" class="security-select" placeholder="******" required>
+                        <label class="text-[10px] font-black text-slate-500 uppercase mb-2 block tracking-wider">تأكيد كلمة المرور</label>
+                        <input type="password" name="confirm_security_password" class="security-select" placeholder="••••••" required>
                     </div>
                 </div>
                 
-                <button type="submit" class="btn btn-primary py-3 text-xs font-bold">{% if user.security_password %}تغيير كلمة المرور{% else %}إنشاء كلمة مرور الحماية{% endif %}</button>
+                <button type="submit" class="btn btn-primary h-12 rounded-xl text-xs font-black uppercase tracking-widest">
+                    {% if user.security_password %}تحديث كلمة مرور الحماية{% else %}إنشاء كلمة مرور الحماية{% endif %}
+                </button>
             </form>
         </div>
 
         {% if user.security_password %}
-        <!-- 2. Settings Protection Toggle -->
-        <div class="security-trigger-card {% if user.security_password_enabled %}border-green-500/30 bg-green-500/5{% endif %}">
-            <div class="flex items-center justify-between">
-                <div class="flex items-center gap-3">
-                    <div class="w-10 h-10 rounded-xl bg-slate-800 flex items-center justify-center {% if user.security_password_enabled %}text-green-500{% else %}text-slate-500{% endif %}">
-                        <i class="fas fa-shield-alt"></i>
+        <!-- Section 2: Global Protection Toggle -->
+        <div class="security-trigger-card {% if user.security_password_enabled %}border-emerald-500/30 bg-emerald-500/[0.02]{% endif %}">
+            <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6">
+                <div class="flex items-center gap-4">
+                    <div class="w-12 h-12 rounded-2xl bg-slate-800 flex items-center justify-center {% if user.security_password_enabled %}text-emerald-500 shadow-[0_0_15px_rgba(16,185,129,0.2)]{% else %}text-slate-500{% endif %}">
+                        <i class="fas fa-shield-check"></i>
                     </div>
                     <div>
-                        <h3 class="text-sm font-bold text-slate-200">حماية تعديل الإعدادات</h3>
-                        <p class="text-[10px] text-slate-500">عند التفعيل، ستحتاج لإدخال كلمة مرور الحماية لتغيير أي من هذه الخيارات.</p>
+                        <h3 class="text-sm font-black text-slate-200">حماية تعديل الإعدادات</h3>
+                        <p class="text-[11px] text-slate-500 mt-1 leading-relaxed">عند التفعيل، سيتم طلب كلمة مرور الحماية قبل أي تعديل.</p>
                     </div>
                 </div>
-                <form method="post">
+                <form method="post" class="w-full sm:w-auto">
                     {% csrf_token %}
                     <input type="hidden" name="action" value="toggle_protection">
-                    <!-- Trigger Modal or Simple Prompt -->
-                    <button type="button" onclick="showPrompt('toggle_protection')" class="btn {% if user.security_password_enabled %}btn-success{% else %}btn-secondary{% endif %} py-2 px-6 text-[11px] font-bold">
+                    <button type="button" onclick="showPrompt('toggle_protection')" class="btn {% if user.security_password_enabled %}btn-success{% else %}btn-secondary{% endif %} w-full sm:w-auto py-3 px-8 text-[11px] font-black uppercase rounded-xl">
                         {% if user.security_password_enabled %}إيقاف الحماية{% else %}تفعيل الحماية{% endif %}
                     </button>
                     
-                    <div id="prompt-toggle_protection" class="hidden fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-                        <div class="bg-slate-900 border border-white/10 p-8 rounded-3xl w-full max-width-[400px] stack gap-6">
-                            <h4 class="text-lg font-bold">تأكيد العملية</h4>
-                            <p class="text-sm text-slate-400">يرجى إدخال كلمة مرور الحماية للمتابعة:</p>
-                            <input type="password" name="security_password" class="security-select" placeholder="******">
+                    <!-- Toggle Confirmation Modal -->
+                    <div id="prompt-toggle_protection" class="hidden fixed inset-0 bg-slate-950/90 backdrop-blur-md z-[100] flex items-center justify-center p-4">
+                        <div class="bg-slate-900 border border-white/10 p-10 rounded-[32px] w-full max-w-md stack gap-8 shadow-2xl">
+                            <div class="text-center">
+                                <div class="w-16 h-16 bg-amber-500/10 rounded-2xl flex items-center justify-center text-amber-500 mx-auto mb-4">
+                                    <i class="fas fa-lock-open text-xl"></i>
+                                </div>
+                                <h4 class="text-xl font-black text-white">تأكيد التغيير</h4>
+                                <p class="text-xs text-slate-400 mt-2">يرجى إدخال كلمة مرور الحماية للمتابعة:</p>
+                            </div>
+                            <input type="password" name="security_password" class="security-select h-14 text-lg text-center" placeholder="••••••" autofocus>
                             <div class="flex gap-4">
-                                <button type="submit" class="btn btn-primary flex-1">تأكيد</button>
-                                <button type="button" onclick="hidePrompt('toggle_protection')" class="btn btn-secondary flex-1">إلغاء</button>
+                                <button type="submit" class="btn btn-primary flex-1 h-12 rounded-xl font-black">تأكيد</button>
+                                <button type="button" onclick="hidePrompt('toggle_protection')" class="btn btn-secondary flex-1 h-12 rounded-xl font-black">إلغاء</button>
                             </div>
                         </div>
                     </div>
@@ -88,95 +156,97 @@
         </div>
         {% endif %}
 
-        <!-- 3. Security Triggers Form -->
+        <!-- Section 3: Detailed Triggers -->
         <div class="relative">
             {% if user.security_password_enabled %}
-            <div id="trigger-overlay" class="absolute inset-0 bg-slate-900/40 backdrop-blur-[2px] z-10 rounded-3xl flex items-center justify-center cursor-pointer" onclick="showPrompt('triggers')">
-                <div class="text-center p-6">
-                    <i class="fas fa-lock text-3xl text-cyan mb-3"></i>
-                    <p class="text-sm font-bold text-white">الإعدادات محمية</p>
-                    <p class="text-[10px] text-slate-400">انقر هنا لفتح الحماية وتغيير الإعدادات</p>
+            <div id="trigger-overlay" class="overlay-lock" onclick="showPrompt('triggers')">
+                <div class="text-center p-8 bg-slate-900/80 rounded-3xl border border-white/5 shadow-2xl">
+                    <div class="w-14 h-14 bg-cyan/10 rounded-2xl flex items-center justify-center text-cyan mx-auto mb-4 animate-pulse">
+                        <i class="fas fa-lock text-2xl"></i>
+                    </div>
+                    <p class="text-base font-black text-white mb-1">الإعدادات مقفلة</p>
+                    <p class="text-[10px] text-slate-400 font-bold uppercase tracking-widest">انقر هنا لإلغاء القفل مؤقتاً</p>
                 </div>
             </div>
             {% endif %}
 
-            <form method="post" class="stack gap-6 text-right">
+            <form method="post" class="stack gap-6">
                 {% csrf_token %}
                 <input type="hidden" name="action" value="update_triggers">
                 
-                <div id="prompt-triggers" class="hidden fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-                    <div class="bg-slate-900 border border-white/10 p-8 rounded-3xl w-full max-width-[400px] stack gap-6">
-                        <h4 class="text-lg font-bold">فتح الحماية</h4>
-                        <p class="text-sm text-slate-400">أدخل كلمة مرور الحماية لتعديل المشغلات:</p>
-                        <input type="password" name="security_password_verify" class="security-select" placeholder="******">
+                <!-- Verification Modal for Triggers -->
+                <div id="prompt-triggers" class="hidden fixed inset-0 bg-slate-950/90 backdrop-blur-md z-[100] flex items-center justify-center p-4">
+                    <div class="bg-slate-900 border border-white/10 p-10 rounded-[32px] w-full max-w-md stack gap-8 shadow-2xl">
+                        <div class="text-center">
+                            <div class="w-16 h-16 bg-cyan/10 rounded-2xl flex items-center justify-center text-cyan mx-auto mb-4">
+                                <i class="fas fa-shield-keyhole text-xl"></i>
+                            </div>
+                            <h4 class="text-xl font-black text-white">إلغاء القفل</h4>
+                            <p class="text-xs text-slate-400 mt-2">أدخل كلمة مرور الحماية لتعديل المشغلات:</p>
+                        </div>
+                        <input type="password" name="security_password_verify" id="sp-verify-input" class="security-select h-14 text-lg text-center" placeholder="••••••">
                         <div class="flex gap-4">
-                            <button type="button" onclick="confirmTriggers()" class="btn btn-primary flex-1">متابعة التعديل</button>
-                            <button type="button" onclick="hidePrompt('triggers')" class="btn btn-secondary flex-1">إلغاء</button>
+                            <button type="button" onclick="confirmTriggers()" class="btn btn-primary flex-1 h-12 rounded-xl font-black">فتح القفل</button>
+                            <button type="button" onclick="hidePrompt('triggers')" class="btn btn-secondary flex-1 h-12 rounded-xl font-black">إلغاء</button>
                         </div>
                     </div>
                 </div>
 
-                <!-- Login Security -->
-                <div class="security-trigger-card">
-                    <div class="flex items-center gap-3 mb-4">
-                        <div class="w-8 h-8 rounded-lg bg-slate-800 flex items-center justify-center text-xs text-slate-400">
-                            <i class="fas fa-sign-in-alt"></i>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-6 responsive-grid">
+                    <!-- Login -->
+                    <div class="security-trigger-card">
+                        <div class="flex items-center gap-3 mb-4">
+                            <i class="fas fa-sign-in-alt text-slate-500"></i>
+                            <span class="text-xs font-black text-slate-300 uppercase">عند تسجيل الدخول</span>
                         </div>
-                        <h3 class="text-sm font-bold text-slate-200">عند تسجيل الدخول</h3>
+                        <select name="login_method" class="security-select">
+                            {% for val, label in user.SecurityMethod.choices %}
+                            <option value="{{ val }}" {% if user.security_login_method == val %}selected{% endif %}>{{ label }}</option>
+                            {% endfor %}
+                        </select>
                     </div>
-                    <select name="login_method" class="security-select">
-                        {% for val, label in user.SecurityMethod.choices %}
-                        <option value="{{ val }}" {% if user.security_login_method == val %}selected{% endif %}>{{ label }}</option>
-                        {% endfor %}
-                    </select>
+
+                    <!-- Withdraw -->
+                    <div class="security-trigger-card highlight">
+                        <div class="flex items-center gap-3 mb-4">
+                            <i class="fas fa-money-bill-transfer text-cyan"></i>
+                            <span class="text-xs font-black text-white uppercase">عند طلب سحب</span>
+                        </div>
+                        <select name="withdraw_method" class="security-select border-cyan/20">
+                            {% for val, label in user.SecurityMethod.choices %}
+                            <option value="{{ val }}" {% if user.security_withdraw_method == val %}selected{% endif %}>{{ label }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <!-- Deposit -->
+                    <div class="security-trigger-card">
+                        <div class="flex items-center gap-3 mb-4">
+                            <i class="fas fa-wallet text-slate-500"></i>
+                            <span class="text-xs font-black text-slate-300 uppercase">عند طلب إيداع</span>
+                        </div>
+                        <select name="deposit_method" class="security-select">
+                            {% for val, label in user.SecurityMethod.choices %}
+                            <option value="{{ val }}" {% if user.security_deposit_method == val %}selected{% endif %}>{{ label }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <!-- Purchase -->
+                    <div class="security-trigger-card">
+                        <div class="flex items-center gap-3 mb-4">
+                            <i class="fas fa-shopping-bag text-slate-500"></i>
+                            <span class="text-xs font-black text-slate-300 uppercase">عند شراء منتج</span>
+                        </div>
+                        <select name="purchase_method" class="security-select">
+                            {% for val, label in user.SecurityMethod.choices %}
+                            <option value="{{ val }}" {% if user.security_purchase_method == val %}selected{% endif %}>{{ label }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
                 </div>
 
-                <!-- Withdraw Security -->
-                <div class="security-trigger-card highlight">
-                    <div class="flex items-center gap-3 mb-4">
-                        <div class="w-8 h-8 rounded-lg bg-cyan/10 flex items-center justify-center text-xs text-cyan">
-                            <i class="fas fa-money-bill-transfer"></i>
-                        </div>
-                        <h3 class="text-sm font-bold text-white">عند طلب سحب</h3>
-                    </div>
-                    <select name="withdraw_method" class="security-select border-cyan/20">
-                        {% for val, label in user.SecurityMethod.choices %}
-                        <option value="{{ val }}" {% if user.security_withdraw_method == val %}selected{% endif %}>{{ label }}</option>
-                        {% endfor %}
-                    </select>
-                </div>
-
-                <!-- Deposit Security -->
-                <div class="security-trigger-card">
-                    <div class="flex items-center gap-3 mb-4">
-                        <div class="w-8 h-8 rounded-lg bg-slate-800 flex items-center justify-center text-xs text-slate-400">
-                            <i class="fas fa-wallet"></i>
-                        </div>
-                        <h3 class="text-sm font-bold text-slate-200">عند طلب إيداع</h3>
-                    </div>
-                    <select name="deposit_method" class="security-select">
-                        {% for val, label in user.SecurityMethod.choices %}
-                        <option value="{{ val }}" {% if user.security_deposit_method == val %}selected{% endif %}>{{ label }}</option>
-                        {% endfor %}
-                    </select>
-                </div>
-
-                <!-- Purchase Security -->
-                <div class="security-trigger-card">
-                    <div class="flex items-center gap-3 mb-4">
-                        <div class="w-8 h-8 rounded-lg bg-slate-800 flex items-center justify-center text-xs text-slate-400">
-                            <i class="fas fa-shopping-bag"></i>
-                        </div>
-                        <h3 class="text-sm font-bold text-slate-200">عند شراء منتج</h3>
-                    </div>
-                    <select name="purchase_method" class="security-select">
-                        {% for val, label in user.SecurityMethod.choices %}
-                        <option value="{{ val }}" {% if user.security_purchase_method == val %}selected{% endif %}>{{ label }}</option>
-                        {% endfor %}
-                    </select>
-                </div>
-
-                <button type="submit" id="submit-triggers" class="btn btn-primary w-full py-4 text-sm font-bold shadow-lg shadow-cyan/20">حفظ جميع الإعدادات</button>
+                <button type="submit" id="submit-triggers" class="btn btn-primary w-full py-4 text-sm font-black uppercase tracking-widest shadow-xl shadow-cyan/10">حفظ جميع التغييرات</button>
             </form>
         </div>
     </div>
@@ -184,47 +254,25 @@
     <script>
         function showPrompt(id) {
             document.getElementById('prompt-' + id).classList.remove('hidden');
+            const input = document.querySelector(`#prompt-${id} input`);
+            if(input) setTimeout(() => input.focus(), 100);
         }
         function hidePrompt(id) {
             document.getElementById('prompt-' + id).classList.add('hidden');
         }
         function confirmTriggers() {
+            const val = document.getElementById('sp-verify-input').value;
+            if(!val) { alert("يرجى إدخال كلمة المرور أولاً."); return; }
             document.getElementById('trigger-overlay')?.classList.add('hidden');
             hidePrompt('triggers');
         }
     </script>
     
-    <div class="mt-8 pt-6 border-t border-white/5 text-center">
-        <a href="{% url 'dashboard' %}" class="text-slate-500 text-xs hover:text-cyan transition-colors">العودة للوحة التحكم</a>
+    <div class="mt-12 pt-8 border-t border-white/5 text-center">
+        <a href="{% url 'dashboard' %}" class="btn btn-outline btn-sm px-8 rounded-xl text-[10px] font-black uppercase tracking-widest">
+            <i class="fas fa-arrow-right ml-2"></i> العودة للوحة التحكم
+        </a>
     </div>
   </article>
 </section>
-
-<style>
-    .auth-panel { max-width: 550px; margin: 0 auto; border: 1px solid rgba(255,255,255,0.05); border-radius: 32px; background: rgba(15, 23, 42, 0.8); backdrop-filter: blur(20px); }
-    .security-trigger-card { padding: 1.25rem; background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.05); border-radius: 20px; transition: all 0.3s ease; }
-    .security-trigger-card:hover { background: rgba(255,255,255,0.04); transform: translateY(-2px); }
-    .security-trigger-card.highlight { border-color: rgba(6, 182, 212, 0.2); background: rgba(6, 182, 212, 0.03); }
-    
-    .security-select {
-        width: 100%;
-        padding: 10px 16px;
-        background: rgba(15, 23, 42, 0.9);
-        border: 1px solid rgba(255, 255, 255, 0.1);
-        border-radius: 12px;
-        color: #fff;
-        font-size: 13px;
-        font-weight: 600;
-        cursor: pointer;
-        outline: none;
-        transition: all 0.2s;
-        appearance: none;
-        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%2364748b'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E");
-        background-repeat: no-repeat;
-        background-position: left 1rem center;
-        background-size: 1rem;
-        padding-left: 2.5rem;
-    }
-    .security-select:focus { border-color: var(--cyan); box-shadow: 0 0 0 4px rgba(6, 182, 212, 0.1); }
-</style>
 {% endblock %}

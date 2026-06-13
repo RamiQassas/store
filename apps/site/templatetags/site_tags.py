@@ -116,6 +116,13 @@ def replace(value, args):
     old, new = args.split(',')
     return value.replace(old, new)
 
+@register.filter
+def get_item(dictionary, key):
+    """Returns the value for a given key in a dictionary."""
+    if not dictionary:
+        return None
+    return dictionary.get(str(key)) or dictionary.get(key)
+
 from django.utils.safestring import mark_safe
 
 @register.simple_tag

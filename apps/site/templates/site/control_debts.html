@@ -1,63 +1,76 @@
 {% extends "site/control_base.html" %}
 {% load static %}
 
-{% block title %}إدارة الديون | Raqamiyat Admin{% endblock %}
+{% block title %}إدارة الديون الاستراتيجية | Raqamiyat Elite{% endblock %}
 
 {% block control_content %}
-<div class="page-head flex justify-between items-center">
+<div class="page-head reveal">
     <div>
-        <span class="eyebrow">Financial Operations / Accounting</span>
-        <h1>إدارة ديون المستخدمين</h1>
-        <p class="text-muted">إضافة ديون جديدة، تسجيل دفعات السداد، ومراقبة المبالغ المستحقة.</p>
+        <span class="eyebrow">Financial Operations & Liquidity</span>
+        <h1>إدارة مديونيات المستخدمين</h1>
+        <p class="text-slate-500 mt-2">نظام المحاسبة المتقدم لتسجيل الديون، دفعات السداد، ومراقبة السيولة المستحقة.</p>
     </div>
 </div>
 
-<div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+<div class="grid grid-cols-1 lg:grid-cols-12 gap-8 reveal">
     <!-- User Search & List -->
-    <div class="lg:col-span-2 stack gap-6">
-        <div class="management-card">
-            <div class="management-header">
+    <div class="lg:col-span-8 stack gap-6">
+        <div class="glass-panel overflow-hidden">
+            <div class="p-6 border-b border-white/5 bg-white/[0.01] flex flex-wrap gap-4 items-center justify-between">
                 <form method="get" class="flex-grow w-full max-w-md">
                     <div class="relative group">
                         <i class="fas fa-search absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-cyan transition-colors"></i>
-                        <input type="text" name="q" value="{{ query|default:'' }}" placeholder="البحث عن مستخدم (بريد، اسم، هاتف)..." class="w-full pr-11 bg-slate-900/50 border-white/10 rounded-xl focus:border-cyan/50 focus:ring-4 focus:ring-cyan/10 transition-all text-xs py-2.5">
+                        <input type="text" name="q" value="{{ query|default:'' }}" placeholder="البحث عن مستخدم (بريد، اسم، هاتف)..." class="w-full pr-11 bg-slate-900/50 border-white/10 rounded-xl focus:border-cyan/50 text-xs py-3">
                     </div>
                 </form>
+                <div class="flex items-center gap-2">
+                    <span class="text-[10px] font-black text-slate-500 uppercase tracking-widest">فرز:</span>
+                    <select name="sort" class="bg-slate-800 border-none rounded-lg text-[10px] font-black p-2 text-slate-300">
+                        <option value="debt_desc">الأعلى ديناً</option>
+                        <option value="recent">الأحدث نشاطاً</option>
+                    </select>
+                </div>
             </div>
             
-            <div class="table-responsive">
-                <table class="admin-table w-full text-right">
-                    <thead>
+            <div class="overflow-x-auto">
+                <table class="w-full text-right text-sm">
+                    <thead class="bg-black/20">
                         <tr>
-                            <th class="p-4">المستخدم</th>
-                            <th class="p-4">الرصيد المتاح</th>
-                            <th class="p-4">الدين المستحق</th>
-                            <th class="p-4 text-left">إجراءات</th>
+                            <th class="p-5 text-[10px] font-black text-slate-500 uppercase tracking-widest">المستخدم</th>
+                            <th class="p-5 text-[10px] font-black text-slate-500 uppercase tracking-widest text-center">الرصيد المتاح</th>
+                            <th class="p-5 text-[10px] font-black text-slate-500 uppercase tracking-widest text-center">الدين المستحق</th>
+                            <th class="p-5 text-[10px] font-black text-slate-500 uppercase tracking-widest text-left">إجراءات سريعة</th>
                         </tr>
                     </thead>
-                    <tbody>
+                    <tbody class="divide-y divide-white/[0.02]">
                         {% for u in users %}
-                        <tr class="{% if u.wallet.debt_balance > 0 %}bg-rose-500/[0.02]{% endif %}">
-                            <td class="p-4">
-                                <div class="font-bold text-slate-200">{{ u.get_full_name|default:u.email }}</div>
-                                <div class="text-[9px] text-slate-500 font-mono">{{ u.email }}</div>
+                        <tr class="hover:bg-white/[0.01] transition-colors {% if u.wallet.debt_balance > 0 %}bg-rose-500/[0.01]{% endif %}">
+                            <td class="p-5">
+                                <div class="font-black text-white text-xs">{{ u.get_full_name|default:u.email }}</div>
+                                <div class="text-[10px] text-slate-500 font-mono">{{ u.email }}</div>
                             </td>
-                            <td class="p-4">
-                                <div class="text-sm font-black text-white">{{ u.wallet.available_balance|floatformat:2 }} <span class="text-[10px] text-slate-500">USD</span></div>
-                            </td>
-                            <td class="p-4">
-                                <div class="text-sm font-black {% if u.wallet.debt_balance > 0 %}text-rose-500{% else %}text-slate-600{% endif %}">
-                                    {{ u.wallet.debt_balance|floatformat:2 }} <span class="text-[10px] opacity-50">USD</span>
+                            <td class="p-5 text-center">
+                                <div class="flex items-center justify-center gap-2">
+                                    <span class="font-mono text-xs font-black text-cyan">{{ u.wallet.available_balance|floatformat:2 }}</span>
+                                    <span class="text-[8px] text-slate-600 font-bold">USD</span>
                                 </div>
                             </td>
-                            <td class="p-4 text-left">
+                            <td class="p-5 text-center">
+                                <div class="flex items-center justify-center gap-2">
+                                    <span class="font-mono text-xs font-black {% if u.wallet.debt_balance > 0 %}text-rose-500{% else %}text-slate-600{% endif %}">
+                                        {{ u.wallet.debt_balance|floatformat:2 }}
+                                    </span>
+                                    <span class="text-[8px] text-slate-600 font-bold">USD</span>
+                                </div>
+                            </td>
+                            <td class="p-5 text-left">
                                 <div class="flex justify-end gap-2">
-                                    <button class="btn btn-sm bg-cyan/10 text-cyan hover:bg-cyan hover:text-black border border-cyan/20 px-4 rounded-lg text-[10px] font-black" onclick="openDebtModal('{{ u.id }}', '{{ u.email }}', 'add')">
-                                        <i class="fas fa-plus-circle ml-1"></i> إضافة دين
+                                    <button class="btn btn-outline btn-sm py-1.5 text-[9px] font-black uppercase rounded-lg border-white/5 hover:border-cyan" onclick="openDebtModal('{{ u.id }}', '{{ u.email }}', 'add')">
+                                        <i class="fas fa-plus text-[8px]"></i> إضافة دين
                                     </button>
                                     {% if u.wallet.debt_balance > 0 %}
-                                    <button class="btn btn-sm bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500 hover:text-black border border-emerald-500/20 px-4 rounded-lg text-[10px] font-black" onclick="openDebtModal('{{ u.id }}', '{{ u.email }}', 'pay', '{{ u.wallet.debt_balance }}')">
-                                        <i class="fas fa-hand-holding-dollar ml-1"></i> سداد
+                                    <button class="btn btn-primary btn-sm py-1.5 text-[9px] font-black uppercase rounded-lg" onclick="openDebtModal('{{ u.id }}', '{{ u.email }}', 'pay', '{{ u.wallet.debt_balance }}')">
+                                        <i class="fas fa-check-double text-[8px]"></i> سداد
                                     </button>
                                     {% endif %}
                                 </div>
@@ -65,7 +78,12 @@
                         </tr>
                         {% empty %}
                         <tr>
-                            <td colspan="4" class="p-16 text-center text-slate-500 italic">ابحث عن مستخدم للبدء في إدارة ديونه.</td>
+                            <td colspan="4" class="p-20 text-center">
+                                <div class="w-16 h-16 bg-slate-900 rounded-full flex items-center justify-center mx-auto mb-4 opacity-20">
+                                    <i class="fas fa-search-dollar text-2xl"></i>
+                                </div>
+                                <p class="text-slate-600 italic text-xs">ابحث عن مستخدم للبدء في إدارة ديونه.</p>
+                            </td>
                         </tr>
                         {% endfor %}
                     </tbody>
@@ -75,33 +93,67 @@
     </div>
 
     <!-- Stats Sidebar -->
-    <div class="stack gap-6">
-        <div class="management-card p-8 border-rose-500/10 bg-rose-500/[0.01]">
-            <h4 class="text-[10px] font-black uppercase text-slate-500 tracking-widest mb-6">إحصائيات الديون</h4>
+    <div class="lg:col-span-4 stack gap-6">
+        <div class="glass-panel p-8 relative overflow-hidden group">
+            <div class="absolute -right-4 -top-4 w-32 h-32 bg-rose-500/5 rounded-full blur-3xl"></div>
+            <h4 class="text-[10px] font-black uppercase text-slate-500 tracking-widest mb-8 flex items-center gap-2">
+                <i class="fas fa-chart-pie text-rose-500"></i> ملخص المديونيات
+            </h4>
+            
             <div class="stack gap-6 text-center">
-                <div class="p-6 bg-slate-900/50 rounded-3xl border border-white/5">
-                    <span class="text-[9px] font-black text-rose-500 uppercase block mb-2">إجمالي الديون المعلقة</span>
-                    <div class="text-3xl font-black text-white">--- <span class="text-xs text-slate-600">USD</span></div>
+                <div class="p-6 bg-rose-500/[0.03] rounded-3xl border border-rose-500/10">
+                    <span class="text-[9px] font-black text-rose-500 uppercase block mb-3">إجمالي الديون المعلقة</span>
+                    <div class="text-4xl font-black text-white">
+                        <span id="total-debt-value">{{ total_debt_balance|default:"---" }}</span>
+                        <span class="text-xs text-slate-600">USD</span>
+                    </div>
                 </div>
-                <div class="p-6 bg-slate-900/50 rounded-3xl border border-white/5">
-                    <span class="text-[9px] font-black text-emerald-500 uppercase block mb-2">تحصيلات اليوم</span>
-                    <div class="text-3xl font-black text-white">--- <span class="text-xs text-slate-600">USD</span></div>
+                
+                <div class="p-6 bg-emerald-500/[0.03] rounded-3xl border border-emerald-500/10">
+                    <span class="text-[9px] font-black text-emerald-500 uppercase block mb-3">سداد اليوم</span>
+                    <div class="text-4xl font-black text-white">
+                        <span id="today-pay-value">{{ today_debt_payments|default:"---" }}</span>
+                        <span class="text-xs text-slate-600">USD</span>
+                    </div>
                 </div>
             </div>
-            <p class="text-[9px] text-slate-600 mt-6 leading-relaxed italic text-center">
-                * الديون يتم خصمها تلقائياً من أول عملية إيداع يقوم بها المستخدم بعد تسجيل الدين.
-            </p>
+            
+            <div class="mt-8 p-4 bg-white/[0.02] rounded-2xl border border-white/5">
+                <p class="text-[10px] text-slate-500 leading-relaxed italic text-center font-medium">
+                    <i class="fas fa-info-circle text-cyan ml-1"></i> يتم خصم الديون تلقائياً من أول عملية إيداع يقوم بها المستخدم بعد تسجيل المديونية.
+                </p>
+            </div>
+        </div>
+        
+        <!-- Recent Debt Logs Placeholder -->
+        <div class="glass-panel p-6">
+             <h4 class="text-[10px] font-black uppercase text-slate-500 tracking-widest mb-6">أحدث عمليات الديون</h4>
+             <div class="stack gap-3">
+                 {% for log in recent_debt_logs %}
+                 <div class="flex justify-between items-center text-[10px] p-2 hover:bg-white/[0.02] rounded-lg">
+                     <div class="stack gap-0.5">
+                         <span class="font-black text-white">{{ log.user.email|truncatechars:20 }}</span>
+                         <span class="text-slate-600">{{ log.created_at|date:"H:i" }}</span>
+                     </div>
+                     <span class="font-black {% if log.amount > 0 %}text-rose-500{% else %}text-emerald-500{% endif %}">
+                         {% if log.amount > 0 %}+{% endif %}{{ log.amount }}
+                     </span>
+                 </div>
+                 {% empty %}
+                 <p class="text-[9px] text-slate-600 text-center py-4">لا يوجد عمليات حديثة.</p>
+                 {% endfor %}
+             </div>
         </div>
     </div>
 </div>
 
 <!-- Action Modal -->
-<div id="debt-modal" class="fixed inset-0 bg-black/90 backdrop-blur-sm flex items-center justify-center z-[1000] hidden p-4">
-    <div class="management-card max-w-md w-full p-8 stack gap-6 border-white/10 shadow-2xl">
+<div id="debt-modal" class="fixed inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center z-[1000] hidden p-4">
+    <div class="glass-panel max-w-md w-full p-8 stack gap-8 border-white/10 shadow-2xl reveal visible">
         <div class="text-center">
-            <div id="modal-icon" class="w-12 h-12 rounded-2xl flex items-center justify-center mx-auto mb-4"></div>
-            <h3 id="modal-title" class="text-lg font-black text-white"></h3>
-            <p id="modal-subtitle" class="text-[10px] text-slate-500 mt-2"></p>
+            <div id="modal-icon" class="w-16 h-16 rounded-3xl flex items-center justify-center mx-auto mb-6 shadow-inner"></div>
+            <h3 id="modal-title" class="text-xl font-black text-white"></h3>
+            <p id="modal-subtitle" class="text-xs text-slate-500 mt-3 leading-relaxed px-4"></p>
         </div>
         
         <form method="post" class="stack gap-6">
@@ -109,22 +161,22 @@
             <input type="hidden" name="user_id" id="modal-user-id">
             <input type="hidden" name="action" id="modal-action">
             
-            <div class="field-group">
-                <label class="text-[10px] font-bold uppercase text-slate-500 mb-2 block">المبلغ (USD)</label>
+            <div>
+                <label class="text-[10px] font-black uppercase text-slate-500 mb-3 block tracking-widest">المبلغ المستحق (USD)</label>
                 <div class="relative">
-                    <input type="number" name="amount" id="modal-amount" step="0.01" required class="w-full bg-slate-900 border-white/10 rounded-xl p-4 text-xl font-black text-white focus:border-cyan/50 transition-all">
-                    <span class="absolute left-4 top-1/2 -translate-y-1/2 text-slate-600 font-bold text-xs uppercase">USD</span>
+                    <input type="number" name="amount" id="modal-amount" step="0.01" required class="w-full bg-slate-950/50 border-white/10 rounded-2xl p-5 text-2xl font-black text-white focus:border-cyan/50 transition-all text-center">
+                    <span class="absolute left-6 top-1/2 -translate-y-1/2 text-slate-700 font-black text-xs">USD</span>
                 </div>
             </div>
             
-            <div class="field-group">
-                <label class="text-[10px] font-bold uppercase text-slate-500 mb-2 block">السبب / ملاحظات (داخلية)</label>
-                <textarea name="reason" class="w-full bg-slate-900 border-white/10 rounded-xl p-4 text-xs text-white focus:border-cyan/50" rows="3" placeholder="اكتب ملاحظات توضح سبب هذه الحركة المالية..." required></textarea>
+            <div>
+                <label class="text-[10px] font-black uppercase text-slate-500 mb-3 block tracking-widest">السبب / الملاحظات الإدارية</label>
+                <textarea name="reason" class="w-full bg-slate-950/50 border-white/10 rounded-2xl p-5 text-xs text-white focus:border-cyan/50 leading-relaxed" rows="3" placeholder="اكتب تفاصيل توضح سبب هذه الحركة المالية لغايات التدقيق..." required></textarea>
             </div>
             
-            <div class="flex gap-4 pt-2">
-                <button type="button" class="btn btn-outline flex-1 py-3 rounded-xl font-bold border-white/5 hover:bg-white/5" onclick="closeModal()">إلغاء</button>
-                <button type="submit" class="btn flex-1 py-3 rounded-xl font-black shadow-lg" id="modal-submit-btn">تأكيد العملية</button>
+            <div class="flex gap-4 pt-4">
+                <button type="button" class="btn btn-outline flex-1 py-4 rounded-2xl font-black" onclick="closeModal()">إلغاء</button>
+                <button type="submit" class="btn flex-1 py-4 rounded-2xl font-black" id="modal-submit-btn">تأكيد العملية</button>
             </div>
         </form>
     </div>
@@ -147,25 +199,46 @@ function openDebtModal(userId, email, action, maxAmount = null) {
     
     amountInput.value = "";
     if (action === 'add') {
-        icon.className = "w-12 h-12 rounded-2xl bg-cyan/10 flex items-center justify-center mx-auto mb-4";
-        icon.innerHTML = '<i class="fas fa-plus-circle text-cyan text-xl"></i>';
-        title.innerText = "إضافة دين جديد";
-        subtitle.innerText = `سيتم تسجيل دين مستحق على المستخدم ${email} وإضافته لرصيده المتاح حالياً.`;
-        submitBtn.innerText = "تسجيل الدين";
-        submitBtn.className = "btn btn-primary flex-1 py-3 rounded-xl font-black shadow-lg shadow-cyan/20";
+        icon.className = "w-16 h-16 rounded-3xl bg-cyan/10 flex items-center justify-center mx-auto mb-6 text-cyan";
+        icon.innerHTML = '<i class="fas fa-hand-holding-dollar text-2xl"></i>';
+        title.innerText = "تسجيل مديونية جديدة";
+        subtitle.innerText = `سيتم تسجيل دين مالي بذمة المستخدم (${email}) وإضافة المبلغ فوراً إلى رصيده المتاح.`;
+        submitBtn.innerText = "تأكيد تسجيل الدين";
+        submitBtn.className = "btn btn-primary flex-1 py-4 rounded-2xl font-black";
         amountInput.max = "";
     } else {
-        icon.className = "w-12 h-12 rounded-2xl bg-emerald-500/10 flex items-center justify-center mx-auto mb-4";
-        icon.innerHTML = '<i class="fas fa-hand-holding-dollar text-emerald-500 text-xl"></i>';
-        title.innerText = "تسجيل سداد دين";
-        subtitle.innerText = `سيتم خصم المبلغ من رصيد المستخدم ${email} لإنقاص قيمة الدين المستحق.`;
-        submitBtn.innerText = "تأكيد السداد";
-        submitBtn.className = "btn bg-emerald-500 text-black hover:bg-emerald-400 flex-1 py-3 rounded-xl font-black shadow-lg shadow-emerald-500/10";
+        icon.className = "w-16 h-16 rounded-3xl bg-emerald-500/10 flex items-center justify-center mx-auto mb-6 text-emerald-500";
+        icon.innerHTML = '<i class="fas fa-check-double text-2xl"></i>';
+        title.innerText = "سداد مديونية يدوياً";
+        subtitle.innerText = `سيتم خصم المبلغ من رصيد المستخدم (${email}) وتخفيض قيمة الدين المستحق عليه.`;
+        submitBtn.innerText = "تأكيد عملية السداد";
+        submitBtn.className = "btn bg-emerald-500 text-black hover:bg-emerald-400 flex-1 py-4 rounded-2xl font-black shadow-lg shadow-emerald-500/20";
         amountInput.value = maxAmount;
         amountInput.max = maxAmount;
     }
     
     modal.classList.remove('hidden');
 }
+
+// Reveal animation
+const observer = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+        if (entry.isIntersecting) entry.target.classList.add('visible');
+    });
+}, { threshold: 0.05 });
+document.querySelectorAll('.reveal').forEach(el => {
+    el.style.opacity = '0';
+    el.style.transform = 'translateY(20px)';
+    el.style.transition = 'all 0.6s cubic-bezier(0.2, 1, 0.3, 1)';
+    observer.observe(el);
+});
+document.addEventListener('DOMContentLoaded', () => {
+    document.querySelectorAll('.reveal').forEach(el => {
+        setTimeout(() => {
+            el.style.opacity = '1';
+            el.style.transform = 'translateY(0)';
+        }, 100);
+    });
+});
 </script>
 {% endblock %}

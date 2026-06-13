@@ -85,12 +85,20 @@ def v3_verify_otp_logic(user, code, purpose):
         otp.is_used = True; otp.save(update_fields=["is_used", "updated_at"]); return True
     return False
 
+def v3_security_redirect(methods):
+    if not methods: return redirect("dashboard")
+    m = methods[0]
+    if m == "APP": return redirect("site_2fa_verify")
+    if m == "SP": return redirect("site_sp_verify")
+    return redirect("site_verify_otp")
+
 def v3_get_required_methods(user, action_type):
     method_map = {
         "login": user.security_login_method,
         "deposit": user.security_deposit_method,
         "purchase": user.security_purchase_method,
-        "withdraw": user.security_withdraw_method
+        "withdraw": user.security_withdraw_method,
+        "settings": "SP" if user.security_password_enabled else "NONE"
     }
     pref = method_map.get(action_type, "NONE")
     if pref == "NONE": return []
@@ -344,6 +352,9 @@ def v3_2fa_verify_view(request):
 
 @login_required
 def v3_2fa_setup_view(request):
+    if not v3_init_verification(request, request.user, "settings"):
+        return v3_security_redirect(request.session.get("v3_auth_methods", []))
+        
     user = request.user
     if user.totp_enabled:
         if request.method == "POST" and request.POST.get("action") == "disable":
@@ -681,6 +692,9 @@ def notification_settings(request):
 
 @login_required
 def v3_change_password_view(request):
+    if not v3_init_verification(request, request.user, "settings"):
+        return v3_security_redirect(request.session.get("v3_auth_methods", []))
+        
     form = ChangePasswordForm(request.POST or None)
     if request.method == "POST" and form.is_valid():
         if request.user.check_password(form.cleaned_data["current_password"]):
@@ -691,6 +705,9 @@ def v3_change_password_view(request):
 
 @login_required
 def v3_change_email_view(request):
+    if not v3_init_verification(request, request.user, "settings"):
+        return v3_security_redirect(request.session.get("v3_auth_methods", []))
+        
     if request.method == "POST":
         new_email = request.POST.get("new_email", "").lower().strip()
         if User.objects.filter(email=new_email).exists(): messages.error(request, "البريد الإلكتروني مستخدم بالفعل.")
@@ -723,6 +740,9 @@ def catalog(request):
 
 @login_required
 def v3_security_triggers_view(request):
+    if not v3_init_verification(request, request.user, "settings"):
+        return v3_security_redirect(request.session.get("v3_auth_methods", []))
+        
     user = request.user
     if request.method == "POST":
         action = request.POST.get("action")

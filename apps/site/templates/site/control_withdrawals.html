@@ -1,132 +1,113 @@
 {% extends "site/control_base.html" %}
 {% load static site_tags %}
 
-{% block title %}إدارة السحوبات | Raqamiyat Admin{% endblock %}
+{% block title %}إدارة السحوبات الاستراتيجية | Raqamiyat Elite{% endblock %}
 
 {% block control_content %}
-<nav class="breadcrumb">
-    <a href="{% url 'control_dashboard' %}" class="breadcrumb-item">الرئيسية</a>
-    <span class="breadcrumb-item active">إدارة السحوبات</span>
-</nav>
-
-<div class="page-head flex justify-between items-center">
+<div class="page-head reveal">
     <div>
-        <span class="eyebrow">Financial Operations</span>
+        <span class="eyebrow">Financial Liquidity / Outbound</span>
         <h1>إدارة طلبات السحب</h1>
-        <p class="text-muted">مراجعة ومعالجة طلبات سحب الرصيد للمستخدمين.</p>
+        <p class="text-slate-500 mt-2">مراجعة ومعالجة طلبات سحب الرصيد للمستخدمين وضمان دقة بيانات التحويل.</p>
     </div>
 </div>
 
-<div class="management-card">
-    <style>
-        .admin-table img {
-            width: 40px !important;
-            height: 40px !important;
-            min-width: 40px;
-            object-fit: cover;
-            border-radius: 8px;
-            border: 1px solid rgba(255,255,255,0.1);
-        }
-        .proof-thumbnail-wrapper {
-            position: relative;
-            width: 40px;
-            height: 40px;
-        }
-    </style>
-    <div class="management-header flex-col sm:flex-row gap-4">
+<div class="glass-panel overflow-hidden reveal">
+    <div class="p-6 border-b border-white/5 bg-white/[0.01] flex flex-wrap gap-4 items-center justify-between">
         <form method="get" class="flex-grow w-full max-w-md">
             <div class="relative group">
                 <i class="fas fa-search absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-cyan transition-colors"></i>
-                <input type="text" name="q" value="{{ query|default:'' }}" placeholder="بحث ببريد العميل أو رقم الطلب..." class="w-full pr-11 bg-slate-900/50 border-white/10 rounded-xl focus:border-cyan/50 focus:ring-4 focus:ring-cyan/10 transition-all text-xs py-2.5">
+                <input type="text" name="q" value="{{ query|default:'' }}" placeholder="بحث ببريد العميل أو رقم الطلب..." class="w-full pr-11 bg-slate-900/50 border-white/10 rounded-xl focus:border-cyan/50 text-xs py-3">
             </div>
         </form>
         <div class="flex items-center gap-2 bg-slate-900/40 p-1.5 rounded-xl border border-white/5">
-            <a href="?" class="px-4 py-1.5 rounded-lg text-[10px] font-bold transition-all {% if not current_status %}bg-cyan text-black{% else %}text-slate-400 hover:text-white{% endif %}">الكل</a>
+            <a href="?" class="px-4 py-1.5 rounded-lg text-[10px] font-black transition-all {% if not current_status %}bg-cyan text-black{% else %}text-slate-400 hover:text-white{% endif %}">الكل</a>
             {% for val, label in status_choices %}
-            <a href="?status={{ val }}" class="px-4 py-1.5 rounded-lg text-[10px] font-bold transition-all {% if current_status == val %}bg-white/10 text-white{% else %}text-slate-500 hover:text-slate-300{% endif %}">{{ label }}</a>
+            <a href="?status={{ val }}" class="px-4 py-1.5 rounded-lg text-[10px] font-black transition-all {% if current_status == val %}bg-white/10 text-white{% else %}text-slate-500 hover:text-slate-300{% endif %}">{{ label }}</a>
             {% endfor %}
         </div>
     </div>
     
-    <div class="table-responsive">
-        <table class="admin-table w-full text-right">
-            <thead>
+    <div class="overflow-x-auto">
+        <table class="w-full text-right text-sm">
+            <thead class="bg-black/20">
                 <tr>
-                    <th class="p-4">التاريخ</th>
-                    <th class="p-4">المستخدم</th>
-                    <th class="p-4">المبلغ والوسيلة</th>
-                    <th class="p-4">بيانات العميل</th>
-                    <th class="p-4">إثبات الدفع</th>
-                    <th class="p-4">الحالة</th>
-                    <th class="p-4 text-left">إجراءات</th>
+                    <th class="p-5 text-[10px] font-black text-slate-500 uppercase tracking-widest">التوقيت</th>
+                    <th class="p-5 text-[10px] font-black text-slate-500 uppercase tracking-widest">المستخدم</th>
+                    <th class="p-5 text-[10px] font-black text-slate-500 uppercase tracking-widest">المبلغ والوسيلة</th>
+                    <th class="p-5 text-[10px] font-black text-slate-500 uppercase tracking-widest">بيانات التحويل</th>
+                    <th class="p-5 text-[10px] font-black text-slate-500 uppercase tracking-widest">الإثبات</th>
+                    <th class="p-5 text-[10px] font-black text-slate-500 uppercase tracking-widest text-center">الحالة</th>
+                    <th class="p-5 text-[10px] font-black text-slate-500 uppercase tracking-widest text-left">إجراءات</th>
                 </tr>
             </thead>
-            <tbody>
+            <tbody class="divide-y divide-white/[0.02]">
                 {% for w in withdrawals %}
-                <tr>
-                    <td class="p-4">
+                <tr class="hover:bg-white/[0.01] transition-colors">
+                    <td class="p-5">
                         <div class="text-[10px] text-slate-400 font-mono">{{ w.created_at|date:"d M Y" }}</div>
-                        <div class="text-[9px] text-slate-600 mt-0.5">{{ w.created_at|date:"H:i" }}</div>
+                        <div class="text-[9px] text-slate-600 mt-1 font-bold">{{ w.created_at|date:"H:i" }}</div>
                     </td>
-                    <td class="p-4">
-                        <div class="font-bold text-slate-200">{{ w.user.get_full_name|default:w.user.email }}</div>
+                    <td class="p-5">
+                        <div class="font-black text-white text-xs">{{ w.user.get_full_name|default:w.user.email }}</div>
                         <div class="text-[9px] text-slate-500 font-mono">{{ w.user.email }}</div>
                     </td>
-                    <td class="p-4">
+                    <td class="p-5">
                         <div class="flex flex-col">
-                            <span class="font-black text-emerald-400 text-sm">{{ w.amount|floatformat:2 }} {{ w.currency.code }}</span>
-                            <span class="text-[9px] text-slate-500">صافي: {{ w.final_amount|floatformat:2 }}</span>
+                            <span class="font-black text-rose-400 text-sm">{{ w.amount|floatformat:2 }} {{ w.currency.code }}</span>
+                            <span class="text-[9px] text-slate-500 font-bold mt-0.5">صافي التحويل: {{ w.final_amount|floatformat:2 }}</span>
                         </div>
-                        <div class="flex items-center gap-1.5 mt-1">
+                        <div class="flex items-center gap-1.5 mt-1.5">
                             <i class="fas fa-credit-card text-[8px] text-slate-600"></i>
-                            <span class="text-[10px] text-slate-400 font-bold">{{ w.payment_method.name }}</span>
+                            <span class="text-[9px] text-cyan font-black uppercase">{{ w.payment_method.name }}</span>
                         </div>
                     </td>
-                    <td class="p-4">
-                        <div class="max-w-[150px] truncate text-[10px] font-mono text-slate-400 bg-white/[0.03] p-2 rounded-lg border border-white/5">
+                    <td class="p-5">
+                        <div class="max-w-[200px] truncate text-[10px] font-mono text-slate-300 bg-white/[0.03] px-3 py-2 rounded-xl border border-white/5 shadow-inner">
                             {{ w.display_payout_value|default:"---" }}
                         </div>
                     </td>
-                    <td class="p-4">
-                        <div class="flex items-center gap-2">
+                    <td class="p-5">
+                        <div class="flex items-center gap-3">
                             {% if w.proof_image %}
-                            <div class="proof-thumbnail-wrapper group">
-                                <img src="{{ w.proof_image.url }}" class="rounded-lg object-cover border border-white/10 hover:scale-150 transition-transform cursor-pointer z-10" onclick="window.open(this.src)">
+                            <div class="relative group">
+                                <img src="{{ w.proof_image.url }}" class="w-10 h-10 rounded-lg object-cover border border-white/10 group-hover:scale-[3] group-hover:z-50 group-hover:shadow-2xl transition-all cursor-zoom-in" onclick="window.open(this.src)">
+                                <div class="absolute -top-1 -right-1 w-2 h-2 bg-emerald-500 rounded-full border-2 border-slate-900 animate-pulse"></div>
                             </div>
                             {% endif %}
                             {% if w.proof_file %}
-                            <a href="{{ w.proof_file.url }}" target="_blank" class="w-10 h-10 rounded-lg bg-rose-500/10 flex items-center justify-center text-rose-500 border border-rose-500/20 hover:bg-rose-500/20 transition-colors" title="تحميل ملف PDF">
-                                <i class="fas fa-file-pdf text-xs"></i>
+                            <a href="{{ w.proof_file.url }}" target="_blank" class="w-10 h-10 rounded-lg bg-rose-500/10 flex items-center justify-center text-rose-500 border border-rose-500/20 hover:bg-rose-500/20 transition-all" title="فتح الوصل (PDF)">
+                                <i class="fas fa-file-invoice text-xs"></i>
                             </a>
                             {% endif %}
                             {% if not w.proof_image and not w.proof_file %}
-                            <span class="text-[9px] text-slate-600 italic">لا يوجد إثبات</span>
+                            <span class="text-[9px] text-slate-700 italic">بانتظار التحويل...</span>
                             {% endif %}
                         </div>
                     </td>
-                    <td class="p-4">
+                    <td class="p-5 text-center">
                         <span class="badge 
                             {% if w.status == 'completed' or w.status == 'approved' %}success
                             {% elif w.status == 'rejected' or w.status == 'cancelled' %}danger
-                            {% elif w.status == 'pending' or w.status == 'processing' %}warning
+                            {% elif w.status == 'pending' or w.status == 'processing' %}primary
                             {% else %}primary
-                            {% endif %}">
+                            {% endif %} text-[8px]">
                             {{ w.get_status_display }}
                         </span>
                     </td>
-                    <td class="p-4 text-left">
-                        <a href="{% url 'control_withdrawal_detail' w.pk %}" class="btn btn-sm btn-primary text-[10px] py-1.5 px-4 rounded-lg">
-                            <i class="fas fa-cog ml-1"></i> معالجة
+                    <td class="p-5 text-left">
+                        <a href="{% url 'control_withdrawal_detail' w.pk %}" class="btn btn-primary btn-sm py-1.5 px-4 rounded-lg text-[9px] font-black uppercase">
+                            <i class="fas fa-bolt text-[8px]"></i> معالجة
                         </a>
                     </td>
                 </tr>
                 {% empty %}
                 <tr>
-                    <td colspan="6" class="p-16 text-center">
+                    <td colspan="7" class="p-20 text-center">
                         <div class="w-16 h-16 bg-slate-900 rounded-full flex items-center justify-center mx-auto mb-4 opacity-20">
                             <i class="fas fa-money-bill-transfer text-2xl"></i>
                         </div>
-                        <p class="text-slate-500 font-bold italic">لا توجد طلبات سحب في هذا القسم حالياً.</p>
+                        <p class="text-slate-600 font-bold italic text-xs">لا توجد طلبات سحب حالياً.</p>
                     </td>
                 </tr>
                 {% endfor %}
@@ -141,6 +122,27 @@ document.querySelector('input[name="q"]').addEventListener('keypress', function 
     if (e.key === 'Enter') {
         this.form.submit();
     }
+});
+
+// Reveal animation
+const observer = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+        if (entry.isIntersecting) entry.target.classList.add('visible');
+    });
+}, { threshold: 0.05 });
+document.querySelectorAll('.reveal').forEach(el => {
+    el.style.opacity = '0';
+    el.style.transform = 'translateY(20px)';
+    el.style.transition = 'all 0.6s cubic-bezier(0.2, 1, 0.3, 1)';
+    observer.observe(el);
+});
+document.addEventListener('DOMContentLoaded', () => {
+    document.querySelectorAll('.reveal').forEach(el => {
+        setTimeout(() => {
+            el.style.opacity = '1';
+            el.style.transform = 'translateY(0)';
+        }, 100);
+    });
 });
 </script>
 {% endblock %}
