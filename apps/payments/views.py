@@ -70,10 +70,13 @@ class DepositRequestViewSet(viewsets.ModelViewSet):
             final_amount = Decimal(str(override_amount)) if override_amount else deposit.final_amount
             
             # Calculate final wallet amount (amount - fee) converted to wallet currency
-            if deposit.amount > 0:
-                wallet_final_amount = (final_amount / deposit.amount) * deposit.wallet_amount
+            if deposit.wallet_amount > 0:
+                if deposit.amount > 0:
+                    wallet_final_amount = (final_amount / deposit.amount) * deposit.wallet_amount
+                else:
+                    wallet_final_amount = deposit.wallet_amount
             else:
-                wallet_final_amount = deposit.wallet_amount
+                wallet_final_amount = deposit.currency.to_base(final_amount, "deposit")
 
             if wallet_final_amount <= 0:
                 return response.Response({"detail": "خطأ في حساب المبلغ المودع: يجب أن يكون المبلغ أكبر من صفر."}, status=status.HTTP_400_BAD_REQUEST)

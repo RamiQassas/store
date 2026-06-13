@@ -268,6 +268,13 @@
                     <span class="info-value text-emerald-400">{{ deposit.amount }} {{ deposit.currency.code }}</span>
                 </div>
                 
+                {% if deposit.currency.code != "USD" %}
+                <div class="info-item bg-slate-800/50">
+                    <span class="info-label text-cyan">المعادل بالدولار (حسب سعر الإيداع)</span>
+                    <span class="info-value text-cyan">≈ {{ deposit.wallet_amount|floatformat:2 }} USD</span>
+                </div>
+                {% endif %}
+                
                 {% for meta in deposit.formatted_metadata %}
                 <div class="info-item">
                     <span class="info-label">{{ meta.label }}</span>
@@ -368,7 +375,7 @@
         let body = {};
         if (action === 'approve') {
             body = {
-                adjusted_amount: document.getElementById('approve-amount').value,
+                amount: document.getElementById('approve-amount').value,
                 admin_note: document.getElementById('approve-note').value
             };
         } else if (action === 'reject') {

@@ -284,6 +284,8 @@ class DepositRequest(TimeStampedModel):
     def calculate_fees(self):
         self.fee_amount = self.payment_method.calculate_fee(self.amount, mode="deposit")
         self.final_amount = self.amount - self.fee_amount
+        if hasattr(self, 'currency') and self.currency:
+            self.wallet_amount = self.currency.to_base(self.amount, "deposit")
 
     def save(self, *args, **kwargs):
         if self.amount and self.payment_method:
@@ -390,6 +392,9 @@ class WithdrawalRequest(TimeStampedModel):
     def calculate_fees(self):
         self.fee_amount = self.payment_method.calculate_fee(self.amount, mode="withdrawal")
         self.final_amount = self.amount - self.fee_amount
+        if hasattr(self, 'currency') and self.currency:
+            if not self.wallet_amount or self.wallet_amount <= 0:
+                self.wallet_amount = self.currency.to_base(self.amount, "withdraw")
 
     def save(self, *args, **kwargs):
         if self.amount and self.payment_method:
