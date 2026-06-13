@@ -77,8 +77,13 @@
         <div class="flex items-center gap-4 p-4 bg-amber-500/5 border border-amber-500/10 rounded-2xl max-w-sm">
             <i class="fas fa-shield-alt text-amber-500"></i>
             <p class="text-[10px] text-amber-200/70 leading-relaxed">
+                {% if kyc_request and kyc_request.status == 'pending' %}
+                <strong class="text-amber-400 block mb-0.5">طلب التوثيق قيد المراجعة</strong>
+                لقد استلمنا بياناتك وهي قيد التدقيق حالياً. سنقوم برفع حدودك فور الاعتماد.
+                {% else %}
                 <strong class="text-amber-400 block mb-0.5">هل تحتاج إلى حدود أعلى؟</strong>
                 التوثيق اختياري، ومطلوب فقط لزيادة حدود حسابك. <a href="{% url 'site_kyc_request' %}" class="text-amber-400 underline font-bold">وثق الآن</a>
+                {% endif %}
             </p>
         </div>
         {% endif %}
@@ -361,7 +366,17 @@ function renderStep2() {
             if (f.type === 'textarea') {
                 inputHtml = `<textarea name="${nameAttr}" class="builder-input" rows="3" placeholder="${f.placeholder||''}" ${req}></textarea>`;
             } else if (f.type === 'image') {
-                inputHtml = `<input type="file" name="${nameAttr}" class="builder-input" accept="image/*" ${req}>`;
+                inputHtml = `
+                    <div class="stack gap-3">
+                        <div class="flex gap-2">
+                            <input type="file" name="${nameAttr}" id="file-${nameAttr}" class="builder-input" accept="image/*" capture="environment" ${req} onchange="previewDynamicImage(this, 'preview-${nameAttr}')">
+                        </div>
+                        <div id="container-preview-${nameAttr}" class="hidden">
+                            <div class="relative w-full max-w-[150px] aspect-square rounded-xl overflow-hidden border border-white/10">
+                                <img id="preview-${nameAttr}" class="w-full h-full object-cover">
+                            </div>
+                        </div>
+                    </div>`;
             } else {
                 const inputType = (f.type === 'number') ? 'number' : (f.type === 'phone' ? 'tel' : 'text');
                 inputHtml = `<input type="${inputType}" name="${nameAttr}" class="builder-input" placeholder="${f.placeholder||''}" ${req}>`;
@@ -455,6 +470,18 @@ function validateFinal() {
         document.getElementById('amount-group').classList.remove('has-error');
     }
     return valid;
+}
+
+function previewDynamicImage(input, previewId) {
+    if (input.files && input.files[0]) {
+        const reader = new FileReader();
+        reader.onload = e => { 
+            const img = document.getElementById(previewId);
+            img.src = e.target.result;
+            document.getElementById('container-' + previewId).classList.remove('hidden');
+        };
+        reader.readAsDataURL(input.files[0]);
+    }
 }
 </script>
 {% endblock %}

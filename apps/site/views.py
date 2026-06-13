@@ -562,7 +562,8 @@ def deposits(request):
         "payment_methods": PaymentMethod.objects.filter(is_active=True, can_deposit=True), 
         "requests": DepositRequest.objects.filter(user=request.user).order_by('-created_at'),
         "daily_limit": request.user.daily_deposit_limit,
-        "remaining_limit": request.user.remaining_deposit_limit
+        "remaining_limit": request.user.remaining_deposit_limit,
+        "kyc_request": KYCRequest.objects.filter(user=request.user).order_by('-created_at').first(),
     })
 
 @login_required
@@ -671,7 +672,8 @@ def withdrawals(request):
         "payment_methods": PaymentMethod.objects.filter(is_active=True, can_withdraw=True), 
         "requests": WithdrawalRequest.objects.filter(user=request.user).order_by('-created_at'),
         "daily_limit": request.user.daily_withdrawal_limit,
-        "remaining_limit": request.user.remaining_withdrawal_limit
+        "remaining_limit": request.user.remaining_withdrawal_limit,
+        "kyc_request": KYCRequest.objects.filter(user=request.user).order_by('-created_at').first(),
     })
 
 @login_required
@@ -684,6 +686,11 @@ def kyc_request_view(request):
     if request.method == "POST" and form.is_valid():
         kyc = form.save(commit=False); kyc.user, kyc.status = request.user, KYCRequest.Status.PENDING; kyc.save()
         notify_bulk(User.objects.filter(role=User.Role.ADMIN), title="طلب توثيق جديد", body=f"مستخدم: {request.user.email}", action_url=f"/control/kyc/{kyc.id}/")
+        
+        # Send Email Notification
+        from apps.accounts.services import send_kyc_status_email
+        send_kyc_status_email(request.user, 'pending')
+        
         messages.success(request, "تم تقديم الطلب."); return redirect("dashboard")
     return render(request, "site/v3/v3_kyc_form.html", {"form": form})
 
@@ -1587,6 +1594,11 @@ def control_kyc_detail(request, pk):
                 kyc.user.daily_withdrawal_limit = kyc_settings.verified_daily_withdrawal_limit
             
             kyc.user.save()
+            
+            # Send Email Notification
+            from apps.accounts.services import send_kyc_status_email
+            send_kyc_status_email(kyc.user, 'approved')
+            
             messages.success(request, f"تم توثيق حساب {kyc.user.email} بنجاح وتم تحديث الحدود المالية.")
         elif action == "reject":
             kyc.status = KYCRequest.Status.REJECTED
@@ -1600,6 +1612,11 @@ def control_kyc_detail(request, pk):
                 kyc.user.daily_withdrawal_limit = kyc_settings.unverified_daily_withdrawal_limit
             
             kyc.user.save()
+
+            # Send Email Notification
+            from apps.accounts.services import send_kyc_status_email
+            send_kyc_status_email(kyc.user, 'rejected', reason=admin_note)
+
             messages.warning(request, f"تم رفض طلب توثيق {kyc.user.email}.")
         elif action == "unverify":
             kyc.status = KYCRequest.Status.REJECTED

@@ -182,7 +182,7 @@
                         </div>
                         <div class="px-2">
                             <label class="text-[10px] font-bold text-slate-400 mb-2 block">تحميل الوجه الأمامي</label>
-                            {{ form.identity_front }}
+                            <input type="file" name="identity_front" class="builder-input" accept="image/*" capture="environment" onchange="previewFile(this, 'preview-front')">
                             {% if form.identity_front.errors %}<p class="text-rose-500 text-[10px] mt-2 font-bold">{{ form.identity_front.errors.0 }}</p>{% endif %}
                         </div>
                     </div>
@@ -197,7 +197,7 @@
                         </div>
                         <div class="px-2">
                             <label class="text-[10px] font-bold text-slate-400 mb-2 block">تحميل الوجه الخلفي</label>
-                            {{ form.identity_back }}
+                            <input type="file" name="identity_back" class="builder-input" accept="image/*" capture="environment" onchange="previewFile(this, 'preview-back')">
                             {% if form.identity_back.errors %}<p class="text-rose-500 text-[10px] mt-2 font-bold">{{ form.identity_back.errors.0 }}</p>{% endif %}
                         </div>
                     </div>
@@ -213,7 +213,7 @@
                         <div class="px-2">
                             <label class="text-[10px] font-bold text-slate-400 mb-2 block">تحميل صورة السيلفي</label>
                             <p class="text-[8px] text-slate-500 mb-2">سيلفي وأنت تحمل هويتك بجانب وجهك.</p>
-                            {{ form.selfie_verification }}
+                            <input type="file" name="selfie_verification" class="builder-input" accept="image/*" capture="user" onchange="previewFile(this, 'preview-selfie')">
                             {% if form.selfie_verification.errors %}<p class="text-rose-500 text-[10px] mt-2 font-bold">{{ form.selfie_verification.errors.0 }}</p>{% endif %}
                         </div>
                     </div>
@@ -241,26 +241,24 @@
         });
         
         // Image Previews
-        function handlePreview(input, previewId) {
-            if (!input) return;
-            input.onchange = evt => {
-                const [file] = input.files;
-                if (file) {
+        window.previewFile = function(input, previewId) {
+            if (input.files && input.files[0]) {
+                const reader = new FileReader();
+                reader.onload = e => {
                     const preview = document.getElementById(previewId);
-                    preview.src = URL.createObjectURL(file);
+                    preview.src = e.target.result;
                     preview.classList.remove('hidden');
                     const uploadCard = input.closest('.upload-card');
                     if (uploadCard) {
                         const placeholder = uploadCard.querySelector('.placeholder-icon');
                         if (placeholder) placeholder.classList.add('hidden');
                     }
-                }
+                };
+                reader.readAsDataURL(input.files[0]);
             }
         }
         
-        handlePreview(document.querySelector('input[name="identity_front"]'), 'preview-front');
-        handlePreview(document.querySelector('input[name="identity_back"]'), 'preview-back');
-        handlePreview(document.querySelector('input[name="selfie_verification"]'), 'preview-selfie');
+        // Remove individual handlePreview calls as they are replaced by onchange inline
     });
 
     function validateKYCForm() {

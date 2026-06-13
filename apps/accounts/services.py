@@ -75,3 +75,125 @@ def send_verification_email(request, user):
     except Exception as e:
         logger.error(f"Failed to send verification OTP: {str(e)}")
         return False
+
+def send_kyc_status_email(user, status, reason=None):
+    """
+    Sends an email regarding KYC status change.
+    """
+    subjects = {
+        'approved': "🎉 مبروك! تم توثيق حسابك بنجاح | Raqamiyat",
+        'rejected': "⚠️ تحديث بخصوص طلب توثيق حسابك | Raqamiyat",
+        'pending': "📥 استلمنا طلب توثيق حسابك | Raqamiyat"
+    }
+    
+    subject = subjects.get(status, "تحديث حالة الحساب | Raqamiyat")
+    
+    if status == 'approved':
+        content = f"""
+        <div dir="rtl" style="font-family: 'Segoe UI', sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; color: #1e293b; background-color: #ffffff; border-radius: 20px; border: 1px solid #e2e8f0;">
+            <div style="text-align: center; margin-bottom: 30px;">
+                <h2 style="color: #06b6d4; margin: 0; font-size: 28px; font-weight: 900;">رقميات | RAQAMIYAT</h2>
+                <p style="color: #64748b; font-size: 14px;">نظام التوثيق والامتثال</p>
+            </div>
+            
+            <div style="background-color: #f0fdf4; border: 1px solid #bbf7d0; padding: 30px; border-radius: 16px; text-align: center; margin-bottom: 25px;">
+                <div style="font-size: 50px; margin-bottom: 10px;">✅</div>
+                <h1 style="font-size: 24px; font-weight: 900; color: #166534; margin: 0;">تم توثيق حسابك بنجاح!</h1>
+            </div>
+
+            <p style="font-size: 16px; line-height: 1.8; color: #334155; margin-bottom: 20px;">
+                أهلاً بك <strong>{user.get_full_name() or user.email}</strong>، يسعدنا إبلاغك بأن فريقنا قام بمراجعة بياناتك واعتماد توثيق حسابك.
+            </p>
+
+            <div style="background-color: #f8fafc; padding: 20px; border-radius: 12px; margin-bottom: 25px;">
+                <h3 style="color: #06b6d4; font-size: 14px; text-transform: uppercase; margin-top: 0;">حدودك المالية الجديدة:</h3>
+                <ul style="list-style: none; padding: 0; margin: 0;">
+                    <li style="padding: 10px 0; border-bottom: 1px solid #e2e8f0; font-size: 14px;">
+                        <span>حد الإيداع اليومي:</span>
+                        <strong style="float: left; color: #0f172a;">{user.daily_deposit_limit:,.2f} USD</strong>
+                    </li>
+                    <li style="padding: 10px 0; font-size: 14px;">
+                        <span>حد السحب اليومي:</span>
+                        <strong style="float: left; color: #0f172a;">{user.daily_withdrawal_limit:,.2f} USD</strong>
+                    </li>
+                </ul>
+            </div>
+
+            <div style="border-right: 4px solid #06b6d4; padding-right: 15px; margin-bottom: 25px;">
+                <h4 style="margin: 0 0 10px 0; color: #0f172a;">مميزات العضو الموثق:</h4>
+                <p style="font-size: 13px; color: #64748b; margin: 0; line-height: 1.6;">
+                    • الأولوية في معالجة طلبات السحب والإيداع.<br>
+                    • الوصول إلى عروض وكوبونات حصرية للأعضاء الموثقين.<br>
+                    • دعم فني مخصص للعمليات الكبيرة.
+                </p>
+            </div>
+
+            <div style="text-align: center;">
+                <a href="{settings.SITE_URL}/dashboard/" style="display: inline-block; background-color: #06b6d4; color: #ffffff; padding: 14px 35px; border-radius: 12px; text-decoration: none; font-weight: bold; font-size: 16px;">ابدأ التداول الآن</a>
+            </div>
+
+            <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #f1f5f9; text-align: center; font-size: 12px; color: #94a3b8;">
+                فريق رقميات لخدمات الوساطة الرقمية<br>© 2026 Raqamiyat Services.
+            </div>
+        </div>
+        """
+    elif status == 'rejected':
+        content = f"""
+        <div dir="rtl" style="font-family: 'Segoe UI', sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; color: #1e293b; background-color: #ffffff; border-radius: 20px; border: 1px solid #e2e8f0;">
+            <div style="text-align: center; margin-bottom: 30px;">
+                <h2 style="color: #06b6d4; margin: 0; font-size: 28px; font-weight: 900;">رقميات | RAQAMIYAT</h2>
+            </div>
+            
+            <div style="background-color: #fff1f2; border: 1px solid #fecdd3; padding: 30px; border-radius: 16px; text-align: center; margin-bottom: 25px;">
+                <div style="font-size: 50px; margin-bottom: 10px;">⚠️</div>
+                <h1 style="font-size: 22px; font-weight: 900; color: #9f1239; margin: 0;">نأسف، تم رفض طلب التوثيق</h1>
+            </div>
+
+            <p style="font-size: 16px; line-height: 1.8; color: #334155; margin-bottom: 20px;">
+                أهلاً <strong>{user.get_full_name() or user.email}</strong>، نود إخبارك بأنه لم يتم قبول طلب توثيق حسابك حالياً للسبب التالي:
+            </p>
+
+            <div style="background-color: #f8fafc; padding: 20px; border-radius: 12px; border-right: 4px solid #f43f5e; margin-bottom: 25px;">
+                <p style="font-size: 15px; color: #0f172a; margin: 0; font-weight: bold;">{reason or 'لم يتم ذكر سبب محدد من قبل الإدارة.'}</p>
+            </div>
+
+            <p style="font-size: 14px; color: #64748b; margin-bottom: 25px;">
+                بإمكانك دائماً تقديم طلب جديد بعد تصحيح البيانات أو رفع صور أكثر وضوحاً للوثائق المطلوبة.
+            </p>
+
+            <div style="text-align: center;">
+                <a href="{settings.SITE_URL}/kyc/request/" style="display: inline-block; background-color: #0f172a; color: #ffffff; padding: 12px 30px; border-radius: 12px; text-decoration: none; font-weight: bold;">تقديم طلب جديد</a>
+            </div>
+
+            <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #f1f5f9; text-align: center; font-size: 12px; color: #94a3b8;">
+                إذا كان لديك أي استفسار، يرجى التواصل مع الدعم الفني.<br>© 2026 Raqamiyat Services.
+            </div>
+        </div>
+        """
+    else: # pending
+        content = f"""
+        <div dir="rtl" style="font-family: 'Segoe UI', sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; color: #1e293b; background-color: #ffffff; border-radius: 20px; border: 1px solid #e2e8f0;">
+            <div style="text-align: center; margin-bottom: 30px;">
+                <h2 style="color: #06b6d4; margin: 0; font-size: 28px; font-weight: 900;">رقميات | RAQAMIYAT</h2>
+            </div>
+            
+            <div style="background-color: #eff6ff; border: 1px solid #bfdbfe; padding: 30px; border-radius: 16px; text-align: center; margin-bottom: 25px;">
+                <div style="font-size: 50px; margin-bottom: 10px;">📥</div>
+                <h1 style="font-size: 22px; font-weight: 900; color: #1e40af; margin: 0;">استلمنا بياناتك بنجاح</h1>
+            </div>
+
+            <p style="font-size: 16px; line-height: 1.8; color: #334155; margin-bottom: 20px;">
+                أهلاً <strong>{user.get_full_name() or user.email}</strong>، شكراً لتقديمك طلب التوثيق. طلبك الآن في قائمة الانتظار وسيتم مراجعته من قبل فريقنا في أسرع وقت ممكن (عادةً خلال 24 ساعة).
+            </p>
+
+            <div style="background-color: #f8fafc; padding: 15px; border-radius: 12px; margin-bottom: 25px; text-align: center;">
+                <p style="font-size: 13px; color: #64748b; margin: 0;">يرجى عدم إرسال طلبات مكررة لتسريع عملية المراجعة.</p>
+            </div>
+
+            <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #f1f5f9; text-align: center; font-size: 12px; color: #94a3b8;">
+                سنقوم بإخطارك فور تحديث حالة طلبك.<br>© 2026 Raqamiyat Services.
+            </div>
+        </div>
+        """
+
+    return send_brevo_email(to_email=user.email, to_name=user.get_full_name() or user.email, subject=subject, html_content=content)
