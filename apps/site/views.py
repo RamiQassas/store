@@ -195,7 +195,9 @@ def v3_verify_sp_view(request):
                     )
                     messages.success(request, "تم التحقق وتقديم طلب الإيداع بنجاح.")
                     del request.session["v3_pending_action_id"]
-                    return redirect("dashboard_deposits")
+                    # Use stored next URL if available
+                    next_url = request.session.get("v3_auth_next", "dashboard_deposits")
+                    return redirect(next_url)
                 
                 withdrawal = WithdrawalRequest.objects.filter(id=pending_action_id, user=user).first()
                 if withdrawal:
@@ -209,7 +211,9 @@ def v3_verify_sp_view(request):
                     )
                     messages.success(request, "تم التحقق وتقديم طلب السحب بنجاح.")
                     del request.session["v3_pending_action_id"]
-                    return redirect("dashboard_withdrawals")
+                    # Use stored next URL if available
+                    next_url = request.session.get("v3_auth_next", "dashboard_withdrawals")
+                    return redirect(next_url)
 
             next_url = request.session.get("v3_auth_next")
             keys = ["v3_auth_uid", "v3_auth_methods", "v3_auth_purpose", "v3_new_email", "v3_pending_action_id", "v3_auth_next"]
@@ -336,7 +340,9 @@ def v3_verify_otp_view(request):
                     send_financial_notification(user=user, title="تم استلام طلب الإيداع", body=f"تم استلام طلب الإيداع الخاص بك رقم {deposit.id} بقيمة {deposit.amount} {deposit.currency.code}. سيتم مراجعته من قبل الإدارة قريباً.")
                     messages.success(request, "تم التحقق وتقديم طلب الإيداع بنجاح.")
                     del request.session["v3_pending_action_id"]
-                    return redirect("dashboard_deposits")
+                    # Use stored next URL if available
+                    next_url = request.session.get("v3_auth_next", "dashboard_deposits")
+                    return redirect(next_url)
                 
                 withdrawal = WithdrawalRequest.objects.filter(id=pending_action_id, user=user).first()
                 if withdrawal:
@@ -344,7 +350,9 @@ def v3_verify_otp_view(request):
                     send_financial_notification(user=user, title="تم استلام طلب السحب", body=f"تم استلام طلب السحب الخاص بك رقم {withdrawal.id} بقيمة {withdrawal.amount} {withdrawal.currency.code}. سيتم مراجعته من قبل الإدارة قريباً.")
                     messages.success(request, "تم التحقق وتقديم طلب السحب بنجاح.")
                     del request.session["v3_pending_action_id"]
-                    return redirect("dashboard_withdrawals")
+                    # Use stored next URL if available
+                    next_url = request.session.get("v3_auth_next", "dashboard_withdrawals")
+                    return redirect(next_url)
 
             next_url = request.session.get("v3_auth_next")
             keys = ["v3_auth_uid", "v3_auth_methods", "v3_auth_purpose", "v3_new_email", "v3_pending_action_id", "v3_auth_next"]
@@ -1889,37 +1897,40 @@ def control_users_list(request):
     if request.method == "POST":
         action = request.POST.get("action")
         user_ids = request.POST.getlist("user_ids")
-        
+
         if not user_ids:
             messages.warning(request, "يرجى اختيار مستخدمين لتنفيذ العملية.")
             return redirect("control_users_list")
 
-        if action == "bulk_tier":
-            target_tier = request.POST.get("target_tier")
-            if target_tier:
-                User.objects.filter(id__in=user_ids).update(tier=target_tier)
+        if action == "bulk_update":
+            tier = request.POST.get("bulk_tier")
+            if tier:
+                User.objects.filter(id__in=user_ids).update(tier=tier)
                 messages.success(request, f"تم تحديث فئة {len(user_ids)} مستخدم بنجاح.")
-        
-        elif action == "bulk_role":
-            target_role = request.POST.get("target_role")
-            if target_role:
-                User.objects.filter(id__in=user_ids).update(role=target_role)
-                messages.success(request, f"تم تحديث دور {len(user_ids)} مستخدم بنجاح.")
-                
+
         return redirect("control_users_list")
 
     users = User.objects.select_related("wallet").order_by("-date_joined")
-    
-    # Handle search
-    q = request.GET.get('q', '')
+
+    # Handle search - include last_name for more precise searches
+    q = request.GET.get('q', '').strip()
+    status = request.GET.get('status', '')
+
     if q:
-        users = users.filter(Q(email__icontains=q) | Q(first_name__icontains=q) | Q(phone__icontains=q))
+        users = users.filter(
+            Q(email__icontains=q) | 
+            Q(first_name__icontains=q) | 
+            Q(last_name__icontains=q) | 
+            Q(phone__icontains=q)
+        )
+    if status:
+        users = users.filter(status=status)
 
     return render(request, "site/control_users_list.html", {
         "users": users,
         "query": q,
-        "tiers": User.Tier.choices,
-        "roles": User.Role.choices
+        "current_status": status,
+        "tiers": User.Tier.choices
     })
 
 @admin_required
