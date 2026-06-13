@@ -148,6 +148,11 @@ class CurrencyForm(forms.ModelForm):
 
 
 class PaymentMethodForm(forms.ModelForm):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['capital_exchange_rate'].required = False
+        self.fields['capital_exchange_rate'].initial = '1.000000'
+
     class Meta:
         model = PaymentMethod
         fields = [
