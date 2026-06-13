@@ -68,7 +68,12 @@ class DepositRequestViewSet(viewsets.ModelViewSet):
 
             # Check for admin override amount
             override_amount = request.data.get("amount")
-            final_amount = Decimal(str(override_amount)) if override_amount else deposit.final_amount
+            if override_amount:
+                # Admin is overriding the GROSS amount
+                deposit.amount = Decimal(str(override_amount))
+                deposit.calculate_fees()
+                
+            final_amount = deposit.final_amount
             
             # Calculate final wallet amount (amount - fee) converted to wallet currency
             # We ALWAYS re-calculate here to ensure we use the correct rate and avoid stale/wrong stored values
@@ -91,7 +96,7 @@ class DepositRequestViewSet(viewsets.ModelViewSet):
                 created_by=request.user,
                 metadata={
                     "from_pending": True,
-                    "pending_amount": deposit.wallet_amount
+                    "pending_amount": str(deposit.wallet_amount)
                 }
             )
 
@@ -102,12 +107,12 @@ class DepositRequestViewSet(viewsets.ModelViewSet):
             deposit.status = DepositRequest.Status.COMPLETED
             deposit.reviewed_by = request.user
             deposit.reviewed_at = timezone.now()
-            deposit.save(update_fields=["status", "reviewed_by", "reviewed_at", "updated_at", "final_amount", "wallet_amount"])
+            deposit.save(update_fields=["status", "reviewed_by", "reviewed_at", "updated_at", "final_amount", "wallet_amount", "amount", "fee_amount"])
             
             notify_user(
                 user=deposit.user,
                 title="تم قبول طلب الإيداع",
-                body=f"تمت إضافة {deposit.final_amount} {deposit.currency.code} إلى محفظتك بنجاح.",
+                body=f"تمت إضافة {deposit.final_amount:,.2f} {deposit.currency.code} إلى محفظتك بنجاح.",
                 action_url="/dashboard/wallet/",
                 category='financial',
                 priority="high"

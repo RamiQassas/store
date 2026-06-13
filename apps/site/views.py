@@ -1020,47 +1020,161 @@ def send_financial_notification(user, title, body, action_url="/dashboard/wallet
         notify_user(user=user, title=title, body=body, action_url=action_url, category='financial', priority="high")
     except: pass
 
-    # 2. Email Notification with Security Warning
+    # 2. Email Notification with Modern Design
     subject = f"{title} | Raqamiyat"
     html_content = f"""
-    <div dir="rtl" style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; color: #1e293b; background-color: #ffffff; border-radius: 16px; border: 1px solid #e2e8f0;">
-        <div style="text-align: center; margin-bottom: 30px;">
-            <h2 style="color: #06b6d4; margin: 0; font-size: 24px; font-weight: 900;">رقميات | RAQAMIYAT</h2>
+    <!DOCTYPE html>
+    <html dir="rtl" lang="ar">
+    <head>
+        <meta charset="UTF-8">
+        <style>
+            .container {{
+                font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+                max-width: 600px;
+                margin: 0 auto;
+                padding: 40px 20px;
+                background-color: #f8fafc;
+            }}
+            .card {{
+                background-color: #ffffff;
+                border-radius: 24px;
+                overflow: hidden;
+                box-shadow: 0 10px 25px rgba(0,0,0,0.05);
+                border: 1px solid #e2e8f0;
+            }}
+            .header {{
+                background: linear-gradient(135deg, #0891b2 0%, #06b6d4 100%);
+                padding: 40px 20px;
+                text-align: center;
+                color: #ffffff;
+            }}
+            .logo {{
+                font-size: 28px;
+                font-weight: 900;
+                letter-spacing: 1px;
+                margin: 0;
+                text-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            }}
+            .content {{
+                padding: 40px;
+            }}
+            .title {{
+                color: #0f172a;
+                font-size: 22px;
+                font-weight: 800;
+                margin-top: 0;
+                margin-bottom: 20px;
+                text-align: center;
+            }}
+            .message {{
+                font-size: 16px;
+                line-height: 1.8;
+                color: #334155;
+                margin-bottom: 30px;
+                text-align: right;
+            }}
+            .cta-container {{
+                text-align: center;
+                margin-bottom: 20px;
+            }}
+            .cta-button {{
+                display: inline-block;
+                padding: 14px 32px;
+                background-color: #0891b2;
+                color: #ffffff !important;
+                text-decoration: none;
+                border-radius: 12px;
+                font-weight: 700;
+                font-size: 16px;
+                transition: background-color 0.2s;
+            }}
+            .security-notice {{
+                margin-top: 40px;
+                padding: 20px;
+                background-color: #fff1f2;
+                border-radius: 16px;
+                border: 1px solid #fecdd3;
+            }}
+            .security-title {{
+                margin: 0 0 8px 0;
+                font-size: 14px;
+                color: #be123c;
+                font-weight: 800;
+                display: flex;
+                align-items: center;
+            }}
+            .security-text {{
+                margin: 0;
+                font-size: 13px;
+                color: #e11d48;
+                line-height: 1.6;
+            }}
+            .footer {{
+                margin-top: 30px;
+                text-align: center;
+                color: #94a3b8;
+                font-size: 12px;
+            }}
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <div class="card">
+                <div class="header">
+                    <h1 class="logo">رقميات | RAQAMIYAT</h1>
+                </div>
+                <div class="content">
+                    <h2 class="title">{title}</h2>
+                    <div class="message">{body}</div>
+
+                    <div class="cta-container">
+                        <a href="{settings.SITE_URL}{action_url}" class="cta-button">عرض في المنصة</a>
+                    </div>
+
+                    <div class="security-notice">
+                        <p class="security-title">⚠️ تنبيه أمني:</p>
+                        <p class="security-text">
+                            إذا لم تكن قد قمت بهذه العملية بنفسك، يرجى تغيير كلمة مرور حسابك فوراً والتواصل مع فريق الدعم الفني لحماية حسابك.
+                        </p>
+                    </div>
+                </div>
+            </div>
+            <div class="footer">
+                <p>© 2026 رقميات لخدمات الوساطة الرقمية. جميع الحقوق محفوظة.</p>
+                <p>تم إرسال هذا البريد تلقائياً، يرجى عدم الرد عليه.</p>
+            </div>
         </div>
-        <div style="background-color: #f8fafc; padding: 30px; border-radius: 12px;">
-            <h3 style="color: #0f172a; margin-top: 0;">{title}</h3>
-            <p style="font-size: 16px; line-height: 1.6; color: #334155;">{body}</p>
-        </div>
-        <div style="margin-top: 30px; padding: 20px; background-color: #fff1f2; border-radius: 12px; border: 1px solid #fecdd3;">
-            <p style="margin: 0; font-size: 14px; color: #be123c; font-weight: bold;">⚠️ تنبيه أمني:</p>
-            <p style="margin: 5px 0 0 0; font-size: 13px; color: #e11d48; line-height: 1.5;">إذا لم تكن قد قمت بهذه العملية بنفسك، يرجى تغيير كلمة مرور حسابك فوراً والتواصل مع فريق الدعم الفني لحماية حسابك.</p>
-        </div>
-        <div style="margin-top: 30px; text-align: center; border-top: 1px solid #f1f5f9; padding-top: 20px;">
-            <p style="font-size: 12px; color: #94a3b8;">© 2026 رقميات لخدمات الوساطة الرقمية. جميع الحقوق محفوظة.</p>
-        </div>
-    </div>
+    </body>
+    </html>
     """
     try:
+        from apps.accounts.services import send_brevo_email
         send_brevo_email(to_email=user.email, to_name=user.get_full_name() or user.email, subject=subject, html_content=html_content)
     except: pass
 
 @finance_required
 def control_deposit_detail(request, pk):
+    from apps.payments.models import DepositRequest
     deposit = get_object_or_404(DepositRequest.objects.select_related('user', 'currency', 'payment_method'), pk=pk)
-    
+
     if request.method == "POST":
         action = request.POST.get("action")
         admin_note = request.POST.get("admin_note", "")
-        
+
         try:
             with transaction.atomic():
                 if action == "approve":
                     if deposit.status == DepositRequest.Status.COMPLETED:
                         raise ValueError("تم اعتماد هذا الطلب مسبقاً.")
-                    
+
                     override_amount = request.POST.get("amount")
-                    final_amount = Decimal(str(override_amount)) if override_amount else deposit.final_amount
-                    
+                    if override_amount:
+                        # Admin is overriding the GROSS amount
+                        deposit.amount = Decimal(str(override_amount))
+                        deposit.calculate_fees()
+
+                    final_amount = deposit.final_amount
+
                     wallet = get_or_create_wallet(deposit.user)
                     if deposit.currency.code == wallet.currency.code:
                         wallet_final_amount = final_amount
@@ -1078,20 +1192,23 @@ def control_deposit_detail(request, pk):
                         description=f"إيداع عبر {deposit.payment_method.name}",
                         created_by=request.user,
                         metadata={
-                            "from_pending": True, 
+                            "from_pending": True,
                             "pending_amount": str(deposit.wallet_amount),
                             "source_amount": str(final_amount),
                             "source_currency": deposit.currency.code
                         }
                     )
 
-                    deposit.final_amount = final_amount
+                    # Note: deposit.final_amount and deposit.wallet_amount are already updated by calculate_fees()
+                    # and the logic above, but we ensure they match.
                     deposit.wallet_amount = wallet_final_amount
                     deposit.status = DepositRequest.Status.COMPLETED
                     deposit.reviewed_by = request.user
                     deposit.reviewed_at = timezone.now()
+                    if admin_note:
+                        deposit.admin_note = admin_note
                     deposit.save()
-                    
+
                     send_financial_notification(
                         user=deposit.user,
                         title="تم قبول طلب الإيداع",
