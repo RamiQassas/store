@@ -502,7 +502,18 @@ def deposits(request):
         schema = method.deposit_form_schema
         for field in schema.get("fields", []) if isinstance(schema, dict) else []:
             field_name = field.get("name") or field.get("id") or field.get("key") or field.get("label")
-            val = request.POST.get(f"custom_{field_name}")
+            
+            if field.get("type") == "image":
+                val_file = request.FILES.get(f"custom_{field_name}")
+                if val_file:
+                    from django.core.files.storage import default_storage
+                    path = default_storage.save(f"deposit-proofs/metadata/{val_file.name}", val_file)
+                    val = f"{settings.MEDIA_URL}{path}"
+                else:
+                    val = ""
+            else:
+                val = request.POST.get(f"custom_{field_name}")
+
             if field.get("required") and not val:
                 messages.error(request, f"الحقل {field.get('label')} مطلوب.")
                 return redirect("dashboard_deposits")
@@ -1568,19 +1579,40 @@ def control_kyc_detail(request, pk):
         if action == "approve":
             kyc.status = KYCRequest.Status.APPROVED
             kyc.user.is_kyc_verified = True
+            
+            # Apply global limits if user doesn't have custom ones
+            if not kyc.user.has_custom_limits:
+                kyc_settings = KYCSettings.get_settings()
+                kyc.user.daily_deposit_limit = kyc_settings.verified_daily_deposit_limit
+                kyc.user.daily_withdrawal_limit = kyc_settings.verified_daily_withdrawal_limit
+            
             kyc.user.save()
-            messages.success(request, f"تم توثيق حساب {kyc.user.email} بنجاح.")
+            messages.success(request, f"تم توثيق حساب {kyc.user.email} بنجاح وتم تحديث الحدود المالية.")
         elif action == "reject":
             kyc.status = KYCRequest.Status.REJECTED
             kyc.rejection_reason = admin_note
             kyc.user.is_kyc_verified = False
+            
+            # Reset to unverified limits if no custom limits
+            if not kyc.user.has_custom_limits:
+                kyc_settings = KYCSettings.get_settings()
+                kyc.user.daily_deposit_limit = kyc_settings.unverified_daily_deposit_limit
+                kyc.user.daily_withdrawal_limit = kyc_settings.unverified_daily_withdrawal_limit
+            
             kyc.user.save()
             messages.warning(request, f"تم رفض طلب توثيق {kyc.user.email}.")
         elif action == "unverify":
             kyc.status = KYCRequest.Status.REJECTED
             kyc.user.is_kyc_verified = False
+            
+            # Reset to unverified limits
+            if not kyc.user.has_custom_limits:
+                kyc_settings = KYCSettings.get_settings()
+                kyc.user.daily_deposit_limit = kyc_settings.unverified_daily_deposit_limit
+                kyc.user.daily_withdrawal_limit = kyc_settings.unverified_daily_withdrawal_limit
+                
             kyc.user.save()
-            messages.info(request, "تم إلغاء توثيق الحساب.")
+            messages.info(request, "تم إلغاء توثيق الحساب وإعادة الحدود للمستوى الأساسي.")
         elif action == "revert":
             kyc.status = KYCRequest.Status.PENDING
             kyc.save()
@@ -2277,6 +2309,7 @@ def export_financial_report_xlsx(ctx, filters):
         ("صافي التدفق النقدي", ctx['kpis']['net_cashflow']),
         ("رسوم العمليات", ctx['kpis']['total_fees_earned']),
         ("أرباح المنتجات الصافية", ctx['kpis']['product_net_profit']),
+        ("المقبوضات النقدية (Cash)", ctx['kpis']['total_cash_collections']),
         ("الديون المستحقة", ctx['kpis']['total_outstanding_debt']),
         ("التزامات المحافظ", ctx['kpis']['total_liabilities']),
     ]

@@ -69,7 +69,11 @@
                     <div class="info-item relative group">
                         <span class="info-label">{{ item.label }}</span>
                         <div class="flex flex-col gap-2">
-                            {% if item.value|stringformat:"s"|slice:":7" == "/media/" %}
+                            {% if item.type == 'image' and item.value %}
+                            <div class="mt-2">
+                                <img src="{{ item.value }}" class="max-w-full h-auto rounded-xl border border-white/10 cursor-pointer hover:scale-105 transition-transform" onclick="window.open(this.src)">
+                            </div>
+                            {% elif item.value|stringformat:"s"|slice:":7" == "/media/" %}
                             <div class="mt-2">
                                 <img src="{{ item.value }}" class="max-w-full h-auto rounded-xl border border-white/10 cursor-pointer hover:scale-105 transition-transform" onclick="window.open(this.src)">
                             </div>

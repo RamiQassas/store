@@ -147,8 +147,11 @@
             <a href="{% url 'control_users_list' %}" class="admin-nav-link {% if 'user' in request.path %}active{% endif %}">
                 <i class="fas fa-users-cog"></i> إدارة المستخدمين
             </a>
-            <a href="{% url 'control_kycs_list' %}" class="admin-nav-link {% if 'control/kyc' in request.path %}active{% endif %}">
+            <a href="{% url 'control_kycs_list' %}" class="admin-nav-link {% if 'control/kyc' in request.path and 'settings' not in request.path %}active{% endif %}">
                 <i class="fas fa-user-shield"></i> طلبات التوثيق (KYC)
+            </a>
+            <a href="{% url 'control_kyc_settings' %}" class="admin-nav-link {% if 'kyc/settings' in request.path %}active{% endif %}">
+                <i class="fas fa-user-lock"></i> إعدادات التوثيق والحدود
             </a>
 
             <div class="admin-nav-group"><span>الإعدادات والتقارير</span></div>

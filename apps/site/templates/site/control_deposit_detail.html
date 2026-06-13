@@ -298,7 +298,13 @@
                 {% for meta in deposit.formatted_metadata %}
                 <div class="info-item">
                     <span class="info-label">{{ meta.label }}</span>
-                    <span class="info-value text-slate-300">{{ meta.value }}</span>
+                    {% if meta.type == 'image' and meta.value %}
+                        <div class="mt-2 w-full max-w-[200px] rounded-xl overflow-hidden border border-white/10">
+                            <img src="{{ meta.value }}" class="w-full h-auto cursor-zoom-in" onclick="window.open(this.src)">
+                        </div>
+                    {% else %}
+                        <span class="info-value text-slate-300">{{ meta.value }}</span>
+                    {% endif %}
                 </div>
                 {% endfor %}
 

@@ -9,6 +9,13 @@ class UserManager(BaseUserManager):
             raise ValueError("Email is required.")
         email = self.normalize_email(email)
         extra_fields.setdefault("username", email)
+        
+        # Set default limits from global settings
+        from apps.accounts.models import KYCSettings
+        kyc_settings = KYCSettings.get_settings()
+        extra_fields.setdefault("daily_deposit_limit", kyc_settings.unverified_daily_deposit_limit)
+        extra_fields.setdefault("daily_withdrawal_limit", kyc_settings.unverified_daily_withdrawal_limit)
+        
         user = self.model(email=email, **extra_fields)
         user.set_password(password)
         user.save(using=self._db)

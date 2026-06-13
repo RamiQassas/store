@@ -150,11 +150,21 @@ class FinancialAnalyticsService:
                 if item.variant and item.variant.cost is not None:
                     product_cost += (item.variant.cost * (item.quantity or 1))
 
-        # 4. Debts
+        # 4. Debts & Collections
         wallets_qs = Wallet.objects.all()
         wallets_qs = self._apply_common_filters(wallets_qs, prefix="")
         total_liabilities = wallets_qs.aggregate(total=Sum('available_balance'))['total'] or Decimal("0.00")
         total_outstanding_debt = wallets_qs.aggregate(total=Sum('debt_balance'))['total'] or Decimal("0.00")
+
+        # 5. Cash Collections (from LedgerEntry source='admin_cash')
+        cash_qs = LedgerEntry.objects.filter(source="admin_cash", entry_type=LedgerEntry.EntryType.DEBT_PAYMENT)
+        cash_qs = self._apply_date_filter(cash_qs)
+        cash_qs = self._apply_common_filters(cash_qs, prefix="wallet")
+        
+        total_cash_collections = Decimal("0.00")
+        for log in cash_qs.select_related('wallet__currency'):
+            # Convert to reporting currency. Note: log.amount is in wallet currency.
+            total_cash_collections += self._normalize(log.amount, log.wallet.currency)
 
         return {
             "total_deposits": total_deposits,
@@ -165,6 +175,7 @@ class FinancialAnalyticsService:
             "product_net_profit": product_revenue - product_cost - coupon_discounts,
             "total_outstanding_debt": total_outstanding_debt,
             "total_liabilities": total_liabilities,
+            "total_cash_collections": total_cash_collections,
             "coupon_losses": coupon_discounts,
             "reporting_currency": self.reporting_currency.code
         }

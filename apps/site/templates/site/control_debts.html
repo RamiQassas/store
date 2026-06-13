@@ -147,6 +147,7 @@
     </div>
 </div>
 
+{% block modals %}
 <!-- Action Modal -->
 <div id="debt-modal" class="fixed inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center z-[1000] hidden p-4">
     <div class="glass-panel max-w-md w-full p-8 stack gap-8 border-white/10 shadow-2xl relative">
@@ -195,6 +196,7 @@
         </form>
     </div>
 </div>
+{% endblock %}
 
 <script>
 const modal = document.getElementById('debt-modal');

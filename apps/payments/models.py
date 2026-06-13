@@ -270,7 +270,7 @@ class DepositRequest(TimeStampedModel):
 
     @property
     def formatted_metadata(self):
-        """Returns a list of dicts with 'label' and 'value' for metadata."""
+        """Returns a list of dicts with 'label', 'value', and 'type' for metadata."""
         if not self.metadata:
             return []
             
@@ -278,17 +278,18 @@ class DepositRequest(TimeStampedModel):
         schema = self.payment_method.deposit_form_schema
         fields = schema.get("fields", []) if isinstance(schema, dict) else []
         
-        # Create a mapping of field key to label
-        label_map = {}
+        # Create a mapping of field key to (label, type)
+        field_map = {}
         for f in fields:
             lbl = f.get("label", "")
+            ftype = f.get("type", "text")
             fid = f.get("name") or f.get("id") or f.get("key") or lbl
             if fid:
-                label_map[fid] = lbl
+                field_map[fid] = (lbl, ftype)
         
         for key, val in self.metadata.items():
-            label = label_map.get(key, key)
-            results.append({"label": label, "value": val})
+            label, ftype = field_map.get(key, (key, "text"))
+            results.append({"label": label, "value": val, "type": ftype})
                 
         return results
 
@@ -386,7 +387,7 @@ class WithdrawalRequest(TimeStampedModel):
 
     @property
     def formatted_payout_details(self):
-        """Returns a list of dicts with 'label' and 'value' for payout information."""
+        """Returns a list of dicts with 'label', 'value', and 'type' for payout information."""
         if not self.payout_details:
             return []
             
@@ -395,28 +396,26 @@ class WithdrawalRequest(TimeStampedModel):
         # 1. Standard address field (fallback)
         addr = self.payout_details.get("address")
         if addr:
-            results.append({"label": "رقم الحساب / العنوان", "value": addr})
+            results.append({"label": "رقم الحساب / العنوان", "value": addr, "type": "text"})
             
         # 2. Dynamic fields from schema
         dynamic = self.payout_details.get("dynamic")
         if isinstance(dynamic, dict) and dynamic:
             schema = self.payment_method.withdrawal_form_schema
-            # If it's already a dict (JSONField handles this), just use it
             fields = schema.get("fields", []) if isinstance(schema, dict) else []
             
-            # Create a mapping of field key to label
-            label_map = {}
+            # Create a mapping of field key to (label, type)
+            field_map = {}
             for f in fields:
                 lbl = f.get("label", "")
-                # Check all possible keys that might be used as identifiers in the POST data
-                # Typically it's 'name' if provided, otherwise 'id' or 'key'
+                ftype = f.get("type", "text")
                 fid = f.get("name") or f.get("id") or f.get("key") or lbl
                 if fid:
-                    label_map[fid] = lbl
+                    field_map[fid] = (lbl, ftype)
             
             for key, val in dynamic.items():
-                label = label_map.get(key, key)
-                results.append({"label": label, "value": val})
+                label, ftype = field_map.get(key, (key, "text"))
+                results.append({"label": label, "value": val, "type": ftype})
                 
         return results
 
