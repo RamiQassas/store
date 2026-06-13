@@ -244,7 +244,7 @@
                         <div class="mt-4 text-xs font-bold text-cyan">تم اختيار الملف ✓ - انقر للتغيير</div>
                     </div>
                 </div>
-                <input type="file" name="proof_image" id="input-proof" accept="image/*" capture="environment" class="hidden" onchange="previewFile(this)">
+                <input type="file" name="proof_image" id="input-proof" accept="image/*" class="hidden" onchange="previewFile(this)">
                 <p class="error-hint">يرجى رفع صورة الوصل.</p>
             </div>
 
@@ -425,7 +425,7 @@ function renderStep2() {
             inputHtml = `
                 <div class="stack gap-3">
                     <div class="flex gap-2">
-                        <input type="file" name="${nameAttr}" id="file-${nameAttr}" class="builder-input" accept="image/*" capture="environment" ${req} onchange="previewDynamicImage(this, 'preview-${nameAttr}')">
+                        <input type="file" name="${nameAttr}" id="file-${nameAttr}" class="builder-input" accept="image/*" ${req} onchange="previewDynamicImage(this, 'preview-${nameAttr}')">
                     </div>
                     <div id="container-preview-${nameAttr}" class="hidden">
                         <div class="relative w-full max-w-[150px] aspect-square rounded-xl overflow-hidden border border-white/10">

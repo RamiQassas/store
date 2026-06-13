@@ -369,7 +369,7 @@ function renderStep2() {
                 inputHtml = `
                     <div class="stack gap-3">
                         <div class="flex gap-2">
-                            <input type="file" name="${nameAttr}" id="file-${nameAttr}" class="builder-input" accept="image/*" capture="environment" ${req} onchange="previewDynamicImage(this, 'preview-${nameAttr}')">
+                            <input type="file" name="${nameAttr}" id="file-${nameAttr}" class="builder-input" accept="image/*" ${req} onchange="previewDynamicImage(this, 'preview-${nameAttr}')">
                         </div>
                         <div id="container-preview-${nameAttr}" class="hidden">
                             <div class="relative w-full max-w-[150px] aspect-square rounded-xl overflow-hidden border border-white/10">

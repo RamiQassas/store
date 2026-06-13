@@ -74,15 +74,15 @@
 
     <div class="stack gap-8">
     
-        <!-- Section 1: Master Security Password -->
+        <!-- Section 1: Setup or Update Security Password -->
         <div class="security-trigger-card highlight">
             <div class="flex items-center gap-4 mb-8">
                 <div class="w-12 h-12 rounded-2xl bg-cyan/10 flex items-center justify-center text-cyan shadow-inner">
                     <i class="fas fa-key-skeleton"></i>
                 </div>
                 <div>
-                    <h3 class="text-lg font-black text-white">كلمة مرور الحماية (SP)</h3>
-                    <p class="text-[11px] text-slate-500 uppercase tracking-widest font-bold">Security Password Control</p>
+                    <h3 class="text-lg font-black text-white">{% if not user.security_password %}إنشاء رمز الحماية لأول مرة{% else %}تحديث رمز الحماية (SP){% endif %}</h3>
+                    <p class="text-[10px] text-slate-500 uppercase tracking-widest font-bold">Security Password Control</p>
                 </div>
             </div>
 
@@ -90,32 +90,39 @@
                 {% csrf_token %}
                 <input type="hidden" name="action" value="update_security_password">
                 
+                <div class="bg-amber-500/5 border border-amber-500/10 p-4 rounded-xl mb-4">
+                    <p class="text-[11px] text-amber-500 leading-relaxed font-bold">
+                        <i class="fas fa-info-circle ml-1"></i>
+                        رمز الحماية هو كلمة مرور "قصيرة" (مثل PIN) منفصلة تماماً عن كلمة مرور دخول الحساب، تُستخدم لتأكيد العمليات الحساسة وتعديل إعدادات الأمان بسرعة.
+                    </p>
+                </div>
+
                 {% if user.security_password %}
                 <div class="field-group">
-                    <label class="text-[10px] font-black text-slate-500 uppercase mb-2 block tracking-wider">كلمة مرور الحماية الحالية</label>
-                    <input type="password" name="current_security_password" class="security-select" placeholder="••••••" required>
+                    <label class="text-[10px] font-black text-slate-500 uppercase mb-2 block tracking-wider">رمز الحماية الحالي</label>
+                    <input type="password" name="current_security_password" class="security-select" placeholder="••••" required>
                 </div>
                 {% endif %}
                 
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-6 responsive-grid">
                     <div class="field-group">
-                        <label class="text-[10px] font-black text-slate-500 uppercase mb-2 block tracking-wider">كلمة المرور الجديدة</label>
-                        <input type="password" name="new_security_password" class="security-select" placeholder="••••••" required>
+                        <label class="text-[10px] font-black text-slate-500 uppercase mb-2 block tracking-wider">رمز الحماية الجديد</label>
+                        <input type="password" name="new_security_password" class="security-select" placeholder="••••" required>
                     </div>
                     <div class="field-group">
-                        <label class="text-[10px] font-black text-slate-500 uppercase mb-2 block tracking-wider">تأكيد كلمة المرور</label>
-                        <input type="password" name="confirm_security_password" class="security-select" placeholder="••••••" required>
+                        <label class="text-[10px] font-black text-slate-500 uppercase mb-2 block tracking-wider">تأكيد الرمز الجديد</label>
+                        <input type="password" name="confirm_security_password" class="security-select" placeholder="••••" required>
                     </div>
                 </div>
                 
                 <button type="submit" class="btn btn-primary h-12 rounded-xl text-xs font-black uppercase tracking-widest">
-                    {% if user.security_password %}تحديث كلمة مرور الحماية{% else %}إنشاء كلمة مرور الحماية{% endif %}
+                    {% if user.security_password %}تحديث رمز الحماية{% else %}إعداد رمز الحماية الآن{% endif %}
                 </button>
             </form>
         </div>
 
         {% if user.security_password %}
-        <!-- Section 2: Global Protection Toggle -->
+        <!-- Section 2: Protection Mode -->
         <div class="security-trigger-card {% if user.security_password_enabled %}border-emerald-500/30 bg-emerald-500/[0.02]{% endif %}">
             <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6">
                 <div class="flex items-center gap-4">
@@ -123,8 +130,8 @@
                         <i class="fas fa-shield-check"></i>
                     </div>
                     <div>
-                        <h3 class="text-sm font-black text-slate-200">حماية تعديل الإعدادات</h3>
-                        <p class="text-[11px] text-slate-500 mt-1 leading-relaxed">عند التفعيل، سيتم طلب كلمة مرور الحماية قبل أي تعديل.</p>
+                        <h3 class="text-sm font-black text-slate-200">وضعية الحماية النشطة</h3>
+                        <p class="text-[11px] text-slate-500 mt-1 leading-relaxed">عند التفعيل، سيُطلب منك رمز الحماية قبل الوصول لإعدادات الأمان أو تعطيل المصادقة الثنائية.</p>
                     </div>
                 </div>
                 <form method="post" class="w-full sm:w-auto">
@@ -142,9 +149,9 @@
                                     <i class="fas fa-lock-open text-xl"></i>
                                 </div>
                                 <h4 class="text-xl font-black text-white">تأكيد التغيير</h4>
-                                <p class="text-xs text-slate-400 mt-2">يرجى إدخال كلمة مرور الحماية للمتابعة:</p>
+                                <p class="text-xs text-slate-400 mt-2">يرجى إدخال رمز الحماية للمتابعة:</p>
                             </div>
-                            <input type="password" name="security_password" class="security-select h-14 text-lg text-center" placeholder="••••••" autofocus>
+                            <input type="password" name="security_password" class="security-select h-14 text-lg text-center" placeholder="••••" autofocus>
                             <div class="flex gap-4">
                                 <button type="submit" class="btn btn-primary flex-1 h-12 rounded-xl font-black">تأكيد</button>
                                 <button type="button" onclick="hidePrompt('toggle_protection')" class="btn btn-secondary flex-1 h-12 rounded-xl font-black">إلغاء</button>
@@ -154,18 +161,17 @@
                 </form>
             </div>
         </div>
-        {% endif %}
 
         <!-- Section 3: Detailed Triggers -->
         <div class="relative">
-            {% if user.security_password_enabled %}
+            {% if user.security_password_enabled and not sp_verified %}
             <div id="trigger-overlay" class="overlay-lock" onclick="showPrompt('triggers')">
                 <div class="text-center p-8 bg-slate-900/80 rounded-3xl border border-white/5 shadow-2xl">
                     <div class="w-14 h-14 bg-cyan/10 rounded-2xl flex items-center justify-center text-cyan mx-auto mb-4 animate-pulse">
                         <i class="fas fa-lock text-2xl"></i>
                     </div>
                     <p class="text-base font-black text-white mb-1">الإعدادات مقفلة</p>
-                    <p class="text-[10px] text-slate-400 font-bold uppercase tracking-widest">انقر هنا لإلغاء القفل مؤقتاً</p>
+                    <p class="text-[10px] text-slate-400 font-bold uppercase tracking-widest">انقر هنا لفتح القفل باستخدام رمز الحماية</p>
                 </div>
             </div>
             {% endif %}
@@ -181,12 +187,12 @@
                             <div class="w-16 h-16 bg-cyan/10 rounded-2xl flex items-center justify-center text-cyan mx-auto mb-4">
                                 <i class="fas fa-shield-keyhole text-xl"></i>
                             </div>
-                            <h4 class="text-xl font-black text-white">إلغاء القفل</h4>
-                            <p class="text-xs text-slate-400 mt-2">أدخل كلمة مرور الحماية لتعديل المشغلات:</p>
+                            <h4 class="text-xl font-black text-white">إلغاء القفل مؤقتاً</h4>
+                            <p class="text-xs text-slate-400 mt-2">سيتم فتح الإعدادات لمدة 5 دقائق من آخر عملية تحقق:</p>
                         </div>
-                        <input type="password" name="security_password_verify" id="sp-verify-input" class="security-select h-14 text-lg text-center" placeholder="••••••">
+                        <input type="password" name="security_password" id="sp-verify-input" class="security-select h-14 text-lg text-center" placeholder="••••">
                         <div class="flex gap-4">
-                            <button type="button" onclick="confirmTriggers()" class="btn btn-primary flex-1 h-12 rounded-xl font-black">فتح القفل</button>
+                            <button type="submit" name="action" value="unlock_settings" class="btn btn-primary flex-1 h-12 rounded-xl font-black">فتح القفل</button>
                             <button type="button" onclick="hidePrompt('triggers')" class="btn btn-secondary flex-1 h-12 rounded-xl font-black">إلغاء</button>
                         </div>
                     </div>
@@ -249,6 +255,15 @@
                 <button type="submit" id="submit-triggers" class="btn btn-primary w-full py-4 text-sm font-black uppercase tracking-widest shadow-xl shadow-cyan/10">حفظ جميع التغييرات</button>
             </form>
         </div>
+        {% else %}
+        <div class="panel p-10 bg-rose-500/5 border border-rose-500/10 text-center stack gap-4">
+            <div class="w-16 h-16 bg-rose-500/10 rounded-full flex items-center justify-center text-rose-500 mx-auto">
+                <i class="fas fa-exclamation-triangle text-2xl"></i>
+            </div>
+            <h3 class="text-lg font-black text-white">يتطلب إعداد رمز الحماية</h3>
+            <p class="text-xs text-slate-500">لا يمكنك تفعيل مشغلات الأمان قبل تعيين "رمز حماية" خاص بك أولاً من القسم أعلاه.</p>
+        </div>
+        {% endif %}
     </div>
     
     <script>
@@ -259,12 +274,6 @@
         }
         function hidePrompt(id) {
             document.getElementById('prompt-' + id).classList.add('hidden');
-        }
-        function confirmTriggers() {
-            const val = document.getElementById('sp-verify-input').value;
-            if(!val) { alert("يرجى إدخال كلمة المرور أولاً."); return; }
-            document.getElementById('trigger-overlay')?.classList.add('hidden');
-            hidePrompt('triggers');
         }
     </script>
     

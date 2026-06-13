@@ -95,6 +95,12 @@ def send_kyc_status_email(user, status, reason=None):
     dashboard_url = urljoin(settings.SITE_URL, reverse('dashboard'))
     kyc_request_url = urljoin(settings.SITE_URL, reverse('site_kyc_request'))
     
+    # Unique reference to prevent Gmail collapsing (quoted text)
+    import time
+    ref_id = f"REF-{int(time.time())}-{user.id}"
+    
+    user_display_name = f"{user.first_name} {user.last_name}".strip() or user.email
+
     if status == 'approved':
         content = f"""
         <div dir="rtl" style="font-family: 'Segoe UI', sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; color: #1e293b; background-color: #ffffff; border-radius: 20px; border: 1px solid #e2e8f0;">
@@ -109,7 +115,7 @@ def send_kyc_status_email(user, status, reason=None):
             </div>
 
             <p style="font-size: 16px; line-height: 1.8; color: #334155; margin-bottom: 20px;">
-                أهلاً بك <strong>{user.get_full_name() or user.email}</strong>، يسعدنا إبلاغك بأن فريقنا قام بمراجعة بياناتك واعتماد توثيق حسابك.
+                أهلاً بك <strong>{user_display_name}</strong>، يسعدنا إبلاغك بأن فريقنا قام بمراجعة بياناتك واعتماد توثيق حسابك.
             </p>
 
             <div style="background-color: #f8fafc; padding: 20px; border-radius: 12px; margin-bottom: 25px;">
@@ -141,6 +147,7 @@ def send_kyc_status_email(user, status, reason=None):
 
             <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #f1f5f9; text-align: center; font-size: 12px; color: #94a3b8;">
                 فريق رقميات لخدمات الوساطة الرقمية<br>© 2026 Raqamiyat Services.
+                <div style="margin-top: 10px; color: #f1f5f9; font-size: 8px;">ID: {ref_id}</div>
             </div>
         </div>
         """
@@ -157,7 +164,7 @@ def send_kyc_status_email(user, status, reason=None):
             </div>
 
             <p style="font-size: 16px; line-height: 1.8; color: #334155; margin-bottom: 20px;">
-                أهلاً <strong>{user.get_full_name() or user.email}</strong>، نود إخبارك بأنه لم يتم قبول طلب توثيق حسابك حالياً للسبب التالي:
+                أهلاً <strong>{user_display_name}</strong>، نود إخبارك بأنه لم يتم قبول طلب توثيق حسابك حالياً للسبب التالي:
             </p>
 
             <div style="background-color: #f8fafc; padding: 20px; border-radius: 12px; border-right: 4px solid #f43f5e; margin-bottom: 25px;">
@@ -174,6 +181,7 @@ def send_kyc_status_email(user, status, reason=None):
 
             <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #f1f5f9; text-align: center; font-size: 12px; color: #94a3b8;">
                 إذا كان لديك أي استفسار، يرجى التواصل مع الدعم الفني.<br>© 2026 Raqamiyat Services.
+                <div style="margin-top: 10px; color: #f1f5f9; font-size: 8px;">ID: {ref_id}</div>
             </div>
         </div>
         """

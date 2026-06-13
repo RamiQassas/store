@@ -323,6 +323,22 @@
                         <button type="submit" class="btn btn-outline btn-sm w-full py-3 text-[10px] font-black uppercase border-white/10 hover:border-amber-500 hover:text-amber-500" {% if not user_to_moderate.totp_enabled %}disabled{% endif %}>تعطيل الـ 2FA</button>
                     </form>
                 </div>
+
+                <!-- Security Password Reset -->
+                <div class="p-4 bg-slate-900/50 rounded-2xl border border-white/5">
+                    <div class="flex justify-between text-[10px] font-black mb-3">
+                        <span class="text-slate-500 uppercase">رمز الحماية (SP)</span>
+                        {% if user_to_moderate.security_password %}
+                        <span class="text-emerald-500">مُعين</span>
+                        {% else %}
+                        <span class="text-slate-500">غير مُعين</span>
+                        {% endif %}
+                    </div>
+                    <form method="post" onsubmit="return confirm('هل أنت متأكد من حذف رمز الحماية لهذا المستخدم؟ سيتعين عليه تعيين رمز جديد عند الدخول لصفحة المشغلات.')">
+                        {% csrf_token %}<input type="hidden" name="action" value="reset_sp">
+                        <button type="submit" class="btn btn-outline btn-sm w-full py-3 text-[10px] font-black uppercase border-white/10 hover:border-cyan hover:text-cyan" {% if not user_to_moderate.security_password %}disabled{% endif %}>حذف رمز الحماية (SP)</button>
+                    </form>
+                </div>
             </div>
         </div>
 

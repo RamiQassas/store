@@ -759,56 +759,88 @@ def catalog(request):
     else: products = products.order_by("-created_at")
     return render(request, "site/catalog.html", {"categories": Category.objects.filter(is_active=True).annotate(product_count=Count('products', filter=Q(products__is_active=True))).order_by("sort_order"), "products": products.distinct(), "active_category": cat_id, "query": q, "sort": sort})
 
+def v3_check_sp_grace_period(request):
+    """
+    Checks if the user has verified their security password in the last 5 minutes.
+    """
+    last_verified = request.session.get("v3_sp_verified_at")
+    if last_verified:
+        try:
+            from django.utils.dateparse import parse_datetime
+            dt = parse_datetime(last_verified)
+            if dt and (timezone.now() - dt).total_seconds() < 300: # 5 minutes
+                return True
+        except: pass
+    return False
+
 @login_required
 def v3_security_triggers_view(request):
     if not v3_init_verification(request, request.user, "settings"):
         return v3_security_redirect(request.session.get("v3_auth_methods", []))
         
     user = request.user
+    sp_verified = v3_check_sp_grace_period(request)
+
     if request.method == "POST":
         action = request.POST.get("action")
         
-        # 1. Update Security Password Logic
+        # 1. Unlock Settings (Verify SP and start grace period)
+        if action == "unlock_settings":
+            sp = request.POST.get("security_password")
+            from django.contrib.auth.hashers import check_password
+            if not user.security_password or not check_password(sp, user.security_password):
+                messages.error(request, "كلمة مرور الحماية غير صحيحة.")
+            else:
+                request.session["v3_sp_verified_at"] = timezone.now().isoformat()
+                messages.success(request, "تم فتح قفل الإعدادات لمدة 5 دقائق.")
+            return redirect("site_security_triggers")
+
+        # 2. Update Security Password Logic
         if action == "update_security_password":
             current_sp = request.POST.get("current_security_password")
             new_sp = request.POST.get("new_security_password")
             confirm_sp = request.POST.get("confirm_security_password")
+            from django.contrib.auth.hashers import make_password, check_password
             
             # If already has one, verify it
             if user.security_password:
-                if not check_password_hash(current_sp, user.security_password):
+                if not check_password(current_sp, user.security_password):
                     messages.error(request, "كلمة مرور الحماية الحالية غير صحيحة.")
                     return redirect("site_security_triggers")
             
             if new_sp and new_sp == confirm_sp:
-                if len(new_sp) < 6:
-                    messages.error(request, "كلمة المرور يجب أن تكون 6 خانات على الأقل.")
+                if len(new_sp) < 4:
+                    messages.error(request, "كلمة المرور يجب أن تكون 4 خانات على الأقل.")
                 else:
                     user.security_password = make_password(new_sp)
                     user.security_password_enabled = True
                     user.save()
-                    messages.success(request, "تم تحديث كلمة مرور الحماية وتفعيل الحماية بنجاح.")
+                    request.session["v3_sp_verified_at"] = timezone.now().isoformat()
+                    messages.success(request, "تم تعيين كلمة مرور الحماية بنجاح.")
             else:
                 messages.error(request, "كلمات المرور غير متطابقة.")
             return redirect("site_security_triggers")
 
-        # 2. Toggle Protection
+        # 3. Toggle Protection
         if action == "toggle_protection":
             sp = request.POST.get("security_password")
-            if not user.security_password or not check_password_hash(sp, user.security_password):
+            from django.contrib.auth.hashers import check_password
+            if not user.security_password or not check_password(sp, user.security_password):
                 messages.error(request, "كلمة مرور الحماية غير صحيحة.")
             else:
                 user.security_password_enabled = not user.security_password_enabled
                 user.save()
-                messages.success(request, "تم تغيير حالة حماية الإعدادات.")
+                messages.success(request, f"تم {'تفعيل' if user.security_password_enabled else 'إيقاف'} حماية الإعدادات.")
             return redirect("site_security_triggers")
 
-        # 3. Update Triggers (Requires SP if enabled)
-        if user.security_password_enabled:
+        # 4. Update Triggers (Requires SP or Grace Period if enabled)
+        if user.security_password_enabled and not sp_verified:
             sp = request.POST.get("security_password_verify")
-            if not sp or not check_password_hash(sp, user.security_password):
+            from django.contrib.auth.hashers import check_password
+            if not sp or not check_password(sp, user.security_password):
                 messages.error(request, "يرجى إدخال كلمة مرور الحماية لتغيير هذه الإعدادات.")
                 return redirect("site_security_triggers")
+            request.session["v3_sp_verified_at"] = timezone.now().isoformat()
 
         user.security_login_method = request.POST.get("login_method")
         user.security_deposit_method = request.POST.get("deposit_method")
@@ -816,7 +848,7 @@ def v3_security_triggers_view(request):
         user.security_withdraw_method = request.POST.get("withdraw_method")
         user.save(); messages.success(request, "تم تحديث إعدادات الأمان بنجاح."); return redirect("site_security_triggers")
         
-    return render(request, "site/v3/v3_security_triggers.html")
+    return render(request, "site/v3/v3_security_triggers.html", {"sp_verified": sp_verified})
 
 def product_detail(request, pk):
     product = get_object_or_404(Product.objects.prefetch_related('variants'), pk=pk, is_active=True)
@@ -1591,8 +1623,8 @@ def control_kyc_detail(request, pk):
             kyc.status = KYCRequest.Status.APPROVED
             kyc.user.is_kyc_verified = True
             
-            # Update User Display Name: First_Father_Last
-            kyc.user.first_name = f"{kyc.first_name}_{kyc.father_name}_{kyc.last_name}"
+            # Update User Display Name: First Father Last (with spaces)
+            kyc.user.first_name = f"{kyc.first_name} {kyc.father_name} {kyc.last_name}"
             kyc.user.last_name = "" # Clear last name to avoid duplication in some templates
             
             # Apply global limits if user doesn't have custom ones
@@ -1855,6 +1887,7 @@ def control_user_moderate(request, public_uuid):
             return redirect("control_user_moderate", public_uuid=public_uuid)
         elif action == "reset_otp": user.otp_failed_attempts = 0; user.otp_lockout_until = None; user.otp_resend_count = 0; user.save(); messages.success(request, "تم إعادة ضبط قيود الرمز."); return redirect("control_user_moderate", public_uuid=public_uuid)
         elif action == "reset_2fa": user.totp_enabled = False; user.totp_secret = None; user.save(); messages.success(request, "تم تعطيل 2FA للمستخدم."); return redirect("control_user_moderate", public_uuid=public_uuid)
+        elif action == "reset_sp": user.security_password = None; user.security_password_enabled = False; user.save(); messages.success(request, "تم حذف رمز الحماية (SP) للمستخدم بنجاح."); return redirect("control_user_moderate", public_uuid=public_uuid)
         elif action == "reset_password":
             from django.contrib.auth.tokens import default_token_generator
             from apps.accounts.services import send_brevo_email

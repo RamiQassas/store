@@ -19,12 +19,52 @@
         <h2 class="text-lg font-bold text-white mb-2">المصادقة الثنائية مفعلة</h2>
         <p class="text-xs text-slate-400 mb-8">حسابك الآن محمي برمز إضافي يتم توليده عبر تطبيقك الخاص.</p>
         
-        <form method="post">
-            {% csrf_token %}
-            <input type="hidden" name="action" value="disable">
-            <button type="submit" class="text-rose-500 text-xs font-bold hover:underline">تعطيل المصادقة الثنائية</button>
-        </form>
+        <button type="button" onclick="showDisableModal()" class="text-rose-500 text-xs font-bold hover:underline">تعطيل المصادقة الثنائية</button>
+        
+        <!-- Disable Protection Modal -->
+        <div id="disable-modal" class="hidden fixed inset-0 bg-slate-950/90 backdrop-blur-md z-[100] flex items-center justify-center p-4">
+            <div class="bg-slate-900 border border-white/10 p-8 rounded-[32px] w-full max-w-md stack gap-6 shadow-2xl text-right">
+                <div class="text-center">
+                    <div class="w-16 h-16 bg-rose-500/10 rounded-2xl flex items-center justify-center text-rose-500 mx-auto mb-4">
+                        <i class="fas fa-shield-slash text-xl"></i>
+                    </div>
+                    <h4 class="text-xl font-black text-white">تأكيد التعطيل</h4>
+                    <p class="text-xs text-slate-400 mt-2">لحماية حسابك، يرجى إدخال كلمة مرور الحساب أو رمز الحماية (SP):</p>
+                </div>
+                
+                <form method="post" class="stack gap-4">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="disable">
+                    
+                    <div class="field-group">
+                        <label class="text-[10px] font-bold text-slate-500 mb-1 block">كلمة مرور الحساب</label>
+                        <input type="password" name="password" class="otp-input-field w-full h-12 text-sm tracking-normal" placeholder="••••••••">
+                    </div>
+                    
+                    {% if user.security_password %}
+                    <div class="relative py-2">
+                        <div class="absolute inset-0 flex items-center"><div class="w-full border-t border-white/5"></div></div>
+                        <div class="relative flex justify-center"><span class="bg-slate-900 px-3 text-[10px] text-slate-600 font-bold uppercase">أو استخدم</span></div>
+                    </div>
+                    
+                    <div class="field-group">
+                        <label class="text-[10px] font-bold text-slate-500 mb-1 block">رمز الحماية (SP)</label>
+                        <input type="password" name="security_password" class="otp-input-field w-full h-12 text-sm tracking-normal" placeholder="••••">
+                    </div>
+                    {% endif %}
+                    
+                    <div class="flex gap-4 mt-4">
+                        <button type="submit" class="btn btn-danger flex-1 h-12 rounded-xl font-black">تأكيد التعطيل</button>
+                        <button type="button" onclick="hideDisableModal()" class="btn btn-secondary flex-1 h-12 rounded-xl font-black">إلغاء</button>
+                    </div>
+                </form>
+            </div>
+        </div>
     </div>
+    <script>
+        function showDisableModal() { document.getElementById('disable-modal').classList.remove('hidden'); }
+        function hideDisableModal() { document.getElementById('disable-modal').classList.add('hidden'); }
+    </script>
     {% else %}
     <div class="stack gap-8">
         <div class="bg-slate-900/50 p-6 rounded-3xl border border-white/5">
