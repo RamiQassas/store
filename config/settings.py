@@ -24,6 +24,8 @@ SECRET_KEY = env(
 
 DEBUG = True # env_bool("DEBUG", False)
 
+SITE_URL = env("SITE_URL", "https://raqamiyatapp.com")
+
 # Render Reverse Proxy Configuration
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 

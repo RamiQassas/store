@@ -305,9 +305,10 @@ class DepositRequest(TimeStampedModel):
             except Exception:
                 # Fallback to base currency equivalent
                 self.wallet_amount = self.currency.to_base(self.amount, "deposit")
+        self._fees_calculated = True
 
     def save(self, *args, **kwargs):
-        if self.amount and self.payment_method:
+        if not getattr(self, "_fees_calculated", False) and self.amount and self.payment_method:
             self.calculate_fees()
         super().save(*args, **kwargs)
 

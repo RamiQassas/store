@@ -1169,11 +1169,14 @@ def control_deposit_detail(request, pk):
 
                     override_amount = request.POST.get("amount")
                     if override_amount:
-                        # Admin is overriding the GROSS amount
-                        deposit.amount = Decimal(str(override_amount))
-                        deposit.calculate_fees()
-
-                    final_amount = deposit.final_amount
+                        # Admin is specifying the FINAL amount to credit
+                        final_amount = Decimal(str(override_amount))
+                        deposit.final_amount = final_amount
+                        deposit.amount = final_amount # Treat as gross if they want it exact
+                        deposit.fee_amount = Decimal("0.00")
+                        deposit._fees_calculated = True
+                    else:
+                        final_amount = deposit.final_amount
 
                     wallet = get_or_create_wallet(deposit.user)
                     if deposit.currency.code == wallet.currency.code:
@@ -1199,8 +1202,8 @@ def control_deposit_detail(request, pk):
                         }
                     )
 
-                    # Note: deposit.final_amount and deposit.wallet_amount are already updated by calculate_fees()
-                    # and the logic above, but we ensure they match.
+                    # Ensure record reflects what was actually credited
+                    deposit.final_amount = final_amount
                     deposit.wallet_amount = wallet_final_amount
                     deposit.status = DepositRequest.Status.COMPLETED
                     deposit.reviewed_by = request.user
