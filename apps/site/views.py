@@ -997,7 +997,140 @@ def control_deposits(request): return render(request, "site/control_deposits.htm
 def control_withdrawals(request): return render(request, "site/control_withdrawals.html", {"withdrawals": WithdrawalRequest.objects.select_related('user', 'payment_method').all().order_by('-created_at')})
 
 @finance_required
-def control_deposit_detail(request, pk): return render(request, "site/control_deposit_detail.html", {"deposit": get_object_or_404(DepositRequest.objects.select_related('user', 'currency', 'payment_method'), pk=pk)})
+def control_deposit_detail(request, pk):
+    deposit = get_object_or_404(DepositRequest.objects.select_related('user', 'currency', 'payment_method'), pk=pk)
+    
+    if request.method == "POST":
+        action = request.POST.get("action")
+        admin_note = request.POST.get("admin_note", "")
+        
+        try:
+            with transaction.atomic():
+                if action == "approve":
+                    if deposit.status == DepositRequest.Status.COMPLETED:
+                        raise ValueError("تم اعتماد هذا الطلب مسبقاً.")
+                    
+                    override_amount = request.POST.get("amount")
+                    final_amount = Decimal(str(override_amount)) if override_amount else deposit.final_amount
+                    
+                    wallet = get_or_create_wallet(deposit.user)
+                    if deposit.currency.code == wallet.currency.code:
+                        wallet_final_amount = final_amount
+                    else:
+                        base_val = deposit.currency.to_base(final_amount, "deposit")
+                        wallet_final_amount = wallet.currency.from_base(base_val, "deposit")
+
+                    if wallet_final_amount <= 0:
+                        raise ValueError("يجب أن يكون المبلغ أكبر من صفر.")
+
+                    credit_wallet(
+                        wallet_id=wallet.id,
+                        amount=wallet_final_amount,
+                        reference=f"deposit:{deposit.id}",
+                        description=f"إيداع عبر {deposit.payment_method.name}",
+                        created_by=request.user,
+                        metadata={"from_pending": True, "pending_amount": deposit.wallet_amount}
+                    )
+
+                    deposit.final_amount = final_amount
+                    deposit.wallet_amount = wallet_final_amount
+                    deposit.status = DepositRequest.Status.COMPLETED
+                    deposit.reviewed_by = request.user
+                    deposit.reviewed_at = timezone.now()
+                    deposit.save()
+                    
+                    notify_user(
+                        user=deposit.user,
+                        title="تم قبول طلب الإيداع",
+                        body=f"تمت إضافة {deposit.final_amount} {deposit.currency.code} إلى محفظتك بنجاح.",
+                        action_url="/dashboard/wallet/",
+                        category='financial'
+                    )
+                    messages.success(request, "تم قبول طلب الإيداع بنجاح.")
+
+                elif action == "reject":
+                    if deposit.status == DepositRequest.Status.COMPLETED:
+                        raise ValueError("لا يمكن رفض طلب مكتمل.")
+                    
+                    if deposit.status != DepositRequest.Status.REJECTED:
+                        wallet = get_or_create_wallet(deposit.user)
+                        from apps.wallets.services import cancel_pending_deposit
+                        cancel_pending_deposit(
+                            wallet_id=wallet.id,
+                            amount=deposit.wallet_amount,
+                            reference=f"deposit_reject:{deposit.id}",
+                            description=f"إلغاء إيداع معلق مرفوض عبر {deposit.payment_method.name}",
+                            created_by=request.user
+                        )
+
+                    deposit.status = DepositRequest.Status.REJECTED
+                    deposit.admin_note = admin_note
+                    deposit.reviewed_by = request.user
+                    deposit.reviewed_at = timezone.now()
+                    deposit.save()
+                    
+                    notify_user(
+                        user=deposit.user,
+                        title="تم رفض طلب الإيداع",
+                        body=f"نعتذر، تم رفض طلب الإيداع رقم {deposit.id}. السبب: {admin_note}",
+                        category='financial'
+                    )
+                    messages.warning(request, "تم رفض طلب الإيداع.")
+
+                elif action == "correct":
+                    if deposit.status != DepositRequest.Status.COMPLETED:
+                        raise ValueError("يمكن تصحيح الطلبات المكتملة فقط.")
+
+                    new_amount_str = request.POST.get("new_amount")
+                    if not new_amount_str:
+                        raise ValueError("المبلغ الجديد مطلوب.")
+                    
+                    new_amount = Decimal(str(new_amount_str))
+                    old_amount = deposit.final_amount
+                    diff_amount = new_amount - old_amount
+                    
+                    if diff_amount == 0:
+                        raise ValueError("لم يتم تغيير المبلغ.")
+
+                    wallet = get_or_create_wallet(deposit.user)
+                    if deposit.currency.code == wallet.currency.code:
+                        wallet_diff = diff_amount
+                    else:
+                        base_diff = deposit.currency.to_base(diff_amount, "deposit")
+                        wallet_diff = wallet.currency.from_base(base_diff, "deposit")
+
+                    if wallet_diff > 0:
+                        credit_wallet(
+                            wallet_id=wallet.id,
+                            amount=wallet_diff,
+                            reference=f"deposit_adj:{deposit.id}",
+                            description=f"تصحيح مبلغ الإيداع (زيادة): {admin_note}",
+                            created_by=request.user,
+                            source="admin_adjustment"
+                        )
+                    else:
+                        debit_wallet(
+                            wallet_id=wallet.id,
+                            amount=abs(wallet_diff),
+                            reference=f"deposit_adj:{deposit.id}",
+                            description=f"تصحيح مبلغ الإيداع (نقص): {admin_note}",
+                            created_by=request.user,
+                            source="admin_adjustment"
+                        )
+
+                    deposit.final_amount = new_amount
+                    deposit.wallet_amount += wallet_diff
+                    if admin_note:
+                        deposit.admin_note = f"{deposit.admin_note or ''}\n[تصحيح {timezone.now().strftime('%Y-%m-%d %H:%M')}]: {admin_note}"
+                    deposit.save()
+                    messages.success(request, f"تم تصحيح المبلغ بنجاح. الفرق: {wallet_diff} {wallet.currency.code}")
+
+        except Exception as e:
+            messages.error(request, f"خطأ: {str(e)}")
+            
+        return redirect("control_deposit_detail", pk=pk)
+        
+    return render(request, "site/control_deposit_detail.html", {"deposit": deposit})
 
 @finance_required
 def control_withdrawal_detail(request, pk):

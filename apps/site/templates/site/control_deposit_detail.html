@@ -370,7 +370,7 @@
         img.style.transition = 'transform 0.2s cubic-bezier(0.4, 0, 0.2, 1)';
     });
 
-    // API Actions
+    // Actions
     async function processAction(action) {
         let body = {};
         if (action === 'approve') {
@@ -392,22 +392,24 @@
         if (!confirm("هل أنت متأكد من تنفيذ هذا الإجراء؟")) return;
 
         try {
-            const response = await fetch(`/api/deposits/{{ deposit.id }}/${action}/`, {
+            // Use standard form data to hit the Django view instead of the API
+            const formData = new FormData();
+            formData.append('action', action);
+            formData.append('csrfmiddlewaretoken', '{{ csrf_token }}');
+            for (const key in body) {
+                formData.append(key, body[key]);
+            }
+
+            const response = await fetch(window.location.href, {
                 method: 'POST',
+                body: formData,
                 headers: {
-                    'X-CSRFToken': '{{ csrf_token }}',
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify(body)
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
             });
             
-            if (response.ok) {
-                alert("تم تنفيذ العملية بنجاح.");
-                location.reload();
-            } else {
-                const data = await response.json();
-                alert("خطأ: " + (data.detail || data.message || "تعذر التنفيذ"));
-            }
+            // Reload the page to show flash messages and updated state
+            location.reload();
         } catch (e) {
             alert("خطأ في الاتصال بالخادم.");
         }
