@@ -2185,6 +2185,7 @@ def control_reports(request):
         "payment_performance": analytics.get_payment_method_performance(),
         "debt_aging": analytics.get_debt_aging(),
         "trends": analytics.get_trends(),
+        "cash_logs": analytics.get_cash_collection_logs(),
         "filters": filters,
         "currencies": Currency.objects.filter(is_active=True),
         "payment_methods": PaymentMethod.objects.filter(is_active=True),

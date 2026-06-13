@@ -360,6 +360,13 @@ class FinancialAnalyticsService:
                 
         return aging
 
+    def get_cash_collection_logs(self):
+        """Returns detailed logs for cash collections."""
+        cash_qs = LedgerEntry.objects.filter(source="admin_cash", entry_type=LedgerEntry.EntryType.DEBT_PAYMENT)
+        cash_qs = self._apply_date_filter(cash_qs)
+        cash_qs = self._apply_common_filters(cash_qs, prefix="wallet")
+        return cash_qs.select_related('wallet__user', 'wallet__currency', 'created_by').order_by('-created_at')
+
     def get_trends(self):
         # Last 30 days trends
         end_date = timezone.now().date()

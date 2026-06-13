@@ -142,10 +142,11 @@
                     <div class="kpi-title">أرباح المنتجات الصافية</div>
                     <div class="kpi-value positive">{{ kpis.product_net_profit|floatformat:2 }}</div>
                 </div>
-                <div class="kpi-card">
+                <a href="#cash-collections" class="kpi-card">
+                    <span class="drill-down">اضغط للتفاصيل <i class="fas fa-external-link-alt"></i></span>
                     <div class="kpi-title">مقبوضات نقدية (Cash)</div>
                     <div class="kpi-value text-emerald-500">{{ kpis.total_cash_collections|floatformat:2 }}</div>
-                </div>
+                </a>
                 <div class="kpi-card">
                     <div class="kpi-title">التزامات المحافظ (Liabilities)</div>
                     <div class="kpi-value warning">{{ kpis.total_liabilities|floatformat:2 }}</div>
@@ -267,6 +268,40 @@
                 </div>
                 {% endfor %}
             </div>
+            <section id="cash-collections">
+                <h2 class="section-title">سجل المقبوضات النقدية (Detailed Cash Logs)</h2>
+                <div class="table-container">
+                    <table class="analytics-table">
+                        <thead>
+                            <tr>
+                                <th>التاريخ</th>
+                                <th>العميل</th>
+                                <th>المبلغ (المحفظة)</th>
+                                <th>المسؤول</th>
+                                <th>السبب / الملاحظات</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for log in cash_logs %}
+                            <tr>
+                                <td class="text-[10px] font-mono text-slate-500">{{ log.created_at|date:"Y-m-d H:i" }}</td>
+                                <td>
+                                    <div class="font-bold text-white text-xs">{{ log.wallet.user.get_full_name|default:log.wallet.user.email }}</div>
+                                    <div class="text-[9px] text-slate-500">{{ log.wallet.user.email }}</div>
+                                </td>
+                                <td class="font-black text-emerald-400">{{ log.amount|floatformat:2 }} {{ log.wallet.currency.code }}</td>
+                                <td class="text-xs text-slate-400">{{ log.created_by.get_full_name|default:log.created_by.email }}</td>
+                                <td class="text-[10px] text-slate-500 italic max-w-[200px] truncate" title="{{ log.reason }}">{{ log.reason }}</td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="5" class="p-10 text-center text-slate-600">لا يوجد مقبوضات نقدية مسجلة لهذه الفترة.</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </section>
         </section>
 
     </div>

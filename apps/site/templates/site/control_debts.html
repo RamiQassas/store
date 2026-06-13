@@ -150,48 +150,48 @@
 {% block modals %}
 <!-- Action Modal -->
 <div id="debt-modal" class="fixed inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center z-[1000] hidden p-4">
-    <div class="glass-panel max-w-md w-full p-8 stack gap-8 border-white/10 shadow-2xl relative">
+    <div class="glass-panel max-w-sm w-full p-6 stack gap-5 border-white/10 shadow-2xl relative">
         <div class="text-center">
-            <div id="modal-icon" class="w-16 h-16 rounded-3xl flex items-center justify-center mx-auto mb-6 shadow-inner"></div>
-            <h3 id="modal-title" class="text-xl font-black text-white"></h3>
-            <p id="modal-subtitle" class="text-xs text-slate-500 mt-3 leading-relaxed px-4"></p>
+            <div id="modal-icon" class="w-12 h-12 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-inner"></div>
+            <h3 id="modal-title" class="text-lg font-black text-white"></h3>
+            <p id="modal-subtitle" class="text-[10px] text-slate-500 mt-2 leading-relaxed px-2"></p>
         </div>
         
-        <form method="post" class="stack gap-6">
+        <form method="post" class="stack gap-4">
             {% csrf_token %}
             <input type="hidden" name="user_id" id="modal-user-id">
             <input type="hidden" name="action" id="modal-action">
             
             <div>
-                <label class="text-[10px] font-black uppercase text-slate-500 mb-3 block tracking-widest">المبلغ المستحق (USD)</label>
+                <label class="text-[9px] font-black uppercase text-slate-500 mb-2 block tracking-widest">المبلغ المستحق (USD)</label>
                 <div class="relative">
-                    <input type="number" name="amount" id="modal-amount" step="0.01" required class="w-full bg-slate-950/50 border-white/10 rounded-2xl p-5 text-2xl font-black text-white focus:border-cyan/50 transition-all text-center">
-                    <span class="absolute left-6 top-1/2 -translate-y-1/2 text-slate-700 font-black text-xs">USD</span>
+                    <input type="number" name="amount" id="modal-amount" step="0.01" required class="w-full bg-slate-950/50 border-white/10 rounded-xl p-3 text-xl font-black text-white focus:border-cyan/50 transition-all text-center">
+                    <span class="absolute left-4 top-1/2 -translate-y-1/2 text-slate-700 font-black text-[10px]">USD</span>
                 </div>
             </div>
             
             <div id="pay-mode-container" class="hidden">
-                <label class="text-[10px] font-black uppercase text-slate-500 mb-3 block tracking-widest">طريقة السداد</label>
-                <div class="grid grid-cols-2 gap-4">
-                    <label class="flex items-center gap-3 p-4 bg-slate-900/50 border border-white/10 rounded-2xl cursor-pointer has-[:checked]:border-cyan/50 has-[:checked]:bg-cyan/5 transition-all">
+                <label class="text-[9px] font-black uppercase text-slate-500 mb-2 block tracking-widest">طريقة السداد</label>
+                <div class="grid grid-cols-2 gap-3">
+                    <label class="flex items-center gap-2 p-3 bg-slate-900/50 border border-white/10 rounded-xl cursor-pointer has-[:checked]:border-cyan/50 has-[:checked]:bg-cyan/5 transition-all">
                         <input type="radio" name="pay_mode" value="balance" checked class="accent-cyan">
-                        <span class="text-[10px] font-black text-white">من الرصيد المتاح</span>
+                        <span class="text-[9px] font-black text-white">من الرصيد</span>
                     </label>
-                    <label class="flex items-center gap-3 p-4 bg-slate-900/50 border border-white/10 rounded-2xl cursor-pointer has-[:checked]:border-emerald-500/50 has-[:checked]:bg-emerald-500/5 transition-all">
+                    <label class="flex items-center gap-2 p-3 bg-slate-900/50 border border-white/10 rounded-xl cursor-pointer has-[:checked]:border-emerald-500/50 has-[:checked]:bg-emerald-500/5 transition-all">
                         <input type="radio" name="pay_mode" value="cash" class="accent-emerald-500">
-                        <span class="text-[10px] font-black text-white">نقداً (خارج النظام)</span>
+                        <span class="text-[9px] font-black text-white">نقداً</span>
                     </label>
                 </div>
             </div>
 
             <div>
-                <label class="text-[10px] font-black uppercase text-slate-500 mb-3 block tracking-widest">السبب / الملاحظات الإدارية</label>
-                <textarea name="reason" class="w-full bg-slate-950/50 border-white/10 rounded-2xl p-5 text-xs text-white focus:border-cyan/50 leading-relaxed" rows="3" placeholder="اكتب تفاصيل توضح سبب هذه الحركة المالية لغايات التدقيق..." required></textarea>
+                <label class="text-[9px] font-black uppercase text-slate-500 mb-2 block tracking-widest">السبب / الملاحظات الإدارية</label>
+                <textarea name="reason" class="w-full bg-slate-950/50 border-white/10 rounded-xl p-3 text-[11px] text-white focus:border-cyan/50 leading-relaxed" rows="2" placeholder="اكتب تفاصيل توضح سبب هذه الحركة..." required></textarea>
             </div>
             
-            <div class="flex gap-4 pt-4">
-                <button type="button" class="btn btn-outline flex-1 py-4 rounded-2xl font-black" onclick="closeModal()">إلغاء</button>
-                <button type="submit" class="btn flex-1 py-4 rounded-2xl font-black" id="modal-submit-btn">تأكيد العملية</button>
+            <div class="flex gap-3 pt-2">
+                <button type="button" class="btn btn-outline flex-1 py-3 rounded-xl font-black text-[11px]" onclick="closeModal()">إلغاء</button>
+                <button type="submit" class="btn flex-1 py-3 rounded-xl font-black text-[11px]" id="modal-submit-btn">تأكيد العملية</button>
             </div>
         </form>
     </div>
