@@ -230,6 +230,8 @@ class SecurityEvent(TimeStampedModel):
     user = models.ForeignKey(User, related_name="security_events", on_delete=models.CASCADE)
     event_type = models.CharField(max_length=40, choices=EventType.choices)
     ip_address = models.GenericIPAddressField(null=True, blank=True)
+    country = models.CharField(max_length=100, blank=True)
+    city = models.CharField(max_length=100, blank=True)
     user_agent = models.TextField(blank=True)
     metadata = models.JSONField(default=dict, blank=True)
 

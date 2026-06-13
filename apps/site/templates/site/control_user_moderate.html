@@ -1,396 +1,376 @@
 {% extends "site/control_base.html" %}
 {% load static %}
 
-{% block title %}إدارة الحساب | {{ user_to_moderate.email }}{% endblock %}
+{% block title %}إدارة الحساب الاستراتيجية | {{ user_to_moderate.email }}{% endblock %}
 
 {% block extra_head %}
 <style>
-    .management-card { border-radius: 32px; border: 1px solid rgba(255,255,255,0.05); overflow: hidden; background: rgba(18, 25, 44, 0.4); backdrop-filter: blur(10px); }
-    .management-header { background: linear-gradient(to right, rgba(255,255,255,0.02), transparent); }
-    .field-group label { display: block; margin-bottom: 0.75rem; font-weight: 700; color: #a7b2cf; }
-    .builder-input, select, textarea { 
-        width: 100%; padding: 12px 16px; background: rgba(255,255,255,0.03); 
-        border: 1px solid rgba(255,255,255,0.08); border-radius: 16px; color: #fff;
-        transition: all 0.2s;
-    }
-    .builder-input:focus, select:focus { border-color: var(--cyan); box-shadow: 0 0 0 4px rgba(6, 182, 212, 0.1); outline: none; background: rgba(255,255,255,0.05); }
-    .btn-primary { background: linear-gradient(135deg, var(--cyan), #0891b2); color: #000; border: 0; box-shadow: 0 10px 20px -5px rgba(6, 182, 212, 0.4); }
-    .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 15px 25px -5px rgba(6, 182, 212, 0.5); }
-    .badge { padding: 4px 10px; border-radius: 8px; font-weight: 800; letter-spacing: 0.5px; }
-    .badge.primary { background: rgba(6, 182, 212, 0.1); color: var(--cyan); border: 1px solid rgba(6, 182, 212, 0.2); }
+    :root { --panel-bg: rgba(18, 25, 44, 0.4); --card-border: rgba(255, 255, 255, 0.05); }
+    .glass-panel { background: var(--panel-bg); backdrop-filter: blur(20px); border: 1px solid var(--card-border); border-radius: 24px; overflow: hidden; }
+    .section-header { padding: 1.5rem; background: linear-gradient(to right, rgba(6, 182, 212, 0.05), transparent); border-bottom: 1px solid var(--card-border); display: flex; justify-content: space-between; align-items: center; }
+    .section-title { font-size: 0.9rem; font-weight: 900; color: #fff; display: flex; items-center: center; gap: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; }
+    
+    .field-label { font-size: 10px; font-weight: 900; color: #64748b; text-transform: uppercase; margin-bottom: 0.5rem; display: block; }
+    .modern-input { width: 100%; padding: 12px 16px; background: rgba(0,0,0,0.2); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; color: #fff; font-size: 0.85rem; transition: all 0.2s; }
+    .modern-input:focus { border-color: var(--cyan); box-shadow: 0 0 0 4px rgba(6, 182, 212, 0.1); outline: none; }
+    
+    .stat-box { padding: 1rem; background: rgba(255,255,255,0.02); border: 1px solid var(--card-border); border-radius: 16px; }
+    .stat-label { font-size: 9px; font-weight: 900; color: #475569; margin-bottom: 0.25rem; }
+    .stat-value { font-size: 1.1rem; font-weight: 900; color: #fff; font-family: monospace; }
+    
+    .ip-badge { font-family: monospace; font-size: 10px; padding: 2px 6px; border-radius: 4px; background: rgba(6, 182, 212, 0.1); color: var(--cyan); }
+    .history-row:hover { background: rgba(255,255,255,0.02); }
 </style>
 {% endblock %}
 
 {% block control_content %}
 {% if messages %}
-<div class="fixed top-20 right-8 z-50 stack gap-2">
+<div class="fixed top-24 right-8 z-50 stack gap-3" id="toast-container">
     {% for message in messages %}
-    <div class="p-4 rounded-2xl shadow-lg border {% if message.tags == 'error' %}bg-rose-950 border-rose-500 text-rose-100{% else %}bg-emerald-950 border-emerald-500 text-emerald-100{% endif %}">
+    <div class="p-4 pr-6 pl-12 rounded-2xl shadow-2xl border-l-4 {% if message.tags == 'error' %}bg-rose-950/90 border-rose-500 text-rose-100{% else %}bg-emerald-950/90 border-emerald-500 text-emerald-100{% endif %} backdrop-blur-md relative animate-in fade-in slide-in-from-right-4">
         {{ message }}
+        <button onclick="this.parentElement.remove()" class="absolute left-4 top-1/2 -translate-y-1/2 opacity-50 hover:opacity-100"><i class="fas fa-times"></i></button>
     </div>
     {% endfor %}
 </div>
+<script>setTimeout(() => document.getElementById('toast-container')?.remove(), 5000);</script>
 {% endif %}
-<div class="page-head">
-    <div>
-        <span class="eyebrow">User Management / Moderate</span>
-        <h1>إدارة حساب: {{ user_to_moderate.get_full_name|default:user_to_moderate.username }}</h1>
-        <p class="text-muted">التحكم في صلاحيات المستخدم، التقييدات المالية، وحالة الحساب.</p>
+
+<!-- Top Header -->
+<div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-8">
+    <div class="flex items-center gap-6">
+        <div class="relative group">
+            <div class="w-20 h-20 rounded-3xl bg-gradient-to-br from-cyan to-blue-600 flex items-center justify-center text-3xl font-black text-black shadow-[0_0_30px_rgba(6,182,212,0.3)]">
+                {{ user_to_moderate.email|slice:":1"|upper }}
+            </div>
+            <div class="absolute -bottom-2 -right-2 w-8 h-8 rounded-xl bg-slate-900 border-2 border-slate-800 flex items-center justify-center text-xs shadow-lg">
+                {% if user_to_moderate.is_staff %}<i class="fas fa-shield-halved text-cyan"></i>{% else %}<i class="fas fa-user text-slate-400"></i>{% endif %}
+            </div>
+        </div>
+        <div>
+            <div class="flex items-center gap-3 mb-1">
+                <h1 class="text-3xl font-black text-white">{{ user_to_moderate.get_full_name|default:user_to_moderate.username }}</h1>
+                <span class="badge primary text-[9px]">{{ user_to_moderate.get_tier_display }}</span>
+            </div>
+            <div class="flex items-center gap-4 text-slate-500 text-xs">
+                <span class="flex items-center gap-1"><i class="far fa-envelope"></i> {{ user_to_moderate.email }}</span>
+                <span class="flex items-center gap-1"><i class="far fa-calendar"></i> انضم في {{ user_to_moderate.date_joined|date:"d M Y" }}</span>
+                <span class="flex items-center gap-1"><i class="fas fa-fingerprint"></i> UUID: {{ user_to_moderate.public_uuid }}</span>
+            </div>
+        </div>
     </div>
     <div class="flex gap-3">
-        <a href="{% url 'control_users_list' %}" class="btn btn-outline btn-sm">العودة للقائمة</a>
-        <button class="btn btn-primary btn-sm" onclick="document.getElementById('mod-form').submit()">حفظ كافة التغييرات</button>
+        <a href="{% url 'control_users_list' %}" class="btn btn-outline btn-sm h-12 px-6 rounded-2xl font-bold border-white/5 hover:bg-white/5">
+            <i class="fas fa-arrow-right ml-2"></i> العودة للقائمة
+        </a>
+        <button class="btn btn-primary h-12 px-8 rounded-2xl font-black uppercase tracking-wider" onclick="document.getElementById('master-mod-form').submit()">
+            Save Changes
+        </button>
     </div>
 </div>
 
 <div class="grid grid-cols-12 gap-8">
-    <!-- Main Settings -->
+    <!-- Left Column: Settings & Forms -->
     <div class="col-span-12 lg:col-span-8 stack gap-8">
-        <form method="post" id="mod-form" class="management-card">
+        
+        <!-- 1. Identity & Role Configuration -->
+        <form method="post" id="master-mod-form" class="glass-panel">
             {% csrf_token %}
-            <div class="management-header">
-                <h3 class="font-bold"><i class="fas fa-user-cog ml-2"></i> إعدادات التقييد والحظر</h3>
-                <span class="text-[10px] text-muted">ID: {{ user_to_moderate.id }}</span>
+            <input type="hidden" name="action" value="update_profile">
+            <div class="section-header">
+                <h2 class="section-title"><i class="fas fa-id-card text-cyan"></i> هوية المستخدم وصلاحياته</h2>
             </div>
-            <div class="management-body stack gap-8 p-8">
-                <!-- User Core Info -->
+            <div class="p-8 stack gap-8">
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    <div class="field-group">
-                        <label class="text-[11px] uppercase tracking-widest text-slate-500 mb-2">الدور / الرتبة</label>
+                    <div>
+                        <label class="field-label">الدور الوظيفي</label>
                         {{ form.role }}
                     </div>
-                    <div class="field-group">
-                        <label class="text-[11px] uppercase tracking-widest text-slate-500 mb-2">الفئة (Tier)</label>
+                    <div>
+                        <label class="field-label">فئة الحساب (Tier)</label>
                         {{ form.tier }}
                     </div>
-                    <div class="field-group">
-                        <label class="text-[11px] uppercase tracking-widest text-slate-500 mb-2">رقم الهاتف</label>
+                    <div>
+                        <label class="field-label">رقم الهاتف</label>
                         {{ form.phone }}
                     </div>
                 </div>
 
-                <div class="h-px bg-white/5"></div>
-
-                <!-- Status & Expiry -->
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
-                    <div class="field-group">
-                        <label class="text-[11px] uppercase tracking-widest text-slate-500 mb-2">حالة الحساب العامة</label>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <label class="field-label">الحالة العامة</label>
                         {{ form.status }}
-                        <div class="flex items-center gap-2 mt-3">
-                            <span class="text-[10px] text-slate-400">الحالة الحالية:</span>
-                            <span class="badge primary text-[9px]">{{ user_to_moderate.get_status_display }}</span>
-                        </div>
                     </div>
-                    <div class="field-group">
-                        <label class="text-[11px] uppercase tracking-widest text-slate-500 mb-2">تاريخ انتهاء الإيقاف (إن وجد)</label>
+                    <div>
+                        <label class="field-label">تاريخ انتهاء الحظر المؤقت</label>
                         {{ form.suspension_expires_at }}
-                        <p class="text-[9px] text-slate-500 mt-2">اتركه فارغاً للحظر الدائم أو النشط.</p>
                     </div>
                 </div>
 
-                <!-- Restrictions -->
-                <div class="p-8 bg-slate-900/30 rounded-3xl border border-white/5 relative overflow-hidden">
-                    <div class="absolute top-0 left-0 w-1 h-full {% if user_to_moderate.status == 'active' %}bg-emerald-500/50{% else %}bg-rose-500/50{% endif %}"></div>
-                    <h4 class="text-sm font-bold mb-6 text-slate-200 flex items-center">
-                        <i class="fas fa-user-lock ml-2 text-cyan opacity-50"></i>
-                        القيود والتحكم في الصلاحيات
-                    </h4>
+                <div class="p-6 bg-slate-900/50 rounded-2xl border border-white/5">
+                    <h3 class="text-xs font-black text-slate-400 uppercase mb-4 flex items-center gap-2"><i class="fas fa-shield-virus text-amber-500"></i> قيود العمليات المالية</h3>
                     <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                        <label class="flex items-center justify-between p-4 bg-slate-800/40 rounded-2xl border border-white/5 hover:border-cyan/30 transition-all cursor-pointer group">
-                            <span class="text-xs font-bold text-slate-300 group-hover:text-cyan transition-colors">تقييد السحب</span>
-                            <div class="relative">
-                                {{ form.restriction_withdrawals }}
-                            </div>
+                        <label class="flex items-center justify-between p-4 bg-slate-800/40 rounded-xl border border-white/5 cursor-pointer hover:border-cyan/30 transition-all group">
+                            <span class="text-xs font-bold text-slate-300 group-hover:text-cyan">تقييد السحب</span>
+                            {{ form.restriction_withdrawals }}
                         </label>
-                        <label class="flex items-center justify-between p-4 bg-slate-800/40 rounded-2xl border border-white/5 hover:border-cyan/30 transition-all cursor-pointer group">
-                            <span class="text-xs font-bold text-slate-300 group-hover:text-cyan transition-colors">تقييد الإيداع</span>
-                            <div class="relative">
-                                {{ form.restriction_deposits }}
-                            </div>
+                        <label class="flex items-center justify-between p-4 bg-slate-800/40 rounded-xl border border-white/5 cursor-pointer hover:border-cyan/30 transition-all group">
+                            <span class="text-xs font-bold text-slate-300 group-hover:text-cyan">تقييد الإيداع</span>
+                            {{ form.restriction_deposits }}
                         </label>
-                        <label class="flex items-center justify-between p-4 bg-slate-800/40 rounded-2xl border border-white/5 hover:border-cyan/30 transition-all cursor-pointer group">
-                            <span class="text-xs font-bold text-slate-300 group-hover:text-cyan transition-colors">تقييد الشراء</span>
-                            <div class="relative">
-                                {{ form.restriction_purchases }}
-                            </div>
-                        </label>
-                    </div>
-                    
-                    <div class="mt-8 pt-6 border-t border-white/5">
-                        <label class="flex items-center gap-4 p-4 bg-rose-500/5 border border-rose-500/10 rounded-2xl cursor-pointer hover:bg-rose-500/10 transition-colors">
-                            {{ form.is_permanently_suspended }}
-                            <div>
-                                <div class="text-xs font-black text-rose-500 uppercase tracking-wider">إيقاف نهائي (Permanent Ban)</div>
-                                <div class="text-[10px] text-rose-500/60 mt-0.5">سيتم منع المستخدم من الوصول للنظام بشكل دائم.</div>
-                            </div>
+                        <label class="flex items-center justify-between p-4 bg-slate-800/40 rounded-xl border border-white/5 cursor-pointer hover:border-cyan/30 transition-all group">
+                            <span class="text-xs font-bold text-slate-300 group-hover:text-cyan">تقييد الشراء</span>
+                            {{ form.restriction_purchases }}
                         </label>
                     </div>
                 </div>
 
-                <!-- Reason & Notes -->
-                <div class="grid grid-cols-1 gap-6">
-                    <div class="field-group">
-                        <label class="text-[11px] uppercase tracking-widest text-slate-500 mb-2">سبب الإجراء (يظهر للمستخدم)</label>
-                        {{ form.suspension_reason }}
-                    </div>
+                <div>
+                    <label class="field-label">سبب الإيقاف (يظهر للمستخدم)</label>
+                    {{ form.suspension_reason }}
+                </div>
+                
+                <div>
+                    <label class="field-label">ملاحظات إدارية داخلية (سرية)</label>
+                    {{ form.admin_notes }}
+                </div>
 
-                    <div class="field-group">
-                        <label class="text-[11px] uppercase tracking-widest text-slate-500 mb-2">ملاحظات إدارية داخلية</label>
-                        {{ form.admin_notes }}
+                <div class="flex items-center gap-4 p-4 bg-rose-500/5 border border-rose-500/10 rounded-2xl">
+                    {{ form.is_permanently_suspended }}
+                    <div>
+                        <div class="text-xs font-black text-rose-500 uppercase tracking-wider">الحظر النهائي البات (Permanent Ban)</div>
+                        <div class="text-[9px] text-rose-500/60 mt-0.5">تفعيل هذا الخيار سيمنع المستخدم من الدخول نهائياً ولن يستطيع استعادة حسابه.</div>
                     </div>
                 </div>
             </div>
         </form>
 
-        <!-- Financial Management -->
-        <div class="management-card">
-            <div class="management-header bg-slate-900/10 border-b border-white/5 p-6">
-                <h3 class="font-bold flex items-center gap-2">
-                    <i class="fas fa-hand-holding-usd text-cyan"></i> 
-                    إدارة الديون والالتزامات المالية
-                </h3>
+        <!-- 2. Financial Ecosystem -->
+        <div class="glass-panel">
+            <div class="section-header">
+                <h2 class="section-title"><i class="fas fa-vault text-emerald-500"></i> النظام المالي والديون</h2>
+                <span class="text-[10px] text-slate-500 font-mono">Wallet: {{ user_to_moderate.wallet.id|truncatechars:10 }}</span>
             </div>
-            <div class="management-body grid grid-cols-1 lg:grid-cols-2 gap-8 p-8">
+            <div class="p-8 grid grid-cols-1 lg:grid-cols-2 gap-8">
                 <!-- Add Debt -->
-                <form method="post" class="stack gap-6 p-8 bg-slate-900/40 rounded-3xl border border-white/5 relative overflow-hidden group hover:border-rose-500/30 transition-all">
-                    <div class="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
-                        <i class="fas fa-plus-circle text-6xl"></i>
-                    </div>
-                    {% csrf_token %}
-                    <input type="hidden" name="action" value="assign_debt">
-                    <h4 class="text-xs font-black uppercase tracking-[0.2em] text-slate-500">إضافة دين جديد (ائتمان)</h4>
-                    <div class="field-group">
-                        <label class="text-[10px] text-slate-400 mb-2 block">المبلغ المراد إضافته</label>
-                        <div class="relative">
-                            <span class="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 font-mono text-xs">{{ user_to_moderate.wallet.currency.code }}</span>
-                            <input type="number" name="amount" step="0.01" class="builder-input pl-16 text-sm font-bold" placeholder="0.00" required>
+                <div class="stack gap-6 p-6 bg-rose-500/[0.02] border border-rose-500/10 rounded-3xl relative overflow-hidden group">
+                    <i class="fas fa-hand-holding-dollar absolute -top-4 -right-4 text-8xl text-rose-500 opacity-5 group-hover:rotate-12 transition-transform"></i>
+                    <form method="post" class="stack gap-4 relative z-10">
+                        {% csrf_token %}
+                        <input type="hidden" name="action" value="assign_debt">
+                        <h3 class="text-sm font-black text-rose-500 uppercase tracking-widest">إضافة التزام مالي (دين)</h3>
+                        <div>
+                            <label class="field-label">المبلغ المستحق</label>
+                            <div class="relative">
+                                <span class="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 font-mono">{{ user_to_moderate.wallet.currency.code }}</span>
+                                <input type="number" name="amount" step="0.01" class="modern-input pl-16 text-lg font-black" placeholder="0.00" required>
+                            </div>
                         </div>
-                    </div>
-                    <div class="field-group">
-                        <label class="text-[10px] text-slate-400 mb-2 block">السبب أو الملاحظات</label>
-                        <input type="text" name="reason" class="builder-input text-xs" placeholder="مثلاً: دفعة مقدمة، غرامة..." required>
-                    </div>
-                    <button type="submit" class="btn btn-sm btn-outline danger w-full py-3 rounded-2xl font-bold transition-all hover:shadow-[0_0_20px_rgba(244,63,94,0.2)]">
-                        تأكيد وإضافة الرصيد
-                    </button>
-                </form>
+                        <div>
+                            <label class="field-label">سبب المديونية</label>
+                            <input type="text" name="reason" class="modern-input text-xs" placeholder="مثلاً: دفعة آجلة، تسوية حساب..." required>
+                        </div>
+                        <button type="submit" class="btn btn-outline danger w-full h-12 rounded-xl font-black uppercase text-[10px]">Confirm Debt Assignment</button>
+                    </form>
+                </div>
 
                 <!-- Pay Debt -->
-                <form method="post" class="stack gap-6 p-8 bg-slate-900/40 rounded-3xl border border-white/5 relative overflow-hidden group hover:border-cyan/30 transition-all">
-                    <div class="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
-                        <i class="fas fa-check-circle text-6xl text-cyan"></i>
-                    </div>
-                    {% csrf_token %}
-                    <input type="hidden" name="action" value="pay_debt">
-                    <h4 class="text-xs font-black uppercase tracking-[0.2em] text-slate-500">سداد يدوي من الرصيد</h4>
-                    <div class="field-group">
-                        <label class="text-[10px] text-slate-400 mb-2 block">مبلغ السداد</label>
-                        <div class="relative">
-                            <span class="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 font-mono text-xs">{{ user_to_moderate.wallet.currency.code }}</span>
-                            <input type="number" name="amount" step="0.01" max="{{ user_to_moderate.wallet.debt_balance }}" class="builder-input pl-16 text-sm font-bold" placeholder="0.00" required>
-                        </div>
-                        <div class="flex justify-between mt-2 px-1">
-                            <p class="text-[9px] text-slate-500 italic">الحد الأقصى المتاح للسداد: {{ user_to_moderate.wallet.debt_balance }}</p>
-                            <button type="button" class="text-[9px] text-cyan font-bold hover:underline" onclick="this.form.amount.value='{{ user_to_moderate.wallet.debt_balance }}'">سداد الكل</button>
-                        </div>
-                    </div>
-                    <div class="p-4 bg-cyan/5 border border-cyan/10 rounded-2xl">
-                        <p class="text-[10px] text-cyan leading-relaxed flex items-start gap-2">
-                            <i class="fas fa-info-circle mt-0.5"></i>
-                            <span>سيتم خصم المبلغ من الرصيد المتاح وتقليص قيمة الدين.</span>
-                        </p>
-                    </div>
-                    <button type="submit" class="btn btn-sm btn-primary w-full py-3 rounded-2xl font-bold transition-all hover:shadow-[0_0_20px_rgba(6,182,212,0.3)]" {% if user_to_moderate.wallet.debt_balance == 0 %}disabled{% endif %}>
-                        تنفيذ عملية السداد
-                    </button>
-                </form>
-            </div>
-        </div>
-
-        <!-- Audit & Activity Log -->
-        <div class="management-card">
-            <div class="management-header">
-                <h3 class="font-bold"><i class="fas fa-history ml-2"></i> سجل التدقيق والنشاط (Audit Log)</h3>
-            </div>
-            <div class="p-4 stack gap-4">
-                {% for log in audit_logs %}
-                <div class="p-4 border-b border-white/5 last:border-0 hover:bg-white/[0.01] transition">
-                    <div class="flex justify-between items-start mb-2">
+                <div class="stack gap-6 p-6 bg-cyan/[0.02] border border-cyan/10 rounded-3xl relative overflow-hidden group">
+                    <i class="fas fa-check-double absolute -top-4 -right-4 text-8xl text-cyan opacity-5 group-hover:-rotate-12 transition-transform"></i>
+                    <form method="post" class="stack gap-4 relative z-10">
+                        {% csrf_token %}
+                        <input type="hidden" name="action" value="pay_debt">
+                        <h3 class="text-sm font-black text-cyan uppercase tracking-widest">سداد المديونية يدوياً</h3>
                         <div>
-                            <span class="badge primary text-[9px] ml-2">{{ log.action_type|upper }}</span>
-                            <strong class="text-sm">{{ log.description }}</strong>
+                            <label class="field-label">مبلغ السداد</label>
+                            <div class="relative">
+                                <span class="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 font-mono">{{ user_to_moderate.wallet.currency.code }}</span>
+                                <input type="number" name="amount" step="0.01" max="{{ user_to_moderate.wallet.debt_balance }}" class="modern-input pl-16 text-lg font-black" placeholder="0.00" required>
+                            </div>
+                            <div class="flex justify-between mt-2 px-1">
+                                <span class="text-[9px] text-slate-500 italic">الحد الأقصى: {{ user_to_moderate.wallet.debt_balance }}</span>
+                                <button type="button" class="text-[9px] text-cyan font-black hover:underline" onclick="this.form.amount.value='{{ user_to_moderate.wallet.debt_balance }}'">PAY ALL</button>
+                            </div>
                         </div>
-                        <span class="text-[10px] text-slate-500">{{ log.created_at|date:"d M Y, H:i" }}</span>
-                    </div>
-                    <div class="text-xs text-slate-400 mb-2">المنفذ: {{ log.actor.email }} | IP: {{ log.ip_address }}</div>
-                    {% if log.reason %}
-                    <p class="text-xs italic bg-white/5 p-2 rounded text-slate-300">السبب: {{ log.reason }}</p>
-                    {% endif %}
-                </div>
-                {% empty %}
-                <p class="p-8 text-center text-xs text-muted">لا توجد سجلات تدقيق سابقة لهذا المستخدم.</p>
-                {% endfor %}
-            </div>
-        </div>
-    </div>
-
-    <!-- User Sidebar Info -->
-    <div class="col-span-12 lg:col-span-4 stack gap-6">
-        <div class="management-card p-6">
-            <div class="flex flex-col items-center text-center mb-6">
-                <div class="w-20 h-20 bg-slate-800 rounded-full flex items-center justify-center text-3xl text-cyan mb-4 border-4 border-white/5">
-                    <i class="fas fa-user-shield"></i>
-                </div>
-                <h3 class="font-bold">{{ user_to_moderate.email }}</h3>
-                <span class="text-[10px] text-muted">{{ user_to_moderate.get_role_display }}</span>
-            </div>
-            
-            <div class="stack gap-4 pt-6 border-t border-white/5">
-                <div class="flex justify-between text-sm">
-                    <span class="text-muted">الرصيد المتاح:</span>
-                    <strong class="text-cyan">{{ user_to_moderate.wallet.available_balance }} {{ user_to_moderate.wallet.currency.code }}</strong>
-                </div>
-                <div class="flex justify-between text-sm">
-                    <span class="text-muted">الديون المستحقة:</span>
-                    <strong class="text-rose-500">{{ user_to_moderate.wallet.debt_balance }}</strong>
-                </div>
-                <div class="flex justify-between text-sm">
-                    <span class="text-muted">الرصيد المحجوز:</span>
-                    <strong class="text-amber-500">{{ user_to_moderate.wallet.held_balance }}</strong>
-                </div>
-                <div class="flex justify-between text-sm">
-                    <span class="text-muted">الفئة الحالية:</span>
-                    <span class="badge primary text-[9px]">{{ user_to_moderate.get_tier_display }}</span>
-                </div>
-                <div class="h-px bg-white/5 my-2"></div>
-                <div class="flex flex-col gap-2">
-                    <span class="text-[10px] text-muted uppercase tracking-widest font-black">آخر دخول ومعلومات الموقع</span>
-                    <div class="flex justify-between text-xs">
-                        <span class="text-slate-500">عنوان IP:</span>
-                        <span class="font-mono text-cyan">{{ user_to_moderate.last_ip|default:"N/A" }}</span>
-                    </div>
-                    <div class="flex justify-between text-xs">
-                        <span class="text-slate-500">الدولة:</span>
-                        <span class="text-slate-200">{{ user_to_moderate.last_country|default:"N/A" }}</span>
-                    </div>
-                    <div class="flex justify-between text-xs">
-                        <span class="text-slate-500">المدينة:</span>
-                        <span class="text-slate-200">{{ user_to_moderate.last_city|default:"N/A" }}</span>
-                    </div>
+                        <div class="p-4 bg-slate-900/40 rounded-xl border border-white/5">
+                            <p class="text-[10px] text-slate-400 leading-relaxed"><i class="fas fa-info-circle ml-1 text-cyan"></i> سيتم خصم هذا المبلغ من رصيد المحفظة المتاح حالياً وتخفيض قيمة الدين المسجلة.</p>
+                        </div>
+                        <button type="submit" class="btn btn-primary w-full h-12 rounded-xl font-black uppercase text-[10px]" {% if user_to_moderate.wallet.debt_balance == 0 %}disabled{% endif %}>Execute Repayment</button>
+                    </form>
                 </div>
             </div>
         </div>
 
-        <!-- OTP Security Actions -->
-        <div class="management-card p-6 border-cyan/20 bg-cyan/[0.02]">
-            <h3 class="text-cyan font-bold text-sm mb-4"><i class="fas fa-shield-alt ml-2"></i> تأمين الدخول (OTP)</h3>
-            <div class="stack gap-3">
-                <div class="p-3 bg-slate-900/50 rounded-2xl border border-white/5 mb-2">
-                    <div class="flex justify-between text-[10px] text-slate-500 mb-1">
-                        <span>المحاولات الفاشلة:</span>
-                        <span class="text-slate-300 font-bold">{{ user_to_moderate.otp_failed_attempts }}</span>
-                    </div>
-                    <div class="flex justify-between text-[10px] text-slate-500 mb-1">
-                        <span>مرات إعادة الإرسال:</span>
-                        <span class="text-slate-300 font-bold">{{ user_to_moderate.otp_resend_count }}</span>
-                    </div>
-                    <div class="flex justify-between text-[10px] text-slate-500">
-                        <span>حالة الحظر المؤقت:</span>
-                        {% if user_to_moderate.otp_lockout_until and user_to_moderate.otp_lockout_until > now %}
-                        <span class="text-rose-500 font-bold">مقيد حتى {{ user_to_moderate.otp_lockout_until|date:"H:i" }}</span>
-                        {% else %}
-                        <span class="text-emerald-500 font-bold">غير مقيد</span>
-                        {% endif %}
-                    </div>
+        <!-- 3. Security Event & IP History -->
+        <div class="glass-panel">
+            <div class="section-header">
+                <h2 class="section-title"><i class="fas fa-history text-cyan"></i> سجل الدخول وتتبع الـ IP</h2>
+                <div class="flex gap-2">
+                    <span class="text-[10px] bg-slate-800 text-slate-400 px-3 py-1 rounded-full font-bold uppercase">Live History</span>
                 </div>
-                <form method="post" class="stack gap-2">
-                    {% csrf_token %}
-                    <input type="hidden" name="action" value="reset_otp">
-                    <button type="submit" class="btn btn-outline w-full text-xs py-3 hover:border-cyan hover:text-cyan transition-all">
-                        <i class="fas fa-undo ml-2"></i> إعادة ضبط قيود OTP
-                    </button>
-                </form>
             </div>
-        </div>
-
-        <!-- Email Management -->
-        <div class="management-card p-6 border-cyan/20 bg-cyan/[0.02] mb-6">
-            <h3 class="text-cyan font-bold text-sm mb-4"><i class="fas fa-envelope ml-2"></i> تغيير البريد الإلكتروني</h3>
-            <form method="post" class="stack gap-3">
-                {% csrf_token %}
-                <input type="hidden" name="action" value="change_email">
-                <div class="field-group">
-                    <input type="email" name="new_email" class="builder-input text-xs" placeholder="البريد الإلكتروني الجديد" required>
+            <div class="p-0">
+                <div class="overflow-x-auto">
+                    <table class="w-full text-right text-sm">
+                        <thead class="bg-white/[0.02] border-b border-white/5">
+                            <tr>
+                                <th class="p-4 text-[10px] font-black text-slate-500 uppercase">التوقيت</th>
+                                <th class="p-4 text-[10px] font-black text-slate-500 uppercase">عنوان IP</th>
+                                <th class="p-4 text-[10px] font-black text-slate-500 uppercase">الموقع الجغرافي</th>
+                                <th class="p-4 text-[10px] font-black text-slate-500 uppercase">نوع العملية</th>
+                                <th class="p-4 text-[10px] font-black text-slate-500 uppercase text-left">المتصفح</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for event in user_to_moderate.security_events.all|slice:":20" %}
+                            <tr class="border-b border-white/[0.02] history-row transition-colors">
+                                <td class="p-4 text-xs font-bold text-slate-400">{{ event.created_at|date:"d/m/Y H:i" }}</td>
+                                <td class="p-4"><span class="ip-badge">{{ event.ip_address }}</span></td>
+                                <td class="p-4">
+                                    <div class="flex items-center gap-2">
+                                        <i class="fas fa-location-dot text-cyan text-[10px]"></i>
+                                        <span class="text-xs text-white">{{ event.country|default:"Unknown" }}</span>
+                                        <span class="text-[10px] text-slate-500">{{ event.city|default:"-" }}</span>
+                                    </div>
+                                </td>
+                                <td class="p-4">
+                                    <span class="px-2 py-1 rounded text-[9px] font-black uppercase {% if event.event_type == 'login' %}bg-emerald-500/10 text-emerald-500{% else %}bg-slate-800 text-slate-400{% endif %}">
+                                        {{ event.get_event_type_display }}
+                                    </span>
+                                </td>
+                                <td class="p-4 text-left">
+                                    <div class="w-32 truncate text-[9px] text-slate-600 hover:text-slate-400 cursor-help" title="{{ event.user_agent }}">
+                                        {{ event.user_agent|truncatechars:40 }}
+                                    </div>
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr><td colspan="5" class="p-12 text-center text-slate-600 italic">لم يتم تسجيل أي عمليات دخول سابقة لهذا الحساب.</td></tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
                 </div>
-                <button type="submit" class="btn btn-primary w-full text-xs py-3">تحديث البريد الآن</button>
-            </form>
-            <p class="text-[9px] text-slate-500 italic text-center mt-2">تنبيه: سيتم تحديث اسم المستخدم (Username) تلقائياً ليتطابق مع البريد الجديد.</p>
-        </div>
-
-        <!-- Manual Password Change -->
-        <div class="management-card p-6 border-amber-500/20 bg-amber-500/[0.02]">
-            <h3 class="text-amber-500 font-bold text-sm mb-4"><i class="fas fa-key ml-2"></i> تغيير كلمة المرور يدوياً</h3>
-            <form method="post" class="stack gap-3">
-                {% csrf_token %}
-                <input type="hidden" name="action" value="manual_password">
-                <div class="field-group">
-                    <input type="text" name="new_password" class="builder-input text-xs" placeholder="كلمة المرور الجديدة (10+ خانات)" required>
+                {% if user_to_moderate.security_events.count > 20 %}
+                <div class="p-4 text-center border-t border-white/5">
+                    <button class="text-[10px] font-black text-cyan hover:underline uppercase tracking-widest">View Full History Logs</button>
                 </div>
-                <button type="submit" class="btn btn-outline w-full text-xs py-3 border-amber-500/30 text-amber-500 hover:bg-amber-500 hover:text-white transition-all">
-                    تغيير كلمة المرور الآن
-                </button>
-                <p class="text-[9px] text-slate-500 italic text-center">استخدم هذا الخيار فقط إذا فقد المستخدم الوصول لبريده.</p>
-            </form>
-        </div>
-
-        <!-- 2FA Security Controls -->
-        <div class="management-card p-6 border-cyan/20 bg-cyan/[0.02]">
-            <h3 class="text-cyan font-bold text-sm mb-4"><i class="fas fa-shield-alt ml-2"></i> أمن المصادقة الثنائية (2FA)</h3>
-            <div class="flex justify-between text-[10px] text-slate-500 mb-4">
-                <span>حالة المصادقة الثنائية:</span>
-                {% if user_to_moderate.totp_enabled %}
-                <span class="text-emerald-500 font-bold">مفعلة</span>
-                {% else %}
-                <span class="text-slate-500">معطلة</span>
                 {% endif %}
             </div>
-            <form method="post" class="stack gap-2">
-                {% csrf_token %}
-                <input type="hidden" name="action" value="reset_2fa">
-                <button type="submit" class="btn btn-outline w-full text-xs py-3 border-cyan/30 text-cyan hover:bg-cyan hover:text-white transition-all" 
-                    {% if not user_to_moderate.totp_enabled %}disabled{% endif %}>
-                    إعادة ضبط / تعطيل 2FA
-                </button>
-            </form>
-            <p class="text-[9px] text-slate-500 italic text-center mt-2">استخدم هذا إذا فقد المستخدم الوصول لتطبيق Google Authenticator.</p>
         </div>
 
-        <!-- Danger Actions -->
-        <div class="management-card p-6 border-danger/20 bg-danger/[0.02]">
-            <h3 class="text-danger font-bold text-sm mb-4"><i class="fas fa-exclamation-triangle ml-2"></i> إجراءات سريعة خطيرة</h3>
-            <div class="stack gap-3">
-                <button class="btn btn-outline danger w-full text-xs py-3" onclick="quickBan()">
-                    <i class="fas fa-ban ml-2"></i> حظر الحساب فوراً
-                </button>
-                <form method="post" id="reset-pass-form" class="hidden">
-                    {% csrf_token %}
-                    <input type="hidden" name="action" value="reset_password">
+    </div>
+
+    <!-- Right Column: Sidebar Dashboard -->
+    <div class="col-span-12 lg:col-span-4 stack gap-8">
+        
+        <!-- Summary Dashboard Card -->
+        <div class="glass-panel p-8 text-center relative overflow-hidden">
+            <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-cyan via-blue-600 to-cyan"></div>
+            <div class="flex flex-col items-center">
+                <div class="grid grid-cols-2 gap-4 w-full mt-6">
+                    <div class="stat-box">
+                        <div class="stat-label">الرصيد المتاح</div>
+                        <div class="stat-value text-cyan">{{ user_to_moderate.wallet.available_balance|floatformat:2 }}</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="stat-label">إجمالي الديون</div>
+                        <div class="stat-value text-rose-500">{{ user_to_moderate.wallet.debt_balance|floatformat:2 }}</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="stat-label">قيد الانتظار</div>
+                        <div class="stat-value text-amber-500">{{ user_to_moderate.wallet.pending_balance|floatformat:2 }}</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="stat-label">المبلغ المحجوز</div>
+                        <div class="stat-value text-slate-400">{{ user_to_moderate.wallet.held_balance|floatformat:2 }}</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Security Quick Controls -->
+        <div class="glass-panel p-8 bg-cyan/[0.02]">
+            <h3 class="text-sm font-black text-white mb-6 flex items-center gap-2"><i class="fas fa-user-shield text-cyan"></i> الأمن والمصادقة</h3>
+            <div class="stack gap-4">
+                <!-- OTP Reset -->
+                <div class="p-4 bg-slate-900/50 rounded-2xl border border-white/5">
+                    <div class="flex justify-between text-[10px] font-black mb-3">
+                        <span class="text-slate-500 uppercase">OTP Status</span>
+                        {% if user_to_moderate.otp_lockout_until and user_to_moderate.otp_lockout_until > now %}
+                        <span class="text-rose-500">LOCKED UNTIL {{ user_to_moderate.otp_lockout_until|date:"H:i" }}</span>
+                        {% else %}
+                        <span class="text-emerald-500">HEALTHY</span>
+                        {% endif %}
+                    </div>
+                    <form method="post">
+                        {% csrf_token %}<input type="hidden" name="action" value="reset_otp">
+                        <button type="submit" class="btn btn-outline btn-sm w-full py-3 text-[10px] font-black uppercase border-white/10 hover:border-cyan hover:text-cyan">Reset OTP Limits</button>
+                    </form>
+                </div>
+
+                <!-- 2FA Controls -->
+                <div class="p-4 bg-slate-900/50 rounded-2xl border border-white/5">
+                    <div class="flex justify-between text-[10px] font-black mb-3">
+                        <span class="text-slate-500 uppercase">2FA Authenticator</span>
+                        {% if user_to_moderate.totp_enabled %}
+                        <span class="text-emerald-500">ACTIVE</span>
+                        {% else %}
+                        <span class="text-slate-500">DISABLED</span>
+                        {% endif %}
+                    </div>
+                    <form method="post">
+                        {% csrf_token %}<input type="hidden" name="action" value="reset_2fa">
+                        <button type="submit" class="btn btn-outline btn-sm w-full py-3 text-[10px] font-black uppercase border-white/10 hover:border-amber-500 hover:text-amber-500" {% if not user_to_moderate.totp_enabled %}disabled{% endif %}>Deactivate 2FA</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Account Communication -->
+        <div class="glass-panel p-8 bg-blue-500/[0.02]">
+            <h3 class="text-sm font-black text-white mb-6 flex items-center gap-2"><i class="fas fa-envelope-open-text text-blue-500"></i> التواصل والتحديثات</h3>
+            <div class="stack gap-6">
+                <!-- Change Email -->
+                <form method="post" class="stack gap-3">
+                    {% csrf_token %}<input type="hidden" name="action" value="change_email">
+                    <label class="field-label">تحديث البريد الإلكتروني</label>
+                    <input type="email" name="new_email" class="modern-input text-xs" placeholder="new.email@example.com" required>
+                    <button type="submit" class="btn btn-outline btn-sm py-2 text-[9px] font-black uppercase border-blue-500/20 text-blue-400 hover:bg-blue-500 hover:text-white">Update Email & Username</button>
                 </form>
-                <button class="btn btn-outline w-full text-xs py-3" onclick="resetPassword()">
-                    <i class="fas fa-key ml-2"></i> إرسال رابط إعادة كلمة السر
+
+                <div class="h-px bg-white/5"></div>
+
+                <!-- Password Link -->
+                <button class="btn btn-outline btn-sm w-full py-4 text-[10px] font-black uppercase border-white/10 hover:bg-white/5" onclick="resetPassword()">
+                    <i class="fas fa-key ml-2"></i> Send Password Reset Link
                 </button>
             </div>
         </div>
+
+        <!-- Critical Actions -->
+        <div class="glass-panel p-8 bg-rose-500/[0.03] border-rose-500/20">
+            <h3 class="text-sm font-black text-rose-500 mb-6 flex items-center gap-2"><i class="fas fa-triangle-exclamation"></i> إجراءات حرجة</h3>
+            <button class="btn btn-outline danger w-full py-4 text-[10px] font-black uppercase rounded-2xl" onclick="quickBan()">
+                <i class="fas fa-ban ml-2"></i> Immediate Permanent Ban
+            </button>
+            <p class="text-[9px] text-slate-600 italic text-center mt-4 uppercase font-black tracking-tighter">Use with extreme caution. This action is logged.</p>
+        </div>
+
     </div>
 </div>
 
+<form method="post" id="reset-pass-form" class="hidden">
+    {% csrf_token %}
+    <input type="hidden" name="action" value="reset_password">
+</form>
+
 <script>
 function quickBan() {
-    if (confirm("هل أنت متأكد من رغبتك في حظر هذا المستخدم نهائياً؟ سيتم منعه من الدخول وإيقاف كافة عملياته.")) {
+    if (confirm("هل أنت متأكد من رغبتك في حظر هذا المستخدم نهائياً؟")) {
         document.querySelector('select[name="status"]').value = 'banned';
         document.querySelector('input[name="is_permanently_suspended"]').checked = true;
         document.querySelector('textarea[name="suspension_reason"]').value = "لقد تم حظر حسابك نهائياً لمخالفة قوانين المنصة.";
-        document.getElementById('mod-form').submit();
+        document.getElementById('master-mod-form').submit();
     }
 }
 
@@ -400,9 +380,4 @@ function resetPassword() {
     }
 }
 </script>
-
-<style>
-    .btn-outline.danger { border-color: rgba(239, 68, 68, 0.3); color: var(--danger); }
-    .btn-outline.danger:hover { background: var(--danger); color: #fff; }
-</style>
 {% endblock %}

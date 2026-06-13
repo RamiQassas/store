@@ -1651,7 +1651,42 @@ def control_order_detail(request, pk):
     return render(request, "site/control_order_detail.html", ctx)
 
 @admin_required
-def control_users_list(request): return render(request, "site/control_users_list.html", {"users": User.objects.select_related("wallet").order_by("-date_joined")})
+def control_users_list(request):
+    if request.method == "POST":
+        action = request.POST.get("action")
+        user_ids = request.POST.getlist("user_ids")
+        
+        if not user_ids:
+            messages.warning(request, "يرجى اختيار مستخدمين لتنفيذ العملية.")
+            return redirect("control_users_list")
+
+        if action == "bulk_tier":
+            target_tier = request.POST.get("target_tier")
+            if target_tier:
+                User.objects.filter(id__in=user_ids).update(tier=target_tier)
+                messages.success(request, f"تم تحديث فئة {len(user_ids)} مستخدم بنجاح.")
+        
+        elif action == "bulk_role":
+            target_role = request.POST.get("target_role")
+            if target_role:
+                User.objects.filter(id__in=user_ids).update(role=target_role)
+                messages.success(request, f"تم تحديث دور {len(user_ids)} مستخدم بنجاح.")
+                
+        return redirect("control_users_list")
+
+    users = User.objects.select_related("wallet").order_by("-date_joined")
+    
+    # Handle search
+    q = request.GET.get('q', '')
+    if q:
+        users = users.filter(Q(email__icontains=q) | Q(first_name__icontains=q) | Q(phone__icontains=q))
+
+    return render(request, "site/control_users_list.html", {
+        "users": users,
+        "query": q,
+        "tiers": User.Tier.choices,
+        "roles": User.Role.choices
+    })
 
 @admin_required
 def control_user_moderate(request, public_uuid):
