@@ -157,6 +157,7 @@
                 </tr>
             </thead>
             <tbody>
+                {% for user in recent_users %}
                 <tr class="hover:bg-white/[0.01] transition-colors border-b border-white/[0.02] last:border-0">
                     <td class="p-4">
                         <div class="font-black text-white text-xs">{{ user.get_full_name|default:user.username }}</div>
