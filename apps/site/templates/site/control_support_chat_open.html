@@ -18,18 +18,18 @@
                 {% csrf_token %}
                 
                 <div class="relative">
-                    <label class="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2">بريد المستخدم المستهدف</label>
-                    <input type="email" name="user_email" id="id_user_email" class="builder-input" placeholder="ابحث بالبريد أو الاسم..." required autocomplete="off">
+                    <label class="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2">بريد/اسم/هاتف المستخدم المستهدف</label>
+                    <input type="text" name="user_identifier" id="id_user_identifier" class="builder-input" placeholder="ابحث بالبريد أو الاسم أو الهاتف..." required autocomplete="off">
                     <div id="user-results" class="absolute z-50 w-full mt-1 bg-slate-900 border border-white/10 rounded-xl shadow-2xl hidden overflow-hidden"></div>
                     <p class="mt-1 text-[10px] text-slate-500 italic">يجب أن يكون للمستخدم حساب مسجل في الموقع.</p>
                 </div>
 
                 <script>
-                    const emailInput = document.getElementById('id_user_email');
+                    const identifierInput = document.getElementById('id_user_identifier');
                     const resultsDiv = document.getElementById('user-results');
                     let debounceTimer;
 
-                    emailInput.addEventListener('input', function() {
+                    identifierInput.addEventListener('input', function() {
                         clearTimeout(debounceTimer);
                         const query = this.value.trim();
                         if (query.length < 2) {
@@ -45,7 +45,7 @@
                                         resultsDiv.innerHTML = data.map(u => `
                                             <div class="p-3 hover:bg-cyan/10 cursor-pointer border-b border-white/5 last:border-0" onclick="selectUser('${u.email}')">
                                                 <div class="font-bold text-sm text-white">${u.email}</div>
-                                                <div class="text-[10px] text-slate-500">${u.full_name || u.username}</div>
+                                                <div class="text-[10px] text-slate-500">${u.full_name || u.username} - ${u.phone || ''}</div>
                                             </div>
                                         `).join('');
                                         resultsDiv.classList.remove('hidden');
@@ -57,12 +57,12 @@
                     });
 
                     function selectUser(email) {
-                        emailInput.value = email;
+                        identifierInput.value = email;
                         resultsDiv.classList.add('hidden');
                     }
 
                     document.addEventListener('click', (e) => {
-                        if (!emailInput.contains(e.target) && !resultsDiv.contains(e.target)) {
+                        if (!identifierInput.contains(e.target) && !resultsDiv.contains(e.target)) {
                             resultsDiv.classList.add('hidden');
                         }
                     });

@@ -146,4 +146,28 @@ def api_order_mark_read(request, pk):
 
 @user_passes_test(is_staff)
 def api_user_search(request):
-    return HttpResponse("Not implemented", status=501)
+    q = request.GET.get('q', '').strip()
+    if not q or len(q) < 2:
+        return JsonResponse([], safe=False)
+        
+    from django.db.models import Q
+    from apps.accounts.models import User
+    
+    users = User.objects.filter(
+        Q(email__icontains=q) | 
+        Q(first_name__icontains=q) | 
+        Q(last_name__icontains=q) | 
+        Q(phone__icontains=q)
+    ).values("email", "first_name", "last_name", "phone")[:10]
+    
+    results = []
+    for u in users:
+        full_name = f"{u.get('first_name', '')} {u.get('last_name', '')}".strip()
+        results.append({
+            "email": u["email"],
+            "full_name": full_name,
+            "username": u["email"], # fallback in frontend
+            "phone": u.get("phone", "")
+        })
+        
+    return JsonResponse(results, safe=False)

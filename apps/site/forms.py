@@ -443,13 +443,13 @@ class SendNotificationForm(forms.Form):
     TARGET_CHOICES = [
         ("all", "الجميع"),
         ("tier", "فئة محددة"),
-        ("individual", "مستخدم محدد"),
+        ("individual", "مستخدم محدد (بريد، اسم، هاتف)"),
     ]
     TIER_CHOICES = User.Tier.choices
 
     target = forms.ChoiceField(label="المستهدف", choices=TARGET_CHOICES, widget=forms.RadioSelect(attrs={"class": "flex gap-4"}))
     tier = forms.ChoiceField(label="الفئة", choices=TIER_CHOICES, required=False, widget=forms.Select(attrs={"class": "builder-input"}))
-    user_email = forms.EmailField(label="بريد المستخدم", required=False, widget=forms.EmailInput(attrs={"class": "builder-input", "placeholder": "email@example.com"}))
+    user_identifier = forms.CharField(label="معرف المستخدم", required=False, widget=forms.TextInput(attrs={"class": "builder-input", "placeholder": "البريد أو الاسم أو الهاتف"}))
     
     CHANNEL_CHOICES = [
         ("all", "الكل (إشعار داخلي + دفع + بريد)"),
@@ -475,6 +475,6 @@ class SiteAnnouncementForm(forms.ModelForm):
         }
 
 class AdminChatForm(forms.Form):
-    user_email = forms.EmailField(label="بريد المستخدم", widget=forms.EmailInput(attrs={"class": "builder-input", "placeholder": "email@example.com"}))
+    user_identifier = forms.CharField(label="معرف المستخدم", widget=forms.TextInput(attrs={"class": "builder-input", "placeholder": "البريد أو الاسم أو الهاتف"}))
     subject = forms.CharField(label="الموضوع", max_length=180, widget=forms.TextInput(attrs={"class": "builder-input", "placeholder": "موضوع التذكرة"}))
     message = forms.CharField(label="الرسالة الأولى", widget=forms.Textarea(attrs={"class": "builder-input", "rows": 5, "placeholder": "اكتب رسالتك للعميل هنا..."}))

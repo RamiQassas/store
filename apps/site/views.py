@@ -2175,7 +2175,14 @@ def control_send_notification(request):
     if request.method == "POST" and form.is_valid():
         users = User.objects.filter(is_active=True)
         if form.cleaned_data["target"] == "tier": users = users.filter(tier=form.cleaned_data["tier"])
-        elif form.cleaned_data["target"] == "individual": users = users.filter(email=form.cleaned_data["user_email"])
+        elif form.cleaned_data["target"] == "individual":
+            q = form.cleaned_data["user_identifier"]
+            users = users.filter(
+                Q(email__icontains=q) | 
+                Q(first_name__icontains=q) | 
+                Q(last_name__icontains=q) | 
+                Q(phone__icontains=q)
+            )
         
         if users.exists():
             channel = form.cleaned_data["channels"]
@@ -2199,7 +2206,7 @@ def control_send_notification(request):
                 if channel in ['all', 'email']:
                     send_brevo_email(user.email, user.get_full_name() or user.email, title, body)
             
-            messages.success(request, "تم الإرسال عبر القنوات المحددة.")
+            messages.success(request, f"تم الإرسال لـ {users.count()} مستخدم عبر القنوات المحددة.")
             return redirect("control_send_notification")
     return render(request, "site/control_notification_form.html", {"form": form})
 
@@ -2231,13 +2238,21 @@ def control_quick_reply_delete(request, pk): get_object_or_404(ChatCannedReply, 
 def control_support_chat_open(request):
     form = AdminChatForm(request.POST or None)
     if request.method == "POST" and form.is_valid():
-        user = User.objects.filter(email=form.cleaned_data["user_email"]).first()
+        q = form.cleaned_data["user_identifier"]
+        user = User.objects.filter(
+            Q(email__icontains=q) | 
+            Q(first_name__icontains=q) | 
+            Q(last_name__icontains=q) | 
+            Q(phone__icontains=q)
+        ).first()
+        
         if user:
             with transaction.atomic():
                 room = ChatRoom.objects.create(user=user, assigned_agent=request.user, subject=form.cleaned_data["subject"], status=ChatRoom.Status.ASSIGNED)
                 ChatMessage.objects.create(room=room, sender=request.user, text=form.cleaned_data["message"], is_staff_reply=True); room.unread_user_count = 1; room.save()
                 notify_user(user, title="رسالة من الدعم", body=room.subject, action_url=reverse("dashboard"), category='support')
-            return redirect("dashboard")
+            messages.success(request, f"تم فتح التذكرة بنجاح مع {user.get_full_name() or user.email}.")
+            return redirect("control_dashboard")
         messages.error(request, "المستخدم غير موجود.")
     return render(request, "site/control_support_chat_open.html", {"form": form})
 
