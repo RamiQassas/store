@@ -50,3 +50,17 @@ def cleanup_unverified_users_task():
             count_reminded += 1
             
     return f"Deleted {count_deleted} users, Reminded {count_reminded} users."
+
+@shared_task
+def reset_daily_limits_task():
+    """
+    Resets daily deposit and withdrawal usage for all users.
+    Should be scheduled to run at 12:00 AM Syria time (9:00 PM UTC).
+    """
+    now = timezone.now()
+    updated_count = User.objects.all().update(
+        daily_deposit_usage=Decimal("0.00"),
+        daily_withdrawal_usage=Decimal("0.00"),
+        last_limit_reset=now
+    )
+    return f"Reset daily limits for {updated_count} users at {now}."

@@ -538,7 +538,9 @@ def deposits(request):
 
     return render(request, "site/v3/v3_deposits.html", {
         "payment_methods": PaymentMethod.objects.filter(is_active=True, can_deposit=True), 
-        "requests": DepositRequest.objects.filter(user=request.user).order_by('-created_at')
+        "requests": DepositRequest.objects.filter(user=request.user).order_by('-created_at'),
+        "daily_limit": request.user.daily_deposit_limit,
+        "remaining_limit": request.user.remaining_deposit_limit
     })
 
 @login_required
@@ -564,6 +566,12 @@ def withdrawals(request):
             if amount <= 0: raise ValueError()
         except:
             messages.error(request, "مبلغ غير صحيح.")
+            return redirect("dashboard_withdrawals")
+
+        # Limit checks (pre-request)
+        amount_in_usd = currency.to_base(amount, "withdraw")
+        if amount_in_usd > request.user.remaining_withdrawal_limit:
+            messages.error(request, f"لقد تجاوزت حد السحب اليومي المتبقي ({request.user.remaining_withdrawal_limit:,.2f} USD).")
             return redirect("dashboard_withdrawals")
 
         # Extract payout details
@@ -639,7 +647,9 @@ def withdrawals(request):
 
     return render(request, "site/v3/v3_withdrawals.html", {
         "payment_methods": PaymentMethod.objects.filter(is_active=True, can_withdraw=True), 
-        "requests": WithdrawalRequest.objects.filter(user=request.user).order_by('-created_at')
+        "requests": WithdrawalRequest.objects.filter(user=request.user).order_by('-created_at'),
+        "daily_limit": request.user.daily_withdrawal_limit,
+        "remaining_limit": request.user.remaining_withdrawal_limit
     })
 
 @login_required
@@ -1217,6 +1227,12 @@ def control_deposit_detail(request, pk):
                         deposit.admin_note = admin_note
                     deposit.save()
 
+                    # Update daily usage for the user (in base currency/USD)
+                    try:
+                        amount_in_usd = deposit.currency.to_base(deposit.final_amount, "deposit")
+                        deposit.user.add_deposit_usage(amount_in_usd)
+                    except: pass
+
                     # Transparent body showing original vs approved if changed
                     amount_text = f"{deposit.final_amount:,.2f} {deposit.currency.code}"
                     if override_amount and Decimal(str(override_amount)) != original_requested_amount:
@@ -1366,6 +1382,13 @@ def control_withdrawal_detail(request, pk):
                             description="Withdrawal rejected",
                             created_by=request.user
                         )
+                        
+                        # Reverse daily usage on rejection
+                        try:
+                            amount_in_usd = withdrawal.currency.to_base(withdrawal.amount, "withdraw")
+                            withdrawal.user.add_withdrawal_usage(-amount_in_usd)
+                        except: pass
+
                         withdrawal.status = WithdrawalRequest.Status.REJECTED
                         withdrawal.reviewed_at = timezone.now()
 

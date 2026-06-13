@@ -305,10 +305,16 @@ VAPID_PRIVATE_KEY = env("VAPID_PRIVATE_KEY")
 VAPID_ADMIN_EMAIL = env("VAPID_ADMIN_EMAIL", DEFAULT_FROM_EMAIL)
 
 # Celery Beat Schedule
+from celery.schedules import crontab
+
 CELERY_BEAT_SCHEDULE = {
     "cleanup_unverified_users_every_hour": {
         "task": "apps.accounts.tasks.cleanup_unverified_users_task",
         "schedule": 3600.0,  # Every hour
+    },
+    "reset_daily_limits_syria_midnight": {
+        "task": "apps.accounts.tasks.reset_daily_limits_task",
+        "schedule": crontab(hour=21, minute=0),  # 9:00 PM UTC = 12:00 AM Syria
     },
 }
 

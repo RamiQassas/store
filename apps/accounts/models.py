@@ -128,22 +128,31 @@ class User(AbstractUser):
         return full_name if full_name else self.email
 
     def reset_daily_limits_if_needed(self):
-        """Resets daily usage if 24 hours have passed since last reset."""
+        """Resets daily usage if the date has changed (relative to UTC/Syria time)."""
+        # We'll use the date to ensure it resets once a day
         now = timezone.now()
-        if (now - self.last_limit_reset).days >= 1 or self.last_limit_reset.date() < now.date():
+        if self.last_limit_reset.date() < now.date():
             self.daily_deposit_usage = Decimal("0.00")
             self.daily_withdrawal_usage = Decimal("0.00")
             self.last_limit_reset = now
             self.save(update_fields=["daily_deposit_usage", "daily_withdrawal_usage", "last_limit_reset"])
 
+    def add_deposit_usage(self, amount_in_usd):
+        self.reset_daily_limits_if_needed()
+        self.daily_deposit_usage += Decimal(str(amount_in_usd))
+        self.save(update_fields=["daily_deposit_usage"])
+
+    def add_withdrawal_usage(self, amount_in_usd):
+        self.reset_daily_limits_if_needed()
+        self.daily_withdrawal_usage += Decimal(str(amount_in_usd))
+        self.save(update_fields=["daily_withdrawal_usage"])
+
     @property
     def remaining_deposit_limit(self):
-        self.reset_daily_limits_if_needed()
         return max(Decimal("0.00"), self.daily_deposit_limit - self.daily_deposit_usage)
 
     @property
     def remaining_withdrawal_limit(self):
-        self.reset_daily_limits_if_needed()
         return max(Decimal("0.00"), self.daily_withdrawal_limit - self.daily_withdrawal_usage)
 
     @property

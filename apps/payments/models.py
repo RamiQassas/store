@@ -64,7 +64,8 @@ class PaymentMethod(TimeStampedModel):
         # 1. Global/Default Ceiling
         user_global_limit = Decimal("100.00")
         if user:
-            user_global_limit = user.daily_deposit_limit
+            # Respect the remaining daily limit
+            user_global_limit = user.remaining_deposit_limit
 
         # 2. Determine Effective Limit based on Priorities
         if user and user.has_custom_limits:
@@ -72,7 +73,8 @@ class PaymentMethod(TimeStampedModel):
             user_custom = user.custom_payment_limits.get(str(self.id)) or user.custom_payment_limits.get(self.id.hex)
             if user_custom and user_custom.get('deposit'):
                 try:
-                    effective_deposit_max = Decimal(str(user_custom['deposit']))
+                    # Per-method custom limit capped by user's remaining daily limit
+                    effective_deposit_max = min(Decimal(str(user_custom['deposit'])), user_global_limit)
                 except:
                     effective_deposit_max = user_global_limit
             else:
@@ -122,7 +124,8 @@ class PaymentMethod(TimeStampedModel):
         # 1. Global/Default Ceiling
         user_global_limit = Decimal("100.00")
         if user:
-            user_global_limit = user.daily_withdrawal_limit
+            # Respect the remaining daily limit
+            user_global_limit = user.remaining_withdrawal_limit
 
         # 2. Determine Effective Limit based on Priorities
         if user and user.has_custom_limits:
@@ -130,7 +133,8 @@ class PaymentMethod(TimeStampedModel):
             user_custom = user.custom_payment_limits.get(str(self.id)) or user.custom_payment_limits.get(self.id.hex)
             if user_custom and user_custom.get('withdraw'):
                 try:
-                    effective_withdrawal_max = Decimal(str(user_custom['withdraw']))
+                    # Per-method custom limit capped by user's remaining daily limit
+                    effective_withdrawal_max = min(Decimal(str(user_custom['withdraw'])), user_global_limit)
                 except:
                     effective_withdrawal_max = user_global_limit
             else:

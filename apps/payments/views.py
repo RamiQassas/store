@@ -42,6 +42,15 @@ class DepositRequestViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         with transaction.atomic():
+            # Check daily limit BEFORE creation
+            user = self.request.user
+            currency = serializer.validated_data.get('currency')
+            amount = serializer.validated_data.get('amount')
+            
+            amount_in_usd = currency.to_base(amount, "deposit")
+            if amount_in_usd > user.remaining_deposit_limit:
+                raise permissions.exceptions.ValidationError(f"لقد تجاوزت حد الإيداع اليومي المتبقي ({user.remaining_deposit_limit:,.2f} USD).")
+
             deposit = serializer.save()
             wallet = get_or_create_wallet(deposit.user)
             track_pending_deposit(
@@ -109,6 +118,12 @@ class DepositRequestViewSet(viewsets.ModelViewSet):
             deposit.reviewed_at = timezone.now()
             deposit.save(update_fields=["status", "reviewed_by", "reviewed_at", "updated_at", "final_amount", "wallet_amount", "amount", "fee_amount"])
             
+            # Increment daily usage for the user (in base currency/USD)
+            try:
+                amount_in_usd = deposit.currency.to_base(deposit.final_amount, "deposit")
+                deposit.user.add_deposit_usage(amount_in_usd)
+            except: pass
+
             notify_user(
                 user=deposit.user,
                 title="تم قبول طلب الإيداع",
@@ -236,16 +251,27 @@ class WithdrawalRequestViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         with transaction.atomic():
+            # Check daily limit BEFORE creation
+            user = self.request.user
+            currency = serializer.validated_data.get('currency')
+            amount = serializer.validated_data.get('amount')
+            
+            amount_in_usd = currency.to_base(amount, "withdraw")
+            if amount_in_usd > user.remaining_withdrawal_limit:
+                raise permissions.exceptions.ValidationError(f"لقد تجاوزت حد السحب اليومي المتبقي ({user.remaining_withdrawal_limit:,.2f} USD).")
+
             withdrawal = serializer.save()
             wallet = get_or_create_wallet(withdrawal.user)
             # Freeze funds immediately upon request
             freeze_funds(
                 wallet_id=wallet.id,
-                amount=withdrawal.amount,
+                amount=withdrawal.wallet_amount,
                 reference=f"withdrawal:{withdrawal.id}",
                 description=f"سحب عبر {withdrawal.payment_method.name}",
                 created_by=withdrawal.user
             )
+            # Increment usage on REQUEST to respect daily limits
+            user.add_withdrawal_usage(amount_in_usd)
 
     @decorators.action(detail=True, methods=["post"])
     def process(self, request, pk=None):
@@ -349,6 +375,12 @@ class WithdrawalRequestViewSet(viewsets.ModelViewSet):
                 created_by=request.user
             )
             
+            # Reverse daily usage on rejection
+            try:
+                amount_in_usd = withdrawal.currency.to_base(withdrawal.amount, "withdraw")
+                withdrawal.user.add_withdrawal_usage(-amount_in_usd)
+            except: pass
+            
             notify_user(
                 user=withdrawal.user,
                 title="تم رفض طلب السحب",
@@ -422,5 +454,11 @@ class WithdrawalRequestViewSet(viewsets.ModelViewSet):
                 description=f"إلغاء طلب سحب عبر {withdrawal.payment_method.name}",
                 created_by=request.user
             )
+
+            # Reverse daily usage on cancellation
+            try:
+                amount_in_usd = withdrawal.currency.to_base(withdrawal.amount, "withdraw")
+                withdrawal.user.add_withdrawal_usage(-amount_in_usd)
+            except: pass
         
         return response.Response(self.get_serializer(withdrawal).data)
