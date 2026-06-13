@@ -145,12 +145,15 @@
 </head>
 <body>
   {% if active_announcement %}
-  <div class="announcement-bar" style="background: {{ active_announcement.background_color }}; color: {{ active_announcement.text_color }}; padding: 10px; text-align: center; font-size: 14px; position: sticky; top: 0; z-index: 9999; font-weight: bold; line-height: 1.5;">
-    <div class="container mx-auto px-4 flex items-center justify-center gap-2">
-      <i class="fas fa-bullhorn"></i>
-      <span>{{ active_announcement.text }}</span>
+  <div class="announcement-bar group relative overflow-hidden" style="background: {{ active_announcement.background_color }}; color: {{ active_announcement.text_color }}; padding: 12px; text-align: center; font-size: 13px; position: sticky; top: 0; z-index: 9999; font-weight: 800; border-bottom: 1px solid rgba(255,255,255,0.1);">
+    <div class="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000"></div>
+    <div class="container mx-auto px-4 flex items-center justify-center gap-3 relative z-10">
+      <div class="w-6 h-6 rounded-full bg-white/10 flex items-center justify-center animate-pulse">
+          <i class="fas fa-bullhorn text-[10px]"></i>
+      </div>
+      <span class="tracking-tight">{{ active_announcement.text }}</span>
       {% if active_announcement.link %}
-      <a href="{{ active_announcement.link }}" class="underline ml-2 hover:opacity-80">تعرف على المزيد</a>
+      <a href="{{ active_announcement.link }}" class="ml-3 px-4 py-1 rounded-full bg-white/10 hover:bg-white/20 transition-all border border-white/10 text-[11px] font-black uppercase">تعرف على المزيد <i class="fas fa-arrow-left mr-1"></i></a>
       {% endif %}
     </div>
   </div>

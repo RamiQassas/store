@@ -1,109 +1,82 @@
 {% extends "site/control_base.html" %}
 {% load static %}
 
-{% block title %}إدارة قاعدة المستخدمين الاستراتيجية | Raqamiyat Control{% endblock %}
-
-{% block extra_head %}
-<style>
-    .glass-card { background: rgba(18, 25, 44, 0.4); backdrop-filter: blur(20px); border: 1px solid rgba(255,255,255,0.05); border-radius: 24px; overflow: hidden; }
-    .table-header-modern { background: rgba(255, 255, 255, 0.02); border-bottom: 1px solid rgba(255, 255, 255, 0.05); }
-    .user-row:hover { background: rgba(6, 182, 212, 0.03) !important; }
-    
-    .badge-modern { padding: 4px 8px; border-radius: 6px; font-size: 9px; font-weight: 900; text-transform: uppercase; letter-spacing: 0.05em; border: 1px solid transparent; }
-    .badge-cyan { background: rgba(6, 182, 212, 0.1); color: var(--cyan); border-color: rgba(6, 182, 212, 0.2); }
-    .badge-amber { background: rgba(245, 158, 11, 0.1); color: #f59e0b; border-color: rgba(245, 158, 11, 0.2); }
-    .badge-rose { background: rgba(244, 63, 94, 0.1); color: #f43f5e; border-color: rgba(244, 63, 94, 0.2); }
-    
-    .search-input-modern { background: rgba(0,0,0,0.2); border: 1px solid rgba(255,255,255,0.1); border-radius: 14px; transition: all 0.2s; }
-    .search-input-modern:focus { border-color: var(--cyan); box-shadow: 0 0 0 4px rgba(6, 182, 212, 0.1); background: rgba(0,0,0,0.4); }
-    
-    .bulk-select-modern { background: rgba(15, 23, 42, 0.8); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; font-size: 11px; font-weight: 700; color: #cbd5e1; }
-</style>
-{% endblock %}
+{% block title %}إدارة قاعدة المستخدمين | Raqamiyat Elite{% endblock %}
 
 {% block control_content %}
-<div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-8">
+<div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-8 reveal">
     <div>
-        <span class="eyebrow">Strategic User Management</span>
-        <h1 class="text-3xl font-black text-white">إدارة قاعدة المستخدمين</h1>
-        <p class="text-slate-500 mt-2">تحكم كامل في الرتب، الأرصدة، والحالات الأمنية لجميع الحسابات.</p>
+        <span class="eyebrow">إدارة الأصول البشرية والسيولة</span>
+        <h1 class="text-3xl font-black text-white">قاعدة مستخدمي النظام</h1>
+        <p class="text-slate-500 mt-2">التحكم المركزي في رتب الحسابات، الأرصدة، والحالات الأمنية.</p>
     </div>
     <div class="flex gap-3">
         <a href="?export=excel" class="btn btn-outline h-12 px-6 rounded-2xl font-bold border-white/5 hover:bg-white/5 uppercase text-[10px] tracking-widest">
-            <i class="fas fa-file-excel ml-2"></i> Export Data
+            <i class="fas fa-file-excel ml-2"></i> تصدير البيانات
         </a>
     </div>
 </div>
 
-<form method="post" id="bulk-form" class="glass-card">
+<form method="post" id="bulk-form" class="glass-panel overflow-hidden reveal">
     {% csrf_token %}
-    <input type="hidden" name="action" id="bulk-action-input" value="">
-    
-    <!-- Management Toolbar -->
-    <div class="p-6 border-b border-white/5 bg-white/[0.01]">
-        <div class="flex flex-col lg:flex-row gap-6 justify-between items-center">
-            <!-- Advanced Search -->
-            <div class="w-full lg:max-w-md relative group">
-                <i class="fas fa-search absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-cyan transition-colors"></i>
-                <input type="text" name="q" id="user-search-q" value="{{ query }}" placeholder="بحث بالبريد، الهاتف، أو الاسم..." class="search-input-modern w-full py-3 pr-11 pl-4 text-xs text-white" autocomplete="off">
-                <div id="user-search-results" class="absolute z-50 w-full mt-2 bg-slate-900 border border-white/10 rounded-2xl shadow-2xl hidden overflow-hidden"></div>
+    <div class="p-6 border-b border-white/5 bg-white/[0.01] flex flex-wrap gap-4 items-center justify-between">
+        <div class="flex items-center gap-4">
+            <div class="relative group w-80">
+                <i class="fas fa-search absolute right-4 top-1/2 -translate-y-1/2 text-slate-500"></i>
+                <input type="text" name="q" value="{{ query|default:'' }}" placeholder="البحث بالبريد، الهاتف، أو الاسم..." class="w-full pr-11 bg-slate-900/50 border-white/10 rounded-xl focus:border-cyan/50 text-xs py-3">
             </div>
-
-            <!-- Bulk Operations -->
-            <div class="flex flex-wrap items-center gap-3">
-                <div class="flex items-center gap-2 bg-slate-900/40 p-1.5 rounded-2xl border border-white/5">
-                    <select name="target_tier" class="bulk-select-modern px-4 py-2 focus:ring-0">
-                        <option value="">تغيير الفئة...</option>
-                        {% for val, label in tiers %}
-                        <option value="{{ val }}">{{ label }}</option>
-                        {% endfor %}
-                    </select>
-                    <button type="submit" onclick="document.getElementById('bulk-action-input').value='bulk_tier';" class="btn btn-primary h-9 px-4 rounded-xl text-[9px] font-black uppercase">تطبيق</button>
-                </div>
-
-                <div class="flex items-center gap-2 bg-slate-900/40 p-1.5 rounded-2xl border border-white/5">
-                    <select name="target_role" class="bulk-select-modern px-4 py-2 focus:ring-0">
-                        <option value="">تغيير الرتبة...</option>
-                        {% for val, label in roles %}
-                        <option value="{{ val }}">{{ label }}</option>
-                        {% endfor %}
-                    </select>
-                    <button type="submit" onclick="document.getElementById('bulk-action-input').value='bulk_role';" class="btn btn-primary h-9 px-4 rounded-xl text-[9px] font-black uppercase">تطبيق</button>
-                </div>
+            <div class="flex items-center gap-2 bg-slate-900/40 p-1.5 rounded-xl border border-white/5">
+                <select name="status" class="bg-transparent border-none text-[10px] font-black text-slate-400 focus:ring-0 cursor-pointer">
+                    <option value="">جميع الحالات</option>
+                    <option value="active" {% if current_status == 'active' %}selected{% endif %}>نشط</option>
+                    <option value="suspended" {% if current_status == 'suspended' %}selected{% endif %}>موقوف</option>
+                    <option value="banned" {% if current_status == 'banned' %}selected{% endif %}>محظور</option>
+                </select>
+            </div>
+        </div>
+        
+        <div class="flex items-center gap-3">
+            <div id="bulk-controls" class="hidden flex items-center gap-3 animate-in fade-in slide-in-from-left-4">
+                <span class="text-[10px] font-black text-cyan uppercase ml-2">الإجراءات الجماعية:</span>
+                <select name="bulk_tier" class="bg-slate-800 border-none rounded-lg text-[9px] font-black p-2">
+                    <option value="">تغيير الفئة...</option>
+                    <option value="customer">عميل عادي</option>
+                    <option value="dealer">تاجر معتمد</option>
+                    <option value="vip">VIP</option>
+                </select>
+                <button type="submit" name="action" value="bulk_update" class="btn btn-primary btn-sm py-2 px-4 rounded-lg text-[9px]">تطبيق</button>
             </div>
         </div>
     </div>
 
-    <!-- Users Table -->
-    <div class="overflow-x-auto">
-        <table class="w-full text-right text-sm">
-            <thead class="table-header-modern">
+    <div class="table-responsive">
+        <table class="admin-table w-full text-right">
+            <thead>
                 <tr>
-                    <th class="p-5 w-12 text-center">
-                        <input type="checkbox" id="select-all" class="w-4 h-4 rounded border-white/10 bg-white/5 text-cyan focus:ring-0">
-                    </th>
-                    <th class="p-5 text-[10px] font-black text-slate-500 uppercase tracking-widest">المستخدم</th>
-                    <th class="p-5 text-[10px] font-black text-slate-500 uppercase tracking-widest text-center">الرصيد / الديون</th>
-                    <th class="p-5 text-[10px] font-black text-slate-500 uppercase tracking-widest text-center">الفئة والرتبة</th>
-                    <th class="p-5 text-[10px] font-black text-slate-500 uppercase tracking-widest text-center">الأمان والنشاط</th>
-                    <th class="p-5 text-[10px] font-black text-slate-500 uppercase tracking-widest text-center">الحالة</th>
-                    <th class="p-5 text-[10px] font-black text-slate-500 uppercase tracking-widest text-left">الإجراءات</th>
+                    <th class="p-5 w-10"><input type="checkbox" id="select-all" class="rounded border-white/10 bg-slate-800 text-cyan focus:ring-cyan/20"></th>
+                    <th class="p-5">المستخدم</th>
+                    <th class="p-5 text-center">الرصيد والديون</th>
+                    <th class="p-5 text-center">أمن الحساب</th>
+                    <th class="p-5 text-center">الحالة والانضمام</th>
+                    <th class="p-5 text-left">إجراءات</th>
                 </tr>
             </thead>
-            <tbody class="divide-y divide-white/[0.03]">
+            <tbody>
                 {% for user in users %}
-                <tr class="user-row transition-colors">
-                    <td class="p-5 text-center">
-                        <input type="checkbox" name="user_ids" value="{{ user.id }}" class="user-checkbox w-4 h-4 rounded border-white/10 bg-white/5 text-cyan focus:ring-0">
-                    </td>
+                <tr class="hover:bg-white/[0.01] transition-colors border-b border-white/[0.02]">
+                    <td class="p-5"><input type="checkbox" name="user_ids" value="{{ user.id }}" class="user-checkbox rounded border-white/10 bg-slate-800 text-cyan"></td>
                     <td class="p-5">
                         <div class="flex items-center gap-4">
-                            <div class="w-11 h-11 rounded-2xl bg-gradient-to-br from-slate-800 to-slate-900 border border-white/5 flex items-center justify-center text-sm font-black text-slate-400">
+                            <div class="w-10 h-10 rounded-xl bg-slate-800 border border-white/5 flex items-center justify-center text-xs font-black text-slate-400 group-hover:bg-cyan group-hover:text-black transition-all">
                                 {{ user.email|slice:":1"|upper }}
                             </div>
                             <div>
-                                <div class="font-black text-white text-sm mb-0.5">{{ user.get_full_name|default:user.username }}</div>
-                                <div class="text-[10px] text-slate-500 font-mono">{{ user.email }}</div>
+                                <div class="font-black text-white text-sm">{{ user.get_full_name|default:user.username }}</div>
+                                <div class="text-[10px] text-slate-500 flex items-center gap-2 mt-0.5">
+                                    <span class="font-mono">{{ user.email }}</span>
+                                    <span class="w-1 h-1 rounded-full bg-slate-700"></span>
+                                    <span class="text-cyan font-bold">{{ user.get_role_display }}</span>
+                                </div>
                             </div>
                         </div>
                     </td>
@@ -123,12 +96,6 @@
                     </td>
                     <td class="p-5">
                         <div class="flex flex-col items-center gap-1.5">
-                            <span class="badge-modern badge-cyan">{{ user.get_tier_display }}</span>
-                            <span class="text-[10px] font-bold text-slate-500 uppercase">{{ user.get_role_display }}</span>
-                        </div>
-                    </td>
-                    <td class="p-5">
-                        <div class="flex flex-col items-center gap-1.5">
                             {% if user.last_ip %}
                             <div class="font-mono text-[10px] text-slate-300">{{ user.last_ip }}</div>
                             <div class="text-[9px] text-cyan font-bold flex items-center gap-1">
@@ -136,16 +103,8 @@
                                 {{ user.last_country }} - {{ user.last_city }}
                             </div>
                             {% else %}
-                            <span class="text-[9px] text-slate-600 italic">لا بيانات</span>
+                            <span class="text-[9px] text-slate-600 italic">لا يوجد بيانات</span>
                             {% endif %}
-                            
-                            <!-- Security Pulse -->
-                            <div class="flex items-center gap-2 mt-1">
-                                <span class="text-[9px] text-slate-500">محاولات OTP:</span>
-                                <span class="text-[9px] font-black {% if user.otp_failed_attempts > 0 %}text-rose-500{% else %}text-emerald-500{% endif %}">
-                                    {{ user.otp_failed_attempts }}
-                                </span>
-                            </div>
                         </div>
                     </td>
                     <td class="p-5">
@@ -156,19 +115,19 @@
                                     {{ user.get_status_display }}
                                 </span>
                             </div>
-                            <span class="text-[9px] text-slate-600 font-bold uppercase tracking-tighter">Joined: {{ user.date_joined|date:"d M Y" }}</span>
+                            <span class="text-[9px] text-slate-600 font-bold uppercase tracking-tighter">انضم في: {{ user.date_joined|date:"d M Y" }}</span>
                         </div>
                     </td>
                     <td class="p-5 text-left">
                         <div class="flex justify-end">
                             <a href="{% url 'control_user_moderate' user.public_uuid %}" class="btn btn-sm h-9 px-6 rounded-xl border-white/5 bg-white/5 hover:bg-cyan hover:text-black font-black uppercase text-[9px] transition-all">
-                                <i class="fas fa-shield-halved ml-2"></i> إدارة
+                                إدارة
                             </a>
                         </div>
                     </td>
                 </tr>
                 {% empty %}
-                <tr><td colspan="7" class="p-20 text-center text-slate-600 italic font-bold">لا يوجد مستخدمون يطابقون معايير البحث الحالية.</td></tr>
+                <tr><td colspan="6" class="p-20 text-center text-slate-600 italic">لا يوجد مستخدمين يطابقون معايير البحث.</td></tr>
                 {% endfor %}
             </tbody>
         </table>
@@ -176,50 +135,44 @@
 </form>
 
 <script>
-    // Bulk Select Logic
-    document.getElementById('select-all').onclick = function() {
-        var checkboxes = document.querySelectorAll('.user-checkbox');
-        for (var checkbox of checkboxes) {
-            checkbox.checked = this.checked;
-        }
+    // Selection logic
+    const selectAll = document.getElementById('select-all');
+    const checkboxes = document.querySelectorAll('.user-checkbox');
+    const bulkControls = document.getElementById('bulk-controls');
+
+    function updateBulkVisibility() {
+        const anyChecked = Array.from(checkboxes).some(cb => cb.checked);
+        bulkControls.classList.toggle('hidden', !anyChecked);
     }
 
-    // Modern Search Logic (Real-time Feedback)
-    const searchInput = document.getElementById('user-search-q');
-    const searchResultsDiv = document.getElementById('user-search-results');
-    let searchDebounceTimer;
-
-    searchInput.addEventListener('input', function() {
-        clearTimeout(searchDebounceTimer);
-        const query = this.value.trim();
-        if (query.length < 2) {
-            searchResultsDiv.classList.add('hidden');
-            return;
-        }
-
-        searchDebounceTimer = setTimeout(() => {
-            fetch(`/api/users/search/?q=${encodeURIComponent(query)}`)
-                .then(res => res.json())
-                .then(data => {
-                    if (data.length > 0) {
-                        searchResultsDiv.innerHTML = data.map(u => `
-                            <div class="p-4 hover:bg-cyan/10 cursor-pointer border-b border-white/5 last:border-0 transition-colors" onclick="window.location.href='?q=${u.email}'">
-                                <div class="font-black text-sm text-white">${u.email}</div>
-                                <div class="text-[10px] text-slate-500 font-bold uppercase">${u.full_name || u.username}</div>
-                            </div>
-                        `).join('');
-                        searchResultsDiv.classList.remove('hidden');
-                    } else {
-                        searchResultsDiv.classList.add('hidden');
-                    }
-                });
-        }, 300);
+    selectAll.addEventListener('change', () => {
+        checkboxes.forEach(cb => cb.checked = selectAll.checked);
+        updateBulkVisibility();
     });
 
-    document.addEventListener('click', (e) => {
-        if (!searchInput.contains(e.target) && !searchResultsDiv.contains(e.target)) {
-            searchResultsDiv.classList.add('hidden');
-        }
+    checkboxes.forEach(cb => {
+        cb.addEventListener('change', updateBulkVisibility);
+    });
+
+    // Reveal animation
+    const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) entry.target.classList.add('visible');
+        });
+    }, { threshold: 0.1 });
+    document.querySelectorAll('.reveal').forEach(el => {
+        el.style.opacity = '0';
+        el.style.transform = 'translateY(20px)';
+        el.style.transition = 'all 0.6s cubic-bezier(0.2, 1, 0.3, 1)';
+        observer.observe(el);
+    });
+    document.addEventListener('DOMContentLoaded', () => {
+        document.querySelectorAll('.reveal').forEach(el => {
+            setTimeout(() => {
+                el.style.opacity = '1';
+                el.style.transform = 'translateY(0)';
+            }, 100);
+        });
     });
 </script>
 {% endblock %}

@@ -3,15 +3,17 @@
 
 {% block extra_head %}
 <style>
-    /* Professional Admin Redesign - Raqamiyat v4 */
+    /* Premium Sham Cash Admin Redesign - Raqamiyat v4.0 Elite */
     :root {
-        --admin-bg: #050811;
-        --admin-panel: rgba(18, 25, 44, 0.6);
-        --admin-border: rgba(255, 255, 255, 0.08);
-        --admin-sidebar-w: 260px;
+        --admin-bg: #030712;
+        --admin-panel: rgba(17, 24, 39, 0.7);
+        --admin-border: rgba(255, 255, 255, 0.05);
+        --admin-sidebar-w: 280px;
+        --sham-gold: #f59e0b;
+        --sham-cyan: #06b6d4;
     }
 
-    body { background: var(--admin-bg) !important; color: #f1f5f9; }
+    body { background: var(--admin-bg) !important; color: #f8fafc; font-family: 'Cairo', sans-serif; }
 
     .admin-layout {
         display: grid;
@@ -21,114 +23,79 @@
         overflow-x: hidden;
     }
 
-    /* Modern Sidebar */
+    /* Elite Sidebar */
     .admin-sidebar {
-        background: rgba(10, 15, 28, 0.95);
+        background: #090e1a;
         border-left: 1px solid var(--admin-border);
         height: 100vh;
         position: sticky;
         top: 0;
         display: flex;
         flex-direction: column;
-        padding: 2rem 1rem;
-        backdrop-filter: blur(20px);
+        padding: 2.5rem 1.25rem;
         z-index: 100;
         overflow-y: auto;
     }
 
-    .admin-nav { display: flex; flex-direction: column; gap: 0.35rem; flex-grow: 1; }
+    .admin-nav { display: flex; flex-direction: column; gap: 0.25rem; flex-grow: 1; }
     
-    .admin-nav-group { margin-top: 1.5rem; margin-bottom: 0.5rem; padding-right: 1rem; }
-    .admin-nav-group span { font-size: 9px; font-weight: 900; color: #475569; text-transform: uppercase; letter-spacing: 0.1em; }
+    .admin-nav-group { margin-top: 2rem; margin-bottom: 0.75rem; padding-right: 0.75rem; }
+    .admin-nav-group span { font-size: 10px; font-weight: 900; color: #334155; text-transform: uppercase; letter-spacing: 0.15em; }
 
     .admin-nav-link {
         display: flex;
         align-items: center;
-        gap: 0.75rem;
-        padding: 0.75rem 1rem;
-        border-radius: 12px;
-        color: #94a3b8;
-        font-weight: 600;
-        font-size: 0.8125rem;
-        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        gap: 0.85rem;
+        padding: 0.85rem 1rem;
+        border-radius: 14px;
+        color: #64748b;
+        font-weight: 700;
+        font-size: 0.85rem;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         text-decoration: none !important;
     }
 
-    .admin-nav-link i { width: 20px; text-align: center; font-size: 0.9rem; opacity: 0.7; }
-    .admin-nav-link:hover { background: rgba(255, 255, 255, 0.03); color: #fff; }
-    .admin-nav-link.active { background: linear-gradient(135deg, rgba(6, 182, 212, 0.15), rgba(6, 182, 212, 0.05)); color: var(--cyan); border: 1px solid rgba(6, 182, 212, 0.2); }
-    .admin-nav-link.active i { opacity: 1; color: var(--cyan); }
+    .admin-nav-link i { width: 20px; text-align: center; font-size: 1rem; opacity: 0.5; }
+    .admin-nav-link:hover { background: rgba(255, 255, 255, 0.02); color: #fff; }
+    .admin-nav-link:hover i { opacity: 1; color: var(--sham-cyan); }
+    
+    .admin-nav-link.active { 
+        background: linear-gradient(135deg, rgba(6, 182, 212, 0.1), rgba(6, 182, 212, 0.02)); 
+        color: #fff; 
+        border: 1px solid rgba(6, 182, 212, 0.1); 
+        box-shadow: 0 4px 20px -2px rgba(0,0,0,0.3);
+    }
+    .admin-nav-link.active i { opacity: 1; color: var(--sham-cyan); text-shadow: 0 0 10px rgba(6, 182, 212, 0.5); }
 
     /* Main Content Area */
-    .admin-main { padding: 2rem 3rem; max-width: 100%; margin: 0; width: 100%; min-height: 100vh; display: flex; flex-direction: column; overflow-x: hidden; }
+    .admin-main { padding: 3rem 4rem; max-width: 100%; margin: 0; width: 100%; min-height: 100vh; display: flex; flex-direction: column; overflow-x: hidden; background: radial-gradient(circle at top right, rgba(6, 182, 212, 0.03), transparent 40%); }
     
-    .breadcrumb { display: flex; align-items: center; gap: 0.5rem; margin-bottom: 1rem; }
-    .breadcrumb-item { font-size: 10px; font-weight: 800; color: #64748b; text-transform: uppercase; letter-spacing: 0.1em; display: flex; align-items: center; gap: 0.5rem; text-decoration: none !important; }
-    .breadcrumb-item:not(:last-child)::after { content: '/'; color: #334155; }
-    .breadcrumb-item.active { color: var(--cyan); }
-    .breadcrumb-item:hover:not(.active) { color: #fff; }
+    /* Branding */
+    .brand-elite { display: flex; flex-direction: column; align-items: flex-start; gap: 0.5rem; margin-bottom: 3rem; padding: 0 0.5rem; }
+    .brand-logo { width: 44px; height: 44px; background: linear-gradient(135deg, var(--sham-cyan), #0891b2); border-radius: 14px; display: flex; align-items: center; justify-content: center; color: #000; font-size: 1.5rem; box-shadow: 0 10px 25px -5px rgba(6, 182, 212, 0.4); }
 
-    /* Professional UI Components */
-    .management-card {
-        background: var(--admin-panel);
-        border: 1px solid var(--admin-border);
-        border-radius: 24px;
-        overflow: hidden;
-        backdrop-filter: blur(10px);
-        box-shadow: 0 10px 30px -10px rgba(0,0,0,0.5);
-    }
+    /* UI Components */
+    .glass-panel { background: var(--admin-panel); border: 1px solid var(--admin-border); border-radius: 28px; backdrop-filter: blur(15px); }
+    
+    .page-head { margin-bottom: 3rem; }
+    .page-head h1 { font-size: 2.25rem; font-weight: 900; letter-spacing: -0.02em; color: #fff; }
+    .eyebrow { font-size: 11px; font-weight: 900; color: var(--sham-cyan); text-transform: uppercase; letter-spacing: 0.25em; display: block; margin-bottom: 0.75rem; }
 
-    .management-header {
-        padding: 1.25rem 1.5rem;
-        border-bottom: 1px solid var(--admin-border);
-        background: rgba(255, 255, 255, 0.02);
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-    }
-
-    .admin-stats-card {
-        background: var(--admin-panel);
-        border: 1px solid var(--admin-border);
-        border-radius: 20px;
-        padding: 1.5rem;
-        display: flex;
-        align-items: center;
-        gap: 1.25rem;
-        transition: all 0.3s ease;
-    }
-    .admin-stats-card:hover { transform: translateY(-4px); border-color: rgba(6, 182, 212, 0.3); box-shadow: 0 12px 20px -10px rgba(6, 182, 212, 0.1); }
-    .asc-icon { width: 48px; height: 48px; border-radius: 14px; background: rgba(6, 182, 212, 0.1); color: var(--cyan); display: flex; align-items: center; justify-content: center; font-size: 1.25rem; }
-
-    .line-item { display: flex; justify-content: space-between; align-items: center; padding: 1rem 1.5rem; border-bottom: 1px solid rgba(255,255,255,0.03); }
-    .line-item:last-child { border-bottom: 0; }
-
-    .table-responsive { width: 100%; overflow-x: auto; }
-    .admin-table { width: 100%; border-collapse: collapse; min-width: 800px; }
-    .admin-table th { padding: 1rem 1.5rem; text-align: right; font-size: 10px; font-weight: 800; color: #64748b; text-transform: uppercase; border-bottom: 1px solid var(--admin-border); background: rgba(0,0,0,0.2); }
-    .admin-table td { padding: 1rem 1.5rem; font-size: 12px; color: #cbd5e1; border-bottom: 1px solid rgba(255,255,255,0.03); vertical-align: middle; }
-
-    .btn { display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem; padding: 0.625rem 1.25rem; border-radius: 12px; font-weight: 700; font-size: 0.8125rem; transition: all 0.2s; cursor: pointer; border: 1px solid transparent; }
-    .btn-primary { background: var(--cyan); color: #000; }
-    .btn-primary:hover { background: #0891b2; transform: translateY(-1px); }
-    .btn-outline { background: transparent; border-color: var(--admin-border); color: #94a3b8; }
+    .btn { display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem; padding: 0.75rem 1.5rem; border-radius: 16px; font-weight: 800; font-size: 0.85rem; transition: all 0.3s; cursor: pointer; border: 1px solid transparent; }
+    .btn-primary { background: linear-gradient(135deg, var(--sham-cyan), #0891b2); color: #000; box-shadow: 0 10px 20px -5px rgba(6, 182, 212, 0.3); }
+    .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 15px 30px -5px rgba(6, 182, 212, 0.5); }
+    .btn-outline { background: rgba(255,255,255,0.02); border-color: var(--admin-border); color: #94a3b8; }
     .btn-outline:hover { background: rgba(255,255,255,0.05); color: #fff; border-color: #475569; }
-    .btn-sm { padding: 0.4rem 0.8rem; font-size: 0.75rem; border-radius: 8px; }
 
-    .badge { padding: 4px 10px; border-radius: 8px; font-size: 10px; font-weight: 800; letter-spacing: 0.02em; display: inline-block; }
-    .badge.warning { background: rgba(245, 158, 11, 0.1); color: #f59e0b; border: 1px solid rgba(245, 158, 11, 0.2); }
-    .badge.success { background: rgba(16, 185, 129, 0.1); color: #10b981; border: 1px solid rgba(16, 185, 129, 0.2); }
-    .badge.danger { background: rgba(239, 68, 68, 0.1); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.2); }
-    .badge.primary { background: rgba(6, 182, 212, 0.1); color: var(--cyan); border: 1px solid rgba(6, 182, 212, 0.2); }
+    .badge { padding: 6px 12px; border-radius: 10px; font-size: 10px; font-weight: 900; letter-spacing: 0.05em; text-transform: uppercase; border: 1px solid transparent; }
+    .badge.primary { background: rgba(6, 182, 212, 0.1); color: var(--sham-cyan); border-color: rgba(6, 182, 212, 0.2); }
+    .badge.success { background: rgba(16, 185, 129, 0.1); color: #10b981; border-color: rgba(16, 185, 129, 0.2); }
+    .badge.danger { background: rgba(239, 68, 68, 0.1); color: #ef4444; border-color: rgba(239, 68, 68, 0.2); }
 
-    .page-head { margin-bottom: 2.5rem; }
-    .page-head h1 { font-size: 1.75rem; font-weight: 900; letter-spacing: -0.02em; margin-bottom: 0.5rem; }
-    .eyebrow { font-size: 10px; font-weight: 900; color: var(--cyan); text-transform: uppercase; letter-spacing: 0.2em; display: block; margin-bottom: 0.5rem; }
-
-    @media (max-width: 1024px) {
+    @media (max-width: 1100px) {
         .admin-layout { grid-template-columns: 1fr; }
         .admin-sidebar { display: none; }
-        .admin-main { padding: 1.5rem; }
+        .admin-main { padding: 2rem; }
     }
 </style>
 {% block control_head %}{% endblock %}
@@ -136,13 +103,14 @@
 
 {% block content %}
 <div class="admin-layout">
-    <!-- Professional Sidebar -->
+    <!-- Premium Sidebar -->
     <aside class="admin-sidebar">
-        <div class="mb-10 px-4">
-            <a href="{% url 'home' %}" class="brand text-xl" style="text-decoration:none">
-                <i class="fas fa-bolt text-cyan"></i> <span class="font-black text-white">RAQAMIYAT</span>
-            </a>
-            <div class="mt-2 text-[9px] font-bold text-slate-500 uppercase tracking-widest">Control Center v4.0</div>
+        <div class="brand-elite">
+            <div class="brand-logo"><i class="fas fa-bolt"></i></div>
+            <div class="stack gap-0.5">
+                <span class="text-xl font-black text-white tracking-tight">رقميات | RAQAMIYAT</span>
+                <span class="text-[9px] font-black text-slate-500 uppercase tracking-[0.2em]">مركز التحكم الإصدار 4.0</span>
+            </div>
         </div>
         
         <nav class="admin-nav">
@@ -150,97 +118,72 @@
                 <i class="fas fa-th-large"></i> الرئيسية
             </a>
 
-            <div class="admin-nav-group"><span>العمليات المالية</span></div>
+            <div class="admin-nav-group"><span>العمليات والسيولة</span></div>
             <a href="{% url 'control_deposits' %}" class="admin-nav-link {% if 'deposits' in request.path %}active{% endif %}">
-                <i class="fas fa-money-bill-wave"></i> الإيداعات
+                <i class="fas fa-arrow-down-left"></i> طلبات الإيداع
             </a>
             <a href="{% url 'control_withdrawals' %}" class="admin-nav-link {% if 'withdrawal' in request.path %}active{% endif %}">
-                <i class="fas fa-money-bill-transfer"></i> السحوبات
+                <i class="fas fa-arrow-up-right"></i> طلبات السحب
             </a>
             <a href="{% url 'control_debts' %}" class="admin-nav-link {% if 'debts' in request.path %}active{% endif %}">
-                <i class="fas fa-hand-holding-dollar"></i> إدارة الديون
+                <i class="fas fa-hand-holding-dollar"></i> إدارة المديونيات
             </a>
             <a href="{% url 'control_wallets_list' %}" class="admin-nav-link {% if 'wallets' in request.path %}active{% endif %}">
-                <i class="fas fa-wallet"></i> المحافظ
+                <i class="fas fa-vault"></i> محافظ المستخدمين
             </a>
 
-            <div class="admin-nav-group"><span>إدارة المحتوى</span></div>
+            <div class="admin-nav-group"><span>التجارة والمحتوى</span></div>
             <a href="{% url 'control_orders_list' %}" class="admin-nav-link {% if 'order' in request.path %}active{% endif %}">
-                <i class="fas fa-receipt"></i> الطلبات
-            </a>
-            <a href="{% url 'control_coupons_list' %}" class="admin-nav-link {% if 'coupon' in request.path and 'usage' not in request.path %}active{% endif %}">
-                <i class="fas fa-ticket-alt"></i> الكوبونات
-            </a>
-            <a href="{% url 'control_coupon_usage' %}" class="admin-nav-link {% if 'coupon/usage' in request.path %}active{% endif %}">
-                <i class="fas fa-chart-pie"></i> سجل استخدام الكوبونات
+                <i class="fas fa-receipt"></i> سجل الطلبات
             </a>
             <a href="{% url 'control_products_list' %}" class="admin-nav-link {% if 'product' in request.path %}active{% endif %}">
-                <i class="fas fa-box-open"></i> المنتجات
+                <i class="fas fa-box-open"></i> إدارة الخدمات
+            </a>
+            <a href="{% url 'control_coupons_list' %}" class="admin-nav-link {% if 'coupon' in request.path %}active{% endif %}">
+                <i class="fas fa-ticket"></i> الكوبونات والخصومات
             </a>
 
             <div class="admin-nav-group"><span>المستخدمين والأمن</span></div>
             <a href="{% url 'control_users_list' %}" class="admin-nav-link {% if 'user' in request.path %}active{% endif %}">
-                <i class="fas fa-users-cog"></i> المستخدمين
+                <i class="fas fa-users-cog"></i> إدارة المستخدمين
             </a>
-            <a href="{% url 'control_kycs_list' %}" class="admin-nav-link {% if 'control/kyc' in request.path and 'settings' not in request.path %}active{% endif %}">
-                <i class="fas fa-user-shield"></i> التوثيقات
-            </a>
-            <a href="{% url 'control_kyc_settings' %}" class="admin-nav-link {% if 'kyc/settings' in request.path %}active{% endif %}">
-                <i class="fas fa-cog"></i> إعدادات التوثيق
+            <a href="{% url 'control_kycs_list' %}" class="admin-nav-link {% if 'control/kyc' in request.path %}active{% endif %}">
+                <i class="fas fa-user-shield"></i> طلبات التوثيق (KYC)
             </a>
 
-            <div class="admin-nav-group"><span>النظام والتقارير</span></div>
-            <a href="{% url 'control_send_notification' %}" class="admin-nav-link {% if 'notifications/send' in request.path %}active{% endif %}">
-                <i class="fas fa-paper-plane"></i> إرسال إشعارات
-            </a>
-            <a href="{% url 'control_announcements' %}" class="admin-nav-link {% if 'announcements' in request.path %}active{% endif %}">
-                <i class="fas fa-bullhorn"></i> شريط الموقع
-            </a>
-            <a href="{% url 'control_db_maintenance' %}" class="admin-nav-link {% if 'maintenance' in request.path %}active{% endif %}">
-                <i class="fas fa-database"></i> صيانة البيانات
+            <div class="admin-nav-group"><span>الإعدادات والتقارير</span></div>
+            <a href="{% url 'control_reports' %}" class="admin-nav-link {% if 'report' in request.path %}active{% endif %}">
+                <i class="fas fa-chart-line"></i> التقارير المالية
             </a>
             <a href="{% url 'currencies_list' %}" class="admin-nav-link {% if 'currenc' in request.path %}active{% endif %}">
-                <i class="fas fa-coins"></i> العملات
+                <i class="fas fa-coins"></i> ضبط العملات
             </a>
             <a href="{% url 'payment_methods_list' %}" class="admin-nav-link {% if 'payment-method' in request.path %}active{% endif %}">
                 <i class="fas fa-credit-card"></i> وسائل الدفع
             </a>
-            <a href="{% url 'control_social_media' %}" class="admin-nav-link {% if 'social-media' in request.path %}active{% endif %}">
-                <i class="fas fa-share-nodes"></i> وسائل التواصل
+            <a href="{% url 'control_announcements' %}" class="admin-nav-link {% if 'announcements' in request.path %}active{% endif %}">
+                <i class="fas fa-bullhorn"></i> شريط الإعلانات
             </a>
-            <a href="{% url 'chat_list' %}" class="admin-nav-link {% if 'chat' in request.path and 'open' not in request.path %}active{% endif %}">
+            <a href="{% url 'chat_list' %}" class="admin-nav-link {% if 'chat' in request.path %}active{% endif %}">
                 <i class="fas fa-comments"></i> الدعم المباشر
             </a>
-            <a href="{% url 'control_support_chat_open' %}" class="admin-nav-link {% if 'chat-open' in request.path %}active{% endif %}">
-                <i class="fas fa-comment-medical"></i> فتح تذكرة لعميل
-            </a>
-            <a href="{% url 'control_quick_replies' %}" class="admin-nav-link {% if 'quick-replies' in request.path %}active{% endif %}">
-                <i class="fas fa-reply-all"></i> الردود الجاهزة
-            </a>
-            <a href="{% url 'control_support_settings' %}" class="admin-nav-link {% if 'support/settings' in request.path %}active{% endif %}">
-                <i class="fas fa-cog"></i> إعدادات الدعم
-            </a>
-            <a href="{% url 'control_reports' %}" class="admin-nav-link {% if 'report' in request.path %}active{% endif %}">
-                <i class="fas fa-chart-line"></i> التقارير
+            <a href="{% url 'control_db_maintenance' %}" class="admin-nav-link {% if 'maintenance' in request.path %}active{% endif %}">
+                <i class="fas fa-database"></i> صيانة النظام
             </a>
         </nav>
 
-        <div class="mt-8 pt-8 border-t border-white/5 px-4">
-            <div class="flex items-center gap-3 p-3 bg-white/[0.02] rounded-2xl border border-white/5">
-                <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-cyan to-blue-600 flex items-center justify-center text-black font-black text-xs">
+        <div class="mt-10 pt-8 border-t border-white/5">
+            <div class="flex items-center gap-3 p-4 bg-white/[0.03] rounded-2xl border border-white/5">
+                <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-cyan to-blue-600 flex items-center justify-center text-black font-black">
                     {{ user.email|slice:":1"|upper }}
                 </div>
                 <div class="flex-grow min-w-0">
-                    <div class="text-[11px] font-bold truncate">{{ user.get_full_name|default:user.username }}</div>
-                    <div class="text-[9px] text-slate-500 uppercase tracking-tighter">{{ user.get_role_display }}</div>
+                    <div class="text-xs font-black text-white truncate">{{ user.get_full_name|default:user.username }}</div>
+                    <div class="text-[9px] text-cyan font-bold uppercase tracking-widest">{{ user.get_role_display }}</div>
                 </div>
-                <a href="{% url 'site_logout' %}" class="text-slate-600 hover:text-rose-500 transition"><i class="fas fa-power-off"></i></a>
+                <a href="{% url 'site_logout' %}" class="text-slate-600 hover:text-rose-500 transition-colors"><i class="fas fa-power-off"></i></a>
             </div>
-            <div class="mt-4 text-center">
-                <a href="{% url 'admin:index' %}" class="text-[9px] text-slate-700 hover:text-cyan transition font-black uppercase tracking-widest">
-                    Django Admin <i class="fas fa-external-link-alt ml-1"></i>
-                </a>
-            </div>
+            <a href="{% url 'admin:index' %}" class="mt-4 block text-center text-[9px] font-black text-slate-700 hover:text-cyan uppercase tracking-[0.2em] transition-colors">إدارة النظام (جانغو)</a>
         </div>
     </aside>
 
