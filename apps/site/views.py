@@ -1014,6 +1014,8 @@ def control_withdrawals(request): return render(request, "site/control_withdrawa
 # --- FINANCIAL NOTIFICATION HELPERS ---
 # ==========================================
 
+from urllib.parse import urljoin
+
 def send_financial_notification(user, title, body, action_url="/dashboard/wallet/"):
     # 1. In-App/Push Notification
     try:
@@ -1022,6 +1024,9 @@ def send_financial_notification(user, title, body, action_url="/dashboard/wallet
 
     # 2. Email Notification with Modern Design
     subject = f"{title} | Raqamiyat"
+    # Ensure no double slashes in URL
+    full_url = urljoin(settings.SITE_URL, action_url)
+
     html_content = f"""
     <!DOCTYPE html>
     <html dir="rtl" lang="ar">
@@ -1128,7 +1133,7 @@ def send_financial_notification(user, title, body, action_url="/dashboard/wallet
                     <div class="message">{body}</div>
 
                     <div class="cta-container">
-                        <a href="{settings.SITE_URL}{action_url}" class="cta-button">عرض في المنصة</a>
+                        <a href="{full_url}" class="cta-button">عرض في المنصة</a>
                     </div>
 
                     <div class="security-notice">
@@ -1167,6 +1172,7 @@ def control_deposit_detail(request, pk):
                     if deposit.status == DepositRequest.Status.COMPLETED:
                         raise ValueError("تم اعتماد هذا الطلب مسبقاً.")
 
+                    original_requested_amount = deposit.amount
                     override_amount = request.POST.get("amount")
                     if override_amount:
                         # Admin is specifying the FINAL amount to credit
@@ -1203,7 +1209,6 @@ def control_deposit_detail(request, pk):
                     )
 
                     # Ensure record reflects what was actually credited
-                    deposit.final_amount = final_amount
                     deposit.wallet_amount = wallet_final_amount
                     deposit.status = DepositRequest.Status.COMPLETED
                     deposit.reviewed_by = request.user
@@ -1212,10 +1217,17 @@ def control_deposit_detail(request, pk):
                         deposit.admin_note = admin_note
                     deposit.save()
 
+                    # Transparent body showing original vs approved if changed
+                    amount_text = f"{deposit.final_amount:,.2f} {deposit.currency.code}"
+                    if override_amount and Decimal(str(override_amount)) != original_requested_amount:
+                        body_msg = f"تمت مراجعة طلب الإيداع رقم {deposit.id}. تم اعتماد مبلغ {amount_text} بدلاً من المبلغ المطلوب {original_requested_amount:,.2f} {deposit.currency.code}. تم إضافة {deposit.wallet_amount:,.2f} {wallet.currency.code} إلى رصيد محفظتك."
+                    else:
+                        body_msg = f"تم قبول طلب الإيداع رقم {deposit.id} بنجاح. المبلغ المعتمد: {amount_text}. تم إضافة {deposit.wallet_amount:,.2f} {wallet.currency.code} إلى رصيد محفظتك."
+
                     send_financial_notification(
                         user=deposit.user,
                         title="تم قبول طلب الإيداع",
-                        body=f"تم قبول طلب الإيداع رقم {deposit.id} بنجاح. المبلغ المعتمد: {deposit.final_amount:,.2f} {deposit.currency.code}. تم إضافة {deposit.wallet_amount:,.2f} {wallet.currency.code} إلى رصيد محفظتك."
+                        body=body_msg
                     )
                     messages.success(request, "تم قبول طلب الإيداع بنجاح.")
 
