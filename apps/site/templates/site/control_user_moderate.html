@@ -262,6 +262,22 @@
                     <span class="text-muted">الفئة الحالية:</span>
                     <span class="badge primary text-[9px]">{{ user_to_moderate.get_tier_display }}</span>
                 </div>
+                <div class="h-px bg-white/5 my-2"></div>
+                <div class="flex flex-col gap-2">
+                    <span class="text-[10px] text-muted uppercase tracking-widest font-black">آخر دخول ومعلومات الموقع</span>
+                    <div class="flex justify-between text-xs">
+                        <span class="text-slate-500">عنوان IP:</span>
+                        <span class="font-mono text-cyan">{{ user_to_moderate.last_ip|default:"N/A" }}</span>
+                    </div>
+                    <div class="flex justify-between text-xs">
+                        <span class="text-slate-500">الدولة:</span>
+                        <span class="text-slate-200">{{ user_to_moderate.last_country|default:"N/A" }}</span>
+                    </div>
+                    <div class="flex justify-between text-xs">
+                        <span class="text-slate-500">المدينة:</span>
+                        <span class="text-slate-200">{{ user_to_moderate.last_city|default:"N/A" }}</span>
+                    </div>
+                </div>
             </div>
         </div>
 

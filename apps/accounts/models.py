@@ -109,6 +109,11 @@ class User(AbstractUser):
     daily_withdrawal_usage = models.DecimalField(max_digits=14, decimal_places=2, default=Decimal("0.00"))
     last_limit_reset = models.DateTimeField(default=timezone.now)
 
+    # IP and Location tracking
+    last_ip = models.GenericIPAddressField(null=True, blank=True, verbose_name="آخر عنوان IP")
+    last_country = models.CharField(max_length=100, blank=True, verbose_name="آخر دولة")
+    last_city = models.CharField(max_length=100, blank=True, verbose_name="آخر مدينة")
+
     USERNAME_FIELD = "email"
     REQUIRED_FIELDS = []
     objects = UserManager()

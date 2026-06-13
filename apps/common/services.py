@@ -5,7 +5,28 @@ from uuid import UUID
 from django.contrib.contenttypes.models import ContentType
 from apps.common.models import SystemAuditLog
 
+import requests
+
 logger = logging.getLogger(__name__)
+
+def get_ip_info(ip):
+    """
+    Fetches geolocation information for a given IP address.
+    Uses ip-api.com (free for non-commercial use, 45 requests/min).
+    """
+    if not ip or ip in ["127.0.0.1", "::1"]:
+        return {"country": "Local", "city": "Development", "isp": "Localhost"}
+        
+    try:
+        response = requests.get(f"http://ip-api.com/json/{ip}", timeout=5)
+        if response.status_code == 200:
+            data = response.json()
+            if data.get("status") == "success":
+                return data
+    except Exception as e:
+        logger.warning(f"Failed to fetch IP info for {ip}: {str(e)}")
+        
+    return {"country": "Unknown", "city": "Unknown"}
 
 class AuditJSONEncoder(json.JSONEncoder):
     def default(self, obj):

@@ -113,6 +113,7 @@
                     <th class="p-4">المستخدم</th>
                     <th class="p-4">الرصيد / الديون</th>
                     <th class="p-4">الفئة</th>
+                    <th class="p-4">آخر نشاط / IP</th>
                     <th class="p-4">الحالة</th>
                     <th class="p-4">تاريخ الانضمام</th>
                     <th class="p-4 text-left">إجراءات</th>
@@ -156,6 +157,19 @@
                             <span class="badge primary text-[9px] w-fit font-bold uppercase tracking-wider">{{ user.get_tier_display }}</span>
                             <span class="text-[10px] text-slate-500">{{ user.get_role_display }}</span>
                         </div>
+                    </td>
+                    <td class="p-4">
+                        {% if user.last_ip %}
+                        <div class="flex flex-col">
+                            <div class="font-mono text-[11px] text-slate-300">{{ user.last_ip }}</div>
+                            <div class="text-[10px] text-cyan flex items-center gap-1">
+                                <i class="fas fa-location-dot text-[8px]"></i>
+                                {{ user.last_country }} - {{ user.last_city }}
+                            </div>
+                        </div>
+                        {% else %}
+                        <span class="text-[10px] text-slate-600 italic">No data yet</span>
+                        {% endif %}
                     </td>
                     <td class="p-4">
                         <span class="flex items-center gap-2">
