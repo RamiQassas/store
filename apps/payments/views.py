@@ -59,6 +59,11 @@ class DepositRequestViewSet(viewsets.ModelViewSet):
         with transaction.atomic():
             deposit = DepositRequest.objects.select_for_update().get(pk=pk)
             
+            # Debugging status
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.error(f"Approving deposit {deposit.id}. Current status: {deposit.status}")
+
             if deposit.status == DepositRequest.Status.COMPLETED:
                 return response.Response({"detail": "تم اعتماد هذا الطلب مسبقاً."}, status=status.HTTP_400_BAD_REQUEST)
             
