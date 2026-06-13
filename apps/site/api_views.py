@@ -68,19 +68,32 @@ def get_conversion_preview(request):
         "currency_symbol": currency.symbol
     })
 
+from django.shortcuts import redirect
+from rest_framework.test import APIRequestFactory
+from apps.payments.views import DepositRequestViewSet, WithdrawalRequestViewSet
+
+def _run_action(request, pk, action, viewset_class):
+    factory = APIRequestFactory()
+    # Mock a POST request for the action
+    api_request = factory.post(f"/{action}/")
+    api_request.user = request.user
+    # Need to pass data if present
+    api_request.data = request.POST
+    
+    view = viewset_class.as_view({'post': action})
+    return view(api_request, pk=pk)
+
 @user_passes_test(is_staff)
 def api_deposit_approve(request, pk):
-    deposit = get_object_or_404(DepositRequest, pk=pk)
-    # Re-importing logic or calling viewset directly is complex. 
-    # For now, placeholder to fix routing.
-    return HttpResponse("Not implemented", status=501)
+    return _run_action(request, pk, 'approve', DepositRequestViewSet)
 
 @user_passes_test(is_staff)
 def api_deposit_reject(request, pk):
-    return HttpResponse("Not implemented", status=501)
+    return _run_action(request, pk, 'reject', DepositRequestViewSet)
 
 @user_passes_test(is_staff)
 def api_deposit_correct(request, pk):
+    # Deposit doesn't have 'correct' in viewset.
     return HttpResponse("Not implemented", status=501)
 
 @user_passes_test(is_staff)
@@ -93,19 +106,19 @@ def api_wallet_unhold(request, pk):
 
 @user_passes_test(is_staff)
 def api_withdrawal_process(request, pk):
-    return HttpResponse("Not implemented", status=501)
+    return _run_action(request, pk, 'process', WithdrawalRequestViewSet)
 
 @user_passes_test(is_staff)
 def api_withdrawal_approve(request, pk):
-    return HttpResponse("Not implemented", status=501)
+    return _run_action(request, pk, 'approve', WithdrawalRequestViewSet)
 
 @user_passes_test(is_staff)
 def api_withdrawal_complete(request, pk):
-    return HttpResponse("Not implemented", status=501)
+    return _run_action(request, pk, 'complete', WithdrawalRequestViewSet)
 
 @user_passes_test(is_staff)
 def api_withdrawal_reject(request, pk):
-    return HttpResponse("Not implemented", status=501)
+    return _run_action(request, pk, 'reject', WithdrawalRequestViewSet)
 
 @user_passes_test(is_staff)
 def api_order_mark_read(request, pk):

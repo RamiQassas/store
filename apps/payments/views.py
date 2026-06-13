@@ -65,16 +65,20 @@ class DepositRequestViewSet(viewsets.ModelViewSet):
             if deposit.status == DepositRequest.Status.REJECTED:
                 return response.Response({"detail": "لا يمكن اعتماد طلب مرفوض."}, status=status.HTTP_400_BAD_REQUEST)
 
+            # Check for admin override amount
+            override_amount = request.data.get("amount")
+            if override_amount:
+                deposit.final_amount = Decimal(str(override_amount))
+            
             deposit.status = DepositRequest.Status.COMPLETED
             deposit.reviewed_by = request.user
             deposit.reviewed_at = timezone.now()
-            deposit.save(update_fields=["status", "reviewed_by", "reviewed_at", "updated_at"])
+            deposit.save(update_fields=["status", "reviewed_by", "reviewed_at", "updated_at", "final_amount"])
 
             wallet = get_or_create_wallet(deposit.user)
             # Calculate final wallet amount (amount - fee) converted to wallet currency
-            # Since fees are calculated on 'amount', we should convert the 'final_amount' (which is amount - fee)
-            # But wait, wallet_amount was stored as 'amount' converted.
-            # Let's be precise: wallet_final_amount = (final_amount / amount) * wallet_amount
+            # If override_amount used, need to recalculate based on it.
+            # But here `deposit.final_amount` is used for calculation.
             if deposit.amount > 0:
                 wallet_final_amount = (deposit.final_amount / deposit.amount) * deposit.wallet_amount
             else:
