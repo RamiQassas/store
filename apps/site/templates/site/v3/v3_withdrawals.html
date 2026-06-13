@@ -105,7 +105,7 @@
         </div>
     </div>
 
-    <form method="post" id="main-withdrawal-form" class="stack gap-8" onsubmit="return validateFinal()">
+    <form method="post" enctype="multipart/form-data" id="main-withdrawal-form" class="stack gap-8" onsubmit="return validateFinal()">
         {% csrf_token %}
         
         <!-- Step 1: Method & Currency -->
@@ -238,9 +238,27 @@
                                     {{ r.get_status_display }}
                                 </span>
                             </div>
-                            <div class="text-[10px] text-slate-500 font-bold uppercase tracking-widest">
+                            <div class="text-[10px] text-slate-500 font-bold uppercase tracking-widest mb-3">
                                 عبر {{ r.payment_method.name }} • {{ r.created_at|date:"d M Y, H:i" }}
                             </div>
+
+                            <!-- Dynamic Payout Details -->
+                            {% if r.formatted_payout_details %}
+                            <div class="flex flex-wrap gap-4 mt-4 p-4 bg-white/5 rounded-2xl border border-white/5">
+                                {% for item in r.formatted_payout_details %}
+                                <div class="stack gap-1">
+                                    <span class="text-[9px] text-slate-500 font-black uppercase tracking-tighter">{{ item.label }}</span>
+                                    {% if item.type == 'image' and item.value %}
+                                    <div class="w-16 h-16 rounded-lg overflow-hidden border border-white/10 cursor-zoom-in hover:scale-105 transition-transform" onclick="window.open('{{ item.value }}')">
+                                        <img src="{{ item.value }}" class="w-full h-full object-cover">
+                                    </div>
+                                    {% else %}
+                                    <span class="text-xs font-bold text-slate-300">{{ item.value }}</span>
+                                    {% endif %}
+                                </div>
+                                {% endfor %}
+                            </div>
+                            {% endif %}
                         </div>
                     </div>
                     
@@ -368,9 +386,11 @@ function renderStep2() {
             } else if (f.type === 'image') {
                 inputHtml = `
                     <div class="stack gap-3">
-                        <div class="flex gap-2">
-                            <input type="file" name="${nameAttr}" id="file-${nameAttr}" class="builder-input" accept="image/*" ${req} onchange="previewDynamicImage(this, 'preview-${nameAttr}')">
-                        </div>
+                        <label for="file-${nameAttr}" class="btn btn-outline btn-sm w-full py-4 flex items-center justify-center gap-3 cursor-pointer border-dashed border-white/20 hover:border-cyan/50 transition-all">
+                            <i class="fas fa-camera text-cyan"></i>
+                            <span class="text-[10px] font-black uppercase tracking-widest">اضغط لالتقاط أو اختيار صورة</span>
+                            <input type="file" name="${nameAttr}" id="file-${nameAttr}" class="hidden" accept="image/*" ${req} onchange="previewDynamicImage(this, 'preview-${nameAttr}')">
+                        </label>
                         <div id="container-preview-${nameAttr}" class="hidden">
                             <div class="relative w-full max-w-[150px] aspect-square rounded-xl overflow-hidden border border-white/10">
                                 <img id="preview-${nameAttr}" class="w-full h-full object-cover">

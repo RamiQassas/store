@@ -173,47 +173,47 @@
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
                     <!-- Image Cards with Fixed Preview -->
                     <div class="upload-card stack gap-4">
-                        <div class="fixed-frame aspect-[4/3] w-full bg-slate-800/40 border border-dashed border-white/10 rounded-2xl flex items-center justify-center relative overflow-hidden group hover:border-cyan/50 transition-all">
+                        <label for="id_identity_front" class="fixed-frame aspect-[4/3] w-full bg-slate-800/40 border border-dashed border-white/10 rounded-2xl flex items-center justify-center relative overflow-hidden group hover:border-cyan/50 transition-all cursor-pointer">
                             <img id="preview-front" src="{% if form.instance.identity_front %}{{ form.instance.identity_front.url }}{% endif %}" class="{% if not form.instance.identity_front %}hidden{% endif %} w-full h-full object-contain">
                             <div class="text-center placeholder-icon {% if form.instance.identity_front %}hidden{% endif %}">
                                 <i class="fas fa-id-card text-3xl mb-2 text-slate-600 group-hover:text-cyan"></i>
                                 <div class="text-[8px] font-black text-slate-500 uppercase tracking-widest">وجه الوثيقة</div>
                             </div>
-                        </div>
+                            <input type="file" name="identity_front" id="id_identity_front" class="hidden" accept="image/*" onchange="previewFile(this, 'preview-front')">
+                        </label>
                         <div class="px-2">
-                            <label class="text-[10px] font-bold text-slate-400 mb-2 block">تحميل الوجه الأمامي</label>
-                            <input type="file" name="identity_front" class="builder-input" accept="image/*" onchange="previewFile(this, 'preview-front')">
+                            <label class="text-[10px] font-bold text-slate-400 mb-2 block text-center">تحميل الوجه الأمامي</label>
                             {% if form.identity_front.errors %}<p class="text-rose-500 text-[10px] mt-2 font-bold">{{ form.identity_front.errors.0 }}</p>{% endif %}
                         </div>
                     </div>
 
                     <div class="upload-card stack gap-4">
-                        <div class="fixed-frame aspect-[4/3] w-full bg-slate-800/40 border border-dashed border-white/10 rounded-2xl flex items-center justify-center relative overflow-hidden group hover:border-cyan/50 transition-all">
+                        <label for="id_identity_back" class="fixed-frame aspect-[4/3] w-full bg-slate-800/40 border border-dashed border-white/10 rounded-2xl flex items-center justify-center relative overflow-hidden group hover:border-cyan/50 transition-all cursor-pointer">
                             <img id="preview-back" src="{% if form.instance.identity_back %}{{ form.instance.identity_back.url }}{% endif %}" class="{% if not form.instance.identity_back %}hidden{% endif %} w-full h-full object-contain">
                             <div class="text-center placeholder-icon {% if form.instance.identity_back %}hidden{% endif %}">
                                 <i class="fas fa-id-card-alt text-3xl mb-2 text-slate-600 group-hover:text-cyan"></i>
                                 <div class="text-[8px] font-black text-slate-500 uppercase tracking-widest">ظهر الوثيقة</div>
                             </div>
-                        </div>
+                            <input type="file" name="identity_back" id="id_identity_back" class="hidden" accept="image/*" onchange="previewFile(this, 'preview-back')">
+                        </label>
                         <div class="px-2">
-                            <label class="text-[10px] font-bold text-slate-400 mb-2 block">تحميل الوجه الخلفي</label>
-                            <input type="file" name="identity_back" class="builder-input" accept="image/*" onchange="previewFile(this, 'preview-back')">
+                            <label class="text-[10px] font-bold text-slate-400 mb-2 block text-center">تحميل الوجه الخلفي</label>
                             {% if form.identity_back.errors %}<p class="text-rose-500 text-[10px] mt-2 font-bold">{{ form.identity_back.errors.0 }}</p>{% endif %}
                         </div>
                     </div>
 
                     <div class="upload-card stack gap-4">
-                        <div class="fixed-frame aspect-[4/3] w-full bg-slate-800/40 border border-dashed border-white/10 rounded-2xl flex items-center justify-center relative overflow-hidden group hover:border-cyan/50 transition-all">
+                        <label for="id_selfie_verification" class="fixed-frame aspect-[4/3] w-full bg-slate-800/40 border border-dashed border-white/10 rounded-2xl flex items-center justify-center relative overflow-hidden group hover:border-cyan/50 transition-all cursor-pointer">
                             <img id="preview-selfie" src="{% if form.instance.selfie_verification %}{{ form.instance.selfie_verification.url }}{% endif %}" class="{% if not form.instance.selfie_verification %}hidden{% endif %} w-full h-full object-contain">
                             <div class="text-center placeholder-icon {% if form.instance.selfie_verification %}hidden{% endif %}">
                                 <i class="fas fa-user-circle text-3xl mb-2 text-slate-600 group-hover:text-cyan"></i>
                                 <div class="text-[8px] font-black text-slate-500 uppercase tracking-widest">صورة سيلفي</div>
                             </div>
-                        </div>
+                            <input type="file" name="selfie_verification" id="id_selfie_verification" class="hidden" accept="image/*" onchange="previewFile(this, 'preview-selfie')">
+                        </label>
                         <div class="px-2">
-                            <label class="text-[10px] font-bold text-slate-400 mb-2 block">تحميل صورة السيلفي</label>
-                            <p class="text-[8px] text-slate-500 mb-2">سيلفي وأنت تحمل هويتك بجانب وجهك.</p>
-                            <input type="file" name="selfie_verification" class="builder-input" accept="image/*" onchange="previewFile(this, 'preview-selfie')">
+                            <label class="text-[10px] font-bold text-slate-400 mb-2 block text-center">تحميل صورة السيلفي</label>
+                            <p class="text-[7px] text-slate-500 mb-2 text-center">سيلفي مع هويتك بجانب وجهك</p>
                             {% if form.selfie_verification.errors %}<p class="text-rose-500 text-[10px] mt-2 font-bold">{{ form.selfie_verification.errors.0 }}</p>{% endif %}
                         </div>
                     </div>

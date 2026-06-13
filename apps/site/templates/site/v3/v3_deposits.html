@@ -231,7 +231,7 @@
 
             <div class="field-group" id="proof-group">
                 <label>إثبات التحويل (صورة الوصل)</label>
-                <div class="proof-upload-area" onclick="document.getElementById('input-proof').click()">
+                <label for="input-proof" class="proof-upload-area block">
                     <div id="upload-placeholder">
                         <i class="fas fa-cloud-upload-alt text-4xl text-cyan mb-4"></i>
                         <div class="text-sm font-bold">اضغط هنا أو اسحب الملف لرفعه</div>
@@ -243,8 +243,8 @@
                         </div>
                         <div class="mt-4 text-xs font-bold text-cyan">تم اختيار الملف ✓ - انقر للتغيير</div>
                     </div>
-                </div>
-                <input type="file" name="proof_image" id="input-proof" accept="image/*" class="hidden" onchange="previewFile(this)">
+                    <input type="file" name="proof_image" id="input-proof" accept="image/*" class="hidden" onchange="previewFile(this)">
+                </label>
                 <p class="error-hint">يرجى رفع صورة الوصل.</p>
             </div>
 
@@ -299,9 +299,27 @@
                                     {{ r.get_status_display }}
                                 </span>
                             </div>
-                            <div class="text-[10px] text-slate-500 font-bold uppercase tracking-widest">
+                            <div class="text-[10px] text-slate-500 font-bold uppercase tracking-widest mb-3">
                                 عبر {{ r.payment_method.name }} • {{ r.created_at|date:"d M Y, H:i" }}
                             </div>
+
+                            <!-- Dynamic Metadata -->
+                            {% if r.formatted_metadata %}
+                            <div class="flex flex-wrap gap-4 mt-4 p-4 bg-white/5 rounded-2xl border border-white/5">
+                                {% for meta in r.formatted_metadata %}
+                                <div class="stack gap-1">
+                                    <span class="text-[9px] text-slate-500 font-black uppercase tracking-tighter">{{ meta.label }}</span>
+                                    {% if meta.type == 'image' and meta.value %}
+                                    <div class="w-16 h-16 rounded-lg overflow-hidden border border-white/10 cursor-zoom-in hover:scale-105 transition-transform" onclick="window.open('{{ meta.value }}')">
+                                        <img src="{{ meta.value }}" class="w-full h-full object-cover">
+                                    </div>
+                                    {% else %}
+                                    <span class="text-xs font-bold text-slate-300">{{ meta.value }}</span>
+                                    {% endif %}
+                                </div>
+                                {% endfor %}
+                            </div>
+                            {% endif %}
                         </div>
                     </div>
                     
@@ -424,9 +442,11 @@ function renderStep2() {
         } else if (f.type === 'image') {
             inputHtml = `
                 <div class="stack gap-3">
-                    <div class="flex gap-2">
-                        <input type="file" name="${nameAttr}" id="file-${nameAttr}" class="builder-input" accept="image/*" ${req} onchange="previewDynamicImage(this, 'preview-${nameAttr}')">
-                    </div>
+                    <label for="file-${nameAttr}" class="btn btn-outline btn-sm w-full py-4 flex items-center justify-center gap-3 cursor-pointer border-dashed border-white/20 hover:border-cyan/50 transition-all">
+                        <i class="fas fa-camera text-cyan"></i>
+                        <span class="text-[10px] font-black uppercase tracking-widest">اضغط لالتقاط أو اختيار صورة</span>
+                        <input type="file" name="${nameAttr}" id="file-${nameAttr}" class="hidden" accept="image/*" ${req} onchange="previewDynamicImage(this, 'preview-${nameAttr}')">
+                    </label>
                     <div id="container-preview-${nameAttr}" class="hidden">
                         <div class="relative w-full max-w-[150px] aspect-square rounded-xl overflow-hidden border border-white/10">
                             <img id="preview-${nameAttr}" class="w-full h-full object-cover">

@@ -289,6 +289,11 @@ class DepositRequest(TimeStampedModel):
         
         for key, val in self.metadata.items():
             label, ftype = field_map.get(key, (key, "text"))
+            
+            # Heuristic: If value looks like an image path, force type to image
+            if isinstance(val, str) and (val.startswith("/media/") or any(val.lower().endswith(ext) for ext in ['.jpg', '.jpeg', '.png', '.webp', '.gif'])):
+                ftype = "image"
+                
             results.append({"label": label, "value": val, "type": ftype})
                 
         return results
@@ -415,6 +420,11 @@ class WithdrawalRequest(TimeStampedModel):
             
             for key, val in dynamic.items():
                 label, ftype = field_map.get(key, (key, "text"))
+                
+                # Heuristic: If value looks like an image path, force type to image
+                if isinstance(val, str) and (val.startswith("/media/") or any(val.lower().endswith(ext) for ext in ['.jpg', '.jpeg', '.png', '.webp', '.gif'])):
+                    ftype = "image"
+                    
                 results.append({"label": label, "value": val, "type": ftype})
                 
         return results

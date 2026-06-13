@@ -164,19 +164,19 @@ def v3_verify_sp_view(request):
             request.session["v3_auth_methods"] = remaining
             
             if remaining:
-                next_method = remaining[0]
-                if next_method == "EMAIL":
+                if remaining[0] == "EMAIL":
                     v3_send_otp_email(user, v3_generate_otp(user, purpose))
-                    return redirect("site_verify_otp")
-                elif next_method == "APP":
-                    return redirect("site_2fa_verify")
+                return v3_redirect_to_verification(request, remaining)
             
             # All verified
             if not request.user.is_authenticated:
                 user.backend = 'django.contrib.auth.backends.ModelBackend'
                 login(request, user)
             
-            request.session["v3_action_verified_at"] = timezone.now().isoformat()
+            # Set grace period for BOTH keys
+            now_iso = timezone.now().isoformat()
+            request.session["v3_action_verified_at"] = now_iso
+            request.session["v3_sp_verified_at"] = now_iso
             
             # Completion logic for pending actions
             pending_action_id = request.session.get("v3_pending_action_id")
@@ -185,14 +185,28 @@ def v3_verify_sp_view(request):
                 deposit = DepositRequest.objects.filter(id=pending_action_id, user=user).first()
                 if deposit:
                     deposit.is_verified = True; deposit.save(update_fields=["is_verified"])
-                    messages.success(request, "تم التحقق والموافقة على الإيداع.")
+                    
+                    # Notify user only AFTER verification
+                    send_financial_notification(
+                        user=user,
+                        title="تم استلام طلب الإيداع",
+                        body=f"تم استلام طلب الإيداع الخاص بك رقم {deposit.id} بقيمة {deposit.amount} {deposit.currency.code}. سيتم مراجعته من قبل الإدارة قريباً."
+                    )
+                    messages.success(request, "تم التحقق وتقديم طلب الإيداع بنجاح.")
                     del request.session["v3_pending_action_id"]
                     return redirect("dashboard_deposits")
                 
                 withdrawal = WithdrawalRequest.objects.filter(id=pending_action_id, user=user).first()
                 if withdrawal:
                     withdrawal.is_verified = True; withdrawal.save(update_fields=["is_verified"])
-                    messages.success(request, "تم التحقق والموافقة على السحب.")
+                    
+                    # Notify user only AFTER verification
+                    send_financial_notification(
+                        user=user,
+                        title="تم استلام طلب السحب",
+                        body=f"تم استلام طلب السحب الخاص بك رقم {withdrawal.id} بقيمة {withdrawal.amount} {withdrawal.currency.code}. سيتم مراجعته من قبل الإدارة قريباً."
+                    )
+                    messages.success(request, "تم التحقق وتقديم طلب السحب بنجاح.")
                     del request.session["v3_pending_action_id"]
                     return redirect("dashboard_withdrawals")
 
@@ -296,35 +310,44 @@ def v3_verify_otp_view(request):
             
             remaining = [m for m in methods if m != "EMAIL"]
             request.session["v3_auth_methods"] = remaining
-            if remaining and remaining[0] == "APP": return redirect("site_2fa_verify")
-            login(request, user, backend='django.contrib.auth.backends.ModelBackend')
-            request.session["v3_action_verified_at"] = timezone.now().isoformat()
+            
+            if remaining:
+                return v3_redirect_to_verification(request, remaining)
+            
+            if not request.user.is_authenticated:
+                user.backend = 'django.contrib.auth.backends.ModelBackend'
+                login(request, user)
+            
+            now_iso = timezone.now().isoformat()
+            request.session["v3_action_verified_at"] = now_iso
+            request.session["v3_sp_verified_at"] = now_iso
 
             # Check for pending action (Deposit/Withdrawal)
             pending_action_id = request.session.get("v3_pending_action_id")
             if pending_action_id:
                 from apps.payments.models import DepositRequest, WithdrawalRequest
-                # Try deposit first
                 deposit = DepositRequest.objects.filter(id=pending_action_id, user=user).first()
                 if deposit:
-                    deposit.is_verified = True
-                    deposit.save(update_fields=["is_verified"])
-                    messages.success(request, "تم التحقق وإرسال طلب الإيداع بنجاح.")
+                    deposit.is_verified = True; deposit.save(update_fields=["is_verified"])
+                    send_financial_notification(user=user, title="تم استلام طلب الإيداع", body=f"تم استلام طلب الإيداع الخاص بك رقم {deposit.id} بقيمة {deposit.amount} {deposit.currency.code}. سيتم مراجعته من قبل الإدارة قريباً.")
+                    messages.success(request, "تم التحقق وتقديم طلب الإيداع بنجاح.")
                     del request.session["v3_pending_action_id"]
                     return redirect("dashboard_deposits")
-
-                # Then withdrawal
+                
                 withdrawal = WithdrawalRequest.objects.filter(id=pending_action_id, user=user).first()
                 if withdrawal:
-                    withdrawal.is_verified = True
-                    withdrawal.save(update_fields=["is_verified"])
-                    messages.success(request, "تم التحقق وإرسال طلب السحب بنجاح.")
+                    withdrawal.is_verified = True; withdrawal.save(update_fields=["is_verified"])
+                    send_financial_notification(user=user, title="تم استلام طلب السحب", body=f"تم استلام طلب السحب الخاص بك رقم {withdrawal.id} بقيمة {withdrawal.amount} {withdrawal.currency.code}. سيتم مراجعته من قبل الإدارة قريباً.")
+                    messages.success(request, "تم التحقق وتقديم طلب السحب بنجاح.")
                     del request.session["v3_pending_action_id"]
                     return redirect("dashboard_withdrawals")
 
-            keys = ["v3_auth_uid", "v3_auth_methods", "v3_auth_purpose", "v3_new_email", "v3_pending_action_id"]
+            next_url = request.session.get("v3_auth_next")
+            keys = ["v3_auth_uid", "v3_auth_methods", "v3_auth_purpose", "v3_new_email", "v3_pending_action_id", "v3_auth_next"]
             for k in keys:
                 if k in request.session: del request.session[k]
+            
+            if next_url: return redirect(next_url)
             return redirect("control_dashboard" if user.is_staff else "dashboard")
         user.otp_failed_attempts += 1
         if user.otp_failed_attempts >= settings_obj.otp_max_attempts:
@@ -546,18 +569,18 @@ def deposits(request):
             except:
                 pass
 
-        # Notify user about the request submission
-        send_financial_notification(
-            user=request.user,
-            title="تم استلام طلب الإيداع",
-            body=f"تم استلام طلب الإيداع الخاص بك رقم {deposit.id} بقيمة {deposit.amount} {deposit.currency.code}. سيتم مراجعته من قبل الإدارة قريباً."
-        )
-
         # AFTER creation: Check if verification is needed
         if v3_init_verification(request, request.user, "deposit"):
             # If no security method enabled, auto-verify
             deposit.is_verified = True
             deposit.save(update_fields=["is_verified"])
+            
+            # Notify user about the request submission ONLY if verified
+            send_financial_notification(
+                user=request.user,
+                title="تم استلام طلب الإيداع",
+                body=f"تم استلام طلب الإيداع الخاص بك رقم {deposit.id} بقيمة {deposit.amount} {deposit.currency.code}. سيتم مراجعته من قبل الإدارة قريباً."
+            )
             messages.success(request, "تم تقديم طلب الإيداع بنجاح.")
             return redirect("dashboard_deposits")
         else:
@@ -565,7 +588,7 @@ def deposits(request):
             request.session["v3_pending_action_id"] = str(deposit.id)
             messages.info(request, "يرجى التحقق لإكمال الطلب.")
             methods = request.session.get("v3_auth_methods", [])
-            return redirect("site_2fa_verify" if methods[0] == "APP" else "site_verify_otp")
+            return v3_redirect_to_verification(request, methods)
 
     return render(request, "site/v3/v3_deposits.html", {
         "payment_methods": PaymentMethod.objects.filter(is_active=True, can_deposit=True), 
@@ -669,13 +692,20 @@ def withdrawals(request):
         if v3_init_verification(request, request.user, "withdraw"):
             withdrawal.is_verified = True
             withdrawal.save(update_fields=["is_verified"])
+            
+            # Notify user about the request submission ONLY if verified
+            send_financial_notification(
+                user=request.user,
+                title="تم استلام طلب السحب",
+                body=f"تم استلام طلب السحب الخاص بك رقم {withdrawal.id} بقيمة {withdrawal.amount} {withdrawal.currency.code}. سيتم مراجعته من قبل الإدارة قريباً."
+            )
             messages.success(request, "تم تقديم طلب السحب بنجاح.")
             return redirect("dashboard_withdrawals")
         else:
             request.session["v3_pending_action_id"] = str(withdrawal.id)
             messages.info(request, "يرجى التحقق لإكمال طلب السحب.")
             methods = request.session.get("v3_auth_methods", [])
-            return redirect("site_2fa_verify" if methods[0] == "APP" else "site_verify_otp")
+            return v3_redirect_to_verification(request, methods)
 
     return render(request, "site/v3/v3_withdrawals.html", {
         "payment_methods": PaymentMethod.objects.filter(is_active=True, can_withdraw=True), 
