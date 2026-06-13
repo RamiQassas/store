@@ -116,6 +116,14 @@ def replace(value, args):
     old, new = args.split(',')
     return value.replace(old, new)
 
+@register.filter(name='add_class')
+def add_class(value, arg):
+    """Adds a CSS class to a form field widget."""
+    try:
+        return value.as_widget(attrs={'class': arg})
+    except:
+        return value
+
 @register.filter
 def get_item(dictionary, key):
     """Returns the value for a given key in a dictionary."""

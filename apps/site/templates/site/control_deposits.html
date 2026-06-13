@@ -75,8 +75,15 @@
                             </div>
                             {% if d.proof_image %}
                             <div class="relative group">
-                                <img src="{{ d.proof_image.url }}" class="w-10 h-10 rounded-lg object-cover border border-white/10 group-hover:scale-[3] group-hover:z-50 group-hover:shadow-2xl transition-all cursor-zoom-in" onclick="window.open(this.src)">
-                                <div class="absolute -top-1 -right-1 w-2 h-2 bg-cyan rounded-full border-2 border-slate-900 animate-pulse"></div>
+                                <div class="w-12 h-12 rounded-xl overflow-hidden border border-white/10 group-hover:border-cyan/50 transition-colors">
+                                    <img src="{{ d.proof_image.url }}" class="w-full h-full object-cover cursor-zoom-in" onclick="window.open(this.src)">
+                                </div>
+                                <!-- Hover Preview -->
+                                <div class="absolute right-full mr-4 top-1/2 -translate-y-1/2 w-64 h-auto bg-slate-900 border border-white/10 rounded-2xl shadow-2xl p-2 z-[500] opacity-0 group-hover:opacity-100 pointer-events-none transition-all scale-90 group-hover:scale-100 origin-right">
+                                    <img src="{{ d.proof_image.url }}" class="w-full h-auto rounded-xl">
+                                    <div class="text-[8px] text-center text-slate-500 mt-2 font-black uppercase">انقر لفتح الصورة الأصلية</div>
+                                </div>
+                                <div class="absolute -top-1 -right-1 w-2.5 h-2.5 bg-cyan rounded-full border-2 border-slate-950 animate-pulse"></div>
                             </div>
                             {% endif %}
                         </div>

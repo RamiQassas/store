@@ -115,7 +115,9 @@ def api_wallet_unhold(request, pk):
     import json
     try:
         data = json.loads(request.body)
-        amount = Decimal(str(data.get("amount", "0")))
+        # Ensure amount is a clean string for Decimal conversion
+        raw_amount = str(data.get("amount", "0")).replace(',', '').strip()
+        amount = Decimal(raw_amount)
         reason = data.get("reason", "Admin manual unhold")
         unhold_funds(pk, amount, reason=reason, created_by=request.user)
         return JsonResponse({"status": "success"})
