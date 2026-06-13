@@ -1,3 +1,4 @@
+from decimal import Decimal
 from django.utils import timezone
 from django.db import transaction
 from rest_framework import decorators, response, status, viewsets, permissions
@@ -70,25 +71,18 @@ class DepositRequestViewSet(viewsets.ModelViewSet):
             final_amount = Decimal(str(override_amount)) if override_amount else deposit.final_amount
             
             # Calculate final wallet amount (amount - fee) converted to wallet currency
+            # We ALWAYS re-calculate here to ensure we use the correct rate and avoid stale/wrong stored values
             wallet = get_or_create_wallet(deposit.user)
-            if deposit.wallet_amount > 0:
-                if deposit.amount > 0:
-                    wallet_final_amount = (final_amount / deposit.amount) * deposit.wallet_amount
-                else:
-                    wallet_final_amount = deposit.wallet_amount
+            if deposit.currency.code == wallet.currency.code:
+                wallet_final_amount = final_amount
             else:
-                # Old record fallback: convert final_amount to wallet currency
-                if deposit.currency.code == wallet.currency.code:
-                    wallet_final_amount = final_amount
-                else:
-                    base_val = deposit.currency.to_base(final_amount, "deposit")
-                    wallet_final_amount = wallet.currency.from_base(base_val, "deposit")
+                base_val = deposit.currency.to_base(final_amount, "deposit")
+                wallet_final_amount = wallet.currency.from_base(base_val, "deposit")
 
             if wallet_final_amount <= 0:
                 return response.Response({"detail": "خطأ في حساب المبلغ المودع: يجب أن يكون المبلغ أكبر من صفر."}, status=status.HTTP_400_BAD_REQUEST)
 
             # 1. Credit wallet FIRST
-            wallet = get_or_create_wallet(deposit.user)
             credit_wallet(
                 wallet_id=wallet.id,
                 amount=wallet_final_amount,
@@ -103,10 +97,12 @@ class DepositRequestViewSet(viewsets.ModelViewSet):
 
             # 2. Update deposit status ONLY IF credit succeeds
             deposit.final_amount = final_amount
+            # Also update wallet_amount to reflect what was actually credited
+            deposit.wallet_amount = wallet_final_amount
             deposit.status = DepositRequest.Status.COMPLETED
             deposit.reviewed_by = request.user
             deposit.reviewed_at = timezone.now()
-            deposit.save(update_fields=["status", "reviewed_by", "reviewed_at", "updated_at", "final_amount"])
+            deposit.save(update_fields=["status", "reviewed_by", "reviewed_at", "updated_at", "final_amount", "wallet_amount"])
             
             notify_user(
                 user=deposit.user,
@@ -116,6 +112,71 @@ class DepositRequestViewSet(viewsets.ModelViewSet):
                 category='financial',
                 priority="high"
             )
+
+        return response.Response(self.get_serializer(deposit).data)
+
+    @decorators.action(detail=True, methods=["post"])
+    def correct(self, request, pk=None):
+        if not request.user.is_staff:
+            return response.Response({"detail": "غير مصرح."}, status=status.HTTP_403_FORBIDDEN)
+            
+        with transaction.atomic():
+            deposit = DepositRequest.objects.select_for_update().get(pk=pk)
+            if deposit.status != DepositRequest.Status.COMPLETED:
+                return response.Response({"detail": "يمكن تصحيح الطلبات المكتملة فقط."}, status=status.HTTP_400_BAD_REQUEST)
+
+            new_amount = request.data.get("new_amount")
+            if not new_amount:
+                return response.Response({"detail": "المبلغ الجديد مطلوب."}, status=status.HTTP_400_BAD_REQUEST)
+                
+            from decimal import Decimal
+            new_amount = Decimal(str(new_amount))
+            admin_note = request.data.get("admin_note", "")
+
+            # 1. Calculate the difference
+            old_amount = deposit.final_amount
+            diff_amount = new_amount - old_amount
+            
+            if diff_amount == 0:
+                return response.Response({"detail": "لم يتم تغيير المبلغ."}, status=status.HTTP_400_BAD_REQUEST)
+
+            # 2. Convert difference to wallet currency
+            wallet = get_or_create_wallet(deposit.user)
+            if deposit.currency.code == wallet.currency.code:
+                wallet_diff = diff_amount
+            else:
+                base_diff = deposit.currency.to_base(diff_amount, "deposit")
+                wallet_diff = wallet.currency.from_base(base_diff, "deposit")
+
+            # 3. Apply adjustment to wallet
+            from apps.wallets.services import debit_wallet
+            if wallet_diff > 0:
+                credit_wallet(
+                    wallet_id=wallet.id,
+                    amount=wallet_diff,
+                    reference=f"deposit_adj:{deposit.id}",
+                    description=f"تصحيح مبلغ الإيداع (زيادة): {admin_note}",
+                    created_by=request.user,
+                    source="admin_adjustment"
+                )
+            else:
+                debit_wallet(
+                    wallet_id=wallet.id,
+                    amount=abs(wallet_diff),
+                    reference=f"deposit_adj:{deposit.id}",
+                    description=f"تصحيح مبلغ الإيداع (نقص): {admin_note}",
+                    created_by=request.user,
+                    source="admin_adjustment"
+                )
+
+            # 4. Update deposit record
+            deposit.final_amount = new_amount
+            # Update wallet_amount accordingly
+            deposit.wallet_amount += wallet_diff
+            if admin_note:
+                current_notes = deposit.admin_note or ""
+                deposit.admin_note = f"{current_notes}\n[تصحيح {timezone.now().strftime('%Y-%m-%d %H:%M')}]: {admin_note}"
+            deposit.save(update_fields=["final_amount", "wallet_amount", "admin_note", "updated_at"])
 
         return response.Response(self.get_serializer(deposit).data)
 

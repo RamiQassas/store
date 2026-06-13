@@ -46,8 +46,10 @@ class Currency(TimeStampedModel):
 
     def to_base(self, amount, operation="deposit"):
         """Convert an amount in this currency to the base currency (e.g., USD)."""
+        if amount is None: return Decimal("0.00")
         rate = self.buy_rate if operation == "deposit" else self.sell_rate
-        if rate <= 0: return Decimal("0.00")
+        if rate is None or rate <= 0: 
+            return Decimal(str(amount)) # Fallback: assume 1:1 if rate is invalid
         
         if self.conversion_method == self.ConversionMethod.DIVIDE:
             return Decimal(str(amount)) * Decimal(str(rate))
@@ -55,10 +57,13 @@ class Currency(TimeStampedModel):
 
     def from_base(self, base_amount, operation="deposit"):
         """Convert a base currency amount to this currency."""
+        if base_amount is None: return Decimal("0.00")
         rate = self.buy_rate if operation == "deposit" else self.sell_rate
         
+        if rate is None or rate <= 0:
+            return Decimal(str(base_amount)) # Fallback: assume 1:1 if rate is invalid
+
         if self.conversion_method == self.ConversionMethod.DIVIDE:
-            if rate <= 0: return Decimal("0.00")
             return Decimal(str(base_amount)) / Decimal(str(rate))
         return Decimal(str(base_amount)) * Decimal(str(rate))
 

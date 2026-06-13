@@ -291,15 +291,19 @@ class DepositRequest(TimeStampedModel):
     def calculate_fees(self):
         self.fee_amount = self.payment_method.calculate_fee(self.amount, mode="deposit")
         self.final_amount = self.amount - self.fee_amount
-        if hasattr(self, 'currency') and self.currency:
+        if self.currency:
             try:
+                # Use wallet currency for wallet_amount calculation
                 wallet = self.user.wallet
-                if self.currency.code == wallet.currency.code:
+                # Compare by ID if possible, then by code
+                if self.currency_id == wallet.currency_id or self.currency.code == wallet.currency.code:
                     self.wallet_amount = self.amount
                 else:
+                    # Convert via base currency (USD)
                     base_val = self.currency.to_base(self.amount, "deposit")
                     self.wallet_amount = wallet.currency.from_base(base_val, "deposit")
-            except:
+            except Exception:
+                # Fallback to base currency equivalent
                 self.wallet_amount = self.currency.to_base(self.amount, "deposit")
 
     def save(self, *args, **kwargs):
@@ -414,16 +418,16 @@ class WithdrawalRequest(TimeStampedModel):
     def calculate_fees(self):
         self.fee_amount = self.payment_method.calculate_fee(self.amount, mode="withdrawal")
         self.final_amount = self.amount - self.fee_amount
-        if hasattr(self, 'currency') and self.currency:
+        if self.currency:
             if not self.wallet_amount or self.wallet_amount <= 0:
                 try:
                     wallet = self.user.wallet
-                    if self.currency.code == wallet.currency.code:
+                    if self.currency_id == wallet.currency_id or self.currency.code == wallet.currency.code:
                         self.wallet_amount = self.amount
                     else:
                         base_val = self.currency.to_base(self.amount, "withdraw")
                         self.wallet_amount = wallet.currency.from_base(base_val, "withdraw")
-                except:
+                except Exception:
                     self.wallet_amount = self.currency.to_base(self.amount, "withdraw")
 
     def save(self, *args, **kwargs):
