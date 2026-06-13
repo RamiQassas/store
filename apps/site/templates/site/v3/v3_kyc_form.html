@@ -183,7 +183,6 @@
                         </label>
                         <div class="px-2">
                             <label class="text-[10px] font-bold text-slate-400 mb-2 block text-center">تحميل الوجه الأمامي</label>
-                            <button type="button" class="btn btn-outline w-full py-2 text-[10px] hidden" id="confirm-front" onclick="confirmUpload('id_identity_front', 'confirm-front')">تأكيد الصورة</button>
                             {% if form.identity_front.errors %}<p class="text-rose-500 text-[10px] mt-2 font-bold">{{ form.identity_front.errors.0 }}</p>{% endif %}
                         </div>
                     </div>
@@ -199,7 +198,6 @@
                         </label>
                         <div class="px-2">
                             <label class="text-[10px] font-bold text-slate-400 mb-2 block text-center">تحميل الوجه الخلفي</label>
-                            <button type="button" class="btn btn-outline w-full py-2 text-[10px] hidden" id="confirm-back" onclick="confirmUpload('id_identity_back', 'confirm-back')">تأكيد الصورة</button>
                             {% if form.identity_back.errors %}<p class="text-rose-500 text-[10px] mt-2 font-bold">{{ form.identity_back.errors.0 }}</p>{% endif %}
                         </div>
                     </div>
@@ -216,7 +214,6 @@
                         <div class="px-2">
                             <label class="text-[10px] font-bold text-slate-400 mb-2 block text-center">تحميل صورة السيلفي</label>
                             <p class="text-[7px] text-slate-500 mb-2 text-center">سيلفي مع هويتك بجانب وجهك</p>
-                            <button type="button" class="btn btn-outline w-full py-2 text-[10px] hidden" id="confirm-selfie" onclick="confirmUpload('id_selfie_verification', 'confirm-selfie')">تأكيد الصورة</button>
                             {% if form.selfie_verification.errors %}<p class="text-rose-500 text-[10px] mt-2 font-bold">{{ form.selfie_verification.errors.0 }}</p>{% endif %}
                         </div>
                     </div>
@@ -278,3 +275,4 @@
         return true;
     }
 </script>
+{% endblock %}
