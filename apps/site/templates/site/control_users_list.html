@@ -1,199 +1,174 @@
 {% extends "site/control_base.html" %}
 {% load static %}
 
-{% block title %}إدارة المستخدمين | Raqamiyat Admin{% endblock %}
+{% block title %}إدارة قاعدة المستخدمين الاستراتيجية | Raqamiyat Control{% endblock %}
 
 {% block extra_head %}
 <style>
-    .management-card { border-radius: 24px; border: 1px solid rgba(255,255,255,0.05); background: rgba(18, 25, 44, 0.4); backdrop-filter: blur(10px); }
-    .input-wrapper input { transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
-    .input-wrapper input:focus { background: rgba(18, 25, 44, 0.8); }
-    .user-checkbox { width: 18px; height: 18px; cursor: pointer; transition: all 0.2s; }
-    .user-checkbox:checked { background-color: var(--cyan); border-color: var(--cyan); }
-    .badge { padding: 4px 8px; border-radius: 6px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em; }
-    .badge.primary { background: rgba(6, 182, 212, 0.1); color: var(--cyan); border: 1px solid rgba(6, 182, 212, 0.2); }
-    .table-row-hover:hover { background: rgba(255,255,255,0.03) !important; }
-    .action-select-container { background: rgba(0,0,0,0.2); border: 1px solid rgba(255,255,255,0.05); border-radius: 12px; padding: 4px; display: flex; gap: 4px; }
+    .glass-card { background: rgba(18, 25, 44, 0.4); backdrop-filter: blur(20px); border: 1px solid rgba(255,255,255,0.05); border-radius: 24px; overflow: hidden; }
+    .table-header-modern { background: rgba(255, 255, 255, 0.02); border-bottom: 1px solid rgba(255, 255, 255, 0.05); }
+    .user-row:hover { background: rgba(6, 182, 212, 0.03) !important; }
+    
+    .badge-modern { padding: 4px 8px; border-radius: 6px; font-size: 9px; font-weight: 900; text-transform: uppercase; letter-spacing: 0.05em; border: 1px solid transparent; }
+    .badge-cyan { background: rgba(6, 182, 212, 0.1); color: var(--cyan); border-color: rgba(6, 182, 212, 0.2); }
+    .badge-amber { background: rgba(245, 158, 11, 0.1); color: #f59e0b; border-color: rgba(245, 158, 11, 0.2); }
+    .badge-rose { background: rgba(244, 63, 94, 0.1); color: #f43f5e; border-color: rgba(244, 63, 94, 0.2); }
+    
+    .search-input-modern { background: rgba(0,0,0,0.2); border: 1px solid rgba(255,255,255,0.1); border-radius: 14px; transition: all 0.2s; }
+    .search-input-modern:focus { border-color: var(--cyan); box-shadow: 0 0 0 4px rgba(6, 182, 212, 0.1); background: rgba(0,0,0,0.4); }
+    
+    .bulk-select-modern { background: rgba(15, 23, 42, 0.8); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; font-size: 11px; font-weight: 700; color: #cbd5e1; }
 </style>
 {% endblock %}
 
 {% block control_content %}
-<div class="page-head">
+<div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-8">
     <div>
-        <span class="eyebrow">User Management</span>
-        <h1>قائمة المستخدمين</h1>
-        <p class="text-muted">إدارة كافة حسابات المستخدمين، التحقق من الأرصدة، وإجراء التعديلات اللازمة.</p>
+        <span class="eyebrow">Strategic User Management</span>
+        <h1 class="text-3xl font-black text-white">إدارة قاعدة المستخدمين</h1>
+        <p class="text-slate-500 mt-2">تحكم كامل في الرتب، الأرصدة، والحالات الأمنية لجميع الحسابات.</p>
+    </div>
+    <div class="flex gap-3">
+        <a href="?export=excel" class="btn btn-outline h-12 px-6 rounded-2xl font-bold border-white/5 hover:bg-white/5 uppercase text-[10px] tracking-widest">
+            <i class="fas fa-file-excel ml-2"></i> Export Data
+        </a>
     </div>
 </div>
 
-<form method="post" id="bulk-form" class="management-card">
+<form method="post" id="bulk-form" class="glass-card">
     {% csrf_token %}
-    <input type="hidden" name="action" value="bulk_tier">
+    <input type="hidden" name="action" id="bulk-action-input" value="">
     
-    <div class="management-header p-6 border-b border-white/5 bg-slate-900/20">
-        <div class="grid grid-cols-1 xl:grid-cols-2 gap-6 items-center">
-            <div class="input-wrapper group relative">
+    <!-- Management Toolbar -->
+    <div class="p-6 border-b border-white/5 bg-white/[0.01]">
+        <div class="flex flex-col lg:flex-row gap-6 justify-between items-center">
+            <!-- Advanced Search -->
+            <div class="w-full lg:max-w-md relative group">
                 <i class="fas fa-search absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-cyan transition-colors"></i>
-                <input type="text" name="q" id="user-search-q" value="{{ query }}" placeholder="بحث بالبريد، الهاتف، أو الاسم..." class="text-xs pr-10 bg-slate-900/50 border-white/10 rounded-xl focus:border-cyan/50 focus:ring-4 focus:ring-cyan/10 transition-all w-full py-3" autocomplete="off">
-                <div id="user-search-results" class="absolute z-50 w-full mt-1 bg-slate-900 border border-white/10 rounded-xl shadow-2xl hidden overflow-hidden"></div>
+                <input type="text" name="q" id="user-search-q" value="{{ query }}" placeholder="بحث بالبريد، الهاتف، أو الاسم..." class="search-input-modern w-full py-3 pr-11 pl-4 text-xs text-white" autocomplete="off">
+                <div id="user-search-results" class="absolute z-50 w-full mt-2 bg-slate-900 border border-white/10 rounded-2xl shadow-2xl hidden overflow-hidden"></div>
             </div>
 
-            <script>
-                const searchInput = document.getElementById('user-search-q');
-                const searchResultsDiv = document.getElementById('user-search-results');
-                let searchDebounceTimer;
-
-                searchInput.addEventListener('input', function() {
-                    clearTimeout(searchDebounceTimer);
-                    const query = this.value.trim();
-                    if (query.length < 2) {
-                        searchResultsDiv.classList.add('hidden');
-                        return;
-                    }
-
-                    searchDebounceTimer = setTimeout(() => {
-                        fetch(`/api/users/search/?q=${encodeURIComponent(query)}`)
-                            .then(res => res.json())
-                            .then(data => {
-                                if (data.length > 0) {
-                                    searchResultsDiv.innerHTML = data.map(u => `
-                                        <div class="p-3 hover:bg-cyan/10 cursor-pointer border-b border-white/5 last:border-0" onclick="window.location.href='?q=${u.email}'">
-                                            <div class="font-bold text-sm text-white">${u.email}</div>
-                                            <div class="text-[10px] text-slate-500">${u.full_name || u.username}</div>
-                                        </div>
-                                    `).join('');
-                                    searchResultsDiv.classList.remove('hidden');
-                                } else {
-                                    searchResultsDiv.classList.add('hidden');
-                                }
-                            });
-                    }, 300);
-                });
-
-                document.addEventListener('click', (e) => {
-                    if (!searchInput.contains(e.target) && !searchResultsDiv.contains(e.target)) {
-                        searchResultsDiv.classList.add('hidden');
-                    }
-                });
-            </script>
-            
-            <div class="flex flex-wrap items-center justify-start xl:justify-end gap-3">
-                <div class="flex items-center bg-slate-900/50 border border-white/5 rounded-xl p-1 shadow-inner">
-                    <select name="target_tier" class="text-[11px] bg-transparent border-0 focus:ring-0 py-1.5 px-3 min-w-[120px] text-slate-300 font-bold">
+            <!-- Bulk Operations -->
+            <div class="flex flex-wrap items-center gap-3">
+                <div class="flex items-center gap-2 bg-slate-900/40 p-1.5 rounded-2xl border border-white/5">
+                    <select name="target_tier" class="bulk-select-modern px-4 py-2 focus:ring-0">
                         <option value="">تغيير الفئة...</option>
                         {% for val, label in tiers %}
                         <option value="{{ val }}">{{ label }}</option>
                         {% endfor %}
                     </select>
-                    <button type="submit" onclick="this.form.action.value='bulk_tier';" class="btn btn-primary btn-sm px-4 py-2 rounded-lg text-[10px] font-black uppercase">Apply</button>
+                    <button type="submit" onclick="document.getElementById('bulk-action-input').value='bulk_tier';" class="btn btn-primary h-9 px-4 rounded-xl text-[9px] font-black uppercase">تطبيق</button>
                 </div>
 
-                <div class="flex items-center bg-slate-900/50 border border-white/5 rounded-xl p-1 shadow-inner">
-                    <select name="target_role" class="text-[11px] bg-transparent border-0 focus:ring-0 py-1.5 px-3 min-w-[120px] text-slate-300 font-bold">
-                        <option value="">تغيير الدور...</option>
+                <div class="flex items-center gap-2 bg-slate-900/40 p-1.5 rounded-2xl border border-white/5">
+                    <select name="target_role" class="bulk-select-modern px-4 py-2 focus:ring-0">
+                        <option value="">تغيير الرتبة...</option>
                         {% for val, label in roles %}
                         <option value="{{ val }}">{{ label }}</option>
                         {% endfor %}
                     </select>
-                    <button type="submit" onclick="this.form.action.value='bulk_role';" class="btn btn-primary btn-sm px-4 py-2 rounded-lg text-[10px] font-black uppercase">Apply</button>
+                    <button type="submit" onclick="document.getElementById('bulk-action-input').value='bulk_role';" class="btn btn-primary h-9 px-4 rounded-xl text-[9px] font-black uppercase">تطبيق</button>
                 </div>
-                
-                <a href="?export=excel" class="btn btn-outline btn-sm px-4 py-2 rounded-xl text-[10px] border-white/5 hover:bg-white/5 font-black uppercase">
-                    Export
-                </a>
             </div>
         </div>
     </div>
-    
-    <div class="p-0 overflow-x-auto">
-        <table class="w-full text-sm text-right">
-            <thead class="text-[11px] text-slate-500 border-b border-white/5 uppercase bg-white/[0.01]">
+
+    <!-- Users Table -->
+    <div class="overflow-x-auto">
+        <table class="w-full text-right text-sm">
+            <thead class="table-header-modern">
                 <tr>
-                    <th class="p-4 w-10"><input type="checkbox" id="select-all" class="rounded border-white/10 bg-white/5"></th>
-                    <th class="p-4">المستخدم</th>
-                    <th class="p-4">الرصيد / الديون</th>
-                    <th class="p-4">الفئة</th>
-                    <th class="p-4">آخر نشاط / IP</th>
-                    <th class="p-4">الحالة</th>
-                    <th class="p-4">تاريخ الانضمام</th>
-                    <th class="p-4 text-left">إجراءات</th>
+                    <th class="p-5 w-12 text-center">
+                        <input type="checkbox" id="select-all" class="w-4 h-4 rounded border-white/10 bg-white/5 text-cyan focus:ring-0">
+                    </th>
+                    <th class="p-5 text-[10px] font-black text-slate-500 uppercase tracking-widest">المستخدم</th>
+                    <th class="p-5 text-[10px] font-black text-slate-500 uppercase tracking-widest text-center">الرصيد / الديون</th>
+                    <th class="p-5 text-[10px] font-black text-slate-500 uppercase tracking-widest text-center">الفئة والرتبة</th>
+                    <th class="p-5 text-[10px] font-black text-slate-500 uppercase tracking-widest text-center">الأمان والنشاط</th>
+                    <th class="p-5 text-[10px] font-black text-slate-500 uppercase tracking-widest text-center">الحالة</th>
+                    <th class="p-5 text-[10px] font-black text-slate-500 uppercase tracking-widest text-left">الإجراءات</th>
                 </tr>
             </thead>
-            <tbody>
+            <tbody class="divide-y divide-white/[0.03]">
                 {% for user in users %}
-                <tr class="border-b border-white/[0.02] last:border-0 hover:bg-white/[0.02] transition">
-                    <td class="p-4"><input type="checkbox" name="user_ids" value="{{ user.id }}" class="user-checkbox rounded border-white/10 bg-white/5"></td>
-                    <td class="p-4">
-                        <div class="flex items-center gap-3">
-                            <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-slate-800 to-slate-900 flex items-center justify-center text-xs font-bold text-slate-400 border border-white/5 shadow-inner">
+                <tr class="user-row transition-colors">
+                    <td class="p-5 text-center">
+                        <input type="checkbox" name="user_ids" value="{{ user.id }}" class="user-checkbox w-4 h-4 rounded border-white/10 bg-white/5 text-cyan focus:ring-0">
+                    </td>
+                    <td class="p-5">
+                        <div class="flex items-center gap-4">
+                            <div class="w-11 h-11 rounded-2xl bg-gradient-to-br from-slate-800 to-slate-900 border border-white/5 flex items-center justify-center text-sm font-black text-slate-400">
                                 {{ user.email|slice:":1"|upper }}
                             </div>
                             <div>
-                                <div class="font-bold text-slate-200">{{ user.get_full_name|default:user.username|default:"بدون اسم" }}</div>
-                                <div class="text-[10px] text-slate-500 flex items-center gap-1">
-                                    <i class="far fa-envelope opacity-50"></i> {{ user.email }}
-                                </div>
+                                <div class="font-black text-white text-sm mb-0.5">{{ user.get_full_name|default:user.username }}</div>
+                                <div class="text-[10px] text-slate-500 font-mono">{{ user.email }}</div>
                             </div>
                         </div>
                     </td>
-                    <td class="p-4">
-                        <div class="flex flex-col">
-                            <div class="font-mono text-cyan flex items-center gap-1">
-                                <span class="text-[10px] opacity-50 font-sans">Available:</span>
-                                {{ user.wallet.available_balance }}
+                    <td class="p-5">
+                        <div class="flex flex-col items-center gap-1.5">
+                            <div class="flex items-center gap-2 bg-emerald-500/5 px-3 py-1.5 rounded-xl border border-emerald-500/10">
+                                <span class="text-[9px] font-black text-emerald-500/60 uppercase">متاح</span>
+                                <span class="font-mono text-xs font-black text-emerald-400">{{ user.wallet.available_balance }}</span>
                             </div>
                             {% if user.wallet.debt_balance > 0 %}
-                            <div class="font-mono text-danger flex items-center gap-1 mt-1">
-                                <span class="text-[10px] opacity-50 font-sans">Debt:</span>
-                                {{ user.wallet.debt_balance }}
+                            <div class="flex items-center gap-2 bg-rose-500/5 px-3 py-1.5 rounded-xl border border-rose-500/10">
+                                <span class="text-[9px] font-black text-rose-500/60 uppercase">ديون</span>
+                                <span class="font-mono text-xs font-black text-rose-400">{{ user.wallet.debt_balance }}</span>
                             </div>
-                            {% else %}
-                            <div class="text-[9px] text-slate-600 mt-1">No outstanding debt</div>
                             {% endif %}
                         </div>
                     </td>
-                    <td class="p-4">
-                        <div class="flex flex-col gap-1">
-                            <span class="badge primary text-[9px] w-fit font-bold uppercase tracking-wider">{{ user.get_tier_display }}</span>
-                            <span class="text-[10px] text-slate-500">{{ user.get_role_display }}</span>
+                    <td class="p-5">
+                        <div class="flex flex-col items-center gap-1.5">
+                            <span class="badge-modern badge-cyan">{{ user.get_tier_display }}</span>
+                            <span class="text-[10px] font-bold text-slate-500 uppercase">{{ user.get_role_display }}</span>
                         </div>
                     </td>
-                    <td class="p-4">
-                        {% if user.last_ip %}
-                        <div class="flex flex-col">
-                            <div class="font-mono text-[11px] text-slate-300">{{ user.last_ip }}</div>
-                            <div class="text-[10px] text-cyan flex items-center gap-1">
-                                <i class="fas fa-location-dot text-[8px]"></i>
+                    <td class="p-5">
+                        <div class="flex flex-col items-center gap-1.5">
+                            {% if user.last_ip %}
+                            <div class="font-mono text-[10px] text-slate-300">{{ user.last_ip }}</div>
+                            <div class="text-[9px] text-cyan font-bold flex items-center gap-1">
+                                <i class="fas fa-location-dot text-[7px]"></i>
                                 {{ user.last_country }} - {{ user.last_city }}
                             </div>
+                            {% else %}
+                            <span class="text-[9px] text-slate-600 italic">لا بيانات</span>
+                            {% endif %}
+                            
+                            <!-- Security Pulse -->
+                            <div class="flex items-center gap-2 mt-1">
+                                <span class="text-[9px] text-slate-500">محاولات OTP:</span>
+                                <span class="text-[9px] font-black {% if user.otp_failed_attempts > 0 %}text-rose-500{% else %}text-emerald-500{% endif %}">
+                                    {{ user.otp_failed_attempts }}
+                                </span>
+                            </div>
                         </div>
-                        {% else %}
-                        <span class="text-[10px] text-slate-600 italic">No data yet</span>
-                        {% endif %}
                     </td>
-                    <td class="p-4">
-                        <span class="flex items-center gap-2">
-                            <span class="w-2 h-2 rounded-full {% if user.status == 'active' %}bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.4)]{% elif user.status == 'suspended' %}bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.4)]{% else %}bg-rose-500 shadow-[0_0_8px_rgba(244,63,94,0.4)]{% endif %}"></span>
-                            <span class="text-xs {% if user.status == 'active' %}text-emerald-400{% elif user.status == 'suspended' %}text-amber-400{% else %}text-rose-400{% endif %}">
-                                {{ user.get_status_display }}
-                            </span>
-                        </span>
+                    <td class="p-5">
+                        <div class="flex flex-col items-center gap-2">
+                            <div class="flex items-center gap-2">
+                                <span class="w-2 h-2 rounded-full animate-pulse {% if user.status == 'active' %}bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.5)]{% elif user.status == 'suspended' %}bg-amber-500 shadow-[0_0_10px_rgba(245,158,11,0.5)]{% else %}bg-rose-500 shadow-[0_0_10px_rgba(244,63,94,0.5)]{% endif %}"></span>
+                                <span class="text-[11px] font-black {% if user.status == 'active' %}text-emerald-400{% elif user.status == 'suspended' %}text-amber-400{% else %}text-rose-400{% endif %}">
+                                    {{ user.get_status_display }}
+                                </span>
+                            </div>
+                            <span class="text-[9px] text-slate-600 font-bold uppercase tracking-tighter">Joined: {{ user.date_joined|date:"d M Y" }}</span>
+                        </div>
                     </td>
-                    <td class="p-4 text-[10px] text-slate-500">
-                        {{ user.date_joined|date:"d M Y" }}
-                    </td>
-                    <td class="p-4 text-left">
-                        <div class="flex justify-end gap-2">
-                            <a href="{% url 'control_user_moderate' user.public_uuid %}" class="btn btn-sm btn-outline text-[10px] py-1 px-4 hover:bg-cyan hover:text-black transition">
-                                <i class="fas fa-shield-alt ml-1"></i> إدارة
+                    <td class="p-5 text-left">
+                        <div class="flex justify-end">
+                            <a href="{% url 'control_user_moderate' user.public_uuid %}" class="btn btn-sm h-9 px-6 rounded-xl border-white/5 bg-white/5 hover:bg-cyan hover:text-black font-black uppercase text-[9px] transition-all">
+                                <i class="fas fa-shield-halved ml-2"></i> إدارة
                             </a>
                         </div>
                     </td>
                 </tr>
                 {% empty %}
-                <tr>
-                    <td colspan="6" class="p-12 text-center text-slate-500 italic">لا يوجد مستخدمون مطابقون للبحث.</td>
-                </tr>
+                <tr><td colspan="7" class="p-20 text-center text-slate-600 italic font-bold">لا يوجد مستخدمون يطابقون معايير البحث الحالية.</td></tr>
                 {% endfor %}
             </tbody>
         </table>
@@ -201,11 +176,50 @@
 </form>
 
 <script>
+    // Bulk Select Logic
     document.getElementById('select-all').onclick = function() {
         var checkboxes = document.querySelectorAll('.user-checkbox');
         for (var checkbox of checkboxes) {
             checkbox.checked = this.checked;
         }
     }
+
+    // Modern Search Logic (Real-time Feedback)
+    const searchInput = document.getElementById('user-search-q');
+    const searchResultsDiv = document.getElementById('user-search-results');
+    let searchDebounceTimer;
+
+    searchInput.addEventListener('input', function() {
+        clearTimeout(searchDebounceTimer);
+        const query = this.value.trim();
+        if (query.length < 2) {
+            searchResultsDiv.classList.add('hidden');
+            return;
+        }
+
+        searchDebounceTimer = setTimeout(() => {
+            fetch(`/api/users/search/?q=${encodeURIComponent(query)}`)
+                .then(res => res.json())
+                .then(data => {
+                    if (data.length > 0) {
+                        searchResultsDiv.innerHTML = data.map(u => `
+                            <div class="p-4 hover:bg-cyan/10 cursor-pointer border-b border-white/5 last:border-0 transition-colors" onclick="window.location.href='?q=${u.email}'">
+                                <div class="font-black text-sm text-white">${u.email}</div>
+                                <div class="text-[10px] text-slate-500 font-bold uppercase">${u.full_name || u.username}</div>
+                            </div>
+                        `).join('');
+                        searchResultsDiv.classList.remove('hidden');
+                    } else {
+                        searchResultsDiv.classList.add('hidden');
+                    }
+                });
+        }, 300);
+    });
+
+    document.addEventListener('click', (e) => {
+        if (!searchInput.contains(e.target) && !searchResultsDiv.contains(e.target)) {
+            searchResultsDiv.classList.add('hidden');
+        }
+    });
 </script>
 {% endblock %}
