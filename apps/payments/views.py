@@ -59,11 +59,6 @@ class DepositRequestViewSet(viewsets.ModelViewSet):
         with transaction.atomic():
             deposit = DepositRequest.objects.select_for_update().get(pk=pk)
             
-            # Debugging status
-            import logging
-            logger = logging.getLogger(__name__)
-            logger.error(f"Approving deposit {deposit.id}. Current status: {deposit.status}")
-
             if deposit.status == DepositRequest.Status.COMPLETED:
                 return response.Response({"detail": "تم اعتماد هذا الطلب مسبقاً."}, status=status.HTTP_400_BAD_REQUEST)
             
@@ -72,33 +67,19 @@ class DepositRequestViewSet(viewsets.ModelViewSet):
 
             # Check for admin override amount
             override_amount = request.data.get("amount")
-            if override_amount:
-                deposit.final_amount = Decimal(str(override_amount))
+            final_amount = Decimal(str(override_amount)) if override_amount else deposit.final_amount
             
-            deposit.status = DepositRequest.Status.COMPLETED
-            deposit.reviewed_by = request.user
-            deposit.reviewed_at = timezone.now()
-            deposit.save(update_fields=["status", "reviewed_by", "reviewed_at", "updated_at", "final_amount"])
-
-            wallet = get_or_create_wallet(deposit.user)
             # Calculate final wallet amount (amount - fee) converted to wallet currency
-            # If override_amount used, need to recalculate based on it.
-            # But here `deposit.final_amount` is used for calculation.
             if deposit.amount > 0:
-                wallet_final_amount = (deposit.final_amount / deposit.amount) * deposit.wallet_amount
+                wallet_final_amount = (final_amount / deposit.amount) * deposit.wallet_amount
             else:
-                # Handle edge case where amount is 0 to avoid division by zero
                 wallet_final_amount = deposit.wallet_amount
 
-            # Log details before calling credit_wallet
-            import logging
-            logger = logging.getLogger(__name__)
-            logger.error(f"Approving deposit {deposit.id}. Amount: {deposit.amount}, Final: {deposit.final_amount}, Wallet_amt: {deposit.wallet_amount}, Calculated: {wallet_final_amount}")
-            
             if wallet_final_amount <= 0:
-                logger.error(f"CRITICAL: Attempting to credit invalid amount {wallet_final_amount} to wallet {wallet.id}")
-                return response.Response({"detail": "خطأ في حساب المبلغ المودع."}, status=status.HTTP_400_BAD_REQUEST)
+                return response.Response({"detail": "خطأ في حساب المبلغ المودع: يجب أن يكون المبلغ أكبر من صفر."}, status=status.HTTP_400_BAD_REQUEST)
 
+            # 1. Credit wallet FIRST
+            wallet = get_or_create_wallet(deposit.user)
             credit_wallet(
                 wallet_id=wallet.id,
                 amount=wallet_final_amount,
@@ -110,6 +91,13 @@ class DepositRequestViewSet(viewsets.ModelViewSet):
                     "pending_amount": deposit.wallet_amount
                 }
             )
+
+            # 2. Update deposit status ONLY IF credit succeeds
+            deposit.final_amount = final_amount
+            deposit.status = DepositRequest.Status.COMPLETED
+            deposit.reviewed_by = request.user
+            deposit.reviewed_at = timezone.now()
+            deposit.save(update_fields=["status", "reviewed_by", "reviewed_at", "updated_at", "final_amount"])
             
             notify_user(
                 user=deposit.user,
