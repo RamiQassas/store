@@ -130,6 +130,7 @@ def v3_init_verification(request, user, action_type):
     request.session["v3_auth_uid"] = str(user.id)
     request.session["v3_auth_methods"] = methods
     request.session["v3_auth_purpose"] = action_type
+    request.session["v3_auth_next"] = request.get_full_path()
     
     first_method = methods[0]
     if first_method == "EMAIL":
@@ -157,7 +158,8 @@ def v3_verify_sp_view(request):
     
     if request.method == "POST":
         password = request.POST.get("password")
-        if user.security_password and check_password_hash(password, user.security_password):
+        from django.contrib.auth.hashers import check_password
+        if user.security_password and check_password(password, user.security_password):
             remaining = [m for m in methods if m != "SP"]
             request.session["v3_auth_methods"] = remaining
             
@@ -171,7 +173,8 @@ def v3_verify_sp_view(request):
             
             # All verified
             if not request.user.is_authenticated:
-                login(request, user, backend='django.contrib.auth.backends.ModelBackend')
+                user.backend = 'django.contrib.auth.backends.ModelBackend'
+                login(request, user)
             
             request.session["v3_action_verified_at"] = timezone.now().isoformat()
             
@@ -193,9 +196,12 @@ def v3_verify_sp_view(request):
                     del request.session["v3_pending_action_id"]
                     return redirect("dashboard_withdrawals")
 
-            keys = ["v3_auth_uid", "v3_auth_methods", "v3_auth_purpose", "v3_new_email", "v3_pending_action_id"]
+            next_url = request.session.get("v3_auth_next")
+            keys = ["v3_auth_uid", "v3_auth_methods", "v3_auth_purpose", "v3_new_email", "v3_pending_action_id", "v3_auth_next"]
             for k in keys:
                 if k in request.session: del request.session[k]
+                
+            if next_url: return redirect(next_url)
             return redirect("control_dashboard" if user.is_staff else "dashboard")
             
         messages.error(request, "كلمة مرور الحماية غير صحيحة.")
@@ -761,16 +767,24 @@ def catalog(request):
 
 def v3_check_sp_grace_period(request):
     """
-    Checks if the user has verified their security password in the last 5 minutes.
+    Checks if the user has verified their security password or performed any 
+    security verification in the last 5 minutes.
     """
-    last_verified = request.session.get("v3_sp_verified_at")
-    if last_verified:
-        try:
-            from django.utils.dateparse import parse_datetime
-            dt = parse_datetime(last_verified)
-            if dt and (timezone.now() - dt).total_seconds() < 300: # 5 minutes
-                return True
-        except: pass
+    # Check both specific SP verification and global action verification
+    keys = ["v3_sp_verified_at", "v3_action_verified_at"]
+    for key in keys:
+        last_verified = request.session.get(key)
+        if last_verified:
+            try:
+                from django.utils.dateparse import parse_datetime
+                dt = parse_datetime(last_verified)
+                if not dt: # Try ISO format if parse_datetime fails
+                    from datetime import datetime
+                    dt = datetime.fromisoformat(last_verified)
+                
+                if dt and (timezone.now() - dt).total_seconds() < 300: # 5 minutes
+                    return True
+            except: pass
     return False
 
 @login_required
