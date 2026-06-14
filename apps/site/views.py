@@ -13,6 +13,7 @@ from datetime import timedelta
 from django.contrib import messages
 from django.contrib.auth import authenticate, login, logout, update_session_auth_hash
 from django.contrib.auth.decorators import login_required
+from django.core.paginator import Paginator
 from django.db import transaction
 from django.db.models import Q, Count
 from django.http import HttpResponse, JsonResponse
