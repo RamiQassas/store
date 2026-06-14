@@ -378,7 +378,7 @@
         </div>
         
         <div class="payments-v6-grid">
-            {% for method in PAYMENT_METHODS %}
+            {% for method in payment_methods %}
                 {% if method.logo %}
                 <div class="payment-icon-v6" title="{{ method.name }}">
                     <img src="{{ method.logo.url }}" alt="{{ method.name }}">
