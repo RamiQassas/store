@@ -40,5 +40,6 @@ def preferred_currency(request):
         "SYSTEM_CURRENCY": system_currency,
         "WITHDRAWAL_RATE": pref_currency.sell_rate if pref_currency else 1.0,
         "SOCIAL_LINKS": SocialMediaLink.objects.filter(is_active=True).order_by("display_order"),
-        "PAYMENT_METHODS": payment_methods
+        "PAYMENT_METHODS": payment_methods,
+        "payment_methods": payment_methods
     }

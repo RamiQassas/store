@@ -93,7 +93,7 @@
                             <div class="font-black text-white text-xs">{{ deposit.user.email }}</div>
                             <div class="text-[9px] text-slate-500 font-bold">{{ deposit.created_at|date:"d M, H:i" }}</div>
                         </td>
-                        <td class="p-4 text-xs font-bold text-slate-400">{{ deposit.payment_method.name }}</td>
+                        <td class="p-4 text-xs font-bold text-slate-400">{{ deposit.payment_method.name|default:"N/A" }}</td>
                         <td class="p-4 font-black text-white text-xs">{{ deposit.amount }} {{ deposit.currency.code }}</td>
                         <td class="p-4 text-center">
                             <span class="badge {% if deposit.status == 'completed' %}success{% elif deposit.status == 'rejected' %}danger{% else %}primary{% endif %} text-[8px]">

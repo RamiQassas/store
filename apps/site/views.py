@@ -1164,7 +1164,7 @@ def control_dashboard(request):
     return render(request, "site/control_dashboard.html", {
         "stats": stats, 
         "recent_orders": Order.objects.select_related('customer').order_by('-created_at')[:5], 
-        "recent_deposits": DepositRequest.objects.filter(status=DepositRequest.Status.PENDING, is_verified=True).order_by('-created_at')[:5], 
+        "recent_deposits": DepositRequest.objects.filter(status=DepositRequest.Status.PENDING, is_verified=True).select_related('user', 'payment_method').order_by('-created_at')[:5], 
         "recent_users": User.objects.order_by('-date_joined')[:5]
     })
 
@@ -2715,70 +2715,6 @@ def control_geo_stats(request):
         "cities": city_stats,
         "total_users": total_users
     })
-    if request.method == "POST":
-        action = request.POST.get("action")
-        if action == "cleanup":
-            targets = request.POST.getlist("targets")
-            deleted_counts = {}
-            
-            with transaction.atomic():
-                if "orders" in targets:
-                    from apps.orders.models import Order, OrderItem, OrderLog
-                    c1 = OrderItem.objects.all().delete()[0]
-                    c2 = OrderLog.objects.all().delete()[0]
-                    c3 = Order.objects.all().delete()[0]
-                    deleted_counts["الطلبات والمبيعات"] = c1 + c2 + c3
-                    
-                if "financials" in targets:
-                    from apps.payments.models import DepositRequest, WithdrawalRequest
-                    from apps.wallets.models import WalletTransaction, LedgerEntry
-                    c1 = DepositRequest.objects.all().delete()[0]
-                    c2 = WithdrawalRequest.objects.all().delete()[0]
-                    c3 = WalletTransaction.objects.all().delete()[0]
-                    c4 = LedgerEntry.objects.all().delete()[0]
-                    deleted_counts["العمليات المالية"] = c1 + c2 + c3 + c4
-                    
-                if "kyc" in targets:
-                    from apps.accounts.models import KYCRequest
-                    c1 = KYCRequest.objects.all().delete()[0]
-                    deleted_counts["طلبات التوثيق"] = c1
-                    
-                if "reset_limits" in targets:
-                    from apps.payments.models import PaymentMethod
-                    from apps.accounts.models import User
-                    
-                    # Reset Payment Methods
-                    PaymentMethod.objects.all().update(
-                        daily_deposit_usage=Decimal("0.00"),
-                        daily_withdrawal_usage=Decimal("0.00"),
-                        last_limit_reset=timezone.now()
-                    )
-                    
-                    # Reset Users
-                    User.objects.all().update(
-                        daily_deposit_usage=Decimal("0.00"),
-                        daily_withdrawal_usage=Decimal("0.00"),
-                        last_limit_reset=timezone.now()
-                    )
-                    deleted_counts["حدود الاستخدام اليومية (الجميع)"] = "تم التصفير"
-                    
-                if "users" in targets:
-                    # Delete ONLY customers, keep staff/admins
-                    c1 = User.objects.filter(role=User.Role.CUSTOMER).delete()[0]
-                    deleted_counts["المستخدمين (غير المدراء)"] = c1
-                    
-                if "catalog" in targets:
-                    from apps.catalog.models import Product, Category, ProductVariant
-                    c1 = ProductVariant.objects.all().delete()[0]
-                    c2 = Product.objects.all().delete()[0]
-                    c3 = Category.objects.all().delete()[0]
-                    deleted_counts["الكتالوج (المنتجات والأصناف)"] = c1 + c2 + c3
-
-            msg = "تم تصفير البيانات المختارة بنجاح: " + ", ".join([f"{k} ({v})" for k, v in deleted_counts.items()])
-            messages.success(request, msg)
-            return redirect("control_db_maintenance")
-            
-    return render(request, "site/control_db_maintenance.html")
 
 def export_financial_report_xlsx(ctx, filters):
     try:
