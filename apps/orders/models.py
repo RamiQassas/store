@@ -41,6 +41,17 @@ class Coupon(TimeStampedModel):
     allow_area_type = models.CharField(max_length=20, choices=AreaType.choices, default=AreaType.RESIDENCE, verbose_name="نوع المطابقة الجغرافية")
     limit_to_place_of_birth = models.CharField(max_length=255, blank=True, verbose_name="محدد لمحل الولادة (كلمة دلالية)")
 
+    # New Logic (Task 3)
+    class MatchMode(models.TextChoices):
+        ALL = "all", "يجب تحقق جميع الشروط (AND)"
+        ANY = "any", "يكفي تحقق أي شرط واحد (OR)"
+        
+    match_mode = models.CharField(max_length=10, choices=MatchMode.choices, default=MatchMode.ALL, verbose_name="طريقة المطابقة")
+
+    # IP-based Geographic matching (Task 2)
+    limit_to_ip_countries = models.JSONField(default=list, blank=True, verbose_name="محدد لدول معينة (IP-based)")
+    limit_to_ip_cities = models.JSONField(default=list, blank=True, verbose_name="محدد لمدن/مناطق معينة (IP-based)")
+
     class Meta:
         verbose_name = "كوبون"
         verbose_name_plural = "الكوبونات"

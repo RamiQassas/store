@@ -371,14 +371,18 @@
             </div>
         </div>
         
-        <div class="flex flex-col md:row justify-between items-center pt-10 border-t border-white/5 gap-4">
+        <div class="flex flex-col md:flex-row justify-between items-center pt-10 border-t border-white/5 gap-8">
             <div class="text-[10px] text-slate-600 font-bold tracking-wider">© 2026 جميع الحقوق محفوظة لشركة رقميات المحدودة.</div>
-            <div class="flex items-center gap-3 opacity-40 grayscale hover:opacity-100 hover:grayscale-0 transition-all duration-500">
-                {% for method in PAYMENT_METHODS %}
-                    {% if method.logo %}
-                    <img src="{{ method.logo.url }}" alt="{{ method.name }}" class="object-contain hover:scale-110 transition-transform cursor-help" style="height: 20px !important; width: auto !important; max-width: 60px;" title="{{ method.name }}">
-                    {% endif %}
-                {% endfor %}
+            
+            <div class="flex flex-col items-center md:items-end gap-4">
+                <h4 class="text-[10px] font-black uppercase tracking-widest text-slate-500">طرق الدفع المتوفرة</h4>
+                <div class="flex flex-wrap justify-center md:justify-end items-center gap-6">
+                    {% for method in PAYMENT_METHODS %}
+                        {% if method.logo %}
+                        <img src="{{ method.logo.url }}" alt="{{ method.name }}" class="object-contain hover:scale-110 transition-transform cursor-help grayscale opacity-50 hover:grayscale-0 hover:opacity-100" style="height: 48px !important; width: auto !important; max-width: 120px;" title="{{ method.name }}">
+                        {% endif %}
+                    {% endfor %}
+                </div>
             </div>
         </div>
       </div>

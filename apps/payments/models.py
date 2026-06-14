@@ -27,7 +27,7 @@ class PaymentMethod(TimeStampedModel):
     daily_withdrawal_usage = models.DecimalField(max_digits=14, decimal_places=2, default=Decimal("0.00"))
     last_limit_reset = models.DateTimeField(default=timezone.now)
 
-    # --- Global Cap (New Task 5) ---
+    # --- Global Cap ---
     global_deposit_cap = models.DecimalField(max_digits=14, decimal_places=2, default=Decimal("0.00"), verbose_name="الحد الإجمالي الأقصى للإيداعات", help_text="عند الوصول لهذا الحد، تتوقف الوسيلة تلقائياً. 0 تعني غير محدود.")
     global_deposit_usage = models.DecimalField(max_digits=14, decimal_places=2, default=Decimal("0.00"), verbose_name="إجمالي الإيداعات الحالية (للمتابعة والحد الأقصى)")
 
@@ -65,8 +65,23 @@ class PaymentMethod(TimeStampedModel):
 
     def add_deposit_usage(self, amount_in_usd):
         self.reset_daily_limits_if_needed()
-        self.daily_deposit_usage += Decimal(str(amount_in_usd))
-        self.save(update_fields=["daily_deposit_usage"])
+        amt = Decimal(str(amount_in_usd))
+        self.daily_deposit_usage += amt
+        self.global_deposit_usage += amt
+        
+        # Task 5: Check Global Cap
+        if self.global_deposit_cap > 0 and self.global_deposit_usage >= self.global_deposit_cap:
+            self.is_maintenance_mode = True
+            
+            # Send Notification to Staff
+            from apps.notifications.services import notify_staff
+            notify_staff(
+                title="تم الوصول للحد الإجمالي لوسيلة دفع",
+                body=f"وصلت وسيلة الدفع {self.name} إلى الحد الإجمالي المسموح ({self.global_deposit_cap} USD). تم تفعيل وضع الصيانة تلقائياً.",
+                action_url=f"/control/payment-methods/{self.id}/edit/"
+            )
+            
+        self.save(update_fields=["daily_deposit_usage", "global_deposit_usage", "is_maintenance_mode"])
 
     def add_withdrawal_usage(self, amount_in_usd):
         self.reset_daily_limits_if_needed()

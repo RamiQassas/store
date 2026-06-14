@@ -368,13 +368,15 @@ class CouponForm(forms.ModelForm):
     class Meta:
         model = Coupon
         fields = [
-            "code", "discount_type", "discount_percent", "discount_amount", "min_order_amount", "max_uses", "max_uses_per_user",
+            "code", "match_mode", "discount_type", "discount_percent", "discount_amount", "min_order_amount", "max_uses", "max_uses_per_user",
             "is_active", "is_verified_only", "expires_at",
             "limit_to_product", "apply_to_all_products",
-            "limit_to_users", "limit_to_area", "allow_area_type", "limit_to_place_of_birth"
+            "limit_to_users", "limit_to_area", "allow_area_type", "limit_to_place_of_birth",
+            "limit_to_ip_countries", "limit_to_ip_cities"
         ]
         widgets = {
             "code": forms.TextInput(attrs={"class": "builder-input", "placeholder": "WELCOME2026"}),
+            "match_mode": forms.Select(attrs={"class": "builder-input"}),
             "discount_type": forms.Select(attrs={"class": "builder-input", "onchange": "toggleDiscountFields()"}),
             "discount_percent": forms.NumberInput(attrs={"class": "builder-input", "step": "0.01"}),
             "discount_amount": forms.NumberInput(attrs={"class": "builder-input", "step": "0.01"}),
@@ -387,12 +389,22 @@ class CouponForm(forms.ModelForm):
             "limit_to_area": forms.TextInput(attrs={"class": "builder-input", "placeholder": "كلمة دلالية للبحث في العنوان"}),
             "allow_area_type": forms.Select(attrs={"class": "builder-input"}),
             "limit_to_place_of_birth": forms.TextInput(attrs={"class": "builder-input", "placeholder": "كلمة دلالية للبحث في محل الولادة"}),
+            "limit_to_ip_countries": forms.SelectMultiple(choices=COUNTRIES, attrs={"class": "builder-input select2", "style": "height: 100px;"}),
+            "limit_to_ip_cities": forms.TextInput(attrs={"class": "builder-input", "placeholder": "مثال: Istanbul, Aleppo (مفصولة بفاصلة)"}),
         }
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         if self.instance and self.instance.limit_to_tiers:
             self.fields["limit_to_tiers_list"].initial = self.instance.limit_to_tiers
+        if self.instance and self.instance.limit_to_ip_cities:
+            self.fields["limit_to_ip_cities"].initial = ", ".join(self.instance.limit_to_ip_cities)
+
+    def clean_limit_to_ip_cities(self):
+        val = self.cleaned_data.get("limit_to_ip_cities", "")
+        if isinstance(val, str):
+            return [v.strip() for v in val.split(",") if v.strip()]
+        return val
 
     def save(self, commit=True):
         instance = super().save(commit=False)

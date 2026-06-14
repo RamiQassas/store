@@ -1,0 +1,71 @@
+{% extends "site/control_base.html" %}
+
+{% block title %}إحصائيات المواقع الجغرافية | Raqamiyat Admin{% endblock %}
+
+{% block control_content %}
+<div class="page-head">
+    <div>
+        <span class="eyebrow">Geographic Analytics</span>
+        <h1>توزيع المستخدمين جغرافياً</h1>
+        <p class="text-muted">إحصائيات تقريبية بناءً على آخر عناوين IP تم تسجيل الدخول منها.</p>
+    </div>
+</div>
+
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-8 mt-8">
+    <!-- Country Stats -->
+    <div class="lg:col-span-2 panel p-8 bg-slate-900/40 border-white/5 rounded-3xl">
+        <h3 class="text-lg font-black mb-6 flex items-center gap-3">
+            <i class="fas fa-globe-africa text-cyan"></i>
+            أعلى الدول انتشاراً
+        </h3>
+        
+        <div class="stack gap-6">
+            {% for c in countries %}
+            <div class="group">
+                <div class="flex justify-between items-center mb-2">
+                    <div class="flex items-center gap-3">
+                        <span class="text-sm font-bold text-white">{{ c.name }}</span>
+                        <span class="text-[10px] text-slate-500">{{ c.count }} مستخدم</span>
+                    </div>
+                    <span class="text-xs font-black text-cyan">{{ c.percent }}%</span>
+                </div>
+                <div class="w-full h-2 bg-white/5 rounded-full overflow-hidden">
+                    <div class="h-full bg-gradient-to-r from-cyan to-blue-500 rounded-full transition-all duration-1000" style="width: {{ c.percent }}%"></div>
+                </div>
+            </div>
+            {% empty %}
+            <div class="p-12 text-center text-slate-600 italic">لا توجد بيانات جغرافية كافية حالياً.</div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- City Stats -->
+    <div class="panel p-8 bg-slate-900/40 border-white/5 rounded-3xl">
+        <h3 class="text-lg font-black mb-6 flex items-center gap-3">
+            <i class="fas fa-city text-amber-500"></i>
+            أكثر المدن نشاطاً
+        </h3>
+        
+        <div class="stack gap-4">
+            {% for city in cities %}
+            <div class="flex justify-between items-center p-4 bg-white/[0.02] border border-white/5 rounded-2xl hover:bg-white/[0.05] transition">
+                <div>
+                    <div class="font-bold text-white text-xs">{{ city.last_city }}</div>
+                    <div class="text-[10px] text-slate-500">{{ city.last_country }}</div>
+                </div>
+                <div class="text-xs font-mono text-amber-500 font-black">{{ city.count }}</div>
+            </div>
+            {% empty %}
+            <div class="p-12 text-center text-slate-600 italic">لا توجد بيانات مدن.</div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+<div class="mt-8 p-6 bg-cyan/5 border border-cyan/10 rounded-2xl">
+    <p class="text-[11px] text-cyan/60 flex items-center gap-2">
+        <i class="fas fa-info-circle"></i>
+        يتم تحديث هذه البيانات تلقائياً عند كل عملية تسجيل دخول ناجحة للمستخدمين. تعتمد الدقة على قواعد بيانات IP-to-Location.
+    </p>
+</div>
+{% endblock %}

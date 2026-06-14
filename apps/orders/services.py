@@ -20,9 +20,6 @@ def validate_coupon(coupon, user, variant, subtotal=None):
     if coupon.expires_at and coupon.expires_at < now:
         raise ValueError("انتهت صلاحية هذا الكوبون.")
         
-    if coupon.is_verified_only and not user.is_kyc_verified:
-        raise ValueError("هذا الكوبون مخصص للحسابات الموثقة فقط.")
-        
     if coupon.max_uses > 0 and coupon.used_count >= coupon.max_uses:
         raise ValueError("تم استخدام هذا الكوبون لأقصى عدد مسموح به.")
         
@@ -31,55 +28,92 @@ def validate_coupon(coupon, user, variant, subtotal=None):
     if user_uses >= coupon.max_uses_per_user:
         raise ValueError("لقد استخدمت هذا الكوبون مسبقاً.")
 
-    # Check minimum order amount
+    # Check minimum order amount (Always required if set)
     if subtotal and subtotal < coupon.min_order_amount:
         raise ValueError(f"الحد الأدنى للطلب لاستخدام هذا الكوبون هو {coupon.min_order_amount} USD")
+
+    # --- Match Logic (Task 3) ---
+    checks = [] # List of (condition_name, is_satisfied)
+    
+    # 1. KYC Check
+    if coupon.is_verified_only:
+        checks.append(("kyc", user.is_kyc_verified))
         
-    # Check user restrictions
-    if coupon.limit_to_users.exists() and not coupon.limit_to_users.filter(id=user.id).exists():
-        raise ValueError("هذا الكوبون غير مخصص لحسابك.")
-
-    # Check tier restrictions
-    if coupon.limit_to_tiers and user.tier not in coupon.limit_to_tiers:
-        from apps.accounts.models import User
-        tier_display = dict(User.Tier.choices).get(user.tier, user.tier)
-        raise ValueError(f"هذا الكوبون غير متاح لفئة {tier_display}.")
-
-    # Check area restrictions
+    # 2. User Restriction
+    if coupon.limit_to_users.exists():
+        checks.append(("user", coupon.limit_to_users.filter(id=user.id).exists()))
+        
+    # 3. Tier Restriction
+    if coupon.limit_to_tiers:
+        checks.append(("tier", user.tier in coupon.limit_to_tiers))
+        
+    # 4. Area Restrictions (KYC-based)
     if coupon.limit_to_area or coupon.limit_to_place_of_birth:
         kyc = getattr(user, 'kyc_request', None)
-        if not kyc:
-            raise ValueError("هذا الكوبون يتطلب حساباً موثقاً وتأكيد عنوان السكن.")
-        
-        area_valid = True
-        if coupon.limit_to_area:
-            match_res = coupon.limit_to_area.lower() in kyc.current_residence.lower()
-            if coupon.allow_area_type == Coupon.AreaType.RESIDENCE and not match_res:
-                area_valid = False
-            elif coupon.allow_area_type == Coupon.AreaType.BOTH and not match_res:
-                pass # Check birth below
-            elif coupon.allow_area_type == Coupon.AreaType.BIRTH:
-                pass
-        
-        if coupon.limit_to_place_of_birth:
-            match_birth = coupon.limit_to_place_of_birth.lower() in kyc.place_of_birth.lower()
-            if coupon.allow_area_type == Coupon.AreaType.BIRTH and not match_birth:
-                area_valid = False
-            elif coupon.allow_area_type == Coupon.AreaType.BOTH:
-                match_res = coupon.limit_to_area.lower() in kyc.current_residence.lower() if coupon.limit_to_area else False
-                if not match_res and not match_birth:
-                    area_valid = False
+        area_satisfied = False
+        if kyc:
+            if coupon.limit_to_area:
+                match_res = coupon.limit_to_area.lower() in kyc.current_residence.lower()
+                if coupon.allow_area_type == Coupon.AreaType.RESIDENCE and match_res:
+                    area_satisfied = True
+                elif coupon.allow_area_type == Coupon.AreaType.BOTH and match_res:
+                    area_satisfied = True
+            
+            if coupon.limit_to_place_of_birth:
+                match_birth = coupon.limit_to_place_of_birth.lower() in kyc.place_of_birth.lower()
+                if coupon.allow_area_type == Coupon.AreaType.BIRTH and match_birth:
+                    area_satisfied = True
+                elif coupon.allow_area_type == Coupon.AreaType.BOTH and match_birth:
+                    area_satisfied = True
+        checks.append(("area", area_satisfied))
 
-        if not area_valid:
-            raise ValueError("هذا الكوبون غير متاح لمنطقتك الجغرافية.")
+    # 5. IP-based Geographic matching (Task 2)
+    if coupon.limit_to_ip_countries or coupon.limit_to_ip_cities:
+        ip_satisfied = False
+        user_country = getattr(user, 'last_country', '').upper()
+        user_city = getattr(user, 'last_city', '').lower()
+        
+        if coupon.limit_to_ip_countries and user_country in [c.upper() for c in coupon.limit_to_ip_countries]:
+            ip_satisfied = True
+        
+        if coupon.limit_to_ip_cities and any(city.lower() in user_city for city in coupon.limit_to_ip_cities):
+            ip_satisfied = True
+            
+        checks.append(("ip_geo", ip_satisfied))
 
-    # Check product limit
+    # 6. Product Limit
     if not coupon.apply_to_all_products:
-        if coupon.limit_to_product and variant.product != coupon.limit_to_product:
-            raise ValueError(f"هذا الكوبون صالح فقط لمنتج: {coupon.limit_to_product.name}")
-        elif not coupon.limit_to_product:
-             raise ValueError("هذا الكوبون غير صالح لهذا المنتج.")
-             
+        product_match = False
+        if coupon.limit_to_product and variant.product == coupon.limit_to_product:
+            product_match = True
+        checks.append(("product", product_match))
+
+    # Evaluate checks based on match_mode
+    if not checks:
+        # No specific restrictions (beyond global ones like expiry/verified_only handled above)
+        pass 
+    else:
+        satisfied_count = sum(1 for name, satisfied in checks if satisfied)
+        
+        if coupon.match_mode == Coupon.MatchMode.ALL:
+            # ALL conditions must be met
+            if satisfied_count < len(checks):
+                # Find first failed condition for better error message
+                failed = [name for name, satisfied in checks if not satisfied][0]
+                error_msgs = {
+                    "kyc": "هذا الكوبون مخصص للحسابات الموثقة فقط.",
+                    "user": "هذا الكوبون غير مخصص لحسابك.",
+                    "tier": "هذا الكوبون غير متاح لفئتك.",
+                    "area": "هذا الكوبون غير متاح لمنطقتك الجغرافية (KYC).",
+                    "ip_geo": "هذا الكوبون غير متاح لموقعك الحالي.",
+                    "product": f"هذا الكوبون صالح فقط لمنتج: {coupon.limit_to_product.name if coupon.limit_to_product else 'منتج آخر'}"
+                }
+                raise ValueError(error_msgs.get(failed, "لا تتوفر شروط استخدام الكوبون."))
+        else:
+            # ANY condition is enough
+            if satisfied_count == 0:
+                raise ValueError("عذراً، هذا الكوبون غير متاح لك (لا تنطبق عليك أي من شروط الاستخدام).")
+
     # Calculate discount
     discount = Decimal("0.00")
     if subtotal:

@@ -2049,63 +2049,33 @@ def control_users_list(request):
     return render(request, "site/control_users_list.html", {"users": users, "query": q, "current_status": status, "tiers": User.Tier.choices})
 
 @support_required
+def control_product_toggle_featured(request, pk):
+    product = get_object_or_404(Product, pk=pk)
+    product.is_featured = not product.is_featured
+    product.save(update_fields=['is_featured'])
+    return JsonResponse({"status": "success", "is_featured": product.is_featured})
+
+@support_required
 def control_products_list(request):
     products = Product.objects.select_related('category').prefetch_related('variants').all().order_by('sort_order', 'name')
     q = request.GET.get('q', '').strip()
     view_mode = request.GET.get('view', 'list')
 
     if q:
-        # Check if q is a UUID-like string for ID search
-        is_uuid = False
-        try:
-            uuid.UUID(q)
-            is_uuid = True
-        except ValueError: pass
+        products = products.filter(
+            Q(name__icontains=q) | 
+            Q(category__name__icontains=q) | 
+            Q(id__icontains=q) |
+            Q(variants__sku__icontains=q) |
+            Q(variants__name__icontains=q)
+        ).distinct()
 
-        if is_uuid:
-            products = products.filter(id=q)
-        else:
-            products = products.filter(
-                Q(name__icontains=q) | 
-                Q(category__name__icontains=q) | 
-                Q(slug__icontains=q) | 
-                Q(variants__sku__icontains=q) | 
-                Q(variants__name__icontains=q)
-            ).distinct()
-
-    if request.GET.get("export") == "excel":
-        data = []
-        for p in products:
-            for v in p.variants.all():
-                data.append({
-                    "product_name": p.name,
-                    "category": p.category.name,
-                    "variant_name": v.name,
-                    "sku": v.sku,
-                    "price": v.price,
-                    "cost": v.cost,
-                    "is_active": "نشط" if v.is_active else "معطل"
-                })
-        columns = [
-            ("المنتج", lambda x: x["product_name"]),
-            ("التصنيف", lambda x: x["category"]),
-            ("الباقة", lambda x: x["variant_name"]),
-            ("SKU", lambda x: x["sku"]),
-            ("السعر", lambda x: x["price"]),
-            ("التكلفة", lambda x: x["cost"]),
-            ("الحالة", lambda x: x["is_active"]),
-        ]
-        return export_to_excel(data, "Products", columns)
-
-    # Pagination
-    from django.core.paginator import Paginator
-    per_page = 20 if view_mode == 'list' else 24
-    paginator = Paginator(products, per_page)
+    paginator = Paginator(products, 20)
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
 
     return render(request, "site/control_products_list.html", {
-        "products": page_obj, 
+        "products": page_obj,
         "query": q,
         "view_mode": view_mode
     })
@@ -2198,7 +2168,27 @@ def control_user_moderate(request, public_uuid):
             else:
                 messages.error(request, "فشل إرسال البريد الإلكتروني.")
             return redirect("control_user_moderate", public_uuid=public_uuid)
-        elif form.is_valid(): form.save(); messages.success(request, "تم التحديث."); return redirect("control_users_list")
+        elif action == "reset_limits":
+            user.daily_deposit_usage = Decimal("0.00")
+            user.daily_withdrawal_usage = Decimal("0.00")
+            user.last_limit_reset = timezone.now()
+            user.save(update_fields=["daily_deposit_usage", "daily_withdrawal_usage", "last_limit_reset"])
+            messages.success(request, "تم تصفير جميع حدود الاستخدام اليومي للمستخدم.")
+            return redirect("control_user_moderate", public_uuid=public_uuid)
+
+        elif action == "reset_method_limit":
+            method_id = request.POST.get("method_id")
+            if user.has_custom_limits and method_id in user.custom_payment_limits:
+                # Remove custom limit for this method
+                user.custom_payment_limits.pop(method_id, None)
+                user.save(update_fields=["custom_payment_limits"])
+                messages.success(request, f"تم حذف الحد المخصص للوسيلة المحددة للمستخدم.")
+            return redirect("control_user_moderate", public_uuid=public_uuid)
+
+        elif form.is_valid():
+            form.save()
+            messages.success(request, "تم التحديث.")
+            return redirect("control_users_list")
     return render(request, "site/control_user_moderate.html", {"form": form, "user_to_moderate": user})
 
 @admin_required
@@ -2224,6 +2214,14 @@ def currency_edit(request, pk):
 
 @support_required
 def control_products_list(request): return render(request, "site/control_products_list.html", {"products": Product.objects.select_related('category').prefetch_related('variants').all().order_by('sort_order', 'name')})
+
+@support_required
+def control_category_create_ajax(request):
+    name = request.POST.get("name")
+    if name:
+        cat = Category.objects.create(name=name)
+        return JsonResponse({"status": "success", "id": str(cat.id), "name": cat.name})
+    return JsonResponse({"status": "error"}, status=400)
 
 @support_required
 @transaction.atomic
@@ -2332,9 +2330,25 @@ def control_social_media(request):
 def control_social_media_delete(request, pk): get_object_or_404(SocialMediaLink, pk=pk).delete(); return redirect("control_social_media")
 
 @support_required
-def control_category_create_ajax(request):
-    if request.POST.get('name'): cat = Category.objects.create(name=request.POST.get('name')); return JsonResponse({"id": str(cat.id), "name": cat.name})
-    return JsonResponse({"error": "Name required"}, status=400)
+def ajax_user_search(request):
+    q = request.GET.get('q', '').strip()
+    if len(q) < 2:
+        return JsonResponse({"results": []})
+    
+    users = User.objects.filter(
+        Q(email__icontains=q) | 
+        Q(phone__icontains=q) | 
+        Q(first_name__icontains=q) | 
+        Q(last_name__icontains=q)
+    ).distinct()[:20]
+    
+    results = []
+    for u in users:
+        results.append({
+            "id": str(u.id),
+            "text": f"{u.get_full_name() or 'No Name'} ({u.email}) - {u.phone or 'No Phone'}"
+        })
+    return JsonResponse({"results": results})
 
 @finance_required
 def control_wallets_list(request):
@@ -2625,12 +2639,112 @@ def control_db_maintenance(request):
                     c1 = KYCRequest.objects.all().delete()[0]
                     deleted_counts["طلبات التوثيق"] = c1
                     
-                if "logs" in targets:
-                    from apps.accounts.models import ActivityLog
-                    from apps.notifications.models import Notification
-                    c1 = ActivityLog.objects.all().delete()[0]
-                    c2 = Notification.objects.all().delete()[0]
-                    deleted_counts["سجلات النشاط والتنبيهات"] = c1 + c2
+                if "reset_limits" in targets:
+                    from apps.payments.models import PaymentMethod
+                    from apps.accounts.models import User
+                    
+                    # Reset Payment Methods
+                    PaymentMethod.objects.all().update(
+                        daily_deposit_usage=Decimal("0.00"),
+                        daily_withdrawal_usage=Decimal("0.00"),
+                        last_limit_reset=timezone.now()
+                    )
+                    
+                    # Reset Users
+                    User.objects.all().update(
+                        daily_deposit_usage=Decimal("0.00"),
+                        daily_withdrawal_usage=Decimal("0.00"),
+                        last_limit_reset=timezone.now()
+                    )
+                    deleted_counts["حدود الاستخدام اليومية (الجميع)"] = "تم التصفير"
+                    
+                if "users" in targets:
+                    c1 = User.objects.filter(role=User.Role.CUSTOMER).delete()[0]
+                    deleted_counts["المستخدمين (غير المدراء)"] = c1
+                    
+                if "catalog" in targets:
+                    from apps.catalog.models import Product, Category, ProductVariant
+                    c1 = ProductVariant.objects.all().delete()[0]
+                    c2 = Product.objects.all().delete()[0]
+                    c3 = Category.objects.all().delete()[0]
+                    deleted_counts["الكتالوج (المنتجات والأصناف)"] = c1 + c2 + c3
+
+            msg = "تم تصفير البيانات المختارة بنجاح: " + ", ".join([f"{k} ({v})" for k, v in deleted_counts.items()])
+            messages.success(request, msg)
+            return redirect("control_db_maintenance")
+            
+    return render(request, "site/control_db_maintenance.html")
+
+@admin_required
+def control_geo_stats(request):
+    from django.db.models import Count
+    
+    # 1. Country Stats
+    country_stats = User.objects.exclude(last_country='').values('last_country').annotate(count=Count('id')).order_by('-count')
+    total_users = User.objects.exclude(last_country='').count() or 1
+    
+    countries = []
+    for c in country_stats:
+        countries.append({
+            "name": c['last_country'],
+            "count": c['count'],
+            "percent": round((c['count'] / total_users) * 100, 1)
+        })
+        
+    # 2. City Stats
+    city_stats = User.objects.exclude(last_city='').values('last_city', 'last_country').annotate(count=Count('id')).order_by('-count')[:20]
+    
+    return render(request, "site/control_geo_stats.html", {
+        "countries": countries,
+        "cities": city_stats,
+        "total_users": total_users
+    })
+    if request.method == "POST":
+        action = request.POST.get("action")
+        if action == "cleanup":
+            targets = request.POST.getlist("targets")
+            deleted_counts = {}
+            
+            with transaction.atomic():
+                if "orders" in targets:
+                    from apps.orders.models import Order, OrderItem, OrderLog
+                    c1 = OrderItem.objects.all().delete()[0]
+                    c2 = OrderLog.objects.all().delete()[0]
+                    c3 = Order.objects.all().delete()[0]
+                    deleted_counts["الطلبات والمبيعات"] = c1 + c2 + c3
+                    
+                if "financials" in targets:
+                    from apps.payments.models import DepositRequest, WithdrawalRequest
+                    from apps.wallets.models import WalletTransaction, LedgerEntry
+                    c1 = DepositRequest.objects.all().delete()[0]
+                    c2 = WithdrawalRequest.objects.all().delete()[0]
+                    c3 = WalletTransaction.objects.all().delete()[0]
+                    c4 = LedgerEntry.objects.all().delete()[0]
+                    deleted_counts["العمليات المالية"] = c1 + c2 + c3 + c4
+                    
+                if "kyc" in targets:
+                    from apps.accounts.models import KYCRequest
+                    c1 = KYCRequest.objects.all().delete()[0]
+                    deleted_counts["طلبات التوثيق"] = c1
+                    
+                if "reset_limits" in targets:
+                    from apps.payments.models import PaymentMethod
+                    from apps.accounts.models import User
+                    
+                    # Reset Payment Methods
+                    PaymentMethod.objects.all().update(
+                        daily_deposit_usage=Decimal("0.00"),
+                        daily_withdrawal_usage=Decimal("0.00"),
+                        last_limit_reset=timezone.now()
+                    )
+                    
+                    # Reset Users
+                    User.objects.all().update(
+                        daily_deposit_usage=Decimal("0.00"),
+                        daily_withdrawal_usage=Decimal("0.00"),
+                        last_limit_reset=timezone.now()
+                    )
+                    deleted_counts["حدود الاستخدام اليومية (الجميع)"] = "تم التصفير"
                     
                 if "users" in targets:
                     # Delete ONLY customers, keep staff/admins

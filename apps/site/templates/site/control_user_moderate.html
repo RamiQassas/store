@@ -291,6 +291,38 @@
         <!-- Security Quick Controls -->
         <div class="glass-panel p-8 bg-cyan/[0.02]">
             <h3 class="text-sm font-black text-white mb-6 flex items-center gap-2"><i class="fas fa-user-shield text-cyan"></i> الأمن والمصادقة</h3>
+            
+            <!-- Reset Limits Tool (Task 11) -->
+            <div class="mb-6 p-4 bg-emerald-500/5 border border-emerald-500/10 rounded-2xl">
+                <div class="flex justify-between text-[10px] font-black mb-3">
+                    <span class="text-slate-500 uppercase">حدود الاستخدام اليومي</span>
+                    <span class="text-emerald-500">نشط</span>
+                </div>
+                <form method="post" onsubmit="return confirm('هل أنت متأكد من تصفير جميع الحدود اليومية لهذا المستخدم؟')">
+                    {% csrf_token %}<input type="hidden" name="action" value="reset_limits">
+                    <button type="submit" class="btn btn-primary btn-sm w-full py-3 text-[10px] font-black uppercase shadow-lg shadow-emerald-500/10">إعادة ضبط جميع الحدود</button>
+                </form>
+            </div>
+
+            {% if user_to_moderate.has_custom_limits %}
+            <div class="mb-6 p-4 bg-amber-500/5 border border-amber-500/10 rounded-2xl">
+                <label class="field-label !mb-3">الحدود المخصصة النشطة</label>
+                <div class="stack gap-2">
+                    {% for method_id, limits in user_to_moderate.custom_payment_limits.items %}
+                    <div class="flex justify-between items-center p-2 bg-slate-900 rounded-lg text-[10px]">
+                        <span class="text-slate-400">وسيلة: {{ method_id|truncatechars:10 }}</span>
+                        <form method="post" class="inline">
+                            {% csrf_token %}
+                            <input type="hidden" name="action" value="reset_method_limit">
+                            <input type="hidden" name="method_id" value="{{ method_id }}">
+                            <button type="submit" class="text-rose-500 hover:text-rose-400 font-black"><i class="fas fa-trash"></i></button>
+                        </form>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+
             <div class="stack gap-4">
                 <!-- OTP Reset -->
                 <div class="p-4 bg-slate-900/50 rounded-2xl border border-white/5">
