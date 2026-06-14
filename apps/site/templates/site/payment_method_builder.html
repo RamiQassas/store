@@ -74,16 +74,27 @@
                 </div>
                 <div class="field-group"><label>الوصف العام (يظهر في القائمة)</label>{{ form.description }}</div>
                 
-                <div class="grid grid-2 gap-6 p-4 bg-amber-500/5 border border-amber-500/10 rounded-2xl">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 p-4 bg-cyan/5 border border-cyan/10 rounded-2xl">
                     <div class="field-group">
-                        <label class="text-amber-500 font-bold">الحد الإجمالي الأقصى للإيداعات</label>
+                        <label class="text-cyan font-bold">الحد الإجمالي الأقصى للإيداعات</label>
                         {{ form.global_deposit_cap }}
-                        <p class="text-[9px] text-slate-500 mt-1">عند الوصول لهذا الحد، تتوقف الوسيلة تلقائياً. 0 تعني غير محدود.</p>
+                        <p class="text-[9px] text-slate-500 mt-1">0 تعني غير محدود.</p>
                     </div>
                     <div class="field-group">
-                        <label class="text-amber-500 font-bold">إجمالي الإيداعات الحالية</label>
+                        <label class="text-cyan font-bold">إجمالي الإيداعات الحالية</label>
                         {{ form.global_deposit_usage }}
-                        <p class="text-[9px] text-slate-500 mt-1">يمكن تصفيره يدوياً لإعادة تفعيل الوسيلة بعد تجاوز الحد.</p>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 p-4 bg-amber-500/5 border border-amber-500/10 rounded-2xl">
+                    <div class="field-group">
+                        <label class="text-amber-500 font-bold">الحد الإجمالي الأقصى للسحوبات</label>
+                        {{ form.global_withdrawal_cap }}
+                        <p class="text-[9px] text-slate-500 mt-1">0 تعني غير محدود.</p>
+                    </div>
+                    <div class="field-group">
+                        <label class="text-amber-500 font-bold">إجمالي السحوبات الحالية</label>
+                        {{ form.global_withdrawal_usage }}
                     </div>
                 </div>
             </div>
@@ -253,6 +264,9 @@ function switchMode(m) {
     
     document.getElementById('deposit-only-controls').classList.toggle('hidden', m !== 'deposit');
     document.getElementById('withdrawal-only-controls').classList.toggle('hidden', m !== 'withdrawal');
+    
+    document.getElementById('deposit-limits-group').classList.toggle('hidden', m !== 'deposit');
+    document.getElementById('withdrawal-limits-group').classList.toggle('hidden', m !== 'withdrawal');
     
     render();
 }

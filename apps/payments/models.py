@@ -31,6 +31,9 @@ class PaymentMethod(TimeStampedModel):
     global_deposit_cap = models.DecimalField(max_digits=14, decimal_places=2, default=Decimal("0.00"), verbose_name="الحد الإجمالي الأقصى للإيداعات", help_text="عند الوصول لهذا الحد، تتوقف الوسيلة تلقائياً. 0 تعني غير محدود.")
     global_deposit_usage = models.DecimalField(max_digits=14, decimal_places=2, default=Decimal("0.00"), verbose_name="إجمالي الإيداعات الحالية (للمتابعة والحد الأقصى)")
 
+    global_withdrawal_cap = models.DecimalField(max_digits=14, decimal_places=2, default=Decimal("0.00"), verbose_name="الحد الإجمالي الأقصى للسحوبات", help_text="عند الوصول لهذا الحد، تتوقف الوسيلة تلقائياً. 0 تعني غير محدود.")
+    global_withdrawal_usage = models.DecimalField(max_digits=14, decimal_places=2, default=Decimal("0.00"), verbose_name="إجمالي السحوبات الحالية")
+
     # --- Deposit Configuration ---
     deposit_info_schema = models.JSONField(default=dict, blank=True, verbose_name="بيانات الإيداع الثابتة (للعرض)", help_text='{"version": 1, "rows": [{"title": "IBAN", "value": "TR...", "copyable": true}]}')
     deposit_form_schema = models.JSONField(default=dict, blank=True, verbose_name="حقول الإيداع المطلوبة من العميل", help_text='{"version": 1, "fields": [{"label": "TXID", "type": "text", "required": true}]}')
@@ -85,8 +88,21 @@ class PaymentMethod(TimeStampedModel):
 
     def add_withdrawal_usage(self, amount_in_usd):
         self.reset_daily_limits_if_needed()
-        self.daily_withdrawal_usage += Decimal(str(amount_in_usd))
-        self.save(update_fields=["daily_withdrawal_usage"])
+        amt = Decimal(str(amount_in_usd))
+        self.daily_withdrawal_usage += amt
+        self.global_withdrawal_usage += amt
+        
+        # Check Global Cap
+        if self.global_withdrawal_cap > 0 and self.global_withdrawal_usage >= self.global_withdrawal_cap:
+            self.is_maintenance_mode = True
+            from apps.notifications.services import notify_staff
+            notify_staff(
+                title="تم الوصول للحد الإجمالي لسحوبات وسيلة دفع",
+                body=f"وصلت وسيلة الدفع {self.name} إلى الحد الإجمالي للسحوبات ({self.global_withdrawal_cap} USD). تم تفعيل وضع الصيانة تلقائياً.",
+                action_url=f"/control/payment-methods/{self.id}/edit/"
+            )
+            
+        self.save(update_fields=["daily_withdrawal_usage", "global_withdrawal_usage", "is_maintenance_mode"])
 
     def reset_daily_limits_if_needed(self):
         """Resets daily usage if the date has changed in Damascus time."""

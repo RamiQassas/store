@@ -152,8 +152,12 @@
                         </div>
                         <div class="field-group">
                             <label class="info-label">مدن/مناطق محددة (بناءً على IP)</label>
-                            {{ form.limit_to_ip_cities }}
-                            <p class="text-[9px] text-slate-500 mt-1">أدخل المدن مفصولة بفاصلة (مثال: Istanbul, Dubai).</p>
+                            <select name="limit_to_ip_cities" class="builder-input select2-tags" multiple="multiple">
+                                {% for city in form.instance.limit_to_ip_cities %}
+                                <option value="{{ city }}" selected>{{ city }}</option>
+                                {% endfor %}
+                            </select>
+                            <p class="text-[9px] text-slate-500 mt-1">اكتب اسم المدينة واضغط Enter (مثال: Istanbul, Dubai).</p>
                         </div>
                     </div>
 
@@ -290,15 +294,77 @@ document.addEventListener('click', (e) => {
 });
 
 function toggleDiscountFields() {
-...
-    });
+    const typeField = document.querySelector('[name="discount_type"]');
+    if (!typeField) return;
+    
+    const type = typeField.value;
+    const pField = document.getElementById('percent-field');
+    const aField = document.getElementById('amount-field');
 
+    if (type === 'percentage') {
+        pField.classList.remove('hidden');
+        aField.classList.add('hidden');
+    } else {
+        pField.classList.add('hidden');
+        aField.classList.remove('hidden');
+    }
+}
+
+// apply_to_all_products toggle
+const applyToAllCheckbox = document.querySelector('[name="apply_to_all_products"]');
+if (applyToAllCheckbox) {
+    applyToAllCheckbox.addEventListener('change', function() {
+        const productField = document.getElementById('product-limit-field');
+        if (this.checked) {
+            productField.classList.add('hidden');
+        } else {
+            productField.classList.remove('hidden');
+        }
+    });
+}
+
+$(document).ready(function() {
     // Task 2: Searchable Country Selector
     $('.select2').select2({
         dir: "rtl",
         placeholder: "اختر..."
     });
 
-    toggleDiscountFields(); // Initial call
-...
+    // Task 4: Searchable City Tags
+    $('.select2-tags').select2({
+        dir: "rtl",
+        tags: true,
+        placeholder: "اكتب واضغط Enter...",
+        tokenSeparators: [',']
+    });
+
+    // Task 3: Searchable Product Selector
+    $('[name="limit_to_product"]').select2({
+        dir: "rtl",
+        ajax: {
+            url: '/ajax/product-search/',
+            dataType: 'json',
+            delay: 250,
+            data: function (params) {
+                return { q: params.term };
+            },
+            processResults: function (data) {
+                return { results: data.results };
+            },
+            cache: true
+        },
+        placeholder: 'ابحث عن منتج...',
+        minimumInputLength: 2,
+    });
+
+    toggleDiscountFields();
+    
+    // Initial state for product limit
+    const productField = document.getElementById('product-limit-field');
+    if (applyToAllCheckbox && applyToAllCheckbox.checked) {
+        productField.classList.add('hidden');
+    }
+});
+
+document.querySelector('[name="discount_type"]').addEventListener('change', toggleDiscountFields);
 {% endblock %}

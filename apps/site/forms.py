@@ -163,6 +163,7 @@ class PaymentMethodForm(forms.ModelForm):
             "withdrawal_min_amount", "withdrawal_max_amount", "withdrawal_instructions",
             "daily_deposit_limit", "daily_withdrawal_limit",
             "global_deposit_cap", "global_deposit_usage",
+            "global_withdrawal_cap", "global_withdrawal_usage",
             "deposit_info_schema", "withdrawal_info_schema",
             "deposit_form_schema", "withdrawal_form_schema",
             "deposit_fee_settings", "withdrawal_fee_settings",
@@ -180,6 +181,8 @@ class PaymentMethodForm(forms.ModelForm):
             "daily_withdrawal_limit": forms.NumberInput(attrs={"class": "builder-input"}),
             "global_deposit_cap": forms.NumberInput(attrs={"class": "builder-input"}),
             "global_deposit_usage": forms.NumberInput(attrs={"class": "builder-input"}),
+            "global_withdrawal_cap": forms.NumberInput(attrs={"class": "builder-input"}),
+            "global_withdrawal_usage": forms.NumberInput(attrs={"class": "builder-input"}),
             "capital_exchange_rate": forms.NumberInput(attrs={"class": "builder-input", "step": "0.000001"}),
             "deposit_exchange_rate": forms.NumberInput(attrs={"class": "builder-input", "step": "0.000001"}),
             "withdrawal_exchange_rate": forms.NumberInput(attrs={"class": "builder-input", "step": "0.000001"}),
@@ -400,15 +403,26 @@ class CouponForm(forms.ModelForm):
         if self.instance and self.instance.limit_to_ip_cities:
             self.fields["limit_to_ip_cities"].initial = ", ".join(self.instance.limit_to_ip_cities)
 
+    def clean_limit_to_ip_countries(self):
+        val = self.cleaned_data.get("limit_to_ip_countries")
+        return val if val is not None else []
+
     def clean_limit_to_ip_cities(self):
         val = self.cleaned_data.get("limit_to_ip_cities", "")
         if isinstance(val, str):
             return [v.strip() for v in val.split(",") if v.strip()]
-        return val
+        return val if val is not None else []
 
     def save(self, commit=True):
         instance = super().save(commit=False)
         instance.limit_to_tiers = self.cleaned_data.get("limit_to_tiers_list", [])
+        
+        # Ensure list fields are never None
+        if instance.limit_to_ip_countries is None:
+            instance.limit_to_ip_countries = []
+        if instance.limit_to_ip_cities is None:
+            instance.limit_to_ip_cities = []
+            
         if commit:
             instance.save()
             self.save_m2m() # Required for ManyToManyField limit_to_users

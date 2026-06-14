@@ -2213,9 +2213,6 @@ def currency_edit(request, pk):
     return render(request, "site/currency_form.html", {"form": form, "currency": c})
 
 @support_required
-def control_products_list(request): return render(request, "site/control_products_list.html", {"products": Product.objects.select_related('category').prefetch_related('variants').all().order_by('sort_order', 'name')})
-
-@support_required
 def control_category_create_ajax(request):
     name = request.POST.get("name")
     if name:
@@ -2347,6 +2344,25 @@ def ajax_user_search(request):
         results.append({
             "id": str(u.id),
             "text": f"{u.get_full_name() or 'No Name'} ({u.email}) - {u.phone or 'No Phone'}"
+        })
+    return JsonResponse({"results": results})
+
+@admin_required
+def ajax_product_search(request):
+    q = request.GET.get('q', '').strip()
+    if len(q) < 2:
+        return JsonResponse({"results": []})
+
+    products = Product.objects.filter(
+        Q(name__icontains=q) |
+        Q(variants__sku__icontains=q)
+    ).distinct()[:20]
+
+    results = []
+    for p in products:
+        results.append({
+            "id": str(p.id),
+            "text": f"{p.name} (ID: {str(p.id)[:8]})"
         })
     return JsonResponse({"results": results})
 

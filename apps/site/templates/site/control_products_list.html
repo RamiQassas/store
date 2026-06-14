@@ -3,26 +3,6 @@
 
 {% block title %}إدارة المنتجات | Raqamiyat Admin{% endblock %}
 
-{% block extra_js %}
-<script>
-function toggleFeatured(id, btn) {
-    fetch(`/control/products/${id}/toggle-featured/`)
-        .then(res => res.json())
-        .then(data => {
-            if (data.status === 'success') {
-                if (data.is_featured) {
-                    btn.classList.remove('text-white/40');
-                    btn.classList.add('text-amber-400');
-                } else {
-                    btn.classList.remove('text-amber-400');
-                    btn.classList.add('text-white/40');
-                }
-            }
-        });
-}
-</script>
-{% endblock %}
-
 {% block control_content %}
 <div class="page-head">
     <div>
