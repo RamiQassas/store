@@ -14,6 +14,13 @@
         <a href="?export=excel" class="btn btn-outline btn-sm">
             <i class="fas fa-file-excel ml-2"></i> تصدير Excel
         </a>
+        <button onclick="document.getElementById('import-file-input').click()" class="btn btn-outline btn-sm">
+            <i class="fas fa-file-import ml-2"></i> استيراد
+        </button>
+        <form id="import-form" method="post" enctype="multipart/form-data" action="{% url 'control_product_import' %}" class="hidden">
+            {% csrf_token %}
+            <input type="file" id="import-file-input" name="file" onchange="document.getElementById('import-form').submit()">
+        </form>
         <a href="{% url 'control_product_create' %}" class="btn btn-primary btn-sm">
             <i class="fas fa-plus ml-2"></i> إضافة منتج جديد
         </a>
@@ -45,10 +52,10 @@
     </div>
     
     {% if view_mode == 'grid' %}
-    <div class="p-6 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
+    <div class="p-6 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4 gap-6">
         {% for p in products %}
-        <div class="group bg-slate-900/30 border border-white/5 rounded-2xl overflow-hidden hover:border-cyan/30 transition-all flex flex-col h-full">
-            <div class="relative aspect-square overflow-hidden bg-slate-800">
+        <div class="group bg-slate-900/30 border border-white/5 rounded-2xl overflow-hidden hover:border-cyan/30 transition-all flex flex-col h-full product-row" data-id="{{ p.id }}">
+            <div class="relative aspect-[4/3] overflow-hidden bg-slate-800">
                 {% if p.image %}
                 <img src="{{ p.image.url }}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500">
                 {% else %}
@@ -79,8 +86,8 @@
                         تعديل
                     </a>
                     <div class="flex bg-slate-900/50 rounded-lg border border-white/5">
-                        <a href="{% url 'control_reorder_product' p.id %}?direction=up" class="p-1.5 text-[10px] hover:text-cyan"><i class="fas fa-chevron-up"></i></a>
-                        <a href="{% url 'control_reorder_product' p.id %}?direction=down" class="p-1.5 border-r border-white/5 text-[10px] hover:text-cyan"><i class="fas fa-chevron-down"></i></a>
+                        <button onclick="ajaxReorder('{{ p.id }}', 'up')" class="p-1.5 text-[10px] hover:text-cyan"><i class="fas fa-chevron-up"></i></button>
+                        <button onclick="ajaxReorder('{{ p.id }}', 'down')" class="p-1.5 border-r border-white/5 text-[10px] hover:text-cyan"><i class="fas fa-chevron-down"></i></button>
                     </div>
                 </div>
             </div>
@@ -98,16 +105,17 @@
                     <th class="p-4">التصنيف</th>
                     <th class="p-4">الباقات</th>
                     <th class="p-4">الحالة</th>
+                    <th class="p-4">الميزة</th>
                     <th class="p-4">الترتيب</th>
                     <th class="p-4 text-left">إجراءات</th>
                 </tr>
             </thead>
             <tbody>
                 {% for p in products %}
-                <tr class="border-b border-white/[0.02] last:border-0 hover:bg-white/[0.02] transition">
+                <tr class="border-b border-white/[0.02] last:border-0 hover:bg-white/[0.02] transition product-row" data-id="{{ p.id }}">
                     <td class="p-4">
                         <div class="flex items-center gap-3">
-                            <div class="w-12 h-12 rounded bg-slate-800 border border-white/5 overflow-hidden">
+                            <div class="w-12 h-12 flex-shrink-0 rounded bg-slate-800 border border-white/5 overflow-hidden">
                                 {% if p.image %}
                                 <img src="{{ p.image.url }}" class="w-full h-full object-cover">
                                 {% else %}
@@ -132,20 +140,22 @@
                         </div>
                     </td>
                     <td class="p-4">
-                        <div class="flex flex-col gap-1">
-                            <span class="badge {% if p.is_active %}success{% else %}muted{% endif %} text-[9px]">{% if p.is_active %}نشط{% else %}مسودة{% endif %}</span>
-                            {% if p.is_featured %}<span class="badge primary text-[9px]"><i class="fas fa-star ml-1"></i> مميز</span>{% endif %}
-                        </div>
+                        <span class="badge {% if p.is_active %}success{% else %}muted{% endif %} text-[9px]">{% if p.is_active %}نشط{% else %}مسودة{% endif %}</span>
+                    </td>
+                    <td class="p-4">
+                        <button onclick="toggleFeatured('{{ p.id }}', this)" class="text-sm transition-colors {% if p.is_featured %}text-amber-400{% else %}text-white/20 hover:text-white{% endif %}">
+                            <i class="fas fa-star"></i>
+                        </button>
                     </td>
                     <td class="p-4">
                         <div class="flex items-center gap-2">
-                            <a href="{% url 'control_reorder_product' p.id %}?direction=up" class="text-slate-500 hover:text-cyan transition-colors" title="نقل للأعلى">
+                            <button onclick="ajaxReorder('{{ p.id }}', 'up')" class="text-slate-500 hover:text-cyan transition-colors">
                                 <i class="fas fa-chevron-up"></i>
-                            </a>
-                            <a href="{% url 'control_reorder_product' p.id %}?direction=down" class="text-slate-500 hover:text-cyan transition-colors" title="نقل للأسفل">
+                            </button>
+                            <button onclick="ajaxReorder('{{ p.id }}', 'down')" class="text-slate-500 hover:text-cyan transition-colors">
                                 <i class="fas fa-chevron-down"></i>
-                            </a>
-                            <span class="text-[10px] font-mono text-slate-600 bg-slate-800 px-2 py-1 rounded ml-2">{{ p.sort_order }}</span>
+                            </button>
+                            <span class="sort-order-badge text-[10px] font-mono text-slate-600 bg-slate-800 px-2 py-1 rounded ml-2">{{ p.sort_order }}</span>
                         </div>
                     </td>
                     <td class="p-4 text-left">
@@ -158,7 +168,7 @@
                 </tr>
                 {% empty %}
                 <tr>
-                    <td colspan="6" class="p-12 text-center text-slate-500 italic">لا توجد منتجات مضافة بعد.</td>
+                    <td colspan="7" class="p-12 text-center text-slate-500 italic">لا توجد منتجات مضافة بعد.</td>
                 </tr>
                 {% endfor %}
             </tbody>
@@ -188,12 +198,29 @@ function toggleFeatured(id, btn) {
         .then(data => {
             if (data.status === 'success') {
                 if (data.is_featured) {
-                    btn.classList.remove('text-white/40');
+                    btn.classList.remove('text-white/20', 'text-white/40');
                     btn.classList.add('text-amber-400');
                 } else {
                     btn.classList.remove('text-amber-400');
-                    btn.classList.add('text-white/40');
+                    btn.classList.add('text-white/20');
                 }
+            }
+        });
+}
+
+function ajaxReorder(id, direction) {
+    const row = document.querySelector(`.product-row[data-id="${id}"]`);
+    if (row) row.style.opacity = '0.5';
+    
+    fetch(`/control/products/${id}/reorder-ajax/?direction=${direction}`)
+        .then(res => res.json())
+        .then(data => {
+            if (data.status === 'success') {
+                // To keep it simple and consistent with pagination, we refresh current view content
+                window.location.reload(); 
+            } else {
+                if (row) row.style.opacity = '1';
+                alert(data.message || 'خطأ في الترتيب');
             }
         });
 }

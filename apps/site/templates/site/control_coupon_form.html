@@ -90,98 +90,125 @@
 
                 <div class="divider border-white/5 my-2"></div>
 
-                <div class="stack gap-4">
-                    <label class="flex items-center gap-3 p-4 bg-slate-900/50 rounded-2xl border border-white/5 cursor-pointer hover:bg-slate-900 transition">
+                <!-- 1. Product Restrictions (PRIORITY) -->
+                <div class="stack gap-4 bg-slate-900/50 p-6 rounded-3xl border border-white/5">
+                    <h3 class="text-sm font-black text-white flex items-center gap-2">
+                        <i class="fas fa-boxes-stacked text-cyan"></i> قيود المنتجات
+                    </h3>
+                    
+                    <label class="flex items-center gap-3 p-4 bg-white/5 rounded-2xl border border-white/5 cursor-pointer hover:bg-white/10 transition">
                         {{ form.apply_to_all_products }}
                         <div>
                             <div class="font-bold text-sm text-white">يعمل على جميع المنتجات</div>
                         </div>
                     </label>
 
-                    <div class="field-group" id="product-limit-field" {% if form.apply_to_all_products.value %}style="display:none"{% endif %}>
-                        <label class="info-label">تحديد لمنتج معين</label>
-                        {{ form.limit_to_product }}
+                    <div id="product-selector-container" class="{% if form.apply_to_all_products.value %}hidden{% endif %}">
+                        <div class="field-group">
+                            <label class="info-label">اختر المنتجات المسموحة</label>
+                            <select name="limit_to_product" class="builder-input select2-products">
+                                {% if form.instance.limit_to_product %}
+                                <option value="{{ form.instance.limit_to_product.id }}" selected>{{ form.instance.limit_to_product.name }}</option>
+                                {% endif %}
+                            </select>
+                            <p class="text-[9px] text-slate-500 mt-2">ملاحظة: يمكنك حالياً اختيار منتج واحد رئيسي للتقييد.</p>
+                        </div>
                     </div>
                 </div>
 
                 <div class="divider border-white/5 my-2"></div>
 
-                <div class="stack gap-6">
-                    <!-- Task 1: Searchable User Selection -->
-                    <div class="field-group">
-                        <label class="info-label">مخصص لعملاء محددين (بحث ذكي)</label>
-                        <div class="search-box relative">
-                            <input type="text" id="user-search-input" class="builder-input" placeholder="ابحث بالاسم، الإيميل، أو الهاتف...">
-                            <div id="search-results" class="absolute top-full left-0 right-0 z-50 bg-slate-900 border border-white/10 rounded-xl mt-2 hidden max-h-60 overflow-y-auto"></div>
-                        </div>
-                        
-                        <!-- Selected Users List -->
-                        <div id="selected-users" class="flex flex-wrap gap-2 mt-4">
-                            {% for user in form.instance.limit_to_users.all %}
-                            <div class="selected-user-tag px-3 py-1.5 bg-cyan/10 border border-cyan/20 rounded-lg flex items-center gap-2 text-[11px] text-cyan" id="user-tag-{{ user.id }}">
-                                <span>{{ user.get_full_name|default:user.email }}</span>
-                                <button type="button" class="remove-user text-rose-500 hover:text-rose-400" onclick="removeUser('{{ user.id }}')"><i class="fas fa-times"></i></button>
-                                <input type="hidden" name="limit_to_users" value="{{ user.id }}">
-                            </div>
-                            {% endfor %}
-                        </div>
-                        <p class="text-[9px] text-slate-500 mt-2">إذا تركت القائمة فارغة، سيعمل الكوبون لجميع العملاء.</p>
-                    </div>
-
-                    <div class="field-group">
-                        <label class="info-label">مخصص لفئات معينة (Tiers)</label>
-                        <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mt-2">
-                            {% for value, label in form.limit_to_tiers_list.field.choices %}
-                            <label class="flex items-center gap-2 p-3 bg-white/5 border border-white/5 rounded-xl cursor-pointer hover:bg-white/10 transition">
-                                <input type="checkbox" name="limit_to_tiers_list" value="{{ value }}" {% if value in form.limit_to_tiers_list.initial %}checked{% endif %}>
-                                <span class="text-xs font-bold">{{ label }}</span>
-                            </label>
-                            {% endfor %}
-                        </div>
-                    </div>
-
-                    <!-- Task 2: IP-based Restrictions -->
-                    <div class="divider border-white/5 my-2"></div>
-                    <h3 class="text-sm font-black text-white">المطابقة الجغرافية المتقدمة</h3>
+                <!-- 2. IP-based Geographic Matching -->
+                <div class="stack gap-6 bg-slate-900/50 p-6 rounded-3xl border border-white/5">
+                    <h3 class="text-sm font-black text-white flex items-center gap-2">
+                        <i class="fas fa-globe text-cyan"></i> المطابقة الجغرافية المتقدمة (IP Address)
+                    </h3>
 
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div class="field-group">
-                            <label class="info-label">دول محددة (بناءً على IP)</label>
-                            {{ form.limit_to_ip_countries }}
-                            <p class="text-[9px] text-slate-500 mt-1">اختر دولة أو أكثر للتقييد.</p>
+                            <label class="info-label">تقييد الدول (بحث وتحديد)</label>
+                            <select id="country-search-selector" class="builder-input select2-countries" multiple="multiple" name="limit_to_ip_countries">
+                                {% for country_code in form.instance.limit_to_ip_countries %}
+                                <option value="{{ country_code }}" selected>{{ country_code }}</option>
+                                {% endfor %}
+                            </select>
+                            <p class="text-[9px] text-slate-500 mt-1">ابحث عن الدولة وسيتم إضافتها تلقائياً.</p>
                         </div>
                         <div class="field-group">
-                            <label class="info-label">مدن/مناطق محددة (بناءً على IP)</label>
+                            <label class="info-label">تقييد المدن (المدن المختارة)</label>
                             <select name="limit_to_ip_cities" class="builder-input select2-tags" multiple="multiple">
                                 {% for city in form.instance.limit_to_ip_cities %}
                                 <option value="{{ city }}" selected>{{ city }}</option>
                                 {% endfor %}
                             </select>
-                            <p class="text-[9px] text-slate-500 mt-1">اكتب اسم المدينة واضغط Enter (مثال: Istanbul, Dubai).</p>
+                            <p class="text-[9px] text-slate-500 mt-1">اكتب اسم المدينة واضغط Enter.</p>
                         </div>
                     </div>
+                </div>
 
-                    <div class="divider border-white/5 my-2"></div>
-                    <h3 class="text-sm font-black text-white">المطابقة الجغرافية (KYC)</h3>
+                <div class="divider border-white/5 my-2"></div>
+
+                <!-- 3. KYC-based Geographic Matching -->
+                <div class="stack gap-6 bg-slate-900/50 p-6 rounded-3xl border border-white/5">
+                    <h3 class="text-sm font-black text-white flex items-center gap-2">
+                        <i class="fas fa-user-check text-cyan"></i> المطابقة الجغرافية بالتوثيق (KYC)
+                    </h3>
 
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div class="field-group">
-                            <label class="info-label">محدد لمنطقة/دولة معينة</label>
+                            <label class="info-label">المنطقة المحددة بالهوية</label>
                             {{ form.limit_to_area }}
-                            <p class="text-[9px] text-slate-500 mt-1">مثال: سوريا (يبحث في عنوان السكن بالتوثيق)</p>
+                            <p class="text-[9px] text-slate-500 mt-1">مثال: "ريف دمشق" (مطابقة نصية في بيانات التوثيق)</p>
                         </div>
                         <div class="field-group">
-                            <label class="info-label">نوع المطابقة الجغرافية</label>
-                            {{ form.allow_area_type }}
+                            <label class="info-label">مكان الولادة المحدد</label>
+                            {{ form.limit_to_place_of_birth }}
+                            <p class="text-[9px] text-slate-500 mt-1">مثال: "حلب" (مطابقة مكان الولادة)</p>
                         </div>
                     </div>
-
+                    
                     <div class="field-group">
-                        <label class="info-label">محدد لمحل الولادة</label>
-                        {{ form.limit_to_place_of_birth }}
-                        <p class="text-[9px] text-slate-500 mt-1">مثال: حلب (يبحث في مكان الولادة بالهوية)</p>
+                        <label class="info-label">نطاق البحث الجغرافي (KYC)</label>
+                        {{ form.allow_area_type }}
                     </div>
                 </div>
+
+                <div class="divider border-white/5 my-2"></div>
+
+                <!-- 4. User Targeting -->
+                <div class="stack gap-6 bg-slate-900/50 p-6 rounded-3xl border border-white/5">
+                    <h3 class="text-sm font-black text-white flex items-center gap-2">
+                        <i class="fas fa-users text-cyan"></i> استهداف العملاء
+                    </h3>
+
+                    <div class="field-group">
+                        <label class="info-label">مخصص لعملاء محددين (بحث ذكي)</label>
+                        <div class="search-box relative">
+                            <input type="text" id="user-search-input" class="builder-input" placeholder="ابحث بالاسم، الإيميل، أو الهاتف...">
+                            <div id="search-results" class="absolute top-full left-0 right-0 z-50 bg-slate-900 border border-white/10 rounded-xl mt-2 hidden max-h-60 overflow-y-auto shadow-2xl"></div>
+                        </div>
+                        
+                        <!-- Selected Users List with Professional Cards -->
+                        <div id="selected-users" class="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-4">
+                            {% for user in form.instance.limit_to_users.all %}
+                            <div class="p-3 bg-white/5 border border-white/10 rounded-2xl flex items-center justify-between group" id="user-card-{{ user.id }}">
+                                <div class="flex items-center gap-3">
+                                    <div class="w-8 h-8 rounded-full bg-cyan/10 flex items-center justify-center text-cyan text-[10px] font-black">
+                                        {{ user.email|slice:":1"|upper }}
+                                    </div>
+                                    <div>
+                                        <div class="text-xs font-bold text-white">{{ user.get_full_name|default:user.email }}</div>
+                                        <div class="text-[9px] text-slate-500">{{ user.phone|default:user.email }}</div>
+                                    </div>
+                                </div>
+                                <button type="button" class="w-8 h-8 rounded-lg bg-rose-500/10 text-rose-500 opacity-0 group-hover:opacity-100 transition hover:bg-rose-500 hover:text-white" onclick="removeUser('{{ user.id }}')">
+                                    <i class="fas fa-trash-alt text-[10px]"></i>
+                                </button>
+                                <input type="hidden" name="limit_to_users" value="{{ user.id }}">
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
 
                 <div class="flex gap-4 mt-4">
                     <button type="submit" class="btn btn-primary flex-grow py-4 text-lg">
@@ -302,32 +329,28 @@ function toggleDiscountFields() {
     const aField = document.getElementById('amount-field');
 
     if (type === 'percentage') {
-        pField.classList.remove('hidden');
-        aField.classList.add('hidden');
+        pField.style.display = 'block';
+        aField.style.display = 'none';
     } else {
-        pField.classList.add('hidden');
-        aField.classList.remove('hidden');
+        pField.style.display = 'none';
+        aField.style.display = 'block';
     }
-}
-
-// apply_to_all_products toggle
-const applyToAllCheckbox = document.querySelector('[name="apply_to_all_products"]');
-if (applyToAllCheckbox) {
-    applyToAllCheckbox.addEventListener('change', function() {
-        const productField = document.getElementById('product-limit-field');
-        if (this.checked) {
-            productField.classList.add('hidden');
-        } else {
-            productField.classList.remove('hidden');
-        }
-    });
 }
 
 $(document).ready(function() {
     // Task 2: Searchable Country Selector
-    $('.select2').select2({
+    $('.select2-countries').select2({
         dir: "rtl",
-        placeholder: "اختر..."
+        ajax: {
+            url: '/ajax/country-search/',
+            dataType: 'json',
+            delay: 250,
+            data: function (params) { return { q: params.term }; },
+            processResults: function (data) { return { results: data.results }; },
+            cache: true
+        },
+        placeholder: "ابحث عن دولة...",
+        allowClear: true
     });
 
     // Task 4: Searchable City Tags
@@ -339,7 +362,7 @@ $(document).ready(function() {
     });
 
     // Task 3: Searchable Product Selector
-    $('[name="limit_to_product"]').select2({
+    $('.select2-products').select2({
         dir: "rtl",
         ajax: {
             url: '/ajax/product-search/',
@@ -360,9 +383,23 @@ $(document).ready(function() {
     toggleDiscountFields();
     
     // Initial state for product limit
-    const productField = document.getElementById('product-limit-field');
-    if (applyToAllCheckbox && applyToAllCheckbox.checked) {
-        productField.classList.add('hidden');
+    const applyToAllCheckbox = document.querySelector('[name="apply_to_all_products"]');
+    const productField = document.getElementById('product-selector-container');
+    
+    if (applyToAllCheckbox) {
+        applyToAllCheckbox.addEventListener('change', function() {
+            if (this.checked) {
+                productField.classList.add('hidden');
+            } else {
+                productField.classList.remove('hidden');
+            }
+        });
+        
+        if (applyToAllCheckbox.checked) {
+            productField.classList.add('hidden');
+        } else {
+            productField.classList.remove('hidden');
+        }
     }
 });
 

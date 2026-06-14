@@ -2057,6 +2057,80 @@ def control_product_toggle_featured(request, pk):
     return JsonResponse({"status": "success", "is_featured": product.is_featured})
 
 @support_required
+def control_product_reorder_ajax(request, pk):
+    product = get_object_or_404(Product, pk=pk)
+    direction = request.GET.get('direction')
+    
+    # Normalize sort orders
+    all_products = list(Product.objects.all().order_by('sort_order', 'id'))
+    for i, p in enumerate(all_products):
+        if p.sort_order != i:
+            p.sort_order = i
+            p.save(update_fields=['sort_order'])
+    
+    product.refresh_from_db()
+    
+    if direction == 'up':
+        other = Product.objects.filter(sort_order__lt=product.sort_order).order_by('-sort_order').first()
+    elif direction == 'down':
+        other = Product.objects.filter(sort_order__gt=product.sort_order).order_by('sort_order').first()
+    else:
+        return JsonResponse({"status": "error", "message": "Invalid direction"})
+    
+    if other:
+        p_order = product.sort_order
+        o_order = other.sort_order
+        product.sort_order = o_order
+        other.sort_order = p_order
+        product.save(update_fields=['sort_order'])
+        other.save(update_fields=['sort_order'])
+        return JsonResponse({"status": "success", "new_order": product.sort_order})
+    
+    return JsonResponse({"status": "error", "message": "Cannot move further"})
+
+@admin_required
+def control_product_import(request):
+    if request.method == "POST" and request.FILES.get("file"):
+        import openpyxl
+        try:
+            excel_file = request.FILES["file"]
+            wb = openpyxl.load_workbook(excel_file)
+            ws = wb.active
+            
+            created, updated = 0, 0
+            for row in ws.iter_rows(min_row=2, values_only=True):
+                if not row[0]: continue # Skip empty ID rows
+                
+                try:
+                    product_id = row[0]
+                    name = row[1]
+                    cat_name = row[2]
+                    is_active = str(row[4]).strip() == "نعم"
+                    is_featured = str(row[5]).strip() == "نعم"
+                    
+                    category, _ = Category.objects.get_or_create(name=cat_name)
+                    
+                    p, created_now = Product.objects.update_or_create(
+                        id=product_id,
+                        defaults={
+                            "name": name,
+                            "category": category,
+                            "is_active": is_active,
+                            "is_featured": is_featured
+                        }
+                    )
+                    if created_now: created += 1
+                    else: updated += 1
+                except Exception as row_err:
+                    logger.warning(f"Error importing row {row}: {row_err}")
+            
+            messages.success(request, f"تم الاستيراد بنجاح: {created} جديد، {updated} تم تحديثه.")
+        except Exception as e:
+            messages.error(request, f"فشل الاستيراد: {str(e)}")
+            
+    return redirect("control_products_list")
+
+@support_required
 def control_products_list(request):
     products = Product.objects.select_related('category').prefetch_related('variants').all().order_by('sort_order', 'name')
     q = request.GET.get('q', '').strip()
@@ -2064,14 +2138,27 @@ def control_products_list(request):
 
     if q:
         products = products.filter(
-            Q(name__icontains=q) | 
-            Q(category__name__icontains=q) | 
+            Q(name__icontains=q) |
+            Q(category__name__icontains=q) |
             Q(id__icontains=q) |
             Q(variants__sku__icontains=q) |
             Q(variants__name__icontains=q)
         ).distinct()
 
+    if request.GET.get("export") == "excel":
+        columns = [
+            ("ID", lambda p: str(p.id)),
+            ("اسم المنتج", lambda p: p.name),
+            ("التصنيف", lambda p: p.category.name),
+            ("عدد الباقات", lambda p: p.variants.count()),
+            ("نشط", lambda p: "نعم" if p.is_active else "لا"),
+            ("مميز", lambda p: "نعم" if p.is_featured else "لا"),
+            ("ترتيب العرض", lambda p: p.sort_order),
+        ]
+        return export_to_excel(products, "Products", columns)
+
     paginator = Paginator(products, 20)
+
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
 
@@ -2349,7 +2436,14 @@ def ajax_user_search(request):
     return JsonResponse({"results": results})
 
 @admin_required
-def ajax_product_search(request):
+def ajax_country_search(request):
+    from apps.common.countries import COUNTRIES
+    q = request.GET.get('q', '').lower()
+    results = []
+    for code, name in COUNTRIES.items():
+        if q in name.lower() or q in code.lower():
+            results.append({"id": code, "text": f"{name} ({code})"})
+    return JsonResponse({"results": results})
     q = request.GET.get('q', '').strip()
     if len(q) < 2:
         return JsonResponse({"results": []})
