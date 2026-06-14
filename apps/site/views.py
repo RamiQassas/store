@@ -2444,6 +2444,9 @@ def ajax_country_search(request):
         if q in name.lower() or q in code.lower():
             results.append({"id": code, "text": f"{name} ({code})"})
     return JsonResponse({"results": results})
+
+@admin_required
+def ajax_product_search(request):
     q = request.GET.get('q', '').strip()
     if len(q) < 2:
         return JsonResponse({"results": []})
