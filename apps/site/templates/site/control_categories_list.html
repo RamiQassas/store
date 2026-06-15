@@ -1,0 +1,91 @@
+{% extends "site/control_base.html" %}
+
+{% block title %}إدارة التصنيفات | Raqamiyat Admin{% endblock %}
+
+{% block control_content %}
+<nav class="breadcrumb mb-8">
+    <a href="{% url 'control_dashboard' %}" class="breadcrumb-item">الرئيسية</a>
+    <span class="breadcrumb-item active">إدارة التصنيفات</span>
+</nav>
+
+<div class="flex items-center justify-between mb-10">
+    <div class="page-head">
+        <span class="eyebrow">Category Architecture</span>
+        <h1 class="text-3xl font-black">تصنيفات المنتجات</h1>
+    </div>
+    <div class="flex gap-3">
+        <a href="{% url 'control_category_create' %}" class="btn btn-primary">
+            <i class="fas fa-plus ml-2"></i> إضافة تصنيف جديد
+        </a>
+        <a href="{% url 'control_products_list' %}" class="btn btn-outline">
+            <i class="fas fa-box ml-2"></i> جميع المنتجات
+        </a>
+    </div>
+</div>
+
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+    {% for cat in categories %}
+    <div class="management-card group overflow-hidden border border-white/5 hover:border-cyan/30 transition-all duration-300">
+        <div class="aspect-video w-full bg-slate-900 relative overflow-hidden">
+            {% if cat.image %}
+            <img src="{{ cat.image.url }}" alt="{{ cat.name }}" class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500">
+            {% else %}
+            <div class="w-full h-full flex items-center justify-center bg-slate-800 text-slate-600">
+                <i class="fas fa-image text-4xl"></i>
+            </div>
+            {% endif %}
+            <div class="absolute inset-0 bg-gradient-to-t from-slate-950 via-transparent to-transparent opacity-60"></div>
+            
+            <div class="absolute bottom-4 right-4">
+                <span class="px-3 py-1 bg-cyan/20 backdrop-blur-md border border-cyan/30 text-cyan text-[10px] font-black rounded-full">
+                    #{{ cat.sort_order }}
+                </span>
+            </div>
+        </div>
+        
+        <div class="p-5 stack gap-4">
+            <div>
+                <h3 class="text-lg font-black text-white mb-1 group-hover:text-cyan transition-colors">{{ cat.name }}</h3>
+                <p class="text-[10px] text-slate-500 font-bold uppercase tracking-widest">
+                    {% if cat.parent %}فرعي لـ: {{ cat.parent.name }}{% else %}تصنيف رئيسي{% endif %}
+                </p>
+            </div>
+
+            <div class="flex items-center justify-between pt-4 border-t border-white/5">
+                <div class="flex items-center gap-2">
+                    <span class="text-xs font-bold text-slate-400">
+                        <i class="fas fa-boxes mr-1"></i> {{ cat.products.count }} منتج
+                    </span>
+                    {% if not cat.is_active %}
+                    <span class="w-2 h-2 rounded-full bg-rose-500 shadow-[0_0_8px_rgba(244,63,94,0.6)]" title="غير نشط"></span>
+                    {% else %}
+                    <span class="w-2 h-2 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.6)]" title="نشط"></span>
+                    {% endif %}
+                </div>
+                
+                <div class="flex gap-2">
+                    <a href="{% url 'control_products_list' %}?category={{ cat.id }}" class="w-8 h-8 flex items-center justify-center rounded-lg bg-white/5 text-slate-400 hover:bg-cyan hover:text-black transition-all" title="عرض المنتجات">
+                        <i class="fas fa-eye text-xs"></i>
+                    </a>
+                    <a href="{% url 'control_category_edit' cat.id %}" class="w-8 h-8 flex items-center justify-center rounded-lg bg-white/5 text-slate-400 hover:bg-amber-500 hover:text-black transition-all" title="تعديل">
+                        <i class="fas fa-edit text-xs"></i>
+                    </a>
+                    <a href="{% url 'control_category_delete' cat.id %}" class="w-8 h-8 flex items-center justify-center rounded-lg bg-white/5 text-slate-400 hover:bg-rose-500 hover:text-white transition-all" onclick="return confirm('هل أنت متأكد من حذف هذا التصنيف؟ سيؤدي ذلك لحذف المنتجات المرتبطة به.')">
+                        <i class="fas fa-trash-alt text-xs"></i>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% empty %}
+    <div class="col-span-full p-20 bg-white/5 border-2 border-dashed border-white/10 rounded-[32px] text-center">
+        <div class="w-20 h-20 bg-slate-800 rounded-full flex items-center justify-center mx-auto mb-6 text-slate-500">
+            <i class="fas fa-folder-open text-3xl"></i>
+        </div>
+        <h2 class="text-xl font-black text-white mb-2">لا يوجد تصنيفات حالياً</h2>
+        <p class="text-slate-500 mb-8">ابدأ بتنظيم متجرك عبر إضافة أول تصنيف للمنتجات.</p>
+        <a href="{% url 'control_category_create' %}" class="btn btn-primary">إضافة تصنيف جديد</a>
+    </div>
+    {% endfor %}
+</div>
+{% endblock %}

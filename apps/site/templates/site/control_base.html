@@ -136,8 +136,11 @@
             <a href="{% url 'control_orders_list' %}" class="admin-nav-link {% if 'order' in request.path %}active{% endif %}">
                 <i class="fas fa-receipt"></i> سجل الطلبات
             </a>
-            <a href="{% url 'control_products_list' %}" class="admin-nav-link {% if 'product' in request.path %}active{% endif %}">
-                <i class="fas fa-box-open"></i> إدارة الخدمات
+            <a href="{% url 'control_products_list' %}" class="admin-nav-link {% if 'product' in request.path and 'category' not in request.path %}active{% endif %}">
+                <i class="fas fa-box"></i> إدارة الخدمات
+            </a>
+            <a href="{% url 'control_categories_list' %}" class="admin-nav-link {% if 'category' in request.path %}active{% endif %}">
+                <i class="fas fa-folder-tree"></i> تصنيفات المنتجات
             </a>
             <a href="{% url 'control_coupons_list' %}" class="admin-nav-link {% if 'coupon' in request.path %}active{% endif %}">
                 <i class="fas fa-ticket"></i> الكوبونات والخصومات

@@ -11,6 +11,7 @@ from django.utils.text import slugify
 class Category(TimeStampedModel):
     name = models.CharField(max_length=120, verbose_name="اسم التصنيف")
     parent = models.ForeignKey("self", null=True, blank=True, related_name="children", on_delete=models.CASCADE)
+    image = models.ImageField(upload_to="categories/", blank=True, null=True, verbose_name="صورة التصنيف")
     is_active = models.BooleanField(default=True, verbose_name="نشط")
     sort_order = models.PositiveIntegerField(default=0, verbose_name="ترتيب العرض")
 
@@ -37,6 +38,8 @@ class Product(TimeStampedModel):
     
     is_active = models.BooleanField(default=True, verbose_name="نشط")
     is_featured = models.BooleanField(default=False, verbose_name="مميز (عرض في الرئيسية)")
+    is_out_of_stock = models.BooleanField(default=False, verbose_name="غير متوفر (سيظل معروضاً)")
+    is_sale = models.BooleanField(default=False, verbose_name="عليه عرض/تخفيض")
     sort_order = models.PositiveIntegerField(default=0, verbose_name="ترتيب العرض")
     delivery_time_display = models.CharField(max_length=60, blank=True, verbose_name="وقت التسليم المعروض", help_text="مثال: 5-15 دقيقة أو 1-2 ساعة")
     
@@ -86,6 +89,7 @@ class ProductVariant(TimeStampedModel):
     cost = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal("0.00"), verbose_name="التكلفة")
     
     discount_percent = models.DecimalField(max_digits=5, decimal_places=2, default=Decimal("0.00"), verbose_name="خصم (%)")
+    is_sale = models.BooleanField(default=False, verbose_name="عليه عرض خاص")
     estimated_delivery_minutes = models.PositiveIntegerField(default=0, verbose_name="وقت التسليم المتوقع (دقيقة)")
     is_active = models.BooleanField(default=True, verbose_name="نشط")
     is_temporarily_disabled = models.BooleanField(default=False, verbose_name="إيقاف مؤقت (يظهر كغير متوفر)")

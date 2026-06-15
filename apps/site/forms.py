@@ -358,7 +358,13 @@ from apps.catalog.models import Category, Product, ProductVariant
 class CategoryForm(forms.ModelForm):
     class Meta:
         model = Category
-        fields = ["name", "parent", "is_active", "sort_order"]
+        fields = ["name", "parent", "image", "is_active", "sort_order"]
+        widgets = {
+            "name": forms.TextInput(attrs={"class": "builder-input"}),
+            "parent": forms.Select(attrs={"class": "builder-input"}),
+            "image": forms.FileInput(attrs={"class": "builder-input"}),
+            "sort_order": forms.NumberInput(attrs={"class": "builder-input"}),
+        }
 
 class CouponForm(forms.ModelForm):
     limit_to_tiers_list = forms.MultipleChoiceField(
@@ -446,7 +452,7 @@ class ProductForm(forms.ModelForm):
         model = Product
         fields = [
             "name", "category", "image", "cover_image", "thumbnail",
-            "description", "instructions", "is_active", "is_featured", "sort_order", "delivery_time_display", "form_schema"
+            "description", "instructions", "is_active", "is_featured", "is_out_of_stock", "is_sale", "sort_order", "delivery_time_display", "form_schema"
         ]
         widgets = {
             "name": forms.TextInput(attrs={"class": "builder-input"}),
@@ -464,7 +470,16 @@ class ProductForm(forms.ModelForm):
 class VariantForm(forms.ModelForm):
     class Meta:
         model = ProductVariant
-        fields = ["name", "sku", "price", "cost", "discount_percent", "estimated_delivery_minutes", "is_active", "sort_order"]
+        fields = ["name", "sku", "price", "cost", "discount_percent", "is_sale", "estimated_delivery_minutes", "is_active", "is_temporarily_disabled", "sort_order"]
+        widgets = {
+            "name": forms.TextInput(attrs={"class": "builder-input"}),
+            "sku": forms.TextInput(attrs={"class": "builder-input"}),
+            "price": forms.NumberInput(attrs={"class": "builder-input", "step": "0.01"}),
+            "cost": forms.NumberInput(attrs={"class": "builder-input", "step": "0.01"}),
+            "discount_percent": forms.NumberInput(attrs={"class": "builder-input", "step": "0.01"}),
+            "estimated_delivery_minutes": forms.NumberInput(attrs={"class": "builder-input"}),
+            "sort_order": forms.NumberInput(attrs={"class": "builder-input"}),
+        }
 
 from apps.support.models import SupportSettings, ChatCannedReply
 

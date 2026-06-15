@@ -3,11 +3,38 @@
 
 {% block title %}إدارة المنتجات | Raqamiyat Admin{% endblock %}
 
+{% block extra_head %}
+<style>
+    .sale-badge {
+        background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+        box-shadow: 0 0 15px rgba(245, 158, 11, 0.4);
+        animation: pulse-gold 2s infinite;
+    }
+    @keyframes pulse-gold {
+        0% { box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.4); }
+        70% { box-shadow: 0 0 0 10px rgba(245, 158, 11, 0); }
+        100% { box-shadow: 0 0 0 0 rgba(245, 158, 11, 0); }
+    }
+    .out-of-stock-badge {
+        background: rgba(244, 63, 94, 0.1);
+        border: 1px solid rgba(244, 63, 94, 0.2);
+        color: #f43f5e;
+    }
+</style>
+{% endblock %}
+
 {% block control_content %}
 <div class="page-head">
     <div>
-        <span class="eyebrow">Catalog Management</span>
-        <h1>قائمة المنتجات</h1>
+        <nav class="breadcrumb mb-2 !p-0 !bg-transparent">
+            <a href="{% url 'control_categories_list' %}" class="breadcrumb-item">التصنيفات</a>
+            {% if active_category %}
+            <span class="breadcrumb-item active">{{ active_category.name }}</span>
+            {% else %}
+            <span class="breadcrumb-item active">جميع المنتجات</span>
+            {% endif %}
+        </nav>
+        <h1>{% if active_category %}{{ active_category.name }}{% else %}قائمة المنتجات{% endif %}</h1>
         <p class="text-muted">إدارة مخزون الخدمات الرقمية، تحديث الأسعار، والتحكم في ظهور المنتجات.</p>
     </div>
     <div class="flex gap-3">
@@ -30,22 +57,25 @@
 <div class="management-card">
     <div class="management-header p-6 bg-slate-900/20 flex flex-wrap justify-between items-center gap-4">
         <form method="get" class="flex flex-grow gap-3 items-center max-w-2xl">
+            {% if request.GET.category %}
+            <input type="hidden" name="category" value="{{ request.GET.category }}">
+            {% endif %}
             <div class="relative flex-grow group">
                 <i class="fas fa-search absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-cyan transition-colors"></i>
                 <input type="text" name="q" value="{{ query }}" placeholder="بحث بالاسم، التصنيف، SKU، أو ID..." class="text-xs pr-10 bg-slate-900/50 border-white/10 rounded-xl focus:border-cyan/50 focus:ring-4 focus:ring-cyan/10 transition-all w-full py-2.5">
             </div>
             <button type="submit" class="btn btn-primary btn-sm px-6 rounded-xl">بحث</button>
             {% if query %}
-            <a href="?" class="btn btn-outline btn-sm px-4 rounded-xl text-slate-500 hover:text-white">تصفير</a>
+            <a href="?{% if request.GET.category %}category={{ request.GET.category }}{% endif %}" class="btn btn-outline btn-sm px-4 rounded-xl text-slate-500 hover:text-white">تصفير</a>
             {% endif %}
             <input type="hidden" name="view" value="{{ view_mode|default:'list' }}">
         </form>
 
         <div class="flex bg-slate-900/40 p-1 rounded-xl border border-white/5">
-            <a href="?view=grid&q={{ query }}" class="p-2 px-4 rounded-lg text-xs transition-all {% if view_mode == 'grid' %}bg-cyan text-black font-bold shadow-lg{% else %}text-slate-500 hover:text-white{% endif %}">
+            <a href="?view=grid&q={{ query }}{% if request.GET.category %}&category={{ request.GET.category }}{% endif %}" class="p-2 px-4 rounded-lg text-xs transition-all {% if view_mode == 'grid' %}bg-cyan text-black font-bold shadow-lg{% else %}text-slate-500 hover:text-white{% endif %}">
                 <i class="fas fa-th-large ml-1"></i> عرض شبكي
             </a>
-            <a href="?view=list&q={{ query }}" class="p-2 px-4 rounded-lg text-xs transition-all {% if view_mode != 'grid' %}bg-cyan text-black font-bold shadow-lg{% else %}text-slate-500 hover:text-white{% endif %}">
+            <a href="?view=list&q={{ query }}{% if request.GET.category %}&category={{ request.GET.category }}{% endif %}" class="p-2 px-4 rounded-lg text-xs transition-all {% if view_mode != 'grid' %}bg-cyan text-black font-bold shadow-lg{% else %}text-slate-500 hover:text-white{% endif %}">
                 <i class="fas fa-list ml-1"></i> عرض قائمة
             </a>
         </div>
@@ -54,7 +84,7 @@
     {% if view_mode == 'grid' %}
     <div class="p-6 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4 gap-6">
         {% for p in products %}
-        <div class="group bg-slate-900/30 border border-white/5 rounded-2xl overflow-hidden hover:border-cyan/30 transition-all flex flex-col h-full product-row" data-id="{{ p.id }}">
+        <div class="group bg-slate-900/30 border border-white/5 rounded-2xl overflow-hidden hover:border-cyan/30 transition-all flex flex-col h-full product-row {% if p.is_out_of_stock %}opacity-80{% endif %}" data-id="{{ p.id }}">
             <div class="relative aspect-[4/3] overflow-hidden bg-slate-800">
                 {% if p.image %}
                 <img src="{{ p.image.url }}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500">
@@ -64,12 +94,18 @@
                 
                 <div class="absolute top-2 left-2 flex flex-col gap-1.5">
                     <span class="badge {% if p.is_active %}success{% else %}muted{% endif %} !text-[9px]">{% if p.is_active %}نشط{% else %}مسودة{% endif %}</span>
+                    {% if p.is_out_of_stock %}
+                    <span class="px-2 py-0.5 rounded text-[8px] font-black out-of-stock-badge uppercase">غير متوفر</span>
+                    {% endif %}
                 </div>
 
-                <div class="absolute top-2 right-2">
+                <div class="absolute top-2 right-2 flex flex-col gap-1.5 items-end">
                     <button onclick="toggleFeatured('{{ p.id }}', this)" class="w-8 h-8 rounded-lg bg-black/40 backdrop-blur-md flex items-center justify-center text-sm transition-colors {% if p.is_featured %}text-amber-400{% else %}text-white/40 hover:text-white{% endif %}" title="تمييز المنتج">
                         <i class="fas fa-star"></i>
                     </button>
+                    {% if p.is_sale %}
+                    <span class="px-3 py-1 rounded-lg text-[9px] font-black text-white sale-badge">عـرض خاص</span>
+                    {% endif %}
                 </div>
             </div>
             
@@ -115,15 +151,23 @@
                 <tr class="border-b border-white/[0.02] last:border-0 hover:bg-white/[0.02] transition product-row" data-id="{{ p.id }}">
                     <td class="p-4">
                         <div class="flex items-center gap-3">
-                            <div class="w-12 h-12 flex-shrink-0 rounded bg-slate-800 border border-white/5 overflow-hidden">
+                            <div class="w-12 h-12 flex-shrink-0 rounded bg-slate-800 border border-white/5 overflow-hidden relative">
                                 {% if p.image %}
                                 <img src="{{ p.image.url }}" class="w-full h-full object-cover">
                                 {% else %}
                                 <div class="w-full h-full flex items-center justify-center text-slate-600"><i class="fas fa-box"></i></div>
                                 {% endif %}
+                                {% if p.is_sale %}
+                                <div class="absolute inset-x-0 bottom-0 bg-amber-500 text-white text-[7px] font-black text-center py-0.5">عـرض</div>
+                                {% endif %}
                             </div>
                             <div>
-                                <div class="font-bold text-slate-200">{{ p.name }}</div>
+                                <div class="font-bold text-slate-200 flex items-center gap-2">
+                                    {{ p.name }}
+                                    {% if p.is_out_of_stock %}
+                                    <span class="text-[8px] px-1.5 py-0.5 rounded-full bg-rose-500/20 text-rose-500 border border-rose-500/20">غير متوفر</span>
+                                    {% endif %}
+                                </div>
                                 <div class="text-[10px] text-slate-500 font-mono">{{ p.slug }}</div>
                             </div>
                         </div>
@@ -175,6 +219,7 @@
         </table>
     </div>
     {% endif %}
+...
 
     {% if products.has_other_pages %}
     <div class="p-6 border-t border-white/5 flex justify-center gap-2">

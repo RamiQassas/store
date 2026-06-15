@@ -1,0 +1,69 @@
+{% extends "site/control_base.html" %}
+
+{% block title %}{% if category %}تعديل: {{ category.name }}{% else %}تصنيف جديد{% endif %} | Raqamiyat Admin{% endblock %}
+
+{% block control_content %}
+<nav class="breadcrumb mb-8">
+    <a href="{% url 'control_dashboard' %}" class="breadcrumb-item">الرئيسية</a>
+    <a href="{% url 'control_categories_list' %}" class="breadcrumb-item">إدارة التصنيفات</a>
+    <span class="breadcrumb-item active">{% if category %}تعديل التصنيف{% else %}إضافة تصنيف{% endif %}</span>
+</nav>
+
+<div class="page-head mb-10">
+    <span class="eyebrow">Category Management</span>
+    <h1 class="text-3xl font-black">{% if category %}تعديل: {{ category.name }}{% else %}إضافة تصنيف جديد للمتجر{% endif %}</h1>
+</div>
+
+<div class="max-w-2xl">
+    <form method="post" enctype="multipart/form-data" class="stack gap-8">
+        {% csrf_token %}
+        
+        <div class="management-card p-8 stack gap-6">
+            <div class="field-group">
+                <label class="info-label">اسم التصنيف</label>
+                {{ form.name }}
+                {% if form.name.errors %}<p class="text-rose-500 text-[10px] mt-2 font-bold">{{ form.name.errors.0 }}</p>{% endif %}
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div class="field-group">
+                    <label class="info-label">التصنيف الأب (اختياري)</label>
+                    {{ form.parent }}
+                </div>
+                <div class="field-group">
+                    <label class="info-label">ترتيب العرض</label>
+                    {{ form.sort_order }}
+                </div>
+            </div>
+
+            <div class="field-group">
+                <label class="info-label">صورة التصنيف</label>
+                <div class="relative group">
+                    {{ form.image }}
+                    {% if category.image %}
+                    <div class="mt-4 p-4 bg-white/5 border border-white/10 rounded-2xl flex items-center gap-4">
+                        <img src="{{ category.image.url }}" class="w-16 h-16 rounded-xl object-cover border border-white/10">
+                        <div>
+                            <p class="text-[10px] text-slate-500 font-bold mb-1">الصورة الحالية</p>
+                            <p class="text-xs text-white font-black">{{ category.image.name|truncatechars:30 }}</p>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <label class="flex items-center gap-3 p-4 bg-white/5 border border-white/10 rounded-2xl cursor-pointer hover:bg-white/10 transition">
+                {{ form.is_active }}
+                <div class="font-bold text-xs text-white">التصنيف نشط ومعروض في المتجر</div>
+            </label>
+        </div>
+
+        <div class="flex items-center gap-4">
+            <button type="submit" class="btn btn-primary flex-grow py-4 text-lg">
+                <i class="fas fa-save ml-2"></i> حفظ بيانات التصنيف
+            </button>
+            <a href="{% url 'control_categories_list' %}" class="btn btn-outline px-10 py-4">إلغاء</a>
+        </div>
+    </form>
+</div>
+{% endblock %}

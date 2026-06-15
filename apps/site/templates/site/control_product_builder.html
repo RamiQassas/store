@@ -136,14 +136,20 @@
                     {% endif %}
                 </div>
                 <div class="panel p-4 bg-slate-800/30 border-white/5">
-                    <label class="mini-label">الحالة</label>
-                    <div class="flex items-center gap-4 mt-2">
-                        <div class="flex items-center gap-2">
+                    <label class="mini-label">الحالة والخيارات</label>
+                    <div class="grid grid-cols-2 gap-4 mt-2">
+                        <label class="flex items-center gap-2 cursor-pointer">
                             {{ form.is_active }} <span class="text-xs">نشط</span>
-                        </div>
-                        <div class="flex items-center gap-2">
+                        </label>
+                        <label class="flex items-center gap-2 cursor-pointer">
                             {{ form.is_featured }} <span class="text-xs">مميز</span>
-                        </div>
+                        </label>
+                        <label class="flex items-center gap-2 cursor-pointer">
+                            {{ form.is_out_of_stock }} <span class="text-xs text-rose-400">غير متوفر</span>
+                        </label>
+                        <label class="flex items-center gap-2 cursor-pointer">
+                            {{ form.is_sale }} <span class="text-xs text-amber-400">عليه عرض</span>
+                        </label>
                     </div>
                 </div>
                 <div class="panel p-4 bg-slate-800/30 border-white/5">
@@ -297,10 +303,15 @@ function renderPackages() {
                 <button type="button" class="btn btn-xs btn-outline" onclick="movePackage(${index}, 'up')"><i class="fas fa-arrow-up"></i></button>
                 <button type="button" class="btn btn-xs btn-outline" onclick="movePackage(${index}, 'down')"><i class="fas fa-arrow-down"></i></button>
             </div>
-            <div class="flex gap-2">
-
-                <span class="mini-label" title="إيقاف مؤقت">إيقاف</span>
-                <input type="checkbox" ${pkg.is_temporarily_disabled ? 'checked' : ''} onchange="updatePackage(${index}, 'is_temporarily_disabled', this.checked)">
+            <div class="flex flex-col gap-1">
+                <div class="flex items-center gap-1">
+                    <input type="checkbox" ${pkg.is_sale ? 'checked' : ''} onchange="updatePackage(${index}, 'is_sale', this.checked)">
+                    <span class="text-[8px] font-black text-amber-400">عـرض</span>
+                </div>
+                <div class="flex items-center gap-1">
+                    <input type="checkbox" ${pkg.is_temporarily_disabled ? 'checked' : ''} onchange="updatePackage(${index}, 'is_temporarily_disabled', this.checked)">
+                    <span class="text-[8px] font-black text-rose-400">إيقاف</span>
+                </div>
             </div>
             <div class="flex gap-2">
                 <button type="button" class="btn btn-sm btn-outline p-2" title="تكرار" onclick="duplicatePackage(${index})"><i class="fas fa-copy"></i></button>

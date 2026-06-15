@@ -1157,15 +1157,18 @@ def ajax_validate_coupon(request):
 def control_dashboard(request):
     from apps.payments.models import DepositRequest, WithdrawalRequest
     stats = {
-        "users": User.objects.count(), 
-        "pending_deposits": DepositRequest.objects.filter(status=DepositRequest.Status.PENDING, is_verified=True).count(), 
-        "pending_withdrawals": WithdrawalRequest.objects.filter(status=WithdrawalRequest.Status.PENDING, is_verified=True).count(), 
+        "users": User.objects.count(),
+        "pending_deposits": DepositRequest.objects.filter(status=DepositRequest.Status.PENDING, is_verified=True).count(),
+        "pending_withdrawals": WithdrawalRequest.objects.filter(status=WithdrawalRequest.Status.PENDING, is_verified=True).count(),
         "open_tickets": ChatRoom.objects.exclude(status=ChatRoom.Status.CLOSED).count()
     }
+    categories_summary = Category.objects.filter(is_active=True).annotate(product_count=Count('products')).order_by('sort_order')[:5]
+
     return render(request, "site/control_dashboard.html", {
-        "stats": stats, 
-        "recent_orders": Order.objects.select_related('customer').order_by('-created_at')[:5], 
-        "recent_deposits": DepositRequest.objects.filter(status=DepositRequest.Status.PENDING, is_verified=True).select_related('user', 'payment_method').order_by('-created_at')[:5], 
+        "stats": stats,
+        "categories_summary": categories_summary,
+        "recent_orders": Order.objects.select_related('customer').order_by('-created_at')[:5],
+        "recent_deposits": DepositRequest.objects.filter(status=DepositRequest.Status.PENDING, is_verified=True).select_related('user', 'payment_method').order_by('-created_at')[:5],
         "recent_users": User.objects.order_by('-date_joined')[:5]
     })
 
@@ -2131,8 +2134,27 @@ def control_product_import(request):
     return redirect("control_products_list")
 
 @support_required
+def control_categories_list(request):
+    categories = Category.objects.all().order_by('sort_order', 'name')
+    return render(request, "site/control_categories_list.html", {"categories": categories})
+
+@support_required
+def control_category_edit(request, pk=None):
+    category = get_object_or_404(Category, pk=pk) if pk else None
+    form = CategoryForm(request.POST or None, request.FILES or None, instance=category)
+    if request.method == "POST" and form.is_valid():
+        form.save()
+        messages.success(request, "تم حفظ التصنيف بنجاح.")
+        return redirect("control_categories_list")
+    return render(request, "site/control_category_form.html", {"form": form, "category": category})
+
+@support_required
 def control_products_list(request):
     products = Product.objects.select_related('category').prefetch_related('variants').all().order_by('sort_order', 'name')
+    cat_id = request.GET.get('category')
+    if cat_id:
+        products = products.filter(category_id=cat_id)
+
     q = request.GET.get('q', '').strip()
     view_mode = request.GET.get('view', 'list')
 
@@ -2301,6 +2323,48 @@ def currency_edit(request, pk):
     return render(request, "site/currency_form.html", {"form": form, "currency": c})
 
 @support_required
+def control_categories_list(request):
+    categories = Category.objects.all().order_by('sort_order', 'name')
+    return render(request, "site/control_categories_list.html", {"categories": categories})
+
+@support_required
+def control_category_edit(request, pk=None):
+    category = get_object_or_404(Category, pk=pk) if pk else None
+    form = CategoryForm(request.POST or None, request.FILES or None, instance=category)
+    if request.method == "POST" and form.is_valid():
+        form.save()
+        messages.success(request, "تم حفظ التصنيف بنجاح.")
+        return redirect("control_categories_list")
+    return render(request, "site/control_category_form.html", {"form": form, "category": category})
+
+@support_required
+def control_category_delete(request, pk):
+    get_object_or_404(Category, pk=pk).delete()
+    messages.success(request, "تم حذف التصنيف.")
+    return redirect("control_categories_list")
+
+@support_required
+def control_categories_list(request):
+    categories = Category.objects.all().order_by('sort_order', 'name')
+    return render(request, "site/control_categories_list.html", {"categories": categories})
+
+@support_required
+def control_category_edit(request, pk=None):
+    category = get_object_or_404(Category, pk=pk) if pk else None
+    form = CategoryForm(request.POST or None, request.FILES or None, instance=category)
+    if request.method == "POST" and form.is_valid():
+        form.save()
+        messages.success(request, "تم حفظ التصنيف بنجاح.")
+        return redirect("control_categories_list")
+    return render(request, "site/control_category_form.html", {"form": form, "category": category})
+
+@support_required
+def control_category_delete(request, pk):
+    get_object_or_404(Category, pk=pk).delete()
+    messages.success(request, "تم حذف التصنيف.")
+    return redirect("control_categories_list")
+
+@support_required
 def control_category_create_ajax(request):
     name = request.POST.get("name")
     if name:
@@ -2333,6 +2397,7 @@ def control_product_create(request):
                     estimated_delivery_minutes=int(v.get('estimated_delivery_minutes', 0) or 0),
                     sort_order=int(v.get('sort_order', 0) or 0),
                     is_active=v.get('is_active', True),
+                    is_sale=v.get('is_sale', False),
                     is_temporarily_disabled=v.get('is_temporarily_disabled', False)
                 )
 
