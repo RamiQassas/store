@@ -929,7 +929,7 @@ def catalog(request):
     elif sort == "price_high":
         products = products.order_by("-variants__price")
     else:
-        products = products.order_by("-created_at")
+        products = products.order_by("sort_order", "name")
 
     ctx = {
         "categories": categories,
