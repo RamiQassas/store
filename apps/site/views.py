@@ -904,14 +904,43 @@ def home(request):
     return render(request, "site/home.html", {"featured_products": Product.objects.filter(is_active=True, is_featured=True).select_related("category")[:6], "top_products": Product.objects.filter(is_active=True).order_by("sort_order")[:8], "categories": categories, "stats": stats})
 
 def catalog(request):
-    cat_id, q, sort = request.GET.get("category"), request.GET.get("q", "").strip(), request.GET.get("sort", "newest")
+    view_type = request.GET.get("view", "products") # products or categories
+    cat_id = request.GET.get("category")
+    q = request.GET.get("q", "").strip()
+    sort = request.GET.get("sort", "newest")
+    cols = request.GET.get("cols", "2") # Default 2 columns for mobile
+
+    categories = Category.objects.filter(is_active=True).annotate(
+        product_count=Count('products', filter=Q(products__is_active=True))
+    ).order_by("sort_order", "name")
+
     products = Product.objects.filter(is_active=True).select_related("category").prefetch_related("variants")
-    if cat_id: products = products.filter(category_id=cat_id)
-    if q: products = products.filter(Q(name__icontains=q) | Q(description__icontains=q))
-    if sort == "price_low": products = products.order_by("variants__price")
-    elif sort == "price_high": products = products.order_by("-variants__price")
-    else: products = products.order_by("-created_at")
-    return render(request, "site/catalog.html", {"categories": Category.objects.filter(is_active=True).annotate(product_count=Count('products', filter=Q(products__is_active=True))).order_by("sort_order"), "products": products.distinct(), "active_category": cat_id, "query": q, "sort": sort})
+
+    if cat_id:
+        products = products.filter(category_id=cat_id)
+        view_type = "products" # Force product view if category selected
+
+    if q:
+        products = products.filter(Q(name__icontains=q) | Q(description__icontains=q))
+        view_type = "products" # Force product view if searching
+
+    if sort == "price_low":
+        products = products.order_by("variants__price")
+    elif sort == "price_high":
+        products = products.order_by("-variants__price")
+    else:
+        products = products.order_by("-created_at")
+
+    ctx = {
+        "categories": categories,
+        "products": products.distinct(),
+        "active_category": cat_id,
+        "query": q,
+        "sort": sort,
+        "view_type": view_type,
+        "cols": cols
+    }
+    return render(request, "site/catalog.html", ctx)
 
 def v3_check_sp_grace_period(request):
     """

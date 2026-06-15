@@ -5,6 +5,28 @@
 
 {% block extra_head %}
 <style>
+    /* ... (previous styles) ... */
+    .sale-badge { 
+        position: absolute; top: 0.75rem; right: 0.75rem; z-index: 10;
+        background: linear-gradient(135deg, #f59e0b, #d97706);
+        color: #fff; font-size: 7px; font-weight: 900; padding: 3px 8px; border-radius: 6px;
+        box-shadow: 0 0 10px rgba(245, 158, 11, 0.4);
+        animation: pulse-gold 2s infinite;
+    }
+    @keyframes pulse-gold {
+        0% { box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.4); }
+        70% { box-shadow: 0 0 0 6px rgba(245, 158, 11, 0); }
+        100% { box-shadow: 0 0 0 0 rgba(245, 158, 11, 0); }
+    }
+    .out-of-stock-overlay {
+        position: absolute; inset: 0; background: rgba(0,0,0,0.4); backdrop-filter: grayscale(1);
+        display: flex; align-items: center; justify-content: center; z-index: 5;
+    }
+    .out-of-stock-label {
+        background: #f43f5e; color: #fff; font-size: 7px; font-weight: 900; 
+        padding: 3px 10px; border-radius: 5px; transform: rotate(-5deg);
+    }
+</style>
     /* 
        RAQAMIYAT V6 - Minimalist Fintech Redesign
        Aimed at absolute clarity, small icons, and perfect mobile scaling.
@@ -347,7 +369,17 @@
 
         <div class="p-grid-v6">
             {% for p in featured_products|slice:":8" %}
-            <div class="p-card-v6 reveal">
+            <div class="p-card-v6 reveal relative">
+                {% if p.is_sale %}
+                <div class="sale-badge">عرض خاص</div>
+                {% endif %}
+
+                {% if p.is_out_of_stock %}
+                <div class="out-of-stock-overlay">
+                    <div class="out-of-stock-label">غير متوفر</div>
+                </div>
+                {% endif %}
+                
                 <a href="{% url 'product_detail' p.id %}" class="p-img-v6">
                     {% if p.image %}
                     <img src="{{ p.image.url }}" alt="{{ p.name }}" loading="lazy">
