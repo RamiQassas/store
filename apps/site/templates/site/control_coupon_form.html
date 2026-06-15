@@ -4,52 +4,145 @@
 
 {% block extra_head %}
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+<style>
+    .select2-container--default .select2-selection--multiple, 
+    .select2-container--default .select2-selection--single {
+        background-color: rgba(255,255,255,0.05) !important;
+        border: 1px solid rgba(255,255,255,0.1) !important;
+        border-radius: 14px !important;
+        min-height: 52px !important;
+        color: white !important;
+        display: flex;
+        align-items: center;
+    }
+    .select2-container--default .select2-selection--single .select2-selection__rendered {
+        color: #fff !important;
+        padding-right: 15px !important;
+    }
+    .select2-container--default .select2-selection--multiple .select2-selection__choice {
+        background-color: #06b6d4 !important;
+        border: none !important;
+        color: #000 !important;
+        font-weight: 800 !important;
+        border-radius: 8px !important;
+        padding: 4px 10px !important;
+        margin-top: 6px !important;
+    }
+    .select2-container--default .select2-selection--multiple .select2-selection__choice__remove {
+        color: #000 !important;
+        margin-left: 8px !important;
+    }
+    .select2-dropdown {
+        background-color: #0f172a !important;
+        border: 1px solid rgba(255,255,255,0.1) !important;
+        border-radius: 14px !important;
+        overflow: hidden;
+        z-index: 9999;
+    }
+    .select2-results__option {
+        padding: 12px 16px !important;
+        font-size: 13px !important;
+        color: #94a3b8 !important;
+    }
+    .select2-container--default .select2-results__option--highlighted[aria-selected] {
+        background-color: #06b6d4 !important;
+        color: #000 !important;
+        font-weight: bold;
+    }
+    .select2-search__field {
+        background: transparent !important;
+        color: white !important;
+    }
+    
+    .input-addon-group {
+        display: flex;
+        align-items: stretch;
+    }
+    .input-addon-group .builder-input {
+        border-top-left-radius: 0;
+        border-bottom-left-radius: 0;
+    }
+    .input-addon-label {
+        background: rgba(255,255,255,0.05);
+        border: 1px solid rgba(255,255,255,0.1);
+        border-right: none;
+        padding: 0 1.25rem;
+        display: flex;
+        align-items: center;
+        color: #64748b;
+        font-weight: 900;
+        font-size: 14px;
+        border-top-left-radius: 14px;
+        border-bottom-left-radius: 14px;
+    }
+
+    .restriction-card {
+        background: rgba(15, 23, 42, 0.4);
+        border: 1px solid rgba(255,255,255,0.05);
+        border-radius: 24px;
+        padding: 1.5rem;
+        transition: all 0.3s ease;
+    }
+    .restriction-card:hover {
+        border-color: rgba(6, 182, 212, 0.2);
+        background: rgba(15, 23, 42, 0.6);
+    }
+</style>
 {% endblock %}
 
 {% block control_content %}
-<nav class="breadcrumb">
+<nav class="breadcrumb mb-8">
     <a href="{% url 'control_dashboard' %}" class="breadcrumb-item">الرئيسية</a>
     <a href="{% url 'control_coupons_list' %}" class="breadcrumb-item">إدارة الكوبونات</a>
     <span class="breadcrumb-item active">{{ title }}</span>
 </nav>
 
-<div class="page-head">
-    <span class="eyebrow">Coupon Editor</span>
-    <h1>{{ title }}</h1>
+<div class="page-head mb-10">
+    <span class="eyebrow">Smart Coupon Engine</span>
+    <h1 class="text-3xl font-black">{{ title }}</h1>
 </div>
 
-<div class="max-w-3xl">
-    <div class="management-card">
-        <div class="p-8">
-            <form method="post" class="stack gap-6">
-                {% csrf_token %}
-                
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div class="field-group">
+<div class="max-w-4xl">
+    <form method="post" id="coupon-form" class="stack gap-8">
+        {% csrf_token %}
+        
+        <!-- Primary Config -->
+        <div class="management-card overflow-hidden">
+            <div class="p-8 stack gap-8">
+                <div class="grid grid-cols-1 md:grid-cols-12 gap-6 items-end">
+                    <div class="md:col-span-8 field-group">
                         <label class="info-label">كود الكوبون</label>
                         {{ form.code }}
-                        {% if form.code.errors %}<p class="text-rose-500 text-[10px] mt-1">{{ form.code.errors.0 }}</p>{% endif %}
+                        {% if form.code.errors %}<p class="text-rose-500 text-[10px] mt-2 font-bold">{{ form.code.errors.0 }}</p>{% endif %}
                     </div>
-                    <div class="field-group">
-                        <label class="info-label">طريقة المطابقة (Logic Mode)</label>
+                    <div class="md:col-span-4 field-group">
+                        <label class="info-label">طريقة التحقق</label>
                         {{ form.match_mode }}
-                        <p class="text-[9px] text-slate-500 mt-1">ALL: يجب تحقق كل الشروط. ANY: يكفي تحقق شرط واحد.</p>
+                        <p class="text-[9px] text-slate-500 mt-2">ALL: مطابقة كل الشروط | ANY: مطابقة شرط واحد</p>
                     </div>
                 </div>
 
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
                     <div class="field-group">
-                        <label class="info-label">نوع الخصم</label>
-                        {{ form.discount_type }}
-                        {% if form.discount_type.errors %}<p class="text-rose-500 text-[10px] mt-1">{{ form.discount_type.errors.0 }}</p>{% endif %}
+                        <label class="info-label">نوع وطريقة الخصم</label>
+                        <div class="input-addon-group">
+                            <div class="input-addon-label" id="discount-unit-label">%</div>
+                            {{ form.discount_type }}
+                        </div>
                     </div>
-                    <div class="field-group" id="percent-field">
-                        <label class="info-label">قيمة الخصم (%)</label>
-                        {{ form.discount_percent }}
-                    </div>
-                    <div class="field-group" id="amount-field">
-                        <label class="info-label">قيمة الخصم الثابتة (USD)</label>
-                        {{ form.discount_amount }}
+                    
+                    <div class="field-group">
+                        <label class="info-label" id="main-discount-label">قيمة الخصم</label>
+                        <div class="relative">
+                            <input type="number" id="unified-discount-input" class="builder-input" step="0.01" placeholder="0.00">
+                            <div class="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 font-black text-xs" id="unified-unit-display">%</div>
+                        </div>
+                        <!-- Real hidden fields -->
+                        <div class="hidden">
+                            {{ form.discount_percent }}
+                            {{ form.discount_amount }}
+                        </div>
                     </div>
                 </div>
 
@@ -57,6 +150,7 @@
                     <div class="field-group">
                         <label class="info-label">أقصى استخدام (كلي)</label>
                         {{ form.max_uses }}
+                        <p class="text-[9px] text-slate-500 mt-2">0 تعني غير محدود</p>
                     </div>
                     <div class="field-group">
                         <label class="info-label">أقصى استخدام (لكل مستخدم)</label>
@@ -68,340 +162,325 @@
                     </div>
                 </div>
 
-                <div class="divider border-white/5 my-2"></div>
-
-                <div class="stack gap-4">
-                    <label class="flex items-center gap-3 p-4 bg-slate-900/50 rounded-2xl border border-white/5 cursor-pointer hover:bg-slate-900 transition">
-                        {{ form.is_verified_only }}
-                        <div>
-                            <div class="font-bold text-sm text-white">للحسابات الموثقة فقط (KYC)</div>
-                            <div class="text-[10px] text-slate-500">منع الحسابات غير الموثقة من استخدام هذا الكوبون لتقليل الاحتيال.</div>
-                        </div>
-                    </label>
-
-                    <label class="flex items-center gap-3 p-4 bg-slate-900/50 rounded-2xl border border-white/5 cursor-pointer hover:bg-slate-900 transition">
-                        {{ form.is_active }}
-                        <div>
-                            <div class="font-bold text-sm text-white">الكوبون نشط</div>
-                            <div class="text-[10px] text-slate-500">تعطيل الكوبون سيمنع استخدامه فوراً حتى لو لم ينتهي تاريخه.</div>
-                        </div>
-                    </label>
-                </div>
-
-                <div class="divider border-white/5 my-2"></div>
-
-                <!-- 1. Product Restrictions (PRIORITY) -->
-                <div class="stack gap-4 bg-slate-900/50 p-6 rounded-3xl border border-white/5">
-                    <h3 class="text-sm font-black text-white flex items-center gap-2">
-                        <i class="fas fa-boxes-stacked text-cyan"></i> قيود المنتجات
-                    </h3>
-                    
-                    <label class="flex items-center gap-3 p-4 bg-white/5 rounded-2xl border border-white/5 cursor-pointer hover:bg-white/10 transition">
-                        {{ form.apply_to_all_products }}
-                        <div>
-                            <div class="font-bold text-sm text-white">يعمل على جميع المنتجات</div>
-                        </div>
-                    </label>
-
-                    <div id="product-selector-container" class="{% if form.apply_to_all_products.value %}hidden{% endif %}">
-                        <div class="field-group">
-                            <label class="info-label">اختر المنتجات المسموحة</label>
-                            <select name="limit_to_product" class="builder-input select2-products">
-                                {% if form.instance.limit_to_product %}
-                                <option value="{{ form.instance.limit_to_product.id }}" selected>{{ form.instance.limit_to_product.name }}</option>
-                                {% endif %}
-                            </select>
-                            <p class="text-[9px] text-slate-500 mt-2">ملاحظة: يمكنك حالياً اختيار منتج واحد رئيسي للتقييد.</p>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="divider border-white/5 my-2"></div>
-
-                <!-- 2. IP-based Geographic Matching -->
-                <div class="stack gap-6 bg-slate-900/50 p-6 rounded-3xl border border-white/5">
-                    <h3 class="text-sm font-black text-white flex items-center gap-2">
-                        <i class="fas fa-globe text-cyan"></i> المطابقة الجغرافية المتقدمة (IP Address)
-                    </h3>
-
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div class="field-group">
-                            <label class="info-label">تقييد الدول (بحث وتحديد)</label>
-                            <select id="country-search-selector" class="builder-input select2-countries" multiple="multiple" name="limit_to_ip_countries">
-                                {% for country_code in form.instance.limit_to_ip_countries %}
-                                <option value="{{ country_code }}" selected>{{ country_code }}</option>
-                                {% endfor %}
-                            </select>
-                            <p class="text-[9px] text-slate-500 mt-1">ابحث عن الدولة وسيتم إضافتها تلقائياً.</p>
-                        </div>
-                        <div class="field-group">
-                            <label class="info-label">تقييد المدن (المدن المختارة)</label>
-                            <select name="limit_to_ip_cities" class="builder-input select2-tags" multiple="multiple">
-                                {% for city in form.instance.limit_to_ip_cities %}
-                                <option value="{{ city }}" selected>{{ city }}</option>
-                                {% endfor %}
-                            </select>
-                            <p class="text-[9px] text-slate-500 mt-1">اكتب اسم المدينة واضغط Enter.</p>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="divider border-white/5 my-2"></div>
-
-                <!-- 3. KYC-based Geographic Matching -->
-                <div class="stack gap-6 bg-slate-900/50 p-6 rounded-3xl border border-white/5">
-                    <h3 class="text-sm font-black text-white flex items-center gap-2">
-                        <i class="fas fa-user-check text-cyan"></i> المطابقة الجغرافية بالتوثيق (KYC)
-                    </h3>
-
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div class="field-group">
-                            <label class="info-label">المنطقة المحددة بالهوية</label>
-                            {{ form.limit_to_area }}
-                            <p class="text-[9px] text-slate-500 mt-1">مثال: "ريف دمشق" (مطابقة نصية في بيانات التوثيق)</p>
-                        </div>
-                        <div class="field-group">
-                            <label class="info-label">مكان الولادة المحدد</label>
-                            {{ form.limit_to_place_of_birth }}
-                            <p class="text-[9px] text-slate-500 mt-1">مثال: "حلب" (مطابقة مكان الولادة)</p>
-                        </div>
-                    </div>
-                    
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div class="field-group">
-                        <label class="info-label">نطاق البحث الجغرافي (KYC)</label>
-                        {{ form.allow_area_type }}
+                        <label class="info-label">تاريخ انتهاء الكوبون</label>
+                        {{ form.expires_at }}
+                    </div>
+                    <div class="flex flex-col gap-3 justify-center">
+                         <label class="flex items-center gap-3 p-3 bg-white/5 rounded-xl border border-white/5 cursor-pointer hover:bg-white/10 transition">
+                            {{ form.is_verified_only }}
+                            <div class="font-bold text-xs text-white">للحسابات الموثقة فقط (KYC)</div>
+                        </label>
+                        <label class="flex items-center gap-3 p-3 bg-white/5 rounded-xl border border-white/5 cursor-pointer hover:bg-white/10 transition">
+                            {{ form.is_active }}
+                            <div class="font-bold text-xs text-white">الكوبون نشط حالياً</div>
+                        </label>
                     </div>
                 </div>
-
-                <div class="divider border-white/5 my-2"></div>
-
-                <!-- 4. User Targeting -->
-                <div class="stack gap-6 bg-slate-900/50 p-6 rounded-3xl border border-white/5">
-                    <h3 class="text-sm font-black text-white flex items-center gap-2">
-                        <i class="fas fa-users text-cyan"></i> استهداف العملاء
-                    </h3>
-
-                    <div class="field-group">
-                        <label class="info-label">مخصص لعملاء محددين (بحث ذكي)</label>
-                        <div class="search-box relative">
-                            <input type="text" id="user-search-input" class="builder-input" placeholder="ابحث بالاسم، الإيميل، أو الهاتف...">
-                            <div id="search-results" class="absolute top-full left-0 right-0 z-50 bg-slate-900 border border-white/10 rounded-xl mt-2 hidden max-h-60 overflow-y-auto shadow-2xl"></div>
-                        </div>
-                        
-                        <!-- Selected Users List with Professional Cards -->
-                        <div id="selected-users" class="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-4">
-                            {% for user in form.instance.limit_to_users.all %}
-                            <div class="p-3 bg-white/5 border border-white/10 rounded-2xl flex items-center justify-between group" id="user-card-{{ user.id }}">
-                                <div class="flex items-center gap-3">
-                                    <div class="w-8 h-8 rounded-full bg-cyan/10 flex items-center justify-center text-cyan text-[10px] font-black">
-                                        {{ user.email|slice:":1"|upper }}
-                                    </div>
-                                    <div>
-                                        <div class="text-xs font-bold text-white">{{ user.get_full_name|default:user.email }}</div>
-                                        <div class="text-[9px] text-slate-500">{{ user.phone|default:user.email }}</div>
-                                    </div>
-                                </div>
-                                <button type="button" class="w-8 h-8 rounded-lg bg-rose-500/10 text-rose-500 opacity-0 group-hover:opacity-100 transition hover:bg-rose-500 hover:text-white" onclick="removeUser('{{ user.id }}')">
-                                    <i class="fas fa-trash-alt text-[10px]"></i>
-                                </button>
-                                <input type="hidden" name="limit_to_users" value="{{ user.id }}">
-                            </div>
-                            {% endfor %}
-                        </div>
-                    </div>
-
-                <div class="flex gap-4 mt-4">
-                    <button type="submit" class="btn btn-primary flex-grow py-4 text-lg">
-                        <i class="fas fa-save ml-2"></i> حفظ الكوبون
-                    </button>
-                    <a href="{% url 'control_coupons_list' %}" class="btn btn-outline px-8">إلغاء</a>
-                </div>
-            </form>
+            </div>
         </div>
-    </div>
+
+        <!-- Section: Product Restrictions -->
+        <div class="restriction-card stack gap-6">
+            <div class="flex items-center justify-between">
+                <h3 class="text-sm font-black text-white flex items-center gap-3">
+                    <i class="fas fa-boxes-stacked text-cyan"></i> قيود المنتجات والخدمات
+                </h3>
+                <label class="flex items-center gap-2 cursor-pointer">
+                    <span class="text-[10px] font-bold text-slate-400">يعمل على الكل؟</span>
+                    {{ form.apply_to_all_products }}
+                </label>
+            </div>
+
+            <div id="product-restriction-box" class="field-group {% if form.apply_to_all_products.value %}hidden{% endif %}">
+                <label class="info-label">اختر المنتجات المسموحة</label>
+                <select name="limit_to_product" class="builder-input select2-ajax-products" style="width: 100%;">
+                    {% if form.instance.limit_to_product %}
+                    <option value="{{ form.instance.limit_to_product.id }}" selected>{{ form.instance.limit_to_product.name }}</option>
+                    {% endif %}
+                </select>
+                <p class="text-[9px] text-slate-500 mt-2">ملاحظة: يمكنك حالياً اختيار منتج واحد رئيسي للتقييد.</p>
+            </div>
+        </div>
+
+        <!-- Section: Geographic Restrictions -->
+        <div class="restriction-card stack gap-6">
+            <h3 class="text-sm font-black text-white flex items-center gap-3">
+                <i class="fas fa-globe text-cyan"></i> المطابقة الجغرافية (IP Address)
+            </h3>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div class="field-group">
+                    <label class="info-label">تقييد الدول (بحث وتحديد)</label>
+                    <select name="limit_to_ip_countries" class="builder-input select2-ajax-countries" multiple="multiple" style="width: 100%;">
+                        {% for country_code in form.instance.limit_to_ip_countries %}
+                        <option value="{{ country_code }}" selected>{{ country_code }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="field-group">
+                    <label class="info-label">تقييد المدن (اكتب واضغط Enter)</label>
+                    <select name="limit_to_ip_cities" class="builder-input select2-tags" multiple="multiple" style="width: 100%;">
+                        {% for city in form.instance.limit_to_ip_cities %}
+                        <option value="{{ city }}" selected>{{ city }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <!-- Section: KYC Restrictions -->
+        <div class="restriction-card stack gap-6">
+            <h3 class="text-sm font-black text-white flex items-center gap-3">
+                <i class="fas fa-user-shield text-cyan"></i> المطابقة الجغرافية ببيانات الهوية (KYC)
+            </h3>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div class="field-group">
+                    <label class="info-label">كلمة دلالية في العنوان (الهوية)</label>
+                    {{ form.limit_to_area }}
+                </div>
+                <div class="field-group">
+                    <label class="info-label">كلمة دلالية في مكان الولادة</label>
+                    {{ form.limit_to_place_of_birth }}
+                </div>
+            </div>
+            <div class="field-group">
+                <label class="info-label">نطاق تطبيق المطابقة الجغرافية للهوية</label>
+                {{ form.allow_area_type }}
+            </div>
+        </div>
+
+        <!-- Section: User Targeting -->
+        <div class="restriction-card stack gap-6">
+            <h3 class="text-sm font-black text-white flex items-center gap-3">
+                <i class="fas fa-users text-cyan"></i> استهداف فئات وعملاء محددين
+            </h3>
+
+            <div class="field-group">
+                <label class="info-label">استهداف حسب فئة الحساب (Tiers)</label>
+                {{ form.limit_to_tiers_list }}
+                <p class="text-[9px] text-slate-500 mt-2">اترك فارغاً للسماح لجميع الفئات.</p>
+            </div>
+
+            <div class="divider border-white/5 my-2"></div>
+
+            <div class="field-group">
+                <label class="info-label">استهداف عملاء محددين (بحث ذكي بالاسم أو الإيميل)</label>
+                <div class="relative">
+                    <input type="text" id="user-search-input" class="builder-input" placeholder="اكتب اسم العميل، بريده، أو رقم هاتفه...">
+                    <div id="search-results" class="absolute top-full left-0 right-0 z-50 bg-slate-900 border border-white/10 rounded-2xl mt-2 hidden max-h-60 overflow-y-auto shadow-2xl"></div>
+                </div>
+                
+                <div id="selected-users-list" class="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-6">
+                    {% for user in form.instance.limit_to_users.all %}
+                    <div class="p-4 bg-white/5 border border-white/10 rounded-2xl flex items-center justify-between group" id="user-card-{{ user.id }}">
+                        <div class="flex items-center gap-3">
+                            <div class="w-10 h-10 rounded-xl bg-cyan/10 flex items-center justify-center text-cyan text-xs font-black">
+                                {{ user.email|slice:":1"|upper }}
+                            </div>
+                            <div class="min-w-0">
+                                <div class="text-xs font-bold text-white truncate">{{ user.get_full_name|default:user.username }}</div>
+                                <div class="text-[9px] text-slate-500 truncate">{{ user.email }}</div>
+                            </div>
+                        </div>
+                        <button type="button" class="w-8 h-8 rounded-lg bg-rose-500/10 text-rose-500 opacity-0 group-hover:opacity-100 transition hover:bg-rose-500 hover:text-white" onclick="removeUser('{{ user.id }}')">
+                            <i class="fas fa-trash-alt text-[10px]"></i>
+                        </button>
+                        <input type="hidden" name="limit_to_users" value="{{ user.id }}">
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Submit -->
+        <div class="flex items-center gap-4 mt-6">
+            <button type="submit" class="btn btn-primary flex-grow py-4 text-lg">
+                <i class="fas fa-save ml-2"></i> حفظ بيانات الكوبون
+            </button>
+            <a href="{% url 'control_coupons_list' %}" class="btn btn-outline px-10 py-4">إلغاء</a>
+        </div>
+    </form>
 </div>
 
+<!-- Scripts -->
+<script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
-<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
 <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 
-<style>
-.select2-container--default .select2-selection--multiple {
-    background-color: rgba(255,255,255,0.05);
-    border: 1px solid rgba(255,255,255,0.1);
-    border-radius: 12px;
-}
-.select2-container--default .select2-selection--multiple .select2-selection__choice {
-    background-color: #06b6d4;
-    border: none;
-    color: #000;
-    font-weight: bold;
-    border-radius: 6px;
-}
-.select2-dropdown {
-    background-color: #0f172a;
-    border-color: rgba(255,255,255,0.1);
-}
-.select2-results__option {
-    color: #94a3b8;
-}
-.select2-container--default .select2-results__option--highlighted[aria-selected] {
-    background-color: #06b6d4;
-    color: #000;
-}
-</style>
-
 <script>
-// Task 1: Smart User Search
-const searchInput = document.getElementById('user-search-input');
-const resultsBox = document.getElementById('search-results');
-const selectedBox = document.getElementById('selected-users');
-let debounceTimer;
-
-searchInput.addEventListener('input', function() {
-    clearTimeout(debounceTimer);
-    const q = this.value.trim();
-    if (q.length < 2) {
-        resultsBox.classList.add('hidden');
-        return;
-    }
-
-    debounceTimer = setTimeout(() => {
-        fetch(`/ajax/user-search/?q=${q}`)
-            .then(res => res.json())
-            .then(data => {
-                resultsBox.innerHTML = '';
-                if (data.results.length > 0) {
-                    data.results.forEach(user => {
-                        const div = document.createElement('div');
-                        div.className = 'p-4 border-b border-white/5 cursor-pointer hover:bg-white/5 transition';
-                        div.innerHTML = `<div class="font-bold text-xs text-white">${user.text}</div>`;
-                        div.onclick = () => addUser(user.id, user.text);
-                        resultsBox.appendChild(div);
-                    });
-                    resultsBox.classList.remove('hidden');
-                } else {
-                    resultsBox.innerHTML = '<div class="p-4 text-xs text-slate-500">لا توجد نتائج.</div>';
-                    resultsBox.classList.remove('hidden');
-                }
-            });
-    }, 300);
-});
-
-function addUser(id, name) {
-    if (document.getElementById(`user-tag-${id}`)) {
-        resultsBox.classList.add('hidden');
-        searchInput.value = '';
-        return;
-    }
-
-    const tag = document.createElement('div');
-    tag.className = 'selected-user-tag px-3 py-1.5 bg-cyan/10 border border-cyan/20 rounded-lg flex items-center gap-2 text-[11px] text-cyan';
-    tag.id = `user-tag-${id}`;
-    tag.innerHTML = `
-        <span>${name}</span>
-        <button type="button" class="remove-user text-rose-500 hover:text-rose-400" onclick="removeUser('${id}')"><i class="fas fa-times"></i></button>
-        <input type="hidden" name="limit_to_users" value="${id}">
-    `;
-    selectedBox.appendChild(tag);
-    resultsBox.classList.add('hidden');
-    searchInput.value = '';
-}
-
-function removeUser(id) {
-    const el = document.getElementById(`user-tag-${id}`);
-    if (el) el.remove();
-}
-
-// Close results when clicking outside
-document.addEventListener('click', (e) => {
-    if (!searchInput.contains(e.target) && !resultsBox.contains(e.target)) {
-        resultsBox.classList.add('hidden');
-    }
-});
-
-function toggleDiscountFields() {
-    const typeField = document.querySelector('[name="discount_type"]');
-    if (!typeField) return;
-    
-    const type = typeField.value;
-    const pField = document.getElementById('percent-field');
-    const aField = document.getElementById('amount-field');
-
-    if (type === 'percentage') {
-        pField.style.display = 'block';
-        aField.style.display = 'none';
-    } else {
-        pField.style.display = 'none';
-        aField.style.display = 'block';
-    }
-}
-
 $(document).ready(function() {
-    // Task 2: Searchable Country Selector
-    $('.select2-countries').select2({
-        dir: "rtl",
-        ajax: {
-            url: '/ajax/country-search/',
-            dataType: 'json',
-            delay: 250,
-            data: function (params) { return { q: params.term }; },
-            processResults: function (data) { return { results: data.results }; },
-            cache: true
-        },
-        placeholder: "ابحث عن دولة...",
-        allowClear: true
+    // 1. Initialize Flatpickr
+    flatpickr("input[type='datetime-local']", {
+        enableTime: true,
+        dateFormat: "Y-m-d H:i",
+        theme: "dark"
     });
 
-    // Task 4: Searchable City Tags
-    $('.select2-tags').select2({
-        dir: "rtl",
-        tags: true,
-        placeholder: "اكتب واضغط Enter...",
-        tokenSeparators: [',']
-    });
-
-    // Task 3: Searchable Product Selector
-    $('.select2-products').select2({
+    // 2. Select2 Initialization
+    $('.select2-ajax-products').select2({
         dir: "rtl",
         ajax: {
             url: '/ajax/product-search/',
             dataType: 'json',
             delay: 250,
-            data: function (params) {
-                return { q: params.term };
-            },
-            processResults: function (data) {
-                return { results: data.results };
-            },
+            data: params => ({ q: params.term }),
+            processResults: data => ({ results: data.results }),
             cache: true
         },
-        placeholder: 'ابحث عن منتج...',
-        minimumInputLength: 2,
+        placeholder: "ابحث عن منتج...",
+        minimumInputLength: 2
     });
 
-    toggleDiscountFields();
-    
-    // Initial state for product limit
-    const applyToAllCheckbox = document.querySelector('[name="apply_to_all_products"]');
-    const productField = document.getElementById('product-selector-container');
-    
-    if (applyToAllCheckbox) {
-        applyToAllCheckbox.addEventListener('change', function() {
-            if (this.checked) {
-                productField.classList.add('hidden');
-            } else {
-                productField.classList.remove('hidden');
-            }
-        });
-        
-        if (applyToAllCheckbox.checked) {
-            productField.classList.add('hidden');
+    $('.select2-ajax-countries').select2({
+        dir: "rtl",
+        ajax: {
+            url: '/ajax/country-search/',
+            dataType: 'json',
+            delay: 250,
+            data: params => ({ q: params.term }),
+            processResults: data => ({ results: data.results }),
+            cache: true
+        },
+        placeholder: "بحث وتحديد دول..."
+    });
+
+    $('.select2-tags').select2({
+        dir: "rtl",
+        tags: true,
+        placeholder: "أضف مدن...",
+        tokenSeparators: [',', ' ']
+    });
+
+    // 3. Discount Logic
+    const discountTypeSelect = $('select[name="discount_type"]');
+    const unifiedInput = $('#unified-discount-input');
+    const realPercentInput = $('input[name="discount_percent"]');
+    const realAmountInput = $('input[name="discount_amount"]');
+    const unitDisplay = $('#unified-unit-display');
+    const unitLabel = $('#discount-unit-label');
+
+    function syncDiscountFields() {
+        const type = discountTypeSelect.val();
+        if (type === 'percentage') {
+            unitDisplay.text('%');
+            unitLabel.text('%');
+            unifiedInput.val(realPercentInput.val());
         } else {
-            productField.classList.remove('hidden');
+            unitDisplay.text('USD');
+            unitLabel.text('USD');
+            unifiedInput.val(realAmountInput.val());
         }
     }
+
+    discountTypeSelect.on('change', syncDiscountFields);
+    unifiedInput.on('input', function() {
+        const val = $(this).val();
+        if (discountTypeSelect.val() === 'percentage') {
+            realPercentInput.val(val);
+            realAmountInput.val(0);
+        } else {
+            realAmountInput.val(val);
+            realPercentInput.val(0);
+        }
+    });
+
+    // Initial sync
+    syncDiscountFields();
+
+    // 4. Product Restriction Toggle
+    $('input[name="apply_to_all_products"]').on('change', function() {
+        $('#product-restriction-box').toggleClass('hidden', this.checked);
+    });
+
+    // 5. User Search Logic
+    const searchInput = $('#user-search-input');
+    const resultsBox = $('#search-results');
+    const selectedList = $('#selected-users-list');
+    let searchTimeout;
+
+    searchInput.on('input', function() {
+        clearTimeout(searchTimeout);
+        const q = $(this).val().trim();
+        if (q.length < 2) {
+            resultsBox.addClass('hidden');
+            return;
+        }
+
+        searchTimeout = setTimeout(() => {
+            $.getJSON('/ajax/user-search/', { q: q }, function(data) {
+                resultsBox.empty();
+                if (data.results.length > 0) {
+                    data.results.forEach(user => {
+                        const div = $(`
+                            <div class="p-4 border-b border-white/5 cursor-pointer hover:bg-white/5 transition flex items-center justify-between group">
+                                <div>
+                                    <div class="font-bold text-xs text-white">${user.text}</div>
+                                </div>
+                                <i class="fas fa-plus text-cyan opacity-0 group-hover:opacity-100 transition"></i>
+                            </div>
+                        `);
+                        div.on('click', () => addUser(user.id, user.text));
+                        resultsBox.append(div);
+                    });
+                    resultsBox.removeClass('hidden');
+                } else {
+                    resultsBox.append('<div class="p-4 text-xs text-slate-500">لا توجد نتائج مطابقة.</div>');
+                    resultsBox.removeClass('hidden');
+                }
+            });
+        }, 300);
+    });
+
+    function addUser(id, text) {
+        if ($(`#user-card-${id}`).length > 0) {
+            resultsBox.addClass('hidden');
+            searchInput.val('');
+            return;
+        }
+
+        // Parse text to get name and email
+        // Format: "Name (Email) - Phone"
+        const parts = text.split('(');
+        const name = parts[0].trim();
+        const email = parts[1] ? parts[1].split(')')[0] : '';
+
+        const card = $(`
+            <div class="p-4 bg-white/5 border border-white/10 rounded-2xl flex items-center justify-between group animate-in fade-in slide-in-from-bottom-2" id="user-card-${id}">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-xl bg-cyan/10 flex items-center justify-center text-cyan text-xs font-black">
+                        ${email.charAt(0).toUpperCase()}
+                    </div>
+                    <div class="min-w-0">
+                        <div class="text-xs font-bold text-white truncate">${name}</div>
+                        <div class="text-[9px] text-slate-500 truncate">${email}</div>
+                    </div>
+                </div>
+                <button type="button" class="w-8 h-8 rounded-lg bg-rose-500/10 text-rose-500 transition hover:bg-rose-500 hover:text-white" onclick="removeUser('${id}')">
+                    <i class="fas fa-trash-alt text-[10px]"></i>
+                </button>
+                <input type="hidden" name="limit_to_users" value="${id}">
+            </div>
+        `);
+        selectedList.append(card);
+        resultsBox.addClass('hidden');
+        searchInput.val('');
+    }
+
+    // Close results when clicking outside
+    $(document).on('click', function(e) {
+        if (!$(e.target).closest('#user-search-input, #search-results').length) {
+            resultsBox.addClass('hidden');
+        }
+    });
 });
 
-document.querySelector('[name="discount_type"]').addEventListener('change', toggleDiscountFields);
+function removeUser(id) {
+    $(`#user-card-${id}`).addClass('scale-95 opacity-0').delay(200).queue(function() {
+        $(this).remove();
+    });
+}
+</script>
 {% endblock %}

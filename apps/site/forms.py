@@ -393,22 +393,32 @@ class CouponForm(forms.ModelForm):
             "allow_area_type": forms.Select(attrs={"class": "builder-input"}),
             "limit_to_place_of_birth": forms.TextInput(attrs={"class": "builder-input", "placeholder": "كلمة دلالية للبحث في محل الولادة"}),
             "limit_to_ip_countries": forms.SelectMultiple(choices=COUNTRIES, attrs={"class": "builder-input select2", "style": "height: 100px;"}),
-            "limit_to_ip_cities": forms.TextInput(attrs={"class": "builder-input", "placeholder": "مثال: Istanbul, Aleppo (مفصولة بفاصلة)"}),
+            "limit_to_ip_cities": forms.SelectMultiple(attrs={"class": "builder-input select2-tags"}),
         }
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         if self.instance and self.instance.limit_to_tiers:
             self.fields["limit_to_tiers_list"].initial = self.instance.limit_to_tiers
-        if self.instance and self.instance.limit_to_ip_cities:
-            self.fields["limit_to_ip_cities"].initial = ", ".join(self.instance.limit_to_ip_cities)
+        
+        # Make limit_to_ip_cities support arbitrary dynamic choices 
+        # since it's a tagging select.
+        self.fields['limit_to_ip_cities'].choices = [
+            (c, c) for c in (self.instance.limit_to_ip_cities if self.instance and self.instance.limit_to_ip_cities else [])
+        ]
+        self.fields['limit_to_ip_cities'].required = False
 
     def clean_limit_to_ip_countries(self):
         val = self.cleaned_data.get("limit_to_ip_countries")
         return val if val is not None else []
 
     def clean_limit_to_ip_cities(self):
-        val = self.cleaned_data.get("limit_to_ip_cities", "")
+        # We need to grab it directly from POST because dynamic choices might fail validation
+        if self.data:
+            val = self.data.getlist("limit_to_ip_cities")
+            return [v.strip() for v in val if v.strip()]
+        
+        val = self.cleaned_data.get("limit_to_ip_cities", [])
         if isinstance(val, str):
             return [v.strip() for v in val.split(",") if v.strip()]
         return val if val is not None else []

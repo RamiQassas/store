@@ -2440,7 +2440,7 @@ def ajax_country_search(request):
     from apps.common.countries import COUNTRIES
     q = request.GET.get('q', '').lower()
     results = []
-    for code, name in COUNTRIES.items():
+    for code, name in COUNTRIES:
         if q in name.lower() or q in code.lower():
             results.append({"id": code, "text": f"{name} ({code})"})
     return JsonResponse({"results": results})
