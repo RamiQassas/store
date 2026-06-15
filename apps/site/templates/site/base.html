@@ -117,29 +117,29 @@
         .shell { padding-top: 1rem; padding-bottom: 80px; }
     }
 
-    /* Standardized Social Icons - Large (64px) */
+    /* Standardized Social Icons - Modern Compact (40px) */
     .social-icon-btn {
-        width: 64px !important;
-        height: 64px !important;
+        width: 40px !important;
+        height: 40px !important;
         display: inline-flex !important;
         align-items: center !important;
         justify-content: center !important;
         background: rgba(255,255,255,0.03) !important;
         border: 1px solid rgba(255,255,255,0.08) !important;
-        border-radius: 16px !important;
+        border-radius: 12px !important;
         overflow: hidden !important;
         color: #94a3b8 !important;
-        transition: all 0.2s ease !important;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
         vertical-align: middle;
     }
-    .social-icon-btn:hover { border-color: #2dd4bf !important; color: #fff !important; transform: translateY(-4px) scale(1.05); shadow: 0 10px 25px rgba(0,0,0,0.3); }
+    .social-icon-btn:hover { border-color: var(--cyan) !important; color: #fff !important; transform: translateY(-3px); background: rgba(6, 182, 212, 0.1) !important; }
     .social-icon-btn img, .social-icon-btn i {
-        width: 32px !important;
-        height: 32px !important;
+        width: 20px !important;
+        height: 20px !important;
         object-fit: contain !important;
         display: block !important;
     }
-    .social-icon-btn i { line-height: 32px !important; text-align: center; font-size: 28px !important; }
+    .social-icon-btn i { line-height: 20px !important; text-align: center; font-size: 16px !important; }
   </style>
   {% block extra_head %}{% endblock %}
 </head>
@@ -379,7 +379,7 @@
                 <div class="flex flex-wrap justify-center md:justify-end items-center gap-6">
                     {% for method in payment_methods %}
                         {% if method.logo %}
-                        <img src="{{ method.logo.url }}" alt="{{ method.name }}" class="object-contain hover:scale-110 transition-transform cursor-help grayscale opacity-50 hover:grayscale-0 hover:opacity-100" style="height: 48px !important; width: auto !important; max-width: 120px;" title="{{ method.name }}">
+                        <img src="{{ method.logo.url }}" alt="{{ method.name }}" class="object-contain hover:scale-110 transition-transform cursor-help grayscale opacity-50 hover:grayscale-0 hover:opacity-100" style="height: 32px !important; width: auto !important; max-width: 80px;" title="{{ method.name }}">
                         {% endif %}
                     {% endfor %}
                 </div>

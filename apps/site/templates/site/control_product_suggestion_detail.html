@@ -1,0 +1,91 @@
+{% extends "site/control_base.html" %}
+{% load static %}
+
+{% block title %}تفاصيل المقترح | Raqamiyat Admin{% endblock %}
+
+{% block control_content %}
+<div class="page-head">
+    <div>
+        <span class="eyebrow">Product Pipeline / Review</span>
+        <h1>مراجعة مقترح: {{ suggestion.product_name }}</h1>
+        <p class="text-muted">مراجعة بيانات الخدمة المقترحة والرد على العميل.</p>
+    </div>
+    <a href="{% url 'control_product_suggestions_list' %}" class="btn btn-outline btn-sm">العودة للقائمة</a>
+</div>
+
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+    <div class="lg:col-span-2 stack gap-6">
+        <div class="panel p-8">
+            <h3 class="font-bold text-xl text-white mb-4">بيانات الاقتراح</h3>
+            
+            <div class="grid grid-cols-2 gap-8 mb-8">
+                <div class="stack gap-1">
+                    <span class="text-[10px] text-slate-500 uppercase font-bold">اسم المنتج المقترح</span>
+                    <div class="text-lg font-black text-white">{{ suggestion.product_name }}</div>
+                </div>
+                <div class="stack gap-1">
+                    <span class="text-[10px] text-slate-500 uppercase font-bold">التصنيف المقترح</span>
+                    <div class="text-lg font-black text-cyan">{{ suggestion.category_name|default:"غير محدد" }}</div>
+                </div>
+            </div>
+
+            <div class="stack gap-2 p-6 bg-white/5 rounded-2xl border border-white/5 mb-8">
+                <span class="text-[10px] text-slate-500 uppercase font-bold">وصف الخدمة / الرابط</span>
+                <p class="text-slate-200 leading-relaxed">{{ suggestion.description }}</p>
+            </div>
+
+            <div class="divider mb-8"></div>
+
+            <h3 class="font-bold text-lg text-white mb-4">الرد والإجراء</h3>
+            <form method="post" class="stack gap-6">
+                {% csrf_token %}
+                <div class="field-group">
+                    <label>ملاحظات الإدارة للعميل</label>
+                    <textarea name="admin_notes" class="builder-input" rows="5" placeholder="اكتب ردك هنا، سيظهر هذا النص للعميل في صفحته...">{{ suggestion.admin_notes }}</textarea>
+                </div>
+
+                <div class="flex flex-wrap gap-3">
+                    <button type="submit" name="action" value="approve" class="btn btn-primary px-8">الموافقة على الطلب</button>
+                    <button type="submit" name="action" value="implement" class="btn btn-success px-8">تم توفير الخدمة</button>
+                    <button type="submit" name="action" value="reject" class="btn btn-outline border-danger/30 text-danger hover:bg-danger/10 px-8">رفض الطلب</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <aside class="stack gap-6">
+        <div class="panel p-6">
+            <h4 class="font-bold text-sm text-slate-400 uppercase mb-6">بيانات العميل</h4>
+            <div class="flex items-center gap-4 mb-6">
+                <div class="w-12 h-12 rounded-full bg-slate-800 flex items-center justify-center text-xl font-bold text-cyan">
+                    {{ suggestion.user.email|slice:":1"|upper }}
+                </div>
+                <div class="flex flex-col">
+                    <span class="text-sm text-white font-bold">{{ suggestion.user.get_full_name|default:suggestion.user.email }}</span>
+                    <span class="text-xs text-slate-500">{{ suggestion.user.email }}</span>
+                </div>
+            </div>
+            <div class="stack gap-3 pt-6 border-t border-white/5">
+                <div class="flex justify-between text-xs">
+                    <span class="text-slate-500">تاريخ الطلب:</span>
+                    <span class="text-white">{{ suggestion.created_at|date:"d/m/Y H:i" }}</span>
+                </div>
+                <div class="flex justify-between text-xs">
+                    <span class="text-slate-500">حالة الحساب:</span>
+                    <span class="badge {% if suggestion.user.is_kyc_verified %}success{% else %}warning{% endif %} text-[8px]">
+                        {% if suggestion.user.is_kyc_verified %}موثق{% else %}غير موثق{% endif %}
+                    </span>
+                </div>
+            </div>
+            <a href="{% url 'control_user_moderate' suggestion.user.public_uuid %}" class="btn btn-outline btn-sm w-full mt-8 text-[10px]">عرض ملف العميل الكامل</a>
+        </div>
+
+        <div class="panel p-6 bg-amber-500/5 border-amber-500/10">
+            <h4 class="text-xs font-black text-amber-500 uppercase mb-2">تلميح إداري</h4>
+            <p class="text-[11px] text-amber-200/60 leading-relaxed">
+                بعد الموافقة على الخدمة، يمكنك البدء في إنشائها من "إدارة الخدمات". لا يزال بإمكانك تغيير الحالة إلى "تم التوفير" لاحقاً لإشعار العميل.
+            </p>
+        </div>
+    </aside>
+</div>
+{% endblock %}

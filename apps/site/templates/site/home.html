@@ -5,29 +5,6 @@
 
 {% block extra_head %}
 <style>
-    /* ... (previous styles) ... */
-    .sale-badge { 
-        position: absolute; top: 0.75rem; right: 0.75rem; z-index: 10;
-        background: linear-gradient(135deg, #f59e0b, #d97706);
-        color: #000; font-size: 7px; font-weight: 900; padding: 4px 10px; border-radius: 8px;
-        box-shadow: 0 0 20px rgba(245, 158, 11, 0.5);
-        animation: pulse-gold 2s infinite;
-        border: 1px solid rgba(255,255,255,0.2);
-    }
-    @keyframes pulse-gold {
-        0% { box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.5); transform: scale(1); }
-        70% { box-shadow: 0 0 0 6px rgba(245, 158, 11, 0); transform: scale(1.05); }
-        100% { box-shadow: 0 0 0 0 rgba(245, 158, 11, 0); transform: scale(1); }
-    }
-    .out-of-stock-overlay {
-        position: absolute; inset: 0; background: rgba(0,0,0,0.4); backdrop-filter: grayscale(1);
-        display: flex; align-items: center; justify-content: center; z-index: 5;
-    }
-    .out-of-stock-label {
-        background: #f43f5e; color: #fff; font-size: 7px; font-weight: 900; 
-        padding: 3px 10px; border-radius: 5px; transform: rotate(-5deg);
-    }
-</style>
     /* 
        RAQAMIYAT V6 - Minimalist Fintech Redesign
        Aimed at absolute clarity, small icons, and perfect mobile scaling.
@@ -182,6 +159,29 @@
         .p-footer-v6 .btn { display: none; }
     }
 
+    /* Badges */
+    .sale-badge { 
+        position: absolute; top: 0.75rem; right: 0.75rem; z-index: 10;
+        background: linear-gradient(135deg, #f59e0b, #d97706);
+        color: #000; font-size: 7px; font-weight: 900; padding: 4px 10px; border-radius: 8px;
+        box-shadow: 0 0 20px rgba(245, 158, 11, 0.5);
+        animation: pulse-gold 2s infinite;
+        border: 1px solid rgba(255,255,255,0.2);
+    }
+    @keyframes pulse-gold {
+        0% { box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.5); transform: scale(1); }
+        70% { box-shadow: 0 0 0 6px rgba(245, 158, 11, 0); transform: scale(1.05); }
+        100% { box-shadow: 0 0 0 0 rgba(245, 158, 11, 0); transform: scale(1); }
+    }
+    .out-of-stock-overlay {
+        position: absolute; inset: 0; background: rgba(0,0,0,0.4); backdrop-filter: grayscale(1);
+        display: flex; align-items: center; justify-content: center; z-index: 5;
+    }
+    .out-of-stock-label {
+        background: #f43f5e; color: #fff; font-size: 7px; font-weight: 900; 
+        padding: 3px 10px; border-radius: 5px; transform: rotate(-5deg);
+    }
+
     /* --- Social & Support: Refined --- */
     .social-v6 {
         margin: 6rem 0;
@@ -230,28 +230,6 @@
     }
     .social-icon-v6 i, .social-icon-v6 img { width: 24px; height: 24px; object-fit: contain; }
 
-    /* --- Payment Methods Footer --- */
-    .payment-footer-v6 {
-        padding: 4rem 0;
-        border-top: 1px solid rgba(255,255,255,0.05);
-        text-align: center;
-    }
-    .payment-methods-grid {
-        display: flex;
-        flex-wrap: wrap;
-        justify-content: center;
-        gap: 2rem;
-        opacity: 0.6;
-        transition: opacity 0.3s;
-    }
-    .payment-methods-grid:hover { opacity: 1; }
-    .payment-item-v6 {
-        height: 30px;
-        filter: grayscale(1) brightness(2);
-        transition: all 0.3s;
-    }
-    .payment-item-v6:hover { filter: none; transform: scale(1.1); }
-    .payment-item-v6 img { height: 100%; width: auto; object-fit: contain; }
     /* --- Modern Payment Methods Grid --- */
     .payments-v6 { padding: 5rem 0; border-top: 1px solid var(--border); }
     .payments-v6-grid { 
@@ -262,206 +240,69 @@
         margin-top: 2rem;
     }
     .payment-icon-v6 {
-        width: 100px;
-        height: 60px;
+        width: 80px;
+        height: 48px;
         background: var(--glass);
         border: 1px solid var(--border);
-        border-radius: 12px;
+        border-radius: 10px;
         display: flex;
         align-items: center;
         justify-content: center;
-        padding: 0.75rem;
+        padding: 0.5rem;
         transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
         filter: grayscale(1) opacity(0.5);
     }
     .payment-icon-v6:hover {
         filter: grayscale(0) opacity(1);
         border-color: var(--accent);
-        transform: translateY(-5px) scale(1.05);
-        box-shadow: 0 10px 20px -10px rgba(6, 182, 212, 0.4);
+        transform: translateY(-3px) scale(1.05);
+        box-shadow: 0 8px 15px -5px rgba(6, 182, 212, 0.3);
     }
-    .payment-icon-v6 img {
-        max-width: 100%;
-        max-height: 100%;
-        object-fit: contain;
+
+    /* --- Social & Support: Refined --- */
+    .social-v6 {
+        margin: 4rem 0;
+        padding: 2rem;
+        text-align: center;
     }
-</style>
-{% endblock %}
 
-{% block content %}
-<div class="container">
-    <!-- Hero -->
-    <section class="hero-v6">
-        <div class="reveal">
-            <span class="text-[10px] font-black text-cyan uppercase tracking-widest mb-4 block">منصة رقميات الموثوقة</span>
-            <h1>بوابتك لأفضل الخدمات الرقمية</h1>
-            <p>منصة رقميات توفر لك كافة بطاقات الشحن والاشتراكات العالمية بأسعار تنافسية وتسليم آلي فوري على مدار الساعة.</p>
-            
-            <div class="cta-v6">
-                <a href="{% url 'catalog' %}" class="btn btn-primary px-10">تصفح المتجر</a>
-                {% if not user.is_authenticated %}
-                <a href="{% url 'site_register' %}" class="btn btn-outline px-10">إنشاء حساب</a>
-                {% else %}
-                <a href="{% url 'dashboard' %}" class="btn btn-outline px-10">لوحة التحكم</a>
-                {% endif %}
-            </div>
-        </div>
-    </section>
-
-    <!-- Features -->
-    <section class="grid-v6">
-        <div class="card-v6 reveal">
-            <div class="icon-box-small"><i class="fas fa-bolt"></i></div>
-            <h3>تسليم فوري</h3>
-            <p>نظام آلي متكامل يضمن وصول طلبك خلال ثوانٍ من إتمام عملية الدفع بنجاح.</p>
-        </div>
-        <div class="card-v6 reveal">
-            <div class="icon-box-small"><i class="fas fa-shield-halved"></i></div>
-            <h3>أمان وموثوقية</h3>
-            <p>كافة المعاملات المالية محمية بأحدث بروتوكولات التشفير العالمية لضمان سلامة بياناتك.</p>
-        </div>
-        <div class="card-v6 reveal">
-            <div class="icon-box-small"><i class="fas fa-headset"></i></div>
-            <h3>دعم فني 24/7</h3>
-            <p>فريق دعم متخصص متاح دائماً لمساعدتك في أي استفسار أو مشكلة قد تواجهك.</p>
-        </div>
-    </section>
-
-    <!-- How It Works -->
-    <section class="py-20 border-t border-white/5">
-        <div class="text-center reveal">
-            <span class="text-[10px] font-black text-slate-500 uppercase mb-2 block">خطوات العمل</span>
-            <h2 class="text-3xl font-black mb-12">كيف يعمل رقميات؟</h2>
-            
-            <div class="steps-v6">
-                <div class="step-v6 reveal">
-                    <span class="num">01</span>
-                    <h4>سجل حسابك</h4>
-                    <p>قم بإنشاء حساب مجاني وبسرعة.</p>
-                </div>
-                <div class="step-v6 reveal">
-                    <span class="num">02</span>
-                    <h4>اشحن المحفظة</h4>
-                    <p>أضف رصيداً عبر وسائل الدفع المتاحة.</p>
-                </div>
-                <div class="step-v6 reveal">
-                    <span class="num">03</span>
-                    <h4>اختر الخدمة</h4>
-                    <p>تصفح واطلب ما يناسب احتياجك.</p>
-                </div>
-                <div class="step-v6 reveal">
-                    <span class="num">04</span>
-                    <h4>استلم فوراً</h4>
-                    <p>ستجد الكود في قائمة طلباتك.</p>
-                </div>
-            </div>
-        </div>
-    </section>
-
-    <!-- Products -->
-    <section class="py-20 border-t border-white/5">
-        <div class="products-head-v6 reveal">
-            <div>
-                <span class="text-[10px] font-black text-cyan uppercase mb-2 block">المتجر</span>
-                <h2 class="font-black">المنتجات المميزة</h2>
-            </div>
-            <a href="{% url 'catalog' %}" class="text-sm font-bold text-slate-500 hover:text-cyan transition">عرض الكل <i class="fas fa-arrow-left mr-1"></i></a>
-        </div>
-
-        <div class="p-grid-v6">
-            {% for p in featured_products|slice:":8" %}
-            <div class="p-card-v6 reveal relative">
-                {% if p.is_sale %}
-                <div class="sale-badge">عرض خاص</div>
-                {% endif %}
-
-                {% if p.is_out_of_stock %}
-                <div class="out-of-stock-overlay">
-                    <div class="out-of-stock-label">غير متوفر</div>
-                </div>
-                {% endif %}
-                
-                <a href="{% url 'product_detail' p.id %}" class="p-img-v6">
-                    {% if p.image %}
-                    <img src="{{ p.image.url }}" alt="{{ p.name }}" loading="lazy">
-                    {% else %}
-                    <i class="fas fa-box text-3xl opacity-20"></i>
-                    {% endif %}
-                </a>
-                <div class="p-body-v6">
-                    <span class="cat">{{ p.category.name }}</span>
-                    <a href="{% url 'product_detail' p.id %}" class="title">{{ p.name }}</a>
-                    <div class="p-footer-v6">
-                        {% variant_price p.variants.first as v_price %}
-                        <span class="price">{% currency_format v_price %}</span>
-                        <a href="{% url 'product_detail' p.id %}" class="btn btn-primary btn-sm rounded-lg py-1 px-3 text-[10px]">اطلب</a>
-                    </div>
-                </div>
-            </div>
-            {% endfor %}
-        </div>
-    </section>
-
-    <!-- Payment Methods Section -->
-    <section class="payments-v6 reveal">
-        <div class="text-center mb-8">
-            <span class="text-[10px] font-black uppercase tracking-[0.2em] text-cyan/60 block mb-2">الأمان والموثوقية</span>
-            <h2 class="text-2xl font-black text-white">طرق الدفع المتوفرة</h2>
-            <p class="text-sm text-slate-500 mt-2">ندعم مجموعة واسعة من وسائل الدفع العالمية والمحلية لتسهيل عملياتك</p>
-        </div>
-        
-        <div class="payments-v6-grid">
-            {% for method in payment_methods %}
-                {% if method.logo %}
-                <div class="payment-icon-v6" title="{{ method.name }}">
-                    <img src="{{ method.logo.url }}" alt="{{ method.name }}">
-                </div>
-                {% endif %}
-            {% endfor %}
-        </div>
-    </section>
-
-    <!-- Social & Support -->
-    <section class="social-v6 reveal">
-        <span class="text-[10px] font-black text-cyan uppercase mb-2 block">الدعم المباشر</span>
-        <h2>تواصل معنا</h2>
-        <p class="text-slate-500 mb-8 max-w-sm mx-auto">فريقنا متاح دائماً لمساعدتك عبر نظام الدعم المباشر داخل المنصة.</p>
-
-        <!-- Internal Support Card -->
-        <div class="support-card-v6 reveal">
-            <div class="w-16 h-16 bg-cyan/10 rounded-3xl flex items-center justify-center text-cyan shadow-inner">
-                <i class="fas fa-headset text-2xl"></i>
-            </div>
-            <div class="stack gap-1">
-                <h3 class="text-xl font-black text-white">مركز الدعم المباشر</h3>
-                <p class="text-xs text-slate-500">تواصل مع خبرائنا فوراً لحل أي مشكلة أو استفسار.</p>
-            </div>
-            <a href="{% url 'chat_list' %}" class="btn btn-primary w-full py-4 rounded-2xl font-black shadow-lg shadow-cyan/20">ابدأ المحادثة الآن</a>
-        </div>
-        
-        <div class="py-10">
-            <span class="text-[10px] font-black text-slate-600 uppercase tracking-widest mb-6 block">تابعنا على منصات التواصل الاجتماعي</span>
-            <div class="social-links-v6">
-                {% for link in SOCIAL_LINKS %}
-                    <a href="{{ link.url }}" target="_blank" class="social-icon-v6" title="{{ link.name }}">
-                        {% if link.icon_image %}
-                        <img src="{{ link.icon_image.url }}" alt="{{ link.name }}">
-                        {% else %}
-                        <i class="{{ link.icon_class|default:'fas fa-link' }}"></i>
-                        {% endif %}
-                    </a>
-                {% endfor %}
-            </div>
-        </div>
-    </section>
-</div>
-
-<script>
-    const observer = new IntersectionObserver((entries) => {
-        entries.forEach(entry => {
-            if (entry.isIntersecting) entry.target.classList.add('visible');
-        });
-    }, { threshold: 0.1 });
-    document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
-</script>
-{% endblock %}
+    .social-v6 h2 { font-size: 1.25rem; font-weight: 800; margin-bottom: 0.75rem; }
+    
+    .support-card-v6 {
+        max-width: 400px;
+        margin: 0 auto 3rem;
+        padding: 2rem;
+        background: linear-gradient(135deg, rgba(6, 182, 212, 0.08) 0%, rgba(5, 8, 17, 0) 100%);
+        border: 1px solid rgba(6, 182, 212, 0.15);
+        border-radius: 28px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 1rem;
+        transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        backdrop-filter: blur(10px);
+    }
+    .support-card-v6:hover { border-color: var(--accent); transform: translateY(-4px); box-shadow: 0 20px 40px -10px rgba(6, 182, 212, 0.2); }
+    
+    .social-links-v6 { display: flex; flex-wrap: wrap; justify-content: center; gap: 1rem; }
+    .social-icon-v6 {
+        width: 44px;
+        height: 44px;
+        border-radius: 12px;
+        background: #0a0f1c;
+        border: 1px solid var(--border);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--text-dim);
+        font-size: 1.25rem;
+        transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+    .social-icon-v6:hover { 
+        border-color: var(--accent); 
+        color: #fff; 
+        transform: scale(1.1) rotate(5deg); 
+        background: rgba(6, 182, 212, 0.1);
+        box-shadow: 0 8px 15px -5px rgba(6, 182, 212, 0.3);
+    }
+    .social-icon-v6 i, .social-icon-v6 img { width: 20px; height: 20px; object-fit: contain; }

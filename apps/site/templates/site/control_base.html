@@ -145,6 +145,9 @@
             <a href="{% url 'control_coupons_list' %}" class="admin-nav-link {% if 'coupon' in request.path %}active{% endif %}">
                 <i class="fas fa-ticket"></i> الكوبونات والخصومات
             </a>
+            <a href="{% url 'control_product_suggestions_list' %}" class="admin-nav-link {% if 'suggestion' in request.path %}active{% endif %}">
+                <i class="fas fa-lightbulb"></i> مقترحات العملاء
+            </a>
 
             <div class="admin-nav-group"><span>المستخدمين والدعم</span></div>
             <a href="{% url 'control_users_list' %}" class="admin-nav-link {% if 'user' in request.path %}active{% endif %}">

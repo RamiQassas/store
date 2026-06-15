@@ -25,7 +25,7 @@ from django.core.signing import TimestampSigner, SignatureExpired, BadSignature
 
 from apps.accounts.models import User, OTPToken, KYCRequest, KYCSettings, ActivityLog
 from apps.accounts.services import send_brevo_email
-from apps.catalog.models import Category, Product, ProductVariant
+from apps.catalog.models import Category, Product, ProductVariant, ProductSuggestion
 from apps.common.models import Currency, SocialMediaLink, SiteAnnouncement
 from apps.notifications.models import Notification, NotificationSetting
 from apps.notifications.services import notify_bulk, notify_user
@@ -35,7 +35,7 @@ from apps.site.forms import (
     LoginForm, RegisterForm, PaymentMethodForm, CurrencyForm, ModerateUserForm, 
     ProductForm, CategoryForm, KYCRequestForm, KYCSettingsForm, ChangePasswordForm, 
     CouponForm, SendNotificationForm, AdminChatForm, SiteAnnouncementForm, 
-    ChatCannedReplyForm, SupportSettingsForm
+    ChatCannedReplyForm, SupportSettingsForm, ProductSuggestionForm
 )
 from apps.support.models import ChatRoom, ChatMessage, ChatCannedReply, SupportSettings
 from apps.wallets.models import Wallet
@@ -3102,3 +3102,53 @@ def payment_method_edit(request, pk):
             )
         return redirect("payment_methods_list")
     return render(request, "site/payment_method_builder.html", {"form": form, "method": method})
+
+# ==========================================
+# --- PRODUCT SUGGESTIONS ---
+# ==========================================
+
+@login_required
+def site_product_suggestion(request):
+    form = ProductSuggestionForm(request.POST or None)
+    if request.method == "POST" and form.is_valid():
+        suggestion = form.save(commit=False)
+        suggestion.user = request.user
+        suggestion.save()
+        messages.success(request, "تم إرسال اقتراحك بنجاح. سنقوم بمراجعته والرد عليك قريباً.")
+        return redirect("dashboard")
+    
+    user_suggestions = ProductSuggestion.objects.filter(user=request.user)
+    return render(request, "site/product_suggestion_form.html", {"form": form, "suggestions": user_suggestions})
+
+@support_required
+def control_product_suggestions_list(request):
+    status_filter = request.GET.get('status')
+    suggestions = ProductSuggestion.objects.all().select_related('user')
+    if status_filter:
+        suggestions = suggestions.filter(status=status_filter)
+    
+    return render(request, "site/control_product_suggestions_list.html", {
+        "suggestions": suggestions,
+        "status_filter": status_filter
+    })
+
+@support_required
+def control_product_suggestion_detail(request, pk):
+    suggestion = get_object_or_404(ProductSuggestion, pk=pk)
+    if request.method == "POST":
+        action = request.POST.get("action")
+        notes = request.POST.get("admin_notes", "")
+        
+        if action == "approve":
+            suggestion.status = ProductSuggestion.Status.APPROVED
+        elif action == "reject":
+            suggestion.status = ProductSuggestion.Status.REJECTED
+        elif action == "implement":
+            suggestion.status = ProductSuggestion.Status.IMPLEMENTED
+            
+        suggestion.admin_notes = notes
+        suggestion.save()
+        messages.success(request, "تم تحديث حالة الاقتراح.")
+        return redirect("control_product_suggestions_list")
+        
+    return render(request, "site/control_product_suggestion_detail.html", {"suggestion": suggestion})

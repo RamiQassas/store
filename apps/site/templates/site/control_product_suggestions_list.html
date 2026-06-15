@@ -1,0 +1,66 @@
+{% extends "site/control_base.html" %}
+{% load static %}
+
+{% block title %}مقترحات المنتجات | Raqamiyat Admin{% endblock %}
+
+{% block control_content %}
+<div class="page-head">
+    <div>
+        <span class="eyebrow">Product Pipeline</span>
+        <h1>مقترحات وطلبات العملاء</h1>
+        <p class="text-muted">مراجعة الخدمات والمنتجات التي يطلبها العملاء لتوفيرها في المتجر.</p>
+    </div>
+</div>
+
+<div class="flex gap-4 mb-8">
+    <a href="?" class="btn btn-sm {% if not status_filter %}btn-primary{% else %}btn-outline{% endif %}">الكل</a>
+    <a href="?status=pending" class="btn btn-sm {% if status_filter == 'pending' %}btn-primary{% else %}btn-outline{% endif %}">قيد المراجعة</a>
+    <a href="?status=approved" class="btn btn-sm {% if status_filter == 'approved' %}btn-primary{% else %}btn-outline{% endif %}">تمت الموافقة</a>
+    <a href="?status=implemented" class="btn btn-sm {% if status_filter == 'implemented' %}btn-primary{% else %}btn-outline{% endif %}">تم التوفير</a>
+</div>
+
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+    {% for s in suggestions %}
+    <div class="management-card flex flex-col p-6">
+        <div class="flex justify-between items-start mb-4">
+            <span class="badge 
+                {% if s.status == 'pending' %}warning
+                {% elif s.status == 'approved' %}primary
+                {% elif s.status == 'implemented' %}success
+                {% else %}danger{% endif %} text-[9px]">
+                {{ s.get_status_display }}
+            </span>
+            <span class="text-[10px] text-slate-500">{{ s.created_at|date:"d/m/Y H:i" }}</span>
+        </div>
+        
+        <h3 class="font-bold text-white text-lg mb-1">{{ s.product_name }}</h3>
+        {% if s.category_name %}
+        <div class="text-[10px] text-cyan font-bold uppercase mb-4">{{ s.category_name }}</div>
+        {% endif %}
+        
+        <p class="text-xs text-slate-400 line-clamp-3 mb-6 bg-white/5 p-3 rounded-xl">{{ s.description }}</p>
+        
+        <div class="flex items-center gap-3 mb-6 border-t border-white/5 pt-4">
+            <div class="w-8 h-8 rounded-full bg-slate-800 flex items-center justify-center text-[10px] font-bold text-cyan">
+                {{ s.user.email|slice:":1"|upper }}
+            </div>
+            <div class="flex flex-col">
+                <span class="text-[11px] text-white font-bold">{{ s.user.get_full_name|default:s.user.email }}</span>
+                <span class="text-[9px] text-slate-500">{{ s.user.phone|default:"بدون هاتف" }}</span>
+            </div>
+        </div>
+
+        <div class="mt-auto pt-4 border-t border-white/5 flex gap-2">
+            <a href="{% url 'control_product_suggestion_detail' s.id %}" class="btn btn-outline btn-sm w-full text-[10px]">
+                <i class="fas fa-eye ml-1"></i> مراجعة والرد
+            </a>
+        </div>
+    </div>
+    {% empty %}
+    <div class="col-span-full p-20 text-center panel bg-slate-900/30 border-dashed border-slate-800">
+        <i class="fas fa-lightbulb text-4xl text-slate-700 mb-4"></i>
+        <h3 class="text-lg font-bold text-slate-500">لا توجد مقترحات حالياً</h3>
+    </div>
+    {% endfor %}
+</div>
+{% endblock %}

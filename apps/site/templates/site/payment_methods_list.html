@@ -3,6 +3,29 @@
 
 {% block title %}إدارة وسائل الدفع | Raqamiyat Admin{% endblock %}
 
+{% block control_head %}
+<style>
+    .method-logo-container {
+        width: 48px !important;
+        height: 48px !important;
+        flex-shrink: 0;
+        border-radius: 12px;
+        background: rgba(255,255,255,0.03);
+        border: 1px solid rgba(255,255,255,0.05);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        overflow: hidden;
+        padding: 6px;
+    }
+    .method-logo-img {
+        max-width: 100% !important;
+        max-height: 100% !important;
+        object-fit: contain !important;
+    }
+</style>
+{% endblock %}
+
 {% block control_content %}
 <div class="page-head">
     <div>
@@ -20,9 +43,9 @@
     <div class="management-card flex flex-col">
         <div class="p-6 flex-grow">
             <div class="flex justify-between items-start mb-6">
-                <div class="w-12 h-12 rounded-xl bg-slate-800 border border-white/5 flex items-center justify-center overflow-hidden">
+                <div class="method-logo-container">
                     {% if method.logo %}
-                    <img src="{{ method.logo.url }}" class="w-full h-full object-contain p-1">
+                    <img src="{{ method.logo.url }}" class="method-logo-img">
                     {% else %}
                     <i class="fas {{ method.icon|default:'fa-wallet' }} text-cyan text-xl"></i>
                     {% endif %}
@@ -39,6 +62,11 @@
             <div class="flex gap-2 mb-4">
                 {% if method.can_deposit %}<span class="badge primary text-[8px]">يدعم الإيداع</span>{% endif %}
                 {% if method.can_withdraw %}<span class="badge danger text-[8px]">يدعم السحب</span>{% endif %}
+                {% if method.deposit_qr_image %}
+                <div class="w-6 h-6 rounded bg-white flex items-center justify-center overflow-hidden border border-white/10" title="QR Code Active">
+                    <img src="{{ method.deposit_qr_image.url }}" class="w-full h-full object-cover">
+                </div>
+                {% endif %}
             </div>
 
             <div class="stack gap-3 border-t border-white/5 pt-4">

@@ -353,7 +353,17 @@ class KYCRequestForm(forms.ModelForm):
             else:
                 field.required = True
 
-from apps.catalog.models import Category, Product, ProductVariant
+from apps.catalog.models import Category, Product, ProductVariant, ProductSuggestion
+
+class ProductSuggestionForm(forms.ModelForm):
+    class Meta:
+        model = ProductSuggestion
+        fields = ["product_name", "category_name", "description"]
+        widgets = {
+            "product_name": forms.TextInput(attrs={"class": "builder-input", "placeholder": "مثال: شحن رصيد بلايستيشن سعودي"}),
+            "category_name": forms.TextInput(attrs={"class": "builder-input", "placeholder": "مثال: بطاقات الألعاب"}),
+            "description": forms.Textarea(attrs={"class": "builder-input", "rows": 4, "placeholder": "صف الخدمة بوضوح أو ضع رابطاً لمثال عليها..."}),
+        }
 
 class CategoryForm(forms.ModelForm):
     class Meta:

@@ -173,5 +173,28 @@ class ProductUserPrice(TimeStampedModel):
         verbose_name_plural = "أسعار مخصصة لمستخدمين"
 
 
+class ProductSuggestion(TimeStampedModel):
+    class Status(models.TextChoices):
+        PENDING = "pending", "قيد المراجعة"
+        APPROVED = "approved", "تمت الموافقة"
+        REJECTED = "rejected", "مرفوض"
+        IMPLEMENTED = "implemented", "تم التوفير"
+
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, related_name="suggestions", on_delete=models.CASCADE, verbose_name="المستخدم")
+    product_name = models.CharField(max_length=160, verbose_name="اسم المنتج/الخدمة المقترح")
+    category_name = models.CharField(max_length=120, blank=True, verbose_name="التصنيف (اختياري)")
+    description = models.TextField(verbose_name="وصف الخدمة أو رابط لها")
+    status = models.CharField(max_length=20, choices=Status.choices, default=Status.PENDING, verbose_name="الحالة")
+    admin_notes = models.TextField(blank=True, verbose_name="ملاحظات الإدارة")
+
+    class Meta:
+        verbose_name = "مقترح منتج"
+        verbose_name_plural = "مقترحات المنتجات"
+        ordering = ("-created_at",)
+
+    def __str__(self):
+        return f"{self.product_name} - {self.user.email}"
+
+
 # Legacy model removed (ProductFormField)
 
