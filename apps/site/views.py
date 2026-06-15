@@ -33,7 +33,7 @@ from apps.orders.models import Order, OrderLog, Coupon, OrderItem
 from apps.payments.models import DepositRequest, PaymentMethod, WithdrawalRequest
 from apps.site.forms import (
     LoginForm, RegisterForm, PaymentMethodForm, CurrencyForm, ModerateUserForm, 
-    ProductForm, KYCRequestForm, KYCSettingsForm, ChangePasswordForm, 
+    ProductForm, CategoryForm, KYCRequestForm, KYCSettingsForm, ChangePasswordForm, 
     CouponForm, SendNotificationForm, AdminChatForm, SiteAnnouncementForm, 
     ChatCannedReplyForm, SupportSettingsForm
 )
@@ -2152,7 +2152,9 @@ def control_category_edit(request, pk=None):
 def control_products_list(request):
     products = Product.objects.select_related('category').prefetch_related('variants').all().order_by('sort_order', 'name')
     cat_id = request.GET.get('category')
+    active_category = None
     if cat_id:
+        active_category = get_object_or_404(Category, id=cat_id)
         products = products.filter(category_id=cat_id)
 
     q = request.GET.get('q', '').strip()
@@ -2180,14 +2182,17 @@ def control_products_list(request):
         return export_to_excel(products, "Products", columns)
 
     paginator = Paginator(products, 20)
-
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
+
+    categories = Category.objects.filter(is_active=True).order_by('sort_order', 'name')
 
     return render(request, "site/control_products_list.html", {
         "products": page_obj,
         "query": q,
-        "view_mode": view_mode
+        "view_mode": view_mode,
+        "active_category": active_category,
+        "categories": categories
     })
 
 @support_required
@@ -2430,6 +2435,7 @@ def control_product_edit(request, pk):
                         "estimated_delivery_minutes": int(v.get('estimated_delivery_minutes', 0) or 0),
                         "sort_order": int(v.get('sort_order', 0) or 0),
                         "is_active": v.get('is_active', True),
+                        "is_sale": v.get('is_sale', False),
                         "is_temporarily_disabled": v.get('is_temporarily_disabled', False)
                     }
                 )
@@ -2441,6 +2447,7 @@ def control_product_edit(request, pk):
             "wholesale_price": str(v.wholesale_price), "vip_price": str(v.vip_price),
             "cost": str(v.cost), "estimated_delivery_minutes": v.estimated_delivery_minutes,
             "sort_order": v.sort_order, "is_active": v.is_active,
+            "is_sale": v.is_sale,
             "is_temporarily_disabled": v.is_temporarily_disabled
         } for v in product.variants.all().order_by('sort_order')
     ]

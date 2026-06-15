@@ -34,7 +34,7 @@
             <span class="breadcrumb-item active">جميع المنتجات</span>
             {% endif %}
         </nav>
-        <h1>{% if active_category %}{{ active_category.name }}{% else %}قائمة المنتجات{% endif %}</h1>
+        <h1>{% if active_category %}{{ active_category.name }}{% else %}الكتالوج الذكي{% endif %}</h1>
         <p class="text-muted">إدارة مخزون الخدمات الرقمية، تحديث الأسعار، والتحكم في ظهور المنتجات.</p>
     </div>
     <div class="flex gap-3">
@@ -54,7 +54,50 @@
     </div>
 </div>
 
-<div class="management-card">
+{% if not active_category and not query %}
+<!-- Categories Grid View (Drill-down Entry) -->
+<div class="stack gap-10 mb-20 reveal">
+    <div class="flex items-center justify-between border-b border-white/5 pb-4">
+        <h2 class="text-lg font-black text-white flex items-center gap-3">
+            <i class="fas fa-layer-group text-cyan"></i> تصفح حسب التصنيف
+        </h2>
+        <a href="?q=all" class="text-[10px] font-black text-slate-500 hover:text-white uppercase tracking-widest">عرض كافة المنتجات مباشرة</a>
+    </div>
+    
+    <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-6">
+        {% for cat in categories %}
+        <a href="?category={{ cat.id }}" class="group stack gap-4 no-underline">
+            <div class="aspect-square rounded-[32px] bg-slate-900 border-2 border-white/5 overflow-hidden flex items-center justify-center relative group-hover:border-cyan/50 group-hover:shadow-[0_0_30px_rgba(6,182,212,0.15)] transition-all duration-500">
+                {% if cat.image %}
+                <img src="{{ cat.image.url }}" class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700">
+                {% else %}
+                <i class="fas fa-folder text-3xl text-slate-700 group-hover:text-cyan transition-colors"></i>
+                {% endif %}
+                <div class="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                <div class="absolute bottom-4 inset-x-4 flex justify-center opacity-0 group-hover:opacity-100 transition-all translate-y-2 group-hover:translate-y-0">
+                    <span class="btn btn-primary !py-1 !px-3 !text-[8px] font-black">فتح التصنيف</span>
+                </div>
+            </div>
+            <div class="text-center">
+                <h3 class="text-xs font-black text-slate-300 group-hover:text-white transition-colors mb-1">{{ cat.name }}</h3>
+                <span class="text-[9px] font-bold text-slate-600 uppercase tracking-tighter">{{ cat.products.count }} منتج متوفر</span>
+            </div>
+        </a>
+        {% endfor %}
+        <a href="{% url 'control_category_create' %}" class="group stack gap-4 no-underline">
+            <div class="aspect-square rounded-[32px] bg-white/[0.02] border-2 border-dashed border-white/10 flex flex-col items-center justify-center group-hover:border-cyan/30 group-hover:bg-cyan/5 transition-all">
+                <div class="w-10 h-10 rounded-full bg-slate-800 flex items-center justify-center text-slate-500 group-hover:bg-cyan group-hover:text-black transition-all mb-2">
+                    <i class="fas fa-plus"></i>
+                </div>
+                <span class="text-[10px] font-black text-slate-500 group-hover:text-cyan">إضافة تصنيف</span>
+            </div>
+        </a>
+    </div>
+</div>
+{% endif %}
+
+{% if active_category or query or products %}
+<div class="management-card reveal">
     <div class="management-header p-6 bg-slate-900/20 flex flex-wrap justify-between items-center gap-4">
         <form method="get" class="flex flex-grow gap-3 items-center max-w-2xl">
             {% if request.GET.category %}
@@ -178,9 +221,18 @@
                     <td class="p-4">
                         <div class="flex flex-col gap-1">
                             <span class="text-[10px] text-muted">{{ p.variants.count }} باقات</span>
-                            {% if p.variants.first %}
-                            <span class="font-mono text-cyan text-[11px]">{% currency_format p.variants.first.price %}+</span>
+                            {% with first_v=p.variants.first %}
+                            {% if first_v %}
+                                <div class="flex items-center gap-2">
+                                    <span class="font-mono text-cyan text-[11px]">{% currency_format first_v.price %}</span>
+                                    {% if first_v.is_sale %}
+                                    <span class="text-[7px] px-1.5 py-0.5 rounded bg-amber-500 text-black font-black">عـرض</span>
+                                    {% endif %}
+                                </div>
+                            {% else %}
+                                <span class="text-[10px] text-rose-500 italic">بدون باقات</span>
                             {% endif %}
+                            {% endwith %}
                         </div>
                     </td>
                     <td class="p-4">
@@ -233,6 +285,7 @@
     </div>
     {% endif %}
 </div>
+{% endif %}
 {% endblock %}
 
 {% block extra_js %}
