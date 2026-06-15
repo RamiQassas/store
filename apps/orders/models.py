@@ -25,7 +25,7 @@ class Coupon(TimeStampedModel):
     is_verified_only = models.BooleanField(default=True, verbose_name="للحسابات الموثقة فقط")
     expires_at = models.DateTimeField(null=True, blank=True, verbose_name="تاريخ الانتهاء")
     
-    limit_to_product = models.ForeignKey("catalog.Product", null=True, blank=True, on_delete=models.SET_NULL, verbose_name="محدد لمنتج معين")
+    limit_to_products = models.ManyToManyField("catalog.Product", blank=True, verbose_name="محدد لمنتجات معينة")
     apply_to_all_products = models.BooleanField(default=True, verbose_name="يعمل على جميع المنتجات")
     
     # New Restrictions

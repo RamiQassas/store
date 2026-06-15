@@ -373,7 +373,7 @@ class CouponForm(forms.ModelForm):
         fields = [
             "code", "match_mode", "discount_type", "discount_percent", "discount_amount", "min_order_amount", "max_uses", "max_uses_per_user",
             "is_active", "is_verified_only", "expires_at",
-            "limit_to_product", "apply_to_all_products",
+            "limit_to_products", "apply_to_all_products",
             "limit_to_users", "limit_to_area", "allow_area_type", "limit_to_place_of_birth",
             "limit_to_ip_countries", "limit_to_ip_cities"
         ]
@@ -387,7 +387,7 @@ class CouponForm(forms.ModelForm):
             "max_uses": forms.NumberInput(attrs={"class": "builder-input"}),
             "max_uses_per_user": forms.NumberInput(attrs={"class": "builder-input"}),
             "expires_at": forms.DateTimeInput(attrs={"type": "datetime-local", "class": "builder-input"}),
-            "limit_to_product": forms.Select(attrs={"class": "builder-input searchable-select"}),
+            "limit_to_products": forms.SelectMultiple(attrs={"class": "builder-input searchable-select"}),
             "limit_to_users": forms.SelectMultiple(attrs={"class": "builder-input searchable-select", "style": "height: 150px;"}),
             "limit_to_area": forms.TextInput(attrs={"class": "builder-input", "placeholder": "كلمة دلالية للبحث في العنوان"}),
             "allow_area_type": forms.Select(attrs={"class": "builder-input"}),

@@ -195,12 +195,12 @@
 
             <div id="product-restriction-box" class="field-group {% if form.apply_to_all_products.value %}hidden{% endif %}">
                 <label class="info-label">اختر المنتجات المسموحة</label>
-                <select name="limit_to_product" class="builder-input select2-ajax-products" style="width: 100%;">
-                    {% if form.instance.limit_to_product %}
-                    <option value="{{ form.instance.limit_to_product.id }}" selected>{{ form.instance.limit_to_product.name }}</option>
-                    {% endif %}
+                <select name="limit_to_products" class="builder-input select2-ajax-products" multiple="multiple" style="width: 100%;">
+                    {% for product in form.instance.limit_to_products.all %}
+                    <option value="{{ product.id }}" selected>{{ product.name }}</option>
+                    {% endfor %}
                 </select>
-                <p class="text-[9px] text-slate-500 mt-2">ملاحظة: يمكنك حالياً اختيار منتج واحد رئيسي للتقييد.</p>
+                <p class="text-[9px] text-slate-500 mt-2">يمكنك الآن اختيار عدة منتجات لهذا الكوبون.</p>
             </div>
         </div>
 
@@ -331,7 +331,7 @@ $(document).ready(function() {
             cache: true
         },
         placeholder: "ابحث عن منتج...",
-        minimumInputLength: 2
+        minimumInputLength: 0
     });
 
     $('.select2-ajax-countries').select2({

@@ -2448,13 +2448,15 @@ def ajax_country_search(request):
 @admin_required
 def ajax_product_search(request):
     q = request.GET.get('q', '').strip()
-    if len(q) < 2:
-        return JsonResponse({"results": []})
-
-    products = Product.objects.filter(
-        Q(name__icontains=q) |
-        Q(variants__sku__icontains=q)
-    ).distinct()[:20]
+    
+    if q:
+        products = Product.objects.filter(
+            Q(name__icontains=q) |
+            Q(variants__sku__icontains=q)
+        ).distinct()[:20]
+    else:
+        # Show recent or active products if no query
+        products = Product.objects.filter(is_active=True).order_by('-created_at')[:20]
 
     results = []
     for p in products:

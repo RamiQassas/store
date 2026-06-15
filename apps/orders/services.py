@@ -84,8 +84,13 @@ def validate_coupon(coupon, user, variant, subtotal=None):
     # 6. Product Limit
     if not coupon.apply_to_all_products:
         product_match = False
-        if coupon.limit_to_product and variant.product == coupon.limit_to_product:
-            product_match = True
+        if coupon.limit_to_products.exists():
+            if coupon.limit_to_products.filter(id=variant.product.id).exists():
+                product_match = True
+        else:
+            # If no products specified but apply_to_all is False, it shouldn't match anything?
+            # Or should it be treated as "no limit"? Usually it means "specific products only".
+            product_match = False
         checks.append(("product", product_match))
 
     # Evaluate checks based on match_mode
