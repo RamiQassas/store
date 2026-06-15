@@ -91,6 +91,7 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
+    "django.contrib.sites",
     "rest_framework",
     "rest_framework_simplejwt.token_blacklist",
     "django_filters",
@@ -106,7 +107,43 @@ INSTALLED_APPS = [
     "apps.support.apps.SupportConfig",
     "apps.services.apps.ServicesConfig",
     "apps.site.apps.SiteConfig",
+    
+    # Social Auth (allauth)
+    "allauth",
+    "allauth.account",
+    "allauth.socialaccount",
+    "allauth.socialaccount.providers.google",
 ]
+
+AUTHENTICATION_BACKENDS = [
+    'django.contrib.auth.backends.ModelBackend',
+    'allauth.account.auth_backends.AuthenticationBackend',
+]
+
+SITE_ID = 1
+
+# Allauth / Social Account Settings
+SOCIALACCOUNT_PROVIDERS = {
+    'google': {
+        'SCOPE': [
+            'profile',
+            'email',
+        ],
+        'AUTH_PARAMS': {
+            'access_type': 'online',
+        }
+    }
+}
+
+LOGIN_REDIRECT_URL = '/dashboard/'
+ACCOUNT_LOGOUT_ON_GET = True
+ACCOUNT_EMAIL_REQUIRED = True
+ACCOUNT_USERNAME_REQUIRED = False
+ACCOUNT_AUTHENTICATION_METHOD = 'email'
+SOCIALACCOUNT_QUERY_EMAIL = True
+ACCOUNT_EMAIL_VERIFICATION = "none" # We have our own OTP system, but allauth can handle social signup directly
+SOCIALACCOUNT_ADAPTER = 'apps.accounts.adapter.MySocialAccountAdapter'
+
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
@@ -121,6 +158,7 @@ MIDDLEWARE = [
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
+    "allauth.account.middleware.AccountMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "apps.accounts.middleware.AccountStatusMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",

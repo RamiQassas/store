@@ -46,5 +46,6 @@ urlpatterns = [
     path("api/auth/login/", LoginView.as_view(), name="login"),
     path("api/auth/token/refresh/", TokenRefreshView.as_view(), name="token_refresh"),
     path("api/", include(router.urls)),
+    path('accounts/', include('allauth.urls')),
     re_path(r"^media/(?P<path>.*)$", serve, {"document_root": settings.MEDIA_ROOT}),
 ]

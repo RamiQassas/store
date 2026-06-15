@@ -24,13 +24,24 @@
     }
 
     .hero-amount {
-        font-size: 4.5rem;
+        font-size: clamp(2rem, 10vw, 4.5rem);
         font-weight: 900;
         letter-spacing: -2px;
         color: #fff;
-        line-height: 1;
+        line-height: 1.1;
         margin: 1.5rem 0;
         text-shadow: 0 10px 30px rgba(0,0,0,0.5);
+        word-break: break-all;
+    }
+
+    .hero-usd-approx {
+        font-size: 0.9rem;
+        color: var(--text-dim);
+        background: rgba(255,255,255,0.03);
+        padding: 4px 12px;
+        border-radius: 100px;
+        display: inline-block;
+        margin-top: 0.5rem;
     }
 
     .hero-currency-label {
@@ -101,7 +112,12 @@
             <div class="hero-amount">
                 {% currency_format wallet.available_balance wallet.currency mode="withdraw" %}
             </div>
-            <p class="text-slate-500 font-medium">تم احتساب القيمة بناءً على عملتك المفضلة المختارة.</p>
+            {% if CURRENCY.code != "USD" %}
+            <div class="hero-usd-approx">
+                ≈ {{ wallet.available_balance|to_usd:wallet.currency }} USD
+            </div>
+            {% endif %}
+            <p class="text-slate-500 font-medium mt-4">تم احتساب القيمة بناءً على عملتك المفضلة المختارة.</p>
         </div>
 
         <!-- Ledger / History -->

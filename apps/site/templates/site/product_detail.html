@@ -51,6 +51,20 @@
     .variant-card.selected .radio-circle { border-color: var(--cyan); }
     .variant-card.selected .radio-circle::after { content: ''; position: absolute; top: 4px; right: 4px; width: 8px; height: 8px; background: var(--cyan); border-radius: 50%; }
 
+    .variant-card.on-sale {
+        border-color: rgba(245, 158, 11, 0.2);
+        background: linear-gradient(135deg, rgba(245, 158, 11, 0.05) 0%, rgba(15, 23, 42, 0.4) 100%);
+    }
+    .variant-card.on-sale:hover { border-color: rgba(245, 158, 11, 0.4); }
+    
+    .v-sale-badge {
+        background: linear-gradient(135deg, #f59e0b, #d97706);
+        color: #000; font-size: 7px; font-weight: 900; padding: 2px 8px; border-radius: 6px;
+        box-shadow: 0 0 15px rgba(245, 158, 11, 0.3);
+        display: inline-flex; align-items: center; gap: 4px;
+        margin-right: 8px;
+    }
+
     .price-tag { font-size: 1.5rem; font-weight: 950; color: #fff; letter-spacing: -0.5px; }
     .selected .price-tag { color: var(--cyan); text-shadow: 0 0 20px rgba(6, 182, 212, 0.3); }
 
@@ -135,13 +149,18 @@
             <div class="stack gap-4">
                 <span class="section-label">اختر الباقة المناسبة</span>
                 {% for v in variants %}
-                <div class="variant-card {% if v.is_temporarily_disabled %}opacity-50 grayscale cursor-not-allowed{% endif %}" 
+                <div class="variant-card {% if v.is_temporarily_disabled %}opacity-50 grayscale cursor-not-allowed{% endif %} {% if v.is_sale %}on-sale{% endif %}" 
                      {% if not v.is_temporarily_disabled %}onclick="selectVariant('{{ v.id }}', this)"{% endif %}>
                     <div class="flex items-center gap-5">
                         <div class="radio-circle"></div>
                         <div>
-                            <div class="font-bold text-lg text-white">
+                            <div class="font-bold text-lg text-white flex items-center">
                                 {{ v.name }}
+                                {% if v.is_sale %}
+                                <span class="v-sale-badge">
+                                    <i class="fas fa-fire"></i> عـرض
+                                </span>
+                                {% endif %}
                                 {% if v.is_temporarily_disabled %}
                                 <span class="bg-rose-500/20 text-rose-500 text-[8px] font-black uppercase px-2 py-1 rounded-lg ml-2 border border-rose-500/20">غير متوفر</span>
                                 {% endif %}

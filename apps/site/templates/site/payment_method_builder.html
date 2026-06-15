@@ -101,7 +101,7 @@
             <div class="col-span-12 lg:col-span-4 stack gap-6">
                 <div class="panel p-4 bg-slate-800/30 border-white/5">
                     <label class="mini-label">شعار الوسيلة الرئيسي</label>{{ form.logo }}
-                    {% if method.logo %}<img src="{{ method.logo.url }}" class="mt-2 h-16 w-16 object-contain rounded-lg">{% endif %}
+                    {% if method.logo %}<img src="{{ method.logo.url }}" class="mt-4 w-32 h-32 object-contain rounded-2xl bg-white/5 border border-white/5 p-4 mx-auto">{% endif %}
                 </div>
                 <div class="field-group"><label>العملات المدعومة</label><div class="p-3 bg-slate-800/30 rounded-xl">{{ form.supported_currencies }}</div></div>
             </div>
@@ -125,7 +125,7 @@
                     <div class="flex items-center gap-2 p-3 bg-slate-800/20 rounded-lg">{{ form.can_deposit }} <span class="text-xs">تفعيل الإيداع لهذه الوسيلة</span></div>
                     <div class="panel p-4 bg-slate-800/30 border-white/5">
                         <label class="mini-label">صورة QR (خاص بالإيداع)</label>{{ form.deposit_qr_image }}
-                        {% if method.deposit_qr_image %}<img src="{{ method.deposit_qr_image.url }}" class="mt-2 h-24 w-24 object-contain">{% endif %}
+                        {% if method.deposit_qr_image %}<img src="{{ method.deposit_qr_image.url }}" class="mt-4 w-48 h-48 object-contain rounded-2xl bg-white p-4 mx-auto">{% endif %}
                     </div>
                 </div>
              </div>

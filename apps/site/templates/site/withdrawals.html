@@ -47,7 +47,19 @@
     /* Validation Errors */
     .error-hint { font-size: 11px; color: var(--danger); font-weight: 700; margin-top: 6px; display: none; }
     .field-group.has-error .builder-input { border-color: var(--danger); box-shadow: 0 0 0 4px rgba(239, 68, 68, 0.1); }
-    .field-group.has-error .error-hint { display: block; }
+<style>
+    /* ... existing styles ... */
+    .approx-value {
+        font-size: 11px;
+        color: var(--cyan);
+        background: rgba(6, 182, 212, 0.05);
+        padding: 4px 12px;
+        border-radius: 100px;
+        display: inline-block;
+        margin-top: 8px;
+        font-weight: 800;
+        border: 1px solid rgba(6, 182, 212, 0.1);
+    }
 </style>
 {% endblock %}
 
@@ -181,6 +193,9 @@
                 <div class="relative">
                     <input type="number" name="amount" id="input-amount" step="0.01" class="builder-input text-2xl font-black h-20 px-8" placeholder="0.00" oninput="updateSummary()">
                     <div class="absolute left-6 top-1/2 -translate-y-1/2 text-xl font-black text-slate-600" id="currency-code-display">---</div>
+                </div>
+                <div id="approx-container" class="hidden">
+                    <span class="approx-value" id="approx-display">≈ 0.00 USD</span>
                 </div>
                 <div class="flex justify-between mt-3 px-2">
                     <span class="text-[10px] text-muted font-bold" id="limits-hint">الحدود: ---</span>
@@ -320,6 +335,19 @@ function updateSummary() {
     
     document.getElementById('sum-fee').innerText = `${fee.toLocaleString(undefined, {minimumFractionDigits: 2})} ${sym}`;
     document.getElementById('sum-net').innerText = `${net.toLocaleString(undefined, {minimumFractionDigits: 2})} ${sym}`;
+
+    // USD Approximation Logic
+    const approxContainer = document.getElementById('approx-container');
+    const approxDisplay = document.getElementById('approx-display');
+    
+    if (amount > 0 && state.currency && state.currency.code !== 'USD') {
+        const rate = parseFloat(state.method.currencies.find(c => c.id == state.currency.id).to_base_rate || 1);
+        const usdVal = amount * rate;
+        approxContainer.classList.remove('hidden');
+        approxDisplay.innerText = `≈ ${usdVal.toLocaleString(undefined, {minimumFractionDigits: 2})} USD`;
+    } else {
+        approxContainer.classList.add('hidden');
+    }
 }
 
 function tryNext(n) {

@@ -56,37 +56,41 @@ def currency_format(context, amount, source_currency=None, mode="deposit"):
     """
     Formats a price according to the current preferred currency in context.
     If source_currency is provided, it converts from it to preferred.
-    Otherwise, assumes amount is in SYSTEM_CURRENCY.
+    Otherwise, assumes amount is in source_currency.code or USD.
     """
     target_currency = context.get('CURRENCY')
-    system_currency = context.get('SYSTEM_CURRENCY')
+    system_currency = context.get('SYSTEM_CURRENCY') # Usually USD
 
     if amount is None:
         return "غير متوفر"
     
-    if not target_currency:
-        return f"{amount} SYP"
-        
     try:
+        val = Decimal(str(amount))
         source = source_currency or system_currency
         
-        prefix = ""
-        if target_currency.code != "USD":
-            prefix = "≈ "
-        
-        if source and target_currency and source.code == target_currency.code:
-             formatted = f"{Decimal(str(amount)):,.{target_currency.decimal_places}f}"
-             return f"{prefix}{formatted} {target_currency.symbol}"
+        # If no target, fallback to original or system
+        if not target_currency:
+            symbol = source.symbol if source else "USD"
+            places = source.decimal_places if source else 2
+            return f"{val:,.{places}f} {symbol}"
 
-        base_amount = amount
+        # 1. Convert source to BASE (USD)
+        base_amount = val
         if source and source.code != "USD":
-            base_amount = source.to_base(amount, operation=mode)
+            base_amount = source.to_base(val, operation=mode)
         
+        # 2. Convert BASE to target
         converted = target_currency.from_base(base_amount, operation=mode)
+        
+        prefix = ""
+        # Only show approx if target is not USD and it's a conversion result
+        if target_currency.code != "USD" and source and source.code != target_currency.code:
+            prefix = "≈ "
+            
         formatted = f"{converted:,.{target_currency.decimal_places}f}"
         return f"{prefix}{formatted} {target_currency.symbol}"
     except Exception:
-        return f"{amount} {target_currency.symbol if target_currency else 'SYP'}"
+        return f"{amount} {target_currency.symbol if target_currency else '???'}"
 
 @register.filter
 def subtract(value, arg):
