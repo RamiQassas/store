@@ -32,10 +32,17 @@
         </div>
         
         {% load socialaccount %}
-        <a href="{% provider_login_url 'google' %}" class="btn btn-outline w-full flex items-center justify-center gap-3 py-3 rounded-xl border-white/10 hover:bg-white/5 transition-all group">
-            <img src="https://upload.wikimedia.org/wikipedia/commons/c/c1/Google_%22G%22_logo.svg" class="w-5 h-5 group-hover:scale-110 transition-transform">
-            <span class="text-xs font-bold text-white">تسجيل الدخول بواسطة جوجل</span>
-        </a>
+        {% get_providers as socialaccount_providers %}
+        {% if socialaccount_providers %}
+            {% for provider in socialaccount_providers %}
+                {% if provider.id == 'google' %}
+                <a href="{% provider_login_url 'google' %}" class="btn btn-outline w-full flex items-center justify-center gap-3 py-3 rounded-xl border-white/10 hover:bg-white/5 transition-all group">
+                    <img src="https://upload.wikimedia.org/wikipedia/commons/c/c1/Google_%22G%22_logo.svg" class="w-5 h-5 group-hover:scale-110 transition-transform">
+                    <span class="text-xs font-bold text-white">تسجيل الدخول بواسطة جوجل</span>
+                </a>
+                {% endif %}
+            {% endfor %}
+        {% endif %}
     </div>
 
     <a class="link" href="{% url 'site_register' %}">ليس لديك حساب؟ أنشئ حسابًا جديدًا</a>
