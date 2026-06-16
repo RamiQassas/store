@@ -1,194 +1,198 @@
-{% extends "site/base.html" %}
+{% extends "site/v3/auth_base.html" %}
+{% load socialaccount %}
+
+{% block title %}إنشاء حساب جديد | رقميات{% endblock %}
+
 {% block extra_head %}
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/intl-tel-input@23.0.10/build/css/intlTelInput.css">
+<style>
+    .iti { width: 100%; }
+    .iti__country-list { @apply bg-slate-900 border border-slate-700 text-slate-200; }
+    .iti__country:hover { @apply bg-slate-800; }
+    .iti__selected-country { @apply bg-slate-800; }
+</style>
 {% endblock %}
-{% block title %}تسجيل حساب جديد | Raqamiyat - رقميات{% endblock %}
-{% block content %}
-<section class="auth-shell">
-  <article class="panel p-10 auth-panel">
-    <div class="text-center mb-8">
-      <h1 class="text-3xl font-black mb-2">إنشاء حساب جديد</h1>
-      <p class="text-slate-500">انضم إلينا اليوم وابدأ في تصفح مئات الخدمات الرقمية.</p>
+
+{% block auth_content %}
+<div class="glass-panel p-8 md:p-10 !max-w-2xl mx-auto">
+    <div class="mb-8">
+        <h2 class="text-2xl font-black text-white mb-2">انضم إلى رقميات</h2>
+        <p class="text-slate-400 text-sm">ابدأ رحلتك في عالم الخدمات الرقمية والألعاب اليوم.</p>
     </div>
-    
-    <form method="post" class="stack gap-6" id="register-form">
-      {% csrf_token %}
-      <div class="grid grid-2 gap-4">
-          <div class="field-group">
-            <label>{{ form.first_name.label }}</label>
-            {{ form.first_name }}
-            {% for error in form.first_name.errors %}<small class="text-red-500">{{ error }}</small>{% endfor %}
-          </div>
-          <div class="field-group">
-            <label>{{ form.last_name.label }}</label>
-            {{ form.last_name }}
-            {% for error in form.last_name.errors %}<small class="text-red-500">{{ error }}</small>{% endfor %}
-          </div>
-      </div>
-      
-      <div class="field-group">
-        <label>{{ form.email.label }}</label>
-        {{ form.email }}
-        {% for error in form.email.errors %}<small class="text-red-500">{{ error }}</small>{% endfor %}
-      </div>
 
-      <div class="field-group">
-        <label>{{ form.phone.label }}</label>
-        <input type="tel" name="phone_input" id="phone" class="w-full" value="{{ request.POST.phone_input|default:'' }}" required>
-        <input type="hidden" name="phone" id="full_phone" value="{{ request.POST.phone|default:'' }}">
-        {% for error in form.phone.errors %}<small class="text-red-500">{{ error }}</small>{% endfor %}
-      </div>
-
-      <div class="field-group">
-        <label>{{ form.password.label }}</label>
-        <div class="relative">
-            {{ form.password }}
-            <button type="button" class="toggle-password absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 hover:text-cyan transition-colors" data-target="id_password">
-                <i class="fas fa-eye"></i>
-            </button>
+    <form method="post" class="space-y-6" id="register-form">
+        {% csrf_token %}
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div class="space-y-2">
+                <label class="text-xs font-bold text-slate-400 mr-2 uppercase">الاسم الأول</label>
+                <div class="relative">
+                    <i class="fas fa-user absolute right-5 top-1/2 -translate-y-1/2 text-slate-500 text-sm"></i>
+                    <input type="text" name="first_name" required class="auth-input pr-12" placeholder="الاسم" value="{{ request.POST.first_name|default:'' }}">
+                </div>
+                {% for error in form.first_name.errors %}<p class="text-[10px] text-rose-500 mt-1 mr-2">{{ error }}</p>{% endfor %}
+            </div>
+            <div class="space-y-2">
+                <label class="text-xs font-bold text-slate-400 mr-2 uppercase">الكنية</label>
+                <div class="relative">
+                    <i class="fas fa-user absolute right-5 top-1/2 -translate-y-1/2 text-slate-500 text-sm"></i>
+                    <input type="text" name="last_name" required class="auth-input pr-12" placeholder="الكنية" value="{{ request.POST.last_name|default:'' }}">
+                </div>
+                {% for error in form.last_name.errors %}<p class="text-[10px] text-rose-500 mt-1 mr-2">{{ error }}</p>{% endfor %}
+            </div>
         </div>
-        {% for error in form.password.errors %}<small class="text-red-500">{{ error }}</small>{% endfor %}
-        <div id="password-strength-bar" class="h-1 bg-slate-800 rounded-full mt-2 overflow-hidden">
-            <div id="strength-fill" class="h-full w-0 transition-all duration-300"></div>
-        </div>
-        <div class="flex justify-between items-center mt-1">
-            <small class="text-slate-500">10 خانات على الأقل (حرف كبير ورقم)</small>
-            <small id="strength-text" class="text-[9px] font-bold uppercase tracking-widest text-slate-600">جديد</small>
-        </div>
-      </div>
 
-      <div class="field-group">
-        <label>{{ form.confirm_password.label }}</label>
-        <div class="relative">
-            {{ form.confirm_password }}
-            <button type="button" class="toggle-password absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 hover:text-cyan transition-colors" data-target="id_confirm_password">
-                <i class="fas fa-eye"></i>
-            </button>
+        <div class="space-y-2">
+            <label class="text-xs font-bold text-slate-400 mr-2 uppercase">البريد الإلكتروني</label>
+            <div class="relative">
+                <i class="fas fa-envelope absolute right-5 top-1/2 -translate-y-1/2 text-slate-500 text-sm"></i>
+                <input type="email" name="email" required class="auth-input pr-12" placeholder="example@mail.com" value="{{ request.POST.email|default:'' }}">
+            </div>
+            {% for error in form.email.errors %}<p class="text-[10px] text-rose-500 mt-1 mr-2">{{ error }}</p>{% endfor %}
         </div>
-        {% for error in form.confirm_password.errors %}<small class="text-red-500">{{ error }}</small>{% endfor %}
-      </div>
 
-      {% for error in form.non_field_errors %}<small class="text-red-500">{{ error }}</small>{% endfor %}
+        <div class="space-y-2">
+            <label class="text-xs font-bold text-slate-400 mr-2 uppercase">رقم الهاتف</label>
+            <div class="relative">
+                <input type="tel" name="phone_input" id="phone" class="auth-input !pr-14" value="{{ request.POST.phone_input|default:'' }}" required>
+                <input type="hidden" name="phone" id="full_phone" value="{{ request.POST.phone|default:'' }}">
+            </div>
+            {% for error in form.phone.errors %}<p class="text-[10px] text-rose-500 mt-1 mr-2">{{ error }}</p>{% endfor %}
+        </div>
 
-      <p class="text-[10px] text-slate-500 text-center">بضغطك على زر التسجيل، أنت توافق على <a href="{% url 'privacy_policy' %}" class="text-cyan underline">شروط الخدمة</a> و <a href="{% url 'terms_of_service' %}" class="text-cyan underline">سياسة الخصوصية</a>.</p>
-      
-      <button class="btn btn-primary w-full py-4 text-lg" type="submit">إنشاء الحساب</button>
+        <div class="space-y-2">
+            <label class="text-xs font-bold text-slate-400 mr-2 uppercase">كلمة المرور</label>
+            <div class="relative">
+                <i class="fas fa-lock absolute right-5 top-1/2 -translate-y-1/2 text-slate-500 text-sm"></i>
+                <input type="password" name="password" required class="auth-input pr-12 pl-12" placeholder="••••••••" id="id_password">
+                <button type="button" class="toggle-password absolute left-5 top-1/2 -translate-y-1/2 text-slate-500 hover:text-cyan transition-colors" data-target="id_password">
+                    <i class="fas fa-eye"></i>
+                </button>
+            </div>
+            <!-- Strength Meter -->
+            <div class="px-2 mt-3">
+                <div class="h-1.5 w-full bg-slate-800 rounded-full overflow-hidden flex gap-1">
+                    <div id="str-1" class="h-full w-1/4 bg-slate-700 transition-all duration-500"></div>
+                    <div id="str-2" class="h-full w-1/4 bg-slate-700 transition-all duration-500"></div>
+                    <div id="str-3" class="h-full w-1/4 bg-slate-700 transition-all duration-500"></div>
+                    <div id="str-4" class="h-full w-1/4 bg-slate-700 transition-all duration-500"></div>
+                </div>
+                <div class="flex justify-between mt-2">
+                    <p id="strength-text" class="text-[10px] font-bold text-slate-500 uppercase tracking-wider">قوة كلمة المرور</p>
+                    <p class="text-[10px] text-slate-500">10 خانات + رمز خاص</p>
+                </div>
+            </div>
+            {% for error in form.password.errors %}<p class="text-[10px] text-rose-500 mt-1 mr-2">{{ error }}</p>{% endfor %}
+        </div>
+
+        <div class="space-y-2">
+            <label class="text-xs font-bold text-slate-400 mr-2 uppercase">تأكيد كلمة المرور</label>
+            <div class="relative">
+                <i class="fas fa-shield-alt absolute right-5 top-1/2 -translate-y-1/2 text-slate-500 text-sm"></i>
+                <input type="password" name="confirm_password" required class="auth-input pr-12 pl-12" placeholder="••••••••" id="id_confirm_password">
+            </div>
+        </div>
+
+        <div class="p-4 bg-cyan/5 border border-cyan/10 rounded-2xl">
+            <p class="text-[10px] text-slate-400 text-center leading-relaxed">
+                بالنقر على "إنشاء الحساب"، فإنك توافق على 
+                <a href="{% url 'terms_of_service' %}" class="text-cyan underline">شروط الاستخدام</a> و 
+                <a href="{% url 'privacy_policy' %}" class="text-cyan underline">سياسة الخصوصية</a>.
+            </p>
+        </div>
+
+        <button type="submit" class="btn-premium w-full group py-5">
+            <span class="text-lg">إنشاء الحساب</span>
+            <i class="fas fa-user-plus group-hover:scale-110 transition-transform"></i>
+        </button>
     </form>
 
-    <div class="stack gap-4 mt-8">
-        <div class="flex items-center gap-3 opacity-30">
-            <div class="h-px flex-grow bg-white"></div>
-            <span class="text-[8px] font-black uppercase tracking-widest">أو عبر</span>
-            <div class="h-px flex-grow bg-white"></div>
-        </div>
-        
-        {% load socialaccount %}
-        {% get_providers as socialaccount_providers %}
-        {% if socialaccount_providers %}
+    <div class="my-8 flex items-center gap-4">
+        <div class="h-px flex-grow bg-slate-800"></div>
+        <span class="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em]">أو عبر</span>
+        <div class="h-px flex-grow bg-slate-800"></div>
+    </div>
+
+    {% get_providers as socialaccount_providers %}
+    {% if socialaccount_providers %}
+        <div class="grid grid-cols-1 gap-3">
             {% for provider in socialaccount_providers %}
                 {% if provider.id == 'google' %}
-                <a href="{% provider_login_url 'google' %}" class="btn btn-outline w-full flex items-center justify-center gap-3 py-4 rounded-2xl border-white/10 hover:bg-white/5 transition-all group">
-                    <img src="https://upload.wikimedia.org/wikipedia/commons/c/c1/Google_%22G%22_logo.svg" class="w-6 h-6 group-hover:scale-110 transition-transform">
-                    <span class="text-sm font-bold text-white">التسجيل بواسطة جوجل</span>
+                <a href="{% provider_login_url 'google' %}" class="btn-secondary w-full group !py-4">
+                    <img src="https://upload.wikimedia.org/wikipedia/commons/c/c1/Google_%22G%22_logo.svg" class="w-5 h-5 group-hover:scale-110 transition-transform">
+                    <span class="text-sm">التسجيل بواسطة Google</span>
                 </a>
                 {% endif %}
             {% endfor %}
-        {% endif %}
-    </div>
+        </div>
+    {% endif %}
 
-    <div class="text-center mt-8 pt-6 border-t border-slate-700">
-      <p class="text-slate-400">لديك حساب بالفعل؟ <a href="{% url 'site_login' %}" class="text-cyan font-bold">تسجيل الدخول</a></p>
+    <div class="mt-8 text-center pt-6 border-t border-slate-800/50">
+        <p class="text-sm text-slate-400">
+            لديك حساب بالفعل؟ 
+            <a href="{% url 'site_login' %}" class="text-cyan font-bold hover:underline">تسجيل الدخول</a>
+        </p>
     </div>
-  </article>
-</section>
+</div>
 {% endblock %}
 
 {% block extra_js %}
 <script src="https://cdn.jsdelivr.net/npm/intl-tel-input@23.0.10/build/js/intlTelInput.min.js"></script>
 <script>
-  const phoneInput = document.querySelector("#phone");
-  const fullPhoneInput = document.querySelector("#full_phone");
-  
-  const iti = window.intlTelInput(phoneInput, {
-    initialCountry: "sy",
-    preferredCountries: ["sy", "tr", "ae", "sa", "eg"],
-    utilsScript: "https://cdn.jsdelivr.net/npm/intl-tel-input@23.0.10/build/js/utils.js",
-  });
-
-  document.querySelector("#register-form").addEventListener("submit", function(e) {
-    if (!iti.isValidNumber()) {
-        e.preventDefault();
-        alert("رقم الهاتف غير صحيح لهذه الدولة.");
-        return;
-    }
-    fullPhoneInput.value = iti.getNumber();
-  });
-
-  // Password Visibility Toggle
-  document.querySelectorAll('.toggle-password').forEach(button => {
-    button.addEventListener('click', function() {
-        const input = document.getElementById(this.getAttribute('data-target'));
-        const icon = this.querySelector('i');
-        if (input.type === 'password') {
-            input.type = 'text';
-            icon.classList.replace('fa-eye', 'fa-eye-slash');
-        } else {
-            input.type = 'password';
-            icon.classList.replace('fa-eye-slash', 'fa-eye');
-        }
+    const phoneInput = document.querySelector("#phone");
+    const fullPhoneInput = document.querySelector("#full_phone");
+    
+    const iti = window.intlTelInput(phoneInput, {
+        initialCountry: "sy",
+        preferredCountries: ["sy", "tr", "ae", "sa", "eg"],
+        utilsScript: "https://cdn.jsdelivr.net/npm/intl-tel-input@23.0.10/build/js/utils.js",
     });
-  });
 
-  // Password Strength Logic
-  const passwordInput = document.querySelector('input[name="password"]');
-  const strengthFill = document.querySelector('#strength-fill');
-  const strengthText = document.querySelector('#strength-text');
+    document.querySelector("#register-form").addEventListener("submit", function(e) {
+        if (!iti.isValidNumber()) {
+            e.preventDefault();
+            alert("رقم الهاتف غير صحيح لهذه الدولة.");
+            return;
+        }
+        fullPhoneInput.value = iti.getNumber();
+    });
 
-  passwordInput.addEventListener('input', function() {
-    const val = this.value;
-    let score = 0;
-    
-    if (val.length >= 10) score += 25;
-    if (/[A-Z]/.test(val)) score += 25;
-    if (/[0-9]/.test(val)) score += 25;
-    if (/[^A-Za-z0-9]/.test(val)) score += 25;
-    
-    strengthFill.style.width = score + '%';
-    
-    if (score === 0) {
-        strengthFill.className = 'h-full w-0 transition-all duration-300';
-        strengthText.textContent = 'جديد';
-        strengthText.style.color = '#64748b';
-    } else if (score <= 25) {
-        strengthFill.className = 'h-full bg-rose-500 transition-all duration-300';
-        strengthText.textContent = 'ضعيف جداً';
-        strengthText.style.color = '#f43f5e';
-    } else if (score <= 50) {
-        strengthFill.className = 'h-full bg-amber-500 transition-all duration-300';
-        strengthText.textContent = 'متوسط';
-        strengthText.style.color = '#f59e0b';
-    } else if (score <= 75) {
-        strengthFill.className = 'h-full bg-cyan transition-all duration-300';
-        strengthText.textContent = 'قوي';
-        strengthText.style.color = '#06b6d4';
-    } else {
-        strengthFill.className = 'h-full bg-emerald-500 transition-all duration-300';
-        strengthText.textContent = 'قوي جداً';
-        strengthText.style.color = '#10b981';
-    }
-  });
+    // Password Visibility
+    document.querySelectorAll('.toggle-password').forEach(button => {
+        button.addEventListener('click', function() {
+            const input = document.getElementById(this.getAttribute('data-target'));
+            const icon = this.querySelector('i');
+            input.type = input.type === 'password' ? 'text' : 'password';
+            icon.classList.toggle('fa-eye');
+            icon.classList.toggle('fa-eye-slash');
+        });
+    });
+
+    // Strength Meter
+    const pass = document.querySelector('input[name="password"]');
+    const bars = [document.querySelector('#str-1'), document.querySelector('#str-2'), document.querySelector('#str-3'), document.querySelector('#str-4')];
+    const stext = document.querySelector('#strength-text');
+
+    pass.addEventListener('input', () => {
+        const val = pass.value;
+        let score = 0;
+        if (val.length >= 8) score++;
+        if (/[A-Z]/.test(val) && /[0-9]/.test(val)) score++;
+        if (/[^A-Za-z0-9]/.test(val)) score++;
+        if (val.length >= 12) score++;
+
+        bars.forEach((bar, i) => {
+            if (i < score) {
+                bar.className = `h-full w-1/4 transition-all duration-500 ${score <= 1 ? 'bg-rose-500' : score <= 2 ? 'bg-amber-500' : score <= 3 ? 'bg-cyan' : 'bg-emerald-500'}`;
+            } else {
+                bar.className = 'h-full w-1/4 bg-slate-800 transition-all duration-500';
+            }
+        });
+
+        const texts = ['ضعيفة', 'متوسطة', 'قوية', 'ممتازة'];
+        const colors = ['#f43f5e', '#f59e0b', '#06b6d4', '#10b981'];
+        stext.textContent = val ? texts[score-1] || 'ضعيفة' : 'قوة كلمة المرور';
+        stext.style.color = val ? colors[score-1] || '#f43f5e' : '#64748b';
+    });
 </script>
-<style>
-    .iti { width: 100%; }
-    .iti__country-list { background-color: #0f172a; color: white; border: 1px solid #334155; }
-    .iti__country:hover { background-color: #1e293b; }
-    .iti__selected-country { background-color: #1e293b; }
-    
-    /* CSS Override for Syria Flag (ensure two stars Arab Republic version) */
-    .iti__flag.iti__sy {
-        background-image: url("https://flagcdn.com/w40/sy.png") !important;
-        background-position: center !important;
-        background-size: cover !important;
-    }
-</style>
 {% endblock %}

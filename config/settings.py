@@ -125,6 +125,13 @@ SITE_ID = 1
 # Allauth / Social Account Settings
 SOCIALACCOUNT_PROVIDERS = {
     'google': {
+        'APPS': [
+            {
+                'client_id': env('GOOGLE_CLIENT_ID', ''),
+                'secret': env('GOOGLE_CLIENT_SECRET', ''),
+                'key': ''
+            },
+        ],
         'SCOPE': [
             'profile',
             'email',
@@ -141,6 +148,8 @@ ACCOUNT_EMAIL_REQUIRED = True
 ACCOUNT_USERNAME_REQUIRED = False
 ACCOUNT_AUTHENTICATION_METHOD = 'email'
 SOCIALACCOUNT_QUERY_EMAIL = True
+SOCIALACCOUNT_AUTO_SIGNUP = True
+SOCIALACCOUNT_LOGIN_ON_GET = True
 ACCOUNT_EMAIL_VERIFICATION = "none" # We have our own OTP system, but allauth can handle social signup directly
 SOCIALACCOUNT_ADAPTER = 'apps.accounts.adapter.MySocialAccountAdapter'
 

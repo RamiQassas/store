@@ -1,0 +1,37 @@
+{% extends "site/v3/auth_base.html" %}
+{% load i18n %}
+
+{% block title %}{% trans "Sign In" %} | Google | رقميات{% endblock %}
+
+{% block auth_content %}
+<div class="glass-panel p-8 md:p-10 text-center">
+    <div class="w-24 h-24 bg-white/5 border border-white/10 rounded-full flex items-center justify-center mx-auto mb-8 shadow-inner">
+        <img src="https://upload.wikimedia.org/wikipedia/commons/c/c1/Google_%22G%22_logo.svg" class="w-12 h-12">
+    </div>
+
+    <div class="mb-8">
+        <h2 class="text-2xl font-black text-white mb-2">تسجيل الدخول عبر Google</h2>
+        <p class="text-slate-400 text-sm leading-relaxed">
+            أنت على وشك تسجيل الدخول إلى <strong>رقميات</strong> باستخدام حسابك في Google.
+        </p>
+    </div>
+
+    <form method="post" class="space-y-4">
+        {% csrf_token %}
+        <button type="submit" class="btn-premium w-full py-5 text-lg group">
+            <span>متابعة تسجيل الدخول</span>
+            <i class="fas fa-arrow-right group-hover:translate-x-1 transition-transform"></i>
+        </button>
+        
+        <a href="{% url 'site_login' %}" class="btn-secondary w-full py-4 text-slate-400">
+            <span>إلغاء</span>
+        </a>
+    </form>
+
+    <div class="mt-8 pt-6 border-t border-slate-800/50">
+        <p class="text-[10px] text-slate-500">
+            سيتم استيراد بريدك الإلكتروني واسمك وصورتك الشخصية تلقائياً.
+        </p>
+    </div>
+</div>
+{% endblock %}

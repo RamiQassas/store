@@ -281,9 +281,16 @@ class KYCSettingsForm(forms.ModelForm):
 
 
 class ChangePasswordForm(forms.Form):
-    current_password = forms.CharField(label="كلمة المرور الحالية", widget=forms.PasswordInput(attrs={"class": "builder-input", "placeholder": "********"}))
+    current_password = forms.CharField(label="كلمة المرور الحالية", required=False, widget=forms.PasswordInput(attrs={"class": "builder-input", "placeholder": "********"}))
     new_password = forms.CharField(label="كلمة المرور الجديدة", widget=forms.PasswordInput(attrs={"class": "builder-input", "placeholder": "********"}), min_length=10)
     confirm_password = forms.CharField(label="تأكيد كلمة المرور الجديدة", widget=forms.PasswordInput(attrs={"class": "builder-input", "placeholder": "********"}))
+
+    def __init__(self, *args, **kwargs):
+        self.has_password = kwargs.pop('has_password', True)
+        super().__init__(*args, **kwargs)
+        if not self.has_password:
+            self.fields['current_password'].required = False
+            self.fields['current_password'].widget = forms.HiddenInput()
 
     def clean_new_password(self):
         password = self.cleaned_data.get("new_password")

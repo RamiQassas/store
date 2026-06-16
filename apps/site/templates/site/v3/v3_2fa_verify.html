@@ -1,49 +1,76 @@
-{% extends "site/base.html" %}
-{% block title %}التحقق الثنائي | Raqamiyat{% endblock %}
-{% block content %}
-<section class="auth-shell">
-  <article class="panel p-6 sm:p-10 auth-panel text-center">
-    <div class="mb-8 text-center">
-        <div class="w-16 h-16 bg-cyan/10 rounded-2xl flex items-center justify-center text-2xl text-cyan mx-auto mb-6">
-            <i class="fas fa-user-shield"></i>
-        </div>
-        <h1 class="text-2xl font-black mb-2">التحقق من الهوية</h1>
-        <p class="text-slate-500 text-sm">أدخل الرمز من تطبيق المصادقة (2FA)</p>
+{% extends "site/v3/auth_base.html" %}
+
+{% block title %}التحقق الثنائي 2FA | رقميات{% endblock %}
+
+{% block auth_content %}
+<div class="glass-panel p-8 md:p-10 text-center">
+    <div class="w-20 h-20 bg-purple/10 border border-purple/20 rounded-3xl flex items-center justify-center text-purple mx-auto mb-6">
+        <i class="fas fa-mobile-android-alt text-4xl animate-bounce"></i>
+    </div>
+    
+    <div class="mb-8">
+        <h2 class="text-2xl font-black text-white mb-2">تطبيق المصادقة</h2>
+        <p class="text-slate-400 text-sm leading-relaxed">
+            يرجى إدخال الرمز المكون من 6 أرقام من تطبيق المصادقة الخاص بك (Google Authenticator أو ما شابه).
+        </p>
     </div>
 
-    <form method="post" class="stack gap-6">
+    <form method="post" id="otp-form" class="space-y-8">
         {% csrf_token %}
-        <div class="field-group">
-            <input type="text" name="code" class="otp-input-field w-full" placeholder="000000" maxlength="6" autofocus required>
+        
+        <div class="flex justify-center gap-2 md:gap-3" dir="ltr">
+            <input type="text" maxlength="1" class="otp-input" data-index="0" autofocus>
+            <input type="text" maxlength="1" class="otp-input" data-index="1">
+            <input type="text" maxlength="1" class="otp-input" data-index="2">
+            <input type="text" maxlength="1" class="otp-input" data-index="3">
+            <input type="text" maxlength="1" class="otp-input" data-index="4">
+            <input type="text" maxlength="1" class="otp-input" data-index="5">
         </div>
-        <button type="submit" class="btn btn-primary w-full py-4 text-sm font-bold shadow-lg shadow-cyan/20">تحقق ودخول</button>
+        
+        <input type="hidden" name="code" id="full-otp">
+
+        <button type="submit" class="btn-premium !from-purple !to-indigo w-full group py-5">
+            <span>تأكيد الرمز</span>
+            <i class="fas fa-lock-open group-hover:scale-110 transition-transform"></i>
+        </button>
     </form>
 
-    <div class="mt-10 pt-6 border-t border-white/5">
-        <p class="text-[10px] text-slate-500 mb-4">لا تستطيع الوصول للتطبيق؟</p>
-        <form method="post">
-            {% csrf_token %}
-            <input type="hidden" name="action" value="use_email">
-            <button type="submit" class="text-cyan text-xs font-bold hover:underline">
-                التحقق عبر البريد الإلكتروني بدلاً من ذلك
-            </button>
-        </form>
+    <div class="mt-8 pt-6 border-t border-slate-800/50">
+        <p class="text-[10px] text-slate-500">
+            إذا فقدت الوصول إلى تطبيق المصادقة، يرجى التواصل مع الدعم الفني لاستعادة حسابك.
+        </p>
     </div>
-  </article>
-</section>
+</div>
+{% endblock %}
 
-<style>
-    .auth-panel { max-width: 420px; margin: 0 auto; border-radius: 32px; background: rgba(15, 23, 42, 0.8); backdrop-filter: blur(20px); border: 1px solid rgba(255,255,255,0.05); }
-    
-    .otp-input-field {
-        height: 56px; background: rgba(15, 23, 42, 0.9); border: 2px solid rgba(255, 255, 255, 0.05);
-        border-radius: 16px; text-align: center; font-size: 24px; font-weight: 900; letter-spacing: 4px;
-        color: var(--cyan); outline: none; transition: all 0.2s;
-    }
-    .otp-input-field:focus { border-color: var(--cyan); box-shadow: 0 0 0 4px rgba(6, 182, 212, 0.1); }
+{% block extra_js %}
+<script>
+    const inputs = document.querySelectorAll('.otp-input');
+    const fullOtpInput = document.querySelector('#full-otp');
+    const form = document.querySelector('#otp-form');
 
-    @media (max-width: 640px) {
-        .auth-panel { border-radius: 0; min-height: 100vh; }
+    inputs.forEach((input, index) => {
+        input.addEventListener('keyup', (e) => {
+            if (e.key >= 0 && e.key <= 9) {
+                if (index < inputs.length - 1) inputs[index + 1].focus();
+            } else if (e.key === 'Backspace') {
+                if (index > 0) inputs[index - 1].focus();
+            }
+            updateFullOtp();
+        });
+    });
+
+    function updateFullOtp() {
+        let code = '';
+        inputs.forEach(input => code += input.value);
+        fullOtpInput.value = code;
     }
-</style>
+
+    form.addEventListener('submit', (e) => {
+        if (fullOtpInput.value.length !== 6) {
+            e.preventDefault();
+            alert('يرجى إدخال الرمز كاملاً');
+        }
+    });
+</script>
 {% endblock %}

@@ -1,68 +1,98 @@
-{% extends "site/base.html" %}
-{% block title %}تسجيل الدخول | منصة الخدمات الرقمية{% endblock %}
-{% block content %}
-<section class="auth-shell">
-  <article class="panel auth-panel">
-    <span class="eyebrow">Sign in</span>
-    <h1>تسجيل الدخول</h1>
-    <p>ادخل إلى حسابك لمتابعة الطلبات والمحفظة والإشعارات.</p>
-    <form method="post" class="stack">
-      {% csrf_token %}
-      {{ form.non_field_errors }}
-      <label>البريد الإلكتروني</label>
-      {{ form.email }}
-      <label>كلمة المرور</label>
-      <div class="field-group relative">
-        {{ form.password }}
-        <button type="button" class="toggle-password absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 hover:text-cyan transition-colors" data-target="id_password">
-          <i class="fas fa-eye"></i>
-        </button>
-      </div>
-      <div class="flex justify-between items-center mb-4">
-        <a class="text-[10px] text-cyan hover:underline" href="{% url 'site_forgot_password' %}">نسيت كلمة المرور؟</a>
-      </div>
-      <button class="btn btn-primary" type="submit">دخول</button>
-    </form>
-    
-    <div class="stack gap-4 mt-6">
-        <div class="flex items-center gap-3 opacity-30">
-            <div class="h-px flex-grow bg-white"></div>
-            <span class="text-[8px] font-black uppercase tracking-widest">أو عبر</span>
-            <div class="h-px flex-grow bg-white"></div>
-        </div>
+{% extends "site/v3/auth_base.html" %}
+{% load socialaccount %}
+
+{% block title %}تسجيل الدخول | رقميات{% endblock %}
+
+{% block auth_content %}
+<div class="glass-panel p-8 md:p-10">
+    <div class="mb-8">
+        <h2 class="text-2xl font-black text-white mb-2">مرحباً بعودتك</h2>
+        <p class="text-slate-400 text-sm">ادخل إلى حسابك لمتابعة طلباتك ومحفظتك الرقمية.</p>
+    </div>
+
+    <form method="post" class="space-y-5">
+        {% csrf_token %}
         
-        {% load socialaccount %}
-        {% get_providers as socialaccount_providers %}
-        {% if socialaccount_providers %}
+        {% if form.non_field_errors %}
+        <div class="p-3 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-400 text-xs">
+            {{ form.non_field_errors }}
+        </div>
+        {% endif %}
+
+        <div class="space-y-2">
+            <label class="text-xs font-bold text-slate-400 mr-2 uppercase tracking-widest">البريد الإلكتروني</label>
+            <div class="relative">
+                <i class="fas fa-envelope absolute right-5 top-1/2 -translate-y-1/2 text-slate-500 text-sm"></i>
+                <input type="email" name="email" required class="auth-input pr-12" placeholder="example@mail.com" id="id_email">
+            </div>
+            {% for error in form.email.errors %}<p class="text-[10px] text-rose-500 mt-1 mr-2">{{ error }}</p>{% endfor %}
+        </div>
+
+        <div class="space-y-2">
+            <div class="flex justify-between items-center px-2">
+                <label class="text-xs font-bold text-slate-400 uppercase tracking-widest">كلمة المرور</label>
+                <a href="{% url 'site_forgot_password' %}" class="text-[10px] text-cyan hover:underline">نسيت كلمة المرور؟</a>
+            </div>
+            <div class="relative">
+                <i class="fas fa-lock absolute right-5 top-1/2 -translate-y-1/2 text-slate-500 text-sm"></i>
+                <input type="password" name="password" required class="auth-input pr-12 pl-12" placeholder="••••••••" id="id_password">
+                <button type="button" class="toggle-password absolute left-5 top-1/2 -translate-y-1/2 text-slate-500 hover:text-cyan transition-colors" data-target="id_password">
+                    <i class="fas fa-eye"></i>
+                </button>
+            </div>
+            {% for error in form.password.errors %}<p class="text-[10px] text-rose-500 mt-1 mr-2">{{ error }}</p>{% endfor %}
+        </div>
+
+        <button type="submit" class="btn-premium w-full group">
+            <span>تسجيل الدخول</span>
+            <i class="fas fa-arrow-left group-hover:-translate-x-1 transition-transform"></i>
+        </button>
+    </form>
+
+    <div class="my-8 flex items-center gap-4">
+        <div class="h-px flex-grow bg-slate-800"></div>
+        <span class="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em]">أو عبر</span>
+        <div class="h-px flex-grow bg-slate-800"></div>
+    </div>
+
+    {% get_providers as socialaccount_providers %}
+    {% if socialaccount_providers %}
+        <div class="space-y-3">
             {% for provider in socialaccount_providers %}
                 {% if provider.id == 'google' %}
-                <a href="{% provider_login_url 'google' %}" class="btn btn-outline w-full flex items-center justify-center gap-3 py-3 rounded-xl border-white/10 hover:bg-white/5 transition-all group">
+                <a href="{% provider_login_url 'google' %}" class="btn-secondary w-full group">
                     <img src="https://upload.wikimedia.org/wikipedia/commons/c/c1/Google_%22G%22_logo.svg" class="w-5 h-5 group-hover:scale-110 transition-transform">
-                    <span class="text-xs font-bold text-white">تسجيل الدخول بواسطة جوجل</span>
+                    <span class="text-sm">المتابعة باستخدام Google</span>
                 </a>
                 {% endif %}
             {% endfor %}
-        {% endif %}
+        </div>
+    {% endif %}
+
+    <div class="mt-8 text-center">
+        <p class="text-sm text-slate-400">
+            ليس لديك حساب؟ 
+            <a href="{% url 'site_register' %}" class="text-cyan font-bold hover:underline">أنشئ حساباً جديداً</a>
+        </p>
     </div>
+</div>
+{% endblock %}
 
-    <a class="link" href="{% url 'site_register' %}">ليس لديك حساب؟ أنشئ حسابًا جديدًا</a>
-  </article>
-</section>
-
+{% block extra_js %}
 <script>
-  document.querySelectorAll('.toggle-password').forEach(button => {
-    button.addEventListener('click', function() {
-        const inputId = this.getAttribute('data-target');
-        const input = document.getElementById(inputId) || document.querySelector('input[type="password"]');
-        const icon = this.querySelector('i');
-        if (input.type === 'password') {
-            input.type = 'text';
-            icon.classList.replace('fa-eye', 'fa-eye-slash');
-        } else {
-            input.type = 'password';
-            icon.classList.replace('fa-eye-slash', 'fa-eye');
-        }
+    document.querySelectorAll('.toggle-password').forEach(button => {
+        button.addEventListener('click', function() {
+            const inputId = this.getAttribute('data-target');
+            const input = document.getElementById(inputId);
+            const icon = this.querySelector('i');
+            if (input.type === 'password') {
+                input.type = 'text';
+                icon.classList.replace('fa-eye', 'fa-eye-slash');
+            } else {
+                input.type = 'password';
+                icon.classList.replace('fa-eye-slash', 'fa-eye');
+            }
+        });
     });
-  });
 </script>
 {% endblock %}

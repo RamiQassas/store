@@ -514,12 +514,13 @@
                     {% endif %}
                 </a>
                 <a href="{% url 'change_password' %}" class="flex items-center justify-between p-3 bg-slate-800/30 rounded-lg hover:bg-cyan/5 transition-colors">
-                    <div class="flex items-center gap-3">
-                        <i class="fas fa-lock text-cyan"></i>
-                        <span class="text-sm">تغيير كلمة المرور</span>
-                    </div>
-                    <i class="fas fa-chevron-left text-[10px] text-slate-600"></i>
+                   <div class="flex items-center gap-3">
+                       <i class="fas fa-lock text-cyan"></i>
+                       <span class="text-sm">{% if user.has_usable_password %}تغيير كلمة المرور{% else %}تعيين كلمة المرور{% endif %}</span>
+                   </div>
+                   <i class="fas fa-chevron-left text-[10px] text-slate-600"></i>
                 </a>
+
             </div>
         </div>
 

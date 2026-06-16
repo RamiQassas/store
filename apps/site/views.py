@@ -869,15 +869,31 @@ def notification_settings(request):
 def v3_change_password_view(request):
     if not v3_init_verification(request, request.user, "settings"):
         return v3_security_redirect(request.session.get("v3_auth_methods", []))
-        
-    form = ChangePasswordForm(request.POST or None)
-    if request.method == "POST" and form.is_valid():
-        if request.user.check_password(form.cleaned_data["current_password"]):
-            request.user.set_password(form.cleaned_data["new_password"]); request.user.save(); update_session_auth_hash(request, request.user)
-            messages.success(request, "تم تغيير كلمة المرور بنجاح."); return redirect("dashboard")
-        else: messages.error(request, "كلمة المرور الحالية غير صحيحة.")
-    return render(request, "site/v3/v3_change_password.html", {"form": form})
 
+    has_password = request.user.has_usable_password()
+    form = ChangePasswordForm(request.POST or None, has_password=has_password)
+    if request.method == "POST" and form.is_valid():
+        success = False
+        if not has_password:
+            request.user.set_password(form.cleaned_data["new_password"])
+            request.user.save()
+            success = True
+        elif request.user.check_password(form.cleaned_data["current_password"]):
+            request.user.set_password(form.cleaned_data["new_password"])
+            request.user.save()
+            success = True
+        else:
+            messages.error(request, "كلمة المرور الحالية غير صحيحة.")
+
+        if success:
+            update_session_auth_hash(request, request.user)
+            messages.success(request, "تم تعيين/تغيير كلمة المرور بنجاح.")
+            return redirect("dashboard")
+
+    return render(request, "site/v3/v3_change_password.html", {
+        "form": form,
+        "has_password": has_password
+    })
 @login_required
 def v3_change_email_view(request):
     if not v3_init_verification(request, request.user, "settings"):

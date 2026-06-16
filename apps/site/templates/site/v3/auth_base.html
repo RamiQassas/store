@@ -1,0 +1,140 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="ar" dir="rtl" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}المصادقة | رقميات{% endblock %}</title>
+    
+    <!-- Fonts: Cairo & Rajdhani for a techy look -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@200;300;400;500;600;700;800;900&family=Rajdhani:wght@500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        'dark-bg': '#020617',
+                        'panel-bg': 'rgba(15, 23, 42, 0.7)',
+                        'cyan': '#06b6d4',
+                        'indigo': '#6366f1',
+                        'purple': '#a855f7',
+                        'rose': '#f43f5e',
+                    },
+                    fontFamily: {
+                        'cairo': ['Cairo', 'sans-serif'],
+                        'tech': ['Rajdhani', 'sans-serif'],
+                    },
+                    animation: {
+                        'glow': 'glow 3s infinite alternate',
+                        'float': 'float 6s ease-in-out infinite',
+                    },
+                    keyframes: {
+                        glow: {
+                            '0%': { boxShadow: '0 0 5px rgba(6, 182, 212, 0.2)' },
+                            '100%': { boxShadow: '0 0 20px rgba(6, 182, 212, 0.6)' },
+                        },
+                        float: {
+                            '0%, 100%': { transform: 'translateY(0)' },
+                            '50%': { transform: 'translateY(-20px)' },
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style type="text/tailwindcss">
+        @layer base {
+            body {
+                @apply bg-dark-bg text-slate-200 font-cairo overflow-x-hidden;
+            }
+        }
+        @layer components {
+            .glass-panel {
+                @apply bg-slate-900/60 backdrop-blur-xl border border-white/10 rounded-[2rem] shadow-2xl;
+            }
+            .auth-input {
+                @apply w-full bg-slate-800/50 border border-slate-700/50 rounded-2xl px-5 py-4 text-white placeholder-slate-500 transition-all focus:outline-none focus:border-cyan/50 focus:ring-4 focus:ring-cyan/10;
+            }
+            .btn-premium {
+                @apply relative overflow-hidden bg-gradient-to-r from-cyan to-indigo text-white font-bold py-4 rounded-2xl transition-all hover:scale-[1.02] active:scale-[0.98] shadow-lg shadow-cyan/20 flex items-center justify-center gap-2;
+            }
+            .btn-secondary {
+                @apply bg-slate-800 hover:bg-slate-700 border border-slate-700 text-white font-bold py-4 rounded-2xl transition-all flex items-center justify-center gap-2;
+            }
+            .glow-effect {
+                @apply absolute -z-10 rounded-full blur-[120px] opacity-20;
+            }
+        }
+        
+        /* RTL Fixes for form elements */
+        input[type="email"], input[type="password"], input[type="text"], input[type="tel"] {
+            direction: ltr;
+            text-align: right;
+        }
+        
+        .otp-input {
+            @apply w-12 h-14 bg-slate-800 border border-slate-700 rounded-xl text-center text-2xl font-bold text-cyan focus:border-cyan focus:ring-4 focus:ring-cyan/20 outline-none transition-all;
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: #020617; }
+        ::-webkit-scrollbar-thumb { background: #1e293b; border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: #334155; }
+    </style>
+    {% block extra_head %}{% endblock %}
+</head>
+<body class="min-h-screen flex items-center justify-center p-4 relative">
+    <!-- Animated Background Decor -->
+    <div class="glow-effect w-[400px] h-[400px] bg-cyan top-[-100px] right-[-100px] animate-float"></div>
+    <div class="glow-effect w-[300px] h-[300px] bg-purple bottom-[-50px] left-[-50px] animate-float" style="animation-delay: -2s;"></div>
+    
+    <div class="w-full max-w-md relative z-10">
+        <!-- Logo Header -->
+        <div class="text-center mb-8 animate-pulse">
+            <a href="/" class="inline-block group">
+                <div class="relative">
+                    <div class="absolute inset-0 bg-cyan blur-2xl opacity-20 group-hover:opacity-40 transition-opacity"></div>
+                    <h1 class="text-4xl font-black tracking-tighter text-white relative flex items-center gap-2">
+                        <span class="bg-gradient-to-l from-cyan to-indigo bg-clip-text text-transparent">رقميات</span>
+                        <i class="fas fa-bolt text-cyan text-2xl"></i>
+                    </h1>
+                </div>
+                <p class="text-[10px] font-tech tracking-[0.2em] uppercase text-slate-500 mt-2">Premium Digital Services</p>
+            </a>
+        </div>
+
+        {% if messages %}
+        <div class="mb-6 space-y-2">
+            {% for message in messages %}
+            <div class="p-4 rounded-2xl flex items-center gap-3 animate-bounce {% if message.tags == 'success' %}bg-emerald-500/10 border border-emerald-500/20 text-emerald-400{% else %}bg-rose-500/10 border border-rose-500/20 text-rose-400{% endif %} text-sm font-medium">
+                <i class="fas {% if message.tags == 'success' %}fa-check-circle{% else %}fa-exclamation-triangle{% endif %}"></i>
+                {{ message }}
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        {% block auth_content %}{% endblock %}
+        
+        <!-- Footer Links -->
+        <div class="mt-8 flex flex-wrap justify-center gap-x-6 gap-y-2 text-[11px] text-slate-500 font-medium">
+            <a href="{% url 'privacy_policy' %}" class="hover:text-cyan transition-colors">سياسة الخصوصية</a>
+            <a href="{% url 'terms_of_service' %}" class="hover:text-cyan transition-colors">شروط الخدمة</a>
+            <a href="{% url 'contact' %}" class="hover:text-cyan transition-colors">الدعم الفني</a>
+        </div>
+    </div>
+
+    {% block extra_js %}{% endblock %}
+</body>
+</html>
