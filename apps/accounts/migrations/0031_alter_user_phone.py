@@ -11,12 +11,16 @@ def fix_postgres_unique_constraint(apps, schema_editor):
     if schema_editor.connection.vendor != 'postgresql':
         return
     
-    # Standard Django constraint name for this field
+    # Standard Django constraint and index names for this field in Postgres
     constraint_name = "accounts_user_phone_c603acdd_uniq"
+    like_index_name = "accounts_user_phone_c603acdd_like"
     
     with schema_editor.connection.cursor() as cursor:
-        # Drop the constraint if it exists to avoid "already exists" error
+        # 1. Drop the unique constraint if it exists
         cursor.execute(f"ALTER TABLE accounts_user DROP CONSTRAINT IF EXISTS {constraint_name};")
+        
+        # 2. Drop the "LIKE" index if it exists (causes ProgrammingError: relation ... already exists)
+        cursor.execute(f"DROP INDEX IF EXISTS {like_index_name};")
 
 class Migration(migrations.Migration):
 
@@ -25,7 +29,7 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        # 1. For Postgres, drop the problematic constraint first
+        # 1. For Postgres, drop problematic constraints and indexes first
         migrations.RunPython(fix_postgres_unique_constraint, reverse_code=migrations.RunPython.noop),
         
         # 2. Make the field nullable (State and DB)
@@ -39,7 +43,8 @@ class Migration(migrations.Migration):
         # 3. Clean up data (now that it's nullable)
         migrations.RunPython(clean_empty_phones, reverse_code=migrations.RunPython.noop),
         
-        # 4. Now add the unique constraint
+        # 4. Now re-add the unique constraint
+        # Django will recreate the constraint and the _like index
         migrations.AlterField(
             model_name='user',
             name='phone',
