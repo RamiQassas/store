@@ -2,6 +2,21 @@
 
 from django.db import migrations, models
 
+def clean_empty_phones(apps, schema_editor):
+    User = apps.get_model('accounts', 'User')
+    # This must run AFTER the column is made nullable in the database
+    User.objects.filter(phone='').update(phone=None)
+
+def fix_postgres_unique_constraint(apps, schema_editor):
+    if schema_editor.connection.vendor != 'postgresql':
+        return
+    
+    # Standard Django constraint name for this field
+    constraint_name = "accounts_user_phone_c603acdd_uniq"
+    
+    with schema_editor.connection.cursor() as cursor:
+        # Drop the constraint if it exists to avoid "already exists" error
+        cursor.execute(f"ALTER TABLE accounts_user DROP CONSTRAINT IF EXISTS {constraint_name};")
 
 class Migration(migrations.Migration):
 
@@ -10,6 +25,21 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
+        # 1. For Postgres, drop the problematic constraint first
+        migrations.RunPython(fix_postgres_unique_constraint, reverse_code=migrations.RunPython.noop),
+        
+        # 2. Make the field nullable (State and DB)
+        # Note: We temporarily remove unique=True to allow data cleanup
+        migrations.AlterField(
+            model_name='user',
+            name='phone',
+            field=models.CharField(blank=True, max_length=32, null=True),
+        ),
+        
+        # 3. Clean up data (now that it's nullable)
+        migrations.RunPython(clean_empty_phones, reverse_code=migrations.RunPython.noop),
+        
+        # 4. Now add the unique constraint
         migrations.AlterField(
             model_name='user',
             name='phone',
