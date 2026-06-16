@@ -1,0 +1,125 @@
+{% extends "site/v3/auth_base.html" %}
+{% block title %}إعدادات الإشعارات | رقميات{% endblock %}
+
+{% block auth_content %}
+<div class="glass-panel p-8 md:p-10 !max-w-3xl mx-auto">
+    <div class="mb-10 text-center">
+        <div class="w-20 h-20 bg-cyan/10 rounded-full flex items-center justify-center text-3xl text-cyan mx-auto mb-6">
+            <i class="fas fa-bell-on"></i>
+        </div>
+        <h2 class="text-2xl font-black text-white mb-2">تفضيلات الإشعارات</h2>
+        <p class="text-slate-400 text-sm">تحكم في كيفية وتوقيت استلامك للتنبيهات من المنصة.</p>
+    </div>
+
+    <form method="post" class="space-y-8">
+        {% csrf_token %}
+        
+        <!-- Global Toggle -->
+        <div class="p-6 bg-slate-800/40 rounded-2xl border border-white/5 flex items-center justify-between">
+            <div>
+                <h3 class="text-lg font-bold text-white">تفعيل الإشعارات</h3>
+                <p class="text-xs text-slate-500">تعطيل هذا الخيار سيوقف جميع الإشعارات الصادرة من النظام.</p>
+            </div>
+            <label class="relative inline-flex items-center cursor-pointer">
+                {{ form.is_enabled }}
+                <div class="w-14 h-7 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:start-[4px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all peer-checked:bg-cyan"></div>
+            </label>
+        </div>
+
+        {% if user.is_platform_staff %}
+        <!-- Admin Section -->
+        <div class="space-y-4">
+            <h4 class="text-xs font-black text-indigo-400 uppercase tracking-widest px-2">إشعارات الإدارة (للمدراء والموظفين)</h4>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div class="p-5 bg-indigo-500/5 border border-indigo-500/10 rounded-2xl flex items-center justify-between">
+                    <span class="text-sm font-bold text-slate-300">طلبات الإيداع الجديدة</span>
+                    {{ form.admin_new_deposit }}
+                </div>
+                <div class="p-5 bg-indigo-500/5 border border-indigo-500/10 rounded-2xl flex items-center justify-between">
+                    <span class="text-sm font-bold text-slate-300">طلبات السحب الجديدة</span>
+                    {{ form.admin_new_withdrawal }}
+                </div>
+                <div class="p-5 bg-indigo-500/5 border border-indigo-500/10 rounded-2xl flex items-center justify-between">
+                    <span class="text-sm font-bold text-slate-300">طلبات الشراء الجديدة</span>
+                    {{ form.admin_new_order }}
+                </div>
+                <div class="p-5 bg-indigo-500/5 border border-indigo-500/10 rounded-2xl flex items-center justify-between">
+                    <span class="text-sm font-bold text-slate-300">تذاكر الدعم الجديدة</span>
+                    {{ form.admin_new_support }}
+                </div>
+                <div class="p-5 bg-indigo-500/5 border border-indigo-500/10 rounded-2xl flex items-center justify-between">
+                    <span class="text-sm font-bold text-slate-300">طلبات التوثيق الجديدة</span>
+                    {{ form.admin_new_kyc }}
+                </div>
+                <div class="p-5 bg-indigo-500/5 border border-indigo-500/10 rounded-2xl flex items-center justify-between">
+                    <span class="text-sm font-bold text-slate-300">إشعارات البريد الإداري</span>
+                    {{ form.admin_email_notifications }}
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Channels Grid -->
+        <div class="space-y-6">
+            <h4 class="text-xs font-black text-cyan uppercase tracking-widest px-2">إشعارات الحساب الشخصي</h4>
+            
+            <div class="overflow-x-auto">
+                <table class="w-full text-right">
+                    <thead>
+                        <tr class="text-slate-500 text-[10px] uppercase tracking-widest">
+                            <th class="pb-4 pr-2">النوع</th>
+                            <th class="pb-4 text-center">تطبيق</th>
+                            <th class="pb-4 text-center">Push</th>
+                            <th class="pb-4 text-center">بريد</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-white/5">
+                        <tr>
+                            <td class="py-4 pr-2 text-sm font-bold text-slate-300">تحديثات الطلبات</td>
+                            <td class="py-4 text-center">{{ form.in_app_orders }}</td>
+                            <td class="py-4 text-center">{{ form.push_orders }}</td>
+                            <td class="py-4 text-center">{{ form.email_orders }}</td>
+                        </tr>
+                        <tr>
+                            <td class="py-4 pr-2 text-sm font-bold text-slate-300">العمليات المالية</td>
+                            <td class="py-4 text-center">{{ form.in_app_financial }}</td>
+                            <td class="py-4 text-center">{{ form.push_financial }}</td>
+                            <td class="py-4 text-center">{{ form.email_financial }}</td>
+                        </tr>
+                        <tr>
+                            <td class="py-4 pr-2 text-sm font-bold text-slate-300">ردود الدعم الفني</td>
+                            <td class="py-4 text-center">{{ form.in_app_support }}</td>
+                            <td class="py-4 text-center">{{ form.push_support }}</td>
+                            <td class="py-4 text-center">{{ form.email_support }}</td>
+                        </tr>
+                        <tr>
+                            <td class="py-4 pr-2 text-sm font-bold text-slate-300">حالة التوثيق (KYC)</td>
+                            <td class="py-4 text-center">{{ form.in_app_kyc }}</td>
+                            <td class="py-4 text-center">{{ form.push_kyc }}</td>
+                            <td class="py-4 text-center">{{ form.email_kyc }}</td>
+                        </tr>
+                        <tr>
+                            <td class="py-4 pr-2 text-sm font-bold text-slate-300">العروض والترويج</td>
+                            <td class="py-4 text-center">{{ form.in_app_promotions }}</td>
+                            <td class="py-4 text-center">{{ form.push_promotions }}</td>
+                            <td class="py-4 text-center">{{ form.email_promotions }}</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="pt-6 border-t border-white/5">
+            <button type="submit" class="btn-primary w-full py-4 rounded-2xl font-black text-lg shadow-cyan">حفظ التغييرات</button>
+        </div>
+    </form>
+</div>
+{% endblock %}
+
+{% block extra_head %}
+<style>
+    input[type="checkbox"] {
+        @apply w-5 h-5 rounded border-slate-700 bg-slate-800 text-cyan focus:ring-cyan focus:ring-offset-slate-900;
+    }
+</style>
+{% endblock %}

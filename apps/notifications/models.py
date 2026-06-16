@@ -42,23 +42,40 @@ class Notification(TimeStampedModel):
 class NotificationSetting(TimeStampedModel):
     user = models.OneToOneField(settings.AUTH_USER_MODEL, related_name="notification_settings", on_delete=models.CASCADE)
     
+    # Global Toggle
+    is_enabled = models.BooleanField(default=True, verbose_name="تفعيل الإشعارات بشكل عام")
+
+    # --- User Preferences ---
     # In-App Preferences
     in_app_orders = models.BooleanField(default=True, verbose_name="تحديثات الطلبات (داخل التطبيق)")
     in_app_financial = models.BooleanField(default=True, verbose_name="العمليات المالية (داخل التطبيق)")
     in_app_support = models.BooleanField(default=True, verbose_name="ردود الدعم (داخل التطبيق)")
+    in_app_kyc = models.BooleanField(default=True, verbose_name="تحديثات التوثيق (داخل التطبيق)")
     in_app_promotions = models.BooleanField(default=True, verbose_name="العروض والترويج (داخل التطبيق)")
     
     # Push Preferences
     push_orders = models.BooleanField(default=True, verbose_name="تحديثات الطلبات (Push)")
     push_financial = models.BooleanField(default=True, verbose_name="العمليات المالية (Push)")
     push_support = models.BooleanField(default=True, verbose_name="ردود الدعم (Push)")
+    push_kyc = models.BooleanField(default=True, verbose_name="تحديثات التوثيق (Push)")
     push_promotions = models.BooleanField(default=False, verbose_name="العروض والترويج (Push)")
     
     # Email Preferences
     email_orders = models.BooleanField(default=True, verbose_name="تحديثات الطلبات (البريد)")
     email_financial = models.BooleanField(default=True, verbose_name="العمليات المالية (البريد)")
     email_support = models.BooleanField(default=True, verbose_name="ردود الدعم (البريد)")
+    email_kyc = models.BooleanField(default=True, verbose_name="تحديثات التوثيق (البريد)")
     email_promotions = models.BooleanField(default=True, verbose_name="العروض والترويج (البريد)")
+
+    # --- Admin/Staff Preferences ---
+    # Only relevant for users with staff/admin roles
+    admin_new_deposit = models.BooleanField(default=True, verbose_name="طلبات إيداع جديدة")
+    admin_new_withdrawal = models.BooleanField(default=True, verbose_name="طلبات سحب جديدة")
+    admin_new_order = models.BooleanField(default=True, verbose_name="طلبات شراء جديدة")
+    admin_new_support = models.BooleanField(default=True, verbose_name="تذاكر دعم جديدة")
+    admin_new_kyc = models.BooleanField(default=True, verbose_name="طلبات توثيق جديدة")
+    
+    admin_email_notifications = models.BooleanField(default=True, verbose_name="استلام إشعارات الإدارة عبر البريد")
 
     class Meta:
         verbose_name = "إعدادات التنبيهات"

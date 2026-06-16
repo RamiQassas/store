@@ -147,7 +147,8 @@ def create_chat(request):
     notify_staff(
         title="طلب دعم جديد",
         body=f"قام {user_label} بفتح تذكرة دعم جديدة: {subject}",
-        action_url=f"/support/chats/{room.id}/"
+        action_url=f"/support/chats/{room.id}/",
+        category='admin_new_support'
     )
 
     return redirect('chat_room', room_id=room.id)

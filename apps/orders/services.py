@@ -187,7 +187,8 @@ def create_order(customer, variant_id, quantity=1, fulfillment_data=None, coupon
     notify_staff(
         title="طلب جديد",
         body=f"تم إنشاء طلب جديد برقم {order.number} بقيمة {total} من قبل {customer.email}",
-        action_url=f"/control/orders/{order.id}/"
+        action_url=f"/control/orders/{order.id}/",
+        category='admin_new_order'
     )
 
     return order

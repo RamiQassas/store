@@ -207,6 +207,7 @@ class SupportConsumer(AsyncWebsocketConsumer):
                     title=f"رسالة جديدة من {actual_sender_name}",
                     body=text[:100] if text else "قام العميل بإرسال ملف/صورة",
                     action_url=f"/support/chats/{room.id}/",
+                    category='admin_new_support',
                     priority="high",
                     metadata={"type": "chat_user_msg", "room_id": str(room.id)},
                     exclude_user=exclude_u

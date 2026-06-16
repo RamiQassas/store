@@ -44,13 +44,12 @@ def send_web_push(subscription, payload):
 def notify_user(user, title, body, action_url=None, image_url=None, category='system', priority=Notification.Priority.NORMAL, metadata=None, exclude_user=None):
     """
     Centralized service to notify users via multiple channels.
-    category: 'orders', 'financial', 'support', 'promotions', 'system'
+    category: 'orders', 'financial', 'support', 'promotions', 'kyc', 'system'
     """
     if not user.is_active or (exclude_user and user.id == exclude_user.id):
         return False
 
     # 1. Deduplication (Short window: 1 minute)
-    # Check if a similar notification was sent recently to avoid spam
     dedup_hash = generate_deduplication_hash(user.id, title, body, metadata)
     one_minute_ago = timezone.now() - timezone.timedelta(minutes=1)
     if Notification.objects.filter(user=user, metadata__dedup_hash=dedup_hash, created_at__gte=one_minute_ago).exists():
@@ -62,6 +61,9 @@ def notify_user(user, title, body, action_url=None, image_url=None, category='sy
     # 2. Check User Preferences
     settings_obj, _ = NotificationSetting.objects.get_or_create(user=user)
     
+    if not settings_obj.is_enabled:
+        return False
+
     send_in_app = False
     send_push = False
     send_email = False
@@ -78,6 +80,10 @@ def notify_user(user, title, body, action_url=None, image_url=None, category='sy
         send_in_app = settings_obj.in_app_support
         send_push = settings_obj.push_support
         send_email = settings_obj.email_support
+    elif category == 'kyc':
+        send_in_app = settings_obj.in_app_kyc
+        send_push = settings_obj.push_kyc
+        send_email = settings_obj.email_kyc
     elif category == 'promotions':
         send_in_app = settings_obj.in_app_promotions
         send_push = settings_obj.push_promotions
@@ -125,7 +131,7 @@ def notify_user(user, title, body, action_url=None, image_url=None, category='sy
                 </div>
                 <div style="background-color: #f8fafc; padding: 30px; border-radius: 12px; text-align: center;">
                     <p style="font-size: 16px; margin-bottom: 10px; color: #64748b;">{title}</p>
-                    <h1 style="font-size: 20px; font-weight: bold; color: #0f172a; margin: 0;">{body}</h1>
+                    <h1 style="font-size: 18px; font-weight: bold; color: #0f172a; margin: 0;">{body}</h1>
                 </div>
                 <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #f1f5f9; text-align: center;">
                     <p style="font-size: 12px; color: #94a3b8; line-height: 1.6;">هذه الرسالة تم إنشاؤها تلقائياً.<br>يمكنك تغيير تفضيلات الإشعارات من حسابك.</p>
@@ -143,29 +149,64 @@ def notify_bulk(users, title, body, **kwargs):
     for user in users:
         notify_user(user, title, body, **kwargs)
 
-def notify_staff(title, body, action_url=None, roles=None, priority=Notification.Priority.NORMAL, metadata=None, exclude_user=None):
+def notify_staff(title, body, action_url=None, category='admin_new_support', roles=None, priority=Notification.Priority.NORMAL, metadata=None, exclude_user=None):
     """
-    Sends notification to staff members.
-    If roles is provided, only notify users with those roles.
-    Otherwise, notify all admin/staff users.
+    Sends notification to staff members based on their preferences.
+    category: 'admin_new_deposit', 'admin_new_withdrawal', 'admin_new_order', 'admin_new_support', 'admin_new_kyc'
     """
     from apps.accounts.models import User
     
+    # 1. Get all eligible staff
     staff_query = User.objects.filter(is_active=True)
-    
     if roles:
         staff_query = staff_query.filter(role__in=roles)
     else:
-        # Default staff roles that should receive notifications
-        staff_roles = [
-            User.Role.SUPER_ADMIN,
-            User.Role.ADMIN,
-            User.Role.MODERATOR,
-            User.Role.FINANCE,
-            User.Role.SUPPORT,
-            User.Role.EMPLOYEE
-        ]
+        staff_roles = [User.Role.SUPER_ADMIN, User.Role.ADMIN, User.Role.MODERATOR, User.Role.FINANCE, User.Role.SUPPORT, User.Role.EMPLOYEE]
         staff_query = staff_query.filter(models.Q(role__in=staff_roles) | models.Q(is_staff=True) | models.Q(is_superuser=True))
     
     staff_users = staff_query.distinct()
-    return notify_bulk(staff_users, title, body, action_url=action_url, category='support', priority=priority, metadata=metadata, exclude_user=exclude_user)
+    
+    # 2. Filter and notify each staff member based on their settings
+    for staff in staff_users:
+        if exclude_user and staff.id == exclude_user.id:
+            continue
+            
+        settings_obj, _ = NotificationSetting.objects.get_or_create(user=staff)
+        
+        # Check if this specific category is enabled for this staff member
+        is_category_enabled = getattr(settings_obj, category, True)
+        
+        if is_category_enabled and settings_obj.is_enabled:
+            # Send In-App
+            Notification.objects.create(
+                user=staff,
+                title=title,
+                body=body,
+                action_url=action_url,
+                channel=Notification.Channel.IN_APP,
+                priority=priority,
+                metadata=metadata or {}
+            )
+            
+            # Send Email if enabled
+            if settings_obj.admin_email_notifications:
+                try:
+                    from apps.accounts.services import send_brevo_email
+                    html_content = f"""
+                    <div dir="rtl" style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 500px; margin: 0 auto; padding: 20px; color: #1e293b; background-color: #ffffff; border-radius: 16px; border: 1px solid #e2e8f0;">
+                        <div style="text-align: center; margin-bottom: 30px;">
+                            <h2 style="color: #06b6d4; margin: 0; font-size: 20px; font-weight: 900;">إشعار إداري | رقميات</h2>
+                        </div>
+                        <div style="background-color: #f8fafc; padding: 30px; border-radius: 12px; text-align: center;">
+                            <p style="font-size: 14px; margin-bottom: 10px; color: #64748b;">إشعار جديد للنظام:</p>
+                            <h1 style="font-size: 18px; font-weight: bold; color: #0f172a; margin: 0;">{title}</h1>
+                            <p style="margin-top: 15px; font-size: 14px; color: #334155;">{body}</p>
+                            {f'<a href="{settings.SITE_URL}{action_url}" style="display: inline-block; margin-top: 25px; padding: 12px 25px; background-color: #06b6d4; color: white; text-decoration: none; border-radius: 8px; font-weight: bold;">فتح في لوحة التحكم</a>' if action_url else ''}
+                        </div>
+                    </div>
+                    """
+                    send_brevo_email(to_email=staff.email, to_name=staff.get_full_name() or staff.email, subject=f"إشعار إداري: {title}", html_content=html_content)
+                except Exception as e:
+                    logger.error(f"Failed to send staff email notification to {staff.email}: {e}")
+    
+    return True

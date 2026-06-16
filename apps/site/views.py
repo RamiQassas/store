@@ -628,7 +628,15 @@ def deposits(request):
                 title="تم استلام طلب الإيداع",
                 body=f"تم استلام طلب الإيداع الخاص بك رقم {deposit.id} بقيمة {deposit.amount} {deposit.currency.code}. سيتم مراجعته من قبل الإدارة قريباً."
             )
+            from apps.notifications.services import notify_staff
+            notify_staff(
+                title="طلب إيداع جديد",
+                body=f"قام {request.user.email} بتقديم طلب إيداع بقيمة {deposit.amount} {deposit.currency.code}",
+                action_url=f"/control/deposits/{deposit.id}/",
+                category='admin_new_deposit'
+            )
             messages.success(request, "تم تقديم طلب الإيداع بنجاح.")
+
             return redirect("dashboard_deposits")
         else:
             # Save request ID in session for verification callback
@@ -790,6 +798,14 @@ def withdrawals(request):
                 title="تم استلام طلب السحب",
                 body=f"تم استلام طلب السحب الخاص بك رقم {withdrawal.id} بقيمة {withdrawal.amount} {withdrawal.currency.code}. سيتم مراجعته من قبل الإدارة قريباً."
             )
+            from apps.notifications.services import notify_staff
+            notify_staff(
+                title="طلب سحب جديد",
+                body=f"قام {request.user.email} بتقديم طلب سحب بقيمة {withdrawal.amount} {withdrawal.currency.code}",
+                action_url=f"/control/withdrawals/{withdrawal.id}/",
+                category='admin_new_withdrawal'
+            )
+
         except Exception as e:
             messages.error(request, str(e))
             return redirect("dashboard_withdrawals")
@@ -848,9 +864,15 @@ def kyc_request_view(request):
                 update_session_auth_hash(request, request.user) # Keep session active after password change
 
             kyc.save()
-            notify_bulk(User.objects.filter(role=User.Role.ADMIN), title="طلب توثيق جديد", body=f"مستخدم: {request.user.email}", action_url=f"/control/kyc/{kyc.id}/")
+            from apps.notifications.services import notify_staff
+            notify_staff(
+                title="طلب توثيق جديد",
+                body=f"مستخدم: {request.user.email}",
+                action_url=f"/control/kyc/{kyc.id}/",
+                category='admin_new_kyc'
+            )
             
-            # Send Email Notification
+            # Send Email Notification to User
             from apps.accounts.services import send_kyc_status_email
             send_kyc_status_email(request.user, 'pending')
             
@@ -868,20 +890,13 @@ def notifications_list(request):
 
 @login_required
 def notification_settings(request):
-    settings_obj, _ = NotificationSetting.objects.get_or_create(user=request.user)
-    if request.method == "POST":
-        fields = [
-            'in_app_orders', 'push_orders', 'email_orders',
-            'in_app_financial', 'push_financial', 'email_financial',
-            'in_app_support', 'push_support', 'email_support',
-            'in_app_promotions', 'push_promotions', 'email_promotions'
-        ]
-        for field in fields:
-            setattr(settings_obj, field, request.POST.get(field) == "on")
-        settings_obj.save()
-        messages.success(request, "تم الحفظ.")
+    obj, _ = NotificationSetting.objects.get_or_create(user=request.user)
+    form = NotificationSettingForm(request.POST or None, instance=obj, is_staff=request.user.is_platform_staff)
+    if request.method == "POST" and form.is_valid():
+        form.save()
+        messages.success(request, "تم حفظ إعدادات الإشعارات بنجاح.")
         return redirect("notification_settings")
-    return render(request, "site/notification_settings.html", {"settings": settings_obj})
+    return render(request, "site/v3/v3_notification_settings.html", {"form": form})
 
 @login_required
 def v3_change_password_view(request):
@@ -1810,26 +1825,43 @@ def control_kyc_detail(request, pk):
             # Send Email Notification
             from apps.accounts.services import send_kyc_status_email
             send_kyc_status_email(kyc.user, 'approved')
-            
+            notify_user(
+                user=kyc.user,
+                title="✅ تم توثيق حسابك",
+                body="تهانينا، تمت الموافقة على طلب توثيق هويتك بنجاح. يمكنك الآن الاستمتاع بحدود مالية أعلى.",
+                action_url="/dashboard/",
+                category='kyc',
+                priority=Notification.Priority.HIGH
+            )
+
             messages.success(request, f"تم توثيق حساب {kyc.user.email} بنجاح، وتحديث الاسم المعروض والحدود المالية.")
-        elif action == "reject":
+            elif action == "reject":
             kyc.status = KYCRequest.Status.REJECTED
             kyc.rejection_reason = admin_note
             kyc.user.is_kyc_verified = False
-            
+
             # Reset to unverified limits if no custom limits
             if not kyc.user.has_custom_limits:
                 kyc_settings = KYCSettings.get_settings()
                 kyc.user.daily_deposit_limit = kyc_settings.unverified_daily_deposit_limit
                 kyc.user.daily_withdrawal_limit = kyc_settings.unverified_daily_withdrawal_limit
-            
+
             kyc.user.save()
 
             # Send Email Notification
             from apps.accounts.services import send_kyc_status_email
             send_kyc_status_email(kyc.user, 'rejected', reason=admin_note)
+            notify_user(
+                user=kyc.user,
+                title="❌ تحديث بشأن طلب التوثيق",
+                body=f"نعتذر، تم رفض طلب توثيق هويتك. السبب: {admin_note}",
+                action_url="/dashboard/verification/",
+                category='kyc',
+                priority=Notification.Priority.HIGH
+            )
 
             messages.warning(request, f"تم رفض طلب توثيق {kyc.user.email}.")
+
         elif action == "unverify":
             kyc.status = KYCRequest.Status.REJECTED
             kyc.user.is_kyc_verified = False
@@ -3137,9 +3169,15 @@ def payment_method_edit(request, pk):
         return redirect("payment_methods_list")
     return render(request, "site/payment_method_builder.html", {"form": form, "method": method})
 
-# ==========================================
-# --- PRODUCT SUGGESTIONS ---
-# ==========================================
+@login_required
+def site_notification_settings(request):
+    obj, _ = NotificationSetting.objects.get_or_create(user=request.user)
+    form = NotificationSettingForm(request.POST or None, instance=obj, is_staff=request.user.is_platform_staff)
+    if request.method == "POST" and form.is_valid():
+        form.save()
+        messages.success(request, "تم حفظ إعدادات الإشعارات بنجاح.")
+        return redirect("notification_settings")
+    return render(request, "site/v3/v3_notification_settings.html", {"form": form})
 
 @login_required
 def site_product_suggestion(request):

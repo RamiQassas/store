@@ -405,6 +405,46 @@ class KYCRequestForm(forms.ModelForm):
         
         return cleaned_data
 
+class NotificationSettingForm(forms.ModelForm):
+    class Meta:
+        model = NotificationSetting
+        exclude = ["user"]
+        widgets = {
+            "is_enabled": forms.CheckboxInput(attrs={"class": "w-5 h-5 accent-cyan"}),
+            # User preferences
+            "in_app_orders": forms.CheckboxInput(attrs={"class": "w-4 h-4"}),
+            "in_app_financial": forms.CheckboxInput(attrs={"class": "w-4 h-4"}),
+            "in_app_support": forms.CheckboxInput(attrs={"class": "w-4 h-4"}),
+            "in_app_kyc": forms.CheckboxInput(attrs={"class": "w-4 h-4"}),
+            "in_app_promotions": forms.CheckboxInput(attrs={"class": "w-4 h-4"}),
+            "push_orders": forms.CheckboxInput(attrs={"class": "w-4 h-4"}),
+            "push_financial": forms.CheckboxInput(attrs={"class": "w-4 h-4"}),
+            "push_support": forms.CheckboxInput(attrs={"class": "w-4 h-4"}),
+            "push_kyc": forms.CheckboxInput(attrs={"class": "w-4 h-4"}),
+            "push_promotions": forms.CheckboxInput(attrs={"class": "w-4 h-4"}),
+            "email_orders": forms.CheckboxInput(attrs={"class": "w-4 h-4"}),
+            "email_financial": forms.CheckboxInput(attrs={"class": "w-4 h-4"}),
+            "email_support": forms.CheckboxInput(attrs={"class": "w-4 h-4"}),
+            "email_kyc": forms.CheckboxInput(attrs={"class": "w-4 h-4"}),
+            "email_promotions": forms.CheckboxInput(attrs={"class": "w-4 h-4"}),
+            # Admin preferences
+            "admin_new_deposit": forms.CheckboxInput(attrs={"class": "w-4 h-4"}),
+            "admin_new_withdrawal": forms.CheckboxInput(attrs={"class": "w-4 h-4"}),
+            "admin_new_order": forms.CheckboxInput(attrs={"class": "w-4 h-4"}),
+            "admin_new_support": forms.CheckboxInput(attrs={"class": "w-4 h-4"}),
+            "admin_new_kyc": forms.CheckboxInput(attrs={"class": "w-4 h-4"}),
+            "admin_email_notifications": forms.CheckboxInput(attrs={"class": "w-4 h-4"}),
+        }
+
+    def __init__(self, *args, **kwargs):
+        is_staff = kwargs.pop("is_staff", False)
+        super().__init__(*args, **kwargs)
+        if not is_staff:
+            # Hide admin fields for regular users
+            admin_fields = [f for f in self.fields if f.startswith("admin_")]
+            for field in admin_fields:
+                self.fields.pop(field)
+
 from apps.catalog.models import Category, Product, ProductVariant, ProductSuggestion
 
 class ProductSuggestionForm(forms.ModelForm):
