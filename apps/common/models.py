@@ -147,3 +147,31 @@ class SiteAnnouncement(TimeStampedModel):
 
     def __str__(self):
         return self.text[:50]
+
+class PlatformStatistic(TimeStampedModel):
+    label = models.CharField(max_length=100, verbose_name="تسمية الإحصائية")
+    value_override = models.IntegerField(default=0, help_text="القيمة التي ستظهر (يتم إضافتها للرقم الحقيقي إن وجد)")
+    icon_class = models.CharField(max_length=50, blank=True, help_text="FontAwesome class (e.g. fas fa-users)")
+    is_active = models.BooleanField(default=True, verbose_name="نشط")
+    display_order = models.PositiveIntegerField(default=0, verbose_name="ترتيب العرض")
+
+    class Meta:
+        verbose_name = "إحصائية المنصة"
+        verbose_name_plural = "إحصائيات المنصة"
+        ordering = ["display_order"]
+
+    def __str__(self):
+        return self.label
+
+class Testimonial(TimeStampedModel):
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="testimonials", verbose_name="المستخدم")
+    text = models.TextField(verbose_name="التعليق/الشهادة")
+    rating = models.PositiveSmallIntegerField(default=5, verbose_name="التقييم (1-5)")
+    is_approved = models.BooleanField(default=False, verbose_name="تمت الموافقة")
+
+    class Meta:
+        verbose_name = "شهادة عميل"
+        verbose_name_plural = "شهادات العملاء"
+
+    def __str__(self):
+        return f"{self.user.email} - {self.rating} stars"

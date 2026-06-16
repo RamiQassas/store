@@ -112,6 +112,15 @@ urlpatterns = [
     path("control/notifications/send/", views.control_send_notification, name="control_send_notification"),
     path("control/maintenance/db/", views.control_db_maintenance, name="control_db_maintenance"),
 
+    # Testimonials & Stats
+    path("testimonials/submit/", views.site_submit_testimonial, name="site_submit_testimonial"),
+    path("control/testimonials/", views.control_testimonials_list, name="control_testimonials_list"),
+    path("control/testimonials/<uuid:pk>/moderate/", views.control_testimonial_moderate, name="control_testimonial_moderate"),
+    path("control/stats/", views.control_stats_list, name="control_stats_list"),
+    path("control/stats/create/", views.control_stat_create, name="control_stat_create"),
+    path("control/stats/<uuid:pk>/edit/", views.control_stat_edit, name="control_stat_edit"),
+    path("control/stats/<uuid:pk>/delete/", views.control_stat_delete, name="control_stat_delete"),
+
     # Product Suggestions
     path("suggestions/new/", views.site_product_suggestion, name="site_product_suggestion"),
     path("control/suggestions/", views.control_product_suggestions_list, name="control_product_suggestions_list"),

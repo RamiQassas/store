@@ -446,6 +446,28 @@ class NotificationSettingForm(forms.ModelForm):
             for field in admin_fields:
                 self.fields.pop(field)
 
+from apps.common.models import Currency, SocialMediaLink, SiteAnnouncement, PlatformStatistic, Testimonial
+
+class TestimonialForm(forms.ModelForm):
+    class Meta:
+        model = Testimonial
+        fields = ['text', 'rating']
+        widgets = {
+            'text': forms.Textarea(attrs={'class': 'auth-input h-32 resize-none', 'placeholder': 'شاركنا تجربتك مع رقميات...'}),
+            'rating': forms.Select(choices=[(i, f"{i} ★") for i in range(5, 0, -1)], attrs={'class': 'auth-input'}),
+        }
+
+class PlatformStatisticForm(forms.ModelForm):
+    class Meta:
+        model = PlatformStatistic
+        fields = '__all__'
+        widgets = {
+            'label': forms.TextInput(attrs={'class': 'builder-input'}),
+            'value_override': forms.NumberInput(attrs={'class': 'builder-input'}),
+            'icon_class': forms.TextInput(attrs={'class': 'builder-input'}),
+            'display_order': forms.NumberInput(attrs={'class': 'builder-input'}),
+        }
+
 from apps.catalog.models import Category, Product, ProductVariant, ProductSuggestion
 
 class ProductSuggestionForm(forms.ModelForm):

@@ -35,7 +35,7 @@ from apps.site.forms import (
     LoginForm, RegisterForm, PaymentMethodForm, CurrencyForm, ModerateUserForm, 
     ProductForm, CategoryForm, KYCRequestForm, KYCSettingsForm, ChangePasswordForm, 
     CouponForm, SendNotificationForm, AdminChatForm, SiteAnnouncementForm, 
-    ChatCannedReplyForm, SupportSettingsForm, ProductSuggestionForm
+    ChatCannedReplyForm, SupportSettingsForm, ProductSuggestionForm, NotificationSettingForm
 )
 from apps.support.models import ChatRoom, ChatMessage, ChatCannedReply, SupportSettings
 from apps.wallets.models import Wallet
@@ -948,9 +948,32 @@ def v3_change_email_view(request):
 # ==========================================
 
 def home(request):
+    from apps.common.models import PlatformStatistic, Testimonial
+    from django.db.models import Sum
+
+    # Base Stats (Real Data)
+    base_stats = {
+        "orders": Order.objects.count(),
+        "users": User.objects.count(),
+        "tickets": ChatRoom.objects.count(),
+        "deposits": DepositRequest.objects.filter(status=DepositRequest.Status.COMPLETED).count()
+    }
+    
+    # Custom Stats (Admins can add more with overrides)
+    custom_stats = PlatformStatistic.objects.filter(is_active=True).order_by('display_order')
+    
+    # Testimonials
+    testimonials = Testimonial.objects.filter(is_approved=True).order_by('-created_at')[:6]
+    
     categories = Category.objects.filter(is_active=True).order_by("sort_order", "name")
-    stats = {"products": Product.objects.filter(is_active=True).count(), "categories": categories.count(), "orders": Order.objects.count(), "tickets": ChatRoom.objects.exclude(status=ChatRoom.Status.CLOSED).count(), "users": User.objects.count()}
-    return render(request, "site/home.html", {"featured_products": Product.objects.filter(is_active=True, is_featured=True).select_related("category")[:6], "top_products": Product.objects.filter(is_active=True).order_by("sort_order")[:8], "categories": categories, "stats": stats})
+    
+    return render(request, "site/home.html", {
+        "featured_products": Product.objects.filter(is_active=True, is_featured=True).select_related("category")[:12],
+        "categories": categories,
+        "base_stats": base_stats,
+        "custom_stats": custom_stats,
+        "testimonials": testimonials,
+    })
 
 def catalog(request):
     view_type = request.GET.get("view", "products") # products or categories
@@ -980,6 +1003,9 @@ def catalog(request):
     else:
         products = products.order_by("sort_order", "name")
 
+    # Product Suggestion Form integrated here
+    suggestion_form = ProductSuggestionForm()
+
     ctx = {
         "categories": categories,
         "products": products.distinct(),
@@ -987,9 +1013,77 @@ def catalog(request):
         "query": q,
         "sort": sort,
         "view_type": view_type,
-        "cols": cols
+        "cols": cols,
+        "suggestion_form": suggestion_form
     }
     return render(request, "site/catalog.html", ctx)
+
+@login_required
+def site_submit_testimonial(request):
+    form = TestimonialForm(request.POST or None)
+    if request.method == "POST" and form.is_valid():
+        t = form.save(commit=False)
+        t.user = request.user
+        t.save()
+        messages.success(request, "شكراً لرأيك! سيظهر تعليقك في الموقع بعد مراجعته من الإدارة.")
+        return redirect("dashboard")
+    return render(request, "site/v3/v3_submit_testimonial.html", {"form": form})
+
+@support_required
+def control_testimonials_list(request):
+    from apps.common.models import Testimonial
+    status_filter = request.GET.get('approved')
+    items = Testimonial.objects.all().select_related('user').order_by('-created_at')
+    if status_filter:
+        items = items.filter(is_approved=(status_filter == '1'))
+    return render(request, "site/control_testimonials_list.html", {"testimonials": items, "status_filter": status_filter})
+
+@support_required
+def control_testimonial_moderate(request, pk):
+    from apps.common.models import Testimonial
+    t = get_object_or_404(Testimonial, pk=pk)
+    action = request.POST.get("action")
+    if action == "approve":
+        t.is_approved = True
+        t.save()
+        messages.success(request, "تمت الموافقة على التعليق.")
+    elif action == "unapprove":
+        t.is_approved = False
+        t.save()
+        messages.info(request, "تم إخفاء التعليق.")
+    elif action == "delete":
+        t.delete()
+        messages.warning(request, "تم حذف التعليق.")
+    return redirect("control_testimonials_list")
+
+@admin_required
+def control_stats_list(request):
+    from apps.common.models import PlatformStatistic
+    return render(request, "site/control_stats_list.html", {"stats": PlatformStatistic.objects.all()})
+
+@admin_required
+def control_stat_create(request):
+    form = PlatformStatisticForm(request.POST or None)
+    if request.method == "POST" and form.is_valid():
+        form.save()
+        return redirect("control_stats_list")
+    return render(request, "site/control_stat_form.html", {"form": form})
+
+@admin_required
+def control_stat_edit(request, pk):
+    from apps.common.models import PlatformStatistic
+    s = get_object_or_404(PlatformStatistic, pk=pk)
+    form = PlatformStatisticForm(request.POST or None, instance=s)
+    if request.method == "POST" and form.is_valid():
+        form.save()
+        return redirect("control_stats_list")
+    return render(request, "site/control_stat_form.html", {"form": form, "stat": s})
+
+@admin_required
+def control_stat_delete(request, pk):
+    from apps.common.models import PlatformStatistic
+    get_object_or_404(PlatformStatistic, pk=pk).delete()
+    return redirect("control_stats_list")
 
 def v3_check_sp_grace_period(request):
     """

@@ -1,0 +1,71 @@
+{% extends "site/base.html" %}
+{% block title %}إدارة تعليقات العملاء | لوحة التحكم{% endblock %}
+
+{% block content %}
+<div class="container pb-20">
+    <div class="flex items-center justify-between mb-8">
+        <div>
+            <h1 class="text-3xl font-black text-white">إدارة مراجعات العملاء</h1>
+            <p class="text-slate-500 text-sm">راجع واقبل التعليقات لتظهر في الواجهة الرئيسية.</p>
+        </div>
+        <div class="flex gap-2">
+            <a href="?approved=0" class="btn btn-outline btn-sm {% if status_filter == '0' %}!bg-white/10{% endif %}">بانتظار الموافقة</a>
+            <a href="?approved=1" class="btn btn-outline btn-sm {% if status_filter == '1' %}!bg-white/10{% endif %}">المقبولة</a>
+            <a href="?" class="btn btn-outline btn-sm {% if not status_filter %}!bg-white/10{% endif %}">الكل</a>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {% for t in testimonials %}
+        <div class="glass-panel p-8 flex flex-col justify-between">
+            <div class="space-y-4">
+                <div class="flex justify-between items-start">
+                    <div class="flex gap-1 text-amber-400 text-[10px]">
+                        {% for i in "12345" %}
+                            <i class="fas fa-star {% if forloop.counter > t.rating %}opacity-20{% endif %}"></i>
+                        {% endfor %}
+                    </div>
+                    {% if t.is_approved %}
+                    <span class="badge success">مقبول</span>
+                    {% else %}
+                    <span class="badge warning">بانتظار المراجعة</span>
+                    {% endif %}
+                </div>
+                <p class="text-white font-medium leading-relaxed">"{{ t.text }}"</p>
+                <div class="text-[10px] text-slate-500">
+                    بواسطة: <span class="text-slate-300">{{ t.user.email }}</span>
+                    <br/>
+                    بتاريخ: {{ t.created_at|date:"Y-m-d H:i" }}
+                </div>
+            </div>
+
+            <div class="flex gap-2 mt-8 pt-6 border-t border-white/5">
+                {% if not t.is_approved %}
+                <form action="{% url 'control_testimonial_moderate' t.id %}" method="post" class="flex-grow">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="approve">
+                    <button type="submit" class="btn btn-primary btn-sm w-full">موافقة</button>
+                </form>
+                {% else %}
+                <form action="{% url 'control_testimonial_moderate' t.id %}" method="post" class="flex-grow">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="unapprove">
+                    <button type="submit" class="btn btn-outline btn-sm w-full">إخفاء</button>
+                </form>
+                {% endif %}
+                
+                <form action="{% url 'control_testimonial_moderate' t.id %}" method="post" onsubmit="return confirm('حذف نهائي؟')">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="delete">
+                    <button type="submit" class="btn btn-danger btn-sm">حذف</button>
+                </form>
+            </div>
+        </div>
+        {% empty %}
+        <div class="col-span-full py-20 text-center glass-panel text-slate-500">
+            لا توجد تعليقات للمراجعة حالياً.
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}

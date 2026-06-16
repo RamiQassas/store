@@ -1,0 +1,57 @@
+{% extends "site/base.html" %}
+{% block title %}إدارة الإحصائيات | لوحة التحكم{% endblock %}
+
+{% block content %}
+<div class="container pb-20">
+    <div class="flex items-center justify-between mb-8">
+        <div>
+            <h1 class="text-3xl font-black text-white">إدارة إحصائيات المنصة</h1>
+            <p class="text-slate-500 text-sm">أضف أو عدل الأرقام التي تظهر في الصفحة الرئيسية.</p>
+        </div>
+        <a href="{% url 'control_stat_create' %}" class="btn btn-primary px-6">إضافة إحصائية جديدة</a>
+    </div>
+
+    <div class="glass-panel overflow-hidden">
+        <table class="w-full text-right border-collapse">
+            <thead>
+                <tr class="bg-white/5 border-b border-white/5">
+                    <th class="p-6 text-xs font-black text-slate-500 uppercase">التسمية</th>
+                    <th class="p-6 text-xs font-black text-slate-500 uppercase">القيمة المعروضة</th>
+                    <th class="p-6 text-xs font-black text-slate-500 uppercase">الأيقونة</th>
+                    <th class="p-6 text-xs font-black text-slate-500 uppercase">الحالة</th>
+                    <th class="p-6 text-xs font-black text-slate-500 uppercase">الإجراءات</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-white/5">
+                {% for s in stats %}
+                <tr class="hover:bg-white/5 transition-colors">
+                    <td class="p-6 font-bold text-white">{{ s.label }}</td>
+                    <td class="p-6 font-black text-cyan">{{ s.value_override }}+</td>
+                    <td class="p-6 text-slate-400"><i class="{{ s.icon_class }}"></i></td>
+                    <td class="p-6">
+                        {% if s.is_active %}
+                        <span class="badge success">نشط</span>
+                        {% else %}
+                        <span class="badge danger">معطل</span>
+                        {% endif %}
+                    </td>
+                    <td class="p-6">
+                        <div class="flex gap-2">
+                            <a href="{% url 'control_stat_edit' s.id %}" class="btn btn-outline btn-sm">تعديل</a>
+                            <form action="{% url 'control_stat_delete' s.id %}" method="post" onsubmit="return confirm('هل أنت متأكد؟')">
+                                {% csrf_token %}
+                                <button type="submit" class="btn btn-danger btn-sm">حذف</button>
+                            </form>
+                        </div>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="5" class="p-20 text-center text-slate-500">لا توجد إحصائيات مخصصة حالياً.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

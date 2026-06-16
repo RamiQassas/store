@@ -1,40 +1,33 @@
 {% extends "site/base.html" %}
 {% load static site_tags %}
 
-{% block title %}الرئيسية | Raqamiyat - بوابتك للخدمات الرقمية الفاخرة{% endblock %}
+{% block title %}رقميات | بوابتك للخدمات الرقمية النخبوية{% endblock %}
 
 {% block extra_head %}
-<!-- Tailwind CSS for Dark Premium UI -->
+<!-- Tailwind CSS with System Dark Mode Support -->
 <script src="https://cdn.tailwindcss.com"></script>
 <script>
     tailwind.config = {
-        darkMode: 'class',
+        darkMode: 'media',
         theme: {
             extend: {
                 colors: {
-                    'dark-bg': '#050811',
-                    'panel-bg': 'rgba(15, 23, 42, 0.6)',
+                    'apple-bg': '#f5f5f7',
+                    'apple-dark-bg': '#000000',
                     'cyan': '#06b6d4',
                     'indigo': '#6366f1',
-                    'purple': '#a855f7',
+                },
+                fontFamily: {
+                    'cairo': ['Cairo', 'sans-serif'],
                 },
                 animation: {
-                    'glow': 'glow 3s infinite alternate',
                     'float': 'float 6s ease-in-out infinite',
-                    'reveal': 'reveal 0.8s cubic-bezier(0.2, 1, 0.3, 1) forwards',
+                    'pulse-slow': 'pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite',
                 },
                 keyframes: {
-                    glow: {
-                        '0%': { boxShadow: '0 0 5px rgba(6, 182, 212, 0.2)' },
-                        '100%': { boxShadow: '0 0 20px rgba(6, 182, 212, 0.6)' },
-                    },
                     float: {
                         '0%, 100%': { transform: 'translateY(0)' },
                         '50%': { transform: 'translateY(-20px)' },
-                    },
-                    reveal: {
-                        '0%': { opacity: '0', transform: 'translateY(20px)' },
-                        '100%': { opacity: '1', transform: 'translateY(0)' },
                     }
                 }
             }
@@ -43,271 +36,272 @@
 </script>
 
 <style type="text/tailwindcss">
-    @layer components {
-        .glass-panel {
-            @apply bg-slate-900/40 backdrop-blur-xl border border-white/5 rounded-3xl shadow-2xl;
-        }
-        .premium-card {
-            @apply glass-panel transition-all duration-500 hover:border-cyan/30 hover:-translate-y-2 hover:shadow-cyan/10;
-        }
-        .btn-premium {
-            @apply relative overflow-hidden bg-gradient-to-r from-cyan to-indigo text-white font-black py-4 px-8 rounded-2xl transition-all hover:scale-105 active:scale-95 shadow-lg shadow-cyan/20 flex items-center justify-center gap-2;
-        }
-        .btn-outline-premium {
-            @apply border border-white/10 bg-white/5 backdrop-blur-md text-white font-bold py-4 px-8 rounded-2xl transition-all hover:bg-white/10 hover:border-white/20 flex items-center justify-center gap-2;
-        }
-        .section-label {
-            @apply text-[10px] font-black text-cyan uppercase tracking-[0.3em] mb-4 block;
-        }
-        .glow-dot {
-            @apply absolute rounded-full blur-[100px] opacity-10 -z-10;
+    @layer base {
+        body {
+            @apply bg-apple-bg dark:bg-apple-dark-bg text-slate-900 dark:text-slate-100 font-cairo transition-colors duration-500;
         }
     }
 
-    /* Custom Reveal Observer Support */
-    .reveal-item { opacity: 0; }
-    .reveal-item.visible { @apply animate-reveal; }
+    @layer components {
+        .glass-card {
+            @apply bg-white/70 dark:bg-slate-900/40 backdrop-blur-2xl border border-black/5 dark:border-white/5 rounded-[2.5rem] shadow-sm transition-all duration-500;
+        }
+        .apple-btn {
+            @apply px-8 py-4 rounded-full font-bold transition-all duration-300 flex items-center justify-center gap-2;
+        }
+        .apple-btn-primary {
+            @apply bg-black dark:bg-white text-white dark:text-black hover:opacity-90 active:scale-95;
+        }
+        .apple-btn-secondary {
+            @apply bg-white/50 dark:bg-white/10 backdrop-blur-md border border-black/5 dark:border-white/10 text-black dark:text-white hover:bg-white/80 dark:hover:bg-white/20;
+        }
+        .bento-grid {
+            @apply grid grid-cols-1 md:grid-cols-4 gap-4 md:grid-rows-2;
+        }
+        .bento-item {
+            @apply glass-card p-8 flex flex-col justify-between overflow-hidden relative;
+        }
+    }
 
-    /* Fix for base.html background conflict */
-    body { background-color: #050811 !important; }
+    /* Hide standard base.html backgrounds if any */
+    body { background-image: none !important; }
+    
+    .scroll-hide::-webkit-scrollbar { display: none; }
+    .scroll-hide { -ms-overflow-style: none; scrollbar-width: none; }
+
+    .reveal { opacity: 0; transform: translateY(30px); transition: all 0.8s cubic-bezier(0.16, 1, 0.3, 1); }
+    .reveal.visible { opacity: 1; transform: translateY(0); }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="relative min-h-screen overflow-hidden">
-    <!-- Animated Decor -->
-    <div class="glow-dot w-96 h-96 bg-cyan -top-20 -right-20 animate-float"></div>
-    <div class="glow-dot w-80 h-80 bg-indigo bottom-20 -left-20 animate-float" style="animation-delay: -2s"></div>
+<div class="relative min-h-screen">
+    
+    <!-- Hero Section -->
+    <section class="pt-20 pb-32 px-4 text-center reveal">
+        <div class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-cyan/10 text-cyan text-[10px] font-black uppercase tracking-widest mb-8 animate-pulse-slow">
+            <i class="fas fa-sparkles"></i>
+            الإصدار الجديد متوفر الآن
+        </div>
+        <h1 class="text-5xl md:text-8xl font-black tracking-tight mb-8 leading-[1.05] dark:text-white">
+            الخدمات الرقمية.<br/>
+            <span class="text-slate-400 dark:text-slate-500">كما لم تراها من قبل.</span>
+        </h1>
+        <p class="text-lg md:text-xl text-slate-500 dark:text-slate-400 max-w-2xl mx-auto mb-12 font-medium">
+            سرعة، أمان، وتجربة مستخدم فاخرة. رقميات تعيد ابتكار سوق الخدمات الرقمية في المنطقة.
+        </p>
+        <div class="flex flex-col sm:flex-row items-center justify-center gap-4">
+            <a href="{% url 'catalog' %}" class="apple-btn apple-btn-primary w-full sm:w-auto">
+                ابدأ التصفح
+            </a>
+            <a href="{% url 'chat_list' %}" class="apple-btn apple-btn-secondary w-full sm:w-auto">
+                تحدث مع الدعم
+                <i class="fas fa-chevron-left text-[10px] opacity-30"></i>
+            </a>
+        </div>
+    </section>
 
-    <div class="container mx-auto px-4 pt-12 pb-24 relative z-10">
-        
-        <!-- Hero Section -->
-        <section class="text-center py-20 lg:py-32 reveal-item">
-            <span class="section-label">منصة رقميات الموثوقة</span>
-            <h1 class="text-4xl md:text-6xl lg:text-7xl font-black text-white mb-6 leading-[1.1] tracking-tighter">
-                بوابتك لأفضل <br/>
-                <span class="bg-gradient-to-r from-cyan via-indigo to-cyan bg-[length:200%_auto] animate-[gradient_4s_linear_infinite] bg-clip-text text-transparent">الخدمات الرقمية</span>
-            </h1>
-            <p class="text-slate-400 text-sm md:text-lg max-w-2xl mx-auto mb-12 leading-relaxed">
-                توفير كافة بطاقات الشحن والاشتراكات العالمية بأسعار تنافسية وتسليم آلي فوري على مدار الساعة. اختبر السرعة والأمان في مكان واحد.
-            </p>
-            
-            <div class="flex flex-col sm:flex-row items-center justify-center gap-4">
-                <a href="{% url 'catalog' %}" class="btn-premium w-full sm:w-auto min-w-[200px]">
-                    تصفح المتجر
-                    <i class="fas fa-shopping-bag ml-1 text-sm opacity-80"></i>
-                </a>
-                {% if not user.is_authenticated %}
-                <a href="{% url 'site_register' %}" class="btn-outline-premium w-full sm:w-auto min-w-[200px]">
-                    إنشاء حساب مجاني
-                </a>
-                {% else %}
-                <a href="{% url 'dashboard' %}" class="btn-outline-premium w-full sm:w-auto min-w-[200px]">
-                    لوحة التحكم
-                    <i class="fas fa-arrow-left text-xs mr-2 opacity-50"></i>
-                </a>
-                {% endif %}
-            </div>
-        </section>
-
-        <!-- Features Grid -->
-        <section class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-32">
-            <div class="premium-card p-8 reveal-item" style="transition-delay: 0.1s">
-                <div class="w-12 h-12 bg-cyan/10 rounded-2xl flex items-center justify-center text-cyan mb-6 shadow-inner">
-                    <i class="fas fa-bolt text-xl"></i>
-                </div>
-                <h3 class="text-xl font-bold text-white mb-3">تسليم فوري</h3>
-                <p class="text-slate-400 text-sm leading-relaxed">نظام آلي متكامل يضمن وصول طلبك خلال ثوانٍ من إتمام عملية الدفع بنجاح.</p>
-            </div>
-            <div class="premium-card p-8 reveal-item" style="transition-delay: 0.2s">
-                <div class="w-12 h-12 bg-indigo/10 rounded-2xl flex items-center justify-center text-indigo mb-6 shadow-inner">
-                    <i class="fas fa-shield-check text-xl"></i>
-                </div>
-                <h3 class="text-xl font-bold text-white mb-3">أمان وموثوقية</h3>
-                <p class="text-slate-400 text-sm leading-relaxed">كافة المعاملات المالية محمية بأحدث بروتوكولات التشفير العالمية لضمان سلامة بياناتك.</p>
-            </div>
-            <div class="premium-card p-8 reveal-item" style="transition-delay: 0.3s">
-                <div class="w-12 h-12 bg-purple/10 rounded-2xl flex items-center justify-center text-purple mb-6 shadow-inner">
-                    <i class="fas fa-headset text-xl"></i>
-                </div>
-                <h3 class="text-xl font-bold text-white mb-3">دعم فني 24/7</h3>
-                <p class="text-slate-400 text-sm leading-relaxed">فريق دعم متخصص متاح دائماً لمساعدتك في أي استفسار أو مشكلة قد تواجهك.</p>
-            </div>
-        </section>
-
-        <!-- How It Works -->
-        <section class="mb-32 reveal-item">
-            <div class="text-center mb-16">
-                <span class="section-label">خطوات بسيطة</span>
-                <h2 class="text-3xl md:text-4xl font-black text-white">ابدأ الآن في دقائق</h2>
-            </div>
-            
-            <div class="grid grid-cols-2 lg:grid-cols-4 gap-8">
-                <div class="text-center group">
-                    <div class="w-16 h-16 mx-auto bg-slate-800 border border-white/5 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 group-hover:bg-cyan/10 group-hover:border-cyan/30 transition-all">
-                        <span class="text-xl font-black text-slate-500 group-hover:text-cyan">01</span>
-                    </div>
-                    <h4 class="font-bold text-white mb-2">سجل حسابك</h4>
-                    <p class="text-xs text-slate-500">أنشئ حسابك بسرعة</p>
-                </div>
-                <div class="text-center group">
-                    <div class="w-16 h-16 mx-auto bg-slate-800 border border-white/5 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 group-hover:bg-cyan/10 group-hover:border-cyan/30 transition-all">
-                        <span class="text-xl font-black text-slate-500 group-hover:text-cyan">02</span>
-                    </div>
-                    <h4 class="font-bold text-white mb-2">اشحن المحفظة</h4>
-                    <p class="text-xs text-slate-500">أضف رصيداً بسهولة</p>
-                </div>
-                <div class="text-center group">
-                    <div class="w-16 h-16 mx-auto bg-slate-800 border border-white/5 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 group-hover:bg-cyan/10 group-hover:border-cyan/30 transition-all">
-                        <span class="text-xl font-black text-slate-500 group-hover:text-cyan">03</span>
-                    </div>
-                    <h4 class="font-bold text-white mb-2">اختر الخدمة</h4>
-                    <p class="text-xs text-slate-500">تصفح واطلب احتياجك</p>
-                </div>
-                <div class="text-center group">
-                    <div class="w-16 h-16 mx-auto bg-slate-800 border border-white/5 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 group-hover:bg-cyan/10 group-hover:border-cyan/30 transition-all">
-                        <span class="text-xl font-black text-slate-500 group-hover:text-cyan">04</span>
-                    </div>
-                    <h4 class="font-bold text-white mb-2">استلم فوراً</h4>
-                    <p class="text-xs text-slate-500">الكود في طلباتك</p>
-                </div>
-            </div>
-        </section>
-
-        <!-- Featured Products -->
-        <section class="mb-32">
-            <div class="flex items-end justify-between mb-12 reveal-item">
+    <!-- Bento Statistics Section -->
+    <section class="container mx-auto px-4 mb-32 reveal">
+        <div class="bento-grid h-auto md:h-[600px]">
+            <!-- Main Stats Card -->
+            <div class="bento-item md:col-span-2 md:row-span-2 bg-gradient-to-br from-cyan/20 to-indigo/20 !border-cyan/10">
                 <div>
-                    <span class="section-label text-indigo-400">المتجر</span>
-                    <h2 class="text-3xl font-black text-white">المنتجات المميزة</h2>
+                    <span class="text-[10px] font-black uppercase tracking-widest text-cyan mb-4 block">إحصائيات المنصة</span>
+                    <h2 class="text-3xl md:text-5xl font-black text-slate-900 dark:text-white leading-tight">
+                        أرقام تتحدث عن <br/> قوتنا.
+                    </h2>
                 </div>
-                <a href="{% url 'catalog' %}" class="text-sm font-bold text-slate-500 hover:text-cyan transition-colors flex items-center gap-2 group">
-                    عرض الكل
-                    <i class="fas fa-arrow-left text-[10px] group-hover:-translate-x-1 transition-transform"></i>
-                </a>
+                <div class="grid grid-cols-2 gap-8 mt-12">
+                    <div>
+                        <div class="text-4xl font-black text-slate-900 dark:text-white mb-1">{{ base_stats.users|add:1500 }}+</div>
+                        <div class="text-xs font-bold text-slate-500 uppercase">مستخدم نشط</div>
+                    </div>
+                    <div>
+                        <div class="text-4xl font-black text-slate-900 dark:text-white mb-1">{{ base_stats.orders|add:3000 }}+</div>
+                        <div class="text-xs font-bold text-slate-500 uppercase">طلب مكتمل</div>
+                    </div>
+                </div>
+                <!-- Abstract visual -->
+                <div class="absolute -bottom-10 -right-10 w-48 h-48 bg-cyan/20 rounded-full blur-3xl"></div>
             </div>
 
-            <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6">
-                {% for p in featured_products|slice:":8" %}
-                <div class="premium-card group relative flex flex-col h-full reveal-item" style="transition-delay: {{ forloop.counter|mul:0.05 }}s">
-                    <!-- Badges -->
-                    {% if p.is_sale %}
-                    <div class="absolute top-3 right-3 z-10 bg-gradient-to-br from-amber-400 to-orange-600 text-black text-[8px] font-black px-2 py-1 rounded-lg shadow-lg shadow-amber-400/20">
-                        عرض خاص
-                    </div>
-                    {% endif %}
+            <!-- Custom Stats from Admin -->
+            {% for s in custom_stats|slice:":3" %}
+            <div class="bento-item {% if forloop.first %}md:col-span-2{% endif %}">
+                <div class="w-10 h-10 rounded-xl bg-slate-100 dark:bg-white/5 flex items-center justify-center text-slate-900 dark:text-white mb-4">
+                    <i class="{{ s.icon_class|default:'fas fa-chart-line' }}"></i>
+                </div>
+                <div>
+                    <h4 class="text-xs font-bold text-slate-500 mb-1">{{ s.label }}</h4>
+                    <div class="text-2xl font-black text-slate-900 dark:text-white">{{ s.value_override }}+</div>
+                </div>
+            </div>
+            {% endfor %}
 
-                    {% if p.is_out_of_stock %}
-                    <div class="absolute inset-0 z-20 bg-slate-950/60 backdrop-blur-[2px] rounded-3xl flex items-center justify-center">
-                        <div class="bg-rose-500 text-white text-[10px] font-black px-4 py-2 rounded-xl -rotate-6">نفدت الكمية</div>
+            <!-- Fallback if few stats -->
+            {% if custom_stats.count < 3 %}
+            <div class="bento-item">
+                <div class="w-10 h-10 rounded-xl bg-slate-100 dark:bg-white/5 flex items-center justify-center text-slate-900 dark:text-white mb-4">
+                    <i class="fas fa-shield-check"></i>
+                </div>
+                <div>
+                    <h4 class="text-xs font-bold text-slate-500 mb-1">نسبة الأمان</h4>
+                    <div class="text-2xl font-black text-slate-900 dark:text-white">100%</div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </section>
+
+    <!-- Featured Products Horizontal Scroll -->
+    <section class="mb-32">
+        <div class="container mx-auto px-4 flex items-end justify-between mb-12 reveal">
+            <div>
+                <span class="text-[10px] font-black uppercase tracking-widest text-indigo-500 mb-2 block">المتجر</span>
+                <h2 class="text-3xl md:text-5xl font-black text-slate-900 dark:text-white">أبرز الخدمات.</h2>
+            </div>
+            <a href="{% url 'catalog' %}" class="text-sm font-bold text-cyan hover:underline">عرض الكل</a>
+        </div>
+        
+        <div class="flex gap-6 overflow-x-auto px-4 pb-12 scroll-hide md:px-[calc((100vw-1280px)/2)]">
+            {% for p in featured_products %}
+            <div class="min-w-[300px] md:min-w-[400px] group reveal">
+                <a href="{% url 'product_detail' p.id %}" class="block glass-card h-[450px] overflow-hidden relative group-hover:scale-[0.98] transition-all duration-700">
+                    <div class="p-8 relative z-10">
+                        <span class="text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase mb-2 block">{{ p.category.name }}</span>
+                        <h3 class="text-2xl font-black text-slate-900 dark:text-white leading-tight mb-4">{{ p.name }}</h3>
+                        {% variant_price p.variants.first as v_price %}
+                        <div class="text-lg font-bold text-cyan">{% currency_format v_price %}</div>
                     </div>
-                    {% endif %}
                     
-                    <!-- Product Image -->
-                    <a href="{% url 'product_detail' p.id %}" class="block p-4 md:p-6 bg-slate-900/40 rounded-t-3xl border-b border-white/5 aspect-square flex items-center justify-center group-hover:bg-slate-900/60 transition-colors">
+                    <div class="absolute inset-x-0 bottom-0 p-8 flex items-center justify-center">
                         {% if p.image %}
-                        <img src="{{ p.image.url }}" alt="{{ p.name }}" class="max-h-full max-w-full object-contain drop-shadow-2xl group-hover:scale-110 transition-transform duration-500" loading="lazy">
-                        {% else %}
-                        <i class="fas fa-box text-4xl text-slate-700 opacity-20"></i>
+                        <img src="{{ p.image.url }}" alt="{{ p.name }}" class="max-h-64 object-contain transition-transform duration-700 group-hover:scale-110">
                         {% endif %}
-                    </a>
+                    </div>
 
-                    <!-- Product Body -->
-                    <div class="p-4 md:p-6 flex flex-col flex-grow">
-                        <span class="text-[9px] font-black text-cyan/60 uppercase mb-2">{{ p.category.name }}</span>
-                        <a href="{% url 'product_detail' p.id %}" class="text-sm font-bold text-white line-clamp-2 mb-4 group-hover:text-cyan transition-colors h-10">{{ p.name }}</a>
-                        
-                        <div class="mt-auto pt-4 border-t border-white/5 flex items-center justify-between">
-                            {% variant_price p.variants.first as v_price %}
-                            <span class="text-sm md:text-lg font-black text-white">{% currency_format v_price %}</span>
-                            <a href="{% url 'product_detail' p.id %}" class="w-8 h-8 md:w-10 md:h-10 bg-cyan text-white rounded-xl flex items-center justify-center hover:bg-indigo hover:scale-110 transition-all shadow-lg shadow-cyan/20">
-                                <i class="fas fa-shopping-cart text-xs md:text-sm"></i>
-                            </a>
+                    <!-- Overlay for hover -->
+                    <div class="absolute inset-0 bg-black/0 group-hover:bg-black/5 dark:group-hover:bg-white/5 transition-colors duration-500"></div>
+                </a>
+            </div>
+            {% endfor %}
+        </div>
+    </section>
+
+    <!-- Testimonials Section -->
+    <section class="container mx-auto px-4 mb-32 reveal">
+        <div class="glass-card p-12 md:p-20 relative overflow-hidden">
+            <div class="absolute top-0 right-0 p-8 opacity-5">
+                <i class="fas fa-quote-right text-[150px]"></i>
+            </div>
+            
+            <div class="text-center mb-16 relative z-10">
+                <span class="text-[10px] font-black uppercase tracking-widest text-cyan mb-4 block">آراء العملاء</span>
+                <h2 class="text-3xl md:text-5xl font-black text-slate-900 dark:text-white">بماذا يصفونا؟</h2>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-8 relative z-10">
+                {% for t in testimonials %}
+                <div class="space-y-4">
+                    <div class="flex gap-1 text-amber-400 text-xs">
+                        {% for i in "12345" %}
+                            <i class="fas fa-star {% if forloop.counter > t.rating %}opacity-20{% endif %}"></i>
+                        {% endfor %}
+                    </div>
+                    <p class="text-lg font-medium text-slate-600 dark:text-slate-300 italic">"{{ t.text }}"</p>
+                    <div class="flex items-center gap-3 pt-4 border-t border-black/5 dark:border-white/5">
+                        <div class="w-10 h-10 rounded-full bg-slate-200 dark:bg-slate-800 flex items-center justify-center text-xs font-black">
+                            {{ t.user.email|slice:":1"|upper }}
+                        </div>
+                        <div>
+                            <div class="text-xs font-bold text-slate-900 dark:text-white">{{ t.user.email|slice:":5" }}***</div>
+                            <div class="text-[9px] text-slate-500 uppercase">عميل موثق</div>
                         </div>
                     </div>
+                </div>
+                {% empty %}
+                <div class="col-span-3 text-center py-12 text-slate-500">
+                    لم يترك أحد تعليقاً بعد. كن أول من يشاركنا رأيه!
                 </div>
                 {% endfor %}
             </div>
-        </section>
 
-        <!-- Payment Methods -->
-        <section class="mb-32 reveal-item">
-            <div class="glass-panel p-12 text-center relative overflow-hidden">
-                <div class="absolute inset-0 bg-gradient-to-br from-cyan/5 via-transparent to-indigo/5 -z-10"></div>
-                
-                <span class="section-label">حلول دفع مرنة</span>
-                <h2 class="text-2xl font-black text-white mb-4">وسائل الدفع المتوفرة</h2>
-                <p class="text-slate-500 text-sm mb-12 max-w-md mx-auto">ندعم مجموعة واسعة من وسائل الدفع العالمية والمحلية لتسهيل عملياتك المالية.</p>
-                
-                <div class="flex flex-wrap justify-center gap-6 md:gap-10">
-                    {% for method in payment_methods %}
-                        {% if method.logo %}
-                        <div class="group cursor-help" title="{{ method.name }}">
-                            <img src="{{ method.logo.url }}" alt="{{ method.name }}" class="h-8 md:h-12 w-auto grayscale opacity-40 group-hover:grayscale-0 group-hover:opacity-100 group-hover:scale-110 transition-all duration-500">
-                        </div>
-                        {% endif %}
-                    {% endfor %}
-                </div>
-            </div>
-        </section>
-
-        <!-- Social & Support -->
-        <section class="grid grid-cols-1 lg:grid-cols-2 gap-8 items-center reveal-item">
-            <div class="glass-panel p-10 md:p-16 border-indigo-500/20 bg-gradient-to-br from-indigo-500/5 to-transparent">
-                <div class="w-20 h-20 bg-indigo-500/10 rounded-[2.5rem] flex items-center justify-center text-indigo-400 mb-8 shadow-inner ring-1 ring-white/10">
-                    <i class="fas fa-headset text-3xl"></i>
-                </div>
-                <h2 class="text-3xl font-black text-white mb-4 tracking-tight">مركز الدعم المباشر</h2>
-                <p class="text-slate-400 mb-8 leading-relaxed">تواجه مشكلة أو لديك استفسار؟ فريقنا المتخصص متواجد للرد عليك في أسرع وقت ممكن عبر نظام المحادثة المباشرة.</p>
-                <a href="{% url 'chat_list' %}" class="btn-premium !bg-indigo-600 hover:!bg-indigo-500 !shadow-indigo-500/20">
-                    ابدأ محادثة الآن
+            {% if user.is_authenticated %}
+            <div class="mt-16 text-center">
+                <a href="{% url 'site_submit_testimonial' %}" class="apple-btn apple-btn-secondary inline-flex">
+                    اترك رأيك هنا
                 </a>
             </div>
+            {% endif %}
+        </div>
+    </section>
 
-            <div class="space-y-8 px-4">
+    <!-- Security & Reliability Section (Modernized) -->
+    <section class="container mx-auto px-4 mb-32 reveal">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
+            <div class="space-y-8">
                 <div>
-                    <span class="section-label">تواصل اجتماعي</span>
-                    <h2 class="text-2xl font-black text-white mb-2">انضم لمجتمعنا</h2>
-                    <p class="text-slate-500 text-sm">تابع آخر العروض والتحديثات عبر منصاتنا الرسمية.</p>
+                    <span class="text-[10px] font-black uppercase tracking-widest text-indigo-500 mb-4 block">التزامنا</span>
+                    <h2 class="text-3xl md:text-6xl font-black text-slate-900 dark:text-white leading-[1.1]">الأمان ليس خياراً، بل هو الأساس.</h2>
                 </div>
-                
-                <div class="flex flex-wrap gap-4">
-                    {% for link in SOCIAL_LINKS %}
-                    <a href="{{ link.url }}" target="_blank" class="w-14 h-14 bg-slate-900 border border-white/5 rounded-2xl flex items-center justify-center text-slate-400 hover:text-white hover:border-cyan hover:bg-cyan/10 hover:-translate-y-1 transition-all duration-300 group shadow-xl">
-                        {% if link.icon_image %}
-                        <img src="{{ link.icon_image.url }}" alt="{{ link.name }}" class="w-6 h-6 object-contain grayscale group-hover:grayscale-0 transition-all">
-                        {% else %}
-                        <i class="{{ link.icon_class|default:'fas fa-link' }} text-xl"></i>
-                        {% endif %}
-                    </a>
-                    {% endfor %}
+                <p class="text-lg text-slate-500 dark:text-slate-400 leading-relaxed">
+                    نحن نستخدم تقنيات التشفير المتطورة ونظام التحقق الثنائي (2FA) لضمان أن حسابك وأموالك في أمان تام دائماً. جميع عملياتنا تخضع لرقابة مالية صارمة.
+                </p>
+                <ul class="space-y-4">
+                    <li class="flex items-center gap-3 text-sm font-bold">
+                        <i class="fas fa-check-circle text-cyan"></i>
+                        نظام تشفير AES-256 للبيانات الحساسة.
+                    </li>
+                    <li class="flex items-center gap-3 text-sm font-bold">
+                        <i class="fas fa-check-circle text-cyan"></i>
+                        دعم المصادقة الثنائية (Google Authenticator).
+                    </li>
+                    <li class="flex items-center gap-3 text-sm font-bold">
+                        <i class="fas fa-check-circle text-cyan"></i>
+                        فريق مختص لمراقبة العمليات المشبوهة 24/7.
+                    </li>
+                </ul>
+            </div>
+            <div class="relative">
+                <div class="glass-card aspect-square flex items-center justify-center p-12 bg-gradient-to-br from-indigo-500/10 to-transparent">
+                    <i class="fas fa-shield-alt text-[200px] text-indigo-500/20 animate-float"></i>
+                    <div class="absolute inset-0 flex items-center justify-center">
+                        <div class="text-center">
+                            <i class="fas fa-lock text-4xl text-slate-900 dark:text-white mb-4"></i>
+                            <div class="text-xs font-black uppercase tracking-widest opacity-50">Verified & Secured</div>
+                        </div>
+                    </div>
+                </div>
+                <!-- Floaties -->
+                <div class="absolute -top-6 -right-6 w-24 h-24 glass-card flex items-center justify-center animate-bounce" style="animation-duration: 4s">
+                    <i class="fas fa-key text-cyan"></i>
                 </div>
             </div>
-        </section>
+        </div>
+    </section>
 
-    </div>
 </div>
 
 <script>
-    // Reveal Intersection Observer
+    // Reveal Observer
     const observer = new IntersectionObserver((entries) => {
         entries.forEach(entry => {
             if (entry.isIntersecting) {
                 entry.target.classList.add('visible');
             }
         });
-    }, { threshold: 0.1, rootMargin: '0px 0px -50px 0px' });
+    }, { threshold: 0.1 });
 
-    document.querySelectorAll('.reveal-item').forEach(el => observer.observe(el));
+    document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
 
-    // Optional: Smooth gradient shift for text on scroll
-    window.addEventListener('scroll', () => {
-        const scrolled = window.pageYOffset;
-        const dots = document.querySelectorAll('.glow-dot');
-        dots.forEach((dot, index) => {
-            const speed = (index + 1) * 0.1;
-            dot.style.transform = `translateY(${scrolled * speed}px)`;
+    // Horizontal Scroll with Mouse Wheel (for Products)
+    const productScroll = document.querySelector('.overflow-x-auto');
+    if (productScroll) {
+        productScroll.addEventListener('wheel', (evt) => {
+            evt.preventDefault();
+            productScroll.scrollLeft += evt.deltaY;
         });
-    });
+    }
 </script>
 {% endblock %}

@@ -1,0 +1,39 @@
+{% extends "site/v3/auth_base.html" %}
+{% load static %}
+
+{% block title %}شاركنا رأيك | رقميات{% endblock %}
+
+{% block auth_content %}
+<div class="glass-panel p-8 md:p-12 reveal">
+    <div class="text-center mb-8">
+        <div class="w-16 h-16 bg-indigo-500/10 rounded-2xl flex items-center justify-center text-indigo-400 mx-auto mb-4">
+            <i class="fas fa-comment-dots text-2xl"></i>
+        </div>
+        <h2 class="text-2xl font-black text-white">رأيك يهمنا</h2>
+        <p class="text-slate-400 text-sm mt-2">نسعد دائماً بسماع تجربة عملائنا لتطوير خدماتنا بشكل أفضل.</p>
+    </div>
+
+    <form method="post" class="space-y-6">
+        {% csrf_token %}
+        
+        <div class="space-y-2">
+            <label class="text-[10px] font-black text-slate-500 mr-4 uppercase tracking-widest">التقييم العام</label>
+            {{ form.rating }}
+        </div>
+
+        <div class="space-y-2">
+            <label class="text-[10px] font-black text-slate-500 mr-4 uppercase tracking-widest">تعليقك (سيظهر في الرئيسية)</label>
+            {{ form.text }}
+        </div>
+
+        <button type="submit" class="btn-premium w-full">
+            إرسال التعليق
+            <i class="fas fa-check-circle ml-2 text-xs"></i>
+        </button>
+
+        <a href="{% url 'dashboard' %}" class="btn-secondary w-full">
+            إلغاء والعودة
+        </a>
+    </form>
+</div>
+{% endblock %}

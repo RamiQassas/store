@@ -347,6 +347,41 @@
                     {% endfor %}
                 </div>
             {% endif %}
+
+            <!-- Suggest a Service Section -->
+            <div class="mt-20 reveal">
+                <div class="glass-panel p-10 md:p-16 relative overflow-hidden text-center">
+                    <div class="absolute inset-0 bg-gradient-to-br from-indigo-500/10 via-transparent to-cyan-500/10 -z-10"></div>
+                    <div class="max-w-2xl mx-auto">
+                        <div class="w-16 h-16 bg-cyan/10 rounded-2xl flex items-center justify-center text-cyan mx-auto mb-8 shadow-inner">
+                            <i class="fas fa-lightbulb text-2xl"></i>
+                        </div>
+                        <h2 class="text-3xl font-black text-white mb-4">هل لديك خدمة محددة ترغب في توفرها؟</h2>
+                        <p class="text-slate-400 mb-10 leading-relaxed text-sm">
+                            نحن نسعى دائماً لتوسيع خدماتنا. إذا كان هناك منتج أو خدمة رقمية غير متوفرة في متجرنا حالياً، شاركنا اقتراحك وسنعمل على توفيرها بأفضل سعر.
+                        </p>
+                        <form action="{% url 'site_product_suggestion' %}" method="post" class="text-right space-y-6">
+                            {% csrf_token %}
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div class="space-y-2">
+                                    <label class="text-[10px] font-black text-slate-500 mr-4 uppercase tracking-widest">اسم المنتج المقترح</label>
+                                    <input type="text" name="product_name" class="auth-input !rounded-2xl" placeholder="مثلاً: بطاقة شحن X..." required>
+                                </div>
+                                <div class="space-y-2">
+                                    <label class="text-[10px] font-black text-slate-500 mr-4 uppercase tracking-widest">رابط أو وصف مختصر</label>
+                                    <input type="text" name="description" class="auth-input !rounded-2xl" placeholder="رابط الموقع أو تفاصيل إضافية..." required>
+                                </div>
+                            </div>
+                            <div class="flex justify-center">
+                                <button type="submit" class="btn btn-primary px-12 py-4 rounded-2xl font-black shadow-lg shadow-cyan/20 hover:scale-105 transition-all">
+                                    إرسال الاقتراح
+                                    <i class="fas fa-paper-plane mr-2 text-xs"></i>
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
         </main>
     </div>
 </div>

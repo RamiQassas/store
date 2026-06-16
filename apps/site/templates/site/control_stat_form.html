@@ -1,0 +1,49 @@
+{% extends "site/base.html" %}
+{% block title %}{% if stat %}تعديل إحصائية{% else %}إضافة إحصائية{% endif %} | لوحة التحكم{% endblock %}
+
+{% block content %}
+<div class="container pb-20">
+    <div class="max-w-2xl mx-auto">
+        <div class="mb-8">
+            <h1 class="text-3xl font-black text-white">{% if stat %}تعديل إحصائية{% else %}إضافة إحصائية{% endif %}</h1>
+            <p class="text-slate-500 text-sm">أدخل البيانات المطلوبة للعرض في واجهة الموقع.</p>
+        </div>
+
+        <form method="post" class="glass-panel p-10 space-y-6">
+            {% csrf_token %}
+            
+            <div class="space-y-2">
+                <label class="text-[10px] font-black text-slate-500 mr-4 uppercase tracking-widest">تسمية الإحصائية (مثلاً: عملاء سعداء)</label>
+                {{ form.label }}
+            </div>
+
+            <div class="space-y-2">
+                <label class="text-[10px] font-black text-slate-500 mr-4 uppercase tracking-widest">القيمة المراد عرضها</label>
+                {{ form.value_override }}
+            </div>
+
+            <div class="space-y-2">
+                <label class="text-[10px] font-black text-slate-500 mr-4 uppercase tracking-widest">كود الأيقونة (FontAwesome)</label>
+                {{ form.icon_class }}
+                <p class="text-[9px] text-slate-600 mt-1">مثال: fas fa-users, fas fa-box-open, fas fa-heart</p>
+            </div>
+
+            <div class="grid grid-cols-2 gap-4">
+                <div class="space-y-2">
+                    <label class="text-[10px] font-black text-slate-500 mr-4 uppercase tracking-widest">ترتيب العرض</label>
+                    {{ form.display_order }}
+                </div>
+                <div class="flex items-center gap-2 pt-6">
+                    {{ form.is_active }}
+                    <label class="text-xs font-bold text-white">نشط</label>
+                </div>
+            </div>
+
+            <div class="flex gap-4 pt-6">
+                <button type="submit" class="btn btn-primary flex-grow">حفظ البيانات</button>
+                <a href="{% url 'control_stats_list' %}" class="btn btn-outline">إلغاء</a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
