@@ -60,10 +60,13 @@
         <div class="space-y-3">
             {% for provider in socialaccount_providers %}
                 {% if provider.id == 'google' %}
-                <a href="{% provider_login_url 'google' %}" class="btn-secondary w-full group">
-                    <img src="https://upload.wikimedia.org/wikipedia/commons/c/c1/Google_%22G%22_logo.svg" class="w-5 h-5 group-hover:scale-110 transition-transform">
-                    <span class="text-sm">المتابعة باستخدام Google</span>
-                </a>
+                <form action="{% url 'google_login' %}" method="post">
+                    {% csrf_token %}
+                    <button type="submit" class="btn-secondary w-full group">
+                        <img src="https://upload.wikimedia.org/wikipedia/commons/c/c1/Google_%22G%22_logo.svg" class="w-5 h-5 group-hover:scale-110 transition-transform">
+                        <span class="text-sm">المتابعة باستخدام Google</span>
+                    </button>
+                </form>
                 {% endif %}
             {% endfor %}
         </div>
