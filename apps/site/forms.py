@@ -364,16 +364,16 @@ class KYCRequestForm(forms.ModelForm):
         # Add password fields if user doesn't have a password (social signup)
         if user and not user.has_usable_password():
             self.fields['password'] = forms.CharField(
-                label="تعيين كلمة مرور",
+                label="تعيين كلمة مرور (إجباري للتوثيق)",
                 min_length=10,
                 widget=forms.PasswordInput(attrs={"class": "builder-input", "placeholder": "********"}),
-                required=False,
-                help_text="اختياري: نوصي بتعيين كلمة مرور لضمان دخول حسابك بأمان في أي وقت."
+                required=True,
+                help_text="مطلوب: يجب تعيين كلمة مرور لحسابك لضمان أمانه والقدرة على الدخول مستقبلاً."
             )
             self.fields['confirm_password'] = forms.CharField(
                 label="تأكيد كلمة المرور",
                 widget=forms.PasswordInput(attrs={"class": "builder-input", "placeholder": "********"}),
-                required=False
+                required=True
             )
 
         # Ensure all fields are required for users, but allow optional images for admin updates
@@ -384,10 +384,8 @@ class KYCRequestForm(forms.ModelForm):
                     field.required = False
                 else:
                     field.required = True
-            elif field_name == 'phone':
+            elif field_name in ['phone', 'password', 'confirm_password']:
                 field.required = True
-            elif field_name in ['password', 'confirm_password']:
-                field.required = False
             else:
                 field.required = True
 

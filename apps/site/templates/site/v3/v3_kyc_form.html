@@ -123,10 +123,10 @@
                         
                         {% if form.password %}
                         <div class="field-group">
-                            <label class="text-xs font-black text-slate-400 mb-3 block uppercase tracking-widest">تعيين كلمة مرور (اختياري)</label>
+                            <label class="text-xs font-black text-slate-400 mb-3 block uppercase tracking-widest">تعيين كلمة مرور (إجباري للتوثيق)</label>
                             {{ form.password }}
                             {% if form.password.errors %}<p class="text-rose-500 text-[10px] mt-2 font-bold">{{ form.password.errors.0 }}</p>{% endif %}
-                            <p class="text-[9px] text-slate-500 mt-2">تسمح لك كلمة المرور بالدخول حتى لو فقدت الوصول لحساب Google.</p>
+                            <p class="text-[9px] text-slate-500 mt-2">يجب تعيين كلمة مرور لضمان أمان حسابك والقدرة على الدخول في حال فقدان الوصول لحساب Google.</p>
                         </div>
                         <div class="field-group">
                             <label class="text-xs font-black text-slate-400 mb-3 block uppercase tracking-widest">تأكيد كلمة المرور</label>
@@ -289,13 +289,12 @@
             <div class="w-16 h-16 bg-indigo-500/20 rounded-full flex items-center justify-center text-3xl text-indigo-400 mx-auto mb-6">
                 <i class="fas fa-lock"></i>
             </div>
-            <h3 class="text-xl font-black text-white mb-3">حماية إضافية لحسابك</h3>
+            <h3 class="text-xl font-black text-white mb-3">تأمين الحساب ضروري للتوثيق</h3>
             <p class="text-sm text-slate-400 leading-relaxed mb-8">
-                نوصي بشدة بتعيين كلمة مرور لحسابك لضمان قدرتك على الدخول في حال تعذر الوصول لحساب Google. يمكنك القيام بذلك الآن عبر النموذج بالأسفل.
+                لإتمام عملية توثيق هويتك، يجب تعيين كلمة مرور لحسابك. هذا الإجراء يضمن أمان أموالك وقدرتك على الدخول في أي وقت.
             </p>
             <div class="stack gap-3">
-                <button onclick="closePasswordModal()" class="btn-premium w-full py-3">فهمت، سأقوم بذلك</button>
-                <button onclick="closePasswordModal()" class="text-xs text-slate-500 hover:text-white transition-colors">تخطي الآن</button>
+                <button onclick="closePasswordModal()" class="btn-premium w-full py-3">البدء بالتعيين</button>
             </div>
         </div>
     </div>
