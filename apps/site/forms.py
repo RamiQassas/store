@@ -351,13 +351,14 @@ class KYCRequestForm(forms.ModelForm):
         user = kwargs.pop('user', None)
         super().__init__(*args, **kwargs)
         
-        # Add phone field if missing on user
-        if user and not user.phone:
+        # Add phone field if missing on user (None or empty string)
+        if user and (user.phone is None or user.phone == ''):
             self.fields['phone'] = forms.CharField(
                 label="رقم الهاتف",
                 max_length=32,
                 widget=forms.TextInput(attrs={"class": "builder-input", "placeholder": "05xxxxxxxx"}),
-                required=True
+                required=True,
+                help_text="رقم الهاتف مطلوب لإتمام عملية التوثيق."
             )
 
         # Add password fields if user doesn't have a password (social signup)
@@ -366,13 +367,13 @@ class KYCRequestForm(forms.ModelForm):
                 label="تعيين كلمة مرور",
                 min_length=10,
                 widget=forms.PasswordInput(attrs={"class": "builder-input", "placeholder": "********"}),
-                required=True,
-                help_text="يرجى تعيين كلمة مرور لحسابك للمتابعة."
+                required=False,
+                help_text="اختياري: نوصي بتعيين كلمة مرور لضمان دخول حسابك بأمان في أي وقت."
             )
             self.fields['confirm_password'] = forms.CharField(
                 label="تأكيد كلمة المرور",
                 widget=forms.PasswordInput(attrs={"class": "builder-input", "placeholder": "********"}),
-                required=True
+                required=False
             )
 
         # Ensure all fields are required for users, but allow optional images for admin updates
@@ -383,8 +384,10 @@ class KYCRequestForm(forms.ModelForm):
                     field.required = False
                 else:
                     field.required = True
-            elif field_name in ['phone', 'password', 'confirm_password']:
+            elif field_name == 'phone':
                 field.required = True
+            elif field_name in ['password', 'confirm_password']:
+                field.required = False
             else:
                 field.required = True
 
