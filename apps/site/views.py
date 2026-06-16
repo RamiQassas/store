@@ -1835,7 +1835,7 @@ def control_kyc_detail(request, pk):
             )
 
             messages.success(request, f"تم توثيق حساب {kyc.user.email} بنجاح، وتحديث الاسم المعروض والحدود المالية.")
-            elif action == "reject":
+        elif action == "reject":
             kyc.status = KYCRequest.Status.REJECTED
             kyc.rejection_reason = admin_note
             kyc.user.is_kyc_verified = False
