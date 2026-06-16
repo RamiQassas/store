@@ -11,6 +11,7 @@ from django.utils.encoding import force_bytes
 from django.urls import reverse
 from apps.accounts.services import send_brevo_email
 from apps.orders.models import Order, Coupon
+from apps.notifications.models import NotificationSetting
 
 class CustomPasswordResetForm(PasswordResetForm):
     def save(self, domain_override=None, subject_template_name=None,
