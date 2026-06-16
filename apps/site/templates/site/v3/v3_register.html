@@ -116,8 +116,9 @@
     {% get_providers as socialaccount_providers %}
     {% if socialaccount_providers %}
         <div class="grid grid-cols-1 gap-3">
-            {% for provider in socialaccount_providers %}
-                {% if provider.id == 'google' %}
+            {% regroup socialaccount_providers by id as provider_list %}
+            {% for provider_group in provider_list %}
+                {% if provider_group.grouper == 'google' %}
                 <form action="{% url 'google_login' %}" method="post">
                     {% csrf_token %}
                     <button type="submit" class="btn-secondary w-full group !py-4">

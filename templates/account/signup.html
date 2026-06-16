@@ -1,0 +1,8 @@
+{% extends "site/v3/auth_base.html" %}
+{% block auth_content %}
+<script>window.location.href = "{% url 'site_register' %}";</script>
+<div class="glass-panel p-8 text-center">
+    <p class="text-slate-400">جاري التحويل إلى صفحة إنشاء حساب...</p>
+    <a href="{% url 'site_register' %}" class="text-cyan underline mt-4 block">إضغط هنا إذا لم يتم التحويل تلقائياً</a>
+</div>
+{% endblock %}
