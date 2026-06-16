@@ -348,7 +348,33 @@ class KYCRequestForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         is_admin = kwargs.pop('is_admin', False)
+        user = kwargs.pop('user', None)
         super().__init__(*args, **kwargs)
+        
+        # Add phone field if missing on user
+        if user and not user.phone:
+            self.fields['phone'] = forms.CharField(
+                label="رقم الهاتف",
+                max_length=32,
+                widget=forms.TextInput(attrs={"class": "builder-input", "placeholder": "05xxxxxxxx"}),
+                required=True
+            )
+
+        # Add password fields if user doesn't have a password (social signup)
+        if user and not user.has_usable_password():
+            self.fields['password'] = forms.CharField(
+                label="تعيين كلمة مرور",
+                min_length=10,
+                widget=forms.PasswordInput(attrs={"class": "builder-input", "placeholder": "********"}),
+                required=True,
+                help_text="يرجى تعيين كلمة مرور لحسابك للمتابعة."
+            )
+            self.fields['confirm_password'] = forms.CharField(
+                label="تأكيد كلمة المرور",
+                widget=forms.PasswordInput(attrs={"class": "builder-input", "placeholder": "********"}),
+                required=True
+            )
+
         # Ensure all fields are required for users, but allow optional images for admin updates
         # OR if the user already has images uploaded (persistent images)
         for field_name, field in self.fields.items():
@@ -357,8 +383,26 @@ class KYCRequestForm(forms.ModelForm):
                     field.required = False
                 else:
                     field.required = True
+            elif field_name in ['phone', 'password', 'confirm_password']:
+                field.required = True
             else:
                 field.required = True
+
+    def clean(self):
+        cleaned_data = super().clean()
+        password = cleaned_data.get("password")
+        confirm_password = cleaned_data.get("confirm_password")
+
+        if password and confirm_password and password != confirm_password:
+            self.add_error("confirm_password", "كلمات المرور غير متطابقة.")
+        
+        if password:
+            if not any(char.isdigit() for char in password):
+                self.add_error("password", "يجب أن تحتوي كلمة المرور على رقم واحد على الأقل.")
+            if not any(char.isupper() for char in password):
+                self.add_error("password", "يجب أن تحتوي كلمة المرور على حرف كبير واحد على الأقل.")
+        
+        return cleaned_data
 
 from apps.catalog.models import Category, Product, ProductVariant, ProductSuggestion
 

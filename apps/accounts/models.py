@@ -35,7 +35,7 @@ class User(AbstractUser):
 
     username = models.CharField(max_length=150, blank=True)
     email = models.EmailField(unique=True)
-    phone = models.CharField(max_length=32, blank=True)
+    phone = models.CharField(max_length=32, blank=True, null=True, unique=True)
     role = models.CharField(max_length=32, choices=Role.choices, default=Role.CUSTOMER)
     
     # Tiers

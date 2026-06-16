@@ -830,9 +830,23 @@ def kyc_request_view(request):
     if existing and existing.status in [KYCRequest.Status.PENDING, KYCRequest.Status.APPROVED]: 
         return render(request, "site/v3/v3_kyc_status.html", {"kyc": existing})
 
-    form = KYCRequestForm(request.POST or None, request.FILES or None, instance=existing)
+    form = KYCRequestForm(request.POST or None, request.FILES or None, instance=existing, user=request.user)
     if request.method == "POST" and form.is_valid():
-        kyc = form.save(commit=False); kyc.user, kyc.status = request.user, KYCRequest.Status.PENDING; kyc.save()
+        kyc = form.save(commit=False)
+        kyc.user, kyc.status = request.user, KYCRequest.Status.PENDING
+        
+        # Save phone if provided in form
+        if 'phone' in form.cleaned_data:
+            request.user.phone = form.cleaned_data['phone']
+            request.user.save(update_fields=['phone'])
+            
+        # Save password if provided in form (social users)
+        if 'password' in form.cleaned_data:
+            request.user.set_password(form.cleaned_data['password'])
+            request.user.save()
+            update_session_auth_hash(request, request.user) # Keep session active after password change
+
+        kyc.save()
         notify_bulk(User.objects.filter(role=User.Role.ADMIN), title="طلب توثيق جديد", body=f"مستخدم: {request.user.email}", action_url=f"/control/kyc/{kyc.id}/")
         
         # Send Email Notification

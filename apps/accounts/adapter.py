@@ -51,10 +51,14 @@ class MySocialAccountAdapter(DefaultSocialAccountAdapter):
         """
         user = super().save_user(request, sociallogin, form)
         
+        # Ensure phone is None instead of empty string to avoid unique constraint issues
+        if not user.phone:
+            user.phone = None
+            
         # For social signups, we trust the provider (Google)
         user.email_verified = True
         user.is_active = True
-        user.save(update_fields=["email_verified", "is_active"])
+        user.save(update_fields=["email_verified", "is_active", "phone"])
         
         # Also ensure the EmailAddress model in allauth is marked as verified
         EmailAddress.objects.get_or_create(
