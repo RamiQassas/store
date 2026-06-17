@@ -9,10 +9,10 @@
     :root {
         --brand-bg: #030416;
         --brand-surface: #0a0c29;
-        --brand-primary: #6366f1; /* Indigo/Purple */
-        --brand-secondary: #a855f7; /* Purple */
-        --brand-accent: #fbbf24; /* Gold */
-        --brand-sky: #0ea5e9; /* Sky Blue */
+        --brand-primary: #6366f1;
+        --brand-secondary: #a855f7;
+        --brand-accent: #fbbf24;
+        --brand-sky: #0ea5e9;
         --brand-text: #f1f5f9;
         --brand-text-dim: #94a3b8;
         --brand-border: rgba(255, 255, 255, 0.08);
@@ -33,12 +33,10 @@
         margin-inline: auto;
     }
 
-    /* Global Typography */
     h1, h2, h3, h4 { font-weight: 900; line-height: 1.2; margin: 0; }
     .section-title { font-size: clamp(2rem, 4vw, 3rem); text-align: center; margin-bottom: 4rem; position: relative; }
     .section-title::after { content: ''; position: absolute; bottom: -15px; left: 50%; transform: translateX(-50%); width: 60px; height: 4px; background: var(--gradient-main); border-radius: 10px; }
 
-    /* Buttons Premium */
     .btn-premium {
         height: 58px;
         padding: 0 2.5rem;
@@ -60,7 +58,6 @@
     .btn-premium.outline { background: rgba(255, 255, 255, 0.03); border: 1px solid var(--brand-border); color: #fff; }
     .btn-premium.outline:hover { border-color: var(--brand-primary); background: rgba(99, 102, 241, 0.05); transform: translateY(-2px); }
 
-    /* Hero Section */
     .hero {
         position: relative;
         padding: 160px 0 100px;
@@ -86,7 +83,6 @@
     }
     @keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-20px); } }
 
-    /* Categories Grid */
     .cat-card {
         background: var(--brand-surface);
         border: 1px solid var(--brand-border);
@@ -102,10 +98,10 @@
     }
     .cat-card:hover { border-color: var(--brand-primary); transform: translateY(-10px); background: rgba(99, 102, 241, 0.05); box-shadow: 0 20px 40px rgba(0,0,0,0.4); }
     .cat-icon { width: 80px; height: 80px; border-radius: 20px; background: rgba(255,255,255,0.03); display: grid; place-items: center; font-size: 2.5rem; color: var(--brand-sky); transition: 0.3s; }
+    .cat-icon img { width: 100%; height: 100%; object-fit: contain; padding: 15%; }
     .cat-card:hover .cat-icon { background: var(--gradient-main); color: #fff; transform: scale(1.1) rotate(5deg); }
     .cat-card h3 { font-size: 1.5rem; color: #fff; }
 
-    /* Features Section */
     .features-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1.5rem; }
     .feature-card {
         background: rgba(255,255,255,0.02);
@@ -120,7 +116,6 @@
     .feature-card h4 { font-size: 1.1rem; color: #fff; margin-bottom: 0.5rem; }
     .feature-card p { font-size: 0.85rem; color: var(--brand-text-dim); margin: 0; }
 
-    /* Product Grid */
     .prod-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 2rem; }
     .prod-card {
         background: var(--brand-surface);
@@ -136,24 +131,23 @@
     .prod-body { padding: 1.5rem; }
     .prod-price { display: block; font-size: 1.6rem; font-weight: 900; color: var(--brand-accent); margin: 0.5rem 0 1.25rem; }
 
-    /* Stats Section */
     .stats-bar {
         background: var(--brand-surface);
         padding: 4rem 0;
         border-top: 1px solid var(--brand-border);
         border-bottom: 1px solid var(--brand-border);
     }
-    .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 2rem; text-align: center; }
-    .stat-item strong { display: block; font-size: 3.5rem; color: #fff; font-family: 'Montserrat', sans-serif; }
+    .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 2rem; text-align: center; }
+    .stat-item strong { display: block; font-size: clamp(2rem, 5vw, 3.5rem); color: #fff; font-family: 'Montserrat', sans-serif; }
     .stat-item span { color: var(--brand-sky); font-weight: 800; font-size: 1.1rem; text-transform: uppercase; }
 
-    /* Brands Ticker */
-    .brands-ticker { padding: 60px 0; opacity: 0.5; overflow: hidden; white-space: nowrap; }
-    .brands-row { display: flex; gap: 4rem; align-items: center; animation: ticker 30s linear infinite; }
+    .brands-ticker { padding: 60px 0; opacity: 0.6; overflow: hidden; white-space: nowrap; }
+    .brands-row { display: flex; gap: 4rem; align-items: center; animation: ticker 40s linear infinite; }
     @keyframes ticker { from { transform: translateX(0); } to { transform: translateX(-50%); } }
-    .brand-logo { font-size: 1.5rem; font-weight: 900; color: #fff; display: flex; align-items: center; gap: 1rem; }
+    .brand-logo { display: flex; align-items: center; gap: 1rem; }
+    .brand-logo img { height: 40px; border-radius: 10px; }
+    .brand-logo span { font-size: 1.25rem; font-weight: 900; color: #fff; }
 
-    /* Footer Modern */
     .site-footer { background: #010210; padding: 100px 0 50px; border-top: 1px solid var(--brand-border); }
     .footer-grid { display: grid; grid-template-columns: 2fr 1fr 1fr 1.5fr; gap: 4rem; }
     .footer-title { font-size: 2rem; margin-bottom: 2rem; color: #fff; }
@@ -162,21 +156,17 @@
     .footer-links a { color: var(--brand-text-dim); text-decoration: none; transition: 0.3s; font-weight: 600; }
     .footer-links a:hover { color: var(--brand-primary); }
 
-    /* Responsive */
     @media (max-width: 1024px) {
         .hero-grid { grid-template-columns: 1fr; text-align: center; }
         .hero-subtitle { margin-inline: auto; }
         .hero-actions { justify-content: center; }
         .hero-visual { justify-content: center; margin-top: 4rem; }
         .footer-grid { grid-template-columns: 1fr 1fr; }
-        .stats-grid { grid-template-columns: 1fr 1fr; gap: 3rem; }
     }
     @media (max-width: 640px) {
         .footer-grid { grid-template-columns: 1fr; }
-        .stats-grid { grid-template-columns: 1fr; }
     }
 
-    /* Reveal Animations */
     .reveal { opacity: 0; transform: translateY(30px); transition: all 0.8s ease-out; }
     .reveal.active { opacity: 1; transform: translateY(0); }
 </style>
@@ -185,7 +175,6 @@
 {% block content %}
 <main class="home-page">
     
-    <!-- SECTION 1: HERO -->
     <section class="hero">
         <div class="home-container hero-grid">
             <div class="hero-content reveal">
@@ -208,16 +197,13 @@
             </div>
             <div class="hero-visual reveal">
                 <div class="hero-3d-box">
-                    <!-- Icon Layered Display -->
                     <div style="position: absolute; font-size: 12rem; color: var(--brand-primary); opacity: 0.1;">
                         <i class="fas fa-microchip"></i>
                     </div>
                     <div style="z-index: 2; text-align: center;">
                         <i class="fas fa-bolt" style="font-size: 5rem; color: var(--brand-accent); display: block; margin-bottom: 1.5rem;"></i>
-                        <div style="font-weight: 900; font-size: 1.5rem; letter-spacing: 2px;">RAQAMIYAT_CORE</div>
-                        <div style="color: var(--brand-sky); font-weight: 800; margin-top: 0.5rem; font-size: 0.8rem;">READY_FOR_ACTION</div>
+                        <div style="font-weight: 900; font-size: 2.5rem; letter-spacing: 2px;">RAQAMIYAT</div>
                     </div>
-                    <!-- Floating Orbs -->
                     <div style="position: absolute; top: 20%; left: 10%; width: 60px; height: 60px; background: var(--brand-primary); border-radius: 50%; filter: blur(30px); opacity: 0.4;"></div>
                     <div style="position: absolute; bottom: 10%; right: 10%; width: 80px; height: 80px; background: var(--brand-secondary); border-radius: 50%; filter: blur(40px); opacity: 0.4;"></div>
                 </div>
@@ -225,40 +211,28 @@
         </div>
     </section>
 
-    <!-- SECTION 2: CATEGORIES -->
     <section style="padding: 80px 0;">
         <div class="home-container">
             <h2 class="section-title reveal">التصنيفات الرئيسية</h2>
             <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.5rem;">
-                <a href="{% url 'catalog' %}?q=ألعاب" class="cat-card reveal">
-                    <div class="cat-icon"><i class="fas fa-gamepad"></i></div>
-                    <h3>الألعاب</h3>
+                {% for c in categories %}
+                {% if c.is_featured %}
+                <a href="{% url 'catalog' %}?category={{ c.id }}" class="cat-card reveal">
+                    <div class="cat-icon">
+                        {% if c.image %}
+                        <img src="{{ c.image.url }}" alt="{{ c.name }}">
+                        {% else %}
+                        <i class="fas fa-cube"></i>
+                        {% endif %}
+                    </div>
+                    <h3>{{ c.name }}</h3>
                 </a>
-                <a href="{% url 'catalog' %}?q=بطاقات" class="cat-card reveal">
-                    <div class="cat-icon"><i class="fas fa-credit-card"></i></div>
-                    <h3>بطاقات الهدايا</h3>
-                </a>
-                <a href="{% url 'catalog' %}?q=محفظة" class="cat-card reveal">
-                    <div class="cat-icon"><i class="fas fa-wallet"></i></div>
-                    <h3>المحافظ الإلكترونية</h3>
-                </a>
-                <a href="{% url 'catalog' %}?q=اتصالات" class="cat-card reveal">
-                    <div class="cat-icon"><i class="fas fa-signal"></i></div>
-                    <h3>بطاقات الاتصالات</h3>
-                </a>
-                <a href="{% url 'catalog' %}?q=اشتراكات" class="cat-card reveal">
-                    <div class="cat-icon"><i class="fas fa-tv"></i></div>
-                    <h3>الاشتراكات الرقمية</h3>
-                </a>
-                <a href="{% url 'catalog' %}" class="cat-card reveal">
-                    <div class="cat-icon"><i class="fas fa-layer-group"></i></div>
-                    <h3>الخدمات الرقمية</h3>
-                </a>
+                {% endif %}
+                {% endfor %}
             </div>
         </div>
     </section>
 
-    <!-- SECTION 3: FEATURES -->
     <section style="background: var(--brand-surface); padding: 100px 0;">
         <div class="home-container">
             <span style="color: var(--brand-sky); font-weight: 800; letter-spacing: 3px; display: block; text-align: center; margin-bottom: 1rem;">لماذا نحن</span>
@@ -298,7 +272,6 @@
         </div>
     </section>
 
-    <!-- SECTION 4: FEATURED PRODUCTS -->
     <section style="padding: 120px 0;">
         <div class="home-container">
             <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 4rem;">
@@ -310,7 +283,7 @@
                 {% for p in featured_products|slice:":8" %}
                 <div class="prod-card reveal">
                     <div class="prod-img">
-                        <span class="prod-badge">حصري</span>
+                        {% if p.is_sale %}<span class="prod-badge">خصم</span>{% else %}<span class="prod-badge">مميز</span>{% endif %}
                         {% if p.image %}
                         <img src="{{ p.image.url }}" alt="{{ p.name }}">
                         {% else %}
@@ -335,49 +308,49 @@
         </div>
     </section>
 
-    <!-- SECTION 5: DYNAMIC STATS -->
     <section class="stats-bar">
         <div class="home-container stats-grid">
+            {% for s in display_stats %}
             <div class="stat-item reveal">
-                <strong>+50,000</strong>
-                <span>عملية ناجحة</span>
+                <strong>{{ s.value }}</strong>
+                <span>{{ s.label }}</span>
             </div>
-            <div class="stat-item reveal">
-                <strong>+20,000</strong>
-                <span>عميل موثق</span>
-            </div>
-            <div class="stat-item reveal">
-                <strong>+1,000</strong>
-                <span>منتج رقمي</span>
-            </div>
-            <div class="stat-item reveal">
-                <strong>24/7</strong>
-                <span>دعم فني مباشر</span>
-            </div>
+            {% endfor %}
         </div>
     </section>
 
-    <!-- SECTION 6: BRANDS -->
     <section class="brands-ticker">
         <div class="brands-row">
-            <div class="brand-logo"><i class="fab fa-steam"></i> STEAM</div>
-            <div class="brand-logo"><i class="fab fa-playstation"></i> PLAYSTATION</div>
-            <div class="brand-logo"><i class="fab fa-xbox"></i> XBOX</div>
-            <div class="brand-logo"><i class="fas fa-mobile-screen"></i> PUBG MOBILE</div>
-            <div class="brand-logo"><i class="fab fa-google-play"></i> GOOGLE PLAY</div>
-            <div class="brand-logo"><i class="fab fa-apple"></i> APPLE STORE</div>
-            <div class="brand-logo"><i class="fas fa-bolt"></i> RIOT GAMES</div>
-            <!-- Duplicated for smooth loop -->
-            <div class="brand-logo"><i class="fab fa-steam"></i> STEAM</div>
-            <div class="brand-logo"><i class="fab fa-playstation"></i> PLAYSTATION</div>
-            <div class="brand-logo"><i class="fab fa-xbox"></i> XBOX</div>
+            {% for p in featured_products|slice:":10" %}
+            <div class="brand-logo">
+                {% if p.image %}
+                <img src="{{ p.image.url }}" alt="{{ p.name }}">
+                {% else %}
+                <i class="fas fa-bolt" style="color: var(--brand-sky);"></i>
+                {% endif %}
+                <span>{{ p.name }}</span>
+            </div>
+            {% endfor %}
+            <!-- Duplicated loop for infinite scroll -->
+            {% for p in featured_products|slice:":10" %}
+            <div class="brand-logo">
+                {% if p.image %}
+                <img src="{{ p.image.url }}" alt="{{ p.name }}">
+                {% else %}
+                <i class="fas fa-bolt" style="color: var(--brand-sky);"></i>
+                {% endif %}
+                <span>{{ p.name }}</span>
+            </div>
+            {% endfor %}
         </div>
     </section>
 
-    <!-- SECTION 7: TESTIMONIALS -->
     <section style="padding: 100px 0;">
         <div class="home-container">
-            <h2 class="section-title reveal">ثقة عملائنا هي سر نجاحنا</h2>
+            <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 4rem;">
+                <h2 class="section-title reveal" style="text-align: right; margin: 0;">ثقة عملائنا هي سر نجاحنا</h2>
+                <a href="{% url 'site_submit_testimonial' %}" class="btn-premium outline" style="height: 48px; padding: 0 1.5rem; font-size: 0.85rem;">أضف رأيك <i class="fas fa-comment-medical"></i></a>
+            </div>
             <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(350px, 1fr)); gap: 2rem;">
                 {% for t in testimonials %}
                 <div class="feature-card reveal" style="text-align: right; border-color: var(--brand-primary);">
@@ -389,11 +362,21 @@
                     <p style="font-size: 1.15rem; color: #fff; font-style: italic; margin-bottom: 2rem;">"{{ t.text }}"</p>
                     <div style="display: flex; align-items: center; gap: 1rem; border-top: 1px solid var(--brand-border); padding-top: 1.5rem; justify-content: flex-end;">
                         <div>
-                            <div style="font-weight: 900;">{% if t.display_name_publicly %}{{ t.user.display_name }}{% else %}عميل سري{% endif %}</div>
+                            <div style="font-weight: 900;">
+                                {% if t.display_name_publicly %}
+                                    {{ t.user.display_name }}
+                                {% else %}
+                                    عميل سري
+                                {% endif %}
+                            </div>
                             <div style="font-size: 0.75rem; color: var(--brand-sky);">عميل موثق</div>
                         </div>
                         <div style="width: 46px; height: 46px; border-radius: 12px; background: var(--gradient-main); display: grid; place-items: center; font-weight: 900; color: #fff;">
-                            {% if t.display_name_publicly %}{{ t.user.display_name|slice:":1"|upper }}{% else %}<i class="fas fa-user-secret"></i>{% endif %}
+                            {% if t.display_name_publicly %}
+                                {{ t.user.display_name|slice:":1"|upper }}
+                            {% else %}
+                                <i class="fas fa-user-secret"></i>
+                            {% endif %}
                         </div>
                     </div>
                 </div>
@@ -404,7 +387,6 @@
         </div>
     </section>
 
-    <!-- SECTION 8: CALL TO ACTION -->
     <section style="padding: 80px 0;">
         <div class="home-container">
             <div class="reveal" style="background: var(--gradient-main); border-radius: 40px; padding: 6rem 4rem; text-align: center; box-shadow: 0 40px 80px var(--brand-glow);">
@@ -415,16 +397,17 @@
         </div>
     </section>
 
-    <!-- FOOTER NEXUS -->
     <footer class="site-footer">
         <div class="home-container footer-grid">
             <div class="footer-brand">
                 <h2 class="footer-title">رقميات<span>.</span></h2>
                 <p style="color: var(--brand-text-dim); line-height: 1.8; margin-bottom: 2.5rem;">المنصة الرائدة لتوفير الحلول الرقمية والخدمات التقنية المتكاملة بمعايير عالمية وأتمتة ذكية تسعى لتقديم أفضل تجربة شراء.</p>
                 <div style="display: flex; gap: 1.5rem; font-size: 1.5rem;">
-                    <a href="#" style="color: var(--brand-sky);"><i class="fab fa-twitter"></i></a>
-                    <a href="#" style="color: var(--brand-secondary);"><i class="fab fa-instagram"></i></a>
-                    <a href="#" style="color: #25d366;"><i class="fab fa-whatsapp"></i></a>
+                    {% for link in SOCIAL_LINKS %}
+                    <a href="{{ link.url }}" target="_blank" style="color: var(--brand-sky);">
+                        <i class="{{ link.icon_class|default:'fas fa-link' }}"></i>
+                    </a>
+                    {% endfor %}
                 </div>
             </div>
             <div class="footer-links">
@@ -446,13 +429,18 @@
             </div>
             <div class="footer-links">
                 <h4 style="color: #fff; margin-bottom: 2rem;">طرق الدفع</h4>
-                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; opacity: 0.6;">
-                    <i class="fab fa-cc-visa" style="font-size: 2rem;"></i>
-                    <i class="fab fa-cc-mastercard" style="font-size: 2rem;"></i>
-                    <i class="fab fa-cc-paypal" style="font-size: 2rem;"></i>
-                    <i class="fab fa-cc-apple-pay" style="font-size: 2rem;"></i>
-                    <i class="fas fa-wallet" style="font-size: 2rem;"></i>
-                    <i class="fas fa-money-bill-transfer" style="font-size: 2rem;"></i>
+                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.5rem;">
+                    {% for method in PAYMENT_METHODS %}
+                    {% if method.logo %}
+                    <img src="{{ method.logo.url }}" alt="{{ method.name }}" style="width: 40px; height: 40px; object-fit: contain; filter: grayscale(1) brightness(2); opacity: 0.6;">
+                    {% else %}
+                    <i class="fas fa-credit-card" style="font-size: 1.5rem; opacity: 0.6;"></i>
+                    {% endif %}
+                    {% empty %}
+                    <i class="fab fa-cc-visa" style="font-size: 2rem; opacity: 0.6;"></i>
+                    <i class="fab fa-cc-mastercard" style="font-size: 2rem; opacity: 0.6;"></i>
+                    <i class="fab fa-cc-paypal" style="font-size: 2rem; opacity: 0.6;"></i>
+                    {% endfor %}
                 </div>
             </div>
         </div>
@@ -464,7 +452,6 @@
 </main>
 
 <script>
-    // Reveal Observer
     function reveal() {
         var reveals = document.querySelectorAll(".reveal");
         for (var i = 0; i < reveals.length; i++) {
