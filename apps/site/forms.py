@@ -411,7 +411,7 @@ class NotificationSettingForm(forms.ModelForm):
         model = NotificationSetting
         exclude = ["user"]
         widgets = {
-            "is_enabled": forms.CheckboxInput(attrs={"class": "w-5 h-5 accent-cyan"}),
+            "is_enabled": forms.CheckboxInput(attrs={"class": "sr-only peer"}),
             # User preferences
             "in_app_orders": forms.CheckboxInput(attrs={"class": "w-4 h-4"}),
             "in_app_financial": forms.CheckboxInput(attrs={"class": "w-4 h-4"}),

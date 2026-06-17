@@ -40,25 +40,37 @@
             </div>
 
             <div class="flex gap-2 mt-8 pt-6 border-t border-white/5">
-                {% if not t.is_approved %}
-                <form action="{% url 'control_testimonial_moderate' t.id %}" method="post" class="flex-grow">
-                    {% csrf_token %}
-                    <input type="hidden" name="action" value="approve">
-                    <button type="submit" class="btn btn-primary btn-sm w-full">موافقة</button>
-                </form>
-                {% else %}
-                <form action="{% url 'control_testimonial_moderate' t.id %}" method="post" class="flex-grow">
-                    {% csrf_token %}
-                    <input type="hidden" name="action" value="unapprove">
-                    <button type="submit" class="btn btn-outline btn-sm w-full">إخفاء</button>
-                </form>
-                {% endif %}
-                
-                <form action="{% url 'control_testimonial_moderate' t.id %}" method="post" onsubmit="return confirm('حذف نهائي؟')">
-                    {% csrf_token %}
-                    <input type="hidden" name="action" value="delete">
-                    <button type="submit" class="btn btn-danger btn-sm">حذف</button>
-                </form>
+                <div class="w-full space-y-4">
+                    <form action="{% url 'control_testimonial_moderate' t.id %}" method="post" class="space-y-2">
+                        {% csrf_token %}
+                        <input type="hidden" name="action" value="update_reply">
+                        <textarea name="admin_reply" class="auth-input !h-20 text-xs" placeholder="اكتب رد الإدارة هنا...">{{ t.admin_reply|default_if_none:"" }}</textarea>
+                        <button type="submit" class="btn btn-outline btn-sm w-full">تحديث الرد فقط</button>
+                    </form>
+
+                    <div class="flex gap-2">
+                        {% if not t.is_approved %}
+                        <form action="{% url 'control_testimonial_moderate' t.id %}" method="post" class="flex-grow">
+                            {% csrf_token %}
+                            <input type="hidden" name="action" value="approve">
+                            <input type="hidden" name="admin_reply" id="reply_val_{{ t.id }}">
+                            <button type="submit" class="btn btn-primary btn-sm w-full" onclick="document.getElementById('reply_val_{{ t.id }}').value = this.form.parentElement.previousElementSibling.querySelector('textarea').value">موافقة ونشر</button>
+                        </form>
+                        {% else %}
+                        <form action="{% url 'control_testimonial_moderate' t.id %}" method="post" class="flex-grow">
+                            {% csrf_token %}
+                            <input type="hidden" name="action" value="unapprove">
+                            <button type="submit" class="btn btn-outline btn-sm w-full">إخفاء</button>
+                        </form>
+                        {% endif %}
+                        
+                        <form action="{% url 'control_testimonial_moderate' t.id %}" method="post" onsubmit="return confirm('حذف نهائي؟')">
+                            {% csrf_token %}
+                            <input type="hidden" name="action" value="delete">
+                            <button type="submit" class="btn btn-danger btn-sm">حذف</button>
+                        </form>
+                    </div>
+                </div>
             </div>
         </div>
         {% empty %}

@@ -35,7 +35,8 @@ from apps.site.forms import (
     LoginForm, RegisterForm, PaymentMethodForm, CurrencyForm, ModerateUserForm, 
     ProductForm, CategoryForm, KYCRequestForm, KYCSettingsForm, ChangePasswordForm, 
     CouponForm, SendNotificationForm, AdminChatForm, SiteAnnouncementForm, 
-    ChatCannedReplyForm, SupportSettingsForm, ProductSuggestionForm, NotificationSettingForm
+    ChatCannedReplyForm, SupportSettingsForm, ProductSuggestionForm, NotificationSettingForm,
+    TestimonialForm, PlatformStatisticForm
 )
 from apps.support.models import ChatRoom, ChatMessage, ChatCannedReply, SupportSettings
 from apps.wallets.models import Wallet
@@ -956,7 +957,9 @@ def home(request):
         "orders": Order.objects.count(),
         "users": User.objects.count(),
         "tickets": ChatRoom.objects.count(),
-        "deposits": DepositRequest.objects.filter(status=DepositRequest.Status.COMPLETED).count()
+        "deposits": DepositRequest.objects.filter(status=DepositRequest.Status.COMPLETED).count(),
+        "withdrawals": WithdrawalRequest.objects.filter(status=WithdrawalRequest.Status.COMPLETED).count(),
+        "products": Product.objects.filter(is_active=True).count()
     }
     
     # Custom Stats (Admins can add more with overrides)
@@ -1043,10 +1046,12 @@ def control_testimonial_moderate(request, pk):
     from apps.common.models import Testimonial
     t = get_object_or_404(Testimonial, pk=pk)
     action = request.POST.get("action")
+    
     if action == "approve":
         t.is_approved = True
+        t.admin_reply = request.POST.get("admin_reply", t.admin_reply)
         t.save()
-        messages.success(request, "تمت الموافقة على التعليق.")
+        messages.success(request, "تمت الموافقة على التعليق وحفظ الرد.")
     elif action == "unapprove":
         t.is_approved = False
         t.save()
@@ -1054,6 +1059,11 @@ def control_testimonial_moderate(request, pk):
     elif action == "delete":
         t.delete()
         messages.warning(request, "تم حذف التعليق.")
+    elif action == "update_reply":
+        t.admin_reply = request.POST.get("admin_reply")
+        t.save()
+        messages.success(request, "تم تحديث رد الإدارة.")
+        
     return redirect("control_testimonials_list")
 
 @admin_required

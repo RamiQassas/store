@@ -167,6 +167,7 @@ class Testimonial(TimeStampedModel):
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="testimonials", verbose_name="المستخدم")
     text = models.TextField(verbose_name="التعليق/الشهادة")
     rating = models.PositiveSmallIntegerField(default=5, verbose_name="التقييم (1-5)")
+    admin_reply = models.TextField(blank=True, null=True, verbose_name="رد الإدارة")
     is_approved = models.BooleanField(default=False, verbose_name="تمت الموافقة")
 
     class Meta:
