@@ -149,9 +149,19 @@ class SiteAnnouncement(TimeStampedModel):
         return self.text[:50]
 
 class PlatformStatistic(TimeStampedModel):
+    class StatType(models.TextChoices):
+        CUSTOM = "custom", "مخصص"
+        USERS = "users", "المستخدمين"
+        ORDERS = "orders", "الطلبات"
+        DEPOSITS = "deposits", "الإيداعات"
+        WITHDRAWALS = "withdrawals", "السحوبات"
+        PRODUCTS = "products", "المنتجات"
+        EXECUTION_TIME = "execution_time", "وقت التنفيذ"
+
     label = models.CharField(max_length=100, verbose_name="تسمية الإحصائية")
-    value_override = models.IntegerField(default=0, help_text="القيمة التي ستظهر (يتم إضافتها للرقم الحقيقي إن وجد)")
+    value_override = models.IntegerField(default=0, help_text="القيمة التي ستظهر (أو الزيادة على الرقم الحقيقي)")
     icon_class = models.CharField(max_length=50, blank=True, help_text="FontAwesome class (e.g. fas fa-users)")
+    stat_type = models.CharField(max_length=20, choices=StatType.choices, default=StatType.CUSTOM, verbose_name="نوع الإحصائية")
     is_active = models.BooleanField(default=True, verbose_name="نشط")
     display_order = models.PositiveIntegerField(default=0, verbose_name="ترتيب العرض")
 
@@ -169,6 +179,7 @@ class Testimonial(TimeStampedModel):
     rating = models.PositiveSmallIntegerField(default=5, verbose_name="التقييم (1-5)")
     admin_reply = models.TextField(blank=True, null=True, verbose_name="رد الإدارة")
     is_approved = models.BooleanField(default=False, verbose_name="تمت الموافقة")
+    display_name_publicly = models.BooleanField(default=True, verbose_name="عرض الاسم للعامة")
 
     class Meta:
         verbose_name = "شهادة عميل"

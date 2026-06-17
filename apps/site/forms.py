@@ -459,10 +459,11 @@ from apps.common.models import Currency, SocialMediaLink, SiteAnnouncement, Plat
 class TestimonialForm(forms.ModelForm):
     class Meta:
         model = Testimonial
-        fields = ['text', 'rating']
+        fields = ['text', 'rating', 'display_name_publicly']
         widgets = {
             'text': forms.Textarea(attrs={'class': 'auth-input h-32 resize-none', 'placeholder': 'شاركنا تجربتك مع رقميات...'}),
             'rating': forms.Select(choices=[(i, f"{i} ★") for i in range(5, 0, -1)], attrs={'class': 'auth-input'}),
+            'display_name_publicly': forms.CheckboxInput(attrs={'class': 'w-4 h-4'}),
         }
 
 class PlatformStatisticForm(forms.ModelForm):

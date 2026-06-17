@@ -1275,49 +1275,44 @@
         <div>
           <span class="section-kicker"><i class="fas fa-layer-group"></i> التصنيفات الرئيسية</span>
           <h2 class="section-title">ادخل مباشرة لما تبحث عنه</h2>
-          <p class="section-copy">تقسيم واضح يقلل التشتت ويوصل المستخدم للمنتج المناسب خلال ثوان.</p>
         </div>
         <a href="{% url 'catalog' %}" class="home-link">كل التصنيفات <i class="fas fa-arrow-left"></i></a>
       </div>
 
       <div class="quick-cats">
-        <a class="quick-cat reveal" href="{% url 'catalog' %}?q=ألعاب">
+        {% for c in categories %}
+        {% if c.is_featured %}
+        <a class="quick-cat reveal" href="{% url 'catalog' %}?category={{ c.id }}">
           <div>
-            <div class="quick-cat-icon"><i class="fas fa-gamepad"></i></div>
-            <h3>الألعاب</h3>
-            <p>شحن رصيد، نقاط، عضويات، وباقات ألعاب لمختلف المنصات.</p>
+            <div class="quick-cat-icon">
+              {% if c.image %}
+              <img src="{{ c.image.url }}" alt="{{ c.name }}" loading="lazy" style="width:32px;height:32px;object-fit:contain;border-radius:6px;">
+              {% else %}
+              <i class="fas fa-boxes-stacked"></i>
+              {% endif %}
+            </div>
+            <h3>{{ c.name }}</h3>
+            <p>تصفح جميع الخدمات المتوفرة ضمن قسم {{ c.name }}.</p>
           </div>
-          <span>تصفح الألعاب <i class="fas fa-arrow-left"></i></span>
+          <span>عرض المنتجات <i class="fas fa-arrow-left"></i></span>
         </a>
-        <a class="quick-cat reveal" href="{% url 'catalog' %}?q=بطاقات">
-          <div>
-            <div class="quick-cat-icon"><i class="fas fa-ticket"></i></div>
-            <h3>البطاقات</h3>
-            <p>بطاقات متجر، اشتراكات، أكواد رقمية، وخيارات دفع متعددة.</p>
-          </div>
-          <span>تصفح البطاقات <i class="fas fa-arrow-left"></i></span>
-        </a>
-        <a class="quick-cat reveal" href="{% url 'catalog' %}?q=خدمات">
-          <div>
-            <div class="quick-cat-icon"><i class="fas fa-wand-magic-sparkles"></i></div>
-            <h3>الخدمات الرقمية</h3>
-            <p>خدمات إلكترونية مخصصة ومنتجات رقمية قابلة للتوسع حسب الطلب.</p>
-          </div>
-          <span>تصفح الخدمات <i class="fas fa-arrow-left"></i></span>
-        </a>
+        {% endif %}
+        {% endfor %}
       </div>
 
       {% if categories %}
       <div class="category-strip mt-6 reveal" aria-label="تصنيفات المتجر">
         {% for c in categories|slice:":10" %}
-        <a class="category-pill" href="{% url 'catalog' %}?category={{ c.id }}">
+        <a class="category-pill {% if c.is_featured %}ring-2 ring-amber-400/50 bg-amber-500/10 text-amber-200{% endif %}" href="{% url 'catalog' %}?category={{ c.id }}">
           {% if c.image %}
           <img src="{{ c.image.url }}" alt="" loading="lazy" width="22" height="22" style="width:22px;height:22px;object-fit:contain;border-radius:6px;">
+          {% elif c.is_featured %}
+          <i class="fas fa-star text-amber-400"></i>
           {% else %}
           <i class="fas fa-boxes-stacked"></i>
           {% endif %}
           {{ c.name }}
-          <small>{{ c.product_count }}</small>
+          <small class="{% if c.is_featured %}bg-amber-500/20 text-amber-300{% endif %}">{{ c.product_count }}</small>
         </a>
         {% endfor %}
       </div>
@@ -1464,30 +1459,10 @@
       </div>
 
       <div class="stats-grid">
-        <div class="stat-card main reveal">
-          <i class="fas fa-users"></i>
-          <strong>{{ base_stats.users|add:1500 }}+</strong>
-          <span>مستخدم مسجل يستفيد من خدمات رقميات</span>
-        </div>
-        <div class="stat-card reveal">
-          <i class="fas fa-receipt"></i>
-          <strong>{{ base_stats.orders|add:3000 }}+</strong>
-          <span>طلب مكتمل</span>
-        </div>
-        <div class="stat-card reveal">
-          <i class="fas fa-wallet"></i>
-          <strong>{{ base_stats.deposits|add:500 }}+</strong>
-          <span>عملية إيداع ناجحة</span>
-        </div>
-        <div class="stat-card reveal">
-          <i class="fas fa-stopwatch"></i>
-          <strong>دقائق</strong>
-          <span>متوسط تجربة تنفيذ سريعة وواضحة</span>
-        </div>
-        {% for s in custom_stats|slice:":4" %}
-        <div class="stat-card reveal">
-          <i class="{{ s.icon_class|default:'fas fa-star' }}"></i>
-          <strong>{{ s.value_override }}</strong>
+        {% for s in display_stats %}
+        <div class="stat-card {% if forloop.first %}main{% endif %} reveal">
+          <i class="{{ s.icon_class }}"></i>
+          <strong>{{ s.value|default:0 }}+</strong>
           <span>{{ s.label }}</span>
         </div>
         {% endfor %}
@@ -1520,18 +1495,18 @@
           <div class="admin-reply"><strong>رد الإدارة:</strong> {{ t.admin_reply }}</div>
           {% endif %}
           <div class="testimonial-author">
-            <div class="avatar">{{ t.user.display_name|slice:":1"|upper }}</div>
+            <div class="avatar">{% if t.display_name_publicly %}{{ t.user.display_name|slice:":1"|upper }}{% else %}<i class="fas fa-user-secret"></i>{% endif %}</div>
             <div>
-              <strong>{{ t.user.display_name }}</strong>
+              <strong>{% if t.display_name_publicly %}{{ t.user.display_name }}{% else %}عميل سري{% endif %}</strong>
               <span>عميل موثق</span>
             </div>
           </div>
         </article>
         {% empty %}
-        <div class="feature-card reveal">
-          <div class="feature-icon"><i class="fas fa-comment-dots"></i></div>
-          <h3>التعليقات محفوظة</h3>
-          <p>عند اعتماد آراء العملاء من لوحة التحكم ستظهر هنا ضمن تصميم واضح ومنظم.</p>
+        <div class="feature-card reveal" style="grid-column: 1 / -1; text-align: center; border: 1px dashed var(--border-color); box-shadow: none;">
+          <div class="feature-icon" style="margin: 0 auto 15px;"><i class="fas fa-comment-dots"></i></div>
+          <h3>لا توجد تعليقات بعد</h3>
+          <p>كن أول من يشاركنا رأيه وتجربته بعد استخدام المنصة.</p>
         </div>
         {% endfor %}
       </div>
@@ -1543,7 +1518,7 @@
       <div class="reveal">
         <span class="section-kicker"><i class="fas fa-circle-question"></i> الأسئلة الشائعة</span>
         <h2 class="section-title">إجابات سريعة قبل الشراء</h2>
-        <p class="section-copy">قسم مختصر يقلل التردد ويشرح أهم نقاط الشحن، الدفع، الدعم، والطلبات.</p>
+        <p class="section-copy">إجابات مختصرة لأهم الأسئلة المتكررة حول الشحن، الدفع، والدعم.</p>
       </div>
 
       <div class="faq-list">
@@ -1573,7 +1548,7 @@
         <div class="suggestion-icon"><i class="fas fa-lightbulb"></i></div>
         <div>
           <h3>لم تجد المنتج الذي تبحث عنه؟</h3>
-          <p>أرسل اقتراحك للمنصة ليتم مراجعته وتوفيره عند الإمكان، بدون حذف خاصية الاقتراح الموجودة في الصفحة.</p>
+          <p>أرسل اقتراحك للمنصة ليتم مراجعته وتوفيره في أقرب وقت ممكن.</p>
         </div>
         <a href="{% url 'site_product_suggestion' %}" class="home-btn ghost"><i class="fas fa-paper-plane"></i> اقترح خدمة</a>
       </div>

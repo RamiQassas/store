@@ -962,14 +962,35 @@ def home(request):
     }
     
     # Custom Stats (Admins can add more with overrides)
-    custom_stats = PlatformStatistic.objects.filter(is_active=True).order_by('display_order')
+    custom_stats_qs = PlatformStatistic.objects.filter(is_active=True).order_by('display_order')
+    display_stats = []
+    for stat in custom_stats_qs:
+        val = stat.value_override
+        if stat.stat_type == PlatformStatistic.StatType.USERS:
+            val += base_stats['users']
+        elif stat.stat_type == PlatformStatistic.StatType.ORDERS:
+            val += base_stats['orders']
+        elif stat.stat_type == PlatformStatistic.StatType.DEPOSITS:
+            val += base_stats['deposits']
+        elif stat.stat_type == PlatformStatistic.StatType.WITHDRAWALS:
+            val += base_stats['withdrawals']
+        elif stat.stat_type == PlatformStatistic.StatType.PRODUCTS:
+            val += base_stats['products']
+            
+        display_stats.append({
+            'label': stat.label,
+            'value': val,
+            'icon_class': stat.icon_class or 'fas fa-star',
+            'stat_type': stat.stat_type
+        })
     
     # Testimonials
     testimonials = Testimonial.objects.filter(is_approved=True).order_by('-created_at')[:6]
     
+    # Categories: Only show categories with products, or if explicitly needed
     categories = Category.objects.filter(is_active=True).annotate(
         product_count=Count("products", filter=Q(products__is_active=True))
-    ).order_by("sort_order", "name")
+    ).filter(product_count__gt=0).order_by("sort_order", "name")
 
     featured_products = Product.objects.filter(
         is_active=True, is_featured=True
@@ -984,8 +1005,7 @@ def home(request):
         "featured_products": featured_products,
         "sale_products": sale_products,
         "categories": categories,
-        "base_stats": base_stats,
-        "custom_stats": custom_stats,
+        "display_stats": display_stats,
         "testimonials": testimonials,
     })
 

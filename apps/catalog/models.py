@@ -13,6 +13,7 @@ class Category(TimeStampedModel):
     parent = models.ForeignKey("self", null=True, blank=True, related_name="children", on_delete=models.CASCADE)
     image = models.ImageField(upload_to="categories/", blank=True, null=True, verbose_name="صورة التصنيف")
     is_active = models.BooleanField(default=True, verbose_name="نشط")
+    is_featured = models.BooleanField(default=False, verbose_name="تصنيف مميز (يظهر في الرئيسية)")
     sort_order = models.PositiveIntegerField(default=0, verbose_name="ترتيب العرض")
 
     class Meta:

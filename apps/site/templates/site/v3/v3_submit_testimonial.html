@@ -26,6 +26,14 @@
             {{ form.text }}
         </div>
 
+        <div class="flex items-center space-x-2 space-x-reverse bg-slate-800/50 p-4 rounded-xl border border-slate-700/50">
+            {{ form.display_name_publicly }}
+            <div class="flex flex-col">
+                <label for="{{ form.display_name_publicly.id_for_label }}" class="text-sm font-bold text-white cursor-pointer select-none">عرض اسمي للعامة</label>
+                <span class="text-xs text-slate-400">إذا قمت بإلغاء التحديد، سيظهر تعليقك باسم "عميل سري".</span>
+            </div>
+        </div>
+
         <button type="submit" class="btn-premium w-full">
             إرسال التعليق
             <i class="fas fa-check-circle ml-2 text-xs"></i>
