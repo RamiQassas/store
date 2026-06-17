@@ -89,6 +89,20 @@ class User(AbstractUser):
     security_purchase_method = models.CharField(max_length=10, choices=SecurityMethod.choices, default=SecurityMethod.NONE)
     security_withdraw_method = models.CharField(max_length=10, choices=SecurityMethod.choices, default=SecurityMethod.NONE)
     
+    show_full_name = models.BooleanField(default=False, verbose_name="عرض الاسم الكامل")
+
+    @property
+    def display_name(self):
+        if self.show_full_name and self.get_full_name():
+            return self.get_full_name()
+        # Fallback to masked email
+        email_parts = self.email.split('@')
+        if len(email_parts) == 2:
+            name_part = email_parts[0]
+            if len(name_part) > 3:
+                return f"{name_part[:3]}***@{email_parts[1]}"
+        return self.email
+    
     # Deprecated fields (will keep for migration safety but stop using)
     require_otp_on_login = models.BooleanField(default=True)
     require_otp_on_deposit = models.BooleanField(default=False)

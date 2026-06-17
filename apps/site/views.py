@@ -3275,13 +3275,25 @@ def payment_method_edit(request, pk):
 
 @login_required
 def site_notification_settings(request):
+    from apps.site.forms import UserPrivacyForm
     obj, _ = NotificationSetting.objects.get_or_create(user=request.user)
     form = NotificationSettingForm(request.POST or None, instance=obj, is_staff=request.user.is_platform_staff)
-    if request.method == "POST" and form.is_valid():
-        form.save()
-        messages.success(request, "تم حفظ إعدادات الإشعارات بنجاح.")
-        return redirect("notification_settings")
-    return render(request, "site/v3/v3_notification_settings.html", {"form": form})
+    privacy_form = UserPrivacyForm(request.POST or None, instance=request.user)
+    
+    if request.method == "POST":
+        if "notification_settings" in request.POST and form.is_valid():
+            form.save()
+            messages.success(request, "تم حفظ إعدادات الإشعارات بنجاح.")
+            return redirect("notification_settings")
+        elif "privacy_settings" in request.POST and privacy_form.is_valid():
+            privacy_form.save()
+            messages.success(request, "تم تحديث إعدادات الخصوصية بنجاح.")
+            return redirect("notification_settings")
+            
+    return render(request, "site/v3/v3_notification_settings.html", {
+        "form": form,
+        "privacy_form": privacy_form
+    })
 
 @login_required
 def site_product_suggestion(request):

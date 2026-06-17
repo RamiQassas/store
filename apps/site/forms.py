@@ -406,6 +406,14 @@ class KYCRequestForm(forms.ModelForm):
         
         return cleaned_data
 
+class UserPrivacyForm(forms.ModelForm):
+    class Meta:
+        model = User
+        fields = ["show_full_name"]
+        widgets = {
+            "show_full_name": forms.CheckboxInput(attrs={"class": "sr-only peer"}),
+        }
+
 class NotificationSettingForm(forms.ModelForm):
     class Meta:
         model = NotificationSetting

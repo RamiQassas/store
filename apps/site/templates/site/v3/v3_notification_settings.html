@@ -16,6 +16,30 @@
 
     <form method="post" class="space-y-8">
         {% csrf_token %}
+        <input type="hidden" name="privacy_settings" value="1">
+        
+        <!-- Privacy Toggle -->
+        <div class="p-6 bg-indigo-500/5 rounded-2xl border border-indigo-500/10 flex items-center justify-between">
+            <div>
+                <h3 class="text-lg font-bold text-white">عرض الاسم الكامل</h3>
+                <p class="text-xs text-slate-500">عند التفعيل، سيظهر اسمك الحقيقي في المراجعات واللوحات العامة بدلاً من البريد الإلكتروني.</p>
+            </div>
+            <label class="relative inline-flex items-center cursor-pointer">
+                {{ privacy_form.show_full_name }}
+                <div class="w-14 h-7 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:start-[4px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all peer-checked:bg-indigo-500"></div>
+            </label>
+        </div>
+        
+        <div class="flex justify-end">
+            <button type="submit" class="text-xs font-black text-indigo-400 hover:underline uppercase tracking-widest">تحديث إعدادات الهوية</button>
+        </div>
+    </form>
+
+    <div class="h-px bg-white/5 my-10"></div>
+
+    <form method="post" class="space-y-8">
+        {% csrf_token %}
+        <input type="hidden" name="notification_settings" value="1">
         
         <!-- Global Toggle -->
         <div class="p-6 bg-slate-800/40 rounded-2xl border border-white/5 flex items-center justify-between">
