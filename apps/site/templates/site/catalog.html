@@ -1,416 +1,248 @@
 {% extends "site/base.html" %}
 {% load static site_tags %}
 
-{% block title %}الكتالوج | Raqamiyat{% endblock %}
+{% block title %}متجر الخدمات | رقميات{% endblock %}
 
 {% block extra_head %}
-<style>
-    .catalog-wrapper { display: grid; grid-template-columns: 280px 1fr; gap: 2.5rem; align-items: start; }
-    
-    /* Reveal Animation */
-    .reveal { opacity: 0; transform: translateY(20px); transition: all 0.6s cubic-bezier(0.2, 1, 0.3, 1); }
-    .reveal.visible { opacity: 1; transform: translateY(0); }
+<!-- Tailwind CSS for Dark Premium UI -->
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+    tailwind.config = {
+        darkMode: 'class',
+        theme: {
+            extend: {
+                colors: {
+                    'dark-bg': '#050811',
+                    'panel-bg': 'rgba(15, 23, 42, 0.6)',
+                    'cyan': '#06b6d4',
+                    'indigo': '#6366f1',
+                    'purple': '#a855f7',
+                },
+                animation: {
+                    'float': 'float 6s ease-in-out infinite',
+                    'reveal': 'reveal 0.8s cubic-bezier(0.2, 1, 0.3, 1) forwards',
+                },
+                keyframes: {
+                    float: {
+                        '0%, 100%': { transform: 'translateY(0)' },
+                        '50%': { transform: 'translateY(-20px)' },
+                    },
+                    reveal: {
+                        '0%': { opacity: '0', transform: 'translateY(20px)' },
+                        '100%': { opacity: '1', transform: 'translateY(0)' },
+                    }
+                }
+            }
+        }
+    }
+</script>
 
-    /* Sidebar Filters */
-    .filter-sidebar { position: sticky; top: 100px; background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(20px); border: 1px solid rgba(255,255,255,0.05); border-radius: 32px; padding: 2rem; }
-    .filter-group { margin-bottom: 2.5rem; }
-    .filter-label { font-size: 10px; font-weight: 900; color: #475569; text-transform: uppercase; letter-spacing: 2px; margin-bottom: 1.5rem; display: block; }
-    
-    .cat-link { 
-        display: flex; justify-content: space-between; align-items: center; 
-        padding: 0.75rem 1rem; border-radius: 16px; font-size: 0.85rem; font-weight: 700;
-        transition: all 0.3s; color: #94a3b8; margin-bottom: 4px;
-    }
-    .cat-link:hover { background: rgba(255,255,255,0.03); color: #fff; transform: translateX(-5px); }
-    .cat-link.active { background: rgba(6, 182, 212, 0.1); color: var(--cyan); border: 1px solid rgba(6, 182, 212, 0.2); }
-    .cat-count { font-size: 9px; opacity: 0.5; background: rgba(255,255,255,0.05); padding: 2px 8px; border-radius: 6px; }
-
-    /* Header & Search */
-    .catalog-header { display: flex; flex-direction: column; gap: 1.5rem; margin-bottom: 3rem; }
-    .search-row { display: flex; gap: 1rem; align-items: center; }
-    .search-box-v3 { flex-grow: 1; position: relative; }
-    .search-box-v3 input { 
-        padding: 1.25rem 3.5rem 1.25rem 1.5rem; border-radius: 24px; background: rgba(15, 23, 42, 0.6); 
-        border: 1px solid rgba(255,255,255,0.05); width: 100%; transition: all 0.3s; color: #fff; font-size: 0.9rem;
-    }
-    .search-box-v3 input:focus { border-color: var(--cyan); background: rgba(15, 23, 42, 0.8); box-shadow: 0 0 0 8px rgba(6, 182, 212, 0.05); outline: none; }
-    .search-box-v3 i { position: absolute; right: 1.5rem; top: 50%; transform: translateY(-50%); color: #475569; font-size: 1.1rem; }
-
-    /* Controls Group */
-    .controls-group { display: flex; gap: 0.5rem; align-items: center; }
-
-    /* Toggle Switches */
-    .toggle-group { display: flex; background: rgba(255,255,255,0.03); padding: 4px; border-radius: 14px; border: 1px solid rgba(255,255,255,0.05); }
-    .toggle-btn { 
-        padding: 8px 16px; border-radius: 10px; font-size: 10px; font-weight: 800; 
-        color: #475569; transition: all 0.3s; cursor: pointer; border: none; background: transparent; 
-        white-space: nowrap;
-    }
-    .toggle-btn.active { background: var(--cyan); color: #000; box-shadow: 0 4px 12px rgba(6, 182, 212, 0.3); }
-
-    /* Grid Controls */
-    .grid-controls { display: flex; gap: 4px; background: rgba(255,255,255,0.03); padding: 4px; border-radius: 12px; }
-    .grid-btn { width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; border-radius: 8px; color: #475569; transition: all 0.3s; cursor: pointer; border: none; background: transparent; }
-    .grid-btn.active { background: rgba(255,255,255,0.08); color: #fff; }
-
-    /* Modern Product Grid */
-    .p-grid-v3 { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 1.5rem; }
-    .p-grid-v3.grid-3 { grid-template-columns: repeat(3, 1fr); }
-    .p-grid-v3.grid-2 { grid-template-columns: repeat(2, 1fr); }
-    
-    /* Category Grid */
-    .cat-grid-v3 { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 1.5rem; }
-    .cat-card-v3 {
-        background: rgba(15, 23, 42, 0.4); border: 1px solid rgba(255,255,255,0.05); border-radius: 28px;
-        padding: 1.5rem; text-align: center; transition: all 0.4s;
-    }
-    .cat-card-v3:hover { transform: translateY(-8px); border-color: var(--cyan); background: rgba(15, 23, 42, 0.7); }
-    .cat-icon-v3 { 
-        width: 80px; height: 80px; background: rgba(6, 182, 212, 0.05); border-radius: 20px; 
-        margin: 0 auto 1rem; display: flex; align-items: center; justify-content: center; 
-        overflow: hidden; border: 1px solid rgba(6, 182, 212, 0.1);
-    }
-    .cat-icon-v3 img { width: 100%; height: 100%; object-fit: cover; }
-    
-    .p-card-v3 { 
-        background: rgba(15, 23, 42, 0.4); 
-        border: 1px solid rgba(255,255,255,0.04); 
-        border-radius: 32px; 
-        overflow: hidden; 
-        transition: all 0.5s cubic-bezier(0.23, 1, 0.32, 1);
-        display: flex; flex-direction: column; height: 100%; position: relative;
-    }
-    .p-card-v3:hover { 
-        transform: translateY(-10px); 
-        border-color: rgba(6, 182, 212, 0.3);
-        background: rgba(15, 23, 42, 0.7);
-        box-shadow: 0 40px 80px -15px rgba(0, 0, 0, 0.8);
-    }
-    
-    .p-img-v3 { 
-        width: 100%; aspect-ratio: 1/1; 
-        background: #0a0f1c; 
-        overflow: hidden; position: relative; display: flex; align-items: center; justify-content: center;
-        padding: 2rem;
-    }
-    .p-img-v3 img { 
-        width: 100%; height: 100%; object-fit: contain;
-        transition: transform 0.8s cubic-bezier(0.23, 1, 0.32, 1);
-        filter: drop-shadow(0 15px 30px rgba(0,0,0,0.5));
-    }
-    .p-card-v3:hover .p-img-v3 img { transform: scale(1.1) rotate(-3deg); }
-    
-    /* Badges */
-    .sale-badge { 
-        position: absolute; top: 1rem; right: 1rem; z-index: 10;
-        background: linear-gradient(135deg, #f59e0b, #d97706);
-        color: #000; font-size: 8px; font-weight: 900; padding: 5px 12px; border-radius: 10px;
-        box-shadow: 0 0 25px rgba(245, 158, 11, 0.4);
-        animation: pulse-gold 2s infinite;
-        border: 1px solid rgba(255,255,255,0.2);
-        text-transform: uppercase;
-    }
-    @keyframes pulse-gold {
-        0% { box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.5); transform: scale(1); }
-        70% { box-shadow: 0 0 0 10px rgba(245, 158, 11, 0); transform: scale(1.05); }
-        100% { box-shadow: 0 0 0 0 rgba(245, 158, 11, 0); transform: scale(1); }
-    }
-    .p-v-chip.on-sale {
-        background: rgba(245, 158, 11, 0.1) !important;
-        border: 1px solid rgba(245, 158, 11, 0.3) !important;
-        color: #f59e0b !important;
-        position: relative; overflow: hidden;
-    }
-    .p-v-chip.on-sale::after {
-        content: ''; position: absolute; top: -50%; left: -50%; width: 200%; height: 200%;
-        background: linear-gradient(45deg, transparent, rgba(255,255,255,0.1), transparent);
-        transform: rotate(45deg); animation: shine 3s infinite;
-    }
-    @keyframes shine {
-        0% { left: -100%; }
-        100% { left: 100%; }
-    }
-    .out-of-stock-overlay {
-        position: absolute; inset: 0; background: rgba(0,0,0,0.4); backdrop-filter: grayscale(1);
-        display: flex; align-items: center; justify-content: center; z-index: 5;
-    }
-    .out-of-stock-label {
-        background: #f43f5e; color: #fff; font-size: 8px; font-weight: 900; 
-        padding: 4px 12px; border-radius: 6px; transform: rotate(-5deg);
+<style type="text/tailwindcss">
+    @layer components {
+        .glass-panel {
+            @apply bg-slate-900/40 backdrop-blur-xl border border-white/5 rounded-3xl shadow-2xl;
+        }
+        .premium-card {
+            @apply glass-panel transition-all duration-500 hover:border-cyan/30 hover:-translate-y-2 hover:shadow-cyan/10;
+        }
+        .btn-premium {
+            @apply relative overflow-hidden bg-gradient-to-r from-cyan to-indigo text-white font-black py-4 px-8 rounded-2xl transition-all hover:scale-105 active:scale-95 shadow-lg shadow-cyan/20 flex items-center justify-center gap-2;
+        }
+        .btn-outline-premium {
+            @apply border border-white/10 bg-white/5 backdrop-blur-md text-white font-bold py-4 px-8 rounded-2xl transition-all hover:bg-white/10 hover:border-white/20 flex items-center justify-center gap-2;
+        }
+        .section-label {
+            @apply text-[10px] font-black text-cyan uppercase tracking-[0.3em] mb-4 block;
+        }
     }
 
-    /* Package Preview */
-    .p-variants-preview { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 0.5rem; }
-    .p-v-chip { font-size: 7px; font-weight: 900; background: rgba(255,255,255,0.05); color: #94a3b8; padding: 2px 6px; border-radius: 4px; border: 1px solid rgba(255,255,255,0.03); }
-
-    .p-delivery-tag { position: absolute; top: 1rem; left: 1rem; background: rgba(0,0,0,0.6); backdrop-filter: blur(10px); color: #fff; font-size: 8px; font-weight: 900; padding: 4px 10px; border-radius: 8px; display: flex; align-items: center; gap: 4px; border: 1px solid rgba(255,255,255,0.05); z-index: 10; }
-
-    .p-body-v3 { padding: 1.25rem; flex-grow: 1; display: flex; flex-direction: column; gap: 0.5rem; }
-    .p-meta-v3 { display: flex; justify-content: space-between; align-items: center; }
-    .p-badge-v3 { font-size: 8px; font-weight: 800; color: var(--cyan); background: rgba(6, 182, 212, 0.08); padding: 4px 10px; border-radius: 8px; text-transform: uppercase; }
-
-    .p-title-v3 { 
-        font-size: 0.95rem; font-weight: 700; color: #fff; line-height: 1.4; margin: 0;
-        height: 2.8em; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
-        transition: color 0.3s;
+    /* RTL Search Box Fix */
+    .search-input {
+        direction: rtl;
+        text-align: right;
     }
-    .p-card-v3:hover .p-title-v3 { color: var(--cyan); }
 
-    .p-footer-v3 { 
-        margin-top: auto; padding-top: 1rem; border-top: 1px solid rgba(255,255,255,0.03); 
-        display: flex; justify-content: space-between; align-items: center; 
-    }
-    .p-price-v3 { display: flex; flex-direction: column; }
-    .p-price-v3 .label { font-size: 8px; font-weight: 700; color: #475569; margin-bottom: 2px; }
-    .p-price-v3 .amt { font-size: 1rem; font-weight: 900; color: #fff; }
+    .reveal-item { opacity: 0; }
+    .reveal-item.visible { @apply animate-reveal; }
 
-    /* Mobile Improvements */
-    @media (max-width: 768px) {
-        .catalog-wrapper { grid-template-columns: 1fr; }
-        .filter-sidebar { display: none; }
-        .p-grid-v3 { grid-template-columns: repeat(2, 1fr); gap: 0.75rem; }
-        .p-grid-v3.grid-3 { grid-template-columns: repeat(3, 1fr); gap: 0.5rem; }
-        .p-grid-v3.grid-3 .p-body-v3 { padding: 0.6rem; }
-        .p-grid-v3.grid-3 .p-title-v3 { font-size: 0.7rem; }
-        .p-grid-v3.grid-3 .p-footer-v3 { display: none; }
-        
-        .cat-grid-v3 { grid-template-columns: repeat(2, 1fr); gap: 0.75rem; }
-        .cat-card-v3 { padding: 1rem; }
-        .cat-icon-v3 { width: 60px; height: 60px; }
-        
-        .p-img-v3 { padding: 1rem; }
-        .p-body-v3 { padding: 0.85rem; gap: 0.4rem; }
-        .p-title-v3 { font-size: 0.8rem; }
-        .p-footer-v3 { flex-direction: column; align-items: stretch; gap: 0.75rem; }
-        .p-price-v3 .amt { font-size: 0.9rem; }
-        .p-footer-v3 .btn { width: 100%; padding: 0.6rem; border-radius: 10px; font-size: 10px; }
-        .controls-group { width: 100%; justify-content: space-between; }
+    /* Hide standard backgrounds */
+    body { background-color: #050811 !important; background-image: none !important; }
+    .shell { background: transparent !important; }
+
+    .category-chip {
+        @apply px-6 py-3 rounded-2xl font-bold text-sm transition-all whitespace-nowrap border border-white/5 bg-white/5 text-slate-400 hover:bg-white/10 hover:text-white;
     }
+    .category-chip.active {
+        @apply bg-cyan text-white border-cyan shadow-lg shadow-cyan/20;
+    }
+
+    .scroll-hide::-webkit-scrollbar { display: none; }
+    .scroll-hide { -ms-overflow-style: none; scrollbar-width: none; }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="container pb-20">
-    <div class="page-head reveal">
-        <div>
-            <span class="eyebrow">Service Marketplace</span>
-            <h1>متجر الخدمات الرقمية</h1>
-            <p class="text-muted">اختر من بين مئات الخدمات الرقمية الموثوقة والآمنة بأسعار تنافسية.</p>
+<div class="relative min-h-screen pt-12 pb-24">
+    <div class="container mx-auto px-4">
+        
+        <!-- Header & Search Section -->
+        <div class="mb-16 reveal-item">
+            <div class="flex flex-col md:flex-row md:items-end justify-between gap-8">
+                <div class="max-w-xl">
+                    <span class="section-label">Service Marketplace</span>
+                    <h1 class="text-4xl md:text-6xl font-black text-white mb-4 tracking-tighter">استكشف الخدمات.</h1>
+                    <p class="text-slate-400 text-sm md:text-lg">تصفح مجموعتنا الواسعة من باقات الشحن، الألعاب، والخدمات الرقمية.</p>
+                </div>
+                
+                <div class="w-full md:w-96">
+                    <form method="get" class="relative group">
+                        <i class="fas fa-search absolute right-5 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-cyan transition-colors"></i>
+                        <input type="text" name="q" value="{{ query }}" placeholder="ابحث عن باقة، لعبة، أو بطاقة شحن..." 
+                               class="w-full bg-slate-900/60 border border-white/5 rounded-3xl py-5 pr-14 pl-6 text-white text-sm focus:outline-none focus:border-cyan/50 focus:ring-4 focus:ring-cyan/10 transition-all search-input">
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Categories & Suggestion Bento Box -->
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 mb-16 reveal-item">
+            <!-- Categories Grid -->
+            <div class="lg:col-span-8 glass-panel p-8">
+                <div class="flex items-center justify-between mb-6">
+                    <h3 class="text-sm font-black text-white uppercase tracking-widest">التصنيفات</h3>
+                    <div class="flex gap-2">
+                        <a href="?view=categories" class="text-[10px] font-black text-cyan hover:underline">عرض كشبكة</a>
+                    </div>
+                </div>
+                <div class="flex gap-3 overflow-x-auto pb-4 scroll-hide">
+                    <a href="{% url 'catalog' %}" class="category-chip {% if not active_category %}active{% endif %}">الكل</a>
+                    {% for cat in categories %}
+                    <a href="?category={{ cat.id }}" class="category-chip {% if active_category == cat.id|stringformat:'s' %}active{% endif %}">{{ cat.name }}</a>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <!-- Integrated Suggest Service Card -->
+            <div class="lg:col-span-4 glass-panel p-8 border-indigo-500/20 bg-gradient-to-br from-indigo-500/5 to-transparent relative overflow-hidden group">
+                <div class="absolute -right-10 -top-10 w-32 h-32 bg-indigo-500/10 rounded-full blur-2xl group-hover:scale-150 transition-transform duration-700"></div>
+                <div class="relative z-10 flex flex-col h-full">
+                    <div class="flex items-center gap-4 mb-4">
+                        <div class="w-12 h-12 bg-indigo-500/10 rounded-2xl flex items-center justify-center text-indigo-400">
+                            <i class="fas fa-lightbulb"></i>
+                        </div>
+                        <div>
+                            <h4 class="text-sm font-black text-white">لم تجد طلبك؟</h4>
+                            <p class="text-[10px] text-slate-500">نحن نوفره لك بأفضل سعر.</p>
+                        </div>
+                    </div>
+                    <button onclick="document.getElementById('suggestion-modal').classList.remove('hidden')" class="btn-premium py-2 text-xs w-full mt-auto">اقتراح خدمة جديدة</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Product Grid -->
+        <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
+            {% for p in products %}
+            <div class="premium-card group relative flex flex-col h-full reveal-item" style="transition-delay: {{ forloop.counter|mul:0.02 }}s">
+                <!-- Status Badges -->
+                {% if p.is_sale %}
+                <div class="absolute top-3 right-3 z-10 bg-gradient-to-br from-amber-400 to-orange-600 text-black text-[8px] font-black px-2 py-1 rounded-lg">
+                    عرض خاص
+                </div>
+                {% endif %}
+
+                {% if p.is_out_of_stock %}
+                <div class="absolute inset-0 z-20 bg-slate-950/60 backdrop-blur-[2px] rounded-3xl flex items-center justify-center">
+                    <div class="bg-rose-500 text-white text-[10px] font-black px-4 py-2 rounded-xl -rotate-6">نفدت الكمية</div>
+                </div>
+                {% endif %}
+                
+                <!-- Image Wrapper -->
+                <a href="{% url 'product_detail' p.id %}" class="block p-4 bg-slate-900/40 rounded-t-3xl border-b border-white/5 aspect-square flex items-center justify-center group-hover:bg-slate-900/60 transition-colors">
+                    {% if p.image %}
+                    <img src="{{ p.image.url }}" alt="{{ p.name }}" class="max-h-full max-w-full object-contain drop-shadow-2xl group-hover:scale-110 transition-transform duration-500" loading="lazy">
+                    {% else %}
+                    <i class="fas fa-box text-3xl text-slate-700 opacity-20"></i>
+                    {% endif %}
+                </a>
+
+                <!-- Product Body -->
+                <div class="p-5 flex flex-col flex-grow">
+                    <span class="text-[8px] font-black text-cyan/60 uppercase mb-2">{{ p.category.name }}</span>
+                    <a href="{% url 'product_detail' p.id %}" class="text-xs md:text-sm font-bold text-white line-clamp-2 mb-4 group-hover:text-cyan transition-colors h-10">{{ p.name }}</a>
+                    
+                    <!-- Quick Variant Preview -->
+                    <div class="flex flex-wrap gap-1 mb-4">
+                        {% for v in p.variants.all|slice:":2" %}
+                        <span class="text-[7px] font-bold bg-white/5 border border-white/5 text-slate-500 px-2 py-0.5 rounded-md truncate max-w-[80px]">{{ v.name }}</span>
+                        {% endfor %}
+                        {% if p.variants.count > 2 %}
+                        <span class="text-[7px] font-bold text-cyan">+{{ p.variants.count|add:"-2" }}</span>
+                        {% endif %}
+                    </div>
+
+                    <div class="mt-auto pt-4 border-t border-white/5 flex items-center justify-between">
+                        {% variant_price p.variants.first as v_price %}
+                        <div class="flex flex-col">
+                            <span class="text-[8px] text-slate-500 font-bold">يبدأ من</span>
+                            <span class="text-sm font-black text-white">{% currency_format v_price %}</span>
+                        </div>
+                        <a href="{% url 'product_detail' p.id %}" class="w-10 h-10 bg-cyan text-white rounded-xl flex items-center justify-center hover:bg-indigo hover:scale-110 transition-all shadow-lg shadow-cyan/20">
+                            <i class="fas fa-shopping-cart text-xs"></i>
+                        </a>
+                    </div>
+                </div>
+            </div>
+            {% empty %}
+            <div class="col-span-full py-32 text-center glass-panel border-dashed reveal-item">
+                <div class="w-20 h-20 bg-slate-900/50 rounded-full flex items-center justify-center mx-auto mb-6">
+                    <i class="fas fa-search text-3xl text-slate-700"></i>
+                </div>
+                <h3 class="text-xl font-black text-white">لم نجد ما تبحث عنه</h3>
+                <p class="text-slate-500 mt-2 max-w-xs mx-auto">حاول تغيير كلمات البحث أو تصفح التصنيفات الأخرى.</p>
+                <a href="{% url 'catalog' %}" class="btn-outline-premium mt-8 inline-flex">عرض كل الخدمات</a>
+            </div>
+            {% endfor %}
         </div>
     </div>
+</div>
 
-    <!-- Mobile Category Scroll -->
-    <div class="mobile-filter-scroll reveal">
-        <a href="{% url 'catalog' %}?view={{ view_type }}" class="m-chip {% if not active_category %}active{% endif %}">الكل</a>
-        {% for cat in categories %}
-        <a href="?category={{ cat.id }}&view=products" class="m-chip {% if active_category == cat.id|stringformat:'s' %}active{% endif %}">{{ cat.name }}</a>
-        {% endfor %}
-    </div>
-
-    <div class="catalog-wrapper">
-        <!-- Sidebar -->
-        <aside class="filter-sidebar reveal">
-            <div class="filter-group">
-                <span class="filter-label">التصنيفات</span>
-                <div class="stack">
-                    <a href="{% url 'catalog' %}?view={{ view_type }}" class="cat-link {% if not active_category %}active{% endif %}">
-                        <span>الكل</span>
-                        <i class="fas fa-chevron-left text-[10px] opacity-20"></i>
-                    </a>
-                    {% for cat in categories %}
-                    <a href="?category={{ cat.id }}&view=products" class="cat-link {% if active_category == cat.id|stringformat:'s' %}active{% endif %}">
-                        <span>{{ cat.name }}</span>
-                        <span class="cat-count">{{ cat.product_count }}</span>
-                    </a>
-                    {% endfor %}
-                </div>
+<!-- Suggestion Modal -->
+<div id="suggestion-modal" class="fixed inset-0 z-[100] hidden flex items-center justify-center p-4 bg-dark-bg/80 backdrop-blur-md">
+    <div class="glass-panel p-8 w-full max-w-lg animate-reveal">
+        <div class="flex justify-between items-center mb-8">
+            <h2 class="text-2xl font-black text-white">اقتراح خدمة جديدة</h2>
+            <button onclick="document.getElementById('suggestion-modal').classList.add('hidden')" class="text-slate-500 hover:text-white transition-colors">
+                <i class="fas fa-times text-xl"></i>
+            </button>
+        </div>
+        
+        <p class="text-slate-400 text-sm mb-8 leading-relaxed">أخبرنا عما تبحث عنه، وسيقوم فريقنا بمراجعة طلبك وتوفيره في أسرع وقت ممكن.</p>
+        
+        <form action="{% url 'site_product_suggestion' %}" method="post" class="space-y-6 text-right">
+            {% csrf_token %}
+            <div class="space-y-2">
+                <label class="text-[10px] font-black text-slate-500 mr-4 uppercase tracking-widest">اسم المنتج المقترح</label>
+                <input type="text" name="product_name" class="w-full bg-slate-800/50 border border-slate-700/50 rounded-2xl px-5 py-4 text-white placeholder-slate-500 focus:outline-none focus:border-cyan/50 focus:ring-4 focus:ring-cyan/10 transition-all search-input" placeholder="مثلاً: بطاقة شحن X..." required>
             </div>
-
-            <div class="filter-group">
-                <span class="filter-label">ترتيب المنتجات</span>
-                <select class="w-full bg-slate-900/50 border-white/5 rounded-2xl p-4 text-xs text-white" onchange="location.href = '?sort=' + this.value + '&view={{ view_type }}'">
-                    <option value="newest" {% if sort == 'newest' %}selected{% endif %}>الأحدث أولاً</option>
-                    <option value="price_low" {% if sort == 'price_low' %}selected{% endif %}>الأقل سعراً</option>
-                    <option value="price_high" {% if sort == 'price_high' %}selected{% endif %}>الأعلى سعراً</option>
-                </select>
+            <div class="space-y-2">
+                <label class="text-[10px] font-black text-slate-500 mr-4 uppercase tracking-widest">رابط أو وصف مختصر</label>
+                <textarea name="description" rows="3" class="w-full bg-slate-800/50 border border-slate-700/50 rounded-2xl px-5 py-4 text-white placeholder-slate-500 focus:outline-none focus:border-cyan/50 focus:ring-4 focus:ring-cyan/10 transition-all search-input" placeholder="رابط الموقع أو تفاصيل إضافية..." required></textarea>
             </div>
-            
-            <div class="p-6 bg-cyan/5 rounded-2xl border border-cyan/10">
-                <h4 class="text-xs font-black text-cyan uppercase mb-2">هل تحتاج مساعدة؟</h4>
-                <p class="text-[10px] text-slate-500 leading-relaxed mb-4">تواصل مع فريق الدعم الفني لمساعدتك في اختيار الخدمة المناسبة.</p>
-                <a href="{% url 'chat_list' %}" class="btn btn-primary btn-sm w-full rounded-xl">تحدث معنا</a>
-            </div>
-        </aside>
-
-        <!-- Content -->
-        <main>
-            <div class="catalog-header reveal">
-                <div class="search-row flex-wrap">
-                    <form class="search-box-v3" method="get">
-                        <i class="fas fa-search"></i>
-                        <input type="hidden" name="view" value="{{ view_type }}">
-                        <input type="text" name="q" value="{{ query }}" placeholder="ابحث عن باقة، لعبة، أو بطاقة شحن...">
-                    </form>
-                    
-                    <div class="controls-group">
-                        <div class="toggle-group">
-                            <button type="button" onclick="location.href='?view=categories'" class="toggle-btn {% if view_type == 'categories' %}active{% endif %}">الفئات</button>
-                            <button type="button" onclick="location.href='?view=products'" class="toggle-btn {% if view_type == 'products' %}active{% endif %}">المنتجات</button>
-                        </div>
-
-                        {% if view_type == 'products' %}
-                        <div class="grid-controls">
-                            <button type="button" onclick="setGrid(2)" class="grid-btn {% if cols == '2' %}active{% endif %}" id="btn-grid-2"><i class="fas fa-th-large"></i></button>
-                            <button type="button" onclick="setGrid(3)" class="grid-btn {% if cols == '3' %}active{% endif %}" id="btn-grid-3"><i class="fas fa-th"></i></button>
-                        </div>
-                        {% endif %}
-                    </div>
-                </div>
-            </div>
-
-            {% if view_type == 'categories' %}
-                <div class="cat-grid-v3">
-                    {% for cat in categories %}
-                    <a href="?category={{ cat.id }}&view=products" class="cat-card-v3 reveal">
-                        <div class="cat-icon-v3">
-                            {% if cat.image %}
-                            <img src="{{ cat.image.url }}" alt="{{ cat.name }}">
-                            {% else %}
-                            <i class="fas fa-folder text-3xl text-slate-700"></i>
-                            {% endif %}
-                        </div>
-                        <h3 class="text-sm font-black text-white mb-1">{{ cat.name }}</h3>
-                        <p class="text-[9px] text-slate-500 font-bold">{{ cat.product_count }} منتج</p>
-                    </a>
-                    {% endfor %}
-                </div>
-            {% else %}
-                <div class="p-grid-v3 {% if cols == '3' %}grid-3{% elif cols == '2' %}grid-2{% endif %}" id="catalog-grid">
-                    {% for p in products %}
-                    <div class="p-card-v3 reveal">
-                        {% if p.is_sale %}
-                        <div class="sale-badge">عرض خاص</div>
-                        {% endif %}
-
-                        {% if p.is_out_of_stock %}
-                        <div class="out-of-stock-overlay">
-                            <div class="out-of-stock-label">غير متوفر حالياً</div>
-                        </div>
-                        {% endif %}
-                        
-                        {% if p.delivery_time_display %}
-                        <div class="p-delivery-tag">
-                            <i class="far fa-clock"></i> {{ p.delivery_time_display }}
-                        </div>
-                        {% endif %}
-                        
-                        <a href="{% url 'product_detail' p.id %}" class="p-img-v3">
-                            {% if p.image %}
-                            <img src="{{ p.image.url }}" alt="{{ p.name }}" loading="lazy">
-                            {% else %}
-                            <i class="fas fa-box text-3xl opacity-10"></i>
-                            {% endif %}
-                        </a>
-
-                        <div class="p-body-v3">
-                            <div class="p-meta-v3">
-                                <span class="p-badge-v3">{{ p.category.name }}</span>
-                            </div>
-                            <a href="{% url 'product_detail' p.id %}" class="p-title-v3">{{ p.name }}</a>
-                            
-                            <!-- Packages Preview -->
-                            <div class="p-variants-preview">
-                                {% for v in p.variants.all|slice:":3" %}
-                                <span class="p-v-chip {% if v.is_sale %}on-sale{% endif %}">
-                                    {{ v.name }} {% if v.is_sale %}<i class="fas fa-fire ml-1 text-[8px]"></i>{% endif %}
-                                </span>
-                                {% endfor %}
-                            </div>
-
-                            <div class="p-footer-v3">
-                                <div class="p-price-v3">
-                                    <span class="label">يبدأ من</span>
-                                    {% variant_price p.variants.first as v_price %}
-                                    <span class="amt">{% currency_format v_price %}</span>
-                                </div>
-                                <a href="{% url 'product_detail' p.id %}" class="btn btn-primary btn-sm px-6 rounded-2xl font-bold">اطلب</a>
-                            </div>
-                        </div>
-                    </div>
-                    {% empty %}
-                    <div class="col-span-full py-32 text-center bg-slate-900/20 rounded-[3rem] border border-dashed border-white/5 reveal">
-                        <i class="fas fa-search text-4xl text-slate-800 mb-6"></i>
-                        <h3 class="text-xl font-black text-white">لم نجد ما تبحث عنه</h3>
-                        <p class="text-slate-500 mt-2">حاول استخدام كلمات بحث مختلفة أو تصفح الأقسام.</p>
-                        <a href="{% url 'catalog' %}" class="btn btn-outline btn-sm mt-8 px-10">إظهار كل الخدمات</a>
-                    </div>
-                    {% endfor %}
-                </div>
-            {% endif %}
-
-            <!-- Suggest a Service Section -->
-            <div class="mt-20 reveal">
-                <div class="glass-panel p-10 md:p-16 relative overflow-hidden text-center">
-                    <div class="absolute inset-0 bg-gradient-to-br from-indigo-500/10 via-transparent to-cyan-500/10 -z-10"></div>
-                    <div class="max-w-2xl mx-auto">
-                        <div class="w-16 h-16 bg-cyan/10 rounded-2xl flex items-center justify-center text-cyan mx-auto mb-8 shadow-inner">
-                            <i class="fas fa-lightbulb text-2xl"></i>
-                        </div>
-                        <h2 class="text-3xl font-black text-white mb-4">هل لديك خدمة محددة ترغب في توفرها؟</h2>
-                        <p class="text-slate-400 mb-10 leading-relaxed text-sm">
-                            نحن نسعى دائماً لتوسيع خدماتنا. إذا كان هناك منتج أو خدمة رقمية غير متوفرة في متجرنا حالياً، شاركنا اقتراحك وسنعمل على توفيرها بأفضل سعر.
-                        </p>
-                        <form action="{% url 'site_product_suggestion' %}" method="post" class="text-right space-y-6">
-                            {% csrf_token %}
-                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                <div class="space-y-2">
-                                    <label class="text-[10px] font-black text-slate-500 mr-4 uppercase tracking-widest">اسم المنتج المقترح</label>
-                                    <input type="text" name="product_name" class="auth-input !rounded-2xl" placeholder="مثلاً: بطاقة شحن X..." required>
-                                </div>
-                                <div class="space-y-2">
-                                    <label class="text-[10px] font-black text-slate-500 mr-4 uppercase tracking-widest">رابط أو وصف مختصر</label>
-                                    <input type="text" name="description" class="auth-input !rounded-2xl" placeholder="رابط الموقع أو تفاصيل إضافية..." required>
-                                </div>
-                            </div>
-                            <div class="flex justify-center">
-                                <button type="submit" class="btn btn-primary px-12 py-4 rounded-2xl font-black shadow-lg shadow-cyan/20 hover:scale-105 transition-all">
-                                    إرسال الاقتراح
-                                    <i class="fas fa-paper-plane mr-2 text-xs"></i>
-                                </button>
-                            </div>
-                        </form>
-                    </div>
-                </div>
-            </div>
-        </main>
+            <button type="submit" class="btn-premium w-full py-4 rounded-2xl font-black">إرسال الاقتراح</button>
+        </form>
     </div>
 </div>
 
 <script>
-    function setGrid(cols) {
-        const grid = document.getElementById('catalog-grid');
-        if (!grid) return;
-        
-        grid.className = 'p-grid-v3';
-        if (cols === 3) grid.classList.add('grid-3');
-        if (cols === 2) grid.classList.add('grid-2');
-        
-        document.querySelectorAll('.grid-btn').forEach(b => b.classList.remove('active'));
-        document.getElementById(`btn-grid-${cols}`).classList.add('active');
-        
-        // Save preference in URL without reload if possible, or just reload with param
-        const url = new URL(window.location);
-        url.searchParams.set('cols', cols);
-        window.history.pushState({}, '', url);
-    }
-    
     const observer = new IntersectionObserver((entries) => {
         entries.forEach(entry => {
-            if (entry.isIntersecting) entry.target.classList.add('visible');
+            if (entry.isIntersecting) {
+                entry.target.classList.add('visible');
+            }
         });
-    }, { threshold: 0.1 });
-    document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+    }, { threshold: 0.1, rootMargin: '0px 0px -50px 0px' });
+
+    document.querySelectorAll('.reveal-item').forEach(el => observer.observe(el));
 </script>
 {% endblock %}
-
-
