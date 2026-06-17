@@ -100,8 +100,8 @@
     }
 
     .currency-selector select {
-        background: rgba(255, 255, 255, 0.05);
-        border: 1px solid rgba(255, 255, 255, 0.1);
+        background: rgba(255, 255, 255, 0.1);
+        border: 1px solid rgba(255, 255, 255, 0.2);
         color: #fff;
         padding: 0.4rem 0.75rem;
         border-radius: 10px;
@@ -109,6 +109,11 @@
         font-size: 0.75rem;
         cursor: pointer;
         outline: none;
+    }
+
+    .currency-selector select option {
+        background: #0f172a;
+        color: #fff;
     }
 
     .notification-trigger i {
@@ -474,7 +479,7 @@
           {% if user.is_authenticated %}
             <div class="user-profile-hub">
                 <div class="user-meta">
-                    <span class="user-name">{{ user.display_name }}</span>
+                    <span class="user-name">{{ user.get_full_name|default:user.display_name }}</span>
                     <span class="user-balance">{% currency_format user.wallet.available_balance user.wallet.currency mode="withdraw" %}</span>
                 </div>
                 <a href="{% url 'site_logout' %}" class="logout-btn" title="تسجيل الخروج">

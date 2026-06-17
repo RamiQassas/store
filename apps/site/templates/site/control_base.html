@@ -166,9 +166,6 @@
                 <i class="fas fa-ticket-alt"></i> فتح تذكرة دعم</a>
 
             <div class="admin-nav-group"><span>إدارة المحتوى والموقع</span></div>
-            <a href="{% url 'control_stats_list' %}" class="admin-nav-link {% if 'control/stats' in request.path %}active{% endif %}">
-                <i class="fas fa-chart-line"></i> إحصائيات الواجهة
-            </a>
             <a href="{% url 'control_testimonials_list' %}" class="admin-nav-link {% if 'control/testimonials' in request.path %}active{% endif %}">
                 <i class="fas fa-comments"></i> مراجعات العملاء
             </a>
