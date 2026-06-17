@@ -17,6 +17,179 @@
   <link rel="stylesheet" href="{% static 'site/css/app.css' %}?v=4">
   
   <style>
+    /* Premium Desktop Header Styles */
+    .desktop-header {
+        position: sticky;
+        top: 0;
+        z-index: 1000;
+        background: rgba(5, 8, 22, 0.85);
+        backdrop-filter: blur(20px);
+        border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        padding: 0.75rem 0;
+        transition: all 0.3s ease;
+    }
+
+    .header-container {
+        width: min(100% - 3rem, 1320px);
+        margin-inline: auto;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 2rem;
+    }
+
+    .brand {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        text-decoration: none;
+        font-weight: 900;
+        font-size: 1.5rem;
+        color: #fff;
+        flex-shrink: 0;
+    }
+
+    .brand i { color: var(--cyan); text-shadow: 0 0 15px var(--cyan); }
+
+    .nav-links {
+        display: flex;
+        align-items: center;
+        gap: 1.5rem;
+        flex-grow: 1;
+        justify-content: center;
+    }
+
+    .nav-links a {
+        color: #94a3b8;
+        text-decoration: none;
+        font-weight: 700;
+        font-size: 0.9rem;
+        transition: all 0.3s ease;
+        position: relative;
+        padding: 0.5rem 0;
+    }
+
+    .nav-links a:hover, .nav-links a.active { color: #fff; }
+    .nav-links a::after {
+        content: '';
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        width: 0;
+        height: 2px;
+        background: var(--cyan);
+        transition: width 0.3s ease;
+        box-shadow: 0 0 10px var(--cyan);
+    }
+    .nav-links a:hover::after, .nav-links a.active::after { width: 100%; }
+
+    .admin-link {
+        color: #fbbf24 !important;
+        background: rgba(251, 191, 36, 0.1);
+        padding: 0.4rem 1rem !important;
+        border-radius: 100px;
+        border: 1px solid rgba(251, 191, 36, 0.2);
+    }
+    .admin-link:hover { background: rgba(251, 191, 36, 0.2) !important; }
+
+    .header-actions {
+        display: flex;
+        align-items: center;
+        gap: 1.5rem;
+        flex-shrink: 0;
+    }
+
+    .currency-selector select {
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        color: #fff;
+        padding: 0.4rem 0.75rem;
+        border-radius: 10px;
+        font-weight: 800;
+        font-size: 0.75rem;
+        cursor: pointer;
+        outline: none;
+    }
+
+    .notification-trigger i {
+        font-size: 1.25rem;
+        color: #94a3b8;
+        transition: color 0.3s;
+    }
+    .notification-trigger:hover i { color: #fff; }
+    .count-badge {
+        position: absolute;
+        top: -8px;
+        right: -8px;
+        background: #ef4444;
+        color: #fff;
+        font-size: 0.6rem;
+        font-weight: 900;
+        width: 18px;
+        height: 18px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border: 2px solid #050816;
+    }
+
+    .user-profile-hub {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        padding-left: 1rem;
+        border-left: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .user-meta {
+        display: flex;
+        flex-direction: column;
+        text-align: left;
+    }
+
+    .user-name {
+        color: #fff;
+        font-weight: 800;
+        font-size: 0.85rem;
+        max-width: 150px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .user-balance {
+        color: var(--cyan);
+        font-weight: 900;
+        font-size: 0.75rem;
+    }
+
+    .logout-btn {
+        width: 36px;
+        height: 36px;
+        border-radius: 10px;
+        background: rgba(239, 68, 68, 0.1);
+        color: #ef4444;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        text-decoration: none;
+        transition: all 0.3s;
+        border: 1px solid rgba(239, 68, 68, 0.2);
+    }
+    .logout-btn:hover { background: #ef4444; color: #fff; }
+
+    .btn-premium-sm {
+        padding: 0.5rem 1.25rem;
+        border-radius: 10px;
+        font-weight: 800;
+        font-size: 0.8rem;
+        text-decoration: none;
+        transition: all 0.3s;
+    }
+    .btn-premium-sm.primary { background: var(--cyan); color: #000; }
+    .btn-premium-sm.ghost { border: 1px solid rgba(255,255,255,0.1); color: #fff; }
+
     /* Mobile Navigation Fixes */
     .mobile-header {
         position: sticky;
@@ -254,57 +427,65 @@
   </div>
 
   <div class="shell">
-    <!-- Desktop Header -->
     <header class="desktop-header">
-      <div class="topbar">
+      <div class="header-container">
         <a href="{% url 'home' %}" class="brand">
           <i class="fas fa-bolt"></i> <span>RAQAMIYAT</span>
         </a>
 
-        <nav class="nav">
+        <nav class="nav-links">
           <a href="{% url 'home' %}" class="{% if request.resolver_match.url_name == 'home' %}active{% endif %}">الرئيسية</a>
           <a href="{% url 'catalog' %}" class="{% if request.resolver_match.url_name == 'catalog' %}active{% endif %}">الخدمات</a>
           {% if user.is_authenticated %}
              <a href="{% url 'dashboard' %}" class="{% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}">حسابي</a>
              <a href="{% url 'dashboard_orders' %}" class="{% if request.resolver_match.url_name == 'dashboard_orders' %}active{% endif %}">طلباتي</a>
              <a href="{% url 'dashboard_wallet' %}" class="{% if request.resolver_match.url_name == 'dashboard_wallet' %}active{% endif %}">المحفظة</a>
-             <a href="{% url 'notification_settings' %}" class="{% if request.resolver_match.url_name == 'notification_settings' %}active{% endif %}">الإشعارات</a>
              <a href="{% url 'chat_list' %}" class="{% if 'chat' in request.path %}active{% endif %}">الدعم المباشر</a>
              {% if user.is_superuser or user.role == "super_admin" or user.role == "admin" %}
-                <a href="{% url 'control_dashboard' %}" class="{% if 'control' in request.path %}active{% endif %}">لوحة التحكم</a>
+                <a href="{% url 'control_dashboard' %}" class="admin-link">لوحة التحكم</a>
              {% endif %}
           {% endif %}
         </nav>
 
-        <div class="actions">
-          {% if user.is_authenticated %}
-          <div class="relative ml-4">
-              <a href="{% url 'notifications_list' %}" class="text-slate-400 hover:text-white transition-colors relative">
-                  <i class="fas fa-bell text-xl"></i>
-                  {% if UNREAD_NOTIFICATIONS_COUNT > 0 %}
-                  <span class="absolute -top-1.5 -right-1.5 w-5 h-5 bg-rose-500 rounded-full border-2 border-[#050811] flex items-center justify-center text-[10px] text-white font-black">{{ UNREAD_NOTIFICATIONS_COUNT }}</span>
-                  {% endif %}
-              </a>
+        <div class="header-actions">
+          <!-- Currency & Notifications -->
+          <div class="flex items-center gap-3">
+              <div class="currency-selector">
+                  <select onchange="location.href='{% url 'set_currency' %}?currency=' + this.value">
+                      {% for c in ALL_CURRENCIES %}
+                      <option value="{{ c.id }}" {% if c.id == CURRENCY.id %}selected{% endif %}>{{ c.code }}</option>
+                      {% endfor %}
+                  </select>
+              </div>
+
+              {% if user.is_authenticated %}
+              <div class="notification-trigger">
+                  <a href="{% url 'notifications_list' %}" class="relative">
+                      <i class="fas fa-bell"></i>
+                      {% if UNREAD_NOTIFICATIONS_COUNT > 0 %}
+                      <span class="count-badge">{{ UNREAD_NOTIFICATIONS_COUNT }}</span>
+                      {% endif %}
+                  </a>
+              </div>
+              {% endif %}
           </div>
-          {% endif %}
-          <div class="flex items-center gap-2 ml-4">
-              <select class="text-[10px] bg-slate-800 border-none rounded p-1 text-slate-400 font-bold cursor-pointer" onchange="location.href='{% url 'set_currency' %}?currency=' + this.value">
-                  {% for c in ALL_CURRENCIES %}
-                  <option value="{{ c.id }}" {% if c.id == CURRENCY.id %}selected{% endif %}>{{ c.code }}</option>
-                  {% endfor %}
-              </select>
-          </div>
+
+          <!-- User Identity -->
           {% if user.is_authenticated %}
-            <div class="flex items-center gap-4">
-                <div class="text-left hide-mobile">
-                    <div class="text-[10px] text-white font-black opacity-80">{{ user.display_name }}</div>
-                    <div class="text-[9px] text-cyan font-bold">{% currency_format user.wallet.available_balance user.wallet.currency mode="withdraw" %}</div>
+            <div class="user-profile-hub">
+                <div class="user-meta">
+                    <span class="user-name">{{ user.display_name }}</span>
+                    <span class="user-balance">{% currency_format user.wallet.available_balance user.wallet.currency mode="withdraw" %}</span>
                 </div>
-                <a href="{% url 'site_logout' %}" class="btn btn-sm btn-outline"><i class="fas fa-sign-out-alt"></i></a>
+                <a href="{% url 'site_logout' %}" class="logout-btn" title="تسجيل الخروج">
+                    <i class="fas fa-sign-out-alt"></i>
+                </a>
             </div>
           {% else %}
-            <a href="{% url 'site_login' %}" class="btn btn-sm btn-outline">تسجيل الدخول</a>
-            <a href="{% url 'site_register' %}" class="btn btn-sm btn-primary">حساب جديد</a>
+            <div class="flex gap-2">
+                <a href="{% url 'site_login' %}" class="btn-premium-sm ghost">دخول</a>
+                <a href="{% url 'site_register' %}" class="btn-premium-sm primary">حساب جديد</a>
+            </div>
           {% endif %}
         </div>
       </div>
