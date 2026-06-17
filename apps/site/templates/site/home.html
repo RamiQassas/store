@@ -1418,32 +1418,32 @@
     <div class="home-wrap">
       <div class="section-head reveal">
         <div>
-          <span class="section-kicker"><i class="fas fa-gem"></i> لماذا رقميات؟</span>
-          <h2 class="section-title">تجربة شراء مبنية للثقة والسرعة</h2>
-          <p class="section-copy">كل عنصر في الصفحة يوجه المستخدم نحو قرار واضح: تصفح، شحن، شراء، أو طلب دعم.</p>
+          <span class="section-kicker"><i class="fas fa-microchip"></i> خدمات تقنية متكاملة</span>
+          <h2 class="section-title">حلول رقمية ذكية تناسب احتياجاتك</h2>
+          <p class="section-copy">منصة رقميات لا تقتصر على الألعاب فحسب، بل هي بوابتك لكل ما هو تقني من خدمات شحن، برمجة، وتوريد خدمات رقمية عالمية.</p>
         </div>
       </div>
 
       <div class="features-grid">
         <div class="feature-card reveal">
-          <div class="feature-icon"><i class="fas fa-bolt"></i></div>
-          <h3>تنفيذ سريع</h3>
-          <p>رحلة شراء مختصرة من اختيار المنتج حتى متابعة حالة الطلب داخل الحساب.</p>
-        </div>
-        <div class="feature-card reveal">
           <div class="feature-icon"><i class="fas fa-shield-halved"></i></div>
-          <h3>أمان ووضوح</h3>
-          <p>محفظة داخلية، سجل عمليات، وأسعار واضحة قبل إتمام أي طلب.</p>
+          <h3>أمان واستقرار</h3>
+          <p>نظام مالي مستقر يحفظ حقوقك ويوفر لك الشفافية في كل عملية شراء أو إيداع.</p>
         </div>
         <div class="feature-card reveal">
-          <div class="feature-icon"><i class="fas fa-headset"></i></div>
-          <h3>دعم مباشر</h3>
-          <p>نظام محادثة داخلي لمتابعة الاستفسارات والطلبات من مكان واحد.</p>
+          <div class="feature-icon"><i class="fas fa-code"></i></div>
+          <h3>دعم تقني متخصص</h3>
+          <p>فريق فني خبير يتابع طلباتك ويضمن لك أفضل تجربة استخدام للمنتجات الرقمية.</p>
         </div>
         <div class="feature-card reveal">
-          <div class="feature-icon"><i class="fas fa-boxes-stacked"></i></div>
-          <h3>تنوع المنتجات</h3>
-          <p>تصنيفات قابلة للتوسع للبطاقات والألعاب والخدمات الرقمية المطلوبة.</p>
+          <div class="feature-icon"><i class="fas fa-globe"></i></div>
+          <h3>خدمات عالمية</h3>
+          <p>توفير أرصدة وبطاقات من مختلف المتاجر العالمية بأسعار تنافسية ومباشرة.</p>
+        </div>
+        <div class="feature-card reveal">
+          <div class="feature-icon"><i class="fas fa-gears"></i></div>
+          <h3>تطور مستمر</h3>
+          <p>نحرص دائماً على إضافة أحدث الحلول التقنية والمنتجات المطلوبة في السوق الرقمي.</p>
         </div>
       </div>
     </div>
@@ -1462,7 +1462,7 @@
         {% for s in display_stats %}
         <div class="stat-card {% if forloop.first %}main{% endif %} reveal">
           <i class="{{ s.icon_class }}"></i>
-          <strong>{{ s.value|default:0 }}+</strong>
+          <strong>{{ s.value }}</strong>
           <span>{{ s.label }}</span>
         </div>
         {% endfor %}

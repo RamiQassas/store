@@ -979,7 +979,7 @@ def home(request):
             
         display_stats.append({
             'label': stat.label,
-            'value': val,
+            'value': stat.string_value or f"{val}{stat.value_suffix}",
             'icon_class': stat.icon_class or 'fas fa-star',
             'stat_type': stat.stat_type
         })

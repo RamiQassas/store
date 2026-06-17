@@ -159,7 +159,9 @@ class PlatformStatistic(TimeStampedModel):
         EXECUTION_TIME = "execution_time", "وقت التنفيذ"
 
     label = models.CharField(max_length=100, verbose_name="تسمية الإحصائية")
-    value_override = models.IntegerField(default=0, help_text="القيمة التي ستظهر (أو الزيادة على الرقم الحقيقي)")
+    value_override = models.IntegerField(default=0, help_text="القيمة الرقمية (يتم إضافتها للرقم الحقيقي)")
+    value_suffix = models.CharField(max_length=20, blank=True, default="+", help_text="مثال: + أو %")
+    string_value = models.CharField(max_length=50, blank=True, help_text="قيمة نصية مخصصة (تتجاوز الرقم، مثال: 24/7)")
     icon_class = models.CharField(max_length=50, blank=True, help_text="FontAwesome class (e.g. fas fa-users)")
     stat_type = models.CharField(max_length=20, choices=StatType.choices, default=StatType.CUSTOM, verbose_name="نوع الإحصائية")
     is_active = models.BooleanField(default=True, verbose_name="نشط")

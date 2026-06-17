@@ -6,8 +6,9 @@ django.setup()
 
 from apps.common.models import PlatformStatistic
 
-PlatformStatistic.objects.get_or_create(label='مستخدم نشط', stat_type='users', defaults={'icon_class': 'fas fa-users', 'value_override': 1500, 'display_order': 1})
-PlatformStatistic.objects.get_or_create(label='طلب مكتمل', stat_type='orders', defaults={'icon_class': 'fas fa-receipt', 'value_override': 3000, 'display_order': 2})
-PlatformStatistic.objects.get_or_create(label='عملية إيداع ناجحة', stat_type='deposits', defaults={'icon_class': 'fas fa-wallet', 'value_override': 500, 'display_order': 3})
-PlatformStatistic.objects.get_or_create(label='طلبات سحب مكتملة', stat_type='withdrawals', defaults={'icon_class': 'fas fa-money-bill-wave', 'value_override': 100, 'display_order': 4})
-PlatformStatistic.objects.get_or_create(label='تنفيذ سريع', stat_type='execution_time', defaults={'icon_class': 'fas fa-stopwatch', 'value_override': 15, 'display_order': 5})
+PlatformStatistic.objects.all().delete()
+
+PlatformStatistic.objects.create(label='عميل موثق ومسجل', stat_type='users', value_override=1500, value_suffix='+', icon_class='fas fa-user-check', display_order=1)
+PlatformStatistic.objects.create(label='طلب مكتمل على المنصة', stat_type='orders', value_override=3000, value_suffix='+', icon_class='fas fa-server', display_order=2)
+PlatformStatistic.objects.create(label='دعم ومتابعة فنية', stat_type='custom', string_value='24/7', icon_class='fas fa-microchip', display_order=3)
+PlatformStatistic.objects.create(label='تنفيذ آلي وسريع', stat_type='execution_time', value_override=10, value_suffix=' دقيقة', icon_class='fas fa-bolt-lightning', display_order=4)
