@@ -14,28 +14,38 @@
         <p class="text-slate-400 text-sm">تحكم في كيفية وتوقيت استلامك للتنبيهات من المنصة.</p>
     </div>
 
-    <form method="post" class="space-y-8">
-        {% csrf_token %}
-        <input type="hidden" name="privacy_settings" value="1">
+    <!-- Identity & Privacy Section -->
+    <div class="mb-12">
+        <h3 class="text-sm font-black text-indigo-400 uppercase tracking-[0.2em] mb-6 flex items-center gap-2">
+            <i class="fas fa-user-shield"></i> إعدادات الهوية والخصوصية
+        </h3>
         
-        <!-- Privacy Toggle -->
-        <div class="p-6 bg-indigo-500/5 rounded-2xl border border-indigo-500/10 flex items-center justify-between">
-            <div>
-                <h3 class="text-lg font-bold text-white">عرض الاسم الكامل</h3>
-                <p class="text-xs text-slate-500">عند التفعيل، سيظهر اسمك الحقيقي في المراجعات واللوحات العامة بدلاً من البريد الإلكتروني.</p>
+        <form method="post" class="glass-panel p-8 border-indigo-500/20 bg-indigo-500/5 relative overflow-hidden">
+            {% csrf_token %}
+            <input type="hidden" name="privacy_settings" value="1">
+            <div class="flex items-center justify-between gap-6">
+                <div class="max-w-md">
+                    <h4 class="text-lg font-bold text-white mb-1">عرض اسمي الحقيقي</h4>
+                    <p class="text-xs text-slate-500 leading-relaxed">عند التفعيل، سيظهر اسمك الكامل ({{ user.get_full_name|default:"لم يتم تعيينه" }}) في التعليقات واللوحات العامة بدلاً من بريدك الإلكتروني المخفي.</p>
+                </div>
+                <label class="relative inline-flex items-center cursor-pointer scale-125">
+                    {{ privacy_form.show_full_name }}
+                    <div class="w-14 h-7 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:start-[4px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all peer-checked:bg-indigo-500 shadow-inner"></div>
+                </label>
             </div>
-            <label class="relative inline-flex items-center cursor-pointer">
-                {{ privacy_form.show_full_name }}
-                <div class="w-14 h-7 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:start-[4px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all peer-checked:bg-indigo-500"></div>
-            </label>
-        </div>
-        
-        <div class="flex justify-end">
-            <button type="submit" class="text-xs font-black text-indigo-400 hover:underline uppercase tracking-widest">تحديث إعدادات الهوية</button>
-        </div>
-    </form>
+            
+            <div class="mt-8 pt-6 border-t border-white/5 flex justify-between items-center">
+                <span class="text-[10px] text-slate-500 italic">* تغيير هذا الإعداد سيؤثر على جميع ظهورك الحالي والمستقبلي.</span>
+                <button type="submit" class="btn btn-primary !bg-indigo-600 hover:!bg-indigo-500 px-6 py-2.5 rounded-xl text-xs font-black shadow-lg shadow-indigo-500/20">حفظ إعدادات الهوية</button>
+            </div>
+        </form>
+    </div>
 
-    <div class="h-px bg-white/5 my-10"></div>
+    <div class="h-px bg-white/5 my-12"></div>
+
+    <h3 class="text-sm font-black text-cyan uppercase tracking-[0.2em] mb-6 flex items-center gap-2">
+        <i class="fas fa-bell"></i> تفضيلات الإشعارات
+    </h3>
 
     <form method="post" class="space-y-8">
         {% csrf_token %}

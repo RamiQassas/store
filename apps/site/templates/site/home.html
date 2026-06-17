@@ -1,33 +1,40 @@
 {% extends "site/base.html" %}
 {% load static site_tags %}
 
-{% block title %}رقميات | بوابتك للخدمات الرقمية النخبوية{% endblock %}
+{% block title %}رقميات | المنصة الرائدة للخدمات الرقمية الفاخرة{% endblock %}
 
 {% block extra_head %}
-<!-- Tailwind CSS with System Dark Mode Support -->
+<!-- Tailwind CSS - Forced Dark Mode Aesthetic -->
 <script src="https://cdn.tailwindcss.com"></script>
 <script>
     tailwind.config = {
-        darkMode: 'media',
+        darkMode: 'class',
         theme: {
             extend: {
                 colors: {
-                    'apple-bg': '#f5f5f7',
-                    'apple-dark-bg': '#000000',
+                    'dark-bg': '#050811',
+                    'panel-bg': 'rgba(15, 23, 42, 0.6)',
                     'cyan': '#06b6d4',
                     'indigo': '#6366f1',
-                },
-                fontFamily: {
-                    'cairo': ['Cairo', 'sans-serif'],
+                    'purple': '#a855f7',
                 },
                 animation: {
                     'float': 'float 6s ease-in-out infinite',
-                    'pulse-slow': 'pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                    'reveal': 'reveal 0.8s cubic-bezier(0.2, 1, 0.3, 1) forwards',
+                    'pulse-glow': 'pulse-glow 3s infinite alternate',
                 },
                 keyframes: {
                     float: {
                         '0%, 100%': { transform: 'translateY(0)' },
                         '50%': { transform: 'translateY(-20px)' },
+                    },
+                    reveal: {
+                        '0%': { opacity: '0', transform: 'translateY(30px)' },
+                        '100%': { opacity: '1', transform: 'translateY(0)' },
+                    },
+                    'pulse-glow': {
+                        '0%': { opacity: '0.3', transform: 'scale(1)' },
+                        '100%': { opacity: '0.6', transform: 'scale(1.1)' },
                     }
                 }
             }
@@ -36,255 +43,287 @@
 </script>
 
 <style type="text/tailwindcss">
-    @layer base {
-        body {
-            @apply bg-apple-bg dark:bg-apple-dark-bg text-slate-900 dark:text-slate-100 font-cairo transition-colors duration-500;
-        }
-    }
-
     @layer components {
-        .glass-card {
-            @apply bg-white/70 dark:bg-slate-900/40 backdrop-blur-2xl border border-black/5 dark:border-white/5 rounded-[2.5rem] shadow-sm transition-all duration-500;
+        .glass-panel {
+            @apply bg-slate-900/40 backdrop-blur-2xl border border-white/5 rounded-[2.5rem] shadow-2xl;
         }
-        .apple-btn {
-            @apply px-8 py-4 rounded-full font-bold transition-all duration-300 flex items-center justify-center gap-2;
+        .stat-card {
+            @apply glass-panel p-8 flex flex-col justify-between transition-all duration-500 hover:border-cyan/30 hover:-translate-y-2;
         }
-        .apple-btn-primary {
-            @apply bg-black dark:bg-white text-white dark:text-black hover:opacity-90 active:scale-95;
+        .btn-premium {
+            @apply relative overflow-hidden bg-gradient-to-r from-cyan to-indigo text-white font-black py-5 px-10 rounded-2xl transition-all hover:scale-105 active:scale-95 shadow-lg shadow-cyan/20 flex items-center justify-center gap-2;
         }
-        .apple-btn-secondary {
-            @apply bg-white/50 dark:bg-white/10 backdrop-blur-md border border-black/5 dark:border-white/10 text-black dark:text-white hover:bg-white/80 dark:hover:bg-white/20;
-        }
-        .bento-grid {
-            @apply grid grid-cols-1 md:grid-cols-4 gap-4 md:grid-rows-2;
-        }
-        .bento-item {
-            @apply glass-card p-8 flex flex-col justify-between overflow-hidden relative;
+        .section-label {
+            @apply text-[10px] font-black text-cyan uppercase tracking-[0.4em] mb-4 block;
         }
     }
 
-    /* Hide standard base.html backgrounds if any */
-    body { background-image: none !important; }
-    
-    .scroll-hide::-webkit-scrollbar { display: none; }
-    .scroll-hide { -ms-overflow-style: none; scrollbar-width: none; }
+    /* Enforce Dark Background Global */
+    body { background-color: #050811 !important; color: #f8fafc !important; }
+    .shell { background: transparent !important; }
 
-    .reveal { opacity: 0; transform: translateY(30px); transition: all 0.8s cubic-bezier(0.16, 1, 0.3, 1); }
-    .reveal.visible { opacity: 1; transform: translateY(0); }
+    .reveal-item { opacity: 0; }
+    .reveal-item.visible { @apply animate-reveal; }
+
+    .glow-orb {
+        @apply absolute rounded-full blur-[120px] -z-10;
+    }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="relative min-h-screen">
+<div class="relative min-h-screen overflow-hidden">
     
-    <!-- Hero Section -->
-    <section class="pt-20 pb-32 px-4 text-center reveal">
-        <div class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-cyan/10 text-cyan text-[10px] font-black uppercase tracking-widest mb-8 animate-pulse-slow">
-            <i class="fas fa-sparkles"></i>
-            الإصدار الجديد متوفر الآن
-        </div>
-        <h1 class="text-5xl md:text-8xl font-black tracking-tight mb-8 leading-[1.05] dark:text-white">
-            الخدمات الرقمية.<br/>
-            <span class="text-slate-400 dark:text-slate-500">كما لم تراها من قبل.</span>
-        </h1>
-        <p class="text-lg md:text-xl text-slate-500 dark:text-slate-400 max-w-2xl mx-auto mb-12 font-medium">
-            سرعة، أمان، وتجربة مستخدم فاخرة. رقميات تعيد ابتكار سوق الخدمات الرقمية في المنطقة.
-        </p>
-        <div class="flex flex-col sm:flex-row items-center justify-center gap-4">
-            <a href="{% url 'catalog' %}" class="apple-btn apple-btn-primary w-full sm:w-auto">
-                ابدأ التصفح
-            </a>
-            <a href="{% url 'chat_list' %}" class="apple-btn apple-btn-secondary w-full sm:w-auto">
-                تحدث مع الدعم
-                <i class="fas fa-chevron-left text-[10px] opacity-30"></i>
-            </a>
-        </div>
-    </section>
+    <!-- Background Decor -->
+    <div class="glow-orb w-[500px] h-[500px] bg-cyan/10 -top-40 -right-20 animate-pulse-glow"></div>
+    <div class="glow-orb w-[400px] h-[400px] bg-indigo/10 top-1/2 -left-20 animate-pulse-glow" style="animation-delay: -2s"></div>
 
-    <!-- Bento Statistics Section -->
-    <section class="container mx-auto px-4 mb-32 reveal">
-        <div class="bento-grid h-auto md:h-[600px]">
-            <!-- Main Stats Card -->
-            <div class="bento-item md:col-span-2 md:row-span-2 bg-gradient-to-br from-cyan/20 to-indigo/20 !border-cyan/10">
-                <div>
-                    <span class="text-[10px] font-black uppercase tracking-widest text-cyan mb-4 block">إحصائيات المنصة</span>
-                    <h2 class="text-3xl md:text-5xl font-black text-slate-900 dark:text-white leading-tight">
-                        أرقام تتحدث عن <br/> قوتنا.
-                    </h2>
-                </div>
-                <div class="grid grid-cols-2 gap-8 mt-12">
-                    <div>
-                        <div class="text-4xl font-black text-slate-900 dark:text-white mb-1">{{ base_stats.users|add:1500 }}+</div>
-                        <div class="text-xs font-bold text-slate-500 uppercase">مستخدم نشط</div>
-                    </div>
-                    <div>
-                        <div class="text-4xl font-black text-slate-900 dark:text-white mb-1">{{ base_stats.orders|add:3000 }}+</div>
-                        <div class="text-xs font-bold text-slate-500 uppercase">طلب مكتمل</div>
-                    </div>
-                </div>
-                <!-- Abstract visual -->
-                <div class="absolute -bottom-10 -right-10 w-48 h-48 bg-cyan/20 rounded-full blur-3xl"></div>
-            </div>
-
-            <!-- Custom Stats from Admin -->
-            {% for s in custom_stats|slice:":3" %}
-            <div class="bento-item {% if forloop.first %}md:col-span-2{% endif %}">
-                <div class="w-10 h-10 rounded-xl bg-slate-100 dark:bg-white/5 flex items-center justify-center text-slate-900 dark:text-white mb-4">
-                    <i class="{{ s.icon_class|default:'fas fa-chart-line' }}"></i>
-                </div>
-                <div>
-                    <h4 class="text-xs font-bold text-slate-500 mb-1">{{ s.label }}</h4>
-                    <div class="text-2xl font-black text-slate-900 dark:text-white">{{ s.value_override }}+</div>
-                </div>
-            </div>
-            {% endfor %}
-
-            <!-- Fallback if few stats -->
-            {% if custom_stats.count < 3 %}
-            <div class="bento-item">
-                <div class="w-10 h-10 rounded-xl bg-slate-100 dark:bg-white/5 flex items-center justify-center text-slate-900 dark:text-white mb-4">
-                    <i class="fas fa-shield-check"></i>
-                </div>
-                <div>
-                    <h4 class="text-xs font-bold text-slate-500 mb-1">نسبة الأمان</h4>
-                    <div class="text-2xl font-black text-slate-900 dark:text-white">100%</div>
-                </div>
-            </div>
-            {% endif %}
-        </div>
-    </section>
-
-    <!-- Featured Products Horizontal Scroll -->
-    <section class="mb-32">
-        <div class="container mx-auto px-4 flex items-end justify-between mb-12 reveal">
-            <div>
-                <span class="text-[10px] font-black uppercase tracking-widest text-indigo-500 mb-2 block">المتجر</span>
-                <h2 class="text-3xl md:text-5xl font-black text-slate-900 dark:text-white">أبرز الخدمات.</h2>
-            </div>
-            <a href="{% url 'catalog' %}" class="text-sm font-bold text-cyan hover:underline">عرض الكل</a>
-        </div>
+    <div class="container mx-auto px-4 pt-16 pb-32 relative z-10">
         
-        <div class="flex gap-6 overflow-x-auto px-4 pb-12 scroll-hide md:px-[calc((100vw-1280px)/2)]">
-            {% for p in featured_products %}
-            <div class="min-w-[300px] md:min-w-[400px] group reveal">
-                <a href="{% url 'product_detail' p.id %}" class="block glass-card h-[450px] overflow-hidden relative group-hover:scale-[0.98] transition-all duration-700">
-                    <div class="p-8 relative z-10">
-                        <span class="text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase mb-2 block">{{ p.category.name }}</span>
-                        <h3 class="text-2xl font-black text-slate-900 dark:text-white leading-tight mb-4">{{ p.name }}</h3>
-                        {% variant_price p.variants.first as v_price %}
-                        <div class="text-lg font-bold text-cyan">{% currency_format v_price %}</div>
-                    </div>
-                    
-                    <div class="absolute inset-x-0 bottom-0 p-8 flex items-center justify-center">
-                        {% if p.image %}
-                        <img src="{{ p.image.url }}" alt="{{ p.name }}" class="max-h-64 object-contain transition-transform duration-700 group-hover:scale-110">
-                        {% endif %}
-                    </div>
-
-                    <!-- Overlay for hover -->
-                    <div class="absolute inset-0 bg-black/0 group-hover:bg-black/5 dark:group-hover:bg-white/5 transition-colors duration-500"></div>
+        <!-- Hero Section -->
+        <section class="text-center mb-32 reveal-item">
+            <div class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-cyan/10 border border-cyan/20 text-cyan text-[10px] font-black uppercase tracking-widest mb-10">
+                <i class="fas fa-sparkles"></i>
+                أهلاً بك في الجيل الجديد من الخدمات الرقمية
+            </div>
+            <h1 class="text-5xl md:text-7xl lg:text-9xl font-black text-white mb-8 tracking-tighter leading-[1] italic">
+                رقميات.<br/>
+                <span class="text-slate-500 not-italic font-medium text-4xl md:text-6xl lg:text-7xl">حيث تتلاقى القوة بالبساطة.</span>
+            </h1>
+            <p class="text-slate-400 text-lg md:text-xl max-w-3xl mx-auto mb-12 leading-relaxed font-medium">
+                المنصة الأكثر أماناً وسرعة في المنطقة لتوفير كافة البطاقات والاشتراكات الرقمية. تسليم آلي فوري، دعم فني 24/7، وأسعار منافسة للسوق العالمي.
+            </p>
+            <div class="flex flex-col sm:flex-row items-center justify-center gap-6">
+                <a href="{% url 'catalog' %}" class="btn-premium w-full sm:w-auto">
+                    ابدأ التسوق الآن
+                    <i class="fas fa-arrow-left text-sm ml-2"></i>
+                </a>
+                <a href="#about" class="px-10 py-5 rounded-2xl border border-white/10 bg-white/5 backdrop-blur-md text-white font-bold hover:bg-white/10 transition-all w-full sm:w-auto">
+                    اكتشف المزيد
                 </a>
             </div>
-            {% endfor %}
-        </div>
-    </section>
+        </section>
 
-    <!-- Testimonials Section -->
-    <section class="container mx-auto px-4 mb-32 reveal">
-        <div class="glass-card p-12 md:p-20 relative overflow-hidden">
-            <div class="absolute top-0 right-0 p-8 opacity-5">
-                <i class="fas fa-quote-right text-[150px]"></i>
-            </div>
-            
-            <div class="text-center mb-16 relative z-10">
-                <span class="text-[10px] font-black uppercase tracking-widest text-cyan mb-4 block">آراء العملاء</span>
-                <h2 class="text-3xl md:text-5xl font-black text-slate-900 dark:text-white">بماذا يصفونا؟</h2>
-            </div>
-
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-8 relative z-10">
-                {% for t in testimonials %}
-                <div class="space-y-4">
-                    <div class="flex gap-1 text-amber-400 text-xs">
-                        {% for i in "12345" %}
-                            <i class="fas fa-star {% if forloop.counter > t.rating %}opacity-20{% endif %}"></i>
-                        {% endfor %}
+        <!-- Stats Bento Grid (High Impact) -->
+        <section class="mb-40 reveal-item">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-6 md:grid-rows-2">
+                <!-- Main Highlight -->
+                <div class="md:col-span-2 md:row-span-2 glass-panel p-12 flex flex-col justify-between border-cyan-500/20 bg-gradient-to-br from-cyan-500/5 to-transparent relative overflow-hidden group">
+                    <div class="absolute -right-20 -bottom-20 w-80 h-80 bg-cyan/10 rounded-full blur-3xl group-hover:scale-110 transition-transform duration-700"></div>
+                    <div>
+                        <span class="section-label">إحصائيات مباشرة</span>
+                        <h2 class="text-4xl md:text-6xl font-black text-white leading-[1.1]">المنصة<br/>بالأرقام.</h2>
                     </div>
-                    <p class="text-lg font-medium text-slate-600 dark:text-slate-300 italic">"{{ t.text }}"</p>
-                    <div class="flex items-center gap-3 pt-4 border-t border-black/5 dark:border-white/5">
-                        <div class="w-10 h-10 rounded-full bg-slate-200 dark:bg-slate-800 flex items-center justify-center text-xs font-black">
-                            {{ t.user.display_name|slice:":1"|upper }}
+                    <div class="grid grid-cols-2 gap-10 mt-12 relative z-10">
+                        <div>
+                            <div class="text-5xl font-black text-white mb-2">{{ base_stats.users|add:1500 }}+</div>
+                            <div class="text-[11px] font-black text-slate-500 uppercase tracking-widest">عميل موثق</div>
                         </div>
                         <div>
-                            <div class="text-xs font-bold text-slate-900 dark:text-white">{{ t.user.display_name }}</div>
-                            <div class="text-[9px] text-slate-500 uppercase">عميل موثق</div>
+                            <div class="text-5xl font-black text-white mb-2">{{ base_stats.orders|add:3000 }}+</div>
+                            <div class="text-[11px] font-black text-slate-500 uppercase tracking-widest">طلب مكتمل</div>
                         </div>
+                    </div>
+                </div>
+
+                <!-- Secondary Stats -->
+                <div class="stat-card">
+                    <div class="w-14 h-14 bg-emerald-500/10 rounded-2xl flex items-center justify-center text-emerald-400 mb-6">
+                        <i class="fas fa-vault text-2xl"></i>
+                    </div>
+                    <div>
+                        <div class="text-3xl font-black text-white mb-1">{{ base_stats.deposits|add:500 }}+</div>
+                        <div class="text-[10px] font-black text-slate-500 uppercase">عمليات إيداع ناجحة</div>
+                    </div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="w-14 h-14 bg-rose-500/10 rounded-2xl flex items-center justify-center text-rose-400 mb-6">
+                        <i class="fas fa-money-bill-transfer text-2xl"></i>
+                    </div>
+                    <div>
+                        <div class="text-3xl font-black text-white mb-1">{{ base_stats.withdrawals|add:200 }}+</div>
+                        <div class="text-[10px] font-black text-slate-500 uppercase">سحوبات مكتملة</div>
+                    </div>
+                </div>
+
+                <!-- Product Count -->
+                <div class="stat-card md:col-span-1">
+                    <div class="w-14 h-14 bg-indigo-500/10 rounded-2xl flex items-center justify-center text-indigo-400 mb-6">
+                        <i class="fas fa-boxes-stacked text-2xl"></i>
+                    </div>
+                    <div>
+                        <div class="text-3xl font-black text-white mb-1">{{ base_stats.products }}+</div>
+                        <div class="text-[10px] font-black text-slate-500 uppercase">خدمة نشطة</div>
+                    </div>
+                </div>
+
+                <!-- Custom Stats from Admin -->
+                {% for s in custom_stats|slice:":1" %}
+                <div class="stat-card">
+                    <div class="w-14 h-14 bg-purple-500/10 rounded-2xl flex items-center justify-center text-purple-400 mb-6">
+                        <i class="{{ s.icon_class|default:'fas fa-star' }} text-2xl"></i>
+                    </div>
+                    <div>
+                        <div class="text-3xl font-black text-white mb-1">{{ s.value_override }}+</div>
+                        <div class="text-[10px] font-black text-slate-500 uppercase">{{ s.label }}</div>
                     </div>
                 </div>
                 {% empty %}
-                <div class="col-span-3 text-center py-12 text-slate-500">
-                    لم يترك أحد تعليقاً بعد. كن أول من يشاركنا رأيه!
+                <div class="stat-card">
+                    <div class="w-14 h-14 bg-amber-500/10 rounded-2xl flex items-center justify-center text-amber-400 mb-6">
+                        <i class="fas fa-shield-halved text-2xl"></i>
+                    </div>
+                    <div>
+                        <div class="text-3xl font-black text-white mb-1">100%</div>
+                        <div class="text-[10px] font-black text-slate-500 uppercase">حماية وأمان</div>
+                    </div>
                 </div>
                 {% endfor %}
             </div>
+        </section>
 
-            {% if user.is_authenticated %}
-            <div class="mt-16 text-center">
-                <a href="{% url 'site_submit_testimonial' %}" class="apple-btn apple-btn-secondary inline-flex">
-                    اترك رأيك هنا
-                </a>
-            </div>
-            {% endif %}
-        </div>
-    </section>
-
-    <!-- Security & Reliability Section (Modernized) -->
-    <section class="container mx-auto px-4 mb-32 reveal">
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
-            <div class="space-y-8">
-                <div>
-                    <span class="text-[10px] font-black uppercase tracking-widest text-indigo-500 mb-4 block">التزامنا</span>
-                    <h2 class="text-3xl md:text-6xl font-black text-slate-900 dark:text-white leading-[1.1]">الأمان ليس خياراً، بل هو الأساس.</h2>
+        <!-- Description Section -->
+        <section id="about" class="mb-40 reveal-item">
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-20 items-center">
+                <div class="space-y-10">
+                    <div>
+                        <span class="section-label">لماذا نحن؟</span>
+                        <h2 class="text-4xl md:text-6xl font-black text-white leading-tight">المنصة التي صُممت<br/>لراحتك.</h2>
+                    </div>
+                    <p class="text-slate-400 text-lg leading-relaxed">
+                        في رقميات، لا نبيع فقط خدمات رقمية، بل نقدم تجربة متكاملة تبدأ من سهولة الإيداع، مروراً بالتصفح السلس للمنتجات، وانتهاءً بالتسليم الآلي الذي لا يتجاوز ثوانٍ معدودة. نلتزم بأعلى معايير الأمان لحماية بياناتك وأموالك.
+                    </p>
+                    <ul class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                        <li class="flex items-start gap-4">
+                            <i class="fas fa-check-circle text-cyan mt-1"></i>
+                            <span class="text-sm font-bold text-slate-300">تسليم آلي وفوري للمفاتيح والاشتراكات.</span>
+                        </li>
+                        <li class="flex items-start gap-4">
+                            <i class="fas fa-check-circle text-cyan mt-1"></i>
+                            <span class="text-sm font-bold text-slate-300">دعم فني متخصص عبر الدردشة المباشرة.</span>
+                        </li>
+                        <li class="flex items-start gap-4">
+                            <i class="fas fa-check-circle text-cyan mt-1"></i>
+                            <span class="text-sm font-bold text-slate-300">تشفير كامل للبيانات بتقنية AES-256.</span>
+                        </li>
+                        <li class="flex items-start gap-4">
+                            <i class="fas fa-check-circle text-cyan mt-1"></i>
+                            <span class="text-sm font-bold text-slate-300">تنوع كبير في وسائل الدفع المحلية والدولية.</span>
+                        </li>
+                    </ul>
                 </div>
-                <p class="text-lg text-slate-500 dark:text-slate-400 leading-relaxed">
-                    نحن نستخدم تقنيات التشفير المتطورة ونظام التحقق الثنائي (2FA) لضمان أن حسابك وأموالك في أمان تام دائماً. جميع عملياتنا تخضع لرقابة مالية صارمة.
-                </p>
-                <ul class="space-y-4">
-                    <li class="flex items-center gap-3 text-sm font-bold">
-                        <i class="fas fa-check-circle text-cyan"></i>
-                        نظام تشفير AES-256 للبيانات الحساسة.
-                    </li>
-                    <li class="flex items-center gap-3 text-sm font-bold">
-                        <i class="fas fa-check-circle text-cyan"></i>
-                        دعم المصادقة الثنائية (Google Authenticator).
-                    </li>
-                    <li class="flex items-center gap-3 text-sm font-bold">
-                        <i class="fas fa-check-circle text-cyan"></i>
-                        فريق مختص لمراقبة العمليات المشبوهة 24/7.
-                    </li>
-                </ul>
-            </div>
-            <div class="relative">
-                <div class="glass-card aspect-square flex items-center justify-center p-12 bg-gradient-to-br from-indigo-500/10 to-transparent">
-                    <i class="fas fa-shield-alt text-[200px] text-indigo-500/20 animate-float"></i>
-                    <div class="absolute inset-0 flex items-center justify-center">
-                        <div class="text-center">
-                            <i class="fas fa-lock text-4xl text-slate-900 dark:text-white mb-4"></i>
-                            <div class="text-xs font-black uppercase tracking-widest opacity-50">Verified & Secured</div>
+                <div class="relative">
+                    <div class="glass-panel aspect-square flex items-center justify-center p-20 bg-gradient-to-br from-indigo-500/10 to-transparent">
+                        <div class="relative w-full h-full">
+                            <i class="fas fa-shield-halved text-[200px] text-indigo-500/10 absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 animate-float"></i>
+                            <div class="absolute inset-0 flex flex-col items-center justify-center text-center">
+                                <div class="w-32 h-32 bg-cyan/10 rounded-full flex items-center justify-center mb-6 shadow-inner">
+                                    <i class="fas fa-lock text-5xl text-cyan"></i>
+                                </div>
+                                <h3 class="text-xl font-black text-white mb-2 uppercase tracking-tighter">Verified Secure</h3>
+                                <p class="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em]">End-to-End Encryption</p>
+                            </div>
                         </div>
                     </div>
                 </div>
-                <!-- Floaties -->
-                <div class="absolute -top-6 -right-6 w-24 h-24 glass-card flex items-center justify-center animate-bounce" style="animation-duration: 4s">
-                    <i class="fas fa-key text-cyan"></i>
+            </div>
+        </section>
+
+        <!-- Testimonials -->
+        <section class="mb-40 reveal-item">
+            <div class="text-center mb-20">
+                <span class="section-label">آراء المجتمع</span>
+                <h2 class="text-4xl md:text-6xl font-black text-white italic">عملاء يثقون بنا.</h2>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                {% for t in testimonials %}
+                <div class="glass-panel p-10 flex flex-col h-full border-indigo-500/10">
+                    <div class="flex gap-1 text-amber-400 text-xs mb-6">
+                        {% for i in "12345" %}
+                        <i class="fas fa-star {% if forloop.counter > t.rating %}opacity-20{% endif %}"></i>
+                        {% endfor %}
+                    </div>
+                    <p class="text-white text-lg font-medium italic mb-8 leading-relaxed">"{{ t.text }}"</p>
+                    <div class="flex items-center gap-4 mt-auto mb-6">
+                        <div class="w-12 h-12 rounded-full bg-slate-800 flex items-center justify-center text-sm font-black text-cyan">
+                            {{ t.user.display_name|slice:":1"|upper }}
+                        </div>
+                        <div>
+                            <div class="text-sm font-black text-white">{{ t.user.display_name }}</div>
+                            <div class="text-[9px] text-slate-500 font-black uppercase tracking-[0.2em]">عميل موثق</div>
+                        </div>
+                    </div>
+                    {% if t.admin_reply %}
+                    <div class="p-5 bg-cyan/5 rounded-2xl border border-cyan/10 relative">
+                        <div class="absolute -top-2 right-6 bg-cyan text-dark-bg text-[8px] font-black px-3 py-1 rounded-full uppercase">رد الإدارة</div>
+                        <p class="text-[11px] text-slate-300 leading-relaxed">{{ t.admin_reply }}</p>
+                    </div>
+                    {% endif %}
+                </div>
+                {% empty %}
+                <div class="col-span-full py-20 text-center glass-panel">
+                    <p class="text-slate-500 font-bold uppercase tracking-widest text-xs">لا توجد مراجعات حالياً. كن أول من يشارك تجربته!</p>
+                </div>
+                {% endfor %}
+            </div>
+        </section>
+
+        <!-- Suggest a Service Card -->
+        <section class="mb-40 reveal-item">
+            <div class="glass-panel p-12 md:p-20 relative overflow-hidden bg-gradient-to-br from-purple-500/10 via-transparent to-cyan-500/10 border-purple-500/20">
+                <div class="absolute -right-20 -top-20 w-96 h-96 bg-purple-500/10 rounded-full blur-[100px]"></div>
+                <div class="flex flex-col md:flex-row items-center justify-between gap-12 relative z-10">
+                    <div class="max-w-2xl">
+                        <div class="w-20 h-20 bg-white/5 rounded-[2rem] flex items-center justify-center text-purple-400 mb-8 shadow-inner">
+                            <i class="fas fa-lightbulb text-4xl"></i>
+                        </div>
+                        <h2 class="text-3xl md:text-5xl font-black text-white mb-6">هل لديك خدمة محددة ترغب في توفرها؟</h2>
+                        <p class="text-slate-400 text-lg leading-relaxed">
+                            نحن نسعى دائماً لتوسيع خدماتنا. إذا كان هناك منتج أو خدمة رقمية غير متوفرة في متجرنا حالياً، شاركنا اقتراحك وسنعمل على توفيرها بأفضل سعر.
+                        </p>
+                    </div>
+                    <a href="{% url 'site_product_suggestion' %}" class="btn-premium whitespace-nowrap !bg-gradient-to-r from-purple-500 to-indigo-500 shadow-purple/20">
+                        إرسال اقتراح الآن
+                    </a>
                 </div>
             </div>
-        </div>
-    </section>
+        </section>
 
+        <!-- Payment & Social -->
+        <section class="reveal-item">
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                <div class="lg:col-span-2 glass-panel p-12 flex flex-col justify-center">
+                    <h3 class="text-xs font-black text-slate-500 uppercase tracking-[0.3em] mb-10 text-center">طرق الدفع المعتمدة</h3>
+                    <div class="flex flex-wrap justify-center items-center gap-12">
+                        {% for method in payment_methods %}
+                            {% if method.logo %}
+                            <img src="{{ method.logo.url }}" alt="{{ method.name }}" class="h-10 w-auto opacity-30 grayscale hover:opacity-100 hover:grayscale-0 transition-all duration-500 cursor-help scale-110" title="{{ method.name }}">
+                            {% endif %}
+                        {% endfor %}
+                    </div>
+                </div>
+                <div class="glass-panel p-12 text-center flex flex-col justify-center border-cyan-500/10">
+                    <h3 class="text-xs font-black text-slate-500 uppercase tracking-[0.3em] mb-10">تواصل معنا</h3>
+                    <div class="flex justify-center gap-4">
+                        {% for link in SOCIAL_LINKS %}
+                        <a href="{{ link.url }}" target="_blank" class="w-14 h-14 bg-white/5 rounded-2xl flex items-center justify-center text-xl text-slate-400 hover:bg-cyan hover:text-dark-bg hover:-translate-y-2 transition-all">
+                            {% if link.icon_image %}
+                            <img src="{{ link.icon_image.url }}" alt="{{ link.name }}" class="w-6 h-6">
+                            {% else %}
+                            <i class="{{ link.icon_class|default:'fas fa-link' }}"></i>
+                            {% endif %}
+                        </a>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </section>
+
+    </div>
 </div>
 
 <script>
-    // Reveal Observer
     const observer = new IntersectionObserver((entries) => {
         entries.forEach(entry => {
             if (entry.isIntersecting) {
@@ -293,15 +332,6 @@
         });
     }, { threshold: 0.1 });
 
-    document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
-
-    // Horizontal Scroll with Mouse Wheel (for Products)
-    const productScroll = document.querySelector('.overflow-x-auto');
-    if (productScroll) {
-        productScroll.addEventListener('wheel', (evt) => {
-            evt.preventDefault();
-            productScroll.scrollLeft += evt.deltaY;
-        });
-    }
+    document.querySelectorAll('.reveal-item').forEach(el => observer.observe(el));
 </script>
 {% endblock %}
