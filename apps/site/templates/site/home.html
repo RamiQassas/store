@@ -1184,82 +1184,75 @@
     <div class="home-wrap hero-grid">
       <div class="hero-copy-block reveal">
         <div class="hero-badge">
-          <i class="fas fa-shield-halved"></i>
-          منصة رقمية آمنة للألعاب والبطاقات والخدمات
+          <i class="fas fa-microchip"></i>
+          منصة رقمية متكاملة للخدمات والحلول التقنية
         </div>
-        <h1 class="hero-title">اشحن ألعابك واشتر بطاقاتك الرقمية <mark>بسرعة وثقة</mark></h1>
+        <h1 class="hero-title">بوابتك لكل ما هو تقني <mark>بسرعة وثقة</mark></h1>
         <p class="hero-copy">
-          رقميات تجمع شحن الألعاب، البطاقات الرقمية، الاشتراكات، والخدمات الإلكترونية في تجربة واضحة وسريعة، مع محفظة آمنة ودعم مباشر وتسليم منظم.
+          رقميات تجمع الخدمات الرقمية، اشتراكات البرمجيات، وحلول الشحن الإلكتروني في تجربة واضحة وسريعة، مع محفظة آمنة ودعم فني متخصص.
         </p>
         <div class="hero-actions">
-          <a href="{% url 'catalog' %}" class="home-btn primary"><i class="fas fa-bag-shopping"></i> ابدأ الآن</a>
-          <a href="{% url 'catalog' %}?q=ألعاب" class="home-btn ghost"><i class="fas fa-gamepad"></i> تصفح الألعاب</a>
+          <a href="{% url 'catalog' %}" class="home-btn primary"><i class="fas fa-layer-group"></i> استكشف الخدمات</a>
           {% if user.is_authenticated %}
           <a href="{% url 'dashboard_deposits' %}" class="home-btn gold"><i class="fas fa-wallet"></i> اشحن حسابك</a>
           {% else %}
-          <a href="{% url 'site_register' %}" class="home-btn gold"><i class="fas fa-user-plus"></i> سجل واشحن حسابك</a>
+          <a href="{% url 'site_register' %}" class="home-btn gold"><i class="fas fa-user-plus"></i> انضم إلينا الآن</a>
           {% endif %}
         </div>
         <div class="hero-trust" aria-label="ميزات موثوقية المنصة">
-          <span><i class="fas fa-bolt"></i> تنفيذ سريع</span>
-          <span><i class="fas fa-lock"></i> مدفوعات محمية</span>
-          <span><i class="fas fa-headset"></i> دعم مباشر</span>
+          <span><i class="fas fa-bolt-lightning"></i> تنفيذ آلي</span>
+          <span><i class="fas fa-shield-check"></i> بيئة آمنة</span>
+          <span><i class="fas fa-microchip"></i> دعم تقني</span>
         </div>
       </div>
 
       <div class="hero-visual reveal">
         <div class="visual-console">
           <div class="visual-topline">
-            <span><i class="fas fa-bolt"></i> RAQAMIYAT LIVE</span>
-            <span class="visual-status">جاهز للتنفيذ</span>
+            <span><i class="fas fa-server"></i> RAQAMIYAT CORE</span>
+            <span class="visual-status">متصل ونشط</span>
           </div>
 
           {% with hero_product=featured_products.0 %}
           <div class="visual-feature">
-            <a href="{% if hero_product %}{% url 'product_detail' hero_product.id %}{% else %}{% url 'catalog' %}{% endif %}" class="visual-image" aria-label="منتج مميز">
+            <a href="{% if hero_product %}{% url 'product_detail' hero_product.id %}{% else %}{% url 'catalog' %}{% endif %}" class="visual-image" aria-label="خدمة مميزة">
               {% if hero_product.image %}
               <img src="{{ hero_product.image.url }}" alt="{{ hero_product.name }}">
               {% else %}
-              <i class="fas fa-gamepad"></i>
+              <i class="fas fa-cube"></i>
               {% endif %}
             </a>
             <div>
-              <small>اختيار شائع الآن</small>
-              <h2>{% if hero_product %}{{ hero_product.name }}{% else %}شحن ألعاب وبطاقات رقمية من مكان واحد{% endif %}</h2>
-              <p>واجهة شراء مختصرة، سعر واضح، وتتبع للطلب داخل حسابك حتى اكتمال التنفيذ.</p>
+              <small>خدمة مقترحة لك</small>
+              <h2>{% if hero_product %}{{ hero_product.name }}{% else %}حلول رقمية متكاملة من مكان واحد{% endif %}</h2>
+              <p>واجهة تنفيذ ذكية، وضوح في الأسعار، ومتابعة دقيقة لكل خطوة في طلبك التقني.</p>
             </div>
           </div>
           {% endwith %}
 
           <div class="visual-metrics">
+            {% for s in display_stats|slice:":3" %}
             <div class="metric-tile">
-              <strong>{{ base_stats.orders|add:3000 }}+</strong>
-              <span>طلب مكتمل على المنصة</span>
+              <strong>{{ s.value }}</strong>
+              <span>{{ s.label }}</span>
             </div>
-            <div class="metric-tile">
-              <strong>{{ base_stats.users|add:1500 }}+</strong>
-              <span>عميل موثق ومسجل</span>
-            </div>
-            <div class="metric-tile">
-              <strong>24/7</strong>
-              <span>دعم ومتابعة للطلبات</span>
-            </div>
+            {% endfor %}
           </div>
 
           <div class="visual-list">
             <div class="visual-row">
-              <div class="visual-row-icon"><i class="fas fa-credit-card"></i></div>
+              <div class="visual-row-icon"><i class="fas fa-code"></i></div>
               <div>
-                <strong>بطاقات رقمية واشتراكات</strong>
-                <span>منتجات منظمة حسب التصنيف</span>
+                <strong>خدمات برمجية ورقمية</strong>
+                <span>حلول تقنية متكاملة ومؤتمتة</span>
               </div>
               <em>متاح</em>
             </div>
             <div class="visual-row">
-              <div class="visual-row-icon"><i class="fas fa-wallet"></i></div>
+              <div class="visual-row-icon"><i class="fas fa-vault"></i></div>
               <div>
-                <strong>محفظة داخلية</strong>
-                <span>إيداع وسحب ومتابعة رصيد</span>
+                <strong>نظام مالي محمي</strong>
+                <span>إيداع وسحب وتتبع رصيد فوري</span>
               </div>
               <em>آمن</em>
             </div>
