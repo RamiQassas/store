@@ -124,7 +124,7 @@ urlpatterns = [
     # Product Suggestions
     path("suggestions/new/", views.site_product_suggestion, name="site_product_suggestion"),
     path("control/suggestions/", views.control_product_suggestions_list, name="control_product_suggestions_list"),
-    path("control/suggestions/<int:pk>/", views.control_product_suggestion_detail, name="control_product_suggestion_detail"),
+    path("control/suggestions/<uuid:pk>/", views.control_product_suggestion_detail, name="control_product_suggestion_detail"),
 
     # Legal & Support Pages
     path("privacy-policy/", views.privacy_policy, name="privacy_policy"),
