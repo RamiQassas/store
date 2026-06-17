@@ -1,526 +1,512 @@
 {% extends "site/base.html" %}
 {% load static site_tags %}
 
-{% block title %}رقميات | منصة الحلول الرقمية المتكاملة{% endblock %}
+{% block title %}رقميات | المنصة المتكاملة للحلول التقنية الذكية{% endblock %}
 
 {% block extra_head %}
-<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700;900&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800&family=Noto+Kufi+Arabic:wght@400;700;900&display=swap" rel="stylesheet">
 <style>
   :root {
-    --bg-dark: #050505;
-    --accent: #3b82f6; /* Electric Blue */
-    --accent-glow: rgba(59, 130, 246, 0.2);
-    --card-bg: rgba(255, 255, 255, 0.02);
-    --border: rgba(255, 255, 255, 0.06);
-    --text-main: #ffffff;
+    --bg-deep: #020617;
+    --primary: #06b6d4;
+    --primary-glow: rgba(6, 182, 212, 0.3);
+    --secondary: #6366f1;
+    --glass: rgba(15, 23, 42, 0.6);
+    --glass-border: rgba(255, 255, 255, 0.08);
+    --text-white: #f8fafc;
     --text-dim: #94a3b8;
-    --gold: #fbbf24;
+    --surface: #0f172a;
   }
 
   body {
-    background-color: var(--bg-dark) !important;
-    color: var(--text-main);
-    font-family: 'Cairo', sans-serif;
-    -webkit-font-smoothing: antialiased;
+    background-color: var(--bg-deep) !important;
+    color: var(--text-white);
+    font-family: 'Noto Kufi+Arabic', sans-serif;
+    margin: 0;
+    padding: 0;
+    overflow-x: hidden;
   }
 
-  .home-page { position: relative; }
+  /* Global Animations */
+  @keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
+  @keyframes pulse-soft { 0%, 100% { opacity: 0.5; } 50% { opacity: 1; } }
 
-  /* Grid Background Effect */
-  .grid-overlay {
+  .home-page { position: relative; width: 100%; }
+
+  /* Background Mesh */
+  .mesh-bg {
     position: fixed;
-    inset: 0;
-    background-image: 
-      linear-gradient(var(--border) 1px, transparent 1px),
-      linear-gradient(90deg, var(--border) 1px, transparent 1px);
-    background-size: 60px 60px;
-    mask-image: radial-gradient(circle at 50% 50%, black, transparent 80%);
-    pointer-events: none;
-    z-index: -1;
-    opacity: 0.3;
+    top: 0; left: 0; right: 0; bottom: 0;
+    z-index: -2;
+    background: 
+      radial-gradient(circle at 10% 10%, rgba(6, 182, 212, 0.08) 0%, transparent 40%),
+      radial-gradient(circle at 90% 90%, rgba(99, 102, 241, 0.08) 0%, transparent 40%);
   }
 
-  .home-wrap {
-    width: min(100% - 3rem, 1320px);
+  .container-custom {
+    width: min(100% - 2.5rem, 1280px);
     margin-inline: auto;
-  }
-
-  /* Bento Grid Layout */
-  .bento-grid {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    grid-template-rows: auto;
-    gap: 1.5rem;
-    margin-bottom: 4rem;
-  }
-
-  .bento-item {
-    background: var(--card-bg);
-    border: 1px solid var(--border);
-    border-radius: 24px;
-    padding: 2rem;
     position: relative;
-    overflow: hidden;
-    backdrop-filter: blur(10px);
-    transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
   }
 
-  .bento-item:hover {
-    border-color: var(--accent);
-    transform: translateY(-5px);
-    box-shadow: 0 20px 40px -20px var(--accent-glow);
-  }
+  /* Section Layouts */
+  section { padding: 100px 0; }
+  .section-title { font-size: clamp(2rem, 5vw, 3.5rem); font-weight: 900; margin-bottom: 3rem; text-align: center; line-height: 1.2; }
+  .section-tag { color: var(--primary); font-weight: 800; font-size: 0.8rem; letter-spacing: 4px; text-transform: uppercase; display: block; text-align: center; margin-bottom: 1rem; }
 
-  /* Hero Block */
-  .hero-block {
-    grid-column: span 3;
+  /* Hero Section: The Digital Nexus */
+  .hero {
+    min-height: 90vh;
     display: flex;
-    flex-direction: column;
-    justify-content: center;
-    padding: 4rem;
-    min-height: 500px;
-    background: linear-gradient(135deg, rgba(59, 130, 246, 0.05), transparent);
+    align-items: center;
+    padding-top: 140px;
+    background-image: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.02'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
   }
 
+  .hero-content { text-align: center; max-width: 900px; margin-inline: auto; }
   .hero-badge {
     display: inline-flex;
-    align-items: center;
-    gap: 0.5rem;
-    padding: 0.5rem 1rem;
-    background: rgba(59, 130, 246, 0.1);
-    border: 1px solid rgba(59, 130, 246, 0.2);
+    padding: 0.6rem 1.2rem;
+    background: rgba(6, 182, 212, 0.1);
+    border: 1px solid var(--primary-glow);
     border-radius: 100px;
-    color: var(--accent);
-    font-size: 0.8rem;
-    font-weight: 700;
-    margin-bottom: 2rem;
-    width: fit-content;
-  }
-
-  .hero-title {
-    font-size: clamp(2.5rem, 5vw, 4.5rem);
-    font-weight: 900;
-    line-height: 1.1;
-    margin: 0;
-    letter-spacing: -2px;
-  }
-
-  .hero-title span { color: var(--accent); }
-
-  .hero-copy {
-    font-size: 1.15rem;
-    color: var(--text-dim);
-    margin-top: 1.5rem;
-    max-width: 550px;
-    line-height: 1.7;
-  }
-
-  /* Stats Block */
-  .stats-block {
-    grid-column: span 1;
-    display: flex;
-    flex-direction: column;
-    gap: 1.25rem;
-  }
-
-  .stat-card-modern {
-    background: rgba(255,255,255,0.03);
-    border: 1px solid var(--border);
-    border-radius: 20px;
-    padding: 1.5rem;
-    display: flex;
-    align-items: center;
-    gap: 1.25rem;
-  }
-
-  .stat-icon-wrap {
-    width: 50px;
-    height: 50px;
-    background: rgba(59, 130, 246, 0.1);
-    color: var(--accent);
-    border-radius: 12px;
-    display: grid;
-    place-items: center;
-    font-size: 1.25rem;
-  }
-
-  .stat-val {
-    display: block;
-    font-size: 1.5rem;
-    font-weight: 900;
-    color: #fff;
-    line-height: 1;
-  }
-
-  .stat-lab {
-    font-size: 0.75rem;
-    color: var(--text-dim);
-    font-weight: 700;
-    margin-top: 0.25rem;
-    display: block;
-  }
-
-  /* Premium Buttons */
-  .btn-raq {
-    height: 56px;
-    padding: 0 2rem;
-    border-radius: 16px;
+    color: var(--primary);
+    font-size: 0.85rem;
     font-weight: 800;
-    font-size: 1rem;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    gap: 0.75rem;
-    transition: all 0.3s ease;
-    text-decoration: none;
-    cursor: pointer;
+    margin-bottom: 2rem;
+    animation: float 4s ease-in-out infinite;
+  }
+  .hero-title { font-size: clamp(3rem, 10vw, 6rem); font-weight: 900; line-height: 0.95; letter-spacing: -4px; margin: 0; }
+  .hero-title span { 
+    background: linear-gradient(135deg, #06b6d4, #6366f1);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+  .hero-desc { font-size: 1.35rem; color: var(--text-dim); line-height: 1.6; margin: 2rem auto; max-width: 650px; }
+
+  /* Floating Metric Core */
+  .hero-metrics {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1.5rem;
+    margin-top: 4rem;
   }
 
-  .btn-raq.primary {
-    background: var(--accent);
-    color: #fff;
-    box-shadow: 0 10px 20px -10px var(--accent-glow);
-  }
-
-  .btn-raq.primary:hover {
-    transform: translateY(-3px);
-    box-shadow: 0 15px 30px -10px var(--accent-glow);
-    filter: brightness(1.1);
-  }
-
-  .btn-raq.outline {
-    border: 1px solid var(--border);
-    color: #fff;
-    background: transparent;
-  }
-
-  .btn-raq.outline:hover {
-    border-color: var(--accent);
-    background: rgba(59, 130, 246, 0.05);
-  }
-
-  /* Category Cards */
-  .cat-card-modern {
-    background: var(--card-bg);
-    border: 1px solid var(--border);
+  .metric-nexus {
+    background: var(--glass);
+    backdrop-filter: blur(20px);
+    border: 1px solid var(--glass-border);
     border-radius: 24px;
     padding: 2rem;
-    text-decoration: none;
     transition: all 0.3s ease;
+  }
+  .metric-nexus:hover { border-color: var(--primary); transform: translateY(-10px); background: rgba(6, 182, 212, 0.05); }
+  .metric-val { display: block; font-size: 2.5rem; font-weight: 900; color: #fff; margin-bottom: 0.5rem; font-family: 'Plus Jakarta Sans', sans-serif; }
+  .metric-lab { font-size: 0.9rem; font-weight: 700; color: var(--text-dim); }
+
+  /* Category Glass Cards */
+  .cat-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 1.5rem;
+  }
+  .cat-nexus-card {
+    background: var(--glass);
+    backdrop-filter: blur(12px);
+    border: 1px solid var(--glass-border);
+    border-radius: 32px;
+    padding: 2.5rem;
+    text-decoration: none;
+    transition: all 0.4s cubic-bezier(0.23, 1, 0.32, 1);
     display: flex;
     flex-direction: column;
     height: 100%;
-  }
-
-  .cat-card-modern:hover {
-    background: rgba(255,255,255,0.05);
-    border-color: var(--accent);
-  }
-
-  .cat-icon-large {
-    font-size: 2.5rem;
-    color: var(--accent);
-    margin-bottom: 1.5rem;
-  }
-
-  .cat-card-modern h4 {
-    margin: 0;
-    font-size: 1.5rem;
-    font-weight: 800;
-    color: #fff;
-  }
-
-  .cat-card-modern span {
-    color: var(--text-dim);
-    font-size: 0.9rem;
-    margin-top: 0.5rem;
-  }
-
-  /* Sections Control */
-  .section-header {
-    margin-bottom: 3.5rem;
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-end;
-  }
-
-  .section-tag {
-    color: var(--accent);
-    font-size: 0.8rem;
-    font-weight: 900;
-    text-transform: uppercase;
-    letter-spacing: 2px;
-    margin-bottom: 1rem;
-    display: block;
-  }
-
-  .section-title {
-    font-size: 2.75rem;
-    font-weight: 900;
-    margin: 0;
-    letter-spacing: -1px;
-  }
-
-  /* Animation */
-  .reveal {
-    opacity: 0;
-    transform: translateY(20px);
-    transition: all 0.6s cubic-bezier(0.22, 1, 0.36, 1);
-  }
-
-  .reveal.active {
-    opacity: 1;
-    transform: translateY(0);
-  }
-
-  /* Product Cards Modern */
-  .prod-card-v4 {
-    background: var(--card-bg);
-    border: 1px solid var(--border);
-    border-radius: 20px;
-    padding: 1rem;
-    transition: all 0.3s ease;
-    display: flex;
-    flex-direction: column;
-    gap: 1rem;
-  }
-
-  .prod-card-v4:hover {
-    border-color: var(--accent);
-    background: rgba(255,255,255,0.04);
-  }
-
-  .prod-img-v4 {
-    width: 100%;
-    aspect-ratio: 1;
-    background: #000;
-    border-radius: 14px;
-    display: grid;
-    place-items: center;
     position: relative;
     overflow: hidden;
   }
+  .cat-nexus-card:hover { border-color: var(--primary); transform: scale(1.02); }
+  .cat-nexus-card i { font-size: 3rem; color: var(--primary); margin-bottom: 2rem; }
+  .cat-nexus-card h3 { font-size: 1.75rem; font-weight: 900; color: #fff; margin: 0; }
+  .cat-nexus-card span { margin-top: 1rem; color: var(--text-dim); font-size: 1rem; }
 
-  .prod-img-v4 img {
-    width: 100%;
-    height: 100%;
-    object-fit: contain;
-    padding: 10%;
+  /* Product Nexus Grid */
+  .prod-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 2rem;
+  }
+  .prod-nexus-card {
+    background: var(--surface);
+    border: 1px solid var(--glass-border);
+    border-radius: 28px;
+    padding: 1.25rem;
+    transition: all 0.3s ease;
+  }
+  .prod-nexus-card:hover { border-color: var(--secondary); transform: translateY(-8px); }
+  .prod-media {
+    width: 100%; aspect-ratio: 1; border-radius: 20px; background: #000;
+    display: grid; place-items: center; position: relative; margin-bottom: 1.5rem; overflow: hidden;
+  }
+  .prod-media img { width: 100%; height: 100%; object-fit: contain; padding: 15%; }
+  .prod-tag { position: absolute; top: 15px; left: 15px; padding: 0.4rem 0.8rem; background: var(--secondary); border-radius: 10px; font-size: 0.75rem; font-weight: 800; }
+  .prod-nexus-card h4 { font-size: 1.2rem; font-weight: 800; margin: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .prod-price { font-size: 1.5rem; font-weight: 900; color: var(--primary); margin: 0.75rem 0; display: block; }
+
+  /* Buttons */
+  .btn-nexus {
+    padding: 1rem 2.5rem; border-radius: 18px; font-weight: 900; text-decoration: none; 
+    display: inline-flex; align-items: center; gap: 0.75rem; transition: all 0.3s ease;
+  }
+  .btn-nexus.primary { background: var(--primary); color: #000; box-shadow: 0 10px 30px var(--primary-glow); }
+  .btn-nexus.primary:hover { transform: scale(1.05); filter: brightness(1.1); }
+  .btn-nexus.outline { border: 1px solid var(--glass-border); color: #fff; background: var(--glass); }
+  .btn-nexus.outline:hover { border-color: var(--primary); background: rgba(6, 182, 212, 0.05); }
+
+  /* FAQ Accordion Modern */
+  .faq-nexus { max-width: 800px; margin-inline: auto; }
+  .faq-item { background: var(--glass); border: 1px solid var(--glass-border); border-radius: 20px; margin-bottom: 1rem; overflow: hidden; }
+  .faq-summary { padding: 1.5rem 2rem; cursor: pointer; display: flex; justify-content: space-between; align-items: center; font-weight: 800; font-size: 1.1rem; }
+  .faq-summary:hover { background: rgba(255, 255, 255, 0.02); }
+  .faq-content { padding: 0 2rem 1.5rem; color: var(--text-dim); line-height: 1.8; display: none; }
+  .faq-item.active .faq-content { display: block; }
+  .faq-item.active { border-color: var(--primary); background: rgba(6, 182, 212, 0.03); }
+
+  /* Footer Nexus */
+  footer.footer-nexus {
+    background: var(--bg-deep);
+    border-top: 1px solid var(--glass-border);
+    padding: 80px 0 40px;
+    margin-top: 100px;
+  }
+  .footer-grid { display: grid; grid-template-columns: 2fr 1fr 1fr 1.5fr; gap: 4rem; }
+  .footer-brand h2 { font-size: 2rem; font-weight: 900; margin: 0 0 1.5rem; }
+  .footer-brand p { color: var(--text-dim); line-height: 1.8; max-width: 320px; }
+  .footer-links h4 { font-size: 1.1rem; font-weight: 800; margin-bottom: 1.5rem; color: var(--primary); }
+  .footer-links ul { list-style: none; padding: 0; margin: 0; }
+  .footer-links li { margin-bottom: 1rem; }
+  .footer-links a { color: var(--text-dim); text-decoration: none; transition: color 0.3s; }
+  .footer-links a:hover { color: #fff; }
+
+  /* Mobile Fixes */
+  @media (max-width: 768px) {
+    .hero-metrics { grid-template-columns: 1fr; }
+    .footer-grid { grid-template-columns: 1fr; gap: 2.5rem; }
+    .cat-grid { grid-template-columns: 1fr; }
+    .hero-title { font-size: 3.5rem; }
+    header.desktop-header { display: none !important; } /* Hide old desktop header if it breaks */
   }
 
-  .prod-badge-v4 {
-    position: absolute;
-    top: 10px; right: 10px;
-    padding: 0.3rem 0.7rem;
-    background: var(--accent);
-    color: #fff;
-    font-size: 0.7rem;
-    font-weight: 900;
-    border-radius: 8px;
-    z-index: 2;
-  }
-
-  .prod-info-v4 h3 {
-    margin: 0;
-    font-size: 1.1rem;
-    font-weight: 800;
-    color: #fff;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-
-  .prod-info-v4 .price {
-    color: var(--accent);
-    font-size: 1.25rem;
-    font-weight: 900;
-    margin-top: 0.5rem;
-    display: block;
-  }
+  /* Reveal Logic */
+  .reveal { opacity: 0; transform: translateY(30px); transition: all 1s ease; }
+  .reveal.active { opacity: 1; transform: translateY(0); }
 </style>
+{% endblock %}
 
+{% block content %}
 <div class="home-page">
-  <div class="grid-overlay"></div>
+  <div class="mesh-bg"></div>
 
-  <section class="home-wrap" style="padding-top: 120px;">
-    <!-- Bento Hero & Main Stats -->
-    <div class="bento-grid">
-      <div class="bento-item hero-block reveal">
+  <!-- Hero: The Interface -->
+  <section class="hero">
+    <div class="container-custom">
+      <div class="hero-content reveal">
         <div class="hero-badge">
           <i class="fas fa-microchip"></i>
-          Raqamiyat Digital Core
+          RAQAMIYAT_INTERFACE_V4
         </div>
         <h1 class="hero-title">
-          بوابتك للخدمات <br>
-          الرقمية <span>المؤتمتة</span>
+          بوابتك للحلول <br>
+          الرقمية <span>المتقدمة</span>
         </h1>
-        <p class="hero-copy">
-          منصة رقميات تجمع لك كافة الحلول التقنية، أنظمة الشحن، والخدمات البرمجية في تجربة واحدة تتسم بالسرعة، الأمان، والشفافية الكاملة.
+        <p class="hero-desc">
+          منصة رقمية موحدة تجمع بين الذكاء الاصطناعي، أنظمة الشحن الفوري، والخدمات التقنية المتكاملة في بيئة عمل آمنة وحصرية.
         </p>
-        <div class="hero-actions" style="margin-top: 3rem; display: flex; gap: 1rem;">
-          <a href="{% url 'catalog' %}" class="btn-raq primary">
+        <div style="display: flex; gap: 1.25rem; justify-content: center; flex-wrap: wrap;">
+          <a href="{% url 'catalog' %}" class="btn-nexus primary">
             <i class="fas fa-layer-group"></i>
-            تصفح الخدمات
+            استكشف عالمنا التقني
           </a>
           {% if not user.is_authenticated %}
-          <a href="{% url 'site_register' %}" class="btn-raq outline">انضم إلينا</a>
+          <a href="{% url 'site_register' %}" class="btn-nexus outline">انضم إلينا الآن</a>
           {% endif %}
         </div>
       </div>
 
-      <div class="stats-block reveal">
-        {% for s in display_stats|slice:":4" %}
-        <div class="bento-item stat-card-modern" style="padding: 1.5rem;">
-          <div class="stat-icon-wrap">
-            <i class="{{ s.icon_class }}"></i>
+      <!-- Trust Nexus: Statistics -->
+      <div class="hero-metrics">
+        {% for s in display_stats|slice:":3" %}
+        <div class="metric-nexus reveal">
+          <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 1.5rem;">
+            <div style="width: 12px; height: 12px; border-radius: 50%; background: var(--primary); box-shadow: 0 0 10px var(--primary);"></div>
+            <span style="font-size: 0.75rem; font-weight: 800; color: var(--text-dim);">LIVE_DATA</span>
           </div>
-          <div class="stat-details">
-            <strong class="stat-val">{{ s.value }}</strong>
-            <span class="stat-lab">{{ s.label }}</span>
-          </div>
+          <strong class="metric-val">{{ s.value }}</strong>
+          <span class="metric-lab">{{ s.label }}</span>
         </div>
         {% empty %}
-        <!-- Defaults -->
-        <div class="bento-item stat-card-modern"><div class="stat-icon-wrap"><i class="fas fa-user-check"></i></div><div><strong class="stat-val">1500+</strong><span class="stat-lab">عميل موثق</span></div></div>
-        <div class="bento-item stat-card-modern"><div class="stat-icon-wrap"><i class="fas fa-server"></i></div><div><strong class="stat-val">3000+</strong><span class="stat-lab">طلب مكتمل</span></div></div>
-        <div class="bento-item stat-card-modern"><div class="stat-icon-wrap"><i class="fas fa-microchip"></i></div><div><strong class="stat-val">24/7</strong><span class="stat-lab">دعم تقني</span></div></div>
-        <div class="bento-item stat-card-modern"><div class="stat-icon-wrap"><i class="fas fa-bolt"></i></div><div><strong class="stat-val">فوري</strong><span class="stat-lab">تنفيذ الطلبات</span></div></div>
+        <!-- Defaults if DB is empty -->
+        <div class="metric-nexus reveal"><strong class="metric-val">1500+</strong><span class="metric-lab">عميل موثق</span></div>
+        <div class="metric-nexus reveal"><strong class="metric-val">3000+</strong><span class="metric-lab">طلب مكتمل</span></div>
+        <div class="metric-nexus reveal"><strong class="metric-val">24/7</strong><span class="metric-lab">دعم فني متخصص</span></div>
         {% endfor %}
       </div>
     </div>
+  </section>
 
-    <!-- Featured Categories -->
-    <div class="section-header reveal">
-      <div>
-        <span class="section-tag">التصنيفات التقنية</span>
-        <h2 class="section-title">ادخل مباشرة لما تبحث عنه</h2>
-      </div>
-      <a href="{% url 'catalog' %}" class="btn-raq outline" style="height: 48px;">مشاهدة الكل</a>
-    </div>
-
-    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.5rem; margin-bottom: 8rem;">
-      {% for c in categories %}
-      {% if c.is_featured %}
-      <a href="{% url 'catalog' %}?category={{ c.id }}" class="cat-card-modern reveal">
-        <div class="cat-icon-large">
+  <!-- Categories: Digital Hub -->
+  <section id="categories">
+    <div class="container-custom">
+      <span class="section-tag">الأقسام الذكية</span>
+      <h2 class="section-title">ادخل مباشرة لما تبحث عنه</h2>
+      
+      <div class="cat-grid">
+        {% for c in categories %}
+        {% if c.is_featured %}
+        <a href="{% url 'catalog' %}?category={{ c.id }}" class="cat-nexus-card reveal">
+          <div class="status-indicator" style="position: absolute; top: 2rem; left: 2rem; font-size: 0.65rem; color: var(--primary); font-weight: 900;">
+            <i class="fas fa-circle" style="font-size: 0.4rem; margin-left: 0.5rem; animation: pulse-soft 2s infinite;"></i>
+            ONLINE
+          </div>
           {% if c.image %}
-          <img src="{{ c.image.url }}" style="width: 50px; height: 50px; object-fit: contain;">
+          <img src="{{ c.image.url }}" style="width: 60px; height: 60px; object-fit: contain; margin-bottom: 2rem; filter: drop-shadow(0 0 10px var(--primary-glow));">
           {% else %}
           <i class="fas fa-cube"></i>
           {% endif %}
-        </div>
-        <h4>{{ c.name }}</h4>
-        <span>{{ c.product_count }} خدمة متوفرة</span>
-      </a>
-      {% endif %}
-      {% endfor %}
-    </div>
-
-    <!-- Featured Products Grid -->
-    <div class="section-header reveal">
-      <div>
-        <span class="section-tag">الأكثر طلباً</span>
-        <h2 class="section-title">خدمات حصرية مختارة</h2>
+          <h3>{{ c.name }}</h3>
+          <span>{{ c.product_count }} خدمة مفعلة حالياً</span>
+        </a>
+        {% endif %}
+        {% endfor %}
       </div>
     </div>
-
-    <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 1.5rem; margin-bottom: 8rem;">
-      {% for p in featured_products|slice:":8" %}
-      <div class="prod-card-v4 reveal">
-        <div class="prod-img-v4">
-          <span class="prod-badge-v4">مميز</span>
-          {% if p.image %}
-          <img src="{{ p.image.url }}" alt="{{ p.name }}">
-          {% else %}
-          <i class="fas fa-cube" style="font-size: 3rem; color: var(--accent);"></i>
-          {% endif %}
-        </div>
-        <div class="prod-info-v4">
-          <small style="color: var(--text-dim);">{{ p.category.name }}</small>
-          <h3>{{ p.name }}</h3>
-          {% variant_price p.variants.first as v_price %}
-          <span class="price">{% currency_format v_price %}</span>
-          <a href="{% url 'product_detail' p.id %}" class="btn-raq primary" style="width: 100%; height: 44px; margin-top: 1rem; font-size: 0.9rem;">طلب الخدمة</a>
-        </div>
-      </div>
-      {% endfor %}
-    </div>
-
-    <!-- Features Banner -->
-    <div class="bento-item reveal" style="padding: 4rem; margin-bottom: 8rem; background: linear-gradient(135deg, rgba(59, 130, 246, 0.1), rgba(251, 191, 36, 0.05)); border-color: rgba(59, 130, 246, 0.2);">
-      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 4rem; align-items: center;">
-        <div>
-          <span class="section-tag">القوة التقنية</span>
-          <h2 class="section-title" style="font-size: 2.25rem; margin-bottom: 1.5rem;">نظام مالي وبرمجي متكامل</h2>
-          <p class="hero-copy" style="font-size: 1rem;">محفظة رقمية ذكية تدعم السحب والإيداع الفوري، مع نظام تتبع شفاف لكل قرش في حسابك. رقميات توفر لك كافة اشتراكاتك وخدماتك العالمية في مكان واحد آمن.</p>
-        </div>
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem;">
-          <div class="stat-card-modern"><div class="stat-icon-wrap"><i class="fas fa-shield-check"></i></div><span class="stat-lab" style="font-size: 0.8rem; color: #fff;">أمان مالي 100%</span></div>
-          <div class="stat-card-modern"><div class="stat-icon-wrap"><i class="fas fa-bolt"></i></div><span class="stat-lab" style="font-size: 0.8rem; color: #fff;">أتمتة فورية</span></div>
-          <div class="stat-card-modern"><div class="stat-icon-wrap"><i class="fas fa-headset"></i></div><span class="stat-lab" style="font-size: 0.8rem; color: #fff;">دعم فني متخصص</span></div>
-          <div class="stat-card-modern"><div class="stat-icon-wrap"><i class="fas fa-code"></i></div><span class="stat-lab" style="font-size: 0.8rem; color: #fff;">تطوير مستمر</span></div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Testimonials Section -->
-    <div class="section-header reveal">
-      <div>
-        <span class="section-tag">أراء العملاء</span>
-        <h2 class="section-title">ثقة نعتز بها</h2>
-      </div>
-    </div>
-
-    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 1.5rem; margin-bottom: 8rem;">
-      {% for t in testimonials %}
-      <div class="bento-item reveal" style="display: flex; flex-direction: column; gap: 1.5rem;">
-        <div style="color: var(--gold); display: flex; gap: 0.2rem;">
-          {% for i in "12345" %}
-          <i class="fas fa-star {% if forloop.counter > t.rating %}opacity-20{% endif %}"></i>
-          {% endfor %}
-        </div>
-        <p style="color: #fff; font-style: italic; font-size: 1.05rem; line-height: 1.6;">"{{ t.text }}"</p>
-        <div style="display: flex; align-items: center; gap: 1rem; margin-top: auto; padding-top: 1rem; border-top: 1px solid var(--border);">
-          <div style="width: 44px; height: 44px; border-radius: 10px; background: rgba(255,255,255,0.05); display: grid; place-items: center; font-weight: 900; color: var(--accent);">
-            {% if t.display_name_publicly %}{{ t.user.display_name|slice:":1"|upper }}{% else %}<i class="fas fa-user-secret"></i>{% endif %}
-          </div>
-          <div>
-            <div style="font-weight: 800; font-size: 0.95rem;">{% if t.display_name_publicly %}{{ t.user.display_name }}{% else %}عميل سري{% endif %}</div>
-            <div style="font-size: 0.75rem; color: var(--text-dim);">عميل موثق</div>
-          </div>
-        </div>
-      </div>
-      {% empty %}
-      <div class="bento-item reveal" style="grid-column: 1 / -1; text-align: center; padding: 4rem;">
-        <i class="fas fa-comment-dots" style="font-size: 3rem; color: var(--accent); margin-bottom: 1rem;"></i>
-        <h3 style="color: #fff;">لا توجد تعليقات بعد</h3>
-        <p style="color: var(--text-dim);">شاركنا تجربتك التقنية لتظهر هنا.</p>
-      </div>
-      {% endfor %}
-    </div>
-
-    <!-- Suggestion CTA -->
-    <div class="reveal" style="background: var(--accent); border-radius: 32px; padding: 4rem; display: flex; align-items: center; justify-content: space-between; gap: 2rem; flex-wrap: wrap;">
-      <div style="max-width: 700px;">
-        <h2 style="color: #000; font-size: 2.5rem; font-weight: 900; margin: 0;">لم تجد ما تبحث عنه؟</h2>
-        <p style="color: rgba(0,0,0,0.7); font-size: 1.15rem; font-weight: 700; margin-top: 1rem;">فريق رقميات في تطوير مستمر. أرسل اقتراحك لأي خدمة تقنية ترغب بتوفيرها وسنقوم بدراستها فوراً.</p>
-      </div>
-      <a href="{% url 'site_product_suggestion' %}" class="btn-raq" style="background: #000; color: #fff;">
-        <i class="fas fa-paper-plane"></i>
-        أرسل اقتراحاً
-      </a>
-    </div>
-
   </section>
+
+  <!-- Features: Why Raqamiyat -->
+  <section style="background: rgba(255,255,255,0.015);">
+    <div class="container-custom">
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 5rem; align-items: center;">
+        <div class="reveal">
+          <span class="section-tag" style="text-align: right;">التميز التقني</span>
+          <h2 class="section-title" style="text-align: right;">تجربة رقمية فريدة <br> صممت لأجلك</h2>
+          <p style="color: var(--text-dim); font-size: 1.15rem; line-height: 1.8; text-align: right;">
+            في رقميات، لا نبيع الخدمات فحسب، بل نبني جسوراً من الثقة عبر أنظمة أتمتة متطورة تضمن لك وصول الخدمة في ثوانٍ، مع نظام مالي هو الأكثر أماناً في المنطقة.
+          </p>
+          <div style="display: flex; gap: 1rem; justify-content: flex-end; margin-top: 2rem;">
+            <div style="text-align: center; background: var(--glass); padding: 1.5rem; border-radius: 20px; min-width: 140px;">
+              <i class="fas fa-shield-check" style="color: var(--primary); font-size: 1.5rem; margin-bottom: 0.75rem;"></i>
+              <div style="font-weight: 800; font-size: 0.8rem;">أمان تام</div>
+            </div>
+            <div style="text-align: center; background: var(--glass); padding: 1.5rem; border-radius: 20px; min-width: 140px;">
+              <i class="fas fa-bolt-lightning" style="color: #fbbf24; font-size: 1.5rem; margin-bottom: 0.75rem;"></i>
+              <div style="font-weight: 800; font-size: 0.8rem;">سرعة فائقة</div>
+            </div>
+          </div>
+        </div>
+        <div class="reveal">
+          <div style="background: var(--surface); border: 1px solid var(--glass-border); border-radius: 40px; padding: 3rem; box-shadow: 0 40px 80px rgba(0,0,0,0.5);">
+            <div style="font-family: 'JetBrains Mono', monospace; font-size: 0.85rem; color: #10b981; margin-bottom: 2rem;">
+              > SYSTEM_CORE_ANALYSIS... <br>
+              > ENCRYPTION_STRENGTH: 4096-BIT <br>
+              > AUTOMATION_LOAD: 98% <br>
+              > STATUS: SECURE_AND_ACTIVE
+            </div>
+            <div style="height: 4px; background: #1e293b; border-radius: 10px; position: relative;">
+               <div style="position: absolute; inset: 0; width: 98%; background: var(--primary); border-radius: 10px; box-shadow: 0 0 10px var(--primary);"></div>
+            </div>
+            <div style="margin-top: 1.5rem; color: var(--text-dim); font-size: 0.8rem; font-weight: 800;">كفاءة النظام الرقمي</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Products: Featured Grid -->
+  <section>
+    <div class="container-custom">
+      <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 4rem;">
+        <div style="text-align: right;">
+          <span class="section-tag" style="text-align: right;">الكتالوج التقني</span>
+          <h2 class="section-title" style="text-align: right; margin: 0;">خدمات مختارة لك</h2>
+        </div>
+        <a href="{% url 'catalog' %}" style="color: var(--primary); text-decoration: none; font-weight: 800; border-bottom: 1px solid var(--primary);">عرض الكل</a>
+      </div>
+      
+      <div class="prod-grid">
+        {% for p in featured_products|slice:":8" %}
+        <div class="prod-nexus-card reveal">
+          <div class="prod-media">
+            <span class="prod-tag">حصري</span>
+            {% if p.image %}
+            <img src="{{ p.image.url }}" alt="{{ p.name }}">
+            {% else %}
+            <i class="fas fa-cube" style="font-size: 3rem; color: var(--primary);"></i>
+            {% endif %}
+          </div>
+          <small style="color: var(--text-dim); font-weight: 800;">{{ p.category.name }}</small>
+          <h4>{{ p.name }}</h4>
+          {% variant_price p.variants.first as v_price %}
+          <span class="prod-price">{% currency_format v_price %}</span>
+          <a href="{% url 'product_detail' p.id %}" class="btn-nexus outline" style="width: 100%; justify-content: center; padding: 0.75rem;">طلب الخدمة</a>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+  </section>
+
+  <!-- Testimonials: Trust Core -->
+  <section style="background: linear-gradient(180deg, transparent, rgba(6, 182, 212, 0.05));">
+    <div class="container-custom">
+      <span class="section-tag">نبض المجتمع</span>
+      <h2 class="section-title">أراء عملاء رقميات</h2>
+      
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 1.5rem;">
+        {% for t in testimonials %}
+        <div class="metric-nexus reveal" style="padding: 2.5rem; text-align: right;">
+          <div style="color: #fbbf24; margin-bottom: 1.5rem;">
+            {% for i in "12345" %}
+            <i class="fas fa-star {% if forloop.counter > t.rating %}opacity-20{% endif %}"></i>
+            {% endfor %}
+          </div>
+          <p style="font-size: 1.1rem; line-height: 1.7; color: #fff; font-style: italic;">"{{ t.text }}"</p>
+          <div style="display: flex; align-items: center; gap: 1rem; margin-top: 2rem; justify-content: flex-end;">
+            <div>
+              <div style="font-weight: 900; color: #fff;">{% if t.display_name_publicly %}{{ t.user.display_name }}{% else %}عميل سري{% endif %}</div>
+              <div style="font-size: 0.75rem; color: var(--text-dim);">مستخدم موثق</div>
+            </div>
+            <div style="width: 44px; height: 44px; border-radius: 12px; background: rgba(255,255,255,0.05); display: grid; place-items: center; font-weight: 900; color: var(--primary);">
+              {% if t.display_name_publicly %}{{ t.user.display_name|slice:":1"|upper }}{% else %}<i class="fas fa-user-secret"></i>{% endif %}
+            </div>
+          </div>
+        </div>
+        {% empty %}
+        <div style="grid-column: 1 / -1; text-align: center; padding: 4rem;">
+          <i class="fas fa-comment-dots" style="font-size: 3rem; color: var(--primary); opacity: 0.5;"></i>
+          <h3 style="margin-top: 1rem;">لا توجد تعليقات حتى الآن</h3>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+  </section>
+
+  <!-- FAQ Section -->
+  <section id="faq">
+    <div class="container-custom">
+      <span class="section-tag">الأسئلة الشائعة</span>
+      <h2 class="section-title">إجابات سريعة لاستفساراتك</h2>
+      
+      <div class="faq-nexus">
+        <div class="faq-item reveal">
+          <div class="faq-summary">
+            كيف أبدأ باستخدام منصة رقميات؟ <i class="fas fa-chevron-down"></i>
+          </div>
+          <div class="faq-content">
+            ببساطة، قم بإنشاء حساب حصرى، ثم اشحن محفظتك الرقمية عبر وسائل الدفع المتاحة، وابدأ بطلب أي خدمة تقنية من الكتالوج.
+          </div>
+        </div>
+        <div class="faq-item reveal">
+          <div class="faq-summary">
+            هل تنفيذ الخدمات آلي أم يدوي؟ <i class="fas fa-chevron-down"></i>
+          </div>
+          <div class="faq-content">
+            معظم خدماتنا مرتبطة بأنظمة أتمتة ذكية (API) تضمن التنفيذ الفوري بمجرد إتمام الدفع، وبعض الخدمات التقنية الخاصة قد تستغرق بضع دقائق للمراجعة البشرية.
+          </div>
+        </div>
+        <div class="faq-item reveal">
+          <div class="faq-summary">
+            ما هي ضمانات حماية أموالي في المحفظة؟ <i class="fas fa-chevron-down"></i>
+          </div>
+          <div class="faq-content">
+            نحن نستخدم أنظمة تشفير SSL متقدمة، وكل قرش في محفظتك مسجل في سجل مالي شفاف يمكنك تتبعه لحظياً، مع ضمان استرداد الأموال في حال تعذر تنفيذ أي خدمة.
+          </div>
+        </div>
+        <div class="faq-item reveal">
+          <div class="faq-summary">
+            هل يمكنني طلب خدمة تقنية غير موجودة؟ <i class="fas fa-chevron-down"></i>
+          </div>
+          <div class="faq-content">
+            بالتأكيد! رقميات توفر نظام "اقتراح خدمة" حيث يمكنك إرسال طلبك التقني وسيقوم فريق التطوير بدراسته وتوفيره لك بشكل خاص.
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Suggestion Banner: The Finale -->
+  <section>
+    <div class="container-custom">
+      <div class="reveal" style="background: linear-gradient(135deg, var(--primary), var(--secondary)); border-radius: 40px; padding: 5rem; display: flex; align-items: center; justify-content: space-between; gap: 4rem; flex-wrap: wrap; box-shadow: 0 40px 80px var(--primary-glow);">
+        <div style="max-width: 600px;">
+          <h2 style="color: #000; font-size: 3rem; font-weight: 900; margin: 0;">لم تجد ما تبحث عنه؟</h2>
+          <p style="color: rgba(0,0,0,0.8); font-size: 1.25rem; font-weight: 700; margin-top: 1.5rem;">نحن في تطوير مستمر لأدواتنا التقنية. أرسل لنا اقتراحك وسنحوله إلى حقيقة رقمية.</p>
+        </div>
+        <a href="{% url 'site_product_suggestion' %}" class="btn-nexus" style="background: #000; color: #fff; font-size: 1.1rem; padding: 1.25rem 3rem;">
+          <i class="fas fa-paper-plane"></i> أرسل اقتراحك الآن
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <!-- Footer Nexus: The Complete Map -->
+  <footer class="footer-nexus">
+    <div class="container-custom">
+      <div class="footer-grid">
+        <div class="footer-brand">
+          <h2>رقميات<span>.</span></h2>
+          <p>المنصة الرائدة لتوفير الحلول الرقمية والخدمات التقنية المتكاملة بمعايير عالمية وأتمتة ذكية.</p>
+          <div style="display: flex; gap: 1.5rem; margin-top: 2rem; font-size: 1.25rem;">
+            <a href="#" style="color: var(--primary);"><i class="fab fa-twitter"></i></a>
+            <a href="#" style="color: var(--primary);"><i class="fab fa-instagram"></i></a>
+            <a href="#" style="color: var(--primary);"><i class="fab fa-whatsapp"></i></a>
+          </div>
+        </div>
+        <div class="footer-links">
+          <h4>المنصة</h4>
+          <ul>
+            <li><a href="{% url 'home' %}">الرئيسية</a></li>
+            <li><a href="{% url 'catalog' %}">متجر الخدمات</a></li>
+            <li><a href="#faq">الأسئلة الشائعة</a></li>
+            <li><a href="{% url 'contact' %}">تواصل معنا</a></li>
+          </ul>
+        </div>
+        <div class="footer-links">
+          <h4>قانوني</h4>
+          <ul>
+            <li><a href="{% url 'terms_of_service' %}">شروط الاستخدام</a></li>
+            <li><a href="{% url 'privacy_policy' %}">سياسة الخصوصية</a></li>
+            <li><a href="{% url 'refund_policy' %}">سياسة الاسترجاع</a></li>
+          </ul>
+        </div>
+        <div class="footer-links">
+          <h4>التواصل المباشر</h4>
+          <p style="font-size: 0.9rem; color: var(--text-dim); margin-bottom: 1rem;">نحن هنا لخدمتك 24/7 عبر نظام الدعم الفني المتطور الخاص بنا.</p>
+          <a href="{% url 'dashboard' %}" class="btn-nexus outline" style="font-size: 0.8rem; padding: 0.6rem 1.2rem;">فتح تذكرة دعم</a>
+        </div>
+      </div>
+      <div style="border-top: 1px solid var(--glass-border); margin-top: 5rem; padding-top: 2rem; text-align: center; color: var(--text-dim); font-size: 0.85rem;">
+        جميع الحقوق محفوظة لمنصة رقميات التقنية &copy; 2026
+      </div>
+    </div>
+  </footer>
 </div>
 
 <script>
+  // Advanced Accordion Logic
+  document.querySelectorAll('.faq-summary').forEach(summary => {
+    summary.addEventListener('click', () => {
+      const item = summary.parentElement;
+      const isActive = item.classList.contains('active');
+      document.querySelectorAll('.faq-item').forEach(i => i.classList.remove('active'));
+      if (!isActive) item.classList.add('active');
+    });
+  });
+
+  // Reveal Animation on Scroll
   function reveal() {
     var reveals = document.querySelectorAll(".reveal");
     for (var i = 0; i < reveals.length; i++) {
       var windowHeight = window.innerHeight;
       var elementTop = reveals[i].getBoundingClientRect().top;
-      var elementVisible = 100;
+      var elementVisible = 120;
       if (elementTop < windowHeight - elementVisible) {
         reveals[i].classList.add("active");
       }
