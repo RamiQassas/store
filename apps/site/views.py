@@ -950,7 +950,6 @@ def v3_change_email_view(request):
 
 def home(request):
     from apps.common.models import PlatformStatistic, Testimonial
-    from django.db.models import Sum
 
     # Base Stats (Real Data)
     base_stats = {
@@ -968,10 +967,22 @@ def home(request):
     # Testimonials
     testimonials = Testimonial.objects.filter(is_approved=True).order_by('-created_at')[:6]
     
-    categories = Category.objects.filter(is_active=True).order_by("sort_order", "name")
+    categories = Category.objects.filter(is_active=True).annotate(
+        product_count=Count("products", filter=Q(products__is_active=True))
+    ).order_by("sort_order", "name")
+
+    featured_products = Product.objects.filter(
+        is_active=True, is_featured=True
+    ).select_related("category").prefetch_related("variants")[:12]
+
+    sale_products = Product.objects.filter(
+        Q(is_sale=True) | Q(variants__is_sale=True),
+        is_active=True,
+    ).select_related("category").prefetch_related("variants").distinct()[:6]
     
     return render(request, "site/home.html", {
-        "featured_products": Product.objects.filter(is_active=True, is_featured=True).select_related("category")[:12],
+        "featured_products": featured_products,
+        "sale_products": sale_products,
         "categories": categories,
         "base_stats": base_stats,
         "custom_stats": custom_stats,
