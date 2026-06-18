@@ -264,6 +264,19 @@
                 <p class="text-[9px] text-slate-500 mt-2">اترك فارغاً للسماح لجميع الفئات.</p>
             </div>
 
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div class="field-group">
+                    <label class="info-label">صالح للحسابات المسجلة قبل تاريخ</label>
+                    {{ form.valid_for_users_before }}
+                    <p class="text-[9px] text-slate-500 mt-2">يعمل فقط للحسابات القديمة التي سجلت قبل هذا التاريخ.</p>
+                </div>
+                <div class="field-group">
+                    <label class="info-label">صالح للحسابات المسجلة بعد تاريخ</label>
+                    {{ form.valid_for_users_after }}
+                    <p class="text-[9px] text-slate-500 mt-2">يعمل فقط للحسابات الجديدة التي سجلت بعد هذا التاريخ.</p>
+                </div>
+            </div>
+
             <div class="divider border-white/5 my-2"></div>
 
             <div class="field-group">
