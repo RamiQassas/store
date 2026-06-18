@@ -77,12 +77,29 @@
 
                 <div id="amount-section" class="space-y-6 opacity-50 pointer-events-none transition-opacity">
                     <div>
-                        <label class="block text-sm font-bold text-slate-300 mb-2">المبلغ المراد تحويله ({{ wallet.currency.code }})</label>
-                        <input type="number" name="amount" id="amount-input" step="0.01" min="1" max="{{ wallet.available_balance }}" class="builder-input text-xl font-black text-cyan" placeholder="0.00" required disabled>
+                        <label class="block text-sm font-bold text-slate-300 mb-2">المبلغ المراد تحويله</label>
+                        <div class="flex gap-2">
+                            <input type="number" name="input_amount" id="amount-input" step="0.01" min="0.01" class="builder-input text-xl font-black text-cyan flex-1" placeholder="0.00" required disabled>
+                            <select id="currency-select" class="builder-input !w-32 bg-slate-800" disabled>
+                                <option value="{{ wallet.currency.code }}" data-rate="1.0" {% if preferred_currency.code == wallet.currency.code %}selected{% endif %}>{{ wallet.currency.code }}</option>
+                                {% for curr in currencies %}
+                                    {% if curr.code != wallet.currency.code %}
+                                    <option value="{{ curr.code }}" data-rate="{{ curr.buy_rate }}" {% if preferred_currency.code == curr.code %}selected{% endif %}>{{ curr.code }}</option>
+                                    {% endif %}
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <input type="hidden" name="amount" id="hidden-wallet-amount">
                         
-                        <div class="flex justify-between items-center mt-2 text-xs">
-                            <span class="text-slate-400">رسوم التحويل: <span class="text-rose-400 font-bold" id="fee-display">0.00</span> ({{ fee_percent }}%)</span>
-                            <span class="text-slate-400">الصافي للمستلم: <span class="text-emerald-400 font-bold" id="net-display">0.00</span></span>
+                        <div class="flex flex-col mt-3 space-y-1 text-xs">
+                            <div class="flex justify-between items-center text-slate-400">
+                                <span>يعادل في محفظتك: <span class="text-white font-bold" id="equiv-display">0.00</span> {{ wallet.currency.code }}</span>
+                                <span>رسوم التحويل: <span class="text-rose-400 font-bold" id="fee-display">0.00</span> ({{ fee_percent }}%)</span>
+                            </div>
+                            <div class="flex justify-between items-center bg-emerald-500/10 p-2 rounded-lg border border-emerald-500/20 mt-1">
+                                <span class="text-emerald-400 font-bold">الصافي للمستلم:</span>
+                                <span class="text-emerald-400 font-black text-sm"><span id="net-display">0.00</span> {{ wallet.currency.code }}</span>
+                            </div>
                         </div>
                     </div>
 
@@ -180,6 +197,7 @@
                     amountSection.classList.remove('opacity-50', 'pointer-events-none');
                     formInputs.forEach(inp => inp.disabled = false);
                     amountInput.disabled = false;
+                    document.getElementById('currency-select').disabled = false;
                     document.querySelector('input[name="note"]').disabled = false;
                     submitBtn.disabled = false;
                 }
@@ -199,23 +217,54 @@
         // Disable Form
         amountSection.classList.add('opacity-50', 'pointer-events-none');
         amountInput.disabled = true;
+        document.getElementById('currency-select').disabled = true;
         document.querySelector('input[name="note"]').disabled = true;
         submitBtn.disabled = true;
     }
 
-    // Calculate Fees
-    amountInput.addEventListener('input', function() {
-        const amount = parseFloat(this.value) || 0;
-        const fee = (amount * feePercent) / 100;
-        const net = amount - fee;
+    // Calculate Fees and Equivalents
+    const currencySelect = document.getElementById('currency-select');
+    const hiddenWalletAmount = document.getElementById('hidden-wallet-amount');
+    const equivDisplay = document.getElementById('equiv-display');
+    const feeDisplay = document.getElementById('fee-display');
+    const netDisplay = document.getElementById('net-display');
+
+    function calculateAmounts() {
+        const inputAmount = parseFloat(amountInput.value) || 0;
+        const selectedOption = currencySelect.options[currencySelect.selectedIndex];
+        const exchangeRate = parseFloat(selectedOption.getAttribute('data-rate')) || 1.0;
         
-        document.getElementById('fee-display').textContent = fee.toFixed(2);
-        document.getElementById('net-display').textContent = net.toFixed(2);
-    });
+        // Let's assume data-rate is the rate of the selected currency against the base currency.
+        // Wait, the wallet currency is what we need to convert to.
+        // If wallet.currency.code is USD (base) and selected is TRY (32.0). 
+        // 1 USD = 32 TRY. So to convert TRY to USD, we divide by the rate.
+        // Since we are using buy_rate/sell_rate. Let's assume rate is how many units of currency per 1 USD.
+        // If selected is TRY and rate is 32. input_amount = 320. equivalent = 320 / 32 = 10 USD.
+        // If selected is USD and rate is 1. input_amount = 10. equivalent = 10 / 1 = 10 USD.
+        
+        const walletRate = parseFloat(document.querySelector(`#currency-select option[value="{{ wallet.currency.code }}"]`).getAttribute('data-rate')) || 1.0;
+        
+        // Convert to Base (USD) first, then to Wallet Currency
+        // Base Amount = inputAmount / exchangeRate
+        // Wallet Amount = Base Amount * walletRate
+        const walletAmount = (inputAmount / exchangeRate) * walletRate;
+        
+        hiddenWalletAmount.value = walletAmount.toFixed(2);
+        equivDisplay.textContent = walletAmount.toFixed(2);
+        
+        const fee = (walletAmount * feePercent) / 100;
+        const net = walletAmount - fee;
+        
+        feeDisplay.textContent = fee.toFixed(2);
+        netDisplay.textContent = net.toFixed(2);
+    }
+
+    amountInput.addEventListener('input', calculateAmounts);
+    currencySelect.addEventListener('change', calculateAmounts);
 
     // Form submission confirmation
     document.getElementById('transfer-form').addEventListener('submit', function(e) {
-        if(!confirm(`هل أنت متأكد من رغبتك في تحويل ${amountInput.value} إلى ${recipientName.textContent}؟`)) {
+        if(!confirm(`هل أنت متأكد من رغبتك في تحويل ${amountInput.value} ${currencySelect.value} إلى ${recipientName.textContent}؟`)) {
             e.preventDefault();
         }
     });

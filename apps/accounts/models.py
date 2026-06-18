@@ -114,6 +114,7 @@ class User(AbstractUser):
     has_custom_limits = models.BooleanField(default=False, verbose_name="له حدود مخصصة")
     daily_deposit_limit = models.DecimalField(max_digits=14, decimal_places=2, default=Decimal("100.00"), verbose_name="حد الإيداع اليومي")
     daily_withdrawal_limit = models.DecimalField(max_digits=14, decimal_places=2, default=Decimal("100.00"), verbose_name="حد السحب اليومي")
+    custom_p2p_transfer_limit = models.DecimalField(max_digits=14, decimal_places=2, null=True, blank=True, verbose_name="حد تحويل P2P المخصص")
     
     # Per-payment method custom limits for this user
     # Format: {"method_id": {"deposit": 500, "withdraw": 500}}

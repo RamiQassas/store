@@ -573,7 +573,9 @@ def transfer_page(request):
     return render(request, "site/v3/v3_transfer.html", {
         "wallet": wallet,
         "settings": settings_obj,
-        "fee_percent": settings_obj.transfer_fee_percent
+        "fee_percent": settings_obj.transfer_fee_percent,
+        "preferred_currency": request.user.preferred_currency or wallet.currency,
+        "currencies": Currency.objects.filter(is_active=True)
     })
 
 @login_required
@@ -1480,6 +1482,23 @@ def control_transfers(request):
         "page_obj": Paginator(qs, 50).get_page(request.GET.get("page")),
         "query": q
     })
+
+@admin_required
+def control_transfer_reverse(request, pk):
+    from apps.wallets.models import BalanceTransfer
+    from apps.wallets.services import reverse_p2p_transfer, WalletError
+    
+    if request.method == "POST":
+        transfer = get_object_or_404(BalanceTransfer, pk=pk)
+        try:
+            reverse_p2p_transfer(transfer, admin_user=request.user)
+            messages.success(request, f"تم إلغاء واسترداد التحويل ({transfer.reference}) بنجاح.")
+        except WalletError as e:
+            messages.error(request, str(e))
+        except Exception as e:
+            messages.error(request, f"حدث خطأ أثناء الإلغاء: {str(e)}")
+            
+    return redirect("control_transfers")
 
 # ==========================================
 # --- FINANCIAL NOTIFICATION HELPERS ---

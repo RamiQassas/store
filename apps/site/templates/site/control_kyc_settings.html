@@ -47,6 +47,10 @@
                     <label class="text-[10px] text-slate-500 mb-2 block">حد السحب اليومي ($)</label>
                     {{ form.unverified_daily_withdrawal_limit }}
                 </div>
+                <div class="field-group md:col-span-2">
+                    <label class="text-[10px] text-slate-500 mb-2 block">حد التحويل اليومي للغير موثقين ($)</label>
+                    {{ form.unverified_transfer_limit }}
+                </div>
 
                 <div class="md:col-span-2 mt-4 pt-4 border-t border-white/5">
                     <h4 class="text-xs font-black text-emerald-500 uppercase tracking-tighter mb-4 flex items-center gap-2">
@@ -60,6 +64,32 @@
                 <div class="field-group">
                     <label class="text-[10px] text-slate-500 mb-2 block">حد السحب اليومي ($)</label>
                     {{ form.verified_daily_withdrawal_limit }}
+                </div>
+                <div class="field-group md:col-span-2">
+                    <label class="text-[10px] text-slate-500 mb-2 block">حد التحويل اليومي للموثقين ($)</label>
+                    {{ form.verified_transfer_limit }}
+                </div>
+            </div>
+            
+            <div class="md:col-span-2 mt-4 pt-4 border-t border-white/5">
+                <h4 class="text-xs font-black text-cyan uppercase tracking-tighter mb-4 flex items-center gap-2">
+                    <i class="fas fa-exchange-alt"></i> إعدادات التحويل (P2P)
+                </h4>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div class="field-group">
+                    <label class="text-[10px] text-slate-500 mb-2 block">نسبة رسوم التحويل (%)</label>
+                    {{ form.transfer_fee_percent }}
+                </div>
+                <div class="field-group flex flex-col gap-4 mt-2">
+                    <label class="flex items-center gap-3 cursor-pointer group">
+                        {{ form.p2p_transfer_enabled }}
+                        <span class="text-xs text-slate-400 group-hover:text-white transition-colors">تفعيل التحويل بين المستخدمين</span>
+                    </label>
+                    <label class="flex items-center gap-3 cursor-pointer group">
+                        {{ form.require_kyc_for_transfer }}
+                        <span class="text-xs text-slate-400 group-hover:text-white transition-colors">اشتراط التوثيق للتحويل</span>
+                    </label>
                 </div>
             </div>
             {% endlocalize %}

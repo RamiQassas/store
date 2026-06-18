@@ -31,7 +31,7 @@ def execute_p2p_transfer(sender, recipient, amount, currency, note=""):
         raise ValidationError("يجب أن يكون كلا الحسابين موثقين لإتمام التحويل.")
 
     # Check limits (simplified for this example: applying the limit per transaction)
-    limit = settings.verified_transfer_limit if sender.is_kyc_verified else settings.unverified_transfer_limit
+    limit = sender.custom_p2p_transfer_limit if sender.has_custom_limits and sender.custom_p2p_transfer_limit else (settings.verified_transfer_limit if sender.is_kyc_verified else settings.unverified_transfer_limit)
     if amount > limit:
         raise ValidationError(f"لقد تجاوزت حد التحويل المسموح به. الحد الأقصى: {limit}")
 
@@ -60,9 +60,8 @@ def execute_p2p_transfer(sender, recipient, amount, currency, note=""):
 
         # Debit Sender
         debit_wallet(
-            wallet=sender_wallet,
+            wallet_id=sender_wallet.id,
             amount=amount,
-            entry_type=LedgerEntry.EntryType.DEBIT,
             source="P2P Transfer Out",
             reason=f"Transfer to {recipient.uid} - Ref: {transfer.reference}",
             reference=transfer.reference,
@@ -71,9 +70,8 @@ def execute_p2p_transfer(sender, recipient, amount, currency, note=""):
 
         # Credit Recipient
         credit_wallet(
-            wallet=recipient_wallet,
+            wallet_id=recipient_wallet.id,
             amount=net_amount,
-            entry_type=LedgerEntry.EntryType.CREDIT,
             source="P2P Transfer In",
             reason=f"Transfer from {sender.uid} - Ref: {transfer.reference}",
             reference=transfer.reference,
@@ -81,6 +79,46 @@ def execute_p2p_transfer(sender, recipient, amount, currency, note=""):
         )
         
         return transfer
+
+def reverse_p2p_transfer(transfer, admin_user=None):
+    """
+    Reverses a completed P2P transfer.
+    Deducts the net amount from the recipient, refunds the full amount to the sender.
+    """
+    if transfer.status != BalanceTransfer.Status.COMPLETED:
+        raise WalletError("لا يمكن إلغاء تحويل غير مكتمل.")
+
+    with transaction.atomic():
+        sender_wallet = Wallet.objects.select_for_update().get(user=transfer.sender, currency=transfer.currency)
+        recipient_wallet = Wallet.objects.select_for_update().get(user=transfer.recipient, currency=transfer.currency)
+
+        if recipient_wallet.available_balance < transfer.net_amount:
+            raise WalletError("رصيد المستلم غير كافٍ لاسترداد مبلغ التحويل.")
+
+        # Update transfer status
+        transfer.status = BalanceTransfer.Status.REJECTED # Or add a REVERSED status
+        transfer.note = f"{transfer.note} [تم إلغاء التحويل]"
+        transfer.save(update_fields=['status', 'note', 'updated_at'])
+
+        # Debit Recipient (Reversal)
+        debit_wallet(
+            wallet_id=recipient_wallet.id,
+            amount=transfer.net_amount,
+            source="P2P Reversal Out",
+            reason=f"Reversal of transfer from {transfer.sender.uid} - Ref: {transfer.reference}",
+            reference=f"REV-{transfer.reference}",
+            created_by=admin_user
+        )
+
+        # Credit Sender (Refund)
+        credit_wallet(
+            wallet_id=sender_wallet.id,
+            amount=transfer.amount,
+            source="P2P Reversal In",
+            reason=f"Refund of transfer to {transfer.recipient.uid} - Ref: {transfer.reference}",
+            reference=f"REV-{transfer.reference}",
+            created_by=admin_user
+        )
 
 def json_serialize_safe(data):
     if not data: return {}

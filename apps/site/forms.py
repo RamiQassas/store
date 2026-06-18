@@ -254,16 +254,24 @@ class KYCSettingsForm(forms.ModelForm):
     class Meta:
         model = KYCSettings
         fields = [
-            "unverified_daily_deposit_limit", "unverified_daily_withdrawal_limit",
-            "verified_daily_deposit_limit", "verified_daily_withdrawal_limit",
+            "unverified_daily_deposit_limit", "unverified_daily_withdrawal_limit", "unverified_transfer_limit",
+            "verified_daily_deposit_limit", "verified_daily_withdrawal_limit", "verified_transfer_limit",
+            "p2p_transfer_enabled", "require_kyc_for_transfer", "transfer_fee_percent",
             "block_by_nationality", "block_by_issuing_country",
             "otp_max_attempts", "otp_base_cooldown"
         ]
         widgets = {
             "unverified_daily_deposit_limit": forms.NumberInput(attrs={"class": "builder-input"}),
             "unverified_daily_withdrawal_limit": forms.NumberInput(attrs={"class": "builder-input"}),
+            "unverified_transfer_limit": forms.NumberInput(attrs={"class": "builder-input"}),
             "verified_daily_deposit_limit": forms.NumberInput(attrs={"class": "builder-input"}),
             "verified_daily_withdrawal_limit": forms.NumberInput(attrs={"class": "builder-input"}),
+            "verified_transfer_limit": forms.NumberInput(attrs={"class": "builder-input"}),
+            "transfer_fee_percent": forms.NumberInput(attrs={"class": "builder-input", "step": "0.01"}),
+            "p2p_transfer_enabled": forms.CheckboxInput(attrs={"class": "form-check-input"}),
+            "require_kyc_for_transfer": forms.CheckboxInput(attrs={"class": "form-check-input"}),
+            "block_by_nationality": forms.CheckboxInput(attrs={"class": "form-check-input"}),
+            "block_by_issuing_country": forms.CheckboxInput(attrs={"class": "form-check-input"}),
             "otp_max_attempts": forms.NumberInput(attrs={"class": "builder-input"}),
             "otp_base_cooldown": forms.NumberInput(attrs={"class": "builder-input"}),
         }

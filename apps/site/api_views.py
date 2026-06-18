@@ -146,7 +146,7 @@ def api_order_mark_read(request, pk):
 
 @login_required
 def api_lookup_user(request):
-    """API to lookup user by UID, Email, or Phone for P2P transfer."""
+    """API to lookup user by UID, Email, Phone, or Name for P2P transfer."""
     from apps.accounts.models import User
     from django.db.models import Q
     q = request.GET.get('q', '').strip()
@@ -154,19 +154,31 @@ def api_lookup_user(request):
     if not q or len(q) < 3:
         return JsonResponse({"error": "يرجى إدخال 3 أحرف على الأقل."}, status=400)
     
-    user = User.objects.filter(
+    users = User.objects.filter(
         Q(uid__iexact=q) | 
         Q(email__iexact=q) | 
-        Q(phone__iexact=q)
-    ).exclude(id=request.user.id).first()
+        Q(phone__iexact=q) |
+        Q(first_name__icontains=q) |
+        Q(last_name__icontains=q)
+    ).exclude(id=request.user.id)
     
-    if not user:
+    count = users.count()
+    if count == 0:
         return JsonResponse({"error": "لم يتم العثور على مستخدم بهذه البيانات."}, status=404)
+    elif count > 1:
+        return JsonResponse({"error": "تم العثور على أكثر من مستخدم بهذا الاسم. يرجى البحث باستخدام الـ UID أو البريد الإلكتروني للحصول على نتيجة دقيقة."}, status=400)
         
+    user = users.first()
+    
+    # Generate full name or fallback to email
+    name = user.get_full_name()
+    if not name:
+        name = user.email
+
     return JsonResponse({
         "id": user.public_uuid,
         "uid": user.uid,
-        "display_name": user.get_full_name() or user.email,
+        "display_name": name,
         "is_verified": user.is_kyc_verified
     })
 
