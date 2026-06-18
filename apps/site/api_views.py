@@ -166,7 +166,7 @@ def api_lookup_user(request):
     return JsonResponse({
         "id": user.public_uuid,
         "uid": user.uid,
-        "display_name": user.display_name,
+        "display_name": user.get_full_name() or user.email,
         "is_verified": user.is_kyc_verified
     })
 

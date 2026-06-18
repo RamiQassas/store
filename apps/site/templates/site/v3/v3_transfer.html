@@ -69,6 +69,7 @@
                     <div class="flex-1">
                         <p class="text-xs text-cyan mb-1 font-bold"><i class="fas fa-check-circle mr-1"></i> تم العثور على المستلم</p>
                         <p id="recipient-name" class="font-black text-white text-lg truncate"></p>
+                        <p id="recipient-uid-display" class="text-xs text-slate-400 font-mono mt-1"></p>
                         <p id="recipient-kyc-badge" class="text-[10px] bg-emerald-500/20 text-emerald-400 px-2 py-0.5 rounded inline-block mt-1 hidden"><i class="fas fa-shield-check mr-1"></i> حساب موثق</p>
                     </div>
                     <button type="button" onclick="resetRecipient()" class="text-rose-500 hover:bg-rose-500/10 w-8 h-8 rounded-full flex items-center justify-center transition-colors"><i class="fas fa-times"></i></button>
@@ -164,6 +165,7 @@
                     resetRecipient();
                 } else {
                     recipientName.textContent = data.display_name;
+                    document.getElementById('recipient-uid-display').textContent = 'UID: ' + data.uid;
                     recipientUidHidden.value = data.id; // Using public_uuid for backend action
                     
                     if(data.is_verified) {
@@ -176,7 +178,7 @@
                     
                     // Enable Form
                     amountSection.classList.remove('opacity-50', 'pointer-events-none');
-                    formInputs.forEach(inp => input.disabled = false);
+                    formInputs.forEach(inp => inp.disabled = false);
                     amountInput.disabled = false;
                     document.querySelector('input[name="note"]').disabled = false;
                     submitBtn.disabled = false;
