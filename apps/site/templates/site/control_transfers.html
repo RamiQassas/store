@@ -47,41 +47,51 @@
                         </td>
                         <td><code class="text-primary">{{ t.reference }}</code></td>
                         <td>
-                            <div class="d-flex align-items-center">
-                                <a href="{% url 'control_user_moderate' t.sender.public_uuid %}" class="text-decoration-none fw-bold">{{ t.sender.display_name }}</a>
-                                {% if t.sender.is_kyc_verified %}<i class="fas fa-check-circle text-success ms-1" title="موثق"></i>{% endif %}
+                            <div class="d-flex flex-column">
+                                <a href="{% url 'control_user_moderate' t.sender.public_uuid %}" class="text-decoration-none fw-bold" title="{{ t.sender.email }}">{{ t.sender.display_name|truncatechars:20 }}</a>
+                                <small class="text-muted font-monospace">UID: {{ t.sender.uid|default:"N/A" }}</small>
+                                <small class="text-muted">{{ t.sender.email }}</small>
                             </div>
-                            <small class="text-muted">UID: {{ t.sender.uid }}</small>
                         </td>
                         <td>
-                            <div class="d-flex align-items-center">
-                                <a href="{% url 'control_user_moderate' t.recipient.public_uuid %}" class="text-decoration-none fw-bold">{{ t.recipient.display_name }}</a>
-                                {% if t.recipient.is_kyc_verified %}<i class="fas fa-check-circle text-success ms-1" title="موثق"></i>{% endif %}
+                            <div class="d-flex flex-column">
+                                <a href="{% url 'control_user_moderate' t.recipient.public_uuid %}" class="text-decoration-none fw-bold" title="{{ t.recipient.email }}">{{ t.recipient.display_name|truncatechars:20 }}</a>
+                                <small class="text-muted font-monospace">UID: {{ t.recipient.uid|default:"N/A" }}</small>
+                                <small class="text-muted">{{ t.recipient.email }}</small>
                             </div>
-                            <small class="text-muted">UID: {{ t.recipient.uid }}</small>
                         </td>
-                        <td class="fw-bold text-danger">-{{ t.amount }}</td>
+                        <td class="fw-bold text-danger">{{ t.amount }}</td>
                         <td class="text-warning">{{ t.fee_amount }}</td>
-                        <td class="fw-bold text-success">+{{ t.net_amount }}</td>
+                        <td class="fw-bold text-success">{{ t.net_amount }}</td>
                         <td><span class="badge bg-secondary">{{ t.currency.code }}</span></td>
                         <td>
                             {% if t.note %}
-                                <span title="{{ t.note }}">{{ t.note|truncatechars:20 }}</span>
+                                <span title="{{ t.note }}">{{ t.note|truncatechars:30 }}</span>
                             {% else %}
                                 <span class="text-muted">-</span>
                             {% endif %}
                         </td>
                         <td>
-                            {% if t.status == 'completed' %}
-                            <form method="post" action="{% url 'control_transfer_reverse' t.pk %}" class="d-inline" onsubmit="return confirm('هل أنت متأكد من إلغاء هذا التحويل واسترداد المبلغ؟');">
-                                {% csrf_token %}
-                                <button type="submit" class="btn btn-sm btn-outline-danger" title="إلغاء واسترداد">
-                                    <i class="fas fa-undo"></i>
+                            <div class="dropdown">
+                                <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                    الإجراءات
                                 </button>
-                            </form>
-                            {% else %}
-                            <span class="badge bg-secondary">{{ t.get_status_display }}</span>
-                            {% endif %}
+                                <ul class="dropdown-menu">
+                                    {% if t.status == 'completed' %}
+                                    <li>
+                                        <form method="post" action="{% url 'control_transfer_reverse' t.pk %}" onsubmit="return confirm('هل أنت متأكد من إلغاء هذا التحويل واسترداد المبلغ؟');">
+                                            {% csrf_token %}
+                                            <button type="submit" class="dropdown-item text-danger">
+                                                <i class="fas fa-undo me-2"></i> إلغاء واسترداد
+                                            </button>
+                                        </form>
+                                    </li>
+                                    <li><hr class="dropdown-divider"></li>
+                                    {% endif %}
+                                    <li><a class="dropdown-item" href="#">تعديل المبلغ (قريباً)</a></li>
+                                    <li><a class="dropdown-item" href="#">تعليق الحوالة (قريباً)</a></li>
+                                </ul>
+                            </div>
                         </td>
                     </tr>
                     {% empty %}
