@@ -150,12 +150,15 @@ def v3_init_verification(request, user, action_type):
     return False # Always return False to trigger redirect to verification
 
 def v3_redirect_to_verification(request, methods):
-    if not methods: return redirect("dashboard")
+    if not methods: 
+        next_url = request.session.get("v3_auth_next", "dashboard")
+        return redirect(next_url)
     first = methods[0]
     if first == "EMAIL": return redirect("site_verify_otp")
     if first == "APP": return redirect("site_2fa_verify")
     if first == "SP": return redirect("site_sp_verify")
-    return redirect("dashboard")
+    next_url = request.session.get("v3_auth_next", "dashboard")
+    return redirect(next_url)
 
 def v3_verify_sp_view(request):
     uid, purpose = request.session.get("v3_auth_uid"), request.session.get("v3_auth_purpose")
