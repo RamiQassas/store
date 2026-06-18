@@ -22,11 +22,13 @@
                     <div class="p-4 bg-slate-900/50 border border-white/5 rounded-2xl">
                         <div class="flex justify-between items-start mb-2">
                             <div>
-                                <p class="text-sm font-bold text-white mb-1">إلى: {{ t.recipient.display_name }}</p>
-                                <p class="text-[10px] text-slate-500 font-mono">{{ t.reference }}</p>
+                                <p class="text-sm font-bold text-white mb-1">
+                                    إلى: {% if t.recipient.get_full_name %}{{ t.recipient.get_full_name }}{% else %}{{ t.recipient.email }}{% endif %}
+                                </p>
+                                <p class="text-[10px] text-slate-500 font-mono">{{ t.reference }} {% if t.status == 'rejected' %}<span class="text-rose-500 font-bold">(ملغاة/مستردة)</span>{% endif %}</p>
                             </div>
                             <div class="text-left">
-                                <p class="text-lg font-black text-rose-400">-{{ t.amount }} <span class="text-xs">{{ t.currency.code }}</span></p>
+                                <p class="text-lg font-black {% if t.status == 'rejected' %}text-slate-500 line-through{% else %}text-rose-400{% endif %}">-{{ t.amount }} <span class="text-xs">{{ t.currency.code }}</span></p>
                                 <p class="text-[10px] text-slate-500">{{ t.created_at|date:"Y-m-d H:i" }}</p>
                             </div>
                         </div>
@@ -50,15 +52,17 @@
                     <div class="p-4 bg-slate-900/50 border border-white/5 rounded-2xl">
                         <div class="flex justify-between items-start mb-2">
                             <div>
-                                <p class="text-sm font-bold text-white mb-1">من: {{ t.sender.display_name }}</p>
-                                <p class="text-[10px] text-slate-500 font-mono">{{ t.reference }}</p>
+                                <p class="text-sm font-bold text-white mb-1">
+                                    من: {% if t.sender.get_full_name %}{{ t.sender.get_full_name }}{% else %}{{ t.sender.email }}{% endif %}
+                                </p>
+                                <p class="text-[10px] text-slate-500 font-mono">{{ t.reference }} {% if t.status == 'rejected' %}<span class="text-rose-500 font-bold">(تم إلغاؤها)</span>{% endif %}</p>
                             </div>
                             <div class="text-left">
-                                <p class="text-lg font-black text-emerald-400">+{{ t.net_amount }} <span class="text-xs">{{ t.currency.code }}</span></p>
+                                <p class="text-lg font-black {% if t.status == 'rejected' %}text-slate-500 line-through{% else %}text-emerald-400{% endif %}">+{{ t.net_amount }} <span class="text-xs">{{ t.currency.code }}</span></p>
                                 <p class="text-[10px] text-slate-500">{{ t.created_at|date:"Y-m-d H:i" }}</p>
                             </div>
                         </div>
-                        {% if t.fee_amount > 0 %}
+                        {% if t.fee_amount > 0 and t.status != 'rejected' %}
                         <p class="text-[10px] text-slate-500 mt-1">الرقم الأصلي: {{ t.amount }} | الرسوم: {{ t.fee_amount }}</p>
                         {% endif %}
                         {% if t.note %}
