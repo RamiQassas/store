@@ -9,6 +9,8 @@ urlpatterns = [
     path("dashboard/orders/<uuid:pk>/", views.order_detail, name="dashboard_order_detail"),
     path("dashboard/deposits/", views.deposits, name="dashboard_deposits"),
     path("dashboard/withdrawals/", views.withdrawals, name="dashboard_withdrawals"),
+    path("dashboard/transfer/", views.transfer_page, name="dashboard_transfer"),
+    path("dashboard/transfer/history/", views.transfer_history, name="dashboard_transfer_history"),
     path("dashboard/notifications/", views.notifications_list, name="notifications_list"),
     path("dashboard/notifications/settings/", views.notification_settings, name="notification_settings"),
     path("dashboard/change-password/", views.v3_change_password_view, name="change_password"),
@@ -36,6 +38,7 @@ urlpatterns = [
     path("api/withdrawals/<uuid:pk>/reject/", api_views.api_withdrawal_reject, name="api_withdrawal_reject"),
     path("api/orders/<uuid:pk>/mark-read/", api_views.api_order_mark_read, name="api_order_mark_read"),
     path("api/users/search/", api_views.api_user_search, name="api_user_search"),
+    path("api/users/lookup/", api_views.api_lookup_user, name="api_lookup_user"),
 
     # AUTHENTICATION (STANDARDIZED NAMES)
     path("auth/login/", views.v3_login_view, name="site_login"),
@@ -62,6 +65,7 @@ urlpatterns = [
     path("control/deposits/<uuid:pk>/", views.control_deposit_detail, name="control_deposit_detail"),
     path("control/withdrawals/", views.control_withdrawals, name="control_withdrawals"),
     path("control/withdrawals/<uuid:pk>/", views.control_withdrawal_detail, name="control_withdrawal_detail"),
+    path("control/transfers/", views.control_transfers, name="control_transfers"),
     path("control/currencies/", views.currencies_list, name="currencies_list"),
     path("control/currencies/create/", views.currency_create, name="currency_create"),
     path("control/currencies/<uuid:pk>/edit/", views.currency_edit, name="currency_edit"),

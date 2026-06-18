@@ -1,12 +1,86 @@
 import json
+import uuid
 from decimal import Decimal
 from django.db import transaction
-from apps.wallets.models import LedgerEntry, Wallet, WalletTransaction
+from django.core.exceptions import ValidationError
+from apps.wallets.models import LedgerEntry, Wallet, WalletTransaction, BalanceTransfer
 from apps.common.models import Currency
 from apps.notifications.models import Notification
+from apps.accounts.models import KYCSettings
 
 class WalletError(Exception):
     pass
+
+def execute_p2p_transfer(sender, recipient, amount, currency, note=""):
+    """
+    Executes a P2P transfer between two users safely.
+    Validates limits, KYC, and balances.
+    """
+    if sender == recipient:
+        raise ValidationError("لا يمكنك تحويل رصيد لنفسك.")
+    
+    if amount <= Decimal("0.00"):
+        raise ValidationError("يجب أن يكون المبلغ أكبر من صفر.")
+
+    settings = KYCSettings.get_settings()
+    
+    if not settings.p2p_transfer_enabled:
+        raise ValidationError("ميزة التحويل بين المستخدمين معطلة حالياً.")
+        
+    if settings.require_kyc_for_transfer and (not sender.is_kyc_verified or not recipient.is_kyc_verified):
+        raise ValidationError("يجب أن يكون كلا الحسابين موثقين لإتمام التحويل.")
+
+    # Check limits (simplified for this example: applying the limit per transaction)
+    limit = settings.verified_transfer_limit if sender.is_kyc_verified else settings.unverified_transfer_limit
+    if amount > limit:
+        raise ValidationError(f"لقد تجاوزت حد التحويل المسموح به. الحد الأقصى: {limit}")
+
+    fee_amount = (amount * settings.transfer_fee_percent) / Decimal("100.00")
+    net_amount = amount - fee_amount
+
+    with transaction.atomic():
+        sender_wallet = Wallet.objects.select_for_update().get(user=sender, currency=currency)
+        recipient_wallet = Wallet.objects.select_for_update().get(user=recipient, currency=currency)
+
+        if sender_wallet.available_balance < amount:
+            raise ValidationError("الرصيد المتاح غير كافٍ لإتمام التحويل.")
+
+        # Create Transfer Record
+        transfer = BalanceTransfer.objects.create(
+            sender=sender,
+            recipient=recipient,
+            currency=currency,
+            amount=amount,
+            fee_amount=fee_amount,
+            net_amount=net_amount,
+            status=BalanceTransfer.Status.COMPLETED,
+            reference=f"P2P-{uuid.uuid4().hex[:8].upper()}",
+            note=note
+        )
+
+        # Debit Sender
+        debit_wallet(
+            wallet=sender_wallet,
+            amount=amount,
+            entry_type=LedgerEntry.EntryType.DEBIT,
+            source="P2P Transfer Out",
+            reason=f"Transfer to {recipient.uid} - Ref: {transfer.reference}",
+            reference=transfer.reference,
+            created_by=sender
+        )
+
+        # Credit Recipient
+        credit_wallet(
+            wallet=recipient_wallet,
+            amount=net_amount,
+            entry_type=LedgerEntry.EntryType.CREDIT,
+            source="P2P Transfer In",
+            reason=f"Transfer from {sender.uid} - Ref: {transfer.reference}",
+            reference=transfer.reference,
+            created_by=sender
+        )
+        
+        return transfer
 
 def json_serialize_safe(data):
     if not data: return {}

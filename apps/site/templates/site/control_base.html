@@ -125,6 +125,9 @@
             <a href="{% url 'control_withdrawals' %}" class="admin-nav-link {% if 'withdrawal' in request.path %}active{% endif %}">
                 <i class="fas fa-arrow-up-right"></i> طلبات السحب
             </a>
+            <a href="{% url 'control_transfers' %}" class="admin-nav-link {% if 'transfer' in request.path %}active{% endif %}">
+                <i class="fas fa-exchange-alt"></i> التحويلات (P2P)
+            </a>
             <a href="{% url 'control_debts' %}" class="admin-nav-link {% if 'debts' in request.path %}active{% endif %}">
                 <i class="fas fa-hand-holding-dollar"></i> إدارة المديونيات
             </a>

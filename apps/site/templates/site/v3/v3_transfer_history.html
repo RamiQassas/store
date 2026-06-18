@@ -1,0 +1,78 @@
+{% extends "site/base.html" %}
+{% load static site_tags %}
+{% block title %}سجل التحويلات | Raqamiyat{% endblock %}
+
+{% block content %}
+<div class="container py-8">
+    <div class="max-w-4xl mx-auto">
+        <div class="flex items-center justify-between mb-8">
+            <h1 class="text-3xl font-black flex items-center gap-3">
+                <i class="fas fa-history text-cyan"></i>
+                سجل التحويلات المالية
+            </h1>
+            <a href="{% url 'dashboard_transfer' %}" class="btn btn-primary btn-sm px-6">تحويل جديد</a>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <!-- Sent Transfers -->
+            <div>
+                <h2 class="text-xl font-bold mb-4 text-rose-400 flex items-center gap-2"><i class="fas fa-arrow-up"></i> تحويلات صادرة</h2>
+                <div class="space-y-4">
+                    {% for t in sent_transfers %}
+                    <div class="p-4 bg-slate-900/50 border border-white/5 rounded-2xl">
+                        <div class="flex justify-between items-start mb-2">
+                            <div>
+                                <p class="text-sm font-bold text-white mb-1">إلى: {{ t.recipient.display_name }}</p>
+                                <p class="text-[10px] text-slate-500 font-mono">{{ t.reference }}</p>
+                            </div>
+                            <div class="text-left">
+                                <p class="text-lg font-black text-rose-400">-{{ t.amount }} <span class="text-xs">{{ t.currency.code }}</span></p>
+                                <p class="text-[10px] text-slate-500">{{ t.created_at|date:"Y-m-d H:i" }}</p>
+                            </div>
+                        </div>
+                        {% if t.note %}
+                        <p class="text-xs text-slate-400 bg-black/20 p-2 rounded-lg italic mt-2 border-r-2 border-slate-700">"{{ t.note }}"</p>
+                        {% endif %}
+                    </div>
+                    {% empty %}
+                    <div class="text-center py-8 bg-slate-900/20 rounded-2xl border border-white/5">
+                        <p class="text-slate-500 text-sm">لا توجد تحويلات صادرة.</p>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <!-- Received Transfers -->
+            <div>
+                <h2 class="text-xl font-bold mb-4 text-emerald-400 flex items-center gap-2"><i class="fas fa-arrow-down"></i> تحويلات واردة</h2>
+                <div class="space-y-4">
+                    {% for t in received_transfers %}
+                    <div class="p-4 bg-slate-900/50 border border-white/5 rounded-2xl">
+                        <div class="flex justify-between items-start mb-2">
+                            <div>
+                                <p class="text-sm font-bold text-white mb-1">من: {{ t.sender.display_name }}</p>
+                                <p class="text-[10px] text-slate-500 font-mono">{{ t.reference }}</p>
+                            </div>
+                            <div class="text-left">
+                                <p class="text-lg font-black text-emerald-400">+{{ t.net_amount }} <span class="text-xs">{{ t.currency.code }}</span></p>
+                                <p class="text-[10px] text-slate-500">{{ t.created_at|date:"Y-m-d H:i" }}</p>
+                            </div>
+                        </div>
+                        {% if t.fee_amount > 0 %}
+                        <p class="text-[10px] text-slate-500 mt-1">الرقم الأصلي: {{ t.amount }} | الرسوم: {{ t.fee_amount }}</p>
+                        {% endif %}
+                        {% if t.note %}
+                        <p class="text-xs text-slate-400 bg-black/20 p-2 rounded-lg italic mt-2 border-r-2 border-slate-700">"{{ t.note }}"</p>
+                        {% endif %}
+                    </div>
+                    {% empty %}
+                    <div class="text-center py-8 bg-slate-900/20 rounded-2xl border border-white/5">
+                        <p class="text-slate-500 text-sm">لا توجد تحويلات واردة.</p>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

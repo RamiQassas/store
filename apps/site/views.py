@@ -536,6 +536,57 @@ from django.contrib.auth.hashers import make_password, check_password as check_p
 # ... (rest of imports)
 
 @login_required
+def transfer_page(request):
+    from apps.wallets.services import execute_p2p_transfer
+    from django.core.exceptions import ValidationError
+    
+    settings_obj = KYCSettings.get_settings()
+    if not settings_obj.p2p_transfer_enabled:
+        messages.error(request, "ميزة التحويل معطلة حالياً.")
+        return redirect("dashboard")
+        
+    wallet = get_or_create_wallet(request.user)
+    
+    if request.method == "POST":
+        recipient_uid = request.POST.get("recipient_uid")
+        amount = Decimal(request.POST.get("amount", "0"))
+        note = request.POST.get("note", "")
+        
+        recipient = User.objects.filter(public_uuid=recipient_uid).first()
+        if not recipient:
+            messages.error(request, "المستلم غير موجود.")
+            return redirect("dashboard_transfer")
+            
+        try:
+            transfer = execute_p2p_transfer(
+                sender=request.user,
+                recipient=recipient,
+                amount=amount,
+                currency=wallet.currency,
+                note=note
+            )
+            messages.success(request, f"تم تحويل {transfer.net_amount} {transfer.currency.code} إلى {recipient.display_name} بنجاح.")
+            return redirect("dashboard_transfer_history")
+        except ValidationError as e:
+            messages.error(request, str(e.message) if hasattr(e, 'message') else str(e))
+            
+    return render(request, "site/v3/v3_transfer.html", {
+        "wallet": wallet,
+        "settings": settings_obj,
+        "fee_percent": settings_obj.transfer_fee_percent
+    })
+
+@login_required
+def transfer_history(request):
+    from apps.wallets.models import BalanceTransfer
+    sent = BalanceTransfer.objects.filter(sender=request.user).order_by('-created_at')
+    received = BalanceTransfer.objects.filter(recipient=request.user).order_by('-created_at')
+    return render(request, "site/v3/v3_transfer_history.html", {
+        "sent_transfers": sent,
+        "received_transfers": received
+    })
+
+@login_required
 def deposits(request):
     if request.method == "POST":
         method_id = request.POST.get("payment_method")
@@ -675,6 +726,9 @@ def deposits(request):
 
 @login_required
 def withdrawals(request):
+    # (Keep existing withdrawals logic, I will insert the new views below it)
+    pass # Replaced temporarily for structure matching if needed, wait, I shouldn't replace `withdrawals` body. I'll just append it after `withdrawals`.
+
     if request.method == "POST":
         method_id = request.POST.get("payment_method")
         currency_id = request.POST.get("currency")
@@ -1406,6 +1460,26 @@ def control_deposits(request): return render(request, "site/control_deposits.htm
 
 @finance_required
 def control_withdrawals(request): return render(request, "site/control_withdrawals.html", {"withdrawals": WithdrawalRequest.objects.filter(is_verified=True).select_related('user', 'payment_method').order_by('-created_at')})
+
+@admin_required
+def control_transfers(request):
+    from apps.wallets.models import BalanceTransfer
+    qs = BalanceTransfer.objects.all().select_related("sender", "recipient", "currency").order_by("-created_at")
+    
+    q = request.GET.get("q")
+    if q:
+        qs = qs.filter(
+            Q(reference__icontains=q) | 
+            Q(sender__email__icontains=q) | 
+            Q(recipient__email__icontains=q) |
+            Q(sender__uid__iexact=q) |
+            Q(recipient__uid__iexact=q)
+        )
+        
+    return render(request, "site/control_transfers.html", {
+        "page_obj": Paginator(qs, 50).get_page(request.GET.get("page")),
+        "query": q
+    })
 
 # ==========================================
 # --- FINANCIAL NOTIFICATION HELPERS ---

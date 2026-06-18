@@ -56,6 +56,7 @@ class User(AbstractUser):
     updated_at = models.DateTimeField(auto_now=True)
 
     public_uuid = models.UUIDField(default=uuid.uuid4, editable=False, unique=True)
+    uid = models.CharField(max_length=12, unique=True, null=True, blank=True, verbose_name="المعرف الرقمي (UID)")
     preferred_currency = models.ForeignKey("common.Currency", on_delete=models.SET_NULL, null=True, blank=True, verbose_name="العملة المفضلة")
     preferred_language = models.CharField(max_length=10, default="ar", verbose_name="اللغة المفضلة")
     email_verified = models.BooleanField(default=False)
@@ -145,6 +146,17 @@ class User(AbstractUser):
     def __str__(self):
         full_name = self.get_full_name()
         return full_name if full_name else self.email
+
+    def save(self, *args, **kwargs):
+        if not self.uid:
+            # Generate a unique 8-digit numeric UID
+            import random
+            while True:
+                new_uid = ''.join([str(random.randint(0, 9)) for _ in range(8)])
+                if not User.objects.filter(uid=new_uid).exists():
+                    self.uid = new_uid
+                    break
+        super().save(*args, **kwargs)
 
     def reset_daily_limits_if_needed(self):
         """Resets daily usage if the date has changed in Damascus time."""
@@ -335,6 +347,13 @@ class KYCSettings(TimeStampedModel):
     # OTP Global Settings
     otp_max_attempts = models.IntegerField(default=5, verbose_name="الحد الأقصى لمحاولات الرمز الخاطئ")
     otp_base_cooldown = models.IntegerField(default=60, verbose_name="المدة الأساسية لانتظار الرمز (بالثواني)")
+
+    # P2P Transfer Settings
+    p2p_transfer_enabled = models.BooleanField(default=True, verbose_name="تفعيل التحويل بين المستخدمين")
+    require_kyc_for_transfer = models.BooleanField(default=False, verbose_name="اشتراط التوثيق للتحويل")
+    unverified_transfer_limit = models.DecimalField(max_digits=14, decimal_places=2, default=Decimal("50.00"), verbose_name="حد التحويل لغير الموثقين")
+    verified_transfer_limit = models.DecimalField(max_digits=14, decimal_places=2, default=Decimal("1000.00"), verbose_name="حد التحويل للموثقين")
+    transfer_fee_percent = models.DecimalField(max_digits=5, decimal_places=2, default=Decimal("0.00"), verbose_name="نسبة رسوم التحويل (%)")
 
     class Meta:
         verbose_name = "إعدادات التوثيق والحدود"

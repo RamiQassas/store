@@ -144,6 +144,32 @@ def api_withdrawal_reject(request, pk):
 def api_order_mark_read(request, pk):
     return HttpResponse("Not implemented", status=501)
 
+@login_required
+def api_lookup_user(request):
+    """API to lookup user by UID, Email, or Phone for P2P transfer."""
+    from apps.accounts.models import User
+    from django.db.models import Q
+    q = request.GET.get('q', '').strip()
+    
+    if not q or len(q) < 3:
+        return JsonResponse({"error": "يرجى إدخال 3 أحرف على الأقل."}, status=400)
+    
+    user = User.objects.filter(
+        Q(uid__iexact=q) | 
+        Q(email__iexact=q) | 
+        Q(phone__iexact=q)
+    ).exclude(id=request.user.id).first()
+    
+    if not user:
+        return JsonResponse({"error": "لم يتم العثور على مستخدم بهذه البيانات."}, status=404)
+        
+    return JsonResponse({
+        "id": user.public_uuid,
+        "uid": user.uid,
+        "display_name": user.display_name,
+        "is_verified": user.is_kyc_verified
+    })
+
 @user_passes_test(is_staff)
 def api_user_search(request):
     q = request.GET.get('q', '').strip()

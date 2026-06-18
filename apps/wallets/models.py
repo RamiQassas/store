@@ -122,3 +122,36 @@ class WalletTransaction(TimeStampedModel):
         verbose_name = "عملية مالية"
         verbose_name_plural = "العمليات المالية"
         ordering = ["-created_at"]
+
+
+class BalanceTransfer(TimeStampedModel):
+    class Status(models.TextChoices):
+        PENDING = "pending", "قيد الانتظار"
+        COMPLETED = "completed", "مكتمل"
+        FAILED = "failed", "فشل"
+        REJECTED = "rejected", "مرفوض"
+
+    sender = models.ForeignKey(settings.AUTH_USER_MODEL, related_name="sent_transfers", on_delete=models.PROTECT, verbose_name="المرسل")
+    recipient = models.ForeignKey(settings.AUTH_USER_MODEL, related_name="received_transfers", on_delete=models.PROTECT, verbose_name="المستلم")
+    currency = models.ForeignKey("common.Currency", on_delete=models.PROTECT, verbose_name="العملة")
+    
+    amount = models.DecimalField(max_digits=14, decimal_places=2, verbose_name="المبلغ المحول")
+    fee_amount = models.DecimalField(max_digits=14, decimal_places=2, default=Decimal("0.00"), verbose_name="رسوم التحويل")
+    net_amount = models.DecimalField(max_digits=14, decimal_places=2, verbose_name="المبلغ الصافي للمستلم")
+    
+    status = models.CharField(max_length=20, choices=Status.choices, default=Status.PENDING, verbose_name="الحالة")
+    reference = models.CharField(max_length=120, blank=True, unique=True, verbose_name="الرقم المرجعي")
+    note = models.CharField(max_length=255, blank=True, verbose_name="ملاحظة")
+
+    class Meta:
+        indexes = [
+            models.Index(fields=["sender", "created_at"]),
+            models.Index(fields=["recipient", "created_at"]),
+            models.Index(fields=["reference"]),
+        ]
+        verbose_name = "تحويل رصيد"
+        verbose_name_plural = "تحويلات الرصيد"
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return f"{self.sender} -> {self.recipient} ({self.amount} {self.currency.code})"
