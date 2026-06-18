@@ -2534,7 +2534,23 @@ def control_user_moderate(request, public_uuid):
             form.save()
             messages.success(request, "تم التحديث.")
             return redirect("control_users_list")
-    return render(request, "site/control_user_moderate.html", {"form": form, "user_to_moderate": user})
+    from apps.payments.models import DepositRequest, WithdrawalRequest
+    from apps.orders.models import Order
+    from apps.common.models import ActivityLog
+
+    recent_deposits = DepositRequest.objects.filter(user=user).select_related('payment_method', 'currency').order_by('-created_at')[:20]
+    recent_withdrawals = WithdrawalRequest.objects.filter(user=user).select_related('payment_method', 'currency').order_by('-created_at')[:20]
+    recent_orders = Order.objects.filter(customer=user).prefetch_related('items__variant__product').order_by('-created_at')[:20]
+    recent_activities = ActivityLog.objects.filter(user=user).order_by('-created_at')[:50]
+
+    return render(request, "site/control_user_moderate.html", {
+        "form": form, 
+        "user_to_moderate": user,
+        "recent_deposits": recent_deposits,
+        "recent_withdrawals": recent_withdrawals,
+        "recent_orders": recent_orders,
+        "recent_activities": recent_activities
+    })
 
 @admin_required
 def currencies_list(request):

@@ -201,62 +201,193 @@
             </div>
         </div>
 
-        <!-- 3. Security Event & IP History -->
+        <!-- 3. Comprehensive History & Activity System -->
         <div class="glass-panel">
-            <div class="section-header">
-                <h2 class="section-title"><i class="fas fa-history text-cyan"></i> سجل الدخول وتتبع الـ IP</h2>
-                <div class="flex gap-2">
-                    <span class="text-[10px] bg-slate-800 text-slate-400 px-3 py-1 rounded-full font-bold uppercase">تتبع مباشر</span>
+            <div class="section-header !border-none !pb-0">
+                <div class="flex items-center gap-6">
+                    <h2 class="section-title"><i class="fas fa-list-check text-cyan"></i> سجل نشاطات العميل المتكامل</h2>
                 </div>
             </div>
+            
+            <!-- Custom Modern Tabs -->
+            <div class="px-8 pt-4 pb-0 border-b border-white/5 flex gap-8">
+                <button onclick="switchTab('tab-activity')" id="btn-tab-activity" class="tab-btn active">النشاطات</button>
+                <button onclick="switchTab('tab-deposits')" id="btn-tab-deposits" class="tab-btn">الإيداعات</button>
+                <button onclick="switchTab('tab-withdrawals')" id="btn-tab-withdrawals" class="tab-btn">السحوبات</button>
+                <button onclick="switchTab('tab-orders')" id="btn-tab-orders" class="tab-btn">المشتريات</button>
+                <button onclick="switchTab('tab-security')" id="btn-tab-security" class="tab-btn">الأمن والـ IP</button>
+            </div>
+
+            <style>
+                .tab-btn { font-size: 11px; font-weight: 900; color: #64748b; padding-bottom: 1rem; border-bottom: 2px solid transparent; transition: all 0.3s; text-transform: uppercase; }
+                .tab-btn.active { color: var(--cyan); border-color: var(--cyan); }
+                .tab-content { display: none; padding: 0; }
+                .tab-content.active { display: block; }
+                .history-table th { font-size: 9px; }
+            </style>
+
             <div class="p-0">
-                <div class="overflow-x-auto">
-                    <table class="w-full text-right text-sm">
-                        <thead class="bg-white/[0.02] border-b border-white/5">
-                            <tr>
-                                <th class="p-4 text-[10px] font-black text-slate-500 uppercase">التوقيت</th>
-                                <th class="p-4 text-[10px] font-black text-slate-500 uppercase">عنوان IP</th>
-                                <th class="p-4 text-[10px] font-black text-slate-500 uppercase">الموقع الجغرافي</th>
-                                <th class="p-4 text-[10px] font-black text-slate-500 uppercase">نوع العملية</th>
-                                <th class="p-4 text-[10px] font-black text-slate-500 uppercase text-left">المتصفح</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for event in user_to_moderate.security_events.all|slice:":20" %}
-                            <tr class="border-b border-white/[0.02] history-row transition-colors">
-                                <td class="p-4 text-xs font-bold text-slate-400">{{ event.created_at|date:"d/m/Y H:i" }}</td>
-                                <td class="p-4"><span class="ip-badge">{{ event.ip_address }}</span></td>
-                                <td class="p-4">
-                                    <div class="flex items-center gap-2">
-                                        <i class="fas fa-location-dot text-cyan text-[10px]"></i>
-                                        <span class="text-xs text-white">{{ event.country|default:"غير معروف" }}</span>
-                                        <span class="text-[10px] text-slate-500">{{ event.city|default:"-" }}</span>
-                                    </div>
-                                </td>
-                                <td class="p-4">
-                                    <span class="px-2 py-1 rounded text-[9px] font-black uppercase {% if event.event_type == 'login' %}bg-emerald-500/10 text-emerald-500{% else %}bg-slate-800 text-slate-400{% endif %}">
-                                        {{ event.get_event_type_display }}
-                                    </span>
-                                </td>
-                                <td class="p-4 text-left">
-                                    <div class="w-32 truncate text-[9px] text-slate-600 hover:text-slate-400 cursor-help" title="{{ event.user_agent }}">
-                                        {{ event.user_agent|truncatechars:40 }}
-                                    </div>
-                                </td>
-                            </tr>
-                            {% empty %}
-                            <tr><td colspan="5" class="p-12 text-center text-slate-600 italic">لم يتم تسجيل أي عمليات دخول سابقة لهذا الحساب.</td></tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
+                <!-- Activity Logs Tab -->
+                <div id="tab-activity" class="tab-content active">
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-right text-sm history-table">
+                            <thead class="bg-white/[0.02] border-b border-white/5">
+                                <tr>
+                                    <th class="p-4 font-black text-slate-500 uppercase">التوقيت</th>
+                                    <th class="p-4 font-black text-slate-500 uppercase">العملية</th>
+                                    <th class="p-4 font-black text-slate-500 uppercase">التفاصيل</th>
+                                    <th class="p-4 font-black text-slate-500 uppercase">العنوان</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for log in recent_activities %}
+                                <tr class="border-b border-white/[0.02] history-row transition-colors">
+                                    <td class="p-4 text-[11px] font-bold text-slate-400 whitespace-nowrap">{{ log.created_at|date:"d/m/Y H:i" }}</td>
+                                    <td class="p-4 text-[11px] font-black text-white uppercase">{{ log.action }}</td>
+                                    <td class="p-4 text-[11px] text-slate-400">{{ log.description|truncatechars:100 }}</td>
+                                    <td class="p-4"><span class="ip-badge">{{ log.ip_address|default:"-" }}</span></td>
+                                </tr>
+                                {% empty %}
+                                <tr><td colspan="4" class="p-12 text-center text-slate-600">لا توجد سجلات نشاط.</td></tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
-                {% if user_to_moderate.security_events.count > 20 %}
-                <div class="p-4 text-center border-t border-white/5">
-                    <button class="text-[10px] font-black text-cyan hover:underline uppercase tracking-widest">عرض السجل الكامل للنشاط</button>
+
+                <!-- Deposits Tab -->
+                <div id="tab-deposits" class="tab-content">
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-right text-sm history-table">
+                            <thead class="bg-white/[0.02] border-b border-white/5">
+                                <tr>
+                                    <th class="p-4 font-black text-slate-500 uppercase">التوقيت</th>
+                                    <th class="p-4 font-black text-slate-500 uppercase">المبلغ</th>
+                                    <th class="p-4 font-black text-slate-500 uppercase">الوسيلة</th>
+                                    <th class="p-4 font-black text-slate-500 uppercase">الحالة</th>
+                                    <th class="p-4 font-black text-slate-500 uppercase">المرجع</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for d in recent_deposits %}
+                                <tr class="border-b border-white/[0.02] history-row transition-colors">
+                                    <td class="p-4 text-[11px] font-bold text-slate-400">{{ d.created_at|date:"d/m/Y H:i" }}</td>
+                                    <td class="p-4 text-[11px] font-black text-emerald-500">{{ d.amount }} {{ d.currency.code }}</td>
+                                    <td class="p-4 text-[11px] text-white">{{ d.payment_method.name }}</td>
+                                    <td class="p-4">
+                                        <span class="badge {% if d.status == 'completed' %}success{% elif d.status == 'rejected' %}danger{% else %}warning{% endif %} !text-[8px] !px-2">
+                                            {{ d.get_status_display }}
+                                        </span>
+                                    </td>
+                                    <td class="p-4 text-[10px] font-mono text-slate-500">{{ d.transaction_id|default:"-" }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
-                {% endif %}
+
+                <!-- Withdrawals Tab -->
+                <div id="tab-withdrawals" class="tab-content">
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-right text-sm history-table">
+                            <thead class="bg-white/[0.02] border-b border-white/5">
+                                <tr>
+                                    <th class="p-4 font-black text-slate-500 uppercase">التوقيت</th>
+                                    <th class="p-4 font-black text-slate-500 uppercase">المبلغ</th>
+                                    <th class="p-4 font-black text-slate-500 uppercase">الوسيلة</th>
+                                    <th class="p-4 font-black text-slate-500 uppercase">الحالة</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for w in recent_withdrawals %}
+                                <tr class="border-b border-white/[0.02] history-row transition-colors">
+                                    <td class="p-4 text-[11px] font-bold text-slate-400">{{ w.created_at|date:"d/m/Y H:i" }}</td>
+                                    <td class="p-4 text-[11px] font-black text-rose-500">{{ w.amount }} {{ w.currency.code }}</td>
+                                    <td class="p-4 text-[11px] text-white">{{ w.payment_method.name }}</td>
+                                    <td class="p-4">
+                                        <span class="badge {% if w.status == 'completed' %}success{% elif w.status == 'rejected' %}danger{% else %}warning{% endif %} !text-[8px] !px-2">
+                                            {{ w.get_status_display }}
+                                        </span>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Orders Tab -->
+                <div id="tab-orders" class="tab-content">
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-right text-sm history-table">
+                            <thead class="bg-white/[0.02] border-b border-white/5">
+                                <tr>
+                                    <th class="p-4 font-black text-slate-500 uppercase">الطلب</th>
+                                    <th class="p-4 font-black text-slate-500 uppercase">التاريخ</th>
+                                    <th class="p-4 font-black text-slate-500 uppercase">المنتج</th>
+                                    <th class="p-4 font-black text-slate-500 uppercase">المبلغ</th>
+                                    <th class="p-4 font-black text-slate-500 uppercase">الحالة</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for o in recent_orders %}
+                                <tr class="border-b border-white/[0.02] history-row transition-colors">
+                                    <td class="p-4 text-[10px] font-black text-cyan">#{{ o.number }}</td>
+                                    <td class="p-4 text-[11px] font-bold text-slate-400">{{ o.created_at|date:"d/m H:i" }}</td>
+                                    <td class="p-4">
+                                        <div class="text-[11px] font-bold text-white">{{ o.items.first.variant.product.name }}</div>
+                                        <div class="text-[9px] text-slate-500">{{ o.items.first.variant.name }}</div>
+                                    </td>
+                                    <td class="p-4 text-[11px] font-black text-white">{{ o.total_amount }}</td>
+                                    <td class="p-4">
+                                        <span class="badge {% if o.status == 'completed' %}success{% elif o.status == 'cancelled' %}danger{% else %}warning{% endif %} !text-[8px] !px-2">
+                                            {{ o.get_status_display }}
+                                        </span>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Security Events Tab (Relocated) -->
+                <div id="tab-security" class="tab-content">
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-right text-sm history-table">
+                            <thead class="bg-white/[0.02] border-b border-white/5">
+                                <tr>
+                                    <th class="p-4 font-black text-slate-500 uppercase">التوقيت</th>
+                                    <th class="p-4 font-black text-slate-500 uppercase">العملية</th>
+                                    <th class="p-4 font-black text-slate-500 uppercase">الموقع</th>
+                                    <th class="p-4 font-black text-slate-500 uppercase">IP</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for event in user_to_moderate.security_events.all|slice:":20" %}
+                                <tr class="border-b border-white/[0.02] history-row transition-colors">
+                                    <td class="p-4 text-[11px] font-bold text-slate-400">{{ event.created_at|date:"d/m H:i" }}</td>
+                                    <td class="p-4"><span class="px-2 py-0.5 rounded text-[8px] font-black uppercase bg-slate-800 text-slate-400">{{ event.get_event_type_display }}</span></td>
+                                    <td class="p-4 text-[10px] text-slate-400">{{ event.country|default:"-" }} / {{ event.city|default:"-" }}</td>
+                                    <td class="p-4"><span class="ip-badge">{{ event.ip_address }}</span></td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
             </div>
         </div>
+
+        <script>
+            function switchTab(tabId) {
+                document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+                document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+                document.getElementById(tabId).classList.add('active');
+                document.getElementById('btn-' + tabId).classList.add('active');
+            }
+        </script>
 
     </div>
 
