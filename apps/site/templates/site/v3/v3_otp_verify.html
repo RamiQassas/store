@@ -18,14 +18,15 @@
 
     <form method="post" id="otp-form" class="space-y-8">
         {% csrf_token %}
+        <input type="hidden" name="action" value="verify" id="form-action">
         
         <div class="flex justify-center gap-2 md:gap-3" dir="ltr">
-            <input type="text" maxlength="1" class="otp-input" data-index="0" autofocus>
-            <input type="text" maxlength="1" class="otp-input" data-index="1">
-            <input type="text" maxlength="1" class="otp-input" data-index="2">
-            <input type="text" maxlength="1" class="otp-input" data-index="3">
-            <input type="text" maxlength="1" class="otp-input" data-index="4">
-            <input type="text" maxlength="1" class="otp-input" data-index="5">
+            <input type="text" inputmode="numeric" pattern="[0-9]*" maxlength="1" class="otp-input" data-index="0" autofocus>
+            <input type="text" inputmode="numeric" pattern="[0-9]*" maxlength="1" class="otp-input" data-index="1">
+            <input type="text" inputmode="numeric" pattern="[0-9]*" maxlength="1" class="otp-input" data-index="2">
+            <input type="text" inputmode="numeric" pattern="[0-9]*" maxlength="1" class="otp-input" data-index="3">
+            <input type="text" inputmode="numeric" pattern="[0-9]*" maxlength="1" class="otp-input" data-index="4">
+            <input type="text" inputmode="numeric" pattern="[0-9]*" maxlength="1" class="otp-input" data-index="5">
         </div>
         
         <input type="hidden" name="code" id="full-otp">
@@ -39,8 +40,8 @@
     <div class="mt-8 pt-6 border-t border-slate-800/50">
         <p class="text-xs text-slate-500 mb-4">لم يصلك الرمز؟</p>
         <div id="resend-container">
-            <button id="resend-btn" class="text-cyan font-bold hover:underline disabled:opacity-50 disabled:no-underline" disabled>
-                إعادة الإرسال (<span id="timer">60</span>ث)
+            <button type="button" id="resend-btn" class="text-cyan font-bold hover:underline disabled:opacity-50 disabled:no-underline" disabled>
+                إعادة الإرسال (<span id="timer">{{ remaining_cooldown|default:60 }}</span>ث)
             </button>
         </div>
     </div>
@@ -52,24 +53,33 @@
     const inputs = document.querySelectorAll('.otp-input');
     const fullOtpInput = document.querySelector('#full-otp');
     const form = document.querySelector('#otp-form');
+    const formAction = document.querySelector('#form-action');
 
     inputs.forEach((input, index) => {
-        input.addEventListener('keyup', (e) => {
-            if (e.key >= 0 && e.key <= 9) {
-                if (index < inputs.length - 1) inputs[index + 1].focus();
-            } else if (e.key === 'Backspace') {
-                if (index > 0) inputs[index - 1].focus();
+        // Handle digit input
+        input.addEventListener('input', (e) => {
+            const val = e.target.value;
+            if (val.length === 1 && index < inputs.length - 1) {
+                inputs[index + 1].focus();
             }
             updateFullOtp();
+        });
+
+        // Handle backspace
+        input.addEventListener('keydown', (e) => {
+            if (e.key === 'Backspace' && !e.target.value && index > 0) {
+                inputs[index - 1].focus();
+            }
         });
         
         input.addEventListener('paste', (e) => {
             e.preventDefault();
-            const pasteData = e.clipboardData.getData('text').slice(0, 6);
+            const pasteData = e.clipboardData.getData('text').replace(/[^0-9]/g, '').slice(0, 6);
             pasteData.split('').forEach((char, i) => {
                 if (inputs[i]) inputs[i].value = char;
             });
             updateFullOtp();
+            if (pasteData.length === 6) form.submit();
         });
     });
 
@@ -80,29 +90,35 @@
     }
 
     form.addEventListener('submit', (e) => {
-        if (fullOtpInput.value.length !== 6) {
+        if (formAction.value === 'verify' && fullOtpInput.value.length !== 6) {
             e.preventDefault();
             alert('يرجى إدخال الرمز كاملاً');
         }
     });
 
     // Timer Logic
-    let timeLeft = 60;
+    let timeLeft = parseInt("{{ remaining_cooldown|default:60 }}");
     const timerSpan = document.querySelector('#timer');
     const resendBtn = document.querySelector('#resend-btn');
 
-    const countdown = setInterval(() => {
-        timeLeft--;
-        timerSpan.textContent = timeLeft;
-        if (timeLeft <= 0) {
-            clearInterval(countdown);
-            resendBtn.disabled = false;
-            resendBtn.innerHTML = 'إعادة إرسال الرمز الآن';
-        }
-    }, 1000);
+    if (timeLeft > 0) {
+        const countdown = setInterval(() => {
+            timeLeft--;
+            if (timerSpan) timerSpan.textContent = timeLeft;
+            if (timeLeft <= 0) {
+                clearInterval(countdown);
+                resendBtn.disabled = false;
+                resendBtn.innerHTML = 'إعادة إرسال الرمز الآن';
+            }
+        }, 1000);
+    } else {
+        resendBtn.disabled = false;
+        resendBtn.innerHTML = 'إعادة إرسال الرمز الآن';
+    }
 
     resendBtn.addEventListener('click', () => {
-        window.location.href = "{% url 'resend_verification' %}";
+        formAction.value = 'resend';
+        form.submit();
     });
 </script>
 {% endblock %}

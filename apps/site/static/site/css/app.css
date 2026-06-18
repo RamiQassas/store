@@ -527,6 +527,14 @@ textarea { min-height: 120px; resize: vertical; }
   min-width: 760px;
 }
 
+/* Syrian Revolution Flag Override for intl-tel-input */
+.iti__flag.iti__sy {
+    background-image: url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA2MDAgNDAwIj48cmVjdCB3aWR0aD0iNjAwIiBoZWlnaHQ9IjEzMy4zIiBmaWxsPSIjMDA3YTNkIi8+PHJlY3QgeT0iMTMzLjMiIHdpZHRoPSI2MDAiIGhlaWdodD0iMTMzLjMiIGZpbGw9IiNmZmYiLz48cmVjdCB5PSIyNjYuNiIgd2lkdGg9IjYwMCIgaGVpZ2h0PSIxMzMuMyIgZmlsbD0iIzAwMCIvPjxnIGZpbGw9IiNjZTExMjYiPjxwYXRoIGQ9Ik0xNTAgMTYwbDYuMiAxOWgyMGwtMTYuMiAxMS43IDYuMiAxOS0xNi4yLTExLjgtMTYuMiAxMS44IDYuMi0xOS0xNi4yLTExLjdoMjB6Ii8+PHBhdGggZD0iTTMwMCAxNjBsNi4yIDE5aDIwbC0xNi4yIDExLjcgNi4yIDE5LTE2LjItMTEuOC0xNi4yIDExLjggNi4yLTE5LTE2LjItMTEuN2gyMHoiLz48cGF0aCBkPSJNNDUwIDE2MGw2LjIgMTloMjBsLTE2LjIgMTEuNyA2LjIgMTktMTYuMi0xMS44LTE2LjIgMTEuOCA2LjItMTktMTYuMi0xMS43aDIweiIvPjwvZz48L3N2Zz4=") !important;
+    background-size: contain !important;
+    background-position: center !important;
+    background-repeat: no-repeat !important;
+}
+
 @media (min-width: 768px) {
   .md\:grid-cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .md\:grid-cols-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }

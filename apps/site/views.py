@@ -471,7 +471,23 @@ def v3_reset_password_view(request):
 def v3_logout_view(request):
     logout(request); return redirect("site_login")
 
-def resend_verification(request): return redirect("dashboard")
+@login_required
+def resend_verification(request):
+    if request.user.email_verified:
+        messages.info(request, "بريدك الإلكتروني موثق بالفعل.")
+        return redirect("dashboard")
+    
+    from apps.accounts.services import send_verification_otp
+    try:
+        if send_verification_otp(request.user):
+            messages.success(request, "تم إعادة إرسال رمز التحقق إلى بريدك الإلكتروني.")
+            return redirect("site_verify_otp")
+        else:
+            messages.error(request, "فشل إرسال الرمز. يرجى المحاولة مرة أخرى لاحقاً.")
+    except Exception as e:
+        messages.error(request, f"خطأ: {str(e)}")
+        
+    return redirect("dashboard")
 def email_verify(request, uidb64, token): return redirect("site_login")
 
 # ==========================================
