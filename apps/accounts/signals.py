@@ -1,10 +1,18 @@
-from django.db.models.signals import post_save
+from django.db.models.signals import post_save, pre_delete
 from django.contrib.auth.signals import user_logged_in
+from django.contrib.sessions.models import Session
 from django.dispatch import receiver
 
 from apps.accounts.models import User, SecurityEvent
 from apps.wallets.services import get_or_create_wallet
 from apps.common.services import get_ip_info
+
+@receiver(pre_delete, sender=User)
+def clear_user_sessions_on_delete(sender, instance, **kwargs):
+    """Ensure user session is deleted when the user account is deleted."""
+    if instance.last_session_key:
+        Session.objects.filter(session_key=instance.last_session_key).delete()
+
 
 
 @receiver(post_save, sender=User)

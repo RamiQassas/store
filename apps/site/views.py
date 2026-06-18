@@ -2536,7 +2536,7 @@ def control_user_moderate(request, public_uuid):
             return redirect("control_users_list")
     from apps.payments.models import DepositRequest, WithdrawalRequest
     from apps.orders.models import Order
-    from apps.common.models import ActivityLog
+    from apps.accounts.models import ActivityLog
 
     recent_deposits = DepositRequest.objects.filter(user=user).select_related('payment_method', 'currency').order_by('-created_at')[:20]
     recent_withdrawals = WithdrawalRequest.objects.filter(user=user).select_related('payment_method', 'currency').order_by('-created_at')[:20]

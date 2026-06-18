@@ -24,6 +24,8 @@ class Coupon(TimeStampedModel):
     is_active = models.BooleanField(default=True, verbose_name="نشط")
     is_verified_only = models.BooleanField(default=True, verbose_name="للحسابات الموثقة فقط")
     expires_at = models.DateTimeField(null=True, blank=True, verbose_name="تاريخ الانتهاء")
+    valid_for_users_before = models.DateTimeField(null=True, blank=True, verbose_name="صالح للحسابات المسجلة قبل تاريخ")
+    valid_for_users_after = models.DateTimeField(null=True, blank=True, verbose_name="صالح للحسابات المسجلة بعد تاريخ")
     
     limit_to_products = models.ManyToManyField("catalog.Product", blank=True, verbose_name="محدد لمنتجات معينة")
     apply_to_all_products = models.BooleanField(default=True, verbose_name="يعمل على جميع المنتجات")

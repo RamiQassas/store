@@ -46,6 +46,13 @@ def validate_coupon(coupon, user, variant, subtotal=None):
     # 3. Tier Restriction
     if coupon.limit_to_tiers:
         checks.append(("tier", user.tier in coupon.limit_to_tiers))
+
+    # 3b. Registration Date Restriction
+    if coupon.valid_for_users_before:
+        checks.append(("registration_date_before", user.date_joined <= coupon.valid_for_users_before))
+    
+    if coupon.valid_for_users_after:
+        checks.append(("registration_date_after", user.date_joined >= coupon.valid_for_users_after))
         
     # 4. Area Restrictions (KYC-based)
     if coupon.limit_to_area or coupon.limit_to_place_of_birth:
@@ -109,6 +116,8 @@ def validate_coupon(coupon, user, variant, subtotal=None):
                     "kyc": "هذا الكوبون مخصص للحسابات الموثقة فقط.",
                     "user": "هذا الكوبون غير مخصص لحسابك.",
                     "tier": "هذا الكوبون غير متاح لفئتك.",
+                    "registration_date_before": "هذا الكوبون متاح فقط للحسابات القديمة (قبل تاريخ محدد).",
+                    "registration_date_after": "هذا الكوبون متاح فقط للحسابات الجديدة (بعد تاريخ محدد).",
                     "area": "هذا الكوبون غير متاح لمنطقتك الجغرافية (KYC).",
                     "ip_geo": "هذا الكوبون غير متاح لموقعك الحالي.",
                     "product": f"هذا الكوبون صالح فقط لمنتج: {coupon.limit_to_product.name if coupon.limit_to_product else 'منتج آخر'}"
