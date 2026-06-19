@@ -140,9 +140,14 @@ def api_withdrawal_complete(request, pk):
 def api_withdrawal_reject(request, pk):
     return _run_action(request, pk, 'reject', WithdrawalRequestViewSet)
 
-@user_passes_test(is_staff)
+@login_required
 def api_order_mark_read(request, pk):
-    return HttpResponse("Not implemented", status=501)
+    from apps.orders.models import Order
+    order = get_object_or_404(Order, pk=pk, customer=request.user)
+    order.is_delivery_read = True
+    order.save(update_fields=['is_delivery_read'])
+    return JsonResponse({"status": "success"})
+
 
 @login_required
 def api_lookup_user(request):

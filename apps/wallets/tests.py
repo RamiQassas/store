@@ -450,3 +450,72 @@ class P2PTransferTests(TestCase):
         # Check cash collection logs
         cash_logs = list(analytics.get_cash_collection_logs())
         self.assertEqual(len(cash_logs), 2)
+
+    def test_auto_deduct_debt_on_cash_deposit_and_recharge_card(self):
+        from apps.wallets.services import add_debt, credit_wallet
+        
+        # Initial available balance: 100.00
+        # Add debt of 1000.00 -> available becomes 1100.00, debt becomes 1000.00
+        add_debt(self.sender_wallet.id, Decimal("1000.00"), "debt_ref", "Initial debt", self.sender)
+        
+        # 1. Do a cash deposit of 300.00 -> should reduce debt to 700.00, available remains 1100.00
+        credit_wallet(
+            wallet_id=self.sender_wallet.id,
+            amount=Decimal("300.00"),
+            reference="cash_dep_ref",
+            description="Cash deposit of 300",
+            created_by=self.sender,
+            source="admin_cash"
+        )
+        self.sender_wallet.refresh_from_db()
+        self.assertEqual(self.sender_wallet.debt_balance, Decimal("700.00"))
+        self.assertEqual(self.sender_wallet.available_balance, Decimal("1100.00"))
+        
+        # 2. Do a recharge card deposit of 800.00 -> should clear debt to 0, available increases by 100.00 (800 - 700 debt paid) to 1200.00
+        credit_wallet(
+            wallet_id=self.sender_wallet.id,
+            amount=Decimal("800.00"),
+            reference="card_dep_ref",
+            description="Card deposit of 800",
+            created_by=self.sender,
+            source="recharge_card"
+        )
+        self.sender_wallet.refresh_from_db()
+        self.assertEqual(self.sender_wallet.debt_balance, Decimal("0.00"))
+        self.assertEqual(self.sender_wallet.available_balance, Decimal("1200.00"))
+
+    def test_p2p_transfer_cannot_transfer_debt(self):
+        from apps.wallets.services import execute_p2p_transfer
+        from django.core.exceptions import ValidationError
+        from apps.accounts.models import KYCSettings
+        
+        settings = KYCSettings.get_settings()
+        settings.unverified_transfer_limit = Decimal("1000.00")
+        settings.save()
+        
+        # Sender has 100.00 available. Add 500.00 debt -> available becomes 600.00, debt becomes 500.00.
+        from apps.wallets.services import add_debt
+        add_debt(self.sender_wallet.id, Decimal("500.00"), "debt_ref", "Add debt", self.sender)
+        
+        self.sender_wallet.refresh_from_db()
+        self.sender_wallet.debt_is_withdrawable = True
+        self.sender_wallet.save()
+        
+        # Transferable limit is strictly available (600) - debt (500) = 100.00
+        # Try to transfer 150.00 (which is within available 600, but exceeds transferable 100) -> should fail!
+        with self.assertRaises(ValidationError):
+            execute_p2p_transfer(
+                sender=self.sender,
+                recipient=self.recipient,
+                amount=Decimal("150.00"),
+                currency=self.usd
+            )
+            
+        # Try to transfer 100.00 -> should succeed!
+        transfer = execute_p2p_transfer(
+            sender=self.sender,
+            recipient=self.recipient,
+            amount=Decimal("100.00"),
+            currency=self.usd
+        )
+        self.assertEqual(transfer.amount, Decimal("100.00"))

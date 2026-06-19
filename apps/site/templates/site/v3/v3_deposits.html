@@ -71,6 +71,37 @@
     /* QR Enhancement */
     .qr-download-wrapper { transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1); border: 1px solid rgba(0,0,0,0.05); }
     .qr-download-wrapper:hover { transform: translateY(-8px) scale(1.02); box-shadow: 0 30px 60px rgba(0,0,0,0.4); }
+
+    /* Amount input styling fixes */
+    #amount-group .relative {
+        position: relative;
+        width: 100%;
+        margin-top: 8px;
+    }
+    #input-amount {
+        height: 70px !important;
+        padding-left: 75px !important;
+        padding-right: 20px !important;
+        font-size: 1.75rem !important;
+        font-weight: 900 !important;
+        background: var(--bg-soft) !important;
+        border: 1px solid var(--panel-border) !important;
+        border-radius: var(--radius) !important;
+        color: var(--text) !important;
+        width: 100% !important;
+        display: block !important;
+    }
+    #currency-code-display {
+        position: absolute !important;
+        left: 20px !important;
+        top: 50% !important;
+        transform: translateY(-50%) !important;
+        font-size: 1.25rem !important;
+        font-weight: 900 !important;
+        color: var(--muted) !important;
+        pointer-events: none !important;
+        z-index: 10 !important;
+    }
 </style>
 {% endblock %}
 

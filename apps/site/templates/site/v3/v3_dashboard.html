@@ -5,27 +5,185 @@
 
 {% block extra_head %}
 <style>
-    /* Premium Fintech Dashboard Styles */
+    /* Redesigned Premium Fintech Layout System */
     .dashboard-grid {
         display: grid;
-        grid-template-columns: repeat(12, 1fr);
+        grid-template-columns: 1fr;
         gap: 1.5rem;
     }
-
-    .dashboard-sidebar {
-        grid-column: span 3;
+    
+    @media (min-width: 1024px) {
+        .dashboard-grid {
+            grid-template-columns: repeat(12, 1fr);
+        }
+        .dashboard-main {
+            grid-column: span 9;
+        }
+        .dashboard-sidebar {
+            grid-column: span 3;
+        }
     }
 
-    .dashboard-main {
-        grid-column: span 9;
+    /* Padding Utilities */
+    .p-2 { padding: 0.5rem !important; }
+    .p-3 { padding: 0.75rem !important; }
+    .p-4 { padding: 1rem !important; }
+    .p-6 { padding: 1.5rem !important; }
+    .p-8 { padding: 2rem !important; }
+    .px-2 { padding-left: 0.5rem !important; padding-right: 0.5rem !important; }
+    .px-4 { padding-left: 1rem !important; padding-right: 1rem !important; }
+    .px-8 { padding-left: 2rem !important; padding-right: 2rem !important; }
+    .py-2.5 { padding-top: 0.625rem !important; padding-bottom: 0.625rem !important; }
+    .py-3 { padding-top: 0.75rem !important; padding-bottom: 0.75rem !important; }
+    .py-4 { padding-top: 1rem !important; padding-bottom: 1rem !important; }
+    .pt-4 { padding-top: 1rem !important; }
+    .pt-6 { padding-top: 1.5rem !important; }
+    .pb-0 { padding-bottom: 0 !important; }
+    .pb-4 { padding-bottom: 1rem !important; }
+    .pr-6 { padding-right: 1.5rem !important; }
+    .pl-12 { padding-left: 3rem !important; }
+
+    /* Margin Utilities */
+    .mt-1 { margin-top: 0.25rem !important; }
+    .mt-2 { margin-top: 0.5rem !important; }
+    .mt-3 { margin-top: 0.75rem !important; }
+    .mt-4 { margin-top: 1rem !important; }
+    .mt-10 { margin-top: 2.5rem !important; }
+    .mt-20 { margin-top: 5rem !important; }
+    .mb-1 { margin-bottom: 0.25rem !important; }
+    .mb-2 { margin-bottom: 0.5rem !important; }
+    .mb-3 { margin-bottom: 0.75rem !important; }
+    .mb-4 { margin-bottom: 1rem !important; }
+    .mb-6 { margin-bottom: 1.5rem !important; }
+    .mb-8 { margin-bottom: 2rem !important; }
+    .mb-10 { margin-bottom: 2.5rem !important; }
+
+    /* Flex Utilities */
+    .flex { display: flex !important; }
+    .flex-col { flex-direction: column !important; }
+    .justify-between { justify-content: space-between !important; }
+    .items-center { align-items: center !important; }
+    .items-start { align-items: flex-start !important; }
+    .items-end { align-items: flex-end !important; }
+    .flex-grow { flex-grow: 1 !important; }
+    .flex-shrink-0 { flex-shrink: 0 !important; }
+    .gap-2 { gap: 0.5rem !important; }
+    .gap-3 { gap: 0.75rem !important; }
+    .gap-4 { gap: 1rem !important; }
+    .gap-6 { gap: 1.5rem !important; }
+    .gap-8 { gap: 2rem !important; }
+    
+    @media (min-width: 640px) {
+        .sm\:row { flex-direction: row !important; }
+        .sm\:flex-row { flex-direction: row !important; }
     }
+
+    /* Grid Layouts */
+    .grid { display: grid !important; }
+    .grid-cols-1 { grid-template-columns: repeat(1, 1fr) !important; }
+    @media (min-width: 768px) {
+        .md\:grid-cols-2 { grid-template-columns: repeat(2, 1fr) !important; }
+    }
+    @media (min-width: 1024px) {
+        .lg\:grid-cols-3 { grid-template-columns: repeat(3, 1fr) !important; }
+    }
+
+    /* Position & Alignment */
+    .relative { position: relative !important; }
+    .absolute { position: absolute !important; }
+    .fixed { position: fixed !important; }
+    .top-24 { top: 6rem !important; }
+    .right-8 { right: 2rem !important; }
+    .z-50 { z-index: 50 !important; }
+
+    /* Backgrounds & Borders */
+    .bg-cyan\/5 { background-color: rgba(6, 182, 212, 0.05) !important; }
+    .border-cyan\/20 { border-color: rgba(6, 182, 212, 0.2) !important; }
+    .bg-slate-900\/50 { background-color: rgba(15, 23, 42, 0.5) !important; }
+    .bg-slate-900\/40 { background-color: rgba(15, 23, 42, 0.4) !important; }
+    .bg-slate-900\/30 { background-color: rgba(15, 23, 42, 0.3) !important; }
+    .bg-slate-900\/5 { background-color: rgba(15, 23, 42, 0.05) !important; }
+    .bg-white\/5 { background-color: rgba(255, 255, 255, 0.05) !important; }
+    .hover\:bg-white\/10:hover { background-color: rgba(255, 255, 255, 0.1) !important; }
+    .border-white\/5 { border-color: rgba(255, 255, 255, 0.05) !important; }
+    .border-white\/10 { border-color: rgba(255, 255, 255, 0.1) !important; }
+    .border-indigo-500\/10 { border-color: rgba(99, 102, 241, 0.1) !important; }
+    .border-r-4 { border-right-width: 4px !important; border-right-style: solid !important; }
+    .border-l-4 { border-left-width: 4px !important; border-left-style: solid !important; }
+
+    /* Alert / Banner Colors */
+    .bg-rose-950\/90 { background-color: rgba(76, 5, 25, 0.9) !important; }
+    .border-rose-500 { border-color: #f43f5e !important; }
+    .text-rose-100 { color: #ffe4e6 !important; }
+    .bg-emerald-950\/90 { background-color: rgba(2, 44, 34, 0.9) !important; }
+    .border-emerald-500 { border-color: #10b981 !important; }
+    .text-emerald-100 { color: #d1fae5 !important; }
+    
+    .bg-amber-500\/5 { background-color: rgba(245, 158, 11, 0.05) !important; }
+    .border-amber-500\/10 { border-color: rgba(245, 158, 11, 0.1) !important; }
+    .text-amber-500 { color: #f59e0b !important; }
+    .text-amber-400 { color: #fbbf24 !important; }
+    
+    .bg-emerald-500\/5 { background-color: rgba(34, 197, 94, 0.05) !important; }
+    .border-emerald-500\/10 { border-color: rgba(34, 197, 94, 0.1) !important; }
+    .text-emerald-500 { color: #22c55e !important; }
+
+    .text-rose-400 { color: #fb7185 !important; }
+    .text-rose-500 { color: #f43f5e !important; }
+    .text-success { color: var(--success) !important; }
+    .text-danger { color: var(--danger) !important; }
+    .text-muted { color: var(--muted) !important; }
+
+    /* Border Radii */
+    .rounded-xl { border-radius: 1rem !important; }
+    .rounded-2xl { border-radius: 1.5rem !important; }
+    .rounded-3xl { border-radius: 2rem !important; }
+
+    /* Typography */
+    .text-xs { font-size: 0.75rem !important; }
+    .text-sm { font-size: 0.875rem !important; }
+    .text-lg { font-size: 1.125rem !important; }
+    .text-xl { font-size: 1.25rem !important; }
+    .text-2xl { font-size: 1.5rem !important; }
+    .text-3xl { font-size: 1.875rem !important; }
+    .font-bold { font-weight: 700 !important; }
+    .font-black { font-weight: 900 !important; }
+    .font-mono { font-family: monospace !important; }
+    .uppercase { text-transform: uppercase !important; }
+    .tracking-wider { letter-spacing: 0.05em !important; }
+    .tracking-widest { letter-spacing: 0.1em !important; }
+    .line-clamp-2 {
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;  
+        overflow: hidden;
+    }
+
+    /* Badges */
+    .badge {
+        display: inline-flex;
+        align-items: center;
+        padding: 0.25rem 0.75rem;
+        font-size: 0.75rem;
+        font-weight: 700;
+        border-radius: 100px;
+    }
+    .badge.primary { background: rgba(6, 182, 212, 0.1); color: var(--cyan); border: 1px solid rgba(6, 182, 212, 0.2); }
+    .badge.success { background: rgba(34, 197, 94, 0.1); color: var(--success); border: 1px solid rgba(34, 197, 94, 0.2); }
+    .badge.danger { background: rgba(239, 68, 68, 0.1); color: var(--danger); border: 1px solid rgba(239, 68, 68, 0.2); }
+    .badge.warning { background: rgba(245, 158, 11, 0.1); color: var(--warning); border: 1px solid rgba(245, 158, 11, 0.2); }
+
+    /* Buttons override */
+    .btn-sm { padding: 0.5rem 1rem !important; font-size: 0.8rem !important; }
 
     /* Wallet Card */
     .premium-wallet-card {
-        background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+        background: linear-gradient(135deg, #0e1628 0%, #152035 100%);
         border: 1px solid rgba(6, 182, 212, 0.2);
         position: relative;
         overflow: hidden;
+        border-radius: 24px;
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
     }
 
     .premium-wallet-card::before {
@@ -48,11 +206,44 @@
         -webkit-text-fill-color: transparent;
     }
 
+    /* Grid divisions */
+    .grid-2 {
+        display: grid !important;
+        grid-template-columns: 1fr !important;
+        gap: 1.5rem !important;
+    }
+    @media (min-width: 640px) {
+        .grid-2 {
+            grid-template-columns: repeat(2, 1fr) !important;
+        }
+    }
+
+    .grid-4 {
+        display: grid !important;
+        grid-template-columns: repeat(2, 1fr) !important;
+        gap: 1.25rem !important;
+    }
+    @media (min-width: 1024px) {
+        .grid-4 {
+            grid-template-columns: repeat(4, 1fr) !important;
+        }
+    }
+
     /* Quick Actions */
     .quick-actions {
-        display: grid;
-        grid-template-columns: repeat(4, 1fr);
-        gap: 1rem;
+        display: grid !important;
+        grid-template-columns: repeat(2, 1fr) !important;
+        gap: 1rem !important;
+    }
+    @media (min-width: 480px) {
+        .quick-actions {
+            grid-template-columns: repeat(3, 1fr) !important;
+        }
+    }
+    @media (min-width: 768px) {
+        .quick-actions {
+            grid-template-columns: repeat(4, 1fr) !important;
+        }
     }
 
     .action-btn {
@@ -63,14 +254,15 @@
         padding: 1.25rem;
         background: var(--panel);
         border: 1px solid var(--panel-border);
-        border-radius: var(--radius);
-        transition: all 0.3s ease;
+        border-radius: 20px;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     }
 
     .action-btn:hover {
         border-color: var(--cyan);
         background: rgba(6, 182, 212, 0.05);
         transform: translateY(-3px);
+        box-shadow: 0 10px 20px -5px rgba(6, 182, 212, 0.15);
     }
 
     .action-btn i {
@@ -79,7 +271,7 @@
     }
 
     .action-btn span {
-        font-size: 0.875rem;
+        font-size: 0.8rem;
         font-weight: 700;
         color: var(--text);
     }
@@ -90,7 +282,7 @@
         align-items: center;
         gap: 1rem;
         padding: 1rem;
-        border-radius: 10px;
+        border-radius: 12px;
         transition: background 0.2s;
     }
 
@@ -122,14 +314,9 @@
     }
     .status-badge.active { background-color: var(--success); box-shadow: 0 0 10px var(--success); }
 
-    @media (max-width: 1024px) {
-        .dashboard-sidebar, .dashboard-main { grid-column: span 12; }
-        .dashboard-sidebar { order: 2; }
-        .dashboard-main { order: 1; }
-    }
-
-    @media (max-width: 640px) {
-        .quick-actions { grid-template-columns: repeat(2, 1fr); }
+    /* Mobile Utility Fix */
+    @media (max-width: 768px) {
+        .hide-mobile { display: none !important; }
     }
 </style>
 {% endblock %}
@@ -141,7 +328,7 @@
         <h1>لوحة التحكم</h1>
         <p class="text-muted">مرحباً بك مجدداً في منصة رقميات. إليك نظرة سريعة على حسابك.</p>
     </div>
-    <div class="hidden sm:block">
+    <div class="hide-mobile">
         <span class="badge primary p-2 px-4">
             <i class="fas fa-crown text-amber-400 ml-2"></i>
             {{ user.get_tier_display }}
@@ -151,15 +338,15 @@
 
 <!-- Digital Deliveries Section (Prominent) -->
 {% if digital_deliveries %}
-<div class="mb-10">
+<div class="mb-10" id="digital-deliveries-section">
     <div class="section-head mb-4">
         <h2 class="text-xl font-black text-cyan flex items-center gap-3">
             <i class="fas fa-gift"></i> منتجاتك الرقمية المستلمة
         </h2>
     </div>
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+    <div class="grid grid-3 gap-4">
         {% for order in digital_deliveries %}
-        <div class="panel p-6 bg-cyan/5 border-cyan/20 flex flex-col justify-between">
+        <div class="panel p-6 bg-cyan/5 border-cyan/20 flex flex-col justify-between delivery-card">
             <div class="flex gap-4 mb-4">
                 <div class="w-12 h-12 rounded-xl bg-slate-900 flex items-center justify-center text-cyan flex-shrink-0">
                     <i class="fas fa-key text-xl"></i>
@@ -193,7 +380,7 @@
 {% endif %}
 
 {% if not user.email_verified %}
-<div class="panel p-6 border-r-4 border-amber-500 mb-8 flex flex-col sm:row justify-between items-center bg-amber-500/5 gap-4">
+<div class="panel p-6 border-r-4 border-amber-500 mb-8 flex flex-col sm:flex-row justify-between items-center bg-amber-500/5 gap-4">
     <div class="flex items-center gap-4">
         <div class="w-12 h-12 bg-amber-500/10 text-amber-500 rounded-full flex items-center justify-center flex-shrink-0">
             <i class="fas fa-envelope-open-text text-xl"></i>
@@ -590,6 +777,7 @@ function copyToClipboard(text, btn) {
 }
 
 function markRead(orderId, btn) {
+    btn.disabled = true;
     fetch(`/api/orders/${orderId}/mark-read/`, {
         method: 'POST',
         headers: {
@@ -598,16 +786,24 @@ function markRead(orderId, btn) {
         }
     }).then(res => {
         if(res.ok) {
-            const card = btn.closest('.panel');
-            card.style.opacity = '0';
-            card.style.transform = 'scale(0.9)';
-            setTimeout(() => {
-                card.remove();
-                if(document.querySelectorAll('.panel[bg-cyan]').length === 0) {
-                    // Logic to hide section if empty
-                }
-            }, 300);
+            const card = btn.closest('.delivery-card');
+            if (card) {
+                card.style.transition = 'opacity 0.3s ease, transform 0.3s ease';
+                card.style.opacity = '0';
+                card.style.transform = 'scale(0.9)';
+                setTimeout(() => {
+                    card.remove();
+                    const section = document.getElementById('digital-deliveries-section');
+                    if (section && section.querySelectorAll('.delivery-card').length === 0) {
+                        section.remove();
+                    }
+                }, 300);
+            }
+        } else {
+            btn.disabled = false;
         }
+    }).catch(() => {
+        btn.disabled = false;
     });
 }
 </script>
