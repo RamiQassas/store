@@ -11,19 +11,46 @@ class SubscriptionPlan(TimeStampedModel):
     
     # Limits
     max_products = models.PositiveIntegerField(default=10, verbose_name="أقصى عدد منتجات")
-    max_employees = models.PositiveIntegerField(default=1, verbose_name="أقصى عدد موظفين")
+    max_categories = models.PositiveIntegerField(default=10, verbose_name="أقصى عدد تصنيفات")
     max_monthly_orders = models.PositiveIntegerField(default=100, verbose_name="أقصى عدد طلبات شهرياً")
-    max_storage_mb = models.PositiveIntegerField(default=100, verbose_name="مساحة التخزين القصوى (ميغابايت)")
-    max_images = models.PositiveIntegerField(default=100, verbose_name="أقصى عدد صور")
+    max_customers = models.PositiveIntegerField(default=100, verbose_name="أقصى عدد عملاء")
+    max_employees = models.PositiveIntegerField(default=1, verbose_name="أقصى عدد موظفين")
     max_branches = models.PositiveIntegerField(default=1, verbose_name="أقصى عدد فروع")
     max_coupons = models.PositiveIntegerField(default=5, verbose_name="أقصى عدد كوبونات")
+    max_images = models.PositiveIntegerField(default=100, verbose_name="أقصى عدد صور")
+    max_storage_mb = models.PositiveIntegerField(default=100, verbose_name="مساحة التخزين القصوى (ميغابايت)")
+    max_bandwidth_gb = models.PositiveIntegerField(default=100, verbose_name="أقصى استهلاك للباندويث (جيغابايت)")
     max_domains = models.PositiveIntegerField(default=1, verbose_name="أقصى عدد دومينات مخصصة")
+    max_api_keys = models.PositiveIntegerField(default=1, verbose_name="أقصى عدد مفاتيح API")
+    max_pages = models.PositiveIntegerField(default=5, verbose_name="أقصى عدد صفحات مخصصة")
+    trial_days = models.PositiveIntegerField(default=14, verbose_name="فترة تجريبية (أيام)")
     
     # Features
-    custom_domain_enabled = models.BooleanField(default=False, verbose_name="دعم دومين مخصص")
+    custom_domain_enabled = models.BooleanField(default=False, verbose_name="ربط دومين مخصص")
     remove_branding_enabled = models.BooleanField(default=False, verbose_name="إزالة شعار رقميات")
-    api_access_enabled = models.BooleanField(default=False, verbose_name="صلاحية الوصول للـ API")
-    advanced_reports_enabled = models.BooleanField(default=False, verbose_name="التقارير المتقدمة")
+    multi_employee_enabled = models.BooleanField(default=False, verbose_name="دعم تعدد الموظفين")
+    multi_branch_enabled = models.BooleanField(default=False, verbose_name="دعم تعدد الفروع")
+    coupons_enabled = models.BooleanField(default=True, verbose_name="إنشاء أكواد خصم")
+    recharge_cards_enabled = models.BooleanField(default=True, verbose_name="إنشاء بطاقات شحن")
+    wallets_enabled = models.BooleanField(default=True, verbose_name="إنشاء محافظ إلكترونية")
+    advanced_reports_enabled = models.BooleanField(default=False, verbose_name="تقارير متقدمة")
+    live_stats_enabled = models.BooleanField(default=False, verbose_name="إحصائيات مباشرة")
+    export_excel_enabled = models.BooleanField(default=False, verbose_name="تصدير Excel")
+    export_pdf_enabled = models.BooleanField(default=False, verbose_name="تصدير PDF")
+    api_access_enabled = models.BooleanField(default=False, verbose_name="REST API")
+    webhooks_enabled = models.BooleanField(default=False, verbose_name="Webhooks")
+    mobile_app_enabled = models.BooleanField(default=False, verbose_name="تطبيق جوال")
+    sms_notifications_enabled = models.BooleanField(default=False, verbose_name="إشعارات SMS")
+    whatsapp_notifications_enabled = models.BooleanField(default=False, verbose_name="إشعارات WhatsApp")
+    email_marketing_enabled = models.BooleanField(default=False, verbose_name="البريد الإلكتروني التسويقي")
+    import_products_enabled = models.BooleanField(default=False, verbose_name="استيراد المنتجات")
+    export_products_enabled = models.BooleanField(default=False, verbose_name="تصدير المنتجات")
+    backup_enabled = models.BooleanField(default=False, verbose_name="النسخ الاحتياطي")
+    restore_enabled = models.BooleanField(default=False, verbose_name="استعادة النسخ الاحتياطية")
+    professional_templates_enabled = models.BooleanField(default=False, verbose_name="القوالب الاحترافية")
+    custom_css_js_enabled = models.BooleanField(default=False, verbose_name="تخصيص CSS و JavaScript")
+    multi_language_enabled = models.BooleanField(default=False, verbose_name="دعم اللغات المتعددة")
+    multi_currency_enabled = models.BooleanField(default=False, verbose_name="دعم العملات المتعددة")
     
     is_active = models.BooleanField(default=True, verbose_name="نشط")
 
@@ -83,6 +110,7 @@ class Store(TimeStampedModel):
     text_color = models.CharField(max_length=7, default="#0f172a", verbose_name="لون النص")
     
     is_active = models.BooleanField(default=True, verbose_name="نشط")
+    limit_overrides = models.JSONField(default=dict, blank=True, verbose_name="تجاوز الحدود يدوياً")
     
     # Contact details
     phone = models.CharField(max_length=32, blank=True, verbose_name="الهاتف")
@@ -158,3 +186,64 @@ class StoreSetting(models.Model):
 
     def __str__(self):
         return f"إعدادات {self.store.name}"
+
+
+class SaaSAdminRole(models.Model):
+    name = models.CharField(max_length=100, verbose_name="اسم الدور")
+    description = models.TextField(blank=True, verbose_name="الوصف")
+    permissions = models.JSONField(default=list, blank=True, verbose_name="الصلاحيات")
+
+    class Meta:
+        verbose_name = "دور إداري SaaS"
+        verbose_name_plural = "الأدوار الإدارية SaaS"
+
+    def __str__(self):
+        return self.name
+
+
+class SaaSAuditLog(models.Model):
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, verbose_name="المستخدم")
+    action = models.CharField(max_length=255, verbose_name="العملية")
+    description = models.TextField(verbose_name="التفاصيل")
+    ip_address = models.CharField(max_length=45, blank=True, null=True, verbose_name="عنوان IP")
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name="تاريخ العملية")
+
+    class Meta:
+        verbose_name = "سجل تدقيق SaaS"
+        verbose_name_plural = "سجلات تدقيق SaaS"
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return f"{self.user} - {self.action} ({self.created_at})"
+
+
+class StoreTemplate(models.Model):
+    name = models.CharField(max_length=100, verbose_name="اسم القالب")
+    image = models.ImageField(upload_to="stores/templates/", blank=True, null=True, verbose_name="صورة القالب")
+    category = models.CharField(max_length=100, verbose_name="فئة القالب")
+    mobile_responsive = models.BooleanField(default=True, verbose_name="متوافق مع الجوال")
+    is_active = models.BooleanField(default=True, verbose_name="نشط")
+
+    class Meta:
+        verbose_name = "قالب متجر"
+        verbose_name_plural = "قوالب المتاجر"
+
+    def __str__(self):
+        return self.name
+
+
+class SaaSGlobalSetting(models.Model):
+    platform_name = models.CharField(max_length=100, default="رقميات", verbose_name="اسم المنصة")
+    logo = models.ImageField(upload_to="saas/logo/", blank=True, null=True, verbose_name="شعار المنصة")
+    support_email = models.EmailField(default="support@raqamiyatapp.com", verbose_name="البريد الإلكتروني للدعم")
+    allowed_languages = models.JSONField(default=list, blank=True, verbose_name="اللغات المدعومة")
+    allowed_currencies = models.JSONField(default=list, blank=True, verbose_name="العملات المدعومة")
+    commission_rate = models.DecimalField(max_digits=5, decimal_places=2, default=0.00, verbose_name="نسبة عمولة المنصة (%)")
+    backup_settings = models.JSONField(default=dict, blank=True, verbose_name="إعدادات النسخ الاحتياطي")
+
+    class Meta:
+        verbose_name = "إعداد عام SaaS"
+        verbose_name_plural = "إعدادات عامة SaaS"
+
+    def __str__(self):
+        return self.platform_name

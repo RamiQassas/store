@@ -1,0 +1,133 @@
+{% extends "site/control_base.html" %}
+{% load static %}
+{% load site_tags %}
+
+{% block title %}{% if plan %}تعديل الخطة{% else %}إضافة خطة{% endif %} | رقميات SaaS{% endblock %}
+
+{% block control_content %}
+<div class="page-head flex flex-col md:flex-row md:items-center justify-between gap-4">
+    <div>
+        <span class="eyebrow">إعداد الخطط والأسعار</span>
+        <h1>{% if plan %}تعديل خطة الاشتراك: {{ plan.name }}{% else %}إضافة خطة اشتراك جديدة{% endif %}</h1>
+        <p class="text-slate-500 mt-2">قم بضبط أسعار، حدود ومزايا باقة الاشتراك الفعالة للمتاجر.</p>
+    </div>
+    <div>
+        <a href="{% url 'control_saas_plans' %}" class="btn btn-outline"><i class="fas fa-arrow-left"></i> عودة للخطط</a>
+    </div>
+</div>
+
+<form method="post" class="stack gap-8">
+    {% csrf_token %}
+    
+    <!-- General Settings Panel -->
+    <div class="glass-panel p-8 border-white/5">
+        <h3 class="text-sm font-black text-white uppercase tracking-widest flex items-center gap-2 mb-6">
+            <i class="fas fa-info-circle text-cyan text-xs"></i> المعلومات الأساسية للباقة
+        </h3>
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+                <label class="text-[10px] text-slate-400 font-black uppercase tracking-widest block mb-2">اسم الباقة</label>
+                <input type="text" name="name" value="{{ plan.name|default:'' }}" required class="w-full bg-slate-900 border border-white/10 rounded-xl px-4 py-3 text-white text-xs font-bold focus:outline-none focus:border-cyan">
+            </div>
+            <div>
+                <label class="text-[10px] text-slate-400 font-black uppercase tracking-widest block mb-2">السعر الشهري (USD)</label>
+                <input type="number" step="0.01" name="price_monthly" value="{{ plan.price_monthly|default:'0.00' }}" required class="w-full bg-slate-900 border border-white/10 rounded-xl px-4 py-3 text-white text-xs font-bold focus:outline-none focus:border-cyan">
+            </div>
+            <div>
+                <label class="text-[10px] text-slate-400 font-black uppercase tracking-widest block mb-2">السعر السنوي (USD)</label>
+                <input type="number" step="0.01" name="price_yearly" value="{{ plan.price_yearly|default:'0.00' }}" required class="w-full bg-slate-900 border border-white/10 rounded-xl px-4 py-3 text-white text-xs font-bold focus:outline-none focus:border-cyan">
+            </div>
+            <div>
+                <label class="text-[10px] text-slate-400 font-black uppercase tracking-widest block mb-2">وصف الخطة</label>
+                <textarea name="description" class="w-full bg-slate-900 border border-white/10 rounded-xl px-4 py-3 text-white text-xs font-bold focus:outline-none focus:border-cyan h-24">{{ plan.description|default:'' }}</textarea>
+            </div>
+        </div>
+
+        <div class="mt-6 flex items-center gap-3">
+            <input type="checkbox" name="is_active" id="is_active" {% if plan.is_active or not plan %}checked{% endif %} class="w-4 h-4 rounded bg-slate-900 border border-white/10 text-cyan focus:ring-0">
+            <label for="is_active" class="text-xs text-white font-bold select-none cursor-pointer">باقة نشطة ومتاحة للتسجيل</label>
+        </div>
+    </div>
+
+    <!-- Limits Panel -->
+    <div class="glass-panel p-8 border-white/5">
+        <h3 class="text-sm font-black text-white uppercase tracking-widest flex items-center gap-2 mb-6">
+            <i class="fas fa-chart-line text-cyan text-xs"></i> قيود وحدود الباقة
+        </h3>
+        
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {% for field in fields %}
+            <div>
+                <label class="text-[10px] text-slate-400 font-black uppercase tracking-widest block mb-2">
+                    {% if field == 'max_products' %}الحد الأقصى للمنتجات
+                    {% elif field == 'max_categories' %}الحد الأقصى للتصنيفات
+                    {% elif field == 'max_monthly_orders' %}الحد الأقصى للطلب شهري
+                    {% elif field == 'max_customers' %}الحد الأقصى للعملاء
+                    {% elif field == 'max_employees' %}الحد الأقصى للموظفين
+                    {% elif field == 'max_branches' %}الحد الأقصى للفروع
+                    {% elif field == 'max_coupons' %}الحد الأقصى للكوبونات
+                    {% elif field == 'max_images' %}الحد الأقصى للصور
+                    {% elif field == 'max_storage_mb' %}مساحة التخزين القصوى (MB)
+                    {% elif field == 'max_bandwidth_gb' %}الباندويث الأقصى (GB)
+                    {% elif field == 'max_domains' %}الحد الأقصى للدومينات
+                    {% elif field == 'max_api_keys' %}الحد الأقصى لمفاتيح API
+                    {% elif field == 'max_pages' %}الحد الأقصى للصفحات
+                    {% elif field == 'trial_days' %}الفترة التجريبية (أيام)
+                    {% else %}{{ field }}{% endif %}
+                </label>
+                <input type="number" name="{{ field }}" value="{{ plan|getattr_filter:field|default:'' }}" required class="w-full bg-slate-900 border border-white/10 rounded-xl px-4 py-3 text-white text-xs font-bold focus:outline-none focus:border-cyan">
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- Togglable Features Panel -->
+    <div class="glass-panel p-8 border-white/5">
+        <h3 class="text-sm font-black text-white uppercase tracking-widest flex items-center gap-2 mb-6">
+            <i class="fas fa-toggle-on text-cyan text-xs"></i> المزايا والخصائص المتاحة للباقة
+        </h3>
+        
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {% for feat in features %}
+            <div class="flex items-center gap-3 bg-white/[0.01] border border-white/5 rounded-2xl p-4 hover:bg-white/[0.03] transition-all">
+                <input type="checkbox" name="{{ feat }}" id="{{ feat }}" {% if plan|getattr_filter:feat %}checked{% endif %} class="w-4 h-4 rounded bg-slate-900 border border-white/10 text-cyan focus:ring-0">
+                <label for="{{ feat }}" class="text-xs text-white font-bold select-none cursor-pointer leading-relaxed">
+                    {% if feat == 'custom_domain_enabled' %}ربط دومين مخصص
+                    {% elif feat == 'remove_branding_enabled' %}إزالة عبارة "تم التشغيل بواسطة رقميات"
+                    {% elif feat == 'multi_employee_enabled' %}دعم تعدد الموظفين
+                    {% elif feat == 'multi_branch_enabled' %}دعم تعدد الفروع
+                    {% elif feat == 'coupons_enabled' %}إنشاء أكواد خصم
+                    {% elif feat == 'recharge_cards_enabled' %}إنشاء بطاقات شحن
+                    {% elif feat == 'wallets_enabled' %}إنشاء محافظ إلكترونية
+                    {% elif feat == 'advanced_reports_enabled' %}تقارير متقدمة
+                    {% elif feat == 'live_stats_enabled' %}إحصائيات مباشرة
+                    {% elif feat == 'export_excel_enabled' %}تصدير Excel
+                    {% elif feat == 'export_pdf_enabled' %}تصدير PDF
+                    {% elif feat == 'api_access_enabled' %}REST API
+                    {% elif feat == 'webhooks_enabled' %}Webhooks
+                    {% elif feat == 'mobile_app_enabled' %}تطبيق جوال
+                    {% elif feat == 'sms_notifications_enabled' %}إشعارات SMS
+                    {% elif feat == 'whatsapp_notifications_enabled' %}إشعارات WhatsApp
+                    {% elif feat == 'email_marketing_enabled' %}البريد الإلكتروني التسويقي
+                    {% elif feat == 'import_products_enabled' %}استيراد المنتجات
+                    {% elif feat == 'export_products_enabled' %}تصدير المنتجات
+                    {% elif feat == 'backup_enabled' %}النسخ الاحتياطي
+                    {% elif feat == 'restore_enabled' %}استعادة النسخ الاحتياطية
+                    {% elif feat == 'professional_templates_enabled' %}القوالب الاحترافية
+                    {% elif feat == 'custom_css_js_enabled' %}تخصيص CSS و JavaScript
+                    {% elif feat == 'multi_language_enabled' %}دعم اللغات المتعددة
+                    {% elif feat == 'multi_currency_enabled' %}دعم العملات المتعددة
+                    {% else %}{{ feat }}{% endif %}
+                </label>
+            </div>
+            {% endfor %}
+        </div>
+        
+        <div class="border-t border-white/5 pt-6 mt-8 flex gap-3">
+            <button type="submit" class="btn btn-primary px-8 py-3"><i class="fas fa-check"></i> حفظ خطة الاشتراك</button>
+            <a href="{% url 'control_saas_plans' %}" class="btn btn-outline px-6 py-3">إلغاء</a>
+        </div>
+    </div>
+</form>
+{% endblock %}

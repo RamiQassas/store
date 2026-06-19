@@ -1,0 +1,51 @@
+{% extends "site/control_base.html" %}
+{% load static %}
+
+{% block title %}تعديل حدود المتجر | رقميات SaaS{% endblock %}
+
+{% block control_content %}
+<div class="page-head flex flex-col md:flex-row md:items-center justify-between gap-4">
+    <div>
+        <span class="eyebrow">إجراءات المتاجر المخصصة</span>
+        <h1>الحدود المخصصة للمتجر: {{ store.name }}</h1>
+        <p class="text-slate-500 mt-2">تعديل الحدود يدوياً لتخطي قيود الباقة المحددة للمتجر. اترك الحقل فارغاً للاعتماد على قيم الباقة الافتراضية.</p>
+    </div>
+    <div>
+        <a href="{% url 'control_saas_store_detail' store.id %}" class="btn btn-outline"><i class="fas fa-arrow-left"></i> عودة لتفاصيل المتجر</a>
+    </div>
+</div>
+
+<div class="glass-panel p-8 border-white/5 max-w-4xl">
+    <form method="post" class="stack gap-6">
+        {% csrf_token %}
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {% for field in fields %}
+            <div>
+                <label class="text-[10px] text-slate-400 font-black uppercase tracking-widest block mb-2">
+                    {% if field == 'max_products' %}الحد الأقصى للمنتجات
+                    {% elif field == 'max_categories' %}الحد الأقصى للتصنيفات
+                    {% elif field == 'max_monthly_orders' %}الحد الأقصى للطلبات الشهري
+                    {% elif field == 'max_customers' %}الحد الأقصى للعملاء
+                    {% elif field == 'max_employees' %}الحد الأقصى للموظفين
+                    {% elif field == 'max_branches' %}الحد الأقصى للفروع
+                    {% elif field == 'max_coupons' %}الحد الأقصى للكوبونات
+                    {% elif field == 'max_images' %}الحد الأقصى للصور
+                    {% elif field == 'max_storage_mb' %}مساحة التخزين القصوى (ميغابايت)
+                    {% elif field == 'max_bandwidth_gb' %}الحد الأقصى للباندويث (جيغابايت)
+                    {% elif field == 'max_domains' %}الحد الأقصى للدومينات المخصصة
+                    {% elif field == 'max_api_keys' %}الحد الأقصى لمفاتيح API
+                    {% elif field == 'max_pages' %}الحد الأقصى للصفحات المخصصة
+                    {% else %}{{ field }}{% endif %}
+                </label>
+                <input type="number" name="{{ field }}" value="{% for k, v in store.limit_overrides.items %}{% if k == field %}{{ v }}{% endif %}{% endfor %}" placeholder="قيمة الباقة الافتراضية" class="w-full bg-slate-900 border border-white/10 rounded-xl px-4 py-3 text-white text-xs font-bold focus:outline-none focus:border-cyan">
+            </div>
+            {% endfor %}
+        </div>
+        
+        <div class="border-t border-white/5 pt-6 mt-6 flex gap-3">
+            <button type="submit" class="btn btn-primary px-8 py-3"><i class="fas fa-check"></i> حفظ التعديلات والمجاوزات</button>
+            <a href="{% url 'control_saas_store_detail' store.id %}" class="btn btn-outline px-6 py-3">إلغاء</a>
+        </div>
+    </form>
+</div>
+{% endblock %}

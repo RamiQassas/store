@@ -23,10 +23,10 @@ class TenantMiddleware:
         if host.endswith("." + main_domain) and host != main_domain:
             subdomain = host[:-(len(main_domain) + 1)]
             is_subdomain = True
-        elif main_domain in ["localhost", "127.0.0.1"]:
-            # For local testing, parse first part as subdomain if it is not localhost
+        elif main_domain in ["localhost", "127.0.0.1", "testserver"]:
+            # For local testing (including Django test client), parse first part as subdomain
             parts = host.split('.')
-            if len(parts) > 1 and parts[-1] in ["localhost", "127"]:
+            if len(parts) > 1 and parts[-1] in ["localhost", "127", "testserver"]:
                 subdomain = parts[0]
                 is_subdomain = True
 
@@ -41,7 +41,7 @@ class TenantMiddleware:
             except Exception:
                 pass
         else:
-            if host != main_domain and host not in ["localhost", "127.0.0.1"]:
+            if host != main_domain and host not in ["localhost", "127.0.0.1", "testserver"]:
                 try:
                     from apps.common.tenant_utils import bypass_tenant_filter
                     with bypass_tenant_filter():

@@ -1,0 +1,172 @@
+{% extends "site/control_base.html" %}
+{% load static %}
+
+{% block title %}لوحة قيادة SaaS المتاجر | رقميات Elite{% endblock %}
+
+{% block control_content %}
+<div class="page-head">
+    <span class="eyebrow">إدارة المنصة المركزية</span>
+    <h1>لوحة قيادة SaaS والمتاجر</h1>
+    <p class="text-slate-500 mt-2">نظرة عامة شاملة على أداء ومبيعات واستهلاك المتاجر والاشتراكات الفعالة.</p>
+</div>
+
+<!-- Stats Grid -->
+<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
+    <div class="glass-panel p-6 border-white/5 relative overflow-hidden group">
+        <div class="absolute -right-4 -top-4 w-24 h-24 bg-cyan/5 rounded-full blur-2xl group-hover:bg-cyan/10 transition-all"></div>
+        <div class="flex items-center gap-4 relative z-10">
+            <div class="w-12 h-12 rounded-2xl bg-cyan/10 flex items-center justify-center text-cyan shadow-inner">
+                <i class="fas fa-store"></i>
+            </div>
+            <div>
+                <span class="text-[10px] text-slate-500 font-black uppercase tracking-widest block mb-1">إجمالي المتاجر</span>
+                <strong class="text-2xl font-black text-white">{{ total_stores }}</strong>
+                <span class="text-[9px] text-cyan font-bold block mt-1">النشطة حالياً: {{ active_stores }}</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="glass-panel p-6 border-white/5 relative overflow-hidden group">
+        <div class="absolute -right-4 -top-4 w-24 h-24 bg-amber-500/5 rounded-full blur-2xl group-hover:bg-amber-500/10 transition-all"></div>
+        <div class="flex items-center gap-4 relative z-10">
+            <div class="w-12 h-12 rounded-2xl bg-amber-500/10 flex items-center justify-center text-amber-500 shadow-inner">
+                <i class="fas fa-exclamation-triangle"></i>
+            </div>
+            <div>
+                <span class="text-[10px] text-slate-500 font-black uppercase tracking-widest block mb-1">المتاجر الموقوفة / المنتهية</span>
+                <strong class="text-2xl font-black text-amber-500">{{ suspended_stores }} / {{ expired_stores }}</strong>
+                <span class="text-[9px] text-slate-400 font-bold block mt-1">بحاجة لمراجعة أو تمديد</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="glass-panel p-6 border-white/5 relative overflow-hidden group">
+        <div class="absolute -right-4 -top-4 w-24 h-24 bg-rose-500/5 rounded-full blur-2xl group-hover:bg-rose-500/10 transition-all"></div>
+        <div class="flex items-center gap-4 relative z-10">
+            <div class="w-12 h-12 rounded-2xl bg-rose-500/10 flex items-center justify-center text-rose-500 shadow-inner">
+                <i class="fas fa-chart-line-up"></i>
+            </div>
+            <div>
+                <span class="text-[10px] text-slate-500 font-black uppercase tracking-widest block mb-1">الإيرادات الشهرية والسنوية</span>
+                <strong class="text-xl font-black text-rose-400">${{ monthly_rev }} / ${{ yearly_rev }}</strong>
+                <span class="text-[9px] text-slate-400 font-bold block mt-1">حجم مبيعات المتاجر: ${{ total_sales }}</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="glass-panel p-6 border-white/5 relative overflow-hidden group">
+        <div class="absolute -right-4 -top-4 w-24 h-24 bg-purple-500/5 rounded-full blur-2xl group-hover:bg-purple-500/10 transition-all"></div>
+        <div class="flex items-center gap-4 relative z-10">
+            <div class="w-12 h-12 rounded-2xl bg-purple-500/10 flex items-center justify-center text-purple-400 shadow-inner">
+                <i class="fas fa-box-open"></i>
+            </div>
+            <div>
+                <span class="text-[10px] text-slate-500 font-black uppercase tracking-widest block mb-1">إجمالي المنتجات والعملاء</span>
+                <strong class="text-2xl font-black text-purple-400">{{ total_products }} / {{ total_users }}</strong>
+                <span class="text-[9px] text-slate-400 font-bold block mt-1">الطلبات المنفذة: {{ total_orders }}</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+    <!-- Recent Stores Table -->
+    <div class="lg:col-span-8 glass-panel overflow-hidden border-white/5">
+        <div class="p-6 border-b border-white/5 bg-white/[0.01] flex justify-between items-center">
+            <h3 class="text-sm font-black text-white uppercase tracking-widest flex items-center gap-2">
+                <i class="fas fa-store-slash text-cyan text-xs"></i> أحدث المتاجر المسجلة
+            </h3>
+            <a href="{% url 'control_saas_stores' %}" class="text-[10px] font-black text-cyan hover:underline uppercase tracking-tighter">عرض كل المتاجر</a>
+        </div>
+        <div class="overflow-x-auto">
+            <table class="w-full text-right text-sm">
+                <thead class="bg-black/20 text-slate-400">
+                    <tr>
+                        <th class="p-4 text-[10px] font-black uppercase tracking-widest">اسم المتجر</th>
+                        <th class="p-4 text-[10px] font-black uppercase tracking-widest">المالك</th>
+                        <th class="p-4 text-[10px] font-black uppercase tracking-widest">الباقة</th>
+                        <th class="p-4 text-[10px] font-black uppercase tracking-widest">الحالة</th>
+                        <th class="p-4 text-[10px] font-black uppercase tracking-widest">تاريخ الإنشاء</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-white/[0.02] text-white">
+                    {% for store in recent_stores %}
+                    <tr class="hover:bg-white/[0.02] transition-colors cursor-pointer" onclick="window.location.href='{% url 'control_saas_store_detail' store.id %}'">
+                        <td class="p-4 font-bold flex items-center gap-3">
+                            <div class="w-8 h-8 rounded-lg bg-slate-800 flex items-center justify-center border border-white/5">
+                                {% if store.logo %}
+                                <img src="{{ store.logo.url }}" class="w-full h-full object-cover rounded-lg">
+                                {% else %}
+                                <i class="fas fa-store text-slate-600 text-xs"></i>
+                                {% endif %}
+                            </div>
+                            <div>
+                                <span class="block">{{ store.name }}</span>
+                                <span class="text-[10px] text-slate-500 font-bold block">{{ store.slug }}.localhost</span>
+                            </div>
+                        </td>
+                        <td class="p-4 text-xs text-slate-400 font-bold">{{ store.owner.email }}</td>
+                        <td class="p-4"><span class="badge primary">{{ store.subscription_plan.name }}</span></td>
+                        <td class="p-4">
+                            {% if store.is_active and store.subscription_status == 'active' %}
+                            <span class="badge success">نشط</span>
+                            {% elif store.subscription_status == 'suspended' %}
+                            <span class="badge danger">موقف</span>
+                            {% else %}
+                            <span class="badge primary">{{ store.get_subscription_status_display }}</span>
+                            {% endif %}
+                        </td>
+                        <td class="p-4 text-xs text-slate-400 font-bold">{{ store.created_at|date:"Y-m-d H:i" }}</td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="5" class="p-8 text-center text-slate-500 font-bold">لا يوجد متاجر مسجلة حالياً.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- System Alerts & Audit Logs -->
+    <div class="lg:col-span-4 flex flex-col gap-6">
+        <!-- Alerts Panel -->
+        <div class="glass-panel p-6 border-white/5 flex-grow">
+            <h3 class="text-sm font-black text-white uppercase tracking-widest flex items-center gap-2 mb-6">
+                <i class="fas fa-bell text-rose-500 text-xs"></i> تنبيهات النظام الحرجة
+            </h3>
+            <div class="flex flex-col gap-4">
+                {% for alert in alerts %}
+                <div class="p-4 rounded-2xl bg-rose-500/10 border border-rose-500/20 text-rose-400 text-xs font-bold leading-relaxed">
+                    {{ alert.msg }}
+                </div>
+                {% empty %}
+                <div class="p-4 rounded-2xl bg-cyan-500/10 border border-cyan-500/20 text-cyan-400 text-xs font-bold text-center">
+                    لا يوجد تجاوزات للحدود أو تنبيهات أمنية حالياً.
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Audit Panel -->
+        <div class="glass-panel p-6 border-white/5">
+            <h3 class="text-sm font-black text-white uppercase tracking-widest flex items-center gap-2 mb-6">
+                <i class="fas fa-history text-cyan text-xs"></i> آخر العمليات الإدارية
+            </h3>
+            <div class="flex flex-col gap-4">
+                {% for log in recent_logs %}
+                <div class="text-xs border-b border-white/5 pb-3">
+                    <div class="flex justify-between items-center mb-1">
+                        <span class="font-black text-white">{{ log.action }}</span>
+                        <span class="text-[9px] text-slate-500 font-bold">{{ log.created_at|timesince }}</span>
+                    </div>
+                    <p class="text-slate-400 leading-relaxed">{{ log.description }}</p>
+                </div>
+                {% empty %}
+                <div class="text-center text-slate-500 py-4 font-bold">لا يوجد سجل عمليات إدارية بعد.</div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

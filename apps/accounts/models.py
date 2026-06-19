@@ -45,6 +45,14 @@ class User(AbstractUser):
         related_name="users",
         verbose_name="المتجر"
     )
+    saas_role = models.ForeignKey(
+        "stores.SaaSAdminRole",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="admins",
+        verbose_name="الدور الإداري SaaS"
+    )
     
     # Tiers
     tier = models.CharField(max_length=20, choices=Tier.choices, default=Tier.CUSTOMER, verbose_name="الفئة")

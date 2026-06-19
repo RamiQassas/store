@@ -1,0 +1,69 @@
+{% extends "site/control_base.html" %}
+{% load static %}
+
+{% block title %}إدارة خطط الاشتراك | رقميات SaaS{% endblock %}
+
+{% block control_content %}
+<div class="page-head flex flex-col md:flex-row md:items-center justify-between gap-4">
+    <div>
+        <span class="eyebrow">إدارة خطط الاشتراك المركزية</span>
+        <h1>خطط وباقات الاشتراك</h1>
+        <p class="text-slate-500 mt-2">إضافة، تعديل، وتفعيل/تعطيل خطط الاشتراك وقيودها ومميزاتها لجميع المتاجر.</p>
+    </div>
+    <div>
+        <a href="{% url 'control_saas_plan_create' %}" class="btn btn-primary"><i class="fas fa-plus"></i> إضافة خطة اشتراك جديدة</a>
+    </div>
+</div>
+
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+    {% for plan in plans %}
+    <div class="glass-panel p-6 border-white/5 relative overflow-hidden flex flex-col justify-between min-h-[350px] group hover:border-cyan/20 transition-all">
+        <div class="stack gap-4">
+            <div class="flex justify-between items-start">
+                <h3 class="text-base font-black text-white">{{ plan.name }}</h3>
+                <span>
+                    {% if plan.is_active %}
+                    <span class="badge success">مفعلة</span>
+                    {% else %}
+                    <span class="badge danger">معطلة</span>
+                    {% endif %}
+                </span>
+            </div>
+            <p class="text-xs text-slate-400 font-bold leading-relaxed">{{ plan.description|default:"لا يوجد وصف لهذه الخطة." }}</p>
+            <div class="py-2 border-y border-white/5 my-2">
+                <span class="text-2xl font-black text-white">${{ plan.price_monthly }}</span>
+                <span class="text-[10px] text-slate-500 font-bold">/ شهرياً</span>
+                <span class="block text-[10px] text-slate-500 font-bold mt-1">السعر السنوي: ${{ plan.price_yearly }}</span>
+            </div>
+            
+            <div class="text-[10px] text-slate-400 font-bold space-y-2">
+                <div class="flex justify-between">
+                    <span>المنتجات:</span>
+                    <span class="text-white">{{ plan.max_products }}</span>
+                </div>
+                <div class="flex justify-between">
+                    <span>التصنيفات:</span>
+                    <span class="text-white">{{ plan.max_categories }}</span>
+                </div>
+                <div class="flex justify-between">
+                    <span>الطلبات الشهرية:</span>
+                    <span class="text-white">{{ plan.max_monthly_orders }}</span>
+                </div>
+                <div class="flex justify-between">
+                    <span>التخزين:</span>
+                    <span class="text-white">{{ plan.max_storage_mb }} MB</span>
+                </div>
+            </div>
+        </div>
+        
+        <div class="mt-6 border-t border-white/5 pt-4">
+            <a href="{% url 'control_saas_plan_edit' plan.id %}" class="btn btn-outline w-full py-2.5 text-xs"><i class="fas fa-edit"></i> تعديل حدود ومزايا الباقة</a>
+        </div>
+    </div>
+    {% empty %}
+    <div class="col-span-full glass-panel p-8 text-center text-slate-500 font-bold">
+        لا يوجد خطط اشتراك مسجلة حالياً.
+    </div>
+    {% endfor %}
+</div>
+{% endblock %}

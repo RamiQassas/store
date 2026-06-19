@@ -1,0 +1,84 @@
+{% extends "site/control_base.html" %}
+{% load static %}
+
+{% block title %}مراقبة الموارد | رقميات SaaS{% endblock %}
+
+{% block control_content %}
+<div class="page-head">
+    <span class="eyebrow">إدارة خوادم المنصة</span>
+    <h1>مراقبة الموارد والاستهلاك</h1>
+    <p class="text-slate-500 mt-2">استعراض إحصائيات قاعدة البيانات، حجم القرص، واستهلاك الموارد التفصيلي لكل متجر.</p>
+</div>
+
+<!-- Platform Stats Grid -->
+<div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
+    <div class="glass-panel p-6 border-white/5">
+        <span class="text-[10px] text-slate-500 font-black uppercase tracking-widest block mb-2">نوع محرك قواعد البيانات</span>
+        <strong class="text-xl font-black text-white uppercase">{{ db_engine }}</strong>
+        <span class="block text-xs text-cyan font-bold mt-2">حجم قاعدة البيانات: {{ db_size }}</span>
+    </div>
+    
+    <div class="glass-panel p-6 border-white/5">
+        <span class="text-[10px] text-slate-500 font-black uppercase tracking-widest block mb-2">استخدام مساحة القرص (Media)</span>
+        <strong class="text-xl font-black text-white">{{ disk_usage }}</strong>
+        
+        <div class="w-full bg-slate-800 h-2 rounded-full mt-3 overflow-hidden">
+            <div class="bg-cyan h-full rounded-full" style="width: {{ disk_percent }}%"></div>
+        </div>
+        <span class="block text-[10px] text-slate-500 font-bold mt-2">نسبة الاستهلاك: {{ disk_percent }}%</span>
+    </div>
+
+    <div class="glass-panel p-6 border-white/5">
+        <span class="text-[10px] text-slate-500 font-black uppercase tracking-widest block mb-2">صحة النظام العامة</span>
+        <strong class="text-xl font-black text-emerald-400">ممتازة</strong>
+        <span class="block text-xs text-slate-400 font-bold mt-2">الذاكرة والمعالج ضمن الحدود الآمنة.</span>
+    </div>
+</div>
+
+<!-- Stores Consumption Details -->
+<div class="glass-panel overflow-hidden border-white/5">
+    <div class="p-6 border-b border-white/5 bg-white/[0.01]">
+        <h3 class="text-sm font-black text-white uppercase tracking-widest flex items-center gap-2">
+            <i class="fas fa-server text-cyan text-xs"></i> استهلاك المتاجر الفردية للموارد
+        </h3>
+    </div>
+    <div class="overflow-x-auto">
+        <table class="w-full text-right text-sm">
+            <thead class="bg-black/20 text-slate-400">
+                <tr>
+                    <th class="p-4 text-[10px] font-black uppercase tracking-widest">المتجر</th>
+                    <th class="p-4 text-[10px] font-black uppercase tracking-widest">عدد المنتجات</th>
+                    <th class="p-4 text-[10px] font-black uppercase tracking-widest">عدد الطلبات الكلي</th>
+                    <th class="p-4 text-[10px] font-black uppercase tracking-widest">المساحة المستخدمة</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-white/[0.02] text-white">
+                {% for item in stores_data %}
+                <tr class="hover:bg-white/[0.02] transition-colors">
+                    <td class="p-4 font-bold flex items-center gap-3">
+                        <div class="w-8 h-8 rounded-lg bg-slate-800 flex items-center justify-center border border-white/5">
+                            {% if item.store.logo %}
+                            <img src="{{ item.store.logo.url }}" class="w-full h-full object-cover rounded-lg">
+                            {% else %}
+                            <i class="fas fa-store text-slate-600 text-xs"></i>
+                            {% endif %}
+                        </div>
+                        <div>
+                            <span class="block">{{ item.store.name }}</span>
+                            <span class="text-[10px] text-slate-500 font-bold block">{{ item.store.slug }}</span>
+                        </div>
+                    </td>
+                    <td class="p-4 text-xs font-bold">{{ item.product_count }} منتج</td>
+                    <td class="p-4 text-xs font-bold">{{ item.order_count }} طلب</td>
+                    <td class="p-4 text-xs font-bold text-cyan">{{ item.storage_mb }} MB</td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="4" class="p-8 text-center text-slate-500 font-bold">لا يوجد متاجر مسجلة حالياً للتحليل.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

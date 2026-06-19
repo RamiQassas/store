@@ -1,0 +1,45 @@
+{% extends "site/control_base.html" %}
+{% load static %}
+
+{% block title %}إدارة الأدوار والصلاحيات | رقميات SaaS{% endblock %}
+
+{% block control_content %}
+<div class="page-head flex flex-col md:flex-row md:items-center justify-between gap-4">
+    <div>
+        <span class="eyebrow">إدارة أمن وصلاحيات المنصة</span>
+        <h1>الأدوار والصلاحيات الإدارية</h1>
+        <p class="text-slate-500 mt-2">إنشاء أدوار إدارية مخصصة وتحديد مستويات وصول الموظفين لموارد وأقسام SaaS.</p>
+    </div>
+    <div>
+        <a href="{% url 'control_saas_role_create' %}" class="btn btn-primary"><i class="fas fa-plus"></i> إضافة دور إداري جديد</a>
+    </div>
+</div>
+
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+    {% for role in roles %}
+    <div class="glass-panel p-6 border-white/5 flex flex-col justify-between min-h-[220px] group hover:border-cyan/20 transition-all">
+        <div class="stack gap-3">
+            <h3 class="text-base font-black text-white flex justify-between items-center">
+                {{ role.name }}
+                <span class="badge primary">{{ role.admin_count }} موظف</span>
+            </h3>
+            <p class="text-xs text-slate-400 font-bold leading-relaxed">{{ role.description|default:"لا يوجد وصف لهذا الدور الإداري." }}</p>
+            
+            <div class="flex flex-wrap gap-1 mt-2">
+                {% for perm in role.permissions %}
+                <span class="text-[9px] bg-slate-800 text-slate-400 font-bold rounded-lg px-2.5 py-1">{{ perm }}</span>
+                {% endfor %}
+            </div>
+        </div>
+        
+        <div class="mt-6 border-t border-white/5 pt-4">
+            <a href="{% url 'control_saas_role_edit' role.id %}" class="btn btn-outline w-full py-2.5 text-xs"><i class="fas fa-edit"></i> تعديل صلاحيات الدور</a>
+        </div>
+    </div>
+    {% empty %}
+    <div class="col-span-full glass-panel p-8 text-center text-slate-500 font-bold">
+        لا يوجد أدوار إدارية مخصصة مسجلة حالياً.
+    </div>
+    {% endfor %}
+</div>
+{% endblock %}

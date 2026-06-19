@@ -1,0 +1,67 @@
+{% extends "site/control_base.html" %}
+{% load static %}
+
+{% block title %}سجل العمليات الإدارية (Audit) | رقميات SaaS{% endblock %}
+
+{% block control_content %}
+<div class="page-head">
+    <span class="eyebrow">إدارة الأمن وسجل الرقابة</span>
+    <h1>سجل العمليات والتدقيق (Audit Logs)</h1>
+    <p class="text-slate-500 mt-2">استعراض وتتبع السجل الكامل لكافة التعديلات الإدارية التي قام بها موظفو المنصة.</p>
+</div>
+
+<!-- Search Bar -->
+<div class="glass-panel p-6 border-white/5 mb-8">
+    <form method="get" class="flex gap-4">
+        <div class="flex-grow">
+            <input type="text" name="q" value="{{ query }}" placeholder="البحث في العمليات، التفاصيل، أو البريد الإلكتروني للموظف..." class="w-full bg-slate-900 border border-white/10 rounded-xl px-4 py-3 text-white text-xs font-bold focus:outline-none focus:border-cyan">
+        </div>
+        <button type="submit" class="btn btn-primary px-8 py-3"><i class="fas fa-search"></i> بحث</button>
+    </form>
+</div>
+
+<!-- Audit Logs Table -->
+<div class="glass-panel overflow-hidden border-white/5">
+    <div class="overflow-x-auto">
+        <table class="w-full text-right text-sm">
+            <thead class="bg-black/20 text-slate-400">
+                <tr>
+                    <th class="p-4 text-[10px] font-black uppercase tracking-widest">الموظف/المسؤول</th>
+                    <th class="p-4 text-[10px] font-black uppercase tracking-widest">العملية والحدث</th>
+                    <th class="p-4 text-[10px] font-black uppercase tracking-widest">التفاصيل</th>
+                    <th class="p-4 text-[10px] font-black uppercase tracking-widest">عنوان IP</th>
+                    <th class="p-4 text-[10px] font-black uppercase tracking-widest">التاريخ والوقت</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-white/[0.02] text-white">
+                {% for log in page_obj %}
+                <tr class="hover:bg-white/[0.02] transition-colors">
+                    <td class="p-4 text-xs font-bold text-cyan">{{ log.user.email|default:"عملية تلقائية / نظام" }}</td>
+                    <td class="p-4 text-xs font-black">{{ log.action }}</td>
+                    <td class="p-4 text-xs text-slate-400 font-bold max-w-md leading-relaxed">{{ log.description }}</td>
+                    <td class="p-4 text-xs text-slate-500 font-bold">{{ log.ip_address|default:"N/A" }}</td>
+                    <td class="p-4 text-xs text-slate-400 font-bold">{{ log.created_at|date:"Y-m-d H:i" }}</td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="5" class="p-8 text-center text-slate-500 font-bold">لا يوجد سجلات تدقيق مطابقة للبحث.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Pagination -->
+{% if page_obj.has_other_pages %}
+<div class="flex justify-center gap-2 mt-6">
+    {% if page_obj.has_previous %}
+    <a href="?page={{ page_obj.previous_page_number }}&q={{ query }}" class="btn btn-outline px-4 py-2 text-xs">السابق</a>
+    {% endif %}
+    <span class="btn btn-outline px-4 py-2 text-xs active">صفحة {{ page_obj.number }} من {{ page_obj.paginator.num_pages }}</span>
+    {% if page_obj.has_next %}
+    <a href="?page={{ page_obj.next_page_number }}&q={{ query }}" class="btn btn-outline px-4 py-2 text-xs">التالي</a>
+    {% endif %}
+</div>
+{% endif %}
+{% endblock %}

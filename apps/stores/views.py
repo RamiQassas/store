@@ -28,6 +28,22 @@ from apps.stores.forms import (
 )
 from apps.common.tenant_utils import bypass_tenant_filter
 
+def get_store_limit(store, limit_field):
+    """Get the active limit for a store (checking manual overrides first)."""
+    if store.limit_overrides and limit_field in store.limit_overrides:
+        return store.limit_overrides[limit_field]
+    if store.subscription_plan:
+        return getattr(store.subscription_plan, limit_field, 0)
+    return 0
+
+def check_store_feature(store, feature_field):
+    """Check if a feature is enabled for a store (checking manual overrides first)."""
+    if store.limit_overrides and feature_field in store.limit_overrides:
+        return bool(store.limit_overrides[feature_field])
+    if store.subscription_plan:
+        return getattr(store.subscription_plan, feature_field, False)
+    return False
+
 # ==========================================
 # --- PERMISSION DECORATORS ---
 # ==========================================
@@ -395,11 +411,11 @@ def merchant_products(request):
 def merchant_product_form(request, pk=None):
     store = request.store
     # Plan limit check on creation
-    plan = store.subscription_plan
-    if not pk and plan:
+    if not pk:
+        limit = get_store_limit(store, 'max_products')
         current_count = Product.objects.filter(store=store).count()
-        if current_count >= plan.max_products:
-            messages.error(request, f"عذراً، لقد تجاوزت الحد الأقصى للمنتجات المسموح بها في خطتك الحالية ({plan.max_products} منتجات).")
+        if current_count >= limit:
+            messages.error(request, f"عذراً، لقد تجاوزت الحد الأقصى للمنتجات المسموح بها في خطتك الحالية ({limit} منتجات).")
             return redirect("merchant_products")
 
     product = get_object_or_404(Product, pk=pk, store=store) if pk else None
@@ -521,6 +537,14 @@ def merchant_categories(request):
 @employee_required("manage_products")
 def merchant_category_form(request, pk=None):
     store = request.store
+    # Limit check on creation
+    if not pk:
+        limit = get_store_limit(store, 'max_categories')
+        current_count = Category.objects.filter(store=store).count()
+        if current_count >= limit:
+            messages.error(request, f"عذراً، لقد تجاوزت الحد الأقصى للتصنيفات المسموح بها في خطتك الحالية ({limit} تصنيفات).")
+            return redirect("merchant_categories")
+
     category = get_object_or_404(Category, pk=pk, store=store) if pk else None
     form = MerchantCategoryForm(request.POST or None, request.FILES or None, instance=category, store=store)
     
@@ -595,6 +619,14 @@ def merchant_coupons(request):
 @employee_required("manage_coupons")
 def merchant_coupon_form(request, pk=None):
     store = request.store
+    # Limit check on creation
+    if not pk:
+        limit = get_store_limit(store, 'max_coupons')
+        current_count = Coupon.objects.filter(store=store).count()
+        if current_count >= limit:
+            messages.error(request, f"عذراً، لقد تجاوزت الحد الأقصى للكوبونات المسموح بها في خطتك الحالية ({limit} كوبونات).")
+            return redirect("merchant_coupons")
+
     coupon = get_object_or_404(Coupon, pk=pk, store=store) if pk else None
     form = MerchantCouponForm(request.POST or None, instance=coupon)
     
@@ -632,6 +664,14 @@ def merchant_pages(request):
 @employee_required("manage_pages")
 def merchant_page_form(request, pk=None):
     store = request.store
+    # Limit check on creation
+    if not pk:
+        limit = get_store_limit(store, 'max_pages')
+        current_count = StorePage.objects.filter(store=store).count()
+        if current_count >= limit:
+            messages.error(request, f"عذراً، لقد تجاوزت الحد الأقصى للصفحات المخصصة المسموح بها في خطتك الحالية ({limit} صفحات).")
+            return redirect("merchant_pages")
+
     page = get_object_or_404(StorePage, pk=pk, store=store) if pk else None
     form = StorePageForm(request.POST or None, instance=page)
     
@@ -670,11 +710,11 @@ def merchant_employees(request):
 def merchant_employee_form(request, pk=None):
     store = request.store
     # Limit check on creation
-    plan = store.subscription_plan
-    if not pk and plan:
+    if not pk:
+        limit = get_store_limit(store, 'max_employees')
         current_count = StoreEmployee.objects.filter(store=store).count()
-        if current_count >= plan.max_employees:
-            messages.error(request, f"لقد وصلت للحد الأقصى للموظفين المسموح بهم في خطتك الحالية ({plan.max_employees} موظفين).")
+        if current_count >= limit:
+            messages.error(request, f"لقد وصلت للحد الأقصى للموظفين المسموح بهم في خطتك الحالية ({limit} موظفين).")
             return redirect("merchant_employees")
 
     employee = get_object_or_404(StoreEmployee, pk=pk, store=store) if pk else None
@@ -729,8 +769,7 @@ def merchant_settings(request):
     domain_form = StoreCustomDomainForm(request.POST or None, instance=store)
     
     # Check plan permissions for custom domain
-    plan = store.subscription_plan
-    custom_domain_allowed = plan.custom_domain_enabled if plan else False
+    custom_domain_allowed = check_store_feature(store, 'custom_domain_enabled')
     
     if request.method == "POST":
         if "save_domain" in request.POST:
@@ -771,6 +810,13 @@ def merchant_subscription(request):
             created_at__year=timezone.now().year,
             created_at__month=timezone.now().month
         ).count()
+        
+    # Dynamically bind override limits to plan fields for UI display
+    if plan:
+        plan.max_products = get_store_limit(store, "max_products")
+        plan.max_employees = get_store_limit(store, "max_employees")
+        plan.max_coupons = get_store_limit(store, "max_coupons")
+        plan.max_monthly_orders = get_store_limit(store, "max_monthly_orders")
         
     return render(request, "stores/merchant/subscription.html", {
         "store": store,

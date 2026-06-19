@@ -1,0 +1,59 @@
+{% extends "site/control_base.html" %}
+{% load static %}
+
+{% block title %}{% if template %}تعديل القالب{% else %}إضافة قالب{% endif %} | رقميات SaaS{% endblock %}
+
+{% block control_content %}
+<div class="page-head flex flex-col md:flex-row md:items-center justify-between gap-4">
+    <div>
+        <span class="eyebrow">إدارة قوالب المتاجر</span>
+        <h1>{% if template %}تعديل قالب المتجر: {{ template.name }}{% else %}إضافة قالب متجر جديد{% endif %}</h1>
+        <p class="text-slate-500 mt-2">اضبط معلومات وصورة قالب المتجر الفرعي المتاح للتجار.</p>
+    </div>
+    <div>
+        <a href="{% url 'control_saas_templates' %}" class="btn btn-outline"><i class="fas fa-arrow-left"></i> عودة للقوالب</a>
+    </div>
+</div>
+
+<div class="glass-panel p-8 border-white/5 max-w-2xl">
+    <form method="post" enctype="multipart/form-data" class="stack gap-6">
+        {% csrf_token %}
+        
+        <div>
+            <label class="text-[10px] text-slate-400 font-black uppercase tracking-widest block mb-2">اسم القالب</label>
+            <input type="text" name="name" value="{{ template.name|default:'' }}" required placeholder="مثال: القالب الفاخر، قالب الخدمات الرقمية..." class="w-full bg-slate-900 border border-white/10 rounded-xl px-4 py-3 text-white text-xs font-bold focus:outline-none focus:border-cyan">
+        </div>
+        
+        <div>
+            <label class="text-[10px] text-slate-400 font-black uppercase tracking-widest block mb-2">فئة وتصنيف القالب</label>
+            <input type="text" name="category" value="{{ template.category|default:'' }}" required placeholder="مثال: التجارة الإلكترونية، الخدمات والاشتراكات..." class="w-full bg-slate-900 border border-white/10 rounded-xl px-4 py-3 text-white text-xs font-bold focus:outline-none focus:border-cyan">
+        </div>
+
+        <div>
+            <label class="text-[10px] text-slate-400 font-black uppercase tracking-widest block mb-2">صورة القالب التوضيحية</label>
+            <input type="file" name="image" class="w-full bg-slate-900 border border-white/10 rounded-xl px-4 py-3 text-white text-xs font-bold focus:outline-none focus:border-cyan">
+            {% if template.image %}
+            <div class="mt-3 w-40 rounded-xl overflow-hidden border border-white/10">
+                <img src="{{ template.image.url }}" class="w-full h-auto object-cover">
+            </div>
+            {% endif %}
+        </div>
+
+        <div class="flex flex-col gap-3 mt-4">
+            <div class="flex items-center gap-3">
+                <input type="checkbox" name="mobile_responsive" id="mobile_responsive" {% if template.mobile_responsive or not template %}checked{% endif %} class="w-4 h-4 rounded bg-slate-900 border border-white/10 text-cyan focus:ring-0">
+                <label for="mobile_responsive" class="text-xs text-white font-bold select-none cursor-pointer">متوافق مع الهواتف الذكية والأجهزة اللوحية</label>
+            </div>
+            <div class="flex items-center gap-3">
+                <input type="checkbox" name="is_active" id="is_active" {% if template.is_active or not template %}checked{% endif %} class="w-4 h-4 rounded bg-slate-900 border border-white/10 text-cyan focus:ring-0">
+                <label for="is_active" class="text-xs text-white font-bold select-none cursor-pointer">قالب نشط ومتاح للاختيار من التجار</label>
+            </div>
+        </div>
+
+        <div class="border-t border-white/5 pt-6 mt-6 flex gap-3">
+            <button type="submit" class="btn btn-primary px-8 py-3"><i class="fas fa-check"></i> حفظ قالب المتجر</button>
+            <a href="{% url 'control_saas_templates' %}" class="btn btn-outline px-6 py-3">إلغاء</a>
+        </div>
+    </form>
+</div>
+{% endblock %}

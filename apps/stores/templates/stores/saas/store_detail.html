@@ -1,0 +1,169 @@
+{% extends "site/control_base.html" %}
+{% load static %}
+
+{% block title %}تفاصيل المتجر | رقميات SaaS{% endblock %}
+
+{% block control_content %}
+<div class="page-head flex flex-col md:flex-row md:items-center justify-between gap-4">
+    <div>
+        <span class="eyebrow">إدارة المتاجر التفصيلية</span>
+        <h1>المتجر: {{ store.name }}</h1>
+        <p class="text-slate-500 mt-2">عرض بيانات الاستهلاك، الفواتير، الصلاحيات، وإجراءات التحكم الكاملة.</p>
+    </div>
+    <div class="flex gap-2">
+        <a href="{% url 'control_saas_store_login' store.id %}" target="_blank" class="btn btn-primary"><i class="fas fa-sign-in-alt"></i> دخول كصاحب المتجر</a>
+        <a href="{% url 'control_saas_stores' %}" class="btn btn-outline"><i class="fas fa-arrow-left"></i> عودة للمتاجر</a>
+    </div>
+</div>
+
+<!-- Grid Panels -->
+<div class="grid grid-cols-1 lg:grid-cols-12 gap-8 mb-12">
+    <!-- Store Identity Card -->
+    <div class="lg:col-span-4 glass-panel p-6 border-white/5 flex flex-col items-center text-center">
+        <div class="w-24 h-24 rounded-2xl bg-slate-800 flex items-center justify-center border border-white/10 mb-4 overflow-hidden">
+            {% if store.logo %}
+            <img src="{{ store.logo.url }}" class="w-full h-full object-cover">
+            {% else %}
+            <i class="fas fa-store text-slate-500 text-3xl"></i>
+            {% endif %}
+        </div>
+        <h2 class="text-lg font-black text-white mb-1">{{ store.name }}</h2>
+        <span class="text-xs text-slate-400 font-bold block mb-4">{{ store.slug }}.raqamiyatapp.com</span>
+        
+        <div class="w-full text-right divide-y divide-white/5 text-xs text-slate-400 font-bold mt-4">
+            <div class="py-3 flex justify-between">
+                <span>حالة الاشتراك:</span>
+                <span>
+                    {% if store.subscription_status == 'active' and store.is_active %}
+                    <span class="badge success">نشط</span>
+                    {% elif store.subscription_status == 'suspended' %}
+                    <span class="badge danger">موقوف مؤقتاً</span>
+                    {% else %}
+                    <span class="badge primary">{{ store.get_subscription_status_display }}</span>
+                    {% endif %}
+                </span>
+            </div>
+            <div class="py-3 flex justify-between">
+                <span>باقة الاشتراك:</span>
+                <span class="text-white">{{ store.subscription_plan.name }}</span>
+            </div>
+            <div class="py-3 flex justify-between">
+                <span>المالك الحالي:</span>
+                <span class="text-white">{{ store.owner.email }}</span>
+            </div>
+            <div class="py-3 flex justify-between">
+                <span>تاريخ التأسيس:</span>
+                <span class="text-white">{{ store.created_at|date:"Y-m-d" }}</span>
+            </div>
+            <div class="py-3 flex justify-between">
+                <span>انتهاء الصلاحية:</span>
+                <span class="text-rose-400">{{ store.subscription_end|date:"Y-m-d" }}</span>
+            </div>
+        </div>
+
+        <div class="flex flex-col gap-2 w-full mt-6">
+            {% if store.is_active %}
+            <a href="{% url 'control_saas_store_toggle' store.id %}?action=suspend" class="btn btn-outline w-full py-2.5 text-rose-400 border-rose-500/20 hover:bg-rose-500/10"><i class="fas fa-pause"></i> تعليق المتجر مؤقتاً</a>
+            <a href="{% url 'control_saas_store_toggle' store.id %}?action=deactivate" class="btn btn-outline w-full py-2.5 text-rose-400 border-rose-500/20 hover:bg-rose-500/10"><i class="fas fa-stop"></i> إيقاف المتجر بالكامل</a>
+            {% else %}
+            <a href="{% url 'control_saas_store_toggle' store.id %}?action=activate" class="btn btn-primary w-full py-2.5"><i class="fas fa-play"></i> تفعيل وتشغيل المتجر</a>
+            {% endif %}
+            <a href="{% url 'control_saas_store_toggle' store.id %}?action=delete" class="btn btn-outline w-full py-2.5 text-rose-500 border-rose-500/30 hover:bg-rose-500/20" onclick="return confirm('هل أنت متأكد من رغبتك في إلغاء وحذف هذا المتجر نهائياً؟');"><i class="fas fa-trash-alt"></i> حذف وإلغاء المتجر</a>
+        </div>
+    </div>
+
+    <!-- Store Statistics & Consumption -->
+    <div class="lg:col-span-8 flex flex-col gap-6">
+        <div class="glass-panel p-6 border-white/5">
+            <h3 class="text-sm font-black text-white uppercase tracking-widest flex items-center gap-2 mb-6">
+                <i class="fas fa-chart-pie text-cyan text-xs"></i> مؤشرات الاستهلاك والحدود الحالية
+            </h3>
+            
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                <div class="p-4 bg-slate-900/50 border border-white/5 rounded-2xl text-center">
+                    <span class="text-[10px] text-slate-500 font-bold block mb-1">المنتجات</span>
+                    <strong class="text-lg text-white font-black">{{ product_count }}</strong>
+                </div>
+                <div class="p-4 bg-slate-900/50 border border-white/5 rounded-2xl text-center">
+                    <span class="text-[10px] text-slate-500 font-bold block mb-1">العملاء</span>
+                    <strong class="text-lg text-white font-black">{{ customer_count }}</strong>
+                </div>
+                <div class="p-4 bg-slate-900/50 border border-white/5 rounded-2xl text-center">
+                    <span class="text-[10px] text-slate-500 font-bold block mb-1">الطلبات</span>
+                    <strong class="text-lg text-white font-black">{{ order_count }}</strong>
+                </div>
+                <div class="p-4 bg-slate-900/50 border border-white/5 rounded-2xl text-center">
+                    <span class="text-[10px] text-slate-500 font-bold block mb-1">مساحة التخزين</span>
+                    <strong class="text-lg text-white font-black">{{ storage_mb }} MB</strong>
+                </div>
+            </div>
+
+            <div class="flex justify-between items-center bg-white/[0.02] border border-white/5 rounded-2xl p-4">
+                <div>
+                    <h4 class="text-xs text-white font-black mb-1">تجاوز الحدود يدويًا للمتجر</h4>
+                    <p class="text-[10px] text-slate-500">يتيح لك هذا الخيار وضع حدود وقواعد استهلاك مخصصة لهذا المتجر متخطيةً حدود الباقة.</p>
+                </div>
+                <a href="{% url 'control_saas_store_limits' store.id %}" class="btn btn-outline py-2 px-4 text-xs"><i class="fas fa-edit"></i> تعديل الحدود المخصصة</a>
+            </div>
+        </div>
+
+        <!-- Store Actions Form Section -->
+        <div class="glass-panel p-6 border-white/5">
+            <h3 class="text-sm font-black text-white uppercase tracking-widest flex items-center gap-2 mb-6">
+                <i class="fas fa-sliders-h text-cyan text-xs"></i> إجراءات التحكم والاشتراك
+            </h3>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- Change Plan -->
+                <form method="post" class="stack gap-3">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="change_plan">
+                    <label class="text-xs text-slate-400 font-bold">تغيير باقة الاشتراك الحالية:</label>
+                    <select name="plan_id" class="bg-slate-900 border border-white/10 rounded-xl px-4 py-2.5 text-white text-xs font-bold focus:outline-none focus:border-cyan">
+                        {% for plan in plans %}
+                        <option value="{{ plan.id }}" {% if store.subscription_plan_id == plan.id %}selected{% endif %}>{{ plan.name }} (${{ plan.price_monthly }}/شهرياً)</option>
+                        {% endfor %}
+                    </select>
+                    <button type="submit" class="btn btn-primary py-2 text-xs w-fit"><i class="fas fa-check"></i> حفظ الباقة</button>
+                </form>
+
+                <!-- Extend Subscription -->
+                <form method="post" class="stack gap-3">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="extend_subscription">
+                    <label class="text-xs text-slate-400 font-bold">تمديد فترة الاشتراك الفعال:</label>
+                    <select name="days" class="bg-slate-900 border border-white/10 rounded-xl px-4 py-2.5 text-white text-xs font-bold focus:outline-none focus:border-cyan">
+                        <option value="30">30 يوماً إضافياً (شهر)</option>
+                        <option value="90">90 يوماً إضافياً (3 أشهر)</option>
+                        <option value="180">180 يوماً إضافياً (6 أشهر)</option>
+                        <option value="365">365 يوماً إضافياً (سنة كاملة)</option>
+                    </select>
+                    <button type="submit" class="btn btn-primary py-2 text-xs w-fit"><i class="fas fa-plus"></i> تمديد الاشتراك</button>
+                </form>
+
+                <!-- Reset Password -->
+                <form method="post" class="stack gap-3">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="reset_password">
+                    <label class="text-xs text-slate-400 font-bold">إعادة تعيين كلمة مرور مالك المتجر:</label>
+                    <input type="password" name="new_password" placeholder="كلمة المرور الجديدة..." class="bg-slate-900 border border-white/10 rounded-xl px-4 py-2.5 text-white text-xs font-bold focus:outline-none focus:border-cyan">
+                    <button type="submit" class="btn btn-primary py-2 text-xs w-fit"><i class="fas fa-key"></i> حفظ كلمة المرور</button>
+                </form>
+
+                <!-- Reset Consumption -->
+                <div class="stack gap-3 justify-between">
+                    <div class="stack gap-1">
+                        <label class="text-xs text-slate-400 font-bold">إعادة تعيين وتصفير الاستهلاك:</label>
+                        <p class="text-[10px] text-slate-500">يقوم بتصفير عداد الطلبات الشهرية والملفات المؤقتة وإعادة استهلاك الموارد للصفر.</p>
+                    </div>
+                    <form method="post">
+                        {% csrf_token %}
+                        <input type="hidden" name="action" value="reset_consumption">
+                        <button type="submit" class="btn btn-outline py-2.5 text-xs text-amber-500 border-amber-500/20 hover:bg-amber-500/10 w-fit"><i class="fas fa-redo"></i> تصفير الاستهلاك الآن</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

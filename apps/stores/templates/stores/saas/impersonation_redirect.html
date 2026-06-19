@@ -1,0 +1,30 @@
+{% extends "site/control_base.html" %}
+{% load static %}
+
+{% block title %}تسجيل الدخول بالوكالة | رقميات SaaS{% endblock %}
+
+{% block control_content %}
+<div class="page-head">
+    <span class="eyebrow">تسجيل الدخول المباشر بالوكالة</span>
+    <h1>تم تسجيل دخولك كمالك للمتجر</h1>
+    <p class="text-slate-500 mt-2">يمكنك الآن إدارة المتجر مباشرة.</p>
+</div>
+
+<div class="glass-panel p-8 border-white/5 max-w-2xl text-center flex flex-col items-center">
+    <div class="w-16 h-16 rounded-full bg-cyan/10 flex items-center justify-center text-cyan mb-6 text-2xl">
+        <i class="fas fa-user-secret"></i>
+    </div>
+    
+    <h2 class="text-lg font-black text-white mb-2">أنت الآن تدير المنصة بصفة: {{ owner.email }}</h2>
+    <p class="text-xs text-slate-400 font-bold mb-8 leading-relaxed">
+        لقد تم تحويل هويتك مؤقتاً لتصبح مالك المتجر <strong>{{ store.name }}</strong>.<br>
+        اضغط على الزر أدناه للانتقال للوحة تحكم التاجر لهذا المتجر مباشرة.
+    </p>
+
+    <div class="flex flex-col sm:flex-row gap-3 w-full justify-center">
+        <!-- In local development, the subdomain might need port 80 or similar, but we give them a direct dashboard link -->
+        <a href="http://{{ store.slug }}.localhost/merchant/" class="btn btn-primary px-8 py-3"><i class="fas fa-desktop"></i> الذهاب للوحة تحكم التاجر للمتجر</a>
+        <a href="{% url 'control_saas_store_detail' store.id %}" class="btn btn-outline px-6 py-3"><i class="fas fa-cog"></i> عودة لإدارة SaaS</a>
+    </div>
+</div>
+{% endblock %}

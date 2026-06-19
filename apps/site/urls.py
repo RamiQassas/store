@@ -1,6 +1,6 @@
 from django.urls import path
 from apps.site import views, api_views
-from apps.stores import views_admin
+from apps.stores import views_admin, views_saas
 
 urlpatterns = [
     # User Dashboard
@@ -29,6 +29,27 @@ urlpatterns = [
     path("control/plans/", views_admin.platform_plan_list, name="platform_plan_list"),
     path("control/plans/create/", views_admin.platform_plan_form, name="platform_plan_create"),
     path("control/plans/<uuid:pk>/edit/", views_admin.platform_plan_form, name="platform_plan_edit"),
+    
+    # SaaS Global Controls
+    path("control/saas/", views_saas.saas_dashboard, name="control_saas_dashboard"),
+    path("control/saas/stores/", views_saas.saas_store_list, name="control_saas_stores"),
+    path("control/saas/stores/<uuid:pk>/", views_saas.saas_store_detail, name="control_saas_store_detail"),
+    path("control/saas/stores/<uuid:pk>/limits/", views_saas.saas_store_edit_limits, name="control_saas_store_limits"),
+    path("control/saas/stores/<uuid:pk>/toggle-status/", views_saas.saas_store_toggle_status, name="control_saas_store_toggle"),
+    path("control/saas/stores/<uuid:pk>/login/", views_saas.saas_store_login_as, name="control_saas_store_login"),
+    path("control/saas/plans/", views_saas.saas_plan_list, name="control_saas_plans"),
+    path("control/saas/plans/create/", views_saas.saas_plan_form, name="control_saas_plan_create"),
+    path("control/saas/plans/<uuid:pk>/edit/", views_saas.saas_plan_form, name="control_saas_plan_edit"),
+    path("control/saas/payments/", views_saas.saas_payment_list, name="control_saas_payments"),
+    path("control/saas/resources/", views_saas.saas_resource_monitor, name="control_saas_resources"),
+    path("control/saas/roles/", views_saas.saas_role_list, name="control_saas_roles"),
+    path("control/saas/roles/create/", views_saas.saas_role_form, name="control_saas_role_create"),
+    path("control/saas/roles/<int:pk>/edit/", views_saas.saas_role_form, name="control_saas_role_edit"),
+    path("control/saas/templates/", views_saas.saas_template_list, name="control_saas_templates"),
+    path("control/saas/templates/create/", views_saas.saas_template_form, name="control_saas_template_create"),
+    path("control/saas/templates/<int:pk>/edit/", views_saas.saas_template_form, name="control_saas_template_edit"),
+    path("control/saas/audit-logs/", views_saas.saas_audit_logs, name="control_saas_audit_logs"),
+    path("control/saas/settings/", views_saas.saas_settings, name="control_saas_settings"),
     path("catalog/", views.catalog, name="catalog"),
     path("catalog/<uuid:pk>/", views.product_detail, name="product_detail"),
     

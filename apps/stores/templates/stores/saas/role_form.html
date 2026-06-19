@@ -1,0 +1,52 @@
+{% extends "site/control_base.html" %}
+{% load static %}
+
+{% block title %}{% if role %}تعديل الدور الإداري{% else %}إضافة دور إداري{% endif %} | رقميات SaaS{% endblock %}
+
+{% block control_content %}
+<div class="page-head flex flex-col md:flex-row md:items-center justify-between gap-4">
+    <div>
+        <span class="eyebrow">إدارة أمن وصلاحيات المنصة</span>
+        <h1>{% if role %}تعديل الدور الإداري: {{ role.name }}{% else %}إضافة دور إداري جديد{% endif %}</h1>
+        <p class="text-slate-500 mt-2">حدد الصلاحيات المستقلة للدور الإداري المضاف.</p>
+    </div>
+    <div>
+        <a href="{% url 'control_saas_roles' %}" class="btn btn-outline"><i class="fas fa-arrow-left"></i> عودة للأدوار</a>
+    </div>
+</div>
+
+<div class="glass-panel p-8 border-white/5 max-w-3xl">
+    <form method="post" class="stack gap-6">
+        {% csrf_token %}
+        
+        <div>
+            <label class="text-[10px] text-slate-400 font-black uppercase tracking-widest block mb-2">اسم الدور الإداري</label>
+            <input type="text" name="name" value="{{ role.name|default:'' }}" required placeholder="مثال: Finance Manager..." class="w-full bg-slate-900 border border-white/10 rounded-xl px-4 py-3 text-white text-xs font-bold focus:outline-none focus:border-cyan">
+        </div>
+        
+        <div>
+            <label class="text-[10px] text-slate-400 font-black uppercase tracking-widest block mb-2">الوصف</label>
+            <textarea name="description" placeholder="وصف موجز للمسؤوليات الإدارية..." class="w-full bg-slate-900 border border-white/10 rounded-xl px-4 py-3 text-white text-xs font-bold focus:outline-none focus:border-cyan h-24">{{ role.description|default:'' }}</textarea>
+        </div>
+
+        <div class="border-t border-white/5 pt-6">
+            <label class="text-[10px] text-slate-400 font-black uppercase tracking-widest block mb-4">الصلاحيات المتاحة للدور</label>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {% for perm, label in all_permissions %}
+                <div class="flex items-center gap-3 bg-white/[0.01] border border-white/5 rounded-2xl p-4 hover:bg-white/[0.03] transition-all">
+                    <input type="checkbox" name="permissions" value="{{ perm }}" id="perm_{{ perm }}" {% if perm in role.permissions %}checked{% endif %} class="w-4 h-4 rounded bg-slate-900 border border-white/10 text-cyan focus:ring-0">
+                    <label for="perm_{{ perm }}" class="text-xs text-white font-bold select-none cursor-pointer leading-relaxed">
+                        {{ label }}
+                    </label>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <div class="border-t border-white/5 pt-6 mt-6 flex gap-3">
+            <button type="submit" class="btn btn-primary px-8 py-3"><i class="fas fa-check"></i> حفظ الدور الإداري</button>
+            <a href="{% url 'control_saas_roles' %}" class="btn btn-outline px-6 py-3">إلغاء</a>
+        </div>
+    </form>
+</div>
+{% endblock %}

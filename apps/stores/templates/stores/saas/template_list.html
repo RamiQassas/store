@@ -1,0 +1,55 @@
+{% extends "site/control_base.html" %}
+{% load static %}
+
+{% block title %}قوالب المتاجر | رقميات SaaS{% endblock %}
+
+{% block control_content %}
+<div class="page-head flex flex-col md:flex-row md:items-center justify-between gap-4">
+    <div>
+        <span class="eyebrow">إدارة قوالب المتاجر</span>
+        <h1>قوالب وثيمات المتاجر</h1>
+        <p class="text-slate-500 mt-2">إضافة وإدارة التصاميم الجاهزة الموفرة لأصحاب المتاجر وتخصيصها حسب الخطة.</p>
+    </div>
+    <div>
+        <a href="{% url 'control_saas_template_create' %}" class="btn btn-primary"><i class="fas fa-plus"></i> إضافة قالب جديد</a>
+    </div>
+</div>
+
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+    {% for template in templates %}
+    <div class="glass-panel overflow-hidden border-white/5 flex flex-col justify-between group hover:border-cyan/20 transition-all">
+        <div class="w-full aspect-video bg-slate-800 relative overflow-hidden border-b border-white/5">
+            {% if template.image %}
+            <img src="{{ template.image.url }}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500">
+            {% else %}
+            <div class="w-full h-full flex items-center justify-center text-slate-600"><i class="fas fa-image text-3xl"></i></div>
+            {% endif %}
+            
+            <div class="absolute top-3 right-3 flex gap-1">
+                {% if template.mobile_responsive %}
+                <span class="text-[8px] bg-cyan/15 text-cyan font-black px-2 py-0.5 rounded-lg"><i class="fas fa-mobile-alt"></i> متوافق</span>
+                {% endif %}
+                {% if template.is_active %}
+                <span class="text-[8px] bg-emerald-500/15 text-emerald-400 font-black px-2 py-0.5 rounded-lg">نشط</span>
+                {% else %}
+                <span class="text-[8px] bg-rose-500/15 text-rose-400 font-black px-2 py-0.5 rounded-lg">معطل</span>
+                {% endif %}
+            </div>
+        </div>
+        
+        <div class="p-6 flex-grow flex flex-col justify-between">
+            <div class="mb-4">
+                <span class="text-[9px] text-slate-500 font-black tracking-widest block mb-1 uppercase">{{ template.category }}</span>
+                <h3 class="text-base font-black text-white">{{ template.name }}</h3>
+            </div>
+            
+            <a href="{% url 'control_saas_template_edit' template.id %}" class="btn btn-outline w-full py-2 text-xs mt-2"><i class="fas fa-edit"></i> تعديل القالب</a>
+        </div>
+    </div>
+    {% empty %}
+    <div class="col-span-full glass-panel p-8 text-center text-slate-500 font-bold">
+        لا يوجد قوالب مسجلة بعد.
+    </div>
+    {% endfor %}
+</div>
+{% endblock %}

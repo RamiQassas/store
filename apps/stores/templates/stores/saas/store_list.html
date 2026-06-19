@@ -1,0 +1,120 @@
+{% extends "site/control_base.html" %}
+{% load static %}
+
+{% block title %}إدارة المتاجر | رقميات SaaS{% endblock %}
+
+{% block control_content %}
+<div class="page-head flex flex-col md:flex-row md:items-center justify-between gap-4">
+    <div>
+        <span class="eyebrow">إدارة SaaS المركزية</span>
+        <h1>إدارة المتاجر</h1>
+        <p class="text-slate-500 mt-2">استعراض، تفعيل، تعطيل وتصفية كافة المتاجر الفرعية المسجلة في رقميات.</p>
+    </div>
+</div>
+
+<!-- Filters Bar -->
+<div class="glass-panel p-6 border-white/5 mb-8">
+    <form method="get" class="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div>
+            <label class="text-[10px] text-slate-500 font-black uppercase tracking-widest block mb-2">البحث</label>
+            <input type="text" name="q" value="{{ query }}" placeholder="اسم المتجر، الرابط، المالك..." class="w-full bg-slate-900 border border-white/10 rounded-xl px-4 py-3 text-white text-xs font-bold focus:outline-none focus:border-cyan">
+        </div>
+        <div>
+            <label class="text-[10px] text-slate-500 font-black uppercase tracking-widest block mb-2">خطة الاشتراك</label>
+            <select name="plan" class="w-full bg-slate-900 border border-white/10 rounded-xl px-4 py-3 text-white text-xs font-bold focus:outline-none focus:border-cyan">
+                <option value="">كل الخطط</option>
+                {% for plan in plans %}
+                <option value="{{ plan.id }}" {% if active_plan == plan.id|stringformat:"s" %}selected{% endif %}>{{ plan.name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div>
+            <label class="text-[10px] text-slate-500 font-black uppercase tracking-widest block mb-2">حالة الاشتراك</label>
+            <select name="status" class="w-full bg-slate-900 border border-white/10 rounded-xl px-4 py-3 text-white text-xs font-bold focus:outline-none focus:border-cyan">
+                <option value="">كل الحالات</option>
+                {% for val, label in status_choices %}
+                <option value="{{ val }}" {% if active_status == val %}selected{% endif %}>{{ label }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="flex items-end">
+            <button type="submit" class="btn btn-primary w-full py-3"><i class="fas fa-filter"></i> تصفية المتاجر</button>
+        </div>
+    </form>
+</div>
+
+<!-- Stores Grid/Table -->
+<div class="glass-panel overflow-hidden border-white/5">
+    <div class="overflow-x-auto">
+        <table class="w-full text-right text-sm">
+            <thead class="bg-black/20 text-slate-400">
+                <tr>
+                    <th class="p-4 text-[10px] font-black uppercase tracking-widest">اسم المتجر</th>
+                    <th class="p-4 text-[10px] font-black uppercase tracking-widest">المالك</th>
+                    <th class="p-4 text-[10px] font-black uppercase tracking-widest">الخطة</th>
+                    <th class="p-4 text-[10px] font-black uppercase tracking-widest">الحالة</th>
+                    <th class="p-4 text-[10px] font-black uppercase tracking-widest">انتهاء الاشتراك</th>
+                    <th class="p-4 text-[10px] font-black uppercase tracking-widest text-center">الإجراءات</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-white/[0.02] text-white">
+                {% for store in page_obj %}
+                <tr class="hover:bg-white/[0.02] transition-colors cursor-pointer" onclick="window.location.href='{% url 'control_saas_store_detail' store.id %}'">
+                    <td class="p-4 font-bold flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-xl bg-slate-800 flex items-center justify-center border border-white/5">
+                            {% if store.logo %}
+                            <img src="{{ store.logo.url }}" class="w-full h-full object-cover rounded-xl">
+                            {% else %}
+                            <i class="fas fa-store text-slate-600 text-sm"></i>
+                            {% endif %}
+                        </div>
+                        <div>
+                            <span class="block text-white">{{ store.name }}</span>
+                            <span class="text-[10px] text-slate-500 font-bold block">{{ store.slug }}.raqamiyatapp.com</span>
+                        </div>
+                    </td>
+                    <td class="p-4 text-xs text-slate-400 font-bold">{{ store.owner.email }}</td>
+                    <td class="p-4"><span class="badge primary">{{ store.subscription_plan.name }}</span></td>
+                    <td class="p-4">
+                        {% if store.is_active and store.subscription_status == 'active' %}
+                        <span class="badge success">نشط</span>
+                        {% elif store.subscription_status == 'suspended' %}
+                        <span class="badge danger">موقوف مؤقتاً</span>
+                        {% else %}
+                        <span class="badge primary">{{ store.get_subscription_status_display }}</span>
+                        {% endif %}
+                    </td>
+                    <td class="p-4 text-xs text-slate-400 font-bold">
+                        {% if store.subscription_end %}
+                        {{ store.subscription_end|date:"Y-m-d" }}
+                        {% else %}
+                        -
+                        {% endif %}
+                    </td>
+                    <td class="p-4 text-center" onclick="event.stopPropagation();">
+                        <a href="{% url 'control_saas_store_detail' store.id %}" class="btn btn-outline py-2 px-4 text-xs"><i class="fas fa-cog"></i> إدارة</a>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="6" class="p-8 text-center text-slate-500 font-bold">لا يوجد متاجر مطابقة لخيارات البحث.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Pagination -->
+{% if page_obj.has_other_pages %}
+<div class="flex justify-center gap-2 mt-6">
+    {% if page_obj.has_previous %}
+    <a href="?page={{ page_obj.previous_page_number }}&q={{ query }}&plan={{ active_plan }}&status={{ active_status }}" class="btn btn-outline px-4 py-2 text-xs">السابق</a>
+    {% endif %}
+    <span class="btn btn-outline px-4 py-2 text-xs active">صفحة {{ page_obj.number }} من {{ page_obj.paginator.num_pages }}</span>
+    {% if page_obj.has_next %}
+    <a href="?page={{ page_obj.next_page_number }}&q={{ query }}&plan={{ active_plan }}&status={{ active_status }}" class="btn btn-outline px-4 py-2 text-xs">التالي</a>
+    {% endif %}
+</div>
+{% endif %}
+{% endblock %}

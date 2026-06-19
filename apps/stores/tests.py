@@ -1,4 +1,4 @@
-from django.test import TestCase, Client
+from django.test import TestCase, Client, override_settings
 from django.urls import reverse
 from django.contrib.auth import get_user_model, authenticate
 from apps.stores.models import Store, SubscriptionPlan, StoreEmployee
@@ -137,3 +137,125 @@ class StoreMultiTenantTest(TestCase):
             self.assertTrue(self.assertNullUser)
         finally:
             _current_store.reset(token)
+
+
+class SaaSControlPanelAndLimitsTests(TestCase):
+    def setUp(self):
+        # Create standard currency
+        self.currency = Currency.objects.create(
+            name="US Dollar", code="USD", symbol="$", buy_rate=1.0, sell_rate=1.0, is_default=True
+        )
+
+        # Create subscription plan
+        self.plan = SubscriptionPlan.objects.create(
+            name="Starter Plan",
+            max_products=1,
+            max_categories=1,
+            max_monthly_orders=2,
+            max_employees=1,
+            is_active=True
+        )
+
+        # Create platform owner/admins
+        with bypass_tenant_filter():
+            self.super_admin = User.objects.create_superuser(
+                email="superadmin@raqamiyatapp.com", password="SuperPassword123!"
+            )
+            self.owner = User.objects.create_user(
+                email="owner@example.com", password="OwnerPassword123!"
+            )
+
+        self.store = Store.objects.create(
+            owner=self.owner,
+            name="My Store",
+            slug="my-store",
+            subscription_plan=self.plan,
+            is_active=True
+        )
+        StoreEmployee.objects.create(store=self.store, user=self.owner, role="owner")
+
+    def test_get_store_limit_respects_overrides(self):
+        """Verifies get_store_limit reads manual overrides before plan defaults."""
+        from apps.stores.views import get_store_limit
+        
+        # Without override: plan limit applies
+        limit = get_store_limit(self.store, 'max_products')
+        self.assertEqual(limit, 1)
+        
+        # With override: override takes precedence
+        self.store.limit_overrides = {"max_products": 5}
+        self.store.save()
+        self.store.refresh_from_db()
+        
+        limit = get_store_limit(self.store, 'max_products')
+        self.assertEqual(limit, 5)
+
+    def test_products_limit_enforcement(self):
+        """Verifies store limits prevent creating more products than plan allows.
+
+        Uses Django's RequestFactory to call the view directly, injecting
+        request.store manually. This cleanly tests the VIEW-LEVEL limit
+        enforcement logic (get_store_limit) without relying on the full
+        TenantMiddleware subdomain-routing stack, which is covered separately
+        by the middleware unit tests.
+        """
+        from django.test import RequestFactory
+        from apps.stores.views import merchant_product_form
+        from apps.common.tenant_utils import set_current_store
+
+        with bypass_tenant_filter():
+            cat = Category.objects.create(name="Cat", store=self.store)
+            Product.objects.create(name="Prod 1", category=cat, store=self.store, is_active=True)
+
+        factory = RequestFactory()
+
+        # --- Case 1: limit reached → view should redirect ---
+        request = factory.get("/merchant/products/create/")
+        request.user = self.owner          # logged-in store owner
+        request.store = self.store         # middleware would normally set this
+        request.urlconf = 'apps.stores.urls'  # needed for redirect() to resolve store URL names
+        request.session = {}               # context processors need request.session
+        # RequestFactory doesn't run MessageMiddleware, so attach cookie-based storage manually
+        from django.contrib.messages.storage.cookie import CookieStorage
+        request._messages = CookieStorage(request)
+        # Set current tenant context so TenantManager filters correctly
+        # Also set thread-level urlconf so redirect() → reverse() finds store URLs
+        from django.urls import set_urlconf, get_urlconf
+        original_urlconf = get_urlconf()
+        token = set_current_store(self.store)
+        set_urlconf('apps.stores.urls')
+        try:
+            response = merchant_product_form(request)
+        finally:
+            _current_store.reset(token)
+            set_urlconf(original_urlconf)
+
+        self.assertEqual(
+            response.status_code, 302,
+            f"Expected redirect (302) when product limit is reached, got {response.status_code}"
+        )
+
+        # --- Case 2: manual override applied → view should render the form ---
+        self.store.limit_overrides = {"max_products": 3}
+        self.store.save()
+        self.store.refresh_from_db()
+
+        request2 = factory.get("/merchant/products/create/")
+        request2.user = self.owner
+        request2.store = self.store        # now carries the refreshed limit_overrides
+        request2.urlconf = 'apps.stores.urls'  # needed for URL resolution inside view
+        request2.session = {}              # context processors need request.session
+        request2._messages = CookieStorage(request2)
+
+        token2 = set_current_store(self.store)
+        set_urlconf('apps.stores.urls')
+        try:
+            response2 = merchant_product_form(request2)
+        finally:
+            _current_store.reset(token2)
+            set_urlconf(original_urlconf)
+
+        self.assertEqual(
+            response2.status_code, 200,
+            f"Expected 200 (form rendered) after limit override, got {response2.status_code}"
+        ) # Form page loads successfully

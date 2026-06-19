@@ -182,3 +182,11 @@ def translate_ledger_source(source):
         return ""
     src_lower = str(source).strip().lower()
     return translation_map.get(src_lower, source)
+
+
+@register.filter
+def getattr_filter(obj, attr_name):
+    """Dynamically get an attribute of an object in a template."""
+    if not obj:
+        return None
+    return getattr(obj, attr_name, None)
