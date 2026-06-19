@@ -721,12 +721,41 @@ def transfer_page(request):
         except ValidationError as e:
             messages.error(request, str(e.message) if hasattr(e, 'message') else str(e))
             
+    # Calculate limits in USD
+    limit_usd = request.user.custom_p2p_transfer_limit if request.user.has_custom_limits and request.user.custom_p2p_transfer_limit else (settings_obj.verified_transfer_limit if request.user.is_kyc_verified else settings_obj.unverified_transfer_limit)
+    
+    # Calculate sent transfers today in USD
+    from django.db.models import Sum
+    from apps.wallets.models import BalanceTransfer
+    from django.utils import timezone
+    today_start = timezone.localtime(timezone.now()).replace(hour=0, minute=0, second=0, microsecond=0)
+    sent_transfers_today = BalanceTransfer.objects.filter(
+        sender=request.user,
+        status=BalanceTransfer.Status.COMPLETED,
+        created_at__gte=today_start
+    )
+    daily_usage_usd = Decimal("0.00")
+    for tr in sent_transfers_today:
+        daily_usage_usd += tr.currency.to_base(tr.amount, "withdraw")
+        
+    remaining_limit_usd = max(Decimal("0.00"), limit_usd - daily_usage_usd)
+    
+    # Convert limits/usage to the active wallet currency for UI rendering
+    limit_wallet = wallet.currency.from_base(limit_usd, "withdraw")
+    remaining_wallet = wallet.currency.from_base(remaining_limit_usd, "withdraw")
+    daily_usage_wallet = wallet.currency.from_base(daily_usage_usd, "withdraw")
+
     return render(request, "site/v3/v3_transfer.html", {
         "wallet": wallet,
         "settings": settings_obj,
         "fee_percent": settings_obj.transfer_fee_percent,
         "preferred_currency": request.user.preferred_currency or wallet.currency,
-        "currencies": Currency.objects.filter(is_active=True)
+        "currencies": Currency.objects.filter(is_active=True),
+        "limit_usd": limit_usd,
+        "remaining_limit_usd": remaining_limit_usd,
+        "daily_limit": limit_wallet,
+        "remaining_limit": remaining_wallet,
+        "daily_usage": daily_usage_wallet,
     })
 
 @login_required

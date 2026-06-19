@@ -2,7 +2,7 @@ from decimal import Decimal
 from django.test import TestCase, override_settings
 from django.contrib.auth import get_user_model
 from django.utils import timezone
-from apps.wallets.models import Wallet, LedgerEntry, RechargeCard
+from apps.wallets.models import Wallet, LedgerEntry, RechargeCard, BalanceTransfer
 from apps.common.models import Currency
 from apps.catalog.models import Product, Category, ProductVariant
 from apps.orders.models import Order
@@ -232,3 +232,81 @@ class RechargeCardAdminTests(TestCase):
         card_codes = set(RechargeCard.objects.filter(amount=Decimal("20.00")).values_list("code", flat=True))
         key_codes = set(ProductKey.objects.filter(variant=self.variant).values_list("key_code", flat=True))
         self.assertEqual(card_codes, key_codes)
+
+
+class P2PTransferTests(TestCase):
+    def setUp(self):
+        self.usd, _ = Currency.objects.get_or_create(
+            code="USD",
+            defaults={"name": "US Dollar", "symbol": "$", "buy_rate": 1.0, "sell_rate": 1.0, "is_default": True}
+        )
+        self.sender = User.objects.create_user(email="sender@example.com", password="StrongPass12345")
+        self.recipient = User.objects.create_user(email="recipient@example.com", password="StrongPass12345", first_name="Ahmad", last_name="Ali")
+        
+        self.sender_wallet = get_or_create_wallet(self.sender)
+        self.recipient_wallet = get_or_create_wallet(self.recipient)
+        
+        # Credit sender with enough money
+        credit_wallet(self.sender_wallet.id, Decimal("100.00"), "test_credit", "Fund sender")
+
+    def test_p2p_transfer_success(self):
+        from apps.wallets.services import execute_p2p_transfer
+        
+        transfer = execute_p2p_transfer(
+            sender=self.sender,
+            recipient=self.recipient,
+            amount=Decimal("40.00"),
+            currency=self.usd
+        )
+        
+        self.assertEqual(transfer.amount, Decimal("40.00"))
+        self.assertEqual(transfer.net_amount, Decimal("40.00")) # 0% fee default
+        
+        self.sender_wallet.refresh_from_db()
+        self.recipient_wallet.refresh_from_db()
+        
+        self.assertEqual(self.sender_wallet.available_balance, Decimal("60.00"))
+        self.assertEqual(self.recipient_wallet.available_balance, Decimal("40.00"))
+        
+        # Check Ledger Entries descriptions
+        sender_ledger = LedgerEntry.objects.filter(wallet=self.sender_wallet, entry_type=LedgerEntry.EntryType.DEBIT).first()
+        recipient_ledger = LedgerEntry.objects.filter(wallet=self.recipient_wallet, entry_type=LedgerEntry.EntryType.CREDIT).first()
+        
+        self.assertIn("Transfer to Ahmad Ali", sender_ledger.reason)
+        self.assertIn("UID: " + self.recipient.uid, sender_ledger.reason)
+        self.assertIn("rec***@example.com", sender_ledger.reason)
+        
+        self.assertIn("Transfer from sen***@example.com", recipient_ledger.reason)
+        self.assertIn("UID: " + self.sender.uid, recipient_ledger.reason)
+        
+        # Check notifications
+        from apps.notifications.models import Notification
+        self.assertEqual(Notification.objects.filter(user=self.sender).count(), 1)
+        self.assertEqual(Notification.objects.filter(user=self.recipient).count(), 1)
+        
+        sender_notif = Notification.objects.filter(user=self.sender).first()
+        recipient_notif = Notification.objects.filter(user=self.recipient).first()
+        
+        self.assertIn("تم توصيل حوالتك", sender_notif.body)
+        self.assertIn("Ahmad Ali", sender_notif.body)
+        
+        self.assertIn("لقد تلقيت حوالة مالية", recipient_notif.body)
+
+    def test_p2p_transfer_daily_limit_cumulative(self):
+        from apps.wallets.services import execute_p2p_transfer
+        from apps.accounts.models import KYCSettings
+        
+        settings = KYCSettings.get_settings()
+        settings.unverified_transfer_limit = Decimal("50.00")
+        settings.save()
+        
+        # Transfer 30 USD (under limit of 50)
+        execute_p2p_transfer(self.sender, self.recipient, Decimal("30.00"), self.usd)
+        
+        # Another transfer of 15 USD (cumulative is 45, under limit of 50)
+        execute_p2p_transfer(self.sender, self.recipient, Decimal("15.00"), self.usd)
+        
+        # Trying to transfer 10 USD (cumulative would be 55, exceeds limit of 50)
+        from django.core.exceptions import ValidationError
+        with self.assertRaises(ValidationError):
+            execute_p2p_transfer(self.sender, self.recipient, Decimal("10.00"), self.usd)

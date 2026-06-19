@@ -30,13 +30,43 @@ def execute_p2p_transfer(sender, recipient, amount, currency, note=""):
     if settings.require_kyc_for_transfer and (not sender.is_kyc_verified or not recipient.is_kyc_verified):
         raise ValidationError("يجب أن يكون كلا الحسابين موثقين لإتمام التحويل.")
 
-    # Check limits (simplified for this example: applying the limit per transaction)
-    limit = sender.custom_p2p_transfer_limit if sender.has_custom_limits and sender.custom_p2p_transfer_limit else (settings.verified_transfer_limit if sender.is_kyc_verified else settings.unverified_transfer_limit)
-    if amount > limit:
-        raise ValidationError(f"لقد تجاوزت حد التحويل المسموح به. الحد الأقصى: {limit}")
+    # Calculate daily cumulative limit in USD
+    limit_usd = sender.custom_p2p_transfer_limit if sender.has_custom_limits and sender.custom_p2p_transfer_limit else (settings.verified_transfer_limit if sender.is_kyc_verified else settings.unverified_transfer_limit)
+    
+    # Convert current amount to USD
+    amount_usd = currency.to_base(amount, "withdraw")
+
+    # Get transfers by this user today (Damascus midnight onwards)
+    from django.utils import timezone
+    from django.db.models import Sum
+    today_start = timezone.localtime(timezone.now()).replace(hour=0, minute=0, second=0, microsecond=0)
+    sent_transfers_today = BalanceTransfer.objects.filter(
+        sender=sender,
+        status=BalanceTransfer.Status.COMPLETED,
+        created_at__gte=today_start
+    )
+    
+    daily_usage_usd = Decimal("0.00")
+    for tr in sent_transfers_today:
+        daily_usage_usd += tr.currency.to_base(tr.amount, "withdraw")
+
+    if daily_usage_usd + amount_usd > limit_usd:
+        remaining_usd = max(Decimal("0.00"), limit_usd - daily_usage_usd)
+        remaining_in_currency = currency.from_base(remaining_usd, "withdraw")
+        remaining_in_currency = remaining_in_currency.quantize(Decimal(f"0.{'0'*currency.decimal_places}"))
+        raise ValidationError(
+            f"لقد تجاوزت حد التحويل اليومي المسموح به. المتبقي لليوم: {remaining_in_currency} {currency.code} (يعادل {remaining_usd:.2f} USD) من أصل {limit_usd} USD."
+        )
 
     fee_amount = (amount * settings.transfer_fee_percent) / Decimal("100.00")
     net_amount = amount - fee_amount
+
+    # Mask emails for ledger descriptions
+    email_parts_sender = sender.email.split('@')
+    masked_sender_email = f"{email_parts_sender[0][:3]}***@{email_parts_sender[1]}" if len(email_parts_sender) == 2 and len(email_parts_sender[0]) > 3 else sender.email
+    
+    email_parts_recipient = recipient.email.split('@')
+    masked_recipient_email = f"{email_parts_recipient[0][:3]}***@{email_parts_recipient[1]}" if len(email_parts_recipient) == 2 and len(email_parts_recipient[0]) > 3 else recipient.email
 
     with transaction.atomic():
         sender_wallet = Wallet.objects.select_for_update().get(user=sender, currency=currency)
@@ -63,7 +93,7 @@ def execute_p2p_transfer(sender, recipient, amount, currency, note=""):
             wallet_id=sender_wallet.id,
             amount=amount,
             source="P2P Transfer Out",
-            reason=f"Transfer to {recipient.uid} - Ref: {transfer.reference}",
+            reason=f"Transfer to {recipient.get_full_name() or recipient.display_name} ({masked_recipient_email}) [UID: {recipient.uid}] - Ref: {transfer.reference}",
             reference=transfer.reference,
             created_by=sender
         )
@@ -73,12 +103,36 @@ def execute_p2p_transfer(sender, recipient, amount, currency, note=""):
             wallet_id=recipient_wallet.id,
             amount=net_amount,
             source="P2P Transfer In",
-            reason=f"Transfer from {sender.uid} - Ref: {transfer.reference}",
+            reason=f"Transfer from {sender.get_full_name() or sender.display_name} ({masked_sender_email}) [UID: {sender.uid}] - Ref: {transfer.reference}",
             reference=transfer.reference,
             created_by=sender
         )
-        
-        return transfer
+
+    # Send notifications (after commit)
+    try:
+        from apps.notifications.services import notify_user
+        # Notify Sender
+        notify_user(
+            user=sender,
+            title="تم تسليم التحويل المالي",
+            body=f"تم توصيل حوالتك بقيمة {transfer.amount} {transfer.currency.code} بنجاح إلى {recipient.get_full_name() or recipient.display_name} (UID: {recipient.uid}).",
+            category="financial",
+            action_url="/dashboard/wallet/"
+        )
+        # Notify Recipient
+        notify_user(
+            user=recipient,
+            title="استلام تحويل مالي جديد",
+            body=f"لقد تلقيت حوالة مالية بقيمة {transfer.net_amount} {transfer.currency.code} من {sender.get_full_name() or sender.display_name} (UID: {sender.uid}).",
+            category="financial",
+            action_url="/dashboard/wallet/"
+        )
+    except Exception as e:
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.error(f"Failed to send transfer notifications: {str(e)}")
+
+    return transfer
 
 def reverse_p2p_transfer(transfer, admin_user=None):
     """

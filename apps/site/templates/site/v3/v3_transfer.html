@@ -4,46 +4,202 @@
 
 {% block extra_head %}
 <style>
-    .transfer-panel { background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(20px); border: 1px solid rgba(255,255,255,0.05); border-radius: 2rem; padding: 2rem; }
-    .builder-input { width: 100%; padding: 1rem 1.25rem; background: rgba(0,0,0,0.2); border: 1px solid rgba(255,255,255,0.1); border-radius: 1rem; color: #fff; font-weight: 700; transition: all 0.3s; }
-    .builder-input:focus { border-color: var(--cyan); outline: none; box-shadow: 0 0 0 4px rgba(6, 182, 212, 0.1); }
-    .btn-premium { background: linear-gradient(to right, #06b6d4, #6366f1); color: white; font-weight: 800; border-radius: 1rem; transition: all 0.3s; padding: 1rem; width: 100%; text-align: center; }
-    .btn-premium:hover { transform: scale(1.02); box-shadow: 0 0 20px rgba(6, 182, 212, 0.4); }
-    .recipient-card { background: rgba(6, 182, 212, 0.05); border: 1px solid rgba(6, 182, 212, 0.2); border-radius: 1rem; padding: 1rem; display: none; }
+    /* CSS variables and design system */
+    :root {
+        --cyan-glow: rgba(6, 182, 212, 0.15);
+        --emerald-glow: rgba(16, 185, 129, 0.15);
+        --indigo-glow: rgba(99, 102, 241, 0.15);
+    }
+
+    .transfer-grid {
+        display: grid;
+        grid-template-columns: 1.2fr 0.8fr;
+        gap: 2rem;
+    }
+
+    @media (max-width: 991px) {
+        .transfer-grid {
+            grid-template-columns: 1fr;
+            gap: 1.5rem;
+        }
+    }
+
+    /* Glassmorphism Panel */
+    .glass-card {
+        background: rgba(15, 23, 42, 0.6);
+        backdrop-filter: blur(24px);
+        -webkit-backdrop-filter: blur(24px);
+        border: 1px solid rgba(255, 255, 255, 0.05);
+        border-radius: 24px;
+        padding: 2rem;
+        transition: border-color 0.3s, box-shadow 0.3s;
+    }
+
+    .glass-card:hover {
+        border-color: rgba(255, 255, 255, 0.08);
+    }
+
+    /* Limit info badge */
+    .limit-badge {
+        background: rgba(255, 255, 255, 0.02);
+        border: 1px solid rgba(255, 255, 255, 0.05);
+        border-radius: 16px;
+        padding: 1rem 1.25rem;
+    }
+
+    /* Premium inputs */
+    .premium-input {
+        width: 100%;
+        padding: 1rem 1.25rem;
+        background: rgba(0, 0, 0, 0.25);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 16px;
+        color: #fff;
+        font-weight: 700;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .premium-input:focus {
+        border-color: var(--cyan);
+        background: rgba(0, 0, 0, 0.4);
+        outline: none;
+        box-shadow: 0 0 0 4px rgba(6, 182, 212, 0.15);
+    }
+
+    .premium-input:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+    }
+
+    /* Recipient selection card */
+    .recipient-active-card {
+        background: rgba(6, 182, 212, 0.03);
+        border: 1px solid rgba(6, 182, 212, 0.15);
+        border-radius: 20px;
+        padding: 1.25rem;
+        display: none;
+        align-items: center;
+        gap: 1rem;
+        animation: cardFadeIn 0.4s ease forwards;
+    }
+
+    @keyframes cardFadeIn {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+
+    .recipient-avatar {
+        width: 48px;
+        height: 48px;
+        background: linear-gradient(135deg, var(--cyan), #6366f1);
+        color: #000;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 900;
+        font-size: 1.25rem;
+        box-shadow: 0 4px 12px rgba(6, 182, 212, 0.2);
+    }
+
+    /* Button styles */
+    .btn-premium-action {
+        background: linear-gradient(135deg, #06b6d4, #6366f1);
+        color: white;
+        font-weight: 800;
+        border-radius: 16px;
+        padding: 1rem;
+        width: 100%;
+        text-align: center;
+        border: none;
+        cursor: pointer;
+        transition: all 0.3s;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+    }
+
+    .btn-premium-action:hover:not(:disabled) {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 24px rgba(6, 182, 212, 0.35);
+    }
+
+    .btn-premium-action:disabled {
+        opacity: 0.4;
+        cursor: not-allowed;
+    }
+
+    /* Limits progress bar */
+    .limit-progress-bg {
+        width: 100%;
+        height: 8px;
+        background: rgba(255, 255, 255, 0.05);
+        border-radius: 4px;
+        overflow: hidden;
+        margin: 0.75rem 0;
+    }
+
+    .limit-progress-bar {
+        height: 100%;
+        background: linear-gradient(to right, var(--cyan), #6366f1);
+        border-radius: 4px;
+        transition: width 0.6s ease;
+    }
+
+    .limit-info-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        font-size: 0.75rem;
+        color: #94a3b8;
+    }
+
+    .limit-info-val {
+        font-weight: 800;
+        color: #fff;
+    }
 </style>
 {% endblock %}
 
 {% block content %}
 <div class="container py-8">
-    <div class="max-w-2xl mx-auto">
-        <div class="flex items-center justify-between mb-8">
-            <h1 class="text-3xl font-black flex items-center gap-3">
-                <i class="fas fa-exchange-alt text-cyan"></i>
-                تحويل رصيد
-            </h1>
-            <a href="{% url 'dashboard_transfer_history' %}" class="btn btn-outline btn-sm">سجل التحويلات</a>
+    <!-- Top Header -->
+    <div class="flex items-center justify-between mb-8">
+        <div>
+            <span class="text-xs font-black tracking-widest text-cyan uppercase mb-1 block"><i class="fas fa-paper-plane ml-1"></i> P2P Transfer</span>
+            <h1 class="text-3xl font-black">تحويل رصيد مباشر</h1>
         </div>
+        <a href="{% url 'dashboard_transfer_history' %}" class="btn btn-outline btn-sm rounded-xl">
+            <i class="fas fa-history ml-2"></i> سجل التحويلات
+        </a>
+    </div>
 
-        {% if messages %}
-            {% for message in messages %}
-            <div class="p-4 rounded-xl mb-6 flex items-center gap-3 {% if message.tags == 'success' %}bg-emerald-500/10 border border-emerald-500/20 text-emerald-400{% else %}bg-rose-500/10 border border-rose-500/20 text-rose-400{% endif %}">
-                <i class="fas {% if message.tags == 'success' %}fa-check-circle{% else %}fa-exclamation-triangle{% endif %}"></i>
-                <span class="font-bold text-sm">{{ message }}</span>
-            </div>
-            {% endfor %}
-        {% endif %}
+    {% if messages %}
+        {% for message in messages %}
+        <div class="p-4 rounded-xl mb-6 flex items-center gap-3 {% if message.tags == 'success' %}bg-emerald-500/10 border border-emerald-500/20 text-emerald-400{% else %}bg-rose-500/10 border border-rose-500/20 text-rose-400{% endif %}">
+            <i class="fas {% if message.tags == 'success' %}fa-check-circle{% else %}fa-exclamation-triangle{% endif %}"></i>
+            <span class="font-bold text-sm">{{ message }}</span>
+        </div>
+        {% endfor %}
+    {% endif %}
 
-        <div class="transfer-panel mb-8">
-            <div class="flex items-center justify-between p-4 bg-slate-900/50 rounded-xl mb-8 border border-white/5">
+    <div class="transfer-grid">
+        <!-- ════════ COLUMN 1: FORM ════════ -->
+        <div class="glass-card">
+            <!-- Balance & UID Hub -->
+            <div class="flex flex-col sm:flex-row items-stretch sm:items-center justify-between p-4 bg-slate-900/40 rounded-2xl mb-8 border border-white/5 gap-4">
                 <div>
-                    <p class="text-xs text-slate-400 mb-1">الرصيد المتاح</p>
-                    <p class="text-xl font-black text-emerald-400">{% currency_format wallet.available_balance wallet.currency mode="withdraw" %}</p>
+                    <span class="text-[10px] text-slate-500 block mb-1">الرصيد القابل للتحويل</span>
+                    <span class="text-2xl font-black text-emerald-400">{% currency_format wallet.available_balance wallet.currency mode="withdraw" %}</span>
                 </div>
-                <div class="text-left">
-                    <p class="text-xs text-slate-400 mb-1">المعرف الخاص بك (UID)</p>
-                    <div class="flex items-center gap-2">
-                        <code class="bg-black/30 px-2 py-1 rounded text-cyan font-mono text-sm tracking-widest">{{ request.user.uid }}</code>
-                        <button type="button" onclick="copyToClipboard('{{ request.user.uid }}')" class="text-slate-500 hover:text-white transition-colors"><i class="fas fa-copy"></i></button>
+                <div class="sm:text-left">
+                    <span class="text-[10px] text-slate-500 block mb-1">المعرف الخاص بك (UID)</span>
+                    <div class="flex items-center gap-2 justify-start sm:justify-end">
+                        <code class="bg-black/30 px-3 py-1 rounded-xl text-cyan font-mono text-sm tracking-widest border border-cyan/10">{{ request.user.uid }}</code>
+                        <button type="button" onclick="copyUid('{{ request.user.uid }}', this)" class="text-slate-500 hover:text-white transition-colors" title="نسخ المعرف">
+                            <i class="fas fa-copy"></i>
+                        </button>
                     </div>
                 </div>
             </div>
@@ -52,81 +208,146 @@
                 {% csrf_token %}
                 <input type="hidden" name="recipient_uid" id="recipient-uid-hidden">
 
+                <!-- Step 1: Search Recipient -->
                 <div>
-                    <label class="block text-sm font-bold text-slate-300 mb-2">البحث عن مستلم</label>
+                    <label class="block text-sm font-black text-slate-300 mb-2">البحث عن المستلم</label>
                     <div class="relative">
-                        <input type="text" id="search-input" class="builder-input !pl-12" placeholder="أدخل (UID، البريد الإلكتروني، الاسم، أو الهاتف)..." autocomplete="off">
-                        <i class="fas fa-search absolute left-4 top-1/2 -translate-y-1/2 text-slate-500"></i>
-                        <button type="button" id="search-btn" class="absolute right-2 top-1/2 -translate-y-1/2 bg-cyan/20 text-cyan hover:bg-cyan/30 px-3 py-1.5 rounded-lg text-xs font-bold transition-colors">بحث</button>
+                        <input type="text" id="search-input" class="premium-input !pl-24" placeholder="أدخل الـ UID، البريد الإلكتروني، الاسم، أو الهاتف..." autocomplete="off">
+                        <i class="fas fa-user-search absolute left-4 top-1/2 -translate-y-1/2 text-slate-500"></i>
+                        <button type="button" id="search-btn" class="absolute right-2 top-1/2 -translate-y-1/2 bg-cyan/20 text-cyan hover:bg-cyan/30 px-4 py-2 rounded-xl text-xs font-black transition-all">بحث عن عميل</button>
                     </div>
-                    <p class="text-[10px] text-slate-500 mt-2">يمكنك البحث بالاسم (الاسم الأول أو الأخير)، البريد الإلكتروني، رقم الهاتف (بصيغته الدولية)، أو الـ UID الخاص بالمستخدم.</p>
+                    <p class="text-[10px] text-slate-500 mt-2"><i class="fas fa-info-circle ml-1"></i> يمكنك البحث باستخدام UID المستلم، بريده الإلكتروني، أو رقم هاتفه بالصيغة الدولية.</p>
                 </div>
 
-                <div id="recipient-card" class="recipient-card items-center gap-4">
-                    <div class="w-12 h-12 bg-cyan/20 rounded-full flex items-center justify-center text-cyan text-xl shrink-0">
-                        <i class="fas fa-user"></i>
-                    </div>
+                <!-- Found Recipient Card -->
+                <div id="recipient-card" class="recipient-active-card">
+                    <div class="recipient-avatar" id="avatar-letter">؟</div>
                     <div class="flex-1">
-                        <p class="text-xs text-cyan mb-1 font-bold"><i class="fas fa-check-circle mr-1"></i> تم العثور على المستلم</p>
-                        <p id="recipient-name" class="font-black text-white text-lg truncate"></p>
-                        <p id="recipient-uid-display" class="text-xs text-slate-400 font-mono mt-1"></p>
-                        <p id="recipient-kyc-badge" class="text-[10px] bg-emerald-500/20 text-emerald-400 px-2 py-0.5 rounded inline-block mt-1 hidden"><i class="fas fa-shield-check mr-1"></i> حساب موثق</p>
+                        <p class="text-[10px] text-cyan mb-0.5 font-black"><i class="fas fa-check-circle mr-1 text-cyan"></i> تم العثور على العميل</p>
+                        <p id="recipient-name" class="font-black text-white text-base truncate"></p>
+                        <p id="recipient-uid-display" class="text-xs text-slate-400 font-mono mt-0.5"></p>
+                        <span id="recipient-kyc-badge" class="text-[9px] bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 px-2 py-0.5 rounded-lg font-bold mt-1 inline-flex items-center gap-1 hidden">
+                            <i class="fas fa-shield-check"></i> حساب موثق الهوية
+                        </span>
                     </div>
-                    <button type="button" onclick="resetRecipient()" class="text-rose-500 hover:bg-rose-500/10 w-8 h-8 rounded-full flex items-center justify-center transition-colors"><i class="fas fa-times"></i></button>
+                    <button type="button" onclick="resetRecipient()" class="text-rose-500 hover:bg-rose-500/15 w-9 h-9 rounded-xl flex items-center justify-center transition-colors"><i class="fas fa-times"></i></button>
                 </div>
 
-                <div id="amount-section" class="space-y-6 opacity-50 pointer-events-none transition-opacity">
+                <!-- Step 2: Amount & Details -->
+                <div id="amount-section" class="space-y-6 opacity-30 pointer-events-none transition-opacity duration-300">
                     <div>
-                        <label class="block text-sm font-bold text-slate-300 mb-2">المبلغ المراد تحويله</label>
+                        <label class="block text-sm font-black text-slate-300 mb-2">المبلغ المراد تحويله</label>
                         <div class="flex gap-2">
-                            <input type="number" name="input_amount" id="amount-input" step="0.01" min="0.01" class="builder-input text-xl font-black text-cyan flex-1" placeholder="0.00" required disabled>
-                            <select id="currency-select" class="builder-input !w-32 bg-slate-800" disabled>
-                                <option value="{{ wallet.currency.code }}" data-rate="1.0" {% if preferred_currency.code == wallet.currency.code %}selected{% endif %}>{{ wallet.currency.code }}</option>
+                            <input type="number" name="input_amount" id="amount-input" step="0.01" min="0.01" class="premium-input text-xl font-black text-cyan flex-1" placeholder="0.00" required disabled>
+                            <select id="currency-select" class="premium-input !w-36 bg-slate-900 border-white/5" disabled>
+                                <option value="{{ wallet.currency.code }}" data-rate="{{ wallet.currency.buy_rate|unlocalize }}" {% if preferred_currency.code == wallet.currency.code %}selected{% endif %}>{{ wallet.currency.code }}</option>
                                 {% for curr in currencies %}
                                     {% if curr.code != wallet.currency.code %}
-                                    <option value="{{ curr.code }}" data-rate="{{ curr.buy_rate }}" {% if preferred_currency.code == curr.code %}selected{% endif %}>{{ curr.code }}</option>
+                                    <option value="{{ curr.code }}" data-rate="{{ curr.buy_rate|unlocalize }}" {% if preferred_currency.code == curr.code %}selected{% endif %}>{{ curr.code }}</option>
                                     {% endif %}
                                 {% endfor %}
                             </select>
                         </div>
                         <input type="hidden" name="amount" id="hidden-wallet-amount">
                         
-                        <div class="flex flex-col mt-3 space-y-1 text-xs">
-                            <div class="flex justify-between items-center text-slate-400">
-                                <span>يعادل في محفظتك: <span class="text-white font-bold" id="equiv-display">0.00</span> {{ wallet.currency.code }}</span>
-                                <span>رسوم التحويل: <span class="text-rose-400 font-bold" id="fee-display">0.00</span> ({{ fee_percent }}%)</span>
+                        <!-- Calculations Preview -->
+                        <div class="flex flex-col mt-4 space-y-2 text-xs">
+                            <div class="flex justify-between items-center text-slate-400 p-1">
+                                <span>الخصم الفعلي من المحفظة:</span>
+                                <span class="text-white font-bold"><span id="equiv-display">0.00</span> {{ wallet.currency.code }}</span>
                             </div>
-                            <div class="flex justify-between items-center bg-emerald-500/10 p-2 rounded-lg border border-emerald-500/20 mt-1">
-                                <span class="text-emerald-400 font-bold">الصافي للمستلم:</span>
+                            <div class="flex justify-between items-center text-slate-400 p-1 border-t border-white/5">
+                                <span>رسوم تحويل النظام ({{ fee_percent }}%):</span>
+                                <span class="text-rose-400 font-bold"><span id="fee-display">0.00</span> {{ wallet.currency.code }}</span>
+                            </div>
+                            <div class="flex justify-between items-center bg-emerald-500/5 p-3 rounded-xl border border-emerald-500/10 mt-2">
+                                <span class="text-emerald-400 font-bold">الصافي الواصل للمستلم:</span>
                                 <span class="text-emerald-400 font-black text-sm"><span id="net-display">0.00</span> {{ wallet.currency.code }}</span>
                             </div>
                         </div>
                     </div>
 
                     <div>
-                        <label class="block text-sm font-bold text-slate-300 mb-2">ملاحظة للمستلم (اختياري)</label>
-                        <input type="text" name="note" class="builder-input text-sm" placeholder="مثال: سداد دين، هدية..." maxlength="255" disabled>
+                        <label class="block text-sm font-black text-slate-300 mb-2">ملاحظة للمستلم <span class="text-[10px] text-slate-500 font-bold">(اختياري)</span></label>
+                        <input type="text" name="note" class="premium-input text-sm" placeholder="اكتب ملاحظة قصيرة تظهر للمستلم..." maxlength="255" disabled>
                     </div>
 
-                    <button type="submit" class="btn-premium flex justify-center items-center gap-2 group" id="submit-btn" disabled>
-                        <span>تنفيذ التحويل الآن</span>
-                        <i class="fas fa-paper-plane group-hover:-translate-y-1 group-hover:translate-x-1 transition-transform"></i>
+                    <button type="submit" class="btn-premium-action" id="submit-btn" disabled>
+                        <span>تأكيد وإرسال التحويل الآن</span>
+                        <i class="fas fa-paper-plane"></i>
                     </button>
                 </div>
             </form>
         </div>
-        
-        <div class="p-6 bg-indigo-500/10 border border-indigo-500/20 rounded-2xl">
-            <h3 class="text-sm font-black text-indigo-400 mb-2"><i class="fas fa-info-circle mr-2"></i> تعليمات التحويل</h3>
-            <ul class="text-xs text-slate-300 space-y-2 list-disc list-inside px-4">
-                {% if not request.user.is_kyc_verified %}
-                <li>حسابك <span class="text-rose-400 font-bold">غير موثق</span>، حد التحويل المسموح لك هو <strong>{{ settings.unverified_transfer_limit }}</strong>. لرفع الحد قم بتوثيق حسابك.</li>
-                {% else %}
-                <li>حسابك <span class="text-emerald-400 font-bold">موثق</span>، حد التحويل المسموح لك هو <strong>{{ settings.verified_transfer_limit }}</strong>.</li>
-                {% endif %}
-                <li>التحويلات تتم بشكل فوري ولا يمكن التراجع عنها أو إلغاؤها بعد التأكيد.</li>
-                <li>تأكد دائماً من اسم المستلم قبل الضغط على زر التنفيذ.</li>
-            </ul>
+
+        <!-- ════════ COLUMN 2: STATS & DETAILS ════════ -->
+        <div class="space-y-6">
+            <!-- Cumulative limits display -->
+            <div class="glass-card">
+                <h3 class="text-base font-black text-white mb-4"><i class="fas fa-shield-alt text-cyan ml-2"></i> حدود التحويل اليومية</h3>
+                
+                <div class="space-y-5">
+                    <!-- Progress Bar Component -->
+                    <div>
+                        <div class="flex justify-between items-center text-xs text-slate-400 font-bold">
+                            <span>التحويل اليومي التراكمي</span>
+                            <span id="limit-pct-display">0%</span>
+                        </div>
+                        <div class="limit-progress-bg">
+                            <div class="limit-progress-bar" id="limit-progress-bar" style="width: 0%;"></div>
+                        </div>
+                        <div class="flex justify-between items-center text-[10px] text-slate-500 font-mono">
+                            <span>المستخدم: {{ daily_usage|floatformat:2 }} {{ wallet.currency.code }}</span>
+                            <span>الحد: {{ daily_limit|floatformat:2 }} {{ wallet.currency.code }}</span>
+                        </div>
+                    </div>
+
+                    <!-- Limit Metrics List -->
+                    <div class="space-y-3 pt-2 border-t border-white/5">
+                        <div class="limit-badge">
+                            <div class="limit-info-row mb-2">
+                                <span>الحد الأقصى لليوم (USD):</span>
+                                <span class="limit-info-val">{{ limit_usd|floatformat:2 }} USD</span>
+                            </div>
+                            <div class="limit-info-row mb-2">
+                                <span>الحد الأقصى لليوم بمحفظتك:</span>
+                                <span class="limit-info-val">{{ daily_limit|floatformat:2 }} {{ wallet.currency.code }}</span>
+                            </div>
+                            <div class="limit-info-row mb-2 text-emerald-400">
+                                <span class="font-bold">المتبقي المتاح للتحويل:</span>
+                                <span class="limit-info-val text-emerald-400 font-black">{{ remaining_limit|floatformat:2 }} {{ wallet.currency.code }}</span>
+                            </div>
+                            <div class="limit-info-row text-[10px] text-slate-500 border-t border-white/5 pt-2 mt-2">
+                                <span>المستعمل اليوم (USD):</span>
+                                <span>{{ daily_usage_usd|floatformat:2 }} USD</span>
+                            </div>
+                        </div>
+
+                        <!-- Syria Reset Time Box -->
+                        <div class="flex gap-3 p-3 bg-cyan/5 border border-cyan/10 rounded-xl text-xs text-cyan">
+                            <i class="fas fa-clock text-sm mt-0.5"></i>
+                            <div>
+                                <span class="font-black block mb-0.5">توقيت تصفير العداد</span>
+                                <p class="text-slate-400 text-[10px] leading-relaxed">يتم إعادة ضبط حد التحويل التراكمي للعملاء تلقائياً كل 24 ساعة عند **الساعة 12:00 منتصف الليل بتوقيت سوريا** (Asia/Damascus).</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Guidelines -->
+            <div class="glass-card">
+                <h3 class="text-sm font-black text-indigo-400 mb-3"><i class="fas fa-info-circle ml-2"></i> تعليمات الاستخدام والأمان</h3>
+                <ul class="text-xs text-slate-400 space-y-2.5 list-disc list-inside pr-2 leading-relaxed">
+                    {% if not request.user.is_kyc_verified %}
+                    <li>حسابك حالياً <span class="text-rose-400 font-black">غير موثق الهوية</span>، حد التحويل المتاح لك هو <strong>{{ settings.unverified_transfer_limit }} USD</strong> يومياً. يمكنك رفع الحد فوراً عن طريق طلب توثيق الهوية.</li>
+                    {% else %}
+                    <li>حسابك <span class="text-emerald-400 font-black">موثق الهوية</span>، الحد اليومي المتاح لك هو <strong>{{ settings.verified_transfer_limit }} USD</strong>.</li>
+                    {% endif %}
+                    <li>تأكد تماماً من **UID أو اسم العميل** قبل الضغط على زر التحويل.</li>
+                    <li>عمليات التحويل بين المحافظ فوريّة ومحمية، ولا يمكن إلغاؤها أو استردادها إطلاقاً بعد التأكيد.</li>
+                </ul>
+            </div>
         </div>
     </div>
 </div>
@@ -140,16 +361,30 @@
     const recipientName = document.getElementById('recipient-name');
     const recipientUidHidden = document.getElementById('recipient-uid-hidden');
     const recipientKycBadge = document.getElementById('recipient-kyc-badge');
+    const avatarLetter = document.getElementById('avatar-letter');
+    
     const amountSection = document.getElementById('amount-section');
     const amountInput = document.getElementById('amount-input');
     const submitBtn = document.getElementById('submit-btn');
     const formInputs = document.querySelectorAll('#amount-section input');
     
     const feePercent = {{ fee_percent|default:0 }};
+    const walletCurrencyCode = "{{ wallet.currency.code }}";
+    
+    // Limits percentage setup
+    const limitMax = {{ daily_limit|default:0 }};
+    const limitUsage = {{ daily_usage|default:0 }};
+    if (limitMax > 0) {
+        const usagePercent = Math.min(100, Math.max(0, (limitUsage / limitMax) * 100));
+        document.getElementById('limit-pct-display').textContent = Math.round(usagePercent) + '%';
+        document.getElementById('limit-progress-bar').style.width = usagePercent + '%';
+    }
 
-    function copyToClipboard(text) {
+    function copyUid(text, btn) {
         navigator.clipboard.writeText(text).then(() => {
-            alert("تم نسخ المعرف: " + text);
+            const icon = btn.querySelector('i');
+            icon.className = 'fas fa-check text-emerald-400';
+            setTimeout(() => { icon.className = 'fas fa-copy'; }, 2000);
         });
     }
 
@@ -164,7 +399,7 @@
     function searchUser() {
         const q = searchInput.value.trim();
         if (q.length < 3) {
-            alert('يرجى إدخال 3 أحرف على الأقل للبحث.');
+            alert('يرجى إدخال 3 أحرف على الأقل للبدء بالبحث.');
             return;
         }
 
@@ -174,7 +409,7 @@
         fetch(`/api/users/lookup/?q=${encodeURIComponent(q)}`)
             .then(response => response.json())
             .then(data => {
-                searchBtn.innerHTML = 'بحث';
+                searchBtn.innerHTML = 'بحث عن عميل';
                 searchBtn.disabled = false;
 
                 if (data.error) {
@@ -182,9 +417,12 @@
                     resetRecipient();
                 } else {
                     recipientName.textContent = data.display_name;
-                    document.getElementById('recipient-uid-display').textContent = 'UID: ' + data.uid;
-                    recipientUidHidden.value = data.id; // Using public_uuid for backend action
+                    document.getElementById('recipient-uid-display').textContent = 'المعرف (UID): ' + data.uid;
+                    recipientUidHidden.value = data.id; // UUID mapping
                     
+                    // Avatar setup
+                    avatarLetter.textContent = data.display_name.charAt(0).toUpperCase();
+
                     if(data.is_verified) {
                         recipientKycBadge.classList.remove('hidden');
                     } else {
@@ -193,8 +431,8 @@
 
                     recipientCard.style.display = 'flex';
                     
-                    // Enable Form
-                    amountSection.classList.remove('opacity-50', 'pointer-events-none');
+                    // Unlock Form
+                    amountSection.classList.remove('opacity-30', 'pointer-events-none');
                     formInputs.forEach(inp => inp.disabled = false);
                     amountInput.disabled = false;
                     document.getElementById('currency-select').disabled = false;
@@ -203,9 +441,9 @@
                 }
             })
             .catch(error => {
-                searchBtn.innerHTML = 'بحث';
+                searchBtn.innerHTML = 'بحث عن عميل';
                 searchBtn.disabled = false;
-                alert('حدث خطأ أثناء الاتصال بالخادم.');
+                alert('حدث خطأ غير متوقع أثناء الاتصال بالخادم.');
             });
     }
 
@@ -214,15 +452,14 @@
         recipientUidHidden.value = '';
         searchInput.value = '';
         
-        // Disable Form
-        amountSection.classList.add('opacity-50', 'pointer-events-none');
+        // Lock Form
+        amountSection.classList.add('opacity-30', 'pointer-events-none');
         amountInput.disabled = true;
         document.getElementById('currency-select').disabled = true;
         document.querySelector('input[name="note"]').disabled = true;
         submitBtn.disabled = true;
     }
 
-    // Calculate Fees and Equivalents
     const currencySelect = document.getElementById('currency-select');
     const hiddenWalletAmount = document.getElementById('hidden-wallet-amount');
     const equivDisplay = document.getElementById('equiv-display');
@@ -234,37 +471,28 @@
         const selectedOption = currencySelect.options[currencySelect.selectedIndex];
         const exchangeRate = parseFloat(selectedOption.getAttribute('data-rate')) || 1.0;
         
-        // Let's assume data-rate is the rate of the selected currency against the base currency.
-        // Wait, the wallet currency is what we need to convert to.
-        // If wallet.currency.code is USD (base) and selected is TRY (32.0). 
-        // 1 USD = 32 TRY. So to convert TRY to USD, we divide by the rate.
-        // Since we are using buy_rate/sell_rate. Let's assume rate is how many units of currency per 1 USD.
-        // If selected is TRY and rate is 32. input_amount = 320. equivalent = 320 / 32 = 10 USD.
-        // If selected is USD and rate is 1. input_amount = 10. equivalent = 10 / 1 = 10 USD.
+        const walletRateOption = document.querySelector(`#currency-select option[value="${walletCurrencyCode}"]`);
+        const walletRate = walletRateOption ? parseFloat(walletRateOption.getAttribute('data-rate')) : 1.0;
         
-        const walletRate = parseFloat(document.querySelector(`#currency-select option[value="{{ wallet.currency.code }}"]`).getAttribute('data-rate')) || 1.0;
-        
-        // Convert to Base (USD) first, then to Wallet Currency
-        // Base Amount = inputAmount / exchangeRate
+        // Base Amount (USD) = inputAmount / exchangeRate
         // Wallet Amount = Base Amount * walletRate
         const walletAmount = (inputAmount / exchangeRate) * walletRate;
         
         hiddenWalletAmount.value = walletAmount.toFixed(2);
-        equivDisplay.textContent = walletAmount.toFixed(2);
+        equivDisplay.textContent = walletAmount.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
         
         const fee = (walletAmount * feePercent) / 100;
         const net = walletAmount - fee;
         
-        feeDisplay.textContent = fee.toFixed(2);
-        netDisplay.textContent = net.toFixed(2);
+        feeDisplay.textContent = fee.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
+        netDisplay.textContent = net.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
     }
 
     amountInput.addEventListener('input', calculateAmounts);
     currencySelect.addEventListener('change', calculateAmounts);
 
-    // Form submission confirmation
     document.getElementById('transfer-form').addEventListener('submit', function(e) {
-        if(!confirm(`هل أنت متأكد من رغبتك في تحويل ${amountInput.value} ${currencySelect.value} إلى ${recipientName.textContent}؟`)) {
+        if(!confirm(`تأكيد عملية التحويل: هل أنت متأكد من إرسال ${amountInput.value} ${currencySelect.value} إلى ${recipientName.textContent}؟`)) {
             e.preventDefault();
         }
     });
