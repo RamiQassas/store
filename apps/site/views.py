@@ -145,7 +145,10 @@ def v3_init_verification(request, user, action_type):
     
     first_method = methods[0]
     if first_method == "EMAIL":
-        v3_send_otp_email(user, v3_generate_otp(user, action_type))
+        otp_sent = v3_send_otp_email(user, v3_generate_otp(user, action_type))
+        request.session["v3_otp_sent_success"] = otp_sent
+    else:
+        request.session["v3_otp_sent_success"] = True
         
     return False # Always return False to trigger redirect to verification
 
@@ -159,6 +162,133 @@ def v3_redirect_to_verification(request, methods):
     if first == "SP": return redirect("site_sp_verify")
     next_url = request.session.get("v3_auth_next", "dashboard")
     return redirect(next_url)
+
+def clean_verification_session(request):
+    """Cleans up authentication session keys after successful verification."""
+    keys = ["v3_auth_uid", "v3_auth_methods", "v3_auth_purpose", "v3_new_email", "v3_pending_action_id", "v3_auth_next", "v3_pending_purchase", "v3_otp_sent_success"]
+    for k in keys:
+        if k in request.session:
+            del request.session[k]
+
+def complete_pending_financial_action(request, user):
+    """
+    Checks for any pending financial action (deposit or withdrawal) in the session
+    and marks it as verified. Triggers notifications and messages.
+    """
+    pending_action_id = request.session.get("v3_pending_action_id")
+    if pending_action_id:
+        from apps.payments.models import DepositRequest, WithdrawalRequest
+        
+        # Check Deposit
+        deposit = DepositRequest.objects.filter(id=pending_action_id, user=user).first()
+        if deposit:
+            deposit.is_verified = True
+            deposit.save(update_fields=["is_verified"])
+            
+            # Notify user
+            send_financial_notification(
+                user=user,
+                title="تم استلام طلب الإيداع",
+                body=f"تم استلام طلب الإيداع الخاص بك رقم {deposit.id} بقيمة {deposit.amount} {deposit.currency.code}. سيتم مراجعته من قبل الإدارة قريباً."
+            )
+            # Notify staff
+            from apps.notifications.services import notify_staff
+            notify_staff(
+                title="طلب إيداع جديد",
+                body=f"قام {user.email} بتقديم طلب إيداع بقيمة {deposit.amount} {deposit.currency.code}",
+                action_url=f"/control/deposits/{deposit.id}/",
+                category='admin_new_deposit'
+            )
+            
+            messages.success(request, "تم التحقق وتقديم طلب الإيداع بنجاح.")
+            del request.session["v3_pending_action_id"]
+            
+            # Determine next URL
+            next_url = request.session.get("v3_auth_next", "dashboard_deposits")
+            clean_verification_session(request)
+            return redirect(next_url)
+            
+        # Check Withdrawal
+        withdrawal = WithdrawalRequest.objects.filter(id=pending_action_id, user=user).first()
+        if withdrawal:
+            withdrawal.is_verified = True
+            withdrawal.save(update_fields=["is_verified"])
+            
+            # Notify user
+            send_financial_notification(
+                user=user,
+                title="تم استلام طلب السحب",
+                body=f"تم استلام طلب السحب الخاص بك رقم {withdrawal.id} بقيمة {withdrawal.amount} {withdrawal.currency.code}. سيتم مراجعته من قبل الإدارة قريباً."
+            )
+            # Notify staff
+            from apps.notifications.services import notify_staff
+            notify_staff(
+                title="طلب سحب جديد",
+                body=f"قام {user.email} بتقديم طلب سحب بقيمة {withdrawal.amount} {withdrawal.currency.code}",
+                action_url=f"/control/withdrawals/{withdrawal.id}/",
+                category='admin_new_withdrawal'
+            )
+            
+            messages.success(request, "تم التحقق وتقديم طلب السحب بنجاح.")
+            del request.session["v3_pending_action_id"]
+            
+            # Determine next URL
+            next_url = request.session.get("v3_auth_next", "dashboard_withdrawals")
+            clean_verification_session(request)
+            return redirect(next_url)
+            
+    return None
+
+def complete_pending_purchase(request, user):
+    """
+    Checks for any pending purchase in the session and completes it using create_order service.
+    """
+    pending_purchase = request.session.get("v3_pending_purchase")
+    if pending_purchase:
+        variant_id = pending_purchase.get("variant_id")
+        coupon_code = pending_purchase.get("coupon_code")
+        metadata = pending_purchase.get("metadata", {})
+        
+        from apps.orders.services import create_order
+        from apps.catalog.models import ProductVariant
+        
+        variant = get_object_or_404(ProductVariant, id=variant_id)
+        coupon = None
+        if coupon_code:
+            coupon = Coupon.objects.filter(code__iexact=coupon_code).first()
+            
+        try:
+            order = create_order(
+                customer=user,
+                variant_id=variant_id,
+                quantity=1,
+                coupon=coupon,
+                metadata=metadata
+            )
+            
+            # Success
+            messages.success(request, "تم إتمام الشراء بنجاح.")
+            
+            # Clear pending purchase session keys
+            del request.session["v3_pending_purchase"]
+            clean_verification_session(request)
+            
+            # If variant is auto-delivery keys, redirect to order detail so they see the keys immediately!
+            if variant.delivery_type == 'keys':
+                return redirect(reverse("dashboard_order_detail", kwargs={"pk": order.id}))
+            else:
+                return redirect("dashboard_orders")
+                
+        except Exception as e:
+            messages.error(request, f"فشل إتمام الشراء: {str(e)}")
+            # Clear pending purchase session keys to prevent loop
+            if "v3_pending_purchase" in request.session:
+                del request.session["v3_pending_purchase"]
+            clean_verification_session(request)
+            # Redirect back to the product details page
+            return redirect(reverse("product_detail", kwargs={"pk": variant.product.id}))
+            
+    return None
 
 def v3_verify_sp_view(request):
     uid, purpose = request.session.get("v3_auth_uid"), request.session.get("v3_auth_purpose")
@@ -175,7 +305,8 @@ def v3_verify_sp_view(request):
             
             if remaining:
                 if remaining[0] == "EMAIL":
-                    v3_send_otp_email(user, v3_generate_otp(user, purpose))
+                    otp_sent = v3_send_otp_email(user, v3_generate_otp(user, purpose))
+                    request.session["v3_otp_sent_success"] = otp_sent
                 return v3_redirect_to_verification(request, remaining)
             
             # All verified
@@ -188,46 +319,17 @@ def v3_verify_sp_view(request):
             request.session["v3_action_verified_at"] = now_iso
             request.session["v3_sp_verified_at"] = now_iso
             
-            # Completion logic for pending actions
-            pending_action_id = request.session.get("v3_pending_action_id")
-            if pending_action_id:
-                from apps.payments.models import DepositRequest, WithdrawalRequest
-                deposit = DepositRequest.objects.filter(id=pending_action_id, user=user).first()
-                if deposit:
-                    deposit.is_verified = True; deposit.save(update_fields=["is_verified"])
-                    
-                    # Notify user only AFTER verification
-                    send_financial_notification(
-                        user=user,
-                        title="تم استلام طلب الإيداع",
-                        body=f"تم استلام طلب الإيداع الخاص بك رقم {deposit.id} بقيمة {deposit.amount} {deposit.currency.code}. سيتم مراجعته من قبل الإدارة قريباً."
-                    )
-                    messages.success(request, "تم التحقق وتقديم طلب الإيداع بنجاح.")
-                    del request.session["v3_pending_action_id"]
-                    # Use stored next URL if available
-                    next_url = request.session.get("v3_auth_next", "dashboard_deposits")
-                    return redirect(next_url)
+            # Complete pending purchase or financial action
+            purchase_redirect = complete_pending_purchase(request, user)
+            if purchase_redirect:
+                return purchase_redirect
                 
-                withdrawal = WithdrawalRequest.objects.filter(id=pending_action_id, user=user).first()
-                if withdrawal:
-                    withdrawal.is_verified = True; withdrawal.save(update_fields=["is_verified"])
-                    
-                    # Notify user only AFTER verification
-                    send_financial_notification(
-                        user=user,
-                        title="تم استلام طلب السحب",
-                        body=f"تم استلام طلب السحب الخاص بك رقم {withdrawal.id} بقيمة {withdrawal.amount} {withdrawal.currency.code}. سيتم مراجعته من قبل الإدارة قريباً."
-                    )
-                    messages.success(request, "تم التحقق وتقديم طلب السحب بنجاح.")
-                    del request.session["v3_pending_action_id"]
-                    # Use stored next URL if available
-                    next_url = request.session.get("v3_auth_next", "dashboard_withdrawals")
-                    return redirect(next_url)
+            financial_redirect = complete_pending_financial_action(request, user)
+            if financial_redirect:
+                return financial_redirect
 
             next_url = request.session.get("v3_auth_next")
-            keys = ["v3_auth_uid", "v3_auth_methods", "v3_auth_purpose", "v3_new_email", "v3_pending_action_id", "v3_auth_next"]
-            for k in keys:
-                if k in request.session: del request.session[k]
+            clean_verification_session(request)
                 
             if next_url: return redirect(next_url)
             return redirect("control_dashboard" if user.is_staff else "dashboard")
@@ -294,15 +396,25 @@ def v3_verify_otp_view(request):
     if not uid: return redirect("site_login")
     user = get_object_or_404(User, id=uid)
     methods = request.session.get("v3_auth_methods", ["EMAIL"])
+    
+    # Check if the initial OTP send failed
+    otp_sent_success = request.session.get("v3_otp_sent_success", True)
+    
     settings_obj = KYCSettings.get_settings()
     current_cooldown_limit = min(settings_obj.otp_base_cooldown * (2 ** user.otp_resend_count), 600)
     last_otp = OTPToken.objects.filter(user=user, purpose=purpose).order_by("-created_at").first()
     remaining_cooldown = 0
-    if last_otp:
+    if last_otp and otp_sent_success:
         seconds_passed = (timezone.now() - last_otp.created_at).total_seconds()
         if seconds_passed < current_cooldown_limit: remaining_cooldown = int(current_cooldown_limit - seconds_passed)
     is_locked = False
     if user.otp_lockout_until and user.otp_lockout_until > timezone.now(): is_locked = True
+    
+    if not otp_sent_success:
+        messages.error(request, "فشل إرسال رمز التحقق إلى بريدك الإلكتروني. يرجى المحاولة مرة أخرى.")
+        # Clear the flag so the message doesn't keep appearing, and let them retry
+        request.session["v3_otp_sent_success"] = True
+        
     if request.method == "POST":
         if is_locked: return render(request, "site/v3/v3_otp_verify.html", {"user_email": user.email, "remaining_cooldown": remaining_cooldown, "is_locked": True})
         action = request.POST.get("action")
@@ -339,34 +451,17 @@ def v3_verify_otp_view(request):
             request.session["v3_action_verified_at"] = now_iso
             request.session["v3_sp_verified_at"] = now_iso
 
-            # Check for pending action (Deposit/Withdrawal)
-            pending_action_id = request.session.get("v3_pending_action_id")
-            if pending_action_id:
-                from apps.payments.models import DepositRequest, WithdrawalRequest
-                deposit = DepositRequest.objects.filter(id=pending_action_id, user=user).first()
-                if deposit:
-                    deposit.is_verified = True; deposit.save(update_fields=["is_verified"])
-                    send_financial_notification(user=user, title="تم استلام طلب الإيداع", body=f"تم استلام طلب الإيداع الخاص بك رقم {deposit.id} بقيمة {deposit.amount} {deposit.currency.code}. سيتم مراجعته من قبل الإدارة قريباً.")
-                    messages.success(request, "تم التحقق وتقديم طلب الإيداع بنجاح.")
-                    del request.session["v3_pending_action_id"]
-                    # Use stored next URL if available
-                    next_url = request.session.get("v3_auth_next", "dashboard_deposits")
-                    return redirect(next_url)
+            # Complete pending purchase or financial action
+            purchase_redirect = complete_pending_purchase(request, user)
+            if purchase_redirect:
+                return purchase_redirect
                 
-                withdrawal = WithdrawalRequest.objects.filter(id=pending_action_id, user=user).first()
-                if withdrawal:
-                    withdrawal.is_verified = True; withdrawal.save(update_fields=["is_verified"])
-                    send_financial_notification(user=user, title="تم استلام طلب السحب", body=f"تم استلام طلب السحب الخاص بك رقم {withdrawal.id} بقيمة {withdrawal.amount} {withdrawal.currency.code}. سيتم مراجعته من قبل الإدارة قريباً.")
-                    messages.success(request, "تم التحقق وتقديم طلب السحب بنجاح.")
-                    del request.session["v3_pending_action_id"]
-                    # Use stored next URL if available
-                    next_url = request.session.get("v3_auth_next", "dashboard_withdrawals")
-                    return redirect(next_url)
+            financial_redirect = complete_pending_financial_action(request, user)
+            if financial_redirect:
+                return financial_redirect
 
             next_url = request.session.get("v3_auth_next")
-            keys = ["v3_auth_uid", "v3_auth_methods", "v3_auth_purpose", "v3_new_email", "v3_pending_action_id", "v3_auth_next"]
-            for k in keys:
-                if k in request.session: del request.session[k]
+            clean_verification_session(request)
             
             if next_url: return redirect(next_url)
             return redirect("control_dashboard" if user.is_staff else "dashboard")
@@ -389,13 +484,29 @@ def v3_2fa_verify_view(request):
             remaining = [m for m in methods if m != "APP"]
             request.session["v3_auth_methods"] = remaining
             if remaining and remaining[0] == "EMAIL":
-                v3_send_otp_email(user, v3_generate_otp(user, purpose))
+                otp_sent = v3_send_otp_email(user, v3_generate_otp(user, purpose))
+                request.session["v3_otp_sent_success"] = otp_sent
                 return redirect("site_verify_otp")
-            login(request, user, backend='django.contrib.auth.backends.ModelBackend')
+            
+            if not request.user.is_authenticated:
+                user.backend = 'django.contrib.auth.backends.ModelBackend'
+                login(request, user)
+                
             request.session["v3_action_verified_at"] = timezone.now().isoformat()
-            keys = ["v3_auth_uid", "v3_auth_methods", "v3_auth_purpose"]
-            for k in keys: 
-                if k in request.session: del request.session[k]
+            
+            # Complete pending purchase or financial action
+            purchase_redirect = complete_pending_purchase(request, user)
+            if purchase_redirect:
+                return purchase_redirect
+                
+            financial_redirect = complete_pending_financial_action(request, user)
+            if financial_redirect:
+                return financial_redirect
+
+            next_url = request.session.get("v3_auth_next")
+            clean_verification_session(request)
+            
+            if next_url: return redirect(next_url)
             return redirect("control_dashboard" if user.is_staff else "dashboard")
         messages.error(request, "الرمز غير صحيح.")
     return render(request, "site/v3/v3_2fa_verify.html")
@@ -1306,14 +1417,6 @@ def product_detail(request, pk):
     if request.method == "POST":
         if not request.user.is_authenticated: return redirect("site_login")
         
-        # Verification check
-        if not v3_init_verification(request, request.user, "purchase"):
-            last_verified = request.session.get("v3_action_verified_at")
-            if not last_verified or (timezone.now() - timezone.datetime.fromisoformat(last_verified)).total_seconds() > 300:
-                methods = request.session.get("v3_auth_methods", [])
-                return redirect("site_2fa_verify" if methods[0] == "APP" else "site_verify_otp")
-
-        # Purchase Logic
         variant_id = request.POST.get("variant_id")
         variant = get_object_or_404(ProductVariant, id=variant_id, product=product)
         
@@ -1323,13 +1426,12 @@ def product_detail(request, pk):
             if key.startswith("custom_"):
                 metadata[key.replace("custom_", "")] = request.POST.get(key)
         
-        # Deduct balance & create order
+        coupon_code = request.POST.get("coupon_code")
         price = variant.get_price_for_user(request.user)
         
-        # Apply Coupon if present
-        coupon_code = request.POST.get("coupon_code")
-        coupon = None
+        # Check Coupon for balance check
         discount_amount = Decimal("0.00")
+        coupon = None
         if coupon_code:
             from apps.orders.services import validate_coupon
             coupon = Coupon.objects.filter(code__iexact=coupon_code).first()
@@ -1341,47 +1443,9 @@ def product_detail(request, pk):
                     messages.error(request, f"خطأ في الكوبون: {str(e)}")
                     coupon = None
 
-        if request.user.wallet.available_balance >= price:
-
-            with transaction.atomic():
-                from apps.orders.models import Order, OrderItem
-                from apps.wallets.services import credit_wallet
-                
-                # Create order
-                order = Order.objects.create(
-                    customer=request.user,
-                    total_amount=price,
-                    original_total=price + discount_amount,
-                    status=Order.Status.PROCESSING,
-                    coupon=coupon,
-                    metadata=metadata
-                )
-                
-                # Create OrderItem
-                OrderItem.objects.create(
-                    order=order,
-                    variant=variant,
-                    unit_price=price,
-                    total_price=price
-                )
-                
-                # Update Coupon used count
-                if coupon:
-                    coupon.used_count += 1
-                    coupon.save(update_fields=["used_count"])
-                
-                # Charge wallet
-                description = f"شراء منتج: {product.name} ({variant.name})"
-                if coupon:
-                    description += f" [تم استخدام كوبون: {coupon.code}]"
-                
-                debit_wallet(request.user.wallet.id, price, f"order:{order.id}", description, request.user)
-                
-                messages.success(request, "تم إتمام الطلب بنجاح.")
-                return redirect("dashboard_orders")
-        else:
+        # Check balance
+        if request.user.wallet.available_balance < price:
             missing_amount = price - request.user.wallet.available_balance
-            # Convert missing amount to wallet currency if needed
             wallet = request.user.wallet
             display_missing = missing_amount
             if wallet.currency.code != "USD":
@@ -1391,6 +1455,38 @@ def product_detail(request, pk):
             messages.error(request, f"رصيد غير كافٍ. تحتاج إلى {display_missing:,.2f} {currency_symbol} إضافية لإتمام الطلب.")
             request.session['missing_amount'] = str(display_missing)
             request.session['missing_currency'] = wallet.currency.code
+            return redirect("product_detail", pk=pk)
+
+        # Verification check
+        if not v3_init_verification(request, request.user, "purchase"):
+            # Save pending purchase details in session
+            request.session["v3_pending_purchase"] = {
+                "variant_id": str(variant.id),
+                "coupon_code": coupon_code,
+                "metadata": metadata
+            }
+            last_verified = request.session.get("v3_action_verified_at")
+            if not last_verified or (timezone.now() - timezone.datetime.fromisoformat(last_verified)).total_seconds() > 300:
+                methods = request.session.get("v3_auth_methods", [])
+                return redirect("site_2fa_verify" if methods[0] == "APP" else "site_verify_otp")
+
+        # Purchase Logic using create_order service
+        from apps.orders.services import create_order
+        try:
+            order = create_order(
+                customer=request.user,
+                variant_id=variant.id,
+                quantity=1,
+                coupon=coupon,
+                metadata=metadata
+            )
+            messages.success(request, "تم إتمام الطلب بنجاح.")
+            if variant.delivery_type == 'keys':
+                return redirect(reverse("dashboard_order_detail", kwargs={"pk": order.id}))
+            else:
+                return redirect("dashboard_orders")
+        except ValueError as e:
+            messages.error(request, str(e))
             return redirect("product_detail", pk=pk)
 
     variants = product.variants.filter(is_active=True).order_by('sort_order')
@@ -2762,10 +2858,12 @@ def control_product_create(request):
                     sort_order=int(v.get('sort_order', 0) or 0),
                     is_active=v.get('is_active', True),
                     is_sale=v.get('is_sale', False),
-                    is_temporarily_disabled=v.get('is_temporarily_disabled', False),
                     delivery_type=v.get('delivery_type', 'manual')
                 )
 
+        redirect_target = request.POST.get("redirect_to_variant_keys")
+        if redirect_target:
+            return redirect("control_variant_keys", pk=redirect_target)
         return redirect("control_products_list")
     return render(request, "site/control_product_builder.html", {"form": form, "variants_json_data": [], "title": "إنشاء منتج جديد"})
 
@@ -2796,11 +2894,13 @@ def control_product_edit(request, pk):
                         "sort_order": int(v.get('sort_order', 0) or 0),
                         "is_active": v.get('is_active', True),
                         "is_sale": v.get('is_sale', False),
-                        "is_temporarily_disabled": v.get('is_temporarily_disabled', False),
                         "delivery_type": v.get('delivery_type', 'manual')
                     }
                 )
 
+        redirect_target = request.POST.get("redirect_to_variant_keys")
+        if redirect_target:
+            return redirect("control_variant_keys", pk=redirect_target)
         return redirect("control_products_list")
     v_list = [
         {
@@ -3189,6 +3289,22 @@ def control_reports(request):
     
     analytics = FinancialAnalyticsService(clean_filters)
     
+    from apps.wallets.models import RechargeCard
+    from apps.catalog.models import ProductKey
+
+    recharge_cards_stats = {
+        "total": RechargeCard.objects.count(),
+        "active": RechargeCard.objects.filter(status='active').count(),
+        "redeemed": RechargeCard.objects.filter(status='redeemed').count(),
+        "cancelled": RechargeCard.objects.filter(status='cancelled').count(),
+    }
+    
+    product_keys_stats = {
+        "total": ProductKey.objects.count(),
+        "unused": ProductKey.objects.filter(is_used=False).count(),
+        "used": ProductKey.objects.filter(is_used=True).count(),
+    }
+
     ctx = {
         "kpis": analytics.get_dashboard_kpis(),
         "pnl": analytics.get_pnl_statement(),
@@ -3200,7 +3316,9 @@ def control_reports(request):
         "filters": filters,
         "currencies": Currency.objects.filter(is_active=True),
         "payment_methods": PaymentMethod.objects.filter(is_active=True),
-        "tiers": User.Tier.choices
+        "tiers": User.Tier.choices,
+        "recharge_cards_stats": recharge_cards_stats,
+        "product_keys_stats": product_keys_stats,
     }
     
     export_format = request.GET.get("export")
@@ -3561,9 +3679,27 @@ def control_product_suggestion_detail(request, pk):
 @admin_required
 def control_recharge_cards(request):
     from apps.wallets.models import RechargeCard
+    from apps.catalog.models import ProductVariant, ProductKey
     from django.core.paginator import Paginator
     from django.db.models import Q
     
+    if request.method == "POST":
+        action = request.POST.get("action")
+        if action == "copy_to_variant":
+            codes_list = request.POST.getlist("codes")
+            variant_id = request.POST.get("variant_id")
+            if not codes_list or not variant_id:
+                messages.error(request, "يرجى اختيار الأكواد وباقة المنتج المستهدفة.")
+            else:
+                variant = get_object_or_404(ProductVariant, id=variant_id)
+                added_count = 0
+                for code in codes_list:
+                    if not ProductKey.objects.filter(variant=variant, key_code=code).exists():
+                        ProductKey.objects.create(variant=variant, key_code=code)
+                        added_count += 1
+                messages.success(request, f"تم نسخ {added_count} كود بنجاح كأكواد تسليم تلقائي للباقة: {variant.product.name} - {variant.name}")
+            return redirect("control_recharge_cards")
+
     qs = RechargeCard.objects.all().select_related("currency", "created_by", "redeemed_by", "order").order_by("-created_at")
     
     q = request.GET.get("q", "").strip()
@@ -3584,11 +3720,14 @@ def control_recharge_cards(request):
     page_number = request.GET.get("page")
     page_obj = paginator.get_page(page_number)
     
+    active_variants = ProductVariant.objects.filter(is_active=True, product__is_active=True, delivery_type='keys').select_related('product').order_by('product__name', 'name')
+
     return render(request, "site/control_recharge_cards.html", {
         "page_obj": page_obj,
         "query": q,
         "status_filter": status_filter,
-        "status_choices": RechargeCard.Status.choices
+        "status_choices": RechargeCard.Status.choices,
+        "active_variants": active_variants
     })
 
 

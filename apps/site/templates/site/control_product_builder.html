@@ -286,9 +286,9 @@ function renderPackages() {
                     <option value="keys" ${pkg.delivery_type === 'keys' ? 'selected' : ''}>تلقائي (أكواد)</option>
                 </select>
                 ${pkg.delivery_type === 'keys' && pkg.id ? `
-                <a href="/control/variants/${pkg.id}/keys/" class="btn btn-outline btn-cyan mt-1 block py-1 text-center" style="font-size: 10px; line-height: 1;">
+                <button type="button" onclick="saveAndGoToKeys('${pkg.id}')" class="btn btn-outline btn-cyan mt-1 block w-full py-1 text-center font-bold" style="font-size: 10px; line-height: 1;">
                     <i class="fas fa-key ml-1"></i> المفاتيح (${pkg.keys_count || 0})
-                </a>
+                </button>
                 ` : ''}
                 ${pkg.delivery_type === 'keys' && !pkg.id ? `
                 <span class="text-[9px] text-amber-400 mt-1 block text-center">احفظ المنتج أولاً لإدخال المفاتيح</span>
@@ -485,6 +485,16 @@ function moveField(index, delta) {
         schema.fields[newIndex] = temp;
         renderFields();
     }
+}
+
+function saveAndGoToKeys(variantId) {
+    const form = document.getElementById('builder-form');
+    const input = document.createElement('input');
+    input.type = 'hidden';
+    input.name = 'redirect_to_variant_keys';
+    input.value = variantId;
+    form.appendChild(input);
+    submitBuilder();
 }
 
 // --- Submit ---

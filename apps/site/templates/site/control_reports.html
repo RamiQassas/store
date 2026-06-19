@@ -151,6 +151,57 @@
                     <div class="kpi-title">التزامات المحافظ (Liabilities)</div>
                     <div class="kpi-value warning">{{ kpis.total_liabilities|floatformat:2 }}</div>
                 </div>
+        </section>
+
+        <!-- 1b. Digital Inventory Stats -->
+        <section>
+            <h2 class="section-title">إحصائيات الأكواد والمخزون الرقمي</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- Recharge Cards Stats -->
+                <div class="glass-panel p-6 border-white/5 relative overflow-hidden group">
+                    <h3 class="font-black text-xs mb-4 text-cyan uppercase tracking-widest flex items-center gap-2">
+                        <i class="fas fa-ticket text-cyan"></i> بطاقات شحن الرصيد
+                    </h3>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div class="bg-white/5 p-4 rounded-xl">
+                            <span class="text-[9px] text-slate-500 font-bold block mb-1">المتاحة في المخزون</span>
+                            <strong class="text-lg font-black text-emerald-400">{{ recharge_cards_stats.active }}</strong>
+                        </div>
+                        <div class="bg-white/5 p-4 rounded-xl">
+                            <span class="text-[9px] text-slate-500 font-bold block mb-1">المشحونة (المباعة)</span>
+                            <strong class="text-lg font-black text-cyan">{{ recharge_cards_stats.redeemed }}</strong>
+                        </div>
+                        <div class="bg-white/5 p-4 rounded-xl">
+                            <span class="text-[9px] text-slate-500 font-bold block mb-1">الملغاة</span>
+                            <strong class="text-lg font-black text-rose-400">{{ recharge_cards_stats.cancelled }}</strong>
+                        </div>
+                        <div class="bg-white/5 p-4 rounded-xl">
+                            <span class="text-[9px] text-slate-500 font-bold block mb-1">إجمالي المولد</span>
+                            <strong class="text-lg font-black text-white">{{ recharge_cards_stats.total }}</strong>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Product Keys Stats -->
+                <div class="glass-panel p-6 border-white/5 relative overflow-hidden group">
+                    <h3 class="font-black text-xs mb-4 text-amber-500 uppercase tracking-widest flex items-center gap-2">
+                        <i class="fas fa-key text-amber-500"></i> مفاتيح وأكواد المنتجات
+                    </h3>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div class="bg-white/5 p-4 rounded-xl">
+                            <span class="text-[9px] text-slate-500 font-bold block mb-1">المتاحة في المخزون</span>
+                            <strong class="text-lg font-black text-emerald-400">{{ product_keys_stats.unused }}</strong>
+                        </div>
+                        <div class="bg-white/5 p-4 rounded-xl">
+                            <span class="text-[9px] text-slate-500 font-bold block mb-1">المباعة للعملاء</span>
+                            <strong class="text-lg font-black text-amber-400">{{ product_keys_stats.used }}</strong>
+                        </div>
+                        <div class="bg-white/5 p-4 rounded-xl col-span-2">
+                            <span class="text-[9px] text-slate-500 font-bold block mb-1">إجمالي الأكواد المضافة</span>
+                            <strong class="text-lg font-black text-white">{{ product_keys_stats.total }}</strong>
+                        </div>
+                    </div>
+                </div>
             </div>
         </section>
 

@@ -66,9 +66,15 @@
                 <div class="fulfillment-item">
                     <div>
                         <span class="text-[10px] text-slate-500 font-black uppercase tracking-widest block mb-1">{{ key }}</span>
-                        <strong class="text-white font-mono text-sm">{{ val }}</strong>
+                        <strong class="text-white font-mono text-sm">
+                            {% if key == "keys" %}
+                                {{ val|join:", " }}
+                            {% else %}
+                                {{ val }}
+                            {% endif %}
+                        </strong>
                     </div>
-                    <button class="copy-button" onclick="copyToClipboard('{{ val }}', this)">نسخ</button>
+                    <button class="copy-button" onclick="copyToClipboard('{% if key == "keys" %}{{ val|join:", " }}{% else %}{{ val }}{% endif %}', this)">نسخ</button>
                 </div>
                 {% endfor %}
             </div>

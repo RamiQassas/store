@@ -10,6 +10,9 @@
         <p class="text-slate-400 text-sm">إنشاء وإلغاء ومراقبة رموز شحن الرصيد في النظام.</p>
     </div>
     <div class="flex gap-3">
+        <button id="send-variant-btn" class="btn btn-outline btn-cyan hidden" onclick="toggleVariantModal(true)">
+            <i class="fas fa-link ml-2"></i> إرسال لباقة منتج (<span id="send-count">0</span>)
+        </button>
         <button id="copy-selected-btn" class="btn btn-outline btn-cyan hidden" onclick="copySelectedCodes()">
             <i class="fas fa-copy ml-2"></i> نسخ الأكواد المحددة (<span id="selected-count">0</span>)
         </button>
@@ -74,7 +77,11 @@
                 {% for card in page_obj %}
                 <tr class="hover:bg-white/[0.01] transition-colors">
                     <td class="p-4 w-12 text-center">
+                        {% if card.status == 'active' %}
                         <input type="checkbox" value="{{ card.code }}" class="code-checkbox rounded border-white/10 bg-slate-900 text-cyan focus:ring-0 focus:ring-offset-0">
+                        {% else %}
+                        <span class="text-slate-600">-</span>
+                        {% endif %}
                     </td>
                     <td class="p-4">
                         <div class="flex items-center gap-2">
@@ -158,6 +165,40 @@
     {% endif %}
 </div>
 
+<!-- Send to Variant Modal -->
+<div id="variant-modal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center hidden" style="direction: rtl;">
+    <div class="glass-panel p-6 w-full max-w-md border-white/10 stack gap-6 relative" style="background: var(--panel);">
+        <button onclick="toggleVariantModal(false)" class="absolute top-4 left-4 text-slate-400 hover:text-white bg-transparent border-0 cursor-pointer">
+            <i class="fas fa-times"></i>
+        </button>
+        <h3 class="text-lg font-black text-white flex items-center gap-2 mb-2">
+            <i class="fas fa-key text-cyan"></i> ربط الأكواد المحددة بمنتج
+        </h3>
+        <p class="text-xs text-slate-400 mb-4">سيتم إضافة الأكواد المحددة (عددها: <span id="modal-selected-count" class="text-cyan font-bold">0</span>) كأكواد تسليم تلقائي للباقة المحددة أدناه.</p>
+        
+        <form method="post" id="modal-form">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="copy_to_variant">
+            <div id="modal-hidden-inputs"></div>
+            
+            <div class="field-group mb-6">
+                <label class="text-xs text-slate-400 block mb-2 font-bold">اختر باقة المنتج المستهدفة:</label>
+                <select name="variant_id" class="w-full bg-slate-900 border border-white/10 rounded-xl p-3 text-white text-sm focus:border-cyan focus:outline-none" required>
+                    <option value="">-- اختر الباقة --</option>
+                    {% for v in active_variants %}
+                    <option value="{{ v.id }}">{{ v.product.name }} - {{ v.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            
+            <div class="flex gap-3">
+                <button type="button" onclick="toggleVariantModal(false)" class="btn btn-outline w-1/2 py-3">إلغاء</button>
+                <button type="submit" class="btn btn-primary w-1/2 py-3">تأكيد الإرسال</button>
+            </div>
+        </form>
+    </div>
+</div>
+
 <script>
 let updateSelectedCount;
 
@@ -166,14 +207,24 @@ document.addEventListener('DOMContentLoaded', function() {
     const checkboxes = document.querySelectorAll('.code-checkbox');
     const copyBtn = document.getElementById('copy-selected-btn');
     const selectedCountSpan = document.getElementById('selected-count');
+    const sendBtn = document.getElementById('send-variant-btn');
+    const sendCountSpan = document.getElementById('send-count');
 
     updateSelectedCount = function() {
         const checked = document.querySelectorAll('.code-checkbox:checked');
-        selectedCountSpan.textContent = checked.length;
-        if (checked.length > 0) {
+        const count = checked.length;
+        
+        selectedCountSpan.textContent = count;
+        if (sendCountSpan) {
+            sendCountSpan.textContent = count;
+        }
+        
+        if (count > 0) {
             copyBtn.classList.remove('hidden');
+            if (sendBtn) sendBtn.classList.remove('hidden');
         } else {
             copyBtn.classList.add('hidden');
+            if (sendBtn) sendBtn.classList.add('hidden');
         }
         if (selectAll) {
             selectAll.checked = checkboxes.length > 0 && checked.length === checkboxes.length;
@@ -192,6 +243,7 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 });
 
+// Selection logic from control_users_list.html
 function copyToClipboard(text, btn) {
     navigator.clipboard.writeText(text).then(() => {
         const icon = btn.querySelector('i');
@@ -215,6 +267,26 @@ function copySelectedCodes() {
             if (updateSelectedCount) updateSelectedCount();
         }, 2000);
     });
+}
+
+function toggleVariantModal(show) {
+    const modal = document.getElementById('variant-modal');
+    if (show) {
+        const checked = document.querySelectorAll('.code-checkbox:checked');
+        const container = document.getElementById('modal-hidden-inputs');
+        container.innerHTML = '';
+        checked.forEach(cb => {
+            const input = document.createElement('input');
+            input.type = 'hidden';
+            input.name = 'codes';
+            input.value = cb.value;
+            container.appendChild(input);
+        });
+        document.getElementById('modal-selected-count').textContent = checked.length;
+        modal.classList.remove('hidden');
+    } else {
+        modal.classList.add('hidden');
+    }
 }
 </script>
 {% endblock %}
