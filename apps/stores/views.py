@@ -353,13 +353,14 @@ def store_register(request):
         # Register user and bind to store
         try:
             with transaction.atomic():
-                user = User.all_objects.create_user(
-                    email=email,
-                    password=password,
-                    first_name=name,
-                    store=store, # Bind to store
-                    role=User.Role.CUSTOMER
-                )
+                with bypass_tenant_filter():
+                    user = User.objects.create_user(
+                        email=email,
+                        password=password,
+                        first_name=name,
+                        store=store, # Bind to store
+                        role=User.Role.CUSTOMER
+                    )
                 # Create Wallet
                 from apps.common.models import Currency
                 default_currency = Currency.objects.filter(is_default=True).first() or Currency.objects.first()
@@ -729,12 +730,13 @@ def merchant_employee_form(request, pk=None):
             user = User.all_objects.filter(email=email).first()
             if not user:
                 # Create user for employee
-                user = User.all_objects.create_user(
-                    email=email,
-                    password="EmployeePassword123!",
-                    first_name="موظف المتجر",
-                    role=User.Role.EMPLOYEE
-                )
+                with bypass_tenant_filter():
+                    user = User.objects.create_user(
+                        email=email,
+                        password="EmployeePassword123!",
+                        first_name="موظف المتجر",
+                        role=User.Role.EMPLOYEE
+                    )
                 
         if not employee:
             if StoreEmployee.objects.filter(store=store, user=user).exists():

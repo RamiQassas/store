@@ -412,3 +412,77 @@ class StoreSaaSNewFeaturesTests(TestCase):
         response = client.post(reverse("store_registration_payment"))
         self.assertEqual(response.status_code, 302) # Redirects back to payment page with error
 
+    def test_strict_tenant_isolation(self):
+        from apps.catalog.models import Product, Category
+        from apps.orders.models import Order
+        
+        # Create Store A & Store B
+        with bypass_tenant_filter():
+            store_a = Store.objects.create(
+                owner=self.user,
+                name="Store A",
+                slug="store-a",
+                subscription_plan=self.plan,
+                subscription_status=Store.Status.ACTIVE,
+                is_active=True
+            )
+            store_b = Store.objects.create(
+                owner=self.user,
+                name="Store B",
+                slug="store-b",
+                subscription_plan=self.plan,
+                subscription_status=Store.Status.ACTIVE,
+                is_active=True
+            )
+            
+            # Create categories and products for Store A, Store B, and Main Site (store=None)
+            cat_a = Category.objects.create(name="Cat A", store=store_a, is_active=True)
+            prod_a = Product.objects.create(name="Product A", category=cat_a, store=store_a, is_active=True, is_featured=True)
+            
+            cat_b = Category.objects.create(name="Cat B", store=store_b, is_active=True)
+            prod_b = Product.objects.create(name="Product B", category=cat_b, store=store_b, is_active=True, is_featured=True)
+            
+            cat_main = Category.objects.create(name="Cat Main", store=None, is_active=True)
+            prod_main = Product.objects.create(name="Product Main", category=cat_main, store=None, is_active=True, is_featured=True)
+            
+        client = Client()
+        
+        # 1. Request Store A storefront
+        # Should only see Product A, and NOT Product B or Product Main
+        response_a = client.get(reverse("store_home", urlconf="apps.stores.urls"), HTTP_HOST="store-a.testserver")
+        self.assertEqual(response_a.status_code, 200)
+        featured_a = list(response_a.context["featured_products"])
+        self.assertIn(prod_a, featured_a)
+        self.assertNotIn(prod_b, featured_a)
+        self.assertNotIn(prod_main, featured_a)
+        
+        # 2. Request Store B storefront
+        # Should only see Product B, and NOT Product A or Product Main
+        response_b = client.get(reverse("store_home", urlconf="apps.stores.urls"), HTTP_HOST="store-b.testserver")
+        self.assertEqual(response_b.status_code, 200)
+        featured_b = list(response_b.context["featured_products"])
+        self.assertIn(prod_b, featured_b)
+        self.assertNotIn(prod_a, featured_b)
+        self.assertNotIn(prod_main, featured_b)
+        
+        # 3. Request Main Site catalog (should only see Product Main)
+        response_main = client.get(reverse("catalog"))
+        self.assertEqual(response_main.status_code, 200)
+        products_main = list(response_main.context["products"])
+        self.assertIn(prod_main, products_main)
+        self.assertNotIn(prod_a, products_main)
+        self.assertNotIn(prod_b, products_main)
+
+        # 4. Request nonexistent store subdomain
+        # Should return 404 immediately
+        response_404 = client.get(reverse("store_home", urlconf="apps.stores.urls"), HTTP_HOST="nonexistent.testserver")
+        self.assertEqual(response_404.status_code, 404)
+
+        # 5. Request suspended store subdomain
+        with bypass_tenant_filter():
+            store_a.is_active = False
+            store_a.save()
+        response_suspended = client.get(reverse("store_home", urlconf="apps.stores.urls"), HTTP_HOST="store-a.testserver")
+        self.assertEqual(response_suspended.status_code, 403)
+
+
