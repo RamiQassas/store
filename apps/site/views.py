@@ -79,7 +79,17 @@ def v3_send_otp_email(user, otp_token):
         </div>
     </div>
     """
-    return send_brevo_email(to_email=user.email, to_name=user.get_full_name() or user.email, subject=subject, html_content=html_content)
+    import threading
+    threading.Thread(
+        target=send_brevo_email,
+        kwargs={
+            "to_email": user.email,
+            "to_name": user.get_full_name() or user.email,
+            "subject": subject,
+            "html_content": html_content
+        }
+    ).start()
+    return True
 
 def v3_verify_otp_logic(user, code, purpose):
     otp = OTPToken.objects.filter(user=user, code=code, purpose=purpose, is_used=False, expires_at__gt=timezone.now()).first()
@@ -626,8 +636,30 @@ def dashboard(request):
 
 @login_required
 def wallet_page(request):
+    from django.db.models import Sum
+    from apps.payments.models import DepositRequest, WithdrawalRequest
+    from apps.wallets.models import RechargeCard
+    
     request.user.reset_daily_limits_if_needed()
     wallet = Wallet.objects.filter(user=request.user).select_related("currency").first() or get_or_create_wallet(request.user)
+    
+    # Calculate totals
+    total_deposited = DepositRequest.objects.filter(
+        user=request.user, 
+        status=DepositRequest.Status.COMPLETED, 
+        is_verified=True
+    ).aggregate(total=Sum('wallet_amount'))['total'] or Decimal("0.00")
+    
+    total_withdrawn = WithdrawalRequest.objects.filter(
+        user=request.user, 
+        status=WithdrawalRequest.Status.COMPLETED, 
+        is_verified=True
+    ).aggregate(total=Sum('wallet_amount'))['total'] or Decimal("0.00")
+
+    total_recharged = RechargeCard.objects.filter(
+        redeemed_by=request.user,
+        status=RechargeCard.Status.REDEEMED
+    ).aggregate(total=Sum('amount'))['total'] or Decimal("0.00")
     
     show_all = request.GET.get("show_all") == "1"
     ledger_entries = wallet.ledger_entries.all()
@@ -637,7 +669,11 @@ def wallet_page(request):
     return render(request, "site/wallet.html", {
         "wallet": wallet, 
         "ledger_entries": ledger_entries,
-        "show_all": show_all
+        "show_all": show_all,
+        "total_deposited": total_deposited,
+        "total_withdrawn": total_withdrawn,
+        "total_recharged": total_recharged,
+        "total_added": total_deposited + total_recharged
     })
 
 @login_required
@@ -1797,6 +1833,7 @@ def control_deposit_detail(request, pk):
                         reference=f"deposit:{deposit.id}",
                         description=f"إيداع عبر {deposit.payment_method.name}",
                         created_by=request.user,
+                        source="deposit",
                         metadata={
                             "from_pending": True,
                             "pending_amount": str(deposit.wallet_amount),
@@ -3096,6 +3133,11 @@ def control_debts(request):
             except Exception as e:
                 messages.error(request, str(e))
                 
+        elif action == "toggle_debt_withdrawable":
+            target.wallet.debt_is_withdrawable = not target.wallet.debt_is_withdrawable
+            target.wallet.save(update_fields=["debt_is_withdrawable"])
+            messages.success(request, f"تم {'تفعيل' if target.wallet.debt_is_withdrawable else 'تعطيل'} خيار سحب الدين للمستخدم {target.email}")
+                
         return redirect(f"{request.path}?q={q}")
 
     # Stats for the sidebar
@@ -3700,7 +3742,7 @@ def control_recharge_cards(request):
                 messages.success(request, f"تم نسخ {added_count} كود بنجاح كأكواد تسليم تلقائي للباقة: {variant.product.name} - {variant.name}")
             return redirect("control_recharge_cards")
 
-    qs = RechargeCard.objects.all().select_related("currency", "created_by", "redeemed_by", "order").order_by("-created_at")
+    qs = RechargeCard.objects.all().select_related("currency", "created_by", "redeemed_by", "order")
     
     q = request.GET.get("q", "").strip()
     if q:
@@ -3716,6 +3758,33 @@ def control_recharge_cards(request):
     if status_filter:
         qs = qs.filter(status=status_filter)
         
+    amount_filter = request.GET.get("amount", "").strip()
+    if amount_filter:
+        try:
+            qs = qs.filter(amount=Decimal(amount_filter))
+        except:
+            pass
+            
+    date_from = request.GET.get("date_from", "").strip()
+    if date_from:
+        try:
+            qs = qs.filter(created_at__date__gte=date_from)
+        except:
+            pass
+            
+    date_to = request.GET.get("date_to", "").strip()
+    if date_to:
+        try:
+            qs = qs.filter(created_at__date__lte=date_to)
+        except:
+            pass
+            
+    sort_filter = request.GET.get("sort", "-created_at").strip()
+    if sort_filter in ["created_at", "-created_at", "amount", "-amount"]:
+        qs = qs.order_by(sort_filter)
+    else:
+        qs = qs.order_by("-created_at")
+        
     paginator = Paginator(qs, 50)
     page_number = request.GET.get("page")
     page_obj = paginator.get_page(page_number)
@@ -3726,6 +3795,10 @@ def control_recharge_cards(request):
         "page_obj": page_obj,
         "query": q,
         "status_filter": status_filter,
+        "amount_filter": amount_filter,
+        "date_from": date_from,
+        "date_to": date_to,
+        "sort_filter": sort_filter,
         "status_choices": RechargeCard.Status.choices,
         "active_variants": active_variants
     })
@@ -3735,22 +3808,25 @@ def control_recharge_cards(request):
 def control_recharge_cards_generate(request):
     from apps.wallets.models import RechargeCard
     from apps.common.models import Currency
+    from apps.catalog.models import ProductVariant, ProductKey
     from decimal import Decimal
     import secrets
     
     currencies = Currency.objects.filter(is_active=True)
+    active_variants = ProductVariant.objects.filter(is_active=True, product__is_active=True, delivery_type='keys').select_related('product').order_by('product__name', 'name')
     
     if request.method == "POST":
         amount_str = request.POST.get("amount", "0")
         currency_id = request.POST.get("currency")
         count_str = request.POST.get("count", "1")
+        variant_id = request.POST.get("variant_id")
         
         try:
             amount = Decimal(amount_str)
             if amount <= 0:
                 raise ValueError()
         except:
-            messages.error(request, "يرجى إدخال قيمة شحن صحيحة أكبر من صفر.")
+            messages.error(request, "يرجى إدخل قيمة شحن صحيحة أكبر من صفر.")
             return redirect("control_recharge_cards_generate")
             
         currency = get_object_or_404(Currency, id=currency_id, is_active=True)
@@ -3763,7 +3839,12 @@ def control_recharge_cards_generate(request):
             messages.error(request, "يرجى إدخال عدد بطاقات صحيح (بين 1 و 500).")
             return redirect("control_recharge_cards_generate")
             
+        target_variant = None
+        if variant_id:
+            target_variant = get_object_or_404(ProductVariant, id=variant_id)
+            
         created_count = 0
+        keys_added = 0
         for _ in range(count):
             code = f"RC-{secrets.token_hex(4).upper()}-{secrets.token_hex(4).upper()}"
             while RechargeCard.objects.filter(code=code).exists():
@@ -3778,11 +3859,20 @@ def control_recharge_cards_generate(request):
             )
             created_count += 1
             
-        messages.success(request, f"تم إنشاء {created_count} بطاقة شحن بنجاح بقيمة {amount} {currency.code} للبطاقة الواحدة.")
+            if target_variant:
+                ProductKey.objects.create(variant=target_variant, key_code=code)
+                keys_added += 1
+            
+        msg = f"تم إنشاء {created_count} بطاقة شحن بنجاح بقيمة {amount} {currency.code} للبطاقة الواحدة."
+        if target_variant:
+            msg += f" وتم نسخ {keys_added} كود تلقائياً كأكواد تسليم تلقائي للباقة: {target_variant.product.name} - {target_variant.name}."
+            
+        messages.success(request, msg)
         return redirect("control_recharge_cards")
         
     return render(request, "site/control_recharge_card_generate.html", {
-        "currencies": currencies
+        "currencies": currencies,
+        "active_variants": active_variants
     })
 
 

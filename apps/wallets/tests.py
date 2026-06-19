@@ -146,3 +146,89 @@ class RechargeCardTests(TestCase):
         order.refresh_from_db()
         self.assertIn("أكواد الشحن", order.fulfillment_data)
         self.assertEqual(order.fulfillment_data["أكواد الشحن"], card.code)
+
+
+class RechargeCardAdminTests(TestCase):
+    def setUp(self):
+        self.usd, _ = Currency.objects.get_or_create(
+            code="USD",
+            defaults={"name": "US Dollar", "symbol": "$", "buy_rate": 1.0, "sell_rate": 1.0, "is_default": True}
+        )
+        self.admin_user = User.objects.create_superuser(email="admin@example.com", password="AdminPass12345")
+        self.client = APIClient()
+        self.client.force_login(self.admin_user)
+        
+        # Create some variants for linking
+        category = Category.objects.create(name="Digital Keys", is_active=True)
+        self.product = Product.objects.create(name="Premium Product", category=category, is_active=True)
+        self.variant = ProductVariant.objects.create(
+            product=self.product,
+            name="1 Month Key",
+            sku="KEY-1M",
+            price=Decimal("10.00"),
+            is_active=True,
+            delivery_type="keys"
+        )
+
+    def test_control_recharge_cards_list_filtering_and_sorting(self):
+        # Create multiple cards with different amounts, statuses, and creation times
+        card1 = RechargeCard.objects.create(
+            code="RC-AAAA-1111", amount=Decimal("15.00"), currency=self.usd, status=RechargeCard.Status.ACTIVE
+        )
+        card2 = RechargeCard.objects.create(
+            code="RC-BBBB-2222", amount=Decimal("25.00"), currency=self.usd, status=RechargeCard.Status.REDEEMED
+        )
+        
+        # Test basic list
+        url = reverse("control_recharge_cards")
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "RC-AAAA-1111")
+        self.assertContains(response, "RC-BBBB-2222")
+
+        # Test filtering by status
+        response_active = self.client.get(url, {"status": "active"})
+        self.assertContains(response_active, "RC-AAAA-1111")
+        self.assertNotContains(response_active, "RC-BBBB-2222")
+
+        # Test filtering by amount
+        response_amount = self.client.get(url, {"amount": "25.00"})
+        self.assertNotContains(response_amount, "RC-AAAA-1111")
+        self.assertContains(response_amount, "RC-BBBB-2222")
+
+        # Test filtering by query (q)
+        response_q = self.client.get(url, {"q": "RC-AAAA"})
+        self.assertContains(response_q, "RC-AAAA-1111")
+        self.assertNotContains(response_q, "RC-BBBB-2222")
+
+        # Test sorting
+        response_sort = self.client.get(url, {"sort": "amount"})
+        cards = list(response_sort.context["page_obj"])
+        self.assertEqual(cards[0].code, "RC-AAAA-1111")
+        self.assertEqual(cards[1].code, "RC-BBBB-2222")
+
+    def test_control_recharge_cards_generation_with_variant(self):
+        url = reverse("control_recharge_cards_generate")
+        
+        # POST to generate 5 codes of value 20.00 USD, linked to self.variant
+        data = {
+            "amount": "20.00",
+            "currency": self.usd.id,
+            "count": "5",
+            "variant_id": str(self.variant.id)
+        }
+        
+        response = self.client.post(url, data)
+        self.assertEqual(response.status_code, 302)
+        
+        # Check that 5 RechargeCards were created
+        self.assertEqual(RechargeCard.objects.filter(amount=Decimal("20.00")).count(), 5)
+        
+        # Check that 5 ProductKeys were created and linked to self.variant
+        from apps.catalog.models import ProductKey
+        self.assertEqual(ProductKey.objects.filter(variant=self.variant).count(), 5)
+        
+        # Verify the codes match exactly
+        card_codes = set(RechargeCard.objects.filter(amount=Decimal("20.00")).values_list("code", flat=True))
+        key_codes = set(ProductKey.objects.filter(variant=self.variant).values_list("key_code", flat=True))
+        self.assertEqual(card_codes, key_codes)

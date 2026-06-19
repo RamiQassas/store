@@ -5,134 +5,383 @@
 
 {% block extra_head %}
 <style>
-    .wallet-grid { display: grid; grid-template-columns: 1fr 350px; gap: 2rem; align-items: start; }
-    
-    .balance-hero {
-        background: linear-gradient(135deg, #0f172a 0%, #020617 100%);
-        border: 1px solid rgba(6, 182, 212, 0.2);
-        border-radius: 32px;
-        padding: 4rem 2rem;
-        text-align: center;
+    .wallet-layout {
+        display: grid;
+        grid-template-columns: 1fr 360px;
+        gap: 2rem;
+        align-items: start;
+        direction: rtl;
+    }
+
+    /* Premium Balance Card */
+    .balance-card {
+        background: linear-gradient(135deg, #083344 0%, #0f172a 50%, #020617 100%);
+        border: 1px solid rgba(6, 182, 212, 0.15);
+        border-radius: 28px;
+        padding: 2.5rem;
         position: relative;
         overflow: hidden;
-        box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+        box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.4);
     }
 
-    .balance-hero::after {
-        content: ""; position: absolute; top: 0; left: 0; right: 0; bottom: 0;
-        background: radial-gradient(circle at top right, rgba(6, 182, 212, 0.1), transparent 60%);
+    .balance-card::before {
+        content: "";
+        position: absolute;
+        top: -50%;
+        left: -50%;
+        width: 200%;
+        height: 200%;
+        background: radial-gradient(circle at 75% 25%, rgba(6, 182, 212, 0.08) 0%, transparent 60%);
+        pointer-events: none;
     }
 
-    .hero-amount {
-        font-size: clamp(2rem, 10vw, 4.5rem);
-        font-weight: 900;
-        letter-spacing: -2px;
-        color: #fff;
-        line-height: 1.1;
-        margin: 1.5rem 0;
-        text-shadow: 0 10px 30px rgba(0,0,0,0.5);
-        word-break: break-all;
-    }
-
-    .hero-usd-approx {
-        font-size: 0.9rem;
-        color: var(--text-dim);
-        background: rgba(255,255,255,0.03);
-        padding: 4px 12px;
-        border-radius: 100px;
-        display: inline-block;
-        margin-top: 0.5rem;
-    }
-
-    .hero-currency-label {
-        font-size: 1.25rem;
-        font-weight: 700;
-        color: var(--cyan);
+    .balance-label {
+        font-size: 0.75rem;
+        font-weight: 800;
         text-transform: uppercase;
-        letter-spacing: 2px;
+        letter-spacing: 1.5px;
+        color: #06b6d4;
     }
 
-    /* Multi-currency Simulation / Summary */
-    .currency-summary-card {
-        background: var(--panel);
-        border: 1px solid var(--panel-border);
+    .balance-value {
+        font-size: clamp(2.25rem, 6vw, 3.5rem);
+        font-weight: 900;
+        color: #ffffff;
+        line-height: 1;
+        margin: 1rem 0;
+        font-family: monospace;
+    }
+
+    .balance-usd-approx {
+        font-size: 0.85rem;
+        color: #94a3b8;
+        background: rgba(255, 255, 255, 0.03);
+        padding: 6px 14px;
+        border-radius: 9999px;
+        display: inline-block;
+        border: 1px solid rgba(255, 255, 255, 0.05);
+    }
+
+    /* Quick Actions */
+    .actions-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 1rem;
+    }
+
+    .action-btn-card {
+        background: rgba(15, 23, 42, 0.4);
+        border: 1px solid rgba(255, 255, 255, 0.03);
+        border-radius: 20px;
+        padding: 1.5rem 1rem;
+        text-align: center;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 0.75rem;
+        color: #cbd5e1;
+        text-decoration: none;
+    }
+
+    .action-btn-card:hover {
+        background: rgba(6, 182, 212, 0.06);
+        border-color: rgba(6, 182, 212, 0.3);
+        transform: translateY(-3px);
+        color: #ffffff;
+    }
+
+    .action-btn-card i {
+        font-size: 1.5rem;
+    }
+
+    .action-btn-card.primary {
+        background: linear-gradient(135deg, rgba(6, 182, 212, 0.1) 0%, rgba(15, 23, 42, 0.4) 100%);
+        border-color: rgba(6, 182, 212, 0.2);
+        color: #06b6d4;
+    }
+
+    .action-btn-card.primary:hover {
+        background: linear-gradient(135deg, rgba(6, 182, 212, 0.15) 0%, rgba(6, 182, 212, 0.05) 100%);
+        border-color: #06b6d4;
+        color: #ffffff;
+    }
+
+    /* Sub-balances breakdown */
+    .balance-breakdown {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+        gap: 1rem;
+        padding: 1.5rem;
+        background: rgba(15, 23, 42, 0.2);
+        border-radius: 20px;
+        border: 1px solid rgba(255, 255, 255, 0.02);
+    }
+
+    .breakdown-item {
+        display: flex;
+        flex-direction: column;
+        gap: 0.25rem;
+    }
+
+    .breakdown-item label {
+        font-size: 0.65rem;
+        font-weight: 700;
+        color: #64748b;
+    }
+
+    .breakdown-item span {
+        font-size: 0.95rem;
+        font-weight: 800;
+        color: #e2e8f0;
+    }
+
+    /* Stats Dashboard */
+    .stats-dashboard {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 1rem;
+    }
+
+    .stat-card {
+        background: rgba(15, 23, 42, 0.3);
+        border: 1px solid rgba(255, 255, 255, 0.02);
+        border-radius: 20px;
+        padding: 1.25rem;
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+    }
+
+    .stat-card-icon {
+        width: 44px;
+        height: 44px;
+        border-radius: 14px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.1rem;
+    }
+
+    .stat-card-info {
+        display: flex;
+        flex-direction: column;
+        gap: 0.15rem;
+    }
+
+    .stat-card-info label {
+        font-size: 0.65rem;
+        font-weight: 700;
+        color: #64748b;
+    }
+
+    .stat-card-info span {
+        font-size: 1rem;
+        font-weight: 800;
+        color: #ffffff;
+    }
+
+    /* Exchange rates & Sidebars */
+    .premium-sidebar-card {
+        background: rgba(15, 23, 42, 0.3);
+        border: 1px solid rgba(255, 255, 255, 0.03);
         border-radius: 24px;
-        padding: 2rem;
+        padding: 1.5rem;
+    }
+
+    .sidebar-section-title {
+        font-size: 0.75rem;
+        font-weight: 800;
+        color: #94a3b8;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        padding-bottom: 0.75rem;
+        margin-bottom: 1rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
     }
 
     .holding-row {
         display: flex;
         justify-content: space-between;
         align-items: center;
-        padding: 1rem 0;
-        border-bottom: 1px solid rgba(255,255,255,0.05);
+        padding: 0.75rem 0.5rem;
+        border-radius: 12px;
+        transition: background 0.2s;
     }
-    .holding-row:last-child { border-bottom: none; }
-    
-    .holding-info { display: flex; align-items: center; gap: 1rem; }
-    .holding-icon { 
-        width: 40px; height: 40px; border-radius: 12px; background: rgba(255,255,255,0.03);
-        display: flex; align-items: center; justify-content: center; font-weight: 900; color: var(--muted);
+
+    .holding-row:hover {
+        background: rgba(255, 255, 255, 0.01);
     }
-    .holding-row.active .holding-icon { background: rgba(6, 182, 212, 0.1); color: var(--cyan); }
-    
-    .holding-meta span { display: block; font-size: 10px; color: var(--muted); text-transform: uppercase; font-weight: 800; }
-    .holding-meta strong { font-size: 1rem; color: var(--text); }
 
-    /* Stats Grid */
-    .wallet-stats { display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem; margin-top: 1rem; }
-    .stat-item { background: rgba(255,255,255,0.02); border: 1px solid var(--panel-border); border-radius: 16px; padding: 1.25rem; }
-    .stat-item span { font-size: 10px; color: var(--muted); display: block; margin-bottom: 5px; font-weight: 700; }
-    .stat-item strong { font-size: 0.9rem; color: var(--text); }
-
+    /* Responsive */
     @media (max-width: 1024px) {
-        .wallet-grid { grid-template-columns: 1fr; }
+        .wallet-layout {
+            grid-template-columns: 1fr;
+        }
+        .stats-dashboard {
+            grid-template-columns: 1fr;
+        }
     }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="page-head">
+<div class="page-head reveal mb-8">
     <div>
-        <span class="eyebrow">Financial Overview</span>
+        <span class="eyebrow">Financial Dashboard</span>
         <h1>المحفظة الرقمية</h1>
-        <p class="text-muted">إدارة أصولك المالية وعرض القيمة الإجمالية لمدخراتك.</p>
-    </div>
-    <div class="flex gap-3">
-        <a href="{% url 'dashboard_withdrawals' %}" class="btn btn-outline btn-sm px-6">سحب</a>
-        <a href="{% url 'dashboard_deposits' %}" class="btn btn-primary btn-sm px-6">إيداع</a>
+        <p class="text-slate-400 text-sm">أداء أرصدتك، تسوية الديون، وحركات الحساب الخاصة بك.</p>
     </div>
 </div>
 
-<div class="wallet-grid">
+<div class="wallet-layout reveal">
+    <!-- Main Content Area -->
     <div class="stack gap-6">
-        <!-- Main Balance Hero -->
-        <div class="balance-hero">
-            <span class="hero-currency-label">القيمة الإجمالية المتوفرة</span>
-            <div class="hero-amount">
-                {% currency_format wallet.available_balance wallet.currency mode="withdraw" %}
+        <!-- Premium Balance Card -->
+        <div class="balance-card">
+            <div class="flex justify-between items-start">
+                <div>
+                    <span class="balance-label">الرصيد القابل للسحب المتاح</span>
+                    <div class="balance-value">
+                        {% currency_format wallet.withdrawable_balance wallet.currency mode="withdraw" %}
+                    </div>
+                    {% if wallet.currency.code != "USD" %}
+                    <div class="balance-usd-approx">
+                        ≈ {{ wallet.withdrawable_balance|to_usd:wallet.currency }} USD
+                    </div>
+                    {% endif %}
+                </div>
+                
+                <!-- Status Badge -->
+                <div class="text-left">
+                    {% if wallet.debt_balance > 0 %}
+                        {% if wallet.debt_is_withdrawable %}
+                        <span class="text-[10px] bg-cyan/10 text-cyan border border-cyan/20 px-3 py-1 rounded-full font-bold">
+                            <i class="fas fa-unlock ml-1"></i> دين قابل للسحب
+                        </span>
+                        {% else %}
+                        <span class="text-[10px] bg-rose-500/10 text-rose-400 border border-rose-500/20 px-3 py-1 rounded-full font-bold">
+                            <i class="fas fa-lock ml-1"></i> دين غير قابل للسحب
+                        </span>
+                        {% endif %}
+                    {% else %}
+                        <span class="text-[10px] bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-3 py-1 rounded-full font-bold">
+                            <i class="fas fa-shield-alt ml-1"></i> حساب سليم
+                        </span>
+                    {% endif %}
+                </div>
             </div>
-            {% if CURRENCY.code != "USD" %}
-            <div class="hero-usd-approx">
-                ≈ {{ wallet.available_balance|to_usd:wallet.currency }} USD
+
+            <!-- Dynamic explanatory alert -->
+            {% if wallet.debt_balance > 0 and not wallet.debt_is_withdrawable %}
+            <div class="mt-4 p-3 bg-rose-500/5 border border-rose-500/15 rounded-xl flex items-center gap-3 text-xs text-rose-400">
+                <i class="fas fa-info-circle text-sm"></i>
+                <span>تم خصم مبلغ الدين المستحق ({{ wallet.debt_balance }} {{ wallet.currency.code }}) من رصيدك المتاح لتحديد القيمة القابلة للسحب.</span>
             </div>
             {% endif %}
-            <p class="text-slate-500 font-medium mt-4">تم احتساب القيمة بناءً على عملتك المفضلة المختارة.</p>
+
+            <!-- Sub-balances breakdown -->
+            <div class="balance-breakdown mt-8">
+                <div class="breakdown-item">
+                    <label>الرصيد المتاح الكلي</label>
+                    <span class="text-white">{{ wallet.available_balance }} {{ wallet.currency.code }}</span>
+                </div>
+                <div class="breakdown-item">
+                    <label>الدين المستحق</label>
+                    <span class="{% if wallet.debt_balance > 0 %}text-rose-400{% else %}text-slate-400{% endif %}">{{ wallet.debt_balance }} {{ wallet.currency.code }}</span>
+                </div>
+                <div class="breakdown-item">
+                    <label>الرصيد المجمد</label>
+                    <span class="text-slate-300">{{ wallet.frozen_balance }} {{ wallet.currency.code }}</span>
+                </div>
+                <div class="breakdown-item">
+                    <label>الرصيد المحجوز</label>
+                    <span class="text-slate-300">{{ wallet.held_balance }} {{ wallet.currency.code }}</span>
+                </div>
+            </div>
         </div>
 
-        <!-- Ledger / History -->
-        <div class="panel overflow-hidden" style="border-radius: 32px;">
-            <div class="p-8 border-b border-white/5 flex justify-between items-center bg-white/[0.01]">
-                <h3 class="font-bold text-lg">سجل العمليات المالية</h3>
+        <!-- Quick Actions Grid -->
+        <div class="actions-grid">
+            <a href="{% url 'dashboard_deposits' %}" class="action-btn-card primary">
+                <div class="w-12 h-12 rounded-2xl bg-cyan/10 flex items-center justify-center text-cyan">
+                    <i class="fas fa-wallet"></i>
+                </div>
+                <span class="font-bold text-sm text-white">إيداع رصيد</span>
+                <span class="text-[10px] text-slate-500">شحن المحفظة</span>
+            </a>
+            <a href="{% url 'dashboard_withdrawals' %}" class="action-btn-card">
+                <div class="w-12 h-12 rounded-2xl bg-white/5 flex items-center justify-center text-white">
+                    <i class="fas fa-money-bill-wave"></i>
+                </div>
+                <span class="font-bold text-sm text-white">سحب رصيد</span>
+                <span class="text-[10px] text-slate-500">سحب الأموال</span>
+            </a>
+            <a href="{% url 'dashboard_transfer' %}" class="action-btn-card">
+                <div class="w-12 h-12 rounded-2xl bg-white/5 flex items-center justify-center text-white">
+                    <i class="fas fa-exchange-alt"></i>
+                </div>
+                <span class="font-bold text-sm text-white">تحويل للأعضاء</span>
+                <span class="text-[10px] text-slate-500">تحويل P2P سريع</span>
+            </a>
+        </div>
+
+        <!-- Stats / Deposit & Withdrawal Query Summary -->
+        <div class="stats-dashboard">
+            <div class="stat-card">
+                <div class="stat-card-icon bg-emerald-500/10 text-emerald-400">
+                    <i class="fas fa-arrow-down"></i>
+                </div>
+                <div class="stat-card-info">
+                    <label>إجمالي الإيداعات</label>
+                    <span>{{ total_deposited|floatformat:2 }} {{ wallet.currency.code }}</span>
+                </div>
+            </div>
+            
+            <div class="stat-card">
+                <div class="stat-card-icon bg-cyan/10 text-cyan">
+                    <i class="fas fa-ticket-alt"></i>
+                </div>
+                <div class="stat-card-info">
+                    <label>شحن بطاقات الرصيد</label>
+                    <span>{{ total_recharged|floatformat:2 }} {{ wallet.currency.code }}</span>
+                </div>
+            </div>
+
+            <div class="stat-card">
+                <div class="stat-card-icon bg-rose-500/10 text-rose-400">
+                    <i class="fas fa-arrow-up"></i>
+                </div>
+                <div class="stat-card-info">
+                    <label>إجمالي السحوبات</label>
+                    <span>{{ total_withdrawn|floatformat:2 }} {{ wallet.currency.code }}</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Net Added Balance Alert -->
+        <div class="glass-panel p-4 flex justify-between items-center bg-white/[0.01]">
+            <span class="text-xs text-slate-400 font-bold"><i class="fas fa-calculator text-cyan ml-2"></i> صافي الرصيد المضاف (إيداع + بطاقات):</span>
+            <span class="text-sm font-black text-white">{{ total_added|floatformat:2 }} {{ wallet.currency.code }}</span>
+        </div>
+
+        <!-- Ledger Entries Table -->
+        <div class="glass-panel overflow-hidden">
+            <div class="p-6 border-b border-white/5 bg-white/[0.01] flex justify-between items-center">
+                <h3 class="font-bold text-sm text-white">سجل الحركات المالية الموثقة</h3>
                 {% if show_all %}
-                <a href="{% url 'dashboard_wallet' %}" class="btn btn-sm btn-outline py-1 px-4 text-[10px] font-bold">عرض أقل</a>
+                <a href="{% url 'dashboard_wallet' %}" class="btn btn-sm btn-outline py-1 px-3 text-[10px] font-bold">عرض حركات أقل</a>
                 {% else %}
-                <a href="{% url 'dashboard_wallet' %}?show_all=1" class="btn btn-sm btn-outline py-1 px-4 text-[10px] font-bold">عرض جميع الحركات</a>
+                <a href="{% url 'dashboard_wallet' %}?show_all=1" class="btn btn-sm btn-outline py-1 px-3 text-[10px] font-bold">عرض جميع الحركات</a>
                 {% endif %}
             </div>
-            <div class="stack">
+
+            <div class="stack divide-y divide-white/5">
                 {% for entry in ledger_entries %}
-                <div class="p-6 flex justify-between items-center border-b border-white/5 hover:bg-white/[0.02] transition">
+                <div class="p-6 flex justify-between items-center hover:bg-white/[0.01] transition duration-200">
                     <div class="flex items-center gap-4">
                         <div class="w-10 h-10 rounded-full flex items-center justify-center 
                             {% if entry.entry_type == 'credit' or entry.entry_type == 'refund' %}bg-success/10 text-success
@@ -146,138 +395,129 @@
                                 {% else %}fa-exchange-alt{% endif %}"></i>
                         </div>
                         <div>
-                            <div class="font-bold text-sm">
+                            <div class="font-bold text-xs text-white">
                                 {{ entry.get_entry_type_display }}
                                 {% if entry.source %}
                                  • {{ entry.source|translate_ledger_source }}
                                 {% endif %}
                                 {% if entry.source == 'purchase' %}
-                                <a href="{% url 'dashboard_order_detail' entry.reference %}" class="mr-2 text-cyan hover:underline text-[10px]"><i class="fas fa-external-link-alt"></i> عرض الطلب</a>
+                                <a href="{% url 'dashboard_order_detail' entry.reference %}" class="mr-2 text-cyan hover:underline text-[9px]"><i class="fas fa-external-link-alt"></i> عرض الطلب</a>
                                 {% endif %}
                             </div>
+                            
                             {% if entry.metadata.source_amount %}
-                            <div class="text-[10px] text-cyan font-bold mt-0.5">
-                                الأصل: {{ entry.metadata.source_amount }} {{ entry.metadata.source_currency }}
+                            <div class="text-[9px] text-cyan font-bold mt-1">
+                                القيمة الأصلية: {{ entry.metadata.source_amount }} {{ entry.metadata.source_currency }}
                             </div>
                             {% endif %}
+
                             {% if entry.description %}
-                            <div class="text-[11px] text-white/80 font-medium mt-0.5 leading-relaxed">{{ entry.description }}</div>
+                            <div class="text-[11px] text-slate-400 mt-1 leading-relaxed">{{ entry.description }}</div>
                             {% elif entry.reason %}
-                            <div class="text-[11px] text-white/80 font-medium mt-0.5 leading-relaxed">{{ entry.reason }}</div>
+                            <div class="text-[11px] text-slate-400 mt-1 leading-relaxed">{{ entry.reason }}</div>
                             {% endif %}
-                            <div class="text-[10px] text-muted mt-1">
-                                {{ entry.created_at|date:"d M Y, H:i" }} • 
+
+                            <div class="text-[9px] text-slate-500 mt-1 flex items-center gap-1.5 flex-wrap">
+                                <span>{{ entry.created_at|date:"d M Y, H:i" }}</span>
+                                <span>•</span>
                                 <span class="uppercase">
                                     {% if entry.created_by %}
-                                        {% if entry.created_by.is_platform_staff %}
-                                            نظام رقميات
-                                        {% else %}
-                                            بواسطة العميل
-                                        {% endif %}
+                                        {% if entry.created_by.is_platform_staff %}نظام رقميات{% else %}العميل نفسه{% endif %}
                                     {% else %}
                                         النظام الآلي
                                     {% endif %}
                                 </span>
-                                {% if entry.metadata.transaction_id %}
-                                • <span class="text-cyan font-black">مرجع: {{ entry.metadata.transaction_id }}</span>
-                                {% elif entry.reference %}
-                                • <span>مرجع: {{ entry.reference }}</span>
+                                {% if entry.reference %}
+                                <span>•</span>
+                                <span class="font-mono text-slate-600">مرجع: {{ entry.reference }}</span>
                                 {% endif %}
                             </div>
                         </div>
                     </div>
-                    <div class="text-right">
-                        <div class="font-black text-sm {% if entry.entry_type == 'credit' %}text-success{% elif entry.entry_type == 'debit' %}text-danger{% endif %}">
-                            {% if entry.entry_type == 'credit' %}+{% elif entry.entry_type == 'debit' %}-{% endif %}{{ entry.amount }} {{ wallet.currency.code }}
+                    
+                    <div class="text-left">
+                        <div class="font-black text-xs {% if entry.entry_type == 'credit' or entry.entry_type == 'refund' or entry.entry_type == 'release' or entry.entry_type == 'unhold' or entry.entry_type == 'unreserve' %}text-emerald-400{% else %}text-rose-400{% endif %}">
+                            {% if entry.entry_type == 'credit' or entry.entry_type == 'refund' or entry.entry_type == 'release' or entry.entry_type == 'unhold' or entry.entry_type == 'unreserve' %}+{% else %}-{% endif %}{{ entry.amount }} {{ wallet.currency.code }}
                         </div>
-                        <div class="text-[9px] text-slate-500 mt-0.5">الرصيد: {{ entry.balance_after }}</div>
+                        <div class="text-[9px] text-slate-500 mt-1">الرصيد اللاحق: {{ entry.balance_after }}</div>
                     </div>
                 </div>
                 {% empty %}
-                <div class="p-20 text-center opacity-20">
-                    <i class="fas fa-receipt text-5xl mb-4"></i>
-                    <p>لا توجد حركات مالية حتى الآن.</p>
+                <div class="p-16 text-center text-slate-600">
+                    <i class="fas fa-receipt text-4xl mb-4 opacity-20"></i>
+                    <p class="text-xs italic">لا توجد حركات مالية مسجلة بعد في محفظتك.</p>
                 </div>
                 {% endfor %}
             </div>
         </div>
     </div>
 
+    <!-- Sidebar Area -->
     <aside class="stack gap-6">
-        <!-- Recharge Voucher Form -->
-        <div class="currency-summary-card">
-            <h3 class="font-bold text-sm text-cyan uppercase tracking-widest mb-6">شحن بطاقة رصيد</h3>
-            <form method="post" action="{% url 'dashboard_recharge_wallet' %}" class="space-y-4">
+        <!-- Recharge Voucher Form (Clean Spot) -->
+        <div class="premium-sidebar-card">
+            <h4 class="sidebar-section-title">
+                <i class="fas fa-key text-cyan"></i> شحن بطاقة رصيد
+            </h4>
+            <form method="post" action="{% url 'dashboard_recharge_wallet' %}" class="space-y-4 text-right">
                 {% csrf_token %}
                 <div class="space-y-1">
-                    <input type="text" name="recharge_code" placeholder="أدخل رمز الشحن (RC-XXXX-XXXX)..." class="w-full bg-slate-950/60 border border-white/5 rounded-2xl py-3 px-4 text-white text-sm text-center font-bold tracking-widest uppercase focus:outline-none focus:border-cyan/50" required>
+                    <label class="text-[10px] text-slate-400 block font-bold mb-1">رمز بطاقة الشحن</label>
+                    <input type="text" name="recharge_code" placeholder="RC-XXXX-XXXX..." class="w-full bg-slate-950/60 border border-white/5 rounded-2xl py-3.5 px-4 text-white text-sm text-center font-bold tracking-widest uppercase focus:outline-none focus:border-cyan/50" required>
                 </div>
-                <button type="submit" class="btn btn-primary w-full py-3 text-xs font-black">شحن الرصيد الآن</button>
+                <button type="submit" class="btn btn-primary w-full py-3.5 text-xs font-black shadow-lg shadow-cyan/10">
+                    شحن الرصيد الآن
+                </button>
             </form>
         </div>
 
         <!-- Currency Holdings Summary -->
-        <div class="currency-summary-card">
-            <h3 class="font-bold text-sm text-muted uppercase tracking-widest mb-6">الأرصدة (1 عملة)</h3>
-            
-            <div class="stack gap-2">
-                <!-- In current system, we only show the actual wallet currency if balance > 0 -->
-                {% if wallet.total_balance > 0 %}
-                <div class="holding-row active">
-                    <div class="holding-info">
-                        <div class="holding-icon">{{ wallet.currency.code|slice:":1" }}</div>
-                        <div class="holding-meta">
-                            <span>العملة الأساسية</span>
-                            <strong>{{ wallet.currency.name }}</strong>
+        <div class="premium-sidebar-card">
+            <h4 class="sidebar-section-title">
+                <i class="fas fa-coins text-slate-500"></i> أرصدة العملات المتاحة
+            </h4>
+            <div class="stack gap-3">
+                <div class="holding-row bg-white/[0.01] p-3 border border-white/5 rounded-2xl">
+                    <div class="flex items-center gap-3">
+                        <div class="w-9 h-9 rounded-xl bg-cyan/10 text-cyan flex items-center justify-center font-black text-xs">
+                            {{ wallet.currency.code|slice:":1" }}
+                        </div>
+                        <div class="stack gap-0.5">
+                            <span class="text-[10px] text-slate-500 font-bold">العملة الأساسية</span>
+                            <span class="text-xs font-bold text-white">{{ wallet.currency.name }}</span>
                         </div>
                     </div>
-                    <div class="text-right">
-                        <div class="font-bold">{{ wallet.available_balance }}</div>
-                        <div class="text-[9px] text-cyan font-bold">{{ wallet.currency.code }}</div>
+                    <div class="text-left">
+                        <div class="font-black text-sm text-white">{{ wallet.available_balance }}</div>
+                        <span class="text-[9px] text-cyan font-black">{{ wallet.currency.code }}</span>
                     </div>
                 </div>
-                {% endif %}
-                
-                <!-- If you had other currencies, they would go here -->
-            </div>
 
-            <div class="wallet-stats">
-                {% if wallet.frozen_balance > 0 %}
-                <div class="stat-item">
-                    <span>مجمد</span>
-                    <strong>{{ wallet.frozen_balance }}</strong>
+                <!-- Frozen and Held Breakdown in Sidebar -->
+                <div class="grid grid-cols-2 gap-2 mt-2">
+                    <div class="bg-white/[0.01] p-3 border border-white/5 rounded-xl text-center">
+                        <label class="text-[9px] text-slate-500 block mb-1 font-bold">المجمد (سحب)</label>
+                        <span class="text-xs font-black text-slate-300">{{ wallet.frozen_balance }}</span>
+                    </div>
+                    <div class="bg-white/[0.01] p-3 border border-white/5 rounded-xl text-center">
+                        <label class="text-[9px] text-slate-500 block mb-1 font-bold">المحجوز (إداري)</label>
+                        <span class="text-xs font-black text-slate-300">{{ wallet.held_balance }}</span>
+                    </div>
                 </div>
-                {% endif %}
-                {% if wallet.held_balance > 0 %}
-                <div class="stat-item">
-                    <span>محجوز</span>
-                    <strong>{{ wallet.held_balance }}</strong>
-                </div>
-                {% endif %}
-                {% if wallet.pending_balance > 0 %}
-                <div class="stat-item">
-                    <span>معلق</span>
-                    <strong>{{ wallet.pending_balance }}</strong>
-                </div>
-                {% endif %}
-                {% if wallet.reserved_balance > 0 %}
-                <div class="stat-item">
-                    <span>محجوز طلبات</span>
-                    <strong>{{ wallet.reserved_balance }}</strong>
-                </div>
-                {% endif %}
             </div>
         </div>
 
-        <!-- Conversion Quick Info -->
-        <div class="panel p-6 bg-cyan/5 border-cyan/10">
-            <h4 class="text-xs font-black text-cyan uppercase mb-4">أسعار الصرف الحالية</h4>
+        <!-- Exchange Rates Panel -->
+        <div class="premium-sidebar-card">
+            <h4 class="sidebar-section-title">
+                <i class="fas fa-chart-line text-cyan"></i> أسعار الصرف الحالية
+            </h4>
             <div class="stack gap-3">
                 {% for c in ALL_CURRENCIES %}
                 {% if c.code != CURRENCY.code %}
-                <div class="flex justify-between text-[11px] font-bold">
-                    <span class="text-slate-400">1 {{ CURRENCY.code }} =</span>
-                    <span>
+                <div class="flex justify-between items-center text-xs py-2 border-b border-white/5 last:border-b-0">
+                    <span class="text-slate-400 font-medium">1 {{ CURRENCY.code }} =</span>
+                    <span class="text-white font-bold font-mono">
                         {% with 1.0|convert_price:c as rate %}
                         {{ rate }} {{ c.code }}
                         {% endwith %}
@@ -289,5 +529,27 @@
         </div>
     </aside>
 </div>
-{% endblock %}
 
+<script>
+// Reveal animation
+const observer = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+        if (entry.isIntersecting) entry.target.classList.add('visible');
+    });
+}, { threshold: 0.05 });
+document.querySelectorAll('.reveal').forEach(el => {
+    el.style.opacity = '0';
+    el.style.transform = 'translateY(20px)';
+    el.style.transition = 'all 0.6s cubic-bezier(0.2, 1, 0.3, 1)';
+    observer.observe(el);
+});
+document.addEventListener('DOMContentLoaded', () => {
+    document.querySelectorAll('.reveal').forEach(el => {
+        setTimeout(() => {
+            el.style.opacity = '1';
+            el.style.transform = 'translateY(0)';
+        }, 100);
+    });
+});
+</script>
+{% endblock %}

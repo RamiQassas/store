@@ -32,23 +32,49 @@
 {% endif %}
 
 <!-- Filters Card -->
-<div class="glass-panel p-6 mb-8">
-    <form method="get" class="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <div class="md:col-span-2">
-            <input type="text" name="q" class="w-full bg-slate-900/60 border border-white/5 rounded-2xl py-3 px-4 text-white text-sm focus:outline-none focus:border-cyan/50" placeholder="بحث بالرمز، البريد الإلكتروني، أو UID المنشئ/المستخدم..." value="{{ query|default:'' }}">
+<div class="glass-panel p-6 mb-8" style="direction: rtl;">
+    <form method="get" class="grid grid-cols-1 md:grid-cols-12 gap-4">
+        <div class="md:col-span-4">
+            <label class="text-[10px] text-slate-400 block mb-1 font-bold">البحث العام</label>
+            <input type="text" name="q" class="w-full bg-slate-900/60 border border-white/5 rounded-2xl py-2.5 px-4 text-white text-sm focus:outline-none focus:border-cyan/50" placeholder="بحث بالرمز، البريد الإلكتروني، أو UID..." value="{{ query|default:'' }}">
         </div>
-        <div>
-            <select name="status" class="w-full bg-slate-900/60 border border-white/5 rounded-2xl py-3 px-4 text-white text-sm focus:outline-none focus:border-cyan/50">
+        <div class="md:col-span-2">
+            <label class="text-[10px] text-slate-400 block mb-1 font-bold">الحالة</label>
+            <select name="status" class="w-full bg-slate-900/60 border border-white/5 rounded-2xl py-2.5 px-4 text-white text-sm focus:outline-none focus:border-cyan/50">
                 <option value="">جميع الحالات</option>
                 {% for code, name in status_choices %}
                 <option value="{{ code }}" {% if status_filter == code %}selected{% endif %}>{{ name }}</option>
                 {% endfor %}
             </select>
         </div>
-        <div>
-            <button type="submit" class="btn btn-outline w-full py-3">
-                <i class="fas fa-filter mr-2"></i> تصفية النتائج
+        <div class="md:col-span-2">
+            <label class="text-[10px] text-slate-400 block mb-1 font-bold">قيمة البطاقة</label>
+            <input type="number" name="amount" step="0.01" min="0" class="w-full bg-slate-900/60 border border-white/5 rounded-2xl py-2.5 px-4 text-white text-sm focus:outline-none focus:border-cyan/50 text-left font-bold" placeholder="0.00" value="{{ amount_filter|default:'' }}">
+        </div>
+        <div class="md:col-span-2">
+            <label class="text-[10px] text-slate-400 block mb-1 font-bold">ترتيب حسب</label>
+            <select name="sort" class="w-full bg-slate-900/60 border border-white/5 rounded-2xl py-2.5 px-4 text-white text-sm focus:outline-none focus:border-cyan/50">
+                <option value="-created_at" {% if sort_filter == '-created_at' %}selected{% endif %}>تاريخ الإنشاء (الأحدث أولاً)</option>
+                <option value="created_at" {% if sort_filter == 'created_at' %}selected{% endif %}>تاريخ الإنشاء (الأقدم أولاً)</option>
+                <option value="-amount" {% if sort_filter == '-amount' %}selected{% endif %}>القيمة (الأعلى أولاً)</option>
+                <option value="amount" {% if sort_filter == 'amount' %}selected{% endif %}>القيمة (الأقل أولاً)</option>
+            </select>
+        </div>
+        <div class="md:col-span-2 flex items-end">
+            <button type="submit" class="btn btn-outline w-full py-2.5">
+                <i class="fas fa-filter mr-2"></i> تصفية
             </button>
+        </div>
+        
+        <div class="md:col-span-6 grid grid-cols-2 gap-4">
+            <div>
+                <label class="text-[10px] text-slate-400 block mb-1 font-bold">تاريخ الإنشاء من</label>
+                <input type="date" name="date_from" class="w-full bg-slate-900/60 border border-white/5 rounded-2xl py-2.5 px-4 text-white text-sm focus:outline-none focus:border-cyan/50" value="{{ date_from|default:'' }}">
+            </div>
+            <div>
+                <label class="text-[10px] text-slate-400 block mb-1 font-bold">تاريخ الإنشاء إلى</label>
+                <input type="date" name="date_to" class="w-full bg-slate-900/60 border border-white/5 rounded-2xl py-2.5 px-4 text-white text-sm focus:outline-none focus:border-cyan/50" value="{{ date_to|default:'' }}">
+            </div>
         </div>
     </form>
 </div>
@@ -102,7 +128,14 @@
                         <span class="text-xs bg-rose-500/10 text-rose-400 border border-rose-500/20 px-2.5 py-1 rounded-lg font-bold"><i class="fas fa-times-circle mr-1"></i> ملغي</span>
                         {% endif %}
                     </td>
-                    <td class="p-4 text-xs">{{ card.created_at|date:"Y-m-d H:i" }}</td>
+                    <td class="p-4 text-xs">
+                        <div class="flex items-center gap-1">
+                            <span>{{ card.created_at|date:"Y-m-d H:i" }}</span>
+                            <button class="text-slate-500 hover:text-white p-1" onclick="copyToClipboard('{{ card.created_at|date:'Y-m-d H:i' }}', this)" title="نسخ التاريخ">
+                                <i class="far fa-copy text-[10px]"></i>
+                            </button>
+                        </div>
+                    </td>
                     <td class="p-4 text-xs">
                         {% if card.order %}
                             <a href="{% url 'control_order_detail' card.order.pk %}" class="text-cyan hover:underline font-bold"><i class="fas fa-receipt mr-1"></i> الطلب #{{ card.order.number }}</a>
@@ -155,10 +188,10 @@
         </div>
         <div class="flex gap-2">
             {% if page_obj.has_previous %}
-            <a href="?page={{ page_obj.previous_page_number }}{% if query %}&q={{ query }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}" class="btn btn-outline btn-sm py-1.5 px-4 text-xs">السابق</a>
+            <a href="?page={{ page_obj.previous_page_number }}{% if query %}&q={{ query }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}{% if amount_filter %}&amount={{ amount_filter }}{% endif %}{% if date_from %}&date_from={{ date_from }}{% endif %}{% if date_to %}&date_to={{ date_to }}{% endif %}{% if sort_filter %}&sort={{ sort_filter }}{% endif %}" class="btn btn-outline btn-sm py-1.5 px-4 text-xs">السابق</a>
             {% endif %}
             {% if page_obj.has_next %}
-            <a href="?page={{ page_obj.next_page_number }}{% if query %}&q={{ query }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}" class="btn btn-outline btn-sm py-1.5 px-4 text-xs">التالي</a>
+            <a href="?page={{ page_obj.next_page_number }}{% if query %}&q={{ query }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}{% if amount_filter %}&amount={{ amount_filter }}{% endif %}{% if date_from %}&date_from={{ date_from }}{% endif %}{% if date_to %}&date_to={{ date_to }}{% endif %}{% if sort_filter %}&sort={{ sort_filter }}{% endif %}" class="btn btn-outline btn-sm py-1.5 px-4 text-xs">التالي</a>
             {% endif %}
         </div>
     </div>

@@ -73,6 +73,15 @@
                                         <i class="fas fa-check-double text-[8px]"></i> سداد
                                     </button>
                                     {% endif %}
+                                    <form method="post" action="" class="inline-block">
+                                        {% csrf_token %}
+                                        <input type="hidden" name="user_id" value="{{ u.id }}">
+                                        <input type="hidden" name="action" value="toggle_debt_withdrawable">
+                                        <button type="submit" class="btn {% if u.wallet.debt_is_withdrawable %}btn-cyan{% else %}btn-outline border-white/5 text-slate-400{% endif %} btn-sm py-1.5 text-[9px] font-black uppercase rounded-lg" style="height: auto; font-size: 9px;" title="تحديد قابلية سحب الدين">
+                                            <i class="fas {% if u.wallet.debt_is_withdrawable %}fa-unlock text-[8px] ml-1{% else %}fa-lock text-rose-500/80 text-[8px] ml-1{% endif %}"></i>
+                                            {% if u.wallet.debt_is_withdrawable %}قابل للسحب{% else %}غير قابل للسحب{% endif %}
+                                        </button>
+                                    </form>
                                 </div>
                             </td>
                         </tr>

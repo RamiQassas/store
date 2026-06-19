@@ -46,21 +46,28 @@ def send_brevo_email(to_email, to_name, subject, html_content, text_content=None
     if text_content:
         payload["textContent"] = text_content
 
-    try:
-        response = requests.post(
-            settings.BREVO_API_URL,
-            headers=headers,
-            data=json.dumps(payload),
-            timeout=10
-        )
-        if response.status_code in [200, 201, 202]:
-            return True
-        else:
-            logger.error(f"Brevo API error: {response.status_code} - {response.text}")
-            return False
-    except Exception as e:
-        logger.error(f"Brevo connection error: {str(e)}")
-        return False
+    import time
+    max_retries = 3
+    for attempt in range(max_retries):
+        try:
+            response = requests.post(
+                settings.BREVO_API_URL,
+                headers=headers,
+                data=json.dumps(payload),
+                timeout=10
+            )
+            if response.status_code in [200, 201, 202]:
+                return True
+            else:
+                logger.warning(f"Brevo API error (attempt {attempt + 1}/{max_retries}): {response.status_code} - {response.text}")
+        except Exception as e:
+            logger.warning(f"Brevo connection error (attempt {attempt + 1}/{max_retries}): {str(e)}")
+        
+        if attempt < max_retries - 1:
+            time.sleep(1)
+            
+    logger.error("Brevo API failed after maximum retries.")
+    return False
 
 
 def send_verification_email(request, user):

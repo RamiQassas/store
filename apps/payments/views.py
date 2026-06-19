@@ -103,6 +103,7 @@ class DepositRequestViewSet(viewsets.ModelViewSet):
                 reference=f"deposit:{deposit.id}",
                 description=f"إيداع عبر {deposit.payment_method.name}",
                 created_by=request.user,
+                source="deposit",
                 metadata={
                     "from_pending": True,
                     "pending_amount": str(deposit.wallet_amount)

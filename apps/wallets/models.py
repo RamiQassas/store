@@ -17,6 +17,7 @@ class Wallet(TimeStampedModel):
     pending_balance = models.DecimalField(max_digits=14, decimal_places=2, default=Decimal("0.00"), verbose_name="الرصيد المعلق (إيداعات قيد الانتظار)")
     reserved_balance = models.DecimalField(max_digits=14, decimal_places=2, default=Decimal("0.00"), verbose_name="الرصيد المحجوز (طلبات قيد التنفيذ)")
     debt_balance = models.DecimalField(max_digits=14, decimal_places=2, default=Decimal("0.00"), verbose_name="الرصيد المستحق (ديون)")
+    debt_is_withdrawable = models.BooleanField(default=False, verbose_name="الدين قابل للسحب")
 
     class Meta:
         indexes = [models.Index(fields=["currency"])]
@@ -55,6 +56,12 @@ class Wallet(TimeStampedModel):
     @property
     def total_balance(self):
         return self.available_balance + self.frozen_balance + self.held_balance
+    
+    @property
+    def withdrawable_balance(self):
+        if self.debt_is_withdrawable:
+            return self.available_balance
+        return max(Decimal("0.00"), self.available_balance - self.debt_balance)
 
 
 class LedgerEntry(TimeStampedModel):

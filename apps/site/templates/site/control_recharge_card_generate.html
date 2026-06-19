@@ -43,6 +43,17 @@
                 <p class="text-[10px] text-slate-500 mt-1">الحد الأقصى للتوليد دفعة واحدة هو 500 كود.</p>
             </div>
 
+            <div class="space-y-2">
+                <label class="block text-xs font-black text-slate-400 uppercase tracking-widest">الباقة المستهدفة للتسليم التلقائي (اختياري)</label>
+                <select name="variant_id" class="w-full bg-slate-900/60 border border-white/5 rounded-2xl py-4 px-5 text-white text-sm focus:outline-none focus:border-cyan/50">
+                    <option value="">-- توليد بطاقات شحن فقط (بدون ربط تلقائي) --</option>
+                    {% for v in active_variants %}
+                    <option value="{{ v.id }}">{{ v.product.name }} - {{ v.name }}</option>
+                    {% endfor %}
+                </select>
+                <p class="text-[10px] text-slate-500 mt-1">عند اختيار باقة منتج، سيتم نسخ الأكواد المولدة تلقائياً كأكواد تسليم تلقائي (Keys) لتلك الباقة.</p>
+            </div>
+
             <div class="flex gap-4 pt-4">
                 <button type="submit" class="btn btn-primary flex-1 py-4">
                     <i class="fas fa-magic mr-2"></i> توليد الآن

@@ -42,8 +42,8 @@ def execute_p2p_transfer(sender, recipient, amount, currency, note=""):
         sender_wallet = Wallet.objects.select_for_update().get(user=sender, currency=currency)
         recipient_wallet = Wallet.objects.select_for_update().get(user=recipient, currency=currency)
 
-        if sender_wallet.available_balance < amount:
-            raise ValidationError("الرصيد المتاح غير كافٍ لإتمام التحويل.")
+        if sender_wallet.withdrawable_balance < amount:
+            raise ValidationError("الرصيد القابل للتحويل غير كافٍ (رصيد الدين غير قابل للتحويل/السحب).")
 
         # Create Transfer Record
         transfer = BalanceTransfer.objects.create(
@@ -329,8 +329,8 @@ def freeze_funds(wallet_id, amount, reference="", description="", created_by=Non
         raise WalletError("Amount must be positive.")
     with transaction.atomic():
         wallet = Wallet.objects.select_for_update().get(id=wallet_id)
-        if wallet.available_balance < amount:
-            raise WalletError("Insufficient wallet balance to freeze.")
+        if wallet.withdrawable_balance < amount:
+            raise WalletError("رصيد غير كافٍ للسحب (رصيد الدين غير قابل للسحب).")
         wallet.available_balance -= amount
         wallet.frozen_balance += amount
         wallet.save(update_fields=["available_balance", "frozen_balance", "updated_at"])
