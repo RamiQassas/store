@@ -427,7 +427,8 @@ def v3_forgot_password_view(request):
         email = request.POST.get("email", "").lower().strip()
         user = User.objects.filter(email=email).first()
         if user:
-            token = signer.sign(str(user.id))
+            from django.contrib.auth.tokens import default_token_generator
+            token = default_token_generator.make_token(user)
             # Include uid and use urljoin for consistent URLs
             reset_url = urljoin(settings.SITE_URL, reverse('site_reset_password')) + f"?token={token}&uid={user.id}"
             subject = "رابط استعادة كلمة المرور | Raqamiyat"
