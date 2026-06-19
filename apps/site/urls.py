@@ -86,6 +86,7 @@ urlpatterns = [
     path("control/products/import/", views.control_product_import, name="control_product_import"),
     path("control/products/<uuid:product_pk>/variants/create/", views.control_variant_create, name="control_variant_create"),
     path("control/variants/<uuid:pk>/edit/", views.control_variant_edit, name="control_variant_edit"),
+    path("control/variants/<uuid:pk>/keys/", views.control_variant_keys, name="control_variant_keys"),
     path("control/orders/", views.control_orders_list, name="control_orders_list"),
     path("control/orders/<uuid:pk>/", views.control_order_detail, name="control_order_detail"),
     path('ajax/user-search/', views.ajax_user_search, name='ajax_user_search'),

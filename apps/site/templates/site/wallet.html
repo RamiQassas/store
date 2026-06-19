@@ -148,6 +148,9 @@
                         <div>
                             <div class="font-bold text-sm">
                                 {{ entry.get_entry_type_display }}
+                                {% if entry.source %}
+                                 • {{ entry.source|translate_ledger_source }}
+                                {% endif %}
                                 {% if entry.source == 'purchase' %}
                                 <a href="{% url 'dashboard_order_detail' entry.reference %}" class="mr-2 text-cyan hover:underline text-[10px]"><i class="fas fa-external-link-alt"></i> عرض الطلب</a>
                                 {% endif %}
@@ -159,6 +162,8 @@
                             {% endif %}
                             {% if entry.description %}
                             <div class="text-[11px] text-white/80 font-medium mt-0.5 leading-relaxed">{{ entry.description }}</div>
+                            {% elif entry.reason %}
+                            <div class="text-[11px] text-white/80 font-medium mt-0.5 leading-relaxed">{{ entry.reason }}</div>
                             {% endif %}
                             <div class="text-[10px] text-muted mt-1">
                                 {{ entry.created_at|date:"d M Y, H:i" }} • 

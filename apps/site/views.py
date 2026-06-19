@@ -25,7 +25,7 @@ from django.core.signing import TimestampSigner, SignatureExpired, BadSignature
 
 from apps.accounts.models import User, OTPToken, KYCRequest, KYCSettings, ActivityLog
 from apps.accounts.services import send_brevo_email
-from apps.catalog.models import Category, Product, ProductVariant, ProductSuggestion
+from apps.catalog.models import Category, Product, ProductVariant, ProductSuggestion, ProductKey
 from apps.common.models import Currency, SocialMediaLink, SiteAnnouncement
 from apps.notifications.models import Notification, NotificationSetting
 from apps.notifications.services import notify_bulk, notify_user
@@ -2762,7 +2762,8 @@ def control_product_create(request):
                     sort_order=int(v.get('sort_order', 0) or 0),
                     is_active=v.get('is_active', True),
                     is_sale=v.get('is_sale', False),
-                    is_temporarily_disabled=v.get('is_temporarily_disabled', False)
+                    is_temporarily_disabled=v.get('is_temporarily_disabled', False),
+                    delivery_type=v.get('delivery_type', 'manual')
                 )
 
         return redirect("control_products_list")
@@ -2795,22 +2796,77 @@ def control_product_edit(request, pk):
                         "sort_order": int(v.get('sort_order', 0) or 0),
                         "is_active": v.get('is_active', True),
                         "is_sale": v.get('is_sale', False),
-                        "is_temporarily_disabled": v.get('is_temporarily_disabled', False)
+                        "is_temporarily_disabled": v.get('is_temporarily_disabled', False),
+                        "delivery_type": v.get('delivery_type', 'manual')
                     }
                 )
 
         return redirect("control_products_list")
     v_list = [
         {
-            "name": v.name, "sku": v.sku, "price": str(v.price), 
+            "id": str(v.id), "name": v.name, "sku": v.sku, "price": str(v.price), 
             "wholesale_price": str(v.wholesale_price), "vip_price": str(v.vip_price),
             "cost": str(v.cost), "estimated_delivery_minutes": v.estimated_delivery_minutes,
             "sort_order": v.sort_order, "is_active": v.is_active,
             "is_sale": v.is_sale,
-            "is_temporarily_disabled": v.is_temporarily_disabled
+            "is_temporarily_disabled": v.is_temporarily_disabled,
+            "delivery_type": v.delivery_type,
+            "keys_count": v.keys.filter(is_used=False).count()
         } for v in product.variants.all().order_by('sort_order')
     ]
     return render(request, "site/control_product_builder.html", {"form": form, "product": product, "variants_json_data": v_list, "title": f"تعديل: {product.name}"})
+
+
+@support_required
+def control_variant_keys(request, pk):
+    variant = get_object_or_404(ProductVariant.objects.select_related('product'), pk=pk)
+    
+    if request.method == "POST":
+        action = request.POST.get("action")
+        if action == "add_keys":
+            keys_text = request.POST.get("keys_text", "").strip()
+            if keys_text:
+                lines = [line.strip() for line in keys_text.replace(",", "\n").split("\n") if line.strip()]
+                added_count = 0
+                for code in lines:
+                    ProductKey.objects.create(variant=variant, key_code=code)
+                    added_count += 1
+                messages.success(request, f"تم إضافة {added_count} مفتاح/كود بنجاح.")
+            else:
+                messages.error(request, "يرجى كتابة كود واحد على الأقل.")
+                
+        elif action == "delete_key":
+            key_id = request.POST.get("key_id")
+            key_obj = get_object_or_404(ProductKey, pk=key_id, variant=variant)
+            key_obj.delete()
+            messages.success(request, "تم حذف المفتاح بنجاح.")
+            
+        elif action == "delete_all_unused":
+            deleted_count = ProductKey.objects.filter(variant=variant, is_used=False).delete()[0]
+            messages.success(request, f"تم حذف {deleted_count} مفتاح غير مستخدم بنجاح.")
+            
+        return redirect("control_variant_keys", pk=variant.id)
+        
+    keys_list = ProductKey.objects.filter(variant=variant).select_related('used_by', 'order').order_by('-created_at')
+    
+    paginator = Paginator(keys_list, 50)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+    
+    total_keys = keys_list.count()
+    used_keys = keys_list.filter(is_used=True).count()
+    unused_keys = total_keys - used_keys
+    
+    context = {
+        "variant": variant,
+        "product": variant.product,
+        "page_obj": page_obj,
+        "total_keys": total_keys,
+        "used_keys": used_keys,
+        "unused_keys": unused_keys,
+    }
+    return render(request, "site/control_variant_keys.html", context)
+
 
 @admin_required
 def control_announcements(request): return render(request, "site/control_announcements.html", {"announcements": SiteAnnouncement.objects.all().order_by("-created_at")})

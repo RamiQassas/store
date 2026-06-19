@@ -3,7 +3,7 @@ from decimal import Decimal
 from django.db import transaction
 from django.utils import timezone
 
-from apps.catalog.models import ProductVariant
+from apps.catalog.models import ProductVariant, ProductKey
 from apps.orders.models import Invoice, Order, OrderItem, OrderLog, Coupon
 from apps.wallets.services import debit_wallet, get_or_create_wallet
 
@@ -161,14 +161,36 @@ def create_order(customer, variant_id, quantity=1, fulfillment_data=None, coupon
 
     total = subtotal - discount
     if total < 0: total = Decimal("0.00")
+
+    # Auto-delivery keys check
+    locked_keys = []
+    if variant.delivery_type == 'keys':
+        key_ids = list(ProductKey.objects.filter(
+            variant=variant,
+            is_used=False
+        ).values_list('id', flat=True)[:quantity])
+
+        if len(key_ids) < quantity:
+            raise ValueError("المخزون غير كافي لتلبية الكمية المطلوبة من هذا المنتج.")
+
+        locked_keys = list(ProductKey.objects.filter(id__in=key_ids).select_for_update())
+        if len(locked_keys) < quantity:
+            raise ValueError("المخزون غير كافي لتلبية الكمية المطلوبة من هذا المنتج.")
+
+    status = Order.Status.PROCESSING
+    final_fulfillment_data = fulfillment_data or {}
+    if variant.delivery_type == 'keys':
+        status = Order.Status.COMPLETED
+        final_fulfillment_data['keys'] = [k.key_code for k in locked_keys]
+
     order = Order.objects.create(
         customer=customer,
         number=next_order_number(),
-        status=Order.Status.PROCESSING,
+        status=status,
         total_amount=total,
         original_total=subtotal,
         coupon=coupon,
-        fulfillment_data=fulfillment_data or {},
+        fulfillment_data=final_fulfillment_data,
         metadata=metadata or {},
     )
     OrderItem.objects.create(
@@ -179,6 +201,14 @@ def create_order(customer, variant_id, quantity=1, fulfillment_data=None, coupon
         unit_cost=variant.cost,
         total_price=subtotal
     )
+
+    if variant.delivery_type == 'keys':
+        for key in locked_keys:
+            key.is_used = True
+            key.used_by = customer
+            key.used_at = timezone.now()
+            key.order = order
+            key.save(update_fields=['is_used', 'used_by', 'used_at', 'order'])
     
     wallet = get_or_create_wallet(customer)
     
@@ -189,7 +219,10 @@ def create_order(customer, variant_id, quantity=1, fulfillment_data=None, coupon
         
     debit_wallet(wallet.id, debit_amount, reference=f"order:{order.id}", description=f"Order {order.number}", created_by=customer)
     
-    OrderLog.objects.create(order=order, status=order.status, note="Order created and wallet debited.", created_by=customer)
+    log_note = "Order created and wallet debited."
+    if variant.delivery_type == 'keys':
+        log_note = "تم إنشاء الطلب وتسليم الأكواد تلقائياً بنجاح."
+    OrderLog.objects.create(order=order, status=order.status, note=log_note, created_by=customer)
     Invoice.objects.create(order=order, invoice_number=order.number.replace("ORD", "INV", 1), total_amount=total)
 
     from apps.notifications.services import notify_staff

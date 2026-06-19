@@ -1,0 +1,199 @@
+{% extends "site/control_base.html" %}
+{% load static %}
+
+{% block title %}إدارة مفاتيح {{ variant.name }} | Raqamiyat Control{% endblock %}
+
+{% block control_content %}
+<div class="page-head">
+    <div>
+        <span class="eyebrow">إدارة مفاتيح التسليم التلقائي</span>
+        <h1>{{ product.name }}</h1>
+        <p class="text-slate-500 mt-1">الباقة: <span class="text-cyan font-bold">{{ variant.name }}</span> (SKU: {{ variant.sku }})</p>
+    </div>
+    <div class="flex gap-3">
+        <a href="{% url 'control_product_edit' product.id %}" class="btn btn-outline btn-sm">
+            <i class="fas fa-arrow-right ml-2"></i> العودة للمنتج
+        </a>
+    </div>
+</div>
+
+<!-- Stats Row -->
+<div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+    <div class="glass-panel p-6 border-white/5 relative overflow-hidden group">
+        <div class="flex items-center gap-4">
+            <div class="w-10 h-10 rounded-xl bg-cyan/10 flex items-center justify-center text-cyan">
+                <i class="fas fa-key"></i>
+            </div>
+            <div>
+                <span class="text-[10px] text-slate-500 font-bold block mb-1">إجمالي الأكواد</span>
+                <strong class="text-xl font-black text-white">{{ total_keys }}</strong>
+            </div>
+        </div>
+    </div>
+    <div class="glass-panel p-6 border-white/5 relative overflow-hidden group">
+        <div class="flex items-center gap-4">
+            <div class="w-10 h-10 rounded-xl bg-emerald-500/10 flex items-center justify-center text-emerald-400">
+                <i class="fas fa-check-circle"></i>
+            </div>
+            <div>
+                <span class="text-[10px] text-slate-500 font-bold block mb-1">الأكواد المتاحة</span>
+                <strong class="text-xl font-black text-emerald-400">{{ unused_keys }}</strong>
+            </div>
+        </div>
+    </div>
+    <div class="glass-panel p-6 border-white/5 relative overflow-hidden group">
+        <div class="flex items-center gap-4">
+            <div class="w-10 h-10 rounded-xl bg-amber-500/10 flex items-center justify-center text-amber-500">
+                <i class="fas fa-shopping-cart"></i>
+            </div>
+            <div>
+                <span class="text-[10px] text-slate-500 font-bold block mb-1">الأكواد المباعة</span>
+                <strong class="text-xl font-black text-amber-400">{{ used_keys }}</strong>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+    <!-- Form to Bulk Add Keys -->
+    <div class="lg:col-span-4 stack gap-6">
+        <div class="glass-panel p-6 border-white/5">
+            <h3 class="text-sm font-black text-white uppercase tracking-widest flex items-center gap-2 mb-6">
+                <i class="fas fa-plus-circle text-cyan"></i> إضافة أكواد/مفاتيح جديدة
+            </h3>
+            <form method="post">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="add_keys">
+                
+                <div class="field-group mb-4">
+                    <label class="text-xs text-slate-400 block mb-2">أدخل الأكواد (كل كود في سطر جديد أو مفصول بفاصلة):</label>
+                    <textarea name="keys_text" rows="10" class="w-full bg-slate-900 border border-white/10 rounded-lg p-3 text-sm text-white font-mono focus:border-cyan focus:outline-none" placeholder="CODE-1234&#10;CODE-5678&#10;CODE-9012" required></textarea>
+                </div>
+                
+                <button type="submit" class="btn btn-primary w-full text-xs py-3 font-bold">
+                    <i class="fas fa-upload ml-2"></i> إضافة المفاتيح للمخزون
+                </button>
+            </form>
+        </div>
+        
+        {% if unused_keys > 0 %}
+        <div class="glass-panel p-6 border-rose-500/10 hover:border-rose-500/20 transition-all bg-rose-500/[0.01]">
+            <h3 class="text-sm font-black text-rose-400 uppercase tracking-widest flex items-center gap-2 mb-4">
+                <i class="fas fa-exclamation-triangle text-rose-500"></i> منطقة خطرة
+            </h3>
+            <p class="text-xs text-slate-400 mb-4">يمكنك حذف جميع الأكواد غير المستخدمة في المخزون دفعة واحدة.</p>
+            <form method="post" onsubmit="return confirm('هل أنت متأكد من حذف جميع الأكواد غير المستخدمة؟ لا يمكن التراجع عن هذا الإجراء.');">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="delete_all_unused">
+                <button type="submit" class="btn btn-outline danger w-full text-xs py-2 font-bold">
+                    <i class="fas fa-trash-alt ml-2"></i> حذف جميع الأكواد غير المستخدمة
+                </button>
+            </form>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Table of Existing Keys -->
+    <div class="lg:col-span-8 glass-panel overflow-hidden">
+        <div class="p-6 border-b border-white/5 bg-white/[0.01]">
+            <h3 class="text-sm font-black text-white uppercase tracking-widest flex items-center gap-2">
+                <i class="fas fa-list text-cyan text-xs"></i> قائمة المفاتيح والأكواد المضافة
+            </h3>
+        </div>
+        <div class="overflow-x-auto">
+            <table class="w-full text-right text-sm admin-table">
+                <thead>
+                    <tr class="bg-black/20">
+                        <th class="p-4 text-xs font-bold text-slate-500">الكود</th>
+                        <th class="p-4 text-xs font-bold text-slate-500 text-center">الحالة</th>
+                        <th class="p-4 text-xs font-bold text-slate-500">المشتري</th>
+                        <th class="p-4 text-xs font-bold text-slate-500">تاريخ البيع</th>
+                        <th class="p-4 text-xs font-bold text-slate-500">الطلب</th>
+                        <th class="p-4 text-xs font-bold text-slate-500 text-left">إجراءات</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-white/[0.02]">
+                    {% for key in page_obj %}
+                    <tr class="hover:bg-white/[0.01] transition-colors">
+                        <td class="p-4 font-mono text-xs font-bold">
+                            <span class="bg-white/5 border border-white/10 px-2 py-1 rounded text-cyan select-all">{{ key.key_code }}</span>
+                        </td>
+                        <td class="p-4 text-center">
+                            {% if key.is_used %}
+                            <span class="badge warning px-2 py-1 text-[10px] rounded-lg">مباع</span>
+                            {% else %}
+                            <span class="badge success px-2 py-1 text-[10px] rounded-lg">متاح في المخزون</span>
+                            {% endif %}
+                        </td>
+                        <td class="p-4 text-xs">
+                            {% if key.is_used and key.used_by %}
+                            <a href="{% url 'control_user_moderate' key.used_by.public_uuid %}" class="text-cyan hover:underline font-bold">
+                                {{ key.used_by.get_full_name|default:key.used_by.email }}
+                            </a>
+                            {% else %}
+                            <span class="text-slate-600 italic">-</span>
+                            {% endif %}
+                        </td>
+                        <td class="p-4 text-xs text-slate-400">
+                            {% if key.is_used and key.used_at %}
+                            {{ key.used_at|date:"Y-m-d H:i" }}
+                            {% else %}
+                            <span class="text-slate-600 italic">-</span>
+                            {% endif %}
+                        </td>
+                        <td class="p-4 text-xs">
+                            {% if key.is_used and key.order %}
+                            <a href="{% url 'control_order_detail' key.order.id %}" class="text-cyan hover:underline font-mono">
+                                {{ key.order.number }}
+                            </a>
+                            {% else %}
+                            <span class="text-slate-600 italic">-</span>
+                            {% endif %}
+                        </td>
+                        <td class="p-4 text-left">
+                            <form method="post" action="" onsubmit="return confirm('هل أنت متأكد من حذف هذا الكود؟');" class="inline">
+                                {% csrf_token %}
+                                <input type="hidden" name="action" value="delete_key">
+                                <input type="hidden" name="key_id" value="{{ key.id }}">
+                                <button type="submit" class="btn btn-outline danger btn-xs p-1" title="حذف الكود">
+                                    <i class="fas fa-trash-alt text-rose-500"></i>
+                                </button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="6" class="p-16 text-center text-slate-500 italic">
+                            <div class="w-12 h-12 bg-slate-900 rounded-full flex items-center justify-center mx-auto mb-4 opacity-20">
+                                <i class="fas fa-key text-xl"></i>
+                            </div>
+                            لا توجد مفاتيح مضافة لهذه الباقة بعد. استخدم النموذج الجانبي لإضافة مفاتيحك.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        
+        <!-- Pagination -->
+        {% if page_obj.has_other_pages %}
+        <div class="p-6 border-t border-white/5 bg-white/[0.01] flex justify-between items-center">
+            <div class="text-xs text-slate-500 font-bold">
+                عرض {{ page_obj.start_index }} إلى {{ page_obj.end_index }} من أصل {{ total_keys }} مفتاح
+            </div>
+            <div class="flex gap-2">
+                {% if page_obj.has_previous %}
+                <a href="?page={{ page_obj.previous_page_number }}" class="btn btn-outline btn-xs px-3 py-1.5 rounded-lg text-[10px] font-black uppercase">السابق</a>
+                {% endif %}
+                
+                <span class="text-xs font-bold text-white self-center mx-2">صفحة {{ page_obj.number }} من {{ page_obj.paginator.num_pages }}</span>
+                
+                {% if page_obj.has_next %}
+                <a href="?page={{ page_obj.next_page_number }}" class="btn btn-outline btn-xs px-3 py-1.5 rounded-lg text-[10px] font-black uppercase">التالي</a>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

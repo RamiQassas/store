@@ -95,6 +95,15 @@ class ProductVariant(TimeStampedModel):
     is_active = models.BooleanField(default=True, verbose_name="نشط")
     is_temporarily_disabled = models.BooleanField(default=False, verbose_name="إيقاف مؤقت (يظهر كغير متوفر)")
     is_recharge_card = models.BooleanField(default=False, verbose_name="بطاقة شحن تلقائية", help_text="إذا تم التفعيل، سيتم توليد كود شحن تلقائياً عند اكتمال الطلب.")
+    delivery_type = models.CharField(
+        max_length=20,
+        choices=(
+            ("manual", "تسليم يدوي"),
+            ("keys", "تسليم تلقائي (أكواد)"),
+        ),
+        default="manual",
+        verbose_name="طريقة التسليم"
+    )
     recharge_amount = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal("0.00"), verbose_name="قيمة كود الشحن التلقائي")
     recharge_currency = models.ForeignKey("common.Currency", on_delete=models.SET_NULL, null=True, blank=True, verbose_name="عملة كود الشحن التلقائي")
     sort_order = models.PositiveIntegerField(default=0, verbose_name="ترتيب العرض")
@@ -198,6 +207,37 @@ class ProductSuggestion(TimeStampedModel):
 
     def __str__(self):
         return f"{self.product_name} - {self.user.email}"
+
+
+class ProductKey(TimeStampedModel):
+    variant = models.ForeignKey(ProductVariant, on_delete=models.CASCADE, related_name="keys", verbose_name="الباقة")
+    key_code = models.CharField(max_length=255, verbose_name="الكود")
+    is_used = models.BooleanField(default=False, verbose_name="مستخدم")
+    used_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="used_keys",
+        verbose_name="المشتري"
+    )
+    used_at = models.DateTimeField(null=True, blank=True, verbose_name="تاريخ الاستخدام")
+    order = models.ForeignKey(
+        "orders.Order",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="keys",
+        verbose_name="الطلب"
+    )
+
+    class Meta:
+        verbose_name = "مفتاح منتج"
+        verbose_name_plural = "مفاتيح المنتجات"
+        ordering = ("-created_at",)
+
+    def __str__(self):
+        return f"{self.variant.name} - {self.key_code[:20]}"
 
 
 # Legacy model removed (ProductFormField)

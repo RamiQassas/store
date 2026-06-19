@@ -160,3 +160,25 @@ def get_deposit_config(payment_method, user):
 @register.simple_tag
 def get_withdrawal_config(payment_method, user):
     return mark_safe(payment_method.to_withdrawal_json(user=user))
+
+
+@register.filter
+def translate_ledger_source(source):
+    translation_map = {
+        "p2p transfer out": "تحويل مالي مرسل (P2P)",
+        "p2p transfer in": "تحويل مالي مستلم (P2P)",
+        "p2p reversal out": "إلغاء وإرجاع تحويل مرسل",
+        "p2p reversal in": "إلغاء وإرجاع تحويل مستلم",
+        "recharge_card": "شحن بطاقة رصيد",
+        "deposit": "عملية إيداع",
+        "withdrawal": "عملية سحب",
+        "order": "شراء خدمة/منتج",
+        "admin_adjustment": "تعديل رصيد إداري",
+        "admin_cash": "سداد نقدي إداري",
+        "admin": "تعديل إداري",
+        "system": "عملية للنظام"
+    }
+    if not source:
+        return ""
+    src_lower = str(source).strip().lower()
+    return translation_map.get(src_lower, source)
