@@ -9,7 +9,10 @@
         <h1 class="text-3xl font-black text-white">إدارة بطاقات الشحن</h1>
         <p class="text-slate-400 text-sm">إنشاء وإلغاء ومراقبة رموز شحن الرصيد في النظام.</p>
     </div>
-    <div>
+    <div class="flex gap-3">
+        <button id="copy-selected-btn" class="btn btn-outline btn-cyan hidden" onclick="copySelectedCodes()">
+            <i class="fas fa-copy ml-2"></i> نسخ الأكواد المحددة (<span id="selected-count">0</span>)
+        </button>
         <a href="{% url 'control_recharge_cards_generate' %}" class="btn btn-primary">
             <i class="fas fa-plus mr-2"></i> توليد بطاقات شحن
         </a>
@@ -53,6 +56,9 @@
         <table class="w-full text-right text-slate-300 text-sm">
             <thead class="bg-slate-900/40 text-slate-400 font-bold border-b border-white/5">
                 <tr>
+                    <th class="p-4 w-12 text-center">
+                        <input type="checkbox" id="select-all-codes" class="rounded border-white/10 bg-slate-900 text-cyan focus:ring-0 focus:ring-offset-0">
+                    </th>
                     <th class="p-4">رمز الشحن</th>
                     <th class="p-4">القيمة</th>
                     <th class="p-4">العملة</th>
@@ -67,7 +73,17 @@
             <tbody class="divide-y divide-white/5">
                 {% for card in page_obj %}
                 <tr class="hover:bg-white/[0.01] transition-colors">
-                    <td class="p-4"><code class="bg-black/30 px-2 py-1 rounded text-cyan font-mono text-sm tracking-wider">{{ card.code }}</code></td>
+                    <td class="p-4 w-12 text-center">
+                        <input type="checkbox" value="{{ card.code }}" class="code-checkbox rounded border-white/10 bg-slate-900 text-cyan focus:ring-0 focus:ring-offset-0">
+                    </td>
+                    <td class="p-4">
+                        <div class="flex items-center gap-2">
+                            <code class="bg-black/30 px-2 py-1 rounded text-cyan font-mono text-sm tracking-wider">{{ card.code }}</code>
+                            <button class="text-slate-500 hover:text-white p-1" onclick="copyToClipboard('{{ card.code }}', this)" title="نسخ الكود">
+                                <i class="far fa-copy text-xs"></i>
+                            </button>
+                        </div>
+                    </td>
                     <td class="p-4 font-bold text-white">{{ card.amount }}</td>
                     <td class="p-4"><span class="badge primary">{{ card.currency.code }}</span></td>
                     <td class="p-4">
@@ -84,14 +100,18 @@
                         {% if card.order %}
                             <a href="{% url 'control_order_detail' card.order.pk %}" class="text-cyan hover:underline font-bold"><i class="fas fa-receipt mr-1"></i> الطلب #{{ card.order.number }}</a>
                         {% elif card.created_by %}
-                            <span class="text-slate-400">{{ card.created_by.display_name }}</span>
+                            <span class="text-slate-400">{{ card.created_by.get_full_name|default:card.created_by.email }}</span>
                         {% else %}
                             <span class="text-slate-500">-</span>
                         {% endif %}
                     </td>
                     <td class="p-4 text-xs">
                         {% if card.redeemed_by %}
-                            <a href="{% url 'control_user_moderate' card.redeemed_by.public_uuid %}" class="text-cyan hover:underline font-bold">{{ card.redeemed_by.display_name }}</a>
+                            <a href="{% url 'control_user_moderate' card.redeemed_by.public_uuid %}" class="text-cyan hover:underline font-bold">
+                                {{ card.redeemed_by.get_full_name|default:card.redeemed_by.email }}
+                            </a>
+                            <div class="text-[10px] text-slate-300 mt-1">البريد: {{ card.redeemed_by.email }}</div>
+                            <div class="text-[10px] text-slate-300 mt-0.5">الهاتف: {{ card.redeemed_by.phone|default:"-" }}</div>
                             <div class="text-[10px] text-slate-500 font-mono mt-0.5">UID: {{ card.redeemed_by.uid }}</div>
                         {% else %}
                             <span class="text-slate-500">-</span>
@@ -113,7 +133,7 @@
                 </tr>
                 {% empty %}
                 <tr>
-                    <td colspan="9" class="p-12 text-center text-slate-500">لا توجد بطاقات شحن مسجلة حالياً.</td>
+                    <td colspan="10" class="p-12 text-center text-slate-500">لا توجد بطاقات شحن مسجلة حالياً.</td>
                 </tr>
                 {% endfor %}
             </tbody>
@@ -137,4 +157,64 @@
     </div>
     {% endif %}
 </div>
+
+<script>
+let updateSelectedCount;
+
+document.addEventListener('DOMContentLoaded', function() {
+    const selectAll = document.getElementById('select-all-codes');
+    const checkboxes = document.querySelectorAll('.code-checkbox');
+    const copyBtn = document.getElementById('copy-selected-btn');
+    const selectedCountSpan = document.getElementById('selected-count');
+
+    updateSelectedCount = function() {
+        const checked = document.querySelectorAll('.code-checkbox:checked');
+        selectedCountSpan.textContent = checked.length;
+        if (checked.length > 0) {
+            copyBtn.classList.remove('hidden');
+        } else {
+            copyBtn.classList.add('hidden');
+        }
+        if (selectAll) {
+            selectAll.checked = checkboxes.length > 0 && checked.length === checkboxes.length;
+        }
+    }
+
+    if (selectAll) {
+        selectAll.addEventListener('change', function() {
+            checkboxes.forEach(cb => cb.checked = selectAll.checked);
+            updateSelectedCount();
+        });
+    }
+
+    checkboxes.forEach(cb => {
+        cb.addEventListener('change', updateSelectedCount);
+    });
+});
+
+function copyToClipboard(text, btn) {
+    navigator.clipboard.writeText(text).then(() => {
+        const icon = btn.querySelector('i');
+        const originalClass = icon.className;
+        icon.className = 'fas fa-check text-emerald-500';
+        setTimeout(() => {
+            icon.className = originalClass;
+        }, 2000);
+    });
+}
+
+function copySelectedCodes() {
+    const checked = document.querySelectorAll('.code-checkbox:checked');
+    const codes = Array.from(checked).map(cb => cb.value).join('\n');
+    navigator.clipboard.writeText(codes).then(() => {
+        const btn = document.getElementById('copy-selected-btn');
+        const originalContent = btn.innerHTML;
+        btn.innerHTML = '<i class="fas fa-check text-emerald-500 ml-2"></i> تم نسخ الأكواد!';
+        setTimeout(() => {
+            btn.innerHTML = originalContent;
+            if (updateSelectedCount) updateSelectedCount();
+        }, 2000);
+    });
+}
+</script>
 {% endblock %}
