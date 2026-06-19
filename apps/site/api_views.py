@@ -148,18 +148,26 @@ def api_order_mark_read(request, pk):
 def api_lookup_user(request):
     """API to lookup user by UID, Email, Phone, or Name for P2P transfer."""
     from apps.accounts.models import User
-    from django.db.models import Q
+    from django.db.models import Q, Value, CharField
+    from django.db.models.functions import Concat, Coalesce
     q = request.GET.get('q', '').strip()
     
     if not q or len(q) < 3:
         return JsonResponse({"error": "يرجى إدخال 3 أحرف على الأقل."}, status=400)
     
-    users = User.objects.filter(
+    users = User.objects.annotate(
+        full_name=Concat(
+            Coalesce('first_name', Value(''), output_field=CharField()),
+            Value(' '),
+            Coalesce('last_name', Value(''), output_field=CharField())
+        )
+    ).filter(
         Q(uid__iexact=q) | 
         Q(email__iexact=q) | 
         Q(phone__iexact=q) |
         Q(first_name__icontains=q) |
-        Q(last_name__icontains=q)
+        Q(last_name__icontains=q) |
+        Q(full_name__icontains=q)
     ).exclude(id=request.user.id)
     
     count = users.count()

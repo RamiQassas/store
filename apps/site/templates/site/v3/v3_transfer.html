@@ -1,5 +1,5 @@
 {% extends "site/base.html" %}
-{% load static %}
+{% load static site_tags %}
 {% block title %}التحويل المالي | Raqamiyat{% endblock %}
 
 {% block extra_head %}
@@ -37,7 +37,7 @@
             <div class="flex items-center justify-between p-4 bg-slate-900/50 rounded-xl mb-8 border border-white/5">
                 <div>
                     <p class="text-xs text-slate-400 mb-1">الرصيد المتاح</p>
-                    <p class="text-xl font-black text-emerald-400">{{ wallet.available_balance|floatformat:2 }} <span class="text-sm">{{ wallet.currency.code }}</span></p>
+                    <p class="text-xl font-black text-emerald-400">{% currency_format wallet.available_balance wallet.currency mode="withdraw" %}</p>
                 </div>
                 <div class="text-left">
                     <p class="text-xs text-slate-400 mb-1">المعرف الخاص بك (UID)</p>
