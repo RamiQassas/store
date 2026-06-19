@@ -310,3 +310,143 @@ class P2PTransferTests(TestCase):
         from django.core.exceptions import ValidationError
         with self.assertRaises(ValidationError):
             execute_p2p_transfer(self.sender, self.recipient, Decimal("10.00"), self.usd)
+
+    def test_p2p_transfer_suspend_and_unsuspend(self):
+        from apps.wallets.services import execute_p2p_transfer, suspend_p2p_transfer, unsuspend_p2p_transfer
+        
+        transfer = execute_p2p_transfer(self.sender, self.recipient, Decimal("40.00"), self.usd)
+        
+        # Suspend transfer
+        suspend_p2p_transfer(transfer, admin_user=self.sender)
+        transfer.refresh_from_db()
+        self.assertEqual(transfer.status, BalanceTransfer.Status.SUSPENDED)
+        
+        self.recipient_wallet.refresh_from_db()
+        self.assertEqual(self.recipient_wallet.available_balance, Decimal("0.00"))
+        self.assertEqual(self.recipient_wallet.held_balance, Decimal("40.00"))
+        
+        # Unsuspend transfer
+        unsuspend_p2p_transfer(transfer, admin_user=self.sender)
+        transfer.refresh_from_db()
+        self.assertEqual(transfer.status, BalanceTransfer.Status.COMPLETED)
+        
+        self.recipient_wallet.refresh_from_db()
+        self.assertEqual(self.recipient_wallet.available_balance, Decimal("40.00"))
+        self.assertEqual(self.recipient_wallet.held_balance, Decimal("0.00"))
+
+    def test_p2p_transfer_reverse_suspended(self):
+        from apps.wallets.services import execute_p2p_transfer, suspend_p2p_transfer, reverse_p2p_transfer
+        
+        transfer = execute_p2p_transfer(self.sender, self.recipient, Decimal("40.00"), self.usd)
+        
+        # Suspend first
+        suspend_p2p_transfer(transfer, admin_user=self.sender)
+        
+        # Reverse suspended transfer
+        reverse_p2p_transfer(transfer, admin_user=self.sender)
+        transfer.refresh_from_db()
+        self.assertEqual(transfer.status, BalanceTransfer.Status.REJECTED)
+        
+        self.sender_wallet.refresh_from_db()
+        self.recipient_wallet.refresh_from_db()
+        self.assertEqual(self.sender_wallet.available_balance, Decimal("100.00"))
+        self.assertEqual(self.recipient_wallet.available_balance, Decimal("0.00"))
+        self.assertEqual(self.recipient_wallet.held_balance, Decimal("0.00"))
+
+    def test_p2p_transfer_edit_amount_increase_success(self):
+        from apps.wallets.services import execute_p2p_transfer, edit_p2p_transfer_amount
+        
+        transfer = execute_p2p_transfer(self.sender, self.recipient, Decimal("40.00"), self.usd)
+        
+        # Increase from 40 to 60 USD (sender must pay 20 more, recipient gets 20 more)
+        edit_p2p_transfer_amount(transfer, Decimal("60.00"), admin_user=self.sender)
+        transfer.refresh_from_db()
+        self.assertEqual(transfer.amount, Decimal("60.00"))
+        
+        self.sender_wallet.refresh_from_db()
+        self.recipient_wallet.refresh_from_db()
+        self.assertEqual(self.sender_wallet.available_balance, Decimal("40.00"))
+        self.assertEqual(self.recipient_wallet.available_balance, Decimal("60.00"))
+
+    def test_p2p_transfer_edit_amount_decrease_success(self):
+        from apps.wallets.services import execute_p2p_transfer, edit_p2p_transfer_amount
+        
+        transfer = execute_p2p_transfer(self.sender, self.recipient, Decimal("40.00"), self.usd)
+        
+        # Decrease from 40 to 30 USD (sender gets 10 back, recipient pays 10 back)
+        edit_p2p_transfer_amount(transfer, Decimal("30.00"), admin_user=self.sender)
+        transfer.refresh_from_db()
+        self.assertEqual(transfer.amount, Decimal("30.00"))
+        
+        self.sender_wallet.refresh_from_db()
+        self.recipient_wallet.refresh_from_db()
+        self.assertEqual(self.sender_wallet.available_balance, Decimal("70.00"))
+        self.assertEqual(self.recipient_wallet.available_balance, Decimal("30.00"))
+
+    def test_p2p_transfer_edit_amount_insufficient_balances(self):
+        from apps.wallets.services import execute_p2p_transfer, edit_p2p_transfer_amount, WalletError
+        
+        transfer = execute_p2p_transfer(self.sender, self.recipient, Decimal("40.00"), self.usd)
+        
+        # Test 1: Sender insufficient balance on increase
+        self.sender_wallet.available_balance = Decimal("5.00")
+        self.sender_wallet.save()
+        
+        with self.assertRaises(WalletError):
+            edit_p2p_transfer_amount(transfer, Decimal("70.00"), admin_user=self.sender)
+            
+        # Test 2: Recipient insufficient balance on decrease
+        self.sender_wallet.available_balance = Decimal("100.00") # restore sender
+        self.sender_wallet.save()
+        self.recipient_wallet.refresh_from_db()
+        self.recipient_wallet.available_balance = Decimal("5.00") # decrease recipient
+        self.recipient_wallet.save()
+        
+        with self.assertRaises(WalletError):
+            edit_p2p_transfer_amount(transfer, Decimal("30.00"), admin_user=self.sender)
+
+    def test_financial_analytics_debt_aging_and_cash_deposit(self):
+        from apps.site.analytics_services import FinancialAnalyticsService
+        from apps.wallets.services import add_debt, pay_debt, credit_wallet
+        
+        # 1. Add debt to recipient
+        add_debt(self.recipient_wallet.id, Decimal("50.00"), "debt_ref_1", "Test debt", self.sender)
+        
+        # 2. Add cash deposit to sender (using source="admin_cash")
+        credit_wallet(
+            wallet_id=self.sender_wallet.id,
+            amount=Decimal("30.00"),
+            reference="cash_dep_ref",
+            description="Cash deposit",
+            created_by=self.sender,
+            source="admin_cash"
+        )
+        
+        # 3. Pay some debt in cash (using source="admin_cash")
+        pay_debt(
+            wallet_id=self.recipient_wallet.id,
+            amount=Decimal("15.00"),
+            reference="cash_pay_ref",
+            reason="Cash payment",
+            created_by=self.sender,
+            deduct_from_balance=False,
+            source="admin_cash"
+        )
+        
+        analytics = FinancialAnalyticsService()
+        
+        # Check debt aging (should run without AttributeError)
+        debt_aging = analytics.get_debt_aging()
+        self.assertIsNotNone(debt_aging)
+        self.assertIn("1-7", debt_aging)
+        self.assertEqual(debt_aging["1-7"]["count"], 1)
+        self.assertEqual(debt_aging["1-7"]["amount"], Decimal("35.00")) # 50 - 15 paid
+        
+        # Check cash collections KPIs
+        kpis = analytics.get_dashboard_kpis()
+        # total_cash_collections should be cash deposit (30.00) + cash debt payment (15.00) = 45.00
+        self.assertEqual(kpis["total_cash_collections"], Decimal("45.00"))
+        
+        # Check cash collection logs
+        cash_logs = list(analytics.get_cash_collection_logs())
+        self.assertEqual(len(cash_logs), 2)

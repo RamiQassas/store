@@ -151,7 +151,29 @@
                 <h2 class="section-title"><i class="fas fa-vault text-emerald-500"></i> النظام المالي والديون</h2>
                 <span class="text-[10px] text-slate-500 font-mono">المحفظة: {{ user_to_moderate.wallet.id|truncatechars:15 }}</span>
             </div>
-            <div class="p-8 grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <div class="p-8 grid grid-cols-1 lg:grid-cols-3 gap-8">
+                <!-- Direct Cash Deposit -->
+                <div class="stack gap-6 p-6 bg-emerald-500/[0.02] border border-emerald-500/10 rounded-3xl relative overflow-hidden group">
+                    <i class="fas fa-money-bill-wave absolute -top-4 -right-4 text-8xl text-emerald-500 opacity-5 group-hover:-rotate-12 transition-transform"></i>
+                    <form method="post" class="stack gap-4 relative z-10">
+                        {% csrf_token %}
+                        <input type="hidden" name="action" value="cash_deposit">
+                        <h3 class="text-sm font-black text-emerald-400 uppercase tracking-widest">إيداع نقدي مباشر (كاش)</h3>
+                        <div>
+                            <label class="field-label">مبلغ الإيداع</label>
+                            <div class="relative">
+                                <span class="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 font-mono">{{ user_to_moderate.wallet.currency.code }}</span>
+                                <input type="number" name="amount" step="0.01" class="modern-input pl-16 text-lg font-black" placeholder="0.00" required>
+                            </div>
+                        </div>
+                        <div>
+                            <label class="field-label">الملاحظات / السبب</label>
+                            <input type="text" name="reason" class="modern-input text-xs" placeholder="مثلاً: استلام كاش يدوي..." required>
+                        </div>
+                        <button type="submit" class="btn btn-primary w-full h-12 rounded-xl font-black uppercase text-[10px]" style="background: linear-gradient(135deg, #10b981, #059669); border: none; color: #000;">تنفيذ الإيداع النقدي</button>
+                    </form>
+                </div>
+
                 <!-- Add Debt -->
                 <div class="stack gap-6 p-6 bg-rose-500/[0.02] border border-rose-500/10 rounded-3xl relative overflow-hidden group">
                     <i class="fas fa-hand-holding-dollar absolute -top-4 -right-4 text-8xl text-rose-500 opacity-5 group-hover:rotate-12 transition-transform"></i>

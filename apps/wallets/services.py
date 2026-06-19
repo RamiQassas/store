@@ -136,22 +136,45 @@ def execute_p2p_transfer(sender, recipient, amount, currency, note=""):
 
 def reverse_p2p_transfer(transfer, admin_user=None):
     """
-    Reverses a completed P2P transfer.
+    Reverses a completed or suspended P2P transfer.
     Deducts the net amount from the recipient, refunds the full amount to the sender.
     """
-    if transfer.status != BalanceTransfer.Status.COMPLETED:
-        raise WalletError("لا يمكن إلغاء تحويل غير مكتمل.")
+    if transfer.status not in [BalanceTransfer.Status.COMPLETED, BalanceTransfer.Status.SUSPENDED]:
+        raise WalletError("لا يمكن إلغاء تحويل غير مكتمل أو معلق.")
 
     with transaction.atomic():
         sender_wallet = Wallet.objects.select_for_update().get(user=transfer.sender, currency=transfer.currency)
         recipient_wallet = Wallet.objects.select_for_update().get(user=transfer.recipient, currency=transfer.currency)
 
+        is_suspended = (transfer.status == BalanceTransfer.Status.SUSPENDED)
+        
+        if is_suspended:
+            if recipient_wallet.held_balance < transfer.net_amount:
+                raise WalletError("رصيد المستلم المحجوز غير كافٍ لاسترداد مبلغ التحويل.")
+            # Unhold funds manually in this transaction so we can debit them from available balance
+            recipient_wallet.held_balance -= transfer.net_amount
+            recipient_wallet.available_balance += transfer.net_amount
+            recipient_wallet.save(update_fields=["available_balance", "held_balance", "updated_at"])
+            
+            # Create Ledger Entry for unholding
+            LedgerEntry.objects.create(
+                wallet=recipient_wallet,
+                entry_type=LedgerEntry.EntryType.UNHOLD,
+                amount=transfer.net_amount,
+                balance_after=recipient_wallet.available_balance,
+                reference=transfer.reference,
+                description=f"فك حجز لإلغاء التحويل المرجعي: {transfer.reference}",
+                source="P2P Reversal Unhold",
+                reason="فك حجز تلقائي لإتمام عملية الإلغاء والاسترداد",
+                created_by=admin_user,
+            )
+
         if recipient_wallet.available_balance < transfer.net_amount:
             raise WalletError("رصيد المستلم غير كافٍ لاسترداد مبلغ التحويل.")
 
         # Update transfer status
-        transfer.status = BalanceTransfer.Status.REJECTED # Or add a REVERSED status
-        transfer.note = f"{transfer.note} [تم إلغاء التحويل]"
+        transfer.status = BalanceTransfer.Status.REJECTED
+        transfer.note = f"{transfer.note} [تم إلغاء واسترداد التحويل]"
         transfer.save(update_fields=['status', 'note', 'updated_at'])
 
         # Debit Recipient (Reversal)
@@ -173,6 +196,172 @@ def reverse_p2p_transfer(transfer, admin_user=None):
             reference=f"REV-{transfer.reference}",
             created_by=admin_user
         )
+
+def suspend_p2p_transfer(transfer, admin_user=None):
+    """
+    Suspends a completed P2P transfer.
+    Moves the net amount from the recipient's available balance to held balance.
+    """
+    if transfer.status != BalanceTransfer.Status.COMPLETED:
+        raise WalletError("يمكن تعليق الحوالات المكتملة فقط.")
+
+    recipient_wallet = Wallet.objects.get(user=transfer.recipient, currency=transfer.currency)
+    
+    with transaction.atomic():
+        # Hold the net amount from the recipient's wallet
+        hold_funds(
+            wallet_id=recipient_wallet.id,
+            amount=transfer.net_amount,
+            reference=transfer.reference,
+            description=f"تعليق الحوالة المرجعية: {transfer.reference}",
+            created_by=admin_user,
+            source="P2P Suspend",
+            reason=f"تعليق الحوالة رقم {transfer.reference} بواسطة الإدارة"
+        )
+        
+        # Update transfer status
+        transfer.status = BalanceTransfer.Status.SUSPENDED
+        transfer.note = f"{transfer.note} [تم تعليق الحوالة]"
+        transfer.save(update_fields=['status', 'note', 'updated_at'])
+
+def unsuspend_p2p_transfer(transfer, admin_user=None):
+    """
+    Unsuspends (resumes) a suspended P2P transfer.
+    Releases the net amount from the recipient's held balance back to available balance.
+    """
+    if transfer.status != BalanceTransfer.Status.SUSPENDED:
+        raise WalletError("لا يمكن إلغاء تعليق حوالة غير معلقة.")
+
+    recipient_wallet = Wallet.objects.get(user=transfer.recipient, currency=transfer.currency)
+    
+    with transaction.atomic():
+        # Release the net amount from the recipient's wallet
+        unhold_funds(
+            wallet_id=recipient_wallet.id,
+            amount=transfer.net_amount,
+            reference=transfer.reference,
+            description=f"إلغاء تعليق الحوالة المرجعية: {transfer.reference}",
+            created_by=admin_user,
+            source="P2P Unsuspend",
+            reason="إلغاء تعليق الحوالة من قبل الإدارة"
+        )
+        
+        # Update transfer status
+        transfer.status = BalanceTransfer.Status.COMPLETED
+        transfer.note = f"{transfer.note} [تم إلغاء تعليق الحوالة]"
+        transfer.save(update_fields=['status', 'note', 'updated_at'])
+
+def edit_p2p_transfer_amount(transfer, new_amount, admin_user=None):
+    """
+    Edits the amount of a completed P2P transfer.
+    Adjusts the sender's and recipient's balances accordingly.
+    """
+    if transfer.status != BalanceTransfer.Status.COMPLETED:
+        raise WalletError("يمكن تعديل مبلغ الحوالات المكتملة فقط.")
+
+    new_amount = Decimal(new_amount)
+    if new_amount <= Decimal("0.00"):
+        raise WalletError("يجب أن يكون المبلغ الجديد أكبر من صفر.")
+
+    if new_amount == transfer.amount:
+        return transfer
+
+    from apps.accounts.models import KYCSettings
+    settings = KYCSettings.get_settings()
+    
+    new_fee_amount = (new_amount * settings.transfer_fee_percent) / Decimal("100.00")
+    new_net_amount = new_amount - new_fee_amount
+
+    old_amount = transfer.amount
+    old_net_amount = transfer.net_amount
+    old_fee_amount = transfer.fee_amount
+
+    amount_diff = new_amount - old_amount
+    net_amount_diff = new_net_amount - old_net_amount
+
+    with transaction.atomic():
+        sender_wallet = Wallet.objects.select_for_update().get(user=transfer.sender, currency=transfer.currency)
+        recipient_wallet = Wallet.objects.select_for_update().get(user=transfer.recipient, currency=transfer.currency)
+
+        # Validate balances before making changes
+        if amount_diff > 0:
+            if sender_wallet.withdrawable_balance < amount_diff:
+                raise WalletError("رصيد المرسل غير كافٍ لتعديل قيمة التحويل.")
+        
+        if net_amount_diff < 0:
+            if recipient_wallet.available_balance < abs(net_amount_diff):
+                raise WalletError("رصيد المستلم غير كافٍ لتعديل قيمة التحويل.")
+
+        # Update Sender's wallet
+        if amount_diff > 0:
+            debit_wallet(
+                wallet_id=sender_wallet.id,
+                amount=amount_diff,
+                source="P2P Adjustment Out",
+                reason=f"تعديل مبلغ الحوالة {transfer.reference} (زيادة المبلغ من {old_amount} إلى {new_amount})",
+                reference=transfer.reference,
+                created_by=admin_user
+            )
+        elif amount_diff < 0:
+            credit_wallet(
+                wallet_id=sender_wallet.id,
+                amount=abs(amount_diff),
+                source="P2P Adjustment In",
+                reason=f"تعديل مبلغ الحوالة {transfer.reference} (تخفيض المبلغ من {old_amount} إلى {new_amount})",
+                reference=transfer.reference,
+                created_by=admin_user
+            )
+
+        # Update Recipient's wallet
+        if net_amount_diff > 0:
+            credit_wallet(
+                wallet_id=recipient_wallet.id,
+                amount=net_amount_diff,
+                source="P2P Adjustment In",
+                reason=f"تعديل صافي الحوالة {transfer.reference} (زيادة من {old_net_amount} إلى {new_net_amount})",
+                reference=transfer.reference,
+                created_by=admin_user
+            )
+        elif net_amount_diff < 0:
+            debit_wallet(
+                wallet_id=recipient_wallet.id,
+                amount=abs(net_amount_diff),
+                source="P2P Adjustment Out",
+                reason=f"تعديل صافي الحوالة {transfer.reference} (تخفيض من {old_net_amount} إلى {new_net_amount})",
+                reference=transfer.reference,
+                created_by=admin_user
+            )
+
+        # Save transfer changes
+        transfer.amount = new_amount
+        transfer.fee_amount = new_fee_amount
+        transfer.net_amount = new_net_amount
+        transfer.note = f"{transfer.note} [تم تعديل المبلغ من {old_amount} إلى {new_amount} بواسطة الإدارة]"
+        transfer.save(update_fields=['amount', 'fee_amount', 'net_amount', 'note', 'updated_at'])
+
+    # Send notifications (after commit)
+    try:
+        from apps.notifications.services import notify_user
+        notify_user(
+            user=transfer.sender,
+            title="تعديل قيمة حوالة مالية",
+            body=f"تم تعديل قيمة حوالتك ذات الرقم المرجعي {transfer.reference} لتصبح {transfer.amount} {transfer.currency.code} بدلاً من {old_amount} {transfer.currency.code}.",
+            category="financial",
+            action_url="/dashboard/wallet/"
+        )
+        notify_user(
+            user=transfer.recipient,
+            title="تعديل قيمة حوالة مالية",
+            body=f"تم تعديل قيمة حوالتك الواردة ذات الرقم المرجعي {transfer.reference} لتصبح {transfer.net_amount} {transfer.currency.code} بدلاً من {old_net_amount} {transfer.currency.code}.",
+            category="financial",
+            action_url="/dashboard/wallet/"
+        )
+    except Exception as e:
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.error(f"Failed to send transfer adjustment notifications: {str(e)}")
+
+    return transfer
 
 def json_serialize_safe(data):
     if not data: return {}

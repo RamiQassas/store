@@ -137,6 +137,7 @@ class BalanceTransfer(TimeStampedModel):
         COMPLETED = "completed", "مكتمل"
         FAILED = "failed", "فشل"
         REJECTED = "rejected", "مرفوض"
+        SUSPENDED = "suspended", "معلقة"
 
     sender = models.ForeignKey(settings.AUTH_USER_MODEL, related_name="sent_transfers", on_delete=models.PROTECT, verbose_name="المرسل")
     recipient = models.ForeignKey(settings.AUTH_USER_MODEL, related_name="received_transfers", on_delete=models.PROTECT, verbose_name="المستلم")

@@ -157,7 +157,10 @@ class FinancialAnalyticsService:
         total_outstanding_debt = wallets_qs.aggregate(total=Sum('debt_balance'))['total'] or Decimal("0.00")
 
         # 5. Cash Collections (from LedgerEntry source='admin_cash')
-        cash_qs = LedgerEntry.objects.filter(source="admin_cash", entry_type=LedgerEntry.EntryType.DEBT_PAYMENT)
+        cash_qs = LedgerEntry.objects.filter(
+            source="admin_cash",
+            entry_type__in=[LedgerEntry.EntryType.DEBT_PAYMENT, LedgerEntry.EntryType.CREDIT]
+        )
         cash_qs = self._apply_date_filter(cash_qs)
         cash_qs = self._apply_common_filters(cash_qs, prefix="wallet")
         
@@ -347,7 +350,7 @@ class FinancialAnalyticsService:
         
         for w in wallets:
             # Find the oldest unpaid debt entry
-            oldest_debt = LedgerEntry.objects.filter(wallet=w, entry_type=LedgerEntry.EntryType.DEBT).order_by('created_at').first()
+            oldest_debt = LedgerEntry.objects.filter(wallet=w, entry_type=LedgerEntry.EntryType.DEBT_ADD).order_by('created_at').first()
             if oldest_debt:
                 days = (now - oldest_debt.created_at).days
                 if days <= 7: key = "1-7"
@@ -362,7 +365,10 @@ class FinancialAnalyticsService:
 
     def get_cash_collection_logs(self):
         """Returns detailed logs for cash collections."""
-        cash_qs = LedgerEntry.objects.filter(source="admin_cash", entry_type=LedgerEntry.EntryType.DEBT_PAYMENT)
+        cash_qs = LedgerEntry.objects.filter(
+            source="admin_cash",
+            entry_type__in=[LedgerEntry.EntryType.DEBT_PAYMENT, LedgerEntry.EntryType.CREDIT]
+        )
         cash_qs = self._apply_date_filter(cash_qs)
         cash_qs = self._apply_common_filters(cash_qs, prefix="wallet")
         return cash_qs.select_related('wallet__user', 'wallet__currency', 'created_by').order_by('-created_at')

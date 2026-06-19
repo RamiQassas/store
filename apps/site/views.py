@@ -1665,6 +1665,60 @@ def control_transfer_reverse(request, pk):
             
     return redirect("control_transfers")
 
+@admin_required
+def control_transfer_suspend(request, pk):
+    from apps.wallets.models import BalanceTransfer
+    from apps.wallets.services import suspend_p2p_transfer, WalletError
+    
+    if request.method == "POST":
+        transfer = get_object_or_404(BalanceTransfer, pk=pk)
+        try:
+            suspend_p2p_transfer(transfer, admin_user=request.user)
+            messages.success(request, f"تم تعليق الحوالة ({transfer.reference}) بنجاح وحجز الرصيد من المستلم.")
+        except WalletError as e:
+            messages.error(request, str(e))
+        except Exception as e:
+            messages.error(request, f"حدث خطأ أثناء تعليق الحوالة: {str(e)}")
+            
+    return redirect("control_transfers")
+
+@admin_required
+def control_transfer_unsuspend(request, pk):
+    from apps.wallets.models import BalanceTransfer
+    from apps.wallets.services import unsuspend_p2p_transfer, WalletError
+    
+    if request.method == "POST":
+        transfer = get_object_or_404(BalanceTransfer, pk=pk)
+        try:
+            unsuspend_p2p_transfer(transfer, admin_user=request.user)
+            messages.success(request, f"تم إلغاء تعليق الحوالة ({transfer.reference}) بنجاح وإرجاع الرصيد للمستلم.")
+        except WalletError as e:
+            messages.error(request, str(e))
+        except Exception as e:
+            messages.error(request, f"حدث خطأ أثناء إلغاء التعليق: {str(e)}")
+            
+    return redirect("control_transfers")
+
+@admin_required
+def control_transfer_edit_amount(request, pk):
+    from apps.wallets.models import BalanceTransfer
+    from apps.wallets.services import edit_p2p_transfer_amount, WalletError
+    
+    if request.method == "POST":
+        transfer = get_object_or_404(BalanceTransfer, pk=pk)
+        new_amount_str = request.POST.get("new_amount")
+        try:
+            new_amount = Decimal(new_amount_str)
+            edit_p2p_transfer_amount(transfer, new_amount, admin_user=request.user)
+            messages.success(request, f"تم تعديل مبلغ الحوالة ({transfer.reference}) إلى {new_amount} {transfer.currency.code} بنجاح.")
+        except Exception as e:
+            if isinstance(e, WalletError):
+                messages.error(request, str(e))
+            else:
+                messages.error(request, "يرجى إدخال مبلغ صحيح.")
+            
+    return redirect("control_transfers")
+
 # ==========================================
 # --- FINANCIAL NOTIFICATION HELPERS ---
 # ==========================================
@@ -2751,6 +2805,61 @@ def control_user_moderate(request, public_uuid):
             if new_email and "@" in new_email:
                 if User.objects.filter(email=new_email).exclude(id=user.id).exists(): messages.error(request, "هذا البريد مستخدم بالفعل.")
                 else: user.email = new_email; user.username = new_email; user.save(); messages.success(request, f"تم تغيير البريد إلى {new_email}")
+            return redirect("control_user_moderate", public_uuid=public_uuid)
+        elif action == "assign_debt":
+            from apps.wallets.services import add_debt, WalletError
+            amt_str = request.POST.get("amount", "0")
+            reason = request.POST.get("reason", "")
+            try:
+                amt = Decimal(amt_str)
+                add_debt(user.wallet.id, amt, f"admin_debt_{timezone.now().timestamp()}", reason, request.user)
+                messages.success(request, f"تم إضافة دين بقيمة {amt} للمستخدم {user.email}")
+            except WalletError as e:
+                messages.error(request, str(e))
+            except Exception as e:
+                messages.error(request, f"خطأ أثناء إضافة الدين: {str(e)}")
+            return redirect("control_user_moderate", public_uuid=public_uuid)
+        elif action == "pay_debt":
+            from apps.wallets.services import pay_debt, WalletError
+            amt_str = request.POST.get("amount", "0")
+            reason = request.POST.get("reason", "")
+            try:
+                amt = Decimal(amt_str)
+                pay_debt(
+                    user.wallet.id,
+                    amt,
+                    f"admin_pay_{timezone.now().timestamp()}",
+                    reason or "سداد يدوي للمديونية من الرصيد المتاح",
+                    request.user,
+                    deduct_from_balance=True,
+                    source="admin"
+                )
+                messages.success(request, f"تم سداد دين بقيمة {amt} للمستخدم {user.email}")
+            except WalletError as e:
+                messages.error(request, str(e))
+            except Exception as e:
+                messages.error(request, f"خطأ أثناء سداد الدين: {str(e)}")
+            return redirect("control_user_moderate", public_uuid=public_uuid)
+        elif action == "cash_deposit":
+            from apps.wallets.services import credit_wallet, WalletError
+            amt_str = request.POST.get("amount", "0")
+            reason = request.POST.get("reason", "")
+            try:
+                amt = Decimal(amt_str)
+                credit_wallet(
+                    wallet_id=user.wallet.id,
+                    amount=amt,
+                    reference=f"cash_dep_{timezone.now().timestamp()}",
+                    description=reason or "إيداع نقدي مباشر عبر لوحة التحكم",
+                    created_by=request.user,
+                    source="admin_cash",
+                    reason=reason or "إيداع نقدي مباشر عبر لوحة التحكم"
+                )
+                messages.success(request, f"تم إيداع مبلغ {amt} نقداً في محفظة العميل {user.email}")
+            except WalletError as e:
+                messages.error(request, str(e))
+            except Exception as e:
+                messages.error(request, f"خطأ أثناء الإيداع النقدي: {str(e)}")
             return redirect("control_user_moderate", public_uuid=public_uuid)
         elif action == "reset_otp": user.otp_failed_attempts = 0; user.otp_lockout_until = None; user.otp_resend_count = 0; user.save(); messages.success(request, "تم إعادة ضبط قيود الرمز."); return redirect("control_user_moderate", public_uuid=public_uuid)
         elif action == "reset_2fa": user.totp_enabled = False; user.totp_secret = None; user.save(); messages.success(request, "تم تعطيل 2FA للمستخدم."); return redirect("control_user_moderate", public_uuid=public_uuid)

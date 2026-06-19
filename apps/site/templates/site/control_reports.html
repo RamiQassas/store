@@ -340,7 +340,14 @@
                                     <div class="font-bold text-white text-xs">{{ log.wallet.user.get_full_name|default:log.wallet.user.email }}</div>
                                     <div class="text-[9px] text-slate-500">{{ log.wallet.user.email }}</div>
                                 </td>
-                                <td class="font-black text-emerald-400">{{ log.amount|floatformat:2 }} {{ log.wallet.currency.code }}</td>
+                                <td class="font-black text-emerald-400">
+                                    {{ log.amount|floatformat:2 }} {{ log.wallet.currency.code }}
+                                    {% if log.entry_type == 'credit' %}
+                                        <span class="badge bg-success bg-opacity-25 text-success border border-success border-opacity-25 text-[9px] px-2 py-0.5 rounded ms-2" style="font-size: 8px; vertical-align: middle;">إيداع نقدي</span>
+                                    {% else %}
+                                        <span class="badge bg-info bg-opacity-25 text-info border border-info border-opacity-25 text-[9px] px-2 py-0.5 rounded ms-2" style="font-size: 8px; vertical-align: middle;">سداد دين</span>
+                                    {% endif %}
+                                </td>
                                 <td class="text-xs text-slate-400">{{ log.created_by.get_full_name|default:log.created_by.email }}</td>
                                 <td class="text-[10px] text-slate-500 italic max-w-[200px] truncate" title="{{ log.reason }}">{{ log.reason }}</td>
                             </tr>
