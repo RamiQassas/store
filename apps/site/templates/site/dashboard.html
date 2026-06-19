@@ -151,7 +151,7 @@
 
 <!-- Digital Deliveries Section (Prominent) -->
 {% if digital_deliveries %}
-<div class="mb-10">
+<div class="mb-10" id="digital-deliveries-section">
     <div class="section-head mb-4">
         <h2 class="text-xl font-black text-cyan flex items-center gap-3">
             <i class="fas fa-gift"></i> منتجاتك الرقمية المستلمة
@@ -159,7 +159,7 @@
     </div>
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {% for order in digital_deliveries %}
-        <div class="panel p-6 bg-cyan/5 border-cyan/20 flex flex-col justify-between">
+        <div class="panel delivery-card p-6 bg-cyan/5 border-cyan/20 flex flex-col justify-between">
             <div class="flex gap-4 mb-4">
                 <div class="w-12 h-12 rounded-xl bg-slate-900 flex items-center justify-center text-cyan flex-shrink-0">
                     <i class="fas fa-key text-xl"></i>
@@ -513,6 +513,8 @@ function copyToClipboard(text, btn) {
 }
 
 function markRead(orderId, btn) {
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
     fetch(`/api/orders/${orderId}/mark-read/`, {
         method: 'POST',
         headers: {
@@ -521,18 +523,76 @@ function markRead(orderId, btn) {
         }
     }).then(res => {
         if(res.ok) {
-            const card = btn.closest('.panel');
+            const card = btn.closest('.delivery-card');
+            card.style.transition = 'opacity 0.4s ease, transform 0.4s ease';
             card.style.opacity = '0';
             card.style.transform = 'scale(0.9)';
             setTimeout(() => {
                 card.remove();
-                if(document.querySelectorAll('.panel[bg-cyan]').length === 0) {
-                    // Logic to hide section if empty
+                const section = document.getElementById('digital-deliveries-section');
+                if (section && section.querySelectorAll('.delivery-card').length === 0) {
+                    section.style.transition = 'opacity 0.4s ease, max-height 0.4s ease';
+                    section.style.opacity = '0';
+                    section.style.maxHeight = section.scrollHeight + 'px';
+                    requestAnimationFrame(() => {
+                        section.style.maxHeight = '0';
+                        section.style.overflow = 'hidden';
+                        section.style.marginBottom = '0';
+                    });
+                    setTimeout(() => section.remove(), 500);
                 }
-            }, 300);
+            }, 400);
+        } else {
+            btn.disabled = false;
+            btn.textContent = 'تم الاستلام';
         }
+    }).catch(() => {
+        btn.disabled = false;
+        btn.textContent = 'تم الاستلام';
     });
 }
+
+/* ── Flash message dismiss ── */
+document.addEventListener('DOMContentLoaded', function() {
+    document.querySelectorAll('.messages-container .panel').forEach(function(msg) {
+        // Inject close button
+        const closeBtn = document.createElement('button');
+        closeBtn.innerHTML = '<i class="fas fa-times"></i>';
+        closeBtn.setAttribute('aria-label', 'إغلاق');
+        Object.assign(closeBtn.style, {
+            position: 'absolute', top: '0.75rem', left: '0.75rem',
+            background: 'none', border: 'none', color: 'inherit',
+            cursor: 'pointer', opacity: '0.5', fontSize: '0.85rem'
+        });
+        closeBtn.onmouseenter = function() { this.style.opacity = '1'; };
+        closeBtn.onmouseleave = function() { this.style.opacity = '0.5'; };
+        msg.style.position = 'relative';
+        msg.appendChild(closeBtn);
+
+        function dismissMsg(el) {
+            el.style.transition = 'opacity 0.4s ease, transform 0.4s ease, max-height 0.4s ease, margin 0.4s ease, padding 0.4s ease';
+            el.style.opacity = '0';
+            el.style.transform = 'translateY(-10px)';
+            el.style.maxHeight = el.scrollHeight + 'px';
+            requestAnimationFrame(function() {
+                el.style.maxHeight = '0';
+                el.style.marginTop = '0';
+                el.style.marginBottom = '0';
+                el.style.paddingTop = '0';
+                el.style.paddingBottom = '0';
+                el.style.overflow = 'hidden';
+            });
+            setTimeout(function() { el.remove(); }, 500);
+        }
+
+        closeBtn.addEventListener('click', function() { dismissMsg(msg); });
+
+        // Auto-dismiss after 8 seconds
+        setTimeout(function() {
+            if (document.body.contains(msg)) dismissMsg(msg);
+        }, 8000);
+    });
+});
 </script>
 {% endblock %}
 {% endblock %}

@@ -5,551 +5,1082 @@
 
 {% block extra_head %}
 <style>
-    .wallet-layout {
-        display: grid;
-        grid-template-columns: 1fr 360px;
-        gap: 2rem;
-        align-items: start;
+    /* ═══════════════════════════════════════════════
+       WALLET PAGE — Mobile-First Premium Design
+       ═══════════════════════════════════════════════ */
+
+    .wallet-page {
         direction: rtl;
+        max-width: 1280px;
+        margin: 0 auto;
     }
 
-    /* Premium Balance Card */
-    .balance-card {
-        background: linear-gradient(135deg, #083344 0%, #0f172a 50%, #020617 100%);
-        border: 1px solid rgba(6, 182, 212, 0.15);
-        border-radius: 28px;
-        padding: 2.5rem;
+    /* ── 2-Column Layout (desktop only) ── */
+    .wallet-grid {
+        display: flex;
+        flex-direction: column;
+        gap: 1.5rem;
+    }
+
+    @media (min-width: 1024px) {
+        .wallet-grid {
+            display: grid;
+            grid-template-columns: 1fr 340px;
+            gap: 2rem;
+            align-items: start;
+        }
+    }
+
+    /* ── Hero Balance Card ── */
+    .wallet-hero {
         position: relative;
+        border-radius: 24px;
         overflow: hidden;
-        box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.4);
+        background: linear-gradient(160deg, #062a2a 0%, #0a1628 40%, #0d0d1a 100%);
+        border: 1px solid rgba(45, 212, 191, 0.12);
+        box-shadow:
+            0 0 0 1px rgba(45, 212, 191, 0.04),
+            0 20px 60px -20px rgba(0, 0, 0, 0.5),
+            inset 0 1px 0 rgba(255, 255, 255, 0.04);
     }
 
-    .balance-card::before {
+    .wallet-hero::before {
         content: "";
         position: absolute;
-        top: -50%;
-        left: -50%;
-        width: 200%;
-        height: 200%;
-        background: radial-gradient(circle at 75% 25%, rgba(6, 182, 212, 0.08) 0%, transparent 60%);
+        top: -80px;
+        left: -80px;
+        width: 300px;
+        height: 300px;
+        background: radial-gradient(circle, rgba(45, 212, 191, 0.08) 0%, transparent 70%);
         pointer-events: none;
     }
 
-    .balance-label {
-        font-size: 0.75rem;
-        font-weight: 800;
-        text-transform: uppercase;
-        letter-spacing: 1.5px;
-        color: #06b6d4;
+    .wallet-hero::after {
+        content: "";
+        position: absolute;
+        bottom: -60px;
+        right: -60px;
+        width: 200px;
+        height: 200px;
+        background: radial-gradient(circle, rgba(56, 189, 248, 0.05) 0%, transparent 70%);
+        pointer-events: none;
     }
 
-    .balance-value {
-        font-size: clamp(2.25rem, 6vw, 3.5rem);
-        font-weight: 900;
-        color: #ffffff;
-        line-height: 1;
-        margin: 1rem 0;
-        font-family: monospace;
+    .hero-inner {
+        position: relative;
+        z-index: 1;
+        padding: 1.75rem;
     }
 
-    .balance-usd-approx {
-        font-size: 0.85rem;
-        color: #94a3b8;
-        background: rgba(255, 255, 255, 0.03);
-        padding: 6px 14px;
-        border-radius: 9999px;
-        display: inline-block;
-        border: 1px solid rgba(255, 255, 255, 0.05);
+    @media (min-width: 768px) {
+        .hero-inner { padding: 2.5rem; }
     }
 
-    /* Quick Actions */
-    .actions-grid {
-        display: grid;
-        grid-template-columns: repeat(3, 1fr);
-        gap: 1rem;
-    }
-
-    .action-btn-card {
-        background: rgba(15, 23, 42, 0.4);
-        border: 1px solid rgba(255, 255, 255, 0.03);
-        border-radius: 20px;
-        padding: 1.5rem 1rem;
-        text-align: center;
-        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    .hero-top {
         display: flex;
-        flex-direction: column;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 1.5rem;
+    }
+
+    .hero-chip {
+        display: inline-flex;
         align-items: center;
-        gap: 0.75rem;
-        color: #cbd5e1;
-        text-decoration: none;
-    }
-
-    .action-btn-card:hover {
-        background: rgba(6, 182, 212, 0.06);
-        border-color: rgba(6, 182, 212, 0.3);
-        transform: translateY(-3px);
-        color: #ffffff;
-    }
-
-    .action-btn-card i {
-        font-size: 1.5rem;
-    }
-
-    .action-btn-card.primary {
-        background: linear-gradient(135deg, rgba(6, 182, 212, 0.1) 0%, rgba(15, 23, 42, 0.4) 100%);
-        border-color: rgba(6, 182, 212, 0.2);
-        color: #06b6d4;
-    }
-
-    .action-btn-card.primary:hover {
-        background: linear-gradient(135deg, rgba(6, 182, 212, 0.15) 0%, rgba(6, 182, 212, 0.05) 100%);
-        border-color: #06b6d4;
-        color: #ffffff;
-    }
-
-    /* Sub-balances breakdown */
-    .balance-breakdown {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
-        gap: 1rem;
-        padding: 1.5rem;
-        background: rgba(15, 23, 42, 0.2);
-        border-radius: 20px;
-        border: 1px solid rgba(255, 255, 255, 0.02);
-    }
-
-    .breakdown-item {
-        display: flex;
-        flex-direction: column;
-        gap: 0.25rem;
-    }
-
-    .breakdown-item label {
+        gap: 6px;
         font-size: 0.65rem;
+        font-weight: 800;
+        letter-spacing: 1px;
+        text-transform: uppercase;
+        padding: 5px 12px;
+        border-radius: 100px;
+    }
+
+    .hero-chip.healthy {
+        background: rgba(34, 197, 94, 0.1);
+        color: #4ade80;
+        border: 1px solid rgba(34, 197, 94, 0.15);
+    }
+
+    .hero-chip.debt-ok {
+        background: rgba(45, 212, 191, 0.1);
+        color: #2dd4bf;
+        border: 1px solid rgba(45, 212, 191, 0.15);
+    }
+
+    .hero-chip.debt-warn {
+        background: rgba(239, 68, 68, 0.1);
+        color: #f87171;
+        border: 1px solid rgba(239, 68, 68, 0.15);
+    }
+
+    .hero-currency-badge {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        background: rgba(255, 255, 255, 0.04);
+        border: 1px solid rgba(255, 255, 255, 0.06);
+        border-radius: 12px;
+        padding: 6px 12px;
+        font-size: 0.7rem;
+        font-weight: 800;
+        color: #94a3b8;
+    }
+
+    .hero-currency-badge i { color: var(--cyan); font-size: 0.8rem; }
+
+    /* Main balance display */
+    .hero-balance-section {
+        margin-bottom: 2rem;
+    }
+
+    .hero-balance-label {
+        font-size: 0.7rem;
         font-weight: 700;
         color: #64748b;
+        margin-bottom: 0.5rem;
     }
 
-    .breakdown-item span {
-        font-size: 0.95rem;
+    .hero-balance-value {
+        font-size: clamp(2rem, 7vw, 3.25rem);
+        font-weight: 900;
+        color: #ffffff;
+        line-height: 1.1;
+        font-variant-numeric: tabular-nums;
+        letter-spacing: -1px;
+    }
+
+    .hero-balance-usd {
+        display: inline-block;
+        margin-top: 0.5rem;
+        font-size: 0.8rem;
+        color: #64748b;
+        background: rgba(255, 255, 255, 0.02);
+        padding: 4px 12px;
+        border-radius: 100px;
+        border: 1px solid rgba(255, 255, 255, 0.04);
+    }
+
+    /* Sub-balances row */
+    .hero-sub-balances {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 0.75rem;
+    }
+
+    @media (min-width: 640px) {
+        .hero-sub-balances {
+            display: flex;
+            gap: 0;
+        }
+        .hero-sub-item {
+            flex: 1;
+        }
+        .hero-sub-item + .hero-sub-item {
+            border-right: 1px solid rgba(255, 255, 255, 0.05);
+            padding-right: 1rem;
+        }
+    }
+
+    .hero-sub-item {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+        padding: 0.75rem;
+        background: rgba(255, 255, 255, 0.015);
+        border-radius: 14px;
+        border: 1px solid rgba(255, 255, 255, 0.03);
+    }
+
+    @media (min-width: 640px) {
+        .hero-sub-item {
+            background: none;
+            border: none;
+            border-radius: 0;
+            padding: 0 0.75rem;
+        }
+    }
+
+    .hero-sub-label {
+        font-size: 0.6rem;
+        font-weight: 700;
+        color: #475569;
+        white-space: nowrap;
+    }
+
+    .hero-sub-value {
+        font-size: 0.9rem;
         font-weight: 800;
         color: #e2e8f0;
     }
 
-    /* Stats Dashboard */
-    .stats-dashboard {
-        display: grid;
-        grid-template-columns: repeat(3, 1fr);
-        gap: 1rem;
-    }
+    .hero-sub-value.debt { color: #f87171; }
+    .hero-sub-value.frozen { color: #60a5fa; }
+    .hero-sub-value.held { color: #fbbf24; }
+    .hero-sub-value.reserved { color: #a78bfa; }
+    .hero-sub-value.pending { color: #fb923c; }
 
-    .stat-card {
-        background: rgba(15, 23, 42, 0.3);
-        border: 1px solid rgba(255, 255, 255, 0.02);
-        border-radius: 20px;
-        padding: 1.25rem;
+    /* Debt alert strip inside card */
+    .debt-alert-strip {
+        margin-top: 1.25rem;
         display: flex;
         align-items: center;
-        gap: 1rem;
+        gap: 10px;
+        padding: 10px 14px;
+        background: rgba(239, 68, 68, 0.05);
+        border: 1px solid rgba(239, 68, 68, 0.1);
+        border-radius: 14px;
+        font-size: 0.7rem;
+        color: #fca5a5;
+        line-height: 1.6;
     }
 
-    .stat-card-icon {
+    .debt-alert-strip i {
+        font-size: 0.9rem;
+        flex-shrink: 0;
+        color: #f87171;
+    }
+
+    /* ── Quick Actions ── */
+    .quick-actions {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 0.75rem;
+    }
+
+    @media (min-width: 768px) {
+        .quick-actions {
+            grid-template-columns: repeat(4, 1fr);
+        }
+    }
+
+    .qa-btn {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 0.6rem;
+        padding: 1.25rem 0.75rem;
+        background: var(--panel);
+        border: 1px solid var(--panel-border);
+        border-radius: 18px;
+        text-decoration: none;
+        color: #94a3b8;
+        transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+        text-align: center;
+    }
+
+    .qa-btn:hover {
+        background: rgba(45, 212, 191, 0.04);
+        border-color: rgba(45, 212, 191, 0.2);
+        color: #fff;
+        transform: translateY(-2px);
+        box-shadow: 0 8px 24px -8px rgba(0, 0, 0, 0.3);
+    }
+
+    .qa-icon {
         width: 44px;
         height: 44px;
         border-radius: 14px;
         display: flex;
         align-items: center;
         justify-content: center;
-        font-size: 1.1rem;
+        font-size: 1.15rem;
+        transition: transform 0.25s;
     }
 
-    .stat-card-info {
-        display: flex;
-        flex-direction: column;
-        gap: 0.15rem;
-    }
+    .qa-btn:hover .qa-icon { transform: scale(1.1); }
 
-    .stat-card-info label {
-        font-size: 0.65rem;
-        font-weight: 700;
-        color: #64748b;
-    }
+    .qa-icon.deposit  { background: rgba(34, 197, 94, 0.1);  color: #4ade80; }
+    .qa-icon.withdraw { background: rgba(239, 68, 68, 0.1);  color: #f87171; }
+    .qa-icon.transfer { background: rgba(56, 189, 248, 0.1); color: #38bdf8; }
+    .qa-icon.recharge { background: rgba(45, 212, 191, 0.1); color: #2dd4bf; }
 
-    .stat-card-info span {
-        font-size: 1rem;
-        font-weight: 800;
-        color: #ffffff;
-    }
-
-    /* Exchange rates & Sidebars */
-    .premium-sidebar-card {
-        background: rgba(15, 23, 42, 0.3);
-        border: 1px solid rgba(255, 255, 255, 0.03);
-        border-radius: 24px;
-        padding: 1.5rem;
-    }
-
-    .sidebar-section-title {
+    .qa-label {
         font-size: 0.75rem;
         font-weight: 800;
-        color: #94a3b8;
-        text-transform: uppercase;
-        letter-spacing: 1px;
-        border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-        padding-bottom: 0.75rem;
-        margin-bottom: 1rem;
-        display: flex;
-        align-items: center;
-        gap: 0.5rem;
+        color: #e2e8f0;
+        white-space: nowrap;
     }
 
-    .holding-row {
+    .qa-btn.highlight {
+        background: linear-gradient(135deg, rgba(45, 212, 191, 0.06) 0%, var(--panel) 100%);
+        border-color: rgba(45, 212, 191, 0.15);
+    }
+
+    .qa-btn.highlight .qa-label { color: var(--cyan); }
+
+    /* ── Stats Scroll ── */
+    .stats-scroll {
+        display: flex;
+        gap: 0.75rem;
+        overflow-x: auto;
+        scroll-snap-type: x mandatory;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: none;
+        padding-bottom: 4px;
+    }
+
+    .stats-scroll::-webkit-scrollbar { display: none; }
+
+    .stat-pill {
+        flex: 0 0 auto;
+        min-width: 200px;
+        scroll-snap-align: start;
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        padding: 1rem 1.25rem;
+        background: var(--panel);
+        border: 1px solid var(--panel-border);
+        border-radius: 16px;
+    }
+
+    @media (min-width: 768px) {
+        .stats-scroll {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            overflow-x: visible;
+        }
+        .stat-pill {
+            min-width: 0;
+            flex: auto;
+        }
+    }
+
+    .stat-icon {
+        width: 40px;
+        height: 40px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1rem;
+        flex-shrink: 0;
+    }
+
+    .stat-icon.green  { background: rgba(34, 197, 94, 0.1);  color: #4ade80; }
+    .stat-icon.cyan   { background: rgba(45, 212, 191, 0.1); color: #2dd4bf; }
+    .stat-icon.red    { background: rgba(239, 68, 68, 0.1);  color: #f87171; }
+
+    .stat-meta { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+    .stat-meta-label { font-size: 0.6rem; font-weight: 700; color: #64748b; white-space: nowrap; }
+    .stat-meta-value { font-size: 0.85rem; font-weight: 800; color: #fff; white-space: nowrap; }
+
+    /* Net balance bar */
+    .net-bar {
         display: flex;
         justify-content: space-between;
         align-items: center;
-        padding: 0.75rem 0.5rem;
-        border-radius: 12px;
-        transition: background 0.2s;
+        padding: 0.875rem 1.25rem;
+        background: var(--panel);
+        border: 1px solid var(--panel-border);
+        border-radius: 14px;
     }
 
-    .holding-row:hover {
+    .net-bar-label {
+        font-size: 0.7rem;
+        font-weight: 700;
+        color: #64748b;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+
+    .net-bar-value {
+        font-size: 0.85rem;
+        font-weight: 900;
+        color: #fff;
+    }
+
+    /* ── Ledger Section ── */
+    .ledger-card {
+        background: var(--panel);
+        border: 1px solid var(--panel-border);
+        border-radius: 20px;
+        overflow: hidden;
+    }
+
+    .ledger-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 1.25rem 1.5rem;
+        border-bottom: 1px solid var(--panel-border);
         background: rgba(255, 255, 255, 0.01);
     }
 
-    /* Responsive */
-    @media (max-width: 1024px) {
-        .wallet-layout {
-            grid-template-columns: 1fr;
+    @media (max-width: 640px) {
+        .ledger-header { padding: 1rem 1.15rem; }
+    }
+
+    .ledger-title {
+        font-size: 0.8rem;
+        font-weight: 800;
+        color: #fff;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .ledger-title i {
+        color: var(--cyan);
+        font-size: 0.9rem;
+    }
+
+    /* Ledger entries */
+    .ledger-entry {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        padding: 1.15rem 1.5rem;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+        transition: background 0.15s;
+        gap: 0.75rem;
+    }
+
+    .ledger-entry:last-child { border-bottom: none; }
+    .ledger-entry:hover { background: rgba(255, 255, 255, 0.01); }
+
+    @media (max-width: 640px) {
+        .ledger-entry {
+            padding: 1rem 1.15rem;
+            flex-direction: column;
+            gap: 0.5rem;
         }
-        .stats-dashboard {
-            grid-template-columns: 1fr;
+    }
+
+    .ledger-right {
+        display: flex;
+        align-items: flex-start;
+        gap: 0.75rem;
+        min-width: 0;
+        flex: 1;
+    }
+
+    .ledger-dot {
+        width: 36px;
+        height: 36px;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.8rem;
+        flex-shrink: 0;
+    }
+
+    .ledger-dot.credit  { background: rgba(34, 197, 94, 0.1);  color: #4ade80; }
+    .ledger-dot.debit   { background: rgba(239, 68, 68, 0.1);  color: #f87171; }
+    .ledger-dot.debt    { background: rgba(45, 212, 191, 0.1); color: #2dd4bf; }
+    .ledger-dot.neutral { background: rgba(100, 116, 139, 0.1); color: #94a3b8; }
+
+    .ledger-info {
+        min-width: 0;
+        flex: 1;
+    }
+
+    .ledger-type {
+        font-size: 0.75rem;
+        font-weight: 800;
+        color: #e2e8f0;
+        line-height: 1.4;
+    }
+
+    .ledger-type a {
+        color: var(--cyan);
+        font-size: 0.6rem;
+        font-weight: 700;
+        margin-right: 4px;
+    }
+
+    .ledger-type a:hover { text-decoration: underline; }
+
+    .ledger-source-amount {
+        font-size: 0.6rem;
+        font-weight: 700;
+        color: var(--cyan);
+        margin-top: 2px;
+    }
+
+    .ledger-desc {
+        font-size: 0.65rem;
+        color: #64748b;
+        margin-top: 3px;
+        line-height: 1.5;
+    }
+
+    .ledger-meta {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        flex-wrap: wrap;
+        margin-top: 4px;
+        font-size: 0.58rem;
+        color: #475569;
+    }
+
+    .ledger-amount {
+        text-align: left;
+        flex-shrink: 0;
+    }
+
+    @media (max-width: 640px) {
+        .ledger-amount {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            justify-content: space-between;
+            width: 100%;
+            padding-top: 0.5rem;
+            border-top: 1px dashed rgba(255, 255, 255, 0.04);
         }
+    }
+
+    .ledger-amount-value {
+        font-size: 0.8rem;
+        font-weight: 900;
+    }
+
+    .ledger-amount-value.plus  { color: #4ade80; }
+    .ledger-amount-value.minus { color: #f87171; }
+
+    .ledger-balance-after {
+        font-size: 0.58rem;
+        color: #475569;
+        margin-top: 2px;
+    }
+
+    @media (max-width: 640px) {
+        .ledger-balance-after { margin-top: 0; }
+    }
+
+    .ledger-empty {
+        padding: 4rem 2rem;
+        text-align: center;
+        color: #334155;
+    }
+
+    .ledger-empty i { font-size: 2.5rem; margin-bottom: 1rem; opacity: 0.3; }
+    .ledger-empty p { font-size: 0.8rem; }
+
+    /* ── Sidebar Cards ── */
+    .sidebar-area {
+        display: flex;
+        flex-direction: column;
+        gap: 1.5rem;
+    }
+
+    .side-card {
+        background: var(--panel);
+        border: 1px solid var(--panel-border);
+        border-radius: 20px;
+        padding: 1.5rem;
+    }
+
+    .side-card-title {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 0.7rem;
+        font-weight: 800;
+        color: #94a3b8;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        padding-bottom: 0.875rem;
+        margin-bottom: 1rem;
+        border-bottom: 1px solid var(--panel-border);
+    }
+
+    .side-card-title i { color: var(--cyan); font-size: 0.85rem; }
+
+    /* Recharge form */
+    .recharge-input {
+        background: rgba(11, 17, 16, 0.6) !important;
+        border: 1px solid var(--panel-border) !important;
+        border-radius: 14px !important;
+        padding: 0.875rem 1rem !important;
+        text-align: center !important;
+        font-weight: 800 !important;
+        letter-spacing: 2px !important;
+        font-size: 0.9rem !important;
+        text-transform: uppercase;
+        color: #fff !important;
+    }
+
+    .recharge-input:focus {
+        border-color: var(--cyan) !important;
+        box-shadow: 0 0 0 3px rgba(45, 212, 191, 0.08) !important;
+    }
+
+    .recharge-input::placeholder {
+        color: #334155 !important;
+        letter-spacing: 3px;
+        font-weight: 700;
+    }
+
+    .recharge-btn {
+        width: 100%;
+        padding: 0.875rem;
+        background: var(--cyan);
+        color: #000;
+        font-weight: 900;
+        font-size: 0.8rem;
+        border: none;
+        border-radius: 14px;
+        cursor: pointer;
+        transition: all 0.2s;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+    }
+
+    .recharge-btn:hover {
+        filter: brightness(1.1);
+        transform: translateY(-1px);
+        box-shadow: 0 6px 20px -6px rgba(45, 212, 191, 0.3);
+    }
+
+    /* Holdings row */
+    .holding-card {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 0.875rem;
+        background: rgba(255, 255, 255, 0.015);
+        border: 1px solid rgba(255, 255, 255, 0.03);
+        border-radius: 14px;
+    }
+
+    .holding-left {
+        display: flex;
+        align-items: center;
+        gap: 0.65rem;
+    }
+
+    .holding-avatar {
+        width: 36px;
+        height: 36px;
+        border-radius: 10px;
+        background: rgba(45, 212, 191, 0.1);
+        color: var(--cyan);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.75rem;
+        font-weight: 900;
+    }
+
+    .holding-name { font-size: 0.7rem; font-weight: 800; color: #e2e8f0; }
+    .holding-tag  { font-size: 0.55rem; font-weight: 700; color: #475569; }
+
+    .holding-right { text-align: left; }
+    .holding-val  { font-size: 0.85rem; font-weight: 900; color: #fff; }
+    .holding-code { font-size: 0.55rem; font-weight: 800; color: var(--cyan); }
+
+    /* Conditional mini-balances in sidebar */
+    .mini-balances-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 0.5rem;
+        margin-top: 0.75rem;
+    }
+
+    .mini-bal {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 2px;
+        padding: 0.65rem 0.5rem;
+        background: rgba(255, 255, 255, 0.015);
+        border: 1px solid rgba(255, 255, 255, 0.03);
+        border-radius: 10px;
+    }
+
+    .mini-bal-label { font-size: 0.55rem; font-weight: 700; color: #475569; }
+    .mini-bal-value { font-size: 0.75rem; font-weight: 900; color: #94a3b8; }
+
+    /* Exchange rates */
+    .rate-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 0.65rem 0;
+        font-size: 0.75rem;
+    }
+
+    .rate-row + .rate-row { border-top: 1px solid rgba(255, 255, 255, 0.03); }
+    .rate-from { color: #64748b; font-weight: 600; }
+    .rate-to   { color: #e2e8f0; font-weight: 800; font-variant-numeric: tabular-nums; }
+
+    /* ── Animations ── */
+    .wallet-reveal {
+        opacity: 0;
+        transform: translateY(16px);
+        animation: walletFadeUp 0.5s cubic-bezier(0.2, 1, 0.3, 1) forwards;
+    }
+
+    .wallet-reveal:nth-child(2) { animation-delay: 0.06s; }
+    .wallet-reveal:nth-child(3) { animation-delay: 0.12s; }
+    .wallet-reveal:nth-child(4) { animation-delay: 0.18s; }
+    .wallet-reveal:nth-child(5) { animation-delay: 0.24s; }
+
+    @keyframes walletFadeUp {
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    /* Pulse dot for live status */
+    .pulse-dot {
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: #4ade80;
+        animation: pulseDot 2s ease-in-out infinite;
+    }
+
+    @keyframes pulseDot {
+        0%, 100% { opacity: 1; box-shadow: 0 0 0 0 rgba(74, 222, 128, 0.4); }
+        50% { opacity: 0.7; box-shadow: 0 0 0 6px rgba(74, 222, 128, 0); }
     }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="page-head reveal mb-8">
-    <div>
-        <span class="eyebrow">Financial Dashboard</span>
-        <h1>المحفظة الرقمية</h1>
-        <p class="text-slate-400 text-sm">أداء أرصدتك، تسوية الديون، وحركات الحساب الخاصة بك.</p>
+<div class="wallet-page">
+    <!-- Page Header -->
+    <div class="page-head wallet-reveal mb-8">
+        <div>
+            <span class="eyebrow" style="font-size:0.6rem; font-weight:800; letter-spacing:1.5px; text-transform:uppercase; color:var(--cyan);">
+                <i class="fas fa-wallet" style="margin-left:4px;"></i> Financial Dashboard
+            </span>
+            <h1 style="font-size:clamp(1.5rem,5vw,2.25rem); margin-bottom:0.25rem;">المحفظة الرقمية</h1>
+            <p style="font-size:0.8rem; color:#64748b; margin:0;">إدارة أرصدتك وحركاتك المالية</p>
+        </div>
     </div>
-</div>
 
-<div class="wallet-layout reveal">
-    <!-- Main Content Area -->
-    <div class="stack gap-6">
-        <!-- Premium Balance Card -->
-        <div class="balance-card">
-            <div class="flex justify-between items-start">
-                <div>
-                    <span class="balance-label">الرصيد القابل للسحب المتاح</span>
-                    <div class="balance-value">
-                        {% currency_format wallet.withdrawable_balance wallet.currency mode="withdraw" %}
-                    </div>
-                    {% if wallet.currency.code != "USD" %}
-                    <div class="balance-usd-approx">
-                        ≈ {{ wallet.withdrawable_balance|to_usd:wallet.currency }} USD
-                    </div>
-                    {% endif %}
-                </div>
-                
-                <!-- Status Badge -->
-                <div class="text-left">
-                    {% if wallet.debt_balance > 0 %}
-                        {% if wallet.debt_is_withdrawable %}
-                        <span class="text-[10px] bg-cyan/10 text-cyan border border-cyan/20 px-3 py-1 rounded-full font-bold">
-                            <i class="fas fa-unlock ml-1"></i> دين قابل للسحب
-                        </span>
+    <div class="wallet-grid">
+        <!-- ════════ MAIN COLUMN ════════ -->
+        <div style="display:flex; flex-direction:column; gap:1.5rem;">
+
+            <!-- ── Hero Balance Card ── -->
+            <div class="wallet-hero wallet-reveal">
+                <div class="hero-inner">
+                    <!-- Top bar: status + currency -->
+                    <div class="hero-top">
+                        {% if wallet.debt_balance > 0 %}
+                            {% if wallet.debt_is_withdrawable %}
+                            <div class="hero-chip debt-ok">
+                                <i class="fas fa-unlock"></i> دين قابل للسحب
+                            </div>
+                            {% else %}
+                            <div class="hero-chip debt-warn">
+                                <i class="fas fa-lock"></i> دين غير قابل للسحب
+                            </div>
+                            {% endif %}
                         {% else %}
-                        <span class="text-[10px] bg-rose-500/10 text-rose-400 border border-rose-500/20 px-3 py-1 rounded-full font-bold">
-                            <i class="fas fa-lock ml-1"></i> دين غير قابل للسحب
-                        </span>
+                        <div class="hero-chip healthy">
+                            <div class="pulse-dot"></div>
+                            حساب سليم
+                        </div>
                         {% endif %}
-                    {% else %}
-                        <span class="text-[10px] bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-3 py-1 rounded-full font-bold">
-                            <i class="fas fa-shield-alt ml-1"></i> حساب سليم
-                        </span>
+
+                        <div class="hero-currency-badge">
+                            <i class="fas fa-coins"></i>
+                            {{ wallet.currency.code }}
+                        </div>
+                    </div>
+
+                    <!-- Available Balance (hero) -->
+                    <div class="hero-balance-section">
+                        <div class="hero-balance-label">الرصيد المتاح</div>
+                        <div class="hero-balance-value">
+                            {% currency_format wallet.available_balance wallet.currency mode="withdraw" %}
+                        </div>
+                        {% if wallet.currency.code != "USD" %}
+                        <div class="hero-balance-usd">
+                            ≈ {{ wallet.available_balance|to_usd:wallet.currency }} USD
+                        </div>
+                        {% endif %}
+                    </div>
+
+                    <!-- Sub-balances -->
+                    <div class="hero-sub-balances">
+                        <!-- Debt Balance (always shown) -->
+                        <div class="hero-sub-item">
+                            <span class="hero-sub-label"><i class="fas fa-file-invoice-dollar" style="margin-left:3px; font-size:0.55rem;"></i> الدين المستحق</span>
+                            <span class="hero-sub-value {% if wallet.debt_balance > 0 %}debt{% endif %}">{{ wallet.debt_balance }} {{ wallet.currency.code }}</span>
+                        </div>
+
+                        <!-- Withdrawable Balance (always shown) -->
+                        <div class="hero-sub-item">
+                            <span class="hero-sub-label"><i class="fas fa-hand-holding-usd" style="margin-left:3px; font-size:0.55rem;"></i> القابل للسحب</span>
+                            <span class="hero-sub-value">{{ wallet.withdrawable_balance }} {{ wallet.currency.code }}</span>
+                        </div>
+
+                        <!-- Frozen: ONLY if > 0 -->
+                        {% if wallet.frozen_balance > 0 %}
+                        <div class="hero-sub-item">
+                            <span class="hero-sub-label"><i class="fas fa-snowflake" style="margin-left:3px; font-size:0.55rem;"></i> مجمد</span>
+                            <span class="hero-sub-value frozen">{{ wallet.frozen_balance }} {{ wallet.currency.code }}</span>
+                        </div>
+                        {% endif %}
+
+                        <!-- Held: ONLY if > 0 -->
+                        {% if wallet.held_balance > 0 %}
+                        <div class="hero-sub-item">
+                            <span class="hero-sub-label"><i class="fas fa-lock" style="margin-left:3px; font-size:0.55rem;"></i> محجوز</span>
+                            <span class="hero-sub-value held">{{ wallet.held_balance }} {{ wallet.currency.code }}</span>
+                        </div>
+                        {% endif %}
+
+                        <!-- Reserved: ONLY if > 0 -->
+                        {% if wallet.reserved_balance > 0 %}
+                        <div class="hero-sub-item">
+                            <span class="hero-sub-label"><i class="fas fa-shield-alt" style="margin-left:3px; font-size:0.55rem;"></i> محتجز</span>
+                            <span class="hero-sub-value reserved">{{ wallet.reserved_balance }} {{ wallet.currency.code }}</span>
+                        </div>
+                        {% endif %}
+
+                        <!-- Pending: ONLY if > 0 -->
+                        {% if wallet.pending_balance > 0 %}
+                        <div class="hero-sub-item">
+                            <span class="hero-sub-label"><i class="fas fa-clock" style="margin-left:3px; font-size:0.55rem;"></i> قيد الانتظار</span>
+                            <span class="hero-sub-value pending">{{ wallet.pending_balance }} {{ wallet.currency.code }}</span>
+                        </div>
+                        {% endif %}
+                    </div>
+
+                    <!-- Debt explanation alert -->
+                    {% if wallet.debt_balance > 0 and not wallet.debt_is_withdrawable %}
+                    <div class="debt-alert-strip">
+                        <i class="fas fa-info-circle"></i>
+                        <span>تم خصم مبلغ الدين المستحق ({{ wallet.debt_balance }} {{ wallet.currency.code }}) من رصيدك المتاح لتحديد القيمة القابلة للسحب.</span>
+                    </div>
                     {% endif %}
                 </div>
             </div>
 
-            <!-- Dynamic explanatory alert -->
-            {% if wallet.debt_balance > 0 and not wallet.debt_is_withdrawable %}
-            <div class="mt-4 p-3 bg-rose-500/5 border border-rose-500/15 rounded-xl flex items-center gap-3 text-xs text-rose-400">
-                <i class="fas fa-info-circle text-sm"></i>
-                <span>تم خصم مبلغ الدين المستحق ({{ wallet.debt_balance }} {{ wallet.currency.code }}) من رصيدك المتاح لتحديد القيمة القابلة للسحب.</span>
+            <!-- ── Quick Actions Grid ── -->
+            <div class="quick-actions wallet-reveal">
+                <a href="{% url 'dashboard_deposits' %}" class="qa-btn">
+                    <div class="qa-icon deposit"><i class="fas fa-arrow-down"></i></div>
+                    <span class="qa-label">إيداع</span>
+                </a>
+                <a href="{% url 'dashboard_withdrawals' %}" class="qa-btn">
+                    <div class="qa-icon withdraw"><i class="fas fa-arrow-up"></i></div>
+                    <span class="qa-label">سحب</span>
+                </a>
+                <a href="{% url 'dashboard_transfer' %}" class="qa-btn">
+                    <div class="qa-icon transfer"><i class="fas fa-exchange-alt"></i></div>
+                    <span class="qa-label">تحويل</span>
+                </a>
+                <a href="#recharge-section" class="qa-btn highlight">
+                    <div class="qa-icon recharge"><i class="fas fa-credit-card"></i></div>
+                    <span class="qa-label">شحن بطاقة</span>
+                </a>
             </div>
-            {% endif %}
 
-            <!-- Sub-balances breakdown -->
-            <div class="balance-breakdown mt-8">
-                <div class="breakdown-item">
-                    <label>الرصيد المتاح الكلي</label>
-                    <span class="text-white">{{ wallet.available_balance }} {{ wallet.currency.code }}</span>
+            <!-- ── Stats Scrollable Row ── -->
+            <div class="stats-scroll wallet-reveal">
+                <div class="stat-pill">
+                    <div class="stat-icon green"><i class="fas fa-arrow-down"></i></div>
+                    <div class="stat-meta">
+                        <span class="stat-meta-label">إجمالي الإيداعات</span>
+                        <span class="stat-meta-value">{{ total_deposited|floatformat:2 }} {{ wallet.currency.code }}</span>
+                    </div>
                 </div>
-                <div class="breakdown-item">
-                    <label>الدين المستحق</label>
-                    <span class="{% if wallet.debt_balance > 0 %}text-rose-400{% else %}text-slate-400{% endif %}">{{ wallet.debt_balance }} {{ wallet.currency.code }}</span>
+                <div class="stat-pill">
+                    <div class="stat-icon cyan"><i class="fas fa-ticket-alt"></i></div>
+                    <div class="stat-meta">
+                        <span class="stat-meta-label">شحن البطاقات</span>
+                        <span class="stat-meta-value">{{ total_recharged|floatformat:2 }} {{ wallet.currency.code }}</span>
+                    </div>
                 </div>
-                <div class="breakdown-item">
-                    <label>الرصيد المجمد</label>
-                    <span class="text-slate-300">{{ wallet.frozen_balance }} {{ wallet.currency.code }}</span>
-                </div>
-                <div class="breakdown-item">
-                    <label>الرصيد المحجوز</label>
-                    <span class="text-slate-300">{{ wallet.held_balance }} {{ wallet.currency.code }}</span>
+                <div class="stat-pill">
+                    <div class="stat-icon red"><i class="fas fa-arrow-up"></i></div>
+                    <div class="stat-meta">
+                        <span class="stat-meta-label">إجمالي السحوبات</span>
+                        <span class="stat-meta-value">{{ total_withdrawn|floatformat:2 }} {{ wallet.currency.code }}</span>
+                    </div>
                 </div>
             </div>
+
+            <!-- Net Added -->
+            <div class="net-bar wallet-reveal">
+                <span class="net-bar-label">
+                    <i class="fas fa-calculator" style="color:var(--cyan);"></i>
+                    صافي الرصيد المضاف (إيداع + بطاقات)
+                </span>
+                <span class="net-bar-value">{{ total_added|floatformat:2 }} {{ wallet.currency.code }}</span>
+            </div>
+
+            <!-- ── Ledger Entries ── -->
+            <div class="ledger-card wallet-reveal">
+                <div class="ledger-header">
+                    <div class="ledger-title">
+                        <i class="fas fa-scroll"></i>
+                        سجل الحركات المالية
+                    </div>
+                    {% if show_all %}
+                    <a href="{% url 'dashboard_wallet' %}" class="btn btn-sm btn-outline" style="padding:0.35rem 0.75rem; font-size:0.65rem; border-radius:10px;">عرض أقل</a>
+                    {% else %}
+                    <a href="{% url 'dashboard_wallet' %}?show_all=1" class="btn btn-sm btn-outline" style="padding:0.35rem 0.75rem; font-size:0.65rem; border-radius:10px;">عرض الكل</a>
+                    {% endif %}
+                </div>
+
+                <div>
+                    {% for entry in ledger_entries %}
+                    <div class="ledger-entry">
+                        <div class="ledger-right">
+                            <!-- Icon dot -->
+                            <div class="ledger-dot {% if entry.entry_type == 'credit' or entry.entry_type == 'refund' %}credit{% elif entry.entry_type == 'debit' or entry.entry_type == 'debt_add' %}debit{% elif entry.entry_type == 'debt_payment' %}debt{% else %}neutral{% endif %}">
+                                <i class="fas {% if entry.entry_type == 'credit' or entry.entry_type == 'refund' %}fa-plus{% elif entry.entry_type == 'debit' or entry.entry_type == 'debt_add' %}fa-minus{% elif entry.entry_type == 'debt_payment' %}fa-hand-holding-usd{% elif entry.entry_type == 'freeze' or entry.entry_type == 'release' %}fa-snowflake{% elif entry.entry_type == 'hold' or entry.entry_type == 'unhold' %}fa-lock{% elif entry.entry_type == 'pending_deposit' or entry.entry_type == 'pending_cancel' %}fa-clock{% else %}fa-exchange-alt{% endif %}"></i>
+                            </div>
+
+                            <!-- Info -->
+                            <div class="ledger-info">
+                                <div class="ledger-type">
+                                    {{ entry.get_entry_type_display }}
+                                    {% if entry.source %} • {{ entry.source|translate_ledger_source }}{% endif %}
+                                    {% if entry.source == 'purchase' %}
+                                    <a href="{% url 'dashboard_order_detail' entry.reference %}"><i class="fas fa-external-link-alt"></i> عرض الطلب</a>
+                                    {% endif %}
+                                </div>
+
+                                {% if entry.metadata.source_amount %}
+                                <div class="ledger-source-amount">
+                                    القيمة الأصلية: {{ entry.metadata.source_amount }} {{ entry.metadata.source_currency }}
+                                </div>
+                                {% endif %}
+
+                                {% if entry.description %}
+                                <div class="ledger-desc">{{ entry.description }}</div>
+                                {% elif entry.reason %}
+                                <div class="ledger-desc">{{ entry.reason }}</div>
+                                {% endif %}
+
+                                <div class="ledger-meta">
+                                    <span>{{ entry.created_at|date:"d M Y, H:i" }}</span>
+                                    <span>•</span>
+                                    <span>
+                                        {% if entry.created_by %}
+                                            {% if entry.created_by.is_platform_staff %}نظام رقميات{% else %}العميل{% endif %}
+                                        {% else %}
+                                            النظام الآلي
+                                        {% endif %}
+                                    </span>
+                                    {% if entry.reference %}
+                                    <span>•</span>
+                                    <span style="font-family:monospace; color:#334155;">{{ entry.reference }}</span>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Amount -->
+                        <div class="ledger-amount">
+                            <div class="ledger-amount-value {% if entry.entry_type == 'credit' or entry.entry_type == 'refund' or entry.entry_type == 'release' or entry.entry_type == 'unhold' or entry.entry_type == 'unreserve' %}plus{% else %}minus{% endif %}">
+                                {% if entry.entry_type == 'credit' or entry.entry_type == 'refund' or entry.entry_type == 'release' or entry.entry_type == 'unhold' or entry.entry_type == 'unreserve' %}+{% else %}-{% endif %}{{ entry.amount }} {{ wallet.currency.code }}
+                            </div>
+                            <div class="ledger-balance-after">الرصيد: {{ entry.balance_after }}</div>
+                        </div>
+                    </div>
+                    {% empty %}
+                    <div class="ledger-empty">
+                        <i class="fas fa-receipt"></i>
+                        <p>لا توجد حركات مالية مسجلة بعد.</p>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+
         </div>
 
-        <!-- Quick Actions Grid -->
-        <div class="actions-grid">
-            <a href="{% url 'dashboard_deposits' %}" class="action-btn-card primary">
-                <div class="w-12 h-12 rounded-2xl bg-cyan/10 flex items-center justify-center text-cyan">
-                    <i class="fas fa-wallet"></i>
+        <!-- ════════ SIDEBAR ════════ -->
+        <div class="sidebar-area">
+            <!-- Recharge Card Form -->
+            <div class="side-card wallet-reveal" id="recharge-section">
+                <div class="side-card-title">
+                    <i class="fas fa-credit-card"></i>
+                    شحن بطاقة رصيد
                 </div>
-                <span class="font-bold text-sm text-white">إيداع رصيد</span>
-                <span class="text-[10px] text-slate-500">شحن المحفظة</span>
-            </a>
-            <a href="{% url 'dashboard_withdrawals' %}" class="action-btn-card">
-                <div class="w-12 h-12 rounded-2xl bg-white/5 flex items-center justify-center text-white">
-                    <i class="fas fa-money-bill-wave"></i>
-                </div>
-                <span class="font-bold text-sm text-white">سحب رصيد</span>
-                <span class="text-[10px] text-slate-500">سحب الأموال</span>
-            </a>
-            <a href="{% url 'dashboard_transfer' %}" class="action-btn-card">
-                <div class="w-12 h-12 rounded-2xl bg-white/5 flex items-center justify-center text-white">
-                    <i class="fas fa-exchange-alt"></i>
-                </div>
-                <span class="font-bold text-sm text-white">تحويل للأعضاء</span>
-                <span class="text-[10px] text-slate-500">تحويل P2P سريع</span>
-            </a>
-        </div>
-
-        <!-- Stats / Deposit & Withdrawal Query Summary -->
-        <div class="stats-dashboard">
-            <div class="stat-card">
-                <div class="stat-card-icon bg-emerald-500/10 text-emerald-400">
-                    <i class="fas fa-arrow-down"></i>
-                </div>
-                <div class="stat-card-info">
-                    <label>إجمالي الإيداعات</label>
-                    <span>{{ total_deposited|floatformat:2 }} {{ wallet.currency.code }}</span>
-                </div>
-            </div>
-            
-            <div class="stat-card">
-                <div class="stat-card-icon bg-cyan/10 text-cyan">
-                    <i class="fas fa-ticket-alt"></i>
-                </div>
-                <div class="stat-card-info">
-                    <label>شحن بطاقات الرصيد</label>
-                    <span>{{ total_recharged|floatformat:2 }} {{ wallet.currency.code }}</span>
-                </div>
+                <form method="post" action="{% url 'dashboard_recharge_wallet' %}" style="display:flex; flex-direction:column; gap:0.875rem;">
+                    {% csrf_token %}
+                    <div>
+                        <label style="display:block; font-size:0.6rem; font-weight:700; color:#475569; margin-bottom:6px;">رمز بطاقة الشحن</label>
+                        <input type="text" name="recharge_code" placeholder="RC-XXXX-XXXX..." class="recharge-input" required>
+                    </div>
+                    <button type="submit" class="recharge-btn">
+                        <i class="fas fa-bolt"></i>
+                        شحن الرصيد الآن
+                    </button>
+                </form>
             </div>
 
-            <div class="stat-card">
-                <div class="stat-card-icon bg-rose-500/10 text-rose-400">
-                    <i class="fas fa-arrow-up"></i>
+            <!-- Currency Holdings -->
+            <div class="side-card wallet-reveal">
+                <div class="side-card-title">
+                    <i class="fas fa-coins"></i>
+                    أرصدة العملات
                 </div>
-                <div class="stat-card-info">
-                    <label>إجمالي السحوبات</label>
-                    <span>{{ total_withdrawn|floatformat:2 }} {{ wallet.currency.code }}</span>
+
+                <div class="holding-card">
+                    <div class="holding-left">
+                        <div class="holding-avatar">{{ wallet.currency.code|slice:":1" }}</div>
+                        <div>
+                            <div class="holding-name">{{ wallet.currency.name }}</div>
+                            <div class="holding-tag">العملة الأساسية</div>
+                        </div>
+                    </div>
+                    <div class="holding-right">
+                        <div class="holding-val">{{ wallet.available_balance }}</div>
+                        <div class="holding-code">{{ wallet.currency.code }}</div>
+                    </div>
                 </div>
-            </div>
-        </div>
 
-        <!-- Net Added Balance Alert -->
-        <div class="glass-panel p-4 flex justify-between items-center bg-white/[0.01]">
-            <span class="text-xs text-slate-400 font-bold"><i class="fas fa-calculator text-cyan ml-2"></i> صافي الرصيد المضاف (إيداع + بطاقات):</span>
-            <span class="text-sm font-black text-white">{{ total_added|floatformat:2 }} {{ wallet.currency.code }}</span>
-        </div>
-
-        <!-- Ledger Entries Table -->
-        <div class="glass-panel overflow-hidden">
-            <div class="p-6 border-b border-white/5 bg-white/[0.01] flex justify-between items-center">
-                <h3 class="font-bold text-sm text-white">سجل الحركات المالية الموثقة</h3>
-                {% if show_all %}
-                <a href="{% url 'dashboard_wallet' %}" class="btn btn-sm btn-outline py-1 px-3 text-[10px] font-bold">عرض حركات أقل</a>
-                {% else %}
-                <a href="{% url 'dashboard_wallet' %}?show_all=1" class="btn btn-sm btn-outline py-1 px-3 text-[10px] font-bold">عرض جميع الحركات</a>
+                <!-- Show frozen/held only if > 0 -->
+                {% if wallet.frozen_balance > 0 or wallet.held_balance > 0 %}
+                <div class="mini-balances-grid">
+                    {% if wallet.frozen_balance > 0 %}
+                    <div class="mini-bal">
+                        <span class="mini-bal-label">المجمد (سحب)</span>
+                        <span class="mini-bal-value">{{ wallet.frozen_balance }}</span>
+                    </div>
+                    {% endif %}
+                    {% if wallet.held_balance > 0 %}
+                    <div class="mini-bal">
+                        <span class="mini-bal-label">المحجوز (إداري)</span>
+                        <span class="mini-bal-value">{{ wallet.held_balance }}</span>
+                    </div>
+                    {% endif %}
+                </div>
                 {% endif %}
             </div>
 
-            <div class="stack divide-y divide-white/5">
-                {% for entry in ledger_entries %}
-                <div class="p-6 flex justify-between items-center hover:bg-white/[0.01] transition duration-200">
-                    <div class="flex items-center gap-4">
-                        <div class="w-10 h-10 rounded-full flex items-center justify-center 
-                            {% if entry.entry_type == 'credit' or entry.entry_type == 'refund' %}bg-success/10 text-success
-                            {% elif entry.entry_type == 'debit' or entry.entry_type == 'debt_add' %}bg-danger/10 text-danger
-                            {% elif entry.entry_type == 'debt_payment' %}bg-cyan/10 text-cyan
-                            {% else %}bg-slate-800 text-slate-400{% endif %}">
-                            <i class="fas 
-                                {% if entry.entry_type == 'credit' or entry.entry_type == 'refund' %}fa-plus
-                                {% elif entry.entry_type == 'debit' or entry.entry_type == 'debt_add' %}fa-minus
-                                {% elif entry.entry_type == 'debt_payment' %}fa-hand-holding-usd
-                                {% else %}fa-exchange-alt{% endif %}"></i>
-                        </div>
-                        <div>
-                            <div class="font-bold text-xs text-white">
-                                {{ entry.get_entry_type_display }}
-                                {% if entry.source %}
-                                 • {{ entry.source|translate_ledger_source }}
-                                {% endif %}
-                                {% if entry.source == 'purchase' %}
-                                <a href="{% url 'dashboard_order_detail' entry.reference %}" class="mr-2 text-cyan hover:underline text-[9px]"><i class="fas fa-external-link-alt"></i> عرض الطلب</a>
-                                {% endif %}
-                            </div>
-                            
-                            {% if entry.metadata.source_amount %}
-                            <div class="text-[9px] text-cyan font-bold mt-1">
-                                القيمة الأصلية: {{ entry.metadata.source_amount }} {{ entry.metadata.source_currency }}
-                            </div>
-                            {% endif %}
-
-                            {% if entry.description %}
-                            <div class="text-[11px] text-slate-400 mt-1 leading-relaxed">{{ entry.description }}</div>
-                            {% elif entry.reason %}
-                            <div class="text-[11px] text-slate-400 mt-1 leading-relaxed">{{ entry.reason }}</div>
-                            {% endif %}
-
-                            <div class="text-[9px] text-slate-500 mt-1 flex items-center gap-1.5 flex-wrap">
-                                <span>{{ entry.created_at|date:"d M Y, H:i" }}</span>
-                                <span>•</span>
-                                <span class="uppercase">
-                                    {% if entry.created_by %}
-                                        {% if entry.created_by.is_platform_staff %}نظام رقميات{% else %}العميل نفسه{% endif %}
-                                    {% else %}
-                                        النظام الآلي
-                                    {% endif %}
-                                </span>
-                                {% if entry.reference %}
-                                <span>•</span>
-                                <span class="font-mono text-slate-600">مرجع: {{ entry.reference }}</span>
-                                {% endif %}
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div class="text-left">
-                        <div class="font-black text-xs {% if entry.entry_type == 'credit' or entry.entry_type == 'refund' or entry.entry_type == 'release' or entry.entry_type == 'unhold' or entry.entry_type == 'unreserve' %}text-emerald-400{% else %}text-rose-400{% endif %}">
-                            {% if entry.entry_type == 'credit' or entry.entry_type == 'refund' or entry.entry_type == 'release' or entry.entry_type == 'unhold' or entry.entry_type == 'unreserve' %}+{% else %}-{% endif %}{{ entry.amount }} {{ wallet.currency.code }}
-                        </div>
-                        <div class="text-[9px] text-slate-500 mt-1">الرصيد اللاحق: {{ entry.balance_after }}</div>
-                    </div>
+            <!-- Exchange Rates -->
+            <div class="side-card wallet-reveal">
+                <div class="side-card-title">
+                    <i class="fas fa-chart-line"></i>
+                    أسعار الصرف الحالية
                 </div>
-                {% empty %}
-                <div class="p-16 text-center text-slate-600">
-                    <i class="fas fa-receipt text-4xl mb-4 opacity-20"></i>
-                    <p class="text-xs italic">لا توجد حركات مالية مسجلة بعد في محفظتك.</p>
+                <div>
+                    {% for c in ALL_CURRENCIES %}
+                    {% if c.code != CURRENCY.code %}
+                    <div class="rate-row">
+                        <span class="rate-from">1 {{ CURRENCY.code }} =</span>
+                        <span class="rate-to">
+                            {% with 1.0|convert_price:c as rate %}
+                            {{ rate }} {{ c.code }}
+                            {% endwith %}
+                        </span>
+                    </div>
+                    {% endif %}
+                    {% endfor %}
                 </div>
-                {% endfor %}
             </div>
         </div>
     </div>
-
-    <!-- Sidebar Area -->
-    <aside class="stack gap-6">
-        <!-- Recharge Voucher Form (Clean Spot) -->
-        <div class="premium-sidebar-card">
-            <h4 class="sidebar-section-title">
-                <i class="fas fa-key text-cyan"></i> شحن بطاقة رصيد
-            </h4>
-            <form method="post" action="{% url 'dashboard_recharge_wallet' %}" class="space-y-4 text-right">
-                {% csrf_token %}
-                <div class="space-y-1">
-                    <label class="text-[10px] text-slate-400 block font-bold mb-1">رمز بطاقة الشحن</label>
-                    <input type="text" name="recharge_code" placeholder="RC-XXXX-XXXX..." class="w-full bg-slate-950/60 border border-white/5 rounded-2xl py-3.5 px-4 text-white text-sm text-center font-bold tracking-widest uppercase focus:outline-none focus:border-cyan/50" required>
-                </div>
-                <button type="submit" class="btn btn-primary w-full py-3.5 text-xs font-black shadow-lg shadow-cyan/10">
-                    شحن الرصيد الآن
-                </button>
-            </form>
-        </div>
-
-        <!-- Currency Holdings Summary -->
-        <div class="premium-sidebar-card">
-            <h4 class="sidebar-section-title">
-                <i class="fas fa-coins text-slate-500"></i> أرصدة العملات المتاحة
-            </h4>
-            <div class="stack gap-3">
-                <div class="holding-row bg-white/[0.01] p-3 border border-white/5 rounded-2xl">
-                    <div class="flex items-center gap-3">
-                        <div class="w-9 h-9 rounded-xl bg-cyan/10 text-cyan flex items-center justify-center font-black text-xs">
-                            {{ wallet.currency.code|slice:":1" }}
-                        </div>
-                        <div class="stack gap-0.5">
-                            <span class="text-[10px] text-slate-500 font-bold">العملة الأساسية</span>
-                            <span class="text-xs font-bold text-white">{{ wallet.currency.name }}</span>
-                        </div>
-                    </div>
-                    <div class="text-left">
-                        <div class="font-black text-sm text-white">{{ wallet.available_balance }}</div>
-                        <span class="text-[9px] text-cyan font-black">{{ wallet.currency.code }}</span>
-                    </div>
-                </div>
-
-                <!-- Frozen and Held Breakdown in Sidebar -->
-                <div class="grid grid-cols-2 gap-2 mt-2">
-                    <div class="bg-white/[0.01] p-3 border border-white/5 rounded-xl text-center">
-                        <label class="text-[9px] text-slate-500 block mb-1 font-bold">المجمد (سحب)</label>
-                        <span class="text-xs font-black text-slate-300">{{ wallet.frozen_balance }}</span>
-                    </div>
-                    <div class="bg-white/[0.01] p-3 border border-white/5 rounded-xl text-center">
-                        <label class="text-[9px] text-slate-500 block mb-1 font-bold">المحجوز (إداري)</label>
-                        <span class="text-xs font-black text-slate-300">{{ wallet.held_balance }}</span>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Exchange Rates Panel -->
-        <div class="premium-sidebar-card">
-            <h4 class="sidebar-section-title">
-                <i class="fas fa-chart-line text-cyan"></i> أسعار الصرف الحالية
-            </h4>
-            <div class="stack gap-3">
-                {% for c in ALL_CURRENCIES %}
-                {% if c.code != CURRENCY.code %}
-                <div class="flex justify-between items-center text-xs py-2 border-b border-white/5 last:border-b-0">
-                    <span class="text-slate-400 font-medium">1 {{ CURRENCY.code }} =</span>
-                    <span class="text-white font-bold font-mono">
-                        {% with 1.0|convert_price:c as rate %}
-                        {{ rate }} {{ c.code }}
-                        {% endwith %}
-                    </span>
-                </div>
-                {% endif %}
-                {% endfor %}
-            </div>
-        </div>
-    </aside>
 </div>
-
-<script>
-// Reveal animation
-const observer = new IntersectionObserver((entries) => {
-    entries.forEach(entry => {
-        if (entry.isIntersecting) entry.target.classList.add('visible');
-    });
-}, { threshold: 0.05 });
-document.querySelectorAll('.reveal').forEach(el => {
-    el.style.opacity = '0';
-    el.style.transform = 'translateY(20px)';
-    el.style.transition = 'all 0.6s cubic-bezier(0.2, 1, 0.3, 1)';
-    observer.observe(el);
-});
-document.addEventListener('DOMContentLoaded', () => {
-    document.querySelectorAll('.reveal').forEach(el => {
-        setTimeout(() => {
-            el.style.opacity = '1';
-            el.style.transform = 'translateY(0)';
-        }, 100);
-    });
-});
-</script>
 {% endblock %}

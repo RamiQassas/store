@@ -373,7 +373,7 @@
               {{ user.display_name|slice:":1"|upper }}
           </div>
           <div>
-              <div class="font-bold text-white text-sm truncate max-w-[150px]">{{ user.display_name }}</div>
+              <div class="font-bold text-white text-sm truncate max-w-[150px]">{% if user.first_name %}{{ user.get_full_name }}{% else %}{{ user.display_name }}{% endif %}</div>
               <div class="text-[10px] text-cyan">{{ user.get_tier_display }}</div>
           </div>
       </div>
@@ -479,7 +479,7 @@
           {% if user.is_authenticated %}
             <div class="user-profile-hub">
                 <div class="user-meta">
-                    <span class="user-name">{{ user.get_full_name|default:user.display_name }}</span>
+                    <span class="user-name">{% if user.first_name %}{{ user.get_full_name }}{% else %}{{ user.display_name }}{% endif %}</span>
                     <span class="user-balance">{% currency_format user.wallet.available_balance user.wallet.currency mode="withdraw" %}</span>
                 </div>
                 <a href="{% url 'site_logout' %}" class="logout-btn" title="تسجيل الخروج">
@@ -499,9 +499,11 @@
     {% if messages %}
       <div class="messages-container stack gap-2 mb-6">
         {% for message in messages %}
-          <div class="panel p-4 {% if message.tags == 'error' %}border-danger/30 bg-danger/5 text-danger{% else %}border-success/30 bg-success/5 text-success{% endif %} flex justify-between items-center">
+          <div class="panel p-4 {% if message.tags == 'error' %}border-danger/30 bg-danger/5 text-danger{% else %}border-success/30 bg-success/5 text-success{% endif %} flex justify-between items-center msg-dismissible" style="transition: all 0.4s ease;">
             <span class="text-sm font-bold">{{ message }}</span>
-            <i class="fas {% if message.tags == 'error' %}fa-exclamation-circle{% else %}fa-check-circle{% endif %}"></i>
+            <button onclick="this.parentElement.style.opacity='0';this.parentElement.style.transform='translateY(-10px)';setTimeout(()=>this.parentElement.remove(),400)" class="text-lg opacity-50 hover:opacity-100 cursor-pointer" style="background:none;border:none;color:inherit;padding:0 0.5rem;">
+              <i class="fas fa-times"></i>
+            </button>
           </div>
         {% endfor %}
       </div>
@@ -616,5 +618,15 @@
   <script src="{% static 'site/js/push.js' %}?v=2"></script>
   {% block modals %}{% endblock %}
   {% block extra_js %}{% endblock %}
+  <script>
+    // Auto-dismiss messages after 8 seconds
+    document.querySelectorAll('.msg-dismissible').forEach((msg, i) => {
+      setTimeout(() => {
+        msg.style.opacity = '0';
+        msg.style.transform = 'translateY(-10px)';
+        setTimeout(() => msg.remove(), 400);
+      }, 8000 + i * 500);
+    });
+  </script>
 </body>
 </html>
