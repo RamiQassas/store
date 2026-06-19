@@ -155,3 +155,50 @@ class BalanceTransfer(TimeStampedModel):
 
     def __str__(self):
         return f"{self.sender} -> {self.recipient} ({self.amount} {self.currency.code})"
+
+
+class RechargeCard(TimeStampedModel):
+    class Status(models.TextChoices):
+        ACTIVE = "active", "نشط"
+        REDEEMED = "redeemed", "تم استخدامه"
+        CANCELLED = "cancelled", "ملغي"
+
+    code = models.CharField(max_length=50, unique=True, verbose_name="رمز الشحن")
+    amount = models.DecimalField(max_digits=12, decimal_places=2, verbose_name="قيمة الشحن")
+    currency = models.ForeignKey("common.Currency", on_delete=models.PROTECT, verbose_name="العملة")
+    status = models.CharField(max_length=20, choices=Status.choices, default=Status.ACTIVE, verbose_name="الحالة")
+    
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, 
+        null=True, 
+        blank=True, 
+        on_delete=models.SET_NULL, 
+        related_name="created_recharge_cards",
+        verbose_name="أنشئ بواسطة"
+    )
+    redeemed_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, 
+        null=True, 
+        blank=True, 
+        on_delete=models.SET_NULL, 
+        related_name="redeemed_recharge_cards",
+        verbose_name="شحن بواسطة"
+    )
+    redeemed_at = models.DateTimeField(null=True, blank=True, verbose_name="تاريخ الشحن")
+    
+    order = models.ForeignKey(
+        "orders.Order", 
+        null=True, 
+        blank=True, 
+        on_delete=models.SET_NULL, 
+        related_name="recharge_cards",
+        verbose_name="الطلب المرتبط"
+    )
+
+    class Meta:
+        verbose_name = "بطاقة شحن"
+        verbose_name_plural = "بطاقات الشحن"
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return f"{self.code} ({self.amount} {self.currency.code})"

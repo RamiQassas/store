@@ -88,9 +88,55 @@ class Order(TimeStampedModel):
         ordering = ["-created_at"]
 
     def save(self, *args, **kwargs):
+        is_new = self.pk is None
+        old_status = None
+        if not is_new:
+            try:
+                old_status = Order.objects.filter(pk=self.pk).values_list('status', flat=True).first()
+            except Exception:
+                pass
+
         if not self.number:
             self.number = f"ORD-{uuid.uuid4().hex[:8].upper()}"
         super().save(*args, **kwargs)
+
+        if self.status == Order.Status.COMPLETED and old_status != Order.Status.COMPLETED:
+            self.generate_recharge_cards()
+
+    def generate_recharge_cards(self):
+        from apps.wallets.models import RechargeCard
+        from apps.common.models import Currency
+        import secrets
+
+        generated_codes = []
+        for item in self.items.all():
+            variant = item.variant
+            if getattr(variant, "is_recharge_card", False):
+                for _ in range(item.quantity):
+                    code = f"RC-{secrets.token_hex(4).upper()}-{secrets.token_hex(4).upper()}"
+                    amount = variant.recharge_amount
+                    if amount <= 0:
+                        amount = variant.price
+                    currency = variant.recharge_currency
+                    if not currency:
+                        currency = Currency.objects.filter(code="USD").first() or Currency.objects.filter(is_default=True).first()
+
+                    RechargeCard.objects.create(
+                        code=code,
+                        amount=amount,
+                        currency=currency,
+                        order=self,
+                        status=RechargeCard.Status.ACTIVE
+                    )
+                    generated_codes.append(code)
+
+        if generated_codes:
+            ff_data = dict(self.fulfillment_data or {})
+            existing_codes = ff_data.get("أكواد الشحن", "")
+            all_codes = [c.strip() for c in existing_codes.split("|") if c.strip()] if existing_codes else []
+            all_codes.extend(generated_codes)
+            ff_data["أكواد الشحن"] = " | ".join(all_codes)
+            Order.objects.filter(pk=self.pk).update(fulfillment_data=ff_data)
 
     def formatted_metadata(self):
         """Returns a list of dicts with 'label' and 'value' for metadata."""

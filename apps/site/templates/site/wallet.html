@@ -199,6 +199,18 @@
     </div>
 
     <aside class="stack gap-6">
+        <!-- Recharge Voucher Form -->
+        <div class="currency-summary-card">
+            <h3 class="font-bold text-sm text-cyan uppercase tracking-widest mb-6">شحن بطاقة رصيد</h3>
+            <form method="post" action="{% url 'dashboard_recharge_wallet' %}" class="space-y-4">
+                {% csrf_token %}
+                <div class="space-y-1">
+                    <input type="text" name="recharge_code" placeholder="أدخل رمز الشحن (RC-XXXX-XXXX)..." class="w-full bg-slate-950/60 border border-white/5 rounded-2xl py-3 px-4 text-white text-sm text-center font-bold tracking-widest uppercase focus:outline-none focus:border-cyan/50" required>
+                </div>
+                <button type="submit" class="btn btn-primary w-full py-3 text-xs font-black">شحن الرصيد الآن</button>
+            </form>
+        </div>
+
         <!-- Currency Holdings Summary -->
         <div class="currency-summary-card">
             <h3 class="font-bold text-sm text-muted uppercase tracking-widest mb-6">الأرصدة (1 عملة)</h3>

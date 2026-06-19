@@ -1,0 +1,140 @@
+{% extends "site/control_base.html" %}
+{% load static %}
+{% block title %}إدارة بطاقات الشحن | مركز التحكم{% endblock %}
+
+{% block control_content %}
+<div class="flex justify-between items-center mb-8">
+    <div>
+        <span class="eyebrow">Financial Vouchers</span>
+        <h1 class="text-3xl font-black text-white">إدارة بطاقات الشحن</h1>
+        <p class="text-slate-400 text-sm">إنشاء وإلغاء ومراقبة رموز شحن الرصيد في النظام.</p>
+    </div>
+    <div>
+        <a href="{% url 'control_recharge_cards_generate' %}" class="btn btn-primary">
+            <i class="fas fa-plus mr-2"></i> توليد بطاقات شحن
+        </a>
+    </div>
+</div>
+
+{% if messages %}
+    {% for message in messages %}
+    <div class="p-4 rounded-xl mb-6 flex items-center gap-3 {% if message.tags == 'success' %}bg-emerald-500/10 border border-emerald-500/20 text-emerald-400{% else %}bg-rose-500/10 border border-rose-500/20 text-rose-400{% endif %}">
+        <i class="fas {% if message.tags == 'success' %}fa-check-circle{% else %}fa-exclamation-triangle{% endif %}"></i>
+        <span class="font-bold text-sm">{{ message }}</span>
+    </div>
+    {% endfor %}
+{% endif %}
+
+<!-- Filters Card -->
+<div class="glass-panel p-6 mb-8">
+    <form method="get" class="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div class="md:col-span-2">
+            <input type="text" name="q" class="w-full bg-slate-900/60 border border-white/5 rounded-2xl py-3 px-4 text-white text-sm focus:outline-none focus:border-cyan/50" placeholder="بحث بالرمز، البريد الإلكتروني، أو UID المنشئ/المستخدم..." value="{{ query|default:'' }}">
+        </div>
+        <div>
+            <select name="status" class="w-full bg-slate-900/60 border border-white/5 rounded-2xl py-3 px-4 text-white text-sm focus:outline-none focus:border-cyan/50">
+                <option value="">جميع الحالات</option>
+                {% for code, name in status_choices %}
+                <option value="{{ code }}" {% if status_filter == code %}selected{% endif %}>{{ name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div>
+            <button type="submit" class="btn btn-outline w-full py-3">
+                <i class="fas fa-filter mr-2"></i> تصفية النتائج
+            </button>
+        </div>
+    </form>
+</div>
+
+<!-- List Grid / Table -->
+<div class="glass-panel overflow-hidden">
+    <div class="overflow-x-auto">
+        <table class="w-full text-right text-slate-300 text-sm">
+            <thead class="bg-slate-900/40 text-slate-400 font-bold border-b border-white/5">
+                <tr>
+                    <th class="p-4">رمز الشحن</th>
+                    <th class="p-4">القيمة</th>
+                    <th class="p-4">العملة</th>
+                    <th class="p-4">الحالة</th>
+                    <th class="p-4">تاريخ الإنشاء</th>
+                    <th class="p-4">بواسطة / طلب</th>
+                    <th class="p-4">المستخدم المستفيد</th>
+                    <th class="p-4">تاريخ الاستخدام</th>
+                    <th class="p-4">الإجراءات</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-white/5">
+                {% for card in page_obj %}
+                <tr class="hover:bg-white/[0.01] transition-colors">
+                    <td class="p-4"><code class="bg-black/30 px-2 py-1 rounded text-cyan font-mono text-sm tracking-wider">{{ card.code }}</code></td>
+                    <td class="p-4 font-bold text-white">{{ card.amount }}</td>
+                    <td class="p-4"><span class="badge primary">{{ card.currency.code }}</span></td>
+                    <td class="p-4">
+                        {% if card.status == 'active' %}
+                        <span class="text-xs bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-2.5 py-1 rounded-lg font-bold"><i class="fas fa-check-circle mr-1"></i> نشط</span>
+                        {% elif card.status == 'redeemed' %}
+                        <span class="text-xs bg-cyan/10 text-cyan border border-cyan/20 px-2.5 py-1 rounded-lg font-bold"><i class="fas fa-hand-holding-usd mr-1"></i> تم الشحن</span>
+                        {% else %}
+                        <span class="text-xs bg-rose-500/10 text-rose-400 border border-rose-500/20 px-2.5 py-1 rounded-lg font-bold"><i class="fas fa-times-circle mr-1"></i> ملغي</span>
+                        {% endif %}
+                    </td>
+                    <td class="p-4 text-xs">{{ card.created_at|date:"Y-m-d H:i" }}</td>
+                    <td class="p-4 text-xs">
+                        {% if card.order %}
+                            <a href="{% url 'control_order_detail' card.order.pk %}" class="text-cyan hover:underline font-bold"><i class="fas fa-receipt mr-1"></i> الطلب #{{ card.order.number }}</a>
+                        {% elif card.created_by %}
+                            <span class="text-slate-400">{{ card.created_by.display_name }}</span>
+                        {% else %}
+                            <span class="text-slate-500">-</span>
+                        {% endif %}
+                    </td>
+                    <td class="p-4 text-xs">
+                        {% if card.redeemed_by %}
+                            <a href="{% url 'control_user_moderate' card.redeemed_by.public_uuid %}" class="text-cyan hover:underline font-bold">{{ card.redeemed_by.display_name }}</a>
+                            <div class="text-[10px] text-slate-500 font-mono mt-0.5">UID: {{ card.redeemed_by.uid }}</div>
+                        {% else %}
+                            <span class="text-slate-500">-</span>
+                        {% endif %}
+                    </td>
+                    <td class="p-4 text-xs">{{ card.redeemed_at|date:"Y-m-d H:i"|default:"-" }}</td>
+                    <td class="p-4">
+                        {% if card.status == 'active' %}
+                        <form method="post" action="{% url 'control_recharge_card_cancel' card.pk %}" onsubmit="return confirm('هل أنت متأكد من إلغاء كود الشحن هذا؟');" class="inline">
+                            {% csrf_token %}
+                            <button type="submit" class="text-rose-400 hover:bg-rose-500/10 border border-rose-500/20 px-3 py-1.5 rounded-xl text-xs font-bold transition-all">
+                                <i class="fas fa-ban mr-1"></i> إلغاء الكود
+                            </button>
+                        </form>
+                        {% else %}
+                        <span class="text-slate-600 text-xs font-bold">-</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="9" class="p-12 text-center text-slate-500">لا توجد بطاقات شحن مسجلة حالياً.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Pagination -->
+    {% if page_obj.has_other_pages %}
+    <div class="p-6 border-t border-white/5 flex justify-between items-center">
+        <div class="text-xs text-slate-500">
+            صفحة {{ page_obj.number }} من {{ page_obj.paginator.num_pages }}
+        </div>
+        <div class="flex gap-2">
+            {% if page_obj.has_previous %}
+            <a href="?page={{ page_obj.previous_page_number }}{% if query %}&q={{ query }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}" class="btn btn-outline btn-sm py-1.5 px-4 text-xs">السابق</a>
+            {% endif %}
+            {% if page_obj.has_next %}
+            <a href="?page={{ page_obj.next_page_number }}{% if query %}&q={{ query }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}" class="btn btn-outline btn-sm py-1.5 px-4 text-xs">التالي</a>
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

@@ -140,6 +140,38 @@
             </div>
         </div>
 
+        <!-- View Toggle (Categories vs Products) -->
+        <div class="flex justify-center mb-8 gap-4 reveal-item">
+            <a href="?view=products{% if active_category %}&category={{ active_category }}{% endif %}{% if query %}&q={{ query }}{% endif %}" 
+               class="{% if view_type == 'products' %}btn-premium{% else %}btn-outline-premium{% endif %} !py-3 !px-6 rounded-xl text-xs font-black text-decoration-none">
+                <i class="fas fa-boxes mr-2"></i> عرض كافة المنتجات
+            </a>
+            <a href="?view=categories{% if query %}&q={{ query }}{% endif %}" 
+               class="{% if view_type == 'categories' %}btn-premium{% else %}btn-outline-premium{% endif %} !py-3 !px-6 rounded-xl text-xs font-black text-decoration-none">
+                <i class="fas fa-folder-open mr-2"></i> عرض المنتجات كفئات
+            </a>
+        </div>
+
+        {% if view_type == 'categories' %}
+        <!-- Categories Grid -->
+        <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+            {% for cat in categories %}
+            {% if cat.product_count > 0 %}
+            <a href="?category={{ cat.id }}" class="premium-card group p-6 flex flex-col items-center text-center reveal-item text-decoration-none" style="transition-delay: {{ forloop.counter|mul:0.02 }}s">
+                <div class="w-20 h-20 bg-slate-900/40 rounded-2xl mb-4 border border-white/5 flex items-center justify-center group-hover:bg-slate-900/60 transition-colors">
+                    {% if cat.image %}
+                    <img src="{{ cat.image.url }}" alt="{{ cat.name }}" class="max-h-16 max-w-16 object-contain group-hover:scale-110 transition-transform duration-500" loading="lazy">
+                    {% else %}
+                    <i class="fas fa-folder text-3xl text-slate-700 opacity-20"></i>
+                    {% endif %}
+                </div>
+                <h3 class="text-sm font-black text-white group-hover:text-cyan transition-colors mb-1">{{ cat.name }}</h3>
+                <span class="text-[9px] font-black text-slate-500 uppercase tracking-widest">{{ cat.product_count }} خدمة متوفرة</span>
+            </a>
+            {% endif %}
+            {% endfor %}
+        </div>
+        {% else %}
         <!-- Product Grid -->
         <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
             {% for p in products %}
@@ -204,6 +236,7 @@
             </div>
             {% endfor %}
         </div>
+        {% endif %}
     </div>
 </div>
 

@@ -139,4 +139,10 @@ urlpatterns = [
     path("sw.js", views.service_worker, name="service_worker"),
     path("set-currency/", views.set_currency, name="set_currency"),
     path("ajax/validate-coupon/", views.ajax_validate_coupon, name="ajax_validate_coupon"),
+
+    # Recharge Wallet & Card System
+    path("dashboard/wallet/recharge/", views.recharge_wallet, name="dashboard_recharge_wallet"),
+    path("control/recharge-cards/", views.control_recharge_cards, name="control_recharge_cards"),
+    path("control/recharge-cards/generate/", views.control_recharge_cards_generate, name="control_recharge_cards_generate"),
+    path("control/recharge-cards/<uuid:pk>/cancel/", views.control_recharge_card_cancel, name="control_recharge_card_cancel"),
 ]

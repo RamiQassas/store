@@ -94,6 +94,9 @@ class ProductVariant(TimeStampedModel):
     estimated_delivery_minutes = models.PositiveIntegerField(default=0, verbose_name="وقت التسليم المتوقع (دقيقة)")
     is_active = models.BooleanField(default=True, verbose_name="نشط")
     is_temporarily_disabled = models.BooleanField(default=False, verbose_name="إيقاف مؤقت (يظهر كغير متوفر)")
+    is_recharge_card = models.BooleanField(default=False, verbose_name="بطاقة شحن تلقائية", help_text="إذا تم التفعيل، سيتم توليد كود شحن تلقائياً عند اكتمال الطلب.")
+    recharge_amount = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal("0.00"), verbose_name="قيمة كود الشحن التلقائي")
+    recharge_currency = models.ForeignKey("common.Currency", on_delete=models.SET_NULL, null=True, blank=True, verbose_name="عملة كود الشحن التلقائي")
     sort_order = models.PositiveIntegerField(default=0, verbose_name="ترتيب العرض")
 
     class Meta:

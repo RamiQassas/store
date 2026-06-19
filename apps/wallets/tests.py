@@ -1,0 +1,148 @@
+from decimal import Decimal
+from django.test import TestCase, override_settings
+from django.contrib.auth import get_user_model
+from django.utils import timezone
+from apps.wallets.models import Wallet, LedgerEntry, RechargeCard
+from apps.common.models import Currency
+from apps.catalog.models import Product, Category, ProductVariant
+from apps.orders.models import Order
+from apps.orders.services import create_order
+from apps.wallets.services import get_or_create_wallet, credit_wallet
+from django.urls import reverse
+from rest_framework.test import APIClient
+
+User = get_user_model()
+
+TEST_CACHES = {
+    "default": {
+        "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
+        "LOCATION": "tests",
+    }
+}
+
+@override_settings(SECURE_SSL_REDIRECT=False, CACHES=TEST_CACHES)
+class RechargeCardTests(TestCase):
+    def setUp(self):
+        # Ensure currencies are present
+        self.usd, _ = Currency.objects.get_or_create(
+            code="USD",
+            defaults={"name": "US Dollar", "symbol": "$", "buy_rate": 1.0, "sell_rate": 1.0, "is_default": True}
+        )
+        self.try_curr, _ = Currency.objects.get_or_create(
+            code="TRY",
+            defaults={"name": "Turkish Lira", "symbol": "TL", "buy_rate": 32.0, "sell_rate": 32.0, "conversion_method": "multiply"}
+        )
+        
+        self.user = User.objects.create_user(email="buyer@example.com", password="StrongPass12345")
+        self.wallet = get_or_create_wallet(self.user)
+        
+        self.client = APIClient()
+        self.client.force_login(self.user)
+
+    def test_recharge_card_redemption_success_same_currency(self):
+        card = RechargeCard.objects.create(
+            code="RC-TEST-USD-11",
+            amount=Decimal("50.00"),
+            currency=self.usd,
+            status=RechargeCard.Status.ACTIVE
+        )
+        
+        response = self.client.post(reverse("dashboard_recharge_wallet"), {"recharge_code": "RC-TEST-USD-11"})
+        self.assertEqual(response.status_code, 302) # Redirects back to wallet
+        
+        # Verify wallet balance
+        self.wallet.refresh_from_db()
+        self.assertEqual(self.wallet.available_balance, Decimal("50.00"))
+        
+        # Verify card status
+        card.refresh_from_db()
+        self.assertEqual(card.status, RechargeCard.Status.REDEEMED)
+        self.assertEqual(card.redeemed_by, self.user)
+        self.assertIsNotNone(card.redeemed_at)
+        
+        # Verify Ledger Entry
+        entry = LedgerEntry.objects.filter(wallet=self.wallet).first()
+        self.assertIsNotNone(entry)
+        self.assertEqual(entry.entry_type, LedgerEntry.EntryType.CREDIT)
+        self.assertEqual(entry.amount, Decimal("50.00"))
+
+    def test_recharge_card_redemption_with_conversion(self):
+        # Wallet is in USD, card is 320.00 TRY. Conversion is 320 / 32 = 10.00 USD.
+        card = RechargeCard.objects.create(
+            code="RC-TEST-TRY-22",
+            amount=Decimal("320.00"),
+            currency=self.try_curr,
+            status=RechargeCard.Status.ACTIVE
+        )
+        
+        response = self.client.post(reverse("dashboard_recharge_wallet"), {"recharge_code": "RC-TEST-TRY-22"})
+        self.assertEqual(response.status_code, 302)
+        
+        # Verify wallet balance is 10.00 USD
+        self.wallet.refresh_from_db()
+        self.assertEqual(self.wallet.available_balance, Decimal("10.00"))
+        
+        # Verify Ledger Entry metadata
+        entry = LedgerEntry.objects.filter(wallet=self.wallet).first()
+        self.assertEqual(entry.metadata["source_amount"], "320.00")
+        self.assertEqual(entry.metadata["source_currency"], "TRY")
+
+    def test_recharge_card_already_used_or_invalid(self):
+        card = RechargeCard.objects.create(
+            code="RC-USED",
+            amount=Decimal("20.00"),
+            currency=self.usd,
+            status=RechargeCard.Status.REDEEMED,
+            redeemed_by=self.user,
+            redeemed_at=timezone.now()
+        )
+        
+        response = self.client.post(reverse("dashboard_recharge_wallet"), {"recharge_code": "RC-USED"})
+        self.assertEqual(response.status_code, 302)
+        
+        # Wallet should not change
+        self.wallet.refresh_from_db()
+        self.assertEqual(self.wallet.available_balance, Decimal("0.00"))
+        
+        response2 = self.client.post(reverse("dashboard_recharge_wallet"), {"recharge_code": "RC-NONEXISTENT"})
+        self.assertEqual(response2.status_code, 302)
+
+    def test_order_completion_auto_fulfillment(self):
+        category = Category.objects.create(name="بطاقات شحن", is_active=True)
+        product = Product.objects.create(name="بطاقة شحن 25$", category=category, is_active=True)
+        variant = ProductVariant.objects.create(
+            product=product,
+            name="افتراضي",
+            sku="RC-V-25",
+            price=Decimal("25.00"),
+            is_active=True,
+            is_recharge_card=True,
+            recharge_amount=Decimal("25.00"),
+            recharge_currency=self.usd
+        )
+        
+        # Add funds to user wallet to purchase
+        credit_wallet(self.wallet.id, Decimal("50.00"), "test_credit", "Fund user for purchase")
+        
+        # Purchase product
+        order = create_order(customer=self.user, variant_id=variant.id, quantity=1)
+        self.assertEqual(order.status, Order.Status.PROCESSING)
+        
+        # Verify no card created yet
+        self.assertFalse(RechargeCard.objects.filter(order=order).exists())
+        
+        # Complete order
+        order.status = Order.Status.COMPLETED
+        order.save()
+        
+        # Verify card is created automatically
+        self.assertTrue(RechargeCard.objects.filter(order=order).exists())
+        card = RechargeCard.objects.filter(order=order).first()
+        self.assertEqual(card.amount, Decimal("25.00"))
+        self.assertEqual(card.currency, self.usd)
+        self.assertEqual(card.status, RechargeCard.Status.ACTIVE)
+        
+        # Verify order fulfillment_data
+        order.refresh_from_db()
+        self.assertIn("أكواد الشحن", order.fulfillment_data)
+        self.assertEqual(order.fulfillment_data["أكواد الشحن"], card.code)

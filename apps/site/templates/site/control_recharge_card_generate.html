@@ -1,0 +1,55 @@
+{% extends "site/control_base.html" %}
+{% load static %}
+{% block title %}توليد بطاقات شحن جديدة | مركز التحكم{% endblock %}
+
+{% block control_content %}
+<div class="max-w-xl mx-auto">
+    <div class="mb-8">
+        <span class="eyebrow">Bulk Voucher Generation</span>
+        <h1 class="text-3xl font-black text-white">توليد بطاقات شحن جديدة</h1>
+        <p class="text-slate-400 text-sm">إنشاء مجموعة من بطاقات شحن الرصيد لعملة وقيمة محددة دفعة واحدة.</p>
+    </div>
+
+    {% if messages %}
+        {% for message in messages %}
+        <div class="p-4 rounded-xl mb-6 flex items-center gap-3 bg-rose-500/10 border border-rose-500/20 text-rose-400">
+            <i class="fas fa-exclamation-triangle"></i>
+            <span class="font-bold text-sm">{{ message }}</span>
+        </div>
+        {% endfor %}
+    {% endif %}
+
+    <div class="glass-panel p-8">
+        <form method="post" class="space-y-6 text-right">
+            {% csrf_token %}
+            
+            <div class="space-y-2">
+                <label class="block text-xs font-black text-slate-400 uppercase tracking-widest">قيمة بطاقة الشحن</label>
+                <input type="number" name="amount" step="0.01" min="0.01" class="w-full bg-slate-900/60 border border-white/5 rounded-2xl py-4 px-5 text-white text-sm focus:outline-none focus:border-cyan/50 text-left font-bold" placeholder="0.00" required>
+            </div>
+
+            <div class="space-y-2">
+                <label class="block text-xs font-black text-slate-400 uppercase tracking-widest">عملة البطاقة</label>
+                <select name="currency" class="w-full bg-slate-900/60 border border-white/5 rounded-2xl py-4 px-5 text-white text-sm focus:outline-none focus:border-cyan/50">
+                    {% for curr in currencies %}
+                    <option value="{{ curr.id }}">{{ curr.code }} - {{ curr.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="space-y-2">
+                <label class="block text-xs font-black text-slate-400 uppercase tracking-widest">عدد الأكواد المراد توليدها</label>
+                <input type="number" name="count" min="1" max="500" value="10" class="w-full bg-slate-900/60 border border-white/5 rounded-2xl py-4 px-5 text-white text-sm focus:outline-none focus:border-cyan/50 text-left font-bold" required>
+                <p class="text-[10px] text-slate-500 mt-1">الحد الأقصى للتوليد دفعة واحدة هو 500 كود.</p>
+            </div>
+
+            <div class="flex gap-4 pt-4">
+                <button type="submit" class="btn btn-primary flex-1 py-4">
+                    <i class="fas fa-magic mr-2"></i> توليد الآن
+                </button>
+                <a href="{% url 'control_recharge_cards' %}" class="btn btn-outline py-4 px-6">إلغاء</a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

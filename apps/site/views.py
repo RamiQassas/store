@@ -3500,3 +3500,171 @@ def control_product_suggestion_detail(request, pk):
         return redirect("control_product_suggestions_list")
         
     return render(request, "site/control_product_suggestion_detail.html", {"suggestion": suggestion})
+
+
+@admin_required
+def control_recharge_cards(request):
+    from apps.wallets.models import RechargeCard
+    from django.core.paginator import Paginator
+    from django.db.models import Q
+    
+    qs = RechargeCard.objects.all().select_related("currency", "created_by", "redeemed_by", "order").order_by("-created_at")
+    
+    q = request.GET.get("q", "").strip()
+    if q:
+        qs = qs.filter(
+            Q(code__icontains=q) |
+            Q(created_by__email__icontains=q) |
+            Q(redeemed_by__email__icontains=q) |
+            Q(created_by__uid__iexact=q) |
+            Q(redeemed_by__uid__iexact=q)
+        )
+        
+    status_filter = request.GET.get("status", "").strip()
+    if status_filter:
+        qs = qs.filter(status=status_filter)
+        
+    paginator = Paginator(qs, 50)
+    page_number = request.GET.get("page")
+    page_obj = paginator.get_page(page_number)
+    
+    return render(request, "site/control_recharge_cards.html", {
+        "page_obj": page_obj,
+        "query": q,
+        "status_filter": status_filter,
+        "status_choices": RechargeCard.Status.choices
+    })
+
+
+@admin_required
+def control_recharge_cards_generate(request):
+    from apps.wallets.models import RechargeCard
+    from apps.common.models import Currency
+    from decimal import Decimal
+    import secrets
+    
+    currencies = Currency.objects.filter(is_active=True)
+    
+    if request.method == "POST":
+        amount_str = request.POST.get("amount", "0")
+        currency_id = request.POST.get("currency")
+        count_str = request.POST.get("count", "1")
+        
+        try:
+            amount = Decimal(amount_str)
+            if amount <= 0:
+                raise ValueError()
+        except:
+            messages.error(request, "يرجى إدخال قيمة شحن صحيحة أكبر من صفر.")
+            return redirect("control_recharge_cards_generate")
+            
+        currency = get_object_or_404(Currency, id=currency_id, is_active=True)
+        
+        try:
+            count = int(count_str)
+            if count <= 0 or count > 500:
+                raise ValueError()
+        except:
+            messages.error(request, "يرجى إدخال عدد بطاقات صحيح (بين 1 و 500).")
+            return redirect("control_recharge_cards_generate")
+            
+        created_count = 0
+        for _ in range(count):
+            code = f"RC-{secrets.token_hex(4).upper()}-{secrets.token_hex(4).upper()}"
+            while RechargeCard.objects.filter(code=code).exists():
+                code = f"RC-{secrets.token_hex(4).upper()}-{secrets.token_hex(4).upper()}"
+                
+            RechargeCard.objects.create(
+                code=code,
+                amount=amount,
+                currency=currency,
+                created_by=request.user,
+                status=RechargeCard.Status.ACTIVE
+            )
+            created_count += 1
+            
+        messages.success(request, f"تم إنشاء {created_count} بطاقة شحن بنجاح بقيمة {amount} {currency.code} للبطاقة الواحدة.")
+        return redirect("control_recharge_cards")
+        
+    return render(request, "site/control_recharge_card_generate.html", {
+        "currencies": currencies
+    })
+
+
+@admin_required
+def control_recharge_card_cancel(request, pk):
+    from apps.wallets.models import RechargeCard
+    
+    card = get_object_or_404(RechargeCard, pk=pk)
+    if request.method == "POST":
+        if card.status == RechargeCard.Status.ACTIVE:
+            card.status = RechargeCard.Status.CANCELLED
+            card.save()
+            messages.success(request, f"تم إلغاء بطاقة الشحن ({card.code}) بنجاح.")
+        else:
+            messages.error(request, "لا يمكن إلغاء هذه البطاقة لأنها ليست نشطة.")
+            
+    return redirect("control_recharge_cards")
+
+
+@login_required
+def recharge_wallet(request):
+    from apps.wallets.models import RechargeCard
+    from apps.wallets.services import credit_wallet, WalletError, get_or_create_wallet
+    from django.db import transaction
+    from django.utils import timezone
+    
+    if request.method == "POST":
+        code_input = request.POST.get("recharge_code", "").strip().upper()
+        if not code_input:
+            messages.error(request, "يرجى إدخال رمز الشحن.")
+            return redirect("dashboard_wallet")
+            
+        card = RechargeCard.objects.filter(code=code_input).first()
+        if not card or card.status != RechargeCard.Status.ACTIVE:
+            messages.error(request, "رمز الشحن غير صحيح، أو تم استخدامه، أو ملغى.")
+            return redirect("dashboard_wallet")
+            
+        try:
+            with transaction.atomic():
+                card = RechargeCard.objects.select_for_update().get(id=card.id)
+                if card.status != RechargeCard.Status.ACTIVE:
+                    raise WalletError("البطاقة لم تعد صالحة للاستخدام.")
+                    
+                wallet = get_or_create_wallet(request.user)
+                
+                credited_amount = card.amount
+                if card.currency != wallet.currency:
+                    base_val = card.currency.to_base(card.amount, operation="deposit")
+                    credited_amount = wallet.currency.from_base(base_val, operation="deposit")
+                    
+                credit_wallet(
+                    wallet_id=wallet.id,
+                    amount=credited_amount,
+                    reference=f"recharge:{card.id}",
+                    description=f"شحن بطاقة رصيد رقم {card.code}",
+                    created_by=request.user,
+                    metadata={
+                        "source_amount": str(card.amount),
+                        "source_currency": card.currency.code,
+                        "recharge_card_code": card.code
+                    },
+                    source="recharge_card",
+                    reason="شحن بطاقة رصيد"
+                )
+                
+                card.status = RechargeCard.Status.REDEEMED
+                card.redeemed_by = request.user
+                card.redeemed_at = timezone.now()
+                card.save()
+                
+                if card.currency != wallet.currency:
+                    msg = f"تم شحن محفظتك بنجاح بقيمة {credited_amount:.2f} {wallet.currency.code} (ما يعادل {card.amount:.2f} {card.currency.code})."
+                else:
+                    msg = f"تم شحن محفظتك بنجاح بقيمة {card.amount:.2f} {card.currency.code}."
+                messages.success(request, msg)
+                
+        except Exception as e:
+            messages.error(request, f"فشل شحن الرصيد: {str(e)}")
+            
+    return redirect("dashboard_wallet")
