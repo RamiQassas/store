@@ -1,0 +1,62 @@
+{% extends "stores/merchant/base.html" %}
+
+{% block menu_cat %}active{% endblock %}
+
+{% block content %}
+
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+        <h1 style="font-size: 2rem; font-weight: 900;">
+            {% if category %}تعديل التصنيف: {{ category.name }}{% else %}إضافة تصنيف جديد{% endif %}
+        </h1>
+        <a href="{% url 'merchant_categories' %}" class="btn btn-outline"><i class="fa-solid fa-arrow-left"></i> العودة للقائمة</a>
+    </div>
+
+    <div class="card">
+        <form method="POST" enctype="multipart/form-data">
+            {% csrf_token %}
+            
+            <div style="display: grid; grid-template-cols: 1fr 1fr; gap: 1.5rem;">
+                <div class="form-group">
+                    <label class="form-label">اسم التصنيف:</label>
+                    {{ form.name }}
+                    {{ form.name.errors }}
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">التصنيف الأب (اختياري):</label>
+                    {{ form.parent }}
+                    {{ form.parent.errors }}
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">صورة التصنيف:</label>
+                {{ form.image }}
+                {{ form.image.errors }}
+            </div>
+
+            <div style="display: grid; grid-template-cols: 1fr 1fr; gap: 1.5rem; margin-top: 1rem;">
+                <div class="form-group">
+                    <label class="form-label">ترتيب العرض:</label>
+                    {{ form.sort_order }}
+                </div>
+                
+                <div style="display: flex; align-items: center; gap: 2rem; margin-top: 1.5rem;">
+                    <div class="form-group" style="flex-direction: row; align-items: center; gap: 0.5rem;">
+                        {{ form.is_active }}
+                        <label class="form-label" style="margin-bottom: 0;">نشط</label>
+                    </div>
+                    <div class="form-group" style="flex-direction: row; align-items: center; gap: 0.5rem;">
+                        {{ form.is_featured }}
+                        <label class="form-label" style="margin-bottom: 0;">تصنيف مميز (يظهر في الرئيسية)</label>
+                    </div>
+                </div>
+            </div>
+
+            <div style="margin-top: 2rem; display: flex; justify-content: flex-end;">
+                <button type="submit" class="btn btn-primary"><i class="fa-solid fa-save"></i> حفظ التصنيف</button>
+            </div>
+        </form>
+    </div>
+
+{% endblock %}

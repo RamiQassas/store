@@ -1,0 +1,122 @@
+{% extends "stores/frontend/base.html" %}
+
+{% block title %}شحن الرصيد | {{ store.name }}{% endblock %}
+
+{% block extra_css %}
+<style>
+    .dashboard-layout {
+        display: grid;
+        grid-template-cols: 250px 1fr;
+        gap: 2.5rem;
+    }
+
+    .dashboard-nav {
+        background: var(--card-bg);
+        border: 1px solid var(--card-border);
+        border-radius: 20px;
+        padding: 1.5rem;
+        height: fit-content;
+    }
+
+    .nav-list {
+        list-style: none;
+        display: flex;
+        flex-direction: column;
+        gap: 0.8rem;
+    }
+
+    .nav-item-link {
+        display: flex;
+        align-items: center;
+        gap: 0.8rem;
+        text-decoration: none;
+        color: var(--text-color);
+        padding: 0.8rem 1rem;
+        border-radius: 12px;
+        transition: var(--transition);
+        font-weight: 500;
+        font-size: 0.95rem;
+    }
+
+    .nav-item-link:hover, .nav-item-link.active {
+        background: rgba(255,255,255,0.05);
+        color: var(--primary);
+    }
+
+    /* Recharge container */
+    .recharge-card {
+        background: var(--card-bg);
+        border: 1px solid var(--card-border);
+        border-radius: 24px;
+        padding: 2.5rem;
+        max-width: 600px;
+    }
+
+    .form-group {
+        margin-bottom: 1.5rem;
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+
+    .form-label {
+        font-weight: 700;
+        font-size: 0.95rem;
+    }
+
+    .form-input {
+        background: rgba(0,0,0,0.2);
+        border: 1px solid var(--card-border);
+        padding: 0.8rem 1rem;
+        border-radius: 12px;
+        color: var(--text-color);
+        font-size: 1.1rem;
+        outline: none;
+        transition: var(--transition);
+        letter-spacing: 1px;
+    }
+
+    .form-input:focus {
+        border-color: var(--primary);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+
+    <div class="dashboard-layout">
+        <!-- Sidebar Navigation -->
+        <nav class="dashboard-nav">
+            <ul class="nav-list">
+                <li><a href="{% url 'store_dashboard' %}" class="nav-item-link"><i class="fa-solid fa-gauge"></i> لوحة التحكم</a></li>
+                <li><a href="{% url 'store_wallet' %}" class="nav-item-link"><i class="fa-solid fa-wallet"></i> المحفظة</a></li>
+                <li><a href="{% url 'store_wallet_recharge' %}" class="nav-item-link active"><i class="fa-solid fa-money-bill-transfer"></i> شحن الرصيد</a></li>
+                {% if store.owner == user or user.store_employments.exists %}
+                    <li><a href="{% url 'merchant_dashboard' %}" class="nav-item-link" style="color: var(--primary); font-weight: 700; border-top: 1px solid var(--card-border); margin-top: 1rem; padding-top: 1rem;"><i class="fa-solid fa-shop"></i> لوحة تحكم التاجر</a></li>
+                {% endif %}
+            </ul>
+        </nav>
+
+        <!-- Main Panel -->
+        <div class="dashboard-main">
+            <div class="recharge-card">
+                <h1 style="font-size: 1.5rem; font-weight: 800; margin-bottom: 1.5rem; border-bottom: 1px solid var(--card-border); padding-bottom: 0.8rem;">شحن رصيد المحفظة</h1>
+                
+                <p style="font-size: 0.95rem; opacity: 0.8; margin-bottom: 2rem; line-height: 1.6;">
+                    تستطيع شحن رصيد محفظتك الرقمية بسهولة باستخدام بطاقات وأكواد الشحن اليدوية الموفرة من قبل التاجر أو منصة رقميات.
+                </p>
+
+                <form method="POST">
+                    {% csrf_token %}
+                    <div class="form-group">
+                        <label class="form-label">أدخل كود/رمز الشحن الرقمي:</label>
+                        <input type="text" name="card_code" required class="form-input" placeholder="مثال: CARD-XXXX-YYYY">
+                    </div>
+
+                    <button type="submit" class="btn btn-primary" style="width: 100%; justify-content: center; padding: 0.8rem;"><i class="fa-solid fa-bolt"></i> شحن الرصيد الآن</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+{% endblock %}

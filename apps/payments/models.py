@@ -5,11 +5,22 @@ from django.db import models
 from django.utils import timezone
 
 from apps.common.models import TimeStampedModel
+from apps.common.tenant_utils import TenantManager
 
 
 class PaymentMethod(TimeStampedModel):
     # General Information
     name = models.CharField(max_length=120, verbose_name="اسم الوسيلة")
+    store = models.ForeignKey(
+        "stores.Store",
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name="payment_methods",
+        verbose_name="المتجر"
+    )
+    objects = TenantManager()
+    all_objects = models.Manager()
     logo = models.ImageField(upload_to="payment-methods/logos/", blank=True, null=True, verbose_name="الشعار")
     method_type = models.CharField(max_length=100, verbose_name="نوع الوسيلة (مثلاً: بنك، محفظة)")
     description = models.TextField(blank=True, verbose_name="وصف الوسيلة")
@@ -311,6 +322,16 @@ class DepositRequest(TimeStampedModel):
         COMPLETED = "completed", "مكتمل"
 
     user = models.ForeignKey(settings.AUTH_USER_MODEL, related_name="deposits", on_delete=models.PROTECT, verbose_name="المستخدم")
+    store = models.ForeignKey(
+        "stores.Store",
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name="deposit_requests",
+        verbose_name="المتجر"
+    )
+    objects = TenantManager()
+    all_objects = models.Manager()
     payment_method = models.ForeignKey(PaymentMethod, related_name="deposits", on_delete=models.PROTECT, verbose_name="وسيلة الدفع")
     amount = models.DecimalField(max_digits=14, decimal_places=2, verbose_name="المبلغ")
     wallet_amount = models.DecimalField(max_digits=14, decimal_places=2, default=Decimal("0.00"), verbose_name="المبلغ بعملة المحفظة")
@@ -419,6 +440,16 @@ class WithdrawalRequest(TimeStampedModel):
         CANCELLED = "cancelled", "ملغي"
 
     user = models.ForeignKey(settings.AUTH_USER_MODEL, related_name="withdrawals", on_delete=models.PROTECT, verbose_name="المستخدم")
+    store = models.ForeignKey(
+        "stores.Store",
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name="withdrawal_requests",
+        verbose_name="المتجر"
+    )
+    objects = TenantManager()
+    all_objects = models.Manager()
     payment_method = models.ForeignKey(PaymentMethod, related_name="withdrawals", on_delete=models.PROTECT, verbose_name="وسيلة السحب")
     amount = models.DecimalField(max_digits=14, decimal_places=2, verbose_name="المبلغ المطلوب")
     wallet_amount = models.DecimalField(max_digits=14, decimal_places=2, default=Decimal("0.00"), verbose_name="المبلغ بعملة المحفظة")

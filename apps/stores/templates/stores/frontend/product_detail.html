@@ -1,0 +1,215 @@
+{% extends "stores/frontend/base.html" %}
+
+{% block title %}{{ product.name }} | {{ store.name }}{% endblock %}
+
+{% block extra_css %}
+<style>
+    .product-detail-layout {
+        display: grid;
+        grid-template-cols: 1fr 1.2fr;
+        gap: 3rem;
+        background: var(--card-bg);
+        border: 1px solid var(--card-border);
+        border-radius: 24px;
+        padding: 2.5rem;
+    }
+
+    /* Left col: Gallery/Images */
+    .images-gallery {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+    }
+
+    .main-image-wrapper {
+        border-radius: 16px;
+        overflow: hidden;
+        border: 1px solid var(--card-border);
+        padding-top: 75%;
+        position: relative;
+        background: rgba(0,0,0,0.1);
+    }
+
+    .main-image {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+
+    /* Right col: Info and checkout options */
+    .product-info-panel {
+        display: flex;
+        flex-direction: column;
+        gap: 1.5rem;
+    }
+
+    .product-category {
+        font-size: 0.9rem;
+        opacity: 0.7;
+        font-weight: 700;
+        color: var(--primary);
+    }
+
+    .product-name-title {
+        font-size: 2.2rem;
+        font-weight: 900;
+        line-height: 1.3;
+    }
+
+    .product-description {
+        line-height: 1.7;
+        opacity: 0.9;
+        font-size: 1rem;
+    }
+
+    .info-box {
+        background: rgba(0,0,0,0.15);
+        border: 1px solid var(--card-border);
+        border-radius: 16px;
+        padding: 1.2rem;
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        font-size: 0.95rem;
+    }
+
+    /* Variants table styling */
+    .variants-section {
+        margin-top: 1rem;
+    }
+
+    .section-subtitle {
+        font-size: 1.2rem;
+        font-weight: 800;
+        margin-bottom: 1rem;
+    }
+
+    .variants-list {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+    }
+
+    .variant-card {
+        background: rgba(255,255,255,0.02);
+        border: 1px solid var(--card-border);
+        border-radius: 16px;
+        padding: 1.2rem 1.5rem;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        transition: var(--transition);
+    }
+
+    .variant-card:hover {
+        border-color: var(--primary);
+        background: rgba(255,255,255,0.04);
+    }
+
+    .variant-info {
+        display: flex;
+        flex-direction: column;
+        gap: 0.3rem;
+    }
+
+    .variant-name {
+        font-weight: 700;
+        font-size: 1.1rem;
+    }
+
+    .variant-sku {
+        font-size: 0.8rem;
+        opacity: 0.5;
+    }
+
+    .variant-pricing-action {
+        display: flex;
+        align-items: center;
+        gap: 1.5rem;
+    }
+
+    .variant-price {
+        font-size: 1.4rem;
+        font-weight: 900;
+        color: var(--primary);
+    }
+
+    @media (max-width: 900px) {
+        .product-detail-layout {
+            grid-template-cols: 1fr;
+            padding: 1.5rem;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+
+    <div class="product-detail-layout">
+        <!-- Gallery -->
+        <div class="images-gallery">
+            <div class="main-image-wrapper">
+                {% if product.image %}
+                    <img src="{{ product.image.url }}" alt="{{ product.name }}" class="main-image">
+                {% else %}
+                    <div class="main-image" style="background: rgba(255,255,255,0.05); display: flex; align-items: center; justify-content: center; font-size: 4rem;">
+                        <i class="fa-solid fa-cube"></i>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Info & Buy Panel -->
+        <div class="product-info-panel">
+            <span class="product-category">{{ product.category.name }}</span>
+            <h1 class="product-name-title">{{ product.name }}</h1>
+            
+            {% if product.delivery_time_display %}
+                <div class="info-box">
+                    <i class="fa-solid fa-clock-rotate-left" style="color: var(--primary); font-size: 1.2rem;"></i>
+                    <span>وقت التسليم المتوقع: <strong>{{ product.delivery_time_display }}</strong></span>
+                </div>
+            {% endif %}
+
+            <div class="product-description">
+                {{ product.description|linebreaks }}
+            </div>
+
+            {% if product.instructions %}
+                <div style="border-top: 1px solid var(--card-border); padding-top: 1rem;">
+                    <h4 style="margin-bottom: 0.5rem; font-weight: 700;">تعليمات الاستخدام:</h4>
+                    <p style="font-size: 0.9rem; opacity: 0.8; line-height: 1.6;">{{ product.instructions }}</p>
+                </div>
+            {% endif %}
+
+            <!-- Variants/Packages packages -->
+            <div class="variants-section">
+                <h3 class="section-subtitle">الباقات والأسعار المتوفرة</h3>
+                <div class="variants-list">
+                    {% for var_data in variants_data %}
+                        <div class="variant-card">
+                            <div class="variant-info">
+                                <span class="variant-name">{{ var_data.variant.name }}</span>
+                                <span class="variant-sku">SKU: {{ var_data.variant.sku }}</span>
+                            </div>
+                            <div class="variant-pricing-action">
+                                <span class="variant-price">${{ var_data.display_price }}</span>
+                                {% if var_data.variant.is_active and not var_data.variant.is_temporarily_disabled %}
+                                    <a href="{% url 'store_checkout' var_data.variant.id %}" class="btn btn-primary btn-sm"><i class="fa-solid fa-cart-shopping"></i> شراء</a>
+                                {% else %}
+                                    <button class="btn btn-outline btn-sm" disabled style="opacity: 0.5;">غير متوفر</button>
+                                {% endif %}
+                            </div>
+                        </div>
+                    {% empty %}
+                        <p style="opacity: 0.6;">لا تتوفر باقات لهذا المنتج حالياً.</p>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+{% endblock %}

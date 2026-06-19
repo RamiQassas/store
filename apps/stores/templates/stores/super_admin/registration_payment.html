@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>إتمام الدفع للاشتراك | رقميات</title>
+    <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@300;400;500;700;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        :root {
+            --primary: #06b6d4;
+            --secondary: #0891b2;
+            --bg-color: #0f172a;
+            --card-bg: rgba(255, 255, 255, 0.03);
+            --card-border: rgba(255, 255, 255, 0.08);
+            --text-color: #f8fafc;
+            --transition: all 0.3s ease;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Tajawal', sans-serif; }
+        body { background-color: var(--bg-color); color: var(--text-color); padding: 4rem 1.5rem; min-height: 100vh; display: flex; align-items: center; justify-content: center; }
+        
+        .payment-box { width: 100%; max-width: 550px; background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 24px; padding: 3rem 2.5rem; box-shadow: 0 10px 30px rgba(0,0,0,0.15); }
+        
+        .box-title { font-size: 1.8rem; font-weight: 900; margin-bottom: 2rem; text-align: center; color: var(--primary); }
+        
+        .order-summary { background: rgba(0,0,0,0.2); border: 1px solid var(--card-border); border-radius: 16px; padding: 1.5rem; margin-bottom: 2rem; display: flex; flex-direction: column; gap: 0.8rem; }
+        .summary-row { display: flex; justify-content: space-between; font-size: 0.95rem; }
+        
+        .btn { padding: 0.8rem 2rem; border-radius: 30px; font-weight: 700; text-decoration: none; transition: var(--transition); cursor: pointer; border: none; display: inline-flex; align-items: center; gap: 0.5rem; justify-content: center; font-size: 1rem; }
+        .btn-primary { background: linear-gradient(135deg, var(--primary), var(--secondary)); color: white; box-shadow: 0 4px 15px rgba(6,182,212,0.2); }
+        .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(6,182,212,0.4); }
+        .btn-outline { background: transparent; border: 1px solid var(--card-border); color: var(--text-color); }
+        .btn-outline:hover { background: rgba(255,255,255,0.05); }
+        
+        .alert { padding: 1rem 1.5rem; border-radius: 12px; margin-bottom: 2rem; background-color: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.3); color: #f87171; }
+    </style>
+</head>
+<body>
+
+    <div class="payment-box">
+        <h1 class="box-title">إتمام عملية الدفع للاشتراك</h1>
+
+        {% if messages %}
+            {% for message in messages %}
+                <div class="alert"><i class="fa-solid fa-triangle-exclamation"></i> {{ message }}</div>
+            {% endfor %}
+        {% endif %}
+
+        <!-- summary -->
+        <div class="order-summary">
+            <div class="summary-row">
+                <span style="opacity: 0.7;">اسم متجرك الجديد:</span>
+                <strong>{{ reg_data.name }}</strong>
+            </div>
+            <div class="summary-row">
+                <span style="opacity: 0.7;">رابط المتجر الفرعي:</span>
+                <strong>{{ reg_data.slug }}.raqamiyatapp.com</strong>
+            </div>
+            <div class="summary-row">
+                <span style="opacity: 0.7;">باقة الاشتراك المختارة:</span>
+                <strong>{{ plan.name }}</strong>
+            </div>
+            <div class="summary-row" style="border-top: 1px solid var(--card-border); padding-top: 0.8rem; font-size: 1.2rem; margin-top: 0.5rem;">
+                <span>المبلغ المطلوب دفعه:</span>
+                <strong style="color: var(--primary); font-weight: 900;">${{ plan.price_monthly }} / شهرياً</strong>
+            </div>
+        </div>
+
+        <p style="font-size: 0.85rem; opacity: 0.7; line-height: 1.6; text-align: center; margin-bottom: 2rem;">
+            هذه صفحة تجريبية وهمية لمحاكاة عملية الدفع. يرجى الضغط على زر "تأكيد الدفع" أدناه ليتم إنشاء متجرك تلقائياً وتفعيل لوحة تحكم التاجر.
+        </p>
+
+        <form method="POST">
+            {% csrf_token %}
+            <div style="display: flex; gap: 1rem; width: 100%;">
+                <a href="{% url 'store_registration' %}" class="btn btn-outline" style="flex: 1;">إلغاء</a>
+                <button type="submit" class="btn btn-primary" style="flex: 2;"><i class="fa-solid fa-credit-card"></i> تأكيد الدفع التجريبي</button>
+            </div>
+        </form>
+    </div>
+
+</body>
+</html>

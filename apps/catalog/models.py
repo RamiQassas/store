@@ -4,6 +4,7 @@ from django.db import models
 from django.conf import settings
 
 from apps.common.models import TimeStampedModel
+from apps.common.tenant_utils import TenantManager
 
 
 from django.utils.text import slugify
@@ -15,6 +16,16 @@ class Category(TimeStampedModel):
     is_active = models.BooleanField(default=True, verbose_name="نشط")
     is_featured = models.BooleanField(default=False, verbose_name="تصنيف مميز (يظهر في الرئيسية)")
     sort_order = models.PositiveIntegerField(default=0, verbose_name="ترتيب العرض")
+    store = models.ForeignKey(
+        "stores.Store",
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name="categories",
+        verbose_name="المتجر"
+    )
+    objects = TenantManager()
+    all_objects = models.Manager()
 
     class Meta:
         verbose_name = "تصنيف"
@@ -28,6 +39,16 @@ class Category(TimeStampedModel):
 class Product(TimeStampedModel):
     name = models.CharField(max_length=160, verbose_name="اسم المنتج")
     category = models.ForeignKey(Category, related_name="products", on_delete=models.PROTECT, verbose_name="التصنيف")
+    store = models.ForeignKey(
+        "stores.Store",
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name="products",
+        verbose_name="المتجر"
+    )
+    objects = TenantManager()
+    all_objects = models.Manager()
     
     # Media
     image = models.ImageField(upload_to="products/main/", blank=True, null=True, verbose_name="الصورة الأساسية")

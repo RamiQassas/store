@@ -1,0 +1,72 @@
+{% extends "stores/merchant/base.html" %}
+
+{% block menu_prod %}active{% endblock %}
+
+{% block content %}
+
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+        <h1 style="font-size: 2rem; font-weight: 900;">إدارة المنتجات</h1>
+        <a href="{% url 'merchant_product_create' %}" class="btn btn-primary"><i class="fa-solid fa-plus"></i> إضافة منتج جديد</a>
+    </div>
+
+    <!-- Products list -->
+    <div class="table-container">
+        {% if products %}
+            <table>
+                <thead>
+                    <tr>
+                        <th>صورة المنتج</th>
+                        <th>اسم المنتج</th>
+                        <th>التصنيف</th>
+                        <th>عدد الباقات</th>
+                        <th>نشط</th>
+                        <th>ترتيب العرض</th>
+                        <th>الإجراءات</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for prod in products %}
+                        <tr>
+                            <td>
+                                {% if prod.image %}
+                                    <img src="{{ prod.image.url }}" alt="{{ prod.name }}" style="height: 50px; width: 50px; object-fit: cover; border-radius: 8px; border: 1px solid var(--card-border);">
+                                {% else %}
+                                    <div style="height: 50px; width: 50px; background: rgba(255,255,255,0.05); display: flex; align-items: center; justify-content: center; border-radius: 8px; font-size: 1.2rem;">
+                                        <i class="fa-solid fa-cube"></i>
+                                    </div>
+                                {% endif %}
+                            </td>
+                            <td><strong>{{ prod.name }}</strong></td>
+                            <td style="opacity: 0.8;">{{ prod.category.name }}</td>
+                            <td>
+                                <span class="btn btn-outline btn-sm" style="cursor: default;">
+                                    {{ prod.variants.count }} باقات
+                                </span>
+                            </td>
+                            <td>
+                                {% if prod.is_active %}
+                                    <span style="color: #34d399;"><i class="fa-solid fa-circle-check"></i> نعم</span>
+                                {% else %}
+                                    <span style="color: #f87171;"><i class="fa-solid fa-circle-xmark"></i> لا</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ prod.sort_order }}</td>
+                            <td>
+                                <div style="display: flex; gap: 0.5rem;">
+                                    <a href="{% url 'merchant_product_edit' prod.id %}" class="btn btn-outline btn-sm"><i class="fa-solid fa-edit"></i> تعديل</a>
+                                    <a href="{% url 'merchant_product_delete' prod.id %}" onclick="return confirm('هل أنت متأكد من رغبتك في حذف هذا المنتج وكل باقاته؟')" class="btn btn-danger btn-sm"><i class="fa-solid fa-trash"></i> حذف</a>
+                                </div>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        {% else %}
+            <div style="text-align: center; padding: 5rem 2rem;">
+                <i class="fa-solid fa-box-open" style="font-size: 3.5rem; opacity: 0.2; margin-bottom: 1rem;"></i>
+                <p>لا يوجد منتجات مضافة حالياً. ابدأ بإضافة أول منتج لمتجرك!</p>
+            </div>
+        {% endif %}
+    </div>
+
+{% endblock %}

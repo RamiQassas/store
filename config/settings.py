@@ -107,6 +107,7 @@ INSTALLED_APPS = [
     "apps.support.apps.SupportConfig",
     "apps.services.apps.ServicesConfig",
     "apps.site.apps.SiteConfig",
+    "apps.stores.apps.StoresConfig",
     
     # Social Auth (allauth)
     "allauth",
@@ -116,6 +117,7 @@ INSTALLED_APPS = [
 ]
 
 AUTHENTICATION_BACKENDS = [
+    'apps.stores.auth_backend.TenantModelBackend',
     'django.contrib.auth.backends.ModelBackend',
     'allauth.account.auth_backends.AuthenticationBackend',
 ]
@@ -167,6 +169,7 @@ MIDDLEWARE = [
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
+    "apps.stores.middleware.TenantMiddleware",
     "allauth.account.middleware.AccountMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "apps.accounts.middleware.AccountStatusMiddleware",

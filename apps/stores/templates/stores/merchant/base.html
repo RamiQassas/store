@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}لوحة التحكم للتاجر{% endblock %} | {{ store.name }}</title>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&family=Tajawal:wght@300;400;500;700;900&display=swap" rel="stylesheet">
+    <!-- Icons & Styling -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        :root {
+            --primary: #0ea5e9;
+            --secondary: #0284c7;
+            --bg-color: #0f172a;
+            --text-color: #f8fafc;
+            --sidebar-bg: #1e293b;
+            --card-bg: rgba(255, 255, 255, 0.03);
+            --card-border: rgba(255, 255, 255, 0.08);
+            --transition: all 0.25s ease;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Tajawal', sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            min-height: 100vh;
+            display: flex;
+        }
+
+        /* Layout structure */
+        .sidebar {
+            width: 260px;
+            background: var(--sidebar-bg);
+            border-left: 1px solid var(--card-border);
+            display: flex;
+            flex-direction: column;
+            position: fixed;
+            top: 0;
+            bottom: 0;
+            right: 0;
+            z-index: 10;
+        }
+
+        .sidebar-brand {
+            padding: 2rem 1.5rem;
+            border-bottom: 1px solid var(--card-border);
+            font-size: 1.3rem;
+            font-weight: 900;
+            color: var(--primary);
+            display: flex;
+            align-items: center;
+            gap: 0.8rem;
+        }
+
+        .sidebar-menu {
+            list-style: none;
+            padding: 1.5rem 1rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            flex: 1;
+            overflow-y: auto;
+        }
+
+        .menu-link {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            padding: 0.8rem 1.2rem;
+            border-radius: 12px;
+            color: var(--text-color);
+            text-decoration: none;
+            font-weight: 500;
+            transition: var(--transition);
+            font-size: 0.95rem;
+            opacity: 0.8;
+        }
+
+        .menu-link:hover, .menu-link.active {
+            background: rgba(255,255,255,0.05);
+            color: var(--primary);
+            opacity: 1;
+        }
+
+        .main-wrapper {
+            margin-right: 260px;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+
+        header {
+            background: rgba(15, 23, 42, 0.4);
+            backdrop-filter: blur(8px);
+            border-bottom: 1px solid var(--card-border);
+            padding: 1rem 3rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .user-menu {
+            display: flex;
+            align-items: center;
+            gap: 1.5rem;
+        }
+
+        main {
+            padding: 3rem;
+            flex: 1;
+        }
+
+        /* Reusable UI Components */
+        .btn {
+            padding: 0.6rem 1.2rem;
+            border-radius: 30px;
+            font-weight: 700;
+            text-decoration: none;
+            transition: var(--transition);
+            cursor: pointer;
+            border: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.85rem;
+        }
+
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: var(--secondary);
+            transform: translateY(-1px);
+        }
+
+        .btn-outline {
+            background: transparent;
+            border: 1px solid var(--card-border);
+            color: var(--text-color);
+        }
+
+        .btn-outline:hover {
+            background: rgba(255,255,255,0.05);
+        }
+
+        .btn-danger {
+            background: #ef4444;
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: #dc2626;
+        }
+
+        .table-container {
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 20px;
+            overflow: hidden;
+            margin-top: 1.5rem;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: right;
+        }
+
+        th, td {
+            padding: 1.2rem 1.5rem;
+            border-bottom: 1px solid var(--card-border);
+        }
+
+        th {
+            font-weight: 800;
+            opacity: 0.8;
+            background: rgba(0,0,0,0.1);
+        }
+
+        tr:last-child td {
+            border-bottom: none;
+        }
+
+        .card {
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 20px;
+            padding: 2rem;
+        }
+
+        .form-group {
+            margin-bottom: 1.5rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .form-label {
+            font-weight: 700;
+            font-size: 0.95rem;
+        }
+
+        .form-input {
+            background: rgba(0,0,0,0.25);
+            border: 1px solid var(--card-border);
+            padding: 0.8rem 1rem;
+            border-radius: 12px;
+            color: var(--text-color);
+            font-size: 0.95rem;
+            outline: none;
+            transition: var(--transition);
+            width: 100%;
+        }
+
+        .form-input:focus {
+            border-color: var(--primary);
+        }
+
+        /* Alert notifications */
+        .alerts-container {
+            margin-bottom: 2rem;
+        }
+
+        .alert {
+            padding: 1rem 1.5rem;
+            border-radius: 12px;
+            margin-bottom: 1rem;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .alert-success {
+            background-color: rgba(16, 185, 129, 0.15);
+            border: 1px solid rgba(16, 185, 129, 0.3);
+            color: #34d399;
+        }
+
+        .alert-error {
+            background-color: rgba(239, 68, 68, 0.15);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            color: #f87171;
+        }
+    </style>
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+
+    <!-- Sidebar -->
+    <aside class="sidebar">
+        <div class="sidebar-brand">
+            <i class="fa-solid fa-shop"></i>
+            <span>لوحة تحكم التاجر</span>
+        </div>
+        
+        <ul class="sidebar-menu">
+            <li><a href="{% url 'merchant_dashboard' %}" class="menu-link {% block menu_dash %}{% endblock %}"><i class="fa-solid fa-gauge"></i> الإحصائيات</a></li>
+            <li><a href="{% url 'merchant_products' %}" class="menu-link {% block menu_prod %}{% endblock %}"><i class="fa-solid fa-cube"></i> إدارة المنتجات</a></li>
+            <li><a href="{% url 'merchant_categories' %}" class="menu-link {% block menu_cat %}{% endblock %}"><i class="fa-solid fa-layer-group"></i> إدارة التصنيفات</a></li>
+            <li><a href="{% url 'merchant_orders' %}" class="menu-link {% block menu_ord %}{% endblock %}"><i class="fa-solid fa-receipt"></i> إدارة الطلبات</a></li>
+            <li><a href="{% url 'merchant_coupons' %}" class="menu-link {% block menu_coup %}{% endblock %}"><i class="fa-solid fa-tags"></i> إدارة الكوبونات</a></li>
+            <li><a href="{% url 'merchant_pages' %}" class="menu-link {% block menu_page %}{% endblock %}"><i class="fa-solid fa-file-lines"></i> إدارة الصفحات</a></li>
+            <li><a href="{% url 'merchant_employees' %}" class="menu-link {% block menu_emp %}{% endblock %}"><i class="fa-solid fa-users-gear"></i> إدارة الموظفين</a></li>
+            <li><a href="{% url 'merchant_settings' %}" class="menu-link {% block menu_settings %}{% endblock %}"><i class="fa-solid fa-sliders"></i> إعدادات الهوية</a></li>
+            <li><a href="{% url 'merchant_subscription' %}" class="menu-link {% block menu_sub %}{% endblock %}"><i class="fa-solid fa-credit-card"></i> باقة الاشتراك</a></li>
+            
+            <li style="margin-top: auto; border-top: 1px solid var(--card-border); padding-top: 1rem;">
+                <a href="{% url 'store_home' %}" class="menu-link" style="color: var(--primary);"><i class="fa-solid fa-arrow-up-right-from-square"></i> عرض المتجر</a>
+            </li>
+        </ul>
+    </aside>
+
+    <!-- Main Wrapper -->
+    <div class="main-wrapper">
+        <header>
+            <div style="font-weight: 800; font-size: 1.1rem; color: var(--text-color);">
+                متجر: {{ store.name }}
+            </div>
+            
+            <div class="user-menu">
+                <span>أهلاً، {{ user.display_name }}</span>
+                <a href="{% url 'store_logout' %}" class="btn btn-outline btn-sm" style="color: #f87171; border-color: rgba(239,68,68,0.2);"><i class="fa-solid fa-right-from-bracket"></i> خروج</a>
+            </div>
+        </header>
+
+        <!-- Alerts -->
+        {% if messages %}
+        <div style="padding: 2rem 3rem 0;">
+            <div class="alerts-container">
+                {% for message in messages %}
+                    <div class="alert {% if message.tags == 'success' %}alert-success{% else %}alert-error{% endif %}">
+                        <i class="fa-solid {% if message.tags == 'success' %}fa-circle-check{% else %}fa-circle-exclamation{% endif %}"></i>
+                        <span>{{ message }}</span>
+                    </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Content -->
+        <main>
+            {% block content %}{% endblock %}
+        </main>
+    </div>
+
+</body>
+</html>

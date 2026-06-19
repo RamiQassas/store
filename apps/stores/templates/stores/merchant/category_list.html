@@ -1,0 +1,74 @@
+{% extends "stores/merchant/base.html" %}
+
+{% block menu_cat %}active{% endblock %}
+
+{% block content %}
+
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+        <h1 style="font-size: 2rem; font-weight: 900;">إدارة تصنيفات المنتجات</h1>
+        <a href="{% url 'merchant_category_create' %}" class="btn btn-primary"><i class="fa-solid fa-plus"></i> إضافة تصنيف جديد</a>
+    </div>
+
+    <!-- Category Table -->
+    <div class="table-container">
+        {% if categories %}
+            <table>
+                <thead>
+                    <tr>
+                        <th>صورة التصنيف</th>
+                        <th>الاسم</th>
+                        <th>التصنيف الأب</th>
+                        <th>ترتيب العرض</th>
+                        <th>مميز</th>
+                        <th>نشط</th>
+                        <th>الإجراءات</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for cat in categories %}
+                        <tr>
+                            <td>
+                                {% if cat.image %}
+                                    <img src="{{ cat.image.url }}" alt="{{ cat.name }}" style="height: 45px; width: 45px; object-fit: cover; border-radius: 8px; border: 1px solid var(--card-border);">
+                                {% else %}
+                                    <div style="height: 45px; width: 45px; background: rgba(255,255,255,0.05); display: flex; align-items: center; justify-content: center; border-radius: 8px;">
+                                        <i class="fa-solid fa-layer-group"></i>
+                                    </div>
+                                {% endif %}
+                            </td>
+                            <td><strong>{{ cat.name }}</strong></td>
+                            <td style="opacity: 0.7;">{{ cat.parent.name|default:"—" }}</td>
+                            <td>{{ cat.sort_order }}</td>
+                            <td>
+                                {% if cat.is_featured %}
+                                    <span style="color: #34d399;">نعم</span>
+                                {% else %}
+                                    <span>لا</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if cat.is_active %}
+                                    <span style="color: #34d399;">نعم</span>
+                                {% else %}
+                                    <span style="color: #f87171;">لا</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <div style="display: flex; gap: 0.5rem;">
+                                    <a href="{% url 'merchant_category_edit' cat.id %}" class="btn btn-outline btn-sm"><i class="fa-solid fa-edit"></i> تعديل</a>
+                                    <a href="{% url 'merchant_category_delete' cat.id %}" onclick="return confirm('هل أنت متأكد من حذف هذا التصنيف؟')" class="btn btn-danger btn-sm"><i class="fa-solid fa-trash"></i> حذف</a>
+                                </div>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        {% else %}
+            <div style="text-align: center; padding: 4rem 2rem;">
+                <i class="fa-solid fa-layer-group" style="font-size: 3rem; opacity: 0.2; margin-bottom: 1rem;"></i>
+                <p>لا يوجد تصنيفات مضافة حالياً لمتجرك.</p>
+            </div>
+        {% endif %}
+    </div>
+
+{% endblock %}

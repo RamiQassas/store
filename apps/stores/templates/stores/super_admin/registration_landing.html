@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>أنشئ متجرك الإلكتروني | رقميات</title>
+    <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@300;400;500;700;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        :root {
+            --primary: #06b6d4;
+            --secondary: #0891b2;
+            --bg-color: #0f172a;
+            --card-bg: rgba(255, 255, 255, 0.03);
+            --card-border: rgba(255, 255, 255, 0.08);
+            --text-color: #f8fafc;
+            --transition: all 0.3s ease;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Tajawal', sans-serif; }
+        body { background-color: var(--bg-color); color: var(--text-color); padding: 3rem 1.5rem; min-height: 100vh; }
+        
+        .container { max-width: 1000px; margin: 0 auto; }
+        
+        .header-title { text-align: center; margin-bottom: 3rem; }
+        .header-title h1 { font-size: 2.5rem; font-weight: 900; background: linear-gradient(135deg, var(--primary), var(--secondary)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin-bottom: 0.5rem; }
+        .header-title p { opacity: 0.7; font-size: 1.1rem; }
+
+        .layout-grid { display: grid; grid-template-cols: 1.2fr 1fr; gap: 3rem; }
+        
+        .form-card { background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 24px; padding: 2.5rem; }
+        .form-group { margin-bottom: 1.5rem; display: flex; flex-direction: column; gap: 0.5rem; }
+        .form-label { font-weight: 700; font-size: 0.95rem; }
+        .form-input { background: rgba(0,0,0,0.25); border: 1px solid var(--card-border); padding: 0.8rem 1rem; border-radius: 12px; color: var(--text-color); font-size: 0.95rem; outline: none; width: 100%; }
+        .form-input:focus { border-color: var(--primary); }
+        
+        .btn { padding: 0.8rem 2rem; border-radius: 30px; font-weight: 700; text-decoration: none; transition: var(--transition); cursor: pointer; border: none; display: inline-flex; align-items: center; gap: 0.5rem; justify-content: center; font-size: 1rem; }
+        .btn-primary { background: linear-gradient(135deg, var(--primary), var(--secondary)); color: white; box-shadow: 0 4px 15px rgba(6,182,212,0.2); }
+        .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(6,182,212,0.4); }
+
+        /* Plans sidebar */
+        .plans-sidebar { display: flex; flex-direction: column; gap: 1.5rem; }
+        .plan-item-box { background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 20px; padding: 1.5rem; display: flex; flex-direction: column; gap: 0.5rem; }
+        .plan-item-title { font-size: 1.3rem; font-weight: 900; color: var(--primary); }
+        .plan-item-price { font-size: 1.5rem; font-weight: 900; }
+        .plan-features-list { list-style: none; margin-top: 0.8rem; font-size: 0.9rem; opacity: 0.8; display: flex; flex-direction: column; gap: 0.4rem; }
+        .plan-features-list li { display: flex; align-items: center; gap: 0.5rem; }
+        
+        .alert { padding: 1rem 1.5rem; border-radius: 12px; margin-bottom: 2rem; background-color: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.3); color: #f87171; }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        
+        <div class="header-title">
+            <h1>أنشئ متجرك الإلكتروني الآن</h1>
+            <p>انضم لآلاف المتاجر الرقمية وابدأ البيع خلال دقائق قليلة</p>
+        </div>
+
+        {% if messages %}
+            {% for message in messages %}
+                <div class="alert"><i class="fa-solid fa-triangle-exclamation"></i> {{ message }}</div>
+            {% endfor %}
+        {% endif %}
+
+        <div class="layout-grid">
+            <!-- Form -->
+            <div class="form-card">
+                <form method="POST" enctype="multipart/form-data">
+                    {% csrf_token %}
+                    
+                    <div class="form-group">
+                        <label class="form-label">اسم المتجر الخاص بك:</label>
+                        <input type="text" name="name" required class="form-input" placeholder="مثال: متجر الهواتف الذكية">
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">رابط المتجر الفرعي (Subdomain slug):</label>
+                        <input type="text" name="slug" required class="form-input" placeholder="مثال: mystore">
+                        <span style="font-size: 0.8rem; opacity: 0.5;">سيكون رابط متجرك: <code>mystore.raqamiyatapp.com</code></span>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">وصف المتجر:</label>
+                        <textarea name="description" rows="3" class="form-input" placeholder="وصف موجز لنشاط متجرك..."></textarea>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">شعار المتجر (Logo):</label>
+                        <input type="file" name="logo" class="form-input">
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">اختر خطة الاشتراك المناسبة:</label>
+                        <select name="subscription_plan" class="form-input">
+                            {% for plan in plans %}
+                                <option value="{{ plan.id }}">{{ plan.name }} (${{ plan.price_monthly }}/شهرياً)</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 1.5rem;"><i class="fa-solid fa-circle-arrow-left"></i> الانتقال للدفع وإنشاء المتجر</button>
+                </form>
+            </div>
+
+            <!-- Plans info -->
+            <div class="plans-sidebar">
+                <h3 style="font-size: 1.3rem; font-weight: 800; border-bottom: 1px solid var(--card-border); padding-bottom: 0.5rem;">تفاصيل خطط الاشتراك</h3>
+                {% for plan in plans %}
+                    <div class="plan-item-box">
+                        <span class="plan-item-title">{{ plan.name }}</span>
+                        <span class="plan-item-price">${{ plan.price_monthly }} <span style="font-size: 0.85rem; font-weight: 400; opacity: 0.7;">/ شهرياً</span></span>
+                        
+                        <ul class="plan-features-list">
+                            <li><i class="fa-solid fa-check" style="color: var(--primary);"></i> حد المنتجات: {{ plan.max_products }}</li>
+                            <li><i class="fa-solid fa-check" style="color: var(--primary);"></i> حد الموظفين: {{ plan.max_employees }}</li>
+                            <li><i class="fa-solid fa-check" style="color: var(--primary);"></i> حد الطلبات شهرياً: {{ plan.max_monthly_orders }}</li>
+                            {% if plan.custom_domain_enabled %}
+                                <li><i class="fa-solid fa-check" style="color: var(--primary);"></i> دعم ربط نطاق مخصص (Custom Domain)</li>
+                            {% endif %}
+                            {% if plan.remove_branding_enabled %}
+                                <li><i class="fa-solid fa-check" style="color: var(--primary);"></i> إزالة شعار رقميات الترويجي</li>
+                            {% endif %}
+                        </ul>
+                    </div>
+                {% endfor %}
+            </div>
+        </div>
+
+    </div>
+
+</body>
+</html>

@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>لوحة السوبر أدمن لإدارة المتاجر | رقميات SaaS</title>
+    <!-- Fonts & Icons -->
+    <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@300;400;500;700;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        :root {
+            --primary: #06b6d4;
+            --secondary: #0891b2;
+            --bg-color: #0f172a;
+            --card-bg: rgba(255, 255, 255, 0.03);
+            --card-border: rgba(255, 255, 255, 0.08);
+            --text-color: #f8fafc;
+            --transition: all 0.3s ease;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Tajawal', sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            min-height: 100vh;
+            padding: 2rem;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid var(--card-border);
+            padding-bottom: 1.5rem;
+            margin-bottom: 2.5rem;
+        }
+
+        .btn {
+            padding: 0.6rem 1.5rem;
+            border-radius: 30px;
+            font-weight: 700;
+            text-decoration: none;
+            transition: var(--transition);
+            cursor: pointer;
+            border: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.9rem;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+        }
+
+        .btn-outline {
+            background: transparent;
+            border: 1px solid var(--card-border);
+            color: var(--text-color);
+        }
+
+        .btn-outline:hover {
+            background: rgba(255,255,255,0.05);
+        }
+
+        .btn-danger {
+            background: #ef4444;
+            color: white;
+        }
+
+        /* Stats cards */
+        .stats-grid {
+            display: grid;
+            grid-template-cols: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 3rem;
+        }
+
+        .stat-card {
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 20px;
+            padding: 1.8rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .stat-val {
+            font-size: 2.2rem;
+            font-weight: 900;
+            color: var(--primary);
+        }
+
+        .stat-label {
+            font-size: 0.95rem;
+            opacity: 0.7;
+        }
+
+        .stat-icon {
+            font-size: 2.5rem;
+            opacity: 0.15;
+        }
+
+        /* Monitoring & list section */
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 2rem;
+        }
+
+        .panel-card {
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 24px;
+            padding: 2rem;
+        }
+
+        .panel-title {
+            font-size: 1.3rem;
+            font-weight: 800;
+            margin-bottom: 1.5rem;
+            border-bottom: 1px solid var(--card-border);
+            padding-bottom: 0.5rem;
+            color: var(--primary);
+        }
+
+        /* Table */
+        .table-container {
+            overflow-x: auto;
+            margin-top: 1rem;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: right;
+        }
+
+        th, td {
+            padding: 1rem 1.2rem;
+            border-bottom: 1px solid var(--card-border);
+        }
+
+        th {
+            font-weight: 800;
+            opacity: 0.8;
+        }
+
+        /* Alert */
+        .alert {
+            padding: 1rem 1.5rem;
+            border-radius: 12px;
+            margin-bottom: 2rem;
+            background-color: rgba(16, 185, 129, 0.15);
+            border: 1px solid rgba(16, 185, 129, 0.3);
+            color: #34d399;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        
+        <!-- Header -->
+        <header>
+            <div>
+                <h1 style="font-size: 2rem; font-weight: 900; background: linear-gradient(135deg, var(--primary), var(--secondary)); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">رقميات SaaS | لوحة السوبر أدمن</h1>
+                <p style="opacity: 0.6; font-size: 0.9rem; margin-top: 0.3rem;">إدارة المتاجر المتعددة والخطط ومراقبة الموارد المخصصة</p>
+            </div>
+            
+            <div style="display: flex; gap: 1rem;">
+                <a href="{% url 'platform_plan_list' %}" class="btn btn-outline"><i class="fa-solid fa-list-check"></i> باقات الاشتراكات</a>
+                <a href="/control/" class="btn btn-outline"><i class="fa-solid fa-arrow-left"></i> العودة للوحة رقميات</a>
+            </div>
+        </header>
+
+        {% if messages %}
+            {% for message in messages %}
+                <div class="alert">
+                    <i class="fa-solid fa-circle-check"></i> {{ message }}
+                </div>
+            {% endfor %}
+        {% endif %}
+
+        <!-- Stats Grid -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div>
+                    <div class="stat-label">إجمالي المتاجر</div>
+                    <div class="stat-val">{{ total_stores }}</div>
+                </div>
+                <i class="fa-solid fa-store stat-icon"></i>
+            </div>
+            <div class="stat-card">
+                <div>
+                    <div class="stat-label">المتاجر النشطة</div>
+                    <div class="stat-val" style="color: #34d399;">{{ active_stores_count }}</div>
+                </div>
+                <i class="fa-solid fa-circle-check stat-icon"></i>
+            </div>
+            <div class="stat-card">
+                <div>
+                    <div class="stat-label">إجمالي المنتجات للمتاجر</div>
+                    <div class="stat-val">{{ total_products }}</div>
+                </div>
+                <i class="fa-solid fa-cube stat-icon"></i>
+            </div>
+            <div class="stat-card">
+                <div>
+                    <div class="stat-label">إجمالي الطلبات للكل</div>
+                    <div class="stat-val">{{ total_orders }}</div>
+                </div>
+                <i class="fa-solid fa-receipt stat-icon"></i>
+            </div>
+        </div>
+
+        <!-- Dashboard Grid -->
+        <div class="dashboard-grid">
+            
+            <!-- Stores Management list -->
+            <div class="panel-card">
+                <h3 class="panel-title">إدارة متاجر المنصة الفرعية</h3>
+                
+                <div class="table-container">
+                    {% if stores %}
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>اسم المتجر</th>
+                                    <th>الرابط / النطاق</th>
+                                    <th>المالك</th>
+                                    <th>الباقة</th>
+                                    <th>نشط</th>
+                                    <th>تاريخ الإنشاء</th>
+                                    <th>الإجراء</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for store in stores %}
+                                    <tr>
+                                        <td><strong>{{ store.name }}</strong></td>
+                                        <td style="font-size: 0.85rem; font-family: monospace;">
+                                            {{ store.slug }}.raqamiyatapp.com
+                                            {% if store.custom_domain %}<br><span style="color: var(--primary);">{{ store.custom_domain }}</span>{% endif %}
+                                        </td>
+                                        <td>{{ store.owner.email }}</td>
+                                        <td><span class="btn btn-outline btn-sm" style="padding: 0.3rem 0.8rem; font-size: 0.75rem;">{{ store.subscription_plan.name|default:"تجريبية" }}</span></td>
+                                        <td>
+                                            {% if store.is_active %}
+                                                <span style="color: #34d399; font-weight: bold;">نشط</span>
+                                            {% else %}
+                                                <span style="color: #ef4444; font-weight: bold;">موقوف</span>
+                                            {% endif %}
+                                        </td>
+                                        <td style="opacity: 0.7; font-size: 0.85rem;">{{ store.created_at|date:"Y-m-d" }}</td>
+                                        <td>
+                                            <form method="POST" action="{% url 'platform_toggle_store' store.id %}">
+                                                {% csrf_token %}
+                                                {% if store.is_active %}
+                                                    <button type="submit" class="btn btn-danger btn-sm" style="padding: 0.4rem 0.8rem; font-size: 0.75rem;"><i class="fa-solid fa-ban"></i> إيقاف</button>
+                                                {% else %}
+                                                    <button type="submit" class="btn btn-primary btn-sm" style="padding: 0.4rem 0.8rem; font-size: 0.75rem; background: #34d399;"><i class="fa-solid fa-check"></i> تفعيل</button>
+                                                {% endif %}
+                                            </form>
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    {% else %}
+                        <p style="text-align: center; padding: 3rem; opacity: 0.5;">لا يوجد متاجر مضافة حالياً.</p>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Health check & resources -->
+            <div class="panel-card">
+                <h3 class="panel-title"><i class="fa-solid fa-server"></i> مراقبة الخادم والنظام</h3>
+                
+                <div style="display: flex; flex-direction: column; gap: 1.5rem;">
+                    <div style="background: rgba(0,0,0,0.2); padding: 1.2rem; border-radius: 16px; border: 1px solid var(--card-border);">
+                        <h4 style="font-weight: 700; margin-bottom: 0.5rem; font-size: 0.95rem;">محرك قاعدة البيانات:</h4>
+                        <span style="font-family: monospace; font-size: 1.1rem; color: var(--primary); font-weight: bold;">{{ db_engine|upper }}</span>
+                    </div>
+
+                    <div style="background: rgba(0,0,0,0.2); padding: 1.2rem; border-radius: 16px; border: 1px solid var(--card-border);">
+                        <h4 style="font-weight: 700; margin-bottom: 0.5rem; font-size: 0.95rem;">حجم ملف قاعدة البيانات (SQLite):</h4>
+                        <span style="font-family: monospace; font-size: 1.1rem; color: var(--primary); font-weight: bold;">{{ db_size }}</span>
+                    </div>
+
+                    <div style="background: rgba(0,0,0,0.2); padding: 1.2rem; border-radius: 16px; border: 1px solid var(--card-border);">
+                        <h4 style="font-weight: 700; margin-bottom: 0.5rem; font-size: 0.95rem;">استهلاك مساحة التخزين (Media):</h4>
+                        <span style="font-family: monospace; font-size: 1.1rem; color: var(--primary); font-weight: bold;">{{ disk_usage }}</span>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+    </div>
+
+</body>
+</html>

@@ -1,0 +1,158 @@
+{% extends "stores/merchant/base.html" %}
+
+{% block menu_prod %}active{% endblock %}
+
+{% block content %}
+
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+        <h1 style="font-size: 2rem; font-weight: 900;">
+            {% if product %}تعديل المنتج: {{ product.name }}{% else %}إضافة منتج جديد{% endif %}
+        </h1>
+        <a href="{% url 'merchant_products' %}" class="btn btn-outline"><i class="fa-solid fa-arrow-left"></i> العودة للقائمة</a>
+    </div>
+
+    <div class="card" style="margin-bottom: 3rem;">
+        <form method="POST" enctype="multipart/form-data">
+            {% csrf_token %}
+            
+            <div style="display: grid; grid-template-cols: 1fr 1fr; gap: 1.5rem;">
+                <div class="form-group">
+                    <label class="form-label">اسم المنتج:</label>
+                    {{ form.name }}
+                    {{ form.name.errors }}
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">التصنيف:</label>
+                    {{ form.category }}
+                    {{ form.category.errors }}
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">الوصف:</label>
+                {{ form.description }}
+                {{ form.description.errors }}
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">تعليمات الاستخدام للعميل:</label>
+                {{ form.instructions }}
+                {{ form.instructions.errors }}
+            </div>
+
+            <div style="display: grid; grid-template-cols: 1fr 1fr 1fr; gap: 1.5rem;">
+                <div class="form-group">
+                    <label class="form-label">الصورة الأساسية:</label>
+                    {{ form.image }}
+                </div>
+                <div class="form-group">
+                    <label class="form-label">صورة الغلاف:</label>
+                    {{ form.cover_image }}
+                </div>
+                <div class="form-group">
+                    <label class="form-label">مصغرة:</label>
+                    {{ form.thumbnail }}
+                </div>
+            </div>
+
+            <div style="display: grid; grid-template-cols: 1fr 1fr 1fr; gap: 1.5rem; margin-top: 1rem;">
+                <div class="form-group" style="flex-direction: row; align-items: center; gap: 0.5rem;">
+                    {{ form.is_active }}
+                    <label class="form-label" style="margin-bottom: 0;">نشط (معروض في المتجر)</label>
+                </div>
+                <div class="form-group" style="flex-direction: row; align-items: center; gap: 0.5rem;">
+                    {{ form.is_featured }}
+                    <label class="form-label" style="margin-bottom: 0;">مميز (يعرض في الرئيسية)</label>
+                </div>
+                <div class="form-group" style="flex-direction: row; align-items: center; gap: 0.5rem;">
+                    {{ form.is_out_of_stock }}
+                    <label class="form-label" style="margin-bottom: 0;">غير متوفر</label>
+                </div>
+            </div>
+
+            <div style="display: grid; grid-template-cols: 1fr 1fr; gap: 1.5rem; margin-top: 1rem;">
+                <div class="form-group">
+                    <label class="form-label">ترتيب العرض:</label>
+                    {{ form.sort_order }}
+                </div>
+                <div class="form-group">
+                    <label class="form-label">وقت التسليم المعروض (مثال: 5-15 دقيقة):</label>
+                    {{ form.delivery_time_display }}
+                </div>
+            </div>
+
+            <!-- Form schema engine config -->
+            <div class="form-group" style="margin-top: 1.5rem;">
+                <label class="form-label">تخصيص البيانات المطلوبة من العميل (JSON Form Schema):</label>
+                {{ form.form_schema }}
+                <span style="font-size: 0.8rem; opacity: 0.5; margin-top: 0.3rem;">
+                    مثال: <code>{"fields": [{"label": "اسم الحساب", "type": "text", "required": true}]}</code>
+                </span>
+            </div>
+
+            <div style="margin-top: 2rem; display: flex; justify-content: flex-end; gap: 1rem;">
+                <button type="submit" class="btn btn-primary"><i class="fa-solid fa-save"></i> حفظ المنتج</button>
+            </div>
+        </form>
+    </div>
+
+    <!-- Variants packages section (only visible when editing) -->
+    {% if product %}
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+            <h2 style="font-size: 1.5rem; font-weight: 800;">باقات أسعار المنتج المتوفرة (Variants)</h2>
+            <a href="{% url 'merchant_variant_create' product.id %}" class="btn btn-primary btn-sm"><i class="fa-solid fa-plus"></i> إضافة باقة سعر جديدة</a>
+        </div>
+        
+        <div class="table-container" style="margin-bottom: 4rem;">
+            {% if product.variants.exists %}
+                <table>
+                    <thead>
+                        <tr>
+                            <th>الباقة</th>
+                            <th>SKU</th>
+                            <th>السعر الافتراضي</th>
+                            <th>سعر الجملة</th>
+                            <th>سعر VIP</th>
+                            <th>طريقة التسليم</th>
+                            <th>نشط</th>
+                            <th>الإجراءات</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for var in product.variants.all %}
+                            <tr>
+                                <td><strong>{{ var.name }}</strong></td>
+                                <td style="font-family: monospace;">{{ var.sku }}</td>
+                                <td style="font-weight: 700; color: var(--primary);">${{ var.price }}</td>
+                                <td>${{ var.wholesale_price }}</td>
+                                <td>${{ var.vip_price }}</td>
+                                <td>{{ var.get_delivery_type_display }}</td>
+                                <td>
+                                    {% if var.is_active %}
+                                        <span style="color: #34d399;">نعم</span>
+                                    {% else %}
+                                        <span style="color: #f87171;">لا</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <div style="display: flex; gap: 0.5rem;">
+                                        <a href="{% url 'merchant_variant_edit' var.id %}" class="btn btn-outline btn-sm"><i class="fa-solid fa-edit"></i> تعديل</a>
+                                        {% if var.delivery_type == "keys" %}
+                                            <a href="{% url 'merchant_variant_keys' var.id %}" class="btn btn-outline btn-sm" style="color: #34d399; border-color: rgba(16,185,129,0.3);"><i class="fa-solid fa-key"></i> الأكواد ({{ var.keys.count }})</a>
+                                        {% endif %}
+                                    </div>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            {% else %}
+                <div style="text-align: center; padding: 3rem 2rem;">
+                    <p style="opacity: 0.6;">لا توجد باقات أسعار مضافة لهذا المنتج بعد.</p>
+                </div>
+            {% endif %}
+        </div>
+    {% endif %}
+
+{% endblock %}

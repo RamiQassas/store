@@ -1,0 +1,67 @@
+{% extends "stores/merchant/base.html" %}
+
+{% block menu_prod %}active{% endblock %}
+
+{% block content %}
+
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+        <h1 style="font-size: 2rem; font-weight: 900;">إدارة أكواد التسليم التلقائي: {{ variant.name }}</h1>
+        <a href="{% url 'merchant_product_edit' variant.product.id %}" class="btn btn-outline"><i class="fa-solid fa-arrow-left"></i> العودة للمنتج</a>
+    </div>
+
+    <!-- Import Keys Form -->
+    <div class="card" style="margin-bottom: 3rem;">
+        <h3 style="font-size: 1.1rem; font-weight: 800; margin-bottom: 1rem; color: var(--primary);"><i class="fa-solid fa-cloud-arrow-up"></i> استيراد أكواد جديدة (مفتاح في كل سطر)</h3>
+        
+        <form method="POST">
+            {% csrf_token %}
+            <div class="form-group">
+                <textarea name="keys" rows="5" class="form-input" placeholder="CODE-1234-ABCD&#10;CODE-5678-EFGH&#10;CODE-9012-IJKL" required></textarea>
+            </div>
+            
+            <button type="submit" class="btn btn-primary"><i class="fa-solid fa-upload"></i> استيراد الأكواد</button>
+        </form>
+    </div>
+
+    <!-- List existing keys -->
+    <h2 style="font-size: 1.3rem; font-weight: 800; margin-bottom: 1.2rem;">قائمة الأكواد المستوردة</h2>
+    
+    <div class="table-container">
+        {% if keys %}
+            <table>
+                <thead>
+                    <tr>
+                        <th>الكود الرقمي</th>
+                        <th>مستخدم</th>
+                        <th>المشتري</th>
+                        <th>تاريخ الاستخدام</th>
+                        <th>تاريخ الإضافة</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for key in keys %}
+                        <tr>
+                            <td style="font-family: monospace; font-size: 1.1rem;"><strong>{{ key.key_code }}</strong></td>
+                            <td>
+                                {% if key.is_used %}
+                                    <span style="color: #ef4444; font-weight: bold;"><i class="fa-solid fa-lock"></i> مستخدم</span>
+                                {% else %}
+                                    <span style="color: #34d399; font-weight: bold;"><i class="fa-solid fa-lock-open"></i> متاح للبيع</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ key.used_by.email|default:"—" }}</td>
+                            <td style="opacity: 0.8; font-size: 0.9rem;">{{ key.used_at|date:"Y-m-d H:i"|default:"—" }}</td>
+                            <td style="opacity: 0.6; font-size: 0.85rem;">{{ key.created_at|date:"Y-m-d H:i" }}</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        {% else %}
+            <div style="text-align: center; padding: 4rem 2rem;">
+                <i class="fa-solid fa-key" style="font-size: 3rem; opacity: 0.15; margin-bottom: 1rem;"></i>
+                <p>لا يوجد أي أكواد مستوردة لهذه الباقة بعد.</p>
+            </div>
+        {% endif %}
+    </div>
+
+{% endblock %}

@@ -1,0 +1,92 @@
+{% extends "stores/frontend/base.html" %}
+
+{% block title %}تسجيل الدخول | {{ store.name }}{% endblock %}
+
+{% block extra_css %}
+<style>
+    .auth-container {
+        max-width: 450px;
+        margin: 4rem auto;
+        background: var(--card-bg);
+        border: 1px solid var(--card-border);
+        border-radius: 24px;
+        padding: 2.5rem;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+    }
+
+    .auth-title {
+        font-size: 1.8rem;
+        font-weight: 900;
+        margin-bottom: 2rem;
+        text-align: center;
+    }
+
+    .form-group {
+        margin-bottom: 1.5rem;
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+
+    .form-label {
+        font-weight: 700;
+        font-size: 0.95rem;
+    }
+
+    .form-input {
+        background: rgba(0,0,0,0.2);
+        border: 1px solid var(--card-border);
+        padding: 0.8rem 1rem;
+        border-radius: 12px;
+        color: var(--text-color);
+        font-size: 0.95rem;
+        outline: none;
+        transition: var(--transition);
+        width: 100%;
+    }
+
+    .form-input:focus {
+        border-color: var(--primary);
+    }
+
+    .auth-footer {
+        text-align: center;
+        margin-top: 2rem;
+        font-size: 0.9rem;
+        opacity: 0.8;
+    }
+
+    .auth-footer a {
+        color: var(--primary);
+        text-decoration: none;
+        font-weight: 700;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+
+    <div class="auth-container">
+        <h1 class="auth-title">تسجيل الدخول</h1>
+        
+        <form method="POST">
+            {% csrf_token %}
+            <div class="form-group">
+                <label class="form-label">البريد الإلكتروني:</label>
+                <input type="email" name="email" required class="form-input" placeholder="name@example.com">
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">كلمة المرور:</label>
+                <input type="password" name="password" required class="form-input" placeholder="••••••••">
+            </div>
+
+            <button type="submit" class="btn btn-primary" style="width: 100%; justify-content: center; padding: 0.8rem; font-size: 1rem;"><i class="fa-solid fa-right-to-bracket"></i> دخول</button>
+        </form>
+
+        <div class="auth-footer">
+            <span>ليس لديك حساب؟ <a href="{% url 'store_register' %}">إنشاء حساب جديد</a></span>
+        </div>
+    </div>
+
+{% endblock %}

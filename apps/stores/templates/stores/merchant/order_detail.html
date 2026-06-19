@@ -1,0 +1,141 @@
+{% extends "stores/merchant/base.html" %}
+
+{% block menu_ord %}active{% endblock %}
+
+{% block extra_css %}
+<style>
+    .order-details-grid {
+        display: grid;
+        grid-template-cols: 1.5fr 1fr;
+        gap: 2rem;
+    }
+
+    .info-card {
+        background: var(--card-bg);
+        border: 1px solid var(--card-border);
+        border-radius: 20px;
+        padding: 2rem;
+    }
+
+    .info-title {
+        font-size: 1.2rem;
+        font-weight: 800;
+        margin-bottom: 1.5rem;
+        border-bottom: 1px solid var(--card-border);
+        padding-bottom: 0.5rem;
+        color: var(--primary);
+    }
+
+    .info-row {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 1rem;
+        font-size: 0.95rem;
+    }
+
+    .form-select {
+        background: rgba(0,0,0,0.25);
+        border: 1px solid var(--card-border);
+        color: var(--text-color);
+        padding: 0.8rem;
+        border-radius: 12px;
+        outline: none;
+        width: 100%;
+        cursor: pointer;
+    }
+
+    .form-select option {
+        background: var(--bg-color);
+        color: var(--text-color);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+        <h1 style="font-size: 2rem; font-weight: 900;">إدارة الطلب: {{ order.number }}</h1>
+        <a href="{% url 'merchant_orders' %}" class="btn btn-outline"><i class="fa-solid fa-arrow-left"></i> العودة لقائمة الطلبات</a>
+    </div>
+
+    <div class="order-details-grid">
+        <!-- Left: Order items and customer fields -->
+        <div style="display: flex; flex-direction: column; gap: 2rem;">
+            <!-- Items -->
+            <div class="info-card">
+                <h3 class="info-title">محتويات الطلب</h3>
+                {% for item in order.items.all %}
+                    <div class="info-row" style="font-size: 1.1rem; font-weight: bold;">
+                        <span>{{ item.variant.product.name }} - {{ item.variant.name }} (x{{ item.quantity }})</span>
+                        <span style="color: var(--primary);">${{ item.price }}</span>
+                    </div>
+                {% endfor %}
+            </div>
+
+            <!-- Customer inputs -->
+            <div class="info-card">
+                <h3 class="info-title">بيانات العميل المستلمة</h3>
+                {% for name, val in order.fulfillment_data.fields.items %}
+                    <div class="info-row">
+                        <span style="opacity: 0.7;">{{ name }}:</span>
+                        <strong>{{ val }}</strong>
+                    </div>
+                {% empty %}
+                    <p style="opacity: 0.5;">لا يوجد بيانات إضافية مدخلة.</p>
+                {% endfor %}
+            </div>
+            
+            <!-- Delivered codes -->
+            {% if order.fulfillment_data.keys %}
+                <div class="info-card" style="border-color: rgba(16,185,129,0.3); background: rgba(16,185,129,0.02);">
+                    <h3 class="info-title" style="color: #34d399;"><i class="fa-solid fa-key"></i> الأكواد المسلمة للعميل تلقائياً</h3>
+                    {% for key in order.fulfillment_data.keys %}
+                        <div style="font-family: monospace; font-size: 1.2rem; background: rgba(0,0,0,0.3); padding: 0.8rem; border-radius: 8px; margin-bottom: 0.5rem; letter-spacing: 1px;">
+                            {{ key }}
+                        </div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        </div>
+
+        <!-- Right: Status management & Notes -->
+        <div style="display: flex; flex-direction: column; gap: 2rem;">
+            <!-- Status card -->
+            <div class="info-card">
+                <h3 class="info-title">حالة الطلب الحالية</h3>
+                <div class="info-row">
+                    <span>الحالة الحالية:</span>
+                    <strong style="color: var(--primary);">{{ order.get_status_display }}</strong>
+                </div>
+                
+                <form method="POST" action="{% url 'merchant_order_status_update' order.id %}" style="margin-top: 1.5rem; display: flex; flex-direction: column; gap: 1rem;">
+                    {% csrf_token %}
+                    <div class="form-group">
+                        <label class="form-label">تحديث الحالة إلى:</label>
+                        <select name="status" class="form-select">
+                            <option value="processing" {% if order.status == 'processing' %}selected{% endif %}>قيد المعالجة</option>
+                            <option value="completed" {% if order.status == 'completed' %}selected{% endif %}>مكتمل</option>
+                            <option value="cancelled" {% if order.status == 'cancelled' %}selected{% endif %}>ملغى (مع إرجاع الرصيد تلقائياً للعميل)</option>
+                        </select>
+                    </div>
+                    
+                    <button type="submit" class="btn btn-primary" style="justify-content: center;"><i class="fa-solid fa-sync"></i> تحديث الحالة</button>
+                </form>
+            </div>
+
+            <!-- Notes card -->
+            <div class="info-card">
+                <h3 class="info-title">معلومات العميل</h3>
+                <div class="info-row">
+                    <span style="opacity: 0.7;">بريد العميل:</span>
+                    <strong>{{ order.customer.email }}</strong>
+                </div>
+                <div class="info-row">
+                    <span style="opacity: 0.7;">الاسم:</span>
+                    <strong>{{ order.customer.get_full_name|default:"—" }}</strong>
+                </div>
+            </div>
+        </div>
+    </div>
+
+{% endblock %}

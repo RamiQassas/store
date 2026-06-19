@@ -4,6 +4,23 @@ from django.contrib.auth.base_user import BaseUserManager
 class UserManager(BaseUserManager):
     use_in_migrations = True
 
+    def get_queryset(self):
+        from apps.common.tenant_utils import get_current_store, is_tenant_filter_bypassed
+        qs = super().get_queryset()
+        
+        # Safe check for early migrations where 'store' field doesn't exist yet
+        try:
+            self.model._meta.get_field("store")
+        except Exception:
+            return qs
+
+        if is_tenant_filter_bypassed():
+            return qs
+        store = get_current_store()
+        if store is not None:
+            return qs.filter(store=store)
+        return qs.filter(store__isnull=True)
+
     def _create_user(self, email, password, **extra_fields):
         if not email:
             raise ValueError("Email is required.")
@@ -36,3 +53,4 @@ class UserManager(BaseUserManager):
         if extra_fields.get("is_superuser") is not True:
             raise ValueError("Superuser must have is_superuser=True.")
         return self._create_user(email, password, **extra_fields)
+

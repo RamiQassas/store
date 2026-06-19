@@ -1,0 +1,371 @@
+{% extends "stores/frontend/base.html" %}
+
+{% block title %}المنتجات | {{ store.name }}{% endblock %}
+
+{% block extra_css %}
+<style>
+    .catalog-layout {
+        display: grid;
+        grid-template-cols: 280px 1fr;
+        gap: 2rem;
+    }
+
+    /* Sidebar Filter styling */
+    .filter-sidebar {
+        background: var(--card-bg);
+        border: 1px solid var(--card-border);
+        border-radius: 20px;
+        padding: 1.5rem;
+        height: fit-content;
+        position: sticky;
+        top: 90px;
+    }
+
+    .filter-section {
+        margin-bottom: 2rem;
+    }
+
+    .filter-title {
+        font-size: 1.1rem;
+        font-weight: 700;
+        margin-bottom: 1rem;
+        border-bottom: 1px solid var(--card-border);
+        padding-bottom: 0.5rem;
+    }
+
+    .filter-list {
+        list-style: none;
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+
+    .filter-item-link {
+        text-decoration: none;
+        color: var(--text-color);
+        opacity: 0.8;
+        transition: var(--transition);
+        display: flex;
+        justify-content: space-between;
+        font-size: 0.95rem;
+    }
+
+    .filter-item-link:hover, .filter-item-link.active {
+        opacity: 1;
+        color: var(--primary);
+        font-weight: 700;
+    }
+
+    /* Catalog Content styling */
+    .catalog-header {
+        background: var(--card-bg);
+        border: 1px solid var(--card-border);
+        border-radius: 20px;
+        padding: 1.2rem 1.5rem;
+        margin-bottom: 2rem;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 1rem;
+    }
+
+    .search-box {
+        position: relative;
+        flex: 1;
+        max-width: 400px;
+    }
+
+    .search-input {
+        width: 100%;
+        background: rgba(0,0,0,0.2);
+        border: 1px solid var(--card-border);
+        padding: 0.7rem 2.5rem 0.7rem 1rem;
+        border-radius: 30px;
+        color: var(--text-color);
+        font-size: 0.9rem;
+        transition: var(--transition);
+    }
+
+    .search-input:focus {
+        border-color: var(--primary);
+        outline: none;
+        box-shadow: 0 0 10px rgba(6, 182, 212, 0.2);
+    }
+
+    .search-icon {
+        position: absolute;
+        top: 50%;
+        right: 1rem;
+        transform: translateY(-50%);
+        opacity: 0.6;
+    }
+
+    .sort-select {
+        background: rgba(0,0,0,0.2);
+        border: 1px solid var(--card-border);
+        color: var(--text-color);
+        padding: 0.7rem 1.5rem;
+        border-radius: 30px;
+        font-size: 0.9rem;
+        outline: none;
+        cursor: pointer;
+    }
+
+    .sort-select option {
+        background: var(--bg-color);
+        color: var(--text-color);
+    }
+
+    /* Products grid */
+    .products-grid {
+        display: grid;
+        grid-template-cols: repeat(auto-fill, minmax(240px, 1fr));
+        gap: 1.5rem;
+        margin-bottom: 3rem;
+    }
+
+    /* Product Card (matches home) */
+    .product-card {
+        background: var(--card-bg);
+        border: 1px solid var(--card-border);
+        border-radius: 20px;
+        overflow: hidden;
+        transition: var(--transition);
+        display: flex;
+        flex-direction: column;
+    }
+
+    .product-card:hover {
+        transform: translateY(-5px);
+        border-color: var(--primary);
+        box-shadow: 0 10px 30px rgba(6, 182, 212, 0.15);
+    }
+
+    .prod-img-wrapper {
+        position: relative;
+        padding-top: 75%;
+        background: rgba(0, 0, 0, 0.1);
+    }
+
+    .prod-img {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+
+    .prod-badge {
+        position: absolute;
+        top: 1rem;
+        left: 1rem;
+        background: #ef4444;
+        color: white;
+        padding: 0.3rem 0.8rem;
+        border-radius: 20px;
+        font-size: 0.8rem;
+        font-weight: 700;
+    }
+
+    .prod-info {
+        padding: 1.5rem;
+        display: flex;
+        flex-direction: column;
+        flex: 1;
+        gap: 0.5rem;
+    }
+
+    .prod-cat {
+        font-size: 0.8rem;
+        opacity: 0.6;
+    }
+
+    .prod-name {
+        font-size: 1.1rem;
+        font-weight: 700;
+        color: var(--text-color);
+        text-decoration: none;
+        line-height: 1.4;
+    }
+
+    .prod-name:hover {
+        color: var(--primary);
+    }
+
+    .price-action-row {
+        margin-top: auto;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding-top: 1rem;
+        border-top: 1px solid var(--card-border);
+    }
+
+    .prod-price {
+        font-size: 1.2rem;
+        font-weight: 900;
+        color: var(--primary);
+    }
+
+    /* Pagination */
+    .pagination {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .page-link {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        height: 40px;
+        width: 40px;
+        border-radius: 50%;
+        background: var(--card-bg);
+        border: 1px solid var(--card-border);
+        color: var(--text-color);
+        text-decoration: none;
+        transition: var(--transition);
+        font-weight: 700;
+    }
+
+    .page-link:hover, .page-link.active {
+        background: linear-gradient(135deg, var(--primary), var(--secondary));
+        color: white;
+        border-color: transparent;
+        box-shadow: 0 4px 12px rgba(6, 182, 212, 0.2);
+    }
+
+    @media (max-width: 768px) {
+        .catalog-layout {
+            grid-template-cols: 1fr;
+        }
+        .filter-sidebar {
+            position: relative;
+            top: 0;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+
+    <div class="catalog-layout">
+        <!-- Sidebar Filters -->
+        <aside class="filter-sidebar">
+            <div class="filter-section">
+                <h3 class="filter-title">التصنيفات</h3>
+                <ul class="filter-list">
+                    <li>
+                        <a href="{% url 'store_catalog' %}{% if query %}?q={{ query }}{% endif %}" class="filter-item-link {% if not active_category %}active{% endif %}">
+                            <span>الكل</span>
+                        </a>
+                    </li>
+                    {% for cat in categories %}
+                        <li>
+                            <a href="{% url 'store_catalog' %}?category={{ cat.id }}{% if query %}&q={{ query }}{% endif %}" class="filter-item-link {% if active_category == cat.id|stringformat:'s' %}active{% endif %}">
+                                <span>{{ cat.name }}</span>
+                            </a>
+                        </li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </aside>
+
+        <!-- Catalog Main Area -->
+        <div class="catalog-main">
+            <!-- Header Filter/Sort Row -->
+            <div class="catalog-header">
+                <div class="search-box">
+                    <form method="GET" action="{% url 'store_catalog' %}">
+                        {% if active_category %}
+                            <input type="hidden" name="category" value="{{ active_category }}">
+                        {% endif %}
+                        <input type="text" name="q" value="{{ query }}" placeholder="ابحث عن منتج..." class="search-input">
+                        <i class="fa-solid fa-magnifying-glass search-icon"></i>
+                    </form>
+                </div>
+                
+                <form method="GET" action="{% url 'store_catalog' %}" id="sortForm">
+                    {% if active_category %}
+                        <input type="hidden" name="category" value="{{ active_category }}">
+                    {% endif %}
+                    {% if query %}
+                        <input type="hidden" name="q" value="{{ query }}">
+                    {% endif %}
+                    <select name="sort" onchange="this.form.submit()" class="sort-select">
+                        <option value="newest" {% if sort == "newest" %}selected{% endif %}>الأحدث</option>
+                        <option value="price_low" {% if sort == "price_low" %}selected{% endif %}>السعر: من الأقل للأعلى</option>
+                        <option value="price_high" {% if sort == "price_high" %}selected{% endif %}>السعر: من الأعلى للأقل</option>
+                    </select>
+                </form>
+            </div>
+
+            <!-- Products Grid -->
+            {% if page_obj %}
+                <div class="products-grid">
+                    {% for prod in page_obj %}
+                        <div class="product-card">
+                            <div class="prod-img-wrapper">
+                                {% if prod.image %}
+                                    <img src="{{ prod.image.url }}" alt="{{ prod.name }}" class="prod-img">
+                                {% else %}
+                                    <div class="prod-img" style="background: rgba(255,255,255,0.05); display: flex; align-items: center; justify-content: center; font-size: 2rem;">
+                                        <i class="fa-solid fa-cube"></i>
+                                    </div>
+                                {% endif %}
+                                {% if prod.is_sale %}
+                                    <span class="prod-badge">تخفيض</span>
+                                {% endif %}
+                            </div>
+                            <div class="prod-info">
+                                <span class="prod-cat" style="opacity: 0.6; font-size: 0.8rem;">{{ prod.category.name }}</span>
+                                <a href="{% url 'store_product_detail' prod.id %}" class="prod-name">{{ prod.name }}</a>
+                                <div class="price-action-row">
+                                    <span class="prod-price">
+                                        {% if prod.variants.exists %}
+                                            ${{ prod.variants.first.price }}
+                                        {% else %}
+                                            تواصل معنا
+                                        {% endif %}
+                                    </span>
+                                    <a href="{% url 'store_product_detail' prod.id %}" class="btn btn-outline btn-sm">عرض الباقات</a>
+                                </div>
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+
+                <!-- Pagination navigation -->
+                {% if page_obj.has_other_pages %}
+                    <div class="pagination">
+                        {% if page_obj.has_previous %}
+                            <a href="?page={{ page_obj.previous_page_number }}{% if active_category %}&category={{ active_category }}{% endif %}{% if query %}&q={{ query }}{% endif %}{% if sort %}&sort={{ sort }}{% endif %}" class="page-link"><i class="fa-solid fa-angle-right"></i></a>
+                        {% endif %}
+                        
+                        {% for num in page_obj.paginator.page_range %}
+                            {% if page_obj.number == num %}
+                                <span class="page-link active">{{ num }}</span>
+                            {% else %}
+                                <a href="?page={{ num }}{% if active_category %}&category={{ active_category }}{% endif %}{% if query %}&q={{ query }}{% endif %}{% if sort %}&sort={{ sort }}{% endif %}" class="page-link">{{ num }}</a>
+                            {% endif %}
+                        {% endfor %}
+
+                        {% if page_obj.has_next %}
+                            <a href="?page={{ page_obj.next_page_number }}{% if active_category %}&category={{ active_category }}{% endif %}{% if query %}&q={{ query }}{% endif %}{% if sort %}&sort={{ sort }}{% endif %}" class="page-link"><i class="fa-solid fa-angle-left"></i></a>
+                        {% endif %}
+                    </div>
+                {% endif %}
+            {% else %}
+                <div style="text-align: center; padding: 5rem 2rem; background: var(--card-bg); border-radius: 20px; border: 1px solid var(--card-border);">
+                    <i class="fa-solid fa-search" style="font-size: 3rem; opacity: 0.3; margin-bottom: 1rem;"></i>
+                    <p>لم نجد أي منتجات تطابق بحثك.</p>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+
+{% endblock %}

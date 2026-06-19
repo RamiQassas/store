@@ -1,0 +1,196 @@
+{% extends "stores/frontend/base.html" %}
+
+{% block title %}لوحة التحكم | {{ store.name }}{% endblock %}
+
+{% block extra_css %}
+<style>
+    .dashboard-layout {
+        display: grid;
+        grid-template-cols: 250px 1fr;
+        gap: 2.5rem;
+    }
+
+    /* Sidebar menu */
+    .dashboard-nav {
+        background: var(--card-bg);
+        border: 1px solid var(--card-border);
+        border-radius: 20px;
+        padding: 1.5rem;
+        height: fit-content;
+    }
+
+    .nav-list {
+        list-style: none;
+        display: flex;
+        flex-direction: column;
+        gap: 0.8rem;
+    }
+
+    .nav-item-link {
+        display: flex;
+        align-items: center;
+        gap: 0.8rem;
+        text-decoration: none;
+        color: var(--text-color);
+        padding: 0.8rem 1rem;
+        border-radius: 12px;
+        transition: var(--transition);
+        font-weight: 500;
+        font-size: 0.95rem;
+    }
+
+    .nav-item-link:hover, .nav-item-link.active {
+        background: rgba(255,255,255,0.05);
+        color: var(--primary);
+    }
+
+    /* Cards block */
+    .summary-grid {
+        display: grid;
+        grid-template-cols: 1fr;
+        gap: 1.5rem;
+        margin-bottom: 2.5rem;
+    }
+
+    .summary-card {
+        background: var(--card-bg);
+        border: 1px solid var(--card-border);
+        border-radius: 20px;
+        padding: 1.8rem;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .card-info {
+        display: flex;
+        flex-direction: column;
+        gap: 0.4rem;
+    }
+
+    .card-val {
+        font-size: 2rem;
+        font-weight: 900;
+        color: var(--primary);
+    }
+
+    .card-icon {
+        font-size: 2.5rem;
+        opacity: 0.15;
+    }
+
+    /* Table styling */
+    .table-container {
+        background: var(--card-bg);
+        border: 1px solid var(--card-border);
+        border-radius: 20px;
+        overflow: hidden;
+    }
+
+    table {
+        width: 100%;
+        border-collapse: collapse;
+        text-align: right;
+    }
+
+    th, td {
+        padding: 1.2rem 1.5rem;
+        border-bottom: 1px solid var(--card-border);
+    }
+
+    th {
+        font-weight: 800;
+        opacity: 0.8;
+    }
+
+    tr:last-child td {
+        border-bottom: none;
+    }
+
+    .status-dot {
+        height: 8px;
+        width: 8px;
+        border-radius: 50%;
+        display: inline-block;
+        margin-left: 0.5rem;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+
+    <div class="dashboard-layout">
+        <!-- Sidebar Navigation -->
+        <nav class="dashboard-nav">
+            <ul class="nav-list">
+                <li><a href="{% url 'store_dashboard' %}" class="nav-item-link active"><i class="fa-solid fa-gauge"></i> لوحة التحكم</a></li>
+                <li><a href="{% url 'store_wallet' %}" class="nav-item-link"><i class="fa-solid fa-wallet"></i> المحفظة</a></li>
+                <li><a href="{% url 'store_wallet_recharge' %}" class="nav-item-link"><i class="fa-solid fa-money-bill-transfer"></i> شحن الرصيد</a></li>
+                <!-- If merchant dashboard is accessible -->
+                {% if store.owner == user or user.store_employments.exists %}
+                    <li><a href="{% url 'merchant_dashboard' %}" class="nav-item-link" style="color: var(--primary); font-weight: 700; border-top: 1px solid var(--card-border); margin-top: 1rem; padding-top: 1rem;"><i class="fa-solid fa-shop"></i> لوحة تحكم التاجر</a></li>
+                {% endif %}
+            </ul>
+        </nav>
+
+        <!-- Main Panel -->
+        <div class="dashboard-main">
+            <h1 style="font-size: 1.8rem; font-weight: 900; margin-bottom: 2rem;">مرحباً بك، {{ user.display_name }}</h1>
+
+            <!-- Summary -->
+            <div class="summary-grid">
+                <div class="summary-card">
+                    <div class="card-info">
+                        <span style="opacity: 0.7; font-size: 0.95rem;">الرصيد المتاح</span>
+                        <span class="card-val">${{ wallet.available_balance }}</span>
+                    </div>
+                    <i class="fa-solid fa-wallet card-icon"></i>
+                </div>
+            </div>
+
+            <!-- Orders Table -->
+            <h2 style="font-size: 1.3rem; font-weight: 800; margin-bottom: 1.2rem;">طلباتي الأخيرة</h2>
+            <div class="table-container">
+                {% if orders %}
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>رقم الطلب</th>
+                                <th>التاريخ</th>
+                                <th>المبلغ</th>
+                                <th>الحالة</th>
+                                <th>الإجراء</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for order in orders %}
+                                <tr>
+                                    <td><strong>{{ order.number }}</strong></td>
+                                    <td style="opacity: 0.8; font-size: 0.9rem;">{{ order.created_at|date:"Y-m-d H:i" }}</td>
+                                    <td style="font-weight: 700; color: var(--primary);">${{ order.total_amount }}</td>
+                                    <td>
+                                        <span class="status-dot 
+                                            {% if order.status == 'processing' %}style="background-color: #facc15;"
+                                            {% elif order.status == 'completed' %}style="background-color: #34d399;"
+                                            {% else %}style="background-color: #f87171;"{% endif %}">
+                                        </span>
+                                        {{ order.get_status_display }}
+                                    </td>
+                                    <td>
+                                        <a href="{% url 'store_order_detail' order.id %}" class="btn btn-outline btn-sm">التفاصيل</a>
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                {% else %}
+                    <div style="text-align: center; padding: 4rem 2rem;">
+                        <i class="fa-solid fa-inbox" style="font-size: 3rem; opacity: 0.2; margin-bottom: 1rem;"></i>
+                        <p>لا يوجد أي طلبات سابقة في حسابك.</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+{% endblock %}

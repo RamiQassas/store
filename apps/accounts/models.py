@@ -37,6 +37,14 @@ class User(AbstractUser):
     email = models.EmailField(unique=True)
     phone = models.CharField(max_length=32, blank=True, null=True, unique=True)
     role = models.CharField(max_length=32, choices=Role.choices, default=Role.CUSTOMER)
+    store = models.ForeignKey(
+        "stores.Store",
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name="users",
+        verbose_name="المتجر"
+    )
     
     # Tiers
     tier = models.CharField(max_length=20, choices=Tier.choices, default=Tier.CUSTOMER, verbose_name="الفئة")
@@ -133,6 +141,7 @@ class User(AbstractUser):
     USERNAME_FIELD = "email"
     REQUIRED_FIELDS = []
     objects = UserManager()
+    all_objects = models.Manager()
 
     class Meta:
         indexes = [

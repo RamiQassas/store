@@ -1,0 +1,175 @@
+{% extends "stores/frontend/base.html" %}
+
+{% block title %}تفاصيل الطلب {{ order.number }} | {{ store.name }}{% endblock %}
+
+{% block extra_css %}
+<style>
+    .order-container {
+        max-width: 800px;
+        margin: 0 auto;
+        background: var(--card-bg);
+        border: 1px solid var(--card-border);
+        border-radius: 24px;
+        padding: 2.5rem;
+        display: flex;
+        flex-direction: column;
+        gap: 2rem;
+    }
+
+    .order-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        border-bottom: 1px solid var(--card-border);
+        padding-bottom: 1.5rem;
+        gap: 1rem;
+    }
+
+    .order-status-badge {
+        padding: 0.4rem 1rem;
+        border-radius: 20px;
+        font-weight: 700;
+        font-size: 0.85rem;
+        text-transform: uppercase;
+    }
+
+    .badge-processing { background: rgba(234, 179, 8, 0.15); color: #facc15; border: 1px solid rgba(234, 179, 8, 0.3); }
+    .badge-completed { background: rgba(16, 185, 129, 0.15); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.3); }
+    .badge-cancelled { background: rgba(239, 68, 68, 0.15); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.3); }
+
+    .details-grid {
+        display: grid;
+        grid-template-cols: 1fr 1fr;
+        gap: 1.5rem;
+    }
+
+    .details-card {
+        background: rgba(0,0,0,0.15);
+        border: 1px solid var(--card-border);
+        border-radius: 16px;
+        padding: 1.5rem;
+    }
+
+    .card-title {
+        font-size: 1.1rem;
+        font-weight: 800;
+        margin-bottom: 1rem;
+        color: var(--primary);
+    }
+
+    .data-row {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 0.8rem;
+        font-size: 0.9rem;
+    }
+
+    .keys-box {
+        background: rgba(16, 185, 129, 0.05);
+        border: 1px solid rgba(16, 185, 129, 0.2);
+        border-radius: 16px;
+        padding: 1.5rem;
+        color: #34d399;
+    }
+
+    .key-code {
+        font-family: 'Outfit', monospace;
+        font-size: 1.3rem;
+        font-weight: 800;
+        background: rgba(0,0,0,0.3);
+        padding: 0.8rem 1.2rem;
+        border-radius: 8px;
+        margin-top: 0.8rem;
+        letter-spacing: 2px;
+        text-align: center;
+        width: 100%;
+        border: 1px dashed rgba(16, 185, 129, 0.4);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+
+    <div class="order-container">
+        <!-- Header -->
+        <div class="order-header">
+            <div>
+                <h1 style="font-size: 1.8rem; font-weight: 900; margin-bottom: 0.3rem;">تفاصيل الطلب</h1>
+                <span style="opacity: 0.5; font-size: 0.9rem;">الرقم: {{ order.number }}</span>
+            </div>
+            
+            <div style="display: flex; align-items: center; gap: 1rem;">
+                <span class="order-status-badge 
+                    {% if order.status == 'processing' %}badge-processing
+                    {% elif order.status == 'completed' %}badge-completed
+                    {% else %}badge-cancelled{% endif %}">
+                    {{ order.get_status_display }}
+                </span>
+            </div>
+        </div>
+
+        <!-- Info boxes -->
+        <div class="details-grid">
+            <!-- Order Details -->
+            <div class="details-card">
+                <h3 class="card-title">معلومات الطلب</h3>
+                <div class="data-row">
+                    <span style="opacity: 0.6;">تاريخ الطلب:</span>
+                    <strong>{{ order.created_at|date:"Y-m-d H:i" }}</strong>
+                </div>
+                <div class="data-row">
+                    <span style="opacity: 0.6;">المنتج والباقة:</span>
+                    <strong>
+                        {% for item in order.items.all %}
+                            {{ item.variant.product.name }} - {{ item.variant.name }}
+                        {% endfor %}
+                    </strong>
+                </div>
+                <div class="data-row" style="border-top: 1px solid var(--card-border); padding-top: 0.8rem; margin-top: 0.8rem; font-size: 1.1rem;">
+                    <span>المبلغ المدفوع:</span>
+                    <strong style="color: var(--primary); font-weight: 900;">${{ order.total_amount }}</strong>
+                </div>
+            </div>
+
+            <!-- Client input details -->
+            <div class="details-card">
+                <h3 class="card-title">البيانات المقدمة</h3>
+                {% for name, val in order.fulfillment_data.fields.items %}
+                    <div class="data-row">
+                        <span style="opacity: 0.6;">{{ name }}:</span>
+                        <strong>{{ val }}</strong>
+                    </div>
+                {% empty %}
+                    <p style="opacity: 0.5; font-size: 0.9rem;">لم يتم تقديم حقول إضافية.</p>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Keys Auto Delivery -->
+        {% if order.fulfillment_data.keys %}
+            <div class="keys-box">
+                <h3 style="font-weight: 800; font-size: 1.1rem; display: flex; align-items: center; gap: 0.5rem;">
+                    <i class="fa-solid fa-key"></i> الأكواد الرقمية المستلمة:
+                </h3>
+                <p style="font-size: 0.85rem; opacity: 0.8; margin-top: 0.3rem;">تم تسليم الأكواد التالية تلقائياً لتنفيذ طلبك:</p>
+                {% for key in order.fulfillment_data.keys %}
+                    <div class="key-code">{{ key }}</div>
+                {% endfor %}
+            </div>
+        {% endif %}
+
+        {% if order.admin_note %}
+            <div style="background: rgba(0,0,0,0.1); border-left: 4px solid var(--primary); padding: 1.2rem; border-radius: 8px;">
+                <h4 style="font-weight: 700; margin-bottom: 0.5rem;"><i class="fa-solid fa-circle-info"></i> ملاحظة الإدارة:</h4>
+                <p style="font-size: 0.9rem; opacity: 0.9;">{{ order.admin_note }}</p>
+            </div>
+        {% endif %}
+
+        <!-- Back link -->
+        <div style="text-align: center; margin-top: 1rem;">
+            <a href="{% url 'store_dashboard' %}" class="btn btn-outline"><i class="fa-solid fa-rotate-left"></i> العودة للوحة التحكم الخاص بك</a>
+        </div>
+    </div>
+
+{% endblock %}

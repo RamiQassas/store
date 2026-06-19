@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>تعديل باقة الاشتراك | رقميات SaaS</title>
+    <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@300;400;500;700;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --primary: #06b6d4;
+            --secondary: #0891b2;
+            --bg-color: #0f172a;
+            --card-bg: rgba(255, 255, 255, 0.03);
+            --card-border: rgba(255, 255, 255, 0.08);
+            --text-color: #f8fafc;
+            --transition: all 0.3s ease;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Tajawal', sans-serif; }
+        body { background-color: var(--bg-color); color: var(--text-color); padding: 2rem; }
+        .container { max-width: 800px; margin: 0 auto; }
+        header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--card-border); padding-bottom: 1.5rem; margin-bottom: 2.5rem; }
+        .btn { padding: 0.6rem 1.5rem; border-radius: 30px; font-weight: 700; text-decoration: none; transition: var(--transition); cursor: pointer; border: none; display: inline-flex; align-items: center; gap: 0.5rem; font-size: 0.9rem; }
+        .btn-primary { background: linear-gradient(135deg, var(--primary), var(--secondary)); color: white; }
+        .btn-outline { background: transparent; border: 1px solid var(--card-border); color: var(--text-color); }
+        .btn-outline:hover { background: rgba(255,255,255,0.05); }
+        .card { background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 24px; padding: 2.5rem; }
+        .form-group { margin-bottom: 1.5rem; display: flex; flex-direction: column; gap: 0.5rem; }
+        .form-label { font-weight: 700; font-size: 0.95rem; }
+        .form-input { background: rgba(0,0,0,0.25); border: 1px solid var(--card-border); padding: 0.8rem 1rem; border-radius: 12px; color: var(--text-color); font-size: 0.95rem; outline: none; width: 100%; }
+        .form-input:focus { border-color: var(--primary); }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1 style="font-size: 1.8rem; font-weight: 900;">{% if plan %}تعديل الباقة: {{ plan.name }}{% else %}إضافة باقة اشتراك جديدة{% endif %}</h1>
+            <a href="{% url 'platform_plan_list' %}" class="btn btn-outline"><i class="fa-solid fa-arrow-left"></i> العودة للقائمة</a>
+        </header>
+
+        <div class="card">
+            <form method="POST">
+                {% csrf_token %}
+                <div style="display: grid; grid-template-cols: 1fr 1fr; gap: 1.5rem;">
+                    <div class="form-group">
+                        <label class="form-label">اسم الباقة:</label>
+                        <input type="text" name="name" value="{{ plan.name|default:'' }}" required class="form-input">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">الوصف:</label>
+                        <input type="text" name="description" value="{{ plan.description|default:'' }}" class="form-input">
+                    </div>
+                </div>
+
+                <div style="display: grid; grid-template-cols: 1fr 1fr; gap: 1.5rem; margin-top: 1rem;">
+                    <div class="form-group">
+                        <label class="form-label">السعر الشهري (USD):</label>
+                        <input type="number" step="0.01" name="price_monthly" value="{{ plan.price_monthly|default:'0.00' }}" required class="form-input">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">السعر السنوي (USD):</label>
+                        <input type="number" step="0.01" name="price_yearly" value="{{ plan.price_yearly|default:'0.00' }}" required class="form-input">
+                    </div>
+                </div>
+
+                <!-- Limits config -->
+                <h3 style="font-size: 1.1rem; font-weight: 800; margin-top: 2rem; margin-bottom: 1rem; color: var(--primary);">تحديد قيود الموارد (Plan Limits)</h3>
+                
+                <div style="display: grid; grid-template-cols: 1fr 1fr 1fr; gap: 1.5rem;">
+                    <div class="form-group">
+                        <label class="form-label">الحد الأقصى للمنتجات:</label>
+                        <input type="number" name="max_products" value="{{ plan.max_products|default:10 }}" required class="form-input">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">الحد الأقصى للموظفين:</label>
+                        <input type="number" name="max_employees" value="{{ plan.max_employees|default:1 }}" required class="form-input">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">الطلبات الشهرية المسموحة:</label>
+                        <input type="number" name="max_monthly_orders" value="{{ plan.max_monthly_orders|default:100 }}" required class="form-input">
+                    </div>
+                </div>
+
+                <div style="display: grid; grid-template-cols: 1fr 1fr; gap: 1.5rem; margin-top: 1rem;">
+                    <div class="form-group">
+                        <label class="form-label">مساحة التخزين القصوى (ميغابايت):</label>
+                        <input type="number" name="max_storage_mb" value="{{ plan.max_storage_mb|default:100 }}" required class="form-input">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">الحد الأقصى للكوبونات:</label>
+                        <input type="number" name="max_coupons" value="{{ plan.max_coupons|default:5 }}" required class="form-input">
+                    </div>
+                </div>
+
+                <!-- Features config checkboxes -->
+                <h3 style="font-size: 1.1rem; font-weight: 800; margin-top: 2rem; margin-bottom: 1rem; color: var(--primary);">ميزات الباقة</h3>
+                
+                <div style="display: grid; grid-template-cols: 1fr 1fr; gap: 1.5rem; margin-bottom: 1.5rem;">
+                    <div class="form-group" style="flex-direction: row; align-items: center; gap: 0.5rem;">
+                        <input type="checkbox" name="custom_domain_enabled" {% if plan.custom_domain_enabled %}checked{% endif %} id="domain_chk">
+                        <label class="form-label" style="margin-bottom: 0;" for="domain_chk">تفعيل النطاق المخصص</label>
+                    </div>
+                    <div class="form-group" style="flex-direction: row; align-items: center; gap: 0.5rem;">
+                        <input type="checkbox" name="remove_branding_enabled" {% if plan.remove_branding_enabled %}checked{% endif %} id="branding_chk">
+                        <label class="form-label" style="margin-bottom: 0;" for="branding_chk">إخفاء شعار رقميات في ذيل الموقع</label>
+                    </div>
+                    <div class="form-group" style="flex-direction: row; align-items: center; gap: 0.5rem;">
+                        <input type="checkbox" name="api_access_enabled" {% if plan.api_access_enabled %}checked{% endif %} id="api_chk">
+                        <label class="form-label" style="margin-bottom: 0;" for="api_chk">تفعيل الوصول للـ API</label>
+                    </div>
+                    <div class="form-group" style="flex-direction: row; align-items: center; gap: 0.5rem;">
+                        <input type="checkbox" name="advanced_reports_enabled" {% if plan.advanced_reports_enabled %}checked{% endif %} id="reports_chk">
+                        <label class="form-label" style="margin-bottom: 0;" for="reports_chk">تفعيل التقارير المتقدمة</label>
+                    </div>
+                    <div class="form-group" style="flex-direction: row; align-items: center; gap: 0.5rem;">
+                        <input type="checkbox" name="is_active" {% if plan.is_active|default:True %}checked{% endif %} id="active_chk">
+                        <label class="form-label" style="margin-bottom: 0;" for="active_chk">الباقة نشطة ومتاحة للاختيار</label>
+                    </div>
+                </div>
+
+                <div style="margin-top: 2rem; display: flex; justify-content: flex-end;">
+                    <button type="submit" class="btn btn-primary"><i class="fa-solid fa-save"></i> حفظ الباقة</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</body>
+</html>

@@ -1,0 +1,148 @@
+{% extends "stores/merchant/base.html" %}
+
+{% block menu_settings %}active{% endblock %}
+
+{% block content %}
+
+    <h1 style="font-size: 2rem; font-weight: 900; margin-bottom: 2rem;">إعدادات هوية وتصميم المتجر</h1>
+
+    <div style="display: grid; grid-template-cols: 1.5fr 1fr; gap: 2rem; margin-bottom: 4rem;">
+        
+        <!-- General branding & style settings -->
+        <div class="card">
+            <h3 style="font-size: 1.2rem; font-weight: 800; margin-bottom: 1.5rem; color: var(--primary); border-bottom: 1px solid var(--card-border); padding-bottom: 0.5rem;">هوية وتصميم المتجر</h3>
+            
+            <form method="POST" enctype="multipart/form-data">
+                {% csrf_token %}
+                
+                <div style="display: grid; grid-template-cols: 1fr 1fr; gap: 1.5rem;">
+                    <div class="form-group">
+                        <label class="form-label">اسم المتجر:</label>
+                        {{ form.name }}
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">رابط المتجر الفرعي (Subdomain slug):</label>
+                        {{ form.slug }}
+                        <span style="font-size: 0.8rem; opacity: 0.5;">سيظهر متجرك على رابط: <code>{{ store.slug }}.raqamiyatapp.com</code></span>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">وصف المتجر:</label>
+                    {{ form.description }}
+                </div>
+
+                <div style="display: grid; grid-template-cols: 1fr 1fr; gap: 1.5rem;">
+                    <div class="form-group">
+                        <label class="form-label">شعار المتجر (Logo):</label>
+                        {{ form.logo }}
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">بانر المتجر الرئيسي (Banner):</label>
+                        {{ form.banner }}
+                    </div>
+                </div>
+
+                <!-- Colors theme selection -->
+                <h4 style="font-size: 1.1rem; font-weight: 700; margin-top: 2rem; margin-bottom: 1rem;">ألوان المتجر المخصصة</h4>
+                
+                <div style="display: grid; grid-template-cols: 1fr 1fr 1fr 1fr; gap: 1.2rem;">
+                    <div class="form-group">
+                        <label class="form-label">اللون الأساسي:</label>
+                        {{ form.primary_color }}
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">اللون الثانوي:</label>
+                        {{ form.secondary_color }}
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">لون الخلفية:</label>
+                        {{ form.background_color }}
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">لون النصوص:</label>
+                        {{ form.text_color }}
+                    </div>
+                </div>
+
+                <!-- Contact settings -->
+                <h4 style="font-size: 1.1rem; font-weight: 700; margin-top: 2rem; margin-bottom: 1rem;">بيانات تواصل المتجر</h4>
+                
+                <div style="display: grid; grid-template-cols: 1fr 1fr; gap: 1.5rem;">
+                    <div class="form-group">
+                        <label class="form-label">الهاتف:</label>
+                        {{ form.phone }}
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">البريد الإلكتروني:</label>
+                        {{ form.email }}
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">العنوان:</label>
+                    {{ form.address }}
+                </div>
+
+                <!-- Social media -->
+                <h4 style="font-size: 1.1rem; font-weight: 700; margin-top: 2rem; margin-bottom: 1rem;">روابط مواقع التواصل</h4>
+                
+                <div style="display: grid; grid-template-cols: 1fr 1fr; gap: 1.5rem;">
+                    <div class="form-group">
+                        <label class="form-label">فيسبوك:</label>
+                        {{ form.social_facebook }}
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">إنستغرام:</label>
+                        {{ form.social_instagram }}
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">تويتر/إكس:</label>
+                        {{ form.social_twitter }}
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">تيك توك:</label>
+                        {{ form.social_tiktok }}
+                    </div>
+                </div>
+
+                <div style="margin-top: 2rem; display: flex; justify-content: flex-end;">
+                    <button type="submit" class="btn btn-primary"><i class="fa-solid fa-save"></i> حفظ جميع الإعدادات</button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Custom Domain config -->
+        <div style="display: flex; flex-direction: column; gap: 2rem;">
+            <div class="card">
+                <h3 style="font-size: 1.2rem; font-weight: 800; margin-bottom: 1.5rem; color: var(--primary); border-bottom: 1px solid var(--card-border); padding-bottom: 0.5rem;">ربط نطاق مخصص (Custom Domain)</h3>
+                
+                <p style="font-size: 0.85rem; opacity: 0.8; line-height: 1.6; margin-bottom: 1.5rem;">
+                    تستطيع ربط متجرك بنطاق مخصص خاص بك (مثال: <code>store.com</code>) ليشعر العملاء باستقلالية متجرك تماماً.
+                </p>
+
+                {% if custom_domain_allowed %}
+                    <form method="POST">
+                        {% csrf_token %}
+                        <input type="hidden" name="save_domain" value="1">
+                        
+                        <div class="form-group">
+                            <label class="form-label">أدخل النطاق المخصص الخاص بك:</label>
+                            {{ domain_form.custom_domain }}
+                            <span style="font-size: 0.8rem; opacity: 0.5; margin-top: 0.3rem;">مثال: <code>store.com</code> أو <code>shop.store.com</code></span>
+                        </div>
+
+                        <button type="submit" class="btn btn-primary" style="width: 100%; justify-content: center;"><i class="fa-solid fa-link"></i> ربط النطاق المخصص</button>
+                    </form>
+                {% else %}
+                    <div style="background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.2); padding: 1.2rem; border-radius: 12px; color: #f87171; font-size: 0.9rem; line-height: 1.5;">
+                        <i class="fa-solid fa-triangle-exclamation"></i>
+                        <span>عذراً، خطتك الحالية لا تدعم ربط النطاقات المخصصة. يرجى الترقية إلى الباقة الأساسية أو الاحترافية لتفعيل هذه الميزة.</span>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+
+    </div>
+
+{% endblock %}

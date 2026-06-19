@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}{{ store.name }}{% endblock %} | متجر إلكتروني</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&family=Tajawal:wght@300;400;500;700;900&display=swap" rel="stylesheet">
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        :root {
+            --primary: {{ store.primary_color|default:"#06b6d4" }};
+            --secondary: {{ store.secondary_color|default:"#0891b2" }};
+            --bg-color: {{ store.background_color|default:"#0f172a" }};
+            --text-color: {{ store.text_color|default:"#f8fafc" }};
+            --card-bg: rgba(255, 255, 255, 0.05);
+            --card-border: rgba(255, 255, 255, 0.1);
+            --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        /* Support light background if selected */
+        {% if store.background_color == "#ffffff" or store.background_color == "#f8fafc" or store.background_color == "#f1f5f9" %}
+        :root {
+            --card-bg: rgba(0, 0, 0, 0.02);
+            --card-border: rgba(0, 0, 0, 0.06);
+        }
+        {% endif %}
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Tajawal', 'Outfit', sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow-x: hidden;
+        }
+
+        /* Glassmorphism Header */
+        header {
+            background: rgba(15, 23, 42, 0.3);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border-bottom: 1px solid var(--card-border);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            transition: var(--transition);
+        }
+
+        .nav-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 1rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo-area {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            text-decoration: none;
+            color: var(--text-color);
+        }
+
+        .logo-img {
+            height: 45px;
+            width: 45px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 2px solid var(--primary);
+        }
+
+        .store-name {
+            font-size: 1.5rem;
+            font-weight: 900;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .nav-menu {
+            display: flex;
+            align-items: center;
+            gap: 2rem;
+            list-style: none;
+        }
+
+        .nav-link {
+            text-decoration: none;
+            color: var(--text-color);
+            font-weight: 500;
+            opacity: 0.8;
+            transition: var(--transition);
+            font-size: 0.95rem;
+        }
+
+        .nav-link:hover {
+            opacity: 1;
+            color: var(--primary);
+            text-shadow: 0 0 10px rgba(6, 182, 212, 0.3);
+        }
+
+        .nav-actions {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .btn {
+            padding: 0.6rem 1.5rem;
+            border-radius: 30px;
+            font-weight: 700;
+            text-decoration: none;
+            transition: var(--transition);
+            cursor: pointer;
+            border: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.9rem;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            color: #ffffff;
+            box-shadow: 0 4px 15px rgba(6, 182, 212, 0.2);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(6, 182, 212, 0.4);
+        }
+
+        .btn-outline {
+            background: transparent;
+            border: 1px solid var(--card-border);
+            color: var(--text-color);
+        }
+
+        .btn-outline:hover {
+            background: var(--card-bg);
+            border-color: var(--primary);
+        }
+
+        /* Main Content Container */
+        main {
+            flex: 1;
+            max-width: 1200px;
+            width: 100%;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        /* Footer operational brand */
+        footer {
+            border-top: 1px solid var(--card-border);
+            padding: 2rem;
+            text-align: center;
+            background: rgba(0, 0, 0, 0.2);
+            margin-top: 4rem;
+        }
+
+        .footer-brand {
+            margin-top: 1rem;
+            font-size: 0.85rem;
+            opacity: 0.7;
+        }
+
+        .footer-brand a {
+            color: var(--primary);
+            text-decoration: none;
+            font-weight: 700;
+            transition: var(--transition);
+        }
+
+        .footer-brand a:hover {
+            text-decoration: underline;
+        }
+
+        /* Alert notifications */
+        .alerts-container {
+            max-width: 1200px;
+            margin: 1rem auto 0;
+            padding: 0 2rem;
+        }
+
+        .alert {
+            padding: 1rem 1.5rem;
+            border-radius: 12px;
+            margin-bottom: 1rem;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            animation: slideIn 0.3s ease-out;
+        }
+
+        .alert-success {
+            background-color: rgba(16, 185, 129, 0.15);
+            border: 1px solid rgba(16, 185, 129, 0.3);
+            color: #34d399;
+        }
+
+        .alert-error {
+            background-color: rgba(239, 68, 68, 0.15);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            color: #f87171;
+        }
+
+        @keyframes slideIn {
+            from { transform: translateY(-10px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: var(--bg-color);
+        }
+        ::-webkit-scrollbar-thumb {
+            background: var(--primary);
+            border-radius: 10px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--secondary);
+        }
+    </style>
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+
+    <!-- Header / Nav -->
+    <header>
+        <div class="nav-container">
+            <a href="{% url 'store_home' %}" class="logo-area">
+                {% if store.logo %}
+                    <img src="{{ store.logo.url }}" alt="{{ store.name }}" class="logo-img">
+                {% else %}
+                    <div class="logo-img" style="background: var(--primary); display: flex; align-items: center; justify-content: center; color: white; font-weight: bold;">
+                        {{ store.name|slice:":1" }}
+                    </div>
+                {% endif %}
+                <span class="store-name">{{ store.name }}</span>
+            </a>
+            
+            <ul class="nav-menu">
+                <li><a href="{% url 'store_home' %}" class="nav-link">الرئيسية</a></li>
+                <li><a href="{% url 'store_catalog' %}" class="nav-link">المنتجات</a></li>
+                <!-- Pages dynamic -->
+                {% for page in store.pages.all %}
+                    {% if page.is_active %}
+                        <li><a href="{% url 'store_custom_page' page.slug %}" class="nav-link">{{ page.title }}</a></li>
+                    {% endif %}
+                {% endfor %}
+            </ul>
+
+            <div class="nav-actions">
+                {% if user.is_authenticated %}
+                    <a href="{% url 'store_dashboard' %}" class="btn btn-outline"><i class="fa-solid fa-user-gear"></i> حسابي</a>
+                    <a href="{% url 'store_logout' %}" class="btn btn-outline" style="border-color: rgba(239, 68, 68, 0.4); color: #f87171;"><i class="fa-solid fa-right-from-bracket"></i> خروج</a>
+                {% else %}
+                    <a href="{% url 'store_login' %}" class="btn btn-outline">دخول</a>
+                    <a href="{% url 'store_register' %}" class="btn btn-primary">تسجيل</a>
+                {% endif %}
+            </div>
+        </div>
+    </header>
+
+    <!-- Alerts Notification -->
+    {% if messages %}
+    <div class="alerts-container">
+        {% for message in messages %}
+            <div class="alert {% if message.tags == 'success' %}alert-success{% else %}alert-error{% endif %}">
+                <i class="fa-solid {% if message.tags == 'success' %}fa-circle-check{% else %}fa-circle-exclamation{% endif %}"></i>
+                <span>{{ message }}</span>
+            </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <!-- Main Content -->
+    <main>
+        {% block content %}{% endblock %}
+    </main>
+
+    <!-- Footer operation -->
+    <footer>
+        <p>© 2026 {{ store.name }}. جميع الحقوق محفوظة.</p>
+        
+        <!-- Conditional "Powered by Raqamiyat" depending on plan remove_branding constraint -->
+        {% if not store.subscription_plan or not store.subscription_plan.remove_branding_enabled %}
+            <div class="footer-brand">
+                <span>تم التصميم والتشغيل بواسطة <a href="https://raqamiyatapp.com" target="_blank">رقميات</a></span>
+            </div>
+        {% endif %}
+    </footer>
+
+</body>
+</html>

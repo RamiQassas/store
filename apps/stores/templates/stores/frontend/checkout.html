@@ -1,0 +1,172 @@
+{% extends "stores/frontend/base.html" %}
+
+{% block title %}إتمام الشراء | {{ store.name }}{% endblock %}
+
+{% block extra_css %}
+<style>
+    .checkout-container {
+        max-width: 700px;
+        margin: 0 auto;
+        background: var(--card-bg);
+        border: 1px solid var(--card-border);
+        border-radius: 24px;
+        padding: 2.5rem;
+    }
+
+    .checkout-title {
+        font-size: 1.8rem;
+        font-weight: 800;
+        margin-bottom: 2rem;
+        text-align: center;
+        border-bottom: 1px solid var(--card-border);
+        padding-bottom: 1rem;
+    }
+
+    .order-summary-box {
+        background: rgba(0,0,0,0.15);
+        border: 1px solid var(--card-border);
+        border-radius: 16px;
+        padding: 1.5rem;
+        margin-bottom: 2rem;
+        display: flex;
+        flex-direction: column;
+        gap: 0.8rem;
+    }
+
+    .summary-row {
+        display: flex;
+        justify-content: space-between;
+        font-size: 0.95rem;
+    }
+
+    .form-group {
+        margin-bottom: 1.5rem;
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+
+    .form-label {
+        font-weight: 700;
+        font-size: 0.95rem;
+    }
+
+    .form-input {
+        background: rgba(0,0,0,0.2);
+        border: 1px solid var(--card-border);
+        padding: 0.8rem 1rem;
+        border-radius: 12px;
+        color: var(--text-color);
+        font-size: 0.95rem;
+        outline: none;
+        transition: var(--transition);
+        width: 100%;
+    }
+
+    .form-input:focus {
+        border-color: var(--primary);
+        box-shadow: 0 0 8px rgba(6, 182, 212, 0.2);
+    }
+
+    .form-help {
+        font-size: 0.8rem;
+        opacity: 0.5;
+    }
+
+    .wallet-status-row {
+        padding: 1rem;
+        border-radius: 12px;
+        margin-bottom: 2rem;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        font-size: 0.95rem;
+    }
+
+    .wallet-ok {
+        background: rgba(16, 185, 129, 0.1);
+        border: 1px solid rgba(16, 185, 129, 0.2);
+        color: #34d399;
+    }
+
+    .wallet-low {
+        background: rgba(239, 68, 68, 0.1);
+        border: 1px solid rgba(239, 68, 68, 0.2);
+        color: #f87171;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+
+    <div class="checkout-container">
+        <h1 class="checkout-title">إتمام الشراء</h1>
+
+        <!-- Summary -->
+        <div class="order-summary-box">
+            <div class="summary-row">
+                <span style="opacity: 0.7;">المنتج:</span>
+                <strong>{{ product.name }}</strong>
+            </div>
+            <div class="summary-row">
+                <span style="opacity: 0.7;">الباقة المطلوبة:</span>
+                <strong>{{ variant.name }}</strong>
+            </div>
+            <div class="summary-row" style="border-top: 1px solid var(--card-border); padding-top: 0.8rem; font-size: 1.2rem;">
+                <span>المبلغ الإجمالي:</span>
+                <strong style="color: var(--primary); font-weight: 900;">${{ price }}</strong>
+            </div>
+        </div>
+
+        <form method="POST">
+            {% csrf_token %}
+            
+            <!-- Dynamic Fields Form Schema -->
+            {% if product.form_schema.fields %}
+                <div style="margin-bottom: 2rem;">
+                    <h3 style="font-size: 1.1rem; font-weight: 800; margin-bottom: 1.2rem;">البيانات المطلوبة لتنفيذ الطلب:</h3>
+                    
+                    {% for field in product.form_schema.fields %}
+                        <div class="form-group">
+                            <label class="form-label">
+                                {{ field.label }}
+                                {% if field.required %}<span style="color: #ef4444;">*</span>{% endif %}
+                            </label>
+                            
+                            {% if field.type == "text" %}
+                                <input type="text" name="{{ field.label }}" class="form-input" {% if field.required %}required{% endif %} placeholder="يرجى إدخال {{ field.label }}">
+                            {% elif field.type == "textarea" %}
+                                <textarea name="{{ field.label }}" class="form-input" rows="3" {% if field.required %}required{% endif %} placeholder="يرجى إدخال {{ field.label }}"></textarea>
+                            {% endif %}
+                            
+                            {% if field.help_text %}
+                                <span class="form-help">{{ field.help_text }}</span>
+                            {% endif %}
+                        </div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+
+            <!-- Wallet status check -->
+            <div class="wallet-status-row {% if wallet.available_balance >= price %}wallet-ok{% else %}wallet-low{% endif %}">
+                <span>رصيدك المتاح في المحفظة: <strong>${{ wallet.available_balance }}</strong></span>
+                {% if wallet.available_balance < price %}
+                    <a href="{% url 'store_wallet' %}" class="btn btn-outline btn-sm" style="color: #f87171; border-color: rgba(239,68,68,0.3);">شحن رصيد</a>
+                {% else %}
+                    <span style="font-size: 0.8rem;"><i class="fa-solid fa-circle-check"></i> رصيد كافٍ</span>
+                {% endif %}
+            </div>
+
+            <!-- Submit buttons -->
+            <div style="display: flex; gap: 1rem; justify-content: flex-end;">
+                <a href="{% url 'store_product_detail' product.id %}" class="btn btn-outline">إلغاء</a>
+                {% if wallet.available_balance >= price %}
+                    <button type="submit" class="btn btn-primary"><i class="fa-solid fa-circle-dollar-to-slot"></i> تأكيد ودفع الطلب</button>
+                {% else %}
+                    <button type="button" class="btn btn-primary" disabled style="opacity: 0.5; cursor: not-allowed;">تأكيد ودفع الطلب</button>
+                {% endif %}
+            </div>
+        </form>
+    </div>
+
+{% endblock %}

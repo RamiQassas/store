@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>باقات الاشتراك | رقميات SaaS</title>
+    <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@300;400;500;700;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --primary: #06b6d4;
+            --secondary: #0891b2;
+            --bg-color: #0f172a;
+            --card-bg: rgba(255, 255, 255, 0.03);
+            --card-border: rgba(255, 255, 255, 0.08);
+            --text-color: #f8fafc;
+            --transition: all 0.3s ease;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Tajawal', sans-serif; }
+        body { background-color: var(--bg-color); color: var(--text-color); padding: 2rem; }
+        .container { max-width: 1000px; margin: 0 auto; }
+        header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--card-border); padding-bottom: 1.5rem; margin-bottom: 2.5rem; }
+        .btn { padding: 0.6rem 1.5rem; border-radius: 30px; font-weight: 700; text-decoration: none; transition: var(--transition); cursor: pointer; border: none; display: inline-flex; align-items: center; gap: 0.5rem; font-size: 0.9rem; }
+        .btn-primary { background: linear-gradient(135deg, var(--primary), var(--secondary)); color: white; }
+        .btn-outline { background: transparent; border: 1px solid var(--card-border); color: var(--text-color); }
+        .btn-outline:hover { background: rgba(255,255,255,0.05); }
+        .table-container { background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 20px; overflow: hidden; margin-top: 1.5rem; }
+        table { width: 100%; border-collapse: collapse; text-align: right; }
+        th, td { padding: 1.2rem 1.5rem; border-bottom: 1px solid var(--card-border); }
+        th { font-weight: 800; opacity: 0.8; }
+        .alert { padding: 1rem 1.5rem; border-radius: 12px; margin-bottom: 2rem; background-color: rgba(16, 185, 129, 0.15); border: 1px solid rgba(16, 185, 129, 0.3); color: #34d399; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div>
+                <h1 style="font-size: 1.8rem; font-weight: 900;">إدارة باقات الاشتراك والحدود</h1>
+                <p style="opacity: 0.6; font-size: 0.9rem; margin-top: 0.3rem;">تعديل أسعار وقدرات خطط الاشتراكات المختلفة للمتاجر</p>
+            </div>
+            <div style="display: flex; gap: 1rem;">
+                <a href="{% url 'platform_plan_create' %}" class="btn btn-primary"><i class="fa-solid fa-plus"></i> إضافة باقة جديدة</a>
+                <a href="{% url 'platform_super_admin_dashboard' %}" class="btn btn-outline"><i class="fa-solid fa-arrow-left"></i> العودة للوحة الإدارة</a>
+            </div>
+        </header>
+
+        {% if messages %}
+            {% for message in messages %}
+                <div class="alert"><i class="fa-solid fa-circle-check"></i> {{ message }}</div>
+            {% endfor %}
+        {% endif %}
+
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>اسم الباقة</th>
+                        <th>السعر الشهري</th>
+                        <th>حد المنتجات</th>
+                        <th>حد الموظفين</th>
+                        <th>دومين مخصص</th>
+                        <th>إزالة العلامة</th>
+                        <th>نشط</th>
+                        <th>الإجراء</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for plan in plans %}
+                        <tr>
+                            <td><strong>{{ plan.name }}</strong></td>
+                            <td style="font-weight: 700; color: var(--primary);">${{ plan.price_monthly }}</td>
+                            <td>{{ plan.max_products }} منتج</td>
+                            <td>{{ plan.max_employees }} موظف</td>
+                            <td>{% if plan.custom_domain_enabled %}نعم{% else %}لا{% endif %}</td>
+                            <td>{% if plan.remove_branding_enabled %}نعم{% else %}لا{% endif %}</td>
+                            <td>{% if plan.is_active %}<span style="color:#34d399;">نعم</span>{% else %}<span style="color:#ef4444;">لا</span>{% endif %}</td>
+                            <td>
+                                <a href="{% url 'platform_plan_edit' plan.id %}" class="btn btn-outline btn-sm" style="padding: 0.4rem 1rem; font-size: 0.8rem;"><i class="fa-solid fa-edit"></i> تعديل</a>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</body>
+</html>

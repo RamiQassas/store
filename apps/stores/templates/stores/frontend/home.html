@@ -1,0 +1,270 @@
+{% extends "stores/frontend/base.html" %}
+
+{% block title %}الرئيسية | {{ store.name }}{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* Hero Banner Section */
+    .hero-section {
+        background: {% if store.banner %}url("{{ store.banner.url }}") no-repeat center/cover{% else %}linear-gradient(135deg, rgba(6, 182, 212, 0.1), rgba(8, 145, 178, 0.2)){% endif %};
+        padding: 5rem 2rem;
+        border-radius: 24px;
+        text-align: center;
+        margin-bottom: 3rem;
+        border: 1px solid var(--card-border);
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+        position: relative;
+        overflow: hidden;
+    }
+
+    .hero-title {
+        font-size: 3rem;
+        font-weight: 900;
+        margin-bottom: 1rem;
+        color: var(--text-color);
+        text-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+    }
+
+    .hero-desc {
+        font-size: 1.2rem;
+        opacity: 0.9;
+        max-width: 600px;
+        margin: 0 auto 2rem;
+        line-height: 1.6;
+    }
+
+    /* Categories Grid */
+    .section-title {
+        font-size: 1.8rem;
+        font-weight: 800;
+        margin-bottom: 2rem;
+        position: relative;
+        display: inline-block;
+    }
+
+    .section-title::after {
+        content: '';
+        position: absolute;
+        bottom: -5px;
+        right: 0;
+        width: 50px;
+        height: 4px;
+        background: var(--primary);
+        border-radius: 2px;
+    }
+
+    .categories-grid {
+        display: grid;
+        grid-template-cols: repeat(auto-fill, minmax(200px, 1fr));
+        gap: 1.5rem;
+        margin-bottom: 4rem;
+    }
+
+    .category-card {
+        background: var(--card-bg);
+        border: 1px solid var(--card-border);
+        border-radius: 16px;
+        padding: 1.5rem;
+        text-align: center;
+        text-decoration: none;
+        color: var(--text-color);
+        transition: var(--transition);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 1rem;
+    }
+
+    .category-card:hover {
+        transform: translateY(-5px);
+        border-color: var(--primary);
+        box-shadow: 0 8px 25px rgba(6, 182, 212, 0.15);
+    }
+
+    .cat-img {
+        width: 80px;
+        height: 80px;
+        border-radius: 50%;
+        object-fit: cover;
+        border: 2px solid var(--card-border);
+        transition: var(--transition);
+    }
+
+    .category-card:hover .cat-img {
+        border-color: var(--primary);
+        transform: scale(1.05);
+    }
+
+    .cat-name {
+        font-weight: 700;
+        font-size: 1.1rem;
+    }
+
+    /* Products Grid */
+    .products-grid {
+        display: grid;
+        grid-template-cols: repeat(auto-fill, minmax(260px, 1fr));
+        gap: 2rem;
+    }
+
+    .product-card {
+        background: var(--card-bg);
+        border: 1px solid var(--card-border);
+        border-radius: 20px;
+        overflow: hidden;
+        transition: var(--transition);
+        display: flex;
+        flex-direction: column;
+    }
+
+    .product-card:hover {
+        transform: translateY(-5px);
+        border-color: var(--primary);
+        box-shadow: 0 10px 30px rgba(6, 182, 212, 0.15);
+    }
+
+    .prod-img-wrapper {
+        position: relative;
+        padding-top: 75%; /* 4:3 Aspect Ratio */
+        background: rgba(0, 0, 0, 0.1);
+    }
+
+    .prod-img {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+
+    .prod-badge {
+        position: absolute;
+        top: 1rem;
+        left: 1rem;
+        background: #ef4444;
+        color: white;
+        padding: 0.3rem 0.8rem;
+        border-radius: 20px;
+        font-size: 0.8rem;
+        font-weight: 700;
+    }
+
+    .prod-info {
+        padding: 1.5rem;
+        display: flex;
+        flex-direction: column;
+        flex: 1;
+        gap: 0.5rem;
+    }
+
+    .prod-cat {
+        font-size: 0.8rem;
+        opacity: 0.6;
+        text-transform: uppercase;
+    }
+
+    .prod-name {
+        font-size: 1.2rem;
+        font-weight: 700;
+        color: var(--text-color);
+        text-decoration: none;
+        line-height: 1.4;
+    }
+
+    .prod-name:hover {
+        color: var(--primary);
+    }
+
+    .price-action-row {
+        margin-top: auto;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding-top: 1rem;
+        border-top: 1px solid var(--card-border);
+    }
+
+    .prod-price {
+        font-size: 1.3rem;
+        font-weight: 900;
+        color: var(--primary);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+
+    <!-- Hero Banner -->
+    <section class="hero-section">
+        <h1 class="hero-title">{{ store.name }}</h1>
+        <p class="hero-desc">{{ store.description|default:"مرحباً بكم في متجرنا الإلكتروني المتميز" }}</p>
+        <a href="{% url 'store_catalog' %}" class="btn btn-primary btn-lg"><i class="fa-solid fa-store"></i> تسوق الآن</a>
+    </section>
+
+    <!-- Categories Section -->
+    {% if categories %}
+    <section style="margin-bottom: 4rem;">
+        <h2 class="section-title">أقسام المتجر</h2>
+        <div class="categories-grid">
+            {% for cat in categories %}
+                <a href="{% url 'store_catalog' %}?category={{ cat.id }}" class="category-card">
+                    {% if cat.image %}
+                        <img src="{{ cat.image.url }}" alt="{{ cat.name }}" class="cat-img">
+                    {% else %}
+                        <div class="cat-img" style="background: var(--primary); display: flex; align-items: center; justify-content: center; color: white; font-weight: bold;">
+                            {{ cat.name|slice:":1" }}
+                        </div>
+                    {% endif %}
+                    <span class="cat-name">{{ cat.name }}</span>
+                </a>
+            {% endfor %}
+        </div>
+    </section>
+    {% endif %}
+
+    <!-- Featured Products -->
+    <section>
+        <h2 class="section-title">المنتجات المميزة</h2>
+        {% if featured_products %}
+            <div class="products-grid">
+                {% for prod in featured_products %}
+                    <div class="product-card">
+                        <div class="prod-img-wrapper">
+                            {% if prod.image %}
+                                <img src="{{ prod.image.url }}" alt="{{ prod.name }}" class="prod-img">
+                            {% else %}
+                                <div class="prod-img" style="background: rgba(255,255,255,0.05); display: flex; align-items: center; justify-content: center; font-size: 2rem;">
+                                    <i class="fa-solid fa-cube"></i>
+                                </div>
+                            {% endif %}
+                            {% if prod.is_sale %}
+                                <span class="prod-badge">تخفيض</span>
+                            {% endif %}
+                        </div>
+                        <div class="prod-info">
+                            <span class="prod-cat">{{ prod.category.name }}</span>
+                            <a href="{% url 'store_product_detail' prod.id %}" class="prod-name">{{ prod.name }}</a>
+                            <div class="price-action-row">
+                                <span class="prod-price">
+                                    {% if prod.variants.exists %}
+                                        ${{ prod.variants.first.price }}
+                                    {% else %}
+                                        تواصل معنا
+                                    {% endif %}
+                                </span>
+                                <a href="{% url 'store_product_detail' prod.id %}" class="btn btn-outline btn-sm">التفاصيل</a>
+                            </div>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <div style="text-align: center; padding: 4rem; background: var(--card-bg); border-radius: 16px; border: 1px solid var(--card-border);">
+                <i class="fa-solid fa-folder-open" style="font-size: 3rem; opacity: 0.3; margin-bottom: 1rem;"></i>
+                <p>لا يوجد منتجات معروضة حالياً.</p>
+            </div>
+        {% endif %}
+    </section>
+
+{% endblock %}

@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>تم إنشاء متجرك بنجاح! | رقميات</title>
+    <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@300;400;500;700;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        :root {
+            --primary: #06b6d4;
+            --secondary: #0891b2;
+            --bg-color: #0f172a;
+            --card-bg: rgba(255, 255, 255, 0.03);
+            --card-border: rgba(255, 255, 255, 0.08);
+            --text-color: #f8fafc;
+            --transition: all 0.3s ease;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Tajawal', sans-serif; }
+        body { background-color: var(--bg-color); color: var(--text-color); padding: 4rem 1.5rem; min-height: 100vh; display: flex; align-items: center; justify-content: center; }
+        
+        .success-box { width: 100%; max-width: 600px; background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 24px; padding: 3rem 2.5rem; box-shadow: 0 10px 30px rgba(0,0,0,0.15); text-align: center; display: flex; flex-direction: column; gap: 1.5rem; }
+        
+        .success-icon { font-size: 4rem; color: #34d399; margin-bottom: 1rem; animation: bounce 1.5s infinite; }
+        
+        .box-title { font-size: 2rem; font-weight: 900; color: #34d399; }
+        
+        .store-details { background: rgba(0,0,0,0.25); border: 1px solid var(--card-border); border-radius: 16px; padding: 1.5rem; text-align: right; display: flex; flex-direction: column; gap: 0.8rem; }
+        .detail-row { display: flex; justify-content: space-between; font-size: 0.95rem; }
+        
+        .btn { padding: 0.8rem 2rem; border-radius: 30px; font-weight: 700; text-decoration: none; transition: var(--transition); cursor: pointer; border: none; display: inline-flex; align-items: center; gap: 0.5rem; justify-content: center; font-size: 1rem; }
+        .btn-primary { background: linear-gradient(135deg, var(--primary), var(--secondary)); color: white; box-shadow: 0 4px 15px rgba(6,182,212,0.2); }
+        .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(6,182,212,0.4); }
+        
+        @keyframes bounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="success-box">
+        <i class="fa-solid fa-circle-check success-icon"></i>
+        <h1 class="box-title">تم تفعيل متجرك بنجاح!</h1>
+        
+        <p style="font-size: 1.05rem; opacity: 0.9; line-height: 1.6;">
+            مرحباً بك في عالم التجارة الرقمية! لقد تم إنشاء متجرك وتفعيل باقة الاشتراك الخاصة بك بنجاح.
+        </p>
+
+        <!-- details -->
+        <div class="store-details">
+            <div class="detail-row">
+                <span style="opacity: 0.7;">اسم المتجر:</span>
+                <strong>{{ store.name }}</strong>
+            </div>
+            <div class="detail-row">
+                <span style="opacity: 0.7;">رابط المتجر الفرعي:</span>
+                <strong style="color: var(--primary); font-family: monospace;">{{ store.slug }}.raqamiyatapp.com</strong>
+            </div>
+            <div class="detail-row">
+                <span style="opacity: 0.7;">حالة الاشتراك:</span>
+                <strong style="color: #34d399;"><i class="fa-solid fa-bolt"></i> نشط ومفعل</strong>
+            </div>
+        </div>
+
+        <p style="font-size: 0.9rem; opacity: 0.7; line-height: 1.6;">
+            لتجربة الدخول لمتجرك محلياً، يرجى التوجه لاسم النطاق المذكور بالأعلى (بعد إضافته لملف <code>hosts</code> الخاص بجهازك للتوجيه لـ <code>127.0.0.1</code>) ومن ثم الدخول ببريدك الإلكتروني وكلمة المرور للوصول للوحة التحكم للتاجر على مسار <code>/merchant/</code>.
+        </p>
+
+        <div style="margin-top: 1rem;">
+            <a href="/" class="btn btn-primary" style="width: 100%;"><i class="fa-solid fa-house"></i> العودة للموقع الرئيسي لرقميات</a>
+        </div>
+    </div>
+
+</body>
+</html>

@@ -6,6 +6,7 @@ from django.db import models
 
 from apps.catalog.models import ProductVariant
 from apps.common.models import TimeStampedModel
+from apps.common.tenant_utils import TenantManager
 
 
 class Coupon(TimeStampedModel):
@@ -13,7 +14,7 @@ class Coupon(TimeStampedModel):
         PERCENTAGE = "percentage", "نسبة مئوية (%)"
         FIXED_AMOUNT = "fixed_amount", "مبلغ ثابت (USD)"
 
-    code = models.CharField(max_length=40, unique=True, verbose_name="الكود")
+    code = models.CharField(max_length=40, verbose_name="الكود")
     discount_type = models.CharField(max_length=20, choices=DiscountType.choices, default=DiscountType.PERCENTAGE, verbose_name="نوع الخصم")
     discount_percent = models.DecimalField(max_digits=5, decimal_places=2, default=Decimal("0.00"), verbose_name="قيمة الخصم (%)")
     discount_amount = models.DecimalField(max_digits=14, decimal_places=2, default=Decimal("0.00"), verbose_name="قيمة الخصم (USD)")
@@ -22,6 +23,16 @@ class Coupon(TimeStampedModel):
     used_count = models.PositiveIntegerField(default=0, verbose_name="إجمالي عدد المرات التي تم استخدامه")
     min_order_amount = models.DecimalField(max_digits=14, decimal_places=2, default=Decimal("0.00"), verbose_name="الحد الأدنى للطلب (USD)")
     is_active = models.BooleanField(default=True, verbose_name="نشط")
+    store = models.ForeignKey(
+        "stores.Store",
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name="coupons",
+        verbose_name="المتجر"
+    )
+    objects = TenantManager()
+    all_objects = models.Manager()
     is_verified_only = models.BooleanField(default=True, verbose_name="للحسابات الموثقة فقط")
     expires_at = models.DateTimeField(null=True, blank=True, verbose_name="تاريخ الانتهاء")
     valid_for_users_before = models.DateTimeField(null=True, blank=True, verbose_name="صالح للحسابات المسجلة قبل تاريخ")
@@ -57,6 +68,7 @@ class Coupon(TimeStampedModel):
     class Meta:
         verbose_name = "كوبون"
         verbose_name_plural = "الكوبونات"
+        unique_together = ("store", "code")
 
     def __str__(self):
         return self.code
@@ -71,6 +83,16 @@ class Order(TimeStampedModel):
         DISPUTED = "disputed", "متنازع عليه"
 
     customer = models.ForeignKey(settings.AUTH_USER_MODEL, related_name="orders", on_delete=models.PROTECT, verbose_name="العميل")
+    store = models.ForeignKey(
+        "stores.Store",
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name="orders",
+        verbose_name="المتجر"
+    )
+    objects = TenantManager()
+    all_objects = models.Manager()
     number = models.CharField(max_length=32, unique=True, db_index=True, verbose_name="رقم الطلب")
     status = models.CharField(max_length=20, choices=Status.choices, default=Status.PROCESSING, verbose_name="الحالة")
     total_amount = models.DecimalField(max_digits=14, decimal_places=2, default=Decimal("0.00"), verbose_name="إجمالي المبلغ")

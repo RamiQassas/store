@@ -1,5 +1,6 @@
 from django.urls import path
 from apps.site import views, api_views
+from apps.stores import views_admin
 
 urlpatterns = [
     # User Dashboard
@@ -21,6 +22,13 @@ urlpatterns = [
     path("auth/sp-verify/", views.v3_verify_sp_view, name="site_sp_verify"),
 
     path("", views.home, name="home"),
+    path("create-store/", views_admin.store_registration_landing, name="store_registration"),
+    path("create-store/payment/", views_admin.store_registration_payment, name="store_registration_payment"),
+    path("control/stores/", views_admin.platform_super_admin_dashboard, name="platform_super_admin_dashboard"),
+    path("control/stores/<uuid:pk>/toggle-status/", views_admin.platform_toggle_store_status, name="platform_toggle_store"),
+    path("control/plans/", views_admin.platform_plan_list, name="platform_plan_list"),
+    path("control/plans/create/", views_admin.platform_plan_form, name="platform_plan_create"),
+    path("control/plans/<uuid:pk>/edit/", views_admin.platform_plan_form, name="platform_plan_edit"),
     path("catalog/", views.catalog, name="catalog"),
     path("catalog/<uuid:pk>/", views.product_detail, name="product_detail"),
     
