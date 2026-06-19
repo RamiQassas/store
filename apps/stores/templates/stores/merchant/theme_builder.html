@@ -1,0 +1,550 @@
+{% extends "stores/merchant/base.html" %}
+
+{% block title %}مخصص المظهر (Theme Builder) | {{ store.name }}{% endblock %}
+
+{% block menu_theme %}active{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* Theme Builder Layout */
+    .builder-container {
+        display: grid;
+        grid-template-columns: 350px 1fr;
+        gap: 2rem;
+        min-height: calc(100vh - 160px);
+    }
+
+    .builder-sidebar {
+        background: var(--card-bg);
+        border: 1px solid var(--card-border);
+        border-radius: 20px;
+        padding: 1.5rem;
+        display: flex;
+        flex-direction: column;
+        gap: 1.5rem;
+        max-height: calc(100vh - 160px);
+        overflow-y: auto;
+    }
+
+    .preview-canvas {
+        background: #111827;
+        border: 1px solid var(--card-border);
+        border-radius: 20px;
+        padding: 2rem;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        position: relative;
+    }
+
+    .canvas-title {
+        position: absolute;
+        top: 1rem;
+        right: 1.5rem;
+        font-size: 0.8rem;
+        opacity: 0.5;
+        font-weight: 800;
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
+    }
+
+    /* Template Cards */
+    .template-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 0.8rem;
+    }
+
+    .template-card {
+        background: rgba(0, 0, 0, 0.2);
+        border: 1px solid var(--card-border);
+        border-radius: 12px;
+        padding: 0.8rem;
+        cursor: pointer;
+        transition: var(--transition);
+        text-align: center;
+    }
+
+    .template-card:hover {
+        border-color: var(--primary);
+        transform: translateY(-2px);
+    }
+
+    .template-card strong {
+        font-size: 0.75rem;
+        display: block;
+        margin-bottom: 0.4rem;
+        color: white;
+    }
+
+    .template-card-preview {
+        height: 6px;
+        border-radius: 3px;
+        margin: 0.2rem auto;
+        width: 80%;
+    }
+
+    /* Color Picker Row */
+    .color-pickers {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 1rem;
+    }
+
+    .color-input-wrapper {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        background: rgba(0,0,0,0.2);
+        border: 1px solid var(--card-border);
+        padding: 0.4rem;
+        border-radius: 10px;
+    }
+
+    .color-input-wrapper input[type="color"] {
+        border: none;
+        background: transparent;
+        width: 32px;
+        height: 32px;
+        cursor: pointer;
+        border-radius: 8px;
+    }
+
+    .color-input-wrapper span {
+        font-size: 0.8rem;
+        font-weight: bold;
+    }
+
+    /* Mock Storefront Elements on Canvas */
+    .mock-storefront {
+        width: 100%;
+        max-width: 600px;
+        background: var(--preview-bg, #ffffff);
+        color: var(--preview-text, #0f172a);
+        border-radius: 16px;
+        overflow: hidden;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.4);
+        display: flex;
+        flex-direction: column;
+        transition: var(--transition);
+        font-family: var(--preview-font, 'Cairo', sans-serif);
+    }
+
+    /* Header Styles */
+    .mock-header {
+        padding: 1rem 1.5rem;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        border-bottom: 1px solid rgba(0,0,0,0.06);
+        transition: var(--transition);
+    }
+
+    .mock-header.transparent {
+        background: transparent !important;
+        border-bottom: none;
+    }
+
+    .mock-header.modern {
+        margin: 0.8rem;
+        border-radius: 12px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+    }
+
+    .mock-header.centered {
+        flex-direction: column;
+        gap: 0.5rem;
+        text-align: center;
+    }
+
+    .mock-logo {
+        font-weight: 900;
+        font-size: 1.1rem;
+        display: flex;
+        align-items: center;
+        gap: 0.4rem;
+    }
+
+    .mock-logo i {
+        color: var(--preview-primary, #06b6d4);
+    }
+
+    .mock-nav {
+        display: flex;
+        gap: 1rem;
+        font-size: 0.75rem;
+        font-weight: bold;
+        opacity: 0.8;
+    }
+
+    /* Content Area */
+    .mock-body {
+        padding: 2rem 1.5rem;
+        display: flex;
+        flex-direction: column;
+        gap: 1.5rem;
+    }
+
+    .mock-hero {
+        background: linear-gradient(135deg, rgba(0,0,0,0.02), rgba(0,0,0,0.06));
+        border-radius: 12px;
+        padding: 1.5rem;
+        text-align: center;
+    }
+
+    .mock-hero h4 {
+        font-size: 1.2rem;
+        font-weight: 800;
+        margin-bottom: 0.4rem;
+    }
+
+    .mock-hero p {
+        font-size: 0.75rem;
+        opacity: 0.6;
+    }
+
+    /* Card Styles */
+    .mock-card {
+        background: rgba(255,255,255,0.08);
+        border: 1px solid rgba(0,0,0,0.06);
+        padding: 1rem;
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        transition: var(--transition);
+    }
+
+    .mock-card.rounded {
+        border-radius: 16px;
+    }
+
+    .mock-card.shadow {
+        border: none;
+        box-shadow: 0 10px 20px rgba(0,0,0,0.04);
+        border-radius: 12px;
+    }
+
+    .mock-card.glass {
+        background: rgba(255, 255, 255, 0.45);
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        border-radius: 12px;
+    }
+
+    .mock-card-img {
+        width: 50px;
+        height: 50px;
+        border-radius: 8px;
+        background: #e5e7eb;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #9ca3af;
+    }
+
+    .mock-card-info {
+        flex: 1;
+    }
+
+    .mock-card-title {
+        font-size: 0.85rem;
+        font-weight: 800;
+        margin-bottom: 0.2rem;
+    }
+
+    .mock-card-price {
+        font-size: 0.8rem;
+        font-weight: 900;
+        color: var(--preview-primary, #06b6d4);
+    }
+
+    /* Button styles */
+    .mock-btn {
+        padding: 0.4rem 1rem;
+        border-radius: 20px;
+        font-size: 0.75rem;
+        font-weight: 800;
+        color: white;
+        background: var(--preview-btn, #06b6d4);
+        border: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.3rem;
+        box-shadow: 0 3px 8px rgba(0,0,0,0.05);
+    }
+
+    /* Footer styles */
+    .mock-footer {
+        padding: 1rem;
+        text-align: center;
+        font-size: 0.7rem;
+        opacity: 0.6;
+        border-top: 1px solid rgba(0,0,0,0.04);
+        background: rgba(0,0,0,0.02);
+    }
+</style>
+<!-- Load selected fonts in preview dynamically -->
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700;900&family=Inter:wght@300;400;500;600;700&family=Outfit:wght@300;400;600;800&family=Tajawal:wght@300;400;500;700;900&display=swap" rel="stylesheet">
+{% endblock %}
+
+{% block content %}
+<div style="margin-bottom: 2rem;">
+    <h1 style="font-size: 2rem; font-weight: 900; margin-bottom: 0.5rem;">مخصص المظهر وقوالب التصميم (Theme Builder)</h1>
+    <p style="opacity: 0.7; font-size: 0.95rem;">اختر قالباً جاهزاً أو خصّص ألوان وخطوط وهيكل متجرك لحظياً مع المعاينة المباشرة.</p>
+</div>
+
+<form method="POST" id="theme-form">
+    {% csrf_token %}
+    
+    <div class="builder-container">
+        <!-- Settings Sidebar -->
+        <div class="builder-sidebar">
+            
+            <!-- Quick Templates -->
+            <div>
+                <label class="form-label" style="font-size: 0.85rem; color: var(--primary); margin-bottom: 0.8rem; display: block;"><i class="fa-solid fa-wand-magic-sparkles"></i> تطبيق قالب جاهز سريع</label>
+                <div class="template-grid">
+                    {% for tpl in templates %}
+                        <div class="template-card" onclick="applyTemplate('{{ tpl.primary_color }}', '{{ tpl.secondary_color }}', '{{ tpl.button_color }}', '{{ tpl.background_color }}', '{{ tpl.text_color }}', '{{ tpl.theme_font }}', '{{ tpl.card_style }}', '{{ tpl.header_style }}', '{{ tpl.footer_style }}')">
+                            <strong>{{ tpl.category }}</strong>
+                            <div class="template-card-preview" style="background: {{ tpl.primary_color }};"></div>
+                            <div class="template-card-preview" style="background: {{ tpl.background_color }}; height: 3px;"></div>
+                        </div>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <!-- Custom Colors -->
+            <div style="border-top: 1px solid var(--card-border); padding-top: 1rem;">
+                <label class="form-label" style="font-size: 0.85rem; color: var(--primary); margin-bottom: 0.8rem; display: block;"><i class="fa-solid fa-palette"></i> تخصيص لوحة الألوان</label>
+                
+                <div class="color-pickers">
+                    <div class="form-group">
+                        <span style="font-size: 0.75rem; opacity: 0.8; margin-bottom: 0.3rem;">اللون الرئيسي:</span>
+                        <div class="color-input-wrapper">
+                            <input type="color" name="primary_color" id="primary_color" value="{{ store.primary_color }}" oninput="updatePreview()">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <span style="font-size: 0.75rem; opacity: 0.8; margin-bottom: 0.3rem;">اللون الثانوي:</span>
+                        <div class="color-input-wrapper">
+                            <input type="color" name="secondary_color" id="secondary_color" value="{{ store.secondary_color }}" oninput="updatePreview()">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <span style="font-size: 0.75rem; opacity: 0.8; margin-bottom: 0.3rem;">لون الأزرار:</span>
+                        <div class="color-input-wrapper">
+                            <input type="color" name="button_color" id="button_color" value="{{ store.button_color }}" oninput="updatePreview()">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <span style="font-size: 0.75rem; opacity: 0.8; margin-bottom: 0.3rem;">لون النصوص:</span>
+                        <div class="color-input-wrapper">
+                            <input type="color" name="text_color" id="text_color" value="{{ store.text_color }}" oninput="updatePreview()">
+                        </div>
+                    </div>
+                </div>
+                <div class="form-group" style="margin-top: 0.5rem;">
+                    <span style="font-size: 0.75rem; opacity: 0.8; margin-bottom: 0.3rem;">لون الخلفية:</span>
+                    <div class="color-input-wrapper" style="width: 100%;">
+                        <input type="color" name="background_color" id="background_color" value="{{ store.background_color }}" oninput="updatePreview()" style="width: 45px;">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Font Selector -->
+            <div style="border-top: 1px solid var(--card-border); padding-top: 1rem;">
+                <label class="form-label" style="font-size: 0.85rem; color: var(--primary); margin-bottom: 0.5rem; display: block;"><i class="fa-solid fa-font"></i> الخطوط والطباعة</label>
+                <select name="theme_font" id="theme_font" class="form-input" style="background: rgba(0,0,0,0.3);" onchange="updatePreview()">
+                    <option value="Cairo" {% if store.theme_font == "Cairo" %}selected{% endif %}>Cairo (كلاسيكي حديث)</option>
+                    <option value="Tajawal" {% if store.theme_font == "Tajawal" %}selected{% endif %}>Tajawal (ناعم ومقروء)</option>
+                    <option value="Outfit" {% if store.theme_font == "Outfit" %}selected{% endif %}>Outfit (تقني دائري)</option>
+                    <option value="Inter" {% if store.theme_font == "Inter" %}selected{% endif %}>Inter (عالمي مسطح)</option>
+                </select>
+            </div>
+
+            <!-- Layout Shapes -->
+            <div style="border-top: 1px solid var(--card-border); padding-top: 1rem;">
+                <label class="form-label" style="font-size: 0.85rem; color: var(--primary); margin-bottom: 0.5rem; display: block;"><i class="fa-solid fa-shapes"></i> هياكل وأشكال المكونات</label>
+                
+                <div class="form-group">
+                    <span style="font-size: 0.75rem; opacity: 0.8; margin-bottom: 0.3rem;">شكل بطاقات المنتجات:</span>
+                    <select name="card_style" id="card_style" class="form-input" style="background: rgba(0,0,0,0.3); padding: 0.6rem 0.8rem;" onchange="updatePreview()">
+                        <option value="flat" {% if store.card_style == "flat" %}selected{% endif %}>مسطح (Flat Card)</option>
+                        <option value="rounded" {% if store.card_style == "rounded" %}selected{% endif %}>زوايا دائرية (Rounded Card)</option>
+                        <option value="shadow" {% if store.card_style == "shadow" %}selected{% endif %}>بظل خفيف (Shadow Card)</option>
+                        <option value="glass" {% if store.card_style == "glass" %}selected{% endif %}>زجاجي شفاف (Glassmorphism)</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <span style="font-size: 0.75rem; opacity: 0.8; margin-bottom: 0.3rem;">شكل الهيدر (القائمة العلوية):</span>
+                    <select name="header_style" id="header_style" class="form-input" style="background: rgba(0,0,0,0.3); padding: 0.6rem 0.8rem;" onchange="updatePreview()">
+                        <option value="classic" {% if store.header_style == "classic" %}selected{% endif %}>افتراضي كلاسيكي (Classic)</option>
+                        <option value="modern" {% if store.header_style == "modern" %}selected{% endif %}>عائم حديث (Modern Floating)</option>
+                        <option value="transparent" {% if store.header_style == "transparent" %}selected{% endif %}>شفاف مدمج (Transparent)</option>
+                        <option value="centered" {% if store.header_style == "centered" %}selected{% endif %}>شعار متمركز (Centered)</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <span style="font-size: 0.75rem; opacity: 0.8; margin-bottom: 0.3rem;">شكل الفوتر (التذييل):</span>
+                    <select name="footer_style" id="footer_style" class="form-input" style="background: rgba(0,0,0,0.3); padding: 0.6rem 0.8rem;" onchange="updatePreview()">
+                        <option value="classic" {% if store.footer_style == "classic" %}selected{% endif %}>تذييل كامل كلاسيكي</option>
+                        <option value="simple" {% if store.footer_style == "simple" %}selected{% endif %}>تذييل سطر واحد بسيط</option>
+                        <option value="detailed" {% if store.footer_style == "detailed" %}selected{% endif %}>تذييل تفصيلي متعدد الأعمدة</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Submit buttons -->
+            <div style="margin-top: auto; border-top: 1px solid var(--card-border); padding-top: 1.2rem;">
+                <button type="submit" class="btn btn-primary" style="width: 100%; justify-content: center; font-size: 0.9rem; padding: 0.8rem;"><i class="fa-solid fa-circle-check"></i> حفظ المظهر الجديد</button>
+            </div>
+
+        </div>
+
+        <!-- Live Preview Canvas -->
+        <div class="preview-canvas">
+            <span class="canvas-title"><i class="fa-solid fa-eye"></i> شاشة المعاينة الحية للمتجر</span>
+            
+            <!-- Mock Storefront Widget -->
+            <div class="mock-storefront" id="mock-storefront">
+                <!-- Header -->
+                <div class="mock-header" id="mock-header">
+                    <div class="mock-logo">
+                        <i class="fa-solid fa-shopping-bag"></i>
+                        <span>{{ store.name }}</span>
+                    </div>
+                    <div class="mock-nav">
+                        <span>الرئيسية</span>
+                        <span>المنتجات</span>
+                        <span>تواصل معنا</span>
+                    </div>
+                </div>
+
+                <!-- Body / Hero -->
+                <div class="mock-body">
+                    <div class="mock-hero">
+                        <h4>عروض نهاية الأسبوع الحصرية!</h4>
+                        <p>احصل على حسم يصل حتى 40% على جميع تصنيفات المتجر الرقمي.</p>
+                    </div>
+
+                    <!-- Product Card Mock -->
+                    <div class="mock-card" id="mock-card">
+                        <div class="mock-card-img">
+                            <i class="fa-solid fa-image text-slate-400"></i>
+                        </div>
+                        <div class="mock-card-info">
+                            <div class="mock-card-title">اسم منتج نموذجي تجريبي</div>
+                            <div class="mock-card-price">$49.00</div>
+                        </div>
+                        <button type="button" class="mock-btn" id="mock-btn">
+                            <i class="fa-solid fa-cart-shopping"></i>
+                            <span>شراء</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Footer -->
+                <div class="mock-footer" id="mock-footer">
+                    <span id="mock-footer-text">© 2026 {{ store.name }}. جميع الحقوق محفوظة.</span>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</form>
+
+<script>
+    function applyTemplate(primary, secondary, button, bg, text, font, card, header, footer) {
+        document.getElementById('primary_color').value = primary;
+        document.getElementById('secondary_color').value = secondary;
+        document.getElementById('button_color').value = button;
+        document.getElementById('background_color').value = bg;
+        document.getElementById('text_color').value = text;
+        document.getElementById('theme_font').value = font;
+        document.getElementById('card_style').value = card;
+        document.getElementById('header_style').value = header;
+        document.getElementById('footer_style').value = footer;
+        
+        updatePreview();
+    }
+
+    function updatePreview() {
+        const primary = document.getElementById('primary_color').value;
+        const secondary = document.getElementById('secondary_color').value;
+        const button = document.getElementById('button_color').value;
+        const bg = document.getElementById('background_color').value;
+        const text = document.getElementById('text_color').value;
+        const font = document.getElementById('theme_font').value;
+        const cardStyle = document.getElementById('card_style').value;
+        const headerStyle = document.getElementById('header_style').value;
+        const footerStyle = document.getElementById('footer_style').value;
+
+        const storefront = document.getElementById('mock-storefront');
+        const header = document.getElementById('mock-header');
+        const card = document.getElementById('mock-card');
+        const btn = document.getElementById('mock-btn');
+        const footer = document.getElementById('mock-footer');
+        const footerText = document.getElementById('mock-footer-text');
+
+        // Apply Custom Property Colors
+        storefront.style.setProperty('--preview-primary', primary);
+        storefront.style.setProperty('--preview-secondary', secondary);
+        storefront.style.setProperty('--preview-btn', button);
+        storefront.style.setProperty('--preview-bg', bg);
+        storefront.style.setProperty('--preview-text', text);
+        storefront.style.setProperty('--preview-font', "'" + font + "', sans-serif");
+
+        // Styling Storefront Colors
+        storefront.style.background = bg;
+        storefront.style.color = text;
+        
+        // Font loading helper
+        storefront.style.fontFamily = font + ", sans-serif";
+
+        // Header Styling
+        header.className = "mock-header " + headerStyle;
+        if (headerStyle === 'transparent') {
+            header.style.background = 'transparent';
+        } else if (headerStyle === 'modern') {
+            header.style.background = 'rgba(255, 255, 255, 0.05)';
+        } else {
+            header.style.background = 'rgba(0, 0, 0, 0.03)';
+        }
+
+        // Card Styling
+        card.className = "mock-card " + cardStyle;
+        if (cardStyle === 'glass') {
+            card.style.background = 'rgba(255, 255, 255, 0.15)';
+            card.style.backdropFilter = 'blur(8px)';
+        } else if (cardStyle === 'shadow') {
+            card.style.background = bg;
+            card.style.boxShadow = '0 8px 24px rgba(0,0,0,0.1)';
+        } else {
+            card.style.background = 'rgba(0,0,0,0.03)';
+            card.style.boxShadow = 'none';
+        }
+
+        // Button Styling
+        btn.style.background = button;
+
+        // Footer Styling
+        if (footerStyle === 'simple') {
+            footerText.innerHTML = "© 2026 " + "{{ store.name }}";
+        } else if (footerStyle === 'detailed') {
+            footerText.innerHTML = "© 2026 " + "{{ store.name }}" + " | الخصوصية | الشروط | تواصل معنا";
+        } else {
+            footerText.innerHTML = "© 2026 " + "{{ store.name }}. جميع الحقوق محفوظة.";
+        }
+    }
+
+    // Run preview once on page load to match initial values
+    window.addEventListener('DOMContentLoaded', (event) => {
+        updatePreview();
+    });
+</script>
+{% endblock %}

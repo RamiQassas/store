@@ -66,5 +66,7 @@ urlpatterns = [
     
     # Settings & Colors
     path("merchant/settings/", views.merchant_settings, name="merchant_settings"),
+    path("merchant/settings/domain-diagnostics/", views.merchant_domain_diagnostics, name="merchant_domain_diagnostics"),
+    path("merchant/theme-builder/", views.merchant_theme_builder, name="merchant_theme_builder"),
     path("merchant/subscription/", views.merchant_subscription, name="merchant_subscription"),
 ]

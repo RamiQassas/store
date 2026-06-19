@@ -12,12 +12,13 @@ from django.http import Http404
 from django.utils import timezone
 from apps.common.decorators import admin_required
 
-from apps.stores.models import Store, SubscriptionPlan, StoreEmployee
+from apps.stores.models import Store, SubscriptionPlan, StoreEmployee, SubscriptionInvoice
 from apps.stores.forms import StoreCreateForm
 from apps.catalog.models import Product
 from apps.orders.models import Order
 from apps.accounts.models import User
 from apps.wallets.models import Wallet
+from apps.wallets.services import get_or_create_wallet, debit_wallet
 from apps.common.tenant_utils import bypass_tenant_filter
 
 @login_required
@@ -55,7 +56,7 @@ def store_registration_landing(request):
 
 @login_required
 def store_registration_payment(request):
-    """Mock payment simulation for store subscription."""
+    """Mock payment simulation for store subscription via wallet balance."""
     reg_data = request.session.get("store_reg_data")
     if not reg_data:
         messages.error(request, "يرجى ملء بيانات المتجر أولاً.")
@@ -63,19 +64,50 @@ def store_registration_payment(request):
         
     plan = get_object_or_404(SubscriptionPlan, id=reg_data["plan_id"])
     
+    # Wallet balance verification
+    wallet = get_or_create_wallet(request.user)
+    plan_price_usd = plan.price_monthly
+    plan_price_wallet = wallet.currency.from_base(plan_price_usd, "withdraw")
+    plan_price_wallet = Decimal(plan_price_wallet).quantize(Decimal("0.01"))
+    
+    insufficient_balance = wallet.available_balance < plan_price_wallet
+    
+    balance_display = f"{wallet.available_balance:,.2f} {wallet.currency.symbol}"
+    price_display = f"{plan_price_wallet:,.2f} {wallet.currency.symbol}"
+    
     if request.method == "POST":
-        # Simulating successful payment
-        # Create store automatically
+        if insufficient_balance:
+            messages.error(request, f"عذراً، رصيدك غير كافٍ لإتمام الدفع. الرصيد الحالي: {balance_display}، التكلفة المطلوبة: {price_display}.")
+            return redirect("store_registration_payment")
+            
         logo_path = request.session.get("store_reg_logo_path")
         
         try:
             with transaction.atomic():
                 with bypass_tenant_filter():
                     # Double check slug uniqueness
-                    if Store.objects.filter(slug=reg_data["slug"]).exists():
+                    if Store.unfiltered.filter(slug=reg_data["slug"]).exists():
                         messages.error(request, "رابط المتجر هذا محجوز بالفعل. يرجى اختيار رابط آخر.")
                         return redirect("store_registration")
                         
+                    # Lock wallet to prevent race conditions
+                    user_wallet = Wallet.objects.select_for_update().get(id=wallet.id)
+                    if user_wallet.available_balance < plan_price_wallet:
+                        messages.error(request, "رصيد المحفظة غير كافٍ لإتمام العملية.")
+                        return redirect("store_registration_payment")
+                        
+                    # Deduct balance from wallet
+                    invoice_ref = f"INV-SUB-{uuid.uuid4().hex[:8].upper()}"
+                    debit_wallet(
+                        wallet_id=user_wallet.id,
+                        amount=plan_price_wallet,
+                        source="Store Subscription",
+                        reason=f"اشتراك متجر '{reg_data['name']}' في باقة {plan.name}",
+                        reference=invoice_ref,
+                        created_by=request.user
+                    )
+                    
+                    # Create Store
                     store = Store.objects.create(
                         owner=request.user,
                         name=reg_data["name"],
@@ -99,13 +131,22 @@ def store_registration_payment(request):
                         role=StoreEmployee.Role.OWNER
                     )
                     
+                    # Create Subscription Invoice
+                    SubscriptionInvoice.objects.create(
+                        user=request.user,
+                        store=store,
+                        plan=plan,
+                        invoice_number=invoice_ref,
+                        amount=plan_price_wallet,
+                        currency=wallet.currency,
+                        status="paid"
+                    )
+                    
             # Clear session
             request.session.pop("store_reg_data", None)
             request.session.pop("store_reg_logo_path", None)
             
             messages.success(request, f"تهانينا! تم إنشاء متجرك '{store.name}' بنجاح.")
-            # Redirect to store home subdomain or instruction page
-            # To be safe locally, we redirect to a success page listing the subdomain details
             return render(request, "stores/super_admin/registration_success.html", {"store": store})
             
         except Exception as e:
@@ -115,6 +156,11 @@ def store_registration_payment(request):
     return render(request, "stores/super_admin/registration_payment.html", {
         "reg_data": reg_data,
         "plan": plan,
+        "wallet": wallet,
+        "plan_price_wallet": plan_price_wallet,
+        "insufficient_balance": insufficient_balance,
+        "balance_display": balance_display,
+        "price_display": price_display,
     })
 
 
@@ -122,7 +168,7 @@ def store_registration_payment(request):
 def platform_super_admin_dashboard(request):
     """Dashboard for Platform Owner (Raqamiyat Owner) to manage SaaS."""
     with bypass_tenant_filter():
-        stores = Store.objects.all().order_by("-created_at")
+        stores = Store.unfiltered.all().order_by("-created_at")
         total_stores = stores.count()
         active_stores_count = stores.filter(is_active=True).count()
         total_products = Product.all_objects.count()
@@ -163,7 +209,7 @@ def platform_super_admin_dashboard(request):
 def platform_toggle_store_status(request, pk):
     """Platform owner can suspend or activate any store."""
     with bypass_tenant_filter():
-        store = get_object_or_404(Store, pk=pk)
+        store = get_object_or_404(Store.unfiltered, pk=pk)
         store.is_active = not store.is_active
         store.save()
         status_text = "تفعيل" if store.is_active else "إيقاف"

@@ -62,21 +62,43 @@
                 <span style="opacity: 0.7;">باقة الاشتراك المختارة:</span>
                 <strong>{{ plan.name }}</strong>
             </div>
-            <div class="summary-row" style="border-top: 1px solid var(--card-border); padding-top: 0.8rem; font-size: 1.2rem; margin-top: 0.5rem;">
-                <span>المبلغ المطلوب دفعه:</span>
-                <strong style="color: var(--primary); font-weight: 900;">${{ plan.price_monthly }} / شهرياً</strong>
+            <div class="summary-row" style="border-top: 1px solid var(--card-border); padding-top: 0.8rem; margin-top: 0.5rem;">
+                <span>قيمة الباقة (بالدولار):</span>
+                <strong style="color: var(--primary); font-weight: 700;">${{ plan.price_monthly }} / شهرياً</strong>
+            </div>
+            <div class="summary-row" style="font-size: 1.1rem; border-top: 1px dashed var(--card-border); padding-top: 0.8rem; margin-top: 0.5rem;">
+                <span>رصيدك الحالي:</span>
+                <strong style="color: {% if insufficient_balance %}#f87171{% else %}#34d399{% endif %};">{{ balance_display }}</strong>
+            </div>
+            <div class="summary-row" style="font-size: 1.2rem; font-weight: 900; padding-top: 0.5rem;">
+                <span>المبلغ المطلوب خصمه:</span>
+                <strong style="color: var(--primary);">{{ price_display }}</strong>
             </div>
         </div>
 
-        <p style="font-size: 0.85rem; opacity: 0.7; line-height: 1.6; text-align: center; margin-bottom: 2rem;">
-            هذه صفحة تجريبية وهمية لمحاكاة عملية الدفع. يرجى الضغط على زر "تأكيد الدفع" أدناه ليتم إنشاء متجرك تلقائياً وتفعيل لوحة تحكم التاجر.
-        </p>
+        {% if insufficient_balance %}
+            <div class="alert" style="background-color: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.3); color: #f87171; padding: 1.2rem; border-radius: 16px; margin-bottom: 2rem; line-height: 1.6;">
+                <i class="fa-solid fa-triangle-exclamation" style="font-size: 1.2rem; margin-left: 0.5rem; vertical-align: middle;"></i>
+                <span>عذراً، رصيد محفظتك المتاح غير كافٍ للاشتراك. يرجى شحن محفظتك لإتمام العملية.</span>
+                <div style="margin-top: 0.8rem; text-align: left;">
+                    <a href="{% url 'dashboard_recharge_wallet' %}" class="btn btn-outline" style="padding: 0.4rem 1rem; font-size: 0.8rem; border-radius: 20px;" target="_blank"><i class="fa-solid fa-wallet"></i> شحن المحفظة الآن</a>
+                </div>
+            </div>
+        {% else %}
+            <p style="font-size: 0.85rem; opacity: 0.7; line-height: 1.6; text-align: center; margin-bottom: 2rem;">
+                سيتم خصم قيمة الاشتراك مباشرة من محفظتك الإلكترونية المذكورة بالأعلى وتفعيل متجرك فوراً.
+            </p>
+        {% endif %}
 
         <form method="POST">
             {% csrf_token %}
             <div style="display: flex; gap: 1rem; width: 100%;">
                 <a href="{% url 'store_registration' %}" class="btn btn-outline" style="flex: 1;">إلغاء</a>
-                <button type="submit" class="btn btn-primary" style="flex: 2;"><i class="fa-solid fa-credit-card"></i> تأكيد الدفع التجريبي</button>
+                {% if insufficient_balance %}
+                    <button type="button" class="btn" style="flex: 2; background: #374151; color: #9ca3af; cursor: not-allowed; opacity: 0.6;" disabled><i class="fa-solid fa-credit-card"></i> رصيد غير كافٍ</button>
+                {% else %}
+                    <button type="submit" class="btn btn-primary" style="flex: 2;"><i class="fa-solid fa-credit-card"></i> تأكيد الدفع الفوري وإنشاء المتجر</button>
+                {% endif %}
             </div>
         </form>
     </div>

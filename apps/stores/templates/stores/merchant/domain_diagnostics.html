@@ -1,0 +1,95 @@
+{% extends "stores/merchant/base.html" %}
+
+{% block title %}تشخيص النطاق المخصص | {{ store.name }}{% endblock %}
+
+{% block menu_settings %}active{% endblock %}
+
+{% block content %}
+<div style="margin-bottom: 2rem; display: flex; align-items: center; justify-content: space-between;">
+    <div>
+        <h1 style="font-size: 2rem; font-weight: 900; margin-bottom: 0.5rem;">تشخيص حالة النطاق المخصص</h1>
+        <p style="opacity: 0.7; font-size: 0.95rem;">التحقق الفني من اتصال النطاق المخصص <code>{{ store.custom_domain }}</code> بالخادم.</p>
+    </div>
+    <a href="{% url 'merchant_settings' %}" class="btn btn-outline"><i class="fa-solid fa-arrow-left"></i> العودة للإعدادات</a>
+</div>
+
+<div style="display: grid; grid-template-columns: 2fr 1fr; gap: 2rem;">
+    <!-- Diagnostic Status List -->
+    <div style="display: flex; flex-direction: column; gap: 1.5rem;">
+        
+        <!-- DNS Check -->
+        <div class="card" style="display: flex; align-items: flex-start; gap: 1.5rem; border-left: 5px solid {% if diagnostics.dns_status == 'success' %}#10b981{% elif diagnostics.dns_status == 'warning' %}#f59e0b{% else %}#ef4444{% endif %};">
+            <div style="font-size: 2rem; color: {% if diagnostics.dns_status == 'success' %}#10b981{% elif diagnostics.dns_status == 'warning' %}#f59e0b{% else %}#ef4444{% endif %};">
+                <i class="fa-solid {% if diagnostics.dns_status == 'success' %}fa-circle-check{% elif diagnostics.dns_status == 'warning' %}fa-triangle-exclamation{% else %}fa-circle-xmark{% endif %}"></i>
+            </div>
+            <div style="flex: 1;">
+                <h3 style="font-size: 1.2rem; font-weight: 800; margin-bottom: 0.5rem; color: white;">سجلات DNS وحل الأسماء</h3>
+                <p style="font-size: 0.9rem; line-height: 1.5; opacity: 0.8; margin-bottom: 0.5rem;">
+                    {{ diagnostics.dns_msg }}
+                </p>
+                {% if diagnostics.dns_ip %}
+                    <span style="font-size: 0.8rem; background: rgba(255,255,255,0.05); padding: 0.3rem 0.6rem; border-radius: 6px; font-family: monospace;">Resolved IP: {{ diagnostics.dns_ip }}</span>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- SSL Check -->
+        <div class="card" style="display: flex; align-items: flex-start; gap: 1.5rem; border-left: 5px solid {% if diagnostics.ssl_status == 'success' %}#10b981{% else %}#ef4444{% endif %};">
+            <div style="font-size: 2rem; color: {% if diagnostics.ssl_status == 'success' %}#10b981{% else %}#ef4444{% endif %};">
+                <i class="fa-solid {% if diagnostics.ssl_status == 'success' %}fa-shield-halved{% else %}fa-lock-open{% endif %}"></i>
+            </div>
+            <div style="flex: 1;">
+                <h3 style="font-size: 1.2rem; font-weight: 800; margin-bottom: 0.5rem; color: white;">تأمين SSL / HTTPS</h3>
+                <p style="font-size: 0.9rem; line-height: 1.5; opacity: 0.8;">
+                    {{ diagnostics.ssl_msg }}
+                </p>
+            </div>
+        </div>
+
+        <!-- Binding Check -->
+        <div class="card" style="display: flex; align-items: flex-start; gap: 1.5rem; border-left: 5px solid {% if diagnostics.binding_status == 'success' %}#10b981{% else %}#ef4444{% endif %};">
+            <div style="font-size: 2rem; color: {% if diagnostics.binding_status == 'success' %}#10b981{% else %}#ef4444{% endif %};">
+                <i class="fa-solid fa-link"></i>
+            </div>
+            <div style="flex: 1;">
+                <h3 style="font-size: 1.2rem; font-weight: 800; margin-bottom: 0.5rem; color: white;">ربط قاعدة البيانات</h3>
+                <p style="font-size: 0.9rem; line-height: 1.5; opacity: 0.8;">
+                    {{ diagnostics.binding_msg }}
+                </p>
+            </div>
+        </div>
+
+        <!-- Subscription Check -->
+        <div class="card" style="display: flex; align-items: flex-start; gap: 1.5rem; border-left: 5px solid {% if diagnostics.subscription_status == 'success' %}#10b981{% else %}#ef4444{% endif %};">
+            <div style="font-size: 2rem; color: {% if diagnostics.subscription_status == 'success' %}#10b981{% else %}#ef4444{% endif %};">
+                <i class="fa-solid fa-credit-card"></i>
+            </div>
+            <div style="flex: 1;">
+                <h3 style="font-size: 1.2rem; font-weight: 800; margin-bottom: 0.5rem; color: white;">صلاحية باقة الاشتراك</h3>
+                <p style="font-size: 0.9rem; line-height: 1.5; opacity: 0.8;">
+                    {{ diagnostics.subscription_msg }}
+                </p>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Instruction Sidebar -->
+    <div style="display: flex; flex-direction: column; gap: 1.5rem;">
+        <div class="card">
+            <h3 style="font-size: 1.1rem; font-weight: 800; margin-bottom: 1rem; color: var(--primary);"><i class="fa-solid fa-book"></i> إرشادات التوجيه (DNS)</h3>
+            <p style="font-size: 0.85rem; opacity: 0.8; line-height: 1.6; margin-bottom: 1rem;">
+                لربط دومينك بنجاح، يرجى التوجه للشركة التي اشتريت منها الدومين (مثل Namecheap) وضبط إعدادات الـ DNS كالتالي:
+            </p>
+            <div style="background: rgba(0,0,0,0.2); border: 1px solid var(--card-border); padding: 1rem; border-radius: 12px; font-family: monospace; font-size: 0.8rem; line-height: 1.5; margin-bottom: 1rem;">
+                <strong>نوع السجل (Type):</strong> CNAME<br>
+                <strong>الاسم (Host):</strong> @ أو *<br>
+                <strong>القيمة (Value):</strong> raqamiyatapp.com
+            </div>
+            <p style="font-size: 0.8rem; opacity: 0.6; line-height: 1.5;">
+                ملاحظة: قد يستغرق انتشار سجلات الـ DNS الجديدة من 15 دقيقة إلى 24 ساعة كحد أقصى على مستوى شبكة الإنترنت.
+            </p>
+        </div>
+    </div>
+</div>
+{% endblock %}

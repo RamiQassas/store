@@ -23,6 +23,8 @@ class TenantMiddleware:
         if host.endswith("." + main_domain) and host != main_domain:
             subdomain = host[:-(len(main_domain) + 1)]
             is_subdomain = True
+            if subdomain == "www":
+                is_subdomain = False
         elif main_domain in ["localhost", "127.0.0.1", "testserver"]:
             # For local testing (including Django test client), parse first part as subdomain
             parts = host.split('.')

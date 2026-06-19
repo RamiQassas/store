@@ -34,6 +34,7 @@ urlpatterns = [
     path("control/saas/", views_saas.saas_dashboard, name="control_saas_dashboard"),
     path("control/saas/stores/", views_saas.saas_store_list, name="control_saas_stores"),
     path("control/saas/stores/<uuid:pk>/", views_saas.saas_store_detail, name="control_saas_store_detail"),
+    path("control/saas/stores/<uuid:pk>/domain-diagnostics/", views_saas.saas_store_domain_diagnostics, name="control_saas_store_domain_diagnostics"),
     path("control/saas/stores/<uuid:pk>/limits/", views_saas.saas_store_edit_limits, name="control_saas_store_limits"),
     path("control/saas/stores/<uuid:pk>/toggle-status/", views_saas.saas_store_toggle_status, name="control_saas_store_toggle"),
     path("control/saas/stores/<uuid:pk>/login/", views_saas.saas_store_login_as, name="control_saas_store_login"),

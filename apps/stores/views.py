@@ -21,7 +21,7 @@ from apps.wallets.models import Wallet, LedgerEntry
 from apps.wallets.services import credit_wallet, debit_wallet
 from apps.common.models import Currency
 
-from apps.stores.models import Store, StorePage, StoreEmployee, SubscriptionPlan
+from apps.stores.models import Store, StorePage, StoreEmployee, SubscriptionPlan, StoreTemplate
 from apps.stores.forms import (
     StoreForm, StoreCustomDomainForm, StorePageForm, StoreEmployeeForm, 
     MerchantProductForm, MerchantCategoryForm, MerchantCouponForm
@@ -827,4 +827,113 @@ def merchant_subscription(request):
             "coupons": current_coupons,
             "orders": current_month_orders,
         }
+    })
+
+import socket
+import ssl
+
+def perform_domain_diagnostics(store):
+    custom_domain = store.custom_domain
+    diagnostics = {
+        "custom_domain": custom_domain,
+        "dns_status": "error",
+        "dns_ip": None,
+        "dns_msg": "لم يتم إدخال نطاق مخصص بعد.",
+        "ssl_status": "error",
+        "ssl_msg": "لا يمكن فحص SSL بدون حل DNS صحيح.",
+        "binding_status": "error",
+        "binding_msg": "لم يتم ربط النطاق في قاعدة البيانات بعد.",
+        "subscription_status": "error",
+        "subscription_msg": "الاشتراك غير فعال أو منتهي الصلاحية.",
+    }
+    
+    if not custom_domain:
+        return diagnostics
+        
+    # 1. Binding Check
+    diagnostics["binding_status"] = "success"
+    diagnostics["binding_msg"] = f"النطاق مضاف ومربوط بشكل صحيح بالمتجر '{store.name}'."
+
+    # 2. DNS Check
+    try:
+        resolved_ip = socket.gethostbyname(custom_domain)
+        diagnostics["dns_ip"] = resolved_ip
+        
+        platform_domain = "raqamiyatapp.com"
+        try:
+            platform_ip = socket.gethostbyname(platform_domain)
+        except Exception:
+            platform_ip = None
+            
+        if platform_ip and resolved_ip == platform_ip:
+            diagnostics["dns_status"] = "success"
+            diagnostics["dns_msg"] = f"مكتمل (يوجّه بنجاح إلى IP المنصة: {resolved_ip})."
+        else:
+            diagnostics["dns_status"] = "warning"
+            diagnostics["dns_msg"] = f"يوجّه إلى {resolved_ip} (يرجى التأكد من توجيهه لـ IP المنصة أو CNAME)."
+    except Exception as e:
+        diagnostics["dns_status"] = "error"
+        diagnostics["dns_msg"] = f"فشل في دقة الاسم (DNS Resolution Failed): {str(e)}"
+
+    # 3. SSL Check
+    if diagnostics["dns_ip"]:
+        context = ssl.create_default_context()
+        context.check_hostname = True
+        context.verify_mode = ssl.CERT_REQUIRED
+        try:
+            with socket.create_connection((custom_domain, 443), timeout=3) as sock:
+                with context.wrap_socket(sock, server_hostname=custom_domain) as ssock:
+                    cert = ssock.getpeercert()
+            diagnostics["ssl_status"] = "success"
+            diagnostics["ssl_msg"] = "شهادة SSL صالحة ومفعلة للاتصال الآمن."
+        except Exception as e:
+            diagnostics["ssl_status"] = "error"
+            diagnostics["ssl_msg"] = f"فشل الاتصال الآمن (SSL Connection Failed): {str(e)}"
+
+    # 4. Subscription Check
+    if store.is_active and store.subscription_status == Store.Status.ACTIVE:
+        if store.subscription_end and store.subscription_end > timezone.now():
+            diagnostics["subscription_status"] = "success"
+            diagnostics["subscription_msg"] = f"نشط وفعال حتى تاريخ {store.subscription_end.strftime('%Y-%m-%d')}."
+        else:
+            diagnostics["subscription_status"] = "error"
+            diagnostics["subscription_msg"] = "الاشتراك منتهي الصلاحية."
+    else:
+        diagnostics["subscription_status"] = "error"
+        diagnostics["subscription_msg"] = f"حالة الاشتراك الحالية: {store.get_subscription_status_display()} (المتجر غير نشط)."
+
+    return diagnostics
+
+@employee_required("manage_settings")
+def merchant_domain_diagnostics(request):
+    store = request.store
+    diagnostics = perform_domain_diagnostics(store)
+    return render(request, "stores/merchant/domain_diagnostics.html", {
+        "store": store,
+        "diagnostics": diagnostics,
+    })
+
+@employee_required("manage_settings")
+def merchant_theme_builder(request):
+    store = request.store
+    templates = StoreTemplate.objects.filter(is_active=True)
+    
+    if request.method == "POST":
+        store.primary_color = request.POST.get("primary_color", store.primary_color)
+        store.secondary_color = request.POST.get("secondary_color", store.secondary_color)
+        store.button_color = request.POST.get("button_color", store.button_color)
+        store.background_color = request.POST.get("background_color", store.background_color)
+        store.text_color = request.POST.get("text_color", store.text_color)
+        store.theme_font = request.POST.get("theme_font", store.theme_font)
+        store.card_style = request.POST.get("card_style", store.card_style)
+        store.header_style = request.POST.get("header_style", store.header_style)
+        store.footer_style = request.POST.get("footer_style", store.footer_style)
+        
+        store.save()
+        messages.success(request, "تم حفظ تصميم ومظهر المتجر بنجاح.")
+        return redirect("merchant_theme_builder")
+        
+    return render(request, "stores/merchant/theme_builder.html", {
+        "store": store,
+        "templates": templates,
     })

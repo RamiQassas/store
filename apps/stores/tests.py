@@ -7,8 +7,11 @@ from apps.orders.models import Order
 from apps.wallets.models import Wallet
 from apps.common.models import Currency
 from apps.common.tenant_utils import set_current_store, bypass_tenant_filter, _current_store
+from unittest.mock import patch
+from django.utils import timezone
 
 User = get_user_model()
+
 
 
 class StoreMultiTenantTest(TestCase):
@@ -259,3 +262,153 @@ class SaaSControlPanelAndLimitsTests(TestCase):
             response2.status_code, 200,
             f"Expected 200 (form rendered) after limit override, got {response2.status_code}"
         ) # Form page loads successfully
+
+
+@override_settings(SITE_URL="http://testserver")
+class StoreSaaSNewFeaturesTests(TestCase):
+    def setUp(self):
+        from decimal import Decimal
+        # Create standard currency
+        self.currency = Currency.objects.create(
+            name="US Dollar", code="USD", symbol="$", buy_rate=1.0, sell_rate=1.0, is_default=True
+        )
+
+        # Create subscription plan
+        self.plan = SubscriptionPlan.objects.create(
+            name="Pro Plan",
+            price_monthly=29.00,
+            max_products=10,
+            max_categories=10,
+            is_active=True
+        )
+
+        with bypass_tenant_filter():
+            self.user = User.objects.create_user(
+                email="merchant@example.com", password="Password123!"
+            )
+            # Get or update wallet
+            self.wallet, _ = Wallet.objects.get_or_create(user=self.user, defaults={"currency": self.currency})
+            self.wallet.available_balance = Decimal("100.00")
+            self.wallet.currency = self.currency
+            self.wallet.save()
+
+        self.store = Store.objects.create(
+            owner=self.user,
+            name="Test Store",
+            slug="test-store",
+            custom_domain="mycustom.com",
+            subscription_plan=self.plan,
+            subscription_status=Store.Status.ACTIVE,
+            subscription_start=timezone.now(),
+            subscription_end=timezone.now() + timezone.timedelta(days=30),
+            is_active=True
+        )
+        StoreEmployee.objects.create(store=self.store, user=self.user, role="owner")
+
+    def test_perform_domain_diagnostics_no_domain(self):
+        from apps.stores.views import perform_domain_diagnostics
+        self.store.custom_domain = ""
+        self.store.save()
+        res = perform_domain_diagnostics(self.store)
+        self.assertEqual(res["custom_domain"], "")
+        self.assertEqual(res["dns_status"], "error")
+        self.assertEqual(res["binding_status"], "error")
+
+    @patch("socket.gethostbyname")
+    def test_perform_domain_diagnostics_resolved(self, mock_gethostbyname):
+        from apps.stores.views import perform_domain_diagnostics
+        mock_gethostbyname.side_effect = lambda host: "1.2.3.4" if host == "raqamiyatapp.com" else "1.2.3.4"
+        res = perform_domain_diagnostics(self.store)
+        self.assertEqual(res["dns_ip"], "1.2.3.4")
+        self.assertEqual(res["dns_status"], "success")
+        self.assertEqual(res["binding_status"], "success")
+
+    def test_merchant_theme_builder_get(self):
+        client = Client()
+        client.login(email="merchant@example.com", password="Password123!")
+        if "sessionid" in client.cookies:
+            client.cookies["sessionid"]["domain"] = ".testserver"
+        
+        response = client.get(reverse("merchant_theme_builder", urlconf="apps.stores.urls"), HTTP_HOST="test-store.testserver")
+        self.assertEqual(response.status_code, 200)
+
+    def test_merchant_theme_builder_post(self):
+        client = Client()
+        client.login(email="merchant@example.com", password="Password123!")
+        if "sessionid" in client.cookies:
+            client.cookies["sessionid"]["domain"] = ".testserver"
+        
+        post_data = {
+            "primary_color": "#112233",
+            "secondary_color": "#445566",
+            "button_color": "#778899",
+            "background_color": "#aabbcc",
+            "text_color": "#ddeeff",
+            "theme_font": "Tajawal",
+            "card_style": "rounded",
+            "header_style": "modern",
+            "footer_style": "minimal"
+        }
+        response = client.post(reverse("merchant_theme_builder", urlconf="apps.stores.urls"), post_data, HTTP_HOST="test-store.testserver")
+        self.assertEqual(response.status_code, 302) # Redirect to self
+        
+        # Verify store model updated
+        with bypass_tenant_filter():
+            self.store.refresh_from_db()
+            self.assertEqual(self.store.primary_color, "#112233")
+            self.assertEqual(self.store.theme_font, "Tajawal")
+            self.assertEqual(self.store.card_style, "rounded")
+
+    def test_store_registration_payment_success(self):
+        from apps.stores.models import SubscriptionInvoice
+        client = Client()
+        client.login(email="merchant@example.com", password="Password123!")
+        
+        # Populate session
+        session = client.session
+        session["store_reg_data"] = {
+            "name": "New Shop",
+            "slug": "new-shop",
+            "description": "Desc",
+            "plan_id": str(self.plan.id)
+        }
+        session.save()
+        
+        # Post payment
+        response = client.post(reverse("store_registration_payment"))
+        self.assertEqual(response.status_code, 200) # Returns registration_success.html
+        
+        # Check wallet balance and invoice creation
+        with bypass_tenant_filter():
+            self.wallet.refresh_from_db()
+            # Wallet balance started at 100, cost is 29 USD
+            self.assertEqual(float(self.wallet.available_balance), 71.00)
+            
+            # Invoice should exist
+            self.assertTrue(SubscriptionInvoice.objects.filter(user=self.user, plan=self.plan).exists())
+            
+            # Store should exist
+            self.assertTrue(Store.objects.filter(slug="new-shop").exists())
+
+    def test_store_registration_payment_insufficient_balance(self):
+        from decimal import Decimal
+        client = Client()
+        client.login(email="merchant@example.com", password="Password123!")
+        
+        # Set wallet balance to low
+        with bypass_tenant_filter():
+            self.wallet.available_balance = Decimal("5.00")
+            self.wallet.save()
+            
+        session = client.session
+        session["store_reg_data"] = {
+            "name": "New Shop 2",
+            "slug": "new-shop-2",
+            "description": "Desc",
+            "plan_id": str(self.plan.id)
+        }
+        session.save()
+        
+        response = client.post(reverse("store_registration_payment"))
+        self.assertEqual(response.status_code, 302) # Redirects back to payment page with error
+

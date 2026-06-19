@@ -1,0 +1,84 @@
+{% extends "site/control_base.html" %}
+
+{% block title %}تشخيص نطاق المتجر | رقميات SaaS{% endblock %}
+
+{% block control_content %}
+<div class="page-head flex flex-col md:flex-row md:items-center justify-between gap-4">
+    <div>
+        <span class="eyebrow">إدارة المتاجر وحل المشاكل</span>
+        <h1>تشخيص النطاق المخصص: {{ store.name }}</h1>
+        <p class="text-slate-500 mt-2">التحقق البرمي والـ DNS المباشر للنطاق <code>{{ store.custom_domain }}</code>.</p>
+    </div>
+    <a href="{% url 'control_saas_store_detail' store.id %}" class="btn btn-outline"><i class="fas fa-arrow-left"></i> عودة لتفاصيل المتجر</a>
+</div>
+
+<div class="grid grid-cols-1 lg:grid-cols-12 gap-8 mb-12">
+    <!-- Diagnostics Results -->
+    <div class="lg:col-span-8 flex flex-col gap-6">
+        
+        <!-- DNS Record -->
+        <div class="glass-panel p-6 border-white/5 flex gap-6" style="border-right: 5px solid {% if diagnostics.dns_status == 'success' %}#34d399{% elif diagnostics.dns_status == 'warning' %}#fbbf24{% else %}#f87171{% endif %};">
+            <div class="text-3xl" style="color: {% if diagnostics.dns_status == 'success' %}#34d399{% elif diagnostics.dns_status == 'warning' %}#fbbf24{% else %}#f87171{% endif %};">
+                <i class="fas {% if diagnostics.dns_status == 'success' %}fa-check-circle{% elif diagnostics.dns_status == 'warning' %}fa-exclamation-triangle{% else %}fa-times-circle{% endif %}"></i>
+            </div>
+            <div class="flex-1">
+                <h3 class="text-base font-black text-white mb-2">حل أسماء النطاق وسجلات الـ DNS</h3>
+                <p class="text-xs text-slate-400 font-bold mb-3">{{ diagnostics.dns_msg }}</p>
+                {% if diagnostics.dns_ip %}
+                    <span class="text-[10px] bg-slate-900 border border-white/5 text-white font-bold py-1 px-2.5 rounded-lg font-mono">Resolved IP Address: {{ diagnostics.dns_ip }}</span>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- SSL Record -->
+        <div class="glass-panel p-6 border-white/5 flex gap-6" style="border-right: 5px solid {% if diagnostics.ssl_status == 'success' %}#34d399{% else %}#f87171{% endif %};">
+            <div class="text-3xl" style="color: {% if diagnostics.ssl_status == 'success' %}#34d399{% else %}#f87171{% endif %};">
+                <i class="fas {% if diagnostics.ssl_status == 'success' %}fa-shield-alt{% else %}fa-unlock-alt{% endif %}"></i>
+            </div>
+            <div class="flex-1">
+                <h3 class="text-base font-black text-white mb-2">فحص شهادة التشفير والأمان SSL</h3>
+                <p class="text-xs text-slate-400 font-bold">{{ diagnostics.ssl_msg }}</p>
+            </div>
+        </div>
+
+        <!-- Binding Record -->
+        <div class="glass-panel p-6 border-white/5 flex gap-6" style="border-right: 5px solid {% if diagnostics.binding_status == 'success' %}#34d399{% else %}#f87171{% endif %};">
+            <div class="text-3xl" style="color: {% if diagnostics.binding_status == 'success' %}#34d399{% else %}#f87171{% endif %};">
+                <i class="fas fa-link"></i>
+            </div>
+            <div class="flex-1">
+                <h3 class="text-base font-black text-white mb-2">ربط قاعدة البيانات (Database Binding)</h3>
+                <p class="text-xs text-slate-400 font-bold">{{ diagnostics.binding_msg }}</p>
+            </div>
+        </div>
+
+        <!-- Subscription Record -->
+        <div class="glass-panel p-6 border-white/5 flex gap-6" style="border-right: 5px solid {% if diagnostics.subscription_status == 'success' %}#34d399{% else %}#f87171{% endif %};">
+            <div class="text-3xl" style="color: {% if diagnostics.subscription_status == 'success' %}#34d399{% else %}#f87171{% endif %};">
+                <i class="fas fa-credit-card"></i>
+            </div>
+            <div class="flex-1">
+                <h3 class="text-base font-black text-white mb-2">صلاحية حساب المتجر للاستخدام</h3>
+                <p class="text-xs text-slate-400 font-bold">{{ diagnostics.subscription_msg }}</p>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Info/Helper Panel -->
+    <div class="lg:col-span-4 flex flex-col gap-6">
+        <div class="glass-panel p-6 border-white/5">
+            <h3 class="text-sm font-black text-white uppercase tracking-widest mb-4"><i class="fas fa-info-circle text-cyan text-xs"></i> معلومات التوجيه والخادم</h3>
+            <p class="text-xs text-slate-400 font-bold leading-6 mb-4">
+                تأكد من مطابقة الـ IP الخاص بالدومين المخصص مع IP خادم المنصة. في حال استخدام CDN مثل Cloudflare، تأكد من تفعيل وضع (DNS-only) مؤقتاً لتخطي مشاكل ترحيل SSL.
+            </p>
+            <div class="p-3 bg-black/40 border border-white/5 rounded-xl text-center text-xs font-mono font-bold text-white mb-4">
+                raqamiyatapp.com
+            </div>
+            <p class="text-[10px] text-slate-500 font-bold leading-5">
+                تتم إدارة عمليات الـ SSL تلقائياً من قبل استضافة ريندر فور اكتمال التوجيه بنجاح.
+            </p>
+        </div>
+    </div>
+</div>
+{% endblock %}

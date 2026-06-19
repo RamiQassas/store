@@ -134,6 +134,11 @@
 
                         <button type="submit" class="btn btn-primary" style="width: 100%; justify-content: center;"><i class="fa-solid fa-link"></i> ربط النطاق المخصص</button>
                     </form>
+                    {% if store.custom_domain %}
+                        <div style="margin-top: 1rem; text-align: center;">
+                            <a href="{% url 'merchant_domain_diagnostics' %}" class="btn btn-outline" style="width: 100%; justify-content: center; font-size: 0.85rem;"><i class="fa-solid fa-circle-nodes"></i> تشخيص حالة اتصال الدومين</a>
+                        </div>
+                    {% endif %}
                 {% else %}
                     <div style="background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.2); padding: 1.2rem; border-radius: 12px; color: #f87171; font-size: 0.9rem; line-height: 1.5;">
                         <i class="fa-solid fa-triangle-exclamation"></i>

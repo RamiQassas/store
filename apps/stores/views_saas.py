@@ -87,7 +87,7 @@ def get_store_storage_mb(store):
 @saas_permission_required("dashboard")
 def saas_dashboard(request):
     with bypass_tenant_filter():
-        stores = Store.objects.all().order_by("-created_at")
+        stores = Store.unfiltered.all().order_by("-created_at")
         total_stores = stores.count()
         active_stores = stores.filter(is_active=True, subscription_status=Store.Status.ACTIVE).count()
         suspended_stores = stores.filter(subscription_status=Store.Status.SUSPENDED).count()
@@ -163,7 +163,7 @@ def saas_store_list(request):
     status = request.GET.get("status")
     
     with bypass_tenant_filter():
-        stores = Store.objects.all().select_related('subscription_plan', 'owner').order_by("-created_at")
+        stores = Store.unfiltered.all().select_related('subscription_plan', 'owner').order_by("-created_at")
         
         if q:
             stores = stores.filter(Q(name__icontains=q) | Q(slug__icontains=q) | Q(custom_domain__icontains=q) | Q(owner__email__icontains=q))
@@ -189,7 +189,7 @@ def saas_store_list(request):
 @saas_permission_required("manage_stores")
 def saas_store_detail(request, pk):
     with bypass_tenant_filter():
-        store = get_object_or_404(Store.objects.select_related('subscription_plan', 'owner'), pk=pk)
+        store = get_object_or_404(Store.unfiltered.select_related('subscription_plan', 'owner'), pk=pk)
         
         # Calculate stats
         product_count = Product.all_objects.filter(store=store).count()
@@ -250,7 +250,7 @@ def saas_store_detail(request, pk):
 @saas_permission_required("manage_stores")
 def saas_store_edit_limits(request, pk):
     with bypass_tenant_filter():
-        store = get_object_or_404(Store, pk=pk)
+        store = get_object_or_404(Store.unfiltered, pk=pk)
         
         fields = [
             'max_products', 'max_categories', 'max_monthly_orders', 'max_customers',
@@ -278,7 +278,7 @@ def saas_store_edit_limits(request, pk):
 @saas_permission_required("manage_stores")
 def saas_store_toggle_status(request, pk):
     with bypass_tenant_filter():
-        store = get_object_or_404(Store, pk=pk)
+        store = get_object_or_404(Store.unfiltered, pk=pk)
         action = request.GET.get("action")
         
         if action == "activate":
@@ -304,7 +304,7 @@ def saas_store_toggle_status(request, pk):
 def saas_store_login_as(request, pk):
     """Impersonate store owner."""
     with bypass_tenant_filter():
-        store = get_object_or_404(Store, pk=pk)
+        store = get_object_or_404(Store.unfiltered, pk=pk)
         owner = store.owner
         
         log_saas_action(request, "تسجيل دخول كصاحب متجر", f"قام المدير بتسجيل الدخول كمالك للمتجر {store.name} ({owner.email})")
@@ -430,7 +430,7 @@ def saas_resource_monitor(request):
             disk_percent = round((used / total) * 100, 1)
 
         stores_data = []
-        for s in Store.objects.filter(is_active=True):
+        for s in Store.unfiltered.filter(is_active=True):
             storage_mb = get_store_storage_mb(s)
             p_count = Product.all_objects.filter(store=s).count()
             o_count = Order.all_objects.filter(store=s).count()
@@ -585,3 +585,14 @@ def saas_settings(request):
         return redirect("control_saas_settings")
         
     return render(request, "stores/saas/settings.html", {"setting": setting})
+
+@saas_permission_required("manage_stores")
+def saas_store_domain_diagnostics(request, pk):
+    with bypass_tenant_filter():
+        store = get_object_or_404(Store.unfiltered, pk=pk)
+        from apps.stores.views import perform_domain_diagnostics
+        diagnostics = perform_domain_diagnostics(store)
+    return render(request, "stores/saas/domain_diagnostics.html", {
+        "store": store,
+        "diagnostics": diagnostics,
+    })

@@ -18,57 +18,95 @@
 
 <!-- Grid Panels -->
 <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 mb-12">
-    <!-- Store Identity Card -->
-    <div class="lg:col-span-4 glass-panel p-6 border-white/5 flex flex-col items-center text-center">
-        <div class="w-24 h-24 rounded-2xl bg-slate-800 flex items-center justify-center border border-white/10 mb-4 overflow-hidden">
-            {% if store.logo %}
-            <img src="{{ store.logo.url }}" class="w-full h-full object-cover">
-            {% else %}
-            <i class="fas fa-store text-slate-500 text-3xl"></i>
-            {% endif %}
-        </div>
-        <h2 class="text-lg font-black text-white mb-1">{{ store.name }}</h2>
-        <span class="text-xs text-slate-400 font-bold block mb-4">{{ store.slug }}.raqamiyatapp.com</span>
-        
-        <div class="w-full text-right divide-y divide-white/5 text-xs text-slate-400 font-bold mt-4">
-            <div class="py-3 flex justify-between">
-                <span>حالة الاشتراك:</span>
-                <span>
-                    {% if store.subscription_status == 'active' and store.is_active %}
-                    <span class="badge success">نشط</span>
-                    {% elif store.subscription_status == 'suspended' %}
-                    <span class="badge danger">موقوف مؤقتاً</span>
-                    {% else %}
-                    <span class="badge primary">{{ store.get_subscription_status_display }}</span>
-                    {% endif %}
-                </span>
+    <!-- Left Column (Identity & Owner Info) -->
+    <div class="lg:col-span-4 flex flex-col gap-6">
+        <!-- Store Identity Card -->
+        <div class="glass-panel p-6 border-white/5 flex flex-col items-center text-center">
+            <div class="w-24 h-24 rounded-2xl bg-slate-800 flex items-center justify-center border border-white/10 mb-4 overflow-hidden">
+                {% if store.logo %}
+                <img src="{{ store.logo.url }}" class="w-full h-full object-cover">
+                {% else %}
+                <i class="fas fa-store text-slate-500 text-3xl"></i>
+                {% endif %}
             </div>
-            <div class="py-3 flex justify-between">
-                <span>باقة الاشتراك:</span>
-                <span class="text-white">{{ store.subscription_plan.name }}</span>
+            <h2 class="text-lg font-black text-white mb-1">{{ store.name }}</h2>
+            <span class="text-xs text-slate-400 font-bold block mb-4">{{ store.slug }}.raqamiyatapp.com</span>
+            
+            <div class="w-full text-right divide-y divide-white/5 text-xs text-slate-400 font-bold mt-4">
+                <div class="py-3 flex justify-between">
+                    <span>حالة الاشتراك:</span>
+                    <span>
+                        {% if store.subscription_status == 'active' and store.is_active %}
+                        <span class="badge success">نشط</span>
+                        {% elif store.subscription_status == 'suspended' %}
+                        <span class="badge danger">موقوف مؤقتاً</span>
+                        {% else %}
+                        <span class="badge primary">{{ store.get_subscription_status_display }}</span>
+                        {% endif %}
+                    </span>
+                </div>
+                <div class="py-3 flex justify-between">
+                    <span>باقة الاشتراك:</span>
+                    <span class="text-white">{{ store.subscription_plan.name }}</span>
+                </div>
+                {% if store.custom_domain %}
+                <div class="py-3 flex justify-between">
+                    <span>النطاق المخصص:</span>
+                    <span>
+                        <a href="https://{{ store.custom_domain }}" target="_blank" style="color: var(--primary); text-decoration: none; font-family: monospace;">{{ store.custom_domain }}</a>
+                        <a href="{% url 'control_saas_store_domain_diagnostics' store.id %}" class="text-cyan" style="margin-right: 0.5rem; text-decoration: underline;" title="تشخيص النطاق"><i class="fas fa-check-circle"></i> تشخيص</a>
+                    </span>
+                </div>
+                {% endif %}
+                <div class="py-3 flex justify-between">
+                    <span>تاريخ التأسيس:</span>
+                    <span class="text-white">{{ store.created_at|date:"Y-m-d" }}</span>
+                </div>
+                <div class="py-3 flex justify-between">
+                    <span>انتهاء الصلاحية:</span>
+                    <span class="text-rose-400">{{ store.subscription_end|date:"Y-m-d" }}</span>
+                </div>
             </div>
-            <div class="py-3 flex justify-between">
-                <span>المالك الحالي:</span>
-                <span class="text-white">{{ store.owner.email }}</span>
-            </div>
-            <div class="py-3 flex justify-between">
-                <span>تاريخ التأسيس:</span>
-                <span class="text-white">{{ store.created_at|date:"Y-m-d" }}</span>
-            </div>
-            <div class="py-3 flex justify-between">
-                <span>انتهاء الصلاحية:</span>
-                <span class="text-rose-400">{{ store.subscription_end|date:"Y-m-d" }}</span>
+
+            <div class="flex flex-col gap-2 w-full mt-6">
+                {% if store.is_active %}
+                <a href="{% url 'control_saas_store_toggle' store.id %}?action=suspend" class="btn btn-outline w-full py-2.5 text-rose-400 border-rose-500/20 hover:bg-rose-500/10"><i class="fas fa-pause"></i> تعليق المتجر مؤقتاً</a>
+                <a href="{% url 'control_saas_store_toggle' store.id %}?action=deactivate" class="btn btn-outline w-full py-2.5 text-rose-400 border-rose-500/20 hover:bg-rose-500/10"><i class="fas fa-stop"></i> إيقاف المتجر بالكامل</a>
+                {% else %}
+                <a href="{% url 'control_saas_store_toggle' store.id %}?action=activate" class="btn btn-primary w-full py-2.5"><i class="fas fa-play"></i> تفعيل وتشغيل المتجر</a>
+                {% endif %}
+                <a href="{% url 'control_saas_store_toggle' store.id %}?action=delete" class="btn btn-outline w-full py-2.5 text-rose-500 border-rose-500/30 hover:bg-rose-500/20" onclick="return confirm('هل أنت متأكد من رغبتك في إلغاء وحذف هذا المتجر نهائياً؟');"><i class="fas fa-trash-alt"></i> حذف وإلغاء المتجر</a>
             </div>
         </div>
 
-        <div class="flex flex-col gap-2 w-full mt-6">
-            {% if store.is_active %}
-            <a href="{% url 'control_saas_store_toggle' store.id %}?action=suspend" class="btn btn-outline w-full py-2.5 text-rose-400 border-rose-500/20 hover:bg-rose-500/10"><i class="fas fa-pause"></i> تعليق المتجر مؤقتاً</a>
-            <a href="{% url 'control_saas_store_toggle' store.id %}?action=deactivate" class="btn btn-outline w-full py-2.5 text-rose-400 border-rose-500/20 hover:bg-rose-500/10"><i class="fas fa-stop"></i> إيقاف المتجر بالكامل</a>
-            {% else %}
-            <a href="{% url 'control_saas_store_toggle' store.id %}?action=activate" class="btn btn-primary w-full py-2.5"><i class="fas fa-play"></i> تفعيل وتشغيل المتجر</a>
-            {% endif %}
-            <a href="{% url 'control_saas_store_toggle' store.id %}?action=delete" class="btn btn-outline w-full py-2.5 text-rose-500 border-rose-500/30 hover:bg-rose-500/20" onclick="return confirm('هل أنت متأكد من رغبتك في إلغاء وحذف هذا المتجر نهائياً؟');"><i class="fas fa-trash-alt"></i> حذف وإلغاء المتجر</a>
+        <!-- Owner Details Card -->
+        <div class="glass-panel p-6 border-white/5 flex flex-col gap-4">
+            <h3 class="text-sm font-black text-white uppercase tracking-widest flex items-center gap-2 mb-2" style="border-bottom: 1px solid rgba(255, 255, 255, 0.05); padding-bottom: 0.5rem;">
+                <i class="fas fa-user-tie text-cyan text-xs"></i> بيانات مالك المتجر
+            </h3>
+            
+            <div class="w-full text-right divide-y divide-white/5 text-xs text-slate-400 font-bold">
+                <div class="py-3 flex justify-between">
+                    <span>الاسم الكامل:</span>
+                    <span class="text-white">{{ store.owner.get_full_name|default:store.owner.display_name }}</span>
+                </div>
+                <div class="py-3 flex justify-between">
+                    <span>البريد الإلكتروني:</span>
+                    <span class="text-white">{{ store.owner.email }}</span>
+                </div>
+                <div class="py-3 flex justify-between">
+                    <span>رقم الهاتف:</span>
+                    <span class="text-white">{{ store.owner.phone|default:"غير محدد" }}</span>
+                </div>
+                <div class="py-3 flex justify-between">
+                    <span>تاريخ التسجيل:</span>
+                    <span class="text-white">{{ store.owner.date_joined|date:"Y-m-d H:i" }}</span>
+                </div>
+                <div class="py-3 flex justify-between">
+                    <span>آخر دخول:</span>
+                    <span class="text-white">{{ store.owner.last_login|date:"Y-m-d H:i"|default:"لم يسجل دخول" }}</span>
+                </div>
+            </div>
         </div>
     </div>
 

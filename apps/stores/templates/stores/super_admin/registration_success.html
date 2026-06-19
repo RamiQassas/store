@@ -58,7 +58,11 @@
             </div>
             <div class="detail-row">
                 <span style="opacity: 0.7;">رابط المتجر الفرعي:</span>
-                <strong style="color: var(--primary); font-family: monospace;">{{ store.slug }}.raqamiyatapp.com</strong>
+                <strong style="font-family: monospace;">
+                    <a href="https://{{ store.slug }}.raqamiyatapp.com" target="_blank" style="color: var(--primary); text-decoration: none;">
+                        https://{{ store.slug }}.raqamiyatapp.com <i class="fa-solid fa-up-right-from-square" style="font-size: 0.8rem; margin-right: 0.2rem;"></i>
+                    </a>
+                </strong>
             </div>
             <div class="detail-row">
                 <span style="opacity: 0.7;">حالة الاشتراك:</span>
@@ -67,11 +71,12 @@
         </div>
 
         <p style="font-size: 0.9rem; opacity: 0.7; line-height: 1.6;">
-            لتجربة الدخول لمتجرك محلياً، يرجى التوجه لاسم النطاق المذكور بالأعلى (بعد إضافته لملف <code>hosts</code> الخاص بجهازك للتوجيه لـ <code>127.0.0.1</code>) ومن ثم الدخول ببريدك الإلكتروني وكلمة المرور للوصول للوحة التحكم للتاجر على مسار <code>/merchant/</code>.
+            يمكنك الآن الدخول إلى متجرك مباشرةً وتصفحه على الإنترنت، أو الانتقال مباشرةً إلى لوحة التحكم الخاصة بك للبدء في رفع المنتجات وإعداد المتجر.
         </p>
 
-        <div style="margin-top: 1rem;">
-            <a href="/" class="btn btn-primary" style="width: 100%;"><i class="fa-solid fa-house"></i> العودة للموقع الرئيسي لرقميات</a>
+        <div style="margin-top: 1rem; display: flex; flex-direction: column; gap: 0.8rem;">
+            <a href="https://{{ store.slug }}.raqamiyatapp.com/merchant/" target="_blank" class="btn btn-primary" style="width: 100%;"><i class="fa-solid fa-gauge-high"></i> الدخول إلى لوحة تحكم المتجر (التاجر)</a>
+            <a href="/" class="btn btn-outline" style="width: 100%;"><i class="fa-solid fa-house"></i> العودة للموقع الرئيسي لرقميات</a>
         </div>
     </div>
 

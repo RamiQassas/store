@@ -112,6 +112,22 @@ class Store(TimeStampedModel):
     is_active = models.BooleanField(default=True, verbose_name="نشط")
     limit_overrides = models.JSONField(default=dict, blank=True, verbose_name="تجاوز الحدود يدوياً")
     
+    # Styling and Theme Colors (Extended)
+    primary_color = models.CharField(max_length=7, default="#06b6d4", verbose_name="اللون الأساسي")
+    secondary_color = models.CharField(max_length=7, default="#0891b2", verbose_name="اللون الثانوي")
+    button_color = models.CharField(max_length=7, default="#06b6d4", verbose_name="لون الأزرار")
+    background_color = models.CharField(max_length=7, default="#ffffff", verbose_name="لون الخلفية")
+    text_color = models.CharField(max_length=7, default="#0f172a", verbose_name="لون النص")
+    theme_font = models.CharField(max_length=50, default="Cairo", verbose_name="الخط")
+    card_style = models.CharField(max_length=20, default="flat", verbose_name="شكل البطاقات")
+    header_style = models.CharField(max_length=20, default="classic", verbose_name="شكل الهيدر")
+    footer_style = models.CharField(max_length=20, default="classic", verbose_name="شكل الفوتر")
+    
+    # Managers
+    objects = models.Manager()
+    unfiltered = models.Manager()
+    all_objects = models.Manager()
+    
     # Contact details
     phone = models.CharField(max_length=32, blank=True, verbose_name="الهاتف")
     email = models.EmailField(blank=True, verbose_name="البريد الإلكتروني")
@@ -223,6 +239,17 @@ class StoreTemplate(models.Model):
     category = models.CharField(max_length=100, verbose_name="فئة القالب")
     mobile_responsive = models.BooleanField(default=True, verbose_name="متوافق مع الجوال")
     is_active = models.BooleanField(default=True, verbose_name="نشط")
+    
+    # Template design defaults
+    primary_color = models.CharField(max_length=7, default="#06b6d4", verbose_name="اللون الأساسي")
+    secondary_color = models.CharField(max_length=7, default="#0891b2", verbose_name="اللون الثانوي")
+    button_color = models.CharField(max_length=7, default="#06b6d4", verbose_name="لون الأزرار")
+    background_color = models.CharField(max_length=7, default="#ffffff", verbose_name="لون الخلفية")
+    text_color = models.CharField(max_length=7, default="#0f172a", verbose_name="لون النص")
+    theme_font = models.CharField(max_length=50, default="Cairo", verbose_name="الخط")
+    card_style = models.CharField(max_length=20, default="flat", verbose_name="شكل البطاقات")
+    header_style = models.CharField(max_length=20, default="classic", verbose_name="شكل الهيدر")
+    footer_style = models.CharField(max_length=20, default="classic", verbose_name="شكل الفوتر")
 
     class Meta:
         verbose_name = "قالب متجر"
@@ -247,3 +274,27 @@ class SaaSGlobalSetting(models.Model):
 
     def __str__(self):
         return self.platform_name
+
+
+class SubscriptionInvoice(TimeStampedModel):
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="subscription_invoices", verbose_name="المستخدم")
+    store = models.ForeignKey(Store, on_delete=models.SET_NULL, null=True, blank=True, related_name="subscription_invoices", verbose_name="المتجر")
+    plan = models.ForeignKey(SubscriptionPlan, on_delete=models.PROTECT, verbose_name="باقة الاشتراك")
+    invoice_number = models.CharField(max_length=50, unique=True, verbose_name="رقم الفاتورة")
+    amount = models.DecimalField(max_digits=12, decimal_places=2, verbose_name="المبلغ المدفوع")
+    currency = models.ForeignKey("common.Currency", on_delete=models.PROTECT, verbose_name="العملة")
+    issued_at = models.DateTimeField(auto_now_add=True, verbose_name="تاريخ الإصدار")
+    status = models.CharField(
+        max_length=20,
+        choices=[("paid", "مدفوعة"), ("unpaid", "غير مدفوعة"), ("refunded", "مستردة")],
+        default="paid",
+        verbose_name="حالة الفاتورة"
+    )
+
+    class Meta:
+        verbose_name = "فاتورة اشتراك"
+        verbose_name_plural = "فواتير الاشتراكات"
+        ordering = ["-issued_at"]
+
+    def __str__(self):
+        return f"{self.invoice_number} - {self.store.name if self.store else self.user.email}"

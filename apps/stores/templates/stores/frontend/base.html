@@ -7,7 +7,7 @@
     <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&family=Tajawal:wght@300;400;500;700;900&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700;900&family=Inter:wght@300;400;500;600;700&family=Outfit:wght@300;400;600;800&family=Tajawal:wght@300;400;500;700;900&display=swap" rel="stylesheet">
     <!-- FontAwesome Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
@@ -17,6 +17,7 @@
             --secondary: {{ store.secondary_color|default:"#0891b2" }};
             --bg-color: {{ store.background_color|default:"#0f172a" }};
             --text-color: {{ store.text_color|default:"#f8fafc" }};
+            --btn-color: {{ store.button_color|default:store.primary_color|default:"#06b6d4" }};
             --card-bg: rgba(255, 255, 255, 0.05);
             --card-border: rgba(255, 255, 255, 0.1);
             --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
@@ -34,7 +35,7 @@
             margin: 0;
             padding: 0;
             box-sizing: border-box;
-            font-family: 'Tajawal', 'Outfit', sans-serif;
+            font-family: '{{ store.theme_font|default:"Cairo" }}', 'Tajawal', 'Outfit', sans-serif;
         }
 
         body {
@@ -43,6 +44,29 @@
             min-height: 100vh;
             display: flex;
             flex-direction: column;
+            overflow-x: hidden;
+        }
+
+        /* Dynamic Card Styles */
+        {% if store.card_style == 'rounded' %}
+        .product-card, .card, .glass-panel { border-radius: 24px !important; }
+        {% elif store.card_style == 'flat' %}
+        .product-card, .card, .glass-panel { border-radius: 0px !important; box-shadow: none !important; border: 1px solid var(--card-border) !important; }
+        {% elif store.card_style == 'shadow' %}
+        .product-card, .card, .glass-panel { border-radius: 12px !important; border: none !important; box-shadow: 0 10px 30px rgba(0,0,0,0.08) !important; }
+        {% elif store.card_style == 'glass' %}
+        .product-card, .card, .glass-panel { border-radius: 16px !important; background: rgba(255, 255, 255, 0.03) !important; backdrop-filter: blur(12px) !important; -webkit-backdrop-filter: blur(12px) !important; border: 1px solid rgba(255, 255, 255, 0.08) !important; }
+        {% endif %}
+
+        /* Dynamic Header Styles */
+        {% if store.header_style == 'modern' %}
+        header { margin: 1rem auto; max-width: 1200px; border-radius: 16px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); width: calc(100% - 2rem); }
+        {% elif store.header_style == 'transparent' %}
+        header { background: transparent !important; backdrop-filter: none !important; -webkit-backdrop-filter: none !important; border-bottom: none !important; }
+        {% elif store.header_style == 'centered' %}
+        .nav-container { flex-direction: column !important; gap: 1rem !important; }
+        .nav-menu { justify-content: center !important; }
+        {% endif %}
             overflow-x: hidden;
         }
 
@@ -134,7 +158,7 @@
         }
 
         .btn-primary {
-            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            background: var(--btn-color);
             color: #ffffff;
             box-shadow: 0 4px 15px rgba(6, 182, 212, 0.2);
         }
@@ -300,7 +324,13 @@
 
     <!-- Footer operation -->
     <footer>
-        <p>© 2026 {{ store.name }}. جميع الحقوق محفوظة.</p>
+        {% if store.footer_style == 'simple' %}
+            <p>© 2026 {{ store.name }}</p>
+        {% elif store.footer_style == 'detailed' %}
+            <p>© 2026 {{ store.name }} | جميع الحقوق محفوظة | الشروط والأحكام | سياسة الخصوصية</p>
+        {% else %}
+            <p>© 2026 {{ store.name }}. جميع الحقوق محفوظة.</p>
+        {% endif %}
         
         <!-- Conditional "Powered by Raqamiyat" depending on plan remove_branding constraint -->
         {% if not store.subscription_plan or not store.subscription_plan.remove_branding_enabled %}
