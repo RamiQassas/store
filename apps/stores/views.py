@@ -2,6 +2,7 @@ import json
 import uuid
 from decimal import Decimal
 from datetime import timedelta
+from functools import wraps
 
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
@@ -47,36 +48,83 @@ def check_store_feature(store, feature_field):
 # ==========================================
 # --- PERMISSION DECORATORS ---
 # ==========================================
+
+def store_login_required(view_func):
+    """
+    Tenant-aware login_required decorator for customer-facing store views.
+    Ensures the authenticated user actually belongs to the current store (request.store).
+    If the user belongs to a different store, they are logged out and redirected to
+    this store's login page to prevent cross-store session leakage.
+    """
+    @wraps(view_func)
+    def _wrapped_view(request, *args, **kwargs):
+        if not request.user.is_authenticated:
+            from django.contrib.auth.views import redirect_to_login
+            return redirect_to_login(request.get_full_path(), login_url='/auth/login/')
+
+        store = getattr(request, 'store', None)
+        if store and not request.user.is_superuser:
+            user = request.user
+            with bypass_tenant_filter():
+                is_associated = (
+                    user.store_id == store.pk or
+                    StoreEmployee.objects.filter(store=store, user=user).exists()
+                )
+            if not is_associated:
+                logout(request)
+                messages.error(request, "هذا الحساب غير مرتبط بهذا المتجر. يرجى تسجيل الدخول بحساب صحيح.")
+                return redirect('store_login')
+        return view_func(request, *args, **kwargs)
+    return _wrapped_view
+
+
 def employee_required(permission_name=None):
     def decorator(view_func):
-        @login_required
         def _wrapped_view(request, *args, **kwargs):
+            if not request.user.is_authenticated:
+                from django.contrib.auth.views import redirect_to_login
+                return redirect_to_login(request.get_full_path(), login_url='/auth/login/')
+
             user = request.user
-            if user.role == 'super_admin' or user.is_superuser:
-                return view_func(request, *args, **kwargs)
-            
             active_store = getattr(request, "store", None)
             if not active_store:
                 raise Http404()
-            
-            # Store Owner has full access
-            if active_store.owner == user:
+
+            # Superuser (Django admin) can access for emergency management
+            if user.is_superuser:
                 return view_func(request, *args, **kwargs)
-            
+
+            # Enforce store association: user must belong to THIS store
+            with bypass_tenant_filter():
+                is_store_member = (
+                    active_store.owner_id == user.pk or
+                    user.store_id == active_store.pk or
+                    StoreEmployee.objects.filter(store=active_store, user=user).exists()
+                )
+            if not is_store_member:
+                # Log out the cross-store user and send them to this store's login
+                logout(request)
+                messages.error(request, "هذا الحساب غير مرتبط بهذا المتجر.")
+                return redirect("store_login")
+
+            # Store Owner has full access
+            if active_store.owner_id == user.pk:
+                return view_func(request, *args, **kwargs)
+
             # Check if employee
             employee = StoreEmployee.objects.filter(store=active_store, user=user).first()
             if not employee:
                 messages.error(request, "عذراً، لا تملك صلاحية الوصول إلى لوحة تحكم هذا المتجر.")
                 return redirect("store_home")
-            
+
             # Manager has full access, otherwise check specific permission
             if employee.role == StoreEmployee.Role.MANAGER:
                 return view_func(request, *args, **kwargs)
-                
+
             if permission_name and permission_name not in employee.permissions:
                 messages.error(request, f"عذراً، لا تملك الصلاحية اللازمة: ({permission_name})")
                 return redirect("merchant_dashboard")
-                
+
             return view_func(request, *args, **kwargs)
         return _wrapped_view
     return decorator
@@ -152,7 +200,7 @@ def store_product_detail(request, pk):
         "variants_data": variants_data,
     })
 
-@login_required
+@store_login_required
 def store_checkout(request, variant_pk):
     store = request.store
     # Find variant through bypass context to avoid circular issues
@@ -253,7 +301,7 @@ def store_checkout(request, variant_pk):
         "wallet": wallet,
     })
 
-@login_required
+@store_login_required
 def store_order_detail(request, pk):
     store = request.store
     order = get_object_or_404(Order, pk=pk, store=store, customer=request.user)
@@ -263,7 +311,7 @@ def store_order_detail(request, pk):
     })
 
 # Customer Dashboard in store front
-@login_required
+@store_login_required
 def store_dashboard(request):
     store = request.store
     orders = Order.objects.filter(store=store, customer=request.user).order_by("-created_at")
@@ -275,7 +323,7 @@ def store_dashboard(request):
         "wallet": wallet,
     })
 
-@login_required
+@store_login_required
 def store_wallet(request):
     store = request.store
     wallet = get_object_or_404(Wallet, user=request.user)
@@ -287,7 +335,7 @@ def store_wallet(request):
         "ledger_entries": ledger_entries,
     })
 
-@login_required
+@store_login_required
 def store_wallet_recharge(request):
     # Charge via local payment cards/codes
     store = request.store
@@ -319,26 +367,47 @@ def store_custom_page(request, slug):
 # Store Auth views
 def store_login(request):
     store = request.store
+    # Redirect already-authenticated store users to their dashboard
+    if request.user.is_authenticated:
+        with bypass_tenant_filter():
+            is_associated = (
+                request.user.store_id == store.pk or
+                StoreEmployee.objects.filter(store=store, user=request.user).exists()
+            )
+        if is_associated:
+            return redirect("store_dashboard")
+        # User authenticated but from a different store/platform — log them out
+        logout(request)
+
     if request.method == "POST":
         email = request.POST.get("email", "").strip()
         password = request.POST.get("password", "")
-        
+
         user = authenticate(request, username=email, password=password)
         if user is not None:
-            # Check store association
-            is_employee = False
+            if not user.is_active:
+                messages.error(request, "هذا الحساب معطل.")
+                return render(request, "stores/frontend/login.html", {"store": store})
+
+            # Strict isolation: only users explicitly associated with THIS store can login
             with bypass_tenant_filter():
+                is_store_owner = (user.store_id == store.pk)
                 is_employee = StoreEmployee.objects.filter(store=store, user=user).exists()
-            
-            if user.is_superuser or user.role in ["super_admin", "admin"] or user.store == store or is_employee:
+
+            if is_store_owner or is_employee:
+                user.backend = 'django.contrib.auth.backends.ModelBackend'
                 login(request, user)
                 messages.success(request, "أهلاً بك! تم تسجيل الدخول بنجاح.")
+                next_url = request.GET.get('next', '')
+                if next_url and next_url.startswith('/'):
+                    return redirect(next_url)
                 return redirect("store_dashboard")
             else:
-                messages.error(request, "هذا الحساب غير مرتبط بهذا المتجر.")
+                # Block platform users (admins, customers from other stores, etc.)
+                messages.error(request, "هذا الحساب غير مرتبط بهذا المتجر. إذا كنت عميلاً جديداً يرجى إنشاء حساب.")
         else:
             messages.error(request, "البريد الإلكتروني أو كلمة المرور غير صحيحة.")
-            
+
     return render(request, "stores/frontend/login.html", {"store": store})
 
 def store_register(request):
@@ -369,10 +438,9 @@ def store_register(request):
                         store=store, # Bind to store
                         role=User.Role.CUSTOMER
                     )
-                # Create Wallet
-                from apps.common.models import Currency
-                default_currency = Currency.objects.filter(is_default=True).first() or Currency.objects.first()
-                Wallet.objects.create(user=user, currency=default_currency)
+                # Create/Get Wallet
+                from apps.wallets.services import get_or_create_wallet
+                get_or_create_wallet(user)
                 
                 login(request, user)
                 messages.success(request, "تم تسجيل الحساب الجديد بنجاح!")

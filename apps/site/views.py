@@ -363,9 +363,9 @@ def v3_login_view(request):
                 messages.error(request, "الحساب معطل.")
                 return render(request, "site/v3/v3_login.html", {"form": form})
             
-            # Enforce that store-bound customers cannot log into the main platform
-            if not (user.is_superuser or user.role in ["super_admin", "admin", "moderator", "finance", "support", "employee"]) and user.store is not None:
-                messages.error(request, "هذا الحساب مرتبط بمتجر فرعي ولا يمكنه تسجيل الدخول هنا.")
+            # Enforce tenant isolation: any user linked to a store cannot login to the main platform
+            if user.store_id is not None:
+                messages.error(request, "هذا الحساب مرتبط بمتجر فرعي ولا يمكنه تسجيل الدخول هنا. يرجى التوجه إلى صفحة تسجيل الدخول الخاصة بمتجرك.")
                 return render(request, "site/v3/v3_login.html", {"form": form})
             
             # Ensure backend is set for session authentication
@@ -386,7 +386,6 @@ def v3_login_view(request):
                 request.session["v3_auth_next"] = reverse("dashboard")
 
             return v3_redirect_to_verification(request, methods)
-        messages.error(request, "بيانات الدخول غير صحيحة.")
         messages.error(request, "بيانات الدخول غير صحيحة.")
     return render(request, "site/v3/v3_login.html", {"form": form})
 
