@@ -325,9 +325,17 @@ def store_login(request):
         
         user = authenticate(request, username=email, password=password)
         if user is not None:
-            login(request, user)
-            messages.success(request, "أهلاً بك! تم تسجيل الدخول بنجاح.")
-            return redirect("store_dashboard")
+            # Check store association
+            is_employee = False
+            with bypass_tenant_filter():
+                is_employee = StoreEmployee.objects.filter(store=store, user=user).exists()
+            
+            if user.is_superuser or user.role in ["super_admin", "admin"] or user.store == store or is_employee:
+                login(request, user)
+                messages.success(request, "أهلاً بك! تم تسجيل الدخول بنجاح.")
+                return redirect("store_dashboard")
+            else:
+                messages.error(request, "هذا الحساب غير مرتبط بهذا المتجر.")
         else:
             messages.error(request, "البريد الإلكتروني أو كلمة المرور غير صحيحة.")
             
@@ -801,6 +809,14 @@ def merchant_subscription(request):
     store = request.store
     plan = store.subscription_plan
     
+    if request.method == "POST":
+        action = request.POST.get("action")
+        if action == "toggle_auto_renew":
+            store.auto_renew = request.POST.get("auto_renew") == "true"
+            store.save()
+            messages.success(request, f"تم {'تفعيل' if store.auto_renew else 'إلغاء تفعيل'} التجديد التلقائي للاشتراك بنجاح.")
+            return redirect("merchant_subscription")
+            
     # Calculate limits usage
     current_products = Product.objects.filter(store=store).count()
     current_employees = StoreEmployee.objects.filter(store=store).count()

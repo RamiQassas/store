@@ -60,7 +60,22 @@ class TenantMiddleware:
                 # Bypass tenant filter during store lookup
                 from apps.common.tenant_utils import bypass_tenant_filter
                 with bypass_tenant_filter():
-                    store = Store.objects.get(subdomain=subdomain)
+                    store = Store.objects.get(subdomain__iexact=subdomain)
+                
+                # Check subscription expiration
+                from django.utils import timezone
+                if store.subscription_end and store.subscription_end < timezone.now():
+                    with bypass_tenant_filter():
+                        if store.auto_renew:
+                            renewed = store.renew_subscription()
+                            if not renewed:
+                                store.subscription_status = Store.Status.SUSPENDED
+                                store.is_active = False
+                                store.save()
+                        else:
+                            store.subscription_status = Store.Status.SUSPENDED
+                            store.is_active = False
+                            store.save()
                 
                 # Required logging
                 print(request.get_host())

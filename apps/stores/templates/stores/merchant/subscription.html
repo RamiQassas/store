@@ -77,13 +77,68 @@
     <!-- Plan info -->
     <div class="plan-card">
         <div class="plan-details">
-            <span style="opacity: 0.7; font-size: 0.95rem;">الباقة الحالية النشطة للعد</span>
+            <span style="opacity: 0.7; font-size: 0.95rem;">الباقة الحالية النشطة للمتجر</span>
             <span class="plan-name">{{ plan.name|default:"الباقة التجريبية المجانية" }}</span>
             <span style="opacity: 0.6; font-size: 0.85rem;">صالحة حتى تاريخ: {{ store.subscription_end|date:"Y-m-d" }}</span>
         </div>
         
         <div style="text-align: left;">
-            <span style="font-size: 1.5rem; font-weight: 900; color: var(--primary);">${{ plan.price_monthly|default:"0.00" }} / شهرياً</span>
+            <span style="font-size: 1.5rem; font-weight: 900; color: var(--primary);">
+                {% if store.billing_cycle == 'yearly' %}
+                ${{ plan.price_yearly|default:"0.00" }} / سنوياً
+                {% else %}
+                ${{ plan.price_monthly|default:"0.00" }} / شهرياً
+                {% endif %}
+            </span>
+        </div>
+    </div>
+
+    <!-- Subscription settings -->
+    <div class="panel p-6 mb-8" style="background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 24px; padding: 2rem; margin-bottom: 2.5rem;">
+        <h2 style="font-size: 1.4rem; font-weight: 800; margin-bottom: 1.5rem; display: flex; align-items: center; gap: 0.5rem; border-bottom: 1px solid var(--card-border); padding-bottom: 1rem;">
+            <i class="fas fa-sync text-cyan"></i> إعدادات تجديد الاشتراك
+        </h2>
+        
+        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1.5rem;">
+            <div>
+                <h3 style="font-size: 1.1rem; font-weight: 700; margin-bottom: 0.25rem;">التجديد التلقائي (Auto-Renew)</h3>
+                <p style="opacity: 0.6; font-size: 0.85rem; max-width: 500px; margin: 0;">عند تفعيل هذا الخيار، سيتم التحقق من رصيد محفظة المالك وخصم قيمة التجديد تلقائياً لتمديد الاشتراك دون توقف الخدمة.</p>
+            </div>
+            
+            <form method="POST" style="display: inline-flex; align-items: center; gap: 1rem;">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="toggle_auto_renew">
+                <input type="hidden" name="auto_renew" value="{% if store.auto_renew %}false{% else %}true{% endif %}">
+                
+                <span class="font-bold text-sm" style="color: {% if store.auto_renew %}var(--success){% else %}var(--muted){% endif %}">
+                    {% if store.auto_renew %}
+                    <span style="color: #22c55e;"><i class="fas fa-check-circle"></i> مفعل تلقائياً</span>
+                    {% else %}
+                    <span style="color: #94a3b8;"><i class="fas fa-minus-circle"></i> غير مفعل</span>
+                    {% endif %}
+                </span>
+                
+                <button type="submit" class="btn {% if store.auto_renew %}btn-outline{% else %}btn-primary{% endif %} btn-sm" style="padding: 0.5rem 1.25rem; border-radius: 10px; font-size: 0.8rem;">
+                    {% if store.auto_renew %}
+                    <i class="fas fa-times-circle"></i> إلغاء التفعيل
+                    {% else %}
+                    <i class="fas fa-check-circle"></i> تفعيل التجديد
+                    {% endif %}
+                </button>
+            </form>
+        </div>
+        
+        <div style="height: 1px; background: var(--card-border); margin: 1.5rem 0;"></div>
+        
+        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1.5rem;">
+            <div>
+                <h3 style="font-size: 1.1rem; font-weight: 700; margin-bottom: 0.25rem;">دورة الاشتراك وتاريخ التجديد القادم</h3>
+                <p style="opacity: 0.6; font-size: 0.85rem; margin: 0;">يتم تجديد اشتراكك بنظام الخطة: <strong>{% if store.billing_cycle == 'yearly' %}السنوية (مع خصم الخطة السنوية){% else %}الشهرية{% endif %}</strong>.</p>
+            </div>
+            
+            <div class="font-bold text-sm" style="background: rgba(255,255,255,0.05); padding: 0.5rem 1rem; border-radius: 10px; border: 1px solid var(--card-border);">
+                التالي: {{ store.subscription_end|date:"Y-m-d" }}
+            </div>
         </div>
     </div>
 

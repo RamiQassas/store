@@ -363,6 +363,11 @@ def v3_login_view(request):
                 messages.error(request, "الحساب معطل.")
                 return render(request, "site/v3/v3_login.html", {"form": form})
             
+            # Enforce that store-bound customers cannot log into the main platform
+            if not (user.is_superuser or user.role in ["super_admin", "admin", "moderator", "finance", "support", "employee"]) and user.store is not None:
+                messages.error(request, "هذا الحساب مرتبط بمتجر فرعي ولا يمكنه تسجيل الدخول هنا.")
+                return render(request, "site/v3/v3_login.html", {"form": form})
+            
             # Ensure backend is set for session authentication
             user.backend = 'django.contrib.auth.backends.ModelBackend'
             

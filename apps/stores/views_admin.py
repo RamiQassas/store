@@ -35,12 +35,11 @@ def store_registration_landing(request):
                 "subdomain": form.cleaned_data["subdomain"],
                 "description": form.cleaned_data["description"],
                 "plan_id": str(form.cleaned_data["subscription_plan"].id),
+                "billing_cycle": form.cleaned_data["billing_cycle"],
             }
             # Handle logo upload separately
             if request.FILES.get("logo"):
                 logo_file = request.FILES["logo"]
-                # Save to temp path or store in a simple way. To be simple, we can save it to media
-                # and put path in session
                 from django.core.files.storage import default_storage
                 path = default_storage.save(f"temp/{uuid.uuid4().hex}_{logo_file.name}", logo_file)
                 request.session["store_reg_logo_path"] = path
@@ -63,10 +62,11 @@ def store_registration_payment(request):
         return redirect("store_registration")
         
     plan = get_object_or_404(SubscriptionPlan, id=reg_data["plan_id"])
+    billing_cycle = reg_data.get("billing_cycle", "monthly")
     
     # Wallet balance verification
     wallet = get_or_create_wallet(request.user)
-    plan_price_usd = plan.price_monthly
+    plan_price_usd = plan.price_monthly if billing_cycle == "monthly" else plan.price_yearly
     plan_price_wallet = wallet.currency.from_base(plan_price_usd, "withdraw")
     plan_price_wallet = Decimal(plan_price_wallet).quantize(Decimal("0.01"))
     
@@ -85,8 +85,8 @@ def store_registration_payment(request):
         try:
             with transaction.atomic():
                 with bypass_tenant_filter():
-                    # Double check subdomain uniqueness
-                    if Store.unfiltered.filter(subdomain=reg_data["subdomain"]).exists():
+                    # Double check subdomain uniqueness case-insensitively
+                    if Store.unfiltered.filter(subdomain__iexact=reg_data["subdomain"]).exists():
                         messages.error(request, "رابط المتجر هذا محجوز بالفعل. يرجى اختيار رابط آخر.")
                         return redirect("store_registration")
                         
@@ -102,22 +102,24 @@ def store_registration_payment(request):
                         wallet_id=user_wallet.id,
                         amount=plan_price_wallet,
                         source="Store Subscription",
-                        reason=f"اشتراك متجر '{reg_data['name']}' في باقة {plan.name}",
+                        reason=f"اشتراك متجر '{reg_data['name']}' في باقة {plan.name} ({'سنوي' if billing_cycle == 'yearly' else 'شهري'})",
                         reference=invoice_ref,
                         created_by=request.user
                     )
                     
                     # Create Store
+                    duration_days = 365 if billing_cycle == "yearly" else 30
                     store = Store.objects.create(
                         owner=request.user,
                         name=reg_data["name"],
-                        subdomain=reg_data["subdomain"],
+                        subdomain=reg_data["subdomain"].lower(),
                         custom_domain=None,
                         description=reg_data["description"],
                         subscription_plan=plan,
                         subscription_status=Store.Status.ACTIVE,
                         subscription_start=timezone.now(),
-                        subscription_end=timezone.now() + timedelta(days=30),
+                        subscription_end=timezone.now() + timedelta(days=duration_days),
+                        billing_cycle=billing_cycle,
                         is_active=True
                     )
                     
@@ -125,11 +127,27 @@ def store_registration_payment(request):
                         store.logo = logo_path
                         store.save()
                         
-                    # Create Owner as first employee
+                    # Update request.user role and link to store
+                    user = request.user
+                    user.role = User.Role.VERIFIED_MERCHANT
+                    user.store = store
+                    user.save()
+                        
+                    # Create Owner as first employee with full permissions
+                    permissions_list = [
+                        "manage_products", 
+                        "manage_orders", 
+                        "manage_coupons", 
+                        "manage_pages", 
+                        "manage_settings", 
+                        "manage_employees", 
+                        "view_reports"
+                    ]
                     StoreEmployee.objects.create(
                         store=store,
-                        user=request.user,
-                        role=StoreEmployee.Role.OWNER
+                        user=user,
+                        role=StoreEmployee.Role.OWNER,
+                        permissions=permissions_list
                     )
                     
                     # Create Subscription Invoice

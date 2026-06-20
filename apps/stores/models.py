@@ -2,12 +2,14 @@ import uuid
 from django.db import models
 from django.conf import settings
 from apps.common.models import TimeStampedModel
+from apps.common.tenant_utils import TenantManager
 
 class SubscriptionPlan(TimeStampedModel):
     name = models.CharField(max_length=100, verbose_name="اسم الباقة")
     description = models.TextField(blank=True, verbose_name="وصف الباقة")
     price_monthly = models.DecimalField(max_digits=10, decimal_places=2, default=0.00, verbose_name="السعر الشهري (USD)")
     price_yearly = models.DecimalField(max_digits=10, decimal_places=2, default=0.00, verbose_name="السعر السنوي (USD)")
+    yearly_discount_percentage = models.PositiveIntegerField(default=16, verbose_name="نسبة خصم الاشتراك السنوي (%)")
     
     # Limits
     max_products = models.PositiveIntegerField(default=10, verbose_name="أقصى عدد منتجات")
@@ -57,6 +59,11 @@ class SubscriptionPlan(TimeStampedModel):
     class Meta:
         verbose_name = "خطة اشتراك"
         verbose_name_plural = "خطط الاشتراكات"
+
+    def save(self, *args, **kwargs):
+        from decimal import Decimal
+        self.price_yearly = (Decimal(str(self.price_monthly)) * 12 * (1 - Decimal(self.yearly_discount_percentage) / 100)).quantize(Decimal("0.01"))
+        super().save(*args, **kwargs)
 
     def __str__(self):
         return self.name
@@ -110,6 +117,13 @@ class Store(TimeStampedModel):
     text_color = models.CharField(max_length=7, default="#0f172a", verbose_name="لون النص")
     
     is_active = models.BooleanField(default=True, verbose_name="نشط")
+    auto_renew = models.BooleanField(default=True, verbose_name="تجديد تلقائي للاشتراك")
+    billing_cycle = models.CharField(
+        max_length=20,
+        choices=[("monthly", "شهري"), ("yearly", "سنوي")],
+        default="monthly",
+        verbose_name="دورة الدفع"
+    )
     limit_overrides = models.JSONField(default=dict, blank=True, verbose_name="تجاوز الحدود يدوياً")
     
     # Styling and Theme Colors (Extended)
@@ -147,6 +161,75 @@ class Store(TimeStampedModel):
     def slug(self):
         return self.subdomain
 
+    def renew_subscription(self):
+        from apps.wallets.services import get_or_create_wallet, debit_wallet
+        from apps.stores.models import SubscriptionInvoice
+        from django.db import transaction
+        from django.utils import timezone
+        from datetime import timedelta
+        import uuid
+        from decimal import Decimal
+        
+        if not self.subscription_plan:
+            return False
+            
+        wallet = get_or_create_wallet(self.owner)
+        plan_price_usd = self.subscription_plan.price_monthly if self.billing_cycle == 'monthly' else self.subscription_plan.price_yearly
+        plan_price_wallet = wallet.currency.from_base(plan_price_usd, "withdraw")
+        plan_price_wallet = Decimal(plan_price_wallet).quantize(Decimal("0.01"))
+        
+        if wallet.available_balance < plan_price_wallet:
+            self.subscription_status = self.Status.SUSPENDED
+            self.is_active = False
+            self.save()
+            return False
+            
+        try:
+            with transaction.atomic():
+                from apps.wallets.models import Wallet
+                user_wallet = Wallet.objects.select_for_update().get(id=wallet.id)
+                if user_wallet.available_balance < plan_price_wallet:
+                    self.subscription_status = self.Status.SUSPENDED
+                    self.is_active = False
+                    self.save()
+                    return False
+                    
+                # Deduct balance
+                invoice_ref = f"INV-REN-{uuid.uuid4().hex[:8].upper()}"
+                debit_wallet(
+                    wallet_id=user_wallet.id,
+                    amount=plan_price_wallet,
+                    source="Store Subscription Renewal",
+                    reason=f"تجديد اشتراك متجر '{self.name}' في باقة {self.subscription_plan.name}",
+                    reference=invoice_ref,
+                    created_by=self.owner
+                )
+                
+                # Extend subscription
+                duration_days = 30 if self.billing_cycle == 'monthly' else 365
+                self.subscription_start = timezone.now()
+                self.subscription_end = timezone.now() + timedelta(days=duration_days)
+                self.subscription_status = self.Status.ACTIVE
+                self.is_active = True
+                self.save()
+                
+                # Create Invoice
+                SubscriptionInvoice.objects.create(
+                    user=self.owner,
+                    store=self,
+                    plan=self.subscription_plan,
+                    invoice_number=invoice_ref,
+                    amount=plan_price_wallet,
+                    currency=wallet.currency,
+                    status="paid"
+                )
+                return True
+        except Exception as e:
+            self.subscription_status = self.Status.SUSPENDED
+            self.is_active = False
+            self.save()
+            return False
+
     def __str__(self):
         return self.name
 
@@ -171,6 +254,8 @@ class StoreEmployee(TimeStampedModel):
     role = models.CharField(max_length=32, choices=Role.choices, default=Role.SALES, verbose_name="الوظيفة")
     permissions = models.JSONField(default=list, blank=True, verbose_name="الصلاحيات المخصصة")
 
+    objects = TenantManager()
+
     class Meta:
         unique_together = ("store", "user")
         verbose_name = "موظف متجر"
@@ -184,6 +269,8 @@ class StorePage(TimeStampedModel):
     store = models.ForeignKey(Store, on_delete=models.CASCADE, related_name="pages", verbose_name="المتجر")
     title = models.CharField(max_length=120, verbose_name="عنوان الصفحة")
     slug = models.SlugField(max_length=100, verbose_name="رابط الصفحة")
+
+    objects = TenantManager()
     content = models.TextField(verbose_name="محتوى الصفحة")
     is_active = models.BooleanField(default=True, verbose_name="نشطة")
 
@@ -199,6 +286,8 @@ class StorePage(TimeStampedModel):
 class StoreSetting(models.Model):
     store = models.OneToOneField(Store, on_delete=models.CASCADE, related_name="settings", verbose_name="المتجر")
     extra_json = models.JSONField(default=dict, blank=True, verbose_name="إعدادات إضافية")
+
+    objects = TenantManager()
 
     class Meta:
         verbose_name = "إعداد متجر"
@@ -283,6 +372,8 @@ class SaaSGlobalSetting(models.Model):
 class SubscriptionInvoice(TimeStampedModel):
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="subscription_invoices", verbose_name="المستخدم")
     store = models.ForeignKey(Store, on_delete=models.SET_NULL, null=True, blank=True, related_name="subscription_invoices", verbose_name="المتجر")
+
+    objects = TenantManager()
     plan = models.ForeignKey(SubscriptionPlan, on_delete=models.PROTECT, verbose_name="باقة الاشتراك")
     invoice_number = models.CharField(max_length=50, unique=True, verbose_name="رقم الفاتورة")
     amount = models.DecimalField(max_digits=12, decimal_places=2, verbose_name="المبلغ المدفوع")

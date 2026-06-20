@@ -319,6 +319,22 @@
     }
     .social-icon-btn i { line-height: 20px !important; text-align: center; font-size: 16px !important; }
   </style>
+  {% if request.store %}
+  <style>
+    :root {
+      --cyan: {{ request.store.primary_color }} !important;
+      --cyan-light: {{ request.store.secondary_color }} !important;
+      --bg: {{ request.store.background_color }} !important;
+      --bg-soft: {{ request.store.background_color }} !important;
+      --text: {{ request.store.text_color }} !important;
+    }
+    body {
+      font-family: "{{ request.store.theme_font|default:'Cairo' }}", "Cairo", sans-serif !important;
+      background-image: none !important;
+      background-color: var(--bg) !important;
+    }
+  </style>
+  {% endif %}
   {% block extra_head %}{% endblock %}
 </head>
 <body>
@@ -340,7 +356,12 @@
   <div class="mobile-header">
       <button onclick="toggleDrawer()" class="text-slate-400 text-xl"><i class="fas fa-bars"></i></button>
       <a href="{% url 'home' %}" class="brand" style="font-size: 1.25rem;">
-          <i class="fas fa-bolt text-cyan"></i> <span>RAQAMIYAT</span>
+          {% if request.store and request.store.logo %}
+          <img src="{{ request.store.logo.url }}" alt="{{ request.store.name }}" style="height: 32px; width: auto; border-radius: 4px; object-fit: contain; vertical-align: middle;">
+          {% else %}
+          <i class="fas fa-bolt text-cyan"></i>
+          {% endif %}
+          <span>{% if request.store %}{{ request.store.name }}{% else %}RAQAMIYAT{% endif %}</span>
       </a>
       <div class="flex items-center gap-3">
           {% if user.is_authenticated %}
@@ -435,7 +456,12 @@
     <header class="desktop-header">
       <div class="header-container">
         <a href="{% url 'home' %}" class="brand">
-          <i class="fas fa-bolt"></i> <span>RAQAMIYAT</span>
+          {% if request.store and request.store.logo %}
+          <img src="{{ request.store.logo.url }}" alt="{{ request.store.name }}" style="height: 40px; width: auto; border-radius: 4px; object-fit: contain; vertical-align: middle;">
+          {% else %}
+          <i class="fas fa-bolt"></i>
+          {% endif %}
+          <span>{% if request.store %}{{ request.store.name }}{% else %}RAQAMIYAT{% endif %}</span>
         </a>
 
         <nav class="nav-links">
@@ -516,10 +542,19 @@
         <div class="grid grid-cols-1 md:grid-cols-4 gap-12 mb-16">
             <div class="md:col-span-2">
                 <div class="brand mb-6" style="font-size: 1.75rem;">
-                    <i class="fas fa-bolt text-cyan"></i> <span>RAQAMIYAT</span>
+                    {% if request.store and request.store.logo %}
+                    <img src="{{ request.store.logo.url }}" alt="{{ request.store.name }}" style="height: 48px; width: auto; border-radius: 4px; object-fit: contain; vertical-align: middle;">
+                    {% else %}
+                    <i class="fas fa-bolt text-cyan"></i>
+                    {% endif %}
+                    <span>{% if request.store %}{{ request.store.name }}{% else %}RAQAMIYAT{% endif %}</span>
                 </div>
                 <p class="text-slate-500 text-sm max-w-sm leading-relaxed mb-8">
+                    {% if request.store %}
+                    {{ request.store.description|default:"مرحباً بكم في متجرنا الرقمي المميز!" }}
+                    {% else %}
                     رقميات هي المنصة الرائدة في المنطقة لتوفير كافة الخدمات والبطاقات الرقمية بأمان تام وسرعة استثنائية. نسعى دائماً لتقديم أفضل تجربة شراء لعملائنا وتجارنا.
+                    {% endif %}
                 </p>
                 <p class="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-4">تابعنا على منصات التواصل الاجتماعي</p>
                 <div class="flex gap-3">

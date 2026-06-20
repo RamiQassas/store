@@ -96,8 +96,16 @@
                         <label class="form-label">اختر خطة الاشتراك المناسبة:</label>
                         <select name="subscription_plan" class="form-input">
                             {% for plan in plans %}
-                                <option value="{{ plan.id }}">{{ plan.name }} (${{ plan.price_monthly }}/شهرياً)</option>
+                                <option value="{{ plan.id }}">{{ plan.name }} (${{ plan.price_monthly }}/شهرياً - أو ${{ plan.price_yearly }}/سنوياً)</option>
                             {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">اختر دورة الدفع للاشتراك:</label>
+                        <select name="billing_cycle" class="form-input" id="billing_cycle_select" onchange="updatePlanPrices()">
+                            <option value="monthly">اشتراك شهري</option>
+                            <option value="yearly">اشتراك سنوي (خصم 16% تقريباً)</option>
                         </select>
                     </div>
 
@@ -111,7 +119,10 @@
                 {% for plan in plans %}
                     <div class="plan-item-box">
                         <span class="plan-item-title">{{ plan.name }}</span>
-                        <span class="plan-item-price">${{ plan.price_monthly }} <span style="font-size: 0.85rem; font-weight: 400; opacity: 0.7;">/ شهرياً</span></span>
+                        <span class="plan-item-price">
+                            <span class="price-monthly-text">${{ plan.price_monthly }} <span style="font-size: 0.85rem; font-weight: 400; opacity: 0.7;">/ شهرياً</span></span>
+                            <span class="price-yearly-text" style="display: none; color: #34d399;">${{ plan.price_yearly }} <span style="font-size: 0.85rem; font-weight: 400; opacity: 0.7;">/ سنوياً</span></span>
+                        </span>
                         
                         <ul class="plan-features-list">
                             <li><i class="fa-solid fa-check" style="color: var(--primary);"></i> حد المنتجات: {{ plan.max_products }}</li>
@@ -129,6 +140,19 @@
             </div>
         </div>
 
+        <script>
+            function updatePlanPrices() {
+                const select = document.getElementById("billing_cycle_select");
+                const isYearly = select.value === "yearly";
+                
+                document.querySelectorAll(".price-monthly-text").forEach(el => {
+                    el.style.display = isYearly ? "none" : "inline";
+                });
+                document.querySelectorAll(".price-yearly-text").forEach(el => {
+                    el.style.display = isYearly ? "inline" : "none";
+                });
+            }
+        </script>
     </div>
 
 </body>

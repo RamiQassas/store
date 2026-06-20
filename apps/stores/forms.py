@@ -35,10 +35,27 @@ class StoreCreateForm(forms.ModelForm):
     )
     class Meta:
         model = Store
-        fields = ["name", "subdomain", "description", "logo", "subscription_plan"]
+        fields = ["name", "subdomain", "description", "logo", "subscription_plan", "billing_cycle"]
         widgets = {
             "description": forms.Textarea(attrs={"rows": 3}),
         }
+
+    def clean_subdomain(self):
+        subdomain = self.cleaned_data.get("subdomain")
+        if subdomain:
+            subdomain = subdomain.strip().lower()
+            import re
+            if not re.match(r"^[a-z0-9\-]+$", subdomain):
+                raise forms.ValidationError("يجب أن يحتوي الرابط الفرعي على أحرف إنجليزية وأرقام وعلامة الشرطة (-) فقط.")
+            
+            reserved_words = ["www", "admin", "api", "control", "mail", "blog", "support", "shop", "store", "assets", "static", "media", "merchant", "site", "dashboard"]
+            if subdomain in reserved_words:
+                raise forms.ValidationError("هذا الرابط الفرعي محجوز، يرجى اختيار رابط آخر.")
+                
+            # Check uniqueness case-insensitively
+            if Store.objects.filter(subdomain__iexact=subdomain).exists():
+                raise forms.ValidationError("هذا الرابط الفرعي مستخدم بالفعل، يرجى اختيار رابط آخر.")
+        return subdomain
 
 class StorePageForm(forms.ModelForm):
     class Meta:
