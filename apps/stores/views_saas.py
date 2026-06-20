@@ -166,7 +166,7 @@ def saas_store_list(request):
         stores = Store.unfiltered.all().select_related('subscription_plan', 'owner').order_by("-created_at")
         
         if q:
-            stores = stores.filter(Q(name__icontains=q) | Q(slug__icontains=q) | Q(custom_domain__icontains=q) | Q(owner__email__icontains=q))
+            stores = stores.filter(Q(name__icontains=q) | Q(subdomain__icontains=q) | Q(custom_domain__icontains=q) | Q(owner__email__icontains=q))
         if plan_id:
             stores = stores.filter(subscription_plan_id=plan_id)
         if status:

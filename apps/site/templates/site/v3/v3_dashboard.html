@@ -612,6 +612,37 @@
             </nav>
         </div>
 
+        <!-- My Stores Panel -->
+        <div class="panel p-6 border-cyan-500/10">
+            <h2 class="text-sm font-black text-white uppercase tracking-widest mb-4 flex items-center gap-2">
+                <i class="fas fa-store text-cyan"></i> متاجري الخاصة
+            </h2>
+            <div class="stack gap-3">
+                {% for store in user_stores %}
+                <div class="p-3 bg-white/[0.03] border border-white/5 rounded-xl stack gap-2">
+                    <div class="flex justify-between items-center">
+                        <span class="font-bold text-xs text-white">{{ store.name }}</span>
+                        <span class="badge {% if store.is_active %}success{% else %}danger{% endif %} text-[8px]">
+                            {{ store.get_subscription_status_display }}
+                        </span>
+                    </div>
+                    <div class="text-[10px] text-slate-500 truncate">
+                        {{ store.subdomain }}.raqamiyatapp.com
+                    </div>
+                    <div class="flex gap-2 mt-1">
+                        <a href="https://{{ store.subdomain }}.raqamiyatapp.com" target="_blank" class="text-[9px] text-cyan hover:underline font-bold">زيارة المتجر <i class="fas fa-external-link-alt ml-0.5"></i></a>
+                        <a href="https://{{ store.subdomain }}.raqamiyatapp.com/merchant/" target="_blank" class="text-[9px] text-indigo-400 hover:underline font-bold">لوحة التاجر <i class="fas fa-chevron-left ml-0.5"></i></a>
+                    </div>
+                </div>
+                {% empty %}
+                <div class="p-4 text-center bg-white/[0.02] border border-dashed border-white/10 rounded-xl stack gap-2">
+                    <p class="text-[10px] text-slate-400">لم تقم بإنشاء متجر خاص بك بعد.</p>
+                    <a href="{% url 'store_registration' %}" class="btn btn-premium-sm primary w-full text-center mt-1 py-2 text-[10px]">أنشئ متجر الآن</a>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
         <!-- Account Status Card -->
         <div class="panel p-6">
             <h2 class="text-lg mb-4">حالة الحساب</h2>

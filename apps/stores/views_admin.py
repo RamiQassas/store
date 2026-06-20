@@ -32,7 +32,7 @@ def store_registration_landing(request):
             # Save selection to session and redirect to payment
             request.session["store_reg_data"] = {
                 "name": form.cleaned_data["name"],
-                "slug": form.cleaned_data["slug"],
+                "subdomain": form.cleaned_data["subdomain"],
                 "description": form.cleaned_data["description"],
                 "plan_id": str(form.cleaned_data["subscription_plan"].id),
             }
@@ -85,8 +85,8 @@ def store_registration_payment(request):
         try:
             with transaction.atomic():
                 with bypass_tenant_filter():
-                    # Double check slug uniqueness
-                    if Store.unfiltered.filter(slug=reg_data["slug"]).exists():
+                    # Double check subdomain uniqueness
+                    if Store.unfiltered.filter(subdomain=reg_data["subdomain"]).exists():
                         messages.error(request, "رابط المتجر هذا محجوز بالفعل. يرجى اختيار رابط آخر.")
                         return redirect("store_registration")
                         
@@ -111,7 +111,8 @@ def store_registration_payment(request):
                     store = Store.objects.create(
                         owner=request.user,
                         name=reg_data["name"],
-                        slug=reg_data["slug"],
+                        subdomain=reg_data["subdomain"],
+                        custom_domain=None,
                         description=reg_data["description"],
                         subscription_plan=plan,
                         subscription_status=Store.Status.ACTIVE,

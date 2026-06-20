@@ -626,12 +626,20 @@ def dashboard(request):
     recent_orders = Order.objects.filter(customer=request.user).order_by('-created_at')[:5]
     recent_deposits = DepositRequest.objects.filter(user=request.user).order_by('-created_at')[:5]
     recent_withdrawals = WithdrawalRequest.objects.filter(user=request.user).order_by('-created_at')[:5]
-    kyc_request = KYCRequest.objects.filter(user=request.user).first(); notifications = Notification.objects.filter(user=request.user, is_read=False)[:5]
+    kyc_request = KYCRequest.objects.filter(user=request.user).first()
+    notifications = Notification.objects.filter(user=request.user, is_read=False)[:5]
+    
+    # Fetch owned stores
+    from apps.stores.models import Store
+    from apps.common.tenant_utils import bypass_tenant_filter
+    with bypass_tenant_filter():
+        user_stores = list(Store.unfiltered.filter(owner=request.user))
+        
     return render(request, "site/v3/v3_dashboard.html", {
         "wallet": wallet, "digital_deliveries": digital_deliveries, 
         "orders": recent_orders, "deposits": recent_deposits, 
         "withdrawals": recent_withdrawals, "kyc_request": kyc_request, 
-        "notifications": notifications
+        "notifications": notifications, "user_stores": user_stores
     })
 
 @login_required

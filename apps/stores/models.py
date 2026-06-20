@@ -78,7 +78,7 @@ class Store(TimeStampedModel):
     )
     name = models.CharField(max_length=120, verbose_name="اسم المتجر")
     description = models.TextField(blank=True, verbose_name="وصف المتجر")
-    slug = models.SlugField(max_length=100, unique=True, verbose_name="رابط المتجر الفرعي (Subdomain slug)")
+    subdomain = models.SlugField(max_length=100, unique=True, verbose_name="رابط المتجر الفرعي (Subdomain)")
     custom_domain = models.CharField(max_length=255, unique=True, null=True, blank=True, verbose_name="النطاق المخصص")
     
     # Branding
@@ -142,6 +142,10 @@ class Store(TimeStampedModel):
     class Meta:
         verbose_name = "متجر"
         verbose_name_plural = "المتاجر"
+
+    @property
+    def slug(self):
+        return self.subdomain
 
     def __str__(self):
         return self.name

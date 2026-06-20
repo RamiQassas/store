@@ -8,7 +8,7 @@ class StoreForm(forms.ModelForm):
     class Meta:
         model = Store
         fields = [
-            "name", "slug", "description", "logo", "banner", 
+            "name", "subdomain", "description", "logo", "banner", 
             "primary_color", "secondary_color", "background_color", "text_color",
             "phone", "email", "address", 
             "social_facebook", "social_instagram", "social_twitter", "social_tiktok"
@@ -35,7 +35,7 @@ class StoreCreateForm(forms.ModelForm):
     )
     class Meta:
         model = Store
-        fields = ["name", "slug", "description", "logo", "subscription_plan"]
+        fields = ["name", "subdomain", "description", "logo", "subscription_plan"]
         widgets = {
             "description": forms.Textarea(attrs={"rows": 3}),
         }

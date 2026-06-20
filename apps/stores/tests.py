@@ -50,7 +50,7 @@ class StoreMultiTenantTest(TestCase):
         self.store_a = Store.objects.create(
             owner=self.owner_a,
             name="Store A",
-            slug="store-a",
+            subdomain="store-a",
             subscription_plan=self.free_plan,
             is_active=True
         )
@@ -65,7 +65,7 @@ class StoreMultiTenantTest(TestCase):
         self.store_b = Store.objects.create(
             owner=self.owner_b,
             name="Store B",
-            slug="store-b",
+            subdomain="store-b",
             subscription_plan=self.free_plan,
             is_active=True
         )
@@ -171,7 +171,7 @@ class SaaSControlPanelAndLimitsTests(TestCase):
         self.store = Store.objects.create(
             owner=self.owner,
             name="My Store",
-            slug="my-store",
+            subdomain="my-store",
             subscription_plan=self.plan,
             is_active=True
         )
@@ -295,7 +295,7 @@ class StoreSaaSNewFeaturesTests(TestCase):
         self.store = Store.objects.create(
             owner=self.user,
             name="Test Store",
-            slug="test-store",
+            subdomain="test-store",
             custom_domain="mycustom.com",
             subscription_plan=self.plan,
             subscription_status=Store.Status.ACTIVE,
@@ -368,7 +368,7 @@ class StoreSaaSNewFeaturesTests(TestCase):
         session = client.session
         session["store_reg_data"] = {
             "name": "New Shop",
-            "slug": "new-shop",
+            "subdomain": "new-shop",
             "description": "Desc",
             "plan_id": str(self.plan.id)
         }
@@ -388,7 +388,7 @@ class StoreSaaSNewFeaturesTests(TestCase):
             self.assertTrue(SubscriptionInvoice.objects.filter(user=self.user, plan=self.plan).exists())
             
             # Store should exist
-            self.assertTrue(Store.objects.filter(slug="new-shop").exists())
+            self.assertTrue(Store.objects.filter(subdomain="new-shop").exists())
 
     def test_store_registration_payment_insufficient_balance(self):
         from decimal import Decimal
@@ -403,7 +403,7 @@ class StoreSaaSNewFeaturesTests(TestCase):
         session = client.session
         session["store_reg_data"] = {
             "name": "New Shop 2",
-            "slug": "new-shop-2",
+            "subdomain": "new-shop-2",
             "description": "Desc",
             "plan_id": str(self.plan.id)
         }
@@ -421,7 +421,7 @@ class StoreSaaSNewFeaturesTests(TestCase):
             store_a = Store.objects.create(
                 owner=self.user,
                 name="Store A",
-                slug="store-a",
+                subdomain="store-a",
                 subscription_plan=self.plan,
                 subscription_status=Store.Status.ACTIVE,
                 is_active=True
@@ -429,7 +429,7 @@ class StoreSaaSNewFeaturesTests(TestCase):
             store_b = Store.objects.create(
                 owner=self.user,
                 name="Store B",
-                slug="store-b",
+                subdomain="store-b",
                 subscription_plan=self.plan,
                 subscription_status=Store.Status.ACTIVE,
                 is_active=True

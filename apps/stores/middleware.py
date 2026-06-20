@@ -14,6 +14,8 @@ class TenantMiddleware:
         site_url = getattr(settings, "SITE_URL", "https://raqamiyatapp.com")
         main_domain = urlparse(site_url).hostname or "raqamiyatapp.com"
         main_domain = main_domain.lower()
+        if main_domain.startswith("www."):
+            main_domain = main_domain[4:]
 
         # Build list of main domains we support
         main_domains = [main_domain]
@@ -23,6 +25,8 @@ class TenantMiddleware:
                 main_domains.append(".".join(parts[-3:]))
             else:
                 main_domains.append(host)
+                
+        print(f"[TenantMiddleware] Host: {host}, main_domain: {main_domain}, main_domains: {main_domains}")
         
         # 3. Check if host matches main domain or subdomain
         request.store = None
@@ -31,8 +35,10 @@ class TenantMiddleware:
         
         # Check against each configured main domain
         for m_domain in main_domains:
-            if host.endswith("." + m_domain) and host != m_domain:
-                subdomain = host[:-(len(m_domain) + 1)]
+            # Clean www. from matched base domain if it exists
+            cleaned_m_domain = m_domain[4:] if m_domain.startswith("www.") else m_domain
+            if host.endswith("." + cleaned_m_domain) and host != cleaned_m_domain:
+                subdomain = host[:-(len(cleaned_m_domain) + 1)]
                 is_subdomain = True
                 if subdomain == "www":
                     is_subdomain = False
@@ -45,6 +51,8 @@ class TenantMiddleware:
                 subdomain = parts[0]
                 is_subdomain = True
 
+        print(f"[TenantMiddleware] is_subdomain: {is_subdomain}, subdomain: {subdomain}")
+
         from django.http import Http404, HttpResponseForbidden
 
         if is_subdomain:
@@ -52,17 +60,25 @@ class TenantMiddleware:
                 # Bypass tenant filter during store lookup
                 from apps.common.tenant_utils import bypass_tenant_filter
                 with bypass_tenant_filter():
-                    store = Store.objects.filter(slug=subdomain).first()
-                if store:
-                    if not store.is_active:
-                        return HttpResponseForbidden("<h1>المتجر موقوف مؤقتاً</h1><p>هذا المتجر تم إيقافه مؤقتاً من قبل إدارة المنصة.</p>")
-                    request.store = store
-                else:
-                    raise Http404("المتجر المطلوب غير موجود.")
-            except Http404:
-                raise
-            except Exception:
-                pass
+                    store = Store.objects.get(subdomain=subdomain)
+                
+                # Required logging
+                print(request.get_host())
+                print(subdomain)
+                print(store)
+
+                if not store.is_active:
+                    print(f"[TenantMiddleware] Store '{store}' is inactive. Returning Forbidden.")
+                    return HttpResponseForbidden("<h1>المتجر موقوف مؤقتاً</h1><p>هذا المتجر تم إيقافه مؤقتاً من قبل إدارة المنصة.</p>")
+                request.store = store
+            except Store.DoesNotExist:
+                # Required logging for failed lookup
+                print(request.get_host())
+                print(subdomain)
+                print(None)
+                raise Http404("المتجر المطلوب غير موجود.")
+            except Exception as e:
+                print(f"[TenantMiddleware] Error during subdomain lookup: {str(e)}")
         else:
             # Check for custom domains
             is_main_domain_or_local = (host in main_domains) or (host in ["localhost", "127.0.0.1", "testserver"]) or any(host.endswith("." + d) for d in main_domains)
@@ -71,16 +87,18 @@ class TenantMiddleware:
                     from apps.common.tenant_utils import bypass_tenant_filter
                     with bypass_tenant_filter():
                         store = Store.objects.filter(custom_domain=host).first()
+                    print(f"[TenantMiddleware] Resolved store for custom domain '{host}': {store}")
                     if store:
                         if not store.is_active:
+                            print(f"[TenantMiddleware] Store '{store}' is inactive. Returning Forbidden.")
                             return HttpResponseForbidden("<h1>المتجر موقوف مؤقتاً</h1><p>هذا المتجر تم إيقافه مؤقتاً من قبل إدارة المنصة.</p>")
                         request.store = store
                     else:
                         raise Http404("هذا النطاق غير مرتبط بأي متجر على المنصة.")
                 except Http404:
                     raise
-                except Exception:
-                    pass
+                except Exception as e:
+                    print(f"[TenantMiddleware] Error during custom domain lookup: {str(e)}")
 
         # 4. Handle tenant routing and context binding
         if request.store:
