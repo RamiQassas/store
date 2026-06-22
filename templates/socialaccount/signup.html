@@ -4,21 +4,70 @@
 {% block title %}{% trans "Signup" %} | Google | رقميات{% endblock %}
 
 {% block auth_content %}
-<div class="glass-panel p-8 md:p-10 text-center">
-    <div class="w-24 h-24 bg-white/5 border border-white/10 rounded-full flex items-center justify-center mx-auto mb-8 shadow-inner">
-        <img src="https://upload.wikimedia.org/wikipedia/commons/c/c1/Google_%22G%22_logo.svg" class="w-12 h-12">
+<div class="glass-panel p-8 md:p-10">
+    <div class="w-20 h-20 bg-white/5 border border-white/10 rounded-full flex items-center justify-center mx-auto mb-6 shadow-inner">
+        <img src="https://upload.wikimedia.org/wikipedia/commons/c/c1/Google_%22G%22_logo.svg" class="w-10 h-10">
     </div>
 
-    <div class="mb-8">
+    <div class="mb-6 text-center">
         <h2 class="text-2xl font-black text-white mb-2">إكمال التسجيل</h2>
         <p class="text-slate-400 text-sm leading-relaxed">
-            أهلاً بك! لقد نجحت في تسجيل الدخول عبر Google. يرجى تأكيد رغبتك في إنشاء حساب جديد.
+            أهلاً بك! لقد نجحت في تسجيل الدخول عبر Google. يرجى تأكيد أو تعديل بيانات حسابك الجديد.
         </p>
     </div>
 
-    <form method="post" class="space-y-4">
+    <form method="post" class="space-y-5">
         {% csrf_token %}
-        <button type="submit" class="btn-premium w-full py-5 text-lg group">
+        
+        {% if form.non_field_errors %}
+        <div class="p-4 rounded-2xl bg-rose-500/10 border border-rose-500/20 text-rose-400 text-xs text-right">
+            {{ form.non_field_errors }}
+        </div>
+        {% endif %}
+
+        {% for field in form %}
+        <div class="space-y-2 text-right">
+            <label class="text-xs font-bold text-slate-400 mr-2 uppercase tracking-widest">{{ field.label }}</label>
+            <div class="relative">
+                {% if field.name == 'email' %}
+                    <i class="fas fa-envelope absolute right-5 top-1/2 -translate-y-1/2 text-slate-500 text-sm"></i>
+                    <input 
+                        type="email" 
+                        name="email" 
+                        value="{{ field.value|default:'' }}" 
+                        readonly 
+                        class="auth-input pr-12 bg-slate-900/40 text-slate-400 border-slate-800/80 cursor-not-allowed text-right" 
+                        placeholder="البريد الإلكتروني" 
+                        id="id_email"
+                    >
+                {% elif field.name == 'username' %}
+                    <i class="fas fa-user absolute right-5 top-1/2 -translate-y-1/2 text-slate-500 text-sm"></i>
+                    <input 
+                        type="text" 
+                        name="username" 
+                        value="{{ field.value|default:'' }}" 
+                        {% if field.field.required %}required{% endif %} 
+                        class="auth-input pr-12 text-right" 
+                        placeholder="اسم المستخدم" 
+                        id="id_username"
+                    >
+                {% else %}
+                    <div class="relative">
+                        {{ field }}
+                    </div>
+                {% endif %}
+            </div>
+            {% for error in field.errors %}
+                <p class="text-[10px] text-rose-500 mt-1 mr-2">{{ error }}</p>
+            {% endfor %}
+        </div>
+        {% endfor %}
+
+        {% if redirect_field_value %}
+        <input type="hidden" name="{{ redirect_field_name }}" value="{{ redirect_field_value }}" />
+        {% endif %}
+
+        <button type="submit" class="btn-premium w-full py-5 text-lg group mt-4">
             <span>تأكيد إنشاء الحساب</span>
             <i class="fas fa-user-plus group-hover:scale-110 transition-transform"></i>
         </button>
