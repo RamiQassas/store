@@ -34,8 +34,8 @@ class User(AbstractUser):
         VIP = "vip", "VIP"
 
     username = models.CharField(max_length=150, blank=True)
-    email = models.EmailField(unique=True)
-    phone = models.CharField(max_length=32, blank=True, null=True, unique=True)
+    email = models.EmailField()
+    phone = models.CharField(max_length=32, blank=True, null=True)
     role = models.CharField(max_length=32, choices=Role.choices, default=Role.CUSTOMER)
     store = models.ForeignKey(
         "stores.Store",
@@ -160,6 +160,28 @@ class User(AbstractUser):
         ]
         verbose_name = "مستخدم"
         verbose_name_plural = "المستخدمون"
+        constraints = [
+            models.UniqueConstraint(
+                fields=["email", "store"],
+                name="unique_email_per_store",
+                condition=models.Q(store__isnull=False)
+            ),
+            models.UniqueConstraint(
+                fields=["email"],
+                name="unique_email_main_platform",
+                condition=models.Q(store__isnull=True)
+            ),
+            models.UniqueConstraint(
+                fields=["phone", "store"],
+                name="unique_phone_per_store",
+                condition=models.Q(store__isnull=False)
+            ),
+            models.UniqueConstraint(
+                fields=["phone"],
+                name="unique_phone_main_platform",
+                condition=models.Q(store__isnull=True)
+            ),
+        ]
 
     def __str__(self):
         full_name = self.get_full_name()

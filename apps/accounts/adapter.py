@@ -12,24 +12,27 @@ logger = logging.getLogger(__name__)
 
 class MyAccountAdapter(DefaultAccountAdapter):
     def clean_username(self, username, shallow=False):
-        for validator in self.get_username_validators():
-            validator(username)
-
-        username_blacklist_lower = [
-            ub.lower() for ub in self.get_username_blacklist()
-        ]
-        if username.lower() in username_blacklist_lower:
-            raise self.validation_error("username_blacklisted")
-            
+        username = super().clean_username(username, shallow=shallow)
+        
         if not shallow:
-            # We use _base_manager to check globally across all stores, completely thread-safe
-            if User._base_manager.filter(username__iexact=username).exists():
+            active_store = getattr(self.request, 'store', None)
+            if active_store:
+                exists = User._base_manager.filter(username__iexact=username, store=active_store).exists()
+            else:
+                exists = User._base_manager.filter(username__iexact=username, store__isnull=True).exists()
+            
+            if exists:
                 raise self.validation_error("username_taken")
         return username
 
     def clean_email(self, email):
-        # We use _base_manager to check globally across all stores, completely thread-safe
-        if User._base_manager.filter(email__iexact=email).exists():
+        active_store = getattr(self.request, 'store', None)
+        if active_store:
+            exists = User._base_manager.filter(email__iexact=email, store=active_store).exists()
+        else:
+            exists = User._base_manager.filter(email__iexact=email, store__isnull=True).exists()
+            
+        if exists:
             raise self.validation_error("email_taken")
         return email
 
@@ -88,14 +91,16 @@ class MySocialAccountAdapter(DefaultSocialAccountAdapter):
             return
 
         try:
-            # We use User._base_manager to get the user globally across all stores,
-            # completely bypassing any tenant filters safely in any thread/context.
-            user = User._base_manager.get(email__iexact=email)
+            active_store = getattr(request, 'store', None)
+            if active_store:
+                user = User._base_manager.get(email__iexact=email, store=active_store)
+            else:
+                user = User._base_manager.get(email__iexact=email, store__isnull=True)
             
             # 1. Link social account if not already connected
             if not sociallogin.is_existing:
                 sociallogin.connect(request, user)
-                logger.info(f"Connected existing user {email} to social account.")
+                logger.info(f"Connected existing user {email} to social account in store context.")
             
             # 2. Mark as verified (Google emails are trusted) and active
             needs_save = False
@@ -106,12 +111,6 @@ class MySocialAccountAdapter(DefaultSocialAccountAdapter):
             if not user.is_active:
                 user.is_active = True
                 needs_save = True
-            
-            active_store = getattr(request, 'store', None)
-            if active_store and not (user.is_superuser or user.is_staff or user.role == 'super_admin'):
-                if user.store_id != active_store.pk and active_store.owner_id != user.pk:
-                    messages.error(request, "This account is not linked to the current store.")
-                    raise ImmediateHttpResponse(redirect("site_login"))
 
             if needs_save:
                 fields = ["email_verified", "is_active"]

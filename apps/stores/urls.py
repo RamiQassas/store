@@ -18,6 +18,12 @@ from django.urls import path, include
 # Shared platform views — same code as main Raqamiyat site
 from apps.site import views as site_views
 from apps.support import views as support_views
+from apps.site import api_views as site_api_views
+
+# Import API components from config and REST framework
+from config.urls import health, router
+from apps.accounts.views import LoginView, RegisterView
+from rest_framework_simplejwt.views import TokenRefreshView
 
 # Store-specific views — merchant dashboard only
 from apps.stores import views as merchant_views
@@ -252,6 +258,32 @@ urlpatterns = [
     path("ajax/user-search/", site_views.ajax_user_search, name="ajax_user_search"),
     path("ajax/product-search/", site_views.ajax_product_search, name="ajax_product_search"),
     path("ajax/country-search/", site_views.ajax_country_search, name="ajax_country_search"),
+
+    # Root Assets (Service Worker)
+    path("sw.js", site_views.service_worker, name="service_worker"),
+
+    # REST APIs from config/urls.py
+    path("api/health/", health),
+    path("api/auth/register/", RegisterView.as_view(), name="register"),
+    path("api/auth/login/", LoginView.as_view(), name="login"),
+    path("api/auth/token/refresh/", TokenRefreshView.as_view(), name="token_refresh"),
+    path("api/", include(router.urls)),
+
+    # Custom Platform APIs (Wallet holds, Deposits, Withdrawals processing)
+    path("api/deposits/<uuid:pk>/approve/", site_api_views.api_deposit_approve, name="api_deposit_approve"),
+    path("api/deposits/<uuid:pk>/reject/", site_api_views.api_deposit_reject, name="api_deposit_reject"),
+    path("api/deposits/<uuid:pk>/correct/", site_api_views.api_deposit_correct, name="api_deposit_correct"),
+    path("api/withdrawals/max-amount/", site_api_views.get_max_withdrawable, name="api_get_max_withdrawable"),
+    path("api/conversion-preview/", site_api_views.get_conversion_preview, name="api_get_conversion_preview"),
+    path("api/wallets/<uuid:pk>/hold/", site_api_views.api_wallet_hold, name="api_wallet_hold"),
+    path("api/wallets/<uuid:pk>/unhold/", site_api_views.api_wallet_unhold, name="api_wallet_unhold"),
+    path("api/withdrawals/<uuid:pk>/process/", site_api_views.api_withdrawal_process, name="api_withdrawal_process"),
+    path("api/withdrawals/<uuid:pk>/approve/", site_api_views.api_withdrawal_approve, name="api_withdrawal_approve"),
+    path("api/withdrawals/<uuid:pk>/complete/", site_api_views.api_withdrawal_complete, name="api_withdrawal_complete"),
+    path("api/withdrawals/<uuid:pk>/reject/", site_api_views.api_withdrawal_reject, name="api_withdrawal_reject"),
+    path("api/orders/<uuid:pk>/mark-read/", site_api_views.api_order_mark_read, name="api_order_mark_read"),
+    path("api/users/search/", site_api_views.api_user_search, name="api_user_search"),
+    path("api/users/lookup/", site_api_views.api_lookup_user, name="api_lookup_user"),
 ]
 
 # Serve media files on subdomains
