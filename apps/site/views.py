@@ -342,7 +342,7 @@ def v3_verify_sp_view(request):
             clean_verification_session(request)
                 
             if next_url: return redirect(next_url)
-            return redirect("control_dashboard" if user.is_staff else "dashboard")
+            return redirect("control_dashboard" if (user.is_staff and getattr(request, 'store', None) is None) else "dashboard")
             
         messages.error(request, "كلمة مرور الحماية غير صحيحة.")
         
@@ -356,7 +356,7 @@ def v3_login_view(request):
     active_store = getattr(request, 'store', None)
 
     if request.user.is_authenticated:
-        return redirect("control_dashboard" if request.user.is_staff else "dashboard")
+        return redirect("control_dashboard" if (request.user.is_staff and getattr(request, 'store', None) is None) else "dashboard")
     form = LoginForm(request.POST or None)
     if request.method == "POST" and form.is_valid():
         user = authenticate(request, username=form.cleaned_data["email"], password=form.cleaned_data["password"])
@@ -394,7 +394,7 @@ def v3_login_view(request):
             # Check security settings only if user exists
             if v3_init_verification(request, user, "login"):
                 login(request, user)
-                return redirect("control_dashboard" if user.is_staff else "dashboard")
+                return redirect("control_dashboard" if (user.is_staff and getattr(request, 'store', None) is None) else "dashboard")
 
             methods = request.session.get("v3_auth_methods", [])
             if not methods:
@@ -505,7 +505,7 @@ def v3_verify_otp_view(request):
             clean_verification_session(request)
             
             if next_url: return redirect(next_url)
-            return redirect("control_dashboard" if user.is_staff else "dashboard")
+            return redirect("control_dashboard" if (user.is_staff and getattr(request, 'store', None) is None) else "dashboard")
         user.otp_failed_attempts += 1
         if user.otp_failed_attempts >= settings_obj.otp_max_attempts:
             user.otp_lockout_until = timezone.now() + timedelta(minutes=15)
@@ -548,7 +548,7 @@ def v3_2fa_verify_view(request):
             clean_verification_session(request)
             
             if next_url: return redirect(next_url)
-            return redirect("control_dashboard" if user.is_staff else "dashboard")
+            return redirect("control_dashboard" if (user.is_staff and getattr(request, 'store', None) is None) else "dashboard")
         messages.error(request, "الرمز غير صحيح.")
     return render(request, "site/v3/v3_2fa_verify.html")
 
