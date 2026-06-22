@@ -94,6 +94,16 @@ class MySocialAccountAdapter(DefaultSocialAccountAdapter):
                 sociallogin.connect(request, user)
                 logger.info(f"Connected existing user {email} to social account.")
             
+            # 2. Mark as verified (Google emails are trusted) and active
+            needs_save = False
+            if not user.email_verified:
+                user.email_verified = True
+                needs_save = True
+            
+            if not user.is_active:
+                user.is_active = True
+                needs_save = True
+            
             # Ensure the user is associated with the active store context
             active_store = getattr(request, 'store', None)
             if active_store and not (user.is_superuser or user.is_staff or user.role == 'super_admin'):
