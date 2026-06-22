@@ -73,6 +73,7 @@ def store_login_required(view_func):
             with bypass_tenant_filter():
                 is_associated = (
                     user.store_id == store.pk or
+                    store.owner_id == user.pk or
                     StoreEmployee.objects.filter(store=store, user=user).exists()
                 )
             if not is_associated:
@@ -396,7 +397,7 @@ def store_login(request):
 
             # Strict isolation: only users explicitly associated with THIS store can login
             with bypass_tenant_filter():
-                is_store_owner = (user.store_id == store.pk)
+                is_store_owner = (user.store_id == store.pk or store.owner_id == user.pk)
                 is_employee = StoreEmployee.objects.filter(store=store, user=user).exists()
 
             if is_store_owner or is_employee:
@@ -1020,6 +1021,9 @@ def merchant_theme_builder(request):
         store.card_style = request.POST.get("card_style", store.card_style)
         store.header_style = request.POST.get("header_style", store.header_style)
         store.footer_style = request.POST.get("footer_style", store.footer_style)
+        store.button_style = request.POST.get("button_style", store.button_style)
+        store.shadow_style = request.POST.get("shadow_style", store.shadow_style)
+        store.custom_css = request.POST.get("custom_css", store.custom_css)
         
         store.save()
         messages.success(request, "تم حفظ تصميم ومظهر المتجر بنجاح.")

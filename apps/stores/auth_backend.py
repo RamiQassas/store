@@ -24,15 +24,15 @@ class TenantModelBackend(ModelBackend):
                     
                     active_store = get_current_store()
                     if active_store is not None:
-                        # 2. For tenant storefronts/dashboards, verify if customer or employee
-                        if user.store == active_store:
+                        # 2. For tenant storefronts/dashboards, verify if customer, employee, or owner
+                        if user.store == active_store or active_store.owner_id == user.pk:
                             return user
                         if user.store_employments.filter(store=active_store).exists():
                             return user
                         return None
                     else:
-                        # 3. For main site, user must be a main platform user (store is null)
-                        if user.store is None:
+                        # 3. For main site, user must be a main platform user (store is null) or a store owner
+                        if user.store is None or user.owned_stores.exists():
                             return user
                         return None
         return None

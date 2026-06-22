@@ -127,10 +127,29 @@ def store_registration_payment(request):
                         store.logo = logo_path
                         store.save()
                         
-                    # Update request.user role and link to store
+                    # Copy default global currencies to this store
+                    from apps.common.models import Currency
+                    global_currencies = Currency.all_objects.filter(store__isnull=True)
+                    for gc in global_currencies:
+                        Currency.objects.create(
+                            store=store,
+                            name=gc.name,
+                            code=gc.code,
+                            symbol=gc.symbol,
+                            buy_rate=gc.buy_rate,
+                            sell_rate=gc.sell_rate,
+                            capital_rate=gc.capital_rate,
+                            conversion_method=gc.conversion_method,
+                            decimal_places=gc.decimal_places,
+                            display_order=gc.display_order,
+                            is_active=gc.is_active,
+                            is_default=gc.is_default
+                        )
+                        
+                    # Update request.user role
                     user = request.user
                     user.role = User.Role.VERIFIED_MERCHANT
-                    user.store = store
+                    user.store = None  # Do NOT link owner to store_id to keep their account global
                     user.save()
                         
                     # Create Owner as first employee with full permissions

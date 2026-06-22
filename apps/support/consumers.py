@@ -14,7 +14,15 @@ class SupportConsumer(AsyncWebsocketConsumer):
         self.room_group_name = f"chat_{self.room_id}"
         self.session = self.scope.get("session")
 
-        print(f"WS Connect Attempt: User={self.user}, Room={self.room_id}")
+        # Get host from headers to resolve store context
+        host = ""
+        for name, value in self.scope.get("headers", []):
+            if name == b"host":
+                host = value.decode("utf-8").split(":")[0].lower()
+                break
+
+        self.store = await self.resolve_store_from_host(host)
+        print(f"WS Connect Attempt: User={self.user}, Room={self.room_id}, Resolved Store={self.store}")
 
         # Verify access for both authenticated and guest users
         try:
@@ -95,6 +103,8 @@ class SupportConsumer(AsyncWebsocketConsumer):
 
     @database_sync_to_async
     def get_room_data(self):
+        from apps.common.tenant_utils import set_current_store
+        set_current_store(getattr(self, 'store', None))
         try:
             room = ChatRoom.objects.get(id=self.room_id)
             return {
@@ -108,6 +118,8 @@ class SupportConsumer(AsyncWebsocketConsumer):
 
     @database_sync_to_async
     def can_access_room(self):
+        from apps.common.tenant_utils import set_current_store
+        set_current_store(getattr(self, 'store', None))
         try:
             room = ChatRoom.objects.get(id=self.room_id)
             if self.user.is_authenticated:
@@ -131,6 +143,8 @@ class SupportConsumer(AsyncWebsocketConsumer):
 
     @database_sync_to_async
     def save_message(self, text, file_id=None):
+        from apps.common.tenant_utils import set_current_store
+        set_current_store(getattr(self, 'store', None))
         room = ChatRoom.objects.get(id=self.room_id)
         
         is_staff_user = False
@@ -227,3 +241,60 @@ class SupportConsumer(AsyncWebsocketConsumer):
                 "file_name": msg.file.name.split('/')[-1]
             })
         return res
+
+    @database_sync_to_async
+    def resolve_store_from_host(self, host):
+        from django.conf import settings
+        from urllib.parse import urlparse
+        from apps.stores.models import Store
+        from apps.common.tenant_utils import bypass_tenant_filter
+        
+        if not host:
+            return None
+            
+        site_url = getattr(settings, "SITE_URL", "https://raqamiyatapp.com")
+        main_domain = urlparse(site_url).hostname or "raqamiyatapp.com"
+        main_domain = main_domain.lower()
+        if main_domain.startswith("www."):
+            main_domain = main_domain[4:]
+
+        main_domains = [main_domain]
+        if "onrender.com" in host:
+            parts = host.split('.')
+            if len(parts) >= 3:
+                main_domains.append(".".join(parts[-3:]))
+            else:
+                main_domains.append(host)
+
+        is_subdomain = False
+        subdomain = ""
+        for m_domain in main_domains:
+            cleaned_m_domain = m_domain[4:] if m_domain.startswith("www.") else m_domain
+            if host.endswith("." + cleaned_m_domain) and host != cleaned_m_domain:
+                subdomain = host[:-(len(cleaned_m_domain) + 1)]
+                is_subdomain = True
+                if subdomain == "www":
+                    is_subdomain = False
+                break
+
+        if not is_subdomain and main_domain in ["localhost", "127.0.0.1", "testserver"]:
+            parts = host.split('.')
+            if len(parts) > 1 and parts[-1] in ["localhost", "127", "testserver"]:
+                subdomain = parts[0]
+                is_subdomain = True
+
+        if is_subdomain:
+            try:
+                with bypass_tenant_filter():
+                    return Store.objects.get(subdomain__iexact=subdomain)
+            except Store.DoesNotExist:
+                return None
+        else:
+            is_main_domain_or_local = (host in main_domains) or (host in ["localhost", "127.0.0.1", "testserver"]) or any(host.endswith("." + d) for d in main_domains)
+            if not is_main_domain_or_local:
+                try:
+                    with bypass_tenant_filter():
+                        return Store.objects.filter(custom_domain=host).first()
+                except:
+                    return None
+        return None

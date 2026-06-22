@@ -133,6 +133,7 @@ urlpatterns = [
     path("merchant/categories/alias/", site_views.control_categories_list, name="merchant_categories"),
     path("merchant/categories/create/", site_views.control_category_edit, name="control_category_create"),
     path("merchant/categories/create/alias/", site_views.control_category_edit, name="merchant_category_create"),
+    path("merchant/categories/create-ajax/", site_views.control_category_create_ajax, name="control_category_create_ajax"),
     path("merchant/categories/<uuid:pk>/edit/", site_views.control_category_edit, name="control_category_edit"),
     path("merchant/categories/<uuid:pk>/edit/alias/", site_views.control_category_edit, name="merchant_category_edit"),
     path("merchant/categories/<uuid:pk>/delete/", site_views.control_category_delete, name="control_category_delete"),
@@ -148,8 +149,8 @@ urlpatterns = [
     # Coupons
     path("merchant/coupons/", site_views.control_coupons_list, name="control_coupons_list"),
     path("merchant/coupons/alias/", site_views.control_coupons_list, name="merchant_coupons"),
-    path("merchant/coupons/create/", site_views.control_coupon_edit, name="control_coupon_create"),
-    path("merchant/coupons/create/alias/", site_views.control_coupon_edit, name="merchant_coupon_create"),
+    path("merchant/coupons/create/", site_views.control_coupon_create, name="control_coupon_create"),
+    path("merchant/coupons/create/alias/", site_views.control_coupon_create, name="merchant_coupon_create"),
     path("merchant/coupons/<uuid:pk>/edit/", site_views.control_coupon_edit, name="control_coupon_edit"),
     path("merchant/coupons/<uuid:pk>/edit/alias/", site_views.control_coupon_edit, name="merchant_coupon_edit"),
     path("merchant/coupons/<uuid:pk>/delete/", site_views.control_coupon_delete, name="control_coupon_delete"),
@@ -222,6 +223,9 @@ urlpatterns = [
 
     # Announcements
     path("merchant/announcements/", site_views.control_announcements, name="control_announcements"),
+    path("merchant/announcements/create/", site_views.control_announcement_create, name="control_announcement_create"),
+    path("merchant/announcements/<uuid:pk>/edit/", site_views.control_announcement_edit, name="control_announcement_edit"),
+    path("merchant/announcements/<uuid:pk>/delete/", site_views.control_announcement_delete, name="control_announcement_delete"),
 
     # Database Maintenance
     path("merchant/db-maintenance/", site_views.control_db_maintenance, name="control_db_maintenance"),

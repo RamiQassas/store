@@ -88,6 +88,9 @@ def tenant_context(request):
             "STORE_CARD_STYLE": store.card_style or "flat",
             "STORE_HEADER_STYLE": store.header_style or "classic",
             "STORE_FOOTER_STYLE": store.footer_style or "classic",
+            "STORE_BUTTON_STYLE": store.button_style or "pill",
+            "STORE_SHADOW_STYLE": store.shadow_style or "soft",
+            "STORE_CUSTOM_CSS": store.custom_css or "",
 
             # Store contact details
             "STORE_PHONE": store.phone or "",
@@ -126,6 +129,9 @@ def tenant_context(request):
             "STORE_CARD_STYLE": "glass",
             "STORE_HEADER_STYLE": "classic",
             "STORE_FOOTER_STYLE": "classic",
+            "STORE_BUTTON_STYLE": "pill",
+            "STORE_SHADOW_STYLE": "soft",
+            "STORE_CUSTOM_CSS": "",
 
             # No contact details on main site (handled separately)
             "STORE_PHONE": "",

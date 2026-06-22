@@ -136,6 +136,9 @@ class Store(TimeStampedModel):
     card_style = models.CharField(max_length=20, default="glass", verbose_name="شكل البطاقات")
     header_style = models.CharField(max_length=20, default="classic", verbose_name="شكل الهيدر")
     footer_style = models.CharField(max_length=20, default="classic", verbose_name="شكل الفوتر")
+    button_style = models.CharField(max_length=20, default="pill", verbose_name="شكل الأزرار")
+    shadow_style = models.CharField(max_length=20, default="soft", verbose_name="قوة الظلال")
+    custom_css = models.TextField(blank=True, default="", verbose_name="كود CSS مخصص")
     
     # Managers
     objects = models.Manager()

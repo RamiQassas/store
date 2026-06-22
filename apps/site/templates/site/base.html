@@ -319,6 +319,8 @@
     }
     .social-icon-btn i { line-height: 20px !important; text-align: center; font-size: 16px !important; }
   </style>
+  {% block extra_head %}{% endblock %}
+
   {% if is_tenant %}
   <style>
     /* Multi-Tenant Theme Override: Applied by tenant_context processor */
@@ -328,25 +330,117 @@
       --bg: {{ STORE_BG }} !important;
       --bg-soft: {{ STORE_BG }} !important;
       --text: {{ STORE_TEXT }} !important;
+      
+      /* Also map brand variables for home.html and other templates */
+      --brand-bg: {{ STORE_BG }} !important;
+      --brand-surface: {{ STORE_BG }} !important;
+      --brand-primary: {{ STORE_PRIMARY }} !important;
+      --brand-secondary: {{ STORE_SECONDARY }} !important;
+      --brand-accent: {{ STORE_PRIMARY }} !important;
+      --brand-sky: {{ STORE_SECONDARY }} !important;
+      --brand-text: {{ STORE_TEXT }} !important;
+      --brand-border: rgba(255, 255, 255, 0.08) !important;
+      --brand-glow: rgba(6, 182, 212, 0.25) !important;
+      --gradient-main: linear-gradient(135deg, {{ STORE_PRIMARY }} 0%, {{ STORE_SECONDARY }} 100%) !important;
     }
+    
     body {
       font-family: "{{ STORE_FONT }}", "Cairo", sans-serif !important;
       background-image: none !important;
       background-color: var(--bg) !important;
     }
+    
+    .shell {
+      background: transparent !important;
+    }
+
     /* Dynamic Card Styles */
     {% if STORE_CARD_STYLE == 'rounded' %}
-    .product-card, .card, .glass-panel, .panel { border-radius: 24px !important; }
+    .product-card, .card, .glass-panel, .panel, .premium-card { border-radius: 24px !important; }
     {% elif STORE_CARD_STYLE == 'flat' %}
-    .product-card, .card, .glass-panel, .panel { border-radius: 0px !important; box-shadow: none !important; }
+    .product-card, .card, .glass-panel, .panel, .premium-card { border-radius: 0px !important; box-shadow: none !important; }
     {% elif STORE_CARD_STYLE == 'shadow' %}
-    .product-card, .card, .glass-panel, .panel { border-radius: 12px !important; box-shadow: 0 10px 30px rgba(0,0,0,0.08) !important; }
+    .product-card, .card, .glass-panel, .panel, .premium-card { border-radius: 12px !important; box-shadow: 0 10px 30px rgba(0,0,0,0.08) !important; }
     {% elif STORE_CARD_STYLE == 'glass' %}
-    .product-card, .card, .glass-panel, .panel { border-radius: 16px !important; background: rgba(255,255,255,0.03) !important; backdrop-filter: blur(12px) !important; }
+    .product-card, .card, .glass-panel, .panel, .premium-card { border-radius: 16px !important; background: rgba(255,255,255,0.03) !important; backdrop-filter: blur(12px) !important; }
+    {% endif %}
+
+    /* Dynamic Button Style overrides using STORE_BUTTON_COLOR and STORE_BUTTON_STYLE */
+    .btn-primary, .btn-premium, .btn-premium-sm.primary, .btn-premium-action {
+      background: {{ STORE_BUTTON_COLOR }} !important;
+      color: #fff !important;
+      {% if STORE_BUTTON_STYLE == 'flat' %}
+      border-radius: 0px !important;
+      {% elif STORE_BUTTON_STYLE == 'rounded' %}
+      border-radius: 8px !important;
+      {% else %}
+      border-radius: 30px !important;
+      {% endif %}
+    }
+    .btn-primary:hover, .btn-premium:hover, .btn-premium-sm.primary:hover, .btn-premium-action:hover {
+      filter: brightness(1.1) !important;
+    }
+
+    /* Dynamic Card Shadow Style override */
+    {% if STORE_SHADOW_STYLE == 'none' %}
+    .product-card, .card, .glass-panel, .panel, .premium-card {
+      box-shadow: none !important;
+      border: 1px solid rgba(255, 255, 255, 0.05) !important;
+    }
+    {% elif STORE_SHADOW_STYLE == 'deep' %}
+    .product-card, .card, .glass-panel, .panel, .premium-card {
+      box-shadow: 0 15px 30px rgba(0, 0, 0, 0.3) !important;
+    }
+    {% else %}
+    .product-card, .card, .glass-panel, .panel, .premium-card {
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1) !important;
+    }
+    {% endif %}
+
+    /* Dynamic Header Styles */
+    {% if STORE_HEADER_STYLE == 'modern' %}
+    .desktop-header {
+      margin: 1rem auto !important;
+      max-width: 1320px !important;
+      border-radius: 16px !important;
+      width: calc(100% - 3rem) !important;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.1) !important;
+    }
+    {% elif STORE_HEADER_STYLE == 'transparent' %}
+    .desktop-header {
+      background: transparent !important;
+      backdrop-filter: none !important;
+      -webkit-backdrop-filter: none !important;
+      border-bottom: none !important;
+    }
+    {% elif STORE_HEADER_STYLE == 'centered' %}
+    .header-container {
+      flex-direction: column !important;
+      gap: 1rem !important;
+      align-items: center !important;
+      justify-content: center !important;
+    }
+    .nav-links {
+      justify-content: center !important;
+      width: 100% !important;
+    }
+    {% endif %}
+
+    /* Dynamic Footer Styles */
+    {% if STORE_FOOTER_STYLE == 'simple' %}
+    footer .grid { display: none !important; }
+    footer { padding-top: 2rem !important; }
     {% endif %}
   </style>
+
+  {% if STORE_CUSTOM_CSS %}
+  <style>
+    /* Custom CSS from Theme Customizer */
+    {{ STORE_CUSTOM_CSS|safe }}
+  </style>
   {% endif %}
-  {% block extra_head %}{% endblock %}
+
+  {% endif %}
 </head>
 <body>
   {% if active_announcement %}

@@ -21,8 +21,19 @@ class Currency(TimeStampedModel):
         MULTIPLY = "multiply", "ضرب (×)"
         DIVIDE = "divide", "قسمة (÷)"
 
+    store = models.ForeignKey(
+        "stores.Store",
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name="currencies",
+        verbose_name="المتجر"
+    )
+    objects = TenantManager()
+    all_objects = models.Manager()
+
     name = models.CharField(max_length=50, verbose_name="اسم العملة")
-    code = models.CharField(max_length=3, unique=True, verbose_name="رمز العملة (ISO)")
+    code = models.CharField(max_length=3, verbose_name="رمز العملة (ISO)")
     symbol = models.CharField(max_length=10, verbose_name="رمز العملة")
     buy_rate = models.DecimalField(max_digits=14, decimal_places=6, default=1.0, verbose_name="سعر الشراء (للإيداع)", help_text="كم تساوي 1 وحدة من العملة الأساسية (مثال: 1 دولار = 10500 ليرة)")
     sell_rate = models.DecimalField(max_digits=14, decimal_places=6, default=1.0, verbose_name="سعر المبيع (للسحب)", help_text="كم تساوي 1 وحدة من العملة الأساسية (مثال: 1 دولار = 10000 ليرة)")
@@ -42,6 +53,7 @@ class Currency(TimeStampedModel):
         ordering = ["display_order", "code"]
         verbose_name = "عملة"
         verbose_name_plural = "العملات"
+        unique_together = ("code", "store")
 
     def __str__(self):
         return f"{self.code} ({self.symbol})"

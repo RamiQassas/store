@@ -397,6 +397,30 @@
                         <option value="detailed" {% if store.footer_style == "detailed" %}selected{% endif %}>تذييل تفصيلي متعدد الأعمدة</option>
                     </select>
                 </div>
+
+                <div class="form-group">
+                    <span style="font-size: 0.75rem; opacity: 0.8; margin-bottom: 0.3rem;">حواف الأزرار (شكل الأزرار):</span>
+                    <select name="button_style" id="button_style" class="form-input" style="background: rgba(0,0,0,0.3); padding: 0.6rem 0.8rem;" onchange="updatePreview()">
+                        <option value="flat" {% if store.button_style == "flat" %}selected{% endif %}>زوايا حادة (Flat)</option>
+                        <option value="rounded" {% if store.button_style == "rounded" %}selected{% endif %}>زوايا دائرية خفيفة (Rounded)</option>
+                        <option value="pill" {% if store.button_style == "pill" %}selected{% endif %}>دائري بالكامل (Pill)</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <span style="font-size: 0.75rem; opacity: 0.8; margin-bottom: 0.3rem;">قوة الظلال والعمق:</span>
+                    <select name="shadow_style" id="shadow_style" class="form-input" style="background: rgba(0,0,0,0.3); padding: 0.6rem 0.8rem;" onchange="updatePreview()">
+                        <option value="none" {% if store.shadow_style == "none" %}selected{% endif %}>بدون ظلال (None / Flat)</option>
+                        <option value="soft" {% if store.shadow_style == "soft" %}selected{% endif %}>ظلال ناعمة خفيفة (Soft Shadow)</option>
+                        <option value="deep" {% if store.shadow_style == "deep" %}selected{% endif %}>ظلال عميقة وبارزة (Deep Shadow)</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Custom CSS Section (Advanced) -->
+            <div style="border-top: 1px solid var(--card-border); padding-top: 1rem;">
+                <label class="form-label" style="font-size: 0.85rem; color: var(--primary); margin-bottom: 0.5rem; display: block;"><i class="fa-solid fa-code"></i> تخصيص CSS مخصص (مطورين)</label>
+                <textarea name="custom_css" id="custom_css" class="form-input" rows="4" style="background: rgba(0,0,0,0.3); font-family: monospace; font-size: 0.8rem; resize: vertical;" placeholder="/* أضف كود CSS مخصص هنا لتعديل أي عنصر في متجرك */" oninput="updatePreview()">{{ store.custom_css }}</textarea>
             </div>
 
             <!-- Submit buttons -->
@@ -459,7 +483,7 @@
 </form>
 
 <script>
-    function applyTemplate(primary, secondary, button, bg, text, font, card, header, footer) {
+    function applyTemplate(primary, secondary, button, bg, text, font, card, header, footer, buttonStyle = 'pill', shadowStyle = 'soft') {
         document.getElementById('primary_color').value = primary;
         document.getElementById('secondary_color').value = secondary;
         document.getElementById('button_color').value = button;
@@ -469,6 +493,8 @@
         document.getElementById('card_style').value = card;
         document.getElementById('header_style').value = header;
         document.getElementById('footer_style').value = footer;
+        document.getElementById('button_style').value = buttonStyle;
+        document.getElementById('shadow_style').value = shadowStyle;
         
         updatePreview();
     }
@@ -483,6 +509,9 @@
         const cardStyle = document.getElementById('card_style').value;
         const headerStyle = document.getElementById('header_style').value;
         const footerStyle = document.getElementById('footer_style').value;
+        const buttonStyle = document.getElementById('button_style').value;
+        const shadowStyle = document.getElementById('shadow_style').value;
+        const customCss = document.getElementById('custom_css').value;
 
         const storefront = document.getElementById('mock-storefront');
         const header = document.getElementById('mock-header');
@@ -529,8 +558,24 @@
             card.style.boxShadow = 'none';
         }
 
+        // Apply Shadow Style
+        if (shadowStyle === 'none') {
+            card.style.boxShadow = 'none';
+        } else if (shadowStyle === 'deep') {
+            card.style.boxShadow = '0 15px 30px rgba(0, 0, 0, 0.3)';
+        } else {
+            card.style.boxShadow = '0 8px 20px rgba(0, 0, 0, 0.1)';
+        }
+
         // Button Styling
         btn.style.background = button;
+        if (buttonStyle === 'flat') {
+            btn.style.borderRadius = '0px';
+        } else if (buttonStyle === 'rounded') {
+            btn.style.borderRadius = '8px';
+        } else {
+            btn.style.borderRadius = '30px';
+        }
 
         // Footer Styling
         if (footerStyle === 'simple') {
@@ -539,6 +584,25 @@
             footerText.innerHTML = "© 2026 " + "{{ store.name }}" + " | الخصوصية | الشروط | تواصل معنا";
         } else {
             footerText.innerHTML = "© 2026 " + "{{ store.name }}. جميع الحقوق محفوظة.";
+        }
+
+        // Dynamic Scoped CSS Preview Injection
+        let previewStyle = document.getElementById('preview-custom-css');
+        if (!previewStyle) {
+            previewStyle = document.createElement('style');
+            previewStyle.id = 'preview-custom-css';
+            document.head.appendChild(previewStyle);
+        }
+        if (customCss.trim() !== '') {
+            // Scope selectors to #mock-storefront
+            const scoped = customCss.replace(/([^\r\n,{}]+)(,(?=[^}]*{)|(?=[^{]*{))/g, function(match, selector) {
+                // Ignore keyframes percent/from/to
+                if (selector.trim().match(/^(from|to|\d+%)/)) return selector;
+                return '#mock-storefront ' + selector.trim();
+            });
+            previewStyle.innerHTML = scoped;
+        } else {
+            previewStyle.innerHTML = '';
         }
     }
 

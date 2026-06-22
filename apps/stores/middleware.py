@@ -161,10 +161,14 @@ class TenantMiddleware:
                         token = _bypass_tenant_filter.set(True)
                         request._bypass_token = token
                 else:
-                    # Strict isolation: log out store-scoped users from the main site
+                    # Strict isolation: log out store-scoped users from the main site (except store owners)
                     if getattr(request.user, "store_id", None) is not None:
-                        logout(request)
-                        request.user = AnonymousUser()
+                        from apps.common.tenant_utils import bypass_tenant_filter
+                        with bypass_tenant_filter():
+                            is_owner = request.user.owned_stores.exists()
+                        if not is_owner:
+                            logout(request)
+                            request.user = AnonymousUser()
 
         try:
             response = self.get_response(request)

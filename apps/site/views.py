@@ -369,10 +369,14 @@ def v3_login_view(request):
             # - On main platform (active_store=None): reject users linked to any store
             # - On store tenant (active_store set): only allow users linked to THIS store
             if active_store is None:
-                # Main platform: users with store_id cannot login here
+                # Main platform: users with store_id cannot login here (except store owners)
                 if user.store_id is not None:
-                    messages.error(request, "هذا الحساب مرتبط بمتجر فرعي ولا يمكنه تسجيل الدخول هنا. يرجى التوجه إلى صفحة تسجيل الدخول الخاصة بمتجرك.")
-                    return render(request, "site/v3/v3_login.html", {"form": form})
+                    from apps.common.tenant_utils import bypass_tenant_filter
+                    with bypass_tenant_filter():
+                        is_owner = user.owned_stores.exists()
+                    if not is_owner:
+                        messages.error(request, "هذا الحساب مرتبط بمتجر فرعي ولا يمكنه تسجيل الدخول هنا. يرجى التوجه إلى صفحة تسجيل الدخول الخاصة بمتجرك.")
+                        return render(request, "site/v3/v3_login.html", {"form": form})
             else:
                 # Store tenant: only allow users who belong to this store (or superusers)
                 if not user.is_superuser:
@@ -3214,7 +3218,8 @@ def control_category_delete(request, pk):
 def control_category_create_ajax(request):
     name = request.POST.get("name")
     if name:
-        cat = Category.objects.create(name=name)
+        store = getattr(request, "store", None)
+        cat = Category.objects.create(name=name, store=store)
         return JsonResponse({"status": "success", "id": str(cat.id), "name": cat.name})
     return JsonResponse({"status": "error"}, status=400)
 
@@ -3223,7 +3228,11 @@ def control_category_create_ajax(request):
 def control_product_create(request):
     form = ProductForm(request.POST or None, request.FILES or None)
     if request.method == "POST" and form.is_valid():
-        product = form.save(); v_json = request.POST.get("variants_json")
+        product = form.save(commit=False)
+        product.store = getattr(request, "store", None)
+        product.save()
+        form.save_m2m()
+        v_json = request.POST.get("variants_json")
         if v_json:
             v_data = json.loads(v_json)
             def safe_decimal(val, default="0"):
@@ -3258,7 +3267,11 @@ def control_product_create(request):
 def control_product_edit(request, pk):
     product = get_object_or_404(Product, pk=pk); form = ProductForm(request.POST or None, request.FILES or None, instance=product)
     if request.method == "POST" and form.is_valid():
-        product = form.save(); v_json = request.POST.get("variants_json")
+        product = form.save(commit=False)
+        product.store = getattr(request, "store", None)
+        product.save()
+        form.save_m2m()
+        v_json = request.POST.get("variants_json")
         if v_json:
             v_data = json.loads(v_json); product.variants.exclude(sku__in=[v.get('sku') for v in v_data if v.get('sku')]).delete()
             for v in v_data:
@@ -3372,7 +3385,10 @@ def control_announcement_create(request):
     form = SiteAnnouncementForm(request.POST or None)
     if request.method == "POST" and form.is_valid():
         if form.cleaned_data.get("is_active"): SiteAnnouncement.objects.filter(is_active=True).update(is_active=False)
-        form.save(); return redirect("control_announcements")
+        ann = form.save(commit=False)
+        ann.store = getattr(request, "store", None)
+        ann.save()
+        return redirect("control_announcements")
     return render(request, "site/control_announcement_form.html", {"form": form})
 
 @admin_required
@@ -3380,7 +3396,10 @@ def control_announcement_edit(request, pk):
     ann = get_object_or_404(SiteAnnouncement, pk=pk); form = SiteAnnouncementForm(request.POST or None, instance=ann)
     if request.method == "POST" and form.is_valid():
         if form.cleaned_data.get("is_active"): SiteAnnouncement.objects.filter(is_active=True).exclude(pk=pk).update(is_active=False)
-        form.save(); return redirect("control_announcements")
+        ann_obj = form.save(commit=False)
+        ann_obj.store = getattr(request, "store", None)
+        ann_obj.save()
+        return redirect("control_announcements")
     return render(request, "site/control_announcement_form.html", {"form": form})
 
 @admin_required

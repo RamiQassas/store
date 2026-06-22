@@ -174,12 +174,18 @@
         <div class="home-container hero-grid">
             <div class="hero-content reveal">
                 <h1 class="hero-title">
-                    كل ما تحتاجه من <br>
-                    <span>خدمات رقمية</span> <br>
-                    في مكان واحد
+                    {% if is_tenant %}
+                    مرحباً بكم في متجر <br><span>{{ STORE_NAME }}</span>
+                    {% else %}
+                    بوابتك الآمنة لكل <br><span>الخدمات والبطاقات الرقمية</span>
+                    {% endif %}
                 </h1>
                 <p class="hero-subtitle">
+                    {% if is_tenant %}
+                    {{ STORE_DESCRIPTION|default:"شحن ألعاب، بطاقات رقمية، محافظ إلكترونية، وتسليم فوري على مدار الساعة." }}
+                    {% else %}
                     شحن ألعاب، بطاقات رقمية، محافظ إلكترونية، وتسليم فوري على مدار الساعة بأعلى معايير الأمان.
+                    {% endif %}
                 </p>
                 <div class="hero-actions" style="display: flex; gap: 1.25rem; flex-wrap: wrap;">
                     <a href="{% url 'catalog' %}" class="btn-premium primary">
@@ -202,8 +208,12 @@
                         <i class="fas fa-microchip"></i>
                     </div>
                     <div style="z-index: 2; text-align: center;">
-                        <i class="fas fa-bolt" style="font-size: 5rem; color: var(--brand-accent); display: block; margin-bottom: 1.5rem;"></i>
-                        <div style="font-weight: 900; font-size: 2.8rem; letter-spacing: 2px; color: #fff;">RAQAMIYAT</div>
+                        {% if is_tenant and STORE_LOGO %}
+                        <img src="{{ STORE_LOGO.url }}" alt="{{ STORE_NAME }}" style="max-height: 100px; max-width: 100%; margin: 0 auto 1.5rem; display: block; border-radius: 8px;">
+                        {% else %}
+                        <i class="{% if is_tenant %}fas fa-shopping-bag{% else %}fas fa-bolt{% endif %}" style="font-size: 5rem; color: var(--brand-accent); display: block; margin-bottom: 1.5rem;"></i>
+                        {% endif %}
+                        <div style="font-weight: 900; font-size: 2.8rem; letter-spacing: 2px; color: #fff;">{% if is_tenant %}{{ STORE_NAME }}{% else %}RAQAMIYAT{% endif %}</div>
                     </div>
                     <div style="position: absolute; top: 20%; left: 10%; width: 60px; height: 60px; background: var(--brand-primary); border-radius: 50%; filter: blur(30px); opacity: 0.4;"></div>
                     <div style="position: absolute; bottom: 10%; right: 10%; width: 80px; height: 80px; background: var(--brand-secondary); border-radius: 50%; filter: blur(40px); opacity: 0.4;"></div>

@@ -109,7 +109,7 @@ class MySocialAccountAdapter(DefaultSocialAccountAdapter):
             
             active_store = getattr(request, 'store', None)
             if active_store and not (user.is_superuser or user.is_staff or user.role == 'super_admin'):
-                if user.store_id != active_store.pk:
+                if user.store_id != active_store.pk and active_store.owner_id != user.pk:
                     messages.error(request, "This account is not linked to the current store.")
                     raise ImmediateHttpResponse(redirect("site_login"))
 

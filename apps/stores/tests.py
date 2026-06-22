@@ -407,7 +407,10 @@ class StoreSaaSNewFeaturesTests(TestCase):
             "theme_font": "Tajawal",
             "card_style": "rounded",
             "header_style": "modern",
-            "footer_style": "minimal"
+            "footer_style": "minimal",
+            "button_style": "flat",
+            "shadow_style": "deep",
+            "custom_css": ".my-class { display: block; }"
         }
         response = client.post(reverse("merchant_theme_builder", urlconf="apps.stores.urls"), post_data, HTTP_HOST="test-store.testserver")
         self.assertEqual(response.status_code, 302) # Redirect to self
@@ -418,6 +421,9 @@ class StoreSaaSNewFeaturesTests(TestCase):
             self.assertEqual(self.store.primary_color, "#112233")
             self.assertEqual(self.store.theme_font, "Tajawal")
             self.assertEqual(self.store.card_style, "rounded")
+            self.assertEqual(self.store.button_style, "flat")
+            self.assertEqual(self.store.shadow_style, "deep")
+            self.assertEqual(self.store.custom_css, ".my-class { display: block; }")
 
     def test_store_registration_payment_success(self):
         from apps.stores.models import SubscriptionInvoice
