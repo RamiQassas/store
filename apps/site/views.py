@@ -4222,43 +4222,16 @@ def sso_transfer_view(request):
     from django.contrib.auth import login, get_user_model
     from django.core import signing
     from django.http import HttpResponseBadRequest
-    from urllib.parse import urlparse, urlunparse
+    from urllib.parse import urlparse, urlunparse, quote
     from django.contrib import messages
     from django.shortcuts import redirect
 
     User = get_user_model()
+    token = request.GET.get("token")
+    next_url = request.GET.get("next")
 
-    if not active_store:
-        if not request.user.is_authenticated:
-            return redirect("site_login")
-
-        next_url = request.GET.get("next")
-        if not next_url:
-            return HttpResponseBadRequest("Missing next parameter.")
-
-        parsed = urlparse(next_url)
-        token = signing.dumps(request.user.id)
-
-        callback_path = "/auth/sso-callback/"
-        callback_query = f"token={token}&next={parsed.path or '/dashboard/'}"
-
-        sso_url = urlunparse((
-            parsed.scheme or "http",
-            parsed.netloc,
-            callback_path,
-            "",
-            callback_query,
-            ""
-        ))
-
-        return redirect(sso_url)
-    else:
-        token = request.GET.get("token")
-        next_url = request.GET.get("next", "/dashboard/")
-
-        if not token:
-            return HttpResponseBadRequest("Missing token.")
-
+    # 1. If a token is provided, log the user in
+    if token:
         try:
             user_id = signing.loads(token, max_age=30)
             user = User.objects.get(pk=user_id)
@@ -4266,8 +4239,43 @@ def sso_transfer_view(request):
             user.backend = "apps.stores.auth_backend.TenantModelBackend"
             login(request, user)
 
-            messages.success(request, "تم تسجيل الدخول بنجاح عبر حساب Google.")
-            return redirect(next_url)
+            messages.success(request, "تم مزامنة تسجيل الدخول بنجاح.")
+            return redirect(next_url or "/dashboard/")
         except (signing.SignatureExpired, signing.BadSignature, User.DoesNotExist) as e:
             messages.error(request, "رابط تسجيل الدخول غير صالح أو منتهي الصلاحية. يرجى المحاولة مرة أخرى.")
             return redirect("site_login")
+
+    # 2. If user is authenticated, handle cross-domain redirect with a token
+    if request.user.is_authenticated:
+        if not next_url:
+            return redirect("/dashboard/")
+
+        parsed = urlparse(next_url)
+        if parsed.netloc and parsed.netloc != request.get_host():
+            token = signing.dumps(request.user.id)
+            callback_path = "/auth/sso-callback/"
+            target_path = parsed.path
+            if parsed.query:
+                target_path += f"?{parsed.query}"
+
+            sso_url = urlunparse((
+                parsed.scheme or "http",
+                parsed.netloc,
+                callback_path,
+                "",
+                f"token={token}&next={target_path or '/dashboard/'}",
+                ""
+            ))
+            return redirect(sso_url)
+        else:
+            return redirect(next_url)
+
+    # 3. If user is not authenticated, redirect to login page
+    if active_store:
+        from django.conf import settings
+        platform_url = getattr(settings, "SITE_URL", "https://raqamiyatapp.com")
+        current_absolute_uri = request.build_absolute_uri(next_url or "/dashboard/")
+        sso_login_url = f"{platform_url}/accounts/google/login/?next={platform_url}/auth/sso-callback/%3Fnext%3D{quote(current_absolute_uri)}"
+        return redirect(sso_login_url)
+    else:
+        return redirect("site_login")

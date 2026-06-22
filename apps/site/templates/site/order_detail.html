@@ -181,7 +181,7 @@
         <div class="panel p-6">
             <h4 class="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-4">هل لديك مشكلة؟</h4>
             <p class="text-[11px] text-slate-400 leading-relaxed mb-6">إذا واجهت أي مشكلة في استلام الخدمة أو كان لديك استفسار، يرجى فتح تذكرة دعم فني.</p>
-            <a href="{% if is_tenant %}{{ PLATFORM_URL }}/support/chats/{% else %}{% url 'chat_list' %}{% endif %}" class="btn btn-outline btn-sm w-full">فتح تذكرة دعم</a>
+            <a href="{% if is_tenant %}/auth/sso-callback/?next={{ PLATFORM_URL }}/support/chats/{% else %}{% url 'chat_list' %}{% endif %}" class="btn btn-outline btn-sm w-full">فتح تذكرة دعم</a>
         </div>
     </div>
 </div>
