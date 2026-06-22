@@ -16,7 +16,7 @@ class MyAccountAdapter(DefaultAccountAdapter):
     def clean_email(self, email):
         from allauth.account.utils import filter_users_by_email
         with bypass_tenant_filter():
-            if filter_users_by_email(email).exists():
+            if filter_users_by_email(email):
                 raise self.validation_error("email_taken")
         return email
 
