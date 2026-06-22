@@ -94,18 +94,18 @@ class MySocialAccountAdapter(DefaultSocialAccountAdapter):
                 sociallogin.connect(request, user)
                 logger.info(f"Connected existing user {email} to social account.")
             
-            # 2. Mark as verified (Google emails are trusted)
-            needs_save = False
-            if not user.email_verified:
-                user.email_verified = True
-                needs_save = True
-            
-            if not user.is_active:
-                user.is_active = True
-                needs_save = True
-            
+            # Ensure the user is associated with the active store context
+            active_store = getattr(request, 'store', None)
+            if active_store and not (user.is_superuser or user.is_staff or user.role == 'super_admin'):
+                if user.store_id != active_store.pk:
+                    user.store = active_store
+                    needs_save = True
+
             if needs_save:
-                user.save(update_fields=["email_verified", "is_active"])
+                fields = ["email_verified", "is_active"]
+                if active_store and user.store_id == active_store.pk:
+                    fields.append("store")
+                user.save(update_fields=fields)
             
             # 3. Update allauth's EmailAddress record
             EmailAddress.objects.update_or_create(
@@ -122,15 +122,25 @@ class MySocialAccountAdapter(DefaultSocialAccountAdapter):
         Called when a new user is being saved via social signup.
         """
         user = super().save_user(request, sociallogin, form)
-        
+
         # Ensure phone is None instead of empty string to avoid unique constraint issues
         if not user.phone:
             user.phone = None
             
+        # Associate the new user with the active store context
+        active_store = getattr(request, 'store', None)
+        if active_store:
+            user.store = active_store
+            
         # For social signups, we trust the provider (Google)
         user.email_verified = True
         user.is_active = True
-        user.save(update_fields=["email_verified", "is_active", "phone"])
+        
+        fields = ["email_verified", "is_active", "phone"]
+        if active_store:
+            fields.append("store")
+            
+        user.save(update_fields=fields)
         
         # Also ensure the EmailAddress model in allauth is marked as verified
         EmailAddress.objects.get_or_create(

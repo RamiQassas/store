@@ -415,7 +415,14 @@ def v3_register_view(request):
     if request.method == "POST" and form.is_valid():
         try:
             with transaction.atomic():
-                user = User.objects.create_user(email=form.cleaned_data["email"], password=form.cleaned_data["password"], phone=request.POST.get("phone"), first_name=form.cleaned_data["first_name"], last_name=form.cleaned_data["last_name"])
+                user = User.objects.create_user(
+                    email=form.cleaned_data["email"],
+                    password=form.cleaned_data["password"],
+                    phone=request.POST.get("phone"),
+                    first_name=form.cleaned_data["first_name"],
+                    last_name=form.cleaned_data["last_name"],
+                    store=getattr(request, 'store', None)
+                )
                 get_or_create_wallet(user)
                 otp = v3_generate_otp(user, OTPToken.Purpose.REGISTRATION)
                 if v3_send_otp_email(user, otp):

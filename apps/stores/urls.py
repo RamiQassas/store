@@ -1,4 +1,4 @@
-from django.urls import path
+from django.urls import path, include
 
 # ============================================================
 # Multi-Tenant URL Configuration
@@ -47,6 +47,7 @@ urlpatterns = [
     path("auth/verify-otp/", site_views.v3_verify_otp_view, name="site_verify_otp"),
     path("auth/2fa-verify/", site_views.v3_2fa_verify_view, name="site_2fa_verify"),
     path("auth/sp-verify/", site_views.v3_verify_sp_view, name="site_sp_verify"),
+    path("accounts/", include("allauth.urls")),
 
     # Customer Dashboard — same dashboard as main platform, filtered by store
     path("dashboard/", site_views.dashboard, name="dashboard"),
