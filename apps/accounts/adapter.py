@@ -35,6 +35,9 @@ class MySocialAccountAdapter(DefaultSocialAccountAdapter):
         Connect existing accounts by email automatically and ensure they are verified.
         """
         email = sociallogin.user.email
+        if not email and sociallogin.email_addresses:
+            email = sociallogin.email_addresses[0].email
+
         if not email:
             return
 
@@ -45,7 +48,6 @@ class MySocialAccountAdapter(DefaultSocialAccountAdapter):
                 # 1. Link social account if not already connected
                 if not sociallogin.is_existing:
                     sociallogin.connect(request, user)
-                    sociallogin.is_existing = True  # Ensure in-memory state is updated to login directly
                     logger.info(f"Connected existing user {email} to social account.")
                 
                 # 2. Mark as verified (Google emails are trusted)
