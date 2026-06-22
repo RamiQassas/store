@@ -1,0 +1,60 @@
+{% extends "stores/merchant/base.html" %}
+
+{% block menu_emp %}active{% endblock %}
+
+{% block content %}
+
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+        <h1 style="font-size: 2rem; font-weight: 900;">إدارة موظفي المتجر</h1>
+        <a href="{% url 'merchant_employee_create' %}" class="btn btn-primary"><i class="fa-solid fa-plus"></i> إضافة موظف جديد</a>
+    </div>
+
+    <!-- Employees Table -->
+    <div class="table-container">
+        {% if employees %}
+            <table>
+                <thead>
+                    <tr>
+                        <th>البريد الإلكتروني</th>
+                        <th>الاسم</th>
+                        <th>الدور/الوظيفة</th>
+                        <th>الصلاحيات</th>
+                        <th>تاريخ الإضافة</th>
+                        <th>الإجراءات</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for emp in employees %}
+                        <tr>
+                            <td><strong>{{ emp.user.email }}</strong></td>
+                            <td style="opacity: 0.8;">{{ emp.user.get_full_name|default:"—" }}</td>
+                            <td>
+                                <span class="badge primary">{{ emp.get_role_display }}</span>
+                            </td>
+                            <td style="max-width: 300px; font-size: 0.85rem; opacity: 0.8;">
+                                {% if emp.role == 'manager' %}
+                                    <span style="color: #34d399; font-weight: bold;">صلاحيات كاملة (مدير)</span>
+                                {% else %}
+                                    {{ emp.permissions|join:", "|default:"لا يوجد صلاحيات خاصة" }}
+                                {% endif %}
+                            </td>
+                            <td style="opacity: 0.7; font-size: 0.9rem;">{{ emp.created_at|date:"Y-m-d H:i" }}</td>
+                            <td>
+                                <div style="display: flex; gap: 0.5rem;">
+                                    <a href="{% url 'merchant_employee_edit' emp.id %}" class="btn btn-outline btn-sm"><i class="fa-solid fa-edit"></i> تعديل</a>
+                                    <a href="{% url 'merchant_employee_delete' emp.id %}" onclick="return confirm('هل أنت متأكد من حذف هذا الموظف؟')" class="btn btn-danger btn-sm"><i class="fa-solid fa-trash"></i> حذف</a>
+                                </div>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        {% else %}
+            <div style="text-align: center; padding: 4rem 2rem;">
+                <i class="fa-solid fa-users-gear" style="font-size: 3rem; opacity: 0.2; margin-bottom: 1rem;"></i>
+                <p>لا يوجد موظفين مضافين لمتجرك حالياً.</p>
+            </div>
+        {% endif %}
+    </div>
+
+{% endblock %}

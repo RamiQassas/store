@@ -1,0 +1,81 @@
+{% extends "stores/merchant/base.html" %}
+
+{% block menu_emp %}active{% endblock %}
+
+{% block content %}
+
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+        <h1 style="font-size: 2rem; font-weight: 900;">
+            {% if employee %}تعديل الموظف: {{ employee.user.email }}{% else %}إضافة موظف جديد{% endif %}
+        </h1>
+        <a href="{% url 'merchant_employees' %}" class="btn btn-outline"><i class="fa-solid fa-arrow-left"></i> العودة للقائمة</a>
+    </div>
+
+    <div class="card">
+        <form method="POST">
+            {% csrf_token %}
+            
+            <div style="display: grid; grid-template-cols: 1fr 1fr; gap: 1.5rem;">
+                <div class="form-group">
+                    <label class="form-label">البريد الإلكتروني للموظف:</label>
+                    <input type="email" name="email" value="{{ employee.user.email }}" {% if employee %}readonly style="opacity: 0.6; cursor: not-allowed;"{% else %}required{% endif %} class="form-input" placeholder="example@domain.com">
+                    <small style="opacity: 0.5; margin-top: 0.2rem;">سيتم ربط الموظف بهذا الحساب. إذا لم يكن مسجلاً، سيقوم النظام بإنشاء حساب تلقائي له بكلمة مرور مؤقتة.</small>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">الدور/الوظيفة الأساسية:</label>
+                    <select name="role" class="form-input" required>
+                        <option value="manager" {% if employee.role == 'manager' %}selected{% endif %}>مدير (صلاحيات كاملة تلقائياً)</option>
+                        <option value="sales" {% if employee.role == 'sales' or not employee %}selected{% endif %}>موظف مبيعات</option>
+                        <option value="support" {% if employee.role == 'support' %}selected{% endif %}>موظف دعم</option>
+                        <option value="moderator" {% if employee.role == 'moderator' %}selected{% endif %}>مشرف منتجات</option>
+                        <option value="accountant" {% if employee.role == 'accountant' %}selected{% endif %}>محاسب</option>
+                        <option value="custom" {% if employee.role == 'custom' %}selected{% endif %}>صلاحيات مخصصة</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Custom Permissions Selection -->
+            <div style="margin-top: 2rem; border-top: 1px solid var(--card-border); padding-top: 1.5rem;">
+                <h3 style="font-size: 1.1rem; font-weight: 800; margin-bottom: 1rem;">الصلاحيات المخصصة للموظف</h3>
+                <p style="font-size: 0.85rem; opacity: 0.6; margin-bottom: 1.5rem;">(يتم تفعيل الصلاحيات المحددة أدناه للموظف إذا لم يكن دوره "مدير")</p>
+                
+                <div style="display: grid; grid-template-cols: repeat(auto-fill, minmax(200px, 1fr)); gap: 1.5rem;">
+                    <div style="display: flex; align-items: center; gap: 0.6rem;">
+                        <input type="checkbox" name="permissions" value="manage_products" id="perm_prod" {% if "manage_products" in employee.permissions %}checked{% endif %} style="width: 18px; height: 18px; cursor: pointer;">
+                        <label for="perm_prod" style="font-size: 0.9rem; font-weight: 700; cursor: pointer; user-select: none;">إدارة المنتجات</label>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 0.6rem;">
+                        <input type="checkbox" name="permissions" value="manage_orders" id="perm_ord" {% if "manage_orders" in employee.permissions %}checked{% endif %} style="width: 18px; height: 18px; cursor: pointer;">
+                        <label for="perm_ord" style="font-size: 0.9rem; font-weight: 700; cursor: pointer; user-select: none;">إدارة الطلبات</label>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 0.6rem;">
+                        <input type="checkbox" name="permissions" value="manage_coupons" id="perm_coup" {% if "manage_coupons" in employee.permissions %}checked{% endif %} style="width: 18px; height: 18px; cursor: pointer;">
+                        <label for="perm_coup" style="font-size: 0.9rem; font-weight: 700; cursor: pointer; user-select: none;">إدارة الكوبونات</label>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 0.6rem;">
+                        <input type="checkbox" name="permissions" value="manage_pages" id="perm_page" {% if "manage_pages" in employee.permissions %}checked{% endif %} style="width: 18px; height: 18px; cursor: pointer;">
+                        <label for="perm_page" style="font-size: 0.9rem; font-weight: 700; cursor: pointer; user-select: none;">إدارة الصفحات</label>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 0.6rem;">
+                        <input type="checkbox" name="permissions" value="manage_settings" id="perm_sett" {% if "manage_settings" in employee.permissions %}checked{% endif %} style="width: 18px; height: 18px; cursor: pointer;">
+                        <label for="perm_sett" style="font-size: 0.9rem; font-weight: 700; cursor: pointer; user-select: none;">إدارة إعدادات الهوية</label>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 0.6rem;">
+                        <input type="checkbox" name="permissions" value="manage_employees" id="perm_emp" {% if "manage_employees" in employee.permissions %}checked{% endif %} style="width: 18px; height: 18px; cursor: pointer;">
+                        <label for="perm_emp" style="font-size: 0.9rem; font-weight: 700; cursor: pointer; user-select: none;">إدارة الموظفين</label>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 0.6rem;">
+                        <input type="checkbox" name="permissions" value="view_reports" id="perm_rep" {% if "view_reports" in employee.permissions %}checked{% endif %} style="width: 18px; height: 18px; cursor: pointer;">
+                        <label for="perm_rep" style="font-size: 0.9rem; font-weight: 700; cursor: pointer; user-select: none;">عرض التقارير المتقدمة</label>
+                    </div>
+                </div>
+            </div>
+
+            <div style="margin-top: 2.5rem; display: flex; justify-content: flex-end;">
+                <button type="submit" class="btn btn-primary"><i class="fa-solid fa-save"></i> حفظ بيانات الموظف</button>
+            </div>
+        </form>
+    </div>
+
+{% endblock %}
