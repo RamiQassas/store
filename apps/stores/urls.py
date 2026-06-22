@@ -105,47 +105,115 @@ urlpatterns = [
     # These views are ONLY available in tenant context.
     # They allow the store owner/employees to manage their own store.
     # ==========================================
-    path("merchant/", merchant_views.merchant_dashboard, name="merchant_dashboard"),
+    # These views are ONLY available in tenant context.
+    # They allow the store owner/employees to manage their own store.
+    # ==========================================
+    path("merchant/", site_views.control_dashboard, name="control_dashboard"),
+    path("merchant/dashboard-alias/", site_views.control_dashboard, name="merchant_dashboard"),
 
     # Products & Variants & Keys
-    path("merchant/products/", merchant_views.merchant_products, name="merchant_products"),
-    path("merchant/products/create/", merchant_views.merchant_product_form, name="merchant_product_create"),
-    path("merchant/products/<uuid:pk>/edit/", merchant_views.merchant_product_form, name="merchant_product_edit"),
-    path("merchant/products/<uuid:pk>/delete/", merchant_views.merchant_product_delete, name="merchant_product_delete"),
-    path("merchant/products/<uuid:product_pk>/variants/create/", merchant_views.merchant_variant_form, name="merchant_variant_create"),
-    path("merchant/variants/<uuid:pk>/edit/", merchant_views.merchant_variant_form, name="merchant_variant_edit"),
-    path("merchant/variants/<uuid:pk>/keys/", merchant_views.merchant_variant_keys, name="merchant_variant_keys"),
+    path("merchant/products/", site_views.control_products_list, name="control_products_list"),
+    path("merchant/products/alias/", site_views.control_products_list, name="merchant_products"),
+    path("merchant/products/create/", site_views.control_product_create, name="control_product_create"),
+    path("merchant/products/create/alias/", site_views.control_product_create, name="merchant_product_create"),
+    path("merchant/products/<uuid:pk>/edit/", site_views.control_product_edit, name="control_product_edit"),
+    path("merchant/products/<uuid:pk>/edit/alias/", site_views.control_product_edit, name="merchant_product_edit"),
+    path("merchant/products/<uuid:pk>/delete/", site_views.control_product_delete, name="control_product_delete"),
+    path("merchant/products/<uuid:pk>/delete/alias/", site_views.control_product_delete, name="merchant_product_delete"),
+    path("merchant/products/<uuid:product_pk>/variants/create/", site_views.control_variant_create, name="control_variant_create"),
+    path("merchant/products/<uuid:product_pk>/variants/create/alias/", site_views.control_variant_create, name="merchant_variant_create"),
+    path("merchant/variants/<uuid:pk>/edit/", site_views.control_variant_edit, name="control_variant_edit"),
+    path("merchant/variants/<uuid:pk>/edit/alias/", site_views.control_variant_edit, name="merchant_variant_edit"),
+    path("merchant/variants/<uuid:pk>/keys/", site_views.control_variant_keys, name="control_variant_keys"),
+    path("merchant/variants/<uuid:pk>/keys/alias/", site_views.control_variant_keys, name="merchant_variant_keys"),
 
     # Categories
-    path("merchant/categories/", merchant_views.merchant_categories, name="merchant_categories"),
-    path("merchant/categories/create/", merchant_views.merchant_category_form, name="merchant_category_create"),
-    path("merchant/categories/<uuid:pk>/edit/", merchant_views.merchant_category_form, name="merchant_category_edit"),
-    path("merchant/categories/<uuid:pk>/delete/", merchant_views.merchant_category_delete, name="merchant_category_delete"),
+    path("merchant/categories/", site_views.control_categories_list, name="control_categories_list"),
+    path("merchant/categories/alias/", site_views.control_categories_list, name="merchant_categories"),
+    path("merchant/categories/create/", site_views.control_category_edit, name="control_category_create"),
+    path("merchant/categories/create/alias/", site_views.control_category_edit, name="merchant_category_create"),
+    path("merchant/categories/<uuid:pk>/edit/", site_views.control_category_edit, name="control_category_edit"),
+    path("merchant/categories/<uuid:pk>/edit/alias/", site_views.control_category_edit, name="merchant_category_edit"),
+    path("merchant/categories/<uuid:pk>/delete/", site_views.control_category_delete, name="control_category_delete"),
+    path("merchant/categories/<uuid:pk>/delete/alias/", site_views.control_category_delete, name="merchant_category_delete"),
 
     # Orders
-    path("merchant/orders/", merchant_views.merchant_orders, name="merchant_orders"),
-    path("merchant/orders/<uuid:pk>/", merchant_views.merchant_order_detail, name="merchant_order_detail"),
-    path("merchant/orders/<uuid:pk>/update-status/", merchant_views.merchant_order_status_update, name="merchant_order_status_update"),
+    path("merchant/orders/", site_views.control_orders_list, name="control_orders_list"),
+    path("merchant/orders/alias/", site_views.control_orders_list, name="merchant_orders"),
+    path("merchant/orders/<uuid:pk>/", site_views.control_order_detail, name="control_order_detail"),
+    path("merchant/orders/<uuid:pk>/alias/", site_views.control_order_detail, name="merchant_order_detail"),
+    path("merchant/orders/<uuid:pk>/update-status/", site_views.control_order_status_update, name="merchant_order_status_update"),
 
     # Coupons
-    path("merchant/coupons/", merchant_views.merchant_coupons, name="merchant_coupons"),
-    path("merchant/coupons/create/", merchant_views.merchant_coupon_form, name="merchant_coupon_create"),
-    path("merchant/coupons/<uuid:pk>/edit/", merchant_views.merchant_coupon_form, name="merchant_coupon_edit"),
-    path("merchant/coupons/<uuid:pk>/delete/", merchant_views.merchant_coupon_delete, name="merchant_coupon_delete"),
+    path("merchant/coupons/", site_views.control_coupons_list, name="control_coupons_list"),
+    path("merchant/coupons/alias/", site_views.control_coupons_list, name="merchant_coupons"),
+    path("merchant/coupons/create/", site_views.control_coupon_edit, name="control_coupon_create"),
+    path("merchant/coupons/create/alias/", site_views.control_coupon_edit, name="merchant_coupon_create"),
+    path("merchant/coupons/<uuid:pk>/edit/", site_views.control_coupon_edit, name="control_coupon_edit"),
+    path("merchant/coupons/<uuid:pk>/edit/alias/", site_views.control_coupon_edit, name="merchant_coupon_edit"),
+    path("merchant/coupons/<uuid:pk>/delete/", site_views.control_coupon_delete, name="control_coupon_delete"),
+    path("merchant/coupons/<uuid:pk>/delete/alias/", site_views.control_coupon_delete, name="merchant_coupon_delete"),
 
-    # Staff / Employees
+    # Deposits
+    path("merchant/deposits/", site_views.control_deposits, name="control_deposits"),
+    path("merchant/deposits/<uuid:pk>/", site_views.control_deposit_detail, name="control_deposit_detail"),
+
+    # Withdrawals
+    path("merchant/withdrawals/", site_views.control_withdrawals, name="control_withdrawals"),
+    path("merchant/withdrawals/<uuid:pk>/", site_views.control_withdrawal_detail, name="control_withdrawal_detail"),
+
+    # Transfers
+    path("merchant/transfers/", site_views.control_transfers, name="control_transfers"),
+    path("merchant/transfers/<uuid:pk>/reverse/", site_views.control_transfer_reverse, name="control_transfer_reverse"),
+    path("merchant/transfers/<uuid:pk>/suspend/", site_views.control_transfer_suspend, name="control_transfer_suspend"),
+    path("merchant/transfers/<uuid:pk>/unsuspend/", site_views.control_transfer_unsuspend, name="control_transfer_unsuspend"),
+    path("merchant/transfers/<uuid:pk>/edit-amount/", site_views.control_transfer_edit_amount, name="control_transfer_edit_amount"),
+
+    # Currencies
+    path("merchant/currencies/", site_views.currencies_list, name="currencies_list"),
+    path("merchant/currencies/create/", site_views.currency_create, name="currency_create"),
+    path("merchant/currencies/<uuid:pk>/edit/", site_views.currency_edit, name="currency_edit"),
+
+    # Payment Methods
+    path("merchant/payment-methods/", site_views.payment_methods_list, name="payment_methods_list"),
+    path("merchant/payment-methods/create/", site_views.payment_method_create, name="payment_method_create"),
+    path("merchant/payment-methods/<uuid:pk>/edit/", site_views.payment_method_edit, name="payment_method_edit"),
+
+    # Users
+    path("merchant/users/", site_views.control_users_list, name="control_users_list"),
+    path("merchant/users/<uuid:public_uuid>/moderate/", site_views.control_user_moderate, name="control_user_moderate"),
+
+    # KYC Verification
+    path("merchant/kyc/", site_views.control_kycs_list, name="control_kycs_list"),
+    path("merchant/kyc/settings/", site_views.control_kyc_settings, name="control_kyc_settings"),
+    path("merchant/kyc/<uuid:pk>/", site_views.control_kyc_detail, name="control_kyc_detail"),
+
+    # Send Notification
+    path("merchant/notifications/send/", site_views.control_send_notification, name="control_send_notification"),
+
+    # Testimonials / Customer Reviews
+    path("merchant/testimonials/", site_views.control_testimonials_list, name="control_testimonials_list"),
+    path("merchant/testimonials/<uuid:pk>/moderate/", site_views.control_testimonial_moderate, name="control_testimonial_moderate"),
+
+    # Announcements
+    path("merchant/announcements/", site_views.control_announcements, name="control_announcements"),
+
+    # Database Maintenance
+    path("merchant/db-maintenance/", site_views.control_db_maintenance, name="control_db_maintenance"),
+
+    # Staff / Employees (Store-specific)
     path("merchant/employees/", merchant_views.merchant_employees, name="merchant_employees"),
     path("merchant/employees/create/", merchant_views.merchant_employee_form, name="merchant_employee_create"),
     path("merchant/employees/<uuid:pk>/edit/", merchant_views.merchant_employee_form, name="merchant_employee_edit"),
     path("merchant/employees/<uuid:pk>/delete/", merchant_views.merchant_employee_delete, name="merchant_employee_delete"),
 
-    # Custom Pages CRUD
+    # Custom Pages CRUD (Store-specific)
     path("merchant/pages/", merchant_views.merchant_pages, name="merchant_pages"),
     path("merchant/pages/create/", merchant_views.merchant_page_form, name="merchant_page_create"),
     path("merchant/pages/<uuid:pk>/edit/", merchant_views.merchant_page_form, name="merchant_page_edit"),
     path("merchant/pages/<uuid:pk>/delete/", merchant_views.merchant_page_delete, name="merchant_page_delete"),
 
-    # Store Settings & Theme
+    # Store Settings & Theme (Store-specific)
     path("merchant/settings/", merchant_views.merchant_settings, name="merchant_settings"),
     path("merchant/settings/domain-diagnostics/", merchant_views.merchant_domain_diagnostics, name="merchant_domain_diagnostics"),
     path("merchant/theme-builder/", merchant_views.merchant_theme_builder, name="merchant_theme_builder"),

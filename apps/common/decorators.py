@@ -14,6 +14,18 @@ def role_required(allowed_roles):
             if not request.user.is_authenticated:
                 return redirect('site_login')
             
+            # Subdomain store context
+            active_store = getattr(request, 'store', None)
+            if active_store:
+                is_store_member = (
+                    active_store.owner_id == request.user.pk or
+                    request.user.store_id == active_store.pk or
+                    request.user.store_employments.filter(store=active_store).exists()
+                )
+                if is_store_member:
+                    return view_func(request, *args, **kwargs)
+                raise PermissionDenied
+
             if request.user.is_superuser or request.user.role == User.Role.SUPER_ADMIN:
                 return view_func(request, *args, **kwargs)
             

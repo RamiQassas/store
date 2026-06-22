@@ -1444,6 +1444,8 @@ def control_testimonials_list(request):
     from apps.common.models import Testimonial
     status_filter = request.GET.get('approved')
     items = Testimonial.objects.all().select_related('user').order_by('-created_at')
+    if request.store:
+        items = items.filter(user__store=request.store)
     if status_filter:
         items = items.filter(is_approved=(status_filter == '1'))
     return render(request, "site/control_testimonials_list.html", {"testimonials": items, "status_filter": status_filter})
@@ -1451,7 +1453,10 @@ def control_testimonials_list(request):
 @support_required
 def control_testimonial_moderate(request, pk):
     from apps.common.models import Testimonial
-    t = get_object_or_404(Testimonial, pk=pk)
+    if request.store:
+        t = get_object_or_404(Testimonial, pk=pk, user__store=request.store)
+    else:
+        t = get_object_or_404(Testimonial, pk=pk)
     action = request.POST.get("action")
     
     if action == "approve":
@@ -1756,6 +1761,8 @@ def control_withdrawals(request): return render(request, "site/control_withdrawa
 def control_transfers(request):
     from apps.wallets.models import BalanceTransfer
     qs = BalanceTransfer.objects.all().select_related("sender", "recipient", "currency").order_by("-created_at")
+    if request.store:
+        qs = qs.filter(sender__store=request.store)
     
     q = request.GET.get("q")
     if q:
@@ -1778,7 +1785,10 @@ def control_transfer_reverse(request, pk):
     from apps.wallets.services import reverse_p2p_transfer, WalletError
     
     if request.method == "POST":
-        transfer = get_object_or_404(BalanceTransfer, pk=pk)
+        if request.store:
+            transfer = get_object_or_404(BalanceTransfer, pk=pk, sender__store=request.store)
+        else:
+            transfer = get_object_or_404(BalanceTransfer, pk=pk)
         try:
             reverse_p2p_transfer(transfer, admin_user=request.user)
             messages.success(request, f"تم إلغاء واسترداد التحويل ({transfer.reference}) بنجاح.")
@@ -1795,7 +1805,10 @@ def control_transfer_suspend(request, pk):
     from apps.wallets.services import suspend_p2p_transfer, WalletError
     
     if request.method == "POST":
-        transfer = get_object_or_404(BalanceTransfer, pk=pk)
+        if request.store:
+            transfer = get_object_or_404(BalanceTransfer, pk=pk, sender__store=request.store)
+        else:
+            transfer = get_object_or_404(BalanceTransfer, pk=pk)
         try:
             suspend_p2p_transfer(transfer, admin_user=request.user)
             messages.success(request, f"تم تعليق الحوالة ({transfer.reference}) بنجاح وحجز الرصيد من المستلم.")
@@ -1812,7 +1825,10 @@ def control_transfer_unsuspend(request, pk):
     from apps.wallets.services import unsuspend_p2p_transfer, WalletError
     
     if request.method == "POST":
-        transfer = get_object_or_404(BalanceTransfer, pk=pk)
+        if request.store:
+            transfer = get_object_or_404(BalanceTransfer, pk=pk, sender__store=request.store)
+        else:
+            transfer = get_object_or_404(BalanceTransfer, pk=pk)
         try:
             unsuspend_p2p_transfer(transfer, admin_user=request.user)
             messages.success(request, f"تم إلغاء تعليق الحوالة ({transfer.reference}) بنجاح وإرجاع الرصيد للمستلم.")
@@ -1829,7 +1845,10 @@ def control_transfer_edit_amount(request, pk):
     from apps.wallets.services import edit_p2p_transfer_amount, WalletError
     
     if request.method == "POST":
-        transfer = get_object_or_404(BalanceTransfer, pk=pk)
+        if request.store:
+            transfer = get_object_or_404(BalanceTransfer, pk=pk, sender__store=request.store)
+        else:
+            transfer = get_object_or_404(BalanceTransfer, pk=pk)
         new_amount_str = request.POST.get("new_amount")
         try:
             new_amount = Decimal(new_amount_str)
@@ -2642,6 +2661,33 @@ def control_order_detail(request, pk):
     }
     return render(request, "site/control_order_detail.html", ctx)
 
+
+@support_required
+def control_order_status_update(request, pk):
+    order = get_object_or_404(Order, pk=pk)
+    new_status = request.POST.get("status")
+    if new_status in Order.Status.values:
+        old_status = order.status
+        order.status = new_status
+        order.save()
+        OrderLog.objects.create(order=order, status=order.status, note=request.POST.get("admin_note", ""), created_by=request.user)
+        if order.status in [Order.Status.REFUNDED, Order.Status.CANCELLED] and old_status not in [Order.Status.REFUNDED, Order.Status.CANCELLED]:
+            credit_wallet(order.customer.wallet.id, order.total_amount, f"refund:{order.id}", f"استرداد مبلغ الطلب رقم #{order.number}", request.user)
+        messages.success(request, f"تم تحديث حالة الطلب إلى: {order.get_status_display()}")
+        try:
+            notify_user(
+                user=order.customer,
+                title="تحديث حالة الطلب",
+                body=f"تم تغيير حالة طلبك رقم #{order.number} إلى: {order.get_status_display()}",
+                action_url=f"/dashboard/orders/{order.id}/",
+                category="orders"
+            )
+        except: pass
+    if getattr(request, "store", None):
+        return redirect("merchant_order_detail", pk=order.pk)
+    return redirect("control_order_detail", pk=order.pk)
+
+
 def export_to_excel(queryset, filename, columns):
     try:
         import openpyxl
@@ -3214,6 +3260,16 @@ def control_product_edit(request, pk):
         } for v in product.variants.all().order_by('sort_order')
     ]
     return render(request, "site/control_product_builder.html", {"form": form, "product": product, "variants_json_data": v_list, "title": f"تعديل: {product.name}"})
+
+
+@support_required
+def control_product_delete(request, pk):
+    product = get_object_or_404(Product, pk=pk)
+    product.delete()
+    messages.success(request, "تم حذف المنتج بنجاح.")
+    if getattr(request, "store", None):
+        return redirect("merchant_products")
+    return redirect("control_products_list")
 
 
 @support_required

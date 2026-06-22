@@ -3,6 +3,7 @@ from decimal import Decimal
 
 from django.db import models
 from django.conf import settings
+from apps.common.tenant_utils import TenantManager
 
 
 class TimeStampedModel(models.Model):
@@ -135,11 +136,21 @@ class SocialMediaLink(TimeStampedModel):
         return self.name
 
 class SiteAnnouncement(TimeStampedModel):
+    store = models.ForeignKey(
+        "stores.Store",
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name="announcements",
+        verbose_name="المتجر"
+    )
     text = models.TextField(verbose_name="نص الملاحظة")
     link = models.URLField(blank=True, null=True, verbose_name="رابط (اختياري)")
     is_active = models.BooleanField(default=True, verbose_name="نشط")
     background_color = models.CharField(max_length=20, default="#06b6d4", verbose_name="لون الخلفية")
     text_color = models.CharField(max_length=20, default="#ffffff", verbose_name="لون النص")
+
+    objects = TenantManager()
 
     class Meta:
         verbose_name = "ملاحظة شريط الموقع"
