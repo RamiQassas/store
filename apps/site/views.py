@@ -1735,8 +1735,15 @@ def ajax_validate_coupon(request):
 @staff_required
 def control_dashboard(request):
     from apps.payments.models import DepositRequest, WithdrawalRequest
+    store = getattr(request, "store", None)
+    
+    if store:
+        users_qs = User.objects.filter(store=store)
+    else:
+        users_qs = User.objects.filter(store__isnull=True)
+
     stats = {
-        "users": User.objects.count(),
+        "users": users_qs.count(),
         "pending_deposits": DepositRequest.objects.filter(status=DepositRequest.Status.PENDING, is_verified=True).count(),
         "pending_withdrawals": WithdrawalRequest.objects.filter(status=WithdrawalRequest.Status.PENDING, is_verified=True).count(),
         "open_tickets": ChatRoom.objects.exclude(status=ChatRoom.Status.CLOSED).count()
@@ -1748,7 +1755,7 @@ def control_dashboard(request):
         "categories_summary": categories_summary,
         "recent_orders": Order.objects.select_related('customer').order_by('-created_at')[:5],
         "recent_deposits": DepositRequest.objects.filter(status=DepositRequest.Status.PENDING, is_verified=True).select_related('user', 'payment_method').order_by('-created_at')[:5],
-        "recent_users": User.objects.order_by('-date_joined')[:5]
+        "recent_users": users_qs.order_by('-date_joined')[:5]
     })
 
 @finance_required
@@ -2340,10 +2347,14 @@ def control_withdrawal_detail(request, pk):
 
 @support_required
 def control_kycs_list(request):
+    store = getattr(request, "store", None)
     q = request.GET.get('q', '')
     status = request.GET.get('status', '') # This will refer to user.is_kyc_verified or kyc_request.status
     
-    users = User.objects.filter(role=User.Role.CUSTOMER).select_related('kyc_request').all().order_by('-date_joined')
+    if store:
+        users = User.objects.filter(role=User.Role.CUSTOMER, store=store).select_related('kyc_request').all().order_by('-date_joined')
+    else:
+        users = User.objects.filter(role=User.Role.CUSTOMER, store__isnull=True).select_related('kyc_request').all().order_by('-date_joined')
     
     if q:
         users = users.filter(
@@ -2370,7 +2381,11 @@ def control_kycs_list(request):
 
 @support_required
 def control_kyc_detail(request, pk):
-    kyc = get_object_or_404(KYCRequest.objects.select_related('user'), pk=pk)
+    store = getattr(request, "store", None)
+    if store:
+        kyc = get_object_or_404(KYCRequest.objects.select_related('user'), pk=pk, user__store=store)
+    else:
+        kyc = get_object_or_404(KYCRequest.objects.select_related('user'), pk=pk, user__store__isnull=True)
     # Pass is_admin=True to allow optional images during updates
     form = KYCRequestForm(request.POST or None, request.FILES or None, instance=kyc, is_admin=True)
     payment_methods = PaymentMethod.objects.filter(is_active=True).order_by("display_order")
@@ -2744,6 +2759,7 @@ def export_to_excel(queryset, filename, columns):
 
 @admin_required
 def control_users_list(request):
+    store = getattr(request, "store", None)
     if request.method == "POST":
         action = request.POST.get("action")
         user_ids = request.POST.getlist("user_ids")
@@ -2753,11 +2769,18 @@ def control_users_list(request):
         if action == "bulk_update":
             tier = request.POST.get("bulk_tier")
             if tier:
-                User.objects.filter(id__in=user_ids).update(tier=tier)
+                if store:
+                    User.objects.filter(id__in=user_ids, store=store).update(tier=tier)
+                else:
+                    User.objects.filter(id__in=user_ids, store__isnull=True).update(tier=tier)
                 messages.success(request, f"تم تحديث فئة {len(user_ids)} مستخدم بنجاح.")
         return redirect("control_users_list")
 
-    users = User.objects.select_related("wallet").order_by("-date_joined")
+    if store:
+        users = User.objects.filter(store=store).select_related("wallet").order_by("-date_joined")
+    else:
+        users = User.objects.filter(store__isnull=True).select_related("wallet").order_by("-date_joined")
+        
     q = request.GET.get('q', '').strip()
     status = request.GET.get('status', '')
 
@@ -2949,7 +2972,13 @@ def control_orders_list(request):
 
 @finance_required
 def control_wallets_list(request):
-    q = request.GET.get('q', ''); wallets = Wallet.objects.select_related('user', 'currency').all().order_by('-updated_at')
+    store = getattr(request, "store", None)
+    if store:
+        wallets = Wallet.objects.filter(user__store=store).select_related('user', 'currency').all().order_by('-updated_at')
+    else:
+        wallets = Wallet.objects.filter(user__store__isnull=True).select_related('user', 'currency').all().order_by('-updated_at')
+        
+    q = request.GET.get('q', '')
     if q: wallets = wallets.filter(Q(user__email__icontains=q) | Q(user__first_name__icontains=q))
 
     if request.GET.get("export") == "excel":
@@ -2965,9 +2994,16 @@ def control_wallets_list(request):
         return export_to_excel(wallets, "Wallets", columns)
 
     return render(request, "site/control_wallets_list.html", {"wallets": wallets, "query": q})
+
+
 @admin_required
 def control_user_moderate(request, public_uuid):
-    user = get_object_or_404(User, public_uuid=public_uuid); form = ModerateUserForm(request.POST or None, instance=user)
+    store = getattr(request, "store", None)
+    if store:
+        user = get_object_or_404(User, public_uuid=public_uuid, store=store)
+    else:
+        user = get_object_or_404(User, public_uuid=public_uuid, store__isnull=True)
+    form = ModerateUserForm(request.POST or None, instance=user)
     if request.method == "POST":
         action = request.POST.get("action")
         if action == "change_email":
@@ -3358,11 +3394,17 @@ def control_social_media_delete(request, pk): get_object_or_404(SocialMediaLink,
 
 @support_required
 def ajax_user_search(request):
+    store = getattr(request, "store", None)
     q = request.GET.get('q', '').strip()
     if len(q) < 2:
         return JsonResponse({"results": []})
     
-    users = User.objects.filter(
+    if store:
+        users = User.objects.filter(store=store)
+    else:
+        users = User.objects.filter(store__isnull=True)
+        
+    users = users.filter(
         Q(email__icontains=q) | 
         Q(phone__icontains=q) | 
         Q(first_name__icontains=q) | 
@@ -3409,18 +3451,24 @@ def ajax_product_search(request):
     return JsonResponse({"results": results})
 
 @finance_required
-def control_wallets_list(request):
-    q = request.GET.get('q', ''); wallets = Wallet.objects.select_related('user', 'currency').all().order_by('-updated_at')
-    if q: wallets = wallets.filter(Q(user__email__icontains=q) | Q(user__first_name__icontains=q))
-    return render(request, "site/control_wallets_list.html", {"wallets": wallets, "query": q})
-
-@finance_required
 def control_debts(request):
+    store = getattr(request, "store", None)
     q = request.GET.get('q', '')
-    users = User.objects.select_related('wallet').filter(Q(email__icontains=q) | Q(phone__icontains=q)) if q else User.objects.select_related('wallet').all()
+    
+    if store:
+        users = User.objects.filter(store=store).select_related('wallet')
+    else:
+        users = User.objects.filter(store__isnull=True).select_related('wallet')
+        
+    if q:
+        users = users.filter(Q(email__icontains=q) | Q(phone__icontains=q))
     
     if request.method == "POST":
-        target = get_object_or_404(User, id=request.POST.get("user_id"))
+        if store:
+            target = get_object_or_404(User, id=request.POST.get("user_id"), store=store)
+        else:
+            target = get_object_or_404(User, id=request.POST.get("user_id"), store__isnull=True)
+            
         amt = Decimal(request.POST.get("amount", "0"))
         action = request.POST.get("action")
         reason = request.POST.get("reason", "")
@@ -3461,15 +3509,29 @@ def control_debts(request):
     # Stats for the sidebar
     from django.db.models import Sum
     from apps.wallets.models import LedgerEntry
-    total_debt = Wallet.objects.aggregate(total=Sum('debt_balance'))['total'] or 0
-    today_payments = LedgerEntry.objects.filter(
-        entry_type=LedgerEntry.EntryType.DEBT_PAYMENT,
-        created_at__date=timezone.now().date()
-    ).aggregate(total=Sum('amount'))['total'] or 0
     
-    recent_logs = LedgerEntry.objects.filter(
-        entry_type__in=[LedgerEntry.EntryType.DEBT_ADD, LedgerEntry.EntryType.DEBT_PAYMENT]
-    ).select_related('wallet__user').order_by('-created_at')[:10]
+    if store:
+        total_debt = Wallet.objects.filter(user__store=store).aggregate(total=Sum('debt_balance'))['total'] or 0
+        today_payments = LedgerEntry.objects.filter(
+            wallet__user__store=store,
+            entry_type=LedgerEntry.EntryType.DEBT_PAYMENT,
+            created_at__date=timezone.now().date()
+        ).aggregate(total=Sum('amount'))['total'] or 0
+        recent_logs = LedgerEntry.objects.filter(
+            wallet__user__store=store,
+            entry_type__in=[LedgerEntry.EntryType.DEBT_ADD, LedgerEntry.EntryType.DEBT_PAYMENT]
+        ).select_related('wallet__user').order_by('-created_at')[:10]
+    else:
+        total_debt = Wallet.objects.filter(user__store__isnull=True).aggregate(total=Sum('debt_balance'))['total'] or 0
+        today_payments = LedgerEntry.objects.filter(
+            wallet__user__store__isnull=True,
+            entry_type=LedgerEntry.EntryType.DEBT_PAYMENT,
+            created_at__date=timezone.now().date()
+        ).aggregate(total=Sum('amount'))['total'] or 0
+        recent_logs = LedgerEntry.objects.filter(
+            wallet__user__store__isnull=True,
+            entry_type__in=[LedgerEntry.EntryType.DEBT_ADD, LedgerEntry.EntryType.DEBT_PAYMENT]
+        ).select_related('wallet__user').order_by('-created_at')[:10]
     
     ctx = {
         "users": users, 
@@ -3482,10 +3544,16 @@ def control_debts(request):
 
 @support_required
 def control_send_notification(request):
+    store = getattr(request, "store", None)
     form = SendNotificationForm(request.POST or None)
     if request.method == "POST" and form.is_valid():
-        users = User.objects.filter(is_active=True)
-        if form.cleaned_data["target"] == "tier": users = users.filter(tier=form.cleaned_data["tier"])
+        if store:
+            users = User.objects.filter(is_active=True, store=store)
+        else:
+            users = User.objects.filter(is_active=True, store__isnull=True)
+            
+        if form.cleaned_data["target"] == "tier":
+            users = users.filter(tier=form.cleaned_data["tier"])
         elif form.cleaned_data["target"] == "individual":
             q = form.cleaned_data["user_identifier"]
             users = users.filter(

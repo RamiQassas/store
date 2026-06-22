@@ -6,6 +6,9 @@ import uuid
 from apps.common.models import TimeStampedModel
 
 
+from apps.common.tenant_utils import TenantManager
+
+
 class ChatRoom(TimeStampedModel):
     class Status(models.TextChoices):
         WAITING = "waiting", "في الانتظار"
@@ -22,6 +25,8 @@ class ChatRoom(TimeStampedModel):
         blank=True,
         verbose_name="المتجر"
     )
+    objects = TenantManager()
+    all_objects = models.Manager()
 
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL, 
