@@ -321,7 +321,7 @@ def v3_verify_sp_view(request):
             
             # All verified
             if not request.user.is_authenticated:
-                user.backend = 'django.contrib.auth.backends.ModelBackend'
+                user.backend = 'apps.stores.auth_backend.TenantModelBackend'
                 login(request, user)
             
             # Set grace period for BOTH keys
@@ -389,7 +389,7 @@ def v3_login_view(request):
                         return render(request, "site/v3/v3_login.html", {"form": form})
 
             # Ensure backend is set for session authentication
-            user.backend = 'django.contrib.auth.backends.ModelBackend'
+            user.backend = 'apps.stores.auth_backend.TenantModelBackend'
 
             # Check security settings only if user exists
             if v3_init_verification(request, user, "login"):
@@ -485,7 +485,7 @@ def v3_verify_otp_view(request):
                 return v3_redirect_to_verification(request, remaining)
             
             if not request.user.is_authenticated:
-                user.backend = 'django.contrib.auth.backends.ModelBackend'
+                user.backend = 'apps.stores.auth_backend.TenantModelBackend'
                 login(request, user)
             
             now_iso = timezone.now().isoformat()
@@ -530,7 +530,7 @@ def v3_2fa_verify_view(request):
                 return redirect("site_verify_otp")
             
             if not request.user.is_authenticated:
-                user.backend = 'django.contrib.auth.backends.ModelBackend'
+                user.backend = 'apps.stores.auth_backend.TenantModelBackend'
                 login(request, user)
                 
             request.session["v3_action_verified_at"] = timezone.now().isoformat()
@@ -617,7 +617,7 @@ def v3_reset_password_view(request):
         p1, p2 = request.POST.get("password"), request.POST.get("confirm_password")
         if p1 and p1 == p2 and len(p1) >= 10:
             user.set_password(p1); user.save(); 
-            login(request, user, backend='django.contrib.auth.backends.ModelBackend')
+            login(request, user, backend='apps.stores.auth_backend.TenantModelBackend')
             messages.success(request, "تم تغيير كلمة المرور بنجاح. تم تسجيل دخولك تلقائياً.")
             return redirect("dashboard")
         messages.error(request, "كلمات المرور غير متطابقة أو لا تستوفي شروط الطول (10 خانات على الأقل).")

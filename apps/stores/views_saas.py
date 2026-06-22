@@ -23,6 +23,7 @@ from apps.orders.models import Order
 from apps.wallets.models import Wallet
 from apps.payments.models import DepositRequest, WithdrawalRequest
 from apps.common.tenant_utils import bypass_tenant_filter
+from apps.stores.plan_config import STORE_FEATURE_FIELDS, STORE_LIMIT_FIELDS
 
 User = get_user_model()
 
@@ -252,11 +253,8 @@ def saas_store_edit_limits(request, pk):
     with bypass_tenant_filter():
         store = get_object_or_404(Store.unfiltered, pk=pk)
         
-        fields = [
-            'max_products', 'max_categories', 'max_monthly_orders', 'max_customers',
-            'max_employees', 'max_branches', 'max_coupons', 'max_images',
-            'max_storage_mb', 'max_bandwidth_gb', 'max_domains', 'max_api_keys', 'max_pages'
-        ]
+        fields = STORE_LIMIT_FIELDS
+        features = STORE_FEATURE_FIELDS
         
         if request.method == "POST":
             overrides = {}
@@ -264,6 +262,12 @@ def saas_store_edit_limits(request, pk):
                 val = request.POST.get(field, "").strip()
                 if val:
                     overrides[field] = int(val)
+            for feature in features:
+                val = request.POST.get(feature, "inherit")
+                if val == "enabled":
+                    overrides[feature] = True
+                elif val == "disabled":
+                    overrides[feature] = False
             store.limit_overrides = overrides
             store.save()
             log_saas_action(request, "تعديل حدود مخصصة", f"تم تعديل حدود المتجر {store.name} يدوياً")
@@ -272,7 +276,8 @@ def saas_store_edit_limits(request, pk):
             
     return render(request, "stores/saas/store_limits_form.html", {
         "store": store,
-        "fields": fields
+        "fields": fields,
+        "features": features,
     })
 
 @saas_permission_required("manage_stores")
@@ -333,23 +338,9 @@ def saas_plan_list(request):
 def saas_plan_form(request, pk=None):
     plan = get_object_or_404(SubscriptionPlan, pk=pk) if pk else None
     
-    fields = [
-        'max_products', 'max_categories', 'max_monthly_orders', 'max_customers',
-        'max_employees', 'max_branches', 'max_coupons', 'max_images',
-        'max_storage_mb', 'max_bandwidth_gb', 'max_domains', 'max_api_keys', 'max_pages', 'trial_days'
-    ]
+    fields = STORE_LIMIT_FIELDS + ["trial_days"]
     
-    features = [
-        'custom_domain_enabled', 'remove_branding_enabled', 'multi_employee_enabled',
-        'multi_branch_enabled', 'coupons_enabled', 'recharge_cards_enabled',
-        'wallets_enabled', 'advanced_reports_enabled', 'live_stats_enabled',
-        'export_excel_enabled', 'export_pdf_enabled', 'api_access_enabled',
-        'webhooks_enabled', 'mobile_app_enabled', 'sms_notifications_enabled',
-        'whatsapp_notifications_enabled', 'email_marketing_enabled', 'import_products_enabled',
-        'export_products_enabled', 'backup_enabled', 'restore_enabled',
-        'professional_templates_enabled', 'custom_css_js_enabled', 'multi_language_enabled',
-        'multi_currency_enabled'
-    ]
+    features = STORE_FEATURE_FIELDS
     
     if request.method == "POST":
         name = request.POST.get("name", "").strip()

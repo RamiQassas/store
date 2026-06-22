@@ -23,6 +23,7 @@ from apps.wallets.services import credit_wallet, debit_wallet
 from apps.common.models import Currency
 
 from apps.stores.models import Store, StorePage, StoreEmployee, SubscriptionPlan, StoreTemplate
+from apps.stores.plan_config import STORE_FEATURE_FIELDS, STORE_LIMIT_FIELDS
 from apps.stores.forms import (
     StoreForm, StoreCustomDomainForm, StorePageForm, StoreEmployeeForm, 
     MerchantProductForm, MerchantCategoryForm, MerchantCouponForm
@@ -31,6 +32,8 @@ from apps.common.tenant_utils import bypass_tenant_filter
 
 def get_store_limit(store, limit_field):
     """Get the active limit for a store (checking manual overrides first)."""
+    if limit_field not in STORE_LIMIT_FIELDS:
+        return 0
     if store.limit_overrides and limit_field in store.limit_overrides:
         return store.limit_overrides[limit_field]
     if store.subscription_plan:
@@ -39,6 +42,8 @@ def get_store_limit(store, limit_field):
 
 def check_store_feature(store, feature_field):
     """Check if a feature is enabled for a store (checking manual overrides first)."""
+    if feature_field not in STORE_FEATURE_FIELDS:
+        return False
     if store.limit_overrides and feature_field in store.limit_overrides:
         return bool(store.limit_overrides[feature_field])
     if store.subscription_plan:
@@ -395,7 +400,7 @@ def store_login(request):
                 is_employee = StoreEmployee.objects.filter(store=store, user=user).exists()
 
             if is_store_owner or is_employee:
-                user.backend = 'django.contrib.auth.backends.ModelBackend'
+                user.backend = 'apps.stores.auth_backend.TenantModelBackend'
                 login(request, user)
                 messages.success(request, "أهلاً بك! تم تسجيل الدخول بنجاح.")
                 next_url = request.GET.get('next', '')

@@ -1,6 +1,9 @@
 from allauth.socialaccount.adapter import DefaultSocialAccountAdapter
 from allauth.account.adapter import DefaultAccountAdapter
 from allauth.account.models import EmailAddress
+from allauth.core.exceptions import ImmediateHttpResponse
+from django.contrib import messages
+from django.shortcuts import redirect
 from apps.accounts.models import User
 import logging
 
@@ -104,17 +107,14 @@ class MySocialAccountAdapter(DefaultSocialAccountAdapter):
                 user.is_active = True
                 needs_save = True
             
-            # Ensure the user is associated with the active store context
             active_store = getattr(request, 'store', None)
             if active_store and not (user.is_superuser or user.is_staff or user.role == 'super_admin'):
                 if user.store_id != active_store.pk:
-                    user.store = active_store
-                    needs_save = True
+                    messages.error(request, "This account is not linked to the current store.")
+                    raise ImmediateHttpResponse(redirect("site_login"))
 
             if needs_save:
                 fields = ["email_verified", "is_active"]
-                if active_store and user.store_id == active_store.pk:
-                    fields.append("store")
                 user.save(update_fields=fields)
             
             # 3. Update allauth's EmailAddress record

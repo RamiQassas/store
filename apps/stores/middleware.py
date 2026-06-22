@@ -1,4 +1,6 @@
 from django.conf import settings
+from django.contrib.auth import logout
+from django.contrib.auth.models import AnonymousUser
 from apps.stores.models import Store
 from urllib.parse import urlparse
 
@@ -127,6 +129,23 @@ class TenantMiddleware:
             from apps.common.tenant_utils import set_current_store
             token = set_current_store(request.store)
             request._tenant_token = token
+            if (
+                hasattr(request, "user")
+                and request.user.is_authenticated
+                and not self._user_belongs_to_store(request.user, request.store)
+            ):
+                logout(request)
+                request.user = AnonymousUser()
+                if request.path.startswith(("/dashboard/", "/merchant/")):
+                    from django.http import HttpResponseRedirect
+                    from apps.common.tenant_utils import reset_current_store
+                    reset_current_store(request._tenant_token)
+                    del request._tenant_token
+                    if hasattr(request, "_bypass_token"):
+                        from apps.common.tenant_utils import _bypass_tenant_filter
+                        _bypass_tenant_filter.reset(request._bypass_token)
+                        del request._bypass_token
+                    return HttpResponseRedirect("/auth/login/")
         else:
             # Main site: check if admin or control panel request by super admin/staff, then bypass
             # request.user is set by AuthenticationMiddleware
@@ -148,3 +167,17 @@ class TenantMiddleware:
                 _bypass_tenant_filter.reset(request._bypass_token)
 
         return response
+
+    def _user_belongs_to_store(self, user, store):
+        if user.is_superuser or user.is_staff or getattr(user, "role", None) == "super_admin":
+            return True
+
+        from apps.common.tenant_utils import bypass_tenant_filter
+        from apps.stores.models import StoreEmployee
+
+        with bypass_tenant_filter():
+            return (
+                user.store_id == store.pk
+                or store.owner_id == user.pk
+                or StoreEmployee.objects.filter(store=store, user=user).exists()
+            )

@@ -132,6 +132,29 @@ class StoreMultiTenantTest(TestCase):
         finally:
             _current_store.reset(token)
 
+    @override_settings(SITE_URL="http://testserver")
+    def test_cross_store_session_is_logged_out_before_dashboard_access(self):
+        """A session from one tenant must not authenticate into another tenant."""
+        with bypass_tenant_filter():
+            customer_a = User.objects.create_user(
+                email="tenant_customer_a@example.com",
+                password="CustPassword123!",
+                store=self.store_a,
+            )
+            Wallet.objects.get_or_create(user=customer_a, defaults={"currency": self.currency})
+
+        client = Client()
+        client.force_login(customer_a, backend="apps.stores.auth_backend.TenantModelBackend")
+
+        response = client.get(
+            reverse("store_dashboard", urlconf="apps.stores.urls"),
+            HTTP_HOST="store-b.testserver",
+        )
+
+        self.assertEqual(response.status_code, 302)
+        self.assertIn("/auth/login/", response["Location"])
+        self.assertNotIn("_auth_user_id", client.session)
+
         # Test authenticating customer A on store B front (should fail)
         token = set_current_store(self.store_b)
         try:
@@ -192,6 +215,43 @@ class SaaSControlPanelAndLimitsTests(TestCase):
         
         limit = get_store_limit(self.store, 'max_products')
         self.assertEqual(limit, 5)
+
+    def test_store_feature_respects_manual_overrides(self):
+        """Verifies SaaS admins can force-enable or force-disable plan features per store."""
+        from apps.stores.views import check_store_feature
+
+        self.plan.custom_domain_enabled = False
+        self.plan.save()
+
+        self.store.limit_overrides = {"custom_domain_enabled": True}
+        self.store.save()
+        self.store.refresh_from_db()
+        self.assertTrue(check_store_feature(self.store, "custom_domain_enabled"))
+
+        self.store.limit_overrides = {"custom_domain_enabled": False}
+        self.store.save()
+        self.store.refresh_from_db()
+        self.assertFalse(check_store_feature(self.store, "custom_domain_enabled"))
+
+    def test_saas_store_limits_form_can_override_features(self):
+        client = Client()
+        client.login(email="superadmin@raqamiyatapp.com", password="SuperPassword123!")
+
+        response = client.post(
+            reverse("control_saas_store_limits", args=[self.store.pk]),
+            {
+                "max_products": "7",
+                "custom_domain_enabled": "enabled",
+                "coupons_enabled": "disabled",
+            },
+        )
+
+        self.assertEqual(response.status_code, 302)
+        with bypass_tenant_filter():
+            self.store.refresh_from_db()
+            self.assertEqual(self.store.limit_overrides["max_products"], 7)
+            self.assertIs(self.store.limit_overrides["custom_domain_enabled"], True)
+            self.assertIs(self.store.limit_overrides["coupons_enabled"], False)
 
     def test_products_limit_enforcement(self):
         """Verifies store limits prevent creating more products than plan allows.
@@ -484,5 +544,3 @@ class StoreSaaSNewFeaturesTests(TestCase):
             store_a.save()
         response_suspended = client.get(reverse("store_home", urlconf="apps.stores.urls"), HTTP_HOST="store-a.testserver")
         self.assertEqual(response_suspended.status_code, 403)
-
-

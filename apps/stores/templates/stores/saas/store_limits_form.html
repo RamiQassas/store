@@ -41,6 +41,26 @@
             </div>
             {% endfor %}
         </div>
+
+        <div class="border-t border-white/5 pt-6 mt-6">
+            <h3 class="text-sm font-black text-white uppercase tracking-widest flex items-center gap-2 mb-6">
+                <i class="fas fa-toggle-on text-cyan text-xs"></i> Feature overrides
+            </h3>
+            <p class="text-slate-500 mt-2 mb-6">Use inherit to keep the subscription plan value, or force a feature on/off for this store only.</p>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {% for feature in features %}
+                <div>
+                    <label class="text-[10px] text-slate-400 font-black uppercase tracking-widest block mb-2">{{ feature }}</label>
+                    <select name="{{ feature }}" class="w-full bg-slate-900 border border-white/10 rounded-xl px-4 py-3 text-white text-xs font-bold focus:outline-none focus:border-cyan">
+                        <option value="inherit">Inherit from plan</option>
+                        <option value="enabled" {% for k, v in store.limit_overrides.items %}{% if k == feature and v %}selected{% endif %}{% endfor %}>Force enabled</option>
+                        <option value="disabled" {% for k, v in store.limit_overrides.items %}{% if k == feature and not v %}selected{% endif %}{% endfor %}>Force disabled</option>
+                    </select>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
         
         <div class="border-t border-white/5 pt-6 mt-6 flex gap-3">
             <button type="submit" class="btn btn-primary px-8 py-3"><i class="fas fa-check"></i> حفظ التعديلات والمجاوزات</button>
