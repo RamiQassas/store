@@ -43,3 +43,95 @@ def preferred_currency(request):
         "PAYMENT_METHODS": payment_methods,
         "payment_methods": payment_methods
     }
+
+
+def tenant_context(request):
+    """
+    Multi-Tenant Context Processor.
+    
+    Provides store branding data to ALL templates automatically.
+    When request.store is set (by TenantMiddleware), this processor injects:
+    - The active store object
+    - Store colors as CSS variables
+    - Store logo, name, font, contact info
+    
+    When request.store is None (main Raqamiyat site), it provides
+    the default Raqamiyat branding values.
+    
+    This is the core of the Shared Template architecture: one template,
+    multiple tenants, data isolation via store context.
+    """
+    store = getattr(request, 'store', None)
+    
+    if store:
+        return {
+            # Core store object (available as {{ store }} in all templates)
+            "store": store,
+            "is_tenant": True,
+
+            # Store identity
+            "STORE_NAME": store.name,
+            "STORE_LOGO": store.logo if store.logo else None,
+            "STORE_BANNER": store.banner if store.banner else None,
+            "STORE_DESCRIPTION": store.description or store.name,
+
+            # Store theme colors (used as CSS variables in base.html)
+            "STORE_PRIMARY": store.primary_color or "#06b6d4",
+            "STORE_SECONDARY": store.secondary_color or "#0891b2",
+            "STORE_BUTTON_COLOR": store.button_color or store.primary_color or "#06b6d4",
+            "STORE_BG": store.background_color or "#0f172a",
+            "STORE_TEXT": store.text_color or "#f8fafc",
+            "STORE_FONT": store.theme_font or "Cairo",
+            "STORE_CARD_STYLE": store.card_style or "flat",
+            "STORE_HEADER_STYLE": store.header_style or "classic",
+            "STORE_FOOTER_STYLE": store.footer_style or "classic",
+
+            # Store contact details
+            "STORE_PHONE": store.phone or "",
+            "STORE_EMAIL": store.email or "",
+            "STORE_ADDRESS": store.address or "",
+
+            # Store social links
+            "STORE_FACEBOOK": store.social_facebook or "",
+            "STORE_INSTAGRAM": store.social_instagram or "",
+            "STORE_TWITTER": store.social_twitter or "",
+            "STORE_TIKTOK": store.social_tiktok or "",
+
+            # Store subscription info (for feature gating in templates)
+            "STORE_PLAN": store.subscription_plan,
+        }
+    else:
+        # Main Raqamiyat platform — no store, use platform defaults
+        return {
+            "store": None,
+            "is_tenant": False,
+
+            # Default platform branding
+            "STORE_NAME": "رقميات",
+            "STORE_LOGO": None,
+            "STORE_BANNER": None,
+            "STORE_DESCRIPTION": "رقميات | منصة الخدمات الرقمية",
+
+            # Default platform theme (matches Raqamiyat design)
+            "STORE_PRIMARY": "#06b6d4",
+            "STORE_SECONDARY": "#0891b2",
+            "STORE_BUTTON_COLOR": "#06b6d4",
+            "STORE_BG": "#0f172a",
+            "STORE_TEXT": "#f8fafc",
+            "STORE_FONT": "Cairo",
+            "STORE_CARD_STYLE": "glass",
+            "STORE_HEADER_STYLE": "classic",
+            "STORE_FOOTER_STYLE": "classic",
+
+            # No contact details on main site (handled separately)
+            "STORE_PHONE": "",
+            "STORE_EMAIL": "",
+            "STORE_ADDRESS": "",
+            "STORE_FACEBOOK": "",
+            "STORE_INSTAGRAM": "",
+            "STORE_TWITTER": "",
+            "STORE_TIKTOK": "",
+
+            "STORE_PLAN": None,
+        }
+

@@ -185,9 +185,12 @@
                     <a href="{% url 'catalog' %}" class="btn-premium primary">
                         ابدأ التسوق <i class="fas fa-shopping-bag"></i>
                     </a>
+                    {% if not is_tenant %}
+                    {# "أنشئ متجرك" button is only shown on the main Raqamiyat platform, not on store tenants #}
                     <a href="{% url 'store_registration' %}" class="btn-premium outline" style="border-color: var(--brand-sky); color: var(--brand-sky);">
                         أنشئ متجرك الإلكتروني <i class="fas fa-shop"></i>
                     </a>
+                    {% endif %}
                     <a href="{% url 'catalog' %}?q=ألعاب" class="btn-premium outline">
                         تصفح الألعاب <i class="fas fa-gamepad"></i>
                     </a>
@@ -349,7 +352,8 @@
         </div>
     </section>
 
-    <!-- SECTION 7: TESTIMONIALS -->
+    <!-- SECTION 7: TESTIMONIALS — only shown on main Raqamiyat platform -->
+    {% if not is_tenant %}
     <section style="padding: 100px 0;">
         <div class="home-container">
             <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 4rem;">
@@ -391,6 +395,7 @@
             </div>
         </div>
     </section>
+    {% endif %} {# end if not is_tenant — testimonials section #}
 
     <!-- SECTION 8: CALL TO ACTION -->
     <section style="padding: 80px 0;">

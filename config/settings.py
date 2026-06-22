@@ -192,6 +192,9 @@ TEMPLATES = [
                 "apps.common.context_processors.webpush_settings",
                 "apps.common.context_processors.common_context",
                 "apps.site.context_processors.preferred_currency",
+                # Multi-Tenant: injects store branding data (store, STORE_PRIMARY, STORE_NAME, etc.)
+                # into ALL templates. This enables one shared template to serve all tenants.
+                "apps.site.context_processors.tenant_context",
             ],
         },
     },

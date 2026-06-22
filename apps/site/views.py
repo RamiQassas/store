@@ -353,6 +353,8 @@ def v3_verify_sp_view(request):
 # ==========================================
 
 def v3_login_view(request):
+    active_store = getattr(request, 'store', None)
+
     if request.user.is_authenticated:
         return redirect("control_dashboard" if request.user.is_staff else "dashboard")
     form = LoginForm(request.POST or None)
@@ -362,25 +364,43 @@ def v3_login_view(request):
             if not user.is_active:
                 messages.error(request, "الحساب معطل.")
                 return render(request, "site/v3/v3_login.html", {"form": form})
-            
-            # Enforce tenant isolation: any user linked to a store cannot login to the main platform
-            if user.store_id is not None:
-                messages.error(request, "هذا الحساب مرتبط بمتجر فرعي ولا يمكنه تسجيل الدخول هنا. يرجى التوجه إلى صفحة تسجيل الدخول الخاصة بمتجرك.")
-                return render(request, "site/v3/v3_login.html", {"form": form})
-            
+
+            # Multi-Tenant isolation:
+            # - On main platform (active_store=None): reject users linked to any store
+            # - On store tenant (active_store set): only allow users linked to THIS store
+            if active_store is None:
+                # Main platform: users with store_id cannot login here
+                if user.store_id is not None:
+                    messages.error(request, "هذا الحساب مرتبط بمتجر فرعي ولا يمكنه تسجيل الدخول هنا. يرجى التوجه إلى صفحة تسجيل الدخول الخاصة بمتجرك.")
+                    return render(request, "site/v3/v3_login.html", {"form": form})
+            else:
+                # Store tenant: only allow users who belong to this store (or superusers)
+                if not user.is_superuser:
+                    from apps.stores.models import StoreEmployee
+                    from apps.common.tenant_utils import bypass_tenant_filter
+                    with bypass_tenant_filter():
+                        is_store_member = (
+                            user.store_id == active_store.pk or
+                            StoreEmployee.objects.filter(store=active_store, user=user).exists() or
+                            active_store.owner_id == user.pk
+                        )
+                    if not is_store_member:
+                        messages.error(request, "هذا الحساب غير مرتبط بهذا المتجر.")
+                        return render(request, "site/v3/v3_login.html", {"form": form})
+
             # Ensure backend is set for session authentication
             user.backend = 'django.contrib.auth.backends.ModelBackend'
-            
+
             # Check security settings only if user exists
             if v3_init_verification(request, user, "login"):
                 login(request, user)
                 return redirect("control_dashboard" if user.is_staff else "dashboard")
-            
+
             methods = request.session.get("v3_auth_methods", [])
             if not methods:
                 login(request, user)
                 return redirect("dashboard")
-                
+
             # If it's a login action, we don't want to redirect back to login page after verification
             if request.session.get("v3_auth_purpose") == "login":
                 request.session["v3_auth_next"] = reverse("dashboard")
@@ -625,26 +645,46 @@ def email_verify(request, uidb64, token): return redirect("site_login")
 
 @login_required
 def dashboard(request):
+    # Multi-Tenant: Order.objects uses TenantManager, so it filters by store automatically.
+    # On main site (store=None): returns orders where store=None (platform orders).
+    # On store tenant: returns only that store's orders for this customer.
     wallet = get_or_create_wallet(request.user)
-    digital_deliveries = Order.objects.filter(customer=request.user, status=Order.Status.COMPLETED, is_delivery_read=False).exclude(fulfillment_data={})
+    active_store = getattr(request, 'store', None)
+
+    # Orders filtered by current tenant context automatically
+    digital_deliveries = Order.objects.filter(
+        customer=request.user, status=Order.Status.COMPLETED, is_delivery_read=False
+    ).exclude(fulfillment_data={})
     recent_orders = Order.objects.filter(customer=request.user).order_by('-created_at')[:5]
-    recent_deposits = DepositRequest.objects.filter(user=request.user).order_by('-created_at')[:5]
-    recent_withdrawals = WithdrawalRequest.objects.filter(user=request.user).order_by('-created_at')[:5]
-    kyc_request = KYCRequest.objects.filter(user=request.user).first()
-    notifications = Notification.objects.filter(user=request.user, is_read=False)[:5]
-    
-    # Fetch owned stores
-    from apps.stores.models import Store
-    from apps.common.tenant_utils import bypass_tenant_filter
-    with bypass_tenant_filter():
-        user_stores = list(Store.unfiltered.filter(owner=request.user))
-        
-    return render(request, "site/v3/v3_dashboard.html", {
-        "wallet": wallet, "digital_deliveries": digital_deliveries, 
-        "orders": recent_orders, "deposits": recent_deposits, 
-        "withdrawals": recent_withdrawals, "kyc_request": kyc_request, 
-        "notifications": notifications, "user_stores": user_stores
-    })
+
+    ctx = {
+        "wallet": wallet,
+        "digital_deliveries": digital_deliveries,
+        "orders": recent_orders,
+        "notifications": Notification.objects.filter(user=request.user, is_read=False)[:5],
+    }
+
+    if not active_store:
+        # Main platform: show deposits, withdrawals, KYC, and owned stores
+        from apps.stores.models import Store
+        from apps.common.tenant_utils import bypass_tenant_filter
+        ctx["recent_deposits"] = DepositRequest.objects.filter(user=request.user).order_by('-created_at')[:5]
+        ctx["recent_withdrawals"] = WithdrawalRequest.objects.filter(user=request.user).order_by('-created_at')[:5]
+        ctx["kyc_request"] = KYCRequest.objects.filter(user=request.user).first()
+        with bypass_tenant_filter():
+            ctx["user_stores"] = list(Store.unfiltered.filter(owner=request.user))
+        ctx["deposits"] = ctx["recent_deposits"]
+        ctx["withdrawals"] = ctx["recent_withdrawals"]
+    else:
+        # Store tenant: no deposits/withdrawals/KYC in store context
+        ctx["recent_deposits"] = []
+        ctx["recent_withdrawals"] = []
+        ctx["kyc_request"] = None
+        ctx["user_stores"] = []
+        ctx["deposits"] = []
+        ctx["withdrawals"] = []
+
+    return render(request, "site/v3/v3_dashboard.html", ctx)
 
 @login_required
 def wallet_page(request):
@@ -689,10 +729,20 @@ def wallet_page(request):
     })
 
 @login_required
-def orders_list(request): return render(request, "site/orders_list.html", {"orders": request.user.orders.all().prefetch_related('items__variant__product')})
+def orders_list(request):
+    # Multi-Tenant: Order.objects filtered by TenantManager automatically.
+    # On store tenant: returns only orders placed within that store.
+    orders = Order.objects.filter(customer=request.user).prefetch_related('items__variant__product').order_by('-created_at')
+    return render(request, "site/orders_list.html", {"orders": orders})
 
 @login_required
-def order_detail(request, pk): return render(request, "site/order_detail.html", {"order": get_object_or_404(request.user.orders.prefetch_related('items__variant__product', 'logs'), pk=pk)})
+def order_detail(request, pk):
+    # Multi-Tenant: filtered by customer + TenantManager (store context)
+    order = get_object_or_404(
+        Order.objects.filter(customer=request.user).prefetch_related('items__variant__product', 'logs'),
+        pk=pk
+    )
+    return render(request, "site/order_detail.html", {"order": order})
 
 from django.contrib.auth.hashers import make_password, check_password as check_password_hash
 
@@ -1213,45 +1263,12 @@ def v3_change_email_view(request):
 # ==========================================
 
 def home(request):
-    from apps.common.models import PlatformStatistic, Testimonial
+    # Multi-Tenant: TenantManager automatically filters by request.store.
+    # When is_tenant=True (store context), all querysets return only that store's data.
+    # When is_tenant=False (main site), querysets return main platform data (store=None).
+    store = getattr(request, 'store', None)
 
-    # Base Stats (Real Data)
-    base_stats = {
-        "orders": Order.objects.count(),
-        "users": User.objects.count(),
-        "tickets": ChatRoom.objects.count(),
-        "deposits": DepositRequest.objects.filter(status=DepositRequest.Status.COMPLETED).count(),
-        "withdrawals": WithdrawalRequest.objects.filter(status=WithdrawalRequest.Status.COMPLETED).count(),
-        "products": Product.objects.filter(is_active=True).count()
-    }
-    
-    # Custom Stats (Admins can add more with overrides)
-    custom_stats_qs = PlatformStatistic.objects.filter(is_active=True).order_by('display_order')
-    display_stats = []
-    for stat in custom_stats_qs:
-        val = stat.value_override
-        if stat.stat_type == PlatformStatistic.StatType.USERS:
-            val += base_stats['users']
-        elif stat.stat_type == PlatformStatistic.StatType.ORDERS:
-            val += base_stats['orders']
-        elif stat.stat_type == PlatformStatistic.StatType.DEPOSITS:
-            val += base_stats['deposits']
-        elif stat.stat_type == PlatformStatistic.StatType.WITHDRAWALS:
-            val += base_stats['withdrawals']
-        elif stat.stat_type == PlatformStatistic.StatType.PRODUCTS:
-            val += base_stats['products']
-            
-        display_stats.append({
-            'label': stat.label,
-            'value': stat.string_value or f"{val}{stat.value_suffix}",
-            'icon_class': stat.icon_class or 'fas fa-star',
-            'stat_type': stat.stat_type
-        })
-    
-    # Testimonials
-    testimonials = Testimonial.objects.filter(is_approved=True).order_by('-created_at')[:6]
-    
-    # Categories: Only show categories with products, or if explicitly needed
+    # Categories with product count — filtered by TenantManager automatically
     categories = Category.objects.filter(is_active=True).annotate(
         product_count=Count("products", filter=Q(products__is_active=True))
     ).filter(product_count__gt=0).order_by("sort_order", "name")
@@ -1264,21 +1281,62 @@ def home(request):
         Q(is_sale=True) | Q(variants__is_sale=True),
         is_active=True,
     ).select_related("category").prefetch_related("variants").distinct()[:6]
-    
-    return render(request, "site/home.html", {
+
+    ctx = {
         "featured_products": featured_products,
         "sale_products": sale_products,
         "categories": categories,
-        "display_stats": display_stats,
-        "testimonials": testimonials,
-    })
+    }
+
+    if not store:
+        # Main Raqamiyat platform: show platform stats and testimonials
+        from apps.common.models import PlatformStatistic, Testimonial
+
+        base_stats = {
+            "orders": Order.objects.count(),
+            "users": User.objects.count(),
+            "tickets": ChatRoom.objects.count(),
+            "deposits": DepositRequest.objects.filter(status=DepositRequest.Status.COMPLETED).count(),
+            "withdrawals": WithdrawalRequest.objects.filter(status=WithdrawalRequest.Status.COMPLETED).count(),
+            "products": Product.objects.filter(is_active=True).count()
+        }
+
+        custom_stats_qs = PlatformStatistic.objects.filter(is_active=True).order_by('display_order')
+        display_stats = []
+        for stat in custom_stats_qs:
+            val = stat.value_override
+            if stat.stat_type == PlatformStatistic.StatType.USERS:
+                val += base_stats['users']
+            elif stat.stat_type == PlatformStatistic.StatType.ORDERS:
+                val += base_stats['orders']
+            elif stat.stat_type == PlatformStatistic.StatType.DEPOSITS:
+                val += base_stats['deposits']
+            elif stat.stat_type == PlatformStatistic.StatType.WITHDRAWALS:
+                val += base_stats['withdrawals']
+            elif stat.stat_type == PlatformStatistic.StatType.PRODUCTS:
+                val += base_stats['products']
+
+            display_stats.append({
+                'label': stat.label,
+                'value': stat.string_value or f"{val}{stat.value_suffix}",
+                'icon_class': stat.icon_class or 'fas fa-star',
+                'stat_type': stat.stat_type
+            })
+
+        testimonials = Testimonial.objects.filter(is_approved=True).order_by('-created_at')[:6]
+        ctx["display_stats"] = display_stats
+        ctx["testimonials"] = testimonials
+
+    return render(request, "site/home.html", ctx)
 
 def catalog(request):
-    view_type = request.GET.get("view", "products") # products or categories
+    # Multi-Tenant: TenantManager automatically filters by request.store context.
+    # No explicit store filtering needed — TenantManager handles it.
+    view_type = request.GET.get("view", "products")  # products or categories
     cat_id = request.GET.get("category")
     q = request.GET.get("q", "").strip()
     sort = request.GET.get("sort", "newest")
-    cols = request.GET.get("cols", "2") # Default 2 columns for mobile
+    cols = request.GET.get("cols", "2")  # Default 2 columns for mobile
 
     categories = Category.objects.filter(is_active=True).annotate(
         product_count=Count('products', filter=Q(products__is_active=True))
@@ -1288,11 +1346,11 @@ def catalog(request):
 
     if cat_id:
         products = products.filter(category_id=cat_id)
-        view_type = "products" # Force product view if category selected
+        view_type = "products"  # Force product view if category selected
 
     if q:
         products = products.filter(Q(name__icontains=q) | Q(description__icontains=q))
-        view_type = "products" # Force product view if searching
+        view_type = "products"  # Force product view if searching
 
     if sort == "price_low":
         products = products.order_by("variants__price")
@@ -1301,8 +1359,9 @@ def catalog(request):
     else:
         products = products.order_by("sort_order", "name")
 
-    # Product Suggestion Form integrated here
-    suggestion_form = ProductSuggestionForm()
+    # Product Suggestion Form — only shown on main platform
+    store = getattr(request, 'store', None)
+    suggestion_form = ProductSuggestionForm() if not store else None
 
     ctx = {
         "categories": categories,
@@ -1312,7 +1371,7 @@ def catalog(request):
         "sort": sort,
         "view_type": view_type,
         "cols": cols,
-        "suggestion_form": suggestion_form
+        "suggestion_form": suggestion_form,
     }
     return render(request, "site/catalog.html", ctx)
 
