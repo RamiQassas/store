@@ -153,6 +153,9 @@ urlpatterns = [
     path("merchant/coupons/<uuid:pk>/edit/alias/", site_views.control_coupon_edit, name="merchant_coupon_edit"),
     path("merchant/coupons/<uuid:pk>/delete/", site_views.control_coupon_delete, name="control_coupon_delete"),
     path("merchant/coupons/<uuid:pk>/delete/alias/", site_views.control_coupon_delete, name="merchant_coupon_delete"),
+    path("merchant/coupons/geo-stats/", site_views.control_geo_stats, name="control_geo_stats"),
+    path("merchant/coupons/usage/", site_views.control_coupon_usage, name="control_coupon_usage"),
+    path("merchant/coupons/usage/export/", site_views.export_coupon_usage_csv, name="control_coupon_usage_export"),
 
     # Deposits
     path("merchant/deposits/", site_views.control_deposits, name="control_deposits"),
@@ -168,6 +171,17 @@ urlpatterns = [
     path("merchant/transfers/<uuid:pk>/suspend/", site_views.control_transfer_suspend, name="control_transfer_suspend"),
     path("merchant/transfers/<uuid:pk>/unsuspend/", site_views.control_transfer_unsuspend, name="control_transfer_unsuspend"),
     path("merchant/transfers/<uuid:pk>/edit-amount/", site_views.control_transfer_edit_amount, name="control_transfer_edit_amount"),
+
+    # Debts
+    path("merchant/debts/", site_views.control_debts, name="control_debts"),
+
+    # Wallets
+    path("merchant/wallets/", site_views.control_wallets_list, name="control_wallets_list"),
+
+    # Recharge Cards
+    path("merchant/recharge-cards/", site_views.control_recharge_cards, name="control_recharge_cards"),
+    path("merchant/recharge-cards/generate/", site_views.control_recharge_cards_generate, name="control_recharge_cards_generate"),
+    path("merchant/recharge-cards/<uuid:pk>/cancel/", site_views.control_recharge_card_cancel, name="control_recharge_card_cancel"),
 
     # Currencies
     path("merchant/currencies/", site_views.currencies_list, name="currencies_list"),
@@ -187,6 +201,16 @@ urlpatterns = [
     path("merchant/kyc/", site_views.control_kycs_list, name="control_kycs_list"),
     path("merchant/kyc/settings/", site_views.control_kyc_settings, name="control_kyc_settings"),
     path("merchant/kyc/<uuid:pk>/", site_views.control_kyc_detail, name="control_kyc_detail"),
+
+    # Product Suggestions
+    path("merchant/suggestions/", site_views.control_product_suggestions_list, name="control_product_suggestions_list"),
+    path("merchant/suggestions/<uuid:pk>/", site_views.control_product_suggestion_detail, name="control_product_suggestion_detail"),
+
+    # Support / Open Ticket
+    path("merchant/support/chat-open/", site_views.control_support_chat_open, name="control_support_chat_open"),
+
+    # Reports
+    path("merchant/reports/", site_views.control_reports, name="control_reports"),
 
     # Send Notification
     path("merchant/notifications/send/", site_views.control_send_notification, name="control_send_notification"),
@@ -218,6 +242,11 @@ urlpatterns = [
     path("merchant/settings/domain-diagnostics/", merchant_views.merchant_domain_diagnostics, name="merchant_domain_diagnostics"),
     path("merchant/theme-builder/", merchant_views.merchant_theme_builder, name="merchant_theme_builder"),
     path("merchant/subscription/", merchant_views.merchant_subscription, name="merchant_subscription"),
+
+    # Ajax Searches
+    path("ajax/user-search/", site_views.ajax_user_search, name="ajax_user_search"),
+    path("ajax/product-search/", site_views.ajax_product_search, name="ajax_product_search"),
+    path("ajax/country-search/", site_views.ajax_country_search, name="ajax_country_search"),
 ]
 
 # Serve media files on subdomains
