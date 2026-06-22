@@ -7,6 +7,12 @@ class TenantMiddleware:
         self.get_response = get_response
 
     def __call__(self, request):
+        # Bypass tenant filter for all django-allauth requests
+        if request.path.startswith('/accounts/'):
+            from apps.common.tenant_utils import _bypass_tenant_filter
+            token = _bypass_tenant_filter.set(True)
+            request._bypass_token = token
+
         # 1. Get host name from request
         host = request.get_host().split(':')[0].lower()
         
