@@ -154,6 +154,7 @@ SOCIALACCOUNT_AUTO_SIGNUP = True
 SOCIALACCOUNT_LOGIN_ON_GET = True
 ACCOUNT_EMAIL_VERIFICATION = "none" # We have our own OTP system, but allauth can handle social signup directly
 SOCIALACCOUNT_ADAPTER = 'apps.accounts.adapter.MySocialAccountAdapter'
+ACCOUNT_ADAPTER = 'apps.accounts.adapter.MyAccountAdapter'
 
 
 MIDDLEWARE = [
