@@ -371,8 +371,8 @@
           <img src="{{ STORE_LOGO.url }}" alt="{{ STORE_NAME }}" style="height: 32px; width: auto; border-radius: 4px; object-fit: contain; vertical-align: middle;">
           {% else %}
           <i class="fas fa-bolt text-cyan"></i>
-          {% endif %}
           <span>{% if is_tenant %}{{ STORE_NAME }}{% else %}RAQAMIYAT{% endif %}</span>
+          {% endif %}
       </a>
       <div class="flex items-center gap-3">
           {% if user.is_authenticated %}
@@ -480,8 +480,8 @@
           <img src="{{ STORE_LOGO.url }}" alt="{{ STORE_NAME }}" style="height: 40px; width: auto; border-radius: 4px; object-fit: contain; vertical-align: middle;">
           {% else %}
           <i class="fas fa-bolt"></i>
-          {% endif %}
           <span>{% if is_tenant %}{{ STORE_NAME }}{% else %}RAQAMIYAT{% endif %}</span>
+          {% endif %}
         </a>
 
         <nav class="nav-links">
@@ -571,8 +571,8 @@
                     <img src="{{ STORE_LOGO.url }}" alt="{{ STORE_NAME }}" style="height: 48px; width: auto; border-radius: 4px; object-fit: contain; vertical-align: middle;">
                     {% else %}
                     <i class="fas fa-bolt text-cyan"></i>
-                    {% endif %}
                     <span>{% if is_tenant %}{{ STORE_NAME }}{% else %}RAQAMIYAT{% endif %}</span>
+                    {% endif %}
                 </div>
                 <p class="text-slate-500 text-sm max-w-sm leading-relaxed mb-8">
                     {% if is_tenant %}
@@ -647,6 +647,9 @@
             <div class="text-[10px] text-slate-600 font-bold tracking-wider">
                 {% if is_tenant %}
                 © 2026 جميع الحقوق محفوظة لـ {{ STORE_NAME }}.
+                {% if not store.subscription_plan or not store.subscription_plan.remove_branding_enabled %}
+                <span class="block mt-1 opacity-70">تم الإنشاء والتشغيل بواسطة <a href="https://raqamiyatapp.com" target="_blank" style="color: #06b6d4; text-decoration: none;">منصة رقميات</a></span>
+                {% endif %}
                 {% else %}
                 © 2026 جميع الحقوق محفوظة لشركة رقميات المحدودة.
                 {% endif %}

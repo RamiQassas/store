@@ -150,3 +150,11 @@ urlpatterns = [
     path("merchant/theme-builder/", merchant_views.merchant_theme_builder, name="merchant_theme_builder"),
     path("merchant/subscription/", merchant_views.merchant_subscription, name="merchant_subscription"),
 ]
+
+# Serve media files on subdomains
+from django.views.static import serve
+from django.urls import re_path
+from django.conf import settings
+urlpatterns += [
+    re_path(r"^media/(?P<path>.*)$", serve, {"document_root": settings.MEDIA_ROOT}),
+]
