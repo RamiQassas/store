@@ -61,10 +61,13 @@ def tenant_context(request):
     This is the core of the Shared Template architecture: one template,
     multiple tenants, data isolation via store context.
     """
+    from django.conf import settings
+    platform_url = getattr(settings, "SITE_URL", "https://raqamiyatapp.com")
     store = getattr(request, 'store', None)
     
     if store:
         return {
+            "PLATFORM_URL": platform_url,
             # Core store object (available as {{ store }} in all templates)
             "store": store,
             "is_tenant": True,
@@ -103,6 +106,7 @@ def tenant_context(request):
     else:
         # Main Raqamiyat platform — no store, use platform defaults
         return {
+            "PLATFORM_URL": platform_url,
             "store": None,
             "is_tenant": False,
 

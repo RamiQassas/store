@@ -61,7 +61,7 @@
             {% regroup socialaccount_providers by id as provider_list %}
             {% for provider_group in provider_list %}
                 {% if provider_group.grouper == 'google' %}
-                <form action="{% url 'google_login' %}" method="post">
+                <form action="{% if is_tenant %}{{ PLATFORM_URL }}/accounts/google/login/?next={{ PLATFORM_URL }}/auth/sso-callback/%3Fnext%3D{{ request.build_absolute_uri|urlencode }}{% else %}{% url 'google_login' %}{% endif %}" method="post">
                     {% csrf_token %}
                     <button type="submit" class="btn-secondary w-full group">
                         <img src="https://upload.wikimedia.org/wikipedia/commons/c/c1/Google_%22G%22_logo.svg" class="w-5 h-5 group-hover:scale-110 transition-transform">

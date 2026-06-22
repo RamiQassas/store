@@ -20,6 +20,7 @@ urlpatterns = [
     path("dashboard/security-triggers/", views.v3_security_triggers_view, name="site_security_triggers"),
     path("auth/2fa-verify/", views.v3_2fa_verify_view, name="site_2fa_verify"),
     path("auth/sp-verify/", views.v3_verify_sp_view, name="site_sp_verify"),
+    path("auth/sso-callback/", views.sso_transfer_view, name="sso_transfer"),
 
     path("", views.home, name="home"),
     path("create-store/", views_admin.store_registration_landing, name="store_registration"),

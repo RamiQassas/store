@@ -4215,3 +4215,59 @@ def recharge_wallet(request):
             messages.error(request, f"فشل شحن الرصيد: {str(e)}")
             
     return redirect("dashboard_wallet")
+
+
+def sso_transfer_view(request):
+    active_store = getattr(request, "store", None)
+    from django.contrib.auth import login, get_user_model
+    from django.core import signing
+    from django.http import HttpResponseBadRequest
+    from urllib.parse import urlparse, urlunparse
+    from django.contrib import messages
+    from django.shortcuts import redirect
+
+    User = get_user_model()
+
+    if not active_store:
+        if not request.user.is_authenticated:
+            return redirect("site_login")
+
+        next_url = request.GET.get("next")
+        if not next_url:
+            return HttpResponseBadRequest("Missing next parameter.")
+
+        parsed = urlparse(next_url)
+        token = signing.dumps(request.user.id)
+
+        callback_path = "/auth/sso-callback/"
+        callback_query = f"token={token}&next={parsed.path or '/dashboard/'}"
+
+        sso_url = urlunparse((
+            parsed.scheme or "http",
+            parsed.netloc,
+            callback_path,
+            "",
+            callback_query,
+            ""
+        ))
+
+        return redirect(sso_url)
+    else:
+        token = request.GET.get("token")
+        next_url = request.GET.get("next", "/dashboard/")
+
+        if not token:
+            return HttpResponseBadRequest("Missing token.")
+
+        try:
+            user_id = signing.loads(token, max_age=30)
+            user = User.objects.get(pk=user_id)
+
+            user.backend = "apps.stores.auth_backend.TenantModelBackend"
+            login(request, user)
+
+            messages.success(request, "تم تسجيل الدخول بنجاح عبر حساب Google.")
+            return redirect(next_url)
+        except (signing.SignatureExpired, signing.BadSignature, User.DoesNotExist) as e:
+            messages.error(request, "رابط تسجيل الدخول غير صالح أو منتهي الصلاحية. يرجى المحاولة مرة أخرى.")
+            return redirect("site_login")

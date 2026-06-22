@@ -47,6 +47,7 @@ urlpatterns = [
     path("auth/verify-otp/", site_views.v3_verify_otp_view, name="site_verify_otp"),
     path("auth/2fa-verify/", site_views.v3_2fa_verify_view, name="site_2fa_verify"),
     path("auth/sp-verify/", site_views.v3_verify_sp_view, name="site_sp_verify"),
+    path("auth/sso-callback/", site_views.sso_transfer_view, name="sso_transfer_subdomain"),
     path("auth/forgot-password/", site_views.v3_forgot_password_view, name="site_forgot_password"),
     path("auth/reset-password/", site_views.v3_reset_password_view, name="site_reset_password"),
     path("auth/resend-verification/", site_views.resend_verification, name="resend_verification"),
