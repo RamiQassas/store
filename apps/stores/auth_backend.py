@@ -46,3 +46,16 @@ class TenantModelBackend(ModelBackend):
             return None
         return user if self.user_can_authenticate(user) else None
 
+
+from allauth.account.auth_backends import AuthenticationBackend as AllauthAuthenticationBackend
+
+class TenantAuthenticationBackend(AllauthAuthenticationBackend):
+    def get_user(self, user_id):
+        UserModel = get_user_model()
+        try:
+            # Use all_objects to bypass tenant filtering when retrieving user from session
+            user = UserModel.all_objects.get(pk=user_id)
+        except UserModel.DoesNotExist:
+            return None
+        return user if self.user_can_authenticate(user) else None
+

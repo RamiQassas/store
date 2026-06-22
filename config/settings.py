@@ -118,8 +118,7 @@ INSTALLED_APPS = [
 
 AUTHENTICATION_BACKENDS = [
     'apps.stores.auth_backend.TenantModelBackend',
-    'django.contrib.auth.backends.ModelBackend',
-    'allauth.account.auth_backends.AuthenticationBackend',
+    'apps.stores.auth_backend.TenantAuthenticationBackend',
 ]
 
 SITE_ID = 1
