@@ -658,6 +658,51 @@ def dashboard(request):
     wallet = get_or_create_wallet(request.user)
     active_store = getattr(request, 'store', None)
 
+    # Handle store management actions on main platform
+    if request.method == "POST" and not active_store:
+        action = request.POST.get("action")
+        store_id = request.POST.get("store_id")
+        
+        from apps.stores.models import Store, SubscriptionPlan
+        from apps.common.tenant_utils import bypass_tenant_filter
+        
+        with bypass_tenant_filter():
+            store = Store.unfiltered.filter(id=store_id, owner=request.user).first()
+            
+        if store:
+            if action == "renew_store":
+                success = store.renew_subscription()
+                if success:
+                    messages.success(request, f"تم تجديد اشتراك متجر '{store.name}' بنجاح.")
+                else:
+                    messages.error(request, f"فشل تجديد الاشتراك. يرجى التحقق من رصيد محفظتك.")
+            
+            elif action == "toggle_auto_renew":
+                store.auto_renew = not store.auto_renew
+                store.save()
+                messages.success(request, f"تم {'تفعيل' if store.auto_renew else 'إلغاء تفعيل'} التجديد التلقائي لمتجر '{store.name}' بنجاح.")
+                
+            elif action == "change_billing_cycle":
+                cycle = request.POST.get("billing_cycle")
+                if cycle in ["monthly", "yearly"]:
+                    store.billing_cycle = cycle
+                    store.save()
+                    messages.success(request, f"تم تغيير دورة دفع متجر '{store.name}' إلى: {'سنوي' if cycle == 'yearly' else 'شهري'}.")
+                else:
+                    messages.error(request, "دورة الدفع المحددة غير صالحة.")
+                    
+            elif action == "change_plan":
+                plan_id = request.POST.get("plan_id")
+                plan = SubscriptionPlan.objects.filter(id=plan_id, is_active=True).first()
+                if plan:
+                    store.subscription_plan = plan
+                    store.save()
+                    messages.success(request, f"تم تغيير باقة متجر '{store.name}' إلى: {plan.name}.")
+                else:
+                    messages.error(request, "الباقة المحددة غير صالحة.")
+                    
+            return redirect("dashboard")
+
     # Orders filtered by current tenant context automatically
     digital_deliveries = Order.objects.filter(
         customer=request.user, status=Order.Status.COMPLETED, is_delivery_read=False
@@ -673,7 +718,7 @@ def dashboard(request):
 
     if not active_store:
         # Main platform: show deposits, withdrawals, KYC, and owned stores
-        from apps.stores.models import Store
+        from apps.stores.models import Store, SubscriptionPlan
         from apps.common.tenant_utils import bypass_tenant_filter
         ctx["recent_deposits"] = DepositRequest.objects.filter(user=request.user).order_by('-created_at')[:5]
         ctx["recent_withdrawals"] = WithdrawalRequest.objects.filter(user=request.user).order_by('-created_at')[:5]
@@ -682,6 +727,7 @@ def dashboard(request):
             ctx["user_stores"] = list(Store.unfiltered.filter(owner=request.user))
         ctx["deposits"] = ctx["recent_deposits"]
         ctx["withdrawals"] = ctx["recent_withdrawals"]
+        ctx["plans"] = list(SubscriptionPlan.objects.filter(is_active=True).order_by("price_monthly"))
     else:
         # Store tenant: no deposits/withdrawals/KYC in store context
         ctx["recent_deposits"] = []

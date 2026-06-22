@@ -626,21 +626,97 @@
             </h2>
             <div class="stack gap-3">
                 {% for store in user_stores %}
-                <div class="p-3 bg-white/[0.03] border border-white/5 rounded-xl stack gap-2">
-                    <div class="flex justify-between items-center">
-                        <span class="font-bold text-xs text-white">{{ store.name }}</span>
-                        <span class="badge {% if store.is_active %}success{% else %}danger{% endif %} text-[8px]">
-                            {{ store.get_subscription_status_display }}
-                        </span>
-                    </div>
-                    <div class="text-[10px] text-slate-500 truncate">
-                        {{ store.subdomain }}.raqamiyatapp.com
-                    </div>
-                    <div class="flex gap-2 mt-1">
-                        <a href="https://{{ store.subdomain }}.raqamiyatapp.com" target="_blank" class="text-[9px] text-cyan hover:underline font-bold">زيارة المتجر <i class="fas fa-external-link-alt ml-0.5"></i></a>
-                        <a href="https://{{ store.subdomain }}.raqamiyatapp.com/merchant/" target="_blank" class="text-[9px] text-indigo-400 hover:underline font-bold">لوحة التاجر <i class="fas fa-chevron-left ml-0.5"></i></a>
-                    </div>
-                </div>
+                 <div class="p-3 bg-white/[0.03] border border-white/5 rounded-xl stack gap-2">
+                     <div class="flex justify-between items-center">
+                         <span class="font-bold text-xs text-white">{{ store.name }}</span>
+                         <span class="badge {% if store.is_active %}success{% else %}danger{% endif %} text-[8px]">
+                             {{ store.get_subscription_status_display }}
+                         </span>
+                     </div>
+                     <div class="text-[10px] text-slate-500 truncate">
+                         {{ store.subdomain }}.raqamiyatapp.com
+                     </div>
+                     <div class="flex gap-2 mt-1">
+                         <a href="https://{{ store.subdomain }}.raqamiyatapp.com" target="_blank" class="text-[9px] text-cyan hover:underline font-bold">زيارة المتجر <i class="fas fa-external-link-alt ml-0.5"></i></a>
+                         <a href="https://{{ store.subdomain }}.raqamiyatapp.com/merchant/" target="_blank" class="text-[9px] text-indigo-400 hover:underline font-bold">لوحة التاجر <i class="fas fa-chevron-left ml-0.5"></i></a>
+                     </div>
+                     
+                     <!-- Detailed Subscription & Plan Management -->
+                     <details class="mt-2 border-t border-white/5 pt-2 cursor-pointer group">
+                         <summary class="text-[9px] text-slate-400 hover:text-white font-bold select-none flex items-center justify-between">
+                             <span>إدارة الاشتراك والتحكم <i class="fas fa-cog ml-1 text-slate-500 group-hover:rotate-45 transition-transform"></i></span>
+                             <i class="fas fa-chevron-down text-[8px] transform group-open:rotate-180 transition-transform"></i>
+                         </summary>
+                         
+                         <div class="mt-3 stack gap-3 cursor-default">
+                             <!-- Subscription Status Info -->
+                             <div class="grid grid-cols-2 gap-2 text-[10px] bg-black/20 p-2 rounded-lg">
+                                 <div><span class="opacity-60">الباقة:</span> <strong class="text-white">{{ store.subscription_plan.name }}</strong></div>
+                                 <div><span class="opacity-60">دورة الدفع:</span> <strong class="text-white">{% if store.billing_cycle == 'yearly' %}سنوي{% else %}شهري{% endif %}</strong></div>
+                                 <div><span class="opacity-60">تاريخ الانتهاء:</span> <strong class="text-white">{{ store.subscription_end|date:"Y-m-d" }}</strong></div>
+                                 <div><span class="opacity-60">تجديد تلقائي:</span> 
+                                     <strong class="{% if store.auto_renew %}text-emerald-400{% else %}text-slate-400{% endif %}">
+                                         {% if store.auto_renew %}مفعل{% else %}معطل{% endif %}
+                                     </strong>
+                                 </div>
+                             </div>
+                             
+                             <!-- Quick Management Forms -->
+                             <div class="stack gap-2 text-[10px]">
+                                 <!-- Auto Renew Toggle -->
+                                 <form method="POST" class="flex justify-between items-center bg-white/[0.02] p-2 rounded border border-white/5">
+                                     {% csrf_token %}
+                                     <input type="hidden" name="store_id" value="{{ store.id }}">
+                                     <input type="hidden" name="action" value="toggle_auto_renew">
+                                     <span>التجديد التلقائي:</span>
+                                     <button type="submit" class="btn {% if store.auto_renew %}btn-premium-sm danger{% else %}btn-premium-sm primary{% endif %} py-1 px-3 text-[9px]">
+                                         {% if store.auto_renew %}تعطيل التجديد{% else %}تفعيل التجديد{% endif %}
+                                     </button>
+                                 </form>
+                                 
+                                 <!-- Billing Cycle Change -->
+                                 <form method="POST" class="flex justify-between items-center bg-white/[0.02] p-2 rounded border border-white/5">
+                                     {% csrf_token %}
+                                     <input type="hidden" name="store_id" value="{{ store.id }}">
+                                     <input type="hidden" name="action" value="change_billing_cycle">
+                                     <span>تغيير دورة الدفع:</span>
+                                     <div class="flex gap-1.5 items-center">
+                                         <select name="billing_cycle" class="bg-slate-900 border border-white/10 text-white rounded p-1 text-[9px] focus:outline-none focus:border-cyan">
+                                             <option value="monthly" {% if store.billing_cycle == 'monthly' %}selected{% endif %}>شهري</option>
+                                             <option value="yearly" {% if store.billing_cycle == 'yearly' %}selected{% endif %}>سنوي</option>
+                                         </select>
+                                         <button type="submit" class="btn btn-premium-sm primary py-1 px-3 text-[9px]">تحديث</button>
+                                     </div>
+                                 </form>
+                                 
+                                 <!-- Plan Upgrade / Downgrade -->
+                                 <form method="POST" class="flex justify-between items-center bg-white/[0.02] p-2 rounded border border-white/5">
+                                     {% csrf_token %}
+                                     <input type="hidden" name="store_id" value="{{ store.id }}">
+                                     <input type="hidden" name="action" value="change_plan">
+                                     <span>تغيير الباقة:</span>
+                                     <div class="flex gap-1.5 items-center">
+                                         <select name="plan_id" class="bg-slate-900 border border-white/10 text-white rounded p-1 text-[9px] focus:outline-none focus:border-cyan">
+                                             {% for plan in plans %}
+                                             <option value="{{ plan.id }}" {% if store.subscription_plan_id == plan.id %}selected{% endif %}>{{ plan.name }} (${{ plan.price_monthly }}/ش)</option>
+                                             {% endfor %}
+                                         </select>
+                                         <button type="submit" class="btn btn-premium-sm primary py-1 px-3 text-[9px]">تطبيق</button>
+                                     </div>
+                                 </form>
+                                 
+                                 <!-- Manual Renewal -->
+                                 <form method="POST" class="flex justify-between items-center bg-white/[0.02] p-2 rounded border border-white/5">
+                                     {% csrf_token %}
+                                     <input type="hidden" name="store_id" value="{{ store.id }}">
+                                     <input type="hidden" name="action" value="renew_store">
+                                     <span>تجديد الاشتراك الآن:</span>
+                                     <button type="submit" class="btn btn-premium-sm success py-1 px-3 text-[9px]">تجديد فوري</button>
+                                 </form>
+                             </div>
+                         </div>
+                     </details>
+                 </div>
                 {% empty %}
                 <div class="p-4 text-center bg-white/[0.02] border border-dashed border-white/10 rounded-xl stack gap-2">
                     <p class="text-[10px] text-slate-400">لم تقم بإنشاء متجر خاص بك بعد.</p>
@@ -771,6 +847,13 @@
                    <div class="flex items-center gap-3">
                        <i class="fas fa-lock text-cyan"></i>
                        <span class="text-sm">{% if user.has_usable_password %}تغيير كلمة المرور{% else %}تعيين كلمة المرور{% endif %}</span>
+                   </div>
+                   <i class="fas fa-chevron-left text-[10px] text-slate-600"></i>
+                </a>
+                <a href="{% url 'change_email' %}" class="flex items-center justify-between p-3 bg-slate-800/30 rounded-lg hover:bg-cyan/5 transition-colors">
+                   <div class="flex items-center gap-3">
+                       <i class="fas fa-envelope text-cyan"></i>
+                       <span class="text-sm">تغيير البريد الإلكتروني</span>
                    </div>
                    <i class="fas fa-chevron-left text-[10px] text-slate-600"></i>
                 </a>

@@ -165,7 +165,7 @@ def store_registration_payment(request):
             request.session.pop("store_reg_data", None)
             request.session.pop("store_reg_logo_path", None)
             
-            messages.success(request, f"تهانينا! تم إنشاء متجرك '{store.name}' بنجاح.")
+            messages.success(request, f"تهانينا! تم إنشاء متجرك '{store.name}' بنجاح. استخدم حسابك الحالي لتسجيل الدخول إلى لوحة تحكم المتجر.")
             return render(request, "stores/super_admin/registration_success.html", {"store": store})
             
         except Exception as e:
