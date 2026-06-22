@@ -122,6 +122,7 @@ urlpatterns = [
     path("merchant/products/<uuid:pk>/delete/alias/", site_views.control_product_delete, name="merchant_product_delete"),
     path("merchant/products/<uuid:product_pk>/variants/create/", site_views.control_variant_create, name="control_variant_create"),
     path("merchant/products/<uuid:product_pk>/variants/create/alias/", site_views.control_variant_create, name="merchant_variant_create"),
+    path("merchant/products/import/", site_views.control_product_import, name="control_product_import"),
     path("merchant/variants/<uuid:pk>/edit/", site_views.control_variant_edit, name="control_variant_edit"),
     path("merchant/variants/<uuid:pk>/edit/alias/", site_views.control_variant_edit, name="merchant_variant_edit"),
     path("merchant/variants/<uuid:pk>/keys/", site_views.control_variant_keys, name="control_variant_keys"),

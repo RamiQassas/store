@@ -148,7 +148,8 @@ class Order(TimeStampedModel):
                         amount=amount,
                         currency=currency,
                         order=self,
-                        status=RechargeCard.Status.ACTIVE
+                        status=RechargeCard.Status.ACTIVE,
+                        store=self.store
                     )
                     generated_codes.append(code)
 

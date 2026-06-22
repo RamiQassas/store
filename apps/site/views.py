@@ -2863,7 +2863,11 @@ def control_product_import(request):
                     is_active = str(row[4]).strip() == "نعم"
                     is_featured = str(row[5]).strip() == "نعم"
                     
-                    category, _ = Category.objects.get_or_create(name=cat_name)
+                    store = getattr(request, "store", None)
+                    category, _ = Category.objects.get_or_create(
+                        name=cat_name,
+                        defaults={"store": store}
+                    )
                     
                     p, created_now = Product.objects.update_or_create(
                         id=product_id,
@@ -2871,7 +2875,8 @@ def control_product_import(request):
                             "name": name,
                             "category": category,
                             "is_active": is_active,
-                            "is_featured": is_featured
+                            "is_featured": is_featured,
+                            "store": store
                         }
                     )
                     if created_now: created += 1
@@ -3715,7 +3720,7 @@ def control_reports(request):
     # Clean empty strings
     clean_filters = {k: v for k, v in filters.items() if v}
     
-    analytics = FinancialAnalyticsService(clean_filters)
+    analytics = FinancialAnalyticsService(clean_filters, store=getattr(request, "store", None))
     
     from apps.wallets.models import RechargeCard
     from apps.catalog.models import ProductKey
@@ -4063,6 +4068,7 @@ def site_product_suggestion(request):
     if request.method == "POST" and form.is_valid():
         suggestion = form.save(commit=False)
         suggestion.user = request.user
+        suggestion.store = getattr(request, "store", None)
         suggestion.save()
         messages.success(request, "تم إرسال اقتراحك بنجاح. سنقوم بمراجعته والرد عليك قريباً.")
         return redirect("dashboard")
@@ -4241,7 +4247,8 @@ def control_recharge_cards_generate(request):
                 amount=amount,
                 currency=currency,
                 created_by=request.user,
-                status=RechargeCard.Status.ACTIVE
+                status=RechargeCard.Status.ACTIVE,
+                store=getattr(request, "store", None)
             )
             created_count += 1
             

@@ -149,11 +149,22 @@ class TenantMiddleware:
         else:
             # Main site: check if admin or control panel request by super admin/staff, then bypass
             # request.user is set by AuthenticationMiddleware
-            if hasattr(request, 'user') and request.user.is_authenticated and (request.user.role == 'super_admin' or request.user.is_superuser or request.user.is_staff):
-                if request.path.startswith('/admin/') or request.path.startswith('/control/'):
-                    from apps.common.tenant_utils import _bypass_tenant_filter
-                    token = _bypass_tenant_filter.set(True)
-                    request._bypass_token = token
+            if hasattr(request, 'user') and request.user.is_authenticated:
+                is_staff_or_admin = (
+                    request.user.is_superuser
+                    or request.user.is_staff
+                    or getattr(request.user, "role", None) == "super_admin"
+                )
+                if is_staff_or_admin:
+                    if request.path.startswith('/admin/') or request.path.startswith('/control/'):
+                        from apps.common.tenant_utils import _bypass_tenant_filter
+                        token = _bypass_tenant_filter.set(True)
+                        request._bypass_token = token
+                else:
+                    # Strict isolation: log out store-scoped users from the main site
+                    if getattr(request.user, "store_id", None) is not None:
+                        logout(request)
+                        request.user = AnonymousUser()
 
         try:
             response = self.get_response(request)

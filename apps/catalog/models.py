@@ -214,6 +214,17 @@ class ProductSuggestion(TimeStampedModel):
         REJECTED = "rejected", "مرفوض"
         IMPLEMENTED = "implemented", "تم التوفير"
 
+    store = models.ForeignKey(
+        "stores.Store",
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name="product_suggestions",
+        verbose_name="المتجر"
+    )
+    objects = TenantManager()
+    all_objects = models.Manager()
+
     user = models.ForeignKey(settings.AUTH_USER_MODEL, related_name="suggestions", on_delete=models.CASCADE, verbose_name="المستخدم")
     product_name = models.CharField(max_length=160, verbose_name="اسم المنتج/الخدمة المقترح")
     category_name = models.CharField(max_length=120, blank=True, verbose_name="التصنيف (اختياري)")

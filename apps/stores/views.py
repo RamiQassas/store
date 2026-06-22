@@ -816,7 +816,8 @@ def merchant_employee_form(request, pk=None):
                         email=email,
                         password="EmployeePassword123!",
                         first_name="موظف المتجر",
-                        role=User.Role.EMPLOYEE
+                        role=User.Role.EMPLOYEE,
+                        store=store
                     )
                 
         if not employee:

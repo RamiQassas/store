@@ -4,6 +4,7 @@ from django.conf import settings
 from django.db import models
 
 from apps.common.models import TimeStampedModel
+from apps.common.tenant_utils import TenantManager
 
 
 class Wallet(TimeStampedModel):
@@ -170,6 +171,17 @@ class RechargeCard(TimeStampedModel):
         ACTIVE = "active", "نشط"
         REDEEMED = "redeemed", "تم استخدامه"
         CANCELLED = "cancelled", "ملغي"
+
+    store = models.ForeignKey(
+        "stores.Store",
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name="recharge_cards",
+        verbose_name="المتجر"
+    )
+    objects = TenantManager()
+    all_objects = models.Manager()
 
     code = models.CharField(max_length=50, unique=True, verbose_name="رمز الشحن")
     amount = models.DecimalField(max_digits=12, decimal_places=2, verbose_name="قيمة الشحن")

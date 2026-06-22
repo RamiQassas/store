@@ -12,8 +12,9 @@ from apps.wallets.models import Wallet, LedgerEntry, WalletTransaction
 from apps.common.models import Currency
 
 class FinancialAnalyticsService:
-    def __init__(self, filters=None):
+    def __init__(self, filters=None, store=None):
         self.filters = filters or {}
+        self.store = store
         # Expected filters: start_date, end_date, currency_id, payment_method_id, tier, user_id, status_filter, reporting_currency_code
         self.reporting_currency = Currency.objects.filter(code=self.filters.get("reporting_currency_code", "USD")).first() or Currency.objects.filter(is_default=True).first()
         self._cache = {}
@@ -75,6 +76,18 @@ class FinancialAnalyticsService:
     def _apply_common_filters(self, queryset, prefix=""):
         pfx = f"{prefix}__" if prefix else ""
         
+        # Tenant/Store Isolation for Wallet & LedgerEntry which do not have TenantManager
+        if queryset.model == Wallet:
+            if self.store is not None:
+                queryset = queryset.filter(user__store=self.store)
+            else:
+                queryset = queryset.filter(user__store__isnull=True)
+        elif queryset.model == LedgerEntry:
+            if self.store is not None:
+                queryset = queryset.filter(wallet__user__store=self.store)
+            else:
+                queryset = queryset.filter(wallet__user__store__isnull=True)
+
         if self.filters.get("currency_id"):
             queryset = queryset.filter(**{f"{pfx}currency_id": self.filters.get("currency_id")})
         
