@@ -14,6 +14,15 @@ class ChatRoom(TimeStampedModel):
         CLOSED = "closed", "مغلق"
         REOPENED = "reopened", "تم إعادة الفتح"
 
+    store = models.ForeignKey(
+        "stores.Store",
+        on_delete=models.CASCADE,
+        related_name="chat_rooms",
+        null=True,
+        blank=True,
+        verbose_name="المتجر"
+    )
+
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL, 
         related_name="chat_rooms", 

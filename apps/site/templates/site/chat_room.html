@@ -246,7 +246,7 @@
         <!-- Header -->
         <div class="chat-header">
             <div class="agent-info">
-                <a href="{% if is_tenant %}/auth/sso-callback/?next={{ PLATFORM_URL }}/support/chats/{% else %}{% url 'chat_list' %}{% endif %}" class="w-10 h-10 rounded-full bg-slate-800 flex items-center justify-center hover:bg-slate-700 transition" title="العودة للقائمة">
+                <a href="{% url 'chat_list' %}" class="w-10 h-10 rounded-full bg-slate-800 flex items-center justify-center hover:bg-slate-700 transition" title="العودة للقائمة">
                     <i class="fas fa-arrow-right text-xs"></i>
                 </a>
                 <div class="agent-avatar">
