@@ -1,0 +1,92 @@
+{% extends "stores/merchant/base.html" %}
+
+{% block menu_coup %}active{% endblock %}
+
+{% block content %}
+
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+        <h1 style="font-size: 2rem; font-weight: 900;">
+            {% if coupon %}تعديل الكوبون: {{ coupon.code }}{% else %}إضافة كوبون جديد{% endif %}
+        </h1>
+        <a href="{% url 'merchant_coupons' %}" class="btn btn-outline"><i class="fa-solid fa-arrow-left"></i> العودة للقائمة</a>
+    </div>
+
+    <div class="card">
+        <form method="POST">
+            {% csrf_token %}
+            
+            <div style="display: grid; grid-template-cols: 1fr 1fr; gap: 1.5rem;">
+                <div class="form-group">
+                    <label class="form-label">كود الكوبون:</label>
+                    {{ form.code }}
+                    {{ form.code.errors }}
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">نوع الخصم:</label>
+                    {{ form.discount_type }}
+                    {{ form.discount_type.errors }}
+                </div>
+            </div>
+
+            <div style="display: grid; grid-template-cols: 1fr 1fr; gap: 1.5rem; margin-top: 1rem;">
+                <div class="form-group">
+                    <label class="form-label">قيمة الخصم نسبة مئوية (%):</label>
+                    {{ form.discount_percent }}
+                    {{ form.discount_percent.errors }}
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">قيمة الخصم مبلغ ثابت (USD):</label>
+                    {{ form.discount_amount }}
+                    {{ form.discount_amount.errors }}
+                </div>
+            </div>
+
+            <div style="display: grid; grid-template-cols: 1fr 1fr; gap: 1.5rem; margin-top: 1rem;">
+                <div class="form-group">
+                    <label class="form-label">الحد الأقصى للاستخدام (0 = غير محدود):</label>
+                    {{ form.max_uses }}
+                    {{ form.max_uses.errors }}
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">الحد الأقصى للاستخدام لكل مستخدم:</label>
+                    {{ form.max_uses_per_user }}
+                    {{ form.max_uses_per_user.errors }}
+                </div>
+            </div>
+
+            <div style="display: grid; grid-template-cols: 1fr 1fr; gap: 1.5rem; margin-top: 1rem;">
+                <div class="form-group">
+                    <label class="form-label">الحد الأدنى لقيمة الطلب (USD):</label>
+                    {{ form.min_order_amount }}
+                    {{ form.min_order_amount.errors }}
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">تاريخ انتهاء الكوبون (اختياري):</label>
+                    {{ form.expires_at }}
+                    {{ form.expires_at.errors }}
+                    <small style="opacity: 0.5; margin-top: 0.2rem;">الصيغة المقبولة: YYYY-MM-DD HH:MM</small>
+                </div>
+            </div>
+
+            <div style="display: flex; align-items: center; gap: 2.5rem; margin-top: 2rem;">
+                <div class="form-group" style="flex-direction: row; align-items: center; gap: 0.5rem; margin-bottom: 0;">
+                    {{ form.is_active }}
+                    <label class="form-label" style="margin-bottom: 0; cursor: pointer;">نشط وصالح للاستخدام</label>
+                </div>
+                <div class="form-group" style="flex-direction: row; align-items: center; gap: 0.5rem; margin-bottom: 0;">
+                    {{ form.is_verified_only }}
+                    <label class="form-label" style="margin-bottom: 0; cursor: pointer;">صالح للحسابات الموثقة (KYC) فقط</label>
+                </div>
+            </div>
+
+            <div style="margin-top: 2.5rem; display: flex; justify-content: flex-end;">
+                <button type="submit" class="btn btn-primary"><i class="fa-solid fa-save"></i> حفظ الكوبون</button>
+            </div>
+        </form>
+    </div>
+
+{% endblock %}

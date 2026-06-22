@@ -1,0 +1,57 @@
+{% extends "stores/merchant/base.html" %}
+
+{% block menu_page %}active{% endblock %}
+
+{% block content %}
+
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+        <h1 style="font-size: 2rem; font-weight: 900;">إدارة صفحات المتجر المخصصة</h1>
+        <a href="{% url 'merchant_page_create' %}" class="btn btn-primary"><i class="fa-solid fa-plus"></i> إنشاء صفحة مخصصة</a>
+    </div>
+
+    <!-- Pages Table -->
+    <div class="table-container">
+        {% if pages %}
+            <table>
+                <thead>
+                    <tr>
+                        <th>عنوان الصفحة</th>
+                        <th>الرابط المعرّف (Slug)</th>
+                        <th>تاريخ الإنشاء</th>
+                        <th>نشط</th>
+                        <th>الإجراءات</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for page in pages %}
+                        <tr>
+                            <td><strong>{{ page.title }}</strong></td>
+                            <td style="font-family: monospace; opacity: 0.8;">page/{{ page.slug }}/</td>
+                            <td style="opacity: 0.7; font-size: 0.9rem;">{{ page.created_at|date:"Y-m-d H:i" }}</td>
+                            <td>
+                                {% if page.is_active %}
+                                    <span style="color: #34d399;">نعم</span>
+                                {% else %}
+                                    <span style="color: #f87171;">لا</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <div style="display: flex; gap: 0.5rem;">
+                                    <a href="{% url 'store_custom_page' page.slug %}" target="_blank" class="btn btn-outline btn-sm"><i class="fa-solid fa-arrow-up-right-from-square"></i> عرض</a>
+                                    <a href="{% url 'merchant_page_edit' page.id %}" class="btn btn-outline btn-sm"><i class="fa-solid fa-edit"></i> تعديل</a>
+                                    <a href="{% url 'merchant_page_delete' page.id %}" onclick="return confirm('هل أنت متأكد من حذف هذه الصفحة؟')" class="btn btn-danger btn-sm"><i class="fa-solid fa-trash"></i> حذف</a>
+                                </div>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        {% else %}
+            <div style="text-align: center; padding: 4rem 2rem;">
+                <i class="fa-solid fa-file-lines" style="font-size: 3rem; opacity: 0.2; margin-bottom: 1rem;"></i>
+                <p>لم تقم بإنشاء أي صفحات مخصصة لمتجرك حتى الآن.</p>
+            </div>
+        {% endif %}
+    </div>
+
+{% endblock %}

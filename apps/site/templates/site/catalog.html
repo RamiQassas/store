@@ -123,6 +123,7 @@
             </div>
 
             <!-- Integrated Suggest Service Card -->
+            {% if not is_tenant %}
             <div class="lg:col-span-4 glass-panel p-8 border-indigo-500/20 bg-gradient-to-br from-indigo-500/5 to-transparent relative overflow-hidden group">
                 <div class="absolute -right-10 -top-10 w-32 h-32 bg-indigo-500/10 rounded-full blur-2xl group-hover:scale-150 transition-transform duration-700"></div>
                 <div class="relative z-10 flex flex-col h-full">
@@ -138,6 +139,7 @@
                     <button onclick="document.getElementById('suggestion-modal').classList.remove('hidden')" class="btn-premium py-2 text-xs w-full mt-auto">اقتراح خدمة جديدة</button>
                 </div>
             </div>
+            {% endif %}
         </div>
 
         <!-- View Toggle (Categories vs Products) -->
@@ -241,6 +243,7 @@
 </div>
 
 <!-- Suggestion Modal -->
+{% if not is_tenant %}
 <div id="suggestion-modal" class="fixed inset-0 z-[100] hidden flex items-center justify-center p-4 bg-dark-bg/80 backdrop-blur-md">
     <div class="glass-panel p-8 w-full max-w-lg animate-reveal">
         <div class="flex justify-between items-center mb-8">
@@ -266,6 +269,7 @@
         </form>
     </div>
 </div>
+{% endif %}
 
 <script>
     const observer = new IntersectionObserver((entries) => {

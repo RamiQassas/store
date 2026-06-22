@@ -1,0 +1,78 @@
+{% extends "stores/merchant/base.html" %}
+
+{% block menu_coup %}active{% endblock %}
+
+{% block content %}
+
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+        <h1 style="font-size: 2rem; font-weight: 900;">إدارة الكوبونات</h1>
+        <a href="{% url 'merchant_coupon_create' %}" class="btn btn-primary"><i class="fa-solid fa-plus"></i> إضافة كوبون جديد</a>
+    </div>
+
+    <!-- Coupons Table -->
+    <div class="table-container">
+        {% if coupons %}
+            <table>
+                <thead>
+                    <tr>
+                        <th>الكود</th>
+                        <th>نوع الخصم</th>
+                        <th>الخصم</th>
+                        <th>الحد الأدنى للطلب</th>
+                        <th>الاستخدام</th>
+                        <th>موجه للموثقين فقط</th>
+                        <th>تاريخ الانتهاء</th>
+                        <th>نشط</th>
+                        <th>الإجراءات</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for coupon in coupons %}
+                        <tr>
+                            <td><strong>{{ coupon.code }}</strong></td>
+                            <td style="opacity: 0.8;">{{ coupon.get_discount_type_display }}</td>
+                            <td>
+                                {% if coupon.discount_type == 'percentage' %}
+                                    <span style="font-weight: 700; color: var(--primary);">{{ coupon.discount_percent }}%</span>
+                                {% else %}
+                                    <span style="font-weight: 700; color: var(--primary);">${{ coupon.discount_amount }}</span>
+                                {% endif %}
+                            </td>
+                            <td>${{ coupon.min_order_amount }}</td>
+                            <td>{{ coupon.used_count }} / {% if coupon.max_uses == 0 %}غير محدود{% else %}{{ coupon.max_uses }}{% endif %}</td>
+                            <td>
+                                {% if coupon.is_verified_only %}
+                                    <span style="color: #34d399;">نعم</span>
+                                {% else %}
+                                    <span style="opacity: 0.6;">لا</span>
+                                {% endif %}
+                            </td>
+                            <td style="opacity: 0.7; font-size: 0.9rem;">
+                                {{ coupon.expires_at|date:"Y-m-d H:i"|default:"—" }}
+                            </td>
+                            <td>
+                                {% if coupon.is_active %}
+                                    <span style="color: #34d399;">نعم</span>
+                                {% else %}
+                                    <span style="color: #f87171;">لا</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <div style="display: flex; gap: 0.5rem;">
+                                    <a href="{% url 'merchant_coupon_edit' coupon.id %}" class="btn btn-outline btn-sm"><i class="fa-solid fa-edit"></i> تعديل</a>
+                                    <a href="{% url 'merchant_coupon_delete' coupon.id %}" onclick="return confirm('هل أنت متأكد من حذف هذا الكوبون؟')" class="btn btn-danger btn-sm"><i class="fa-solid fa-trash"></i> حذف</a>
+                                </div>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        {% else %}
+            <div style="text-align: center; padding: 4rem 2rem;">
+                <i class="fa-solid fa-tags" style="font-size: 3rem; opacity: 0.2; margin-bottom: 1rem;"></i>
+                <p>لا يوجد كوبونات خصم مضافة لمتجرك حالياً.</p>
+            </div>
+        {% endif %}
+    </div>
+
+{% endblock %}
