@@ -113,8 +113,8 @@ class Store(TimeStampedModel):
     # Styling and Theme Colors
     primary_color = models.CharField(max_length=7, default="#06b6d4", verbose_name="اللون الأساسي")
     secondary_color = models.CharField(max_length=7, default="#0891b2", verbose_name="اللون الثانوي")
-    background_color = models.CharField(max_length=7, default="#ffffff", verbose_name="لون الخلفية")
-    text_color = models.CharField(max_length=7, default="#0f172a", verbose_name="لون النص")
+    background_color = models.CharField(max_length=7, default="#030712", verbose_name="لون الخلفية")
+    text_color = models.CharField(max_length=7, default="#f8fafc", verbose_name="لون النص")
     
     is_active = models.BooleanField(default=True, verbose_name="نشط")
     auto_renew = models.BooleanField(default=True, verbose_name="تجديد تلقائي للاشتراك")
@@ -130,10 +130,10 @@ class Store(TimeStampedModel):
     primary_color = models.CharField(max_length=7, default="#06b6d4", verbose_name="اللون الأساسي")
     secondary_color = models.CharField(max_length=7, default="#0891b2", verbose_name="اللون الثانوي")
     button_color = models.CharField(max_length=7, default="#06b6d4", verbose_name="لون الأزرار")
-    background_color = models.CharField(max_length=7, default="#ffffff", verbose_name="لون الخلفية")
-    text_color = models.CharField(max_length=7, default="#0f172a", verbose_name="لون النص")
+    background_color = models.CharField(max_length=7, default="#030712", verbose_name="لون الخلفية")
+    text_color = models.CharField(max_length=7, default="#f8fafc", verbose_name="لون النص")
     theme_font = models.CharField(max_length=50, default="Cairo", verbose_name="الخط")
-    card_style = models.CharField(max_length=20, default="flat", verbose_name="شكل البطاقات")
+    card_style = models.CharField(max_length=20, default="glass", verbose_name="شكل البطاقات")
     header_style = models.CharField(max_length=20, default="classic", verbose_name="شكل الهيدر")
     footer_style = models.CharField(max_length=20, default="classic", verbose_name="شكل الفوتر")
     
