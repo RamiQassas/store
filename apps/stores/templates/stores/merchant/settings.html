@@ -36,10 +36,20 @@
                     <div class="form-group">
                         <label class="form-label">شعار المتجر (Logo):</label>
                         {{ form.logo }}
+                        {% if store.logo %}
+                            <div style="margin-top: 10px;">
+                                <img src="{{ store.logo.url }}" alt="شعار المتجر الحالي" style="max-height: 80px; width: auto; border-radius: 8px; border: 1px solid var(--card-border); padding: 4px; background: rgba(255,255,255,0.02);">
+                            </div>
+                        {% endif %}
                     </div>
                     <div class="form-group">
                         <label class="form-label">بانر المتجر الرئيسي (Banner):</label>
                         {{ form.banner }}
+                        {% if store.banner %}
+                            <div style="margin-top: 10px;">
+                                <img src="{{ store.banner.url }}" alt="بانر المتجر الحالي" style="max-height: 80px; width: auto; border-radius: 8px; border: 1px solid var(--card-border); padding: 4px; background: rgba(255,255,255,0.02);">
+                            </div>
+                        {% endif %}
                     </div>
                 </div>
 

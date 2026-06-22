@@ -609,6 +609,13 @@
                 <a href="{% url 'chat_list' %}" class="flex items-center gap-3 p-3 bg-white/5 rounded-xl hover:bg-white/10 transition-all text-xs font-bold text-slate-300">
                     <i class="fas fa-headset w-5 text-center text-cyan"></i> الدعم الفني المباشر
                 </a>
+                {% if is_tenant %}
+                   {% if store.owner == user or user.store_employments.exists %}
+                   <a href="{% url 'merchant_dashboard' %}" class="flex items-center gap-3 p-3 bg-indigo-500/10 rounded-xl hover:bg-indigo-500/20 transition-all text-xs font-bold text-indigo-400 border border-indigo-500/20">
+                       <i class="fas fa-shop w-5 text-center text-indigo-400"></i> لوحة تحكم التاجر
+                   </a>
+                   {% endif %}
+                {% endif %}
             </nav>
         </div>
 

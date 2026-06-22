@@ -449,6 +449,15 @@
           </a>
           {% endif %}
 
+          {% if is_tenant %}
+             {% if store.owner == user or user.store_employments.exists %}
+             <div class="h-px bg-white/5 my-4"></div>
+             <a href="{% url 'merchant_dashboard' %}" class="drawer-link text-indigo-400">
+                 <i class="fas fa-shop"></i> لوحة التاجر
+             </a>
+             {% endif %}
+          {% endif %}
+
           <div class="mt-auto pt-8">
               <a href="{% url 'site_logout' %}" class="drawer-link text-rose-500">
                   <i class="fas fa-power-off"></i> تسجيل الخروج
@@ -485,6 +494,11 @@
              <a href="{% url 'chat_list' %}" class="{% if 'chat' in request.path %}active{% endif %}">الدعم المباشر</a>
              {% if user.is_superuser or user.role == "super_admin" or user.role == "admin" %}
                 <a href="{% url 'control_dashboard' %}" class="admin-link">لوحة التحكم</a>
+             {% endif %}
+             {% if is_tenant %}
+                {% if store.owner == user or user.store_employments.exists %}
+                   <a href="{% url 'merchant_dashboard' %}" class="merchant-link" style="color: #818cf8; font-weight: bold;">لوحة التاجر</a>
+                {% endif %}
              {% endif %}
           {% endif %}
         </nav>

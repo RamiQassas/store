@@ -109,16 +109,23 @@
     
     <div class="w-full max-w-md relative z-10">
         <!-- Logo Header -->
-        <div class="text-center mb-8 animate-pulse">
+        <div class="text-center mb-8">
             <a href="/" class="inline-block group">
                 <div class="relative">
                     <div class="absolute inset-0 bg-cyan blur-2xl opacity-20 group-hover:opacity-40 transition-opacity"></div>
-                    <h1 class="text-4xl font-black tracking-tighter text-white relative flex items-center gap-2">
-                        <span class="bg-gradient-to-l from-cyan to-indigo bg-clip-text text-transparent">رقميات</span>
-                        <i class="fas fa-bolt text-cyan text-2xl"></i>
-                    </h1>
+                    {% if is_tenant and STORE_LOGO %}
+                        <div class="flex flex-col items-center gap-3">
+                            <img src="{{ STORE_LOGO.url }}" alt="{{ STORE_NAME }}" style="max-height: 80px; width: auto; border-radius: 8px; object-fit: contain;">
+                            <h1 class="text-2xl font-black tracking-tighter text-white">{{ STORE_NAME }}</h1>
+                        </div>
+                    {% else %}
+                        <h1 class="text-4xl font-black tracking-tighter text-white relative flex items-center gap-2">
+                            <span class="bg-gradient-to-l from-cyan to-indigo bg-clip-text text-transparent">{% if is_tenant %}{{ STORE_NAME }}{% else %}رقميات{% endif %}</span>
+                            <i class="fas fa-bolt text-cyan text-2xl"></i>
+                        </h1>
+                    {% endif %}
                 </div>
-                <p class="text-[10px] font-tech tracking-[0.2em] uppercase text-slate-500 mt-2">Premium Digital Services</p>
+                <p class="text-[10px] font-tech tracking-[0.2em] uppercase text-slate-500 mt-2">{% if is_tenant %}{{ STORE_DESCRIPTION }}{% else %}Premium Digital Services{% endif %}</p>
             </a>
         </div>
 
