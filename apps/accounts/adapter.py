@@ -4,6 +4,7 @@ from allauth.account.models import EmailAddress
 from apps.accounts.models import User
 from apps.common.tenant_utils import bypass_tenant_filter
 import logging
+import traceback
 
 logger = logging.getLogger(__name__)
 
@@ -34,21 +35,67 @@ class MySocialAccountAdapter(DefaultSocialAccountAdapter):
         """
         Connect existing accounts by email automatically and ensure they are verified.
         """
+        debug_log_path = r"C:\Users\a0947\Documents\store\debug_social_login.log"
+        
         email = sociallogin.user.email
         if not email and sociallogin.email_addresses:
             email = sociallogin.email_addresses[0].email
 
+        try:
+            with open(debug_log_path, "a", encoding="utf-8") as f:
+                f.write(f"--- pre_social_login started ---\n")
+                f.write(f"Email from sociallogin: {email}\n")
+                f.write(f"sociallogin.is_existing before lookup: {sociallogin.is_existing}\n")
+                
+                # Check email list
+                email_addresses = [e.email for e in sociallogin.email_addresses]
+                f.write(f"sociallogin.email_addresses: {email_addresses}\n")
+        except Exception:
+            pass
+
         if not email:
+            try:
+                with open(debug_log_path, "a", encoding="utf-8") as f:
+                    f.write("No email found, returning.\n")
+            except Exception: pass
             return
 
         with bypass_tenant_filter():
             try:
-                user = User.objects.get(email__iexact=email)
+                # Let's inspect database users matching email
+                matching_users = list(User.objects.filter(email__iexact=email))
+                try:
+                    with open(debug_log_path, "a", encoding="utf-8") as f:
+                        f.write(f"Matching users in DB: {[u.username for u in matching_users]}\n")
+                except Exception: pass
+
+                if not matching_users:
+                    try:
+                        with open(debug_log_path, "a", encoding="utf-8") as f:
+                            f.write("No matching user found in DB. Proceeding with signup.\n")
+                    except Exception: pass
+                    return
+                
+                user = matching_users[0]
                 
                 # 1. Link social account if not already connected
                 if not sociallogin.is_existing:
+                    try:
+                        with open(debug_log_path, "a", encoding="utf-8") as f:
+                            f.write(f"Connecting social account to user ID {user.id}...\n")
+                    except Exception: pass
+                    
                     sociallogin.connect(request, user)
-                    logger.info(f"Connected existing user {email} to social account.")
+                    
+                    try:
+                        with open(debug_log_path, "a", encoding="utf-8") as f:
+                            f.write(f"Successfully connected! sl.is_existing is now: {sociallogin.is_existing}\n")
+                    except Exception: pass
+                else:
+                    try:
+                        with open(debug_log_path, "a", encoding="utf-8") as f:
+                            f.write(f"Social login is already marked as existing. Skipping connect.\n")
+                    except Exception: pass
                 
                 # 2. Mark as verified (Google emails are trusted)
                 needs_save = False
@@ -62,6 +109,10 @@ class MySocialAccountAdapter(DefaultSocialAccountAdapter):
                 
                 if needs_save:
                     user.save(update_fields=["email_verified", "is_active"])
+                    try:
+                        with open(debug_log_path, "a", encoding="utf-8") as f:
+                            f.write(f"Updated user email_verified and is_active.\n")
+                    except Exception: pass
                 
                 # 3. Update allauth's EmailAddress record
                 EmailAddress.objects.update_or_create(
@@ -69,9 +120,17 @@ class MySocialAccountAdapter(DefaultSocialAccountAdapter):
                     email=user.email,
                     defaults={'verified': True, 'primary': True}
                 )
+                try:
+                    with open(debug_log_path, "a", encoding="utf-8") as f:
+                        f.write(f"Updated EmailAddress record in DB.\n")
+                except Exception: pass
                 
-            except User.DoesNotExist:
-                pass
+            except Exception as e:
+                err_msg = traceback.format_exc()
+                try:
+                    with open(debug_log_path, "a", encoding="utf-8") as f:
+                        f.write(f"ERROR: Exception occurred in pre_social_login:\n{err_msg}\n")
+                except Exception: pass
 
     def save_user(self, request, sociallogin, form=None):
         """
