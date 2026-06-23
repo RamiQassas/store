@@ -52,7 +52,9 @@
             @apply text-[10px] font-black text-cyan uppercase tracking-[0.3em] mb-3 block;
         }
     }
+</style>
 
+<style>
     /* RTL Search Box Fix */
     .search-input {
         direction: rtl;
@@ -116,17 +118,20 @@
         overflow: hidden;
     }
 
-    .image-wrapper img {
+    .image-wrapper img, .image-wrapper i {
         position: absolute;
         top: 50%;
         left: 50%;
         transform: translate(-50%, -50%);
+        transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .image-wrapper img {
         max-width: 85%;
         max-height: 85%;
         width: auto;
         height: auto;
         object-fit: contain;
-        transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1);
     }
 
     .premium-card:hover .image-wrapper img {
@@ -230,7 +235,7 @@
                         <div class="flex flex-col gap-2">
                             <a href="{% url 'catalog' %}{% if query %}?q={{ query }}{% endif %}" class="flex items-center justify-between px-4 py-3 rounded-xl font-bold text-xs transition-all border border-white/5 bg-white/5 text-slate-400 hover:bg-white/10 hover:text-white {% if not active_category %} !bg-cyan !text-white border-cyan shadow-lg shadow-cyan/20 {% endif %}">
                                 <span>الكل</span>
-                                <span class="bg-white/10 px-2 py-0.5 rounded text-[10px]">{{ products.count }}</span>
+                                 <span class="bg-white/10 px-2 py-0.5 rounded text-[10px]">{{ total_products_count }}</span>
                             </a>
                             {% for cat in categories %}
                             {% if cat.product_count > 0 %}
@@ -304,7 +309,7 @@
                 <!-- Product Grid -->
                 <div class="product-grid">
                     {% for p in products %}
-                    <div class="premium-card reveal-item" style="transition-delay: {{ forloop.counter|mul:0.01 }}s">
+                    <div class="premium-card reveal-item" style="transition-delay: calc({{ forloop.counter }} * 0.01s)">
                         <!-- Status Badges -->
                         {% if p.is_sale %}
                         <div class="absolute top-3 right-3 z-10 bg-gradient-to-br from-amber-400 to-orange-600 text-black text-[8px] font-black px-2 py-1 rounded-lg">

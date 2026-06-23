@@ -1441,6 +1441,12 @@ def catalog(request):
     else:
         products = products.order_by("sort_order", "name")
 
+    # Calculate total products count for the "All" category tab
+    total_products_qs = Product.objects.filter(is_active=True)
+    if q:
+        total_products_qs = total_products_qs.filter(Q(name__icontains=q) | Q(description__icontains=q))
+    total_products_count = total_products_qs.distinct().count()
+
     # Product Suggestion Form — only shown on main platform
     store = getattr(request, 'store', None)
     suggestion_form = ProductSuggestionForm() if not store else None
@@ -1448,6 +1454,7 @@ def catalog(request):
     ctx = {
         "categories": categories,
         "products": products.distinct(),
+        "total_products_count": total_products_count,
         "active_category": cat_id,
         "query": q,
         "sort": sort,
