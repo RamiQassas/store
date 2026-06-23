@@ -10,12 +10,51 @@ import logging
 logger = logging.getLogger(__name__)
 
 
+def get_store_from_request(request):
+    if getattr(request, 'store', None):
+        return request.store
+        
+    import re
+    from apps.stores.models import Store
+    from apps.common.tenant_utils import bypass_tenant_filter
+    
+    candidates = []
+    
+    # Check request parameters
+    for k, v in request.GET.items():
+        candidates.append(v)
+    for k, v in request.POST.items():
+        candidates.append(v)
+        
+    # Check session
+    if hasattr(request, 'session'):
+        for k, v in request.session.items():
+            if isinstance(v, str):
+                candidates.append(v)
+                
+    for val in candidates:
+        if not val or not isinstance(val, str):
+            continue
+        # Search for subdomain in urls
+        match = re.search(r'https?://([^./]+)\.(?:raqamiyatapp\.com|localhost|testserver)', val, re.IGNORECASE)
+        if match:
+            subdomain = match.group(1)
+            if subdomain not in ["www", "raqamiyatapp"]:
+                with bypass_tenant_filter():
+                    try:
+                        return Store.objects.get(subdomain__iexact=subdomain)
+                    except Store.DoesNotExist:
+                        pass
+                        
+    return None
+
+
 class MyAccountAdapter(DefaultAccountAdapter):
     def clean_username(self, username, shallow=False):
         username = super().clean_username(username, shallow=shallow)
         
         if not shallow:
-            active_store = getattr(self.request, 'store', None)
+            active_store = get_store_from_request(self.request)
             if active_store:
                 exists = User._base_manager.filter(username__iexact=username, store=active_store).exists()
             else:
@@ -26,7 +65,7 @@ class MyAccountAdapter(DefaultAccountAdapter):
         return username
 
     def clean_email(self, email):
-        active_store = getattr(self.request, 'store', None)
+        active_store = get_store_from_request(self.request)
         if active_store:
             exists = User._base_manager.filter(email__iexact=email, store=active_store).exists()
         else:
@@ -91,7 +130,7 @@ class MySocialAccountAdapter(DefaultSocialAccountAdapter):
             return
 
         try:
-            active_store = getattr(request, 'store', None)
+            active_store = get_store_from_request(request)
             if active_store:
                 user = User._base_manager.get(email__iexact=email, store=active_store)
             else:
@@ -137,7 +176,7 @@ class MySocialAccountAdapter(DefaultSocialAccountAdapter):
             user.phone = None
             
         # Associate the new user with the active store context
-        active_store = getattr(request, 'store', None)
+        active_store = get_store_from_request(request)
         if active_store:
             user.store = active_store
             
