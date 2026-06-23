@@ -64,6 +64,10 @@
     .reveal-item { opacity: 0; transform: translateY(10px); transition: all 0.6s cubic-bezier(0.2, 1, 0.3, 1); }
     .reveal-item.visible { opacity: 1; transform: translateY(0); }
 
+    .grid-transition {
+        transition: opacity 0.3s ease-out, transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+
     /* Hide standard backgrounds */
     body { background-color: var(--bg) !important; background-image: none !important; }
     .shell { background: transparent !important; }
@@ -271,6 +275,26 @@
 
             <!-- Grid Content Area -->
             <div class="lg:col-span-9 space-y-6">
+                <!-- View Toggle Segmented Control (Categories vs Products) -->
+                <div class="flex justify-center mb-6 reveal-item">
+                    <div class="bg-slate-950/60 backdrop-blur-md p-1.5 rounded-2xl border border-white/5 flex gap-1 relative overflow-hidden">
+                        <!-- Products View Button -->
+                        <button onclick="switchView('products')" id="toggle-products" 
+                                class="px-6 py-3 rounded-xl text-xs font-black transition-all duration-300 flex items-center gap-2 relative z-10 text-white">
+                            <i class="fas fa-boxes text-xs"></i>
+                            <span>عرض المنتجات</span>
+                        </button>
+                        <!-- Categories View Button -->
+                        <button onclick="switchView('categories')" id="toggle-categories" 
+                                class="px-6 py-3 rounded-xl text-xs font-black transition-all duration-300 flex items-center gap-2 relative z-10 text-slate-400">
+                            <i class="fas fa-folder text-xs"></i>
+                            <span>عرض الأقسام</span>
+                        </button>
+                        <!-- Active Slide Background Indicator -->
+                        <div id="toggle-indicator" class="absolute top-1.5 bottom-1.5 right-1.5 w-[calc(50%-6px)] bg-gradient-to-r from-cyan to-indigo rounded-xl transition-all duration-300 ease-out z-0 shadow-lg shadow-cyan/20"></div>
+                    </div>
+                </div>
+
                 <!-- Utility Top Bar -->
                 <div class="glass-panel p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                     <div class="text-xs font-bold text-slate-400">
@@ -306,68 +330,90 @@
                     </div>
                 </div>
 
-                <!-- Product Grid -->
-                <div class="product-grid">
-                    {% for p in products %}
-                    <div class="premium-card reveal-item" style="transition-delay: calc({{ forloop.counter }} * 0.01s)">
-                        <!-- Status Badges -->
-                        {% if p.is_sale %}
-                        <div class="absolute top-3 right-3 z-10 bg-gradient-to-br from-amber-400 to-orange-600 text-black text-[8px] font-black px-2 py-1 rounded-lg">
-                            عرض خاص
-                        </div>
-                        {% endif %}
-
-                        {% if p.is_out_of_stock %}
-                        <div class="absolute inset-0 z-20 bg-slate-950/60 backdrop-blur-[2px] rounded-3xl flex items-center justify-center">
-                            <div class="bg-rose-500 text-white text-[10px] font-black px-4 py-2 rounded-xl -rotate-6">نفدت الكمية</div>
-                        </div>
-                        {% endif %}
-                        
-                        <!-- Image Wrapper -->
-                        <a href="{% url 'product_detail' p.id %}" class="image-wrapper">
-                            {% if p.image %}
-                            <img src="{{ p.image.url }}" alt="{{ p.name }}" loading="lazy">
-                            {% else %}
-                            <i class="fas fa-box text-3xl text-slate-700 opacity-20"></i>
+                <!-- Product Grid Container -->
+                <div id="products-grid-container" class="grid-transition transition-all duration-300">
+                    <!-- Product Grid -->
+                    <div class="product-grid">
+                        {% for p in products %}
+                        <div class="premium-card reveal-item" style="transition-delay: calc({{ forloop.counter }} * 0.01s)">
+                            <!-- Status Badges -->
+                            {% if p.is_sale %}
+                            <div class="absolute top-3 right-3 z-10 bg-gradient-to-br from-amber-400 to-orange-600 text-black text-[8px] font-black px-2 py-1 rounded-lg">
+                                عرض خاص
+                            </div>
                             {% endif %}
-                        </a>
-
-                        <!-- Product Body -->
-                        <div class="card-body">
-                            <span class="category-label">{{ p.category.name }}</span>
-                            <a href="{% url 'product_detail' p.id %}" class="product-title">{{ p.name }}</a>
+    
+                            {% if p.is_out_of_stock %}
+                            <div class="absolute inset-0 z-20 bg-slate-950/60 backdrop-blur-[2px] rounded-3xl flex items-center justify-center">
+                                <div class="bg-rose-500 text-white text-[10px] font-black px-4 py-2 rounded-xl -rotate-6">نفدت الكمية</div>
+                            </div>
+                            {% endif %}
                             
-                            <!-- Quick Variant Preview -->
-                            <div class="flex flex-wrap gap-1 mb-4">
-                                {% for v in p.variants.all|slice:":2" %}
-                                <span class="text-[7px] font-bold bg-white/5 border border-white/5 text-slate-500 px-2 py-0.5 rounded-md truncate max-w-[80px]">{{ v.name }}</span>
-                                {% endfor %}
-                                {% if p.variants.count > 2 %}
-                                <span class="text-[7px] font-bold text-cyan">+{{ p.variants.count|add:"-2" }}</span>
+                            <!-- Image Wrapper -->
+                            <a href="{% url 'product_detail' p.id %}" class="image-wrapper">
+                                {% if p.image %}
+                                <img src="{{ p.image.url }}" alt="{{ p.name }}" loading="lazy">
+                                {% else %}
+                                <i class="fas fa-box text-3xl text-slate-700 opacity-20"></i>
                                 {% endif %}
-                            </div>
-
-                            <div class="price-row">
-                                {% variant_price p.variants.first as v_price %}
-                                <div class="flex flex-col">
-                                    <span class="text-[8px] text-slate-500 font-bold">يبدأ من</span>
-                                    <span class="price-value">{% currency_format v_price %}</span>
+                            </a>
+    
+                            <!-- Product Body -->
+                            <div class="card-body">
+                                <span class="category-label">{{ p.category.name }}</span>
+                                <a href="{% url 'product_detail' p.id %}" class="product-title">{{ p.name }}</a>
+                                
+                                <!-- Quick Variant Preview -->
+                                <div class="flex flex-wrap gap-1 mb-4">
+                                    {% for v in p.variants.all|slice:":2" %}
+                                    <span class="text-[7px] font-bold bg-white/5 border border-white/5 text-slate-500 px-2 py-0.5 rounded-md truncate max-w-[80px]">{{ v.name }}</span>
+                                    {% endfor %}
+                                    {% if p.variants.count > 2 %}
+                                    <span class="text-[7px] font-bold text-cyan">+{{ p.variants.count|add:"-2" }}</span>
+                                    {% endif %}
                                 </div>
-                                <a href="{% url 'product_detail' p.id %}" class="w-10 h-10 bg-cyan text-white rounded-xl flex items-center justify-center hover:bg-indigo hover:scale-110 transition-all shadow-lg shadow-cyan/20">
-                                    <i class="fas fa-shopping-cart text-xs"></i>
-                                </a>
+    
+                                <div class="price-row">
+                                    {% variant_price p.variants.first as v_price %}
+                                    <div class="flex flex-col">
+                                        <span class="text-[8px] text-slate-500 font-bold">يبدأ من</span>
+                                        <span class="price-value">{% currency_format v_price %}</span>
+                                    </div>
+                                    <a href="{% url 'product_detail' p.id %}" class="w-10 h-10 bg-cyan text-white rounded-xl flex items-center justify-center hover:bg-indigo hover:scale-110 transition-all shadow-lg shadow-cyan/20">
+                                        <i class="fas fa-shopping-cart text-xs"></i>
+                                    </a>
+                                </div>
                             </div>
                         </div>
-                    </div>
-                    {% empty %}
-                    <div class="col-span-full py-32 text-center glass-panel border-dashed reveal-item">
-                        <div class="w-20 h-20 bg-slate-900/50 rounded-full flex items-center justify-center mx-auto mb-6">
-                            <i class="fas fa-search text-3xl text-slate-700"></i>
+                        {% empty %}
+                        <div class="col-span-full py-32 text-center glass-panel border-dashed reveal-item">
+                            <div class="w-20 h-20 bg-slate-900/50 rounded-full flex items-center justify-center mx-auto mb-6">
+                                <i class="fas fa-search text-3xl text-slate-700"></i>
+                            </div>
+                            <h3 class="text-xl font-black text-white">لم نجد ما تبحث عنه</h3>
+                            <p class="text-slate-500 mt-2 max-w-xs mx-auto">حاول تغيير كلمات البحث أو تصفح التصنيفات الأخرى.</p>
+                            <a href="{% url 'catalog' %}" class="btn-outline-premium mt-8 inline-flex">عرض كل الخدمات</a>
                         </div>
-                        <h3 class="text-xl font-black text-white">لم نجد ما تبحث عنه</h3>
-                        <p class="text-slate-500 mt-2 max-w-xs mx-auto">حاول تغيير كلمات البحث أو تصفح التصنيفات الأخرى.</p>
-                        <a href="{% url 'catalog' %}" class="btn-outline-premium mt-8 inline-flex">عرض كل الخدمات</a>
+                        {% endfor %}
                     </div>
+                </div>
+
+                <!-- Categories Grid -->
+                <div id="categories-grid-container" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 grid-transition transition-all duration-300 hidden opacity-0 scale-95">
+                    {% for cat in categories %}
+                    {% if cat.product_count > 0 %}
+                    <a href="?category={{ cat.id }}{% if query %}&q={{ query }}{% endif %}" class="premium-card group p-6 flex flex-col items-center text-center reveal-item text-decoration-none animate-reveal" style="transition-delay: calc({{ forloop.counter }} * 0.01s)">
+                        <div class="w-20 h-20 bg-slate-900/40 rounded-2xl mb-4 border border-white/5 flex items-center justify-center group-hover:bg-slate-900/60 transition-all duration-500 shadow-inner group-hover:border-cyan/30 group-hover:shadow-cyan/10">
+                            {% if cat.image %}
+                            <img src="{{ cat.image.url }}" alt="{{ cat.name }}" class="max-h-14 max-w-14 object-contain group-hover:scale-110 transition-transform duration-500" loading="lazy">
+                            {% else %}
+                            <i class="fas fa-folder text-3xl text-slate-700 opacity-20 group-hover:text-cyan group-hover:opacity-40 transition-all duration-500"></i>
+                            {% endif %}
+                        </div>
+                        <h3 class="text-sm font-black text-white group-hover:text-cyan transition-colors mb-1.5">{{ cat.name }}</h3>
+                        <span class="text-[9px] font-black text-slate-500 group-hover:text-cyan/60 transition-colors uppercase tracking-widest">{{ cat.product_count }} خدمة متوفرة</span>
+                    </a>
+                    {% endif %}
                     {% endfor %}
                 </div>
             </div>
@@ -375,6 +421,7 @@
     </div>
 </div>
 
+<!-- Suggestion Modal -->
 <!-- Suggestion Modal -->
 {% if not is_tenant %}
 <div id="suggestion-modal" class="fixed inset-0 z-[100] hidden flex items-center justify-center p-4 bg-dark-bg/80 backdrop-blur-md">
@@ -388,7 +435,10 @@
         
         <p class="text-slate-400 text-sm mb-8 leading-relaxed">أخبرنا عما تبحث عنه، وسيقوم فريقنا بمراجعة طلبك وتوفيره في أسرع وقت ممكن.</p>
         
-        <form action="{% url 'site_product_suggestion' %}" method="post" class="space-y-6 text-right">
+        <div id="suggestion-feedback" class="hidden"></div>
+        
+        {% if request.user.is_authenticated %}
+        <form id="suggestion-form" action="{% url 'site_product_suggestion' %}" method="post" class="space-y-6 text-right">
             {% csrf_token %}
             <div class="space-y-2">
                 <label class="text-[10px] font-black text-slate-500 mr-4 uppercase tracking-widest">اسم المنتج المقترح</label>
@@ -400,11 +450,24 @@
             </div>
             <button type="submit" class="btn-premium w-full py-4 rounded-2xl font-black">إرسال الاقتراح</button>
         </form>
+        {% else %}
+        <div class="text-center py-6 space-y-6">
+            <div class="w-16 h-16 bg-amber-500/10 border border-amber-500/20 text-amber-500 rounded-2xl flex items-center justify-center mx-auto shadow-inner">
+                <i class="fas fa-lock text-2xl animate-pulse"></i>
+            </div>
+            <p class="text-slate-400 text-sm leading-relaxed">يرجى تسجيل الدخول أولاً لتتمكن من إرسال اقتراح لخدمة جديدة.</p>
+            <a href="{% url 'site_login' %}?next={{ request.path }}" class="btn-premium w-full py-4 rounded-2xl font-black inline-flex justify-center items-center gap-2">
+                <i class="fas fa-sign-in-alt"></i>
+                <span>تسجيل الدخول</span>
+            </a>
+        </div>
+        {% endif %}
     </div>
 </div>
 {% endif %}
 
 <script>
+    // Intersection Observer for animations
     const observer = new IntersectionObserver((entries) => {
         entries.forEach(entry => {
             if (entry.isIntersecting) {
@@ -414,5 +477,140 @@
     }, { threshold: 0.05, rootMargin: '0px 0px -20px 0px' });
 
     document.querySelectorAll('.reveal-item').forEach(el => observer.observe(el));
+
+    // Smooth switch between Products and Categories views
+    function switchView(view) {
+        const productsBtn = document.getElementById('toggle-products');
+        const categoriesBtn = document.getElementById('toggle-categories');
+        const indicator = document.getElementById('toggle-indicator');
+        const productsGrid = document.getElementById('products-grid-container');
+        const categoriesGrid = document.getElementById('categories-grid-container');
+        
+        if (!productsBtn || !categoriesBtn || !indicator) return;
+
+        if (view === 'products') {
+            productsBtn.className = "px-6 py-3 rounded-xl text-xs font-black transition-all duration-300 flex items-center gap-2 relative z-10 text-white";
+            categoriesBtn.className = "px-6 py-3 rounded-xl text-xs font-black transition-all duration-300 flex items-center gap-2 relative z-10 text-slate-400";
+            
+            indicator.style.transform = 'translateX(0)';
+            
+            if (productsGrid) {
+                productsGrid.classList.remove('hidden');
+                setTimeout(() => {
+                    productsGrid.classList.remove('opacity-0', 'scale-95');
+                }, 50);
+            }
+            if (categoriesGrid) {
+                categoriesGrid.classList.add('opacity-0', 'scale-95');
+                setTimeout(() => {
+                    categoriesGrid.classList.add('hidden');
+                }, 300);
+            }
+        } else {
+            productsBtn.className = "px-6 py-3 rounded-xl text-xs font-black transition-all duration-300 flex items-center gap-2 relative z-10 text-slate-400";
+            categoriesBtn.className = "px-6 py-3 rounded-xl text-xs font-black transition-all duration-300 flex items-center gap-2 relative z-10 text-white";
+            
+            const isRTL = document.documentElement.dir === 'rtl';
+            indicator.style.transform = isRTL ? 'translateX(-100%)' : 'translateX(100%)';
+            
+            if (categoriesGrid) {
+                categoriesGrid.classList.remove('hidden');
+                setTimeout(() => {
+                    categoriesGrid.classList.remove('opacity-0', 'scale-95');
+                }, 50);
+            }
+            if (productsGrid) {
+                productsGrid.classList.add('opacity-0', 'scale-95');
+                setTimeout(() => {
+                    productsGrid.classList.add('hidden');
+                }, 300);
+            }
+        }
+        
+        // Update URL query parameters without full page reload
+        const url = new URL(window.location);
+        if (url.searchParams.get('view') !== view) {
+            url.searchParams.set('view', view);
+            window.history.pushState({}, '', url);
+        }
+    }
+
+    // Handle Suggestion Form Submission via AJAX
+    document.addEventListener('DOMContentLoaded', () => {
+        // Initialize active view type
+        const viewType = "{{ view_type }}";
+        if (viewType === 'categories') {
+            switchView('categories');
+        } else {
+            switchView('products');
+        }
+
+        // AJAX Submission
+        const suggestionForm = document.getElementById('suggestion-form');
+        if (suggestionForm) {
+            suggestionForm.addEventListener('submit', function(e) {
+                e.preventDefault();
+                
+                const feedbackEl = document.getElementById('suggestion-feedback');
+                const submitBtn = suggestionForm.querySelector('button[type="submit"]');
+                const originalBtnText = submitBtn.innerHTML;
+                
+                submitBtn.disabled = true;
+                submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> جاري الإرسال...';
+                
+                const formData = new FormData(suggestionForm);
+                
+                fetch(suggestionForm.action, {
+                    method: 'POST',
+                    body: formData,
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest'
+                    }
+                })
+                .then(response => {
+                    if (response.ok) {
+                        return response.json();
+                    } else {
+                        throw new Error('حدث خطأ أثناء إرسال الاقتراح. يرجى التأكد من تسجيل الدخول وإدخال حقول صحيحة.');
+                    }
+                })
+                .then(data => {
+                    if (data.status === 'success') {
+                        feedbackEl.className = "flex flex-col items-center text-center py-6 space-y-4 animate-reveal";
+                        feedbackEl.innerHTML = `
+                            <div class="w-16 h-16 bg-emerald-500/10 border border-emerald-500/20 text-emerald-500 rounded-2xl flex items-center justify-center shadow-inner">
+                                <i class="fas fa-check-circle text-2xl animate-bounce"></i>
+                            </div>
+                            <h3 class="text-lg font-black text-white">تم إرسال اقتراحك بنجاح!</h3>
+                            <p class="text-slate-400 text-xs leading-relaxed max-w-xs">شكراً لك، سنقوم بمراجعته والرد عليك في أقرب وقت.</p>
+                        `;
+                        suggestionForm.classList.add('hidden');
+                        
+                        setTimeout(() => {
+                            document.getElementById('suggestion-modal').classList.add('hidden');
+                            setTimeout(() => {
+                                suggestionForm.reset();
+                                suggestionForm.classList.remove('hidden');
+                                feedbackEl.className = "hidden";
+                                feedbackEl.innerHTML = "";
+                                submitBtn.disabled = false;
+                                submitBtn.innerHTML = originalBtnText;
+                            }, 500);
+                        }, 2500);
+                    } else {
+                        throw new Error(data.message || 'فشل إرسال الاقتراح.');
+                    }
+                })
+                .catch(error => {
+                    console.error(error);
+                    submitBtn.disabled = false;
+                    submitBtn.innerHTML = originalBtnText;
+                    
+                    feedbackEl.className = "p-4 bg-rose-500/10 border border-rose-500/20 text-rose-400 text-xs font-bold rounded-2xl text-center mb-4 animate-reveal";
+                    feedbackEl.innerText = error.message;
+                });
+            });
+        }
+    });
 </script>
 {% endblock %}

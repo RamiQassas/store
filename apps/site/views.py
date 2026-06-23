@@ -4555,6 +4555,11 @@ def site_product_suggestion(request):
         suggestion.user = request.user
         suggestion.store = getattr(request, "store", None)
         suggestion.save()
+        
+        # Support AJAX form submission
+        if request.headers.get('x-requested-with') == 'XMLHttpRequest':
+            return JsonResponse({"status": "success", "message": "تم إرسال اقتراحك بنجاح."})
+            
         messages.success(request, "تم إرسال اقتراحك بنجاح. سنقوم بمراجعته والرد عليك قريباً.")
         return redirect("dashboard")
     
