@@ -38,3 +38,52 @@ class OrderApiTests(TestCase):
         self.assertEqual(response.status_code, 201)
         self.user.wallet.refresh_from_db()
         self.assertEqual(self.user.wallet.available_balance, Decimal("5.00"))
+
+    def test_create_physical_order_requires_shipping(self):
+        # Create physical product and variant
+        category = Category.objects.create(name="Physical Category")
+        product = Product.objects.create(name="T-Shirt", category=category, product_type="physical", is_active=True)
+        variant = ProductVariant.objects.create(product=product, name="Large Size", sku="TSHIRT-L", price=Decimal("3.00"), is_active=True)
+
+        client = APIClient()
+        client.force_authenticate(self.user)
+        
+        # Test missing shipping info
+        response = client.post(
+            "/api/orders/",
+            {"variant_id": str(variant.id), "quantity": 1},
+            format="json",
+        )
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("جميع حقول الشحن والتوصيل مطلوبة", str(response.data))
+
+    def test_create_physical_order_success(self):
+        category = Category.objects.create(name="Physical Category")
+        product = Product.objects.create(name="T-Shirt", category=category, product_type="physical", is_active=True)
+        variant = ProductVariant.objects.create(product=product, name="Large Size", sku="TSHIRT-L", price=Decimal("3.00"), is_active=True)
+
+        client = APIClient()
+        client.force_authenticate(self.user)
+
+        response = client.post(
+            "/api/orders/",
+            {
+                "variant_id": str(variant.id), 
+                "quantity": 1,
+                "shipping_name": "احمد علي",
+                "shipping_phone": "0500000000",
+                "shipping_address": "الرياض، حي الياسمين، شارع العليا"
+            },
+            format="json",
+        )
+        self.assertEqual(response.status_code, 201)
+        self.user.wallet.refresh_from_db()
+        self.assertEqual(self.user.wallet.available_balance, Decimal("7.00")) # 10 - 3 = 7
+        
+        # Verify shipping fields are saved
+        from apps.orders.models import Order
+        order = Order.objects.get(id=response.data["id"])
+        self.assertEqual(order.shipping_name, "احمد علي")
+        self.assertEqual(order.shipping_phone, "0500000000")
+        self.assertEqual(order.shipping_address, "الرياض، حي الياسمين، شارع العليا")
+        self.assertTrue(order.has_physical_products)

@@ -93,6 +93,33 @@
             </div>
         </div>
 
+        {% if order.has_physical_products %}
+        <!-- Shipping Details -->
+        <div class="management-card">
+            <div class="management-header">
+                <h3 class="font-bold flex items-center gap-2 text-amber-500">
+                    <i class="fas fa-truck text-amber-500"></i> معلومات شحن وتوصيل الطلب
+                </h3>
+            </div>
+            <div class="p-6">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div class="info-item">
+                        <span class="info-label">اسم المستلم</span>
+                        <span class="info-value font-bold text-white">{{ order.shipping_name|default:"---" }}</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">رقم هاتف الشحن</span>
+                        <span class="info-value font-bold text-white">{{ order.shipping_phone|default:"---" }}</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">عنوان التوصيل</span>
+                        <span class="info-value font-bold text-white">{{ order.shipping_address|default:"---" }}</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
         <!-- Customer Metadata (Dynamic Fields) -->
         <div class="management-card">
             <div class="management-header">
@@ -217,6 +244,32 @@
                 </form>
             </div>
         </div>
+
+        {% if order.has_physical_products %}
+        <!-- Update Shipping Carrier and Tracking -->
+        <div class="management-card border-amber-500/20">
+            <div class="management-header">
+                <h3 class="font-bold flex items-center gap-2 text-amber-500">
+                    <i class="fas fa-shipping-fast text-amber-500"></i> معلومات الشحن والتتبع
+                </h3>
+            </div>
+            <div class="p-6">
+                <form method="post" class="stack gap-4">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="update_shipping">
+                    <div class="field-group">
+                        <label class="info-label">شركة الشحن</label>
+                        <input type="text" name="shipping_carrier" value="{{ order.shipping_carrier }}" class="w-full bg-slate-900 border-white/10 rounded-xl p-3 text-xs text-white" placeholder="مثال: Aramex, DHL, SMSA">
+                    </div>
+                    <div class="field-group">
+                        <label class="info-label">رقم التتبع (Tracking Number)</label>
+                        <input type="text" name="tracking_number" value="{{ order.tracking_number }}" class="w-full bg-slate-900 border-white/10 rounded-xl p-3 text-xs text-white" placeholder="أدخل رقم التتبع هنا">
+                    </div>
+                    <button type="submit" class="btn btn-warning w-full py-3 font-bold bg-amber-600 border-amber-600 hover:bg-amber-700 text-white">حفظ معلومات الشحن</button>
+                </form>
+            </div>
+        </div>
+        {% endif %}
 
         <!-- Update Price -->
         <div class="management-card border-amber-500/20">

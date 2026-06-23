@@ -140,7 +140,8 @@ def validate_coupon(coupon, user, variant, subtotal=None):
 
 
 @transaction.atomic
-def create_order(customer, variant_id, quantity=1, fulfillment_data=None, coupon=None, metadata=None):
+def create_order(customer, variant_id, quantity=1, fulfillment_data=None, coupon=None, metadata=None,
+                 shipping_name=None, shipping_phone=None, shipping_address=None):
     if customer.restriction_purchases:
         raise ValueError("حسابك مقيد من عمليات الشراء.")
 
@@ -148,6 +149,11 @@ def create_order(customer, variant_id, quantity=1, fulfillment_data=None, coupon
     if quantity < 1:
         raise ValueError("Quantity must be at least 1.")
     variant = ProductVariant.objects.select_related("product").select_for_update().get(id=variant_id, is_active=True, product__is_active=True)
+
+    # Validate shipping info if physical product
+    if variant.product.product_type == 'physical':
+        if not (shipping_name and shipping_phone and shipping_address):
+            raise ValueError("جميع حقول الشحن والتوصيل مطلوبة للمنتجات المادية.")
 
     # Get price based on user tier
     price = variant.get_price_for_user(customer)
@@ -192,6 +198,9 @@ def create_order(customer, variant_id, quantity=1, fulfillment_data=None, coupon
         coupon=coupon,
         fulfillment_data=final_fulfillment_data,
         metadata=metadata or {},
+        shipping_name=shipping_name or "",
+        shipping_phone=shipping_phone or "",
+        shipping_address=shipping_address or "",
     )
     OrderItem.objects.create(
         order=order, 

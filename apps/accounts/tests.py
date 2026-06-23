@@ -79,3 +79,82 @@ class AccountApiTests(TestCase):
         response = client.get("/api/users/lookup/", {"q": "علي حسين"})
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json()["uid"], "111")
+
+    def test_control_db_maintenance_protects_admin(self):
+        from django.urls import reverse
+        from apps.stores.models import Store, SubscriptionPlan
+        from apps.common.tenant_utils import bypass_tenant_filter
+
+        # Create a superuser
+        admin = User.objects.create_superuser(email="superadmin@example.com", password="Password123!")
+
+        with bypass_tenant_filter():
+            # Create a store linked to the admin
+            plan = SubscriptionPlan.objects.create(
+                name="Free Plan",
+                price_monthly=0,
+                price_yearly=0,
+                max_products=10,
+                max_employees=5,
+                max_monthly_orders=100
+            )
+            store = Store.objects.create(
+                owner=admin,
+                name="Admin Test Store",
+                subdomain="admin-test",
+                subscription_plan=plan,
+                is_active=True
+            )
+            # Link admin to the store to simulate the cascade delete risk
+            admin.store = store
+            admin.save()
+
+        client = APIClient()
+        client.force_login(admin)
+
+        # Post cleanup for stores and users
+        response = client.post(reverse("control_db_maintenance"), {
+            "action": "cleanup",
+            "targets": ["stores", "users"]
+        })
+        self.assertEqual(response.status_code, 302)
+
+        with bypass_tenant_filter():
+            # Verify store is deleted
+            self.assertFalse(Store.objects.filter(id=store.id).exists())
+
+            # Verify admin still exists and was not deleted by cascade or user cleanup
+            admin_refreshed = User.objects.filter(id=admin.id).first()
+            self.assertIsNotNone(admin_refreshed)
+            self.assertEqual(admin_refreshed.email, "superadmin@example.com")
+            self.assertIsNone(admin_refreshed.store)
+
+    def test_control_db_maintenance_coupons_cleanup(self):
+        from django.urls import reverse
+        from apps.orders.models import Coupon
+        from apps.common.tenant_utils import bypass_tenant_filter
+
+        admin = User.objects.create_superuser(email="superadmin2@example.com", password="Password123!")
+
+        with bypass_tenant_filter():
+            coupon = Coupon.objects.create(
+                code="CLEANUPTEST",
+                discount_percent=10,
+                is_active=True
+            )
+
+        client = APIClient()
+        client.force_login(admin)
+
+        # Post cleanup for coupons
+        response = client.post(reverse("control_db_maintenance"), {
+            "action": "cleanup",
+            "targets": ["coupons"]
+        })
+        self.assertEqual(response.status_code, 302)
+
+        with bypass_tenant_filter():
+            # Verify coupon is deleted
+            self.assertFalse(Coupon.objects.filter(id=coupon.id).exists())
+
+

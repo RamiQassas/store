@@ -37,6 +37,15 @@ class Category(TimeStampedModel):
 
 
 class Product(TimeStampedModel):
+    product_type = models.CharField(
+        max_length=20,
+        choices=(
+            ("digital", "منتج رقمي"),
+            ("physical", "منتج مادي"),
+        ),
+        default="digital",
+        verbose_name="نوع المنتج"
+    )
     name = models.CharField(max_length=160, verbose_name="اسم المنتج")
     category = models.ForeignKey(Category, related_name="products", on_delete=models.PROTECT, verbose_name="التصنيف")
     store = models.ForeignKey(
@@ -89,9 +98,22 @@ class Product(TimeStampedModel):
 
 class ProductImage(TimeStampedModel):
     product = models.ForeignKey(Product, related_name="gallery", on_delete=models.CASCADE)
-    image = models.ImageField(upload_to="products/gallery/")
+    image = models.ImageField(upload_to="products/gallery/", blank=True, null=True, verbose_name="الصورة")
+    video = models.FileField(upload_to="products/videos/", blank=True, null=True, verbose_name="الفيديو")
     alt_text = models.CharField(max_length=160, blank=True)
     sort_order = models.PositiveIntegerField(default=0)
+
+    @property
+    def is_video(self):
+        return bool(self.video)
+
+    @property
+    def url(self):
+        if self.video:
+            return self.video.url
+        if self.image:
+            return self.image.url
+        return ""
 
     class Meta:
         ordering = ("sort_order",)

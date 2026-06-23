@@ -54,55 +54,105 @@
 <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
     <div class="lg:col-span-2 stack gap-8">
         <!-- Fulfillment Data (Delivery Info) -->
-        {% if order.status == 'completed' %}
-        <div class="fulfillment-card shadow-lg shadow-cyan/5">
-            <h3 class="text-xl font-black text-cyan mb-6 flex items-center gap-3">
-                <i class="fas fa-gift"></i> معلومات التسليم (Delivery Info)
-            </h3>
-            
-            {% if order.fulfillment_data %}
-            <div class="stack gap-4">
-                {% for key, val in order.fulfillment_data.items %}
-                <div class="fulfillment-item">
-                    <div>
-                        <span class="text-[10px] text-slate-500 font-black uppercase tracking-widest block mb-1">{{ key }}</span>
-                        <strong class="text-white font-mono text-sm">
-                            {% if key == "keys" %}
-                                {{ val|join:", " }}
-                            {% else %}
-                                {{ val }}
-                            {% endif %}
-                        </strong>
+        {% if not order.has_physical_products %}
+            {% if order.status == 'completed' %}
+            <div class="fulfillment-card shadow-lg shadow-cyan/5">
+                <h3 class="text-xl font-black text-cyan mb-6 flex items-center gap-3">
+                    <i class="fas fa-gift"></i> معلومات التسليم (Delivery Info)
+                </h3>
+                
+                {% if order.fulfillment_data %}
+                <div class="stack gap-4">
+                    {% for key, val in order.fulfillment_data.items %}
+                    <div class="fulfillment-item">
+                        <div>
+                            <span class="text-[10px] text-slate-500 font-black uppercase tracking-widest block mb-1">{{ key }}</span>
+                            <strong class="text-white font-mono text-sm">
+                                {% if key == "keys" %}
+                                    {{ val|join:", " }}
+                                {% else %}
+                                    {{ val }}
+                                {% endif %}
+                            </strong>
+                        </div>
+                        <button class="copy-button" onclick="copyToClipboard('{% if key == "keys" %}{{ val|join:", " }}{% else %}{{ val }}{% endif %}', this)">نسخ</button>
                     </div>
-                    <button class="copy-button" onclick="copyToClipboard('{% if key == "keys" %}{{ val|join:", " }}{% else %}{{ val }}{% endif %}', this)">نسخ</button>
+                    {% endfor %}
                 </div>
+                {% else %}
+                <div class="text-center p-8 bg-white/5 rounded-2xl border border-dashed border-white/10">
+                    <p class="text-sm text-slate-400">تم إتمام الطلب، ولكن لا توجد بيانات إضافية للتسليم.</p>
+                </div>
+                {% endif %}
+                
+                {% for item in order.items.all %}
+                    {% if item.variant.product.instructions %}
+                    <div class="mt-6 p-6 bg-slate-900/50 rounded-2xl border border-white/5">
+                        <h4 class="text-xs font-black text-slate-400 uppercase mb-3">
+                            <i class="fas fa-info-circle ml-1"></i> تعليمات استخدام: {{ item.variant.product.name }}
+                        </h4>
+                        <div class="text-xs text-slate-300 leading-relaxed">{{ item.variant.product.instructions|linebreaks }}</div>
+                    </div>
+                    {% endif %}
                 {% endfor %}
             </div>
             {% else %}
-            <div class="text-center p-8 bg-white/5 rounded-2xl border border-dashed border-white/10">
-                <p class="text-sm text-slate-400">تم إتمام الطلب، ولكن لا توجد بيانات إضافية للتسليم.</p>
+            <div class="panel p-12 text-center border-dashed">
+                <div class="w-16 h-16 bg-slate-800 rounded-full flex items-center justify-center mx-auto mb-6 text-amber-500">
+                    <i class="fas fa-clock text-3xl"></i>
+                </div>
+                <h3 class="text-xl font-bold mb-2">الطلب قيد المعالجة</h3>
+                <p class="text-slate-400 max-w-sm mx-auto">سيظهر كود البطاقة أو معلومات التسليم هنا فور قيام الإدارة بإتمام الطلب.</p>
             </div>
             {% endif %}
-            
-            {% for item in order.items.all %}
-                {% if item.variant.product.instructions %}
-                <div class="mt-6 p-6 bg-slate-900/50 rounded-2xl border border-white/5">
-                    <h4 class="text-xs font-black text-slate-400 uppercase mb-3">
-                        <i class="fas fa-info-circle ml-1"></i> تعليمات استخدام: {{ item.variant.product.name }}
-                    </h4>
-                    <div class="text-xs text-slate-300 leading-relaxed">{{ item.variant.product.instructions|linebreaks }}</div>
-                </div>
-                {% endif %}
-            {% endfor %}
-        </div>
         {% else %}
-        <div class="panel p-12 text-center border-dashed">
-            <div class="w-16 h-16 bg-slate-800 rounded-full flex items-center justify-center mx-auto mb-6 text-amber-500">
-                <i class="fas fa-clock text-3xl"></i>
+            <!-- Physical Shipping & Tracking Info -->
+            <div class="fulfillment-card shadow-lg shadow-cyan/5">
+                <h3 class="text-xl font-black text-cyan mb-6 flex items-center gap-3">
+                    <i class="fas fa-truck"></i> تفاصيل الشحن والتوصيل (Shipping & Delivery)
+                </h3>
+                <div class="stack gap-4">
+                    <div class="fulfillment-item">
+                        <div>
+                            <span class="text-[10px] text-slate-500 font-black uppercase tracking-widest block mb-1">اسم المستلم</span>
+                            <strong class="text-white text-sm">{{ order.shipping_name }}</strong>
+                        </div>
+                    </div>
+                    <div class="fulfillment-item">
+                        <div>
+                            <span class="text-[10px] text-slate-500 font-black uppercase tracking-widest block mb-1">رقم الهاتف للمتابعة</span>
+                            <strong class="text-white text-sm">{{ order.shipping_phone }}</strong>
+                        </div>
+                    </div>
+                    <div class="fulfillment-item">
+                        <div>
+                            <span class="text-[10px] text-slate-500 font-black uppercase tracking-widest block mb-1">عنوان التوصيل</span>
+                            <strong class="text-white text-sm">{{ order.shipping_address }}</strong>
+                        </div>
+                    </div>
+                    {% if order.shipping_carrier or order.tracking_number %}
+                    <div class="fulfillment-item" style="border-color: rgba(16, 185, 129, 0.3); background: rgba(16, 185, 129, 0.02);">
+                        <div>
+                            <span class="text-[10px] text-emerald-500 font-black uppercase tracking-widest block mb-1">شركة الشحن</span>
+                            <strong class="text-white text-sm">{{ order.shipping_carrier|default:"قيد التجهيز" }}</strong>
+                        </div>
+                    </div>
+                    <div class="fulfillment-item" style="border-color: rgba(16, 185, 129, 0.3); background: rgba(16, 185, 129, 0.02);">
+                        <div>
+                            <span class="text-[10px] text-emerald-500 font-black uppercase tracking-widest block mb-1">رقم التتبع (Tracking Number)</span>
+                            <strong class="text-cyan font-mono text-sm">{{ order.tracking_number|default:"قيد التجهيز" }}</strong>
+                        </div>
+                        {% if order.tracking_number %}
+                        <button class="copy-button" onclick="copyToClipboard('{{ order.tracking_number }}', this)">نسخ</button>
+                        {% endif %}
+                    </div>
+                    {% else %}
+                    <div class="p-4 bg-amber-500/10 rounded-xl border border-amber-500/20 text-center">
+                        <p class="text-xs text-amber-500 font-bold mb-0">جاري تجهيز الشحنة وتوليد بيانات تتبع التوصيل.</p>
+                    </div>
+                    {% endif %}
+                </div>
             </div>
-            <h3 class="text-xl font-bold mb-2">الطلب قيد المعالجة</h3>
-            <p class="text-slate-400 max-w-sm mx-auto">سيظهر كود البطاقة أو معلومات التسليم هنا فور قيام الإدارة بإتمام الطلب.</p>
-        </div>
         {% endif %}
 
         <!-- Order Items -->

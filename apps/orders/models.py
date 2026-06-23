@@ -77,6 +77,9 @@ class Coupon(TimeStampedModel):
 class Order(TimeStampedModel):
     class Status(models.TextChoices):
         PROCESSING = "processing", "قيد المعالجة"
+        SHIPPED = "shipped", "قيد الشحن"
+        DELIVERED = "delivered", "مسلّم"
+        RETURNED = "returned", "مرتجع"
         COMPLETED = "completed", "مكتمل"
         REFUNDED = "refunded", "مسترد"
         CANCELLED = "cancelled", "ملغى"
@@ -103,6 +106,17 @@ class Order(TimeStampedModel):
     admin_note = models.TextField(blank=True, verbose_name="ملاحظات المدير")
     metadata = models.JSONField(default=dict, blank=True, verbose_name="بيانات إضافية")
     is_delivery_read = models.BooleanField(default=False, verbose_name="تمت رؤية المنتج الرقمي")
+
+    # Shipping information for physical products
+    shipping_name = models.CharField(max_length=150, blank=True, verbose_name="اسم المستلم")
+    shipping_phone = models.CharField(max_length=32, blank=True, verbose_name="رقم هاتف الشحن")
+    shipping_address = models.TextField(blank=True, verbose_name="عنوان الشحن")
+    shipping_carrier = models.CharField(max_length=100, blank=True, verbose_name="شركة الشحن")
+    tracking_number = models.CharField(max_length=100, blank=True, verbose_name="رقم التتبع")
+
+    @property
+    def has_physical_products(self):
+        return self.items.filter(variant__product__product_type="physical").exists()
 
     class Meta:
         verbose_name = "طلب"

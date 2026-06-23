@@ -144,6 +144,40 @@
                     <p style="opacity: 0.5; font-size: 0.9rem;">لم يتم تقديم حقول إضافية.</p>
                 {% endfor %}
             </div>
+
+            {% if order.has_physical_products %}
+            <!-- Shipping Details -->
+            <div class="details-card" style="grid-column: span 2;">
+                <h3 class="card-title" style="color: var(--primary);"><i class="fa-solid fa-truck"></i> معلومات شحن وتتبع الطلب</h3>
+                <div class="data-row">
+                    <span style="opacity: 0.6;">اسم المستلم:</span>
+                    <strong>{{ order.shipping_name }}</strong>
+                </div>
+                <div class="data-row">
+                    <span style="opacity: 0.6;">رقم الهاتف للمتابعة:</span>
+                    <strong>{{ order.shipping_phone }}</strong>
+                </div>
+                <div class="data-row">
+                    <span style="opacity: 0.6;">العنوان التفصيلي:</span>
+                    <strong>{{ order.shipping_address }}</strong>
+                </div>
+                {% if order.shipping_carrier or order.tracking_number %}
+                    <div class="data-row" style="border-top: 1px dashed var(--card-border); padding-top: 0.8rem; margin-top: 0.8rem;">
+                        <span style="opacity: 0.6;">شركة الشحن:</span>
+                        <strong style="color: #34d399;">{{ order.shipping_carrier|default:"قيد التجهيز" }}</strong>
+                    </div>
+                    <div class="data-row">
+                        <span style="opacity: 0.6;">رقم التتبع (Tracking Code):</span>
+                        <strong style="color: #34d399; font-family: monospace;">{{ order.tracking_number|default:"قيد التجهيز" }}</strong>
+                    </div>
+                {% else %}
+                    <div class="data-row" style="border-top: 1px dashed var(--card-border); padding-top: 0.8rem; margin-top: 0.8rem; opacity: 0.8;">
+                        <span style="opacity: 0.6;">حالة التوصيل:</span>
+                        <strong style="color: #facc15;">جاري تجهيز الشحنة وتوليد رقم التتبع</strong>
+                    </div>
+                {% endif %}
+            </div>
+            {% endif %}
         </div>
 
         <!-- Keys Auto Delivery -->

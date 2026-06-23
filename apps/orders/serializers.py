@@ -38,7 +38,11 @@ class OrderSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Order
-        fields = ("id", "number", "status", "total_amount", "coupon", "fulfillment_data", "metadata", "admin_note", "items", "logs", "invoice", "created_at")
+        fields = (
+            "id", "number", "status", "total_amount", "coupon", "fulfillment_data", "metadata", 
+            "admin_note", "items", "logs", "invoice", "created_at",
+            "shipping_name", "shipping_phone", "shipping_address", "shipping_carrier", "tracking_number"
+        )
 
 
 class OrderCreateSerializer(serializers.Serializer):
@@ -47,6 +51,9 @@ class OrderCreateSerializer(serializers.Serializer):
     fulfillment_data = serializers.JSONField(default=dict)
     metadata = serializers.JSONField(default=dict)
     coupon_code = serializers.CharField(required=False, allow_blank=True)
+    shipping_name = serializers.CharField(required=False, allow_blank=True, default="")
+    shipping_phone = serializers.CharField(required=False, allow_blank=True, default="")
+    shipping_address = serializers.CharField(required=False, allow_blank=True, default="")
 
     def create(self, validated_data):
         coupon = None
@@ -55,14 +62,20 @@ class OrderCreateSerializer(serializers.Serializer):
             coupon = Coupon.objects.filter(code__iexact=coupon_code, is_active=True).first()
             if not coupon:
                 raise serializers.ValidationError({"coupon_code": "الكوبون غير صالح."})
-        return create_order(
-            customer=self.context["request"].user,
-            variant_id=validated_data["variant_id"],
-            quantity=validated_data["quantity"],
-            fulfillment_data=validated_data.get("fulfillment_data", {}),
-            metadata=validated_data.get("metadata", {}),
-            coupon=coupon,
-        )
+        try:
+            return create_order(
+                customer=self.context["request"].user,
+                variant_id=validated_data["variant_id"],
+                quantity=validated_data["quantity"],
+                fulfillment_data=validated_data.get("fulfillment_data", {}),
+                metadata=validated_data.get("metadata", {}),
+                coupon=coupon,
+                shipping_name=validated_data.get("shipping_name"),
+                shipping_phone=validated_data.get("shipping_phone"),
+                shipping_address=validated_data.get("shipping_address"),
+            )
+        except ValueError as e:
+            raise serializers.ValidationError({"detail": str(e)})
 
     def to_representation(self, instance):
         return OrderSerializer(instance, context=self.context).data

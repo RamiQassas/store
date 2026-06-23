@@ -251,6 +251,18 @@ def store_checkout(request, variant_pk):
                 return redirect("store_checkout", variant_pk=variant_pk)
             fulfillment_data[name] = val
             
+        # Physical product shipping info validation
+        shipping_name = ""
+        shipping_phone = ""
+        shipping_address = ""
+        if product.product_type == "physical":
+            shipping_name = request.POST.get("shipping_name", "").strip()
+            shipping_phone = request.POST.get("shipping_phone", "").strip()
+            shipping_address = request.POST.get("shipping_address", "").strip()
+            if not (shipping_name and shipping_phone and shipping_address):
+                messages.error(request, "جميع حقول الشحن والتوصيل مطلوبة للطلب المادي.")
+                return redirect("store_checkout", variant_pk=variant_pk)
+
         # Process order creation and ledger entries
         try:
             with transaction.atomic():
@@ -281,7 +293,10 @@ def store_checkout(request, variant_pk):
                     fulfillment_data={
                         "fields": fulfillment_data,
                         "keys": keys_delivered
-                    }
+                    },
+                    shipping_name=shipping_name,
+                    shipping_phone=shipping_phone,
+                    shipping_address=shipping_address
                 )
                 
                 # Create OrderItem
@@ -289,7 +304,9 @@ def store_checkout(request, variant_pk):
                     order=order,
                     variant=variant,
                     quantity=1,
-                    price=price
+                    unit_price=price,
+                    unit_cost=variant.cost,
+                    total_price=price
                 )
                 
                 messages.success(request, "تم تقديم طلبك بنجاح!")

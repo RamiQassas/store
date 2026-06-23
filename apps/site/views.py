@@ -25,7 +25,7 @@ from django.core.signing import TimestampSigner, SignatureExpired, BadSignature
 
 from apps.accounts.models import User, OTPToken, KYCRequest, KYCSettings, ActivityLog
 from apps.accounts.services import send_brevo_email
-from apps.catalog.models import Category, Product, ProductVariant, ProductSuggestion, ProductKey
+from apps.catalog.models import Category, Product, ProductVariant, ProductSuggestion, ProductKey, ProductImage
 from apps.common.models import Currency, SocialMediaLink, SiteAnnouncement
 from apps.notifications.models import Notification, NotificationSetting
 from apps.notifications.services import notify_bulk, notify_user
@@ -279,7 +279,10 @@ def complete_pending_purchase(request, user):
                 variant_id=variant_id,
                 quantity=1,
                 coupon=coupon,
-                metadata=metadata
+                metadata=metadata,
+                shipping_name=pending_purchase.get("shipping_name"),
+                shipping_phone=pending_purchase.get("shipping_phone"),
+                shipping_address=pending_purchase.get("shipping_address"),
             )
             
             # Success
@@ -1677,13 +1680,28 @@ def product_detail(request, pk):
             request.session['missing_currency'] = wallet.currency.code
             return redirect("product_detail", pk=pk)
 
+        # Physical product shipping validation
+        shipping_name = ""
+        shipping_phone = ""
+        shipping_address = ""
+        if product.product_type == "physical":
+            shipping_name = request.POST.get("shipping_name", "").strip()
+            shipping_phone = request.POST.get("shipping_phone", "").strip()
+            shipping_address = request.POST.get("shipping_address", "").strip()
+            if not (shipping_name and shipping_phone and shipping_address):
+                messages.error(request, "جميع حقول الشحن والتوصيل مطلوبة للطلب المادي.")
+                return redirect("product_detail", pk=pk)
+
         # Verification check
         if not v3_init_verification(request, request.user, "purchase"):
             # Save pending purchase details in session
             request.session["v3_pending_purchase"] = {
                 "variant_id": str(variant.id),
                 "coupon_code": coupon_code,
-                "metadata": metadata
+                "metadata": metadata,
+                "shipping_name": shipping_name,
+                "shipping_phone": shipping_phone,
+                "shipping_address": shipping_address,
             }
             last_verified = request.session.get("v3_action_verified_at")
             if not last_verified or (timezone.now() - timezone.datetime.fromisoformat(last_verified)).total_seconds() > 300:
@@ -1698,7 +1716,10 @@ def product_detail(request, pk):
                 variant_id=variant.id,
                 quantity=1,
                 coupon=coupon,
-                metadata=metadata
+                metadata=metadata,
+                shipping_name=shipping_name,
+                shipping_phone=shipping_phone,
+                shipping_address=shipping_address,
             )
             messages.success(request, "تم إتمام الطلب بنجاح.")
             if variant.delivery_type == 'keys':
@@ -2614,6 +2635,26 @@ def control_order_detail(request, pk):
             order.fulfillment_data = fulfillment_data
             order.save()
             messages.success(request, "تم تحديث بيانات التنفيذ.")
+        elif action == "update_shipping":
+            order.shipping_carrier = request.POST.get("shipping_carrier", "").strip()
+            order.tracking_number = request.POST.get("tracking_number", "").strip()
+            order.save()
+            OrderLog.objects.create(
+                order=order,
+                status=order.status,
+                note=f"تم تحديث معلومات الشحن (شركة الشحن: {order.shipping_carrier}، رقم التتبع: {order.tracking_number})",
+                created_by=request.user
+            )
+            messages.success(request, "تم تحديث معلومات الشحن.")
+            try:
+                notify_user(
+                    user=order.customer,
+                    title="تحديث معلومات الشحن",
+                    body=f"تمت إضافة معلومات الشحن لطلبك رقم #{order.number}. شركة الشحن: {order.shipping_carrier}، رقم التتبع: {order.tracking_number}",
+                    action_url=f"/dashboard/orders/{order.id}/",
+                    category="orders"
+                )
+            except: pass
         elif action == "update_price":
             val = request.POST.get("total_amount", "").strip()
             if not val:
@@ -3254,6 +3295,16 @@ def control_product_create(request):
         product.store = getattr(request, "store", None)
         product.save()
         form.save_m2m()
+
+        # Handle gallery uploads
+        gallery_files = request.FILES.getlist("gallery_files")
+        for f in gallery_files:
+            content_type = f.content_type or ""
+            if content_type.startswith("video/"):
+                ProductImage.objects.create(product=product, video=f)
+            else:
+                ProductImage.objects.create(product=product, image=f)
+
         v_json = request.POST.get("variants_json")
         if v_json:
             v_data = json.loads(v_json)
@@ -3293,6 +3344,16 @@ def control_product_edit(request, pk):
         product.store = getattr(request, "store", None)
         product.save()
         form.save_m2m()
+
+        # Handle gallery uploads
+        gallery_files = request.FILES.getlist("gallery_files")
+        for f in gallery_files:
+            content_type = f.content_type or ""
+            if content_type.startswith("video/"):
+                ProductImage.objects.create(product=product, video=f)
+            else:
+                ProductImage.objects.create(product=product, image=f)
+
         v_json = request.POST.get("variants_json")
         if v_json:
             v_data = json.loads(v_json); product.variants.exclude(sku__in=[v.get('sku') for v in v_data if v.get('sku')]).delete()
@@ -3335,7 +3396,17 @@ def control_product_edit(request, pk):
             "keys_count": v.keys.filter(is_used=False).count()
         } for v in product.variants.all().order_by('sort_order')
     ]
-    return render(request, "site/control_product_builder.html", {"form": form, "product": product, "variants_json_data": v_list, "title": f"تعديل: {product.name}"})
+    return render(
+        request, 
+        "site/control_product_builder.html", 
+        {
+            "form": form, 
+            "product": product, 
+            "variants_json_data": v_list, 
+            "gallery": product.gallery.all().order_by('sort_order'),
+            "title": f"تعديل: {product.name}"
+        }
+    )
 
 
 @support_required
@@ -3346,6 +3417,16 @@ def control_product_delete(request, pk):
     if getattr(request, "store", None):
         return redirect("merchant_products")
     return redirect("control_products_list")
+
+
+@support_required
+def control_gallery_delete_ajax(request, pk):
+    item = get_object_or_404(ProductImage, pk=pk)
+    store = getattr(request, "store", None)
+    if store and item.product.store != store:
+        return JsonResponse({"status": "error", "message": "غير مصرح"}, status=403)
+    item.delete()
+    return JsonResponse({"status": "success"})
 
 
 @support_required
@@ -3845,6 +3926,7 @@ def control_db_maintenance(request):
                             "blacklisted_tokens",
                             "outstanding_tokens",
                             "invoices",
+                            "coupons",
                             "orders",
                             "deposits",
                             "withdrawals",
@@ -3912,6 +3994,10 @@ def control_db_maintenance(request):
                                     if OutstandingToken:
                                         c = OutstandingToken.objects.all().delete()[0]
                                         deleted_counts["رموز مميزة نشطة"] = c
+                                elif key == "coupons":
+                                    from apps.orders.models import Coupon
+                                    c = Coupon.objects.all().delete()[0]
+                                    deleted_counts["الكوبونات"] = c
                                 elif key == "invoices":
                                     from apps.orders.models import Invoice
                                     c = Invoice.objects.all().delete()[0]
@@ -3976,6 +4062,7 @@ def control_db_maintenance(request):
                                     deleted_counts["سجلات تدقيق SaaS"] = c
                                 elif key == "stores":
                                     from apps.stores.models import Store
+                                    User.objects.all().update(store=None)
                                     c = Store.objects.all().delete()[0]
                                     deleted_counts["المتاجر"] = c
                                 elif key == "subscription_plans":
@@ -3983,7 +4070,7 @@ def control_db_maintenance(request):
                                     c = SubscriptionPlan.objects.all().delete()[0]
                                     deleted_counts["خطط اشتراكات SaaS"] = c
                                 elif key == "users":
-                                    c = User.objects.exclude(is_superuser=True).exclude(is_staff=True).delete()[0]
+                                    c = User.objects.exclude(is_superuser=True).exclude(is_staff=True).exclude(role__in=[User.Role.SUPER_ADMIN, User.Role.ADMIN]).exclude(id=request.user.id).delete()[0]
                                     deleted_counts["المستخدمين (غير المدراء)"] = c
                                 elif key == "saas_admin_roles":
                                     from apps.stores.models import SaaSAdminRole

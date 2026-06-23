@@ -95,19 +95,33 @@
 <div class="product-layout container py-12">
     <!-- Left: Gallery -->
     <div class="p-gallery reveal">
-        <div class="main-img-box">
+        <div class="main-img-box relative" id="main-media-box" style="aspect-ratio: 16/9; overflow: hidden; display: flex; align-items: center; justify-content: center;">
             {% if product.image %}
-            <img id="main-product-img" src="{{ product.image.url }}" alt="{{ product.name }}">
+            <img id="main-product-img" src="{{ product.image.url }}" alt="{{ product.name }}" class="w-full h-full object-cover">
+            <video id="main-product-video" class="w-full h-full object-cover hidden" controls muted playsinline></video>
             {% else %}
             <div class="w-full h-full flex items-center justify-center text-slate-800 bg-slate-900"><i class="fas fa-box text-8xl"></i></div>
             {% endif %}
         </div>
         <div class="thumb-grid">
             {% if product.image %}
-            <div class="thumb-item active" onclick="changeImg('{{ product.image.url }}', this)"><img src="{{ product.image.url }}"></div>
+            <div class="thumb-item active" onclick="changeMedia('{{ product.image.url }}', false, this)">
+                <img src="{{ product.image.url }}">
+            </div>
             {% endif %}
             {% for img in product.gallery.all %}
-            <div class="thumb-item" onclick="changeImg('{{ img.image.url }}', this)"><img src="{{ img.image.url }}"></div>
+            <div class="thumb-item" onclick="changeMedia('{{ img.url }}', {% if img.is_video %}true{% else %}false{% endif %}, this)">
+                {% if img.is_video %}
+                <div class="relative w-full h-full bg-black flex items-center justify-center rounded-lg overflow-hidden">
+                    <video class="w-full h-full object-cover opacity-60 pointer-events-none" preload="metadata">
+                        <source src="{{ img.url }}">
+                    </video>
+                    <i class="fas fa-play absolute text-white text-xs"></i>
+                </div>
+                {% else %}
+                <img src="{{ img.image.url }}">
+                {% endif %}
+            </div>
             {% endfor %}
         </div>
         
@@ -175,6 +189,30 @@
                 </div>
                 {% endfor %}
             </div>
+
+            <!-- Physical Product Shipping Fields -->
+            {% if product.product_type == "physical" %}
+            <div class="panel p-8 mt-10 stack gap-8 bg-amber-500/[0.03] border-amber-500/10 rounded-[2.5rem]">
+                <div>
+                    <h3 class="font-black text-xl text-white">معلومات الشحن والتوصيل</h3>
+                    <p class="text-xs text-slate-500 mt-1">يرجى كتابة عنوان الشحن والتوصيل بشكل تفصيلي واضح لتسهيل التوصيل.</p>
+                </div>
+                <div class="grid grid-1 gap-6">
+                    <div class="field-group">
+                        <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 block">اسم المستلم بالكامل <span class="text-rose-500">*</span></label>
+                        <input type="text" name="shipping_name" placeholder="يرجى إدخال اسم المستلم بالكامل" class="w-full bg-slate-900 border-white/5 rounded-2xl p-4 text-white focus:border-cyan transition" required>
+                    </div>
+                    <div class="field-group">
+                        <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 block">رقم هاتف المستلم للتواصل <span class="text-rose-500">*</span></label>
+                        <input type="text" name="shipping_phone" placeholder="مثال: +966500000000" class="w-full bg-slate-900 border-white/5 rounded-2xl p-4 text-white focus:border-cyan transition" required>
+                    </div>
+                    <div class="field-group">
+                        <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 block">العنوان التفصيلي (المدينة، الحي، الشارع، المعالم) <span class="text-rose-500">*</span></label>
+                        <textarea name="shipping_address" rows="3" placeholder="يرجى كتابة عنوان الشحن والتوصيل بشكل تفصيلي واضح" class="w-full bg-slate-900 border-white/5 rounded-2xl p-4 text-white focus:border-cyan transition" required></textarea>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
 
             <!-- Dynamic Form Fields -->
             {% if product.form_schema.fields %}
@@ -309,8 +347,27 @@
 </div>
 
 <script>
-function changeImg(url, el) {
-    document.getElementById('main-product-img').src = url;
+function changeMedia(url, isVideo, el) {
+    const mainImg = document.getElementById('main-product-img');
+    const mainVideo = document.getElementById('main-product-video');
+    
+    if (isVideo) {
+        if (mainImg) mainImg.classList.add('hidden');
+        if (mainVideo) {
+            mainVideo.src = url;
+            mainVideo.classList.remove('hidden');
+            mainVideo.play().catch(() => {});
+        }
+    } else {
+        if (mainVideo) {
+            mainVideo.pause();
+            mainVideo.classList.add('hidden');
+        }
+        if (mainImg) {
+            mainImg.src = url;
+            mainImg.classList.remove('hidden');
+        }
+    }
     document.querySelectorAll('.thumb-item').forEach(t => t.classList.remove('active'));
     el.classList.add('active');
 }

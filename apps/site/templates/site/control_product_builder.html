@@ -100,6 +100,10 @@
         <div class="builder-body grid grid-cols-12 gap-8">
             <div class="col-span-12 lg:col-span-8 stack gap-6">
                 <div class="field-group">
+                    <label>نوع المنتج</label>
+                    {{ form.product_type }}
+                </div>
+                <div class="field-group">
                     <label>اسم المنتج</label>
                     {{ form.name }}
                 </div>
@@ -161,6 +165,46 @@
         </div>
     </div>
 
+    <!-- Section: Product Media Gallery -->
+    <div class="builder-section shadow-xl">
+        <div class="builder-section-header">
+            <h3 class="font-bold text-lg"><i class="fas fa-images ml-2 text-cyan"></i> معرض وسائط المنتج (الصور والفيديوهات)</h3>
+        </div>
+        <div class="builder-body stack gap-6">
+            <div class="field-group">
+                <label class="block text-xs font-bold text-slate-400 mb-2">إضافة صور أو فيديوهات للمعرض</label>
+                <input type="file" name="gallery_files" multiple accept="image/*,video/*" class="builder-input" style="padding: 12px !important;">
+                <p class="text-[10px] text-slate-500 mt-2">يمكنك تحديد عدة ملفات (صور وفيديوهات) معاً لرفعها في معرض المنتج.</p>
+            </div>
+
+            {% if gallery %}
+            <div class="mt-4">
+                <label class="block text-xs font-bold text-slate-400 mb-4">الملفات المرفوعة حالياً في المعرض:</label>
+                <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
+                    {% for item in gallery %}
+                    <div class="relative group border border-white/5 bg-slate-900/40 rounded-xl overflow-hidden stack gap-2 p-2" id="gallery-item-{{ item.id }}">
+                        {% if item.is_video %}
+                        <div class="w-full h-24 bg-black flex items-center justify-center rounded-lg relative">
+                            <video class="w-full h-full object-cover rounded-lg" muted preload="metadata">
+                                <source src="{{ item.url }}">
+                            </video>
+                            <span class="absolute inset-0 bg-black/40 flex items-center justify-center text-white"><i class="fas fa-play-circle text-2xl"></i></span>
+                        </div>
+                        {% else %}
+                        <img src="{{ item.url }}" class="w-full h-24 object-cover rounded-lg">
+                        {% endif %}
+                        <button type="button" onclick="deleteGalleryItem('{{ item.id }}')" class="absolute top-2 left-2 w-6 h-6 bg-red-600/80 hover:bg-red-600 rounded-full flex items-center justify-center text-white text-[10px] opacity-0 group-hover:opacity-100 transition-opacity">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                        <div class="text-[9px] text-slate-500 text-center truncate">{% if item.is_video %}فيديو{% else %}صورة{% endif %}</div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
     <!-- Section B: Product Packages -->
     <div class="builder-section shadow-xl">
         <div class="builder-section-header">
@@ -181,7 +225,7 @@
     </div>
 
     <!-- Section C: Customer Required Data Builder -->
-    <div class="builder-section shadow-xl">
+    <div class="builder-section shadow-xl" id="fields-section">
         <div class="builder-section-header">
             <h3 class="font-bold text-lg"><i class="fas fa-form ml-2 text-purple-500"></i> منشئ حقول العميل (Fulfillment)</h3>
             <button type="button" class="btn btn-sm btn-outline" onclick="addField()">
@@ -271,6 +315,9 @@ function renderPackages() {
     }
     document.getElementById('empty-packages').classList.add('hidden');
 
+    const productTypeVal = document.getElementById('id_product_type') ? document.getElementById('id_product_type').value : 'digital';
+    const isPhysical = productTypeVal === 'physical';
+
     packages.forEach((pkg, index) => {
         const row = document.createElement('div');
         row.className = 'package-item';
@@ -281,6 +328,9 @@ function renderPackages() {
             </div>
             <div>
                 <span class="mini-label">طريقة التسليم</span>
+                ${isPhysical ? `
+                <div class="text-xs font-bold text-amber-500 bg-amber-500/10 border border-amber-500/20 rounded-lg p-2 text-center">شحن مادي</div>
+                ` : `
                 <select class="builder-input" onchange="updatePackage(${index}, 'delivery_type', this.value); renderPackages();">
                     <option value="manual" ${pkg.delivery_type === 'manual' ? 'selected' : ''}>تسليم يدوي</option>
                     <option value="keys" ${pkg.delivery_type === 'keys' ? 'selected' : ''}>تلقائي (أكواد)</option>
@@ -293,6 +343,7 @@ function renderPackages() {
                 ${pkg.delivery_type === 'keys' && !pkg.id ? `
                 <span class="text-[9px] text-amber-400 mt-1 block text-center">احفظ المنتج أولاً لإدخال المفاتيح</span>
                 ` : ''}
+                `}
             </div>
             <div>
                 <span class="mini-label">سعر المفرق</span>
@@ -513,10 +564,64 @@ function submitBuilder() {
     document.getElementById('builder-form').submit();
 }
 
+function toggleProductType() {
+    const productTypeSelect = document.getElementById('id_product_type');
+    if (!productTypeSelect) return;
+    const isPhysical = productTypeSelect.value === 'physical';
+    const fieldsSection = document.getElementById('fields-section');
+    if (isPhysical) {
+        if (fieldsSection) {
+            fieldsSection.style.opacity = '0.5';
+            fieldsSection.style.pointerEvents = 'none';
+        }
+        packages.forEach(pkg => {
+            pkg.delivery_type = 'manual';
+        });
+    } else {
+        if (fieldsSection) {
+            fieldsSection.style.opacity = '1';
+            fieldsSection.style.pointerEvents = 'auto';
+        }
+    }
+    renderPackages();
+}
+
+async function deleteGalleryItem(itemId) {
+    if (!confirm("هل أنت متأكد من حذف هذا الملف من المعرض؟")) return;
+    
+    try {
+        const response = await fetch(`/control/products/gallery/${itemId}/delete-ajax/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': '{{ csrf_token }}'
+            }
+        });
+        
+        if (response.ok) {
+            const el = document.getElementById(`gallery-item-${itemId}`);
+            if (el) {
+                el.style.transform = 'scale(0.8)';
+                el.style.opacity = '0';
+                setTimeout(() => el.remove(), 300);
+            }
+        } else {
+            alert("فشل حذف الملف.");
+        }
+    } catch(e) {
+        alert("خطأ في الاتصال بالخادم.");
+    }
+}
+
 // Initial Render
 window.onload = () => {
-    renderPackages();
-    renderFields();
+    const productTypeSelect = document.getElementById('id_product_type');
+    if (productTypeSelect) {
+        productTypeSelect.addEventListener('change', toggleProductType);
+        toggleProductType();
+    } else {
+        renderPackages();
+        renderFields();
+    }
 };
 </script>
 {% endblock %}

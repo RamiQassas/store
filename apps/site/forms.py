@@ -596,10 +596,11 @@ class ProductForm(forms.ModelForm):
     class Meta:
         model = Product
         fields = [
-            "name", "category", "image", "cover_image", "thumbnail",
+            "product_type", "name", "category", "image", "cover_image", "thumbnail",
             "description", "instructions", "is_active", "is_featured", "is_out_of_stock", "is_sale", "sort_order", "delivery_time_display", "form_schema"
         ]
         widgets = {
+            "product_type": forms.Select(attrs={"class": "builder-input"}),
             "name": forms.TextInput(attrs={"class": "builder-input"}),
             "category": forms.Select(attrs={"class": "builder-input"}),
             "description": forms.Textarea(attrs={"rows": 4, "class": "builder-input"}),
