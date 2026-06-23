@@ -4,469 +4,1279 @@
 {% block title %}متجر الخدمات | رقميات{% endblock %}
 
 {% block extra_head %}
-<!-- Tailwind CSS for Dark Premium UI -->
-<script src="https://cdn.tailwindcss.com"></script>
-<script>
-    tailwind.config = {
-        darkMode: 'class',
-        theme: {
-            extend: {
-                colors: {
-                    'dark-bg': 'var(--bg)',
-                    'panel-bg': 'rgba(15, 23, 42, 0.6)',
-                    'cyan': 'var(--cyan)',
-                    'indigo': 'var(--cyan-light)',
-                    'purple': '#a855f7',
-                },
-                animation: {
-                    'float': 'float 6s ease-in-out infinite',
-                    'reveal': 'reveal 0.8s cubic-bezier(0.2, 1, 0.3, 1) forwards',
-                },
-                keyframes: {
-                    float: {
-                        '0%, 100%': { transform: 'translateY(0)' },
-                        '50%': { transform: 'translateY(-20px)' },
-                    },
-                    reveal: {
-                        '0%': { opacity: '0', transform: 'reveal 0.8s' },
-                        '100%': { opacity: '1' },
-                    }
-                }
-            }
-        }
-    }
-</script>
-
-<style type="text/tailwindcss">
-    @layer components {
-        .glass-panel {
-            @apply bg-slate-900/40 backdrop-blur-xl border border-white/5 rounded-3xl shadow-2xl;
-        }
-        .btn-premium {
-            @apply relative overflow-hidden bg-gradient-to-r from-cyan to-indigo text-white font-black py-4 px-8 rounded-2xl transition-all hover:scale-105 active:scale-95 shadow-lg shadow-cyan/20 flex items-center justify-center gap-2;
-        }
-        .btn-outline-premium {
-            @apply border border-white/10 bg-white/5 backdrop-blur-md text-white font-bold py-4 px-8 rounded-2xl transition-all hover:bg-white/10 hover:border-white/20 flex items-center justify-center gap-2;
-        }
-        .section-label {
-            @apply text-[10px] font-black text-cyan uppercase tracking-[0.3em] mb-3 block;
-        }
-    }
-</style>
-
 <style>
-    /* RTL Search Box Fix */
-    .search-input {
-        direction: rtl;
-        text-align: right;
-    }
+/* =========================================
+   CATALOG PAGE — PURE VANILLA CSS
+   No Tailwind dependency, works on all devices
+   ========================================= */
 
-    .reveal-item { opacity: 0; transform: translateY(10px); transition: all 0.6s cubic-bezier(0.2, 1, 0.3, 1); }
-    .reveal-item.visible { opacity: 1; transform: translateY(0); }
+/* ---- Page Layout ---- */
+.catalog-page {
+    min-height: 100vh;
+    padding: 3rem 0 6rem;
+    direction: rtl;
+}
+.catalog-container {
+    width: min(100% - 2rem, 1400px);
+    margin-inline: auto;
+}
 
-    .grid-transition {
-        transition: opacity 0.3s ease-out, transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
-    }
-
-    /* Hide standard backgrounds */
-    body { background-color: var(--bg) !important; background-image: none !important; }
-    .shell { background: transparent !important; }
-
-    .scroll-hide::-webkit-scrollbar { display: none; }
-    .scroll-hide { -ms-overflow-style: none; scrollbar-width: none; }
-
-    /* Premium Grid & Card Layout */
-    .product-grid {
-        display: grid;
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-        gap: 1.5rem;
-    }
-    @media (min-width: 768px) {
-        .product-grid {
-            grid-template-columns: repeat(3, minmax(0, 1fr));
-        }
-    }
-    @media (min-width: 1280px) {
-        .product-grid {
-            grid-template-columns: repeat(4, minmax(0, 1fr));
-        }
-    }
-
-    .premium-card {
-        background: rgba(15, 23, 42, 0.4);
-        backdrop-filter: blur(20px);
-        border: 1px solid rgba(255, 255, 255, 0.05);
-        border-radius: 24px;
-        transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-        display: flex;
-        flex-direction: column;
-        height: 100%;
-        position: relative;
-        overflow: hidden;
-    }
-
-    .premium-card:hover {
-        border-color: rgba(6, 182, 212, 0.3);
-        transform: translateY(-8px);
-        box-shadow: 0 12px 30px rgba(6, 182, 212, 0.1);
-    }
-
-    .image-wrapper {
-        position: relative;
-        padding-top: 100%; /* Perfect square */
-        background: rgba(15, 23, 42, 0.6);
-        border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        overflow: hidden;
-    }
-
-    .image-wrapper img, .image-wrapper i {
-        position: absolute;
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -50%);
-        transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1);
-    }
-
-    .image-wrapper img {
-        max-width: 85%;
-        max-height: 85%;
-        width: auto;
-        height: auto;
-        object-fit: contain;
-    }
-
-    .premium-card:hover .image-wrapper img {
-        transform: translate(-50%, -50%) scale(1.08);
-    }
-
-    .card-body {
-        padding: 1.25rem;
-        display: flex;
-        flex-direction: column;
-        flex-grow: 1;
-    }
-
-    .category-label {
-        font-size: 0.7rem;
-        font-weight: 900;
-        color: rgba(6, 182, 212, 0.8);
-        text-transform: uppercase;
-        letter-spacing: 1px;
-        margin-bottom: 0.5rem;
-    }
-
-    .product-title {
-        font-size: 0.85rem;
-        font-weight: 700;
-        color: #ffffff;
-        text-decoration: none;
-        line-height: 1.4;
-        display: -webkit-box;
-        -webkit-line-clamp: 2;
-        -webkit-box-orient: vertical;
-        overflow: hidden;
-        height: 2.4rem; /* uniform title height */
-        margin-bottom: 1rem;
-        transition: color 0.3s ease;
-    }
-
-    .premium-card:hover .product-title {
-        color: var(--cyan);
-    }
-
-    .price-row {
-        margin-top: auto;
-        padding-top: 1rem;
-        border-top: 1px solid rgba(255, 255, 255, 0.05);
-        display: flex;
+/* ---- Hero Header ---- */
+.catalog-hero {
+    margin-bottom: 2.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+@media (min-width: 768px) {
+    .catalog-hero {
+        flex-direction: row;
+        align-items: flex-end;
         justify-content: space-between;
-        align-items: center;
     }
+}
+.catalog-hero-label {
+    font-size: 0.65rem;
+    font-weight: 900;
+    color: var(--cyan, #2dd4bf);
+    text-transform: uppercase;
+    letter-spacing: 0.3em;
+    display: block;
+    margin-bottom: 0.5rem;
+}
+.catalog-hero h1 {
+    font-size: clamp(1.8rem, 5vw, 3rem);
+    font-weight: 900;
+    color: #fff;
+    margin: 0 0 0.5rem;
+    line-height: 1.1;
+    letter-spacing: -0.02em;
+}
+.catalog-hero p {
+    color: #94a3b8;
+    font-size: 0.9rem;
+    margin: 0;
+}
+.catalog-search-wrap {
+    width: 100%;
+    max-width: 380px;
+}
+.catalog-search-wrap form {
+    position: relative;
+}
+.catalog-search-wrap i {
+    position: absolute;
+    right: 1rem;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #64748b;
+    pointer-events: none;
+    z-index: 2;
+    transition: color 0.3s;
+}
+.catalog-search-wrap form:focus-within i {
+    color: var(--cyan, #2dd4bf);
+}
+.catalog-search-input {
+    width: 100%;
+    background: rgba(15, 23, 42, 0.7);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 999px;
+    padding: 0.85rem 3rem 0.85rem 1.25rem;
+    color: #fff;
+    font-size: 0.875rem;
+    font-family: inherit;
+    direction: rtl;
+    text-align: right;
+    outline: none;
+    transition: border-color 0.3s, box-shadow 0.3s;
+}
+.catalog-search-input:focus {
+    border-color: rgba(45,212,191,0.5);
+    box-shadow: 0 0 0 4px rgba(45,212,191,0.1);
+}
+.catalog-search-input::placeholder { color: #475569; }
 
-    .price-value {
-        font-size: 1rem;
-        font-weight: 900;
-        color: #ffffff;
+/* ---- Mobile Category Pills ---- */
+.mobile-cats {
+    display: flex;
+    gap: 0.6rem;
+    overflow-x: auto;
+    padding-bottom: 0.5rem;
+    margin-bottom: 1.5rem;
+    scrollbar-width: none;
+}
+.mobile-cats::-webkit-scrollbar { display: none; }
+@media (min-width: 1024px) { .mobile-cats { display: none; } }
+
+.cat-pill {
+    display: inline-flex;
+    align-items: center;
+    white-space: nowrap;
+    padding: 0.5rem 1rem;
+    border-radius: 999px;
+    font-weight: 700;
+    font-size: 0.75rem;
+    text-decoration: none;
+    border: 1px solid rgba(255,255,255,0.07);
+    background: rgba(15,23,42,0.5);
+    color: #94a3b8;
+    transition: all 0.25s;
+    flex-shrink: 0;
+}
+.cat-pill:hover { background: rgba(255,255,255,0.08); color: #fff; }
+.cat-pill.active {
+    background: var(--cyan, #2dd4bf);
+    color: #000;
+    border-color: var(--cyan, #2dd4bf);
+    font-weight: 900;
+}
+
+/* ---- Main Grid (Sidebar + Content) ---- */
+.catalog-layout {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 2rem;
+    align-items: start;
+}
+@media (min-width: 1024px) {
+    .catalog-layout {
+        grid-template-columns: 260px 1fr;
     }
+}
+
+/* ---- Sidebar ---- */
+.catalog-sidebar {
+    display: none;
+}
+@media (min-width: 1024px) {
+    .catalog-sidebar {
+        display: block;
+        position: sticky;
+        top: 90px;
+    }
+}
+.sidebar-panel {
+    background: rgba(15,23,42,0.5);
+    backdrop-filter: blur(20px);
+    border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 20px;
+    padding: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+.sidebar-title {
+    font-size: 0.7rem;
+    font-weight: 900;
+    color: #64748b;
+    text-transform: uppercase;
+    letter-spacing: 0.2em;
+    margin-bottom: 0.75rem;
+}
+.sidebar-cat-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+}
+.sidebar-cat-link {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.6rem 0.9rem;
+    border-radius: 12px;
+    font-size: 0.8rem;
+    font-weight: 700;
+    text-decoration: none;
+    color: #94a3b8;
+    border: 1px solid transparent;
+    transition: all 0.2s;
+}
+.sidebar-cat-link:hover {
+    background: rgba(255,255,255,0.06);
+    color: #e2e8f0;
+}
+.sidebar-cat-link.active {
+    background: var(--cyan, #2dd4bf);
+    color: #000;
+    border-color: var(--cyan, #2dd4bf);
+    font-weight: 900;
+}
+.sidebar-cat-count {
+    background: rgba(255,255,255,0.1);
+    padding: 0.15rem 0.45rem;
+    border-radius: 6px;
+    font-size: 0.65rem;
+    font-weight: 700;
+}
+.sidebar-cat-link.active .sidebar-cat-count {
+    background: rgba(0,0,0,0.2);
+    color: #000;
+}
+
+/* ---- Sidebar Suggestion Card ---- */
+.sidebar-suggest-card {
+    background: linear-gradient(135deg, rgba(99,102,241,0.08) 0%, rgba(45,212,191,0.05) 100%);
+    border: 1px solid rgba(99,102,241,0.2);
+    border-radius: 16px;
+    padding: 1.25rem;
+    position: relative;
+    overflow: hidden;
+}
+.sidebar-suggest-card::before {
+    content: '';
+    position: absolute;
+    top: -30px;
+    right: -30px;
+    width: 80px;
+    height: 80px;
+    background: rgba(99,102,241,0.15);
+    border-radius: 50%;
+    filter: blur(20px);
+    pointer-events: none;
+}
+.sidebar-suggest-icon {
+    width: 36px;
+    height: 36px;
+    background: rgba(99,102,241,0.15);
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #a5b4fc;
+    margin-bottom: 0.75rem;
+}
+.sidebar-suggest-card h4 {
+    font-size: 0.8rem;
+    font-weight: 900;
+    color: #fff;
+    margin: 0 0 0.25rem;
+}
+.sidebar-suggest-card p {
+    font-size: 0.7rem;
+    color: #64748b;
+    margin: 0 0 1rem;
+}
+.btn-suggest-sidebar {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    padding: 0.6rem;
+    border: none;
+    border-radius: 10px;
+    background: linear-gradient(135deg, var(--cyan, #2dd4bf), #6366f1);
+    color: #000;
+    font-size: 0.75rem;
+    font-weight: 900;
+    cursor: pointer;
+    transition: transform 0.2s, box-shadow 0.2s;
+    font-family: inherit;
+}
+.btn-suggest-sidebar:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(45,212,191,0.3);
+}
+
+/* ---- Content Area ---- */
+.catalog-content {
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+}
+
+/* ---- View Toggle ---- */
+.view-toggle-wrap {
+    display: flex;
+    justify-content: center;
+}
+.view-toggle {
+    display: flex;
+    background: rgba(2,6,23,0.7);
+    border: 1px solid rgba(255,255,255,0.07);
+    border-radius: 14px;
+    padding: 4px;
+    position: relative;
+    width: 100%;
+    max-width: 300px;
+}
+.toggle-indicator {
+    position: absolute;
+    top: 4px;
+    bottom: 4px;
+    width: calc(50% - 4px);
+    right: 4px;
+    border-radius: 10px;
+    background: linear-gradient(135deg, var(--cyan, #2dd4bf) 0%, #6366f1 100%);
+    transition: transform 0.3s cubic-bezier(0.4,0,0.2,1);
+    z-index: 0;
+    box-shadow: 0 4px 15px rgba(45,212,191,0.3);
+}
+.toggle-indicator.at-left {
+    transform: translateX(-100%);
+}
+.toggle-btn {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.4rem;
+    padding: 0.55rem 0.75rem;
+    border: none;
+    background: transparent;
+    font-size: 0.75rem;
+    font-weight: 800;
+    cursor: pointer;
+    border-radius: 10px;
+    transition: color 0.3s;
+    position: relative;
+    z-index: 1;
+    font-family: inherit;
+    color: #64748b;
+}
+.toggle-btn.is-active {
+    color: #000;
+}
+
+/* ---- Top Bar (Sort + Info) ---- */
+.catalog-topbar {
+    background: rgba(15,23,42,0.5);
+    border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 14px;
+    padding: 0.85rem 1.1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+@media (min-width: 640px) {
+    .catalog-topbar {
+        flex-direction: row;
+        align-items: center;
+        justify-content: space-between;
+    }
+}
+.topbar-info {
+    font-size: 0.78rem;
+    font-weight: 700;
+    color: #64748b;
+}
+.topbar-info span { color: var(--cyan, #2dd4bf); }
+.topbar-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    flex-shrink: 0;
+}
+.sort-select {
+    background: rgba(15,23,42,0.8);
+    border: 1px solid rgba(255,255,255,0.07);
+    color: #cbd5e1;
+    padding: 0.5rem 0.85rem;
+    border-radius: 10px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    font-family: inherit;
+    outline: none;
+    cursor: pointer;
+    direction: rtl;
+}
+.sort-select option { background: #0f172a; }
+
+/* Mobile suggest button in topbar */
+.btn-suggest-mobile-bar {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.5rem 0.85rem;
+    border: 1px solid rgba(99,102,241,0.3);
+    background: rgba(99,102,241,0.1);
+    color: #a5b4fc;
+    border-radius: 10px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.25s;
+    font-family: inherit;
+}
+.btn-suggest-mobile-bar:hover {
+    background: rgba(99,102,241,0.2);
+    color: #fff;
+}
+@media (min-width: 1024px) { .btn-suggest-mobile-bar { display: none; } }
+
+/* ---- Product Grid ---- */
+.products-section { display: block; }
+.products-section.is-hidden { display: none; }
+
+.product-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1rem;
+}
+@media (min-width: 640px) {
+    .product-grid { grid-template-columns: repeat(3, 1fr); gap: 1.25rem; }
+}
+@media (min-width: 1200px) {
+    .product-grid { grid-template-columns: repeat(4, 1fr); gap: 1.5rem; }
+}
+
+/* ---- Product Card ---- */
+.p-card {
+    background: rgba(15,23,42,0.5);
+    border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 20px;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    transition: transform 0.35s cubic-bezier(0.4,0,0.2,1), border-color 0.35s, box-shadow 0.35s;
+    animation: cardSlideIn 0.5s ease forwards;
+    opacity: 1;
+}
+@keyframes cardSlideIn {
+    from { opacity: 0; transform: translateY(16px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+.p-card:hover {
+    transform: translateY(-6px);
+    border-color: rgba(45,212,191,0.3);
+    box-shadow: 0 16px 40px rgba(45,212,191,0.1);
+}
+
+/* Card badge */
+.card-badge {
+    position: absolute;
+    top: 0.65rem;
+    right: 0.65rem;
+    z-index: 10;
+    padding: 0.25rem 0.5rem;
+    border-radius: 8px;
+    font-size: 0.65rem;
+    font-weight: 900;
+}
+.badge-sale {
+    background: linear-gradient(135deg, #f59e0b, #ea580c);
+    color: #000;
+}
+.badge-physical {
+    background: linear-gradient(135deg, #6366f1, #8b5cf6);
+    color: #fff;
+}
+/* Out of stock overlay */
+.card-oos-overlay {
+    position: absolute;
+    inset: 0;
+    z-index: 20;
+    background: rgba(2,6,23,0.7);
+    backdrop-filter: blur(3px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 20px;
+}
+.card-oos-tag {
+    background: #ef4444;
+    color: #fff;
+    font-size: 0.7rem;
+    font-weight: 900;
+    padding: 0.4rem 0.9rem;
+    border-radius: 10px;
+    transform: rotate(-5deg);
+}
+
+/* Card image area */
+.card-img-wrap {
+    position: relative;
+    width: 100%;
+    padding-top: 85%;
+    background: rgba(2,6,23,0.5);
+    border-bottom: 1px solid rgba(255,255,255,0.05);
+    overflow: hidden;
+    display: block;
+    text-decoration: none;
+}
+.card-img-wrap img {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    padding: 0.75rem;
+    transition: transform 0.4s ease;
+}
+.card-img-wrap .card-no-img {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2rem;
+    color: #1e293b;
+}
+.p-card:hover .card-img-wrap img { transform: scale(1.06); }
+
+/* Product type icon on image */
+.card-type-chip {
+    position: absolute;
+    bottom: 0.5rem;
+    left: 0.5rem;
+    background: rgba(2,6,23,0.8);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 8px;
+    padding: 0.2rem 0.5rem;
+    font-size: 0.6rem;
+    font-weight: 800;
+    color: #94a3b8;
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+}
+.card-type-chip.digital { color: var(--cyan, #2dd4bf); border-color: rgba(45,212,191,0.2); }
+.card-type-chip.physical { color: #a5b4fc; border-color: rgba(99,102,241,0.2); }
+
+/* Card body */
+.card-body {
+    padding: 0.85rem;
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    gap: 0.4rem;
+}
+.card-cat {
+    font-size: 0.62rem;
+    font-weight: 900;
+    color: rgba(45,212,191,0.8);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+.card-name {
+    font-size: 0.82rem;
+    font-weight: 700;
+    color: #e2e8f0;
+    text-decoration: none;
+    line-height: 1.4;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    transition: color 0.2s;
+    min-height: 2.3rem;
+}
+.p-card:hover .card-name { color: var(--cyan, #2dd4bf); }
+
+/* Variants preview */
+.card-variants {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.3rem;
+}
+.variant-chip {
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.06);
+    color: #64748b;
+    font-size: 0.6rem;
+    font-weight: 700;
+    padding: 0.15rem 0.4rem;
+    border-radius: 5px;
+    max-width: 70px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.variant-more {
+    font-size: 0.6rem;
+    font-weight: 700;
+    color: var(--cyan, #2dd4bf);
+}
+
+/* Price row */
+.card-price-row {
+    margin-top: auto;
+    padding-top: 0.7rem;
+    border-top: 1px solid rgba(255,255,255,0.05);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 0.5rem;
+}
+.card-price-label { font-size: 0.6rem; color: #475569; font-weight: 700; }
+.card-price-value { font-size: 0.95rem; font-weight: 900; color: #fff; }
+.card-buy-btn {
+    width: 36px;
+    height: 36px;
+    flex-shrink: 0;
+    background: var(--cyan, #2dd4bf);
+    color: #000;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-decoration: none;
+    font-size: 0.75rem;
+    transition: transform 0.25s, box-shadow 0.25s, background 0.25s;
+}
+.card-buy-btn:hover {
+    transform: scale(1.12);
+    background: #6366f1;
+    color: #fff;
+    box-shadow: 0 6px 18px rgba(99,102,241,0.4);
+}
+
+/* Empty state */
+.empty-state {
+    grid-column: 1 / -1;
+    padding: 5rem 2rem;
+    text-align: center;
+    background: rgba(15,23,42,0.4);
+    border: 1px dashed rgba(255,255,255,0.06);
+    border-radius: 20px;
+}
+.empty-icon {
+    width: 72px;
+    height: 72px;
+    background: rgba(15,23,42,0.6);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 1.5rem;
+    font-size: 1.5rem;
+    color: #334155;
+}
+.empty-state h3 { font-size: 1.2rem; font-weight: 900; color: #fff; margin: 0 0 0.5rem; }
+.empty-state p { color: #64748b; font-size: 0.85rem; margin: 0 0 1.5rem; }
+.btn-browse-all {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1.75rem;
+    border: 1px solid rgba(255,255,255,0.1);
+    background: rgba(255,255,255,0.04);
+    color: #e2e8f0;
+    border-radius: 12px;
+    font-weight: 700;
+    font-size: 0.85rem;
+    text-decoration: none;
+    transition: all 0.25s;
+}
+.btn-browse-all:hover { background: rgba(255,255,255,0.08); }
+
+/* ---- Categories Grid ---- */
+.categories-section {
+    display: none;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1rem;
+}
+@media (min-width: 640px) {
+    .categories-section { grid-template-columns: repeat(3, 1fr); }
+}
+@media (min-width: 1024px) {
+    .categories-section { grid-template-columns: repeat(4, 1fr); }
+}
+.categories-section.is-visible { display: grid; }
+
+.cat-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    padding: 1.5rem 1rem;
+    background: rgba(15,23,42,0.5);
+    border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 20px;
+    text-decoration: none;
+    transition: all 0.35s cubic-bezier(0.4,0,0.2,1);
+    animation: cardSlideIn 0.5s ease forwards;
+}
+.cat-card:hover {
+    transform: translateY(-6px);
+    border-color: rgba(45,212,191,0.3);
+    box-shadow: 0 16px 40px rgba(45,212,191,0.08);
+}
+.cat-card-icon {
+    width: 68px;
+    height: 68px;
+    background: rgba(15,23,42,0.6);
+    border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 18px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 0.85rem;
+    transition: all 0.35s;
+    overflow: hidden;
+}
+.cat-card:hover .cat-card-icon {
+    border-color: rgba(45,212,191,0.3);
+    box-shadow: 0 0 20px rgba(45,212,191,0.1);
+}
+.cat-card-icon img { max-width: 42px; max-height: 42px; object-fit: contain; transition: transform 0.35s; }
+.cat-card:hover .cat-card-icon img { transform: scale(1.1); }
+.cat-card-icon i { font-size: 1.5rem; color: #334155; transition: color 0.35s; }
+.cat-card:hover .cat-card-icon i { color: var(--cyan, #2dd4bf); }
+.cat-card h3 { font-size: 0.9rem; font-weight: 900; color: #e2e8f0; margin: 0 0 0.3rem; transition: color 0.25s; }
+.cat-card:hover h3 { color: var(--cyan, #2dd4bf); }
+.cat-card span { font-size: 0.65rem; font-weight: 700; color: #475569; text-transform: uppercase; letter-spacing: 0.08em; transition: color 0.25s; }
+.cat-card:hover span { color: rgba(45,212,191,0.6); }
+
+/* ---- Suggestion Card (bottom) ---- */
+.suggest-cta {
+    background: linear-gradient(135deg, rgba(99,102,241,0.08) 0%, rgba(45,212,191,0.06) 100%);
+    border: 1px solid rgba(99,102,241,0.2);
+    border-radius: 20px;
+    padding: 2.5rem 2rem;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+}
+.suggest-cta::before {
+    content: '';
+    position: absolute;
+    top: -50px; right: -50px;
+    width: 150px; height: 150px;
+    background: rgba(99,102,241,0.1);
+    border-radius: 50%;
+    filter: blur(40px);
+    pointer-events: none;
+}
+.suggest-cta::after {
+    content: '';
+    position: absolute;
+    bottom: -40px; left: -40px;
+    width: 120px; height: 120px;
+    background: rgba(45,212,191,0.08);
+    border-radius: 50%;
+    filter: blur(30px);
+    pointer-events: none;
+}
+.suggest-cta-icon {
+    width: 56px;
+    height: 56px;
+    background: rgba(99,102,241,0.12);
+    border-radius: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 1.25rem;
+    font-size: 1.3rem;
+    color: #a5b4fc;
+    position: relative;
+    z-index: 1;
+}
+.suggest-cta h3 {
+    font-size: 1.2rem;
+    font-weight: 900;
+    color: #fff;
+    margin: 0 0 0.5rem;
+    position: relative;
+    z-index: 1;
+}
+.suggest-cta p {
+    color: #64748b;
+    font-size: 0.85rem;
+    margin: 0 0 1.5rem;
+    max-width: 400px;
+    margin-inline: auto;
+    line-height: 1.6;
+    position: relative;
+    z-index: 1;
+}
+.btn-suggest-main {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 0.85rem 2rem;
+    background: linear-gradient(135deg, var(--cyan, #2dd4bf) 0%, #6366f1 100%);
+    color: #000;
+    font-weight: 900;
+    font-size: 0.875rem;
+    border: none;
+    border-radius: 14px;
+    cursor: pointer;
+    font-family: inherit;
+    transition: transform 0.25s, box-shadow 0.25s;
+    position: relative;
+    z-index: 1;
+}
+.btn-suggest-main:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 12px 30px rgba(45,212,191,0.35);
+}
+
+/* ---- Suggestion Modal ---- */
+.suggestion-modal-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+    background: rgba(2,6,23,0.85);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+}
+.suggestion-modal-overlay.is-open {
+    display: flex;
+}
+.suggestion-modal {
+    background: rgba(15,23,42,0.95);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 24px;
+    padding: 2rem;
+    width: 100%;
+    max-width: 480px;
+    box-shadow: 0 25px 60px rgba(0,0,0,0.6);
+    animation: modalPop 0.3s cubic-bezier(0.34,1.56,0.64,1) forwards;
+    max-height: 90vh;
+    overflow-y: auto;
+}
+@keyframes modalPop {
+    from { opacity: 0; transform: scale(0.9); }
+    to   { opacity: 1; transform: scale(1); }
+}
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.25rem;
+}
+.modal-header h2 { font-size: 1.3rem; font-weight: 900; color: #fff; margin: 0; }
+.modal-close-btn {
+    width: 36px;
+    height: 36px;
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #94a3b8;
+    cursor: pointer;
+    font-size: 1rem;
+    transition: all 0.2s;
+}
+.modal-close-btn:hover { background: rgba(239,68,68,0.1); border-color: rgba(239,68,68,0.3); color: #ef4444; }
+.modal-desc { color: #64748b; font-size: 0.82rem; line-height: 1.6; margin-bottom: 1.5rem; }
+
+.modal-form { display: flex; flex-direction: column; gap: 1rem; direction: rtl; }
+.form-group { display: flex; flex-direction: column; gap: 0.4rem; }
+.form-label { font-size: 0.68rem; font-weight: 900; color: #64748b; text-transform: uppercase; letter-spacing: 0.1em; }
+.form-input,
+.form-textarea {
+    width: 100%;
+    background: rgba(2,6,23,0.6);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 12px;
+    padding: 0.8rem 1rem;
+    color: #fff;
+    font-size: 0.85rem;
+    font-family: inherit;
+    direction: rtl;
+    text-align: right;
+    outline: none;
+    transition: border-color 0.25s, box-shadow 0.25s;
+    box-sizing: border-box;
+}
+.form-input:focus, .form-textarea:focus {
+    border-color: rgba(45,212,191,0.5);
+    box-shadow: 0 0 0 3px rgba(45,212,191,0.1);
+}
+.form-input::placeholder, .form-textarea::placeholder { color: #334155; }
+.form-textarea { resize: vertical; min-height: 90px; }
+
+.btn-submit {
+    width: 100%;
+    padding: 0.9rem;
+    background: linear-gradient(135deg, var(--cyan, #2dd4bf) 0%, #6366f1 100%);
+    color: #000;
+    font-weight: 900;
+    font-size: 0.9rem;
+    border: none;
+    border-radius: 12px;
+    cursor: pointer;
+    font-family: inherit;
+    transition: transform 0.2s, box-shadow 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+}
+.btn-submit:hover { transform: translateY(-2px); box-shadow: 0 10px 25px rgba(45,212,191,0.3); }
+.btn-submit:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+
+/* Modal feedback states */
+.modal-feedback { display: none; }
+.modal-feedback.is-success {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: 0.75rem;
+    padding: 1rem 0;
+}
+.modal-feedback.is-error {
+    display: block;
+    background: rgba(239,68,68,0.1);
+    border: 1px solid rgba(239,68,68,0.2);
+    color: #fca5a5;
+    font-size: 0.82rem;
+    font-weight: 700;
+    border-radius: 10px;
+    padding: 0.75rem 1rem;
+    text-align: center;
+    margin-bottom: 0.75rem;
+}
+.success-icon {
+    width: 56px; height: 56px;
+    background: rgba(34,197,94,0.1);
+    border: 1px solid rgba(34,197,94,0.2);
+    border-radius: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+    color: #22c55e;
+}
+.modal-feedback.is-success h3 { font-size: 1.1rem; font-weight: 900; color: #fff; margin: 0; }
+.modal-feedback.is-success p { font-size: 0.8rem; color: #64748b; margin: 0; }
+
+/* Login prompt in modal */
+.modal-login-prompt {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1.25rem;
+    padding: 0.5rem 0 1rem;
+    text-align: center;
+}
+.lock-icon {
+    width: 60px; height: 60px;
+    background: rgba(245,158,11,0.1);
+    border: 1px solid rgba(245,158,11,0.2);
+    border-radius: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+    color: #f59e0b;
+}
+.modal-login-prompt p { color: #94a3b8; font-size: 0.85rem; max-width: 260px; line-height: 1.5; margin: 0; }
+.btn-login-modal {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    width: 100%;
+    padding: 0.9rem;
+    background: linear-gradient(135deg, var(--cyan, #2dd4bf), #6366f1);
+    color: #000;
+    font-weight: 900;
+    font-size: 0.9rem;
+    border-radius: 12px;
+    text-decoration: none;
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+.btn-login-modal:hover { transform: translateY(-2px); box-shadow: 0 10px 25px rgba(45,212,191,0.3); }
+
+/* ---- Stagger animation delays for cards ---- */
+.p-card:nth-child(1)  { animation-delay: 0.00s; }
+.p-card:nth-child(2)  { animation-delay: 0.04s; }
+.p-card:nth-child(3)  { animation-delay: 0.08s; }
+.p-card:nth-child(4)  { animation-delay: 0.12s; }
+.p-card:nth-child(5)  { animation-delay: 0.16s; }
+.p-card:nth-child(6)  { animation-delay: 0.20s; }
+.p-card:nth-child(7)  { animation-delay: 0.24s; }
+.p-card:nth-child(8)  { animation-delay: 0.28s; }
+.p-card:nth-child(9)  { animation-delay: 0.32s; }
+.p-card:nth-child(10) { animation-delay: 0.36s; }
+.p-card:nth-child(11) { animation-delay: 0.40s; }
+.p-card:nth-child(12) { animation-delay: 0.44s; }
+.cat-card:nth-child(1)  { animation-delay: 0.00s; }
+.cat-card:nth-child(2)  { animation-delay: 0.05s; }
+.cat-card:nth-child(3)  { animation-delay: 0.10s; }
+.cat-card:nth-child(4)  { animation-delay: 0.15s; }
+.cat-card:nth-child(5)  { animation-delay: 0.20s; }
+.cat-card:nth-child(6)  { animation-delay: 0.25s; }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="relative min-h-screen pt-12 pb-24">
-    <div class="container mx-auto px-4">
-        
-        <!-- Header & Search Section -->
-        <div class="mb-12 reveal-item">
-            <div class="flex flex-col md:flex-row md:items-end justify-between gap-6">
-                <div class="max-w-xl text-right">
-                    <span class="section-label">Service Marketplace</span>
-                    <h1 class="text-4xl md:text-5xl font-black text-white mb-3 tracking-tighter">استكشف الخدمات.</h1>
-                    <p class="text-slate-400 text-sm md:text-base">تصفح مجموعتنا الواسعة من باقات الشحن، الألعاب، والخدمات الرقمية.</p>
-                </div>
-                
-                <div class="w-full md:w-96">
-                    <form method="get" class="relative group">
-                        <i class="fas fa-search absolute right-5 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-cyan transition-colors"></i>
-                        <input type="text" name="q" value="{{ query }}" placeholder="ابحث عن باقة، لعبة، أو بطاقة شحن..." 
-                               class="w-full bg-slate-900/60 border border-white/5 rounded-3xl py-4.5 pr-14 pl-6 text-white text-sm focus:outline-none focus:border-cyan/50 focus:ring-4 focus:ring-cyan/10 transition-all search-input">
-                    </form>
-                </div>
-            </div>
+<div class="catalog-page">
+<div class="catalog-container">
+
+    <!-- ── Hero Header ── -->
+    <div class="catalog-hero">
+        <div>
+            <span class="catalog-hero-label">Service Marketplace</span>
+            <h1>استكشف الخدمات.</h1>
+            <p>تصفح مجموعتنا الواسعة من باقات الشحن، الألعاب، والخدمات الرقمية.</p>
         </div>
-
-        <!-- Mobile Categories Pills (Hidden on Laptop) -->
-        <div class="lg:hidden mb-6 overflow-x-auto scroll-hide pb-2 reveal-item">
-            <div class="flex gap-2.5">
-                <a href="{% url 'catalog' %}{% if query %}?q={{ query }}{% endif %}" class="px-5 py-3 rounded-xl font-bold text-xs transition-all whitespace-nowrap border border-white/5 bg-slate-900/40 text-slate-400 hover:bg-white/10 hover:text-white {% if not active_category %} !bg-cyan !text-white border-cyan shadow-lg shadow-cyan/20 {% endif %}">الكل</a>
-                {% for cat in categories %}
-                {% if cat.product_count > 0 %}
-                <a href="?category={{ cat.id }}{% if query %}&q={{ query }}{% endif %}" class="px-5 py-3 rounded-xl font-bold text-xs transition-all whitespace-nowrap border border-white/5 bg-slate-900/40 text-slate-400 hover:bg-white/10 hover:text-white {% if active_category == cat.id|stringformat:'s' %} !bg-cyan !text-white border-cyan shadow-lg shadow-cyan/20 {% endif %}">{{ cat.name }}</a>
-                {% endif %}
-                {% endfor %}
-            </div>
+        <div class="catalog-search-wrap">
+            <form method="get">
+                <i class="fas fa-search"></i>
+                <input type="text" name="q" value="{{ query }}" 
+                       placeholder="ابحث عن باقة، لعبة، أو بطاقة شحن..." 
+                       class="catalog-search-input">
+            </form>
         </div>
+    </div>
 
-        <!-- Main Layout (Sidebar + Grid) -->
-        <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start reveal-item">
-            <!-- Desktop Sticky Sidebar (Hidden on Mobile) -->
-            <aside class="hidden lg:block lg:col-span-3 space-y-6">
-                <div class="glass-panel p-6 sticky top-24 space-y-8">
-                    <div>
-                        <h3 class="text-xs font-black text-slate-400 uppercase tracking-widest mb-4">أقسام الخدمات</h3>
-                        <div class="flex flex-col gap-2">
-                            <a href="{% url 'catalog' %}{% if query %}?q={{ query }}{% endif %}" class="flex items-center justify-between px-4 py-3 rounded-xl font-bold text-xs transition-all border border-white/5 bg-white/5 text-slate-400 hover:bg-white/10 hover:text-white {% if not active_category %} !bg-cyan !text-white border-cyan shadow-lg shadow-cyan/20 {% endif %}">
-                                <span>الكل</span>
-                                 <span class="bg-white/10 px-2 py-0.5 rounded text-[10px]">{{ total_products_count }}</span>
-                            </a>
-                            {% for cat in categories %}
-                            {% if cat.product_count > 0 %}
-                            <a href="?category={{ cat.id }}{% if query %}&q={{ query }}{% endif %}" class="flex items-center justify-between px-4 py-3 rounded-xl font-bold text-xs transition-all border border-white/5 bg-white/5 text-slate-400 hover:bg-white/10 hover:text-white {% if active_category == cat.id|stringformat:'s' %} !bg-cyan !text-white border-cyan shadow-lg shadow-cyan/20 {% endif %}">
-                                <span>{{ cat.name }}</span>
-                                <span class="bg-white/10 px-2 py-0.5 rounded text-[10px]">{{ cat.product_count }}</span>
-                            </a>
-                            {% endif %}
-                            {% endfor %}
-                        </div>
-                    </div>
+    <!-- ── Mobile Category Pills ── -->
+    <div class="mobile-cats">
+        <a href="{% url 'catalog' %}{% if query %}?q={{ query }}{% endif %}" 
+           class="cat-pill {% if not active_category %}active{% endif %}">الكل</a>
+        {% for cat in categories %}
+        {% if cat.product_count > 0 %}
+        <a href="?category={{ cat.id }}{% if query %}&q={{ query }}{% endif %}" 
+           class="cat-pill {% if active_category == cat.id|stringformat:'s' %}active{% endif %}">
+            {{ cat.name }}
+        </a>
+        {% endif %}
+        {% endfor %}
+    </div>
 
-                    <!-- Integrated Suggest Service Card inside Sidebar -->
-                    <div class="p-5 border border-indigo-500/20 bg-gradient-to-br from-indigo-500/5 to-transparent rounded-2xl relative overflow-hidden group">
-                        <div class="absolute -right-10 -top-10 w-24 h-24 bg-indigo-500/10 rounded-full blur-xl group-hover:scale-150 transition-transform duration-700"></div>
-                        <div class="relative z-10 flex flex-col h-full">
-                            <div class="flex items-center gap-3 mb-4">
-                                <div class="w-10 h-10 bg-indigo-500/10 rounded-xl flex items-center justify-center text-indigo-400">
-                                    <i class="fas fa-lightbulb text-sm"></i>
-                                </div>
-                                <div>
-                                    <h4 class="text-xs font-black text-white">لم تجد طلبك؟</h4>
-                                    <p class="text-[9px] text-slate-500">نحن نوفره لك بأفضل سعر.</p>
-                                </div>
-                            </div>
-                            <button onclick="document.getElementById('suggestion-modal').style.display = 'flex'" class="btn-premium !py-2.5 text-[10px] w-full mt-auto">اقتراح خدمة جديدة</button>
-                        </div>
-                    </div>
-                </div>
-            </aside>
+    <!-- ── Main Layout ── -->
+    <div class="catalog-layout">
 
-            <!-- Grid Content Area -->
-            <div class="lg:col-span-9 space-y-6">
-                <!-- View Toggle Segmented Control (Categories vs Products) -->
-                <div class="flex justify-center mb-6 reveal-item">
-                    <div class="bg-slate-950/60 backdrop-blur-md p-1 rounded-2xl border border-white/5 flex relative overflow-hidden w-full max-w-[320px]">
-                        <!-- Active Slide Background Indicator -->
-                        <div id="toggle-indicator" class="absolute top-1 bottom-1 right-1 w-[calc(50%-4px)] bg-gradient-to-r from-cyan to-indigo rounded-xl transition-all duration-300 ease-out z-0 shadow-lg shadow-cyan/20"></div>
-                        
-                        <!-- Products View Button -->
-                        <button onclick="switchView('products')" id="toggle-products" 
-                                class="flex-1 py-2.5 rounded-xl text-xs font-black transition-all duration-300 flex items-center justify-center gap-2 relative z-10 text-slate-950">
-                            <i class="fas fa-boxes text-xs"></i>
-                            <span>عرض المنتجات</span>
-                        </button>
-                        <!-- Categories View Button -->
-                        <button onclick="switchView('categories')" id="toggle-categories" 
-                                class="flex-1 py-2.5 rounded-xl text-xs font-black transition-all duration-300 flex items-center justify-center gap-2 relative z-10 text-slate-400 hover:text-white">
-                            <i class="fas fa-folder text-xs"></i>
-                            <span>عرض الأقسام</span>
-                        </button>
-                    </div>
-                </div>
-
-                <!-- Utility Top Bar -->
-                <div class="glass-panel p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                    <div class="text-xs font-bold text-slate-400">
-                        {% if query %}
-                            نتائج البحث عن: <span class="text-cyan">"{{ query }}"</span> ({{ products.count }} منتج)
-                        {% elif active_category %}
-                            معروض حالياً: <span class="text-cyan">{% for cat in categories %}{% if active_category == cat.id|stringformat:'s' %}{{ cat.name }}{% endif %}{% endfor %}</span>
-                        {% else %}
-                            تصفح جميع الخدمات والمنتجات المتاحة
+        <!-- ── Desktop Sidebar ── -->
+        <aside class="catalog-sidebar">
+            <div class="sidebar-panel">
+                <!-- Categories -->
+                <div>
+                    <p class="sidebar-title">أقسام الخدمات</p>
+                    <div class="sidebar-cat-list">
+                        <a href="{% url 'catalog' %}{% if query %}?q={{ query }}{% endif %}" 
+                           class="sidebar-cat-link {% if not active_category %}active{% endif %}">
+                            <span>الكل</span>
+                            <span class="sidebar-cat-count">{{ total_products_count }}</span>
+                        </a>
+                        {% for cat in categories %}
+                        {% if cat.product_count > 0 %}
+                        <a href="?category={{ cat.id }}{% if query %}&q={{ query }}{% endif %}" 
+                           class="sidebar-cat-link {% if active_category == cat.id|stringformat:'s' %}active{% endif %}">
+                            <span>{{ cat.name }}</span>
+                            <span class="sidebar-cat-count">{{ cat.product_count }}</span>
+                        </a>
                         {% endif %}
-                    </div>
-                    <div class="flex items-center gap-3 self-end sm:self-auto">
-                        <form method="get" class="flex items-center">
-                            {% if active_category %}
-                                <input type="hidden" name="category" value="{{ active_category }}">
-                            {% endif %}
-                            {% if query %}
-                                <input type="hidden" name="q" value="{{ query }}">
-                            {% endif %}
-                            <select name="sort" onchange="this.form.submit()" class="bg-slate-900 border border-white/5 text-slate-300 text-[10px] font-bold py-2.5 px-4 rounded-xl focus:outline-none focus:border-cyan cursor-pointer">
-                                <option value="newest" {% if sort == "newest" %}selected{% endif %}>الأحدث أولاً</option>
-                                <option value="price_low" {% if sort == "price_low" %}selected{% endif %}>السعر: من الأقل للأعلى</option>
-                                <option value="price_high" {% if sort == "price_high" %}selected{% endif %}>السعر: من الأعلى للأقل</option>
-                            </select>
-                        </form>
-                        
-                        <button onclick="document.getElementById('suggestion-modal').style.display = 'flex'" class="lg:hidden bg-indigo-500/10 hover:bg-indigo-500/20 border border-indigo-500/20 text-indigo-400 hover:text-white text-[10px] font-bold py-2.5 px-4 rounded-xl transition-all flex items-center gap-1.5">
-                            <i class="fas fa-lightbulb"></i>
-                            <span>اقتراح خدمة</span>
-                        </button>
-                    </div>
-                </div>
-
-                <!-- Product Grid Container -->
-                <div id="products-grid-container" class="grid-transition transition-all duration-300">
-                    <!-- Product Grid -->
-                    <div class="product-grid">
-                        {% for p in products %}
-                        <div class="premium-card reveal-item" style="transition-delay: calc({{ forloop.counter }} * 0.01s)">
-                            <!-- Status Badges -->
-                            {% if p.is_sale %}
-                            <div class="absolute top-3 right-3 z-10 bg-gradient-to-br from-amber-400 to-orange-600 text-black text-[8px] font-black px-2 py-1 rounded-lg">
-                                عرض خاص
-                            </div>
-                            {% endif %}
-    
-                            {% if p.is_out_of_stock %}
-                            <div class="absolute inset-0 z-20 bg-slate-950/60 backdrop-blur-[2px] rounded-3xl flex items-center justify-center">
-                                <div class="bg-rose-500 text-white text-[10px] font-black px-4 py-2 rounded-xl -rotate-6">نفدت الكمية</div>
-                            </div>
-                            {% endif %}
-                            
-                            <!-- Image Wrapper -->
-                            <a href="{% url 'product_detail' p.id %}" class="image-wrapper">
-                                {% if p.image %}
-                                <img src="{{ p.image.url }}" alt="{{ p.name }}" loading="lazy">
-                                {% else %}
-                                <i class="fas fa-box text-3xl text-slate-700 opacity-20"></i>
-                                {% endif %}
-                            </a>
-    
-                            <!-- Product Body -->
-                            <div class="card-body">
-                                <span class="category-label">{{ p.category.name }}</span>
-                                <a href="{% url 'product_detail' p.id %}" class="product-title">{{ p.name }}</a>
-                                
-                                <!-- Quick Variant Preview -->
-                                <div class="flex flex-wrap gap-1 mb-4">
-                                    {% for v in p.variants.all|slice:":2" %}
-                                    <span class="text-[7px] font-bold bg-white/5 border border-white/5 text-slate-500 px-2 py-0.5 rounded-md truncate max-w-[80px]">{{ v.name }}</span>
-                                    {% endfor %}
-                                    {% if p.variants.count > 2 %}
-                                    <span class="text-[7px] font-bold text-cyan">+{{ p.variants.count|add:"-2" }}</span>
-                                    {% endif %}
-                                </div>
-    
-                                <div class="price-row">
-                                    {% variant_price p.variants.first as v_price %}
-                                    <div class="flex flex-col">
-                                        <span class="text-[8px] text-slate-500 font-bold">يبدأ من</span>
-                                        <span class="price-value">{% currency_format v_price %}</span>
-                                    </div>
-                                    <a href="{% url 'product_detail' p.id %}" class="w-10 h-10 bg-cyan text-white rounded-xl flex items-center justify-center hover:bg-indigo hover:scale-110 transition-all shadow-lg shadow-cyan/20">
-                                        <i class="fas fa-shopping-cart text-xs"></i>
-                                    </a>
-                                </div>
-                            </div>
-                        </div>
-                        {% empty %}
-                        <div class="col-span-full py-32 text-center glass-panel border-dashed reveal-item">
-                            <div class="w-20 h-20 bg-slate-900/50 rounded-full flex items-center justify-center mx-auto mb-6">
-                                <i class="fas fa-search text-3xl text-slate-700"></i>
-                            </div>
-                            <h3 class="text-xl font-black text-white">لم نجد ما تبحث عنه</h3>
-                            <p class="text-slate-500 mt-2 max-w-xs mx-auto">حاول تغيير كلمات البحث أو تصفح التصنيفات الأخرى.</p>
-                            <a href="{% url 'catalog' %}" class="btn-outline-premium mt-8 inline-flex">عرض كل الخدمات</a>
-                        </div>
                         {% endfor %}
                     </div>
                 </div>
 
-                <!-- Categories Grid -->
-                <div id="categories-grid-container" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 grid-transition transition-all duration-300 hidden opacity-0 scale-95">
-                    {% for cat in categories %}
-                    {% if cat.product_count > 0 %}
-                    <a href="?category={{ cat.id }}{% if query %}&q={{ query }}{% endif %}" class="premium-card group p-6 flex flex-col items-center text-center reveal-item text-decoration-none animate-reveal" style="transition-delay: calc({{ forloop.counter }} * 0.01s)">
-                        <div class="w-20 h-20 bg-slate-900/40 rounded-2xl mb-4 border border-white/5 flex items-center justify-center group-hover:bg-slate-900/60 transition-all duration-500 shadow-inner group-hover:border-cyan/30 group-hover:shadow-cyan/10">
-                            {% if cat.image %}
-                            <img src="{{ cat.image.url }}" alt="{{ cat.name }}" class="max-h-14 max-w-14 object-contain group-hover:scale-110 transition-transform duration-500" loading="lazy">
-                            {% else %}
-                            <i class="fas fa-folder text-3xl text-slate-700 opacity-20 group-hover:text-cyan group-hover:opacity-40 transition-all duration-500"></i>
-                            {% endif %}
-                        </div>
-                        <h3 class="text-sm font-black text-white group-hover:text-cyan transition-colors mb-1.5">{{ cat.name }}</h3>
-                        <span class="text-[9px] font-black text-slate-500 group-hover:text-cyan/60 transition-colors uppercase tracking-widest">{{ cat.product_count }} خدمة متوفرة</span>
-                    </a>
+                <!-- Suggestion Card -->
+                <div class="sidebar-suggest-card">
+                    <div class="sidebar-suggest-icon">
+                        <i class="fas fa-lightbulb"></i>
+                    </div>
+                    <h4>لم تجد طلبك؟</h4>
+                    <p>نحن نوفره لك بأفضل سعر.</p>
+                    <button class="btn-suggest-sidebar" id="open-modal-sidebar">
+                        <i class="fas fa-plus" style="margin-left:0.35rem;"></i>
+                        اقتراح خدمة جديدة
+                    </button>
+                </div>
+            </div>
+        </aside>
+
+        <!-- ── Content Area ── -->
+        <div class="catalog-content">
+
+            <!-- View Toggle -->
+            <div class="view-toggle-wrap">
+                <div class="view-toggle">
+                    <div class="toggle-indicator" id="toggle-indicator"></div>
+                    <button class="toggle-btn is-active" id="toggle-products" onclick="switchView('products')">
+                        <i class="fas fa-boxes"></i>
+                        <span>عرض المنتجات</span>
+                    </button>
+                    <button class="toggle-btn" id="toggle-categories" onclick="switchView('categories')">
+                        <i class="fas fa-th-large"></i>
+                        <span>عرض الأقسام</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Top Bar -->
+            <div class="catalog-topbar">
+                <div class="topbar-info">
+                    {% if query %}
+                        نتائج البحث عن: <span>"{{ query }}"</span> ({{ products.count }} منتج)
+                    {% elif active_category %}
+                        معروض: <span>{% for cat in categories %}{% if active_category == cat.id|stringformat:'s' %}{{ cat.name }}{% endif %}{% endfor %}</span>
+                    {% else %}
+                        تصفح جميع الخدمات والمنتجات المتاحة
                     {% endif %}
+                </div>
+                <div class="topbar-actions">
+                    <form method="get" style="display:flex;">
+                        {% if active_category %}<input type="hidden" name="category" value="{{ active_category }}">{% endif %}
+                        {% if query %}<input type="hidden" name="q" value="{{ query }}">{% endif %}
+                        <select name="sort" onchange="this.form.submit()" class="sort-select">
+                            <option value="newest" {% if sort == "newest" %}selected{% endif %}>الأحدث أولاً</option>
+                            <option value="price_low" {% if sort == "price_low" %}selected{% endif %}>السعر: من الأقل للأعلى</option>
+                            <option value="price_high" {% if sort == "price_high" %}selected{% endif %}>السعر: من الأعلى للأقل</option>
+                        </select>
+                    </form>
+                    <button class="btn-suggest-mobile-bar" id="open-modal-mobile-bar">
+                        <i class="fas fa-lightbulb"></i>
+                        <span>اقتراح خدمة</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Products Grid -->
+            <div class="products-section" id="products-section">
+                <div class="product-grid">
+                    {% for p in products %}
+                    <div class="p-card">
+                        <!-- Badges -->
+                        {% if p.is_sale %}
+                        <span class="card-badge badge-sale">عرض خاص</span>
+                        {% endif %}
+                        {% if p.is_out_of_stock %}
+                        <div class="card-oos-overlay">
+                            <span class="card-oos-tag">نفدت الكمية</span>
+                        </div>
+                        {% endif %}
+
+                        <!-- Image -->
+                        <a href="{% url 'product_detail' p.id %}" class="card-img-wrap">
+                            {% if p.image %}
+                            <img src="{{ p.image.url }}" alt="{{ p.name }}" loading="lazy">
+                            {% else %}
+                            <div class="card-no-img">
+                                <i class="fas fa-box"></i>
+                            </div>
+                            {% endif %}
+                            <!-- Product type chip -->
+                            {% if p.product_type == 'physical' %}
+                            <span class="card-type-chip physical"><i class="fas fa-truck" style="font-size:0.55rem;"></i> مادي</span>
+                            {% else %}
+                            <span class="card-type-chip digital"><i class="fas fa-bolt" style="font-size:0.55rem;"></i> رقمي</span>
+                            {% endif %}
+                        </a>
+
+                        <!-- Body -->
+                        <div class="card-body">
+                            <span class="card-cat">{{ p.category.name }}</span>
+                            <a href="{% url 'product_detail' p.id %}" class="card-name">{{ p.name }}</a>
+                            
+                            <!-- Variants preview -->
+                            <div class="card-variants">
+                                {% for v in p.variants.all|slice:":3" %}
+                                <span class="variant-chip">{{ v.name }}</span>
+                                {% endfor %}
+                                {% if p.variants.count > 3 %}
+                                <span class="variant-more">+{{ p.variants.count|add:"-3" }}</span>
+                                {% endif %}
+                            </div>
+
+                            <!-- Price row -->
+                            <div class="card-price-row">
+                                {% variant_price p.variants.first as v_price %}
+                                <div>
+                                    <div class="card-price-label">يبدأ من</div>
+                                    <div class="card-price-value">{% currency_format v_price %}</div>
+                                </div>
+                                <a href="{% url 'product_detail' p.id %}" class="card-buy-btn" title="عرض المنتج">
+                                    <i class="fas fa-arrow-left"></i>
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                    {% empty %}
+                    <div class="empty-state">
+                        <div class="empty-icon"><i class="fas fa-search"></i></div>
+                        <h3>لم نجد ما تبحث عنه</h3>
+                        <p>حاول تغيير كلمات البحث أو تصفح التصنيفات الأخرى.</p>
+                        <a href="{% url 'catalog' %}" class="btn-browse-all">
+                            <i class="fas fa-grid-2"></i>
+                            عرض كل الخدمات
+                        </a>
+                    </div>
                     {% endfor %}
                 </div>
-
-                <!-- Suggestion Card at the Bottom of Grid (Visible on All Viewports) -->
-                <div class="mt-12">
-                    <div class="glass-panel p-8 relative overflow-hidden text-center bg-gradient-to-br from-indigo-500/10 via-transparent to-cyan-500/10 border border-indigo-500/20 rounded-3xl shadow-xl">
-                        <div class="absolute inset-0 bg-gradient-to-br from-indigo-500/5 via-transparent to-cyan-500/5 -z-10"></div>
-                        <div class="w-14 h-14 bg-indigo-500/10 rounded-2xl flex items-center justify-center text-indigo-400 mx-auto mb-4 shadow-inner">
-                            <i class="fas fa-lightbulb text-xl animate-pulse"></i>
-                        </div>
-                        <h3 class="text-xl font-black text-white mb-2">لم تجد طلبك؟</h3>
-                        <p class="text-slate-400 text-xs md:text-sm mb-6 max-w-md mx-auto leading-relaxed">إذا كان هناك منتج أو خدمة رقمية غير متوفرة حالياً، شاركنا اقتراحك وسنعمل على توفيرها بأفضل سعر.</p>
-                        <button onclick="document.getElementById('suggestion-modal').style.display = 'flex'" class="btn-premium !py-3 px-8 text-xs font-black inline-flex justify-center mx-auto hover:scale-105 transition-all">اقتراح خدمة جديدة</button>
-                    </div>
-                </div>
             </div>
-        </div>
-    </div>
-</div>
 
-<!-- Suggestion Modal -->
-<div id="suggestion-modal" style="display: none;" class="fixed inset-0 z-[1000] flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md">
-    <div class="glass-panel p-8 w-full max-w-lg animate-reveal">
-        <div class="flex justify-between items-center mb-8">
-            <h2 class="text-2xl font-black text-white">اقتراح خدمة جديدة</h2>
-            <button onclick="document.getElementById('suggestion-modal').style.display = 'none'" class="text-slate-500 hover:text-white transition-colors">
-                <i class="fas fa-times text-xl"></i>
+            <!-- Categories Grid -->
+            <div class="categories-section" id="categories-section">
+                {% for cat in categories %}
+                {% if cat.product_count > 0 %}
+                <a href="?category={{ cat.id }}{% if query %}&q={{ query }}{% endif %}" class="cat-card">
+                    <div class="cat-card-icon">
+                        {% if cat.image %}
+                        <img src="{{ cat.image.url }}" alt="{{ cat.name }}" loading="lazy">
+                        {% else %}
+                        <i class="fas fa-folder"></i>
+                        {% endif %}
+                    </div>
+                    <h3>{{ cat.name }}</h3>
+                    <span>{{ cat.product_count }} خدمة متوفرة</span>
+                </a>
+                {% endif %}
+                {% endfor %}
+            </div>
+
+            <!-- Suggestion CTA (always visible) -->
+            <div class="suggest-cta">
+                <div class="suggest-cta-icon">
+                    <i class="fas fa-lightbulb"></i>
+                </div>
+                <h3>لم تجد طلبك؟</h3>
+                <p>إذا كان هناك منتج أو خدمة رقمية غير متوفرة حالياً، شاركنا اقتراحك وسنعمل على توفيرها بأفضل سعر.</p>
+                <button class="btn-suggest-main" id="open-modal-cta">
+                    <i class="fas fa-plus"></i>
+                    اقتراح خدمة جديدة
+                </button>
+            </div>
+
+        </div><!-- /.catalog-content -->
+    </div><!-- /.catalog-layout -->
+</div><!-- /.catalog-container -->
+</div><!-- /.catalog-page -->
+
+<!-- ════════════════════════════════════════
+     SUGGESTION MODAL (pure CSS class toggle)
+     ════════════════════════════════════════ -->
+<div id="suggestion-modal" class="suggestion-modal-overlay" role="dialog" aria-modal="true" aria-label="اقتراح خدمة">
+    <div class="suggestion-modal">
+        <div class="modal-header">
+            <h2>اقتراح خدمة جديدة</h2>
+            <button class="modal-close-btn" id="close-modal" aria-label="إغلاق">
+                <i class="fas fa-times"></i>
             </button>
         </div>
-        
-        <p class="text-slate-400 text-sm mb-8 leading-relaxed">أخبرنا عما تبحث عنه، وسيقوم فريقنا بمراجعة طلبك وتوفيره في أسرع وقت ممكن.</p>
-        
-        <div id="suggestion-feedback" class="hidden"></div>
-        
+        <p class="modal-desc">أخبرنا عما تبحث عنه، وسيقوم فريقنا بمراجعة طلبك وتوفيره في أسرع وقت ممكن.</p>
+
+        <!-- Feedback display area -->
+        <div class="modal-feedback" id="suggestion-feedback"></div>
+
         {% if request.user.is_authenticated %}
-        <form id="suggestion-form" action="{% url 'site_product_suggestion' %}" method="post" class="space-y-6 text-right">
+        <form id="suggestion-form" action="{% url 'site_product_suggestion' %}" method="post" class="modal-form">
             {% csrf_token %}
-            <div class="space-y-2">
-                <label class="text-[10px] font-black text-slate-500 mr-4 uppercase tracking-widest">اسم المنتج المقترح</label>
-                <input type="text" name="product_name" class="w-full bg-slate-800/50 border border-slate-700/50 rounded-2xl px-5 py-4 text-white placeholder-slate-500 focus:outline-none focus:border-cyan/50 focus:ring-4 focus:ring-cyan/10 transition-all search-input" placeholder="مثلاً: بطاقة شحن X..." required>
+            <div class="form-group">
+                <label class="form-label">اسم المنتج المقترح</label>
+                <input type="text" name="product_name" class="form-input" 
+                       placeholder="مثلاً: بطاقة شحن X، اشتراك Netflix..." required>
             </div>
-            <div class="space-y-2">
-                <label class="text-[10px] font-black text-slate-500 mr-4 uppercase tracking-widest">رابط أو وصف مختصر</label>
-                <textarea name="description" rows="3" class="w-full bg-slate-800/50 border border-slate-700/50 rounded-2xl px-5 py-4 text-white placeholder-slate-500 focus:outline-none focus:border-cyan/50 focus:ring-4 focus:ring-cyan/10 transition-all search-input" placeholder="رابط الموقع أو تفاصيل إضافية..." required></textarea>
+            <div class="form-group">
+                <label class="form-label">رابط أو وصف مختصر</label>
+                <textarea name="description" rows="3" class="form-textarea" 
+                          placeholder="رابط الموقع أو تفاصيل إضافية..." required></textarea>
             </div>
-            <button type="submit" class="btn-premium w-full py-4 rounded-2xl font-black">إرسال الاقتراح</button>
+            <button type="submit" class="btn-submit" id="suggestion-submit-btn">
+                <i class="fas fa-paper-plane"></i>
+                إرسال الاقتراح
+            </button>
         </form>
         {% else %}
-        <div class="text-center py-6 space-y-6">
-            <div class="w-16 h-16 bg-amber-500/10 border border-amber-500/20 text-amber-500 rounded-2xl flex items-center justify-center mx-auto shadow-inner">
-                <i class="fas fa-lock text-2xl animate-pulse"></i>
-            </div>
-            <p class="text-slate-400 text-sm leading-relaxed">يرجى تسجيل الدخول أولاً لتتمكن من إرسال اقتراح لخدمة جديدة.</p>
-            <a href="{% url 'site_login' %}?next={{ request.path }}" class="btn-premium w-full py-4 rounded-2xl font-black inline-flex justify-center items-center gap-2">
+        <div class="modal-login-prompt">
+            <div class="lock-icon"><i class="fas fa-lock"></i></div>
+            <p>يرجى تسجيل الدخول أولاً لتتمكن من إرسال اقتراح لخدمة جديدة.</p>
+            <a href="{% url 'site_login' %}?next={{ request.path }}" class="btn-login-modal">
                 <i class="fas fa-sign-in-alt"></i>
-                <span>تسجيل الدخول</span>
+                تسجيل الدخول
             </a>
         </div>
         {% endif %}
@@ -474,160 +1284,162 @@
 </div>
 
 <script>
-    // Intersection Observer for animations (defensively fallback for older webviews)
-    if ('IntersectionObserver' in window) {
-        const observer = new IntersectionObserver((entries) => {
-            entries.forEach(entry => {
-                if (entry.isIntersecting) {
-                    entry.target.classList.add('visible');
-                }
-            });
-        }, { threshold: 0.05, rootMargin: '0px 0px -20px 0px' });
+(function() {
+    'use strict';
 
-        document.querySelectorAll('.reveal-item').forEach(el => observer.observe(el));
-    } else {
-        document.querySelectorAll('.reveal-item').forEach(el => el.classList.add('visible'));
+    /* ──────────────────────────────────────────
+       1. MODAL OPEN / CLOSE (class-based, no display flex issues)
+    ─────────────────────────────────────────── */
+    const modal = document.getElementById('suggestion-modal');
+
+    function openModal() {
+        if (!modal) return;
+        modal.classList.add('is-open');
+        document.body.style.overflow = 'hidden';
     }
 
-    // Smooth switch between Products and Categories views
+    function closeModal() {
+        if (!modal) return;
+        modal.classList.remove('is-open');
+        document.body.style.overflow = '';
+    }
+
+    // All "open" triggers
+    var openTriggers = [
+        document.getElementById('open-modal-sidebar'),
+        document.getElementById('open-modal-mobile-bar'),
+        document.getElementById('open-modal-cta')
+    ];
+    openTriggers.forEach(function(btn) {
+        if (btn) btn.addEventListener('click', openModal);
+    });
+
+    // Close button
+    var closeBtn = document.getElementById('close-modal');
+    if (closeBtn) closeBtn.addEventListener('click', closeModal);
+
+    // Click outside modal box
+    if (modal) {
+        modal.addEventListener('click', function(e) {
+            if (e.target === modal) closeModal();
+        });
+    }
+
+    // ESC key
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') closeModal();
+    });
+
+    /* ──────────────────────────────────────────
+       2. VIEW TOGGLE (Products ↔ Categories)
+    ─────────────────────────────────────────── */
+    var productsSection   = document.getElementById('products-section');
+    var categoriesSection = document.getElementById('categories-section');
+    var toggleProducts    = document.getElementById('toggle-products');
+    var toggleCategories  = document.getElementById('toggle-categories');
+    var indicator         = document.getElementById('toggle-indicator');
+
     function switchView(view) {
-        const productsBtn = document.getElementById('toggle-products');
-        const categoriesBtn = document.getElementById('toggle-categories');
-        const indicator = document.getElementById('toggle-indicator');
-        const productsGrid = document.getElementById('products-grid-container');
-        const categoriesGrid = document.getElementById('categories-grid-container');
-        
-        if (!productsBtn || !categoriesBtn || !indicator) return;
+        if (!productsSection || !categoriesSection) return;
 
         if (view === 'products') {
-            productsBtn.classList.remove('text-slate-400', 'hover:text-white');
-            productsBtn.classList.add('text-slate-950');
-            
-            categoriesBtn.classList.remove('text-slate-950');
-            categoriesBtn.classList.add('text-slate-400', 'hover:text-white');
-            
-            indicator.style.transform = 'translateX(0)';
-            
-            if (productsGrid) {
-                productsGrid.classList.remove('hidden');
-                setTimeout(() => {
-                    productsGrid.classList.remove('opacity-0', 'scale-95');
-                }, 50);
-            }
-            if (categoriesGrid) {
-                categoriesGrid.classList.add('opacity-0', 'scale-95');
-                setTimeout(() => {
-                    categoriesGrid.classList.add('hidden');
-                }, 300);
-            }
+            productsSection.classList.remove('is-hidden');
+            categoriesSection.classList.remove('is-visible');
+            if (toggleProducts)   toggleProducts.classList.add('is-active');
+            if (toggleCategories) toggleCategories.classList.remove('is-active');
+            if (indicator) indicator.classList.remove('at-left');
         } else {
-            productsBtn.classList.remove('text-slate-950');
-            productsBtn.classList.add('text-slate-400', 'hover:text-white');
-            
-            categoriesBtn.classList.remove('text-slate-400', 'hover:text-white');
-            categoriesBtn.classList.add('text-slate-950');
-            
-            const isRTL = document.documentElement.dir === 'rtl';
-            indicator.style.transform = isRTL ? 'translateX(-100%)' : 'translateX(100%)';
-            
-            if (categoriesGrid) {
-                categoriesGrid.classList.remove('hidden');
-                setTimeout(() => {
-                    categoriesGrid.classList.remove('opacity-0', 'scale-95');
-                }, 50);
-            }
-            if (productsGrid) {
-                productsGrid.classList.add('opacity-0', 'scale-95');
-                setTimeout(() => {
-                    productsGrid.classList.add('hidden');
-                }, 300);
-            }
+            productsSection.classList.add('is-hidden');
+            categoriesSection.classList.add('is-visible');
+            if (toggleProducts)   toggleProducts.classList.remove('is-active');
+            if (toggleCategories) toggleCategories.classList.add('is-active');
+            if (indicator) indicator.classList.add('at-left');
         }
-        
-        // Update URL query parameters without full page reload
-        const url = new URL(window.location);
-        if (url.searchParams.get('view') !== view) {
+
+        // Push to URL without reload
+        try {
+            var url = new URL(window.location.href);
             url.searchParams.set('view', view);
-            window.history.pushState({}, '', url);
-        }
+            window.history.replaceState({}, '', url.toString());
+        } catch(e) {}
     }
 
-    // Handle Suggestion Form Submission via AJAX
-    document.addEventListener('DOMContentLoaded', () => {
-        // Initialize active view type
-        const viewType = "{{ view_type }}";
-        if (viewType === 'categories') {
-            switchView('categories');
-        } else {
-            switchView('products');
-        }
+    // Expose globally for onclick attributes
+    window.switchView = switchView;
 
-        // AJAX Submission
-        const suggestionForm = document.getElementById('suggestion-form');
-        if (suggestionForm) {
-            suggestionForm.addEventListener('submit', function(e) {
-                e.preventDefault();
-                
-                const feedbackEl = document.getElementById('suggestion-feedback');
-                const submitBtn = suggestionForm.querySelector('button[type="submit"]');
-                const originalBtnText = submitBtn.innerHTML;
-                
-                submitBtn.disabled = true;
-                submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> جاري الإرسال...';
-                
-                const formData = new FormData(suggestionForm);
-                
-                fetch(suggestionForm.action, {
-                    method: 'POST',
-                    body: formData,
-                    headers: {
-                        'X-Requested-With': 'XMLHttpRequest'
-                    }
-                })
-                .then(response => {
-                    if (response.ok) {
-                        return response.json();
-                    } else {
-                        throw new Error('حدث خطأ أثناء إرسال الاقتراح. يرجى التأكد من تسجيل الدخول وإدخال حقول صحيحة.');
-                    }
-                })
-                .then(data => {
-                    if (data.status === 'success') {
-                        feedbackEl.className = "flex flex-col items-center text-center py-6 space-y-4 animate-reveal";
-                        feedbackEl.innerHTML = `
-                            <div class="w-16 h-16 bg-emerald-500/10 border border-emerald-500/20 text-emerald-500 rounded-2xl flex items-center justify-center shadow-inner">
-                                <i class="fas fa-check-circle text-2xl animate-bounce"></i>
-                            </div>
-                            <h3 class="text-lg font-black text-white">تم إرسال اقتراحك بنجاح!</h3>
-                            <p class="text-slate-400 text-xs leading-relaxed max-w-xs">شكراً لك، سنقوم بمراجعته والرد عليك في أقرب وقت.</p>
-                        `;
-                        suggestionForm.style.display = 'none';
-                        
-                        setTimeout(() => {
-                            document.getElementById('suggestion-modal').style.display = 'none';
-                            setTimeout(() => {
-                                suggestionForm.reset();
-                                suggestionForm.style.display = 'block';
-                                feedbackEl.className = "hidden";
-                                feedbackEl.innerHTML = "";
-                                submitBtn.disabled = false;
-                                submitBtn.innerHTML = originalBtnText;
-                            }, 500);
-                        }, 2500);
-                    } else {
-                        throw new Error(data.message || 'فشل إرسال الاقتراح.');
-                    }
-                })
-                .catch(error => {
-                    console.error(error);
-                    submitBtn.disabled = false;
-                    submitBtn.innerHTML = originalBtnText;
-                    
-                    feedbackEl.className = "p-4 bg-rose-500/10 border border-rose-500/20 text-rose-400 text-xs font-bold rounded-2xl text-center mb-4 animate-reveal";
-                    feedbackEl.innerText = error.message;
+    // Init view from URL param
+    var urlView = new URLSearchParams(window.location.search).get('view');
+    if (urlView === 'categories') {
+        switchView('categories');
+    } else {
+        switchView('products');
+    }
+
+    /* ──────────────────────────────────────────
+       3. AJAX SUGGESTION FORM SUBMISSION
+    ─────────────────────────────────────────── */
+    var suggestionForm   = document.getElementById('suggestion-form');
+    var feedbackEl       = document.getElementById('suggestion-feedback');
+    var submitBtn        = document.getElementById('suggestion-submit-btn');
+
+    if (suggestionForm && feedbackEl && submitBtn) {
+        var originalBtnHTML = submitBtn.innerHTML;
+
+        suggestionForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+
+            // Reset feedback
+            feedbackEl.className = 'modal-feedback';
+            feedbackEl.innerHTML = '';
+
+            // Loading state
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin" style="margin-left:0.4rem;"></i> جاري الإرسال...';
+
+            fetch(suggestionForm.action, {
+                method: 'POST',
+                body: new FormData(suggestionForm),
+                headers: { 'X-Requested-With': 'XMLHttpRequest' }
+            })
+            .then(function(res) {
+                return res.json().then(function(data) {
+                    return { ok: res.ok, data: data };
                 });
+            })
+            .then(function(result) {
+                if (result.ok && result.data.status === 'success') {
+                    // Show success
+                    feedbackEl.className = 'modal-feedback is-success';
+                    feedbackEl.innerHTML =
+                        '<div class="success-icon"><i class="fas fa-check-circle"></i></div>' +
+                        '<h3>تم إرسال اقتراحك بنجاح!</h3>' +
+                        '<p>شكراً لك، سنقوم بمراجعته والرد عليك في أقرب وقت.</p>';
+                    suggestionForm.style.display = 'none';
+
+                    setTimeout(function() {
+                        closeModal();
+                        setTimeout(function() {
+                            suggestionForm.reset();
+                            suggestionForm.style.display = '';
+                            feedbackEl.className = 'modal-feedback';
+                            feedbackEl.innerHTML = '';
+                            submitBtn.disabled = false;
+                            submitBtn.innerHTML = originalBtnHTML;
+                        }, 400);
+                    }, 2500);
+                } else {
+                    throw new Error((result.data && result.data.message) || 'فشل إرسال الاقتراح.');
+                }
+            })
+            .catch(function(err) {
+                feedbackEl.className = 'modal-feedback is-error';
+                feedbackEl.textContent = err.message || 'حدث خطأ غير متوقع. يرجى المحاولة مرة أخرى.';
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = originalBtnHTML;
             });
-        }
-    });
+        });
+    }
+
+})();
 </script>
 {% endblock %}
