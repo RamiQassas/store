@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from apps.wallets.models import LedgerEntry, Wallet, WalletTransaction
+from apps.wallets.models import LedgerEntry, Wallet, WalletTransaction, BalanceTransfer, RechargeCard
 
 
 @admin.register(Wallet)
@@ -23,3 +23,17 @@ class WalletTransactionAdmin(admin.ModelAdmin):
     list_display = ("wallet", "transaction_type", "status", "amount", "reference", "created_at")
     list_filter = ("status", "transaction_type")
     search_fields = ("wallet__user__email", "reference")
+
+
+@admin.register(BalanceTransfer)
+class BalanceTransferAdmin(admin.ModelAdmin):
+    list_display = ("sender", "recipient", "amount", "status", "reference", "created_at")
+    list_filter = ("status", "currency")
+    search_fields = ("sender__email", "recipient__email", "reference")
+
+
+@admin.register(RechargeCard)
+class RechargeCardAdmin(admin.ModelAdmin):
+    list_display = ("code", "store", "amount", "currency", "status", "redeemed_by", "redeemed_at")
+    list_filter = ("status", "store", "currency")
+    search_fields = ("code", "redeemed_by__email")

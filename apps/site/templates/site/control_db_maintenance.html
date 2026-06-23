@@ -12,103 +12,803 @@
 </div>
 
 <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mt-8">
-    <div class="panel p-8 bg-slate-900/40 border-white/5 rounded-3xl">
-        <h3 class="text-xl font-black mb-6 flex items-center gap-3">
+    <div class="panel p-8 bg-slate-900/40 border-white/5 rounded-3xl max-h-[85vh] overflow-y-auto">
+        <h3 class="text-xl font-black mb-4 flex items-center gap-3">
             <i class="fas fa-trash-alt text-rose-500"></i>
-            تنظيف البيانات الانتقائي
+            تنظيف البيانات الانتقائي الشامل
         </h3>
+        <p class="text-slate-400 text-xs mb-6">حدد الجداول أو المجموعات التي تريد تصفيرها. يتم تنفيذ الحذف بترتيب آمن لمنع تعطل قاعدة البيانات.</p>
+        
+        <div class="mb-6 flex gap-3 text-right" dir="rtl">
+            <button type="button" onclick="selectAllTargets(true)" class="btn btn-xs bg-rose-600/20 hover:bg-rose-600/40 text-rose-200 border-none font-bold px-3 py-1 rounded-lg">تحديد الكل</button>
+            <button type="button" onclick="selectAllTargets(false)" class="btn btn-xs bg-slate-800 hover:bg-slate-700 text-slate-300 border-none font-bold px-3 py-1 rounded-lg">إلغاء تحديد الكل</button>
+        </div>
         
         <form method="POST" id="maintenanceForm" onsubmit="return confirm('هل أنت متأكد تماماً؟ سيتم حذف كافة البيانات المختارة نهائياً!')">
             {% csrf_token %}
             <input type="hidden" name="action" value="cleanup">
             
-            <div class="stack gap-4">
-                <label class="flex items-center gap-4 p-4 rounded-2xl bg-white/[0.02] border border-white/5 cursor-pointer hover:bg-white/[0.05] transition">
-                    <input type="checkbox" name="targets" value="orders" class="w-6 h-6 rounded-lg text-rose-600 focus:ring-rose-500">
-                    <div>
-                        <div class="font-bold text-white">الطلبات والمبيعات</div>
-                        <div class="text-[10px] text-slate-500">حذف كافة الطلبات، سجلاتها، وبنود المنتجات المباعة.</div>
+            <div class="stack gap-6 text-right" dir="rtl">
+                <!-- Accounts Group -->
+                <div class="bg-white/[0.01] border border-white/5 rounded-2xl p-4">
+                    <div class="flex justify-between items-center mb-3 pb-1 border-b border-white/5">
+                        <span class="text-xs font-bold text-slate-300">Accounts (الحسابات)</span>
+                        <label class="flex items-center gap-1 cursor-pointer">
+                            <input type="checkbox" onclick="toggleGroup(this, 'group_accounts')" class="w-4 h-4 rounded text-rose-600 bg-slate-900 border-white/10">
+                            <span class="text-[10px] text-slate-500 mr-1">تحديد الكل</span>
+                        </label>
                     </div>
-                </label>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3" id="group_accounts">
+                        <label class="flex items-center gap-2 p-2.5 rounded-xl bg-white/[0.02] border border-white/5 cursor-pointer hover:bg-white/[0.05] transition">
+                            <input type="checkbox" name="targets" value="users" class="w-4 h-4 rounded text-rose-600 bg-slate-900 border-white/10">
+                            <div class="flex-1 flex justify-between items-center">
+                                <span class="text-xs text-white font-medium">المستخدمون</span>
+                                <span class="text-[10px] text-rose-400 font-bold">({{ stats.users }})</span>
+                            </div>
+                        </label>
+                        <label class="flex items-center gap-2 p-2.5 rounded-xl bg-white/[0.02] border border-white/5 cursor-pointer hover:bg-white/[0.05] transition">
+                            <input type="checkbox" name="targets" value="security_events" class="w-4 h-4 rounded text-rose-600 bg-slate-900 border-white/10">
+                            <div class="flex-1 flex justify-between items-center">
+                                <span class="text-xs text-white font-medium">سجلات الأمان</span>
+                                <span class="text-[10px] text-rose-400 font-bold">({{ stats.security_events }})</span>
+                            </div>
+                        </label>
+                        <label class="flex items-center gap-2 p-2.5 rounded-xl bg-white/[0.02] border border-white/5 cursor-pointer hover:bg-white/[0.05] transition">
+                            <input type="checkbox" name="targets" value="user_sessions" class="w-4 h-4 rounded text-rose-600 bg-slate-900 border-white/10">
+                            <div class="flex-1 flex justify-between items-center">
+                                <span class="text-xs text-white font-medium">جلسات النشاط</span>
+                                <span class="text-[10px] text-rose-400 font-bold">({{ stats.user_sessions }})</span>
+                            </div>
+                        </label>
+                        <label class="flex items-center gap-2 p-2.5 rounded-xl bg-white/[0.02] border border-white/5 cursor-pointer hover:bg-white/[0.05] transition">
+                            <input type="checkbox" name="targets" value="email_addresses" class="w-4 h-4 rounded text-rose-600 bg-slate-900 border-white/10">
+                            <div class="flex-1 flex justify-between items-center">
+                                <span class="text-xs text-white font-medium">عناوين البريد (allauth)</span>
+                                <span class="text-[10px] text-rose-400 font-bold">({{ stats.email_addresses }})</span>
+                            </div>
+                        </label>
+                    </div>
+                </div>
 
-                <label class="flex items-center gap-4 p-4 rounded-2xl bg-white/[0.02] border border-white/5 cursor-pointer hover:bg-white/[0.05] transition">
-                    <input type="checkbox" name="targets" value="financials" class="w-6 h-6 rounded-lg text-rose-600 focus:ring-rose-500">
-                    <div>
-                        <div class="font-bold text-white">العمليات المالية والحركات</div>
-                        <div class="text-[10px] text-slate-500">حذف كافة طلبات الإيداع، السحب، سجلات المحفظة (Ledger)، والعمليات التاريخية.</div>
+                <!-- Catalog Group -->
+                <div class="bg-white/[0.01] border border-white/5 rounded-2xl p-4">
+                    <div class="flex justify-between items-center mb-3 pb-1 border-b border-white/5">
+                        <span class="text-xs font-bold text-slate-300">Catalog (المنتجات والأقسام)</span>
+                        <label class="flex items-center gap-1 cursor-pointer">
+                            <input type="checkbox" onclick="toggleGroup(this, 'group_catalog')" class="w-4 h-4 rounded text-rose-600 bg-slate-900 border-white/10">
+                            <span class="text-[10px] text-slate-500 mr-1">تحديد الكل</span>
+                        </label>
                     </div>
-                </label>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3" id="group_catalog">
+                        <label class="flex items-center gap-2 p-2.5 rounded-xl bg-white/[0.02] border border-white/5 cursor-pointer hover:bg-white/[0.05] transition">
+                            <input type="checkbox" name="targets" value="categories" class="w-4 h-4 rounded text-rose-600 bg-slate-900 border-white/10">
+                            <div class="flex-1 flex justify-between items-center">
+                                <span class="text-xs text-white font-medium">التصنيفات</span>
+                                <span class="text-[10px] text-rose-400 font-bold">({{ stats.categories }})</span>
+                            </div>
+                        </label>
+                        <label class="flex items-center gap-2 p-2.5 rounded-xl bg-white/[0.02] border border-white/5 cursor-pointer hover:bg-white/[0.05] transition">
+                            <input type="checkbox" name="targets" value="products" class="w-4 h-4 rounded text-rose-600 bg-slate-900 border-white/10">
+                            <div class="flex-1 flex justify-between items-center">
+                                <span class="text-xs text-white font-medium">المنتجات</span>
+                                <span class="text-[10px] text-rose-400 font-bold">({{ stats.products }})</span>
+                            </div>
+                        </label>
+                        <label class="flex items-center gap-2 p-2.5 rounded-xl bg-white/[0.02] border border-white/5 cursor-pointer hover:bg-white/[0.05] transition">
+                            <input type="checkbox" name="targets" value="product_variants" class="w-4 h-4 rounded text-rose-600 bg-slate-900 border-white/10">
+                            <div class="flex-1 flex justify-between items-center">
+                                <span class="text-xs text-white font-medium">باقات المنتجات</span>
+                                <span class="text-[10px] text-rose-400 font-bold">({{ stats.product_variants }})</span>
+                            </div>
+                        </label>
+                    </div>
+                </div>
 
-                <label class="flex items-center gap-4 p-4 rounded-2xl bg-white/[0.02] border border-white/5 cursor-pointer hover:bg-white/[0.05] transition">
-                    <input type="checkbox" name="targets" value="kyc" class="w-6 h-6 rounded-lg text-rose-600 focus:ring-rose-500">
-                    <div>
-                        <div class="font-bold text-white">طلبات توثيق الهوية (KYC)</div>
-                        <div class="text-[10px] text-slate-500">حذف كافة الوثائق والطلبات المرفوعة من قبل المستخدمين.</div>
+                <!-- Common Group -->
+                <div class="bg-white/[0.01] border border-white/5 rounded-2xl p-4">
+                    <div class="flex justify-between items-center mb-3 pb-1 border-b border-white/5">
+                        <span class="text-xs font-bold text-slate-300">Common (البيانات العامة)</span>
+                        <label class="flex items-center gap-1 cursor-pointer">
+                            <input type="checkbox" onclick="toggleGroup(this, 'group_common')" class="w-4 h-4 rounded text-rose-600 bg-slate-900 border-white/10">
+                            <span class="text-[10px] text-slate-500 mr-1">تحديد الكل</span>
+                        </label>
                     </div>
-                </label>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3" id="group_common">
+                        <label class="flex items-center gap-2 p-2.5 rounded-xl bg-white/[0.02] border border-white/5 cursor-pointer hover:bg-white/[0.05] transition">
+                            <input type="checkbox" name="targets" value="platform_stats" class="w-4 h-4 rounded text-rose-600 bg-slate-900 border-white/10">
+                            <div class="flex-1 flex justify-between items-center">
+                                <span class="text-xs text-white font-medium">إحصائيات المنصة</span>
+                                <span class="text-[10px] text-rose-400 font-bold">({{ stats.platform_stats }})</span>
+                            </div>
+                        </label>
+                        <label class="flex items-center gap-2 p-2.5 rounded-xl bg-white/[0.02] border border-white/5 cursor-pointer hover:bg-white/[0.05] transition">
+                            <input type="checkbox" name="targets" value="currencies" class="w-4 h-4 rounded text-rose-600 bg-slate-900 border-white/10">
+                            <div class="flex-1 flex justify-between items-center">
+                                <span class="text-xs text-white font-medium">العملات</span>
+                                <span class="text-[10px] text-rose-400 font-bold">({{ stats.currencies }})</span>
+                            </div>
+                        </label>
+                        <label class="flex items-center gap-2 p-2.5 rounded-xl bg-white/[0.02] border border-white/5 cursor-pointer hover:bg-white/[0.05] transition">
+                            <input type="checkbox" name="targets" value="social_links" class="w-4 h-4 rounded text-rose-600 bg-slate-900 border-white/10">
+                            <div class="flex-1 flex justify-between items-center">
+                                <span class="text-xs text-white font-medium">روابط التواصل</span>
+                                <span class="text-[10px] text-rose-400 font-bold">({{ stats.social_links }})</span>
+                            </div>
+                        </label>
+                        <label class="flex items-center gap-2 p-2.5 rounded-xl bg-white/[0.02] border border-white/5 cursor-pointer hover:bg-white/[0.05] transition">
+                            <input type="checkbox" name="targets" value="system_audit_logs" class="w-4 h-4 rounded text-rose-600 bg-slate-900 border-white/10">
+                            <div class="flex-1 flex justify-between items-center">
+                                <span class="text-xs text-white font-medium">سجلات تدقيق النظام</span>
+                                <span class="text-[10px] text-rose-400 font-bold">({{ stats.system_audit_logs }})</span>
+                            </div>
+                        </label>
+                        <label class="flex items-center gap-2 p-2.5 rounded-xl bg-white/[0.02] border border-white/5 cursor-pointer hover:bg-white/[0.05] transition">
+                            <input type="checkbox" name="targets" value="testimonials" class="w-4 h-4 rounded text-rose-600 bg-slate-900 border-white/10">
+                            <div class="flex-1 flex justify-between items-center">
+                                <span class="text-xs text-white font-medium">شهادات العملاء</span>
+                                <span class="text-[10px] text-rose-400 font-bold">({{ stats.testimonials }})</span>
+                            </div>
+                        </label>
+                        <label class="flex items-center gap-2 p-2.5 rounded-xl bg-white/[0.02] border border-white/5 cursor-pointer hover:bg-white/[0.05] transition">
+                            <input type="checkbox" name="targets" value="site_announcements" class="w-4 h-4 rounded text-rose-600 bg-slate-900 border-white/10">
+                            <div class="flex-1 flex justify-between items-center">
+                                <span class="text-xs text-white font-medium">ملاحظات شريط الموقع</span>
+                                <span class="text-[10px] text-rose-400 font-bold">({{ stats.site_announcements }})</span>
+                            </div>
+                        </label>
+                    </div>
+                </div>
 
-                <label class="flex items-center gap-4 p-4 rounded-2xl bg-emerald-500/[0.03] border border-emerald-500/10 cursor-pointer hover:bg-emerald-500/[0.08] transition">
-                    <input type="checkbox" name="targets" value="reset_limits" class="w-6 h-6 rounded-lg text-emerald-600 focus:ring-emerald-500">
-                    <div>
-                        <div class="font-bold text-white">إعادة ضبط جميع الحدود اليومية</div>
-                        <div class="text-[10px] text-slate-500">تصفير كافة عدادات الاستخدام اليومي (إيداع/سحب) لكل المستخدمين ووسائل الدفع فوراً.</div>
+                <!-- Notifications Group -->
+                <div class="bg-white/[0.01] border border-white/5 rounded-2xl p-4">
+                    <div class="flex justify-between items-center mb-3 pb-1 border-b border-white/5">
+                        <span class="text-xs font-bold text-slate-300">Notifications (الإشعارات)</span>
+                        <label class="flex items-center gap-1 cursor-pointer">
+                            <input type="checkbox" onclick="toggleGroup(this, 'group_notifications')" class="w-4 h-4 rounded text-rose-600 bg-slate-900 border-white/10">
+                            <span class="text-[10px] text-slate-500 mr-1">تحديد الكل</span>
+                        </label>
                     </div>
-                </label>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3" id="group_notifications">
+                        <label class="flex items-center gap-2 p-2.5 rounded-xl bg-white/[0.02] border border-white/5 cursor-pointer hover:bg-white/[0.05] transition">
+                            <input type="checkbox" name="targets" value="notifications" class="w-4 h-4 rounded text-rose-600 bg-slate-900 border-white/10">
+                            <div class="flex-1 flex justify-between items-center">
+                                <span class="text-xs text-white font-medium">الإشعارات</span>
+                                <span class="text-[10px] text-rose-400 font-bold">({{ stats.notifications }})</span>
+                            </div>
+                        </label>
+                    </div>
+                </div>
 
-                <label class="flex items-center gap-4 p-4 rounded-2xl bg-white/[0.02] border border-white/5 cursor-pointer hover:bg-white/[0.05] transition">
-                    <input type="checkbox" name="targets" value="logs" class="w-6 h-6 rounded-lg text-rose-600 focus:ring-rose-500">
-                    <div>
-                        <div class="font-bold text-white">السجلات والتنبيهات</div>
-                        <div class="text-[10px] text-slate-500">حذف سجلات النشاط (Activity Logs) وكافة التنبيهات المرسلة.</div>
+                <!-- Orders Group -->
+                <div class="bg-white/[0.01] border border-white/5 rounded-2xl p-4">
+                    <div class="flex justify-between items-center mb-3 pb-1 border-b border-white/5">
+                        <span class="text-xs font-bold text-slate-300">Orders (المبيعات)</span>
+                        <label class="flex items-center gap-1 cursor-pointer">
+                            <input type="checkbox" onclick="toggleGroup(this, 'group_orders')" class="w-4 h-4 rounded text-rose-600 bg-slate-900 border-white/10">
+                            <span class="text-[10px] text-slate-500 mr-1">تحديد الكل</span>
+                        </label>
                     </div>
-                </label>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3" id="group_orders">
+                        <label class="flex items-center gap-2 p-2.5 rounded-xl bg-white/[0.02] border border-white/5 cursor-pointer hover:bg-white/[0.05] transition">
+                            <input type="checkbox" name="targets" value="orders" class="w-4 h-4 rounded text-rose-600 bg-slate-900 border-white/10">
+                            <div class="flex-1 flex justify-between items-center">
+                                <span class="text-xs text-white font-medium">الطلبات</span>
+                                <span class="text-[10px] text-rose-400 font-bold">({{ stats.orders }})</span>
+                            </div>
+                        </label>
+                        <label class="flex items-center gap-2 p-2.5 rounded-xl bg-white/[0.02] border border-white/5 cursor-pointer hover:bg-white/[0.05] transition">
+                            <input type="checkbox" name="targets" value="invoices" class="w-4 h-4 rounded text-rose-600 bg-slate-900 border-white/10">
+                            <div class="flex-1 flex justify-between items-center">
+                                <span class="text-xs text-white font-medium">الفواتير</span>
+                                <span class="text-[10px] text-rose-400 font-bold">({{ stats.invoices }})</span>
+                            </div>
+                        </label>
+                        <label class="flex items-center gap-2 p-2.5 rounded-xl bg-white/[0.02] border border-white/5 cursor-pointer hover:bg-white/[0.05] transition">
+                            <input type="checkbox" name="targets" value="coupons" class="w-4 h-4 rounded text-rose-600 bg-slate-900 border-white/10">
+                            <div class="flex-1 flex justify-between items-center">
+                                <span class="text-xs text-white font-medium">الكوبونات</span>
+                                <span class="text-[10px] text-rose-400 font-bold">({{ stats.coupons }})</span>
+                            </div>
+                        </label>
+                    </div>
+                </div>
 
-                <label class="flex items-center gap-4 p-4 rounded-2xl bg-white/[0.02] border border-white/5 cursor-pointer hover:bg-white/[0.05] transition">
-                    <input type="checkbox" name="targets" value="users" class="w-6 h-6 rounded-lg text-rose-600 focus:ring-rose-500">
-                    <div>
-                        <div class="font-bold text-white">المستخدمين (الزبائن فقط)</div>
-                        <div class="text-[10px] text-slate-500">حذف كافة حسابات الزبائن. <span class="text-rose-400 font-black">لن يتم حذف حسابات المدراء أو الموظفين.</span></div>
+                <!-- Payments Group -->
+                <div class="bg-white/[0.01] border border-white/5 rounded-2xl p-4">
+                    <div class="flex justify-between items-center mb-3 pb-1 border-b border-white/5">
+                        <span class="text-xs font-bold text-slate-300">Payments (المدفوعات)</span>
+                        <label class="flex items-center gap-1 cursor-pointer">
+                            <input type="checkbox" onclick="toggleGroup(this, 'group_payments')" class="w-4 h-4 rounded text-rose-600 bg-slate-900 border-white/10">
+                            <span class="text-[10px] text-slate-500 mr-1">تحديد الكل</span>
+                        </label>
                     </div>
-                </label>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3" id="group_payments">
+                        <label class="flex items-center gap-2 p-2.5 rounded-xl bg-white/[0.02] border border-white/5 cursor-pointer hover:bg-white/[0.05] transition">
+                            <input type="checkbox" name="targets" value="deposits" class="w-4 h-4 rounded text-rose-600 bg-slate-900 border-white/10">
+                            <div class="flex-1 flex justify-between items-center">
+                                <span class="text-xs text-white font-medium">طلبات الإيداع</span>
+                                <span class="text-[10px] text-rose-400 font-bold">({{ stats.deposits }})</span>
+                            </div>
+                        </label>
+                        <label class="flex items-center gap-2 p-2.5 rounded-xl bg-white/[0.02] border border-white/5 cursor-pointer hover:bg-white/[0.05] transition">
+                            <input type="checkbox" name="targets" value="withdrawals" class="w-4 h-4 rounded text-rose-600 bg-slate-900 border-white/10">
+                            <div class="flex-1 flex justify-between items-center">
+                                <span class="text-xs text-white font-medium">طلبات السحب</span>
+                                <span class="text-[10px] text-rose-400 font-bold">({{ stats.withdrawals }})</span>
+                            </div>
+                        </label>
+                        <label class="flex items-center gap-2 p-2.5 rounded-xl bg-white/[0.02] border border-white/5 cursor-pointer hover:bg-white/[0.05] transition">
+                            <input type="checkbox" name="targets" value="payment_methods" class="w-4 h-4 rounded text-rose-600 bg-slate-900 border-white/10">
+                            <div class="flex-1 flex justify-between items-center">
+                                <span class="text-xs text-white font-medium">وسائل الدفع</span>
+                                <span class="text-[10px] text-rose-400 font-bold">({{ stats.payment_methods }})</span>
+                            </div>
+                        </label>
+                        <label class="flex items-center gap-2 p-2.5 rounded-xl bg-emerald-500/[0.03] border border-emerald-500/10 cursor-pointer hover:bg-emerald-500/[0.08] transition">
+                            <input type="checkbox" name="targets" value="payment_methods_reset" class="w-4 h-4 rounded text-emerald-600 bg-slate-900 border-white/10">
+                            <div class="flex-1 flex justify-between items-center">
+                                <span class="text-xs text-white font-bold">تصفير حدود الاستخدام</span>
+                                <span class="text-[9px] text-emerald-400 font-bold">(تصفير العدادات)</span>
+                            </div>
+                        </label>
+                    </div>
+                </div>
 
-                <label class="flex items-center gap-4 p-4 rounded-2xl bg-white/[0.02] border border-white/5 cursor-pointer hover:bg-white/[0.05] transition">
-                    <input type="checkbox" name="targets" value="catalog" class="w-6 h-6 rounded-lg text-rose-600 focus:ring-rose-500">
-                    <div>
-                        <div class="font-bold text-white">الكتالوج والمنتجات</div>
-                        <div class="text-[10px] text-slate-500">حذف كافة الأقسام، المنتجات، والباقات.</div>
+                <!-- Services Group -->
+                <div class="bg-white/[0.01] border border-white/5 rounded-2xl p-4">
+                    <div class="flex justify-between items-center mb-3 pb-1 border-b border-white/5">
+                        <span class="text-xs font-bold text-slate-300">Services (الخدمات)</span>
+                        <label class="flex items-center gap-1 cursor-pointer">
+                            <input type="checkbox" onclick="toggleGroup(this, 'group_services')" class="w-4 h-4 rounded text-rose-600 bg-slate-900 border-white/10">
+                            <span class="text-[10px] text-slate-500 mr-1">تحديد الكل</span>
+                        </label>
                     </div>
-                </label>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3" id="group_services">
+                        <label class="flex items-center gap-2 p-2.5 rounded-xl bg-white/[0.02] border border-white/5 cursor-pointer hover:bg-white/[0.05] transition">
+                            <input type="checkbox" name="targets" value="services" class="w-4 h-4 rounded text-rose-600 bg-slate-900 border-white/10">
+                            <div class="flex-1 flex justify-between items-center">
+                                <span class="text-xs text-white font-medium">الخدمات</span>
+                                <span class="text-[10px] text-rose-400 font-bold">({{ stats.services }})</span>
+                            </div>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Support Group -->
+                <div class="bg-white/[0.01] border border-white/5 rounded-2xl p-4">
+                    <div class="flex justify-between items-center mb-3 pb-1 border-b border-white/5">
+                        <span class="text-xs font-bold text-slate-300">Support (الدعم الفني)</span>
+                        <label class="flex items-center gap-1 cursor-pointer">
+                            <input type="checkbox" onclick="toggleGroup(this, 'group_support')" class="w-4 h-4 rounded text-rose-600 bg-slate-900 border-white/10">
+                            <span class="text-[10px] text-slate-500 mr-1">تحديد الكل</span>
+                        </label>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3" id="group_support">
+                        <label class="flex items-center gap-2 p-2.5 rounded-xl bg-white/[0.02] border border-white/5 cursor-pointer hover:bg-white/[0.05] transition">
+                            <input type="checkbox" name="targets" value="support_settings" class="w-4 h-4 rounded text-rose-600 bg-slate-900 border-white/10">
+                            <div class="flex-1 flex justify-between items-center">
+                                <span class="text-xs text-white font-medium">إعدادات الدعم</span>
+                                <span class="text-[10px] text-rose-400 font-bold">({{ stats.support_settings }})</span>
+                            </div>
+                        </label>
+                        <label class="flex items-center gap-2 p-2.5 rounded-xl bg-white/[0.02] border border-white/5 cursor-pointer hover:bg-white/[0.05] transition">
+                            <input type="checkbox" name="targets" value="chat_canned_replies" class="w-4 h-4 rounded text-rose-600 bg-slate-900 border-white/10">
+                            <div class="flex-1 flex justify-between items-center">
+                                <span class="text-xs text-white font-medium">الردود الجاهزة (محادثة)</span>
+                                <span class="text-[10px] text-rose-400 font-bold">({{ stats.chat_canned_replies }})</span>
+                            </div>
+                        </label>
+                        <label class="flex items-center gap-2 p-2.5 rounded-xl bg-white/[0.02] border border-white/5 cursor-pointer hover:bg-white/[0.05] transition">
+                            <input type="checkbox" name="targets" value="chat_rooms" class="w-4 h-4 rounded text-rose-600 bg-slate-900 border-white/10">
+                            <div class="flex-1 flex justify-between items-center">
+                                <span class="text-xs text-white font-medium">غرف المحادثة</span>
+                                <span class="text-[10px] text-rose-400 font-bold">({{ stats.chat_rooms }})</span>
+                            </div>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Token Blacklist Group -->
+                <div class="bg-white/[0.01] border border-white/5 rounded-2xl p-4">
+                    <div class="flex justify-between items-center mb-3 pb-1 border-b border-white/5">
+                        <span class="text-xs font-bold text-slate-300">Token Blacklist (رموز المصادقة)</span>
+                        <label class="flex items-center gap-1 cursor-pointer">
+                            <input type="checkbox" onclick="toggleGroup(this, 'group_blacklist')" class="w-4 h-4 rounded text-rose-600 bg-slate-900 border-white/10">
+                            <span class="text-[10px] text-slate-500 mr-1">تحديد الكل</span>
+                        </label>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3" id="group_blacklist">
+                        <label class="flex items-center gap-2 p-2.5 rounded-xl bg-white/[0.02] border border-white/5 cursor-pointer hover:bg-white/[0.05] transition">
+                            <input type="checkbox" name="targets" value="outstanding_tokens" class="w-4 h-4 rounded text-rose-600 bg-slate-900 border-white/10">
+                            <div class="flex-1 flex justify-between items-center">
+                                <span class="text-xs text-white font-medium">رموز مميزة (Outstanding)</span>
+                                <span class="text-[10px] text-rose-400 font-bold">({{ stats.outstanding_tokens }})</span>
+                            </div>
+                        </label>
+                        <label class="flex items-center gap-2 p-2.5 rounded-xl bg-white/[0.02] border border-white/5 cursor-pointer hover:bg-white/[0.05] transition">
+                            <input type="checkbox" name="targets" value="blacklisted_tokens" class="w-4 h-4 rounded text-rose-600 bg-slate-900 border-white/10">
+                            <div class="flex-1 flex justify-between items-center">
+                                <span class="text-xs text-white font-medium">رموز محظورة (Blacklisted)</span>
+                                <span class="text-[10px] text-rose-400 font-bold">({{ stats.blacklisted_tokens }})</span>
+                            </div>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Wallets Group -->
+                <div class="bg-white/[0.01] border border-white/5 rounded-2xl p-4">
+                    <div class="flex justify-between items-center mb-3 pb-1 border-b border-white/5">
+                        <span class="text-xs font-bold text-slate-300">Wallets (المحافظ والتحويلات)</span>
+                        <label class="flex items-center gap-1 cursor-pointer">
+                            <input type="checkbox" onclick="toggleGroup(this, 'group_wallets')" class="w-4 h-4 rounded text-rose-600 bg-slate-900 border-white/10">
+                            <span class="text-[10px] text-slate-500 mr-1">تحديد الكل</span>
+                        </label>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3" id="group_wallets">
+                        <label class="flex items-center gap-2 p-2.5 rounded-xl bg-white/[0.02] border border-white/5 cursor-pointer hover:bg-white/[0.05] transition">
+                            <input type="checkbox" name="targets" value="wallets" class="w-4 h-4 rounded text-rose-600 bg-slate-900 border-white/10">
+                            <div class="flex-1 flex justify-between items-center">
+                                <span class="text-xs text-white font-medium">المحافظ</span>
+                                <span class="text-[10px] text-rose-400 font-bold">({{ stats.wallets }})</span>
+                            </div>
+                        </label>
+                        <label class="flex items-center gap-2 p-2.5 rounded-xl bg-white/[0.02] border border-white/5 cursor-pointer hover:bg-white/[0.05] transition">
+                            <input type="checkbox" name="targets" value="wallet_transactions" class="w-4 h-4 rounded text-rose-600 bg-slate-900 border-white/10">
+                            <div class="flex-1 flex justify-between items-center">
+                                <span class="text-xs text-white font-medium">العمليات المالية للمحافظ</span>
+                                <span class="text-[10px] text-rose-400 font-bold">({{ stats.wallet_transactions }})</span>
+                            </div>
+                        </label>
+                        <label class="flex items-center gap-2 p-2.5 rounded-xl bg-white/[0.02] border border-white/5 cursor-pointer hover:bg-white/[0.05] transition">
+                            <input type="checkbox" name="targets" value="ledger_entries" class="w-4 h-4 rounded text-rose-600 bg-slate-900 border-white/10">
+                            <div class="flex-1 flex justify-between items-center">
+                                <span class="text-xs text-white font-medium">سجلات الحركة (Ledger)</span>
+                                <span class="text-[10px] text-rose-400 font-bold">({{ stats.ledger_entries }})</span>
+                            </div>
+                        </label>
+                        <label class="flex items-center gap-2 p-2.5 rounded-xl bg-white/[0.02] border border-white/5 cursor-pointer hover:bg-white/[0.05] transition">
+                            <input type="checkbox" name="targets" value="balance_transfers" class="w-4 h-4 rounded text-rose-600 bg-slate-900 border-white/10">
+                            <div class="flex-1 flex justify-between items-center">
+                                <span class="text-xs text-white font-medium">تحويلات الأرصدة</span>
+                                <span class="text-[10px] text-rose-400 font-bold">({{ stats.balance_transfers }})</span>
+                            </div>
+                        </label>
+                        <label class="flex items-center gap-2 p-2.5 rounded-xl bg-white/[0.02] border border-white/5 cursor-pointer hover:bg-white/[0.05] transition">
+                            <input type="checkbox" name="targets" value="recharge_cards" class="w-4 h-4 rounded text-rose-600 bg-slate-900 border-white/10">
+                            <div class="flex-1 flex justify-between items-center">
+                                <span class="text-xs text-white font-medium">بطاقات الشحن</span>
+                                <span class="text-[10px] text-rose-400 font-bold">({{ stats.recharge_cards }})</span>
+                            </div>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Store Management Group -->
+                <div class="bg-white/[0.01] border border-white/5 rounded-2xl p-4">
+                    <div class="flex justify-between items-center mb-3 pb-1 border-b border-white/5">
+                        <span class="text-xs font-bold text-slate-300">Store Management (إدارة المتاجر)</span>
+                        <label class="flex items-center gap-1 cursor-pointer">
+                            <input type="checkbox" onclick="toggleGroup(this, 'group_stores')" class="w-4 h-4 rounded text-rose-600 bg-slate-900 border-white/10">
+                            <span class="text-[10px] text-slate-500 mr-1">تحديد الكل</span>
+                        </label>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3" id="group_stores">
+                        <label class="flex items-center gap-2 p-2.5 rounded-xl bg-white/[0.02] border border-white/5 cursor-pointer hover:bg-white/[0.05] transition">
+                            <input type="checkbox" name="targets" value="stores" class="w-4 h-4 rounded text-rose-600 bg-slate-900 border-white/10">
+                            <div class="flex-1 flex justify-between items-center">
+                                <span class="text-xs text-white font-medium">المتاجر</span>
+                                <span class="text-[10px] text-rose-400 font-bold">({{ stats.stores }})</span>
+                            </div>
+                        </label>
+                        <label class="flex items-center gap-2 p-2.5 rounded-xl bg-white/[0.02] border border-white/5 cursor-pointer hover:bg-white/[0.05] transition">
+                            <input type="checkbox" name="targets" value="store_settings" class="w-4 h-4 rounded text-rose-600 bg-slate-900 border-white/10">
+                            <div class="flex-1 flex justify-between items-center">
+                                <span class="text-xs text-white font-medium">إعدادات المتاجر</span>
+                                <span class="text-[10px] text-rose-400 font-bold">({{ stats.store_settings }})</span>
+                            </div>
+                        </label>
+                        <label class="flex items-center gap-2 p-2.5 rounded-xl bg-white/[0.02] border border-white/5 cursor-pointer hover:bg-white/[0.05] transition">
+                            <input type="checkbox" name="targets" value="saas_global_settings" class="w-4 h-4 rounded text-rose-600 bg-slate-900 border-white/10">
+                            <div class="flex-1 flex justify-between items-center">
+                                <span class="text-xs text-white font-medium">إعدادات عامة SaaS</span>
+                                <span class="text-[10px] text-rose-400 font-bold">({{ stats.saas_global_settings }})</span>
+                            </div>
+                        </label>
+                        <label class="flex items-center gap-2 p-2.5 rounded-xl bg-white/[0.02] border border-white/5 cursor-pointer hover:bg-white/[0.05] transition">
+                            <input type="checkbox" name="targets" value="saas_admin_roles" class="w-4 h-4 rounded text-rose-600 bg-slate-900 border-white/10">
+                            <div class="flex-1 flex justify-between items-center">
+                                <span class="text-xs text-white font-medium">أدوار SaaS الإدارية</span>
+                                <span class="text-[10px] text-rose-400 font-bold">({{ stats.saas_admin_roles }})</span>
+                            </div>
+                        </label>
+                        <label class="flex items-center gap-2 p-2.5 rounded-xl bg-white/[0.02] border border-white/5 cursor-pointer hover:bg-white/[0.05] transition">
+                            <input type="checkbox" name="targets" value="subscription_plans" class="w-4 h-4 rounded text-rose-600 bg-slate-900 border-white/10">
+                            <div class="flex-1 flex justify-between items-center">
+                                <span class="text-xs text-white font-medium">خطط الاشتراكات</span>
+                                <span class="text-[10px] text-rose-400 font-bold">({{ stats.subscription_plans }})</span>
+                            </div>
+                        </label>
+                        <label class="flex items-center gap-2 p-2.5 rounded-xl bg-white/[0.02] border border-white/5 cursor-pointer hover:bg-white/[0.05] transition">
+                            <input type="checkbox" name="targets" value="saas_audit_logs" class="w-4 h-4 rounded text-rose-600 bg-slate-900 border-white/10">
+                            <div class="flex-1 flex justify-between items-center">
+                                <span class="text-xs text-white font-medium">سجلات تدقيق SaaS</span>
+                                <span class="text-[10px] text-rose-400 font-bold">({{ stats.saas_audit_logs }})</span>
+                            </div>
+                        </label>
+                        <label class="flex items-center gap-2 p-2.5 rounded-xl bg-white/[0.02] border border-white/5 cursor-pointer hover:bg-white/[0.05] transition">
+                            <input type="checkbox" name="targets" value="store_pages" class="w-4 h-4 rounded text-rose-600 bg-slate-900 border-white/10">
+                            <div class="flex-1 flex justify-between items-center">
+                                <span class="text-xs text-white font-medium">صفحات المتاجر</span>
+                                <span class="text-[10px] text-rose-400 font-bold">({{ stats.store_pages }})</span>
+                            </div>
+                        </label>
+                        <label class="flex items-center gap-2 p-2.5 rounded-xl bg-white/[0.02] border border-white/5 cursor-pointer hover:bg-white/[0.05] transition">
+                            <input type="checkbox" name="targets" value="subscription_invoices" class="w-4 h-4 rounded text-rose-600 bg-slate-900 border-white/10">
+                            <div class="flex-1 flex justify-between items-center">
+                                <span class="text-xs text-white font-medium">فواتير الاشتراكات</span>
+                                <span class="text-[10px] text-rose-400 font-bold">({{ stats.subscription_invoices }})</span>
+                            </div>
+                        </label>
+                        <label class="flex items-center gap-2 p-2.5 rounded-xl bg-white/[0.02] border border-white/5 cursor-pointer hover:bg-white/[0.05] transition">
+                            <input type="checkbox" name="targets" value="store_templates" class="w-4 h-4 rounded text-rose-600 bg-slate-900 border-white/10">
+                            <div class="flex-1 flex justify-between items-center">
+                                <span class="text-xs text-white font-medium">قوالب المتاجر</span>
+                                <span class="text-[10px] text-rose-400 font-bold">({{ stats.store_templates }})</span>
+                            </div>
+                        </label>
+                        <label class="flex items-center gap-2 p-2.5 rounded-xl bg-white/[0.02] border border-white/5 cursor-pointer hover:bg-white/[0.05] transition">
+                            <input type="checkbox" name="targets" value="store_employees" class="w-4 h-4 rounded text-rose-600 bg-slate-900 border-white/10">
+                            <div class="flex-1 flex justify-between items-center">
+                                <span class="text-xs text-white font-medium">موظفو المتاجر</span>
+                                <span class="text-[10px] text-rose-400 font-bold">({{ stats.store_employees }})</span>
+                            </div>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Auth & Sites Group -->
+                <div class="bg-white/[0.01] border border-white/5 rounded-2xl p-4">
+                    <div class="flex justify-between items-center mb-3 pb-1 border-b border-white/5">
+                        <span class="text-xs font-bold text-slate-300">Authentication, Authorization & Sites</span>
+                        <label class="flex items-center gap-1 cursor-pointer">
+                            <input type="checkbox" onclick="toggleGroup(this, 'group_auth_sites')" class="w-4 h-4 rounded text-rose-600 bg-slate-900 border-white/10">
+                            <span class="text-[10px] text-slate-500 mr-1">تحديد الكل</span>
+                        </label>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3" id="group_auth_sites">
+                        <label class="flex items-center gap-2 p-2.5 rounded-xl bg-white/[0.02] border border-white/5 cursor-pointer hover:bg-white/[0.05] transition">
+                            <input type="checkbox" name="targets" value="groups" class="w-4 h-4 rounded text-rose-600 bg-slate-900 border-white/10">
+                            <div class="flex-1 flex justify-between items-center">
+                                <span class="text-xs text-white font-medium">المجموعات (Groups)</span>
+                                <span class="text-[10px] text-rose-400 font-bold">({{ stats.groups }})</span>
+                            </div>
+                        </label>
+                        <label class="flex items-center gap-2 p-2.5 rounded-xl bg-white/[0.02] border border-white/5 cursor-pointer hover:bg-white/[0.05] transition">
+                            <input type="checkbox" name="targets" value="sites" class="w-4 h-4 rounded text-rose-600 bg-slate-900 border-white/10">
+                            <div class="flex-1 flex justify-between items-center">
+                                <span class="text-xs text-white font-medium">المواقع (Sites)</span>
+                                <span class="text-[10px] text-rose-400 font-bold">({{ stats.sites }})</span>
+                            </div>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Social Accounts Group -->
+                <div class="bg-white/[0.01] border border-white/5 rounded-2xl p-4">
+                    <div class="flex justify-between items-center mb-3 pb-1 border-b border-white/5">
+                        <span class="text-xs font-bold text-slate-300">Social Accounts (حسابات التواصل)</span>
+                        <label class="flex items-center gap-1 cursor-pointer">
+                            <input type="checkbox" onclick="toggleGroup(this, 'group_social')" class="w-4 h-4 rounded text-rose-600 bg-slate-900 border-white/10">
+                            <span class="text-[10px] text-slate-500 mr-1">تحديد الكل</span>
+                        </label>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3" id="group_social">
+                        <label class="flex items-center gap-2 p-2.5 rounded-xl bg-white/[0.02] border border-white/5 cursor-pointer hover:bg-white/[0.05] transition">
+                            <input type="checkbox" name="targets" value="social_accounts" class="w-4 h-4 rounded text-rose-600 bg-slate-900 border-white/10">
+                            <div class="flex-1 flex justify-between items-center">
+                                <span class="text-xs text-white font-medium">حسابات تواصل اجتماعي</span>
+                                <span class="text-[10px] text-rose-400 font-bold">({{ stats.social_accounts }})</span>
+                            </div>
+                        </label>
+                        <label class="flex items-center gap-2 p-2.5 rounded-xl bg-white/[0.02] border border-white/5 cursor-pointer hover:bg-white/[0.05] transition">
+                            <input type="checkbox" name="targets" value="social_apps" class="w-4 h-4 rounded text-rose-600 bg-slate-900 border-white/10">
+                            <div class="flex-1 flex justify-between items-center">
+                                <span class="text-xs text-white font-medium">تطبيقات اجتماعية</span>
+                                <span class="text-[10px] text-rose-400 font-bold">({{ stats.social_apps }})</span>
+                            </div>
+                        </label>
+                        <label class="flex items-center gap-2 p-2.5 rounded-xl bg-white/[0.02] border border-white/5 cursor-pointer hover:bg-white/[0.05] transition">
+                            <input type="checkbox" name="targets" value="social_tokens" class="w-4 h-4 rounded text-rose-600 bg-slate-900 border-white/10">
+                            <div class="flex-1 flex justify-between items-center">
+                                <span class="text-xs text-white font-medium">أكواد التطبيقات الاجتماعية</span>
+                                <span class="text-[10px] text-rose-400 font-bold">({{ stats.social_tokens }})</span>
+                            </div>
+                        </label>
+                    </div>
+                </div>
             </div>
 
             <div class="mt-8 p-6 bg-rose-500/10 border border-rose-500/20 rounded-2xl">
                 <p class="text-xs text-rose-300 mb-4">اكتب كلمة <span class="font-black text-rose-100 underline">DELETE</span> للتأكيد النهائي:</p>
-                <input type="text" id="confirmInput" class="builder-input w-full border-rose-500/30 focus:border-rose-500" placeholder="اكتب هنا...">
+                <input type="text" id="confirmInput" class="builder-input w-full border-rose-500/30 focus:border-rose-500 bg-slate-950/80 rounded-xl" placeholder="اكتب هنا...">
                 
-                <button type="submit" id="submitBtn" disabled class="btn btn-primary w-full mt-4 bg-rose-600 hover:bg-rose-700 border-none font-black py-4 opacity-50 cursor-not-allowed">
+                <button type="submit" id="submitBtn" disabled class="btn btn-primary w-full mt-4 bg-rose-600 hover:bg-rose-700 border-none font-black py-4 opacity-50 cursor-not-allowed rounded-xl">
                     تنفيذ الحذف النهائي للبيانات المختارة
                 </button>
             </div>
         </form>
     </div>
 
-    <div class="panel p-8 bg-slate-900/40 border-white/5 rounded-3xl">
+    <div class="panel p-8 bg-slate-900/40 border-white/5 rounded-3xl max-h-[85vh] overflow-y-auto">
         <h3 class="text-xl font-black mb-6">إحصائيات قاعدة البيانات الحالية</h3>
-        <div class="grid grid-cols-2 gap-4">
-            <div class="p-4 bg-white/[0.02] border border-white/5 rounded-xl">
-                <div class="text-[10px] text-slate-500 uppercase">الطلبات</div>
-                <div class="text-2xl font-black text-white" id="stat-orders">{{ orders_count }}</div>
+        
+        <div class="stack gap-6 text-right" dir="rtl">
+            <!-- Accounts Group -->
+            <div>
+                <h4 class="text-xs font-bold text-slate-400 mb-3 border-b border-white/5 pb-1 uppercase tracking-widest">Accounts (الحسابات)</h4>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <div class="p-3 bg-white/[0.02] border border-white/5 rounded-xl flex justify-between items-center">
+                        <span class="text-xs text-slate-400">المستخدمون</span>
+                        <span class="font-bold text-white">{{ stats.users }}</span>
+                    </div>
+                    <div class="p-3 bg-white/[0.02] border border-white/5 rounded-xl flex justify-between items-center">
+                        <span class="text-xs text-slate-400">سجلات الأمان</span>
+                        <span class="font-bold text-white">{{ stats.security_events }}</span>
+                    </div>
+                    <div class="p-3 bg-white/[0.02] border border-white/5 rounded-xl flex justify-between items-center">
+                        <span class="text-xs text-slate-400">جلسات النشاط</span>
+                        <span class="font-bold text-white">{{ stats.user_sessions }}</span>
+                    </div>
+                </div>
             </div>
-            <div class="p-4 bg-white/[0.02] border border-white/5 rounded-xl">
-                <div class="text-[10px] text-slate-500 uppercase">المستخدمين</div>
-                <div class="text-2xl font-black text-white" id="stat-users">{{ users_count }}</div>
+
+            <!-- Catalog Group -->
+            <div>
+                <h4 class="text-xs font-bold text-slate-400 mb-3 border-b border-white/5 pb-1 uppercase tracking-widest">Catalog (المنتجات والأقسام)</h4>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <div class="p-3 bg-white/[0.02] border border-white/5 rounded-xl flex justify-between items-center">
+                        <span class="text-xs text-slate-400">التصنيفات</span>
+                        <span class="font-bold text-white">{{ stats.categories }}</span>
+                    </div>
+                    <div class="p-3 bg-white/[0.02] border border-white/5 rounded-xl flex justify-between items-center">
+                        <span class="text-xs text-slate-400">المنتجات</span>
+                        <span class="font-bold text-white">{{ stats.products }}</span>
+                    </div>
+                    <div class="p-3 bg-white/[0.02] border border-white/5 rounded-xl flex justify-between items-center">
+                        <span class="text-xs text-slate-400">باقات المنتجات</span>
+                        <span class="font-bold text-white">{{ stats.product_variants }}</span>
+                    </div>
+                </div>
             </div>
-            <div class="p-4 bg-white/[0.02] border border-white/5 rounded-xl">
-                <div class="text-[10px] text-slate-500 uppercase">العمليات المالية</div>
-                <div class="text-2xl font-black text-white" id="stat-trans">{{ transactions_count }}</div>
+
+            <!-- Common Group -->
+            <div>
+                <h4 class="text-xs font-bold text-slate-400 mb-3 border-b border-white/5 pb-1 uppercase tracking-widest">Common (البيانات العامة)</h4>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <div class="p-3 bg-white/[0.02] border border-white/5 rounded-xl flex justify-between items-center">
+                        <span class="text-xs text-slate-400">إحصائيات المنصة</span>
+                        <span class="font-bold text-white">{{ stats.platform_stats }}</span>
+                    </div>
+                    <div class="p-3 bg-white/[0.02] border border-white/5 rounded-xl flex justify-between items-center">
+                        <span class="text-xs text-slate-400">العملات</span>
+                        <span class="font-bold text-white">{{ stats.currencies }}</span>
+                    </div>
+                    <div class="p-3 bg-white/[0.02] border border-white/5 rounded-xl flex justify-between items-center">
+                        <span class="text-xs text-slate-400">روابط التواصل</span>
+                        <span class="font-bold text-white">{{ stats.social_links }}</span>
+                    </div>
+                    <div class="p-3 bg-white/[0.02] border border-white/5 rounded-xl flex justify-between items-center">
+                        <span class="text-xs text-slate-400">سجلات تدقيق النظام</span>
+                        <span class="font-bold text-white">{{ stats.system_audit_logs }}</span>
+                    </div>
+                    <div class="p-3 bg-white/[0.02] border border-white/5 rounded-xl flex justify-between items-center">
+                        <span class="text-xs text-slate-400">شهادات العملاء</span>
+                        <span class="font-bold text-white">{{ stats.testimonials }}</span>
+                    </div>
+                    <div class="p-3 bg-white/[0.02] border border-white/5 rounded-xl flex justify-between items-center">
+                        <span class="text-xs text-slate-400">ملاحظات الشريط</span>
+                        <span class="font-bold text-white">{{ stats.site_announcements }}</span>
+                    </div>
+                </div>
             </div>
-            <div class="p-4 bg-white/[0.02] border border-white/5 rounded-xl">
-                <div class="text-[10px] text-slate-500 uppercase">المنتجات</div>
-                <div class="text-2xl font-black text-white" id="stat-products">{{ products_count }}</div>
+
+            <!-- Notifications Group -->
+            <div>
+                <h4 class="text-xs font-bold text-slate-400 mb-3 border-b border-white/5 pb-1 uppercase tracking-widest">Notifications (الإشعارات)</h4>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <div class="p-3 bg-white/[0.02] border border-white/5 rounded-xl flex justify-between items-center">
+                        <span class="text-xs text-slate-400">الإشعارات</span>
+                        <span class="font-bold text-white">{{ stats.notifications }}</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Orders Group -->
+            <div>
+                <h4 class="text-xs font-bold text-slate-400 mb-3 border-b border-white/5 pb-1 uppercase tracking-widest">Orders (المبيعات)</h4>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <div class="p-3 bg-white/[0.02] border border-white/5 rounded-xl flex justify-between items-center">
+                        <span class="text-xs text-slate-400">الطلبات</span>
+                        <span class="font-bold text-white">{{ stats.orders }}</span>
+                    </div>
+                    <div class="p-3 bg-white/[0.02] border border-white/5 rounded-xl flex justify-between items-center">
+                        <span class="text-xs text-slate-400">الفواتير</span>
+                        <span class="font-bold text-white">{{ stats.invoices }}</span>
+                    </div>
+                    <div class="p-3 bg-white/[0.02] border border-white/5 rounded-xl flex justify-between items-center">
+                        <span class="text-xs text-slate-400">الكوبونات</span>
+                        <span class="font-bold text-white">{{ stats.coupons }}</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Payments Group -->
+            <div>
+                <h4 class="text-xs font-bold text-slate-400 mb-3 border-b border-white/5 pb-1 uppercase tracking-widest">Payments (الدفع والعمليات)</h4>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <div class="p-3 bg-white/[0.02] border border-white/5 rounded-xl flex justify-between items-center">
+                        <span class="text-xs text-slate-400">طلبات الإيداع</span>
+                        <span class="font-bold text-white">{{ stats.deposits }}</span>
+                    </div>
+                    <div class="p-3 bg-white/[0.02] border border-white/5 rounded-xl flex justify-between items-center">
+                        <span class="text-xs text-slate-400">طلبات السحب</span>
+                        <span class="font-bold text-white">{{ stats.withdrawals }}</span>
+                    </div>
+                    <div class="p-3 bg-white/[0.02] border border-white/5 rounded-xl flex justify-between items-center">
+                        <span class="text-xs text-slate-400">وسائل الدفع</span>
+                        <span class="font-bold text-white">{{ stats.payment_methods }}</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Services Group -->
+            <div>
+                <h4 class="text-xs font-bold text-slate-400 mb-3 border-b border-white/5 pb-1 uppercase tracking-widest">Services (الخدمات)</h4>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <div class="p-3 bg-white/[0.02] border border-white/5 rounded-xl flex justify-between items-center">
+                        <span class="text-xs text-slate-400">الخدمات</span>
+                        <span class="font-bold text-white">{{ stats.services }}</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Support Group -->
+            <div>
+                <h4 class="text-xs font-bold text-slate-400 mb-3 border-b border-white/5 pb-1 uppercase tracking-widest">Support (الدعم الفني)</h4>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <div class="p-3 bg-white/[0.02] border border-white/5 rounded-xl flex justify-between items-center">
+                        <span class="text-xs text-slate-400">إعدادات الدعم</span>
+                        <span class="font-bold text-white">{{ stats.support_settings }}</span>
+                    </div>
+                    <div class="p-3 bg-white/[0.02] border border-white/5 rounded-xl flex justify-between items-center">
+                        <span class="text-xs text-slate-400">الردود الجاهزة (محادثة)</span>
+                        <span class="font-bold text-white">{{ stats.chat_canned_replies }}</span>
+                    </div>
+                    <div class="p-3 bg-white/[0.02] border border-white/5 rounded-xl flex justify-between items-center">
+                        <span class="text-xs text-slate-400">غرف المحادثة</span>
+                        <span class="font-bold text-white">{{ stats.chat_rooms }}</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Token Blacklist Group -->
+            <div>
+                <h4 class="text-xs font-bold text-slate-400 mb-3 border-b border-white/5 pb-1 uppercase tracking-widest">Token Blacklist (رموز المصادقة)</h4>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <div class="p-3 bg-white/[0.02] border border-white/5 rounded-xl flex justify-between items-center">
+                        <span class="text-xs text-slate-400">رموز مميزة (Outstanding)</span>
+                        <span class="font-bold text-white">{{ stats.outstanding_tokens }}</span>
+                    </div>
+                    <div class="p-3 bg-white/[0.02] border border-white/5 rounded-xl flex justify-between items-center">
+                        <span class="text-xs text-slate-400">رموز محظورة (Blacklisted)</span>
+                        <span class="font-bold text-white">{{ stats.blacklisted_tokens }}</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Wallets Group -->
+            <div>
+                <h4 class="text-xs font-bold text-slate-400 mb-3 border-b border-white/5 pb-1 uppercase tracking-widest">Wallets (المحافظ والتحويلات)</h4>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <div class="p-3 bg-white/[0.02] border border-white/5 rounded-xl flex justify-between items-center">
+                        <span class="text-xs text-slate-400">المحافظ</span>
+                        <span class="font-bold text-white">{{ stats.wallets }}</span>
+                    </div>
+                    <div class="p-3 bg-white/[0.02] border border-white/5 rounded-xl flex justify-between items-center">
+                        <span class="text-xs text-slate-400">العمليات المالية</span>
+                        <span class="font-bold text-white">{{ stats.wallet_transactions }}</span>
+                    </div>
+                    <div class="p-3 bg-white/[0.02] border border-white/5 rounded-xl flex justify-between items-center">
+                        <span class="text-xs text-slate-400">سجلات الحركة</span>
+                        <span class="font-bold text-white">{{ stats.ledger_entries }}</span>
+                    </div>
+                    <div class="p-3 bg-white/[0.02] border border-white/5 rounded-xl flex justify-between items-center">
+                        <span class="text-xs text-slate-400">تحويلات الأرصدة</span>
+                        <span class="font-bold text-white">{{ stats.balance_transfers }}</span>
+                    </div>
+                    <div class="p-3 bg-white/[0.02] border border-white/5 rounded-xl flex justify-between items-center">
+                        <span class="text-xs text-slate-400">بطاقات الشحن</span>
+                        <span class="font-bold text-white">{{ stats.recharge_cards }}</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Store Management Group -->
+            <div>
+                <h4 class="text-xs font-bold text-slate-400 mb-3 border-b border-white/5 pb-1 uppercase tracking-widest">Store Management (إدارة المتاجر)</h4>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <div class="p-3 bg-white/[0.02] border border-white/5 rounded-xl flex justify-between items-center">
+                        <span class="text-xs text-slate-400">المتاجر</span>
+                        <span class="font-bold text-white">{{ stats.stores }}</span>
+                    </div>
+                    <div class="p-3 bg-white/[0.02] border border-white/5 rounded-xl flex justify-between items-center">
+                        <span class="text-xs text-slate-400">إعدادات المتاجر</span>
+                        <span class="font-bold text-white">{{ stats.store_settings }}</span>
+                    </div>
+                    <div class="p-3 bg-white/[0.02] border border-white/5 rounded-xl flex justify-between items-center">
+                        <span class="text-xs text-slate-400">إعدادات عامة SaaS</span>
+                        <span class="font-bold text-white">{{ stats.saas_global_settings }}</span>
+                    </div>
+                    <div class="p-3 bg-white/[0.02] border border-white/5 rounded-xl flex justify-between items-center">
+                        <span class="text-xs text-slate-400">أدوار SaaS الإدارية</span>
+                        <span class="font-bold text-white">{{ stats.saas_admin_roles }}</span>
+                    </div>
+                    <div class="p-3 bg-white/[0.02] border border-white/5 rounded-xl flex justify-between items-center">
+                        <span class="text-xs text-slate-400">خطط الاشتراكات</span>
+                        <span class="font-bold text-white">{{ stats.subscription_plans }}</span>
+                    </div>
+                    <div class="p-3 bg-white/[0.02] border border-white/5 rounded-xl flex justify-between items-center">
+                        <span class="text-xs text-slate-400">سجلات تدقيق SaaS</span>
+                        <span class="font-bold text-white">{{ stats.saas_audit_logs }}</span>
+                    </div>
+                    <div class="p-3 bg-white/[0.02] border border-white/5 rounded-xl flex justify-between items-center">
+                        <span class="text-xs text-slate-400">صفحات المتاجر</span>
+                        <span class="font-bold text-white">{{ stats.store_pages }}</span>
+                    </div>
+                    <div class="p-3 bg-white/[0.02] border border-white/5 rounded-xl flex justify-between items-center">
+                        <span class="text-xs text-slate-400">فواتير الاشتراكات</span>
+                        <span class="font-bold text-white">{{ stats.subscription_invoices }}</span>
+                    </div>
+                    <div class="p-3 bg-white/[0.02] border border-white/5 rounded-xl flex justify-between items-center">
+                        <span class="text-xs text-slate-400">قوالب المتاجر</span>
+                        <span class="font-bold text-white">{{ stats.store_templates }}</span>
+                    </div>
+                    <div class="p-3 bg-white/[0.02] border border-white/5 rounded-xl flex justify-between items-center">
+                        <span class="text-xs text-slate-400">موظفو المتاجر</span>
+                        <span class="font-bold text-white">{{ stats.store_employees }}</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- System Core / accounts / socialaccount Group -->
+            <div>
+                <h4 class="text-xs font-bold text-slate-400 mb-3 border-b border-white/5 pb-1 uppercase tracking-widest">System Core (النواة والحسابات)</h4>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <div class="p-3 bg-white/[0.02] border border-white/5 rounded-xl flex justify-between items-center">
+                        <span class="text-xs text-slate-400">عناوين البريد (allauth)</span>
+                        <span class="font-bold text-white">{{ stats.email_addresses }}</span>
+                    </div>
+                    <div class="p-3 bg-white/[0.02] border border-white/5 rounded-xl flex justify-between items-center">
+                        <span class="text-xs text-slate-400">المجموعات (Auth Groups)</span>
+                        <span class="font-bold text-white">{{ stats.groups }}</span>
+                    </div>
+                    <div class="p-3 bg-white/[0.02] border border-white/5 rounded-xl flex justify-between items-center">
+                        <span class="text-xs text-slate-400">المواقع (Sites)</span>
+                        <span class="font-bold text-white">{{ stats.sites }}</span>
+                    </div>
+                    <div class="p-3 bg-white/[0.02] border border-white/5 rounded-xl flex justify-between items-center">
+                        <span class="text-xs text-slate-400">حسابات تواصل اجتماعي</span>
+                        <span class="font-bold text-white">{{ stats.social_accounts }}</span>
+                    </div>
+                    <div class="p-3 bg-white/[0.02] border border-white/5 rounded-xl flex justify-between items-center">
+                        <span class="text-xs text-slate-400">تطبيقات اجتماعية</span>
+                        <span class="font-bold text-white">{{ stats.social_apps }}</span>
+                    </div>
+                    <div class="p-3 bg-white/[0.02] border border-white/5 rounded-xl flex justify-between items-center">
+                        <span class="text-xs text-slate-400">أكواد التطبيقات الاجتماعية</span>
+                        <span class="font-bold text-white">{{ stats.social_tokens }}</span>
+                    </div>
+                </div>
             </div>
         </div>
         
@@ -137,7 +837,27 @@
         }
     });
 
-    // Simple stat loading simulation or real fetch if API exists
-    // For now we can pass them in context or leave as is
+    function selectAllTargets(isChecked) {
+        const checkboxes = document.querySelectorAll('#maintenanceForm input[name="targets"]');
+        checkboxes.forEach(cb => {
+            cb.checked = isChecked;
+        });
+        
+        // Also update all group select all checkboxes
+        const groupSelectAll = document.querySelectorAll('#maintenanceForm input[onclick^="toggleGroup"]');
+        groupSelectAll.forEach(gcb => {
+            gcb.checked = isChecked;
+        });
+    }
+
+    function toggleGroup(groupCheckbox, groupContainerId) {
+        const container = document.getElementById(groupContainerId);
+        if (container) {
+            const checkboxes = container.querySelectorAll('input[name="targets"]');
+            checkboxes.forEach(cb => {
+                cb.checked = groupCheckbox.checked;
+            });
+        }
+    }
 </script>
 {% endblock %}

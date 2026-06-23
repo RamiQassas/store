@@ -3819,94 +3819,354 @@ def control_db_maintenance(request):
             deleted_counts = {}
             
             from django.db.models import ProtectedError
+            from decimal import Decimal
+            from django.utils import timezone
+            from django.contrib.auth.models import Group
+            from django.contrib.sites.models import Site
+            
             try:
-                with transaction.atomic():
-                    if "orders" in targets:
-                        from apps.orders.models import Order, OrderItem, OrderLog
-                        c1 = OrderItem.objects.all().delete()[0]
-                        c2 = OrderLog.objects.all().delete()[0]
-                        c3 = Order.objects.all().delete()[0]
-                        deleted_counts["الطلبات والمبيعات"] = c1 + c2 + c3
+                from rest_framework_simplejwt.token_blacklist.models import OutstandingToken, BlacklistedToken
+            except ImportError:
+                OutstandingToken, BlacklistedToken = None, None
+                
+            try:
+                with bypass_tenant_filter():
+                    with transaction.atomic():
+                        # Define safe dependency execution order to prevent ProtectedError cascading
+                        ordered_cleanup_keys = [
+                            "social_tokens",
+                            "social_accounts",
+                            "social_apps",
+                            "email_addresses",
+                            "blacklisted_tokens",
+                            "outstanding_tokens",
+                            "invoices",
+                            "orders",
+                            "deposits",
+                            "withdrawals",
+                            "ledger_entries",
+                            "wallet_transactions",
+                            "balance_transfers",
+                            "recharge_cards",
+                            "wallets",
+                            "store_employees",
+                            "store_pages",
+                            "store_settings",
+                            "subscription_invoices",
+                            "store_templates",
+                            "saas_audit_logs",
+                            "stores",
+                            "subscription_plans",
+                            "users",
+                            "saas_admin_roles",
+                            "saas_global_settings",
+                            "payment_methods",
+                            "payment_methods_reset",
+                            "product_variants",
+                            "products",
+                            "categories",
+                            "services",
+                            "chat_rooms",
+                            "chat_canned_replies",
+                            "support_settings",
+                            "platform_stats",
+                            "currencies",
+                            "social_links",
+                            "system_audit_logs",
+                            "testimonials",
+                            "site_announcements",
+                            "notifications",
+                            "security_events",
+                            "user_sessions",
+                            "groups",
+                            "sites"
+                        ]
                         
-                    if "financials" in targets:
-                        from apps.payments.models import DepositRequest, WithdrawalRequest
-                        from apps.wallets.models import WalletTransaction, LedgerEntry
-                        c1 = DepositRequest.objects.all().delete()[0]
-                        c2 = WithdrawalRequest.objects.all().delete()[0]
-                        c3 = WalletTransaction.objects.all().delete()[0]
-                        c4 = LedgerEntry.objects.all().delete()[0]
-                        deleted_counts["العمليات المالية"] = c1 + c2 + c3 + c4
-                        
-                    if "kyc" in targets:
-                        from apps.accounts.models import KYCRequest
-                        c1 = KYCRequest.objects.all().delete()[0]
-                        deleted_counts["طلبات التوثيق"] = c1
-                        
-                    if "reset_limits" in targets:
-                        from apps.payments.models import PaymentMethod
-                        
-                        # Reset Payment Methods
-                        PaymentMethod.objects.all().update(
-                            daily_deposit_usage=Decimal("0.00"),
-                            daily_withdrawal_usage=Decimal("0.00"),
-                            last_limit_reset=timezone.now()
-                        )
-                        
-                        # Reset Users
-                        User.objects.all().update(
-                            daily_deposit_usage=Decimal("0.00"),
-                            daily_withdrawal_usage=Decimal("0.00"),
-                            last_limit_reset=timezone.now()
-                        )
-                        deleted_counts["حدود الاستخدام اليومية (الجميع)"] = "تم التصفير"
-                        
-                    if "logs" in targets:
-                        from apps.common.models import SystemAuditLog
-                        from apps.stores.models import SaaSAuditLog
-                        from apps.accounts.models import SecurityEvent
-                        from apps.notifications.models import Notification
-                        
-                        c1 = SystemAuditLog.objects.all().delete()[0]
-                        c2 = SaaSAuditLog.objects.all().delete()[0]
-                        c3 = SecurityEvent.objects.all().delete()[0]
-                        c4 = Notification.objects.all().delete()[0]
-                        deleted_counts["السجلات والتنبيهات"] = c1 + c2 + c3 + c4
-                        
-                    if "users" in targets:
-                        c1 = User.objects.filter(role=User.Role.CUSTOMER).delete()[0]
-                        deleted_counts["المستخدمين (غير المدراء)"] = c1
-                        
-                    if "catalog" in targets:
-                        from apps.catalog.models import Product, Category, ProductVariant
-                        c1 = ProductVariant.objects.all().delete()[0]
-                        c2 = Product.objects.all().delete()[0]
-                        c3 = Category.objects.all().delete()[0]
-                        deleted_counts["الكتالوج (المنتجات والأصناف)"] = c1 + c2 + c3
+                        for key in ordered_cleanup_keys:
+                            if key in targets:
+                                if key == "social_tokens":
+                                    from allauth.socialaccount.models import SocialToken
+                                    c = SocialToken.objects.all().delete()[0]
+                                    deleted_counts["أكواد التطبيقات الاجتماعية"] = c
+                                elif key == "social_accounts":
+                                    from allauth.socialaccount.models import SocialAccount
+                                    c = SocialAccount.objects.all().delete()[0]
+                                    deleted_counts["حسابات تواصل اجتماعي"] = c
+                                elif key == "social_apps":
+                                    from allauth.socialaccount.models import SocialApp
+                                    c = SocialApp.objects.all().delete()[0]
+                                    deleted_counts["تطبيقات اجتماعية"] = c
+                                elif key == "email_addresses":
+                                    from allauth.account.models import EmailAddress
+                                    c = EmailAddress.objects.all().delete()[0]
+                                    deleted_counts["عناوين البريد الإلكتروني"] = c
+                                elif key == "blacklisted_tokens":
+                                    if BlacklistedToken:
+                                        c = BlacklistedToken.objects.all().delete()[0]
+                                        deleted_counts["رموز مميزة محظورة"] = c
+                                elif key == "outstanding_tokens":
+                                    if OutstandingToken:
+                                        c = OutstandingToken.objects.all().delete()[0]
+                                        deleted_counts["رموز مميزة نشطة"] = c
+                                elif key == "invoices":
+                                    from apps.orders.models import Invoice
+                                    c = Invoice.objects.all().delete()[0]
+                                    deleted_counts["الفواتير"] = c
+                                elif key == "orders":
+                                    from apps.orders.models import Order, OrderItem, OrderLog
+                                    c1 = OrderItem.objects.all().delete()[0]
+                                    c2 = OrderLog.objects.all().delete()[0]
+                                    c3 = Order.objects.all().delete()[0]
+                                    deleted_counts["الطلبات والمبيعات"] = c1 + c2 + c3
+                                elif key == "deposits":
+                                    from apps.payments.models import DepositRequest
+                                    c = DepositRequest.objects.all().delete()[0]
+                                    deleted_counts["طلبات الإيداع"] = c
+                                elif key == "withdrawals":
+                                    from apps.payments.models import WithdrawalRequest
+                                    c = WithdrawalRequest.objects.all().delete()[0]
+                                    deleted_counts["طلبات السحب"] = c
+                                elif key == "ledger_entries":
+                                    from apps.wallets.models import LedgerEntry
+                                    c = LedgerEntry.objects.all().delete()[0]
+                                    deleted_counts["سجلات حركة المحفظة"] = c
+                                elif key == "wallet_transactions":
+                                    from apps.wallets.models import WalletTransaction
+                                    c = WalletTransaction.objects.all().delete()[0]
+                                    deleted_counts["العمليات المالية للمحافظ"] = c
+                                elif key == "balance_transfers":
+                                    from apps.wallets.models import BalanceTransfer
+                                    c = BalanceTransfer.objects.all().delete()[0]
+                                    deleted_counts["تحويلات الأرصدة"] = c
+                                elif key == "recharge_cards":
+                                    from apps.wallets.models import RechargeCard
+                                    c = RechargeCard.objects.all().delete()[0]
+                                    deleted_counts["بطاقات الشحن"] = c
+                                elif key == "wallets":
+                                    from apps.wallets.models import Wallet
+                                    c = Wallet.objects.all().delete()[0]
+                                    deleted_counts["المحافظ"] = c
+                                elif key == "store_employees":
+                                    from apps.stores.models import StoreEmployee
+                                    c = StoreEmployee.objects.all().delete()[0]
+                                    deleted_counts["موظفو المتاجر"] = c
+                                elif key == "store_pages":
+                                    from apps.stores.models import StorePage
+                                    c = StorePage.objects.all().delete()[0]
+                                    deleted_counts["صفحات المتاجر"] = c
+                                elif key == "store_settings":
+                                    from apps.stores.models import StoreSetting
+                                    c = StoreSetting.objects.all().delete()[0]
+                                    deleted_counts["إعدادات المتاجر"] = c
+                                elif key == "subscription_invoices":
+                                    from apps.stores.models import SubscriptionInvoice
+                                    c = SubscriptionInvoice.objects.all().delete()[0]
+                                    deleted_counts["فواتير اشتراكات المتاجر"] = c
+                                elif key == "store_templates":
+                                    from apps.stores.models import StoreTemplate
+                                    c = StoreTemplate.objects.all().delete()[0]
+                                    deleted_counts["قوالب المتاجر"] = c
+                                elif key == "saas_audit_logs":
+                                    from apps.stores.models import SaaSAuditLog
+                                    c = SaaSAuditLog.objects.all().delete()[0]
+                                    deleted_counts["سجلات تدقيق SaaS"] = c
+                                elif key == "stores":
+                                    from apps.stores.models import Store
+                                    c = Store.objects.all().delete()[0]
+                                    deleted_counts["المتاجر"] = c
+                                elif key == "subscription_plans":
+                                    from apps.stores.models import SubscriptionPlan
+                                    c = SubscriptionPlan.objects.all().delete()[0]
+                                    deleted_counts["خطط اشتراكات SaaS"] = c
+                                elif key == "users":
+                                    c = User.objects.exclude(is_superuser=True).exclude(is_staff=True).delete()[0]
+                                    deleted_counts["المستخدمين (غير المدراء)"] = c
+                                elif key == "saas_admin_roles":
+                                    from apps.stores.models import SaaSAdminRole
+                                    c = SaaSAdminRole.objects.all().delete()[0]
+                                    deleted_counts["أدوار SaaS الإدارية"] = c
+                                elif key == "saas_global_settings":
+                                    from apps.stores.models import SaaSGlobalSetting
+                                    c = SaaSGlobalSetting.objects.all().delete()[0]
+                                    deleted_counts["إعدادات عامة SaaS"] = c
+                                elif key == "payment_methods":
+                                    from apps.payments.models import PaymentMethod
+                                    c = PaymentMethod.objects.all().delete()[0]
+                                    deleted_counts["وسائل الدفع"] = c
+                                elif key == "payment_methods_reset":
+                                    from apps.payments.models import PaymentMethod
+                                    PaymentMethod.objects.all().update(
+                                        daily_deposit_usage=Decimal("0.00"),
+                                        daily_withdrawal_usage=Decimal("0.00"),
+                                        last_limit_reset=timezone.now()
+                                    )
+                                    User.objects.all().update(
+                                        daily_deposit_usage=Decimal("0.00"),
+                                        daily_withdrawal_usage=Decimal("0.00"),
+                                        last_limit_reset=timezone.now()
+                                    )
+                                    deleted_counts["حدود الاستخدام اليومية"] = "تم التصفير"
+                                elif key == "product_variants":
+                                    from apps.catalog.models import ProductVariant
+                                    c = ProductVariant.objects.all().delete()[0]
+                                    deleted_counts["باقات المنتجات"] = c
+                                elif key == "products":
+                                    from apps.catalog.models import Product
+                                    c = Product.objects.all().delete()[0]
+                                    deleted_counts["المنتجات"] = c
+                                elif key == "categories":
+                                    from apps.catalog.models import Category
+                                    c = Category.objects.all().delete()[0]
+                                    deleted_counts["الأقسام والتصنيفات"] = c
+                                elif key == "services":
+                                    from apps.services.models import Service
+                                    c = Service.objects.all().delete()[0]
+                                    deleted_counts["الخدمات"] = c
+                                elif key == "chat_rooms":
+                                    from apps.support.models import ChatRoom
+                                    c = ChatRoom.objects.all().delete()[0]
+                                    deleted_counts["غرف محادثات الدعم"] = c
+                                elif key == "chat_canned_replies":
+                                    from apps.support.models import ChatCannedReply
+                                    c = ChatCannedReply.objects.all().delete()[0]
+                                    deleted_counts["الردود الجاهزة"] = c
+                                elif key == "support_settings":
+                                    from apps.support.models import SupportSettings
+                                    c = SupportSettings.objects.all().delete()[0]
+                                    deleted_counts["إعدادات الدعم الفني"] = c
+                                elif key == "platform_stats":
+                                    from apps.common.models import PlatformStatistic
+                                    c = PlatformStatistic.objects.all().delete()[0]
+                                    deleted_counts["إحصائيات المنصة"] = c
+                                elif key == "currencies":
+                                    from apps.common.models import Currency
+                                    c = Currency.objects.all().delete()[0]
+                                    deleted_counts["العملات"] = c
+                                elif key == "social_links":
+                                    from apps.common.models import SocialMediaLink
+                                    c = SocialMediaLink.objects.all().delete()[0]
+                                    deleted_counts["روابط التواصل الاجتماعي"] = c
+                                elif key == "system_audit_logs":
+                                    from apps.common.models import SystemAuditLog
+                                    c = SystemAuditLog.objects.all().delete()[0]
+                                    deleted_counts["سجلات تدقيق النظام"] = c
+                                elif key == "testimonials":
+                                    from apps.common.models import Testimonial
+                                    c = Testimonial.objects.all().delete()[0]
+                                    deleted_counts["شهادات العملاء"] = c
+                                elif key == "site_announcements":
+                                    from apps.common.models import SiteAnnouncement
+                                    c = SiteAnnouncement.objects.all().delete()[0]
+                                    deleted_counts["ملاحظات شريط الموقع"] = c
+                                elif key == "notifications":
+                                    from apps.notifications.models import Notification
+                                    c = Notification.objects.all().delete()[0]
+                                    deleted_counts["الإشعارات"] = c
+                                elif key == "security_events":
+                                    from apps.accounts.models import SecurityEvent
+                                    c = SecurityEvent.objects.all().delete()[0]
+                                    deleted_counts["سجلات الأمان"] = c
+                                elif key == "user_sessions":
+                                    from apps.accounts.models import UserSession
+                                    c = UserSession.objects.all().delete()[0]
+                                    deleted_counts["جلسات النشاط"] = c
+                                elif key == "groups":
+                                    c = Group.objects.all().delete()[0]
+                                    deleted_counts["المجموعات الإدارية"] = c
+                                elif key == "sites":
+                                    c = Site.objects.all().delete()[0]
+                                    deleted_counts["مواقع النظام"] = c
 
                 msg = "تم تصفير البيانات المختارة بنجاح: " + ", ".join([f"{k} ({v})" for k, v in deleted_counts.items()])
                 messages.success(request, msg)
                 return redirect("control_db_maintenance")
-            except ProtectedError:
-                messages.error(request, "لا يمكن حذف بعض البيانات لوجود ارتباطات محمية بها (مثلاً: حركات مالية مرتبطة بالزبائن). يرجى تحديد وحذف الحركات المالية والطلبات أولاً.")
+            except ProtectedError as e:
+                messages.error(request, f"لا يمكن حذف بعض البيانات لوجود ارتباطات محمية بها. تفاصيل الخطأ: {str(e)}")
                 return redirect("control_db_maintenance")
             
-    from apps.orders.models import Order
-    from apps.payments.models import DepositRequest, WithdrawalRequest
-    from apps.catalog.models import Product
+    from apps.orders.models import Order, Invoice, Coupon
+    from apps.accounts.models import User, SecurityEvent, UserSession
+    from apps.payments.models import DepositRequest, WithdrawalRequest, PaymentMethod
+    from apps.catalog.models import Product, Category, ProductVariant
+    from apps.common.models import PlatformStatistic, Currency, SocialMediaLink, SystemAuditLog, Testimonial, SiteAnnouncement
+    from apps.notifications.models import Notification
+    from apps.services.models import Service
+    from apps.support.models import SupportSettings, ChatCannedReply, ChatRoom
+    from apps.wallets.models import Wallet, WalletTransaction, LedgerEntry, BalanceTransfer, RechargeCard
+    from apps.stores.models import Store, StoreSetting, SaaSGlobalSetting, SaaSAdminRole, SubscriptionPlan, SaaSAuditLog, StorePage, SubscriptionInvoice, StoreTemplate, StoreEmployee
+    from allauth.account.models import EmailAddress
+    from django.contrib.auth.models import Group
+    from django.contrib.sites.models import Site
+    from allauth.socialaccount.models import SocialAccount, SocialApp, SocialToken
     
+    try:
+        from rest_framework_simplejwt.token_blacklist.models import OutstandingToken, BlacklistedToken
+    except ImportError:
+        OutstandingToken, BlacklistedToken = None, None
+
     with bypass_tenant_filter():
-        orders_count = Order.objects.count()
-        users_count = User.objects.count()
-        transactions_count = DepositRequest.objects.count() + WithdrawalRequest.objects.count()
-        products_count = Product.objects.count()
+        stats = {
+            "users": User.objects.count(),
+            "security_events": SecurityEvent.objects.count(),
+            "user_sessions": UserSession.objects.count(),
+            
+            "categories": Category.objects.count(),
+            "products": Product.objects.count(),
+            "product_variants": ProductVariant.objects.count(),
+            
+            "platform_stats": PlatformStatistic.objects.count(),
+            "currencies": Currency.objects.count(),
+            "social_links": SocialMediaLink.objects.count(),
+            "system_audit_logs": SystemAuditLog.objects.count(),
+            "testimonials": Testimonial.objects.count(),
+            "site_announcements": SiteAnnouncement.objects.count(),
+            
+            "notifications": Notification.objects.count(),
+            
+            "orders": Order.objects.count(),
+            "invoices": Invoice.objects.count(),
+            "coupons": Coupon.objects.count(),
+            
+            "deposits": DepositRequest.objects.count(),
+            "withdrawals": WithdrawalRequest.objects.count(),
+            "payment_methods": PaymentMethod.objects.count(),
+            
+            "services": Service.objects.count(),
+            
+            "support_settings": SupportSettings.objects.count(),
+            "chat_canned_replies": ChatCannedReply.objects.count(),
+            "chat_rooms": ChatRoom.objects.count(),
+            
+            "outstanding_tokens": OutstandingToken.objects.count() if OutstandingToken else 0,
+            "blacklisted_tokens": BlacklistedToken.objects.count() if BlacklistedToken else 0,
+            
+            "wallets": Wallet.objects.count(),
+            "wallet_transactions": WalletTransaction.objects.count(),
+            "ledger_entries": LedgerEntry.objects.count(),
+            "balance_transfers": BalanceTransfer.objects.count(),
+            "recharge_cards": RechargeCard.objects.count(),
+            
+            "stores": Store.objects.count(),
+            "store_settings": StoreSetting.objects.count(),
+            "saas_global_settings": SaaSGlobalSetting.objects.count(),
+            "saas_admin_roles": SaaSAdminRole.objects.count(),
+            "subscription_plans": SubscriptionPlan.objects.count(),
+            "saas_audit_logs": SaaSAuditLog.objects.count(),
+            "store_pages": StorePage.objects.count(),
+            "subscription_invoices": SubscriptionInvoice.objects.count(),
+            "store_templates": StoreTemplate.objects.count(),
+            "store_employees": StoreEmployee.objects.count(),
+            
+            "email_addresses": EmailAddress.objects.count(),
+            "groups": Group.objects.count(),
+            "sites": Site.objects.count(),
+            
+            "social_accounts": SocialAccount.objects.count(),
+            "social_apps": SocialApp.objects.count(),
+            "social_tokens": SocialToken.objects.count(),
+        }
         
-    context = {
-        "orders_count": orders_count,
-        "users_count": users_count,
-        "transactions_count": transactions_count,
-        "products_count": products_count,
-    }
-    return render(request, "site/control_db_maintenance.html", context)
+    return render(request, "site/control_db_maintenance.html", {"stats": stats})
 
 @admin_required
 def control_geo_stats(request):
