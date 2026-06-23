@@ -163,6 +163,7 @@ class SiteAnnouncement(TimeStampedModel):
     text_color = models.CharField(max_length=20, default="#ffffff", verbose_name="لون النص")
 
     objects = TenantManager()
+    all_objects = models.Manager()
 
     class Meta:
         verbose_name = "ملاحظة شريط الموقع"

@@ -13,10 +13,12 @@ def common_context(request):
     from apps.accounts.models import KYCRequest
     from apps.notifications.models import Notification
     
+    active_store = getattr(request, "store", None)
+    
     context = {
         "ALL_CURRENCIES": Currency.objects.filter(is_active=True).order_by("display_order"),
         "PENDING_KYC_COUNT": KYCRequest.objects.filter(status=KYCRequest.Status.PENDING).count() if request.user.is_staff else 0,
-        "active_announcement": SiteAnnouncement.objects.filter(is_active=True).first()
+        "active_announcement": SiteAnnouncement.all_objects.filter(store=active_store, is_active=True).first()
     }
     
     if request.user.is_authenticated:
