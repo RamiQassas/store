@@ -629,3 +629,15 @@ class StoreSaaSNewFeaturesTests(TestCase):
         self.assertEqual(platform_stores[0], store_d)
         self.assertEqual(platform_stores[1], store_e)
         self.assertEqual(platform_stores[2], store_c)
+
+        # Check if the navigation link to stores exists on main site
+        self.assertContains(response, 'href="/#stores-section"')
+        self.assertContains(response, 'المتاجر')
+
+        # Now check on tenant subdomain (should NOT contain the link or stores section)
+        # TenantMiddleware expects the hostname to contain the subdomain
+        tenant_response = client.get(reverse("home"), HTTP_HOST="store-c.testserver")
+        self.assertEqual(tenant_response.status_code, 200)
+        self.assertNotContains(tenant_response, 'href="/#stores-section"')
+        self.assertNotContains(tenant_response, 'id="stores-section"')
+

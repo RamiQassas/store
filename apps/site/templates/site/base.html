@@ -509,6 +509,11 @@
           <a href="{% url 'home' %}" class="drawer-link {% if request.resolver_match.url_name == 'home' %}active{% endif %}">
               <i class="fas fa-house"></i> الرئيسية
           </a>
+          {% if not is_tenant %}
+          <a href="{% url 'home' %}#stores-section" class="drawer-link">
+              <i class="fas fa-store"></i> المتاجر
+          </a>
+          {% endif %}
           <a href="{% url 'catalog' %}" class="drawer-link {% if request.resolver_match.url_name == 'catalog' %}active{% endif %}">
               <i class="fas fa-boxes-stacked"></i> الكتالوج
           </a>
@@ -582,6 +587,9 @@
 
         <nav class="nav-links">
           <a href="{% url 'home' %}" class="{% if request.resolver_match.url_name == 'home' %}active{% endif %}">الرئيسية</a>
+          {% if not is_tenant %}
+          <a href="{% url 'home' %}#stores-section">المتاجر</a>
+          {% endif %}
           <a href="{% url 'catalog' %}" class="{% if request.resolver_match.url_name == 'catalog' %}active{% endif %}">الخدمات</a>
           {% if user.is_authenticated %}
              <a href="{% url 'dashboard' %}" class="{% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}">حسابي</a>
