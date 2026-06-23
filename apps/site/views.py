@@ -3809,69 +3809,104 @@ logger = logging.getLogger(__name__)
 
 @admin_required
 def control_db_maintenance(request):
+    from apps.accounts.models import User
+    from apps.common.tenant_utils import bypass_tenant_filter
+    
     if request.method == "POST":
         action = request.POST.get("action")
         if action == "cleanup":
             targets = request.POST.getlist("targets")
             deleted_counts = {}
             
-            with transaction.atomic():
-                if "orders" in targets:
-                    from apps.orders.models import Order, OrderItem, OrderLog
-                    c1 = OrderItem.objects.all().delete()[0]
-                    c2 = OrderLog.objects.all().delete()[0]
-                    c3 = Order.objects.all().delete()[0]
-                    deleted_counts["الطلبات والمبيعات"] = c1 + c2 + c3
-                    
-                if "financials" in targets:
-                    from apps.payments.models import DepositRequest, WithdrawalRequest
-                    from apps.wallets.models import WalletTransaction, LedgerEntry
-                    c1 = DepositRequest.objects.all().delete()[0]
-                    c2 = WithdrawalRequest.objects.all().delete()[0]
-                    c3 = WalletTransaction.objects.all().delete()[0]
-                    c4 = LedgerEntry.objects.all().delete()[0]
-                    deleted_counts["العمليات المالية"] = c1 + c2 + c3 + c4
-                    
-                if "kyc" in targets:
-                    from apps.accounts.models import KYCRequest
-                    c1 = KYCRequest.objects.all().delete()[0]
-                    deleted_counts["طلبات التوثيق"] = c1
-                    
-                if "reset_limits" in targets:
-                    from apps.payments.models import PaymentMethod
-                    from apps.accounts.models import User
-                    
-                    # Reset Payment Methods
-                    PaymentMethod.objects.all().update(
-                        daily_deposit_usage=Decimal("0.00"),
-                        daily_withdrawal_usage=Decimal("0.00"),
-                        last_limit_reset=timezone.now()
-                    )
-                    
-                    # Reset Users
-                    User.objects.all().update(
-                        daily_deposit_usage=Decimal("0.00"),
-                        daily_withdrawal_usage=Decimal("0.00"),
-                        last_limit_reset=timezone.now()
-                    )
-                    deleted_counts["حدود الاستخدام اليومية (الجميع)"] = "تم التصفير"
-                    
-                if "users" in targets:
-                    c1 = User.objects.filter(role=User.Role.CUSTOMER).delete()[0]
-                    deleted_counts["المستخدمين (غير المدراء)"] = c1
-                    
-                if "catalog" in targets:
-                    from apps.catalog.models import Product, Category, ProductVariant
-                    c1 = ProductVariant.objects.all().delete()[0]
-                    c2 = Product.objects.all().delete()[0]
-                    c3 = Category.objects.all().delete()[0]
-                    deleted_counts["الكتالوج (المنتجات والأصناف)"] = c1 + c2 + c3
+            from django.db.models import ProtectedError
+            try:
+                with transaction.atomic():
+                    if "orders" in targets:
+                        from apps.orders.models import Order, OrderItem, OrderLog
+                        c1 = OrderItem.objects.all().delete()[0]
+                        c2 = OrderLog.objects.all().delete()[0]
+                        c3 = Order.objects.all().delete()[0]
+                        deleted_counts["الطلبات والمبيعات"] = c1 + c2 + c3
+                        
+                    if "financials" in targets:
+                        from apps.payments.models import DepositRequest, WithdrawalRequest
+                        from apps.wallets.models import WalletTransaction, LedgerEntry
+                        c1 = DepositRequest.objects.all().delete()[0]
+                        c2 = WithdrawalRequest.objects.all().delete()[0]
+                        c3 = WalletTransaction.objects.all().delete()[0]
+                        c4 = LedgerEntry.objects.all().delete()[0]
+                        deleted_counts["العمليات المالية"] = c1 + c2 + c3 + c4
+                        
+                    if "kyc" in targets:
+                        from apps.accounts.models import KYCRequest
+                        c1 = KYCRequest.objects.all().delete()[0]
+                        deleted_counts["طلبات التوثيق"] = c1
+                        
+                    if "reset_limits" in targets:
+                        from apps.payments.models import PaymentMethod
+                        
+                        # Reset Payment Methods
+                        PaymentMethod.objects.all().update(
+                            daily_deposit_usage=Decimal("0.00"),
+                            daily_withdrawal_usage=Decimal("0.00"),
+                            last_limit_reset=timezone.now()
+                        )
+                        
+                        # Reset Users
+                        User.objects.all().update(
+                            daily_deposit_usage=Decimal("0.00"),
+                            daily_withdrawal_usage=Decimal("0.00"),
+                            last_limit_reset=timezone.now()
+                        )
+                        deleted_counts["حدود الاستخدام اليومية (الجميع)"] = "تم التصفير"
+                        
+                    if "logs" in targets:
+                        from apps.common.models import SystemAuditLog
+                        from apps.stores.models import SaaSAuditLog
+                        from apps.accounts.models import SecurityEvent
+                        from apps.notifications.models import Notification
+                        
+                        c1 = SystemAuditLog.objects.all().delete()[0]
+                        c2 = SaaSAuditLog.objects.all().delete()[0]
+                        c3 = SecurityEvent.objects.all().delete()[0]
+                        c4 = Notification.objects.all().delete()[0]
+                        deleted_counts["السجلات والتنبيهات"] = c1 + c2 + c3 + c4
+                        
+                    if "users" in targets:
+                        c1 = User.objects.filter(role=User.Role.CUSTOMER).delete()[0]
+                        deleted_counts["المستخدمين (غير المدراء)"] = c1
+                        
+                    if "catalog" in targets:
+                        from apps.catalog.models import Product, Category, ProductVariant
+                        c1 = ProductVariant.objects.all().delete()[0]
+                        c2 = Product.objects.all().delete()[0]
+                        c3 = Category.objects.all().delete()[0]
+                        deleted_counts["الكتالوج (المنتجات والأصناف)"] = c1 + c2 + c3
 
-            msg = "تم تصفير البيانات المختارة بنجاح: " + ", ".join([f"{k} ({v})" for k, v in deleted_counts.items()])
-            messages.success(request, msg)
-            return redirect("control_db_maintenance")
+                msg = "تم تصفير البيانات المختارة بنجاح: " + ", ".join([f"{k} ({v})" for k, v in deleted_counts.items()])
+                messages.success(request, msg)
+                return redirect("control_db_maintenance")
+            except ProtectedError:
+                messages.error(request, "لا يمكن حذف بعض البيانات لوجود ارتباطات محمية بها (مثلاً: حركات مالية مرتبطة بالزبائن). يرجى تحديد وحذف الحركات المالية والطلبات أولاً.")
+                return redirect("control_db_maintenance")
             
-    return render(request, "site/control_db_maintenance.html")
+    from apps.orders.models import Order
+    from apps.payments.models import DepositRequest, WithdrawalRequest
+    from apps.catalog.models import Product
+    
+    with bypass_tenant_filter():
+        orders_count = Order.objects.count()
+        users_count = User.objects.count()
+        transactions_count = DepositRequest.objects.count() + WithdrawalRequest.objects.count()
+        products_count = Product.objects.count()
+        
+    context = {
+        "orders_count": orders_count,
+        "users_count": users_count,
+        "transactions_count": transactions_count,
+        "products_count": products_count,
+    }
+    return render(request, "site/control_db_maintenance.html", context)
 
 @admin_required
 def control_geo_stats(request):
