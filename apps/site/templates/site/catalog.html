@@ -28,8 +28,8 @@
                         '50%': { transform: 'translateY(-20px)' },
                     },
                     reveal: {
-                        '0%': { opacity: '0', transform: 'translateY(20px)' },
-                        '100%': { opacity: '1', transform: 'translateY(0)' },
+                        '0%': { opacity: '0', transform: 'reveal 0.8s' },
+                        '100%': { opacity: '1' },
                     }
                 }
             }
@@ -42,9 +42,6 @@
         .glass-panel {
             @apply bg-slate-900/40 backdrop-blur-xl border border-white/5 rounded-3xl shadow-2xl;
         }
-        .premium-card {
-            @apply glass-panel transition-all duration-500 hover:border-cyan/30 hover:-translate-y-2 hover:shadow-cyan/10;
-        }
         .btn-premium {
             @apply relative overflow-hidden bg-gradient-to-r from-cyan to-indigo text-white font-black py-4 px-8 rounded-2xl transition-all hover:scale-105 active:scale-95 shadow-lg shadow-cyan/20 flex items-center justify-center gap-2;
         }
@@ -52,7 +49,7 @@
             @apply border border-white/10 bg-white/5 backdrop-blur-md text-white font-bold py-4 px-8 rounded-2xl transition-all hover:bg-white/10 hover:border-white/20 flex items-center justify-center gap-2;
         }
         .section-label {
-            @apply text-[10px] font-black text-cyan uppercase tracking-[0.3em] mb-4 block;
+            @apply text-[10px] font-black text-cyan uppercase tracking-[0.3em] mb-3 block;
         }
     }
 
@@ -62,19 +59,12 @@
         text-align: right;
     }
 
-    .reveal-item { opacity: 0; }
-    .reveal-item.visible { @apply animate-reveal; }
+    .reveal-item { opacity: 0; transform: translateY(10px); transition: all 0.6s cubic-bezier(0.2, 1, 0.3, 1); }
+    .reveal-item.visible { opacity: 1; transform: translateY(0); }
 
     /* Hide standard backgrounds */
     body { background-color: var(--bg) !important; background-image: none !important; }
     .shell { background: transparent !important; }
-
-    .category-chip {
-        @apply px-6 py-3 rounded-2xl font-bold text-sm transition-all whitespace-nowrap border border-white/5 bg-white/5 text-slate-400 hover:bg-white/10 hover:text-white;
-    }
-    .category-chip.active {
-        @apply bg-cyan text-white border-cyan shadow-lg shadow-cyan/20;
-    }
 
     .scroll-hide::-webkit-scrollbar { display: none; }
     .scroll-hide { -ms-overflow-style: none; scrollbar-width: none; }
@@ -90,14 +80,9 @@
             grid-template-columns: repeat(3, minmax(0, 1fr));
         }
     }
-    @media (min-width: 1024px) {
-        .product-grid {
-            grid-template-columns: repeat(4, minmax(0, 1fr));
-        }
-    }
     @media (min-width: 1280px) {
         .product-grid {
-            grid-template-columns: repeat(5, minmax(0, 1fr));
+            grid-template-columns: repeat(4, minmax(0, 1fr));
         }
     }
 
@@ -205,159 +190,183 @@
     <div class="container mx-auto px-4">
         
         <!-- Header & Search Section -->
-        <div class="mb-16 reveal-item">
-            <div class="flex flex-col md:flex-row md:items-end justify-between gap-8">
-                <div class="max-w-xl">
+        <div class="mb-12 reveal-item">
+            <div class="flex flex-col md:flex-row md:items-end justify-between gap-6">
+                <div class="max-w-xl text-right">
                     <span class="section-label">Service Marketplace</span>
-                    <h1 class="text-4xl md:text-6xl font-black text-white mb-4 tracking-tighter">استكشف الخدمات.</h1>
-                    <p class="text-slate-400 text-sm md:text-lg">تصفح مجموعتنا الواسعة من باقات الشحن، الألعاب، والخدمات الرقمية.</p>
+                    <h1 class="text-4xl md:text-5xl font-black text-white mb-3 tracking-tighter">استكشف الخدمات.</h1>
+                    <p class="text-slate-400 text-sm md:text-base">تصفح مجموعتنا الواسعة من باقات الشحن، الألعاب، والخدمات الرقمية.</p>
                 </div>
                 
                 <div class="w-full md:w-96">
                     <form method="get" class="relative group">
                         <i class="fas fa-search absolute right-5 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-cyan transition-colors"></i>
                         <input type="text" name="q" value="{{ query }}" placeholder="ابحث عن باقة، لعبة، أو بطاقة شحن..." 
-                               class="w-full bg-slate-900/60 border border-white/5 rounded-3xl py-5 pr-14 pl-6 text-white text-sm focus:outline-none focus:border-cyan/50 focus:ring-4 focus:ring-cyan/10 transition-all search-input">
+                               class="w-full bg-slate-900/60 border border-white/5 rounded-3xl py-4.5 pr-14 pl-6 text-white text-sm focus:outline-none focus:border-cyan/50 focus:ring-4 focus:ring-cyan/10 transition-all search-input">
                     </form>
                 </div>
             </div>
         </div>
 
-        <!-- Categories & Suggestion Bento Box -->
-        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 mb-16 reveal-item">
-            <!-- Categories Grid -->
-            <div class="lg:col-span-8 glass-panel p-8">
-                <div class="flex items-center justify-between mb-6">
-                    <h3 class="text-sm font-black text-white uppercase tracking-widest">التصنيفات</h3>
-                    <div class="flex gap-2">
-                        <a href="?view=categories" class="text-[10px] font-black text-cyan hover:underline">عرض كشبكة</a>
+        <!-- Mobile Categories Pills (Hidden on Laptop) -->
+        <div class="lg:hidden mb-6 overflow-x-auto scroll-hide pb-2 reveal-item">
+            <div class="flex gap-2.5">
+                <a href="{% url 'catalog' %}{% if query %}?q={{ query }}{% endif %}" class="px-5 py-3 rounded-xl font-bold text-xs transition-all whitespace-nowrap border border-white/5 bg-slate-900/40 text-slate-400 hover:bg-white/10 hover:text-white {% if not active_category %} !bg-cyan !text-white border-cyan shadow-lg shadow-cyan/20 {% endif %}">الكل</a>
+                {% for cat in categories %}
+                {% if cat.product_count > 0 %}
+                <a href="?category={{ cat.id }}{% if query %}&q={{ query }}{% endif %}" class="px-5 py-3 rounded-xl font-bold text-xs transition-all whitespace-nowrap border border-white/5 bg-slate-900/40 text-slate-400 hover:bg-white/10 hover:text-white {% if active_category == cat.id|stringformat:'s' %} !bg-cyan !text-white border-cyan shadow-lg shadow-cyan/20 {% endif %}">{{ cat.name }}</a>
+                {% endif %}
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Main Layout (Sidebar + Grid) -->
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start reveal-item">
+            <!-- Desktop Sticky Sidebar (Hidden on Mobile) -->
+            <aside class="hidden lg:block lg:col-span-3 space-y-6">
+                <div class="glass-panel p-6 sticky top-24 space-y-8">
+                    <div>
+                        <h3 class="text-xs font-black text-slate-400 uppercase tracking-widest mb-4">أقسام الخدمات</h3>
+                        <div class="flex flex-col gap-2">
+                            <a href="{% url 'catalog' %}{% if query %}?q={{ query }}{% endif %}" class="flex items-center justify-between px-4 py-3 rounded-xl font-bold text-xs transition-all border border-white/5 bg-white/5 text-slate-400 hover:bg-white/10 hover:text-white {% if not active_category %} !bg-cyan !text-white border-cyan shadow-lg shadow-cyan/20 {% endif %}">
+                                <span>الكل</span>
+                                <span class="bg-white/10 px-2 py-0.5 rounded text-[10px]">{{ products.count }}</span>
+                            </a>
+                            {% for cat in categories %}
+                            {% if cat.product_count > 0 %}
+                            <a href="?category={{ cat.id }}{% if query %}&q={{ query }}{% endif %}" class="flex items-center justify-between px-4 py-3 rounded-xl font-bold text-xs transition-all border border-white/5 bg-white/5 text-slate-400 hover:bg-white/10 hover:text-white {% if active_category == cat.id|stringformat:'s' %} !bg-cyan !text-white border-cyan shadow-lg shadow-cyan/20 {% endif %}">
+                                <span>{{ cat.name }}</span>
+                                <span class="bg-white/10 px-2 py-0.5 rounded text-[10px]">{{ cat.product_count }}</span>
+                            </a>
+                            {% endif %}
+                            {% endfor %}
+                        </div>
+                    </div>
+
+                    {% if not is_tenant %}
+                    <!-- Integrated Suggest Service Card inside Sidebar -->
+                    <div class="p-5 border border-indigo-500/20 bg-gradient-to-br from-indigo-500/5 to-transparent rounded-2xl relative overflow-hidden group">
+                        <div class="absolute -right-10 -top-10 w-24 h-24 bg-indigo-500/10 rounded-full blur-xl group-hover:scale-150 transition-transform duration-700"></div>
+                        <div class="relative z-10 flex flex-col h-full">
+                            <div class="flex items-center gap-3 mb-4">
+                                <div class="w-10 h-10 bg-indigo-500/10 rounded-xl flex items-center justify-center text-indigo-400">
+                                    <i class="fas fa-lightbulb text-sm"></i>
+                                </div>
+                                <div>
+                                    <h4 class="text-xs font-black text-white">لم تجد طلبك؟</h4>
+                                    <p class="text-[9px] text-slate-500">نحن نوفره لك بأفضل سعر.</p>
+                                </div>
+                            </div>
+                            <button onclick="document.getElementById('suggestion-modal').classList.remove('hidden')" class="btn-premium !py-2.5 text-[10px] w-full mt-auto">اقتراح خدمة جديدة</button>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+            </aside>
+
+            <!-- Grid Content Area -->
+            <div class="lg:col-span-9 space-y-6">
+                <!-- Utility Top Bar -->
+                <div class="glass-panel p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                    <div class="text-xs font-bold text-slate-400">
+                        {% if query %}
+                            نتائج البحث عن: <span class="text-cyan">"{{ query }}"</span> ({{ products.count }} منتج)
+                        {% elif active_category %}
+                            معروض حالياً: <span class="text-cyan">{% for cat in categories %}{% if active_category == cat.id|stringformat:'s' %}{{ cat.name }}{% endif %}{% endfor %}</span>
+                        {% else %}
+                            تصفح جميع الخدمات والمنتجات المتاحة
+                        {% endif %}
+                    </div>
+                    <div class="flex items-center gap-3 self-end sm:self-auto">
+                        <form method="get" class="flex items-center">
+                            {% if active_category %}
+                                <input type="hidden" name="category" value="{{ active_category }}">
+                            {% endif %}
+                            {% if query %}
+                                <input type="hidden" name="q" value="{{ query }}">
+                            {% endif %}
+                            <select name="sort" onchange="this.form.submit()" class="bg-slate-900 border border-white/5 text-slate-300 text-[10px] font-bold py-2.5 px-4 rounded-xl focus:outline-none focus:border-cyan cursor-pointer">
+                                <option value="newest" {% if sort == "newest" %}selected{% endif %}>الأحدث أولاً</option>
+                                <option value="price_low" {% if sort == "price_low" %}selected{% endif %}>السعر: من الأقل للأعلى</option>
+                                <option value="price_high" {% if sort == "price_high" %}selected{% endif %}>السعر: من الأعلى للأقل</option>
+                            </select>
+                        </form>
+                        
+                        {% if not is_tenant %}
+                        <button onclick="document.getElementById('suggestion-modal').classList.remove('hidden')" class="lg:hidden bg-indigo-500/10 hover:bg-indigo-500/20 border border-indigo-500/20 text-indigo-400 hover:text-white text-[10px] font-bold py-2.5 px-4 rounded-xl transition-all flex items-center gap-1.5">
+                            <i class="fas fa-lightbulb"></i>
+                            <span>اقتراح خدمة</span>
+                        </button>
+                        {% endif %}
                     </div>
                 </div>
-                <div class="flex gap-3 overflow-x-auto pb-4 scroll-hide">
-                    <a href="{% url 'catalog' %}" class="category-chip {% if not active_category %}active{% endif %}">الكل</a>
-                    {% for cat in categories %}
-                    <a href="?category={{ cat.id }}" class="category-chip {% if active_category == cat.id|stringformat:'s' %}active{% endif %}">{{ cat.name }}</a>
+
+                <!-- Product Grid -->
+                <div class="product-grid">
+                    {% for p in products %}
+                    <div class="premium-card reveal-item" style="transition-delay: {{ forloop.counter|mul:0.01 }}s">
+                        <!-- Status Badges -->
+                        {% if p.is_sale %}
+                        <div class="absolute top-3 right-3 z-10 bg-gradient-to-br from-amber-400 to-orange-600 text-black text-[8px] font-black px-2 py-1 rounded-lg">
+                            عرض خاص
+                        </div>
+                        {% endif %}
+
+                        {% if p.is_out_of_stock %}
+                        <div class="absolute inset-0 z-20 bg-slate-950/60 backdrop-blur-[2px] rounded-3xl flex items-center justify-center">
+                            <div class="bg-rose-500 text-white text-[10px] font-black px-4 py-2 rounded-xl -rotate-6">نفدت الكمية</div>
+                        </div>
+                        {% endif %}
+                        
+                        <!-- Image Wrapper -->
+                        <a href="{% url 'product_detail' p.id %}" class="image-wrapper">
+                            {% if p.image %}
+                            <img src="{{ p.image.url }}" alt="{{ p.name }}" loading="lazy">
+                            {% else %}
+                            <i class="fas fa-box text-3xl text-slate-700 opacity-20"></i>
+                            {% endif %}
+                        </a>
+
+                        <!-- Product Body -->
+                        <div class="card-body">
+                            <span class="category-label">{{ p.category.name }}</span>
+                            <a href="{% url 'product_detail' p.id %}" class="product-title">{{ p.name }}</a>
+                            
+                            <!-- Quick Variant Preview -->
+                            <div class="flex flex-wrap gap-1 mb-4">
+                                {% for v in p.variants.all|slice:":2" %}
+                                <span class="text-[7px] font-bold bg-white/5 border border-white/5 text-slate-500 px-2 py-0.5 rounded-md truncate max-w-[80px]">{{ v.name }}</span>
+                                {% endfor %}
+                                {% if p.variants.count > 2 %}
+                                <span class="text-[7px] font-bold text-cyan">+{{ p.variants.count|add:"-2" }}</span>
+                                {% endif %}
+                            </div>
+
+                            <div class="price-row">
+                                {% variant_price p.variants.first as v_price %}
+                                <div class="flex flex-col">
+                                    <span class="text-[8px] text-slate-500 font-bold">يبدأ من</span>
+                                    <span class="price-value">{% currency_format v_price %}</span>
+                                </div>
+                                <a href="{% url 'product_detail' p.id %}" class="w-10 h-10 bg-cyan text-white rounded-xl flex items-center justify-center hover:bg-indigo hover:scale-110 transition-all shadow-lg shadow-cyan/20">
+                                    <i class="fas fa-shopping-cart text-xs"></i>
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                    {% empty %}
+                    <div class="col-span-full py-32 text-center glass-panel border-dashed reveal-item">
+                        <div class="w-20 h-20 bg-slate-900/50 rounded-full flex items-center justify-center mx-auto mb-6">
+                            <i class="fas fa-search text-3xl text-slate-700"></i>
+                        </div>
+                        <h3 class="text-xl font-black text-white">لم نجد ما تبحث عنه</h3>
+                        <p class="text-slate-500 mt-2 max-w-xs mx-auto">حاول تغيير كلمات البحث أو تصفح التصنيفات الأخرى.</p>
+                        <a href="{% url 'catalog' %}" class="btn-outline-premium mt-8 inline-flex">عرض كل الخدمات</a>
+                    </div>
                     {% endfor %}
                 </div>
             </div>
-
-            <!-- Integrated Suggest Service Card -->
-            {% if not is_tenant %}
-            <div class="lg:col-span-4 glass-panel p-8 border-indigo-500/20 bg-gradient-to-br from-indigo-500/5 to-transparent relative overflow-hidden group">
-                <div class="absolute -right-10 -top-10 w-32 h-32 bg-indigo-500/10 rounded-full blur-2xl group-hover:scale-150 transition-transform duration-700"></div>
-                <div class="relative z-10 flex flex-col h-full">
-                    <div class="flex items-center gap-4 mb-4">
-                        <div class="w-12 h-12 bg-indigo-500/10 rounded-2xl flex items-center justify-center text-indigo-400">
-                            <i class="fas fa-lightbulb"></i>
-                        </div>
-                        <div>
-                            <h4 class="text-sm font-black text-white">لم تجد طلبك؟</h4>
-                            <p class="text-[10px] text-slate-500">نحن نوفره لك بأفضل سعر.</p>
-                        </div>
-                    </div>
-                    <button onclick="document.getElementById('suggestion-modal').classList.remove('hidden')" class="btn-premium py-2 text-xs w-full mt-auto">اقتراح خدمة جديدة</button>
-                </div>
-            </div>
-            {% endif %}
         </div>
-
-        <!-- View Toggle (Categories vs Products) -->
-        <div class="flex justify-center mb-8 gap-4 reveal-item">
-            <a href="?view=products{% if active_category %}&category={{ active_category }}{% endif %}{% if query %}&q={{ query }}{% endif %}" 
-               class="{% if view_type == 'products' %}btn-premium{% else %}btn-outline-premium{% endif %} !py-3 !px-6 rounded-xl text-xs font-black text-decoration-none">
-                <i class="fas fa-boxes mr-2"></i> عرض كافة المنتجات
-            </a>
-            <a href="?view=categories{% if query %}&q={{ query }}{% endif %}" 
-               class="{% if view_type == 'categories' %}btn-premium{% else %}btn-outline-premium{% endif %} !py-3 !px-6 rounded-xl text-xs font-black text-decoration-none">
-                <i class="fas fa-folder-open mr-2"></i> عرض المنتجات كفئات
-            </a>
-        </div>
-
-        {% if view_type == 'categories' %}
-        <!-- Categories Grid -->
-        <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-            {% for cat in categories %}
-            {% if cat.product_count > 0 %}
-            <a href="?category={{ cat.id }}" class="premium-card group p-6 flex flex-col items-center text-center reveal-item text-decoration-none" style="transition-delay: {{ forloop.counter|mul:0.02 }}s">
-                <div class="w-20 h-20 bg-slate-900/40 rounded-2xl mb-4 border border-white/5 flex items-center justify-center group-hover:bg-slate-900/60 transition-colors">
-                    {% if cat.image %}
-                    <img src="{{ cat.image.url }}" alt="{{ cat.name }}" class="max-h-16 max-w-16 object-contain group-hover:scale-110 transition-transform duration-500" loading="lazy">
-                    {% else %}
-                    <i class="fas fa-folder text-3xl text-slate-700 opacity-20"></i>
-                    {% endif %}
-                </div>
-                <h3 class="text-sm font-black text-white group-hover:text-cyan transition-colors mb-1">{{ cat.name }}</h3>
-                <span class="text-[9px] font-black text-slate-500 uppercase tracking-widest">{{ cat.product_count }} خدمة متوفرة</span>
-            </a>
-            {% endif %}
-            {% endfor %}
-        </div>
-        {% else %}
-        <!-- Product Grid -->
-        <div class="product-grid">
-            {% for p in products %}
-            <div class="premium-card reveal-item" style="transition-delay: {{ forloop.counter|mul:0.02 }}s">
-                <!-- Status Badges -->
-                {% if p.is_sale %}
-                <div class="absolute top-3 right-3 z-10 bg-gradient-to-br from-amber-400 to-orange-600 text-black text-[8px] font-black px-2 py-1 rounded-lg">
-                    عرض خاص
-                </div>
-                {% endif %}
-
-                {% if p.is_out_of_stock %}
-                <div class="absolute inset-0 z-20 bg-slate-950/60 backdrop-blur-[2px] rounded-3xl flex items-center justify-center">
-                    <div class="bg-rose-500 text-white text-[10px] font-black px-4 py-2 rounded-xl -rotate-6">نفدت الكمية</div>
-                </div>
-                {% endif %}
-                
-                <!-- Image Wrapper -->
-                <a href="{% url 'product_detail' p.id %}" class="image-wrapper">
-                    {% if p.image %}
-                    <img src="{{ p.image.url }}" alt="{{ p.name }}" loading="lazy">
-                    {% else %}
-                    <i class="fas fa-box text-3xl text-slate-700 opacity-20"></i>
-                    {% endif %}
-                </a>
-
-                <!-- Product Body -->
-                <div class="card-body">
-                    <span class="category-label">{{ p.category.name }}</span>
-                    <a href="{% url 'product_detail' p.id %}" class="product-title">{{ p.name }}</a>
-                    
-                    <!-- Quick Variant Preview -->
-                    <div class="flex flex-wrap gap-1 mb-4">
-                        {% for v in p.variants.all|slice:":2" %}
-                        <span class="text-[7px] font-bold bg-white/5 border border-white/5 text-slate-500 px-2 py-0.5 rounded-md truncate max-w-[80px]">{{ v.name }}</span>
-                        {% endfor %}
-                        {% if p.variants.count > 2 %}
-                        <span class="text-[7px] font-bold text-cyan">+{{ p.variants.count|add:"-2" }}</span>
-                        {% endif %}
-                    </div>
-
-                    <div class="price-row">
-                        {% variant_price p.variants.first as v_price %}
-                        <div class="flex flex-col">
-                            <span class="text-[8px] text-slate-500 font-bold">يبدأ من</span>
-                            <span class="price-value">{% currency_format v_price %}</span>
-                        </div>
-                        <a href="{% url 'product_detail' p.id %}" class="w-10 h-10 bg-cyan text-white rounded-xl flex items-center justify-center hover:bg-indigo hover:scale-110 transition-all shadow-lg shadow-cyan/20">
-                            <i class="fas fa-shopping-cart text-xs"></i>
-                        </a>
-                    </div>
-                </div>
-            </div>
-            {% empty %}
-            <div class="col-span-full py-32 text-center glass-panel border-dashed reveal-item">
-                <div class="w-20 h-20 bg-slate-900/50 rounded-full flex items-center justify-center mx-auto mb-6">
-                    <i class="fas fa-search text-3xl text-slate-700"></i>
-                </div>
-                <h3 class="text-xl font-black text-white">لم نجد ما تبحث عنه</h3>
-                <p class="text-slate-500 mt-2 max-w-xs mx-auto">حاول تغيير كلمات البحث أو تصفح التصنيفات الأخرى.</p>
-                <a href="{% url 'catalog' %}" class="btn-outline-premium mt-8 inline-flex">عرض كل الخدمات</a>
-            </div>
-            {% endfor %}
-        </div>
-        {% endif %}
     </div>
 </div>
 
@@ -397,7 +406,7 @@
                 entry.target.classList.add('visible');
             }
         });
-    }, { threshold: 0.1, rootMargin: '0px 0px -50px 0px' });
+    }, { threshold: 0.05, rootMargin: '0px 0px -20px 0px' });
 
     document.querySelectorAll('.reveal-item').forEach(el => observer.observe(el));
 </script>
