@@ -25,7 +25,16 @@ class UserManager(BaseUserManager):
         if not email:
             raise ValueError("Email is required.")
         email = self.normalize_email(email)
-        extra_fields.setdefault("username", email)
+        
+        username = extra_fields.get("username")
+        if not username:
+            store = extra_fields.get("store")
+            if store:
+                from django.utils.crypto import get_random_string
+                email_part = email.split('@')[0][:100]
+                extra_fields["username"] = f"{email_part}_{get_random_string(12)}"
+            else:
+                extra_fields["username"] = email
         
         # Set default limits from global settings
         from apps.accounts.models import KYCSettings
