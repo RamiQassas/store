@@ -157,6 +157,15 @@
                                 <input type="text" name="{{ field.label }}" class="form-input" {% if field.required %}required{% endif %} placeholder="يرجى إدخال {{ field.label }}">
                             {% elif field.type == "textarea" %}
                                 <textarea name="{{ field.label }}" class="form-input" rows="3" {% if field.required %}required{% endif %} placeholder="يرجى إدخال {{ field.label }}"></textarea>
+                            {% elif field.type == "location" %}
+                                <div style="position: relative; display: flex; align-items: center;">
+                                    <input type="text" id="store_loc_{{ forloop.counter }}" name="{{ field.label }}" class="form-input" {% if field.required %}required{% endif %} placeholder="مثال: https://www.google.com/maps?q=24.7136,46.6753" style="padding-left: 130px;">
+                                    <button type="button" onclick="detectGPSLocationStore('store_loc_{{ forloop.counter }}', this)" style="position: absolute; left: 6px; top: 50%; transform: translateY(-50%); background: rgba(6, 182, 212, 0.1); border: 1px solid rgba(6, 182, 212, 0.3); color: var(--primary); font-size: 0.8rem; font-weight: 700; padding: 0.4rem 0.6rem; border-radius: 8px; cursor: pointer; display: flex; align-items: center; gap: 0.3rem; transition: var(--transition);">
+                                        <i class="fa-solid fa-location-dot"></i>
+                                        <span>تحديد موقعي (GPS)</span>
+                                    </button>
+                                </div>
+                                <span style="font-size: 0.75rem; opacity: 0.6; margin-top: 0.3rem; display: block;">يمكنك نسخ ولصق رابط موقعك من خرائط جوجل أو استخدام زر تحديد الموقع الجغرافي.</span>
                             {% endif %}
                             
                             {% if field.help_text %}
@@ -189,4 +198,43 @@
         </form>
     </div>
 
+<script>
+function detectGPSLocationStore(inputId, btn) {
+    if (!navigator.geolocation) {
+        alert("متصفحك لا يدعم تحديد الموقع الجغرافي.");
+        return;
+    }
+    const originalText = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> جاري التحديد...';
+    
+    navigator.geolocation.getCurrentPosition(
+        function(position) {
+            const lat = position.coords.latitude;
+            const lng = position.coords.longitude;
+            const mapsUrl = `https://www.google.com/maps?q=${lat},${lng}`;
+            document.getElementById(inputId).value = mapsUrl;
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fa-solid fa-circle-check" style="color: #10b981;"></i> تم التحديد';
+            setTimeout(() => {
+                btn.innerHTML = originalText;
+            }, 3000);
+        },
+        function(error) {
+            btn.disabled = false;
+            btn.innerHTML = originalText;
+            let errorMsg = "فشل تحديد الموقع. يرجى إعطاء الصلاحية للمتصفح.";
+            if (error.code === error.PERMISSION_DENIED) {
+                errorMsg = "تم رفض إذن الوصول للموقع. يرجى السماح بالوصول للموقع في إعدادات المتصفح.";
+            } else if (error.code === error.POSITION_UNAVAILABLE) {
+                errorMsg = "معلومات الموقع غير متوفرة.";
+            } else if (error.code === error.TIMEOUT) {
+                errorMsg = "انتهت مهلة طلب تحديد الموقع.";
+            }
+            alert(errorMsg);
+        },
+        { enableHighAccuracy: true, timeout: 10000 }
+    );
+}
+</script>
 {% endblock %}

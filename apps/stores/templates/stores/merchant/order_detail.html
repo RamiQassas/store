@@ -1,4 +1,5 @@
 {% extends "stores/merchant/base.html" %}
+{% load static site_tags %}
 
 {% block menu_ord %}active{% endblock %}
 
@@ -78,7 +79,13 @@
                 {% for name, val in order.fulfillment_data.fields.items %}
                     <div class="info-row">
                         <span style="opacity: 0.7;">{{ name }}:</span>
-                        <strong>{{ val }}</strong>
+                        {% if val|is_location_url %}
+                            <strong>
+                                <a href="{{ val }}" target="_blank" class="btn btn-outline btn-sm" style="display: inline-flex; align-items: center; gap: 0.3rem; color: var(--primary);"><i class="fa-solid fa-map-location-dot"></i> فتح الموقع في خرائط جوجل</a>
+                            </strong>
+                        {% else %}
+                            <strong>{{ val }}</strong>
+                        {% endif %}
                     </div>
                 {% empty %}
                     <p style="opacity: 0.5;">لا يوجد بيانات إضافية مدخلة.</p>

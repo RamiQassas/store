@@ -190,3 +190,18 @@ def getattr_filter(obj, attr_name):
     if not obj:
         return None
     return getattr(obj, attr_name, None)
+
+
+@register.filter
+def is_location_url(value):
+    if not isinstance(value, str):
+        return False
+    value_lower = value.strip().lower()
+    return (
+        value_lower.startswith("http://") or 
+        value_lower.startswith("https://") or 
+        "maps.google" in value_lower or 
+        "google.com/maps" in value_lower or 
+        "maps.app.goo.gl" in value_lower
+    )
+

@@ -137,7 +137,16 @@
                     <div class="info-item p-4 bg-white/[0.02] border border-white/5 rounded-2xl flex justify-between items-center group/meta">
                         <div>
                             <span class="info-label block text-[10px] uppercase tracking-widest text-slate-500 mb-1">{{ item.label }}</span>
+                            {% if item.value|is_location_url %}
+                            <span class="info-value text-sm font-bold text-white meta-value">
+                                <a href="{{ item.value }}" target="_blank" class="inline-flex items-center gap-1.5 text-cyan hover:underline">
+                                    <i class="fas fa-map-marked-alt text-cyan"></i>
+                                    <span>فتح الموقع في خرائط جوجل</span>
+                                </a>
+                            </span>
+                            {% else %}
                             <span class="info-value text-sm font-bold text-white meta-value">{{ item.value|default:"---" }}</span>
+                            {% endif %}
                         </div>
                         <button onclick="copyToClipboard('{{ item.value|escapejs }}', this)" class="text-slate-500 hover:text-cyan transition opacity-0 group-hover/meta:opacity-100">
                             <i class="fas fa-copy"></i>

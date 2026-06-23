@@ -1,4 +1,5 @@
 {% extends "stores/frontend/base.html" %}
+{% load static site_tags %}
 
 {% block title %}تفاصيل الطلب {{ order.number }} | {{ store.name }}{% endblock %}
 
@@ -138,7 +139,16 @@
                 {% for name, val in order.fulfillment_data.fields.items %}
                     <div class="data-row">
                         <span style="opacity: 0.6;">{{ name }}:</span>
-                        <strong>{{ val }}</strong>
+                        {% if val|is_location_url %}
+                            <strong>
+                                <a href="{{ val }}" target="_blank" style="display: inline-flex; align-items: center; gap: 0.3rem; color: var(--primary); text-decoration: none;">
+                                    <i class="fa-solid fa-map-location-dot"></i>
+                                    <span>خرائط جوجل</span>
+                                </a>
+                            </strong>
+                        {% else %}
+                            <strong>{{ val }}</strong>
+                        {% endif %}
                     </div>
                 {% empty %}
                     <p style="opacity: 0.5; font-size: 0.9rem;">لم يتم تقديم حقول إضافية.</p>

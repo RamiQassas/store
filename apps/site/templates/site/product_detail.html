@@ -242,6 +242,15 @@
                         </select>
                         {% elif f.type == 'image' %}
                         <input type="file" name="custom_{{ f.name|default:f.label|slugify|replace:".,-" }}" class="w-full bg-slate-900 border-white/5 rounded-2xl p-4 text-xs text-slate-500" accept="image/*" {% if f.required %}required{% endif %}>
+                        {% elif f.type == 'location' %}
+                        <div class="relative flex items-center">
+                            <input type="text" id="loc_{{ f.name|default:f.label|slugify|replace:".,-" }}" name="custom_{{ f.name|default:f.label|slugify|replace:".,-" }}" placeholder="{{ f.placeholder|default:'مثال: https://www.google.com/maps?q=24.7136,46.6753' }}" class="w-full bg-slate-900 border border-white/5 rounded-2xl p-4 pl-36 text-white focus:border-cyan transition" {% if f.required %}required{% endif %}>
+                            <button type="button" onclick="detectGPSLocation('loc_{{ f.name|default:f.label|slugify|replace:".,-" }}', this)" class="absolute left-2 bg-cyan/10 hover:bg-cyan/20 border border-cyan/20 hover:border-cyan/30 text-cyan text-[11px] font-bold py-2 px-3 rounded-xl flex items-center gap-1.5 transition-all">
+                                <i class="fas fa-map-marker-alt"></i>
+                                <span>تحديد موقعي (GPS)</span>
+                            </button>
+                        </div>
+                        <span class="text-[9px] text-slate-500 mt-1 block">يمكنك نسخ ولصق رابط موقعك من خرائط جوجل مباشرة أو استخدام زر تحديد الموقع الحالي.</span>
                         {% else %}
                         <input type="text" name="custom_{{ f.name|default:f.label|slugify|replace:".,-" }}" placeholder="{{ f.placeholder }}" class="w-full bg-slate-900 border-white/5 rounded-2xl p-4 text-white focus:border-cyan transition" {% if f.required %}required{% endif %}>
                         {% endif %}
@@ -428,6 +437,44 @@ function applyCoupon() {
             feedback.innerText = "خطأ في الاتصال بالسيرفر.";
             feedback.className = "mt-2 text-[10px] text-rose-500 block";
         });
+}
+
+function detectGPSLocation(inputId, btn) {
+    if (!navigator.geolocation) {
+        alert("متصفحك لا يدعم تحديد الموقع الجغرافي.");
+        return;
+    }
+    const originalText = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري التحديد...';
+    
+    navigator.geolocation.getCurrentPosition(
+        function(position) {
+            const lat = position.coords.latitude;
+            const lng = position.coords.longitude;
+            const mapsUrl = `https://www.google.com/maps?q=${lat},${lng}`;
+            document.getElementById(inputId).value = mapsUrl;
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-check-circle text-emerald-500"></i> تم التحديد';
+            setTimeout(() => {
+                btn.innerHTML = originalText;
+            }, 3000);
+        },
+        function(error) {
+            btn.disabled = false;
+            btn.innerHTML = originalText;
+            let errorMsg = "فشل تحديد الموقع. يرجى إعطاء الصلاحية للمتصفح.";
+            if (error.code === error.PERMISSION_DENIED) {
+                errorMsg = "تم رفض إذن الوصول للموقع. يرجى السماح بالوصول للموقع في إعدادات المتصفح.";
+            } else if (error.code === error.POSITION_UNAVAILABLE) {
+                errorMsg = "معلومات الموقع غير متوفرة.";
+            } else if (error.code === error.TIMEOUT) {
+                errorMsg = "انتهت مهلة طلب تحديد الموقع.";
+            }
+            alert(errorMsg);
+        },
+        { enableHighAccuracy: true, timeout: 10000 }
+    );
 }
 
 function closeBalanceModal() {

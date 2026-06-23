@@ -173,8 +173,16 @@
         <div class="builder-body stack gap-6">
             <div class="field-group">
                 <label class="block text-xs font-bold text-slate-400 mb-2">إضافة صور أو فيديوهات للمعرض</label>
-                <input type="file" name="gallery_files" multiple accept="image/*,video/*" class="builder-input" style="padding: 12px !important;">
+                <input type="file" id="gallery-files-input" multiple accept="image/*,video/*" class="builder-input" style="padding: 12px !important;">
                 <p class="text-[10px] text-slate-500 mt-2">يمكنك تحديد عدة ملفات (صور وفيديوهات) معاً لرفعها في معرض المنتج.</p>
+            </div>
+
+            <!-- New Files Pending Upload Previews -->
+            <div id="new-gallery-previews" class="hidden mt-4">
+                <label class="block text-xs font-bold text-slate-400 mb-4">الملفات الجديدة المحددة للرفع (سيتم حفظها عند حفظ المنتج):</label>
+                <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4" id="new-previews-container">
+                    <!-- JS will populate this -->
+                </div>
             </div>
 
             {% if gallery %}
@@ -478,6 +486,7 @@ function renderFields() {
                         <option value="checkbox" ${field.type === 'checkbox' ? 'selected' : ''}>Checkbox</option>
                         <option value="image" ${field.type === 'image' ? 'selected' : ''}>Image Upload</option>
                         <option value="file" ${field.type === 'file' ? 'selected' : ''}>File Upload</option>
+                        <option value="location" ${field.type === 'location' ? 'selected' : ''}>موقع خرائط جوجل (Google Maps Location)</option>
                     </select>
                 </div>
                 <div class="md:col-span-1">
@@ -548,8 +557,58 @@ function saveAndGoToKeys(variantId) {
     submitBuilder();
 }
 
+let galleryFilesArray = [];
+
+function renderNewPreviews() {
+    const container = document.getElementById('new-previews-container');
+    const wrapper = document.getElementById('new-gallery-previews');
+    if (!container || !wrapper) return;
+    container.innerHTML = '';
+    
+    if (galleryFilesArray.length === 0) {
+        wrapper.classList.add('hidden');
+        return;
+    }
+    wrapper.classList.remove('hidden');
+    
+    galleryFilesArray.forEach((file, index) => {
+        const item = document.createElement('div');
+        item.className = 'relative group border border-dashed border-cyan/30 bg-cyan/[0.02] rounded-xl overflow-hidden stack gap-2 p-2';
+        
+        const isVideo = file.type.startsWith('video/');
+        const fileUrl = URL.createObjectURL(file);
+        
+        if (isVideo) {
+            item.innerHTML = `
+                <div class="w-full h-24 bg-black flex items-center justify-center rounded-lg relative">
+                    <video class="w-full h-full object-cover rounded-lg" src="${fileUrl}" muted preload="metadata"></video>
+                    <span class="absolute inset-0 bg-black/40 flex items-center justify-center text-white"><i class="fas fa-play-circle text-2xl"></i></span>
+                </div>
+                <button type="button" onclick="removeNewFile(${index})" class="absolute top-2 left-2 w-6 h-6 bg-red-600/80 hover:bg-red-600 rounded-full flex items-center justify-center text-white text-[10px]">
+                    <i class="fas fa-times"></i>
+                </button>
+                <div class="text-[9px] text-cyan text-center truncate">${file.name}</div>
+            `;
+        } else {
+            item.innerHTML = `
+                <img src="${fileUrl}" class="w-full h-24 object-cover rounded-lg">
+                <button type="button" onclick="removeNewFile(${index})" class="absolute top-2 left-2 w-6 h-6 bg-red-600/80 hover:bg-red-600 rounded-full flex items-center justify-center text-white text-[10px]">
+                    <i class="fas fa-times"></i>
+                </button>
+                <div class="text-[9px] text-cyan text-center truncate">${file.name}</div>
+            `;
+        }
+        container.appendChild(item);
+    });
+}
+
+function removeNewFile(index) {
+    galleryFilesArray.splice(index, 1);
+    renderNewPreviews();
+}
+
 // --- Submit ---
-function submitBuilder() {
+async function submitBuilder() {
     // Basic validation
     if (packages.length === 0) {
         alert("يرجى إضافة باقة واحدة على الأقل للمنتج.");
@@ -560,8 +619,36 @@ function submitBuilder() {
     document.getElementById('id_form_schema').value = JSON.stringify(schema);
     document.getElementById('id_variants_json').value = JSON.stringify(packages);
     
-    // Submit form
-    document.getElementById('builder-form').submit();
+    const form = document.getElementById('builder-form');
+    const formData = new FormData(form);
+    
+    // Append the accumulated gallery files
+    galleryFilesArray.forEach(file => {
+        formData.append('gallery_files', file);
+    });
+    
+    // Disable submit buttons to prevent double click
+    const btn = document.querySelector('button[onclick="submitBuilder()"]');
+    if (btn) btn.disabled = true;
+    
+    try {
+        const response = await fetch(window.location.href, {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        });
+        if (response.ok) {
+            window.location.href = response.url;
+        } else {
+            alert("حدث خطأ أثناء حفظ المنتج.");
+            if (btn) btn.disabled = false;
+        }
+    } catch(e) {
+        alert("خطأ في الاتصال بالخادم.");
+        if (btn) btn.disabled = false;
+    }
 }
 
 function toggleProductType() {
@@ -614,6 +701,18 @@ async function deleteGalleryItem(itemId) {
 
 // Initial Render
 window.onload = () => {
+    const fileInput = document.getElementById('gallery-files-input');
+    if (fileInput) {
+        fileInput.addEventListener('change', function(e) {
+            const files = Array.from(e.target.files);
+            files.forEach(file => {
+                galleryFilesArray.push(file);
+            });
+            e.target.value = '';
+            renderNewPreviews();
+        });
+    }
+
     const productTypeSelect = document.getElementById('id_product_type');
     if (productTypeSelect) {
         productTypeSelect.addEventListener('change', toggleProductType);
