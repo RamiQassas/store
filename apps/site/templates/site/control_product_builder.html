@@ -201,9 +201,17 @@
                         {% else %}
                         <img src="{{ item.url }}" class="w-full h-24 object-cover rounded-lg">
                         {% endif %}
-                        <button type="button" onclick="deleteGalleryItem('{{ item.id }}')" class="absolute top-2 left-2 w-6 h-6 bg-red-600/80 hover:bg-red-600 rounded-full flex items-center justify-center text-white text-[10px] opacity-0 group-hover:opacity-100 transition-opacity">
+                        <button type="button" onclick="deleteGalleryItem('{{ item.id }}')" class="absolute top-2 left-2 w-6 h-6 bg-red-600/80 hover:bg-red-600 rounded-full flex items-center justify-center text-white text-[10px] opacity-0 group-hover:opacity-100 transition-opacity" title="حذف الملف">
                             <i class="fas fa-trash"></i>
                         </button>
+                        <div class="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <button type="button" onclick="moveGalleryItem('{{ item.id }}', 'up')" class="w-6 h-6 bg-slate-800/90 hover:bg-cyan text-white hover:text-black rounded-full flex items-center justify-center text-[10px]" title="تحريك للأمام (يمين)">
+                                <i class="fas fa-arrow-right"></i>
+                            </button>
+                            <button type="button" onclick="moveGalleryItem('{{ item.id }}', 'down')" class="w-6 h-6 bg-slate-800/90 hover:bg-cyan text-white hover:text-black rounded-full flex items-center justify-center text-[10px]" title="تحريك للخلف (يسار)">
+                                <i class="fas fa-arrow-left"></i>
+                            </button>
+                        </div>
                         <div class="text-[9px] text-slate-500 text-center truncate">{% if item.is_video %}فيديو{% else %}صورة{% endif %}</div>
                     </div>
                     {% endfor %}
@@ -656,19 +664,14 @@ function toggleProductType() {
     if (!productTypeSelect) return;
     const isPhysical = productTypeSelect.value === 'physical';
     const fieldsSection = document.getElementById('fields-section');
+    if (fieldsSection) {
+        fieldsSection.style.opacity = '1';
+        fieldsSection.style.pointerEvents = 'auto';
+    }
     if (isPhysical) {
-        if (fieldsSection) {
-            fieldsSection.style.opacity = '0.5';
-            fieldsSection.style.pointerEvents = 'none';
-        }
         packages.forEach(pkg => {
             pkg.delivery_type = 'manual';
         });
-    } else {
-        if (fieldsSection) {
-            fieldsSection.style.opacity = '1';
-            fieldsSection.style.pointerEvents = 'auto';
-        }
     }
     renderPackages();
 }
@@ -693,6 +696,29 @@ async function deleteGalleryItem(itemId) {
             }
         } else {
             alert("فشل حذف الملف.");
+        }
+    } catch(e) {
+        alert("خطأ في الاتصال بالخادم.");
+    }
+}
+
+async function moveGalleryItem(itemId, direction) {
+    const formData = new FormData();
+    formData.append("direction", direction);
+    
+    try {
+        const response = await fetch(`/control/products/gallery/${itemId}/reorder-ajax/`, {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-CSRFToken': '{{ csrf_token }}'
+            }
+        });
+        
+        if (response.ok) {
+            window.location.reload();
+        } else {
+            alert("فشل تغيير الترتيب.");
         }
     } catch(e) {
         alert("خطأ في الاتصال بالخادم.");

@@ -122,7 +122,7 @@
             {% csrf_token %}
             
             <!-- Physical Product Shipping Fields -->
-            {% if product.product_type == "physical" %}
+            {% if product.product_type == "physical" and not product.form_schema.fields %}
                 <div style="margin-bottom: 2rem; border-bottom: 1px solid var(--card-border); padding-bottom: 1.5rem;">
                     <h3 style="font-size: 1.1rem; font-weight: 800; margin-bottom: 1.2rem; color: var(--primary);">معلومات الشحن والتوصيل:</h3>
                     

@@ -191,7 +191,7 @@
             </div>
 
             <!-- Physical Product Shipping Fields -->
-            {% if product.product_type == "physical" %}
+            {% if product.product_type == "physical" and not product.form_schema.fields %}
             <div class="panel p-8 mt-10 stack gap-8 bg-amber-500/[0.03] border-amber-500/10 rounded-[2.5rem]">
                 <div>
                     <h3 class="font-black text-xl text-white">معلومات الشحن والتوصيل</h3>

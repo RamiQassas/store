@@ -1684,7 +1684,7 @@ def product_detail(request, pk):
         shipping_name = ""
         shipping_phone = ""
         shipping_address = ""
-        if product.product_type == "physical":
+        if product.product_type == "physical" and not product.form_schema.get("fields"):
             shipping_name = request.POST.get("shipping_name", "").strip()
             shipping_phone = request.POST.get("shipping_phone", "").strip()
             shipping_address = request.POST.get("shipping_address", "").strip()
@@ -3427,6 +3427,52 @@ def control_gallery_delete_ajax(request, pk):
         return JsonResponse({"status": "error", "message": "غير مصرح"}, status=403)
     item.delete()
     return JsonResponse({"status": "success"})
+
+
+@support_required
+def control_gallery_reorder_ajax(request, pk):
+    item = get_object_or_404(ProductImage, pk=pk)
+    store = getattr(request, "store", None)
+    if store and item.product.store != store:
+        return JsonResponse({"status": "error", "message": "غير مصرح"}, status=403)
+        
+    direction = request.POST.get("direction", "down")
+    
+    # Get all gallery items for this product
+    items = list(ProductImage.objects.filter(product=item.product).order_by("sort_order", "id"))
+    
+    # Ensure they have sequential and unique sort_order values before sorting
+    has_duplicates_or_zeros = len(set(i.sort_order for i in items)) < len(items) or any(i.sort_order == 0 for i in items)
+    if has_duplicates_or_zeros:
+        for idx_seq, it in enumerate(items):
+            it.sort_order = idx_seq
+            it.save(update_fields=["sort_order"])
+            
+    # Re-fetch sequential lists
+    items = list(ProductImage.objects.filter(product=item.product).order_by("sort_order", "id"))
+    
+    try:
+        idx = items.index(item)
+    except ValueError:
+        return JsonResponse({"status": "error", "message": "العنصر غير موجود"}, status=400)
+        
+    if direction == "up" and idx > 0:
+        prev_item = items[idx - 1]
+        temp = prev_item.sort_order
+        prev_item.sort_order = item.sort_order
+        item.sort_order = temp
+        prev_item.save(update_fields=["sort_order"])
+        item.save(update_fields=["sort_order"])
+    elif direction == "down" and idx < len(items) - 1:
+        next_item = items[idx + 1]
+        temp = next_item.sort_order
+        next_item.sort_order = item.sort_order
+        item.sort_order = temp
+        next_item.save(update_fields=["sort_order"])
+        item.save(update_fields=["sort_order"])
+        
+    return JsonResponse({"status": "success"})
+
 
 
 @support_required

@@ -1,7 +1,7 @@
 from decimal import Decimal
 from django.contrib.auth import get_user_model
 from django.test import TestCase, override_settings
-from apps.catalog.models import Category, Product, ProductVariant, ProductKey
+from apps.catalog.models import Category, Product, ProductVariant, ProductKey, ProductImage
 from apps.orders.services import create_order
 from apps.orders.models import Order
 from apps.wallets.services import credit_wallet
@@ -134,3 +134,101 @@ class PurchaseSecurityTests(TestCase):
         session_after = self.client.session
         self.assertNotIn("v3_pending_purchase", session_after)
         self.assertNotIn("v3_auth_uid", session_after)
+
+
+@override_settings(SECURE_SSL_REDIRECT=False, CACHES=TEST_CACHES)
+class GalleryReorderTests(TestCase):
+    def setUp(self):
+        self.support_user = User.objects.create_user(
+            email="support_test@example.com", 
+            password="StrongPass12345", 
+            is_staff=True,
+            role=User.Role.SUPER_ADMIN
+        )
+        category = Category.objects.create(name="Reorder Category")
+        self.product = Product.objects.create(name="Reorder Product", category=category, is_active=True)
+        
+        self.img1 = ProductImage.objects.create(product=self.product, alt_text="Image 1", sort_order=1)
+        self.img2 = ProductImage.objects.create(product=self.product, alt_text="Image 2", sort_order=2)
+        self.img3 = ProductImage.objects.create(product=self.product, alt_text="Image 3", sort_order=3)
+
+    def test_reorder_up_and_down(self):
+        self.client.force_login(self.support_user)
+        
+        # Test move down img1
+        url = reverse("control_gallery_reorder_ajax", kwargs={"pk": self.img1.id})
+        response = self.client.post(url, {"direction": "down"})
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json(), {"status": "success"})
+        
+        self.img1.refresh_from_db()
+        self.img2.refresh_from_db()
+        self.img3.refresh_from_db()
+        
+        items = list(ProductImage.objects.filter(product=self.product).order_by("sort_order", "id"))
+        self.assertEqual(items[0], self.img2)
+        self.assertEqual(items[1], self.img1)
+        self.assertEqual(items[2], self.img3)
+        
+        # Test move up img3
+        url_up = reverse("control_gallery_reorder_ajax", kwargs={"pk": self.img3.id})
+        response_up = self.client.post(url_up, {"direction": "up"})
+        self.assertEqual(response_up.status_code, 200)
+        
+        self.img1.refresh_from_db()
+        self.img2.refresh_from_db()
+        self.img3.refresh_from_db()
+        items = list(ProductImage.objects.filter(product=self.product).order_by("sort_order", "id"))
+        self.assertEqual(items[0], self.img2)
+        self.assertEqual(items[1], self.img3)
+        self.assertEqual(items[2], self.img1)
+
+
+@override_settings(SECURE_SSL_REDIRECT=False, CACHES=TEST_CACHES)
+class PhysicalProductCustomFieldsTests(TestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(email="buyer_phys@example.com", password="StrongPass12345")
+        category = Category.objects.create(name="Physical Products")
+        
+        self.product = Product.objects.create(
+            name="Physical Item",
+            category=category,
+            product_type="physical",
+            is_active=True,
+            form_schema={
+                "fields": [
+                    {"label": "اسم العميل", "type": "text", "required": True},
+                    {"label": "الموقع الدقيق", "type": "location", "required": True}
+                ]
+            }
+        )
+        self.variant = ProductVariant.objects.create(
+            product=self.product,
+            name="Default Variant",
+            sku="PHYS-DEFAULT-SKU",
+            price=Decimal("15.00"),
+            is_active=True,
+            delivery_type="manual"
+        )
+        credit_wallet(self.user.wallet.id, Decimal("50.00"), reference="test-credit-phys")
+
+    def test_create_order_with_custom_fields_success(self):
+        metadata = {
+            "اسم العميل": "أحمد علي",
+            "الموقع الدقيق": "https://www.google.com/maps?q=24.7136,46.6753"
+        }
+        order = create_order(
+            customer=self.user,
+            variant_id=self.variant.id,
+            quantity=1,
+            metadata=metadata
+        )
+        self.assertEqual(order.status, Order.Status.PROCESSING)
+        self.assertEqual(order.metadata.get("اسم العميل"), "أحمد علي")
+        self.assertEqual(order.metadata.get("الموقع الدقيق"), "https://www.google.com/maps?q=24.7136,46.6753")
+        
+        self.assertEqual(order.shipping_name, "")
+        self.assertEqual(order.shipping_phone, "")
+        self.assertEqual(order.shipping_address, "")
+
+

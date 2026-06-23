@@ -116,6 +116,7 @@ urlpatterns = [
     path("control/products/categories/create-ajax/", views.control_category_create_ajax, name="control_category_create_ajax"),
     path("control/products/<uuid:pk>/edit/", views.control_product_edit, name="control_product_edit"),
     path("control/products/gallery/<uuid:pk>/delete-ajax/", views.control_gallery_delete_ajax, name="control_gallery_delete_ajax"),
+    path("control/products/gallery/<uuid:pk>/reorder-ajax/", views.control_gallery_reorder_ajax, name="control_gallery_reorder_ajax"),
     path("control/products/<uuid:pk>/reorder/", views.control_reorder_product, name="control_reorder_product"),
     path("control/products/<uuid:pk>/reorder-ajax/", views.control_product_reorder_ajax, name="control_product_reorder_ajax"),
     path("control/products/import/", views.control_product_import, name="control_product_import"),

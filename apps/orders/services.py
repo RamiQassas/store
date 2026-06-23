@@ -151,7 +151,7 @@ def create_order(customer, variant_id, quantity=1, fulfillment_data=None, coupon
     variant = ProductVariant.objects.select_related("product").select_for_update().get(id=variant_id, is_active=True, product__is_active=True)
 
     # Validate shipping info if physical product
-    if variant.product.product_type == 'physical':
+    if variant.product.product_type == 'physical' and not variant.product.form_schema.get("fields"):
         if not (shipping_name and shipping_phone and shipping_address):
             raise ValueError("جميع حقول الشحن والتوصيل مطلوبة للمنتجات المادية.")
 

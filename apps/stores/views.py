@@ -255,7 +255,7 @@ def store_checkout(request, variant_pk):
         shipping_name = ""
         shipping_phone = ""
         shipping_address = ""
-        if product.product_type == "physical":
+        if product.product_type == "physical" and not product.form_schema.get("fields"):
             shipping_name = request.POST.get("shipping_name", "").strip()
             shipping_phone = request.POST.get("shipping_phone", "").strip()
             shipping_address = request.POST.get("shipping_address", "").strip()
