@@ -193,7 +193,7 @@ class User(AbstractUser):
             import random
             while True:
                 new_uid = ''.join([str(random.randint(0, 9)) for _ in range(8)])
-                if not User.objects.filter(uid=new_uid).exists():
+                if not User.all_objects.filter(uid=new_uid).exists():
                     self.uid = new_uid
                     break
         super().save(*args, **kwargs)

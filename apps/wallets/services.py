@@ -893,32 +893,86 @@ def cancel_pending_deposit(wallet_id, amount, reference="", description="", crea
 def auto_seed_currencies():
     """Emergency seeding of initial currencies if table is empty."""
     from apps.common.models import Currency
+    from apps.common.tenant_utils import get_current_store, bypass_tenant_filter
+    
+    current_store = get_current_store()
+    
     if not Currency.objects.exists():
-        Currency.objects.create(
-            code="USD",
-            name="US Dollar",
-            symbol="$",
-            buy_rate=1.0,
-            sell_rate=1.0,
-            is_default=True,
-            is_active=True
-        )
-        Currency.objects.create(
-            code="TRY",
-            name="Turkish Lira",
-            symbol="₺",
-            buy_rate=Decimal("32.50"),
-            sell_rate=Decimal("32.00"),
-            is_active=True
-        )
-        Currency.objects.create(
-            code="SYP",
-            name="Syrian Pound",
-            symbol="£S",
-            buy_rate=Decimal("15000.0"),
-            sell_rate=Decimal("14500.0"),
-            is_active=True
-        )
+        with bypass_tenant_filter():
+            global_currencies = list(Currency.objects.filter(store__isnull=True))
+            
+        if current_store is not None:
+            if global_currencies:
+                for gc in global_currencies:
+                    Currency.objects.create(
+                        store=current_store,
+                        name=gc.name,
+                        code=gc.code,
+                        symbol=gc.symbol,
+                        buy_rate=gc.buy_rate,
+                        sell_rate=gc.sell_rate,
+                        capital_rate=gc.capital_rate,
+                        conversion_method=gc.conversion_method,
+                        decimal_places=gc.decimal_places,
+                        display_order=gc.display_order,
+                        is_active=gc.is_active,
+                        is_default=gc.is_default
+                    )
+            else:
+                Currency.objects.create(
+                    store=current_store,
+                    code="USD",
+                    name="US Dollar",
+                    symbol="$",
+                    buy_rate=1.0,
+                    sell_rate=1.0,
+                    is_default=True,
+                    is_active=True
+                )
+                Currency.objects.create(
+                    store=current_store,
+                    code="TRY",
+                    name="Turkish Lira",
+                    symbol="₺",
+                    buy_rate=Decimal("32.50"),
+                    sell_rate=Decimal("32.00"),
+                    is_active=True
+                )
+                Currency.objects.create(
+                    store=current_store,
+                    code="SYP",
+                    name="Syrian Pound",
+                    symbol="£S",
+                    buy_rate=Decimal("15000.0"),
+                    sell_rate=Decimal("14500.0"),
+                    is_active=True
+                )
+        else:
+            Currency.objects.create(
+                code="USD",
+                name="US Dollar",
+                symbol="$",
+                buy_rate=1.0,
+                sell_rate=1.0,
+                is_default=True,
+                is_active=True
+            )
+            Currency.objects.create(
+                code="TRY",
+                name="Turkish Lira",
+                symbol="₺",
+                buy_rate=Decimal("32.50"),
+                sell_rate=Decimal("32.00"),
+                is_active=True
+            )
+            Currency.objects.create(
+                code="SYP",
+                name="Syrian Pound",
+                symbol="£S",
+                buy_rate=Decimal("15000.0"),
+                sell_rate=Decimal("14500.0"),
+                is_active=True
+            )
 
 
 def get_or_create_wallet(user):
