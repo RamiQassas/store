@@ -12,8 +12,9 @@ class SubscriptionPlanAdmin(admin.ModelAdmin):
 
 @admin.register(Store)
 class StoreAdmin(admin.ModelAdmin):
-    list_display = ("name", "subdomain", "custom_domain", "owner", "subscription_status", "is_active", "created_at")
-    list_filter = ("subscription_status", "is_active", "subscription_plan")
+    list_display = ("name", "subdomain", "custom_domain", "owner", "subscription_status", "is_featured", "display_order", "is_active", "created_at")
+    list_editable = ("is_featured", "display_order", "is_active")
+    list_filter = ("subscription_status", "is_featured", "is_active", "subscription_plan")
     search_fields = ("name", "subdomain", "custom_domain", "owner__email")
 
 @admin.register(StoreEmployee)

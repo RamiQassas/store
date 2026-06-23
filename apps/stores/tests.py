@@ -550,3 +550,82 @@ class StoreSaaSNewFeaturesTests(TestCase):
             store_a.save()
         response_suspended = client.get(reverse("store_home", urlconf="apps.stores.urls"), HTTP_HOST="store-a.testserver")
         self.assertEqual(response_suspended.status_code, 403)
+
+    def test_require_kyc_for_store_creation(self):
+        from apps.accounts.models import KYCSettings
+        
+        # Enforce KYC setting
+        with bypass_tenant_filter():
+            kyc_settings = KYCSettings.get_settings()
+            kyc_settings.require_kyc_for_store_creation = True
+            kyc_settings.save()
+            
+            # Ensure test user is not verified
+            self.user.is_kyc_verified = False
+            self.user.save()
+            
+        client = Client()
+        client.login(email="merchant@example.com", password="Password123!")
+        
+        # Try registering store landing
+        response = client.get(reverse("store_registration"))
+        self.assertEqual(response.status_code, 302)
+        self.assertTrue(response.url.endswith(reverse("site_kyc_request")))
+        
+        # Now mark user verified
+        with bypass_tenant_filter():
+            self.user.is_kyc_verified = True
+            self.user.save()
+            
+        response_verified = client.get(reverse("store_registration"))
+        self.assertEqual(response_verified.status_code, 200)
+
+    def test_explore_stores_promotion_and_sorting(self):
+        # Create multiple stores with different featured and display order settings
+        with bypass_tenant_filter():
+            # Clear existing stores to have clean test state
+            Store.objects.all().delete()
+            
+            store_c = Store.objects.create(
+                owner=self.user,
+                name="Store C",
+                subdomain="store-c",
+                subscription_plan=self.plan,
+                subscription_status=Store.Status.ACTIVE,
+                is_active=True,
+                is_featured=False,
+                display_order=2
+            )
+            store_d = Store.objects.create(
+                owner=self.user,
+                name="Store D",
+                subdomain="store-d",
+                subscription_plan=self.plan,
+                subscription_status=Store.Status.ACTIVE,
+                is_active=True,
+                is_featured=True,
+                display_order=1
+            )
+            store_e = Store.objects.create(
+                owner=self.user,
+                name="Store E",
+                subdomain="store-e",
+                subscription_plan=self.plan,
+                subscription_status=Store.Status.ACTIVE,
+                is_active=True,
+                is_featured=False,
+                display_order=0
+            )
+            
+        client = Client()
+        response = client.get(reverse("home"))
+        self.assertEqual(response.status_code, 200)
+        
+        platform_stores = list(response.context["platform_stores"])
+        # Expected sort order:
+        # 1. Store D (Featured = True)
+        # 2. Store E (Featured = False, display_order = 0)
+        # 3. Store C (Featured = False, display_order = 2)
+        self.assertEqual(platform_stores[0], store_d)
+        self.assertEqual(platform_stores[1], store_e)
+        self.assertEqual(platform_stores[2], store_c)

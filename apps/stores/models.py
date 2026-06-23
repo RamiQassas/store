@@ -117,6 +117,8 @@ class Store(TimeStampedModel):
     text_color = models.CharField(max_length=7, default="#f8fafc", verbose_name="لون النص")
     
     is_active = models.BooleanField(default=True, verbose_name="نشط")
+    is_featured = models.BooleanField(default=False, verbose_name="متجر مميز للترويج")
+    display_order = models.IntegerField(default=0, verbose_name="ترتيب الظهور")
     auto_renew = models.BooleanField(default=True, verbose_name="تجديد تلقائي للاشتراك")
     billing_cycle = models.CharField(
         max_length=20,

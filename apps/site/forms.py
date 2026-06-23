@@ -256,7 +256,7 @@ class KYCSettingsForm(forms.ModelForm):
         fields = [
             "unverified_daily_deposit_limit", "unverified_daily_withdrawal_limit", "unverified_transfer_limit",
             "verified_daily_deposit_limit", "verified_daily_withdrawal_limit", "verified_transfer_limit",
-            "p2p_transfer_enabled", "require_kyc_for_transfer", "transfer_fee_percent",
+            "p2p_transfer_enabled", "require_kyc_for_transfer", "require_kyc_for_store_creation", "transfer_fee_percent",
             "block_by_nationality", "block_by_issuing_country",
             "otp_max_attempts", "otp_base_cooldown"
         ]
@@ -270,6 +270,7 @@ class KYCSettingsForm(forms.ModelForm):
             "transfer_fee_percent": forms.NumberInput(attrs={"class": "builder-input", "step": "0.01"}),
             "p2p_transfer_enabled": forms.CheckboxInput(attrs={"class": "form-check-input"}),
             "require_kyc_for_transfer": forms.CheckboxInput(attrs={"class": "form-check-input"}),
+            "require_kyc_for_store_creation": forms.CheckboxInput(attrs={"class": "form-check-input"}),
             "block_by_nationality": forms.CheckboxInput(attrs={"class": "form-check-input"}),
             "block_by_issuing_country": forms.CheckboxInput(attrs={"class": "form-check-input"}),
             "otp_max_attempts": forms.NumberInput(attrs={"class": "builder-input"}),

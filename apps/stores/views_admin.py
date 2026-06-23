@@ -24,6 +24,12 @@ from apps.common.tenant_utils import bypass_tenant_filter
 @login_required
 def store_registration_landing(request):
     """Landing page for store registration on the main site."""
+    from apps.accounts.models import KYCSettings
+    kyc_settings = KYCSettings.get_settings()
+    if kyc_settings.require_kyc_for_store_creation and not request.user.is_kyc_verified:
+        messages.error(request, "يجب توثيق حسابك (KYC) أولاً لتتمكن من إنشاء متجر.")
+        return redirect("site_kyc_request")
+        
     plans = SubscriptionPlan.objects.filter(is_active=True).order_by("price_monthly")
     
     if request.method == "POST":
@@ -56,6 +62,12 @@ def store_registration_landing(request):
 @login_required
 def store_registration_payment(request):
     """Mock payment simulation for store subscription via wallet balance."""
+    from apps.accounts.models import KYCSettings
+    kyc_settings = KYCSettings.get_settings()
+    if kyc_settings.require_kyc_for_store_creation and not request.user.is_kyc_verified:
+        messages.error(request, "يجب توثيق حسابك (KYC) أولاً لتتمكن من إنشاء متجر.")
+        return redirect("site_kyc_request")
+        
     reg_data = request.session.get("store_reg_data")
     if not reg_data:
         messages.error(request, "يرجى ملء بيانات المتجر أولاً.")

@@ -391,6 +391,7 @@ class KYCSettings(TimeStampedModel):
     # P2P Transfer Settings
     p2p_transfer_enabled = models.BooleanField(default=True, verbose_name="تفعيل التحويل بين المستخدمين")
     require_kyc_for_transfer = models.BooleanField(default=False, verbose_name="اشتراط التوثيق للتحويل")
+    require_kyc_for_store_creation = models.BooleanField(default=False, verbose_name="اشتراط التوثيق لإنشاء متجر")
     unverified_transfer_limit = models.DecimalField(max_digits=14, decimal_places=2, default=Decimal("50.00"), verbose_name="حد التحويل لغير الموثقين")
     verified_transfer_limit = models.DecimalField(max_digits=14, decimal_places=2, default=Decimal("1000.00"), verbose_name="حد التحويل للموثقين")
     transfer_fee_percent = models.DecimalField(max_digits=5, decimal_places=2, default=Decimal("0.00"), verbose_name="نسبة رسوم التحويل (%)")

@@ -1402,6 +1402,10 @@ def home(request):
         ctx["display_stats"] = display_stats
         ctx["testimonials"] = testimonials
 
+        from apps.stores.models import Store
+        platform_stores = Store.objects.filter(is_active=True).order_by('-is_featured', 'display_order', 'name')
+        ctx["platform_stores"] = platform_stores
+
     return render(request, "site/home.html", ctx)
 
 def catalog(request):
