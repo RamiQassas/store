@@ -15,6 +15,13 @@
             <form method="post" class="stack gap-6">
                 {% csrf_token %}
                 
+                {% if form.store %}
+                <div>
+                    <label class="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2">المتجر</label>
+                    {{ form.store }}
+                </div>
+                {% endif %}
+                
                 <div>
                     <label class="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2">نص الملاحظة</label>
                     {{ form.text }}

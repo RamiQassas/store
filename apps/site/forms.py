@@ -673,13 +673,25 @@ class SendNotificationForm(forms.Form):
 class SiteAnnouncementForm(forms.ModelForm):
     class Meta:
         model = SiteAnnouncement
-        fields = ["text", "link", "is_active", "background_color", "text_color"]
+        fields = ["store", "text", "link", "is_active", "background_color", "text_color"]
         widgets = {
+            "store": forms.Select(attrs={"class": "builder-input"}),
             "text": forms.Textarea(attrs={"class": "builder-input", "rows": 3}),
             "link": forms.URLInput(attrs={"class": "builder-input"}),
             "background_color": forms.TextInput(attrs={"class": "builder-input", "type": "color"}),
             "text_color": forms.TextInput(attrs={"class": "builder-input", "type": "color"}),
         }
+
+    def __init__(self, *args, **kwargs):
+        is_merchant = kwargs.pop("is_merchant", False)
+        super().__init__(*args, **kwargs)
+        if is_merchant:
+            if "store" in self.fields:
+                del self.fields["store"]
+        else:
+            self.fields["store"].required = False
+            self.fields["store"].label = "المتجر (اتركه فارغاً للموقع الرئيسي)"
+            self.fields["store"].empty_label = "الموقع الرئيسي (عام)"
 
 class AdminChatForm(forms.Form):
     user_identifier = forms.CharField(label="معرف المستخدم", widget=forms.TextInput(attrs={"class": "builder-input", "placeholder": "البريد أو الاسم أو الهاتف", "autocomplete": "off"}))

@@ -15,8 +15,10 @@ class AccountStatusMiddleware:
 
     def __call__(self, request):
         if request.user.is_authenticated:
+            print(f"[AccountStatusMiddleware] Checking user: {request.user.email}, is_active: {request.user.is_active}, is_account_active: {request.user.is_account_active}, last_session_key: {request.user.last_session_key}, current_session_key: {request.session.session_key}")
             # 1. Check if account is active (not banned or suspended)
             if not request.user.is_account_active:
+                print(f"[AccountStatusMiddleware] User {request.user.email} is not active. Logging out.")
                 logout(request)
                 messages.error(request, "تم إيقاف حسابك أو حظره. يرجى التواصل مع الإدارة.")
                 return redirect("site_login")
@@ -24,6 +26,7 @@ class AccountStatusMiddleware:
             # 2. Enforce Single Session Login
             if not request.user.is_staff and request.user.last_session_key:
                 if request.user.last_session_key != request.session.session_key:
+                    print(f"[AccountStatusMiddleware] Session mismatch! User last_session_key: {request.user.last_session_key}, Current: {request.session.session_key}. Logging out.")
                     logout(request)
                     messages.warning(request, "تم تسجيل الدخول من جهاز آخر. تم إنهاء الجلسة الحالية.")
                     return redirect("site_login")
@@ -33,6 +36,7 @@ class AccountStatusMiddleware:
             if not request.user.is_staff:
                 kyc_settings = KYCSettings.get_settings()
                 restricted = kyc_settings.restricted_countries or []
+                print(f"[AccountStatusMiddleware] Restricted countries: {restricted}, User country: {request.user.last_country}")
                 if restricted:
                     is_blocked = False
                     user_country = request.user.last_country # ISO code or Name from IP Geolocation

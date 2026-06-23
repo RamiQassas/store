@@ -673,6 +673,7 @@ def email_verify(request, uidb64, token): return redirect("site_login")
 
 @login_required
 def dashboard(request):
+    print(f"[dashboard VIEW DEBUG] User: {request.user}, is_authenticated: {request.user.is_authenticated}")
     # Multi-Tenant: Order.objects uses TenantManager, so it filters by store automatically.
     # On main site (store=None): returns orders where store=None (platform orders).
     # On store tenant: returns only that store's orders for this customer.
@@ -3399,22 +3400,29 @@ def control_announcements(request): return render(request, "site/control_announc
 
 @admin_required
 def control_announcement_create(request):
-    form = SiteAnnouncementForm(request.POST or None)
+    is_merchant = getattr(request, "store", None) is not None
+    form = SiteAnnouncementForm(request.POST or None, is_merchant=is_merchant)
     if request.method == "POST" and form.is_valid():
-        if form.cleaned_data.get("is_active"): SiteAnnouncement.objects.filter(is_active=True).update(is_active=False)
+        target_store = request.store if is_merchant else form.cleaned_data.get("store")
+        if form.cleaned_data.get("is_active"):
+            SiteAnnouncement.objects.filter(store=target_store, is_active=True).update(is_active=False)
         ann = form.save(commit=False)
-        ann.store = getattr(request, "store", None)
+        ann.store = target_store
         ann.save()
         return redirect("control_announcements")
     return render(request, "site/control_announcement_form.html", {"form": form})
 
 @admin_required
 def control_announcement_edit(request, pk):
-    ann = get_object_or_404(SiteAnnouncement, pk=pk); form = SiteAnnouncementForm(request.POST or None, instance=ann)
+    ann = get_object_or_404(SiteAnnouncement, pk=pk)
+    is_merchant = getattr(request, "store", None) is not None
+    form = SiteAnnouncementForm(request.POST or None, instance=ann, is_merchant=is_merchant)
     if request.method == "POST" and form.is_valid():
-        if form.cleaned_data.get("is_active"): SiteAnnouncement.objects.filter(is_active=True).exclude(pk=pk).update(is_active=False)
+        target_store = request.store if is_merchant else form.cleaned_data.get("store")
+        if form.cleaned_data.get("is_active"):
+            SiteAnnouncement.objects.filter(store=target_store, is_active=True).exclude(pk=pk).update(is_active=False)
         ann_obj = form.save(commit=False)
-        ann_obj.store = getattr(request, "store", None)
+        ann_obj.store = target_store
         ann_obj.save()
         return redirect("control_announcements")
     return render(request, "site/control_announcement_form.html", {"form": form})
@@ -4401,18 +4409,44 @@ def sso_transfer_view(request):
     if token:
         try:
             user_id = signing.loads(token, max_age=300)
-            user = User.all_objects.get(pk=user_id)
+            sso_user = User.all_objects.get(pk=user_id)
 
-            # If user has no store linked, is not the owner, and is a customer/regular user, link them to the active store
-            if active_store and user.store_id is None:
-                is_owner = (active_store.owner_id == user.pk)
-                is_admin = user.is_superuser or user.is_staff or user.role in ["super_admin", "admin"]
-                if not is_owner and not is_admin:
-                    user.store = active_store
-                    user.save(update_fields=["store"])
+            user_to_login = sso_user
 
-            user.backend = "apps.stores.auth_backend.TenantModelBackend"
-            login(request, user)
+            if active_store:
+                # Check if there is already a tenant-specific user record with this email
+                tenant_user = User.all_objects.filter(email__iexact=sso_user.email, store=active_store).first()
+                if tenant_user:
+                    user_to_login = tenant_user
+                else:
+                    # If user has no store linked, is not the owner, and is a customer/regular user, link them to the active store
+                    if sso_user.store_id is None:
+                        is_owner = (active_store.owner_id == sso_user.pk)
+                        is_admin = sso_user.is_superuser or sso_user.is_staff or sso_user.role in ["super_admin", "admin"]
+                        if not is_owner and not is_admin:
+                            sso_user.store = active_store
+                            sso_user.save(update_fields=["store"])
+
+                # Verify if user_to_login belongs to this store
+                from apps.stores.models import StoreEmployee
+                is_store_member = False
+                
+                # Check roles that are allowed everywhere
+                if user_to_login.is_superuser or user_to_login.is_staff or getattr(user_to_login, "role", None) == "super_admin":
+                    is_store_member = True
+                else:
+                    is_store_member = (
+                        user_to_login.store_id == active_store.pk
+                        or active_store.owner_id == user_to_login.pk
+                        or StoreEmployee.objects.filter(store=active_store, user=user_to_login).exists()
+                    )
+                
+                if not is_store_member:
+                    messages.error(request, "هذا الحساب غير مرتبط بهذا المتجر.")
+                    return redirect("site_login")
+
+            user_to_login.backend = "apps.stores.auth_backend.TenantModelBackend"
+            login(request, user_to_login)
 
             messages.success(request, "تم مزامنة تسجيل الدخول بنجاح.")
             return redirect(next_url or "/dashboard/")

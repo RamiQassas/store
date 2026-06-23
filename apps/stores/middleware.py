@@ -129,23 +129,20 @@ class TenantMiddleware:
             from apps.common.tenant_utils import set_current_store
             token = set_current_store(request.store)
             request._tenant_token = token
-            if (
-                hasattr(request, "user")
-                and request.user.is_authenticated
-                and not self._user_belongs_to_store(request.user, request.store)
-            ):
-                logout(request)
-                request.user = AnonymousUser()
-                if request.path.startswith(("/dashboard/", "/merchant/")):
-                    from django.http import HttpResponseRedirect
-                    from apps.common.tenant_utils import reset_current_store
-                    reset_current_store(request._tenant_token)
-                    del request._tenant_token
-                    if hasattr(request, "_bypass_token"):
-                        from apps.common.tenant_utils import _bypass_tenant_filter
-                        _bypass_tenant_filter.reset(request._bypass_token)
-                        del request._bypass_token
-                    return HttpResponseRedirect("/auth/login/")
+            if hasattr(request, "user") and request.user.is_authenticated:
+                if not self._user_belongs_to_store(request.user, request.store):
+                    logout(request)
+                    request.user = AnonymousUser()
+                    if request.path.startswith(("/dashboard/", "/merchant/")):
+                        from django.http import HttpResponseRedirect
+                        from apps.common.tenant_utils import reset_current_store
+                        reset_current_store(request._tenant_token)
+                        del request._tenant_token
+                        if hasattr(request, "_bypass_token"):
+                            from apps.common.tenant_utils import _bypass_tenant_filter
+                            _bypass_tenant_filter.reset(request._bypass_token)
+                            del request._bypass_token
+                        return HttpResponseRedirect("/auth/login/")
         else:
             # Main site: check if admin or control panel request by super admin/staff, then bypass
             # request.user is set by AuthenticationMiddleware
@@ -160,15 +157,16 @@ class TenantMiddleware:
                         from apps.common.tenant_utils import _bypass_tenant_filter
                         token = _bypass_tenant_filter.set(True)
                         request._bypass_token = token
-                else:
                     # Strict isolation: log out store-scoped users from the main site (except store owners)
-                    if getattr(request.user, "store_id", None) is not None:
-                        from apps.common.tenant_utils import bypass_tenant_filter
-                        with bypass_tenant_filter():
-                            is_owner = request.user.owned_stores.exists()
-                        if not is_owner:
-                            logout(request)
-                            request.user = AnonymousUser()
+                    # Bypass isolation for login/SSO callback paths to allow cross-domain login sync to work
+                    if not (request.path.startswith('/auth/sso-callback/') or request.path.startswith('/accounts/')):
+                        if getattr(request.user, "store_id", None) is not None:
+                            from apps.common.tenant_utils import bypass_tenant_filter
+                            with bypass_tenant_filter():
+                                is_owner = request.user.owned_stores.exists()
+                            if not is_owner:
+                                logout(request)
+                                request.user = AnonymousUser()
 
         try:
             response = self.get_response(request)

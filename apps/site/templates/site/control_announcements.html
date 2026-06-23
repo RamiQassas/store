@@ -20,6 +20,9 @@
             <thead>
                 <tr>
                     <th>النص</th>
+                    {% if not is_tenant %}
+                    <th>المتجر</th>
+                    {% endif %}
                     <th>الحالة</th>
                     <th>تاريخ الإضافة</th>
                     <th>الإجراءات</th>
@@ -34,6 +37,15 @@
                             {{ item.text|truncatechars:100 }}
                         </div>
                     </td>
+                    {% if not is_tenant %}
+                    <td>
+                        {% if item.store %}
+                        <span class="badge info" style="background: rgba(6, 182, 212, 0.1); color: #06b6d4; border: 1px solid rgba(6, 182, 212, 0.2);">{{ item.store.name }}</span>
+                        {% else %}
+                        <span class="badge success" style="background: rgba(16, 185, 129, 0.1); color: #10b981; border: 1px solid rgba(16, 185, 129, 0.2);">الموقع الرئيسي</span>
+                        {% endif %}
+                    </td>
+                    {% endif %}
                     <td>
                         {% if item.is_active %}
                         <span class="badge success">نشط حالياً</span>
