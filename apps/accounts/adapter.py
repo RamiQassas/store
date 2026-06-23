@@ -15,6 +15,7 @@ def get_store_from_request(request):
         return request.store
         
     import re
+    from urllib.parse import unquote
     from apps.stores.models import Store
     from apps.common.tenant_utils import bypass_tenant_filter
     
@@ -35,11 +36,12 @@ def get_store_from_request(request):
     for val in candidates:
         if not val or not isinstance(val, str):
             continue
-        # Search for subdomain in urls
-        match = re.search(r'https?://([^./]+)\.(?:raqamiyatapp\.com|localhost|testserver)', val, re.IGNORECASE)
-        if match:
-            subdomain = match.group(1)
-            if subdomain not in ["www", "raqamiyatapp"]:
+        # Decode the value to handle URL-encoded URLs (e.g. inside next parameter)
+        decoded_val = unquote(val)
+        # Find all occurrences of subdomain pattern
+        matches = re.findall(r'https?://([^./]+)\.(?:raqamiyatapp\.com|localhost|testserver)', decoded_val, re.IGNORECASE)
+        for subdomain in matches:
+            if subdomain.lower() not in ["www", "raqamiyatapp"]:
                 with bypass_tenant_filter():
                     try:
                         return Store.objects.get(subdomain__iexact=subdomain)

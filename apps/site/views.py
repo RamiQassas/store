@@ -4419,13 +4419,24 @@ def sso_transfer_view(request):
                 if tenant_user:
                     user_to_login = tenant_user
                 else:
-                    # If user has no store linked, is not the owner, and is a customer/regular user, link them to the active store
-                    if sso_user.store_id is None:
-                        is_owner = (active_store.owner_id == sso_user.pk)
-                        is_admin = sso_user.is_superuser or sso_user.is_staff or sso_user.role in ["super_admin", "admin"]
-                        if not is_owner and not is_admin:
-                            sso_user.store = active_store
-                            sso_user.save(update_fields=["store"])
+                    # If user is not the owner and not an admin/staff, create a tenant-specific user record
+                    is_owner = (active_store.owner_id == sso_user.pk)
+                    is_admin = sso_user.is_superuser or sso_user.is_staff or sso_user.role in ["super_admin", "admin"]
+                    if not is_owner and not is_admin:
+                        # Create a new isolated user record for this store
+                        from django.utils.crypto import get_random_string
+                        tenant_user = User.objects.create_user(
+                            email=sso_user.email,
+                            password=get_random_string(32),
+                            first_name=sso_user.first_name,
+                            last_name=sso_user.last_name,
+                            store=active_store,
+                            role=sso_user.role,
+                            preferred_language=sso_user.preferred_language,
+                            email_verified=True,
+                            is_active=True
+                        )
+                        user_to_login = tenant_user
 
                 # Verify if user_to_login belongs to this store
                 from apps.stores.models import StoreEmployee
