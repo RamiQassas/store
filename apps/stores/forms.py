@@ -33,6 +33,10 @@ class StoreCreateForm(forms.ModelForm):
         required=True,
         label="خطة الاشتراك"
     )
+    accept_legal_terms = forms.BooleanField(
+        required=True,
+        label="الموافقة على الشروط القانونية"
+    )
     class Meta:
         model = Store
         fields = ["name", "subdomain", "description", "logo", "subscription_plan", "billing_cycle"]

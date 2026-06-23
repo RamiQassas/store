@@ -4079,6 +4079,8 @@ def control_db_maintenance(request):
                                     deleted_counts["المجموعات الإدارية"] = c
                                 elif key == "sites":
                                     c = Site.objects.all().delete()[0]
+                                    from django.conf import settings
+                                    Site.objects.create(id=settings.SITE_ID, domain="raqamiyatapp.com", name="Raqamiyat")
                                     deleted_counts["مواقع النظام"] = c
 
                 msg = "تم تصفير البيانات المختارة بنجاح: " + ", ".join([f"{k} ({v})" for k, v in deleted_counts.items()])

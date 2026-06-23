@@ -62,6 +62,13 @@ def tenant_context(request):
     multiple tenants, data isolation via store context.
     """
     from django.conf import settings
+    from django.contrib.sites.models import Site
+    if not Site.objects.filter(id=settings.SITE_ID).exists():
+        Site.objects.create(
+            id=settings.SITE_ID,
+            domain="raqamiyatapp.com",
+            name="Raqamiyat"
+        )
     platform_url = getattr(settings, "SITE_URL", "https://raqamiyatapp.com")
     store = getattr(request, 'store', None)
     

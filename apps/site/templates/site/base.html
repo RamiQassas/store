@@ -670,6 +670,18 @@
 
     <footer class="mt-24 pt-20 pb-10 border-t border-white/5 bg-white/[0.01]">
       <div class="container">
+        {% if is_tenant %}
+        <div class="legal-disclaimer-box" style="margin-bottom: 3rem; padding: 1.5rem; background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.05); border-radius: 16px; text-align: right;">
+            <p style="font-size: 0.8rem; color: #94a3b8; line-height: 1.7; margin-bottom: 1rem;">
+                <strong>تنويه هام:</strong> رقميات منصة تقنية تتيح للمستخدمين إنشاء وإدارة متاجر إلكترونية مستقلة. لا تبيع رقميات المنتجات أو الخدمات المعروضة داخل المتاجر الفرعية ولا تمثل أصحابها قانونياً أو تجارياً. كل متجر على منصة رقميات مملوك ومدار بشكل مستقل من قبل صاحبه، وهو المسؤول الوحيد عن المنتجات والخدمات والأسعار والمحتوى والعروض والالتزامات القانونية. لا تستلم رقميات أموال المبيعات ولا تعمل كوسيط مالي، وتتم المدفوعات مباشرة إلى صاحب المتجر. لا تعتبر رقميات طرفاً في تعاملات البيع والشراء وتخلي مسؤوليتها عن أي نزاع أو خسارة.
+            </p>
+            <div style="display: flex; justify-content: flex-start;">
+                <button onclick="showReportStoreModal()" style="background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.2); color: #ef4444; padding: 0.5rem 1rem; border-radius: 10px; font-size: 0.8rem; font-weight: bold; cursor: pointer; display: flex; align-items: center; gap: 0.35rem; transition: all 0.3s;" onmouseover="this.style.background='#ef4444'; this.style.color='#fff';" onmouseout="this.style.background='rgba(239, 68, 68, 0.1)'; this.style.color='#ef4444';">
+                    🚩 الإبلاغ عن متجر
+                </button>
+            </div>
+        </div>
+        {% endif %}
         <div class="grid grid-cols-1 md:grid-cols-4 gap-12 mb-16">
             <div class="md:col-span-2">
                 <div class="brand mb-6" style="font-size: 1.75rem;">
@@ -826,5 +838,56 @@
       }, 8000 + i * 500);
     });
   </script>
+  {% if is_tenant %}
+  <!-- Report Store Modal -->
+  <div id="report-store-modal" class="modal-overlay" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.8); backdrop-filter: blur(8px); z-index: 99999; align-items: center; justify-content: center; padding: 1.5rem; transition: all 0.3s ease;">
+      <div style="background: #0f172a; border: 1px solid rgba(255,255,255,0.08); border-radius: 24px; max-width: 500px; width: 100%; padding: 2rem; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5); position: relative; text-align: right; transform: scale(0.9); transition: all 0.3s ease;" id="report-store-modal-content">
+          <button onclick="closeReportStoreModal()" style="position: absolute; top: 1.5rem; left: 1.5rem; background: none; border: none; color: #94a3b8; font-size: 1.25rem; cursor: pointer; transition: color 0.2s;" onmouseover="this.style.color='#fff';" onmouseout="this.style.color='#94a3b8';">
+              <i class="fas fa-times"></i>
+          </button>
+          
+          <div style="width: 50px; height: 50px; border-radius: 12px; background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.2); color: #ef4444; display: grid; place-items: center; font-size: 1.5rem; margin-bottom: 1.5rem;">
+              🚩
+          </div>
+          
+          <h3 style="font-size: 1.5rem; font-weight: 800; color: #fff; margin-bottom: 1rem;">الإبلاغ عن مخالفة</h3>
+          <p style="font-size: 0.95rem; color: #94a3b8; line-height: 1.7; margin-bottom: 1.5rem;">
+              إذا كنت تعتقد أن أحد المتاجر ينتهك القوانين أو يمارس نشاطاً احتيالياً أو يقدم محتوى مخالفاً، يمكنك إرسال بلاغ إلى إدارة رقميات مع إرفاق الأدلة المتاحة. ستتم مراجعة البلاغ واتخاذ الإجراء المناسب وفق سياسات المنصة.
+          </p>
+          
+          <div style="display: flex; flex-direction: column; gap: 0.75rem; margin-bottom: 1.5rem;">
+              <span style="font-size: 0.8rem; color: #64748b; font-weight: bold;">بريد الشكاوى والبلاغات:</span>
+              <a href="mailto:support@raqamiyatapp.com?subject=Report Store: {{ STORE_NAME }}" style="display: flex; align-items: center; justify-content: space-between; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); padding: 0.75rem 1rem; border-radius: 12px; color: var(--cyan); font-weight: bold; text-decoration: none; transition: background 0.3s;" onmouseover="this.style.background='rgba(255,255,255,0.06)';" onmouseout="this.style.background='rgba(255,255,255,0.03)';">
+                  <span>support@raqamiyatapp.com</span>
+                  <i class="fas fa-envelope" style="font-size: 0.85rem;"></i>
+              </a>
+          </div>
+
+          <div style="display: flex; gap: 1rem;">
+              <button onclick="closeReportStoreModal()" class="btn-premium-sm ghost" style="flex: 1; border-radius: 12px; padding: 0.75rem; text-align: center; cursor: pointer;">إغلاق</button>
+              <a href="mailto:support@raqamiyatapp.com?subject=Report Store: {{ STORE_NAME }}" class="btn-premium-sm primary" style="flex: 1; border-radius: 12px; padding: 0.75rem; text-align: center; display: inline-block;">إرسال إيميل</a>
+          </div>
+      </div>
+  </div>
+
+  <script>
+      function showReportStoreModal() {
+          const modal = document.getElementById('report-store-modal');
+          const content = document.getElementById('report-store-modal-content');
+          modal.style.display = 'flex';
+          setTimeout(() => {
+              content.style.transform = 'scale(1)';
+          }, 50);
+      }
+      function closeReportStoreModal() {
+          const modal = document.getElementById('report-store-modal');
+          const content = document.getElementById('report-store-modal-content');
+          content.style.transform = 'scale(0.9)';
+          setTimeout(() => {
+              modal.style.display = 'none';
+          }, 150);
+      }
+  </script>
+  {% endif %}
 </body>
 </html>

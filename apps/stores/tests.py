@@ -641,3 +641,37 @@ class StoreSaaSNewFeaturesTests(TestCase):
         self.assertNotContains(tenant_response, 'href="/#stores-section"')
         self.assertNotContains(tenant_response, 'id="stores-section"')
 
+    def test_store_registration_post_validation(self):
+        with bypass_tenant_filter():
+            self.user.is_kyc_verified = True
+            self.user.save()
+
+        client = Client()
+        client.login(email="merchant@example.com", password="Password123!")
+
+        # 1. Post WITHOUT accepting terms (should fail validation)
+        response_fail = client.post(reverse("store_registration"), {
+            "name": "New Store F",
+            "subdomain": "store-f",
+            "description": "Store F description",
+            "subscription_plan": str(self.plan.id),
+            "billing_cycle": "monthly",
+            # accept_legal_terms is missing
+        })
+        self.assertEqual(response_fail.status_code, 200)
+        form = response_fail.context["form"]
+        self.assertIn("accept_legal_terms", form.errors)
+
+        # 2. Post WITH accepting terms (should succeed and redirect to payment)
+        response_success = client.post(reverse("store_registration"), {
+            "name": "New Store F",
+            "subdomain": "store-f",
+            "description": "Store F description",
+            "subscription_plan": str(self.plan.id),
+            "billing_cycle": "monthly",
+            "accept_legal_terms": "true",
+        })
+        self.assertEqual(response_success.status_code, 302)
+        self.assertTrue(response_success.url.endswith(reverse("store_registration_payment")))
+
+
