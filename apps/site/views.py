@@ -4549,18 +4549,23 @@ def site_notification_settings(request):
 @login_required
 def site_product_suggestion(request):
     form = ProductSuggestionForm(request.POST or None)
-    if request.method == "POST" and form.is_valid():
-        suggestion = form.save(commit=False)
-        suggestion.user = request.user
-        suggestion.store = getattr(request, "store", None)
-        suggestion.save()
-        
-        # Support AJAX form submission
-        if request.headers.get('x-requested-with') == 'XMLHttpRequest':
-            return JsonResponse({"status": "success", "message": "تم إرسال اقتراحك بنجاح."})
+    if request.method == "POST":
+        if form.is_valid():
+            suggestion = form.save(commit=False)
+            suggestion.user = request.user
+            suggestion.store = getattr(request, "store", None)
+            suggestion.save()
             
-        messages.success(request, "تم إرسال اقتراحك بنجاح. سنقوم بمراجعته والرد عليك قريباً.")
-        return redirect("dashboard")
+            # Support AJAX form submission
+            if request.headers.get('x-requested-with') == 'XMLHttpRequest':
+                return JsonResponse({"status": "success", "message": "تم إرسال اقتراحك بنجاح."})
+                
+            messages.success(request, "تم إرسال اقتراحك بنجاح. سنقوم بمراجعته والرد عليك قريباً.")
+            return redirect("dashboard")
+        else:
+            # Support AJAX form validation errors
+            if request.headers.get('x-requested-with') == 'XMLHttpRequest':
+                return JsonResponse({"status": "error", "message": "يرجى التحقق من الحقول المدخلة وصحتها.", "errors": form.errors.get_json_data()}, status=400)
     
     user_suggestions = ProductSuggestion.objects.filter(user=request.user)
     return render(request, "site/product_suggestion_form.html", {"form": form, "suggestions": user_suggestions})

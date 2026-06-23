@@ -265,7 +265,7 @@
                                     <p class="text-[9px] text-slate-500">نحن نوفره لك بأفضل سعر.</p>
                                 </div>
                             </div>
-                            <button onclick="document.getElementById('suggestion-modal').classList.remove('hidden')" class="btn-premium !py-2.5 text-[10px] w-full mt-auto">اقتراح خدمة جديدة</button>
+                            <button onclick="document.getElementById('suggestion-modal').style.display = 'flex'" class="btn-premium !py-2.5 text-[10px] w-full mt-auto">اقتراح خدمة جديدة</button>
                         </div>
                     </div>
                 </div>
@@ -275,21 +275,22 @@
             <div class="lg:col-span-9 space-y-6">
                 <!-- View Toggle Segmented Control (Categories vs Products) -->
                 <div class="flex justify-center mb-6 reveal-item">
-                    <div class="bg-slate-950/60 backdrop-blur-md p-1.5 rounded-2xl border border-white/5 flex gap-1 relative overflow-hidden">
+                    <div class="bg-slate-950/60 backdrop-blur-md p-1 rounded-2xl border border-white/5 flex relative overflow-hidden w-full max-w-[320px]">
+                        <!-- Active Slide Background Indicator -->
+                        <div id="toggle-indicator" class="absolute top-1 bottom-1 right-1 w-[calc(50%-4px)] bg-gradient-to-r from-cyan to-indigo rounded-xl transition-all duration-300 ease-out z-0 shadow-lg shadow-cyan/20"></div>
+                        
                         <!-- Products View Button -->
                         <button onclick="switchView('products')" id="toggle-products" 
-                                class="px-6 py-3 rounded-xl text-xs font-black transition-all duration-300 flex items-center gap-2 relative z-10 text-white">
+                                class="flex-1 py-2.5 rounded-xl text-xs font-black transition-all duration-300 flex items-center justify-center gap-2 relative z-10 text-slate-950">
                             <i class="fas fa-boxes text-xs"></i>
                             <span>عرض المنتجات</span>
                         </button>
                         <!-- Categories View Button -->
                         <button onclick="switchView('categories')" id="toggle-categories" 
-                                class="px-6 py-3 rounded-xl text-xs font-black transition-all duration-300 flex items-center gap-2 relative z-10 text-slate-400">
+                                class="flex-1 py-2.5 rounded-xl text-xs font-black transition-all duration-300 flex items-center justify-center gap-2 relative z-10 text-slate-400 hover:text-white">
                             <i class="fas fa-folder text-xs"></i>
                             <span>عرض الأقسام</span>
                         </button>
-                        <!-- Active Slide Background Indicator -->
-                        <div id="toggle-indicator" class="absolute top-1.5 bottom-1.5 right-1.5 w-[calc(50%-6px)] bg-gradient-to-r from-cyan to-indigo rounded-xl transition-all duration-300 ease-out z-0 shadow-lg shadow-cyan/20"></div>
                     </div>
                 </div>
 
@@ -319,7 +320,7 @@
                             </select>
                         </form>
                         
-                        <button onclick="document.getElementById('suggestion-modal').classList.remove('hidden')" class="lg:hidden bg-indigo-500/10 hover:bg-indigo-500/20 border border-indigo-500/20 text-indigo-400 hover:text-white text-[10px] font-bold py-2.5 px-4 rounded-xl transition-all flex items-center gap-1.5">
+                        <button onclick="document.getElementById('suggestion-modal').style.display = 'flex'" class="lg:hidden bg-indigo-500/10 hover:bg-indigo-500/20 border border-indigo-500/20 text-indigo-400 hover:text-white text-[10px] font-bold py-2.5 px-4 rounded-xl transition-all flex items-center gap-1.5">
                             <i class="fas fa-lightbulb"></i>
                             <span>اقتراح خدمة</span>
                         </button>
@@ -412,17 +413,30 @@
                     {% endif %}
                     {% endfor %}
                 </div>
+
+                <!-- Suggestion Card at the Bottom of Grid (Visible on All Viewports) -->
+                <div class="mt-12">
+                    <div class="glass-panel p-8 relative overflow-hidden text-center bg-gradient-to-br from-indigo-500/10 via-transparent to-cyan-500/10 border border-indigo-500/20 rounded-3xl shadow-xl">
+                        <div class="absolute inset-0 bg-gradient-to-br from-indigo-500/5 via-transparent to-cyan-500/5 -z-10"></div>
+                        <div class="w-14 h-14 bg-indigo-500/10 rounded-2xl flex items-center justify-center text-indigo-400 mx-auto mb-4 shadow-inner">
+                            <i class="fas fa-lightbulb text-xl animate-pulse"></i>
+                        </div>
+                        <h3 class="text-xl font-black text-white mb-2">لم تجد طلبك؟</h3>
+                        <p class="text-slate-400 text-xs md:text-sm mb-6 max-w-md mx-auto leading-relaxed">إذا كان هناك منتج أو خدمة رقمية غير متوفرة حالياً، شاركنا اقتراحك وسنعمل على توفيرها بأفضل سعر.</p>
+                        <button onclick="document.getElementById('suggestion-modal').style.display = 'flex'" class="btn-premium !py-3 px-8 text-xs font-black inline-flex justify-center mx-auto hover:scale-105 transition-all">اقتراح خدمة جديدة</button>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
 </div>
 
 <!-- Suggestion Modal -->
-<div id="suggestion-modal" class="fixed inset-0 z-[100] hidden flex items-center justify-center p-4 bg-dark-bg/80 backdrop-blur-md">
+<div id="suggestion-modal" style="display: none;" class="fixed inset-0 z-[1000] flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md">
     <div class="glass-panel p-8 w-full max-w-lg animate-reveal">
         <div class="flex justify-between items-center mb-8">
             <h2 class="text-2xl font-black text-white">اقتراح خدمة جديدة</h2>
-            <button onclick="document.getElementById('suggestion-modal').classList.add('hidden')" class="text-slate-500 hover:text-white transition-colors">
+            <button onclick="document.getElementById('suggestion-modal').style.display = 'none'" class="text-slate-500 hover:text-white transition-colors">
                 <i class="fas fa-times text-xl"></i>
             </button>
         </div>
@@ -460,16 +474,20 @@
 </div>
 
 <script>
-    // Intersection Observer for animations
-    const observer = new IntersectionObserver((entries) => {
-        entries.forEach(entry => {
-            if (entry.isIntersecting) {
-                entry.target.classList.add('visible');
-            }
-        });
-    }, { threshold: 0.05, rootMargin: '0px 0px -20px 0px' });
+    // Intersection Observer for animations (defensively fallback for older webviews)
+    if ('IntersectionObserver' in window) {
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('visible');
+                }
+            });
+        }, { threshold: 0.05, rootMargin: '0px 0px -20px 0px' });
 
-    document.querySelectorAll('.reveal-item').forEach(el => observer.observe(el));
+        document.querySelectorAll('.reveal-item').forEach(el => observer.observe(el));
+    } else {
+        document.querySelectorAll('.reveal-item').forEach(el => el.classList.add('visible'));
+    }
 
     // Smooth switch between Products and Categories views
     function switchView(view) {
@@ -482,8 +500,11 @@
         if (!productsBtn || !categoriesBtn || !indicator) return;
 
         if (view === 'products') {
-            productsBtn.className = "px-6 py-3 rounded-xl text-xs font-black transition-all duration-300 flex items-center gap-2 relative z-10 text-white";
-            categoriesBtn.className = "px-6 py-3 rounded-xl text-xs font-black transition-all duration-300 flex items-center gap-2 relative z-10 text-slate-400";
+            productsBtn.classList.remove('text-slate-400', 'hover:text-white');
+            productsBtn.classList.add('text-slate-950');
+            
+            categoriesBtn.classList.remove('text-slate-950');
+            categoriesBtn.classList.add('text-slate-400', 'hover:text-white');
             
             indicator.style.transform = 'translateX(0)';
             
@@ -500,8 +521,11 @@
                 }, 300);
             }
         } else {
-            productsBtn.className = "px-6 py-3 rounded-xl text-xs font-black transition-all duration-300 flex items-center gap-2 relative z-10 text-slate-400";
-            categoriesBtn.className = "px-6 py-3 rounded-xl text-xs font-black transition-all duration-300 flex items-center gap-2 relative z-10 text-white";
+            productsBtn.classList.remove('text-slate-950');
+            productsBtn.classList.add('text-slate-400', 'hover:text-white');
+            
+            categoriesBtn.classList.remove('text-slate-400', 'hover:text-white');
+            categoriesBtn.classList.add('text-slate-950');
             
             const isRTL = document.documentElement.dir === 'rtl';
             indicator.style.transform = isRTL ? 'translateX(-100%)' : 'translateX(100%)';
@@ -577,13 +601,13 @@
                             <h3 class="text-lg font-black text-white">تم إرسال اقتراحك بنجاح!</h3>
                             <p class="text-slate-400 text-xs leading-relaxed max-w-xs">شكراً لك، سنقوم بمراجعته والرد عليك في أقرب وقت.</p>
                         `;
-                        suggestionForm.classList.add('hidden');
+                        suggestionForm.style.display = 'none';
                         
                         setTimeout(() => {
-                            document.getElementById('suggestion-modal').classList.add('hidden');
+                            document.getElementById('suggestion-modal').style.display = 'none';
                             setTimeout(() => {
                                 suggestionForm.reset();
-                                suggestionForm.classList.remove('hidden');
+                                suggestionForm.style.display = 'block';
                                 feedbackEl.className = "hidden";
                                 feedbackEl.innerHTML = "";
                                 submitBtn.disabled = false;
