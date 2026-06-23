@@ -4403,6 +4403,14 @@ def sso_transfer_view(request):
             user_id = signing.loads(token, max_age=300)
             user = User.all_objects.get(pk=user_id)
 
+            # If user has no store linked, is not the owner, and is a customer/regular user, link them to the active store
+            if active_store and user.store_id is None:
+                is_owner = (active_store.owner_id == user.pk)
+                is_admin = user.is_superuser or user.is_staff or user.role in ["super_admin", "admin"]
+                if not is_owner and not is_admin:
+                    user.store = active_store
+                    user.save(update_fields=["store"])
+
             user.backend = "apps.stores.auth_backend.TenantModelBackend"
             login(request, user)
 
