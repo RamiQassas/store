@@ -4401,7 +4401,7 @@ def sso_transfer_view(request):
     if token:
         try:
             user_id = signing.loads(token, max_age=300)
-            user = User.objects.get(pk=user_id)
+            user = User.all_objects.get(pk=user_id)
 
             user.backend = "apps.stores.auth_backend.TenantModelBackend"
             login(request, user)
