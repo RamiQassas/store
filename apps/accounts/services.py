@@ -10,13 +10,25 @@ from apps.notifications.services import notify_user
 
 logger = logging.getLogger(__name__)
 
-def send_brevo_email(to_email, to_name, subject, html_content, text_content=None):
+def send_brevo_email(to_email, to_name, subject, html_content, text_content=None, store=None):
     """
     Sends an email using Brevo Transactional Email API.
     """
     if not settings.BREVO_API_KEY:
         logger.warning("BREVO_API_KEY is not set. Email not sent.")
         return False
+
+    from apps.common.tenant_utils import get_current_store
+    active_store = store or get_current_store()
+    
+    sender_name = settings.DEFAULT_FROM_NAME
+    reply_to_name = "Raqamiyat Support | دعم رقميات"
+    
+    if active_store:
+        store_name = active_store if isinstance(active_store, str) else getattr(active_store, 'name', '')
+        if store_name:
+            sender_name = store_name
+            reply_to_name = f"{store_name} Support | دعم {store_name}"
 
     headers = {
         "accept": "application/json",
@@ -26,11 +38,11 @@ def send_brevo_email(to_email, to_name, subject, html_content, text_content=None
 
     payload = {
         "sender": {
-            "name": settings.DEFAULT_FROM_NAME,
+            "name": sender_name,
             "email": settings.DEFAULT_FROM_EMAIL
         },
         "replyTo": {
-            "name": "Raqamiyat Support | دعم رقميات",
+            "name": reply_to_name,
             "email": settings.REPLY_TO_EMAIL
         },
         "to": [

@@ -59,7 +59,12 @@ def v3_generate_otp(user, purpose):
     return OTPToken.objects.create(user=user, code=code, purpose=purpose, expires_at=expires_at)
 
 def v3_send_otp_email(user, otp_token):
-    subject = f"{otp_token.code} هو رمز التحقق الخاص بك | Raqamiyat"
+    from apps.common.tenant_utils import get_current_store
+    active_store = getattr(user, 'store', None) or get_current_store()
+    store_name = active_store.name if active_store else "رقميات"
+    store_brand = active_store.name if active_store else "رقميات | RAQAMIYAT"
+    
+    subject = f"{otp_token.code} هو رمز التحقق الخاص بك | {store_name}"
     purpose_text = "لتفعيل حسابك" if otp_token.purpose == OTPToken.Purpose.REGISTRATION else \
                    "لتسجيل الدخول" if otp_token.purpose == OTPToken.Purpose.LOGIN else \
                    "لإتمام العملية"
@@ -67,7 +72,7 @@ def v3_send_otp_email(user, otp_token):
     html_content = f"""
     <div dir="rtl" style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 500px; margin: 0 auto; padding: 20px; color: #1e293b; background-color: #ffffff; border-radius: 16px; border: 1px solid #e2e8f0;">
         <div style="text-align: center; margin-bottom: 30px;">
-            <h2 style="color: #06b6d4; margin: 0; font-size: 24px; font-weight: 900;">رقميات | RAQAMIYAT</h2>
+            <h2 style="color: #06b6d4; margin: 0; font-size: 24px; font-weight: 900;">{store_brand}</h2>
         </div>
         <div style="background-color: #f8fafc; padding: 30px; border-radius: 12px; text-align: center;">
             <p style="font-size: 16px; margin-bottom: 10px; color: #64748b;">رمز التحقق الخاص بك {purpose_text}:</p>
@@ -75,7 +80,7 @@ def v3_send_otp_email(user, otp_token):
             <p style="font-size: 12px; margin-top: 20px; color: #94a3b8;">هذا الرمز صالح لمدة 10 دقائق فقط. لا تشارك هذا الرمز مع أي شخص.</p>
         </div>
         <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #f1f5f9; text-align: center;">
-            <p style="font-size: 12px; color: #94a3b8; line-height: 1.6;">إذا لم تطلب هذا الرمز، يمكنك تجاهل هذا البريد الإلكتروني.<br>© 2026 رقميات لخدمات الوساطة الرقمية.</p>
+            <p style="font-size: 12px; color: #94a3b8; line-height: 1.6;">إذا لم تطلب هذا الرمز، يمكنك تجاهل هذا البريد الإلكتروني.<br>© 2026 {store_name} - جميع الحقوق محفوظة.</p>
         </div>
     </div>
     """
@@ -86,7 +91,8 @@ def v3_send_otp_email(user, otp_token):
             "to_email": user.email,
             "to_name": user.get_full_name() or user.email,
             "subject": subject,
-            "html_content": html_content
+            "html_content": html_content,
+            "store": active_store
         }
     ).start()
     return True
@@ -585,12 +591,23 @@ def v3_forgot_password_view(request):
         if user:
             from django.contrib.auth.tokens import default_token_generator
             token = default_token_generator.make_token(user)
-            # Include uid and use urljoin for consistent URLs
-            reset_url = urljoin(settings.SITE_URL, reverse('site_reset_password')) + f"?token={token}&uid={user.id}"
-            subject = "رابط استعادة كلمة المرور | Raqamiyat"
+            
+            # Determine store branding dynamically
+            active_store = getattr(request, "store", None)
+            store_name = active_store.name if active_store else "رقميات"
+            store_brand = active_store.name if active_store else "رقميات | RAQAMIYAT"
+            
+            # Build base URL depending on context
+            if active_store:
+                base_url = f"{request.scheme}://{request.get_host()}"
+            else:
+                base_url = settings.SITE_URL
+                
+            reset_url = urljoin(base_url, reverse('site_reset_password')) + f"?token={token}&uid={user.id}"
+            subject = f"رابط استعادة كلمة المرور | {store_name}"
             html_content = f"""
             <div dir="rtl" style="font-family: 'Segoe UI', sans-serif; max-width: 500px; margin: 0 auto; padding: 20px; border: 1px solid #e2e8f0; border-radius: 16px; background-color: #ffffff;">
-                <h2 style="color: #06b6d4; text-align: center;">رقميات | RAQAMIYAT</h2>
+                <h2 style="color: #06b6d4; text-align: center;">{store_brand}</h2>
                 <p>مرحباً،</p>
                 <p>لقد طلبت إعادة تعيين كلمة المرور لحسابك. يرجى الضغط على الزر أدناه للمتابعة:</p>
                 <div style="text-align: center; margin: 30px 0;">
@@ -598,10 +615,10 @@ def v3_forgot_password_view(request):
                 </div>
                 <p style="font-size: 12px; color: #94a3b8; text-align: center;">هذا الرابط صالح لمدة 10 دقائق فقط. إذا لم تطلب هذا، يمكنك تجاهل هذا البريد.</p>
                 <hr style="border: 0; border-top: 1px solid #f1f5f9; margin: 20px 0;">
-                <p style="font-size: 10px; color: #cbd5e1; text-align: center;">© 2026 رقميات - جميع الحقوق محفوظة.</p>
+                <p style="font-size: 10px; color: #cbd5e1; text-align: center;">© 2026 {store_name} - جميع الحقوق محفوظة.</p>
             </div>
             """
-            if send_brevo_email(user.email, user.get_full_name() or user.email, subject, html_content):
+            if send_brevo_email(user.email, user.get_full_name() or user.email, subject, html_content, store=active_store):
                 return render(request, "site/v3/v3_forgot_password.html", {"sent": True})
             else:
                 messages.error(request, "فشل إرسال البريد الإلكتروني. يرجى المحاولة لاحقاً.")
@@ -4383,7 +4400,7 @@ def sso_transfer_view(request):
     # 1. If a token is provided, log the user in
     if token:
         try:
-            user_id = signing.loads(token, max_age=30)
+            user_id = signing.loads(token, max_age=300)
             user = User.objects.get(pk=user_id)
 
             user.backend = "apps.stores.auth_backend.TenantModelBackend"
