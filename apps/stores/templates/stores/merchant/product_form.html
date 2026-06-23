@@ -71,6 +71,21 @@
                 </div>
             </div>
 
+            <div style="display: grid; grid-template-cols: 1fr 1fr 1fr; gap: 1.5rem; margin-top: 1.5rem; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 1.5rem;">
+                <div class="form-group" style="flex-direction: row; align-items: center; gap: 0.5rem;">
+                    {{ form.track_inventory }}
+                    <label class="form-label" style="margin-bottom: 0; font-weight: bold; color: var(--cyan);">تتبع المخزون والكمية</label>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">الكمية المتوفرة:</label>
+                    {{ form.quantity }}
+                </div>
+                <div class="form-group">
+                    <label class="form-label">حد التنبيه بنفاد الكمية:</label>
+                    {{ form.low_stock_threshold }}
+                </div>
+            </div>
+
             <div style="display: grid; grid-template-cols: 1fr 1fr; gap: 1.5rem; margin-top: 1rem;">
                 <div class="form-group">
                     <label class="form-label">ترتيب العرض:</label>

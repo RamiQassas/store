@@ -157,6 +157,22 @@
                     </div>
                 </div>
                 <div class="panel p-4 bg-slate-800/30 border-white/5">
+                    <label class="mini-label">تتبع المخزون والكميات</label>
+                    <div class="stack gap-3 mt-2">
+                        <label class="flex items-center gap-2 cursor-pointer mb-2">
+                            {{ form.track_inventory }} <span class="text-xs font-bold text-cyan">تفعيل تتبع المخزون</span>
+                        </label>
+                        <div>
+                            <label class="block text-[10px] text-slate-400 mb-1">الكمية المتوفرة</label>
+                            {{ form.quantity }}
+                        </div>
+                        <div>
+                            <label class="block text-[10px] text-slate-400 mb-1">حد التنبيه بنفاد الكمية</label>
+                            {{ form.low_stock_threshold }}
+                        </div>
+                    </div>
+                </div>
+                <div class="panel p-4 bg-slate-800/30 border-white/5">
                     <label class="mini-label">ترتيب المنتج العام</label>
                     {{ form.sort_order }}
                     <p class="text-[9px] text-slate-500 mt-1">الأرقام الأصغر تظهر أولاً في الكتالوج.</p>

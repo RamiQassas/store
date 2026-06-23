@@ -3904,7 +3904,8 @@ def control_reports(request):
     analytics = FinancialAnalyticsService(clean_filters, store=getattr(request, "store", None))
     
     from apps.wallets.models import RechargeCard
-    from apps.catalog.models import ProductKey
+    from apps.catalog.models import ProductKey, Product
+    from django.db.models import Sum, F
 
     recharge_cards_stats = {
         "total": RechargeCard.objects.count(),
@@ -3917,6 +3918,21 @@ def control_reports(request):
         "total": ProductKey.objects.count(),
         "unused": ProductKey.objects.filter(is_used=False).count(),
         "used": ProductKey.objects.filter(is_used=True).count(),
+    }
+
+    # Product Stock/Inventory Statistics
+    store = getattr(request, "store", None)
+    product_qs = Product.objects.filter(store=store) if store else Product.objects.all()
+    low_stock_products = product_qs.filter(is_active=True, track_inventory=True, quantity__lte=F('low_stock_threshold'), quantity__gt=0)
+    out_of_stock_products = product_qs.filter(is_active=True, track_inventory=True, quantity__lte=0)
+    total_qty = product_qs.filter(track_inventory=True).aggregate(total=Sum('quantity'))['total'] or 0
+
+    product_stock_stats = {
+        "low_stock_count": low_stock_products.count(),
+        "low_stock_list": low_stock_products[:5],
+        "out_of_stock_count": out_of_stock_products.count(),
+        "out_of_stock_list": out_of_stock_products[:5],
+        "total_quantity": total_qty,
     }
 
     ctx = {
@@ -3933,6 +3949,7 @@ def control_reports(request):
         "tiers": User.Tier.choices,
         "recharge_cards_stats": recharge_cards_stats,
         "product_keys_stats": product_keys_stats,
+        "product_stock_stats": product_stock_stats,
     }
     
     export_format = request.GET.get("export")

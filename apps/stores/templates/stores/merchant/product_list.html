@@ -19,6 +19,7 @@
                         <th>اسم المنتج</th>
                         <th>التصنيف</th>
                         <th>عدد الباقات</th>
+                        <th>الكمية المتوفرة</th>
                         <th>نشط</th>
                         <th>ترتيب العرض</th>
                         <th>الإجراءات</th>
@@ -42,6 +43,14 @@
                                 <span class="btn btn-outline btn-sm" style="cursor: default;">
                                     {{ prod.variants.count }} باقات
                                 </span>
+                            </td>
+                            <td>
+                                <strong {% if prod.track_inventory and prod.quantity <= prod.low_stock_threshold %}style="color: #f87171;"{% endif %}>
+                                    {{ prod.quantity }}
+                                </strong>
+                                {% if prod.track_inventory and prod.quantity <= prod.low_stock_threshold %}
+                                    <span style="font-size: 0.75rem; color: #f87171; display: block; font-weight: bold;">(منخفض!)</span>
+                                {% endif %}
                             </td>
                             <td>
                                 {% if prod.is_active %}

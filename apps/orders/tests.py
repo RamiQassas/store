@@ -87,3 +87,48 @@ class OrderApiTests(TestCase):
         self.assertEqual(order.shipping_phone, "0500000000")
         self.assertEqual(order.shipping_address, "الرياض، حي الياسمين، شارع العليا")
         self.assertTrue(order.has_physical_products)
+
+    def test_inventory_tracking(self):
+        # 1. Enable inventory tracking on product
+        product = self.variant.product
+        product.track_inventory = True
+        product.quantity = 5
+        product.low_stock_threshold = 2
+        product.save()
+
+        client = APIClient()
+        client.force_authenticate(self.user)
+
+        # 2. Purchase 2 units
+        response = client.post(
+            "/api/orders/",
+            {"variant_id": str(self.variant.id), "quantity": 2},
+            format="json",
+        )
+        self.assertEqual(response.status_code, 201)
+        product.refresh_from_db()
+        self.assertEqual(product.quantity, 3)
+        self.assertFalse(product.is_out_of_stock)
+
+        # 3. Try to purchase 4 units (insufficient stock)
+        credit_wallet(self.user.wallet.id, Decimal("50.00"), reference="test-credit-2")
+        
+        response = client.post(
+            "/api/orders/",
+            {"variant_id": str(self.variant.id), "quantity": 4},
+            format="json",
+        )
+        self.assertEqual(response.status_code, 400)
+        product.refresh_from_db()
+        self.assertEqual(product.quantity, 3)
+
+        # 4. Purchase remaining 3 units (runs out of stock)
+        response = client.post(
+            "/api/orders/",
+            {"variant_id": str(self.variant.id), "quantity": 3},
+            format="json",
+        )
+        self.assertEqual(response.status_code, 201)
+        product.refresh_from_db()
+        self.assertEqual(product.quantity, 0)
+        self.assertTrue(product.is_out_of_stock)

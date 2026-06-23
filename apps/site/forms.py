@@ -597,7 +597,8 @@ class ProductForm(forms.ModelForm):
         model = Product
         fields = [
             "product_type", "name", "category", "image", "cover_image", "thumbnail",
-            "description", "instructions", "is_active", "is_featured", "is_out_of_stock", "is_sale", "sort_order", "delivery_time_display", "form_schema"
+            "description", "instructions", "is_active", "is_featured", "is_out_of_stock", "is_sale", "sort_order", "delivery_time_display", "form_schema",
+            "track_inventory", "quantity", "low_stock_threshold"
         ]
         widgets = {
             "product_type": forms.Select(attrs={"class": "builder-input"}),
@@ -610,6 +611,8 @@ class ProductForm(forms.ModelForm):
             "image": forms.FileInput(attrs={"class": "builder-input"}),
             "cover_image": forms.FileInput(attrs={"class": "builder-input"}),
             "thumbnail": forms.FileInput(attrs={"class": "builder-input"}),
+            "quantity": forms.NumberInput(attrs={"class": "builder-input"}),
+            "low_stock_threshold": forms.NumberInput(attrs={"class": "builder-input"}),
         }
 
 

@@ -153,9 +153,9 @@
                 </div>
         </section>
 
-        <!-- 1b. Digital Inventory Stats -->
+        <!-- 1b. Digital & Product Inventory Stats -->
         <section>
-            <h2 class="section-title">إحصائيات الأكواد والمخزون الرقمي</h2>
+            <h2 class="section-title">إحصائيات المخزون والكميات الرقمية والمادية</h2>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <!-- Recharge Cards Stats -->
                 <div class="glass-panel p-6 border-white/5 relative overflow-hidden group">
@@ -201,6 +201,57 @@
                             <strong class="text-lg font-black text-white">{{ product_keys_stats.total }}</strong>
                         </div>
                     </div>
+                </div>
+
+                <!-- Product Stock Stats (Physical / Tracked) -->
+                <div class="glass-panel p-6 border-white/5 relative overflow-hidden group col-span-1 md:col-span-2">
+                    <h3 class="font-black text-xs mb-4 text-cyan uppercase tracking-widest flex items-center gap-2">
+                        <i class="fas fa-cubes text-cyan"></i> حالة مخزون المنتجات والكميات
+                    </h3>
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">
+                        <div class="bg-white/5 p-4 rounded-xl">
+                            <span class="text-[9px] text-slate-500 font-bold block mb-1">منتجات منخفضة المخزون</span>
+                            <strong class="text-lg font-black text-amber-400">{{ product_stock_stats.low_stock_count }}</strong>
+                        </div>
+                        <div class="bg-white/5 p-4 rounded-xl">
+                            <span class="text-[9px] text-slate-500 font-bold block mb-1">منتجات نفدت كميتها</span>
+                            <strong class="text-lg font-black text-rose-500">{{ product_stock_stats.out_of_stock_count }}</strong>
+                        </div>
+                        <div class="bg-white/5 p-4 rounded-xl">
+                            <span class="text-[9px] text-slate-500 font-bold block mb-1">إجمالي القطع المتوفرة</span>
+                            <strong class="text-lg font-black text-emerald-400">{{ product_stock_stats.total_quantity }}</strong>
+                        </div>
+                    </div>
+                    {% if product_stock_stats.low_stock_list or product_stock_stats.out_of_stock_list %}
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t border-white/5 text-xs">
+                        <div>
+                            <h4 class="font-bold text-amber-400 mb-2 flex items-center gap-1.5"><i class="fas fa-exclamation-triangle"></i> منتجات منخفضة المخزون:</h4>
+                            <ul class="space-y-1.5">
+                                {% for p in product_stock_stats.low_stock_list %}
+                                <li class="flex justify-between items-center bg-white/[0.02] p-1.5 rounded">
+                                    <span class="text-slate-300 font-medium">{{ p.name }}</span>
+                                    <span class="badge warning !text-[9px] !px-1.5 !py-0.5">الكمية: {{ p.quantity }} (الحد: {{ p.low_stock_threshold }})</span>
+                                </li>
+                                {% empty %}
+                                <li class="text-slate-500 italic">لا توجد منتجات منخفضة المخزون.</li>
+                                {% endfor %}
+                            </ul>
+                        </div>
+                        <div>
+                            <h4 class="font-bold text-rose-400 mb-2 flex items-center gap-1.5"><i class="fas fa-times-circle"></i> منتجات نفدت كميتها:</h4>
+                            <ul class="space-y-1.5">
+                                {% for p in product_stock_stats.out_of_stock_list %}
+                                <li class="flex justify-between items-center bg-white/[0.02] p-1.5 rounded">
+                                    <span class="text-slate-300 font-medium">{{ p.name }}</span>
+                                    <span class="badge danger !text-[9px] !px-1.5 !py-0.5">نفدت</span>
+                                </li>
+                                {% empty %}
+                                <li class="text-slate-500 italic">لا توجد منتجات نفدت كميتها.</li>
+                                {% endfor %}
+                            </ul>
+                        </div>
+                    </div>
+                    {% endif %}
                 </div>
             </div>
         </section>

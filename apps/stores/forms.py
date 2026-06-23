@@ -93,7 +93,8 @@ class MerchantProductForm(forms.ModelForm):
         fields = [
             "name", "category", "image", "cover_image", "thumbnail",
             "description", "instructions", "is_active", "is_featured", 
-            "is_out_of_stock", "is_sale", "sort_order", "delivery_time_display", "form_schema"
+            "is_out_of_stock", "is_sale", "sort_order", "delivery_time_display", "form_schema",
+            "track_inventory", "quantity", "low_stock_threshold"
         ]
         widgets = {
             "description": forms.Textarea(attrs={"rows": 4}),

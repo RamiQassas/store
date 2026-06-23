@@ -74,6 +74,11 @@ class Product(TimeStampedModel):
     sort_order = models.PositiveIntegerField(default=0, verbose_name="ترتيب العرض")
     delivery_time_display = models.CharField(max_length=60, blank=True, verbose_name="وقت التسليم المعروض", help_text="مثال: 5-15 دقيقة أو 1-2 ساعة")
     
+    # Inventory Tracking
+    track_inventory = models.BooleanField(default=False, verbose_name="تتبع المخزون والكمية")
+    quantity = models.IntegerField(default=0, verbose_name="الكمية المتوفرة")
+    low_stock_threshold = models.IntegerField(default=5, verbose_name="حد التذكير بنفاد الكمية")
+    
     # Dynamic Form Engine
     form_schema = models.JSONField(
         default=dict,
@@ -94,6 +99,11 @@ class Product(TimeStampedModel):
 
     def __str__(self):
         return self.name
+
+    def save(self, *args, **kwargs):
+        if self.track_inventory and self.quantity > 0 and self.is_out_of_stock:
+            self.is_out_of_stock = False
+        super().save(*args, **kwargs)
 
 
 class ProductImage(TimeStampedModel):

@@ -150,6 +150,37 @@ def create_order(customer, variant_id, quantity=1, fulfillment_data=None, coupon
         raise ValueError("Quantity must be at least 1.")
     variant = ProductVariant.objects.select_related("product").select_for_update().get(id=variant_id, is_active=True, product__is_active=True)
 
+    # Inventory checking and decrementing
+    from apps.catalog.models import Product
+    product = Product.objects.select_for_update().get(id=variant.product_id)
+    if product.track_inventory:
+        if product.quantity < quantity:
+            raise ValueError(f"الكمية المطلوبة ({quantity}) غير متوفرة في المخزون للمنتج {product.name}. الكمية المتوفرة حالياً هي: {product.quantity}")
+        
+        product.quantity -= quantity
+        if product.quantity <= 0:
+            product.quantity = 0
+            product.is_out_of_stock = True
+            product.save(update_fields=["quantity", "is_out_of_stock"])
+            
+            # Notify staff that product is out of stock
+            from apps.notifications.services import notify_staff
+            notify_staff(
+                title=f"نفاد مخزون المنتج: {product.name}",
+                body=f"نود إفادتكم بأن كمية المنتج '{product.name}' قد نفدت بالكامل وتم تعديل حالته إلى 'غير متوفر'.",
+                category="admin_new_order"
+            )
+        else:
+            product.save(update_fields=["quantity"])
+            # Check low stock threshold
+            if product.quantity <= product.low_stock_threshold:
+                from apps.notifications.services import notify_staff
+                notify_staff(
+                    title=f"تنبيه: مخزون منخفض للمنتج: {product.name}",
+                    body=f"نود إفادتكم بأن كمية المنتج '{product.name}' قد وصلت للحد المنخفض المتبقي: {product.quantity} (حد التنبيه: {product.low_stock_threshold}).",
+                    category="admin_new_order"
+                )
+
     # Validate shipping info if physical product
     if variant.product.product_type == 'physical' and not variant.product.form_schema.get("fields"):
         if not (shipping_name and shipping_phone and shipping_address):
