@@ -298,6 +298,20 @@
                     {% endfor %}
                 </ul>
             </div>
+            
+            <!-- Suggest Product Card inside Sidebar -->
+            <div style="margin-top: 2rem; padding: 1.25rem; border: 1px solid var(--card-border); background: linear-gradient(135deg, rgba(6, 182, 212, 0.05), transparent); border-radius: 20px; position: relative; overflow: hidden;" class="group">
+                <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1rem;">
+                    <div style="width: 40px; height: 40px; background: rgba(6, 182, 212, 0.1); border-radius: 12px; display: flex; align-items: center; justify-content: center; color: var(--primary); flex-shrink: 0;">
+                        <i class="fas fa-lightbulb text-sm"></i>
+                    </div>
+                    <div>
+                        <h4 style="font-size: 0.85rem; font-weight: 700; margin: 0; color: var(--text-color);">لم تجد طلبك؟</h4>
+                        <p style="font-size: 0.75rem; opacity: 0.6; margin: 0;">نحن نوفره لك بأفضل سعر.</p>
+                    </div>
+                </div>
+                <button onclick="document.getElementById('suggestion-modal').style.display = 'flex'" style="width: 100%; border: none; background: var(--primary); color: white; padding: 0.6rem; border-radius: 12px; font-weight: 700; font-size: 0.8rem; cursor: pointer; transition: var(--transition);">اقترح منتج</button>
+            </div>
         </aside>
 
         <!-- Catalog Main Area -->
@@ -314,19 +328,26 @@
                     </form>
                 </div>
                 
-                <form method="GET" action="{% url 'store_catalog' %}" id="sortForm">
-                    {% if active_category %}
-                        <input type="hidden" name="category" value="{{ active_category }}">
-                    {% endif %}
-                    {% if query %}
-                        <input type="hidden" name="q" value="{{ query }}">
-                    {% endif %}
-                    <select name="sort" onchange="this.form.submit()" class="sort-select">
-                        <option value="newest" {% if sort == "newest" %}selected{% endif %}>الأحدث</option>
-                        <option value="price_low" {% if sort == "price_low" %}selected{% endif %}>السعر: من الأقل للأعلى</option>
-                        <option value="price_high" {% if sort == "price_high" %}selected{% endif %}>السعر: من الأعلى للأقل</option>
-                    </select>
-                </form>
+                <div style="display: flex; align-items: center; gap: 1rem;">
+                    <form method="GET" action="{% url 'store_catalog' %}" id="sortForm">
+                        {% if active_category %}
+                            <input type="hidden" name="category" value="{{ active_category }}">
+                        {% endif %}
+                        {% if query %}
+                            <input type="hidden" name="q" value="{{ query }}">
+                        {% endif %}
+                        <select name="sort" onchange="this.form.submit()" class="sort-select">
+                            <option value="newest" {% if sort == "newest" %}selected{% endif %}>الأحدث</option>
+                            <option value="price_low" {% if sort == "price_low" %}selected{% endif %}>السعر: من الأقل للأعلى</option>
+                            <option value="price_high" {% if sort == "price_high" %}selected{% endif %}>السعر: من الأعلى للأقل</option>
+                        </select>
+                    </form>
+                    
+                    <button onclick="document.getElementById('suggestion-modal').style.display = 'flex'" style="border: 1px solid var(--primary); background: rgba(6, 182, 212, 0.1); color: var(--primary); padding: 0.6rem 1.2rem; border-radius: 30px; font-weight: 700; font-size: 0.825rem; cursor: pointer; display: flex; align-items: center; gap: 0.5rem; transition: var(--transition);">
+                        <i class="fas fa-lightbulb"></i>
+                        <span>اقترح منتج</span>
+                    </button>
+                </div>
             </div>
 
             <!-- Products Grid -->
@@ -392,5 +413,127 @@
             {% endif %}
         </div>
     </div>
+
+    <!-- Suggestion Modal -->
+    <div id="suggestion-modal" style="position: fixed; inset: 0; z-index: 1000; display: none; align-items: center; justify-content: center; padding: 1rem; background: rgba(0, 0, 0, 0.8); backdrop-filter: blur(8px);">
+        <div style="background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 24px; padding: 2rem; width: 100%; max-width: 500px; box-shadow: 0 10px 30px rgba(0,0,0,0.5);">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+                <h2 style="font-size: 1.5rem; font-weight: 900; margin: 0; color: var(--text-color);">اقتراح منتج جديد</h2>
+                <button onclick="document.getElementById('suggestion-modal').style.display = 'none'" style="background: transparent; border: none; color: var(--text-color); opacity: 0.6; cursor: pointer; font-size: 1.25rem;">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            
+            <p style="font-size: 0.85rem; opacity: 0.7; margin-bottom: 2rem; line-height: 1.6;">أخبرنا عما تبحث عنه، وسيقوم فريقنا بمراجعة طلبك وتوفيره في أقرب وقت.</p>
+            
+            <div id="suggestion-feedback" style="display: none; margin-bottom: 1rem;"></div>
+            
+            {% if request.user.is_authenticated %}
+            <form id="suggestion-form" action="{% url 'site_product_suggestion' %}" method="post" style="display: flex; flex-direction: column; gap: 1.25rem; text-align: right;">
+                {% csrf_token %}
+                <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+                    <label style="font-size: 0.75rem; font-weight: 700; opacity: 0.8; margin-right: 0.5rem;">اسم المنتج المقترح</label>
+                    <input type="text" name="product_name" style="width: 100%; background: rgba(0,0,0,0.2); border: 1px solid var(--card-border); padding: 0.8rem 1rem; border-radius: 12px; color: var(--text-color);" placeholder="مثلاً: بطاقة شحن X..." required>
+                </div>
+                <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+                    <label style="font-size: 0.75rem; font-weight: 700; opacity: 0.8; margin-right: 0.5rem;">رابط أو وصف مختصر</label>
+                    <textarea name="description" rows="3" style="width: 100%; background: rgba(0,0,0,0.2); border: 1px solid var(--card-border); padding: 0.8rem 1rem; border-radius: 12px; color: var(--text-color); font-family: inherit;" placeholder="رابط الموقع أو تفاصيل إضافية..." required></textarea>
+                </div>
+                <button type="submit" style="width: 100%; border: none; background: var(--primary); color: white; padding: 0.8rem; border-radius: 12px; font-weight: 700; cursor: pointer; transition: var(--transition);">إرسال الاقتراح</button>
+            </form>
+            {% else %}
+            <div style="text-align: center; padding: 1.5rem 0; display: flex; flex-direction: column; gap: 1.5rem; align-items: center;">
+                <div style="width: 60px; height: 60px; background: rgba(245, 158, 11, 0.1); border-radius: 16px; display: flex; align-items: center; justify-content: center; color: #f59e0b;">
+                    <i class="fas fa-lock text-xl"></i>
+                </div>
+                <p style="font-size: 0.9rem; opacity: 0.8; max-width: 280px; margin: 0; line-height: 1.5;">يرجى تسجيل الدخول أولاً لتتمكن من إرسال اقتراح لخدمة جديدة.</p>
+                <a href="{% url 'site_login' %}?next={{ request.path }}" style="width: 100%; border: none; background: var(--primary); color: white; padding: 0.8rem; border-radius: 12px; font-weight: 700; text-align: center; text-decoration: none;">تسجيل الدخول</a>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const suggestionForm = document.getElementById('suggestion-form');
+            if (suggestionForm) {
+                suggestionForm.addEventListener('submit', function(e) {
+                    e.preventDefault();
+                    
+                    const feedbackEl = document.getElementById('suggestion-feedback');
+                    const submitBtn = suggestionForm.querySelector('button[type="submit"]');
+                    const originalBtnText = submitBtn.innerText;
+                    
+                    submitBtn.disabled = true;
+                    submitBtn.innerText = 'جاري الإرسال...';
+                    
+                    const formData = new FormData(suggestionForm);
+                    
+                    fetch(suggestionForm.action, {
+                        method: 'POST',
+                        body: formData,
+                        headers: {
+                            'X-Requested-With': 'XMLHttpRequest'
+                        }
+                    })
+                    .then(response => {
+                        if (response.ok) {
+                            return response.json();
+                        } else {
+                            throw new Error('حدث خطأ أثناء إرسال الاقتراح. يرجى التأكد من تسجيل الدخول وإدخال حقول صحيحة.');
+                        }
+                    })
+                    .then(data => {
+                        if (data.status === 'success') {
+                            feedbackEl.style.display = "flex";
+                            feedbackEl.style.flexDirection = "column";
+                            feedbackEl.style.alignItems = "center";
+                            feedbackEl.style.textAlign = "center";
+                            feedbackEl.style.padding = "1.5rem 0";
+                            feedbackEl.style.gap = "1rem";
+                            
+                            feedbackEl.innerHTML = `
+                                <div style="width: 50px; height: 50px; background: rgba(34, 197, 94, 0.1); border-radius: 16px; display: flex; align-items: center; justify-content: center; color: #22c55e;">
+                                    <i class="fas fa-check-circle text-xl"></i>
+                                </div>
+                                <h3 style="font-size: 1.1rem; font-weight: 700; margin: 0; color: var(--text-color);">تم إرسال اقتراحك بنجاح!</h3>
+                                <p style="font-size: 0.8rem; opacity: 0.7; margin: 0; max-width: 250px; line-height: 1.5;">شكراً لك، سنقوم بمراجعته والرد عليك في أقرب وقت.</p>
+                            `;
+                            suggestionForm.style.display = 'none';
+                            
+                            setTimeout(() => {
+                                document.getElementById('suggestion-modal').style.display = 'none';
+                                setTimeout(() => {
+                                    suggestionForm.reset();
+                                    suggestionForm.style.display = 'flex';
+                                    feedbackEl.style.display = "none";
+                                    feedbackEl.innerHTML = "";
+                                    submitBtn.disabled = false;
+                                    submitBtn.innerText = originalBtnText;
+                                }, 500);
+                            }, 2500);
+                        } else {
+                            throw new Error(data.message || 'فشل إرسال الاقتراح.');
+                        }
+                    })
+                    .catch(error => {
+                        console.error(error);
+                        submitBtn.disabled = false;
+                        submitBtn.innerText = originalBtnText;
+                        
+                        feedbackEl.style.display = "block";
+                        feedbackEl.style.padding = "1rem";
+                        feedbackEl.style.background = "rgba(239, 68, 68, 0.1)";
+                        feedbackEl.style.border = "1px solid rgba(239, 68, 68, 0.2)";
+                        feedbackEl.style.color = "#ef4444";
+                        feedbackEl.style.borderRadius = "12px";
+                        feedbackEl.style.fontSize = "0.8rem";
+                        feedbackEl.style.textAlign = "center";
+                        feedbackEl.innerText = error.message;
+                    });
+                });
+            }
+        });
+    </script>
 
 {% endblock %}

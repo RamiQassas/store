@@ -102,6 +102,7 @@ urlpatterns = [
     # Utilities
     path("set-currency/", site_views.set_currency, name="set_currency"),
     path("ajax/validate-coupon/", site_views.ajax_validate_coupon, name="ajax_validate_coupon"),
+    path("suggestions/new/", site_views.site_product_suggestion, name="site_product_suggestion"),
 
     # Custom Pages (store-specific static pages created by merchant)
     path("page/<slug:slug>/", merchant_views.store_custom_page, name="store_custom_page"),

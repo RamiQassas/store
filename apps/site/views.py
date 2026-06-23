@@ -1447,9 +1447,8 @@ def catalog(request):
         total_products_qs = total_products_qs.filter(Q(name__icontains=q) | Q(description__icontains=q))
     total_products_count = total_products_qs.distinct().count()
 
-    # Product Suggestion Form — only shown on main platform
-    store = getattr(request, 'store', None)
-    suggestion_form = ProductSuggestionForm() if not store else None
+    # Product Suggestion Form
+    suggestion_form = ProductSuggestionForm()
 
     ctx = {
         "categories": categories,
