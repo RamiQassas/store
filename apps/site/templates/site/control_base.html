@@ -132,10 +132,10 @@
 
             <div class="admin-nav-group"><span>العمليات والسيولة</span></div>
             <a href="{% url 'control_deposits' %}" class="admin-nav-link {% if 'deposits' in request.path %}active{% endif %}">
-                <i class="fas fa-arrow-down-left"></i> طلبات الإيداع
+                <i class="fas fa-circle-arrow-down"></i> طلبات الإيداع
             </a>
             <a href="{% url 'control_withdrawals' %}" class="admin-nav-link {% if 'withdrawal' in request.path %}active{% endif %}">
-                <i class="fas fa-arrow-up-right"></i> طلبات السحب
+                <i class="fas fa-circle-arrow-up"></i> طلبات السحب
             </a>
             <a href="{% url 'control_transfers' %}" class="admin-nav-link {% if 'transfer' in request.path %}active{% endif %}">
                 <i class="fas fa-exchange-alt"></i> التحويلات (P2P)
@@ -291,6 +291,16 @@
 
     <!-- Professional Main Content -->
     <main class="admin-main">
+        {% if request.resolver_match.url_name != 'control_dashboard' and request.resolver_match.url_name != 'merchant_dashboard' %}
+        <div class="mb-6 reveal flex items-center justify-between gap-4">
+            <a href="javascript:history.back()" class="inline-flex items-center gap-2 px-4 py-2 bg-white/[0.04] hover:bg-white/[0.08] border border-white/5 hover:border-white/10 rounded-xl text-xs text-slate-400 hover:text-white transition-all font-bold">
+                <i class="fas fa-arrow-right"></i> رجوع للسابقة
+            </a>
+            <a href="{% url 'control_dashboard' %}" class="inline-flex items-center gap-2 px-4 py-2 bg-cyan/10 hover:bg-cyan/20 border border-cyan/10 hover:border-cyan/20 rounded-xl text-[10px] text-cyan transition-all font-black">
+                <i class="fas fa-th-large"></i> لوحة التحكم الرئيسية
+            </a>
+        </div>
+        {% endif %}
         {% block control_content %}{% endblock %}
     </main>
 </div>

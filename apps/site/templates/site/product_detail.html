@@ -88,6 +88,95 @@
         .main-img-box { border-radius: 32px; padding: 2rem; }
         .variant-card:hover { transform: none; }
     }
+
+    /* Related Products Section */
+    .related-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+        gap: 1.25rem;
+        margin-top: 1.5rem;
+    }
+    
+    .related-card {
+        display: flex;
+        align-items: center;
+        gap: 1.25rem;
+        padding: 1.25rem;
+        background: rgba(15, 23, 42, 0.4);
+        border: 1px solid rgba(255, 255, 255, 0.04);
+        border-radius: 20px;
+        text-decoration: none;
+        transition: all 0.3s ease;
+    }
+    
+    .related-card:hover {
+        border-color: rgba(6, 182, 212, 0.3);
+        background: rgba(6, 182, 212, 0.02);
+        transform: translateY(-2px);
+    }
+    
+    .related-img-container {
+        width: 56px;
+        height: 56px;
+        border-radius: 14px;
+        background: #0f172a;
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        padding: 6px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        overflow: hidden;
+        flex-shrink: 0;
+    }
+    
+    .related-img {
+        max-width: 100%;
+        max-height: 100%;
+        object-fit: contain;
+        border-radius: 8px;
+    }
+    
+    .related-info {
+        flex-grow: 1;
+        min-width: 0;
+        display: flex;
+        flex-direction: column;
+        gap: 0.25rem;
+    }
+    
+    .related-title {
+        font-size: 0.85rem;
+        font-weight: 700;
+        color: #fff;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    
+    .related-price {
+        font-size: 0.75rem;
+        font-weight: 800;
+        color: var(--cyan);
+    }
+
+    @media (max-width: 640px) {
+        .related-grid {
+            grid-template-columns: 1fr;
+            gap: 1rem;
+        }
+        .related-card {
+            padding: 1rem;
+            gap: 1rem;
+        }
+        .related-img-container {
+            width: 48px;
+            height: 48px;
+            padding: 4px;
+        }
+        .related-title {
+            font-size: 0.8rem;
+        }
+    }
 </style>
 {% endblock %}
 
@@ -349,16 +438,16 @@
         <!-- Related Products -->
         <div class="stack gap-6 mt-16">
             <h3 class="font-black text-2xl text-white">خدمات قد تهمك أيضاً</h3>
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div class="related-grid">
                 {% for rp in related_products %}
-                <a href="{% url 'product_detail' rp.id %}" class="panel p-5 flex gap-4 items-center hover:border-cyan/30 hover:bg-cyan/[0.02] transition-all rounded-3xl">
-                    <div class="w-14 h-14 rounded-2xl bg-slate-900 overflow-hidden flex-shrink-0 border border-white/5 p-2">
-                        {% if rp.image %}<img src="{{ rp.image.url }}" class="w-full h-full object-contain">{% endif %}
+                <a href="{% url 'product_detail' rp.id %}" class="related-card">
+                    <div class="related-img-container">
+                        {% if rp.image %}<img src="{{ rp.image.url }}" class="related-img">{% endif %}
                     </div>
-                    <div class="flex-grow min-w-0">
-                        <div class="text-xs font-black text-white truncate">{{ rp.name }}</div>
+                    <div class="related-info">
+                        <div class="related-title">{{ rp.name }}</div>
                         {% variant_price rp.variants.first as rp_price %}
-                        <div class="text-[10px] font-black text-cyan mt-1">{% currency_format rp_price %}</div>
+                        <div class="related-price">{% currency_format rp_price %}</div>
                     </div>
                 </a>
                 {% endfor %}
