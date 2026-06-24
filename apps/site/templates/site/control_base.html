@@ -282,6 +282,9 @@
             <a href="{% url 'control_announcements' %}" class="admin-nav-link {% if 'announcements' in request.path %}active{% endif %}">
                 <i class="fas fa-bullhorn"></i> شريط الإعلانات
             </a>
+            <a href="{% url 'control_social_media' %}" class="admin-nav-link {% if 'social-media' in request.path %}active{% endif %}">
+                <i class="fas fa-share-nodes"></i> وسائل التواصل الاجتماعي
+            </a>
 
             {% if not is_tenant %}
             {% if user.role == 'super_admin' or user.is_superuser or user.saas_role %}
