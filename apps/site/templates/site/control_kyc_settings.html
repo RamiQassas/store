@@ -32,6 +32,20 @@
         
         <form method="post" class="stack gap-8">
             {% csrf_token %}
+            {{ form.otp_max_attempts.as_hidden }}
+            {{ form.otp_base_cooldown.as_hidden }}
+            
+            {% if form.errors %}
+            <div class="bg-rose-500/10 border border-rose-500/20 p-4 rounded-xl mb-6 text-xs text-rose-400">
+                <strong>يرجى تصحيح الأخطاء التالية:</strong>
+                <ul class="list-disc list-inside mt-2">
+                    {% for field, errors in form.errors.items %}
+                        <li>{{ field.label }}: {{ errors|join:", " }}</li>
+                    {% endfor %}
+                </ul>
+            </div>
+            {% endif %}
+
             {% localize off %}
             <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
                 <div class="md:col-span-2">
