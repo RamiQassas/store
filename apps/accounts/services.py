@@ -165,7 +165,7 @@ def send_kyc_status_email(user, status, reason=None):
             </div>
 
             <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #f1f5f9; text-align: center; font-size: 12px; color: #94a3b8;">
-                فريق رقميات لخدمات الوساطة الرقمية<br>© 2026 Raqamiyat Services.
+                فريق مؤسسة رامي قصاص بن ماهر لخدمات الوساطة الرقمية<br>© 2026 Rami Qassas bin Maher Est.
                 <div style="margin-top: 10px; color: #f1f5f9; font-size: 8px;">ID: {ref_id}</div>
             </div>
         </div>
@@ -199,7 +199,7 @@ def send_kyc_status_email(user, status, reason=None):
             </div>
 
             <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #f1f5f9; text-align: center; font-size: 12px; color: #94a3b8;">
-                إذا كان لديك أي استفسار، يرجى التواصل مع الدعم الفني.<br>© 2026 Raqamiyat Services.
+                إذا كان لديك أي استفسار، يرجى التواصل مع الدعم الفني.<br>© 2026 Rami Qassas bin Maher Est.
                 <div style="margin-top: 10px; color: #f1f5f9; font-size: 8px;">ID: {ref_id}</div>
             </div>
         </div>
@@ -225,7 +225,7 @@ def send_kyc_status_email(user, status, reason=None):
             </div>
 
             <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #f1f5f9; text-align: center; font-size: 12px; color: #94a3b8;">
-                سنقوم بإخطارك فور تحديث حالة طلبك.<br>© 2026 Raqamiyat Services.
+                سنقوم بإخطارك فور تحديث حالة طلبك.<br>© 2026 Rami Qassas bin Maher Est.
             </div>
         </div>
         """

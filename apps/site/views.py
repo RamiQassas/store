@@ -2064,7 +2064,7 @@ def send_financial_notification(user, title, body, action_url="/dashboard/wallet
                 </div>
             </div>
             <div class="footer">
-                <p>© 2026 رقميات لخدمات الوساطة الرقمية. جميع الحقوق محفوظة.</p>
+                <p>© 2026 مؤسسة رامي قصاص بن ماهر لخدمات الوساطة الرقمية. جميع الحقوق محفوظة.</p>
                 <p>تم إرسال هذا البريد تلقائياً، يرجى عدم الرد عليه.</p>
             </div>
         </div>
@@ -3171,7 +3171,7 @@ def control_user_moderate(request, public_uuid):
                     <p style="font-size: 14px; color: #94a3b8;">إذا لم تطلب ذلك، يمكنك تجاهل هذا البريد الإلكتروني بأمان. الرابط صالح لفترة محدودة.</p>
                 </div>
                 <div style="margin-top: 30px; text-align: center; font-size: 12px; color: #94a3b8;">
-                    <p>© 2026 رقميات لخدمات الوساطة الرقمية.</p>
+                    <p>© 2026 مؤسسة رامي قصاص بن ماهر لخدمات الوساطة الرقمية.</p>
                 </div>
             </div>
             """
