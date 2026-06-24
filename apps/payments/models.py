@@ -140,14 +140,14 @@ class PaymentMethod(TimeStampedModel):
         
         # 2. Compare with User's Daily Limit (Total across all methods)
         user_remaining = Decimal("9999999.99")
-        if user:
+        if user and user.is_authenticated:
             user.reset_daily_limits_if_needed()
             user_remaining = max(Decimal("0.00"), user.daily_deposit_limit - user.daily_deposit_usage)
             
             # 3. Check for User-Specific Method Custom Limit
-            if user.has_custom_limits:
-                user_custom = user.custom_payment_limits.get(str(self.id)) or user.custom_payment_limits.get(self.id.hex)
-                if user_custom and user_custom.get('deposit'):
+            if user.has_custom_limits and user.custom_payment_limits and isinstance(user.custom_payment_limits, dict):
+                user_custom = user.custom_payment_limits.get(str(self.id)) or user.custom_payment_limits.get(self.id.hex) if hasattr(self.id, 'hex') else user.custom_payment_limits.get(str(self.id))
+                if isinstance(user_custom, dict) and user_custom.get('deposit'):
                     try:
                         custom_limit = Decimal(str(user_custom['deposit']))
                         # User custom limit overrides the global method limit for THIS user
@@ -211,13 +211,13 @@ class PaymentMethod(TimeStampedModel):
         
         # 2. User Remaining
         user_remaining = Decimal("9999999.99")
-        if user:
+        if user and user.is_authenticated:
             user.reset_daily_limits_if_needed()
             user_remaining = max(Decimal("0.00"), user.daily_withdrawal_limit - user.daily_withdrawal_usage)
             
-            if user.has_custom_limits:
-                user_custom = user.custom_payment_limits.get(str(self.id)) or user.custom_payment_limits.get(self.id.hex)
-                if user_custom and user_custom.get('withdraw'):
+            if user.has_custom_limits and user.custom_payment_limits and isinstance(user.custom_payment_limits, dict):
+                user_custom = user.custom_payment_limits.get(str(self.id)) or user.custom_payment_limits.get(self.id.hex) if hasattr(self.id, 'hex') else user.custom_payment_limits.get(str(self.id))
+                if isinstance(user_custom, dict) and user_custom.get('withdraw'):
                     try:
                         method_remaining = Decimal(str(user_custom['withdraw']))
                     except: pass

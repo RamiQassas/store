@@ -229,7 +229,10 @@ def chat_file_upload(request, room_id):
             room.unread_staff_count += 1
         room.save()
         
-        sender_name = f"{request.user.first_name} {request.user.last_name}" if request.user.is_authenticated else "زائر"
+        if is_manager:
+            sender_name = "الدعم الفني"
+        else:
+            sender_name = f"{request.user.first_name} {request.user.last_name}".strip() or request.user.email if request.user.is_authenticated else "زائر"
         
         return JsonResponse({
             "status": "success",

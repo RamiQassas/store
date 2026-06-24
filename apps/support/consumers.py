@@ -79,8 +79,13 @@ class SupportConsumer(AsyncWebsocketConsumer):
             # Better sender name detection for typing
             room_data = await self.get_room_data()
             if self.user.is_authenticated:
-                sender_name = f"{self.user.first_name} {self.user.last_name}".strip() or self.user.email
-                sender_email = self.user.email
+                is_staff = await self.is_staff_user_async()
+                if is_staff:
+                    sender_name = "الدعم الفني"
+                    sender_email = "support@raqamiyat.com"
+                else:
+                    sender_name = f"{self.user.first_name} {self.user.last_name}".strip() or self.user.email
+                    sender_email = self.user.email
             else:
                 sender_name = room_data.get('guest_name') or f"Visitor #{self.room_id[:8]}"
                 sender_email = f"guest_{self.room_id}@raqamiyat.com"
@@ -137,6 +142,12 @@ class SupportConsumer(AsyncWebsocketConsumer):
             return False
 
     @database_sync_to_async
+    def is_staff_user_async(self):
+        if not self.user or not self.user.is_authenticated:
+            return False
+        return self.user.is_staff or self.user.is_superuser or self.user.groups.filter(name__in=["Support Agent", "Super Admin", "Moderator"]).exists()
+
+    @database_sync_to_async
     def get_room_owner(self, room):
         return room.user
 
@@ -182,8 +193,12 @@ class SupportConsumer(AsyncWebsocketConsumer):
 
         # Determine names for broadcast and notifications
         if self.user.is_authenticated:
-            actual_sender_name = f"{self.user.first_name} {self.user.last_name}".strip() or self.user.email
-            actual_sender_email = self.user.email
+            if is_staff_user:
+                actual_sender_name = "الدعم الفني"
+                actual_sender_email = "support@raqamiyat.com"
+            else:
+                actual_sender_name = f"{self.user.first_name} {self.user.last_name}".strip() or self.user.email
+                actual_sender_email = self.user.email
         else:
             actual_sender_name = room.display_name
             actual_sender_email = f"guest_{self.room_id}@raqamiyat.com"

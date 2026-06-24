@@ -155,11 +155,21 @@ from django.utils.safestring import mark_safe
 
 @register.simple_tag
 def get_deposit_config(payment_method, user):
-    return mark_safe(payment_method.to_deposit_json(user=user))
+    try:
+        return mark_safe(payment_method.to_deposit_json(user=user))
+    except Exception as e:
+        import logging
+        logging.getLogger(__name__).error(f"Error in get_deposit_config: {e}", exc_info=True)
+        return "{}"
 
 @register.simple_tag
 def get_withdrawal_config(payment_method, user):
-    return mark_safe(payment_method.to_withdrawal_json(user=user))
+    try:
+        return mark_safe(payment_method.to_withdrawal_json(user=user))
+    except Exception as e:
+        import logging
+        logging.getLogger(__name__).error(f"Error in get_withdrawal_config: {e}", exc_info=True)
+        return "{}"
 
 
 @register.filter
