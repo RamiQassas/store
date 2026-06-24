@@ -247,24 +247,7 @@
                         <div class="relative flex-grow">
                             <input type="text" id="search-input" class="premium-input" placeholder="أدخل الـ UID، البريد الإلكتروني، أو الهاتف..." autocomplete="off">
                         </div>
-                        <button type="button" id="search-btn" class="px-6 rounded-2xl font-black text-sm whitespace-nowrap bg-emerald-500 hover:bg-emerald-600 text-black shadow-lg shadow-emerald-500/20 transition-all">البحث عن حساب</button>
-                    </div>
-                    <p class="text-[11px] text-slate-400 mt-2.5 leading-relaxed">
-                        <i class="fas fa-info-circle ml-1 text-cyan"></i> يمكنك البحث باستخدام UID المستلم، بريده الإلكتروني، أو رقم هاتفه بالصيغة الدولية.
-                    </p>
-                    
-                    <!-- Phone number format guide and methods explanation -->
-                    <div class="mt-3 p-3.5 bg-slate-900/40 border border-white/5 rounded-2xl text-[10px] text-slate-400 leading-relaxed">
-                        <div class="font-bold text-white mb-1.5 flex items-center gap-1.5">
-                            <i class="fas fa-info-circle text-cyan"></i>
-                            <span>طرق البحث المتاحة وتنسيق رقم الهاتف:</span>
-                        </div>
-                        <ul class="space-y-1 list-disc list-inside pr-1 text-slate-400">
-                            <li><strong>البحث بالمعرّف (UID):</strong> أدخل المعرف الرقمي الخاص بالعميل (مثال: <code class="text-cyan font-mono text-[10px]">123456</code>).</li>
-                            <li><strong>البحث بالبريد الإلكتروني:</strong> أدخل البريد الإلكتروني الكامل المسجل به حساب المستلم.</li>
-                            <li><strong>البحث بالاسم:</strong> أدخل اسم العميل (الاسم الأول أو العائلي).</li>
-                            <li><strong>البحث برقم الهاتف (مهم):</strong> يجب إدخال رقم الهاتف بالصيغة الدولية مع رمز الدولة (مثال: سوريا <code class="text-cyan font-mono text-[10px]">+9639xxxxxxxx</code> أو بدون إشارة الزائد <code class="text-cyan font-mono text-[10px]">9639xxxxxxxx</code>). لا تستخدم الأصفار البادئة مثل <code class="text-rose-400 font-mono text-[10px]">00963</code>.</li>
-                        </ul>
+                        <button type="button" id="search-btn" class="btn btn-primary px-6 rounded-2xl font-black text-sm whitespace-nowrap shadow-lg shadow-cyan/10">البحث عن حساب</button>
                     </div>
 
                     <!-- Search Feedback Alert -->
@@ -272,7 +255,7 @@
                 </div>
 
                 <!-- Found Recipient Card -->
-                <div id="recipient-card" class="recipient-active-card">
+                <div id="recipient-card" class="recipient-active-card mt-3">
                     <div class="recipient-avatar" id="avatar-letter">؟</div>
                     <div class="flex-1">
                         <p class="text-[10px] text-cyan mb-0.5 font-black"><i class="fas fa-check-circle mr-1 text-cyan"></i> تم العثور على العميل</p>
@@ -283,6 +266,20 @@
                         </span>
                     </div>
                     <button type="button" onclick="resetRecipient()" class="text-rose-500 hover:bg-rose-500/15 w-9 h-9 rounded-xl flex items-center justify-center transition-colors"><i class="fas fa-times"></i></button>
+                </div>
+
+                <!-- Phone number format guide and methods explanation -->
+                <div class="mt-3 p-3.5 bg-slate-900/40 border border-white/5 rounded-2xl text-[10px] text-slate-400 leading-relaxed">
+                    <div class="font-bold text-white mb-1.5 flex items-center gap-1.5">
+                        <i class="fas fa-info-circle text-cyan"></i>
+                        <span>طرق البحث المتاحة وتنسيق رقم الهاتف:</span>
+                    </div>
+                    <ul class="space-y-1 list-disc list-inside pr-1 text-slate-400">
+                        <li><strong>البحث بالمعرّف (UID):</strong> أدخل المعرف الرقمي الخاص بالعميل (مثال: <code class="text-cyan font-mono text-[10px]">123456</code>).</li>
+                        <li><strong>البحث بالبريد الإلكتروني:</strong> أدخل البريد الإلكتروني الكامل المسجل به حساب المستلم.</li>
+                        <li><strong>البحث بالاسم:</strong> أدخل اسم العميل (الاسم الأول أو العائلي).</li>
+                        <li><strong>البحث برقم الهاتف (مهم):</strong> يجب إدخال رقم الهاتف بالصيغة الدولية مع رمز الدولة (مثال: سوريا <code class="text-cyan font-mono text-[10px]">+9639xxxxxxxx</code> أو بدون إشارة الزائد <code class="text-cyan font-mono text-[10px]">9639xxxxxxxx</code>). لا تستخدم الأصفار البادئة مثل <code class="text-rose-400 font-mono text-[10px]">00963</code>.</li>
+                    </ul>
                 </div>
 
                 <!-- Step 2: Amount & Details -->
