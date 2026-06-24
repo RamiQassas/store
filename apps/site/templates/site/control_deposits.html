@@ -23,30 +23,55 @@
         </div>
     </div>
     <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
+        {% if latest_deposit %}
         <div class="bg-slate-900/25 p-3.5 rounded-xl border border-white/[0.02]">
             <span class="block text-[9px] text-slate-500 font-bold uppercase tracking-wider mb-1">المبلغ المطلوب</span>
-            <span class="text-xs font-black text-emerald-400">100,00 USD</span>
+            <span class="text-xs font-black text-emerald-400">{{ latest_deposit.amount }} {{ latest_deposit.currency.code }}</span>
         </div>
-        <div class="bg-slate-900/25 p-3.5 rounded-xl border border-white/[0.02]">
-            <span class="block text-[9px] text-slate-500 font-bold uppercase tracking-wider mb-1">رقم المرجع / العملية</span>
-            <span class="text-xs font-mono text-slate-300">---</span>
+        <div class="bg-slate-900/25 p-3.5 rounded-xl border border-white/[0.02] flex justify-between items-center">
+            <div>
+                <span class="block text-[9px] text-slate-500 font-bold uppercase tracking-wider mb-1">رقم المرجع / العملية</span>
+                <span class="text-xs font-mono text-slate-300 break-all">{{ latest_deposit.transaction_id|default:"---" }}</span>
+            </div>
+            {% if latest_deposit.transaction_id %}
+            <button onclick="copyToClipboard('{{ latest_deposit.transaction_id|escapejs }}', this)" class="text-slate-500 hover:text-cyan transition mr-2" title="نسخ">
+                <i class="fas fa-copy text-[10px]"></i>
+            </button>
+            {% endif %}
         </div>
         <div class="bg-slate-900/25 p-3.5 rounded-xl border border-white/[0.02]">
             <span class="block text-[9px] text-slate-500 font-bold uppercase tracking-wider mb-1">وسيلة الدفع المستخدمة</span>
-            <span class="text-xs font-black text-cyan">شام كاش</span>
+            <span class="text-xs font-black text-cyan">{{ latest_deposit.payment_method.name }}</span>
         </div>
-        <div class="bg-slate-900/25 p-3.5 rounded-xl border border-white/[0.02]">
-            <span class="block text-[9px] text-slate-500 font-bold uppercase tracking-wider mb-1">اسم حسابك</span>
-            <span class="text-[10px] font-mono text-slate-400 break-all select-all">9aad4d11326ff15e5aa3a0e7108df01e</span>
+        <div class="bg-slate-900/25 p-3.5 rounded-xl border border-white/[0.02] flex justify-between items-center">
+            <div>
+                <span class="block text-[9px] text-slate-500 font-bold uppercase tracking-wider mb-1">اسم حسابك</span>
+                <span class="text-[10px] font-mono text-slate-400 break-all select-all">{{ latest_deposit.user.email }}</span>
+            </div>
+            <button onclick="copyToClipboard('{{ latest_deposit.user.email|escapejs }}', this)" class="text-slate-500 hover:text-cyan transition mr-2" title="نسخ">
+                <i class="fas fa-copy text-[10px]"></i>
+            </button>
         </div>
-        <div class="bg-slate-900/25 p-3.5 rounded-xl border border-white/[0.02]">
-            <span class="block text-[9px] text-slate-500 font-bold uppercase tracking-wider mb-1">حقل ملاحظة</span>
-            <span class="text-xs text-slate-300">اشبك مشبك</span>
+        <div class="bg-slate-900/25 p-3.5 rounded-xl border border-white/[0.02] flex justify-between items-center">
+            <div>
+                <span class="block text-[9px] text-slate-500 font-bold uppercase tracking-wider mb-1">حقل ملاحظة</span>
+                <span class="text-xs text-slate-300">{{ latest_deposit.customer_note|default:"---" }}</span>
+            </div>
+            {% if latest_deposit.customer_note %}
+            <button onclick="copyToClipboard('{{ latest_deposit.customer_note|escapejs }}', this)" class="text-slate-500 hover:text-cyan transition mr-2" title="نسخ">
+                <i class="fas fa-copy text-[10px]"></i>
+            </button>
+            {% endif %}
         </div>
         <div class="bg-slate-900/25 p-3.5 rounded-xl border border-white/[0.02]">
             <span class="block text-[9px] text-slate-500 font-bold uppercase tracking-wider mb-1">توقيت تقديم الطلب</span>
-            <span class="text-xs font-mono text-slate-400">2026-06-25 00:10:01</span>
+            <span class="text-xs font-mono text-slate-400">{{ latest_deposit.created_at|date:"Y-m-d H:i:s" }}</span>
         </div>
+        {% else %}
+        <div class="col-span-6 text-center py-4 bg-slate-900/25 rounded-xl border border-white/[0.02]">
+            <span class="text-xs text-slate-500 italic">لا توجد عمليات إيداع مسجلة حالياً.</span>
+        </div>
+        {% endif %}
     </div>
 </div>
 
@@ -156,6 +181,15 @@ document.querySelector('input[name="q"]').addEventListener('keypress', function 
         this.form.submit();
     }
 });
+
+function copyToClipboard(text, btn) {
+    navigator.clipboard.writeText(text).then(() => {
+        const icon = btn.querySelector('i');
+        const oldClass = icon.className;
+        icon.className = 'fas fa-check text-emerald-400 text-[10px]';
+        setTimeout(() => { icon.className = oldClass; }, 2000);
+    });
+}
 
 // Reveal animation
 const observer = new IntersectionObserver((entries) => {

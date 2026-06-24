@@ -1813,10 +1813,69 @@ def control_dashboard(request):
     })
 
 @finance_required
-def control_deposits(request): return render(request, "site/control_deposits.html", {"deposits": DepositRequest.objects.filter(is_verified=True).select_related('user', 'payment_method').order_by('-created_at')})
+def control_deposits(request):
+    deposits = DepositRequest.objects.filter(is_verified=True).select_related('user', 'payment_method', 'currency').order_by('-created_at')
+    
+    q = request.GET.get("q")
+    if q:
+        q = q.strip()
+        deposits = deposits.filter(
+            Q(transaction_id__icontains=q) |
+            Q(user__email__icontains=q) |
+            Q(user__first_name__icontains=q) |
+            Q(user__last_name__icontains=q)
+        )
+        
+    current_status = request.GET.get("status")
+    if current_status:
+        current_status = current_status.strip()
+        deposits = deposits.filter(status=current_status)
+        
+    latest_deposit = deposits.first()
+    
+    return render(request, "site/control_deposits.html", {
+        "deposits": deposits,
+        "latest_deposit": latest_deposit,
+        "status_choices": DepositRequest.Status.choices,
+        "current_status": current_status,
+        "query": q
+    })
 
 @finance_required
-def control_withdrawals(request): return render(request, "site/control_withdrawals.html", {"withdrawals": WithdrawalRequest.objects.filter(is_verified=True).select_related('user', 'payment_method').order_by('-created_at')})
+def control_withdrawals(request):
+    import uuid
+    withdrawals = WithdrawalRequest.objects.filter(is_verified=True).select_related('user', 'payment_method', 'currency').order_by('-created_at')
+    
+    q = request.GET.get("q")
+    if q:
+        q = q.strip()
+        is_uuid = False
+        try:
+            uuid.UUID(q)
+            is_uuid = True
+        except ValueError:
+            pass
+            
+        if is_uuid:
+            withdrawals = withdrawals.filter(id=q)
+        else:
+            withdrawals = withdrawals.filter(
+                Q(user__email__icontains=q) |
+                Q(user__first_name__icontains=q) |
+                Q(user__last_name__icontains=q)
+            )
+            
+    current_status = request.GET.get("status")
+    if current_status:
+        current_status = current_status.strip()
+        withdrawals = withdrawals.filter(status=current_status)
+        
+    return render(request, "site/control_withdrawals.html", {
+        "withdrawals": withdrawals,
+        "status_choices": WithdrawalRequest.Status.choices,
+        "current_status": current_status,
+        "query": q
+    })
 
 @admin_required
 def control_transfers(request):
