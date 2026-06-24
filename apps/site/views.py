@@ -843,9 +843,10 @@ def transfer_page(request):
         amount = Decimal(request.POST.get("amount", "0"))
         note = request.POST.get("note", "")
         
-        recipient = User.objects.filter(public_uuid=recipient_uid).first()
+        active_store = getattr(request, 'store', None) or request.user.store
+        recipient = User.objects.filter(public_uuid=recipient_uid, store=active_store).first()
         if not recipient:
-            messages.error(request, "المستلم غير موجود.")
+            messages.error(request, "المستلم غير موجود أو لا ينتمي لهذا المتجر.")
             return redirect("dashboard_transfer")
             
         try:

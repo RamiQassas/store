@@ -158,7 +158,12 @@ def api_lookup_user(request):
     q = request.GET.get('q', '').strip()
     
     if not q or len(q) < 3:
-        return JsonResponse({"error": "يرجى إدخال 3 أحرف على الأقل."}, status=400)
+        return JsonResponse({"error": "يرجى إدخال 3 أحرف على الأقل للبحث."}, status=400)
+    
+    active_store = getattr(request, 'store', None) or request.user.store
+    
+    # Resilient phone search variations
+    clean_phone = q.replace("+", "").replace(" ", "").replace("-", "")
     
     users = User.objects.annotate(
         full_name=Concat(
@@ -170,16 +175,22 @@ def api_lookup_user(request):
         Q(uid__iexact=q) | 
         Q(email__iexact=q) | 
         Q(phone__iexact=q) |
+        Q(phone__icontains=clean_phone) |
         Q(first_name__icontains=q) |
         Q(last_name__icontains=q) |
         Q(full_name__icontains=q)
     ).exclude(id=request.user.id)
     
+    if active_store:
+        users = users.filter(store=active_store)
+    else:
+        users = users.filter(store__isnull=True)
+        
     count = users.count()
     if count == 0:
-        return JsonResponse({"error": "لم يتم العثور على مستخدم بهذه البيانات."}, status=404)
+        return JsonResponse({"error": "لم يتم العثور على أي مستخدم في هذا المتجر يطابق هذه البيانات."}, status=404)
     elif count > 1:
-        return JsonResponse({"error": "تم العثور على أكثر من مستخدم بهذا الاسم. يرجى البحث باستخدام الـ UID أو البريد الإلكتروني للحصول على نتيجة دقيقة."}, status=400)
+        return JsonResponse({"error": "تم العثور على أكثر من مستخدم مطابق. يرجى استخدام معرف الـ UID أو البريد الإلكتروني للحصول على نتيجة دقيقة."}, status=400)
         
     user = users.first()
     

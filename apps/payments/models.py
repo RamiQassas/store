@@ -414,6 +414,11 @@ class DepositRequest(TimeStampedModel):
     def save(self, *args, **kwargs):
         if not getattr(self, "_fees_calculated", False) and self.amount and self.payment_method:
             self.calculate_fees()
+        if not self.transaction_id or self.transaction_id.strip() in ("", "---"):
+            import random
+            import string
+            rand_str = ''.join(random.choices(string.ascii_uppercase + string.digits, k=10))
+            self.transaction_id = f"DEP-{rand_str}"
         super().save(*args, **kwargs)
 
     class Meta:
