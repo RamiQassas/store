@@ -966,6 +966,8 @@ def deposits(request):
         # Extract metadata from custom fields
         metadata = {}
         schema = method.deposit_form_schema
+        customer_note = request.POST.get("customer_note") or request.POST.get("note") or request.POST.get("ملاحظة") or ""
+        
         for field in schema.get("fields", []) if isinstance(schema, dict) else []:
             field_name = field.get("name") or field.get("id") or field.get("key") or field.get("label")
             
@@ -984,6 +986,9 @@ def deposits(request):
                 messages.error(request, f"الحقل {field.get('label')} مطلوب.")
                 return redirect("dashboard_deposits")
             metadata[field_name] = val
+            
+            if field_name.lower() in ("customer_note", "note", "notes", "ملاحظة", "ملاحظات", "ملاحظة العميل") and val:
+                customer_note = val
 
         # Create the request (unverified first)
         with transaction.atomic():
@@ -994,6 +999,7 @@ def deposits(request):
                 amount=amount,
                 proof_image=proof_image,
                 metadata=metadata,
+                customer_note=customer_note,
                 status=DepositRequest.Status.PENDING,
                 is_verified=False
             )

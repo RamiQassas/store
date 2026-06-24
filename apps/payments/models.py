@@ -411,6 +411,16 @@ class DepositRequest(TimeStampedModel):
                 self.wallet_amount = self.currency.to_base(self.amount, "deposit")
         self._fees_calculated = True
 
+    @property
+    def client_note(self):
+        if self.customer_note:
+            return self.customer_note
+        if isinstance(self.metadata, dict):
+            for k, v in self.metadata.items():
+                if k.lower() in ("customer_note", "note", "notes", "ملاحظة", "ملاحظات", "ملاحظة العميل"):
+                    return v
+        return ""
+
     def save(self, *args, **kwargs):
         if not getattr(self, "_fees_calculated", False) and self.amount and self.payment_method:
             self.calculate_fees()

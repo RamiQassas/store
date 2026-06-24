@@ -87,6 +87,63 @@
     </div>
 </div>
 
+<div class="glass-panel p-6 mb-6 reveal">
+    <div class="flex items-center gap-3 mb-4 border-b border-white/5 pb-3">
+        <div class="w-8 h-8 rounded-lg bg-cyan/10 flex items-center justify-center text-cyan">
+            <i class="fas fa-server text-sm"></i>
+        </div>
+        <div>
+            <h3 class="font-bold text-xs text-white">بيانات الطلب الفنية</h3>
+            <p class="text-[9px] text-slate-500 font-medium">البيانات التقنية لطلب الإيداع الحالي</p>
+        </div>
+    </div>
+    <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
+        <div class="bg-slate-900/25 p-3.5 rounded-xl border border-white/[0.02]">
+            <span class="block text-[9px] text-slate-500 font-bold uppercase tracking-wider mb-1">المبلغ المطلوب</span>
+            <span class="text-xs font-black text-emerald-400">{{ deposit.amount }} {{ deposit.currency.code }}</span>
+        </div>
+        <div class="bg-slate-900/25 p-3.5 rounded-xl border border-white/[0.02] flex justify-between items-center">
+            <div>
+                <span class="block text-[9px] text-slate-500 font-bold uppercase tracking-wider mb-1">رقم المرجع / العملية</span>
+                <span class="text-xs font-mono text-slate-300 break-all">{{ deposit.transaction_id|default:"---" }}</span>
+            </div>
+            {% if deposit.transaction_id %}
+            <button onclick="copyToClipboard('{{ deposit.transaction_id|escapejs }}', this)" class="text-slate-500 hover:text-cyan transition mr-2" title="نسخ">
+                <i class="fas fa-copy text-[10px]"></i>
+            </button>
+            {% endif %}
+        </div>
+        <div class="bg-slate-900/25 p-3.5 rounded-xl border border-white/[0.02]">
+            <span class="block text-[9px] text-slate-500 font-bold uppercase tracking-wider mb-1">وسيلة الدفع المستخدمة</span>
+            <span class="text-xs font-black text-cyan">{{ deposit.payment_method.name }}</span>
+        </div>
+        <div class="bg-slate-900/25 p-3.5 rounded-xl border border-white/[0.02] flex justify-between items-center">
+            <div>
+                <span class="block text-[9px] text-slate-500 font-bold uppercase tracking-wider mb-1">اسم حسابك</span>
+                <span class="text-[10px] font-mono text-slate-400 break-all select-all">{{ deposit.user.email }}</span>
+            </div>
+            <button onclick="copyToClipboard('{{ deposit.user.email|escapejs }}', this)" class="text-slate-500 hover:text-cyan transition mr-2" title="نسخ">
+                <i class="fas fa-copy text-[10px]"></i>
+            </button>
+        </div>
+        <div class="bg-slate-900/25 p-3.5 rounded-xl border border-white/[0.02] flex justify-between items-center">
+            <div>
+                <span class="block text-[9px] text-slate-500 font-bold uppercase tracking-wider mb-1">حقل ملاحظة</span>
+                <span class="text-xs text-slate-300">{{ deposit.client_note|default:"---" }}</span>
+            </div>
+            {% if deposit.client_note %}
+            <button onclick="copyToClipboard('{{ deposit.client_note|escapejs }}', this)" class="text-slate-500 hover:text-cyan transition mr-2" title="نسخ">
+                <i class="fas fa-copy text-[10px]"></i>
+            </button>
+            {% endif %}
+        </div>
+        <div class="bg-slate-900/25 p-3.5 rounded-xl border border-white/[0.02]">
+            <span class="block text-[9px] text-slate-500 font-bold uppercase tracking-wider mb-1">توقيت تقديم الطلب</span>
+            <span class="text-xs font-mono text-slate-400">{{ deposit.created_at|date:"Y-m-d H:i:s" }}</span>
+        </div>
+    </div>
+</div>
+
 <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 reveal">
     <!-- Left: Proof Viewer & Actions -->
     <div class="lg:col-span-8 stack gap-8">
@@ -248,7 +305,12 @@
                 {{ deposit.user.email|slice:":1"|upper }}
             </div>
             <h3 class="text-xl font-black text-white">{{ deposit.user.get_full_name|default:deposit.user.username }}</h3>
-            <p class="text-xs text-slate-500 font-mono mt-1">{{ deposit.user.email }}</p>
+            <div class="flex items-center justify-center gap-2 mt-1">
+                <span class="text-xs text-slate-500 font-mono">{{ deposit.user.email }}</span>
+                <button onclick="copyToClipboard('{{ deposit.user.email|escapejs }}', this)" class="text-slate-500 hover:text-cyan transition" title="نسخ البريد الإلكتروني">
+                    <i class="fas fa-copy text-[10px]"></i>
+                </button>
+            </div>
             
             <div class="grid grid-cols-2 gap-4 mt-8">
                 <div class="stat-pill text-right">
@@ -325,6 +387,15 @@
 </div>
 
 <script>
+    function copyToClipboard(text, btn) {
+        navigator.clipboard.writeText(text).then(() => {
+            const icon = btn.querySelector('i');
+            const oldClass = icon.className;
+            icon.className = 'fas fa-check text-emerald-400 text-[10px]';
+            setTimeout(() => { icon.className = oldClass; }, 2000);
+        });
+    }
+
     let scale = 1;
     const img = document.getElementById('proof-img');
     const container = document.getElementById('viewer-box');
