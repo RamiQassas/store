@@ -160,37 +160,6 @@
         color: #fff;
     }
 
-    /* Modal styles */
-    .custom-modal {
-        position: fixed;
-        inset: 0;
-        background: rgba(0, 0, 0, 0.85);
-        backdrop-filter: blur(8px);
-        z-index: 9999;
-        display: none;
-        align-items: center;
-        justify-content: center;
-        padding: 1.5rem;
-        direction: rtl;
-    }
-    .custom-modal.active {
-        display: flex;
-    }
-    .modal-content {
-        background: #0f172a;
-        border: 1px solid rgba(16, 185, 129, 0.2);
-        border-radius: 24px;
-        padding: 2rem;
-        max-width: 420px;
-        width: 100%;
-        text-align: center;
-        box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5), 0 0 40px rgba(16, 185, 129, 0.1);
-        animation: modalScaleUp 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
-    }
-    @keyframes modalScaleUp {
-        from { opacity: 0; transform: scale(0.9); }
-        to { opacity: 1; transform: scale(1); }
-    }
 </style>
 {% endblock %}
 
@@ -258,7 +227,7 @@
                 <div id="recipient-card" class="recipient-active-card mt-3">
                     <div class="recipient-avatar" id="avatar-letter">؟</div>
                     <div class="flex-1">
-                        <p class="text-[10px] text-cyan mb-0.5 font-black"><i class="fas fa-check-circle mr-1 text-cyan"></i> تم العثور على العميل</p>
+                        <p class="text-[10px] text-cyan mb-0.5 font-black"><i class="fas fa-check-circle mr-1 text-cyan"></i> تم العثور على الحساب</p>
                         <p id="recipient-name" class="font-black text-white text-base truncate"></p>
                         <p id="recipient-uid-display" class="text-xs text-slate-400 font-mono mt-0.5"></p>
                         <span id="recipient-kyc-badge" class="text-[9px] bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 px-2 py-0.5 rounded-lg font-bold mt-1 inline-flex items-center gap-1 hidden">
@@ -269,15 +238,15 @@
                 </div>
 
                 <!-- Phone number format guide and methods explanation -->
-                <div class="mt-3 p-3.5 bg-slate-900/40 border border-white/5 rounded-2xl text-[10px] text-slate-400 leading-relaxed">
+                <div id="search-guidelines" class="mt-3 p-3.5 bg-slate-900/40 border border-white/5 rounded-2xl text-[10px] text-slate-400 leading-relaxed">
                     <div class="font-bold text-white mb-1.5 flex items-center gap-1.5">
                         <i class="fas fa-info-circle text-cyan"></i>
                         <span>طرق البحث المتاحة وتنسيق رقم الهاتف:</span>
                     </div>
                     <ul class="space-y-1 list-disc list-inside pr-1 text-slate-400">
-                        <li><strong>البحث بالمعرّف (UID):</strong> أدخل المعرف الرقمي الخاص بالعميل (مثال: <code class="text-cyan font-mono text-[10px]">123456</code>).</li>
+                        <li><strong>البحث بالمعرّف (UID):</strong> أدخل المعرف الرقمي الخاص بالحساب (مثال: <code class="text-cyan font-mono text-[10px]">123456</code>).</li>
                         <li><strong>البحث بالبريد الإلكتروني:</strong> أدخل البريد الإلكتروني الكامل المسجل به حساب المستلم.</li>
-                        <li><strong>البحث بالاسم:</strong> أدخل اسم العميل (الاسم الأول أو العائلي).</li>
+                        <li><strong>البحث بالاسم:</strong> أدخل اسم صاحب الحساب (الاسم الأول أو العائلي).</li>
                         <li><strong>البحث برقم الهاتف (مهم):</strong> يجب إدخال رقم الهاتف بالصيغة الدولية مع رمز الدولة (مثال: سوريا <code class="text-cyan font-mono text-[10px]">+9639xxxxxxxx</code> أو بدون إشارة الزائد <code class="text-cyan font-mono text-[10px]">9639xxxxxxxx</code>). لا تستخدم الأصفار البادئة مثل <code class="text-rose-400 font-mono text-[10px]">00963</code>.</li>
                     </ul>
                 </div>
@@ -393,7 +362,7 @@
                     {% else %}
                     <li>حسابك <span class="text-emerald-400 font-black">موثق الهوية</span>، الحد اليومي المتاح لك هو <strong>{{ settings.verified_transfer_limit }} USD</strong>.</li>
                     {% endif %}
-                    <li>تأكد تماماً من **UID أو اسم العميل** قبل الضغط على زر التحويل.</li>
+                    <li>تأكد تماماً من **UID أو اسم صاحب الحساب** قبل الضغط على زر التحويل.</li>
                     <li>عمليات التحويل بين المحافظ فوريّة ومحمية، ولا يمكن إلغاؤها أو استردادها إطلاقاً بعد التأكيد.</li>
                 </ul>
             </div>
@@ -401,35 +370,6 @@
     </div>
 </div>
 
-<!-- Success Modal -->
-<div id="success-modal" class="custom-modal">
-    <div class="modal-content">
-        <div class="w-16 h-16 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 rounded-full flex items-center justify-center mx-auto mb-5 text-2xl shadow-lg shadow-emerald-500/10">
-            <i class="fas fa-check-circle"></i>
-        </div>
-        <h3 class="text-lg font-black text-white mb-2">تم العثور على الحساب بنجاح!</h3>
-        <p class="text-xs text-slate-400 mb-6">يرجى التأكد من اسم الحساب ومعرفه قبل المتابعة.</p>
-        
-        <div class="bg-slate-900/60 border border-white/5 rounded-2xl p-4 mb-6 text-right">
-            <span class="block text-[9px] text-slate-500 font-bold uppercase tracking-wider mb-1">اسم الحساب المستهدف</span>
-            <span id="modal-recipient-name" class="text-sm font-black text-white block truncate"></span>
-            
-            <div class="border-t border-white/5 mt-3 pt-3 flex justify-between items-center">
-                <div>
-                    <span class="block text-[9px] text-slate-500 font-bold uppercase tracking-wider mb-0.5">معرف الحساب (UID)</span>
-                    <span id="modal-recipient-uid" class="text-xs font-mono text-cyan font-bold"></span>
-                </div>
-                <span id="modal-recipient-kyc-badge" class="text-[9px] bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 px-2 py-0.5 rounded-lg font-bold hidden">
-                    <i class="fas fa-shield-check"></i> موثق
-                </span>
-            </div>
-        </div>
-        
-        <button type="button" onclick="closeSuccessModal()" class="w-full py-3.5 bg-emerald-500 hover:bg-emerald-600 text-black font-black text-sm rounded-xl transition-all shadow-lg shadow-emerald-500/10">
-            متابعة عملية التحويل
-        </button>
-    </div>
-</div>
 {% endblock %}
 
 {% block extra_js %}
@@ -515,16 +455,11 @@
                 recipientCard.style.display = 'flex';
                 showFeedback('تم التحقق من الحساب والعثور عليه بنجاح.', 'success');
                 
-                // Populate and Open Success Modal
-                document.getElementById('modal-recipient-name').textContent = data.display_name;
-                document.getElementById('modal-recipient-uid').textContent = data.uid;
-                const modalKyc = document.getElementById('modal-recipient-kyc-badge');
-                if (data.is_verified) {
-                    modalKyc.classList.remove('hidden');
-                } else {
-                    modalKyc.classList.add('hidden');
+                // Hide search guidelines box
+                const guidelines = document.getElementById('search-guidelines');
+                if (guidelines) {
+                    guidelines.style.display = 'none';
                 }
-                document.getElementById('success-modal').classList.add('active');
                 
                 // Unlock Form
                 amountSection.classList.remove('opacity-30', 'pointer-events-none');
@@ -533,6 +468,9 @@
                 document.getElementById('currency-select').disabled = false;
                 document.querySelector('input[name="note"]').disabled = false;
                 submitBtn.disabled = false;
+                
+                // Focus amount input
+                amountInput.focus();
             })
             .catch(error => {
                 searchBtn.innerHTML = 'البحث عن حساب';
@@ -541,18 +479,6 @@
                 resetRecipient();
             });
     }
-
-    function closeSuccessModal() {
-        document.getElementById('success-modal').classList.remove('active');
-        amountInput.focus();
-    }
-
-    // Close modal if clicking outside content
-    document.getElementById('success-modal').addEventListener('click', function(e) {
-        if (e.target === this) {
-            closeSuccessModal();
-        }
-    });
 
     function showFeedback(msg, type) {
         const fb = document.getElementById('search-feedback');
@@ -569,6 +495,12 @@
         recipientCard.style.display = 'none';
         recipientUidHidden.value = '';
         searchInput.value = '';
+        
+        // Show search guidelines box
+        const guidelines = document.getElementById('search-guidelines');
+        if (guidelines) {
+            guidelines.style.display = 'block';
+        }
         
         // Lock Form
         amountSection.classList.add('opacity-30', 'pointer-events-none');
