@@ -159,6 +159,38 @@
         font-weight: 800;
         color: #fff;
     }
+
+    /* Modal styles */
+    .custom-modal {
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.85);
+        backdrop-filter: blur(8px);
+        z-index: 9999;
+        display: none;
+        align-items: center;
+        justify-content: center;
+        padding: 1.5rem;
+        direction: rtl;
+    }
+    .custom-modal.active {
+        display: flex;
+    }
+    .modal-content {
+        background: #0f172a;
+        border: 1px solid rgba(16, 185, 129, 0.2);
+        border-radius: 24px;
+        padding: 2rem;
+        max-width: 420px;
+        width: 100%;
+        text-align: center;
+        box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5), 0 0 40px rgba(16, 185, 129, 0.1);
+        animation: modalScaleUp 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+    }
+    @keyframes modalScaleUp {
+        from { opacity: 0; transform: scale(0.9); }
+        to { opacity: 1; transform: scale(1); }
+    }
 </style>
 {% endblock %}
 
@@ -210,13 +242,12 @@
 
                 <!-- Step 1: Search Recipient -->
                 <div>
-                    <label class="block text-sm font-black text-slate-300 mb-2">البحث عن المستلم</label>
+                    <label class="block text-sm font-black text-slate-300 mb-2">البحث عن الحساب</label>
                     <div class="flex flex-col sm:flex-row gap-3">
                         <div class="relative flex-grow">
-                            <input type="text" id="search-input" class="premium-input !pl-12" placeholder="أدخل الـ UID، البريد الإلكتروني، أو الهاتف..." autocomplete="off">
-                            <i class="fas fa-search absolute left-4 top-1/2 -translate-y-1/2 text-slate-500"></i>
+                            <input type="text" id="search-input" class="premium-input" placeholder="أدخل الـ UID، البريد الإلكتروني، أو الهاتف..." autocomplete="off">
                         </div>
-                        <button type="button" id="search-btn" class="btn btn-primary px-6 rounded-2xl font-black text-sm whitespace-nowrap shadow-lg shadow-cyan/10">بحث عن عميل</button>
+                        <button type="button" id="search-btn" class="px-6 rounded-2xl font-black text-sm whitespace-nowrap bg-emerald-500 hover:bg-emerald-600 text-black shadow-lg shadow-emerald-500/20 transition-all">البحث عن حساب</button>
                     </div>
                     <p class="text-[11px] text-slate-400 mt-2.5 leading-relaxed">
                         <i class="fas fa-info-circle ml-1 text-cyan"></i> يمكنك البحث باستخدام UID المستلم، بريده الإلكتروني، أو رقم هاتفه بالصيغة الدولية.
@@ -372,6 +403,36 @@
         </div>
     </div>
 </div>
+
+<!-- Success Modal -->
+<div id="success-modal" class="custom-modal">
+    <div class="modal-content">
+        <div class="w-16 h-16 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 rounded-full flex items-center justify-center mx-auto mb-5 text-2xl shadow-lg shadow-emerald-500/10">
+            <i class="fas fa-check-circle"></i>
+        </div>
+        <h3 class="text-lg font-black text-white mb-2">تم العثور على الحساب بنجاح!</h3>
+        <p class="text-xs text-slate-400 mb-6">يرجى التأكد من اسم الحساب ومعرفه قبل المتابعة.</p>
+        
+        <div class="bg-slate-900/60 border border-white/5 rounded-2xl p-4 mb-6 text-right">
+            <span class="block text-[9px] text-slate-500 font-bold uppercase tracking-wider mb-1">اسم الحساب المستهدف</span>
+            <span id="modal-recipient-name" class="text-sm font-black text-white block truncate"></span>
+            
+            <div class="border-t border-white/5 mt-3 pt-3 flex justify-between items-center">
+                <div>
+                    <span class="block text-[9px] text-slate-500 font-bold uppercase tracking-wider mb-0.5">معرف الحساب (UID)</span>
+                    <span id="modal-recipient-uid" class="text-xs font-mono text-cyan font-bold"></span>
+                </div>
+                <span id="modal-recipient-kyc-badge" class="text-[9px] bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 px-2 py-0.5 rounded-lg font-bold hidden">
+                    <i class="fas fa-shield-check"></i> موثق
+                </span>
+            </div>
+        </div>
+        
+        <button type="button" onclick="closeSuccessModal()" class="w-full py-3.5 bg-emerald-500 hover:bg-emerald-600 text-black font-black text-sm rounded-xl transition-all shadow-lg shadow-emerald-500/10">
+            متابعة عملية التحويل
+        </button>
+    </div>
+</div>
 {% endblock %}
 
 {% block extra_js %}
@@ -438,7 +499,7 @@
                 return response.json();
             })
             .then(data => {
-                searchBtn.innerHTML = 'بحث عن عميل';
+                searchBtn.innerHTML = 'البحث عن حساب';
                 searchBtn.disabled = false;
 
                 recipientName.textContent = data.display_name;
@@ -457,6 +518,17 @@
                 recipientCard.style.display = 'flex';
                 showFeedback('تم التحقق من الحساب والعثور عليه بنجاح.', 'success');
                 
+                // Populate and Open Success Modal
+                document.getElementById('modal-recipient-name').textContent = data.display_name;
+                document.getElementById('modal-recipient-uid').textContent = data.uid;
+                const modalKyc = document.getElementById('modal-recipient-kyc-badge');
+                if (data.is_verified) {
+                    modalKyc.classList.remove('hidden');
+                } else {
+                    modalKyc.classList.add('hidden');
+                }
+                document.getElementById('success-modal').classList.add('active');
+                
                 // Unlock Form
                 amountSection.classList.remove('opacity-30', 'pointer-events-none');
                 formInputs.forEach(inp => inp.disabled = false);
@@ -466,12 +538,24 @@
                 submitBtn.disabled = false;
             })
             .catch(error => {
-                searchBtn.innerHTML = 'بحث عن عميل';
+                searchBtn.innerHTML = 'البحث عن حساب';
                 searchBtn.disabled = false;
                 showFeedback(error.message || 'حدث خطأ غير متوقع أثناء الاتصال بالخادم.', 'error');
                 resetRecipient();
             });
     }
+
+    function closeSuccessModal() {
+        document.getElementById('success-modal').classList.remove('active');
+        amountInput.focus();
+    }
+
+    // Close modal if clicking outside content
+    document.getElementById('success-modal').addEventListener('click', function(e) {
+        if (e.target === this) {
+            closeSuccessModal();
+        }
+    });
 
     function showFeedback(msg, type) {
         const fb = document.getElementById('search-feedback');

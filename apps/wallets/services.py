@@ -75,7 +75,12 @@ def execute_p2p_transfer(sender, recipient, amount, currency, note=""):
         # Ensure that the debt balance is never transferable via P2P
         transferable_balance = sender_wallet.available_balance - sender_wallet.debt_balance
         if transferable_balance < amount:
-            raise ValidationError("الرصيد القابل للتحويل غير كافٍ (لا يمكن تحويل مبالغ الديون للمستخدمين الآخرين).")
+            needed_extra = amount - transferable_balance
+            raise ValidationError(
+                f"رصيدك القابل للتحويل غير كافٍ لإتمام هذه العملية. "
+                f"الرصيد المتاح للتحويل حالياً: {transferable_balance:.2f} {currency.code} (لا يمكن تحويل مبالغ الديون). "
+                f"أنت بحاجة إلى إضافة {needed_extra:.2f} {currency.code} لتتمكن من تحويل مبلغ {amount:.2f} {currency.code}."
+            )
 
         # Create Transfer Record
         transfer = BalanceTransfer.objects.create(
