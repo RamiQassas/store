@@ -3570,8 +3570,16 @@ def control_announcement_delete(request, pk): get_object_or_404(SiteAnnouncement
 @admin_required
 def control_social_media(request):
     from apps.site.forms import SocialMediaLinkForm
+    from django.core.exceptions import ValidationError
     if request.method == "POST":
-        f = SocialMediaLinkForm(request.POST, request.FILES, instance=SocialMediaLink.objects.filter(pk=request.POST.get("pk")).first())
+        pk_val = request.POST.get("pk")
+        instance = None
+        if pk_val:
+            try:
+                instance = SocialMediaLink.objects.filter(pk=pk_val).first()
+            except (ValueError, ValidationError):
+                pass
+        f = SocialMediaLinkForm(request.POST, request.FILES, instance=instance)
         if f.is_valid(): f.save(); messages.success(request, "تم الحفظ."); return redirect("control_social_media")
     return render(request, "site/control_social_media.html", {"links": SocialMediaLink.objects.all(), "form": SocialMediaLinkForm()})
 
