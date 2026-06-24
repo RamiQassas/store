@@ -62,7 +62,14 @@ class SubscriptionPlan(TimeStampedModel):
 
     def save(self, *args, **kwargs):
         from decimal import Decimal
-        self.price_yearly = (Decimal(str(self.price_monthly)) * 12 * (1 - Decimal(self.yearly_discount_percentage) / 100)).quantize(Decimal("0.01"))
+        # Only auto-calculate yearly price if it is 0.00 or not set
+        if not self.price_yearly or self.price_yearly == Decimal("0.00"):
+            self.price_yearly = (Decimal(str(self.price_monthly)) * 12 * (1 - Decimal(self.yearly_discount_percentage) / 100)).quantize(Decimal("0.01"))
+        else:
+            # If the user specified a custom yearly price, calculate the discount percentage based on it
+            if self.price_monthly and self.price_monthly > 0:
+                calc_discount = 100 - (self.price_yearly * 100) / (self.price_monthly * 12)
+                self.yearly_discount_percentage = max(0, int(calc_discount))
         super().save(*args, **kwargs)
 
     def __str__(self):
