@@ -767,24 +767,33 @@
             <!-- ── Hero Balance Card ── -->
             <div class="wallet-hero wallet-reveal">
                 <div class="hero-inner">
-                    <!-- Top bar: status + currency -->
+                    <!-- Top bar: status + currency + UID -->
                     <div class="hero-top">
-                        {% if wallet.debt_balance > 0 %}
-                            {% if wallet.debt_is_withdrawable %}
-                            <div class="hero-chip debt-ok">
-                                <i class="fas fa-unlock"></i> دين قابل للسحب
-                            </div>
+                        <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+                            {% if wallet.debt_balance > 0 %}
+                                {% if wallet.debt_is_withdrawable %}
+                                <div class="hero-chip debt-ok">
+                                    <i class="fas fa-unlock"></i> دين قابل للسحب
+                                </div>
+                                {% else %}
+                                <div class="hero-chip debt-warn">
+                                    <i class="fas fa-lock"></i> دين غير قابل للسحب
+                                </div>
+                                {% endif %}
                             {% else %}
-                            <div class="hero-chip debt-warn">
-                                <i class="fas fa-lock"></i> دين غير قابل للسحب
+                            <div class="hero-chip healthy">
+                                <div class="pulse-dot"></div>
+                                حساب سليم
                             </div>
                             {% endif %}
-                        {% else %}
-                        <div class="hero-chip healthy">
-                            <div class="pulse-dot"></div>
-                            حساب سليم
+
+                            <div class="hero-chip" style="background: rgba(255,255,255,0.03); color: #fff; border: 1px solid rgba(255,255,255,0.08); font-family: monospace; font-size: 0.7rem; font-weight: 800; display: inline-flex; align-items: center; gap: 8px; padding: 5px 12px; border-radius: 100px;">
+                                <span>UID: {{ request.user.uid }}</span>
+                                <button type="button" onclick="const btn=this; navigator.clipboard.writeText('{{ request.user.uid }}').then(() => { const icon=btn.querySelector('i'); icon.className = 'fas fa-check text-emerald-400'; setTimeout(() => { icon.className = 'fas fa-copy'; }, 2000); })" style="background:none; border:none; color:#64748b; cursor:pointer; padding:0; display:inline-flex; align-items:center; transition:color 0.2s;" onmouseover="this.style.color='#fff'" onmouseout="this.style.color='#64748b'" title="نسخ المعرف">
+                                    <i class="fas fa-copy" style="font-size:0.65rem;"></i>
+                                </button>
+                            </div>
                         </div>
-                        {% endif %}
 
                         <div class="hero-currency-badge">
                             <i class="fas fa-coins"></i>
