@@ -987,7 +987,14 @@ def deposits(request):
                 return redirect("dashboard_deposits")
             metadata[field_name] = val
             
-            if field_name.lower() in ("customer_note", "note", "notes", "ملاحظة", "ملاحظات", "ملاحظة العميل") and val:
+            field_label = field.get("label", "").lower()
+            field_name_lower = field_name.lower()
+            is_note_field = False
+            for note_keyword in ("customer_note", "note", "notes", "ملاحظة", "ملاحظات", "ملاحظة العميل", "حقل ملاحظة", "الرسالة", "message"):
+                if note_keyword in field_label or note_keyword in field_name_lower:
+                    is_note_field = True
+                    break
+            if is_note_field and val:
                 customer_note = val
 
         # Create the request (unverified first)

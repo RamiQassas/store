@@ -58,10 +58,13 @@
     <div class="stack gap-6">
         <!-- Payout Details -->
         <div class="management-card">
-            <div class="management-header">
-                <h3 class="font-bold flex items-center gap-2">
+            <div class="management-header flex justify-between items-center">
+                <h3 class="font-bold flex items-center gap-2 mb-0">
                     <i class="fas fa-university text-cyan"></i> بيانات استلام الأموال
                 </h3>
+                <button type="button" onclick="copyAllPayoutDetails()" class="btn btn-outline btn-sm py-1 px-3 text-[9px] font-bold text-cyan border-cyan/20 hover:bg-cyan/10 transition-all flex items-center gap-1" title="نسخ جميع تفاصيل الاستلام دفعة واحدة">
+                    <i class="fas fa-copy"></i> نسخ كافة التفاصيل
+                </button>
             </div>
             <div class="p-6">
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -103,6 +106,37 @@
                 }, 2000);
             }).catch(err => {
                 console.error('Failed to copy: ', err);
+            });
+        }
+
+        function copyAllPayoutDetails() {
+            const textParts = [];
+            
+            // Collect from formatted_payout_details list
+            {% for item in withdrawal.formatted_payout_details %}
+                {% if item.type != 'image' and item.value %}
+                    textParts.push(`{{ item.label }}: {{ item.value }}`);
+                {% endif %}
+            {% endfor %}
+            
+            // Add other general info
+            textParts.push(`المبلغ المطلوب: {{ withdrawal.amount }} {{ withdrawal.currency.code }}`);
+            textParts.push(`الرسوم: {{ withdrawal.fee_amount }} {{ withdrawal.currency.code }}`);
+            textParts.push(`المبلغ الصافي للإرسال: {{ withdrawal.final_amount }} {{ withdrawal.currency.code }}`);
+            textParts.push(`تاريخ تقديم الطلب: {{ withdrawal.created_at|date:"Y-m-d H:i:s" }}`);
+            
+            const fullText = textParts.join('\n');
+            navigator.clipboard.writeText(fullText).then(() => {
+                const btn = document.querySelector('button[onclick="copyAllPayoutDetails()"]');
+                const originalContent = btn.innerHTML;
+                btn.innerHTML = '<i class="fas fa-check text-emerald-400"></i> تم نسخ الكل';
+                btn.classList.add('border-emerald-500/30', 'text-emerald-400');
+                setTimeout(() => {
+                    btn.innerHTML = originalContent;
+                    btn.classList.remove('border-emerald-500/30', 'text-emerald-400');
+                }, 2000);
+            }).catch(err => {
+                alert('فشل نسخ التفاصيل: ' + err);
             });
         }
         </script>
@@ -253,9 +287,17 @@
                     <div class="w-10 h-10 rounded-xl bg-slate-800 flex items-center justify-center font-bold text-cyan">
                         {{ withdrawal.user.email|slice:":1"|upper }}
                     </div>
-                    <div class="min-w-0">
+                    <div class="min-w-0 flex-1">
                         <div class="font-bold text-white truncate">{{ withdrawal.user.get_full_name|default:withdrawal.user.username }}</div>
-                        <div class="text-[9px] text-slate-500 truncate">{{ withdrawal.user.email }}</div>
+                        <div class="flex items-center gap-2 mt-0.5">
+                            <span class="text-[9px] text-slate-500 truncate" id="withdrawal-user-email">{{ withdrawal.user.email }}</span>
+                            <button type="button" 
+                                    onclick="copyToClipboard('withdrawal-user-email', this)" 
+                                    class="text-slate-500 hover:text-cyan transition-colors" 
+                                    title="نسخ البريد الإلكتروني">
+                                <i class="fas fa-copy text-[10px]"></i>
+                            </button>
+                        </div>
                     </div>
                 </div>
                 <div class="info-item">

@@ -88,41 +88,54 @@
 </div>
 
 <div class="glass-panel p-6 mb-6 reveal">
-    <div class="flex items-center gap-3 mb-4 border-b border-white/5 pb-3">
-        <div class="w-8 h-8 rounded-lg bg-cyan/10 flex items-center justify-center text-cyan">
-            <i class="fas fa-server text-sm"></i>
+    <div class="flex items-center justify-between gap-3 mb-4 border-b border-white/5 pb-3">
+        <div class="flex items-center gap-3">
+            <div class="w-8 h-8 rounded-lg bg-cyan/10 flex items-center justify-center text-cyan">
+                <i class="fas fa-server text-sm"></i>
+            </div>
+            <div>
+                <h3 class="font-bold text-xs text-white">بيانات الطلب الفنية</h3>
+                <p class="text-[9px] text-slate-500 font-medium">البيانات التقنية لطلب الإيداع الحالي</p>
+            </div>
         </div>
-        <div>
-            <h3 class="font-bold text-xs text-white">بيانات الطلب الفنية</h3>
-            <p class="text-[9px] text-slate-500 font-medium">البيانات التقنية لطلب الإيداع الحالي</p>
-        </div>
+        <button type="button" onclick="copyAllDepositDetails()" class="btn btn-outline btn-sm py-1.5 px-3 rounded-xl text-[9px] font-black text-cyan border-cyan/20 hover:bg-cyan/10 transition-all flex items-center gap-1.5" title="نسخ جميع تفاصيل الطلب دفعة واحدة">
+            <i class="fas fa-copy text-[10px]"></i> نسخ كافة التفاصيل
+        </button>
     </div>
     <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
-        <div class="bg-slate-900/25 p-3.5 rounded-xl border border-white/[0.02]">
-            <span class="block text-[9px] text-slate-500 font-bold uppercase tracking-wider mb-1">المبلغ المطلوب</span>
-            <span class="text-xs font-black text-emerald-400">{{ deposit.amount }} {{ deposit.currency.code }}</span>
+        <div class="bg-slate-900/25 p-3.5 rounded-xl border border-white/[0.02] flex justify-between items-center">
+            <div>
+                <span class="block text-[9px] text-slate-500 font-bold uppercase tracking-wider mb-1">المبلغ المطلوب</span>
+                <span class="text-xs font-black text-emerald-400">{{ deposit.amount }} {{ deposit.currency.code }}</span>
+            </div>
+            <button type="button" onclick="copyToClipboard('{{ deposit.amount|escapejs }} {{ deposit.currency.code|escapejs }}', this)" class="text-slate-500 hover:text-cyan transition mr-2" title="نسخ">
+                <i class="fas fa-copy text-[10px]"></i>
+            </button>
         </div>
         <div class="bg-slate-900/25 p-3.5 rounded-xl border border-white/[0.02] flex justify-between items-center">
             <div>
                 <span class="block text-[9px] text-slate-500 font-bold uppercase tracking-wider mb-1">رقم المرجع / العملية</span>
                 <span class="text-xs font-mono text-slate-300 break-all">{{ deposit.transaction_id|default:"---" }}</span>
             </div>
-            {% if deposit.transaction_id %}
-            <button onclick="copyToClipboard('{{ deposit.transaction_id|escapejs }}', this)" class="text-slate-500 hover:text-cyan transition mr-2" title="نسخ">
+            <button type="button" onclick="copyToClipboard('{{ deposit.transaction_id|default:"---"|escapejs }}', this)" class="text-slate-500 hover:text-cyan transition mr-2" title="نسخ">
                 <i class="fas fa-copy text-[10px]"></i>
             </button>
-            {% endif %}
         </div>
-        <div class="bg-slate-900/25 p-3.5 rounded-xl border border-white/[0.02]">
-            <span class="block text-[9px] text-slate-500 font-bold uppercase tracking-wider mb-1">وسيلة الدفع المستخدمة</span>
-            <span class="text-xs font-black text-cyan">{{ deposit.payment_method.name }}</span>
+        <div class="bg-slate-900/25 p-3.5 rounded-xl border border-white/[0.02] flex justify-between items-center">
+            <div>
+                <span class="block text-[9px] text-slate-500 font-bold uppercase tracking-wider mb-1">وسيلة الدفع المستخدمة</span>
+                <span class="text-xs font-black text-cyan">{{ deposit.payment_method.name }}</span>
+            </div>
+            <button type="button" onclick="copyToClipboard('{{ deposit.payment_method.name|escapejs }}', this)" class="text-slate-500 hover:text-cyan transition mr-2" title="نسخ">
+                <i class="fas fa-copy text-[10px]"></i>
+            </button>
         </div>
         <div class="bg-slate-900/25 p-3.5 rounded-xl border border-white/[0.02] flex justify-between items-center">
             <div>
                 <span class="block text-[9px] text-slate-500 font-bold uppercase tracking-wider mb-1">اسم حسابك</span>
-                <span class="text-[10px] font-mono text-slate-400 break-all select-all">{{ deposit.user.email }}</span>
+                <span class="text-[10px] font-mono text-slate-400 break-all select-all">{{ deposit.metadata_account_name }}</span>
             </div>
-            <button onclick="copyToClipboard('{{ deposit.user.email|escapejs }}', this)" class="text-slate-500 hover:text-cyan transition mr-2" title="نسخ">
+            <button type="button" onclick="copyToClipboard('{{ deposit.metadata_account_name|escapejs }}', this)" class="text-slate-500 hover:text-cyan transition mr-2" title="نسخ">
                 <i class="fas fa-copy text-[10px]"></i>
             </button>
         </div>
@@ -131,15 +144,18 @@
                 <span class="block text-[9px] text-slate-500 font-bold uppercase tracking-wider mb-1">حقل ملاحظة</span>
                 <span class="text-xs text-slate-300">{{ deposit.client_note|default:"---" }}</span>
             </div>
-            {% if deposit.client_note %}
-            <button onclick="copyToClipboard('{{ deposit.client_note|escapejs }}', this)" class="text-slate-500 hover:text-cyan transition mr-2" title="نسخ">
+            <button type="button" onclick="copyToClipboard('{{ deposit.client_note|default:"---"|escapejs }}', this)" class="text-slate-500 hover:text-cyan transition mr-2" title="نسخ">
                 <i class="fas fa-copy text-[10px]"></i>
             </button>
-            {% endif %}
         </div>
-        <div class="bg-slate-900/25 p-3.5 rounded-xl border border-white/[0.02]">
-            <span class="block text-[9px] text-slate-500 font-bold uppercase tracking-wider mb-1">توقيت تقديم الطلب</span>
-            <span class="text-xs font-mono text-slate-400">{{ deposit.created_at|date:"Y-m-d H:i:s" }}</span>
+        <div class="bg-slate-900/25 p-3.5 rounded-xl border border-white/[0.02] flex justify-between items-center">
+            <div>
+                <span class="block text-[9px] text-slate-500 font-bold uppercase tracking-wider mb-1">توقيت تقديم الطلب</span>
+                <span class="text-xs font-mono text-slate-400">{{ deposit.created_at|date:"Y-m-d H:i:s" }}</span>
+            </div>
+            <button type="button" onclick="copyToClipboard('{{ deposit.created_at|date:"Y-m-d H:i:s"|escapejs }}', this)" class="text-slate-500 hover:text-cyan transition mr-2" title="نسخ">
+                <i class="fas fa-copy text-[10px]"></i>
+            </button>
         </div>
     </div>
 </div>
@@ -333,52 +349,91 @@
             <h3 class="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] mb-2">بيانات الطلب الفنية</h3>
             
             <div class="stack gap-4">
-                <div class="info-item">
-                    <span class="info-label">المبلغ المطلوب</span>
-                    <span class="info-value text-xl font-black text-emerald-400">{{ deposit.amount }} {{ deposit.currency.code }}</span>
+                <div class="info-item flex justify-between items-center">
+                    <div>
+                        <span class="info-label">المبلغ المطلوب</span>
+                        <span class="info-value text-xl font-black text-emerald-400">{{ deposit.amount }} {{ deposit.currency.code }}</span>
+                    </div>
+                    <button onclick="copyToClipboard('{{ deposit.amount|escapejs }} {{ deposit.currency.code|escapejs }}', this)" class="text-slate-500 hover:text-cyan transition mr-2" title="نسخ">
+                        <i class="fas fa-copy text-[10px]"></i>
+                    </button>
                 </div>
 
                 {% if deposit.currency.code != "USD" %}
-                <div class="info-item bg-cyan/5 border-cyan/10">
-                    <span class="info-label text-cyan">المعادل بالدولار (USD)</span>
-                    <span class="info-value text-cyan">≈ {{ deposit.usd_amount|floatformat:2 }} USD</span>
+                <div class="info-item bg-cyan/5 border-cyan/10 flex justify-between items-center">
+                    <div>
+                        <span class="info-label text-cyan">المعادل بالدولار (USD)</span>
+                        <span class="info-value text-cyan">≈ {{ deposit.usd_amount|floatformat:2 }} USD</span>
+                    </div>
+                    <button onclick="copyToClipboard('{{ deposit.usd_amount|floatformat:2|escapejs }}', this)" class="text-slate-500 hover:text-cyan transition mr-2" title="نسخ">
+                        <i class="fas fa-copy text-[10px]"></i>
+                    </button>
                 </div>
                 {% endif %}
 
-                <div class="info-item">
-                    <span class="info-label">رقم المرجع / العملية</span>
-                    <span class="info-value font-mono text-cyan">{{ deposit.transaction_id|default:"---" }}</span>
+                <div class="info-item flex justify-between items-center">
+                    <div>
+                        <span class="info-label">رقم المرجع / العملية</span>
+                        <span class="info-value font-mono text-cyan">{{ deposit.transaction_id|default:"---" }}</span>
+                    </div>
+                    {% if deposit.transaction_id %}
+                    <button onclick="copyToClipboard('{{ deposit.transaction_id|escapejs }}', this)" class="text-slate-500 hover:text-cyan transition mr-2" title="نسخ">
+                        <i class="fas fa-copy text-[10px]"></i>
+                    </button>
+                    {% endif %}
                 </div>
 
-                <div class="info-item">
-                    <span class="info-label">وسيلة الدفع المستخدمة</span>
-                    <span class="info-value text-white font-black">{{ deposit.payment_method.name }}</span>
+                <div class="info-item flex justify-between items-center">
+                    <div>
+                        <span class="info-label">وسيلة الدفع المستخدمة</span>
+                        <span class="info-value text-white font-black">{{ deposit.payment_method.name }}</span>
+                    </div>
+                    <button onclick="copyToClipboard('{{ deposit.payment_method.name|escapejs }}', this)" class="text-slate-500 hover:text-cyan transition mr-2" title="نسخ">
+                        <i class="fas fa-copy text-[10px]"></i>
+                    </button>
                 </div>
 
                 <div class="h-px bg-white/5 my-2"></div>
 
                 {% for meta in deposit.formatted_metadata %}
-                <div class="info-item">
-                    <span class="info-label">{{ meta.label }}</span>
-                    {% if meta.type == 'image' and meta.value %}
-                        <div class="mt-2 w-full max-w-[200px] rounded-xl overflow-hidden border border-white/10">
-                            <img src="{{ meta.value }}" class="w-full h-auto cursor-zoom-in" onclick="window.open(this.src)">
-                        </div>
-                    {% else %}
-                        <span class="info-value text-slate-300">{{ meta.value }}</span>
+                <div class="info-item flex justify-between items-center">
+                    <div>
+                        <span class="info-label">{{ meta.label }}</span>
+                        {% if meta.type == 'image' and meta.value %}
+                            <div class="mt-2 w-full max-w-[200px] rounded-xl overflow-hidden border border-white/10">
+                                <img src="{{ meta.value }}" class="w-full h-auto cursor-zoom-in" onclick="window.open(this.src)">
+                            </div>
+                        {% else %}
+                            <span class="info-value text-slate-300">{{ meta.value }}</span>
+                        {% endif %}
+                    </div>
+                    {% if meta.type != 'image' and meta.value %}
+                    <button onclick="copyToClipboard('{{ meta.value|escapejs }}', this)" class="text-slate-500 hover:text-cyan transition mr-2" title="نسخ">
+                        <i class="fas fa-copy text-[10px]"></i>
+                    </button>
                     {% endif %}
                 </div>
                 {% endfor %}
 
-                <div class="info-item">
-                    <span class="info-label">توقيت تقديم الطلب</span>
-                    <span class="info-value text-[11px]">{{ deposit.created_at|date:"Y-m-d H:i:s" }}</span>
+                <div class="info-item flex justify-between items-center">
+                    <div>
+                        <span class="info-label">توقيت تقديم الطلب</span>
+                        <span class="info-value text-[11px]">{{ deposit.created_at|date:"Y-m-d H:i:s" }}</span>
+                    </div>
+                    <button onclick="copyToClipboard('{{ deposit.created_at|date:'Y-m-d H:i:s'|escapejs }}', this)" class="text-slate-500 hover:text-cyan transition mr-2" title="نسخ">
+                        <i class="fas fa-copy text-[10px]"></i>
+                    </button>
                 </div>
                 
-                {% if deposit.customer_note %}
-                <div class="info-item bg-amber-500/5 border-amber-500/10">
-                    <span class="info-label text-amber-500">ملاحظة العميل</span>
-                    <span class="info-value text-[11px] italic text-amber-200/70">{{ deposit.customer_note }}</span>
+                {% if deposit.client_note %}
+                <div class="info-item bg-amber-500/5 border-amber-500/10 flex justify-between items-center">
+                    <div>
+                        <span class="info-label text-amber-500">ملاحظة العميل</span>
+                        <span class="info-value text-[11px] italic text-amber-200/70">{{ deposit.client_note }}</span>
+                    </div>
+                    <button onclick="copyToClipboard('{{ deposit.client_note|escapejs }}', this)" class="text-slate-500 hover:text-cyan transition mr-2" title="نسخ">
+                        <i class="fas fa-copy text-[10px]"></i>
+                    </button>
                 </div>
                 {% endif %}
             </div>
@@ -393,6 +448,38 @@
             const oldClass = icon.className;
             icon.className = 'fas fa-check text-emerald-400 text-[10px]';
             setTimeout(() => { icon.className = oldClass; }, 2000);
+        });
+    }
+
+    function copyAllDepositDetails() {
+        const textParts = [
+            `المبلغ المطلوب: {{ deposit.amount }} {{ deposit.currency.code }}`,
+            `رقم المرجع / العملية: {{ deposit.transaction_id|default:"---" }}`,
+            `وسيلة الدفع المستخدمة: {{ deposit.payment_method.name }}`,
+            `اسم حسابك: {{ deposit.metadata_account_name }}`,
+            `حقل ملاحظة: {{ deposit.client_note|default:"---" }}`,
+            `توقيت تقديم الطلب: {{ deposit.created_at|date:"Y-m-d H:i:s" }}`
+        ];
+        
+        // Also add any other custom metadata fields if present
+        {% for meta in deposit.formatted_metadata %}
+            {% if meta.type != 'image' and meta.value %}
+                textParts.push(`{{ meta.label }}: {{ meta.value }}`);
+            {% endif %}
+        {% endfor %}
+
+        const fullText = textParts.join('\n');
+        navigator.clipboard.writeText(fullText).then(() => {
+            const btn = document.querySelector('button[onclick="copyAllDepositDetails()"]');
+            const originalContent = btn.innerHTML;
+            btn.innerHTML = '<i class="fas fa-check text-emerald-400"></i> تم نسخ الكل';
+            btn.classList.add('border-emerald-500/30', 'text-emerald-400');
+            setTimeout(() => {
+                btn.innerHTML = originalContent;
+                btn.classList.remove('border-emerald-500/30', 'text-emerald-400');
+            }, 2000);
+        }).catch(err => {
+            alert('فشل نسخ التفاصيل: ' + err);
         });
     }
 

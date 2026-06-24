@@ -411,15 +411,63 @@ class DepositRequest(TimeStampedModel):
                 self.wallet_amount = self.currency.to_base(self.amount, "deposit")
         self._fees_calculated = True
 
+    def get_metadata_value(self, keys):
+        if not isinstance(self.metadata, dict):
+            return ""
+            
+        # 1. Try to find the key in metadata by matching against form schema fields first
+        if self.payment_method:
+            schema = self.payment_method.deposit_form_schema
+            fields = schema.get("fields", []) if isinstance(schema, dict) else []
+            for key in keys:
+                key_clean = key.strip().lower()
+                for field in fields:
+                    flabel = (field.get("label") or "").strip().lower()
+                    fname = (field.get("name") or field.get("id") or field.get("key") or "").strip().lower()
+                    
+                    # Try exact match on label or name
+                    if key_clean == flabel or key_clean == fname:
+                        # Found matching field in schema, get its value from metadata using its actual name in metadata
+                        actual_key = field.get("name") or field.get("id") or field.get("key") or field.get("label")
+                        if actual_key in self.metadata:
+                            return self.metadata[actual_key]
+                            
+            for key in keys:
+                key_clean = key.strip().lower()
+                for field in fields:
+                    flabel = (field.get("label") or "").strip().lower()
+                    fname = (field.get("name") or field.get("id") or field.get("key") or "").strip().lower()
+                    
+                    # Try substring match on label or name
+                    if key_clean in flabel or flabel in key_clean or key_clean in fname or fname in key_clean:
+                        actual_key = field.get("name") or field.get("id") or field.get("key") or field.get("label")
+                        if actual_key in self.metadata:
+                            return self.metadata[actual_key]
+
+        # 2. Fallback to direct metadata search (for backward compatibility / if payment method not present)
+        for key in keys:
+            key_clean = key.strip().lower()
+            # First try exact match
+            for mk, mv in self.metadata.items():
+                if mk.strip().lower() == key_clean:
+                    return mv
+            # Then try substring match
+            for mk, mv in self.metadata.items():
+                if key_clean in mk.strip().lower() or mk.strip().lower() in key_clean:
+                    return mv
+        return ""
+
+    @property
+    def metadata_account_name(self):
+        val = self.get_metadata_value(["اسم حسابك", "اسم الحساب", "رقم الحساب", "حسابك", "الحساب", "العنوان", "عنوان", "الرقم", "المستلم", "رقم المحفظة", "محفظة", "account_name", "account_number", "account", "address", "wallet", "number"])
+        return val if val else self.user.email
+
     @property
     def client_note(self):
         if self.customer_note:
             return self.customer_note
-        if isinstance(self.metadata, dict):
-            for k, v in self.metadata.items():
-                if k.lower() in ("customer_note", "note", "notes", "ملاحظة", "ملاحظات", "ملاحظة العميل"):
-                    return v
-        return ""
+        val = self.get_metadata_value(["customer_note", "note", "notes", "ملاحظة", "ملاحظات", "ملاحظة العميل", "حقل ملاحظة", "ملاحظة الإيداع", "الرسالة", "message"])
+        return val if val else ""
 
     def save(self, *args, **kwargs):
         if not getattr(self, "_fees_calculated", False) and self.amount and self.payment_method:
