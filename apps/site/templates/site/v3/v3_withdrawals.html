@@ -280,7 +280,7 @@
                                 </span>
                             </div>
                             <div class="text-[10px] text-slate-500 font-bold uppercase tracking-widest mb-3">
-                                عبر {{ r.payment_method.name }} • {{ r.created_at|date:"d M Y, H:i" }}
+                                عبر {{ r.payment_method.name }} • {{ r.created_at|date:"d M Y, H:i" }} • مرجع: <span class="font-mono text-cyan">{{ r.transaction_id }}</span>
                             </div>
 
                             <!-- Dynamic Payout Details -->

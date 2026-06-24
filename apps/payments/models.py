@@ -539,6 +539,7 @@ class WithdrawalRequest(TimeStampedModel):
     reviewed_at = models.DateTimeField(null=True, blank=True, verbose_name="تاريخ المراجعة")
     is_verified = models.BooleanField(default=False, verbose_name="تم التحقق")
     metadata = models.JSONField(default=dict, blank=True)
+    transaction_id = models.CharField(max_length=160, blank=True, null=True, db_index=True, verbose_name="رقم العملية / المرجع")
 
     @property
     def usd_amount(self):
@@ -612,6 +613,11 @@ class WithdrawalRequest(TimeStampedModel):
                     self.wallet_amount = self.currency.to_base(self.amount, "withdraw")
 
     def save(self, *args, **kwargs):
+        if not self.transaction_id or self.transaction_id.strip() in ("", "---"):
+            import random
+            import string
+            rand_str = ''.join(random.choices(string.ascii_uppercase + string.digits, k=10))
+            self.transaction_id = f"WTH-{rand_str}"
         if self.amount and self.payment_method:
             self.calculate_fees()
         super().save(*args, **kwargs)
@@ -620,6 +626,7 @@ class WithdrawalRequest(TimeStampedModel):
         indexes = [
             models.Index(fields=["user", "created_at"]),
             models.Index(fields=["status"]),
+            models.Index(fields=["transaction_id"]),
         ]
         verbose_name = "طلب سحب"
         verbose_name_plural = "طلبات السحب"

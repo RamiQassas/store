@@ -335,7 +335,10 @@ class WithdrawalRequestViewSet(viewsets.ModelViewSet):
                 amount=withdrawal.wallet_amount,
                 reference=f"withdrawal:{withdrawal.id}",
                 description=f"سحب مكتمل عبر {withdrawal.payment_method.name}",
-                created_by=request.user
+                created_by=request.user,
+                metadata={
+                    "transaction_id": withdrawal.transaction_id
+                }
             )
             
             notify_user(
@@ -373,7 +376,10 @@ class WithdrawalRequestViewSet(viewsets.ModelViewSet):
                 amount=withdrawal.wallet_amount,
                 reference=f"withdrawal_reject:{withdrawal.id}",
                 description=f"استرداد سحب مرفوض عبر {withdrawal.payment_method.name}",
-                created_by=request.user
+                created_by=request.user,
+                metadata={
+                    "transaction_id": withdrawal.transaction_id
+                }
             )
             
             # Reverse daily usage on rejection
@@ -418,7 +424,10 @@ class WithdrawalRequestViewSet(viewsets.ModelViewSet):
                 reference=f"withdrawal_reverse:{withdrawal.id}",
                 description=f"إلغاء وعكس سحب مكتمل عبر {withdrawal.payment_method.name}",
                 created_by=request.user,
-                reason="Withdrawal reversed by admin"
+                reason="Withdrawal reversed by admin",
+                metadata={
+                    "transaction_id": withdrawal.transaction_id
+                }
             )
             
             notify_user(
@@ -453,7 +462,10 @@ class WithdrawalRequestViewSet(viewsets.ModelViewSet):
                 amount=withdrawal.wallet_amount,
                 reference=f"withdrawal_cancel:{withdrawal.id}",
                 description=f"إلغاء طلب سحب عبر {withdrawal.payment_method.name}",
-                created_by=request.user
+                created_by=request.user,
+                metadata={
+                    "transaction_id": withdrawal.transaction_id
+                }
             )
 
             # Reverse daily usage on cancellation

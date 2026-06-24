@@ -2369,7 +2369,10 @@ def control_withdrawal_detail(request, pk):
                             amount=withdrawal.wallet_amount,
                             reference=f"with:{withdrawal.id}",
                             description=f"Withdrawal completed via {withdrawal.payment_method.name}",
-                            created_by=request.user
+                            created_by=request.user,
+                            metadata={
+                                "transaction_id": withdrawal.transaction_id
+                            }
                         )
                         withdrawal.status = WithdrawalRequest.Status.COMPLETED
                         withdrawal.reviewed_at = timezone.now()
@@ -2383,7 +2386,10 @@ def control_withdrawal_detail(request, pk):
                             amount=withdrawal.wallet_amount,
                             reference=f"with:{withdrawal.id}",
                             description="Withdrawal rejected",
-                            created_by=request.user
+                            created_by=request.user,
+                            metadata={
+                                "transaction_id": withdrawal.transaction_id
+                            }
                         )
                         
                         # Reverse daily usage on rejection

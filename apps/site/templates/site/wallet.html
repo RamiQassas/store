@@ -982,7 +982,13 @@
                                     </span>
                                     {% if entry.reference %}
                                     <span>•</span>
-                                    <span style="font-family:monospace; color:#334155;">{{ entry.reference }}</span>
+                                    <span style="font-family:monospace; color:#64748b;" title="{{ entry.reference }}">
+                                        {% if entry.metadata.transaction_id %}
+                                            {{ entry.metadata.transaction_id }}
+                                        {% else %}
+                                            {{ entry.reference }}
+                                        {% endif %}
+                                    </span>
                                     {% endif %}
                                 </div>
                             </div>

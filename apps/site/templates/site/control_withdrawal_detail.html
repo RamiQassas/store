@@ -56,6 +56,65 @@
 <div class="withdrawal-grid">
     <!-- Main Content -->
     <div class="stack gap-6">
+        <!-- Technical Data Block -->
+        <div class="management-card">
+            <div class="management-header">
+                <h3 class="font-bold flex items-center gap-2 mb-0">
+                    <i class="fas fa-server text-cyan"></i> بيانات الطلب الفنية
+                </h3>
+            </div>
+            <div class="p-6">
+                <!-- Core Client & Request Info Grid -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+                    <div class="info-item relative group">
+                        <span class="info-label">اسم العميل</span>
+                        <div class="flex items-center justify-between gap-2 mt-1">
+                            <span class="info-value text-white font-bold" id="withdrawal-client-name">{{ withdrawal.user.get_full_name|default:withdrawal.user.username }}</span>
+                            <button type="button" onclick="copyToClipboard('withdrawal-client-name', this)" class="text-slate-500 hover:text-cyan transition-colors" title="نسخ">
+                                <i class="fas fa-copy"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="info-item relative group">
+                        <span class="info-label">البريد الإلكتروني</span>
+                        <div class="flex items-center justify-between gap-2 mt-1">
+                            <span class="info-value text-slate-300 font-mono truncate" id="withdrawal-client-email">{{ withdrawal.user.email }}</span>
+                            <button type="button" onclick="copyToClipboard('withdrawal-client-email', this)" class="text-slate-500 hover:text-cyan transition-colors" title="نسخ">
+                                <i class="fas fa-copy"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="info-item relative group">
+                        <span class="info-label">رقم الهاتف</span>
+                        <div class="flex items-center justify-between gap-2 mt-1">
+                            <span class="info-value text-slate-300 font-mono" id="withdrawal-client-phone">{{ withdrawal.user.phone|default:"---" }}</span>
+                            <button type="button" onclick="copyToClipboard('withdrawal-client-phone', this)" class="text-slate-500 hover:text-cyan transition-colors" title="نسخ">
+                                <i class="fas fa-copy"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="info-item relative group">
+                        <span class="info-label">تاريخ ووقت عملية الطلب</span>
+                        <div class="flex items-center justify-between gap-2 mt-1">
+                            <span class="info-value text-slate-400 font-mono" id="withdrawal-request-date">{{ withdrawal.created_at|date:"Y-m-d H:i:s" }}</span>
+                            <button type="button" onclick="copyToClipboard('withdrawal-request-date', this)" class="text-slate-500 hover:text-cyan transition-colors" title="نسخ">
+                                <i class="fas fa-copy"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="info-item relative group">
+                        <span class="info-label">رقم العملية / المرجع</span>
+                        <div class="flex items-center justify-between gap-2 mt-1">
+                            <span class="info-value text-cyan font-mono truncate" id="withdrawal-transaction-id">{{ withdrawal.transaction_id|default:"---" }}</span>
+                            <button type="button" onclick="copyToClipboard('withdrawal-transaction-id', this)" class="text-slate-500 hover:text-cyan transition-colors" title="نسخ">
+                                <i class="fas fa-copy"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <!-- Payout Details -->
         <div class="management-card">
             <div class="management-header flex justify-between items-center">
@@ -67,7 +126,8 @@
                 </button>
             </div>
             <div class="p-6">
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <!-- Displayed Vertically (اسفل بعض) -->
+                <div class="flex flex-col gap-4">
                     {% for item in withdrawal.formatted_payout_details %}
                     <div class="info-item relative group">
                         <span class="info-label">{{ item.label }}</span>
@@ -110,20 +170,22 @@
         }
 
         function copyAllPayoutDetails() {
-            const textParts = [];
+            const textParts = [
+                `اسم العميل: {{ withdrawal.user.get_full_name|default:withdrawal.user.username }}`,
+                `البريد الإلكتروني: {{ withdrawal.user.email }}`,
+                `رقم الهاتف: {{ withdrawal.user.phone|default:"---" }}`,
+                `تاريخ ووقت عملية الطلب: {{ withdrawal.created_at|date:"Y-m-d H:i:s" }}`,
+                `رقم المرجع / العملية: {{ withdrawal.transaction_id|default:"---" }}`,
+                `المبلغ المطلوب: {{ withdrawal.amount }} {{ withdrawal.currency.code }}`
+            ];
             
+            textParts.push(`\n--- بيانات استلام الأموال ---`);
             // Collect from formatted_payout_details list
             {% for item in withdrawal.formatted_payout_details %}
                 {% if item.type != 'image' and item.value %}
                     textParts.push(`{{ item.label }}: {{ item.value }}`);
                 {% endif %}
             {% endfor %}
-            
-            // Add other general info
-            textParts.push(`المبلغ المطلوب: {{ withdrawal.amount }} {{ withdrawal.currency.code }}`);
-            textParts.push(`الرسوم: {{ withdrawal.fee_amount }} {{ withdrawal.currency.code }}`);
-            textParts.push(`المبلغ الصافي للإرسال: {{ withdrawal.final_amount }} {{ withdrawal.currency.code }}`);
-            textParts.push(`تاريخ تقديم الطلب: {{ withdrawal.created_at|date:"Y-m-d H:i:s" }}`);
             
             const fullText = textParts.join('\n');
             navigator.clipboard.writeText(fullText).then(() => {
