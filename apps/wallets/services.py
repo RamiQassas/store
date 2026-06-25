@@ -982,11 +982,15 @@ def auto_seed_currencies():
 
 def get_or_create_wallet(user):
     """
-    Safely gets or creates a wallet for a user with the default currency.
+    Safely gets or creates a wallet for a user with the default currency in the current store context.
     Ensures currencies exist before creation.
     """
+    from apps.common.tenant_utils import get_current_store, bypass_tenant_filter
+    
+    active_store = get_current_store()
+    
     with transaction.atomic():
-        wallet = Wallet.objects.filter(user=user).select_related("currency").first()
+        wallet = Wallet.all_objects.filter(user=user, store=active_store).select_related("currency").first()
         if not wallet:
             # Emergency seed if table is empty
             auto_seed_currencies()
@@ -997,10 +1001,15 @@ def get_or_create_wallet(user):
                 default_currency = Currency.objects.filter(code="USD").first() or Currency.objects.first()
             
             if not default_currency:
+                with bypass_tenant_filter():
+                    default_currency = Currency.objects.filter(is_default=True).first() or Currency.objects.first()
+            
+            if not default_currency:
                 raise WalletError("Critical Error: No currencies found in system even after emergency seeding.")
                 
-            wallet = Wallet.objects.create(
+            wallet = Wallet.all_objects.create(
                 user=user,
+                store=active_store,
                 currency=default_currency,
                 available_balance=Decimal("0.00")
             )

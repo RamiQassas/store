@@ -24,17 +24,6 @@
 {% endblock %}
 
 {% block control_content %}
-{% if messages %}
-<div class="fixed top-24 right-8 z-50 stack gap-3" id="toast-container">
-    {% for message in messages %}
-    <div class="p-4 pr-6 pl-12 rounded-2xl shadow-2xl border-l-4 {% if message.tags == 'error' %}bg-rose-950/90 border-rose-500 text-rose-100{% else %}bg-emerald-950/90 border-emerald-500 text-emerald-100{% endif %} backdrop-blur-md relative animate-in fade-in slide-in-from-right-4">
-        {{ message }}
-        <button onclick="this.parentElement.remove()" class="absolute left-4 top-1/2 -translate-y-1/2 opacity-50 hover:opacity-100"><i class="fas fa-times"></i></button>
-    </div>
-    {% endfor %}
-</div>
-<script>setTimeout(() => document.getElementById('toast-container')?.remove(), 5000);</script>
-{% endif %}
 
 <!-- Top Header -->
 <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-8">

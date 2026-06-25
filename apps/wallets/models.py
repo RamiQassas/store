@@ -8,7 +8,18 @@ from apps.common.tenant_utils import TenantManager
 
 
 class Wallet(TimeStampedModel):
-    user = models.OneToOneField(settings.AUTH_USER_MODEL, related_name="wallet", on_delete=models.CASCADE)
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, related_name="wallets", on_delete=models.CASCADE)
+    store = models.ForeignKey(
+        "stores.Store",
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name="wallets",
+        verbose_name="المتجر"
+    )
+    objects = TenantManager()
+    all_objects = models.Manager()
+
     currency = models.ForeignKey("common.Currency", on_delete=models.PROTECT, verbose_name="العملة")
     
     # Balance breakdown
@@ -21,9 +32,13 @@ class Wallet(TimeStampedModel):
     debt_is_withdrawable = models.BooleanField(default=False, verbose_name="الدين قابل للسحب")
 
     class Meta:
-        indexes = [models.Index(fields=["currency"])]
+        indexes = [
+            models.Index(fields=["currency"]),
+            models.Index(fields=["user", "store"]),
+        ]
         verbose_name = "محفظة"
         verbose_name_plural = "المحافظ"
+        unique_together = ("user", "store")
         constraints = [
             models.CheckConstraint(
                 check=models.Q(available_balance__gte=0),

@@ -1,5 +1,5 @@
 {% extends "site/base.html" %}
-{% load static %}
+{% load static site_tags %}
 
 {% block extra_head %}
 <style>
@@ -282,9 +282,11 @@
             <a href="{% url 'control_announcements' %}" class="admin-nav-link {% if 'announcements' in request.path %}active{% endif %}">
                 <i class="fas fa-bullhorn"></i> شريط الإعلانات
             </a>
+            {% if not is_tenant %}
             <a href="{% url 'control_social_media' %}" class="admin-nav-link {% if 'social-media' in request.path %}active{% endif %}">
                 <i class="fas fa-share-nodes"></i> وسائل التواصل الاجتماعي
             </a>
+            {% endif %}
 
             {% if not is_tenant %}
             {% if user.role == 'super_admin' or user.is_superuser or user.saas_role %}
@@ -365,15 +367,32 @@
                 <i class="fas fa-external-link-alt"></i> عرض المتجر
             </a>
             {% endif %}
-            <div class="flex items-center gap-3 p-4 bg-white/[0.03] rounded-2xl border border-white/5">
-                <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-cyan to-blue-600 flex items-center justify-center text-black font-black">
-                    {{ user.display_name|slice:":1"|upper }}
+            <div class="flex flex-col gap-3 p-4 bg-white/[0.03] rounded-2xl border border-white/5">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-cyan to-blue-600 flex items-center justify-center text-black font-black">
+                        {{ user.display_name|slice:":1"|upper }}
+                    </div>
+                    <div class="flex-grow min-w-0">
+                        <div class="text-xs font-black text-white truncate">{{ user.display_name }}</div>
+                        <div class="text-[9px] text-cyan font-bold uppercase tracking-widest">{{ user.get_role_display }}</div>
+                    </div>
+                    <a href="{% url 'site_logout' %}" class="text-slate-600 hover:text-rose-500 transition-colors"><i class="fas fa-power-off"></i></a>
                 </div>
-                <div class="flex-grow min-w-0">
-                    <div class="text-xs font-black text-white truncate">{{ user.display_name }}</div>
-                    <div class="text-[9px] text-cyan font-bold uppercase tracking-widest">{{ user.get_role_display }}</div>
+                
+                <div class="flex items-center justify-between border-t border-white/5 pt-3 mt-1">
+                    <span class="text-[10px] text-slate-500 font-bold"><i class="fas fa-wallet text-cyan ml-1"></i> الرصيد:</span>
+                    <span class="text-xs font-black text-emerald-400">{% currency_format user.wallet.available_balance user.wallet.currency mode="withdraw" %}</span>
                 </div>
-                <a href="{% url 'site_logout' %}" class="text-slate-600 hover:text-rose-500 transition-colors"><i class="fas fa-power-off"></i></a>
+                <div class="flex items-center justify-between">
+                    <span class="text-[10px] text-slate-500 font-bold"><i class="fas fa-money-bill-transfer text-cyan ml-1"></i> العملة:</span>
+                    <div>
+                        <select onchange="location.href='{% url 'set_currency' %}?currency=' + this.value" style="background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.1); color: #fff; padding: 0.25rem 0.5rem; border-radius: 8px; font-weight: 800; font-size: 0.7rem; cursor: pointer; outline: none;">
+                            {% for c in ALL_CURRENCIES %}
+                            <option value="{{ c.id }}" {% if c.id == CURRENCY.id %}selected{% endif %} style="background: #090e1a; color: #fff;">{{ c.code }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
             </div>
             {% if not is_tenant %}
             <a href="{% url 'admin:index' %}" class="mt-4 block text-center text-[9px] font-black text-slate-700 hover:text-cyan uppercase tracking-[0.2em] transition-colors">إدارة النظام (جانغو)</a>
@@ -430,6 +449,36 @@
             </a>
         </div>
         {% endif %}
+        
+        {% if messages %}
+        <div class="fixed top-24 left-8 z-50 flex flex-col gap-3" id="toast-container" style="direction: rtl; max-width: 350px;">
+            {% for message in messages %}
+            <div class="p-4 pr-6 pl-12 rounded-2xl shadow-2xl border-r-4 {% if message.tags == 'error' %}bg-rose-950/95 border-rose-500 text-rose-100{% elif message.tags == 'warning' %}bg-amber-950/95 border-amber-500 text-amber-100{% else %}bg-emerald-950/95 border-emerald-500 text-emerald-100{% endif %} backdrop-blur-md relative toast-notification">
+                <span class="text-xs font-bold">{{ message }}</span>
+                <button onclick="this.parentElement.style.opacity='0';setTimeout(()=>this.parentElement.remove(), 300)" class="absolute left-4 top-1/2 -translate-y-1/2 opacity-50 hover:opacity-100" style="background:none;border:none;color:inherit;cursor:pointer;font-size: 1rem; padding: 0.25rem;"><i class="fas fa-times"></i></button>
+            </div>
+            {% endfor %}
+        </div>
+        <style>
+            .toast-notification {
+                animation: toastSlideIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+                transition: opacity 0.3s ease;
+            }
+            @keyframes toastSlideIn {
+                from { opacity: 0; transform: translateX(-30px); }
+                to { opacity: 1; transform: translateX(0); }
+            }
+        </style>
+        <script>setTimeout(() => {
+            const container = document.getElementById('toast-container');
+            if (container) {
+                container.style.opacity = '0';
+                container.style.transition = 'opacity 0.5s ease';
+                setTimeout(() => container.remove(), 500);
+            }
+        }, 5000);</script>
+        {% endif %}
+
         {% block control_content %}{% endblock %}
     </main>
 </div>

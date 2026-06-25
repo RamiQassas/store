@@ -562,7 +562,11 @@
             for (const key in body) formData.append(key, body[key]);
 
             const response = await fetch(window.location.href, { method: 'POST', body: formData, headers: { 'X-Requested-With': 'XMLHttpRequest' } });
-            location.reload();
+            if (response.redirected) {
+                window.location.href = response.url;
+            } else {
+                location.reload();
+            }
         } catch (e) { alert("خطأ في الاتصال بالخادم."); }
     }
 

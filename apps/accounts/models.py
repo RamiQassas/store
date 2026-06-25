@@ -146,6 +146,11 @@ class User(AbstractUser):
     last_country = models.CharField(max_length=100, blank=True, verbose_name="آخر دولة")
     last_city = models.CharField(max_length=100, blank=True, verbose_name="آخر مدينة")
 
+    @property
+    def wallet(self):
+        from apps.wallets.services import get_or_create_wallet
+        return get_or_create_wallet(self)
+
     USERNAME_FIELD = "email"
     REQUIRED_FIELDS = []
     objects = UserManager()

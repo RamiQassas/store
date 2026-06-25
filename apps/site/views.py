@@ -2340,16 +2340,16 @@ def control_deposit_detail(request, pk):
                     )
                     
                     messages.success(request, f"تم تصحيح المبلغ بنجاح. الفرق: {wallet_diff:,.2f} {wallet.currency.code}")
+            return redirect("control_deposits")
         except Exception as e:
             messages.error(request, f"خطأ: {str(e)}")
-            
-        return redirect("control_deposit_detail", pk=pk)
+            return redirect("control_deposit_detail", pk=pk)
         
     return render(request, "site/control_deposit_detail.html", {"deposit": deposit})
 
 @finance_required
 def control_withdrawal_detail(request, pk):
-    withdrawal = get_object_or_404(WithdrawalRequest.objects.select_related('user', 'user__wallet', 'user__wallet__currency', 'payment_method'), pk=pk)
+    withdrawal = get_object_or_404(WithdrawalRequest.objects.select_related('user', 'payment_method'), pk=pk)
     if request.method == "POST":
         action = request.POST.get("action")
         admin_note = request.POST.get("admin_note", "")
@@ -2467,13 +2467,11 @@ def control_withdrawal_detail(request, pk):
                     user=withdrawal.user,
                     title=f"تحديث طلب السحب #{withdrawal.id}",
                     body=f"تم تغيير حالة طلب السحب الخاص بك إلى: {withdrawal.get_status_display()}. ملاحظة الإدارة: {withdrawal.admin_note or 'لا يوجد'}",
-                    action_url="/dashboard/withdrawals/"
                 )
-                
+            return redirect("control_withdrawals")
         except Exception as e:
             messages.error(request, f"خطأ: {str(e)}")
-            
-        return redirect("control_withdrawal_detail", pk=pk)
+            return redirect("control_withdrawal_detail", pk=pk)
         
     return render(request, "site/control_withdrawal_detail.html", {"withdrawal": withdrawal})
 
@@ -2929,9 +2927,9 @@ def control_users_list(request):
         return redirect("control_users_list")
 
     if store:
-        users = User.objects.filter(store=store).select_related("wallet").order_by("-date_joined")
+        users = User.objects.filter(store=store).order_by("-date_joined")
     else:
-        users = User.objects.filter(store__isnull=True).select_related("wallet").order_by("-date_joined")
+        users = User.objects.filter(store__isnull=True).order_by("-date_joined")
         
     q = request.GET.get('q', '').strip()
     status = request.GET.get('status', '')
@@ -3729,9 +3727,9 @@ def control_debts(request):
     q = request.GET.get('q', '')
     
     if store:
-        users = User.objects.filter(store=store).select_related('wallet')
+        users = User.objects.filter(store=store)
     else:
-        users = User.objects.filter(store__isnull=True).select_related('wallet')
+        users = User.objects.filter(store__isnull=True)
         
     if q:
         users = users.filter(Q(email__icontains=q) | Q(phone__icontains=q))
