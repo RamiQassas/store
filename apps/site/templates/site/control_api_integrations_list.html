@@ -1,0 +1,92 @@
+{% extends "site/control_base.html" %}
+{% load static %}
+
+{% block title %}إدارة بوابات الربط والمزودين | لوحة التحكم{% endblock %}
+
+{% block control_content %}
+<div class="page-head reveal">
+    <div class="flex justify-between items-center w-full">
+        <div>
+            <span class="eyebrow"><i class="fas fa-plug text-cyan"></i> تكامل الأنظمة الخارجية</span>
+            <h1>إدارة بوابات ومزودي الربط (APIs)</h1>
+            <p class="text-slate-500 mt-2">قم بتهيئة وإعداد بيانات الاتصال والربط البرمجي بمختلف مزودي الخدمات والتحكم بصلاحية مشاركتها.</p>
+        </div>
+        <div>
+            <a href="{% url 'control_api_integration_create' %}" class="btn btn-primary px-6 py-2.5">
+                <i class="fas fa-plus ml-2"></i> إضافة بوابة ربط جديدة
+            </a>
+        </div>
+    </div>
+</div>
+
+<!-- List Panel -->
+<div class="glass-panel overflow-hidden mt-8 reveal">
+    <div class="overflow-x-auto">
+        <table class="w-full text-right text-sm">
+            <thead class="bg-black/40">
+                <tr>
+                    <th class="p-4 text-[10px] font-black text-slate-500 uppercase tracking-widest">نوع البوابة</th>
+                    <th class="p-4 text-[10px] font-black text-slate-500 uppercase tracking-widest">الاسم والتعريف</th>
+                    <th class="p-4 text-[10px] font-black text-slate-500 uppercase tracking-widest">رابط الخادم (Base URL)</th>
+                    <th class="p-4 text-[10px] font-black text-slate-500 uppercase tracking-widest text-center">التبعية والمشاركة</th>
+                    <th class="p-4 text-[10px] font-black text-slate-500 uppercase tracking-widest text-center">حالة الاتصال</th>
+                    <th class="p-4 text-[10px] font-black text-slate-500 uppercase tracking-widest text-center">الإجراءات</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-white/[0.02]">
+                {% for integration in integrations %}
+                <tr class="hover:bg-white/[0.01] transition-colors">
+                    <td class="p-4">
+                        <span class="badge primary text-[8px] font-black uppercase">{{ integration.get_provider_display }}</span>
+                    </td>
+                    <td class="p-4">
+                        <div class="font-black text-white text-xs">{{ integration.name }}</div>
+                        <div class="text-[9px] text-slate-500 font-mono mt-0.5">ID: #{{ integration.id }}</div>
+                    </td>
+                    <td class="p-4 font-mono text-xs text-slate-400">
+                        {{ integration.base_url }}
+                    </td>
+                    <td class="p-4 text-center">
+                        {% if not integration.store %}
+                            <span class="badge success text-[8px] font-black bg-cyan/10 text-cyan border border-cyan/20">منصة عامة (كل المتاجر)</span>
+                            {% if integration.allow_sub_stores %}
+                                <div class="text-[9px] text-emerald-400 font-bold mt-1"><i class="fas fa-circle-check ml-1"></i> مسموح للمتاجر الفرعية</div>
+                            {% else %}
+                                <div class="text-[9px] text-rose-500 font-bold mt-1"><i class="fas fa-circle-xmark ml-1"></i> محظور عن المتاجر الفرعية</div>
+                            {% endif %}
+                        {% else %}
+                            <span class="badge primary text-[8px] font-black bg-slate-800 text-slate-400">خاص بمتجرك فقط</span>
+                        {% endif %}
+                    </td>
+                    <td class="p-4 text-center">
+                        {% if integration.is_active %}
+                            <span class="badge success text-[8px] font-black"><i class="fas fa-circle-check ml-1"></i> نشط مفعل</span>
+                        {% else %}
+                            <span class="badge danger text-[8px] font-black"><i class="fas fa-circle-xmark ml-1"></i> معطل</span>
+                        {% endif %}
+                    </td>
+                    <td class="p-4 text-center">
+                        {% if not is_tenant or integration.store %}
+                            <div class="flex items-center justify-center gap-2">
+                                <a href="{% url 'control_api_integration_edit' integration.pk %}" class="btn btn-outline btn-sm py-1 px-2.5 text-[10px] font-bold">
+                                    تعديل
+                                </a>
+                                <a href="{% url 'control_api_integration_delete' integration.pk %}" class="btn btn-outline btn-sm py-1 px-2.5 text-[10px] font-bold text-rose-500 border-rose-500/20" onclick="return confirm('هل أنت متأكد من حذف إعدادات الربط هذه نهائياً؟');">
+                                    حذف
+                                </a>
+                            </div>
+                        {% else %}
+                            <span class="text-[9px] text-slate-500 italic font-bold">مشاركة من المنصة (عرض فقط)</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="6" class="p-12 text-center text-slate-600 italic text-xs">لا يوجد بوابات أو مزودين معرفين في لوحتك حتى الآن.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

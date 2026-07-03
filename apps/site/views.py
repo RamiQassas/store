@@ -5280,3 +5280,90 @@ def control_audit_logs(request):
         "action_filter": action_filter
     })
 
+
+@support_required
+def control_api_integrations_list(request):
+    from apps.catalog.models import APIIntegration
+    store = getattr(request, "store", None)
+    
+    # List private integrations AND global ones that have allow_sub_stores=True
+    if store:
+        integrations = APIIntegration.objects.filter(
+            Q(store=store) | Q(store__isnull=True, allow_sub_stores=True)
+        )
+    else:
+        integrations = APIIntegration.objects.all()
+        
+    return render(request, "site/control_api_integrations_list.html", {
+        "integrations": integrations,
+        "is_tenant": bool(store),
+    })
+
+
+@support_required
+def control_api_integration_create(request):
+    from apps.site.forms import APIIntegrationForm
+    store = getattr(request, "store", None)
+    
+    form = APIIntegrationForm(request.POST or None)
+    if request.method == "POST" and form.is_valid():
+        integration = form.save(commit=False)
+        integration.store = store
+        integration.save()
+        messages.success(request, "تمت إضافة إعدادات ربط الـ API الجديد بنجاح.")
+        return redirect("control_api_integrations_list")
+        
+    return render(request, "site/control_api_integration_form.html", {
+        "form": form,
+        "title": "إضافة بوابة ربط API جديدة",
+    })
+
+
+@support_required
+def control_api_integration_edit(request, pk):
+    from apps.catalog.models import APIIntegration
+    from apps.site.forms import APIIntegrationForm
+    store = getattr(request, "store", None)
+    
+    try:
+        if store:
+            integration = APIIntegration.objects.get(pk=pk, store=store)
+        else:
+            integration = APIIntegration.objects.get(pk=pk)
+    except APIIntegration.DoesNotExist:
+        messages.error(request, "عذراً، لا تملك الصلاحية لتعديل هذه البوابة.")
+        return redirect("control_api_integrations_list")
+        
+    form = APIIntegrationForm(request.POST or None, instance=integration)
+    if request.method == "POST" and form.is_valid():
+        form.save()
+        messages.success(request, "تم تحديث إعدادات الربط بنجاح.")
+        return redirect("control_api_integrations_list")
+        
+    return render(request, "site/control_api_integration_form.html", {
+        "form": form,
+        "title": "تعديل بوابة ربط API",
+        "integration": integration,
+    })
+
+
+@support_required
+def control_api_integration_delete(request, pk):
+    from apps.catalog.models import APIIntegration
+    store = getattr(request, "store", None)
+    
+    try:
+        if store:
+            integration = APIIntegration.objects.get(pk=pk, store=store)
+        else:
+            integration = APIIntegration.objects.get(pk=pk)
+        
+        name = integration.name
+        integration.delete()
+        messages.success(request, f"تم حذف بوابة الربط '{name}' بنجاح.")
+    except APIIntegration.DoesNotExist:
+        messages.error(request, "بوابة الربط غير موجودة أو لا تملك صلاحية حذفها.")
+        
+    return redirect("control_api_integrations_list")
+
+

@@ -318,5 +318,62 @@ class ProductKey(TimeStampedModel):
         return f"{self.variant.name} - {self.key_code[:20]}"
 
 
+class APIIntegration(TimeStampedModel):
+    """
+    Model for managing multiple API Provider configurations.
+    Enables storing credentials, active status, and sharing global APIs with tenant stores.
+    """
+    PROVIDER_CHOICES = (
+        ("alkasr", "Alkasr VIP"),
+        ("smm", "SMM Provider"),
+        ("other", "Other API"),
+    )
+    
+    store = models.ForeignKey(
+        "stores.Store",
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name="api_integrations",
+        verbose_name="المتجر"
+    )
+    provider = models.CharField(
+        max_length=20,
+        choices=PROVIDER_CHOICES,
+        default="alkasr",
+        verbose_name="نوع المزود"
+    )
+    name = models.CharField(
+        max_length=100,
+        verbose_name="اسم بوابة الربط"
+    )
+    base_url = models.URLField(
+        max_length=255,
+        verbose_name="رابط المزود (Base URL)"
+    )
+    api_token = models.CharField(
+        max_length=255,
+        verbose_name="مفتاح الوصول (API Token)"
+    )
+    is_active = models.BooleanField(
+        default=True,
+        verbose_name="تفعيل الاتصال"
+    )
+    allow_sub_stores = models.BooleanField(
+        default=True,
+        verbose_name="السماح للمتاجر الفرعية بالاستخدام"
+    )
+
+    class Meta:
+        verbose_name = "إعداد ربط API"
+        verbose_name_plural = "إعدادات ربط API"
+        ordering = ("provider", "name")
+
+    def __str__(self):
+        store_label = f" ({self.store.name})" if self.store else " (عام/منصة)"
+        return f"{self.name} - {self.get_provider_display()}{store_label}"
+
+
+
 # Legacy model removed (ProductFormField)
 

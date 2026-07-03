@@ -227,13 +227,37 @@ def sync_alkasr_catalog(store, selected_category_ids=None, markup_percent=0.0):
         alkasr_price = item.get("price") or 0.0
         is_available = item.get("available", True)
         params_list = item.get("params") or []
-        category_img = item.get("category_img")
+        # Translation map for API parameter fields
+        translation_map = {
+            "playerid": "معرّف اللاعب (Player ID)",
+            "player_id": "معرّف اللاعب (Player ID)",
+            "id": "المعرّف (ID)",
+            "username": "اسم المستخدم (Username)",
+            "user_name": "اسم المستخدم (Username)",
+            "user": "اسم المستخدم / الحساب",
+            "phone": "رقم الهاتف",
+            "number": "الرقم / المعرّف",
+            "email": "البريد الإلكتروني",
+            "password": "كلمة المرور",
+            "pin": "الرمز السري (PIN)",
+            "quantity": "الكمية",
+            "qty": "الكمية",
+            "amount": "المبلغ",
+            "playerid": "معرّف اللاعب (Player ID)",
+        }
         
         # Build form schema
         fields_list = []
         for p_field in params_list:
+            norm_field = p_field.strip().lower()
+            label = translation_map.get(norm_field, p_field)
+            if p_field in translation_map:
+                label = translation_map[p_field]
+            elif p_field.lower() == "playerid":
+                label = "معرّف اللاعب (Player ID)"
+                
             fields_list.append({
-                "label": p_field,
+                "label": label,
                 "type": "text",
                 "required": True
             })
@@ -258,10 +282,6 @@ def sync_alkasr_catalog(store, selected_category_ids=None, markup_percent=0.0):
             product.api_provider = "alkasr"
             product.save()
             
-            # Download image if missing
-            if category_img and not product.image:
-                download_and_save_image(category_img, product.image)
-            
             # Update variant details
             variant.cost = cost_val
             variant.price = retail_price
@@ -276,23 +296,19 @@ def sync_alkasr_catalog(store, selected_category_ids=None, markup_percent=0.0):
                 store=store,
                 defaults={"is_active": True}
             )
-            if category_img and (cat_created or not category.image):
-                download_and_save_image(category_img, category.image)
             
-            # Create product
+            # Create product with empty description
             product = Product.objects.create(
                 product_type="digital",
                 name=prod_name,
                 category=category,
                 store=store,
-                description=f"منتج مستورد تلقائياً من Alkasr API (ID: {api_prod_id})",
+                description="",
                 is_active=is_available,
                 is_api_product=True,
                 api_provider="alkasr",
                 form_schema=form_schema
             )
-            if category_img:
-                download_and_save_image(category_img, product.image)
             
             # Create default variant
             sku_code = f"ALK-{api_prod_id}"

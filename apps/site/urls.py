@@ -155,6 +155,10 @@ urlpatterns = [
     path("control/notifications/send/", views.control_send_notification, name="control_send_notification"),
     path("control/maintenance/db/", views.control_db_maintenance, name="control_db_maintenance"),
     path("control/audit-logs/", views.control_audit_logs, name="control_audit_logs"),
+    path("control/api-integrations/", views.control_api_integrations_list, name="control_api_integrations_list"),
+    path("control/api-integrations/create/", views.control_api_integration_create, name="control_api_integration_create"),
+    path("control/api-integrations/<int:pk>/edit/", views.control_api_integration_edit, name="control_api_integration_edit"),
+    path("control/api-integrations/<int:pk>/delete/", views.control_api_integration_delete, name="control_api_integration_delete"),
 
     # Testimonials & Stats
     path("testimonials/submit/", views.site_submit_testimonial, name="site_submit_testimonial"),

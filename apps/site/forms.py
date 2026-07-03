@@ -704,3 +704,19 @@ class AdminChatForm(forms.Form):
     user_identifier = forms.CharField(label="معرف المستخدم", widget=forms.TextInput(attrs={"class": "builder-input", "placeholder": "البريد أو الاسم أو الهاتف", "autocomplete": "off"}))
     subject = forms.CharField(label="الموضوع", max_length=180, widget=forms.TextInput(attrs={"class": "builder-input", "placeholder": "موضوع التذكرة"}))
     message = forms.CharField(label="الرسالة الأولى", widget=forms.Textarea(attrs={"class": "builder-input", "rows": 5, "placeholder": "اكتب رسالتك للعميل هنا..."}))
+
+
+from apps.catalog.models import APIIntegration
+
+class APIIntegrationForm(forms.ModelForm):
+    class Meta:
+        model = APIIntegration
+        fields = ["provider", "name", "base_url", "api_token", "is_active", "allow_sub_stores"]
+        widgets = {
+            "provider": forms.Select(attrs={"class": "builder-input"}),
+            "name": forms.TextInput(attrs={"class": "builder-input", "placeholder": "مثال: الكسر VIP"}),
+            "base_url": forms.URLInput(attrs={"class": "builder-input", "placeholder": "https://api.alkasr-vip.com/"}),
+            "api_token": forms.TextInput(attrs={"class": "builder-input", "placeholder": "أدخل الرمز السري للاتصال بالـ API"}),
+            "is_active": forms.CheckboxInput(attrs={"class": "rounded text-cyan"}),
+            "allow_sub_stores": forms.CheckboxInput(attrs={"class": "rounded text-cyan"}),
+        }
