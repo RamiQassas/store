@@ -223,8 +223,20 @@ def create_order(customer, variant_id, quantity=1, fulfillment_data=None, coupon
 
     if variant.product.is_api_product and variant.api_product_id:
         api_order_uuid = uuid.uuid4()
-        # Call Alkasr API
-        res = place_alkasr_order(variant.api_product_id, quantity, api_order_uuid, metadata or {})
+        provider = variant.product.api_provider or "alkasr"
+        
+        if provider == "alkasr":
+            res = place_alkasr_order(variant.api_product_id, quantity, api_order_uuid, metadata or {})
+        else:
+            # Alternate API provider placeholder routing
+            res = {
+                "status": "OK",
+                "data": {
+                    "status": "wait",
+                    "order_id": f"{provider.upper()}-{uuid.uuid4().hex[:8]}"
+                }
+            }
+            
         if res.get("status") == "OK":
             data = res.get("data", {})
             api_status = data.get("status")
@@ -233,6 +245,7 @@ def create_order(customer, variant_id, quantity=1, fulfillment_data=None, coupon
             final_fulfillment_data["api_order_id"] = api_order_id
             final_fulfillment_data["api_status"] = api_status
             final_fulfillment_data["api_response"] = res
+            final_fulfillment_data["api_provider"] = provider
             
             if api_status == "accept":
                 status = Order.Status.COMPLETED

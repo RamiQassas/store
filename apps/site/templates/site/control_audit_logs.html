@@ -1,0 +1,198 @@
+{% extends "site/control_base.html" %}
+{% load static %}
+
+{% block title %}سجل عمليات المتجر | لوحة التحكم{% endblock %}
+
+{% block control_content %}
+<div class="page-head reveal">
+    <span class="eyebrow"><i class="fas fa-history text-amber-500"></i> رقابة وأمان النظام</span>
+    <h1>سجل عمليات المتجر (Audit Logs)</h1>
+    <p class="text-slate-500 mt-2">تتبع كافة العمليات الحساسة، والتغييرات التي أجراها المدراء والموظفون على المنتجات، والتصنيفات، وإعدادات المتجر.</p>
+</div>
+
+<!-- Search & Filters -->
+<div class="glass-panel p-6 mb-8 reveal">
+    <form method="GET" action="." class="flex flex-col md:flex-row gap-4 items-center justify-between">
+        <div class="relative w-full md:w-96">
+            <input type="text" name="q" value="{{ query }}" placeholder="ابحث باسم المنفذ، الإجراء أو الوصف..." class="builder-input pl-10 w-full" style="background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.05); color: #fff; padding: 0.75rem 1rem; border-radius: 14px;">
+            <i class="fas fa-search absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 text-xs"></i>
+        </div>
+
+        <div class="flex gap-4 w-full md:w-auto">
+            <div class="w-full md:w-48">
+                <select name="action_type" class="builder-input w-full" style="background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.05); color: #fff; padding: 0.75rem 1rem; border-radius: 14px;">
+                    <option value="">كل الإجراءات</option>
+                    {% for action in distinct_actions %}
+                    <option value="{{ action }}" {% if action == action_filter %}selected{% endif %}>{{ action }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            
+            <button type="submit" class="btn btn-primary px-6">
+                <i class="fas fa-filter ml-2"></i> تصفية
+            </button>
+            
+            {% if query or action_filter %}
+            <a href="{% url 'control_audit_logs' %}" class="btn btn-outline px-4 text-xs font-bold flex items-center justify-center">
+                إلغاء التصفية
+            </a>
+            {% endif %}
+        </div>
+    </form>
+</div>
+
+<!-- Audit Log Timeline Table -->
+<div class="glass-panel overflow-hidden reveal">
+    <div class="overflow-x-auto">
+        <table class="w-full text-right text-sm">
+            <thead class="bg-black/40">
+                <tr>
+                    <th class="p-4 text-[10px] font-black text-slate-500 uppercase tracking-widest">المنفذ (Actor)</th>
+                    <th class="p-4 text-[10px] font-black text-slate-500 uppercase tracking-widest">نوع الإجراء</th>
+                    <th class="p-4 text-[10px] font-black text-slate-500 uppercase tracking-widest">التفاصيل / الوصف</th>
+                    <th class="p-4 text-[10px] font-black text-slate-500 uppercase tracking-widest">التاريخ والوقت</th>
+                    <th class="p-4 text-[10px] font-black text-slate-500 uppercase tracking-widest">عنوان IP</th>
+                    <th class="p-4 text-[10px] font-black text-slate-500 uppercase tracking-widest text-center">تفاصيل تقنية</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-white/[0.02]">
+                {% for log in page_obj %}
+                <tr class="hover:bg-white/[0.01] transition-colors">
+                    <td class="p-4">
+                        <div class="font-black text-white text-xs">{{ log.actor.get_full_name|default:log.actor.username|default:"نظام تلقائي" }}</div>
+                        <div class="text-[9px] text-slate-500 font-mono">{{ log.actor.email|default:"system@raqamiyat.com" }}</div>
+                    </td>
+                    <td class="p-4">
+                        <span class="badge primary text-[8px] font-black">{{ log.action_type }}</span>
+                    </td>
+                    <td class="p-4">
+                        <div class="text-xs text-slate-300 max-w-md leading-relaxed">{{ log.description }}</div>
+                        {% if log.reason %}
+                        <div class="text-[9px] text-amber-500/80 font-bold mt-1">السبب: {{ log.reason }}</div>
+                        {% endif %}
+                    </td>
+                    <td class="p-4">
+                        <div class="text-xs text-white">{{ log.created_at|date:"Y-m-d H:i" }}</div>
+                        <div class="text-[9px] text-slate-500 font-bold mt-0.5">{{ log.created_at|timesince }} مضت</div>
+                    </td>
+                    <td class="p-4 font-mono text-[10px] text-slate-400">
+                        {{ log.ip_address|default:"127.0.0.1" }}
+                    </td>
+                    <td class="p-4 text-center">
+                        <button type="button" class="btn btn-outline btn-sm py-1.5 px-3 text-[9px] font-bold" onclick="showLogDetails('{{ log.id }}')">
+                            <i class="fas fa-code ml-1"></i> عرض JSON
+                        </button>
+                        
+                        <!-- JSON Data for this log (Hidden) -->
+                        <script type="application/json" id="log-data-{{ log.id }}">
+                            {
+                                "actor": "{{ log.actor.email|default:'System' }}",
+                                "action": "{{ log.action_type }}",
+                                "description": "{{ log.description|escapejs }}",
+                                "ip": "{{ log.ip_address|default:'-' }}",
+                                "user_agent": "{{ log.user_agent|escapejs }}",
+                                "reason": "{{ log.reason|escapejs }}",
+                                "metadata": {{ log.metadata|default:"{}"|json_script:"tmp"|slice:"33:-9" }},
+                                "before_state": {{ log.before_state|default:"{}"|json_script:"tmp"|slice:"33:-9" }},
+                                "after_state": {{ log.after_state|default:"{}"|json_script:"tmp"|slice:"33:-9" }}
+                            }
+                        </script>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="6" class="p-12 text-center text-slate-600 italic text-xs">لا يوجد سجلات تطابق البحث في متجرك.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Pagination -->
+{% if page_obj.has_other_pages %}
+<div class="flex justify-center items-center gap-4 mt-8 reveal">
+    {% if page_obj.has_previous %}
+    <a href="?page={{ page_obj.previous_page_number }}{% if query %}&q={{ query }}{% endif %}{% if action_filter %}&action_type={{ action_filter }}{% endif %}" class="btn btn-outline btn-sm py-2">
+        <i class="fas fa-chevron-right ml-1"></i> السابق
+    </a>
+    {% endif %}
+
+    <span class="text-xs font-bold text-slate-400">الصفحة {{ page_obj.number }} من {{ page_obj.paginator.num_pages }}</span>
+
+    {% if page_obj.has_next %}
+    <a href="?page={{ page_obj.next_page_number }}{% if query %}&q={{ query }}{% endif %}{% if action_filter %}&action_type={{ action_filter }}{% endif %}" class="btn btn-outline btn-sm py-2">
+        التالي <i class="fas fa-chevron-left mr-1"></i>
+    </a>
+    {% endif %}
+</div>
+{% endif %}
+
+<!-- Details Drawer/Modal -->
+<div id="details-modal" class="fixed inset-0 bg-black/80 backdrop-filter backdrop-blur-md z-50 flex items-center justify-center hidden">
+    <div class="w-full max-w-2xl p-8 glass-panel border-white/10 m-4 max-h-[85vh] overflow-y-auto stack gap-6 relative">
+        <button type="button" class="absolute left-6 top-6 w-8 h-8 rounded-full bg-white/5 border border-white/10 flex items-center justify-center hover:bg-white/10 text-white" onclick="closeDetailsModal()">
+            <i class="fas fa-xmark"></i>
+        </button>
+        
+        <h3 class="text-base font-black text-white flex items-center gap-2">
+            <i class="fas fa-code text-cyan text-xs"></i> تفاصيل العملية الفنية والبيانات
+        </h3>
+        
+        <div class="stack gap-4 text-xs">
+            <div class="grid grid-cols-2 gap-4">
+                <div class="p-3 bg-black/40 border border-white/5 rounded-xl">
+                    <span class="text-[10px] text-slate-500 font-bold block mb-1">المنفذ</span>
+                    <strong id="modal-actor" class="text-white"></strong>
+                </div>
+                <div class="p-3 bg-black/40 border border-white/5 rounded-xl">
+                    <span class="text-[10px] text-slate-500 font-bold block mb-1">نوع الإجراء</span>
+                    <strong id="modal-action" class="text-sky-400"></strong>
+                </div>
+            </div>
+
+            <div class="p-3 bg-black/40 border border-white/5 rounded-xl">
+                <span class="text-[10px] text-slate-500 font-bold block mb-1">متصفح المستخدم (User Agent)</span>
+                <span id="modal-ua" class="text-slate-300 font-mono break-all"></span>
+            </div>
+
+            <div>
+                <span class="text-[10px] text-slate-500 font-bold block mb-2">الحالة السابقة للبيانات (Before State)</span>
+                <pre id="modal-before" class="p-4 bg-black/60 rounded-xl border border-white/5 overflow-x-auto text-emerald-400 font-mono text-[10px] max-h-48"></pre>
+            </div>
+
+            <div>
+                <span class="text-[10px] text-slate-500 font-bold block mb-2">الحالة الجديدة للبيانات (After State)</span>
+                <pre id="modal-after" class="p-4 bg-black/60 rounded-xl border border-white/5 overflow-x-auto text-cyan font-mono text-[10px] max-h-48"></pre>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    function showLogDetails(logId) {
+        const scriptTag = document.getElementById('log-data-' + logId);
+        if (!scriptTag) return;
+        
+        try {
+            const data = JSON.parse(scriptTag.textContent || scriptTag.innerHTML);
+            
+            document.getElementById('modal-actor').innerText = data.actor;
+            document.getElementById('modal-action').innerText = data.action;
+            document.getElementById('modal-ua').innerText = data.user_agent || '-';
+            
+            // Format JSON states
+            document.getElementById('modal-before').innerText = JSON.stringify(data.before_state, null, 2);
+            document.getElementById('modal-after').innerText = JSON.stringify(data.after_state, null, 2);
+            
+            document.getElementById('details-modal').classList.remove('hidden');
+        } catch (e) {
+            console.error("Failed to parse log json:", e);
+        }
+    }
+
+    function closeDetailsModal() {
+        document.getElementById('details-modal').classList.add('hidden');
+    }
+</script>
+{% endblock %}

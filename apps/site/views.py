@@ -5087,6 +5087,12 @@ def control_alkasr_dashboard(request):
                 error_msg = res.get('message') if res else "Unknown error"
                 messages.error(request, f"فشلت عملية المزامنة: {error_msg}")
             return redirect("control_alkasr_dashboard")
+        elif action == "refresh_cache":
+            get_alkasr_profile(force_refresh=True)
+            get_alkasr_categories(force_refresh=True)
+            get_alkasr_products(force_refresh=True)
+            messages.success(request, "تم تحديث التخزين المؤقت للبيانات وسحب كتالوج جديد بنجاح من المزود.")
+            return redirect("control_alkasr_dashboard")
             
     # Fetch Alkasr Profile Info
     from apps.catalog.models import ProductVariant
@@ -5146,5 +5152,47 @@ def control_alkasr_dashboard(request):
         "base_url": getattr(settings, "ALKASR_BASE_URL", ""),
         "obfuscated_token": obfuscated_token,
         "local_linked_count": local_linked_count,
+    })
+
+
+@support_required
+def control_audit_logs(request):
+    from apps.common.models import SystemAuditLog
+    from django.core.paginator import Paginator
+    
+    store = getattr(request, "store", None)
+    if store:
+        logs = SystemAuditLog.objects.filter(actor__store=store).select_related('actor', 'content_type')
+    else:
+        logs = SystemAuditLog.objects.filter(actor__store__isnull=True).select_related('actor', 'content_type')
+        
+    # Search and filtering
+    q = request.GET.get("q", "").strip()
+    if q:
+        logs = logs.filter(
+            Q(action_type__icontains=q) |
+            Q(description__icontains=q) |
+            Q(actor__email__icontains=q) |
+            Q(reason__icontains=q)
+        )
+        
+    action_filter = request.GET.get("action_type", "").strip()
+    if action_filter:
+        logs = logs.filter(action_type=action_filter)
+        
+    # Distinct actions for dropdown
+    # We do a quick list scan from the last 1000 logs to prevent heavy queries on large database
+    distinct_actions = set(logs[:1000].values_list('action_type', flat=True))
+    
+    # Paginate logs to 40 per page
+    paginator = Paginator(logs, 40)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+    
+    return render(request, "site/control_audit_logs.html", {
+        "page_obj": page_obj,
+        "distinct_actions": sorted(list(distinct_actions)),
+        "query": q,
+        "action_filter": action_filter
     })
 

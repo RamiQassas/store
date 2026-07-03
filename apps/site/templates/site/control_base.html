@@ -286,6 +286,10 @@
             <a href="{% url 'control_announcements' %}" class="admin-nav-link {% if 'announcements' in request.path %}active{% endif %}">
                 <i class="fas fa-bullhorn"></i> شريط الإعلانات
             </a>
+            <a href="{% url 'control_audit_logs' %}" class="admin-nav-link {% if 'control/audit-logs' in request.path %}active{% endif %}">
+                <i class="fas fa-history text-amber-500"></i> سجل عمليات المتجر
+            </a>
+
             {% if not is_tenant %}
             <a href="{% url 'control_social_media' %}" class="admin-nav-link {% if 'social-media' in request.path %}active{% endif %}">
                 <i class="fas fa-share-nodes"></i> وسائل التواصل الاجتماعي

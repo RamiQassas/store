@@ -115,6 +115,18 @@
                         {% if is_connected %}{{ profile.email }}{% else %}غير معروف - يرجى فحص إعدادات API Token{% endif %}
                     </div>
                 </div>
+
+                {% if is_connected %}
+                <div class="pt-4 border-t border-white/5 flex justify-end">
+                    <form method="POST" action="." class="w-full">
+                        {% csrf_token %}
+                        <input type="hidden" name="action" value="refresh_cache">
+                        <button type="submit" class="btn btn-outline text-amber-500 hover:bg-amber-500/10 border-amber-500/20 w-full font-bold py-2.5 rounded-xl">
+                            <i class="fas fa-arrows-rotate ml-2"></i> تحديث التخزين المؤقت للبيانات من السيرفر
+                        </button>
+                    </form>
+                </div>
+                {% endif %}
             </div>
         </div>
 

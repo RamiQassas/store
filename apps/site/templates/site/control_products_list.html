@@ -164,7 +164,7 @@
                 <h3 class="font-bold text-white text-xs mb-1 line-clamp-1 flex items-center gap-1.5" title="{{ p.name }}">
                     {{ p.name }}
                     {% if p.is_api_product %}
-                    <span class="text-[8px] px-1.5 py-0.5 rounded bg-sky-500/20 text-sky-400 border border-sky-500/20">API</span>
+                    <span class="text-[8px] px-1.5 py-0.5 rounded bg-sky-500/20 text-sky-400 border border-sky-500/20" title="API: {{ p.get_api_provider_display }}">API: {{ p.get_api_provider_display }}</span>
                     {% endif %}
                 </h3>
                 <div class="text-[9px] text-slate-500 mb-1 flex items-center gap-2">
@@ -228,7 +228,7 @@
                                 <div class="font-bold text-slate-200 flex items-center gap-2">
                                     {{ p.name }}
                                     {% if p.is_api_product %}
-                                    <span class="text-[8px] px-1.5 py-0.5 rounded bg-sky-500/20 text-sky-400 border border-sky-500/20">API</span>
+                                    <span class="text-[8px] px-1.5 py-0.5 rounded bg-sky-500/20 text-sky-400 border border-sky-500/20" title="API: {{ p.get_api_provider_display }}">API: {{ p.get_api_provider_display }}</span>
                                     {% endif %}
                                     {% if p.is_out_of_stock %}
                                     <span class="text-[8px] px-1.5 py-0.5 rounded-full bg-rose-500/20 text-rose-500 border border-rose-500/20">غير متوفر</span>

@@ -154,6 +154,7 @@ urlpatterns = [
     path("control/settings/social-media/<uuid:pk>/delete/", views.control_social_media_delete, name="control_social_media_delete"),
     path("control/notifications/send/", views.control_send_notification, name="control_send_notification"),
     path("control/maintenance/db/", views.control_db_maintenance, name="control_db_maintenance"),
+    path("control/audit-logs/", views.control_audit_logs, name="control_audit_logs"),
 
     # Testimonials & Stats
     path("testimonials/submit/", views.site_submit_testimonial, name="site_submit_testimonial"),

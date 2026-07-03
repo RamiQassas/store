@@ -132,6 +132,10 @@
                     <label class="text-sm font-bold text-sky-400">منتج من الـ API</label>
                     {{ form.is_api_product }}
                 </div>
+                <div class="field-group p-3 bg-slate-800/30 rounded-xl border border-sky-500/10">
+                    <label class="text-xs font-bold text-sky-400 block mb-1">مزوّد الـ API المرتبط</label>
+                    {{ form.api_provider }}
+                </div>
                 <div class="field-group">
                     <label class="text-xs">{{ form.sort_order.label }}</label>
                     {{ form.sort_order }}

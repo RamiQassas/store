@@ -4,10 +4,18 @@ from django.conf import settings
 
 logger = logging.getLogger(__name__)
 
-def get_alkasr_profile():
+def get_alkasr_profile(force_refresh=False):
     """
     Fetches Alkasr profile information (balance and email).
+    Caches the results to prevent site slowdown.
     """
+    from django.core.cache import cache
+    cache_key = "alkasr_profile"
+    if not force_refresh:
+        cached = cache.get(cache_key)
+        if cached is not None:
+            return cached
+
     url = f"{settings.ALKASR_BASE_URL.rstrip('/')}/client/api/profile"
     headers = {
         "api-token": settings.ALKASR_API_TOKEN,
@@ -16,7 +24,9 @@ def get_alkasr_profile():
     try:
         response = requests.get(url, headers=headers, timeout=15)
         response.raise_for_status()
-        return response.json()
+        res = response.json()
+        cache.set(cache_key, res, 300) # 5 minutes cache
+        return res
     except Exception as e:
         logger.exception("Failed to fetch Alkasr profile")
         return {"status": "error", "message": str(e)}
@@ -97,10 +107,18 @@ def check_alkasr_orders(order_identifiers, is_uuid=False):
         logger.exception("Failed to check Alkasr order status")
         return {"status": "error", "message": str(e)}
 
-def get_alkasr_products():
+def get_alkasr_products(force_refresh=False):
     """
     Fetches the entire products list from Alkasr API.
+    Caches the results to prevent site slowdown.
     """
+    from django.core.cache import cache
+    cache_key = "alkasr_products"
+    if not force_refresh:
+        cached = cache.get(cache_key)
+        if cached is not None:
+            return cached
+
     url = f"{settings.ALKASR_BASE_URL.rstrip('/')}/client/api/products"
     headers = {
         "api-token": settings.ALKASR_API_TOKEN,
@@ -109,15 +127,25 @@ def get_alkasr_products():
     try:
         response = requests.get(url, headers=headers, timeout=25)
         response.raise_for_status()
-        return response.json()
+        res = response.json()
+        cache.set(cache_key, res, 600) # 10 minutes cache
+        return res
     except Exception as e:
         logger.exception("Failed to fetch Alkasr products")
         return {"status": "error", "message": str(e)}
 
-def get_alkasr_categories():
+def get_alkasr_categories(force_refresh=False):
     """
     Fetches categories from Alkasr API.
+    Caches the results to prevent site slowdown.
     """
+    from django.core.cache import cache
+    cache_key = "alkasr_categories"
+    if not force_refresh:
+        cached = cache.get(cache_key)
+        if cached is not None:
+            return cached
+
     url = f"{settings.ALKASR_BASE_URL.rstrip('/')}/client/api/categories"
     headers = {
         "api-token": settings.ALKASR_API_TOKEN,
@@ -126,22 +154,44 @@ def get_alkasr_categories():
     try:
         response = requests.get(url, headers=headers, timeout=15)
         response.raise_for_status()
-        return response.json()
+        res = response.json()
+        cache.set(cache_key, res, 600) # 10 minutes cache
+        return res
     except Exception as e:
         logger.exception("Failed to fetch Alkasr categories")
         return {"status": "error", "message": str(e)}
+
+def download_and_save_image(url, target_field):
+    """
+    Helper to download an image from a URL and save it to a FileField/ImageField.
+    """
+    from django.core.files.base import ContentFile
+    import os
+    if not url or url.endswith("empty.png"):
+        return
+    try:
+        response = requests.get(url, timeout=10)
+        if response.status_code == 200:
+            filename = os.path.basename(url.split('?')[0])
+            # Ensure safe filename extension
+            if not filename.endswith(('.png', '.jpg', '.jpeg', '.webp')):
+                filename += ".webp"
+            target_field.save(filename, ContentFile(response.content), save=True)
+    except Exception as e:
+        logger.warning(f"Failed to download image from {url}: {e}")
 
 def sync_alkasr_catalog(store, selected_category_ids=None, markup_percent=0.0):
     """
     Fetches the catalog from Alkasr and synchronizes it with the local catalog.
     Only syncs products belonging to categories in selected_category_ids (list of ints).
     Adds a percentage markup_percent to the retail price.
+    Also downloads product & category images.
     """
     from decimal import Decimal
     from apps.catalog.models import Category, Product, ProductVariant
     
-    # Fetch products
-    products = get_alkasr_products()
+    # Fetch products (force refresh during sync)
+    products = get_alkasr_products(force_refresh=True)
     if isinstance(products, dict) and products.get("status") == "error":
         return products
         
@@ -174,6 +224,7 @@ def sync_alkasr_catalog(store, selected_category_ids=None, markup_percent=0.0):
         alkasr_price = item.get("price") or 0.0
         is_available = item.get("available", True)
         params_list = item.get("params") or []
+        category_img = item.get("category_img")
         
         # Build form schema
         fields_list = []
@@ -201,7 +252,12 @@ def sync_alkasr_catalog(store, selected_category_ids=None, markup_percent=0.0):
             product.name = prod_name
             product.is_active = is_available
             product.form_schema = form_schema
+            product.api_provider = "alkasr"
             product.save()
+            
+            # Download image if missing
+            if category_img and not product.image:
+                download_and_save_image(category_img, product.image)
             
             # Update variant details
             variant.cost = cost_val
@@ -212,11 +268,13 @@ def sync_alkasr_catalog(store, selected_category_ids=None, markup_percent=0.0):
             updated_count += 1
         else:
             # Create category if it doesn't exist
-            category, _ = Category.objects.get_or_create(
+            category, cat_created = Category.objects.get_or_create(
                 name=cat_name,
                 store=store,
                 defaults={"is_active": True}
             )
+            if category_img and (cat_created or not category.image):
+                download_and_save_image(category_img, category.image)
             
             # Create product
             product = Product.objects.create(
@@ -227,8 +285,11 @@ def sync_alkasr_catalog(store, selected_category_ids=None, markup_percent=0.0):
                 description=f"منتج مستورد تلقائياً من Alkasr API (ID: {api_prod_id})",
                 is_active=is_available,
                 is_api_product=True,
+                api_provider="alkasr",
                 form_schema=form_schema
             )
+            if category_img:
+                download_and_save_image(category_img, product.image)
             
             # Create default variant
             sku_code = f"ALK-{api_prod_id}"

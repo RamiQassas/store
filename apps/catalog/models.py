@@ -72,6 +72,18 @@ class Product(TimeStampedModel):
     is_out_of_stock = models.BooleanField(default=False, verbose_name="غير متوفر (سيظل معروضاً)")
     is_sale = models.BooleanField(default=False, verbose_name="عليه عرض/تخفيض")
     is_api_product = models.BooleanField(default=False, verbose_name="منتج من الـ API")
+    api_provider = models.CharField(
+        max_length=50,
+        choices=(
+            ("alkasr", "Alkasr VIP"),
+            ("smm", "SMM Provider"),
+            ("other", "مزوّد آخر"),
+        ),
+        default="alkasr",
+        verbose_name="مزوّد الخدمة (API)",
+        blank=True,
+        null=True
+    )
     sort_order = models.PositiveIntegerField(default=0, verbose_name="ترتيب العرض")
     delivery_time_display = models.CharField(max_length=60, blank=True, verbose_name="وقت التسليم المعروض", help_text="مثال: 5-15 دقيقة أو 1-2 ساعة")
     
