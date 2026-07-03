@@ -1128,7 +1128,7 @@
             <!-- Products Grid -->
             <div class="products-section" id="products-section">
                 <div class="product-grid">
-                    {% for p in products %}
+                    {% for p in page_obj %}
                     <div class="p-card">
                         <!-- Badges -->
                         {% if p.is_sale %}
@@ -1197,6 +1197,25 @@
                     </div>
                     {% endfor %}
                 </div>
+                
+                <!-- Pagination -->
+                {% if page_obj.has_other_pages %}
+                <div class="flex justify-center items-center gap-4 mt-8" style="display: flex; justify-content: center; align-items: center; gap: 1rem; margin-top: 3rem; margin-bottom: 2rem;">
+                    {% if page_obj.has_previous %}
+                    <a href="?page={{ page_obj.previous_page_number }}{% if query %}&q={{ query }}{% endif %}{% if active_category %}&category={{ active_category }}{% endif %}{% if sort %}&sort={{ sort }}{% endif %}" class="card-buy-btn" style="background: rgba(255, 255, 255, 0.05); padding: 0.75rem 1.25rem; border-radius: 12px; color: #fff; text-decoration: none; font-size: 0.8rem; font-weight: bold; border: 1px solid rgba(255,255,255,0.05); display: inline-flex; align-items: center; gap: 0.5rem;">
+                        <i class="fas fa-chevron-right"></i> السابق
+                    </a>
+                    {% endif %}
+
+                    <span style="color: rgba(255,255,255,0.5); font-size: 0.8rem; font-weight: bold;">الصفحة {{ page_obj.number }} من {{ page_obj.paginator.num_pages }}</span>
+
+                    {% if page_obj.has_next %}
+                    <a href="?page={{ page_obj.next_page_number }}{% if query %}&q={{ query }}{% endif %}{% if active_category %}&category={{ active_category }}{% endif %}{% if sort %}&sort={{ sort }}{% endif %}" class="card-buy-btn" style="background: rgba(255, 255, 255, 0.05); padding: 0.75rem 1.25rem; border-radius: 12px; color: #fff; text-decoration: none; font-size: 0.8rem; font-weight: bold; border: 1px solid rgba(255,255,255,0.05); display: inline-flex; align-items: center; gap: 0.5rem;">
+                        التالي <i class="fas fa-chevron-left"></i>
+                    </a>
+                    {% endif %}
+                </div>
+                {% endif %}
             </div>
 
             <!-- Categories Grid -->

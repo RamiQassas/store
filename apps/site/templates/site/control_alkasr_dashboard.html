@@ -1,17 +1,17 @@
 {% extends "site/control_base.html" %}
 {% load static %}
 
-{% block title %}بوابة ربط المزود Alkasr VIP | لوحة التحكم{% endblock %}
+{% block title %}إدارة الربط ومزودي الخدمات | لوحة التحكم{% endblock %}
 
 {% block control_content %}
 <div class="page-head reveal">
     <span class="eyebrow"><i class="fas fa-plug text-cyan"></i> تكامل الأنظمة الخارجية</span>
-    <h1>بوابة ربط المزود Alkasr VIP</h1>
-    <p class="text-slate-500 mt-2">قم بإدارة اتصال المتجر بـ API المزود Alkasr VIP، ومزامنة واستيراد الخدمات والمنتجات وتعديل نسب الربح تلقائياً.</p>
+    <h1>إدارة بوابات الربط ومزودي الخدمات (API Integration)</h1>
+    <p class="text-slate-500 mt-2">قم بإعداد اتصالات المتجر بالبوابات ومزودي الخدمات المتعددين، واستيراد وتحديث الخدمات تلقائياً مع تتبع السجلات والعمليات الخارجية.</p>
 </div>
 
 <!-- Elite Stats Grid -->
-<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8 reveal">
+<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-6 reveal">
     <!-- Connection Status -->
     <div class="glass-panel p-6 border-white/5 relative overflow-hidden group">
         <div class="absolute -right-4 -top-4 w-24 h-24 bg-cyan/5 rounded-full blur-2xl group-hover:bg-cyan/10 transition-all"></div>
@@ -20,8 +20,8 @@
                 <i class="fas fa-signal {% if is_connected %}fa-pulse{% endif %}"></i>
             </div>
             <div>
-                <span class="text-[10px] text-slate-500 font-black uppercase tracking-widest block mb-1">حالة الاتصال</span>
-                <strong class="text-lg font-black {% if is_connected %}text-emerald-400{% else %}text-rose-400{% endif %}">
+                <span class="text-[10px] text-slate-500 font-black uppercase tracking-widest block mb-1">حالة الاتصال بالـ API</span>
+                <strong class="text-sm font-black {% if is_connected %}text-emerald-400{% else %}text-rose-400{% endif %}">
                     {% if is_connected %}متصل بنجاح{% else %}فشل الاتصال{% endif %}
                 </strong>
             </div>
@@ -36,9 +36,9 @@
                 <i class="fas fa-wallet"></i>
             </div>
             <div>
-                <span class="text-[10px] text-slate-500 font-black uppercase tracking-widest block mb-1">الرصيد لدى المزود</span>
-                <strong class="text-2xl font-black text-white">
-                    {% if is_connected and profile.balance %}{{ profile.balance }}{% else %}0.00{% endif %} <span class="text-xs text-slate-400">USD</span>
+                <span class="text-[10px] text-slate-500 font-black uppercase tracking-widest block mb-1">الرصيد لدى الكسر</span>
+                <strong class="text-base font-black text-white">
+                    {% if is_connected and profile.balance %}{{ profile.balance }}{% else %}0.00{% endif %} <span class="text-[10px] text-slate-400">USD</span>
                 </strong>
             </div>
         </div>
@@ -52,8 +52,8 @@
                 <i class="fas fa-boxes-stacked"></i>
             </div>
             <div>
-                <span class="text-[10px] text-slate-500 font-black uppercase tracking-widest block mb-1">الخدمات في API</span>
-                <strong class="text-2xl font-black text-white">{{ products_count }}</strong>
+                <span class="text-[10px] text-slate-500 font-black uppercase tracking-widest block mb-1">الخدمات في الكتالوج</span>
+                <strong class="text-lg font-black text-white">{{ products_count }}</strong>
             </div>
         </div>
     </div>
@@ -66,9 +66,48 @@
                 <i class="fas fa-link"></i>
             </div>
             <div>
-                <span class="text-[10px] text-slate-500 font-black uppercase tracking-widest block mb-1">الخدمات المربوطة محلياً</span>
-                <strong class="text-2xl font-black text-white">{{ local_linked_count }}</strong>
+                <span class="text-[10px] text-slate-500 font-black uppercase tracking-widest block mb-1">الخدمات المربوطة والمستوردة</span>
+                <strong class="text-lg font-black text-white">{{ local_linked_count }}</strong>
             </div>
+        </div>
+    </div>
+</div>
+
+<!-- Financial Stats Grid -->
+<div class="grid grid-cols-1 sm:grid-cols-3 gap-6 mb-8 reveal">
+    <!-- Total Cost / Purchases -->
+    <div class="glass-panel p-6 border-white/5 bg-slate-900/30 flex justify-between items-center group relative overflow-hidden">
+        <div class="absolute -right-4 -top-4 w-20 h-20 bg-rose-500/5 rounded-full blur-xl group-hover:bg-rose-500/10 transition-all"></div>
+        <div>
+            <span class="text-[10px] text-slate-500 font-black uppercase tracking-wider block mb-1">إجمالي تكلفة المشتريات (Cost)</span>
+            <strong class="text-xl font-mono text-rose-400">${{ total_purchases_usd|floatformat:2 }}</strong>
+        </div>
+        <div class="w-10 h-10 rounded-xl bg-rose-500/10 flex items-center justify-center text-rose-400">
+            <i class="fas fa-cart-shopping"></i>
+        </div>
+    </div>
+
+    <!-- Total Sales / Price -->
+    <div class="glass-panel p-6 border-white/5 bg-slate-900/30 flex justify-between items-center group relative overflow-hidden">
+        <div class="absolute -right-4 -top-4 w-20 h-20 bg-emerald-500/5 rounded-full blur-xl group-hover:bg-emerald-500/10 transition-all"></div>
+        <div>
+            <span class="text-[10px] text-slate-500 font-black uppercase tracking-wider block mb-1">إجمالي مبيعات العملاء (Sales)</span>
+            <strong class="text-xl font-mono text-emerald-400">${{ total_sales_usd|floatformat:2 }}</strong>
+        </div>
+        <div class="w-10 h-10 rounded-xl bg-emerald-500/10 flex items-center justify-center text-emerald-400">
+            <i class="fas fa-dollar-sign"></i>
+        </div>
+    </div>
+
+    <!-- Total Profit -->
+    <div class="glass-panel p-6 border border-cyan/10 bg-cyan/5 flex justify-between items-center group relative overflow-hidden shadow-[0_0_15px_rgba(6,182,212,0.05)]">
+        <div class="absolute -right-4 -top-4 w-20 h-20 bg-cyan/10 rounded-full blur-xl group-hover:bg-cyan/20 transition-all"></div>
+        <div>
+            <span class="text-[10px] text-cyan/70 font-black uppercase tracking-wider block mb-1">صافي أرباح الـ API (Profit)</span>
+            <strong class="text-xl font-mono text-cyan">${{ total_profit_usd|floatformat:2 }}</strong>
+        </div>
+        <div class="w-10 h-10 rounded-xl bg-cyan/20 flex items-center justify-center text-cyan shadow-inner">
+            <i class="fas fa-sack-dollar"></i>
         </div>
     </div>
 </div>
@@ -158,6 +197,75 @@
             </div>
         </div>
     </div>
+
+    <!-- Providers Catalog List -->
+    <div class="glass-panel p-8 mt-8">
+        <h3 class="text-base font-black text-white mb-6 flex items-center gap-2">
+            <i class="fas fa-network-wired text-cyan text-xs"></i> بوابات ومزودو الخدمة المدعومين وإحصاءاتها (Integrations & Stats)
+        </h3>
+        
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <!-- Alkasr VIP -->
+            <div class="p-5 rounded-2xl bg-white/[0.02] border border-white/5 relative overflow-hidden flex flex-col justify-between">
+                <div>
+                    <div class="flex items-center justify-between mb-4">
+                        <span class="text-xs font-bold text-white">Alkasr VIP API</span>
+                        <span class="text-[9px] px-2 py-0.5 rounded-full {% if is_connected %}bg-emerald-500/10 text-emerald-400{% else %}bg-rose-500/10 text-rose-400{% endif %} font-black">
+                            {% if is_connected %}نشط ومكتمل{% else %}غير متصل{% endif %}
+                        </span>
+                    </div>
+                    <p class="text-[11px] text-slate-400 leading-relaxed mb-4">بوابة الربط المتكاملة التلقائية المربوطة بسيرفر الكسر لاستيراد كافة باقات الشحن، والرموز والتحقق من حالة الطلبات وتحديثها تلقائياً.</p>
+                </div>
+                
+                <div class="mt-4 pt-4 border-t border-white/5 text-[10px] text-slate-400 stack gap-1 font-mono">
+                    <div>المشتريات: <span class="text-rose-400">${{ provider_stats.alkasr.purchases|floatformat:2 }}</span></div>
+                    <div>المبيعات: <span class="text-emerald-400">${{ provider_stats.alkasr.sales|floatformat:2 }}</span></div>
+                    <div>الأرباح: <span class="text-cyan">${{ provider_stats.alkasr.profit|floatformat:2 }}</span></div>
+                    <div>عدد العمليات: <span class="text-white">{{ provider_stats.alkasr.count }}</span></div>
+                </div>
+            </div>
+
+            <!-- SMM Provider -->
+            <div class="p-5 rounded-2xl bg-white/[0.02] border border-white/5 relative overflow-hidden flex flex-col justify-between">
+                <div>
+                    <div class="flex items-center justify-between mb-4">
+                        <span class="text-xs font-bold text-white">SMM Provider API</span>
+                        <span class="text-[9px] px-2 py-0.5 rounded-full bg-cyan/10 text-cyan font-black">
+                            مدعوم في المنتجات
+                        </span>
+                    </div>
+                    <p class="text-[11px] text-slate-400 leading-relaxed mb-4">بوابة ربط خدمات السوشيال ميديا وشحن المنصات وتوجيه طلباتها تلقائياً. يمكنك تعيين المنتجات لـ SMM Provider من صفحة تعديل المنتج.</p>
+                </div>
+                
+                <div class="mt-4 pt-4 border-t border-white/5 text-[10px] text-slate-400 stack gap-1 font-mono">
+                    <div>المشتريات: <span class="text-rose-400">${{ provider_stats.smm.purchases|floatformat:2 }}</span></div>
+                    <div>المبيعات: <span class="text-emerald-400">${{ provider_stats.smm.sales|floatformat:2 }}</span></div>
+                    <div>الأرباح: <span class="text-cyan">${{ provider_stats.smm.profit|floatformat:2 }}</span></div>
+                    <div>عدد العمليات: <span class="text-white">{{ provider_stats.smm.count }}</span></div>
+                </div>
+            </div>
+
+            <!-- Other API -->
+            <div class="p-5 rounded-2xl bg-white/[0.02] border border-white/5 relative overflow-hidden flex flex-col justify-between">
+                <div>
+                    <div class="flex items-center justify-between mb-4">
+                        <span class="text-xs font-bold text-white">مزود مخصص آخر (Other API)</span>
+                        <span class="text-[9px] px-2 py-0.5 rounded-full bg-white/5 text-slate-400 font-black">
+                            مدعوم عام
+                        </span>
+                    </div>
+                    <p class="text-[11px] text-slate-400 leading-relaxed mb-4">يسمح بربط وتصنيف المنتجات تحت بوابات API مخصصة وتوجيه تفاصيل الطلبات الخارجية ومتابعة التقارير وسجلات التشغيل بنجاح.</p>
+                </div>
+                
+                <div class="mt-4 pt-4 border-t border-white/5 text-[10px] text-slate-400 stack gap-1 font-mono">
+                    <div>المشتريات: <span class="text-rose-400">${{ provider_stats.other.purchases|floatformat:2 }}</span></div>
+                    <div>المبيعات: <span class="text-emerald-400">${{ provider_stats.other.sales|floatformat:2 }}</span></div>
+                    <div>الأرباح: <span class="text-cyan">${{ provider_stats.other.profit|floatformat:2 }}</span></div>
+                    <div>عدد العمليات: <span class="text-white">{{ provider_stats.other.count }}</span></div>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
 
 <!-- Tab 2: Sync Products -->
@@ -239,10 +347,12 @@
                         <th class="p-4 text-[10px] font-black text-slate-500 uppercase tracking-widest">معرف API</th>
                         <th class="p-4 text-[10px] font-black text-slate-500 uppercase tracking-widest">الخدمة</th>
                         <th class="p-4 text-[10px] font-black text-slate-500 uppercase tracking-widest">التصنيف</th>
-                        <th class="p-4 text-[10px] font-black text-slate-500 uppercase tracking-widest">التكلفة (USD)</th>
-                        <th class="p-4 text-[10px] font-black text-slate-500 uppercase tracking-widest text-center">المطلوب من العميل</th>
+                        <th class="p-4 text-[10px] font-black text-slate-500 uppercase tracking-widest">التكلفة (API)</th>
+                        <th class="p-4 text-[10px] font-black text-slate-500 uppercase tracking-widest">المبيع المحلي</th>
+                        <th class="p-4 text-[10px] font-black text-slate-500 uppercase tracking-widest text-center">حقول الإدخال المطلوب</th>
                         <th class="p-4 text-[10px] font-black text-slate-500 uppercase tracking-widest text-center">حالة الخدمة</th>
-                        <th class="p-4 text-[10px] font-black text-slate-500 uppercase tracking-widest text-center">الربط المحلي</th>
+                        <th class="p-4 text-[10px] font-black text-slate-500 uppercase tracking-widest text-center">حالة العرض والربط</th>
+                        <th class="p-4 text-[10px] font-black text-slate-500 uppercase tracking-widest text-center">الإجراءات والتحكم</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-white/[0.02]">
@@ -254,7 +364,21 @@
                             <div class="text-[9px] text-slate-500 font-semibold mt-1">النوع: {{ prod.product_type }}</div>
                         </td>
                         <td class="p-4 text-xs font-bold text-slate-400 cat-field">{{ prod.category_name }}</td>
-                        <td class="p-4 font-mono font-black text-cyan text-xs">${{ prod.price|floatformat:4 }}</td>
+                        
+                        <!-- Cost Price -->
+                        <td class="p-4 font-mono font-black text-rose-400 text-xs">
+                            ${{ prod.price|floatformat:2 }}
+                        </td>
+                        
+                        <!-- Local Selling Price -->
+                        <td class="p-4 font-mono font-black text-emerald-400 text-xs">
+                            {% if prod.is_linked %}
+                                ${{ prod.local_price|floatformat:2 }}
+                            {% else %}
+                                <span class="text-slate-600 italic text-[10px]">غير مستورد</span>
+                            {% endif %}
+                        </td>
+                        
                         <td class="p-4 text-center">
                             {% if prod.params %}
                                 <div class="flex flex-col gap-1 items-center">
@@ -268,24 +392,54 @@
                         </td>
                         <td class="p-4 text-center">
                             {% if prod.available %}
-                                <span class="badge success text-[8px] font-black"><i class="fas fa-circle-check ml-1"></i> متوفرة</span>
+                                <span class="badge success text-[8px] font-black"><i class="fas fa-circle-check ml-1"></i> متوفرة بالـ API</span>
                             {% else %}
                                 <span class="badge danger text-[8px] font-black"><i class="fas fa-circle-xmark ml-1"></i> غير متوفرة</span>
                             {% endif %}
                         </td>
                         <td class="p-4 text-center">
                             {% if prod.is_linked %}
-                                <div class="flex flex-col gap-2 items-center">
-                                    <span class="badge primary text-[8px] font-black"><i class="fas fa-circle-nodes ml-1"></i> مربوط</span>
-                                    <a href="{% url 'control_product_edit' prod.local_product_id %}" class="text-[9px] font-black text-cyan hover:underline uppercase tracking-tight">تعديل المنتج المحلي</a>
+                                <div class="flex flex-col gap-1 items-center">
+                                    {% if prod.local_active %}
+                                        <span class="badge success text-[8px] font-black" style="background: rgba(16, 185, 129, 0.1); color: rgb(16, 185, 129);"><i class="fas fa-eye ml-1"></i> معروض للعملاء</span>
+                                    {% else %}
+                                        <span class="badge danger text-[8px] font-black" style="background: rgba(239, 68, 68, 0.1); color: rgb(239, 68, 68);"><i class="fas fa-eye-slash ml-1"></i> معطل ومخفي</span>
+                                    {% endif %}
                                 </div>
                             {% else %}
-                                <span class="text-[9px] text-slate-600 font-bold italic">غير مربوطة</span>
+                                <span class="text-[9px] text-slate-600 font-bold italic">غير مستورد</span>
+                            {% endif %}
+                        </td>
+                        <td class="p-4 text-center">
+                            {% if prod.is_linked %}
+                                <div class="flex items-center justify-center gap-1.5">
+                                    <!-- Toggle Active Form -->
+                                    <form method="POST" action="." style="display:inline;">
+                                        {% csrf_token %}
+                                        <input type="hidden" name="action" value="toggle_active">
+                                        <input type="hidden" name="product_id" value="{{ prod.local_product_id }}">
+                                        <button type="submit" class="btn btn-outline btn-sm py-1 px-2 text-[9px] font-black text-amber-500 border-amber-500/20" title="تفعيل / تعطيل ظهور المنتج للعملاء">
+                                            {% if prod.local_active %}إخفاء{% else %}عرض{% endif %}
+                                        </button>
+                                    </form>
+                                    
+                                    <!-- Delete / Disconnect Form -->
+                                    <form method="POST" action="." style="display:inline;" onsubmit="return confirm('هل أنت متأكد من حذف هذا المنتج تماماً من متجرك وإلغاء ربطه؟');">
+                                        {% csrf_token %}
+                                        <input type="hidden" name="action" value="delete_product">
+                                        <input type="hidden" name="product_id" value="{{ prod.local_product_id }}">
+                                        <button type="submit" class="btn btn-outline btn-sm py-1 px-2 text-[9px] font-black text-rose-500 border-rose-500/20" title="حذف وإلغاء الربط">
+                                            حذف
+                                        </button>
+                                    </form>
+                                </div>
+                            {% else %}
+                                <span class="text-[9px] text-slate-500 font-bold">يرجى عمل مزامنة</span>
                             {% endif %}
                         </td>
                     </tr>
                     {% empty %}
-                    <tr><td colspan="7" class="p-12 text-center text-slate-600 italic text-xs">لا يوجد خدمات لعرضها من API المزود.</td></tr>
+                    <tr><td colspan="9" class="p-12 text-center text-slate-600 italic text-xs">لا يوجد خدمات لعرضها من API المزود.</td></tr>
                     {% endfor %}
                 </tbody>
             </table>

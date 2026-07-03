@@ -1464,9 +1464,15 @@ def catalog(request):
     # Product Suggestion Form
     suggestion_form = ProductSuggestionForm()
 
+    # Pagination for catalog
+    from django.core.paginator import Paginator
+    paginator = Paginator(products.distinct(), 24) # 24 products per page
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+
     ctx = {
         "categories": categories,
-        "products": products.distinct(),
+        "page_obj": page_obj,
         "total_products_count": total_products_count,
         "active_category": cat_id,
         "query": q,
@@ -5059,6 +5065,7 @@ def control_alkasr_dashboard(request):
     from django.conf import settings
     from django.contrib import messages
     from urllib.parse import quote
+    from apps.catalog.models import Product, ProductVariant
     
     store = getattr(request, "store", None)
     
@@ -5087,6 +5094,7 @@ def control_alkasr_dashboard(request):
                 error_msg = res.get('message') if res else "Unknown error"
                 messages.error(request, f"فشلت عملية المزامنة: {error_msg}")
             return redirect("control_alkasr_dashboard")
+            
         elif action == "refresh_cache":
             get_alkasr_profile(force_refresh=True)
             get_alkasr_categories(force_refresh=True)
@@ -5094,8 +5102,30 @@ def control_alkasr_dashboard(request):
             messages.success(request, "تم تحديث التخزين المؤقت للبيانات وسحب كتالوج جديد بنجاح من المزود.")
             return redirect("control_alkasr_dashboard")
             
+        elif action == "toggle_active":
+            product_id = request.POST.get("product_id")
+            try:
+                prod = Product.objects.get(id=product_id, store=store)
+                prod.is_active = not prod.is_active
+                prod.save()
+                status_str = "تفعيل" if prod.is_active else "تعطيل"
+                messages.success(request, f"تم {status_str} المنتج '{prod.name}' بنجاح.")
+            except Product.DoesNotExist:
+                messages.error(request, "المنتج غير موجود.")
+            return redirect("control_alkasr_dashboard")
+            
+        elif action == "delete_product":
+            product_id = request.POST.get("product_id")
+            try:
+                prod = Product.objects.get(id=product_id, store=store)
+                prod_name = prod.name
+                prod.delete()
+                messages.success(request, f"تم حذف وإلغاء ربط المنتج '{prod_name}' بنجاح.")
+            except Product.DoesNotExist:
+                messages.error(request, "المنتج غير موجود.")
+            return redirect("control_alkasr_dashboard")
+            
     # Fetch Alkasr Profile Info
-    from apps.catalog.models import ProductVariant
     profile = get_alkasr_profile()
     is_connected = profile and profile.get("status") != "error"
     
@@ -5115,9 +5145,15 @@ def control_alkasr_dashboard(request):
             products_count = len(all_prods)
             alkasr_products = all_prods
             
-            # Map linked status
+            # Map linked status and details
             linked_variants = {
-                v.api_product_id: v.product.id
+                v.api_product_id: {
+                    "product_id": v.product.id,
+                    "price": float(v.price),
+                    "cost": float(v.cost),
+                    "is_active": v.product.is_active,
+                    "api_provider": v.product.api_provider or "alkasr"
+                }
                 for v in ProductVariant.objects.filter(api_product_id__isnull=False).select_related('product')
             }
             local_linked_count = len(linked_variants)
@@ -5126,11 +5162,55 @@ def control_alkasr_dashboard(request):
                 item_id = item.get("id")
                 if item_id in linked_variants:
                     item["is_linked"] = True
-                    item["local_product_id"] = linked_variants[item_id]
+                    item["local_product_id"] = linked_variants[item_id]["product_id"]
+                    item["local_price"] = linked_variants[item_id]["price"]
+                    item["local_cost"] = linked_variants[item_id]["cost"]
+                    item["local_active"] = linked_variants[item_id]["is_active"]
+                    item["api_provider"] = linked_variants[item_id]["api_provider"]
                 else:
                     item["is_linked"] = False
         else:
             alkasr_products = []
+            
+    # Calculate statistics from completed store orders
+    from apps.orders.models import Order
+    api_orders = Order.objects.filter(
+        store=store,
+        status__in=[Order.Status.COMPLETED, Order.Status.PROCESSING],
+        items__variant__api_product_id__isnull=False
+    ).distinct()
+    
+    total_purchases_usd = 0.0
+    total_sales_usd = 0.0
+    
+    provider_stats = {
+        "alkasr": {"name": "Alkasr VIP", "purchases": 0.0, "sales": 0.0, "profit": 0.0, "count": 0},
+        "smm": {"name": "SMM Provider", "purchases": 0.0, "sales": 0.0, "profit": 0.0, "count": 0},
+        "other": {"name": "Other API", "purchases": 0.0, "sales": 0.0, "profit": 0.0, "count": 0},
+    }
+    
+    for order in api_orders:
+        for item in order.items.select_related('variant__product'):
+            variant = item.variant
+            if not variant or not variant.api_product_id:
+                continue
+            qty = item.quantity
+            item_cost = float(variant.cost or 0.0) * qty
+            item_sales = float(item.price or 0.0) * qty
+            
+            total_purchases_usd += item_cost
+            total_sales_usd += item_sales
+            
+            provider = variant.product.api_provider or "alkasr"
+            if provider in provider_stats:
+                provider_stats[provider]["purchases"] += item_cost
+                provider_stats[provider]["sales"] += item_sales
+                provider_stats[provider]["count"] += 1
+                
+    for p in provider_stats:
+        provider_stats[p]["profit"] = provider_stats[p]["sales"] - provider_stats[p]["purchases"]
+        
+    total_profit_usd = total_sales_usd - total_purchases_usd
             
     # Generate webhook URL
     webhook_url = request.build_absolute_uri('/api/orders/alkasr_webhook/')
@@ -5152,6 +5232,10 @@ def control_alkasr_dashboard(request):
         "base_url": getattr(settings, "ALKASR_BASE_URL", ""),
         "obfuscated_token": obfuscated_token,
         "local_linked_count": local_linked_count,
+        "total_purchases_usd": total_purchases_usd,
+        "total_sales_usd": total_sales_usd,
+        "total_profit_usd": total_profit_usd,
+        "provider_stats": provider_stats,
     })
 
 

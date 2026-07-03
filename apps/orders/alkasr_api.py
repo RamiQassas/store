@@ -167,10 +167,13 @@ def download_and_save_image(url, target_field):
     """
     from django.core.files.base import ContentFile
     import os
+    import urllib3
+    urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+    
     if not url or url.endswith("empty.png"):
         return
     try:
-        response = requests.get(url, timeout=10)
+        response = requests.get(url, timeout=15, verify=False)
         if response.status_code == 200:
             filename = os.path.basename(url.split('?')[0])
             # Ensure safe filename extension

@@ -69,9 +69,33 @@ class OrderViewSet(viewsets.ModelViewSet):
         
         old_status = order.status
         
+        # Extract keys/codes from payload
+        keys_delivered = []
+        possible_key_fields = ["card", "code", "serial", "pin", "key", "keys", "cards", "serial_number"]
+        for field in possible_key_fields:
+            val = data.get(field)
+            if val:
+                if isinstance(val, list):
+                    keys_delivered.extend([str(x) for x in val])
+                else:
+                    keys_delivered.append(str(val))
+                    
+        # Check nested "data" dict
+        if isinstance(data.get("data"), dict):
+            nested_data = data["data"]
+            for field in possible_key_fields:
+                val = nested_data.get(field)
+                if val:
+                    if isinstance(val, list):
+                        keys_delivered.extend([str(x) for x in val])
+                    else:
+                        keys_delivered.append(str(val))
+
         if api_status == "accept":
             order.status = Order.Status.COMPLETED
             note = "تم تنفيذ الطلب بنجاح وتغيير حالته إلى مكتمل عبر الـ Webhook."
+            if keys_delivered:
+                note += f" | الأكواد المستلمة: {', '.join(keys_delivered)}"
         elif api_status == "reject":
             order.status = Order.Status.CANCELLED
             note = "تم رفض الطلب من المزود، تم إلغاء الطلب وإرجاع المبلغ للمحفظة عبر الـ Webhook."
@@ -81,7 +105,7 @@ class OrderViewSet(viewsets.ModelViewSet):
         else:
             note = f"تحديث الحالة من المزود: {api_status}"
             
-        if order.status != old_status:
+        if order.status != old_status or keys_delivered:
             with transaction.atomic():
                 # If changing to cancelled, refund customer
                 if order.status == Order.Status.CANCELLED and old_status != Order.Status.CANCELLED:
@@ -101,6 +125,8 @@ class OrderViewSet(viewsets.ModelViewSet):
                         reason="فشل تنفيذ الطلب من المزود تلقائياً"
                     )
                     
+                if keys_delivered:
+                    order.fulfillment_data["الرموز المسلمة (API)"] = ", ".join(keys_delivered)
                 order.fulfillment_data["api_webhook_last_status"] = api_status
                 order.fulfillment_data["api_webhook_response"] = data
                 order.save(update_fields=["status", "fulfillment_data", "updated_at"])
@@ -158,9 +184,22 @@ class OrderViewSet(viewsets.ModelViewSet):
             updated = False
             note = f"تم فحص الحالة يدوياً من المزود. الحالة الخارجية: {api_status}"
             
+            # Extract keys/codes from order_data
+            keys_delivered = []
+            possible_key_fields = ["card", "code", "serial", "pin", "key", "keys", "cards", "serial_number"]
+            for field in possible_key_fields:
+                val = order_data.get(field)
+                if val:
+                    if isinstance(val, list):
+                        keys_delivered.extend([str(x) for x in val])
+                    else:
+                        keys_delivered.append(str(val))
+
             if api_status == "accept":
                 order.status = Order.Status.COMPLETED
                 updated = True
+                if keys_delivered:
+                    note += f" | الأكواد المستلمة: {', '.join(keys_delivered)}"
             elif api_status == "reject":
                 order.status = Order.Status.CANCELLED
                 updated = True
@@ -168,7 +207,7 @@ class OrderViewSet(viewsets.ModelViewSet):
                 order.status = Order.Status.PROCESSING
                 updated = True
                 
-            if updated and order.status != old_status:
+            if (updated and order.status != old_status) or keys_delivered:
                 with transaction.atomic():
                     # Refund logic
                     if order.status == Order.Status.CANCELLED and old_status != Order.Status.CANCELLED:
@@ -191,6 +230,8 @@ class OrderViewSet(viewsets.ModelViewSet):
                     if api_order_id and not order.api_order_id:
                         order.api_order_id = api_order_id
                         
+                    if keys_delivered:
+                        order.fulfillment_data["الرموز المسلمة (API)"] = ", ".join(keys_delivered)
                     order.fulfillment_data["api_status"] = api_status
                     order.fulfillment_data["api_last_checked_response"] = order_data
                     order.save(update_fields=["status", "api_order_id", "fulfillment_data", "updated_at"])
