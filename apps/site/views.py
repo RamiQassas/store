@@ -5051,3 +5051,100 @@ def sso_transfer_view(request):
         return redirect(sso_login_url)
     else:
         return redirect("site_login")
+
+
+@support_required
+def control_alkasr_dashboard(request):
+    from apps.orders.alkasr_api import get_alkasr_profile, get_alkasr_categories, get_alkasr_products, sync_alkasr_catalog
+    from django.conf import settings
+    from django.contrib import messages
+    from urllib.parse import quote
+    
+    store = getattr(request, "store", None)
+    
+    # Check if a POST action was submitted (e.g. to sync)
+    if request.method == "POST":
+        action = request.POST.get("action")
+        if action == "sync":
+            category_ids = request.POST.getlist("categories")
+            # Convert categories to list of ints
+            try:
+                category_ids = [int(cid) for cid in category_ids if cid.isdigit()]
+            except ValueError:
+                category_ids = None
+                
+            markup_val = request.POST.get("markup_percent", "0.0")
+            try:
+                markup_percent = float(markup_val)
+            except ValueError:
+                markup_percent = 0.0
+                
+            # Perform sync
+            res = sync_alkasr_catalog(store, selected_category_ids=category_ids, markup_percent=markup_percent)
+            if res and res.get("status") == "success":
+                messages.success(request, f"تمت عملية المزامنة بنجاح! تم استيراد {res['created']} منتج جديد، وتحديث {res['updated']} منتج.")
+            else:
+                error_msg = res.get('message') if res else "Unknown error"
+                messages.error(request, f"فشلت عملية المزامنة: {error_msg}")
+            return redirect("control_alkasr_dashboard")
+            
+    # Fetch Alkasr Profile Info
+    from apps.catalog.models import ProductVariant
+    profile = get_alkasr_profile()
+    is_connected = profile and profile.get("status") != "error"
+    
+    # Fetch Alkasr Categories and Products
+    categories = []
+    products_count = 0
+    alkasr_products = []
+    local_linked_count = 0
+    
+    if is_connected:
+        categories = get_alkasr_categories()
+        if isinstance(categories, dict) and categories.get("status") == "error":
+            categories = []
+            
+        all_prods = get_alkasr_products()
+        if isinstance(all_prods, list):
+            products_count = len(all_prods)
+            alkasr_products = all_prods
+            
+            # Map linked status
+            linked_variants = {
+                v.api_product_id: v.product.id
+                for v in ProductVariant.objects.filter(api_product_id__isnull=False).select_related('product')
+            }
+            local_linked_count = len(linked_variants)
+            
+            for item in alkasr_products:
+                item_id = item.get("id")
+                if item_id in linked_variants:
+                    item["is_linked"] = True
+                    item["local_product_id"] = linked_variants[item_id]
+                else:
+                    item["is_linked"] = False
+        else:
+            alkasr_products = []
+            
+    # Generate webhook URL
+    webhook_url = request.build_absolute_uri('/api/orders/alkasr_webhook/')
+    
+    # Obfuscate the token
+    raw_token = getattr(settings, "ALKASR_API_TOKEN", "")
+    if len(raw_token) > 10:
+        obfuscated_token = raw_token[:6] + "..." + raw_token[-6:]
+    else:
+        obfuscated_token = "غير معين أو قصير"
+        
+    return render(request, "site/control_alkasr_dashboard.html", {
+        "profile": profile if is_connected else None,
+        "is_connected": is_connected,
+        "categories": categories,
+        "products_count": products_count,
+        "alkasr_products": alkasr_products[:500], # display up to 500 products for quick client-side filtering
+        "webhook_url": webhook_url,
+        "base_url": getattr(settings, "ALKASR_BASE_URL", ""),
+        "obfuscated_token": obfuscated_token,
+        "local_linked_count": local_linked_count,
+    })
+

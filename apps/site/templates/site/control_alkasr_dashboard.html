@@ -1,0 +1,347 @@
+{% extends "site/control_base.html" %}
+{% load static %}
+
+{% block title %}بوابة ربط المزود Alkasr VIP | لوحة التحكم{% endblock %}
+
+{% block control_content %}
+<div class="page-head reveal">
+    <span class="eyebrow"><i class="fas fa-plug text-cyan"></i> تكامل الأنظمة الخارجية</span>
+    <h1>بوابة ربط المزود Alkasr VIP</h1>
+    <p class="text-slate-500 mt-2">قم بإدارة اتصال المتجر بـ API المزود Alkasr VIP، ومزامنة واستيراد الخدمات والمنتجات وتعديل نسب الربح تلقائياً.</p>
+</div>
+
+<!-- Elite Stats Grid -->
+<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8 reveal">
+    <!-- Connection Status -->
+    <div class="glass-panel p-6 border-white/5 relative overflow-hidden group">
+        <div class="absolute -right-4 -top-4 w-24 h-24 bg-cyan/5 rounded-full blur-2xl group-hover:bg-cyan/10 transition-all"></div>
+        <div class="flex items-center gap-4 relative z-10">
+            <div class="w-12 h-12 rounded-2xl {% if is_connected %}bg-emerald-500/10 text-emerald-400{% else %}bg-rose-500/10 text-rose-400{% endif %} flex items-center justify-center shadow-inner">
+                <i class="fas fa-signal {% if is_connected %}fa-pulse{% endif %}"></i>
+            </div>
+            <div>
+                <span class="text-[10px] text-slate-500 font-black uppercase tracking-widest block mb-1">حالة الاتصال</span>
+                <strong class="text-lg font-black {% if is_connected %}text-emerald-400{% else %}text-rose-400{% endif %}">
+                    {% if is_connected %}متصل بنجاح{% else %}فشل الاتصال{% endif %}
+                </strong>
+            </div>
+        </div>
+    </div>
+
+    <!-- Balance -->
+    <div class="glass-panel p-6 border-white/5 relative overflow-hidden group">
+        <div class="absolute -right-4 -top-4 w-24 h-24 bg-amber-500/5 rounded-full blur-2xl group-hover:bg-amber-500/10 transition-all"></div>
+        <div class="flex items-center gap-4 relative z-10">
+            <div class="w-12 h-12 rounded-2xl bg-amber-500/10 flex items-center justify-center text-amber-500 shadow-inner">
+                <i class="fas fa-wallet"></i>
+            </div>
+            <div>
+                <span class="text-[10px] text-slate-500 font-black uppercase tracking-widest block mb-1">الرصيد لدى المزود</span>
+                <strong class="text-2xl font-black text-white">
+                    {% if is_connected and profile.balance %}{{ profile.balance }}{% else %}0.00{% endif %} <span class="text-xs text-slate-400">USD</span>
+                </strong>
+            </div>
+        </div>
+    </div>
+
+    <!-- API Total Products -->
+    <div class="glass-panel p-6 border-white/5 relative overflow-hidden group">
+        <div class="absolute -right-4 -top-4 w-24 h-24 bg-purple-500/5 rounded-full blur-2xl group-hover:bg-purple-500/10 transition-all"></div>
+        <div class="flex items-center gap-4 relative z-10">
+            <div class="w-12 h-12 rounded-2xl bg-purple-500/10 flex items-center justify-center text-purple-400 shadow-inner">
+                <i class="fas fa-boxes-stacked"></i>
+            </div>
+            <div>
+                <span class="text-[10px] text-slate-500 font-black uppercase tracking-widest block mb-1">الخدمات في API</span>
+                <strong class="text-2xl font-black text-white">{{ products_count }}</strong>
+            </div>
+        </div>
+    </div>
+
+    <!-- Linked Products Local -->
+    <div class="glass-panel p-6 border-white/5 relative overflow-hidden group">
+        <div class="absolute -right-4 -top-4 w-24 h-24 bg-sky-500/5 rounded-full blur-2xl group-hover:bg-sky-500/10 transition-all"></div>
+        <div class="flex items-center gap-4 relative z-10">
+            <div class="w-12 h-12 rounded-2xl bg-sky-500/10 flex items-center justify-center text-sky-400 shadow-inner">
+                <i class="fas fa-link"></i>
+            </div>
+            <div>
+                <span class="text-[10px] text-slate-500 font-black uppercase tracking-widest block mb-1">الخدمات المربوطة محلياً</span>
+                <strong class="text-2xl font-black text-white">{{ local_linked_count }}</strong>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Tab System Navigation -->
+<div class="flex gap-4 border-b border-white/5 mb-8 pb-3 overflow-x-auto">
+    <button class="tab-btn px-6 py-2.5 font-bold text-xs rounded-xl bg-white/5 text-white active-tab transition-all" onclick="switchTab('tab-settings', this)">
+        <i class="fas fa-gear ml-2"></i> إعدادات الربط والاتصال
+    </button>
+    <button class="tab-btn px-6 py-2.5 font-bold text-xs rounded-xl text-slate-400 hover:text-white transition-all" onclick="switchTab('tab-sync', this)">
+        <i class="fas fa-arrows-rotate ml-2"></i> مزامنة واستيراد الخدمات
+    </button>
+    <button class="tab-btn px-6 py-2.5 font-bold text-xs rounded-xl text-slate-400 hover:text-white transition-all" onclick="switchTab('tab-catalog', this)">
+        <i class="fas fa-list ml-2"></i> معاينة منتجات API ({{ products_count }})
+    </button>
+</div>
+
+<!-- Tab 1: Settings -->
+<div id="tab-settings" class="tab-content stack gap-8 reveal">
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+        <!-- Settings Form Info -->
+        <div class="lg:col-span-7 glass-panel p-8">
+            <h3 class="text-base font-black text-white mb-6 flex items-center gap-2">
+                <i class="fas fa-key text-cyan text-xs"></i> تفاصيل الاتصال بـ API
+            </h3>
+            
+            <div class="stack gap-6 text-sm">
+                <div>
+                    <label class="text-[10px] text-slate-500 font-black block mb-2">رابط الـ API الأساسي (Base URL)</label>
+                    <div class="p-4 bg-black/40 rounded-2xl border border-white/5 font-mono text-slate-300 text-xs">{{ base_url }}</div>
+                </div>
+
+                <div>
+                    <label class="text-[10px] text-slate-500 font-black block mb-2">مفتاح الوصول (API Token)</label>
+                    <div class="p-4 bg-black/40 rounded-2xl border border-white/5 font-mono text-slate-300 text-xs flex justify-between items-center">
+                        <span>{{ obfuscated_token }}</span>
+                        <span class="badge primary text-[8px] font-black"><i class="fas fa-lock ml-1"></i> محمي بنظام البيئة</span>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="text-[10px] text-slate-500 font-black block mb-2">بريد الحساب المرتبط</label>
+                    <div class="p-4 bg-black/40 rounded-2xl border border-white/5 text-slate-300 text-xs">
+                        {% if is_connected %}{{ profile.email }}{% else %}غير معروف - يرجى فحص إعدادات API Token{% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Webhook Info -->
+        <div class="lg:col-span-5 glass-panel p-8">
+            <h3 class="text-base font-black text-white mb-6 flex items-center gap-2">
+                <i class="fas fa-globe text-cyan text-xs"></i> إعدادات الـ Webhook
+            </h3>
+            <p class="text-xs text-slate-400 leading-relaxed mb-6">
+                قم بتكوين رابط الـ Webhook هذا داخل لوحة تحكم حسابك في <strong>Alkasr VIP</strong> لاستقبال تحديثات حالات الطلبات تلقائياً (عند القبول، الرفض، أو الانتظار) وتحديث حالة طلب العميل وتعديل رصيد محفظته فوراً.
+            </p>
+
+            <div>
+                <label class="text-[10px] text-slate-500 font-black block mb-2">رابط الـ Webhook الخاص بك</label>
+                <div class="p-4 bg-black/40 rounded-2xl border border-white/5 font-mono text-slate-300 text-xs flex items-center justify-between">
+                    <span id="webhook-text" class="truncate ml-2 text-sky-400 select-all">{{ webhook_url }}</span>
+                    <button class="btn btn-outline btn-sm py-1 px-3 text-[9px] font-black" onclick="copyWebhook()">
+                        <i class="fas fa-copy ml-1"></i> نسخ
+                    </button>
+                </div>
+                <div id="copy-success" class="text-[9px] text-emerald-400 mt-2 font-bold hidden"><i class="fas fa-circle-check ml-1"></i> تم النسخ للحافظة!</div>
+            </div>
+            
+            <div class="mt-6 p-4 bg-white/[0.02] border border-white/5 rounded-2xl text-[11px] text-slate-400 stack gap-2">
+                <strong class="text-xs text-white">منطق العمل لـ Webhook:</strong>
+                <div>• حالة <span class="text-emerald-400">accept</span> تغير حالة الطلب لدينا إلى مكتمل.</div>
+                <div>• حالة <span class="text-rose-400">reject</span> تلغي الطلب وتعيد ثمنه كاملاً لمحفظة العميل فوراً.</div>
+                <div>• حالة <span class="text-amber-500">wait</span> تغير حالة الطلب إلى قيد الانتظار والمعالجة.</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Tab 2: Sync Products -->
+<div id="tab-sync" class="tab-content stack gap-8 hidden reveal">
+    <div class="glass-panel p-8">
+        <h3 class="text-base font-black text-white mb-6 flex items-center gap-2">
+            <i class="fas fa-rotate text-cyan text-xs"></i> مزامنة واستيراد الخدمات
+        </h3>
+        
+        <p class="text-xs text-slate-400 leading-relaxed mb-6">
+            اختر التصنيفات التي ترغب في استيرادها ومزامنتها من المزود. سيقوم النظام تلقائياً بإنشاء التصنيفات والخدمات محلياً، وبناء نماذج البيانات والمدخلات المطلوبة من العملاء (مثل إيدي اللاعب، رقم الجوال) تلقائياً بناءً على مواصفات API المزود.
+        </p>
+
+        {% if is_connected %}
+        <form method="POST" action="." class="stack gap-6">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="sync">
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <!-- Profit Margin Markup -->
+                <div class="md:col-span-1">
+                    <label class="text-[10px] text-slate-400 font-black block mb-2 uppercase tracking-wider">نسبة الربح المضافة (Markup %)</label>
+                    <div class="relative">
+                        <input type="number" step="0.1" min="0" name="markup_percent" value="10.0" class="builder-input pr-12 w-full" style="background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.05); color: #fff; padding: 0.75rem 1rem; border-radius: 14px;" required>
+                        <span class="absolute left-4 top-1/2 -translate-y-1/2 font-black text-xs text-slate-500">%</span>
+                    </div>
+                    <span class="text-[9px] text-slate-500 mt-2 block">سعر مبيع العميل = التكلفة من API + نسبة الربح المضافة.</span>
+                </div>
+            </div>
+
+            <!-- Category Checklist -->
+            <div>
+                <label class="text-[10px] text-slate-400 font-black block mb-3 uppercase tracking-wider">التصنيفات المتاحة في API (اختر للتزامن)</label>
+                <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 p-6 bg-black/30 border border-white/5 rounded-2xl max-h-96 overflow-y-auto">
+                    {% for cat in categories %}
+                    <label class="flex items-center gap-3 p-3 bg-white/[0.02] border border-white/5 rounded-xl cursor-pointer hover:bg-white/[0.05] transition-all">
+                        <input type="checkbox" name="categories" value="{{ cat.id }}" checked class="rounded border-white/10 text-cyan bg-black/60 focus:ring-cyan focus:ring-offset-0">
+                        <span class="text-xs text-white font-bold">{{ cat.name }}</span>
+                    </label>
+                    {% empty %}
+                    <div class="col-span-full py-12 text-center text-slate-600 text-xs italic">لا توجد تصنيفات لعرضها.</div>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <div class="pt-4 border-t border-white/5 flex justify-end">
+                <button type="submit" class="btn btn-primary" onclick="showSyncLoader()">
+                    <i class="fas fa-arrows-rotate mr-2"></i> بدء مزامنة واستيراد الخدمات المختارة
+                </button>
+            </div>
+        </form>
+        {% else %}
+        <div class="p-12 text-center text-rose-400 font-bold bg-rose-500/5 rounded-2xl border border-rose-500/10">
+            <i class="fas fa-circle-exclamation text-2xl mb-3 block"></i>
+            لا يمكن تفعيل المزامنة لعدم توفر اتصال بالـ API حالياً.
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Tab 3: API Catalog Preview -->
+<div id="tab-catalog" class="tab-content stack gap-8 hidden reveal">
+    <div class="glass-panel overflow-hidden">
+        <div class="p-6 border-b border-white/5 bg-white/[0.01] flex flex-col sm:flex-row justify-between items-center gap-4">
+            <h3 class="text-sm font-black text-white uppercase tracking-widest flex items-center gap-2">
+                <i class="fas fa-database text-cyan text-xs"></i> معاينة خدمات API المزود
+            </h3>
+            
+            <div class="relative w-full sm:w-80">
+                <input type="text" id="api-search" placeholder="ابحث باسم الخدمة أو التصنيف..." class="builder-input pl-10 w-full" style="background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.05); color: #fff; padding: 0.65rem 1rem; border-radius: 12px;" onkeyup="filterApiCatalog()">
+                <i class="fas fa-search absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500 text-xs"></i>
+            </div>
+        </div>
+
+        <div class="overflow-x-auto">
+            <table class="w-full text-right text-sm" id="api-catalog-table">
+                <thead class="bg-black/40">
+                    <tr>
+                        <th class="p-4 text-[10px] font-black text-slate-500 uppercase tracking-widest">معرف API</th>
+                        <th class="p-4 text-[10px] font-black text-slate-500 uppercase tracking-widest">الخدمة</th>
+                        <th class="p-4 text-[10px] font-black text-slate-500 uppercase tracking-widest">التصنيف</th>
+                        <th class="p-4 text-[10px] font-black text-slate-500 uppercase tracking-widest">التكلفة (USD)</th>
+                        <th class="p-4 text-[10px] font-black text-slate-500 uppercase tracking-widest text-center">المطلوب من العميل</th>
+                        <th class="p-4 text-[10px] font-black text-slate-500 uppercase tracking-widest text-center">حالة الخدمة</th>
+                        <th class="p-4 text-[10px] font-black text-slate-500 uppercase tracking-widest text-center">الربط المحلي</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-white/[0.02]">
+                    {% for prod in alkasr_products %}
+                    <tr class="hover:bg-white/[0.01] transition-colors table-row-api">
+                        <td class="p-4 font-mono font-bold text-slate-500 text-xs">#{{ prod.id }}</td>
+                        <td class="p-4">
+                            <div class="font-black text-white text-xs name-field">{{ prod.name }}</div>
+                            <div class="text-[9px] text-slate-500 font-semibold mt-1">النوع: {{ prod.product_type }}</div>
+                        </td>
+                        <td class="p-4 text-xs font-bold text-slate-400 cat-field">{{ prod.category_name }}</td>
+                        <td class="p-4 font-mono font-black text-cyan text-xs">${{ prod.price|floatformat:4 }}</td>
+                        <td class="p-4 text-center">
+                            {% if prod.params %}
+                                <div class="flex flex-col gap-1 items-center">
+                                {% for pm in prod.params %}
+                                    <span class="text-[9px] bg-slate-800 text-slate-400 px-2 py-0.5 rounded font-bold border border-white/5">{{ pm }}</span>
+                                {% endfor %}
+                                </div>
+                            {% else %}
+                                <span class="text-[9px] text-slate-600 font-bold italic">تلقائي بدون مدخلات</span>
+                            {% endif %}
+                        </td>
+                        <td class="p-4 text-center">
+                            {% if prod.available %}
+                                <span class="badge success text-[8px] font-black"><i class="fas fa-circle-check ml-1"></i> متوفرة</span>
+                            {% else %}
+                                <span class="badge danger text-[8px] font-black"><i class="fas fa-circle-xmark ml-1"></i> غير متوفرة</span>
+                            {% endif %}
+                        </td>
+                        <td class="p-4 text-center">
+                            {% if prod.is_linked %}
+                                <div class="flex flex-col gap-2 items-center">
+                                    <span class="badge primary text-[8px] font-black"><i class="fas fa-circle-nodes ml-1"></i> مربوط</span>
+                                    <a href="{% url 'control_product_edit' prod.local_product_id %}" class="text-[9px] font-black text-cyan hover:underline uppercase tracking-tight">تعديل المنتج المحلي</a>
+                                </div>
+                            {% else %}
+                                <span class="text-[9px] text-slate-600 font-bold italic">غير مربوطة</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr><td colspan="7" class="p-12 text-center text-slate-600 italic text-xs">لا يوجد خدمات لعرضها من API المزود.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Loader Modal -->
+<div id="sync-loader" class="fixed inset-0 bg-black/80 backdrop-filter backdrop-blur-md z-50 flex items-center justify-center hidden">
+    <div class="text-center stack gap-4 max-w-sm p-8 glass-panel border-white/10">
+        <div class="w-16 h-16 rounded-full border-4 border-cyan/20 border-t-cyan animate-spin mx-auto mb-4"></div>
+        <h4 class="text-base font-black text-white">مزامنة الكتالوج جارية...</h4>
+        <p class="text-xs text-slate-500 leading-relaxed">يرجى الانتظار، نقوم بسحب كافة البيانات وتصميم الحقول والمدخلات المطلوبة للخدمات تلقائياً من API المزود.</p>
+    </div>
+</div>
+
+<script>
+    function switchTab(tabId, btn) {
+        // Toggle active content
+        document.querySelectorAll('.tab-content').forEach(c => c.classList.add('hidden'));
+        document.getElementById(tabId).classList.remove('hidden');
+        
+        // Toggle active button style
+        document.querySelectorAll('.tab-btn').forEach(b => {
+            b.classList.remove('bg-white/5', 'text-white', 'active-tab');
+            b.classList.add('text-slate-400');
+        });
+        btn.classList.add('bg-white/5', 'text-white', 'active-tab');
+        btn.classList.remove('text-slate-400');
+    }
+
+    function copyWebhook() {
+        const text = document.getElementById('webhook-text').innerText;
+        navigator.clipboard.writeText(text).then(() => {
+            const successMsg = document.getElementById('copy-success');
+            successMsg.classList.remove('hidden');
+            setTimeout(() => {
+                successMsg.classList.add('hidden');
+            }, 3000);
+        });
+    }
+
+    function showSyncLoader() {
+        document.getElementById('sync-loader').classList.remove('hidden');
+    }
+
+    function filterApiCatalog() {
+        const query = document.getElementById('api-search').value.toLowerCase().trim();
+        const rows = document.querySelectorAll('.table-row-api');
+        
+        rows.forEach(row => {
+            const name = row.querySelector('.name-field').innerText.toLowerCase();
+            const cat = row.querySelector('.cat-field').innerText.toLowerCase();
+            
+            if (name.includes(query) || cat.includes(query)) {
+                row.style.display = '';
+            } else {
+                row.style.display = 'none';
+            }
+        });
+    }
+</script>
+
+<style>
+    /* Styling elements specific to Alkasr Integration Dashboard */
+    .active-tab {
+        border: 1px solid rgba(6, 182, 212, 0.15);
+        box-shadow: 0 4px 15px -3px rgba(6, 182, 212, 0.2);
+    }
+</style>
+{% endblock %}

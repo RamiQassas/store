@@ -255,6 +255,10 @@
             <a href="{% url 'control_product_suggestions_list' %}" class="admin-nav-link {% if 'suggestion' in request.path %}active{% endif %}">
                 <i class="fas fa-lightbulb"></i> مقترحات العملاء
             </a>
+            <a href="{% url 'control_alkasr_dashboard' %}" class="admin-nav-link {% if 'control/alkasr' in request.path %}active{% endif %}">
+                <i class="fas fa-plug text-sky-400"></i> بوابة الربط (Alkasr)
+            </a>
+
 
             <div class="admin-nav-group"><span>المستخدمين والدعم</span></div>
             <a href="{% url 'control_users_list' %}" class="admin-nav-link {% if 'user' in request.path and 'moderate' not in request.path %}active{% endif %}">
