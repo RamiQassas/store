@@ -597,7 +597,7 @@ class ProductForm(forms.ModelForm):
         model = Product
         fields = [
             "product_type", "name", "category", "image", "cover_image", "thumbnail",
-            "description", "instructions", "is_active", "is_featured", "is_out_of_stock", "is_sale", "sort_order", "delivery_time_display", "form_schema",
+            "description", "instructions", "is_active", "is_featured", "is_out_of_stock", "is_sale", "is_api_product", "sort_order", "delivery_time_display", "form_schema",
             "track_inventory", "quantity", "low_stock_threshold"
         ]
         widgets = {
@@ -619,7 +619,7 @@ class ProductForm(forms.ModelForm):
 class VariantForm(forms.ModelForm):
     class Meta:
         model = ProductVariant
-        fields = ["name", "sku", "price", "cost", "discount_percent", "is_sale", "estimated_delivery_minutes", "is_active", "is_temporarily_disabled", "sort_order"]
+        fields = ["name", "sku", "price", "cost", "discount_percent", "is_sale", "estimated_delivery_minutes", "is_active", "is_temporarily_disabled", "sort_order", "api_product_id"]
         widgets = {
             "name": forms.TextInput(attrs={"class": "builder-input"}),
             "sku": forms.TextInput(attrs={"class": "builder-input"}),
@@ -628,6 +628,7 @@ class VariantForm(forms.ModelForm):
             "discount_percent": forms.NumberInput(attrs={"class": "builder-input", "step": "0.01"}),
             "estimated_delivery_minutes": forms.NumberInput(attrs={"class": "builder-input"}),
             "sort_order": forms.NumberInput(attrs={"class": "builder-input"}),
+            "api_product_id": forms.NumberInput(attrs={"class": "builder-input", "placeholder": "رقم المنتج في API المزود (مثل: 365)"}),
         }
 
 from apps.support.models import SupportSettings, ChatCannedReply

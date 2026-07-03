@@ -71,6 +71,7 @@ class Product(TimeStampedModel):
     is_featured = models.BooleanField(default=False, verbose_name="مميز (عرض في الرئيسية)")
     is_out_of_stock = models.BooleanField(default=False, verbose_name="غير متوفر (سيظل معروضاً)")
     is_sale = models.BooleanField(default=False, verbose_name="عليه عرض/تخفيض")
+    is_api_product = models.BooleanField(default=False, verbose_name="منتج من الـ API")
     sort_order = models.PositiveIntegerField(default=0, verbose_name="ترتيب العرض")
     delivery_time_display = models.CharField(max_length=60, blank=True, verbose_name="وقت التسليم المعروض", help_text="مثال: 5-15 دقيقة أو 1-2 ساعة")
     
@@ -157,6 +158,7 @@ class ProductVariant(TimeStampedModel):
         default="manual",
         verbose_name="طريقة التسليم"
     )
+    api_product_id = models.IntegerField(null=True, blank=True, verbose_name="رقم المنتج في الـ API")
     recharge_amount = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal("0.00"), verbose_name="قيمة كود الشحن التلقائي")
     recharge_currency = models.ForeignKey("common.Currency", on_delete=models.SET_NULL, null=True, blank=True, verbose_name="عملة كود الشحن التلقائي")
     sort_order = models.PositiveIntegerField(default=0, verbose_name="ترتيب العرض")

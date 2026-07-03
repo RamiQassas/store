@@ -106,6 +106,8 @@ class Order(TimeStampedModel):
     admin_note = models.TextField(blank=True, verbose_name="ملاحظات المدير")
     metadata = models.JSONField(default=dict, blank=True, verbose_name="بيانات إضافية")
     is_delivery_read = models.BooleanField(default=False, verbose_name="تمت رؤية المنتج الرقمي")
+    api_order_id = models.CharField(max_length=100, blank=True, null=True, verbose_name="رقم الطلب في Alkasr")
+    api_order_uuid = models.UUIDField(blank=True, null=True, verbose_name="UUID الطلب في Alkasr")
 
     # Shipping information for physical products
     shipping_name = models.CharField(max_length=150, blank=True, verbose_name="اسم المستلم")

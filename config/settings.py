@@ -371,3 +371,7 @@ CELERY_BEAT_SCHEDULE = {
     },
 }
 
+# Alkasr API Integration
+ALKASR_API_TOKEN = env("ALKASR_API_TOKEN", "ed73cfef172124e1c695a3b2e7d7754b8594aedc7d0bae73")
+ALKASR_BASE_URL = env("ALKASR_BASE_URL", "https://api.alkasr-vip.com/")
+

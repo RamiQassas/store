@@ -226,6 +226,47 @@
 
     <!-- Sidebar -->
     <div class="stack gap-6">
+        {% if order.api_order_id or order.api_order_uuid %}
+        <!-- Alkasr API Order Status -->
+        <div class="management-card border-sky-500/20 bg-sky-950/5">
+            <div class="management-header">
+                <h3 class="font-bold flex items-center gap-2 text-sky-400">
+                    <i class="fas fa-plug text-sky-400"></i> تفاصيل مزود الخدمة (Alkasr)
+                </h3>
+            </div>
+            <div class="p-6 stack gap-4">
+                <div class="info-item">
+                    <span class="info-label">رقم الطلب الخارجي (Alkasr ID)</span>
+                    <span class="info-value text-slate-300 font-mono">{{ order.api_order_id|default:"---" }}</span>
+                </div>
+                {% if order.api_order_uuid %}
+                <div class="info-item">
+                    <span class="info-label">UUID الطلب الخارجي</span>
+                    <span class="info-value text-slate-300 font-mono text-[10px]">{{ order.api_order_uuid }}</span>
+                </div>
+                {% endif %}
+                <div class="info-item">
+                    <span class="info-label">آخر حالة في الـ API</span>
+                    <span class="info-value">
+                        {% if order.fulfillment_data.api_status == "accept" %}
+                        <span class="text-emerald-500 font-bold">مقبول (accept)</span>
+                        {% elif order.fulfillment_data.api_status == "reject" %}
+                        <span class="text-rose-500 font-bold">مرفوض (reject)</span>
+                        {% elif order.fulfillment_data.api_status == "wait" %}
+                        <span class="text-amber-500 font-bold">قيد المعالجة (wait)</span>
+                        {% else %}
+                        <span class="text-slate-400 font-bold">{{ order.fulfillment_data.api_status|default:"غير متوفر" }}</span>
+                        {% endif %}
+                    </span>
+                </div>
+                
+                <button type="button" onclick="syncAlkasrStatus('{{ order.id }}', this)" class="btn btn-sm btn-outline text-sky-400 border-sky-500/20 hover:bg-sky-500 hover:text-black w-full py-2.5 font-bold">
+                    <i class="fas fa-sync ml-1"></i> تحديث الحالة من المزود
+                </button>
+            </div>
+        </div>
+        {% endif %}
+
         <!-- Update Status -->
         <div class="management-card border-cyan/20">
             <div class="management-header">
@@ -378,6 +419,42 @@ function addFfRow() {
         <button type="button" class="btn btn-outline danger h-full" onclick="this.parentElement.remove()"><i class="fas fa-times"></i></button>
     `;
     container.appendChild(row);
+}
+
+function syncAlkasrStatus(orderId, btn) {
+    const originalText = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin ml-1"></i> جاري التحديث...';
+    
+    // Get csrf token
+    const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+    
+    fetch(`/api/orders/${orderId}/sync_alkasr_status/`, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': csrfToken,
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
+        }
+    })
+    .then(response => {
+        if (!response.ok) {
+            return response.json().then(err => { throw err; });
+        }
+        return response.json();
+    })
+    .then(data => {
+        alert(data.message || 'تم تحديث حالة الطلب بنجاح');
+        window.location.reload();
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert(error.detail || 'حدث خطأ أثناء محاولة تحديث الحالة');
+    })
+    .finally(() => {
+        btn.disabled = false;
+        btn.innerHTML = originalText;
+    });
 }
 </script>
 {% endblock %}

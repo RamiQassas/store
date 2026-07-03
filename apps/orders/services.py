@@ -1,3 +1,4 @@
+import uuid
 from decimal import Decimal
 
 from django.db import transaction
@@ -6,6 +7,7 @@ from django.utils import timezone
 from apps.catalog.models import ProductVariant, ProductKey
 from apps.orders.models import Invoice, Order, OrderItem, OrderLog, Coupon
 from apps.wallets.services import debit_wallet, get_or_create_wallet
+from apps.orders.alkasr_api import place_alkasr_order
 
 
 def next_order_number():
@@ -216,7 +218,33 @@ def create_order(customer, variant_id, quantity=1, fulfillment_data=None, coupon
 
     status = Order.Status.PROCESSING
     final_fulfillment_data = fulfillment_data or {}
-    if variant.delivery_type == 'keys':
+    api_order_id = None
+    api_order_uuid = None
+
+    if variant.product.is_api_product and variant.api_product_id:
+        api_order_uuid = uuid.uuid4()
+        # Call Alkasr API
+        res = place_alkasr_order(variant.api_product_id, quantity, api_order_uuid, metadata or {})
+        if res.get("status") == "OK":
+            data = res.get("data", {})
+            api_status = data.get("status")
+            api_order_id = data.get("order_id")
+            
+            final_fulfillment_data["api_order_id"] = api_order_id
+            final_fulfillment_data["api_status"] = api_status
+            final_fulfillment_data["api_response"] = res
+            
+            if api_status == "accept":
+                status = Order.Status.COMPLETED
+            elif api_status == "reject":
+                error_msg = res.get("message") or "الطلب مرفوض من المزود."
+                raise ValueError(f"فشل إرسال الطلب للمزود: {error_msg}")
+            else: # wait
+                status = Order.Status.PROCESSING
+        else:
+            error_msg = res.get("message") or res.get("error") or "خطأ غير معروف من المزود."
+            raise ValueError(f"فشل إرسال الطلب للمزود: {error_msg}")
+    elif variant.delivery_type == 'keys':
         status = Order.Status.COMPLETED
         final_fulfillment_data['keys'] = [k.key_code for k in locked_keys]
 
@@ -232,6 +260,8 @@ def create_order(customer, variant_id, quantity=1, fulfillment_data=None, coupon
         shipping_name=shipping_name or "",
         shipping_phone=shipping_phone or "",
         shipping_address=shipping_address or "",
+        api_order_id=api_order_id,
+        api_order_uuid=api_order_uuid,
     )
     OrderItem.objects.create(
         order=order, 
@@ -260,7 +290,9 @@ def create_order(customer, variant_id, quantity=1, fulfillment_data=None, coupon
     debit_wallet(wallet.id, debit_amount, reference=f"order:{order.id}", description=f"Order {order.number}", created_by=customer)
     
     log_note = "Order created and wallet debited."
-    if variant.delivery_type == 'keys':
+    if variant.product.is_api_product and variant.api_product_id:
+        log_note = f"تم إنشاء الطلب وربطه بالـ API (رقم الطلب الخارجي: {api_order_id})."
+    elif variant.delivery_type == 'keys':
         log_note = "تم إنشاء الطلب وتسليم الأكواد تلقائياً بنجاح."
     OrderLog.objects.create(order=order, status=order.status, note=log_note, created_by=customer)
     Invoice.objects.create(order=order, invoice_number=order.number.replace("ORD", "INV", 1), total_amount=total)

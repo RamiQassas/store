@@ -128,6 +128,10 @@
                     <label class="text-sm font-bold">{{ form.is_featured.label }}</label>
                     {{ form.is_featured }}
                 </div>
+                <div class="flex items-center justify-between p-3 bg-slate-800/30 rounded-xl border border-sky-500/20">
+                    <label class="text-sm font-bold text-sky-400">منتج من الـ API</label>
+                    {{ form.is_api_product }}
+                </div>
                 <div class="field-group">
                     <label class="text-xs">{{ form.sort_order.label }}</label>
                     {{ form.sort_order }}
