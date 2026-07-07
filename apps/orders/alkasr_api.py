@@ -4,38 +4,76 @@ from django.conf import settings
 
 logger = logging.getLogger(__name__)
 
-def get_alkasr_profile(force_refresh=False):
+def get_alkasr_integration(store=None):
+    from apps.catalog.models import APIIntegration
+    
+    # Auto-seed default Alkasr VIP settings if the table is empty
+    if APIIntegration.objects.count() == 0:
+        base_url = getattr(settings, "ALKASR_BASE_URL", "")
+        api_token = getattr(settings, "ALKASR_API_TOKEN", "")
+        if base_url and api_token:
+            APIIntegration.objects.get_or_create(
+                provider="alkasr",
+                defaults={
+                    "name": "Alkasr VIP (Default Config)",
+                    "base_url": base_url,
+                    "api_token": api_token,
+                    "is_active": True,
+                    "allow_sub_stores": True
+                }
+            )
+            
+    integration = None
+    if store:
+        integration = APIIntegration.objects.filter(store=store, provider="alkasr", is_active=True).first()
+    if not integration:
+        integration = APIIntegration.objects.filter(store__isnull=True, provider="alkasr", is_active=True).first()
+    return integration
+
+def get_alkasr_profile(store=None, force_refresh=False):
     """
     Fetches Alkasr profile information (balance and email).
     Caches the results to prevent site slowdown.
     """
     from django.core.cache import cache
-    cache_key = "alkasr_profile"
+    cache_key = f"alkasr_profile_{store.id if store else 'global'}"
     if not force_refresh:
         cached = cache.get(cache_key)
         if cached is not None:
             return cached
 
-    url = f"{settings.ALKASR_BASE_URL.rstrip('/')}/client/api/profile"
+    integration = get_alkasr_integration(store)
+    if not integration:
+        res = {"status": "error", "message": "بوابة Alkasr VIP غير مهيئة في قاعدة البيانات."}
+        cache.set(cache_key, res, 60)
+        return res
+
+    url = f"{integration.base_url.rstrip('/')}/client/api/profile"
     headers = {
-        "api-token": settings.ALKASR_API_TOKEN,
+        "api-token": integration.api_token,
         "Accept": "application/json"
     }
     try:
-        response = requests.get(url, headers=headers, timeout=15)
+        response = requests.get(url, headers=headers, timeout=3.0, verify=False)
         response.raise_for_status()
         res = response.json()
         cache.set(cache_key, res, 300) # 5 minutes cache
         return res
     except Exception as e:
         logger.exception("Failed to fetch Alkasr profile")
-        return {"status": "error", "message": str(e)}
+        res = {"status": "error", "message": str(e)}
+        cache.set(cache_key, res, 60) # cache failure for 60 seconds
+        return res
 
-def place_alkasr_order(api_product_id, qty, order_uuid, metadata):
+def place_alkasr_order(api_product_id, qty, order_uuid, metadata, store=None):
     """
     Sends a request to create a new order in Alkasr.
     """
-    url = f"{settings.ALKASR_BASE_URL.rstrip('/')}/client/api/newOrder/{api_product_id}/params"
+    integration = get_alkasr_integration(store)
+    if not integration:
+        return {"status": "error", "message": "بوابة Alkasr VIP غير مهيئة في قاعدة البيانات."}
+
+    url = f"{integration.base_url.rstrip('/')}/client/api/newOrder/{api_product_id}/params"
     
     # Base query parameters required by the API
     params = {
@@ -59,13 +97,13 @@ def place_alkasr_order(api_product_id, qty, order_uuid, metadata):
         params['playerId'] = list(metadata.values())[0]
         
     headers = {
-        "api-token": settings.ALKASR_API_TOKEN,
+        "api-token": integration.api_token,
         "Accept": "application/json"
     }
     
     try:
         logger.info(f"Sending order to Alkasr: product_id={api_product_id}, qty={qty}, uuid={order_uuid}, params={params}")
-        response = requests.get(url, params=params, headers=headers, timeout=20)
+        response = requests.get(url, params=params, headers=headers, timeout=5.0, verify=False)
         response.raise_for_status()
         response_json = response.json()
         logger.info(f"Alkasr order response: {response_json}")
@@ -74,127 +112,132 @@ def place_alkasr_order(api_product_id, qty, order_uuid, metadata):
         logger.exception("Failed to place Alkasr order")
         return {"status": "error", "message": str(e)}
 
-def check_alkasr_orders(order_identifiers, is_uuid=False):
+def check_alkasr_orders(order_identifiers, is_uuid=False, store=None):
     """
     Checks the status of one or multiple orders on Alkasr.
     order_identifiers can be a list of order IDs (e.g. ['ID_a37aaa06']) or a single UUID string.
     """
+    integration = get_alkasr_integration(store)
+    if not integration:
+        return {"status": "error", "message": "بوابة Alkasr VIP غير مهيئة في قاعدة البيانات."}
+
     if is_uuid:
         # Check by order UUID
-        url = f"{settings.ALKASR_BASE_URL.rstrip('/')}/client/api/check"
+        url = f"{integration.base_url.rstrip('/')}/client/api/check"
         params = {
             "orders": f"[{order_identifiers}]",
             "uuid": 1
         }
     else:
         # Check by order IDs
-        url = f"{settings.ALKASR_BASE_URL.rstrip('/')}/client/api/check"
+        url = f"{integration.base_url.rstrip('/')}/client/api/check"
         ids_str = ",".join(order_identifiers)
         params = {
             "orders": f"[{ids_str}]"
         }
         
     headers = {
-        "api-token": settings.ALKASR_API_TOKEN,
+        "api-token": integration.api_token,
         "Accept": "application/json"
     }
     
     try:
-        response = requests.get(url, params=params, headers=headers, timeout=15)
+        response = requests.get(url, params=params, headers=headers, timeout=4.0, verify=False)
         response.raise_for_status()
         return response.json()
     except Exception as e:
         logger.exception("Failed to check Alkasr order status")
         return {"status": "error", "message": str(e)}
 
-def get_alkasr_products(force_refresh=False):
+def get_alkasr_products(store=None, force_refresh=False):
     """
     Fetches the entire products list from Alkasr API.
     Caches the results to prevent site slowdown.
     """
     from django.core.cache import cache
-    cache_key = "alkasr_products"
+    cache_key = f"alkasr_products_{store.id if store else 'global'}"
     if not force_refresh:
         cached = cache.get(cache_key)
         if cached is not None:
             return cached
 
-    url = f"{settings.ALKASR_BASE_URL.rstrip('/')}/client/api/products"
+    integration = get_alkasr_integration(store)
+    if not integration:
+        res = {"status": "error", "message": "بوابة Alkasr VIP غير مهيئة في قاعدة البيانات."}
+        cache.set(cache_key, res, 60)
+        return res
+
+    url = f"{integration.base_url.rstrip('/')}/client/api/products"
     headers = {
-        "api-token": settings.ALKASR_API_TOKEN,
+        "api-token": integration.api_token,
         "Accept": "application/json"
     }
     try:
-        response = requests.get(url, headers=headers, timeout=25)
+        response = requests.get(url, headers=headers, timeout=6.0, verify=False)
         response.raise_for_status()
         res = response.json()
         cache.set(cache_key, res, 600) # 10 minutes cache
         return res
     except Exception as e:
         logger.exception("Failed to fetch Alkasr products")
-        return {"status": "error", "message": str(e)}
+        res = {"status": "error", "message": str(e)}
+        cache.set(cache_key, res, 60) # cache failure for 60 seconds
+        return res
 
-def get_alkasr_categories(force_refresh=False):
+def get_alkasr_categories(store=None, force_refresh=False):
     """
     Fetches categories from Alkasr API.
     Caches the results to prevent site slowdown.
     """
     from django.core.cache import cache
-    cache_key = "alkasr_categories"
+    cache_key = f"alkasr_categories_{store.id if store else 'global'}"
     if not force_refresh:
         cached = cache.get(cache_key)
         if cached is not None:
             return cached
 
-    url = f"{settings.ALKASR_BASE_URL.rstrip('/')}/client/api/categories"
+    integration = get_alkasr_integration(store)
+    if not integration:
+        res = {"status": "error", "message": "بوابة Alkasr VIP غير مهيئة في قاعدة البيانات."}
+        cache.set(cache_key, res, 60)
+        return res
+
+    url = f"{integration.base_url.rstrip('/')}/client/api/categories"
     headers = {
-        "api-token": settings.ALKASR_API_TOKEN,
+        "api-token": integration.api_token,
         "Accept": "application/json"
     }
     try:
-        response = requests.get(url, headers=headers, timeout=15)
+        response = requests.get(url, headers=headers, timeout=4.0, verify=False)
         response.raise_for_status()
         res = response.json()
         cache.set(cache_key, res, 600) # 10 minutes cache
         return res
     except Exception as e:
         logger.exception("Failed to fetch Alkasr categories")
-        return {"status": "error", "message": str(e)}
+        res = {"status": "error", "message": str(e)}
+        cache.set(cache_key, res, 60) # cache failure for 60 seconds
+        return res
 
 def download_and_save_image(url, target_field):
     """
     Helper to download an image from a URL and save it to a FileField/ImageField.
+    Disabled/Removed image download behavior as requested.
     """
-    from django.core.files.base import ContentFile
-    import os
-    import urllib3
-    urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
-    
-    if not url or url.endswith("empty.png"):
-        return
-    try:
-        response = requests.get(url, timeout=15, verify=False)
-        if response.status_code == 200:
-            filename = os.path.basename(url.split('?')[0])
-            # Ensure safe filename extension
-            if not filename.endswith(('.png', '.jpg', '.jpeg', '.webp')):
-                filename += ".webp"
-            target_field.save(filename, ContentFile(response.content), save=True)
-    except Exception as e:
-        logger.warning(f"Failed to download image from {url}: {e}")
+    return
 
 def sync_alkasr_catalog(store, selected_category_ids=None, markup_percent=0.0):
     """
     Fetches the catalog from Alkasr and synchronizes it with the local catalog.
     Only syncs products belonging to categories in selected_category_ids (list of ints).
     Adds a percentage markup_percent to the retail price.
-    Also downloads product & category images.
+    Also ensures images are completely cleared out as requested.
     """
     from decimal import Decimal
     from apps.catalog.models import Category, Product, ProductVariant
     
     # Fetch products (force refresh during sync)
-    products = get_alkasr_products(force_refresh=True)
+    products = get_alkasr_products(store=store, force_refresh=True)
     if isinstance(products, dict) and products.get("status") == "error":
         return products
         
@@ -208,6 +251,25 @@ def sync_alkasr_catalog(store, selected_category_ids=None, markup_percent=0.0):
     existing_variants = {
         v.api_product_id: v 
         for v in ProductVariant.objects.filter(api_product_id__isnull=False).select_related('product')
+    }
+    
+    # Translation map for API parameter fields
+    translation_map = {
+        "playerid": "معرّف اللاعب (Player ID)",
+        "player_id": "معرّف اللاعب (Player ID)",
+        "id": "المعرّف (ID)",
+        "username": "اسم المستخدم (Username)",
+        "user_name": "اسم المستخدم (Username)",
+        "user": "اسم المستخدم / الحساب",
+        "phone": "رقم الهاتف",
+        "number": "الرقم / المعرّف",
+        "email": "البريد الإلكتروني",
+        "password": "كلمة المرور",
+        "pin": "الرمز السري (PIN)",
+        "quantity": "الكمية",
+        "qty": "الكمية",
+        "amount": "المبلغ",
+        "playerid": "معرّف اللاعب (Player ID)",
     }
     
     for item in products:
@@ -227,24 +289,6 @@ def sync_alkasr_catalog(store, selected_category_ids=None, markup_percent=0.0):
         alkasr_price = item.get("price") or 0.0
         is_available = item.get("available", True)
         params_list = item.get("params") or []
-        # Translation map for API parameter fields
-        translation_map = {
-            "playerid": "معرّف اللاعب (Player ID)",
-            "player_id": "معرّف اللاعب (Player ID)",
-            "id": "المعرّف (ID)",
-            "username": "اسم المستخدم (Username)",
-            "user_name": "اسم المستخدم (Username)",
-            "user": "اسم المستخدم / الحساب",
-            "phone": "رقم الهاتف",
-            "number": "الرقم / المعرّف",
-            "email": "البريد الإلكتروني",
-            "password": "كلمة المرور",
-            "pin": "الرمز السري (PIN)",
-            "quantity": "الكمية",
-            "qty": "الكمية",
-            "amount": "المبلغ",
-            "playerid": "معرّف اللاعب (Player ID)",
-        }
         
         # Build form schema
         fields_list = []
@@ -280,6 +324,7 @@ def sync_alkasr_catalog(store, selected_category_ids=None, markup_percent=0.0):
             product.is_active = is_available
             product.form_schema = form_schema
             product.api_provider = "alkasr"
+            product.image = None # Clear image as requested
             product.save()
             
             # Update variant details
@@ -296,8 +341,10 @@ def sync_alkasr_catalog(store, selected_category_ids=None, markup_percent=0.0):
                 store=store,
                 defaults={"is_active": True}
             )
+            category.image = None
+            category.save()
             
-            # Create product with empty description
+            # Create product with clean/empty description and empty image
             product = Product.objects.create(
                 product_type="digital",
                 name=prod_name,
@@ -307,7 +354,8 @@ def sync_alkasr_catalog(store, selected_category_ids=None, markup_percent=0.0):
                 is_active=is_available,
                 is_api_product=True,
                 api_provider="alkasr",
-                form_schema=form_schema
+                form_schema=form_schema,
+                image=None
             )
             
             # Create default variant
@@ -334,4 +382,3 @@ def sync_alkasr_catalog(store, selected_category_ids=None, markup_percent=0.0):
         "created": created_count,
         "updated": updated_count
     }
-

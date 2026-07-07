@@ -5096,9 +5096,9 @@ def control_alkasr_dashboard(request):
             return redirect("control_alkasr_dashboard")
             
         elif action == "refresh_cache":
-            get_alkasr_profile(force_refresh=True)
-            get_alkasr_categories(force_refresh=True)
-            get_alkasr_products(force_refresh=True)
+            get_alkasr_profile(store=store, force_refresh=True)
+            get_alkasr_categories(store=store, force_refresh=True)
+            get_alkasr_products(store=store, force_refresh=True)
             messages.success(request, "تم تحديث التخزين المؤقت للبيانات وسحب كتالوج جديد بنجاح من المزود.")
             return redirect("control_alkasr_dashboard")
             
@@ -5126,7 +5126,7 @@ def control_alkasr_dashboard(request):
             return redirect("control_alkasr_dashboard")
             
     # Fetch Alkasr Profile Info
-    profile = get_alkasr_profile()
+    profile = get_alkasr_profile(store=store)
     is_connected = profile and profile.get("status") != "error"
     
     # Fetch Alkasr Categories and Products
@@ -5136,11 +5136,11 @@ def control_alkasr_dashboard(request):
     local_linked_count = 0
     
     if is_connected:
-        categories = get_alkasr_categories()
+        categories = get_alkasr_categories(store=store)
         if isinstance(categories, dict) and categories.get("status") == "error":
             categories = []
             
-        all_prods = get_alkasr_products()
+        all_prods = get_alkasr_products(store=store)
         if isinstance(all_prods, list):
             products_count = len(all_prods)
             alkasr_products = all_prods
@@ -5215,8 +5215,12 @@ def control_alkasr_dashboard(request):
     # Generate webhook URL
     webhook_url = request.build_absolute_uri('/api/orders/alkasr_webhook/')
     
-    # Obfuscate the token
-    raw_token = getattr(settings, "ALKASR_API_TOKEN", "")
+    # Retrieve active credentials from database APIIntegration model instead of settings.py
+    from apps.orders.alkasr_api import get_alkasr_integration
+    integration = get_alkasr_integration(store)
+    base_url = integration.base_url if integration else ""
+    raw_token = integration.api_token if integration else ""
+    
     if len(raw_token) > 10:
         obfuscated_token = raw_token[:6] + "..." + raw_token[-6:]
     else:
@@ -5229,7 +5233,7 @@ def control_alkasr_dashboard(request):
         "products_count": products_count,
         "alkasr_products": alkasr_products[:500], # display up to 500 products for quick client-side filtering
         "webhook_url": webhook_url,
-        "base_url": getattr(settings, "ALKASR_BASE_URL", ""),
+        "base_url": base_url,
         "obfuscated_token": obfuscated_token,
         "local_linked_count": local_linked_count,
         "total_purchases_usd": total_purchases_usd,

@@ -226,7 +226,7 @@ def create_order(customer, variant_id, quantity=1, fulfillment_data=None, coupon
         provider = variant.product.api_provider or "alkasr"
         
         if provider == "alkasr":
-            res = place_alkasr_order(variant.api_product_id, quantity, api_order_uuid, metadata or {})
+            res = place_alkasr_order(variant.api_product_id, quantity, api_order_uuid, metadata or {}, store=variant.product.store)
         else:
             # Alternate API provider placeholder routing
             res = {

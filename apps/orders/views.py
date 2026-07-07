@@ -162,9 +162,9 @@ class OrderViewSet(viewsets.ModelViewSet):
         if provider == "alkasr":
             # Check by UUID if we have it, else by order ID
             if order.api_order_uuid:
-                res = check_alkasr_orders(str(order.api_order_uuid), is_uuid=True)
+                res = check_alkasr_orders(str(order.api_order_uuid), is_uuid=True, store=order.store)
             else:
-                res = check_alkasr_orders([order.api_order_id], is_uuid=False)
+                res = check_alkasr_orders([order.api_order_id], is_uuid=False, store=order.store)
         else:
             # Alternate API provider placeholder status check
             res = {
