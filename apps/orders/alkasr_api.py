@@ -339,8 +339,10 @@ def sync_alkasr_catalog(store, selected_category_ids=None, markup_percent=0.0):
         for v in ProductVariant.objects.filter(api_product_id__isnull=False).select_related('product')
     }
     
-    # Pre-fetch all SKUs in the database to optimize SKU uniqueness checks
-    existing_skus = set(ProductVariant.objects.values_list('sku', flat=True))
+    # Pre-fetch all SKUs in the database globally to optimize SKU uniqueness checks and bypass tenant filter
+    from apps.common.tenant_utils import bypass_tenant_filter
+    with bypass_tenant_filter():
+        existing_skus = set(ProductVariant.objects.values_list('sku', flat=True))
     
     # Translation map for API parameter fields
     translation_map = {
@@ -493,10 +495,11 @@ def sync_alkasr_catalog(store, selected_category_ids=None, markup_percent=0.0):
                 updated_count += 1
             else:
                 # Create default variant
-                sku_code = f"ALK-{api_prod_id}"
+                store_prefix = f"-{store.subdomain.upper()}" if store and store.subdomain else ""
+                sku_code = f"ALK{store_prefix}-{api_prod_id}"
                 suffix = 1
                 while sku_code in existing_skus:
-                    sku_code = f"ALK-{api_prod_id}-{suffix}"
+                    sku_code = f"ALK{store_prefix}-{api_prod_id}-{suffix}"
                     suffix += 1
                 existing_skus.add(sku_code)
                     
