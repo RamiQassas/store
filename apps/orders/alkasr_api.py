@@ -319,6 +319,7 @@ def sync_alkasr_catalog(store, selected_category_ids=None, markup_percent=0.0):
                     label = "معرّف اللاعب (Player ID)"
                     
                 fields_list.append({
+                    "name": p_field,
                     "label": label,
                     "type": "text",
                     "required": True

@@ -321,9 +321,9 @@
                     <div class="field-group">
                         <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 block">{{ f.label }} {% if f.required %}<span class="text-rose-500">*</span>{% endif %}</label>
                         {% if f.type == 'textarea' %}
-                        <textarea name="custom_{{ f.name|default:f.label|slugify|replace:".,-" }}" placeholder="{{ f.placeholder }}" class="w-full bg-slate-900 border-white/5 rounded-2xl p-4 text-white focus:border-cyan transition" {% if f.required %}required{% endif %}></textarea>
+                        <textarea name="custom_{{ f.name|default:f.label }}" placeholder="{{ f.placeholder }}" class="w-full bg-slate-900 border-white/5 rounded-2xl p-4 text-white focus:border-cyan transition" {% if f.required %}required{% endif %}></textarea>
                         {% elif f.options %}
-                        <select name="custom_{{ f.name|default:f.label|slugify|replace:".,-" }}" class="w-full bg-slate-900 border-white/5 rounded-2xl p-4 text-white focus:border-cyan transition" {% if f.required %}required{% endif %}>
+                        <select name="custom_{{ f.name|default:f.label }}" class="w-full bg-slate-900 border-white/5 rounded-2xl p-4 text-white focus:border-cyan transition" {% if f.required %}required{% endif %}>
                             <option value="">-- اختر من القائمة --</option>
                             {% if f.options|is_list %}
                                 {% for opt in f.options %}
@@ -336,18 +336,18 @@
                             {% endif %}
                         </select>
                         {% elif f.type == 'image' %}
-                        <input type="file" name="custom_{{ f.name|default:f.label|slugify|replace:".,-" }}" class="w-full bg-slate-900 border-white/5 rounded-2xl p-4 text-xs text-slate-500" accept="image/*" {% if f.required %}required{% endif %}>
+                        <input type="file" name="custom_{{ f.name|default:f.label }}" class="w-full bg-slate-900 border-white/5 rounded-2xl p-4 text-xs text-slate-500" accept="image/*" {% if f.required %}required{% endif %}>
                         {% elif f.type == 'location' %}
                         <div class="relative flex items-center">
-                            <input type="text" id="loc_{{ f.name|default:f.label|slugify|replace:".,-" }}" name="custom_{{ f.name|default:f.label|slugify|replace:".,-" }}" placeholder="{{ f.placeholder|default:'مثال: https://www.google.com/maps?q=24.7136,46.6753' }}" class="w-full bg-slate-900 border border-white/5 rounded-2xl p-4 pl-36 text-white focus:border-cyan transition" {% if f.required %}required{% endif %}>
-                            <button type="button" onclick="detectGPSLocation('loc_{{ f.name|default:f.label|slugify|replace:".,-" }}', this)" class="absolute left-2 bg-cyan/10 hover:bg-cyan/20 border border-cyan/20 hover:border-cyan/30 text-cyan text-[11px] font-bold py-2 px-3 rounded-xl flex items-center gap-1.5 transition-all">
+                            <input type="text" id="loc_{{ forloop.counter }}" name="custom_{{ f.name|default:f.label }}" placeholder="{{ f.placeholder|default:'مثال: https://www.google.com/maps?q=24.7136,46.6753' }}" class="w-full bg-slate-900 border border-white/5 rounded-2xl p-4 pl-36 text-white focus:border-cyan transition" {% if f.required %}required{% endif %}>
+                            <button type="button" onclick="detectGPSLocation('loc_{{ forloop.counter }}', this)" class="absolute left-2 bg-cyan/10 hover:bg-cyan/20 border border-cyan/20 hover:border-cyan/30 text-cyan text-[11px] font-bold py-2 px-3 rounded-xl flex items-center gap-1.5 transition-all">
                                 <i class="fas fa-map-marker-alt"></i>
                                 <span>تحديد موقعي (GPS)</span>
                             </button>
                         </div>
                         <span class="text-[9px] text-slate-500 mt-1 block">يمكنك نسخ ولصق رابط موقعك من خرائط جوجل مباشرة أو استخدام زر تحديد الموقع الحالي.</span>
                         {% else %}
-                        <input type="text" name="custom_{{ f.name|default:f.label|slugify|replace:".,-" }}" placeholder="{{ f.placeholder }}" class="w-full bg-slate-900 border-white/5 rounded-2xl p-4 text-white focus:border-cyan transition" {% if f.required %}required{% endif %}>
+                        <input type="text" name="custom_{{ f.name|default:f.label }}" placeholder="{{ f.placeholder }}" class="w-full bg-slate-900 border-white/5 rounded-2xl p-4 text-white focus:border-cyan transition" {% if f.required %}required{% endif %}>
                         {% endif %}
                     </div>
                     {% endfor %}

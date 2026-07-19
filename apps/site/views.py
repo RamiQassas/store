@@ -5119,6 +5119,19 @@ def control_alkasr_dashboard(request):
             messages.success(request, "تم تحديث التخزين المؤقت للبيانات وسحب كتالوج جديد بنجاح من المزود.")
             return redirect("control_alkasr_dashboard")
             
+        elif action == "clear_catalog":
+            from apps.catalog.models import Product
+            from django.core.cache import cache
+            deleted_count, _ = Product.objects.filter(store=store, is_api_product=True).delete()
+            
+            store_suffix = store.id if store else 'global'
+            cache.delete(f"alkasr_products_{store_suffix}")
+            cache.delete(f"alkasr_categories_{store_suffix}")
+            cache.delete(f"alkasr_profile_{store_suffix}")
+            
+            messages.success(request, f"تم مسح جميع المنتجات المستوردة من المزود بنجاح (عدد المنتجات المحذوفة: {deleted_count}) وتطهير التخزين المؤقت.")
+            return redirect("control_alkasr_dashboard")
+            
         elif action == "toggle_active":
             product_id = request.POST.get("product_id")
             try:

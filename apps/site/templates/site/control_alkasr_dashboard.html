@@ -36,7 +36,7 @@
                 <i class="fas fa-wallet"></i>
             </div>
             <div>
-                <span class="text-[10px] text-slate-500 font-black uppercase tracking-widest block mb-1">الرصيد لدى الكسر</span>
+                <span class="text-[10px] text-slate-500 font-black uppercase tracking-widest block mb-1">الرصيد لدى المزود (API Balance)</span>
                 <strong class="text-base font-black text-white">
                     {% if is_connected and profile.balance %}{{ profile.balance }}{% else %}0.00{% endif %} <span class="text-[10px] text-slate-400">USD</span>
                 </strong>
@@ -156,12 +156,19 @@
                 </div>
 
                 {% if is_connected %}
-                <div class="pt-4 border-t border-white/5 flex justify-end">
+                <div class="pt-4 border-t border-white/5 flex flex-col gap-3">
                     <form method="POST" action="." class="w-full">
                         {% csrf_token %}
                         <input type="hidden" name="action" value="refresh_cache">
                         <button type="submit" class="btn btn-outline text-amber-500 hover:bg-amber-500/10 border-amber-500/20 w-full font-bold py-2.5 rounded-xl">
                             <i class="fas fa-arrows-rotate ml-2"></i> تحديث التخزين المؤقت للبيانات من السيرفر
+                        </button>
+                    </form>
+                    <form method="POST" action="." class="w-full" onsubmit="return confirm('تنبيه: سيتم مسح جميع المنتجات التي تم استيرادها تلقائياً من المزود نهائياً من متجرك. هل أنت متأكد؟');">
+                        {% csrf_token %}
+                        <input type="hidden" name="action" value="clear_catalog">
+                        <button type="submit" class="btn btn-outline text-rose-500 hover:bg-rose-500/10 border-rose-500/20 w-full font-bold py-2.5 rounded-xl">
+                            <i class="fas fa-trash-can ml-2"></i> مسح جميع المنتجات المستوردة وتطهير الكاش
                         </button>
                     </form>
                 </div>
