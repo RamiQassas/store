@@ -257,7 +257,7 @@ def notify_provider_error(error_code, provider_name, product_id=None, detail=Non
     notify_staff(
         title=title,
         body=body,
-        action_url="/control/alkasr/",
+        action_url="/control/apicontrol/",
         category="admin_provider_alert",
         priority=priority,
         metadata={

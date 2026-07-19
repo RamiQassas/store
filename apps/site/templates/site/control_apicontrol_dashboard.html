@@ -156,15 +156,18 @@
 </div>
 
 <!-- Tab System Navigation -->
-<div class="flex gap-4 border-b border-white/5 mb-8 pb-3 overflow-x-auto">
-    <button class="tab-btn px-6 py-2.5 font-bold text-xs rounded-xl bg-white/5 text-white active-tab transition-all" onclick="switchTab('tab-settings', this)">
+<div class="flex gap-4 border-b border-white/5 mb-8 pb-3 overflow-x-auto flex-nowrap whitespace-nowrap">
+    <button class="tab-btn px-6 py-2.5 font-bold text-xs rounded-xl bg-white/5 text-white active-tab transition-all flex items-center" onclick="switchTab('tab-settings', this)">
         <i class="fas fa-gear ml-2"></i> إعدادات الربط والاتصال
     </button>
-    <button class="tab-btn px-6 py-2.5 font-bold text-xs rounded-xl text-slate-400 hover:text-white transition-all" onclick="switchTab('tab-sync', this)">
+    <button class="tab-btn px-6 py-2.5 font-bold text-xs rounded-xl text-slate-400 hover:text-white transition-all flex items-center" onclick="switchTab('tab-sync', this)">
         <i class="fas fa-arrows-rotate ml-2"></i> مزامنة واستيراد الخدمات
     </button>
-    <button class="tab-btn px-6 py-2.5 font-bold text-xs rounded-xl text-slate-400 hover:text-white transition-all" onclick="switchTab('tab-catalog', this)">
+    <button class="tab-btn px-6 py-2.5 font-bold text-xs rounded-xl text-slate-400 hover:text-white transition-all flex items-center" onclick="switchTab('tab-catalog', this)">
         <i class="fas fa-list ml-2"></i> معاينة منتجات API ({{ products_count }})
+    </button>
+    <button class="tab-btn px-6 py-2.5 font-bold text-xs rounded-xl text-slate-400 hover:text-white transition-all flex items-center" onclick="switchTab('tab-logs', this)">
+        <i class="fas fa-history ml-2"></i> سجل عمليات ربط API
     </button>
 </div>
 
@@ -502,6 +505,163 @@
     </div>
 </div>
 
+<!-- Tab 4: Logs -->
+<div id="tab-logs" class="tab-content stack gap-6 hidden reveal">
+    <div class="glass-panel p-8">
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+            <div>
+                <h3 class="text-base font-black text-white flex items-center gap-2">
+                    <i class="fas fa-history text-cyan text-xs"></i> سجل عمليات ربط API
+                </h3>
+                <p class="text-xs text-slate-500 mt-1">تتبع وحل مشكلات الاتصال والطلبات الموجهة للمزودين بالتفصيل.</p>
+            </div>
+        </div>
+
+        <div class="overflow-x-auto w-full border border-white/5 rounded-2xl">
+            <table class="w-full text-right text-xs leading-normal">
+                <thead>
+                    <tr class="bg-white/5 text-slate-400 font-bold border-b border-white/5">
+                        <th class="p-4">الوقت والتاريخ</th>
+                        <th class="p-4 text-center">المزود</th>
+                        <th class="p-4 text-center">العملية</th>
+                        <th class="p-4 text-center">رقم الخدمة</th>
+                        <th class="p-4 text-center">معرف الطلب</th>
+                        <th class="p-4 text-center">كود HTTP</th>
+                        <th class="p-4 text-center">الحالة</th>
+                        <th class="p-4 text-center">تفاصيل الخطأ</th>
+                        <th class="p-4 text-center">الإجراءات</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-white/5 text-slate-300">
+                    {% for log in recent_transactions %}
+                    <tr class="hover:bg-white/[0.02] transition-colors">
+                        <td class="p-4 whitespace-nowrap text-slate-400 font-mono text-[10px]">
+                            {{ log.created_at|date:"Y-m-d H:i:s" }}
+                        </td>
+                        <td class="p-4 text-center font-bold">
+                            {{ log.provider|upper }}
+                        </td>
+                        <td class="p-4 text-center">
+                            <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-white/5 text-cyan">
+                                {{ log.action }}
+                            </span>
+                        </td>
+                        <td class="p-4 text-center font-mono text-slate-500">
+                            {{ log.product_id|default:"-" }}
+                        </td>
+                        <td class="p-4 text-center font-mono text-[10px] text-slate-400">
+                            {{ log.order_uuid|default:"-" }}
+                        </td>
+                        <td class="p-4 text-center font-mono font-bold">
+                            {% if log.response_status %}
+                                <span class="{% if log.response_status >= 200 and log.response_status < 300 %}text-emerald-400{% else %}text-rose-400{% endif %}">
+                                    {{ log.response_status }}
+                                </span>
+                            {% else %}
+                                <span class="text-slate-500">-</span>
+                            {% endif %}
+                        </td>
+                        <td class="p-4 text-center">
+                            {% if log.is_success %}
+                                <span class="badge success text-[9px] font-black"><i class="fas fa-circle-check ml-1"></i> نجاح</span>
+                            {% else %}
+                                <span class="badge danger text-[9px] font-black"><i class="fas fa-circle-xmark ml-1"></i> فشل</span>
+                            {% endif %}
+                        </td>
+                        <td class="p-4 text-center text-slate-400 max-w-[200px] truncate" title="{{ log.error_message|default:log.response_body }}">
+                            {% if log.error_code %}
+                                <span class="text-rose-400 font-bold">ERR-{{ log.error_code }}</span>
+                                {% if log.error_message %} - <span class="text-[10px]">{{ log.error_message }}</span>{% endif %}
+                            {% else %}
+                                {{ log.error_message|default:"-" }}
+                            {% endif %}
+                        </td>
+                        <td class="p-4 text-center">
+                            <button type="button" class="btn btn-outline btn-sm py-1 px-2.5 text-[9px] font-black text-cyan border-cyan/20"
+                                    onclick="openLogModal('{{ log.id }}', '{{ log.created_at|date:"Y-m-d H:i:s" }}', '{{ log.provider|upper }}', '{{ log.action }}', '{{ log.response_status|default:"N/A" }}', '{{ log.is_success|yesno:"success,danger" }}')">
+                                عرض التفاصيل
+                            </button>
+                            <!-- Hidden detailed content fields for JavaScript extraction -->
+                            <div id="log-data-{{ log.id }}" class="hidden"
+                                 data-url="{{ log.request_url }}"
+                                 data-params="{{ log.request_params }}"
+                                 data-response="{{ log.response_body }}"
+                                 data-errcode="{{ log.error_code|default:"" }}"
+                                 data-errmsg="{{ log.error_message|default:"" }}">
+                            </div>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="9" class="p-12 text-center text-slate-600 italic text-xs">
+                            لا توجد عمليات مسجلة حالياً في السجل.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Detailed Log Modal -->
+<div id="log-modal" class="fixed inset-0 bg-black/80 backdrop-filter backdrop-blur-md z-50 flex items-center justify-center hidden">
+    <div class="w-full max-w-3xl m-4 glass-panel border-white/10 p-8 stack gap-6 relative max-h-[90vh] overflow-y-auto">
+        <button class="absolute top-4 left-4 text-slate-400 hover:text-white" onclick="closeLogModal()">
+            <i class="fas fa-times text-lg"></i>
+        </button>
+        
+        <div class="flex items-center gap-3 border-b border-white/5 pb-4">
+            <div id="modal-status-badge" class="w-2.5 h-2.5 rounded-full"></div>
+            <h3 class="text-base font-black text-white">تفاصيل العملية البرمجية لـ API</h3>
+            <span id="modal-time" class="text-xs text-slate-500 font-mono mr-auto"></span>
+        </div>
+
+        <div class="grid grid-cols-2 gap-4 text-xs">
+            <div class="glass-panel p-3 border-white/5">
+                <span class="text-slate-500">المزود:</span>
+                <strong id="modal-provider" class="text-white block mt-1"></strong>
+            </div>
+            <div class="glass-panel p-3 border-white/5">
+                <span class="text-slate-500">نوع العملية:</span>
+                <strong id="modal-action" class="text-white block mt-1"></strong>
+            </div>
+            <div class="glass-panel p-3 border-white/5">
+                <span class="text-slate-500">كود استجابة HTTP:</span>
+                <strong id="modal-status-code" class="text-white block mt-1"></strong>
+            </div>
+            <div class="glass-panel p-3 border-white/5">
+                <span class="text-slate-500">رمز الخطأ الداخلي:</span>
+                <strong id="modal-error-code" class="text-rose-400 block mt-1"></strong>
+            </div>
+        </div>
+
+        <div class="stack gap-2 text-xs">
+            <span class="text-slate-500 font-bold">رابط الطلب (Request URL):</span>
+            <div id="modal-url" class="p-3 bg-slate-950/80 rounded-xl border border-white/5 font-mono text-[10px] break-all text-slate-300 text-left dir-ltr"></div>
+        </div>
+
+        <div class="stack gap-2 text-xs">
+            <span class="text-slate-500 font-bold">معاملات الطلب المرسلة (Request Params):</span>
+            <pre id="modal-params" class="p-4 bg-slate-950/80 rounded-xl border border-white/5 font-mono text-[10px] overflow-x-auto text-cyan dir-ltr text-left"></pre>
+        </div>
+
+        <div class="stack gap-2 text-xs">
+            <span class="text-slate-500 font-bold">استجابة السيرفر الكاملة (Response Body):</span>
+            <pre id="modal-response" class="p-4 bg-slate-950/80 rounded-xl border border-white/5 font-mono text-[10px] overflow-x-auto max-h-60 text-slate-300 dir-ltr text-left"></pre>
+        </div>
+        
+        <div id="modal-error-section" class="stack gap-2 text-xs hidden">
+            <span class="text-slate-500 font-bold">رسالة الخطأ المسجلة:</span>
+            <div id="modal-error-message" class="p-3 bg-rose-950/30 rounded-xl border border-rose-500/10 text-rose-300"></div>
+        </div>
+
+        <div class="flex justify-end mt-4">
+            <button class="btn btn-outline btn-sm py-2 px-6 font-bold text-xs" onclick="closeLogModal()">إغلاق النافذة</button>
+        </div>
+    </div>
+</div>
+
 <!-- Loader Modal -->
 <div id="sync-loader" class="fixed inset-0 bg-black/80 backdrop-filter backdrop-blur-md z-50 flex items-center justify-center hidden">
     <div class="text-center stack gap-4 max-w-sm p-8 glass-panel border-white/10">
@@ -555,6 +715,83 @@
                 row.style.display = 'none';
             }
         });
+    }
+    function openLogModal(logId, timestamp, provider, action, statusCode, statusClass) {
+        const dataEl = document.getElementById('log-data-' + logId);
+        if (!dataEl) return;
+
+        const url = dataEl.getAttribute('data-url');
+        const params = dataEl.getAttribute('data-params');
+        const response = dataEl.getAttribute('data-response');
+        const errcode = dataEl.getAttribute('data-errcode');
+        const errmsg = dataEl.getAttribute('data-errmsg');
+
+        document.getElementById('modal-time').innerText = timestamp;
+        document.getElementById('modal-provider').innerText = provider;
+        document.getElementById('modal-action').innerText = action;
+        document.getElementById('modal-status-code').innerText = statusCode;
+        
+        // Error code
+        const errCodeEl = document.getElementById('modal-error-code');
+        if (errcode) {
+            errCodeEl.innerText = 'ERR-' + errcode;
+        } else {
+            errCodeEl.innerText = 'لا يوجد';
+        }
+
+        // Status badge
+        const badge = document.getElementById('modal-status-badge');
+        if (statusClass === 'success') {
+            badge.style.backgroundColor = '#10b981';
+        } else {
+            badge.style.backgroundColor = '#ef4444';
+        }
+
+        // URL and Params
+        document.getElementById('modal-url').innerText = url || '-';
+        
+        // Pretty print params if JSON
+        const paramsEl = document.getElementById('modal-params');
+        try {
+            if (params) {
+                const parsed = JSON.parse(params);
+                paramsEl.innerText = JSON.stringify(parsed, null, 2);
+            } else {
+                paramsEl.innerText = 'لا يوجد معاملات';
+            }
+        } catch(e) {
+            paramsEl.innerText = params || 'لا يوجد معاملات';
+        }
+
+        // Response pretty print if JSON
+        const responseEl = document.getElementById('modal-response');
+        try {
+            if (response) {
+                const parsed = JSON.parse(response);
+                responseEl.innerText = JSON.stringify(parsed, null, 2);
+            } else {
+                responseEl.innerText = response || '-';
+            }
+        } catch(e) {
+            responseEl.innerText = response || '-';
+        }
+
+        // Error message section
+        const errSec = document.getElementById('modal-error-section');
+        const errText = document.getElementById('modal-error-message');
+        if (errmsg) {
+            errSec.classList.remove('hidden');
+            errText.innerText = errmsg;
+        } else {
+            errSec.classList.add('hidden');
+            errText.innerText = '';
+        }
+
+        document.getElementById('log-modal').classList.remove('hidden');
+    }
+
+    function closeLogModal() {
+        document.getElementById('log-modal').classList.add('hidden');
     }
 </script>
 {% endif %}

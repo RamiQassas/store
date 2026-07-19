@@ -4,6 +4,51 @@ from django.conf import settings
 
 logger = logging.getLogger(__name__)
 
+def log_api_transaction(integration, action, url, params, response_status, response_body, is_success, error_code=None, error_message=None, product_id=None, order_uuid=None):
+    try:
+        from apps.catalog.models import APITransaction
+        import json
+
+        # Clean/mask tokens in params
+        clean_params = {}
+        if isinstance(params, dict):
+            for k, v in params.items():
+                if k.lower() in ("api_token", "api-token", "token", "key", "api_key", "apikey"):
+                    clean_params[k] = "***MASKED***"
+                else:
+                    clean_params[k] = v
+        else:
+            clean_params = params
+
+        # Mask token in URL if present
+        clean_url = url
+        if "api_token=" in clean_url or "api-token=" in clean_url:
+            import re
+            clean_url = re.sub(r'(api[-_]token)=([^&]+)', r'\1=***MASKED***', clean_url)
+
+        # Truncate response body if it's too huge
+        clean_response = response_body
+        if clean_response and len(clean_response) > 50000:
+            clean_response = clean_response[:50000] + "\n... [TRUNCATED]"
+
+        APITransaction.objects.create(
+            integration=integration,
+            store=integration.store if integration else None,
+            provider=integration.provider if integration else "alkasr",
+            action=action,
+            product_id=product_id,
+            order_uuid=order_uuid,
+            request_url=clean_url,
+            request_params=json.dumps(clean_params, ensure_ascii=False) if clean_params else None,
+            response_status=response_status,
+            response_body=clean_response,
+            is_success=is_success,
+            error_code=str(error_code) if error_code is not None else None,
+            error_message=error_message,
+        )
+    except Exception as e:
+        logger.warning(f"Failed to log API transaction: {e}")
+
 def get_alkasr_integration(store=None):
     from apps.catalog.models import APIIntegration
     from django.core.cache import cache
@@ -68,10 +113,31 @@ def get_alkasr_profile(store=None, force_refresh=False, integration=None):
         response = requests.get(url, headers=headers, timeout=3.0, verify=False)
         response.raise_for_status()
         res = response.json()
+        log_api_transaction(
+            integration=integration,
+            action="profile",
+            url=url,
+            params=None,
+            response_status=response.status_code,
+            response_body=response.text,
+            is_success=True
+        )
         cache.set(cache_key, res, 1800) # 30 minutes cache
         return res
     except Exception as e:
         logger.exception("Failed to fetch Alkasr profile")
+        status_code = getattr(getattr(e, 'response', None), 'status_code', None)
+        body = getattr(getattr(e, 'response', None), 'text', str(e))
+        log_api_transaction(
+            integration=integration,
+            action="profile",
+            url=url,
+            params=None,
+            response_status=status_code,
+            response_body=body,
+            is_success=False,
+            error_message=str(e)
+        )
         res = {"status": "error", "message": str(e)}
         cache.set(cache_key, res, 60) # cache failure for 60 seconds
         return res
@@ -217,6 +283,21 @@ def place_alkasr_order(api_product_id, qty, order_uuid, metadata, store=None):
         if response_json and response_json.get("status") == "ERROR":
             err_code = response_json.get("code", 0)
             err_msg  = response_json.get("msg", "خطأ غير معروف من المزود")
+            
+            log_api_transaction(
+                integration=integration,
+                action="newOrder",
+                url=url,
+                params=params,
+                response_status=response.status_code,
+                response_body=response.text,
+                is_success=False,
+                error_code=err_code,
+                error_message=err_msg,
+                product_id=api_product_id,
+                order_uuid=order_uuid
+            )
+
             alkasr_errors = {
                 120: "ERR-120: مفتاح API مطلوب — يرجى مراجعة إعدادات بوابة الربط",
                 121: "ERR-121: مفتاح API خاطئ — يرجى التحقق من صحة الرمز في لوحة التحكم",
@@ -253,10 +334,32 @@ def place_alkasr_order(api_product_id, qty, order_uuid, metadata, store=None):
         
         if response_json and response_json.get("status") == "OK":
             logger.info(f"[Alkasr Order] Success: {response_json}")
+            log_api_transaction(
+                integration=integration,
+                action="newOrder",
+                url=url,
+                params=params,
+                response_status=response.status_code,
+                response_body=response.text,
+                is_success=True,
+                product_id=api_product_id,
+                order_uuid=order_uuid
+            )
             return response_json
         
         # Unexpected response
         response.raise_for_status()
+        log_api_transaction(
+            integration=integration,
+            action="newOrder",
+            url=url,
+            params=params,
+            response_status=response.status_code,
+            response_body=response.text,
+            is_success=True,
+            product_id=api_product_id,
+            order_uuid=order_uuid
+        )
         return response_json or {"status": "error", "message": "استجابة غير متوقعة من المزود"}
         
     except requests.exceptions.HTTPError as e:
@@ -266,9 +369,35 @@ def place_alkasr_order(api_product_id, qty, order_uuid, metadata, store=None):
         except Exception:
             err_msg = e.response.text if e.response else str(e)
         logger.error(f"[Alkasr Order] HTTP Error {getattr(e.response, 'status_code', '?')}: {err_msg}")
+        status_code = getattr(getattr(e, 'response', None), 'status_code', None)
+        body = getattr(getattr(e, 'response', None), 'text', str(e))
+        log_api_transaction(
+            integration=integration,
+            action="newOrder",
+            url=url,
+            params=params,
+            response_status=status_code,
+            response_body=body,
+            is_success=False,
+            error_message=str(e),
+            product_id=api_product_id,
+            order_uuid=order_uuid
+        )
         return {"status": "error", "message": f"خطأ من المزود: {err_msg}"}
     except Exception as e:
         logger.exception(f"[Alkasr Order] Unexpected error: product_id={api_product_id}")
+        log_api_transaction(
+            integration=integration,
+            action="newOrder",
+            url=url,
+            params=params,
+            response_status=None,
+            response_body=None,
+            is_success=False,
+            error_message=str(e),
+            product_id=api_product_id,
+            order_uuid=order_uuid
+        )
         return {"status": "error", "message": str(e)}
 
 def check_alkasr_orders(order_identifiers, is_uuid=False, store=None):
@@ -303,9 +432,33 @@ def check_alkasr_orders(order_identifiers, is_uuid=False, store=None):
     try:
         response = requests.get(url, params=params, headers=headers, timeout=4.0, verify=False)
         response.raise_for_status()
-        return response.json()
+        res = response.json()
+        log_api_transaction(
+            integration=integration,
+            action="check",
+            url=url,
+            params=params,
+            response_status=response.status_code,
+            response_body=response.text,
+            is_success=True,
+            order_uuid=order_identifiers if is_uuid else None
+        )
+        return res
     except Exception as e:
         logger.exception("Failed to check Alkasr order status")
+        status_code = getattr(getattr(e, 'response', None), 'status_code', None)
+        body = getattr(getattr(e, 'response', None), 'text', str(e))
+        log_api_transaction(
+            integration=integration,
+            action="check",
+            url=url,
+            params=params,
+            response_status=status_code,
+            response_body=body,
+            is_success=False,
+            error_message=str(e),
+            order_uuid=order_identifiers if is_uuid else None
+        )
         return {"status": "error", "message": str(e)}
 
 def get_alkasr_products(store=None, force_refresh=False, integration=None):
@@ -336,10 +489,31 @@ def get_alkasr_products(store=None, force_refresh=False, integration=None):
         response = requests.get(url, headers=headers, timeout=6.0, verify=False)
         response.raise_for_status()
         res = response.json()
+        log_api_transaction(
+            integration=integration,
+            action="products",
+            url=url,
+            params=None,
+            response_status=response.status_code,
+            response_body=response.text,
+            is_success=True
+        )
         cache.set(cache_key, res, 14400) # 4 hours cache
         return res
     except Exception as e:
         logger.exception("Failed to fetch Alkasr products")
+        status_code = getattr(getattr(e, 'response', None), 'status_code', None)
+        body = getattr(getattr(e, 'response', None), 'text', str(e))
+        log_api_transaction(
+            integration=integration,
+            action="products",
+            url=url,
+            params=None,
+            response_status=status_code,
+            response_body=body,
+            is_success=False,
+            error_message=str(e)
+        )
         res = {"status": "error", "message": str(e)}
         cache.set(cache_key, res, 60) # cache failure for 60 seconds
         return res
@@ -372,10 +546,31 @@ def get_alkasr_categories(store=None, force_refresh=False, integration=None):
         response = requests.get(url, headers=headers, timeout=4.0, verify=False)
         response.raise_for_status()
         res = response.json()
+        log_api_transaction(
+            integration=integration,
+            action="categories",
+            url=url,
+            params=None,
+            response_status=response.status_code,
+            response_body=response.text,
+            is_success=True
+        )
         cache.set(cache_key, res, 14400) # 4 hours cache
         return res
     except Exception as e:
         logger.exception("Failed to fetch Alkasr categories")
+        status_code = getattr(getattr(e, 'response', None), 'status_code', None)
+        body = getattr(getattr(e, 'response', None), 'text', str(e))
+        log_api_transaction(
+            integration=integration,
+            action="categories",
+            url=url,
+            params=None,
+            response_status=status_code,
+            response_body=body,
+            is_success=False,
+            error_message=str(e)
+        )
         res = {"status": "error", "message": str(e)}
         cache.set(cache_key, res, 60) # cache failure for 60 seconds
         return res

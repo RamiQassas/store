@@ -243,7 +243,7 @@ urlpatterns = [
     path("merchant/api-integrations/create/", site_views.control_api_integration_create, name="control_api_integration_create"),
     path("merchant/api-integrations/<uuid:pk>/edit/", site_views.control_api_integration_edit, name="control_api_integration_edit"),
     path("merchant/api-integrations/<uuid:pk>/delete/", site_views.control_api_integration_delete, name="control_api_integration_delete"),
-    path("merchant/alkasr/", site_views.control_alkasr_dashboard, name="control_alkasr_dashboard"),
+    path("merchant/apicontrol/", site_views.control_apicontrol_dashboard, name="control_apicontrol_dashboard"),
 
     # Staff / Employees (Store-specific)
     path("merchant/employees/", merchant_views.merchant_employees, name="merchant_employees"),

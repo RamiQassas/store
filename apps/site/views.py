@@ -5077,12 +5077,12 @@ def sso_transfer_view(request):
 
 
 @support_required
-def control_alkasr_dashboard(request):
+def control_apicontrol_dashboard(request):
     from apps.orders.alkasr_api import get_alkasr_profile, get_alkasr_categories, get_alkasr_products, sync_alkasr_catalog
     from django.conf import settings
     from django.contrib import messages
     from urllib.parse import quote
-    from apps.catalog.models import Product, ProductVariant, APIIntegration
+    from apps.catalog.models import Product, ProductVariant, APIIntegration, APITransaction
     
     store = getattr(request, "store", None)
     
@@ -5106,7 +5106,7 @@ def control_alkasr_dashboard(request):
         if post_integration_id:
             integration = active_integrations.filter(id=post_integration_id).first()
             
-        redirect_url = reverse("control_alkasr_dashboard")
+        redirect_url = reverse("control_apicontrol_dashboard")
         if integration:
             redirect_url += f"?integration_id={integration.id}"
             
@@ -5290,7 +5290,10 @@ def control_alkasr_dashboard(request):
     else:
         obfuscated_token = "غير معين أو قصير"
         
-    return render(request, "site/control_alkasr_dashboard.html", {
+    # Fetch recent API transactions
+    recent_transactions = APITransaction.objects.filter(store=store).select_related('integration').order_by('-created_at')[:100]
+        
+    return render(request, "site/control_apicontrol_dashboard.html", {
         "profile": profile if is_connected else None,
         "is_connected": is_connected,
         "categories": categories,
@@ -5306,6 +5309,7 @@ def control_alkasr_dashboard(request):
         "provider_stats": provider_stats,
         "active_integrations": active_integrations,
         "selected_integration": integration,
+        "recent_transactions": recent_transactions,
     })
 
 

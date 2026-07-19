@@ -377,3 +377,42 @@ class APIIntegration(TimeStampedModel):
 
 # Legacy model removed (ProductFormField)
 
+
+class APITransaction(TimeStampedModel):
+    integration = models.ForeignKey(
+        "catalog.APIIntegration",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="transactions",
+        verbose_name="بوابة الربط"
+    )
+    store = models.ForeignKey(
+        "stores.Store",
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name="api_transactions",
+        verbose_name="المتجر"
+    )
+    provider = models.CharField(max_length=50, verbose_name="المزود")
+    action = models.CharField(max_length=100, verbose_name="العملية") # e.g. "newOrder", "check", "profile", "products"
+    product_id = models.CharField(max_length=100, blank=True, null=True, verbose_name="رقم المنتج في المزود")
+    order_uuid = models.CharField(max_length=100, blank=True, null=True, verbose_name="المعرف الفريد للطلب")
+    request_url = models.TextField(verbose_name="رابط الطلب")
+    request_params = models.TextField(blank=True, null=True, verbose_name="معاملات الطلب")
+    response_status = models.IntegerField(null=True, blank=True, verbose_name="رمز استجابة HTTP")
+    response_body = models.TextField(blank=True, null=True, verbose_name="محتوى الاستجابة")
+    is_success = models.BooleanField(default=False, verbose_name="هل نجحت العملية؟")
+    error_code = models.CharField(max_length=50, blank=True, null=True, verbose_name="رمز الخطأ")
+    error_message = models.TextField(blank=True, null=True, verbose_name="رسالة الخطأ")
+
+    class Meta:
+        verbose_name = "سجل حركة API"
+        verbose_name_plural = "سجلات حركات API"
+        ordering = ("-created_at",)
+
+    def __str__(self):
+        return f"{self.provider} - {self.action} ({self.created_at})"
+
+
