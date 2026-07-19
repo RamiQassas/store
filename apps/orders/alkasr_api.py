@@ -29,9 +29,15 @@ def get_alkasr_integration(store=None):
             
     integration = None
     if store:
-        integration = APIIntegration.objects.filter(store=store, is_active=True).first()
+        # Look for an Alkasr-specific integration for this store
+        integration = APIIntegration.objects.filter(store=store, provider="alkasr", is_active=True).first()
     if not integration:
-        integration = APIIntegration.objects.filter(store__isnull=True, is_active=True).first()
+        # Platform-level Alkasr integration (store=None means it applies globally)
+        integration = APIIntegration.objects.filter(provider="alkasr", is_active=True).first()
+    if integration:
+        logger.debug(f"[Alkasr] Using integration id={integration.id} name='{integration.name}' token_len={len(integration.api_token or '')}")
+    else:
+        logger.warning(f"[Alkasr] No active Alkasr integration found (store={store})")
     return integration
 
 def get_alkasr_profile(store=None, force_refresh=False, integration=None):
@@ -81,10 +87,24 @@ def place_alkasr_order(api_product_id, qty, order_uuid, metadata, store=None):
     - We ONLY send what form_schema defines. Adding any extra params (like playerId)
       that are not in the schema causes a 417 rejection from the Alkasr server.
     """
-    from apps.catalog.models import Product, ProductVariant
+    from apps.catalog.models import Product, ProductVariant, APIIntegration
+
+    # Fetch the integration — try multiple approaches for robustness
     integration = get_alkasr_integration(store)
+    
+    # If no integration found via store, try getting any active Alkasr integration on the platform
+    if not integration or not integration.api_token:
+        integration = APIIntegration.objects.filter(provider="alkasr", is_active=True).first()
+    
     if not integration:
+        logger.error(f"[Alkasr Order] No active Alkasr integration found for product_id={api_product_id}")
         return {"status": "error", "message": "بوابة Alkasr VIP غير مهيئة في قاعدة البيانات."}
+
+    if not integration.api_token or not integration.api_token.strip():
+        logger.error(f"[Alkasr Order] Integration '{integration.name}' (id={integration.id}) has EMPTY api_token!")
+        return {"status": "error", "message": "مفتاح API الخاص بالمزود فارغ. يرجى مراجعة إعدادات بوابة الربط في لوحة التحكم."}
+
+
 
     url = f"{integration.base_url.rstrip('/')}/client/api/newOrder/{api_product_id}/params"
     
@@ -168,20 +188,76 @@ def place_alkasr_order(api_product_id, qty, order_uuid, metadata, store=None):
             else:
                 logger.warning(f"[Alkasr Order] No schema: skipping non-ASCII key '{k}' for product {api_product_id}")
 
-    headers = {
-        "api-token": integration.api_token,
-        "Accept": "application/json"
-    }
+    # Per Alkasr API docs: authentication is ONLY via the "api-token" header.
+    # Use a Session to ensure the header persists through any server-side redirects.
+    token = (integration.api_token or "").strip()
+    if not token:
+        logger.error(f"[Alkasr Order] integration id={integration.id} has EMPTY api_token!")
+        return {"status": "error", "message": "مفتاح API الخاص بالمزود فارغ. يرجى مراجعة إعدادات بوابة الربط في لوحة التحكم."}
+
+    session = requests.Session()
+    session.headers.update({
+        "api-token": token,
+        "Accept": "application/json",
+        "User-Agent": "RaqamiyatStore/1.0",
+    })
     
     try:
-        logger.info(f"[Alkasr Order] Final request: product_id={api_product_id}, params={params}")
-        response = requests.get(url, params=params, headers=headers, timeout=5.0, verify=False)
+        logger.info(f"[Alkasr Order] Sending: product_id={api_product_id} integration={integration.id} token_prefix={token[:8]}... params_keys={list(params.keys())}")
+        response = session.get(url, params=params, timeout=10.0, verify=False)
+        logger.info(f"[Alkasr Order] HTTP {response.status_code} - Body: {response.text[:400]}")
+        
+        # Alkasr returns HTTP 417 for ANY API-level error (missing token, bad params, etc.)
+        # Always parse the JSON body first to get the real error
+        try:
+            response_json = response.json()
+        except Exception:
+            response_json = None
+        
+        if response_json and response_json.get("status") == "ERROR":
+            err_code = response_json.get("code", 0)
+            err_msg  = response_json.get("msg", "خطأ غير معروف من المزود")
+            alkasr_errors = {
+                120: "مفتاح API مطلوب — يرجى مراجعة إعدادات بوابة الربط",
+                121: "مفتاح API خاطئ — يرجى التحقق من صحة الرمز في لوحة التحكم",
+                122: "غير مسموح باستخدام API لهذا الحساب",
+                123: "عنوان IP غير مسموح له بالوصول للمزود",
+                130: "المزود في وضع الصيانة — يرجى المحاولة لاحقاً",
+                100: "رصيد غير كافٍ لدى المزود",
+                105: "الكمية المطلوبة غير متوفرة لدى المزود",
+                106: "الكمية غير مسموح بها لهذا المنتج",
+                107: "معرّف اللاعب محظور من قِبل المزود",
+                108: "يتطلب التحقق بخطوتين من المزود",
+                109: "المنتج محذوف أو غير موجود لدى المزود",
+                110: "المنتج غير متاح حالياً — يرجى المحاولة لاحقاً",
+                111: "يرجى المحاولة مجدداً بعد دقيقة واحدة",
+                112: "الكمية أقل من الحد الأدنى المسموح",
+                113: "الكمية أكبر من الحد الأقصى المسموح",
+                114: "خطأ غير معروف من المزود",
+                500: "خطأ داخلي في خادم المزود",
+            }
+            friendly = alkasr_errors.get(int(err_code) if err_code else 0, err_msg)
+            logger.error(f"[Alkasr Order] API error code={err_code}: {err_msg}")
+            return {"status": "error", "message": friendly}
+        
+        if response_json and response_json.get("status") == "OK":
+            logger.info(f"[Alkasr Order] Success: {response_json}")
+            return response_json
+        
+        # Unexpected response
         response.raise_for_status()
-        response_json = response.json()
-        logger.info(f"[Alkasr Order] Response: {response_json}")
-        return response_json
+        return response_json or {"status": "error", "message": "استجابة غير متوقعة من المزود"}
+        
+    except requests.exceptions.HTTPError as e:
+        try:
+            err_body = e.response.json() if e.response else {}
+            err_msg = err_body.get("msg", str(e))
+        except Exception:
+            err_msg = e.response.text if e.response else str(e)
+        logger.error(f"[Alkasr Order] HTTP Error {getattr(e.response, 'status_code', '?')}: {err_msg}")
+        return {"status": "error", "message": f"خطأ من المزود: {err_msg}"}
     except Exception as e:
-        logger.exception(f"[Alkasr Order] Failed: product_id={api_product_id}, params={params}")
+        logger.exception(f"[Alkasr Order] Unexpected error: product_id={api_product_id}")
         return {"status": "error", "message": str(e)}
 
 def check_alkasr_orders(order_identifiers, is_uuid=False, store=None):
