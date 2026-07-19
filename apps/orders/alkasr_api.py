@@ -121,11 +121,8 @@ def place_alkasr_order(api_product_id, qty, order_uuid, metadata, store=None):
             if val and name:
                 params[name] = val
 
-    # 2. Fallback direct mapping of any non-empty metadata key that doesn't conflict
-    for k, v in clean_metadata.items():
-        # Check if this value was already mapped to a parameter. If not, add it
-        if k not in params and k.lower() not in [pk.lower() for pk in params.keys()]:
-            params[k] = v
+    # 2. Fallback direct mapping of any non-empty metadata keys has been removed
+    # to prevent sending raw/Arabic parameter names (like "رابط الحساب") which Alkasr API rejects.
 
     # 3. Specific playerId resolution fallback (common for Alkasr)
     if 'playerId' not in params:
@@ -469,9 +466,18 @@ def sync_alkasr_catalog(store, selected_category_ids=None, markup_percent=0.0):
                 if is_available:
                     product.is_active = True
                 product.category = category
-                # Update schema to the latest variant's schema
+                # Update schema: merge fields to make sure we don't lose any required fields of any variant
                 if form_schema.get("fields"):
-                    product.form_schema = form_schema
+                    if not product.form_schema or not product.form_schema.get("fields"):
+                        product.form_schema = form_schema
+                    else:
+                        existing_fields = list(product.form_schema.get("fields", []))
+                        existing_names = {f.get("name") or f.get("label") for f in existing_fields}
+                        for new_f in form_schema.get("fields", []):
+                            new_name = new_f.get("name") or new_f.get("label")
+                            if new_name not in existing_names:
+                                existing_fields.append(new_f)
+                        product.form_schema = {"version": 1, "fields": existing_fields}
                 product.api_provider = "alkasr"
                 
                 # Clean description if it's none/null or old Alkasr API tag
