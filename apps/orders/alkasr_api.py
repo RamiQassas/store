@@ -34,19 +34,20 @@ def get_alkasr_integration(store=None):
         integration = APIIntegration.objects.filter(store__isnull=True, is_active=True).first()
     return integration
 
-def get_alkasr_profile(store=None, force_refresh=False):
+def get_alkasr_profile(store=None, force_refresh=False, integration=None):
     """
     Fetches Alkasr profile information (balance and email).
     Caches the results to prevent site slowdown.
     """
     from django.core.cache import cache
-    cache_key = f"alkasr_profile_{store.id if store else 'global'}"
+    if not integration:
+        integration = get_alkasr_integration(store)
+    cache_key = f"alkasr_profile_{integration.id if integration else 'global'}"
     if not force_refresh:
         cached = cache.get(cache_key)
         if cached is not None:
             return cached
 
-    integration = get_alkasr_integration(store)
     if not integration:
         res = {"status": "error", "message": "بوابة Alkasr VIP غير مهيئة في قاعدة البيانات."}
         cache.set(cache_key, res, 60)
@@ -189,19 +190,20 @@ def check_alkasr_orders(order_identifiers, is_uuid=False, store=None):
         logger.exception("Failed to check Alkasr order status")
         return {"status": "error", "message": str(e)}
 
-def get_alkasr_products(store=None, force_refresh=False):
+def get_alkasr_products(store=None, force_refresh=False, integration=None):
     """
     Fetches the entire products list from Alkasr API.
     Caches the results to prevent site slowdown.
     """
     from django.core.cache import cache
-    cache_key = f"alkasr_products_{store.id if store else 'global'}"
+    if not integration:
+        integration = get_alkasr_integration(store)
+    cache_key = f"alkasr_products_{integration.id if integration else 'global'}"
     if not force_refresh:
         cached = cache.get(cache_key)
         if cached is not None:
             return cached
 
-    integration = get_alkasr_integration(store)
     if not integration:
         res = {"status": "error", "message": "بوابة Alkasr VIP غير مهيئة في قاعدة البيانات."}
         cache.set(cache_key, res, 60)
@@ -224,19 +226,20 @@ def get_alkasr_products(store=None, force_refresh=False):
         cache.set(cache_key, res, 60) # cache failure for 60 seconds
         return res
 
-def get_alkasr_categories(store=None, force_refresh=False):
+def get_alkasr_categories(store=None, force_refresh=False, integration=None):
     """
     Fetches categories from Alkasr API.
     Caches the results to prevent site slowdown.
     """
     from django.core.cache import cache
-    cache_key = f"alkasr_categories_{store.id if store else 'global'}"
+    if not integration:
+        integration = get_alkasr_integration(store)
+    cache_key = f"alkasr_categories_{integration.id if integration else 'global'}"
     if not force_refresh:
         cached = cache.get(cache_key)
         if cached is not None:
             return cached
 
-    integration = get_alkasr_integration(store)
     if not integration:
         res = {"status": "error", "message": "بوابة Alkasr VIP غير مهيئة في قاعدة البيانات."}
         cache.set(cache_key, res, 60)
@@ -295,7 +298,7 @@ def parse_item_name(name, category_name=""):
     return name.strip(), "الافتراضية"
 
 
-def sync_alkasr_catalog(store, selected_category_ids=None, markup_percent=0.0):
+def sync_alkasr_catalog(store, selected_category_ids=None, markup_percent=0.0, integration=None):
     """
     Fetches the catalog from Alkasr and synchronizes it with the local catalog.
     Only syncs products belonging to categories in selected_category_ids (list of ints).
@@ -308,7 +311,7 @@ def sync_alkasr_catalog(store, selected_category_ids=None, markup_percent=0.0):
     from apps.catalog.models import Category, Product, ProductVariant
     
     # Fetch products (force refresh during sync)
-    products = get_alkasr_products(store=store, force_refresh=True)
+    products = get_alkasr_products(store=store, force_refresh=True, integration=integration)
     if isinstance(products, dict) and products.get("status") == "error":
         return products
         

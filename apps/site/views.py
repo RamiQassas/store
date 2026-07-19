@@ -5082,16 +5082,40 @@ def control_alkasr_dashboard(request):
     from django.conf import settings
     from django.contrib import messages
     from urllib.parse import quote
-    from apps.catalog.models import Product, ProductVariant
+    from apps.catalog.models import Product, ProductVariant, APIIntegration
     
     store = getattr(request, "store", None)
     
+    # Fetch all active integrations for this store
+    active_integrations = APIIntegration.objects.filter(store=store, is_active=True)
+    
+    # Get selected integration ID
+    integration_id = request.GET.get("integration_id")
+    integration = None
+    if integration_id:
+        integration = active_integrations.filter(id=integration_id).first()
+    if not integration:
+        integration = active_integrations.first()
+        
     # Check if a POST action was submitted (e.g. to sync)
     if request.method == "POST":
         action = request.POST.get("action")
+        
+        # Override active integration if passed in POST form
+        post_integration_id = request.POST.get("integration_id")
+        if post_integration_id:
+            integration = active_integrations.filter(id=post_integration_id).first()
+            
+        redirect_url = reverse("control_alkasr_dashboard")
+        if integration:
+            redirect_url += f"?integration_id={integration.id}"
+            
         if action == "sync":
+            if not integration:
+                messages.error(request, "لا توجد بوابة ربط نشطة لبدء المزامنة.")
+                return redirect(redirect_url)
+                
             category_ids = request.POST.getlist("categories")
-            # Convert categories to list of ints
             try:
                 category_ids = [int(cid) for cid in category_ids if cid.isdigit()]
             except ValueError:
@@ -5104,33 +5128,41 @@ def control_alkasr_dashboard(request):
                 markup_percent = 0.0
                 
             # Perform sync
-            res = sync_alkasr_catalog(store, selected_category_ids=category_ids, markup_percent=markup_percent)
+            res = sync_alkasr_catalog(store, selected_category_ids=category_ids, markup_percent=markup_percent, integration=integration)
             if res and res.get("status") == "success":
                 messages.success(request, f"تمت عملية المزامنة بنجاح! تم استيراد {res['created']} منتج جديد، وتحديث {res['updated']} منتج.")
             else:
                 error_msg = res.get('message') if res else "Unknown error"
                 messages.error(request, f"فشلت عملية المزامنة: {error_msg}")
-            return redirect("control_alkasr_dashboard")
+            return redirect(redirect_url)
             
         elif action == "refresh_cache":
-            get_alkasr_profile(store=store, force_refresh=True)
-            get_alkasr_categories(store=store, force_refresh=True)
-            get_alkasr_products(store=store, force_refresh=True)
+            if not integration:
+                messages.error(request, "لا توجد بوابة ربط نشطة لتحديث التخزين المؤقت.")
+                return redirect(redirect_url)
+            get_alkasr_profile(store=store, force_refresh=True, integration=integration)
+            get_alkasr_categories(store=store, force_refresh=True, integration=integration)
+            get_alkasr_products(store=store, force_refresh=True, integration=integration)
             messages.success(request, "تم تحديث التخزين المؤقت للبيانات وسحب كتالوج جديد بنجاح من المزود.")
-            return redirect("control_alkasr_dashboard")
+            return redirect(redirect_url)
             
         elif action == "clear_catalog":
+            if not integration:
+                messages.error(request, "لا توجد بوابة ربط نشطة لمسح المنتجات.")
+                return redirect(redirect_url)
             from apps.catalog.models import Product
             from django.core.cache import cache
-            deleted_count, _ = Product.objects.filter(store=store, is_api_product=True).delete()
             
-            store_suffix = store.id if store else 'global'
+            # Delete only products imported by this specific provider integration
+            deleted_count, _ = Product.objects.filter(store=store, is_api_product=True, api_provider=integration.provider).delete()
+            
+            store_suffix = integration.id if integration else 'global'
             cache.delete(f"alkasr_products_{store_suffix}")
             cache.delete(f"alkasr_categories_{store_suffix}")
             cache.delete(f"alkasr_profile_{store_suffix}")
             
             messages.success(request, f"تم مسح جميع المنتجات المستوردة من المزود بنجاح (عدد المنتجات المحذوفة: {deleted_count}) وتطهير التخزين المؤقت.")
-            return redirect("control_alkasr_dashboard")
+            return redirect(redirect_url)
             
         elif action == "toggle_active":
             product_id = request.POST.get("product_id")
@@ -5142,7 +5174,7 @@ def control_alkasr_dashboard(request):
                 messages.success(request, f"تم {status_str} المنتج '{prod.name}' بنجاح.")
             except Product.DoesNotExist:
                 messages.error(request, "المنتج غير موجود.")
-            return redirect("control_alkasr_dashboard")
+            return redirect(redirect_url)
             
         elif action == "delete_product":
             product_id = request.POST.get("product_id")
@@ -5153,24 +5185,24 @@ def control_alkasr_dashboard(request):
                 messages.success(request, f"تم حذف وإلغاء ربط المنتج '{prod_name}' بنجاح.")
             except Product.DoesNotExist:
                 messages.error(request, "المنتج غير موجود.")
-            return redirect("control_alkasr_dashboard")
+            return redirect(redirect_url)
             
-    # Fetch Alkasr Profile Info
-    profile = get_alkasr_profile(store=store)
+    # Fetch Profile Info
+    profile = get_alkasr_profile(store=store, integration=integration) if integration else None
     is_connected = profile and profile.get("status") != "error"
     
-    # Fetch Alkasr Categories and Products
+    # Fetch Categories and Products
     categories = []
     products_count = 0
     alkasr_products = []
     local_linked_count = 0
     
-    if is_connected:
-        categories = get_alkasr_categories(store=store)
+    if is_connected and integration:
+        categories = get_alkasr_categories(store=store, integration=integration)
         if isinstance(categories, dict) and categories.get("status") == "error":
             categories = []
             
-        all_prods = get_alkasr_products(store=store)
+        all_prods = get_alkasr_products(store=store, integration=integration)
         if isinstance(all_prods, list):
             products_count = len(all_prods)
             alkasr_products = all_prods
@@ -5250,9 +5282,6 @@ def control_alkasr_dashboard(request):
     # Generate webhook URL
     webhook_url = request.build_absolute_uri('/api/orders/alkasr_webhook/')
     
-    # Retrieve active credentials from database APIIntegration model instead of settings.py
-    from apps.orders.alkasr_api import get_alkasr_integration
-    integration = get_alkasr_integration(store)
     base_url = integration.base_url if integration else ""
     raw_token = integration.api_token if integration else ""
     
@@ -5275,6 +5304,8 @@ def control_alkasr_dashboard(request):
         "total_sales_usd": total_sales_usd,
         "total_profit_usd": total_profit_usd,
         "provider_stats": provider_stats,
+        "active_integrations": active_integrations,
+        "selected_integration": integration,
     })
 
 

@@ -10,6 +10,49 @@
     <p class="text-slate-500 mt-2">قم بإعداد اتصالات المتجر بالبوابات ومزودي الخدمات المتعددين، واستيراد وتحديث الخدمات تلقائياً مع تتبع السجلات والعمليات الخارجية.</p>
 </div>
 
+<!-- Provider Selection Bar -->
+<div class="glass-panel p-6 mb-6 reveal">
+    <form method="GET" action="." class="flex flex-col md:flex-row items-center justify-between gap-4">
+        <div>
+            <h3 class="text-sm font-black text-white flex items-center gap-2">
+                <i class="fas fa-network-wired text-cyan text-xs"></i> اختر البوابة أو المزود الذي ترغب في إدارته
+            </h3>
+            <p class="text-[11px] text-slate-400 mt-1">تستطيع اختيار أي بوابة ربط نشطة ومهيأة بالمتجر لمزامنة خدماتها وتحديث الكاش الخاص بها.</p>
+        </div>
+        <div class="flex items-center gap-3 w-full md:w-auto">
+            <select name="integration_id" onchange="this.form.submit()" class="builder-input min-w-[240px] text-xs">
+                {% if active_integrations %}
+                    {% for integ in active_integrations %}
+                        <option value="{{ integ.id }}" {% if selected_integration and selected_integration.id == integ.id %}selected{% endif %}>
+                            {{ integ.name }} ({{ integ.get_provider_display }})
+                        </option>
+                    {% endfor %}
+                {% else %}
+                    <option value="">لا توجد بوابات ربط نشطة حالياً</option>
+                {% endif %}
+            </select>
+            <a href="{% url 'control_api_integrations_list' %}" class="btn btn-outline btn-sm py-2 px-4 text-xs font-bold whitespace-nowrap">
+                <i class="fas fa-gear ml-1"></i> إعداد البوابات
+            </a>
+        </div>
+    </form>
+</div>
+
+{% if not selected_integration %}
+<div class="glass-panel p-8 text-center reveal border-rose-500/20 bg-rose-500/5 my-6">
+    <div class="w-16 h-16 rounded-full bg-rose-500/10 text-rose-500 flex items-center justify-center mx-auto mb-4">
+        <i class="fas fa-circle-exclamation text-2xl"></i>
+    </div>
+    <h3 class="text-lg font-black text-white">لا توجد بوابات ربط نشطة بالمتجر</h3>
+    <p class="text-xs text-slate-400 max-w-md mx-auto mt-2 leading-relaxed font-sans">
+        للبدء باستيراد ومزامنة الخدمات تلقائياً وتفعيل الطلبات الآلية، يرجى التوجه لصفحة إعداد بوابات الربط وإضافة بوابة ربط نشطة وتفعيلها.
+    </p>
+    <a href="{% url 'control_api_integration_create' %}" class="btn btn-primary px-8 py-3 rounded-2xl text-xs font-bold mt-6 inline-flex items-center gap-2">
+        <i class="fas fa-plus"></i> إضافة بوابة ربط جديدة
+    </a>
+</div>
+{% else %}
+
 <!-- Elite Stats Grid -->
 <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-6 reveal">
     <!-- Connection Status -->
@@ -159,6 +202,7 @@
                 <div class="pt-4 border-t border-white/5 flex flex-col gap-3">
                     <form method="POST" action="." class="w-full">
                         {% csrf_token %}
+                        <input type="hidden" name="integration_id" value="{{ selected_integration.id }}">
                         <input type="hidden" name="action" value="refresh_cache">
                         <button type="submit" class="btn btn-outline text-amber-500 hover:bg-amber-500/10 border-amber-500/20 w-full font-bold py-2.5 rounded-xl">
                             <i class="fas fa-arrows-rotate ml-2"></i> تحديث التخزين المؤقت للبيانات من السيرفر
@@ -166,6 +210,7 @@
                     </form>
                     <form method="POST" action="." class="w-full" onsubmit="return confirm('تنبيه: سيتم مسح جميع المنتجات التي تم استيرادها تلقائياً من المزود نهائياً من متجرك. هل أنت متأكد؟');">
                         {% csrf_token %}
+                        <input type="hidden" name="integration_id" value="{{ selected_integration.id }}">
                         <input type="hidden" name="action" value="clear_catalog">
                         <button type="submit" class="btn btn-outline text-rose-500 hover:bg-rose-500/10 border-rose-500/20 w-full font-bold py-2.5 rounded-xl">
                             <i class="fas fa-trash-can ml-2"></i> مسح جميع المنتجات المستوردة وتطهير الكاش
@@ -289,6 +334,7 @@
         {% if is_connected %}
         <form method="POST" action="." class="stack gap-6">
             {% csrf_token %}
+            <input type="hidden" name="integration_id" value="{{ selected_integration.id }}">
             <input type="hidden" name="action" value="sync">
 
             <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -423,6 +469,7 @@
                                     <!-- Toggle Active Form -->
                                     <form method="POST" action="." style="display:inline;">
                                         {% csrf_token %}
+                                        <input type="hidden" name="integration_id" value="{{ selected_integration.id }}">
                                         <input type="hidden" name="action" value="toggle_active">
                                         <input type="hidden" name="product_id" value="{{ prod.local_product_id }}">
                                         <button type="submit" class="btn btn-outline btn-sm py-1 px-2 text-[9px] font-black text-amber-500 border-amber-500/20" title="تفعيل / تعطيل ظهور المنتج للعملاء">
@@ -433,6 +480,7 @@
                                     <!-- Delete / Disconnect Form -->
                                     <form method="POST" action="." style="display:inline;" onsubmit="return confirm('هل أنت متأكد من حذف هذا المنتج تماماً من متجرك وإلغاء ربطه؟');">
                                         {% csrf_token %}
+                                        <input type="hidden" name="integration_id" value="{{ selected_integration.id }}">
                                         <input type="hidden" name="action" value="delete_product">
                                         <input type="hidden" name="product_id" value="{{ prod.local_product_id }}">
                                         <button type="submit" class="btn btn-outline btn-sm py-1 px-2 text-[9px] font-black text-rose-500 border-rose-500/20" title="حذف وإلغاء الربط">
@@ -509,6 +557,7 @@
         });
     }
 </script>
+{% endif %}
 
 <style>
     /* Styling elements specific to Alkasr Integration Dashboard */
