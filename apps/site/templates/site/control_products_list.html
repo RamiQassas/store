@@ -199,6 +199,7 @@
         <table class="w-full text-sm text-right">
             <thead class="text-[11px] text-slate-500 border-b border-white/5 uppercase bg-white/[0.01]">
                 <tr>
+                    <th class="p-4" style="width: 40px;"></th>
                     <th class="p-4">المنتج</th>
                     <th class="p-4">التصنيف</th>
                     <th class="p-4">الباقات</th>
@@ -209,9 +210,12 @@
                     <th class="p-4 text-left">إجراءات</th>
                 </tr>
             </thead>
-            <tbody>
+            <tbody id="products-table-body">
                 {% for p in products %}
                 <tr class="border-b border-white/[0.02] last:border-0 hover:bg-white/[0.02] transition product-row" data-id="{{ p.id }}">
+                    <td class="p-4 drag-handle cursor-grab text-slate-500 hover:text-cyan transition-colors text-center" style="width: 40px;">
+                        <i class="fas fa-grip-vertical"></i>
+                    </td>
                     <td class="p-4">
                         <div class="flex items-center gap-3">
                             <div class="w-12 h-12 flex-shrink-0 rounded bg-slate-800 border border-white/5 overflow-hidden relative">
@@ -320,6 +324,7 @@
 {% endblock %}
 
 {% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
 <script>
 function toggleFeatured(id, btn) {
     fetch(`/control/products/${id}/toggle-featured/`)
@@ -345,7 +350,6 @@ function ajaxReorder(id, direction) {
         .then(res => res.json())
         .then(data => {
             if (data.status === 'success') {
-                // To keep it simple and consistent with pagination, we refresh current view content
                 window.location.reload(); 
             } else {
                 if (row) row.style.opacity = '1';
@@ -353,5 +357,47 @@ function ajaxReorder(id, direction) {
             }
         });
 }
+
+document.addEventListener('DOMContentLoaded', function() {
+    const el = document.getElementById('products-table-body');
+    if (el) {
+        Sortable.create(el, {
+            animation: 150,
+            handle: '.drag-handle',
+            ghostClass: 'bg-cyan/10',
+            onEnd: function() {
+                const rows = el.querySelectorAll('.product-row');
+                const productIds = Array.from(rows).map(row => row.getAttribute('data-id'));
+                
+                rows.forEach(r => r.style.opacity = '0.5');
+                
+                fetch("{% url 'control_products_reorder_bulk_ajax' %}", {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': '{{ csrf_token }}'
+                    },
+                    body: JSON.stringify({ product_ids: productIds })
+                })
+                .then(res => res.json())
+                .then(data => {
+                    rows.forEach(r => r.style.opacity = '1');
+                    if (data.status === 'success') {
+                        rows.forEach((r, idx) => {
+                            const badge = r.querySelector('.sort-order-badge');
+                            if (badge) badge.textContent = idx;
+                        });
+                    } else {
+                        alert('حدث خطأ أثناء حفظ الترتيب الجديد');
+                    }
+                })
+                .catch(err => {
+                    rows.forEach(r => r.style.opacity = '1');
+                    alert('فشلت عملية المزامنة مع السيرفر');
+                });
+            }
+        });
+    }
+});
 </script>
 {% endblock %}

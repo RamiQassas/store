@@ -1452,6 +1452,8 @@ def catalog(request):
         products = products.order_by("variants__price")
     elif sort == "price_high":
         products = products.order_by("-variants__price")
+    elif sort == "random":
+        products = products.order_by("?")
     else:
         products = products.order_by("sort_order", "name")
 
@@ -2998,6 +3000,21 @@ def control_product_reorder_ajax(request, pk):
         return JsonResponse({"status": "success", "new_order": product.sort_order})
     
     return JsonResponse({"status": "error", "message": "Cannot move further"})
+
+
+@support_required
+def control_products_reorder_bulk_ajax(request):
+    if request.method == "POST":
+        import json
+        try:
+            data = json.loads(request.body)
+            product_ids = data.get('product_ids', [])
+            for index, p_id in enumerate(product_ids):
+                Product.objects.filter(pk=p_id).update(sort_order=index)
+            return JsonResponse({"status": "success"})
+        except Exception as e:
+            return JsonResponse({"status": "error", "message": str(e)}, status=400)
+    return JsonResponse({"status": "error", "message": "Method not allowed"}, status=405)
 
 @admin_required
 def control_product_import(request):

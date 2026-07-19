@@ -10,6 +10,23 @@ import logging
 logger = logging.getLogger(__name__)
 
 
+def extract_strings(obj):
+    if isinstance(obj, str):
+        return [obj]
+    elif isinstance(obj, dict):
+        strings = []
+        for k, v in obj.items():
+            strings.extend(extract_strings(k))
+            strings.extend(extract_strings(v))
+        return strings
+    elif isinstance(obj, (list, tuple, set)):
+        strings = []
+        for item in obj:
+            strings.extend(extract_strings(item))
+        return strings
+    return []
+
+
 def get_store_from_request(request):
     if getattr(request, 'store', None):
         return request.store
@@ -23,15 +40,14 @@ def get_store_from_request(request):
     
     # Check request parameters
     for k, v in request.GET.items():
-        candidates.append(v)
+        candidates.extend(extract_strings(v))
     for k, v in request.POST.items():
-        candidates.append(v)
+        candidates.extend(extract_strings(v))
         
     # Check session
     if hasattr(request, 'session'):
         for k, v in request.session.items():
-            if isinstance(v, str):
-                candidates.append(v)
+            candidates.extend(extract_strings(v))
                 
     for val in candidates:
         if not val or not isinstance(val, str):
@@ -133,15 +149,39 @@ class MySocialAccountAdapter(DefaultSocialAccountAdapter):
 
         try:
             active_store = get_store_from_request(request)
+            
+            # Find the existing user using robust fallback logic:
+            # 1. First, search for user in active_store if active_store is set
+            user = None
             if active_store:
-                user = User._base_manager.get(email__iexact=email, store=active_store)
-            else:
-                user = User._base_manager.get(email__iexact=email, store__isnull=True)
+                try:
+                    user = User._base_manager.get(email__iexact=email, store=active_store)
+                except User.DoesNotExist:
+                    pass
+            
+            # 2. If user is not found or active_store is None, try to find a user globally
+            if not user:
+                users = User._base_manager.filter(email__iexact=email)
+                if users.count() == 1:
+                    user = users.first()
+                elif users.count() > 1:
+                    if active_store:
+                        user = users.filter(store=active_store).first()
+                    else:
+                        user = users.filter(store__isnull=True).first()
+
+            if not user:
+                raise User.DoesNotExist
             
             # 1. Link social account if not already connected
             if not sociallogin.is_existing:
                 sociallogin.connect(request, user)
-                logger.info(f"Connected existing user {email} to social account in store context.")
+                # Force is_existing flag just in case the version of allauth checks it as a boolean attribute
+                try:
+                    sociallogin.is_existing = True
+                except AttributeError:
+                    pass
+                logger.info(f"Connected existing user {email} to social account in store/global context.")
             
             # 2. Mark as verified (Google emails are trusted) and active
             needs_save = False

@@ -130,6 +130,7 @@ urlpatterns = [
     path("merchant/products/<uuid:product_pk>/variants/create/", site_views.control_variant_create, name="control_variant_create"),
     path("merchant/products/<uuid:product_pk>/variants/create/alias/", site_views.control_variant_create, name="merchant_variant_create"),
     path("merchant/products/import/", site_views.control_product_import, name="control_product_import"),
+    path("merchant/products/reorder-bulk-ajax/", site_views.control_products_reorder_bulk_ajax, name="control_products_reorder_bulk_ajax"),
     path("merchant/variants/<uuid:pk>/edit/", site_views.control_variant_edit, name="control_variant_edit"),
     path("merchant/variants/<uuid:pk>/edit/alias/", site_views.control_variant_edit, name="merchant_variant_edit"),
     path("merchant/variants/<uuid:pk>/keys/", site_views.control_variant_keys, name="control_variant_keys"),

@@ -29,9 +29,9 @@ def get_alkasr_integration(store=None):
             
     integration = None
     if store:
-        integration = APIIntegration.objects.filter(store=store, provider="alkasr", is_active=True).first()
+        integration = APIIntegration.objects.filter(store=store, is_active=True).first()
     if not integration:
-        integration = APIIntegration.objects.filter(store__isnull=True, provider="alkasr", is_active=True).first()
+        integration = APIIntegration.objects.filter(store__isnull=True, is_active=True).first()
     return integration
 
 def get_alkasr_profile(store=None, force_refresh=False):
@@ -297,6 +297,8 @@ def sync_alkasr_catalog(store, selected_category_ids=None, markup_percent=0.0):
         # Build form schema
         fields_list = []
         for p_field in params_list:
+            if not p_field or not isinstance(p_field, str):
+                continue
             norm_field = p_field.strip().lower()
             label = translation_map.get(norm_field, p_field)
             if p_field in translation_map:
