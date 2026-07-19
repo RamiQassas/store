@@ -73,6 +73,7 @@ def place_alkasr_order(api_product_id, qty, order_uuid, metadata, store=None):
     """
     Sends a request to create a new order in Alkasr.
     """
+    from apps.catalog.models import Product
     integration = get_alkasr_integration(store)
     if not integration:
         return {"status": "error", "message": "بوابة Alkasr VIP غير مهيئة في قاعدة البيانات."}
@@ -85,20 +86,58 @@ def place_alkasr_order(api_product_id, qty, order_uuid, metadata, store=None):
         "order_uuid": str(order_uuid)
     }
     
-    # Map metadata custom fields directly
+    # Clean metadata keys (remove any empty keys or keys that are spaces to avoid &= url errors)
+    clean_metadata = {}
     for k, v in metadata.items():
-        params[k] = v
-        
-    # Check if we have playerId in parameters, if not try to map common aliases
+        if k and str(k).strip():
+            clean_metadata[str(k).strip()] = v
+
+    # 1. Try to map fields using the product's form_schema to find the correct API parameter names
+    product = Product.objects.filter(variants__api_product_id=api_product_id).first()
+    if product and product.form_schema:
+        fields = product.form_schema.get("fields", [])
+        for f in fields:
+            name = f.get("name") # e.g. "playerId"
+            label = f.get("label") # e.g. "معرّف اللاعب (Player ID)"
+            val = None
+            
+            # Match directly
+            if name and name in clean_metadata:
+                val = clean_metadata[name]
+            elif label and label in clean_metadata:
+                val = clean_metadata[label]
+                
+            # Case insensitive match
+            if not val:
+                for k, v in clean_metadata.items():
+                    if name and k.lower() == name.lower():
+                        val = v
+                        break
+                    if label and k.lower() == label.lower():
+                        val = v
+                        break
+                        
+            # Map name if found
+            if val and name:
+                params[name] = val
+
+    # 2. Fallback direct mapping of any non-empty metadata key that doesn't conflict
+    for k, v in clean_metadata.items():
+        # Check if this value was already mapped to a parameter. If not, add it
+        if k not in params and k.lower() not in [pk.lower() for pk in params.keys()]:
+            params[k] = v
+
+    # 3. Specific playerId resolution fallback (common for Alkasr)
     if 'playerId' not in params:
-        for k, v in metadata.items():
+        # Try to find common playerId aliases in clean_metadata
+        for k, v in clean_metadata.items():
             if any(x in k.lower() for x in ['player', 'id', 'user', 'account', 'ايدي', 'لاعب', 'حساب']):
                 params['playerId'] = v
                 break
                 
-    # Fallback to the first value if playerId is still not found but metadata is not empty
-    if 'playerId' not in params and metadata:
-        params['playerId'] = list(metadata.values())[0]
+    # 4. Final absolute fallback: if playerId is required but not in params, and metadata has one field, assign it!
+    if 'playerId' not in params and clean_metadata:
+        params['playerId'] = list(clean_metadata.values())[0]
         
     headers = {
         "api-token": integration.api_token,
@@ -285,10 +324,21 @@ def sync_alkasr_catalog(store, selected_category_ids=None, markup_percent=0.0):
         "amount": "المبلغ",
     }
     
+    # Extract unique category order based on encounter sequence in API response
+    category_order = []
+    for item in products:
+        cat_name = item.get("category_name") or "غير مصنف"
+        if cat_name not in category_order:
+            category_order.append(cat_name)
+
     # Wrap the entire catalog synchronization in a single transaction.atomic block
     # to execute bulk database operations extremely fast and avoid timeout/connection kills.
     with transaction.atomic():
-        for item in products:
+        # First, clean description of any existing products that contain "Alkasr API" or are null/none
+        Product.objects.filter(store=store, description__icontains="Alkasr API").update(description="")
+        Product.objects.filter(store=store, description__in=["none", "null", "None", "Null"]).update(description="")
+        
+        for index, item in enumerate(products):
             api_prod_id = item.get("id")
             parent_id = item.get("parent_id")
             
@@ -344,6 +394,12 @@ def sync_alkasr_catalog(store, selected_category_ids=None, markup_percent=0.0):
                 )
                 existing_categories[cat_name] = category
             
+            # Align category sort order with response encounter order
+            cat_sort_order = category_order.index(cat_name)
+            if category.sort_order != cat_sort_order:
+                category.sort_order = cat_sort_order
+                category.save(update_fields=['sort_order'])
+            
             # Check if we already have a variant for this api_prod_id
             variant = existing_variants.get(api_prod_id)
             if variant:
@@ -355,9 +411,18 @@ def sync_alkasr_catalog(store, selected_category_ids=None, markup_percent=0.0):
                 product.is_active = is_available
                 product.form_schema = form_schema
                 product.api_provider = "alkasr"
+                product.sort_order = index  # Align product sort order with response order
+                
                 # Do NOT overwrite product.image with None if it is already set (this prevents resetting user's custom images)
                 if not product.image:
                     product.image = None
+                
+                # Clean description if it's none/null or old Alkasr API tag
+                if not product.description or product.description.lower() in ["none", "null", "none.", "null."]:
+                    product.description = ""
+                elif "Alkasr API" in product.description:
+                    product.description = ""
+                    
                 product.save()
                 
                 # Update variant details
@@ -379,7 +444,8 @@ def sync_alkasr_catalog(store, selected_category_ids=None, markup_percent=0.0):
                     is_api_product=True,
                     api_provider="alkasr",
                     form_schema=form_schema,
-                    image=None
+                    image=None,
+                    sort_order=index  # Align product sort order with response order
                 )
                 
                 # Create default variant
