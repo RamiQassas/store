@@ -5146,6 +5146,11 @@ def control_alkasr_dashboard(request):
             alkasr_products = all_prods
             
             # Map linked status and details
+            if store:
+                linked_variants_qs = ProductVariant.objects.filter(product__store=store, api_product_id__isnull=False)
+            else:
+                linked_variants_qs = ProductVariant.objects.filter(api_product_id__isnull=False)
+
             linked_variants = {
                 v.api_product_id: {
                     "product_id": v.product.id,
@@ -5154,7 +5159,7 @@ def control_alkasr_dashboard(request):
                     "is_active": v.product.is_active,
                     "api_provider": v.product.api_provider or "alkasr"
                 }
-                for v in ProductVariant.objects.filter(api_product_id__isnull=False).select_related('product')
+                for v in linked_variants_qs.select_related('product')
             }
             local_linked_count = len(linked_variants)
             

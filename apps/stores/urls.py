@@ -237,6 +237,13 @@ urlpatterns = [
     # Database Maintenance
     path("merchant/db-maintenance/", site_views.control_db_maintenance, name="control_db_maintenance"),
 
+    # API Integrations & Alkasr Dashboard
+    path("merchant/api-integrations/", site_views.control_api_integrations_list, name="control_api_integrations_list"),
+    path("merchant/api-integrations/create/", site_views.control_api_integration_create, name="control_api_integration_create"),
+    path("merchant/api-integrations/<int:pk>/edit/", site_views.control_api_integration_edit, name="control_api_integration_edit"),
+    path("merchant/api-integrations/<int:pk>/delete/", site_views.control_api_integration_delete, name="control_api_integration_delete"),
+    path("merchant/alkasr/", site_views.control_alkasr_dashboard, name="control_alkasr_dashboard"),
+
     # Staff / Employees (Store-specific)
     path("merchant/employees/", merchant_views.merchant_employees, name="merchant_employees"),
     path("merchant/employees/create/", merchant_views.merchant_employee_form, name="merchant_employee_create"),

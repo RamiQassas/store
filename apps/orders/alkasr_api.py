@@ -6,22 +6,26 @@ logger = logging.getLogger(__name__)
 
 def get_alkasr_integration(store=None):
     from apps.catalog.models import APIIntegration
+    from django.core.cache import cache
     
-    # Auto-seed default Alkasr VIP settings if the table is empty
-    if APIIntegration.objects.count() == 0:
-        base_url = getattr(settings, "ALKASR_BASE_URL", "")
-        api_token = getattr(settings, "ALKASR_API_TOKEN", "")
-        if base_url and api_token:
-            APIIntegration.objects.get_or_create(
-                provider="alkasr",
-                defaults={
-                    "name": "Alkasr VIP (Default Config)",
-                    "base_url": base_url,
-                    "api_token": api_token,
-                    "is_active": True,
-                    "allow_sub_stores": True
-                }
-            )
+    # Auto-seed default Alkasr VIP settings if the table is empty (cached check)
+    has_integrations = cache.get("has_api_integrations")
+    if not has_integrations:
+        if APIIntegration.objects.count() == 0:
+            base_url = getattr(settings, "ALKASR_BASE_URL", "")
+            api_token = getattr(settings, "ALKASR_API_TOKEN", "")
+            if base_url and api_token:
+                APIIntegration.objects.get_or_create(
+                    provider="alkasr",
+                    defaults={
+                        "name": "Alkasr VIP (Default Config)",
+                        "base_url": base_url,
+                        "api_token": api_token,
+                        "is_active": True,
+                        "allow_sub_stores": True
+                    }
+                )
+        cache.set("has_api_integrations", True, 3600)
             
     integration = None
     if store:
@@ -57,7 +61,7 @@ def get_alkasr_profile(store=None, force_refresh=False):
         response = requests.get(url, headers=headers, timeout=3.0, verify=False)
         response.raise_for_status()
         res = response.json()
-        cache.set(cache_key, res, 300) # 5 minutes cache
+        cache.set(cache_key, res, 1800) # 30 minutes cache
         return res
     except Exception as e:
         logger.exception("Failed to fetch Alkasr profile")
@@ -176,7 +180,7 @@ def get_alkasr_products(store=None, force_refresh=False):
         response = requests.get(url, headers=headers, timeout=6.0, verify=False)
         response.raise_for_status()
         res = response.json()
-        cache.set(cache_key, res, 600) # 10 minutes cache
+        cache.set(cache_key, res, 14400) # 4 hours cache
         return res
     except Exception as e:
         logger.exception("Failed to fetch Alkasr products")
@@ -211,7 +215,7 @@ def get_alkasr_categories(store=None, force_refresh=False):
         response = requests.get(url, headers=headers, timeout=4.0, verify=False)
         response.raise_for_status()
         res = response.json()
-        cache.set(cache_key, res, 600) # 10 minutes cache
+        cache.set(cache_key, res, 14400) # 4 hours cache
         return res
     except Exception as e:
         logger.exception("Failed to fetch Alkasr categories")
@@ -319,12 +323,22 @@ def sync_alkasr_catalog(store, selected_category_ids=None, markup_percent=0.0):
         variant = existing_variants.get(api_prod_id)
         if variant:
             product = variant.product
+            # Ensure the category is fetched/created and assigned to the product
+            category, cat_created = Category.objects.get_or_create(
+                name=cat_name,
+                store=store,
+                defaults={"is_active": True}
+            )
+            
             # Update product details
             product.name = prod_name
+            product.category = category
             product.is_active = is_available
             product.form_schema = form_schema
             product.api_provider = "alkasr"
-            product.image = None # Clear image as requested
+            # Do NOT overwrite product.image with None if it is already set (this prevents resetting user's custom images)
+            if not product.image:
+                product.image = None
             product.save()
             
             # Update variant details
@@ -341,8 +355,6 @@ def sync_alkasr_catalog(store, selected_category_ids=None, markup_percent=0.0):
                 store=store,
                 defaults={"is_active": True}
             )
-            category.image = None
-            category.save()
             
             # Create product with clean/empty description and empty image
             product = Product.objects.create(
