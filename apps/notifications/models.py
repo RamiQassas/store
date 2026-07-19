@@ -74,6 +74,7 @@ class NotificationSetting(TimeStampedModel):
     admin_new_order = models.BooleanField(default=True, verbose_name="طلبات شراء جديدة")
     admin_new_support = models.BooleanField(default=True, verbose_name="تذاكر دعم جديدة")
     admin_new_kyc = models.BooleanField(default=True, verbose_name="طلبات توثيق جديدة")
+    admin_provider_alert = models.BooleanField(default=True, verbose_name="تنبيهات مشاكل مزودي الخدمة")
     
     admin_email_notifications = models.BooleanField(default=True, verbose_name="استلام إشعارات الإدارة عبر البريد")
 

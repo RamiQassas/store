@@ -218,26 +218,37 @@ def place_alkasr_order(api_product_id, qty, order_uuid, metadata, store=None):
             err_code = response_json.get("code", 0)
             err_msg  = response_json.get("msg", "خطأ غير معروف من المزود")
             alkasr_errors = {
-                120: "مفتاح API مطلوب — يرجى مراجعة إعدادات بوابة الربط",
-                121: "مفتاح API خاطئ — يرجى التحقق من صحة الرمز في لوحة التحكم",
-                122: "غير مسموح باستخدام API لهذا الحساب",
-                123: "عنوان IP غير مسموح له بالوصول للمزود",
-                130: "المزود في وضع الصيانة — يرجى المحاولة لاحقاً",
-                100: "رصيد غير كافٍ لدى المزود",
-                105: "الكمية المطلوبة غير متوفرة لدى المزود",
-                106: "الكمية غير مسموح بها لهذا المنتج",
-                107: "معرّف اللاعب محظور من قِبل المزود",
-                108: "يتطلب التحقق بخطوتين من المزود",
-                109: "المنتج محذوف أو غير موجود لدى المزود",
-                110: "المنتج غير متاح حالياً — يرجى المحاولة لاحقاً",
-                111: "يرجى المحاولة مجدداً بعد دقيقة واحدة",
-                112: "الكمية أقل من الحد الأدنى المسموح",
-                113: "الكمية أكبر من الحد الأقصى المسموح",
-                114: "خطأ غير معروف من المزود",
-                500: "خطأ داخلي في خادم المزود",
+                120: "ERR-120: مفتاح API مطلوب — يرجى مراجعة إعدادات بوابة الربط",
+                121: "ERR-121: مفتاح API خاطئ — يرجى التحقق من صحة الرمز في لوحة التحكم",
+                122: "ERR-122: غير مسموح باستخدام API لهذا الحساب",
+                123: "ERR-123: عنوان IP غير مسموح له بالوصول للمزود",
+                130: "ERR-130: المزود في وضع الصيانة — يرجى المحاولة لاحقاً",
+                100: "ERR-100: رصيد غير كافٍ لدى المزود",
+                105: "ERR-105: الكمية المطلوبة غير متوفرة لدى المزود",
+                106: "ERR-106: الكمية غير مسموح بها لهذا المنتج",
+                107: "ERR-107: معرّف اللاعب محظور من قِبل المزود",
+                108: "ERR-108: يتطلب التحقق بخطوتين من المزود",
+                109: "ERR-109: المنتج محذوف أو غير موجود لدى المزود",
+                110: "ERR-110: المنتج غير متاح حالياً — يرجى المحاولة لاحقاً",
+                111: "ERR-111: يرجى المحاولة مجدداً بعد دقيقة واحدة",
+                112: "ERR-112: الكمية أقل من الحد الأدنى المسموح",
+                113: "ERR-113: الكمية أكبر من الحد الأقصى المسموح",
+                114: "ERR-114: خطأ غير معروف من المزود",
+                500: "ERR-500: خطأ داخلي في خادم المزود",
             }
-            friendly = alkasr_errors.get(int(err_code) if err_code else 0, err_msg)
+            friendly = alkasr_errors.get(int(err_code) if err_code else 0, f"ERR-{err_code}: {err_msg}")
             logger.error(f"[Alkasr Order] API error code={err_code}: {err_msg}")
+            # Notify admins immediately
+            try:
+                from apps.notifications.services import notify_provider_error
+                notify_provider_error(
+                    error_code=int(err_code) if err_code else 0,
+                    provider_name="Alkasr VIP",
+                    product_id=api_product_id,
+                    detail=err_msg,
+                )
+            except Exception as e:
+                logger.warning(f"Failed to send provider alert: {e}")
             return {"status": "error", "message": friendly}
         
         if response_json and response_json.get("status") == "OK":

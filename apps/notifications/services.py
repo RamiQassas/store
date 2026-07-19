@@ -210,3 +210,59 @@ def notify_staff(title, body, action_url=None, category='admin_new_support', rol
                     logger.error(f"Failed to send staff email notification to {staff.email}: {e}")
     
     return True
+
+def notify_provider_error(error_code, provider_name, product_id=None, detail=None, store=None):
+    """
+    Sends an urgent notification to all admin/staff when a provider returns an error.
+    Especially important for error code 100 (insufficient balance).
+    """
+    alkasr_error_labels = {
+        100: "رصيد غير كافٍ لدى المزود",
+        101: "حساب موقوف",
+        105: "الكمية غير متوفرة",
+        106: "الكمية غير مسموح بها",
+        107: "معرّف اللاعب محظور",
+        108: "يتطلب التحقق بخطوتين",
+        109: "المنتج محذوف أو غير موجود",
+        110: "المنتج غير متاح حالياً",
+        111: "حاول مرة أخرى بعد دقيقة",
+        120: "مفتاح API مطلوب",
+        121: "مفتاح API خاطئ",
+        122: "الاستخدام غير مسموح",
+        123: "IP غير مسموح",
+        130: "المزود تحت الصيانة",
+        500: "خطأ داخلي في المزود",
+    }
+    label = alkasr_error_labels.get(error_code, f"خطأ {error_code}")
+    is_critical = error_code in (100, 120, 121, 122, 123, 130)
+    
+    priority = Notification.Priority.HIGH if is_critical else Notification.Priority.NORMAL
+    
+    title = f"⚠️ تنبيه مزود الخدمة: {label}"
+    body_parts = [
+        f"المزود: {provider_name}",
+        f"كود الخطأ: ERR-{error_code}",
+    ]
+    if product_id:
+        body_parts.append(f"رقم المنتج: {product_id}")
+    if detail:
+        body_parts.append(f"التفاصيل: {detail}")
+    if store:
+        body_parts.append(f"المتجر: {store}")
+    
+    body = " | ".join(body_parts)
+    
+    logger.warning(f"[Provider Alert] {title}: {body}")
+    
+    notify_staff(
+        title=title,
+        body=body,
+        action_url="/control/alkasr/",
+        category="admin_provider_alert",
+        priority=priority,
+        metadata={
+            "error_code": error_code,
+            "provider": provider_name,
+            "product_id": product_id,
+        }
+    )

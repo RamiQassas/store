@@ -255,8 +255,35 @@ def create_order(customer, variant_id, quantity=1, fulfillment_data=None, coupon
             else: # wait
                 status = Order.Status.PROCESSING
         else:
-            error_msg = res.get("message") or res.get("error") or "خطأ غير معروف من المزود."
-            raise ValueError(f"فشل إرسال الطلب للمزود: {error_msg}")
+            raw_error = res.get("message") or res.get("error") or "خطأ غير معروف من المزود."
+            error_code_match = None
+            # Extract numeric error code from message if present (e.g. "ERR-100")
+            import re
+            m = re.search(r'ERR-(\d+)', raw_error)
+            if m:
+                error_code_match = int(m.group(1))
+            
+            # Notify admin with full details
+            try:
+                from apps.notifications.services import notify_provider_error
+                provider_name = variant.product.api_provider or "alkasr"
+                notify_provider_error(
+                    error_code=error_code_match or 0,
+                    provider_name=provider_name,
+                    product_id=variant.api_product_id,
+                    detail=raw_error,
+                    store=str(variant.product.store) if variant.product.store else None,
+                )
+            except Exception as notify_err:
+                import logging
+                logging.getLogger(__name__).warning(f"Failed to send provider error notification: {notify_err}")
+            
+            # Show customer a safe, brief message with error code only
+            if error_code_match:
+                customer_msg = f"لم يتم معالجة طلبك بسبب خطأ مؤقت (رمز: ERR-{error_code_match}). يرجى التواصل مع فريق الدعم لحل المشكلة."
+            else:
+                customer_msg = "لم يتم معالجة طلبك بسبب خطأ مؤقت. يرجى التواصل مع فريق الدعم."
+            raise ValueError(customer_msg)
     elif variant.delivery_type == 'keys':
         status = Order.Status.COMPLETED
         final_fulfillment_data['keys'] = [k.key_code for k in locked_keys]
