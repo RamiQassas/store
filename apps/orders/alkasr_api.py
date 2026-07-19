@@ -269,12 +269,42 @@ def download_and_save_image(url, target_field):
     """
     return
 
+def parse_item_name(name, category_name=""):
+    # Split by standard separators: " - ", " | ", " – ", " — "
+    for sep in [" - ", " | ", " – ", " — "]:
+        if sep in name:
+            parts = name.split(sep, 1)
+            return parts[0].strip(), parts[1].strip()
+            
+    # Fallback separators (no spaces around hyphen)
+    if " -" in name:
+        parts = name.split(" -", 1)
+        return parts[0].strip(), parts[1].strip()
+    if "- " in name:
+        parts = name.split("- ", 1)
+        return parts[0].strip(), parts[1].strip()
+        
+    # If no separator found in the name:
+    # Check if the name is just a package and category name is the game
+    name_lower = name.lower()
+    keywords = ["شدة", "جوهرة", "ماسة", "بلورة", "كارت", "بطاقة", "uc", "diamond", "gem", "coin", "point", "شحن"]
+    clean_cat = category_name.strip()
+    
+    if any(x in name_lower for x in keywords) or any(char.isdigit() for char in name):
+        # E.g. category_name="ببجي موبايل", name="60 شدة" -> prod_name="ببجي موبايل", var_name="60 شدة"
+        if clean_cat and not any(clean_cat.lower() == kw.lower() for kw in ["ألعاب", "العاب", "games", "cards", "بطاقات", "غير مصنف"]):
+            return clean_cat, name.strip()
+            
+    return name.strip(), "الافتراضية"
+
+
 def sync_alkasr_catalog(store, selected_category_ids=None, markup_percent=0.0):
     """
     Fetches the catalog from Alkasr and synchronizes it with the local catalog.
     Only syncs products belonging to categories in selected_category_ids (list of ints).
     Adds a percentage markup_percent to the retail price.
     Also ensures images are completely cleared out as requested.
+    Groups packages of the same game under a single Product as variants.
     """
     from decimal import Decimal
     from django.db import transaction
@@ -295,6 +325,12 @@ def sync_alkasr_catalog(store, selected_category_ids=None, markup_percent=0.0):
     existing_categories = {
         cat.name: cat
         for cat in Category.objects.filter(store=store)
+    }
+    
+    # Pre-fetch existing products for this store to avoid N+1 queries
+    existing_products = {
+        p.name: p
+        for p in Product.objects.filter(store=store)
     }
     
     # Pre-fetch existing variants with api_product_id to avoid N+1 queries
@@ -351,7 +387,11 @@ def sync_alkasr_catalog(store, selected_category_ids=None, markup_percent=0.0):
                     continue
                     
             cat_name = item.get("category_name") or "غير مصنف"
-            prod_name = item.get("name")
+            raw_item_name = item.get("name") or ""
+            
+            # Parse grouped product name and variant/package name
+            prod_name, var_name = parse_item_name(raw_item_name, cat_name)
+            
             alkasr_price = item.get("price") or 0.0
             is_available = item.get("available", True)
             params_list = item.get("params") or []
@@ -385,14 +425,20 @@ def sync_alkasr_catalog(store, selected_category_ids=None, markup_percent=0.0):
             retail_price = cost_val * markup_factor
             
             # Get or create category from memory cache
-            category = existing_categories.get(cat_name)
+            # Determine display category name: if product name is same as category name, use general category
+            if prod_name.strip().lower() == cat_name.strip().lower() or cat_name.strip().lower() in [kw.lower() for kw in ["شدات ببجي", "جواهر فري فاير", "كوينز", "شحن شدات"]]:
+                display_cat_name = "شحن ألعاب وبطاقات"
+            else:
+                display_cat_name = cat_name
+
+            category = existing_categories.get(display_cat_name)
             if not category:
                 category = Category.objects.create(
-                    name=cat_name,
+                    name=display_cat_name,
                     store=store,
                     is_active=True
                 )
-                existing_categories[cat_name] = category
+                existing_categories[display_cat_name] = category
             
             # Align category sort order with response encounter order
             cat_sort_order = category_order.index(cat_name)
@@ -400,40 +446,9 @@ def sync_alkasr_catalog(store, selected_category_ids=None, markup_percent=0.0):
                 category.sort_order = cat_sort_order
                 category.save(update_fields=['sort_order'])
             
-            # Check if we already have a variant for this api_prod_id
-            variant = existing_variants.get(api_prod_id)
-            if variant:
-                product = variant.product
-                
-                # Update product details
-                product.name = prod_name
-                product.category = category
-                product.is_active = is_available
-                product.form_schema = form_schema
-                product.api_provider = "alkasr"
-                product.sort_order = index  # Align product sort order with response order
-                
-                # Do NOT overwrite product.image with None if it is already set (this prevents resetting user's custom images)
-                if not product.image:
-                    product.image = None
-                
-                # Clean description if it's none/null or old Alkasr API tag
-                if not product.description or product.description.lower() in ["none", "null", "none.", "null."]:
-                    product.description = ""
-                elif "Alkasr API" in product.description:
-                    product.description = ""
-                    
-                product.save()
-                
-                # Update variant details
-                variant.cost = cost_val
-                variant.price = retail_price
-                variant.is_active = is_available
-                variant.save()
-                
-                updated_count += 1
-            else:
-                # Create product with clean/empty description and empty image
+            # Get or create product from memory cache (grouped by game name)
+            product = existing_products.get(prod_name)
+            if not product:
                 product = Product.objects.create(
                     product_type="digital",
                     name=prod_name,
@@ -445,9 +460,38 @@ def sync_alkasr_catalog(store, selected_category_ids=None, markup_percent=0.0):
                     api_provider="alkasr",
                     form_schema=form_schema,
                     image=None,
-                    sort_order=index  # Align product sort order with response order
+                    sort_order=index
                 )
+                existing_products[prod_name] = product
+            else:
+                if is_available:
+                    product.is_active = True
+                product.category = category
+                # Update schema to the latest variant's schema
+                if form_schema.get("fields"):
+                    product.form_schema = form_schema
+                product.api_provider = "alkasr"
                 
+                # Clean description if it's none/null or old Alkasr API tag
+                if not product.description or product.description.lower() in ["none", "null", "none.", "null."]:
+                    product.description = ""
+                elif "Alkasr API" in product.description:
+                    product.description = ""
+                    
+                product.save()
+            
+            # Check if we already have a variant for this api_prod_id
+            variant = existing_variants.get(api_prod_id)
+            if variant:
+                variant.product = product
+                variant.name = var_name
+                variant.cost = cost_val
+                variant.price = retail_price
+                variant.is_active = is_available
+                variant.save()
+                
+                updated_count += 1
+            else:
                 # Create default variant
                 sku_code = f"ALK-{api_prod_id}"
                 suffix = 1
@@ -456,9 +500,9 @@ def sync_alkasr_catalog(store, selected_category_ids=None, markup_percent=0.0):
                     suffix += 1
                 existing_skus.add(sku_code)
                     
-                ProductVariant.objects.create(
+                variant = ProductVariant.objects.create(
                     product=product,
-                    name="الافتراضية",
+                    name=var_name,
                     sku=sku_code,
                     price=retail_price,
                     cost=cost_val,
@@ -466,6 +510,7 @@ def sync_alkasr_catalog(store, selected_category_ids=None, markup_percent=0.0):
                     is_active=is_available,
                     delivery_type="manual"
                 )
+                existing_variants[api_prod_id] = variant
                 created_count += 1
                 
     return {
