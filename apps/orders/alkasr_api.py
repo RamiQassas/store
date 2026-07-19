@@ -73,8 +73,15 @@ def get_alkasr_profile(store=None, force_refresh=False, integration=None):
 def place_alkasr_order(api_product_id, qty, order_uuid, metadata, store=None):
     """
     Sends a request to create a new order in Alkasr.
+
+    KEY DESIGN PRINCIPLE:
+    - The Alkasr API uses the exact strings from its `params` field as query parameter names.
+      These can be Arabic strings like "يرجى إدخال رقم الـجوال" or English like "playerId".
+    - We store these exact strings as `name` in form_schema during catalog sync.
+    - We ONLY send what form_schema defines. Adding any extra params (like playerId)
+      that are not in the schema causes a 417 rejection from the Alkasr server.
     """
-    from apps.catalog.models import Product
+    from apps.catalog.models import Product, ProductVariant
     integration = get_alkasr_integration(store)
     if not integration:
         return {"status": "error", "message": "بوابة Alkasr VIP غير مهيئة في قاعدة البيانات."}
@@ -87,70 +94,94 @@ def place_alkasr_order(api_product_id, qty, order_uuid, metadata, store=None):
         "order_uuid": str(order_uuid)
     }
     
-    # Clean metadata keys (remove any empty keys or keys that are spaces to avoid &= url errors)
+    # Clean metadata: strip whitespace from keys and values, skip empty keys
     clean_metadata = {}
     for k, v in metadata.items():
-        if k and str(k).strip():
-            clean_metadata[str(k).strip()] = v
+        k_clean = str(k).strip() if k else ""
+        if k_clean:
+            clean_metadata[k_clean] = str(v).strip() if v is not None else ""
 
-    # 1. Try to map fields using the product's form_schema to find the correct API parameter names
-    product = Product.objects.filter(variants__api_product_id=api_product_id).first()
-    if product and product.form_schema:
-        fields = product.form_schema.get("fields", [])
-        for f in fields:
-            name = f.get("name") # e.g. "playerId"
-            label = f.get("label") # e.g. "معرّف اللاعب (Player ID)"
+    # Load form_schema: try variant-level first, then product-level
+    form_schema = None
+    variant = ProductVariant.objects.filter(api_product_id=api_product_id).select_related('product').first()
+    if variant:
+        if hasattr(variant, 'form_schema') and variant.form_schema:
+            form_schema = variant.form_schema
+        elif variant.product and variant.product.form_schema:
+            form_schema = variant.product.form_schema
+
+    logger.info(f"[Alkasr Order] product_id={api_product_id}, metadata_keys={list(clean_metadata.keys())}, form_schema={form_schema}")
+
+    if form_schema:
+        schema_fields = form_schema.get("fields", [])
+        
+        for field in schema_fields:
+            # `api_name` = EXACT parameter name Alkasr expects (may be Arabic or English)
+            api_name = field.get("name")
+            # `label` = what we showed in our UI (same as api_name for Alkasr; stored separately)
+            label = field.get("label", api_name)
+            
+            if not api_name:
+                continue
+            
             val = None
             
-            # Match directly
-            if name and name in clean_metadata:
-                val = clean_metadata[name]
-            elif label and label in clean_metadata:
-                val = clean_metadata[label]
-                
-            # Case insensitive match
-            if not val:
-                for k, v in clean_metadata.items():
-                    if name and k.lower() == name.lower():
-                        val = v
+            # Match 1: exact match on api_name (HTML form sends `custom_<api_name>`)
+            for mk, mv in clean_metadata.items():
+                if mk == api_name:
+                    val = mv
+                    break
+            
+            # Match 2: case-insensitive match on api_name
+            if val is None:
+                for mk, mv in clean_metadata.items():
+                    if mk.lower() == api_name.lower():
+                        val = mv
                         break
-                    if label and k.lower() == label.lower():
-                        val = v
+            
+            # Match 3: match on label (fallback if label differs from name)
+            if val is None and label and label != api_name:
+                for mk, mv in clean_metadata.items():
+                    if mk.lower() == label.lower():
+                        val = mv
                         break
-                        
-            # Map name if found
-            if val and name:
-                params[name] = val
-
-    # 2. Fallback direct mapping of any non-empty metadata keys has been removed
-    # to prevent sending raw/Arabic parameter names (like "رابط الحساب") which Alkasr API rejects.
-
-    # 3. Specific playerId resolution fallback (common for Alkasr)
-    if 'playerId' not in params:
-        # Try to find common playerId aliases in clean_metadata
+            
+            # Match 4: only one metadata value available — use it
+            if val is None and len(clean_metadata) == 1:
+                val = list(clean_metadata.values())[0]
+            
+            if val is not None:
+                # Send with the EXACT api_name Alkasr expects
+                params[api_name] = val
+                logger.info(f"[Alkasr Order] Mapped field '{api_name}' = '{val}'")
+            else:
+                logger.warning(f"[Alkasr Order] Could not map field '{api_name}' from metadata keys: {list(clean_metadata.keys())}")
+    else:
+        # No form_schema available: only pass through purely ASCII/alphanumeric keys
+        # Never pass Arabic-named keys directly as URL params without schema guidance
+        import re
+        ascii_key = re.compile(r'^[a-zA-Z_][a-zA-Z0-9_]*$')
         for k, v in clean_metadata.items():
-            if any(x in k.lower() for x in ['player', 'id', 'user', 'account', 'ايدي', 'لاعب', 'حساب']):
-                params['playerId'] = v
-                break
-                
-    # 4. Final absolute fallback: if playerId is required but not in params, and metadata has one field, assign it!
-    if 'playerId' not in params and clean_metadata:
-        params['playerId'] = list(clean_metadata.values())[0]
-        
+            if ascii_key.match(k):
+                params[k] = v
+                logger.info(f"[Alkasr Order] No schema: passing ASCII key '{k}'")
+            else:
+                logger.warning(f"[Alkasr Order] No schema: skipping non-ASCII key '{k}' for product {api_product_id}")
+
     headers = {
         "api-token": integration.api_token,
         "Accept": "application/json"
     }
     
     try:
-        logger.info(f"Sending order to Alkasr: product_id={api_product_id}, qty={qty}, uuid={order_uuid}, params={params}")
+        logger.info(f"[Alkasr Order] Final request: product_id={api_product_id}, params={params}")
         response = requests.get(url, params=params, headers=headers, timeout=5.0, verify=False)
         response.raise_for_status()
         response_json = response.json()
-        logger.info(f"Alkasr order response: {response_json}")
+        logger.info(f"[Alkasr Order] Response: {response_json}")
         return response_json
     except Exception as e:
-        logger.exception("Failed to place Alkasr order")
+        logger.exception(f"[Alkasr Order] Failed: product_id={api_product_id}, params={params}")
         return {"status": "error", "message": str(e)}
 
 def check_alkasr_orders(order_identifiers, is_uuid=False, store=None):
