@@ -238,6 +238,7 @@ def sync_alkasr_catalog(store, selected_category_ids=None, markup_percent=0.0):
     Also ensures images are completely cleared out as requested.
     """
     from decimal import Decimal
+    from django.db import transaction
     from apps.catalog.models import Category, Product, ProductVariant
     
     # Fetch products (force refresh during sync)
@@ -251,11 +252,20 @@ def sync_alkasr_catalog(store, selected_category_ids=None, markup_percent=0.0):
     created_count = 0
     updated_count = 0
     
+    # Pre-fetch existing categories for this store to avoid N+1 queries
+    existing_categories = {
+        cat.name: cat
+        for cat in Category.objects.filter(store=store)
+    }
+    
     # Pre-fetch existing variants with api_product_id to avoid N+1 queries
     existing_variants = {
         v.api_product_id: v 
         for v in ProductVariant.objects.filter(api_product_id__isnull=False).select_related('product')
     }
+    
+    # Pre-fetch all SKUs in the database to optimize SKU uniqueness checks
+    existing_skus = set(ProductVariant.objects.values_list('sku', flat=True))
     
     # Translation map for API parameter fields
     translation_map = {
@@ -273,124 +283,124 @@ def sync_alkasr_catalog(store, selected_category_ids=None, markup_percent=0.0):
         "quantity": "الكمية",
         "qty": "الكمية",
         "amount": "المبلغ",
-        "playerid": "معرّف اللاعب (Player ID)",
     }
     
-    for item in products:
-        api_prod_id = item.get("id")
-        parent_id = item.get("parent_id")
-        
-        if not api_prod_id:
-            continue
+    # Wrap the entire catalog synchronization in a single transaction.atomic block
+    # to execute bulk database operations extremely fast and avoid timeout/connection kills.
+    with transaction.atomic():
+        for item in products:
+            api_prod_id = item.get("id")
+            parent_id = item.get("parent_id")
             
-        # If category list is specified, filter by it
-        if selected_category_ids is not None:
-            if parent_id not in selected_category_ids and str(parent_id) not in selected_category_ids:
+            if not api_prod_id:
                 continue
                 
-        cat_name = item.get("category_name") or "غير مصنف"
-        prod_name = item.get("name")
-        alkasr_price = item.get("price") or 0.0
-        is_available = item.get("available", True)
-        params_list = item.get("params") or []
-        
-        # Build form schema
-        fields_list = []
-        for p_field in params_list:
-            if not p_field or not isinstance(p_field, str):
-                continue
-            norm_field = p_field.strip().lower()
-            label = translation_map.get(norm_field, p_field)
-            if p_field in translation_map:
-                label = translation_map[p_field]
-            elif p_field.lower() == "playerid":
-                label = "معرّف اللاعب (Player ID)"
+            # If category list is specified, filter by it
+            if selected_category_ids is not None:
+                if parent_id not in selected_category_ids and str(parent_id) not in selected_category_ids:
+                    continue
+                    
+            cat_name = item.get("category_name") or "غير مصنف"
+            prod_name = item.get("name")
+            alkasr_price = item.get("price") or 0.0
+            is_available = item.get("available", True)
+            params_list = item.get("params") or []
+            
+            # Build form schema
+            fields_list = []
+            for p_field in params_list:
+                if not p_field or not isinstance(p_field, str):
+                    continue
+                norm_field = p_field.strip().lower()
+                label = translation_map.get(norm_field, p_field)
+                if p_field in translation_map:
+                    label = translation_map[p_field]
+                elif p_field.lower() == "playerid":
+                    label = "معرّف اللاعب (Player ID)"
+                    
+                fields_list.append({
+                    "label": label,
+                    "type": "text",
+                    "required": True
+                })
+            form_schema = {
+                "version": 1,
+                "fields": fields_list
+            }
+            
+            # Calculate price
+            cost_val = Decimal(str(alkasr_price))
+            markup_factor = Decimal(1) + (Decimal(str(markup_percent)) / Decimal(100))
+            retail_price = cost_val * markup_factor
+            
+            # Get or create category from memory cache
+            category = existing_categories.get(cat_name)
+            if not category:
+                category = Category.objects.create(
+                    name=cat_name,
+                    store=store,
+                    is_active=True
+                )
+                existing_categories[cat_name] = category
+            
+            # Check if we already have a variant for this api_prod_id
+            variant = existing_variants.get(api_prod_id)
+            if variant:
+                product = variant.product
                 
-            fields_list.append({
-                "label": label,
-                "type": "text",
-                "required": True
-            })
-        form_schema = {
-            "version": 1,
-            "fields": fields_list
-        }
-        
-        # Calculate price
-        cost_val = Decimal(str(alkasr_price))
-        markup_factor = Decimal(1) + (Decimal(str(markup_percent)) / Decimal(100))
-        retail_price = cost_val * markup_factor
-        
-        # Check if we already have a variant for this api_prod_id
-        variant = existing_variants.get(api_prod_id)
-        if variant:
-            product = variant.product
-            # Ensure the category is fetched/created and assigned to the product
-            category, cat_created = Category.objects.get_or_create(
-                name=cat_name,
-                store=store,
-                defaults={"is_active": True}
-            )
-            
-            # Update product details
-            product.name = prod_name
-            product.category = category
-            product.is_active = is_available
-            product.form_schema = form_schema
-            product.api_provider = "alkasr"
-            # Do NOT overwrite product.image with None if it is already set (this prevents resetting user's custom images)
-            if not product.image:
-                product.image = None
-            product.save()
-            
-            # Update variant details
-            variant.cost = cost_val
-            variant.price = retail_price
-            variant.is_active = is_available
-            variant.save()
-            
-            updated_count += 1
-        else:
-            # Create category if it doesn't exist
-            category, cat_created = Category.objects.get_or_create(
-                name=cat_name,
-                store=store,
-                defaults={"is_active": True}
-            )
-            
-            # Create product with clean/empty description and empty image
-            product = Product.objects.create(
-                product_type="digital",
-                name=prod_name,
-                category=category,
-                store=store,
-                description="",
-                is_active=is_available,
-                is_api_product=True,
-                api_provider="alkasr",
-                form_schema=form_schema,
-                image=None
-            )
-            
-            # Create default variant
-            sku_code = f"ALK-{api_prod_id}"
-            suffix = 1
-            while ProductVariant.objects.filter(sku=sku_code).exists():
-                sku_code = f"ALK-{api_prod_id}-{suffix}"
-                suffix += 1
+                # Update product details
+                product.name = prod_name
+                product.category = category
+                product.is_active = is_available
+                product.form_schema = form_schema
+                product.api_provider = "alkasr"
+                # Do NOT overwrite product.image with None if it is already set (this prevents resetting user's custom images)
+                if not product.image:
+                    product.image = None
+                product.save()
                 
-            ProductVariant.objects.create(
-                product=product,
-                name="الافتراضية",
-                sku=sku_code,
-                price=retail_price,
-                cost=cost_val,
-                api_product_id=api_prod_id,
-                is_active=is_available,
-                delivery_type="manual"
-            )
-            created_count += 1
-            
+                # Update variant details
+                variant.cost = cost_val
+                variant.price = retail_price
+                variant.is_active = is_available
+                variant.save()
+                
+                updated_count += 1
+            else:
+                # Create product with clean/empty description and empty image
+                product = Product.objects.create(
+                    product_type="digital",
+                    name=prod_name,
+                    category=category,
+                    store=store,
+                    description="",
+                    is_active=is_available,
+                    is_api_product=True,
+                    api_provider="alkasr",
+                    form_schema=form_schema,
+                    image=None
+                )
+                
+                # Create default variant
+                sku_code = f"ALK-{api_prod_id}"
+                suffix = 1
+                while sku_code in existing_skus:
+                    sku_code = f"ALK-{api_prod_id}-{suffix}"
+                    suffix += 1
+                existing_skus.add(sku_code)
+                    
+                ProductVariant.objects.create(
+                    product=product,
+                    name="الافتراضية",
+                    sku=sku_code,
+                    price=retail_price,
+                    cost=cost_val,
+                    api_product_id=api_prod_id,
+                    is_active=is_available,
+                    delivery_type="manual"
+                )
+                created_count += 1
+                
     return {
         "status": "success",
         "created": created_count,
