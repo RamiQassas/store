@@ -77,6 +77,17 @@ class AlkasrClient:
                 headers={"User-Agent": "AlkasrClient/2.0"},
                 timeout=TIMEOUT
             )
+            
+            # Fallback if /api/v2 returned 404 Not Found
+            if response.status_code == 404 and url != base:
+                url = base
+                response = self.session.post(
+                    url, 
+                    data=data, 
+                    headers={"User-Agent": "AlkasrClient/2.0"},
+                    timeout=TIMEOUT
+                )
+
             elapsed_ms = int((time.time() - start_time) * 1000)
             req_log.execution_time_ms = elapsed_ms
             req_log.save(update_fields=["execution_time_ms"])
