@@ -32,18 +32,23 @@ class AlkasrClient:
         return session
 
     def request(self, action, payload=None):
+        from apps.catalog.models import APITransaction
+        
         data = payload or {}
         data["api_token"] = self.api_token
+        data["key"] = self.api_token
         data["action"] = action
 
         url = self.base_url.rstrip("/") + "/api/v2"
+        if not url.startswith("http"):
+            url = "https://" + url
 
         # Create Request Log
         req_log = ProviderRequestLog.objects.create(
             profile=self.profile,
             endpoint=url,
             method="POST",
-            payload=str(data)
+            payload=str({k: v for k, v in data.items() if k not in ("api_token", "key")})
         )
 
         start_time = time.time()
@@ -66,8 +71,29 @@ class AlkasrClient:
                 is_success=False
             )
 
+            try:
+                json_resp = response.json()
+            except ValueError:
+                json_resp = {}
+
+            is_success = response.status_code == 200 and json_resp.get("status") not in ("error", "failed")
+
+            # Create APITransaction for template rendering
+            APITransaction.objects.create(
+                store=self.profile.store,
+                provider=self.profile.provider_name,
+                action=action,
+                product_id=str(data.get("product_id", "")),
+                order_uuid=str(data.get("order_uuid", "")),
+                request_url=url,
+                request_params=str({k: v for k, v in data.items() if k not in ("api_token", "key")}),
+                response_status=response.status_code,
+                response_body=response.text[:5000],
+                is_success=is_success,
+                error_message=json_resp.get("message") or json_resp.get("error", "") if not is_success else ""
+            )
+
             response.raise_for_status()
-            json_resp = response.json()
             
             if json_resp.get("status") == "error":
                 res_log.is_success = False
