@@ -1,0 +1,669 @@
+{% extends "site/control_base.html" %}
+{% load static %}
+
+{% block extra_head %}
+{{ block.super }}
+<style>
+/* ══════════════════════════════════════════════
+   BACKUP & MAINTENANCE PAGE — Premium Dark UI
+══════════════════════════════════════════════ */
+:root {
+    --green: #10b981;
+    --green-glow: rgba(16, 185, 129, 0.2);
+    --red: #ef4444;
+    --red-glow: rgba(239, 68, 68, 0.2);
+    --amber: #f59e0b;
+    --amber-glow: rgba(245, 158, 11, 0.15);
+    --cyan: #06b6d4;
+}
+
+/* ── Status toggle switches ─────────────────── */
+.op-toggle-card {
+    background: rgba(17, 24, 39, 0.7);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 20px;
+    padding: 1.25rem 1.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+.op-toggle-card::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: 20px;
+    opacity: 0;
+    transition: opacity 0.4s;
+}
+
+.op-toggle-card.enabled::before  { background: linear-gradient(135deg, rgba(16,185,129,0.04), transparent); opacity: 1; }
+.op-toggle-card.disabled::before { background: linear-gradient(135deg, rgba(239,68,68,0.06), transparent); opacity: 1; border-color: rgba(239,68,68,0.15); }
+
+.op-toggle-card .op-icon {
+    width: 44px; height: 44px;
+    border-radius: 14px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.2rem;
+    flex-shrink: 0;
+}
+
+.op-toggle-card.enabled  .op-icon { background: var(--green-glow); color: var(--green); }
+.op-toggle-card.disabled .op-icon { background: var(--red-glow); color: var(--red); }
+
+.op-toggle-card .op-label { flex: 1; }
+.op-toggle-card .op-label h4 { font-size: 0.9rem; font-weight: 800; color: #f1f5f9; margin: 0 0 2px; }
+.op-toggle-card .op-label p  { font-size: 0.72rem; color: #475569; margin: 0; }
+
+/* ── Pill toggle switch ─────────────────── */
+.pill-switch {
+    position: relative;
+    display: inline-block;
+    width: 52px;
+    height: 28px;
+    flex-shrink: 0;
+}
+
+.pill-switch input { opacity: 0; width: 0; height: 0; }
+
+.pill-switch .slider {
+    position: absolute;
+    inset: 0;
+    background: rgba(239, 68, 68, 0.3);
+    border: 1px solid rgba(239, 68, 68, 0.4);
+    border-radius: 28px;
+    cursor: pointer;
+    transition: all 0.35s cubic-bezier(.4,0,.2,1);
+}
+
+.pill-switch .slider::before {
+    content: "";
+    position: absolute;
+    height: 20px; width: 20px;
+    right: 3px; bottom: 3px;
+    background: #ef4444;
+    border-radius: 50%;
+    transition: all 0.35s cubic-bezier(.4,0,.2,1);
+    box-shadow: 0 2px 8px rgba(239,68,68,0.5);
+}
+
+.pill-switch input:checked + .slider {
+    background: rgba(16, 185, 129, 0.2);
+    border-color: rgba(16, 185, 129, 0.4);
+}
+
+.pill-switch input:checked + .slider::before {
+    background: var(--green);
+    transform: translateX(-24px);
+    box-shadow: 0 2px 8px rgba(16,185,129,0.5);
+}
+
+/* ── Status pill badges ─────────────────── */
+.status-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 4px 12px;
+    border-radius: 100px;
+    font-size: 10px;
+    font-weight: 900;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+}
+
+.status-pill.online  { background: rgba(16,185,129,0.12); color: var(--green); border: 1px solid rgba(16,185,129,0.2); }
+.status-pill.offline { background: rgba(239,68,68,0.12);  color: var(--red);   border: 1px solid rgba(239,68,68,0.2); }
+.status-pill.warn    { background: rgba(245,158,11,0.12); color: var(--amber); border: 1px solid rgba(245,158,11,0.2); }
+
+/* ── Backup target checkboxes ─────────────── */
+.backup-target-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+    gap: 0.65rem;
+}
+
+.backup-chip {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    padding: 0.65rem 1rem;
+    border-radius: 14px;
+    border: 1px solid rgba(255,255,255,0.06);
+    background: rgba(255,255,255,0.02);
+    cursor: pointer;
+    transition: all 0.25s;
+    user-select: none;
+}
+
+.backup-chip:hover {
+    border-color: rgba(6,182,212,0.3);
+    background: rgba(6,182,212,0.05);
+}
+
+.backup-chip input[type="checkbox"] {
+    width: 16px; height: 16px;
+    accent-color: var(--cyan);
+    border-radius: 6px;
+    cursor: pointer;
+    flex-shrink: 0;
+}
+
+.backup-chip input:checked ~ .chip-label { color: #fff; }
+.backup-chip:has(input:checked) {
+    border-color: rgba(6,182,212,0.35);
+    background: rgba(6,182,212,0.07);
+}
+
+.chip-label { font-size: 0.8rem; font-weight: 700; color: #64748b; transition: color 0.2s; }
+
+/* ── Section cards ────────────────────────── */
+.section-card {
+    background: rgba(17, 24, 39, 0.6);
+    border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 24px;
+    padding: 2rem;
+    backdrop-filter: blur(12px);
+}
+
+.section-header {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 1.75rem;
+    padding-bottom: 1.25rem;
+    border-bottom: 1px solid rgba(255,255,255,0.05);
+}
+
+.section-icon {
+    width: 48px; height: 48px;
+    border-radius: 16px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.3rem;
+    flex-shrink: 0;
+}
+
+.section-icon.green  { background: rgba(16,185,129,0.12); color: var(--green); }
+.section-icon.cyan   { background: rgba(6,182,212,0.12);  color: var(--cyan);  }
+.section-icon.amber  { background: rgba(245,158,11,0.12); color: var(--amber); }
+.section-icon.purple { background: rgba(168,85,247,0.12); color: #a855f7; }
+
+.section-title { font-size: 1.15rem; font-weight: 900; color: #f1f5f9; }
+.section-desc  { font-size: 0.75rem; color: #475569; margin-top: 2px; }
+
+/* ── Maintenance banner ───────────────────── */
+.maint-banner {
+    padding: 1rem 1.5rem;
+    border-radius: 16px;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+    font-size: 0.85rem;
+    font-weight: 700;
+}
+
+.maint-banner.warn { background: rgba(245,158,11,0.08); border: 1px solid rgba(245,158,11,0.2); color: #fbbf24; }
+.maint-banner.ok   { background: rgba(16,185,129,0.08);  border: 1px solid rgba(16,185,129,0.2); color: var(--green); }
+
+/* ── Input styles ─────────────────────────── */
+.bk-input {
+    width: 100%;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 14px;
+    padding: 0.75rem 1rem;
+    color: #f1f5f9;
+    font-size: 0.85rem;
+    font-weight: 600;
+    outline: none;
+    transition: border-color 0.25s;
+    direction: ltr;
+}
+
+.bk-input:focus { border-color: rgba(6,182,212,0.4); }
+.bk-input::placeholder { color: #334155; }
+
+textarea.bk-input { resize: vertical; min-height: 80px; direction: rtl; }
+
+/* ── Buttons ──────────────────────────────── */
+.btn-green  { background: linear-gradient(135deg, #10b981, #059669); color: #fff; border: none; }
+.btn-green:hover { transform: translateY(-2px); box-shadow: 0 10px 25px -5px rgba(16,185,129,0.4); }
+
+.btn-amber  { background: linear-gradient(135deg, #f59e0b, #d97706); color: #000; border: none; }
+.btn-amber:hover { transform: translateY(-2px); box-shadow: 0 10px 25px -5px rgba(245,158,11,0.4); }
+
+.btn-cyan   { background: linear-gradient(135deg, #06b6d4, #0891b2); color: #000; border: none; }
+.btn-cyan:hover { transform: translateY(-2px); box-shadow: 0 10px 25px -5px rgba(6,182,212,0.4); }
+
+/* ── Pulsing dot ──────────────────────────── */
+@keyframes pulse-ring {
+    0% { box-shadow: 0 0 0 0 rgba(16,185,129,0.5); }
+    70% { box-shadow: 0 0 0 8px rgba(16,185,129,0); }
+    100% { box-shadow: 0 0 0 0 rgba(16,185,129,0); }
+}
+.pulse-dot {
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    background: var(--green);
+    animation: pulse-ring 2s infinite;
+    display: inline-block;
+}
+
+@keyframes fade-in {
+    from { opacity: 0; transform: translateY(16px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+.fade-in { animation: fade-in 0.5s ease both; }
+.delay-1 { animation-delay: 0.1s; }
+.delay-2 { animation-delay: 0.2s; }
+.delay-3 { animation-delay: 0.3s; }
+</style>
+{% endblock %}
+
+{% block control_content %}
+
+<div class="page-head fade-in">
+    <span class="eyebrow"><i class="fas fa-cloud-arrow-up ml-2"></i>النسخ الاحتياطي والصيانة</span>
+    <h1>إدارة النسخ الاحتياطي والتشغيل</h1>
+    <p class="text-slate-400 text-sm mt-2">تحكم كامل بعمليات الموقع، وجدولة نسخ احتياطية تلقائية مشفرة مرسلة عبر البريد الإلكتروني.</p>
+</div>
+
+<!-- ═══════════════════════ OPERATIONAL STATUS OVERVIEW ═══════════════════════ -->
+<div class="mb-6 fade-in delay-1">
+    {% if maintenance.is_fully_operational %}
+    <div class="maint-banner ok">
+        <span class="pulse-dot"></span>
+        <span>جميع عمليات الموقع تعمل بشكل طبيعي — الإيداع، السحب، الشراء، والتحويل كلها مفعّلة</span>
+    </div>
+    {% else %}
+    <div class="maint-banner warn">
+        <i class="fas fa-triangle-exclamation text-xl"></i>
+        <div>
+            <div class="font-black">⚠️ بعض العمليات موقوفة حالياً</div>
+            <div class="text-xs font-medium opacity-80 mt-0.5">{{ maintenance.maintenance_message }}</div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<div class="grid grid-cols-1 gap-6 lg:grid-cols-2 xl:grid-cols-3">
+
+<!-- ════════════════════════════════════════
+     CARD 1 — Toggle Site Operations
+════════════════════════════════════════ -->
+<div class="section-card fade-in delay-1 xl:col-span-2">
+    <div class="section-header">
+        <div class="section-icon amber"><i class="fas fa-power-off"></i></div>
+        <div>
+            <div class="section-title">تشغيل / إيقاف عمليات الموقع</div>
+            <div class="section-desc">أوقف أي خدمة مؤقتاً دون التأثير على بقية الوظائف</div>
+        </div>
+    </div>
+
+    <form method="POST" id="toggle-form">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="toggle_operations">
+
+        <div class="grid grid-cols-1 gap-3 sm:grid-cols-2 mb-5">
+
+            <!-- Deposits -->
+            <div class="op-toggle-card {% if maintenance.deposits_enabled %}enabled{% else %}disabled{% endif %}" id="card-deposits">
+                <div class="op-icon"><i class="fas fa-circle-arrow-down"></i></div>
+                <div class="op-label">
+                    <h4>الإيداعات</h4>
+                    <p>قبول طلبات الإيداع من المستخدمين</p>
+                </div>
+                <label class="pill-switch">
+                    <input type="checkbox" name="deposits_enabled" value="1"
+                        {% if maintenance.deposits_enabled %}checked{% endif %}
+                        onchange="updateCard(this,'card-deposits')">
+                    <span class="slider"></span>
+                </label>
+            </div>
+
+            <!-- Withdrawals -->
+            <div class="op-toggle-card {% if maintenance.withdrawals_enabled %}enabled{% else %}disabled{% endif %}" id="card-withdrawals">
+                <div class="op-icon"><i class="fas fa-circle-arrow-up"></i></div>
+                <div class="op-label">
+                    <h4>السحوبات</h4>
+                    <p>معالجة طلبات سحب الأرصدة</p>
+                </div>
+                <label class="pill-switch">
+                    <input type="checkbox" name="withdrawals_enabled" value="1"
+                        {% if maintenance.withdrawals_enabled %}checked{% endif %}
+                        onchange="updateCard(this,'card-withdrawals')">
+                    <span class="slider"></span>
+                </label>
+            </div>
+
+            <!-- Purchases -->
+            <div class="op-toggle-card {% if maintenance.purchases_enabled %}enabled{% else %}disabled{% endif %}" id="card-purchases">
+                <div class="op-icon"><i class="fas fa-cart-shopping"></i></div>
+                <div class="op-label">
+                    <h4>الشراء</h4>
+                    <p>إتمام عمليات شراء الخدمات والمنتجات</p>
+                </div>
+                <label class="pill-switch">
+                    <input type="checkbox" name="purchases_enabled" value="1"
+                        {% if maintenance.purchases_enabled %}checked{% endif %}
+                        onchange="updateCard(this,'card-purchases')">
+                    <span class="slider"></span>
+                </label>
+            </div>
+
+            <!-- Transfers -->
+            <div class="op-toggle-card {% if maintenance.transfers_enabled %}enabled{% else %}disabled{% endif %}" id="card-transfers">
+                <div class="op-icon"><i class="fas fa-exchange-alt"></i></div>
+                <div class="op-label">
+                    <h4>التحويلات (P2P)</h4>
+                    <p>تحويل الرصيد بين المستخدمين</p>
+                </div>
+                <label class="pill-switch">
+                    <input type="checkbox" name="transfers_enabled" value="1"
+                        {% if maintenance.transfers_enabled %}checked{% endif %}
+                        onchange="updateCard(this,'card-transfers')">
+                    <span class="slider"></span>
+                </label>
+            </div>
+
+            <!-- Registrations -->
+            <div class="op-toggle-card {% if maintenance.registrations_enabled %}enabled{% else %}disabled{% endif %}" id="card-registrations">
+                <div class="op-icon"><i class="fas fa-user-plus"></i></div>
+                <div class="op-label">
+                    <h4>التسجيل</h4>
+                    <p>تسجيل حسابات جديدة للمستخدمين</p>
+                </div>
+                <label class="pill-switch">
+                    <input type="checkbox" name="registrations_enabled" value="1"
+                        {% if maintenance.registrations_enabled %}checked{% endif %}
+                        onchange="updateCard(this,'card-registrations')">
+                    <span class="slider"></span>
+                </label>
+            </div>
+
+        </div>
+
+        <!-- Maintenance message -->
+        <div class="mb-5">
+            <label class="text-xs font-black text-slate-400 uppercase tracking-widest block mb-2">
+                <i class="fas fa-message ml-1 text-amber-400"></i> رسالة الصيانة (تظهر للمستخدمين)
+            </label>
+            <textarea class="bk-input" name="maintenance_message" rows="2"
+                placeholder="مثال: الموقع في وضع الصيانة مؤقتاً، سيعود للعمل خلال ساعة.">{{ maintenance.maintenance_message }}</textarea>
+        </div>
+
+        <div class="flex items-center justify-between flex-wrap gap-3">
+            <div class="text-xs text-slate-500">
+                {% if maintenance.updated_by %}
+                آخر تعديل: <span class="text-slate-400 font-bold">{{ maintenance.updated_by.email }}</span> —
+                {% endif %}
+                <span class="text-slate-500">{{ maintenance.updated_at|date:"Y/m/d H:i" }}</span>
+            </div>
+            <button type="submit" class="btn btn-amber">
+                <i class="fas fa-save"></i> حفظ إعدادات التشغيل
+            </button>
+        </div>
+
+    </form>
+</div>
+
+<!-- ════════════════════════════════════════
+     CARD 2 — Status Dashboard (mini)
+════════════════════════════════════════ -->
+<div class="section-card fade-in delay-2">
+    <div class="section-header">
+        <div class="section-icon green"><i class="fas fa-signal"></i></div>
+        <div>
+            <div class="section-title">حالة الخدمات الآن</div>
+            <div class="section-desc">نظرة سريعة على كل وظيفة</div>
+        </div>
+    </div>
+
+    <div class="flex flex-col gap-3">
+        {% with ops=maintenance %}
+        <div class="flex items-center justify-between py-2 border-b border-white/5">
+            <span class="text-sm font-bold text-slate-300"><i class="fas fa-circle-arrow-down ml-2 text-cyan-400"></i> الإيداعات</span>
+            {% if ops.deposits_enabled %}<span class="status-pill online"><span class="pulse-dot" style="width:7px;height:7px;"></span> مفعّل</span>
+            {% else %}<span class="status-pill offline"><i class="fas fa-xmark"></i> موقوف</span>{% endif %}
+        </div>
+        <div class="flex items-center justify-between py-2 border-b border-white/5">
+            <span class="text-sm font-bold text-slate-300"><i class="fas fa-circle-arrow-up ml-2 text-cyan-400"></i> السحوبات</span>
+            {% if ops.withdrawals_enabled %}<span class="status-pill online"><span class="pulse-dot" style="width:7px;height:7px;"></span> مفعّل</span>
+            {% else %}<span class="status-pill offline"><i class="fas fa-xmark"></i> موقوف</span>{% endif %}
+        </div>
+        <div class="flex items-center justify-between py-2 border-b border-white/5">
+            <span class="text-sm font-bold text-slate-300"><i class="fas fa-cart-shopping ml-2 text-cyan-400"></i> الشراء</span>
+            {% if ops.purchases_enabled %}<span class="status-pill online"><span class="pulse-dot" style="width:7px;height:7px;"></span> مفعّل</span>
+            {% else %}<span class="status-pill offline"><i class="fas fa-xmark"></i> موقوف</span>{% endif %}
+        </div>
+        <div class="flex items-center justify-between py-2 border-b border-white/5">
+            <span class="text-sm font-bold text-slate-300"><i class="fas fa-exchange-alt ml-2 text-cyan-400"></i> التحويلات</span>
+            {% if ops.transfers_enabled %}<span class="status-pill online"><span class="pulse-dot" style="width:7px;height:7px;"></span> مفعّل</span>
+            {% else %}<span class="status-pill offline"><i class="fas fa-xmark"></i> موقوف</span>{% endif %}
+        </div>
+        <div class="flex items-center justify-between py-2">
+            <span class="text-sm font-bold text-slate-300"><i class="fas fa-user-plus ml-2 text-cyan-400"></i> التسجيل</span>
+            {% if ops.registrations_enabled %}<span class="status-pill online"><span class="pulse-dot" style="width:7px;height:7px;"></span> مفعّل</span>
+            {% else %}<span class="status-pill offline"><i class="fas fa-xmark"></i> موقوف</span>{% endif %}
+        </div>
+        {% endwith %}
+    </div>
+
+    <!-- Quick All-Off Button -->
+    <div class="mt-5 pt-4 border-t border-white/5 grid grid-cols-2 gap-3">
+        <form method="POST">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="toggle_operations">
+            <input type="hidden" name="deposits_enabled" value="0">
+            <input type="hidden" name="withdrawals_enabled" value="0">
+            <input type="hidden" name="purchases_enabled" value="0">
+            <input type="hidden" name="transfers_enabled" value="0">
+            <input type="hidden" name="registrations_enabled" value="0">
+            <input type="hidden" name="maintenance_message" value="{{ maintenance.maintenance_message }}">
+            <button type="submit" onclick="return confirm('هل أنت متأكد من إيقاف جميع العمليات؟')"
+                class="btn btn-outline w-full text-red-400 border-red-500/20 hover:border-red-500/40 hover:bg-red-500/10 hover:text-red-300">
+                <i class="fas fa-ban"></i> إيقاف الكل
+            </button>
+        </form>
+        <form method="POST">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="toggle_operations">
+            <input type="hidden" name="deposits_enabled" value="1">
+            <input type="hidden" name="withdrawals_enabled" value="1">
+            <input type="hidden" name="purchases_enabled" value="1">
+            <input type="hidden" name="transfers_enabled" value="1">
+            <input type="hidden" name="registrations_enabled" value="1">
+            <input type="hidden" name="maintenance_message" value="{{ maintenance.maintenance_message }}">
+            <button type="submit" class="btn btn-green w-full">
+                <i class="fas fa-play"></i> تشغيل الكل
+            </button>
+        </form>
+    </div>
+</div>
+
+</div><!-- end grid -->
+
+<!-- ════════════════════════════════════════
+     ROW 2 — Backup Cards
+════════════════════════════════════════ -->
+<div class="grid grid-cols-1 gap-6 lg:grid-cols-2 mt-6">
+
+<!-- ── MANUAL INSTANT BACKUP ────────────── -->
+<div class="section-card fade-in delay-2">
+    <div class="section-header">
+        <div class="section-icon cyan"><i class="fas fa-cloud-arrow-up"></i></div>
+        <div>
+            <div class="section-title">إرسال نسخة احتياطية الآن</div>
+            <div class="section-desc">اختر البيانات واضغط إرسال — ستصلك فوراً كملف ZIP</div>
+        </div>
+    </div>
+
+    <form method="POST" id="backup-now-form">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="send_backup_now">
+
+        <div class="mb-4">
+            <label class="text-xs font-black text-slate-400 uppercase tracking-widest block mb-3">
+                <i class="fas fa-database ml-1 text-cyan-400"></i> اختر البيانات المراد نسخها
+            </label>
+
+            <!-- Select All / Deselect All -->
+            <div class="flex gap-3 mb-3">
+                <button type="button" onclick="selectAllBackup('backup-now-form', true)"
+                    class="text-xs font-bold text-cyan-400 hover:text-cyan-300 transition-colors">
+                    <i class="fas fa-check-double ml-1"></i> تحديد الكل
+                </button>
+                <span class="text-slate-700">|</span>
+                <button type="button" onclick="selectAllBackup('backup-now-form', false)"
+                    class="text-xs font-bold text-slate-500 hover:text-slate-300 transition-colors">
+                    <i class="fas fa-times ml-1"></i> إلغاء التحديد
+                </button>
+            </div>
+
+            <div class="backup-target-grid">
+                {% for key, label in backup_models %}
+                <label class="backup-chip">
+                    <input type="checkbox" name="backup_targets" value="{{ key }}" checked>
+                    <span class="chip-label">{{ label }}</span>
+                </label>
+                {% endfor %}
+            </div>
+        </div>
+
+        <div class="mb-5">
+            <label class="text-xs font-black text-slate-400 uppercase tracking-widest block mb-2">
+                <i class="fas fa-envelope ml-1 text-cyan-400"></i> البريد الإلكتروني للاستلام
+            </label>
+            <input type="email" name="backup_email" class="bk-input" placeholder="admin@example.com"
+                value="{{ request.user.email }}" required>
+        </div>
+
+        <button type="submit" class="btn btn-cyan w-full" id="backup-send-btn">
+            <i class="fas fa-paper-plane"></i> إرسال النسخة الاحتياطية الآن
+        </button>
+    </form>
+</div>
+
+<!-- ── SCHEDULED AUTO BACKUP ─────────────── -->
+<div class="section-card fade-in delay-3">
+    <div class="section-header">
+        <div class="section-icon purple"><i class="fas fa-clock"></i></div>
+        <div>
+            <div class="section-title">الجدولة التلقائية — كل ساعة</div>
+            <div class="section-desc">
+                ارسل نسخة احتياطية كاملة تلقائياً كل ساعة إلى بريدك
+                {% if schedule_enabled %}
+                — <span class="status-pill online" style="display:inline-flex;"><span class="pulse-dot" style="width:7px;height:7px;"></span> مُفعّل</span>
+                {% else %}
+                — <span class="status-pill offline" style="display:inline-flex;"><i class="fas fa-xmark"></i> موقوف</span>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <form method="POST">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="save_schedule">
+
+        <div class="mb-4">
+            <label class="text-xs font-black text-slate-400 uppercase tracking-widest block mb-3">
+                <i class="fas fa-database ml-1 text-purple-400"></i> البيانات المجدولة للنسخ
+            </label>
+
+            <div class="flex gap-3 mb-3">
+                <button type="button" onclick="selectAllBackup('schedule-form', true)"
+                    class="text-xs font-bold text-purple-400 hover:text-purple-300 transition-colors">
+                    <i class="fas fa-check-double ml-1"></i> تحديد الكل
+                </button>
+                <span class="text-slate-700">|</span>
+                <button type="button" onclick="selectAllBackup('schedule-form', false)"
+                    class="text-xs font-bold text-slate-500 hover:text-slate-300 transition-colors">
+                    <i class="fas fa-times ml-1"></i> إلغاء التحديد
+                </button>
+            </div>
+
+            <div class="backup-target-grid" id="schedule-grid">
+                {% for key, label in backup_models %}
+                <label class="backup-chip">
+                    <input type="checkbox" name="schedule_targets" value="{{ key }}"
+                        {% if key in schedule_targets %}checked{% elif not schedule_targets %}checked{% endif %}>
+                    <span class="chip-label">{{ label }}</span>
+                </label>
+                {% endfor %}
+            </div>
+        </div>
+
+        <div class="mb-4">
+            <label class="text-xs font-black text-slate-400 uppercase tracking-widest block mb-2">
+                <i class="fas fa-envelope ml-1 text-purple-400"></i> البريد الإلكتروني (كل ساعة)
+            </label>
+            <input type="email" name="schedule_email" class="bk-input"
+                placeholder="admin@example.com" value="{{ schedule_email }}">
+        </div>
+
+        <div class="flex items-center justify-between p-4 bg-white/[0.02] border border-white/5 rounded-2xl mb-5">
+            <div>
+                <div class="text-sm font-black text-white">تفعيل الجدولة التلقائية</div>
+                <div class="text-xs text-slate-500 mt-1">الإرسال كل ساعة عند بداية الساعة</div>
+            </div>
+            <label class="pill-switch">
+                <input type="checkbox" name="schedule_enabled" value="1"
+                    {% if schedule_enabled %}checked{% endif %}>
+                <span class="slider"></span>
+            </label>
+        </div>
+
+        <button type="submit" class="btn w-full" style="background: linear-gradient(135deg, #a855f7, #7c3aed); color: #fff; border: none;">
+            <i class="fas fa-floppy-disk"></i> حفظ إعدادات الجدولة
+        </button>
+    </form>
+</div>
+
+</div><!-- end backup row -->
+
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+// Update card appearance on toggle change
+function updateCard(checkbox, cardId) {
+    const card = document.getElementById(cardId);
+    if (checkbox.checked) {
+        card.classList.remove('disabled');
+        card.classList.add('enabled');
+    } else {
+        card.classList.remove('enabled');
+        card.classList.add('disabled');
+    }
+}
+
+// Select/deselect all checkboxes in a form
+function selectAllBackup(formId, selectAll) {
+    const form = document.getElementById(formId);
+    if (!form) {
+        // Try finding by class
+        document.querySelectorAll('[name="backup_targets"], [name="schedule_targets"]').forEach(cb => {
+            cb.checked = selectAll;
+            cb.dispatchEvent(new Event('change'));
+        });
+        return;
+    }
+    form.querySelectorAll('input[type="checkbox"]').forEach(cb => {
+        if (cb.name === 'backup_targets' || cb.name === 'schedule_targets') {
+            cb.checked = selectAll;
+        }
+    });
+}
+
+// Add loading state on backup send
+document.getElementById('backup-send-btn')?.closest('form')?.addEventListener('submit', function() {
+    const btn = document.getElementById('backup-send-btn');
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري الإرسال...';
+    btn.disabled = true;
+});
+</script>
+{% endblock %}

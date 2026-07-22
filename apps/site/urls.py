@@ -189,4 +189,7 @@ urlpatterns = [
     path("control/recharge-cards/", views.control_recharge_cards, name="control_recharge_cards"),
     path("control/recharge-cards/generate/", views.control_recharge_cards_generate, name="control_recharge_cards_generate"),
     path("control/recharge-cards/<uuid:pk>/cancel/", views.control_recharge_card_cancel, name="control_recharge_card_cancel"),
+
+    # Backup & Maintenance
+    path("control/backup/", views.control_backup, name="control_backup"),
 ]

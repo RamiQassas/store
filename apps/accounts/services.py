@@ -10,9 +10,12 @@ from apps.notifications.services import notify_user
 
 logger = logging.getLogger(__name__)
 
-def send_brevo_email(to_email, to_name, subject, html_content, text_content=None, store=None):
+def send_brevo_email(to_email, to_name, subject, html_content, text_content=None, store=None, attachments=None):
     """
     Sends an email using Brevo Transactional Email API.
+    
+    attachments: list of dicts with keys: name, content (base64), type
+    Example: [{"name": "backup.zip", "content": "<base64str>", "type": "application/zip"}]
     """
     if not settings.BREVO_API_KEY:
         logger.warning("BREVO_API_KEY is not set. Email not sent.")
@@ -58,6 +61,16 @@ def send_brevo_email(to_email, to_name, subject, html_content, text_content=None
     if text_content:
         payload["textContent"] = text_content
 
+    # Add attachments if provided (Brevo format)
+    if attachments:
+        payload["attachment"] = [
+            {
+                "name": att["name"],
+                "content": att["content"],  # base64-encoded string
+            }
+            for att in attachments
+        ]
+
     import time
     max_retries = 3
     for attempt in range(max_retries):
@@ -66,7 +79,7 @@ def send_brevo_email(to_email, to_name, subject, html_content, text_content=None
                 settings.BREVO_API_URL,
                 headers=headers,
                 data=json.dumps(payload),
-                timeout=10
+                timeout=30  # Longer timeout for attachments
             )
             if response.status_code in [200, 201, 202]:
                 return True

@@ -554,7 +554,7 @@ function selectVariant(id, el) {
         helpText.innerText = `يرجى إدخال الكمية المطلوبة (الحد الأدنى: ${qtyMin}، الحد الأقصى: ${qtyMax})`;
         inputHtml = `<input type="number" name="quantity" id="quantity-input" 
                             min="${qtyMin}" max="${qtyMax}" value="${qtyMin}" 
-                            oninput="updateQuantityPrice()"
+                            oninput="updateQuantityPrice()" onkeyup="updateQuantityPrice()" onchange="updateQuantityPrice()"
                             class="w-full bg-slate-900 border border-white/5 rounded-2xl p-4 text-white focus:border-cyan transition">`;
     } else if (qtyType === 'list') {
         container.classList.remove('hidden');
@@ -578,12 +578,31 @@ function selectVariant(id, el) {
         selectHtml += `</select>`;
         inputHtml = selectHtml;
     } else {
-        container.classList.add('hidden');
-        inputHtml = `<input type="hidden" name="quantity" id="quantity-input" value="1">`;
+        container.classList.remove('hidden');
+        helpText.innerText = "يرجى كتابة أو تحديد الكمية المطلوبة لهذه الخدمة.";
+        inputHtml = `<input type="number" name="quantity" id="quantity-input" 
+                            min="1" value="1" 
+                            oninput="updateQuantityPrice()" onkeyup="updateQuantityPrice()" onchange="updateQuantityPrice()"
+                            class="w-full bg-slate-900 border border-white/5 rounded-2xl p-4 text-white focus:border-cyan transition">`;
     }
     
     wrapper.innerHTML = inputHtml;
     updateQuantityPrice();
+}
+
+function formatCurrencyAmount(baseAmount) {
+    const currencySymbol = "{{ CURRENCY.symbol|default:'USD' }}";
+    const currencyRate = parseFloat("{{ CURRENCY.buy_rate|default:1 }}") || 1.0;
+    const currencyMethod = "{{ CURRENCY.conversion_method|default:'multiply' }}";
+    const currencyDecimals = parseInt("{{ CURRENCY.decimal_places|default:2 }}") || 2;
+
+    let converted = baseAmount;
+    if (currencyMethod === 'divide') {
+        converted = baseAmount / currencyRate;
+    } else {
+        converted = baseAmount * currencyRate;
+    }
+    return converted.toLocaleString('en-US', {minimumFractionDigits: currencyDecimals, maximumFractionDigits: currencyDecimals}) + ' ' + currencySymbol;
 }
 
 function updateQuantityPrice(isFromCoupon = false) {
@@ -593,9 +612,15 @@ function updateQuantityPrice(isFromCoupon = false) {
     const card = document.querySelector(`.variant-card.selected`);
     if (!card) return;
     
-    const basePrice = parseFloat(card.getAttribute('data-price') || 0);
+    const rawPriceStr = (card.getAttribute('data-price') || '0').replace(/,/g, '');
+    const basePrice = parseFloat(rawPriceStr) || 0;
     const qtyInput = document.getElementById('quantity-input');
-    const qty = qtyInput ? parseInt(qtyInput.value || 1) : 1;
+    
+    let qty = 1;
+    if (qtyInput) {
+        const val = parseInt(qtyInput.value);
+        qty = (isNaN(val) || val < 1) ? 1 : val;
+    }
     
     const subtotal = basePrice * qty;
     
@@ -605,7 +630,6 @@ function updateQuantityPrice(isFromCoupon = false) {
     let discount = 0;
     
     if (!isFromCoupon) {
-        // Clear coupon if user changes quantity or variant manually
         const couponInput = document.getElementById('coupon-code-input');
         if (couponInput) {
             couponInput.value = '';
@@ -614,9 +638,8 @@ function updateQuantityPrice(isFromCoupon = false) {
             feedback.classList.add('hidden');
             feedback.innerText = '';
         }
-        document.getElementById('discount-display').innerText = "0.00 USD";
+        document.getElementById('discount-display').innerText = formatCurrencyAmount(0);
     } else {
-        // Read discount from DOM
         const discountText = document.getElementById('discount-display').innerText;
         discount = parseFloat(discountText.replace(/[^\d.-]/g, '') || 0);
         if (discount > 0) {
@@ -628,12 +651,12 @@ function updateQuantityPrice(isFromCoupon = false) {
     
     // Always show breakdown
     breakdown.classList.remove('hidden');
-    document.getElementById('subtotal-display').innerText = subtotal.toFixed(2) + " USD";
-    document.getElementById('total-display').innerText = total.toFixed(2) + " USD";
+    document.getElementById('subtotal-display').innerText = formatCurrencyAmount(subtotal);
+    document.getElementById('total-display').innerText = formatCurrencyAmount(total);
 
     const submitBtn = document.getElementById('submit-btn');
     if (submitBtn && !submitBtn.disabled) {
-        submitBtn.innerHTML = `<i class="fas fa-shopping-cart ml-2"></i> شراء الآن بسعر ${total.toFixed(2)} USD`;
+        submitBtn.innerHTML = `<i class="fas fa-shopping-cart ml-2"></i> شراء الآن بسعر ${formatCurrencyAmount(total)}`;
     }
 }
 

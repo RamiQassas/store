@@ -1,5 +1,5 @@
 from django.contrib import admin
-from apps.common.models import Currency, SystemAuditLog, SocialMediaLink, SiteAnnouncement, PlatformStatistic, Testimonial
+from apps.common.models import Currency, SystemAuditLog, SocialMediaLink, SiteAnnouncement, PlatformStatistic, Testimonial, SiteMaintenanceMode
 
 @admin.register(Currency)
 class CurrencyAdmin(admin.ModelAdmin):
@@ -33,3 +33,15 @@ class PlatformStatisticAdmin(admin.ModelAdmin):
 class TestimonialAdmin(admin.ModelAdmin):
     list_display = ("user", "rating", "is_approved", "display_name_publicly")
     list_filter = ("rating", "is_approved")
+
+@admin.register(SiteMaintenanceMode)
+class SiteMaintenanceModeAdmin(admin.ModelAdmin):
+    list_display = ("__str__", "deposits_enabled", "withdrawals_enabled", "purchases_enabled", "transfers_enabled", "registrations_enabled", "updated_at", "updated_by")
+    readonly_fields = ("updated_at", "updated_by")
+
+    def has_add_permission(self, request):
+        # Only one instance should ever exist
+        return not SiteMaintenanceMode.objects.exists()
+
+    def has_delete_permission(self, request, obj=None):
+        return False

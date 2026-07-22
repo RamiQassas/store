@@ -831,6 +831,13 @@ def transfer_page(request):
     from apps.wallets.services import execute_p2p_transfer
     from django.core.exceptions import ValidationError
     
+    # ── Maintenance Mode Check ──────────────────────────────────────────
+    from apps.common.models import SiteMaintenanceMode
+    _maint = SiteMaintenanceMode.get_settings()
+    if not _maint.transfers_enabled:
+        messages.error(request, f"⚠️ خدمة التحويل بين المستخدمين موقوفة مؤقتاً. {_maint.maintenance_message}")
+        return redirect("dashboard")
+
     settings_obj = KYCSettings.get_settings()
     if not settings_obj.p2p_transfer_enabled:
         messages.error(request, "ميزة التحويل معطلة حالياً.")
@@ -911,6 +918,13 @@ def transfer_history(request):
 
 @login_required
 def deposits(request):
+    # ── Maintenance Mode Check ──────────────────────────────────────────
+    from apps.common.models import SiteMaintenanceMode
+    _maint = SiteMaintenanceMode.get_settings()
+    if not _maint.deposits_enabled:
+        messages.error(request, f"⚠️ خدمة الإيداع موقوفة مؤقتاً. {_maint.maintenance_message}")
+        return redirect("dashboard")
+
     if request.method == "POST":
         method_id = request.POST.get("payment_method")
         currency_id = request.POST.get("currency")
@@ -1062,8 +1076,12 @@ def deposits(request):
 
 @login_required
 def withdrawals(request):
-    # (Keep existing withdrawals logic, I will insert the new views below it)
-    pass # Replaced temporarily for structure matching if needed, wait, I shouldn't replace `withdrawals` body. I'll just append it after `withdrawals`.
+    # ── Maintenance Mode Check ──────────────────────────────────────────
+    from apps.common.models import SiteMaintenanceMode
+    _maint = SiteMaintenanceMode.get_settings()
+    if not _maint.withdrawals_enabled:
+        messages.error(request, f"⚠️ خدمة السحب موقوفة مؤقتاً. {_maint.maintenance_message}")
+        return redirect("dashboard")
 
     if request.method == "POST":
         method_id = request.POST.get("payment_method")
@@ -1354,16 +1372,35 @@ def v3_change_email_view(request):
 # --- CATALOG & AJAX ---
 # ==========================================
 
+def get_category_with_descendants_ids(category_id):
+    """
+    Returns a set containing category_id and all its descendant category IDs (children, sub-children).
+    """
+    if not category_id:
+        return set()
+    category_ids = {str(category_id)}
+    current_ids = [category_id]
+    while current_ids:
+        children = list(Category.objects.filter(parent_id__in=current_ids, is_active=True).values_list('id', flat=True))
+        if not children:
+            break
+        category_ids.update({str(c) for c in children})
+        current_ids = children
+    return category_ids
+
+
 def home(request):
     # Multi-Tenant: TenantManager automatically filters by request.store.
-    # When is_tenant=True (store context), all querysets return only that store's data.
-    # When is_tenant=False (main site), querysets return main platform data (store=None).
     store = getattr(request, 'store', None)
 
-    # Categories with product count — filtered by TenantManager automatically
-    categories = Category.objects.filter(is_active=True).annotate(
-        product_count=Count("products", filter=Q(products__is_active=True))
-    ).filter(product_count__gt=0).order_by("sort_order", "name")
+    # Categories with total product count (including subcategories)
+    all_cats = list(Category.objects.filter(is_active=True).order_by("sort_order", "name"))
+    active_categories = []
+    for cat in all_cats:
+        descendant_ids = get_category_with_descendants_ids(cat.id)
+        cat.product_count = Product.objects.filter(category_id__in=descendant_ids, is_active=True).count()
+        if cat.product_count > 0 or cat.parent_id is None:
+            active_categories.append(cat)
 
     featured_products = Product.objects.filter(
         is_active=True, is_featured=True
@@ -1377,7 +1414,7 @@ def home(request):
     ctx = {
         "featured_products": featured_products,
         "sale_products": sale_products,
-        "categories": categories,
+        "categories": active_categories,
     }
 
     if not store:
@@ -1426,22 +1463,31 @@ def home(request):
     return render(request, "site/home.html", ctx)
 
 def catalog(request):
-    # Multi-Tenant: TenantManager automatically filters by request.store context.
-    # No explicit store filtering needed — TenantManager handles it.
     view_type = request.GET.get("view", "products")  # products or categories
     cat_id = request.GET.get("category")
     q = request.GET.get("q", "").strip()
     sort = request.GET.get("sort", "newest")
     cols = request.GET.get("cols", "2")  # Default 2 columns for mobile
 
-    categories = Category.objects.filter(is_active=True).annotate(
-        product_count=Count('products', filter=Q(products__is_active=True))
-    ).order_by("sort_order", "name")
+    all_cats = list(Category.objects.filter(is_active=True).order_by("sort_order", "name"))
+    for cat in all_cats:
+        descendant_ids = get_category_with_descendants_ids(cat.id)
+        cat.product_count = Product.objects.filter(category_id__in=descendant_ids, is_active=True).count()
 
     products = Product.objects.filter(is_active=True).select_related("category").prefetch_related("variants")
 
+    selected_category = None
+    subcategories = []
+
     if cat_id:
-        products = products.filter(category_id=cat_id)
+        descendant_ids = get_category_with_descendants_ids(cat_id)
+        products = products.filter(category_id__in=descendant_ids)
+        selected_category = Category.objects.filter(id=cat_id, is_active=True).first()
+        if selected_category:
+            subcategories = list(Category.objects.filter(parent=selected_category, is_active=True).order_by("sort_order", "name"))
+            for sub in subcategories:
+                sub_ids = get_category_with_descendants_ids(sub.id)
+                sub.product_count = Product.objects.filter(category_id__in=sub_ids, is_active=True).count()
         view_type = "products"  # Force product view if category selected
 
     if q:
@@ -1473,7 +1519,9 @@ def catalog(request):
     page_obj = paginator.get_page(page_number)
 
     ctx = {
-        "categories": categories,
+        "categories": all_cats,
+        "subcategories": subcategories,
+        "selected_category": selected_category,
         "page_obj": page_obj,
         "total_products_count": total_products_count,
         "active_category": cat_id,
@@ -1667,7 +1715,14 @@ def product_detail(request, pk):
     product = get_object_or_404(Product.objects.prefetch_related('variants'), pk=pk, is_active=True)
     if request.method == "POST":
         if not request.user.is_authenticated: return redirect("site_login")
-        
+
+        # ── Maintenance Mode Check ──────────────────────────────────────────
+        from apps.common.models import SiteMaintenanceMode
+        _maint = SiteMaintenanceMode.get_settings()
+        if not _maint.purchases_enabled:
+            messages.error(request, f"⚠️ خدمة الشراء موقوفة مؤقتاً. {_maint.maintenance_message}")
+            return redirect("catalog")
+
         variant_id = request.POST.get("variant_id")
         variant = get_object_or_404(ProductVariant, id=variant_id, product=product)
         
@@ -2722,7 +2777,11 @@ def control_order_detail(request, pk):
             OrderLog.objects.create(order=order, status=order.status, note=request.POST.get("admin_note", ""), created_by=request.user)
             
             if order.status in [Order.Status.REFUNDED, Order.Status.CANCELLED] and old_status not in [Order.Status.REFUNDED, Order.Status.CANCELLED]: 
-                credit_wallet(order.customer.wallet.id, order.total_amount, f"refund:{order.id}", f"استرداد مبلغ الطلب رقم #{order.number}", request.user)
+                wallet = get_or_create_wallet(order.customer)
+                refund_amount = order.total_amount
+                if wallet.currency and wallet.currency.code != "USD":
+                    refund_amount = wallet.currency.from_base(order.total_amount)
+                credit_wallet(wallet.id, refund_amount, f"refund:{order.id}", f"استرداد مبلغ الطلب رقم #{order.number}", request.user)
             
             messages.success(request, f"تم تحديث حالة الطلب إلى: {order.get_status_display()}")
             
@@ -2864,7 +2923,11 @@ def control_order_status_update(request, pk):
         order.save()
         OrderLog.objects.create(order=order, status=order.status, note=request.POST.get("admin_note", ""), created_by=request.user)
         if order.status in [Order.Status.REFUNDED, Order.Status.CANCELLED] and old_status not in [Order.Status.REFUNDED, Order.Status.CANCELLED]:
-            credit_wallet(order.customer.wallet.id, order.total_amount, f"refund:{order.id}", f"استرداد مبلغ الطلب رقم #{order.number}", request.user)
+            wallet = get_or_create_wallet(order.customer)
+            refund_amount = order.total_amount
+            if wallet.currency and wallet.currency.code != "USD":
+                refund_amount = wallet.currency.from_base(order.total_amount)
+            credit_wallet(wallet.id, refund_amount, f"refund:{order.id}", f"استرداد مبلغ الطلب رقم #{order.number}", request.user)
         messages.success(request, f"تم تحديث حالة الطلب إلى: {order.get_status_display()}")
         try:
             notify_user(
@@ -3650,6 +3713,178 @@ def control_gallery_reorder_ajax(request, pk):
     return JsonResponse({"status": "success"})
 
 
+# ==========================================
+# --- BACKUP / RESTORE & SITE MAINTENANCE ---
+# ==========================================
+
+@admin_required
+def control_backup(request):
+    """
+    Backup & Restore management page with scheduled email delivery and site maintenance toggle.
+    """
+    import json
+    import zipfile
+    import io
+    import datetime
+    from django.core import serializers
+    from django.apps import apps
+    from apps.common.models import SiteMaintenanceMode
+    from apps.accounts.services import send_brevo_email
+
+    # Load maintenance settings
+    maintenance = SiteMaintenanceMode.get_settings()
+
+    # --- Handle POST actions ---
+    if request.method == "POST":
+        action = request.POST.get("action")
+
+        # ── Toggle site operations ──────────────────────────────────────
+        if action == "toggle_operations":
+            maintenance.deposits_enabled = request.POST.get("deposits_enabled") == "1"
+            maintenance.withdrawals_enabled = request.POST.get("withdrawals_enabled") == "1"
+            maintenance.purchases_enabled = request.POST.get("purchases_enabled") == "1"
+            maintenance.transfers_enabled = request.POST.get("transfers_enabled") == "1"
+            maintenance.registrations_enabled = request.POST.get("registrations_enabled") == "1"
+            maintenance.maintenance_message = request.POST.get("maintenance_message", "").strip()
+            maintenance.updated_by = request.user
+            maintenance.save()
+            messages.success(request, "✅ تم تحديث إعدادات التشغيل/الإيقاف بنجاح.")
+            return redirect("control_backup")
+
+        # ── Manual instant backup → send to email ─────────────────────
+        if action == "send_backup_now":
+            backup_targets = request.POST.getlist("backup_targets")
+            email_address = request.POST.get("backup_email", "").strip()
+            if not email_address:
+                messages.error(request, "يرجى إدخال بريد إلكتروني صالح.")
+                return redirect("control_backup")
+
+            try:
+                zip_buffer = io.BytesIO()
+                total_records = 0
+
+                # Model map: key → (app_label, model_name, label)
+                BACKUP_MODELS = {
+                    "users": ("accounts", "User", "المستخدمون"),
+                    "wallets": ("wallets", "Wallet", "المحافظ"),
+                    "deposits": ("payments", "DepositRequest", "طلبات الإيداع"),
+                    "withdrawals": ("payments", "WithdrawalRequest", "طلبات السحب"),
+                    "orders": ("orders", "Order", "الطلبات"),
+                    "products": ("catalog", "Product", "المنتجات"),
+                    "categories": ("catalog", "Category", "التصنيفات"),
+                    "currencies": ("common", "Currency", "العملات"),
+                    "coupons": ("orders", "Coupon", "الكوبونات"),
+                    "payment_methods": ("payments", "PaymentMethod", "وسائل الدفع"),
+                    "transfers": ("wallets", "BalanceTransfer", "التحويلات"),
+                    "kyc": ("accounts", "KYCRequest", "طلبات التوثيق"),
+                    "audit_logs": ("common", "SystemAuditLog", "سجلات التدقيق"),
+                    "announcements": ("common", "SiteAnnouncement", "الإعلانات"),
+                }
+
+                with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as zf:
+                    manifest = {
+                        "backup_time": datetime.datetime.now().isoformat(),
+                        "initiated_by": request.user.email,
+                        "targets": [],
+                    }
+
+                    for key, (app_label, model_name, label) in BACKUP_MODELS.items():
+                        if key not in backup_targets:
+                            continue
+                        try:
+                            Model = apps.get_model(app_label, model_name)
+                            qs = Model.objects.all()
+                            data = serializers.serialize("json", qs)
+                            count = qs.count()
+                            total_records += count
+                            filename = f"{key}.json"
+                            zf.writestr(filename, data)
+                            manifest["targets"].append({"key": key, "label": label, "count": count})
+                        except Exception as model_err:
+                            manifest["targets"].append({"key": key, "label": label, "error": str(model_err)})
+
+                    zf.writestr("manifest.json", json.dumps(manifest, ensure_ascii=False, indent=2))
+
+                zip_buffer.seek(0)
+                zip_b64 = base64.b64encode(zip_buffer.read()).decode("utf-8")
+
+                now_str = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M")
+                filename = f"backup_{now_str}.zip"
+
+                send_brevo_email(
+                    to_email=email_address,
+                    to_name="مدير الموقع",
+                    subject=f"📦 نسخة احتياطية — {now_str}",
+                    html_content=f"""
+                    <div dir="rtl" style="font-family: Arial, sans-serif; max-width: 600px; margin: auto;">
+                        <h2 style="color: #06b6d4;">📦 نسخة احتياطية كاملة للموقع</h2>
+                        <p>تم إنشاء النسخة الاحتياطية بنجاح في <strong>{now_str}</strong>.</p>
+                        <ul>
+                            <li>عدد السجلات المُصدَّرة: <strong>{total_records:,}</strong></li>
+                            <li>البيانات المُضمَّنة: {', '.join([BACKUP_MODELS[t][2] for t in backup_targets if t in BACKUP_MODELS])}</li>
+                            <li>طُلِبت بواسطة: <strong>{request.user.email}</strong></li>
+                        </ul>
+                        <p style="color: #64748b; font-size: 12px;">الملف المرفق بصيغة ZIP يحتوي على البيانات بتنسيق JSON.</p>
+                    </div>
+                    """,
+                    attachments=[{
+                        "name": filename,
+                        "content": zip_b64,
+                        "type": "application/zip",
+                    }]
+                )
+
+                messages.success(request, f"✅ تم إرسال النسخة الاحتياطية ({total_records:,} سجل) إلى {email_address} بنجاح.")
+            except Exception as e:
+                messages.error(request, f"❌ حدث خطأ أثناء إنشاء النسخة الاحتياطية: {str(e)}")
+
+            return redirect("control_backup")
+
+        # ── Save automatic backup schedule settings ────────────────────
+        if action == "save_schedule":
+            # Store schedule config in Django cache for the Celery task to read
+            from django.core.cache import cache
+            schedule_email = request.POST.get("schedule_email", "").strip()
+            schedule_targets = request.POST.getlist("schedule_targets")
+            schedule_enabled = request.POST.get("schedule_enabled") == "1"
+
+            cache.set("backup_schedule_email", schedule_email, timeout=None)
+            cache.set("backup_schedule_targets", schedule_targets, timeout=None)
+            cache.set("backup_schedule_enabled", schedule_enabled, timeout=None)
+
+            messages.success(request, "✅ تم حفظ إعدادات الجدولة. سيتم إرسال نسخة احتياطية كل ساعة." if schedule_enabled else "تم إيقاف الجدولة التلقائية.")
+            return redirect("control_backup")
+
+    # Load schedule settings from cache
+    from django.core.cache import cache
+    schedule_email = cache.get("backup_schedule_email", "")
+    schedule_targets = cache.get("backup_schedule_targets", [])
+    schedule_enabled = cache.get("backup_schedule_enabled", False)
+
+    context = {
+        "maintenance": maintenance,
+        "schedule_email": schedule_email,
+        "schedule_targets": schedule_targets,
+        "schedule_enabled": schedule_enabled,
+        "backup_models": [
+            ("users", "المستخدمون"),
+            ("wallets", "المحافظ"),
+            ("deposits", "طلبات الإيداع"),
+            ("withdrawals", "طلبات السحب"),
+            ("transfers", "التحويلات"),
+            ("orders", "الطلبات"),
+            ("products", "المنتجات"),
+            ("categories", "التصنيفات"),
+            ("currencies", "العملات"),
+            ("coupons", "الكوبونات"),
+            ("payment_methods", "وسائل الدفع"),
+            ("kyc", "طلبات التوثيق KYC"),
+            ("audit_logs", "سجلات التدقيق"),
+            ("announcements", "الإعلانات"),
+        ],
+    }
+
+    return render(request, "site/control_backup.html", context)
 
 @support_required
 def control_variant_keys(request, pk):
@@ -5395,8 +5630,8 @@ def control_apicontrol_dashboard(request):
             if not variant or not variant.api_product_id:
                 continue
             qty = item.quantity
-            item_cost = float(variant.cost or 0.0) * qty
-            item_sales = float(item.price or 0.0) * qty
+            item_cost = float(item.unit_cost or (variant.cost * qty) or 0.0)
+            item_sales = float(item.total_price or (item.unit_price * qty) or 0.0)
             
             total_purchases_usd += item_cost
             total_sales_usd += item_sales

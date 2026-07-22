@@ -213,3 +213,61 @@ class Testimonial(TimeStampedModel):
 
     def __str__(self):
         return f"{self.user.email} - {self.rating} stars"
+
+
+class SiteMaintenanceMode(models.Model):
+    """
+    Singleton model to control site-wide operational switches.
+    Admins can disable deposits, withdrawals, purchases, and transfers individually.
+    """
+    # Operational switches
+    deposits_enabled = models.BooleanField(default=True, verbose_name="الإيداعات مفعّلة")
+    withdrawals_enabled = models.BooleanField(default=True, verbose_name="السحوبات مفعّلة")
+    purchases_enabled = models.BooleanField(default=True, verbose_name="الشراء مفعّل")
+    transfers_enabled = models.BooleanField(default=True, verbose_name="التحويلات مفعّلة")
+    registrations_enabled = models.BooleanField(default=True, verbose_name="التسجيل مفعّل")
+
+    # Maintenance message shown to users
+    maintenance_message = models.TextField(
+        blank=True,
+        default="الموقع في وضع الصيانة مؤقتاً. سيعود للعمل قريباً.",
+        verbose_name="رسالة الصيانة"
+    )
+
+    # Timestamps
+    updated_at = models.DateTimeField(auto_now=True)
+    updated_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="maintenance_mode_changes",
+        verbose_name="آخر تعديل بواسطة"
+    )
+
+    class Meta:
+        verbose_name = "وضع الصيانة"
+        verbose_name_plural = "وضع الصيانة"
+
+    def __str__(self):
+        return "إعدادات الصيانة والتشغيل"
+
+    @classmethod
+    def get_settings(cls):
+        """Always returns the singleton instance, creating it if needed."""
+        obj, _ = cls.objects.get_or_create(pk=1)
+        return obj
+
+    @property
+    def is_fully_operational(self):
+        return all([
+            self.deposits_enabled,
+            self.withdrawals_enabled,
+            self.purchases_enabled,
+            self.transfers_enabled,
+            self.registrations_enabled,
+        ])
+
+    @property
+    def is_any_disabled(self):
+        return not self.is_fully_operational

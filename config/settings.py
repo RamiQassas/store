@@ -369,6 +369,14 @@ CELERY_BEAT_SCHEDULE = {
         "task": "apps.accounts.tasks.reset_daily_limits_task",
         "schedule": crontab(hour=21, minute=0),  # 9:00 PM UTC = 12:00 AM Syria
     },
+    "scheduled_backup_hourly": {
+        "task": "apps.accounts.tasks.scheduled_backup_task",
+        "schedule": crontab(minute=0),  # Every hour at minute 0
+    },
+    "sync_pending_api_orders_every_3_mins": {
+        "task": "apps.accounts.tasks.sync_pending_api_orders_task",
+        "schedule": 180.0,  # Every 3 minutes
+    },
 }
 
 # Alkasr API Integration
