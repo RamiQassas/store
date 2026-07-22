@@ -28,7 +28,6 @@ from django.utils import timezone
 
 from apps.catalog.models import ProductKey, ProductVariant
 from apps.orders.models import Coupon, Invoice, Order, OrderItem, OrderLog
-from apps.orders.alkasr_api import place_alkasr_order
 from apps.wallets.services import debit_wallet, get_or_create_wallet
 
 
@@ -308,15 +307,25 @@ def create_order(customer, variant_id, quantity=1, fulfillment_data=None,
         provider       = variant.product.api_provider or "alkasr"
 
         if provider == "alkasr":
-            api_resp = place_alkasr_order(
-                variant.api_product_id,
-                quantity,
-                api_order_uuid,
-                metadata or {},
-                store=variant.product.store,
-            )
+            from apps.providers.models import ProviderProfile
+            from apps.providers.alkasr import AlkasrOrderService
+            
+            # Find the active alkasr profile
+            profile = ProviderProfile.objects.filter(provider_name="alkasr", is_active=True).first()
+            if profile:
+                svc = AlkasrOrderService(profile)
+                try:
+                    # Using local_variant to find ProviderMapping
+                    mapping = variant.provider_mapping
+                    if mapping and mapping.provider_product:
+                        api_resp = svc.place_order(order, mapping.provider_product, quantity, metadata or {})
+                    else:
+                        api_resp = {"status": "error", "message": "Product is not mapped to provider."}
+                except Exception as e:
+                    api_resp = {"status": "error", "message": str(e)}
+            else:
+                api_resp = {"status": "error", "message": "Provider profile not found or inactive."}
         else:
-            # Placeholder for other providers
             api_resp = {
                 "status": "OK",
                 "data": {

@@ -214,27 +214,9 @@ def notify_staff(title, body, action_url=None, category='admin_new_support', rol
 def notify_provider_error(error_code, provider_name, product_id=None, detail=None, store=None):
     """
     Sends an urgent notification to all admin/staff when a provider returns an error.
-    Especially important for error code 100 (insufficient balance).
     """
-    alkasr_error_labels = {
-        100: "رصيد غير كافٍ لدى المزود",
-        101: "حساب موقوف",
-        105: "الكمية غير متوفرة",
-        106: "الكمية غير مسموح بها",
-        107: "معرّف اللاعب محظور",
-        108: "يتطلب التحقق بخطوتين",
-        109: "المنتج محذوف أو غير موجود",
-        110: "المنتج غير متاح حالياً",
-        111: "حاول مرة أخرى بعد دقيقة",
-        120: "مفتاح API مطلوب",
-        121: "مفتاح API خاطئ",
-        122: "الاستخدام غير مسموح",
-        123: "IP غير مسموح",
-        130: "المزود تحت الصيانة",
-        500: "خطأ داخلي في المزود",
-    }
-    label = alkasr_error_labels.get(error_code, f"خطأ {error_code}")
-    is_critical = error_code in (100, 120, 121, 122, 123, 130)
+    label = f"خطأ {error_code}"
+    is_critical = str(error_code) in ("100", "120", "121", "122", "123", "130", "500")
     
     priority = Notification.Priority.HIGH if is_critical else Notification.Priority.NORMAL
     

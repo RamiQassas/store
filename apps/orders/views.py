@@ -144,7 +144,6 @@ class OrderViewSet(viewsets.ModelViewSet):
     def sync_alkasr_status(self, request, pk=None):
         from django.db import transaction
         from apps.wallets.services import get_or_create_wallet
-        from apps.orders.alkasr_api import check_alkasr_orders
         
         if not request.user.is_staff:
             return response.Response({"detail": "غير مصرح."}, status=status.HTTP_403_FORBIDDEN)
@@ -159,21 +158,14 @@ class OrderViewSet(viewsets.ModelViewSet):
         if first_item and first_item.variant and first_item.variant.product:
             provider = first_item.variant.product.api_provider or "alkasr"
             
-        if provider == "alkasr":
-            # Check by UUID if we have it, else by order ID
-            if order.api_order_uuid:
-                res = check_alkasr_orders(str(order.api_order_uuid), is_uuid=True, store=order.store)
-            else:
-                res = check_alkasr_orders([order.api_order_id], is_uuid=False, store=order.store)
-        else:
-            # Alternate API provider placeholder status check
-            res = {
-                "status": "OK",
-                "data": [{
-                    "status": "accept" if order.status == Order.Status.COMPLETED else "wait",
-                    "order_id": order.api_order_id
-                }]
-            }
+        # Alternate API provider placeholder status check
+        res = {
+            "status": "OK",
+            "data": [{
+                "status": "accept" if order.status == Order.Status.COMPLETED else "wait",
+                "order_id": order.api_order_id
+            }]
+        }
             
         if res.get("status") == "OK" and isinstance(res.get("data"), list) and len(res["data"]) > 0:
             order_data = res["data"][0]
