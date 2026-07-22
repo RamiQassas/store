@@ -60,33 +60,57 @@ class AlkasrClient:
         else:
             url = base
 
-        # Create Request Log
+        # Use GET for read actions (profile, balance, products, categories, content) or POST for mutations (newOrder, check)
+        is_read_action = action in ("profile", "balance", "products", "categories", "content")
+        method = "GET" if is_read_action else "POST"
+
         req_log = ProviderRequestLog.objects.create(
             profile=self.profile,
             endpoint=url,
-            method="POST",
+            method=method,
             payload=str({k: v for k, v in data.items() if k not in ("api_token", "key")})
         )
 
         start_time = time.time()
         
         try:
-            response = self.session.post(
-                url, 
-                data=data, 
-                headers={"User-Agent": "AlkasrClient/2.0"},
-                timeout=TIMEOUT
-            )
-            
-            # Fallback if /api/v2 returned 404 Not Found
-            if response.status_code == 404 and url != base:
-                url = base
+            if method == "GET":
+                response = self.session.get(
+                    url,
+                    params=data,
+                    headers={"User-Agent": "AlkasrClient/2.0"},
+                    timeout=TIMEOUT
+                )
+                if response.status_code == 404 and url != base:
+                    url = base
+                    response = self.session.get(
+                        url,
+                        params=data,
+                        headers={"User-Agent": "AlkasrClient/2.0"},
+                        timeout=TIMEOUT
+                    )
+            else:
                 response = self.session.post(
                     url, 
                     data=data, 
                     headers={"User-Agent": "AlkasrClient/2.0"},
                     timeout=TIMEOUT
                 )
+                if response.status_code in (404, 405) and url != base:
+                    url = base
+                    response = self.session.post(
+                        url, 
+                        data=data, 
+                        headers={"User-Agent": "AlkasrClient/2.0"},
+                        timeout=TIMEOUT
+                    )
+                if response.status_code == 405:
+                    response = self.session.get(
+                        url,
+                        params=data,
+                        headers={"User-Agent": "AlkasrClient/2.0"},
+                        timeout=TIMEOUT
+                    )
 
             elapsed_ms = int((time.time() - start_time) * 1000)
             req_log.execution_time_ms = elapsed_ms
