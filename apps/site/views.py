@@ -5598,8 +5598,7 @@ def control_apicontrol_dashboard(request):
                 svc = AlkasrSyncService(profile_obj)
                 stats = svc.sync_catalog()
                 mapper = AlkasrMapperService(profile_obj)
-                for p in ProviderProduct.objects.filter(profile=profile_obj, is_active=True):
-                    mapper.map_to_catalog(p)
+                mapper.map_all_to_catalog()
                 messages.success(request, f"تمت عملية المزامنة بنجاح! تم استيراد {stats['created']} منتج جديد، وتحديث {stats['updated']} منتج.")
             except Exception as e:
                 messages.error(request, f"فشلت عملية المزامنة: {str(e)}")
