@@ -152,6 +152,26 @@ def create_order(customer, variant_id, quantity=1, fulfillment_data=None, coupon
         raise ValueError("Quantity must be at least 1.")
     variant = ProductVariant.objects.select_related("product").select_for_update().get(id=variant_id, is_active=True, product__is_active=True)
 
+    # Provider qty_values validation according to API specifications
+    if variant.metadata and isinstance(variant.metadata, dict):
+        qty_type = variant.metadata.get("qty_type") or "fixed"
+        allow_custom = variant.metadata.get("allow_custom_quantity", False)
+        qty_list = variant.metadata.get("qty_list") or []
+
+        if qty_type == "fixed" or not allow_custom:
+            if qty_list:
+                if str(quantity) not in [str(x) for x in qty_list]:
+                    raise ValueError(f"الكمية المسموح بها لهذه الباقة هي إحدى القيم التالية فقط: {', '.join(qty_list)}")
+            else:
+                quantity = 1
+        elif qty_type == "range":
+            qty_min = int(variant.metadata.get("qty_min") or 1)
+            qty_max = int(variant.metadata.get("qty_max") or 999999)
+            if quantity < qty_min:
+                raise ValueError(f"الحد الأدنى المسموح به للكمية هو {qty_min}")
+            if quantity > qty_max:
+                raise ValueError(f"الحد الأقصى المسموح به للكمية هو {qty_max}")
+
     # Inventory checking and decrementing
     from apps.catalog.models import Product
     product = Product.objects.select_for_update().get(id=variant.product_id)
