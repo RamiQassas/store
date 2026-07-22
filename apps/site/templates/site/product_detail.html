@@ -552,10 +552,16 @@ function selectVariant(id, el) {
     if (qtyType === 'range') {
         container.classList.remove('hidden');
         helpText.innerText = `يرجى إدخال الكمية المطلوبة (الحد الأدنى: ${qtyMin}، الحد الأقصى: ${qtyMax})`;
-        inputHtml = `<input type="number" name="quantity" id="quantity-input" 
-                            min="${qtyMin}" max="${qtyMax}" value="${qtyMin}" 
-                            oninput="updateQuantityPrice()" onkeyup="updateQuantityPrice()" onchange="updateQuantityPrice()"
-                            class="w-full bg-slate-900 border border-white/5 rounded-2xl p-4 text-white focus:border-cyan transition">`;
+        inputHtml = `
+            <div class="flex items-center gap-3">
+                <button type="button" onclick="adjustQty(-1)" class="w-12 h-12 rounded-2xl bg-slate-800 hover:bg-slate-700 text-white font-black text-2xl flex items-center justify-center border border-white/10 transition active:scale-95 cursor-pointer">-</button>
+                <input type="number" name="quantity" id="quantity-input" 
+                       min="${qtyMin}" max="${qtyMax}" value="${qtyMin}" 
+                       oninput="updateQuantityPrice()" onkeyup="updateQuantityPrice()" onchange="updateQuantityPrice()"
+                       class="flex-grow text-center bg-slate-900 border border-white/5 rounded-2xl p-4 text-white text-xl font-black focus:border-cyan transition">
+                <button type="button" onclick="adjustQty(1)" class="w-12 h-12 rounded-2xl bg-slate-800 hover:bg-slate-700 text-white font-black text-2xl flex items-center justify-center border border-white/10 transition active:scale-95 cursor-pointer">+</button>
+            </div>
+        `;
     } else if (qtyType === 'list') {
         container.classList.remove('hidden');
         helpText.innerText = "يرجى اختيار إحدى الكميات المتاحة من القائمة.";
@@ -580,15 +586,42 @@ function selectVariant(id, el) {
     } else {
         container.classList.remove('hidden');
         helpText.innerText = "يرجى كتابة أو تحديد الكمية المطلوبة لهذه الخدمة.";
-        inputHtml = `<input type="number" name="quantity" id="quantity-input" 
-                            min="1" value="1" 
-                            oninput="updateQuantityPrice()" onkeyup="updateQuantityPrice()" onchange="updateQuantityPrice()"
-                            class="w-full bg-slate-900 border border-white/5 rounded-2xl p-4 text-white focus:border-cyan transition">`;
+        inputHtml = `
+            <div class="flex items-center gap-3">
+                <button type="button" onclick="adjustQty(-1)" class="w-12 h-12 rounded-2xl bg-slate-800 hover:bg-slate-700 text-white font-black text-2xl flex items-center justify-center border border-white/10 transition active:scale-95 cursor-pointer">-</button>
+                <input type="number" name="quantity" id="quantity-input" 
+                       min="1" value="1" 
+                       oninput="updateQuantityPrice()" onkeyup="updateQuantityPrice()" onchange="updateQuantityPrice()"
+                       class="flex-grow text-center bg-slate-900 border border-white/5 rounded-2xl p-4 text-white text-xl font-black focus:border-cyan transition">
+                <button type="button" onclick="adjustQty(1)" class="w-12 h-12 rounded-2xl bg-slate-800 hover:bg-slate-700 text-white font-black text-2xl flex items-center justify-center border border-white/10 transition active:scale-95 cursor-pointer">+</button>
+            </div>
+        `;
     }
     
     wrapper.innerHTML = inputHtml;
     updateQuantityPrice();
 }
+
+function adjustQty(delta) {
+    const input = document.getElementById('quantity-input');
+    if (!input) return;
+    let val = parseInt(input.value) || 1;
+    val += delta;
+    const min = parseInt(input.getAttribute('min')) || 1;
+    const maxStr = input.getAttribute('max');
+    const max = maxStr ? (parseInt(maxStr) || 999999) : 999999;
+    if (val < min) val = min;
+    if (val > max) val = max;
+    input.value = val;
+    updateQuantityPrice();
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    const firstAvailableCard = document.querySelector('.variant-card:not(.opacity-50)');
+    if (firstAvailableCard) {
+        firstAvailableCard.click();
+    }
+});
 
 function formatCurrencyAmount(baseAmount) {
     const currencySymbol = "{{ CURRENCY.symbol|default:'USD' }}";

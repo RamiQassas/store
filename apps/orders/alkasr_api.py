@@ -738,9 +738,9 @@ def sync_alkasr_catalog(store, selected_category_ids=None, markup_percent=0.0, i
         if cat.parent:
             existing_categories[f"{cat.parent.name} > {cat.name}"] = cat
     
-    # Pre-fetch existing products for this store to avoid N+1 queries
+    # Pre-fetch existing products for this store to avoid N+1 queries (keyed by category_id and product name)
     existing_products = {
-        p.name: p
+        f"{p.category_id}_{p.name}": p
         for p in Product.objects.filter(store=store)
     }
     
@@ -909,8 +909,9 @@ def sync_alkasr_catalog(store, selected_category_ids=None, markup_percent=0.0, i
             # Target category for the Product is the sub_category
             target_category = sub_category
             
-            # Get or create product from memory cache (grouped by game name)
-            product = existing_products.get(prod_name)
+            # Get or create product from memory cache (grouped by category and game name)
+            prod_cache_key = f"{target_category.id}_{prod_name}"
+            product = existing_products.get(prod_cache_key)
             if not product:
                 product = Product.objects.create(
                     product_type="digital",
@@ -925,7 +926,7 @@ def sync_alkasr_catalog(store, selected_category_ids=None, markup_percent=0.0, i
                     image=None,
                     sort_order=index
                 )
-                existing_products[prod_name] = product
+                existing_products[prod_cache_key] = product
             else:
                 if is_available:
                     product.is_active = True

@@ -3870,19 +3870,114 @@ def control_backup(request):
 
             return redirect("control_backup")
 
+        # ── Direct Local Download of Backup ────────────────────────────
+        if action == "download_backup":
+            backup_targets = request.POST.getlist("backup_targets")
+            try:
+                zip_buffer = io.BytesIO()
+                total_records = 0
+                BACKUP_MODELS = {
+                    "users": ("accounts", "User", "المستخدمون"),
+                    "wallets": ("wallets", "Wallet", "المحافظ"),
+                    "deposits": ("payments", "DepositRequest", "طلبات الإيداع"),
+                    "withdrawals": ("payments", "WithdrawalRequest", "طلبات السحب"),
+                    "orders": ("orders", "Order", "الطلبات"),
+                    "products": ("catalog", "Product", "المنتجات"),
+                    "categories": ("catalog", "Category", "التصنيفات"),
+                    "currencies": ("common", "Currency", "العملات"),
+                    "coupons": ("orders", "Coupon", "الكوبونات"),
+                    "payment_methods": ("payments", "PaymentMethod", "وسائل الدفع"),
+                    "transfers": ("wallets", "BalanceTransfer", "التحويلات"),
+                    "kyc": ("accounts", "KYCRequest", "طلبات التوثيق"),
+                    "audit_logs": ("common", "SystemAuditLog", "سجلات التدقيق"),
+                    "announcements": ("common", "SiteAnnouncement", "الإعلانات"),
+                }
+
+                with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as zf:
+                    manifest = {
+                        "backup_time": datetime.datetime.now().isoformat(),
+                        "initiated_by": request.user.email,
+                        "targets": [],
+                    }
+                    for key, (app_label, model_name, label) in BACKUP_MODELS.items():
+                        if key not in backup_targets:
+                            continue
+                        try:
+                            Model = apps.get_model(app_label, model_name)
+                            qs = Model.objects.all()
+                            data = serializers.serialize("json", qs)
+                            count = qs.count()
+                            total_records += count
+                            zf.writestr(f"{key}.json", data)
+                            manifest["targets"].append({"key": key, "label": label, "count": count})
+                        except Exception as model_err:
+                            manifest["targets"].append({"key": key, "label": label, "error": str(model_err)})
+
+                    zf.writestr("manifest.json", json.dumps(manifest, ensure_ascii=False, indent=2))
+
+                zip_buffer.seek(0)
+                now_str = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M")
+                from django.http import HttpResponse
+                response = HttpResponse(zip_buffer.getvalue(), content_type="application/zip")
+                response['Content-Disposition'] = f'attachment; filename="backup_{now_str}.zip"'
+                return response
+            except Exception as e:
+                messages.error(request, f"❌ فشل تحميل النسخة الاحتياطية: {str(e)}")
+                return redirect("control_backup")
+
+        # ── Restore Backup from Uploaded File ──────────────────────────
+        if action == "restore_backup":
+            uploaded_file = request.FILES.get("backup_file")
+            if not uploaded_file:
+                messages.error(request, "يرجى اختيار ملف نسخة احتياطية (ZIP أو JSON).")
+                return redirect("control_backup")
+
+            restored_count = 0
+            json_contents = []
+            filename = uploaded_file.name.lower()
+
+            try:
+                if filename.endswith(".zip"):
+                    with zipfile.ZipFile(uploaded_file, "r") as zf:
+                        for fname in zf.namelist():
+                            if fname.endswith(".json") and fname != "manifest.json":
+                                content = zf.read(fname).decode("utf-8")
+                                json_contents.append((fname, content))
+                elif filename.endswith(".json"):
+                    content = uploaded_file.read().decode("utf-8")
+                    json_contents.append((uploaded_file.name, content))
+                else:
+                    messages.error(request, "صيغة الملف غير مدعومة. يرجى رفع ملف ZIP أو JSON.")
+                    return redirect("control_backup")
+
+                from django.db import transaction
+                with transaction.atomic():
+                    for fname, raw_json in json_contents:
+                        objects = serializers.deserialize("json", raw_json, ignorenonexistent=True)
+                        for obj in objects:
+                            obj.save()
+                            restored_count += 1
+
+                messages.success(request, f"✅ تمت استعادة البيانات بنجاح! تم استعادة وتحديث {restored_count:,} سجل في قاعدة البيانات.")
+            except Exception as e:
+                messages.error(request, f"❌ فشلت عملية الاستعادة: {str(e)}")
+
+            return redirect("control_backup")
+
         # ── Save automatic backup schedule settings ────────────────────
         if action == "save_schedule":
-            # Store schedule config in Django cache for the Celery task to read
             from django.core.cache import cache
             schedule_email = request.POST.get("schedule_email", "").strip()
             schedule_targets = request.POST.getlist("schedule_targets")
             schedule_enabled = request.POST.get("schedule_enabled") == "1"
+            schedule_frequency = request.POST.get("schedule_frequency", "hourly")
 
             cache.set("backup_schedule_email", schedule_email, timeout=None)
             cache.set("backup_schedule_targets", schedule_targets, timeout=None)
             cache.set("backup_schedule_enabled", schedule_enabled, timeout=None)
+            cache.set("backup_schedule_frequency", schedule_frequency, timeout=None)
 
-            messages.success(request, "✅ تم حفظ إعدادات الجدولة. سيتم إرسال نسخة احتياطية كل ساعة." if schedule_enabled else "تم إيقاف الجدولة التلقائية.")
+            messages.success(request, f"✅ تم حفظ إعدادات الجدولة التلقائية بنجاح." if schedule_enabled else "تم إيقاف الجدولة التلقائية.")
             return redirect("control_backup")
 
     # Load schedule settings from cache
@@ -3890,12 +3985,14 @@ def control_backup(request):
     schedule_email = cache.get("backup_schedule_email", "")
     schedule_targets = cache.get("backup_schedule_targets", [])
     schedule_enabled = cache.get("backup_schedule_enabled", False)
+    schedule_frequency = cache.get("backup_schedule_frequency", "hourly")
 
     context = {
         "maintenance": maintenance,
         "schedule_email": schedule_email,
         "schedule_targets": schedule_targets,
         "schedule_enabled": schedule_enabled,
+        "schedule_frequency": schedule_frequency,
         "backup_models": [
             ("users", "المستخدمون"),
             ("wallets", "المحافظ"),

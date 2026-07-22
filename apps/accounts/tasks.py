@@ -105,6 +105,23 @@ def scheduled_backup_task():
     if not schedule_enabled:
         return "Scheduled backup is disabled. Skipping."
 
+    schedule_frequency = cache.get("backup_schedule_frequency", "hourly")
+    last_run_timestamp = cache.get("backup_last_run_timestamp", 0)
+    import time
+    now_ts = time.time()
+
+    freq_intervals = {
+        "hourly": 3600,
+        "every_3_hours": 10800,
+        "every_6_hours": 21600,
+        "every_12_hours": 43200,
+        "daily": 86400,
+        "weekly": 604800,
+    }
+    interval = freq_intervals.get(schedule_frequency, 3600)
+    if last_run_timestamp and (now_ts - last_run_timestamp) < (interval - 300):
+        return f"Skipping backup: frequency '{schedule_frequency}' interval not elapsed yet."
+
     email_address = cache.get("backup_schedule_email", "")
     backup_targets = cache.get("backup_schedule_targets", [])
 
@@ -185,6 +202,7 @@ def scheduled_backup_task():
             }]
         )
 
+        cache.set("backup_last_run_timestamp", now_ts, timeout=None)
         return f"Scheduled backup sent to {email_address}. Records: {total_records}"
 
     except Exception as e:

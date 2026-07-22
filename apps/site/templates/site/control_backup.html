@@ -542,9 +542,14 @@ textarea.bk-input { resize: vertical; min-height: 80px; direction: rtl; }
                 value="{{ request.user.email }}" required>
         </div>
 
-        <button type="submit" class="btn btn-cyan w-full" id="backup-send-btn">
-            <i class="fas fa-paper-plane"></i> إرسال النسخة الاحتياطية الآن
-        </button>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <button type="submit" formaction="." class="btn btn-cyan w-full" id="backup-send-btn">
+                <i class="fas fa-paper-plane"></i> إرسال للبريد الإلكتروني
+            </button>
+            <button type="submit" name="action" value="download_backup" class="btn btn-outline w-full text-cyan-400 border-cyan-500/30 hover:bg-cyan-500/10">
+                <i class="fas fa-download"></i> تحميل مباشر ZIP
+            </button>
+        </div>
     </form>
 </div>
 
@@ -553,9 +558,9 @@ textarea.bk-input { resize: vertical; min-height: 80px; direction: rtl; }
     <div class="section-header">
         <div class="section-icon purple"><i class="fas fa-clock"></i></div>
         <div>
-            <div class="section-title">الجدولة التلقائية — كل ساعة</div>
+            <div class="section-title">الجدولة التلقائية والمرنة</div>
             <div class="section-desc">
-                ارسل نسخة احتياطية كاملة تلقائياً كل ساعة إلى بريدك
+                جدولة إرسال النسخ الاحتياطية تلقائياً إلى البريد بحسب التكرار المفضل
                 {% if schedule_enabled %}
                 — <span class="status-pill online" style="display:inline-flex;"><span class="pulse-dot" style="width:7px;height:7px;"></span> مُفعّل</span>
                 {% else %}
@@ -597,18 +602,33 @@ textarea.bk-input { resize: vertical; min-height: 80px; direction: rtl; }
             </div>
         </div>
 
-        <div class="mb-4">
-            <label class="text-xs font-black text-slate-400 uppercase tracking-widest block mb-2">
-                <i class="fas fa-envelope ml-1 text-purple-400"></i> البريد الإلكتروني (كل ساعة)
-            </label>
-            <input type="email" name="schedule_email" class="bk-input"
-                placeholder="admin@example.com" value="{{ schedule_email }}">
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+            <div>
+                <label class="text-xs font-black text-slate-400 uppercase tracking-widest block mb-2">
+                    <i class="fas fa-envelope ml-1 text-purple-400"></i> البريد الإلكتروني
+                </label>
+                <input type="email" name="schedule_email" class="bk-input"
+                    placeholder="admin@example.com" value="{{ schedule_email }}">
+            </div>
+            <div>
+                <label class="text-xs font-black text-slate-400 uppercase tracking-widest block mb-2">
+                    <i class="fas fa-rotate ml-1 text-purple-400"></i> تكرار الجدولة
+                </label>
+                <select name="schedule_frequency" class="bk-input">
+                    <option value="hourly" {% if schedule_frequency == "hourly" %}selected{% endif %}>كل ساعة (Hourly)</option>
+                    <option value="every_3_hours" {% if schedule_frequency == "every_3_hours" %}selected{% endif %}>كل 3 ساعات</option>
+                    <option value="every_6_hours" {% if schedule_frequency == "every_6_hours" %}selected{% endif %}>كل 6 ساعات</option>
+                    <option value="every_12_hours" {% if schedule_frequency == "every_12_hours" %}selected{% endif %}>كل 12 ساعة</option>
+                    <option value="daily" {% if schedule_frequency == "daily" %}selected{% endif %}>يومياً (كل 24 ساعة)</option>
+                    <option value="weekly" {% if schedule_frequency == "weekly" %}selected{% endif %}>أسبوعياً</option>
+                </select>
+            </div>
         </div>
 
         <div class="flex items-center justify-between p-4 bg-white/[0.02] border border-white/5 rounded-2xl mb-5">
             <div>
                 <div class="text-sm font-black text-white">تفعيل الجدولة التلقائية</div>
-                <div class="text-xs text-slate-500 mt-1">الإرسال كل ساعة عند بداية الساعة</div>
+                <div class="text-xs text-slate-500 mt-1">إرسال تلقائي في الخلفية بحسب التكرار المختار</div>
             </div>
             <label class="pill-switch">
                 <input type="checkbox" name="schedule_enabled" value="1"
@@ -624,6 +644,39 @@ textarea.bk-input { resize: vertical; min-height: 80px; direction: rtl; }
 </div>
 
 </div><!-- end backup row -->
+
+<!-- ════════════════════════════════════════
+     ROW 3 — Restore Backup Card
+════════════════════════════════════════ -->
+<div class="section-card fade-in delay-4 mt-6">
+    <div class="section-header">
+        <div class="section-icon green"><i class="fas fa-rotate-left"></i></div>
+        <div>
+            <div class="section-title">استعادة نسخة احتياطية (Restore Data)</div>
+            <div class="section-desc">قم برفع ملف نسخة احتياطية (ZIP أو JSON) لاستعادة البيانات مباشرة إلى قاعدة البيانات</div>
+        </div>
+    </div>
+
+    <form method="POST" enctype="multipart/form-data" onsubmit="return confirm('تنبيه هام جداً: سيتم استعادة وتعديل بيانات الموقع بناءً على الملف المرفوع. هل أنت متأكد؟');">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="restore_backup">
+
+        <div class="p-6 bg-emerald-500/[0.03] border border-emerald-500/20 rounded-2xl mb-5">
+            <label class="text-xs font-black text-emerald-400 uppercase tracking-widest block mb-2">
+                <i class="fas fa-file-zipper ml-1"></i> اختر ملف النسخة الاحتياطية (ZIP أو JSON)
+            </label>
+            <input type="file" name="backup_file" accept=".zip,.json" required
+                class="w-full bg-slate-900 border border-white/10 rounded-xl p-3 text-white text-sm focus:border-emerald-500 transition">
+            <p class="text-xs text-slate-500 mt-2">
+                <i class="fas fa-info-circle ml-1 text-emerald-400"></i> يمكنك استخدام ملفات ZIP الصادرة من خيار النسخ الاحتياطي أو ملفات JSON فردية.
+            </p>
+        </div>
+
+        <button type="submit" class="btn btn-green w-full">
+            <i class="fas fa-cloud-arrow-down ml-2"></i> بدء استعادة البيانات الآن
+        </button>
+    </form>
+</div>
 
 {% endblock %}
 

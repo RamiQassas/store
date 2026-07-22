@@ -1014,11 +1014,14 @@
             <p>تصفح مجموعتنا الواسعة من باقات الشحن، الألعاب، والخدمات الرقمية.</p>
         </div>
         <div class="catalog-search-wrap">
-            <form method="get">
-                <i class="fas fa-search"></i>
+            <form method="get" action="{% url 'catalog' %}" class="relative flex items-center">
+                {% if active_category %}<input type="hidden" name="category" value="{{ active_category }}">{% endif %}
+                <button type="submit" aria-label="بحث" style="position: absolute; right: 0.75rem; top: 50%; transform: translateY(-50%); background: transparent; border: none; color: #2dd4bf; cursor: pointer; z-index: 5; font-size: 1.1rem; padding: 0.5rem;">
+                    <i class="fas fa-search"></i>
+                </button>
                 <input type="text" name="q" value="{{ query }}" 
                        placeholder="ابحث عن باقة، لعبة، أو بطاقة شحن..." 
-                       class="catalog-search-input">
+                       class="catalog-search-input" style="padding-right: 3.25rem;">
             </form>
         </div>
     </div>
