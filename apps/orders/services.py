@@ -1,340 +1,385 @@
+"""
+Order creation service — rebuilt from scratch.
+
+Pricing rules for API products
+═══════════════════════════════
+  product_type == "package"
+      → variant.price  = fixed price per package  (qty is always 1 or from a list)
+      → customer pays:  variant.price  (independent of quantity field)
+
+  product_type == "amount"
+      → variant.price  = price PER UNIT  (e.g. 0.104 USD per UC)
+      → customer pays:  variant.price × quantity_chosen
+      → Example: 0.104 × 100 UC = 10.40 USD   ← NOT 100 USD
+
+Quantity validation rules (mirrors API docs)
+════════════════════════════════════════════
+  qty_type == "fixed"  → force qty = 1
+  qty_type == "list"   → qty must be one of qty_list
+  qty_type == "range"  → qty_min ≤ qty ≤ qty_max
+"""
+
+import re
 import uuid
 from decimal import Decimal
 
 from django.db import transaction
 from django.utils import timezone
 
-from apps.catalog.models import ProductVariant, ProductKey
-from apps.orders.models import Invoice, Order, OrderItem, OrderLog, Coupon
-from apps.wallets.services import debit_wallet, get_or_create_wallet
+from apps.catalog.models import ProductKey, ProductVariant
+from apps.orders.models import Coupon, Invoice, Order, OrderItem, OrderLog
 from apps.orders.alkasr_api import place_alkasr_order
+from apps.wallets.services import debit_wallet, get_or_create_wallet
 
+
+# ---------------------------------------------------------------------------
+# Helpers
+# ---------------------------------------------------------------------------
 
 def next_order_number():
     return timezone.now().strftime("ORD%Y%m%d%H%M%S%f")
 
 
+def _safe_int(value, default=0):
+    try:
+        return int(str(value).strip())
+    except (TypeError, ValueError):
+        return default
+
+
+# ---------------------------------------------------------------------------
+# Coupon validation
+# ---------------------------------------------------------------------------
+
 def validate_coupon(coupon, user, variant, subtotal=None):
+    """
+    Validates coupon eligibility and returns the discount amount (Decimal).
+    Raises ValueError with a descriptive Arabic message on any failure.
+    """
+    now = timezone.now()
+
     if not coupon.is_active:
         raise ValueError("هذا الكوبون غير نشط.")
-    
-    now = timezone.now()
     if coupon.expires_at and coupon.expires_at < now:
         raise ValueError("انتهت صلاحية هذا الكوبون.")
-        
     if coupon.max_uses > 0 and coupon.used_count >= coupon.max_uses:
         raise ValueError("تم استخدام هذا الكوبون لأقصى عدد مسموح به.")
-        
-    # Check max uses per user
+
     user_uses = Order.objects.filter(customer=user, coupon=coupon).count()
     if user_uses >= coupon.max_uses_per_user:
         raise ValueError("لقد استخدمت هذا الكوبون مسبقاً.")
 
-    # Check minimum order amount (Always required if set)
-    if subtotal and subtotal < coupon.min_order_amount:
-        raise ValueError(f"الحد الأدنى للطلب لاستخدام هذا الكوبون هو {coupon.min_order_amount} USD")
+    if subtotal and coupon.min_order_amount and subtotal < coupon.min_order_amount:
+        raise ValueError(
+            f"الحد الأدنى للطلب لاستخدام هذا الكوبون هو {coupon.min_order_amount} USD"
+        )
 
-    # --- Match Logic (Task 3) ---
-    checks = [] # List of (condition_name, is_satisfied)
-    
-    # 1. KYC Check
+    checks = []
+
     if coupon.is_verified_only:
         checks.append(("kyc", user.is_kyc_verified))
-        
-    # 2. User Restriction
+
     if coupon.limit_to_users.exists():
         checks.append(("user", coupon.limit_to_users.filter(id=user.id).exists()))
-        
-    # 3. Tier Restriction
+
     if coupon.limit_to_tiers:
         checks.append(("tier", user.tier in coupon.limit_to_tiers))
 
-    # 3b. Registration Date Restriction
     if coupon.valid_for_users_before:
-        checks.append(("registration_date_before", user.date_joined <= coupon.valid_for_users_before))
-    
+        checks.append(("reg_before", user.date_joined <= coupon.valid_for_users_before))
+
     if coupon.valid_for_users_after:
-        checks.append(("registration_date_after", user.date_joined >= coupon.valid_for_users_after))
-        
-    # 4. Area Restrictions (KYC-based)
+        checks.append(("reg_after", user.date_joined >= coupon.valid_for_users_after))
+
     if coupon.limit_to_area or coupon.limit_to_place_of_birth:
-        kyc = getattr(user, 'kyc_request', None)
-        area_satisfied = False
+        kyc = getattr(user, "kyc_request", None)
+        area_ok = False
         if kyc:
             if coupon.limit_to_area:
-                match_res = coupon.limit_to_area.lower() in kyc.current_residence.lower()
-                if coupon.allow_area_type == Coupon.AreaType.RESIDENCE and match_res:
-                    area_satisfied = True
-                elif coupon.allow_area_type == Coupon.AreaType.BOTH and match_res:
-                    area_satisfied = True
-            
+                if coupon.limit_to_area.lower() in kyc.current_residence.lower():
+                    if coupon.allow_area_type in (Coupon.AreaType.RESIDENCE, Coupon.AreaType.BOTH):
+                        area_ok = True
             if coupon.limit_to_place_of_birth:
-                match_birth = coupon.limit_to_place_of_birth.lower() in kyc.place_of_birth.lower()
-                if coupon.allow_area_type == Coupon.AreaType.BIRTH and match_birth:
-                    area_satisfied = True
-                elif coupon.allow_area_type == Coupon.AreaType.BOTH and match_birth:
-                    area_satisfied = True
-        checks.append(("area", area_satisfied))
+                if coupon.limit_to_place_of_birth.lower() in kyc.place_of_birth.lower():
+                    if coupon.allow_area_type in (Coupon.AreaType.BIRTH, Coupon.AreaType.BOTH):
+                        area_ok = True
+        checks.append(("area", area_ok))
 
-    # 5. IP-based Geographic matching (Task 2)
     if coupon.limit_to_ip_countries or coupon.limit_to_ip_cities:
-        ip_satisfied = False
-        user_country = getattr(user, 'last_country', '').upper()
-        user_city = getattr(user, 'last_city', '').lower()
-        
+        ip_ok = False
+        user_country = getattr(user, "last_country", "").upper()
+        user_city    = getattr(user, "last_city",    "").lower()
         if coupon.limit_to_ip_countries and user_country in [c.upper() for c in coupon.limit_to_ip_countries]:
-            ip_satisfied = True
-        
-        if coupon.limit_to_ip_cities and any(city.lower() in user_city for city in coupon.limit_to_ip_cities):
-            ip_satisfied = True
-            
-        checks.append(("ip_geo", ip_satisfied))
+            ip_ok = True
+        if coupon.limit_to_ip_cities and any(c.lower() in user_city for c in coupon.limit_to_ip_cities):
+            ip_ok = True
+        checks.append(("ip_geo", ip_ok))
 
-    # 6. Product Limit
     if not coupon.apply_to_all_products:
-        product_match = False
-        if coupon.limit_to_products.exists():
-            if coupon.limit_to_products.filter(id=variant.product.id).exists():
-                product_match = True
-        else:
-            # If no products specified but apply_to_all is False, it shouldn't match anything?
-            # Or should it be treated as "no limit"? Usually it means "specific products only".
-            product_match = False
-        checks.append(("product", product_match))
+        prod_ok = (
+            coupon.limit_to_products.filter(id=variant.product.id).exists()
+            if coupon.limit_to_products.exists()
+            else False
+        )
+        checks.append(("product", prod_ok))
 
-    # Evaluate checks based on match_mode
-    if not checks:
-        # No specific restrictions (beyond global ones like expiry/verified_only handled above)
-        pass 
-    else:
-        satisfied_count = sum(1 for name, satisfied in checks if satisfied)
-        
-        if coupon.match_mode == Coupon.MatchMode.ALL:
-            # ALL conditions must be met
-            if satisfied_count < len(checks):
-                # Find first failed condition for better error message
-                failed = [name for name, satisfied in checks if not satisfied][0]
-                error_msgs = {
-                    "kyc": "هذا الكوبون مخصص للحسابات الموثقة فقط.",
-                    "user": "هذا الكوبون غير مخصص لحسابك.",
-                    "tier": "هذا الكوبون غير متاح لفئتك.",
-                    "registration_date_before": "هذا الكوبون متاح فقط للحسابات القديمة (قبل تاريخ محدد).",
-                    "registration_date_after": "هذا الكوبون متاح فقط للحسابات الجديدة (بعد تاريخ محدد).",
-                    "area": "هذا الكوبون غير متاح لمنطقتك الجغرافية (KYC).",
-                    "ip_geo": "هذا الكوبون غير متاح لموقعك الحالي.",
-                    "product": f"هذا الكوبون صالح فقط لمنتج: {coupon.limit_to_product.name if coupon.limit_to_product else 'منتج آخر'}"
-                }
-                raise ValueError(error_msgs.get(failed, "لا تتوفر شروط استخدام الكوبون."))
-        else:
-            # ANY condition is enough
-            if satisfied_count == 0:
-                raise ValueError("عذراً، هذا الكوبون غير متاح لك (لا تنطبق عليك أي من شروط الاستخدام).")
+    if checks:
+        satisfied = sum(1 for _, ok in checks if ok)
+        if coupon.match_mode == Coupon.MatchMode.ALL and satisfied < len(checks):
+            failed = next(name for name, ok in checks if not ok)
+            msgs = {
+                "kyc":        "هذا الكوبون مخصص للحسابات الموثقة فقط.",
+                "user":       "هذا الكوبون غير مخصص لحسابك.",
+                "tier":       "هذا الكوبون غير متاح لفئتك.",
+                "reg_before": "هذا الكوبون متاح فقط للحسابات القديمة.",
+                "reg_after":  "هذا الكوبون متاح فقط للحسابات الجديدة.",
+                "area":       "هذا الكوبون غير متاح لمنطقتك (KYC).",
+                "ip_geo":     "هذا الكوبون غير متاح لموقعك الحالي.",
+                "product":    "هذا الكوبون صالح لمنتج آخر فقط.",
+            }
+            raise ValueError(msgs.get(failed, "لا تتوفر شروط استخدام الكوبون."))
+        elif coupon.match_mode == Coupon.MatchMode.ANY and satisfied == 0:
+            raise ValueError("هذا الكوبون غير متاح لك (لا تنطبق عليك أي من شروط الاستخدام).")
 
-    # Calculate discount
+    # Calculate discount amount
     discount = Decimal("0.00")
     if subtotal:
         if coupon.discount_type == Coupon.DiscountType.PERCENTAGE:
-            discount = (subtotal * (coupon.discount_percent / Decimal("100.00"))).quantize(Decimal("0.01"))
+            discount = (subtotal * (coupon.discount_percent / Decimal("100"))).quantize(Decimal("0.01"))
         elif coupon.discount_type == Coupon.DiscountType.FIXED_AMOUNT:
             discount = min(coupon.discount_amount, subtotal)
-            
     return discount
 
 
+# ---------------------------------------------------------------------------
+# Main order creation
+# ---------------------------------------------------------------------------
+
 @transaction.atomic
-def create_order(customer, variant_id, quantity=1, fulfillment_data=None, coupon=None, metadata=None,
+def create_order(customer, variant_id, quantity=1, fulfillment_data=None,
+                 coupon=None, metadata=None,
                  shipping_name=None, shipping_phone=None, shipping_address=None):
+    """
+    Creates a new order, debits the customer's wallet, and calls the API
+    provider if needed.
+
+    Returns the created Order instance.
+    Raises ValueError (with an Arabic message) on any business logic failure.
+    """
+    # ── Guards ────────────────────────────────────────────────────────────────
     if customer.restriction_purchases:
         raise ValueError("حسابك مقيد من عمليات الشراء.")
 
     quantity = int(quantity)
     if quantity < 1:
-        raise ValueError("Quantity must be at least 1.")
-    variant = ProductVariant.objects.select_related("product").select_for_update().get(id=variant_id, is_active=True, product__is_active=True)
+        raise ValueError("الكمية يجب أن تكون 1 على الأقل.")
 
-    # ─────────────────────────────────────────────────────────────────────────
-    # Validate quantity against provider's qty_values rules (API docs):
-    #   qty_type == "fixed"  → qty must be 1 (null qty_values in API)
-    #   qty_type == "list"   → qty must be one of the listed values
-    #   qty_type == "range"  → qty must be within [qty_min, qty_max]
-    # ─────────────────────────────────────────────────────────────────────────
-    meta = variant.metadata if isinstance(variant.metadata, dict) else {}
-    qty_type = meta.get("qty_type") or "fixed"
-    qty_list = meta.get("qty_list") or []
-    api_product_type = meta.get("product_type") or "package"
+    # ── Fetch variant (locked for this transaction) ───────────────────────────
+    variant = (
+        ProductVariant.objects
+        .select_related("product")
+        .select_for_update()
+        .get(id=variant_id, is_active=True, product__is_active=True)
+    )
 
+    # ── Read qty metadata stored during sync ─────────────────────────────────
+    meta             = variant.metadata if isinstance(variant.metadata, dict) else {}
+    qty_type         = meta.get("qty_type", "fixed")
+    qty_list         = meta.get("qty_list", [])
+    qty_min          = _safe_int(meta.get("qty_min"), 1)
+    qty_max          = _safe_int(meta.get("qty_max"), 999_999_999)
+    api_product_type = meta.get("product_type", "package")   # "amount" or "package"
+
+    # ── Quantity validation (mirrors API rules) ───────────────────────────────
     if qty_type == "fixed":
-        # Fixed package — API requires qty=1
+        # null qty_values in API → must send qty=1
         quantity = 1
+
     elif qty_type == "list":
         if str(quantity) not in [str(x) for x in qty_list]:
-            raise ValueError(f"الكمية المسموح بها لهذه الباقة هي إحدى القيم التالية فقط: {', '.join(qty_list)}")
+            raise ValueError(
+                f"الكمية المسموح بها لهذه الباقة هي إحدى القيم التالية فقط: {', '.join(str(x) for x in qty_list)}"
+            )
+
     elif qty_type == "range":
-        qty_min = int(meta.get("qty_min") or 1)
-        qty_max = int(meta.get("qty_max") or 999_999_999)
         if quantity < qty_min:
             raise ValueError(f"الحد الأدنى المسموح به للكمية هو {qty_min:,}")
         if quantity > qty_max:
             raise ValueError(f"الحد الأقصى المسموح به للكمية هو {qty_max:,}")
 
-    # Inventory checking and decrementing
+    # ── Inventory check (for non-API products with inventory tracking) ────────
     from apps.catalog.models import Product
     product = Product.objects.select_for_update().get(id=variant.product_id)
+
     if product.track_inventory:
         if product.quantity < quantity:
-            raise ValueError(f"الكمية المطلوبة ({quantity}) غير متوفرة في المخزون للمنتج {product.name}. الكمية المتوفرة حالياً هي: {product.quantity}")
-        
+            raise ValueError(
+                f"الكمية المطلوبة ({quantity}) غير متوفرة. "
+                f"الكمية المتوفرة حالياً: {product.quantity}"
+            )
         product.quantity -= quantity
         if product.quantity <= 0:
-            product.quantity = 0
+            product.quantity      = 0
             product.is_out_of_stock = True
             product.save(update_fields=["quantity", "is_out_of_stock"])
-            
-            # Notify staff that product is out of stock
-            from apps.notifications.services import notify_staff
-            notify_staff(
-                title=f"نفاد مخزون المنتج: {product.name}",
-                body=f"نود إفادتكم بأن كمية المنتج '{product.name}' قد نفدت بالكامل وتم تعديل حالته إلى 'غير متوفر'.",
-                category="admin_new_order"
-            )
-        else:
-            product.save(update_fields=["quantity"])
-            # Check low stock threshold
-            if product.quantity <= product.low_stock_threshold:
+            try:
                 from apps.notifications.services import notify_staff
                 notify_staff(
-                    title=f"تنبيه: مخزون منخفض للمنتج: {product.name}",
-                    body=f"نود إفادتكم بأن كمية المنتج '{product.name}' قد وصلت للحد المنخفض المتبقي: {product.quantity} (حد التنبيه: {product.low_stock_threshold}).",
-                    category="admin_new_order"
+                    title=f"نفاد مخزون: {product.name}",
+                    body=f"كمية المنتج '{product.name}' نفدت بالكامل.",
+                    category="admin_new_order",
                 )
+            except Exception:
+                pass
+        else:
+            product.save(update_fields=["quantity"])
+            if product.quantity <= product.low_stock_threshold:
+                try:
+                    from apps.notifications.services import notify_staff
+                    notify_staff(
+                        title=f"مخزون منخفض: {product.name}",
+                        body=f"تبقّى {product.quantity} وحدة من '{product.name}'.",
+                        category="admin_new_order",
+                    )
+                except Exception:
+                    pass
 
-    # Validate shipping info if physical product
-    if variant.product.product_type == 'physical' and not variant.product.form_schema.get("fields"):
+    # ── Shipping validation for physical products ─────────────────────────────
+    if (
+        variant.product.product_type == "physical"
+        and not (variant.product.form_schema or {}).get("fields")
+    ):
         if not (shipping_name and shipping_phone and shipping_address):
-            raise ValueError("جميع حقول الشحن والتوصيل مطلوبة للمنتجات المادية.")
+            raise ValueError("جميع حقول الشحن مطلوبة للمنتجات المادية.")
 
-    # ─────────────────────────────────────────────────────────────────────────
-    # Price calculation:
-    #   - product_type == "package" → price is fixed per package (qty always 1
-    #     or chosen from a list; price does NOT multiply by qty for the user cost
-    #     because each item in qty_list represents a SEPARATE package).
-    #   - product_type == "amount"  → price is PER UNIT.  Total = price × qty.
-    #     E.g. 0.104 USD per UC × 100 UC = 10.4 USD  (NOT 100 USD).
-    # ─────────────────────────────────────────────────────────────────────────
-    price = variant.get_price_for_user(customer)
+    # ── Auto-delivery keys (digital codes stored locally) ─────────────────────
+    locked_keys = []
+    if variant.delivery_type == "keys":
+        key_ids = list(
+            ProductKey.objects
+            .filter(variant=variant, is_used=False)
+            .values_list("id", flat=True)[:quantity]
+        )
+        if len(key_ids) < quantity:
+            raise ValueError("المخزون غير كافٍ لتلبية الكمية المطلوبة.")
+        locked_keys = list(
+            ProductKey.objects.filter(id__in=key_ids).select_for_update()
+        )
+        if len(locked_keys) < quantity:
+            raise ValueError("المخزون غير كافٍ لتلبية الكمية المطلوبة.")
 
-    if api_product_type == "amount":
-        # Per-unit pricing: multiply the stored per-unit price by quantity
-        subtotal = price * Decimal(quantity)
-    else:
-        # Fixed package pricing: price already represents the full package cost
-        # quantity from the user perspective is always 1 package
-        subtotal = price * Decimal(quantity)
+    # ── Price calculation ─────────────────────────────────────────────────────
+    #
+    #  The variant.price stored in the DB is ALWAYS the per-unit / per-package
+    #  retail price (after markup).
+    #
+    #  product_type == "amount"  → price is per unit
+    #      subtotal = variant.price × quantity
+    #      Example: 0.104 $/UC × 100 UC = 10.40 $
+    #
+    #  product_type == "package" → price is the fixed package price
+    #      subtotal = variant.price × quantity
+    #      (quantity is 1 for fixed, or one value from qty_list for list type —
+    #       each value in the list IS a separate package option, not a multiplier)
+    #
+    #  In both cases the formula is the same: price × quantity.
+    #  The key difference is what "quantity" means semantically.
+    #
+    price    = variant.get_price_for_user(customer)
+    subtotal = price * Decimal(quantity)
 
+    # ── Coupon discount ───────────────────────────────────────────────────────
     discount = Decimal("0.00")
     if coupon:
         discount = validate_coupon(coupon, customer, variant, subtotal=subtotal)
         coupon.used_count += 1
         coupon.save(update_fields=["used_count"])
 
-    total = subtotal - discount
-    if total < 0: total = Decimal("0.00")
+    total = max(subtotal - discount, Decimal("0.00"))
 
-    # Auto-delivery keys check
-    locked_keys = []
-    if variant.delivery_type == 'keys':
-        key_ids = list(ProductKey.objects.filter(
-            variant=variant,
-            is_used=False
-        ).values_list('id', flat=True)[:quantity])
-
-        if len(key_ids) < quantity:
-            raise ValueError("المخزون غير كافي لتلبية الكمية المطلوبة من هذا المنتج.")
-
-        locked_keys = list(ProductKey.objects.filter(id__in=key_ids).select_for_update())
-        if len(locked_keys) < quantity:
-            raise ValueError("المخزون غير كافي لتلبية الكمية المطلوبة من هذا المنتج.")
-
-    status = Order.Status.PROCESSING
-    final_fulfillment_data = fulfillment_data or {}
-    api_order_id = None
-    api_order_uuid = None
+    # ── API order placement ───────────────────────────────────────────────────
+    order_status         = Order.Status.PROCESSING
+    final_fulfillment    = dict(fulfillment_data or {})
+    api_order_id         = None
+    api_order_uuid       = None
 
     if variant.product.is_api_product and variant.api_product_id:
         api_order_uuid = uuid.uuid4()
-        provider = variant.product.api_provider or "alkasr"
-        
+        provider       = variant.product.api_provider or "alkasr"
+
         if provider == "alkasr":
-            res = place_alkasr_order(variant.api_product_id, quantity, api_order_uuid, metadata or {}, store=variant.product.store)
+            api_resp = place_alkasr_order(
+                variant.api_product_id,
+                quantity,
+                api_order_uuid,
+                metadata or {},
+                store=variant.product.store,
+            )
         else:
-            # Alternate API provider placeholder routing
-            res = {
+            # Placeholder for other providers
+            api_resp = {
                 "status": "OK",
                 "data": {
                     "status": "wait",
-                    "order_id": f"{provider.upper()}-{uuid.uuid4().hex[:8]}"
-                }
+                    "order_id": f"{provider.upper()}-{uuid.uuid4().hex[:8]}",
+                },
             }
-            
-        if res.get("status") == "OK":
-            data = res.get("data", {})
-            api_status = data.get("status")
-            api_order_id = data.get("order_id")
-            
-            final_fulfillment_data["api_order_id"] = api_order_id
-            final_fulfillment_data["api_status"] = api_status
-            final_fulfillment_data["api_response"] = res
-            final_fulfillment_data["api_provider"] = provider
-            
+
+        if str(api_resp.get("status", "")).upper() == "OK":
+            api_data     = api_resp.get("data", {})
+            api_status   = api_data.get("status", "wait")
+            api_order_id = api_data.get("order_id")
+
+            final_fulfillment["api_order_id"] = api_order_id
+            final_fulfillment["api_status"]   = api_status
+            final_fulfillment["api_response"] = api_resp
+            final_fulfillment["api_provider"] = provider
+
             if api_status == "accept":
-                status = Order.Status.COMPLETED
+                order_status = Order.Status.COMPLETED
             elif api_status == "reject":
-                error_msg = res.get("message") or "الطلب مرفوض من المزود."
-                raise ValueError(f"فشل إرسال الطلب للمزود: {error_msg}")
-            else: # wait
-                status = Order.Status.PROCESSING
+                err = api_resp.get("message") or "الطلب مرفوض من المزوّد."
+                raise ValueError(f"رُفض الطلب من المزوّد: {err}")
+            # "wait" → stays PROCESSING
+
         else:
-            raw_error = res.get("message") or res.get("error") or "خطأ غير معروف من المزود."
-            error_code_match = None
-            # Extract numeric error code from message if present (e.g. "ERR-100")
-            import re
-            m = re.search(r'ERR-(\d+)', raw_error)
-            if m:
-                error_code_match = int(m.group(1))
-            
-            # Notify admin with full details
+            # Provider returned an error
+            raw_err = api_resp.get("message") or api_resp.get("error") or "خطأ غير معروف."
+            m = re.search(r"ERR-(\d+)", raw_err)
+            err_code = int(m.group(1)) if m else 0
+
             try:
                 from apps.notifications.services import notify_provider_error
-                provider_name = variant.product.api_provider or "alkasr"
                 notify_provider_error(
-                    error_code=error_code_match or 0,
-                    provider_name=provider_name,
+                    error_code=err_code,
+                    provider_name=provider,
                     product_id=variant.api_product_id,
-                    detail=raw_error,
+                    detail=raw_err,
                     store=str(variant.product.store) if variant.product.store else None,
                 )
-            except Exception as notify_err:
-                import logging
-                logging.getLogger(__name__).warning(f"Failed to send provider error notification: {notify_err}")
-            
-            # Show customer a safe, brief message with error code only
-            if error_code_match:
-                customer_msg = f"لم يتم معالجة طلبك بسبب خطأ مؤقت (رمز: ERR-{error_code_match}). يرجى التواصل مع فريق الدعم لحل المشكلة."
-            else:
-                customer_msg = "لم يتم معالجة طلبك بسبب خطأ مؤقت. يرجى التواصل مع فريق الدعم."
-            raise ValueError(customer_msg)
-    elif variant.delivery_type == 'keys':
-        status = Order.Status.COMPLETED
-        final_fulfillment_data['keys'] = [k.key_code for k in locked_keys]
+            except Exception:
+                pass
 
+            customer_msg = (
+                f"لم يتم معالجة طلبك (رمز الخطأ: ERR-{err_code}). يرجى التواصل مع الدعم."
+                if err_code
+                else "لم يتم معالجة طلبك بسبب خطأ مؤقت. يرجى التواصل مع الدعم."
+            )
+            raise ValueError(customer_msg)
+
+    elif variant.delivery_type == "keys":
+        order_status = Order.Status.COMPLETED
+        final_fulfillment["keys"] = [k.key_code for k in locked_keys]
+
+    # ── Create Order + OrderItem ──────────────────────────────────────────────
     order = Order.objects.create(
         customer=customer,
         number=next_order_number(),
-        status=status,
+        status=order_status,
         total_amount=total,
         original_total=subtotal,
         coupon=coupon,
-        fulfillment_data=final_fulfillment_data,
+        fulfillment_data=final_fulfillment,
         metadata=metadata or {},
         shipping_name=shipping_name or "",
         shipping_phone=shipping_phone or "",
@@ -343,45 +388,60 @@ def create_order(customer, variant_id, quantity=1, fulfillment_data=None, coupon
         api_order_uuid=api_order_uuid,
     )
     OrderItem.objects.create(
-        order=order, 
-        variant=variant, 
-        quantity=quantity, 
-        unit_price=price, 
+        order=order,
+        variant=variant,
+        quantity=quantity,
+        unit_price=price,
         unit_cost=variant.cost,
-        total_price=subtotal
+        total_price=subtotal,
     )
 
-    if variant.delivery_type == 'keys':
+    # ── Mark digital keys as used ─────────────────────────────────────────────
+    if locked_keys:
         for key in locked_keys:
-            key.is_used = True
-            key.used_by = customer
-            key.used_at = timezone.now()
-            key.order = order
-            key.save(update_fields=['is_used', 'used_by', 'used_at', 'order'])
-    
+            key.is_used  = True
+            key.used_by  = customer
+            key.used_at  = timezone.now()
+            key.order    = order
+            key.save(update_fields=["is_used", "used_by", "used_at", "order"])
+
+    # ── Debit wallet ──────────────────────────────────────────────────────────
     wallet = get_or_create_wallet(customer)
-    
-    # Convert total (USD) to wallet currency for debiting
     debit_amount = total
     if wallet.currency.code != "USD":
         debit_amount = wallet.currency.from_base(total)
-        
-    debit_wallet(wallet.id, debit_amount, reference=f"order:{order.id}", description=f"Order {order.number}", created_by=customer)
-    
-    log_note = "Order created and wallet debited."
-    if variant.product.is_api_product and variant.api_product_id:
-        log_note = f"تم إنشاء الطلب وربطه بالـ API (رقم الطلب الخارجي: {api_order_id})."
-    elif variant.delivery_type == 'keys':
-        log_note = "تم إنشاء الطلب وتسليم الأكواد تلقائياً بنجاح."
-    OrderLog.objects.create(order=order, status=order.status, note=log_note, created_by=customer)
-    Invoice.objects.create(order=order, invoice_number=order.number.replace("ORD", "INV", 1), total_amount=total)
-
-    from apps.notifications.services import notify_staff
-    notify_staff(
-        title="طلب جديد",
-        body=f"تم إنشاء طلب جديد برقم {order.number} بقيمة {total} من قبل {customer.email}",
-        action_url=f"/control/orders/{order.id}/",
-        category='admin_new_order'
+    debit_wallet(
+        wallet.id,
+        debit_amount,
+        reference=f"order:{order.id}",
+        description=f"Order {order.number}",
+        created_by=customer,
     )
+
+    # ── Logs + Invoice ────────────────────────────────────────────────────────
+    if variant.product.is_api_product and variant.api_product_id:
+        log_note = f"تم إنشاء الطلب وربطه بالـ API (رقم خارجي: {api_order_id})."
+    elif locked_keys:
+        log_note = "تم إنشاء الطلب وتسليم الأكواد تلقائياً."
+    else:
+        log_note = "تم إنشاء الطلب وخصم المبلغ من المحفظة."
+
+    OrderLog.objects.create(order=order, status=order.status, note=log_note, created_by=customer)
+    Invoice.objects.create(
+        order=order,
+        invoice_number=order.number.replace("ORD", "INV", 1),
+        total_amount=total,
+    )
+
+    try:
+        from apps.notifications.services import notify_staff
+        notify_staff(
+            title="طلب جديد",
+            body=f"طلب جديد رقم {order.number} بقيمة {total} USD من {customer.email}",
+            action_url=f"/control/orders/{order.id}/",
+            category="admin_new_order",
+        )
+    except Exception:
+        pass
 
     return order
