@@ -395,11 +395,49 @@
                 <i class="fas fa-search absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500 text-xs"></i>
             </div>
         </div>
+        
+        <!-- Bulk Adjustment Panel -->
+        <div id="api-bulk-panel" class="hidden p-6 border-b border-white/5 bg-cyan/[0.01] flex flex-col gap-4">
+            <form method="POST" action="." class="flex flex-wrap items-center gap-4">
+                {% csrf_token %}
+                <input type="hidden" name="integration_id" value="{{ selected_integration.id }}">
+                <input type="hidden" name="action" value="bulk_adjust_prices">
+                
+                <!-- Hidden inputs container for selected variant IDs -->
+                <div id="api-selected-ids-container"></div>
+                
+                <span class="text-xs text-slate-300 font-bold">
+                    تم تحديد <span id="api-selected-count" class="text-cyan font-black">0</span> باقة. التعديل الجماعي:
+                </span>
+                
+                <select name="adjust_type" class="builder-input text-xs" style="width: 180px; background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.05); color: #fff; padding: 0.5rem 1rem; border-radius: 8px;" required>
+                    <option value="fixed_increase">زيادة بمبلغ ثابت ($)</option>
+                    <option value="fixed_decrease">نقصان بمبلغ ثابت ($)</option>
+                    <option value="percent_increase">زيادة بنسبة %</option>
+                    <option value="percent_decrease">نقصان بنسبة %</option>
+                    <option value="set_fixed">تحديد سعر ثابت ($)</option>
+                </select>
+                
+                <input type="number" name="adjust_value" step="0.01" class="builder-input text-xs" style="width: 100px; background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.05); color: #fff; padding: 0.5rem 1rem; border-radius: 8px;" placeholder="القيمة" required>
+                
+                <select name="apply_to" class="builder-input text-xs" style="width: 160px; background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.05); color: #fff; padding: 0.5rem 1rem; border-radius: 8px;">
+                    <option value="selected">على الباقات المحددة فقط</option>
+                    <option value="all">على جميع المنتجات المستوردة</option>
+                </select>
+                
+                <button type="submit" class="btn btn-primary text-xs py-2 px-4 rounded-lg bg-cyan hover:bg-cyan/90 text-black font-black transition-all">
+                    تطبيق التعديل
+                </button>
+            </form>
+        </div>
 
         <div class="overflow-x-auto">
             <table class="w-full text-right text-sm" id="api-catalog-table">
                 <thead class="bg-black/40">
                     <tr>
+                        <th class="p-4 text-[10px] font-black text-slate-500 uppercase tracking-widest text-center" style="width: 40px;">
+                            <input type="checkbox" id="select-all-api" class="rounded border-white/10 bg-slate-900 text-cyan focus:ring-cyan" onclick="toggleSelectAllApi(this)">
+                        </th>
                         <th class="p-4 text-[10px] font-black text-slate-500 uppercase tracking-widest">معرف API</th>
                         <th class="p-4 text-[10px] font-black text-slate-500 uppercase tracking-widest">الخدمة</th>
                         <th class="p-4 text-[10px] font-black text-slate-500 uppercase tracking-widest">التصنيف</th>
@@ -414,6 +452,13 @@
                 <tbody class="divide-y divide-white/[0.02]">
                     {% for prod in alkasr_products %}
                     <tr class="hover:bg-white/[0.01] transition-colors table-row-api">
+                        <td class="p-4 text-center">
+                            {% if prod.is_linked %}
+                                <input type="checkbox" name="selected_api_variants" value="{{ prod.local_variant_id }}" class="api-checkbox rounded border-white/10 bg-slate-900 text-cyan focus:ring-cyan" onclick="updateApiBulkBar()">
+                            {% else %}
+                                <input type="checkbox" disabled class="opacity-20 cursor-not-allowed">
+                            {% endif %}
+                        </td>
                         <td class="p-4 font-mono font-bold text-slate-500 text-xs">#{{ prod.id }}</td>
                         <td class="p-4">
                             <div class="font-black text-white text-xs name-field">{{ prod.name }}</div>
@@ -429,7 +474,12 @@
                         <!-- Local Selling Price -->
                         <td class="p-4 font-mono font-black text-emerald-400 text-xs">
                             {% if prod.is_linked %}
-                                ${{ prod.local_price|floatformat:2 }}
+                                <div class="flex items-center gap-1.5 justify-end">
+                                    <span>${{ prod.local_price|floatformat:2 }}</span>
+                                    <button class="text-slate-500 hover:text-cyan p-1 transition" onclick="openQuickEditPriceModal('{{ prod.local_variant_id }}', '{{ prod.name|escapejs }}', '{{ prod.local_price }}')" title="تعديل السعر سريعاً">
+                                        <i class="fas fa-edit text-[10px]"></i>
+                                    </button>
+                                </div>
                             {% else %}
                                 <span class="text-slate-600 italic text-[10px]">غير مستورد</span>
                             {% endif %}
@@ -497,7 +547,7 @@
                         </td>
                     </tr>
                     {% empty %}
-                    <tr><td colspan="9" class="p-12 text-center text-slate-600 italic text-xs">لا يوجد خدمات لعرضها من API المزود.</td></tr>
+                    <tr><td colspan="10" class="p-12 text-center text-slate-600 italic text-xs">لا يوجد خدمات لعرضها من API المزود.</td></tr>
                     {% endfor %}
                 </tbody>
             </table>
@@ -671,7 +721,88 @@
     </div>
 </div>
 
+<!-- Quick Edit Price Modal -->
+<div id="quick-price-modal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center hidden">
+    <div class="glass-panel w-full max-w-md p-8 stack gap-6 animate-zoom-in relative" style="border: 1px solid rgba(255, 255, 255, 0.08); background: rgba(15, 23, 42, 0.95);">
+        <button class="absolute top-4 right-4 text-slate-500 hover:text-white" onclick="closeQuickPriceModal()">
+            <i class="fas fa-times text-lg"></i>
+        </button>
+        <div>
+            <h3 class="text-lg font-black text-white">تعديل سعر المبيع السريع</h3>
+            <p id="quick-price-prod-name" class="text-xs text-slate-400 mt-2 font-bold"></p>
+        </div>
+        <form method="POST" action="." class="stack gap-4">
+            {% csrf_token %}
+            <input type="hidden" name="integration_id" value="{{ selected_integration.id }}">
+            <input type="hidden" name="action" value="quick_update_price">
+            <input type="hidden" id="quick-price-variant-id" name="variant_id">
+            
+            <div class="field-group">
+                <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 block">السعر الحالي ($)</label>
+                <input type="text" id="quick-price-current" disabled class="w-full bg-slate-900/50 border border-white/5 rounded-xl p-3 text-slate-400 font-mono text-sm cursor-not-allowed">
+            </div>
+            
+            <div class="field-group">
+                <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 block">السعر الجديد ($) <span class="text-rose-500">*</span></label>
+                <input type="number" id="quick-price-input" name="price" step="0.01" required min="0" class="w-full bg-slate-900 border border-white/5 rounded-xl p-3 text-white font-mono text-sm focus:border-cyan transition">
+            </div>
+            
+            <button type="submit" class="btn btn-primary w-full py-3 rounded-xl bg-cyan hover:bg-cyan/90 text-black font-black text-sm">
+                حفظ التعديل
+            </button>
+        </form>
+    </div>
+</div>
+
 <script>
+    function toggleSelectAllApi(master) {
+        const checkboxes = document.querySelectorAll('.api-checkbox');
+        checkboxes.forEach(cb => {
+            if (!cb.disabled) {
+                cb.checked = master.checked;
+            }
+        });
+        updateApiBulkBar();
+    }
+
+    function updateApiBulkBar() {
+        const checkboxes = document.querySelectorAll('.api-checkbox:checked');
+        const panel = document.getElementById('api-bulk-panel');
+        const countDisplay = document.getElementById('api-selected-count');
+        const container = document.getElementById('api-selected-ids-container');
+        
+        container.innerHTML = '';
+        
+        if (checkboxes.length > 0) {
+            panel.classList.remove('hidden');
+            countDisplay.innerText = checkboxes.length;
+            
+            checkboxes.forEach(cb => {
+                const input = document.createElement('input');
+                input.type = 'hidden';
+                input.name = 'selected_variants';
+                input.value = cb.value;
+                container.appendChild(input);
+            });
+        } else {
+            panel.classList.add('hidden');
+            countDisplay.innerText = '0';
+        }
+    }
+
+    function openQuickEditPriceModal(variantId, name, price) {
+        document.getElementById('quick-price-variant-id').value = variantId;
+        document.getElementById('quick-price-prod-name').innerText = name;
+        document.getElementById('quick-price-current').value = price;
+        document.getElementById('quick-price-input').value = price;
+        
+        document.getElementById('quick-price-modal').classList.remove('hidden');
+    }
+
+    function closeQuickPriceModal() {
+        document.getElementById('quick-price-modal').classList.add('hidden');
+    }
+
     function switchTab(tabId, btn) {
         // Toggle active content
         document.querySelectorAll('.tab-content').forEach(c => c.classList.add('hidden'));

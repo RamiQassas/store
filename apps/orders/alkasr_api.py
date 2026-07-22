@@ -611,6 +611,94 @@ def parse_item_name(name, category_name=""):
     return name.strip(), "الافتراضية"
 
 
+def get_category_lineage(cat_id, alkasr_cats):
+    path = []
+    curr_id = cat_id
+    while curr_id and curr_id in alkasr_cats:
+        c = alkasr_cats[curr_id]
+        path.append(c)
+        parent_id = c.get("parent_id")
+        # Prevent infinite loops if parent references self or is circular
+        if parent_id == curr_id or (parent_id is not None and int(parent_id) in [p['id'] for p in path]):
+            break
+        curr_id = int(parent_id) if parent_id is not None else 0
+    return path
+
+
+def classify_alkasr_item(name, category_name=""):
+    text = (name + " " + category_name).lower()
+    
+    # Defaults
+    main_cat = "قسم الألعاب"
+    sub_cat = category_name or "ألعاب أخرى"
+    
+    # 1. Games (قسم الألعاب)
+    if any(w in text for w in ["uc", "pubg", "ببجي", "شدات", "شدة", "free fire", "فري فاير", "جواهر", "جوهرة", "ludo", "لودو", "ألعاب", "العاب", "gems", "شحن ألعاب"]):
+        main_cat = "قسم الألعاب"
+        if "pubg" in text or "ببجي" in text or "uc" in text:
+            sub_cat = "ببجي موبايل"
+        elif "free fire" in text or "فري فاير" in text or "جواهر" in text:
+            sub_cat = "فري فاير"
+        elif "ludo" in text or "لودو" in text:
+            sub_cat = "يلا لودو"
+        else:
+            sub_cat = category_name or "ألعاب أخرى"
+            
+    # 2. Chat (قسم الدردشة)
+    elif any(w in text for w in ["likee", "لايكي", "دردشة", "chat", "yalla", "يلا", "mico", "ميجو", "soul", "سول", "tango", "تانجو", "tiktok", "تيك توك", "كواي", "kwai"]):
+        main_cat = "قسم الدردشة"
+        if "likee" in text or "لايكي" in text:
+            sub_cat = "لايكي"
+        elif "yalla" in text or "يلا" in text:
+            sub_cat = "يلا لودو"
+        elif "tiktok" in text or "تيك توك" in text:
+            sub_cat = "تيك توك"
+        else:
+            sub_cat = category_name or "تطبيقات دردشة"
+            
+    # 3. Credits (قسم الأرصدة)
+    elif any(w in text for w in ["lira", "tl", "تركي", "أرصدة", "رصيد", "paypal", "باي بال", "payeer", "بيير", "زين", "سوا", "mobily", "موبايلي"]):
+        main_cat = "قسم الأرصدة"
+        sub_cat = category_name or "شحن أرصدة"
+        
+    # 4. VPN (اشتراكات VPN)
+    elif any(w in text for w in ["vpn", "بروكسي", "nordvpn", "expressvpn"]):
+        main_cat = "اشتراكات VPN"
+        sub_cat = category_name or "اشتراكات VPN"
+        
+    # 5. AI (الذكاء الاصطناعي)
+    elif any(w in text for w in ["gpt", "chatgpt", "ai", "ذكاء", "midjourney"]):
+        main_cat = "الذكاء الاصطناعي"
+        sub_cat = category_name or "خدمات الذكاء الاصطناعي"
+        
+    # 6. TV (خدمات التلفاز)
+    elif any(w in text for w in ["شاهد", "shahid", "تلفاز", "tv", "netflix", "نتفلكس", "iptv", "ديزني", "disney"]):
+        main_cat = "خدمات التلفاز"
+        sub_cat = category_name or "اشتراكات تلفزيونية"
+        
+    # 7. Gift Cards (البطاقات الالكترونية)
+    elif any(w in text for w in ["كارت", "بطاقة", "card", "gift", "itunes", "ايتونز", "google play", "جوجل بلاي", "razer", "ريزر", "steam", "ستيم"]):
+        main_cat = "البطاقات الالكترونية"
+        sub_cat = category_name or "بطاقات هدايا"
+        
+    # 8. Numbers (الأرقام والحسابات)
+    elif any(w in text for w in ["رقم", "أرقام", "حساب", "حسابات", "number", "account"]):
+        main_cat = "الأرقام والحسابات"
+        sub_cat = category_name or "أرقام وحسابات جاهزة"
+        
+    # 9. Design (قسم التصميم)
+    elif any(w in text for w in ["تصميم", "design", "شعار", "logo", "تعديل صور"]):
+        main_cat = "قسم التصميم"
+        sub_cat = category_name or "خدمات تصميم"
+        
+    # 10. Social Media (السوشيال ميديا (خدمات ))
+    elif any(w in text for w in ["متابعين", "لايكات", "مشاهدات", "سوشيال", "social", "instagram", "انستغرام", "فيس بوك", "facebook", "تويتر", "twitter"]):
+        main_cat = "السوشيال ميديا (خدمات )"
+        sub_cat = category_name or "خدمات السوشيال ميديا"
+        
+    return main_cat, sub_cat
+
+
 def sync_alkasr_catalog(store, selected_category_ids=None, markup_percent=0.0, integration=None):
     """
     Fetches the catalog from Alkasr and synchronizes it with the local catalog.
@@ -643,11 +731,12 @@ def sync_alkasr_catalog(store, selected_category_ids=None, markup_percent=0.0, i
     created_count = 0
     updated_count = 0
     
-    # Pre-fetch existing categories for this store to avoid N+1 queries
-    existing_categories = {
-        cat.name: cat
-        for cat in Category.objects.filter(store=store)
-    }
+    # Pre-fetch existing categories for this store to avoid N+1 queries (including parent key mapping to prevent duplicate subcategories)
+    existing_categories = {}
+    for cat in Category.objects.filter(store=store).select_related('parent'):
+        existing_categories[cat.name] = cat
+        if cat.parent:
+            existing_categories[f"{cat.parent.name} > {cat.name}"] = cat
     
     # Pre-fetch existing products for this store to avoid N+1 queries
     existing_products = {
@@ -712,36 +801,45 @@ def sync_alkasr_catalog(store, selected_category_ids=None, markup_percent=0.0, i
                     
             raw_item_name = item.get("name") or ""
             
-            # Resolve category and product hierarchy using category_map
-            display_cat_name = "غير مصنف"
-            prod_name = ""
-            var_name = ""
-            
-            p_id_int = int(parent_id) if parent_id is not None else 0
-            if p_id_int and p_id_int in alkasr_cats:
-                curr_cat = alkasr_cats[p_id_int]
-                p_cat_id = curr_cat.get("parent_id")
-                p_cat_id_int = int(p_cat_id) if p_cat_id is not None else 0
+            # Skip invalid, empty or null imports
+            if not raw_item_name or raw_item_name.strip().lower() in ["null", "none", "nan", ""]:
+                continue
                 
-                if p_cat_id_int and p_cat_id_int in alkasr_cats:
-                    parent_cat = alkasr_cats[p_cat_id_int]
-                    display_cat_name = parent_cat.get("name") or "غير مصنف"
-                    prod_name = curr_cat.get("name") or ""
-                    var_name = raw_item_name
-                else:
-                    display_cat_name = curr_cat.get("name") or "غير مصنف"
-                    prod_name, var_name = parse_item_name(raw_item_name, display_cat_name)
+            # Resolve category lineage from API categories
+            p_id_int = int(parent_id) if parent_id is not None else 0
+            lineage = get_category_lineage(p_id_int, alkasr_cats)
+            
+            main_cat_name = ""
+            sub_cat_name = ""
+            
+            if len(lineage) >= 2:
+                main_cat_name = lineage[-1]["name"]
+                sub_cat_name = lineage[-2]["name"]
+                prod_name = lineage[-2]["name"]
+            elif len(lineage) == 1:
+                main_cat_name = lineage[0]["name"]
+                # Use classifier to find subcategory
+                _, sub_cat_name = classify_alkasr_item(raw_item_name, item.get("category_name", ""))
+                prod_name = sub_cat_name
             else:
-                cat_name = item.get("category_name") or "غير مصنف"
-                prod_name, var_name = parse_item_name(raw_item_name, cat_name)
-                # Fallback display category name
-                if prod_name.strip().lower() == cat_name.strip().lower() or cat_name.strip().lower() in [kw.lower() for kw in ["شدات ببجي", "جواهر فري فاير", "كوينز", "شحن شدات"]]:
-                    display_cat_name = "شحن ألعاب وبطاقات"
-                else:
-                    display_cat_name = cat_name
-                    
+                # Run the classification engine
+                main_cat_name, sub_cat_name = classify_alkasr_item(raw_item_name, item.get("category_name", ""))
+                prod_name = sub_cat_name
+
+            # Clean and skip if resolved category is empty or null
+            if not main_cat_name or main_cat_name.strip().lower() in ["null", "none", "nan", ""]:
+                continue
+            if not sub_cat_name or sub_cat_name.strip().lower() in ["null", "none", "nan", ""]:
+                continue
+                
+            main_cat_name = main_cat_name.strip()
+            sub_cat_name = sub_cat_name.strip()
+            
+            # Map item variant/package name
+            var_name = raw_item_name
+            
             if not prod_name:
-                prod_name = raw_item_name
+                prod_name = sub_cat_name
             if not var_name:
                 var_name = "الافتراضية"
                 
@@ -777,22 +875,39 @@ def sync_alkasr_catalog(store, selected_category_ids=None, markup_percent=0.0, i
             markup_factor = Decimal(1) + (Decimal(str(markup_percent)) / Decimal(100))
             retail_price = cost_val * markup_factor
             
-            category = existing_categories.get(display_cat_name)
-            if not category:
-                category = Category.objects.create(
-                    name=display_cat_name,
+            # Get or create Main Category (parent = None)
+            main_category = existing_categories.get(main_cat_name)
+            if not main_category:
+                main_category = Category.objects.create(
+                    name=main_cat_name,
                     store=store,
-                    is_active=True
+                    is_active=True,
+                    parent=None
                 )
-                existing_categories[display_cat_name] = category
+                existing_categories[main_cat_name] = main_category
+                
+            # Align main category sort order
+            if main_cat_name not in category_order:
+                category_order.append(main_cat_name)
+            cat_sort_order = category_order.index(main_cat_name)
+            if main_category.sort_order != cat_sort_order:
+                main_category.sort_order = cat_sort_order
+                main_category.save(update_fields=['sort_order'])
+                
+            # Get or create Sub Category (parent = main_category)
+            sub_category_cache_key = f"{main_cat_name} > {sub_cat_name}"
+            sub_category = existing_categories.get(sub_category_cache_key)
+            if not sub_category:
+                sub_category = Category.objects.create(
+                    name=sub_cat_name,
+                    store=store,
+                    is_active=True,
+                    parent=main_category
+                )
+                existing_categories[sub_category_cache_key] = sub_category
             
-            # Align category sort order
-            if display_cat_name not in category_order:
-                category_order.append(display_cat_name)
-            cat_sort_order = category_order.index(display_cat_name)
-            if category.sort_order != cat_sort_order:
-                category.sort_order = cat_sort_order
-                category.save(update_fields=['sort_order'])
+            # Target category for the Product is the sub_category
+            target_category = sub_category
             
             # Get or create product from memory cache (grouped by game name)
             product = existing_products.get(prod_name)
@@ -800,7 +915,7 @@ def sync_alkasr_catalog(store, selected_category_ids=None, markup_percent=0.0, i
                 product = Product.objects.create(
                     product_type="digital",
                     name=prod_name,
-                    category=category,
+                    category=target_category,
                     store=store,
                     description="",
                     is_active=is_available,
@@ -814,7 +929,7 @@ def sync_alkasr_catalog(store, selected_category_ids=None, markup_percent=0.0, i
             else:
                 if is_available:
                     product.is_active = True
-                product.category = category
+                product.category = target_category
                 # Update schema: merge fields to make sure we don't lose any required fields of any variant
                 if form_schema.get("fields"):
                     if not product.form_schema or not product.form_schema.get("fields"):

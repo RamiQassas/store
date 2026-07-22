@@ -195,10 +195,47 @@
         {% endfor %}
     </div>
     {% else %}
+    <!-- Bulk Adjustment Panel for Regular Products -->
+    <div id="products-bulk-panel" class="hidden p-6 border-b border-white/5 bg-cyan/[0.01] flex flex-col gap-4">
+        <form method="POST" action="." class="flex flex-wrap items-center gap-4">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="bulk_adjust_prices">
+            
+            <!-- Hidden inputs container for selected product IDs -->
+            <div id="products-selected-ids-container"></div>
+            
+            <span class="text-xs text-slate-300 font-bold">
+                تم تحديد <span id="products-selected-count" class="text-cyan font-black">0</span> منتج عادي. التعديل الجماعي للباقات:
+            </span>
+            
+            <select name="adjust_type" class="builder-input text-xs" style="width: 180px; background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.05); color: #fff; padding: 0.5rem 1rem; border-radius: 8px;" required>
+                <option value="fixed_increase">زيادة بمبلغ ثابت ($)</option>
+                <option value="fixed_decrease">نقصان بمبلغ ثابت ($)</option>
+                <option value="percent_increase">زيادة بنسبة %</option>
+                <option value="percent_decrease">نقصان بنسبة %</option>
+                <option value="set_fixed">تحديد سعر ثابت ($)</option>
+            </select>
+            
+            <input type="number" name="adjust_value" step="0.01" class="builder-input text-xs" style="width: 100px; background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.05); color: #fff; padding: 0.5rem 1rem; border-radius: 8px;" placeholder="القيمة" required>
+            
+            <select name="apply_to" class="builder-input text-xs" style="width: 160px; background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.05); color: #fff; padding: 0.5rem 1rem; border-radius: 8px;">
+                <option value="selected">على المنتجات المحددة فقط</option>
+                <option value="all">على جميع المنتجات العادية</option>
+            </select>
+            
+            <button type="submit" class="btn btn-primary text-xs py-2 px-4 rounded-lg bg-cyan hover:bg-cyan/90 text-black font-black transition-all">
+                تطبيق التعديل
+            </button>
+        </form>
+    </div>
+
     <div class="p-0 overflow-x-auto">
         <table class="w-full text-sm text-right">
             <thead class="text-[11px] text-slate-500 border-b border-white/5 uppercase bg-white/[0.01]">
                 <tr>
+                    <th class="p-4 text-center" style="width: 40px;">
+                        <input type="checkbox" id="select-all-products" class="rounded border-white/10 bg-slate-900 text-cyan focus:ring-cyan" onclick="toggleSelectAllProducts(this)">
+                    </th>
                     <th class="p-4" style="width: 40px;"></th>
                     <th class="p-4">المنتج</th>
                     <th class="p-4">التصنيف</th>
@@ -213,6 +250,13 @@
             <tbody id="products-table-body">
                 {% for p in products %}
                 <tr class="border-b border-white/[0.02] last:border-0 hover:bg-white/[0.02] transition product-row" data-id="{{ p.id }}">
+                    <td class="p-4 text-center" style="width: 40px;">
+                        {% if not p.is_api_product %}
+                            <input type="checkbox" name="selected_products" value="{{ p.id }}" class="product-checkbox rounded border-white/10 bg-slate-900 text-cyan focus:ring-cyan" onclick="updateProductsBulkBar()">
+                        {% else %}
+                            <input type="checkbox" disabled class="opacity-20 cursor-not-allowed" title="منتج API (عدله من صفحة ربط الـ API)">
+                        {% endif %}
+                    </td>
                     <td class="p-4 drag-handle cursor-grab text-slate-500 hover:text-cyan transition-colors text-center" style="width: 40px;">
                         <i class="fas fa-grip-vertical"></i>
                     </td>
@@ -326,6 +370,41 @@
 {% block extra_js %}
 <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
 <script>
+function toggleSelectAllProducts(master) {
+    const checkboxes = document.querySelectorAll('.product-checkbox');
+    checkboxes.forEach(cb => {
+        if (!cb.disabled) {
+            cb.checked = master.checked;
+        }
+    });
+    updateProductsBulkBar();
+}
+
+function updateProductsBulkBar() {
+    const checkboxes = document.querySelectorAll('.product-checkbox:checked');
+    const panel = document.getElementById('products-bulk-panel');
+    const countDisplay = document.getElementById('products-selected-count');
+    const container = document.getElementById('products-selected-ids-container');
+    
+    container.innerHTML = '';
+    
+    if (checkboxes.length > 0) {
+        panel.classList.remove('hidden');
+        countDisplay.innerText = checkboxes.length;
+        
+        checkboxes.forEach(cb => {
+            const input = document.createElement('input');
+            input.type = 'hidden';
+            input.name = 'selected_products';
+            input.value = cb.value;
+            container.appendChild(input);
+        });
+    } else {
+        panel.classList.add('hidden');
+        countDisplay.innerText = '0';
+    }
+}
+
 function toggleFeatured(id, btn) {
     fetch(`/control/products/${id}/toggle-featured/`)
         .then(res => res.json())

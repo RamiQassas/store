@@ -3099,6 +3099,57 @@ def control_category_edit(request, pk=None):
 
 @support_required
 def control_products_list(request):
+    store = getattr(request, "store", None)
+    if request.method == "POST":
+        action = request.POST.get("action")
+        if action == "bulk_adjust_prices":
+            from decimal import Decimal
+            from apps.catalog.models import ProductVariant
+            from django.contrib import messages
+            
+            product_ids = request.POST.getlist("selected_products")
+            adjust_type = request.POST.get("adjust_type")
+            adjust_value = request.POST.get("adjust_value", "0")
+            apply_to = request.POST.get("apply_to", "selected") # "selected" or "all"
+            
+            try:
+                value = Decimal(str(adjust_value))
+                if store:
+                    variants_qs = ProductVariant.objects.filter(product__store=store, product__is_api_product=False)
+                else:
+                    variants_qs = ProductVariant.objects.filter(product__is_api_product=False)
+                
+                if apply_to == "selected" and product_ids:
+                    variants_qs = variants_qs.filter(product_id__in=product_ids)
+                elif apply_to == "selected" and not product_ids:
+                    messages.error(request, "لم تقم بتحديد أي منتجات لتعديل أسعارها.")
+                    return redirect("control_products_list")
+                
+                count = 0
+                for variant in variants_qs:
+                    price = variant.price
+                    if adjust_type == "fixed_increase":
+                        price += value
+                    elif adjust_type == "fixed_decrease":
+                        price -= value
+                    elif adjust_type == "percent_increase":
+                        price = price * (Decimal("1") + (value / Decimal("100")))
+                    elif adjust_type == "percent_decrease":
+                        price = price * (Decimal("1") - (value / Decimal("100")))
+                    elif adjust_type == "set_fixed":
+                        price = value
+                    
+                    if price < 0:
+                        price = Decimal("0.00")
+                        
+                    variant.price = price.quantize(Decimal("0.01"))
+                    variant.save(update_fields=['price'])
+                    count += 1
+                messages.success(request, f"تم بنجاح تعديل أسعار {count} باقة في المنتجات العادية.")
+            except Exception as e:
+                messages.error(request, f"فشل التعديل الجماعي: {str(e)}")
+            return redirect("control_products_list")
+
     products = Product.objects.select_related('category').prefetch_related('variants').all().order_by('sort_order', 'name')
     cat_id = request.GET.get('category')
     active_category = None
@@ -5206,6 +5257,67 @@ def control_apicontrol_dashboard(request):
                 messages.error(request, "المنتج غير موجود.")
             return redirect(redirect_url)
             
+        elif action == "quick_update_price":
+            from decimal import Decimal
+            variant_id = request.POST.get("variant_id")
+            new_price = request.POST.get("price")
+            try:
+                if store:
+                    variant = ProductVariant.objects.get(id=variant_id, product__store=store)
+                else:
+                    variant = ProductVariant.objects.get(id=variant_id)
+                variant.price = Decimal(str(new_price))
+                variant.save(update_fields=['price'])
+                messages.success(request, f"تم تحديث سعر الباقة '{variant.name}' بنجاح إلى {variant.price} USD.")
+            except (ProductVariant.DoesNotExist, ValueError) as e:
+                messages.error(request, f"خطأ في تعديل السعر: {str(e)}")
+            return redirect(redirect_url)
+            
+        elif action == "bulk_adjust_prices":
+            from decimal import Decimal
+            variant_ids = request.POST.getlist("selected_variants")
+            adjust_type = request.POST.get("adjust_type")
+            adjust_value = request.POST.get("adjust_value", "0")
+            apply_to = request.POST.get("apply_to", "selected") # "selected" or "all"
+            
+            try:
+                value = Decimal(str(adjust_value))
+                if store:
+                    variants_qs = ProductVariant.objects.filter(product__store=store, product__is_api_product=True)
+                else:
+                    variants_qs = ProductVariant.objects.filter(product__is_api_product=True)
+                
+                if apply_to == "selected" and variant_ids:
+                    variants_qs = variants_qs.filter(id__in=variant_ids)
+                elif apply_to == "selected" and not variant_ids:
+                    messages.error(request, "لم تقم بتحديد أي باقات لتعديل أسعارها.")
+                    return redirect(redirect_url)
+                
+                count = 0
+                for variant in variants_qs:
+                    price = variant.price
+                    if adjust_type == "fixed_increase":
+                        price += value
+                    elif adjust_type == "fixed_decrease":
+                        price -= value
+                    elif adjust_type == "percent_increase":
+                        price = price * (Decimal("1") + (value / Decimal("100")))
+                    elif adjust_type == "percent_decrease":
+                        price = price * (Decimal("1") - (value / Decimal("100")))
+                    elif adjust_type == "set_fixed":
+                        price = value
+                    
+                    if price < 0:
+                        price = Decimal("0.00")
+                        
+                    variant.price = price.quantize(Decimal("0.01"))
+                    variant.save(update_fields=['price'])
+                    count += 1
+                messages.success(request, f"تم بنجاح تعديل أسعار {count} باقة/منتج مستورد.")
+            except Exception as e:
+                messages.error(request, f"فشل التعديل الجماعي: {str(e)}")
+            return redirect(redirect_url)
+            
     # Fetch Profile Info
     profile = get_alkasr_profile(store=store, integration=integration) if integration else None
     is_connected = profile and profile.get("status") != "error"
@@ -5235,6 +5347,7 @@ def control_apicontrol_dashboard(request):
             linked_variants = {
                 v.api_product_id: {
                     "product_id": v.product.id,
+                    "variant_id": v.id,
                     "price": float(v.price),
                     "cost": float(v.cost),
                     "is_active": v.product.is_active,
@@ -5249,6 +5362,7 @@ def control_apicontrol_dashboard(request):
                 if item_id in linked_variants:
                     item["is_linked"] = True
                     item["local_product_id"] = linked_variants[item_id]["product_id"]
+                    item["local_variant_id"] = linked_variants[item_id]["variant_id"]
                     item["local_price"] = linked_variants[item_id]["price"]
                     item["local_cost"] = linked_variants[item_id]["cost"]
                     item["local_active"] = linked_variants[item_id]["is_active"]

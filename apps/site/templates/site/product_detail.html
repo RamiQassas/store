@@ -586,7 +586,7 @@ function selectVariant(id, el) {
     updateQuantityPrice();
 }
 
-function updateQuantityPrice() {
+function updateQuantityPrice(isFromCoupon = false) {
     const variantId = document.getElementById('selected-variant-id').value;
     if (!variantId) return;
     
@@ -597,11 +597,39 @@ function updateQuantityPrice() {
     const qtyInput = document.getElementById('quantity-input');
     const qty = qtyInput ? parseInt(qtyInput.value || 1) : 1;
     
-    const total = basePrice * qty;
+    const subtotal = basePrice * qty;
     
-    // Reset coupon breakdown display since price has changed and coupon needs validation again
-    document.getElementById('price-breakdown').classList.add('hidden');
-    document.getElementById('coupon-feedback').classList.add('hidden');
+    const breakdown = document.getElementById('price-breakdown');
+    const feedback = document.getElementById('coupon-feedback');
+    
+    let discount = 0;
+    
+    if (!isFromCoupon) {
+        // Clear coupon if user changes quantity or variant manually
+        const couponInput = document.getElementById('coupon-code-input');
+        if (couponInput) {
+            couponInput.value = '';
+        }
+        if (feedback) {
+            feedback.classList.add('hidden');
+            feedback.innerText = '';
+        }
+        document.getElementById('discount-display').innerText = "0.00 USD";
+    } else {
+        // Read discount from DOM
+        const discountText = document.getElementById('discount-display').innerText;
+        discount = parseFloat(discountText.replace(/[^\d.-]/g, '') || 0);
+        if (discount > 0) {
+            discount = Math.abs(discount);
+        }
+    }
+    
+    const total = Math.max(0, subtotal - discount);
+    
+    // Always show breakdown
+    breakdown.classList.remove('hidden');
+    document.getElementById('subtotal-display').innerText = subtotal.toFixed(2) + " USD";
+    document.getElementById('total-display').innerText = total.toFixed(2) + " USD";
 
     const submitBtn = document.getElementById('submit-btn');
     if (submitBtn && !submitBtn.disabled) {
@@ -637,18 +665,17 @@ function applyCoupon() {
                 feedback.innerText = data.message;
                 feedback.className = "mt-2 text-[10px] text-emerald-500 block";
                 
-                // Show breakdown
+                // Show breakdown and set discount
                 breakdown.classList.remove('hidden');
-                document.getElementById('subtotal-display').innerText = (data.new_total + data.discount_amount).toFixed(2) + " USD";
                 document.getElementById('discount-display').innerText = "- " + data.discount_amount.toFixed(2) + " USD";
-                document.getElementById('total-display').innerText = data.new_total.toFixed(2) + " USD";
                 
-                // Update main button text
-                document.getElementById('submit-btn').innerHTML = `<i class="fas fa-shopping-cart ml-2"></i> شراء الآن بسعر ${data.new_total.toFixed(2)} USD`;
+                // Recalculate subtotal, total and submit button price using the discount
+                updateQuantityPrice(true);
             } else {
                 feedback.innerText = data.error;
                 feedback.className = "mt-2 text-[10px] text-rose-500 block";
-                breakdown.classList.add('hidden');
+                document.getElementById('discount-display').innerText = "0.00 USD";
+                updateQuantityPrice(false);
             }
         })
         .catch(error => {
