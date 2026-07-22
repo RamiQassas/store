@@ -71,7 +71,7 @@ class AlkasrSyncService:
             sync_log.save()
             raise
 
-    def _fetch_content_tree(self, max_nodes=250):
+    def _fetch_content_tree(self, max_nodes=80):
         content_by_id = {}
         queue = ["0"]
         seen = set()

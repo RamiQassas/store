@@ -15,7 +15,7 @@ from django.contrib.auth import authenticate, login, logout, update_session_auth
 from django.contrib.auth.decorators import login_required
 from django.core.paginator import Paginator
 from django.db import transaction
-from django.db.models import Q, Count
+from django.db.models import Q, Count, Sum
 from django.http import HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
@@ -5657,8 +5657,6 @@ def control_apicontrol_dashboard(request):
                     p_obj = ProviderProfile.objects.get(id=profile_id)
                     svc = AlkasrSyncService(p_obj)
                     svc.sync_catalog()
-                    mapper = AlkasrMapperService(p_obj)
-                    mapper.map_all_to_catalog()
                 except Exception as e:
                     import logging
                     logging.getLogger(__name__).exception(f"Background sync failed for profile {profile_id}: {e}")
@@ -5818,9 +5816,10 @@ def control_apicontrol_dashboard(request):
     local_linked_count = 0
     
     if profile_obj:
-        categories = list(ProviderCategory.objects.filter(profile=profile_obj).values("id", "name", "remote_id"))
-        all_p = ProviderProduct.objects.filter(profile=profile_obj)
+        categories = list(ProviderCategory.objects.filter(profile=profile_obj).values("id", "name", "remote_id")[:100])
+        all_p = ProviderProduct.objects.filter(profile=profile_obj).select_related("category")
         products_count = all_p.count()
+        visible_products = list(all_p.order_by("category__name", "name")[:150])
         alkasr_products = [
             {
                 "id": p.remote_id,
@@ -5828,15 +5827,18 @@ def control_apicontrol_dashboard(request):
                 "price": float(p.cost_price),
                 "category": p.category.remote_id if p.category else ""
             }
-            for p in all_p
+            for p in visible_products
         ]
     
     if profile_obj and alkasr_products:
+        visible_remote_ids = [str(item["id"]) for item in alkasr_products]
         if store:
             linked_variants_qs = ProductVariant.objects.filter(product__store=store, api_product_id__isnull=False)
         else:
             linked_variants_qs = ProductVariant.objects.filter(api_product_id__isnull=False)
 
+        local_linked_count = linked_variants_qs.count()
+        linked_variants_qs = linked_variants_qs.filter(api_product_id__in=visible_remote_ids)
         linked_variants = {
             str(v.api_product_id): {
                 "product_id": v.product.id,
@@ -5848,7 +5850,6 @@ def control_apicontrol_dashboard(request):
             }
             for v in linked_variants_qs.select_related('product')
         }
-        local_linked_count = len(linked_variants)
         
         for item in alkasr_products:
             item_id = str(item.get("id"))
@@ -5869,7 +5870,7 @@ def control_apicontrol_dashboard(request):
         store=store,
         status__in=[Order.Status.COMPLETED, Order.Status.PROCESSING],
         items__variant__api_product_id__isnull=False
-    ).distinct()
+    ).distinct().prefetch_related("items__variant__product").order_by("-created_at")[:200]
     
     total_purchases_usd = 0.0
     total_sales_usd = 0.0
@@ -5917,16 +5918,16 @@ def control_apicontrol_dashboard(request):
     # Fetch recent API transactions for template rendering
     from apps.catalog.models import APITransaction
     if store:
-        recent_transactions = list(APITransaction.objects.filter(store=store).order_by('-created_at')[:100])
+        recent_transactions = list(APITransaction.objects.filter(store=store).order_by('-created_at')[:30])
     else:
-        recent_transactions = list(APITransaction.objects.all().order_by('-created_at')[:100])
+        recent_transactions = list(APITransaction.objects.all().order_by('-created_at')[:30])
         
     return render(request, "site/control_apicontrol_dashboard.html", {
         "profile": profile if is_connected else None,
         "is_connected": is_connected,
         "categories": categories,
         "products_count": products_count,
-        "alkasr_products": alkasr_products[:500], # display up to 500 products for quick client-side filtering
+        "alkasr_products": alkasr_products,
         "webhook_url": webhook_url,
         "base_url": base_url,
         "obfuscated_token": obfuscated_token,
