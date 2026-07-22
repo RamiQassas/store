@@ -147,14 +147,22 @@ class AlkasrSyncService:
                         product_obj.is_active = True
                         product_obj.save()
                         
+                        pricing_obj = getattr(product_obj, "pricing", None)
+                        if not pricing_obj:
+                            pricing_obj = ProviderPrice.objects.create(
+                                product=product_obj,
+                                margin_type="percentage",
+                                margin_value=Decimal('0.00')
+                            )
+                        
                         if old_cost != cost:
                             # Log price history
                             ProviderPriceHistory.objects.create(
                                 product=product_obj,
                                 old_cost=old_cost,
                                 new_cost=cost,
-                                old_final_price=product_obj.pricing.final_price,
-                                new_final_price=product_obj.pricing.final_price,  # Requires re-evaluating price later
+                                old_final_price=pricing_obj.final_price,
+                                new_final_price=pricing_obj.final_price,
                                 reason="API Sync Cost Update"
                             )
                         stats["updated"] += 1

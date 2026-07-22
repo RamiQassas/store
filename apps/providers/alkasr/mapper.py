@@ -68,8 +68,8 @@ class AlkasrMapperService:
                     local_product.category = cat
                 local_product.save()
 
-            pricing = provider_product.pricing
-            final_price = pricing.final_price
+            pricing = getattr(provider_product, 'pricing', None)
+            final_price = pricing.final_price if pricing else provider_product.cost_price
             
             meta = {
                 "qty_type": "fixed",
