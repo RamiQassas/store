@@ -5843,9 +5843,12 @@ def control_apicontrol_dashboard(request):
     else:
         obfuscated_token = "غير معين أو قصير"
         
-    # Fetch recent API request logs
-    from apps.providers.models import ProviderRequestLog
-    recent_transactions = ProviderRequestLog.objects.filter(profile=profile_obj).order_by('-created_at')[:100] if profile_obj else []
+    # Fetch recent API transactions for template rendering
+    from apps.catalog.models import APITransaction
+    if store:
+        recent_transactions = list(APITransaction.objects.filter(store=store).order_by('-created_at')[:100])
+    else:
+        recent_transactions = list(APITransaction.objects.all().order_by('-created_at')[:100])
         
     return render(request, "site/control_apicontrol_dashboard.html", {
         "profile": profile if is_connected else None,
