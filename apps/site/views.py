@@ -5530,40 +5530,83 @@ def control_apicontrol_dashboard(request):
     from django.conf import settings
     from django.contrib import messages
     from urllib.parse import quote
-    from apps.catalog.models import Product, ProductVariant
+    from apps.catalog.models import Product, ProductVariant, APIIntegration
     
     store = getattr(request, "store", None)
     
-    # Fetch active provider profile
-    profile_obj = ProviderProfile.objects.filter(store=store, is_active=True).first() or ProviderProfile.objects.filter(is_active=True).first()
-    
+    # 1. Fetch active integrations from APIIntegration model
+    if store:
+        active_integrations = list(APIIntegration.objects.filter(store=store, is_active=True))
+    else:
+        active_integrations = list(APIIntegration.objects.filter(is_active=True))
+        
+    # Get selected integration ID from GET request
+    integration_id = request.GET.get("integration_id")
+    integration = None
+    if integration_id:
+        integration = next((i for i in active_integrations if str(i.id) == str(integration_id)), None)
+    if not integration and active_integrations:
+        integration = active_integrations[0]
+        
+    # Bridge APIIntegration to ProviderProfile
+    profile_obj = None
+    if integration:
+        profile_obj, _ = ProviderProfile.objects.get_or_create(
+            store=store,
+            provider_name=integration.name,
+            defaults={
+                "base_url": integration.base_url,
+                "api_token": integration.api_token,
+                "is_active": integration.is_active,
+            }
+        )
+        if profile_obj.base_url != integration.base_url or profile_obj.api_token != integration.api_token:
+            profile_obj.base_url = integration.base_url
+            profile_obj.api_token = integration.api_token
+            profile_obj.is_active = integration.is_active
+            profile_obj.save(update_fields=["base_url", "api_token", "is_active"])
+    else:
+        profile_obj = ProviderProfile.objects.filter(store=store, is_active=True).first() or ProviderProfile.objects.filter(is_active=True).first()
+
     # Check if a POST action was submitted (e.g. to sync)
     if request.method == "POST":
         action = request.POST.get("action")
+        post_integration_id = request.POST.get("integration_id")
+        if post_integration_id:
+            integration = next((i for i in active_integrations if str(i.id) == str(post_integration_id)), None)
+            if integration:
+                profile_obj, _ = ProviderProfile.objects.get_or_create(
+                    store=store,
+                    provider_name=integration.name,
+                    defaults={
+                        "base_url": integration.base_url,
+                        "api_token": integration.api_token,
+                        "is_active": integration.is_active,
+                    }
+                )
+                
         redirect_url = reverse("control_apicontrol_dashboard")
+        if integration:
+            redirect_url += f"?integration_id={integration.id}"
             
         if action == "sync":
             if not profile_obj:
-                messages.error(request, "لا يوجد ملف تعريف مزود نشط لبدء المزامنة. يرجى إنشاء ملف تعريف مزود في لوحة التحكم.")
+                messages.error(request, "لا توجد بوابة ربط نشطة لبدء المزامنة. يرجى إضافة بوابة ربط وتفعيلها من إعدادات البوابات.")
                 return redirect(redirect_url)
                 
             try:
-                if profile_obj.provider_name.lower() == "alkasr":
-                    svc = AlkasrSyncService(profile_obj)
-                    stats = svc.sync_catalog()
-                    # Map imported products to local catalog
-                    mapper = AlkasrMapperService(profile_obj)
-                    for p in ProviderProduct.objects.filter(profile=profile_obj, is_active=True):
-                        mapper.map_to_catalog(p)
-                    messages.success(request, f"تمت عملية المزامنة بنجاح! تم استيراد {stats['created']} منتج جديد، وتحديث {stats['updated']} منتج.")
-                else:
-                    messages.warning(request, "المزود المحدد غير مدعوم للمزامنة اليدوية حالياً.")
+                svc = AlkasrSyncService(profile_obj)
+                stats = svc.sync_catalog()
+                mapper = AlkasrMapperService(profile_obj)
+                for p in ProviderProduct.objects.filter(profile=profile_obj, is_active=True):
+                    mapper.map_to_catalog(p)
+                messages.success(request, f"تمت عملية المزامنة بنجاح! تم استيراد {stats['created']} منتج جديد، وتحديث {stats['updated']} منتج.")
             except Exception as e:
                 messages.error(request, f"فشلت عملية المزامنة: {str(e)}")
             return redirect(redirect_url)
             
         elif action == "refresh_cache":
-            if profile_obj and profile_obj.provider_name.lower() == "alkasr":
+            if profile_obj:
                 try:
                     AlkasrProfileService(profile_obj).fetch_balance()
                     AlkasrSyncService(profile_obj).sync_catalog()
@@ -5730,7 +5773,7 @@ def control_apicontrol_dashboard(request):
                 "price": float(v.price),
                 "cost": float(v.cost),
                 "is_active": v.product.is_active,
-                "api_provider": v.product.api_provider or "alkasr"
+                "api_provider": v.product.api_provider or "generic"
             }
             for v in linked_variants_qs.select_related('product')
         }
@@ -5761,7 +5804,7 @@ def control_apicontrol_dashboard(request):
     total_sales_usd = 0.0
     
     provider_stats = {
-        "alkasr": {"name": "Alkasr VIP", "purchases": 0.0, "sales": 0.0, "profit": 0.0, "count": 0},
+        "generic": {"name": "مزوّد عام (Generic API)", "purchases": 0.0, "sales": 0.0, "profit": 0.0, "count": 0},
         "smm": {"name": "SMM Provider", "purchases": 0.0, "sales": 0.0, "profit": 0.0, "count": 0},
         "other": {"name": "Other API", "purchases": 0.0, "sales": 0.0, "profit": 0.0, "count": 0},
     }
@@ -5778,7 +5821,7 @@ def control_apicontrol_dashboard(request):
             total_purchases_usd += item_cost
             total_sales_usd += item_sales
             
-            provider = variant.product.api_provider or "alkasr"
+            provider = variant.product.api_provider or "generic"
             if provider in provider_stats:
                 provider_stats[provider]["purchases"] += item_cost
                 provider_stats[provider]["sales"] += item_sales
@@ -5790,10 +5833,10 @@ def control_apicontrol_dashboard(request):
     total_profit_usd = total_sales_usd - total_purchases_usd
             
     # Generate webhook URL
-    webhook_url = request.build_absolute_uri('/api/orders/alkasr_webhook/')
+    webhook_url = request.build_absolute_uri('/api/orders/webhook/')
     
-    base_url = profile_obj.base_url if profile_obj else ""
-    raw_token = profile_obj.api_token if profile_obj else ""
+    base_url = integration.base_url if integration else (profile_obj.base_url if profile_obj else "")
+    raw_token = integration.api_token if integration else (profile_obj.api_token if profile_obj else "")
     
     if raw_token and len(raw_token) > 10:
         obfuscated_token = raw_token[:6] + "..." + raw_token[-6:]
@@ -5818,8 +5861,8 @@ def control_apicontrol_dashboard(request):
         "total_sales_usd": total_sales_usd,
         "total_profit_usd": total_profit_usd,
         "provider_stats": provider_stats,
-        "active_integrations": [profile_obj] if profile_obj else [],
-        "selected_integration": profile_obj,
+        "active_integrations": active_integrations,
+        "selected_integration": integration or profile_obj,
         "recent_transactions": recent_transactions,
     })
 
