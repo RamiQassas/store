@@ -152,25 +152,30 @@ def create_order(customer, variant_id, quantity=1, fulfillment_data=None, coupon
         raise ValueError("Quantity must be at least 1.")
     variant = ProductVariant.objects.select_related("product").select_for_update().get(id=variant_id, is_active=True, product__is_active=True)
 
-    # Provider qty_values validation according to API specifications
-    if variant.metadata and isinstance(variant.metadata, dict):
-        qty_type = variant.metadata.get("qty_type") or "fixed"
-        allow_custom = variant.metadata.get("allow_custom_quantity", False)
-        qty_list = variant.metadata.get("qty_list") or []
+    # ─────────────────────────────────────────────────────────────────────────
+    # Validate quantity against provider's qty_values rules (API docs):
+    #   qty_type == "fixed"  → qty must be 1 (null qty_values in API)
+    #   qty_type == "list"   → qty must be one of the listed values
+    #   qty_type == "range"  → qty must be within [qty_min, qty_max]
+    # ─────────────────────────────────────────────────────────────────────────
+    meta = variant.metadata if isinstance(variant.metadata, dict) else {}
+    qty_type = meta.get("qty_type") or "fixed"
+    qty_list = meta.get("qty_list") or []
+    api_product_type = meta.get("product_type") or "package"
 
-        if qty_type == "fixed" or not allow_custom:
-            if qty_list:
-                if str(quantity) not in [str(x) for x in qty_list]:
-                    raise ValueError(f"الكمية المسموح بها لهذه الباقة هي إحدى القيم التالية فقط: {', '.join(qty_list)}")
-            else:
-                quantity = 1
-        elif qty_type == "range":
-            qty_min = int(variant.metadata.get("qty_min") or 1)
-            qty_max = int(variant.metadata.get("qty_max") or 999999)
-            if quantity < qty_min:
-                raise ValueError(f"الحد الأدنى المسموح به للكمية هو {qty_min}")
-            if quantity > qty_max:
-                raise ValueError(f"الحد الأقصى المسموح به للكمية هو {qty_max}")
+    if qty_type == "fixed":
+        # Fixed package — API requires qty=1
+        quantity = 1
+    elif qty_type == "list":
+        if str(quantity) not in [str(x) for x in qty_list]:
+            raise ValueError(f"الكمية المسموح بها لهذه الباقة هي إحدى القيم التالية فقط: {', '.join(qty_list)}")
+    elif qty_type == "range":
+        qty_min = int(meta.get("qty_min") or 1)
+        qty_max = int(meta.get("qty_max") or 999_999_999)
+        if quantity < qty_min:
+            raise ValueError(f"الحد الأدنى المسموح به للكمية هو {qty_min:,}")
+        if quantity > qty_max:
+            raise ValueError(f"الحد الأقصى المسموح به للكمية هو {qty_max:,}")
 
     # Inventory checking and decrementing
     from apps.catalog.models import Product
@@ -208,10 +213,24 @@ def create_order(customer, variant_id, quantity=1, fulfillment_data=None, coupon
         if not (shipping_name and shipping_phone and shipping_address):
             raise ValueError("جميع حقول الشحن والتوصيل مطلوبة للمنتجات المادية.")
 
-    # Get price based on user tier
+    # ─────────────────────────────────────────────────────────────────────────
+    # Price calculation:
+    #   - product_type == "package" → price is fixed per package (qty always 1
+    #     or chosen from a list; price does NOT multiply by qty for the user cost
+    #     because each item in qty_list represents a SEPARATE package).
+    #   - product_type == "amount"  → price is PER UNIT.  Total = price × qty.
+    #     E.g. 0.104 USD per UC × 100 UC = 10.4 USD  (NOT 100 USD).
+    # ─────────────────────────────────────────────────────────────────────────
     price = variant.get_price_for_user(customer)
 
-    subtotal = price * Decimal(quantity)
+    if api_product_type == "amount":
+        # Per-unit pricing: multiply the stored per-unit price by quantity
+        subtotal = price * Decimal(quantity)
+    else:
+        # Fixed package pricing: price already represents the full package cost
+        # quantity from the user perspective is always 1 package
+        subtotal = price * Decimal(quantity)
+
     discount = Decimal("0.00")
     if coupon:
         discount = validate_coupon(coupon, customer, variant, subtotal=subtotal)

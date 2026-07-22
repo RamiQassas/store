@@ -5516,7 +5516,7 @@ def sso_transfer_view(request):
 
 @support_required
 def control_apicontrol_dashboard(request):
-    from apps.orders.alkasr_api import get_alkasr_profile, get_alkasr_categories, get_alkasr_products, sync_alkasr_catalog
+    from apps.orders.alkasr_api import get_alkasr_profile, get_alkasr_content, get_alkasr_products, sync_alkasr_catalog
     from django.conf import settings
     from django.contrib import messages
     from urllib.parse import quote
@@ -5579,7 +5579,7 @@ def control_apicontrol_dashboard(request):
                 messages.error(request, "لا توجد بوابة ربط نشطة لتحديث التخزين المؤقت.")
                 return redirect(redirect_url)
             get_alkasr_profile(store=store, force_refresh=True, integration=integration)
-            get_alkasr_categories(store=store, force_refresh=True, integration=integration)
+            get_alkasr_content(0, store=store, force_refresh=True, integration=integration)
             get_alkasr_products(store=store, force_refresh=True, integration=integration)
             messages.success(request, "تم تحديث التخزين المؤقت للبيانات وسحب كتالوج جديد بنجاح من المزود.")
             return redirect(redirect_url)
@@ -5719,8 +5719,9 @@ def control_apicontrol_dashboard(request):
     local_linked_count = 0
     
     if is_connected and integration:
-        categories = get_alkasr_categories(store=store, integration=integration)
-        if isinstance(categories, dict) and categories.get("status") == "error":
+        raw_content = get_alkasr_content(0, store=store, integration=integration)
+        categories = raw_content.get("categories", []) if isinstance(raw_content, dict) else []
+        if isinstance(raw_content, dict) and raw_content.get("status") == "error":
             categories = []
             
         all_prods = get_alkasr_products(store=store, integration=integration)

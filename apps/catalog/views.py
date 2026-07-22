@@ -27,7 +27,9 @@ class ProductViewSet(viewsets.ModelViewSet):
     ordering_fields = ("sort_order", "name", "created_at")
 
     def get_queryset(self):
-        queryset = Product.objects.select_related("category").prefetch_related("variants", "form_fields")
+        queryset = Product.objects.select_related("category", "category__parent").prefetch_related(
+            "variants", "variants__tier_prices"
+        )
         if not self.request.user.is_staff:
             queryset = queryset.filter(is_active=True, variants__is_active=True).distinct()
         return queryset
