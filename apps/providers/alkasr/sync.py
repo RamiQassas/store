@@ -55,35 +55,48 @@ class AlkasrSyncService:
                     remote_id = str(pid)
                     name = pdata.get("name", f"Product {pid}")
                     desc = pdata.get("desc", "")
-                    cat_id = str(pdata.get("category", ""))
+                    
+                    cat_name = pdata.get("category_name") or pdata.get("category") or ""
+                    cat_id = str(pdata.get("parent_id") or cat_name or "0")
                     cost = Decimal(str(pdata.get("price", "0.00")))
+                    is_available = pdata.get("available", True)
                     
                     category_obj = categories_dict.get(cat_id)
-                    if not category_obj and cat_id:
-                        # Fallback category creation if not found in root_content
+                    if not category_obj and (cat_name or cat_id):
+                        c_name = cat_name if cat_name else f"Category {cat_id}"
                         category_obj, _ = ProviderCategory.objects.get_or_create(
                             profile=self.profile, 
                             remote_id=cat_id,
-                            defaults={"name": f"Category {cat_id}"}
+                            defaults={"name": c_name}
                         )
+                        if category_obj.name != c_name and cat_name:
+                            category_obj.name = cat_name
+                            category_obj.save(update_fields=["name"])
                         categories_dict[cat_id] = category_obj
 
-                    # Determine Product Type (Phase 7)
+                    # Determine Product Type (Phase 7 & official docs)
+                    p_type_from_api = pdata.get("product_type")
                     qty_values = pdata.get("qty_values")
-                    if qty_values is None:
+
+                    if p_type_from_api in ("amount", "package", "fixed_quantities"):
+                        product_type = p_type_from_api
+                    elif qty_values is None:
                         product_type = "package"
-                        qty_min, qty_max, qty_list = None, None, []
                     elif isinstance(qty_values, dict):
                         product_type = "amount"
+                    elif isinstance(qty_values, list):
+                        product_type = "fixed_quantities"
+                    else:
+                        product_type = "package"
+
+                    if isinstance(qty_values, dict):
                         qty_min = qty_values.get("min")
                         qty_max = qty_values.get("max")
                         qty_list = []
                     elif isinstance(qty_values, list):
-                        product_type = "fixed_quantities"
                         qty_list = qty_values
                         qty_min, qty_max = None, None
                     else:
-                        product_type = "package"
                         qty_min, qty_max, qty_list = None, None, []
 
                     # Check if exists
@@ -102,7 +115,7 @@ class AlkasrSyncService:
                             qty_min=qty_min,
                             qty_max=qty_max,
                             qty_list=qty_list,
-                            is_active=True
+                            is_active=bool(is_available)
                         )
                         
                         ProviderPrice.objects.create(
