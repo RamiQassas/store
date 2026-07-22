@@ -40,6 +40,11 @@ class AlkasrClient:
         data["action"] = action
 
         base = self.base_url.rstrip("/")
+        if "webhook" in base.lower() or "raqamiyatapp.com/api/orders" in base.lower():
+            raise NetworkError(
+                "رابط المزود غير صحيح: لقد قمت بإدخال رابط الـ Webhook الخاص بمتجرك بدلاً من رابط API المزود الخارجي (مثال: https://api.alkasr-vip.com). يرجى تعديل 'رابط المزود' من صفحة إعدادات البوابات."
+            )
+
         if not base.startswith("http"):
             base = "https://" + base
 
