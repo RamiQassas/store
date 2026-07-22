@@ -7,7 +7,7 @@ def preferred_currency(request):
     Returns:
         Currency object and a list of all active currencies.
     """
-    all_currencies = Currency.objects.filter(is_active=True).order_by("display_order", "code")
+    all_currencies = list(Currency.objects.filter(is_active=True).order_by("display_order", "code"))
     
     pref_currency = None
     
@@ -19,17 +19,17 @@ def preferred_currency(request):
     if not pref_currency:
         session_currency_id = request.session.get("preferred_currency_id")
         if session_currency_id:
-            pref_currency = Currency.objects.filter(id=session_currency_id, is_active=True).first()
+            pref_currency = next((c for c in all_currencies if str(c.id) == str(session_currency_id)), None)
     
     # 3. Fallback to default currency
     if not pref_currency:
-        pref_currency = Currency.objects.filter(is_default=True, is_active=True).first()
+        pref_currency = next((c for c in all_currencies if getattr(c, 'is_default', False)), None)
     
     # 4. Absolute fallback to first active currency
-    if not pref_currency:
-        pref_currency = all_currencies.first()
+    if not pref_currency and all_currencies:
+        pref_currency = all_currencies[0]
 
-    system_currency = Currency.objects.filter(code="USD").first() or all_currencies.first()
+    system_currency = next((c for c in all_currencies if c.code == "USD"), None) or (all_currencies[0] if all_currencies else None)
 
     # Task 9: KYC handling is now managed in templates/views with a message instead of hiding
     payment_methods = PaymentMethod.objects.filter(is_active=True).order_by('display_order')

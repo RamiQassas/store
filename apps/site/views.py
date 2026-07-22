@@ -1374,33 +1374,76 @@ def v3_change_email_view(request):
 
 def get_category_with_descendants_ids(category_id):
     """
-    Returns a set containing category_id and all its descendant category IDs (children, sub-children).
+    Returns a set containing category_id and all its descendant category IDs
+    using a single fast DB query and in-memory traversal.
     """
     if not category_id:
         return set()
-    category_ids = {str(category_id)}
-    current_ids = [category_id]
-    while current_ids:
-        children = list(Category.objects.filter(parent_id__in=current_ids, is_active=True).values_list('id', flat=True))
-        if not children:
-            break
-        category_ids.update({str(c) for c in children})
-        current_ids = children
-    return category_ids
+    
+    all_pairs = Category.objects.filter(is_active=True).values_list("id", "parent_id")
+    children_map = {}
+    for cid, pid in all_pairs:
+        if pid:
+            children_map.setdefault(pid, []).append(cid)
+            
+    result = {category_id, str(category_id)}
+    queue = [category_id]
+    while queue:
+        curr = queue.pop(0)
+        for child_id in children_map.get(curr, []):
+            if child_id not in result:
+                result.add(child_id)
+                result.add(str(child_id))
+                queue.append(child_id)
+    return result
+
+
+def annotate_category_counts(categories):
+    """
+    Computes total product counts for a list of categories (including subcategories)
+    using only 1 single aggregation query for the entire category tree.
+    """
+    if not categories:
+        return categories
+
+    direct_counts = dict(
+        Product.objects.filter(is_active=True)
+        .values("category_id")
+        .annotate(c=Count("id"))
+        .values_list("category_id", "c")
+    )
+
+    children_map = {}
+    for cat in categories:
+        if cat.parent_id:
+            children_map.setdefault(cat.parent_id, []).append(cat.id)
+
+    def get_total_count(cat_id, visited=None):
+        if visited is None:
+            visited = set()
+        if cat_id in visited:
+            return 0
+        visited.add(cat_id)
+
+        count = direct_counts.get(cat_id, 0)
+        for child_id in children_map.get(cat_id, []):
+            count += get_total_count(child_id, visited)
+        return count
+
+    for cat in categories:
+        cat.product_count = get_total_count(cat.id)
+
+    return categories
 
 
 def home(request):
-    # Multi-Tenant: TenantManager automatically filters by request.store.
     store = getattr(request, 'store', None)
 
-    # Categories with total product count (including subcategories)
+    # Categories with total product count (including subcategories) — 2 SQL queries total!
     all_cats = list(Category.objects.filter(is_active=True).order_by("sort_order", "name"))
-    active_categories = []
-    for cat in all_cats:
-        descendant_ids = get_category_with_descendants_ids(cat.id)
-        cat.product_count = Product.objects.filter(category_id__in=descendant_ids, is_active=True).count()
-        if cat.product_count > 0 or cat.parent_id is None:
-            active_categories.append(cat)
+    annotate_category_counts(all_cats)
+
+    active_categories = [cat for cat in all_cats if cat.product_count > 0 or cat.parent_id is None]
 
     featured_products = Product.objects.filter(
         is_active=True, is_featured=True
@@ -1418,7 +1461,6 @@ def home(request):
     }
 
     if not store:
-        # Main Raqamiyat platform: show platform stats and testimonials
         from apps.common.models import PlatformStatistic, Testimonial
 
         base_stats = {
@@ -1462,17 +1504,16 @@ def home(request):
 
     return render(request, "site/home.html", ctx)
 
+
 def catalog(request):
-    view_type = request.GET.get("view", "products")  # products or categories
+    view_type = request.GET.get("view", "products")
     cat_id = request.GET.get("category")
     q = request.GET.get("q", "").strip()
     sort = request.GET.get("sort", "newest")
-    cols = request.GET.get("cols", "2")  # Default 2 columns for mobile
+    cols = request.GET.get("cols", "2")
 
     all_cats = list(Category.objects.filter(is_active=True).order_by("sort_order", "name"))
-    for cat in all_cats:
-        descendant_ids = get_category_with_descendants_ids(cat.id)
-        cat.product_count = Product.objects.filter(category_id__in=descendant_ids, is_active=True).count()
+    annotate_category_counts(all_cats)
 
     products = Product.objects.filter(is_active=True).select_related("category").prefetch_related("variants")
 
@@ -1482,17 +1523,14 @@ def catalog(request):
     if cat_id:
         descendant_ids = get_category_with_descendants_ids(cat_id)
         products = products.filter(category_id__in=descendant_ids)
-        selected_category = Category.objects.filter(id=cat_id, is_active=True).first()
+        selected_category = next((c for c in all_cats if str(c.id) == str(cat_id)), None)
         if selected_category:
-            subcategories = list(Category.objects.filter(parent=selected_category, is_active=True).order_by("sort_order", "name"))
-            for sub in subcategories:
-                sub_ids = get_category_with_descendants_ids(sub.id)
-                sub.product_count = Product.objects.filter(category_id__in=sub_ids, is_active=True).count()
-        view_type = "products"  # Force product view if category selected
+            subcategories = [c for c in all_cats if c.parent_id == selected_category.id]
+        view_type = "products"
 
     if q:
         products = products.filter(Q(name__icontains=q) | Q(description__icontains=q))
-        view_type = "products"  # Force product view if searching
+        view_type = "products"
 
     if sort == "price_low":
         products = products.order_by("variants__price")
@@ -1503,18 +1541,10 @@ def catalog(request):
     else:
         products = products.order_by("sort_order", "name")
 
-    # Calculate total products count for the "All" category tab
-    total_products_qs = Product.objects.filter(is_active=True)
-    if q:
-        total_products_qs = total_products_qs.filter(Q(name__icontains=q) | Q(description__icontains=q))
-    total_products_count = total_products_qs.distinct().count()
+    total_products_count = products.distinct().count()
 
-    # Product Suggestion Form
-    suggestion_form = ProductSuggestionForm()
-
-    # Pagination for catalog
     from django.core.paginator import Paginator
-    paginator = Paginator(products.distinct(), 24) # 24 products per page
+    paginator = Paginator(products.distinct(), 24)
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
 
@@ -1529,7 +1559,7 @@ def catalog(request):
         "sort": sort,
         "view_type": view_type,
         "cols": cols,
-        "suggestion_form": suggestion_form,
+        "suggestion_form": ProductSuggestionForm(),
     }
     return render(request, "site/catalog.html", ctx)
 
