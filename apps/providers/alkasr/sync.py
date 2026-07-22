@@ -89,9 +89,18 @@ class AlkasrSyncService:
                     else:
                         product_type = "package"
 
+                    def _clean_int(val):
+                        if val is None or val == "":
+                            return None
+                        try:
+                            v = int(float(str(val)))
+                            return max(-2147483648, min(v, 9223372036854775807))
+                        except (ValueError, TypeError):
+                            return None
+
                     if isinstance(qty_values, dict):
-                        qty_min = qty_values.get("min")
-                        qty_max = qty_values.get("max")
+                        qty_min = _clean_int(qty_values.get("min"))
+                        qty_max = _clean_int(qty_values.get("max"))
                         qty_list = []
                     elif isinstance(qty_values, list):
                         qty_list = qty_values

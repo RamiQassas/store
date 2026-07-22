@@ -53,7 +53,7 @@ urlpatterns = [
     path("control/saas/audit-logs/", views_saas.saas_audit_logs, name="control_saas_audit_logs"),
     path("control/saas/settings/", views_saas.saas_settings, name="control_saas_settings"),
     path("catalog/", views.catalog, name="catalog"),
-    path("catalog/<uuid:pk>/", views.product_detail, name="product_detail"),
+    path("catalog/<str:pk>/", views.product_detail, name="product_detail"),
     
     # API Endpoints
     path("api/deposits/<uuid:pk>/approve/", api_views.api_deposit_approve, name="api_deposit_approve"),

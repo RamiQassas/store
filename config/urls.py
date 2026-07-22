@@ -37,7 +37,13 @@ def health(request):
     return Response({"status": "ok", "service": "digital-marketplace"})
 
 
+from django.http import HttpResponse
+
+def robots_txt(request):
+    return HttpResponse("User-agent: *\nDisallow: /control/\n", content_type="text/plain")
+
 urlpatterns = [
+    path("robots.txt", robots_txt),
     path("", include("apps.site.urls")),
     path("support/", include("apps.support.urls")),
     path("admin/", admin.site.urls),

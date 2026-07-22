@@ -1757,7 +1757,18 @@ def v3_security_triggers_view(request):
     return render(request, "site/v3/v3_security_triggers.html", {"sp_verified": sp_verified})
 
 def product_detail(request, pk):
-    product = get_object_or_404(Product.objects.prefetch_related('variants'), pk=pk, is_active=True)
+    from django.http import Http404
+    product = None
+    if str(pk).isdigit():
+        product = Product.objects.filter(pk=int(pk), is_active=True).prefetch_related('variants').first()
+    if not product:
+        product = Product.objects.filter(pk=pk, is_active=True).prefetch_related('variants').first()
+    if not product:
+        variant = ProductVariant.objects.filter(api_product_id=str(pk)).select_related('product').first() or ProductVariant.objects.filter(pk=pk).select_related('product').first()
+        if variant and variant.product and variant.product.is_active:
+            product = variant.product
+    if not product:
+        raise Http404("المنتج غير موجود.")
     if request.method == "POST":
         if not request.user.is_authenticated: return redirect("site_login")
 

@@ -73,8 +73,8 @@ class ProviderProduct(TimeStampedModel):
     local_seo_keywords = models.CharField(max_length=255, null=True, blank=True)
 
     # Quantity configurations
-    qty_min = models.IntegerField(null=True, blank=True)
-    qty_max = models.IntegerField(null=True, blank=True)
+    qty_min = models.BigIntegerField(null=True, blank=True)
+    qty_max = models.BigIntegerField(null=True, blank=True)
     qty_list = models.JSONField(default=list, blank=True)
 
     class Meta:
