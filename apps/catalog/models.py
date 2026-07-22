@@ -174,6 +174,7 @@ class ProductVariant(TimeStampedModel):
     recharge_amount = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal("0.00"), verbose_name="قيمة كود الشحن التلقائي")
     recharge_currency = models.ForeignKey("common.Currency", on_delete=models.SET_NULL, null=True, blank=True, verbose_name="عملة كود الشحن التلقائي")
     sort_order = models.PositiveIntegerField(default=0, verbose_name="ترتيب العرض")
+    metadata = models.JSONField(default=dict, blank=True, verbose_name="بيانات إضافية")
 
     class Meta:
         verbose_name = "باقة منتج"

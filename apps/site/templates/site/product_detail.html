@@ -258,8 +258,14 @@
             <div class="stack gap-4">
                 <span class="section-label">اختر الباقة المناسبة</span>
                 {% for v in variants %}
+                {% variant_price v as v_price %}
                 <div class="variant-card {% if v.is_temporarily_disabled or product.is_out_of_stock %}opacity-50 grayscale cursor-not-allowed{% endif %} {% if v.is_sale %}on-sale{% endif %}" 
-                     {% if not v.is_temporarily_disabled and not product.is_out_of_stock %}onclick="selectVariant('{{ v.id }}', this)"{% endif %}>
+                     {% if not v.is_temporarily_disabled and not product.is_out_of_stock %}onclick="selectVariant('{{ v.id }}', this)"{% endif %}
+                     data-price="{{ v_price }}"
+                     data-qty-type="{% if v.metadata.qty_values %}{% if v.metadata.qty_values.min %}range{% else %}list{% endif %}{% else %}none{% endif %}"
+                     data-qty-min="{{ v.metadata.qty_values.min|default:'' }}"
+                     data-qty-max="{{ v.metadata.qty_values.max|default:'' }}"
+                     data-qty-list='{% if v.metadata.qty_values and not v.metadata.qty_values.min %}{% if v.metadata.qty_values|is_list %}[{% for val in v.metadata.qty_values %}"{{ val }}"{% if not forloop.last %},{% endif %}{% endfor %}]{% else %}{{ v.metadata.qty_values|safe }}{% endif %}{% else %}[]{% endif %}'>
                     <div class="flex items-center gap-5">
                         <div class="radio-circle"></div>
                         <div>
@@ -279,10 +285,20 @@
                             </div>
                         </div>
                     </div>
-                    {% variant_price v as v_price %}
                     <div class="price-tag">{% currency_format v_price %}</div>
                 </div>
                 {% endfor %}
+            </div>
+
+            <!-- Quantity Selection Container -->
+            <div id="quantity-container" class="panel p-8 mt-10 hidden stack gap-6 bg-cyan/[0.03] border-cyan/10 rounded-[2.5rem]">
+                <div>
+                    <h3 class="font-black text-xl text-white">تحديد الكمية المطلوبة</h3>
+                    <p id="quantity-help-text" class="text-xs text-slate-500 mt-1">يرجى كتابة أو تحديد الكمية المطلوبة لهذه الخدمة.</p>
+                </div>
+                <div id="quantity-input-wrapper">
+                    <!-- Dynamic quantity input will be inserted here -->
+                </div>
             </div>
 
             <!-- Physical Product Shipping Fields -->
@@ -520,6 +536,77 @@ function selectVariant(id, el) {
     // Reset coupon if variant changes
     document.getElementById('price-breakdown').classList.add('hidden');
     document.getElementById('coupon-feedback').classList.add('hidden');
+
+    // Parse quantity specifications
+    const qtyType = el.getAttribute('data-qty-type') || 'none';
+    const qtyMin = parseInt(el.getAttribute('data-qty-min') || 1);
+    const qtyMax = parseInt(el.getAttribute('data-qty-max') || 1);
+    const qtyListStr = el.getAttribute('data-qty-list') || '[]';
+    
+    const container = document.getElementById('quantity-container');
+    const wrapper = document.getElementById('quantity-input-wrapper');
+    const helpText = document.getElementById('quantity-help-text');
+    
+    let inputHtml = '';
+    
+    if (qtyType === 'range') {
+        container.classList.remove('hidden');
+        helpText.innerText = `يرجى إدخال الكمية المطلوبة (الحد الأدنى: ${qtyMin}، الحد الأقصى: ${qtyMax})`;
+        inputHtml = `<input type="number" name="quantity" id="quantity-input" 
+                            min="${qtyMin}" max="${qtyMax}" value="${qtyMin}" 
+                            oninput="updateQuantityPrice()"
+                            class="w-full bg-slate-900 border border-white/5 rounded-2xl p-4 text-white focus:border-cyan transition">`;
+    } else if (qtyType === 'list') {
+        container.classList.remove('hidden');
+        helpText.innerText = "يرجى اختيار إحدى الكميات المتاحة من القائمة.";
+        let listOptions = [];
+        try {
+            listOptions = JSON.parse(qtyListStr);
+        } catch(e) {
+            console.error("Error parsing qty list", e);
+        }
+        
+        let selectHtml = `<select name="quantity" id="quantity-input" onchange="updateQuantityPrice()"
+                                  class="w-full bg-slate-900 border border-white/5 rounded-2xl p-4 text-white focus:border-cyan transition">`;
+        if (listOptions && listOptions.length > 0) {
+            listOptions.forEach(val => {
+                selectHtml += `<option value="${val}">${val}</option>`;
+            });
+        } else {
+            selectHtml += `<option value="1">1</option>`;
+        }
+        selectHtml += `</select>`;
+        inputHtml = selectHtml;
+    } else {
+        container.classList.add('hidden');
+        inputHtml = `<input type="hidden" name="quantity" id="quantity-input" value="1">`;
+    }
+    
+    wrapper.innerHTML = inputHtml;
+    updateQuantityPrice();
+}
+
+function updateQuantityPrice() {
+    const variantId = document.getElementById('selected-variant-id').value;
+    if (!variantId) return;
+    
+    const card = document.querySelector(`.variant-card.selected`);
+    if (!card) return;
+    
+    const basePrice = parseFloat(card.getAttribute('data-price') || 0);
+    const qtyInput = document.getElementById('quantity-input');
+    const qty = qtyInput ? parseInt(qtyInput.value || 1) : 1;
+    
+    const total = basePrice * qty;
+    
+    // Reset coupon breakdown display since price has changed and coupon needs validation again
+    document.getElementById('price-breakdown').classList.add('hidden');
+    document.getElementById('coupon-feedback').classList.add('hidden');
+
+    const submitBtn = document.getElementById('submit-btn');
+    if (submitBtn && !submitBtn.disabled) {
+        submitBtn.innerHTML = `<i class="fas fa-shopping-cart ml-2"></i> شراء الآن بسعر ${total.toFixed(2)} USD`;
+    }
 }
 
 function applyCoupon() {
@@ -527,6 +614,8 @@ function applyCoupon() {
     const variantId = document.getElementById('selected-variant-id').value;
     const feedback = document.getElementById('coupon-feedback');
     const breakdown = document.getElementById('price-breakdown');
+    const qtyInput = document.getElementById('quantity-input');
+    const qty = qtyInput ? parseInt(qtyInput.value || 1) : 1;
     
     if (!code) {
         feedback.innerText = "يرجى إدخال كود الكوبون.";
@@ -540,7 +629,7 @@ function applyCoupon() {
         return;
     }
 
-    fetch(`/ajax/validate-coupon/?code=${code}&variant_id=${variantId}`)
+    fetch(`/ajax/validate-coupon/?code=${code}&variant_id=${variantId}&quantity=${qty}`)
         .then(response => response.json())
         .then(data => {
             feedback.classList.remove('hidden');

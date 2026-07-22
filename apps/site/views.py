@@ -277,7 +277,7 @@ def complete_pending_purchase(request, user):
             order = create_order(
                 customer=user,
                 variant_id=variant_id,
-                quantity=1,
+                quantity=pending_purchase.get("quantity", 1),
                 coupon=coupon,
                 metadata=metadata,
                 shipping_name=pending_purchase.get("shipping_name"),
@@ -1677,8 +1677,17 @@ def product_detail(request, pk):
             if key.startswith("custom_"):
                 metadata[key.replace("custom_", "")] = request.POST.get(key)
         
+        qty_val = request.POST.get("quantity", "1")
+        try:
+            quantity = int(qty_val)
+            if quantity < 1:
+                quantity = 1
+        except ValueError:
+            quantity = 1
+
         coupon_code = request.POST.get("coupon_code")
-        price = variant.get_price_for_user(request.user)
+        base_price = variant.get_price_for_user(request.user)
+        price = base_price * quantity
         
         # Check Coupon for balance check
         discount_amount = Decimal("0.00")
@@ -1730,6 +1739,7 @@ def product_detail(request, pk):
                 "shipping_name": shipping_name,
                 "shipping_phone": shipping_phone,
                 "shipping_address": shipping_address,
+                "quantity": quantity,
             }
             last_verified = request.session.get("v3_action_verified_at")
             if not last_verified or (timezone.now() - timezone.datetime.fromisoformat(last_verified)).total_seconds() > 300:
@@ -1742,7 +1752,7 @@ def product_detail(request, pk):
             order = create_order(
                 customer=request.user,
                 variant_id=variant.id,
-                quantity=1,
+                quantity=quantity,
                 coupon=coupon,
                 metadata=metadata,
                 shipping_name=shipping_name,
@@ -1777,9 +1787,17 @@ def ajax_validate_coupon(request):
         from apps.orders.services import validate_coupon
         variant_id = request.GET.get("variant_id")
         code = request.GET.get("code", "").strip()
+        qty_val = request.GET.get("quantity", "1")
         
         if not variant_id or not code:
             return JsonResponse({"valid": False, "error": "بيانات ناقصة"})
+            
+        try:
+            quantity = int(qty_val)
+            if quantity < 1:
+                quantity = 1
+        except ValueError:
+            quantity = 1
             
         variant = ProductVariant.objects.select_related("product").get(id=variant_id)
         coupon = Coupon.objects.filter(code__iexact=code).first()
@@ -1787,7 +1805,8 @@ def ajax_validate_coupon(request):
         if not coupon:
             return JsonResponse({"valid": False, "error": "الكوبون غير صحيح"})
             
-        price = variant.get_price_for_user(request.user)
+        base_price = variant.get_price_for_user(request.user)
+        price = base_price * quantity
         try:
             discount = validate_coupon(coupon, request.user, variant, subtotal=price)
             new_total = price - discount

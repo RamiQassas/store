@@ -631,6 +631,15 @@ def sync_alkasr_catalog(store, selected_category_ids=None, markup_percent=0.0, i
     if not isinstance(products, list):
         return {"status": "error", "message": "Invalid response from Alkasr API"}
         
+    # Fetch Alkasr categories to map hierarchical organization (Level 0 categories like "قسم الألعاب")
+    alkasr_cats_list = get_alkasr_categories(store=store, force_refresh=True, integration=integration)
+    alkasr_cats = {}
+    if isinstance(alkasr_cats_list, list):
+        for c in alkasr_cats_list:
+            cid = c.get("id")
+            if cid is not None:
+                alkasr_cats[int(cid)] = c
+
     created_count = 0
     updated_count = 0
     
@@ -701,12 +710,41 @@ def sync_alkasr_catalog(store, selected_category_ids=None, markup_percent=0.0, i
                 if parent_id not in selected_category_ids and str(parent_id) not in selected_category_ids:
                     continue
                     
-            cat_name = item.get("category_name") or "غير مصنف"
             raw_item_name = item.get("name") or ""
             
-            # Parse grouped product name and variant/package name
-            prod_name, var_name = parse_item_name(raw_item_name, cat_name)
+            # Resolve category and product hierarchy using category_map
+            display_cat_name = "غير مصنف"
+            prod_name = ""
+            var_name = ""
             
+            p_id_int = int(parent_id) if parent_id is not None else 0
+            if p_id_int and p_id_int in alkasr_cats:
+                curr_cat = alkasr_cats[p_id_int]
+                p_cat_id = curr_cat.get("parent_id")
+                p_cat_id_int = int(p_cat_id) if p_cat_id is not None else 0
+                
+                if p_cat_id_int and p_cat_id_int in alkasr_cats:
+                    parent_cat = alkasr_cats[p_cat_id_int]
+                    display_cat_name = parent_cat.get("name") or "غير مصنف"
+                    prod_name = curr_cat.get("name") or ""
+                    var_name = raw_item_name
+                else:
+                    display_cat_name = curr_cat.get("name") or "غير مصنف"
+                    prod_name, var_name = parse_item_name(raw_item_name, display_cat_name)
+            else:
+                cat_name = item.get("category_name") or "غير مصنف"
+                prod_name, var_name = parse_item_name(raw_item_name, cat_name)
+                # Fallback display category name
+                if prod_name.strip().lower() == cat_name.strip().lower() or cat_name.strip().lower() in [kw.lower() for kw in ["شدات ببجي", "جواهر فري فاير", "كوينز", "شحن شدات"]]:
+                    display_cat_name = "شحن ألعاب وبطاقات"
+                else:
+                    display_cat_name = cat_name
+                    
+            if not prod_name:
+                prod_name = raw_item_name
+            if not var_name:
+                var_name = "الافتراضية"
+                
             alkasr_price = item.get("price") or 0.0
             is_available = item.get("available", True)
             params_list = item.get("params") or []
@@ -739,13 +777,6 @@ def sync_alkasr_catalog(store, selected_category_ids=None, markup_percent=0.0, i
             markup_factor = Decimal(1) + (Decimal(str(markup_percent)) / Decimal(100))
             retail_price = cost_val * markup_factor
             
-            # Get or create category from memory cache
-            # Determine display category name: if product name is same as category name, use general category
-            if prod_name.strip().lower() == cat_name.strip().lower() or cat_name.strip().lower() in [kw.lower() for kw in ["شدات ببجي", "جواهر فري فاير", "كوينز", "شحن شدات"]]:
-                display_cat_name = "شحن ألعاب وبطاقات"
-            else:
-                display_cat_name = cat_name
-
             category = existing_categories.get(display_cat_name)
             if not category:
                 category = Category.objects.create(
@@ -755,8 +786,10 @@ def sync_alkasr_catalog(store, selected_category_ids=None, markup_percent=0.0, i
                 )
                 existing_categories[display_cat_name] = category
             
-            # Align category sort order with response encounter order
-            cat_sort_order = category_order.index(cat_name)
+            # Align category sort order
+            if display_cat_name not in category_order:
+                category_order.append(display_cat_name)
+            cat_sort_order = category_order.index(display_cat_name)
             if category.sort_order != cat_sort_order:
                 category.sort_order = cat_sort_order
                 category.save(update_fields=['sort_order'])
@@ -806,12 +839,19 @@ def sync_alkasr_catalog(store, selected_category_ids=None, markup_percent=0.0, i
             
             # Check if we already have a variant for this api_prod_id
             variant = existing_variants.get(api_prod_id)
+            qty_values = item.get("qty_values")
+            variant_meta = {
+                "qty_values": qty_values,
+                "product_type": item.get("product_type"),
+            }
+            
             if variant:
                 variant.product = product
                 variant.name = var_name
                 variant.cost = cost_val
                 variant.price = retail_price
                 variant.is_active = is_available
+                variant.metadata = variant_meta
                 variant.save()
                 
                 updated_count += 1
@@ -833,7 +873,8 @@ def sync_alkasr_catalog(store, selected_category_ids=None, markup_percent=0.0, i
                     cost=cost_val,
                     api_product_id=api_prod_id,
                     is_active=is_available,
-                    delivery_type="manual"
+                    delivery_type="manual",
+                    metadata=variant_meta
                 )
                 existing_variants[api_prod_id] = variant
                 created_count += 1
