@@ -5456,17 +5456,39 @@ def control_apicontrol_dashboard(request):
                 messages.error(request, "لا توجد بوابة ربط نشطة لمسح المنتجات.")
                 return redirect(redirect_url)
             from apps.catalog.models import Product
+            from apps.orders.models import OrderItem
             from django.core.cache import cache
             
-            # Delete only products imported by this specific provider integration
-            deleted_count, _ = Product.objects.filter(store=store, is_api_product=True, api_provider=integration.provider).delete()
+            products_qs = Product.objects.filter(store=store, is_api_product=True, api_provider=integration.provider)
+            
+            deleted_count = 0
+            deactivated_count = 0
+            
+            for prod in list(products_qs):
+                if OrderItem.objects.filter(variant__product=prod).exists():
+                    prod.is_active = False
+                    prod.is_api_product = False
+                    prod.save()
+                    deactivated_count += 1
+                else:
+                    try:
+                        prod.delete()
+                        deleted_count += 1
+                    except Exception:
+                        prod.is_active = False
+                        prod.is_api_product = False
+                        prod.save()
+                        deactivated_count += 1
             
             store_suffix = integration.id if integration else 'global'
             cache.delete(f"alkasr_products_{store_suffix}")
             cache.delete(f"alkasr_categories_{store_suffix}")
             cache.delete(f"alkasr_profile_{store_suffix}")
             
-            messages.success(request, f"تم مسح جميع المنتجات المستوردة من المزود بنجاح (عدد المنتجات المحذوفة: {deleted_count}) وتطهير التخزين المؤقت.")
+            msg = f"تم تنظيف كتالوج المزود: تم حذف {deleted_count} منتج"
+            if deactivated_count > 0:
+                msg += f"، وأرشفة وتعطيل {deactivated_count} منتج لحماية وحفظ سجلات الطلبات المشتراة سابقاً."
+            messages.success(request, msg)
             return redirect(redirect_url)
             
         elif action == "toggle_active":
