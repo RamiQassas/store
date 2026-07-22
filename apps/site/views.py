@@ -1383,15 +1383,24 @@ def get_category_with_descendants_ids(category_id):
     all_pairs = Category.objects.filter(is_active=True).values_list("id", "parent_id")
     children_map = {}
     for cid, pid in all_pairs:
-        if pid:
+        if pid is not None:
+            children_map.setdefault(str(pid), []).append(cid)
             children_map.setdefault(pid, []).append(cid)
             
-    result = {category_id, str(category_id)}
+    result = set()
     queue = [category_id]
     while queue:
         curr = queue.pop(0)
-        for child_id in children_map.get(curr, []):
-            if child_id not in result:
+        result.add(curr)
+        result.add(str(curr))
+        try:
+            result.add(int(curr))
+        except (ValueError, TypeError):
+            pass
+            
+        curr_key = str(curr)
+        for child_id in children_map.get(curr_key, []):
+            if child_id not in result and str(child_id) not in result:
                 result.add(child_id)
                 result.add(str(child_id))
                 queue.append(child_id)
@@ -5516,84 +5525,58 @@ def sso_transfer_view(request):
 
 @support_required
 def control_apicontrol_dashboard(request):
-    from apps.orders.alkasr_api import get_alkasr_profile, get_alkasr_content, get_alkasr_products, sync_alkasr_catalog
+    from apps.providers.models import ProviderProfile, ProviderProduct, ProviderCategory
+    from apps.providers.alkasr import AlkasrSyncService, AlkasrProfileService, AlkasrProductService, AlkasrMapperService
     from django.conf import settings
     from django.contrib import messages
     from urllib.parse import quote
-    from apps.catalog.models import Product, ProductVariant, APIIntegration, APITransaction
+    from apps.catalog.models import Product, ProductVariant
     
     store = getattr(request, "store", None)
     
-    # Fetch all active integrations for this store
-    active_integrations = APIIntegration.objects.filter(store=store, is_active=True)
+    # Fetch active provider profile
+    profile_obj = ProviderProfile.objects.filter(store=store, is_active=True).first() or ProviderProfile.objects.filter(is_active=True).first()
     
-    # Get selected integration ID
-    integration_id = request.GET.get("integration_id")
-    integration = None
-    if integration_id:
-        integration = active_integrations.filter(id=integration_id).first()
-    if not integration:
-        integration = active_integrations.first()
-        
     # Check if a POST action was submitted (e.g. to sync)
     if request.method == "POST":
         action = request.POST.get("action")
-        
-        # Override active integration if passed in POST form
-        post_integration_id = request.POST.get("integration_id")
-        if post_integration_id:
-            integration = active_integrations.filter(id=post_integration_id).first()
-            
         redirect_url = reverse("control_apicontrol_dashboard")
-        if integration:
-            redirect_url += f"?integration_id={integration.id}"
             
         if action == "sync":
-            if not integration:
-                messages.error(request, "لا توجد بوابة ربط نشطة لبدء المزامنة.")
+            if not profile_obj:
+                messages.error(request, "لا يوجد ملف تعريف مزود نشط لبدء المزامنة. يرجى إنشاء ملف تعريف مزود في لوحة التحكم.")
                 return redirect(redirect_url)
                 
-            category_ids = request.POST.getlist("categories")
             try:
-                category_ids = [int(cid) for cid in category_ids if cid.isdigit()]
-            except ValueError:
-                category_ids = None
-                
-            markup_val = request.POST.get("markup_percent", "0.0")
-            try:
-                markup_percent = float(markup_val)
-            except ValueError:
-                markup_percent = 0.0
-                
-            # Perform sync
-            res = sync_alkasr_catalog(store, selected_category_ids=category_ids, markup_percent=markup_percent, integration=integration)
-            if res and res.get("status") == "success":
-                messages.success(request, f"تمت عملية المزامنة بنجاح! تم استيراد {res['created']} منتج جديد، وتحديث {res['updated']} منتج.")
-            else:
-                error_msg = res.get('message') if res else "Unknown error"
-                messages.error(request, f"فشلت عملية المزامنة: {error_msg}")
+                if profile_obj.provider_name.lower() == "alkasr":
+                    svc = AlkasrSyncService(profile_obj)
+                    stats = svc.sync_catalog()
+                    # Map imported products to local catalog
+                    mapper = AlkasrMapperService(profile_obj)
+                    for p in ProviderProduct.objects.filter(profile=profile_obj, is_active=True):
+                        mapper.map_to_catalog(p)
+                    messages.success(request, f"تمت عملية المزامنة بنجاح! تم استيراد {stats['created']} منتج جديد، وتحديث {stats['updated']} منتج.")
+                else:
+                    messages.warning(request, "المزود المحدد غير مدعوم للمزامنة اليدوية حالياً.")
+            except Exception as e:
+                messages.error(request, f"فشلت عملية المزامنة: {str(e)}")
             return redirect(redirect_url)
             
         elif action == "refresh_cache":
-            if not integration:
-                messages.error(request, "لا توجد بوابة ربط نشطة لتحديث التخزين المؤقت.")
-                return redirect(redirect_url)
-            get_alkasr_profile(store=store, force_refresh=True, integration=integration)
-            get_alkasr_content(0, store=store, force_refresh=True, integration=integration)
-            get_alkasr_products(store=store, force_refresh=True, integration=integration)
-            messages.success(request, "تم تحديث التخزين المؤقت للبيانات وسحب كتالوج جديد بنجاح من المزود.")
+            if profile_obj and profile_obj.provider_name.lower() == "alkasr":
+                try:
+                    AlkasrProfileService(profile_obj).fetch_balance()
+                    AlkasrSyncService(profile_obj).sync_catalog()
+                    messages.success(request, "تم تحديث التخزين المؤقت والبيانات بنجاح من المزود.")
+                except Exception as e:
+                    messages.error(request, f"فشل تحديث البيانات: {str(e)}")
             return redirect(redirect_url)
             
         elif action == "clear_catalog":
-            if not integration:
-                messages.error(request, "لا توجد بوابة ربط نشطة لمسح المنتجات.")
-                return redirect(redirect_url)
             from apps.catalog.models import Product
             from apps.orders.models import OrderItem
-            from django.core.cache import cache
             
-            products_qs = Product.objects.filter(store=store, is_api_product=True, api_provider=integration.provider)
-            
+            products_qs = Product.objects.filter(store=store, is_api_product=True)
             deleted_count = 0
             deactivated_count = 0
             
@@ -5612,11 +5595,6 @@ def control_apicontrol_dashboard(request):
                         prod.is_api_product = False
                         prod.save()
                         deactivated_count += 1
-            
-            store_suffix = integration.id if integration else 'global'
-            cache.delete(f"alkasr_products_{store_suffix}")
-            cache.delete(f"alkasr_categories_{store_suffix}")
-            cache.delete(f"alkasr_profile_{store_suffix}")
             
             msg = f"تم تنظيف كتالوج المزود: تم حذف {deleted_count} منتج"
             if deactivated_count > 0:
@@ -5698,9 +5676,9 @@ def control_apicontrol_dashboard(request):
                         price = value
                     
                     if price < 0:
-                        price = Decimal("0.00")
+                        price = Decimal("0.0000")
                         
-                    variant.price = price.quantize(Decimal("0.01"))
+                    variant.price = price
                     variant.save(update_fields=['price'])
                     count += 1
                 messages.success(request, f"تم بنجاح تعديل أسعار {count} باقة/منتج مستورد.")
@@ -5709,8 +5687,15 @@ def control_apicontrol_dashboard(request):
             return redirect(redirect_url)
             
     # Fetch Profile Info
-    profile = get_alkasr_profile(store=store, integration=integration) if integration else None
-    is_connected = profile and profile.get("status") != "error"
+    profile = None
+    if profile_obj:
+        profile = {
+            "status": "success",
+            "balance": float(profile_obj.balance),
+            "currency": profile_obj.currency,
+            "email": profile_obj.provider_name
+        }
+    is_connected = bool(profile_obj)
     
     # Fetch Categories and Products
     categories = []
@@ -5718,50 +5703,51 @@ def control_apicontrol_dashboard(request):
     alkasr_products = []
     local_linked_count = 0
     
-    if is_connected and integration:
-        raw_content = get_alkasr_content(0, store=store, integration=integration)
-        categories = raw_content.get("categories", []) if isinstance(raw_content, dict) else []
-        if isinstance(raw_content, dict) and raw_content.get("status") == "error":
-            categories = []
-            
-        all_prods = get_alkasr_products(store=store, integration=integration)
-        if isinstance(all_prods, list):
-            products_count = len(all_prods)
-            alkasr_products = all_prods
-            
-            # Map linked status and details
-            if store:
-                linked_variants_qs = ProductVariant.objects.filter(product__store=store, api_product_id__isnull=False)
-            else:
-                linked_variants_qs = ProductVariant.objects.filter(api_product_id__isnull=False)
-
-            linked_variants = {
-                v.api_product_id: {
-                    "product_id": v.product.id,
-                    "variant_id": v.id,
-                    "price": float(v.price),
-                    "cost": float(v.cost),
-                    "is_active": v.product.is_active,
-                    "api_provider": v.product.api_provider or "alkasr"
-                }
-                for v in linked_variants_qs.select_related('product')
+    if profile_obj:
+        categories = list(ProviderCategory.objects.filter(profile=profile_obj).values("id", "name", "remote_id"))
+        all_p = ProviderProduct.objects.filter(profile=profile_obj)
+        products_count = all_p.count()
+        alkasr_products = [
+            {
+                "id": p.remote_id,
+                "name": p.name,
+                "price": float(p.cost_price),
+                "category": p.category.remote_id if p.category else ""
             }
-            local_linked_count = len(linked_variants)
-            
-            for item in alkasr_products:
-                item_id = item.get("id")
-                if item_id in linked_variants:
-                    item["is_linked"] = True
-                    item["local_product_id"] = linked_variants[item_id]["product_id"]
-                    item["local_variant_id"] = linked_variants[item_id]["variant_id"]
-                    item["local_price"] = linked_variants[item_id]["price"]
-                    item["local_cost"] = linked_variants[item_id]["cost"]
-                    item["local_active"] = linked_variants[item_id]["is_active"]
-                    item["api_provider"] = linked_variants[item_id]["api_provider"]
-                else:
-                    item["is_linked"] = False
+            for p in all_p
+        ]
+    
+    if profile_obj and alkasr_products:
+        if store:
+            linked_variants_qs = ProductVariant.objects.filter(product__store=store, api_product_id__isnull=False)
         else:
-            alkasr_products = []
+            linked_variants_qs = ProductVariant.objects.filter(api_product_id__isnull=False)
+
+        linked_variants = {
+            str(v.api_product_id): {
+                "product_id": v.product.id,
+                "variant_id": v.id,
+                "price": float(v.price),
+                "cost": float(v.cost),
+                "is_active": v.product.is_active,
+                "api_provider": v.product.api_provider or "alkasr"
+            }
+            for v in linked_variants_qs.select_related('product')
+        }
+        local_linked_count = len(linked_variants)
+        
+        for item in alkasr_products:
+            item_id = str(item.get("id"))
+            if item_id in linked_variants:
+                item["is_linked"] = True
+                item["local_product_id"] = linked_variants[item_id]["product_id"]
+                item["local_variant_id"] = linked_variants[item_id]["variant_id"]
+                item["local_price"] = linked_variants[item_id]["price"]
+                item["local_cost"] = linked_variants[item_id]["cost"]
+                item["local_active"] = linked_variants[item_id]["is_active"]
+                item["api_provider"] = linked_variants[item_id]["api_provider"]
+            else:
+                item["is_linked"] = False
             
     # Calculate statistics from completed store orders
     from apps.orders.models import Order

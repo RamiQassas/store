@@ -150,10 +150,10 @@ class ProductVariant(TimeStampedModel):
     sku = models.CharField(max_length=80, unique=True, verbose_name="SKU")
     
     # Default Prices
-    price = models.DecimalField(max_digits=12, decimal_places=2, verbose_name="السعر الافتراضي (Retail)")
-    wholesale_price = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal("0.00"), verbose_name="سعر الجملة")
-    vip_price = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal("0.00"), verbose_name="سعر VIP")
-    cost = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal("0.00"), verbose_name="التكلفة")
+    price = models.DecimalField(max_digits=14, decimal_places=4, verbose_name="السعر الافتراضي (Retail)")
+    wholesale_price = models.DecimalField(max_digits=14, decimal_places=4, default=Decimal("0.0000"), verbose_name="سعر الجملة")
+    vip_price = models.DecimalField(max_digits=14, decimal_places=4, default=Decimal("0.0000"), verbose_name="سعر VIP")
+    cost = models.DecimalField(max_digits=14, decimal_places=4, default=Decimal("0.0000"), verbose_name="التكلفة")
     
     discount_percent = models.DecimalField(max_digits=5, decimal_places=2, default=Decimal("0.00"), verbose_name="خصم (%)")
     is_sale = models.BooleanField(default=False, verbose_name="عليه عرض خاص")
