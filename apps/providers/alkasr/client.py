@@ -24,20 +24,22 @@ class AlkasrClient:
             total=MAX_RETRIES,
             status_forcelist=[429, 500, 502, 503, 504],
             backoff_factor=1,
-            allowed_methods=["POST"]
+            allowed_methods=["GET", "POST"]
         )
         adapter = HTTPAdapter(max_retries=retry_strategy, pool_connections=10, pool_maxsize=10)
         session.mount("https://", adapter)
         session.mount("http://", adapter)
         return session
 
-    def request(self, action, payload=None):
+    def request(self, action, payload=None, endpoint_override=None):
         from apps.catalog.models import APITransaction
         
         data = payload or {}
-        data["api_token"] = self.api_token
-        data["key"] = self.api_token
-        data["action"] = action
+        headers = {
+            "api-token": self.api_token,
+            "api_token": self.api_token,
+            "User-Agent": "AlkasrClient/2.0"
+        }
 
         base = self.base_url.rstrip("/")
         if "webhook" in base.lower() or "raqamiyatapp.com/api/orders" in base.lower():
@@ -55,14 +57,30 @@ class AlkasrClient:
         if not base.startswith("http"):
             base = "https://" + base
 
-        if not base.endswith("/api/v2") and "/api/v2" not in base:
-            url = base + "/api/v2"
+        # Determine relative endpoint according to Alkasr VIP docs
+        if endpoint_override:
+            rel_path = endpoint_override if endpoint_override.startswith("/") else "/" + endpoint_override
+        elif action == "profile":
+            rel_path = "/client/api/profile"
+        elif action == "products":
+            rel_path = "/client/api/products"
+        elif action == "content":
+            cat_id = data.get("category", 0)
+            rel_path = f"/client/api/content/{cat_id}"
+        elif action == "newOrder":
+            prod_id = data.get("product_id")
+            rel_path = f"/client/api/newOrder/{prod_id}/params"
+        elif action == "check":
+            rel_path = "/client/api/check"
         else:
-            url = base
+            rel_path = f"/client/api/{action}"
 
-        # Use GET for read actions (profile, balance, products, categories, content) or POST for mutations (newOrder, check)
-        is_read_action = action in ("profile", "balance", "products", "categories", "content")
-        method = "GET" if is_read_action else "POST"
+        if base.endswith("/client/api") or base.endswith("/client/api/"):
+            url = base.rstrip("/") + rel_path.replace("/client/api", "")
+        else:
+            url = base + rel_path
+
+        method = "GET"
 
         req_log = ProviderRequestLog.objects.create(
             profile=self.profile,
@@ -72,45 +90,34 @@ class AlkasrClient:
         )
 
         start_time = time.time()
-        
+
         try:
-            if method == "GET":
-                response = self.session.get(
-                    url,
-                    params=data,
-                    headers={"User-Agent": "AlkasrClient/2.0"},
-                    timeout=TIMEOUT
-                )
-                if response.status_code == 404 and url != base:
-                    url = base
-                    response = self.session.get(
-                        url,
-                        params=data,
-                        headers={"User-Agent": "AlkasrClient/2.0"},
-                        timeout=TIMEOUT
-                    )
-            else:
+            # Send GET request with api-token header and query params
+            query_params = dict(data)
+            query_params["api_token"] = self.api_token
+            query_params["key"] = self.api_token
+
+            response = self.session.get(
+                url,
+                params=query_params,
+                headers=headers,
+                timeout=TIMEOUT
+            )
+
+            # Fallback for generic SMM panels using POST to /api/v2 if /client/api returned 404
+            if response.status_code == 404:
+                fallback_url = base + "/api/v2" if not base.endswith("/api/v2") else base
+                data_post = dict(data)
+                data_post["key"] = self.api_token
+                data_post["api_token"] = self.api_token
+                data_post["action"] = action
                 response = self.session.post(
-                    url, 
-                    data=data, 
-                    headers={"User-Agent": "AlkasrClient/2.0"},
+                    fallback_url,
+                    data=data_post,
+                    headers=headers,
                     timeout=TIMEOUT
                 )
-                if response.status_code in (404, 405) and url != base:
-                    url = base
-                    response = self.session.post(
-                        url, 
-                        data=data, 
-                        headers={"User-Agent": "AlkasrClient/2.0"},
-                        timeout=TIMEOUT
-                    )
-                if response.status_code == 405:
-                    response = self.session.get(
-                        url,
-                        params=data,
-                        headers={"User-Agent": "AlkasrClient/2.0"},
-                        timeout=TIMEOUT
-                    )
+                url = fallback_url
 
             elapsed_ms = int((time.time() - start_time) * 1000)
             req_log.execution_time_ms = elapsed_ms
@@ -119,7 +126,7 @@ class AlkasrClient:
             res_log = ProviderResponseLog.objects.create(
                 request_log=req_log,
                 status_code=response.status_code,
-                body=response.text[:5000],  # Truncate if too long
+                body=response.text[:5000],
                 is_success=False
             )
 
@@ -128,7 +135,19 @@ class AlkasrClient:
             except ValueError:
                 json_resp = {}
 
-            is_success = response.status_code == 200 and json_resp.get("status") not in ("error", "failed")
+            is_success = response.status_code in (200, 201) and (
+                isinstance(json_resp, list) or (
+                    isinstance(json_resp, dict) and json_resp.get("status") not in ("ERROR", "error", "failed")
+                    and json_resp.get("code") not in (120, 121, 122, 123)
+                )
+            )
+
+            # Extract error message if any
+            err_msg = ""
+            err_code = None
+            if isinstance(json_resp, dict):
+                err_msg = json_resp.get("msg") or json_resp.get("message") or json_resp.get("error", "")
+                err_code = json_resp.get("code")
 
             # Create APITransaction for template rendering
             APITransaction.objects.create(
@@ -142,12 +161,11 @@ class AlkasrClient:
                 response_status=response.status_code,
                 response_body=response.text[:5000],
                 is_success=is_success,
-                error_message=json_resp.get("message") or json_resp.get("error", "") if not is_success else ""
+                error_code=str(err_code) if err_code else None,
+                error_message=err_msg if not is_success else ""
             )
 
-            response.raise_for_status()
-            
-            if json_resp.get("status") == "error":
+            if not is_success and isinstance(json_resp, dict) and (json_resp.get("status") in ("ERROR", "error") or err_code):
                 res_log.is_success = False
                 res_log.save(update_fields=["is_success"])
                 self._handle_api_error(json_resp, req_log)

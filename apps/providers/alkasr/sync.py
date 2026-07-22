@@ -41,8 +41,15 @@ class AlkasrSyncService:
             # 3. Process Products
             active_remote_ids = set()
             
+            if isinstance(raw_products, list):
+                products_items = [(str(p.get("id", p.get("service", idx))), p) for idx, p in enumerate(raw_products) if isinstance(p, dict)]
+            elif isinstance(raw_products, dict):
+                products_items = [(str(pid), pdata if isinstance(pdata, dict) else {}) for pid, pdata in raw_products.items()]
+            else:
+                products_items = []
+
             with transaction.atomic():
-                for pid, pdata in raw_products.items():
+                for pid, pdata in products_items:
                     active_remote_ids.add(str(pid))
                     
                     remote_id = str(pid)

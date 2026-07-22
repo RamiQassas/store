@@ -9,7 +9,7 @@ class AlkasrOrderService:
         self.client = AlkasrClient(profile)
 
     def place_order(self, local_order, provider_product, quantity, parameters):
-        """Places a new order with the provider."""
+        """Places a new order with the provider via GET /client/api/newOrder/[product_id]/params."""
         
         provider_order_uuid = uuid.uuid4()
         
@@ -28,15 +28,16 @@ class AlkasrOrderService:
             "order_uuid": str(provider_order_uuid)
         }
         
-        # Add dynamic parameters
+        # Add dynamic parameters (e.g. playerId, etc.)
         payload.update(parameters)
 
         try:
+            # According to docs: GET /client/api/newOrder/[product_id]/params?qty=...&order_uuid=...
             resp = self.client.request("newOrder", payload)
             
-            data = resp.get("data", {})
-            api_status = data.get("status", "pending")
-            remote_order_id = data.get("order_id")
+            data = resp.get("data", {}) if isinstance(resp, dict) else {}
+            api_status = data.get("status") or resp.get("status", "accept")
+            remote_order_id = data.get("order_id") or resp.get("order_id")
 
             provider_order.remote_order_id = remote_order_id
             provider_order.status = api_status
@@ -65,30 +66,39 @@ class AlkasrOrderService:
             raise
 
     def check_orders(self, identifiers, is_uuid=False):
-        """Check status of multiple orders."""
+        """Check status of multiple orders via GET /client/api/check."""
         payload = {}
         if is_uuid:
-            payload["orders_uuid"] = ",".join(str(i) for i in identifiers)
+            payload["orders"] = f"[{','.join(str(i) for i in identifiers)}]"
+            payload["uuid"] = "1"
         else:
-            payload["orders"] = ",".join(str(i) for i in identifiers)
+            payload["orders"] = f"[{','.join(str(i) for i in identifiers)}]"
 
         resp = self.client.request("check", payload)
         
-        if resp.get("status") in ("success", "OK"):
-            data = resp.get("data", [])
-            for order_data in data:
-                remote_id = order_data.get("order_id")
-                api_status = order_data.get("status")
-                
-                # Update ProviderOrder status
-                po = ProviderOrder.objects.filter(profile=self.profile, remote_order_id=remote_id).first()
-                if po and po.status != api_status:
-                    po.status = api_status
-                    po.save(update_fields=["status"])
-                    ProviderOrderStatus.objects.create(
-                        provider_order=po,
-                        status=api_status,
-                        raw_response=order_data
-                    )
-            return data
-        return []
+        data_list = []
+        if isinstance(resp, dict):
+            if resp.get("status") == "OK" and isinstance(resp.get("data"), list):
+                data_list = resp["data"]
+            elif isinstance(resp.get("data"), list):
+                data_list = resp["data"]
+        elif isinstance(resp, list):
+            data_list = resp
+
+        for order_data in data_list:
+            if not isinstance(order_data, dict):
+                continue
+            remote_id = order_data.get("order_id")
+            api_status = order_data.get("status")
+            
+            # Update ProviderOrder status
+            po = ProviderOrder.objects.filter(profile=self.profile, remote_order_id=remote_id).first()
+            if po and po.status != api_status:
+                po.status = api_status
+                po.save(update_fields=["status"])
+                ProviderOrderStatus.objects.create(
+                    provider_order=po,
+                    status=api_status,
+                    raw_response=order_data
+                )
+        return data_list
