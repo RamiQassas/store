@@ -45,6 +45,13 @@ class AlkasrClient:
                 "رابط المزود غير صحيح: لقد قمت بإدخال رابط الـ Webhook الخاص بمتجرك بدلاً من رابط API المزود الخارجي (مثال: https://api.alkasr-vip.com). يرجى تعديل 'رابط المزود' من صفحة إعدادات البوابات."
             )
 
+        # Automatically strip documentation paths if user entered docs page URL
+        for doc_path in ["/api-docs", "/docs", "/documentation", "/swagger"]:
+            if base.endswith(doc_path):
+                base = base[:-len(doc_path)].rstrip("/")
+            elif doc_path in base:
+                base = base.replace(doc_path, "").rstrip("/")
+
         if not base.startswith("http"):
             base = "https://" + base
 
