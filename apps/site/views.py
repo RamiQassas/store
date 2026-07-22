@@ -5792,16 +5792,17 @@ def control_apicontrol_dashboard(request):
     # Generate webhook URL
     webhook_url = request.build_absolute_uri('/api/orders/alkasr_webhook/')
     
-    base_url = integration.base_url if integration else ""
-    raw_token = integration.api_token if integration else ""
+    base_url = profile_obj.base_url if profile_obj else ""
+    raw_token = profile_obj.api_token if profile_obj else ""
     
-    if len(raw_token) > 10:
+    if raw_token and len(raw_token) > 10:
         obfuscated_token = raw_token[:6] + "..." + raw_token[-6:]
     else:
         obfuscated_token = "غير معين أو قصير"
         
-    # Fetch recent API transactions
-    recent_transactions = APITransaction.objects.filter(store=store).select_related('integration').order_by('-created_at')[:100]
+    # Fetch recent API request logs
+    from apps.providers.models import ProviderRequestLog
+    recent_transactions = ProviderRequestLog.objects.filter(profile=profile_obj).order_by('-created_at')[:100] if profile_obj else []
         
     return render(request, "site/control_apicontrol_dashboard.html", {
         "profile": profile if is_connected else None,
@@ -5817,8 +5818,8 @@ def control_apicontrol_dashboard(request):
         "total_sales_usd": total_sales_usd,
         "total_profit_usd": total_profit_usd,
         "provider_stats": provider_stats,
-        "active_integrations": active_integrations,
-        "selected_integration": integration,
+        "active_integrations": [profile_obj] if profile_obj else [],
+        "selected_integration": profile_obj,
         "recent_transactions": recent_transactions,
     })
 
