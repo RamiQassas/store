@@ -38,25 +38,48 @@ class AlkasrSyncService:
             if "categories" in root_content:
                 self._process_categories(root_content["categories"], parent_remote_id=None, categories_dict=categories_dict)
                 
-            # 3. Process Products
+            # 3. Flatten and Extract ALL Products Recursively
             active_remote_ids = set()
+            raw_products_list = []
             
-            if isinstance(raw_products, list):
-                products_items = [(str(p.get("id", p.get("service", idx))), p) for idx, p in enumerate(raw_products) if isinstance(p, dict)]
-            elif isinstance(raw_products, dict):
-                products_items = [(str(pid), pdata if isinstance(pdata, dict) else {}) for pid, pdata in raw_products.items()]
-            else:
-                products_items = []
+            def extract_products_recursive(obj):
+                if isinstance(obj, list):
+                    for item in obj:
+                        extract_products_recursive(item)
+                elif isinstance(obj, dict):
+                    # If this dict has product characteristics
+                    if "id" in obj and ("name" in obj or "price" in obj or "product_type" in obj):
+                        raw_products_list.append(obj)
+                    # Check nested containers
+                    if "products" in obj and isinstance(obj["products"], (list, dict)):
+                        extract_products_recursive(obj["products"])
+                    if "categories" in obj and isinstance(obj["categories"], (list, dict)):
+                        extract_products_recursive(obj["categories"])
+                    if "subcategories" in obj and isinstance(obj["subcategories"], (list, dict)):
+                        extract_products_recursive(obj["subcategories"])
+                    if "data" in obj and isinstance(obj["data"], (list, dict)):
+                        extract_products_recursive(obj["data"])
 
-            with transaction.atomic():
-                for pid, pdata in products_items:
+            extract_products_recursive(raw_products)
+            extract_products_recursive(root_content)
+
+            # Deduplicate by product ID
+            seen_ids = set()
+            unique_products = []
+            for item in raw_products_list:
+                item_id = str(item.get("id", item.get("service", "")))
+                if item_id and item_id not in seen_ids:
+                    seen_ids.add(item_id)
+                    unique_products.append((item_id, item))
+
+            for pid, pdata in unique_products:
+                try:
                     active_remote_ids.add(str(pid))
-                    
                     remote_id = str(pid)
-                    name = pdata.get("name", f"Product {pid}")
-                    desc = pdata.get("desc", "")
+                    name = str(pdata.get("name") or f"Product {pid}")
+                    desc = str(pdata.get("desc") or "")
                     
-                    cat_name = pdata.get("category_name") or pdata.get("category") or ""
+                    cat_name = str(pdata.get("category_name") or pdata.get("category") or "")
                     raw_parent = pdata.get("parent_id")
                     if raw_parent is not None and str(raw_parent) != "":
                         cat_id = str(raw_parent)
@@ -65,7 +88,11 @@ class AlkasrSyncService:
                     else:
                         cat_id = "0"
 
-                    cost = Decimal(str(pdata.get("price", "0.00")))
+                    try:
+                        cost = Decimal(str(pdata.get("price", "0.00")))
+                    except Exception:
+                        cost = Decimal("0.00")
+
                     is_available = pdata.get("available", True)
                     
                     category_obj = categories_dict.get(cat_id)
@@ -81,7 +108,6 @@ class AlkasrSyncService:
                             category_obj.save(update_fields=["name"])
                         categories_dict[cat_id] = category_obj
 
-                    # Determine Product Type (Phase 7 & official docs)
                     p_type_from_api = pdata.get("product_type")
                     qty_values = pdata.get("qty_values")
 
@@ -115,9 +141,7 @@ class AlkasrSyncService:
                     else:
                         qty_min, qty_max, qty_list = None, None, []
 
-                    # Check if exists
                     product_obj = ProviderProduct.objects.filter(profile=self.profile, remote_id=remote_id).first()
-                    
                     is_new = product_obj is None
                     
                     if is_new:
@@ -141,9 +165,7 @@ class AlkasrSyncService:
                         )
                         stats["created"] += 1
                     else:
-                        # Update existing
                         old_cost = product_obj.cost_price
-                        
                         product_obj.name = name
                         product_obj.category = category_obj
                         product_obj.product_type = product_type
@@ -163,7 +185,6 @@ class AlkasrSyncService:
                             )
                         
                         if old_cost != cost:
-                            # Log price history
                             ProviderPriceHistory.objects.create(
                                 product=product_obj,
                                 old_cost=old_cost,
@@ -174,10 +195,8 @@ class AlkasrSyncService:
                             )
                         stats["updated"] += 1
 
-                    # Process parameters (Phase 8)
                     params = pdata.get("params", [])
                     if params:
-                        # Clear old
                         ProviderProductParameter.objects.filter(product=product_obj).delete()
                         for p in params:
                             if isinstance(p, dict):
@@ -196,6 +215,9 @@ class AlkasrSyncService:
                                     required=True,
                                     parameter_type="text"
                                 )
+                except Exception as item_err:
+                    logger.warning(f"Skipping product item {pid} due to error: {item_err}")
+                    continue
 
                 # Disable products not in API
                 disabled_count = ProviderProduct.objects.filter(profile=self.profile, is_active=True).exclude(remote_id__in=active_remote_ids).update(is_active=False)
