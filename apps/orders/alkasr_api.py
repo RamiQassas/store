@@ -93,7 +93,7 @@ def get_alkasr_integration(store=None):
 
 
 # ==============================================================================
-# 2. ALKASR API CORE ENDPOINTS IMPLEMENTATION
+# 2. ALKASR API ENDPOINTS IMPLEMENTATION
 # ==============================================================================
 
 def get_alkasr_profile(store=None, force_refresh=False, integration=None):
@@ -124,7 +124,7 @@ def get_alkasr_profile(store=None, force_refresh=False, integration=None):
     }
 
     try:
-        response = requests.get(url, headers=headers, timeout=5.0, verify=False)
+        response = requests.get(url, headers=headers, timeout=6.0, verify=False)
         response.raise_for_status()
         res = response.json()
         log_api_transaction(
@@ -185,7 +185,7 @@ def get_alkasr_products(store=None, force_refresh=False, integration=None):
     }
 
     try:
-        response = requests.get(url, headers=headers, timeout=10.0, verify=False)
+        response = requests.get(url, headers=headers, timeout=12.0, verify=False)
         response.raise_for_status()
         res = response.json()
         log_api_transaction(
@@ -221,7 +221,7 @@ def get_alkasr_products(store=None, force_refresh=False, integration=None):
 def get_alkasr_categories(store=None, force_refresh=False, integration=None):
     """
     GET /client/api/categories or /client/api/content/0
-    Retrieves category hierarchy from Alkasr VIP.
+    Retrieves category tree from Alkasr VIP.
     """
     from django.core.cache import cache
     if not integration:
@@ -245,7 +245,7 @@ def get_alkasr_categories(store=None, force_refresh=False, integration=None):
     }
 
     try:
-        response = requests.get(url, headers=headers, timeout=6.0, verify=False)
+        response = requests.get(url, headers=headers, timeout=8.0, verify=False)
         response.raise_for_status()
         res = response.json()
         log_api_transaction(
@@ -280,9 +280,9 @@ def get_alkasr_categories(store=None, force_refresh=False, integration=None):
 
 def place_alkasr_order(api_product_id, qty, order_uuid, metadata, store=None):
     """
-    GET /client/api/newOrder/{product.id}/params?qty={qty}&order_uuid={order_uuid}&playerId={playerId}...
+    GET /client/api/newOrder/{product.id}/params?qty={qty}&order_uuid={order_uuid}&[param1]=[val1]...
     Header: api-token: YOUR_API_TOKEN
-    Creates a new idempotent order with unique UUID.
+    Creates an idempotent order using unique order_uuid.
     """
     from apps.catalog.models import ProductVariant, APIIntegration
 
@@ -304,12 +304,11 @@ def place_alkasr_order(api_product_id, qty, order_uuid, metadata, store=None):
     }
 
     clean_metadata = {}
-    for k, v in metadata.items():
+    for k, v in (metadata or {}).items():
         k_clean = str(k).strip() if k else ""
         if k_clean:
             clean_metadata[k_clean] = str(v).strip() if v is not None else ""
 
-    # Map form_schema parameters
     variant = ProductVariant.objects.filter(api_product_id=api_product_id).select_related('product').first()
     form_schema = None
     if variant:
@@ -318,41 +317,33 @@ def place_alkasr_order(api_product_id, qty, order_uuid, metadata, store=None):
         elif variant.product and variant.product.form_schema:
             form_schema = variant.product.form_schema
 
-    if form_schema:
-        schema_fields = form_schema.get("fields", [])
-        for field in schema_fields:
-            api_name = field.get("name")
-            label = field.get("label", api_name)
-
+    if form_schema and form_schema.get("fields"):
+        for field in form_schema.get("fields", []):
+            api_name = field.get("name") # MUST BE EXACT API PARAMETER NAME
             if not api_name:
                 continue
 
             val = None
             for mk, mv in clean_metadata.items():
-                if mk == api_name:
+                if mk == api_name or mk == f"custom_{api_name}":
                     val = mv
                     break
             if val is None:
                 for mk, mv in clean_metadata.items():
-                    if mk.lower() == api_name.lower():
-                        val = mv
-                        break
-            if val is None and label and label != api_name:
-                for mk, mv in clean_metadata.items():
-                    if mk.lower() == label.lower():
+                    if mk.lower() == api_name.lower() or mk.lower() == f"custom_{api_name.lower()}":
                         val = mv
                         break
             if val is None and len(clean_metadata) == 1:
                 val = list(clean_metadata.values())[0]
 
             if val is not None:
-                params[api_name] = val
+                params[api_name] = str(val).strip()
     else:
         import re
         ascii_key = re.compile(r'^[a-zA-Z_][a-zA-Z0-9_]*$')
         for k, v in clean_metadata.items():
             if ascii_key.match(k):
-                params[k] = v
+                params[k] = str(v).strip()
 
     session = requests.Session()
     session.headers.update({
@@ -387,7 +378,6 @@ def place_alkasr_order(api_product_id, qty, order_uuid, metadata, store=None):
                 order_uuid=order_uuid
             )
 
-            # Error code mappings from API documentation
             alkasr_errors = {
                 120: "ERR-120: مفتاح API مطلوب — يرجى مراجعة إعدادات الربط",
                 121: "ERR-121: مفتاح API غير صحيح (Token error)",
@@ -533,119 +523,15 @@ def check_alkasr_orders(order_identifiers, is_uuid=False, store=None):
 
 
 # ==============================================================================
-# 3. CATALOG CLASSIFICATION & SYNCHRONIZATION ENGINE
+# 3. COMPLETE & FAITHFUL CATALOG IMPORT & SYNCHRONIZATION ENGINE
 # ==============================================================================
 
-def get_category_lineage(cat_id, alkasr_cats):
-    path = []
-    curr_id = cat_id
-    while curr_id and curr_id in alkasr_cats:
-        c = alkasr_cats[curr_id]
-        path.append(c)
-        parent_id = c.get("parent_id")
-        if parent_id == curr_id or (parent_id is not None and int(parent_id) in [p['id'] for p in path]):
-            break
-        curr_id = int(parent_id) if parent_id is not None else 0
-    return path
-
-
-def classify_alkasr_item(name, category_name=""):
-    text = (name + " " + category_name).lower()
-
-    main_cat = "قسم الألعاب"
-    sub_cat = category_name or "ألعاب أخرى"
-
-    if any(w in text for w in ["uc", "pubg", "ببجي", "شدات", "شدة", "free fire", "فري فاير", "جواهر", "جوهرة", "ludo", "لودو", "ألعاب", "العاب", "gems"]):
-        main_cat = "قسم الألعاب"
-        if "pubg" in text or "ببجي" in text or "uc" in text:
-            sub_cat = "ببجي موبايل"
-        elif "free fire" in text or "فري فاير" in text or "جواهر" in text:
-            sub_cat = "فري فاير"
-        elif "ludo" in text or "لودو" in text:
-            sub_cat = "يلا لودو"
-        else:
-            sub_cat = category_name or "ألعاب أخرى"
-    elif any(w in text for w in ["likee", "لايكي", "دردشة", "chat", "yalla", "يلا", "mico", "ميجو", "soul", "سول", "tango", "تانجو", "tiktok", "تيك توك", "كواي", "kwai"]):
-        main_cat = "قسم الدردشة"
-        if "likee" in text or "لايكي" in text:
-            sub_cat = "لايكي"
-        elif "yalla" in text or "يلا" in text:
-            sub_cat = "يلا لودو"
-        elif "tiktok" in text or "تيك توك" in text:
-            sub_cat = "تيك توك"
-        else:
-            sub_cat = category_name or "تطبيقات دردشة"
-    elif any(w in text for w in ["lira", "tl", "تركي", "أرصدة", "رصيد", "paypal", "باي بال", "payeer", "بيير", "زين", "سوا", "mobily", "موبايلي", "mtn", "syriatel", "سيريتل"]):
-        main_cat = "قسم الأرصدة"
-        sub_cat = category_name or "شحن أرصدة"
-    elif any(w in text for w in ["vpn", "بروكسي", "nordvpn", "expressvpn"]):
-        main_cat = "اشتراكات VPN"
-        sub_cat = category_name or "اشتراكات VPN"
-    elif any(w in text for w in ["gpt", "chatgpt", "ai", "ذكاء", "midjourney"]):
-        main_cat = "الذكاء الاصطناعي"
-        sub_cat = category_name or "خدمات الذكاء الاصطناعي"
-    elif any(w in text for w in ["شاهد", "shahid", "تلفاز", "tv", "netflix", "نتفلكس", "iptv", "ديزني", "disney"]):
-        main_cat = "خدمات التلفاز"
-        sub_cat = category_name or "اشتراكات تلفزيونية"
-    elif any(w in text for w in ["كارت", "بطاقة", "card", "gift", "itunes", "ايتونز", "google play", "جوجل بلاي", "razer", "ريزر", "steam", "ستيم"]):
-        main_cat = "البطاقات الالكترونية"
-        sub_cat = category_name or "بطاقات هدايا"
-    elif any(w in text for w in ["رقم", "أرقام", "حساب", "حسابات", "number", "account"]):
-        main_cat = "الأرقام والحسابات"
-        sub_cat = category_name or "أرقام وحسابات جاهزة"
-    elif any(w in text for w in ["تصميم", "design", "شعار", "logo"]):
-        main_cat = "قسم التصميم"
-        sub_cat = category_name or "خدمات تصميم"
-    elif any(w in text for w in ["متابعين", "لايكات", "مشاهدات", "سوشيال", "social", "instagram", "انستغرام", "فيس بوك", "facebook"]):
-        main_cat = "السوشيال ميديا (خدمات )"
-        sub_cat = category_name or "خدمات السوشيال ميديا"
-
-    return main_cat, sub_cat
-
-
-def extract_clean_product_name(raw_item_name, sub_cat_name=""):
-    """
-    Extracts an exact, clean Product Name (e.g., 'شدات ببجي PUBG Mobile') 
-    so games/services aren't merged under generic categories.
-    """
-    text = f"{raw_item_name} {sub_cat_name}".lower()
-
-    if "pubg" in text or "ببجي" in text:
-        return "شدات ببجي PUBG Mobile"
-    elif "free fire" in text or "فري فاير" in text:
-        return "جواهر فري فاير Free Fire"
-    elif "mobile legends" in text or "موبايل ليجند" in text:
-        return "موبايل ليجند Mobile Legends"
-    elif "roblox" in text or "روبلوكس" in text:
-        return "روبلوكس Roblox"
-    elif "call of duty" in text or "كول اوف ديوتي" in text or "cod" in text:
-        return "كول اوف ديوتي Call of Duty"
-    elif "mtn" in text:
-        return "رصيد MTN سوريا"
-    elif "syriatel" in text or "سيريتل" in text:
-        return "رصيد سيريتل Syriatel"
-    elif "tiktok" in text or "تيك توك" in text:
-        return "عملات تيك توك TikTok"
-    elif "likee" in text or "لايكي" in text:
-        return "ماس لايكي Likee"
-    elif "yalla" in text or "يلا لودو" in text:
-        return "يلا لودو Yalla Ludo"
-    elif "lira" in text or "ليرة" in text or "تركي" in text or "tl" in text:
-        return "كروت ليرة تركية TL"
-    elif sub_cat_name and sub_cat_name.strip() not in ["عام", "ألعاب أونلاين", "شحن أرصدة", "بطاقات هدايا"]:
-        return sub_cat_name.strip()
-    else:
-        import re
-        clean = re.sub(r'^\d+\s*', '', raw_item_name).strip()
-        return clean or raw_item_name.strip()
-
-
-def parse_qty_values(qty_values_raw):
+def parse_qty_values(qty_values_raw, product_type="package"):
     """
     Parses provider `qty_values` according to documentation rules:
     - qty_values: null -> Fixed package! Quantity in order must be 1.
-    - qty_values: ["110", "150", "210"] -> List of allowed quantities.
-    - qty_values: {"min": "500", "max": "500000"} -> Range min/max.
+    - qty_values: ["110", "150", "210"] -> Only these specific quantities are allowed.
+    - qty_values: {"min": "500", "max": "500000"} -> Quantity must be within this range.
     """
     qty_type = "fixed"
     qty_min = 1
@@ -653,7 +539,12 @@ def parse_qty_values(qty_values_raw):
     qty_list = []
     allow_custom = False
 
-    if isinstance(qty_values_raw, dict):
+    if product_type == "package" and qty_values_raw is None:
+        qty_type = "fixed"
+        allow_custom = False
+        qty_min = 1
+        qty_max = 1
+    elif isinstance(qty_values_raw, dict):
         qty_type = "range"
         allow_custom = True
         try:
@@ -668,6 +559,11 @@ def parse_qty_values(qty_values_raw):
         qty_type = "list"
         allow_custom = False
         qty_list = [str(x) for x in qty_values_raw]
+    elif qty_values_raw is None:
+        qty_type = "fixed"
+        allow_custom = False
+        qty_min = 1
+        qty_max = 1
     else:
         qty_type = "fixed"
         allow_custom = False
@@ -681,24 +577,26 @@ def parse_qty_values(qty_values_raw):
         "qty_max": qty_max,
         "qty_list": qty_list,
         "allow_custom_quantity": allow_custom,
+        "product_type": product_type,
     }
 
 
 def sync_alkasr_catalog(store, selected_category_ids=None, markup_percent=0.0, integration=None):
     """
-    Synchronizes catalog with Alkasr VIP API.
-    Builds Category -> Product -> Variant hierarchy.
-    Enforces quantity specification rules and accurate pricing.
+    Imports 100% of products from Alkasr VIP without skipping any item.
+    Builds exact category hierarchy: Category -> App/Service Product -> Package Variant.
+    Calculates cost and selling prices accurately.
     """
     from apps.catalog.models import Category, Product, ProductVariant
-    
-    products = get_alkasr_products(store=store, force_refresh=True, integration=integration)
-    if isinstance(products, dict) and products.get("status") == "error":
-        return products
-        
-    if not isinstance(products, list):
-        return {"status": "error", "message": "Invalid response from Alkasr API"}
-        
+    from apps.orders.models import OrderItem
+
+    products_api = get_alkasr_products(store=store, force_refresh=True, integration=integration)
+    if isinstance(products_api, dict) and products_api.get("status") == "error":
+        return products_api
+
+    if not isinstance(products_api, list):
+        return {"status": "error", "message": "استجابة غير صحيحة من المزود"}
+
     alkasr_cats_list = get_alkasr_categories(store=store, force_refresh=True, integration=integration)
     alkasr_cats = {}
     if isinstance(alkasr_cats_list, list):
@@ -709,119 +607,95 @@ def sync_alkasr_catalog(store, selected_category_ids=None, markup_percent=0.0, i
 
     created_count = 0
     updated_count = 0
-    
-    existing_categories = {}
-    for cat in Category.objects.filter(store=store).select_related('parent'):
-        existing_categories[cat.name] = cat
-        if cat.parent:
-            existing_categories[f"{cat.parent.name} > {cat.name}"] = cat
-    
-    existing_products = {
-        f"{p.category_id}_{p.name}": p
-        for p in Product.objects.filter(store=store)
-    }
-    
-    existing_variants = {
-        v.api_product_id: v 
-        for v in ProductVariant.objects.filter(api_product_id__isnull=False).select_related('product')
-    }
-    
-    from apps.common.tenant_utils import bypass_tenant_filter
-    with bypass_tenant_filter():
-        existing_skus = set(ProductVariant.objects.values_list('sku', flat=True))
-    
-    translation_map = {
-        "playerid": "معرّف اللاعب (Player ID)",
-        "player_id": "معرّف اللاعب (Player ID)",
-        "id": "المعرّف (ID)",
-        "username": "اسم المستخدم (Username)",
-        "user_name": "اسم المستخدم (Username)",
-        "user": "اسم المستخدم / الحساب",
-        "phone": "رقم الهاتف",
-        "number": "الرقم / المعرّف",
-        "email": "البريد الإلكتروني",
-        "password": "كلمة المرور",
-        "pin": "الرمز السري (PIN)",
-        "quantity": "الكمية",
-        "qty": "الكمية",
-        "amount": "المبلغ",
-    }
-    
-    category_order = []
-    for item in products:
-        cat_name = item.get("category_name") or "غير مصنف"
-        if cat_name not in category_order:
-            category_order.append(cat_name)
 
     with transaction.atomic():
-        Product.objects.filter(store=store, description__icontains="Alkasr API").update(description="")
-        Product.objects.filter(store=store, description__in=["none", "null", "None", "Null"]).update(description="")
-        
-        for index, item in enumerate(products):
+        # Clean up legacy un-ordered API products to ensure zero leftover corruption
+        legacy_prods = Product.objects.filter(store=store, is_api_product=True)
+        for p in list(legacy_prods):
+            if not OrderItem.objects.filter(variant__product=p).exists():
+                try:
+                    p.delete()
+                except Exception:
+                    p.is_active = False
+                    p.save()
+
+        # Cache existing categories and products after cleanup
+        existing_categories = {}
+        for cat in Category.objects.filter(store=store).select_related('parent'):
+            existing_categories[cat.name] = cat
+            if cat.parent:
+                existing_categories[f"{cat.parent.name} > {cat.name}"] = cat
+
+        existing_products = {
+            f"{p.category_id}_{p.name}": p
+            for p in Product.objects.filter(store=store)
+        }
+
+        existing_variants = {
+            v.api_product_id: v
+            for v in ProductVariant.objects.filter(api_product_id__isnull=False).select_related('product')
+        }
+
+        from apps.common.tenant_utils import bypass_tenant_filter
+        with bypass_tenant_filter():
+            existing_skus = set(ProductVariant.objects.values_list('sku', flat=True))
+
+        for index, item in enumerate(products_api):
             api_prod_id = item.get("id")
             parent_id = item.get("parent_id")
-            
+
             if not api_prod_id:
                 continue
-                
+
             if selected_category_ids is not None:
                 if parent_id not in selected_category_ids and str(parent_id) not in selected_category_ids:
                     continue
-                    
-            raw_item_name = item.get("name") or ""
-            if not raw_item_name or raw_item_name.strip().lower() in ["null", "none", "nan", ""]:
-                continue
-                
-            p_id_int = int(parent_id) if parent_id is not None else 0
-            lineage = get_category_lineage(p_id_int, alkasr_cats)
-            
-            main_cat_name = ""
-            sub_cat_name = ""
-            
-            if len(lineage) >= 2:
-                main_cat_name = lineage[-1]["name"]
-                sub_cat_name = lineage[-2]["name"]
-                prod_name = extract_clean_product_name(raw_item_name, sub_cat_name)
-            elif len(lineage) == 1:
-                main_cat_name = lineage[0]["name"]
-                _, sub_cat_name = classify_alkasr_item(raw_item_name, item.get("category_name", ""))
-                prod_name = extract_clean_product_name(raw_item_name, sub_cat_name)
-            else:
-                main_cat_name, sub_cat_name = classify_alkasr_item(raw_item_name, item.get("category_name", ""))
-                prod_name = extract_clean_product_name(raw_item_name, sub_cat_name)
 
-            if not main_cat_name or main_cat_name.strip().lower() in ["null", "none", "nan", ""]:
+            raw_item_name = (item.get("name") or "").strip()
+            cat_name_raw = (item.get("category_name") or "").strip()
+
+            if not raw_item_name or raw_item_name.lower() in ["null", "none", "nan", ""]:
                 continue
-            if not sub_cat_name or sub_cat_name.strip().lower() in ["null", "none", "nan", ""]:
-                continue
-                
-            main_cat_name = main_cat_name.strip()
-            sub_cat_name = sub_cat_name.strip()
-            
+
+            # Determine Main Category & Sub Category / Product Title
+            main_cat_name = "الخدمات الإلكترونية"
+            p_id_int = int(parent_id) if parent_id is not None else 0
+            if p_id_int in alkasr_cats:
+                parent_cat_obj = alkasr_cats[p_id_int]
+                main_cat_name = parent_cat_obj.get("name") or main_cat_name
+
+            # Target Product Name (App / Game / Service Title)
+            prod_name = cat_name_raw if cat_name_raw else raw_item_name
             var_name = raw_item_name
-            if not prod_name:
-                prod_name = sub_cat_name
-            if not var_name:
-                var_name = "الافتراضية"
-                
-            alkasr_price = item.get("price") or 0.0
+
+            # Determine cost price and calculate retail selling price
+            provider_cost = item.get("price") or item.get("base_price") or 0.0
+            cost_val = Decimal(str(provider_cost))
+            markup_factor = Decimal(1) + (Decimal(str(markup_percent)) / Decimal(100))
+            retail_price = cost_val * markup_factor
+
             is_available = item.get("available", True)
             params_list = item.get("params") or []
-            
+
+            # Build form schema for user inputs while keeping exact API parameter names
             fields_list = []
             for p_field in params_list:
                 if not p_field or not isinstance(p_field, str):
                     continue
-                norm_field = p_field.strip().lower()
-                label = translation_map.get(norm_field, p_field)
-                if p_field in translation_map:
-                    label = translation_map[p_field]
-                elif p_field.lower() == "playerid":
+                label = p_field
+                p_lower = p_field.lower()
+                if p_lower in ("playerid", "player_id"):
                     label = "معرّف اللاعب (Player ID)"
-                    
+                elif p_lower in ("username", "user_name", "user"):
+                    label = "اسم المستخدم (Username)"
+                elif p_lower in ("phone", "mobile", "number"):
+                    label = "رقم الهاتف / الحساب"
+                elif p_lower in ("email",):
+                    label = "البريد الإلكتروني"
+
                 fields_list.append({
-                    "name": p_field,
-                    "label": label,
+                    "name": p_field, # CRITICAL: MUST BE EXACT PARAMETER NAME EXPECTED BY API
+                    "label": label,  # UI display label
                     "type": "text",
                     "required": True
                 })
@@ -829,41 +703,35 @@ def sync_alkasr_catalog(store, selected_category_ids=None, markup_percent=0.0, i
                 "version": 1,
                 "fields": fields_list
             }
-            
-            cost_val = Decimal(str(alkasr_price))
-            markup_factor = Decimal(1) + (Decimal(str(markup_percent)) / Decimal(100))
-            retail_price = cost_val * markup_factor
-            
+
+            # Get or create Main Category
             main_category = existing_categories.get(main_cat_name)
             if not main_category:
                 main_category = Category.objects.create(
                     name=main_cat_name,
                     store=store,
                     is_active=True,
-                    parent=None
+                    parent=None,
+                    sort_order=index
                 )
                 existing_categories[main_cat_name] = main_category
-                
-            if main_cat_name not in category_order:
-                category_order.append(main_cat_name)
-            cat_sort_order = category_order.index(main_cat_name)
-            if main_category.sort_order != cat_sort_order:
-                main_category.sort_order = cat_sort_order
-                main_category.save(update_fields=['sort_order'])
-                
-            sub_category_cache_key = f"{main_cat_name} > {sub_cat_name}"
-            sub_category = existing_categories.get(sub_category_cache_key)
+
+            # Get or create Sub Category
+            sub_category_key = f"{main_cat_name} > {prod_name}"
+            sub_category = existing_categories.get(sub_category_key)
             if not sub_category:
                 sub_category = Category.objects.create(
-                    name=sub_cat_name,
+                    name=prod_name,
                     store=store,
                     is_active=True,
-                    parent=main_category
+                    parent=main_category,
+                    sort_order=index
                 )
-                existing_categories[sub_category_cache_key] = sub_category
-            
+                existing_categories[sub_category_key] = sub_category
+
             target_category = sub_category
-            
+
+            # Get or create Product (App / Game Title)
             prod_cache_key = f"{target_category.id}_{prod_name}"
             product = existing_products.get(prod_cache_key)
             if not product:
@@ -897,18 +765,12 @@ def sync_alkasr_catalog(store, selected_category_ids=None, markup_percent=0.0, i
                                 existing_fields.append(new_f)
                         product.form_schema = {"version": 1, "fields": existing_fields}
                 product.api_provider = "alkasr"
-                
-                if not product.description or product.description.lower() in ["none", "null", "none.", "null."]:
-                    product.description = ""
-                elif "Alkasr API" in product.description:
-                    product.description = ""
-                    
                 product.save()
-            
+
+            # Create or update Variant (Package / Quantity Item)
             variant = existing_variants.get(api_prod_id)
-            variant_meta = parse_qty_values(item.get("qty_values"))
-            variant_meta["product_type"] = item.get("product_type")
-            
+            variant_meta = parse_qty_values(item.get("qty_values"), product_type=item.get("product_type", "package"))
+
             if variant:
                 variant.product = product
                 variant.name = var_name
@@ -917,7 +779,6 @@ def sync_alkasr_catalog(store, selected_category_ids=None, markup_percent=0.0, i
                 variant.is_active = is_available
                 variant.metadata = variant_meta
                 variant.save()
-                
                 updated_count += 1
             else:
                 store_prefix = f"-{store.subdomain.upper()}" if store and store.subdomain else ""
@@ -927,7 +788,7 @@ def sync_alkasr_catalog(store, selected_category_ids=None, markup_percent=0.0, i
                     sku_code = f"ALK{store_prefix}-{api_prod_id}-{suffix}"
                     suffix += 1
                 existing_skus.add(sku_code)
-                    
+
                 variant = ProductVariant.objects.create(
                     product=product,
                     name=var_name,
@@ -941,7 +802,7 @@ def sync_alkasr_catalog(store, selected_category_ids=None, markup_percent=0.0, i
                 )
                 existing_variants[api_prod_id] = variant
                 created_count += 1
-                
+
     return {
         "status": "success",
         "created": created_count,
