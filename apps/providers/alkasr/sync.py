@@ -57,7 +57,14 @@ class AlkasrSyncService:
                     desc = pdata.get("desc", "")
                     
                     cat_name = pdata.get("category_name") or pdata.get("category") or ""
-                    cat_id = str(pdata.get("parent_id") or cat_name or "0")
+                    raw_parent = pdata.get("parent_id")
+                    if raw_parent is not None and str(raw_parent) != "":
+                        cat_id = str(raw_parent)
+                    elif cat_name:
+                        cat_id = cat_name
+                    else:
+                        cat_id = "0"
+
                     cost = Decimal(str(pdata.get("price", "0.00")))
                     is_available = pdata.get("available", True)
                     
