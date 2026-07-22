@@ -39,9 +39,14 @@ class AlkasrClient:
         data["key"] = self.api_token
         data["action"] = action
 
-        url = self.base_url.rstrip("/") + "/api/v2"
-        if not url.startswith("http"):
-            url = "https://" + url
+        base = self.base_url.rstrip("/")
+        if not base.startswith("http"):
+            base = "https://" + base
+
+        if not base.endswith("/api/v2") and "/api/v2" not in base:
+            url = base + "/api/v2"
+        else:
+            url = base
 
         # Create Request Log
         req_log = ProviderRequestLog.objects.create(

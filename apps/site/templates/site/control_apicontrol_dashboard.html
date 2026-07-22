@@ -618,12 +618,14 @@
                                 <span class="badge danger text-[9px] font-black"><i class="fas fa-circle-xmark ml-1"></i> فشل</span>
                             {% endif %}
                         </td>
-                        <td class="p-4 text-center text-slate-400 max-w-[200px] truncate" title="{{ log.error_message|default:log.response_body }}">
+                        <td class="p-4 text-center text-slate-400 max-w-[200px] truncate" title="{% if not log.is_success %}{{ log.error_message|default:log.response_body }}{% endif %}">
                             {% if log.error_code %}
                                 <span class="text-rose-400 font-bold">ERR-{{ log.error_code }}</span>
                                 {% if log.error_message %} - <span class="text-[10px]">{{ log.error_message }}</span>{% endif %}
+                            {% elif not log.is_success %}
+                                <span class="text-rose-400 text-xs">{{ log.error_message|default:"فشل الطلب" }}</span>
                             {% else %}
-                                {{ log.error_message|default:"-" }}
+                                <span class="text-emerald-400 text-xs font-bold"><i class="fas fa-check ml-1"></i> لا توجد أخطاء</span>
                             {% endif %}
                         </td>
                         <td class="p-4 text-center">
