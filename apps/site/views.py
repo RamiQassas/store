@@ -5605,24 +5605,39 @@ def control_apicontrol_dashboard(request):
                 messages.error(request, "لا توجد بوابة ربط نشطة لبدء المزامنة. يرجى إضافة بوابة ربط وتفعيلها من إعدادات البوابات.")
                 return redirect(redirect_url)
                 
-            try:
-                svc = AlkasrSyncService(profile_obj)
-                stats = svc.sync_catalog()
-                mapper = AlkasrMapperService(profile_obj)
-                mapper.map_all_to_catalog()
-                messages.success(request, f"تمت عملية المزامنة بنجاح! تم استيراد {stats['created']} منتج جديد، وتحديث {stats['updated']} منتج.")
-            except Exception as e:
-                messages.error(request, f"فشلت عملية المزامنة: {str(e)}")
+            def _background_sync(profile_id):
+                from apps.providers.models import ProviderProfile
+                try:
+                    p_obj = ProviderProfile.objects.get(id=profile_id)
+                    svc = AlkasrSyncService(p_obj)
+                    svc.sync_catalog()
+                    mapper = AlkasrMapperService(p_obj)
+                    mapper.map_all_to_catalog()
+                except Exception as e:
+                    import logging
+                    logging.getLogger(__name__).exception(f"Background sync failed for profile {profile_id}: {e}")
+
+            import threading
+            threading.Thread(target=_background_sync, args=(profile_obj.id,), daemon=True).start()
+            
+            messages.success(request, "🚀 بدأت عملية المزامنة بنجاح في الخلفية! يتم الآن سحب واستيراد كافة المنتجات وتحديث الكتالوج تلقائياً دون أي إبطاء.")
             return redirect(redirect_url)
             
         elif action == "refresh_cache":
             if profile_obj:
-                try:
-                    AlkasrProfileService(profile_obj).fetch_balance()
-                    AlkasrSyncService(profile_obj).sync_catalog()
-                    messages.success(request, "تم تحديث التخزين المؤقت والبيانات بنجاح من المزود.")
-                except Exception as e:
-                    messages.error(request, f"فشل تحديث البيانات: {str(e)}")
+                def _background_refresh(profile_id):
+                    from apps.providers.models import ProviderProfile
+                    try:
+                        p_obj = ProviderProfile.objects.get(id=profile_id)
+                        AlkasrProfileService(p_obj).fetch_balance()
+                        AlkasrSyncService(p_obj).sync_catalog()
+                    except Exception as e:
+                        import logging
+                        logging.getLogger(__name__).exception(f"Background refresh failed for profile {profile_id}: {e}")
+
+                import threading
+                threading.Thread(target=_background_refresh, args=(profile_obj.id,), daemon=True).start()
+                messages.success(request, "⚡ تم بدء تحديث الرصيد والبيانات في الخلفية بنجاح.")
             return redirect(redirect_url)
             
         elif action == "clear_catalog":
