@@ -1,5 +1,5 @@
 from django.contrib import admin
-from apps.payments.models import DepositRequest, PaymentMethod, WithdrawalRequest
+from apps.payments.models import DepositRequest, PaymentGatewayIntegration, PaymentMethod, WithdrawalRequest
 
 
 @admin.register(PaymentMethod)
@@ -8,6 +8,13 @@ class PaymentMethodAdmin(admin.ModelAdmin):
     list_filter = ("method_type", "is_active", "is_maintenance_mode", "can_deposit", "can_withdraw")
     search_fields = ("name", "provider_name")
     ordering = ("display_order", "name")
+
+
+@admin.register(PaymentGatewayIntegration)
+class PaymentGatewayIntegrationAdmin(admin.ModelAdmin):
+    list_display = ("name", "provider", "mode", "store", "is_active", "can_deposit", "can_withdraw", "last_health_status")
+    list_filter = ("provider", "mode", "is_active", "can_deposit", "can_withdraw")
+    search_fields = ("name", "base_url")
 
 
 @admin.register(DepositRequest)

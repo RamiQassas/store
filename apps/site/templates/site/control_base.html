@@ -235,6 +235,9 @@
             <a href="{% url 'control_wallets_list' %}" class="admin-nav-link {% if 'wallets' in request.path %}active{% endif %}">
                 <i class="fas fa-vault"></i> محافظ المستخدمين
             </a>
+            <a href="{% url 'payment_gateway_integrations_list' %}" class="admin-nav-link {% if 'payment-gateways' in request.path %}active{% endif %}">
+                <i class="fas fa-code-branch text-cyan"></i> بوابات دفع API
+            </a>
             <a href="{% url 'control_recharge_cards' %}" class="admin-nav-link {% if 'recharge-card' in request.path %}active{% endif %}">
                 <i class="fas fa-gift"></i> بطاقات الشحن
             </a>

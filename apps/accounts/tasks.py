@@ -215,6 +215,50 @@ def sync_pending_api_orders_task():
     Periodically checks pending and processing API orders against providers.
     Updates order statuses (COMPLETED, CANCELLED) and automatically refunds customer wallets
     if the order is rejected or cancelled by the provider.
-    (To be implemented with the new Provider architecture)
     """
-    pass
+    from apps.orders.models import Order
+    from apps.orders.provider_status import apply_provider_status
+    from apps.providers.alkasr import AlkasrOrderService
+
+    orders = (
+        Order.objects
+        .filter(
+            status=Order.Status.PROCESSING,
+            items__variant__api_product_id__isnull=False,
+        )
+        .select_related("customer")
+        .prefetch_related("provider_orders__profile")
+        .distinct()[:100]
+    )
+
+    checked = 0
+    updated = 0
+    errors = 0
+
+    for order in orders:
+        provider_order = order.provider_orders.select_related("profile").first()
+        if not provider_order:
+            continue
+        try:
+            service = AlkasrOrderService(provider_order.profile)
+            identifiers = [order.api_order_uuid] if order.api_order_uuid else [order.api_order_id]
+            if not identifiers[0]:
+                continue
+            data_list = service.check_orders(identifiers, is_uuid=bool(order.api_order_uuid))
+            checked += 1
+            if not data_list:
+                continue
+            old_status = order.status
+            order = apply_provider_status(
+                order,
+                data_list[0].get("status"),
+                raw_response=data_list[0],
+                actor=None,
+                note_prefix="فحص تلقائي",
+            )
+            if order.status != old_status:
+                updated += 1
+        except Exception:
+            errors += 1
+
+    return f"Checked {checked} API orders, updated {updated}, errors {errors}."

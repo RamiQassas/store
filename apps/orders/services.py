@@ -296,91 +296,13 @@ def create_order(customer, variant_id, quantity=1, fulfillment_data=None,
 
     total = max(subtotal - discount, Decimal("0.00"))
 
-    # ── API order placement ───────────────────────────────────────────────────
-    order_status         = Order.Status.PROCESSING
-    final_fulfillment    = dict(fulfillment_data or {})
-    api_order_id         = None
-    api_order_uuid       = None
-
-    if variant.product.is_api_product and variant.api_product_id:
-        api_order_uuid = uuid.uuid4()
-        provider       = variant.product.api_provider or "alkasr"
-
-        if provider == "alkasr":
-            from apps.providers.models import ProviderProfile
-            from apps.providers.alkasr import AlkasrOrderService
-            
-            # Find the active alkasr profile
-            profile = ProviderProfile.objects.filter(provider_name="alkasr", is_active=True).first()
-            if profile:
-                svc = AlkasrOrderService(profile)
-                try:
-                    # Using local_variant to find ProviderMapping
-                    mapping = variant.provider_mapping
-                    if mapping and mapping.provider_product:
-                        api_resp = svc.place_order(order, mapping.provider_product, quantity, metadata or {})
-                    else:
-                        api_resp = {"status": "error", "message": "Product is not mapped to provider."}
-                except Exception as e:
-                    api_resp = {"status": "error", "message": str(e)}
-            else:
-                api_resp = {"status": "error", "message": "Provider profile not found or inactive."}
-        else:
-            api_resp = {
-                "status": "OK",
-                "data": {
-                    "status": "wait",
-                    "order_id": f"{provider.upper()}-{uuid.uuid4().hex[:8]}",
-                },
-            }
-
-        if str(api_resp.get("status", "")).upper() == "OK":
-            api_data     = api_resp.get("data", {})
-            api_status   = api_data.get("status", "wait")
-            api_order_id = api_data.get("order_id")
-
-            final_fulfillment["api_order_id"] = api_order_id
-            final_fulfillment["api_status"]   = api_status
-            final_fulfillment["api_response"] = api_resp
-            final_fulfillment["api_provider"] = provider
-
-            if api_status == "accept":
-                order_status = Order.Status.COMPLETED
-            elif api_status == "reject":
-                err = api_resp.get("message") or "الطلب مرفوض من المزوّد."
-                raise ValueError(f"رُفض الطلب من المزوّد: {err}")
-            # "wait" → stays PROCESSING
-
-        else:
-            # Provider returned an error
-            raw_err = api_resp.get("message") or api_resp.get("error") or "خطأ غير معروف."
-            m = re.search(r"ERR-(\d+)", raw_err)
-            err_code = int(m.group(1)) if m else 0
-
-            try:
-                from apps.notifications.services import notify_provider_error
-                notify_provider_error(
-                    error_code=err_code,
-                    provider_name=provider,
-                    product_id=variant.api_product_id,
-                    detail=raw_err,
-                    store=str(variant.product.store) if variant.product.store else None,
-                )
-            except Exception:
-                pass
-
-            customer_msg = (
-                f"لم يتم معالجة طلبك (رمز الخطأ: ERR-{err_code}). يرجى التواصل مع الدعم."
-                if err_code
-                else "لم يتم معالجة طلبك بسبب خطأ مؤقت. يرجى التواصل مع الدعم."
-            )
-            raise ValueError(customer_msg)
-
-    elif variant.delivery_type == "keys":
-        order_status = Order.Status.COMPLETED
+    order_status = Order.Status.COMPLETED if variant.delivery_type == "keys" else Order.Status.PROCESSING
+    final_fulfillment = dict(fulfillment_data or {})
+    api_order_uuid = uuid.uuid4() if variant.product.is_api_product and variant.api_product_id else None
+    api_order_id = None
+    if locked_keys:
         final_fulfillment["keys"] = [k.key_code for k in locked_keys]
 
-    # ── Create Order + OrderItem ──────────────────────────────────────────────
     order = Order.objects.create(
         customer=customer,
         number=next_order_number(),
@@ -427,9 +349,80 @@ def create_order(customer, variant_id, quantity=1, fulfillment_data=None,
         created_by=customer,
     )
 
+    if variant.product.is_api_product and variant.api_product_id:
+        provider = variant.product.api_provider or "alkasr"
+        api_order_id = None
+        try:
+            if provider == "alkasr":
+                from apps.providers.alkasr import AlkasrOrderService
+                mapping = getattr(variant, "provider_mapping", None)
+                if not mapping or not mapping.provider_product:
+                    raise ValueError("Product is not mapped to Alkasr provider product.")
+                svc = AlkasrOrderService(mapping.provider_product.profile)
+                api_resp = svc.place_order(
+                    order,
+                    mapping.provider_product,
+                    quantity,
+                    metadata or {},
+                    order_uuid=api_order_uuid,
+                )
+                api_status = api_resp.get("status") or "wait"
+                api_order_id = api_resp.get("remote_order_id")
+                raw_response = api_resp.get("raw_response") or api_resp
+            else:
+                api_status = "wait"
+                api_order_id = f"{provider.upper()}-{uuid.uuid4().hex[:8]}"
+                raw_response = {"status": "OK", "data": {"status": api_status, "order_id": api_order_id}}
+
+            fulfillment = dict(order.fulfillment_data or {})
+            fulfillment.update({
+                "api_provider": provider,
+                "api_order_id": api_order_id,
+                "api_status": api_status,
+                "api_response": raw_response,
+            })
+            order.api_order_id = api_order_id
+            order.fulfillment_data = fulfillment
+            order.save(update_fields=["api_order_id", "fulfillment_data", "updated_at"])
+
+            from apps.orders.provider_status import apply_provider_status
+            order = apply_provider_status(
+                order,
+                api_status,
+                raw_response=raw_response,
+                actor=customer,
+                note_prefix="Alkasr API" if provider == "alkasr" else "Provider API",
+            )
+        except Exception as exc:
+            fulfillment = dict(order.fulfillment_data or {})
+            fulfillment.update({
+                "api_provider": provider,
+                "api_status": "error",
+                "api_error": str(exc),
+            })
+            order.fulfillment_data = fulfillment
+            order.save(update_fields=["fulfillment_data", "updated_at"])
+            OrderLog.objects.create(
+                order=order,
+                status=order.status,
+                note=f"فشل إرسال الطلب إلى المزود: {exc}",
+                created_by=customer,
+            )
+            try:
+                from apps.notifications.services import notify_provider_error
+                notify_provider_error(
+                    error_code=0,
+                    provider_name=provider,
+                    product_id=variant.api_product_id,
+                    detail=str(exc),
+                    store=str(variant.product.store) if variant.product.store else None,
+                )
+            except Exception:
+                pass
+
     # ── Logs + Invoice ────────────────────────────────────────────────────────
     if variant.product.is_api_product and variant.api_product_id:
-        log_note = f"تم إنشاء الطلب وربطه بالـ API (رقم خارجي: {api_order_id})."
+        log_note = f"تم إنشاء الطلب وربطه بالـ API (رقم خارجي: {order.api_order_id or 'بانتظار المزود'})."
     elif locked_keys:
         log_note = "تم إنشاء الطلب وتسليم الأكواد تلقائياً."
     else:

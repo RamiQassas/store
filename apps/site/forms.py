@@ -130,7 +130,7 @@ class RegisterForm(forms.Form):
 
 
 from apps.common.models import Currency
-from apps.payments.models import PaymentMethod
+from apps.payments.models import PaymentGatewayIntegration, PaymentMethod
 
 class CurrencyForm(forms.ModelForm):
     class Meta:
@@ -197,6 +197,30 @@ class PaymentMethodForm(forms.ModelForm):
             "deposit_fee_settings": forms.Textarea(attrs={"rows": 3, "class": "font-mono text-xs builder-input"}),
             "withdrawal_fee_settings": forms.Textarea(attrs={"rows": 3, "class": "font-mono text-xs builder-input"}),
             "supported_currencies": forms.CheckboxSelectMultiple(),
+        }
+
+
+class PaymentGatewayIntegrationForm(forms.ModelForm):
+    class Meta:
+        model = PaymentGatewayIntegration
+        fields = [
+            "name", "provider", "mode", "base_url", "api_key", "api_secret",
+            "webhook_secret", "is_active", "can_deposit", "can_withdraw",
+            "supported_assets", "settings",
+        ]
+        widgets = {
+            "name": forms.TextInput(attrs={"class": "builder-input", "placeholder": "Baniyas Crypto"}),
+            "provider": forms.Select(attrs={"class": "builder-input"}),
+            "mode": forms.Select(attrs={"class": "builder-input"}),
+            "base_url": forms.URLInput(attrs={"class": "builder-input", "placeholder": "https://api.example.com/"}),
+            "api_key": forms.TextInput(attrs={"class": "builder-input", "autocomplete": "off"}),
+            "api_secret": forms.PasswordInput(attrs={"class": "builder-input", "autocomplete": "new-password", "render_value": True}),
+            "webhook_secret": forms.PasswordInput(attrs={"class": "builder-input", "autocomplete": "new-password", "render_value": True}),
+            "is_active": forms.CheckboxInput(attrs={"class": "rounded text-cyan"}),
+            "can_deposit": forms.CheckboxInput(attrs={"class": "rounded text-cyan"}),
+            "can_withdraw": forms.CheckboxInput(attrs={"class": "rounded text-cyan"}),
+            "supported_assets": forms.Textarea(attrs={"rows": 4, "class": "font-mono text-xs builder-input", "placeholder": "[\"USDT-TRC20\", \"USDT-BEP20\"]"}),
+            "settings": forms.Textarea(attrs={"rows": 5, "class": "font-mono text-xs builder-input", "placeholder": "{\"confirmations\": 1}"}),
         }
 
 

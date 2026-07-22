@@ -1,5 +1,4 @@
 import uuid
-from decimal import Decimal
 from .client import AlkasrClient
 from apps.providers.models import ProviderOrder, ProviderOrderStatus
 
@@ -8,19 +7,34 @@ class AlkasrOrderService:
         self.profile = profile
         self.client = AlkasrClient(profile)
 
-    def place_order(self, local_order, provider_product, quantity, parameters):
+    def place_order(self, local_order, provider_product, quantity, parameters, order_uuid=None):
         """Places a new order with the provider via GET /client/api/newOrder/[product_id]/params."""
         
-        provider_order_uuid = uuid.uuid4()
+        provider_order_uuid = order_uuid or uuid.uuid4()
         
-        provider_order = ProviderOrder.objects.create(
-            profile=self.profile,
-            local_order=local_order,
-            product=provider_product,
+        provider_order, _ = ProviderOrder.objects.get_or_create(
             uuid=provider_order_uuid,
-            quantity=quantity,
-            parameters_sent=parameters
+            defaults={
+                "profile": self.profile,
+                "local_order": local_order,
+                "product": provider_product,
+                "quantity": quantity,
+                "parameters_sent": parameters,
+            },
         )
+        if provider_order.pk and provider_order.remote_order_id:
+            return {
+                "success": True,
+                "status": provider_order.status,
+                "remote_order_id": provider_order.remote_order_id,
+                "raw_response": {"status": "OK", "data": {"status": provider_order.status, "order_id": provider_order.remote_order_id}},
+            }
+        provider_order.profile = self.profile
+        provider_order.local_order = local_order
+        provider_order.product = provider_product
+        provider_order.quantity = quantity
+        provider_order.parameters_sent = parameters
+        provider_order.save()
 
         payload = {
             "product_id": provider_product.remote_id,

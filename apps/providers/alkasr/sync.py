@@ -1,15 +1,21 @@
 import logging
 from decimal import Decimal
+
 from django.db import transaction
 from django.utils import timezone
 
 from apps.providers.models import (
-    ProviderCategory, ProviderProduct, ProviderProductParameter, 
-    ProviderPrice, ProviderPriceHistory, ProviderSyncLog
+    ProviderCategory,
+    ProviderPrice,
+    ProviderPriceHistory,
+    ProviderProduct,
+    ProviderProductParameter,
+    ProviderSyncLog,
 )
 from .products import AlkasrProductService
 
 logger = logging.getLogger(__name__)
+
 
 class AlkasrSyncService:
     def __init__(self, profile):
@@ -17,257 +23,301 @@ class AlkasrSyncService:
         self.product_svc = AlkasrProductService(profile)
 
     def sync_catalog(self):
-        """Main entrypoint for syncing categories and products."""
         sync_log = ProviderSyncLog.objects.create(profile=self.profile, status="running")
-        
+
         try:
-            # 1. Fetch data
             raw_products = self.product_svc.fetch_products()
-            root_content = self.product_svc.fetch_content(0)
-            
-            stats = {
-                "created": 0,
-                "updated": 0,
-                "disabled": 0
-            }
+            content_by_id = self._fetch_content_tree()
+            stats = {"created": 0, "updated": 0, "disabled": 0}
 
-            # 2. Build Category Tree
-            # The API returns nested categories via fetch_content recursively or we can parse it from `categories` key in root_content
-            # To simplify, we extract what we can from products and root_content
-            categories_dict = {}
-            if "categories" in root_content:
-                self._process_categories(root_content["categories"], parent_remote_id=None, categories_dict=categories_dict)
-                
-            # 3. Flatten and Extract ALL Products Recursively
-            active_remote_ids = set()
-            raw_products_list = []
-            
-            def extract_products_recursive(obj):
-                if isinstance(obj, list):
-                    for item in obj:
-                        extract_products_recursive(item)
-                elif isinstance(obj, dict):
-                    # If this dict has product characteristics
-                    if "id" in obj and ("name" in obj or "price" in obj or "product_type" in obj):
-                        raw_products_list.append(obj)
-                    # Check nested containers
-                    if "products" in obj and isinstance(obj["products"], (list, dict)):
-                        extract_products_recursive(obj["products"])
-                    if "categories" in obj and isinstance(obj["categories"], (list, dict)):
-                        extract_products_recursive(obj["categories"])
-                    if "subcategories" in obj and isinstance(obj["subcategories"], (list, dict)):
-                        extract_products_recursive(obj["subcategories"])
-                    if "data" in obj and isinstance(obj["data"], (list, dict)):
-                        extract_products_recursive(obj["data"])
+            with transaction.atomic():
+                categories_by_remote = self._sync_categories(content_by_id)
+                products = self._dedupe_products(
+                    self._extract_products(raw_products)
+                    + self._extract_products(list(content_by_id.values()))
+                )
+                active_remote_ids = set()
 
-            extract_products_recursive(raw_products)
-            extract_products_recursive(root_content)
-
-            # Deduplicate by product ID
-            seen_ids = set()
-            unique_products = []
-            for item in raw_products_list:
-                item_id = str(item.get("id", item.get("service", "")))
-                if item_id and item_id not in seen_ids:
-                    seen_ids.add(item_id)
-                    unique_products.append((item_id, item))
-
-            for pid, pdata in unique_products:
-                try:
-                    active_remote_ids.add(str(pid))
-                    remote_id = str(pid)
-                    name = str(pdata.get("name") or f"Product {pid}")
-                    desc = str(pdata.get("desc") or "")
-                    
-                    cat_name = str(pdata.get("category_name") or pdata.get("category") or "")
-                    raw_parent = pdata.get("parent_id")
-                    if raw_parent is not None and str(raw_parent) != "":
-                        cat_id = str(raw_parent)
-                    elif cat_name:
-                        cat_id = cat_name
-                    else:
-                        cat_id = "0"
-
-                    try:
-                        cost = Decimal(str(pdata.get("price", "0.00")))
-                    except Exception:
-                        cost = Decimal("0.00")
-
-                    is_available = pdata.get("available", True)
-                    
-                    category_obj = categories_dict.get(cat_id)
-                    if not category_obj and (cat_name or cat_id):
-                        c_name = cat_name if cat_name else f"Category {cat_id}"
-                        category_obj, _ = ProviderCategory.objects.get_or_create(
-                            profile=self.profile, 
-                            remote_id=cat_id,
-                            defaults={"name": c_name}
-                        )
-                        if category_obj.name != c_name and cat_name:
-                            category_obj.name = cat_name
-                            category_obj.save(update_fields=["name"])
-                        categories_dict[cat_id] = category_obj
-
-                    p_type_from_api = pdata.get("product_type")
-                    qty_values = pdata.get("qty_values")
-
-                    if p_type_from_api in ("amount", "package", "fixed_quantities"):
-                        product_type = p_type_from_api
-                    elif qty_values is None:
-                        product_type = "package"
-                    elif isinstance(qty_values, dict):
-                        product_type = "amount"
-                    elif isinstance(qty_values, list):
-                        product_type = "fixed_quantities"
-                    else:
-                        product_type = "package"
-
-                    def _clean_int(val):
-                        if val is None or val == "":
-                            return None
-                        try:
-                            v = int(float(str(val)))
-                            return max(-2147483648, min(v, 9223372036854775807))
-                        except (ValueError, TypeError):
-                            return None
-
-                    if isinstance(qty_values, dict):
-                        qty_min = _clean_int(qty_values.get("min"))
-                        qty_max = _clean_int(qty_values.get("max"))
-                        qty_list = []
-                    elif isinstance(qty_values, list):
-                        qty_list = qty_values
-                        qty_min, qty_max = None, None
-                    else:
-                        qty_min, qty_max, qty_list = None, None, []
-
-                    product_obj = ProviderProduct.objects.filter(profile=self.profile, remote_id=remote_id).first()
-                    is_new = product_obj is None
-                    
+                for remote_id, pdata in products:
+                    active_remote_ids.add(remote_id)
+                    is_new = self._upsert_product(remote_id, pdata, categories_by_remote)
                     if is_new:
-                        product_obj = ProviderProduct.objects.create(
-                            profile=self.profile,
-                            remote_id=remote_id,
-                            name=name,
-                            category=category_obj,
-                            product_type=product_type,
-                            cost_price=cost,
-                            qty_min=qty_min,
-                            qty_max=qty_max,
-                            qty_list=qty_list,
-                            is_active=bool(is_available)
-                        )
-                        
-                        ProviderPrice.objects.create(
-                            product=product_obj,
-                            margin_type="percentage",
-                            margin_value=Decimal('0.00')
-                        )
                         stats["created"] += 1
                     else:
-                        old_cost = product_obj.cost_price
-                        product_obj.name = name
-                        product_obj.category = category_obj
-                        product_obj.product_type = product_type
-                        product_obj.cost_price = cost
-                        product_obj.qty_min = qty_min
-                        product_obj.qty_max = qty_max
-                        product_obj.qty_list = qty_list
-                        product_obj.is_active = True
-                        product_obj.save()
-                        
-                        pricing_obj = getattr(product_obj, "pricing", None)
-                        if not pricing_obj:
-                            pricing_obj = ProviderPrice.objects.create(
-                                product=product_obj,
-                                margin_type="percentage",
-                                margin_value=Decimal('0.00')
-                            )
-                        
-                        if old_cost != cost:
-                            ProviderPriceHistory.objects.create(
-                                product=product_obj,
-                                old_cost=old_cost,
-                                new_cost=cost,
-                                old_final_price=pricing_obj.final_price,
-                                new_final_price=pricing_obj.final_price,
-                                reason="API Sync Cost Update"
-                            )
                         stats["updated"] += 1
 
-                    params = pdata.get("params", [])
-                    if params:
-                        ProviderProductParameter.objects.filter(product=product_obj).delete()
-                        for p in params:
-                            if isinstance(p, dict):
-                                ProviderProductParameter.objects.create(
-                                    product=product_obj,
-                                    name=p.get("name", "param"),
-                                    label=p.get("label", "Param"),
-                                    required=True,
-                                    parameter_type=p.get("type", "text")
-                                )
-                            elif isinstance(p, str):
-                                ProviderProductParameter.objects.create(
-                                    product=product_obj,
-                                    name=p,
-                                    label=p.replace("_", " ").title(),
-                                    required=True,
-                                    parameter_type="text"
-                                )
-                except Exception as item_err:
-                    logger.warning(f"Skipping product item {pid} due to error: {item_err}")
-                    continue
+                if active_remote_ids:
+                    stats["disabled"] = ProviderProduct.objects.filter(
+                        profile=self.profile,
+                        is_active=True,
+                    ).exclude(remote_id__in=active_remote_ids).update(is_active=False)
 
-                # Disable products not in API
-                disabled_count = ProviderProduct.objects.filter(profile=self.profile, is_active=True).exclude(remote_id__in=active_remote_ids).update(is_active=False)
-                stats["disabled"] = disabled_count
+                sync_log.status = "success"
+                sync_log.products_created = stats["created"]
+                sync_log.products_updated = stats["updated"]
+                sync_log.products_disabled = stats["disabled"]
+                sync_log.save()
 
-            sync_log.status = "success"
-            sync_log.products_created = stats["created"]
-            sync_log.products_updated = stats["updated"]
-            sync_log.products_disabled = stats["disabled"]
-            sync_log.save()
-            
-            self.profile.last_sync_at = timezone.now()
-            self.profile.save(update_fields=["last_sync_at"])
-            
+                self.profile.last_sync_at = timezone.now()
+                self.profile.save(update_fields=["last_sync_at"])
+
             return stats
 
-        except Exception as e:
-            logger.exception("Alkasr Sync Failed")
+        except Exception as exc:
+            logger.exception("Alkasr sync failed")
             sync_log.status = "failed"
-            sync_log.error_message = str(e)
+            sync_log.error_message = str(exc)
+            sync_log.errors_count = 1
             sync_log.save()
             raise
 
-    def _process_categories(self, categories_list, parent_remote_id, categories_dict):
-        """Recursively build category tree from content."""
-        if not isinstance(categories_list, list):
-            return
-            
-        for cat in categories_list:
-            cat_id = str(cat.get("id", ""))
-            name = cat.get("name", "")
-            
-            if not cat_id:
+    def _fetch_content_tree(self, max_nodes=250):
+        content_by_id = {}
+        queue = ["0"]
+        seen = set()
+
+        while queue and len(seen) < max_nodes:
+            category_id = str(queue.pop(0))
+            if category_id in seen:
                 continue
-                
-            parent_obj = None
-            if parent_remote_id:
-                parent_obj = categories_dict.get(str(parent_remote_id))
-                
-            cat_obj, created = ProviderCategory.objects.update_or_create(
+            seen.add(category_id)
+
+            try:
+                content = self.product_svc.fetch_content(category_id)
+            except Exception:
+                logger.exception("Failed to fetch Alkasr content category %s", category_id)
+                continue
+
+            content_by_id[category_id] = content
+            for cat in self._extract_categories(content):
+                cat_id = self._clean_remote_id(cat.get("id"))
+                if cat_id and cat_id not in seen:
+                    queue.append(cat_id)
+
+        return content_by_id
+
+    def _sync_categories(self, content_by_id):
+        categories_by_remote = {}
+        pending = []
+
+        for parent_remote_id, content in content_by_id.items():
+            for cat in self._extract_categories(content):
+                remote_id = self._clean_remote_id(cat.get("id"))
+                if not remote_id:
+                    continue
+                inferred_parent = None if str(parent_remote_id) == "0" else str(parent_remote_id)
+                pending.append((remote_id, str(cat.get("name") or f"Category {remote_id}"), inferred_parent))
+
+        for remote_id, name, parent_remote_id in pending:
+            parent = categories_by_remote.get(parent_remote_id)
+            obj, _ = ProviderCategory.objects.update_or_create(
                 profile=self.profile,
-                remote_id=cat_id,
+                remote_id=remote_id,
                 defaults={
                     "name": name,
                     "parent_remote_id": parent_remote_id,
-                    "parent": parent_obj
-                }
+                    "parent": parent,
+                },
             )
-            categories_dict[cat_id] = cat_obj
-            
-            # Fetch subcategories if needed (this might require making more API calls depending on provider structure)
-            # For Alkasr, sometimes it returns subcategories directly or requires fetching content for cat_id
-            # To avoid N+1 requests, we assume we fetch it lazily or it's flat in products.
+            categories_by_remote[remote_id] = obj
+
+        return categories_by_remote
+
+    def _upsert_product(self, remote_id, pdata, categories_by_remote):
+        name = str(pdata.get("name") or f"Product {remote_id}")
+        cost = self._decimal(pdata.get("price", pdata.get("base_price", "0.00")))
+        is_available = bool(pdata.get("available", True))
+
+        category_obj = self._category_for_product(pdata, categories_by_remote)
+        product_type, qty_min, qty_max, qty_list = self._quantity_config(pdata)
+
+        product_obj = ProviderProduct.objects.filter(
+            profile=self.profile,
+            remote_id=remote_id,
+        ).first()
+        is_new = product_obj is None
+
+        if is_new:
+            product_obj = ProviderProduct.objects.create(
+                profile=self.profile,
+                remote_id=remote_id,
+                name=name,
+                category=category_obj,
+                product_type=product_type,
+                cost_price=cost,
+                qty_min=qty_min,
+                qty_max=qty_max,
+                qty_list=qty_list,
+                is_active=is_available,
+            )
+            ProviderPrice.objects.create(
+                product=product_obj,
+                margin_type="percentage",
+                margin_value=Decimal("0.00"),
+            )
+        else:
+            old_cost = product_obj.cost_price
+            product_obj.name = name
+            product_obj.category = category_obj
+            product_obj.product_type = product_type
+            product_obj.cost_price = cost
+            product_obj.qty_min = qty_min
+            product_obj.qty_max = qty_max
+            product_obj.qty_list = qty_list
+            product_obj.is_active = is_available
+            product_obj.save()
+
+            pricing_obj = getattr(product_obj, "pricing", None)
+            if not pricing_obj:
+                pricing_obj = ProviderPrice.objects.create(
+                    product=product_obj,
+                    margin_type="percentage",
+                    margin_value=Decimal("0.00"),
+                )
+
+            if old_cost != cost:
+                ProviderPriceHistory.objects.create(
+                    product=product_obj,
+                    old_cost=old_cost,
+                    new_cost=cost,
+                    old_final_price=pricing_obj.final_price,
+                    new_final_price=pricing_obj.final_price,
+                    reason="Alkasr API sync cost update",
+                )
+
+        ProviderProductParameter.objects.filter(product=product_obj).delete()
+        for param in pdata.get("params") or []:
+            name_key, label, field_type = self._normalize_param(param)
+            ProviderProductParameter.objects.create(
+                product=product_obj,
+                name=name_key,
+                label=label,
+                required=True,
+                parameter_type=field_type,
+            )
+
+        return is_new
+
+    def _category_for_product(self, pdata, categories_by_remote):
+        parent_id = self._clean_remote_id(pdata.get("parent_id"))
+        if parent_id and parent_id in categories_by_remote:
+            return categories_by_remote[parent_id]
+
+        category_name = str(pdata.get("category_name") or pdata.get("category") or "").strip()
+        if not category_name:
+            return None
+
+        remote_id = parent_id or f"name:{category_name}"
+        obj, _ = ProviderCategory.objects.update_or_create(
+            profile=self.profile,
+            remote_id=remote_id,
+            defaults={"name": category_name, "parent_remote_id": parent_id or None},
+        )
+        categories_by_remote[remote_id] = obj
+        return obj
+
+    def _quantity_config(self, pdata):
+        qty_values = pdata.get("qty_values")
+        api_type = pdata.get("product_type")
+
+        if api_type in ("amount", "package", "fixed_quantities"):
+            product_type = api_type
+        elif qty_values is None:
+            product_type = "package"
+        elif isinstance(qty_values, dict):
+            product_type = "amount"
+        elif isinstance(qty_values, list):
+            product_type = "fixed_quantities"
+        else:
+            product_type = "package"
+
+        if isinstance(qty_values, dict):
+            return product_type, self._int_or_none(qty_values.get("min")), self._int_or_none(qty_values.get("max")), []
+        if isinstance(qty_values, list):
+            return product_type, None, None, [str(item) for item in qty_values]
+        return product_type, None, None, []
+
+    def _extract_products(self, obj):
+        products = []
+        if isinstance(obj, list):
+            for item in obj:
+                products.extend(self._extract_products(item))
+        elif isinstance(obj, dict):
+            if self._looks_like_product(obj):
+                products.append(obj)
+            for key in ("products", "services", "items", "data", "children", "categories", "subcategories"):
+                value = obj.get(key)
+                if isinstance(value, (list, dict)):
+                    products.extend(self._extract_products(value))
+        return products
+
+    def _extract_categories(self, obj):
+        categories = []
+        if isinstance(obj, list):
+            for item in obj:
+                categories.extend(self._extract_categories(item))
+        elif isinstance(obj, dict):
+            if self._looks_like_category(obj):
+                categories.append(obj)
+            for key in ("categories", "subcategories", "children", "data"):
+                value = obj.get(key)
+                if isinstance(value, (list, dict)):
+                    categories.extend(self._extract_categories(value))
+        return categories
+
+    def _looks_like_product(self, obj):
+        return bool(
+            obj.get("id") is not None
+            and (
+                "price" in obj
+                or "base_price" in obj
+                or "qty_values" in obj
+                or "product_type" in obj
+                or "params" in obj
+            )
+        )
+
+    def _looks_like_category(self, obj):
+        return bool(
+            obj.get("id") is not None
+            and obj.get("name")
+            and not self._looks_like_product(obj)
+        )
+
+    def _dedupe_products(self, raw_products):
+        deduped = {}
+        for item in raw_products:
+            remote_id = self._clean_remote_id(item.get("id") or item.get("service"))
+            if remote_id:
+                deduped[remote_id] = item
+        return list(deduped.items())
+
+    def _normalize_param(self, param):
+        if isinstance(param, dict):
+            raw_name = str(param.get("name") or param.get("key") or param.get("label") or "param").strip()
+            label = str(param.get("label") or raw_name).strip()
+            field_type = str(param.get("type") or "text").strip()
+        else:
+            label = str(param).strip()
+            raw_name = "playerId" if "الايدي" in label or "id" in label.lower() else label
+            field_type = "text"
+        return raw_name or "param", label or raw_name or "Param", field_type or "text"
+
+    def _clean_remote_id(self, value):
+        if value is None or value == "":
+            return ""
+        return str(value).strip()
+
+    def _int_or_none(self, value):
+        if value is None or value == "":
+            return None
+        try:
+            return int(float(str(value)))
+        except (TypeError, ValueError):
+            return None
+
+    def _decimal(self, value):
+        try:
+            return Decimal(str(value))
+        except Exception:
+            return Decimal("0.00")

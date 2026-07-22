@@ -14,7 +14,10 @@ class AlkasrMapperService:
             
         products_list = list(products_qs.select_related('category', 'pricing').prefetch_related('parameters'))
         store = self.profile.store
-        existing_cats = {c.name: c for c in Category.objects.filter(store=store)}
+        existing_cats = {
+            (c.name, c.parent_id): c
+            for c in Category.objects.filter(store=store).select_related("parent")
+        }
         existing_mappings = {
             m.provider_product_id: m 
             for m in ProviderMapping.objects.filter(provider_product__in=products_list).select_related('local_product', 'local_variant')
@@ -26,14 +29,7 @@ class AlkasrMapperService:
                 if not mapping:
                     mapping = ProviderMapping(provider_product=provider_product)
                     
-                cat = None
-                if provider_product.category:
-                    cat_name = provider_product.category.name
-                    if cat_name not in existing_cats:
-                        cat = Category.objects.create(name=cat_name, store=store, is_active=True)
-                        existing_cats[cat_name] = cat
-                    else:
-                        cat = existing_cats[cat_name]
+                cat = self._ensure_local_category(provider_product.category, existing_cats)
 
                 is_active = provider_product.is_active and provider_product.local_is_active
                 product_name = provider_product.local_name or provider_product.name
@@ -55,6 +51,7 @@ class AlkasrMapperService:
                         category=cat,
                         is_active=is_active,
                         is_api_product=True,
+                        api_provider="alkasr",
                         description=description,
                         form_schema=schema
                     )
@@ -64,6 +61,8 @@ class AlkasrMapperService:
                     local_product.name = product_name
                     local_product.description = description
                     local_product.is_active = is_active
+                    local_product.is_api_product = True
+                    local_product.api_provider = "alkasr"
                     local_product.form_schema = schema
                     if cat:
                         local_product.category = cat
@@ -103,6 +102,7 @@ class AlkasrMapperService:
                     local_variant.cost = provider_product.cost_price
                     local_variant.is_active = is_active
                     local_variant.metadata = meta
+                    local_variant.api_product_id = provider_product.remote_id
                     local_variant.save()
 
                 mapping.save()
@@ -113,3 +113,27 @@ class AlkasrMapperService:
     def map_to_catalog(self, provider_product: ProviderProduct):
         """Creates or updates a Product/Variant in the main store catalog."""
         return self.map_all_to_catalog(ProviderProduct.objects.filter(id=provider_product.id))
+
+    def _ensure_local_category(self, provider_category, existing_cats):
+        if not provider_category:
+            return None
+
+        parent = self._ensure_local_category(provider_category.parent, existing_cats)
+        key = (provider_category.name, parent.id if parent else None)
+        if key in existing_cats:
+            return existing_cats[key]
+
+        cat = Category.objects.filter(
+            store=self.profile.store,
+            name=provider_category.name,
+            parent=parent,
+        ).first()
+        if not cat:
+            cat = Category.objects.create(
+                name=provider_category.name,
+                parent=parent,
+                store=self.profile.store,
+                is_active=True,
+            )
+        existing_cats[key] = cat
+        return cat

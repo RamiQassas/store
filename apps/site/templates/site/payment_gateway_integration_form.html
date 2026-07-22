@@ -1,0 +1,83 @@
+{% extends "site/control_base.html" %}
+
+{% block title %}{{ title }} | لوحة التحكم{% endblock %}
+
+{% block control_content %}
+<div class="page-head">
+    <div>
+        <span class="eyebrow"><i class="fas fa-code-branch text-cyan"></i> Payment API</span>
+        <h1>{{ title }}</h1>
+        <p class="text-muted">هذه الإعدادات مخصصة لتجهيز ربط بوابات دفع خارجية. تفعيل المعالجة المالية يحتاج تنفيذ Adapter خاص بتوثيق المزود.</p>
+    </div>
+    <a href="{% url 'payment_gateway_integrations_list' %}" class="btn btn-outline btn-sm">العودة</a>
+</div>
+
+<form method="post" class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+    {% csrf_token %}
+    <div class="lg:col-span-8 glass-panel p-8 stack gap-6">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div class="field-group">
+                <label>{{ form.name.label }}</label>
+                {{ form.name }}
+            </div>
+            <div class="field-group">
+                <label>{{ form.provider.label }}</label>
+                {{ form.provider }}
+            </div>
+            <div class="field-group">
+                <label>{{ form.mode.label }}</label>
+                {{ form.mode }}
+            </div>
+            <div class="field-group">
+                <label>{{ form.base_url.label }}</label>
+                {{ form.base_url }}
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div class="field-group">
+                <label>{{ form.api_key.label }}</label>
+                {{ form.api_key }}
+            </div>
+            <div class="field-group">
+                <label>{{ form.api_secret.label }}</label>
+                {{ form.api_secret }}
+            </div>
+        </div>
+
+        <div class="field-group">
+            <label>{{ form.webhook_secret.label }}</label>
+            {{ form.webhook_secret }}
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div class="field-group">
+                <label>{{ form.supported_assets.label }}</label>
+                {{ form.supported_assets }}
+            </div>
+            <div class="field-group">
+                <label>{{ form.settings.label }}</label>
+                {{ form.settings }}
+            </div>
+        </div>
+    </div>
+
+    <div class="lg:col-span-4 glass-panel p-6 h-fit stack gap-5">
+        <label class="flex items-center justify-between gap-4 p-4 bg-white/[0.02] border border-white/5 rounded-2xl">
+            <span class="text-sm font-bold">تفعيل البوابة</span>
+            {{ form.is_active }}
+        </label>
+        <label class="flex items-center justify-between gap-4 p-4 bg-white/[0.02] border border-white/5 rounded-2xl">
+            <span class="text-sm font-bold">الإيداع</span>
+            {{ form.can_deposit }}
+        </label>
+        <label class="flex items-center justify-between gap-4 p-4 bg-white/[0.02] border border-white/5 rounded-2xl">
+            <span class="text-sm font-bold">السحب</span>
+            {{ form.can_withdraw }}
+        </label>
+        <button type="submit" class="btn btn-primary w-full py-3">
+            <i class="fas fa-save ml-2"></i> حفظ الإعدادات
+        </button>
+    </div>
+</form>
+{% endblock %}

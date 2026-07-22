@@ -313,6 +313,50 @@ class PaymentMethodExchangeRateLog(TimeStampedModel):
         return f"{self.payment_method.name}: {self.old_rate} -> {self.new_rate}"
 
 
+class PaymentGatewayIntegration(TimeStampedModel):
+    class Provider(models.TextChoices):
+        BANIYAS_CRYPTO = "baniyas_crypto", "Baniyas Crypto"
+        CUSTOM = "custom", "Custom API"
+
+    class Mode(models.TextChoices):
+        SANDBOX = "sandbox", "Sandbox"
+        LIVE = "live", "Live"
+
+    store = models.ForeignKey(
+        "stores.Store",
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name="payment_gateway_integrations",
+        verbose_name="المتجر",
+    )
+    objects = TenantManager()
+    all_objects = models.Manager()
+
+    name = models.CharField(max_length=120, verbose_name="اسم بوابة الدفع")
+    provider = models.CharField(max_length=40, choices=Provider.choices, default=Provider.BANIYAS_CRYPTO, verbose_name="المزود")
+    mode = models.CharField(max_length=20, choices=Mode.choices, default=Mode.SANDBOX, verbose_name="وضع التشغيل")
+    base_url = models.URLField(max_length=255, blank=True, verbose_name="رابط API الأساسي")
+    api_key = models.CharField(max_length=255, blank=True, verbose_name="API Key")
+    api_secret = models.CharField(max_length=255, blank=True, verbose_name="API Secret")
+    webhook_secret = models.CharField(max_length=255, blank=True, verbose_name="Webhook Secret")
+    is_active = models.BooleanField(default=False, verbose_name="نشطة")
+    can_deposit = models.BooleanField(default=True, verbose_name="تدعم الإيداع")
+    can_withdraw = models.BooleanField(default=False, verbose_name="تدعم السحب")
+    supported_assets = models.JSONField(default=list, blank=True, verbose_name="الأصول المدعومة")
+    settings = models.JSONField(default=dict, blank=True, verbose_name="إعدادات إضافية")
+    last_health_check_at = models.DateTimeField(null=True, blank=True, verbose_name="آخر فحص اتصال")
+    last_health_status = models.CharField(max_length=30, blank=True, verbose_name="نتيجة آخر فحص")
+
+    class Meta:
+        ordering = ["provider", "name"]
+        verbose_name = "بوابة دفع API"
+        verbose_name_plural = "بوابات دفع API"
+
+    def __str__(self):
+        return f"{self.name} - {self.get_provider_display()}"
+
+
 class DepositRequest(TimeStampedModel):
     class Status(models.TextChoices):
         PENDING = "pending", "قيد الانتظار"

@@ -2,8 +2,8 @@ import time
 import requests
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
-from django.utils import timezone
 import logging
+from urllib.parse import urljoin
 
 from apps.providers.models import ProviderRequestLog, ProviderResponseLog, ProviderErrorLog
 from .constants import DEFAULT_BASE_URL, TIMEOUT, MAX_RETRIES, ERROR_MAPPING
@@ -37,7 +37,6 @@ class AlkasrClient:
         data = payload or {}
         headers = {
             "api-token": self.api_token,
-            "api_token": self.api_token,
             "User-Agent": "AlkasrClient/2.0"
         }
 
@@ -75,10 +74,7 @@ class AlkasrClient:
         else:
             rel_path = f"/client/api/{action}"
 
-        if base.endswith("/client/api") or base.endswith("/client/api/"):
-            url = base.rstrip("/") + rel_path.replace("/client/api", "")
-        else:
-            url = base + rel_path
+        url = urljoin(base.rstrip("/") + "/", rel_path.lstrip("/"))
 
         method = "GET"
 
@@ -92,32 +88,12 @@ class AlkasrClient:
         start_time = time.time()
 
         try:
-            # Send GET request with api-token header and query params
-            query_params = dict(data)
-            query_params["api_token"] = self.api_token
-            query_params["key"] = self.api_token
-
             response = self.session.get(
                 url,
-                params=query_params,
+                params=dict(data),
                 headers=headers,
                 timeout=TIMEOUT
             )
-
-            # Fallback for generic SMM panels using POST to /api/v2 if /client/api returned 404
-            if response.status_code == 404:
-                fallback_url = base + "/api/v2" if not base.endswith("/api/v2") else base
-                data_post = dict(data)
-                data_post["key"] = self.api_token
-                data_post["api_token"] = self.api_token
-                data_post["action"] = action
-                response = self.session.post(
-                    fallback_url,
-                    data=data_post,
-                    headers=headers,
-                    timeout=TIMEOUT
-                )
-                url = fallback_url
 
             elapsed_ms = int((time.time() - start_time) * 1000)
             req_log.execution_time_ms = elapsed_ms
@@ -165,7 +141,7 @@ class AlkasrClient:
                 error_message=err_msg if not is_success else ""
             )
 
-            if not is_success and isinstance(json_resp, dict) and (json_resp.get("status") in ("ERROR", "error") or err_code):
+            if not is_success and isinstance(json_resp, dict) and (json_resp.get("status") in ("ERROR", "error", "failed") or err_code):
                 res_log.is_success = False
                 res_log.save(update_fields=["is_success"])
                 self._handle_api_error(json_resp, req_log)
@@ -194,7 +170,7 @@ class AlkasrClient:
             raise NetworkError("استجابة غير صالحة من المزود.") from e
 
     def _handle_api_error(self, json_resp, req_log):
-        raw_msg = json_resp.get("message") or json_resp.get("error") or ""
+        raw_msg = json_resp.get("message") or json_resp.get("msg") or json_resp.get("error") or ""
         
         # Try to extract ERR-XXX
         import re
@@ -202,8 +178,13 @@ class AlkasrClient:
         m = re.search(r"ERR-(\d+)", raw_msg)
         if m:
             code = int(m.group(1))
+        elif json_resp.get("code") is not None:
+            try:
+                code = int(json_resp.get("code"))
+            except (TypeError, ValueError):
+                code = None
 
-        error_message = ERROR_MAPPING.get(code, "خطأ غير معروف من المزود.") if code else raw_msg
+        error_message = ERROR_MAPPING.get(code, raw_msg or "خطأ غير معروف من المزود.") if code else raw_msg
 
         ProviderErrorLog.objects.create(
             profile=self.profile,

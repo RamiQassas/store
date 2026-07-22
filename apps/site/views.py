@@ -30,9 +30,9 @@ from apps.common.models import Currency, SocialMediaLink, SiteAnnouncement
 from apps.notifications.models import Notification, NotificationSetting
 from apps.notifications.services import notify_bulk, notify_user
 from apps.orders.models import Order, OrderLog, Coupon, OrderItem
-from apps.payments.models import DepositRequest, PaymentMethod, WithdrawalRequest
+from apps.payments.models import DepositRequest, PaymentGatewayIntegration, PaymentMethod, WithdrawalRequest
 from apps.site.forms import (
-    LoginForm, RegisterForm, PaymentMethodForm, CurrencyForm, ModerateUserForm, 
+    LoginForm, RegisterForm, PaymentGatewayIntegrationForm, PaymentMethodForm, CurrencyForm, ModerateUserForm, 
     ProductForm, CategoryForm, KYCRequestForm, KYCSettingsForm, ChangePasswordForm, 
     CouponForm, SendNotificationForm, AdminChatForm, SiteAnnouncementForm, 
     ChatCannedReplyForm, SupportSettingsForm, ProductSuggestionForm, NotificationSettingForm,
@@ -5106,6 +5106,52 @@ def payment_method_edit(request, pk):
             )
         return redirect("payment_methods_list")
     return render(request, "site/payment_method_builder.html", {"form": form, "method": method})
+
+
+@admin_required
+def payment_gateway_integrations_list(request):
+    store = getattr(request, "store", None)
+    if store:
+        gateways = PaymentGatewayIntegration.objects.filter(Q(store=store) | Q(store__isnull=True))
+    else:
+        gateways = PaymentGatewayIntegration.objects.all()
+    return render(request, "site/payment_gateway_integrations_list.html", {"gateways": gateways, "is_tenant": bool(store)})
+
+
+@admin_required
+def payment_gateway_integration_create(request):
+    store = getattr(request, "store", None)
+    form = PaymentGatewayIntegrationForm(request.POST or None)
+    if request.method == "POST" and form.is_valid():
+        gateway = form.save(commit=False)
+        gateway.store = store
+        gateway.save()
+        messages.success(request, "تم حفظ بوابة دفع API بنجاح.")
+        return redirect("payment_gateway_integrations_list")
+    return render(request, "site/payment_gateway_integration_form.html", {"form": form, "title": "إضافة بوابة دفع API"})
+
+
+@admin_required
+def payment_gateway_integration_edit(request, pk):
+    store = getattr(request, "store", None)
+    qs = PaymentGatewayIntegration.objects.filter(store=store) if store else PaymentGatewayIntegration.objects.all()
+    gateway = get_object_or_404(qs, pk=pk)
+    form = PaymentGatewayIntegrationForm(request.POST or None, instance=gateway)
+    if request.method == "POST" and form.is_valid():
+        form.save()
+        messages.success(request, "تم تحديث بوابة دفع API بنجاح.")
+        return redirect("payment_gateway_integrations_list")
+    return render(request, "site/payment_gateway_integration_form.html", {"form": form, "gateway": gateway, "title": "تعديل بوابة دفع API"})
+
+
+@admin_required
+def payment_gateway_integration_delete(request, pk):
+    store = getattr(request, "store", None)
+    qs = PaymentGatewayIntegration.objects.filter(store=store) if store else PaymentGatewayIntegration.objects.all()
+    gateway = get_object_or_404(qs, pk=pk)
+    gateway.delete()
+    messages.success(request, "تم حذف بوابة دفع API.")
+    return redirect("payment_gateway_integrations_list")
 
 @login_required
 def site_notification_settings(request):
