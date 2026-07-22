@@ -1529,7 +1529,13 @@ def catalog(request):
         view_type = "products"
 
     if q:
-        products = products.filter(Q(name__icontains=q) | Q(description__icontains=q))
+        # If user explicitly searched, expand query to match variants (packages) and categories
+        products = Product.objects.filter(is_active=True).select_related("category").prefetch_related("variants").filter(
+            Q(name__icontains=q) |
+            Q(description__icontains=q) |
+            Q(variants__name__icontains=q) |
+            Q(category__name__icontains=q)
+        ).distinct()
         view_type = "products"
 
     if sort == "price_low":

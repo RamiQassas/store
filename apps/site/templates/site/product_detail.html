@@ -262,10 +262,10 @@
                 <div class="variant-card {% if v.is_temporarily_disabled or product.is_out_of_stock %}opacity-50 grayscale cursor-not-allowed{% endif %} {% if v.is_sale %}on-sale{% endif %}" 
                      {% if not v.is_temporarily_disabled and not product.is_out_of_stock %}onclick="selectVariant('{{ v.id }}', this)"{% endif %}
                      data-price="{{ v_price }}"
-                     data-qty-type="{% if v.metadata.qty_values %}{% if v.metadata.qty_values.min %}range{% else %}list{% endif %}{% else %}none{% endif %}"
-                     data-qty-min="{{ v.metadata.qty_values.min|default:'' }}"
-                     data-qty-max="{{ v.metadata.qty_values.max|default:'' }}"
-                     data-qty-list='{% if v.metadata.qty_values and not v.metadata.qty_values.min %}{% if v.metadata.qty_values|is_list %}[{% for val in v.metadata.qty_values %}"{{ val }}"{% if not forloop.last %},{% endif %}{% endfor %}]{% else %}{{ v.metadata.qty_values|safe }}{% endif %}{% else %}[]{% endif %}'>
+                     data-qty-type="{% if v.metadata.allow_custom_quantity or v.metadata.qty_type == 'range' %}range{% elif v.metadata.qty_list %}list{% else %}none{% endif %}"
+                     data-qty-min="{% if v.metadata.allow_custom_quantity %}{{ v.metadata.qty_values.min|default:'1' }}{% else %}1{% endif %}"
+                     data-qty-max="{% if v.metadata.allow_custom_quantity %}{{ v.metadata.qty_values.max|default:'999999' }}{% else %}999999{% endif %}"
+                     data-qty-list='{% if v.metadata.qty_list %}{{ v.metadata.qty_list|safe }}{% else %}[]{% endif %}'>
                     <div class="flex items-center gap-5">
                         <div class="radio-circle"></div>
                         <div>

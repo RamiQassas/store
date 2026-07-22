@@ -699,6 +699,43 @@ def classify_alkasr_item(name, category_name=""):
     return main_cat, sub_cat
 
 
+def extract_clean_product_name(raw_item_name, sub_cat_name=""):
+    """
+    Extracts an exact, clean Product Name (e.g., 'شدات ببجي PUBG Mobile') 
+    from the raw API item name so games/services aren't merged under generic categories.
+    """
+    text = f"{raw_item_name} {sub_cat_name}".lower()
+
+    if "pubg" in text or "ببجي" in text:
+        return "شدات ببجي PUBG Mobile"
+    elif "free fire" in text or "فري فاير" in text:
+        return "جواهر فري فاير Free Fire"
+    elif "mobile legends" in text or "موبايل ليجند" in text:
+        return "موبايل ليجند Mobile Legends"
+    elif "roblox" in text or "روبلوكس" in text:
+        return "روبلوكس Roblox"
+    elif "call of duty" in text or "كول اوف ديوتي" in text or "cod" in text:
+        return "كول اوف ديوتي Call of Duty"
+    elif "mtn" in text:
+        return "رصيد MTN سوريا"
+    elif "syriatel" in text or "سيريتل" in text:
+        return "رصيد سيريتل Syriatel"
+    elif "tiktok" in text or "تيك توك" in text:
+        return "عملات تيك توك TikTok"
+    elif "likee" in text or "لايكي" in text:
+        return "ماس لايكي Likee"
+    elif "yalla" in text or "يلا لودو" in text:
+        return "يلا لودو Yalla Ludo"
+    elif "lira" in text or "ليرة" in text or "تركي" in text or "tl" in text:
+        return "كروت ليرة تركية TL"
+    elif sub_cat_name and sub_cat_name.strip() not in ["عام", "ألعاب أونلاين", "شحن أرصدة", "بطاقات هدايا"]:
+        return sub_cat_name.strip()
+    else:
+        import re
+        clean = re.sub(r'^\d+\s*', '', raw_item_name).strip()
+        return clean or raw_item_name.strip()
+
+
 def sync_alkasr_catalog(store, selected_category_ids=None, markup_percent=0.0, integration=None):
     """
     Fetches the catalog from Alkasr and synchronizes it with the local catalog.
@@ -781,9 +818,8 @@ def sync_alkasr_catalog(store, selected_category_ids=None, markup_percent=0.0, i
             category_order.append(cat_name)
 
     # Wrap the entire catalog synchronization in a single transaction.atomic block
-    # to execute bulk database operations extremely fast and avoid timeout/connection kills.
     with transaction.atomic():
-        # First, clean description of any existing products that contain "Alkasr API" or are null/none
+        # Clean description of any existing products that contain "Alkasr API" or are null/none
         Product.objects.filter(store=store, description__icontains="Alkasr API").update(description="")
         Product.objects.filter(store=store, description__in=["none", "null", "None", "Null"]).update(description="")
         
@@ -815,16 +851,14 @@ def sync_alkasr_catalog(store, selected_category_ids=None, markup_percent=0.0, i
             if len(lineage) >= 2:
                 main_cat_name = lineage[-1]["name"]
                 sub_cat_name = lineage[-2]["name"]
-                prod_name = lineage[-2]["name"]
+                prod_name = extract_clean_product_name(raw_item_name, sub_cat_name)
             elif len(lineage) == 1:
                 main_cat_name = lineage[0]["name"]
-                # Use classifier to find subcategory
                 _, sub_cat_name = classify_alkasr_item(raw_item_name, item.get("category_name", ""))
-                prod_name = sub_cat_name
+                prod_name = extract_clean_product_name(raw_item_name, sub_cat_name)
             else:
-                # Run the classification engine
                 main_cat_name, sub_cat_name = classify_alkasr_item(raw_item_name, item.get("category_name", ""))
-                prod_name = sub_cat_name
+                prod_name = extract_clean_product_name(raw_item_name, sub_cat_name)
 
             # Clean and skip if resolved category is empty or null
             if not main_cat_name or main_cat_name.strip().lower() in ["null", "none", "nan", ""]:
