@@ -22,30 +22,62 @@ class AlkasrSyncService:
         self.profile = profile
         self.product_svc = AlkasrProductService(profile)
 
-    def sync_catalog(self):
+    def sync_catalog(self, callback=None):
         sync_log = ProviderSyncLog.objects.create(profile=self.profile, status="running")
 
         try:
+            from django.core.cache import cache
+            cache.set(f"sync_progress_{self.profile.id}", {
+                "status": "running",
+                "total": 0,
+                "current": 0,
+                "percent": 0,
+                "product_name": "جاري الاتصال بسيرفر المزود وسحب قائمة الخدمات...",
+                "created": 0,
+                "updated": 0
+            }, timeout=300)
+
             raw_products = self.product_svc.fetch_products()
             content_by_id = self._fetch_content_tree()
             stats = {"created": 0, "updated": 0, "disabled": 0}
 
+            categories_by_remote = self._sync_categories(content_by_id)
+            products = self._dedupe_products(
+                self._extract_products(raw_products)
+                + self._extract_products(list(content_by_id.values()))
+            )
+            
+            total_count = len(products)
+            active_remote_ids = set()
+
+            for idx, (remote_id, pdata) in enumerate(products, start=1):
+                active_remote_ids.add(remote_id)
+                prod_name = str(pdata.get("name") or pdata.get("title") or pdata.get("service") or f"Product {remote_id}")
+                
+                percent = round((idx / max(total_count, 1)) * 100, 1)
+                progress_info = {
+                    "status": "running",
+                    "total": total_count,
+                    "current": idx,
+                    "percent": percent,
+                    "product_name": prod_name,
+                    "created": stats["created"],
+                    "updated": stats["updated"]
+                }
+                cache.set(f"sync_progress_{self.profile.id}", progress_info, timeout=300)
+                if callback:
+                    try:
+                        callback(progress_info)
+                    except Exception:
+                        pass
+
+                is_new = self._upsert_product(remote_id, pdata, categories_by_remote)
+                if is_new:
+                    stats["created"] += 1
+                else:
+                    stats["updated"] += 1
+
             with transaction.atomic():
-                categories_by_remote = self._sync_categories(content_by_id)
-                products = self._dedupe_products(
-                    self._extract_products(raw_products)
-                    + self._extract_products(list(content_by_id.values()))
-                )
-                active_remote_ids = set()
-
-                for remote_id, pdata in products:
-                    active_remote_ids.add(remote_id)
-                    is_new = self._upsert_product(remote_id, pdata, categories_by_remote)
-                    if is_new:
-                        stats["created"] += 1
-                    else:
-                        stats["updated"] += 1
-
                 if active_remote_ids:
                     stats["disabled"] = ProviderProduct.objects.filter(
                         profile=self.profile,
@@ -64,6 +96,17 @@ class AlkasrSyncService:
                 self.profile.last_sync_at = timezone.now()
                 self.profile.save(update_fields=["last_sync_at"])
 
+            final_progress = {
+                "status": "completed",
+                "total": total_count,
+                "current": total_count,
+                "percent": 100,
+                "product_name": "تم استيراد كافة المنتجات وتحديث الكتالوج بنجاح",
+                "created": stats["created"],
+                "updated": stats["updated"]
+            }
+            cache.set(f"sync_progress_{self.profile.id}", final_progress, timeout=300)
+
             return stats
 
         except Exception as exc:
@@ -72,6 +115,17 @@ class AlkasrSyncService:
             sync_log.error_message = str(exc)
             sync_log.errors_count = 1
             sync_log.save()
+            from django.core.cache import cache
+            cache.set(f"sync_progress_{self.profile.id}", {
+                "status": "failed",
+                "total": 0,
+                "current": 0,
+                "percent": 0,
+                "product_name": f"فشل الاستيراد: {str(exc)}",
+                "created": 0,
+                "updated": 0,
+                "error": str(exc)
+            }, timeout=300)
             raise
 
     def _fetch_content_tree(self, max_nodes=80):

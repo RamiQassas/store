@@ -5625,6 +5625,32 @@ def control_apicontrol_dashboard(request):
     else:
         profile_obj = ProviderProfile.objects.filter(store=store, is_active=True).first() or ProviderProfile.objects.filter(is_active=True).first()
 
+    # Check if GET sync progress endpoint requested
+    if request.GET.get("action") == "get_sync_progress" or request.GET.get("sync_progress") == "1":
+        from django.core.cache import cache
+        from django.http import JsonResponse
+        if profile_obj:
+            progress = cache.get(f"sync_progress_{profile_obj.id}") or {
+                "status": "idle",
+                "total": 0,
+                "current": 0,
+                "percent": 0,
+                "product_name": "",
+                "created": 0,
+                "updated": 0
+            }
+        else:
+            progress = {
+                "status": "idle",
+                "total": 0,
+                "current": 0,
+                "percent": 0,
+                "product_name": "",
+                "created": 0,
+                "updated": 0
+            }
+        return JsonResponse(progress)
+
     # Check if a POST action was submitted (e.g. to sync)
     if request.method == "POST":
         action = request.POST.get("action")
@@ -5646,11 +5672,25 @@ def control_apicontrol_dashboard(request):
         if integration:
             redirect_url += f"?integration_id={integration.id}"
             
-        if action == "sync":
+        if action in ("sync", "sync_ajax"):
+            from django.http import JsonResponse
             if not profile_obj:
+                if request.headers.get("X-Requested-With") == "XMLHttpRequest" or action == "sync_ajax":
+                    return JsonResponse({"status": "failed", "error": "لا توجد بوابة ربط نشطة لبدء المزامنة."}, status=400)
                 messages.error(request, "لا توجد بوابة ربط نشطة لبدء المزامنة. يرجى إضافة بوابة ربط وتفعيلها من إعدادات البوابات.")
                 return redirect(redirect_url)
                 
+            from django.core.cache import cache
+            cache.set(f"sync_progress_{profile_obj.id}", {
+                "status": "running",
+                "total": 0,
+                "current": 0,
+                "percent": 0,
+                "product_name": "جاري تجهيز الاتصال بالسيرفر وسحب قائمة الخدمات...",
+                "created": 0,
+                "updated": 0
+            }, timeout=300)
+
             def _background_sync(profile_id):
                 from apps.providers.models import ProviderProfile
                 try:
@@ -5664,6 +5704,9 @@ def control_apicontrol_dashboard(request):
             import threading
             threading.Thread(target=_background_sync, args=(profile_obj.id,), daemon=True).start()
             
+            if request.headers.get("X-Requested-With") == "XMLHttpRequest" or action == "sync_ajax":
+                return JsonResponse({"status": "started", "message": "بدأت المزامنة والتحديث بنجاح"})
+
             messages.success(request, "🚀 بدأت عملية المزامنة بنجاح في الخلفية! يتم الآن سحب واستيراد كافة المنتجات وتحديث الكتالوج تلقائياً دون أي إبطاء.")
             return redirect(redirect_url)
             
