@@ -136,7 +136,7 @@ class ProviderOrder(TimeStampedModel):
     """Tracks an order sent to a provider."""
     profile = models.ForeignKey(ProviderProfile, on_delete=models.CASCADE, related_name="orders")
     local_order = models.ForeignKey("orders.Order", on_delete=models.CASCADE, related_name="provider_orders")
-    product = models.ForeignKey(ProviderProduct, on_delete=models.CASCADE, related_name="provider_orders")
+    product = models.ForeignKey(ProviderProduct, on_delete=models.SET_NULL, null=True, blank=True, related_name="provider_orders")
     
     # Local identifier sent to provider
     uuid = models.UUIDField(unique=True)

@@ -5745,30 +5745,23 @@ def control_apicontrol_dashboard(request):
                 messages.success(request, "⚡ تم بدء تحديث الرصيد والبيانات في الخلفية بنجاح.")
             return redirect(redirect_url)
             
-        elif action == "clear_catalog":
+        elif action in ("clear_catalog", "delete_all"):
             from apps.catalog.models import Product
-            from apps.providers.models import ProviderProduct
+            from apps.providers.models import ProviderProduct, ProviderMapping
             
-            products_qs = Product.objects.filter(store=store, is_api_product=True)
-            archived_count = products_qs.update(
-                is_active=False,
-                is_api_product=False,
-                is_out_of_stock=True,
-            )
+            cat_qs = Product.all_objects.filter(store=store, is_api_product=True)
+            deleted_count, _ = cat_qs.delete()
+
             if profile_obj:
-                ProviderProduct.objects.filter(profile=profile_obj).update(local_is_active=False)
-            deleted_count = 0
-            deactivated_count = archived_count
-            msg = f"تم تنظيف كتالوج المزود: تم حذف {deleted_count} منتج"
-            if deactivated_count > 0:
-                msg += f"، وأرشفة وتعطيل {deactivated_count} منتج لحماية وحفظ سجلات الطلبات المشتراة سابقاً."
-            messages.success(request, msg)
+                ProviderProduct.objects.filter(profile=profile_obj).delete()
+
+            messages.success(request, f"تم مسح وحذف كافة منتجات المزود نهائياً ({deleted_count} منتج). يمكنك الآن إجراء مزامنة جديدة ناصعة.")
             return redirect(redirect_url)
             
         elif action == "toggle_active":
             product_id = request.POST.get("product_id")
             try:
-                prod = Product.objects.get(id=product_id, store=store)
+                prod = Product.all_objects.get(id=product_id, store=store)
                 prod.is_active = not prod.is_active
                 prod.save()
                 status_str = "تفعيل" if prod.is_active else "تعطيل"
@@ -5780,10 +5773,18 @@ def control_apicontrol_dashboard(request):
         elif action == "delete_product":
             product_id = request.POST.get("product_id")
             try:
-                prod = Product.objects.get(id=product_id, store=store)
+                prod = Product.all_objects.get(id=product_id, store=store)
                 prod_name = prod.name
+                
+                from apps.providers.models import ProviderMapping
+                mappings = ProviderMapping.objects.filter(local_product=prod)
+                for m in mappings:
+                    if m.provider_product:
+                        m.provider_product.delete()
+                mappings.delete()
+                
                 prod.delete()
-                messages.success(request, f"تم حذف وإلغاء ربط المنتج '{prod_name}' بنجاح.")
+                messages.success(request, f"تم حذف وإلغاء ربط المنتج '{prod_name}' نهائياً بنجاح.")
             except Product.DoesNotExist:
                 messages.error(request, "المنتج غير موجود.")
             return redirect(redirect_url)

@@ -214,6 +214,7 @@ class AlkasrSyncService:
                 qty_max=qty_max,
                 qty_list=qty_list,
                 is_active=is_available,
+                local_is_active=True,
             )
             ProviderPrice.objects.create(
                 product=product_obj,
@@ -230,6 +231,7 @@ class AlkasrSyncService:
             product_obj.qty_max = qty_max
             product_obj.qty_list = qty_list
             product_obj.is_active = is_available
+            product_obj.local_is_active = True
             product_obj.save()
 
             pricing_obj = getattr(product_obj, "pricing", None)

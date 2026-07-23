@@ -220,7 +220,7 @@ class Order(TimeStampedModel):
 
 class OrderItem(TimeStampedModel):
     order = models.ForeignKey(Order, related_name="items", on_delete=models.CASCADE, verbose_name="الطلب")
-    variant = models.ForeignKey(ProductVariant, related_name="order_items", on_delete=models.PROTECT, verbose_name="الباقة")
+    variant = models.ForeignKey(ProductVariant, related_name="order_items", on_delete=models.SET_NULL, null=True, blank=True, verbose_name="الباقة")
     quantity = models.PositiveIntegerField(default=1, verbose_name="الكمية")
     unit_price = models.DecimalField(max_digits=12, decimal_places=2, verbose_name="سعر الوحدة")
     unit_cost = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal("0.00"), verbose_name="تكلفة الوحدة")
