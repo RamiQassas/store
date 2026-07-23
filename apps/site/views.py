@@ -5940,7 +5940,7 @@ def control_apicontrol_dashboard(request):
     
     if profile_obj:
         categories = list(ProviderCategory.objects.filter(profile=profile_obj).values("id", "name", "remote_id")[:100])
-        all_p = ProviderProduct.objects.filter(profile=profile_obj, is_active=True).select_related("category")
+        all_p = ProviderProduct.objects.filter(profile=profile_obj, is_active=True).select_related("category", "category__parent")
         products_count = all_p.count()
         visible_products = list(all_p.order_by("category__name", "name")[:150])
         alkasr_products = [
