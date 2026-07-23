@@ -1,4 +1,4 @@
-﻿import json
+import json
 import uuid
 from decimal import Decimal
 import os
@@ -61,13 +61,13 @@ def v3_generate_otp(user, purpose):
 def v3_send_otp_email(user, otp_token):
     from apps.common.tenant_utils import get_current_store
     active_store = getattr(user, 'store', None) or get_current_store()
-    store_name = active_store.name if active_store else "Ø±Ù‚Ù…ÙŠØ§Øª"
-    store_brand = active_store.name if active_store else "Ø±Ù‚Ù…ÙŠØ§Øª | RAQAMIYAT"
+    store_name = active_store.name if active_store else "رقميات"
+    store_brand = active_store.name if active_store else "رقميات | RAQAMIYAT"
     
-    subject = f"{otp_token.code} Ù‡Ùˆ Ø±Ù…Ø² Ø§Ù„ØªØ­Ù‚Ù‚ Ø§Ù„Ø®Ø§Øµ Ø¨Ùƒ | {store_name}"
-    purpose_text = "Ù„ØªÙØ¹ÙŠÙ„ Ø­Ø³Ø§Ø¨Ùƒ" if otp_token.purpose == OTPToken.Purpose.REGISTRATION else \
-                   "Ù„ØªØ³Ø¬ÙŠÙ„ Ø§Ù„Ø¯Ø®ÙˆÙ„" if otp_token.purpose == OTPToken.Purpose.LOGIN else \
-                   "Ù„Ø¥ØªÙ…Ø§Ù… Ø§Ù„Ø¹Ù…Ù„ÙŠØ©"
+    subject = f"{otp_token.code} هو رمز التحقق الخاص بك | {store_name}"
+    purpose_text = "لتفعيل حسابك" if otp_token.purpose == OTPToken.Purpose.REGISTRATION else \
+                   "لتسجيل الدخول" if otp_token.purpose == OTPToken.Purpose.LOGIN else \
+                   "لإتمام العملية"
     
     html_content = f"""
     <div dir="rtl" style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 500px; margin: 0 auto; padding: 20px; color: #1e293b; background-color: #ffffff; border-radius: 16px; border: 1px solid #e2e8f0;">
@@ -75,12 +75,12 @@ def v3_send_otp_email(user, otp_token):
             <h2 style="color: #06b6d4; margin: 0; font-size: 24px; font-weight: 900;">{store_brand}</h2>
         </div>
         <div style="background-color: #f8fafc; padding: 30px; border-radius: 12px; text-align: center;">
-            <p style="font-size: 16px; margin-bottom: 10px; color: #64748b;">Ø±Ù…Ø² Ø§Ù„ØªØ­Ù‚Ù‚ Ø§Ù„Ø®Ø§Øµ Ø¨Ùƒ {purpose_text}:</p>
+            <p style="font-size: 16px; margin-bottom: 10px; color: #64748b;">رمز التحقق الخاص بك {purpose_text}:</p>
             <h1 style="font-size: 42px; font-weight: 900; color: #0f172a; margin: 0; letter-spacing: 10px;">{otp_token.code}</h1>
-            <p style="font-size: 12px; margin-top: 20px; color: #94a3b8;">Ù‡Ø°Ø§ Ø§Ù„Ø±Ù…Ø² ØµØ§Ù„Ø­ Ù„Ù…Ø¯Ø© 10 Ø¯Ù‚Ø§Ø¦Ù‚ ÙÙ‚Ø·. Ù„Ø§ ØªØ´Ø§Ø±Ùƒ Ù‡Ø°Ø§ Ø§Ù„Ø±Ù…Ø² Ù…Ø¹ Ø£ÙŠ Ø´Ø®Øµ.</p>
+            <p style="font-size: 12px; margin-top: 20px; color: #94a3b8;">هذا الرمز صالح لمدة 10 دقائق فقط. لا تشارك هذا الرمز مع أي شخص.</p>
         </div>
         <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #f1f5f9; text-align: center;">
-            <p style="font-size: 12px; color: #94a3b8; line-height: 1.6;">Ø¥Ø°Ø§ Ù„Ù… ØªØ·Ù„Ø¨ Ù‡Ø°Ø§ Ø§Ù„Ø±Ù…Ø²ØŒ ÙŠÙ…ÙƒÙ†Ùƒ ØªØ¬Ø§Ù‡Ù„ Ù‡Ø°Ø§ Ø§Ù„Ø¨Ø±ÙŠØ¯ Ø§Ù„Ø¥Ù„ÙƒØªØ±ÙˆÙ†ÙŠ.<br>Â© 2026 {store_name} - Ø¬Ù…ÙŠØ¹ Ø§Ù„Ø­Ù‚ÙˆÙ‚ Ù…Ø­ÙÙˆØ¸Ø©.</p>
+            <p style="font-size: 12px; color: #94a3b8; line-height: 1.6;">إذا لم تطلب هذا الرمز، يمكنك تجاهل هذا البريد الإلكتروني.<br>© 2026 {store_name} - جميع الحقوق محفوظة.</p>
         </div>
     </div>
     """
@@ -204,19 +204,19 @@ def complete_pending_financial_action(request, user):
             # Notify user
             send_financial_notification(
                 user=user,
-                title="ØªÙ… Ø§Ø³ØªÙ„Ø§Ù… Ø·Ù„Ø¨ Ø§Ù„Ø¥ÙŠØ¯Ø§Ø¹",
-                body=f"ØªÙ… Ø§Ø³ØªÙ„Ø§Ù… Ø·Ù„Ø¨ Ø§Ù„Ø¥ÙŠØ¯Ø§Ø¹ Ø§Ù„Ø®Ø§Øµ Ø¨Ùƒ Ø±Ù‚Ù… {deposit.id} Ø¨Ù‚ÙŠÙ…Ø© {deposit.amount} {deposit.currency.code}. Ø³ÙŠØªÙ… Ù…Ø±Ø§Ø¬Ø¹ØªÙ‡ Ù…Ù† Ù‚Ø¨Ù„ Ø§Ù„Ø¥Ø¯Ø§Ø±Ø© Ù‚Ø±ÙŠØ¨Ø§Ù‹."
+                title="تم استلام طلب الإيداع",
+                body=f"تم استلام طلب الإيداع الخاص بك رقم {deposit.id} بقيمة {deposit.amount} {deposit.currency.code}. سيتم مراجعته من قبل الإدارة قريباً."
             )
             # Notify staff
             from apps.notifications.services import notify_staff
             notify_staff(
-                title="Ø·Ù„Ø¨ Ø¥ÙŠØ¯Ø§Ø¹ Ø¬Ø¯ÙŠØ¯",
-                body=f"Ù‚Ø§Ù… {user.email} Ø¨ØªÙ‚Ø¯ÙŠÙ… Ø·Ù„Ø¨ Ø¥ÙŠØ¯Ø§Ø¹ Ø¨Ù‚ÙŠÙ…Ø© {deposit.amount} {deposit.currency.code}",
+                title="طلب إيداع جديد",
+                body=f"قام {user.email} بتقديم طلب إيداع بقيمة {deposit.amount} {deposit.currency.code}",
                 action_url=f"/control/deposits/{deposit.id}/",
                 category='admin_new_deposit'
             )
             
-            messages.success(request, "ØªÙ… Ø§Ù„ØªØ­Ù‚Ù‚ ÙˆØªÙ‚Ø¯ÙŠÙ… Ø·Ù„Ø¨ Ø§Ù„Ø¥ÙŠØ¯Ø§Ø¹ Ø¨Ù†Ø¬Ø§Ø­.")
+            messages.success(request, "تم التحقق وتقديم طلب الإيداع بنجاح.")
             del request.session["v3_pending_action_id"]
             
             # Determine next URL
@@ -233,19 +233,19 @@ def complete_pending_financial_action(request, user):
             # Notify user
             send_financial_notification(
                 user=user,
-                title="ØªÙ… Ø§Ø³ØªÙ„Ø§Ù… Ø·Ù„Ø¨ Ø§Ù„Ø³Ø­Ø¨",
-                body=f"ØªÙ… Ø§Ø³ØªÙ„Ø§Ù… Ø·Ù„Ø¨ Ø§Ù„Ø³Ø­Ø¨ Ø§Ù„Ø®Ø§Øµ Ø¨Ùƒ Ø±Ù‚Ù… {withdrawal.id} Ø¨Ù‚ÙŠÙ…Ø© {withdrawal.amount} {withdrawal.currency.code}. Ø³ÙŠØªÙ… Ù…Ø±Ø§Ø¬Ø¹ØªÙ‡ Ù…Ù† Ù‚Ø¨Ù„ Ø§Ù„Ø¥Ø¯Ø§Ø±Ø© Ù‚Ø±ÙŠØ¨Ø§Ù‹."
+                title="تم استلام طلب السحب",
+                body=f"تم استلام طلب السحب الخاص بك رقم {withdrawal.id} بقيمة {withdrawal.amount} {withdrawal.currency.code}. سيتم مراجعته من قبل الإدارة قريباً."
             )
             # Notify staff
             from apps.notifications.services import notify_staff
             notify_staff(
-                title="Ø·Ù„Ø¨ Ø³Ø­Ø¨ Ø¬Ø¯ÙŠØ¯",
-                body=f"Ù‚Ø§Ù… {user.email} Ø¨ØªÙ‚Ø¯ÙŠÙ… Ø·Ù„Ø¨ Ø³Ø­Ø¨ Ø¨Ù‚ÙŠÙ…Ø© {withdrawal.amount} {withdrawal.currency.code}",
+                title="طلب سحب جديد",
+                body=f"قام {user.email} بتقديم طلب سحب بقيمة {withdrawal.amount} {withdrawal.currency.code}",
                 action_url=f"/control/withdrawals/{withdrawal.id}/",
                 category='admin_new_withdrawal'
             )
             
-            messages.success(request, "ØªÙ… Ø§Ù„ØªØ­Ù‚Ù‚ ÙˆØªÙ‚Ø¯ÙŠÙ… Ø·Ù„Ø¨ Ø§Ù„Ø³Ø­Ø¨ Ø¨Ù†Ø¬Ø§Ø­.")
+            messages.success(request, "تم التحقق وتقديم طلب السحب بنجاح.")
             del request.session["v3_pending_action_id"]
             
             # Determine next URL
@@ -286,7 +286,7 @@ def complete_pending_purchase(request, user):
             )
             
             # Success
-            messages.success(request, "ØªÙ… Ø¥ØªÙ…Ø§Ù… Ø§Ù„Ø´Ø±Ø§Ø¡ Ø¨Ù†Ø¬Ø§Ø­.")
+            messages.success(request, "تم إتمام الشراء بنجاح.")
             
             # Clear pending purchase session keys
             del request.session["v3_pending_purchase"]
@@ -299,7 +299,7 @@ def complete_pending_purchase(request, user):
                 return redirect("dashboard_orders")
                 
         except Exception as e:
-            messages.error(request, f"ÙØ´Ù„ Ø¥ØªÙ…Ø§Ù… Ø§Ù„Ø´Ø±Ø§Ø¡: {str(e)}")
+            messages.error(request, f"فشل إتمام الشراء: {str(e)}")
             # Clear pending purchase session keys to prevent loop
             if "v3_pending_purchase" in request.session:
                 del request.session["v3_pending_purchase"]
@@ -353,7 +353,7 @@ def v3_verify_sp_view(request):
             if next_url: return redirect(next_url)
             return redirect("control_dashboard" if (user.is_staff and getattr(request, 'store', None) is None) else "dashboard")
             
-        messages.error(request, "ÙƒÙ„Ù…Ø© Ù…Ø±ÙˆØ± Ø§Ù„Ø­Ù…Ø§ÙŠØ© ØºÙŠØ± ØµØ­ÙŠØ­Ø©.")
+        messages.error(request, "كلمة مرور الحماية غير صحيحة.")
         
     return render(request, "site/v3/v3_sp_verify.html", {"purpose": purpose})
 
@@ -371,7 +371,7 @@ def v3_login_view(request):
         user = authenticate(request, username=form.cleaned_data["email"], password=form.cleaned_data["password"])
         if user:
             if not user.is_active:
-                messages.error(request, "Ø§Ù„Ø­Ø³Ø§Ø¨ Ù…Ø¹Ø·Ù„.")
+                messages.error(request, "الحساب معطل.")
                 return render(request, "site/v3/v3_login.html", {"form": form})
 
             # Multi-Tenant isolation:
@@ -384,7 +384,7 @@ def v3_login_view(request):
                     with bypass_tenant_filter():
                         is_owner = user.owned_stores.exists()
                     if not is_owner:
-                        messages.error(request, "Ù‡Ø°Ø§ Ø§Ù„Ø­Ø³Ø§Ø¨ Ù…Ø±ØªØ¨Ø· Ø¨Ù…ØªØ¬Ø± ÙØ±Ø¹ÙŠ ÙˆÙ„Ø§ ÙŠÙ…ÙƒÙ†Ù‡ ØªØ³Ø¬ÙŠÙ„ Ø§Ù„Ø¯Ø®ÙˆÙ„ Ù‡Ù†Ø§. ÙŠØ±Ø¬Ù‰ Ø§Ù„ØªÙˆØ¬Ù‡ Ø¥Ù„Ù‰ ØµÙØ­Ø© ØªØ³Ø¬ÙŠÙ„ Ø§Ù„Ø¯Ø®ÙˆÙ„ Ø§Ù„Ø®Ø§ØµØ© Ø¨Ù…ØªØ¬Ø±Ùƒ.")
+                        messages.error(request, "هذا الحساب مرتبط بمتجر فرعي ولا يمكنه تسجيل الدخول هنا. يرجى التوجه إلى صفحة تسجيل الدخول الخاصة بمتجرك.")
                         return render(request, "site/v3/v3_login.html", {"form": form})
             else:
                 # Store tenant: only allow users who belong to this store (or superusers)
@@ -398,7 +398,7 @@ def v3_login_view(request):
                             active_store.owner_id == user.pk
                         )
                     if not is_store_member:
-                        messages.error(request, "Ù‡Ø°Ø§ Ø§Ù„Ø­Ø³Ø§Ø¨ ØºÙŠØ± Ù…Ø±ØªØ¨Ø· Ø¨Ù‡Ø°Ø§ Ø§Ù„Ù…ØªØ¬Ø±.")
+                        messages.error(request, "هذا الحساب غير مرتبط بهذا المتجر.")
                         return render(request, "site/v3/v3_login.html", {"form": form})
 
             # Ensure backend is set for session authentication
@@ -419,7 +419,7 @@ def v3_login_view(request):
                 request.session["v3_auth_next"] = reverse("dashboard")
 
             return v3_redirect_to_verification(request, methods)
-        messages.error(request, "Ø¨ÙŠØ§Ù†Ø§Øª Ø§Ù„Ø¯Ø®ÙˆÙ„ ØºÙŠØ± ØµØ­ÙŠØ­Ø©.")
+        messages.error(request, "بيانات الدخول غير صحيحة.")
     return render(request, "site/v3/v3_login.html", {"form": form})
 
 def v3_register_view(request):
@@ -441,7 +441,7 @@ def v3_register_view(request):
                 if v3_send_otp_email(user, otp):
                     request.session["v3_auth_uid"], request.session["v3_auth_purpose"] = str(user.id), OTPToken.Purpose.REGISTRATION
                     return redirect("site_verify_otp")
-                else: raise Exception("ÙØ´Ù„ Ø¥Ø±Ø³Ø§Ù„ Ø§Ù„Ø¨Ø±ÙŠØ¯ Ø§Ù„Ø¥Ù„ÙƒØªØ±ÙˆÙ†ÙŠ.")
+                else: raise Exception("فشل إرسال البريد الإلكتروني.")
         except Exception as e: form.add_error(None, str(e))
     return render(request, "site/v3/v3_register.html", {"form": form})
 
@@ -465,7 +465,7 @@ def v3_verify_otp_view(request):
     if user.otp_lockout_until and user.otp_lockout_until > timezone.now(): is_locked = True
     
     if not otp_sent_success:
-        messages.error(request, "ÙØ´Ù„ Ø¥Ø±Ø³Ø§Ù„ Ø±Ù…Ø² Ø§Ù„ØªØ­Ù‚Ù‚ Ø¥Ù„Ù‰ Ø¨Ø±ÙŠØ¯Ùƒ Ø§Ù„Ø¥Ù„ÙƒØªØ±ÙˆÙ†ÙŠ. ÙŠØ±Ø¬Ù‰ Ø§Ù„Ù…Ø­Ø§ÙˆÙ„Ø© Ù…Ø±Ø© Ø£Ø®Ø±Ù‰.")
+        messages.error(request, "فشل إرسال رمز التحقق إلى بريدك الإلكتروني. يرجى المحاولة مرة أخرى.")
         # Clear the flag so the message doesn't keep appearing, and let them retry
         request.session["v3_otp_sent_success"] = True
         
@@ -474,12 +474,12 @@ def v3_verify_otp_view(request):
         action = request.POST.get("action")
         if action == "resend":
             if remaining_cooldown > 0:
-                messages.error(request, f"ÙŠØ±Ø¬Ù‰ Ø§Ù„Ø§Ù†ØªØ¸Ø§Ø± {remaining_cooldown} Ø«Ø§Ù†ÙŠØ©.")
+                messages.error(request, f"يرجى الانتظار {remaining_cooldown} ثانية.")
                 return render(request, "site/v3/v3_otp_verify.html", {"user_email": user.email, "remaining_cooldown": remaining_cooldown})
             otp = v3_generate_otp(user, purpose)
             if v3_send_otp_email(user, otp):
                 user.otp_resend_count += 1; user.save()
-                messages.success(request, "ØªÙ… Ø¥Ø¹Ø§Ø¯Ø© Ø¥Ø±Ø³Ø§Ù„ Ø§Ù„Ø±Ù…Ø².")
+                messages.success(request, "تم إعادة إرسال الرمز.")
                 return redirect("site_verify_otp")
         code = request.POST.get("code")
         if v3_verify_otp_logic(user, code, purpose):
@@ -489,7 +489,7 @@ def v3_verify_otp_view(request):
                 new_email = request.session.get("v3_new_email")
                 if new_email:
                     user.email = new_email; user.username = new_email; user.save()
-                    messages.success(request, "ØªÙ… ØªØºÙŠÙŠØ± Ø§Ù„Ø¨Ø±ÙŠØ¯ Ø§Ù„Ø¥Ù„ÙƒØªØ±ÙˆÙ†ÙŠ Ø¨Ù†Ø¬Ø§Ø­.")
+                    messages.success(request, "تم تغيير البريد الإلكتروني بنجاح.")
             
             remaining = [m for m in methods if m != "EMAIL"]
             request.session["v3_auth_methods"] = remaining
@@ -524,7 +524,7 @@ def v3_verify_otp_view(request):
             user.otp_lockout_until = timezone.now() + timedelta(minutes=15)
             user.otp_failed_attempts = 0 
         user.save()
-        messages.error(request, "Ø±Ù…Ø² Ø§Ù„ØªØ­Ù‚Ù‚ ØºÙŠØ± ØµØ­ÙŠØ­.")
+        messages.error(request, "رمز التحقق غير صحيح.")
     return render(request, "site/v3/v3_otp_verify.html", {"user_email": user.email, "remaining_cooldown": remaining_cooldown, "is_locked": is_locked})
 
 def v3_2fa_verify_view(request):
@@ -562,7 +562,7 @@ def v3_2fa_verify_view(request):
             
             if next_url: return redirect(next_url)
             return redirect("control_dashboard" if (user.is_staff and getattr(request, 'store', None) is None) else "dashboard")
-        messages.error(request, "Ø§Ù„Ø±Ù…Ø² ØºÙŠØ± ØµØ­ÙŠØ­.")
+        messages.error(request, "الرمز غير صحيح.")
     return render(request, "site/v3/v3_2fa_verify.html")
 
 @login_required
@@ -574,7 +574,7 @@ def v3_2fa_setup_view(request):
     if user.totp_enabled:
         if request.method == "POST" and request.POST.get("action") == "disable":
             user.totp_enabled = False; user.totp_secret = None; user.save()
-            messages.success(request, "ØªÙ… ØªØ¹Ø·ÙŠÙ„ Ø§Ù„Ù…ØµØ§Ø¯Ù‚Ø© Ø§Ù„Ø«Ù†Ø§Ø¦ÙŠØ©."); return redirect("site_2fa_setup")
+            messages.success(request, "تم تعطيل المصادقة الثنائية."); return redirect("site_2fa_setup")
         return render(request, "site/v3/v3_2fa_setup.html", {"enabled": True})
     if not user.totp_secret: user.totp_secret = pyotp.random_base32(); user.save()
     totp = pyotp.TOTP(user.totp_secret); provisioning_url = totp.provisioning_uri(name=user.email, issuer_name="Raqamiyat")
@@ -583,8 +583,8 @@ def v3_2fa_setup_view(request):
     qr_base64 = base64.b64encode(buffered.getvalue()).decode()
     if request.method == "POST":
         if totp.verify(request.POST.get("code")):
-            user.totp_enabled = True; user.save(); messages.success(request, "ØªÙ… ØªÙØ¹ÙŠÙ„ Ø§Ù„Ù…ØµØ§Ø¯Ù‚Ø© Ø§Ù„Ø«Ù†Ø§Ø¦ÙŠØ© Ø¨Ù†Ø¬Ø§Ø­."); return redirect("dashboard")
-        messages.error(request, "Ø§Ù„Ø±Ù…Ø² ØºÙŠØ± ØµØ­ÙŠØ­.")
+            user.totp_enabled = True; user.save(); messages.success(request, "تم تفعيل المصادقة الثنائية بنجاح."); return redirect("dashboard")
+        messages.error(request, "الرمز غير صحيح.")
     return render(request, "site/v3/v3_2fa_setup.html", {"qr_base64": qr_base64, "secret": user.totp_secret, "enabled": False})
 
 def v3_forgot_password_view(request):
@@ -597,8 +597,8 @@ def v3_forgot_password_view(request):
             
             # Determine store branding dynamically
             active_store = getattr(request, "store", None)
-            store_name = active_store.name if active_store else "Ø±Ù‚Ù…ÙŠØ§Øª"
-            store_brand = active_store.name if active_store else "Ø±Ù‚Ù…ÙŠØ§Øª | RAQAMIYAT"
+            store_name = active_store.name if active_store else "رقميات"
+            store_brand = active_store.name if active_store else "رقميات | RAQAMIYAT"
             
             # Build base URL depending on context
             if active_store:
@@ -607,26 +607,26 @@ def v3_forgot_password_view(request):
                 base_url = settings.SITE_URL
                 
             reset_url = urljoin(base_url, reverse('site_reset_password')) + f"?token={token}&uid={user.id}"
-            subject = f"Ø±Ø§Ø¨Ø· Ø§Ø³ØªØ¹Ø§Ø¯Ø© ÙƒÙ„Ù…Ø© Ø§Ù„Ù…Ø±ÙˆØ± | {store_name}"
+            subject = f"رابط استعادة كلمة المرور | {store_name}"
             html_content = f"""
             <div dir="rtl" style="font-family: 'Segoe UI', sans-serif; max-width: 500px; margin: 0 auto; padding: 20px; border: 1px solid #e2e8f0; border-radius: 16px; background-color: #ffffff;">
                 <h2 style="color: #06b6d4; text-align: center;">{store_brand}</h2>
-                <p>Ù…Ø±Ø­Ø¨Ø§Ù‹ØŒ</p>
-                <p>Ù„Ù‚Ø¯ Ø·Ù„Ø¨Øª Ø¥Ø¹Ø§Ø¯Ø© ØªØ¹ÙŠÙŠÙ† ÙƒÙ„Ù…Ø© Ø§Ù„Ù…Ø±ÙˆØ± Ù„Ø­Ø³Ø§Ø¨Ùƒ. ÙŠØ±Ø¬Ù‰ Ø§Ù„Ø¶ØºØ· Ø¹Ù„Ù‰ Ø§Ù„Ø²Ø± Ø£Ø¯Ù†Ø§Ù‡ Ù„Ù„Ù…ØªØ§Ø¨Ø¹Ø©:</p>
+                <p>مرحباً،</p>
+                <p>لقد طلبت إعادة تعيين كلمة المرور لحسابك. يرجى الضغط على الزر أدناه للمتابعة:</p>
                 <div style="text-align: center; margin: 30px 0;">
-                    <a href="{reset_url}" style="display: inline-block; padding: 14px 30px; background-color: #06b6d4; color: white; text-decoration: none; border-radius: 12px; font-weight: bold;">Ø¥Ø¹Ø§Ø¯Ø© ØªØ¹ÙŠÙŠÙ† ÙƒÙ„Ù…Ø© Ø§Ù„Ù…Ø±ÙˆØ±</a>
+                    <a href="{reset_url}" style="display: inline-block; padding: 14px 30px; background-color: #06b6d4; color: white; text-decoration: none; border-radius: 12px; font-weight: bold;">إعادة تعيين كلمة المرور</a>
                 </div>
-                <p style="font-size: 12px; color: #94a3b8; text-align: center;">Ù‡Ø°Ø§ Ø§Ù„Ø±Ø§Ø¨Ø· ØµØ§Ù„Ø­ Ù„Ù…Ø¯Ø© 10 Ø¯Ù‚Ø§Ø¦Ù‚ ÙÙ‚Ø·. Ø¥Ø°Ø§ Ù„Ù… ØªØ·Ù„Ø¨ Ù‡Ø°Ø§ØŒ ÙŠÙ…ÙƒÙ†Ùƒ ØªØ¬Ø§Ù‡Ù„ Ù‡Ø°Ø§ Ø§Ù„Ø¨Ø±ÙŠØ¯.</p>
+                <p style="font-size: 12px; color: #94a3b8; text-align: center;">هذا الرابط صالح لمدة 10 دقائق فقط. إذا لم تطلب هذا، يمكنك تجاهل هذا البريد.</p>
                 <hr style="border: 0; border-top: 1px solid #f1f5f9; margin: 20px 0;">
-                <p style="font-size: 10px; color: #cbd5e1; text-align: center;">Â© 2026 {store_name} - Ø¬Ù…ÙŠØ¹ Ø§Ù„Ø­Ù‚ÙˆÙ‚ Ù…Ø­ÙÙˆØ¸Ø©.</p>
+                <p style="font-size: 10px; color: #cbd5e1; text-align: center;">© 2026 {store_name} - جميع الحقوق محفوظة.</p>
             </div>
             """
             if send_brevo_email(user.email, user.get_full_name() or user.email, subject, html_content, store=active_store):
                 return render(request, "site/v3/v3_forgot_password.html", {"sent": True})
             else:
-                messages.error(request, "ÙØ´Ù„ Ø¥Ø±Ø³Ø§Ù„ Ø§Ù„Ø¨Ø±ÙŠØ¯ Ø§Ù„Ø¥Ù„ÙƒØªØ±ÙˆÙ†ÙŠ. ÙŠØ±Ø¬Ù‰ Ø§Ù„Ù…Ø­Ø§ÙˆÙ„Ø© Ù„Ø§Ø­Ù‚Ø§Ù‹.")
+                messages.error(request, "فشل إرسال البريد الإلكتروني. يرجى المحاولة لاحقاً.")
         else:
-            messages.error(request, "Ø§Ù„Ø¨Ø±ÙŠØ¯ Ø§Ù„Ø¥Ù„ÙƒØªØ±ÙˆÙ†ÙŠ ØºÙŠØ± Ù…Ø³Ø¬Ù„ Ù„Ø¯ÙŠÙ†Ø§.")
+            messages.error(request, "البريد الإلكتروني غير مسجل لدينا.")
     return render(request, "site/v3/v3_forgot_password.html")
 
 def v3_reset_password_view(request):
@@ -636,15 +636,15 @@ def v3_reset_password_view(request):
     user = get_object_or_404(User, id=uid)
     from django.contrib.auth.tokens import default_token_generator
     if not default_token_generator.check_token(user, token):
-        messages.error(request, "Ø§Ù„Ø±Ø§Ø¨Ø· ØºÙŠØ± ØµØ§Ù„Ø­ Ø£Ùˆ Ù…Ù†ØªÙ‡ÙŠ Ø§Ù„ØµÙ„Ø§Ø­ÙŠØ©."); return redirect("site_forgot_password")
+        messages.error(request, "الرابط غير صالح أو منتهي الصلاحية."); return redirect("site_forgot_password")
     if request.method == "POST":
         p1, p2 = request.POST.get("password"), request.POST.get("confirm_password")
         if p1 and p1 == p2 and len(p1) >= 10:
             user.set_password(p1); user.save(); 
             login(request, user, backend='apps.stores.auth_backend.TenantModelBackend')
-            messages.success(request, "ØªÙ… ØªØºÙŠÙŠØ± ÙƒÙ„Ù…Ø© Ø§Ù„Ù…Ø±ÙˆØ± Ø¨Ù†Ø¬Ø§Ø­. ØªÙ… ØªØ³Ø¬ÙŠÙ„ Ø¯Ø®ÙˆÙ„Ùƒ ØªÙ„Ù‚Ø§Ø¦ÙŠØ§Ù‹.")
+            messages.success(request, "تم تغيير كلمة المرور بنجاح. تم تسجيل دخولك تلقائياً.")
             return redirect("dashboard")
-        messages.error(request, "ÙƒÙ„Ù…Ø§Øª Ø§Ù„Ù…Ø±ÙˆØ± ØºÙŠØ± Ù…ØªØ·Ø§Ø¨Ù‚Ø© Ø£Ùˆ Ù„Ø§ ØªØ³ØªÙˆÙÙŠ Ø´Ø±ÙˆØ· Ø§Ù„Ø·ÙˆÙ„ (10 Ø®Ø§Ù†Ø§Øª Ø¹Ù„Ù‰ Ø§Ù„Ø£Ù‚Ù„).")
+        messages.error(request, "كلمات المرور غير متطابقة أو لا تستوفي شروط الطول (10 خانات على الأقل).")
     return render(request, "site/v3/v3_reset_password.html", {"user_email": user.email, "token": token, "uid": uid})
 
 @login_required
@@ -654,18 +654,18 @@ def v3_logout_view(request):
 @login_required
 def resend_verification(request):
     if request.user.email_verified:
-        messages.info(request, "Ø¨Ø±ÙŠØ¯Ùƒ Ø§Ù„Ø¥Ù„ÙƒØªØ±ÙˆÙ†ÙŠ Ù…ÙˆØ«Ù‚ Ø¨Ø§Ù„ÙØ¹Ù„.")
+        messages.info(request, "بريدك الإلكتروني موثق بالفعل.")
         return redirect("dashboard")
     
     from apps.accounts.services import send_verification_otp
     try:
         if send_verification_otp(request.user):
-            messages.success(request, "ØªÙ… Ø¥Ø¹Ø§Ø¯Ø© Ø¥Ø±Ø³Ø§Ù„ Ø±Ù…Ø² Ø§Ù„ØªØ­Ù‚Ù‚ Ø¥Ù„Ù‰ Ø¨Ø±ÙŠØ¯Ùƒ Ø§Ù„Ø¥Ù„ÙƒØªØ±ÙˆÙ†ÙŠ.")
+            messages.success(request, "تم إعادة إرسال رمز التحقق إلى بريدك الإلكتروني.")
             return redirect("site_verify_otp")
         else:
-            messages.error(request, "ÙØ´Ù„ Ø¥Ø±Ø³Ø§Ù„ Ø§Ù„Ø±Ù…Ø². ÙŠØ±Ø¬Ù‰ Ø§Ù„Ù…Ø­Ø§ÙˆÙ„Ø© Ù…Ø±Ø© Ø£Ø®Ø±Ù‰ Ù„Ø§Ø­Ù‚Ø§Ù‹.")
+            messages.error(request, "فشل إرسال الرمز. يرجى المحاولة مرة أخرى لاحقاً.")
     except Exception as e:
-        messages.error(request, f"Ø®Ø·Ø£: {str(e)}")
+        messages.error(request, f"خطأ: {str(e)}")
         
     return redirect("dashboard")
 def email_verify(request, uidb64, token): return redirect("site_login")
@@ -698,23 +698,23 @@ def dashboard(request):
             if action == "renew_store":
                 success = store.renew_subscription()
                 if success:
-                    messages.success(request, f"ØªÙ… ØªØ¬Ø¯ÙŠØ¯ Ø§Ø´ØªØ±Ø§Ùƒ Ù…ØªØ¬Ø± '{store.name}' Ø¨Ù†Ø¬Ø§Ø­.")
+                    messages.success(request, f"تم تجديد اشتراك متجر '{store.name}' بنجاح.")
                 else:
-                    messages.error(request, f"ÙØ´Ù„ ØªØ¬Ø¯ÙŠØ¯ Ø§Ù„Ø§Ø´ØªØ±Ø§Ùƒ. ÙŠØ±Ø¬Ù‰ Ø§Ù„ØªØ­Ù‚Ù‚ Ù…Ù† Ø±ØµÙŠØ¯ Ù…Ø­ÙØ¸ØªÙƒ.")
+                    messages.error(request, f"فشل تجديد الاشتراك. يرجى التحقق من رصيد محفظتك.")
             
             elif action == "toggle_auto_renew":
                 store.auto_renew = not store.auto_renew
                 store.save()
-                messages.success(request, f"ØªÙ… {'ØªÙØ¹ÙŠÙ„' if store.auto_renew else 'Ø¥Ù„ØºØ§Ø¡ ØªÙØ¹ÙŠÙ„'} Ø§Ù„ØªØ¬Ø¯ÙŠØ¯ Ø§Ù„ØªÙ„Ù‚Ø§Ø¦ÙŠ Ù„Ù…ØªØ¬Ø± '{store.name}' Ø¨Ù†Ø¬Ø§Ø­.")
+                messages.success(request, f"تم {'تفعيل' if store.auto_renew else 'إلغاء تفعيل'} التجديد التلقائي لمتجر '{store.name}' بنجاح.")
                 
             elif action == "change_billing_cycle":
                 cycle = request.POST.get("billing_cycle")
                 if cycle in ["monthly", "yearly"]:
                     store.billing_cycle = cycle
                     store.save()
-                    messages.success(request, f"ØªÙ… ØªØºÙŠÙŠØ± Ø¯ÙˆØ±Ø© Ø¯ÙØ¹ Ù…ØªØ¬Ø± '{store.name}' Ø¥Ù„Ù‰: {'Ø³Ù†ÙˆÙŠ' if cycle == 'yearly' else 'Ø´Ù‡Ø±ÙŠ'}.")
+                    messages.success(request, f"تم تغيير دورة دفع متجر '{store.name}' إلى: {'سنوي' if cycle == 'yearly' else 'شهري'}.")
                 else:
-                    messages.error(request, "Ø¯ÙˆØ±Ø© Ø§Ù„Ø¯ÙØ¹ Ø§Ù„Ù…Ø­Ø¯Ø¯Ø© ØºÙŠØ± ØµØ§Ù„Ø­Ø©.")
+                    messages.error(request, "دورة الدفع المحددة غير صالحة.")
                     
             elif action == "change_plan":
                 plan_id = request.POST.get("plan_id")
@@ -722,9 +722,9 @@ def dashboard(request):
                 if plan:
                     store.subscription_plan = plan
                     store.save()
-                    messages.success(request, f"ØªÙ… ØªØºÙŠÙŠØ± Ø¨Ø§Ù‚Ø© Ù…ØªØ¬Ø± '{store.name}' Ø¥Ù„Ù‰: {plan.name}.")
+                    messages.success(request, f"تم تغيير باقة متجر '{store.name}' إلى: {plan.name}.")
                 else:
-                    messages.error(request, "Ø§Ù„Ø¨Ø§Ù‚Ø© Ø§Ù„Ù…Ø­Ø¯Ø¯Ø© ØºÙŠØ± ØµØ§Ù„Ø­Ø©.")
+                    messages.error(request, "الباقة المحددة غير صالحة.")
                     
             return redirect("dashboard")
 
@@ -835,12 +835,12 @@ def transfer_page(request):
     from apps.common.models import SiteMaintenanceMode
     _maint = SiteMaintenanceMode.get_settings()
     if not _maint.transfers_enabled:
-        messages.error(request, f"âš ï¸ Ø®Ø¯Ù…Ø© Ø§Ù„ØªØ­ÙˆÙŠÙ„ Ø¨ÙŠÙ† Ø§Ù„Ù…Ø³ØªØ®Ø¯Ù…ÙŠÙ† Ù…ÙˆÙ‚ÙˆÙØ© Ù…Ø¤Ù‚ØªØ§Ù‹. {_maint.maintenance_message}")
+        messages.error(request, f"⚠️ خدمة التحويل بين المستخدمين موقوفة مؤقتاً. {_maint.maintenance_message}")
         return redirect("dashboard")
 
     settings_obj = KYCSettings.get_settings()
     if not settings_obj.p2p_transfer_enabled:
-        messages.error(request, "Ù…ÙŠØ²Ø© Ø§Ù„ØªØ­ÙˆÙŠÙ„ Ù…Ø¹Ø·Ù„Ø© Ø­Ø§Ù„ÙŠØ§Ù‹.")
+        messages.error(request, "ميزة التحويل معطلة حالياً.")
         return redirect("dashboard")
         
     wallet = get_or_create_wallet(request.user)
@@ -853,7 +853,7 @@ def transfer_page(request):
         active_store = getattr(request, 'store', None) or request.user.store
         recipient = User.objects.filter(public_uuid=recipient_uid, store=active_store).first()
         if not recipient:
-            messages.error(request, "Ø§Ù„Ù…Ø³ØªÙ„Ù… ØºÙŠØ± Ù…ÙˆØ¬ÙˆØ¯ Ø£Ùˆ Ù„Ø§ ÙŠÙ†ØªÙ…ÙŠ Ù„Ù‡Ø°Ø§ Ø§Ù„Ù…ØªØ¬Ø±.")
+            messages.error(request, "المستلم غير موجود أو لا ينتمي لهذا المتجر.")
             return redirect("dashboard_transfer")
             
         try:
@@ -864,7 +864,7 @@ def transfer_page(request):
                 currency=wallet.currency,
                 note=note
             )
-            messages.success(request, f"ØªÙ… ØªØ­ÙˆÙŠÙ„ {transfer.net_amount} {transfer.currency.code} Ø¥Ù„Ù‰ {recipient.display_name} Ø¨Ù†Ø¬Ø§Ø­.")
+            messages.success(request, f"تم تحويل {transfer.net_amount} {transfer.currency.code} إلى {recipient.display_name} بنجاح.")
             return redirect("dashboard_transfer_history")
         except ValidationError as e:
             messages.error(request, str(e.message) if hasattr(e, 'message') else str(e))
@@ -922,7 +922,7 @@ def deposits(request):
     from apps.common.models import SiteMaintenanceMode
     _maint = SiteMaintenanceMode.get_settings()
     if not _maint.deposits_enabled:
-        messages.error(request, f"âš ï¸ Ø®Ø¯Ù…Ø© Ø§Ù„Ø¥ÙŠØ¯Ø§Ø¹ Ù…ÙˆÙ‚ÙˆÙØ© Ù…Ø¤Ù‚ØªØ§Ù‹. {_maint.maintenance_message}")
+        messages.error(request, f"⚠️ خدمة الإيداع موقوفة مؤقتاً. {_maint.maintenance_message}")
         return redirect("dashboard")
 
     if request.method == "POST":
@@ -933,28 +933,28 @@ def deposits(request):
         
         # Validation
         if not method_id or not currency_id:
-            messages.error(request, "Ø¨ÙŠØ§Ù†Ø§Øª ÙˆØ³ÙŠÙ„Ø© Ø§Ù„Ø¯ÙØ¹ Ø£Ùˆ Ø§Ù„Ø¹Ù…Ù„Ø© Ù†Ø§Ù‚ØµØ©.")
+            messages.error(request, "بيانات وسيلة الدفع أو العملة ناقصة.")
             return redirect("dashboard_deposits")
             
         method = get_object_or_404(PaymentMethod, id=method_id, is_active=True, can_deposit=True)
         
         # KYC Check (Task 9)
         if method.requires_kyc and not request.user.is_kyc_verified:
-            messages.error(request, "Ù‡Ø°Ù‡ Ø§Ù„ÙˆØ³ÙŠÙ„Ø© ØªØªØ·Ù„Ø¨ ØªÙˆØ«ÙŠÙ‚ Ø§Ù„Ø­Ø³Ø§Ø¨ (KYC) Ø£ÙˆÙ„Ø§Ù‹.")
+            messages.error(request, "هذه الوسيلة تتطلب توثيق الحساب (KYC) أولاً.")
             return redirect("dashboard_deposits")
             
         currency = get_object_or_404(Currency, id=currency_id, is_active=True)
         
         # Security check: Does currency belong to method?
         if not method.supported_currencies.filter(id=currency.id).exists():
-            messages.error(request, "Ø§Ù„Ø¹Ù…Ù„Ø© Ø§Ù„Ù…Ø®ØªØ§Ø±Ø© ØºÙŠØ± Ù…Ø¯Ø¹ÙˆÙ…Ø© Ù„Ù‡Ø°Ù‡ Ø§Ù„ÙˆØ³ÙŠÙ„Ø©.")
+            messages.error(request, "العملة المختارة غير مدعومة لهذه الوسيلة.")
             return redirect("dashboard_deposits")
 
         try:
             amount = Decimal(amount_str)
             if amount <= 0: raise ValueError()
         except:
-            messages.error(request, "ÙŠØ±Ø¬Ù‰ Ø¥Ø¯Ø®Ø§Ù„ Ù…Ø¨Ù„Øº ØµØ­ÙŠØ­.")
+            messages.error(request, "يرجى إدخال مبلغ صحيح.")
             return redirect("dashboard_deposits")
 
         # --- Task 2 & 3: Limit Checks ---
@@ -963,24 +963,24 @@ def deposits(request):
         # 1. User Daily Limit
         request.user.reset_daily_limits_if_needed()
         if request.user.daily_deposit_usage + amount_in_usd > request.user.daily_deposit_limit:
-            messages.error(request, f"Ù„Ù‚Ø¯ ØªØ¬Ø§ÙˆØ²Øª Ø­Ø¯ Ø§Ù„Ø¥ÙŠØ¯Ø§Ø¹ Ø§Ù„ÙŠÙˆÙ…ÙŠ Ø§Ù„Ù…Ø³Ù…ÙˆØ­ Ù„Ùƒ ({request.user.daily_deposit_limit} USD). Ø§Ù„Ù…ØªØ¨Ù‚ÙŠ Ù„Ùƒ Ø§Ù„ÙŠÙˆÙ…: {max(0, request.user.daily_deposit_limit - request.user.daily_deposit_usage):,.2f} USD")
+            messages.error(request, f"لقد تجاوزت حد الإيداع اليومي المسموح لك ({request.user.daily_deposit_limit} USD). المتبقي لك اليوم: {max(0, request.user.daily_deposit_limit - request.user.daily_deposit_usage):,.2f} USD")
             return redirect("dashboard_deposits")
             
         # 2. Method Daily Limit
         method.reset_daily_limits_if_needed()
         if method.daily_deposit_usage + amount_in_usd > method.daily_deposit_limit:
-            messages.error(request, "Ø¹Ø°Ø±Ø§Ù‹ØŒ Ù‡Ø°Ù‡ Ø§Ù„ÙˆØ³ÙŠÙ„Ø© ÙˆØµÙ„Øª Ù„Ù„Ø­Ø¯ Ø§Ù„Ø£Ù‚ØµÙ‰ Ù„Ù„Ø¥ÙŠØ¯Ø§Ø¹Ø§Øª Ø§Ù„ÙŠÙˆÙ…ÙŠØ©. ÙŠØ±Ø¬Ù‰ Ø§Ù„Ù…Ø­Ø§ÙˆÙ„Ø© ØºØ¯Ø§Ù‹ Ø£Ùˆ Ø§Ø³ØªØ®Ø¯Ø§Ù… ÙˆØ³ÙŠÙ„Ø© Ø£Ø®Ø±Ù‰.")
+            messages.error(request, "عذراً، هذه الوسيلة وصلت للحد الأقصى للإيداعات اليومية. يرجى المحاولة غداً أو استخدام وسيلة أخرى.")
             return redirect("dashboard_deposits")
             
         # 3. Global Cap (Task 5)
         if method.global_deposit_cap > 0 and method.global_deposit_usage + amount_in_usd > method.global_deposit_cap:
-            messages.error(request, "Ø¹Ø°Ø±Ø§Ù‹ØŒ Ù‡Ø°Ù‡ Ø§Ù„ÙˆØ³ÙŠÙ„Ø© ØºÙŠØ± Ù…ØªÙˆÙØ±Ø© Ø­Ø§Ù„ÙŠØ§Ù‹ Ù„ØªØ¬Ø§ÙˆØ²Ù‡Ø§ Ø§Ù„Ø­Ø¯ Ø§Ù„Ø¥Ø¬Ù…Ø§Ù„ÙŠ Ø§Ù„Ù…Ø³Ù…ÙˆØ­ Ø¨Ù‡.")
+            messages.error(request, "عذراً، هذه الوسيلة غير متوفرة حالياً لتجاوزها الحد الإجمالي المسموح به.")
             return redirect("dashboard_deposits")
 
         # Extract metadata from custom fields
         metadata = {}
         schema = method.deposit_form_schema
-        customer_note = request.POST.get("customer_note") or request.POST.get("note") or request.POST.get("Ù…Ù„Ø§Ø­Ø¸Ø©") or ""
+        customer_note = request.POST.get("customer_note") or request.POST.get("note") or request.POST.get("ملاحظة") or ""
         
         for field in schema.get("fields", []) if isinstance(schema, dict) else []:
             field_name = field.get("name") or field.get("id") or field.get("key") or field.get("label")
@@ -997,14 +997,14 @@ def deposits(request):
                 val = request.POST.get(f"custom_{field_name}")
 
             if field.get("required") and not val:
-                messages.error(request, f"Ø§Ù„Ø­Ù‚Ù„ {field.get('label')} Ù…Ø·Ù„ÙˆØ¨.")
+                messages.error(request, f"الحقل {field.get('label')} مطلوب.")
                 return redirect("dashboard_deposits")
             metadata[field_name] = val
             
             field_label = field.get("label", "").lower()
             field_name_lower = field_name.lower()
             is_note_field = False
-            for note_keyword in ("customer_note", "note", "notes", "Ù…Ù„Ø§Ø­Ø¸Ø©", "Ù…Ù„Ø§Ø­Ø¸Ø§Øª", "Ù…Ù„Ø§Ø­Ø¸Ø© Ø§Ù„Ø¹Ù…ÙŠÙ„", "Ø­Ù‚Ù„ Ù…Ù„Ø§Ø­Ø¸Ø©", "Ø§Ù„Ø±Ø³Ø§Ù„Ø©", "message"):
+            for note_keyword in ("customer_note", "note", "notes", "ملاحظة", "ملاحظات", "ملاحظة العميل", "حقل ملاحظة", "الرسالة", "message"):
                 if note_keyword in field_label or note_keyword in field_name_lower:
                     is_note_field = True
                     break
@@ -1043,23 +1043,23 @@ def deposits(request):
             # Notify user about the request submission ONLY if verified
             send_financial_notification(
                 user=request.user,
-                title="ØªÙ… Ø§Ø³ØªÙ„Ø§Ù… Ø·Ù„Ø¨ Ø§Ù„Ø¥ÙŠØ¯Ø§Ø¹",
-                body=f"ØªÙ… Ø§Ø³ØªÙ„Ø§Ù… Ø·Ù„Ø¨ Ø§Ù„Ø¥ÙŠØ¯Ø§Ø¹ Ø§Ù„Ø®Ø§Øµ Ø¨Ùƒ Ø±Ù‚Ù… {deposit.id} Ø¨Ù‚ÙŠÙ…Ø© {deposit.amount} {deposit.currency.code}. Ø³ÙŠØªÙ… Ù…Ø±Ø§Ø¬Ø¹ØªÙ‡ Ù…Ù† Ù‚Ø¨Ù„ Ø§Ù„Ø¥Ø¯Ø§Ø±Ø© Ù‚Ø±ÙŠØ¨Ø§Ù‹."
+                title="تم استلام طلب الإيداع",
+                body=f"تم استلام طلب الإيداع الخاص بك رقم {deposit.id} بقيمة {deposit.amount} {deposit.currency.code}. سيتم مراجعته من قبل الإدارة قريباً."
             )
             from apps.notifications.services import notify_staff
             notify_staff(
-                title="Ø·Ù„Ø¨ Ø¥ÙŠØ¯Ø§Ø¹ Ø¬Ø¯ÙŠØ¯",
-                body=f"Ù‚Ø§Ù… {request.user.email} Ø¨ØªÙ‚Ø¯ÙŠÙ… Ø·Ù„Ø¨ Ø¥ÙŠØ¯Ø§Ø¹ Ø¨Ù‚ÙŠÙ…Ø© {deposit.amount} {deposit.currency.code}",
+                title="طلب إيداع جديد",
+                body=f"قام {request.user.email} بتقديم طلب إيداع بقيمة {deposit.amount} {deposit.currency.code}",
                 action_url=f"/control/deposits/{deposit.id}/",
                 category='admin_new_deposit'
             )
-            messages.success(request, "ØªÙ… ØªÙ‚Ø¯ÙŠÙ… Ø·Ù„Ø¨ Ø§Ù„Ø¥ÙŠØ¯Ø§Ø¹ Ø¨Ù†Ø¬Ø§Ø­.")
+            messages.success(request, "تم تقديم طلب الإيداع بنجاح.")
 
             return redirect("dashboard_deposits")
         else:
             # Save request ID in session for verification callback
             request.session["v3_pending_action_id"] = str(deposit.id)
-            messages.info(request, "ÙŠØ±Ø¬Ù‰ Ø§Ù„ØªØ­Ù‚Ù‚ Ù„Ø¥ÙƒÙ…Ø§Ù„ Ø§Ù„Ø·Ù„Ø¨.")
+            messages.info(request, "يرجى التحقق لإكمال الطلب.")
             methods = request.session.get("v3_auth_methods", [])
             return v3_redirect_to_verification(request, methods)
 
@@ -1080,7 +1080,7 @@ def withdrawals(request):
     from apps.common.models import SiteMaintenanceMode
     _maint = SiteMaintenanceMode.get_settings()
     if not _maint.withdrawals_enabled:
-        messages.error(request, f"âš ï¸ Ø®Ø¯Ù…Ø© Ø§Ù„Ø³Ø­Ø¨ Ù…ÙˆÙ‚ÙˆÙØ© Ù…Ø¤Ù‚ØªØ§Ù‹. {_maint.maintenance_message}")
+        messages.error(request, f"⚠️ خدمة السحب موقوفة مؤقتاً. {_maint.maintenance_message}")
         return redirect("dashboard")
 
     if request.method == "POST":
@@ -1089,27 +1089,27 @@ def withdrawals(request):
         amount_str = request.POST.get("amount", "0")
         
         if not method_id or not currency_id:
-            messages.error(request, "Ø¨ÙŠØ§Ù†Ø§Øª Ù†Ø§Ù‚ØµØ©.")
+            messages.error(request, "بيانات ناقصة.")
             return redirect("dashboard_withdrawals")
 
         method = get_object_or_404(PaymentMethod, id=method_id, is_active=True, can_withdraw=True)
         
         # Task 9: KYC Check
         if method.requires_kyc and not request.user.is_kyc_verified:
-            messages.error(request, "Ù‡Ø°Ù‡ Ø§Ù„ÙˆØ³ÙŠÙ„Ø© ØªØªØ·Ù„Ø¨ ØªÙˆØ«ÙŠÙ‚ Ø§Ù„Ø­Ø³Ø§Ø¨ (KYC) Ø£ÙˆÙ„Ø§Ù‹.")
+            messages.error(request, "هذه الوسيلة تتطلب توثيق الحساب (KYC) أولاً.")
             return redirect("dashboard_withdrawals")
 
         currency = get_object_or_404(Currency, id=currency_id, is_active=True)
         
         if not method.supported_currencies.filter(id=currency.id).exists():
-            messages.error(request, "Ø§Ù„Ø¹Ù…Ù„Ø© Ø§Ù„Ù…Ø®ØªØ§Ø±Ø© ØºÙŠØ± Ù…Ø¯Ø¹ÙˆÙ…Ø©.")
+            messages.error(request, "العملة المختارة غير مدعومة.")
             return redirect("dashboard_withdrawals")
 
         try:
             amount = Decimal(amount_str)
             if amount <= 0: raise ValueError()
         except:
-            messages.error(request, "Ù…Ø¨Ù„Øº ØºÙŠØ± ØµØ­ÙŠØ­.")
+            messages.error(request, "مبلغ غير صحيح.")
             return redirect("dashboard_withdrawals")
 
         # Limit checks (pre-request)
@@ -1117,24 +1117,24 @@ def withdrawals(request):
 
         # 1. Method-specific transaction limits
         if amount_in_usd < method.withdrawal_min_amount:
-            messages.error(request, f"Ø§Ù„Ø­Ø¯ Ø§Ù„Ø£Ø¯Ù†Ù‰ Ù„Ù„Ø³Ø­Ø¨ Ø¹Ø¨Ø± Ù‡Ø°Ù‡ Ø§Ù„ÙˆØ³ÙŠÙ„Ø© Ù‡Ùˆ {method.withdrawal_min_amount:,.2f} USD")
+            messages.error(request, f"الحد الأدنى للسحب عبر هذه الوسيلة هو {method.withdrawal_min_amount:,.2f} USD")
             return redirect("dashboard_withdrawals")
         
         if amount_in_usd > method.withdrawal_max_amount:
-            messages.error(request, f"Ø§Ù„Ø­Ø¯ Ø§Ù„Ø£Ù‚ØµÙ‰ Ù„Ù„Ø³Ø­Ø¨ ÙÙŠ Ø§Ù„Ø¹Ù…Ù„ÙŠØ© Ø§Ù„ÙˆØ§Ø­Ø¯Ø© Ø¹Ø¨Ø± Ù‡Ø°Ù‡ Ø§Ù„ÙˆØ³ÙŠÙ„Ø© Ù‡Ùˆ {method.withdrawal_max_amount:,.2f} USD")
+            messages.error(request, f"الحد الأقصى للسحب في العملية الواحدة عبر هذه الوسيلة هو {method.withdrawal_max_amount:,.2f} USD")
             return redirect("dashboard_withdrawals")
 
         # --- Task 2 & 3: Daily Limits ---
         # A) User Daily Limit
         request.user.reset_daily_limits_if_needed()
         if request.user.daily_withdrawal_usage + amount_in_usd > request.user.daily_withdrawal_limit:
-            messages.error(request, f"Ù„Ù‚Ø¯ ØªØ¬Ø§ÙˆØ²Øª Ø­Ø¯ Ø§Ù„Ø³Ø­Ø¨ Ø§Ù„ÙŠÙˆÙ…ÙŠ Ø§Ù„Ù…Ø³Ù…ÙˆØ­ Ù„Ùƒ ({request.user.daily_withdrawal_limit} USD). Ø§Ù„Ù…ØªØ¨Ù‚ÙŠ Ù„Ùƒ Ø§Ù„ÙŠÙˆÙ…: {max(0, request.user.daily_withdrawal_limit - request.user.daily_withdrawal_usage):,.2f} USD")
+            messages.error(request, f"لقد تجاوزت حد السحب اليومي المسموح لك ({request.user.daily_withdrawal_limit} USD). المتبقي لك اليوم: {max(0, request.user.daily_withdrawal_limit - request.user.daily_withdrawal_usage):,.2f} USD")
             return redirect("dashboard_withdrawals")
 
         # B) Method Daily Limit
         method.reset_daily_limits_if_needed()
         if method.daily_withdrawal_usage + amount_in_usd > method.daily_withdrawal_limit:
-            messages.error(request, "Ø¹Ø°Ø±Ø§Ù‹ØŒ Ù‡Ø°Ù‡ Ø§Ù„ÙˆØ³ÙŠÙ„Ø© ÙˆØµÙ„Øª Ù„Ù„Ø­Ø¯ Ø§Ù„Ø£Ù‚ØµÙ‰ Ù„Ù„Ø³Ø­ÙˆØ¨Ø§Øª Ø§Ù„ÙŠÙˆÙ…ÙŠØ©. ÙŠØ±Ø¬Ù‰ Ø§Ø³ØªØ®Ø¯Ø§Ù… ÙˆØ³ÙŠÙ„Ø© Ø£Ø®Ø±Ù‰.")
+            messages.error(request, "عذراً، هذه الوسيلة وصلت للحد الأقصى للسحوبات اليومية. يرجى استخدام وسيلة أخرى.")
             return redirect("dashboard_withdrawals")
 
         # C) Priority/Custom Limits (Check if user has a smaller custom limit for this method)
@@ -1144,7 +1144,7 @@ def withdrawals(request):
                 try:
                     custom_limit = Decimal(str(user_custom['withdraw']))
                     if amount_in_usd > custom_limit:
-                         messages.error(request, f"Ø¹Ø°Ø±Ø§Ù‹ØŒ Ø­Ø¯ Ø§Ù„Ø³Ø­Ø¨ Ø§Ù„Ù…Ø®ØµØµ Ù„Ùƒ Ù„Ù‡Ø°Ù‡ Ø§Ù„ÙˆØ³ÙŠÙ„Ø© Ù‡Ùˆ {custom_limit:,.2f} USD")
+                         messages.error(request, f"عذراً، حد السحب المخصص لك لهذه الوسيلة هو {custom_limit:,.2f} USD")
                          return redirect("dashboard_withdrawals")
                 except: pass
 
@@ -1187,7 +1187,7 @@ def withdrawals(request):
                 val = request.POST.get(f"custom_{field_name}")
             
             if field.get("required") and not val:
-                messages.error(request, f"Ø§Ù„Ø­Ù‚Ù„ {field.get('label')} Ù…Ø·Ù„ÙˆØ¨.")
+                messages.error(request, f"الحقل {field.get('label')} مطلوب.")
                 return redirect("dashboard_withdrawals")
             payout_details["dynamic"][field_name] = val
 
@@ -1203,7 +1203,7 @@ def withdrawals(request):
                     request.user.wallet.id, 
                     wallet_amount, 
                     reference=f"with_req_{timezone.now().timestamp()}", 
-                    reason=f"Ø³Ø­Ø¨ {amount} {currency.code} Ø¹Ø¨Ø± {method.name}"
+                    reason=f"سحب {amount} {currency.code} عبر {method.name}"
                 )
                 
                 withdrawal = WithdrawalRequest.objects.create(
@@ -1220,13 +1220,13 @@ def withdrawals(request):
             # Notify user about the request submission
             send_financial_notification(
                 user=request.user,
-                title="ØªÙ… Ø§Ø³ØªÙ„Ø§Ù… Ø·Ù„Ø¨ Ø§Ù„Ø³Ø­Ø¨",
-                body=f"ØªÙ… Ø§Ø³ØªÙ„Ø§Ù… Ø·Ù„Ø¨ Ø§Ù„Ø³Ø­Ø¨ Ø§Ù„Ø®Ø§Øµ Ø¨Ùƒ Ø±Ù‚Ù… {withdrawal.id} Ø¨Ù‚ÙŠÙ…Ø© {withdrawal.amount} {withdrawal.currency.code}. Ø³ÙŠØªÙ… Ù…Ø±Ø§Ø¬Ø¹ØªÙ‡ Ù…Ù† Ù‚Ø¨Ù„ Ø§Ù„Ø¥Ø¯Ø§Ø±Ø© Ù‚Ø±ÙŠØ¨Ø§Ù‹."
+                title="تم استلام طلب السحب",
+                body=f"تم استلام طلب السحب الخاص بك رقم {withdrawal.id} بقيمة {withdrawal.amount} {withdrawal.currency.code}. سيتم مراجعته من قبل الإدارة قريباً."
             )
             from apps.notifications.services import notify_staff
             notify_staff(
-                title="Ø·Ù„Ø¨ Ø³Ø­Ø¨ Ø¬Ø¯ÙŠØ¯",
-                body=f"Ù‚Ø§Ù… {request.user.email} Ø¨ØªÙ‚Ø¯ÙŠÙ… Ø·Ù„Ø¨ Ø³Ø­Ø¨ Ø¨Ù‚ÙŠÙ…Ø© {withdrawal.amount} {withdrawal.currency.code}",
+                title="طلب سحب جديد",
+                body=f"قام {request.user.email} بتقديم طلب سحب بقيمة {withdrawal.amount} {withdrawal.currency.code}",
                 action_url=f"/control/withdrawals/{withdrawal.id}/",
                 category='admin_new_withdrawal'
             )
@@ -1243,14 +1243,14 @@ def withdrawals(request):
             # Notify user about the request submission ONLY if verified
             send_financial_notification(
                 user=request.user,
-                title="ØªÙ… Ø§Ø³ØªÙ„Ø§Ù… Ø·Ù„Ø¨ Ø§Ù„Ø³Ø­Ø¨",
-                body=f"ØªÙ… Ø§Ø³ØªÙ„Ø§Ù… Ø·Ù„Ø¨ Ø§Ù„Ø³Ø­Ø¨ Ø§Ù„Ø®Ø§Øµ Ø¨Ùƒ Ø±Ù‚Ù… {withdrawal.id} Ø¨Ù‚ÙŠÙ…Ø© {withdrawal.amount} {withdrawal.currency.code}. Ø³ÙŠØªÙ… Ù…Ø±Ø§Ø¬Ø¹ØªÙ‡ Ù…Ù† Ù‚Ø¨Ù„ Ø§Ù„Ø¥Ø¯Ø§Ø±Ø© Ù‚Ø±ÙŠØ¨Ø§Ù‹."
+                title="تم استلام طلب السحب",
+                body=f"تم استلام طلب السحب الخاص بك رقم {withdrawal.id} بقيمة {withdrawal.amount} {withdrawal.currency.code}. سيتم مراجعته من قبل الإدارة قريباً."
             )
-            messages.success(request, "ØªÙ… ØªÙ‚Ø¯ÙŠÙ… Ø·Ù„Ø¨ Ø§Ù„Ø³Ø­Ø¨ Ø¨Ù†Ø¬Ø§Ø­.")
+            messages.success(request, "تم تقديم طلب السحب بنجاح.")
             return redirect("dashboard_withdrawals")
         else:
             request.session["v3_pending_action_id"] = str(withdrawal.id)
-            messages.info(request, "ÙŠØ±Ø¬Ù‰ Ø§Ù„ØªØ­Ù‚Ù‚ Ù„Ø¥ÙƒÙ…Ø§Ù„ Ø·Ù„Ø¨ Ø§Ù„Ø³Ø­Ø¨.")
+            messages.info(request, "يرجى التحقق لإكمال طلب السحب.")
             methods = request.session.get("v3_auth_methods", [])
             return v3_redirect_to_verification(request, methods)
 
@@ -1291,8 +1291,8 @@ def kyc_request_view(request):
             kyc.save()
             from apps.notifications.services import notify_staff
             notify_staff(
-                title="Ø·Ù„Ø¨ ØªÙˆØ«ÙŠÙ‚ Ø¬Ø¯ÙŠØ¯",
-                body=f"Ù…Ø³ØªØ®Ø¯Ù…: {request.user.email}",
+                title="طلب توثيق جديد",
+                body=f"مستخدم: {request.user.email}",
                 action_url=f"/control/kyc/{kyc.id}/",
                 category='admin_new_kyc'
             )
@@ -1301,9 +1301,9 @@ def kyc_request_view(request):
             from apps.accounts.services import send_kyc_status_email
             send_kyc_status_email(request.user, 'pending')
             
-            messages.success(request, "ØªÙ… ØªÙ‚Ø¯ÙŠÙ… Ø§Ù„Ø·Ù„Ø¨."); return redirect("dashboard")
+            messages.success(request, "تم تقديم الطلب."); return redirect("dashboard")
         else:
-            messages.error(request, "ÙŠØ±Ø¬Ù‰ ØªØµØ­ÙŠØ­ Ø§Ù„Ø£Ø®Ø·Ø§Ø¡ ÙÙŠ Ø§Ù„Ù†Ù…ÙˆØ°Ø¬ Ø£Ø¯Ù†Ø§Ù‡.")
+            messages.error(request, "يرجى تصحيح الأخطاء في النموذج أدناه.")
     
     return render(request, "site/v3/v3_kyc_form.html", {"form": form})
 
@@ -1319,7 +1319,7 @@ def notification_settings(request):
     form = NotificationSettingForm(request.POST or None, instance=obj, is_staff=request.user.is_platform_staff)
     if request.method == "POST" and form.is_valid():
         form.save()
-        messages.success(request, "ØªÙ… Ø­ÙØ¸ Ø¥Ø¹Ø¯Ø§Ø¯Ø§Øª Ø§Ù„Ø¥Ø´Ø¹Ø§Ø±Ø§Øª Ø¨Ù†Ø¬Ø§Ø­.")
+        messages.success(request, "تم حفظ إعدادات الإشعارات بنجاح.")
         return redirect("notification_settings")
     return render(request, "site/v3/v3_notification_settings.html", {"form": form})
 
@@ -1341,11 +1341,11 @@ def v3_change_password_view(request):
             request.user.save()
             success = True
         else:
-            messages.error(request, "ÙƒÙ„Ù…Ø© Ø§Ù„Ù…Ø±ÙˆØ± Ø§Ù„Ø­Ø§Ù„ÙŠØ© ØºÙŠØ± ØµØ­ÙŠØ­Ø©.")
+            messages.error(request, "كلمة المرور الحالية غير صحيحة.")
 
         if success:
             update_session_auth_hash(request, request.user)
-            messages.success(request, "ØªÙ… ØªØ¹ÙŠÙŠÙ†/ØªØºÙŠÙŠØ± ÙƒÙ„Ù…Ø© Ø§Ù„Ù…Ø±ÙˆØ± Ø¨Ù†Ø¬Ø§Ø­.")
+            messages.success(request, "تم تعيين/تغيير كلمة المرور بنجاح.")
             return redirect("dashboard")
 
     return render(request, "site/v3/v3_change_password.html", {
@@ -1359,13 +1359,13 @@ def v3_change_email_view(request):
         
     if request.method == "POST":
         new_email = request.POST.get("new_email", "").lower().strip()
-        if User.objects.filter(email=new_email).exists(): messages.error(request, "Ø§Ù„Ø¨Ø±ÙŠØ¯ Ø§Ù„Ø¥Ù„ÙƒØªØ±ÙˆÙ†ÙŠ Ù…Ø³ØªØ®Ø¯Ù… Ø¨Ø§Ù„ÙØ¹Ù„.")
+        if User.objects.filter(email=new_email).exists(): messages.error(request, "البريد الإلكتروني مستخدم بالفعل.")
         else:
             otp = v3_generate_otp(request.user, "email_change")
             if v3_send_otp_email(request.user, otp):
                 request.session["v3_auth_uid"], request.session["v3_auth_purpose"] = str(request.user.id), "email_change"; request.session["v3_new_email"] = new_email
                 return redirect("site_verify_otp")
-            messages.error(request, "ÙØ´Ù„ Ø¥Ø±Ø³Ø§Ù„ Ø§Ù„Ø±Ù…Ø².")
+            messages.error(request, "فشل إرسال الرمز.")
     return render(request, "site/v3/v3_change_email.html")
 
 # ==========================================
@@ -1568,6 +1568,7 @@ def catalog(request):
         "subcategories": subcategories,
         "selected_category": selected_category,
         "page_obj": page_obj,
+        "products": page_obj.object_list,
         "total_products_count": total_products_count,
         "active_category": cat_id,
         "query": q,
@@ -1585,7 +1586,7 @@ def site_submit_testimonial(request):
         t = form.save(commit=False)
         t.user = request.user
         t.save()
-        messages.success(request, "Ø´ÙƒØ±Ø§Ù‹ Ù„Ø±Ø£ÙŠÙƒ! Ø³ÙŠØ¸Ù‡Ø± ØªØ¹Ù„ÙŠÙ‚Ùƒ ÙÙŠ Ø§Ù„Ù…ÙˆÙ‚Ø¹ Ø¨Ø¹Ø¯ Ù…Ø±Ø§Ø¬Ø¹ØªÙ‡ Ù…Ù† Ø§Ù„Ø¥Ø¯Ø§Ø±Ø©.")
+        messages.success(request, "شكراً لرأيك! سيظهر تعليقك في الموقع بعد مراجعته من الإدارة.")
         return redirect("dashboard")
     return render(request, "site/v3/v3_submit_testimonial.html", {"form": form})
 
@@ -1613,18 +1614,18 @@ def control_testimonial_moderate(request, pk):
         t.is_approved = True
         t.admin_reply = request.POST.get("admin_reply", t.admin_reply)
         t.save()
-        messages.success(request, "ØªÙ…Øª Ø§Ù„Ù…ÙˆØ§ÙÙ‚Ø© Ø¹Ù„Ù‰ Ø§Ù„ØªØ¹Ù„ÙŠÙ‚ ÙˆØ­ÙØ¸ Ø§Ù„Ø±Ø¯.")
+        messages.success(request, "تمت الموافقة على التعليق وحفظ الرد.")
     elif action == "unapprove":
         t.is_approved = False
         t.save()
-        messages.info(request, "ØªÙ… Ø¥Ø®ÙØ§Ø¡ Ø§Ù„ØªØ¹Ù„ÙŠÙ‚.")
+        messages.info(request, "تم إخفاء التعليق.")
     elif action == "delete":
         t.delete()
-        messages.warning(request, "ØªÙ… Ø­Ø°Ù Ø§Ù„ØªØ¹Ù„ÙŠÙ‚.")
+        messages.warning(request, "تم حذف التعليق.")
     elif action == "update_reply":
         t.admin_reply = request.POST.get("admin_reply")
         t.save()
-        messages.success(request, "ØªÙ… ØªØ­Ø¯ÙŠØ« Ø±Ø¯ Ø§Ù„Ø¥Ø¯Ø§Ø±Ø©.")
+        messages.success(request, "تم تحديث رد الإدارة.")
         
     return redirect("control_testimonials_list")
 
@@ -1695,10 +1696,10 @@ def v3_security_triggers_view(request):
             sp = request.POST.get("security_password")
             from django.contrib.auth.hashers import check_password
             if not user.security_password or not check_password(sp, user.security_password):
-                messages.error(request, "ÙƒÙ„Ù…Ø© Ù…Ø±ÙˆØ± Ø§Ù„Ø­Ù…Ø§ÙŠØ© ØºÙŠØ± ØµØ­ÙŠØ­Ø©.")
+                messages.error(request, "كلمة مرور الحماية غير صحيحة.")
             else:
                 request.session["v3_sp_verified_at"] = timezone.now().isoformat()
-                messages.success(request, "ØªÙ… ÙØªØ­ Ù‚ÙÙ„ Ø§Ù„Ø¥Ø¹Ø¯Ø§Ø¯Ø§Øª Ù„Ù…Ø¯Ø© 5 Ø¯Ù‚Ø§Ø¦Ù‚.")
+                messages.success(request, "تم فتح قفل الإعدادات لمدة 5 دقائق.")
             return redirect("site_security_triggers")
 
         # 2. Update Security Password Logic
@@ -1711,20 +1712,20 @@ def v3_security_triggers_view(request):
             # If already has one, verify it
             if user.security_password:
                 if not check_password(current_sp, user.security_password):
-                    messages.error(request, "ÙƒÙ„Ù…Ø© Ù…Ø±ÙˆØ± Ø§Ù„Ø­Ù…Ø§ÙŠØ© Ø§Ù„Ø­Ø§Ù„ÙŠØ© ØºÙŠØ± ØµØ­ÙŠØ­Ø©.")
+                    messages.error(request, "كلمة مرور الحماية الحالية غير صحيحة.")
                     return redirect("site_security_triggers")
             
             if new_sp and new_sp == confirm_sp:
                 if len(new_sp) < 4:
-                    messages.error(request, "ÙƒÙ„Ù…Ø© Ø§Ù„Ù…Ø±ÙˆØ± ÙŠØ¬Ø¨ Ø£Ù† ØªÙƒÙˆÙ† 4 Ø®Ø§Ù†Ø§Øª Ø¹Ù„Ù‰ Ø§Ù„Ø£Ù‚Ù„.")
+                    messages.error(request, "كلمة المرور يجب أن تكون 4 خانات على الأقل.")
                 else:
                     user.security_password = make_password(new_sp)
                     user.security_password_enabled = True
                     user.save()
                     request.session["v3_sp_verified_at"] = timezone.now().isoformat()
-                    messages.success(request, "ØªÙ… ØªØ¹ÙŠÙŠÙ† ÙƒÙ„Ù…Ø© Ù…Ø±ÙˆØ± Ø§Ù„Ø­Ù…Ø§ÙŠØ© Ø¨Ù†Ø¬Ø§Ø­.")
+                    messages.success(request, "تم تعيين كلمة مرور الحماية بنجاح.")
             else:
-                messages.error(request, "ÙƒÙ„Ù…Ø§Øª Ø§Ù„Ù…Ø±ÙˆØ± ØºÙŠØ± Ù…ØªØ·Ø§Ø¨Ù‚Ø©.")
+                messages.error(request, "كلمات المرور غير متطابقة.")
             return redirect("site_security_triggers")
 
         # 3. Toggle Protection
@@ -1732,11 +1733,11 @@ def v3_security_triggers_view(request):
             sp = request.POST.get("security_password")
             from django.contrib.auth.hashers import check_password
             if not user.security_password or not check_password(sp, user.security_password):
-                messages.error(request, "ÙƒÙ„Ù…Ø© Ù…Ø±ÙˆØ± Ø§Ù„Ø­Ù…Ø§ÙŠØ© ØºÙŠØ± ØµØ­ÙŠØ­Ø©.")
+                messages.error(request, "كلمة مرور الحماية غير صحيحة.")
             else:
                 user.security_password_enabled = not user.security_password_enabled
                 user.save()
-                messages.success(request, f"ØªÙ… {'ØªÙØ¹ÙŠÙ„' if user.security_password_enabled else 'Ø¥ÙŠÙ‚Ø§Ù'} Ø­Ù…Ø§ÙŠØ© Ø§Ù„Ø¥Ø¹Ø¯Ø§Ø¯Ø§Øª.")
+                messages.success(request, f"تم {'تفعيل' if user.security_password_enabled else 'إيقاف'} حماية الإعدادات.")
             return redirect("site_security_triggers")
 
         # 4. Update Triggers (Requires SP or Grace Period if enabled)
@@ -1744,7 +1745,7 @@ def v3_security_triggers_view(request):
             sp = request.POST.get("security_password_verify")
             from django.contrib.auth.hashers import check_password
             if not sp or not check_password(sp, user.security_password):
-                messages.error(request, "ÙŠØ±Ø¬Ù‰ Ø¥Ø¯Ø®Ø§Ù„ ÙƒÙ„Ù…Ø© Ù…Ø±ÙˆØ± Ø§Ù„Ø­Ù…Ø§ÙŠØ© Ù„ØªØºÙŠÙŠØ± Ù‡Ø°Ù‡ Ø§Ù„Ø¥Ø¹Ø¯Ø§Ø¯Ø§Øª.")
+                messages.error(request, "يرجى إدخال كلمة مرور الحماية لتغيير هذه الإعدادات.")
                 return redirect("site_security_triggers")
             request.session["v3_sp_verified_at"] = timezone.now().isoformat()
 
@@ -1752,7 +1753,7 @@ def v3_security_triggers_view(request):
         user.security_deposit_method = request.POST.get("deposit_method")
         user.security_purchase_method = request.POST.get("purchase_method")
         user.security_withdraw_method = request.POST.get("withdraw_method")
-        user.save(); messages.success(request, "ØªÙ… ØªØ­Ø¯ÙŠØ« Ø¥Ø¹Ø¯Ø§Ø¯Ø§Øª Ø§Ù„Ø£Ù…Ø§Ù† Ø¨Ù†Ø¬Ø§Ø­."); return redirect("site_security_triggers")
+        user.save(); messages.success(request, "تم تحديث إعدادات الأمان بنجاح."); return redirect("site_security_triggers")
         
     return render(request, "site/v3/v3_security_triggers.html", {"sp_verified": sp_verified})
 
@@ -1768,7 +1769,7 @@ def product_detail(request, pk):
         if variant and variant.product and variant.product.is_active:
             product = variant.product
     if not product:
-        raise Http404("Ø§Ù„Ù…Ù†ØªØ¬ ØºÙŠØ± Ù…ÙˆØ¬ÙˆØ¯.")
+        raise Http404("المنتج غير موجود.")
     if request.method == "POST":
         if not request.user.is_authenticated: return redirect("site_login")
 
@@ -1776,7 +1777,7 @@ def product_detail(request, pk):
         from apps.common.models import SiteMaintenanceMode
         _maint = SiteMaintenanceMode.get_settings()
         if not _maint.purchases_enabled:
-            messages.error(request, f"âš ï¸ Ø®Ø¯Ù…Ø© Ø§Ù„Ø´Ø±Ø§Ø¡ Ù…ÙˆÙ‚ÙˆÙØ© Ù…Ø¤Ù‚ØªØ§Ù‹. {_maint.maintenance_message}")
+            messages.error(request, f"⚠️ خدمة الشراء موقوفة مؤقتاً. {_maint.maintenance_message}")
             return redirect("catalog")
 
         variant_id = request.POST.get("variant_id")
@@ -1811,7 +1812,7 @@ def product_detail(request, pk):
                     discount_amount = validate_coupon(coupon, request.user, variant, subtotal=price)
                     price -= discount_amount
                 except ValueError as e:
-                    messages.error(request, f"Ø®Ø·Ø£ ÙÙŠ Ø§Ù„ÙƒÙˆØ¨ÙˆÙ†: {str(e)}")
+                    messages.error(request, f"خطأ في الكوبون: {str(e)}")
                     coupon = None
 
         # Check balance
@@ -1823,7 +1824,7 @@ def product_detail(request, pk):
                 display_missing = wallet.currency.from_base(missing_amount)
             
             currency_symbol = wallet.currency.symbol
-            messages.error(request, f"Ø±ØµÙŠØ¯ ØºÙŠØ± ÙƒØ§ÙÙ. ØªØ­ØªØ§Ø¬ Ø¥Ù„Ù‰ {display_missing:,.2f} {currency_symbol} Ø¥Ø¶Ø§ÙÙŠØ© Ù„Ø¥ØªÙ…Ø§Ù… Ø§Ù„Ø·Ù„Ø¨.")
+            messages.error(request, f"رصيد غير كافٍ. تحتاج إلى {display_missing:,.2f} {currency_symbol} إضافية لإتمام الطلب.")
             request.session['missing_amount'] = str(display_missing)
             request.session['missing_currency'] = wallet.currency.code
             return redirect("product_detail", pk=pk)
@@ -1837,7 +1838,7 @@ def product_detail(request, pk):
             shipping_phone = request.POST.get("shipping_phone", "").strip()
             shipping_address = request.POST.get("shipping_address", "").strip()
             if not (shipping_name and shipping_phone and shipping_address):
-                messages.error(request, "Ø¬Ù…ÙŠØ¹ Ø­Ù‚ÙˆÙ„ Ø§Ù„Ø´Ø­Ù† ÙˆØ§Ù„ØªÙˆØµÙŠÙ„ Ù…Ø·Ù„ÙˆØ¨Ø© Ù„Ù„Ø·Ù„Ø¨ Ø§Ù„Ù…Ø§Ø¯ÙŠ.")
+                messages.error(request, "جميع حقول الشحن والتوصيل مطلوبة للطلب المادي.")
                 return redirect("product_detail", pk=pk)
 
         # Verification check
@@ -1870,7 +1871,7 @@ def product_detail(request, pk):
                 shipping_phone=shipping_phone,
                 shipping_address=shipping_address,
             )
-            messages.success(request, "ØªÙ… Ø¥ØªÙ…Ø§Ù… Ø§Ù„Ø·Ù„Ø¨ Ø¨Ù†Ø¬Ø§Ø­.")
+            messages.success(request, "تم إتمام الطلب بنجاح.")
             if variant.delivery_type == 'keys':
                 return redirect(reverse("dashboard_order_detail", kwargs={"pk": order.id}))
             else:
@@ -1901,7 +1902,7 @@ def ajax_validate_coupon(request):
         qty_val = request.GET.get("quantity", "1")
         
         if not variant_id or not code:
-            return JsonResponse({"valid": False, "error": "Ø¨ÙŠØ§Ù†Ø§Øª Ù†Ø§Ù‚ØµØ©"})
+            return JsonResponse({"valid": False, "error": "بيانات ناقصة"})
             
         try:
             quantity = int(qty_val)
@@ -1914,7 +1915,7 @@ def ajax_validate_coupon(request):
         coupon = Coupon.objects.filter(code__iexact=code).first()
         
         if not coupon:
-            return JsonResponse({"valid": False, "error": "Ø§Ù„ÙƒÙˆØ¨ÙˆÙ† ØºÙŠØ± ØµØ­ÙŠØ­"})
+            return JsonResponse({"valid": False, "error": "الكوبون غير صحيح"})
             
         price = calculate_variant_subtotal(variant, request.user, quantity)
         try:
@@ -1924,13 +1925,13 @@ def ajax_validate_coupon(request):
                 "valid": True,
                 "discount_amount": float(discount),
                 "new_total": float(new_total),
-                "message": f"ØªÙ… ØªØ·Ø¨ÙŠÙ‚ Ø§Ù„ÙƒÙˆØ¨ÙˆÙ† Ø¨Ù†Ø¬Ø§Ø­: Ø®ØµÙ… Ø¨Ù‚ÙŠÙ…Ø© {discount} USD"
+                "message": f"تم تطبيق الكوبون بنجاح: خصم بقيمة {discount} USD"
             })
         except ValueError as e:
             return JsonResponse({"valid": False, "error": str(e)})
 
     except Exception as e:
-        return JsonResponse({"valid": False, "error": "Ø­Ø¯Ø« Ø®Ø·Ø£ Ø£Ø«Ù†Ø§Ø¡ Ø§Ù„ØªØ­Ù‚Ù‚ Ù…Ù† Ø§Ù„ÙƒÙˆØ¨ÙˆÙ†"})
+        return JsonResponse({"valid": False, "error": "حدث خطأ أثناء التحقق من الكوبون"})
 
 # ==========================================
 # --- ADMINISTRATIVE VIEWS (V4) ---
@@ -2061,11 +2062,11 @@ def control_transfer_reverse(request, pk):
             transfer = get_object_or_404(BalanceTransfer, pk=pk)
         try:
             reverse_p2p_transfer(transfer, admin_user=request.user)
-            messages.success(request, f"ØªÙ… Ø¥Ù„ØºØ§Ø¡ ÙˆØ§Ø³ØªØ±Ø¯Ø§Ø¯ Ø§Ù„ØªØ­ÙˆÙŠÙ„ ({transfer.reference}) Ø¨Ù†Ø¬Ø§Ø­.")
+            messages.success(request, f"تم إلغاء واسترداد التحويل ({transfer.reference}) بنجاح.")
         except WalletError as e:
             messages.error(request, str(e))
         except Exception as e:
-            messages.error(request, f"Ø­Ø¯Ø« Ø®Ø·Ø£ Ø£Ø«Ù†Ø§Ø¡ Ø§Ù„Ø¥Ù„ØºØ§Ø¡: {str(e)}")
+            messages.error(request, f"حدث خطأ أثناء الإلغاء: {str(e)}")
             
     return redirect("control_transfers")
 
@@ -2081,11 +2082,11 @@ def control_transfer_suspend(request, pk):
             transfer = get_object_or_404(BalanceTransfer, pk=pk)
         try:
             suspend_p2p_transfer(transfer, admin_user=request.user)
-            messages.success(request, f"ØªÙ… ØªØ¹Ù„ÙŠÙ‚ Ø§Ù„Ø­ÙˆØ§Ù„Ø© ({transfer.reference}) Ø¨Ù†Ø¬Ø§Ø­ ÙˆØ­Ø¬Ø² Ø§Ù„Ø±ØµÙŠØ¯ Ù…Ù† Ø§Ù„Ù…Ø³ØªÙ„Ù….")
+            messages.success(request, f"تم تعليق الحوالة ({transfer.reference}) بنجاح وحجز الرصيد من المستلم.")
         except WalletError as e:
             messages.error(request, str(e))
         except Exception as e:
-            messages.error(request, f"Ø­Ø¯Ø« Ø®Ø·Ø£ Ø£Ø«Ù†Ø§Ø¡ ØªØ¹Ù„ÙŠÙ‚ Ø§Ù„Ø­ÙˆØ§Ù„Ø©: {str(e)}")
+            messages.error(request, f"حدث خطأ أثناء تعليق الحوالة: {str(e)}")
             
     return redirect("control_transfers")
 
@@ -2101,11 +2102,11 @@ def control_transfer_unsuspend(request, pk):
             transfer = get_object_or_404(BalanceTransfer, pk=pk)
         try:
             unsuspend_p2p_transfer(transfer, admin_user=request.user)
-            messages.success(request, f"ØªÙ… Ø¥Ù„ØºØ§Ø¡ ØªØ¹Ù„ÙŠÙ‚ Ø§Ù„Ø­ÙˆØ§Ù„Ø© ({transfer.reference}) Ø¨Ù†Ø¬Ø§Ø­ ÙˆØ¥Ø±Ø¬Ø§Ø¹ Ø§Ù„Ø±ØµÙŠØ¯ Ù„Ù„Ù…Ø³ØªÙ„Ù….")
+            messages.success(request, f"تم إلغاء تعليق الحوالة ({transfer.reference}) بنجاح وإرجاع الرصيد للمستلم.")
         except WalletError as e:
             messages.error(request, str(e))
         except Exception as e:
-            messages.error(request, f"Ø­Ø¯Ø« Ø®Ø·Ø£ Ø£Ø«Ù†Ø§Ø¡ Ø¥Ù„ØºØ§Ø¡ Ø§Ù„ØªØ¹Ù„ÙŠÙ‚: {str(e)}")
+            messages.error(request, f"حدث خطأ أثناء إلغاء التعليق: {str(e)}")
             
     return redirect("control_transfers")
 
@@ -2123,12 +2124,12 @@ def control_transfer_edit_amount(request, pk):
         try:
             new_amount = Decimal(new_amount_str)
             edit_p2p_transfer_amount(transfer, new_amount, admin_user=request.user)
-            messages.success(request, f"ØªÙ… ØªØ¹Ø¯ÙŠÙ„ Ù…Ø¨Ù„Øº Ø§Ù„Ø­ÙˆØ§Ù„Ø© ({transfer.reference}) Ø¥Ù„Ù‰ {new_amount} {transfer.currency.code} Ø¨Ù†Ø¬Ø§Ø­.")
+            messages.success(request, f"تم تعديل مبلغ الحوالة ({transfer.reference}) إلى {new_amount} {transfer.currency.code} بنجاح.")
         except Exception as e:
             if isinstance(e, WalletError):
                 messages.error(request, str(e))
             else:
-                messages.error(request, "ÙŠØ±Ø¬Ù‰ Ø¥Ø¯Ø®Ø§Ù„ Ù…Ø¨Ù„Øº ØµØ­ÙŠØ­.")
+                messages.error(request, "يرجى إدخال مبلغ صحيح.")
             
     return redirect("control_transfers")
 
@@ -2255,27 +2256,27 @@ def send_financial_notification(user, title, body, action_url="/dashboard/wallet
         <div class="container">
             <div class="card">
                 <div class="header">
-                    <h1 class="logo">Ø±Ù‚Ù…ÙŠØ§Øª | RAQAMIYAT</h1>
+                    <h1 class="logo">رقميات | RAQAMIYAT</h1>
                 </div>
                 <div class="content">
                     <h2 class="title">{title}</h2>
                     <div class="message">{body}</div>
 
                     <div class="cta-container">
-                        <a href="{full_url}" class="cta-button">Ø¹Ø±Ø¶ ÙÙŠ Ø§Ù„Ù…Ù†ØµØ©</a>
+                        <a href="{full_url}" class="cta-button">عرض في المنصة</a>
                     </div>
 
                     <div class="security-notice">
-                        <p class="security-title">âš ï¸ ØªÙ†Ø¨ÙŠÙ‡ Ø£Ù…Ù†ÙŠ:</p>
+                        <p class="security-title">⚠️ تنبيه أمني:</p>
                         <p class="security-text">
-                            Ø¥Ø°Ø§ Ù„Ù… ØªÙƒÙ† Ù‚Ø¯ Ù‚Ù…Øª Ø¨Ù‡Ø°Ù‡ Ø§Ù„Ø¹Ù…Ù„ÙŠØ© Ø¨Ù†ÙØ³ÙƒØŒ ÙŠØ±Ø¬Ù‰ ØªØºÙŠÙŠØ± ÙƒÙ„Ù…Ø© Ù…Ø±ÙˆØ± Ø­Ø³Ø§Ø¨Ùƒ ÙÙˆØ±Ø§Ù‹ ÙˆØ§Ù„ØªÙˆØ§ØµÙ„ Ù…Ø¹ ÙØ±ÙŠÙ‚ Ø§Ù„Ø¯Ø¹Ù… Ø§Ù„ÙÙ†ÙŠ Ù„Ø­Ù…Ø§ÙŠØ© Ø­Ø³Ø§Ø¨Ùƒ.
+                            إذا لم تكن قد قمت بهذه العملية بنفسك، يرجى تغيير كلمة مرور حسابك فوراً والتواصل مع فريق الدعم الفني لحماية حسابك.
                         </p>
                     </div>
                 </div>
             </div>
             <div class="footer">
-                <p>Â© 2026 Ù…Ø¤Ø³Ø³Ø© Ø±Ø§Ù…ÙŠ Ù‚ØµØ§Øµ Ø¨Ù† Ù…Ø§Ù‡Ø± Ù„Ø®Ø¯Ù…Ø§Øª Ø§Ù„ÙˆØ³Ø§Ø·Ø© Ø§Ù„Ø±Ù‚Ù…ÙŠØ©. Ø¬Ù…ÙŠØ¹ Ø§Ù„Ø­Ù‚ÙˆÙ‚ Ù…Ø­ÙÙˆØ¸Ø©.</p>
-                <p>ØªÙ… Ø¥Ø±Ø³Ø§Ù„ Ù‡Ø°Ø§ Ø§Ù„Ø¨Ø±ÙŠØ¯ ØªÙ„Ù‚Ø§Ø¦ÙŠØ§Ù‹ØŒ ÙŠØ±Ø¬Ù‰ Ø¹Ø¯Ù… Ø§Ù„Ø±Ø¯ Ø¹Ù„ÙŠÙ‡.</p>
+                <p>© 2026 مؤسسة رامي قصاص بن ماهر لخدمات الوساطة الرقمية. جميع الحقوق محفوظة.</p>
+                <p>تم إرسال هذا البريد تلقائياً، يرجى عدم الرد عليه.</p>
             </div>
         </div>
     </body>
@@ -2299,7 +2300,7 @@ def control_deposit_detail(request, pk):
             with transaction.atomic():
                 if action == "approve":
                     if deposit.status == DepositRequest.Status.COMPLETED:
-                        raise ValueError("ØªÙ… Ø§Ø¹ØªÙ…Ø§Ø¯ Ù‡Ø°Ø§ Ø§Ù„Ø·Ù„Ø¨ Ù…Ø³Ø¨Ù‚Ø§Ù‹.")
+                        raise ValueError("تم اعتماد هذا الطلب مسبقاً.")
 
                     original_requested_amount = deposit.amount
                     override_amount = request.POST.get("amount")
@@ -2321,13 +2322,13 @@ def control_deposit_detail(request, pk):
                         wallet_final_amount = wallet.currency.from_base(base_val, "deposit")
 
                     if wallet_final_amount <= 0:
-                        raise ValueError("ÙŠØ¬Ø¨ Ø£Ù† ÙŠÙƒÙˆÙ† Ø§Ù„Ù…Ø¨Ù„Øº Ø£ÙƒØ¨Ø± Ù…Ù† ØµÙØ±.")
+                        raise ValueError("يجب أن يكون المبلغ أكبر من صفر.")
 
                     credit_wallet(
                         wallet_id=wallet.id,
                         amount=wallet_final_amount,
                         reference=f"deposit:{deposit.id}",
-                        description=f"Ø¥ÙŠØ¯Ø§Ø¹ Ø¹Ø¨Ø± {deposit.payment_method.name}",
+                        description=f"إيداع عبر {deposit.payment_method.name}",
                         created_by=request.user,
                         source="deposit",
                         metadata={
@@ -2359,8 +2360,8 @@ def control_deposit_detail(request, pk):
                             # Notify Admin
                             from apps.notifications.services import notify_staff
                             notify_staff(
-                                title="ØªØ¬Ø§ÙˆØ² Ø§Ù„Ø­Ø¯ Ø§Ù„Ø£Ù‚ØµÙ‰ Ù„Ø·Ø±ÙŠÙ‚Ø© Ø§Ù„Ø¯ÙØ¹",
-                                body=f"ÙˆØµÙ„Øª Ø·Ø±ÙŠÙ‚Ø© Ø§Ù„Ø¯ÙØ¹ {method.name} Ù„Ù„Ø­Ø¯ Ø§Ù„Ø£Ù‚ØµÙ‰ Ø§Ù„Ù…Ø³Ù…ÙˆØ­ Ø¨Ù‡ ({method.global_deposit_cap:,.2f} USD). ØªÙ… ØªØ­ÙˆÙŠÙ„Ù‡Ø§ Ù„ÙˆØ¶Ø¹ Ø§Ù„ØµÙŠØ§Ù†Ø© ØªÙ„Ù‚Ø§Ø¦ÙŠØ§Ù‹.",
+                                title="تجاوز الحد الأقصى لطريقة الدفع",
+                                body=f"وصلت طريقة الدفع {method.name} للحد الأقصى المسموح به ({method.global_deposit_cap:,.2f} USD). تم تحويلها لوضع الصيانة تلقائياً.",
                                 category="system"
                             )
                         method.save()
@@ -2368,20 +2369,20 @@ def control_deposit_detail(request, pk):
                     # Transparent body showing original vs approved if changed
                     amount_text = f"{deposit.final_amount:,.2f} {deposit.currency.code}"
                     if override_amount and Decimal(str(override_amount)) != original_requested_amount:
-                        body_msg = f"ØªÙ…Øª Ù…Ø±Ø§Ø¬Ø¹Ø© Ø·Ù„Ø¨ Ø§Ù„Ø¥ÙŠØ¯Ø§Ø¹ Ø±Ù‚Ù… {deposit.id}. ØªÙ… Ø§Ø¹ØªÙ…Ø§Ø¯ Ù…Ø¨Ù„Øº {amount_text} Ø¨Ø¯Ù„Ø§Ù‹ Ù…Ù† Ø§Ù„Ù…Ø¨Ù„Øº Ø§Ù„Ù…Ø·Ù„ÙˆØ¨ {original_requested_amount:,.2f} {deposit.currency.code}. ØªÙ… Ø¥Ø¶Ø§ÙØ© {deposit.wallet_amount:,.2f} {wallet.currency.code} Ø¥Ù„Ù‰ Ø±ØµÙŠØ¯ Ù…Ø­ÙØ¸ØªÙƒ."
+                        body_msg = f"تمت مراجعة طلب الإيداع رقم {deposit.id}. تم اعتماد مبلغ {amount_text} بدلاً من المبلغ المطلوب {original_requested_amount:,.2f} {deposit.currency.code}. تم إضافة {deposit.wallet_amount:,.2f} {wallet.currency.code} إلى رصيد محفظتك."
                     else:
-                        body_msg = f"ØªÙ… Ù‚Ø¨ÙˆÙ„ Ø·Ù„Ø¨ Ø§Ù„Ø¥ÙŠØ¯Ø§Ø¹ Ø±Ù‚Ù… {deposit.id} Ø¨Ù†Ø¬Ø§Ø­. Ø§Ù„Ù…Ø¨Ù„Øº Ø§Ù„Ù…Ø¹ØªÙ…Ø¯: {amount_text}. ØªÙ… Ø¥Ø¶Ø§ÙØ© {deposit.wallet_amount:,.2f} {wallet.currency.code} Ø¥Ù„Ù‰ Ø±ØµÙŠØ¯ Ù…Ø­ÙØ¸ØªÙƒ."
+                        body_msg = f"تم قبول طلب الإيداع رقم {deposit.id} بنجاح. المبلغ المعتمد: {amount_text}. تم إضافة {deposit.wallet_amount:,.2f} {wallet.currency.code} إلى رصيد محفظتك."
 
                     send_financial_notification(
                         user=deposit.user,
-                        title="ØªÙ… Ù‚Ø¨ÙˆÙ„ Ø·Ù„Ø¨ Ø§Ù„Ø¥ÙŠØ¯Ø§Ø¹",
+                        title="تم قبول طلب الإيداع",
                         body=body_msg
                     )
-                    messages.success(request, "ØªÙ… Ù‚Ø¨ÙˆÙ„ Ø·Ù„Ø¨ Ø§Ù„Ø¥ÙŠØ¯Ø§Ø¹ Ø¨Ù†Ø¬Ø§Ø­.")
+                    messages.success(request, "تم قبول طلب الإيداع بنجاح.")
 
                 elif action == "reject":
                     if deposit.status == DepositRequest.Status.COMPLETED:
-                        raise ValueError("Ù„Ø§ ÙŠÙ…ÙƒÙ† Ø±ÙØ¶ Ø·Ù„Ø¨ Ù…ÙƒØªÙ…Ù„.")
+                        raise ValueError("لا يمكن رفض طلب مكتمل.")
                     
                     if deposit.status != DepositRequest.Status.REJECTED:
                         wallet = get_object_or_404(Wallet, user=deposit.user)
@@ -2390,7 +2391,7 @@ def control_deposit_detail(request, pk):
                             wallet_id=wallet.id,
                             amount=deposit.wallet_amount,
                             reference=f"deposit_reject:{deposit.id}",
-                            description=f"Ø¥Ù„ØºØ§Ø¡ Ø¥ÙŠØ¯Ø§Ø¹ Ù…Ø¹Ù„Ù‚ Ù…Ø±ÙÙˆØ¶ Ø¹Ø¨Ø± {deposit.payment_method.name}",
+                            description=f"إلغاء إيداع معلق مرفوض عبر {deposit.payment_method.name}",
                             created_by=request.user
                         )
                         # Task 2 & 3: Reverse Usage
@@ -2408,25 +2409,25 @@ def control_deposit_detail(request, pk):
                     
                     send_financial_notification(
                         user=deposit.user,
-                        title="ØªÙ… Ø±ÙØ¶ Ø·Ù„Ø¨ Ø§Ù„Ø¥ÙŠØ¯Ø§Ø¹",
-                        body=f"Ù†Ø¹ØªØ°Ø±ØŒ ØªÙ… Ø±ÙØ¶ Ø·Ù„Ø¨ Ø§Ù„Ø¥ÙŠØ¯Ø§Ø¹ Ø±Ù‚Ù… {deposit.id}. Ø§Ù„Ø³Ø¨Ø¨: {admin_note}"
+                        title="تم رفض طلب الإيداع",
+                        body=f"نعتذر، تم رفض طلب الإيداع رقم {deposit.id}. السبب: {admin_note}"
                     )
-                    messages.warning(request, "ØªÙ… Ø±ÙØ¶ Ø·Ù„Ø¨ Ø§Ù„Ø¥ÙŠØ¯Ø§Ø¹.")
+                    messages.warning(request, "تم رفض طلب الإيداع.")
 
                 elif action == "correct":
                     if deposit.status != DepositRequest.Status.COMPLETED:
-                        raise ValueError("ÙŠÙ…ÙƒÙ† ØªØµØ­ÙŠØ­ Ø§Ù„Ø·Ù„Ø¨Ø§Øª Ø§Ù„Ù…ÙƒØªÙ…Ù„Ø© ÙÙ‚Ø·.")
+                        raise ValueError("يمكن تصحيح الطلبات المكتملة فقط.")
 
                     new_amount_str = request.POST.get("new_amount")
                     if not new_amount_str:
-                        raise ValueError("Ø§Ù„Ù…Ø¨Ù„Øº Ø§Ù„Ø¬Ø¯ÙŠØ¯ Ù…Ø·Ù„ÙˆØ¨.")
+                        raise ValueError("المبلغ الجديد مطلوب.")
                     
                     new_amount = Decimal(str(new_amount_str))
                     old_amount = deposit.final_amount
                     diff_amount = new_amount - old_amount
                     
                     if diff_amount == 0:
-                        raise ValueError("Ù„Ù… ÙŠØªÙ… ØªØºÙŠÙŠØ± Ø§Ù„Ù…Ø¨Ù„Øº.")
+                        raise ValueError("لم يتم تغيير المبلغ.")
 
                     wallet = get_or_create_wallet(deposit.user)
                     if deposit.currency.code == wallet.currency.code:
@@ -2440,7 +2441,7 @@ def control_deposit_detail(request, pk):
                             wallet_id=wallet.id,
                             amount=wallet_diff,
                             reference=f"deposit_adj:{deposit.id}",
-                            description=f"ØªØµØ­ÙŠØ­ Ù…Ø¨Ù„Øº Ø§Ù„Ø¥ÙŠØ¯Ø§Ø¹ (Ø²ÙŠØ§Ø¯Ø©): {admin_note}",
+                            description=f"تصحيح مبلغ الإيداع (زيادة): {admin_note}",
                             created_by=request.user,
                             source="admin_adjustment",
                             metadata={
@@ -2455,7 +2456,7 @@ def control_deposit_detail(request, pk):
                             wallet_id=wallet.id,
                             amount=abs(wallet_diff),
                             reference=f"deposit_adj:{deposit.id}",
-                            description=f"ØªØµØ­ÙŠØ­ Ù…Ø¨Ù„Øº Ø§Ù„Ø¥ÙŠØ¯Ø§Ø¹ (Ù†Ù‚Øµ): {admin_note}",
+                            description=f"تصحيح مبلغ الإيداع (نقص): {admin_note}",
                             created_by=request.user,
                             source="admin_adjustment",
                             metadata={
@@ -2467,19 +2468,19 @@ def control_deposit_detail(request, pk):
                     deposit.final_amount = new_amount
                     deposit.wallet_amount += wallet_diff
                     if admin_note:
-                        deposit.admin_note = f"{deposit.admin_note or ''}\n[ØªØµØ­ÙŠØ­ {timezone.now().strftime('%Y-%m-%d %H:%M')}]: {admin_note}"
+                        deposit.admin_note = f"{deposit.admin_note or ''}\n[تصحيح {timezone.now().strftime('%Y-%m-%d %H:%M')}]: {admin_note}"
                     deposit.save()
                     
                     send_financial_notification(
                         user=deposit.user,
-                        title="ØªØ¹Ø¯ÙŠÙ„ ÙÙŠ Ù…Ø¨Ù„Øº Ø¥ÙŠØ¯Ø§Ø¹ Ø³Ø§Ø¨Ù‚",
-                        body=f"ØªÙ… ØªØ¹Ø¯ÙŠÙ„ Ø§Ù„Ù…Ø¨Ù„Øº Ø§Ù„Ù…Ø¹ØªÙ…Ø¯ Ù„Ù„Ø¥ÙŠØ¯Ø§Ø¹ Ø±Ù‚Ù… {deposit.id}. Ø§Ù„Ù‚ÙŠÙ…Ø© Ø§Ù„Ø¬Ø¯ÙŠØ¯Ø©: {deposit.final_amount:,.2f} {deposit.currency.code}. ØªÙ… ØªØ¹Ø¯ÙŠÙ„ Ø±ØµÙŠØ¯ Ù…Ø­ÙØ¸ØªÙƒ Ø¨ÙØ±Ù‚: {wallet_diff:,.2f} {wallet.currency.code}."
+                        title="تعديل في مبلغ إيداع سابق",
+                        body=f"تم تعديل المبلغ المعتمد للإيداع رقم {deposit.id}. القيمة الجديدة: {deposit.final_amount:,.2f} {deposit.currency.code}. تم تعديل رصيد محفظتك بفرق: {wallet_diff:,.2f} {wallet.currency.code}."
                     )
                     
-                    messages.success(request, f"ØªÙ… ØªØµØ­ÙŠØ­ Ø§Ù„Ù…Ø¨Ù„Øº Ø¨Ù†Ø¬Ø§Ø­. Ø§Ù„ÙØ±Ù‚: {wallet_diff:,.2f} {wallet.currency.code}")
+                    messages.success(request, f"تم تصحيح المبلغ بنجاح. الفرق: {wallet_diff:,.2f} {wallet.currency.code}")
             return redirect("control_deposits")
         except Exception as e:
-            messages.error(request, f"Ø®Ø·Ø£: {str(e)}")
+            messages.error(request, f"خطأ: {str(e)}")
             return redirect("control_deposit_detail", pk=pk)
         
     return render(request, "site/control_deposit_detail.html", {"deposit": deposit})
@@ -2515,7 +2516,7 @@ def control_withdrawal_detail(request, pk):
                         withdrawal.reviewed_at = timezone.now()
                 elif action == "reject":
                     if withdrawal.status in [WithdrawalRequest.Status.COMPLETED, WithdrawalRequest.Status.CANCELLED, WithdrawalRequest.Status.REJECTED]:
-                        raise ValueError("Ù„Ø§ ÙŠÙ…ÙƒÙ† Ø±ÙØ¶ Ø·Ù„Ø¨ Ù…Ù†ØªÙ‡ÙŠ.")
+                        raise ValueError("لا يمكن رفض طلب منتهي.")
                     
                     if withdrawal.status != WithdrawalRequest.Status.REJECTED:
                         release_funds(
@@ -2541,18 +2542,18 @@ def control_withdrawal_detail(request, pk):
 
                 elif action == "correct":
                     if withdrawal.status != WithdrawalRequest.Status.COMPLETED:
-                        raise ValueError("ÙŠÙ…ÙƒÙ† ØªØµØ­ÙŠØ­ Ø§Ù„Ø·Ù„Ø¨Ø§Øª Ø§Ù„Ù…ÙƒØªÙ…Ù„Ø© ÙÙ‚Ø·.")
+                        raise ValueError("يمكن تصحيح الطلبات المكتملة فقط.")
 
                     new_amount_str = request.POST.get("new_amount")
                     if not new_amount_str:
-                        raise ValueError("Ø§Ù„Ù…Ø¨Ù„Øº Ø§Ù„Ø¬Ø¯ÙŠØ¯ Ù…Ø·Ù„ÙˆØ¨.")
+                        raise ValueError("المبلغ الجديد مطلوب.")
 
                     new_amount = Decimal(str(new_amount_str))
                     old_amount = withdrawal.amount
                     diff_amount = new_amount - old_amount
 
                     if diff_amount == 0:
-                        raise ValueError("Ù„Ù… ÙŠØªÙ… ØªØºÙŠÙŠØ± Ø§Ù„Ù…Ø¨Ù„Øº.")
+                        raise ValueError("لم يتم تغيير المبلغ.")
 
                     wallet = get_or_create_wallet(withdrawal.user)
                     # Calculate wallet difference (how much MORE or LESS to debit)
@@ -2564,7 +2565,7 @@ def control_withdrawal_detail(request, pk):
                             wallet_id=wallet.id,
                             amount=wallet_diff,
                             reference=f"with_adj:{withdrawal.id}",
-                            description=f"ØªØµØ­ÙŠØ­ Ù…Ø¨Ù„Øº Ø§Ù„Ø³Ø­Ø¨ (Ø²ÙŠØ§Ø¯Ø©): {admin_note}",
+                            description=f"تصحيح مبلغ السحب (زيادة): {admin_note}",
                             created_by=request.user,
                             source="admin_adjustment"
                         )
@@ -2574,7 +2575,7 @@ def control_withdrawal_detail(request, pk):
                             wallet_id=wallet.id,
                             amount=abs(wallet_diff),
                             reference=f"with_adj:{withdrawal.id}",
-                            description=f"ØªØµØ­ÙŠØ­ Ù…Ø¨Ù„Øº Ø§Ù„Ø³Ø­Ø¨ (Ù†Ù‚Øµ): {admin_note}",
+                            description=f"تصحيح مبلغ السحب (نقص): {admin_note}",
                             created_by=request.user,
                             source="admin_adjustment"
                         )
@@ -2582,32 +2583,32 @@ def control_withdrawal_detail(request, pk):
                     withdrawal.amount = new_amount
                     withdrawal.wallet_amount += wallet_diff
                     if admin_note:
-                        withdrawal.admin_note = f"{withdrawal.admin_note or ''}\n[ØªØµØ­ÙŠØ­ {timezone.now().strftime('%Y-%m-%d %H:%M')}]: {admin_note}"
+                        withdrawal.admin_note = f"{withdrawal.admin_note or ''}\n[تصحيح {timezone.now().strftime('%Y-%m-%d %H:%M')}]: {admin_note}"
                     withdrawal.save()
 
                     send_financial_notification(
                         user=withdrawal.user,
-                        title="ØªØ¹Ø¯ÙŠÙ„ ÙÙŠ Ù…Ø¨Ù„Øº Ø³Ø­Ø¨ Ù…ÙƒØªÙ…Ù„",
-                        body=f"ØªÙ… ØªØ¹Ø¯ÙŠÙ„ Ø§Ù„Ù…Ø¨Ù„Øº Ø§Ù„Ù…Ø±Ø³Ù„ Ù„Ù„Ø³Ø­Ø¨ Ø±Ù‚Ù… {withdrawal.id}. Ø§Ù„Ù‚ÙŠÙ…Ø© Ø§Ù„Ù†Ù‡Ø§Ø¦ÙŠØ©: {withdrawal.amount:,.2f} {withdrawal.currency.code}. ØªÙ… ØªØ¹Ø¯ÙŠÙ„ Ø±ØµÙŠØ¯ Ù…Ø­ÙØ¸ØªÙƒ Ø¨ÙØ±Ù‚: {-wallet_diff:,.2f} {wallet.currency.code}."
+                        title="تعديل في مبلغ سحب مكتمل",
+                        body=f"تم تعديل المبلغ المرسل للسحب رقم {withdrawal.id}. القيمة النهائية: {withdrawal.amount:,.2f} {withdrawal.currency.code}. تم تعديل رصيد محفظتك بفرق: {-wallet_diff:,.2f} {wallet.currency.code}."
                     )
-                    messages.success(request, f"ØªÙ… ØªØµØ­ÙŠØ­ Ø§Ù„Ø³Ø­Ø¨ Ø¨Ù†Ø¬Ø§Ø­. Ø§Ù„ÙØ±Ù‚: {-wallet_diff:,.2f} {wallet.currency.code}")
+                    messages.success(request, f"تم تصحيح السحب بنجاح. الفرق: {-wallet_diff:,.2f} {wallet.currency.code}")
                 
                 if admin_note: withdrawal.admin_note = admin_note
                 if proof_image: withdrawal.proof_image = proof_image
                 if proof_file: withdrawal.proof_file = proof_file
                 withdrawal.reviewed_by = request.user
                 withdrawal.save()
-                messages.success(request, f"ØªÙ… ØªØ­Ø¯ÙŠØ« Ø­Ø§Ù„Ø© Ø§Ù„Ø·Ù„Ø¨ Ø¥Ù„Ù‰ {withdrawal.get_status_display()}")
+                messages.success(request, f"تم تحديث حالة الطلب إلى {withdrawal.get_status_display()}")
                 
                 # Send Notification
                 send_financial_notification(
                     user=withdrawal.user,
-                    title=f"ØªØ­Ø¯ÙŠØ« Ø·Ù„Ø¨ Ø§Ù„Ø³Ø­Ø¨ #{withdrawal.id}",
-                    body=f"ØªÙ… ØªØºÙŠÙŠØ± Ø­Ø§Ù„Ø© Ø·Ù„Ø¨ Ø§Ù„Ø³Ø­Ø¨ Ø§Ù„Ø®Ø§Øµ Ø¨Ùƒ Ø¥Ù„Ù‰: {withdrawal.get_status_display()}. Ù…Ù„Ø§Ø­Ø¸Ø© Ø§Ù„Ø¥Ø¯Ø§Ø±Ø©: {withdrawal.admin_note or 'Ù„Ø§ ÙŠÙˆØ¬Ø¯'}",
+                    title=f"تحديث طلب السحب #{withdrawal.id}",
+                    body=f"تم تغيير حالة طلب السحب الخاص بك إلى: {withdrawal.get_status_display()}. ملاحظة الإدارة: {withdrawal.admin_note or 'لا يوجد'}",
                 )
             return redirect("control_withdrawals")
         except Exception as e:
-            messages.error(request, f"Ø®Ø·Ø£: {str(e)}")
+            messages.error(request, f"خطأ: {str(e)}")
             return redirect("control_withdrawal_detail", pk=pk)
         
     return render(request, "site/control_withdrawal_detail.html", {"withdrawal": withdrawal})
@@ -2663,7 +2664,7 @@ def control_kyc_detail(request, pk):
         # 1. Update Personal Info (Including Images)
         if action == "update_info" and form.is_valid():
             form.save()
-            messages.success(request, "ØªÙ… ØªØ­Ø¯ÙŠØ« Ø¨ÙŠØ§Ù†Ø§Øª Ø§Ù„ØªÙˆØ«ÙŠÙ‚ ÙˆØ§Ù„Ù…Ù„ÙØ§Øª Ø§Ù„Ù…Ø±ÙÙ‚Ø© Ø¨Ù†Ø¬Ø§Ø­.")
+            messages.success(request, "تم تحديث بيانات التوثيق والملفات المرفقة بنجاح.")
             return redirect("control_kyc_detail", pk=pk)
 
         # 2. Update Limits
@@ -2690,7 +2691,7 @@ def control_kyc_detail(request, pk):
             u.custom_payment_limits = limits
             u.has_custom_limits = True if limits else False
             u.save()
-            messages.success(request, "ØªÙ… ØªØ­Ø¯ÙŠØ« Ø§Ù„Ø­Ø¯ÙˆØ¯ Ø§Ù„Ù…Ø§Ù„ÙŠØ© Ø¨Ù†Ø¬Ø§Ø­.")
+            messages.success(request, "تم تحديث الحدود المالية بنجاح.")
             return redirect("control_kyc_detail", pk=pk)
 
         # 3. Final Decisions
@@ -2716,14 +2717,14 @@ def control_kyc_detail(request, pk):
             send_kyc_status_email(kyc.user, 'approved')
             notify_user(
                 user=kyc.user,
-                title="âœ… ØªÙ… ØªÙˆØ«ÙŠÙ‚ Ø­Ø³Ø§Ø¨Ùƒ",
-                body="ØªÙ‡Ø§Ù†ÙŠÙ†Ø§ØŒ ØªÙ…Øª Ø§Ù„Ù…ÙˆØ§ÙÙ‚Ø© Ø¹Ù„Ù‰ Ø·Ù„Ø¨ ØªÙˆØ«ÙŠÙ‚ Ù‡ÙˆÙŠØªÙƒ Ø¨Ù†Ø¬Ø§Ø­. ÙŠÙ…ÙƒÙ†Ùƒ Ø§Ù„Ø¢Ù† Ø§Ù„Ø§Ø³ØªÙ…ØªØ§Ø¹ Ø¨Ø­Ø¯ÙˆØ¯ Ù…Ø§Ù„ÙŠØ© Ø£Ø¹Ù„Ù‰.",
+                title="✅ تم توثيق حسابك",
+                body="تهانينا، تمت الموافقة على طلب توثيق هويتك بنجاح. يمكنك الآن الاستمتاع بحدود مالية أعلى.",
                 action_url="/dashboard/",
                 category='kyc',
                 priority=Notification.Priority.HIGH
             )
 
-            messages.success(request, f"ØªÙ… ØªÙˆØ«ÙŠÙ‚ Ø­Ø³Ø§Ø¨ {kyc.user.email} Ø¨Ù†Ø¬Ø§Ø­ØŒ ÙˆØªØ­Ø¯ÙŠØ« Ø§Ù„Ø§Ø³Ù… Ø§Ù„Ù…Ø¹Ø±ÙˆØ¶ ÙˆØ§Ù„Ø­Ø¯ÙˆØ¯ Ø§Ù„Ù…Ø§Ù„ÙŠØ©.")
+            messages.success(request, f"تم توثيق حساب {kyc.user.email} بنجاح، وتحديث الاسم المعروض والحدود المالية.")
         elif action == "reject":
             kyc.status = KYCRequest.Status.REJECTED
             kyc.rejection_reason = admin_note
@@ -2742,14 +2743,14 @@ def control_kyc_detail(request, pk):
             send_kyc_status_email(kyc.user, 'rejected', reason=admin_note)
             notify_user(
                 user=kyc.user,
-                title="âŒ ØªØ­Ø¯ÙŠØ« Ø¨Ø´Ø£Ù† Ø·Ù„Ø¨ Ø§Ù„ØªÙˆØ«ÙŠÙ‚",
-                body=f"Ù†Ø¹ØªØ°Ø±ØŒ ØªÙ… Ø±ÙØ¶ Ø·Ù„Ø¨ ØªÙˆØ«ÙŠÙ‚ Ù‡ÙˆÙŠØªÙƒ. Ø§Ù„Ø³Ø¨Ø¨: {admin_note}",
+                title="❌ تحديث بشأن طلب التوثيق",
+                body=f"نعتذر، تم رفض طلب توثيق هويتك. السبب: {admin_note}",
                 action_url="/dashboard/verification/",
                 category='kyc',
                 priority=Notification.Priority.HIGH
             )
 
-            messages.warning(request, f"ØªÙ… Ø±ÙØ¶ Ø·Ù„Ø¨ ØªÙˆØ«ÙŠÙ‚ {kyc.user.email}.")
+            messages.warning(request, f"تم رفض طلب توثيق {kyc.user.email}.")
 
         elif action == "unverify":
             kyc.status = KYCRequest.Status.REJECTED
@@ -2762,11 +2763,11 @@ def control_kyc_detail(request, pk):
                 kyc.user.daily_withdrawal_limit = kyc_settings.unverified_daily_withdrawal_limit
                 
             kyc.user.save()
-            messages.info(request, "ØªÙ… Ø¥Ù„ØºØ§Ø¡ ØªÙˆØ«ÙŠÙ‚ Ø§Ù„Ø­Ø³Ø§Ø¨ ÙˆØ¥Ø¹Ø§Ø¯Ø© Ø§Ù„Ø­Ø¯ÙˆØ¯ Ù„Ù„Ù…Ø³ØªÙˆÙ‰ Ø§Ù„Ø£Ø³Ø§Ø³ÙŠ.")
+            messages.info(request, "تم إلغاء توثيق الحساب وإعادة الحدود للمستوى الأساسي.")
         elif action == "revert":
             kyc.status = KYCRequest.Status.PENDING
             kyc.save()
-            messages.info(request, "ØªÙ…Øª Ø¥Ø¹Ø§Ø¯Ø© Ø§Ù„Ø·Ù„Ø¨ Ù„Ø­Ø§Ù„Ø© Ù‚ÙŠØ¯ Ø§Ù„Ù…Ø±Ø§Ø¬Ø¹Ø©.")
+            messages.info(request, "تمت إعادة الطلب لحالة قيد المراجعة.")
 
         kyc.reviewed_by = request.user
         kyc.reviewed_at = timezone.now()
@@ -2792,7 +2793,7 @@ def control_kyc_settings(request):
                 new_list = [c for c in obj.restricted_countries if c != code]
                 obj.restricted_countries = new_list
                 obj.save()
-                messages.success(request, f"ØªÙ… Ø¥Ù„ØºØ§Ø¡ Ø­Ø¸Ø± Ø§Ù„Ø¯ÙˆÙ„Ø© ({code}) Ø¨Ù†Ø¬Ø§Ø­.")
+                messages.success(request, f"تم إلغاء حظر الدولة ({code}) بنجاح.")
             return redirect("control_kyc_settings")
         
         elif action == "block_country":
@@ -2803,12 +2804,12 @@ def control_kyc_settings(request):
                     current_list.append(code)
                     obj.restricted_countries = current_list
                     obj.save()
-                    messages.success(request, "ØªÙ…Øª Ø¥Ø¶Ø§ÙØ© Ø§Ù„Ø¯ÙˆÙ„Ø© Ù„Ù‚Ø§Ø¦Ù…Ø© Ø§Ù„Ø­Ø¸Ø±.")
+                    messages.success(request, "تمت إضافة الدولة لقائمة الحظر.")
             return redirect("control_kyc_settings")
             
         if form.is_valid():
             form.save()
-            messages.success(request, "ØªÙ… Ø­ÙØ¸ Ø§Ù„Ø¥Ø¹Ø¯Ø§Ø¯Ø§Øª Ø¨Ù†Ø¬Ø§Ø­.")
+            messages.success(request, "تم حفظ الإعدادات بنجاح.")
             return redirect("control_kyc_settings")
             
     return render(request, "site/control_kyc_settings.html", {"form": form, "settings": obj})
@@ -2836,16 +2837,16 @@ def control_order_detail(request, pk):
                 refund_amount = order.total_amount
                 if wallet.currency and wallet.currency.code != "USD":
                     refund_amount = wallet.currency.from_base(order.total_amount)
-                credit_wallet(wallet.id, refund_amount, f"refund:{order.id}", f"Ø§Ø³ØªØ±Ø¯Ø§Ø¯ Ù…Ø¨Ù„Øº Ø§Ù„Ø·Ù„Ø¨ Ø±Ù‚Ù… #{order.number}", request.user)
+                credit_wallet(wallet.id, refund_amount, f"refund:{order.id}", f"استرداد مبلغ الطلب رقم #{order.number}", request.user)
             
-            messages.success(request, f"ØªÙ… ØªØ­Ø¯ÙŠØ« Ø­Ø§Ù„Ø© Ø§Ù„Ø·Ù„Ø¨ Ø¥Ù„Ù‰: {order.get_status_display()}")
+            messages.success(request, f"تم تحديث حالة الطلب إلى: {order.get_status_display()}")
             
             # Notify user
             try:
                 notify_user(
                     user=order.customer,
-                    title="ØªØ­Ø¯ÙŠØ« Ø­Ø§Ù„Ø© Ø§Ù„Ø·Ù„Ø¨",
-                    body=f"ØªÙ… ØªØºÙŠÙŠØ± Ø­Ø§Ù„Ø© Ø·Ù„Ø¨Ùƒ Ø±Ù‚Ù… #{order.number} Ø¥Ù„Ù‰: {order.get_status_display()}",
+                    title="تحديث حالة الطلب",
+                    body=f"تم تغيير حالة طلبك رقم #{order.number} إلى: {order.get_status_display()}",
                     action_url=f"/dashboard/orders/{order.id}/",
                     category="orders"
                 )
@@ -2858,7 +2859,7 @@ def control_order_detail(request, pk):
                 if k.strip(): fulfillment_data[k.strip()] = v
             order.fulfillment_data = fulfillment_data
             order.save()
-            messages.success(request, "ØªÙ… ØªØ­Ø¯ÙŠØ« Ø¨ÙŠØ§Ù†Ø§Øª Ø§Ù„ØªÙ†ÙÙŠØ°.")
+            messages.success(request, "تم تحديث بيانات التنفيذ.")
         elif action == "update_shipping":
             order.shipping_carrier = request.POST.get("shipping_carrier", "").strip()
             order.tracking_number = request.POST.get("tracking_number", "").strip()
@@ -2866,15 +2867,15 @@ def control_order_detail(request, pk):
             OrderLog.objects.create(
                 order=order,
                 status=order.status,
-                note=f"ØªÙ… ØªØ­Ø¯ÙŠØ« Ù…Ø¹Ù„ÙˆÙ…Ø§Øª Ø§Ù„Ø´Ø­Ù† (Ø´Ø±ÙƒØ© Ø§Ù„Ø´Ø­Ù†: {order.shipping_carrier}ØŒ Ø±Ù‚Ù… Ø§Ù„ØªØªØ¨Ø¹: {order.tracking_number})",
+                note=f"تم تحديث معلومات الشحن (شركة الشحن: {order.shipping_carrier}، رقم التتبع: {order.tracking_number})",
                 created_by=request.user
             )
-            messages.success(request, "ØªÙ… ØªØ­Ø¯ÙŠØ« Ù…Ø¹Ù„ÙˆÙ…Ø§Øª Ø§Ù„Ø´Ø­Ù†.")
+            messages.success(request, "تم تحديث معلومات الشحن.")
             try:
                 notify_user(
                     user=order.customer,
-                    title="ØªØ­Ø¯ÙŠØ« Ù…Ø¹Ù„ÙˆÙ…Ø§Øª Ø§Ù„Ø´Ø­Ù†",
-                    body=f"ØªÙ…Øª Ø¥Ø¶Ø§ÙØ© Ù…Ø¹Ù„ÙˆÙ…Ø§Øª Ø§Ù„Ø´Ø­Ù† Ù„Ø·Ù„Ø¨Ùƒ Ø±Ù‚Ù… #{order.number}. Ø´Ø±ÙƒØ© Ø§Ù„Ø´Ø­Ù†: {order.shipping_carrier}ØŒ Ø±Ù‚Ù… Ø§Ù„ØªØªØ¨Ø¹: {order.tracking_number}",
+                    title="تحديث معلومات الشحن",
+                    body=f"تمت إضافة معلومات الشحن لطلبك رقم #{order.number}. شركة الشحن: {order.shipping_carrier}، رقم التتبع: {order.tracking_number}",
                     action_url=f"/dashboard/orders/{order.id}/",
                     category="orders"
                 )
@@ -2887,7 +2888,7 @@ def control_order_detail(request, pk):
                 try:
                     new_total = Decimal(val)
                 except:
-                    messages.error(request, "Ù‚ÙŠÙ…Ø© Ø§Ù„Ø³Ø¹Ø± ØºÙŠØ± ØµØ§Ù„Ø­Ø©.")
+                    messages.error(request, "قيمة السعر غير صالحة.")
                     return redirect("control_order_detail", pk=pk)
 
             old_total = order.total_amount
@@ -2905,15 +2906,15 @@ def control_order_detail(request, pk):
                         reason = request.POST.get("adjustment_reason", "")
                         if diff > 0:
                             # Price increased, debit user
-                            desc = f"ØªØ¹Ø¯ÙŠÙ„ Ø³Ø¹Ø± Ø§Ù„Ø·Ù„Ø¨ #{order.number} (Ø²ÙŠØ§Ø¯Ø©): Ù…Ù† {old_total} Ø¥Ù„Ù‰ {new_total}"
-                            if reason: desc += f" | Ø§Ù„Ø³Ø¨Ø¨: {reason}"
+                            desc = f"تعديل سعر الطلب #{order.number} (زيادة): من {old_total} إلى {new_total}"
+                            if reason: desc += f" | السبب: {reason}"
                             debit_wallet(wallet.id, adj_amount, reference=f"order_adj:{order.id}", 
                                          description=desc, 
                                          created_by=request.user)
                         else:
                             # Price decreased, credit user
-                            desc = f"ØªØ¹Ø¯ÙŠÙ„ Ø³Ø¹Ø± Ø§Ù„Ø·Ù„Ø¨ #{order.number} (ØªØ®ÙÙŠØ¶): Ù…Ù† {old_total} Ø¥Ù„Ù‰ {new_total}"
-                            if reason: desc += f" | Ø§Ù„Ø³Ø¨Ø¨: {reason}"
+                            desc = f"تعديل سعر الطلب #{order.number} (تخفيض): من {old_total} إلى {new_total}"
+                            if reason: desc += f" | السبب: {reason}"
                             credit_wallet(wallet.id, abs(adj_amount), reference=f"order_adj:{order.id}", 
                                           description=desc, 
                                           created_by=request.user)
@@ -2936,7 +2937,7 @@ def control_order_detail(request, pk):
                         OrderLog.objects.create(
                             order=order, 
                             status=order.status, 
-                            note=f"ØªÙ… ØªØ¹Ø¯ÙŠÙ„ Ø³Ø¹Ø± Ø§Ù„Ø·Ù„Ø¨ Ø¨ÙˆØ§Ø³Ø·Ø© Ø§Ù„Ø¥Ø¯Ø§Ø±Ø© Ù…Ù† {old_total} Ø¥Ù„Ù‰ {new_total}. Ø§Ù„Ø³Ø¨Ø¨: {order.price_adjustment_reason}", 
+                            note=f"تم تعديل سعر الطلب بواسطة الإدارة من {old_total} إلى {new_total}. السبب: {order.price_adjustment_reason}", 
                             created_by=request.user
                         )
 
@@ -2944,19 +2945,19 @@ def control_order_detail(request, pk):
                         try:
                             notify_user(
                                 user=order.customer,
-                                title="ØªÙ… ØªØ¹Ø¯ÙŠÙ„ Ø³Ø¹Ø± Ø§Ù„Ø·Ù„Ø¨",
-                                body=f"ØªÙ… ØªØ¹Ø¯ÙŠÙ„ Ø³Ø¹Ø± Ø·Ù„Ø¨Ùƒ Ø±Ù‚Ù… #{order.number} Ù…Ù† Ù‚Ø¨Ù„ Ø§Ù„Ø¥Ø¯Ø§Ø±Ø©. Ø§Ù„Ø³Ø¹Ø± Ø§Ù„Ø¬Ø¯ÙŠØ¯: {new_total} USD. Ø§Ù„Ø³Ø¨Ø¨: {order.price_adjustment_reason}",
+                                title="تم تعديل سعر الطلب",
+                                body=f"تم تعديل سعر طلبك رقم #{order.number} من قبل الإدارة. السعر الجديد: {new_total} USD. السبب: {order.price_adjustment_reason}",
                                 action_url=f"/dashboard/orders/{order.id}/",
                                 category="orders"
                             )
                         except: pass
-                    messages.success(request, "ØªÙ… ØªØ­Ø¯ÙŠØ« Ø³Ø¹Ø± Ø§Ù„Ø·Ù„Ø¨ ÙˆØªØ¹Ø¯ÙŠÙ„ Ø±ØµÙŠØ¯ Ø§Ù„Ù…Ø­ÙØ¸Ø©.")
+                    messages.success(request, "تم تحديث سعر الطلب وتعديل رصيد المحفظة.")
                 except Exception as e:
-                    messages.error(request, f"ÙØ´Ù„ ÙÙŠ ØªØ¹Ø¯ÙŠÙ„ Ø§Ù„Ø±ØµÙŠØ¯: {str(e)}")
+                    messages.error(request, f"فشل في تعديل الرصيد: {str(e)}")
             else:
                 order.price_adjustment_reason = request.POST.get("adjustment_reason", "")
                 order.save()
-                messages.success(request, "ØªÙ… ØªØ­Ø¯ÙŠØ« Ù…Ù„Ø§Ø­Ø¸Ø§Øª ØªØ¹Ø¯ÙŠÙ„ Ø§Ù„Ø³Ø¹Ø±.")
+                messages.success(request, "تم تحديث ملاحظات تعديل السعر.")
             
         return redirect("control_order_detail", pk=pk)
     
@@ -2982,13 +2983,13 @@ def control_order_status_update(request, pk):
             refund_amount = order.total_amount
             if wallet.currency and wallet.currency.code != "USD":
                 refund_amount = wallet.currency.from_base(order.total_amount)
-            credit_wallet(wallet.id, refund_amount, f"refund:{order.id}", f"Ø§Ø³ØªØ±Ø¯Ø§Ø¯ Ù…Ø¨Ù„Øº Ø§Ù„Ø·Ù„Ø¨ Ø±Ù‚Ù… #{order.number}", request.user)
-        messages.success(request, f"ØªÙ… ØªØ­Ø¯ÙŠØ« Ø­Ø§Ù„Ø© Ø§Ù„Ø·Ù„Ø¨ Ø¥Ù„Ù‰: {order.get_status_display()}")
+            credit_wallet(wallet.id, refund_amount, f"refund:{order.id}", f"استرداد مبلغ الطلب رقم #{order.number}", request.user)
+        messages.success(request, f"تم تحديث حالة الطلب إلى: {order.get_status_display()}")
         try:
             notify_user(
                 user=order.customer,
-                title="ØªØ­Ø¯ÙŠØ« Ø­Ø§Ù„Ø© Ø§Ù„Ø·Ù„Ø¨",
-                body=f"ØªÙ… ØªØºÙŠÙŠØ± Ø­Ø§Ù„Ø© Ø·Ù„Ø¨Ùƒ Ø±Ù‚Ù… #{order.number} Ø¥Ù„Ù‰: {order.get_status_display()}",
+                title="تحديث حالة الطلب",
+                body=f"تم تغيير حالة طلبك رقم #{order.number} إلى: {order.get_status_display()}",
                 action_url=f"/dashboard/orders/{order.id}/",
                 category="orders"
             )
@@ -3059,7 +3060,7 @@ def control_users_list(request):
         action = request.POST.get("action")
         user_ids = request.POST.getlist("user_ids")
         if not user_ids:
-            messages.warning(request, "ÙŠØ±Ø¬Ù‰ Ø§Ø®ØªÙŠØ§Ø± Ù…Ø³ØªØ®Ø¯Ù…ÙŠÙ† Ù„ØªÙ†ÙÙŠØ° Ø§Ù„Ø¹Ù…Ù„ÙŠØ©.")
+            messages.warning(request, "يرجى اختيار مستخدمين لتنفيذ العملية.")
             return redirect("control_users_list")
         if action == "bulk_update":
             tier = request.POST.get("bulk_tier")
@@ -3068,7 +3069,7 @@ def control_users_list(request):
                     User.objects.filter(id__in=user_ids, store=store).update(tier=tier)
                 else:
                     User.objects.filter(id__in=user_ids, store__isnull=True).update(tier=tier)
-                messages.success(request, f"ØªÙ… ØªØ­Ø¯ÙŠØ« ÙØ¦Ø© {len(user_ids)} Ù…Ø³ØªØ®Ø¯Ù… Ø¨Ù†Ø¬Ø§Ø­.")
+                messages.success(request, f"تم تحديث فئة {len(user_ids)} مستخدم بنجاح.")
         return redirect("control_users_list")
 
     if store:
@@ -3086,14 +3087,14 @@ def control_users_list(request):
 
     if request.GET.get("export") == "excel":
         columns = [
-            ("Ø§Ù„Ø§Ø³Ù…", lambda u: u.get_full_name()),
-            ("Ø§Ù„Ø¨Ø±ÙŠØ¯ Ø§Ù„Ø¥Ù„ÙƒØªØ±ÙˆÙ†ÙŠ", lambda u: u.email),
-            ("Ø§Ù„Ù‡Ø§ØªÙ", lambda u: u.phone),
-            ("Ø§Ù„ÙØ¦Ø©", lambda u: u.get_tier_display()),
-            ("Ø§Ù„Ø­Ø§Ù„Ø©", lambda u: u.get_status_display()),
-            ("Ø§Ù„Ø±ØµÙŠØ¯ Ø§Ù„Ù…ØªØ§Ø­", lambda u: u.wallet.available_balance),
-            ("Ø§Ù„Ø¯ÙŠÙˆÙ†", lambda u: u.wallet.debt_balance),
-            ("ØªØ§Ø±ÙŠØ® Ø§Ù„Ø§Ù†Ø¶Ù…Ø§Ù…", lambda u: u.date_joined.strftime("%Y-%m-%d")),
+            ("الاسم", lambda u: u.get_full_name()),
+            ("البريد الإلكتروني", lambda u: u.email),
+            ("الهاتف", lambda u: u.phone),
+            ("الفئة", lambda u: u.get_tier_display()),
+            ("الحالة", lambda u: u.get_status_display()),
+            ("الرصيد المتاح", lambda u: u.wallet.available_balance),
+            ("الديون", lambda u: u.wallet.debt_balance),
+            ("تاريخ الانضمام", lambda u: u.date_joined.strftime("%Y-%m-%d")),
         ]
         return export_to_excel(users, "Users", columns)
 
@@ -3170,8 +3171,8 @@ def control_product_import(request):
                     product_id = row[0]
                     name = row[1]
                     cat_name = row[2]
-                    is_active = str(row[4]).strip() == "Ù†Ø¹Ù…"
-                    is_featured = str(row[5]).strip() == "Ù†Ø¹Ù…"
+                    is_active = str(row[4]).strip() == "نعم"
+                    is_featured = str(row[5]).strip() == "نعم"
                     
                     store = getattr(request, "store", None)
                     category, _ = Category.objects.get_or_create(
@@ -3194,9 +3195,9 @@ def control_product_import(request):
                 except Exception as row_err:
                     logger.warning(f"Error importing row {row}: {row_err}")
             
-            messages.success(request, f"ØªÙ… Ø§Ù„Ø§Ø³ØªÙŠØ±Ø§Ø¯ Ø¨Ù†Ø¬Ø§Ø­: {created} Ø¬Ø¯ÙŠØ¯ØŒ {updated} ØªÙ… ØªØ­Ø¯ÙŠØ«Ù‡.")
+            messages.success(request, f"تم الاستيراد بنجاح: {created} جديد، {updated} تم تحديثه.")
         except Exception as e:
-            messages.error(request, f"ÙØ´Ù„ Ø§Ù„Ø§Ø³ØªÙŠØ±Ø§Ø¯: {str(e)}")
+            messages.error(request, f"فشل الاستيراد: {str(e)}")
             
     return redirect("control_products_list")
 
@@ -3211,7 +3212,7 @@ def control_category_edit(request, pk=None):
     form = CategoryForm(request.POST or None, request.FILES or None, instance=category)
     if request.method == "POST" and form.is_valid():
         form.save()
-        messages.success(request, "ØªÙ… Ø­ÙØ¸ Ø§Ù„ØªØµÙ†ÙŠÙ Ø¨Ù†Ø¬Ø§Ø­.")
+        messages.success(request, "تم حفظ التصنيف بنجاح.")
         return redirect("control_categories_list")
     return render(request, "site/control_category_form.html", {"form": form, "category": category})
 
@@ -3240,7 +3241,7 @@ def control_products_list(request):
                 if apply_to == "selected" and product_ids:
                     variants_qs = variants_qs.filter(product_id__in=product_ids)
                 elif apply_to == "selected" and not product_ids:
-                    messages.error(request, "Ù„Ù… ØªÙ‚Ù… Ø¨ØªØ­Ø¯ÙŠØ¯ Ø£ÙŠ Ù…Ù†ØªØ¬Ø§Øª Ù„ØªØ¹Ø¯ÙŠÙ„ Ø£Ø³Ø¹Ø§Ø±Ù‡Ø§.")
+                    messages.error(request, "لم تقم بتحديد أي منتجات لتعديل أسعارها.")
                     return redirect("control_products_list")
                 
                 count = 0
@@ -3263,9 +3264,9 @@ def control_products_list(request):
                     variant.price = price.quantize(Decimal("0.01"))
                     variant.save(update_fields=['price'])
                     count += 1
-                messages.success(request, f"ØªÙ… Ø¨Ù†Ø¬Ø§Ø­ ØªØ¹Ø¯ÙŠÙ„ Ø£Ø³Ø¹Ø§Ø± {count} Ø¨Ø§Ù‚Ø© ÙÙŠ Ø§Ù„Ù…Ù†ØªØ¬Ø§Øª Ø§Ù„Ø¹Ø§Ø¯ÙŠØ©.")
+                messages.success(request, f"تم بنجاح تعديل أسعار {count} باقة في المنتجات العادية.")
             except Exception as e:
-                messages.error(request, f"ÙØ´Ù„ Ø§Ù„ØªØ¹Ø¯ÙŠÙ„ Ø§Ù„Ø¬Ù…Ø§Ø¹ÙŠ: {str(e)}")
+                messages.error(request, f"فشل التعديل الجماعي: {str(e)}")
             return redirect("control_products_list")
 
     products = Product.objects.select_related('category').prefetch_related('variants').all().order_by('sort_order', 'name')
@@ -3290,12 +3291,12 @@ def control_products_list(request):
     if request.GET.get("export") == "excel":
         columns = [
             ("ID", lambda p: str(p.id)),
-            ("Ø§Ø³Ù… Ø§Ù„Ù…Ù†ØªØ¬", lambda p: p.name),
-            ("Ø§Ù„ØªØµÙ†ÙŠÙ", lambda p: p.category.name),
-            ("Ø¹Ø¯Ø¯ Ø§Ù„Ø¨Ø§Ù‚Ø§Øª", lambda p: p.variants.count()),
-            ("Ù†Ø´Ø·", lambda p: "Ù†Ø¹Ù…" if p.is_active else "Ù„Ø§"),
-            ("Ù…Ù…ÙŠØ²", lambda p: "Ù†Ø¹Ù…" if p.is_featured else "Ù„Ø§"),
-            ("ØªØ±ØªÙŠØ¨ Ø§Ù„Ø¹Ø±Ø¶", lambda p: p.sort_order),
+            ("اسم المنتج", lambda p: p.name),
+            ("التصنيف", lambda p: p.category.name),
+            ("عدد الباقات", lambda p: p.variants.count()),
+            ("نشط", lambda p: "نعم" if p.is_active else "لا"),
+            ("مميز", lambda p: "نعم" if p.is_featured else "لا"),
+            ("ترتيب العرض", lambda p: p.sort_order),
         ]
         return export_to_excel(products, "Products", columns)
 
@@ -3324,13 +3325,13 @@ def control_orders_list(request):
 
     if request.GET.get("export") == "excel":
         columns = [
-            ("Ø±Ù‚Ù… Ø§Ù„Ø·Ù„Ø¨", lambda o: o.number),
-            ("Ø§Ù„ØªØ§Ø±ÙŠØ®", lambda o: o.created_at.strftime("%Y-%m-%d %H:%M")),
-            ("Ø§Ù„Ø¹Ù…ÙŠÙ„", lambda o: o.customer.email),
-            ("Ø§Ù„Ù…Ù†ØªØ¬", lambda o: o.items.first().variant.product.name if o.items.exists() else ""),
-            ("Ø§Ù„Ø¨Ø§Ù‚Ø©", lambda o: o.items.first().variant.name if o.items.exists() else ""),
-            ("Ø§Ù„Ù…Ø¨Ù„Øº", lambda o: o.total_amount),
-            ("Ø§Ù„Ø­Ø§Ù„Ø©", lambda o: o.get_status_display()),
+            ("رقم الطلب", lambda o: o.number),
+            ("التاريخ", lambda o: o.created_at.strftime("%Y-%m-%d %H:%M")),
+            ("العميل", lambda o: o.customer.email),
+            ("المنتج", lambda o: o.items.first().variant.product.name if o.items.exists() else ""),
+            ("الباقة", lambda o: o.items.first().variant.name if o.items.exists() else ""),
+            ("المبلغ", lambda o: o.total_amount),
+            ("الحالة", lambda o: o.get_status_display()),
         ]
         return export_to_excel(orders, "Orders", columns)
 
@@ -3349,13 +3350,13 @@ def control_wallets_list(request):
 
     if request.GET.get("export") == "excel":
         columns = [
-            ("Ø§Ù„Ù…Ø³ØªØ®Ø¯Ù…", lambda w: w.user.email),
-            ("Ø§Ù„Ø¹Ù…Ù„Ø©", lambda w: w.currency.code),
-            ("Ø§Ù„Ø±ØµÙŠØ¯ Ø§Ù„Ù…ØªØ§Ø­", lambda w: w.available_balance),
-            ("Ø§Ù„Ø¯ÙŠÙˆÙ†", lambda w: w.debt_balance),
-            ("Ø§Ù„Ù…Ø¬Ù…Ø¯", lambda w: w.frozen_balance),
-            ("Ø§Ù„Ù…Ø­Ø¬ÙˆØ²", lambda w: w.held_balance),
-            ("Ø§Ù„Ù…Ø¹Ù„Ù‚", lambda w: w.pending_balance),
+            ("المستخدم", lambda w: w.user.email),
+            ("العملة", lambda w: w.currency.code),
+            ("الرصيد المتاح", lambda w: w.available_balance),
+            ("الديون", lambda w: w.debt_balance),
+            ("المجمد", lambda w: w.frozen_balance),
+            ("المحجوز", lambda w: w.held_balance),
+            ("المعلق", lambda w: w.pending_balance),
         ]
         return export_to_excel(wallets, "Wallets", columns)
 
@@ -3375,8 +3376,8 @@ def control_user_moderate(request, public_uuid):
         if action == "change_email":
             new_email = request.POST.get("new_email", "").strip().lower()
             if new_email and "@" in new_email:
-                if User.objects.filter(email=new_email).exclude(id=user.id).exists(): messages.error(request, "Ù‡Ø°Ø§ Ø§Ù„Ø¨Ø±ÙŠØ¯ Ù…Ø³ØªØ®Ø¯Ù… Ø¨Ø§Ù„ÙØ¹Ù„.")
-                else: user.email = new_email; user.username = new_email; user.save(); messages.success(request, f"ØªÙ… ØªØºÙŠÙŠØ± Ø§Ù„Ø¨Ø±ÙŠØ¯ Ø¥Ù„Ù‰ {new_email}")
+                if User.objects.filter(email=new_email).exclude(id=user.id).exists(): messages.error(request, "هذا البريد مستخدم بالفعل.")
+                else: user.email = new_email; user.username = new_email; user.save(); messages.success(request, f"تم تغيير البريد إلى {new_email}")
             return redirect("control_user_moderate", public_uuid=public_uuid)
         elif action == "assign_debt":
             from apps.wallets.services import add_debt, WalletError
@@ -3385,11 +3386,11 @@ def control_user_moderate(request, public_uuid):
             try:
                 amt = Decimal(amt_str)
                 add_debt(user.wallet.id, amt, f"admin_debt_{timezone.now().timestamp()}", reason, request.user)
-                messages.success(request, f"ØªÙ… Ø¥Ø¶Ø§ÙØ© Ø¯ÙŠÙ† Ø¨Ù‚ÙŠÙ…Ø© {amt} Ù„Ù„Ù…Ø³ØªØ®Ø¯Ù… {user.email}")
+                messages.success(request, f"تم إضافة دين بقيمة {amt} للمستخدم {user.email}")
             except WalletError as e:
                 messages.error(request, str(e))
             except Exception as e:
-                messages.error(request, f"Ø®Ø·Ø£ Ø£Ø«Ù†Ø§Ø¡ Ø¥Ø¶Ø§ÙØ© Ø§Ù„Ø¯ÙŠÙ†: {str(e)}")
+                messages.error(request, f"خطأ أثناء إضافة الدين: {str(e)}")
             return redirect("control_user_moderate", public_uuid=public_uuid)
         elif action == "pay_debt":
             from apps.wallets.services import pay_debt, WalletError
@@ -3401,16 +3402,16 @@ def control_user_moderate(request, public_uuid):
                     user.wallet.id,
                     amt,
                     f"admin_pay_{timezone.now().timestamp()}",
-                    reason or "Ø³Ø¯Ø§Ø¯ ÙŠØ¯ÙˆÙŠ Ù„Ù„Ù…Ø¯ÙŠÙˆÙ†ÙŠØ© Ù…Ù† Ø§Ù„Ø±ØµÙŠØ¯ Ø§Ù„Ù…ØªØ§Ø­",
+                    reason or "سداد يدوي للمديونية من الرصيد المتاح",
                     request.user,
                     deduct_from_balance=True,
                     source="admin"
                 )
-                messages.success(request, f"ØªÙ… Ø³Ø¯Ø§Ø¯ Ø¯ÙŠÙ† Ø¨Ù‚ÙŠÙ…Ø© {amt} Ù„Ù„Ù…Ø³ØªØ®Ø¯Ù… {user.email}")
+                messages.success(request, f"تم سداد دين بقيمة {amt} للمستخدم {user.email}")
             except WalletError as e:
                 messages.error(request, str(e))
             except Exception as e:
-                messages.error(request, f"Ø®Ø·Ø£ Ø£Ø«Ù†Ø§Ø¡ Ø³Ø¯Ø§Ø¯ Ø§Ù„Ø¯ÙŠÙ†: {str(e)}")
+                messages.error(request, f"خطأ أثناء سداد الدين: {str(e)}")
             return redirect("control_user_moderate", public_uuid=public_uuid)
         elif action == "cash_deposit":
             from apps.wallets.services import credit_wallet, WalletError
@@ -3422,20 +3423,20 @@ def control_user_moderate(request, public_uuid):
                     wallet_id=user.wallet.id,
                     amount=amt,
                     reference=f"cash_dep_{timezone.now().timestamp()}",
-                    description=reason or "Ø¥ÙŠØ¯Ø§Ø¹ Ù†Ù‚Ø¯ÙŠ Ù…Ø¨Ø§Ø´Ø± Ø¹Ø¨Ø± Ù„ÙˆØ­Ø© Ø§Ù„ØªØ­ÙƒÙ…",
+                    description=reason or "إيداع نقدي مباشر عبر لوحة التحكم",
                     created_by=request.user,
                     source="admin_cash",
-                    reason=reason or "Ø¥ÙŠØ¯Ø§Ø¹ Ù†Ù‚Ø¯ÙŠ Ù…Ø¨Ø§Ø´Ø± Ø¹Ø¨Ø± Ù„ÙˆØ­Ø© Ø§Ù„ØªØ­ÙƒÙ…"
+                    reason=reason or "إيداع نقدي مباشر عبر لوحة التحكم"
                 )
-                messages.success(request, f"ØªÙ… Ø¥ÙŠØ¯Ø§Ø¹ Ù…Ø¨Ù„Øº {amt} Ù†Ù‚Ø¯Ø§Ù‹ ÙÙŠ Ù…Ø­ÙØ¸Ø© Ø§Ù„Ø¹Ù…ÙŠÙ„ {user.email}")
+                messages.success(request, f"تم إيداع مبلغ {amt} نقداً في محفظة العميل {user.email}")
             except WalletError as e:
                 messages.error(request, str(e))
             except Exception as e:
-                messages.error(request, f"Ø®Ø·Ø£ Ø£Ø«Ù†Ø§Ø¡ Ø§Ù„Ø¥ÙŠØ¯Ø§Ø¹ Ø§Ù„Ù†Ù‚Ø¯ÙŠ: {str(e)}")
+                messages.error(request, f"خطأ أثناء الإيداع النقدي: {str(e)}")
             return redirect("control_user_moderate", public_uuid=public_uuid)
-        elif action == "reset_otp": user.otp_failed_attempts = 0; user.otp_lockout_until = None; user.otp_resend_count = 0; user.save(); messages.success(request, "ØªÙ… Ø¥Ø¹Ø§Ø¯Ø© Ø¶Ø¨Ø· Ù‚ÙŠÙˆØ¯ Ø§Ù„Ø±Ù…Ø²."); return redirect("control_user_moderate", public_uuid=public_uuid)
-        elif action == "reset_2fa": user.totp_enabled = False; user.totp_secret = None; user.save(); messages.success(request, "ØªÙ… ØªØ¹Ø·ÙŠÙ„ 2FA Ù„Ù„Ù…Ø³ØªØ®Ø¯Ù…."); return redirect("control_user_moderate", public_uuid=public_uuid)
-        elif action == "reset_sp": user.security_password = None; user.security_password_enabled = False; user.save(); messages.success(request, "ØªÙ… Ø­Ø°Ù Ø±Ù…Ø² Ø§Ù„Ø­Ù…Ø§ÙŠØ© (SP) Ù„Ù„Ù…Ø³ØªØ®Ø¯Ù… Ø¨Ù†Ø¬Ø§Ø­."); return redirect("control_user_moderate", public_uuid=public_uuid)
+        elif action == "reset_otp": user.otp_failed_attempts = 0; user.otp_lockout_until = None; user.otp_resend_count = 0; user.save(); messages.success(request, "تم إعادة ضبط قيود الرمز."); return redirect("control_user_moderate", public_uuid=public_uuid)
+        elif action == "reset_2fa": user.totp_enabled = False; user.totp_secret = None; user.save(); messages.success(request, "تم تعطيل 2FA للمستخدم."); return redirect("control_user_moderate", public_uuid=public_uuid)
+        elif action == "reset_sp": user.security_password = None; user.security_password_enabled = False; user.save(); messages.success(request, "تم حذف رمز الحماية (SP) للمستخدم بنجاح."); return redirect("control_user_moderate", public_uuid=public_uuid)
         elif action == "reset_password":
             from django.contrib.auth.tokens import default_token_generator
             from apps.accounts.services import send_brevo_email
@@ -3448,33 +3449,33 @@ def control_user_moderate(request, public_uuid):
             html_content = f"""
             <div dir="rtl" style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 500px; margin: 0 auto; padding: 20px; color: #1e293b; background-color: #ffffff; border-radius: 16px; border: 1px solid #e2e8f0;">
                 <div style="text-align: center; margin-bottom: 30px;">
-                    <h2 style="color: #06b6d4; margin: 0; font-size: 24px; font-weight: 900;">Ø±Ù‚Ù…ÙŠØ§Øª | RAQAMIYAT</h2>
+                    <h2 style="color: #06b6d4; margin: 0; font-size: 24px; font-weight: 900;">رقميات | RAQAMIYAT</h2>
                 </div>
                 <div style="background-color: #f8fafc; padding: 30px; border-radius: 12px;">
-                    <h3 style="margin-top: 0; color: #0f172a;">Ù…Ø±Ø­Ø¨Ø§Ù‹ {user.get_full_name() or user.username}ØŒ</h3>
-                    <p style="font-size: 16px; color: #64748b;">Ù„Ù‚Ø¯ ØªÙ„Ù‚ÙŠÙ†Ø§ Ø·Ù„Ø¨Ø§Ù‹ Ù„Ø¥Ø¹Ø§Ø¯Ø© ØªØ¹ÙŠÙŠÙ† ÙƒÙ„Ù…Ø© Ø§Ù„Ù…Ø±ÙˆØ± Ù„Ø­Ø³Ø§Ø¨Ùƒ.</p>
+                    <h3 style="margin-top: 0; color: #0f172a;">مرحباً {user.get_full_name() or user.username}،</h3>
+                    <p style="font-size: 16px; color: #64748b;">لقد تلقينا طلباً لإعادة تعيين كلمة المرور لحسابك.</p>
                     <div style="text-align: center; margin: 30px 0;">
-                        <a href="{reset_url}" style="padding: 14px 28px; background-color: #06b6d4; color: #ffffff; text-decoration: none; border-radius: 8px; font-weight: bold; font-size: 16px;">Ø¥Ø¹Ø§Ø¯Ø© ØªØ¹ÙŠÙŠÙ† ÙƒÙ„Ù…Ø© Ø§Ù„Ù…Ø±ÙˆØ±</a>
+                        <a href="{reset_url}" style="padding: 14px 28px; background-color: #06b6d4; color: #ffffff; text-decoration: none; border-radius: 8px; font-weight: bold; font-size: 16px;">إعادة تعيين كلمة المرور</a>
                     </div>
-                    <p style="font-size: 14px; color: #94a3b8;">Ø¥Ø°Ø§ Ù„Ù… ØªØ·Ù„Ø¨ Ø°Ù„ÙƒØŒ ÙŠÙ…ÙƒÙ†Ùƒ ØªØ¬Ø§Ù‡Ù„ Ù‡Ø°Ø§ Ø§Ù„Ø¨Ø±ÙŠØ¯ Ø§Ù„Ø¥Ù„ÙƒØªØ±ÙˆÙ†ÙŠ Ø¨Ø£Ù…Ø§Ù†. Ø§Ù„Ø±Ø§Ø¨Ø· ØµØ§Ù„Ø­ Ù„ÙØªØ±Ø© Ù…Ø­Ø¯ÙˆØ¯Ø©.</p>
+                    <p style="font-size: 14px; color: #94a3b8;">إذا لم تطلب ذلك، يمكنك تجاهل هذا البريد الإلكتروني بأمان. الرابط صالح لفترة محدودة.</p>
                 </div>
                 <div style="margin-top: 30px; text-align: center; font-size: 12px; color: #94a3b8;">
-                    <p>Â© 2026 Ù…Ø¤Ø³Ø³Ø© Ø±Ø§Ù…ÙŠ Ù‚ØµØ§Øµ Ø¨Ù† Ù…Ø§Ù‡Ø± Ù„Ø®Ø¯Ù…Ø§Øª Ø§Ù„ÙˆØ³Ø§Ø·Ø© Ø§Ù„Ø±Ù‚Ù…ÙŠØ©.</p>
+                    <p>© 2026 مؤسسة رامي قصاص بن ماهر لخدمات الوساطة الرقمية.</p>
                 </div>
             </div>
             """
             
-            if send_brevo_email(user.email, user.get_full_name() or user.email, "Ø¥Ø¹Ø§Ø¯Ø© ØªØ¹ÙŠÙŠÙ† ÙƒÙ„Ù…Ø© Ø§Ù„Ù…Ø±ÙˆØ± | Ø±Ù‚Ù…ÙŠØ§Øª", html_content):
-                messages.success(request, "ØªÙ… Ø¥Ø±Ø³Ø§Ù„ Ø±Ø§Ø¨Ø· Ø¥Ø¹Ø§Ø¯Ø© ØªØ¹ÙŠÙŠÙ† ÙƒÙ„Ù…Ø© Ø§Ù„Ù…Ø±ÙˆØ± Ø¨Ù†Ø¬Ø§Ø­.")
+            if send_brevo_email(user.email, user.get_full_name() or user.email, "إعادة تعيين كلمة المرور | رقميات", html_content):
+                messages.success(request, "تم إرسال رابط إعادة تعيين كلمة المرور بنجاح.")
             else:
-                messages.error(request, "ÙØ´Ù„ Ø¥Ø±Ø³Ø§Ù„ Ø§Ù„Ø¨Ø±ÙŠØ¯ Ø§Ù„Ø¥Ù„ÙƒØªØ±ÙˆÙ†ÙŠ.")
+                messages.error(request, "فشل إرسال البريد الإلكتروني.")
             return redirect("control_user_moderate", public_uuid=public_uuid)
         elif action == "reset_limits":
             user.daily_deposit_usage = Decimal("0.00")
             user.daily_withdrawal_usage = Decimal("0.00")
             user.last_limit_reset = timezone.now()
             user.save(update_fields=["daily_deposit_usage", "daily_withdrawal_usage", "last_limit_reset"])
-            messages.success(request, "ØªÙ… ØªØµÙÙŠØ± Ø¬Ù…ÙŠØ¹ Ø­Ø¯ÙˆØ¯ Ø§Ù„Ø§Ø³ØªØ®Ø¯Ø§Ù… Ø§Ù„ÙŠÙˆÙ…ÙŠ Ù„Ù„Ù…Ø³ØªØ®Ø¯Ù….")
+            messages.success(request, "تم تصفير جميع حدود الاستخدام اليومي للمستخدم.")
             return redirect("control_user_moderate", public_uuid=public_uuid)
 
         elif action == "reset_method_limit":
@@ -3483,12 +3484,12 @@ def control_user_moderate(request, public_uuid):
                 # Remove custom limit for this method
                 user.custom_payment_limits.pop(method_id, None)
                 user.save(update_fields=["custom_payment_limits"])
-                messages.success(request, f"ØªÙ… Ø­Ø°Ù Ø§Ù„Ø­Ø¯ Ø§Ù„Ù…Ø®ØµØµ Ù„Ù„ÙˆØ³ÙŠÙ„Ø© Ø§Ù„Ù…Ø­Ø¯Ø¯Ø© Ù„Ù„Ù…Ø³ØªØ®Ø¯Ù….")
+                messages.success(request, f"تم حذف الحد المخصص للوسيلة المحددة للمستخدم.")
             return redirect("control_user_moderate", public_uuid=public_uuid)
 
         elif form.is_valid():
             form.save()
-            messages.success(request, "ØªÙ… Ø§Ù„ØªØ­Ø¯ÙŠØ«.")
+            messages.success(request, "تم التحديث.")
             return redirect("control_users_list")
     from apps.payments.models import DepositRequest, WithdrawalRequest
     from apps.orders.models import Order
@@ -3540,14 +3541,14 @@ def control_category_edit(request, pk=None):
     form = CategoryForm(request.POST or None, request.FILES or None, instance=category)
     if request.method == "POST" and form.is_valid():
         form.save()
-        messages.success(request, "ØªÙ… Ø­ÙØ¸ Ø§Ù„ØªØµÙ†ÙŠÙ Ø¨Ù†Ø¬Ø§Ø­.")
+        messages.success(request, "تم حفظ التصنيف بنجاح.")
         return redirect("control_categories_list")
     return render(request, "site/control_category_form.html", {"form": form, "category": category})
 
 @support_required
 def control_category_delete(request, pk):
     get_object_or_404(Category, pk=pk).delete()
-    messages.success(request, "ØªÙ… Ø­Ø°Ù Ø§Ù„ØªØµÙ†ÙŠÙ.")
+    messages.success(request, "تم حذف التصنيف.")
     return redirect("control_categories_list")
 
 @support_required
@@ -3561,14 +3562,14 @@ def control_category_edit(request, pk=None):
     form = CategoryForm(request.POST or None, request.FILES or None, instance=category)
     if request.method == "POST" and form.is_valid():
         form.save()
-        messages.success(request, "ØªÙ… Ø­ÙØ¸ Ø§Ù„ØªØµÙ†ÙŠÙ Ø¨Ù†Ø¬Ø§Ø­.")
+        messages.success(request, "تم حفظ التصنيف بنجاح.")
         return redirect("control_categories_list")
     return render(request, "site/control_category_form.html", {"form": form, "category": category})
 
 @support_required
 def control_category_delete(request, pk):
     get_object_or_404(Category, pk=pk).delete()
-    messages.success(request, "ØªÙ… Ø­Ø°Ù Ø§Ù„ØªØµÙ†ÙŠÙ.")
+    messages.success(request, "تم حذف التصنيف.")
     return redirect("control_categories_list")
 
 @support_required
@@ -3627,7 +3628,7 @@ def control_product_create(request):
         if redirect_target:
             return redirect("control_variant_keys", pk=redirect_target)
         return redirect("control_products_list")
-    return render(request, "site/control_product_builder.html", {"form": form, "variants_json_data": [], "title": "Ø¥Ù†Ø´Ø§Ø¡ Ù…Ù†ØªØ¬ Ø¬Ø¯ÙŠØ¯"})
+    return render(request, "site/control_product_builder.html", {"form": form, "variants_json_data": [], "title": "إنشاء منتج جديد"})
 
 @support_required
 @transaction.atomic
@@ -3698,7 +3699,7 @@ def control_product_edit(request, pk):
             "product": product, 
             "variants_json_data": v_list, 
             "gallery": product.gallery.all().order_by('sort_order'),
-            "title": f"ØªØ¹Ø¯ÙŠÙ„: {product.name}"
+            "title": f"تعديل: {product.name}"
         }
     )
 
@@ -3707,7 +3708,7 @@ def control_product_edit(request, pk):
 def control_product_delete(request, pk):
     product = get_object_or_404(Product, pk=pk)
     product.delete()
-    messages.success(request, "ØªÙ… Ø­Ø°Ù Ø§Ù„Ù…Ù†ØªØ¬ Ø¨Ù†Ø¬Ø§Ø­.")
+    messages.success(request, "تم حذف المنتج بنجاح.")
     if getattr(request, "store", None):
         return redirect("merchant_products")
     return redirect("control_products_list")
@@ -3718,7 +3719,7 @@ def control_gallery_delete_ajax(request, pk):
     item = get_object_or_404(ProductImage, pk=pk)
     store = getattr(request, "store", None)
     if store and item.product.store != store:
-        return JsonResponse({"status": "error", "message": "ØºÙŠØ± Ù…ØµØ±Ø­"}, status=403)
+        return JsonResponse({"status": "error", "message": "غير مصرح"}, status=403)
     item.delete()
     return JsonResponse({"status": "success"})
 
@@ -3728,7 +3729,7 @@ def control_gallery_reorder_ajax(request, pk):
     item = get_object_or_404(ProductImage, pk=pk)
     store = getattr(request, "store", None)
     if store and item.product.store != store:
-        return JsonResponse({"status": "error", "message": "ØºÙŠØ± Ù…ØµØ±Ø­"}, status=403)
+        return JsonResponse({"status": "error", "message": "غير مصرح"}, status=403)
         
     direction = request.POST.get("direction", "down")
     
@@ -3748,7 +3749,7 @@ def control_gallery_reorder_ajax(request, pk):
     try:
         idx = items.index(item)
     except ValueError:
-        return JsonResponse({"status": "error", "message": "Ø§Ù„Ø¹Ù†ØµØ± ØºÙŠØ± Ù…ÙˆØ¬ÙˆØ¯"}, status=400)
+        return JsonResponse({"status": "error", "message": "العنصر غير موجود"}, status=400)
         
     if direction == "up" and idx > 0:
         prev_item = items[idx - 1]
@@ -3803,7 +3804,7 @@ def control_backup(request):
             maintenance.maintenance_message = request.POST.get("maintenance_message", "").strip()
             maintenance.updated_by = request.user
             maintenance.save()
-            messages.success(request, "âœ… ØªÙ… ØªØ­Ø¯ÙŠØ« Ø¥Ø¹Ø¯Ø§Ø¯Ø§Øª Ø§Ù„ØªØ´ØºÙŠÙ„/Ø§Ù„Ø¥ÙŠÙ‚Ø§Ù Ø¨Ù†Ø¬Ø§Ø­.")
+            messages.success(request, "✅ تم تحديث إعدادات التشغيل/الإيقاف بنجاح.")
             return redirect("control_backup")
 
         # â”€â”€ Manual instant backup â†’ send to email â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
@@ -3811,7 +3812,7 @@ def control_backup(request):
             backup_targets = request.POST.getlist("backup_targets")
             email_address = request.POST.get("backup_email", "").strip()
             if not email_address:
-                messages.error(request, "ÙŠØ±Ø¬Ù‰ Ø¥Ø¯Ø®Ø§Ù„ Ø¨Ø±ÙŠØ¯ Ø¥Ù„ÙƒØªØ±ÙˆÙ†ÙŠ ØµØ§Ù„Ø­.")
+                messages.error(request, "يرجى إدخال بريد إلكتروني صالح.")
                 return redirect("control_backup")
 
             try:
@@ -3820,20 +3821,20 @@ def control_backup(request):
 
                 # Model map: key â†’ (app_label, model_name, label)
                 BACKUP_MODELS = {
-                    "users": ("accounts", "User", "Ø§Ù„Ù…Ø³ØªØ®Ø¯Ù…ÙˆÙ†"),
-                    "wallets": ("wallets", "Wallet", "Ø§Ù„Ù…Ø­Ø§ÙØ¸"),
-                    "deposits": ("payments", "DepositRequest", "Ø·Ù„Ø¨Ø§Øª Ø§Ù„Ø¥ÙŠØ¯Ø§Ø¹"),
-                    "withdrawals": ("payments", "WithdrawalRequest", "Ø·Ù„Ø¨Ø§Øª Ø§Ù„Ø³Ø­Ø¨"),
-                    "orders": ("orders", "Order", "Ø§Ù„Ø·Ù„Ø¨Ø§Øª"),
-                    "products": ("catalog", "Product", "Ø§Ù„Ù…Ù†ØªØ¬Ø§Øª"),
-                    "categories": ("catalog", "Category", "Ø§Ù„ØªØµÙ†ÙŠÙØ§Øª"),
-                    "currencies": ("common", "Currency", "Ø§Ù„Ø¹Ù…Ù„Ø§Øª"),
-                    "coupons": ("orders", "Coupon", "Ø§Ù„ÙƒÙˆØ¨ÙˆÙ†Ø§Øª"),
-                    "payment_methods": ("payments", "PaymentMethod", "ÙˆØ³Ø§Ø¦Ù„ Ø§Ù„Ø¯ÙØ¹"),
-                    "transfers": ("wallets", "BalanceTransfer", "Ø§Ù„ØªØ­ÙˆÙŠÙ„Ø§Øª"),
-                    "kyc": ("accounts", "KYCRequest", "Ø·Ù„Ø¨Ø§Øª Ø§Ù„ØªÙˆØ«ÙŠÙ‚"),
-                    "audit_logs": ("common", "SystemAuditLog", "Ø³Ø¬Ù„Ø§Øª Ø§Ù„ØªØ¯Ù‚ÙŠÙ‚"),
-                    "announcements": ("common", "SiteAnnouncement", "Ø§Ù„Ø¥Ø¹Ù„Ø§Ù†Ø§Øª"),
+                    "users": ("accounts", "User", "المستخدمون"),
+                    "wallets": ("wallets", "Wallet", "المحافظ"),
+                    "deposits": ("payments", "DepositRequest", "طلبات الإيداع"),
+                    "withdrawals": ("payments", "WithdrawalRequest", "طلبات السحب"),
+                    "orders": ("orders", "Order", "الطلبات"),
+                    "products": ("catalog", "Product", "المنتجات"),
+                    "categories": ("catalog", "Category", "التصنيفات"),
+                    "currencies": ("common", "Currency", "العملات"),
+                    "coupons": ("orders", "Coupon", "الكوبونات"),
+                    "payment_methods": ("payments", "PaymentMethod", "وسائل الدفع"),
+                    "transfers": ("wallets", "BalanceTransfer", "التحويلات"),
+                    "kyc": ("accounts", "KYCRequest", "طلبات التوثيق"),
+                    "audit_logs": ("common", "SystemAuditLog", "سجلات التدقيق"),
+                    "announcements": ("common", "SiteAnnouncement", "الإعلانات"),
                 }
 
                 with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as zf:
@@ -3868,18 +3869,18 @@ def control_backup(request):
 
                 send_brevo_email(
                     to_email=email_address,
-                    to_name="Ù…Ø¯ÙŠØ± Ø§Ù„Ù…ÙˆÙ‚Ø¹",
+                    to_name="مدير الموقع",
                     subject=f"ğŸ“¦ Ù†Ø³Ø®Ø© Ø§Ø­ØªÙŠØ§Ø·ÙŠØ© â€” {now_str}",
                     html_content=f"""
                     <div dir="rtl" style="font-family: Arial, sans-serif; max-width: 600px; margin: auto;">
                         <h2 style="color: #06b6d4;">ğŸ“¦ Ù†Ø³Ø®Ø© Ø§Ø­ØªÙŠØ§Ø·ÙŠØ© ÙƒØ§Ù…Ù„Ø© Ù„Ù„Ù…ÙˆÙ‚Ø¹</h2>
-                        <p>ØªÙ… Ø¥Ù†Ø´Ø§Ø¡ Ø§Ù„Ù†Ø³Ø®Ø© Ø§Ù„Ø§Ø­ØªÙŠØ§Ø·ÙŠØ© Ø¨Ù†Ø¬Ø§Ø­ ÙÙŠ <strong>{now_str}</strong>.</p>
+                        <p>تم إنشاء النسخة الاحتياطية بنجاح في <strong>{now_str}</strong>.</p>
                         <ul>
-                            <li>Ø¹Ø¯Ø¯ Ø§Ù„Ø³Ø¬Ù„Ø§Øª Ø§Ù„Ù…ÙØµØ¯ÙÙ‘Ø±Ø©: <strong>{total_records:,}</strong></li>
-                            <li>Ø§Ù„Ø¨ÙŠØ§Ù†Ø§Øª Ø§Ù„Ù…ÙØ¶Ù…ÙÙ‘Ù†Ø©: {', '.join([BACKUP_MODELS[t][2] for t in backup_targets if t in BACKUP_MODELS])}</li>
-                            <li>Ø·ÙÙ„ÙØ¨Øª Ø¨ÙˆØ§Ø³Ø·Ø©: <strong>{request.user.email}</strong></li>
+                            <li>عدد السجلات المُصدَّرة: <strong>{total_records:,}</strong></li>
+                            <li>البيانات المُضمَّنة: {', '.join([BACKUP_MODELS[t][2] for t in backup_targets if t in BACKUP_MODELS])}</li>
+                            <li>طُلِبت بواسطة: <strong>{request.user.email}</strong></li>
                         </ul>
-                        <p style="color: #64748b; font-size: 12px;">Ø§Ù„Ù…Ù„Ù Ø§Ù„Ù…Ø±ÙÙ‚ Ø¨ØµÙŠØºØ© ZIP ÙŠØ­ØªÙˆÙŠ Ø¹Ù„Ù‰ Ø§Ù„Ø¨ÙŠØ§Ù†Ø§Øª Ø¨ØªÙ†Ø³ÙŠÙ‚ JSON.</p>
+                        <p style="color: #64748b; font-size: 12px;">الملف المرفق بصيغة ZIP يحتوي على البيانات بتنسيق JSON.</p>
                     </div>
                     """,
                     attachments=[{
@@ -3889,9 +3890,9 @@ def control_backup(request):
                     }]
                 )
 
-                messages.success(request, f"âœ… ØªÙ… Ø¥Ø±Ø³Ø§Ù„ Ø§Ù„Ù†Ø³Ø®Ø© Ø§Ù„Ø§Ø­ØªÙŠØ§Ø·ÙŠØ© ({total_records:,} Ø³Ø¬Ù„) Ø¥Ù„Ù‰ {email_address} Ø¨Ù†Ø¬Ø§Ø­.")
+                messages.success(request, f"✅ تم إرسال النسخة الاحتياطية ({total_records:,} سجل) إلى {email_address} بنجاح.")
             except Exception as e:
-                messages.error(request, f"âŒ Ø­Ø¯Ø« Ø®Ø·Ø£ Ø£Ø«Ù†Ø§Ø¡ Ø¥Ù†Ø´Ø§Ø¡ Ø§Ù„Ù†Ø³Ø®Ø© Ø§Ù„Ø§Ø­ØªÙŠØ§Ø·ÙŠØ©: {str(e)}")
+                messages.error(request, f"❌ حدث خطأ أثناء إنشاء النسخة الاحتياطية: {str(e)}")
 
             return redirect("control_backup")
 
@@ -3902,20 +3903,20 @@ def control_backup(request):
                 zip_buffer = io.BytesIO()
                 total_records = 0
                 BACKUP_MODELS = {
-                    "users": ("accounts", "User", "Ø§Ù„Ù…Ø³ØªØ®Ø¯Ù…ÙˆÙ†"),
-                    "wallets": ("wallets", "Wallet", "Ø§Ù„Ù…Ø­Ø§ÙØ¸"),
-                    "deposits": ("payments", "DepositRequest", "Ø·Ù„Ø¨Ø§Øª Ø§Ù„Ø¥ÙŠØ¯Ø§Ø¹"),
-                    "withdrawals": ("payments", "WithdrawalRequest", "Ø·Ù„Ø¨Ø§Øª Ø§Ù„Ø³Ø­Ø¨"),
-                    "orders": ("orders", "Order", "Ø§Ù„Ø·Ù„Ø¨Ø§Øª"),
-                    "products": ("catalog", "Product", "Ø§Ù„Ù…Ù†ØªØ¬Ø§Øª"),
-                    "categories": ("catalog", "Category", "Ø§Ù„ØªØµÙ†ÙŠÙØ§Øª"),
-                    "currencies": ("common", "Currency", "Ø§Ù„Ø¹Ù…Ù„Ø§Øª"),
-                    "coupons": ("orders", "Coupon", "Ø§Ù„ÙƒÙˆØ¨ÙˆÙ†Ø§Øª"),
-                    "payment_methods": ("payments", "PaymentMethod", "ÙˆØ³Ø§Ø¦Ù„ Ø§Ù„Ø¯ÙØ¹"),
-                    "transfers": ("wallets", "BalanceTransfer", "Ø§Ù„ØªØ­ÙˆÙŠÙ„Ø§Øª"),
-                    "kyc": ("accounts", "KYCRequest", "Ø·Ù„Ø¨Ø§Øª Ø§Ù„ØªÙˆØ«ÙŠÙ‚"),
-                    "audit_logs": ("common", "SystemAuditLog", "Ø³Ø¬Ù„Ø§Øª Ø§Ù„ØªØ¯Ù‚ÙŠÙ‚"),
-                    "announcements": ("common", "SiteAnnouncement", "Ø§Ù„Ø¥Ø¹Ù„Ø§Ù†Ø§Øª"),
+                    "users": ("accounts", "User", "المستخدمون"),
+                    "wallets": ("wallets", "Wallet", "المحافظ"),
+                    "deposits": ("payments", "DepositRequest", "طلبات الإيداع"),
+                    "withdrawals": ("payments", "WithdrawalRequest", "طلبات السحب"),
+                    "orders": ("orders", "Order", "الطلبات"),
+                    "products": ("catalog", "Product", "المنتجات"),
+                    "categories": ("catalog", "Category", "التصنيفات"),
+                    "currencies": ("common", "Currency", "العملات"),
+                    "coupons": ("orders", "Coupon", "الكوبونات"),
+                    "payment_methods": ("payments", "PaymentMethod", "وسائل الدفع"),
+                    "transfers": ("wallets", "BalanceTransfer", "التحويلات"),
+                    "kyc": ("accounts", "KYCRequest", "طلبات التوثيق"),
+                    "audit_logs": ("common", "SystemAuditLog", "سجلات التدقيق"),
+                    "announcements": ("common", "SiteAnnouncement", "الإعلانات"),
                 }
 
                 with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as zf:
@@ -3947,14 +3948,14 @@ def control_backup(request):
                 response['Content-Disposition'] = f'attachment; filename="backup_{now_str}.zip"'
                 return response
             except Exception as e:
-                messages.error(request, f"âŒ ÙØ´Ù„ ØªØ­Ù…ÙŠÙ„ Ø§Ù„Ù†Ø³Ø®Ø© Ø§Ù„Ø§Ø­ØªÙŠØ§Ø·ÙŠØ©: {str(e)}")
+                messages.error(request, f"❌ فشل تحميل النسخة الاحتياطية: {str(e)}")
                 return redirect("control_backup")
 
         # â”€â”€ Restore Backup from Uploaded File â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         if action == "restore_backup":
             uploaded_file = request.FILES.get("backup_file")
             if not uploaded_file:
-                messages.error(request, "ÙŠØ±Ø¬Ù‰ Ø§Ø®ØªÙŠØ§Ø± Ù…Ù„Ù Ù†Ø³Ø®Ø© Ø§Ø­ØªÙŠØ§Ø·ÙŠØ© (ZIP Ø£Ùˆ JSON).")
+                messages.error(request, "يرجى اختيار ملف نسخة احتياطية (ZIP أو JSON).")
                 return redirect("control_backup")
 
             restored_count = 0
@@ -3972,7 +3973,7 @@ def control_backup(request):
                     content = uploaded_file.read().decode("utf-8")
                     json_contents.append((uploaded_file.name, content))
                 else:
-                    messages.error(request, "ØµÙŠØºØ© Ø§Ù„Ù…Ù„Ù ØºÙŠØ± Ù…Ø¯Ø¹ÙˆÙ…Ø©. ÙŠØ±Ø¬Ù‰ Ø±ÙØ¹ Ù…Ù„Ù ZIP Ø£Ùˆ JSON.")
+                    messages.error(request, "صيغة الملف غير مدعومة. يرجى رفع ملف ZIP أو JSON.")
                     return redirect("control_backup")
 
                 from django.db import transaction
@@ -3983,9 +3984,9 @@ def control_backup(request):
                             obj.save()
                             restored_count += 1
 
-                messages.success(request, f"âœ… ØªÙ…Øª Ø§Ø³ØªØ¹Ø§Ø¯Ø© Ø§Ù„Ø¨ÙŠØ§Ù†Ø§Øª Ø¨Ù†Ø¬Ø§Ø­! ØªÙ… Ø§Ø³ØªØ¹Ø§Ø¯Ø© ÙˆØªØ­Ø¯ÙŠØ« {restored_count:,} Ø³Ø¬Ù„ ÙÙŠ Ù‚Ø§Ø¹Ø¯Ø© Ø§Ù„Ø¨ÙŠØ§Ù†Ø§Øª.")
+                messages.success(request, f"✅ تمت استعادة البيانات بنجاح! تم استعادة وتحديث {restored_count:,} سجل في قاعدة البيانات.")
             except Exception as e:
-                messages.error(request, f"âŒ ÙØ´Ù„Øª Ø¹Ù…Ù„ÙŠØ© Ø§Ù„Ø§Ø³ØªØ¹Ø§Ø¯Ø©: {str(e)}")
+                messages.error(request, f"❌ فشلت عملية الاستعادة: {str(e)}")
 
             return redirect("control_backup")
 
@@ -4002,7 +4003,7 @@ def control_backup(request):
             cache.set("backup_schedule_enabled", schedule_enabled, timeout=None)
             cache.set("backup_schedule_frequency", schedule_frequency, timeout=None)
 
-            messages.success(request, f"âœ… ØªÙ… Ø­ÙØ¸ Ø¥Ø¹Ø¯Ø§Ø¯Ø§Øª Ø§Ù„Ø¬Ø¯ÙˆÙ„Ø© Ø§Ù„ØªÙ„Ù‚Ø§Ø¦ÙŠØ© Ø¨Ù†Ø¬Ø§Ø­." if schedule_enabled else "ØªÙ… Ø¥ÙŠÙ‚Ø§Ù Ø§Ù„Ø¬Ø¯ÙˆÙ„Ø© Ø§Ù„ØªÙ„Ù‚Ø§Ø¦ÙŠØ©.")
+            messages.success(request, f"✅ تم حفظ إعدادات الجدولة التلقائية بنجاح." if schedule_enabled else "تم إيقاف الجدولة التلقائية.")
             return redirect("control_backup")
 
     # Load schedule settings from cache
@@ -4019,20 +4020,20 @@ def control_backup(request):
         "schedule_enabled": schedule_enabled,
         "schedule_frequency": schedule_frequency,
         "backup_models": [
-            ("users", "Ø§Ù„Ù…Ø³ØªØ®Ø¯Ù…ÙˆÙ†"),
-            ("wallets", "Ø§Ù„Ù…Ø­Ø§ÙØ¸"),
-            ("deposits", "Ø·Ù„Ø¨Ø§Øª Ø§Ù„Ø¥ÙŠØ¯Ø§Ø¹"),
-            ("withdrawals", "Ø·Ù„Ø¨Ø§Øª Ø§Ù„Ø³Ø­Ø¨"),
-            ("transfers", "Ø§Ù„ØªØ­ÙˆÙŠÙ„Ø§Øª"),
-            ("orders", "Ø§Ù„Ø·Ù„Ø¨Ø§Øª"),
-            ("products", "Ø§Ù„Ù…Ù†ØªØ¬Ø§Øª"),
-            ("categories", "Ø§Ù„ØªØµÙ†ÙŠÙØ§Øª"),
-            ("currencies", "Ø§Ù„Ø¹Ù…Ù„Ø§Øª"),
-            ("coupons", "Ø§Ù„ÙƒÙˆØ¨ÙˆÙ†Ø§Øª"),
-            ("payment_methods", "ÙˆØ³Ø§Ø¦Ù„ Ø§Ù„Ø¯ÙØ¹"),
-            ("kyc", "Ø·Ù„Ø¨Ø§Øª Ø§Ù„ØªÙˆØ«ÙŠÙ‚ KYC"),
-            ("audit_logs", "Ø³Ø¬Ù„Ø§Øª Ø§Ù„ØªØ¯Ù‚ÙŠÙ‚"),
-            ("announcements", "Ø§Ù„Ø¥Ø¹Ù„Ø§Ù†Ø§Øª"),
+            ("users", "المستخدمون"),
+            ("wallets", "المحافظ"),
+            ("deposits", "طلبات الإيداع"),
+            ("withdrawals", "طلبات السحب"),
+            ("transfers", "التحويلات"),
+            ("orders", "الطلبات"),
+            ("products", "المنتجات"),
+            ("categories", "التصنيفات"),
+            ("currencies", "العملات"),
+            ("coupons", "الكوبونات"),
+            ("payment_methods", "وسائل الدفع"),
+            ("kyc", "طلبات التوثيق KYC"),
+            ("audit_logs", "سجلات التدقيق"),
+            ("announcements", "الإعلانات"),
         ],
     }
 
@@ -4052,19 +4053,19 @@ def control_variant_keys(request, pk):
                 for code in lines:
                     ProductKey.objects.create(variant=variant, key_code=code)
                     added_count += 1
-                messages.success(request, f"ØªÙ… Ø¥Ø¶Ø§ÙØ© {added_count} Ù…ÙØªØ§Ø­/ÙƒÙˆØ¯ Ø¨Ù†Ø¬Ø§Ø­.")
+                messages.success(request, f"تم إضافة {added_count} مفتاح/كود بنجاح.")
             else:
-                messages.error(request, "ÙŠØ±Ø¬Ù‰ ÙƒØªØ§Ø¨Ø© ÙƒÙˆØ¯ ÙˆØ§Ø­Ø¯ Ø¹Ù„Ù‰ Ø§Ù„Ø£Ù‚Ù„.")
+                messages.error(request, "يرجى كتابة كود واحد على الأقل.")
                 
         elif action == "delete_key":
             key_id = request.POST.get("key_id")
             key_obj = get_object_or_404(ProductKey, pk=key_id, variant=variant)
             key_obj.delete()
-            messages.success(request, "ØªÙ… Ø­Ø°Ù Ø§Ù„Ù…ÙØªØ§Ø­ Ø¨Ù†Ø¬Ø§Ø­.")
+            messages.success(request, "تم حذف المفتاح بنجاح.")
             
         elif action == "delete_all_unused":
             deleted_count = ProductKey.objects.filter(variant=variant, is_used=False).delete()[0]
-            messages.success(request, f"ØªÙ… Ø­Ø°Ù {deleted_count} Ù…ÙØªØ§Ø­ ØºÙŠØ± Ù…Ø³ØªØ®Ø¯Ù… Ø¨Ù†Ø¬Ø§Ø­.")
+            messages.success(request, f"تم حذف {deleted_count} مفتاح غير مستخدم بنجاح.")
             
         return redirect("control_variant_keys", pk=variant.id)
         
@@ -4137,7 +4138,7 @@ def control_social_media(request):
             except (ValueError, ValidationError):
                 pass
         f = SocialMediaLinkForm(request.POST, request.FILES, instance=instance)
-        if f.is_valid(): f.save(); messages.success(request, "ØªÙ… Ø§Ù„Ø­ÙØ¸."); return redirect("control_social_media")
+        if f.is_valid(): f.save(); messages.success(request, "تم الحفظ."); return redirect("control_social_media")
     return render(request, "site/control_social_media.html", {"links": SocialMediaLink.objects.all(), "form": SocialMediaLinkForm()})
 
 @admin_required
@@ -4227,7 +4228,7 @@ def control_debts(request):
         if action == "add_debt":
             from apps.wallets.services import add_debt
             add_debt(target.wallet.id, amt, f"admin_debt_{timezone.now().timestamp()}", reason, request.user)
-            messages.success(request, f"ØªÙ… Ø¥Ø¶Ø§ÙØ© Ø¯ÙŠÙ† Ø¨Ù‚ÙŠÙ…Ø© {amt} Ù„Ù„Ù…Ø³ØªØ®Ø¯Ù… {target.email}")
+            messages.success(request, f"تم إضافة دين بقيمة {amt} للمستخدم {target.email}")
             
         elif action == "pay_debt":
             from apps.wallets.services import pay_debt
@@ -4246,14 +4247,14 @@ def control_debts(request):
                     deduct_from_balance=deduct,
                     source="admin_cash" if pay_mode == "cash" else "admin"
                 )
-                messages.success(request, f"ØªÙ… ØªØ³Ø¬ÙŠÙ„ Ø³Ø¯Ø§Ø¯ Ø¨Ù‚ÙŠÙ…Ø© {amt} Ù„Ù„Ù…Ø³ØªØ®Ø¯Ù… {target.email} ({'Ù†Ù‚Ø¯Ø§Ù‹' if pay_mode == 'cash' else 'Ù…Ù† Ø§Ù„Ø±ØµÙŠØ¯'})")
+                messages.success(request, f"تم تسجيل سداد بقيمة {amt} للمستخدم {target.email} ({'نقداً' if pay_mode == 'cash' else 'من الرصيد'})")
             except Exception as e:
                 messages.error(request, str(e))
                 
         elif action == "toggle_debt_withdrawable":
             target.wallet.debt_is_withdrawable = not target.wallet.debt_is_withdrawable
             target.wallet.save(update_fields=["debt_is_withdrawable"])
-            messages.success(request, f"ØªÙ… {'ØªÙØ¹ÙŠÙ„' if target.wallet.debt_is_withdrawable else 'ØªØ¹Ø·ÙŠÙ„'} Ø®ÙŠØ§Ø± Ø³Ø­Ø¨ Ø§Ù„Ø¯ÙŠÙ† Ù„Ù„Ù…Ø³ØªØ®Ø¯Ù… {target.email}")
+            messages.success(request, f"تم {'تفعيل' if target.wallet.debt_is_withdrawable else 'تعطيل'} خيار سحب الدين للمستخدم {target.email}")
                 
         return redirect(f"{request.path}?q={q}")
 
@@ -4336,14 +4337,14 @@ def control_send_notification(request):
                 if channel in ['all', 'email']:
                     send_brevo_email(user.email, user.get_full_name() or user.email, title, body)
             
-            messages.success(request, f"ØªÙ… Ø§Ù„Ø¥Ø±Ø³Ø§Ù„ Ù„Ù€ {users.count()} Ù…Ø³ØªØ®Ø¯Ù… Ø¹Ø¨Ø± Ø§Ù„Ù‚Ù†ÙˆØ§Øª Ø§Ù„Ù…Ø­Ø¯Ø¯Ø©.")
+            messages.success(request, f"تم الإرسال لـ {users.count()} مستخدم عبر القنوات المحددة.")
             return redirect("control_send_notification")
     return render(request, "site/control_notification_form.html", {"form": form})
 
 @admin_required
 def control_support_settings(request):
     obj, _ = SupportSettings.objects.get_or_create(id=1); form = SupportSettingsForm(request.POST or None, instance=obj)
-    if request.method == "POST" and form.is_valid(): form.save(); messages.success(request, "ØªÙ… Ø§Ù„Ø­ÙØ¸."); return redirect("control_support_settings")
+    if request.method == "POST" and form.is_valid(): form.save(); messages.success(request, "تم الحفظ."); return redirect("control_support_settings")
     return render(request, "site/control_support_settings.html", {"form": form})
 
 @support_required
@@ -4380,10 +4381,10 @@ def control_support_chat_open(request):
             with transaction.atomic():
                 room = ChatRoom.objects.create(user=user, assigned_agent=request.user, subject=form.cleaned_data["subject"], status=ChatRoom.Status.ASSIGNED)
                 ChatMessage.objects.create(room=room, sender=request.user, text=form.cleaned_data["message"], is_staff_reply=True); room.unread_user_count = 1; room.save()
-                notify_user(user, title="Ø±Ø³Ø§Ù„Ø© Ù…Ù† Ø§Ù„Ø¯Ø¹Ù…", body=room.subject, action_url=reverse("dashboard"), category='support')
-            messages.success(request, f"ØªÙ… ÙØªØ­ Ø§Ù„ØªØ°ÙƒØ±Ø© Ø¨Ù†Ø¬Ø§Ø­ Ù…Ø¹ {user.get_full_name() or user.email}.")
+                notify_user(user, title="رسالة من الدعم", body=room.subject, action_url=reverse("dashboard"), category='support')
+            messages.success(request, f"تم فتح التذكرة بنجاح مع {user.get_full_name() or user.email}.")
             return redirect("control_dashboard")
-        messages.error(request, "Ø§Ù„Ù…Ø³ØªØ®Ø¯Ù… ØºÙŠØ± Ù…ÙˆØ¬ÙˆØ¯.")
+        messages.error(request, "المستخدم غير موجود.")
     return render(request, "site/control_support_chat_open.html", {"form": form})
 
 @admin_required
@@ -4410,7 +4411,7 @@ def export_coupon_usage_csv(request):
     response['Content-Disposition'] = f'attachment; filename="coupon_usage_{timezone.now().strftime("%Y%m%d")}.csv"'
     
     writer = csv.writer(response)
-    writer.writerow(['Ø§Ù„ØªØ§Ø±ÙŠØ®', 'Ø§Ù„Ø¹Ù…ÙŠÙ„', 'Ø§Ù„ÙƒÙˆØ¨ÙˆÙ†', 'Ø§Ù„Ù…Ù†ØªØ¬', 'Ø§Ù„Ø¨Ø§Ù‚Ø©', 'Ø§Ù„Ù…Ø¨Ù„Øº Ø§Ù„Ø£ØµÙ„ÙŠ', 'Ø§Ù„Ù…Ø¨Ù„Øº Ø§Ù„Ù†Ù‡Ø§Ø¦ÙŠ', 'Ø±Ù‚Ù… Ø§Ù„Ø·Ù„Ø¨'])
+    writer.writerow(['التاريخ', 'العميل', 'الكوبون', 'المنتج', 'الباقة', 'المبلغ الأصلي', 'المبلغ النهائي', 'رقم الطلب'])
     
     orders = Order.objects.filter(coupon__isnull=False).select_related('customer', 'coupon').prefetch_related('items__variant__product')
     
@@ -4607,117 +4608,117 @@ def control_db_maintenance(request):
                                 if key == "social_tokens":
                                     from allauth.socialaccount.models import SocialToken
                                     c = SocialToken.objects.all().delete()[0]
-                                    deleted_counts["Ø£ÙƒÙˆØ§Ø¯ Ø§Ù„ØªØ·Ø¨ÙŠÙ‚Ø§Øª Ø§Ù„Ø§Ø¬ØªÙ…Ø§Ø¹ÙŠØ©"] = c
+                                    deleted_counts["أكواد التطبيقات الاجتماعية"] = c
                                 elif key == "social_accounts":
                                     from allauth.socialaccount.models import SocialAccount
                                     c = SocialAccount.objects.all().delete()[0]
-                                    deleted_counts["Ø­Ø³Ø§Ø¨Ø§Øª ØªÙˆØ§ØµÙ„ Ø§Ø¬ØªÙ…Ø§Ø¹ÙŠ"] = c
+                                    deleted_counts["حسابات تواصل اجتماعي"] = c
                                 elif key == "social_apps":
                                     from allauth.socialaccount.models import SocialApp
                                     c = SocialApp.objects.all().delete()[0]
-                                    deleted_counts["ØªØ·Ø¨ÙŠÙ‚Ø§Øª Ø§Ø¬ØªÙ…Ø§Ø¹ÙŠØ©"] = c
+                                    deleted_counts["تطبيقات اجتماعية"] = c
                                 elif key == "email_addresses":
                                     from allauth.account.models import EmailAddress
                                     c = EmailAddress.objects.all().delete()[0]
-                                    deleted_counts["Ø¹Ù†Ø§ÙˆÙŠÙ† Ø§Ù„Ø¨Ø±ÙŠØ¯ Ø§Ù„Ø¥Ù„ÙƒØªØ±ÙˆÙ†ÙŠ"] = c
+                                    deleted_counts["عناوين البريد الإلكتروني"] = c
                                 elif key == "blacklisted_tokens":
                                     if BlacklistedToken:
                                         c = BlacklistedToken.objects.all().delete()[0]
-                                        deleted_counts["Ø±Ù…ÙˆØ² Ù…Ù…ÙŠØ²Ø© Ù…Ø­Ø¸ÙˆØ±Ø©"] = c
+                                        deleted_counts["رموز مميزة محظورة"] = c
                                 elif key == "outstanding_tokens":
                                     if OutstandingToken:
                                         c = OutstandingToken.objects.all().delete()[0]
-                                        deleted_counts["Ø±Ù…ÙˆØ² Ù…Ù…ÙŠØ²Ø© Ù†Ø´Ø·Ø©"] = c
+                                        deleted_counts["رموز مميزة نشطة"] = c
                                 elif key == "coupons":
                                     from apps.orders.models import Coupon
                                     c = Coupon.objects.all().delete()[0]
-                                    deleted_counts["Ø§Ù„ÙƒÙˆØ¨ÙˆÙ†Ø§Øª"] = c
+                                    deleted_counts["الكوبونات"] = c
                                 elif key == "invoices":
                                     from apps.orders.models import Invoice
                                     c = Invoice.objects.all().delete()[0]
-                                    deleted_counts["Ø§Ù„ÙÙˆØ§ØªÙŠØ±"] = c
+                                    deleted_counts["الفواتير"] = c
                                 elif key == "orders":
                                     from apps.orders.models import Order, OrderItem, OrderLog
                                     c1 = OrderItem.objects.all().delete()[0]
                                     c2 = OrderLog.objects.all().delete()[0]
                                     c3 = Order.objects.all().delete()[0]
-                                    deleted_counts["Ø§Ù„Ø·Ù„Ø¨Ø§Øª ÙˆØ§Ù„Ù…Ø¨ÙŠØ¹Ø§Øª"] = c1 + c2 + c3
+                                    deleted_counts["الطلبات والمبيعات"] = c1 + c2 + c3
                                 elif key == "deposits":
                                     from apps.payments.models import DepositRequest
                                     c = DepositRequest.objects.all().delete()[0]
-                                    deleted_counts["Ø·Ù„Ø¨Ø§Øª Ø§Ù„Ø¥ÙŠØ¯Ø§Ø¹"] = c
+                                    deleted_counts["طلبات الإيداع"] = c
                                 elif key == "withdrawals":
                                     from apps.payments.models import WithdrawalRequest
                                     c = WithdrawalRequest.objects.all().delete()[0]
-                                    deleted_counts["Ø·Ù„Ø¨Ø§Øª Ø§Ù„Ø³Ø­Ø¨"] = c
+                                    deleted_counts["طلبات السحب"] = c
                                 elif key == "ledger_entries":
                                     from apps.wallets.models import LedgerEntry
                                     c = LedgerEntry.objects.all().delete()[0]
-                                    deleted_counts["Ø³Ø¬Ù„Ø§Øª Ø­Ø±ÙƒØ© Ø§Ù„Ù…Ø­ÙØ¸Ø©"] = c
+                                    deleted_counts["سجلات حركة المحفظة"] = c
                                 elif key == "wallet_transactions":
                                     from apps.wallets.models import WalletTransaction
                                     c = WalletTransaction.objects.all().delete()[0]
-                                    deleted_counts["Ø§Ù„Ø¹Ù…Ù„ÙŠØ§Øª Ø§Ù„Ù…Ø§Ù„ÙŠØ© Ù„Ù„Ù…Ø­Ø§ÙØ¸"] = c
+                                    deleted_counts["العمليات المالية للمحافظ"] = c
                                 elif key == "balance_transfers":
                                     from apps.wallets.models import BalanceTransfer
                                     c = BalanceTransfer.objects.all().delete()[0]
-                                    deleted_counts["ØªØ­ÙˆÙŠÙ„Ø§Øª Ø§Ù„Ø£Ø±ØµØ¯Ø©"] = c
+                                    deleted_counts["تحويلات الأرصدة"] = c
                                 elif key == "recharge_cards":
                                     from apps.wallets.models import RechargeCard
                                     c = RechargeCard.objects.all().delete()[0]
-                                    deleted_counts["Ø¨Ø·Ø§Ù‚Ø§Øª Ø§Ù„Ø´Ø­Ù†"] = c
+                                    deleted_counts["بطاقات الشحن"] = c
                                 elif key == "wallets":
                                     from apps.wallets.models import Wallet
                                     c = Wallet.objects.all().delete()[0]
-                                    deleted_counts["Ø§Ù„Ù…Ø­Ø§ÙØ¸"] = c
+                                    deleted_counts["المحافظ"] = c
                                 elif key == "store_employees":
                                     from apps.stores.models import StoreEmployee
                                     c = StoreEmployee.objects.all().delete()[0]
-                                    deleted_counts["Ù…ÙˆØ¸ÙÙˆ Ø§Ù„Ù…ØªØ§Ø¬Ø±"] = c
+                                    deleted_counts["موظفو المتاجر"] = c
                                 elif key == "store_pages":
                                     from apps.stores.models import StorePage
                                     c = StorePage.objects.all().delete()[0]
-                                    deleted_counts["ØµÙØ­Ø§Øª Ø§Ù„Ù…ØªØ§Ø¬Ø±"] = c
+                                    deleted_counts["صفحات المتاجر"] = c
                                 elif key == "store_settings":
                                     from apps.stores.models import StoreSetting
                                     c = StoreSetting.objects.all().delete()[0]
-                                    deleted_counts["Ø¥Ø¹Ø¯Ø§Ø¯Ø§Øª Ø§Ù„Ù…ØªØ§Ø¬Ø±"] = c
+                                    deleted_counts["إعدادات المتاجر"] = c
                                 elif key == "subscription_invoices":
                                     from apps.stores.models import SubscriptionInvoice
                                     c = SubscriptionInvoice.objects.all().delete()[0]
-                                    deleted_counts["ÙÙˆØ§ØªÙŠØ± Ø§Ø´ØªØ±Ø§ÙƒØ§Øª Ø§Ù„Ù…ØªØ§Ø¬Ø±"] = c
+                                    deleted_counts["فواتير اشتراكات المتاجر"] = c
                                 elif key == "store_templates":
                                     from apps.stores.models import StoreTemplate
                                     c = StoreTemplate.objects.all().delete()[0]
-                                    deleted_counts["Ù‚ÙˆØ§Ù„Ø¨ Ø§Ù„Ù…ØªØ§Ø¬Ø±"] = c
+                                    deleted_counts["قوالب المتاجر"] = c
                                 elif key == "saas_audit_logs":
                                     from apps.stores.models import SaaSAuditLog
                                     c = SaaSAuditLog.objects.all().delete()[0]
-                                    deleted_counts["Ø³Ø¬Ù„Ø§Øª ØªØ¯Ù‚ÙŠÙ‚ SaaS"] = c
+                                    deleted_counts["سجلات تدقيق SaaS"] = c
                                 elif key == "stores":
                                     from apps.stores.models import Store
                                     User.objects.all().update(store=None)
                                     c = Store.objects.all().delete()[0]
-                                    deleted_counts["Ø§Ù„Ù…ØªØ§Ø¬Ø±"] = c
+                                    deleted_counts["المتاجر"] = c
                                 elif key == "subscription_plans":
                                     from apps.stores.models import SubscriptionPlan
                                     c = SubscriptionPlan.objects.all().delete()[0]
-                                    deleted_counts["Ø®Ø·Ø· Ø§Ø´ØªØ±Ø§ÙƒØ§Øª SaaS"] = c
+                                    deleted_counts["خطط اشتراكات SaaS"] = c
                                 elif key == "users":
                                     c = User.objects.exclude(is_superuser=True).exclude(is_staff=True).exclude(role__in=[User.Role.SUPER_ADMIN, User.Role.ADMIN]).exclude(id=request.user.id).delete()[0]
-                                    deleted_counts["Ø§Ù„Ù…Ø³ØªØ®Ø¯Ù…ÙŠÙ† (ØºÙŠØ± Ø§Ù„Ù…Ø¯Ø±Ø§Ø¡)"] = c
+                                    deleted_counts["المستخدمين (غير المدراء)"] = c
                                 elif key == "saas_admin_roles":
                                     from apps.stores.models import SaaSAdminRole
                                     c = SaaSAdminRole.objects.all().delete()[0]
-                                    deleted_counts["Ø£Ø¯ÙˆØ§Ø± SaaS Ø§Ù„Ø¥Ø¯Ø§Ø±ÙŠØ©"] = c
+                                    deleted_counts["أدوار SaaS الإدارية"] = c
                                 elif key == "saas_global_settings":
                                     from apps.stores.models import SaaSGlobalSetting
                                     c = SaaSGlobalSetting.objects.all().delete()[0]
-                                    deleted_counts["Ø¥Ø¹Ø¯Ø§Ø¯Ø§Øª Ø¹Ø§Ù…Ø© SaaS"] = c
+                                    deleted_counts["إعدادات عامة SaaS"] = c
                                 elif key == "payment_methods":
                                     from apps.payments.models import PaymentMethod
                                     c = PaymentMethod.objects.all().delete()[0]
-                                    deleted_counts["ÙˆØ³Ø§Ø¦Ù„ Ø§Ù„Ø¯ÙØ¹"] = c
+                                    deleted_counts["وسائل الدفع"] = c
                                 elif key == "payment_methods_reset":
                                     from apps.payments.models import PaymentMethod
                                     PaymentMethod.objects.all().update(
@@ -4730,85 +4731,85 @@ def control_db_maintenance(request):
                                         daily_withdrawal_usage=Decimal("0.00"),
                                         last_limit_reset=timezone.now()
                                     )
-                                    deleted_counts["Ø­Ø¯ÙˆØ¯ Ø§Ù„Ø§Ø³ØªØ®Ø¯Ø§Ù… Ø§Ù„ÙŠÙˆÙ…ÙŠØ©"] = "ØªÙ… Ø§Ù„ØªØµÙÙŠØ±"
+                                    deleted_counts["حدود الاستخدام اليومية"] = "تم التصفير"
                                 elif key == "product_variants":
                                     from apps.catalog.models import ProductVariant
                                     c = ProductVariant.objects.all().delete()[0]
-                                    deleted_counts["Ø¨Ø§Ù‚Ø§Øª Ø§Ù„Ù…Ù†ØªØ¬Ø§Øª"] = c
+                                    deleted_counts["باقات المنتجات"] = c
                                 elif key == "products":
                                     from apps.catalog.models import Product
                                     c = Product.objects.all().delete()[0]
-                                    deleted_counts["Ø§Ù„Ù…Ù†ØªØ¬Ø§Øª"] = c
+                                    deleted_counts["المنتجات"] = c
                                 elif key == "categories":
                                     from apps.catalog.models import Category
                                     c = Category.objects.all().delete()[0]
-                                    deleted_counts["Ø§Ù„Ø£Ù‚Ø³Ø§Ù… ÙˆØ§Ù„ØªØµÙ†ÙŠÙØ§Øª"] = c
+                                    deleted_counts["الأقسام والتصنيفات"] = c
                                 elif key == "services":
                                     from apps.services.models import Service
                                     c = Service.objects.all().delete()[0]
-                                    deleted_counts["Ø§Ù„Ø®Ø¯Ù…Ø§Øª"] = c
+                                    deleted_counts["الخدمات"] = c
                                 elif key == "chat_rooms":
                                     from apps.support.models import ChatRoom
                                     c = ChatRoom.objects.all().delete()[0]
-                                    deleted_counts["ØºØ±Ù Ù…Ø­Ø§Ø¯Ø«Ø§Øª Ø§Ù„Ø¯Ø¹Ù…"] = c
+                                    deleted_counts["غرف محادثات الدعم"] = c
                                 elif key == "chat_canned_replies":
                                     from apps.support.models import ChatCannedReply
                                     c = ChatCannedReply.objects.all().delete()[0]
-                                    deleted_counts["Ø§Ù„Ø±Ø¯ÙˆØ¯ Ø§Ù„Ø¬Ø§Ù‡Ø²Ø©"] = c
+                                    deleted_counts["الردود الجاهزة"] = c
                                 elif key == "support_settings":
                                     from apps.support.models import SupportSettings
                                     c = SupportSettings.objects.all().delete()[0]
-                                    deleted_counts["Ø¥Ø¹Ø¯Ø§Ø¯Ø§Øª Ø§Ù„Ø¯Ø¹Ù… Ø§Ù„ÙÙ†ÙŠ"] = c
+                                    deleted_counts["إعدادات الدعم الفني"] = c
                                 elif key == "platform_stats":
                                     from apps.common.models import PlatformStatistic
                                     c = PlatformStatistic.objects.all().delete()[0]
-                                    deleted_counts["Ø¥Ø­ØµØ§Ø¦ÙŠØ§Øª Ø§Ù„Ù…Ù†ØµØ©"] = c
+                                    deleted_counts["إحصائيات المنصة"] = c
                                 elif key == "currencies":
                                     from apps.common.models import Currency
                                     c = Currency.objects.all().delete()[0]
-                                    deleted_counts["Ø§Ù„Ø¹Ù…Ù„Ø§Øª"] = c
+                                    deleted_counts["العملات"] = c
                                 elif key == "social_links":
                                     from apps.common.models import SocialMediaLink
                                     c = SocialMediaLink.objects.all().delete()[0]
-                                    deleted_counts["Ø±ÙˆØ§Ø¨Ø· Ø§Ù„ØªÙˆØ§ØµÙ„ Ø§Ù„Ø§Ø¬ØªÙ…Ø§Ø¹ÙŠ"] = c
+                                    deleted_counts["روابط التواصل الاجتماعي"] = c
                                 elif key == "system_audit_logs":
                                     from apps.common.models import SystemAuditLog
                                     c = SystemAuditLog.objects.all().delete()[0]
-                                    deleted_counts["Ø³Ø¬Ù„Ø§Øª ØªØ¯Ù‚ÙŠÙ‚ Ø§Ù„Ù†Ø¸Ø§Ù…"] = c
+                                    deleted_counts["سجلات تدقيق النظام"] = c
                                 elif key == "testimonials":
                                     from apps.common.models import Testimonial
                                     c = Testimonial.objects.all().delete()[0]
-                                    deleted_counts["Ø´Ù‡Ø§Ø¯Ø§Øª Ø§Ù„Ø¹Ù…Ù„Ø§Ø¡"] = c
+                                    deleted_counts["شهادات العملاء"] = c
                                 elif key == "site_announcements":
                                     from apps.common.models import SiteAnnouncement
                                     c = SiteAnnouncement.objects.all().delete()[0]
-                                    deleted_counts["Ù…Ù„Ø§Ø­Ø¸Ø§Øª Ø´Ø±ÙŠØ· Ø§Ù„Ù…ÙˆÙ‚Ø¹"] = c
+                                    deleted_counts["ملاحظات شريط الموقع"] = c
                                 elif key == "notifications":
                                     from apps.notifications.models import Notification
                                     c = Notification.objects.all().delete()[0]
-                                    deleted_counts["Ø§Ù„Ø¥Ø´Ø¹Ø§Ø±Ø§Øª"] = c
+                                    deleted_counts["الإشعارات"] = c
                                 elif key == "security_events":
                                     from apps.accounts.models import SecurityEvent
                                     c = SecurityEvent.objects.all().delete()[0]
-                                    deleted_counts["Ø³Ø¬Ù„Ø§Øª Ø§Ù„Ø£Ù…Ø§Ù†"] = c
+                                    deleted_counts["سجلات الأمان"] = c
                                 elif key == "user_sessions":
                                     from apps.accounts.models import UserSession
                                     c = UserSession.objects.all().delete()[0]
-                                    deleted_counts["Ø¬Ù„Ø³Ø§Øª Ø§Ù„Ù†Ø´Ø§Ø·"] = c
+                                    deleted_counts["جلسات النشاط"] = c
                                 elif key == "groups":
                                     c = Group.objects.all().delete()[0]
-                                    deleted_counts["Ø§Ù„Ù…Ø¬Ù…ÙˆØ¹Ø§Øª Ø§Ù„Ø¥Ø¯Ø§Ø±ÙŠØ©"] = c
+                                    deleted_counts["المجموعات الإدارية"] = c
                                 elif key == "sites":
                                     c = Site.objects.all().delete()[0]
                                     from django.conf import settings
                                     Site.objects.create(id=settings.SITE_ID, domain="raqamiyatapp.com", name="Raqamiyat")
-                                    deleted_counts["Ù…ÙˆØ§Ù‚Ø¹ Ø§Ù„Ù†Ø¸Ø§Ù…"] = c
+                                    deleted_counts["مواقع النظام"] = c
 
-                msg = "ØªÙ… ØªØµÙÙŠØ± Ø§Ù„Ø¨ÙŠØ§Ù†Ø§Øª Ø§Ù„Ù…Ø®ØªØ§Ø±Ø© Ø¨Ù†Ø¬Ø§Ø­: " + ", ".join([f"{k} ({v})" for k, v in deleted_counts.items()])
+                msg = "تم تصفير البيانات المختارة بنجاح: " + ", ".join([f"{k} ({v})" for k, v in deleted_counts.items()])
                 messages.success(request, msg)
                 return redirect("control_db_maintenance")
             except ProtectedError as e:
-                messages.error(request, f"Ù„Ø§ ÙŠÙ…ÙƒÙ† Ø­Ø°Ù Ø¨Ø¹Ø¶ Ø§Ù„Ø¨ÙŠØ§Ù†Ø§Øª Ù„ÙˆØ¬ÙˆØ¯ Ø§Ø±ØªØ¨Ø§Ø·Ø§Øª Ù…Ø­Ù…ÙŠØ© Ø¨Ù‡Ø§. ØªÙØ§ØµÙŠÙ„ Ø§Ù„Ø®Ø·Ø£: {str(e)}")
+                messages.error(request, f"لا يمكن حذف بعض البيانات لوجود ارتباطات محمية بها. تفاصيل الخطأ: {str(e)}")
                 return redirect("control_db_maintenance")
             
     from apps.orders.models import Order, Invoice, Coupon
@@ -4932,14 +4933,14 @@ def export_financial_report_xlsx(ctx, filters):
     except Exception as e:
         logger.exception("Excel export failed")
         return HttpResponse(
-            "Ø®Ø¯Ù…Ø© ØªØµØ¯ÙŠØ± Excel ØºÙŠØ± Ù…ØªÙˆÙØ±Ø© Ø­Ø§Ù„ÙŠØ§Ù‹ (ØªØ£ÙƒØ¯ Ù…Ù† ØªØ«Ø¨ÙŠØª openpyxl). ÙŠØ±Ø¬Ù‰ Ø§Ù„ØªÙˆØ§ØµÙ„ Ù…Ø¹ Ø§Ù„Ù…Ø³Ø¤ÙˆÙ„.",
+            "خدمة تصدير Excel غير متوفرة حالياً (تأكد من تثبيت openpyxl). يرجى التواصل مع المسؤول.",
             status=503,
             content_type="text/plain; charset=utf-8"
         )
 
-    # --- Sheet 1: Ø§Ù„Ù…Ù„Ø®Øµ Ø§Ù„Ù…Ø§Ù„ÙŠ ---
+    # --- Sheet 1: الملخص المالي ---
     ws = wb.active
-    ws.title = "Ø§Ù„Ù…Ù„Ø®Øµ Ø§Ù„Ù…Ø§Ù„ÙŠ"
+    ws.title = "الملخص المالي"
     ws.sheet_view.rightToLeft = True
     
     # Styles
@@ -4950,33 +4951,33 @@ def export_financial_report_xlsx(ctx, filters):
 
     # Branding & Header
     ws.merge_cells('A1:D1')
-    ws['A1'] = "ØªÙ‚Ø±ÙŠØ± Ø±Ù‚Ù…ÙŠØ§Øª Ø§Ù„Ù…Ø§Ù„ÙŠ - Raqamiyat Financial Report"
+    ws['A1'] = "تقرير رقميات المالي - Raqamiyat Financial Report"
     ws['A1'].font = Font(bold=True, size=16)
     ws['A1'].alignment = center_align
     
-    ws['A2'] = "ØªØ§Ø±ÙŠØ® Ø§Ù„Ø§Ø³ØªØ®Ø±Ø§Ø¬:"
+    ws['A2'] = "تاريخ الاستخراج:"
     ws['B2'] = timezone.now().strftime("%Y-%m-%d %H:%M")
     
-    ws['A3'] = "Ø¹Ù…Ù„Ø© Ø§Ù„ØªÙ‚Ø±ÙŠØ±:"
+    ws['A3'] = "عملة التقرير:"
     ws['B3'] = ctx['kpis']['reporting_currency']
 
     # KPIs Section
-    ws['A5'] = "Ø§Ù„Ù…Ø¤Ø´Ø±"
-    ws['B5'] = "Ø§Ù„Ù‚ÙŠÙ…Ø©"
+    ws['A5'] = "المؤشر"
+    ws['B5'] = "القيمة"
     for cell in ['A5', 'B5']:
         ws[cell].font = header_font
         ws[cell].fill = header_fill
         ws[cell].alignment = center_align
 
     kpis_data = [
-        ("Ø¥Ø¬Ù…Ø§Ù„ÙŠ Ø§Ù„Ø¥ÙŠØ¯Ø§Ø¹Ø§Øª", ctx['kpis']['total_deposits']),
-        ("Ø¥Ø¬Ù…Ø§Ù„ÙŠ Ø§Ù„Ø³Ø­ÙˆØ¨Ø§Øª", ctx['kpis']['total_withdrawals']),
-        ("ØµØ§ÙÙŠ Ø§Ù„ØªØ¯ÙÙ‚ Ø§Ù„Ù†Ù‚Ø¯ÙŠ", ctx['kpis']['net_cashflow']),
-        ("Ø±Ø³ÙˆÙ… Ø§Ù„Ø¹Ù…Ù„ÙŠØ§Øª", ctx['kpis']['total_fees_earned']),
-        ("Ø£Ø±Ø¨Ø§Ø­ Ø§Ù„Ù…Ù†ØªØ¬Ø§Øª Ø§Ù„ØµØ§ÙÙŠØ©", ctx['kpis']['product_net_profit']),
-        ("Ø§Ù„Ù…Ù‚Ø¨ÙˆØ¶Ø§Øª Ø§Ù„Ù†Ù‚Ø¯ÙŠØ© (Cash)", ctx['kpis']['total_cash_collections']),
-        ("Ø§Ù„Ø¯ÙŠÙˆÙ† Ø§Ù„Ù…Ø³ØªØ­Ù‚Ø©", ctx['kpis']['total_outstanding_debt']),
-        ("Ø§Ù„ØªØ²Ø§Ù…Ø§Øª Ø§Ù„Ù…Ø­Ø§ÙØ¸", ctx['kpis']['total_liabilities']),
+        ("إجمالي الإيداعات", ctx['kpis']['total_deposits']),
+        ("إجمالي السحوبات", ctx['kpis']['total_withdrawals']),
+        ("صافي التدفق النقدي", ctx['kpis']['net_cashflow']),
+        ("رسوم العمليات", ctx['kpis']['total_fees_earned']),
+        ("أرباح المنتجات الصافية", ctx['kpis']['product_net_profit']),
+        ("المقبوضات النقدية (Cash)", ctx['kpis']['total_cash_collections']),
+        ("الديون المستحقة", ctx['kpis']['total_outstanding_debt']),
+        ("التزامات المحافظ", ctx['kpis']['total_liabilities']),
     ]
     
     row = 6
@@ -4986,11 +4987,11 @@ def export_financial_report_xlsx(ctx, filters):
         ws.cell(row=row, column=2).number_format = '#,##0.00'
         row += 1
 
-    # --- Sheet 2: Ø§Ù„Ø£Ø¯Ø§Ø¡ ÙˆØ§Ù„Ø³ÙŠÙˆÙ„Ø© ---
-    ws2 = wb.create_sheet("Ø£Ø¯Ø§Ø¡ ÙˆØ³Ø§Ø¦Ù„ Ø§Ù„Ø¯ÙØ¹")
+    # --- Sheet 2: الأداء والسيولة ---
+    ws2 = wb.create_sheet("أداء وسائل الدفع")
     ws2.sheet_view.rightToLeft = True
     
-    headers = ["Ø§Ù„ÙˆØ³ÙŠÙ„Ø©", "Ø­Ø¬Ù… Ø§Ù„Ø¥ÙŠØ¯Ø§Ø¹Ø§Øª", "Ø­Ø¬Ù… Ø§Ù„Ø³Ø­ÙˆØ¨Ø§Øª", "Ø§Ù„ØµØ§ÙÙŠ", "Ø§Ù„Ø±Ø³ÙˆÙ…", "Ø§Ù„Ø±ØµÙŠØ¯ Ø§Ù„ØªÙ‚Ø¯ÙŠØ±ÙŠ"]
+    headers = ["الوسيلة", "حجم الإيداعات", "حجم السحوبات", "الصافي", "الرسوم", "الرصيد التقديري"]
     for col, h in enumerate(headers, 1):
         cell = ws2.cell(row=1, column=col, value=h)
         cell.font = header_font
@@ -5125,9 +5126,9 @@ def payment_gateway_integration_create(request):
         gateway = form.save(commit=False)
         gateway.store = store
         gateway.save()
-        messages.success(request, "ØªÙ… Ø­ÙØ¸ Ø¨ÙˆØ§Ø¨Ø© Ø¯ÙØ¹ API Ø¨Ù†Ø¬Ø§Ø­.")
+        messages.success(request, "تم حفظ بوابة دفع API بنجاح.")
         return redirect("payment_gateway_integrations_list")
-    return render(request, "site/payment_gateway_integration_form.html", {"form": form, "title": "Ø¥Ø¶Ø§ÙØ© Ø¨ÙˆØ§Ø¨Ø© Ø¯ÙØ¹ API"})
+    return render(request, "site/payment_gateway_integration_form.html", {"form": form, "title": "إضافة بوابة دفع API"})
 
 
 @admin_required
@@ -5138,9 +5139,9 @@ def payment_gateway_integration_edit(request, pk):
     form = PaymentGatewayIntegrationForm(request.POST or None, instance=gateway)
     if request.method == "POST" and form.is_valid():
         form.save()
-        messages.success(request, "ØªÙ… ØªØ­Ø¯ÙŠØ« Ø¨ÙˆØ§Ø¨Ø© Ø¯ÙØ¹ API Ø¨Ù†Ø¬Ø§Ø­.")
+        messages.success(request, "تم تحديث بوابة دفع API بنجاح.")
         return redirect("payment_gateway_integrations_list")
-    return render(request, "site/payment_gateway_integration_form.html", {"form": form, "gateway": gateway, "title": "ØªØ¹Ø¯ÙŠÙ„ Ø¨ÙˆØ§Ø¨Ø© Ø¯ÙØ¹ API"})
+    return render(request, "site/payment_gateway_integration_form.html", {"form": form, "gateway": gateway, "title": "تعديل بوابة دفع API"})
 
 
 @admin_required
@@ -5149,7 +5150,7 @@ def payment_gateway_integration_delete(request, pk):
     qs = PaymentGatewayIntegration.objects.filter(store=store) if store else PaymentGatewayIntegration.objects.all()
     gateway = get_object_or_404(qs, pk=pk)
     gateway.delete()
-    messages.success(request, "ØªÙ… Ø­Ø°Ù Ø¨ÙˆØ§Ø¨Ø© Ø¯ÙØ¹ API.")
+    messages.success(request, "تم حذف بوابة دفع API.")
     return redirect("payment_gateway_integrations_list")
 
 @login_required
@@ -5162,11 +5163,11 @@ def site_notification_settings(request):
     if request.method == "POST":
         if "notification_settings" in request.POST and form.is_valid():
             form.save()
-            messages.success(request, "ØªÙ… Ø­ÙØ¸ Ø¥Ø¹Ø¯Ø§Ø¯Ø§Øª Ø§Ù„Ø¥Ø´Ø¹Ø§Ø±Ø§Øª Ø¨Ù†Ø¬Ø§Ø­.")
+            messages.success(request, "تم حفظ إعدادات الإشعارات بنجاح.")
             return redirect("notification_settings")
         elif "privacy_settings" in request.POST and privacy_form.is_valid():
             privacy_form.save()
-            messages.success(request, "ØªÙ… ØªØ­Ø¯ÙŠØ« Ø¥Ø¹Ø¯Ø§Ø¯Ø§Øª Ø§Ù„Ø®ØµÙˆØµÙŠØ© Ø¨Ù†Ø¬Ø§Ø­.")
+            messages.success(request, "تم تحديث إعدادات الخصوصية بنجاح.")
             return redirect("notification_settings")
             
     return render(request, "site/v3/v3_notification_settings.html", {
@@ -5186,14 +5187,14 @@ def site_product_suggestion(request):
             
             # Support AJAX form submission
             if request.headers.get('x-requested-with') == 'XMLHttpRequest':
-                return JsonResponse({"status": "success", "message": "ØªÙ… Ø¥Ø±Ø³Ø§Ù„ Ø§Ù‚ØªØ±Ø§Ø­Ùƒ Ø¨Ù†Ø¬Ø§Ø­."})
+                return JsonResponse({"status": "success", "message": "تم إرسال اقتراحك بنجاح."})
                 
-            messages.success(request, "ØªÙ… Ø¥Ø±Ø³Ø§Ù„ Ø§Ù‚ØªØ±Ø§Ø­Ùƒ Ø¨Ù†Ø¬Ø§Ø­. Ø³Ù†Ù‚ÙˆÙ… Ø¨Ù…Ø±Ø§Ø¬Ø¹ØªÙ‡ ÙˆØ§Ù„Ø±Ø¯ Ø¹Ù„ÙŠÙƒ Ù‚Ø±ÙŠØ¨Ø§Ù‹.")
+            messages.success(request, "تم إرسال اقتراحك بنجاح. سنقوم بمراجعته والرد عليك قريباً.")
             return redirect("dashboard")
         else:
             # Support AJAX form validation errors
             if request.headers.get('x-requested-with') == 'XMLHttpRequest':
-                return JsonResponse({"status": "error", "message": "ÙŠØ±Ø¬Ù‰ Ø§Ù„ØªØ­Ù‚Ù‚ Ù…Ù† Ø§Ù„Ø­Ù‚ÙˆÙ„ Ø§Ù„Ù…Ø¯Ø®Ù„Ø© ÙˆØµØ­ØªÙ‡Ø§.", "errors": form.errors.get_json_data()}, status=400)
+                return JsonResponse({"status": "error", "message": "يرجى التحقق من الحقول المدخلة وصحتها.", "errors": form.errors.get_json_data()}, status=400)
     
     user_suggestions = ProductSuggestion.objects.filter(user=request.user)
     return render(request, "site/product_suggestion_form.html", {"form": form, "suggestions": user_suggestions})
@@ -5226,7 +5227,7 @@ def control_product_suggestion_detail(request, pk):
             
         suggestion.admin_notes = notes
         suggestion.save()
-        messages.success(request, "ØªÙ… ØªØ­Ø¯ÙŠØ« Ø­Ø§Ù„Ø© Ø§Ù„Ø§Ù‚ØªØ±Ø§Ø­.")
+        messages.success(request, "تم تحديث حالة الاقتراح.")
         return redirect("control_product_suggestions_list")
         
     return render(request, "site/control_product_suggestion_detail.html", {"suggestion": suggestion})
@@ -5245,7 +5246,7 @@ def control_recharge_cards(request):
             codes_list = request.POST.getlist("codes")
             variant_id = request.POST.get("variant_id")
             if not codes_list or not variant_id:
-                messages.error(request, "ÙŠØ±Ø¬Ù‰ Ø§Ø®ØªÙŠØ§Ø± Ø§Ù„Ø£ÙƒÙˆØ§Ø¯ ÙˆØ¨Ø§Ù‚Ø© Ø§Ù„Ù…Ù†ØªØ¬ Ø§Ù„Ù…Ø³ØªÙ‡Ø¯ÙØ©.")
+                messages.error(request, "يرجى اختيار الأكواد وباقة المنتج المستهدفة.")
             else:
                 variant = get_object_or_404(ProductVariant, id=variant_id)
                 added_count = 0
@@ -5253,7 +5254,7 @@ def control_recharge_cards(request):
                     if not ProductKey.objects.filter(variant=variant, key_code=code).exists():
                         ProductKey.objects.create(variant=variant, key_code=code)
                         added_count += 1
-                messages.success(request, f"ØªÙ… Ù†Ø³Ø® {added_count} ÙƒÙˆØ¯ Ø¨Ù†Ø¬Ø§Ø­ ÙƒØ£ÙƒÙˆØ§Ø¯ ØªØ³Ù„ÙŠÙ… ØªÙ„Ù‚Ø§Ø¦ÙŠ Ù„Ù„Ø¨Ø§Ù‚Ø©: {variant.product.name} - {variant.name}")
+                messages.success(request, f"تم نسخ {added_count} كود بنجاح كأكواد تسليم تلقائي للباقة: {variant.product.name} - {variant.name}")
             return redirect("control_recharge_cards")
 
     qs = RechargeCard.objects.all().select_related("currency", "created_by", "redeemed_by", "order")
@@ -5340,7 +5341,7 @@ def control_recharge_cards_generate(request):
             if amount <= 0:
                 raise ValueError()
         except:
-            messages.error(request, "ÙŠØ±Ø¬Ù‰ Ø¥Ø¯Ø®Ù„ Ù‚ÙŠÙ…Ø© Ø´Ø­Ù† ØµØ­ÙŠØ­Ø© Ø£ÙƒØ¨Ø± Ù…Ù† ØµÙØ±.")
+            messages.error(request, "يرجى إدخل قيمة شحن صحيحة أكبر من صفر.")
             return redirect("control_recharge_cards_generate")
             
         currency = get_object_or_404(Currency, id=currency_id, is_active=True)
@@ -5350,7 +5351,7 @@ def control_recharge_cards_generate(request):
             if count <= 0 or count > 500:
                 raise ValueError()
         except:
-            messages.error(request, "ÙŠØ±Ø¬Ù‰ Ø¥Ø¯Ø®Ø§Ù„ Ø¹Ø¯Ø¯ Ø¨Ø·Ø§Ù‚Ø§Øª ØµØ­ÙŠØ­ (Ø¨ÙŠÙ† 1 Ùˆ 500).")
+            messages.error(request, "يرجى إدخال عدد بطاقات صحيح (بين 1 و 500).")
             return redirect("control_recharge_cards_generate")
             
         target_variant = None
@@ -5378,9 +5379,9 @@ def control_recharge_cards_generate(request):
                 ProductKey.objects.create(variant=target_variant, key_code=code)
                 keys_added += 1
             
-        msg = f"ØªÙ… Ø¥Ù†Ø´Ø§Ø¡ {created_count} Ø¨Ø·Ø§Ù‚Ø© Ø´Ø­Ù† Ø¨Ù†Ø¬Ø§Ø­ Ø¨Ù‚ÙŠÙ…Ø© {amount} {currency.code} Ù„Ù„Ø¨Ø·Ø§Ù‚Ø© Ø§Ù„ÙˆØ§Ø­Ø¯Ø©."
+        msg = f"تم إنشاء {created_count} بطاقة شحن بنجاح بقيمة {amount} {currency.code} للبطاقة الواحدة."
         if target_variant:
-            msg += f" ÙˆØªÙ… Ù†Ø³Ø® {keys_added} ÙƒÙˆØ¯ ØªÙ„Ù‚Ø§Ø¦ÙŠØ§Ù‹ ÙƒØ£ÙƒÙˆØ§Ø¯ ØªØ³Ù„ÙŠÙ… ØªÙ„Ù‚Ø§Ø¦ÙŠ Ù„Ù„Ø¨Ø§Ù‚Ø©: {target_variant.product.name} - {target_variant.name}."
+            msg += f" وتم نسخ {keys_added} كود تلقائياً كأكواد تسليم تلقائي للباقة: {target_variant.product.name} - {target_variant.name}."
             
         messages.success(request, msg)
         return redirect("control_recharge_cards")
@@ -5400,9 +5401,9 @@ def control_recharge_card_cancel(request, pk):
         if card.status == RechargeCard.Status.ACTIVE:
             card.status = RechargeCard.Status.CANCELLED
             card.save()
-            messages.success(request, f"ØªÙ… Ø¥Ù„ØºØ§Ø¡ Ø¨Ø·Ø§Ù‚Ø© Ø§Ù„Ø´Ø­Ù† ({card.code}) Ø¨Ù†Ø¬Ø§Ø­.")
+            messages.success(request, f"تم إلغاء بطاقة الشحن ({card.code}) بنجاح.")
         else:
-            messages.error(request, "Ù„Ø§ ÙŠÙ…ÙƒÙ† Ø¥Ù„ØºØ§Ø¡ Ù‡Ø°Ù‡ Ø§Ù„Ø¨Ø·Ø§Ù‚Ø© Ù„Ø£Ù†Ù‡Ø§ Ù„ÙŠØ³Øª Ù†Ø´Ø·Ø©.")
+            messages.error(request, "لا يمكن إلغاء هذه البطاقة لأنها ليست نشطة.")
             
     return redirect("control_recharge_cards")
 
@@ -5417,19 +5418,19 @@ def recharge_wallet(request):
     if request.method == "POST":
         code_input = request.POST.get("recharge_code", "").strip().upper()
         if not code_input:
-            messages.error(request, "ÙŠØ±Ø¬Ù‰ Ø¥Ø¯Ø®Ø§Ù„ Ø±Ù…Ø² Ø§Ù„Ø´Ø­Ù†.")
+            messages.error(request, "يرجى إدخال رمز الشحن.")
             return redirect("dashboard_wallet")
             
         card = RechargeCard.objects.filter(code=code_input).first()
         if not card or card.status != RechargeCard.Status.ACTIVE:
-            messages.error(request, "Ø±Ù…Ø² Ø§Ù„Ø´Ø­Ù† ØºÙŠØ± ØµØ­ÙŠØ­ØŒ Ø£Ùˆ ØªÙ… Ø§Ø³ØªØ®Ø¯Ø§Ù…Ù‡ØŒ Ø£Ùˆ Ù…Ù„ØºÙ‰.")
+            messages.error(request, "رمز الشحن غير صحيح، أو تم استخدامه، أو ملغى.")
             return redirect("dashboard_wallet")
             
         try:
             with transaction.atomic():
                 card = RechargeCard.objects.select_for_update().get(id=card.id)
                 if card.status != RechargeCard.Status.ACTIVE:
-                    raise WalletError("Ø§Ù„Ø¨Ø·Ø§Ù‚Ø© Ù„Ù… ØªØ¹Ø¯ ØµØ§Ù„Ø­Ø© Ù„Ù„Ø§Ø³ØªØ®Ø¯Ø§Ù….")
+                    raise WalletError("البطاقة لم تعد صالحة للاستخدام.")
                     
                 wallet = get_or_create_wallet(request.user)
                 
@@ -5442,7 +5443,7 @@ def recharge_wallet(request):
                     wallet_id=wallet.id,
                     amount=credited_amount,
                     reference=f"recharge:{card.id}",
-                    description=f"Ø´Ø­Ù† Ø¨Ø·Ø§Ù‚Ø© Ø±ØµÙŠØ¯ Ø±Ù‚Ù… {card.code}",
+                    description=f"شحن بطاقة رصيد رقم {card.code}",
                     created_by=request.user,
                     metadata={
                         "source_amount": str(card.amount),
@@ -5450,7 +5451,7 @@ def recharge_wallet(request):
                         "recharge_card_code": card.code
                     },
                     source="recharge_card",
-                    reason="Ø´Ø­Ù† Ø¨Ø·Ø§Ù‚Ø© Ø±ØµÙŠØ¯"
+                    reason="شحن بطاقة رصيد"
                 )
                 
                 card.status = RechargeCard.Status.REDEEMED
@@ -5459,13 +5460,13 @@ def recharge_wallet(request):
                 card.save()
                 
                 if card.currency != wallet.currency:
-                    msg = f"ØªÙ… Ø´Ø­Ù† Ù…Ø­ÙØ¸ØªÙƒ Ø¨Ù†Ø¬Ø§Ø­ Ø¨Ù‚ÙŠÙ…Ø© {credited_amount:.2f} {wallet.currency.code} (Ù…Ø§ ÙŠØ¹Ø§Ø¯Ù„ {card.amount:.2f} {card.currency.code})."
+                    msg = f"تم شحن محفظتك بنجاح بقيمة {credited_amount:.2f} {wallet.currency.code} (ما يعادل {card.amount:.2f} {card.currency.code})."
                 else:
-                    msg = f"ØªÙ… Ø´Ø­Ù† Ù…Ø­ÙØ¸ØªÙƒ Ø¨Ù†Ø¬Ø§Ø­ Ø¨Ù‚ÙŠÙ…Ø© {card.amount:.2f} {card.currency.code}."
+                    msg = f"تم شحن محفظتك بنجاح بقيمة {card.amount:.2f} {card.currency.code}."
                 messages.success(request, msg)
                 
         except Exception as e:
-            messages.error(request, f"ÙØ´Ù„ Ø´Ø­Ù† Ø§Ù„Ø±ØµÙŠØ¯: {str(e)}")
+            messages.error(request, f"فشل شحن الرصيد: {str(e)}")
             
     return redirect("dashboard_wallet")
 
@@ -5531,16 +5532,16 @@ def sso_transfer_view(request):
                     )
                 
                 if not is_store_member:
-                    messages.error(request, "Ù‡Ø°Ø§ Ø§Ù„Ø­Ø³Ø§Ø¨ ØºÙŠØ± Ù…Ø±ØªØ¨Ø· Ø¨Ù‡Ø°Ø§ Ø§Ù„Ù…ØªØ¬Ø±.")
+                    messages.error(request, "هذا الحساب غير مرتبط بهذا المتجر.")
                     return redirect("site_login")
 
             user_to_login.backend = "apps.stores.auth_backend.TenantModelBackend"
             login(request, user_to_login)
 
-            messages.success(request, "ØªÙ… Ù…Ø²Ø§Ù…Ù†Ø© ØªØ³Ø¬ÙŠÙ„ Ø§Ù„Ø¯Ø®ÙˆÙ„ Ø¨Ù†Ø¬Ø§Ø­.")
+            messages.success(request, "تم مزامنة تسجيل الدخول بنجاح.")
             return redirect(next_url or "/dashboard/")
         except (signing.SignatureExpired, signing.BadSignature, User.DoesNotExist) as e:
-            messages.error(request, "Ø±Ø§Ø¨Ø· ØªØ³Ø¬ÙŠÙ„ Ø§Ù„Ø¯Ø®ÙˆÙ„ ØºÙŠØ± ØµØ§Ù„Ø­ Ø£Ùˆ Ù…Ù†ØªÙ‡ÙŠ Ø§Ù„ØµÙ„Ø§Ø­ÙŠØ©. ÙŠØ±Ø¬Ù‰ Ø§Ù„Ù…Ø­Ø§ÙˆÙ„Ø© Ù…Ø±Ø© Ø£Ø®Ø±Ù‰.")
+            messages.error(request, "رابط تسجيل الدخول غير صالح أو منتهي الصلاحية. يرجى المحاولة مرة أخرى.")
             return redirect("site_login")
 
     # 2. If user is authenticated, handle cross-domain redirect with a token
@@ -5647,7 +5648,7 @@ def control_apicontrol_dashboard(request):
             
         if action == "sync":
             if not profile_obj:
-                messages.error(request, "Ù„Ø§ ØªÙˆØ¬Ø¯ Ø¨ÙˆØ§Ø¨Ø© Ø±Ø¨Ø· Ù†Ø´Ø·Ø© Ù„Ø¨Ø¯Ø¡ Ø§Ù„Ù…Ø²Ø§Ù…Ù†Ø©. ÙŠØ±Ø¬Ù‰ Ø¥Ø¶Ø§ÙØ© Ø¨ÙˆØ§Ø¨Ø© Ø±Ø¨Ø· ÙˆØªÙØ¹ÙŠÙ„Ù‡Ø§ Ù…Ù† Ø¥Ø¹Ø¯Ø§Ø¯Ø§Øª Ø§Ù„Ø¨ÙˆØ§Ø¨Ø§Øª.")
+                messages.error(request, "لا توجد بوابة ربط نشطة لبدء المزامنة. يرجى إضافة بوابة ربط وتفعيلها من إعدادات البوابات.")
                 return redirect(redirect_url)
                 
             def _background_sync(profile_id):
@@ -5663,7 +5664,7 @@ def control_apicontrol_dashboard(request):
             import threading
             threading.Thread(target=_background_sync, args=(profile_obj.id,), daemon=True).start()
             
-            messages.success(request, "ğŸš€ Ø¨Ø¯Ø£Øª Ø¹Ù…Ù„ÙŠØ© Ø§Ù„Ù…Ø²Ø§Ù…Ù†Ø© Ø¨Ù†Ø¬Ø§Ø­ ÙÙŠ Ø§Ù„Ø®Ù„ÙÙŠØ©! ÙŠØªÙ… Ø§Ù„Ø¢Ù† Ø³Ø­Ø¨ ÙˆØ§Ø³ØªÙŠØ±Ø§Ø¯ ÙƒØ§ÙØ© Ø§Ù„Ù…Ù†ØªØ¬Ø§Øª ÙˆØªØ­Ø¯ÙŠØ« Ø§Ù„ÙƒØªØ§Ù„ÙˆØ¬ ØªÙ„Ù‚Ø§Ø¦ÙŠØ§Ù‹ Ø¯ÙˆÙ† Ø£ÙŠ Ø¥Ø¨Ø·Ø§Ø¡.")
+            messages.success(request, "🚀 بدأت عملية المزامنة بنجاح في الخلفية! يتم الآن سحب واستيراد كافة المنتجات وتحديث الكتالوج تلقائياً دون أي إبطاء.")
             return redirect(redirect_url)
             
         elif action == "refresh_cache":
@@ -5680,7 +5681,7 @@ def control_apicontrol_dashboard(request):
 
                 import threading
                 threading.Thread(target=_background_refresh, args=(profile_obj.id,), daemon=True).start()
-                messages.success(request, "âš¡ ØªÙ… Ø¨Ø¯Ø¡ ØªØ­Ø¯ÙŠØ« Ø§Ù„Ø±ØµÙŠØ¯ ÙˆØ§Ù„Ø¨ÙŠØ§Ù†Ø§Øª ÙÙŠ Ø§Ù„Ø®Ù„ÙÙŠØ© Ø¨Ù†Ø¬Ø§Ø­.")
+                messages.success(request, "⚡ تم بدء تحديث الرصيد والبيانات في الخلفية بنجاح.")
             return redirect(redirect_url)
             
         elif action == "clear_catalog":
@@ -5697,9 +5698,9 @@ def control_apicontrol_dashboard(request):
                 ProviderProduct.objects.filter(profile=profile_obj).update(local_is_active=False)
             deleted_count = 0
             deactivated_count = archived_count
-            msg = f"ØªÙ… ØªÙ†Ø¸ÙŠÙ ÙƒØªØ§Ù„ÙˆØ¬ Ø§Ù„Ù…Ø²ÙˆØ¯: ØªÙ… Ø­Ø°Ù {deleted_count} Ù…Ù†ØªØ¬"
+            msg = f"تم تنظيف كتالوج المزود: تم حذف {deleted_count} منتج"
             if deactivated_count > 0:
-                msg += f"ØŒ ÙˆØ£Ø±Ø´ÙØ© ÙˆØªØ¹Ø·ÙŠÙ„ {deactivated_count} Ù…Ù†ØªØ¬ Ù„Ø­Ù…Ø§ÙŠØ© ÙˆØ­ÙØ¸ Ø³Ø¬Ù„Ø§Øª Ø§Ù„Ø·Ù„Ø¨Ø§Øª Ø§Ù„Ù…Ø´ØªØ±Ø§Ø© Ø³Ø§Ø¨Ù‚Ø§Ù‹."
+                msg += f"، وأرشفة وتعطيل {deactivated_count} منتج لحماية وحفظ سجلات الطلبات المشتراة سابقاً."
             messages.success(request, msg)
             return redirect(redirect_url)
             
@@ -5709,10 +5710,10 @@ def control_apicontrol_dashboard(request):
                 prod = Product.objects.get(id=product_id, store=store)
                 prod.is_active = not prod.is_active
                 prod.save()
-                status_str = "ØªÙØ¹ÙŠÙ„" if prod.is_active else "ØªØ¹Ø·ÙŠÙ„"
-                messages.success(request, f"ØªÙ… {status_str} Ø§Ù„Ù…Ù†ØªØ¬ '{prod.name}' Ø¨Ù†Ø¬Ø§Ø­.")
+                status_str = "تفعيل" if prod.is_active else "تعطيل"
+                messages.success(request, f"تم {status_str} المنتج '{prod.name}' بنجاح.")
             except Product.DoesNotExist:
-                messages.error(request, "Ø§Ù„Ù…Ù†ØªØ¬ ØºÙŠØ± Ù…ÙˆØ¬ÙˆØ¯.")
+                messages.error(request, "المنتج غير موجود.")
             return redirect(redirect_url)
             
         elif action == "delete_product":
@@ -5721,9 +5722,9 @@ def control_apicontrol_dashboard(request):
                 prod = Product.objects.get(id=product_id, store=store)
                 prod_name = prod.name
                 prod.delete()
-                messages.success(request, f"ØªÙ… Ø­Ø°Ù ÙˆØ¥Ù„ØºØ§Ø¡ Ø±Ø¨Ø· Ø§Ù„Ù…Ù†ØªØ¬ '{prod_name}' Ø¨Ù†Ø¬Ø§Ø­.")
+                messages.success(request, f"تم حذف وإلغاء ربط المنتج '{prod_name}' بنجاح.")
             except Product.DoesNotExist:
-                messages.error(request, "Ø§Ù„Ù…Ù†ØªØ¬ ØºÙŠØ± Ù…ÙˆØ¬ÙˆØ¯.")
+                messages.error(request, "المنتج غير موجود.")
             return redirect(redirect_url)
             
         elif action == "quick_update_price":
@@ -5737,9 +5738,9 @@ def control_apicontrol_dashboard(request):
                     variant = ProductVariant.objects.get(id=variant_id)
                 variant.price = Decimal(str(new_price))
                 variant.save(update_fields=['price'])
-                messages.success(request, f"ØªÙ… ØªØ­Ø¯ÙŠØ« Ø³Ø¹Ø± Ø§Ù„Ø¨Ø§Ù‚Ø© '{variant.name}' Ø¨Ù†Ø¬Ø§Ø­ Ø¥Ù„Ù‰ {variant.price} USD.")
+                messages.success(request, f"تم تحديث سعر الباقة '{variant.name}' بنجاح إلى {variant.price} USD.")
             except (ProductVariant.DoesNotExist, ValueError) as e:
-                messages.error(request, f"Ø®Ø·Ø£ ÙÙŠ ØªØ¹Ø¯ÙŠÙ„ Ø§Ù„Ø³Ø¹Ø±: {str(e)}")
+                messages.error(request, f"خطأ في تعديل السعر: {str(e)}")
             return redirect(redirect_url)
             
         elif action == "bulk_adjust_prices":
@@ -5759,7 +5760,7 @@ def control_apicontrol_dashboard(request):
                 if apply_to == "selected" and variant_ids:
                     variants_qs = variants_qs.filter(id__in=variant_ids)
                 elif apply_to == "selected" and not variant_ids:
-                    messages.error(request, "Ù„Ù… ØªÙ‚Ù… Ø¨ØªØ­Ø¯ÙŠØ¯ Ø£ÙŠ Ø¨Ø§Ù‚Ø§Øª Ù„ØªØ¹Ø¯ÙŠÙ„ Ø£Ø³Ø¹Ø§Ø±Ù‡Ø§.")
+                    messages.error(request, "لم تقم بتحديد أي باقات لتعديل أسعارها.")
                     return redirect(redirect_url)
                 
                 count = 0
@@ -5782,9 +5783,9 @@ def control_apicontrol_dashboard(request):
                     variant.price = price
                     variant.save(update_fields=['price'])
                     count += 1
-                messages.success(request, f"ØªÙ… Ø¨Ù†Ø¬Ø§Ø­ ØªØ¹Ø¯ÙŠÙ„ Ø£Ø³Ø¹Ø§Ø± {count} Ø¨Ø§Ù‚Ø©/Ù…Ù†ØªØ¬ Ù…Ø³ØªÙˆØ±Ø¯.")
+                messages.success(request, f"تم بنجاح تعديل أسعار {count} باقة/منتج مستورد.")
             except Exception as e:
-                messages.error(request, f"ÙØ´Ù„ Ø§Ù„ØªØ¹Ø¯ÙŠÙ„ Ø§Ù„Ø¬Ù…Ø§Ø¹ÙŠ: {str(e)}")
+                messages.error(request, f"فشل التعديل الجماعي: {str(e)}")
             return redirect(redirect_url)
             
     # Fetch Profile Info
@@ -5865,7 +5866,7 @@ def control_apicontrol_dashboard(request):
     total_sales_usd = 0.0
     
     provider_stats = {
-        "generic": {"name": "Ù…Ø²ÙˆÙ‘Ø¯ Ø¹Ø§Ù… (Generic API)", "purchases": 0.0, "sales": 0.0, "profit": 0.0, "count": 0},
+        "generic": {"name": "مزوّد عام (Generic API)", "purchases": 0.0, "sales": 0.0, "profit": 0.0, "count": 0},
         "smm": {"name": "SMM Provider", "purchases": 0.0, "sales": 0.0, "profit": 0.0, "count": 0},
         "other": {"name": "Other API", "purchases": 0.0, "sales": 0.0, "profit": 0.0, "count": 0},
     }
@@ -5902,7 +5903,7 @@ def control_apicontrol_dashboard(request):
     if raw_token and len(raw_token) > 10:
         obfuscated_token = raw_token[:6] + "..." + raw_token[-6:]
     else:
-        obfuscated_token = "ØºÙŠØ± Ù…Ø¹ÙŠÙ† Ø£Ùˆ Ù‚ØµÙŠØ±"
+        obfuscated_token = "غير معين أو قصير"
         
     # Fetch recent API transactions for template rendering
     from apps.catalog.models import APITransaction
@@ -6002,12 +6003,12 @@ def control_api_integration_create(request):
         integration = form.save(commit=False)
         integration.store = store
         integration.save()
-        messages.success(request, "ØªÙ…Øª Ø¥Ø¶Ø§ÙØ© Ø¥Ø¹Ø¯Ø§Ø¯Ø§Øª Ø±Ø¨Ø· Ø§Ù„Ù€ API Ø§Ù„Ø¬Ø¯ÙŠØ¯ Ø¨Ù†Ø¬Ø§Ø­.")
+        messages.success(request, "تمت إضافة إعدادات ربط الـ API الجديد بنجاح.")
         return redirect("control_api_integrations_list")
         
     return render(request, "site/control_api_integration_form.html", {
         "form": form,
-        "title": "Ø¥Ø¶Ø§ÙØ© Ø¨ÙˆØ§Ø¨Ø© Ø±Ø¨Ø· API Ø¬Ø¯ÙŠØ¯Ø©",
+        "title": "إضافة بوابة ربط API جديدة",
     })
 
 
@@ -6023,18 +6024,18 @@ def control_api_integration_edit(request, pk):
         else:
             integration = APIIntegration.objects.get(pk=pk)
     except APIIntegration.DoesNotExist:
-        messages.error(request, "Ø¹Ø°Ø±Ø§Ù‹ØŒ Ù„Ø§ ØªÙ…Ù„Ùƒ Ø§Ù„ØµÙ„Ø§Ø­ÙŠØ© Ù„ØªØ¹Ø¯ÙŠÙ„ Ù‡Ø°Ù‡ Ø§Ù„Ø¨ÙˆØ§Ø¨Ø©.")
+        messages.error(request, "عذراً، لا تملك الصلاحية لتعديل هذه البوابة.")
         return redirect("control_api_integrations_list")
         
     form = APIIntegrationForm(request.POST or None, instance=integration)
     if request.method == "POST" and form.is_valid():
         form.save()
-        messages.success(request, "ØªÙ… ØªØ­Ø¯ÙŠØ« Ø¥Ø¹Ø¯Ø§Ø¯Ø§Øª Ø§Ù„Ø±Ø¨Ø· Ø¨Ù†Ø¬Ø§Ø­.")
+        messages.success(request, "تم تحديث إعدادات الربط بنجاح.")
         return redirect("control_api_integrations_list")
         
     return render(request, "site/control_api_integration_form.html", {
         "form": form,
-        "title": "ØªØ¹Ø¯ÙŠÙ„ Ø¨ÙˆØ§Ø¨Ø© Ø±Ø¨Ø· API",
+        "title": "تعديل بوابة ربط API",
         "integration": integration,
     })
 
@@ -6052,9 +6053,9 @@ def control_api_integration_delete(request, pk):
         
         name = integration.name
         integration.delete()
-        messages.success(request, f"ØªÙ… Ø­Ø°Ù Ø¨ÙˆØ§Ø¨Ø© Ø§Ù„Ø±Ø¨Ø· '{name}' Ø¨Ù†Ø¬Ø§Ø­.")
+        messages.success(request, f"تم حذف بوابة الربط '{name}' بنجاح.")
     except APIIntegration.DoesNotExist:
-        messages.error(request, "Ø¨ÙˆØ§Ø¨Ø© Ø§Ù„Ø±Ø¨Ø· ØºÙŠØ± Ù…ÙˆØ¬ÙˆØ¯Ø© Ø£Ùˆ Ù„Ø§ ØªÙ…Ù„Ùƒ ØµÙ„Ø§Ø­ÙŠØ© Ø­Ø°ÙÙ‡Ø§.")
+        messages.error(request, "بوابة الربط غير موجودة أو لا تملك صلاحية حذفها.")
         
     return redirect("control_api_integrations_list")
 

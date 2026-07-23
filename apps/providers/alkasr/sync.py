@@ -52,6 +52,9 @@ class AlkasrSyncService:
                         is_active=True,
                     ).exclude(remote_id__in=active_remote_ids).update(is_active=False)
 
+                from .mapper import AlkasrMapperService
+                AlkasrMapperService(self.profile).map_all_to_catalog()
+
                 sync_log.status = "success"
                 sync_log.products_created = stats["created"]
                 sync_log.products_updated = stats["updated"]
@@ -124,9 +127,17 @@ class AlkasrSyncService:
         return categories_by_remote
 
     def _upsert_product(self, remote_id, pdata, categories_by_remote):
-        name = str(pdata.get("name") or f"Product {remote_id}")
-        cost = self._decimal(pdata.get("price", pdata.get("base_price", "0.00")))
-        is_available = bool(pdata.get("available", True))
+        name = str(pdata.get("name") or pdata.get("title") or pdata.get("service") or f"Product {remote_id}")
+        raw_cost = (
+            pdata.get("price")
+            or pdata.get("base_price")
+            or pdata.get("cost")
+            or pdata.get("rate")
+            or pdata.get("price_usd")
+            or "0.00"
+        )
+        cost = self._decimal(raw_cost)
+        is_available = bool(pdata.get("available", pdata.get("is_active", True)))
 
         category_obj = self._category_for_product(pdata, categories_by_remote)
         product_type, qty_min, qty_max, qty_list = self._quantity_config(pdata)
@@ -266,16 +277,27 @@ class AlkasrSyncService:
         return categories
 
     def _looks_like_product(self, obj):
-        return bool(
+        if not isinstance(obj, dict):
+            return False
+        has_id = (
             obj.get("id") is not None
-            and (
-                "price" in obj
-                or "base_price" in obj
-                or "qty_values" in obj
-                or "product_type" in obj
-                or "params" in obj
-            )
+            or obj.get("service") is not None
+            or obj.get("service_id") is not None
+            or obj.get("product_id") is not None
         )
+        has_price_or_meta = (
+            "price" in obj
+            or "base_price" in obj
+            or "cost" in obj
+            or "rate" in obj
+            or "price_usd" in obj
+            or "qty_values" in obj
+            or "product_type" in obj
+            or "params" in obj
+            or "min" in obj
+            or "max" in obj
+        )
+        return bool(has_id and has_price_or_meta)
 
     def _looks_like_category(self, obj):
         return bool(
@@ -287,7 +309,9 @@ class AlkasrSyncService:
     def _dedupe_products(self, raw_products):
         deduped = {}
         for item in raw_products:
-            remote_id = self._clean_remote_id(item.get("id") or item.get("service"))
+            remote_id = self._clean_remote_id(
+                item.get("id") or item.get("service") or item.get("service_id") or item.get("product_id")
+            )
             if remote_id:
                 deduped[remote_id] = item
         return list(deduped.items())
