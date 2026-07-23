@@ -12,9 +12,14 @@ class AlkasrMapperService:
     def _get_group_name(self, pp):
         cat = pp.category
         if cat and cat.parent and cat.parent.name:
-            return cat.parent.name.strip()
+            parent_name = str(cat.parent.name).strip()
+            if parent_name.lower() not in ("null", "none"):
+                return parent_name
 
         raw_cat = (cat.name if cat else "").strip()
+        if raw_cat.lower() in ("null", "none"):
+            raw_cat = ""
+            
         prod_name = pp.name.strip()
         combined = f"{raw_cat} {prod_name}".upper()
 
@@ -37,9 +42,14 @@ class AlkasrMapperService:
             return "يلا لودو (Yalla Ludo)"
 
         if raw_cat and not raw_cat.upper().startswith("UC"):
-            return raw_cat
-
-        return prod_name or f"Product {pp.remote_id}"
+            result = raw_cat
+        else:
+            result = prod_name or f"Product {pp.remote_id}"
+            
+        if not result or str(result).strip().lower() in ("null", "none"):
+            return "منتجات بدون تصنيف"
+            
+        return result
 
     @transaction.atomic
     def map_all_to_catalog(self, products_qs=None, selected_group_names=None):
