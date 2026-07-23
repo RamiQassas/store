@@ -5676,8 +5676,57 @@ def control_apicontrol_dashboard(request):
         redirect_url = reverse("control_apicontrol_dashboard")
         if integration:
             redirect_url += f"?integration_id={integration.id}"
+
+        # Update profile margins if submitted in POST
+        if profile_obj:
+            m_type = request.POST.get("margin_type") or request.POST.get("default_margin_type")
+            if m_type in ("percentage", "fixed"):
+                profile_obj.default_margin_type = m_type
+
+            ret_m = request.POST.get("retail_margin") or request.POST.get("default_retail_margin")
+            if ret_m is not None and ret_m != "":
+                try: profile_obj.default_retail_margin = Decimal(str(ret_m))
+                except Exception: pass
+
+            deal_m = request.POST.get("dealer_margin") or request.POST.get("default_dealer_margin")
+            if deal_m is not None and deal_m != "":
+                try: profile_obj.default_dealer_margin = Decimal(str(deal_m))
+                except Exception: pass
+
+            vip_m = request.POST.get("vip_margin") or request.POST.get("default_vip_margin")
+            if vip_m is not None and vip_m != "":
+                try: profile_obj.default_vip_margin = Decimal(str(vip_m))
+                except Exception: pass
+
+            profile_obj.save()
+
+        if action == "update_margins":
+            if profile_obj:
+                from apps.providers.models import ProviderPrice
+                for pp in profile_obj.products.all():
+                    pricing = getattr(pp, 'pricing', None)
+                    if not pricing:
+                        pricing = ProviderPrice.objects.create(
+                            product=pp,
+                            margin_type=profile_obj.default_margin_type,
+                            retail_margin_value=profile_obj.default_retail_margin,
+                            dealer_margin_value=profile_obj.default_dealer_margin,
+                            vip_margin_value=profile_obj.default_vip_margin,
+                        )
+                    else:
+                        pricing.margin_type = profile_obj.default_margin_type
+                        pricing.retail_margin_value = profile_obj.default_retail_margin
+                        pricing.dealer_margin_value = profile_obj.default_dealer_margin
+                        pricing.vip_margin_value = profile_obj.default_vip_margin
+                        pricing.save()
+
+                from apps.providers.alkasr import AlkasrMapperService
+                AlkasrMapperService(profile_obj).map_all_to_catalog()
+
+                messages.success(request, "تم تحديث نوع إعدادات الهامش (نسبة/مبلغ) وأسعار فئات العملاء بنجاح.")
+            return redirect(redirect_url)
             
-        if action in ("sync", "sync_ajax"):
+        elif action in ("sync", "sync_ajax"):
             from django.http import JsonResponse
             if not profile_obj:
                 if request.headers.get("X-Requested-With") == "XMLHttpRequest" or action == "sync_ajax":
