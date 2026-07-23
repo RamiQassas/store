@@ -112,14 +112,39 @@
                 <span style="opacity: 0.7;">الباقة المطلوبة:</span>
                 <strong>{{ variant.name }}</strong>
             </div>
+            {% if qty_type == "range" %}
+            <div class="summary-row">
+                <span style="opacity: 0.7;">سعر الوحدة:</span>
+                <strong>${{ unit_price }}</strong>
+            </div>
+            {% endif %}
             <div class="summary-row" style="border-top: 1px solid var(--card-border); padding-top: 0.8rem; font-size: 1.2rem;">
                 <span>المبلغ الإجمالي:</span>
-                <strong style="color: var(--primary); font-weight: 900;">${{ price }}</strong>
+                <strong id="total-price-display" style="color: var(--primary); font-weight: 900;">${{ price }}</strong>
             </div>
         </div>
 
-        <form method="POST">
+        <form method="POST" id="checkout-form">
             {% csrf_token %}
+            
+            <!-- Quantity Field for Range or List -->
+            {% if qty_type == "range" %}
+                <div class="form-group" style="margin-bottom: 2rem;">
+                    <label class="form-label">الكمية المطلوبة (من {{ qty_min }} إلى {{ qty_max }}) <span style="color: #ef4444;">*</span></label>
+                    <input type="number" id="qty-input" name="quantity" class="form-input" min="{{ qty_min }}" max="{{ qty_max }}" value="{{ quantity }}" required oninput="updateTotalPrice()">
+                </div>
+            {% elif qty_type == "list" %}
+                <div class="form-group" style="margin-bottom: 2rem;">
+                    <label class="form-label">اختر الفئة المطلوبة <span style="color: #ef4444;">*</span></label>
+                    <select id="qty-select" name="quantity" class="form-input" required onchange="updateTotalPrice()">
+                        {% for q_val in qty_list %}
+                            <option value="{{ q_val }}" {% if q_val|add:0 == quantity|add:0 %}selected{% endif %}>{{ q_val }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            {% else %}
+                <input type="hidden" name="quantity" value="1">
+            {% endif %}
             
             <!-- Physical Product Shipping Fields -->
             {% if product.product_type == "physical" and not product.form_schema.fields %}
@@ -235,6 +260,30 @@ function detectGPSLocationStore(inputId, btn) {
         },
         { enableHighAccuracy: true, timeout: 10000 }
     );
+}
+
+const unitPrice = parseFloat("{{ unit_price }}") || 0;
+const qtyType = "{{ qty_type }}";
+
+function updateTotalPrice() {
+    let qty = 1;
+    if (qtyType === "range") {
+        const inp = document.getElementById("qty-input");
+        if (inp) qty = parseInt(inp.value) || 1;
+    } else if (qtyType === "list") {
+        const sel = document.getElementById("qty-select");
+        if (sel) qty = parseInt(sel.value) || 1;
+    }
+    
+    let total = unitPrice;
+    if (qtyType === "range") {
+        total = unitPrice * qty;
+    }
+    
+    const totalEl = document.getElementById("total-price-display");
+    if (totalEl) {
+        totalEl.innerText = "$" + total.toFixed(4);
+    }
 }
 </script>
 {% endblock %}

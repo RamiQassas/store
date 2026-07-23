@@ -195,9 +195,16 @@ def store_product_detail(request, pk):
         price = var.price
         if request.user.is_authenticated:
             price = var.get_price_for_user(request.user)
+        meta = var.metadata if isinstance(var.metadata, dict) else {}
         variants_data.append({
             "variant": var,
-            "display_price": price
+            "display_price": price,
+            "meta": meta,
+            "qty_type": meta.get("qty_type", "fixed"),
+            "qty_min": meta.get("qty_min", 1),
+            "qty_max": meta.get("qty_max", 1),
+            "qty_list": meta.get("qty_list", []),
+            "product_type": meta.get("product_type", "package"),
         })
         
     return render(request, "stores/frontend/product_detail.html", {
@@ -229,18 +236,29 @@ def store_checkout(request, variant_pk):
             messages.error(request, "عذراً، هذا المتجر تجاوز الحد الأقصى للطلبات المسموح بها هذا الشهر.")
             return redirect("store_product_detail", pk=product.pk)
 
-    price = variant.get_price_for_user(request.user)
-    
-    # Get user wallet
+    # Read quantity from GET or POST
+    try:
+        quantity = int(request.POST.get("quantity") or request.GET.get("quantity") or 1)
+    except (TypeError, ValueError):
+        quantity = 1
+    quantity = max(quantity, 1)
+
+    from apps.orders.services import calculate_variant_subtotal, create_order
+    unit_price = variant.get_price_for_user(request.user)
+    total_price = calculate_variant_subtotal(variant, request.user, quantity)
+
     wallet = get_object_or_404(Wallet, user=request.user)
-    
+    meta = variant.metadata if isinstance(variant.metadata, dict) else {}
+    qty_type = meta.get("qty_type", "fixed")
+    qty_list = meta.get("qty_list", [])
+    qty_min = meta.get("qty_min", 1)
+    qty_max = meta.get("qty_max", 1)
+
     if request.method == "POST":
-        # Check client balance
-        if wallet.available_balance < price:
-            messages.error(request, "رصيدك غير كافٍ لإتمام عملية الشراء. يرجى شحن محفظتك أولاً.")
+        if wallet.available_balance < total_price:
+            messages.error(request, f"رصيدك غير كافٍ لإتمام الشراء. المبلغ المطلوب: ${total_price}")
             return redirect("store_wallet")
-            
-        # Parse dynamic fields from product form schema
+
         schema_fields = product.form_schema.get("fields", [])
         fulfillment_data = {}
         for field in schema_fields:
@@ -250,78 +268,46 @@ def store_checkout(request, variant_pk):
                 messages.error(request, f"الحقل {name} مطلوب.")
                 return redirect("store_checkout", variant_pk=variant_pk)
             fulfillment_data[name] = val
-            
-        # Physical product shipping info validation
-        shipping_name = ""
-        shipping_phone = ""
-        shipping_address = ""
-        if product.product_type == "physical" and not product.form_schema.get("fields"):
-            shipping_name = request.POST.get("shipping_name", "").strip()
-            shipping_phone = request.POST.get("shipping_phone", "").strip()
-            shipping_address = request.POST.get("shipping_address", "").strip()
-            if not (shipping_name and shipping_phone and shipping_address):
-                messages.error(request, "جميع حقول الشحن والتوصيل مطلوبة للطلب المادي.")
-                return redirect("store_checkout", variant_pk=variant_pk)
 
-        # Process order creation and ledger entries
+        shipping_name = request.POST.get("shipping_name", "").strip()
+        shipping_phone = request.POST.get("shipping_phone", "").strip()
+        shipping_address = request.POST.get("shipping_address", "").strip()
+
         try:
-            with transaction.atomic():
-                # Debit wallet
-                debit_wallet(wallet, price, reference=f"ORD-{variant.sku}", description=f"شراء باقة: {variant.name} للمنتج {product.name}")
-                
-                # Check auto delivery of keys if available
-                keys_delivered = []
-                order_status = Order.Status.PROCESSING
-                if variant.delivery_type == "keys" and variant.is_recharge_card:
-                    # Look for unused key
-                    with bypass_tenant_filter():
-                        key_obj = ProductKey.objects.filter(variant=variant, is_used=False).first()
-                    if key_obj:
-                        key_obj.is_used = True
-                        key_obj.used_by = request.user
-                        key_obj.used_at = timezone.now()
-                        key_obj.save()
-                        keys_delivered.append(key_obj.key_code)
-                        order_status = Order.Status.COMPLETED
-                
-                # Create Order
-                order = Order.objects.create(
-                    customer=request.user,
-                    store=store,
-                    status=order_status,
-                    total_amount=price,
-                    fulfillment_data={
-                        "fields": fulfillment_data,
-                        "keys": keys_delivered
-                    },
-                    shipping_name=shipping_name,
-                    shipping_phone=shipping_phone,
-                    shipping_address=shipping_address
-                )
-                
-                # Create OrderItem
-                OrderItem.objects.create(
-                    order=order,
-                    variant=variant,
-                    quantity=1,
-                    unit_price=price,
-                    unit_cost=variant.cost,
-                    total_price=price
-                )
-                
-                messages.success(request, "تم تقديم طلبك بنجاح!")
-                return redirect("store_order_detail", pk=order.pk)
-                
+            order = create_order(
+                customer=request.user,
+                variant_id=variant.id,
+                quantity=quantity,
+                fulfillment_data=fulfillment_data,
+                shipping_name=shipping_name,
+                shipping_phone=shipping_phone,
+                shipping_address=shipping_address,
+            )
+            if store and not order.store:
+                order.store = store
+                order.save(update_fields=["store"])
+            messages.success(request, "تم تقديم طلبك بنجاح!")
+            return redirect("store_order_detail", pk=order.pk)
+        except ValueError as e:
+            messages.error(request, str(e))
+            return redirect("store_checkout", variant_pk=variant_pk)
         except Exception as e:
             messages.error(request, f"حدث خطأ أثناء معالجة الطلب: {str(e)}")
             return redirect("store_product_detail", pk=product.pk)
-            
+
     return render(request, "stores/frontend/checkout.html", {
         "store": store,
         "product": product,
         "variant": variant,
-        "price": price,
+        "unit_price": unit_price,
+        "price": total_price,
+        "quantity": quantity,
+        "qty_type": qty_type,
+        "qty_list": qty_list,
+        "qty_min": qty_min,
+        "qty_max": qty_max,
         "wallet": wallet,
+    })
     })
 
 @store_login_required

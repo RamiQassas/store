@@ -101,9 +101,9 @@ class AlkasrMapperService:
                     elif pp.product_type == "fixed_quantities":
                         meta["qty_type"] = "list"
 
-                    variant_name = pp.local_name or pp.name
-                    if len(p_items) == 1 and variant_name == group_name:
-                        variant_name = "الباقة الأساسية"
+                    variant_name = (pp.local_name or pp.name).strip()
+                    if not variant_name:
+                        variant_name = f"الباقة {pp.remote_id}"
 
                     sku_val = f"PRV-{self.profile.id}-{pp.remote_id}"
 

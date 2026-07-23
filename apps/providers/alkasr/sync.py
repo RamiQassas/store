@@ -128,7 +128,7 @@ class AlkasrSyncService:
             }, timeout=300)
             raise
 
-    def _fetch_content_tree(self, max_nodes=80):
+    def _fetch_content_tree(self, max_nodes=2000):
         content_by_id = {}
         queue = ["0"]
         seen = set()
@@ -287,14 +287,14 @@ class AlkasrSyncService:
         qty_values = pdata.get("qty_values")
         api_type = pdata.get("product_type")
 
-        if api_type in ("amount", "package", "fixed_quantities"):
-            product_type = api_type
-        elif qty_values is None:
-            product_type = "package"
+        if isinstance(qty_values, list):
+            product_type = "fixed_quantities"
         elif isinstance(qty_values, dict):
             product_type = "amount"
-        elif isinstance(qty_values, list):
-            product_type = "fixed_quantities"
+        elif qty_values is None:
+            product_type = "package"
+        elif api_type in ("amount", "package", "fixed_quantities"):
+            product_type = api_type
         else:
             product_type = "package"
 

@@ -207,21 +207,26 @@ class ProductVariant(TimeStampedModel):
         3. Default tier prices
         4. Base price
         """
+        if not user or not getattr(user, 'is_authenticated', False):
+            return self.price
+
         # 1. Check for user-specific override
         user_override = self.user_prices.filter(user=user).first()
         if user_override:
             return user_override.price
 
         # 2. Check for specific tier override
-        override = self.tier_prices.filter(tier=user.tier).first()
-        if override:
-            return override.price
+        user_tier = getattr(user, 'tier', None)
+        if user_tier:
+            override = self.tier_prices.filter(tier=user_tier).first()
+            if override:
+                return override.price
             
         # 3 & 4. Fallback to default prices based on tier
         from apps.accounts.models import User
-        if user.tier == User.Tier.VIP:
+        if user_tier == User.Tier.VIP:
             return self.vip_price or self.price
-        elif user.tier == User.Tier.DEALER:
+        elif user_tier == User.Tier.DEALER:
             return self.wholesale_price or self.price
         return self.price
 
