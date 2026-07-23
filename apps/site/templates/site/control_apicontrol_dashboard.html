@@ -994,11 +994,16 @@
         const icon = document.getElementById('sync-icon');
         if (icon) icon.className = 'fas fa-arrows-rotate fa-spin text-2xl text-cyan';
 
-        const integrationId = "{{ selected_integration.id }}";
-        const formData = new FormData();
-        formData.append('action', 'sync_ajax');
-        formData.append('integration_id', integrationId);
-        formData.append('csrfmiddlewaretoken', '{{ csrf_token }}');
+        const btn = event ? (event.target.closest('button') || event.target) : null;
+        const form = btn ? btn.closest('form') : null;
+        const formData = form ? new FormData(form) : new FormData();
+        formData.set('action', 'sync_ajax');
+        if (!formData.has('integration_id')) {
+            formData.append('integration_id', "{{ selected_integration.id }}");
+        }
+        if (!formData.has('csrfmiddlewaretoken')) {
+            formData.append('csrfmiddlewaretoken', '{{ csrf_token }}');
+        }
 
         fetch('.', {
             method: 'POST',

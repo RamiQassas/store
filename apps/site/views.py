@@ -5692,14 +5692,27 @@ def control_apicontrol_dashboard(request):
             }, timeout=300)
 
             def _background_sync(profile_id):
+                from django.db import connection
+                from django.core.cache import cache
                 from apps.providers.models import ProviderProfile
                 try:
+                    connection.close()
                     p_obj = ProviderProfile.objects.get(id=profile_id)
                     svc = AlkasrSyncService(p_obj)
                     svc.sync_catalog()
                 except Exception as e:
                     import logging
                     logging.getLogger(__name__).exception(f"Background sync failed for profile {profile_id}: {e}")
+                    cache.set(f"sync_progress_{profile_id}", {
+                        "status": "failed",
+                        "total": 0,
+                        "current": 0,
+                        "percent": 0,
+                        "product_name": f"فشل الاستيراد: {str(e)}",
+                        "created": 0,
+                        "updated": 0,
+                        "error": str(e)
+                    }, timeout=300)
 
             import threading
             threading.Thread(target=_background_sync, args=(profile_obj.id,), daemon=True).start()
