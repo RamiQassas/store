@@ -17,39 +17,14 @@ class AlkasrMapperService:
                 return parent_name
 
         raw_cat = (cat.name if cat else "").strip()
-        if raw_cat.lower() in ("null", "none"):
-            raw_cat = ""
+        if raw_cat and raw_cat.lower() not in ("null", "none"):
+            return raw_cat
             
         prod_name = pp.name.strip()
-        combined = f"{raw_cat} {prod_name}".upper()
-
-        if "PUBG" in combined or "UC" in combined or raw_cat.upper().startswith("UC"):
-            return "PUBG Mobile"
-
-        if "سيرتيل" in raw_cat or "سيريتل" in raw_cat or "SYRIATEL" in combined:
-            return "رصيد سيرتيل (Syriatel)"
-
-        if "MTN" in combined or "ام تي ان" in raw_cat or "إم تي إن" in raw_cat:
-            return "رصيد MTN"
-
-        if "FREE FIRE" in combined or "فري فاير" in raw_cat or "فراي فاير" in raw_cat:
-            return "فري فاير (Free Fire)"
-
-        if "TIKTOK" in combined or "تيك توك" in raw_cat:
-            return "تيك توك (TikTok)"
-
-        if "YALLA" in combined or "يلا لودو" in raw_cat:
-            return "يلا لودو (Yalla Ludo)"
-
-        if raw_cat and not raw_cat.upper().startswith("UC"):
-            result = raw_cat
-        else:
-            result = prod_name or f"Product {pp.remote_id}"
-            
-        if not result or str(result).strip().lower() in ("null", "none"):
+        if not prod_name or prod_name.lower() in ("null", "none"):
             return "منتجات بدون تصنيف"
             
-        return result
+        return prod_name
 
     @transaction.atomic
     def map_all_to_catalog(self, products_qs=None, selected_group_names=None):
@@ -140,9 +115,14 @@ class AlkasrMapperService:
                         "qty_type": "fixed",
                         "qty_min": pp.qty_min,
                         "qty_max": pp.qty_max,
-                        "qty_list": pp.qty_list,
                         "product_type": pp.product_type
                     }
+                    if pp.qty_list:
+                        meta["qty_list"] = pp.qty_list
+                    
+                    if pp.product_type == "amount" and getattr(pp, 'qty_min', 0) >= 10:
+                        meta["is_per_mille"] = True
+
                     if pp.product_type == "amount":
                         meta["qty_type"] = "range"
                     elif pp.product_type == "fixed_quantities":

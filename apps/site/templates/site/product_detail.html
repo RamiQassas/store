@@ -265,7 +265,8 @@
                      data-qty-type="{{ v.metadata.qty_type|default:'none' }}"
                      data-qty-min="{{ v.metadata.qty_min|default:1 }}"
                      data-qty-max="{{ v.metadata.qty_max|default:999999 }}"
-                     data-qty-list='{% if v.metadata.qty_list %}{{ v.metadata.qty_list|safe }}{% else %}[]{% endif %}'>
+                     data-qty-list='{% if v.metadata.qty_list %}{{ v.metadata.qty_list|safe }}{% else %}[]{% endif %}'
+                     data-is-per-mille="{% if v.metadata.is_per_mille %}true{% else %}false{% endif %}">
                     <div class="flex items-center gap-5">
                         <div class="radio-circle"></div>
                         <div>
@@ -647,7 +648,16 @@ function updateQuantityPrice(isFromCoupon = false) {
     }
     
     const qtyType = card.getAttribute('data-qty-type') || 'fixed';
-    const subtotal = qtyType === 'range' ? basePrice * qty : basePrice;
+    const isPerMille = card.getAttribute('data-is-per-mille') === 'true';
+    
+    let subtotal = basePrice;
+    if (qtyType === 'range') {
+        if (isPerMille) {
+            subtotal = (basePrice * qty) / 1000;
+        } else {
+            subtotal = basePrice * qty;
+        }
+    }
     
     const breakdown = document.getElementById('price-breakdown');
     const feedback = document.getElementById('coupon-feedback');
