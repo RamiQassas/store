@@ -46,6 +46,28 @@ def _safe_int(value, default=0):
         return default
 
 
+def calculate_variant_subtotal(variant, user, quantity=1):
+    """
+    Return the payable subtotal for a variant and provider quantity.
+
+    Provider list quantities are selectable denominations/options, not a
+    multiplier. Range quantities are the only API quantity type priced per unit.
+    """
+    try:
+        qty = int(quantity)
+    except (TypeError, ValueError):
+        qty = 1
+    qty = max(qty, 1)
+
+    meta = variant.metadata if isinstance(variant.metadata, dict) else {}
+    qty_type = meta.get("qty_type", "fixed")
+    unit_price = variant.get_price_for_user(user)
+
+    if qty_type == "range":
+        return unit_price * Decimal(qty)
+    return unit_price
+
+
 # ---------------------------------------------------------------------------
 # Coupon validation
 # ---------------------------------------------------------------------------
@@ -268,24 +290,8 @@ def create_order(customer, variant_id, quantity=1, fulfillment_data=None,
             raise ValueError("المخزون غير كافٍ لتلبية الكمية المطلوبة.")
 
     # ── Price calculation ─────────────────────────────────────────────────────
-    #
-    #  The variant.price stored in the DB is ALWAYS the per-unit / per-package
-    #  retail price (after markup).
-    #
-    #  product_type == "amount"  → price is per unit
-    #      subtotal = variant.price × quantity
-    #      Example: 0.104 $/UC × 100 UC = 10.40 $
-    #
-    #  product_type == "package" → price is the fixed package price
-    #      subtotal = variant.price × quantity
-    #      (quantity is 1 for fixed, or one value from qty_list for list type —
-    #       each value in the list IS a separate package option, not a multiplier)
-    #
-    #  In both cases the formula is the same: price × quantity.
-    #  The key difference is what "quantity" means semantically.
-    #
     price    = variant.get_price_for_user(customer)
-    subtotal = price * Decimal(quantity)
+    subtotal = calculate_variant_subtotal(variant, customer, quantity)
 
     # ── Coupon discount ───────────────────────────────────────────────────────
     discount = Decimal("0.00")

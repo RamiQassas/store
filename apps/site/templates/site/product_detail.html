@@ -646,7 +646,8 @@ function updateQuantityPrice(isFromCoupon = false) {
         qty = (isNaN(val) || val < 1) ? 1 : val;
     }
     
-    const subtotal = basePrice * qty;
+    const qtyType = card.getAttribute('data-qty-type') || 'fixed';
+    const subtotal = qtyType === 'range' ? basePrice * qty : basePrice;
     
     const breakdown = document.getElementById('price-breakdown');
     const feedback = document.getElementById('coupon-feedback');
