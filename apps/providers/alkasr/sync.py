@@ -78,11 +78,8 @@ class AlkasrSyncService:
                     stats["updated"] += 1
 
             with transaction.atomic():
-                if active_remote_ids:
-                    stats["disabled"] = ProviderProduct.objects.filter(
-                        profile=self.profile,
-                        is_active=True,
-                    ).exclude(remote_id__in=active_remote_ids).update(is_active=False)
+                # Ensure all provider products remain active
+                ProviderProduct.objects.filter(profile=self.profile).update(is_active=True, local_is_active=True)
 
                 from .mapper import AlkasrMapperService
                 AlkasrMapperService(self.profile).map_all_to_catalog()
@@ -191,7 +188,7 @@ class AlkasrSyncService:
             or "0.00"
         )
         cost = self._decimal(raw_cost)
-        is_available = bool(pdata.get("available", pdata.get("is_active", True)))
+        is_available = True
 
         category_obj = self._category_for_product(pdata, categories_by_remote)
         product_type, qty_min, qty_max, qty_list = self._quantity_config(pdata)
@@ -213,13 +210,16 @@ class AlkasrSyncService:
                 qty_min=qty_min,
                 qty_max=qty_max,
                 qty_list=qty_list,
-                is_active=is_available,
+                is_active=True,
                 local_is_active=True,
             )
             ProviderPrice.objects.create(
                 product=product_obj,
-                margin_type="percentage",
-                margin_value=Decimal("0.00"),
+                margin_type=getattr(self.profile, "default_margin_type", "percentage"),
+                margin_value=getattr(self.profile, "default_retail_margin", Decimal("5.00")),
+                retail_margin_value=getattr(self.profile, "default_retail_margin", Decimal("5.00")),
+                dealer_margin_value=getattr(self.profile, "default_dealer_margin", Decimal("2.00")),
+                vip_margin_value=getattr(self.profile, "default_vip_margin", Decimal("1.00")),
             )
         else:
             old_cost = product_obj.cost_price
@@ -230,7 +230,7 @@ class AlkasrSyncService:
             product_obj.qty_min = qty_min
             product_obj.qty_max = qty_max
             product_obj.qty_list = qty_list
-            product_obj.is_active = is_available
+            product_obj.is_active = True
             product_obj.local_is_active = True
             product_obj.save()
 
@@ -238,8 +238,11 @@ class AlkasrSyncService:
             if not pricing_obj:
                 pricing_obj = ProviderPrice.objects.create(
                     product=product_obj,
-                    margin_type="percentage",
-                    margin_value=Decimal("0.00"),
+                    margin_type=getattr(self.profile, "default_margin_type", "percentage"),
+                    margin_value=getattr(self.profile, "default_retail_margin", Decimal("5.00")),
+                    retail_margin_value=getattr(self.profile, "default_retail_margin", Decimal("5.00")),
+                    dealer_margin_value=getattr(self.profile, "default_dealer_margin", Decimal("2.00")),
+                    vip_margin_value=getattr(self.profile, "default_vip_margin", Decimal("1.00")),
                 )
 
             if old_cost != cost:
@@ -335,25 +338,12 @@ class AlkasrSyncService:
     def _looks_like_product(self, obj):
         if not isinstance(obj, dict):
             return False
-        has_id = (
+        return (
             obj.get("id") is not None
             or obj.get("service") is not None
             or obj.get("service_id") is not None
             or obj.get("product_id") is not None
         )
-        has_price_or_meta = (
-            "price" in obj
-            or "base_price" in obj
-            or "cost" in obj
-            or "rate" in obj
-            or "price_usd" in obj
-            or "qty_values" in obj
-            or "product_type" in obj
-            or "params" in obj
-            or "min" in obj
-            or "max" in obj
-        )
-        return bool(has_id and has_price_or_meta)
 
     def _looks_like_category(self, obj):
         return bool(

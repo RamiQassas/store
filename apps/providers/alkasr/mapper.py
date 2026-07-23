@@ -117,6 +117,8 @@ class AlkasrMapperService:
 
                     pricing = getattr(pp, 'pricing', None)
                     final_price = pricing.final_price if pricing else pp.cost_price
+                    wholesale_price = pricing.final_wholesale_price if pricing else pp.cost_price
+                    vip_price = pricing.final_vip_price if pricing else pp.cost_price
 
                     meta = {
                         "qty_type": "fixed",
@@ -146,6 +148,8 @@ class AlkasrMapperService:
                             name=variant_name,
                             sku=sku_val,
                             price=final_price,
+                            wholesale_price=wholesale_price,
+                            vip_price=vip_price,
                             cost=pp.cost_price,
                             is_active=True,  # Active by default
                             is_temporarily_disabled=False, # Available by default
@@ -155,6 +159,8 @@ class AlkasrMapperService:
                     else:
                         local_variant.name = variant_name
                         local_variant.price = final_price
+                        local_variant.wholesale_price = wholesale_price
+                        local_variant.vip_price = vip_price
                         local_variant.cost = pp.cost_price
                         local_variant.is_active = True
                         local_variant.is_temporarily_disabled = False

@@ -18,6 +18,23 @@ class ProviderProfile(TimeStampedModel):
     currency = models.CharField(max_length=10, default="USD", verbose_name="العملة")
     last_sync_at = models.DateTimeField(null=True, blank=True, verbose_name="تاريخ آخر مزامنة")
 
+    # Default Margin Configuration per Customer Tier
+    default_margin_type = models.CharField(
+        max_length=20,
+        choices=(("fixed", "مبلغ ثابت"), ("percentage", "نسبة مئوية")),
+        default="percentage",
+        verbose_name="نوع هامش الربح الافتراضي"
+    )
+    default_retail_margin = models.DecimalField(
+        max_digits=10, decimal_places=2, default=Decimal('5.00'), verbose_name="نسبة/مبلغ ربح المفرق (%)"
+    )
+    default_dealer_margin = models.DecimalField(
+        max_digits=10, decimal_places=2, default=Decimal('2.00'), verbose_name="نسبة/مبلغ ربح التجار/الجملة (%)"
+    )
+    default_vip_margin = models.DecimalField(
+        max_digits=10, decimal_places=2, default=Decimal('1.00'), verbose_name="نسبة/مبلغ ربح VIP (%)"
+    )
+
     objects = TenantManager()
     all_objects = models.Manager()
 
@@ -97,28 +114,43 @@ class ProviderProductParameter(TimeStampedModel):
 
 
 class ProviderPrice(TimeStampedModel):
-    """Pricing configuration and history for a ProviderProduct."""
+    """Pricing configuration and history for a ProviderProduct across Customer Tiers."""
     product = models.OneToOneField(ProviderProduct, on_delete=models.CASCADE, related_name="pricing")
     margin_type = models.CharField(
         max_length=20, 
         choices=(("fixed", "مبلغ ثابت"), ("percentage", "نسبة مئوية"), ("manual", "سعر يدوي")),
         default="percentage"
     )
-    margin_value = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal('0.00'))
+    margin_value = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal('5.00'))
+    retail_margin_value = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal('5.00'), verbose_name="ربح المفرق")
+    dealer_margin_value = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal('2.00'), verbose_name="ربح التجار")
+    vip_margin_value = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal('1.00'), verbose_name="ربح VIP")
     manual_price = models.DecimalField(max_digits=14, decimal_places=2, null=True, blank=True)
     round_to_nearest = models.BooleanField(default=False)
-    
-    @property
-    def final_price(self):
+
+    def calculate_price_for_margin(self, margin_val):
         if self.margin_type == "manual" and self.manual_price is not None:
             return self.manual_price
         
         cost = self.product.cost_price
+        m_val = margin_val if margin_val is not None else self.margin_value
         if self.margin_type == "fixed":
-            return cost + self.margin_value
+            return cost + m_val
         elif self.margin_type == "percentage":
-            return cost + (cost * (self.margin_value / Decimal('100.0')))
+            return cost + (cost * (m_val / Decimal('100.0')))
         return cost
+
+    @property
+    def final_price(self):
+        return self.calculate_price_for_margin(self.retail_margin_value or self.margin_value)
+
+    @property
+    def final_wholesale_price(self):
+        return self.calculate_price_for_margin(self.dealer_margin_value)
+
+    @property
+    def final_vip_price(self):
+        return self.calculate_price_for_margin(self.vip_margin_value)
 
 
 class ProviderPriceHistory(TimeStampedModel):
