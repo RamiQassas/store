@@ -1,6 +1,9 @@
+import logging
 from django.db import transaction
 from apps.providers.models import ProviderMapping, ProviderProduct
-from apps.catalog.models import Product, ProductVariant, Category
+from apps.catalog.models import Product, ProductVariant
+
+logger = logging.getLogger(__name__)
 
 class AlkasrMapperService:
     def __init__(self, profile):
@@ -8,132 +11,134 @@ class AlkasrMapperService:
 
     @transaction.atomic
     def map_all_to_catalog(self, products_qs=None):
-        """Batch map all provider products to the store catalog in 1 single transaction."""
+        """
+        Batch map provider products into main store catalog.
+        - Groups packages belonging to the same service under 1 Product with multiple ProductVariants (باقات).
+        - Does NOT auto-create categories (user categorizes manually).
+        - Ensures store=self.profile.store is set so products appear on /catalog/.
+        """
         if products_qs is None:
             products_qs = ProviderProduct.objects.filter(profile=self.profile, is_active=True)
             
         products_list = list(products_qs.select_related('category', 'pricing').prefetch_related('parameters'))
         store = self.profile.store
-        existing_cats = {
-            (c.name, c.parent_id): c
-            for c in Category.objects.filter(store=store).select_related("parent")
-        }
-        existing_mappings = {
-            m.provider_product_id: m 
-            for m in ProviderMapping.objects.filter(provider_product__in=products_list).select_related('local_product', 'local_variant')
-        }
-        
-        for provider_product in products_list:
+
+        # Group provider products by service group (category name or service name)
+        grouped_products = {}
+        for pp in products_list:
+            group_name = (pp.category.name if pp.category else pp.name).strip()
+            if not group_name:
+                group_name = pp.name.strip()
+            grouped_products.setdefault(group_name, []).append(pp)
+
+        for group_name, p_items in grouped_products.items():
             try:
-                mapping = existing_mappings.get(provider_product.id)
-                if not mapping:
-                    mapping = ProviderMapping(provider_product=provider_product)
-                    
-                cat = self._ensure_local_category(provider_product.category, existing_cats)
+                # Find existing Product or create a new one
+                local_product = Product.objects.filter(
+                    store=store,
+                    name=group_name,
+                    is_api_product=True,
+                    api_provider="alkasr"
+                ).first()
 
-                is_active = provider_product.is_active and provider_product.local_is_active
-                product_name = provider_product.local_name or provider_product.name
-                description = provider_product.local_description or ""
+                is_any_active = any(p.is_active and p.local_is_active for p in p_items)
 
-                schema = {"version": 1, "fields": []}
-                for param in provider_product.parameters.all():
-                    schema["fields"].append({
-                        "name": param.name,
-                        "label": param.label,
-                        "type": param.parameter_type,
-                        "required": param.required
-                    })
+                # Build combined parameters form_schema for this product
+                schema_fields = {}
+                for pp in p_items:
+                    for param in pp.parameters.all():
+                        if param.name not in schema_fields:
+                            schema_fields[param.name] = {
+                                "name": param.name,
+                                "label": param.label,
+                                "type": param.parameter_type,
+                                "required": param.required
+                            }
+                schema = {"version": 1, "fields": list(schema_fields.values())}
 
-                if not mapping.local_product:
+                if not local_product:
                     local_product = Product.objects.create(
                         store=store,
-                        name=product_name,
-                        category=cat,
-                        is_active=is_active,
+                        name=group_name,
+                        category=None,  # No auto-category creation (user categorizes manually)
+                        is_active=is_any_active,
                         is_api_product=True,
                         api_provider="alkasr",
-                        description=description,
+                        description=p_items[0].local_description or "",
                         form_schema=schema
                     )
-                    mapping.local_product = local_product
                 else:
-                    local_product = mapping.local_product
-                    local_product.name = product_name
-                    local_product.description = description
-                    local_product.is_active = is_active
+                    if store and local_product.store != store:
+                        local_product.store = store
+                    local_product.is_active = is_any_active
                     local_product.is_api_product = True
                     local_product.api_provider = "alkasr"
-                    local_product.form_schema = schema
-                    if cat:
-                        local_product.category = cat
+                    if schema_fields:
+                        local_product.form_schema = schema
                     local_product.save()
 
-                pricing = getattr(provider_product, 'pricing', None)
-                final_price = pricing.final_price if pricing else provider_product.cost_price
-                
-                meta = {
-                    "qty_type": "fixed",
-                    "qty_min": provider_product.qty_min,
-                    "qty_max": provider_product.qty_max,
-                    "qty_list": provider_product.qty_list,
-                    "product_type": provider_product.product_type
-                }
-                
-                if provider_product.product_type == "amount":
-                    meta["qty_type"] = "range"
-                elif provider_product.product_type == "fixed_quantities":
-                    meta["qty_type"] = "list"
+                # Map each ProviderProduct as a ProductVariant (باقة) inside this Product
+                for pp in p_items:
+                    mapping = ProviderMapping.objects.filter(provider_product=pp).first()
+                    if not mapping:
+                        mapping = ProviderMapping(provider_product=pp)
 
-                if not mapping.local_variant:
-                    local_variant = ProductVariant.objects.create(
-                        product=local_product,
-                        name="Default",
-                        sku=f"PRV-{provider_product.remote_id}",
-                        price=final_price,
-                        cost=provider_product.cost_price,
-                        is_active=is_active,
-                        metadata=meta,
-                        api_product_id=provider_product.remote_id
-                    )
+                    mapping.local_product = local_product
+
+                    is_active = pp.is_active and pp.local_is_active
+                    pricing = getattr(pp, 'pricing', None)
+                    final_price = pricing.final_price if pricing else pp.cost_price
+
+                    meta = {
+                        "qty_type": "fixed",
+                        "qty_min": pp.qty_min,
+                        "qty_max": pp.qty_max,
+                        "qty_list": pp.qty_list,
+                        "product_type": pp.product_type
+                    }
+                    if pp.product_type == "amount":
+                        meta["qty_type"] = "range"
+                    elif pp.product_type == "fixed_quantities":
+                        meta["qty_type"] = "list"
+
+                    variant_name = pp.local_name or pp.name
+                    if len(p_items) == 1 and variant_name == group_name:
+                        variant_name = "الباقة الأساسية"
+
+                    sku_val = f"PRV-{self.profile.id}-{pp.remote_id}"
+
+                    local_variant = ProductVariant.objects.filter(sku=sku_val).first()
+                    if not local_variant:
+                        local_variant = ProductVariant.objects.filter(api_product_id=pp.remote_id, product=local_product).first()
+
+                    if not local_variant:
+                        local_variant = ProductVariant.objects.create(
+                            product=local_product,
+                            name=variant_name,
+                            sku=sku_val,
+                            price=final_price,
+                            cost=pp.cost_price,
+                            is_active=is_active,
+                            metadata=meta,
+                            api_product_id=pp.remote_id
+                        )
+                    else:
+                        local_variant.name = variant_name
+                        local_variant.price = final_price
+                        local_variant.cost = pp.cost_price
+                        local_variant.is_active = is_active
+                        local_variant.metadata = meta
+                        local_variant.api_product_id = pp.remote_id
+                        local_variant.save()
+
                     mapping.local_variant = local_variant
-                else:
-                    local_variant = mapping.local_variant
-                    local_variant.price = final_price
-                    local_variant.cost = provider_product.cost_price
-                    local_variant.is_active = is_active
-                    local_variant.metadata = meta
-                    local_variant.api_product_id = provider_product.remote_id
-                    local_variant.save()
+                    mapping.save()
 
-                mapping.save()
-            except Exception as map_err:
+            except Exception as e:
+                logger.exception("Error mapping group '%s' to catalog: %s", group_name, e)
                 continue
 
     @transaction.atomic
     def map_to_catalog(self, provider_product: ProviderProduct):
         """Creates or updates a Product/Variant in the main store catalog."""
         return self.map_all_to_catalog(ProviderProduct.objects.filter(id=provider_product.id))
-
-    def _ensure_local_category(self, provider_category, existing_cats):
-        if not provider_category:
-            return None
-
-        parent = self._ensure_local_category(provider_category.parent, existing_cats)
-        key = (provider_category.name, parent.id if parent else None)
-        if key in existing_cats:
-            return existing_cats[key]
-
-        cat = Category.objects.filter(
-            store=self.profile.store,
-            name=provider_category.name,
-            parent=parent,
-        ).first()
-        if not cat:
-            cat = Category.objects.create(
-                name=provider_category.name,
-                parent=parent,
-                store=self.profile.store,
-                is_active=True,
-            )
-        existing_cats[key] = cat
-        return cat

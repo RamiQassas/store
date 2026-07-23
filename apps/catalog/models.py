@@ -47,7 +47,7 @@ class Product(TimeStampedModel):
         verbose_name="نوع المنتج"
     )
     name = models.CharField(max_length=160, verbose_name="اسم المنتج")
-    category = models.ForeignKey(Category, related_name="products", on_delete=models.PROTECT, verbose_name="التصنيف")
+    category = models.ForeignKey(Category, related_name="products", on_delete=models.SET_NULL, null=True, blank=True, verbose_name="التصنيف")
     store = models.ForeignKey(
         "stores.Store",
         on_delete=models.CASCADE,

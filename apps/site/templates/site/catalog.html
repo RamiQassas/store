@@ -1173,7 +1173,7 @@
 
                         <!-- Body -->
                         <div class="card-body">
-                            <span class="card-cat">{{ p.category.name }}</span>
+                            <span class="card-cat">{{ p.category.name|default:"خدمات رقمية" }}</span>
                             <a href="{% url 'product_detail' p.id %}" class="card-name">{{ p.name }}</a>
                             
                             <!-- Variants preview -->

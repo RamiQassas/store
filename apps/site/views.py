@@ -1515,16 +1515,21 @@ def home(request):
 
 
 def catalog(request):
+    store = getattr(request, "store", None)
     view_type = request.GET.get("view", "products")
     cat_id = request.GET.get("category")
     q = request.GET.get("q", "").strip()
     sort = request.GET.get("sort", "newest")
     cols = request.GET.get("cols", "2")
 
-    all_cats = list(Category.objects.filter(is_active=True).order_by("sort_order", "name"))
-    annotate_category_counts(all_cats)
+    if store:
+        all_cats = list(Category.objects.filter(store=store, is_active=True).order_by("sort_order", "name"))
+        products = Product.objects.filter(store=store, is_active=True).select_related("category").prefetch_related("variants")
+    else:
+        all_cats = list(Category.objects.filter(is_active=True).order_by("sort_order", "name"))
+        products = Product.objects.filter(is_active=True).select_related("category").prefetch_related("variants")
 
-    products = Product.objects.filter(is_active=True).select_related("category").prefetch_related("variants")
+    annotate_category_counts(all_cats)
 
     selected_category = None
     subcategories = []
@@ -1539,7 +1544,7 @@ def catalog(request):
 
     if q:
         # If user explicitly searched, expand query to match variants (packages) and categories
-        products = Product.objects.filter(is_active=True).select_related("category").prefetch_related("variants").filter(
+        products = products.filter(
             Q(name__icontains=q) |
             Q(description__icontains=q) |
             Q(variants__name__icontains=q) |

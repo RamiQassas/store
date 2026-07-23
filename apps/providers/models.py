@@ -192,6 +192,6 @@ class ProviderErrorLog(TimeStampedModel):
 
 class ProviderMapping(TimeStampedModel):
     """Maps local store catalog Category/Product to ProviderCategory/ProviderProduct"""
-    local_product = models.OneToOneField("catalog.Product", on_delete=models.CASCADE, related_name="provider_mapping", null=True, blank=True)
+    local_product = models.ForeignKey("catalog.Product", on_delete=models.CASCADE, related_name="provider_mappings", null=True, blank=True)
     local_variant = models.OneToOneField("catalog.ProductVariant", on_delete=models.CASCADE, related_name="provider_mapping", null=True, blank=True)
     provider_product = models.ForeignKey(ProviderProduct, on_delete=models.CASCADE, related_name="mappings")
