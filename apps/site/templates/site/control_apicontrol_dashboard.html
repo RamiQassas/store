@@ -379,17 +379,17 @@
                 </div>
             </div>
 
-            <!-- Category Checklist -->
+            <!-- Group Checklist -->
             <div>
-                <label class="text-[10px] text-slate-400 font-black block mb-3 uppercase tracking-wider">التصنيفات المتاحة في API (اختر للتزامن)</label>
+                <label class="text-[10px] text-slate-400 font-black block mb-3 uppercase tracking-wider">التطبيقات والخدمات المتاحة للاستيراد (حدد ما ترغب بإضافته لمتجرك)</label>
                 <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 p-6 bg-black/30 border border-white/5 rounded-2xl max-h-96 overflow-y-auto">
-                    {% for cat in categories %}
+                    {% for group in provider_groups %}
                     <label class="flex items-center gap-3 p-3 bg-white/[0.02] border border-white/5 rounded-xl cursor-pointer hover:bg-white/[0.05] transition-all">
-                        <input type="checkbox" name="categories" value="{{ cat.id }}" checked class="rounded border-white/10 text-cyan bg-black/60 focus:ring-cyan focus:ring-offset-0">
-                        <span class="text-xs text-white font-bold">{{ cat.name }}</span>
+                        <input type="checkbox" name="categories" value="{{ group.name }}" checked class="rounded border-white/10 text-cyan bg-black/60 focus:ring-cyan focus:ring-offset-0">
+                        <span class="text-xs text-white font-bold">{{ group.name }} <span class="text-[9px] text-slate-500 mr-1">({{ group.count }} باقة)</span></span>
                     </label>
                     {% empty %}
-                    <div class="col-span-full py-12 text-center text-slate-600 text-xs italic">لا توجد تصنيفات لعرضها.</div>
+                    <div class="col-span-full py-12 text-center text-slate-600 text-xs italic">لا توجد تطبيقات لعرضها. انقر على تحديث القائمة من المزود من الإعدادات.</div>
                     {% endfor %}
                 </div>
             </div>

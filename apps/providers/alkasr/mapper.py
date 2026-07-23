@@ -42,7 +42,7 @@ class AlkasrMapperService:
         return prod_name or f"Product {pp.remote_id}"
 
     @transaction.atomic
-    def map_all_to_catalog(self, products_qs=None):
+    def map_all_to_catalog(self, products_qs=None, selected_group_names=None):
         """
         Batch map provider products into main store catalog.
         - Groups packages belonging to the same service under 1 Product with multiple ProductVariants (باقات).
@@ -59,6 +59,8 @@ class AlkasrMapperService:
         grouped_products = {}
         for pp in products_list:
             group_name = self._get_group_name(pp)
+            if selected_group_names is not None and group_name not in selected_group_names:
+                continue
             grouped_products.setdefault(group_name, []).append(pp)
 
         for group_name, p_items in grouped_products.items():
@@ -155,7 +157,7 @@ class AlkasrMapperService:
                             wholesale_price=wholesale_price,
                             vip_price=vip_price,
                             cost=pp.cost_price,
-                            is_active=True,  # Active by default
+                            is_active=pp.is_active,  # Match provider active state
                             is_temporarily_disabled=False, # Available by default
                             metadata=meta,
                             api_product_id=pp.remote_id
@@ -166,7 +168,7 @@ class AlkasrMapperService:
                         local_variant.wholesale_price = wholesale_price
                         local_variant.vip_price = vip_price
                         local_variant.cost = pp.cost_price
-                        local_variant.is_active = True
+                        local_variant.is_active = pp.is_active
                         local_variant.is_temporarily_disabled = False
                         local_variant.metadata = meta
                         local_variant.api_product_id = pp.remote_id

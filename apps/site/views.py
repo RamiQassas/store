@@ -5745,15 +5745,36 @@ def control_apicontrol_dashboard(request):
                 "updated": 0
             }, timeout=300)
 
-            def _background_sync(profile_id):
+            def _background_sync(profile_id, selected_groups):
                 from django.db import connection
                 from django.core.cache import cache
                 from apps.providers.models import ProviderProfile
+                from apps.providers.alkasr import AlkasrMapperService
                 try:
                     connection.close()
                     p_obj = ProviderProfile.objects.get(id=profile_id)
-                    svc = AlkasrSyncService(p_obj)
-                    svc.sync_catalog()
+                    cache.set(f"sync_progress_{profile_id}", {
+                        "status": "running",
+                        "total": 100,
+                        "current": 50,
+                        "percent": 50,
+                        "product_name": "جاري معالجة وتوليد المنتجات المحددة في متجرك...",
+                        "created": 0,
+                        "updated": 0
+                    }, timeout=300)
+                    
+                    mapper = AlkasrMapperService(p_obj)
+                    mapper.map_all_to_catalog(selected_group_names=selected_groups)
+                    
+                    cache.set(f"sync_progress_{profile_id}", {
+                        "status": "completed",
+                        "total": 100,
+                        "current": 100,
+                        "percent": 100,
+                        "product_name": "تم توليد واستيراد المنتجات المحددة بنجاح",
+                        "created": len(selected_groups),
+                        "updated": 0
+                    }, timeout=300)
                 except Exception as e:
                     import logging
                     logging.getLogger(__name__).exception(f"Background sync failed for profile {profile_id}: {e}")
@@ -5769,7 +5790,8 @@ def control_apicontrol_dashboard(request):
                     }, timeout=300)
 
             import threading
-            threading.Thread(target=_background_sync, args=(profile_obj.id,), daemon=True).start()
+            selected_groups = request.POST.getlist("categories") # We reuse the input name "categories" for backwards compatibility
+            threading.Thread(target=_background_sync, args=(profile_obj.id, selected_groups), daemon=True).start()
             
             if request.headers.get("X-Requested-With") == "XMLHttpRequest" or action == "sync_ajax":
                 return JsonResponse({"status": "started", "message": "بدأت المزامنة والتحديث بنجاح"})
@@ -5918,7 +5940,7 @@ def control_apicontrol_dashboard(request):
     
     if profile_obj:
         categories = list(ProviderCategory.objects.filter(profile=profile_obj).values("id", "name", "remote_id")[:100])
-        all_p = ProviderProduct.objects.filter(profile=profile_obj).select_related("category")
+        all_p = ProviderProduct.objects.filter(profile=profile_obj, is_active=True).select_related("category")
         products_count = all_p.count()
         visible_products = list(all_p.order_by("category__name", "name")[:150])
         alkasr_products = [
@@ -5930,6 +5952,22 @@ def control_apicontrol_dashboard(request):
             }
             for p in visible_products
         ]
+        
+        # Build provider groups instead of categories
+        from apps.providers.alkasr.mapper import AlkasrMapperService
+        mapper = AlkasrMapperService(profile_obj)
+        groups_dict = {}
+        for pp in all_p:
+            g_name = mapper._get_group_name(pp)
+            if not g_name or g_name.lower() in ("null", "none"):
+                continue
+            if g_name not in groups_dict:
+                groups_dict[g_name] = {"name": g_name, "count": 0}
+            groups_dict[g_name]["count"] += 1
+            
+        provider_groups = sorted(groups_dict.values(), key=lambda x: x["name"])
+    else:
+        provider_groups = []
     
     if profile_obj and alkasr_products:
         visible_remote_ids = [str(item["id"]) for item in alkasr_products]
@@ -6037,6 +6075,7 @@ def control_apicontrol_dashboard(request):
         "total_sales_usd": total_sales_usd,
         "total_profit_usd": total_profit_usd,
         "provider_stats": provider_stats,
+        "provider_groups": provider_groups,
         "active_integrations": active_integrations,
         "selected_integration": integration or profile_obj,
         "recent_transactions": recent_transactions,

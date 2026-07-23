@@ -78,11 +78,15 @@ class AlkasrSyncService:
                     stats["updated"] += 1
 
             with transaction.atomic():
-                # Ensure all provider products remain active
-                ProviderProduct.objects.filter(profile=self.profile).update(is_active=True, local_is_active=True)
+                # Disable products that were deleted from the provider
+                disabled_count = ProviderProduct.objects.filter(profile=self.profile).exclude(remote_id__in=active_remote_ids).update(is_active=False, local_is_active=False)
+                stats["disabled"] = disabled_count
+                
+                # Re-enable products that were found
+                ProviderProduct.objects.filter(profile=self.profile, remote_id__in=active_remote_ids).update(is_active=True, local_is_active=True)
 
-                from .mapper import AlkasrMapperService
-                AlkasrMapperService(self.profile).map_all_to_catalog()
+                # DO NOT automatically map to catalog here anymore.
+                # The user will explicitly select what to map via the UI.
 
                 sync_log.status = "success"
                 sync_log.products_created = stats["created"]
