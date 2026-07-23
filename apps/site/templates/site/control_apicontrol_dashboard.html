@@ -340,15 +340,42 @@
             <input type="hidden" name="integration_id" value="{{ selected_integration.id }}">
             <input type="hidden" name="action" value="sync">
 
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <!-- Profit Margin Markup -->
-                <div class="md:col-span-1">
-                    <label class="text-[10px] text-slate-400 font-black block mb-2 uppercase tracking-wider">نسبة الربح المضافة (Markup %)</label>
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 p-6 bg-black/40 border border-white/5 rounded-2xl">
+                <!-- Margin Type -->
+                <div>
+                    <label class="text-[10px] text-slate-400 font-black block mb-2 uppercase tracking-wider">طريقة إضافة الربح</label>
+                    <select name="margin_type" class="builder-input w-full text-xs" style="background: rgba(0,0,0,0.6); border: 1px solid rgba(255,255,255,0.08); color: #fff; padding: 0.75rem 1rem; border-radius: 14px;">
+                        <option value="percentage" {% if profile.default_margin_type == "percentage" %}selected{% endif %}>نسبة مئوية (%)</option>
+                        <option value="fixed" {% if profile.default_margin_type == "fixed" %}selected{% endif %}>مبلغ ثابت (+)</option>
+                    </select>
+                    <span class="text-[9px] text-slate-500 mt-2 block">اختيار نسبة مئوية أو مبلغ ثابت لكل فئة.</span>
+                </div>
+
+                <!-- Retail Profit -->
+                <div>
+                    <label class="text-[10px] text-emerald-400 font-black block mb-2 uppercase tracking-wider">ربح العميل (المفرق)</label>
                     <div class="relative">
-                        <input type="number" step="0.1" min="0" name="markup_percent" value="10.0" class="builder-input pr-12 w-full" style="background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.05); color: #fff; padding: 0.75rem 1rem; border-radius: 14px;" required>
-                        <span class="absolute left-4 top-1/2 -translate-y-1/2 font-black text-xs text-slate-500">%</span>
+                        <input type="number" step="0.01" min="0" name="retail_margin" value="{{ profile.default_retail_margin|default:'5.00' }}" class="builder-input pr-10 w-full" style="background: rgba(0,0,0,0.6); border: 1px solid rgba(16,185,129,0.2); color: #fff; padding: 0.75rem 1rem; border-radius: 14px;" required>
                     </div>
-                    <span class="text-[9px] text-slate-500 mt-2 block">سعر مبيع العميل = التكلفة من API + نسبة الربح المضافة.</span>
+                    <span class="text-[9px] text-slate-500 mt-2 block">نسبة/مبلغ الربح للعملاء العاديين.</span>
+                </div>
+
+                <!-- Dealer Profit -->
+                <div>
+                    <label class="text-[10px] text-amber-400 font-black block mb-2 uppercase tracking-wider">ربح التجار (الجملة)</label>
+                    <div class="relative">
+                        <input type="number" step="0.01" min="0" name="dealer_margin" value="{{ profile.default_dealer_margin|default:'2.00' }}" class="builder-input pr-10 w-full" style="background: rgba(0,0,0,0.6); border: 1px solid rgba(245,158,11,0.2); color: #fff; padding: 0.75rem 1rem; border-radius: 14px;" required>
+                    </div>
+                    <span class="text-[9px] text-slate-500 mt-2 block">نسبة/مبلغ الربح لفئة التجار.</span>
+                </div>
+
+                <!-- VIP Profit -->
+                <div>
+                    <label class="text-[10px] text-cyan font-black block mb-2 uppercase tracking-wider">ربح كبار العملاء (VIP)</label>
+                    <div class="relative">
+                        <input type="number" step="0.01" min="0" name="vip_margin" value="{{ profile.default_vip_margin|default:'1.00' }}" class="builder-input pr-10 w-full" style="background: rgba(0,0,0,0.6); border: 1px solid rgba(6,182,212,0.2); color: #fff; padding: 0.75rem 1rem; border-radius: 14px;" required>
+                    </div>
+                    <span class="text-[9px] text-slate-500 mt-2 block">نسبة/مبلغ الربح لفئة VIP.</span>
                 </div>
             </div>
 

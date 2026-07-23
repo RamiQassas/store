@@ -91,6 +91,8 @@ class AlkasrMapperService:
                         category=None,  # No auto-category creation (user categorizes manually)
                         is_active=True,  # Active by default (not draft)
                         is_out_of_stock=False, # Available by default
+                        track_inventory=False, # Disable inventory tracking for API products
+                        quantity=999999, # Unlimited stock
                         is_api_product=True,
                         api_provider="alkasr",
                         description=p_items[0].local_description or "",
@@ -101,6 +103,8 @@ class AlkasrMapperService:
                         local_product.store = store
                     local_product.is_active = True
                     local_product.is_out_of_stock = False
+                    local_product.track_inventory = False
+                    local_product.quantity = 999999
                     local_product.is_api_product = True
                     local_product.api_provider = "alkasr"
                     if schema_fields:
