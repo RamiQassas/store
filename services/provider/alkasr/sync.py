@@ -115,20 +115,24 @@ class AlkasrSyncService:
                     # Update parameters
                     if item.get("parameters"):
                         prod_obj.parameters.all().delete()
-                        for p in item["parameters"]:
+                        # We might receive ["playerId", "anotherKey"]
+                        # name should be unique for this product.
+                        for p_idx, p in enumerate(item["parameters"]):
                             if isinstance(p, dict):
                                 ProviderProductParameter.objects.create(
                                     product=prod_obj,
-                                    name=p.get("name") or p.get("key") or "playerId",
-                                    label=p.get("label") or p.get("name") or "Param",
+                                    name=str(p.get("name") or p.get("key") or f"param_{p_idx}")[:100],
+                                    label=str(p.get("label") or p.get("name") or "Param")[:100],
                                     required=bool(p.get("required", True)),
-                                    parameter_type=p.get("type") or "text"
+                                    parameter_type=str(p.get("type") or "text")[:50]
                                 )
                             elif isinstance(p, str):
+                                # If it's a list of strings, just make unique names.
+                                p_name = "playerId" if p_idx == 0 else f"param_{p_idx}"
                                 ProviderProductParameter.objects.create(
                                     product=prod_obj,
-                                    name="playerId",
-                                    label=p,
+                                    name=p_name,
+                                    label=p[:100],
                                     required=True,
                                     parameter_type="text"
                                 )

@@ -37,9 +37,9 @@ class AlkasrProductService:
             if not remote_id:
                 continue
 
-            name = item.get("name") or item.get("title") or f"Product #{remote_id}"
+            name = str(item.get("name") or item.get("title") or f"Product #{remote_id}")[:255]
             cost_price = item.get("price") or item.get("cost") or item.get("base_price") or "0.00"
-            product_type = item.get("product_type") or item.get("type") or "package"
+            product_type = str(item.get("product_type") or item.get("type") or "package")[:50]
             is_active = bool(item.get("is_active", item.get("available", True)))
 
             qty_values = item.get("qty_values")
@@ -53,12 +53,29 @@ class AlkasrProductService:
             elif isinstance(qty_values, list):
                 qty_list = [str(x) for x in qty_values]
             elif isinstance(qty_values, dict):
-                qty_min = qty_values.get("min")
-                qty_max = qty_values.get("max")
+                try:
+                    qmin = qty_values.get("min")
+                    qty_min = int(qmin) if qmin not in (None, "") else None
+                except (ValueError, TypeError):
+                    qty_min = None
+                    
+                try:
+                    qmax = qty_values.get("max")
+                    qty_max = int(qmax) if qmax not in (None, "") else None
+                except (ValueError, TypeError):
+                    qty_max = None
 
-            category_name = item.get("category_name") or item.get("category") or "General"
-            category_id = item.get("category_id") or item.get("cat_id") or "1"
+            category_name = str(item.get("category_name") or item.get("category") or "General")[:100]
+            category_id = str(item.get("category_id") or item.get("cat_id") or "1")[:100]
             parent_id = item.get("parent_id") or item.get("parent")
+            
+            try:
+                cp = str(cost_price).strip()
+                if not cp: cp = "0.00"
+                float(cp)  # Just test if it's a valid number
+                cost_price = cp
+            except (ValueError, TypeError):
+                cost_price = "0.00"
 
             params = item.get("params") or item.get("parameters") or item.get("fields") or []
 
