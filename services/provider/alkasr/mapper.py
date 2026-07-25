@@ -18,25 +18,17 @@ class AlkasrMapperService:
         self.profile = profile
 
     def _get_group_name(self, pp: ProviderProduct) -> str:
+        cat = pp.category
+        
+        # Use the category name for grouping, as the API intends.
+        # Fallback to the product name if category name is missing.
+        raw_cat = (cat.name if cat else "").strip()
+        if raw_cat and raw_cat.lower() not in ("null", "none"):
+            return raw_cat
+
         prod_name = pp.name.strip()
         if not prod_name or prod_name.lower() in ("null", "none"):
             return f"منتج {pp.remote_id}"
-            
-        # Extract base name for smart grouping
-        lower_name = prod_name.lower()
-        two_word_brands = [
-            "ببجي موبايل", "فري فاير", "جواهر فري", "شدات ببجي", "رصيد سيريتل",
-            "رصيد mtn", "فواتير سيريتل", "فواتير mtn", "يلا لودو", "موبايل ليجند",
-            "كول اوف ديوتي", "روبلوكس", "لايكي", "تيك توك", "بيغو لايف", "ببجي الكورية", "بطاقات ايتونز"
-        ]
-        
-        for brand in two_word_brands:
-            if lower_name.startswith(brand):
-                return prod_name[:len(brand)]
-                
-        parts = prod_name.split()
-        if len(parts) >= 3:
-            return " ".join(parts[:2])
             
         return prod_name
 

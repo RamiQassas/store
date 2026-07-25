@@ -85,7 +85,14 @@ class AlkasrProductService:
                     qty_max = None
 
             category_name = str(item.get("category_name") or item.get("category") or "General")[:100]
-            category_id = str(item.get("category_id") or item.get("cat_id") or "1")[:100]
+            raw_cat_id = item.get("category_id") or item.get("cat_id")
+            
+            if not raw_cat_id:
+                import hashlib
+                category_id = hashlib.md5(category_name.encode('utf-8')).hexdigest()[:15]
+            else:
+                category_id = str(raw_cat_id)[:100]
+                
             parent_id = item.get("parent_id") or item.get("parent")
             
             try:
