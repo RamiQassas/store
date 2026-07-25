@@ -73,6 +73,7 @@ class OrderViewSet(viewsets.ModelViewSet):
     @decorators.action(detail=True, methods=["post"])
     def sync_alkasr_status(self, request, pk=None):
         from apps.orders.provider_status import apply_provider_status
+        from services.provider.manager import ProviderManager
         
         if not request.user.is_staff:
             return response.Response({"detail": "غير مصرح."}, status=status.HTTP_403_FORBIDDEN)
@@ -81,28 +82,17 @@ class OrderViewSet(viewsets.ModelViewSet):
         if not order.api_order_uuid and not order.api_order_id:
             return response.Response({"detail": "هذا الطلب غير مربوط بـ API خارجي."}, status=status.HTTP_400_BAD_REQUEST)
             
-        # Determine provider
-        provider = "alkasr"
-        first_item = order.items.first()
-        if first_item and first_item.variant and first_item.variant.product:
-            provider = first_item.variant.product.api_provider or "alkasr"
-            
-        if provider == "alkasr":
-            provider_order = order.provider_orders.select_related("profile").first()
-            if not provider_order:
-                return response.Response({"detail": "لا يوجد سجل طلب مزود مرتبط بهذا الطلب."}, status=status.HTTP_400_BAD_REQUEST)
-            from apps.providers.alkasr import AlkasrOrderService
-            svc = AlkasrOrderService(provider_order.profile)
-            identifiers = [order.api_order_uuid] if order.api_order_uuid else [order.api_order_id]
-            res = {"status": "OK", "data": svc.check_orders(identifiers, is_uuid=bool(order.api_order_uuid))}
-        else:
-            res = {
-                "status": "OK",
-                "data": [{
-                    "status": "wait",
-                    "order_id": order.api_order_id
-                }]
-            }
+        provider_order = order.provider_orders.select_related("profile").first()
+        if not provider_order or not provider_order.profile:
+            return response.Response({"detail": "لا يوجد سجل طلب مزود مرتبط بهذا الطلب."}, status=status.HTTP_400_BAD_REQUEST)
+
+        identifiers = [str(order.api_order_uuid)] if order.api_order_uuid else ([str(order.api_order_id)] if order.api_order_id else [])
+        data_list = ProviderManager.check_orders(
+            provider_order.profile,
+            identifiers,
+            is_uuid=bool(order.api_order_uuid)
+        )
+        res = {"status": "OK", "data": data_list}
             
         if res.get("status") == "OK" and isinstance(res.get("data"), list) and len(res["data"]) > 0:
             order_data = res["data"][0]

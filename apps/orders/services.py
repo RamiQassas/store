@@ -361,26 +361,23 @@ def create_order(customer, variant_id, quantity=1, fulfillment_data=None,
         provider = variant.product.api_provider or "alkasr"
         api_order_id = None
         try:
-            if provider == "alkasr":
-                from apps.providers.alkasr import AlkasrOrderService
-                mapping = getattr(variant, "provider_mapping", None)
-                if not mapping or not mapping.provider_product:
-                    raise ValueError("Product is not mapped to Alkasr provider product.")
-                svc = AlkasrOrderService(mapping.provider_product.profile)
-                api_resp = svc.place_order(
-                    order,
-                    mapping.provider_product,
-                    quantity,
-                    metadata or {},
-                    order_uuid=api_order_uuid,
-                )
-                api_status = api_resp.get("status") or "wait"
-                api_order_id = api_resp.get("remote_order_id")
-                raw_response = api_resp.get("raw_response") or api_resp
-            else:
-                api_status = "wait"
-                api_order_id = f"{provider.upper()}-{uuid.uuid4().hex[:8]}"
-                raw_response = {"status": "OK", "data": {"status": api_status, "order_id": api_order_id}}
+            from services.provider.manager import ProviderManager
+            mapping = getattr(variant, "provider_mapping", None)
+            if not mapping or not mapping.provider_product:
+                raise ValueError("Product is not mapped to provider product.")
+
+            profile = mapping.provider_product.profile
+            api_resp = ProviderManager.place_order(
+                profile=profile,
+                local_order=order,
+                provider_product=mapping.provider_product,
+                quantity=quantity,
+                player_params=metadata or {},
+                order_uuid=api_order_uuid,
+            )
+            api_status = api_resp.get("status") or "wait"
+            api_order_id = api_resp.get("remote_order_id")
+            raw_response = api_resp.get("raw_response") or api_resp
 
             fulfillment = dict(order.fulfillment_data or {})
             fulfillment.update({
@@ -399,7 +396,7 @@ def create_order(customer, variant_id, quantity=1, fulfillment_data=None,
                 api_status,
                 raw_response=raw_response,
                 actor=customer,
-                note_prefix="Alkasr API" if provider == "alkasr" else "Provider API",
+                note_prefix="Provider API",
             )
         except Exception as exc:
             fulfillment = dict(order.fulfillment_data or {})

@@ -1,0 +1,85 @@
+"""
+Alkasr Products Parser and Retrieval Service.
+Parses, filters, and standardizes product payloads returned by the provider API.
+"""
+
+from typing import List, Dict, Any
+
+
+class AlkasrProductService:
+    """Service to process raw products data from Alkasr API."""
+
+    def __init__(self, client):
+        self.client = client
+
+    def fetch_all_products(self) -> List[Dict[str, Any]]:
+        """Fetches and parses products list from API client."""
+        raw_data = self.client.get_products()
+        return self.parse_products_response(raw_data)
+
+    @classmethod
+    def parse_products_response(cls, response_data: dict) -> List[Dict[str, Any]]:
+        """
+        Parses raw API JSON response into standardized Product DTO dicts.
+        """
+        raw_list = []
+        if isinstance(response_data, list):
+            raw_list = response_data
+        elif isinstance(response_data, dict):
+            raw_list = response_data.get("data") or response_data.get("products") or []
+
+        parsed_products = []
+        for item in raw_list:
+            if not isinstance(item, dict):
+                continue
+
+            remote_id = str(item.get("id") or item.get("product_id") or "")
+            if not remote_id:
+                continue
+
+            name = item.get("name") or item.get("title") or f"Product #{remote_id}"
+            cost_price = item.get("price") or item.get("cost") or item.get("base_price") or "0.00"
+            product_type = item.get("product_type") or item.get("type") or "package"
+            is_active = bool(item.get("is_active", item.get("available", True)))
+
+            qty_min = item.get("min") or item.get("qty_min") or item.get("minimum_quantity")
+            qty_max = item.get("max") or item.get("qty_max") or item.get("maximum_quantity")
+            qty_list = item.get("qty_list") or item.get("fixed_quantities") or []
+
+            category_name = item.get("category_name") or item.get("category") or "General"
+            category_id = item.get("category_id") or item.get("cat_id") or "1"
+            parent_id = item.get("parent_id") or item.get("parent")
+
+            params = item.get("params") or item.get("parameters") or item.get("fields") or []
+
+            parsed_products.append({
+                "remote_id": remote_id,
+                "name": name,
+                "cost_price": cost_price,
+                "product_type": product_type,
+                "is_active": is_active,
+                "qty_min": int(qty_min) if qty_min is not None else None,
+                "qty_max": int(qty_max) if qty_max is not None else None,
+                "qty_list": qty_list if isinstance(qty_list, list) else [],
+                "category_id": str(category_id),
+                "category_name": str(category_name),
+                "parent_id": str(parent_id) if parent_id else None,
+                "parameters": params if isinstance(params, list) else [],
+                "raw_data": item,
+            })
+
+        return parsed_products
+
+    def filter_products(self, category_id: str = None, search: str = None, active_only: bool = True) -> List[Dict[str, Any]]:
+        """Filters catalog by category, search query, or availability."""
+        products = self.fetch_all_products()
+        filtered = []
+        for p in products:
+            if active_only and not p["is_active"]:
+                continue
+            if category_id and p["category_id"] != str(category_id):
+                continue
+            if search and search.lower() not in p["name"].lower():
+                continue
+            filtered.append(p)
+        return filtered

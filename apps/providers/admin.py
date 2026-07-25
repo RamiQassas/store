@@ -36,25 +36,21 @@ class ProviderProfileAdmin(admin.ModelAdmin):
 
     def sync_provider(self, request, profile_id):
         profile = self.get_object(request, profile_id)
-        if profile.provider_name.lower() == "alkasr":
-            from apps.providers.alkasr import AlkasrSyncService
-            svc = AlkasrSyncService(profile)
+        if profile:
+            from services.provider.manager import ProviderManager
             try:
-                stats = svc.sync_catalog()
+                stats = ProviderManager.sync_catalog(profile)
                 messages.success(request, f"تمت المزامنة بنجاح: {stats}")
             except Exception as e:
                 messages.error(request, f"فشلت المزامنة: {e}")
-        else:
-            messages.warning(request, "لا يوجد نظام مزامنة لهذا المزود.")
         return redirect('admin:providers_providerprofile_changelist')
 
     def fetch_balance(self, request, profile_id):
         profile = self.get_object(request, profile_id)
-        if profile.provider_name.lower() == "alkasr":
-            from apps.providers.alkasr import AlkasrProfileService
-            svc = AlkasrProfileService(profile)
+        if profile:
+            from services.provider.manager import ProviderManager
             try:
-                data = svc.fetch_balance()
+                data = ProviderManager.fetch_balance(profile)
                 messages.success(request, f"الرصيد الحالي: {data['balance']} {data['currency']}")
             except Exception as e:
                 messages.error(request, f"فشل تحديث الرصيد: {e}")
@@ -79,18 +75,16 @@ class ProviderProductAdmin(admin.ModelAdmin):
     def map_to_store(self, request, queryset):
         mapped = 0
         errors = 0
+        from services.provider.manager import ProviderManager
         for p in queryset:
-            if p.profile.provider_name.lower() == "alkasr":
-                from apps.providers.alkasr import AlkasrMapperService
-                svc = AlkasrMapperService(p.profile)
-                try:
-                    svc.map_to_catalog(p)
-                    mapped += 1
-                except Exception as e:
-                    errors += 1
+            try:
+                ProviderManager.sync_catalog(p.profile)
+                mapped += 1
+            except Exception:
+                errors += 1
         
         if mapped > 0:
-            messages.success(request, f"تم تعيين {mapped} منتج في المتجر.")
+            messages.success(request, f"تم تعيين/مزامنة المنتجات بنجاح.")
         if errors > 0:
             messages.error(request, f"فشل تعيين {errors} منتج.")
     map_to_store.short_description = "تعيين المنتجات المحددة في المتجر"

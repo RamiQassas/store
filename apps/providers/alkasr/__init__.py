@@ -1,8 +1,26 @@
-from .client import AlkasrClient
-from .products import AlkasrProductService
-from .profile import AlkasrProfileService
-from .orders import AlkasrOrderService
-from .sync import AlkasrSyncService
-from .mapper import AlkasrMapperService
-from .pricing import PricingService
-from .exceptions import *
+"""
+Legacy Compatibility Alias.
+Forwards all imports to new central services layer services.provider.alkasr.
+"""
+
+from services.provider.alkasr import (
+    AlkasrClient,
+    AlkasrProviderService,
+    AlkasrSyncService,
+    AlkasrOrderService,
+    AlkasrProductService,
+    AlkasrProfileService,
+    PricingEngine,
+    AlkasrAPIException,
+)
+
+__all__ = [
+    "AlkasrClient",
+    "AlkasrProviderService",
+    "AlkasrSyncService",
+    "AlkasrOrderService",
+    "AlkasrProductService",
+    "AlkasrProfileService",
+    "PricingEngine",
+    "AlkasrAPIException",
+]

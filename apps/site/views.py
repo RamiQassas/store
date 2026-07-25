@@ -5588,7 +5588,7 @@ def sso_transfer_view(request):
 @support_required
 def control_apicontrol_dashboard(request):
     from apps.providers.models import ProviderProfile, ProviderProduct, ProviderCategory
-    from apps.providers.alkasr import AlkasrSyncService, AlkasrProfileService, AlkasrProductService, AlkasrMapperService
+    from services.provider.manager import ProviderManager
     from django.conf import settings
     from django.contrib import messages
     from urllib.parse import quote
@@ -5720,9 +5720,7 @@ def control_apicontrol_dashboard(request):
                         pricing.vip_margin_value = profile_obj.default_vip_margin
                         pricing.save()
 
-                from apps.providers.alkasr import AlkasrMapperService
-                AlkasrMapperService(profile_obj).map_all_to_catalog()
-
+                ProviderManager.sync_catalog(profile_obj)
                 messages.success(request, "تم تحديث نوع إعدادات الهامش (نسبة/مبلغ) وأسعار فئات العملاء بنجاح.")
             return redirect(redirect_url)
             
@@ -5749,7 +5747,7 @@ def control_apicontrol_dashboard(request):
                 from django.db import connection
                 from django.core.cache import cache
                 from apps.providers.models import ProviderProfile
-                from apps.providers.alkasr import AlkasrMapperService
+                from services.provider.manager import ProviderManager
                 try:
                     connection.close()
                     p_obj = ProviderProfile.objects.get(id=profile_id)
@@ -5763,8 +5761,7 @@ def control_apicontrol_dashboard(request):
                         "updated": 0
                     }, timeout=300)
                     
-                    mapper = AlkasrMapperService(p_obj)
-                    mapper.map_all_to_catalog(selected_group_names=selected_groups)
+                    ProviderManager.sync_catalog(p_obj)
                     
                     cache.set(f"sync_progress_{profile_id}", {
                         "status": "completed",
@@ -5790,7 +5787,7 @@ def control_apicontrol_dashboard(request):
                     }, timeout=300)
 
             import threading
-            selected_groups = request.POST.getlist("categories") # We reuse the input name "categories" for backwards compatibility
+            selected_groups = request.POST.getlist("categories")
             threading.Thread(target=_background_sync, args=(profile_obj.id, selected_groups), daemon=True).start()
             
             if request.headers.get("X-Requested-With") == "XMLHttpRequest" or action == "sync_ajax":
@@ -5803,10 +5800,11 @@ def control_apicontrol_dashboard(request):
             if profile_obj:
                 def _background_refresh(profile_id):
                     from apps.providers.models import ProviderProfile
+                    from services.provider.manager import ProviderManager
                     try:
                         p_obj = ProviderProfile.objects.get(id=profile_id)
-                        AlkasrProfileService(p_obj).fetch_balance()
-                        AlkasrSyncService(p_obj).sync_catalog()
+                        ProviderManager.fetch_balance(p_obj)
+                        ProviderManager.sync_catalog(p_obj)
                     except Exception as e:
                         import logging
                         logging.getLogger(__name__).exception(f"Background refresh failed for profile {profile_id}: {e}")
@@ -5954,11 +5952,9 @@ def control_apicontrol_dashboard(request):
         ]
         
         # Build provider groups instead of categories
-        from apps.providers.alkasr.mapper import AlkasrMapperService
-        mapper = AlkasrMapperService(profile_obj)
         groups_dict = {}
         for pp in all_p:
-            g_name = mapper._get_group_name(pp)
+            g_name = pp.category.name if pp.category else "عام"
             if not g_name or g_name.lower() in ("null", "none"):
                 continue
             if g_name not in groups_dict:
