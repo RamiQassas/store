@@ -46,6 +46,9 @@ class AlkasrClient:
             base = f"https://{base}"
         if not base.endswith("/"):
             base += "/"
+        # Ensure base contains /client/api/
+        if "client/api" not in base.lower():
+            base = urljoin(base, "client/api/")
         self.base_url = base
         self.timeout = timeout
         self.profile = profile
@@ -147,29 +150,34 @@ class AlkasrClient:
 
     def get_profile(self) -> dict:
         """Fetches account details & balance from /profile endpoint."""
-        return self.request("POST", ENDPOINT_PROFILE)
+        return self.request("GET", ENDPOINT_PROFILE)
 
     def get_products(self) -> dict:
         """Fetches full catalog from /products endpoint."""
-        return self.request("POST", ENDPOINT_PRODUCTS)
+        return self.request("GET", ENDPOINT_PRODUCTS)
 
     def create_order(self, order_uuid: str, product_id: str, quantity: int = 1, player_params: dict = None) -> dict:
         """
-        Submits a new order to /newOrder endpoint using UUID v4.
+        Submits a new order using UUID v4.
+        Format: GET /client/api/newOrder/{product_id}/params?qty=1&playerId=test&order_uuid=uuid
         """
-        payload = {
+        endpoint = f"{ENDPOINT_NEW_ORDER}/{product_id}/params"
+        params = {
             "order_uuid": str(order_uuid),
-            "product_id": str(product_id),
-            "quantity": int(quantity),
+            "qty": int(quantity),
         }
         if player_params:
-            payload.update(player_params)
-        return self.request("POST", ENDPOINT_NEW_ORDER, json_data=payload)
+            # Assumes playerId or anyKey are inside player_params
+            params.update(player_params)
+        return self.request("GET", endpoint, params=params)
 
     def check_orders(self, order_identifiers: list, is_uuid: bool = True) -> dict:
         """
         Checks order statuses via /check endpoint.
         """
-        param_name = "order_uuids" if is_uuid else "order_ids"
-        params = {param_name: ",".join([str(x) for x in order_identifiers])}
-        return self.request("POST", ENDPOINT_CHECK_ORDER, json_data=params)
+        params = {
+            "orders": f"[{','.join([str(x) for x in order_identifiers])}]"
+        }
+        if is_uuid:
+            params["uuid"] = "1"
+        return self.request("GET", ENDPOINT_CHECK_ORDER, params=params)

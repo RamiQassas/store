@@ -119,10 +119,18 @@ class AlkasrSyncService:
                             if isinstance(p, dict):
                                 ProviderProductParameter.objects.create(
                                     product=prod_obj,
-                                    name=p.get("name") or p.get("key") or "param",
+                                    name=p.get("name") or p.get("key") or "playerId",
                                     label=p.get("label") or p.get("name") or "Param",
                                     required=bool(p.get("required", True)),
                                     parameter_type=p.get("type") or "text"
+                                )
+                            elif isinstance(p, str):
+                                ProviderProductParameter.objects.create(
+                                    product=prod_obj,
+                                    name="playerId",
+                                    label=p,
+                                    required=True,
+                                    parameter_type="text"
                                 )
 
                     # Update Cache Progress

@@ -42,9 +42,19 @@ class AlkasrProductService:
             product_type = item.get("product_type") or item.get("type") or "package"
             is_active = bool(item.get("is_active", item.get("available", True)))
 
-            qty_min = item.get("min") or item.get("qty_min") or item.get("minimum_quantity")
-            qty_max = item.get("max") or item.get("qty_max") or item.get("maximum_quantity")
-            qty_list = item.get("qty_list") or item.get("fixed_quantities") or []
+            qty_values = item.get("qty_values")
+            qty_min = None
+            qty_max = None
+            qty_list = []
+            
+            if qty_values is None:
+                qty_min = 1
+                qty_max = 1
+            elif isinstance(qty_values, list):
+                qty_list = [str(x) for x in qty_values]
+            elif isinstance(qty_values, dict):
+                qty_min = qty_values.get("min")
+                qty_max = qty_values.get("max")
 
             category_name = item.get("category_name") or item.get("category") or "General"
             category_id = item.get("category_id") or item.get("cat_id") or "1"
