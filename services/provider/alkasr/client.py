@@ -147,11 +147,11 @@ class AlkasrClient:
 
     def get_profile(self) -> dict:
         """Fetches account details & balance from /profile endpoint."""
-        return self.request("GET", ENDPOINT_PROFILE)
+        return self.request("POST", ENDPOINT_PROFILE)
 
     def get_products(self) -> dict:
         """Fetches full catalog from /products endpoint."""
-        return self.request("GET", ENDPOINT_PRODUCTS)
+        return self.request("POST", ENDPOINT_PRODUCTS)
 
     def create_order(self, order_uuid: str, product_id: str, quantity: int = 1, player_params: dict = None) -> dict:
         """
@@ -172,4 +172,4 @@ class AlkasrClient:
         """
         param_name = "order_uuids" if is_uuid else "order_ids"
         params = {param_name: ",".join([str(x) for x in order_identifiers])}
-        return self.request("GET", ENDPOINT_CHECK_ORDER, params=params)
+        return self.request("POST", ENDPOINT_CHECK_ORDER, json_data=params)
