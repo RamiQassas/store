@@ -5761,7 +5761,7 @@ def control_apicontrol_dashboard(request):
                         "updated": 0
                     }, timeout=300)
                     
-                    ProviderManager.sync_catalog(p_obj)
+                    ProviderManager.sync_catalog(p_obj, selected_group_names=selected_groups)
                     
                     cache.set(f"sync_progress_{profile_id}", {
                         "status": "completed",

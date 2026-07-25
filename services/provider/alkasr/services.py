@@ -35,8 +35,8 @@ class AlkasrProviderService:
     def fetch_products(self) -> list:
         return self.product_service.fetch_all_products()
 
-    def sync_catalog(self) -> dict:
-        return self.sync_service.sync_catalog()
+    def sync_catalog(self, selected_group_names=None) -> dict:
+        return self.sync_service.sync_catalog(selected_group_names=selected_group_names)
 
     def place_order(self, local_order, provider_product, quantity: int = 1, player_params: dict = None, order_uuid: str = None) -> dict:
         return self.order_service.submit_order(

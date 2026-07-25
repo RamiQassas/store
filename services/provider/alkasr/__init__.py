@@ -33,6 +33,7 @@ from .sync import AlkasrSyncService
 from .order import AlkasrOrderService
 from .products import AlkasrProductService
 from .profile import AlkasrProfileService
+from .mapper import AlkasrMapperService
 from .constants import DEFAULT_BASE_URL, ERROR_CODES, PROVIDER_STATUS_MAP
 from .validators import validate_order_preconditions
 
@@ -44,6 +45,7 @@ __all__ = [
     "AlkasrOrderService",
     "AlkasrProductService",
     "AlkasrProfileService",
+    "AlkasrMapperService",
     "validate_order_preconditions",
     "AlkasrAPIException",
 ]

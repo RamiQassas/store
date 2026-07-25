@@ -23,7 +23,7 @@ class AlkasrSyncService:
         self.profile = profile_model
         self.product_service = AlkasrProductService(client)
 
-    def sync_catalog(self) -> dict:
+    def sync_catalog(self, selected_group_names=None) -> dict:
         """
         Executes catalog synchronization.
         """
@@ -137,6 +137,13 @@ class AlkasrSyncService:
                 disabled_qs = ProviderProduct.objects.filter(profile=self.profile, is_active=True).exclude(remote_id__in=seen_remote_ids)
                 disabled_count = disabled_qs.count()
                 disabled_qs.update(is_active=False)
+
+                # Automatically map ProviderProducts to store catalog Product & ProductVariant
+                try:
+                    from .mapper import AlkasrMapperService
+                    AlkasrMapperService(self.profile).map_all_to_catalog(selected_group_names=selected_group_names)
+                except Exception as map_err:
+                    logger.warning(f"Catalog mapping warning for profile {self.profile}: {map_err}")
 
             self.profile.last_sync_at = timezone.now()
             self.profile.save(update_fields=["last_sync_at", "updated_at"])

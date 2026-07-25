@@ -53,10 +53,10 @@ class ProviderManager:
         return svc.fetch_products()
 
     @classmethod
-    def sync_catalog(cls, profile) -> dict:
+    def sync_catalog(cls, profile, selected_group_names=None) -> dict:
         """Executes full product catalog synchronization."""
         svc = cls.get_service(profile)
-        return svc.sync_catalog()
+        return svc.sync_catalog(selected_group_names=selected_group_names)
 
     @classmethod
     def place_order(
