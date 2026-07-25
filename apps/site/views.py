@@ -5602,6 +5602,19 @@ def control_apicontrol_dashboard(request):
     else:
         active_integrations = list(APIIntegration.objects.filter(is_active=True))
         
+    if not active_integrations and not ProviderProfile.objects.exists():
+        default_integ, _ = APIIntegration.objects.get_or_create(
+            store=store,
+            provider="alkasr",
+            defaults={
+                "name": "Alkasr VIP",
+                "base_url": "https://api.alkasr-vip.com/client/api",
+                "api_token": "DEFAULT_TOKEN",
+                "is_active": True,
+            }
+        )
+        active_integrations = [default_integ]
+
     # Get selected integration ID from GET request
     integration_id = request.GET.get("integration_id")
     integration = None
