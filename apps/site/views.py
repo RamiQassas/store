@@ -5842,6 +5842,9 @@ def control_apicontrol_dashboard(request):
             deleted_count, _ = cat_qs.delete()
 
             if profile_obj:
+                from apps.providers.models import ProviderProductParameter, ProviderPrice
+                ProviderProductParameter.objects.filter(product__profile=profile_obj).delete()
+                ProviderPrice.objects.filter(product__profile=profile_obj).delete()
                 ProviderProduct.objects.filter(profile=profile_obj).delete()
 
             messages.success(request, f"تم مسح وحذف كافة منتجات المزود نهائياً ({deleted_count} منتج). يمكنك الآن إجراء مزامنة جديدة ناصعة.")
