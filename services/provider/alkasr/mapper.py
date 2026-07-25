@@ -21,6 +21,23 @@ class AlkasrMapperService:
         prod_name = pp.name.strip()
         if not prod_name or prod_name.lower() in ("null", "none"):
             return f"منتج {pp.remote_id}"
+            
+        # Extract base name for smart grouping
+        lower_name = prod_name.lower()
+        two_word_brands = [
+            "ببجي موبايل", "فري فاير", "جواهر فري", "شدات ببجي", "رصيد سيريتل",
+            "رصيد mtn", "فواتير سيريتل", "فواتير mtn", "يلا لودو", "موبايل ليجند",
+            "كول اوف ديوتي", "روبلوكس", "لايكي", "تيك توك", "بيغو لايف", "ببجي الكورية", "بطاقات ايتونز"
+        ]
+        
+        for brand in two_word_brands:
+            if lower_name.startswith(brand):
+                return prod_name[:len(brand)]
+                
+        parts = prod_name.split()
+        if len(parts) >= 3:
+            return " ".join(parts[:2])
+            
         return prod_name
 
     def map_all_to_catalog(self, products_qs=None, selected_group_names=None) -> int:
@@ -38,14 +55,18 @@ class AlkasrMapperService:
         grouped_products = {}
         for pp in products_list:
             group_name = self._get_group_name(pp)
-            if selected_group_names and len(selected_group_names) > 0 and group_name not in selected_group_names:
-                continue
-            grouped_products.setdefault(group_name, []).append(pp)
+            if group_name not in grouped_products:
+                grouped_products[group_name] = []
+            grouped_products[group_name].append(pp)
+
+        created_count = 0
+        if selected_group_names:
+            grouped_products = {k: v for k, v in grouped_products.items() if k in selected_group_names}
 
         mapped_count = 0
         for group_name, p_items in grouped_products.items():
-            with transaction.atomic():
-                try:
+            try:
+                with transaction.atomic():
                     local_product = Product.objects.filter(
                         store=store,
                         name=group_name,
@@ -122,9 +143,6 @@ class AlkasrMapperService:
                         }
                         if pp.qty_list:
                             meta["qty_list"] = pp.qty_list
-
-                        if pp.product_type == "amount" and getattr(pp, "qty_min", 0) >= 10:
-                            meta["is_per_mille"] = True
 
                         if pp.product_type == "amount":
                             meta["qty_type"] = "range"
