@@ -26,7 +26,19 @@ class AlkasrProductService:
         if isinstance(response_data, list):
             raw_list = response_data
         elif isinstance(response_data, dict):
-            raw_list = response_data.get("data") or response_data.get("products") or []
+            d = response_data.get("data")
+            p = response_data.get("products")
+            if isinstance(d, list):
+                raw_list = d
+            elif isinstance(d, dict) and isinstance(d.get("products"), list):
+                raw_list = d["products"]
+            elif isinstance(p, list):
+                raw_list = p
+            else:
+                raw_list = d or p or []
+
+        if not isinstance(raw_list, list):
+            raw_list = []
 
         parsed_products = []
         for item in raw_list:
@@ -40,7 +52,14 @@ class AlkasrProductService:
             name = str(item.get("name") or item.get("title") or f"Product #{remote_id}")[:255]
             cost_price = item.get("price") or item.get("cost") or item.get("base_price") or "0.00"
             product_type = str(item.get("product_type") or item.get("type") or "package")[:50]
-            is_active = bool(item.get("is_active", item.get("available", True)))
+            active_val = item.get("is_active")
+            if active_val is None:
+                active_val = item.get("available", True)
+                
+            if isinstance(active_val, str):
+                is_active = active_val.strip().lower() not in ("0", "false", "no", "null", "")
+            else:
+                is_active = bool(active_val)
 
             qty_values = item.get("qty_values")
             qty_min = None
