@@ -18,20 +18,9 @@ class AlkasrMapperService:
         self.profile = profile
 
     def _get_group_name(self, pp: ProviderProduct) -> str:
-        cat = pp.category
-        if cat and cat.parent and cat.parent.name:
-            parent_name = str(cat.parent.name).strip()
-            if parent_name.lower() not in ("null", "none"):
-                return parent_name
-
-        raw_cat = (cat.name if cat else "").strip()
-        if raw_cat and raw_cat.lower() not in ("null", "none"):
-            return raw_cat
-
         prod_name = pp.name.strip()
         if not prod_name or prod_name.lower() in ("null", "none"):
-            return "منتجات بدون تصنيف"
-
+            return f"منتج {pp.remote_id}"
         return prod_name
 
     def map_all_to_catalog(self, products_qs=None, selected_group_names=None) -> int:
@@ -75,11 +64,20 @@ class AlkasrMapperService:
                                 }
                     schema = {"version": 1, "fields": list(schema_fields.values())}
 
+                    from apps.catalog.models import Category
+                    cat_obj = None
+                    if p_items[0].category and p_items[0].category.name:
+                        cat_name = p_items[0].category.name.strip()
+                        if cat_name and cat_name.lower() not in ("null", "none"):
+                            cat_obj = Category.objects.filter(store=store, name=cat_name).first()
+                            if not cat_obj:
+                                cat_obj = Category.objects.create(store=store, name=cat_name, is_active=True)
+
                     if not local_product:
                         local_product = Product.objects.create(
                             store=store,
                             name=group_name,
-                            category=None,
+                            category=cat_obj,
                             is_active=True,
                             is_out_of_stock=False,
                             track_inventory=False,
@@ -92,6 +90,8 @@ class AlkasrMapperService:
                     else:
                         if store and local_product.store != store:
                             local_product.store = store
+                        if not local_product.category and cat_obj:
+                            local_product.category = cat_obj
                         local_product.is_active = True
                         local_product.is_out_of_stock = False
                         local_product.track_inventory = False
@@ -158,6 +158,7 @@ class AlkasrMapperService:
                                 api_product_id=pp.remote_id
                             )
                         else:
+                            local_variant.product = local_product
                             local_variant.name = variant_name
                             local_variant.price = final_price
                             local_variant.wholesale_price = wholesale_price
