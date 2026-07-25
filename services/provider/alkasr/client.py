@@ -114,15 +114,23 @@ class AlkasrClient:
             raise AlkasrAPIException(f"Invalid JSON response from provider (HTTP {response.status_code}): {response.text[:200]}")
 
         # Extract provider code / status
-        status_val = data.get("status")
-        code_val = data.get("code")
+        if isinstance(data, list):
+            is_success = response.status_code == 200
+            status_val = "success" if is_success else "error"
+            code_val = response.status_code
+            error_code = None
+            error_message = None
+        else:
+            status_val = data.get("status")
+            code_val = data.get("code")
+            is_success = response.status_code == 200 and (status_val in ["success", True, "1", 1] or code_val in [200, 0, None] and not data.get("error"))
 
-        is_success = response.status_code == 200 and (status_val in ["success", True, "1", 1] or code_val in [200, 0, None] and not data.get("error"))
-
-        # Check for provider error codes inside response JSON
-        error_code = code_val or (data.get("error_code") if isinstance(data.get("error_code"), int) else None)
-        if error_code is None and isinstance(status_val, int):
-            error_code = status_val
+            # Check for provider error codes inside response JSON
+            error_code = code_val or (data.get("error_code") if isinstance(data.get("error_code"), int) else None)
+            if error_code is None and isinstance(status_val, int):
+                error_code = status_val
+            
+            error_message = data.get("message") or data.get("error")
 
         # Handle 111 Retry Code (Retry after 1 minute)
         if error_code == 111 and retries_left > 0:
@@ -140,7 +148,7 @@ class AlkasrClient:
             duration_ms,
             is_success,
             error_code=error_code,
-            error_message=data.get("message") or data.get("error")
+            error_message=error_message
         )
 
         if not is_success and error_code:
