@@ -184,8 +184,8 @@ class AlkasrMapperService:
                         mapping.save()
                         mapped_count += 1
 
-                except Exception as e:
-                    logger.exception(f"Error mapping group '{group_name}' to catalog: {e}")
-                    continue
+            except Exception as e:
+                logger.exception(f"Error mapping group '{group_name}' to catalog: {e}")
+                continue
 
         return mapped_count
