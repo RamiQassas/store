@@ -63,9 +63,7 @@ def calculate_variant_subtotal(variant, user, quantity=1):
     qty_type = meta.get("qty_type", "fixed")
     unit_price = variant.get_price_for_user(user)
 
-    if qty_type == "range":
-        return unit_price * Decimal(qty)
-    return unit_price
+    return unit_price * Decimal(qty)
 
 
 # ---------------------------------------------------------------------------
