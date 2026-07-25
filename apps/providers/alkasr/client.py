@@ -76,7 +76,7 @@ class AlkasrClient:
 
         url = urljoin(base.rstrip("/") + "/", rel_path.lstrip("/"))
 
-        method = "GET"
+        method = "POST"
 
         req_log = ProviderRequestLog.objects.create(
             profile=self.profile,
@@ -88,9 +88,9 @@ class AlkasrClient:
         start_time = time.time()
 
         try:
-            response = self.session.get(
+            response = self.session.post(
                 url,
-                params=dict(data),
+                data=dict(data),
                 headers=headers,
                 timeout=TIMEOUT
             )
