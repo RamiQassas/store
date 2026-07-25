@@ -1770,7 +1770,14 @@ def product_detail(request, pk):
     if not product:
         product = Product.objects.filter(pk=pk, is_active=True).prefetch_related('variants').first()
     if not product:
-        variant = ProductVariant.objects.filter(api_product_id=str(pk)).select_related('product').first() or ProductVariant.objects.filter(pk=pk).select_related('product').first()
+        variant = None
+        if str(pk).isdigit():
+            variant = ProductVariant.objects.filter(api_product_id=int(pk)).select_related('product').first()
+        if not variant:
+            try:
+                variant = ProductVariant.objects.filter(pk=pk).select_related('product').first()
+            except Exception:
+                pass
         if variant and variant.product and variant.product.is_active:
             product = variant.product
     if not product:
