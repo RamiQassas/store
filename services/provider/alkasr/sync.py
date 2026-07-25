@@ -53,11 +53,11 @@ class AlkasrSyncService:
             total_items = len(remote_products)
             seen_remote_ids = set()
 
-            with transaction.atomic():
-                for index, item in enumerate(remote_products, start=1):
-                    remote_id = item["remote_id"]
-                    seen_remote_ids.add(remote_id)
+            for index, item in enumerate(remote_products, start=1):
+                remote_id = item["remote_id"]
+                seen_remote_ids.add(remote_id)
 
+                with transaction.atomic():
                     # Ensure Category exists
                     cat_name = item.get("category_name") or "عام"
                     cat_remote_id = item.get("category_id") or "1"
@@ -137,25 +137,26 @@ class AlkasrSyncService:
                                     parameter_type="text"
                                 )
 
-                    # Update Cache Progress
-                    pct = int((index / total_items) * 100) if total_items > 0 else 100
-                    cache.set(progress_key, {
-                        "status": "running", "total": total_items, "current": index,
-                        "percent": pct, "created": created_count, "updated": updated_count,
-                        "disabled": disabled_count, "product_name": item["name"]
-                    }, timeout=600)
+                # Update Cache Progress
+                pct = int((index / total_items) * 100) if total_items > 0 else 100
+                cache.set(progress_key, {
+                    "status": "running", "total": total_items, "current": index,
+                    "percent": pct, "created": created_count, "updated": updated_count,
+                    "disabled": disabled_count, "product_name": item["name"]
+                }, timeout=600)
 
-                # Soft disable products missing from provider payload
+            # Soft disable products missing from provider payload
+            with transaction.atomic():
                 disabled_qs = ProviderProduct.objects.filter(profile=self.profile, is_active=True).exclude(remote_id__in=seen_remote_ids)
                 disabled_count = disabled_qs.count()
                 disabled_qs.update(is_active=False)
 
-                # Automatically map ProviderProducts to store catalog Product & ProductVariant
-                try:
-                    from .mapper import AlkasrMapperService
-                    AlkasrMapperService(self.profile).map_all_to_catalog(selected_group_names=selected_group_names)
-                except Exception as map_err:
-                    logger.warning(f"Catalog mapping warning for profile {self.profile}: {map_err}")
+            # Automatically map ProviderProducts to store catalog Product & ProductVariant
+            try:
+                from .mapper import AlkasrMapperService
+                AlkasrMapperService(self.profile).map_all_to_catalog(selected_group_names=selected_group_names)
+            except Exception as map_err:
+                logger.warning(f"Catalog mapping warning for profile {self.profile}: {map_err}")
 
             self.profile.last_sync_at = timezone.now()
             self.profile.save(update_fields=["last_sync_at", "updated_at"])

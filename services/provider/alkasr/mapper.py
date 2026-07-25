@@ -34,7 +34,6 @@ class AlkasrMapperService:
 
         return prod_name
 
-    @transaction.atomic
     def map_all_to_catalog(self, products_qs=None, selected_group_names=None) -> int:
         """
         Batch maps provider products into main store catalog (catalog.Product & catalog.ProductVariant).
@@ -56,8 +55,9 @@ class AlkasrMapperService:
 
         mapped_count = 0
         for group_name, p_items in grouped_products.items():
-            try:
-                local_product = Product.objects.filter(
+            with transaction.atomic():
+                try:
+                    local_product = Product.objects.filter(
                     store=store,
                     name=group_name,
                     is_api_product=True
