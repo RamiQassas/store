@@ -18,8 +18,24 @@ class AlkasrMapperService:
         self.profile = profile
 
     def _get_group_key(self, pp: ProviderProduct) -> str:
+        # If it has a real parent category, use it
+        if pp.category and pp.category.parent_remote_id and str(pp.category.parent_remote_id) not in ("0", ""):
+            return str(pp.category.parent_remote_id)
+        
+        # Otherwise, derive a group key by stripping trailing numbers and spaces
+        import re
+        import hashlib
+        name = (pp.category.name if pp.category and pp.category.name else pp.name) or ""
+        name = name.strip()
+        
+        clean_name = re.sub(r'[\d\s]+$', '', name).strip()
+        
+        if clean_name and len(clean_name) >= 2:
+            return hashlib.md5(clean_name.lower().encode('utf-8')).hexdigest()[:15]
+            
         if pp.category and pp.category.remote_id:
             return str(pp.category.remote_id)
+            
         return f"group_{pp.remote_id}"
 
     def map_all_to_catalog(self, products_qs=None, selected_group_names=None) -> int:

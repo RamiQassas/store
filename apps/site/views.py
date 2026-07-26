@@ -5836,12 +5836,13 @@ def control_apicontrol_dashboard(request):
             
         elif action in ("clear_catalog", "delete_all"):
             from apps.catalog.models import Product
-            from apps.providers.models import ProviderProduct, ProviderMapping
+            from apps.providers.models import ProviderProduct, ProviderMapping, ProviderProductParameter
             
             cat_qs = Product.all_objects.filter(store=store, is_api_product=True)
             deleted_count, _ = cat_qs.delete()
 
             if profile_obj:
+                ProviderProductParameter.objects.filter(product__profile=profile_obj).delete()
                 ProviderProduct.objects.filter(profile=profile_obj).delete()
 
             messages.success(request, f"تم مسح وحذف كافة منتجات المزود نهائياً ({deleted_count} منتج). يمكنك الآن إجراء مزامنة جديدة ناصعة.")
