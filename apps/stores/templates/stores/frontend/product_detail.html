@@ -125,11 +125,18 @@
         justify-content: space-between;
         align-items: center;
         transition: var(--transition);
+        cursor: pointer;
     }
 
     .variant-card:hover {
         border-color: var(--primary);
         background: rgba(255,255,255,0.04);
+    }
+    
+    .variant-card.selected {
+        border-color: var(--primary);
+        background: rgba(var(--primary-rgb), 0.1);
+        box-shadow: 0 0 0 1px var(--primary);
     }
 
     .variant-info {
@@ -232,21 +239,31 @@
             {% endif %}
 
             <!-- Variants/Packages packages -->
+            <input type="hidden" id="selected-variant-id">
             <div class="variants-section">
-                <h3 class="section-subtitle">الباقات والأسعار المتوفرة</h3>
+                <h3 class="section-subtitle">اختر الباقة المناسبة</h3>
                 <div class="variants-list">
                     {% for var_data in variants_data %}
-                        <div class="variant-card">
+                        <div class="variant-card {% if not var_data.variant.is_active or var_data.variant.is_temporarily_disabled %}opacity-50 grayscale cursor-not-allowed{% endif %}"
+                             {% if var_data.variant.is_active and not var_data.variant.is_temporarily_disabled %}
+                             onclick="selectVariant('{{ var_data.variant.id }}', this)"
+                             {% endif %}
+                             data-checkout-url="{% url 'store_checkout' var_data.variant.id %}"
+                             data-qty-type="{{ var_data.variant.metadata.qty_type|default:'none' }}"
+                             data-qty-min="{{ var_data.variant.metadata.qty_min|default:1 }}"
+                             data-qty-max="{{ var_data.variant.metadata.qty_max|default:999999 }}"
+                             data-qty-list='{% if var_data.variant.metadata.qty_list %}{{ var_data.variant.metadata.qty_list|safe }}{% else %}[]{% endif %}'>
                             <div class="variant-info">
-                                <span class="variant-name">{{ var_data.variant.name }}</span>
+                                <span class="variant-name">
+                                    <i class="fa-regular fa-circle mr-2 variant-radio"></i>
+                                    {{ var_data.variant.name }}
+                                </span>
                                 <span class="variant-sku">SKU: {{ var_data.variant.sku }}</span>
                             </div>
                             <div class="variant-pricing-action">
                                 <span class="variant-price">${{ var_data.display_price }}</span>
-                                {% if var_data.variant.is_active and not var_data.variant.is_temporarily_disabled %}
-                                    <a href="{% url 'store_checkout' var_data.variant.id %}" class="btn btn-primary btn-sm"><i class="fa-solid fa-cart-shopping"></i> شراء</a>
-                                {% else %}
-                                    <button class="btn btn-outline btn-sm" disabled style="opacity: 0.5;">غير متوفر</button>
+                                {% if not var_data.variant.is_active or var_data.variant.is_temporarily_disabled %}
+                                    <span class="text-xs text-rose-500 font-bold">غير متوفر</span>
                                 {% endif %}
                             </div>
                         </div>
@@ -254,6 +271,21 @@
                         <p style="opacity: 0.6;">لا تتوفر باقات لهذا المنتج حالياً.</p>
                     {% endfor %}
                 </div>
+            </div>
+
+            <!-- Quantity Selection Container -->
+            <div id="quantity-container" class="panel p-6 mt-6 hidden" style="background: rgba(0,0,0,0.1); border: 1px solid var(--card-border); border-radius: 16px;">
+                <h3 class="font-bold text-lg mb-2">تحديد الكمية المطلوبة</h3>
+                <p id="quantity-help-text" class="text-sm opacity-70 mb-4">يرجى كتابة أو تحديد الكمية المطلوبة لهذه الخدمة.</p>
+                <div id="quantity-input-wrapper">
+                    <!-- Dynamic quantity input will be inserted here -->
+                </div>
+            </div>
+
+            <div class="mt-8">
+                <button type="button" class="btn btn-primary w-full py-3" style="font-size: 1.1rem; border-radius: 12px;" id="submit-btn" onclick="submitCheckout()" disabled>
+                    <i class="fa-solid fa-cart-shopping mr-2"></i> شراء الآن
+                </button>
             </div>
         </div>
     </div>
@@ -286,5 +318,88 @@ function changeMedia(url, isVideo, el) {
     document.querySelectorAll('.thumb-item').forEach(t => t.classList.remove('active'));
     el.classList.add('active');
 }
+
+function selectVariant(id, el) {
+    document.querySelectorAll('.variant-card').forEach(c => {
+        c.classList.remove('selected');
+        const radio = c.querySelector('.variant-radio');
+        if (radio) {
+            radio.classList.remove('fa-solid', 'fa-circle-dot', 'text-primary');
+            radio.classList.add('fa-regular', 'fa-circle');
+            radio.style.color = '';
+        }
+    });
+    
+    el.classList.add('selected');
+    const radio = el.querySelector('.variant-radio');
+    if (radio) {
+        radio.classList.remove('fa-regular', 'fa-circle');
+        radio.classList.add('fa-solid', 'fa-circle-dot');
+        radio.style.color = 'var(--primary)';
+    }
+    
+    document.getElementById('selected-variant-id').value = id;
+    
+    // Enable submit button
+    document.getElementById('submit-btn').disabled = false;
+    
+    // Setup quantity
+    const qtyType = el.getAttribute('data-qty-type') || 'none';
+    const qtyMin = parseInt(el.getAttribute('data-qty-min')) || 1;
+    const qtyMax = parseInt(el.getAttribute('data-qty-max')) || 999999;
+    const qtyListStr = el.getAttribute('data-qty-list') || '[]';
+    
+    const container = document.getElementById('quantity-container');
+    const wrapper = document.getElementById('quantity-input-wrapper');
+    const helpText = document.getElementById('quantity-help-text');
+    
+    let inputHtml = '';
+    
+    if (qtyType === 'range') {
+        container.classList.remove('hidden');
+        helpText.innerText = `يرجى إدخال الكمية المطلوبة (الحد الأدنى: ${qtyMin}، الحد الأقصى: ${qtyMax})`;
+        inputHtml = `
+            <div style="display: flex; gap: 10px; align-items: center;">
+                <input type="number" name="quantity" id="quantity-input" 
+                       min="${qtyMin}" max="${qtyMax}" value="${qtyMin}" 
+                       style="flex-grow: 1; padding: 10px; border-radius: 8px; border: 1px solid var(--card-border); background: var(--card-bg); color: inherit;">
+            </div>
+        `;
+    } else if (qtyType === 'list') {
+        container.classList.remove('hidden');
+        helpText.innerText = "يرجى اختيار إحدى الكميات المتاحة من القائمة.";
+        let listOptions = [];
+        try { listOptions = JSON.parse(qtyListStr.replace(/'/g, '"')); } catch(e) {}
+        
+        let selectHtml = `<select name="quantity" id="quantity-input" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid var(--card-border); background: var(--card-bg); color: inherit;">`;
+        if (listOptions.length > 0) {
+            listOptions.forEach(val => { selectHtml += `<option value="${val}">${val}</option>`; });
+        } else {
+            selectHtml += `<option value="1">1</option>`;
+        }
+        selectHtml += `</select>`;
+        inputHtml = selectHtml;
+    } else {
+        container.classList.add('hidden');
+        inputHtml = `<input type="hidden" name="quantity" id="quantity-input" value="1">`;
+    }
+    
+    wrapper.innerHTML = inputHtml;
+}
+
+function submitCheckout() {
+    const card = document.querySelector('.variant-card.selected');
+    if (!card) return;
+    const url = card.getAttribute('data-checkout-url');
+    const qty = document.getElementById('quantity-input')?.value || 1;
+    window.location.href = `${url}?quantity=${qty}`;
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    const firstAvailableCard = document.querySelector('.variant-card:not(.opacity-50)');
+    if (firstAvailableCard) {
+        firstAvailableCard.click();
+    }
+});
 </script>
 {% endblock %}

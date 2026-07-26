@@ -87,13 +87,15 @@ class AlkasrProductService:
             category_name = str(item.get("category_name") or item.get("category") or "General")[:100]
             raw_cat_id = item.get("category_id") or item.get("cat_id")
             
-            if not raw_cat_id:
+            parent_id = item.get("parent_id") or item.get("parent")
+            
+            if parent_id and str(parent_id) not in ("0", ""):
+                category_id = str(parent_id)[:100]
+            elif not raw_cat_id:
                 import hashlib
                 category_id = hashlib.md5(category_name.encode('utf-8')).hexdigest()[:15]
             else:
                 category_id = str(raw_cat_id)[:100]
-                
-            parent_id = item.get("parent_id") or item.get("parent")
             
             try:
                 cp = str(cost_price).strip()

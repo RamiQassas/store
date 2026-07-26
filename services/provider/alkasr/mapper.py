@@ -17,20 +17,10 @@ class AlkasrMapperService:
     def __init__(self, profile):
         self.profile = profile
 
-    def _get_group_name(self, pp: ProviderProduct) -> str:
-        cat = pp.category
-        
-        # Use the category name for grouping, as the API intends.
-        # Fallback to the product name if category name is missing.
-        raw_cat = (cat.name if cat else "").strip()
-        if raw_cat and raw_cat.lower() not in ("null", "none"):
-            return raw_cat
-
-        prod_name = pp.name.strip()
-        if not prod_name or prod_name.lower() in ("null", "none"):
-            return f"منتج {pp.remote_id}"
-            
-        return prod_name
+    def _get_group_key(self, pp: ProviderProduct) -> str:
+        if pp.category and pp.category.remote_id:
+            return str(pp.category.remote_id)
+        return f"group_{pp.remote_id}"
 
     def map_all_to_catalog(self, products_qs=None, selected_group_names=None) -> int:
         """
@@ -46,19 +36,38 @@ class AlkasrMapperService:
 
         grouped_products = {}
         for pp in products_list:
-            group_name = self._get_group_name(pp)
-            if group_name not in grouped_products:
-                grouped_products[group_name] = []
-            grouped_products[group_name].append(pp)
+            group_key = self._get_group_key(pp)
+            if group_key not in grouped_products:
+                grouped_products[group_key] = []
+            grouped_products[group_key].append(pp)
 
         created_count = 0
         if selected_group_names:
-            grouped_products = {k: v for k, v in grouped_products.items() if k in selected_group_names}
+            # Need to filter by actual names later, but for now we'll process all and filter during creation.
+            pass
 
         mapped_count = 0
-        for group_name, p_items in grouped_products.items():
+        for group_key, p_items in grouped_products.items():
             try:
                 with transaction.atomic():
+                    # Derive name
+                    names = [p.name.strip() for p in p_items if p.name]
+                    cat_name = p_items[0].category.name.strip() if (p_items[0].category and p_items[0].category.name) else ""
+                    
+                    if cat_name and cat_name not in names:
+                        derived_name = cat_name
+                    else:
+                        import os
+                        prefix = os.path.commonprefix(names).strip()
+                        if len(prefix) > 2:
+                            derived_name = prefix
+                        else:
+                            derived_name = cat_name or names[0]
+                            
+                    group_name = derived_name or f"Product {group_key}"
+                    
+                    if selected_group_names and group_name not in selected_group_names:
+                        continue
                     local_product = Product.objects.filter(
                         store=store,
                         name=group_name,
@@ -79,12 +88,10 @@ class AlkasrMapperService:
 
                     from apps.catalog.models import Category
                     cat_obj = None
-                    if p_items[0].category and p_items[0].category.name:
-                        cat_name = p_items[0].category.name.strip()
-                        if cat_name and cat_name.lower() not in ("null", "none"):
-                            cat_obj = Category.objects.filter(store=store, name=cat_name).first()
-                            if not cat_obj:
-                                cat_obj = Category.objects.create(store=store, name=cat_name, is_active=True)
+                    if derived_name and derived_name.lower() not in ("null", "none"):
+                        cat_obj = Category.objects.filter(store=store, name=derived_name).first()
+                        if not cat_obj:
+                            cat_obj = Category.objects.create(store=store, name=derived_name, is_active=True)
 
                     if not local_product:
                         local_product = Product.objects.create(
@@ -135,6 +142,9 @@ class AlkasrMapperService:
                         }
                         if pp.qty_list:
                             meta["qty_list"] = pp.qty_list
+
+                        if pp.product_type == "amount" and getattr(pp, 'qty_min', 0) >= 10:
+                            meta["is_per_mille"] = True
 
                         if pp.product_type == "amount":
                             meta["qty_type"] = "range"
