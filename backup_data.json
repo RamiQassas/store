@@ -1,0 +1,2384 @@
+[
+{
+  "model": "sessions.session",
+  "pk": "09136kxhwy3c8knqq7erpj0pgz8sycqb",
+  "fields": {
+    "session_data": "e30:1wbeWV:IjZUAsVqRlsOxWJ7uylWKhr7WD2tnNf_2Ta9TfVnyMY",
+    "expire_date": "2026-07-06T13:17:11.556Z"
+  }
+},
+{
+  "model": "sessions.session",
+  "pk": "0ql7hz8cwm2u2s1hb1e7gkwbygbfu36i",
+  "fields": {
+    "session_data": "eyJ2M19hdXRoX3VpZCI6IjE0IiwidjNfYXV0aF9wdXJwb3NlIjoicmVnaXN0cmF0aW9uIn0:1wboVq:ofQNlimCTv9L-5QDCdKkgN1TaRotjJte4yM_IOiCAsA",
+    "expire_date": "2026-07-06T23:57:10.782Z"
+  }
+},
+{
+  "model": "sessions.session",
+  "pk": "2n9gewn6jrwtnsr6nhe8klavlpf5ykbv",
+  "fields": {
+    "session_data": ".eJxVjj0PAiEQRP8LtSEs8hEt7e2uJwu7BKPhLgdXGf-7aK7Qdt68yTxFwK2XsDVew43EWRgtDr9hxHTn-iG4LE22Pq_c5JfvSE5csfbrTPy47O2_iYKtDD95Q8poyKDRZciWojsaOHmndFIUvUECRMBoUZMFHAJHSyl60jx-vd6vazmv:1wbzLz:A2mDyB8ZbrYxprtaLgjiC9u0XbnaYDZwzLwEGJYhQpw",
+    "expire_date": "2026-07-07T11:31:43.483Z"
+  }
+},
+{
+  "model": "sessions.session",
+  "pk": "3h9im46ttgq73661xzf3n00c0klki37g",
+  "fields": {
+    "session_data": "e30:1wboUW:SMDCzeY_-CZwbjwENZ-Iwl8aXUZUymOO4HwqeQ1tuus",
+    "expire_date": "2026-07-06T23:55:48.124Z"
+  }
+},
+{
+  "model": "sessions.session",
+  "pk": "3kt2dxr5ln89y9rfnajfy6mtrecb82lp",
+  "fields": {
+    "session_data": "e30:1wbf43:-eHwUpis89iC7zVdTmYejCHlDZvW2v3653O6l9Ul5dA",
+    "expire_date": "2026-07-06T13:51:51.185Z"
+  }
+},
+{
+  "model": "sessions.session",
+  "pk": "3nmr0i09hbyan5itmnag9xyenc2t0sc4",
+  "fields": {
+    "session_data": "e30:1wbhuF:5LQeMdnz3BYWFR6lKXfWgdcPabXOMqRhUXLemViax7I",
+    "expire_date": "2026-07-06T16:53:55.803Z"
+  }
+},
+{
+  "model": "sessions.session",
+  "pk": "4278tb7ga3j2t9vtqcus4fh84s93esp4",
+  "fields": {
+    "session_data": ".eJyrViozjk8sLcmIL81MUbJSslTSgYsUlBYV5BenAkWLUtMzi0uKEksy8_OQFOSmlmTkpxQrWUXH1gIAqo4Z7g:1wboTF:16hKVg8p5owlqTBOFEq86TdT8l1-eUgHMX1aDaxThwg",
+    "expire_date": "2026-07-06T23:54:29.850Z"
+  }
+},
+{
+  "model": "sessions.session",
+  "pk": "4bibdbe0lhjar0cj4vrecf26f2nr0ivm",
+  "fields": {
+    "session_data": ".eJxVzLkOwyAQBNB_oY4QwRxLyvTu0qNlWYsoEbYMrqL8ew65SNp5M_MQEbde4tZ4jdcsTsKIw2-WkG5cP4DL0mTr88pNfn0neeGKtY9z5vt5b_9dFGzlvR8QiIwGiy4Eq8CrYyLyKZMLaqBJkXGgss3AiEkjaJcUhKS9Zcp6Es8XiCQ5Sw:1waicp:Y2Pg9f_K_x19ners589mzmAXSjCQz8974H3uJhk9ZJU",
+    "expire_date": "2026-07-03T23:27:51.294Z"
+  }
+},
+{
+  "model": "sessions.session",
+  "pk": "5b09sd8vk4pvi1ao3ut4d6co3nk5z0fy",
+  "fields": {
+    "session_data": "e30:1wboSk:-3xcGYXTLSkCqInKSg9bEZqkGgOp-G6bELSfDgK6tqQ",
+    "expire_date": "2026-07-06T23:53:58.607Z"
+  }
+},
+{
+  "model": "sessions.session",
+  "pk": "5ookl262qe5tn8cm9bve4oud31urlzri",
+  "fields": {
+    "session_data": ".eJxVzL0OwjAMBOB3yYyqxo3TmpGdjT1yHEdFoLZq0gnx7vyoA6z33d3DBN7qGLaia7gmczTQmcNvGFluOn2El6U0pc6rlubrOzUXnXiq5znp_bS3_y5GLuN7L4iQWFjAyuD7thNynshZK6BKHAdPFiEjcIc-ZQWnktqce1KKHs3zBa6JOV4:1wbykK:EWZYjOmJBBMYCBTST2fcS4pWGEjylq04yR6AVZcWlk0",
+    "expire_date": "2026-07-07T10:52:48.612Z"
+  }
+},
+{
+  "model": "sessions.session",
+  "pk": "5q9sl5ep1ejlxndddoer6umg200tojhp",
+  "fields": {
+    "session_data": "e30:1wboUV:X4PirD2OqR3zaqqOj1NPqAVyb315zFDG3drf1oZsL-M",
+    "expire_date": "2026-07-06T23:55:47.606Z"
+  }
+},
+{
+  "model": "sessions.session",
+  "pk": "5voemvh23b5e912vhushdu981q9qg1lk",
+  "fields": {
+    "session_data": "e30:1wboTp:YgvBY7Q7yVSq7JsPfd9zxGMp9Wv989xs7_yEaDBpIa4",
+    "expire_date": "2026-07-06T23:55:05.662Z"
+  }
+},
+{
+  "model": "sessions.session",
+  "pk": "710jx4dsg4vg20f3jmti5lzcq93sgs29",
+  "fields": {
+    "session_data": ".eJxVzL0OwjAMBOB3yYwiQuI4ZmRnY4_c2lERKK2adkK8Oz_qAOt9d_cwmddlyGvTOV_FHI0Hs_sNO-5vWj_C09RsW8ZZm_36RvailetyHkXvp639dzFwG957lMDOBewoMgr5FCACkXoVCsilpK7HtIdDoghSPCBH6QHEodOCyTxfnEI4yQ:1wbyre:RrS6Was7Lp1sKJC7T4GJqr_eOKjIMWyXYiMVeUCRr64",
+    "expire_date": "2026-07-07T11:00:22.268Z"
+  }
+},
+{
+  "model": "sessions.session",
+  "pk": "7zxnrjgccuscf5peeqc8tz0c34e827o8",
+  "fields": {
+    "session_data": ".eJxVzLEOwiAUheF3YTaEy7UVHd27uZNLOQSjoU2hk_HdTU0HXc938r-Ul7Vlv1Ys_h7VRVmjDr9jkPGBsonMc9W1TQuq_vpO-oYipQ1TxPO6v_8SWWreykRIwoGCBbEgMiyZxD0fO-tYYhd7wJzOJllDzlkS0AiXjIhL7NT7A6wdOSg:1wbyiX:_2xVtw9ynsnHk1c2hjuEH8lULmD7ZRs0sqLL-cpmQcw",
+    "expire_date": "2026-07-07T10:50:57.514Z"
+  }
+},
+{
+  "model": "sessions.session",
+  "pk": "9cw0akhgrwtdnp6i1hox4ds556aqmb4x",
+  "fields": {
+    "session_data": ".eJxVzLkOwyAQBNB_oY4QwRxLyvTu0qNlWYsoEbYMrqL8ew65SNp5M_MQEbde4tZ4jdcsTsKIw2-WkG5cP4DL0mTr88pNfn0neeGKtY9z5vt5b_9dFGzlvR8QiIwGiy4Eq8CrYyLyKZMLaqBJkXGgss3AiEkjaJcUhKS9Zcp6Es8XiCQ5Sw:1waid5:CsTuJKKjpKtW00ZHaEs_94ZHWJCNAiJ3-r3mTaJHhWs",
+    "expire_date": "2026-07-03T23:28:07.096Z"
+  }
+},
+{
+  "model": "sessions.session",
+  "pk": "9g4jkc6sdldal3dwbav3bulwzt2uje2e",
+  "fields": {
+    "session_data": ".eJxVzLkOwyAQBNB_oY4QwRxLyvTu0qNlWYsoEbYMrqL8ew65SNp5M_MQEbde4tZ4jdcsTsKIw2-WkG5cP4DL0mTr88pNfn0neeGKtY9z5vt5b_9dFGzlvR8QiIwGiy4Eq8CrYyLyKZMLaqBJkXGgss3AiEkjaJcUhKS9Zcp6Es8XiCQ5Sw:1waieN:KkSk-ZwXOuR_sTBPO6HcegJg0rxOBiBvtTJE32P3tzI",
+    "expire_date": "2026-07-03T23:29:27.075Z"
+  }
+},
+{
+  "model": "sessions.session",
+  "pk": "az0m504a07yr5byvd9rds4dgb82qug3f",
+  "fields": {
+    "session_data": ".eJxVzLsOwjAMheF3yYwiN82VkZ2NPXJsV0GgtmraCfHuqKgDrOc7-l8q47bWvDVZ8p3VWfWgTr9jQXrIuAvOc9NtnRZp-usH6ZuMOK7XieV5Od5_iYqt7mUXInHxAyP0FBNY6CERcTLgbJcKu1DEowzRFRsCC1ljHEWTOl-6pN4frH849Q:1wbyqG:ECLXrJoCM4pEmSeA3yJ3JZM-p7xc6-0h4OpMHs_RooI",
+    "expire_date": "2026-07-07T10:58:56.521Z"
+  }
+},
+{
+  "model": "sessions.session",
+  "pk": "b4nz2siykigbkqrapew6m3n9opyy8pv1",
+  "fields": {
+    "session_data": "eyJ2M19hdXRoX3VpZCI6IjEyIiwidjNfYXV0aF9wdXJwb3NlIjoicmVnaXN0cmF0aW9uIn0:1wboVE:dIa9v0pjjAt1ro_WNY4qaEkUqTyymqKVINiyMg9z5Xw",
+    "expire_date": "2026-07-06T23:56:32.752Z"
+  }
+},
+{
+  "model": "sessions.session",
+  "pk": "co6pbz4w6fb6p7endkbu0fvxpfsaepsg",
+  "fields": {
+    "session_data": ".eJxVzL0OAiEQBOB3oTYEWG4BS3s7e7LAXjCau8vBVcZ39ydXaDvfzDxEpK3XuDVe47WIozBaHH7DRPnG00doWZpsfV65ya_vJC880dTPc-H7aW__XVRq9b1PCtiTgVwwBG-KBvA0DJxAcRmT06N3OSN6FaxNlg0gOtTAJqSMzornC6XgOJw:1wbyjg:D4keNdVzgOeFXzGjprHeGulTc-ixo21_TRboY5OPqQA",
+    "expire_date": "2026-07-07T10:52:08.907Z"
+  }
+},
+{
+  "model": "sessions.session",
+  "pk": "d41f2qn67mepzm6s2i0sfwewxq68gkp6",
+  "fields": {
+    "session_data": "e30:1wbf2W:cJZL9wyiBLVBKXfc94cZFnPYqWcGmYWH4Fv7Ks9USkQ",
+    "expire_date": "2026-07-06T13:50:16.945Z"
+  }
+},
+{
+  "model": "sessions.session",
+  "pk": "e7kssk1e2dm0104jxn1kvgb8pw94nhjl",
+  "fields": {
+    "session_data": ".eJxVzL0OwjAQA-B3yYwikl7ShJG9G3t01zoKArVV006Id-dHHWD1Z_uhEm9rSVvFkq6DOqmG1OE3FO5vGD_C81x1XacFVX99J33ByOPaTQPu5739d1G4lvceQlFw9HCmIWS0LFmcN8ZGaqyl6L1QdtYwcsg9ceuMcxESgw8Bg3q-ALghOTk:1wbyrd:WqMADyWfLBPUHcvt0ydAF1Wns27ArdavS_ki9WcPdto",
+    "expire_date": "2026-07-07T11:00:21.257Z"
+  }
+},
+{
+  "model": "sessions.session",
+  "pk": "hmeic7bu9xdtutmftrdl6iyvyq6nbkzz",
+  "fields": {
+    "session_data": "e30:1wboSl:92zNBZPOap6SpHBEc-pW9kgesNncUs-xAl5HSD3eDJQ",
+    "expire_date": "2026-07-06T23:53:59.579Z"
+  }
+},
+{
+  "model": "sessions.session",
+  "pk": "hxjnppiod9u0d13rb1a1ymlta68srgcd",
+  "fields": {
+    "session_data": ".eJxVzL0OAiEQBOB3oTZkYVHA0t7OniywBKPhLgdXGd_dn1yh7Xwz8xCB1lHD2nkJ1yyOQjux-w0jpRu3j9A8d9nHtHCXX99IXrhRG-cp8_20tf8uKvX63rNjDVlp8mgS2YyGCiTYK2MZY8oAtpTkNQIWAGfgEK1B1L5YhYpIPF-tGzid:1wbynu:ICAh4wSS_u-HTpnI6XC2lPC__fgHX7ykV7Q0_z96Ngo",
+    "expire_date": "2026-07-07T10:56:30.767Z"
+  }
+},
+{
+  "model": "sessions.session",
+  "pk": "j3dszm7dsv1ditb0kml3ddpquj7jszs9",
+  "fields": {
+    "session_data": ".eJxVzLkOwyAQBNB_oY6QOWyWlOnTpUcLu4goEbYMrqL8ew65SNp5M_MQAbdewtZ4DVcSR6GtOPyGEdON60dwWZpsfV65ya_vJC9csfbzTHw_7e2_i4KtvPfOMbNWGtgPrEBNpMF442DyZFKCZAEtMVLOOUYiNSWgccQBjGXloni-ALSfOcY:1wbyl9:o_5ZppZl00Mu0J4v5Vhfgu34t2fs4FhwDAj1qyQPnwk",
+    "expire_date": "2026-07-07T10:53:39.352Z"
+  }
+},
+{
+  "model": "sessions.session",
+  "pk": "jufn8uqddt9rxqsupezoqt2day6b8dm9",
+  "fields": {
+    "session_data": "e30:1wbhuP:hzWIp9ynMur89Nb2vmDJHM3CnNHzUTmmqp2DtvtXf30",
+    "expire_date": "2026-07-06T16:54:05.195Z"
+  }
+},
+{
+  "model": "sessions.session",
+  "pk": "jzhvebs3k7x71ifznobzy6o3zyhai8fj",
+  "fields": {
+    "session_data": "e30:1wboWs:JA_xMgRW-O--M4rJGIB-dpuxUKHv-N2ewHmqdBl_S0c",
+    "expire_date": "2026-07-06T23:58:14.587Z"
+  }
+},
+{
+  "model": "sessions.session",
+  "pk": "kb4j65cq83ov94gy25f0v7h0fgafamxq",
+  "fields": {
+    "session_data": "e30:1wbf5z:ifhUDYZsx_kHeJLcYfvp9Mmh26JxY57U6UjJ7TRSzl0",
+    "expire_date": "2026-07-06T13:53:51.666Z"
+  }
+},
+{
+  "model": "sessions.session",
+  "pk": "kb684z4grr09i91zxc3b40vvij0m9oev",
+  "fields": {
+    "session_data": ".eJxVjLEOwiAURf-F2ZACT15xdHdzJw94BKOhTaGT8d-tpoOu59xzn8LT2otfGy_-lsRJgBGHXxgo3rl-DM1zk61PCzf59buSV65U-2VK_Djv67-LQq1svRtzUJghpjQ4E41Gqx1ajEbZDEDsDAIOeUyogtKktXOBAh81bBhBvN6apjhB:1wbzMj:uvZQtLOQ7TtU6oV-H8ZA-orPGMTQmF_D0RMfa3uVqR8",
+    "expire_date": "2026-07-07T11:32:29.943Z"
+  }
+},
+{
+  "model": "sessions.session",
+  "pk": "l5vjhb3gle4l18197u1p2uy9jfri4unv",
+  "fields": {
+    "session_data": ".eJxVjLEOwiAURf-F2RCgAg9Hdzd38sp7BKOhTaGT8d-tpoOu59xznyLi2ktcGy_xRuIkdBCHXzhiunP9GJznJlufFm7y63clr1yx9stE_Djv67-Lgq1svQIg7_JovB0cKDRZG0T2xmQX1EZRWY8q5JwNWcfJOvBwJO0h8ZBIvN6WezjV:1wbyi6:rOXaTaYHG3vYnWHwqtmT3jDABUjqp-y3ZG2vDujEySY",
+    "expire_date": "2026-07-07T10:50:30.262Z"
+  }
+},
+{
+  "model": "sessions.session",
+  "pk": "m0vqkarhnk3gv4vwm2d4u0h64k2w6etq",
+  "fields": {
+    "session_data": "e30:1wboUJ:e5MiMMGuM0SqY8xL9oldwBKz01EFuuUJFeA9wYzzjw8",
+    "expire_date": "2026-07-06T23:55:35.630Z"
+  }
+},
+{
+  "model": "sessions.session",
+  "pk": "noj1dwdq60hbr6ra15kuqhr1i4f2tapg",
+  "fields": {
+    "session_data": "eyJ2M19hdXRoX3VpZCI6IjEzIiwidjNfYXV0aF9wdXJwb3NlIjoicmVnaXN0cmF0aW9uIn0:1wboVZ:qNL1ivnJ6lq4n2lSe3_yaBkzfm7_sc7aGgfDQaKs9bQ",
+    "expire_date": "2026-07-06T23:56:53.064Z"
+  }
+},
+{
+  "model": "sessions.session",
+  "pk": "ogttxqoci4i645yq65n60smt8d31927c",
+  "fields": {
+    "session_data": "e30:1wboSR:7CysAfknTRsegujXGBFPhp1nENoLMmjE4j_YjkLcLtQ",
+    "expire_date": "2026-07-06T23:53:39.017Z"
+  }
+},
+{
+  "model": "sessions.session",
+  "pk": "orcl9mwuwt1okhctnrf2yf7f3925tf7q",
+  "fields": {
+    "session_data": ".eJxVzLkOwyAQBNB_oY4QwRxLyvTu0qNlWYsoEbYMrqL8ew65SNp5M_MQEbde4tZ4jdcsTsKIw2-WkG5cP4DL0mTr88pNfn0neeGKtY9z5vt5b_9dFGzlvR8QiIwGiy4Eq8CrYyLyKZMLaqBJkXGgss3AiEkjaJcUhKS9Zcp6Es8XiCQ5Sw:1waicd:BlzpWlmTRk0hBjKTZPVD9MmXiCacjFHzjXumCGthHFk",
+    "expire_date": "2026-07-03T23:27:39.696Z"
+  }
+},
+{
+  "model": "sessions.session",
+  "pk": "pq8dawvjex68x65gesntfxzauh9cyetm",
+  "fields": {
+    "session_data": "e30:1wboTp:YgvBY7Q7yVSq7JsPfd9zxGMp9Wv989xs7_yEaDBpIa4",
+    "expire_date": "2026-07-06T23:55:05.173Z"
+  }
+},
+{
+  "model": "sessions.session",
+  "pk": "pxm13dplx85lg4b4drmn7eb6nn7v9yc0",
+  "fields": {
+    "session_data": "e30:1wboWH:yqvLpnv9Dgy3wJ2E94jAE4MX_R63M_UkZrtah8rrvtY",
+    "expire_date": "2026-07-06T23:57:37.823Z"
+  }
+},
+{
+  "model": "sessions.session",
+  "pk": "q3zirb0ppwo4m4ss68mvrmjt19avayua",
+  "fields": {
+    "session_data": ".eJxVzL0OwjAMBOB3yYyiJI2pw8jejb1yYkdBoLRq2gnx7vyoA6z33d1DjbStZdyaLOOV1Ul5ow6_YaR0k_oRmuem2zot0vTXd9IXqVTXYWK5n_f230WhVt77PiTOyB1Y3xlg6AUwuHwMWQKBF5QIaDq0AC4YtDGSQw4ck2FDTOr5Ap9_OTA:1wbyy6:RWGyzNX5JIxpW1IGqjYMeh2hrE7qZ0jBs5aLB7XsRY8",
+    "expire_date": "2026-07-07T11:07:02.981Z"
+  }
+},
+{
+  "model": "sessions.session",
+  "pk": "rs8ngnzw7sws9nqn8ej47kox7mnzpu96",
+  "fields": {
+    "session_data": "e30:1wbfit:q54-wdu1yAC_HLlkuPTe-cN58WoD-9EmRisr5zopfy4",
+    "expire_date": "2026-07-06T14:34:03.255Z"
+  }
+},
+{
+  "model": "sessions.session",
+  "pk": "s0gxjw24cbkypg93cieqxibmdel67uru",
+  "fields": {
+    "session_data": "e30:1wboUk:_c0UrH460qv8lc6afwRYZJGEjfCxViMHbKWOQ0B0NUA",
+    "expire_date": "2026-07-06T23:56:02.989Z"
+  }
+},
+{
+  "model": "sessions.session",
+  "pk": "sezcptsrv3zxpb6l0y592l7wlm83wibd",
+  "fields": {
+    "session_data": ".eJyrViozjk8sLcmIL81MUbJSslDSgYsUlBYV5BenAkWLUtMzi0uKEksy8_OQFOSmlmTkpxQrWUXH1gIAqlUZ7Q:1wboTF:F9veSs7nKPsujJzGqTMmpt3_ROw5pkn3Mn9pqyQ1r48",
+    "expire_date": "2026-07-06T23:54:29.260Z"
+  }
+},
+{
+  "model": "sessions.session",
+  "pk": "sijrzmcqavtyk9h2ekjdqw9a2etpr8j5",
+  "fields": {
+    "session_data": "e30:1wboWG:qcVI3U4ju5YBRo0chSOJt6f9WEHXC1ZPEDlBTLIfpbI",
+    "expire_date": "2026-07-06T23:57:36.931Z"
+  }
+},
+{
+  "model": "sessions.session",
+  "pk": "ti4ftdvqbvz5v6z993j5glj8eiexouln",
+  "fields": {
+    "session_data": "e30:1wboU3:sxxXylnZc7XxfCHhmMR0_HxePiQ--bocip_uUY0-45Y",
+    "expire_date": "2026-07-06T23:55:19.073Z"
+  }
+},
+{
+  "model": "sessions.session",
+  "pk": "u4xo0g58gondb6gj2m38l1spnuswpkoo",
+  "fields": {
+    "session_data": ".eJxVzDsPwjAMBOD_khlVskvzYGRn6x7Zia0gUFs16YT47zzUAdb77u5hIm2txK3KGq_ZnAxac_gNmdJNpo_QstSutnmV2n19p26UiaZ2mbPcz3v776JQLe-9cxgwEw6ak7AiSADus3KQJANwgqODwamQOkuswavHkBQ89BYZzPMF3D46HQ:1wbymL:zM-Tk1gwsqRNKVizOoc0HwVgERBag7rC88GyO4b7-uU",
+    "expire_date": "2026-07-07T10:54:53.009Z"
+  }
+},
+{
+  "model": "sessions.session",
+  "pk": "ub76vfiuzvp9dk88oqxzy8bpgjfpc37r",
+  "fields": {
+    "session_data": ".eJxVzLkOwyAQBNB_oY4QwRxLyvTu0qNlWYsoEbYMrqL8ew65SNp5M_MQEbde4tZ4jdcsTsKIw2-WkG5cP4DL0mTr88pNfn0neeGKtY9z5vt5b_9dFGzlvR8QiIwGiy4Eq8CrYyLyKZMLaqBJkXGgss3AiEkjaJcUhKS9Zcp6Es8XiCQ5Sw:1waieC:LoAjNy7DW3vYnccr7WMFHLctbXHDd5uA4vT8sKdSLcY",
+    "expire_date": "2026-07-03T23:29:16.849Z"
+  }
+},
+{
+  "model": "sessions.session",
+  "pk": "ufc08mwtrh47wip7ub8njo1h7cv0499b",
+  "fields": {
+    "session_data": ".eJxVzL0OwjAMBOB3yYyquI7zw8jOxh45caQgUFs16YR4d1TUAdb77u6lIm-9xq2VNd5FndUY1Ok3TJwfZdqFl6UNrc9racPXDxpuZeKpX2cpz8vR_ruo3Oq-BzKcSZIwoTgwGAg1hgxgCSza4F1OWsAjEaOBkQStJiNeG8ejen8Ai3k3jQ:1wbyqA:QPjpACVdg8zzXu6YfGWZ7Gn3kz5e_Zrn6QYlPsf3zBk",
+    "expire_date": "2026-07-07T10:58:50.236Z"
+  }
+},
+{
+  "model": "sessions.session",
+  "pk": "vy3pw5oyf42l7gpmuuqxctfp7wnnbwii",
+  "fields": {
+    "session_data": "e30:1wboU2:YENMX3fAorwzKBmRFbKbLO4pgm6qHtR8lTODCU53TYI",
+    "expire_date": "2026-07-06T23:55:18.500Z"
+  }
+},
+{
+  "model": "sessions.session",
+  "pk": "vyj0pfy1q9wqicoj0zjin21urngwvmry",
+  "fields": {
+    "session_data": ".eJxVjLEOAiEQBf-F2hBcEFxLezt7srBLMJq7y8FVxn_3NFdo-2bmPVWkpde4NJnjjdVJAajd75go32X4EJqmplsfZ2n6yzekrzLQ0C8jy-O82X8XlVpd--CsgAcml9HQEcUiIBtLPjjjCDmRZxcgh1DIF7snc0gWgBHLqjj1egOanjiV:1wbyk1:PiY_Py4st_iSz0HxuVrPlqvYMdpRS-8e5y113wyxcsA",
+    "expire_date": "2026-07-07T10:52:29.036Z"
+  }
+},
+{
+  "model": "sessions.session",
+  "pk": "x9hicquvnk56s18oqfz66rbhe8hyft6b",
+  "fields": {
+    "session_data": "e30:1wboUl:Lyr0gjATEJ_7lF1VlJckFxgVM4ax2h8hflTrwuTO_0c",
+    "expire_date": "2026-07-06T23:56:03.884Z"
+  }
+},
+{
+  "model": "sessions.session",
+  "pk": "y5bncepzq0mzelq1vg1350csns5xgs79",
+  "fields": {
+    "session_data": "e30:1wbf39:_TP-WHoyoF-zF83-hfqxOQeadsgbKcGHJNynvyhNNR0",
+    "expire_date": "2026-07-06T13:50:55.293Z"
+  }
+},
+{
+  "model": "sessions.session",
+  "pk": "z9ng3f5151c58ke03tfwuwav39yfba6f",
+  "fields": {
+    "session_data": "e30:1wboWr:RPAPPYuQdY0-CvtAHRriMylgQbGCLCVlpExNQwvw5FU",
+    "expire_date": "2026-07-06T23:58:13.653Z"
+  }
+},
+{
+  "model": "sessions.session",
+  "pk": "zppeiij3mjhsxtq4unjdn4x3nv014zks",
+  "fields": {
+    "session_data": ".eJxVzDsPAiEQBOD_Qm0u4blgaW9nTxZ2CUbDXQ6uMv53H7lC2_lm5iEibqPGrfMarySOQoE4_IYJ843bR3BZ-tTHvHKfvr7TdOGGbZxn4vtpb_9dVOz1vU_SBpOzDQVLIQgowTuribOTxYA03oHVTMkpXZRnTl4bB9lrS1kbEM8Xufo5GA:1wbynW:xxI7WzQky6Vfi-2LP9dEBtP4WQqJNyJNNW_aYoHM62o",
+    "expire_date": "2026-07-07T10:56:06.510Z"
+  }
+},
+{
+  "model": "sites.site",
+  "fields": {
+    "domain": "raqamiyatapp.com",
+    "name": "Raqamiyat"
+  }
+},
+{
+  "model": "common.currency",
+  "pk": "65c7ed2b-f87f-466d-b667-cc039a9ac46b",
+  "fields": {
+    "created_at": "2026-06-13T10:27:22.636Z",
+    "updated_at": "2026-06-13T10:27:22.636Z",
+    "store": null,
+    "name": "Syrian Pound",
+    "code": "SYP",
+    "symbol": "£S",
+    "buy_rate": "15000.000000",
+    "sell_rate": "14500.000000",
+    "capital_rate": "1.000000",
+    "conversion_method": "multiply",
+    "decimal_places": 2,
+    "display_order": 0,
+    "is_active": true,
+    "is_default": false
+  }
+},
+{
+  "model": "common.currency",
+  "pk": "97fb4b3a-6b82-492c-be80-2519b4915346",
+  "fields": {
+    "created_at": "2026-06-13T10:27:22.635Z",
+    "updated_at": "2026-06-13T10:27:22.635Z",
+    "store": null,
+    "name": "US Dollar",
+    "code": "USD",
+    "symbol": "$",
+    "buy_rate": "1.000000",
+    "sell_rate": "1.000000",
+    "capital_rate": "1.000000",
+    "conversion_method": "multiply",
+    "decimal_places": 2,
+    "display_order": 0,
+    "is_active": true,
+    "is_default": false
+  }
+},
+{
+  "model": "common.currency",
+  "pk": "b54cd650-6e23-4ddf-ba9e-62c0f9480740",
+  "fields": {
+    "created_at": "2026-06-13T10:27:22.636Z",
+    "updated_at": "2026-06-13T10:27:22.636Z",
+    "store": null,
+    "name": "Turkish Lira",
+    "code": "TRY",
+    "symbol": "₺",
+    "buy_rate": "32.500000",
+    "sell_rate": "32.000000",
+    "capital_rate": "1.000000",
+    "conversion_method": "multiply",
+    "decimal_places": 2,
+    "display_order": 0,
+    "is_active": true,
+    "is_default": false
+  }
+},
+{
+  "model": "common.platformstatistic",
+  "pk": "bc04bc03-d1d3-40fd-ab27-98f23031c184",
+  "fields": {
+    "created_at": "2026-06-17T10:23:12.869Z",
+    "updated_at": "2026-06-17T10:23:12.869Z",
+    "label": "دعم ومتابعة فنية",
+    "value_override": 0,
+    "value_suffix": "+",
+    "string_value": "24/7",
+    "icon_class": "fas fa-microchip",
+    "stat_type": "custom",
+    "is_active": true,
+    "display_order": 3
+  }
+},
+{
+  "model": "common.platformstatistic",
+  "pk": "c8ab9fd4-a8a2-42fd-975e-81de07a0cccb",
+  "fields": {
+    "created_at": "2026-06-17T10:23:12.866Z",
+    "updated_at": "2026-06-17T10:23:12.866Z",
+    "label": "طلب مكتمل على المنصة",
+    "value_override": 3000,
+    "value_suffix": "+",
+    "string_value": "",
+    "icon_class": "fas fa-server",
+    "stat_type": "orders",
+    "is_active": true,
+    "display_order": 2
+  }
+},
+{
+  "model": "common.platformstatistic",
+  "pk": "cac1d302-204c-4081-8418-6e560d6d0ee7",
+  "fields": {
+    "created_at": "2026-06-17T10:23:12.873Z",
+    "updated_at": "2026-06-17T10:23:12.873Z",
+    "label": "تنفيذ آلي وسريع",
+    "value_override": 10,
+    "value_suffix": " دقيقة",
+    "string_value": "",
+    "icon_class": "fas fa-bolt-lightning",
+    "stat_type": "execution_time",
+    "is_active": true,
+    "display_order": 4
+  }
+},
+{
+  "model": "common.platformstatistic",
+  "pk": "ea43c5e6-0028-4fa1-83fe-e6f09215f6bd",
+  "fields": {
+    "created_at": "2026-06-17T10:23:12.864Z",
+    "updated_at": "2026-06-17T10:23:12.864Z",
+    "label": "عميل موثق ومسجل",
+    "value_override": 1500,
+    "value_suffix": "+",
+    "string_value": "",
+    "icon_class": "fas fa-user-check",
+    "stat_type": "users",
+    "is_active": true,
+    "display_order": 1
+  }
+},
+{
+  "model": "accounts.user",
+  "fields": {
+    "password": "",
+    "last_login": null,
+    "is_superuser": false,
+    "first_name": "",
+    "last_name": "",
+    "is_staff": false,
+    "is_active": true,
+    "date_joined": "2026-06-13T10:27:22.624Z",
+    "username": "testuser",
+    "email": "test@test.com",
+    "phone": null,
+    "role": "customer",
+    "store": null,
+    "saas_role": null,
+    "tier": "customer",
+    "status": "active",
+    "restriction_withdrawals": false,
+    "restriction_deposits": false,
+    "restriction_purchases": false,
+    "suspension_reason": "",
+    "admin_notes": "",
+    "suspension_expires_at": null,
+    "is_permanently_suspended": false,
+    "created_at": "2026-06-13T10:27:22.626Z",
+    "updated_at": "2026-06-18T13:27:01.981Z",
+    "public_uuid": "fa0dd6f4-8d89-41a8-9959-bc2702fa85a2",
+    "uid": "95758368",
+    "preferred_currency": null,
+    "preferred_language": "ar",
+    "email_verified": false,
+    "last_session_key": null,
+    "two_factor_enabled": false,
+    "otp_failed_attempts": 0,
+    "otp_lockout_until": null,
+    "otp_resend_count": 0,
+    "totp_secret": null,
+    "totp_enabled": false,
+    "security_password": null,
+    "security_password_enabled": false,
+    "security_login_method": "EMAIL",
+    "security_deposit_method": "NONE",
+    "security_purchase_method": "NONE",
+    "security_withdraw_method": "NONE",
+    "show_full_name": false,
+    "require_otp_on_login": true,
+    "require_otp_on_deposit": false,
+    "require_otp_on_purchase": false,
+    "is_kyc_verified": false,
+    "has_custom_limits": false,
+    "daily_deposit_limit": "100.00",
+    "daily_withdrawal_limit": "100.00",
+    "custom_p2p_transfer_limit": null,
+    "custom_payment_limits": {},
+    "daily_deposit_usage": "0.00",
+    "daily_withdrawal_usage": "0.00",
+    "last_limit_reset": "2026-06-13T10:27:22.624Z",
+    "last_ip": null,
+    "last_country": "",
+    "last_city": "",
+    "groups": [],
+    "user_permissions": []
+  }
+},
+{
+  "model": "accounts.user",
+  "fields": {
+    "password": "pbkdf2_sha256$870000$Jj4bUbgGo5AK3iogSFxNpf$jK3ub9OAl9ociczSO5IVVfYPWAOizTSU+jzOBFUnwYg=",
+    "last_login": null,
+    "is_superuser": false,
+    "first_name": "",
+    "last_name": "",
+    "is_staff": false,
+    "is_active": true,
+    "date_joined": "2026-06-19T07:09:11.527Z",
+    "username": "testresetuser@example.com",
+    "email": "testresetuser@example.com",
+    "phone": null,
+    "role": "customer",
+    "store": null,
+    "saas_role": null,
+    "tier": "customer",
+    "status": "active",
+    "restriction_withdrawals": false,
+    "restriction_deposits": false,
+    "restriction_purchases": false,
+    "suspension_reason": "",
+    "admin_notes": "",
+    "suspension_expires_at": null,
+    "is_permanently_suspended": false,
+    "created_at": "2026-06-19T07:09:11.528Z",
+    "updated_at": "2026-06-19T07:09:11.908Z",
+    "public_uuid": "f7260959-73d9-46c7-8461-b0166b262cc8",
+    "uid": "75101717",
+    "preferred_currency": null,
+    "preferred_language": "ar",
+    "email_verified": false,
+    "last_session_key": null,
+    "two_factor_enabled": false,
+    "otp_failed_attempts": 0,
+    "otp_lockout_until": null,
+    "otp_resend_count": 0,
+    "totp_secret": null,
+    "totp_enabled": false,
+    "security_password": null,
+    "security_password_enabled": false,
+    "security_login_method": "EMAIL",
+    "security_deposit_method": "NONE",
+    "security_purchase_method": "NONE",
+    "security_withdraw_method": "NONE",
+    "show_full_name": false,
+    "require_otp_on_login": true,
+    "require_otp_on_deposit": false,
+    "require_otp_on_purchase": false,
+    "is_kyc_verified": false,
+    "has_custom_limits": false,
+    "daily_deposit_limit": "100.00",
+    "daily_withdrawal_limit": "100.00",
+    "custom_p2p_transfer_limit": null,
+    "custom_payment_limits": {},
+    "daily_deposit_usage": "0.00",
+    "daily_withdrawal_usage": "0.00",
+    "last_limit_reset": "2026-06-19T07:09:11.527Z",
+    "last_ip": null,
+    "last_country": "",
+    "last_city": "",
+    "groups": [],
+    "user_permissions": []
+  }
+},
+{
+  "model": "accounts.user",
+  "fields": {
+    "password": "pbkdf2_sha256$870000$qT03Hic5snuR3aqaWDl9tQ$+wJBDeovP2ipgVGroj1JgqBnHoEtoSYcfwQMp4HSVb8=",
+    "last_login": "2026-06-19T23:29:27.069Z",
+    "is_superuser": false,
+    "first_name": "",
+    "last_name": "",
+    "is_staff": false,
+    "is_active": true,
+    "date_joined": "2026-06-19T23:27:39.052Z",
+    "username": "",
+    "email": "merchant@example.com",
+    "phone": null,
+    "role": "customer",
+    "store": null,
+    "saas_role": null,
+    "tier": "customer",
+    "status": "active",
+    "restriction_withdrawals": false,
+    "restriction_deposits": false,
+    "restriction_purchases": false,
+    "suspension_reason": "",
+    "admin_notes": "",
+    "suspension_expires_at": null,
+    "is_permanently_suspended": false,
+    "created_at": "2026-06-19T23:27:39.053Z",
+    "updated_at": "2026-06-19T23:27:39.357Z",
+    "public_uuid": "7246d59e-0538-456c-9f78-35668926d170",
+    "uid": "57031694",
+    "preferred_currency": null,
+    "preferred_language": "ar",
+    "email_verified": false,
+    "last_session_key": null,
+    "two_factor_enabled": false,
+    "otp_failed_attempts": 0,
+    "otp_lockout_until": null,
+    "otp_resend_count": 0,
+    "totp_secret": null,
+    "totp_enabled": false,
+    "security_password": null,
+    "security_password_enabled": false,
+    "security_login_method": "EMAIL",
+    "security_deposit_method": "NONE",
+    "security_purchase_method": "NONE",
+    "security_withdraw_method": "NONE",
+    "show_full_name": false,
+    "require_otp_on_login": true,
+    "require_otp_on_deposit": false,
+    "require_otp_on_purchase": false,
+    "is_kyc_verified": false,
+    "has_custom_limits": false,
+    "daily_deposit_limit": "100.00",
+    "daily_withdrawal_limit": "100.00",
+    "custom_p2p_transfer_limit": null,
+    "custom_payment_limits": {},
+    "daily_deposit_usage": "0.00",
+    "daily_withdrawal_usage": "0.00",
+    "last_limit_reset": "2026-06-19T23:27:39.052Z",
+    "last_ip": null,
+    "last_country": "Local",
+    "last_city": "Development",
+    "groups": [],
+    "user_permissions": []
+  }
+},
+{
+  "model": "accounts.user",
+  "fields": {
+    "password": "!GvLe6WjqdkbS87qsF81LySb2hs8WtC3zBYC6SYSi",
+    "last_login": null,
+    "is_superuser": false,
+    "first_name": "",
+    "last_name": "",
+    "is_staff": false,
+    "is_active": true,
+    "date_joined": "2026-06-22T13:17:11.561Z",
+    "username": "test_social_user",
+    "email": "test_social_user@example.com",
+    "phone": null,
+    "role": "customer",
+    "store": null,
+    "saas_role": null,
+    "tier": "customer",
+    "status": "active",
+    "restriction_withdrawals": false,
+    "restriction_deposits": false,
+    "restriction_purchases": false,
+    "suspension_reason": "",
+    "admin_notes": "",
+    "suspension_expires_at": null,
+    "is_permanently_suspended": false,
+    "created_at": "2026-06-22T13:17:11.568Z",
+    "updated_at": "2026-06-22T13:17:11.568Z",
+    "public_uuid": "74a4c12f-b505-4b76-b70f-4e83416df2fe",
+    "uid": "60350759",
+    "preferred_currency": null,
+    "preferred_language": "ar",
+    "email_verified": true,
+    "last_session_key": null,
+    "two_factor_enabled": false,
+    "otp_failed_attempts": 0,
+    "otp_lockout_until": null,
+    "otp_resend_count": 0,
+    "totp_secret": null,
+    "totp_enabled": false,
+    "security_password": null,
+    "security_password_enabled": false,
+    "security_login_method": "EMAIL",
+    "security_deposit_method": "NONE",
+    "security_purchase_method": "NONE",
+    "security_withdraw_method": "NONE",
+    "show_full_name": false,
+    "require_otp_on_login": true,
+    "require_otp_on_deposit": false,
+    "require_otp_on_purchase": false,
+    "is_kyc_verified": false,
+    "has_custom_limits": false,
+    "daily_deposit_limit": "100.00",
+    "daily_withdrawal_limit": "100.00",
+    "custom_p2p_transfer_limit": null,
+    "custom_payment_limits": {},
+    "daily_deposit_usage": "0.00",
+    "daily_withdrawal_usage": "0.00",
+    "last_limit_reset": "2026-06-22T13:17:11.561Z",
+    "last_ip": null,
+    "last_country": "",
+    "last_city": "",
+    "groups": [],
+    "user_permissions": []
+  }
+},
+{
+  "model": "accounts.user",
+  "fields": {
+    "password": "pbkdf2_sha256$870000$qcZEPAC4QnYnMTj1CRQFdC$/umL23cgO82eYhD6oAWTzs2C9wr4lIgXW2FU94/v29o=",
+    "last_login": null,
+    "is_superuser": true,
+    "first_name": "",
+    "last_name": "",
+    "is_staff": true,
+    "is_active": true,
+    "date_joined": "2026-06-22T23:55:04.702Z",
+    "username": "admin_store@example.com",
+    "email": "admin_store@example.com",
+    "phone": null,
+    "role": "super_admin",
+    "store": null,
+    "saas_role": null,
+    "tier": "customer",
+    "status": "active",
+    "restriction_withdrawals": false,
+    "restriction_deposits": false,
+    "restriction_purchases": false,
+    "suspension_reason": "",
+    "admin_notes": "",
+    "suspension_expires_at": null,
+    "is_permanently_suspended": false,
+    "created_at": "2026-06-22T23:55:05.127Z",
+    "updated_at": "2026-06-22T23:55:05.127Z",
+    "public_uuid": "6f9888ed-632c-4a69-8b05-b12d45f79bb0",
+    "uid": "61781406",
+    "preferred_currency": null,
+    "preferred_language": "ar",
+    "email_verified": false,
+    "last_session_key": null,
+    "two_factor_enabled": false,
+    "otp_failed_attempts": 0,
+    "otp_lockout_until": null,
+    "otp_resend_count": 0,
+    "totp_secret": null,
+    "totp_enabled": false,
+    "security_password": null,
+    "security_password_enabled": false,
+    "security_login_method": "EMAIL",
+    "security_deposit_method": "NONE",
+    "security_purchase_method": "NONE",
+    "security_withdraw_method": "NONE",
+    "show_full_name": false,
+    "require_otp_on_login": true,
+    "require_otp_on_deposit": false,
+    "require_otp_on_purchase": false,
+    "is_kyc_verified": false,
+    "has_custom_limits": false,
+    "daily_deposit_limit": "100.00",
+    "daily_withdrawal_limit": "100.00",
+    "custom_p2p_transfer_limit": null,
+    "custom_payment_limits": {},
+    "daily_deposit_usage": "0.00",
+    "daily_withdrawal_usage": "0.00",
+    "last_limit_reset": "2026-06-22T23:55:04.702Z",
+    "last_ip": null,
+    "last_country": "",
+    "last_city": "",
+    "groups": [],
+    "user_permissions": []
+  }
+},
+{
+  "model": "accounts.user",
+  "fields": {
+    "password": "",
+    "last_login": null,
+    "is_superuser": false,
+    "first_name": "",
+    "last_name": "",
+    "is_staff": false,
+    "is_active": true,
+    "date_joined": "2026-07-23T09:40:53.626Z",
+    "username": "harddeluser",
+    "email": "harddeluser@example.com",
+    "phone": null,
+    "role": "customer",
+    "store": null,
+    "saas_role": null,
+    "tier": "customer",
+    "status": "active",
+    "restriction_withdrawals": false,
+    "restriction_deposits": false,
+    "restriction_purchases": false,
+    "suspension_reason": "",
+    "admin_notes": "",
+    "suspension_expires_at": null,
+    "is_permanently_suspended": false,
+    "created_at": "2026-07-23T09:40:53.627Z",
+    "updated_at": "2026-07-23T09:40:53.627Z",
+    "public_uuid": "48bf7039-eef6-4070-9bea-d8db5280b94f",
+    "uid": "17536883",
+    "preferred_currency": null,
+    "preferred_language": "ar",
+    "email_verified": false,
+    "last_session_key": null,
+    "two_factor_enabled": false,
+    "otp_failed_attempts": 0,
+    "otp_lockout_until": null,
+    "otp_resend_count": 0,
+    "totp_secret": null,
+    "totp_enabled": false,
+    "security_password": null,
+    "security_password_enabled": false,
+    "security_login_method": "EMAIL",
+    "security_deposit_method": "NONE",
+    "security_purchase_method": "NONE",
+    "security_withdraw_method": "NONE",
+    "show_full_name": false,
+    "require_otp_on_login": true,
+    "require_otp_on_deposit": false,
+    "require_otp_on_purchase": false,
+    "is_kyc_verified": false,
+    "has_custom_limits": false,
+    "daily_deposit_limit": "100.00",
+    "daily_withdrawal_limit": "100.00",
+    "custom_p2p_transfer_limit": null,
+    "custom_payment_limits": {},
+    "daily_deposit_usage": "0.00",
+    "daily_withdrawal_usage": "0.00",
+    "last_limit_reset": "2026-07-23T09:40:53.626Z",
+    "last_ip": null,
+    "last_country": "",
+    "last_city": "",
+    "groups": [],
+    "user_permissions": []
+  }
+},
+{
+  "model": "accounts.securityevent",
+  "pk": "05a95ee9-881d-401b-b75b-a7b22c315101",
+  "fields": {
+    "created_at": "2026-06-19T23:27:51.291Z",
+    "updated_at": "2026-06-19T23:27:51.291Z",
+    "user": [
+      "merchant@example.com"
+    ],
+    "event_type": "login",
+    "ip_address": null,
+    "country": "Local",
+    "city": "Development",
+    "user_agent": "",
+    "metadata": {
+      "isp": "Localhost",
+      "org": null,
+      "as": null
+    }
+  }
+},
+{
+  "model": "accounts.securityevent",
+  "pk": "65abba20-f34b-4e5e-b493-e649df20de8d",
+  "fields": {
+    "created_at": "2026-06-19T23:27:39.693Z",
+    "updated_at": "2026-06-19T23:27:39.693Z",
+    "user": [
+      "merchant@example.com"
+    ],
+    "event_type": "login",
+    "ip_address": null,
+    "country": "Local",
+    "city": "Development",
+    "user_agent": "",
+    "metadata": {
+      "isp": "Localhost",
+      "org": null,
+      "as": null
+    }
+  }
+},
+{
+  "model": "accounts.securityevent",
+  "pk": "7440590f-80aa-4ff4-94f6-6626daf0816d",
+  "fields": {
+    "created_at": "2026-06-19T23:29:27.072Z",
+    "updated_at": "2026-06-19T23:29:27.072Z",
+    "user": [
+      "merchant@example.com"
+    ],
+    "event_type": "login",
+    "ip_address": null,
+    "country": "Local",
+    "city": "Development",
+    "user_agent": "",
+    "metadata": {
+      "isp": "Localhost",
+      "org": null,
+      "as": null
+    }
+  }
+},
+{
+  "model": "accounts.securityevent",
+  "pk": "8680776e-db93-42d9-88b7-2f2b8a9d0bb3",
+  "fields": {
+    "created_at": "2026-06-19T23:29:16.845Z",
+    "updated_at": "2026-06-19T23:29:16.846Z",
+    "user": [
+      "merchant@example.com"
+    ],
+    "event_type": "login",
+    "ip_address": null,
+    "country": "Local",
+    "city": "Development",
+    "user_agent": "",
+    "metadata": {
+      "isp": "Localhost",
+      "org": null,
+      "as": null
+    }
+  }
+},
+{
+  "model": "accounts.securityevent",
+  "pk": "8dfeaaf4-8a11-4d5a-b927-b1521e4a7939",
+  "fields": {
+    "created_at": "2026-06-19T23:28:07.093Z",
+    "updated_at": "2026-06-19T23:28:07.093Z",
+    "user": [
+      "merchant@example.com"
+    ],
+    "event_type": "login",
+    "ip_address": null,
+    "country": "Local",
+    "city": "Development",
+    "user_agent": "",
+    "metadata": {
+      "isp": "Localhost",
+      "org": null,
+      "as": null
+    }
+  }
+},
+{
+  "model": "accounts.kycsettings",
+  "pk": "00000000-0000-0000-0000-000000000001",
+  "fields": {
+    "created_at": "2026-06-19T23:27:40.008Z",
+    "updated_at": "2026-06-19T23:27:40.008Z",
+    "unverified_daily_deposit_limit": "100.00",
+    "unverified_daily_withdrawal_limit": "100.00",
+    "verified_daily_deposit_limit": "10000.00",
+    "verified_daily_withdrawal_limit": "10000.00",
+    "restricted_countries": [],
+    "block_by_nationality": true,
+    "block_by_issuing_country": true,
+    "otp_max_attempts": 5,
+    "otp_base_cooldown": 60,
+    "p2p_transfer_enabled": true,
+    "require_kyc_for_transfer": false,
+    "require_kyc_for_store_creation": false,
+    "unverified_transfer_limit": "50.00",
+    "verified_transfer_limit": "1000.00",
+    "transfer_fee_percent": "0.00"
+  }
+},
+{
+  "model": "accounts.otptoken",
+  "pk": "df3a00d3-bd0b-43cb-b35e-70cd3bf8afca",
+  "fields": {
+    "created_at": "2026-06-22T23:58:14.133Z",
+    "updated_at": "2026-06-22T23:58:14.133Z",
+    "user": [
+      "shared_email@example.com"
+    ],
+    "code": "055978",
+    "purpose": "registration",
+    "is_used": false,
+    "expires_at": "2026-06-23T00:08:14.132Z"
+  }
+},
+{
+  "model": "catalog.category",
+  "pk": "8f6e62a6-a5aa-466f-9266-887f566413a4",
+  "fields": {
+    "created_at": "2026-07-23T07:49:33.791Z",
+    "updated_at": "2026-07-23T07:49:33.791Z",
+    "name": "العاب الموبايل",
+    "parent": null,
+    "image": "",
+    "is_active": true,
+    "is_featured": false,
+    "sort_order": 0,
+    "store": null
+  }
+},
+{
+  "model": "catalog.category",
+  "pk": "a04136dc-ef5f-4482-8203-0a1f337c13c4",
+  "fields": {
+    "created_at": "2026-07-23T07:49:33.797Z",
+    "updated_at": "2026-07-23T07:49:33.797Z",
+    "name": "خدمات انستغرام",
+    "parent": null,
+    "image": "",
+    "is_active": true,
+    "is_featured": false,
+    "sort_order": 0,
+    "store": null
+  }
+},
+{
+  "model": "catalog.category",
+  "pk": "a79be098-f603-4337-a089-0ba6f15136dc",
+  "fields": {
+    "created_at": "2026-07-23T08:08:26.336Z",
+    "updated_at": "2026-07-23T08:08:26.336Z",
+    "name": "UC 60",
+    "parent": null,
+    "image": "",
+    "is_active": true,
+    "is_featured": false,
+    "sort_order": 0,
+    "store": null
+  }
+},
+{
+  "model": "catalog.category",
+  "pk": "f4703bbf-0e95-46ac-a6b0-f22fe8b48163",
+  "fields": {
+    "created_at": "2026-07-23T08:08:26.340Z",
+    "updated_at": "2026-07-23T08:08:26.340Z",
+    "name": "PUBG Global ID UC",
+    "parent": null,
+    "image": "",
+    "is_active": true,
+    "is_featured": false,
+    "sort_order": 0,
+    "store": null
+  }
+},
+{
+  "model": "catalog.apiintegration",
+  "pk": "382d587a-9be5-49b8-b845-80ad313aca30",
+  "fields": {
+    "created_at": "2026-07-25T08:58:46.425Z",
+    "updated_at": "2026-07-25T08:58:46.425Z",
+    "store": null,
+    "provider": "alkasr",
+    "name": "Alkasr VIP",
+    "base_url": "https://api.alkasr-vip.com/client/api",
+    "api_token": "test_token",
+    "is_active": true,
+    "allow_sub_stores": true
+  }
+},
+{
+  "model": "wallets.wallet",
+  "pk": "0d5d1da0-e0b2-4487-99b0-46bca4c1c27e",
+  "fields": {
+    "created_at": "2026-06-19T23:27:39.057Z",
+    "updated_at": "2026-06-19T23:27:39.057Z",
+    "user": [
+      "merchant@example.com"
+    ],
+    "store": null,
+    "currency": "97fb4b3a-6b82-492c-be80-2519b4915346",
+    "available_balance": "0.00",
+    "frozen_balance": "0.00",
+    "held_balance": "0.00",
+    "pending_balance": "0.00",
+    "reserved_balance": "0.00",
+    "debt_balance": "0.00",
+    "debt_is_withdrawable": false
+  }
+},
+{
+  "model": "wallets.wallet",
+  "pk": "4c20599f-e2e9-4fc0-abb2-a11d9e04edae",
+  "fields": {
+    "created_at": "2026-06-22T23:55:05.141Z",
+    "updated_at": "2026-06-22T23:55:05.141Z",
+    "user": [
+      "admin_store@example.com"
+    ],
+    "store": null,
+    "currency": "97fb4b3a-6b82-492c-be80-2519b4915346",
+    "available_balance": "0.00",
+    "frozen_balance": "0.00",
+    "held_balance": "0.00",
+    "pending_balance": "0.00",
+    "reserved_balance": "0.00",
+    "debt_balance": "0.00",
+    "debt_is_withdrawable": false
+  }
+},
+{
+  "model": "wallets.wallet",
+  "pk": "74972060-c646-48ca-91dc-eece9c783d7e",
+  "fields": {
+    "created_at": "2026-06-22T13:17:11.576Z",
+    "updated_at": "2026-06-22T13:17:11.576Z",
+    "user": [
+      "test_social_user@example.com"
+    ],
+    "store": null,
+    "currency": "97fb4b3a-6b82-492c-be80-2519b4915346",
+    "available_balance": "0.00",
+    "frozen_balance": "0.00",
+    "held_balance": "0.00",
+    "pending_balance": "0.00",
+    "reserved_balance": "0.00",
+    "debt_balance": "0.00",
+    "debt_is_withdrawable": false
+  }
+},
+{
+  "model": "wallets.wallet",
+  "pk": "ce5cafbe-7b88-4221-9d1b-136147818e04",
+  "fields": {
+    "created_at": "2026-06-13T10:27:22.636Z",
+    "updated_at": "2026-06-13T10:27:22.637Z",
+    "user": [
+      "test@test.com"
+    ],
+    "store": null,
+    "currency": "97fb4b3a-6b82-492c-be80-2519b4915346",
+    "available_balance": "0.00",
+    "frozen_balance": "0.00",
+    "held_balance": "0.00",
+    "pending_balance": "0.00",
+    "reserved_balance": "0.00",
+    "debt_balance": "0.00",
+    "debt_is_withdrawable": false
+  }
+},
+{
+  "model": "wallets.wallet",
+  "pk": "f7c38220-dcd8-4925-9d66-ce5eaefac0dc",
+  "fields": {
+    "created_at": "2026-06-19T07:09:11.534Z",
+    "updated_at": "2026-06-19T07:09:11.534Z",
+    "user": [
+      "testresetuser@example.com"
+    ],
+    "store": null,
+    "currency": "97fb4b3a-6b82-492c-be80-2519b4915346",
+    "available_balance": "0.00",
+    "frozen_balance": "0.00",
+    "held_balance": "0.00",
+    "pending_balance": "0.00",
+    "reserved_balance": "0.00",
+    "debt_balance": "0.00",
+    "debt_is_withdrawable": false
+  }
+},
+{
+  "model": "wallets.wallet",
+  "pk": "faa22ee8-358e-4798-9f79-9c5a428bb723",
+  "fields": {
+    "created_at": "2026-07-23T09:40:53.632Z",
+    "updated_at": "2026-07-23T09:40:53.632Z",
+    "user": [
+      "harddeluser@example.com"
+    ],
+    "store": null,
+    "currency": "97fb4b3a-6b82-492c-be80-2519b4915346",
+    "available_balance": "0.00",
+    "frozen_balance": "0.00",
+    "held_balance": "0.00",
+    "pending_balance": "0.00",
+    "reserved_balance": "0.00",
+    "debt_balance": "0.00",
+    "debt_is_withdrawable": false
+  }
+},
+{
+  "model": "payments.paymentmethod",
+  "pk": "fb8bf1bd-bd25-4eeb-ab63-a5b032063a9c",
+  "fields": {
+    "created_at": "2026-06-13T10:27:22.640Z",
+    "updated_at": "2026-06-13T10:27:44.672Z",
+    "name": "TestPM",
+    "store": null,
+    "logo": "",
+    "method_type": "",
+    "description": "",
+    "display_order": 0,
+    "is_active": true,
+    "is_maintenance_mode": false,
+    "requires_kyc": false,
+    "daily_deposit_limit": "10000.00",
+    "daily_withdrawal_limit": "10000.00",
+    "daily_deposit_usage": "0.00",
+    "daily_withdrawal_usage": "0.00",
+    "last_limit_reset": "2026-06-13T23:45:28.962Z",
+    "global_deposit_cap": "0.00",
+    "global_deposit_usage": "0.00",
+    "global_withdrawal_cap": "0.00",
+    "global_withdrawal_usage": "0.00",
+    "deposit_info_schema": {},
+    "deposit_form_schema": {},
+    "deposit_fee_settings": {
+      "fixed": 10,
+      "percent": 0,
+      "enabled": true
+    },
+    "deposit_min_amount": "10.00",
+    "deposit_max_amount": "10000.00",
+    "deposit_instructions": "",
+    "deposit_qr_image": "",
+    "withdrawal_info_schema": {},
+    "withdrawal_form_schema": {},
+    "withdrawal_fee_settings": {},
+    "withdrawal_min_amount": "10.00",
+    "withdrawal_max_amount": "10000.00",
+    "withdrawal_instructions": "",
+    "capital_exchange_rate": "1.000000",
+    "deposit_exchange_rate": null,
+    "withdrawal_exchange_rate": null,
+    "can_deposit": true,
+    "can_withdraw": false,
+    "supported_currencies": []
+  }
+},
+{
+  "model": "payments.depositrequest",
+  "pk": "2d6e7ecb-ee29-41bb-b56f-aafe6bf0087b",
+  "fields": {
+    "created_at": "2026-06-13T10:27:34.235Z",
+    "updated_at": "2026-06-24T21:12:38.887Z",
+    "user": [
+      "test@test.com"
+    ],
+    "store": null,
+    "payment_method": "fb8bf1bd-bd25-4eeb-ab63-a5b032063a9c",
+    "amount": "200.00",
+    "wallet_amount": "200.00",
+    "fee_amount": "10.00",
+    "final_amount": "190.00",
+    "currency": "97fb4b3a-6b82-492c-be80-2519b4915346",
+    "status": "pending",
+    "transaction_id": "DEP-SZGA0WN4BG",
+    "proof_image": "",
+    "customer_note": "",
+    "admin_note": "",
+    "reviewed_by": null,
+    "reviewed_at": null,
+    "is_verified": false,
+    "metadata": {}
+  }
+},
+{
+  "model": "payments.depositrequest",
+  "pk": "724a7cab-afb4-485e-81f2-3ce5d44e0a19",
+  "fields": {
+    "created_at": "2026-06-13T10:28:03.967Z",
+    "updated_at": "2026-06-24T21:12:38.870Z",
+    "user": [
+      "test@test.com"
+    ],
+    "store": null,
+    "payment_method": "fb8bf1bd-bd25-4eeb-ab63-a5b032063a9c",
+    "amount": "200.00",
+    "wallet_amount": "200.00",
+    "fee_amount": "10.00",
+    "final_amount": "190.00",
+    "currency": "97fb4b3a-6b82-492c-be80-2519b4915346",
+    "status": "pending",
+    "transaction_id": "DEP-ISOMA0XY3D",
+    "proof_image": "",
+    "customer_note": "",
+    "admin_note": "",
+    "reviewed_by": null,
+    "reviewed_at": null,
+    "is_verified": false,
+    "metadata": {}
+  }
+},
+{
+  "model": "payments.depositrequest",
+  "pk": "9249dcd0-1a43-4350-998c-30b2b2224a8d",
+  "fields": {
+    "created_at": "2026-06-13T10:27:58.644Z",
+    "updated_at": "2026-06-24T21:12:38.877Z",
+    "user": [
+      "test@test.com"
+    ],
+    "store": null,
+    "payment_method": "fb8bf1bd-bd25-4eeb-ab63-a5b032063a9c",
+    "amount": "200.00",
+    "wallet_amount": "200.00",
+    "fee_amount": "10.00",
+    "final_amount": "190.00",
+    "currency": "97fb4b3a-6b82-492c-be80-2519b4915346",
+    "status": "pending",
+    "transaction_id": "DEP-E6FGLX9GNY",
+    "proof_image": "",
+    "customer_note": "",
+    "admin_note": "",
+    "reviewed_by": null,
+    "reviewed_at": null,
+    "is_verified": false,
+    "metadata": {}
+  }
+},
+{
+  "model": "payments.depositrequest",
+  "pk": "d08920ee-2bc7-46c6-a392-2d4ba9ab545a",
+  "fields": {
+    "created_at": "2026-06-13T10:27:49.898Z",
+    "updated_at": "2026-06-24T21:12:38.882Z",
+    "user": [
+      "test@test.com"
+    ],
+    "store": null,
+    "payment_method": "fb8bf1bd-bd25-4eeb-ab63-a5b032063a9c",
+    "amount": "200.00",
+    "wallet_amount": "200.00",
+    "fee_amount": "10.00",
+    "final_amount": "190.00",
+    "currency": "97fb4b3a-6b82-492c-be80-2519b4915346",
+    "status": "pending",
+    "transaction_id": "DEP-4TDRJA6BUF",
+    "proof_image": "",
+    "customer_note": "",
+    "admin_note": "",
+    "reviewed_by": null,
+    "reviewed_at": null,
+    "is_verified": false,
+    "metadata": {}
+  }
+},
+{
+  "model": "payments.depositrequest",
+  "pk": "eab970c7-f452-4dd1-bd73-43ccb0d5e4eb",
+  "fields": {
+    "created_at": "2026-06-13T10:27:28.553Z",
+    "updated_at": "2026-06-24T21:12:38.893Z",
+    "user": [
+      "test@test.com"
+    ],
+    "store": null,
+    "payment_method": "fb8bf1bd-bd25-4eeb-ab63-a5b032063a9c",
+    "amount": "200.00",
+    "wallet_amount": "200.00",
+    "fee_amount": "10.00",
+    "final_amount": "190.00",
+    "currency": "97fb4b3a-6b82-492c-be80-2519b4915346",
+    "status": "pending",
+    "transaction_id": "DEP-H2Q6BJNECU",
+    "proof_image": "",
+    "customer_note": "",
+    "admin_note": "",
+    "reviewed_by": null,
+    "reviewed_at": null,
+    "is_verified": false,
+    "metadata": {}
+  }
+},
+{
+  "model": "orders.orderitem",
+  "pk": "39af7802-94c3-43a5-acb2-e3732e0c558a",
+  "fields": {
+    "created_at": "2026-07-23T09:41:35.576Z",
+    "updated_at": "2026-07-23T09:41:35.576Z",
+    "order": "802599dc-2a68-40c5-9232-e364393557dd",
+    "variant": null,
+    "quantity": 1,
+    "unit_price": "1.50",
+    "unit_cost": "0.00",
+    "total_price": "1.50"
+  }
+},
+{
+  "model": "stores.subscriptionplan",
+  "pk": "5602a1f0-900f-4107-a91e-747a21df4952",
+  "fields": {
+    "created_at": "2026-06-19T21:39:29.963Z",
+    "updated_at": "2026-06-19T21:39:29.963Z",
+    "name": "الخطة الأساسية",
+    "description": "للمتاجر النامية التي تحتاج إلى منتجات ومبيعات أكثر وربط دومين مخصص",
+    "price_monthly": "19.00",
+    "price_yearly": "190.00",
+    "yearly_discount_percentage": 16,
+    "max_products": 50,
+    "max_categories": 10,
+    "max_monthly_orders": 500,
+    "max_customers": 100,
+    "max_employees": 3,
+    "max_branches": 1,
+    "max_coupons": 10,
+    "max_images": 100,
+    "max_storage_mb": 500,
+    "max_bandwidth_gb": 100,
+    "max_domains": 1,
+    "max_api_keys": 1,
+    "max_pages": 5,
+    "trial_days": 14,
+    "custom_domain_enabled": true,
+    "remove_branding_enabled": false,
+    "multi_employee_enabled": false,
+    "multi_branch_enabled": false,
+    "coupons_enabled": true,
+    "recharge_cards_enabled": true,
+    "wallets_enabled": true,
+    "advanced_reports_enabled": true,
+    "live_stats_enabled": false,
+    "export_excel_enabled": false,
+    "export_pdf_enabled": false,
+    "api_access_enabled": false,
+    "webhooks_enabled": false,
+    "mobile_app_enabled": false,
+    "sms_notifications_enabled": false,
+    "whatsapp_notifications_enabled": false,
+    "email_marketing_enabled": false,
+    "import_products_enabled": false,
+    "export_products_enabled": false,
+    "backup_enabled": false,
+    "restore_enabled": false,
+    "professional_templates_enabled": false,
+    "custom_css_js_enabled": false,
+    "multi_language_enabled": false,
+    "multi_currency_enabled": false,
+    "is_active": true
+  }
+},
+{
+  "model": "stores.subscriptionplan",
+  "pk": "58bfcc8b-d823-468c-b430-451360435fc2",
+  "fields": {
+    "created_at": "2026-06-19T21:39:29.967Z",
+    "updated_at": "2026-06-19T21:39:29.967Z",
+    "name": "الخطة الاحترافية",
+    "description": "للمتاجر المحترفة التي تبيع بكثافة وتريد إزالة العلامة المائية للعلامة التجارية",
+    "price_monthly": "49.00",
+    "price_yearly": "490.00",
+    "yearly_discount_percentage": 16,
+    "max_products": 9999,
+    "max_categories": 10,
+    "max_monthly_orders": 99999,
+    "max_customers": 100,
+    "max_employees": 99,
+    "max_branches": 1,
+    "max_coupons": 99,
+    "max_images": 100,
+    "max_storage_mb": 5000,
+    "max_bandwidth_gb": 100,
+    "max_domains": 1,
+    "max_api_keys": 1,
+    "max_pages": 5,
+    "trial_days": 14,
+    "custom_domain_enabled": true,
+    "remove_branding_enabled": true,
+    "multi_employee_enabled": false,
+    "multi_branch_enabled": false,
+    "coupons_enabled": true,
+    "recharge_cards_enabled": true,
+    "wallets_enabled": true,
+    "advanced_reports_enabled": true,
+    "live_stats_enabled": false,
+    "export_excel_enabled": false,
+    "export_pdf_enabled": false,
+    "api_access_enabled": true,
+    "webhooks_enabled": false,
+    "mobile_app_enabled": false,
+    "sms_notifications_enabled": false,
+    "whatsapp_notifications_enabled": false,
+    "email_marketing_enabled": false,
+    "import_products_enabled": false,
+    "export_products_enabled": false,
+    "backup_enabled": false,
+    "restore_enabled": false,
+    "professional_templates_enabled": false,
+    "custom_css_js_enabled": false,
+    "multi_language_enabled": false,
+    "multi_currency_enabled": false,
+    "is_active": true
+  }
+},
+{
+  "model": "stores.subscriptionplan",
+  "pk": "78fa33ff-8f3f-41b4-894d-0185ec17065a",
+  "fields": {
+    "created_at": "2026-06-19T21:39:29.970Z",
+    "updated_at": "2026-06-19T21:39:29.970Z",
+    "name": "خطة المؤسسات",
+    "description": "الحل الشامل للمؤسسات الكبرى مع دعم فني مخصص وموارد غير محدودة",
+    "price_monthly": "149.00",
+    "price_yearly": "1490.00",
+    "yearly_discount_percentage": 16,
+    "max_products": 99999,
+    "max_categories": 10,
+    "max_monthly_orders": 999999,
+    "max_customers": 100,
+    "max_employees": 999,
+    "max_branches": 1,
+    "max_coupons": 999,
+    "max_images": 100,
+    "max_storage_mb": 50000,
+    "max_bandwidth_gb": 100,
+    "max_domains": 1,
+    "max_api_keys": 1,
+    "max_pages": 5,
+    "trial_days": 14,
+    "custom_domain_enabled": true,
+    "remove_branding_enabled": true,
+    "multi_employee_enabled": false,
+    "multi_branch_enabled": false,
+    "coupons_enabled": true,
+    "recharge_cards_enabled": true,
+    "wallets_enabled": true,
+    "advanced_reports_enabled": true,
+    "live_stats_enabled": false,
+    "export_excel_enabled": false,
+    "export_pdf_enabled": false,
+    "api_access_enabled": true,
+    "webhooks_enabled": false,
+    "mobile_app_enabled": false,
+    "sms_notifications_enabled": false,
+    "whatsapp_notifications_enabled": false,
+    "email_marketing_enabled": false,
+    "import_products_enabled": false,
+    "export_products_enabled": false,
+    "backup_enabled": false,
+    "restore_enabled": false,
+    "professional_templates_enabled": false,
+    "custom_css_js_enabled": false,
+    "multi_language_enabled": false,
+    "multi_currency_enabled": false,
+    "is_active": true
+  }
+},
+{
+  "model": "stores.subscriptionplan",
+  "pk": "8001dd60-7d87-4a04-a9c2-7ff0fb37243b",
+  "fields": {
+    "created_at": "2026-06-19T21:39:14.492Z",
+    "updated_at": "2026-06-19T21:39:14.492Z",
+    "name": "الخطة المجانية",
+    "description": "مثالية للمبتدئين لتجربة المتجر وإضافة عدد محدود من المنتجات",
+    "price_monthly": "0.00",
+    "price_yearly": "0.00",
+    "yearly_discount_percentage": 16,
+    "max_products": 5,
+    "max_categories": 10,
+    "max_monthly_orders": 20,
+    "max_customers": 100,
+    "max_employees": 1,
+    "max_branches": 1,
+    "max_coupons": 2,
+    "max_images": 100,
+    "max_storage_mb": 50,
+    "max_bandwidth_gb": 100,
+    "max_domains": 1,
+    "max_api_keys": 1,
+    "max_pages": 5,
+    "trial_days": 14,
+    "custom_domain_enabled": false,
+    "remove_branding_enabled": false,
+    "multi_employee_enabled": false,
+    "multi_branch_enabled": false,
+    "coupons_enabled": true,
+    "recharge_cards_enabled": true,
+    "wallets_enabled": true,
+    "advanced_reports_enabled": false,
+    "live_stats_enabled": false,
+    "export_excel_enabled": false,
+    "export_pdf_enabled": false,
+    "api_access_enabled": false,
+    "webhooks_enabled": false,
+    "mobile_app_enabled": false,
+    "sms_notifications_enabled": false,
+    "whatsapp_notifications_enabled": false,
+    "email_marketing_enabled": false,
+    "import_products_enabled": false,
+    "export_products_enabled": false,
+    "backup_enabled": false,
+    "restore_enabled": false,
+    "professional_templates_enabled": false,
+    "custom_css_js_enabled": false,
+    "multi_language_enabled": false,
+    "multi_currency_enabled": false,
+    "is_active": true
+  }
+},
+{
+  "model": "stores.store",
+  "pk": "52e12e43-c6b6-4b34-aa11-ca6cd492afc5",
+  "fields": {
+    "created_at": "2026-06-22T23:55:05.160Z",
+    "updated_at": "2026-06-22T23:55:05.160Z",
+    "owner": [
+      "admin_store@example.com"
+    ],
+    "name": "Second Store",
+    "description": "",
+    "subdomain": "second-store",
+    "custom_domain": null,
+    "logo": "",
+    "banner": "",
+    "subscription_plan": "5602a1f0-900f-4107-a91e-747a21df4952",
+    "subscription_status": "trialing",
+    "subscription_start": null,
+    "subscription_end": null,
+    "is_active": true,
+    "is_featured": false,
+    "display_order": 0,
+    "auto_renew": true,
+    "billing_cycle": "monthly",
+    "limit_overrides": {},
+    "primary_color": "#06b6d4",
+    "secondary_color": "#0891b2",
+    "button_color": "#06b6d4",
+    "background_color": "#030712",
+    "text_color": "#f8fafc",
+    "theme_font": "Cairo",
+    "card_style": "glass",
+    "header_style": "classic",
+    "footer_style": "classic",
+    "button_style": "pill",
+    "shadow_style": "soft",
+    "custom_css": "",
+    "phone": "",
+    "email": "",
+    "address": "",
+    "social_facebook": "",
+    "social_instagram": "",
+    "social_twitter": "",
+    "social_tiktok": ""
+  }
+},
+{
+  "model": "stores.store",
+  "pk": "8e8a3c24-3f85-4bec-9d25-03d459c1c96d",
+  "fields": {
+    "created_at": "2026-07-23T09:40:53.636Z",
+    "updated_at": "2026-07-23T09:40:53.636Z",
+    "owner": [
+      "harddeluser@example.com"
+    ],
+    "name": "Hard Delete Store",
+    "description": "",
+    "subdomain": "harddelstore",
+    "custom_domain": null,
+    "logo": "",
+    "banner": "",
+    "subscription_plan": null,
+    "subscription_status": "trialing",
+    "subscription_start": null,
+    "subscription_end": null,
+    "is_active": true,
+    "is_featured": false,
+    "display_order": 0,
+    "auto_renew": true,
+    "billing_cycle": "monthly",
+    "limit_overrides": {},
+    "primary_color": "#06b6d4",
+    "secondary_color": "#0891b2",
+    "button_color": "#06b6d4",
+    "background_color": "#030712",
+    "text_color": "#f8fafc",
+    "theme_font": "Cairo",
+    "card_style": "glass",
+    "header_style": "classic",
+    "footer_style": "classic",
+    "button_style": "pill",
+    "shadow_style": "soft",
+    "custom_css": "",
+    "phone": "",
+    "email": "",
+    "address": "",
+    "social_facebook": "",
+    "social_instagram": "",
+    "social_twitter": "",
+    "social_tiktok": ""
+  }
+},
+{
+  "model": "stores.store",
+  "pk": "e0e5fcfa-a1ef-45db-a49b-d872389c8377",
+  "fields": {
+    "created_at": "2026-06-19T23:27:39.371Z",
+    "updated_at": "2026-06-22T20:06:38.003Z",
+    "owner": [
+      "merchant@example.com"
+    ],
+    "name": "Test Store",
+    "description": "",
+    "subdomain": "test-store",
+    "custom_domain": null,
+    "logo": "",
+    "banner": "",
+    "subscription_plan": "5602a1f0-900f-4107-a91e-747a21df4952",
+    "subscription_status": "active",
+    "subscription_start": "2026-06-19T23:27:39.370Z",
+    "subscription_end": "2026-07-19T23:27:39.370Z",
+    "is_active": true,
+    "is_featured": false,
+    "display_order": 0,
+    "auto_renew": true,
+    "billing_cycle": "monthly",
+    "limit_overrides": {},
+    "primary_color": "#06b6d4",
+    "secondary_color": "#0891b2",
+    "button_color": "#06b6d4",
+    "background_color": "#030712",
+    "text_color": "#f8fafc",
+    "theme_font": "Cairo",
+    "card_style": "glass",
+    "header_style": "classic",
+    "footer_style": "classic",
+    "button_style": "pill",
+    "shadow_style": "soft",
+    "custom_css": "",
+    "phone": "",
+    "email": "",
+    "address": "",
+    "social_facebook": "",
+    "social_instagram": "",
+    "social_twitter": "",
+    "social_tiktok": ""
+  }
+},
+{
+  "model": "stores.storetemplate",
+  "pk": 1,
+  "fields": {
+    "name": "قالب الإلكترونيات والأجهزة التقنية",
+    "image": "",
+    "category": "إلكترونيات",
+    "mobile_responsive": true,
+    "is_active": true,
+    "primary_color": "#3b82f6",
+    "secondary_color": "#1d4ed8",
+    "button_color": "#3b82f6",
+    "background_color": "#0f172a",
+    "text_color": "#f8fafc",
+    "theme_font": "Cairo",
+    "card_style": "rounded",
+    "header_style": "modern",
+    "footer_style": "detailed"
+  }
+},
+{
+  "model": "stores.storetemplate",
+  "pk": 2,
+  "fields": {
+    "name": "قالب الموضة والملابس الفاخرة",
+    "image": "",
+    "category": "ملابس",
+    "mobile_responsive": true,
+    "is_active": true,
+    "primary_color": "#ec4899",
+    "secondary_color": "#db2777",
+    "button_color": "#111827",
+    "background_color": "#fcfbfa",
+    "text_color": "#111827",
+    "theme_font": "Tajawal",
+    "card_style": "flat",
+    "header_style": "transparent",
+    "footer_style": "classic"
+  }
+},
+{
+  "model": "stores.storetemplate",
+  "pk": 3,
+  "fields": {
+    "name": "قالب الخدمات وحجوزات الأعمال",
+    "image": "",
+    "category": "خدمات",
+    "mobile_responsive": true,
+    "is_active": true,
+    "primary_color": "#10b981",
+    "secondary_color": "#047857",
+    "button_color": "#10b981",
+    "background_color": "#ffffff",
+    "text_color": "#1f2937",
+    "theme_font": "Cairo",
+    "card_style": "shadow",
+    "header_style": "centered",
+    "footer_style": "simple"
+  }
+},
+{
+  "model": "stores.storetemplate",
+  "pk": 4,
+  "fields": {
+    "name": "قالب المنتجات الرقمية والمفاتيح البرمجية",
+    "image": "",
+    "category": "منتجات رقمية",
+    "mobile_responsive": true,
+    "is_active": true,
+    "primary_color": "#8b5cf6",
+    "secondary_color": "#6d28d9",
+    "button_color": "#8b5cf6",
+    "background_color": "#030712",
+    "text_color": "#f3f4f6",
+    "theme_font": "Cairo",
+    "card_style": "glass",
+    "header_style": "modern",
+    "footer_style": "simple"
+  }
+},
+{
+  "model": "stores.storetemplate",
+  "pk": 5,
+  "fields": {
+    "name": "قالب المتجر المتكامل العام",
+    "image": "",
+    "category": "متجر عام",
+    "mobile_responsive": true,
+    "is_active": true,
+    "primary_color": "#f59e0b",
+    "secondary_color": "#d97706",
+    "button_color": "#f59e0b",
+    "background_color": "#ffffff",
+    "text_color": "#111827",
+    "theme_font": "Tajawal",
+    "card_style": "shadow",
+    "header_style": "classic",
+    "footer_style": "detailed"
+  }
+},
+{
+  "model": "providers.providerprofile",
+  "pk": "8b6c198e-264c-49bf-9033-a32d95dc3b23",
+  "fields": {
+    "created_at": "2026-07-25T08:58:46.430Z",
+    "updated_at": "2026-07-25T08:58:47.479Z",
+    "store": null,
+    "provider_name": "Alkasr VIP",
+    "is_active": true,
+    "base_url": "https://api.alkasr-vip.com/client/api",
+    "api_token": "test_token",
+    "balance": "0.0000",
+    "currency": "USD",
+    "last_sync_at": "2026-07-25T08:58:47.479Z",
+    "default_margin_type": "percentage",
+    "default_retail_margin": "5.00",
+    "default_dealer_margin": "2.00",
+    "default_vip_margin": "1.00"
+  }
+},
+{
+  "model": "providers.providercategory",
+  "pk": "3f3ecfe6-3420-4e1c-982d-ef19e60673af",
+  "fields": {
+    "created_at": "2026-07-23T09:41:16.129Z",
+    "updated_at": "2026-07-23T09:41:16.145Z",
+    "profile": "f493052f-eb00-432f-8672-089bacab1dc7",
+    "remote_id": "name:Free Fire Diamonds",
+    "name": "Free Fire Diamonds",
+    "parent_remote_id": null,
+    "parent": null
+  }
+},
+{
+  "model": "providers.providercategory",
+  "pk": "64850370-1a7d-4479-80aa-501740221cbd",
+  "fields": {
+    "created_at": "2026-07-23T09:41:35.528Z",
+    "updated_at": "2026-07-23T09:41:35.543Z",
+    "profile": "6f0b4fc8-0553-4fbd-987d-6219d29fb96c",
+    "remote_id": "name:Free Fire Diamonds",
+    "name": "Free Fire Diamonds",
+    "parent_remote_id": null,
+    "parent": null
+  }
+},
+{
+  "model": "providers.providercategory",
+  "pk": "fb7c2518-9688-4b79-9646-5daad7e73c42",
+  "fields": {
+    "created_at": "2026-07-23T09:40:53.653Z",
+    "updated_at": "2026-07-23T09:40:53.669Z",
+    "profile": "05ebfda4-3617-4cb8-9295-6fc7379c331d",
+    "remote_id": "name:Free Fire Diamonds",
+    "name": "Free Fire Diamonds",
+    "parent_remote_id": null,
+    "parent": null
+  }
+},
+{
+  "model": "providers.providerproduct",
+  "pk": "0ab82aa5-a5b8-4262-a1d4-78fd5da53f24",
+  "fields": {
+    "created_at": "2026-07-23T09:40:53.672Z",
+    "updated_at": "2026-07-23T09:40:53.672Z",
+    "profile": "05ebfda4-3617-4cb8-9295-6fc7379c331d",
+    "category": "fb7c2518-9688-4b79-9646-5daad7e73c42",
+    "remote_id": "102",
+    "name": "500 Diamonds",
+    "product_type": "package",
+    "is_active": true,
+    "cost_price": "7.0000",
+    "local_name": null,
+    "local_description": null,
+    "local_is_active": true,
+    "local_image": "",
+    "local_sort_order": 0,
+    "local_seo_title": null,
+    "local_seo_keywords": null,
+    "qty_min": null,
+    "qty_max": null,
+    "qty_list": []
+  }
+},
+{
+  "model": "providers.providerproduct",
+  "pk": "5a8d649c-2767-4335-89c2-b18ec365b473",
+  "fields": {
+    "created_at": "2026-07-23T09:41:16.148Z",
+    "updated_at": "2026-07-23T09:41:16.148Z",
+    "profile": "f493052f-eb00-432f-8672-089bacab1dc7",
+    "category": "3f3ecfe6-3420-4e1c-982d-ef19e60673af",
+    "remote_id": "102",
+    "name": "500 Diamonds",
+    "product_type": "package",
+    "is_active": true,
+    "cost_price": "7.0000",
+    "local_name": null,
+    "local_description": null,
+    "local_is_active": true,
+    "local_image": "",
+    "local_sort_order": 0,
+    "local_seo_title": null,
+    "local_seo_keywords": null,
+    "qty_min": null,
+    "qty_max": null,
+    "qty_list": []
+  }
+},
+{
+  "model": "providers.providerproduct",
+  "pk": "d70e6de7-3185-436a-b981-071ce2a157f6",
+  "fields": {
+    "created_at": "2026-07-23T09:40:53.657Z",
+    "updated_at": "2026-07-23T09:40:53.657Z",
+    "profile": "05ebfda4-3617-4cb8-9295-6fc7379c331d",
+    "category": "fb7c2518-9688-4b79-9646-5daad7e73c42",
+    "remote_id": "101",
+    "name": "100 Diamonds",
+    "product_type": "package",
+    "is_active": true,
+    "cost_price": "1.5000",
+    "local_name": null,
+    "local_description": null,
+    "local_is_active": true,
+    "local_image": "",
+    "local_sort_order": 0,
+    "local_seo_title": null,
+    "local_seo_keywords": null,
+    "qty_min": null,
+    "qty_max": null,
+    "qty_list": []
+  }
+},
+{
+  "model": "providers.providerproduct",
+  "pk": "f340d072-b6ce-447c-945c-99364c87377c",
+  "fields": {
+    "created_at": "2026-07-23T09:41:16.134Z",
+    "updated_at": "2026-07-23T09:41:16.134Z",
+    "profile": "f493052f-eb00-432f-8672-089bacab1dc7",
+    "category": "3f3ecfe6-3420-4e1c-982d-ef19e60673af",
+    "remote_id": "101",
+    "name": "100 Diamonds",
+    "product_type": "package",
+    "is_active": true,
+    "cost_price": "1.5000",
+    "local_name": null,
+    "local_description": null,
+    "local_is_active": true,
+    "local_image": "",
+    "local_sort_order": 0,
+    "local_seo_title": null,
+    "local_seo_keywords": null,
+    "qty_min": null,
+    "qty_max": null,
+    "qty_list": []
+  }
+},
+{
+  "model": "providers.providerproductparameter",
+  "pk": "11498f95-6391-486b-8b32-b2a69ce70518",
+  "fields": {
+    "created_at": "2026-07-23T09:41:16.155Z",
+    "updated_at": "2026-07-23T09:41:16.155Z",
+    "product": "5a8d649c-2767-4335-89c2-b18ec365b473",
+    "name": "playerId",
+    "label": "playerId",
+    "required": true,
+    "parameter_type": "text"
+  }
+},
+{
+  "model": "providers.providerproductparameter",
+  "pk": "b9a4b165-b225-4366-bb1b-1e6952358505",
+  "fields": {
+    "created_at": "2026-07-23T09:40:53.665Z",
+    "updated_at": "2026-07-23T09:40:53.665Z",
+    "product": "d70e6de7-3185-436a-b981-071ce2a157f6",
+    "name": "playerId",
+    "label": "playerId",
+    "required": true,
+    "parameter_type": "text"
+  }
+},
+{
+  "model": "providers.providerproductparameter",
+  "pk": "c761ef56-ad97-48b1-986a-ceb9eb157f73",
+  "fields": {
+    "created_at": "2026-07-23T09:40:53.679Z",
+    "updated_at": "2026-07-23T09:40:53.679Z",
+    "product": "0ab82aa5-a5b8-4262-a1d4-78fd5da53f24",
+    "name": "playerId",
+    "label": "playerId",
+    "required": true,
+    "parameter_type": "text"
+  }
+},
+{
+  "model": "providers.providerproductparameter",
+  "pk": "ede352f1-818e-48d1-9905-cd704fa3f73e",
+  "fields": {
+    "created_at": "2026-07-23T09:41:16.141Z",
+    "updated_at": "2026-07-23T09:41:16.141Z",
+    "product": "f340d072-b6ce-447c-945c-99364c87377c",
+    "name": "playerId",
+    "label": "playerId",
+    "required": true,
+    "parameter_type": "text"
+  }
+},
+{
+  "model": "providers.providerprice",
+  "pk": "1e800a15-ff99-464f-b744-ef1f2b3c422b",
+  "fields": {
+    "created_at": "2026-07-23T09:41:16.152Z",
+    "updated_at": "2026-07-23T09:41:16.152Z",
+    "product": "5a8d649c-2767-4335-89c2-b18ec365b473",
+    "margin_type": "percentage",
+    "margin_value": "0.00",
+    "retail_margin_value": "5.00",
+    "dealer_margin_value": "2.00",
+    "vip_margin_value": "1.00",
+    "manual_price": null,
+    "round_to_nearest": false
+  }
+},
+{
+  "model": "providers.providerprice",
+  "pk": "5978cb40-170c-4d12-b7c6-301a675b7823",
+  "fields": {
+    "created_at": "2026-07-23T09:40:53.661Z",
+    "updated_at": "2026-07-23T09:40:53.661Z",
+    "product": "d70e6de7-3185-436a-b981-071ce2a157f6",
+    "margin_type": "percentage",
+    "margin_value": "0.00",
+    "retail_margin_value": "5.00",
+    "dealer_margin_value": "2.00",
+    "vip_margin_value": "1.00",
+    "manual_price": null,
+    "round_to_nearest": false
+  }
+},
+{
+  "model": "providers.providerprice",
+  "pk": "6c6b165a-5cfb-4ce3-9313-915dc0d7b968",
+  "fields": {
+    "created_at": "2026-07-23T09:41:16.137Z",
+    "updated_at": "2026-07-23T09:41:16.137Z",
+    "product": "f340d072-b6ce-447c-945c-99364c87377c",
+    "margin_type": "percentage",
+    "margin_value": "0.00",
+    "retail_margin_value": "5.00",
+    "dealer_margin_value": "2.00",
+    "vip_margin_value": "1.00",
+    "manual_price": null,
+    "round_to_nearest": false
+  }
+},
+{
+  "model": "providers.providerprice",
+  "pk": "d495c0f8-665b-434a-83f4-94b94e03ff7c",
+  "fields": {
+    "created_at": "2026-07-23T09:40:53.675Z",
+    "updated_at": "2026-07-23T09:40:53.675Z",
+    "product": "0ab82aa5-a5b8-4262-a1d4-78fd5da53f24",
+    "margin_type": "percentage",
+    "margin_value": "0.00",
+    "retail_margin_value": "5.00",
+    "dealer_margin_value": "2.00",
+    "vip_margin_value": "1.00",
+    "manual_price": null,
+    "round_to_nearest": false
+  }
+},
+{
+  "model": "providers.providerorder",
+  "pk": "2834cef2-eead-4a56-b78b-1c3a8360b636",
+  "fields": {
+    "created_at": "2026-07-23T09:41:35.580Z",
+    "updated_at": "2026-07-23T09:41:35.580Z",
+    "profile": "6f0b4fc8-0553-4fbd-987d-6219d29fb96c",
+    "local_order": "802599dc-2a68-40c5-9232-e364393557dd",
+    "product": null,
+    "uuid": "12345678-1234-5678-1234-567812345678",
+    "remote_order_id": "EXT-1001",
+    "status": "completed",
+    "cost": null,
+    "quantity": 1,
+    "parameters_sent": {}
+  }
+},
+{
+  "model": "providers.providersynclog",
+  "pk": "3083b112-fce2-451e-b178-ac2105e041d0",
+  "fields": {
+    "created_at": "2026-07-23T09:41:16.125Z",
+    "updated_at": "2026-07-23T09:41:16.166Z",
+    "profile": "f493052f-eb00-432f-8672-089bacab1dc7",
+    "status": "success",
+    "products_created": 2,
+    "products_updated": 0,
+    "products_disabled": 0,
+    "errors_count": 0,
+    "error_message": ""
+  }
+},
+{
+  "model": "providers.providersynclog",
+  "pk": "45e53439-a0e8-44ff-9f52-f32d2bc0cd68",
+  "fields": {
+    "created_at": "2026-07-23T09:41:35.523Z",
+    "updated_at": "2026-07-23T09:41:35.563Z",
+    "profile": "6f0b4fc8-0553-4fbd-987d-6219d29fb96c",
+    "status": "success",
+    "products_created": 2,
+    "products_updated": 0,
+    "products_disabled": 0,
+    "errors_count": 0,
+    "error_message": ""
+  }
+},
+{
+  "model": "providers.providersynclog",
+  "pk": "5c2341d0-5df8-4fda-8cab-02a828d10299",
+  "fields": {
+    "created_at": "2026-07-25T12:35:02.231Z",
+    "updated_at": "2026-07-25T12:35:05.575Z",
+    "profile": "8b6c198e-264c-49bf-9033-a32d95dc3b23",
+    "status": "failed",
+    "products_created": 0,
+    "products_updated": 0,
+    "products_disabled": 0,
+    "errors_count": 0,
+    "error_message": "Invalid Token / مفتاح الوصول غير صحيح"
+  }
+},
+{
+  "model": "providers.providersynclog",
+  "pk": "891b5d2c-0db8-44c3-8a55-fe2fe8fe79cf",
+  "fields": {
+    "created_at": "2026-07-25T08:58:46.433Z",
+    "updated_at": "2026-07-25T08:58:47.482Z",
+    "profile": "8b6c198e-264c-49bf-9033-a32d95dc3b23",
+    "status": "success",
+    "products_created": 0,
+    "products_updated": 0,
+    "products_disabled": 0,
+    "errors_count": 0,
+    "error_message": ""
+  }
+},
+{
+  "model": "providers.providersynclog",
+  "pk": "e5f981eb-670d-40f6-bb83-a0b949be67d3",
+  "fields": {
+    "created_at": "2026-07-23T09:40:53.646Z",
+    "updated_at": "2026-07-23T09:40:53.691Z",
+    "profile": "05ebfda4-3617-4cb8-9295-6fc7379c331d",
+    "status": "success",
+    "products_created": 2,
+    "products_updated": 0,
+    "products_disabled": 0,
+    "errors_count": 0,
+    "error_message": ""
+  }
+},
+{
+  "model": "providers.providerrequestlog",
+  "pk": "916ce87c-dd69-41bd-9700-727267b81c21",
+  "fields": {
+    "created_at": "2026-07-25T12:35:05.561Z",
+    "updated_at": "2026-07-25T12:35:05.561Z",
+    "profile": "8b6c198e-264c-49bf-9033-a32d95dc3b23",
+    "endpoint": "/products",
+    "method": "GET",
+    "payload": "",
+    "execution_time_ms": 3323
+  }
+},
+{
+  "model": "providers.providerrequestlog",
+  "pk": "9971c7ce-2bbf-4f19-87a0-56be2b938383",
+  "fields": {
+    "created_at": "2026-07-25T08:58:47.466Z",
+    "updated_at": "2026-07-25T08:58:47.466Z",
+    "profile": "8b6c198e-264c-49bf-9033-a32d95dc3b23",
+    "endpoint": "/products",
+    "method": "POST",
+    "payload": "",
+    "execution_time_ms": 1028
+  }
+},
+{
+  "model": "providers.providerresponselog",
+  "pk": "2894eb94-a7ad-4654-96e3-f496b4c993b5",
+  "fields": {
+    "created_at": "2026-07-25T12:35:05.566Z",
+    "updated_at": "2026-07-25T12:35:05.566Z",
+    "request_log": "916ce87c-dd69-41bd-9700-727267b81c21",
+    "status_code": 401,
+    "body": "{\"status\": \"ERROR\", \"msg\": \"error Token\", \"code\": 121}",
+    "is_success": false
+  }
+},
+{
+  "model": "providers.providerresponselog",
+  "pk": "77e06f55-7b1a-4345-a64e-1238f48e1b84",
+  "fields": {
+    "created_at": "2026-07-25T08:58:47.471Z",
+    "updated_at": "2026-07-25T08:58:47.471Z",
+    "request_log": "9971c7ce-2bbf-4f19-87a0-56be2b938383",
+    "status_code": 405,
+    "body": "{\"message\": \"The POST method is not supported for route client/api/products. Supported methods: GET, HEAD.\"}",
+    "is_success": false
+  }
+},
+{
+  "model": "providers.providererrorlog",
+  "pk": "6fe4a231-0486-4ef0-884d-4a044f8e3f3b",
+  "fields": {
+    "created_at": "2026-07-25T08:58:47.474Z",
+    "updated_at": "2026-07-25T08:58:47.474Z",
+    "profile": "8b6c198e-264c-49bf-9033-a32d95dc3b23",
+    "error_code": "",
+    "message": "The POST method is not supported for route client/api/products. Supported methods: GET, HEAD.",
+    "traceback": "",
+    "related_request": "9971c7ce-2bbf-4f19-87a0-56be2b938383"
+  }
+},
+{
+  "model": "providers.providererrorlog",
+  "pk": "c7703c1a-e82c-45a6-a78a-9f45f74eb59a",
+  "fields": {
+    "created_at": "2026-07-25T12:35:05.570Z",
+    "updated_at": "2026-07-25T12:35:05.570Z",
+    "profile": "8b6c198e-264c-49bf-9033-a32d95dc3b23",
+    "error_code": "121",
+    "message": "API Error",
+    "traceback": "",
+    "related_request": "916ce87c-dd69-41bd-9700-727267b81c21"
+  }
+},
+{
+  "model": "account.emailaddress",
+  "pk": 1,
+  "fields": {
+    "user": [
+      "test_social_user@example.com"
+    ],
+    "email": "test_social_user@example.com",
+    "verified": true,
+    "primary": true
+  }
+},
+{
+  "model": "socialaccount.socialaccount",
+  "pk": 1,
+  "fields": {
+    "user": [
+      "test_social_user@example.com"
+    ],
+    "provider": "google",
+    "uid": "888888",
+    "last_login": "2026-06-22T13:17:11.580Z",
+    "date_joined": "2026-06-22T13:17:11.580Z",
+    "extra_data": {}
+  }
+}
+]
