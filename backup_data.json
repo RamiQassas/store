@@ -1434,20 +1434,6 @@
     }
   },
   {
-    "model": "orders.orderitem",
-    "pk": "39af7802-94c3-43a5-acb2-e3732e0c558a",
-    "fields": {
-      "created_at": "2026-07-23T09:41:35.576Z",
-      "updated_at": "2026-07-23T09:41:35.576Z",
-      "order": "802599dc-2a68-40c5-9232-e364393557dd",
-      "variant": null,
-      "quantity": 1,
-      "unit_price": "1.50",
-      "unit_cost": "0.00",
-      "total_price": "1.50"
-    }
-  },
-  {
     "model": "stores.subscriptionplan",
     "pk": "5602a1f0-900f-4107-a91e-747a21df4952",
     "fields": {
