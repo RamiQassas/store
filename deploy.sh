@@ -36,8 +36,8 @@ VAPID_PUBLIC_KEY=BEA2XAFFTAyCDeE-ax8Q0T_RejV1Noo432TqQDSFjmNflOuSYnczsKPZTGGlsBj
 VAPID_PRIVATE_KEY=W3P1k2Yo2STn90wwDPqkEcrE8ucxqP16nZ3tVAol1Lw
 EOF
 
-docker compose -f docker-compose.prod.yml down -v
 docker compose -f docker-compose.prod.yml up -d --build
+docker compose -f docker-compose.prod.yml exec web python manage.py migrate
 docker cp backup_data.json $(docker compose -f docker-compose.prod.yml ps -q web):/app/backup_data.json
 docker compose -f docker-compose.prod.yml exec web python manage.py loaddata backup_data.json
 docker compose -f docker-compose.prod.yml ps
