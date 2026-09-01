@@ -31,9 +31,12 @@ docker image prune -f
 
 echo "✅ تم تشغيل جميع الخدمات بنجاح!"
 echo "--------------------------------------------------------"
-echo "🌐 للتأكد من حالة الحاويات:"
-echo "docker compose -f docker-compose.prod.yml ps"
-echo ""
-echo "🔒 لتفعيل شهادة SSL مجانية (تأكد من توجيه الدومين إلى IP الخادم أولاً):"
-echo "docker run --rm -v $(pwd)/certbot/conf:/etc/letsencrypt -v $(pwd)/certbot/www:/var/www/certbot certbot/certbot certonly --webroot -w /var/www/certbot -d yourdomain.com --register-unsafely-without-email"
+echo "🔒 تفعيل شهادة SSL لـ raqamiyatapp.com..."
+docker run --rm \
+  -v $(pwd)/certbot/conf:/etc/letsencrypt \
+  -v $(pwd)/certbot/www:/var/www/certbot \
+  certbot/certbot certonly --webroot -w /var/www/certbot \
+  -d raqamiyatapp.com -d www.raqamiyatapp.com \
+  --register-unsafely-without-email --non-interactive --agree-tos || true
 echo "--------------------------------------------------------"
+
