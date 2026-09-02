@@ -136,6 +136,23 @@ class MyAccountAdapter(DefaultAccountAdapter):
 
 
 class MySocialAccountAdapter(DefaultSocialAccountAdapter):
+    def get_app(self, request, provider, client_id=None):
+        app = super().get_app(request, provider, client_id=client_id)
+        if provider == "google":
+            from django.conf import settings
+            valid_id = getattr(settings, "GOOGLE_CLIENT_ID", "")
+            valid_secret = getattr(settings, "GOOGLE_CLIENT_SECRET", "")
+            if valid_id and ("dgh580lvgds8" in app.client_id or app.client_id != valid_id):
+                logger.info(f"Dynamically updating Google SocialApp client_id from {app.client_id} to {valid_id}")
+                app.client_id = valid_id
+                if valid_secret:
+                    app.secret = valid_secret
+                try:
+                    app.save(update_fields=["client_id", "secret"])
+                except Exception as e:
+                    logger.warning(f"Failed to save updated SocialApp: {e}")
+        return app
+
     def pre_social_login(self, request, sociallogin):
         """
         Connect existing accounts by email automatically and ensure they are verified.
