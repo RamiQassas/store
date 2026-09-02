@@ -108,11 +108,22 @@ LOGGING = {
 
 CSRF_TRUSTED_ORIGINS = [
     "https://raqamiyatapp.com",
+    "https://*.raqamiyatapp.com",
     "https://www.raqamiyatapp.com",
+    "http://raqamiyatapp.com",
+    "http://www.raqamiyatapp.com",
     "https://raqamiyat.onrender.com",
+    "http://2.29.26.113",
+    "http://167.233.150.164",
     "http://127.0.0.1",
     "http://localhost"
 ]
+_env_csrf = env("DJANGO_CSRF_TRUSTED_ORIGINS", "")
+if _env_csrf:
+    for _item in _env_csrf.split(","):
+        _item = _item.strip()
+        if _item and _item not in CSRF_TRUSTED_ORIGINS:
+            CSRF_TRUSTED_ORIGINS.append(_item)
 
 INSTALLED_APPS = [
     "daphne",
@@ -188,6 +199,8 @@ SOCIALACCOUNT_QUERY_EMAIL = True
 SOCIALACCOUNT_AUTO_SIGNUP = True
 SOCIALACCOUNT_LOGIN_ON_GET = True
 ACCOUNT_EMAIL_VERIFICATION = "none" # We have our own OTP system, but allauth can handle social signup directly
+SOCIALACCOUNT_EMAIL_VERIFICATION = "none"
+SOCIALACCOUNT_EMAIL_REQUIRED = True
 SOCIALACCOUNT_ADAPTER = 'apps.accounts.adapter.MySocialAccountAdapter'
 ACCOUNT_ADAPTER = 'apps.accounts.adapter.MyAccountAdapter'
 
