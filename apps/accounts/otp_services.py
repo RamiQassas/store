@@ -1,9 +1,12 @@
+import logging
 import random
 import string
 from datetime import timedelta
 from django.utils import timezone
 from apps.accounts.models import OTPToken
 from apps.accounts.services import send_brevo_email
+
+logger = logging.getLogger(__name__)
 
 def generate_otp(user, purpose):
     """Generates a 6-digit OTP code and saves it."""
@@ -13,15 +16,18 @@ def generate_otp(user, purpose):
     code = ''.join(random.choices(string.digits, k=6))
     expires_at = timezone.now() + timedelta(minutes=10)
     
-    return OTPToken.objects.create(
+    token = OTPToken.objects.create(
         user=user,
         code=code,
         purpose=purpose,
         expires_at=expires_at
     )
+    logger.info("🔑 [OTP GENERATED] User: %s (%s) | Code: %s | Purpose: %s", user.email, user.pk, code, purpose)
+    return token
 
 def send_otp_email(user, otp_token):
     """Sends the OTP code via email."""
+    logger.info("📧 [SENDING OTP EMAIL] To: %s | Code: %s", user.email, otp_token.code)
     subject = "رمز التحقق | Raqamiyat"
     
     purpose_text = "لتفعيل حسابك" if otp_token.purpose == OTPToken.Purpose.REGISTRATION else \

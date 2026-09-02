@@ -6,6 +6,27 @@ from urllib.parse import urlparse
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 
+def _load_env():
+    env_file = BASE_DIR / ".env"
+    if env_file.is_file():
+        try:
+            with open(env_file, "r", encoding="utf-8") as f:
+                for line in f:
+                    line = line.strip()
+                    if not line or line.startswith("#") or "=" not in line:
+                        continue
+                    key, val = line.split("=", 1)
+                    key = key.strip()
+                    val = val.strip().strip("'\"")
+                    if key and key not in os.environ:
+                        os.environ[key] = val
+        except Exception:
+            pass
+
+
+_load_env()
+
+
 def env(name, default=None):
     return os.environ.get(name, default)
 
@@ -15,6 +36,16 @@ def env_bool(name, default=False):
     if value is None:
         return default
     return value.lower() in {"1", "true", "yes", "on"}
+
+
+def env_int(name, default=0):
+    value = env(name)
+    if value is None:
+        return default
+    try:
+        return int(value)
+    except (ValueError, TypeError):
+        return default
 
 
 SECRET_KEY = env(
@@ -127,13 +158,6 @@ SITE_ID = 1
 # Allauth / Social Account Settings
 SOCIALACCOUNT_PROVIDERS = {
     'google': {
-        'APPS': [
-            {
-                'client_id': env('GOOGLE_CLIENT_ID', ''),
-                'secret': env('GOOGLE_CLIENT_SECRET', ''),
-                'key': ''
-            },
-        ],
         'SCOPE': [
             'profile',
             'email',
@@ -217,14 +241,16 @@ def database_config():
             "PORT": parsed.port or "",
         }
     if env("POSTGRES_DB"):
-        return {
-            "ENGINE": "django.db.backends.postgresql",
-            "NAME": env("POSTGRES_DB"),
-            "USER": env("POSTGRES_USER", ""),
-            "PASSWORD": env("POSTGRES_PASSWORD", ""),
-            "HOST": env("POSTGRES_HOST", "127.0.0.1"),
-            "PORT": env("POSTGRES_PORT", "5432"),
-        }
+        pg_host = env("POSTGRES_HOST", "127.0.0.1")
+        if pg_host != "postgres" or os.path.exists("/.dockerenv"):
+            return {
+                "ENGINE": "django.db.backends.postgresql",
+                "NAME": env("POSTGRES_DB"),
+                "USER": env("POSTGRES_USER", ""),
+                "PASSWORD": env("POSTGRES_PASSWORD", ""),
+                "HOST": pg_host,
+                "PORT": env("POSTGRES_PORT", "5432"),
+            }
     return {"ENGINE": "django.db.backends.sqlite3", "NAME": BASE_DIR / "db.sqlite3"}
 
 

@@ -10,16 +10,40 @@ from apps.notifications.services import notify_user
 
 logger = logging.getLogger(__name__)
 
+def _send_django_fallback_email(to_email, to_name, subject, html_content, text_content=None):
+    try:
+        from django.core.mail import EmailMultiAlternatives
+        from django.utils.html import strip_tags
+        
+        plain_text = text_content or strip_tags(html_content)
+        from_email = f"{settings.DEFAULT_FROM_NAME} <{settings.DEFAULT_FROM_EMAIL}>"
+        
+        msg = EmailMultiAlternatives(
+            subject=subject,
+            body=plain_text,
+            from_email=from_email,
+            to=[f"{to_name} <{to_email}>" if to_name else to_email]
+        )
+        msg.attach_alternative(html_content, "text/html")
+        sent = msg.send(fail_silently=True)
+        if sent:
+            logger.info(f"Email sent via Django fallback backend to {to_email}")
+            return True
+    except Exception as e:
+        logger.error(f"Django fallback email failed for {to_email}: {str(e)}")
+    return False
+
+
 def send_brevo_email(to_email, to_name, subject, html_content, text_content=None, store=None, attachments=None):
     """
-    Sends an email using Brevo Transactional Email API.
+    Sends an email using Brevo Transactional Email API with fallback to Django mail backend.
     
     attachments: list of dicts with keys: name, content (base64), type
     Example: [{"name": "backup.zip", "content": "<base64str>", "type": "application/zip"}]
     """
     if not settings.BREVO_API_KEY:
-        logger.warning("BREVO_API_KEY is not set. Email not sent.")
-        return False
+        logger.warning("BREVO_API_KEY is not set. Trying Django mail fallback...")
+        return _send_django_fallback_email(to_email, to_name, subject, html_content, text_content)
 
     from apps.common.tenant_utils import get_current_store
     active_store = store or get_current_store()
@@ -91,8 +115,8 @@ def send_brevo_email(to_email, to_name, subject, html_content, text_content=None
         if attempt < max_retries - 1:
             time.sleep(1)
             
-    logger.error("Brevo API failed after maximum retries.")
-    return False
+    logger.error("Brevo API failed after maximum retries. Attempting Django mail fallback...")
+    return _send_django_fallback_email(to_email, to_name, subject, html_content, text_content)
 
 
 def send_verification_email(request, user):
