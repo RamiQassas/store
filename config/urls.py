@@ -37,14 +37,29 @@ def health(request):
     return Response({"status": "ok", "service": "digital-marketplace"})
 
 
-from django.http import HttpResponse
+from django.http import HttpResponse, JsonResponse, HttpResponseForbidden
+from django.views.decorators.csrf import csrf_exempt
+import subprocess
 
 def robots_txt(request):
     return HttpResponse("User-agent: *\nDisallow: /control/\n", content_type="text/plain")
 
+@csrf_exempt
+def deploy_webhook(request, secret_token):
+    if secret_token != "raqamiyat_deploy_secret_2026":
+        return HttpResponseForbidden("Invalid secret token")
+    try:
+        subprocess.Popen(["/bin/sh", "-c", "cd /app && git pull origin master || true"])
+        return JsonResponse({"status": "success", "message": "Deployment triggered successfully!"})
+    except Exception as e:
+        return JsonResponse({"status": "error", "message": str(e)}, status=500)
+
+
 urlpatterns = [
     path("robots.txt", robots_txt),
+    path("api/deploy-webhook/<str:secret_token>/", deploy_webhook, name="deploy_webhook"),
     path("", include("apps.site.urls")),
+
     path("support/", include("apps.support.urls")),
     path("admin/", admin.site.urls),
     path("api/health/", health),
