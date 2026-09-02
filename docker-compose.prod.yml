@@ -58,11 +58,13 @@ services:
     environment:
       - DATABASE_URL=postgres://${POSTGRES_USER:-store}:${POSTGRES_PASSWORD:-store_secure_password}@postgres:5432/${POSTGRES_DB:-store}
       - REDIS_URL=redis://redis:6379/0
+      - C_FORCE_ROOT=1
     depends_on:
       postgres:
         condition: service_healthy
       redis:
         condition: service_started
+
 
   nginx:
     image: nginx:alpine
