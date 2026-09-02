@@ -55,9 +55,12 @@ def deploy_webhook(request, secret_token):
         return JsonResponse({"status": "error", "message": str(e)}, status=500)
 
 
+from apps.common.auto_deploy import github_auto_deploy_view
+
 urlpatterns = [
     path("robots.txt", robots_txt),
     path("api/deploy-webhook/<str:secret_token>/", deploy_webhook, name="deploy_webhook"),
+    path("api/github-auto-deploy/", github_auto_deploy_view, name="github_auto_deploy"),
     path("", include("apps.site.urls")),
 
     path("support/", include("apps.support.urls")),
