@@ -142,7 +142,7 @@ class MySocialAccountAdapter(DefaultSocialAccountAdapter):
             from django.conf import settings
             valid_id = getattr(settings, "GOOGLE_CLIENT_ID", "")
             valid_secret = getattr(settings, "GOOGLE_CLIENT_SECRET", "")
-            if valid_id and ("dgh580lvgds8" in app.client_id or app.client_id != valid_id):
+            if valid_id and app.client_id != valid_id:
                 logger.info(f"Dynamically updating Google SocialApp client_id from {app.client_id} to {valid_id}")
                 app.client_id = valid_id
                 if valid_secret:
