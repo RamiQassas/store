@@ -13,6 +13,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libpq-dev \
     curl \
     netcat-openbsd \
+    git \
     && rm -rf /var/lib/apt/lists/*
 
 # تثبيت مكتبات بايثون
