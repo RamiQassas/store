@@ -211,13 +211,12 @@ class MySocialAccountAdapter(DefaultSocialAccountAdapter):
                 defaults={'verified': True, 'primary': True}
             )
 
-            # Link social account if not already connected
+            # Link social account and save to DB so is_existing evaluates to True
             if not sociallogin.is_existing:
                 sociallogin.connect(request, user)
-                try:
-                    sociallogin.is_existing = True
-                except AttributeError:
-                    pass
+                if not sociallogin.account.pk:
+                    sociallogin.account.user = user
+                    sociallogin.account.save()
                 logger.info(f"Connected existing user {email} to social account in store/global context.")
 
             # Perform immediate login to bypass 3rdparty/signup form for existing accounts

@@ -55,10 +55,32 @@ def deploy_webhook(request, secret_token):
         return JsonResponse({"status": "error", "message": str(e)}, status=500)
 
 
+def version_view(request):
+    import subprocess
+    commit_sha = "unknown"
+    commit_msg = "unknown"
+    try:
+        res = subprocess.run(["git", "rev-parse", "HEAD"], capture_output=True, text=True, timeout=5)
+        if res.returncode == 0:
+            commit_sha = res.stdout.strip()
+        res_msg = subprocess.run(["git", "log", "-1", "--pretty=%B"], capture_output=True, text=True, timeout=5)
+        if res_msg.returncode == 0:
+            commit_msg = res_msg.stdout.strip()
+    except Exception:
+        pass
+    return JsonResponse({
+        "status": "online",
+        "commit_sha": commit_sha,
+        "commit_short_sha": commit_sha[:7],
+        "commit_message": commit_msg,
+    })
+
+
 from apps.common.auto_deploy import github_auto_deploy_view
 
 urlpatterns = [
     path("robots.txt", robots_txt),
+    path("api/version/", version_view, name="version_view"),
     path("api/deploy-webhook/<str:secret_token>/", deploy_webhook, name="deploy_webhook"),
     path("api/github-auto-deploy/", github_auto_deploy_view, name="github_auto_deploy"),
     path("", include("apps.site.urls")),
