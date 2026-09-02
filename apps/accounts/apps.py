@@ -10,6 +10,10 @@ class AccountsConfig(AppConfig):
     def ready(self):
         import apps.accounts.signals  # noqa: F401
         post_migrate.connect(sync_google_social_app_signal, sender=self)
+        try:
+            sync_google_social_app_signal(self)
+        except Exception:
+            pass
 
 
 def sync_google_social_app_signal(sender, **kwargs):
