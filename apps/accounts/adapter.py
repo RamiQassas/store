@@ -219,6 +219,24 @@ class MySocialAccountAdapter(DefaultSocialAccountAdapter):
                 except AttributeError:
                     pass
                 logger.info(f"Connected existing user {email} to social account in store/global context.")
+
+            # Perform immediate login to bypass 3rdparty/signup form for existing accounts
+            from allauth.account.utils import perform_login
+            from django.conf import settings
+            from django.http import HttpResponseRedirect
+            try:
+                from allauth.exceptions import ImmediateHttpResponse
+            except ImportError:
+                from allauth.core.exceptions import ImmediateHttpResponse
+
+            redirect_url = getattr(settings, "LOGIN_REDIRECT_URL", "/dashboard/")
+            resp = perform_login(
+                request,
+                user,
+                email_verification="none",
+                redirect_url=redirect_url
+            )
+            raise ImmediateHttpResponse(resp or HttpResponseRedirect(redirect_url))
             
         except User.DoesNotExist:
             pass
