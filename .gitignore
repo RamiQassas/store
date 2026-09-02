@@ -2,6 +2,11 @@ __pycache__/
 *.py[cod]
 *.sqlite3
 .env
+.env.*
+!.env.example
+backup_data*.json
+*.sql
+*.dump
 .venv/
 venv/
 media/
