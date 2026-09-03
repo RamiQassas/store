@@ -347,6 +347,8 @@ class APIIntegration(TimeStampedModel):
         related_name="api_integrations",
         verbose_name="المتجر"
     )
+    objects = models.Manager()
+    all_objects = models.Manager()
     provider = models.CharField(
         max_length=20,
         choices=PROVIDER_CHOICES,

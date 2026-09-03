@@ -5938,17 +5938,17 @@ def control_apicontrol_dashboard(request):
     
     with bypass_tenant_filter():
         # Ensure any existing Alkasr VIP integration name is renamed to "رقميات"
-        APIIntegration.all_objects.filter(name__in=["Alkasr VIP", "الكسر VIP", "الكاسر VIP"]).update(name="رقميات")
+        APIIntegration.objects.filter(name__in=["Alkasr VIP", "الكسر VIP", "الكاسر VIP"]).update(name="رقميات")
         ProviderProfile.all_objects.filter(provider_name__in=["Alkasr VIP", "الكسر VIP", "الكاسر VIP"]).update(provider_name="رقميات")
         
         # 1. Fetch active integrations from APIIntegration model
         if store:
-            active_integrations = list(APIIntegration.all_objects.filter(store=store, is_active=True))
+            active_integrations = list(APIIntegration.objects.filter(store=store, is_active=True))
         else:
-            active_integrations = list(APIIntegration.all_objects.filter(is_active=True))
+            active_integrations = list(APIIntegration.objects.filter(is_active=True))
             
         if not active_integrations and not ProviderProfile.all_objects.exists():
-            default_integ, _ = APIIntegration.all_objects.get_or_create(
+            default_integ, _ = APIIntegration.objects.get_or_create(
                 store=store,
                 provider="alkasr",
                 defaults={
@@ -6635,16 +6635,16 @@ def control_api_integrations_list(request):
     
     with bypass_tenant_filter():
         # Automatically update any Alkasr VIP / الكسر VIP to "رقميات"
-        APIIntegration.all_objects.filter(name__in=["Alkasr VIP", "الكسر VIP", "الكاسر VIP"]).update(name="رقميات")
+        APIIntegration.objects.filter(name__in=["Alkasr VIP", "الكسر VIP", "الكاسر VIP"]).update(name="رقميات")
         ProviderProfile.all_objects.filter(provider_name__in=["Alkasr VIP", "الكسر VIP", "الكاسر VIP"]).update(provider_name="رقميات")
         
         store = getattr(request, "store", None)
         if store:
-            integrations = list(APIIntegration.all_objects.filter(
+            integrations = list(APIIntegration.objects.filter(
                 Q(store=store) | Q(store__isnull=True, allow_sub_stores=True)
             ))
         else:
-            integrations = list(APIIntegration.all_objects.all())
+            integrations = list(APIIntegration.objects.all())
         
     return render(request, "site/control_api_integrations_list.html", {
         "integrations": integrations,
