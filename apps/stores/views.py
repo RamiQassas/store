@@ -308,7 +308,6 @@ def store_checkout(request, variant_pk):
         "qty_max": qty_max,
         "wallet": wallet,
     })
-    })
 
 @store_login_required
 def store_order_detail(request, pk):
