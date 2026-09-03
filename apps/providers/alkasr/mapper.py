@@ -94,7 +94,6 @@ class AlkasrMapperService:
         )
         return cat_obj
 
-    @transaction.atomic
     def map_all_to_catalog(self, products_qs=None, selected_group_names=None):
         """
         Batch map provider products into main store catalog.
@@ -110,7 +109,7 @@ class AlkasrMapperService:
         try:
             inactive_remote_ids = list(ProviderProduct.objects.filter(profile=self.profile, local_is_active=False).values_list('remote_id', flat=True))
             if inactive_remote_ids:
-                ProductVariant.objects.filter(api_product_id__in=inactive_remote_ids).update(is_active=False, is_temporarily_disabled=True)
+                ProductVariant.objects.filter(api_product_id__in=[int(x) for x in inactive_remote_ids if str(x).isdigit()]).update(is_active=False, is_temporarily_disabled=True)
         except Exception:
             pass
             
@@ -138,172 +137,180 @@ class AlkasrMapperService:
 
         for group_name, p_items in grouped_products.items():
             try:
-                # Find or create store category for this group
-                store_category = self._get_store_category(p_items[0], store)
+                with transaction.atomic():
+                    # Find or create store category for this group
+                    store_category = self._get_store_category(p_items[0], store)
 
-                # Find existing Product or create a new one
-                local_product = Product.objects.filter(
-                    store=store,
-                    name=group_name,
-                    is_api_product=True,
-                    api_provider=provider_code
-                ).first()
-
-                # Build combined parameters form_schema for this product
-                schema_fields = {}
-                for pp in p_items:
-                    for param in pp.parameters.all():
-                        if param.name not in schema_fields:
-                            schema_fields[param.name] = {
-                                "name": param.name,
-                                "label": param.label,
-                                "type": param.parameter_type,
-                                "required": param.required
-                            }
-                schema = {"version": 1, "fields": list(schema_fields.values())}
-
-                if not local_product:
-                    local_product = Product.objects.create(
+                    # Find existing Product or create a new one
+                    local_product = Product.objects.filter(
                         store=store,
                         name=group_name,
-                        category=store_category,
-                        is_active=True,
-                        is_out_of_stock=False,
-                        track_inventory=False,
-                        quantity=999999,
                         is_api_product=True,
-                        api_provider=provider_code,
-                        description=p_items[0].local_description or "",
-                        form_schema=schema
-                    )
-                else:
-                    if store and local_product.store != store:
-                        local_product.store = store
-                    if not local_product.category or local_product.category != store_category:
-                        local_product.category = store_category
-                    local_product.is_active = True
-                    local_product.is_out_of_stock = False
-                    local_product.track_inventory = False
-                    local_product.quantity = 999999
-                    local_product.is_api_product = True
-                    local_product.api_provider = provider_code
-                    if schema_fields:
-                        local_product.form_schema = schema
-                    local_product.save()
+                        api_provider=provider_code
+                    ).first()
 
-                # Map each ProviderProduct as a ProductVariant (باقة) inside this single Product
-                for pp in p_items:
-                    mapping = ProviderMapping.objects.filter(provider_product=pp).first()
-                    if not mapping:
-                        mapping = ProviderMapping(provider_product=pp)
+                    # Build combined parameters form_schema for this product
+                    schema_fields = {}
+                    for pp in p_items:
+                        for param in pp.parameters.all():
+                            if param.name not in schema_fields:
+                                schema_fields[param.name] = {
+                                    "name": param.name,
+                                    "label": param.label,
+                                    "type": param.parameter_type,
+                                    "required": param.required
+                                }
+                    schema = {"version": 1, "fields": list(schema_fields.values())}
 
-                    mapping.local_product = local_product
-
-                    pricing = getattr(pp, 'pricing', None)
-                    final_price = pricing.final_price if pricing else pp.cost_price
-                    wholesale_price = pricing.final_wholesale_price if pricing else pp.cost_price
-                    vip_price = pricing.final_vip_price if pricing else pp.cost_price
-
-                    # Determine quantity type, min, max, list, and per-mille flag
-                    qty_min = getattr(pp, 'qty_min', None)
-                    try:
-                        qty_min = int(qty_min) if qty_min is not None else None
-                    except (ValueError, TypeError):
-                        qty_min = None
-
-                    qty_max = getattr(pp, 'qty_max', None)
-                    try:
-                        qty_max = int(qty_max) if qty_max is not None else None
-                    except (ValueError, TypeError):
-                        qty_max = None
-
-                    qty_list = getattr(pp, 'qty_list', None) or []
-
-                    if qty_list and len(qty_list) > 0:
-                        qty_type = "list"
-                    elif qty_max is not None and qty_min is not None and (qty_max > qty_min or (qty_min > 1 and qty_max > 1)):
-                        qty_type = "range"
-                    elif pp.product_type == "amount":
-                        qty_type = "range"
-                    elif pp.product_type in ("fixed_quantities", "specificPackage"):
-                        qty_type = "list"
-                    else:
-                        qty_type = "fixed"
-
-                    is_per_mille = False
-                    if qty_min is not None and qty_min >= 100:
-                        is_per_mille = True
-                    elif pp.product_type == "amount" and (qty_min is None or qty_min >= 10):
-                        is_per_mille = True
-
-                    meta = {
-                        "qty_type": qty_type,
-                        "qty_min": qty_min or 1,
-                        "qty_max": qty_max or 999999,
-                        "qty_list": qty_list,
-                        "is_per_mille": is_per_mille,
-                        "product_type": pp.product_type,
-                        "params": [
-                            {
-                                "name": param.name,
-                                "label": param.label,
-                                "type": param.parameter_type,
-                                "required": param.required
-                            }
-                            for param in pp.parameters.all()
-                        ]
-                    }
-
-                    variant_name = (pp.local_name or "").strip()
-                    if not variant_name or variant_name.lower() in ("null", "none", "undefined", "false"):
-                        variant_name = (pp.name or "").strip()
-                    if not variant_name or variant_name.lower() in ("null", "none", "undefined", "false"):
-                        if pp.category and pp.category.name and pp.category.name.strip().lower() not in ("null", "none"):
-                            variant_name = pp.category.name.strip()
-                        elif hasattr(pp, 'data') and isinstance(pp.data, dict) and pp.data.get("title") and str(pp.data.get("title")).lower() not in ("null", "none"):
-                            variant_name = str(pp.data.get("title")).strip()
-                        elif hasattr(pp, 'data') and isinstance(pp.data, dict) and pp.data.get("country"):
-                            variant_name = f"تفعيل {pp.data.get('country')}"
-                        else:
-                            # Skip corrupted/un-named variant
-                            continue
-
-                    sku_val = f"PRV-{self.profile.id}-{pp.remote_id}"
-
-                    local_variant = ProductVariant.objects.filter(sku=sku_val).first()
-                    if not local_variant:
-                        local_variant = ProductVariant.objects.filter(api_product_id=pp.remote_id, product=local_product).first()
-
-                    variant_is_active = bool(pp.is_active and pp.local_is_active)
-
-                    if not local_variant:
-                        local_variant = ProductVariant.objects.create(
-                            product=local_product,
-                            name=variant_name,
-                            sku=sku_val,
-                            price=final_price,
-                            wholesale_price=wholesale_price,
-                            vip_price=vip_price,
-                            cost=pp.cost_price,
-                            is_active=variant_is_active,
-                            is_temporarily_disabled=not variant_is_active,
-                            metadata=meta,
-                            api_product_id=pp.remote_id
+                    if not local_product:
+                        local_product = Product.objects.create(
+                            store=store,
+                            name=group_name[:255],
+                            category=store_category,
+                            is_active=True,
+                            is_out_of_stock=False,
+                            track_inventory=False,
+                            quantity=999999,
+                            is_api_product=True,
+                            api_provider=provider_code,
+                            description=p_items[0].local_description or "",
+                            form_schema=schema
                         )
                     else:
-                        local_variant.name = variant_name
-                        local_variant.price = final_price
-                        local_variant.wholesale_price = wholesale_price
-                        local_variant.vip_price = vip_price
-                        local_variant.cost = pp.cost_price
-                        local_variant.is_active = variant_is_active
-                        local_variant.is_temporarily_disabled = not variant_is_active
-                        local_variant.metadata = meta
-                        local_variant.api_product_id = pp.remote_id
-                        local_variant.save()
+                        if store and local_product.store != store:
+                            local_product.store = store
+                        if not local_product.category or local_product.category != store_category:
+                            local_product.category = store_category
+                        local_product.is_active = True
+                        local_product.is_out_of_stock = False
+                        local_product.track_inventory = False
+                        local_product.quantity = 999999
+                        local_product.is_api_product = True
+                        local_product.api_provider = provider_code
+                        if schema_fields:
+                            local_product.form_schema = schema
+                        local_product.save()
 
-                    mapping.local_variant = local_variant
-                    mapping.save()
+                    # Map each ProviderProduct as a ProductVariant (باقة) inside this single Product
+                    for pp in p_items:
+                        mapping = ProviderMapping.objects.filter(provider_product=pp).first()
+                        if not mapping:
+                            mapping = ProviderMapping(provider_product=pp)
+
+                        mapping.local_product = local_product
+
+                        pricing = getattr(pp, 'pricing', None)
+                        final_price = pricing.final_price if pricing else pp.cost_price
+                        wholesale_price = pricing.final_wholesale_price if pricing else pp.cost_price
+                        vip_price = pricing.final_vip_price if pricing else pp.cost_price
+
+                        # Determine quantity type, min, max, list, and per-mille flag
+                        qty_min = getattr(pp, 'qty_min', None)
+                        try:
+                            qty_min = int(qty_min) if qty_min is not None else None
+                        except (ValueError, TypeError):
+                            qty_min = None
+
+                        qty_max = getattr(pp, 'qty_max', None)
+                        try:
+                            qty_max = int(qty_max) if qty_max is not None else None
+                        except (ValueError, TypeError):
+                            qty_max = None
+
+                        qty_list = getattr(pp, 'qty_list', None) or []
+
+                        if qty_list and len(qty_list) > 0:
+                            qty_type = "list"
+                        elif qty_max is not None and qty_min is not None and (qty_max > qty_min or (qty_min > 1 and qty_max > 1)):
+                            qty_type = "range"
+                        elif pp.product_type == "amount":
+                            qty_type = "range"
+                        elif pp.product_type in ("fixed_quantities", "specificPackage"):
+                            qty_type = "list"
+                        else:
+                            qty_type = "fixed"
+
+                        is_per_mille = False
+                        if qty_min is not None and qty_min >= 100:
+                            is_per_mille = True
+                        elif pp.product_type == "amount" and (qty_min is None or qty_min >= 10):
+                            is_per_mille = True
+
+                        meta = {
+                            "qty_type": qty_type,
+                            "qty_min": qty_min or 1,
+                            "qty_max": qty_max or 999999,
+                            "qty_list": qty_list,
+                            "is_per_mille": is_per_mille,
+                            "product_type": pp.product_type,
+                            "remote_id": str(pp.remote_id),
+                            "params": [
+                                {
+                                    "name": param.name,
+                                    "label": param.label,
+                                    "type": param.parameter_type,
+                                    "required": param.required
+                                }
+                                for param in pp.parameters.all()
+                            ]
+                        }
+
+                        variant_name = (pp.local_name or "").strip()
+                        if not variant_name or variant_name.lower() in ("null", "none", "undefined", "false"):
+                            variant_name = (pp.name or "").strip()
+                        if not variant_name or variant_name.lower() in ("null", "none", "undefined", "false"):
+                            if pp.category and pp.category.name and pp.category.name.strip().lower() not in ("null", "none"):
+                                variant_name = pp.category.name.strip()
+                            elif hasattr(pp, 'data') and isinstance(pp.data, dict) and pp.data.get("title") and str(pp.data.get("title")).lower() not in ("null", "none"):
+                                variant_name = str(pp.data.get("title")).strip()
+                            elif hasattr(pp, 'data') and isinstance(pp.data, dict) and pp.data.get("country"):
+                                variant_name = f"تفعيل {pp.data.get('country')}"
+                            else:
+                                # Skip corrupted/un-named variant
+                                continue
+
+                        sku_val = f"PRV-{self.profile.id}-{pp.remote_id}"[:80]
+
+                        try:
+                            api_pid = int(pp.remote_id)
+                        except (ValueError, TypeError):
+                            api_pid = None
+
+                        local_variant = ProductVariant.objects.filter(sku=sku_val).first()
+                        if not local_variant and api_pid is not None:
+                            local_variant = ProductVariant.objects.filter(api_product_id=api_pid, product=local_product).first()
+
+                        variant_is_active = bool(pp.is_active and pp.local_is_active)
+
+                        if not local_variant:
+                            local_variant = ProductVariant.objects.create(
+                                product=local_product,
+                                name=variant_name[:120],
+                                sku=sku_val,
+                                price=final_price,
+                                wholesale_price=wholesale_price,
+                                vip_price=vip_price,
+                                cost=pp.cost_price,
+                                is_active=variant_is_active,
+                                is_temporarily_disabled=not variant_is_active,
+                                metadata=meta,
+                                api_product_id=api_pid
+                            )
+                        else:
+                            local_variant.name = variant_name[:120]
+                            local_variant.price = final_price
+                            local_variant.wholesale_price = wholesale_price
+                            local_variant.vip_price = vip_price
+                            local_variant.cost = pp.cost_price
+                            local_variant.is_active = variant_is_active
+                            local_variant.is_temporarily_disabled = not variant_is_active
+                            local_variant.metadata = meta
+                            if api_pid is not None:
+                                local_variant.api_product_id = api_pid
+                            local_variant.save()
+
+                        mapping.local_variant = local_variant
+                        mapping.save()
 
             except Exception as e:
                 logger.exception("Error mapping group '%s' to catalog: %s", group_name, e)
