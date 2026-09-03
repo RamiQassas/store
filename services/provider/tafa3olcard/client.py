@@ -109,11 +109,15 @@ class Tafa3olCardClient:
         """GET /categories"""
         return self._request("GET", "categories")
 
-    def get_products(self, search: str = None, page: int = 1, limit: int = 50) -> dict:
-        """GET /products?search=...&page=...&limit=..."""
+    def get_products(self, search: str = None, service_id: str = None, category_id: str = None, page: int = 1, limit: int = 50) -> dict:
+        """GET /products?search=...&serviceId=...&categoryId=...&page=...&limit=..."""
         params = {"page": page, "limit": limit}
         if search:
             params["search"] = search
+        if service_id:
+            params["serviceId"] = service_id
+        if category_id:
+            params["categoryId"] = category_id
         return self._request("GET", "products", params=params)
 
     def get_product(self, product_id: str) -> dict:

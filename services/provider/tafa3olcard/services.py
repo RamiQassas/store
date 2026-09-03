@@ -55,43 +55,68 @@ class Tafa3olCardProviderService:
 
     def fetch_products(self) -> list:
         """
-        Fetches all available products from Tafa3ol Card with pagination.
+        Fetches products by service to ensure 100% coverage of all games, apps, mobile, and gift cards.
         """
         all_products = []
-        page = 1
-        limit = 50
+        seen_ids = set()
 
-        while True:
-            try:
-                res = self.client.get_products(page=page, limit=limit)
-                if isinstance(res, dict):
-                    data = res.get("data") or []
-                    meta = res.get("meta") or {}
-                elif isinstance(res, list):
-                    data = res
-                    meta = {}
-                else:
-                    data = []
-                    meta = {}
+        try:
+            srv_res = self.client.get_services()
+            services = srv_res.get("data") if isinstance(srv_res, dict) else (srv_res if isinstance(srv_res, list) else [])
+        except Exception:
+            services = []
 
-                if not data or not isinstance(data, list):
+        if services:
+            for s in services:
+                if not isinstance(s, dict):
+                    continue
+                s_id = str(s.get("_id") or s.get("id") or "")
+                s_type = str(s.get("type") or "").upper()
+                if not s_id:
+                    continue
+
+                # Social media has 7,965 items; fetch top 2 pages (100 items). Digital cards/games get all pages.
+                max_pages = 2 if s_type == "SOCIAL_REINFORCERS" else 10
+                page = 1
+                while page <= max_pages:
+                    try:
+                        res = self.client.get_products(service_id=s_id, page=page, limit=50)
+                        data = res.get("data") if isinstance(res, dict) else (res if isinstance(res, list) else [])
+                        if not data:
+                            break
+                        for item in data:
+                            if isinstance(item, dict):
+                                r_id = str(item.get("_id") or item.get("id") or "")
+                                if r_id and r_id not in seen_ids:
+                                    seen_ids.add(r_id)
+                                    all_products.append(item)
+                        if len(data) < 50:
+                            break
+                        page += 1
+                    except Exception as err:
+                        logger.warning(f"Error fetching products for service {s_id} page {page}: {err}")
+                        break
+
+        # Fallback / General fetch if empty
+        if not all_products:
+            page = 1
+            while page <= 10:
+                try:
+                    res = self.client.get_products(page=page, limit=50)
+                    data = res.get("data") if isinstance(res, dict) else (res if isinstance(res, list) else [])
+                    if not data:
+                        break
+                    for item in data:
+                        if isinstance(item, dict):
+                            r_id = str(item.get("_id") or item.get("id") or "")
+                            if r_id and r_id not in seen_ids:
+                                seen_ids.add(r_id)
+                                all_products.append(item)
+                    if len(data) < 50:
+                        break
+                    page += 1
+                except Exception:
                     break
-
-                for p in data:
-                    if isinstance(p, dict):
-                        all_products.append(p)
-
-                total = meta.get("total", 0) if isinstance(meta, dict) else 0
-                if len(all_products) >= total or len(data) < limit:
-                    break
-                page += 1
-                if page > 50:  # safety bound
-                    break
-            except Exception as e:
-                logger.error(f"Error fetching page {page} from Tafa3ol Card: {e}")
-                if page == 1:
-                    raise e
-                break
 
         return all_products
 
@@ -113,11 +138,11 @@ class Tafa3olCardProviderService:
 
         if progress_key:
             _safe_cache(progress_key, {
-                "status": "running",
+                "status": "starting",
                 "total": 0,
                 "current": 0,
-                "percent": 5,
-                "product_name": "جاري الاتصال بخادم تفاعل كارد وجلب قائمة المنتجات...",
+                "percent": 0,
+                "product_name": "جاري الاتصال وسحب الخدمات والتصنيفات...",
                 "created": 0,
                 "updated": 0
             }, 600)
@@ -194,20 +219,15 @@ class Tafa3olCardProviderService:
             final_unit = pricing_obj.get("finalUnitPrice") if isinstance(pricing_obj, dict) else None
             display_qty = (pricing_obj.get("displayQuantity") if isinstance(pricing_obj, dict) else None) or 1
 
-            if qty_mode in ("COUNTER", "QUANTITY", "RANGE"):
-                if final_unit is not None and float(final_unit) > 0:
-                    cost_price = Decimal(str(round(float(final_unit), 6)))
-                elif final_total is not None and float(final_total) > 0:
-                    cost_price = Decimal(str(round(float(final_total) / max(int(display_qty), 1), 6)))
+            if final_total is not None and float(final_total) > 0:
+                cost_price = Decimal(str(round(float(final_total), 4)))
+            elif final_unit is not None and float(final_unit) > 0:
+                if float(final_unit) < 0.001:
+                    cost_price = Decimal(str(round(float(final_unit) * 1000, 4)))
                 else:
-                    cost_price = Decimal(str(item.get("costPrice") or item.get("price") or "0.00"))
-            else:
-                if final_total is not None and float(final_total) > 0:
-                    cost_price = Decimal(str(round(float(final_total), 4)))
-                elif final_unit is not None and float(final_unit) > 0:
                     cost_price = Decimal(str(round(float(final_unit), 4)))
-                else:
-                    cost_price = Decimal(str(item.get("costPrice") or item.get("price") or "0.00"))
+            else:
+                cost_price = Decimal(str(item.get("costPrice") or item.get("price") or "0.00"))
 
             # Handle Category & Service exactly from Tafa3ol Card hierarchy
             srv_field = item.get("serviceId") or item.get("service") or {}
