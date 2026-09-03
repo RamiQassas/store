@@ -6215,18 +6215,37 @@ def control_apicontrol_dashboard(request):
     total_ops_count = 0
     
     for order in api_orders:
-        order_cost = 0.0
-        order_sales = float(order.total_amount)
-        for item in order.items.all():
-            qty = float(item.quantity or 1)
-            unit_c = float(item.unit_cost or (item.variant.cost if item.variant else 0.0) or 0.0)
-            order_cost += unit_c * qty
+        sales = float(order.total_amount or 0.0)
+        if sales <= 0.0:
+            continue
             
-        if order_cost <= 0.0 and order_sales > 0:
-            order_cost = round(order_sales * 0.9, 4)
+        cost = 0.0
+        # 1. Check provider_orders for actual recorded provider cost
+        po = order.provider_orders.filter(cost_amount__gt=0).first()
+        if po and float(po.cost_amount) > 0 and float(po.cost_amount) < sales:
+            cost = float(po.cost_amount)
+        else:
+            # 2. Check items cost ratio
+            order_items_cost = 0.0
+            for item in order.items.all():
+                item_sales = float(item.total_price or (item.unit_price * item.quantity) or 0.0)
+                v = item.variant
+                if v and float(v.cost or 0) > 0 and float(v.price or 0) > 0 and float(v.cost) < float(v.price):
+                    ratio = float(v.cost) / float(v.price)
+                    order_items_cost += item_sales * min(ratio, 0.95)
+                elif item.unit_cost and float(item.unit_cost) > 0 and float(item.unit_cost) < float(item.unit_price or 999999):
+                    order_items_cost += float(item.unit_cost) * float(item.quantity or 1)
+                else:
+                    # Default estimated wholesale cost (e.g. 90% of selling price -> 10% profit margin)
+                    order_items_cost += item_sales * 0.90
             
-        total_purchases_usd += order_cost
-        total_sales_usd += order_sales
+            if order_items_cost > 0 and order_items_cost < sales:
+                cost = order_items_cost
+            else:
+                cost = round(sales * 0.90, 4)
+                
+        total_purchases_usd += cost
+        total_sales_usd += sales
         total_ops_count += 1
         
     total_profit_usd = max(0.0, total_sales_usd - total_purchases_usd)
