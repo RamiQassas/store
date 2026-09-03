@@ -44,8 +44,8 @@ def restart_process_soon():
 def apply_git_update():
     logger.info("🚀 [AUTO-DEPLOY] New commit detected on GitHub master. Applying updates...")
     try:
-        cmd = "git fetch origin master && git reset --hard origin/master && python manage.py migrate --noinput && python manage.py collectstatic --noinput && (nohup python -c 'import time, os, signal; time.sleep(2); [os.kill(int(p), signal.SIGKILL) for p in os.listdir(\"/proc\") if p.isdigit() and int(p) not in (1, os.getpid()) and \"daphne\" in open(f\"/proc/{p}/cmdline\", \"rb\").read().decode(\"utf-8\", \"ignore\")]' >/dev/null 2>&1 &)"
-        proc = subprocess.run(cmd, shell=True, capture_output=True, text=True, timeout=120)
+        cmd = "git fetch origin master && git reset --hard origin/master && python manage.py migrate --noinput && python manage.py remap_alkasr_catalog && python manage.py collectstatic --noinput && (nohup python -c 'import time, os, signal; time.sleep(2); [os.kill(int(p), signal.SIGKILL) for p in os.listdir(\"/proc\") if p.isdigit() and int(p) not in (1, os.getpid()) and \"daphne\" in open(f\"/proc/{p}/cmdline\", \"rb\").read().decode(\"utf-8\", \"ignore\")]' >/dev/null 2>&1 &)"
+        proc = subprocess.run(cmd, shell=True, capture_output=True, text=True, timeout=180)
         logger.info(f"🚀 [AUTO-DEPLOY] Output: {proc.stdout[:300]}")
         if proc.stderr:
             logger.warning(f"🚀 [AUTO-DEPLOY] Stderr: {proc.stderr[:300]}")

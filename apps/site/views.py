@@ -1810,7 +1810,22 @@ def product_detail(request, pk):
             return redirect("catalog")
 
         variant_id = request.POST.get("variant_id")
-        variant = get_object_or_404(ProductVariant, id=variant_id, product=product)
+        if not variant_id or variant_id == "default":
+            variant = product.variants.filter(is_active=True).first() or product.variants.first()
+            if not variant:
+                p_price = getattr(product, 'price', None) or Decimal("0.00")
+                variant = ProductVariant.objects.create(
+                    product=product,
+                    name=product.name,
+                    sku=f"AUTO-{str(product.id)[:8]}",
+                    price=p_price,
+                    wholesale_price=p_price,
+                    cost=product.cost_price or Decimal("0.00"),
+                    is_active=True,
+                    metadata={"qty_type": "fixed", "qty_min": 1, "qty_max": 1}
+                )
+        else:
+            variant = get_object_or_404(ProductVariant, id=variant_id, product=product)
         
         # Collect custom fields
         metadata = {}
@@ -1910,6 +1925,21 @@ def product_detail(request, pk):
             return redirect("product_detail", pk=pk)
 
     variants = product.variants.filter(is_active=True).order_by('sort_order')
+    if not variants.exists():
+        variants = product.variants.all().order_by('sort_order')
+    if not variants.exists():
+        p_price = getattr(product, 'price', None) or Decimal("0.00")
+        ProductVariant.objects.create(
+            product=product,
+            name=product.name,
+            sku=f"AUTO-{str(product.id)[:8]}",
+            price=p_price,
+            wholesale_price=p_price,
+            cost=product.cost_price or Decimal("0.00"),
+            is_active=True,
+            metadata={"qty_type": "fixed", "qty_min": 1, "qty_max": 1}
+        )
+        variants = product.variants.filter(is_active=True)
     related_products = Product.objects.filter(category=product.category, is_active=True).exclude(pk=product.pk)[:3]
     
     missing_amount = request.session.pop('missing_amount', None)

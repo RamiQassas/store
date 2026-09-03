@@ -289,6 +289,29 @@
                     </div>
                     <div class="price-tag">{% currency_format v_price %}</div>
                 </div>
+                {% empty %}
+                <div class="variant-card selected" 
+                     onclick="selectVariant('default', this)"
+                     data-price="{{ product.price|default:'0.00'|unlocalize }}"
+                     data-qty-type="fixed"
+                     data-qty-min="1"
+                     data-qty-max="1"
+                     data-qty-list="[]"
+                     data-is-per-mille="false"
+                     data-params="[]">
+                    <div class="flex items-center gap-5">
+                        <div class="radio-circle"></div>
+                        <div>
+                            <div class="font-bold text-lg text-white flex items-center">
+                                {{ product.name }}
+                            </div>
+                            <div class="flex items-center gap-2 mt-1">
+                                <span class="text-[9px] text-slate-500 font-bold uppercase tracking-wider"><i class="far fa-clock ml-1"></i> شحن فوري / متاح</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="price-tag">{% currency_format product.price|default:0 %}</div>
+                </div>
                 {% endfor %}
             </div>
 
@@ -384,10 +407,10 @@
                             </div>
                             <span class="text-[9px] text-slate-500 mt-1 block">يمكنك نسخ ولصق رابط موقعك من خرائط جوجل مباشرة أو استخدام زر تحديد الموقع الحالي.</span>
                             {% else %}
-                            <div class="relative flex items-center">
-                                <input type="text" name="custom_{{ f.name|default:f.label }}" id="custom_{{ f.name|default:f.label }}" placeholder="{{ f.placeholder|default:'أدخل البيانات المطلوبة هنا...' }}" class="w-full bg-slate-900 border border-white/10 rounded-xl p-3.5 text-white font-mono text-base focus:border-cyan transition" {% if f.required %}required{% endif %}>
-                                <button type="button" onclick="pasteToInput('custom_{{ f.name|default:f.label }}')" class="absolute left-2 px-2.5 py-1.5 rounded-lg bg-white/5 hover:bg-cyan/10 hover:text-cyan text-slate-400 text-[10px] font-bold border border-white/5 transition flex items-center gap-1">
-                                    <i class="far fa-paste"></i>
+                            <div class="flex items-center gap-3">
+                                <input type="text" name="custom_{{ f.name|default:f.label }}" id="custom_{{ f.name|default:f.label }}" placeholder="{{ f.placeholder|default:'أدخل البيانات المطلوبة هنا...' }}" class="flex-grow bg-slate-900 border border-white/10 rounded-2xl p-4 text-white font-mono text-base focus:border-cyan transition" {% if f.required %}required{% endif %}>
+                                <button type="button" onclick="pasteToInput('custom_{{ f.name|default:f.label }}')" class="shrink-0 h-[56px] px-5 rounded-2xl bg-cyan/10 hover:bg-cyan/20 border border-cyan/20 hover:border-cyan/40 text-cyan text-xs font-black flex items-center gap-2 transition active:scale-95 cursor-pointer" title="لصق من الحافظة">
+                                    <i class="far fa-paste text-sm"></i>
                                     <span>لصق</span>
                                 </button>
                             </div>
@@ -404,10 +427,10 @@
                                 </span>
                                 <span class="text-[10px] text-rose-400 font-bold">* مطلوب</span>
                             </label>
-                            <div class="relative flex items-center">
-                                <input type="text" name="custom_playerId" id="custom_playerId" placeholder="أدخل ايدي اللاعب هنا (مثال: 5123456789)..." class="w-full bg-slate-900 border border-white/10 rounded-xl p-3.5 text-white font-mono text-base focus:border-cyan transition" required>
-                                <button type="button" onclick="pasteToInput('custom_playerId')" class="absolute left-2 px-2.5 py-1.5 rounded-lg bg-white/5 hover:bg-cyan/10 hover:text-cyan text-slate-400 text-[10px] font-bold border border-white/5 transition flex items-center gap-1">
-                                    <i class="far fa-paste"></i>
+                            <div class="flex items-center gap-3">
+                                <input type="text" name="custom_playerId" id="custom_playerId" placeholder="أدخل ايدي اللاعب هنا (مثال: 5123456789)..." class="flex-grow bg-slate-900 border border-white/10 rounded-2xl p-4 text-white font-mono text-base focus:border-cyan transition" required>
+                                <button type="button" onclick="pasteToInput('custom_playerId')" class="shrink-0 h-[56px] px-5 rounded-2xl bg-cyan/10 hover:bg-cyan/20 border border-cyan/20 hover:border-cyan/40 text-cyan text-xs font-black flex items-center gap-2 transition active:scale-95 cursor-pointer" title="لصق من الحافظة">
+                                    <i class="far fa-paste text-sm"></i>
                                     <span>لصق</span>
                                 </button>
                             </div>
@@ -656,16 +679,16 @@ function renderDynamicFields(paramsJson, el) {
                         </span>
                         ${isRequired ? '<span class="text-[10px] text-rose-400 font-bold">* مطلوب</span>' : '<span class="text-[10px] text-slate-500">اختياري</span>'}
                     </label>
-                    <div class="relative flex items-center">
+                    <div class="flex items-center gap-3">
                         <input type="${pType === 'number' ? 'number' : 'text'}" 
                                name="custom_${pName}" 
                                id="custom_${pName}" 
                                value="${prevVal}" 
                                placeholder="${placeholder}" 
-                               class="w-full bg-slate-900/90 border border-white/10 rounded-xl p-3.5 text-white font-mono text-base focus:border-cyan focus:ring-1 focus:ring-cyan transition" 
+                               class="flex-grow bg-slate-900/90 border border-white/10 rounded-2xl p-4 text-white font-mono text-base focus:border-cyan focus:ring-1 focus:ring-cyan transition" 
                                ${isRequired ? 'required' : ''}>
-                        <button type="button" onclick="pasteToInput('custom_${pName}')" class="absolute left-2.5 px-2.5 py-1.5 rounded-lg bg-white/5 hover:bg-cyan/10 hover:text-cyan text-slate-400 text-[10px] font-bold border border-white/5 transition flex items-center gap-1">
-                            <i class="far fa-paste"></i>
+                        <button type="button" onclick="pasteToInput('custom_${pName}')" class="shrink-0 h-[56px] px-5 rounded-2xl bg-cyan/10 hover:bg-cyan/20 border border-cyan/20 hover:border-cyan/40 text-cyan text-xs font-black flex items-center gap-2 transition active:scale-95 cursor-pointer" title="لصق من الحافظة">
+                            <i class="far fa-paste text-sm"></i>
                             <span>لصق</span>
                         </button>
                     </div>
@@ -687,10 +710,10 @@ function renderDynamicFields(paramsJson, el) {
                         </span>
                         <span class="text-[10px] text-rose-400 font-bold">* مطلوب</span>
                     </label>
-                    <div class="relative flex items-center">
-                        <input type="text" name="custom_playerId" id="custom_playerId" value="${prevVal}" placeholder="أدخل ايدي اللاعب هنا (مثال: 5123456789)..." class="w-full bg-slate-900 border border-white/10 rounded-xl p-3.5 text-white font-mono text-base focus:border-cyan transition" required>
-                        <button type="button" onclick="pasteToInput('custom_playerId')" class="absolute left-2.5 px-2.5 py-1.5 rounded-lg bg-white/5 hover:bg-cyan/10 hover:text-cyan text-slate-400 text-[10px] font-bold border border-white/5 transition flex items-center gap-1">
-                            <i class="far fa-paste"></i>
+                    <div class="flex items-center gap-3">
+                        <input type="text" name="custom_playerId" id="custom_playerId" value="${prevVal}" placeholder="أدخل ايدي اللاعب هنا (مثال: 5123456789)..." class="flex-grow bg-slate-900 border border-white/10 rounded-2xl p-4 text-white font-mono text-base focus:border-cyan transition" required>
+                        <button type="button" onclick="pasteToInput('custom_playerId')" class="shrink-0 h-[56px] px-5 rounded-2xl bg-cyan/10 hover:bg-cyan/20 border border-cyan/20 hover:border-cyan/40 text-cyan text-xs font-black flex items-center gap-2 transition active:scale-95 cursor-pointer" title="لصق من الحافظة">
+                            <i class="far fa-paste text-sm"></i>
                             <span>لصق</span>
                         </button>
                     </div>
@@ -860,15 +883,15 @@ function updateQuantityPrice(isFromCoupon = false) {
     
     let qty = 1;
     if (qtyInput) {
-        const val = parseInt(qtyInput.value);
-        qty = (isNaN(val) || val < 1) ? 1 : val;
+        const val = parseFloat(qtyInput.value);
+        qty = (isNaN(val) || val <= 0) ? 1 : val;
     }
     
     const qtyType = card.getAttribute('data-qty-type') || 'fixed';
     const isPerMille = card.getAttribute('data-is-per-mille') === 'true';
     
     let subtotal = basePrice;
-    if (qtyType === 'range') {
+    if (qtyType === 'range' || qtyType === 'list') {
         if (isPerMille) {
             subtotal = (basePrice * qty) / 1000;
         } else {
