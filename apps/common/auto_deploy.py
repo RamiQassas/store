@@ -44,7 +44,7 @@ def restart_process_soon():
 def apply_git_update():
     logger.info("🚀 [AUTO-DEPLOY] New commit detected on GitHub master. Applying updates...")
     try:
-        cmd = "git fetch origin master && git reset --hard origin/master && python manage.py migrate --noinput && python manage.py collectstatic --noinput && (nohup sh -c 'sleep 2 && kill -9 1' >/dev/null 2>&1 &)"
+        cmd = "git fetch origin master && git reset --hard origin/master && python manage.py migrate --noinput && python manage.py collectstatic --noinput && (nohup python -c 'import time, os, signal; time.sleep(2); [os.kill(int(p), signal.SIGKILL) for p in os.listdir(\"/proc\") if p.isdigit() and int(p) not in (1, os.getpid()) and \"daphne\" in open(f\"/proc/{p}/cmdline\", \"rb\").read().decode(\"utf-8\", \"ignore\")]' >/dev/null 2>&1 &)"
         proc = subprocess.run(cmd, shell=True, capture_output=True, text=True, timeout=120)
         logger.info(f"🚀 [AUTO-DEPLOY] Output: {proc.stdout[:300]}")
         if proc.stderr:
