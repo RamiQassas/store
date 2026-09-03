@@ -1092,7 +1092,7 @@ document.addEventListener('DOMContentLoaded', () => {
 </script>
 
 <!-- Modal Popup for Instant In-Page Order Results & Server Responses -->
-<div id="purchase-result-modal" class="fixed inset-0 items-center justify-center p-4 bg-slate-950/85 backdrop-blur-md transition-all duration-300" style="z-index: 999999; display: none;">
+<div id="purchase-result-modal" style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; width: 100vw; height: 100vh; z-index: 9999999; display: none; align-items: center; justify-content: center; padding: 1rem; background-color: rgba(2, 6, 23, 0.88); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);">
     <div id="purchase-modal-container" class="bg-slate-900 border-2 border-cyan/40 rounded-3xl p-6 sm:p-8 max-w-lg w-full shadow-2xl shadow-cyan/20 relative transform transition-all duration-300">
         <!-- Close Button Top -->
         <button type="button" onclick="closePurchaseModal()" class="absolute top-5 left-5 w-10 h-10 rounded-full bg-slate-800 text-slate-400 hover:text-white hover:bg-rose-500/20 hover:text-rose-400 flex items-center justify-center transition border border-white/10 cursor-pointer" title="إغلاق">
@@ -1155,12 +1155,14 @@ function openPurchaseModal(data) {
     const modal = document.getElementById('purchase-result-modal');
     if (!modal) return;
     modal.style.display = 'flex';
+    document.body.style.overflow = 'hidden';
     updateModalContent(data);
 }
 
 function closePurchaseModal() {
     const modal = document.getElementById('purchase-result-modal');
     if (modal) modal.style.display = 'none';
+    document.body.style.overflow = '';
     if (currentPollTimer) {
         clearInterval(currentPollTimer);
         currentPollTimer = null;
