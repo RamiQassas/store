@@ -196,4 +196,5 @@ urlpatterns = [
 
     # Backup & Maintenance
     path("control/backup/", views.control_backup, name="control_backup"),
+    path("control/system/updates/", views.control_system_updates, name="control_system_updates"),
 ]

@@ -158,51 +158,45 @@ class MySocialAccountAdapter(DefaultSocialAccountAdapter):
 
     def pre_social_login(self, request, sociallogin):
         """
-        Connect existing accounts by email automatically and ensure they are verified.
+        Connect existing accounts by email automatically, mark them verified, and perform immediate login.
         """
-        email = sociallogin.user.email
+        email = None
+        if getattr(sociallogin, "user", None) and getattr(sociallogin.user, "email", None):
+            email = sociallogin.user.email
         if not email and sociallogin.email_addresses:
             email = sociallogin.email_addresses[0].email
+        if not email and getattr(sociallogin, "account", None) and sociallogin.account.extra_data:
+            email = sociallogin.account.extra_data.get("email")
 
         if not email:
             return
+
+        email = email.strip().lower()
 
         try:
             active_store = get_store_from_request(request)
             
             user = None
             if active_store:
-                try:
-                    user = User._base_manager.get(email__iexact=email, store=active_store)
-                except User.DoesNotExist:
-                    pass
-            
+                user = User._base_manager.filter(email__iexact=email, store=active_store).first()
             if not user:
-                users = User._base_manager.filter(email__iexact=email)
-                if users.count() == 1:
-                    user = users.first()
-                elif users.count() > 1:
-                    if active_store:
-                        user = users.filter(store=active_store).first()
-                    else:
-                        user = users.filter(store__isnull=True).first()
+                user = User._base_manager.filter(email__iexact=email, store__isnull=True).first()
+            if not user:
+                user = User._base_manager.filter(email__iexact=email).first()
 
             if not user:
-                raise User.DoesNotExist
+                return
 
-            # Mark as verified (Google emails are trusted) and active
+            # Mark user as verified (Google emails are trusted) and active
             needs_save = False
             if not user.email_verified:
                 user.email_verified = True
                 needs_save = True
-            
             if not user.is_active:
                 user.is_active = True
                 needs_save = True
-
             if needs_save:
-                fields = ["email_verified", "is_active"]
-                user.save(update_fields=fields)
+                user.save(update_fields=["email_verified", "is_active"])
             
             # Ensure allauth EmailAddress record exists and is marked as verified
             EmailAddress.objects.update_or_create(
@@ -211,22 +205,32 @@ class MySocialAccountAdapter(DefaultSocialAccountAdapter):
                 defaults={'verified': True, 'primary': True}
             )
 
-            # Link social account and save to DB so is_existing evaluates to True
-            if not sociallogin.is_existing:
-                sociallogin.connect(request, user)
-                if not sociallogin.account.pk:
+            # Link social account and save to DB
+            from allauth.socialaccount.models import SocialAccount
+            sociallogin.user = user
+            try:
+                acc = SocialAccount.objects.filter(
+                    provider=sociallogin.account.provider,
+                    uid=sociallogin.account.uid
+                ).first()
+                if not acc:
                     sociallogin.account.user = user
                     sociallogin.account.save()
-                logger.info(f"Connected existing user {email} to social account in store/global context.")
+                else:
+                    if acc.user_id != user.id:
+                        acc.user = user
+                    acc.extra_data = sociallogin.account.extra_data
+                    acc.save()
+                    sociallogin.account = acc
+                logger.info(f"Connected existing user {email} to Google social account successfully.")
+            except Exception as conn_err:
+                logger.warning(f"Error connecting social account in pre_social_login: {conn_err}")
 
-            # Perform immediate login to bypass 3rdparty/signup form for existing accounts
+            # Perform immediate login to bypass 3rdparty/signup form
             from allauth.account.utils import perform_login
             from django.conf import settings
             from django.http import HttpResponseRedirect
-            try:
-                from allauth.exceptions import ImmediateHttpResponse
-            except ImportError:
-                from allauth.core.exceptions import ImmediateHttpResponse
+            from allauth.core.exceptions import ImmediateHttpResponse
 
             redirect_url = getattr(settings, "LOGIN_REDIRECT_URL", "/dashboard/")
             resp = perform_login(
@@ -237,8 +241,10 @@ class MySocialAccountAdapter(DefaultSocialAccountAdapter):
             )
             raise ImmediateHttpResponse(resp or HttpResponseRedirect(redirect_url))
             
-        except User.DoesNotExist:
-            pass
+        except ImmediateHttpResponse:
+            raise
+        except Exception as e:
+            logger.error(f"Unexpected error in pre_social_login: {e}", exc_info=True)
 
     def save_user(self, request, sociallogin, form=None):
         """

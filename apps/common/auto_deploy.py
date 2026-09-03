@@ -52,6 +52,11 @@ def auto_deploy_poller():
     
     while True:
         try:
+            from django.core.cache import cache
+            if cache.get("auto_deploy_paused"):
+                time.sleep(30)
+                continue
+
             local_sha = get_local_commit_sha()
             remote_sha = get_remote_commit_sha()
             

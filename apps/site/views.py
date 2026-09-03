@@ -486,8 +486,22 @@ def v3_verify_otp_view(request):
                 return redirect("site_verify_otp")
         code = request.POST.get("code")
         if v3_verify_otp_logic(user, code, purpose):
-            user.otp_failed_attempts = 0; user.otp_lockout_until = None; user.otp_resend_count = 0; user.save()
-            if purpose in [OTPToken.Purpose.REGISTRATION, "login"]: user.email_verified = True; user.save()
+            user.otp_failed_attempts = 0
+            user.otp_lockout_until = None
+            user.otp_resend_count = 0
+            user.save()
+            if purpose in [OTPToken.Purpose.REGISTRATION, "login"]:
+                user.email_verified = True
+                user.save()
+                try:
+                    from allauth.account.models import EmailAddress
+                    EmailAddress.objects.update_or_create(
+                        user=user,
+                        email=user.email,
+                        defaults={'verified': True, 'primary': True}
+                    )
+                except Exception:
+                    pass
             if purpose == "email_change":
                 new_email = request.session.get("v3_new_email")
                 if new_email:
@@ -6228,5 +6242,119 @@ def control_api_integration_delete(request, pk):
         messages.error(request, "بوابة الربط غير موجودة أو لا تملك صلاحية حذفها.")
         
     return redirect("control_api_integrations_list")
+
+
+@admin_required
+def control_system_updates(request):
+    """
+    Control dashboard view to display system versions (Git commits),
+    status against remote origin, and allow rollbacks to previous versions or updates to latest master.
+    """
+    from apps.accounts.models import User
+    if not (request.user.role == User.Role.SUPER_ADMIN or request.user.is_superuser):
+        messages.error(request, "عذراً، هذه الصفحة مخصصة للمدير العام فقط.")
+        return redirect("control_dashboard")
+
+    import subprocess
+    import re
+    from django.core.cache import cache
+    from apps.common.auto_deploy import get_remote_commit_sha
+
+    if request.method == "POST":
+        action = request.POST.get("action")
+        
+        if action == "rollback":
+            commit_hash = request.POST.get("commit_hash", "").strip()
+            if not commit_hash or not re.match(r"^[0-9a-fA-F]{7,40}$", commit_hash):
+                messages.error(request, "معرف الإصدار غير صالح.")
+                return redirect("control_system_updates")
+            
+            try:
+                # Pause auto_deploy so it won't overwrite the rollback
+                cache.set("auto_deploy_paused", True, None)
+                
+                cmd = f"git reset --hard {commit_hash} && python manage.py migrate --noinput && python manage.py collectstatic --noinput"
+                proc = subprocess.run(cmd, shell=True, capture_output=True, text=True, timeout=120)
+                if proc.returncode == 0:
+                    messages.success(request, f"تم التراجع بنجاح إلى الإصدار ({commit_hash[:7]}). تم إيقاف التحديث التلقائي مؤقتاً لضمان استقرار هذا الإصدار.")
+                else:
+                    messages.error(request, f"فشل التراجع: {proc.stderr[:300]}")
+            except Exception as e:
+                messages.error(request, f"حدث خطأ أثناء تنفيذ التراجع: {str(e)}")
+            return redirect("control_system_updates")
+
+        elif action == "update_latest":
+            try:
+                # Resume auto deploy
+                cache.delete("auto_deploy_paused")
+                
+                cmd = "git fetch origin master && git reset --hard origin/master && python manage.py migrate --noinput && python manage.py collectstatic --noinput"
+                proc = subprocess.run(cmd, shell=True, capture_output=True, text=True, timeout=120)
+                if proc.returncode == 0:
+                    messages.success(request, "تم تحديث النظام بنجاح إلى أحدث إصدار من Master، واستئناف التحديث التلقائي.")
+                else:
+                    messages.error(request, f"فشل التحديث إلى Master: {proc.stderr[:300]}")
+            except Exception as e:
+                messages.error(request, f"حدث خطأ أثناء التحديث: {str(e)}")
+            return redirect("control_system_updates")
+
+        elif action == "toggle_pause":
+            is_paused = cache.get("auto_deploy_paused", False)
+            if is_paused:
+                cache.delete("auto_deploy_paused")
+                messages.success(request, "تم استئناف خدمة التحديث التلقائي بنجاح.")
+            else:
+                cache.set("auto_deploy_paused", True, None)
+                messages.warning(request, "تم إيقاف خدمة التحديث التلقائي مؤقتاً.")
+            return redirect("control_system_updates")
+
+    # Read current state
+    current_hash = ""
+    try:
+        res = subprocess.run(["git", "rev-parse", "HEAD"], capture_output=True, text=True, timeout=5)
+        if res.returncode == 0:
+            current_hash = res.stdout.strip()
+    except Exception:
+        pass
+
+    commits = []
+    try:
+        res = subprocess.run(
+            ["git", "log", "-n", "30", "--pretty=format:%H|%h|%an|%ad|%s", "--date=iso"],
+            capture_output=True,
+            text=True,
+            timeout=10
+        )
+        if res.returncode == 0:
+            for line in res.stdout.strip().split("\n"):
+                if line:
+                    parts = line.split("|", 4)
+                    if len(parts) == 5:
+                        c_hash = parts[0]
+                        commits.append({
+                            "full_hash": c_hash,
+                            "short_hash": parts[1],
+                            "author": parts[2],
+                            "date": parts[3],
+                            "message": parts[4],
+                            "is_current": c_hash == current_hash,
+                        })
+    except Exception as e:
+        logger.error(f"Error fetching git log: {e}")
+
+    remote_sha = get_remote_commit_sha()
+    is_paused = cache.get("auto_deploy_paused", False)
+    is_up_to_date = bool(remote_sha and current_hash and remote_sha == current_hash)
+
+    context = {
+        "current_hash": current_hash,
+        "short_current_hash": current_hash[:7] if current_hash else "",
+        "remote_sha": remote_sha,
+        "short_remote_sha": remote_sha[:7] if remote_sha else "",
+        "is_up_to_date": is_up_to_date,
+        "commits": commits,
+        "is_paused": is_paused,
+    }
+    return render(request, "site/control_system_updates.html", context)
 
 

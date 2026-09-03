@@ -1,0 +1,428 @@
+{% extends "site/control_base.html" %}
+{% load static %}
+
+{% block extra_head %}
+{{ block.super }}
+<style>
+:root {
+    --sham-purple: #8b5cf6;
+    --sham-purple-glow: rgba(139, 92, 246, 0.18);
+    --sham-cyan: #06b6d4;
+    --sham-cyan-glow: rgba(6, 182, 212, 0.18);
+    --sham-emerald: #10b981;
+    --sham-emerald-glow: rgba(16, 185, 129, 0.18);
+    --sham-rose: #ef4444;
+    --sham-amber: #f59e0b;
+}
+
+.updates-card {
+    background: rgba(17, 24, 39, 0.75);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 20px;
+    padding: 1.5rem;
+    backdrop-filter: blur(12px);
+    transition: all 0.3s ease;
+}
+
+.updates-stat-card {
+    background: rgba(17, 24, 39, 0.65);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 18px;
+    padding: 1.25rem 1.5rem;
+    display: flex;
+    align-items: center;
+    gap: 1.25rem;
+    transition: transform 0.2s ease, border-color 0.2s ease;
+}
+.updates-stat-card:hover {
+    transform: translateY(-2px);
+    border-color: rgba(255, 255, 255, 0.15);
+}
+
+.stat-icon-box {
+    width: 48px;
+    height: 48px;
+    border-radius: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.3rem;
+    flex-shrink: 0;
+}
+
+.commit-row {
+    transition: background-color 0.2s ease;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+}
+.commit-row:hover {
+    background-color: rgba(255, 255, 255, 0.025);
+}
+.commit-row.current-active {
+    background: linear-gradient(90deg, rgba(16, 185, 129, 0.08), transparent);
+    border-right: 3px solid var(--sham-emerald);
+}
+
+.hash-pill {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    font-size: 0.78rem;
+    letter-spacing: 0.05em;
+    padding: 0.25rem 0.6rem;
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: #e2e8f0;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+}
+
+.btn-rollback {
+    background: rgba(239, 68, 68, 0.12);
+    border: 1px solid rgba(239, 68, 68, 0.3);
+    color: #f87171;
+    font-size: 0.75rem;
+    font-weight: 700;
+    padding: 0.4rem 0.9rem;
+    border-radius: 10px;
+    transition: all 0.2s ease;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+}
+.btn-rollback:hover {
+    background: rgba(239, 68, 68, 0.25);
+    border-color: #ef4444;
+    color: #fff;
+    transform: scale(1.02);
+}
+
+.badge-current {
+    background: rgba(16, 185, 129, 0.15);
+    border: 1px solid rgba(16, 185, 129, 0.35);
+    color: #34d399;
+    font-size: 0.72rem;
+    font-weight: 800;
+    padding: 0.35rem 0.75rem;
+    border-radius: 9999px;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+}
+
+/* Modal */
+.custom-modal {
+    display: none;
+    position: fixed;
+    inset: 0;
+    z-index: 99999;
+    background: rgba(0, 0, 0, 0.75);
+    backdrop-filter: blur(6px);
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+}
+.custom-modal.active {
+    display: flex;
+}
+.modal-content {
+    background: #0f172a;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 22px;
+    max-width: 520px;
+    width: 100%;
+    padding: 2rem;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.8);
+    position: relative;
+    animation: modalIn 0.25s ease-out;
+}
+@keyframes modalIn {
+    from { opacity: 0; transform: scale(0.95); }
+    to { opacity: 1; transform: scale(1); }
+}
+</style>
+{% endblock %}
+
+{% block control_content %}
+<div class="space-y-6">
+
+    <!-- Header & Top Actions -->
+    <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+        <div>
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-xl bg-purple-500/10 border border-purple-500/20 text-purple-400 flex items-center justify-center text-lg">
+                    <i class="fas fa-code-branch"></i>
+                </div>
+                <div>
+                    <h1 class="text-xl md:text-2xl font-black text-white">إدارة التحديثات والإصدارات</h1>
+                    <p class="text-xs text-slate-400">سجل إصدارات النظام وإمكانية الرجوع لأي إصدار قديم (Rollback) بضغطة زر</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="flex items-center flex-wrap gap-2">
+            <!-- Update to Latest Master -->
+            <form method="POST" onsubmit="return confirm('هل تريد بالتأكيد تحديث النظام إلى أحدث إصدار من Master؟');">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="update_latest">
+                <button type="submit" class="px-4 py-2.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold text-xs rounded-xl shadow-lg shadow-emerald-900/30 flex items-center gap-2 transition-all">
+                    <i class="fas fa-cloud-arrow-down"></i>
+                    <span>تحديث إلى أحدث إصدار (Master)</span>
+                </button>
+            </form>
+
+            <!-- Toggle Auto-Deploy Pause -->
+            <form method="POST">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="toggle_pause">
+                {% if is_paused %}
+                <button type="submit" class="px-3.5 py-2.5 bg-amber-500/15 border border-amber-500/30 hover:bg-amber-500/25 text-amber-300 font-bold text-xs rounded-xl flex items-center gap-2 transition-all">
+                    <i class="fas fa-play"></i>
+                    <span>استئناف التحديث التلقائي</span>
+                </button>
+                {% else %}
+                <button type="submit" class="px-3.5 py-2.5 bg-slate-800 border border-slate-700 hover:bg-slate-700 text-slate-300 font-bold text-xs rounded-xl flex items-center gap-2 transition-all">
+                    <i class="fas fa-pause"></i>
+                    <span>إيقاف التحديث التلقائي مؤقتاً</span>
+                </button>
+                {% endif %}
+            </form>
+        </div>
+    </div>
+
+    <!-- Alert / Notice if Paused -->
+    {% if is_paused %}
+    <div class="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/25 text-amber-200 text-xs flex items-center gap-3">
+        <i class="fas fa-exclamation-triangle text-amber-400 text-lg flex-shrink-0"></i>
+        <div>
+            <span class="font-black">التحديث التلقائي متوقف مؤقتاً (Auto-Deploy Paused):</span>
+            النظام يعمل الآن على إصدار محدد يدوياً. لن يقوم الخادم بسحب التحديثات تلقائياً حتى تقوم باستئناف التحديث التلقائي أو الترقية لأحدث إصدار.
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Top Status Cards -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <!-- Current Active Version -->
+        <div class="updates-stat-card">
+            <div class="stat-icon-box bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                <i class="fas fa-check-circle"></i>
+            </div>
+            <div>
+                <span class="text-[11px] text-slate-400 font-bold">الإصدار النشط حالياً</span>
+                <div class="flex items-center gap-2 mt-0.5">
+                    <span class="hash-pill text-emerald-300 font-mono font-bold">{{ short_current_hash|default:"N/A" }}</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Remote Master Status -->
+        <div class="updates-stat-card">
+            <div class="stat-icon-box bg-cyan-500/10 text-cyan-400 border border-cyan-500/20">
+                <i class="fab fa-github"></i>
+            </div>
+            <div>
+                <span class="text-[11px] text-slate-400 font-bold">أحدث إصدار على GitHub</span>
+                <div class="flex items-center gap-2 mt-0.5">
+                    <span class="hash-pill font-mono">{{ short_remote_sha|default:"غير متاح" }}</span>
+                    {% if is_up_to_date %}
+                    <span class="text-[10px] text-emerald-400 font-bold bg-emerald-500/10 px-2 py-0.5 rounded-md border border-emerald-500/20">محدّث</span>
+                    {% else %}
+                    <span class="text-[10px] text-amber-400 font-bold bg-amber-500/10 px-2 py-0.5 rounded-md border border-amber-500/20">يوجد تحديث</span>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Auto-Deploy Status -->
+        <div class="updates-stat-card">
+            <div class="stat-icon-box {% if is_paused %}bg-amber-500/10 text-amber-400 border border-amber-500/20{% else %}bg-purple-500/10 text-purple-400 border border-purple-500/20{% endif %}">
+                <i class="fas {% if is_paused %}fa-pause{% else %}fa-rotate{% endif %}"></i>
+            </div>
+            <div>
+                <span class="text-[11px] text-slate-400 font-bold">حالة التحديث التلقائي</span>
+                <div class="mt-0.5">
+                    {% if is_paused %}
+                    <span class="text-xs font-black text-amber-400">متوقف مؤقتاً</span>
+                    {% else %}
+                    <span class="text-xs font-black text-emerald-400 flex items-center gap-1.5">
+                        <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                        نشط (يراقب GitHub)
+                    </span>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Total History Commits -->
+        <div class="updates-stat-card">
+            <div class="stat-icon-box bg-slate-800 text-slate-300 border border-slate-700">
+                <i class="fas fa-layer-group"></i>
+            </div>
+            <div>
+                <span class="text-[11px] text-slate-400 font-bold">الإصدارات المتاحة للرجوع</span>
+                <div class="text-base font-black text-white mt-0.5">
+                    {{ commits|length }} إصدار
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Commits Table -->
+    <div class="updates-card">
+        <div class="flex items-center justify-between mb-4">
+            <div>
+                <h3 class="text-sm font-black text-white flex items-center gap-2">
+                    <i class="fas fa-history text-purple-400"></i>
+                    سجل الالتزامات والتحديثات (Git Log)
+                </h3>
+                <p class="text-[11px] text-slate-400 mt-0.5">يمكنك في أي وقت اختيار إصدار قديم والتراجع إليه بضغطة زر واحدة</p>
+            </div>
+        </div>
+
+        <div class="overflow-x-auto">
+            <table class="w-full text-right text-xs">
+                <thead>
+                    <tr class="text-slate-400 border-b border-white/5 text-[11px] uppercase tracking-wider font-bold">
+                        <th class="py-3 px-4">الإصدار (Commit)</th>
+                        <th class="py-3 px-4">رسالة التحديث</th>
+                        <th class="py-3 px-4">الناشر</th>
+                        <th class="py-3 px-4">تاريخ الالتزام</th>
+                        <th class="py-3 px-4 text-center">الإجراء</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-white/5">
+                    {% for c in commits %}
+                    <tr class="commit-row {% if c.is_current %}current-active{% endif %}">
+                        <td class="py-3.5 px-4 whitespace-nowrap">
+                            <div class="flex items-center gap-2">
+                                <span class="hash-pill font-mono font-bold {% if c.is_current %}border-emerald-500/40 text-emerald-300 bg-emerald-500/10{% endif %}">
+                                    {{ c.short_hash }}
+                                </span>
+                                {% if c.is_current %}
+                                <span class="badge-current">
+                                    <i class="fas fa-check"></i>
+                                    النشط حالياً
+                                </span>
+                                {% endif %}
+                            </div>
+                        </td>
+
+                        <td class="py-3.5 px-4 font-bold text-slate-200 max-w-md">
+                            <span class="line-clamp-2" title="{{ c.message }}">{{ c.message }}</span>
+                        </td>
+
+                        <td class="py-3.5 px-4 whitespace-nowrap text-slate-400">
+                            <div class="flex items-center gap-2">
+                                <div class="w-6 h-6 rounded-full bg-slate-800 border border-white/10 flex items-center justify-center text-[10px] text-slate-300 font-bold">
+                                    {{ c.author|slice:":1"|upper }}
+                                </div>
+                                <span>{{ c.author }}</span>
+                            </div>
+                        </td>
+
+                        <td class="py-3.5 px-4 whitespace-nowrap text-slate-400 font-mono text-[11px]">
+                            {{ c.date }}
+                        </td>
+
+                        <td class="py-3.5 px-4 whitespace-nowrap text-center">
+                            {% if c.is_current %}
+                            <span class="text-[11px] text-slate-500 font-bold px-3 py-1.5 rounded-lg bg-slate-800/40 border border-white/5">
+                                الإصدار الحالي
+                            </span>
+                            {% else %}
+                            <button type="button" 
+                                    class="btn-rollback"
+                                    onclick="openRollbackModal('{{ c.full_hash }}', '{{ c.short_hash }}', '{{ c.message|escapejs }}', '{{ c.date }}')">
+                                <i class="fas fa-rotate-left"></i>
+                                الرجوع لهذا الإصدار
+                            </button>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="5" class="py-8 text-center text-slate-500">
+                            <i class="fas fa-code-branch text-2xl mb-2 block"></i>
+                            لم يتم العثور على سجل إصدارات Git.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+</div>
+
+<!-- Rollback Confirmation Modal -->
+<div id="rollbackModal" class="custom-modal">
+    <div class="modal-content text-right">
+        <div class="flex items-center gap-3 mb-4">
+            <div class="w-12 h-12 rounded-2xl bg-rose-500/10 border border-rose-500/20 text-rose-400 flex items-center justify-center text-xl flex-shrink-0">
+                <i class="fas fa-triangle-exclamation"></i>
+            </div>
+            <div>
+                <h3 class="text-base font-black text-white">تأكيد التراجع عن الإصدار (Rollback)</h3>
+                <p class="text-xs text-slate-400">يرجى التأكد قبل تنفيذ هذه العملية الحساسة</p>
+            </div>
+        </div>
+
+        <div class="p-4 rounded-xl bg-slate-900/90 border border-white/5 space-y-2 mb-4 text-xs">
+            <div class="flex items-center justify-between">
+                <span class="text-slate-400">الإصدار المستهدف:</span>
+                <span id="modalCommitHash" class="hash-pill font-mono font-bold text-rose-300"></span>
+            </div>
+            <div class="flex items-start justify-between gap-4">
+                <span class="text-slate-400 whitespace-nowrap">رسالة الإصدار:</span>
+                <span id="modalCommitMessage" class="font-bold text-slate-200 text-left line-clamp-2"></span>
+            </div>
+            <div class="flex items-center justify-between">
+                <span class="text-slate-400">تاريخ الإصدار:</span>
+                <span id="modalCommitDate" class="font-mono text-slate-400"></span>
+            </div>
+        </div>
+
+        <div class="p-3.5 rounded-xl bg-amber-500/10 border border-amber-500/20 text-[11px] text-amber-200 mb-6 leading-relaxed">
+            <i class="fas fa-info-circle text-amber-400 ml-1"></i>
+            عند الضغط على تأكيد، سيقوم النظام بالرجوع إلى هذا الإصدار فوراً وتطبيق الترحيلات، وسيتم <strong>إيقاف التحديث التلقائي مؤقتاً</strong> لضمان بقاء السيرفر على هذا الإصدار حتى تقرر العودة للإصدار الأحدث يدوياً.
+        </div>
+
+        <form method="POST">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="rollback">
+            <input type="hidden" name="commit_hash" id="modalInputHash" value="">
+
+            <div class="flex items-center justify-end gap-2.5">
+                <button type="button" onclick="closeRollbackModal()" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold rounded-xl transition-all">
+                    إلغاء
+                </button>
+                <button type="submit" class="px-5 py-2 bg-rose-600 hover:bg-rose-500 text-white text-xs font-black rounded-xl shadow-lg shadow-rose-900/30 transition-all flex items-center gap-1.5">
+                    <i class="fas fa-rotate-left"></i>
+                    تأكيد والرجوع للإصدار
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+function openRollbackModal(fullHash, shortHash, message, date) {
+    document.getElementById('modalCommitHash').innerText = shortHash;
+    document.getElementById('modalCommitMessage').innerText = message;
+    document.getElementById('modalCommitDate').innerText = date;
+    document.getElementById('modalInputHash').value = fullHash;
+    document.getElementById('rollbackModal').classList.add('active');
+}
+
+function closeRollbackModal() {
+    document.getElementById('rollbackModal').classList.remove('active');
+}
+
+document.getElementById('rollbackModal').addEventListener('click', function(e) {
+    if (e.target === this) {
+        closeRollbackModal();
+    }
+});
+</script>
+{% endblock %}
