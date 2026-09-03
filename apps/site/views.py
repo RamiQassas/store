@@ -3364,13 +3364,15 @@ def control_category_quick_rename_ajax(request, pk):
 def control_category_quick_image_ajax(request, pk):
     if request.method != "POST":
         return JsonResponse({"status": "error", "message": "طريقة غير مدعومة"}, status=405)
-    category = get_object_or_404(Category, pk=pk)
-    image_file = request.FILES.get("image")
-    if not image_file:
-        return JsonResponse({"status": "error", "message": "لم يتم تحديد صورة"}, status=400)
-    category.image = image_file
-    category.save(update_fields=["image"])
-    return JsonResponse({"status": "success", "image_url": category.image.url})
+    from apps.common.tenant_utils import bypass_tenant_filter
+    with bypass_tenant_filter():
+        category = get_object_or_404(Category.all_objects, pk=pk)
+        image_file = request.FILES.get("image")
+        if not image_file:
+            return JsonResponse({"status": "error", "message": "لم يتم تحديد صورة"}, status=400)
+        category.image = image_file
+        category.save(update_fields=["image"])
+        return JsonResponse({"status": "success", "image_url": category.image.url})
 
 @support_required
 def control_categories_reorder_bulk_ajax(request):

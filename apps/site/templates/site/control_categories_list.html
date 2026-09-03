@@ -268,34 +268,48 @@ function showToast(msg, isErr){
 /* ── Quick Image Upload ── */
 var _catUploadId = null;
 window.triggerCatImageUpload = function(catId){
-    _catUploadId = catId;
-    var fi = document.getElementById('cat-image-file-input');
-    fi.value = ''; fi.click();
-};
-window.handleCatImageSelected = function(input){
-    if (!input.files || !input.files[0] || !_catUploadId) return;
-    var cid = _catUploadId, fd = new FormData();
-    fd.append('image', input.files[0]);
-    showToast('جاري رفع الصورة...');
-    fetch('/control/categories/' + cid + '/quick-image-ajax/', {
-        method:'POST', headers:{'X-CSRFToken':getCsrf()}, body:fd
-    }).then(function(r){ return r.json(); }).then(function(d){
-        if (d.status === 'success'){
-            var el = document.getElementById('cat-img-' + cid);
-            if (el){
-                if (el.tagName === 'IMG'){ el.src = d.image_url; }
-                else {
-                    var img = document.createElement('img');
-                    img.src = d.image_url; img.alt = '';
-                    img.style.cssText = 'width:100%;height:100%;object-fit:cover;';
-                    img.id = 'cat-img-' + cid;
-                    img.className = 'w-full h-full object-cover hover:scale-105 transition-transform duration-500';
-                    el.parentNode.replaceChild(img, el);
+    var oldInp = document.getElementById('cat-image-file-input');
+    if (oldInp) oldInp.remove();
+    var inp = document.createElement('input');
+    inp.type = 'file';
+    inp.id = 'cat-image-file-input';
+    inp.accept = 'image/*';
+    inp.className = 'hidden';
+    inp.style.display = 'none';
+    inp.onchange = function() {
+        if (!this.files || !this.files[0]) return;
+        var file = this.files[0];
+        var fd = new FormData();
+        fd.append('image', file);
+        showToast('جاري رفع صورة القسم...');
+        fetch('/control/categories/' + catId + '/quick-image-ajax/', {
+            method: 'POST',
+            headers: {'X-CSRFToken': getCsrf()},
+            body: fd
+        })
+        .then(function(r){ return r.json(); })
+        .then(function(d){
+            if (d.status === 'success'){
+                var el = document.getElementById('cat-img-' + catId);
+                if (el){
+                    if (el.tagName === 'IMG'){ el.src = d.image_url; }
+                    else {
+                        var img = document.createElement('img');
+                        img.src = d.image_url; img.alt = '';
+                        img.style.cssText = 'width:100%;height:100%;object-fit:cover;';
+                        img.id = 'cat-img-' + catId;
+                        img.className = 'w-full h-full object-cover hover:scale-105 transition-transform duration-500';
+                        el.parentNode.replaceChild(img, el);
+                    }
                 }
-            }
-            showToast('تم تحديث صورة القسم!');
-        } else { showToast(d.message || 'فشل رفع الصورة', true); }
-    }).catch(function(){ showToast('خطأ أثناء رفع الصورة', true); });
+                showToast('تم تحديث صورة القسم بنجاح!');
+            } else { showToast(d.message || 'فشل رفع الصورة', true); }
+        })
+        .catch(function(){ showToast('خطأ أثناء رفع الصورة', true); })
+        .finally(function(){ inp.remove(); });
+    };
+    document.body.appendChild(inp);
+    inp.click();
 };
 
 /* ── Quick Rename ── */
