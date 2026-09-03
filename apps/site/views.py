@@ -3342,6 +3342,71 @@ def control_categories_list(request):
     return render(request, "site/control_categories_list.html", {"categories": categories})
 
 @support_required
+def control_category_quick_rename_ajax(request, pk):
+    if request.method != "POST":
+        return JsonResponse({"status": "error", "message": "طريقة غير مدعومة"}, status=405)
+    category = get_object_or_404(Category, pk=pk)
+    new_name = request.POST.get("name", "").strip()
+    if not new_name and request.body:
+        try:
+            import json as _json
+            body = _json.loads(request.body.decode("utf-8"))
+            new_name = body.get("name", "").strip()
+        except Exception:
+            pass
+    if not new_name:
+        return JsonResponse({"status": "error", "message": "الاسم لا يمكن أن يكون فارغاً"}, status=400)
+    category.name = new_name
+    category.save(update_fields=["name"])
+    return JsonResponse({"status": "success", "name": category.name})
+
+@support_required
+def control_category_quick_image_ajax(request, pk):
+    if request.method != "POST":
+        return JsonResponse({"status": "error", "message": "طريقة غير مدعومة"}, status=405)
+    category = get_object_or_404(Category, pk=pk)
+    image_file = request.FILES.get("image")
+    if not image_file:
+        return JsonResponse({"status": "error", "message": "لم يتم تحديد صورة"}, status=400)
+    category.image = image_file
+    category.save(update_fields=["image"])
+    return JsonResponse({"status": "success", "image_url": category.image.url})
+
+@support_required
+def control_categories_reorder_bulk_ajax(request):
+    if request.method != "POST":
+        return JsonResponse({"status": "error"}, status=405)
+    import json as _json
+    try:
+        data = _json.loads(request.body)
+        cat_ids = data.get("category_ids", [])
+        for idx, cat_id in enumerate(cat_ids):
+            Category.objects.filter(pk=cat_id).update(sort_order=idx)
+        return JsonResponse({"status": "success"})
+    except Exception as e:
+        return JsonResponse({"status": "error", "message": str(e)}, status=400)
+
+@support_required
+def control_category_merge_ajax(request, pk, target_pk):
+    """Merge category pk INTO target_pk: move all products then delete pk."""
+    if request.method != "POST":
+        return JsonResponse({"status": "error"}, status=405)
+    source = get_object_or_404(Category, pk=pk)
+    target = get_object_or_404(Category, pk=target_pk)
+    if source.pk == target.pk:
+        return JsonResponse({"status": "error", "message": "لا يمكن دمج قسم مع نفسه"}, status=400)
+    try:
+        # Move all products from source to target
+        from apps.catalog.models import Product as _Product
+        _Product.objects.filter(category=source).update(category=target)
+        source_name = source.name
+        source.delete()
+        return JsonResponse({"status": "success", "message": f"تم نقل منتجات '{source_name}' إلى '{target.name}' وحذف القسم."})
+    except Exception as e:
+        return JsonResponse({"status": "error", "message": str(e)}, status=400)
+
+
+@support_required
 def control_category_edit(request, pk=None):
     category = get_object_or_404(Category, pk=pk) if pk else None
     form = CategoryForm(request.POST or None, request.FILES or None, instance=category)
