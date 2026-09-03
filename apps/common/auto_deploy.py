@@ -33,14 +33,23 @@ def get_remote_commit_sha():
         logger.debug(f"GitHub SHA fetch error: {e}")
     return None
 
+def restart_process_soon():
+    def _exit():
+        time.sleep(1)
+        logger.info("🔄 [AUTO-DEPLOY] Restarting ASGI container for clean code reload...")
+        import os
+        os._exit(0)
+    threading.Thread(target=_exit, daemon=True).start()
+
 def apply_git_update():
     logger.info("🚀 [AUTO-DEPLOY] New commit detected on GitHub master. Applying updates...")
     try:
-        cmd = "git fetch origin master && git reset --hard origin/master && python manage.py migrate --noinput && python manage.py collectstatic --noinput && (pkill -f daphne || pkill -f gunicorn || true)"
+        cmd = "git fetch origin master && git reset --hard origin/master && python manage.py migrate --noinput && python manage.py collectstatic --noinput"
         proc = subprocess.run(cmd, shell=True, capture_output=True, text=True, timeout=120)
         logger.info(f"🚀 [AUTO-DEPLOY] Output: {proc.stdout[:300]}")
         if proc.stderr:
             logger.warning(f"🚀 [AUTO-DEPLOY] Stderr: {proc.stderr[:300]}")
+        restart_process_soon()
         return True, proc.stdout
     except Exception as e:
         logger.error(f"❌ [AUTO-DEPLOY] Failed to apply update: {e}")
