@@ -65,10 +65,7 @@ def variant_card_price(context, variant):
         min_val = Decimal("1")
         
     if qty_type == "range" and min_val > 1:
-        if is_per_mille:
-            total = (Decimal(str(price)) * min_val) / Decimal("1000")
-        else:
-            total = Decimal(str(price)) * min_val
+        total = Decimal(str(price)) * min_val
         formatted = currency_format(context, total)
         return f"{formatted} <span class='text-[10px] text-slate-400 block font-normal'>(تبدأ من {int(min_val)})</span>"
     

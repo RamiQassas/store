@@ -258,6 +258,7 @@
             <div class="stack gap-4">
                 <span class="section-label">اختر الباقة المناسبة</span>
                 {% for v in variants %}
+                {% if "(#" not in v.name and "null" not in v.name|lower %}
                 {% variant_price v as v_price %}
                 {% variant_card_price v as v_card_price %}
                 <div class="variant-card {% if v.is_temporarily_disabled or product.is_out_of_stock %}opacity-50 grayscale cursor-not-allowed{% endif %} {% if v.is_sale %}on-sale{% endif %}" 
@@ -290,6 +291,7 @@
                     </div>
                     <div class="price-tag text-left">{{ v_card_price|safe }}</div>
                 </div>
+                {% endif %}
                 {% empty %}
                 <div class="variant-card selected" 
                      onclick="selectVariant('default', this)"
