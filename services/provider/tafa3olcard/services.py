@@ -164,8 +164,38 @@ class Tafa3olCardProviderService:
                         "is_active": item.get("quantityAvailable", True),
                         "local_is_active": True,
                         "product_type": "package" if item.get("quantityMode") == "FIXED" else "recharge",
-                        "min_quantity": item.get("minQuantity", 1),
-                        "max_quantity": item.get("maxQuantity", 10),
+                        "qty_min": item.get("minQuantity", 1),
+                        "qty_max": item.get("maxQuantity", 10),
+                    }
+                )
+
+                # Store product parameters / requirements if available
+                requirements = item.get("requirements") or []
+                if requirements:
+                    pp.parameters.all().delete()
+                    for r_idx, r in enumerate(requirements):
+                        r_name = str(r.get("paramsName") or r.get("key") or r.get("name") or f"param_{r_idx}")[:100]
+                        r_msg = r.get("message")
+                        if isinstance(r_msg, dict):
+                            r_label = r_msg.get("ar") or r_msg.get("en") or r_name
+                        else:
+                            r_label = str(r_msg or r_name)[:100]
+                        pp.parameters.create(
+                            name=r_name,
+                            label=r_label,
+                            required=bool(r.get("isRequired", True)),
+                            parameter_type="text"
+                        )
+
+                # Ensure default pricing entry exists
+                ProviderPrice.objects.get_or_create(
+                    product=pp,
+                    defaults={
+                        "margin_type": "percentage",
+                        "margin_value": Decimal("5.00"),
+                        "retail_margin_value": Decimal("5.00"),
+                        "dealer_margin_value": Decimal("2.00"),
+                        "vip_margin_value": Decimal("1.00"),
                     }
                 )
 
