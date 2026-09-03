@@ -5933,13 +5933,19 @@ def control_apicontrol_dashboard(request):
     from urllib.parse import quote
     from apps.catalog.models import Product, ProductVariant, APIIntegration
     
+    from django.db.models import Q
     store = getattr(request, "store", None)
     from apps.common.tenant_utils import bypass_tenant_filter
     
     with bypass_tenant_filter():
-        # Ensure any existing Alkasr VIP integration name is renamed to "رقميات"
-        APIIntegration.objects.filter(name__in=["Alkasr VIP", "الكسر VIP", "الكاسر VIP"]).update(name="رقميات")
-        ProviderProfile.all_objects.filter(provider_name__in=["Alkasr VIP", "الكسر VIP", "الكاسر VIP"]).update(provider_name="رقميات")
+        # Ensure any existing Alkasr VIP integration name is renamed to "رقميات" and set providers correctly
+        APIIntegration.objects.filter(name__in=["Alkasr VIP", "الكسر VIP", "الكاسر VIP", "ramiqassas2002@gmail.com"]).update(name="رقميات", provider="alkasr")
+        APIIntegration.objects.filter(base_url__icontains="alkasr").update(provider="alkasr")
+        APIIntegration.objects.filter(base_url__icontains="tafa3olcard").update(provider="tafa3olcard")
+        APIIntegration.objects.filter(name__icontains="تفاعل").update(provider="tafa3olcard")
+
+        ProviderProfile.all_objects.filter(provider_name__in=["Alkasr VIP", "الكسر VIP", "الكاسر VIP", "ramiqassas2002@gmail.com"]).update(provider_name="رقميات")
+        ProviderProfile.all_objects.filter(base_url__icontains="alkasr").update(provider_name="رقميات")
         
         # 1. Fetch active integrations from APIIntegration model
         if store:
@@ -5960,8 +5966,8 @@ def control_apicontrol_dashboard(request):
             )
             active_integrations = [default_integ]
 
-    # Get selected integration ID from GET request
-    integration_id = request.GET.get("integration_id")
+    # Get selected integration ID from GET or POST request
+    integration_id = request.POST.get("integration_id") or request.GET.get("integration_id")
     integration = None
     if integration_id:
         integration = next((i for i in active_integrations if str(i.id) == str(integration_id)), None)
@@ -5970,12 +5976,29 @@ def control_apicontrol_dashboard(request):
         
     # Bridge APIIntegration to ProviderProfile
     profile_obj = None
+    is_alkasr = False
+    is_tafa3ol = False
     if integration:
+        is_alkasr = "alkasr" in (integration.base_url or "").lower() or integration.provider == "alkasr" or "رقميات" in (integration.name or "")
+        is_tafa3ol = "tafa3ol" in (integration.base_url or "").lower() or integration.provider == "tafa3olcard" or "تفاعل" in (integration.name or "")
         with bypass_tenant_filter():
-            profile_obj = ProviderProfile.all_objects.filter(
-                store=store,
-                provider_name=integration.name
-            ).first()
+            if is_alkasr:
+                profile_obj = ProviderProfile.all_objects.filter(
+                    Q(base_url__icontains="alkasr") | Q(products__isnull=False) | Q(provider_name="رقميات")
+                ).distinct().first()
+                if profile_obj and profile_obj.provider_name != integration.name:
+                    profile_obj.provider_name = integration.name
+                    profile_obj.save(update_fields=["provider_name"])
+            elif is_tafa3ol:
+                profile_obj = ProviderProfile.all_objects.filter(
+                    Q(base_url__icontains="tafa3ol") | Q(provider_name__icontains="تفاعل")
+                ).first()
+            else:
+                profile_obj = ProviderProfile.all_objects.filter(
+                    store=store,
+                    provider_name=integration.name
+                ).first()
+
             if not profile_obj:
                 profile_obj = ProviderProfile.all_objects.create(
                     store=store,
@@ -6356,16 +6379,34 @@ def control_apicontrol_dashboard(request):
         provider_groups = []
     
     from django.db.models import Q
-    provider_code = integration.provider if integration else "alkasr"
+    if is_tafa3ol:
+        provider_code = "tafa3olcard"
+    elif is_alkasr:
+        provider_code = "alkasr"
+    else:
+        provider_code = integration.provider if integration else "alkasr"
+
     if store:
         linked_variants_qs = ProductVariant.objects.filter(product__store=store)
     else:
         linked_variants_qs = ProductVariant.objects.all()
 
-    linked_variants_qs = linked_variants_qs.filter(
-        Q(product__api_provider=provider_code) |
-        Q(provider_mapping__provider_product__profile=profile_obj)
-    )
+    if is_tafa3ol:
+        linked_variants_qs = linked_variants_qs.filter(
+            Q(product__api_provider="tafa3olcard") |
+            Q(provider_mapping__provider_product__profile=profile_obj)
+        )
+    elif is_alkasr:
+        linked_variants_qs = linked_variants_qs.filter(
+            Q(product__api_provider__in=["alkasr", "generic", ""]) |
+            Q(provider_mapping__provider_product__profile=profile_obj) |
+            Q(product__is_api_product=True)
+        ).exclude(product__api_provider="tafa3olcard")
+    else:
+        linked_variants_qs = linked_variants_qs.filter(
+            Q(product__api_provider=provider_code) |
+            Q(provider_mapping__provider_product__profile=profile_obj)
+        )
 
     local_linked_count = linked_variants_qs.distinct().count()
 
@@ -6494,14 +6535,31 @@ def control_apicontrol_dashboard(request):
     if end_date:
         order_filter &= Q(created_at__date__lte=end_date)
 
-    provider_code = integration.provider if integration else "alkasr"
-    api_orders = Order.objects.filter(
-        order_filter & (
-            Q(provider_orders__profile=profile_obj) |
-            Q(items__variant__product__api_provider=provider_code) |
-            Q(items__variant__provider_mapping__provider_product__profile=profile_obj)
-        )
-    ).distinct().prefetch_related("items__variant__product", "provider_orders").order_by("-created_at")
+    if is_tafa3ol:
+        api_orders = Order.objects.filter(
+            order_filter & (
+                Q(provider_orders__profile=profile_obj) |
+                Q(items__variant__product__api_provider="tafa3olcard") |
+                Q(items__variant__provider_mapping__provider_product__profile=profile_obj)
+            )
+        ).distinct().prefetch_related("items__variant__product", "provider_orders").order_by("-created_at")
+    elif is_alkasr:
+        api_orders = Order.objects.filter(
+            order_filter & (
+                Q(provider_orders__profile=profile_obj) |
+                Q(items__variant__provider_mapping__provider_product__profile=profile_obj) |
+                Q(items__variant__product__api_provider__in=["alkasr", "generic", ""]) |
+                Q(items__variant__product__is_api_product=True)
+            )
+        ).exclude(items__variant__product__api_provider="tafa3olcard").distinct().prefetch_related("items__variant__product", "provider_orders").order_by("-created_at")
+    else:
+        api_orders = Order.objects.filter(
+            order_filter & (
+                Q(provider_orders__profile=profile_obj) |
+                Q(items__variant__product__api_provider=provider_code) |
+                Q(items__variant__provider_mapping__provider_product__profile=profile_obj)
+            )
+        ).distinct().prefetch_related("items__variant__product", "provider_orders").order_by("-created_at")
     
     total_purchases_usd = 0.0
     total_sales_usd = 0.0
@@ -6640,9 +6698,14 @@ def control_api_integrations_list(request):
     from apps.common.tenant_utils import bypass_tenant_filter
     
     with bypass_tenant_filter():
-        # Automatically update any Alkasr VIP / الكسر VIP to "رقميات"
-        APIIntegration.objects.filter(name__in=["Alkasr VIP", "الكسر VIP", "الكاسر VIP"]).update(name="رقميات")
-        ProviderProfile.all_objects.filter(provider_name__in=["Alkasr VIP", "الكسر VIP", "الكاسر VIP"]).update(provider_name="رقميات")
+        # Automatically update any Alkasr VIP / الكسر VIP / ramiqassas to "رقميات"
+        APIIntegration.objects.filter(name__in=["Alkasr VIP", "الكسر VIP", "الكاسر VIP", "ramiqassas2002@gmail.com"]).update(name="رقميات", provider="alkasr")
+        APIIntegration.objects.filter(base_url__icontains="alkasr").update(provider="alkasr")
+        APIIntegration.objects.filter(base_url__icontains="tafa3olcard").update(provider="tafa3olcard")
+        APIIntegration.objects.filter(name__icontains="تفاعل").update(provider="tafa3olcard")
+        
+        ProviderProfile.all_objects.filter(provider_name__in=["Alkasr VIP", "الكسر VIP", "الكاسر VIP", "ramiqassas2002@gmail.com"]).update(provider_name="رقميات")
+        ProviderProfile.all_objects.filter(base_url__icontains="alkasr").update(provider_name="رقميات")
         
         store = getattr(request, "store", None)
         if store:
