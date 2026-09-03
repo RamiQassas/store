@@ -59,16 +59,24 @@ class OrderViewSet(viewsets.ModelViewSet):
             
         logger.info(f"Alkasr webhook payload: {data}")
         
-        # Try to find the order by api_order_uuid or api_order_id
+        # Try to find the order by api_order_uuid, api_order_id, or ProviderOrder
         order_uuid = data.get("order_uuid") or data.get("uuid") or data.get("orders")
         order_id = data.get("order_id") or data.get("id")
         api_status = data.get("status")
         
         order = None
         if order_uuid:
-            order = Order.objects.filter(api_order_uuid=order_uuid).first()
+            order = Order.all_objects.filter(api_order_uuid=order_uuid).first()
         if not order and order_id:
-            order = Order.objects.filter(api_order_id=order_id).first()
+            order = Order.all_objects.filter(api_order_id=str(order_id)).first()
+            if not order:
+                try:
+                    from apps.providers.models import ProviderOrder
+                    po = ProviderOrder.objects.filter(remote_order_id=str(order_id)).select_related("order").first()
+                    if po and po.order:
+                        order = po.order
+                except Exception:
+                    pass
             
         if not order:
             logger.warning(f"Alkasr Webhook: Order not found for uuid={order_uuid}, order_id={order_id}")

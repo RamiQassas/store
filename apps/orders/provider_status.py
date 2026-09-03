@@ -45,12 +45,22 @@ def apply_provider_status(order, provider_status, raw_response=None, actor=None,
         # Extract transaction ID
         trans_id = raw_response.get("trans_id") or raw_response.get("transaction_id") or raw_response.get("transId") or raw_response.get("reference")
         if trans_id:
-            fulfillment["رقم عملية المزود (Transaction ID)"] = str(trans_id)
+            fulfillment["رقم العملية (Transaction ID)"] = str(trans_id)
 
-        # Extract provider note / message / reply
+        # Extract phone number (e.g. for WhatsApp activation numbers)
+        phone = raw_response.get("phone") or raw_response.get("number") or raw_response.get("phone_number")
+        if phone:
+            fulfillment["رقم الهاتف المستلم"] = str(phone)
+
+        # Extract activation code / PIN / SMS
+        code_val = raw_response.get("code") or raw_response.get("pin") or raw_response.get("sms")
+        if code_val and isinstance(code_val, (str, int)):
+            fulfillment["كود التفعيل / البطاقة"] = str(code_val)
+
+        # Extract note / message / reply
         provider_msg = raw_response.get("replay_api") or raw_response.get("msg") or raw_response.get("message") or raw_response.get("note") or raw_response.get("reason") or raw_response.get("details")
         if provider_msg:
-            fulfillment["رد المزود وملاحظات التنفيذ"] = str(provider_msg)
+            fulfillment["ملاحظات وبيانات التنفيذ"] = str(provider_msg)
 
         # Extract remote order id
         remote_id = raw_response.get("order_id") or raw_response.get("id")
@@ -59,20 +69,20 @@ def apply_provider_status(order, provider_status, raw_response=None, actor=None,
 
         if provider_status in status_completed_aliases:
             locked_order.status = Order.Status.COMPLETED
-            note = f"{note_prefix}: تم إكمال وتنفيذ الطلب بنجاح من المزود."
+            note = f"{note_prefix}: تم إكمال وتنفيذ الطلب بنجاح."
         elif provider_status in status_cancelled_aliases:
             locked_order.status = Order.Status.CANCELLED
-            note = f"{note_prefix}: تم رفض/إلغاء الطلب من المزود."
+            note = f"{note_prefix}: تم إلغاء الطلب."
             if provider_msg:
                 note += f" (السبب: {provider_msg})"
         elif provider_status in status_processing_aliases:
             locked_order.status = Order.Status.PROCESSING
-            note = f"{note_prefix}: الطلب قيد المعالجة والانتظار لدى المزود."
+            note = f"{note_prefix}: الطلب قيد المعالجة والتنفيذ."
         else:
-            note = f"{note_prefix}: حالة واردة من المزود: {provider_status or '-'}."
+            note = f"{note_prefix}: حالة الطلب: {provider_status or '-'}."
 
         if delivery_values:
-            fulfillment["الرموز المسلمة من المزود"] = " | ".join(delivery_values)
+            fulfillment["بيانات التسليم والأكواد"] = " | ".join(delivery_values)
 
         fulfillment["api_status"] = provider_status
         fulfillment["api_last_response"] = raw_response
@@ -87,10 +97,10 @@ def apply_provider_status(order, provider_status, raw_response=None, actor=None,
                 wallet_id=wallet.id,
                 amount=refund_amount,
                 reference=f"refund:{locked_order.id}",
-                description=f"Refund for rejected API order {locked_order.number}",
+                description=f"Refund for cancelled order {locked_order.number}",
                 created_by=actor,
                 source="provider_api",
-                reason="رفض المزود تنفيذ الطلب",
+                reason="إلغاء الطلب آلياً",
                 metadata={"provider_status": provider_status},
             )
             fulfillment["api_refunded"] = True
@@ -106,5 +116,29 @@ def apply_provider_status(order, provider_status, raw_response=None, actor=None,
                 note=note,
                 created_by=actor,
             )
+
+            # Send Notification to Customer on Status Change
+            if old_status != locked_order.status:
+                try:
+                    from apps.notifications.services import notify_user
+                    if locked_order.status == Order.Status.COMPLETED:
+                        notify_user(
+                            user=locked_order.customer,
+                            title=f"تم اكتمال طلبك #{locked_order.number} بنجاح 🎉",
+                            body=f"تم شحن وتنفيذ طلبك #{locked_order.number} بنجاح. يمكنك مراجعة تفاصيل التنفيذ من صفحة الطلب.",
+                            action_url=f"/orders/{locked_order.id}/",
+                            category="orders"
+                        )
+                    elif locked_order.status in (Order.Status.CANCELLED, Order.Status.REFUNDED):
+                        reason_txt = f" (السبب: {provider_msg})" if provider_msg else ""
+                        notify_user(
+                            user=locked_order.customer,
+                            title=f"تم إلغاء طلبك #{locked_order.number} وتمت استعادة الرصيد ⚠️",
+                            body=f"تم إلغاء الطلب #{locked_order.number}{reason_txt} وتمت إعادة كامل المبلغ إلى محفظتك.",
+                            action_url=f"/orders/{locked_order.id}/",
+                            category="orders"
+                        )
+                except Exception:
+                    pass
 
         return locked_order

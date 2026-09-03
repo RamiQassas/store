@@ -220,9 +220,18 @@ class AlkasrMapperService:
                         ]
                     }
 
-                    variant_name = (pp.local_name or pp.name).strip()
-                    if not variant_name:
-                        variant_name = f"الباقة {pp.remote_id}"
+                    variant_name = (pp.local_name or "").strip()
+                    if not variant_name or variant_name.lower() in ("null", "none", "undefined", "false"):
+                        variant_name = (pp.name or "").strip()
+                    if not variant_name or variant_name.lower() in ("null", "none", "undefined", "false"):
+                        if pp.category and pp.category.name and pp.category.name.strip().lower() not in ("null", "none"):
+                            variant_name = pp.category.name.strip()
+                        elif hasattr(pp, 'data') and isinstance(pp.data, dict) and pp.data.get("title") and str(pp.data.get("title")).lower() not in ("null", "none"):
+                            variant_name = str(pp.data.get("title")).strip()
+                        elif hasattr(pp, 'data') and isinstance(pp.data, dict) and pp.data.get("country"):
+                            variant_name = f"تفعيل {pp.data.get('country')}"
+                        else:
+                            variant_name = f"باقة {local_product.name} (#{pp.remote_id})"
 
                     sku_val = f"PRV-{self.profile.id}-{pp.remote_id}"
 

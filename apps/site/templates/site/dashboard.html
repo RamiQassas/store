@@ -172,6 +172,7 @@
             
             <div class="stack gap-2 mb-4">
                 {% for key, val in order.fulfillment_data.items %}
+                {% if key != 'api_provider' and key != 'api_status' and key != 'api_last_response' and key != 'api_refunded' and key != 'response' and key != 'api_response' and key != 'api_error' and key != 'alkasr' %}
                 <div class="flex justify-between items-center p-2 bg-slate-900/50 rounded-lg border border-white/5">
                     <span class="text-[10px] text-slate-500 font-black uppercase">{{ key }}</span>
                     <div class="flex items-center gap-2">
@@ -179,6 +180,7 @@
                         <button onclick="copyToClipboard('{{ val }}', this)" class="text-[10px] text-slate-400 hover:text-white"><i class="fas fa-copy"></i></button>
                     </div>
                 </div>
+                {% endif %}
                 {% endfor %}
             </div>
 

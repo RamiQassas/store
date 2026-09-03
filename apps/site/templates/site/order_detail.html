@@ -70,7 +70,7 @@
                     {% if order.api_order_id %}
                     <div class="fulfillment-item">
                         <div>
-                            <span class="text-[10px] text-slate-400 font-black uppercase tracking-widest block mb-1">رقم الطلب لدى المزود (Provider Order ID)</span>
+                            <span class="text-[10px] text-slate-400 font-black uppercase tracking-widest block mb-1">رقم المرجع والتنفيذ (Reference ID)</span>
                             <strong class="text-white font-mono text-sm">{{ order.api_order_id }}</strong>
                         </div>
                         <button class="copy-button" onclick="copyToClipboard('{{ order.api_order_id }}', this)">نسخ</button>
@@ -78,7 +78,7 @@
                     {% endif %}
 
                     {% for key, val in order.fulfillment_data.items %}
-                        {% if key != 'api_status' and key != 'api_last_response' and key != 'api_refunded' and key != 'response' %}
+                        {% if key != 'api_provider' and key != 'api_status' and key != 'api_last_response' and key != 'api_refunded' and key != 'response' and key != 'api_response' and key != 'api_error' and key != 'alkasr' %}
                         <div class="fulfillment-item">
                             <div>
                                 <span class="text-[10px] text-cyan font-black uppercase tracking-widest block mb-1">{{ key }}</span>
@@ -115,7 +115,7 @@
                         <i class="fas fa-times-circle"></i>
                     </div>
                     <div>
-                        <h3 class="text-lg font-bold text-white">تم إلغاء الطلب من المزود</h3>
+                        <h3 class="text-lg font-bold text-white">تم إلغاء الطلب</h3>
                         <p class="text-xs text-rose-400/80">تم إرجاع قيمة الطلب تلقائياً إلى رصيد محفظتك في الموقع.</p>
                     </div>
                 </div>
@@ -124,12 +124,12 @@
                 <div class="mt-4 stack gap-3 bg-slate-950/60 p-4 rounded-2xl border border-white/5">
                     {% if order.api_order_id %}
                     <div class="flex items-center justify-between text-xs text-slate-400">
-                        <span>رقم الطلب لدى المزود:</span>
+                        <span>رقم المرجع:</span>
                         <span class="font-mono text-white">{{ order.api_order_id }}</span>
                     </div>
                     {% endif %}
                     {% for key, val in order.fulfillment_data.items %}
-                        {% if key != 'api_status' and key != 'api_last_response' and key != 'api_refunded' %}
+                        {% if key != 'api_provider' and key != 'api_status' and key != 'api_last_response' and key != 'api_refunded' and key != 'response' and key != 'api_response' and key != 'api_error' and key != 'alkasr' %}
                         <div class="flex items-center justify-between text-xs">
                             <span class="text-slate-400">{{ key }}:</span>
                             <span class="font-mono text-rose-300 font-bold">{{ val }}</span>
@@ -141,19 +141,61 @@
             </div>
 
             {% else %}
-            <div class="panel p-10 text-center border border-white/10 rounded-3xl bg-slate-950/40">
-                <div class="w-16 h-16 bg-cyan/10 border border-cyan/20 rounded-2xl flex items-center justify-center mx-auto mb-6 text-cyan animate-pulse">
-                    <i class="fas fa-sync-alt fa-spin text-2xl"></i>
+            <div class="fulfillment-card shadow-lg shadow-cyan/5 border-amber-500/20 bg-amber-500/[0.02]">
+                <div class="flex items-center justify-between mb-6 border-b border-white/5 pb-4">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 bg-amber-500/10 border border-amber-500/20 rounded-xl flex items-center justify-center text-amber-400">
+                            <i class="fas fa-sync-alt fa-spin"></i>
+                        </div>
+                        <div>
+                            <h3 class="text-lg font-black text-white">الطلب قيد المعالجة والتنفيذ</h3>
+                            <p class="text-xs text-slate-400">يجري تنفيذ طلبك لحظياً. يتم تحديث البيانات فور وصولها من السيرفر.</p>
+                        </div>
+                    </div>
+                    <span class="px-3 py-1 bg-amber-500/10 border border-amber-500/20 text-amber-400 rounded-full text-xs font-bold font-mono">
+                        قيد الانتظار
+                    </span>
                 </div>
-                <h3 class="text-xl font-bold mb-2 text-white">الطلب قيد المعالجة الآلية</h3>
-                <p class="text-slate-400 max-w-md mx-auto text-sm leading-relaxed mb-4">
-                    طلبك قيد التنفيذ والمزامنة اللحظية مع خوادم المزود. سيظهر كود الشحن أو تفاصيل المعاملة هنا تلقائياً فور اكتمالها.
-                </p>
-                {% if order.api_order_id %}
-                <div class="inline-flex items-center gap-2 px-4 py-2 bg-slate-900 border border-white/5 rounded-xl text-xs text-slate-300 font-mono">
-                    <i class="fas fa-hashtag text-cyan"></i> رقم الطلب لدى المزود: <strong>{{ order.api_order_id }}</strong>
+
+                <div class="stack gap-4">
+                    {% if order.api_order_id %}
+                    <div class="fulfillment-item">
+                        <div>
+                            <span class="text-[10px] text-slate-400 font-black uppercase tracking-widest block mb-1">رقم المرجع والتنفيذ (Reference ID)</span>
+                            <strong class="text-white font-mono text-sm">{{ order.api_order_id }}</strong>
+                        </div>
+                        <button class="copy-button" onclick="copyToClipboard('{{ order.api_order_id }}', this)">نسخ</button>
+                    </div>
+                    {% endif %}
+
+                    {% for key, val in order.fulfillment_data.items %}
+                        {% if key != 'api_provider' and key != 'api_status' and key != 'api_last_response' and key != 'api_refunded' and key != 'response' and key != 'api_response' and key != 'api_error' and key != 'alkasr' %}
+                        <div class="fulfillment-item bg-slate-900/80 border-cyan/30">
+                            <div>
+                                <span class="text-[10px] text-cyan font-black uppercase tracking-widest block mb-1">{{ key }}</span>
+                                <strong class="text-white font-mono text-base break-all text-cyan-200">
+                                    {% if key == "keys" %}
+                                        {{ val|join:", " }}
+                                    {% else %}
+                                        {{ val }}
+                                    {% endif %}
+                                </strong>
+                            </div>
+                            <button class="copy-button" onclick="copyToClipboard('{% if key == "keys" %}{{ val|join:", " }}{% else %}{{ val }}{% endif %}', this)">نسخ</button>
+                        </div>
+                        {% endif %}
+                    {% endfor %}
                 </div>
-                {% endif %}
+
+                <div class="mt-6 pt-4 border-t border-white/5 flex items-center justify-between text-xs text-slate-400">
+                    <span class="flex items-center gap-2">
+                        <span class="w-2 h-2 rounded-full bg-cyan animate-ping inline-block"></span>
+                        المزامنة التلقائية مفعلة (يتم التحديث لحظياً)
+                    </span>
+                    <button onclick="window.location.reload()" class="btn btn-outline btn-xs px-3 rounded-lg border-white/10 hover:border-cyan text-slate-300">
+                        <i class="fas fa-redo ml-1"></i> تحديث يدوي
+                    </button>
+                </div>
             </div>
             {% endif %}
         {% else %}
@@ -267,14 +309,18 @@
     <div class="stack gap-6">
         <div class="order-status-card">
             <span class="text-[10px] font-black text-slate-500 uppercase tracking-widest block mb-2">حالة الطلب الحالية</span>
-            <div class="text-2xl font-black mb-6 
+            <div class="text-2xl font-black mb-4 
                 {% if order.status == 'completed' %}text-emerald-500
                 {% elif order.status == 'cancelled' or order.status == 'refunded' %}text-rose-500
                 {% else %}text-amber-500{% endif %}">
                 {{ order.get_status_display }}
             </div>
+
+            <button type="button" onclick="openStatusModal()" class="btn btn-outline btn-sm w-full mb-6 border-cyan/30 text-cyan hover:bg-cyan hover:text-slate-950 font-bold rounded-xl flex items-center justify-center gap-2">
+                <i class="fas fa-window-restore"></i> عرض نافذة الرد والتنفيذ
+            </button>
             
-            <div class="h-px bg-white/5 my-6"></div>
+            <div class="h-px bg-white/5 my-4"></div>
             
             <div class="text-right stack gap-4">
                 <div class="flex justify-between text-xs">
@@ -296,12 +342,132 @@
     </div>
 </div>
 
+<!-- Modal Popup for Order Details & Server Responses -->
+<div id="order-status-modal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md transition-opacity duration-300 opacity-0 pointer-events-none">
+    <div id="modal-container" class="bg-slate-900 border border-cyan/30 rounded-3xl p-6 sm:p-8 max-w-lg w-full shadow-2xl shadow-cyan/10 relative transform scale-95 transition-transform duration-300">
+        <!-- Close Button Top -->
+        <button type="button" onclick="closeStatusModal()" class="absolute top-5 left-5 w-10 h-10 rounded-full bg-slate-800 text-slate-400 hover:text-white hover:bg-rose-500/20 hover:text-rose-400 flex items-center justify-center transition border border-white/10" title="إغلاق">
+            <i class="fas fa-times text-lg"></i>
+        </button>
+
+        <div class="flex items-center gap-4 mb-6">
+            <div class="w-12 h-12 rounded-2xl flex items-center justify-center text-xl shrink-0 {% if order.status == 'completed' %}bg-emerald-500/10 text-emerald-400 border border-emerald-500/20{% elif order.status == 'cancelled' or order.status == 'refunded' %}bg-rose-500/10 text-rose-400 border border-rose-500/20{% else %}bg-cyan/10 text-cyan border border-cyan/20 animate-pulse{% endif %}">
+                {% if order.status == 'completed' %}
+                <i class="fas fa-check-circle"></i>
+                {% elif order.status == 'cancelled' or order.status == 'refunded' %}
+                <i class="fas fa-times-circle"></i>
+                {% else %}
+                <i class="fas fa-sync-alt fa-spin"></i>
+                {% endif %}
+            </div>
+            <div>
+                <h3 class="text-lg font-black text-white">تفاصيل ورد السيرفر للطلب</h3>
+                <span class="text-xs text-slate-400 font-mono">الطلب #{{ order.number }}</span>
+            </div>
+        </div>
+
+        <div class="mb-6 p-4 rounded-2xl bg-slate-950/60 border border-white/5 stack gap-3">
+            <div class="flex justify-between items-center text-xs pb-2 border-b border-white/5">
+                <span class="text-slate-400">حالة الطلب:</span>
+                <span class="font-bold font-mono px-2.5 py-1 rounded-lg {% if order.status == 'completed' %}bg-emerald-500/10 text-emerald-400{% elif order.status == 'cancelled' or order.status == 'refunded' %}bg-rose-500/10 text-rose-400{% else %}bg-amber-500/10 text-amber-400{% endif %}">
+                    {{ order.get_status_display }}
+                </span>
+            </div>
+            
+            {% if order.api_order_id %}
+            <div class="flex justify-between items-center text-xs pb-2 border-b border-white/5">
+                <span class="text-slate-400">رقم المرجع:</span>
+                <div class="flex items-center gap-2">
+                    <span class="font-mono text-white font-bold">{{ order.api_order_id }}</span>
+                    <button onclick="copyToClipboard('{{ order.api_order_id }}', this)" class="text-xs px-2 py-0.5 bg-cyan/10 text-cyan rounded hover:bg-cyan hover:text-slate-950 font-bold">نسخ</button>
+                </div>
+            </div>
+            {% endif %}
+
+            {% for key, val in order.fulfillment_data.items %}
+                {% if key != 'api_provider' and key != 'api_status' and key != 'api_last_response' and key != 'api_refunded' and key != 'response' and key != 'api_response' and key != 'api_error' and key != 'alkasr' %}
+                <div class="flex justify-between items-center text-xs p-2.5 rounded-xl bg-slate-900 border border-white/5">
+                    <span class="text-cyan font-bold">{{ key }}:</span>
+                    <div class="flex items-center gap-2">
+                        <span class="font-mono text-white font-bold break-all">
+                            {% if key == "keys" %}{{ val|join:", " }}{% else %}{{ val }}{% endif %}
+                        </span>
+                        <button onclick="copyToClipboard('{% if key == "keys" %}{{ val|join:", " }}{% else %}{{ val }}{% endif %}', this)" class="text-xs px-2.5 py-1 bg-cyan/10 text-cyan rounded-lg hover:bg-cyan hover:text-slate-950 font-bold transition">
+                            نسخ
+                        </button>
+                    </div>
+                </div>
+                {% endif %}
+            {% endfor %}
+            
+            {% if not order.fulfillment_data and not order.api_order_id %}
+            <p class="text-xs text-slate-400 text-center py-2">جاري استلام الرد من السيرفر، يتم التحديث آلياً.</p>
+            {% endif %}
+        </div>
+
+        <div class="flex gap-3">
+            <button type="button" onclick="closeStatusModal()" class="btn btn-primary w-full py-3 rounded-xl font-bold">
+                إغلاق النافذة
+            </button>
+        </div>
+    </div>
+</div>
+
 <script>
+function openStatusModal() {
+    const modal = document.getElementById('order-status-modal');
+    const container = document.getElementById('modal-container');
+    if (!modal || !container) return;
+    modal.classList.remove('pointer-events-none', 'opacity-0');
+    modal.classList.add('opacity-100');
+    container.classList.remove('scale-95');
+    container.classList.add('scale-100');
+}
+
+function closeStatusModal() {
+    const modal = document.getElementById('order-status-modal');
+    const container = document.getElementById('modal-container');
+    if (!modal || !container) return;
+    modal.classList.remove('opacity-100');
+    modal.classList.add('opacity-0', 'pointer-events-none');
+    container.classList.remove('scale-100');
+    container.classList.add('scale-95');
+}
+
+// Auto-open modal on first view if order was just placed or has fulfillment data
+document.addEventListener('DOMContentLoaded', function() {
+    const urlParams = new URLSearchParams(window.location.search);
+    const isNew = urlParams.get('new') === '1' || sessionStorage.getItem('just_placed_order') === '{{ order.id }}';
+    if (isNew) {
+        sessionStorage.removeItem('just_placed_order');
+        setTimeout(openStatusModal, 300);
+    }
+    
+    // Auto-poll for status updates if order is processing
+    {% if order.status == 'processing' %}
+    let pollCount = 0;
+    const pollInterval = setInterval(function() {
+        pollCount++;
+        if (pollCount > 60) { // Stop polling after 5 minutes
+            clearInterval(pollInterval);
+            return;
+        }
+        fetch(window.location.href, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+            .then(res => {
+                if (res.ok) {
+                    window.location.reload();
+                }
+            })
+            .catch(() => {});
+    }, 8000);
+    {% endif %}
+});
+
 function copyToClipboard(text, btn) {
     navigator.clipboard.writeText(text).then(() => {
         const originalText = btn.innerText;
         btn.innerText = 'تم النسخ!';
-        btn.style.background = 'var(--success)';
+        btn.style.background = '#10b981';
         btn.style.color = '#fff';
         setTimeout(() => {
             btn.innerText = originalText;

@@ -827,6 +827,31 @@ def wallet_page(request):
 def orders_list(request):
     # Multi-Tenant: Order.objects filtered by TenantManager automatically.
     # On store tenant: returns only orders placed within that store.
+    pending_api_orders = Order.objects.filter(
+        customer=request.user,
+        status=Order.Status.PROCESSING
+    ).exclude(api_order_uuid=None, api_order_id=None)
+    
+    if pending_api_orders.exists():
+        try:
+            from services.provider.manager import ProviderManager
+            from apps.orders.provider_status import apply_provider_status
+            for p_order in pending_api_orders[:5]:
+                po = p_order.provider_orders.select_related("profile").first()
+                if po and po.profile:
+                    identifiers = [str(p_order.api_order_uuid)] if p_order.api_order_uuid else ([str(p_order.api_order_id)] if p_order.api_order_id else [])
+                    data_list = ProviderManager.check_orders(
+                        po.profile,
+                        identifiers,
+                        is_uuid=bool(p_order.api_order_uuid)
+                    )
+                    if data_list and len(data_list) > 0:
+                        order_data = data_list[0]
+                        api_status = order_data.get("status")
+                        apply_provider_status(p_order, api_status, raw_response=order_data, actor=None, note_prefix="تحديث تلقائي")
+        except Exception:
+            pass
+
     orders = Order.objects.filter(customer=request.user).prefetch_related('items__variant__product').order_by('-created_at')
     return render(request, "site/orders_list.html", {"orders": orders})
 

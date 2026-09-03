@@ -378,14 +378,15 @@ def create_order(customer, variant_id, quantity=1, fulfillment_data=None,
 
             fulfillment = dict(order.fulfillment_data or {})
             fulfillment.update({
-                "api_provider": provider,
                 "api_order_id": api_order_id,
                 "api_status": api_status,
-                "api_response": raw_response,
             })
+            order_meta = dict(order.metadata or {})
+            order_meta["api_provider"] = provider
+            order.metadata = order_meta
             order.api_order_id = api_order_id
             order.fulfillment_data = fulfillment
-            order.save(update_fields=["api_order_id", "fulfillment_data", "updated_at"])
+            order.save(update_fields=["api_order_id", "fulfillment_data", "metadata", "updated_at"])
 
             from apps.orders.provider_status import apply_provider_status
             order = apply_provider_status(
@@ -393,17 +394,19 @@ def create_order(customer, variant_id, quantity=1, fulfillment_data=None,
                 api_status,
                 raw_response=raw_response,
                 actor=customer,
-                note_prefix="Provider API",
+                note_prefix="النظام الآلي",
             )
         except Exception as exc:
             fulfillment = dict(order.fulfillment_data or {})
             fulfillment.update({
-                "api_provider": provider,
                 "api_status": "error",
-                "api_error": str(exc),
             })
+            order_meta = dict(order.metadata or {})
+            order_meta["api_provider"] = provider
+            order_meta["api_error"] = str(exc)
+            order.metadata = order_meta
             order.fulfillment_data = fulfillment
-            order.save(update_fields=["fulfillment_data", "updated_at"])
+            order.save(update_fields=["fulfillment_data", "metadata", "updated_at"])
             OrderLog.objects.create(
                 order=order,
                 status=order.status,
