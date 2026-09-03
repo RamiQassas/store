@@ -6162,6 +6162,37 @@ def control_apicontrol_dashboard(request):
                 item["api_provider"] = linked_map[item_id]["api_provider"]
             else:
                 item["is_linked"] = False
+
+    # Fallback to populating preview table from imported variants if remote catalog is empty
+    if not alkasr_products and local_linked_count > 0:
+        sample_variants = linked_variants_qs.select_related('product', 'product__category')[:300]
+        for v in sample_variants:
+            params_list = []
+            if hasattr(v.product, 'custom_fields'):
+                params_list = [f.label for f in v.product.custom_fields.all()]
+            alkasr_products.append({
+                "id": v.api_product_id or v.sku or v.id,
+                "name": f"{v.product.name} - {v.name}" if v.name and v.name != v.product.name else v.product.name,
+                "product_type": getattr(v.product, 'product_type', 'package'),
+                "category_name": v.product.category.name if v.product.category else "عام",
+                "price": float(v.cost),
+                "local_price": float(v.price),
+                "local_cost": float(v.cost),
+                "local_product_id": v.product.id,
+                "local_variant_id": v.id,
+                "local_active": v.product.is_active,
+                "is_linked": True,
+                "available": True,
+                "params": params_list,
+                "api_provider": v.product.api_provider or (integration.provider if integration else "alkasr")
+            })
+
+    if not provider_groups and local_linked_count > 0:
+        from apps.catalog.models import Category
+        cat_qs = Category.objects.filter(products__in=linked_variants_qs.values_list('product_id', flat=True)).distinct()
+        provider_groups = [{"name": c.name, "count": c.products.count()} for c in cat_qs if c.name]
+
+    products_count = max(products_count, len(alkasr_products), local_linked_count)
             
     # Calculate statistics from completed and active API orders
     from apps.orders.models import Order
