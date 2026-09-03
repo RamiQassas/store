@@ -63,12 +63,24 @@ class Tafa3olCardProviderService:
         while True:
             try:
                 res = self.client.get_products(page=page, limit=limit)
-                data = res.get("data") or []
-                if not data:
+                if isinstance(res, dict):
+                    data = res.get("data") or []
+                    meta = res.get("meta") or {}
+                elif isinstance(res, list):
+                    data = res
+                    meta = {}
+                else:
+                    data = []
+                    meta = {}
+
+                if not data or not isinstance(data, list):
                     break
-                all_products.extend(data)
-                meta = res.get("meta") or {}
-                total = meta.get("total", 0)
+
+                for p in data:
+                    if isinstance(p, dict):
+                        all_products.append(p)
+
+                total = meta.get("total", 0) if isinstance(meta, dict) else 0
                 if len(all_products) >= total or len(data) < limit:
                     break
                 page += 1
@@ -118,19 +130,30 @@ class Tafa3olCardProviderService:
         cat_map = {}
         try:
             cats_res = self.client.get_categories()
-            for c in cats_res.get("data") or []:
-                c_id = str(c.get("_id") or "")
-                c_name = c.get("name")
-                if isinstance(c_name, dict):
-                    c_name = c_name.get("ar") or c_name.get("en") or str(c_name)
-                cat_map[c_id] = str(c_name or "عام")
+            raw_cats = []
+            if isinstance(cats_res, dict):
+                raw_cats = cats_res.get("data") or []
+            elif isinstance(cats_res, list):
+                raw_cats = cats_res
+
+            for c in raw_cats:
+                if isinstance(c, dict):
+                    c_id = str(c.get("_id") or c.get("id") or "")
+                    c_name = c.get("name")
+                    if isinstance(c_name, dict):
+                        c_name = c_name.get("ar") or c_name.get("en") or str(c_name)
+                    cat_map[c_id] = str(c_name or "عام")
+                elif isinstance(c, str):
+                    cat_map[c] = c
         except Exception as e:
             logger.warning(f"Could not fetch Tafa3ol Card categories: {e}")
 
         store = self.profile.store if self.profile else None
 
         for idx, item in enumerate(raw_products, start=1):
-            remote_id = str(item.get("_id") or "")
+            if not isinstance(item, dict):
+                continue
+            remote_id = str(item.get("_id") or item.get("id") or "")
             if not remote_id:
                 continue
 
@@ -140,7 +163,7 @@ class Tafa3olCardProviderService:
             else:
                 p_name = str(raw_name or "منتج تفاعل كارد")
 
-            cost_price = Decimal(str(item.get("costPrice") or "0.00"))
+            cost_price = Decimal(str(item.get("costPrice") or item.get("price") or "0.00"))
             cat_id = str(item.get("category") or "")
             cat_name = cat_map.get(cat_id, "عام")
 
