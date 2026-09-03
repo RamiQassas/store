@@ -69,11 +69,43 @@ def version_view(request):
     except Exception:
         pass
 
+    diag = None
+    if request.GET.get("diag") == "tafa3ol":
+        try:
+            from apps.providers.models import ProviderProfile, ProviderProduct
+            from apps.catalog.models import Product, ProductVariant
+            from apps.orders.models import OrderLog
+            from services.provider.tafa3olcard import Tafa3olCardProviderService
+            
+            p = ProviderProfile.all_objects.filter(base_url__icontains="tafa3ol").first()
+            svc = Tafa3olCardProviderService(api_token=p.api_token, base_url=p.base_url, profile_model=p) if p else None
+            
+            api_services = svc.client.get_services() if svc else {}
+            api_categories = svc.client.get_categories() if svc else {}
+            sample_api_prods = svc.client.get_products(limit=3) if svc else {}
+
+            dot_prods = list(Product.objects.filter(api_provider="tafa3olcard", name__contains=".")[:5].values("id", "name"))
+            sample_variants = list(ProductVariant.objects.filter(product__api_provider="tafa3olcard")[:5].values("id", "name", "price", "cost", "sku", "metadata"))
+            recent_logs = list(OrderLog.objects.order_by("-created_at")[:5].values("order__number", "note"))
+
+            diag = {
+                "api_services": api_services,
+                "api_categories": api_categories,
+                "sample_api_prods": sample_api_prods,
+                "dot_prods": dot_prods,
+                "sample_variants": sample_variants,
+                "recent_logs": recent_logs,
+            }
+        except Exception as e:
+            import traceback
+            diag = {"error": str(e), "traceback": traceback.format_exc()}
+
     return JsonResponse({
         "status": "online",
         "commit_sha": commit_sha,
         "commit_short_sha": commit_sha[:7],
         "commit_message": commit_msg,
+        "diag": diag,
     })
 
 
