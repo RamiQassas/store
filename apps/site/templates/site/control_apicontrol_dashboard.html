@@ -1108,7 +1108,8 @@
     }
 
     function pollSyncProgress() {
-        fetch('.?action=get_sync_progress&sync_progress=1', {
+        const integId = document.getElementById('provider-select-dropdown')?.value || "{{ selected_integration.id }}";
+        fetch('.?action=get_sync_progress&sync_progress=1&integration_id=' + encodeURIComponent(integId), {
             headers: { 'X-Requested-With': 'XMLHttpRequest' }
         })
         .then(r => r.json())
@@ -1118,7 +1119,7 @@
             const total = data.total || 0;
             const current = data.current || 0;
             const percent = data.percent || 0;
-            const name = data.product_name || 'جاري استيراد المنتجات...';
+            const name = data.product_name || (data.status === 'failed' ? (data.error || 'فشل الاتصال') : 'جاري استيراد المنتجات...');
             const status = data.status || 'idle';
 
             document.getElementById('sync-percent-text').innerText = percent + '%';
@@ -1127,7 +1128,7 @@
             document.getElementById('sync-current-count').innerText = current;
             document.getElementById('sync-current-product').innerText = name;
 
-            if (status === 'completed' || (total > 0 && current >= total)) {
+            if (status === 'completed' || (total > 0 && current >= total && status !== 'running')) {
                 if (syncPollTimer) clearInterval(syncPollTimer);
                 const icon = document.getElementById('sync-icon');
                 if (icon) icon.className = 'fas fa-check-circle text-2xl text-emerald-400';
@@ -1135,7 +1136,7 @@
                 if (ping) ping.classList.add('hidden');
                 
                 document.getElementById('sync-modal-title').innerText = 'تمت المزامنة واستيراد كافة المنتجات بنجاح!';
-                document.getElementById('sync-modal-subtitle').innerText = `تم استيراد ${current} من أصل ${total} منتج وتحديث كتالوج متجرك بنجاح.`;
+                document.getElementById('sync-modal-subtitle').innerText = data.product_name || `تم استيراد ${current} من أصل ${total} منتج وتحديث كتالوج متجرك بنجاح.`;
                 document.getElementById('sync-finish-btn-container').classList.remove('hidden');
             } else if (status === 'failed') {
                 if (syncPollTimer) clearInterval(syncPollTimer);
@@ -1144,8 +1145,9 @@
                 const ping = document.getElementById('sync-ping');
                 if (ping) ping.classList.add('hidden');
 
-                document.getElementById('sync-modal-title').innerText = 'حدث خطأ أثناء المزامنة';
-                document.getElementById('sync-modal-subtitle').innerText = data.error || 'يرجى التأكد من صلاحية مفتاح API والاتصال.';
+                document.getElementById('sync-modal-title').innerText = 'فشل الاتصال وسحب الخدمات من المزود';
+                document.getElementById('sync-modal-subtitle').innerText = data.error || data.product_name || 'يرجى التأكد من صلاحية مفتاح API والاتصال.';
+                document.getElementById('sync-current-product').innerText = data.error || data.product_name || 'فشل الاتصال بخادم المزود.';
                 document.getElementById('sync-finish-btn-container').classList.remove('hidden');
             }
         })

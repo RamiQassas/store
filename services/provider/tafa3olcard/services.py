@@ -1,4 +1,4 @@
-﻿import logging
+import logging
 from decimal import Decimal
 from typing import Dict, Any, List
 from django.utils import timezone
@@ -76,19 +76,41 @@ class Tafa3olCardProviderService:
                     break
             except Exception as e:
                 logger.error(f"Error fetching page {page} from Tafa3ol Card: {e}")
+                if page == 1:
+                    raise e
                 break
 
         return all_products
 
-    def sync_catalog(self, selected_group_names=None) -> dict:
+    def sync_catalog(self, selected_group_names=None, progress_callback=None) -> dict:
         """
         Synchronizes Tafa3ol Card products and categories into ProviderProduct/ProviderCategory,
-        and creates local catalog Product and ProductVariant records under profile store.
+        and reports live progress to cache and callback.
         """
+        from django.core.cache import cache
         from apps.providers.models import ProviderCategory, ProviderProduct, ProviderPrice
         from apps.catalog.models import Category, Product, ProductVariant
 
+        progress_key = f"sync_progress_{self.profile.id}" if self.profile else None
+        def _safe_cache(k, v, to=600):
+            try:
+                cache.set(k, v, timeout=to)
+            except Exception:
+                pass
+
+        if progress_key:
+            _safe_cache(progress_key, {
+                "status": "running",
+                "total": 0,
+                "current": 0,
+                "percent": 5,
+                "product_name": "جاري الاتصال بخادم تفاعل كارد وجلب قائمة المنتجات...",
+                "created": 0,
+                "updated": 0
+            }, 600)
+
         raw_products = self.fetch_products()
+        total_items = len(raw_products)
         created_count = 0
         updated_count = 0
 
@@ -107,7 +129,7 @@ class Tafa3olCardProviderService:
 
         store = self.profile.store if self.profile else None
 
-        for item in raw_products:
+        for idx, item in enumerate(raw_products, start=1):
             remote_id = str(item.get("_id") or "")
             if not remote_id:
                 continue
@@ -152,13 +174,39 @@ class Tafa3olCardProviderService:
                 else:
                     updated_count += 1
 
+            pct = int((idx / max(total_items, 1)) * 100) if total_items > 0 else 100
+            if progress_key:
+                _safe_cache(progress_key, {
+                    "status": "running",
+                    "total": total_items,
+                    "current": idx,
+                    "percent": min(pct, 99),
+                    "product_name": p_name,
+                    "created": created_count,
+                    "updated": updated_count
+                }, 600)
+
+            if progress_callback:
+                progress_callback(idx, total_items, p_name, created_count, updated_count)
+
         if self.profile:
             self.profile.last_sync_at = timezone.now()
             self.profile.save(update_fields=["last_sync_at"])
 
+        if progress_key:
+            _safe_cache(progress_key, {
+                "status": "completed",
+                "total": total_items,
+                "current": total_items,
+                "percent": 100,
+                "product_name": f"تمت المزامنة بنجاح! تم استيراد وتحديث {created_count + updated_count} منتج.",
+                "created": created_count,
+                "updated": updated_count
+            }, 600)
+
         return {
             "status": "completed",
-            "total": len(raw_products),
+            "total": total_items,
             "created": created_count,
             "updated": updated_count
         }

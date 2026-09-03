@@ -6156,31 +6156,49 @@ def control_apicontrol_dashboard(request):
                 from django.db import connection
                 from django.core.cache import cache
                 from apps.providers.models import ProviderProfile
+                from apps.common.tenant_utils import bypass_tenant_filter
                 from services.provider.manager import ProviderManager
                 try:
                     connection.close()
-                    p_obj = ProviderProfile.objects.get(id=profile_id)
-                    cache.set(f"sync_progress_{profile_id}", {
-                        "status": "running",
-                        "total": 100,
-                        "current": 50,
-                        "percent": 50,
-                        "product_name": "جاري معالجة وتوليد المنتجات المحددة في متجرك...",
-                        "created": 0,
-                        "updated": 0
-                    }, timeout=300)
-                    
-                    ProviderManager.sync_catalog(p_obj, selected_group_names=selected_groups)
-                    
-                    cache.set(f"sync_progress_{profile_id}", {
-                        "status": "completed",
-                        "total": 100,
-                        "current": 100,
-                        "percent": 100,
-                        "product_name": "تم توليد واستيراد المنتجات المحددة بنجاح",
-                        "created": len(selected_groups),
-                        "updated": 0
-                    }, timeout=300)
+                    with bypass_tenant_filter():
+                        p_obj = ProviderProfile.all_objects.get(id=profile_id)
+                        cache.set(f"sync_progress_{profile_id}", {
+                            "status": "running",
+                            "total": 0,
+                            "current": 0,
+                            "percent": 5,
+                            "product_name": "جاري الاتصال بخادم المزود والتحقق من الحساب...",
+                            "created": 0,
+                            "updated": 0
+                        }, timeout=600)
+
+                        def on_progress(current, total, item_name, created, updated):
+                            pct = int((current / max(total, 1)) * 100) if total > 0 else 50
+                            cache.set(f"sync_progress_{profile_id}", {
+                                "status": "running",
+                                "total": total,
+                                "current": current,
+                                "percent": min(pct, 99),
+                                "product_name": f"يتم استيراد: {item_name}",
+                                "created": created,
+                                "updated": updated
+                            }, timeout=600)
+
+                        res = ProviderManager.sync_catalog(p_obj, selected_group_names=selected_groups, progress_callback=on_progress)
+                        
+                        total = res.get("total", 0) if isinstance(res, dict) else 0
+                        created = res.get("created", 0) if isinstance(res, dict) else 0
+                        updated = res.get("updated", 0) if isinstance(res, dict) else 0
+
+                        cache.set(f"sync_progress_{profile_id}", {
+                            "status": "completed",
+                            "total": total,
+                            "current": total,
+                            "percent": 100,
+                            "product_name": f"تمت المزامنة بنجاح! تم استيراد {created} منتج جديد وتحديث {updated} منتج.",
+                            "created": created,
+                            "updated": updated
+                        }, timeout=600)
                 except Exception as e:
                     import logging
                     logging.getLogger(__name__).exception(f"Background sync failed for profile {profile_id}: {e}")
@@ -6193,7 +6211,7 @@ def control_apicontrol_dashboard(request):
                         "created": 0,
                         "updated": 0,
                         "error": str(e)
-                    }, timeout=300)
+                    }, timeout=600)
 
             import threading
             selected_groups = request.POST.getlist("categories")

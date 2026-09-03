@@ -62,10 +62,17 @@ class ProviderManager:
         return svc.fetch_products()
 
     @classmethod
-    def sync_catalog(cls, profile, selected_group_names=None) -> dict:
+    def sync_catalog(cls, profile, selected_group_names=None, progress_callback=None) -> dict:
         """Executes full product catalog synchronization."""
         svc = cls.get_service(profile)
-        return svc.sync_catalog(selected_group_names=selected_group_names)
+        import inspect
+        sig = inspect.signature(svc.sync_catalog)
+        kwargs = {}
+        if "selected_group_names" in sig.parameters:
+            kwargs["selected_group_names"] = selected_group_names
+        if "progress_callback" in sig.parameters:
+            kwargs["progress_callback"] = progress_callback
+        return svc.sync_catalog(**kwargs)
 
     @classmethod
     def place_order(
