@@ -128,27 +128,42 @@ class Tafa3olCardProviderService:
 
         # Also fetch categories from provider
         cat_map = {}
+        # 1. Fetch categories
         try:
             cats_res = self.client.get_categories()
-            raw_cats = []
-            if isinstance(cats_res, dict):
-                raw_cats = cats_res.get("data") or []
-            elif isinstance(cats_res, list):
-                raw_cats = cats_res
-
+            raw_cats = cats_res.get("data") if isinstance(cats_res, dict) else (cats_res if isinstance(cats_res, list) else [])
             for c in raw_cats:
                 if isinstance(c, dict):
                     c_id = str(c.get("_id") or c.get("id") or "")
                     c_name = c.get("name")
                     if isinstance(c_name, dict):
                         c_name = c_name.get("ar") or c_name.get("en") or str(c_name)
-                    cat_map[c_id] = str(c_name or "عام")
+                    if c_id:
+                        cat_map[c_id] = str(c_name or "عام")
                 elif isinstance(c, str):
                     cat_map[c] = c
         except Exception as e:
             logger.warning(f"Could not fetch Tafa3ol Card categories: {e}")
 
+        # 2. Fetch services
+        try:
+            srv_res = self.client.get_services()
+            raw_srv = srv_res.get("data") if isinstance(srv_res, dict) else (srv_res if isinstance(srv_res, list) else [])
+            for s in raw_srv:
+                if isinstance(s, dict):
+                    s_id = str(s.get("_id") or s.get("id") or "")
+                    s_name = s.get("name")
+                    if isinstance(s_name, dict):
+                        s_name = s_name.get("ar") or s_name.get("en") or str(s_name)
+                    if s_id and s_id not in cat_map:
+                        cat_map[s_id] = str(s_name or "عام")
+                elif isinstance(s, str):
+                    cat_map[s] = s
+        except Exception as e:
+            logger.warning(f"Could not fetch Tafa3ol Card services: {e}")
+
         store = self.profile.store if self.profile else None
+        known_requirements = {}
 
         for idx, item in enumerate(raw_products, start=1):
             if not isinstance(item, dict):
@@ -164,8 +179,19 @@ class Tafa3olCardProviderService:
                 p_name = str(raw_name or "منتج تفاعل كارد")
 
             cost_price = Decimal(str(item.get("costPrice") or item.get("price") or "0.00"))
-            cat_id = str(item.get("category") or "")
-            cat_name = cat_map.get(cat_id, "عام")
+            
+            # Handle category / service mapping safely
+            cat_field = item.get("category") or item.get("service") or ""
+            if isinstance(cat_field, dict):
+                cat_id = str(cat_field.get("_id") or cat_field.get("id") or "")
+                c_name = cat_field.get("name")
+                if isinstance(c_name, dict):
+                    cat_name = c_name.get("ar") or c_name.get("en") or str(c_name)
+                else:
+                    cat_name = str(c_name or "عام")
+            else:
+                cat_id = str(cat_field or "")
+                cat_name = cat_map.get(cat_id, "عام")
 
             # Update or create ProviderCategory
             p_cat = None
@@ -192,21 +218,67 @@ class Tafa3olCardProviderService:
                     }
                 )
 
-                # Store product parameters / requirements if available
+                # Store product parameters / requirements safely
                 requirements = item.get("requirements") or []
-                if requirements:
+                if isinstance(requirements, list) and requirements:
                     pp.parameters.all().delete()
                     for r_idx, r in enumerate(requirements):
-                        r_name = str(r.get("paramsName") or r.get("key") or r.get("name") or f"param_{r_idx}")[:100]
-                        r_msg = r.get("message")
-                        if isinstance(r_msg, dict):
-                            r_label = r_msg.get("ar") or r_msg.get("en") or r_name
+                        if isinstance(r, dict):
+                            r_name = str(r.get("paramsName") or r.get("key") or r.get("name") or f"param_{r_idx}")[:100]
+                            r_msg = r.get("message")
+                            if isinstance(r_msg, dict):
+                                r_label = r_msg.get("ar") or r_msg.get("en") or r_name
+                            else:
+                                r_label = str(r_msg or r_name)[:100]
+                            r_required = bool(r.get("isRequired", True))
+                            if r.get("_id"):
+                                known_requirements[str(r["_id"])] = r
+                        elif isinstance(r, str) and r.strip():
+                            r_id = r.strip()
+                            if r_id in known_requirements:
+                                req_obj = known_requirements[r_id]
+                                r_name = str(req_obj.get("paramsName") or "playerId")[:100]
+                                r_msg = req_obj.get("message")
+                                if isinstance(r_msg, dict):
+                                    r_label = r_msg.get("ar") or r_msg.get("en") or r_name
+                                else:
+                                    r_label = str(r_msg or r_name)[:100]
+                                r_required = bool(req_obj.get("isRequired", True))
+                            else:
+                                # Fetch detail for the first product to populate requirement definitions
+                                resolved = False
+                                try:
+                                    prod_detail = self.client.get_product(remote_id)
+                                    p_data = prod_detail.get("data") if isinstance(prod_detail, dict) else {}
+                                    p_reqs = p_data.get("requirements") or []
+                                    if isinstance(p_reqs, list):
+                                        for pr in p_reqs:
+                                            if isinstance(pr, dict) and pr.get("_id"):
+                                                known_requirements[str(pr["_id"])] = pr
+                                    if r_id in known_requirements:
+                                        req_obj = known_requirements[r_id]
+                                        r_name = str(req_obj.get("paramsName") or "playerId")[:100]
+                                        r_msg = req_obj.get("message")
+                                        if isinstance(r_msg, dict):
+                                            r_label = r_msg.get("ar") or r_msg.get("en") or r_name
+                                        else:
+                                            r_label = str(r_msg or r_name)[:100]
+                                        r_required = bool(req_obj.get("isRequired", True))
+                                        resolved = True
+                                except Exception:
+                                    pass
+
+                                if not resolved:
+                                    r_name = "playerId"
+                                    r_label = "معرف اللاعب / الحساب (Player ID)"
+                                    r_required = True
                         else:
-                            r_label = str(r_msg or r_name)[:100]
+                            continue
+
                         pp.parameters.create(
                             name=r_name,
                             label=r_label,
-                            required=bool(r.get("isRequired", True)),
+                            required=r_required,
                             parameter_type="text"
                         )
 
