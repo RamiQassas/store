@@ -35,6 +35,17 @@
     .product-row:hover .quick-edit-btn {
         opacity: 1;
     }
+    .prod-cat-card {
+        transition: all .25s ease;
+    }
+    .prod-cat-card:hover {
+        transform: translateY(-2px);
+    }
+    .prod-cat-card.drag-over-target {
+        border: 2px dashed #22d3ee !important;
+        box-shadow: 0 0 30px rgba(34,211,238,0.3) !important;
+        transform: scale(1.03);
+    }
 </style>
 {% endblock %}
 
@@ -73,56 +84,138 @@
 <input type="file" id="quick-image-file-input" accept="image/*" class="hidden" onchange="handleQuickImageFileSelected(this)">
 
 {% if not active_category and not query %}
-<!-- Categories Grid View (Drill-down Entry) -->
+
+{# ── Hidden input for category image upload ── #}
+<input type="file" id="prod-cat-image-input" accept="image/*" class="hidden" onchange="handleProdCatImage(this)">
+
+{# ── Category Quick Rename Modal ── #}
+<div id="prod-cat-rename-modal" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.85);backdrop-filter:blur(8px);align-items:center;justify-content:center;padding:1rem;">
+    <div style="background:#0f172a;border:1.5px solid rgba(34,211,238,0.3);border-radius:1.25rem;padding:1.5rem;max-width:24rem;width:100%;box-shadow:0 30px 60px rgba(0,0,0,0.6);">
+        <h3 style="font-size:.875rem;font-weight:900;color:#fff;display:flex;align-items:center;gap:.5rem;margin-bottom:1rem;">
+            <i class="fas fa-pen" style="color:#22d3ee;font-size:.7rem;"></i> تعديل اسم القسم
+        </h3>
+        <input type="hidden" id="prod-cat-rename-id">
+        <input type="text" id="prod-cat-rename-input"
+               placeholder="اسم القسم الجديد"
+               style="width:100%;background:#020617;border:1.5px solid rgba(255,255,255,0.1);border-radius:.75rem;padding:.65rem 1rem;font-size:.85rem;color:#fff;outline:none;box-sizing:border-box;margin-bottom:1rem;"
+               onfocus="this.style.borderColor='#22d3ee'" onblur="this.style.borderColor='rgba(255,255,255,0.1)'">
+        <div style="display:flex;justify-content:flex-end;gap:.5rem;">
+            <button onclick="closeProdCatRenameModal()" style="padding:.45rem .9rem;border-radius:.65rem;font-size:.7rem;font-weight:700;color:#94a3b8;background:rgba(255,255,255,0.05);border:none;cursor:pointer;">إلغاء</button>
+            <button onclick="submitProdCatRename()" id="prod-cat-rename-btn" style="padding:.45rem 1rem;border-radius:.65rem;font-size:.7rem;font-weight:900;color:#000;background:#22d3ee;border:none;cursor:pointer;display:flex;align-items:center;gap:.35rem;">
+                <i class="fas fa-check"></i> حفظ
+            </button>
+        </div>
+    </div>
+</div>
+
+{# ── Category Merge Modal ── #}
+<div id="prod-cat-merge-modal" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.85);backdrop-filter:blur(8px);align-items:center;justify-content:center;padding:1rem;">
+    <div style="background:#0f172a;border:1.5px solid rgba(245,158,11,0.4);border-radius:1.25rem;padding:1.5rem;max-width:26rem;width:100%;box-shadow:0 30px 60px rgba(0,0,0,0.6);">
+        <div style="display:flex;align-items:center;gap:.65rem;margin-bottom:.9rem;">
+            <div style="width:2.25rem;height:2.25rem;border-radius:50%;background:rgba(245,158,11,0.15);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                <i class="fas fa-object-group" style="color:#f59e0b;font-size:.875rem;"></i>
+            </div>
+            <h3 style="font-size:.875rem;font-weight:900;color:#fff;margin:0;">دمج القسمين</h3>
+        </div>
+        <p style="font-size:.8rem;color:#94a3b8;margin-bottom:.75rem;line-height:1.5;">
+            نقل منتجات <strong style="color:#f59e0b;" id="pmerge-src-name">—</strong>
+            إلى <strong style="color:#22d3ee;" id="pmerge-tgt-name">—</strong>
+            ثم <strong style="color:#f43f5e;">حذف القسم المصدر</strong>.
+        </p>
+        <div style="background:rgba(244,63,94,0.08);border:1px solid rgba(244,63,94,0.2);border-radius:.6rem;padding:.6rem .9rem;font-size:.7rem;color:#fca5a5;margin-bottom:1rem;">⚠️ لا يمكن التراجع.</div>
+        <input type="hidden" id="pmerge-src-id">
+        <input type="hidden" id="pmerge-tgt-id">
+        <div style="display:flex;justify-content:flex-end;gap:.5rem;">
+            <button onclick="closeProdMergeModal()" style="padding:.45rem .9rem;border-radius:.65rem;font-size:.7rem;font-weight:700;color:#94a3b8;background:rgba(255,255,255,0.05);border:none;cursor:pointer;">إلغاء</button>
+            <button onclick="confirmProdMerge()" id="prod-merge-confirm-btn" style="padding:.45rem 1rem;border-radius:.65rem;font-size:.7rem;font-weight:900;color:#000;background:#f59e0b;border:none;cursor:pointer;display:flex;align-items:center;gap:.35rem;">
+                <i class="fas fa-object-group"></i> تأكيد الدمج
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Categories Grid -->
 <div class="stack gap-6 mb-12 reveal">
-    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-white/5 pb-4">
+    {# Header bar #}
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-white/5 pb-4">
         <div>
             <h2 class="text-base font-black text-white flex items-center gap-2">
-                <i class="fas fa-layer-group text-cyan"></i> تصفح حسب التصنيفات والأقسام النشطة ({{ categories|length }})
+                <i class="fas fa-layer-group text-cyan"></i> الأقسام النشطة ({{ categories|length }})
             </h2>
-            <p class="text-[11px] text-slate-400 mt-0.5">انقر على أي قسم لفلترة وإدارة منتجاته مباشرة.</p>
+            <p class="text-[10px] text-slate-400 mt-0.5">⋮⋮ اسحب لترتيب · اسحب فوق قسم آخر للدمج · 📷 انقر الصورة · ✏️ انقر القلم للتعديل</p>
         </div>
-        <div class="flex items-center gap-3">
-            <a href="?q=all" class="btn btn-outline btn-sm text-[11px] font-black rounded-xl">
-                <i class="fas fa-boxes ml-1"></i> عرض كافة المنتجات مباشرة
+        <div class="flex flex-wrap items-center gap-2">
+            <a href="?q=all" class="btn btn-outline btn-sm text-[10px] font-black rounded-xl">
+                <i class="fas fa-boxes ml-1"></i> كل المنتجات
             </a>
+            {# Delete empty categories button #}
+            <button type="button" onclick="deleteEmptyCategories()"
+                    class="btn btn-sm text-[10px] font-black rounded-xl border border-rose-500/30 text-rose-400 hover:bg-rose-500/10 transition-all"
+                    id="delete-empty-cats-btn" title="حذف الأقسام التي لا تحتوي على أي منتج">
+                <i class="fas fa-trash-alt ml-1"></i> مسح الأقسام الفارغة
+            </button>
             {% if show_all_cats %}
-            <a href="{% url 'control_products_list' %}" class="text-[10px] font-bold text-slate-400 hover:text-white underline">
-                إخفاء الأقسام الفارغة
-            </a>
+            <a href="{% url 'control_products_list' %}" class="text-[10px] font-bold text-slate-400 hover:text-white underline">إخفاء الفارغة</a>
             {% else %}
-            <a href="?all_cats=1" class="text-[10px] font-bold text-slate-400 hover:text-white underline">
-                عرض كل الأقسام (بما فيها الفارغة)
-            </a>
+            <a href="?all_cats=1" class="text-[10px] font-bold text-slate-400 hover:text-white underline">عرض الكل</a>
             {% endif %}
         </div>
     </div>
-    
-    <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
+
+    {# Grid #}
+    <div id="prod-cats-sortable" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
         {% for cat in categories %}
-        <a href="?category={{ cat.id }}" class="group stack gap-3 no-underline p-3 rounded-2xl bg-slate-900/30 border border-white/5 hover:border-cyan/40 hover:bg-white/[0.02] transition-all duration-300">
-            <div class="aspect-square rounded-2xl bg-slate-950 border border-white/5 overflow-hidden flex items-center justify-center relative group-hover:shadow-[0_0_25px_rgba(6,182,212,0.15)] transition-all">
+        <div class="prod-cat-card group relative rounded-2xl overflow-hidden border border-white/5 bg-slate-900/40 hover:border-cyan/30 transition-all duration-300"
+             data-id="{{ cat.id }}" data-name="{{ cat.name|escapejs }}" style="cursor:default;">
+
+            {# Drag handle top-left #}
+            <div class="prod-cat-drag-handle absolute top-1.5 left-1.5 z-10 w-5 h-5 flex items-center justify-center rounded bg-black/50 text-slate-500 text-[9px] cursor-grab opacity-0 group-hover:opacity-100 transition-opacity" title="اسحب لتغيير الترتيب">
+                <i class="fas fa-grip-vertical"></i>
+            </div>
+
+            {# Rename button top-right #}
+            <button type="button" onclick="openProdCatRenameModal('{{ cat.id }}', '{{ cat.name|escapejs }}')"
+                    class="absolute top-1.5 right-1.5 z-10 w-5 h-5 flex items-center justify-center rounded bg-black/50 text-slate-400 hover:text-cyan text-[9px] opacity-0 group-hover:opacity-100 transition-opacity"
+                    title="تعديل الاسم">
+                <i class="fas fa-pen"></i>
+            </button>
+
+            {# Image (click to upload) #}
+            <div class="aspect-square bg-slate-950 relative overflow-hidden cursor-pointer prod-cat-img-wrap"
+                 onclick="triggerProdCatImage('{{ cat.id }}')" title="انقر لتغيير الصورة">
                 {% if cat.image %}
-                <img src="{{ cat.image.url }}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500">
+                <img src="{{ cat.image.url }}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" id="pcat-img-{{ cat.id }}">
                 {% else %}
-                <i class="fas fa-folder text-3xl text-slate-700 group-hover:text-cyan transition-colors"></i>
-                {% endif %}
-                <div class="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                <div class="absolute bottom-2 inset-x-2 flex justify-center opacity-0 group-hover:opacity-100 transition-all">
-                    <span class="btn btn-primary !py-0.5 !px-2.5 !text-[8px] font-black rounded-lg">فتح التصنيف</span>
+                <div class="w-full h-full flex items-center justify-center text-slate-700" id="pcat-img-{{ cat.id }}">
+                    <i class="fas fa-folder text-2xl"></i>
                 </div>
+                {% endif %}
+                {# Camera overlay #}
+                <div class="absolute inset-0 bg-black/70 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center text-cyan pointer-events-none">
+                    <i class="fas fa-camera text-sm mb-0.5"></i>
+                    <span class="text-[8px] font-black">تغيير</span>
+                </div>
+                {# Open category button on bottom #}
+                <a href="?category={{ cat.id }}" class="absolute bottom-0 inset-x-0 py-1.5 bg-cyan/90 text-black text-[8px] font-black text-center opacity-0 group-hover:opacity-100 transition-opacity"
+                   onclick="event.stopPropagation();">
+                    فتح التصنيف ›
+                </a>
             </div>
-            <div class="text-center">
-                <h3 class="text-xs font-black text-slate-200 group-hover:text-cyan transition-colors truncate mb-1">{{ cat.name }}</h3>
-                <span class="text-[9px] font-bold text-cyan/70 bg-cyan/10 px-2 py-0.5 rounded-full uppercase tracking-tighter">{{ cat.product_count|default:0 }} منتج متوفر</span>
+
+            {# Name + count #}
+            <div class="p-2.5">
+                <h3 class="text-[10px] font-black text-slate-200 truncate mb-1 group-hover:text-cyan transition-colors" id="pcat-name-{{ cat.id }}">{{ cat.name }}</h3>
+                <span class="text-[8px] font-bold text-cyan/70 bg-cyan/10 px-2 py-0.5 rounded-full">{{ cat.product_count|default:0 }} منتج</span>
             </div>
-        </a>
+        </div>
         {% endfor %}
-        <a href="{% url 'control_category_create' %}" class="group stack gap-3 no-underline p-3 rounded-2xl bg-white/[0.01] border border-dashed border-white/10 flex flex-col items-center justify-center hover:border-cyan/30 hover:bg-cyan/5 transition-all">
-            <div class="w-10 h-10 rounded-full bg-slate-800 flex items-center justify-center text-slate-500 group-hover:bg-cyan group-hover:text-black transition-all mb-1">
-                <i class="fas fa-plus"></i>
+
+        {# Add category card #}
+        <a href="{% url 'control_category_create' %}" class="group relative rounded-2xl overflow-hidden border border-dashed border-white/10 bg-white/[0.01] hover:border-cyan/30 hover:bg-cyan/5 transition-all flex flex-col items-center justify-center gap-2 no-underline min-h-[140px]">
+            <div class="w-9 h-9 rounded-full bg-slate-800 flex items-center justify-center text-slate-500 group-hover:bg-cyan group-hover:text-black transition-all">
+                <i class="fas fa-plus text-xs"></i>
             </div>
-            <span class="text-[10px] font-black text-slate-400 group-hover:text-cyan">إضافة تصنيف جديد</span>
+            <span class="text-[9px] font-black text-slate-500 group-hover:text-cyan">قسم جديد</span>
         </a>
     </div>
 </div>
@@ -607,6 +700,243 @@ document.addEventListener('DOMContentLoaded', function(){
             }
         });
     }
+});
+
+/* ── 7. Category Management (Quick Rename, Image, Merge, Sort, Delete Empty) ── */
+var _pcid = null;
+window.triggerProdCatImage = function(id) {
+    _pcid = id;
+    var f = document.getElementById('prod-cat-image-input');
+    if (f) { f.value = ''; f.click(); }
+};
+
+window.handleProdCatImage = function(input) {
+    if (!input.files || !input.files[0] || !_pcid) return;
+    var id = _pcid, fd = new FormData();
+    fd.append('image', input.files[0]);
+    showToast('جاري رفع صورة القسم...');
+    fetch('/control/categories/' + id + '/quick-image-ajax/', {
+        method: 'POST',
+        headers: {'X-CSRFToken': getCsrf()},
+        body: fd
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(d) {
+        if (d.status === 'success') {
+            var el = document.getElementById('pcat-img-' + id);
+            if (el) {
+                if (el.tagName === 'IMG') {
+                    el.src = d.image_url;
+                } else {
+                    var img = document.createElement('img');
+                    img.src = d.image_url;
+                    img.id = 'pcat-img-' + id;
+                    img.className = 'w-full h-full object-cover group-hover:scale-105 transition-transform duration-500';
+                    el.parentNode.replaceChild(img, el);
+                }
+            }
+            showToast('تم تحديث صورة القسم بنجاح!');
+        } else {
+            showToast(d.message || 'فشل رفع الصورة', true);
+        }
+    })
+    .catch(function() { showToast('خطأ أثناء رفع الصورة', true); });
+};
+
+window.openProdCatRenameModal = function(id, name) {
+    document.getElementById('prod-cat-rename-id').value = id;
+    var inp = document.getElementById('prod-cat-rename-input');
+    inp.value = name;
+    document.getElementById('prod-cat-rename-modal').style.display = 'flex';
+    setTimeout(function() { inp.focus(); inp.select(); }, 50);
+};
+
+window.closeProdCatRenameModal = function() {
+    var m = document.getElementById('prod-cat-rename-modal');
+    if (m) m.style.display = 'none';
+};
+
+window.submitProdCatRename = function() {
+    var id = document.getElementById('prod-cat-rename-id').value;
+    var name = document.getElementById('prod-cat-rename-input').value.trim();
+    if (!name) { showToast('يرجى إدخال اسم صحيح', true); return; }
+    var btn = document.getElementById('prod-cat-rename-btn');
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+    var fd = new FormData();
+    fd.append('name', name);
+    fetch('/control/categories/' + id + '/quick-rename-ajax/', {
+        method: 'POST',
+        headers: {'X-CSRFToken': getCsrf()},
+        body: fd
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(d) {
+        if (d.status === 'success') {
+            var el = document.getElementById('pcat-name-' + id);
+            if (el) el.innerText = d.name;
+            var card = document.querySelector('.prod-cat-card[data-id="' + id + '"]');
+            if (card) card.setAttribute('data-name', d.name);
+            closeProdCatRenameModal();
+            showToast('تم تعديل اسم القسم بنجاح!');
+        } else {
+            showToast(d.message || 'فشل تعديل الاسم', true);
+        }
+    })
+    .catch(function() { showToast('خطأ أثناء تعديل الاسم', true); });
+    setTimeout(function() { btn.disabled = false; btn.innerHTML = '<i class="fas fa-check"></i> حفظ'; }, 4000);
+};
+
+window.closeProdMergeModal = function() {
+    var m = document.getElementById('prod-cat-merge-modal');
+    if (m) m.style.display = 'none';
+};
+
+window.confirmProdMerge = function() {
+    var src = document.getElementById('pmerge-src-id').value;
+    var tgt = document.getElementById('pmerge-tgt-id').value;
+    var btn = document.getElementById('prod-merge-confirm-btn');
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري الدمج...';
+    fetch('/control/categories/' + src + '/merge-into/' + tgt + '/', {
+        method: 'POST',
+        headers: {'X-CSRFToken': getCsrf()}
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(d) {
+        if (d.status === 'success') {
+            closeProdMergeModal();
+            showToast(d.message || 'تم الدمج بنجاح!');
+            var c = document.querySelector('.prod-cat-card[data-id="' + src + '"]');
+            if (c) {
+                c.style.transition = 'all .3s';
+                c.style.opacity = '0';
+                c.style.transform = 'scale(0.8)';
+                setTimeout(function() { c.remove(); }, 300);
+            }
+        } else {
+            showToast(d.message || 'فشل الدمج', true);
+        }
+    })
+    .catch(function() { showToast('خطأ أثناء الدمج', true); });
+    setTimeout(function() { btn.disabled = false; btn.innerHTML = '<i class="fas fa-object-group"></i> تأكيد الدمج'; }, 5000);
+};
+
+window.deleteEmptyCategories = function() {
+    if (!confirm('هل أنت متأكد من مسح جميع الأقسام الفارغة؟ لن تتأثر المنتجات.')) return;
+    var btn = document.getElementById('delete-empty-cats-btn');
+    if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin ml-1"></i> جاري المسح...';
+    }
+    fetch('/control/categories/delete-empty-ajax/', {
+        method: 'POST',
+        headers: {'X-CSRFToken': getCsrf()}
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(d) {
+        if (d.status === 'success') {
+            if (d.deleted_count === 0) {
+                showToast('لا توجد أقسام فارغة لحذفها!');
+            } else {
+                showToast('تم حذف ' + d.deleted_count + ' قسم فارغ بنجاح!');
+                if (d.deleted_names && d.deleted_names.length) {
+                    document.querySelectorAll('.prod-cat-card').forEach(function(c) {
+                        var nameEl = c.querySelector('[id^="pcat-name-"]');
+                        if (nameEl && d.deleted_names.indexOf(nameEl.innerText.trim()) !== -1) {
+                            c.style.transition = 'all .3s';
+                            c.style.opacity = '0';
+                            c.style.transform = 'scale(0.8)';
+                            setTimeout(function() { c.remove(); }, 300);
+                        }
+                    });
+                }
+            }
+        } else {
+            showToast(d.message || 'فشل مسح الأقسام الفارغة', true);
+        }
+    })
+    .catch(function() { showToast('خطأ أثناء مسح الأقسام الفارغة', true); });
+    setTimeout(function() {
+        if (btn) {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-trash-alt ml-1"></i> مسح الأقسام الفارغة';
+        }
+    }, 4000);
+};
+
+document.addEventListener('keydown', function(e) {
+    var renM = document.getElementById('prod-cat-rename-modal');
+    if (renM && renM.style.display !== 'none') {
+        if (e.key === 'Escape') closeProdCatRenameModal();
+        if (e.key === 'Enter') { e.preventDefault(); submitProdCatRename(); }
+    }
+    var merM = document.getElementById('prod-cat-merge-modal');
+    if (merM && merM.style.display !== 'none') {
+        if (e.key === 'Escape') closeProdMergeModal();
+    }
+});
+
+/* Init Category Sortable + Drag-Merge */
+document.addEventListener('DOMContentLoaded', function() {
+    var grid = document.getElementById('prod-cats-sortable');
+    if (!grid || typeof Sortable === 'undefined') return;
+    var overTarget = null, mergeTimer = null;
+    Sortable.create(grid, {
+        animation: 200,
+        handle: '.prod-cat-drag-handle',
+        ghostClass: 'opacity-30',
+        dragClass: 'shadow-2xl',
+        filter: 'a, button',
+        preventOnFilter: false,
+        onMove: function(evt) {
+            var over = evt.related;
+            if (over && over.classList.contains('prod-cat-card') && over !== evt.dragged) {
+                if (over !== overTarget) {
+                    if (overTarget) { overTarget.classList.remove('drag-over-target'); }
+                    overTarget = over;
+                    over.classList.add('drag-over-target');
+                    clearTimeout(mergeTimer);
+                    mergeTimer = setTimeout(function() {
+                        var si = evt.dragged.getAttribute('data-id');
+                        var sn = evt.dragged.getAttribute('data-name');
+                        var ti = over.getAttribute('data-id');
+                        var tn = over.getAttribute('data-name');
+                        if (si && ti && si !== ti) {
+                            document.getElementById('pmerge-src-id').value = si;
+                            document.getElementById('pmerge-tgt-id').value = ti;
+                            document.getElementById('pmerge-src-name').innerText = sn;
+                            document.getElementById('pmerge-tgt-name').innerText = tn;
+                            document.getElementById('prod-cat-merge-modal').style.display = 'flex';
+                        }
+                    }, 700);
+                }
+            } else {
+                if (overTarget) { overTarget.classList.remove('drag-over-target'); overTarget = null; }
+                clearTimeout(mergeTimer);
+            }
+            return true;
+        },
+        onEnd: function() {
+            clearTimeout(mergeTimer);
+            if (overTarget) { overTarget.classList.remove('drag-over-target'); overTarget = null; }
+            var merM = document.getElementById('prod-cat-merge-modal');
+            if (merM && merM.style.display !== 'none') return;
+            var cards = grid.querySelectorAll('.prod-cat-card[data-id]');
+            var ids = Array.from(cards).map(function(c) { return c.getAttribute('data-id'); }).filter(Boolean);
+            fetch('/control/categories/reorder-bulk-ajax/', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json', 'X-CSRFToken': getCsrf()},
+                body: JSON.stringify({category_ids: ids})
+            })
+            .then(function(r) { return r.json(); })
+            .then(function(d) {
+                if (d.status === 'success') showToast('تم حفظ ترتيب الأقسام!');
+                else showToast('خطأ في ترتيب الأقسام', true);
+            })
+            .catch(function() { showToast('فشل الاتصال بالسيرفر', true); });
+        }
+    });
 });
 
 })();

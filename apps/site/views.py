@@ -3396,7 +3396,6 @@ def control_category_merge_ajax(request, pk, target_pk):
     if source.pk == target.pk:
         return JsonResponse({"status": "error", "message": "لا يمكن دمج قسم مع نفسه"}, status=400)
     try:
-        # Move all products from source to target
         from apps.catalog.models import Product as _Product
         _Product.objects.filter(category=source).update(category=target)
         source_name = source.name
@@ -3405,6 +3404,20 @@ def control_category_merge_ajax(request, pk, target_pk):
     except Exception as e:
         return JsonResponse({"status": "error", "message": str(e)}, status=400)
 
+@support_required
+def control_delete_empty_categories_ajax(request):
+    """Delete all categories that have zero products. Safe: only removes empty ones without products."""
+    if request.method != "POST":
+        return JsonResponse({"status": "error"}, status=405)
+    try:
+        from django.db.models import Count
+        empty_cats = Category.objects.annotate(p_count=Count('products'), c_count=Count('children')).filter(p_count=0, c_count=0)
+        names = list(empty_cats.values_list("name", flat=True))
+        count = empty_cats.count()
+        empty_cats.delete()
+        return JsonResponse({"status": "success", "deleted_count": count, "deleted_names": names})
+    except Exception as e:
+        return JsonResponse({"status": "error", "message": str(e)}, status=400)
 
 @support_required
 def control_category_edit(request, pk=None):

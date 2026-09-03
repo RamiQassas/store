@@ -120,6 +120,7 @@ urlpatterns = [
     path("control/categories/<uuid:pk>/quick-image-ajax/", views.control_category_quick_image_ajax, name="control_category_quick_image_ajax"),
     path("control/categories/reorder-bulk-ajax/", views.control_categories_reorder_bulk_ajax, name="control_categories_reorder_bulk_ajax"),
     path("control/categories/<uuid:pk>/merge-into/<uuid:target_pk>/", views.control_category_merge_ajax, name="control_category_merge_ajax"),
+    path("control/categories/delete-empty-ajax/", views.control_delete_empty_categories_ajax, name="control_delete_empty_categories_ajax"),
     path("control/products/<uuid:pk>/toggle-featured/", views.control_product_toggle_featured, name="control_product_toggle_featured"),
     path("control/products/create/", views.control_product_create, name="control_product_create"),
     path("control/products/categories/create-ajax/", views.control_category_create_ajax, name="control_category_create_ajax"),
