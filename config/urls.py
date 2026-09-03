@@ -68,11 +68,38 @@ def version_view(request):
             commit_msg = res_msg.stdout.strip()
     except Exception:
         pass
+
+    diag = {}
+    try:
+        from apps.providers.models import ProviderProfile, ProviderProduct
+        from apps.catalog.models import ProductVariant, Product
+        from apps.site.models import APIIntegration
+        
+        diag["profiles"] = [
+            {
+                "id": str(p.id),
+                "name": p.provider_name,
+                "base_url": p.base_url,
+                "prod_count_total": ProviderProduct.objects.filter(profile=p).count(),
+                "prod_count_active": ProviderProduct.objects.filter(profile=p, is_active=True).count(),
+            }
+            for p in ProviderProfile.all_objects.all()
+        ]
+        diag["integrations"] = [
+            {"id": str(i.id), "name": i.name, "provider": i.provider, "base_url": i.base_url}
+            for i in APIIntegration.objects.all()
+        ]
+        diag["tafa3ol_products_count"] = Product.objects.filter(api_provider="tafa3olcard").count()
+        diag["tafa3ol_variants_count"] = ProductVariant.objects.filter(product__api_provider="tafa3olcard").count()
+    except Exception as e:
+        diag["error"] = str(e)
+
     return JsonResponse({
         "status": "online",
         "commit_sha": commit_sha,
         "commit_short_sha": commit_sha[:7],
         "commit_message": commit_msg,
+        "diag": diag,
     })
 
 
