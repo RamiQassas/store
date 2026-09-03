@@ -27,23 +27,19 @@ class Command(BaseCommand):
             mapper = AlkasrMapperService(profile)
             mapper.map_all_to_catalog()
             
+            # Delete auto-created dummy variants with 0 price
+            ProductVariant.objects.filter(sku__startswith='AUTO-').delete()
+
+            # Ensure all mapped variants with real prices are active
+            ProductVariant.objects.filter(product__api_provider='alkasr', price__gt=0).update(is_active=True, is_temporarily_disabled=False)
+            Product.objects.filter(api_provider='alkasr').update(is_active=True, is_out_of_stock=False)
+
             # Clean up empty Alkasr products that have 0 variants
             empty_prods = Product.objects.filter(api_provider='alkasr', variants__isnull=True)
             empty_count = empty_prods.count()
             empty_prods.delete()
             if empty_count > 0:
                 self.stdout.write(f'Cleaned up {empty_count} unused empty products.')
-
-            # Deactivate variants linked to inactive or unavailable provider products
-            inactive_remote_ids = list(ProviderProduct.objects.filter(profile=profile, is_active=False).values_list('remote_id', flat=True))
-            if inactive_remote_ids:
-                deactivated = ProductVariant.objects.filter(api_product_id__in=inactive_remote_ids).update(is_active=False, is_temporarily_disabled=True)
-                self.stdout.write(f'Deactivated {deactivated} variants because they are unavailable/disabled at provider.')
-
-            # Also deactivate any corrupted fallback variants with (#ID) or null
-            bad_vars = ProductVariant.objects.filter(name__icontains='(#').update(is_active=False, is_temporarily_disabled=True)
-            if bad_vars:
-                self.stdout.write(f'Deactivated {bad_vars} un-named/corrupted fallback variants.')
 
             total_cats = Category.objects.count()
             total_prods = Product.objects.filter(api_provider='alkasr').count()

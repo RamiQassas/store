@@ -34,11 +34,16 @@ class AlkasrMapperService:
                 return p_name
                 
         # 3. Derive from product name prefix
-        prod_name = pp.name.strip()
+        prod_name = (pp.name or "").strip()
         for prefix in ("PUBG Mobile", "PUBG TR", "Pubg Mobile", "FREE FIRE", "Free fire", "LORDS MOBILE", 
                        "ROBLOX", "Syriatell", "Syriatel", "MTN", "Tik tok", "NETFLIX", "+Disney", "+Osn"):
             if prod_name.lower().startswith(prefix.lower()):
                 return prefix
+
+        if "whatsapp" in prod_name.lower() or "واتساب" in prod_name.lower():
+            return "تفعيل أرقام واتساب (WhatsApp)"
+        if "telegram" in prod_name.lower() or "تلغرام" in prod_name.lower():
+            return "تفعيل أرقام تلغرام (Telegram)"
 
         return raw_cat or prod_name or "خدمة عامة"
 

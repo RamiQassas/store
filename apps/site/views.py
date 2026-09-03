@@ -1964,22 +1964,9 @@ def product_detail(request, pk):
             messages.error(request, str(e))
             return redirect("product_detail", pk=pk)
 
-    variants = product.variants.filter(is_active=True, is_temporarily_disabled=False).exclude(name__icontains='(#').order_by('sort_order')
+    variants = product.variants.filter(is_active=True).order_by('sort_order')
     if not variants.exists():
-        variants = product.variants.filter(is_active=True).order_by('sort_order')
-    if not variants.exists():
-        p_price = getattr(product, 'price', None) or Decimal("0.00")
-        ProductVariant.objects.create(
-            product=product,
-            name=product.name,
-            sku=f"AUTO-{str(product.id)[:8]}",
-            price=p_price,
-            wholesale_price=p_price,
-            cost=getattr(product, 'base_cost', None) or getattr(product, 'cost_price', None) or Decimal("0.00"),
-            is_active=True,
-            metadata={"qty_type": "fixed", "qty_min": 1, "qty_max": 1}
-        )
-        variants = product.variants.filter(is_active=True)
+        variants = product.variants.all().order_by('sort_order')
     related_products = Product.objects.filter(category=product.category, is_active=True).exclude(pk=product.pk)[:3]
     
     missing_amount = request.session.pop('missing_amount', None)
