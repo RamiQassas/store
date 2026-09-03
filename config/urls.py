@@ -78,9 +78,24 @@ def version_view(request):
 
 from apps.common.auto_deploy import github_auto_deploy_view
 
+def diag_template(request):
+    import os
+    from django.template.loader import get_template
+    t = get_template("site/product_detail.html")
+    with open(t.origin.name, 'r', encoding='utf-8') as f:
+        content = f.read()
+    return JsonResponse({
+        "origin": str(t.origin.name),
+        "has_dynamic_fields": "dynamic-fields-container" in content,
+        "has_pasteToInput": "pasteToInput" in content,
+        "content_length": len(content),
+        "mtime": os.path.getmtime(t.origin.name)
+    })
+
 urlpatterns = [
     path("robots.txt", robots_txt),
     path("api/version/", version_view, name="version_view"),
+    path("api/diag-template/", diag_template, name="diag_template"),
     path("api/deploy-webhook/<str:secret_token>/", deploy_webhook, name="deploy_webhook"),
     path("api/github-auto-deploy/", github_auto_deploy_view, name="github_auto_deploy"),
     path("", include("apps.site.urls")),
