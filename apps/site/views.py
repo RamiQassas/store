@@ -6194,11 +6194,65 @@ def control_apicontrol_dashboard(request):
 
     products_count = max(products_count, len(alkasr_products), local_linked_count)
             
+    # Date Range Filtering for API Stats
+    start_date_str = request.GET.get("start_date", "").strip()
+    end_date_str = request.GET.get("end_date", "").strip()
+    preset = request.GET.get("preset", "").strip()
+    
+    from datetime import datetime, time, timedelta
+    from django.utils import timezone
+    
+    now = timezone.now()
+    if preset == "today":
+        start_date = now.date()
+        end_date = now.date()
+        start_date_str = start_date.strftime("%Y-%m-%d")
+        end_date_str = end_date.strftime("%Y-%m-%d")
+    elif preset == "yesterday":
+        yesterday = (now - timedelta(days=1)).date()
+        start_date = yesterday
+        end_date = yesterday
+        start_date_str = start_date.strftime("%Y-%m-%d")
+        end_date_str = end_date.strftime("%Y-%m-%d")
+    elif preset == "7days":
+        start_date = (now - timedelta(days=7)).date()
+        end_date = now.date()
+        start_date_str = start_date.strftime("%Y-%m-%d")
+        end_date_str = end_date.strftime("%Y-%m-%d")
+    elif preset == "30days":
+        start_date = (now - timedelta(days=30)).date()
+        end_date = now.date()
+        start_date_str = start_date.strftime("%Y-%m-%d")
+        end_date_str = end_date.strftime("%Y-%m-%d")
+    elif preset == "this_month":
+        start_date = now.date().replace(day=1)
+        end_date = now.date()
+        start_date_str = start_date.strftime("%Y-%m-%d")
+        end_date_str = end_date.strftime("%Y-%m-%d")
+    else:
+        start_date = None
+        end_date = None
+        if start_date_str:
+            try:
+                start_date = datetime.strptime(start_date_str, "%Y-%m-%d").date()
+            except ValueError:
+                start_date = None
+        if end_date_str:
+            try:
+                end_date = datetime.strptime(end_date_str, "%Y-%m-%d").date()
+            except ValueError:
+                end_date = None
+
     # Calculate statistics from completed and active API orders
     from apps.orders.models import Order
     order_filter = Q(status__in=[Order.Status.COMPLETED, Order.Status.PROCESSING])
     if store:
         order_filter &= Q(store=store)
+
+    if start_date:
+        order_filter &= Q(created_at__date__gte=start_date)
+    if end_date:
+        order_filter &= Q(created_at__date__lte=end_date)
 
     api_orders = Order.objects.filter(
         order_filter & (
@@ -6282,6 +6336,9 @@ def control_apicontrol_dashboard(request):
         "total_sales_usd": total_sales_usd,
         "total_profit_usd": total_profit_usd,
         "total_ops_count": total_ops_count,
+        "start_date": start_date_str,
+        "end_date": end_date_str,
+        "preset": preset,
         "provider_groups": provider_groups,
         "active_integrations": active_integrations,
         "selected_integration": integration or profile_obj,

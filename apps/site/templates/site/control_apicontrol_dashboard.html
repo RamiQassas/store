@@ -255,9 +255,52 @@
 
     <!-- Providers Catalog List -->
     <div class="glass-panel p-8 mt-8">
-        <h3 class="text-base font-black text-white mb-6 flex items-center gap-2">
-            <i class="fas fa-network-wired text-cyan text-xs"></i> بوابات ومزودو الخدمة النشطون وإحصاءاتها (Active Integrations & Stats)
-        </h3>
+        <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4 mb-6 pb-6 border-b border-white/5">
+            <div>
+                <h3 class="text-base font-black text-white flex items-center gap-2">
+                    <i class="fas fa-network-wired text-cyan text-xs"></i> بوابات ومزودو الخدمة النشطون وإحصاءاتها (Active Integrations & Stats)
+                </h3>
+                <p class="text-[11px] text-slate-400 mt-1">تتبع إجمالي المشتريات والمبيعات والأرباح الحقيقية ومعدل العمليات المنجزة عبر المزودين مع فلترة مرنة حسب الفترة الزمنية.</p>
+            </div>
+
+            <!-- Date Range Filter Form -->
+            <form method="GET" action="." class="flex flex-wrap items-center gap-2">
+                {% if selected_integration %}
+                <input type="hidden" name="integration_id" value="{{ selected_integration.id }}">
+                {% endif %}
+                
+                <!-- Quick Preset Pills -->
+                <div class="inline-flex rounded-xl bg-black/40 p-1 border border-white/5 text-[10px] font-bold">
+                    <a href="?{% if selected_integration %}integration_id={{ selected_integration.id }}{% endif %}" class="px-2.5 py-1 rounded-lg transition-all {% if not preset and not start_date and not end_date %}bg-cyan text-black font-black{% else %}text-slate-400 hover:text-white{% endif %}">الكل</a>
+                    <a href="?{% if selected_integration %}integration_id={{ selected_integration.id }}&{% endif %}preset=today" class="px-2.5 py-1 rounded-lg transition-all {% if preset == 'today' %}bg-cyan text-black font-black{% else %}text-slate-400 hover:text-white{% endif %}">اليوم</a>
+                    <a href="?{% if selected_integration %}integration_id={{ selected_integration.id }}&{% endif %}preset=yesterday" class="px-2.5 py-1 rounded-lg transition-all {% if preset == 'yesterday' %}bg-cyan text-black font-black{% else %}text-slate-400 hover:text-white{% endif %}">أمس</a>
+                    <a href="?{% if selected_integration %}integration_id={{ selected_integration.id }}&{% endif %}preset=7days" class="px-2.5 py-1 rounded-lg transition-all {% if preset == '7days' %}bg-cyan text-black font-black{% else %}text-slate-400 hover:text-white{% endif %}">7 أيام</a>
+                    <a href="?{% if selected_integration %}integration_id={{ selected_integration.id }}&{% endif %}preset=30days" class="px-2.5 py-1 rounded-lg transition-all {% if preset == '30days' %}bg-cyan text-black font-black{% else %}text-slate-400 hover:text-white{% endif %}">30 يوم</a>
+                    <a href="?{% if selected_integration %}integration_id={{ selected_integration.id }}&{% endif %}preset=this_month" class="px-2.5 py-1 rounded-lg transition-all {% if preset == 'this_month' %}bg-cyan text-black font-black{% else %}text-slate-400 hover:text-white{% endif %}">هذا الشهر</a>
+                </div>
+
+                <!-- Custom Date Range Inputs -->
+                <div class="flex items-center gap-1.5 bg-black/40 p-1 rounded-xl border border-white/5">
+                    <div class="flex items-center gap-1 px-2 text-[10px] text-slate-400 font-bold">
+                        <span>من:</span>
+                        <input type="date" name="start_date" value="{{ start_date }}" class="bg-transparent border-0 text-white text-[10px] focus:ring-0 p-0 font-mono">
+                    </div>
+                    <span class="text-slate-600">-</span>
+                    <div class="flex items-center gap-1 px-2 text-[10px] text-slate-400 font-bold">
+                        <span>إلى:</span>
+                        <input type="date" name="end_date" value="{{ end_date }}" class="bg-transparent border-0 text-white text-[10px] focus:ring-0 p-0 font-mono">
+                    </div>
+                    <button type="submit" class="px-3 py-1 bg-cyan hover:bg-cyan/90 text-black text-[10px] font-black rounded-lg transition-all flex items-center gap-1">
+                        <i class="fas fa-filter text-[9px]"></i> تصفية
+                    </button>
+                    {% if start_date or end_date or preset %}
+                    <a href="?{% if selected_integration %}integration_id={{ selected_integration.id }}{% endif %}" class="px-2 py-1 bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white text-[10px] rounded-lg transition-all" title="إلغاء الفلتر">
+                        <i class="fas fa-xmark"></i>
+                    </a>
+                    {% endif %}
+                </div>
+            </form>
+        </div>
         
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {% for integ in active_integrations %}
