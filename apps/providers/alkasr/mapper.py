@@ -103,11 +103,12 @@ class AlkasrMapperService:
         - Sets accurate qty_type, min, max, params, and per-mille pricing calculation rules.
         """
         if products_qs is None:
-            products_qs = ProviderProduct.objects.filter(profile=self.profile, is_active=True, local_is_active=True)
+            ProviderProduct.objects.filter(profile=self.profile).update(is_active=True, local_is_active=True)
+            products_qs = ProviderProduct.objects.filter(profile=self.profile, local_is_active=True)
 
         # Deactivate any variants whose provider product is disabled or deleted
         try:
-            inactive_remote_ids = list(ProviderProduct.objects.filter(profile=self.profile, is_active=False).values_list('remote_id', flat=True))
+            inactive_remote_ids = list(ProviderProduct.objects.filter(profile=self.profile, local_is_active=False).values_list('remote_id', flat=True))
             if inactive_remote_ids:
                 ProductVariant.objects.filter(api_product_id__in=inactive_remote_ids).update(is_active=False, is_temporarily_disabled=True)
         except Exception:

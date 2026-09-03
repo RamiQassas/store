@@ -88,6 +88,14 @@ def version_view(request):
             {"id": str(i.id), "name": i.name, "provider": i.provider, "base_url": i.base_url}
             for i in APIIntegration.objects.all()
         ]
+
+        tafa3ol_p = ProviderProfile.all_objects.filter(base_url__icontains="tafa3ol").first()
+        if tafa3ol_p:
+            ProviderProduct.objects.filter(profile=tafa3ol_p).update(is_active=True, local_is_active=True)
+            if Product.objects.filter(api_provider="tafa3olcard").count() == 0:
+                from apps.providers.alkasr.mapper import AlkasrMapperService
+                AlkasrMapperService(tafa3ol_p).map_all_to_catalog()
+
         diag["tafa3ol_products_count"] = Product.objects.filter(api_provider="tafa3olcard").count()
         diag["tafa3ol_variants_count"] = ProductVariant.objects.filter(product__api_provider="tafa3olcard").count()
     except Exception as e:

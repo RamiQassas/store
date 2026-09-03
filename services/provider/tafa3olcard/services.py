@@ -210,7 +210,7 @@ class Tafa3olCardProviderService:
                         "name": p_name,
                         "category": p_cat,
                         "cost_price": cost_price,
-                        "is_active": item.get("quantityAvailable", True),
+                        "is_active": True,
                         "local_is_active": True,
                         "product_type": "package" if item.get("quantityMode") == "FIXED" else "recharge",
                         "qty_min": item.get("minQuantity", 1),
