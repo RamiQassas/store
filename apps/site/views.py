@@ -6221,9 +6221,9 @@ def control_apicontrol_dashboard(request):
             
         cost = 0.0
         # 1. Check provider_orders for actual recorded provider cost
-        po = order.provider_orders.filter(cost_amount__gt=0).first()
-        if po and float(po.cost_amount) > 0 and float(po.cost_amount) < sales:
-            cost = float(po.cost_amount)
+        po = order.provider_orders.filter(cost__gt=0).first()
+        if po and float(po.cost) > 0 and float(po.cost) < sales:
+            cost = float(po.cost)
         else:
             # 2. Check items cost ratio
             order_items_cost = 0.0
