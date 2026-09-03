@@ -416,25 +416,6 @@
                             </div>
                             {% endif %}
                         </div>
-                        {% endfor %}
-                    {% elif product.is_api_product %}
-                        <!-- Default Player ID box for API products if no schema provided -->
-                        <div class="field-group bg-slate-950/60 p-4 rounded-2xl border border-white/5 focus-within:border-cyan/50 transition-all">
-                            <label class="text-xs font-bold text-slate-200 flex items-center justify-between mb-2">
-                                <span class="flex items-center gap-2">
-                                    <i class="fas fa-gamepad text-cyan text-xs"></i>
-                                    <span>ايدي اللاعب (Player ID)</span>
-                                </span>
-                                <span class="text-[10px] text-rose-400 font-bold">* مطلوب</span>
-                            </label>
-                            <div class="flex items-center gap-3">
-                                <input type="text" name="custom_playerId" id="custom_playerId" placeholder="أدخل ايدي اللاعب هنا (مثال: 5123456789)..." class="flex-grow bg-slate-900 border border-white/10 rounded-2xl p-4 text-white font-mono text-base focus:border-cyan transition" required>
-                                <button type="button" onclick="pasteToInput('custom_playerId')" class="shrink-0 h-[56px] px-5 rounded-2xl bg-cyan/10 hover:bg-cyan/20 border border-cyan/20 hover:border-cyan/40 text-cyan text-xs font-black flex items-center gap-2 transition active:scale-95 cursor-pointer" title="لصق من الحافظة">
-                                    <i class="far fa-paste text-sm"></i>
-                                    <span>لصق</span>
-                                </button>
-                            </div>
-                        </div>
                     {% endif %}
                 </div>
             </div>
@@ -697,29 +678,8 @@ function renderDynamicFields(paramsJson, el) {
         });
         wrapper.innerHTML = html;
     } else {
-        const isApiProduct = {{ product.is_api_product|yesno:"true,false" }};
-        if (isApiProduct && wrapper.querySelectorAll('input').length === 0) {
-            container.classList.remove('hidden');
-            const prevVal = existingValues['playerId'] || '';
-            wrapper.innerHTML = `
-                <div class="field-group bg-slate-950/60 p-4 rounded-2xl border border-white/5 focus-within:border-cyan/50 transition-all">
-                    <label class="text-xs font-bold text-slate-200 flex items-center justify-between mb-2">
-                        <span class="flex items-center gap-2">
-                            <i class="fas fa-gamepad text-cyan text-xs"></i>
-                            <span>ايدي اللاعب (Player ID)</span>
-                        </span>
-                        <span class="text-[10px] text-rose-400 font-bold">* مطلوب</span>
-                    </label>
-                    <div class="flex items-center gap-3">
-                        <input type="text" name="custom_playerId" id="custom_playerId" value="${prevVal}" placeholder="أدخل ايدي اللاعب هنا (مثال: 5123456789)..." class="flex-grow bg-slate-900 border border-white/10 rounded-2xl p-4 text-white font-mono text-base focus:border-cyan transition" required>
-                        <button type="button" onclick="pasteToInput('custom_playerId')" class="shrink-0 h-[56px] px-5 rounded-2xl bg-cyan/10 hover:bg-cyan/20 border border-cyan/20 hover:border-cyan/40 text-cyan text-xs font-black flex items-center gap-2 transition active:scale-95 cursor-pointer" title="لصق من الحافظة">
-                            <i class="far fa-paste text-sm"></i>
-                            <span>لصق</span>
-                        </button>
-                    </div>
-                </div>
-            `;
-        }
+        container.classList.add('hidden');
+        wrapper.innerHTML = '';
     }
 }
 

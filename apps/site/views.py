@@ -295,11 +295,8 @@ def complete_pending_purchase(request, user):
             del request.session["v3_pending_purchase"]
             clean_verification_session(request)
             
-            # If variant is auto-delivery keys, redirect to order detail so they see the keys immediately!
-            if variant.delivery_type == 'keys':
-                return redirect(reverse("dashboard_order_detail", kwargs={"pk": order.id}))
-            else:
-                return redirect("dashboard_orders")
+            # Redirect to order detail so they see the keys/live status immediately!
+            return redirect(f"{reverse('dashboard_order_detail', kwargs={'pk': order.id})}?new=1")
                 
         except Exception as e:
             messages.error(request, f"فشل إتمام الشراء: {str(e)}")
@@ -1961,11 +1958,8 @@ def product_detail(request, pk):
                 shipping_phone=shipping_phone,
                 shipping_address=shipping_address,
             )
-            messages.success(request, "تم إتمام الطلب بنجاح.")
-            if variant.delivery_type == 'keys':
-                return redirect(reverse("dashboard_order_detail", kwargs={"pk": order.id}))
-            else:
-                return redirect("dashboard_orders")
+            # Redirect to order detail with new=1 to auto-open live status & details modal
+            return redirect(f"{reverse('dashboard_order_detail', kwargs={'pk': order.id})}?new=1")
         except ValueError as e:
             messages.error(request, str(e))
             return redirect("product_detail", pk=pk)
