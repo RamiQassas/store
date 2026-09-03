@@ -1964,9 +1964,9 @@ def product_detail(request, pk):
             messages.error(request, str(e))
             return redirect("product_detail", pk=pk)
 
-    variants = product.variants.filter(is_active=True).order_by('sort_order')
+    variants = product.variants.filter(is_active=True, is_temporarily_disabled=False).exclude(name__icontains='(#').order_by('sort_order')
     if not variants.exists():
-        variants = product.variants.all().order_by('sort_order')
+        variants = product.variants.filter(is_active=True).order_by('sort_order')
     if not variants.exists():
         p_price = getattr(product, 'price', None) or Decimal("0.00")
         ProductVariant.objects.create(

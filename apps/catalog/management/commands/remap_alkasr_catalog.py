@@ -15,18 +15,15 @@ class Command(BaseCommand):
         for profile in profiles:
             self.stdout.write(f'Processing profile: {profile.provider_name} (ID: {profile.id})...')
             
-            # Check if sync is needed
-            p_count = ProviderProduct.objects.filter(profile=profile).count()
-            if p_count == 0:
-                self.stdout.write('No ProviderProducts found. Running initial sync from Alkasr...')
-                try:
-                    from apps.providers.alkasr.sync import AlkasrSyncService
-                    sync_svc = AlkasrSyncService(profile)
-                    sync_svc.sync_catalog()
-                    self.stdout.write(self.style.SUCCESS('Initial sync completed.'))
-                except Exception as e:
-                    self.stdout.write(self.style.ERROR(f'Sync error: {e}'))
-            
+            # Sync from Alkasr to get latest availability
+            try:
+                from apps.providers.alkasr.sync import AlkasrSyncService
+                sync_svc = AlkasrSyncService(profile)
+                sync_svc.sync_catalog()
+                self.stdout.write(self.style.SUCCESS('Synced live availability from Alkasr.'))
+            except Exception as e:
+                self.stdout.write(self.style.ERROR(f'Sync error: {e}'))
+
             mapper = AlkasrMapperService(profile)
             mapper.map_all_to_catalog()
             
@@ -37,9 +34,16 @@ class Command(BaseCommand):
             if empty_count > 0:
                 self.stdout.write(f'Cleaned up {empty_count} unused empty products.')
 
-            # Also ensure all variants belonging to alkasr products are active
-            ProductVariant.objects.filter(product__api_provider='alkasr').update(is_active=True, is_temporarily_disabled=False)
-            Product.objects.filter(api_provider='alkasr').update(is_active=True, is_out_of_stock=False)
+            # Deactivate variants linked to inactive or unavailable provider products
+            inactive_remote_ids = list(ProviderProduct.objects.filter(profile=profile, is_active=False).values_list('remote_id', flat=True))
+            if inactive_remote_ids:
+                deactivated = ProductVariant.objects.filter(api_product_id__in=inactive_remote_ids).update(is_active=False, is_temporarily_disabled=True)
+                self.stdout.write(f'Deactivated {deactivated} variants because they are unavailable/disabled at provider.')
+
+            # Also deactivate any corrupted fallback variants with (#ID) or null
+            bad_vars = ProductVariant.objects.filter(name__icontains='(#').update(is_active=False, is_temporarily_disabled=True)
+            if bad_vars:
+                self.stdout.write(f'Deactivated {bad_vars} un-named/corrupted fallback variants.')
 
             total_cats = Category.objects.count()
             total_prods = Product.objects.filter(api_provider='alkasr').count()

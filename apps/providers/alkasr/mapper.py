@@ -247,6 +247,8 @@ class AlkasrMapperService:
                     if not local_variant:
                         local_variant = ProductVariant.objects.filter(api_product_id=pp.remote_id, product=local_product).first()
 
+                    variant_is_active = bool(pp.is_active and pp.local_is_active)
+
                     if not local_variant:
                         local_variant = ProductVariant.objects.create(
                             product=local_product,
@@ -256,8 +258,8 @@ class AlkasrMapperService:
                             wholesale_price=wholesale_price,
                             vip_price=vip_price,
                             cost=pp.cost_price,
-                            is_active=True,
-                            is_temporarily_disabled=False,
+                            is_active=variant_is_active,
+                            is_temporarily_disabled=not variant_is_active,
                             metadata=meta,
                             api_product_id=pp.remote_id
                         )
@@ -267,8 +269,8 @@ class AlkasrMapperService:
                         local_variant.wholesale_price = wholesale_price
                         local_variant.vip_price = vip_price
                         local_variant.cost = pp.cost_price
-                        local_variant.is_active = True
-                        local_variant.is_temporarily_disabled = False
+                        local_variant.is_active = variant_is_active
+                        local_variant.is_temporarily_disabled = not variant_is_active
                         local_variant.metadata = meta
                         local_variant.api_product_id = pp.remote_id
                         local_variant.save()

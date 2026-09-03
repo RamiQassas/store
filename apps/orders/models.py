@@ -198,7 +198,14 @@ class Order(TimeStampedModel):
             if fid:
                 label_map[fid] = lbl
         
+        EXCLUDED_KEYS = {
+            "api_provider", "api_status", "api_last_response", "api_refunded",
+            "response", "api_response", "api_error", "alkasr", "provider",
+            "provider_order_id", "api_order_id", "api_order_uuid"
+        }
         for key, val in self.metadata.items():
+            if key in EXCLUDED_KEYS or str(key).lower() in EXCLUDED_KEYS:
+                continue
             label = label_map.get(key, key)
             results.append({"label": label, "value": val})
                 

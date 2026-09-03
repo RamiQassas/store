@@ -272,11 +272,12 @@
                 {% endfor %}
             </div>
 
-            {% if order.metadata %}
+            {% if order.formatted_metadata %}
             <div class="mt-8 pt-6 border-t border-white/5">
                 <h4 class="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-4">بيانات الحقول المخصصة</h4>
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {% for item in order.formatted_metadata %}
+                    {% if item.label != 'api_provider' and item.label != 'alkasr' and item.value != 'alkasr' and item.label != 'Api provider' %}
                     <div class="bg-slate-900/50 p-4 rounded-xl border border-white/5">
                         <span class="text-[10px] text-slate-500 block mb-1">{{ item.label }}</span>
                         {% if item.value|is_location_url %}
@@ -290,6 +291,7 @@
                         <strong class="text-white text-sm">{{ item.value }}</strong>
                         {% endif %}
                     </div>
+                    {% endif %}
                     {% endfor %}
                 </div>
             </div>
