@@ -507,21 +507,8 @@ document.addEventListener('click', function(e) {
     }
 });
 
-// Auto-open modal on first view if order was just placed or is processing
+// Auto-poll for status updates in background if order is processing (updates page seamlessly when completed)
 document.addEventListener('DOMContentLoaded', function() {
-    const urlParams = new URLSearchParams(window.location.search);
-    const isNew = urlParams.get('new') === '1' || sessionStorage.getItem('just_placed_order') === '{{ order.id }}';
-    
-    {% if order.status == 'processing' %}
-    setTimeout(openStatusModal, 200);
-    {% else %}
-    if (isNew) {
-        sessionStorage.removeItem('just_placed_order');
-        setTimeout(openStatusModal, 200);
-    }
-    {% endif %}
-    
-    // Auto-poll for status updates if order is processing
     {% if order.status == 'processing' %}
     let pollCount = 0;
     const pollInterval = setInterval(function() {
@@ -531,13 +518,16 @@ document.addEventListener('DOMContentLoaded', function() {
             return;
         }
         fetch(window.location.href, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
-            .then(res => {
-                if (res.ok) {
+            .then(res => res.json())
+            .then(data => {
+                if (data && data.status && data.status !== 'processing') {
+                    clearInterval(pollInterval);
+                    // Reload only ONCE when status actually completes or cancels
                     window.location.reload();
                 }
             })
             .catch(() => {});
-    }, 6000);
+    }, 5000);
     {% endif %}
 });
 

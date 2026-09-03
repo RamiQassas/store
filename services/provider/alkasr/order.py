@@ -60,13 +60,38 @@ class AlkasrOrderService:
         if ProviderOrder.objects.filter(uuid=final_uuid).exists():
             final_uuid = str(uuid.uuid4())
 
+        # Map player_params to the ProviderProduct's actual parameter names
+        final_params = {}
+        if hasattr(provider_product, 'parameters'):
+            for p in provider_product.parameters.all():
+                val = params.get(p.name) or params.get(p.label)
+                if not val:
+                    p_name_clean = (p.name or "").lower().replace("_", "").replace(" ", "")
+                    p_label_clean = (p.label or "").lower().replace("_", "").replace(" ", "")
+                    for k, v in params.items():
+                        k_clean = k.lower().replace("_", "").replace(" ", "")
+                        if k_clean == p_name_clean or k_clean == p_label_clean:
+                            val = v
+                            break
+                        if any(alias in k_clean for alias in ["player", "user", "id", "ايدي", "آيدي", "phone", "هاتف", "جوال"]):
+                            val = v
+                            break
+                if not val and len(params) == 1:
+                    val = list(params.values())[0]
+                if val:
+                    final_params[p.name] = str(val).strip()
+        
+        for k, v in params.items():
+            if k not in final_params and v:
+                final_params[k] = str(v).strip()
+
         # 4. Submit to API Client
         remote_product_id = str(provider_product.remote_id)
         api_response = self.client.create_order(
             order_uuid=final_uuid,
             product_id=remote_product_id,
             quantity=quantity,
-            player_params=params
+            player_params=final_params
         )
 
         # 5. Extract Remote Order ID & Status

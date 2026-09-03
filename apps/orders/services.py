@@ -303,7 +303,7 @@ def create_order(customer, variant_id, quantity=1, fulfillment_data=None,
 
     order_status = Order.Status.COMPLETED if variant.delivery_type == "keys" else Order.Status.PROCESSING
     final_fulfillment = dict(fulfillment_data or {})
-    api_order_uuid = uuid.uuid4() if variant.product.is_api_product and variant.api_product_id else None
+    api_order_uuid = uuid.uuid4() if (variant.product.is_api_product or variant.api_product_id or getattr(variant.product, 'api_product_id', None)) else None
     api_order_id = None
     if locked_keys:
         final_fulfillment["keys"] = [k.key_code for k in locked_keys]
@@ -354,20 +354,44 @@ def create_order(customer, variant_id, quantity=1, fulfillment_data=None,
         created_by=customer,
     )
 
-    if variant.product.is_api_product and variant.api_product_id:
+    if variant.product.is_api_product or variant.api_product_id or getattr(variant.product, 'api_product_id', None):
         provider = variant.product.api_provider or "alkasr"
         api_order_id = None
         try:
             from services.provider.manager import ProviderManager
+            from apps.providers.models import ProviderMapping, ProviderProduct
+            
+            provider_product = None
+            profile = None
+            
             mapping = getattr(variant, "provider_mapping", None)
             if not mapping or not mapping.provider_product:
-                raise ValueError("Product is not mapped to provider product.")
+                mapping = ProviderMapping.objects.filter(local_variant=variant).select_related("provider_product__profile").first()
+            
+            if mapping and mapping.provider_product:
+                provider_product = mapping.provider_product
+                profile = provider_product.profile
+            elif variant.api_product_id:
+                provider_product = ProviderProduct.objects.filter(remote_id=variant.api_product_id).select_related("profile").first()
+                if provider_product:
+                    profile = provider_product.profile
+            elif getattr(variant.product, 'api_product_id', None):
+                provider_product = ProviderProduct.objects.filter(remote_id=variant.product.api_product_id).select_related("profile").first()
+                if provider_product:
+                    profile = provider_product.profile
+            
+            if not provider_product or not profile:
+                raise ValueError(f"المنتج غير مربوط بمزود خدمة فعال (API ID: {variant.api_product_id or getattr(variant.product, 'api_product_id', None)}).")
 
-            profile = mapping.provider_product.profile
+            if not api_order_uuid:
+                api_order_uuid = uuid.uuid4()
+                order.api_order_uuid = api_order_uuid
+                order.save(update_fields=["api_order_uuid"])
+
             api_resp = ProviderManager.place_order(
                 profile=profile,
                 local_order=order,
-                provider_product=mapping.provider_product,
+                provider_product=provider_product,
                 quantity=quantity,
                 player_params=metadata or {},
                 order_uuid=api_order_uuid,
