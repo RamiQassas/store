@@ -36,7 +36,7 @@ def get_remote_commit_sha():
 def apply_git_update():
     logger.info("🚀 [AUTO-DEPLOY] New commit detected on GitHub master. Applying updates...")
     try:
-        cmd = "git fetch origin master && git reset --hard origin/master && python manage.py migrate --noinput && python manage.py collectstatic --noinput"
+        cmd = "git fetch origin master && git reset --hard origin/master && python manage.py migrate --noinput && python manage.py collectstatic --noinput && touch config/wsgi.py && (pkill -HUP -f gunicorn || pkill -f gunicorn || true)"
         proc = subprocess.run(cmd, shell=True, capture_output=True, text=True, timeout=120)
         logger.info(f"🚀 [AUTO-DEPLOY] Output: {proc.stdout[:300]}")
         if proc.stderr:
