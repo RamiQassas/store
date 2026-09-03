@@ -201,7 +201,15 @@ class AlkasrSyncService:
             or "0.00"
         )
         cost = self._decimal(raw_cost)
+
+        # Respect provider availability flag (available / status)
+        available_val = pdata.get("available")
+        status_val = pdata.get("status")
         is_available = True
+        if available_val is False or available_val == 0 or available_val == "0" or str(available_val).lower() in ("false", "0"):
+            is_available = False
+        elif status_val is False or status_val == 0 or status_val == "0" or str(status_val).lower() in ("false", "0", "inactive", "disabled", "out_of_stock"):
+            is_available = False
 
         category_obj = self._category_for_product(pdata, categories_by_remote)
         product_type, qty_min, qty_max, qty_list = self._quantity_config(pdata)
@@ -223,8 +231,8 @@ class AlkasrSyncService:
                 qty_min=qty_min,
                 qty_max=qty_max,
                 qty_list=qty_list,
-                is_active=True,
-                local_is_active=True,
+                is_active=is_available,
+                local_is_active=is_available,
             )
             ProviderPrice.objects.create(
                 product=product_obj,
@@ -243,9 +251,16 @@ class AlkasrSyncService:
             product_obj.qty_min = qty_min
             product_obj.qty_max = qty_max
             product_obj.qty_list = qty_list
-            product_obj.is_active = True
-            product_obj.local_is_active = True
+            product_obj.is_active = is_available
+            product_obj.local_is_active = is_available
             product_obj.save()
+
+            if not is_available:
+                try:
+                    from apps.catalog.models import ProductVariant
+                    ProductVariant.objects.filter(api_product_id=str(remote_id)).update(is_active=False, is_temporarily_disabled=True)
+                except Exception:
+                    pass
 
             pricing_obj = getattr(product_obj, "pricing", None)
             if not pricing_obj:
