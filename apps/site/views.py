@@ -5946,7 +5946,16 @@ def control_apicontrol_dashboard(request):
 
         ProviderProfile.all_objects.filter(provider_name__in=["Alkasr VIP", "الكسر VIP", "الكاسر VIP", "ramiqassas2002@gmail.com"]).update(provider_name="رقميات")
         ProviderProfile.all_objects.filter(base_url__icontains="alkasr").update(provider_name="رقميات")
-        
+
+        # Ensure products are properly mapped to Alkasr / Raqamiyat profile and not wrongly assigned to Tafa3olcard
+        alkasr_prof = ProviderProfile.all_objects.filter(Q(base_url__icontains="alkasr") | Q(provider_name="رقميات")).first()
+        tafa3ol_prof = ProviderProfile.all_objects.filter(Q(base_url__icontains="tafa3ol") | Q(provider_name__icontains="تفاعل")).first()
+        if alkasr_prof and tafa3ol_prof:
+            from apps.providers.models import ProviderOrder
+            ProviderProduct.objects.filter(profile=tafa3ol_prof).exclude(remote_id__startswith="tafa_").update(profile=alkasr_prof)
+            ProviderCategory.objects.filter(profile=tafa3ol_prof).exclude(remote_id__startswith="tafa_").update(profile=alkasr_prof)
+            ProviderOrder.objects.filter(profile=tafa3ol_prof).update(profile=alkasr_prof)
+
         # 1. Fetch active integrations from APIIntegration model
         if store:
             active_integrations = list(APIIntegration.objects.filter(store=store, is_active=True))
