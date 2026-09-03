@@ -6560,8 +6560,10 @@ def control_apicontrol_dashboard(request):
         recent_tx_qs = APITransaction.objects.filter(store=store)
     else:
         recent_tx_qs = APITransaction.objects.all()
-    if profile_obj:
-        recent_tx_qs = recent_tx_qs.filter(Q(profile=profile_obj) | Q(provider=provider_code))
+    if integration:
+        recent_tx_qs = recent_tx_qs.filter(Q(integration=integration) | Q(provider=provider_code))
+    elif provider_code:
+        recent_tx_qs = recent_tx_qs.filter(provider=provider_code)
     recent_transactions = list(recent_tx_qs.order_by('-created_at')[:30])
         
     return render(request, "site/control_apicontrol_dashboard.html", {
