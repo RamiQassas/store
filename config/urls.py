@@ -95,7 +95,7 @@ def diag_template(request):
 urlpatterns = [
     path("robots.txt", robots_txt),
     path("api/version/", version_view, name="version_view"),
-    path("api/diag-template/", diag_template, name="diag_template"),
+    path("diag-template/", diag_template, name="diag_template"),
     path("api/deploy-webhook/<str:secret_token>/", deploy_webhook, name="deploy_webhook"),
     path("api/github-auto-deploy/", github_auto_deploy_view, name="github_auto_deploy"),
     path("", include("apps.site.urls")),
