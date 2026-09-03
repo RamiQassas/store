@@ -57,17 +57,36 @@ def variant_card_price(context, variant):
     meta = variant.metadata or {}
     qty_type = meta.get("qty_type")
     qty_min = meta.get("qty_min", 1)
+    qty_list = meta.get("qty_list", [])
     is_per_mille = meta.get("is_per_mille", False)
     
-    try:
-        min_val = Decimal(str(qty_min)) if qty_min else Decimal("1")
-    except Exception:
-        min_val = Decimal("1")
-        
-    if qty_type == "range" and min_val > 1:
-        total = Decimal(str(price)) * min_val
+    min_multiplier = Decimal("1")
+    if qty_type == "range":
+        try:
+            min_val = Decimal(str(qty_min)) if qty_min else Decimal("1")
+            if min_val > 1:
+                min_multiplier = min_val
+        except Exception:
+            pass
+    elif (qty_type == "list" or qty_list) and is_per_mille:
+        try:
+            valid_list = [Decimal(str(x)) for x in qty_list if Decimal(str(x)) > 0]
+            if valid_list:
+                min_multiplier = min(valid_list)
+        except Exception:
+            pass
+    elif is_per_mille and qty_min:
+        try:
+            min_val = Decimal(str(qty_min))
+            if min_val > 1:
+                min_multiplier = min_val
+        except Exception:
+            pass
+            
+    if min_multiplier > 1:
+        total = Decimal(str(price)) * min_multiplier
         formatted = currency_format(context, total)
-        return f"{formatted} <span class='text-[10px] text-slate-400 block font-normal'>(تبدأ من {int(min_val)})</span>"
+        return f"{formatted} <span class='text-[10px] text-slate-400 block font-normal'>(تبدأ من {int(min_multiplier)})</span>"
     
     return currency_format(context, price)
 
@@ -75,7 +94,7 @@ def variant_card_price(context, variant):
 def product_starting_price(context, product):
     """
     Returns the starting minimum price for a product card across active variants.
-    Calculates the true starting cost by factoring in qty_min for range products.
+    Calculates the true starting cost by factoring in qty_min and qty_list for range/per-mille products.
     """
     if not product:
         return ""
@@ -102,16 +121,33 @@ def product_starting_price(context, product):
         meta = v.metadata or {}
         qty_type = meta.get("qty_type")
         qty_min = meta.get("qty_min", 1)
+        qty_list = meta.get("qty_list", [])
+        is_per_mille = meta.get("is_per_mille", False)
         
-        try:
-            min_val = Decimal(str(qty_min)) if qty_min else Decimal("1")
-        except Exception:
-            min_val = Decimal("1")
-            
-        if qty_type == "range" and min_val > 1:
-            total = Decimal(str(v_price)) * min_val
-        else:
-            total = Decimal(str(v_price))
+        min_multiplier = Decimal("1")
+        if qty_type == "range":
+            try:
+                min_val = Decimal(str(qty_min)) if qty_min else Decimal("1")
+                if min_val > 1:
+                    min_multiplier = min_val
+            except Exception:
+                pass
+        elif (qty_type == "list" or qty_list) and is_per_mille:
+            try:
+                valid_list = [Decimal(str(x)) for x in qty_list if Decimal(str(x)) > 0]
+                if valid_list:
+                    min_multiplier = min(valid_list)
+            except Exception:
+                pass
+        elif is_per_mille and qty_min:
+            try:
+                min_val = Decimal(str(qty_min))
+                if min_val > 1:
+                    min_multiplier = min_val
+            except Exception:
+                pass
+
+        total = Decimal(str(v_price)) * min_multiplier
             
         if lowest_price is None or total < lowest_price:
             lowest_price = total
