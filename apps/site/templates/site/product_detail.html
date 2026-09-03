@@ -793,28 +793,34 @@ function renderQuantitySelector(qtyType, qtyMin, qtyMax, qtyListStr) {
             try { listOptions = JSON.parse(listOptions); } catch(e) {}
         }
         
-        let pillsHtml = `
+        let selectHtml = `
             <div class="bg-slate-950/60 p-5 rounded-2xl border border-white/5">
-                <span class="text-xs text-slate-400 block mb-3 font-bold">الكميات المتاحة للشحن الفوري:</span>
-                <div class="flex flex-wrap gap-2.5 mb-2">
+                <label for="quantity-select" class="text-xs text-slate-400 block mb-3 font-bold flex items-center gap-2">
+                    <i class="fas fa-list-ol text-cyan"></i> اختر فئة أو كمية الرصيد المطلوبة:
+                </label>
+                <div class="relative">
+                    <select id="quantity-select" onchange="setListQty(this.value)" 
+                            class="w-full bg-slate-900 border border-white/10 rounded-2xl px-5 py-4 text-cyan text-lg font-black font-mono focus:border-cyan focus:ring-1 focus:ring-cyan outline-none transition appearance-none cursor-pointer">
         `;
         if (listOptions && Array.isArray(listOptions) && listOptions.length > 0) {
             listOptions.forEach((val, idx) => {
-                const isFirst = idx === 0;
-                pillsHtml += `
-                    <button type="button" onclick="setListQty('${val}', this)" 
-                            class="qty-pill px-4 py-2.5 rounded-xl border text-sm font-bold font-mono transition-all ${isFirst ? 'bg-cyan text-slate-950 border-cyan shadow-lg shadow-cyan/20' : 'bg-slate-900 text-slate-300 border-white/10 hover:border-cyan/50'}">
-                        ${val}
-                    </button>
+                selectHtml += `
+                    <option value="${val}" ${idx === 0 ? 'selected' : ''}>
+                        ${val} وحدة / ليرة
+                    </option>
                 `;
             });
         }
-        pillsHtml += `
+        selectHtml += `
+                    </select>
+                    <div class="absolute left-4 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
+                        <i class="fas fa-chevron-down text-sm"></i>
+                    </div>
                 </div>
                 <input type="hidden" name="quantity" id="quantity-input" value="${(listOptions && listOptions[0]) ? listOptions[0] : 1}">
             </div>
         `;
-        inputHtml = pillsHtml;
+        inputHtml = selectHtml;
     } else {
         container.classList.add('hidden');
         inputHtml = `<input type="hidden" name="quantity" id="quantity-input" value="1">`;
@@ -824,15 +830,9 @@ function renderQuantitySelector(qtyType, qtyMin, qtyMax, qtyListStr) {
     updateQuantityPrice();
 }
 
-function setListQty(val, btn) {
+function setListQty(val) {
     const input = document.getElementById('quantity-input');
     if (input) input.value = val;
-    document.querySelectorAll('.qty-pill').forEach(p => {
-        p.className = 'qty-pill px-4 py-2.5 rounded-xl border text-sm font-bold font-mono transition-all bg-slate-900 text-slate-300 border-white/10 hover:border-cyan/50';
-    });
-    if (btn) {
-        btn.className = 'qty-pill px-4 py-2.5 rounded-xl border text-sm font-bold font-mono transition-all bg-cyan text-slate-950 border-cyan shadow-lg shadow-cyan/20';
-    }
     updateQuantityPrice();
 }
 
@@ -913,11 +913,7 @@ function updateQuantityPrice(isFromCoupon = false) {
     
     let subtotal = basePrice;
     if (qtyType === 'range' || qtyType === 'list') {
-        if (isPerMille) {
-            subtotal = (basePrice * qty) / 1000;
-        } else {
-            subtotal = basePrice * qty;
-        }
+        subtotal = basePrice * qty;
     }
     
     const breakdown = document.getElementById('price-breakdown');

@@ -64,9 +64,6 @@ def calculate_variant_subtotal(variant, user, quantity=1):
     is_per_mille = meta.get("is_per_mille", False)
     unit_price = variant.get_price_for_user(user)
 
-    if qty_type == "range" and is_per_mille:
-        return (unit_price * Decimal(qty)) / Decimal("1000.0")
-
     return unit_price * Decimal(qty)
 
 

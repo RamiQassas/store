@@ -33,22 +33,43 @@ def apply_provider_status(order, provider_status, raw_response=None, actor=None,
     raw_response = raw_response or {}
     delivery_values = extract_delivery_values(raw_response)
 
+    status_completed_aliases = {"accept", "accepted", "completed", "complete", "success", "successful", "done", "approved"}
+    status_cancelled_aliases = {"reject", "rejected", "cancel", "cancelled", "canceled", "failed", "error"}
+    status_processing_aliases = {"wait", "waiting", "pending", "processing", "in_progress"}
+
     with transaction.atomic():
         locked_order = Order.objects.select_for_update().get(pk=order.pk)
         old_status = locked_order.status
         fulfillment = dict(locked_order.fulfillment_data or {})
 
-        if provider_status == "accept":
+        # Extract transaction ID
+        trans_id = raw_response.get("trans_id") or raw_response.get("transaction_id") or raw_response.get("transId") or raw_response.get("reference")
+        if trans_id:
+            fulfillment["رقم عملية المزود (Transaction ID)"] = str(trans_id)
+
+        # Extract provider note / message / reply
+        provider_msg = raw_response.get("replay_api") or raw_response.get("msg") or raw_response.get("message") or raw_response.get("note") or raw_response.get("reason") or raw_response.get("details")
+        if provider_msg:
+            fulfillment["رد المزود وملاحظات التنفيذ"] = str(provider_msg)
+
+        # Extract remote order id
+        remote_id = raw_response.get("order_id") or raw_response.get("id")
+        if remote_id and not locked_order.api_order_id:
+            locked_order.api_order_id = str(remote_id)
+
+        if provider_status in status_completed_aliases:
             locked_order.status = Order.Status.COMPLETED
-            note = f"{note_prefix}: تم قبول الطلب من المزود وتحديثه إلى مكتمل."
-        elif provider_status == "reject":
+            note = f"{note_prefix}: تم إكمال وتنفيذ الطلب بنجاح من المزود."
+        elif provider_status in status_cancelled_aliases:
             locked_order.status = Order.Status.CANCELLED
-            note = f"{note_prefix}: تم رفض الطلب من المزود وإلغاء الطلب."
-        elif provider_status == "wait":
+            note = f"{note_prefix}: تم رفض/إلغاء الطلب من المزود."
+            if provider_msg:
+                note += f" (السبب: {provider_msg})"
+        elif provider_status in status_processing_aliases:
             locked_order.status = Order.Status.PROCESSING
-            note = f"{note_prefix}: الطلب ما زال قيد الانتظار لدى المزود."
+            note = f"{note_prefix}: الطلب قيد المعالجة والانتظار لدى المزود."
         else:
-            note = f"{note_prefix}: حالة غير معروفة من المزود: {provider_status or '-'}."
+            note = f"{note_prefix}: حالة واردة من المزود: {provider_status or '-'}."
 
         if delivery_values:
             fulfillment["الرموز المسلمة من المزود"] = " | ".join(delivery_values)
@@ -57,7 +78,7 @@ def apply_provider_status(order, provider_status, raw_response=None, actor=None,
         fulfillment["api_last_response"] = raw_response
 
         refunded = bool(fulfillment.get("api_refunded"))
-        if provider_status == "reject" and not refunded:
+        if provider_status in status_cancelled_aliases and not refunded:
             wallet = get_or_create_wallet(locked_order.customer)
             refund_amount = locked_order.total_amount
             if wallet.currency and wallet.currency.code != "USD":

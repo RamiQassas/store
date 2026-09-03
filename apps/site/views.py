@@ -837,6 +837,27 @@ def order_detail(request, pk):
         Order.objects.filter(customer=request.user).prefetch_related('items__variant__product', 'logs'),
         pk=pk
     )
+    
+    # Auto-refresh status from provider if order is still processing
+    if order.status == Order.Status.PROCESSING and (order.api_order_uuid or order.api_order_id):
+        try:
+            from services.provider.manager import ProviderManager
+            from apps.orders.provider_status import apply_provider_status
+            provider_order = order.provider_orders.select_related("profile").first()
+            if provider_order and provider_order.profile:
+                identifiers = [str(order.api_order_uuid)] if order.api_order_uuid else ([str(order.api_order_id)] if order.api_order_id else [])
+                data_list = ProviderManager.check_orders(
+                    provider_order.profile,
+                    identifiers,
+                    is_uuid=bool(order.api_order_uuid)
+                )
+                if data_list and len(data_list) > 0:
+                    order_data = data_list[0]
+                    api_status = order_data.get("status")
+                    order = apply_provider_status(order, api_status, raw_response=order_data, actor=None, note_prefix="تحديث تلقائي")
+        except Exception:
+            pass
+
     return render(request, "site/order_detail.html", {"order": order})
 
 from django.contrib.auth.hashers import make_password, check_password as check_password_hash
@@ -5787,7 +5808,11 @@ def control_apicontrol_dashboard(request):
                         pricing.vip_margin_value = profile_obj.default_vip_margin
                         pricing.save()
 
-                ProviderManager.sync_catalog(profile_obj)
+                try:
+                    from apps.providers.alkasr.mapper import AlkasrMapperService
+                    AlkasrMapperService(profile_obj).map_all_to_catalog()
+                except Exception:
+                    pass
                 messages.success(request, "تم تحديث نوع إعدادات الهامش (نسبة/مبلغ) وأسعار فئات العملاء بنجاح.")
             return redirect(redirect_url)
             

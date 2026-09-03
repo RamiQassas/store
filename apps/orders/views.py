@@ -35,15 +35,29 @@ class OrderViewSet(viewsets.ModelViewSet):
         OrderLog.objects.create(order=order, status=new_status, note=order.admin_note, created_by=request.user)
         return response.Response(OrderSerializer(order, context={"request": request}).data)
 
-    @decorators.action(detail=False, methods=["post"], url_path="webhook", permission_classes=[], authentication_classes=[])
+    @decorators.action(detail=False, methods=["post", "get"], url_path="alkasr_webhook", permission_classes=[], authentication_classes=[])
     def alkasr_webhook(self, request):
+        return self._process_alkasr_webhook(request)
+
+    @decorators.action(detail=False, methods=["post", "get"], url_path="webhook", permission_classes=[], authentication_classes=[])
+    def legacy_webhook(self, request):
+        return self._process_alkasr_webhook(request)
+
+    def _process_alkasr_webhook(self, request):
         import logging
         from apps.orders.provider_status import apply_provider_status
         
         logger = logging.getLogger(__name__)
-        logger.info(f"Alkasr webhook payload: {request.data}")
         
-        data = request.data or {}
+        data = {}
+        if request.data and isinstance(request.data, dict):
+            data.update(request.data)
+        if request.POST:
+            data.update(request.POST.dict())
+        if request.GET:
+            data.update(request.GET.dict())
+            
+        logger.info(f"Alkasr webhook payload: {data}")
         
         # Try to find the order by api_order_uuid or api_order_id
         order_uuid = data.get("order_uuid") or data.get("uuid") or data.get("orders")

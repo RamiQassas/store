@@ -152,6 +152,20 @@ class ProviderPrice(TimeStampedModel):
     def final_vip_price(self):
         return self.calculate_price_for_margin(self.vip_margin_value)
 
+    def save(self, *args, **kwargs):
+        super().save(*args, **kwargs)
+        try:
+            from apps.providers.models import ProviderMapping
+            mapping = ProviderMapping.objects.filter(provider_product=self.product).select_related('local_variant').first()
+            if mapping and mapping.local_variant:
+                var = mapping.local_variant
+                var.price = self.final_price
+                var.wholesale_price = self.final_wholesale_price
+                var.vip_price = self.final_vip_price
+                var.save(update_fields=['price', 'wholesale_price', 'vip_price'])
+        except Exception:
+            pass
+
 
 class ProviderPriceHistory(TimeStampedModel):
     """History of price changes for audit purposes."""

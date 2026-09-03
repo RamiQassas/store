@@ -57,33 +57,44 @@
         {% if not order.has_physical_products %}
             {% if order.status == 'completed' %}
             <div class="fulfillment-card shadow-lg shadow-cyan/5">
-                <h3 class="text-xl font-black text-cyan mb-6 flex items-center gap-3">
-                    <i class="fas fa-gift"></i> معلومات التسليم (Delivery Info)
-                </h3>
-                
-                {% if order.fulfillment_data %}
+                <div class="flex items-center justify-between mb-6 border-b border-white/5 pb-4">
+                    <h3 class="text-xl font-black text-cyan flex items-center gap-3">
+                        <i class="fas fa-check-circle text-emerald-400"></i> بيانات تنفيذ وشحن الطلب
+                    </h3>
+                    <span class="px-3 py-1 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 rounded-full text-xs font-bold font-mono">
+                        مكتمل بنجاح
+                    </span>
+                </div>
+
                 <div class="stack gap-4">
-                    {% for key, val in order.fulfillment_data.items %}
+                    {% if order.api_order_id %}
                     <div class="fulfillment-item">
                         <div>
-                            <span class="text-[10px] text-slate-500 font-black uppercase tracking-widest block mb-1">{{ key }}</span>
-                            <strong class="text-white font-mono text-sm">
-                                {% if key == "keys" %}
-                                    {{ val|join:", " }}
-                                {% else %}
-                                    {{ val }}
-                                {% endif %}
-                            </strong>
+                            <span class="text-[10px] text-slate-400 font-black uppercase tracking-widest block mb-1">رقم الطلب لدى المزود (Provider Order ID)</span>
+                            <strong class="text-white font-mono text-sm">{{ order.api_order_id }}</strong>
                         </div>
-                        <button class="copy-button" onclick="copyToClipboard('{% if key == "keys" %}{{ val|join:", " }}{% else %}{{ val }}{% endif %}', this)">نسخ</button>
+                        <button class="copy-button" onclick="copyToClipboard('{{ order.api_order_id }}', this)">نسخ</button>
                     </div>
+                    {% endif %}
+
+                    {% for key, val in order.fulfillment_data.items %}
+                        {% if key != 'api_status' and key != 'api_last_response' and key != 'api_refunded' and key != 'response' %}
+                        <div class="fulfillment-item">
+                            <div>
+                                <span class="text-[10px] text-cyan font-black uppercase tracking-widest block mb-1">{{ key }}</span>
+                                <strong class="text-white font-mono text-sm break-all">
+                                    {% if key == "keys" %}
+                                        {{ val|join:", " }}
+                                    {% else %}
+                                        {{ val }}
+                                    {% endif %}
+                                </strong>
+                            </div>
+                            <button class="copy-button" onclick="copyToClipboard('{% if key == "keys" %}{{ val|join:", " }}{% else %}{{ val }}{% endif %}', this)">نسخ</button>
+                        </div>
+                        {% endif %}
                     {% endfor %}
                 </div>
-                {% else %}
-                <div class="text-center p-8 bg-white/5 rounded-2xl border border-dashed border-white/10">
-                    <p class="text-sm text-slate-400">تم إتمام الطلب، ولكن لا توجد بيانات إضافية للتسليم.</p>
-                </div>
-                {% endif %}
                 
                 {% for item in order.items.all %}
                     {% if item.variant.product.instructions %}
@@ -96,13 +107,53 @@
                     {% endif %}
                 {% endfor %}
             </div>
-            {% else %}
-            <div class="panel p-12 text-center border-dashed">
-                <div class="w-16 h-16 bg-slate-800 rounded-full flex items-center justify-center mx-auto mb-6 text-amber-500">
-                    <i class="fas fa-clock text-3xl"></i>
+
+            {% elif order.status == 'cancelled' or order.status == 'refunded' %}
+            <div class="panel p-8 bg-rose-500/5 border border-rose-500/20 rounded-3xl">
+                <div class="flex items-center gap-4 mb-4">
+                    <div class="w-12 h-12 bg-rose-500/10 rounded-2xl flex items-center justify-center text-rose-500 text-xl shrink-0">
+                        <i class="fas fa-times-circle"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-lg font-bold text-white">تم إلغاء الطلب من المزود</h3>
+                        <p class="text-xs text-rose-400/80">تم إرجاع قيمة الطلب تلقائياً إلى رصيد محفظتك في الموقع.</p>
+                    </div>
                 </div>
-                <h3 class="text-xl font-bold mb-2">الطلب قيد المعالجة</h3>
-                <p class="text-slate-400 max-w-sm mx-auto">سيظهر كود البطاقة أو معلومات التسليم هنا فور قيام الإدارة بإتمام الطلب.</p>
+
+                {% if order.fulfillment_data %}
+                <div class="mt-4 stack gap-3 bg-slate-950/60 p-4 rounded-2xl border border-white/5">
+                    {% if order.api_order_id %}
+                    <div class="flex items-center justify-between text-xs text-slate-400">
+                        <span>رقم الطلب لدى المزود:</span>
+                        <span class="font-mono text-white">{{ order.api_order_id }}</span>
+                    </div>
+                    {% endif %}
+                    {% for key, val in order.fulfillment_data.items %}
+                        {% if key != 'api_status' and key != 'api_last_response' and key != 'api_refunded' %}
+                        <div class="flex items-center justify-between text-xs">
+                            <span class="text-slate-400">{{ key }}:</span>
+                            <span class="font-mono text-rose-300 font-bold">{{ val }}</span>
+                        </div>
+                        {% endif %}
+                    {% endfor %}
+                </div>
+                {% endif %}
+            </div>
+
+            {% else %}
+            <div class="panel p-10 text-center border border-white/10 rounded-3xl bg-slate-950/40">
+                <div class="w-16 h-16 bg-cyan/10 border border-cyan/20 rounded-2xl flex items-center justify-center mx-auto mb-6 text-cyan animate-pulse">
+                    <i class="fas fa-sync-alt fa-spin text-2xl"></i>
+                </div>
+                <h3 class="text-xl font-bold mb-2 text-white">الطلب قيد المعالجة الآلية</h3>
+                <p class="text-slate-400 max-w-md mx-auto text-sm leading-relaxed mb-4">
+                    طلبك قيد التنفيذ والمزامنة اللحظية مع خوادم المزود. سيظهر كود الشحن أو تفاصيل المعاملة هنا تلقائياً فور اكتمالها.
+                </p>
+                {% if order.api_order_id %}
+                <div class="inline-flex items-center gap-2 px-4 py-2 bg-slate-900 border border-white/5 rounded-xl text-xs text-slate-300 font-mono">
+                    <i class="fas fa-hashtag text-cyan"></i> رقم الطلب لدى المزود: <strong>{{ order.api_order_id }}</strong>
+                </div>
+                {% endif %}
             </div>
             {% endif %}
         {% else %}
