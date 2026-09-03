@@ -362,7 +362,7 @@
                     <h3 class="font-bold text-white text-xs line-clamp-1 flex items-center gap-1.5" title="{{ p.name }}">
                         <span id="product-name-grid-{{ p.id }}">{{ p.name }}</span>
                         {% if p.is_api_product %}
-                        <span class="text-[8px] px-1.5 py-0.5 rounded bg-sky-500/20 text-sky-400 border border-sky-500/20" title="API: {{ p.get_api_provider_display }}">API: {{ p.get_api_provider_display }}</span>
+                        <span class="text-[8px] px-1.5 py-0.5 rounded bg-sky-500/20 text-sky-400 border border-sky-500/20 font-bold" title="المزود: {{ p.api_provider_display_name }}">المزود: {{ p.api_provider_display_name }}</span>
                         {% endif %}
                     </h3>
                     <!-- Quick Rename Button -->
@@ -493,7 +493,7 @@
                                         <i class="fas fa-pen text-[10px]"></i>
                                     </button>
                                     {% if p.is_api_product %}
-                                    <span class="text-[8px] px-1.5 py-0.5 rounded bg-sky-500/20 text-sky-400 border border-sky-500/20" title="API: {{ p.get_api_provider_display }}">API: {{ p.get_api_provider_display }}</span>
+                                    <span class="text-[8px] px-1.5 py-0.5 rounded bg-sky-500/20 text-sky-400 border border-sky-500/20 font-bold" title="المزود: {{ p.api_provider_display_name }}">المزود: {{ p.api_provider_display_name }}</span>
                                     {% endif %}
                                     {% if p.is_out_of_stock %}
                                     <span class="text-[8px] px-1.5 py-0.5 rounded-full bg-rose-500/20 text-rose-500 border border-rose-500/20">غير متوفر</span>

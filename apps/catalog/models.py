@@ -75,7 +75,7 @@ class Product(TimeStampedModel):
     api_provider = models.CharField(
         max_length=50,
         choices=(
-            ("alkasr", "رقميات"),
+            ("alkasr", "الكاسر VIP"),
             ("tafa3olcard", "تفاعل كارد (Tafa3ol Card)"),
             ("generic", "مزوّد عام (Generic API)"),
             ("smm", "مزوّد خدمات (SMM)"),
@@ -88,6 +88,29 @@ class Product(TimeStampedModel):
     )
     sort_order = models.PositiveIntegerField(default=0, verbose_name="ترتيب العرض")
     delivery_time_display = models.CharField(max_length=60, blank=True, verbose_name="وقت التسليم المعروض", help_text="مثال: 5-15 دقيقة أو 1-2 ساعة")
+
+    @property
+    def api_provider_display_name(self):
+        if self.api_provider == "alkasr":
+            return "الكاسر VIP"
+        elif self.api_provider == "tafa3olcard":
+            return "تفاعل كارد"
+        elif self.api_provider == "smm":
+            return "مزوّد خدمات (SMM)"
+        elif self.api_provider and self.api_provider not in ("generic", ""):
+            return self.get_api_provider_display()
+
+        # Fallback by checking provider mapping
+        try:
+            m = self.provider_mappings.first()
+            if m and m.provider_product and m.provider_product.profile:
+                p_name = m.provider_product.profile.provider_name
+                if p_name and p_name not in ("رقميات", "Generic"):
+                    return p_name
+        except Exception:
+            pass
+
+        return "الكاسر VIP"
     
     # Inventory Tracking
     track_inventory = models.BooleanField(default=False, verbose_name="تتبع المخزون والكمية")
