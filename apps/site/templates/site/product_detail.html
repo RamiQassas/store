@@ -7,11 +7,7 @@
 <style>
     .product-layout { display: grid; grid-template-columns: 460px 1fr; gap: 4rem; align-items: start; }
     
-    /* Reveal Animation */
-    .reveal { opacity: 0; transform: translateY(20px); transition: all 0.6s cubic-bezier(0.2, 1, 0.3, 1); }
-    .reveal.visible { opacity: 1; transform: translateY(0); }
-
-    /* Gallery */
+    /* Layout */
     .p-gallery { position: sticky; top: 120px; }
     .main-img-box { 
         aspect-ratio: 1; border-radius: 40px; overflow: hidden; 
@@ -183,7 +179,7 @@
 {% block content %}
 <div class="product-layout container py-12">
     <!-- Left: Gallery -->
-    <div class="p-gallery reveal">
+    <div class="p-gallery">
         <div class="main-img-box relative bg-slate-950/40 border border-white/5" id="main-media-box" style="aspect-ratio: 16/9; overflow: hidden; display: flex; align-items: center; justify-content: center;">
             {% if product.image %}
             <img id="main-product-img" src="{{ product.image.url }}" alt="{{ product.name }}" class="w-full h-full object-contain cursor-zoom-in hover:scale-[1.02] transition-transform duration-300" onclick="openImageLightbox(this.src)">
@@ -234,7 +230,7 @@
     </div>
 
     <!-- Right: Purchase -->
-    <div class="p-info stack gap-10 reveal">
+    <div class="p-info stack gap-10">
         <div>
             <div class="flex items-center gap-3 mb-4">
                 <span class="p-badge-v3">{% if product.is_featured %}خدمة مميزة{% else %}{{ product.category.name }}{% endif %}</span>
