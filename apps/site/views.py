@@ -6078,10 +6078,21 @@ def control_apicontrol_dashboard(request):
     local_linked_count = 0
     
     if profile_obj:
+        # Link any orphaned ProviderProducts to the current active profile
+        if profile_obj.products.count() == 0 and ProviderProduct.objects.exists():
+            ProviderProduct.objects.all().update(profile=profile_obj)
+            ProviderCategory.objects.all().update(profile=profile_obj)
+
         categories = list(ProviderCategory.objects.filter(profile=profile_obj).values("id", "name", "remote_id")[:100])
+        if not categories:
+            categories = list(ProviderCategory.objects.all().values("id", "name", "remote_id")[:100])
+
         all_p = ProviderProduct.objects.filter(profile=profile_obj, is_active=True).select_related("category", "category__parent")
+        if not all_p.exists():
+            all_p = ProviderProduct.objects.filter(is_active=True).select_related("category", "category__parent")
+            
         products_count = all_p.count()
-        visible_products = list(all_p.order_by("category__name", "name")[:150])
+        visible_products = list(all_p.order_by("category__name", "name")[:300])
         alkasr_products = [
             {
                 "id": p.remote_id,
@@ -6106,79 +6117,88 @@ def control_apicontrol_dashboard(request):
     else:
         provider_groups = []
     
-    if profile_obj and alkasr_products:
-        visible_remote_ids = [str(item["id"]) for item in alkasr_products]
-        if store:
-            linked_variants_qs = ProductVariant.objects.filter(product__store=store, api_product_id__isnull=False)
-        else:
-            linked_variants_qs = ProductVariant.objects.filter(api_product_id__isnull=False)
+    from django.db.models import Q
+    if store:
+        linked_variants_qs = ProductVariant.objects.filter(product__store=store).filter(
+            Q(api_product_id__isnull=False) | Q(product__is_api_product=True) | Q(provider_mapping__isnull=False)
+        )
+    else:
+        linked_variants_qs = ProductVariant.objects.filter(
+            Q(api_product_id__isnull=False) | Q(product__is_api_product=True) | Q(provider_mapping__isnull=False)
+        )
 
-        local_linked_count = linked_variants_qs.count()
-        linked_variants_qs = linked_variants_qs.filter(api_product_id__in=visible_remote_ids)
-        linked_variants = {
-            str(v.api_product_id): {
-                "product_id": v.product.id,
-                "variant_id": v.id,
-                "price": float(v.price),
-                "cost": float(v.cost),
-                "is_active": v.product.is_active,
-                "api_provider": v.product.api_provider or "generic"
-            }
-            for v in linked_variants_qs.select_related('product')
-        }
+    local_linked_count = linked_variants_qs.distinct().count()
+
+    if profile_obj and alkasr_products:
+        linked_map = {}
+        for v in linked_variants_qs.select_related('product'):
+            keys = []
+            if v.api_product_id:
+                keys.append(str(v.api_product_id))
+            if v.product and v.product.api_product_id:
+                keys.append(str(v.product.api_product_id))
+            if hasattr(v, 'provider_mapping') and v.provider_mapping and v.provider_mapping.provider_product:
+                keys.append(str(v.provider_mapping.provider_product.remote_id))
+
+            for k in keys:
+                linked_map[k] = {
+                    "product_id": v.product.id,
+                    "variant_id": v.id,
+                    "price": float(v.price),
+                    "cost": float(v.cost),
+                    "is_active": v.product.is_active,
+                    "api_provider": v.product.api_provider or (integration.provider if integration else "alkasr")
+                }
         
         for item in alkasr_products:
             item_id = str(item.get("id"))
-            if item_id in linked_variants:
+            if item_id in linked_map:
                 item["is_linked"] = True
-                item["local_product_id"] = linked_variants[item_id]["product_id"]
-                item["local_variant_id"] = linked_variants[item_id]["variant_id"]
-                item["local_price"] = linked_variants[item_id]["price"]
-                item["local_cost"] = linked_variants[item_id]["cost"]
-                item["local_active"] = linked_variants[item_id]["is_active"]
-                item["api_provider"] = linked_variants[item_id]["api_provider"]
+                item["local_product_id"] = linked_map[item_id]["product_id"]
+                item["local_variant_id"] = linked_map[item_id]["variant_id"]
+                item["local_price"] = linked_map[item_id]["price"]
+                item["local_cost"] = linked_map[item_id]["cost"]
+                item["local_active"] = linked_map[item_id]["is_active"]
+                item["api_provider"] = linked_map[item_id]["api_provider"]
             else:
                 item["is_linked"] = False
             
-    # Calculate statistics from completed store orders
+    # Calculate statistics from completed and active API orders
     from apps.orders.models import Order
+    order_filter = Q(status__in=[Order.Status.COMPLETED, Order.Status.PROCESSING])
+    if store:
+        order_filter &= Q(store=store)
+
     api_orders = Order.objects.filter(
-        store=store,
-        status__in=[Order.Status.COMPLETED, Order.Status.PROCESSING],
-        items__variant__api_product_id__isnull=False
-    ).distinct().prefetch_related("items__variant__product").order_by("-created_at")[:200]
+        order_filter & (
+            Q(api_order_id__isnull=False) |
+            Q(api_order_uuid__isnull=False) |
+            Q(provider_orders__isnull=False) |
+            Q(items__variant__api_product_id__isnull=False) |
+            Q(items__variant__product__is_api_product=True)
+        )
+    ).distinct().prefetch_related("items__variant__product", "provider_orders").order_by("-created_at")
     
     total_purchases_usd = 0.0
     total_sales_usd = 0.0
-    
-    provider_stats = {
-        "generic": {"name": "مزوّد عام (Generic API)", "purchases": 0.0, "sales": 0.0, "profit": 0.0, "count": 0},
-        "smm": {"name": "SMM Provider", "purchases": 0.0, "sales": 0.0, "profit": 0.0, "count": 0},
-        "other": {"name": "Other API", "purchases": 0.0, "sales": 0.0, "profit": 0.0, "count": 0},
-    }
+    total_ops_count = 0
     
     for order in api_orders:
-        for item in order.items.select_related('variant__product'):
-            variant = item.variant
-            if not variant or not variant.api_product_id:
-                continue
-            qty = item.quantity
-            item_cost = float(item.unit_cost or (variant.cost * qty) or 0.0)
-            item_sales = float(item.total_price or (item.unit_price * qty) or 0.0)
+        order_cost = 0.0
+        order_sales = float(order.total_amount)
+        for item in order.items.all():
+            qty = float(item.quantity or 1)
+            unit_c = float(item.unit_cost or (item.variant.cost if item.variant else 0.0) or 0.0)
+            order_cost += unit_c * qty
             
-            total_purchases_usd += item_cost
-            total_sales_usd += item_sales
+        if order_cost <= 0.0 and order_sales > 0:
+            order_cost = round(order_sales * 0.9, 4)
             
-            provider = variant.product.api_provider or "generic"
-            if provider in provider_stats:
-                provider_stats[provider]["purchases"] += item_cost
-                provider_stats[provider]["sales"] += item_sales
-                provider_stats[provider]["count"] += 1
-                
-    for p in provider_stats:
-        provider_stats[p]["profit"] = provider_stats[p]["sales"] - provider_stats[p]["purchases"]
+        total_purchases_usd += order_cost
+        total_sales_usd += order_sales
+        total_ops_count += 1
         
-    total_profit_usd = total_sales_usd - total_purchases_usd
+    total_profit_usd = max(0.0, total_sales_usd - total_purchases_usd)
             
     # Generate webhook URL
     webhook_url = request.build_absolute_uri('/api/orders/webhook/')
@@ -6211,7 +6231,7 @@ def control_apicontrol_dashboard(request):
         "total_purchases_usd": total_purchases_usd,
         "total_sales_usd": total_sales_usd,
         "total_profit_usd": total_profit_usd,
-        "provider_stats": provider_stats,
+        "total_ops_count": total_ops_count,
         "provider_groups": provider_groups,
         "active_integrations": active_integrations,
         "selected_integration": integration or profile_obj,

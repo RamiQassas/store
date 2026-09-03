@@ -256,69 +256,77 @@
     <!-- Providers Catalog List -->
     <div class="glass-panel p-8 mt-8">
         <h3 class="text-base font-black text-white mb-6 flex items-center gap-2">
-            <i class="fas fa-network-wired text-cyan text-xs"></i> بوابات ومزودو الخدمة المدعومين وإحصاءاتها (Integrations & Stats)
+            <i class="fas fa-network-wired text-cyan text-xs"></i> بوابات ومزودو الخدمة النشطون وإحصاءاتها (Active Integrations & Stats)
         </h3>
         
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <!-- Alkasr VIP -->
-            <div class="p-5 rounded-2xl bg-white/[0.02] border border-white/5 relative overflow-hidden flex flex-col justify-between">
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {% for integ in active_integrations %}
+            <div class="p-5 rounded-2xl bg-white/[0.02] border border-cyan/20 relative overflow-hidden flex flex-col justify-between shadow-lg shadow-cyan/5">
+                <div>
+                    <div class="flex items-center justify-between mb-4">
+                        <span class="text-xs font-bold text-white">{{ integ.name }} ({{ integ.get_provider_display }})</span>
+                        <span class="text-[9px] px-2.5 py-0.5 rounded-full {% if is_connected %}bg-emerald-500/10 text-emerald-400 border border-emerald-500/20{% else %}bg-rose-500/10 text-rose-400 border border-rose-500/20{% endif %} font-black">
+                            {% if is_connected %}نشط ومتصل{% else %}غير متصل{% endif %}
+                        </span>
+                    </div>
+                    <p class="text-[11px] text-slate-400 leading-relaxed mb-4">
+                        بوابة الربط المتكاملة التلقائية لاستيراد باقات الشحن ومزامنة الطلبات والتحقق من حالتها وتحديث الردود والأكواد تلقائياً.
+                    </p>
+                </div>
+                
+                <div class="mt-4 pt-4 border-t border-white/5 text-[10px] text-slate-400 stack gap-1 font-mono">
+                    <div class="flex justify-between">
+                        <span>المشتريات (Cost):</span>
+                        <span class="text-rose-400 font-bold">${{ total_purchases_usd|floatformat:2 }}</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span>المبيعات (Sales):</span>
+                        <span class="text-emerald-400 font-bold">${{ total_sales_usd|floatformat:2 }}</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span>الأرباح (Profit):</span>
+                        <span class="text-cyan font-bold">${{ total_profit_usd|floatformat:2 }}</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span>عدد العمليات:</span>
+                        <span class="text-white font-bold">{{ total_ops_count }}</span>
+                    </div>
+                </div>
+            </div>
+            {% empty %}
+            <div class="p-5 rounded-2xl bg-white/[0.02] border border-cyan/20 relative overflow-hidden flex flex-col justify-between shadow-lg shadow-cyan/5">
                 <div>
                     <div class="flex items-center justify-between mb-4">
                         <span class="text-xs font-bold text-white">Alkasr VIP API</span>
-                        <span class="text-[9px] px-2 py-0.5 rounded-full {% if is_connected %}bg-emerald-500/10 text-emerald-400{% else %}bg-rose-500/10 text-rose-400{% endif %} font-black">
-                            {% if is_connected %}نشط ومكتمل{% else %}غير متصل{% endif %}
+                        <span class="text-[9px] px-2.5 py-0.5 rounded-full {% if is_connected %}bg-emerald-500/10 text-emerald-400 border border-emerald-500/20{% else %}bg-rose-500/10 text-rose-400 border border-rose-500/20{% endif %} font-black">
+                            {% if is_connected %}نشط ومتصل{% else %}غير متصل{% endif %}
                         </span>
                     </div>
-                    <p class="text-[11px] text-slate-400 leading-relaxed mb-4">بوابة الربط المتكاملة التلقائية المربوطة بسيرفر الكسر لاستيراد كافة باقات الشحن، والرموز والتحقق من حالة الطلبات وتحديثها تلقائياً.</p>
+                    <p class="text-[11px] text-slate-400 leading-relaxed mb-4">
+                        بوابة الربط المتكاملة التلقائية لاستيراد باقات الشحن ومزامنة الطلبات وتحديث حالتها تلقائياً.
+                    </p>
                 </div>
                 
                 <div class="mt-4 pt-4 border-t border-white/5 text-[10px] text-slate-400 stack gap-1 font-mono">
-                    <div>المشتريات: <span class="text-rose-400">${{ provider_stats.alkasr.purchases|floatformat:2 }}</span></div>
-                    <div>المبيعات: <span class="text-emerald-400">${{ provider_stats.alkasr.sales|floatformat:2 }}</span></div>
-                    <div>الأرباح: <span class="text-cyan">${{ provider_stats.alkasr.profit|floatformat:2 }}</span></div>
-                    <div>عدد العمليات: <span class="text-white">{{ provider_stats.alkasr.count }}</span></div>
-                </div>
-            </div>
-
-            <!-- SMM Provider -->
-            <div class="p-5 rounded-2xl bg-white/[0.02] border border-white/5 relative overflow-hidden flex flex-col justify-between">
-                <div>
-                    <div class="flex items-center justify-between mb-4">
-                        <span class="text-xs font-bold text-white">SMM Provider API</span>
-                        <span class="text-[9px] px-2 py-0.5 rounded-full bg-cyan/10 text-cyan font-black">
-                            مدعوم في المنتجات
-                        </span>
+                    <div class="flex justify-between">
+                        <span>المشتريات (Cost):</span>
+                        <span class="text-rose-400 font-bold">${{ total_purchases_usd|floatformat:2 }}</span>
                     </div>
-                    <p class="text-[11px] text-slate-400 leading-relaxed mb-4">بوابة ربط خدمات السوشيال ميديا وشحن المنصات وتوجيه طلباتها تلقائياً. يمكنك تعيين المنتجات لـ SMM Provider من صفحة تعديل المنتج.</p>
-                </div>
-                
-                <div class="mt-4 pt-4 border-t border-white/5 text-[10px] text-slate-400 stack gap-1 font-mono">
-                    <div>المشتريات: <span class="text-rose-400">${{ provider_stats.smm.purchases|floatformat:2 }}</span></div>
-                    <div>المبيعات: <span class="text-emerald-400">${{ provider_stats.smm.sales|floatformat:2 }}</span></div>
-                    <div>الأرباح: <span class="text-cyan">${{ provider_stats.smm.profit|floatformat:2 }}</span></div>
-                    <div>عدد العمليات: <span class="text-white">{{ provider_stats.smm.count }}</span></div>
-                </div>
-            </div>
-
-            <!-- Other API -->
-            <div class="p-5 rounded-2xl bg-white/[0.02] border border-white/5 relative overflow-hidden flex flex-col justify-between">
-                <div>
-                    <div class="flex items-center justify-between mb-4">
-                        <span class="text-xs font-bold text-white">مزود مخصص آخر (Other API)</span>
-                        <span class="text-[9px] px-2 py-0.5 rounded-full bg-white/5 text-slate-400 font-black">
-                            مدعوم عام
-                        </span>
+                    <div class="flex justify-between">
+                        <span>المبيعات (Sales):</span>
+                        <span class="text-emerald-400 font-bold">${{ total_sales_usd|floatformat:2 }}</span>
                     </div>
-                    <p class="text-[11px] text-slate-400 leading-relaxed mb-4">يسمح بربط وتصنيف المنتجات تحت بوابات API مخصصة وتوجيه تفاصيل الطلبات الخارجية ومتابعة التقارير وسجلات التشغيل بنجاح.</p>
-                </div>
-                
-                <div class="mt-4 pt-4 border-t border-white/5 text-[10px] text-slate-400 stack gap-1 font-mono">
-                    <div>المشتريات: <span class="text-rose-400">${{ provider_stats.other.purchases|floatformat:2 }}</span></div>
-                    <div>المبيعات: <span class="text-emerald-400">${{ provider_stats.other.sales|floatformat:2 }}</span></div>
-                    <div>الأرباح: <span class="text-cyan">${{ provider_stats.other.profit|floatformat:2 }}</span></div>
-                    <div>عدد العمليات: <span class="text-white">{{ provider_stats.other.count }}</span></div>
+                    <div class="flex justify-between">
+                        <span>الأرباح (Profit):</span>
+                        <span class="text-cyan font-bold">${{ total_profit_usd|floatformat:2 }}</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span>عدد العمليات:</span>
+                        <span class="text-white font-bold">{{ total_ops_count }}</span>
+                    </div>
                 </div>
             </div>
+            {% endfor %}
         </div>
     </div>
 </div>
