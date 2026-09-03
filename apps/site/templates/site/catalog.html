@@ -1399,13 +1399,10 @@
     // Expose globally for onclick attributes
     window.switchView = switchView;
 
-    // Init view from URL param
+    // Init view: prefer URL param, fallback to server-rendered default
     var urlView = new URLSearchParams(window.location.search).get('view');
-    if (urlView === 'categories') {
-        switchView('categories');
-    } else {
-        switchView('products');
-    }
+    var serverView = '{{ view_type|default:"categories" }}';
+    switchView(urlView || serverView);
 
     /* ──────────────────────────────────────────
        3. AJAX SUGGESTION FORM SUBMISSION
