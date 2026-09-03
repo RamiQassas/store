@@ -371,6 +371,15 @@ def create_order(customer, variant_id, quantity=1, fulfillment_data=None,
             if mapping and mapping.provider_product:
                 provider_product = mapping.provider_product
                 profile = provider_product.profile
+            elif variant.metadata and isinstance(variant.metadata, dict) and variant.metadata.get("remote_id"):
+                provider_product = ProviderProduct.objects.filter(remote_id=str(variant.metadata["remote_id"])).select_related("profile").first()
+                if provider_product:
+                    profile = provider_product.profile
+            elif variant.sku and "PRV-" in variant.sku:
+                rem_id = variant.sku.split("-")[-1]
+                provider_product = ProviderProduct.objects.filter(remote_id=rem_id).select_related("profile").first()
+                if provider_product:
+                    profile = provider_product.profile
             elif variant.api_product_id:
                 provider_product = ProviderProduct.objects.filter(remote_id=variant.api_product_id).select_related("profile").first()
                 if provider_product:
@@ -381,7 +390,7 @@ def create_order(customer, variant_id, quantity=1, fulfillment_data=None,
                     profile = provider_product.profile
             
             if not provider_product or not profile:
-                raise ValueError(f"المنتج غير مربوط بمزود خدمة فعال (API ID: {variant.api_product_id or getattr(variant.product, 'api_product_id', None)}).")
+                raise ValueError(f"المنتج غير مربوط بمزود خدمة فعال.")
 
             if not api_order_uuid:
                 api_order_uuid = uuid.uuid4()

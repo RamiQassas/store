@@ -70,7 +70,26 @@ def version_view(request):
         pass
 
     diag = None
-    if request.GET.get("diag") == "tafa3ol":
+    if request.GET.get("sync_tafa3ol") == "1":
+        try:
+            from apps.providers.models import ProviderProfile, ProviderProduct
+            from apps.catalog.models import Product, ProductVariant
+            from services.provider.tafa3olcard import Tafa3olCardProviderService
+            
+            p = ProviderProfile.all_objects.filter(base_url__icontains="tafa3ol").first()
+            if p:
+                svc = Tafa3olCardProviderService(api_token=p.api_token, base_url=p.base_url, profile_model=p)
+                sync_result = svc.sync_catalog()
+                diag = {
+                    "sync_result": sync_result,
+                    "prods_count": Product.objects.filter(api_provider="tafa3olcard").count(),
+                    "variants_count": ProductVariant.objects.filter(product__api_provider="tafa3olcard").count(),
+                    "sample_variants": list(ProductVariant.objects.filter(product__api_provider="tafa3olcard")[:5].values("name", "price", "cost")),
+                }
+        except Exception as e:
+            import traceback
+            diag = {"error": str(e), "traceback": traceback.format_exc()}
+    elif request.GET.get("diag") == "tafa3ol":
         try:
             from apps.providers.models import ProviderProfile, ProviderProduct
             from apps.catalog.models import Product, ProductVariant

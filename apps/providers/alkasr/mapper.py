@@ -14,9 +14,6 @@ class AlkasrMapperService:
         """
         Determines the parent Product name (e.g. PUBG Mobile, Free Fire, Syriatel, MTN).
         """
-        cat = pp.category
-        raw_cat = (cat.name if cat else "").strip()
-        
         generic_names = {
             "null", "none", "games", "live application", "data and communication", 
             "gift cards", "tv services", "money transfers", "social media", 
@@ -24,6 +21,15 @@ class AlkasrMapperService:
             "شحن الألعاب", "شحن التطبيقات", "رصيد الهاتف", "تفعيل الأرقام المؤقتة",
             "ترويج ودعم السوشيال ميديا", "بطاقات الهدايا", "العملات الرقمية", "default"
         }
+
+        # 0. If provider product has explicit category_name in its data dict
+        if pp.data and isinstance(pp.data, dict) and pp.data.get("category_name"):
+            c_name = str(pp.data["category_name"]).strip()
+            if c_name and c_name.lower() not in generic_names:
+                return c_name
+
+        cat = pp.category
+        raw_cat = (cat.name if cat else "").strip()
         
         # 1. If category itself is a specific service/game (not a top-level category)
         if raw_cat and raw_cat.lower() not in generic_names:
@@ -125,6 +131,27 @@ class AlkasrMapperService:
         return prod_name or "خدمة عامة"
 
     def _get_store_category(self, pp, store):
+        # 0. Check Tafa3ol Card explicit service name from parent or data
+        if pp.data and isinstance(pp.data, dict) and pp.data.get("service_name"):
+            srv_name = str(pp.data["service_name"]).strip()
+            if srv_name:
+                cat_obj, _ = Category.objects.get_or_create(
+                    store=store,
+                    name=srv_name,
+                    defaults={"is_active": True, "sort_order": 0}
+                )
+                return cat_obj
+
+        if pp.category and pp.category.parent and pp.category.parent.name:
+            p_srv = str(pp.category.parent.name).strip()
+            if p_srv and p_srv.lower() not in ("null", "none", "default"):
+                cat_obj, _ = Category.objects.get_or_create(
+                    store=store,
+                    name=p_srv,
+                    defaults={"is_active": True, "sort_order": 0}
+                )
+                return cat_obj
+
         curr = pp.category
         root_name = ""
         while curr:
@@ -147,11 +174,11 @@ class AlkasrMapperService:
             "بطاقات": "بطاقات رقمية",
             "tv services": "خدمات التلفزيون والبث",
             "money transfers": "تحويلات مالية",
-            "العملات الرقمية": "عملات رقمية",
-            "social media": "سوشيال ميديا",
-            "ترويج ودعم السوشيال ميديا": "سوشيال ميديا",
-            "numbers and accounts": "أرقام وحسابات",
-            "تفعيل الأرقام المؤقتة": "أرقام وحسابات",
+            "العملات الرقمية": "العملات الرقمية",
+            "social media": "ترويج ودعم السوشيال ميديا",
+            "ترويج ودعم السوشيال ميديا": "ترويج ودعم السوشيال ميديا",
+            "numbers and accounts": "تفعيل الأرقام المؤقتة",
+            "تفعيل الأرقام المؤقتة": "تفعيل الأرقام المؤقتة",
             "program activation numbers": "تفعيل برامج واشتراكات",
         }
         
@@ -161,15 +188,15 @@ class AlkasrMapperService:
         if not ar_name or ar_name == "خدمات رقمية" or root_name.lower() in ("عام", "null", "none", "default"):
             p_low = (pp.name or "").lower()
             if any(k in p_low for k in ("pubg", "ببجي", "free fire", "فري فاير", "roblox", "روبلوكس", "valorant", "fortnite", "game", "لعبة", "clash", "brawl", "legends", "cod")):
-                ar_name = "ألعاب"
+                ar_name = "شحن الألعاب"
             elif any(k in p_low for k in ("tiktok", "تيك توك", "yalla", "يلا", "jawaker", "جواكر", "bigo", "بيجو", "likee", "لايكي", "shahid", "شاهد", "netflix", "نتفلكس", "spotify", "discord")):
-                ar_name = "تطبيقات وبرامج"
+                ar_name = "شحن التطبيقات"
             elif any(k in p_low for k in ("google play", "جوجل", "itunes", "ايتونز", "apple", "ابل", "steam", "ستيم", "playstation", "بلايستيشن", "xbox", "اكس بوكس", "razer", "ريزر", "بطاقة", "card")):
-                ar_name = "بطاقات رقمية"
+                ar_name = "بطاقات الهدايا"
             elif any(k in p_low for k in ("syriatel", "سيريتل", "mtn", "ام تي ان", "رصيد", "fatura")):
-                ar_name = "اتصالات ورصيد"
+                ar_name = "رصيد الهاتف"
             elif any(k in p_low for k in ("whatsapp", "واتساب", "telegram", "تلغرام", "رقم", "number")):
-                ar_name = "أرقام وحسابات"
+                ar_name = "تفعيل الأرقام المؤقتة"
             else:
                 ar_name = "خدمات رقمية"
 
@@ -184,12 +211,17 @@ class AlkasrMapperService:
         """
         Batch map provider products into main store catalog.
         - Groups packages belonging to the same service under 1 Product with multiple ProductVariants (باقات).
-        - Automatically organizes products under top-level Categories (ألعاب، اتصالات ورصيد، تطبيقات وبرامج...).
-        - Sets accurate qty_type, min, max, params, and per-mille pricing calculation rules.
+        - Automatically organizes products under top-level Categories.
+        - Sets accurate prices, costs, margins, and requirements.
         """
+        import re
         if products_qs is None:
             ProviderProduct.objects.filter(profile=self.profile).update(is_active=True, local_is_active=True)
             products_qs = ProviderProduct.objects.filter(profile=self.profile, local_is_active=True)
+
+        # Clean up any dot/placeholder products from previous runs
+        Product.objects.filter(api_provider="tafa3olcard", name__regex=r'^[\.\s\-_=~*#]+$').delete()
+        ProviderProduct.objects.filter(profile=self.profile, name__regex=r'^[\.\s\-_=~*#]+$').delete()
 
         # Deactivate any variants whose provider product is disabled or deleted
         try:
@@ -216,7 +248,13 @@ class AlkasrMapperService:
                (not c_name or c_name.lower() in ("null", "none", "undefined")):
                 continue
 
+            if re.match(r'^[\.\s\-_=~*#]+$', p_name) or len(p_name) < 2:
+                continue
+
             group_name = self._get_group_name(pp)
+            if re.match(r'^[\.\s\-_=~*#]+$', group_name) or len(group_name) < 2:
+                continue
+
             if selected_group_names is not None and group_name not in selected_group_names:
                 continue
             grouped_products.setdefault(group_name, []).append(pp)
@@ -227,13 +265,18 @@ class AlkasrMapperService:
                     # Find or create store category for this group
                     store_category = self._get_store_category(p_items[0], store)
 
-                    # Find existing Product or create a new one
+                    # Check if Product already exists for this group
                     local_product = Product.objects.filter(
                         store=store,
-                        name=group_name,
-                        is_api_product=True,
-                        api_provider=provider_code
+                        name=group_name[:255]
                     ).first()
+
+                    # Find any image URL
+                    img_url = ""
+                    for item_p in p_items:
+                        if item_p.data and isinstance(item_p.data, dict) and item_p.data.get("image_url"):
+                            img_url = item_p.data["image_url"]
+                            break
 
                     # Build combined parameters form_schema for this product
                     schema_fields = {}
@@ -248,6 +291,10 @@ class AlkasrMapperService:
                                 }
                     schema = {"version": 1, "fields": list(schema_fields.values())}
 
+                    prod_meta = dict(local_product.metadata or {}) if local_product else {}
+                    if img_url:
+                        prod_meta["image_url"] = img_url
+
                     if not local_product:
                         local_product = Product.objects.create(
                             store=store,
@@ -260,7 +307,8 @@ class AlkasrMapperService:
                             is_api_product=True,
                             api_provider=provider_code,
                             description=p_items[0].local_description or "",
-                            form_schema=schema
+                            form_schema=schema,
+                            metadata=prod_meta
                         )
                     else:
                         if store and local_product.store != store:
@@ -275,6 +323,8 @@ class AlkasrMapperService:
                         local_product.api_provider = provider_code
                         if schema_fields:
                             local_product.form_schema = schema
+                        if prod_meta:
+                            local_product.metadata = prod_meta
                         local_product.save()
 
                     # Map each ProviderProduct as a ProductVariant (باقة) inside this single Product

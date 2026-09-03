@@ -1941,7 +1941,10 @@ def product_detail(request, pk):
                 display_missing = wallet.currency.from_base(missing_amount)
             
             currency_symbol = wallet.currency.symbol
-            messages.error(request, f"رصيد غير كافٍ. تحتاج إلى {display_missing:,.2f} {currency_symbol} إضافية لإتمام الطلب.")
+            err_msg = f"رصيدك في المتجر غير كافٍ. تحتاج إلى {display_missing:,.2f} {currency_symbol} إضافية لإتمام الطلب."
+            if request.headers.get('x-requested-with') == 'XMLHttpRequest' or request.POST.get('ajax') == '1':
+                return JsonResponse({"success": False, "error": err_msg}, status=400)
+            messages.error(request, err_msg)
             request.session['missing_amount'] = str(display_missing)
             request.session['missing_currency'] = wallet.currency.code
             return redirect("product_detail", pk=pk)
@@ -1955,6 +1958,8 @@ def product_detail(request, pk):
             shipping_phone = request.POST.get("shipping_phone", "").strip()
             shipping_address = request.POST.get("shipping_address", "").strip()
             if not (shipping_name and shipping_phone and shipping_address):
+                if request.headers.get('x-requested-with') == 'XMLHttpRequest' or request.POST.get('ajax') == '1':
+                    return JsonResponse({"success": False, "error": "جميع حقول الشحن والتوصيل مطلوبة للطلب المادي."}, status=400)
                 messages.error(request, "جميع حقول الشحن والتوصيل مطلوبة للطلب المادي.")
                 return redirect("product_detail", pk=pk)
 
@@ -2005,7 +2010,7 @@ def product_detail(request, pk):
                 })
             # Redirect to order detail with new=1 to auto-open live status & details modal
             return redirect(f"{reverse('dashboard_order_detail', kwargs={'pk': order.id})}?new=1")
-        except ValueError as e:
+        except Exception as e:
             if request.headers.get('x-requested-with') == 'XMLHttpRequest' or request.POST.get('ajax') == '1':
                 return JsonResponse({"success": False, "error": str(e)}, status=400)
             messages.error(request, str(e))

@@ -177,32 +177,109 @@ class Tafa3olCardProviderService:
                 p_name = raw_name.get("ar") or raw_name.get("en") or str(raw_name)
             else:
                 p_name = str(raw_name or "منتج تفاعل كارد")
+            p_name = p_name.strip()
 
-            cost_price = Decimal(str(item.get("costPrice") or item.get("price") or "0.00"))
-            
-            # Handle category / service mapping safely
-            cat_field = item.get("category") or item.get("service") or ""
+            # Skip decorative / separator dot items like "..........................................."
+            if re.match(r'^[\.\s\-_=~*#]+$', p_name) or len(p_name) < 2:
+                continue
+
+            # Accurate Pricing calculation from Tafa3ol Card pricing object
+            pricing_obj = item.get("pricing") or {}
+            qty_mode = str(item.get("quantityMode") or "FIXED").upper()
+            min_qty = item.get("minQuantity", 1)
+            max_qty = item.get("maxQuantity", 10)
+
+            final_total = pricing_obj.get("finalTotalPrice") if isinstance(pricing_obj, dict) else None
+            final_unit = pricing_obj.get("finalUnitPrice") if isinstance(pricing_obj, dict) else None
+            display_qty = (pricing_obj.get("displayQuantity") if isinstance(pricing_obj, dict) else None) or 1
+
+            if qty_mode in ("COUNTER", "QUANTITY", "RANGE"):
+                if final_unit is not None and float(final_unit) > 0:
+                    cost_price = Decimal(str(round(float(final_unit), 6)))
+                elif final_total is not None and float(final_total) > 0:
+                    cost_price = Decimal(str(round(float(final_total) / max(int(display_qty), 1), 6)))
+                else:
+                    cost_price = Decimal(str(item.get("costPrice") or item.get("price") or "0.00"))
+            else:
+                if final_total is not None and float(final_total) > 0:
+                    cost_price = Decimal(str(round(float(final_total), 4)))
+                elif final_unit is not None and float(final_unit) > 0:
+                    cost_price = Decimal(str(round(float(final_unit), 4)))
+                else:
+                    cost_price = Decimal(str(item.get("costPrice") or item.get("price") or "0.00"))
+
+            # Handle Category & Service exactly from Tafa3ol Card hierarchy
+            srv_field = item.get("serviceId") or item.get("service") or {}
+            cat_field = item.get("categoryId") or item.get("category") or {}
+
+            # Service (Parent category in Tafa3ol Card)
+            if isinstance(srv_field, dict):
+                srv_id = str(srv_field.get("_id") or srv_field.get("id") or "")
+                s_name = srv_field.get("name")
+                srv_name = (s_name.get("ar") or s_name.get("en") if isinstance(s_name, dict) else str(s_name or "")).strip()
+            else:
+                srv_id = str(srv_field or "")
+                srv_name = cat_map.get(srv_id, "")
+
+            # Category (Child game/app/service in Tafa3ol Card)
             if isinstance(cat_field, dict):
                 cat_id = str(cat_field.get("_id") or cat_field.get("id") or "")
                 c_name = cat_field.get("name")
-                if isinstance(c_name, dict):
-                    cat_name = c_name.get("ar") or c_name.get("en") or str(c_name)
-                else:
-                    cat_name = str(c_name or "عام")
+                cat_name = (c_name.get("ar") or c_name.get("en") if isinstance(c_name, dict) else str(c_name or "")).strip()
+                cat_img = (cat_field.get("image") or {}).get("secureUrl") if isinstance(cat_field.get("image"), dict) else ""
             else:
                 cat_id = str(cat_field or "")
-                cat_name = cat_map.get(cat_id, "عام")
+                cat_name = cat_map.get(cat_id, "")
+                cat_img = ""
+
+            item_img_obj = item.get("image")
+            item_img = ""
+            if isinstance(item_img_obj, dict):
+                item_img = item_img_obj.get("secureUrl") or item_img_obj.get("url") or ""
+            elif isinstance(item_img_obj, str):
+                item_img = item_img_obj
+
+            final_img = cat_img or item_img
+
+            if not srv_name:
+                srv_name = "خدمات رقمية"
+            if not cat_name:
+                cat_name = p_name
 
             # Update or create ProviderCategory
             p_cat = None
             if self.profile:
+                parent_cat = None
+                if srv_id or srv_name:
+                    parent_cat, _ = ProviderCategory.objects.get_or_create(
+                        profile=self.profile,
+                        remote_id=srv_id or f"srv_{srv_name}",
+                        defaults={"name": srv_name}
+                    )
+                    if parent_cat.name != srv_name:
+                        parent_cat.name = srv_name
+                        parent_cat.save(update_fields=["name"])
+
                 p_cat, _ = ProviderCategory.objects.get_or_create(
                     profile=self.profile,
-                    remote_id=cat_id or "default",
-                    defaults={"name": cat_name}
+                    remote_id=cat_id or f"cat_{cat_name}",
+                    defaults={"name": cat_name, "parent": parent_cat}
                 )
+                if parent_cat and p_cat.parent != parent_cat:
+                    p_cat.parent = parent_cat
+                    p_cat.save(update_fields=["parent"])
+                if cat_name and p_cat.name != cat_name:
+                    p_cat.name = cat_name
+                    p_cat.save(update_fields=["name"])
 
-                # Update or create ProviderProduct
+                extra_data = {
+                    "image_url": final_img,
+                    "service_name": srv_name,
+                    "category_name": cat_name,
+                    "quantity_mode": qty_mode,
+                    "display_quantity": display_qty,
+                }
+
                 pp, created = ProviderProduct.objects.update_or_create(
                     profile=self.profile,
                     remote_id=remote_id,
@@ -212,9 +289,10 @@ class Tafa3olCardProviderService:
                         "cost_price": cost_price,
                         "is_active": True,
                         "local_is_active": True,
-                        "product_type": "package" if item.get("quantityMode") == "FIXED" else "recharge",
-                        "qty_min": item.get("minQuantity", 1),
-                        "qty_max": item.get("maxQuantity", 10),
+                        "product_type": "package" if qty_mode == "FIXED" else "recharge",
+                        "qty_min": min_qty,
+                        "qty_max": max_qty,
+                        "data": extra_data,
                     }
                 )
 
@@ -323,7 +401,7 @@ class Tafa3olCardProviderService:
                 from apps.providers.alkasr.mapper import AlkasrMapperService
                 AlkasrMapperService(self.profile).map_all_to_catalog(selected_group_names=selected_group_names)
             except Exception as map_err:
-                logger.warning(f"Catalog mapping warning for profile {self.profile}: {map_err}")
+                logger.error(f"Auto-map catalog failed after Tafa3ol sync: {map_err}")
 
         if progress_key:
             _safe_cache(progress_key, {
@@ -357,12 +435,54 @@ class Tafa3olCardProviderService:
         Payload: { "productId": "...", "quantity": 1, "requirements": { ... } }
         """
         product_id = provider_product.remote_id
-        reqs = player_params or {}
+        
+        # Build formatted requirements matching Tafa3ol Card parameters
+        formatted_reqs = {}
+        expected_params = list(provider_product.parameters.all())
+        
+        normalized_input = {}
+        for k, v in (player_params or {}).items():
+            if v is not None and str(v).strip():
+                clean_k = re.sub(r'[^a-zA-Z0-9]', '', str(k).lower())
+                normalized_input[clean_k] = str(v).strip()
+                normalized_input[str(k)] = str(v).strip()
+
+        if expected_params:
+            for p in expected_params:
+                p_name = p.name
+                clean_p = re.sub(r'[^a-zA-Z0-9]', '', p_name.lower())
+                val = (player_params or {}).get(p_name) or normalized_input.get(clean_p)
+                
+                if not val:
+                    if any(x in clean_p for x in ("player", "user", "id", "account")):
+                        for alias in ("playerid", "player_id", "userid", "user_id", "id", "account", "accountid"):
+                            if alias in normalized_input:
+                                val = normalized_input[alias]
+                                break
+                    elif any(x in clean_p for x in ("link", "url", "target")):
+                        for alias in ("link", "url", "target"):
+                            if alias in normalized_input:
+                                val = normalized_input[alias]
+                                break
+                    elif any(x in clean_p for x in ("phone", "mobile", "number")):
+                        for alias in ("phone", "mobile", "number"):
+                            if alias in normalized_input:
+                                val = normalized_input[alias]
+                                break
+                
+                # If still empty and user gave single value, use it
+                if not val and len(player_params or {}) == 1:
+                    val = list((player_params or {}).values())[0]
+
+                if val:
+                    formatted_reqs[p_name] = str(val).strip()
+        else:
+            formatted_reqs = dict(player_params or {})
 
         res = self.client.create_order(
             product_id=product_id,
             quantity=quantity,
-            requirements=reqs
+            requirements=formatted_reqs
         )
 
         data = res.get("data") or {}
