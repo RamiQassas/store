@@ -3387,6 +3387,31 @@ def control_categories_reorder_bulk_ajax(request):
         return JsonResponse({"status": "error", "message": str(e)}, status=400)
 
 @support_required
+def control_category_reorder_ajax(request, pk):
+    category = get_object_or_404(Category, pk=pk)
+    direction = request.GET.get('direction', 'up')
+    cat_list = list(Category.objects.all().order_by('sort_order', 'id'))
+    try:
+        idx = cat_list.index(category)
+        if direction == 'up' and idx > 0:
+            swap = cat_list[idx - 1]
+            category.sort_order, swap.sort_order = swap.sort_order, category.sort_order
+            if category.sort_order == swap.sort_order:
+                swap.sort_order += 1
+            category.save(update_fields=['sort_order'])
+            swap.save(update_fields=['sort_order'])
+        elif direction == 'down' and idx < len(cat_list) - 1:
+            swap = cat_list[idx + 1]
+            category.sort_order, swap.sort_order = swap.sort_order, category.sort_order
+            if category.sort_order == swap.sort_order:
+                category.sort_order += 1
+            category.save(update_fields=['sort_order'])
+            swap.save(update_fields=['sort_order'])
+        return JsonResponse({"status": "success"})
+    except Exception as e:
+        return JsonResponse({"status": "error", "message": str(e)}, status=400)
+
+@support_required
 def control_category_merge_ajax(request, pk, target_pk):
     """Merge category pk INTO target_pk: move all products then delete pk."""
     if request.method != "POST":
@@ -3538,6 +3563,7 @@ def control_products_list(request):
         "view_mode": view_mode,
         "active_category": active_category,
         "categories": categories,
+        "all_categories": Category.objects.all().order_by('sort_order', 'name'),
         "show_all_cats": show_all_cats,
     })
 
@@ -3587,6 +3613,32 @@ def control_product_quick_rename_ajax(request, pk):
         "message": "تم تعديل اسم المنتج بنجاح.",
         "name": product.name
     })
+
+@support_required
+def control_product_change_category_ajax(request, pk):
+    if request.method != "POST":
+        return JsonResponse({"status": "error", "message": "طريقة الطلب غير صحيحة."}, status=405)
+    product = get_object_or_404(Product, pk=pk)
+    cat_id = request.POST.get("category_id")
+    if not cat_id and request.body:
+        try:
+            import json as _json
+            data = _json.loads(request.body.decode("utf-8"))
+            cat_id = data.get("category_id")
+        except Exception:
+            pass
+    if not cat_id:
+        return JsonResponse({"status": "error", "message": "لم يتم تحديد القسم الجديد."}, status=400)
+    category = get_object_or_404(Category, pk=cat_id)
+    product.category = category
+    product.save(update_fields=["category"])
+    return JsonResponse({
+        "status": "success",
+        "category_id": str(category.id),
+        "category_name": category.name,
+        "message": f"تم نقل المنتج '{product.name}' إلى قسم '{category.name}' بنجاح."
+    })
+
 
 @support_required
 def control_orders_list(request):
