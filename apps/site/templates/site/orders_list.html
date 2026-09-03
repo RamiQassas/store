@@ -256,7 +256,7 @@
 
                 <div class="space-y-2">
                     {% for key, val in order.fulfillment_data.items %}
-                        {% if key != 'api_provider' and key != 'api_status' and key != 'api_last_response' and key != 'api_refunded' and key != 'response' and key != 'api_response' and key != 'api_error' and key != 'alkasr' and val %}
+                        {% if key != 'api_provider' and key != 'api_status' and key != 'api_last_response' and key != 'api_refunded' and key != 'response' and key != 'api_response' and key != 'api_error' and key != 'alkasr' and key != 'api_order_id' and val %}
                         {% with val_list=val|as_list %}
                             {% if val_list|length > 1 %}
                             <div class="flex items-center justify-between pb-1 border-b border-white/5">

@@ -83,7 +83,7 @@
                     {% endif %}
 
                     {% for key, val in order.fulfillment_data.items %}
-                        {% if key != 'api_provider' and key != 'api_status' and key != 'api_last_response' and key != 'api_refunded' and key != 'response' and key != 'api_response' and key != 'api_error' and key != 'alkasr' %}
+                        {% if key != 'api_provider' and key != 'api_status' and key != 'api_last_response' and key != 'api_refunded' and key != 'response' and key != 'api_response' and key != 'api_error' and key != 'alkasr' and key != 'api_order_id' %}
                         {% with val_list=val|as_list %}
                         {% if val_list|length > 1 %}
                         <!-- Multiple Keys / Responses -->
@@ -163,7 +163,7 @@
                     </div>
                     {% endif %}
                     {% for key, val in order.fulfillment_data.items %}
-                        {% if key != 'api_provider' and key != 'api_status' and key != 'api_last_response' and key != 'api_refunded' and key != 'response' and key != 'api_response' and key != 'api_error' and key != 'alkasr' %}
+                        {% if key != 'api_provider' and key != 'api_status' and key != 'api_last_response' and key != 'api_refunded' and key != 'response' and key != 'api_response' and key != 'api_error' and key != 'alkasr' and key != 'api_order_id' %}
                         <div class="flex items-center justify-between text-xs">
                             <span class="text-slate-400">{{ key }}:</span>
                             <span class="font-mono text-rose-300 font-bold">{{ val }}</span>
@@ -203,7 +203,7 @@
                     {% endif %}
 
                     {% for key, val in order.fulfillment_data.items %}
-                        {% if key != 'api_provider' and key != 'api_status' and key != 'api_last_response' and key != 'api_refunded' and key != 'response' and key != 'api_response' and key != 'api_error' and key != 'alkasr' %}
+                        {% if key != 'api_provider' and key != 'api_status' and key != 'api_last_response' and key != 'api_refunded' and key != 'response' and key != 'api_response' and key != 'api_error' and key != 'alkasr' and key != 'api_order_id' %}
                         <div class="fulfillment-item p-4 rounded-2xl bg-slate-900 border-2 border-cyan/40 flex items-center justify-between gap-4 shadow-lg shadow-cyan/10">
                             <div class="flex-grow">
                                 <span class="text-xs text-cyan font-black uppercase tracking-wider block mb-1.5">{{ key }}</span>
