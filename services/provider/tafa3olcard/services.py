@@ -318,13 +318,20 @@ class Tafa3olCardProviderService:
             self.profile.last_sync_at = timezone.now()
             self.profile.save(update_fields=["last_sync_at"])
 
+            # Automatically map ProviderProducts to store catalog Product & ProductVariant
+            try:
+                from apps.providers.alkasr.mapper import AlkasrMapperService
+                AlkasrMapperService(self.profile).map_all_to_catalog(selected_group_names=selected_group_names)
+            except Exception as map_err:
+                logger.warning(f"Catalog mapping warning for profile {self.profile}: {map_err}")
+
         if progress_key:
             _safe_cache(progress_key, {
                 "status": "completed",
                 "total": total_items,
                 "current": total_items,
                 "percent": 100,
-                "product_name": f"تمت المزامنة بنجاح! تم استيراد وتحديث {created_count + updated_count} منتج.",
+                "product_name": f"تمت المزامنة وربط الخدمات بنجاح! تم استيراد وتحديث {created_count + updated_count} منتج.",
                 "created": created_count,
                 "updated": updated_count
             }, 600)

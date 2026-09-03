@@ -6430,6 +6430,36 @@ def control_apicontrol_dashboard(request):
 
     local_linked_count = linked_variants_qs.distinct().count()
 
+    # If provider has imported ProviderProducts but local_linked_count is 0, auto-map them to catalog!
+    if profile_obj and local_linked_count == 0:
+        with bypass_tenant_filter():
+            from apps.providers.models import ProviderProduct
+            if ProviderProduct.objects.filter(profile=profile_obj, is_active=True).exists():
+                try:
+                    from apps.providers.alkasr.mapper import AlkasrMapperService
+                    AlkasrMapperService(profile_obj).map_all_to_catalog()
+                    # Re-query linked variants
+                    if is_tafa3ol:
+                        linked_variants_qs = ProductVariant.objects.filter(
+                            Q(product__api_provider="tafa3olcard") |
+                            Q(provider_mapping__provider_product__profile=profile_obj)
+                        )
+                    elif is_alkasr:
+                        linked_variants_qs = ProductVariant.objects.filter(
+                            Q(product__api_provider__in=["alkasr", "generic", ""]) |
+                            Q(provider_mapping__provider_product__profile=profile_obj) |
+                            Q(product__is_api_product=True)
+                        ).exclude(product__api_provider="tafa3olcard")
+                    else:
+                        linked_variants_qs = ProductVariant.objects.filter(
+                            Q(product__api_provider=provider_code) |
+                            Q(provider_mapping__provider_product__profile=profile_obj)
+                        )
+                    local_linked_count = linked_variants_qs.distinct().count()
+                except Exception as e:
+                    import logging
+                    logging.getLogger(__name__).warning(f"Auto-map catalog failed for profile {profile_obj.id}: {e}")
+
     if profile_obj and alkasr_products:
         linked_map = {}
         for v in linked_variants_qs.select_related('product'):

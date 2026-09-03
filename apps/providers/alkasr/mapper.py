@@ -20,7 +20,9 @@ class AlkasrMapperService:
         generic_names = {
             "null", "none", "games", "live application", "data and communication", 
             "gift cards", "tv services", "money transfers", "social media", 
-            "numbers and accounts", "program activation numbers", "ألعاب", "عام"
+            "numbers and accounts", "program activation numbers", "ألعاب", "عام",
+            "شحن الألعاب", "شحن التطبيقات", "رصيد الهاتف", "تفعيل الأرقام المؤقتة",
+            "ترويج ودعم السوشيال ميديا", "بطاقات الهدايا", "العملات الرقمية"
         }
         
         # 1. If category itself is a specific service/game (not a top-level category)
@@ -36,7 +38,9 @@ class AlkasrMapperService:
         # 3. Derive from product name prefix
         prod_name = (pp.name or "").strip()
         for prefix in ("PUBG Mobile", "PUBG TR", "Pubg Mobile", "FREE FIRE", "Free fire", "LORDS MOBILE", 
-                       "ROBLOX", "Syriatell", "Syriatel", "MTN", "Tik tok", "NETFLIX", "+Disney", "+Osn"):
+                       "ROBLOX", "Syriatell", "Syriatel", "MTN", "Tik tok", "NETFLIX", "+Disney", "+Osn",
+                       "Mobile Legends", "Bigo Live", "Jawaker", "Likee", "Yalla", "Discord", "Steam",
+                       "PlayStation", "Xbox", "Google Play", "iTunes", "Apple", "Razer Gold"):
             if prod_name.lower().startswith(prefix.lower()):
                 return prefix
 
@@ -44,20 +48,14 @@ class AlkasrMapperService:
             return "تفعيل أرقام واتساب (WhatsApp)"
         if "telegram" in prod_name.lower() or "تلغرام" in prod_name.lower():
             return "تفعيل أرقام تلغرام (Telegram)"
+        if "ببجي" in prod_name:
+            return "ببجي موبايل (PUBG Mobile)"
+        if "فري فاير" in prod_name:
+            return "فري فاير (Free Fire)"
 
         return raw_cat or prod_name or "خدمة عامة"
 
     def _get_store_category(self, pp, store):
-        """
-        Maps Alkasr root categories into user-friendly Arabic store categories:
-        - ألعاب (Games)
-        - اتصالات ورصيد (Data and Communication / Telecom)
-        - تطبيقات وبرامج (Live Application / Apps)
-        - بطاقات رقمية (Gift Cards)
-        - خدمات التلفزيون والبث (Tv Services)
-        - تحويلات مالية (Money Transfers)
-        - سوشيال ميديا (Social Media)
-        """
         curr = pp.category
         root_name = ""
         while curr:
@@ -67,17 +65,28 @@ class AlkasrMapperService:
 
         category_map = {
             "games": "ألعاب",
+            "شحن الألعاب": "ألعاب",
+            "ألعاب": "ألعاب",
             "live application": "تطبيقات وبرامج",
+            "شحن التطبيقات": "تطبيقات وبرامج",
+            "تطبيقات": "تطبيقات وبرامج",
             "data and communication": "اتصالات ورصيد",
+            "رصيد الهاتف": "اتصالات ورصيد",
+            "اتصالات ورصيد": "اتصالات ورصيد",
             "gift cards": "بطاقات رقمية",
+            "بطاقات الهدايا": "بطاقات رقمية",
+            "بطاقات": "بطاقات رقمية",
             "tv services": "خدمات التلفزيون والبث",
             "money transfers": "تحويلات مالية",
+            "العملات الرقمية": "عملات رقمية",
             "social media": "سوشيال ميديا",
+            "ترويج ودعم السوشيال ميديا": "سوشيال ميديا",
             "numbers and accounts": "أرقام وحسابات",
+            "تفعيل الأرقام المؤقتة": "أرقام وحسابات",
             "program activation numbers": "تفعيل برامج واشتراكات",
         }
         
-        ar_name = category_map.get(root_name.lower(), root_name or "خدمات رقمية")
+        ar_name = category_map.get(root_name.lower(), category_map.get(root_name, root_name or "خدمات رقمية"))
         cat_obj, _ = Category.objects.get_or_create(
             store=store,
             name=ar_name,
@@ -106,6 +115,11 @@ class AlkasrMapperService:
             
         products_list = list(products_qs.select_related('category', 'category__parent', 'pricing').prefetch_related('parameters'))
         store = self.profile.store
+        if not store:
+            from apps.stores.models import Store
+            store = Store.objects.first()
+
+        provider_code = "tafa3olcard" if ("tafa3ol" in (self.profile.base_url or "").lower() or "تفاعل" in (self.profile.provider_name or "").lower()) else "alkasr"
 
         # Group provider products by main service name (e.g. PUBG Mobile, Free Fire, Syriatel, MTN)
         grouped_products = {}
@@ -131,7 +145,7 @@ class AlkasrMapperService:
                     store=store,
                     name=group_name,
                     is_api_product=True,
-                    api_provider="alkasr"
+                    api_provider=provider_code
                 ).first()
 
                 # Build combined parameters form_schema for this product
@@ -157,7 +171,7 @@ class AlkasrMapperService:
                         track_inventory=False,
                         quantity=999999,
                         is_api_product=True,
-                        api_provider="alkasr",
+                        api_provider=provider_code,
                         description=p_items[0].local_description or "",
                         form_schema=schema
                     )
@@ -171,7 +185,7 @@ class AlkasrMapperService:
                     local_product.track_inventory = False
                     local_product.quantity = 999999
                     local_product.is_api_product = True
-                    local_product.api_provider = "alkasr"
+                    local_product.api_provider = provider_code
                     if schema_fields:
                         local_product.form_schema = schema
                     local_product.save()
