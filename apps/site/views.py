@@ -1599,11 +1599,18 @@ def home(request):
 
 def catalog(request):
     store = getattr(request, "store", None)
-    view_type = request.GET.get("view", "products")
     cat_id = request.GET.get("category")
     q = request.GET.get("q", "").strip()
     sort = request.GET.get("sort", "newest")
     cols = request.GET.get("cols", "2")
+
+    # Default to categories view if user opened /catalog/ directly without query or specific category
+    if "view" in request.GET:
+        view_type = request.GET.get("view", "categories")
+    elif cat_id or q:
+        view_type = "products"
+    else:
+        view_type = "categories"
 
     if store:
         all_cats = list(Category.objects.filter(store=store, is_active=True).order_by("sort_order", "name"))
@@ -3432,14 +3439,75 @@ def control_products_list(request):
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
 
-    categories = Category.objects.filter(is_active=True).order_by('sort_order', 'name')
+    show_all_cats = request.GET.get('all_cats') == '1'
+    if store:
+        categories_qs = Category.objects.filter(store=store, is_active=True)
+    else:
+        categories_qs = Category.objects.filter(is_active=True)
+
+    from django.db.models import Count
+    categories_qs = categories_qs.annotate(
+        product_count=Count('products')
+    )
+    if not show_all_cats:
+        categories = categories_qs.filter(product_count__gt=0).order_by('sort_order', 'name')
+    else:
+        categories = categories_qs.order_by('sort_order', 'name')
 
     return render(request, "site/control_products_list.html", {
         "products": page_obj,
         "query": q,
         "view_mode": view_mode,
         "active_category": active_category,
-        "categories": categories
+        "categories": categories,
+        "show_all_cats": show_all_cats,
+    })
+
+@support_required
+def control_product_quick_image_ajax(request, pk):
+    if request.method != "POST":
+        return JsonResponse({"status": "error", "message": "طريقة الطلب غير صحيحة."}, status=405)
+    
+    product = get_object_or_404(Product, pk=pk)
+    image_file = request.FILES.get("image")
+    if not image_file:
+        return JsonResponse({"status": "error", "message": "لم يتم تحديد أي ملف صورة."}, status=400)
+    
+    product.image = image_file
+    product.save(update_fields=["image"])
+    
+    return JsonResponse({
+        "status": "success",
+        "message": "تم تحديث صورة المنتج بنجاح.",
+        "image_url": product.image.url
+    })
+
+@support_required
+def control_product_quick_rename_ajax(request, pk):
+    if request.method != "POST":
+        return JsonResponse({"status": "error", "message": "طريقة الطلب غير صحيحة."}, status=405)
+    
+    import json
+    product = get_object_or_404(Product, pk=pk)
+    
+    new_name = request.POST.get("name", "").strip()
+    if not new_name and request.body:
+        try:
+            body = json.loads(request.body.decode("utf-8"))
+            new_name = body.get("name", "").strip()
+        except Exception:
+            pass
+            
+    if not new_name:
+        return JsonResponse({"status": "error", "message": "الاسم لا يمكن أن يكون فارغاً."}, status=400)
+        
+    product.name = new_name
+    product.save(update_fields=["name"])
+    
+    return JsonResponse({
+        "status": "success",
+        "message": "تم تعديل اسم المنتج بنجاح.",
+        "name": product.name
     })
 
 @support_required

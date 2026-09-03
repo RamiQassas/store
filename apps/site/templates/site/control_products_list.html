@@ -27,7 +27,622 @@
         height: 48px !important;
         object-fit: cover !important;
     }
+    .quick-edit-btn {
+        opacity: 0.4;
+        transition: all 0.2s;
+    }
+    .group:hover .quick-edit-btn,
+    .product-row:hover .quick-edit-btn {
+        opacity: 1;
+    }
 </style>
+{% endblock %}
+
+{% block control_content %}
+<div class="page-head">
+    <div>
+        <nav class="breadcrumb mb-2 !p-0 !bg-transparent">
+            <a href="{% url 'control_categories_list' %}" class="breadcrumb-item">التصنيفات</a>
+            {% if active_category %}
+            <span class="breadcrumb-item active">{{ active_category.name }}</span>
+            {% else %}
+            <span class="breadcrumb-item active">جميع المنتجات</span>
+            {% endif %}
+        </nav>
+        <h1>{% if active_category %}{{ active_category.name }}{% else %}الكتالوج الذكي وإدارة المنتجات{% endif %}</h1>
+        <p class="text-muted">إدارة مخزون الخدمات الرقمية، تحديث الأسعار، تغيير الصور والأسماء سريعاً، والتحكم في ظهور المنتجات.</p>
+    </div>
+    <div class="flex flex-wrap gap-3 items-center">
+        <a href="?export=excel" class="btn btn-outline btn-sm">
+            <i class="fas fa-file-excel ml-2"></i> تصدير Excel
+        </a>
+        <button onclick="document.getElementById('import-file-input').click()" class="btn btn-outline btn-sm">
+            <i class="fas fa-file-import ml-2"></i> استيراد
+        </button>
+        <form id="import-form" method="post" enctype="multipart/form-data" action="{% url 'control_product_import' %}" class="hidden">
+            {% csrf_token %}
+            <input type="file" id="import-file-input" name="file" onchange="document.getElementById('import-form').submit()">
+        </form>
+        <a href="{% url 'control_product_create' %}" class="btn btn-primary btn-sm">
+            <i class="fas fa-plus ml-2"></i> إضافة منتج جديد
+        </a>
+    </div>
+</div>
+
+<!-- Hidden File Input for Instant Quick Image Upload -->
+<input type="file" id="quick-image-file-input" accept="image/*" class="hidden" onchange="handleQuickImageFileSelected(this)">
+
+{% if not active_category and not query %}
+<!-- Categories Grid View (Drill-down Entry) -->
+<div class="stack gap-6 mb-12 reveal">
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-white/5 pb-4">
+        <div>
+            <h2 class="text-base font-black text-white flex items-center gap-2">
+                <i class="fas fa-layer-group text-cyan"></i> تصفح حسب التصنيفات والأقسام النشطة ({{ categories|length }})
+            </h2>
+            <p class="text-[11px] text-slate-400 mt-0.5">انقر على أي قسم لفلترة وإدارة منتجاته مباشرة.</p>
+        </div>
+        <div class="flex items-center gap-3">
+            <a href="?q=all" class="btn btn-outline btn-sm text-[11px] font-black rounded-xl">
+                <i class="fas fa-boxes ml-1"></i> عرض كافة المنتجات مباشرة
+            </a>
+            {% if show_all_cats %}
+            <a href="{% url 'control_products_list' %}" class="text-[10px] font-bold text-slate-400 hover:text-white underline">
+                إخفاء الأقسام الفارغة
+            </a>
+            {% else %}
+            <a href="?all_cats=1" class="text-[10px] font-bold text-slate-400 hover:text-white underline">
+                عرض كل الأقسام (بما فيها الفارغة)
+            </a>
+            {% endif %}
+        </div>
+    </div>
+    
+    <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
+        {% for cat in categories %}
+        <a href="?category={{ cat.id }}" class="group stack gap-3 no-underline p-3 rounded-2xl bg-slate-900/30 border border-white/5 hover:border-cyan/40 hover:bg-white/[0.02] transition-all duration-300">
+            <div class="aspect-square rounded-2xl bg-slate-950 border border-white/5 overflow-hidden flex items-center justify-center relative group-hover:shadow-[0_0_25px_rgba(6,182,212,0.15)] transition-all">
+                {% if cat.image %}
+                <img src="{{ cat.image.url }}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500">
+                {% else %}
+                <i class="fas fa-folder text-3xl text-slate-700 group-hover:text-cyan transition-colors"></i>
+                {% endif %}
+                <div class="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                <div class="absolute bottom-2 inset-x-2 flex justify-center opacity-0 group-hover:opacity-100 transition-all">
+                    <span class="btn btn-primary !py-0.5 !px-2.5 !text-[8px] font-black rounded-lg">فتح التصنيف</span>
+                </div>
+            </div>
+            <div class="text-center">
+                <h3 class="text-xs font-black text-slate-200 group-hover:text-cyan transition-colors truncate mb-1">{{ cat.name }}</h3>
+                <span class="text-[9px] font-bold text-cyan/70 bg-cyan/10 px-2 py-0.5 rounded-full uppercase tracking-tighter">{{ cat.product_count|default:0 }} منتج متوفر</span>
+            </div>
+        </a>
+        {% endfor %}
+        <a href="{% url 'control_category_create' %}" class="group stack gap-3 no-underline p-3 rounded-2xl bg-white/[0.01] border border-dashed border-white/10 flex flex-col items-center justify-center hover:border-cyan/30 hover:bg-cyan/5 transition-all">
+            <div class="w-10 h-10 rounded-full bg-slate-800 flex items-center justify-center text-slate-500 group-hover:bg-cyan group-hover:text-black transition-all mb-1">
+                <i class="fas fa-plus"></i>
+            </div>
+            <span class="text-[10px] font-black text-slate-400 group-hover:text-cyan">إضافة تصنيف جديد</span>
+        </a>
+    </div>
+</div>
+{% endif %}
+
+{% if active_category or query or products %}
+<div class="management-card reveal">
+    <div class="management-header p-6 bg-slate-900/20 flex flex-wrap justify-between items-center gap-4">
+        <form method="get" class="flex flex-grow gap-3 items-center max-w-2xl">
+            {% if request.GET.category %}
+            <input type="hidden" name="category" value="{{ request.GET.category }}">
+            {% endif %}
+            <div class="relative flex-grow group">
+                <i class="fas fa-search absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-cyan transition-colors"></i>
+                <input type="text" name="q" value="{{ query }}" placeholder="بحث بالاسم، التصنيف، SKU، أو ID..." class="text-xs pr-10 bg-slate-900/50 border-white/10 rounded-xl focus:border-cyan/50 focus:ring-4 focus:ring-cyan/10 transition-all w-full py-2.5">
+            </div>
+            <button type="submit" class="btn btn-primary btn-sm px-6 rounded-xl">بحث</button>
+            {% if query or active_category %}
+            <a href="{% url 'control_products_list' %}" class="btn btn-outline btn-sm px-4 rounded-xl text-slate-500 hover:text-white">تصفير الفلتر</a>
+            {% endif %}
+            <input type="hidden" name="view" value="{{ view_mode|default:'list' }}">
+        </form>
+
+        <div class="flex items-center gap-2">
+            <div class="flex bg-slate-900/40 p-1 rounded-xl border border-white/5">
+                <a href="?view=grid&q={{ query }}{% if request.GET.category %}&category={{ request.GET.category }}{% endif %}" class="p-2 px-4 rounded-lg text-xs transition-all {% if view_mode == 'grid' %}bg-cyan text-black font-bold shadow-lg{% else %}text-slate-500 hover:text-white{% endif %}">
+                    <i class="fas fa-th-large ml-1"></i> عرض شبكي
+                </a>
+                <a href="?view=list&q={{ query }}{% if request.GET.category %}&category={{ request.GET.category }}{% endif %}" class="p-2 px-4 rounded-lg text-xs transition-all {% if view_mode != 'grid' %}bg-cyan text-black font-bold shadow-lg{% else %}text-slate-500 hover:text-white{% endif %}">
+                    <i class="fas fa-list ml-1"></i> عرض قائمة
+                </a>
+            </div>
+        </div>
+    </div>
+    
+    {% if view_mode == 'grid' %}
+    <div class="p-6 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+        {% for p in products %}
+        <div class="group bg-slate-900/30 border border-white/5 rounded-2xl overflow-hidden hover:border-cyan/30 transition-all flex flex-col h-full product-row {% if p.is_out_of_stock %}opacity-80{% endif %}" data-id="{{ p.id }}">
+            <div class="relative aspect-[4/3] overflow-hidden bg-slate-800">
+                {% if p.image %}
+                <img src="{{ p.image.url }}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" id="grid-img-{{ p.id }}">
+                {% else %}
+                <div class="w-full h-full flex items-center justify-center text-slate-600 opacity-20" id="grid-img-{{ p.id }}"><i class="fas fa-box fa-3x"></i></div>
+                {% endif %}
+                
+                <div class="absolute top-2 left-2 flex flex-col gap-1.5">
+                    <span class="badge {% if p.is_active %}success{% else %}muted{% endif %} !text-[9px]">{% if p.is_active %}نشط{% else %}مسودة{% endif %}</span>
+                    {% if p.is_out_of_stock %}
+                    <span class="px-2 py-0.5 rounded text-[8px] font-black out-of-stock-badge uppercase">غير متوفر</span>
+                    {% endif %}
+                </div>
+
+                <!-- Quick Image Upload Overlay Button in Grid -->
+                <button type="button" onclick="triggerQuickImageUpload('{{ p.id }}')" class="absolute bottom-2 right-2 px-2.5 py-1 rounded-lg bg-black/70 hover:bg-cyan hover:text-black text-cyan text-[10px] font-bold backdrop-blur-md flex items-center gap-1.5 transition-all shadow-lg border border-white/10" title="تغيير صورة المنتج سريعاً">
+                    <i class="fas fa-camera"></i> <span>تغيير الصورة</span>
+                </button>
+
+                <div class="absolute top-2 right-2 flex flex-col gap-1.5 items-end">
+                    <button onclick="toggleFeatured('{{ p.id }}', this)" class="w-8 h-8 rounded-lg bg-black/40 backdrop-blur-md flex items-center justify-center text-sm transition-colors {% if p.is_featured %}text-amber-400{% else %}text-white/40 hover:text-white{% endif %}" title="تمييز المنتج">
+                        <i class="fas fa-star"></i>
+                    </button>
+                    {% if p.is_sale %}
+                    <span class="px-3 py-1 rounded-lg text-[9px] font-black text-white sale-badge">عـرض خاص</span>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <div class="p-4 flex flex-col flex-grow">
+                <div class="text-[9px] font-bold text-cyan/60 uppercase mb-1">{{ p.category.name }}</div>
+                <div class="flex items-center justify-between gap-2 mb-1">
+                    <h3 class="font-bold text-white text-xs line-clamp-1 flex items-center gap-1.5" title="{{ p.name }}">
+                        <span id="product-name-grid-{{ p.id }}">{{ p.name }}</span>
+                        {% if p.is_api_product %}
+                        <span class="text-[8px] px-1.5 py-0.5 rounded bg-sky-500/20 text-sky-400 border border-sky-500/20" title="API: {{ p.get_api_provider_display }}">API: {{ p.get_api_provider_display }}</span>
+                        {% endif %}
+                    </h3>
+                    <!-- Quick Rename Button -->
+                    <button type="button" onclick="quickRenameProduct('{{ p.id }}', '{{ p.name|escapejs }}')" class="quick-edit-btn text-slate-400 hover:text-cyan p-1" title="تعديل اسم المنتج سريعاً">
+                        <i class="fas fa-pen text-[10px]"></i>
+                    </button>
+                </div>
+                <div class="text-[9px] text-slate-500 mb-1 flex items-center gap-2">
+                    <i class="fas fa-layer-group opacity-40"></i>
+                    <span>{{ p.variants.count }} باقة متوفرة</span>
+                </div>
+                <div class="text-[9px] text-slate-400 mb-3 flex items-center gap-2">
+                    <i class="fas fa-cubes opacity-40"></i>
+                    <span>الكمية: <strong class="text-white">{{ p.quantity }}</strong></span>
+                    {% if p.track_inventory and p.quantity <= p.low_stock_threshold %}
+                    <span class="text-rose-500 font-bold">(منخفض!)</span>
+                    {% endif %}
+                </div>
+                
+                <div class="mt-auto pt-3 border-t border-white/5 flex gap-2">
+                    <a href="{% url 'control_product_edit' p.id %}" class="flex-grow btn btn-sm btn-outline !py-1.5 !text-[10px]">
+                        تعديل شامل
+                    </a>
+                    <div class="flex bg-slate-900/50 rounded-lg border border-white/5">
+                        <button onclick="ajaxReorder('{{ p.id }}', 'up')" class="p-1.5 text-[10px] hover:text-cyan"><i class="fas fa-chevron-up"></i></button>
+                        <button onclick="ajaxReorder('{{ p.id }}', 'down')" class="p-1.5 border-r border-white/5 text-[10px] hover:text-cyan"><i class="fas fa-chevron-down"></i></button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% empty %}
+        <div class="col-span-full p-20 text-center text-slate-500 italic">لا توجد منتجات مطابقة.</div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <!-- Bulk Adjustment Panel for Regular Products -->
+    <div id="products-bulk-panel" class="hidden p-6 border-b border-white/5 bg-cyan/[0.01] flex flex-col gap-4">
+        <form method="POST" action="." class="flex flex-wrap items-center gap-4">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="bulk_adjust_prices">
+            
+            <!-- Hidden inputs container for selected product IDs -->
+            <div id="products-selected-ids-container"></div>
+            
+            <span class="text-xs text-slate-300 font-bold">
+                تم تحديد <span id="products-selected-count" class="text-cyan font-black">0</span> منتج عادي. التعديل الجماعي للباقات:
+            </span>
+            
+            <select name="adjust_type" class="builder-input text-xs" style="width: 180px; background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.05); color: #fff; padding: 0.5rem 1rem; border-radius: 8px;" required>
+                <option value="fixed_increase">زيادة بمبلغ ثابت ($)</option>
+                <option value="fixed_decrease">نقصان بمبلغ ثابت ($)</option>
+                <option value="percent_increase">زيادة بنسبة %</option>
+                <option value="percent_decrease">نقصان بنسبة %</option>
+                <option value="set_fixed">تحديد سعر ثابت ($)</option>
+            </select>
+            
+            <input type="number" name="adjust_value" step="0.01" class="builder-input text-xs" style="width: 100px; background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.05); color: #fff; padding: 0.5rem 1rem; border-radius: 8px;" placeholder="القيمة" required>
+            
+            <select name="apply_to" class="builder-input text-xs" style="width: 160px; background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.05); color: #fff; padding: 0.5rem 1rem; border-radius: 8px;">
+                <option value="selected">على المنتجات المحددة فقط</option>
+                <option value="all">على جميع المنتجات العادية</option>
+            </select>
+            
+            <button type="submit" class="btn btn-primary text-xs py-2 px-4 rounded-lg bg-cyan hover:bg-cyan/90 text-black font-black transition-all">
+                تطبيق التعديل
+            </button>
+        </form>
+    </div>
+
+    <div class="p-0 overflow-x-auto">
+        <table class="w-full text-sm text-right">
+            <thead class="text-[11px] text-slate-500 border-b border-white/5 uppercase bg-white/[0.01]">
+                <tr>
+                    <th class="p-4 text-center" style="width: 40px;">
+                        <input type="checkbox" id="select-all-products" class="rounded border-white/10 bg-slate-900 text-cyan focus:ring-cyan" onclick="toggleSelectAllProducts(this)">
+                    </th>
+                    <th class="p-4" style="width: 40px;"></th>
+                    <th class="p-4">المنتج والصورة</th>
+                    <th class="p-4">التصنيف</th>
+                    <th class="p-4">الباقات</th>
+                    <th class="p-4">الحالة</th>
+                    <th class="p-4">المخزون</th>
+                    <th class="p-4">الميزة</th>
+                    <th class="p-4">الترتيب</th>
+                    <th class="p-4 text-left">إجراءات</th>
+                </tr>
+            </thead>
+            <tbody id="products-table-body">
+                {% for p in products %}
+                <tr class="border-b border-white/[0.02] last:border-0 hover:bg-white/[0.02] transition product-row" data-id="{{ p.id }}">
+                    <td class="p-4 text-center" style="width: 40px;">
+                        {% if not p.is_api_product %}
+                            <input type="checkbox" name="selected_products" value="{{ p.id }}" class="product-checkbox rounded border-white/10 bg-slate-900 text-cyan focus:ring-cyan" onclick="updateProductsBulkBar()">
+                        {% else %}
+                            <input type="checkbox" disabled class="opacity-20 cursor-not-allowed" title="منتج API (عدله من صفحة ربط الـ API)">
+                        {% endif %}
+                    </td>
+                    <td class="p-4 drag-handle cursor-grab text-slate-500 hover:text-cyan transition-colors text-center" style="width: 40px;">
+                        <i class="fas fa-grip-vertical"></i>
+                    </td>
+                    <td class="p-4">
+                        <div class="flex items-center gap-3">
+                            <!-- Quick Image Upload Trigger in Table Row -->
+                            <div class="group/thumb relative w-12 h-12 flex-shrink-0 rounded-xl bg-slate-800 border border-white/5 overflow-hidden cursor-pointer" onclick="triggerQuickImageUpload('{{ p.id }}')" title="انقر لتغيير صورة المنتج سريعاً">
+                                {% if p.image %}
+                                <img src="{{ p.image.url }}" class="p-list-img w-full h-full object-cover" id="list-img-{{ p.id }}">
+                                {% else %}
+                                <div class="w-full h-full flex items-center justify-center text-slate-600" id="list-img-{{ p.id }}"><i class="fas fa-box"></i></div>
+                                {% endif %}
+                                <div class="absolute inset-0 bg-black/70 opacity-0 group-hover/thumb:opacity-100 flex flex-col items-center justify-center text-cyan transition-all">
+                                    <i class="fas fa-camera text-xs"></i>
+                                    <span class="text-[7px] font-black mt-0.5">تغيير</span>
+                                </div>
+                                {% if p.is_sale %}
+                                <div class="absolute inset-x-0 bottom-0 bg-amber-500 text-black text-[7px] font-black text-center py-0.5 shadow-[0_-4px_10px_rgba(245,158,11,0.5)]">عـرض</div>
+                                {% endif %}
+                            </div>
+                            <div>
+                                <div class="font-bold text-slate-200 flex items-center gap-2">
+                                    <span id="product-name-list-{{ p.id }}">{{ p.name }}</span>
+                                    <!-- Quick Rename Button -->
+                                    <button type="button" onclick="quickRenameProduct('{{ p.id }}', '{{ p.name|escapejs }}')" class="quick-edit-btn text-slate-400 hover:text-cyan transition-all text-xs" title="تعديل اسم المنتج سريعاً">
+                                        <i class="fas fa-pen text-[10px]"></i>
+                                    </button>
+                                    {% if p.is_api_product %}
+                                    <span class="text-[8px] px-1.5 py-0.5 rounded bg-sky-500/20 text-sky-400 border border-sky-500/20" title="API: {{ p.get_api_provider_display }}">API: {{ p.get_api_provider_display }}</span>
+                                    {% endif %}
+                                    {% if p.is_out_of_stock %}
+                                    <span class="text-[8px] px-1.5 py-0.5 rounded-full bg-rose-500/20 text-rose-500 border border-rose-500/20">غير متوفر</span>
+                                    {% endif %}
+                                </div>
+                                <div class="text-[10px] text-slate-500 font-mono">{{ p.slug }}</div>
+                            </div>
+                        </div>
+                    </td>
+                    <td class="p-4">
+                        <span class="text-xs bg-slate-800 px-3 py-1 rounded-full border border-white/5">{{ p.category.name }}</span>
+                    </td>
+                    <td class="p-4">
+                        <div class="flex flex-col gap-1">
+                            <span class="text-[10px] text-muted">{{ p.variants.count }} باقات</span>
+                            {% with first_v=p.variants.first %}
+                            {% if first_v %}
+                                <div class="flex items-center gap-2">
+                                    <span class="font-mono text-cyan text-[11px]">{% currency_format first_v.price %}</span>
+                                    {% if first_v.is_sale %}
+                                    <span class="text-[7px] px-1.5 py-0.5 rounded bg-amber-500 text-black font-black">عـرض</span>
+                                    {% endif %}
+                                </div>
+                            {% else %}
+                                <span class="text-[10px] text-rose-500 italic">بدون باقات</span>
+                            {% endif %}
+                            {% endwith %}
+                        </div>
+                    </td>
+                    <td class="p-4">
+                        <span class="badge {% if p.is_active %}success{% else %}muted{% endif %} text-[9px]">{% if p.is_active %}نشط{% else %}مسودة{% endif %}</span>
+                    </td>
+                    <td class="p-4">
+                        <div class="flex flex-col gap-1">
+                            <span class="text-xs {% if p.track_inventory and p.quantity <= p.low_stock_threshold %}text-rose-400 font-bold{% else %}text-slate-300{% endif %}">{{ p.quantity }}</span>
+                            {% if p.track_inventory and p.quantity <= p.low_stock_threshold %}
+                            <span class="text-[8px] px-1.5 py-0.5 bg-rose-500/20 text-rose-500 rounded border border-rose-500/20 w-max font-bold">تنبيه!</span>
+                            {% endif %}
+                        </div>
+                    </td>
+                    <td class="p-4">
+                        <button onclick="toggleFeatured('{{ p.id }}', this)" class="text-sm transition-colors {% if p.is_featured %}text-amber-400{% else %}text-white/20 hover:text-white{% endif %}">
+                            <i class="fas fa-star"></i>
+                        </button>
+                    </td>
+                    <td class="p-4">
+                        <div class="flex items-center gap-2">
+                            <button onclick="ajaxReorder('{{ p.id }}', 'up')" class="text-slate-500 hover:text-cyan transition-colors">
+                                <i class="fas fa-chevron-up"></i>
+                            </button>
+                            <button onclick="ajaxReorder('{{ p.id }}', 'down')" class="text-slate-500 hover:text-cyan transition-colors">
+                                <i class="fas fa-chevron-down"></i>
+                            </button>
+                            <span class="sort-order-badge text-[10px] font-mono text-slate-600 bg-slate-800 px-2 py-1 rounded ml-2">{{ p.sort_order }}</span>
+                        </div>
+                    </td>
+                    <td class="p-4 text-left">
+                        <div class="flex justify-end gap-2">
+                            <a href="{% url 'control_product_edit' p.id %}" class="btn btn-sm btn-outline text-[10px] py-1 px-4 hover:bg-cyan hover:text-black transition">
+                                <i class="fas fa-edit ml-1"></i> تعديل شامل
+                            </a>
+                        </div>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="10" class="p-12 text-center text-slate-500 italic">لا توجد منتجات مضافة بعد.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% endif %}
+
+    {% if products.has_other_pages %}
+    <div class="management-footer p-6 border-t border-white/5 flex justify-between items-center text-xs text-slate-500">
+        <div>
+            صفحة {{ products.number }} من {{ products.paginator.num_pages }} (إجمالي {{ products.paginator.count }} منتج)
+        </div>
+        <div class="flex gap-2">
+            {% if products.has_previous %}
+            <a href="?page={{ products.previous_page_number }}&q={{ query }}&view={{ view_mode }}{% if request.GET.category %}&category={{ request.GET.category }}{% endif %}{% if show_all_cats %}&all_cats=1{% endif %}" class="btn btn-outline btn-sm">السابق</a>
+            {% endif %}
+            {% if products.has_next %}
+            <a href="?page={{ products.next_page_number }}&q={{ query }}&view={{ view_mode }}{% if request.GET.category %}&category={{ request.GET.category }}{% endif %}{% if show_all_cats %}&all_cats=1{% endif %}" class="btn btn-outline btn-sm">التالي</a>
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endif %}
+
+<!-- Quick Rename Modal -->
+<div id="quick-rename-modal" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-md hidden flex items-center justify-center p-4">
+    <div class="bg-slate-900 border border-cyan/30 rounded-2xl p-6 max-w-md w-full shadow-2xl relative">
+        <h3 class="text-sm font-black text-white flex items-center gap-2 mb-4">
+            <i class="fas fa-pen text-cyan text-xs"></i> تعديل اسم المنتج السريع
+        </h3>
+        <input type="hidden" id="quick-rename-product-id">
+        <div class="mb-5">
+            <label class="block text-xs text-slate-400 font-bold mb-2">اسم المنتج الجديد:</label>
+            <input type="text" id="quick-rename-input" class="w-full bg-slate-950 border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:border-cyan focus:ring-2 focus:ring-cyan/20 outline-none">
+        </div>
+        <div class="flex justify-end gap-3">
+            <button type="button" onclick="closeQuickRenameModal()" class="px-4 py-2 rounded-xl text-xs font-bold text-slate-400 hover:text-white bg-white/5 transition-all">إلغاء</button>
+            <button type="button" onclick="submitQuickRename()" id="quick-rename-submit-btn" class="px-5 py-2 rounded-xl text-xs font-black text-black bg-cyan hover:bg-cyan/90 transition-all flex items-center gap-1.5">
+                <i class="fas fa-check"></i> حفظ التعديل
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- CSRF Helper -->
+{% csrf_token %}
+{% endblock %}
+
+{% block extra_scripts %}
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
+<script>
+let currentQuickUploadProductId = null;
+
+function getCsrfToken() {
+    const el = document.querySelector('[name=csrfmiddlewaretoken]');
+    return el ? el.value : '';
+}
+
+function showToast(message, isError = false) {
+    const toast = document.createElement('div');
+    toast.className = `fixed bottom-6 left-6 z-50 px-5 py-3 rounded-2xl text-xs font-black flex items-center gap-2 shadow-2xl transition-all duration-300 ${isError ? 'bg-rose-500 text-white' : 'bg-cyan text-black'}`;
+    toast.innerHTML = `<i class="fas ${isError ? 'fa-exclamation-circle' : 'fa-check-circle'}"></i> <span>${message}</span>`;
+    document.body.appendChild(toast);
+    setTimeout(() => {
+        toast.style.opacity = '0';
+        toast.style.transform = 'translateY(10px)';
+        setTimeout(() => toast.remove(), 300);
+    }, 3000);
+}
+
+// 1. Quick Image Upload
+function triggerQuickImageUpload(productId) {
+    currentQuickUploadProductId = productId;
+    const fileInput = document.getElementById('quick-image-file-input');
+    fileInput.value = '';
+    fileInput.click();
+}
+
+async function handleQuickImageFileSelected(input) {
+    if (!input.files || !input.files[0] || !currentQuickUploadProductId) return;
+    const file = input.files[0];
+    const formData = new FormData();
+    formData.append('image', file);
+
+    const productId = currentQuickUploadProductId;
+    showToast('جاري رفع وتحديث صورة المنتج...');
+
+    try {
+        const response = await fetch(`/control/products/${productId}/quick-image-ajax/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': getCsrfToken()
+            },
+            body: formData
+        });
+        const data = await response.json();
+        if (response.ok && data.status === 'success') {
+            // Update thumbnails in list and grid
+            const listImg = document.getElementById(`list-img-${productId}`);
+            if (listImg) {
+                if (listImg.tagName === 'IMG') {
+                    listImg.src = data.image_url;
+                } else {
+                    listImg.outerHTML = `<img src="${data.image_url}" class="p-list-img w-full h-full object-cover" id="list-img-${productId}">`;
+                }
+            }
+            const gridImg = document.getElementById(`grid-img-${productId}`);
+            if (gridImg) {
+                if (gridImg.tagName === 'IMG') {
+                    gridImg.src = data.image_url;
+                } else {
+                    gridImg.outerHTML = `<img src="${data.image_url}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" id="grid-img-${productId}">`;
+                }
+            }
+            showToast('تم تحديث صورة المنتج بنجاح!');
+        } else {
+            showToast(data.message || 'فشل رفع الصورة', true);
+        }
+    } catch (e) {
+        showToast('حدث خطأ أثناء رفع الصورة', true);
+    }
+}
+
+// 2. Quick Rename
+function quickRenameProduct(productId, currentName) {
+    document.getElementById('quick-rename-product-id').value = productId;
+    const input = document.getElementById('quick-rename-input');
+    input.value = currentName;
+    const modal = document.getElementById('quick-rename-modal');
+    modal.classList.remove('hidden');
+    input.focus();
+    input.select();
+}
+
+function closeQuickRenameModal() {
+    document.getElementById('quick-rename-modal').classList.add('hidden');
+}
+
+async function submitQuickRename() {
+    const productId = document.getElementById('quick-rename-product-id').value;
+    const newName = document.getElementById('quick-rename-input').value.trim();
+    if (!newName) {
+        showToast('يرجى إدخال اسم صحيح للمنتج', true);
+        return;
+    }
+
+    const btn = document.getElementById('quick-rename-submit-btn');
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري الحفظ...';
+
+    try {
+        const formData = new FormData();
+        formData.append('name', newName);
+
+        const response = await fetch(`/control/products/${productId}/quick-rename-ajax/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': getCsrfToken()
+            },
+            body: formData
+        });
+        const data = await response.json();
+        if (response.ok && data.status === 'success') {
+            const listName = document.getElementById(`product-name-list-${productId}`);
+            if (listName) listName.innerText = data.name;
+            const gridName = document.getElementById(`product-name-grid-${productId}`);
+            if (gridName) gridName.innerText = data.name;
+            closeQuickRenameModal();
+            showToast('تم تعديل اسم المنتج بنجاح!');
+        } else {
+            showToast(data.message || 'فشل تعديل الاسم', true);
+        }
+    } catch (e) {
+        showToast('حدث خطأ أثناء تعديل الاسم', true);
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fas fa-check"></i> حفظ التعديل';
+    }
+}
+
+document.getElementById('quick-rename-input')?.addEventListener('keydown', function(e) {
+    if (e.key === 'Enter') {
+        e.preventDefault();
+        submitQuickRename();
+    } else if (e.key === 'Escape') {
+        closeQuickRenameModal();
+    }
+});
+
+function toggleFeatured(id, btn) {
+    fetch(`/control/products/${id}/toggle-featured/`, {
+        headers: { 'X-CSRFToken': getCsrfToken() }
+    })
+    .then(r => r.json())
+    .then(d => {
+        if(d.status === 'success') {
+            if(d.is_featured) {
+                btn.classList.remove('text-white/20', 'text-white/40');
+                btn.classList.add('text-amber-400');
+            } else {
+                btn.classList.remove('text-amber-400');
+                btn.classList.add('text-white/20');
+            }
+        }
+    });
+}
+
+function ajaxReorder(id, direction) {
+    fetch(`/control/products/${id}/reorder-ajax/?direction=${direction}`, {
+        headers: { 'X-CSRFToken': getCsrfToken() }
+    })
+    .then(r => r.json())
+    .then(d => {
+        if(d.status === 'success') {
+            window.location.reload();
+        }
+    });
+}
+
+function toggleSelectAllProducts(master) {
+    const checkboxes = document.querySelectorAll('.product-checkbox');
+    checkboxes.forEach(cb => cb.checked = master.checked);
+    updateProductsBulkBar();
+}
+
+function updateProductsBulkBar() {
+    const checked = Array.from(document.querySelectorAll('.product-checkbox:checked'));
+    const panel = document.getElementById('products-bulk-panel');
+    const countEl = document.getElementById('products-selected-count');
+    const container = document.getElementById('products-selected-ids-container');
+    
+    if (!panel || !countEl || !container) return;
+    
+    countEl.innerText = checked.length;
+    container.innerHTML = '';
+    
+    checked.forEach(cb => {
+        const input = document.createElement('input');
+        input.type = 'hidden';
+        input.name = 'selected_products';
+        input.value = cb.value;
+        container.appendChild(input);
+    });
+    
+    if (checked.length > 0) {
+        panel.classList.remove('hidden');
+    } else {
+        panel.classList.add('hidden');
+    }
+}
+</script>
 {% endblock %}
 
 {% block control_content %}
