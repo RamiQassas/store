@@ -79,7 +79,32 @@
 
                     {% for key, val in order.fulfillment_data.items %}
                         {% if key != 'api_provider' and key != 'api_status' and key != 'api_last_response' and key != 'api_refunded' and key != 'response' and key != 'api_response' and key != 'api_error' and key != 'alkasr' %}
-                        <div class="fulfillment-item p-4 rounded-2xl bg-slate-900 border-2 border-cyan/30 flex items-center justify-between gap-4">
+                        {% with val_list=val|as_list %}
+                        {% if val_list|length > 1 %}
+                        <!-- Multiple Keys / Responses -->
+                        <div class="p-4 rounded-2xl bg-slate-900/90 border-2 border-cyan/40 stack gap-3 shadow-lg shadow-cyan/10">
+                            <div class="flex items-center justify-between border-b border-white/5 pb-2">
+                                <span class="text-xs text-cyan font-black uppercase tracking-wider flex items-center gap-1.5">
+                                    <i class="fas fa-key"></i> {{ key }} ({{ val_list|length }})
+                                </span>
+                                <button type="button" onclick="copyToClipboard('{{ val_list|join:"\n"|escapejs }}', this)" class="text-xs px-3 py-1 bg-cyan text-slate-950 rounded-xl hover:bg-cyan/80 font-black transition cursor-pointer flex items-center gap-1 shadow-md shadow-cyan/20">
+                                    <i class="far fa-copy"></i> نسخ كافة الأكواد
+                                </button>
+                            </div>
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-60 overflow-y-auto pr-1">
+                                {% for code in val_list %}
+                                <div class="flex items-center justify-between p-2.5 rounded-xl bg-slate-950/80 border border-white/5 gap-2">
+                                    <span class="text-xs font-mono text-cyan-200 font-black break-all">{{ code }}</span>
+                                    <button type="button" onclick="copyToClipboard('{{ code|escapejs }}', this)" class="shrink-0 text-[10px] px-2.5 py-1 bg-cyan/10 text-cyan hover:bg-cyan hover:text-slate-950 rounded-lg font-bold transition cursor-pointer">
+                                        نسخ
+                                    </button>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                        {% else %}
+                        <!-- Single Response Item -->
+                        <div class="fulfillment-item p-4 rounded-2xl bg-slate-900/90 border-2 border-cyan/30 flex items-center justify-between gap-4 shadow-lg shadow-cyan/5">
                             <div class="flex-grow">
                                 <span class="text-xs text-cyan font-black uppercase tracking-wider block mb-1.5">{{ key }}</span>
                                 <strong class="text-white font-mono text-lg sm:text-xl font-black break-all text-cyan-200 block">
@@ -94,6 +119,8 @@
                                 <i class="far fa-copy"></i> نسخ
                             </button>
                         </div>
+                        {% endif %}
+                        {% endwith %}
                         {% endif %}
                     {% endfor %}
                 </div>
@@ -349,15 +376,16 @@
 </div>
 
 <!-- Modal Popup for Order Details & Server Responses -->
-<div id="order-status-modal" class="fixed inset-0 items-center justify-center p-4 bg-slate-950/85 backdrop-blur-md transition-all duration-300" style="z-index: 999999; display: none;">
-    <div id="modal-container" class="bg-slate-900 border-2 border-cyan/40 rounded-3xl p-6 sm:p-8 max-w-lg w-full shadow-2xl shadow-cyan/20 relative transform transition-all duration-300">
+<div id="order-status-modal" style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; width: 100vw; height: 100vh; z-index: 9999999; display: none; align-items: center; justify-content: center; padding: 1.25rem; background-color: rgba(2, 6, 23, 0.88); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);">
+    <div id="modal-container" style="max-width: 440px; width: 100%; margin: auto; background: linear-gradient(165deg, #0f172a 0%, #060b18 100%); border: 1px solid rgba(6, 182, 212, 0.4); box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.8), 0 0 35px rgba(6, 182, 212, 0.15); border-radius: 28px;" class="p-6 sm:p-7 relative transform transition-all duration-300">
         <!-- Close Button Top -->
-        <button type="button" onclick="closeStatusModal()" class="absolute top-5 left-5 w-10 h-10 rounded-full bg-slate-800 text-slate-400 hover:text-white hover:bg-rose-500/20 hover:text-rose-400 flex items-center justify-center transition border border-white/10 cursor-pointer" title="إغلاق">
-            <i class="fas fa-times text-lg"></i>
+        <button type="button" onclick="closeStatusModal()" class="absolute top-4 left-4 w-9 h-9 rounded-full bg-slate-800/80 text-slate-400 hover:text-white hover:bg-rose-500/20 hover:text-rose-400 flex items-center justify-center transition border border-white/10 cursor-pointer" title="إغلاق">
+            <i class="fas fa-times text-sm"></i>
         </button>
 
-        <div class="flex items-center gap-4 mb-6">
-            <div class="w-12 h-12 rounded-2xl flex items-center justify-center text-xl shrink-0 {% if order.status == 'completed' %}bg-emerald-500/10 text-emerald-400 border border-emerald-500/20{% elif order.status == 'cancelled' or order.status == 'refunded' %}bg-rose-500/10 text-rose-400 border border-rose-500/20{% else %}bg-cyan/10 text-cyan border border-cyan/20 animate-pulse{% endif %}">
+        <!-- Header -->
+        <div class="flex items-center gap-3.5 mb-5 pr-1">
+            <div class="w-11 h-11 rounded-2xl flex items-center justify-center text-lg shrink-0 {% if order.status == 'completed' %}bg-emerald-500/10 text-emerald-400 border border-emerald-500/20{% elif order.status == 'cancelled' or order.status == 'refunded' %}bg-rose-500/10 text-rose-400 border border-rose-500/20{% else %}bg-cyan/10 text-cyan border border-cyan/20 animate-pulse{% endif %}">
                 {% if order.status == 'completed' %}
                 <i class="fas fa-check-circle"></i>
                 {% elif order.status == 'cancelled' or order.status == 'refunded' %}
@@ -366,56 +394,91 @@
                 <i class="fas fa-sync-alt fa-spin"></i>
                 {% endif %}
             </div>
-            <div>
-                <h3 class="text-lg font-black text-white">تفاصيل ورد السيرفر للطلب</h3>
-                <span class="text-xs text-slate-400 font-mono">الطلب #{{ order.number }}</span>
+            <div class="flex-grow">
+                <h3 class="text-base sm:text-lg font-black text-white">
+                    {% if order.status == 'completed' %}تم تسليم الطلب بنجاح{% elif order.status == 'cancelled' or order.status == 'refunded' %}تم إلغاء الطلب{% else %}تفاصيل ورد السيرفر للطلب{% endif %}
+                </h3>
+                <div class="flex items-center gap-2 mt-0.5">
+                    <span class="text-[11px] text-slate-400 font-mono">الطلب #{{ order.number }}</span>
+                    <button type="button" onclick="copyToClipboard('{{ order.number }}', this)" class="text-[10px] text-slate-500 hover:text-cyan transition" title="نسخ رقم الطلب">
+                        <i class="far fa-copy"></i>
+                    </button>
+                </div>
             </div>
         </div>
 
-        <div class="mb-6 p-4 rounded-2xl bg-slate-950/80 border border-white/10 stack gap-3">
-            <div class="flex justify-between items-center text-xs pb-3 border-b border-white/5">
+        <!-- Details Card -->
+        <div class="mb-5 p-4 rounded-2xl bg-slate-950/70 border border-white/5 stack gap-3">
+            <div class="flex justify-between items-center text-xs pb-2.5 border-b border-white/5">
                 <span class="text-slate-400 font-bold">حالة الطلب:</span>
-                <span class="font-black font-mono px-3 py-1 rounded-lg {% if order.status == 'completed' %}bg-emerald-500/20 text-emerald-400 border border-emerald-500/30{% elif order.status == 'cancelled' or order.status == 'refunded' %}bg-rose-500/20 text-rose-400 border border-rose-500/30{% else %}bg-amber-500/20 text-amber-400 border border-amber-500/30{% endif %}">
+                <span class="font-black font-mono px-3 py-0.5 rounded-lg text-xs {% if order.status == 'completed' %}bg-emerald-500/20 text-emerald-400 border border-emerald-500/30{% elif order.status == 'cancelled' or order.status == 'refunded' %}bg-rose-500/20 text-rose-400 border border-rose-500/30{% else %}bg-amber-500/20 text-amber-400 border border-amber-500/30{% endif %}">
                     {{ order.get_status_display }}
                 </span>
             </div>
             
             {% if order.api_order_id %}
-            <div class="flex justify-between items-center text-xs pb-3 border-b border-white/5">
+            <div class="flex justify-between items-center text-xs pb-2.5 border-b border-white/5">
                 <span class="text-slate-400 font-bold">رقم المرجع:</span>
                 <div class="flex items-center gap-2">
-                    <span class="font-mono text-white font-bold">{{ order.api_order_id }}</span>
-                    <button onclick="copyToClipboard('{{ order.api_order_id }}', this)" class="text-xs px-2.5 py-1 bg-cyan/10 text-cyan rounded-lg hover:bg-cyan hover:text-slate-950 font-bold transition cursor-pointer">نسخ</button>
+                    <span class="font-mono text-white font-bold text-xs">{{ order.api_order_id }}</span>
+                    <button type="button" onclick="copyToClipboard('{{ order.api_order_id }}', this)" class="text-[10px] px-2 py-0.5 bg-cyan/10 text-cyan rounded-md hover:bg-cyan hover:text-slate-950 font-bold transition cursor-pointer">نسخ</button>
                 </div>
             </div>
             {% endif %}
 
-            {% for key, val in order.fulfillment_data.items %}
-                {% if key != 'api_provider' and key != 'api_status' and key != 'api_last_response' and key != 'api_refunded' and key != 'response' and key != 'api_response' and key != 'api_error' and key != 'alkasr' %}
-                <div class="p-3.5 rounded-2xl bg-slate-900 border border-cyan/30 stack gap-1.5">
-                    <span class="text-[11px] text-cyan font-black uppercase tracking-wider block">{{ key }}</span>
-                    <div class="flex items-center justify-between gap-3">
-                        <span class="font-mono text-white font-black text-base break-all text-cyan-200">
-                            {% if key == "keys" %}{{ val|join:", " }}{% else %}{{ val }}{% endif %}
-                        </span>
-                        <button onclick="copyToClipboard('{% if key == "keys" %}{{ val|join:", " }}{% else %}{{ val }}{% endif %}', this)" class="shrink-0 text-xs px-3 py-1.5 bg-cyan text-slate-950 rounded-xl hover:bg-cyan/80 font-black transition cursor-pointer flex items-center gap-1">
-                            <i class="far fa-copy"></i> نسخ
-                        </button>
+            <!-- Dynamic Fulfillment Data (Delivery Codes, Phone numbers, Keys) -->
+            <div class="stack gap-2">
+                {% for key, val in order.fulfillment_data.items %}
+                    {% if key != 'api_provider' and key != 'api_status' and key != 'api_last_response' and key != 'api_refunded' and key != 'response' and key != 'api_response' and key != 'api_error' and key != 'alkasr' %}
+                    {% with val_list=val|as_list %}
+                    {% if val_list|length > 1 %}
+                    <div class="p-3.5 rounded-2xl bg-slate-900/90 border border-cyan/40 stack gap-2 shadow-lg shadow-cyan/10">
+                        <div class="flex items-center justify-between border-b border-white/5 pb-1.5">
+                            <span class="text-[11px] text-cyan font-black uppercase tracking-wider">{{ key }} ({{ val_list|length }})</span>
+                            <button type="button" onclick="copyToClipboard('{{ val_list|join:"\n"|escapejs }}', this)" class="text-[10px] px-2 py-0.5 bg-cyan text-slate-950 rounded-md font-bold hover:bg-cyan/80 transition cursor-pointer">
+                                <i class="far fa-copy"></i> نسخ الكل
+                            </button>
+                        </div>
+                        <div class="stack gap-1.5 max-h-40 overflow-y-auto pr-1">
+                            {% for code in val_list %}
+                            <div class="flex items-center justify-between p-2 rounded-xl bg-slate-950/80 border border-white/5 gap-2">
+                                <span class="text-[11px] font-mono text-cyan-200 font-bold break-all">{{ code }}</span>
+                                <button type="button" onclick="copyToClipboard('{{ code|escapejs }}', this)" class="shrink-0 text-[10px] px-2 py-1 bg-cyan/10 text-cyan hover:bg-cyan hover:text-slate-950 rounded-lg font-bold transition cursor-pointer">
+                                    نسخ
+                                </button>
+                            </div>
+                            {% endfor %}
+                        </div>
                     </div>
-                </div>
-                {% endif %}
-            {% endfor %}
+                    {% else %}
+                    <div class="p-3 rounded-2xl bg-slate-900/90 border border-cyan/40 stack gap-1 shadow-lg shadow-cyan/10">
+                        <span class="text-[10px] text-cyan font-black uppercase tracking-wider block">{{ key }}</span>
+                        <div class="flex items-center justify-between gap-2">
+                            <span class="font-mono text-cyan-200 font-bold text-sm break-all">
+                                {% if key == "keys" %}{{ val|join:", " }}{% else %}{{ val }}{% endif %}
+                            </span>
+                            <button type="button" onclick="copyToClipboard('{% if key == "keys" %}{{ val|join:", " }}{% else %}{{ val }}{% endif %}', this)" class="shrink-0 text-[10px] px-2.5 py-1 bg-cyan text-slate-950 rounded-lg hover:bg-cyan/80 font-black transition cursor-pointer flex items-center gap-1">
+                                <i class="far fa-copy"></i> نسخ
+                            </button>
+                        </div>
+                    </div>
+                    {% endif %}
+                    {% endwith %}
+                    {% endif %}
+                {% endfor %}
+            </div>
             
             {% if not order.fulfillment_data and not order.api_order_id %}
-            <div class="text-center py-4">
-                <div class="w-8 h-8 mx-auto mb-2 text-cyan animate-spin"><i class="fas fa-spinner"></i></div>
+            <div class="text-center py-3">
+                <div class="w-7 h-7 mx-auto mb-2 text-cyan animate-spin"><i class="fas fa-spinner"></i></div>
                 <p class="text-xs text-slate-300 font-bold">جاري استلام الرد من السيرفر، يتم التحديث آلياً لحظياً...</p>
             </div>
             {% endif %}
         </div>
 
+        <!-- Actions -->
         <div class="flex gap-3">
-            <button type="button" onclick="closeStatusModal()" class="btn btn-primary w-full py-3.5 rounded-xl font-bold text-sm cursor-pointer shadow-lg shadow-cyan/20">
+            <button type="button" onclick="closeStatusModal()" class="btn btn-primary w-full py-3 rounded-xl font-bold text-xs text-center cursor-pointer shadow-lg shadow-cyan/20">
                 إغلاق النافذة
             </button>
         </div>

@@ -508,8 +508,7 @@
                     </div>
                     <div class="related-info">
                         <div class="related-title">{{ rp.name }}</div>
-                        {% variant_price rp.variants.first as rp_price %}
-                        <div class="related-price">{% currency_format rp_price %}</div>
+                        <div class="related-price">{% product_starting_price rp %}</div>
                     </div>
                 </a>
                 {% endfor %}
@@ -1088,55 +1087,63 @@ document.addEventListener('DOMContentLoaded', () => {
 </script>
 
 <!-- Modal Popup for Instant In-Page Order Results & Server Responses -->
-<div id="purchase-result-modal" style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; width: 100vw; height: 100vh; z-index: 9999999; display: none; align-items: center; justify-content: center; padding: 1rem; background-color: rgba(2, 6, 23, 0.88); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);">
-    <div id="purchase-modal-container" class="bg-slate-900 border-2 border-cyan/40 rounded-3xl p-6 sm:p-8 max-w-lg w-full shadow-2xl shadow-cyan/20 relative transform transition-all duration-300">
+<div id="purchase-result-modal" style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; width: 100vw; height: 100vh; z-index: 9999999; display: none; align-items: center; justify-content: center; padding: 1.25rem; background-color: rgba(2, 6, 23, 0.88); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);">
+    <div id="purchase-modal-container" style="max-width: 440px; width: 100%; margin: auto; background: linear-gradient(165deg, #0f172a 0%, #060b18 100%); border: 1px solid rgba(6, 182, 212, 0.4); box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.8), 0 0 35px rgba(6, 182, 212, 0.15); border-radius: 28px;" class="p-6 sm:p-7 relative transform transition-all duration-300">
         <!-- Close Button Top -->
-        <button type="button" onclick="closePurchaseModal()" class="absolute top-5 left-5 w-10 h-10 rounded-full bg-slate-800 text-slate-400 hover:text-white hover:bg-rose-500/20 hover:text-rose-400 flex items-center justify-center transition border border-white/10 cursor-pointer" title="إغلاق">
-            <i class="fas fa-times text-lg"></i>
+        <button type="button" onclick="closePurchaseModal()" class="absolute top-4 left-4 w-9 h-9 rounded-full bg-slate-800/80 text-slate-400 hover:text-white hover:bg-rose-500/20 hover:text-rose-400 flex items-center justify-center transition border border-white/10 cursor-pointer" title="إغلاق">
+            <i class="fas fa-times text-sm"></i>
         </button>
 
-        <div class="flex items-center gap-4 mb-6">
-            <div id="modal-status-icon" class="w-12 h-12 rounded-2xl flex items-center justify-center text-xl shrink-0 bg-cyan/10 text-cyan border border-cyan/20 animate-pulse">
+        <!-- Header -->
+        <div class="flex items-center gap-3.5 mb-5 pr-1">
+            <div id="modal-status-icon" class="w-11 h-11 rounded-2xl flex items-center justify-center text-lg shrink-0 bg-cyan/10 text-cyan border border-cyan/20 animate-pulse">
                 <i class="fas fa-sync-alt fa-spin"></i>
             </div>
-            <div>
-                <h3 class="text-lg font-black text-white" id="modal-title">تم تنفيذ الطلب بنجاح</h3>
-                <span class="text-xs text-slate-400 font-mono" id="modal-order-number">الطلب #...</span>
+            <div class="flex-grow">
+                <h3 class="text-base sm:text-lg font-black text-white" id="modal-title">تم تأكيد طلبك بنجاح</h3>
+                <div class="flex items-center gap-2 mt-0.5">
+                    <span class="text-[11px] text-slate-400 font-mono" id="modal-order-number">الطلب #...</span>
+                    <button type="button" onclick="copyModalField('modal-order-number', this)" class="text-[10px] text-slate-500 hover:text-cyan transition" title="نسخ رقم الطلب">
+                        <i class="far fa-copy"></i>
+                    </button>
+                </div>
             </div>
         </div>
 
-        <div class="mb-6 p-4 rounded-2xl bg-slate-950/80 border border-white/10 stack gap-3">
-            <div class="flex justify-between items-center text-xs pb-3 border-b border-white/5">
+        <!-- Details Card -->
+        <div class="mb-5 p-4 rounded-2xl bg-slate-950/70 border border-white/5 stack gap-3">
+            <div class="flex justify-between items-center text-xs pb-2.5 border-b border-white/5">
                 <span class="text-slate-400 font-bold">حالة الطلب:</span>
-                <span id="modal-status-badge" class="font-black font-mono px-3 py-1 rounded-lg bg-amber-500/20 text-amber-400 border border-amber-500/30">
+                <span id="modal-status-badge" class="font-black font-mono px-3 py-0.5 rounded-lg bg-amber-500/20 text-amber-400 border border-amber-500/30 text-xs">
                     قيد المعالجة
                 </span>
             </div>
             
-            <div id="modal-ref-row" class="flex justify-between items-center text-xs pb-3 border-b border-white/5 hidden">
+            <div id="modal-ref-row" class="flex justify-between items-center text-xs pb-2.5 border-b border-white/5 hidden">
                 <span class="text-slate-400 font-bold">رقم المرجع:</span>
                 <div class="flex items-center gap-2">
-                    <span id="modal-ref-text" class="font-mono text-white font-bold"></span>
-                    <button id="modal-ref-btn" onclick="copyModalField('modal-ref-text', this)" class="text-xs px-2.5 py-1 bg-cyan/10 text-cyan rounded-lg hover:bg-cyan hover:text-slate-950 font-bold transition cursor-pointer">نسخ</button>
+                    <span id="modal-ref-text" class="font-mono text-white font-bold text-xs"></span>
+                    <button type="button" id="modal-ref-btn" onclick="copyModalField('modal-ref-text', this)" class="text-[10px] px-2 py-0.5 bg-cyan/10 text-cyan rounded-md hover:bg-cyan hover:text-slate-950 font-bold transition cursor-pointer">نسخ</button>
                 </div>
             </div>
 
-            <!-- Dynamic Fulfillment Data (Delivery Codes, Phone numbers, Keys) -->
-            <div id="modal-fulfillment-box" class="stack gap-2.5">
+            <!-- Dynamic Fulfillment Data (Delivery Codes, Phone numbers, Keys, Multiple Responses) -->
+            <div id="modal-fulfillment-box" class="stack gap-2">
                 <!-- Dynamically populated -->
             </div>
             
-            <div id="modal-waiting-msg" class="text-center py-4">
-                <div class="w-8 h-8 mx-auto mb-2 text-cyan animate-spin"><i class="fas fa-spinner"></i></div>
+            <div id="modal-waiting-msg" class="text-center py-3">
+                <div class="w-7 h-7 mx-auto mb-2 text-cyan animate-spin"><i class="fas fa-spinner"></i></div>
                 <p class="text-xs text-slate-300 font-bold">جاري استلام الرد من السيرفر، يتم التحديث آلياً لحظياً...</p>
             </div>
         </div>
 
-        <div class="flex flex-col sm:flex-row gap-3">
-            <a id="modal-order-link" href="#" class="btn btn-primary flex-1 py-3.5 rounded-xl font-bold text-xs text-center cursor-pointer shadow-lg shadow-cyan/20">
-                <i class="fas fa-receipt ml-1"></i> عرض الفاتورة وتفاصيل الطلب
+        <!-- Actions -->
+        <div class="flex flex-col gap-2.5">
+            <a id="modal-order-link" href="#" class="btn btn-primary w-full py-3 rounded-xl font-bold text-xs text-center cursor-pointer shadow-lg shadow-cyan/20 flex items-center justify-center gap-2">
+                <i class="fas fa-receipt"></i> عرض الفاتورة وتفاصيل الطلب
             </a>
-            <button type="button" onclick="closePurchaseModal()" class="btn btn-outline py-3.5 px-5 rounded-xl font-bold text-xs text-slate-300 border-white/10 hover:border-cyan cursor-pointer">
+            <button type="button" onclick="closePurchaseModal()" class="btn btn-outline w-full py-2.5 rounded-xl font-bold text-xs text-slate-400 hover:text-white border-white/10 hover:border-cyan cursor-pointer">
                 متابعة التسوق
             </button>
         </div>
@@ -1171,6 +1178,7 @@ function updateModalContent(data) {
     document.getElementById('modal-order-number').innerText = 'الطلب #' + (data.order_number || data.number || '...');
     const badge = document.getElementById('modal-status-badge');
     const icon = document.getElementById('modal-status-icon');
+    const title = document.getElementById('modal-title');
     const waitingMsg = document.getElementById('modal-waiting-msg');
     const refRow = document.getElementById('modal-ref-row');
     const refText = document.getElementById('modal-ref-text');
@@ -1185,18 +1193,21 @@ function updateModalContent(data) {
     badge.innerText = statusDisplay;
     
     if (status === 'completed') {
-        badge.className = 'font-black font-mono px-3 py-1 rounded-lg bg-emerald-500/20 text-emerald-400 border border-emerald-500/30';
-        icon.className = 'w-12 h-12 rounded-2xl flex items-center justify-center text-xl shrink-0 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20';
+        title.innerText = 'تم اكتمال وتسليم طلبك بنجاح';
+        badge.className = 'font-black font-mono px-3 py-0.5 rounded-lg bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 text-xs';
+        icon.className = 'w-11 h-11 rounded-2xl flex items-center justify-center text-lg shrink-0 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20';
         icon.innerHTML = '<i class="fas fa-check-circle"></i>';
         if (waitingMsg) waitingMsg.style.display = 'none';
     } else if (status === 'cancelled' || status === 'refunded') {
-        badge.className = 'font-black font-mono px-3 py-1 rounded-lg bg-rose-500/20 text-rose-400 border border-rose-500/30';
-        icon.className = 'w-12 h-12 rounded-2xl flex items-center justify-center text-xl shrink-0 bg-rose-500/10 text-rose-400 border border-rose-500/20';
+        title.innerText = 'تم إلغاء الطلب واستعادة الرصيد';
+        badge.className = 'font-black font-mono px-3 py-0.5 rounded-lg bg-rose-500/20 text-rose-400 border border-rose-500/30 text-xs';
+        icon.className = 'w-11 h-11 rounded-2xl flex items-center justify-center text-lg shrink-0 bg-rose-500/10 text-rose-400 border border-rose-500/20';
         icon.innerHTML = '<i class="fas fa-times-circle"></i>';
         if (waitingMsg) waitingMsg.style.display = 'none';
     } else {
-        badge.className = 'font-black font-mono px-3 py-1 rounded-lg bg-amber-500/20 text-amber-400 border border-amber-500/30';
-        icon.className = 'w-12 h-12 rounded-2xl flex items-center justify-center text-xl shrink-0 bg-cyan/10 text-cyan border border-cyan/20 animate-pulse';
+        title.innerText = 'تم تأكيد طلبك بنجاح';
+        badge.className = 'font-black font-mono px-3 py-0.5 rounded-lg bg-amber-500/20 text-amber-400 border border-amber-500/30 text-xs';
+        icon.className = 'w-11 h-11 rounded-2xl flex items-center justify-center text-lg shrink-0 bg-cyan/10 text-cyan border border-cyan/20 animate-pulse';
         icon.innerHTML = '<i class="fas fa-sync-alt fa-spin"></i>';
     }
     
@@ -1205,26 +1216,71 @@ function updateModalContent(data) {
         refText.innerText = data.api_order_id;
     }
     
-    // Populate fulfillment box
+    // Populate fulfillment box (Supports single response or multiple keys/codes)
     const fBox = document.getElementById('modal-fulfillment-box');
     fBox.innerHTML = '';
     const fulfillment = data.fulfillment || {};
     let hasKeys = false;
+    
     for (const [k, v] of Object.entries(fulfillment)) {
+        if (!v) continue;
         hasKeys = true;
-        const valStr = Array.isArray(v) ? v.join(', ') : String(v);
-        const itemEl = document.createElement('div');
-        itemEl.className = 'p-3.5 rounded-2xl bg-slate-900 border border-cyan/40 stack gap-1.5 shadow-lg shadow-cyan/10';
-        itemEl.innerHTML = `
-            <span class="text-[11px] text-cyan font-black uppercase tracking-wider block">${k}</span>
-            <div class="flex items-center justify-between gap-3">
-                <span class="font-mono text-cyan-200 font-black text-base break-all">${valStr}</span>
-                <button type="button" onclick="copyDirect('${valStr.replace(/'/g, "\\'")}', this)" class="shrink-0 text-xs px-3 py-1.5 bg-cyan text-slate-950 rounded-xl hover:bg-cyan/80 font-black transition cursor-pointer flex items-center gap-1">
-                    <i class="far fa-copy"></i> نسخ
-                </button>
-            </div>
-        `;
-        fBox.appendChild(itemEl);
+        
+        let itemsList = [];
+        if (Array.isArray(v)) {
+            itemsList = v;
+        } else if (typeof v === 'string' && (v.includes('\n') || (k === 'keys' && v.includes(',')))) {
+            itemsList = v.includes('\n') ? v.split('\n') : v.split(',');
+        }
+        
+        if (itemsList.length > 1) {
+            // Render multi-response container
+            const allJoined = itemsList.map(x => String(x).trim()).filter(Boolean).join('\n');
+            const multiContainer = document.createElement('div');
+            multiContainer.className = 'p-3.5 rounded-2xl bg-slate-900/90 border border-cyan/40 stack gap-2 shadow-lg shadow-cyan/10';
+            
+            let codesHtml = '';
+            itemsList.forEach((code, idx) => {
+                const cleanCode = String(code).trim();
+                if (!cleanCode) return;
+                codesHtml += `
+                    <div class="flex items-center justify-between p-2 rounded-xl bg-slate-950/80 border border-white/5 gap-2">
+                        <span class="text-[11px] font-mono text-cyan-200 font-bold break-all">${cleanCode}</span>
+                        <button type="button" onclick="copyDirect('${cleanCode.replace(/'/g, "\\'")}', this)" class="shrink-0 text-[10px] px-2 py-1 bg-cyan/10 text-cyan hover:bg-cyan hover:text-slate-950 rounded-lg font-bold transition cursor-pointer">
+                            نسخ
+                        </button>
+                    </div>
+                `;
+            });
+            
+            multiContainer.innerHTML = `
+                <div class="flex items-center justify-between border-b border-white/5 pb-1.5">
+                    <span class="text-[11px] text-cyan font-black uppercase tracking-wider">${k} (${itemsList.length})</span>
+                    <button type="button" onclick="copyDirect('${allJoined.replace(/'/g, "\\'")}', this)" class="text-[10px] px-2 py-0.5 bg-cyan text-slate-950 rounded-md font-bold hover:bg-cyan/80 transition cursor-pointer">
+                        <i class="far fa-copy"></i> نسخ الكل
+                    </button>
+                </div>
+                <div class="stack gap-1.5 max-h-40 overflow-y-auto pr-1">
+                    ${codesHtml}
+                </div>
+            `;
+            fBox.appendChild(multiContainer);
+        } else {
+            // Render single key item
+            const valStr = Array.isArray(v) ? v.join(', ') : String(v);
+            const itemEl = document.createElement('div');
+            itemEl.className = 'p-3 rounded-2xl bg-slate-900/90 border border-cyan/40 stack gap-1 shadow-lg shadow-cyan/10';
+            itemEl.innerHTML = `
+                <span class="text-[10px] text-cyan font-black uppercase tracking-wider block">${k}</span>
+                <div class="flex items-center justify-between gap-2">
+                    <span class="font-mono text-cyan-200 font-bold text-sm break-all">${valStr}</span>
+                    <button type="button" onclick="copyDirect('${valStr.replace(/'/g, "\\'")}', this)" class="shrink-0 text-[10px] px-2.5 py-1 bg-cyan text-slate-950 rounded-lg hover:bg-cyan/80 font-black transition cursor-pointer flex items-center gap-1">
+                        <i class="far fa-copy"></i> نسخ
+                    </button>
+                </div>
+            `;
+            fBox.appendChild(itemEl);
+        }
     }
     
     if (hasKeys && waitingMsg) {
@@ -1235,13 +1291,15 @@ function updateModalContent(data) {
 function copyModalField(elId, btn) {
     const el = document.getElementById(elId);
     if (!el) return;
-    copyDirect(el.innerText, btn);
+    let txt = el.innerText;
+    if (txt.startsWith('الطلب #')) txt = txt.replace('الطلب #', '').trim();
+    copyDirect(txt, btn);
 }
 
 function copyDirect(text, btn) {
     navigator.clipboard.writeText(text).then(() => {
         const originalText = btn.innerHTML;
-        btn.innerHTML = '<i class="fas fa-check"></i> تم النسخ!';
+        btn.innerHTML = '<i class="fas fa-check"></i> تم!';
         btn.style.background = '#10b981';
         btn.style.color = '#fff';
         setTimeout(() => {

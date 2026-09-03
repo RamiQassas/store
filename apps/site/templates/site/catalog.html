@@ -1188,10 +1188,9 @@
 
                             <!-- Price row -->
                             <div class="card-price-row">
-                                {% variant_price p.variants.first as v_price %}
                                 <div>
                                     <div class="card-price-label">يبدأ من</div>
-                                    <div class="card-price-value">{% currency_format v_price %}</div>
+                                    <div class="card-price-value">{% product_starting_price p %}</div>
                                 </div>
                                 <a href="{% url 'product_detail' p.id %}" class="card-buy-btn" title="عرض المنتج">
                                     <i class="fas fa-arrow-left"></i>

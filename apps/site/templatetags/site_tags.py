@@ -71,6 +71,60 @@ def variant_card_price(context, variant):
     
     return currency_format(context, price)
 
+@register.simple_tag(takes_context=True)
+def product_starting_price(context, product):
+    """
+    Returns the starting minimum price for a product card across active variants.
+    Calculates the true starting cost by factoring in qty_min for range products.
+    """
+    if not product:
+        return ""
+        
+    try:
+        variants = product.variants.all()
+    except Exception:
+        variants = []
+        
+    lowest_price = None
+    
+    for v in variants:
+        # Skip inactive or corrupt/null variants
+        if getattr(v, 'is_active', True) is False:
+            continue
+        v_name = (v.name or "").lower()
+        if "(#" in v.name or "null" in v_name:
+            continue
+            
+        v_price = variant_price(context, v)
+        if v_price is None:
+            continue
+            
+        meta = v.metadata or {}
+        qty_type = meta.get("qty_type")
+        qty_min = meta.get("qty_min", 1)
+        
+        try:
+            min_val = Decimal(str(qty_min)) if qty_min else Decimal("1")
+        except Exception:
+            min_val = Decimal("1")
+            
+        if qty_type == "range" and min_val > 1:
+            total = Decimal(str(v_price)) * min_val
+        else:
+            total = Decimal(str(v_price))
+            
+        if lowest_price is None or total < lowest_price:
+            lowest_price = total
+            
+    if lowest_price is None:
+        p_price = getattr(product, 'price', 0) or 0
+        try:
+            lowest_price = Decimal(str(p_price))
+        except Exception:
+            lowest_price = Decimal("0")
+            
+    return currency_format(context, lowest_price)
+
 @register.filter
 def to_usd(amount, currency):
     """Converts an amount in the given currency to USD."""
@@ -262,5 +316,22 @@ def jsonify(val):
         return mark_safe(json.dumps(val, ensure_ascii=False))
     except Exception:
         return "[]"
+
+@register.filter
+def is_list(val):
+    return isinstance(val, (list, tuple))
+
+@register.filter
+def as_list(val):
+    if isinstance(val, (list, tuple)):
+        return val
+    if isinstance(val, str):
+        if "\n" in val:
+            return [x.strip() for x in val.split("\n") if x.strip()]
+        if "," in val:
+            return [x.strip() for x in val.split(",") if x.strip()]
+    if val is not None and val != "":
+        return [val]
+    return []
 
 

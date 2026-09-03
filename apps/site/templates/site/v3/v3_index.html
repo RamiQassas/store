@@ -296,9 +296,7 @@
                 <div class="p-body-v6">
                     <span class="cat">{{ p.category.name }}</span>
                     <a href="{% url 'product_detail' p.id %}" class="title">{{ p.name }}</a>
-                    <div class="p-footer-v6">
-                        {% variant_price p.variants.first as v_price %}
-                        <span class="price">{% currency_format v_price %}</span>
+                        <span class="price">{% product_starting_price p %}</span>
                         <a href="{% url 'product_detail' p.id %}" class="btn btn-primary btn-sm rounded-lg py-1 px-3 text-[10px]">اطلب</a>
                     </div>
                 </div>

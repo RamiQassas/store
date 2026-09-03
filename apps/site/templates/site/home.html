@@ -347,8 +347,7 @@
                     <div class="prod-body">
                         <small style="color: var(--brand-sky); font-weight: 800;">{{ p.category.name }}</small>
                         <h4 style="margin: 0.5rem 0; font-size: 1.25rem;">{{ p.name }}</h4>
-                        {% variant_price p.variants.first as v_price %}
-                        <span class="prod-price">{% currency_format v_price %}</span>
+                        <span class="prod-price">{% product_starting_price p %}</span>
                         <a href="{% url 'product_detail' p.id %}" class="btn-premium primary" style="width: 100%; height: 48px; padding: 0;">شراء الآن</a>
                     </div>
                 </div>
