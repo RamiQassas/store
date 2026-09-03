@@ -1996,7 +1996,9 @@ def product_detail(request, pk):
             messages.error(request, str(e))
             return redirect("product_detail", pk=pk)
 
-    variants = product.variants.filter(is_active=True).order_by('sort_order')
+    variants = product.variants.filter(is_active=True, is_temporarily_disabled=False).exclude(name__icontains='(#').exclude(name__icontains='null').order_by('sort_order')
+    if not variants.exists():
+        variants = product.variants.filter(is_active=True).order_by('sort_order')
     if not variants.exists():
         variants = product.variants.all().order_by('sort_order')
     related_products = Product.objects.filter(category=product.category, is_active=True).exclude(pk=product.pk)[:3]
