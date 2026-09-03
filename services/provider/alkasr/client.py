@@ -175,8 +175,20 @@ class AlkasrClient:
             "qty": int(quantity),
         }
         if player_params:
-            # Assumes playerId or anyKey are inside player_params
-            params.update(player_params)
+            cleaned_params = {}
+            for k, v in player_params.items():
+                if v is not None and str(v).strip() != "":
+                    cleaned_params[str(k).strip()] = str(v).strip()
+            
+            # If playerId is not explicitly present, find matching ID alias and populate playerId
+            if "playerId" not in cleaned_params:
+                for k, v in list(cleaned_params.items()):
+                    k_lower = k.lower()
+                    if any(term in k_lower for term in ["player", "user", "id", "ايدي", "آيدي", "معرف", "حساب"]):
+                        cleaned_params["playerId"] = v
+                        break
+
+            params.update(cleaned_params)
         return self.request("GET", endpoint, params=params)
 
     def check_orders(self, order_identifiers: list, is_uuid: bool = True) -> dict:

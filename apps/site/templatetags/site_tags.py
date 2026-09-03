@@ -215,3 +215,16 @@ def is_location_url(value):
         "maps.app.goo.gl" in value_lower
     )
 
+
+import json
+
+@register.filter
+def jsonify(val):
+    if val is None:
+        return "[]"
+    try:
+        return mark_safe(json.dumps(val, ensure_ascii=False))
+    except Exception:
+        return "[]"
+
+

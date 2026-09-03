@@ -154,7 +154,16 @@ class AlkasrMapperService:
                             "qty_type": "fixed",
                             "qty_min": pp.qty_min,
                             "qty_max": pp.qty_max,
-                            "product_type": pp.product_type
+                            "product_type": pp.product_type,
+                            "params": [
+                                {
+                                    "name": param.name,
+                                    "label": param.label,
+                                    "type": param.parameter_type,
+                                    "required": param.required
+                                }
+                                for param in pp.parameters.all()
+                            ]
                         }
                         if pp.qty_list:
                             meta["qty_list"] = pp.qty_list

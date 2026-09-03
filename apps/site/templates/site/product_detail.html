@@ -1,5 +1,5 @@
 {% extends "site/base.html" %}
-{% load static site_tags %}
+{% load static site_tags l10n %}
 
 {% block title %}{{ product.name }} | Raqamiyat{% endblock %}
 
@@ -261,12 +261,13 @@
                 {% variant_price v as v_price %}
                 <div class="variant-card {% if v.is_temporarily_disabled or product.is_out_of_stock %}opacity-50 grayscale cursor-not-allowed{% endif %} {% if v.is_sale %}on-sale{% endif %}" 
                      {% if not v.is_temporarily_disabled and not product.is_out_of_stock %}onclick="selectVariant('{{ v.id }}', this)"{% endif %}
-                     data-price="{{ v_price }}"
+                     data-price="{{ v_price|unlocalize }}"
                      data-qty-type="{{ v.metadata.qty_type|default:'none' }}"
                      data-qty-min="{{ v.metadata.qty_min|default:1 }}"
                      data-qty-max="{{ v.metadata.qty_max|default:999999 }}"
                      data-qty-list='{% if v.metadata.qty_list %}{{ v.metadata.qty_list|safe }}{% else %}[]{% endif %}'
-                     data-is-per-mille="{% if v.metadata.is_per_mille %}true{% else %}false{% endif %}">
+                     data-is-per-mille="{% if v.metadata.is_per_mille %}true{% else %}false{% endif %}"
+                     data-params='{% if v.metadata.params %}{{ v.metadata.params|jsonify }}{% else %}[]{% endif %}'>
                     <div class="flex items-center gap-5">
                         <div class="radio-circle"></div>
                         <div>
@@ -326,51 +327,94 @@
             </div>
             {% endif %}
 
-            <!-- Dynamic Form Fields -->
-            {% if product.form_schema.fields %}
-            <div class="panel p-8 mt-10 stack gap-8 bg-cyan/[0.03] border-cyan/10 rounded-[2.5rem]">
-                <div>
-                    <h3 class="font-black text-xl text-white">البيانات المطلوبة</h3>
-                    <p class="text-xs text-slate-500 mt-1">يرجى إدخال البيانات المطلوبة بعناية لضمان سرعة التنفيذ.</p>
-                </div>
-                <div class="grid grid-1 gap-6">
-                    {% for f in product.form_schema.fields %}
-                    <div class="field-group">
-                        <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 block">{{ f.label }} {% if f.required %}<span class="text-rose-500">*</span>{% endif %}</label>
-                        {% if f.type == 'textarea' %}
-                        <textarea name="custom_{{ f.name|default:f.label }}" placeholder="{{ f.placeholder }}" class="w-full bg-slate-900 border-white/5 rounded-2xl p-4 text-white focus:border-cyan transition" {% if f.required %}required{% endif %}></textarea>
-                        {% elif f.options %}
-                        <select name="custom_{{ f.name|default:f.label }}" class="w-full bg-slate-900 border-white/5 rounded-2xl p-4 text-white focus:border-cyan transition" {% if f.required %}required{% endif %}>
-                            <option value="">-- اختر من القائمة --</option>
-                            {% if f.options|is_list %}
-                                {% for opt in f.options %}
-                                <option value="{{ opt|trim }}">{{ opt|trim }}</option>
-                                {% endfor %}
-                            {% else %}
-                                {% for opt in f.options|split:"," %}
-                                <option value="{{ opt|trim }}">{{ opt|trim }}</option>
-                                {% endfor %}
-                            {% endif %}
-                        </select>
-                        {% elif f.type == 'image' %}
-                        <input type="file" name="custom_{{ f.name|default:f.label }}" class="w-full bg-slate-900 border-white/5 rounded-2xl p-4 text-xs text-slate-500" accept="image/*" {% if f.required %}required{% endif %}>
-                        {% elif f.type == 'location' %}
-                        <div class="relative flex items-center">
-                            <input type="text" id="loc_{{ forloop.counter }}" name="custom_{{ f.name|default:f.label }}" placeholder="{{ f.placeholder|default:'مثال: https://www.google.com/maps?q=24.7136,46.6753' }}" class="w-full bg-slate-900 border border-white/5 rounded-2xl p-4 pl-36 text-white focus:border-cyan transition" {% if f.required %}required{% endif %}>
-                            <button type="button" onclick="detectGPSLocation('loc_{{ forloop.counter }}', this)" class="absolute left-2 bg-cyan/10 hover:bg-cyan/20 border border-cyan/20 hover:border-cyan/30 text-cyan text-[11px] font-bold py-2 px-3 rounded-xl flex items-center gap-1.5 transition-all">
-                                <i class="fas fa-map-marker-alt"></i>
-                                <span>تحديد موقعي (GPS)</span>
-                            </button>
-                        </div>
-                        <span class="text-[9px] text-slate-500 mt-1 block">يمكنك نسخ ولصق رابط موقعك من خرائط جوجل مباشرة أو استخدام زر تحديد الموقع الحالي.</span>
-                        {% else %}
-                        <input type="text" name="custom_{{ f.name|default:f.label }}" placeholder="{{ f.placeholder }}" class="w-full bg-slate-900 border-white/5 rounded-2xl p-4 text-white focus:border-cyan transition" {% if f.required %}required{% endif %}>
-                        {% endif %}
+            <!-- Dynamic Form Fields Container -->
+            <div id="dynamic-fields-container" class="panel p-7 mt-8 stack gap-5 bg-slate-900/90 border border-cyan/20 rounded-[2.5rem] shadow-2xl shadow-cyan/5 {% if not product.form_schema.fields and not product.is_api_product %}hidden{% endif %}">
+                <div class="flex items-center justify-between border-b border-white/5 pb-4">
+                    <div>
+                        <h3 class="font-black text-xl text-white flex items-center gap-3">
+                            <span class="w-8 h-8 rounded-xl bg-cyan/10 border border-cyan/20 flex items-center justify-center text-cyan text-sm">
+                                <i class="fas fa-id-card"></i>
+                            </span>
+                            <span>بيانات تنفيذ وشحن الطلب</span>
+                        </h3>
+                        <p id="fields-help-text" class="text-xs text-slate-400 mt-1">يرجى كتابة البيانات المطلوبة بعناية لضمان سرعة التنفيذ المباشر للطلب.</p>
                     </div>
-                    {% endfor %}
+                    {% if product.is_api_product %}
+                    <span class="text-[10px] bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-3 py-1 rounded-full font-bold flex items-center gap-1.5">
+                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                        شحن فوري آلي
+                    </span>
+                    {% endif %}
+                </div>
+                <div id="dynamic-fields-wrapper" class="grid grid-1 gap-5">
+                    {% if product.form_schema.fields %}
+                        {% for f in product.form_schema.fields %}
+                        <div class="field-group bg-slate-950/60 p-4 rounded-2xl border border-white/5 focus-within:border-cyan/50 transition-all">
+                            <label class="text-xs font-bold text-slate-200 flex items-center justify-between mb-2">
+                                <span class="flex items-center gap-2">
+                                    <i class="fas fa-edit text-cyan text-xs"></i>
+                                    <span>{{ f.label }}</span>
+                                </span>
+                                {% if f.required %}<span class="text-[10px] text-rose-400 font-bold">* مطلوب</span>{% else %}<span class="text-[10px] text-slate-500">اختياري</span>{% endif %}
+                            </label>
+                            {% if f.type == 'textarea' %}
+                            <textarea name="custom_{{ f.name|default:f.label }}" placeholder="{{ f.placeholder }}" class="w-full bg-slate-900 border border-white/10 rounded-xl p-3.5 text-white focus:border-cyan transition" {% if f.required %}required{% endif %}></textarea>
+                            {% elif f.options %}
+                            <select name="custom_{{ f.name|default:f.label }}" class="w-full bg-slate-900 border border-white/10 rounded-xl p-3.5 text-white focus:border-cyan transition" {% if f.required %}required{% endif %}>
+                                <option value="">-- اختر من القائمة --</option>
+                                {% if f.options|is_list %}
+                                    {% for opt in f.options %}
+                                    <option value="{{ opt|trim }}">{{ opt|trim }}</option>
+                                    {% endfor %}
+                                {% else %}
+                                    {% for opt in f.options|split:"," %}
+                                    <option value="{{ opt|trim }}">{{ opt|trim }}</option>
+                                    {% endfor %}
+                                {% endif %}
+                            </select>
+                            {% elif f.type == 'image' %}
+                            <input type="file" name="custom_{{ f.name|default:f.label }}" class="w-full bg-slate-900 border border-white/10 rounded-xl p-3 text-xs text-slate-400" accept="image/*" {% if f.required %}required{% endif %}>
+                            {% elif f.type == 'location' %}
+                            <div class="relative flex items-center">
+                                <input type="text" id="loc_{{ forloop.counter }}" name="custom_{{ f.name|default:f.label }}" placeholder="{{ f.placeholder|default:'مثال: https://www.google.com/maps?q=24.7136,46.6753' }}" class="w-full bg-slate-900 border border-white/10 rounded-xl p-3.5 pl-36 text-white focus:border-cyan transition" {% if f.required %}required{% endif %}>
+                                <button type="button" onclick="detectGPSLocation('loc_{{ forloop.counter }}', this)" class="absolute left-2 bg-cyan/10 hover:bg-cyan/20 border border-cyan/20 hover:border-cyan/30 text-cyan text-[11px] font-bold py-2 px-3 rounded-lg flex items-center gap-1.5 transition-all">
+                                    <i class="fas fa-map-marker-alt"></i>
+                                    <span>تحديد موقعي (GPS)</span>
+                                </button>
+                            </div>
+                            <span class="text-[9px] text-slate-500 mt-1 block">يمكنك نسخ ولصق رابط موقعك من خرائط جوجل مباشرة أو استخدام زر تحديد الموقع الحالي.</span>
+                            {% else %}
+                            <div class="relative flex items-center">
+                                <input type="text" name="custom_{{ f.name|default:f.label }}" id="custom_{{ f.name|default:f.label }}" placeholder="{{ f.placeholder|default:'أدخل البيانات المطلوبة هنا...' }}" class="w-full bg-slate-900 border border-white/10 rounded-xl p-3.5 text-white font-mono text-base focus:border-cyan transition" {% if f.required %}required{% endif %}>
+                                <button type="button" onclick="pasteToInput('custom_{{ f.name|default:f.label }}')" class="absolute left-2 px-2.5 py-1.5 rounded-lg bg-white/5 hover:bg-cyan/10 hover:text-cyan text-slate-400 text-[10px] font-bold border border-white/5 transition flex items-center gap-1">
+                                    <i class="far fa-paste"></i>
+                                    <span>لصق</span>
+                                </button>
+                            </div>
+                            {% endif %}
+                        </div>
+                        {% endfor %}
+                    {% elif product.is_api_product %}
+                        <!-- Default Player ID box for API products if no schema provided -->
+                        <div class="field-group bg-slate-950/60 p-4 rounded-2xl border border-white/5 focus-within:border-cyan/50 transition-all">
+                            <label class="text-xs font-bold text-slate-200 flex items-center justify-between mb-2">
+                                <span class="flex items-center gap-2">
+                                    <i class="fas fa-gamepad text-cyan text-xs"></i>
+                                    <span>ايدي اللاعب (Player ID)</span>
+                                </span>
+                                <span class="text-[10px] text-rose-400 font-bold">* مطلوب</span>
+                            </label>
+                            <div class="relative flex items-center">
+                                <input type="text" name="custom_playerId" id="custom_playerId" placeholder="أدخل ايدي اللاعب هنا (مثال: 5123456789)..." class="w-full bg-slate-900 border border-white/10 rounded-xl p-3.5 text-white font-mono text-base focus:border-cyan transition" required>
+                                <button type="button" onclick="pasteToInput('custom_playerId')" class="absolute left-2 px-2.5 py-1.5 rounded-lg bg-white/5 hover:bg-cyan/10 hover:text-cyan text-slate-400 text-[10px] font-bold border border-white/5 transition flex items-center gap-1">
+                                    <i class="far fa-paste"></i>
+                                    <span>لصق</span>
+                                </button>
+                            </div>
+                        </div>
+                    {% endif %}
                 </div>
             </div>
-            {% endif %}
 
             <!-- Coupon Field -->
             <div class="mt-10">
@@ -528,6 +572,134 @@ function changeMedia(url, isVideo, el) {
     el.classList.add('active');
 }
 
+function pasteToInput(id) {
+    if (navigator.clipboard && navigator.clipboard.readText) {
+        navigator.clipboard.readText().then(text => {
+            const el = document.getElementById(id);
+            if (el) {
+                el.value = text.trim();
+                el.dispatchEvent(new Event('input'));
+                el.focus();
+            }
+        }).catch(err => {
+            console.warn("Clipboard access denied:", err);
+            const el = document.getElementById(id);
+            if (el) el.focus();
+        });
+    } else {
+        const el = document.getElementById(id);
+        if (el) el.focus();
+    }
+}
+
+function renderDynamicFields(paramsJson, el) {
+    const container = document.getElementById('dynamic-fields-container');
+    const wrapper = document.getElementById('dynamic-fields-wrapper');
+    if (!container || !wrapper) return;
+
+    let params = [];
+    if (paramsJson) {
+        try {
+            params = typeof paramsJson === 'string' ? JSON.parse(paramsJson) : paramsJson;
+        } catch(e) {
+            console.error("Error parsing params", e);
+        }
+    }
+
+    // Preserve previously entered input values
+    const existingValues = {};
+    wrapper.querySelectorAll('input, select, textarea').forEach(inp => {
+        if (inp.name && inp.name.startsWith('custom_')) {
+            const key = inp.name.replace('custom_', '');
+            if (inp.value) {
+                existingValues[key] = inp.value;
+                if (key.toLowerCase().includes('id') || key.includes('ايدي') || key.includes('آيدي')) {
+                    existingValues['playerId'] = inp.value;
+                }
+            }
+        }
+    });
+
+    if (Array.isArray(params) && params.length > 0) {
+        container.classList.remove('hidden');
+        let html = '';
+        params.forEach((param, idx) => {
+            const pName = typeof param === 'string' ? param : (param.name || param.label || `param_${idx}`);
+            const pLabel = typeof param === 'string' ? param : (param.label || param.name || `حقل ${idx+1}`);
+            const pType = typeof param === 'string' ? 'text' : (param.type || 'text');
+            const isRequired = typeof param === 'string' ? true : (param.required !== false);
+            const prevVal = existingValues[pName] || existingValues['playerId'] || '';
+
+            let placeholder = `أدخل ${pLabel} هنا...`;
+            let iconClass = 'fa-edit';
+            const labelLower = pLabel.toLowerCase();
+            if (labelLower.includes('player') || labelLower.includes('ايدي') || labelLower.includes('آيدي') || labelLower.includes('معرف')) {
+                placeholder = 'مثال: 5123456789 (ايدي الحساب)';
+                iconClass = 'fa-gamepad';
+            } else if (labelLower.includes('server') || labelLower.includes('zone') || labelLower.includes('سيرفر')) {
+                placeholder = 'مثال: Europe / 1234';
+                iconClass = 'fa-server';
+            } else if (labelLower.includes('phone') || labelLower.includes('هاتف') || labelLower.includes('جوال')) {
+                placeholder = 'مثال: 09XXXXXXXX';
+                iconClass = 'fa-phone-alt';
+            } else if (labelLower.includes('link') || labelLower.includes('رابط')) {
+                placeholder = 'https://...';
+                iconClass = 'fa-link';
+            }
+
+            html += `
+                <div class="field-group bg-slate-950/60 p-4 rounded-2xl border border-white/5 focus-within:border-cyan/50 transition-all">
+                    <label class="text-xs font-bold text-slate-200 flex items-center justify-between mb-2">
+                        <span class="flex items-center gap-2">
+                            <i class="fas ${iconClass} text-cyan text-xs"></i>
+                            <span>${pLabel}</span>
+                        </span>
+                        ${isRequired ? '<span class="text-[10px] text-rose-400 font-bold">* مطلوب</span>' : '<span class="text-[10px] text-slate-500">اختياري</span>'}
+                    </label>
+                    <div class="relative flex items-center">
+                        <input type="${pType === 'number' ? 'number' : 'text'}" 
+                               name="custom_${pName}" 
+                               id="custom_${pName}" 
+                               value="${prevVal}" 
+                               placeholder="${placeholder}" 
+                               class="w-full bg-slate-900/90 border border-white/10 rounded-xl p-3.5 text-white font-mono text-base focus:border-cyan focus:ring-1 focus:ring-cyan transition" 
+                               ${isRequired ? 'required' : ''}>
+                        <button type="button" onclick="pasteToInput('custom_${pName}')" class="absolute left-2.5 px-2.5 py-1.5 rounded-lg bg-white/5 hover:bg-cyan/10 hover:text-cyan text-slate-400 text-[10px] font-bold border border-white/5 transition flex items-center gap-1">
+                            <i class="far fa-paste"></i>
+                            <span>لصق</span>
+                        </button>
+                    </div>
+                </div>
+            `;
+        });
+        wrapper.innerHTML = html;
+    } else {
+        const isApiProduct = {{ product.is_api_product|yesno:"true,false" }};
+        if (isApiProduct && wrapper.querySelectorAll('input').length === 0) {
+            container.classList.remove('hidden');
+            const prevVal = existingValues['playerId'] || '';
+            wrapper.innerHTML = `
+                <div class="field-group bg-slate-950/60 p-4 rounded-2xl border border-white/5 focus-within:border-cyan/50 transition-all">
+                    <label class="text-xs font-bold text-slate-200 flex items-center justify-between mb-2">
+                        <span class="flex items-center gap-2">
+                            <i class="fas fa-gamepad text-cyan text-xs"></i>
+                            <span>ايدي اللاعب (Player ID)</span>
+                        </span>
+                        <span class="text-[10px] text-rose-400 font-bold">* مطلوب</span>
+                    </label>
+                    <div class="relative flex items-center">
+                        <input type="text" name="custom_playerId" id="custom_playerId" value="${prevVal}" placeholder="أدخل ايدي اللاعب هنا (مثال: 5123456789)..." class="w-full bg-slate-900 border border-white/10 rounded-xl p-3.5 text-white font-mono text-base focus:border-cyan transition" required>
+                        <button type="button" onclick="pasteToInput('custom_playerId')" class="absolute left-2.5 px-2.5 py-1.5 rounded-lg bg-white/5 hover:bg-cyan/10 hover:text-cyan text-slate-400 text-[10px] font-bold border border-white/5 transition flex items-center gap-1">
+                            <i class="far fa-paste"></i>
+                            <span>لصق</span>
+                        </button>
+                    </div>
+                </div>
+            `;
+        }
+    }
+}
+
 function selectVariant(id, el) {
     document.getElementById('selected-variant-id').value = id;
     document.querySelectorAll('.variant-card').forEach(c => c.classList.remove('selected'));
@@ -538,34 +710,52 @@ function selectVariant(id, el) {
     document.getElementById('price-breakdown').classList.add('hidden');
     document.getElementById('coupon-feedback').classList.add('hidden');
 
+    // Parse parameters and render dynamic fields for this variant
+    const paramsData = el.getAttribute('data-params');
+    renderDynamicFields(paramsData, el);
+
     // Parse quantity specifications
     const qtyType = el.getAttribute('data-qty-type') || 'none';
     const qtyMin = parseInt(el.getAttribute('data-qty-min') || 1);
     const qtyMax = parseInt(el.getAttribute('data-qty-max') || 1);
     const qtyListStr = el.getAttribute('data-qty-list') || '[]';
     
+    renderQuantitySelector(qtyType, qtyMin, qtyMax, qtyListStr);
+}
+
+function renderQuantitySelector(qtyType, qtyMin, qtyMax, qtyListStr) {
     const container = document.getElementById('quantity-container');
     const wrapper = document.getElementById('quantity-input-wrapper');
     const helpText = document.getElementById('quantity-help-text');
+    if (!container || !wrapper) return;
     
     let inputHtml = '';
     
     if (qtyType === 'range') {
         container.classList.remove('hidden');
-        helpText.innerText = `يرجى إدخال الكمية المطلوبة (الحد الأدنى: ${qtyMin}، الحد الأقصى: ${qtyMax})`;
+        helpText.innerText = `الحد الأدنى: ${qtyMin.toLocaleString()} | الحد الأقصى: ${qtyMax.toLocaleString()}`;
         inputHtml = `
-            <div class="flex items-center gap-3">
-                <button type="button" onclick="adjustQty(-1)" class="w-12 h-12 rounded-2xl bg-slate-800 hover:bg-slate-700 text-white font-black text-2xl flex items-center justify-center border border-white/10 transition active:scale-95 cursor-pointer">-</button>
-                <input type="number" name="quantity" id="quantity-input" 
-                       min="${qtyMin}" max="${qtyMax}" value="${qtyMin}" 
-                       oninput="updateQuantityPrice()" onkeyup="updateQuantityPrice()" onchange="updateQuantityPrice()"
-                       class="flex-grow text-center bg-slate-900 border border-white/5 rounded-2xl p-4 text-white text-xl font-black focus:border-cyan transition">
-                <button type="button" onclick="adjustQty(1)" class="w-12 h-12 rounded-2xl bg-slate-800 hover:bg-slate-700 text-white font-black text-2xl flex items-center justify-center border border-white/10 transition active:scale-95 cursor-pointer">+</button>
+            <div class="bg-slate-950/60 p-5 rounded-2xl border border-white/5">
+                <div class="flex items-center justify-between mb-3 text-xs">
+                    <span class="text-slate-400 font-bold">الكمية المطلوبة:</span>
+                    <div class="flex gap-2">
+                        <span class="text-[10px] bg-white/5 px-2.5 py-1 rounded-lg text-slate-300 font-mono">الحد الأدنى: ${qtyMin.toLocaleString()}</span>
+                        <span class="text-[10px] bg-white/5 px-2.5 py-1 rounded-lg text-slate-300 font-mono">الحد الأقصى: ${qtyMax.toLocaleString()}</span>
+                    </div>
+                </div>
+                <div class="flex items-center gap-3">
+                    <button type="button" onclick="adjustQty(-1)" class="w-14 h-14 rounded-2xl bg-slate-800 hover:bg-slate-700 active:scale-95 text-white font-black text-2xl flex items-center justify-center border border-white/10 transition">-</button>
+                    <input type="number" name="quantity" id="quantity-input" 
+                           min="${qtyMin}" max="${qtyMax}" value="${qtyMin}" 
+                           oninput="updateQuantityPrice()" onkeyup="updateQuantityPrice()" onchange="updateQuantityPrice()"
+                           class="flex-grow text-center bg-slate-900 border border-white/10 rounded-2xl p-4 text-cyan text-2xl font-black font-mono focus:border-cyan transition">
+                    <button type="button" onclick="adjustQty(1)" class="w-14 h-14 rounded-2xl bg-slate-800 hover:bg-slate-700 active:scale-95 text-white font-black text-2xl flex items-center justify-center border border-white/10 transition">+</button>
+                </div>
             </div>
         `;
     } else if (qtyType === 'list') {
         container.classList.remove('hidden');
-        helpText.innerText = "يرجى اختيار إحدى الكميات المتاحة من القائمة.";
+        helpText.innerText = "اختر الكمية المناسبة من باقات الشحن المحددة أدناه:";
         let listOptions = [];
         try {
             listOptions = JSON.parse(qtyListStr);
@@ -573,24 +763,46 @@ function selectVariant(id, el) {
             console.error("Error parsing qty list", e);
         }
         
-        let selectHtml = `<select name="quantity" id="quantity-input" onchange="updateQuantityPrice()"
-                                  class="w-full bg-slate-900 border border-white/5 rounded-2xl p-4 text-white focus:border-cyan transition">`;
+        let pillsHtml = `
+            <div class="bg-slate-950/60 p-5 rounded-2xl border border-white/5">
+                <span class="text-xs text-slate-400 block mb-3 font-bold">الكميات المتاحة للشحن الفوري:</span>
+                <div class="flex flex-wrap gap-2.5 mb-2">
+        `;
         if (listOptions && listOptions.length > 0) {
-            listOptions.forEach(val => {
-                selectHtml += `<option value="${val}">${val}</option>`;
+            listOptions.forEach((val, idx) => {
+                const isFirst = idx === 0;
+                pillsHtml += `
+                    <button type="button" onclick="setListQty('${val}', this)" 
+                            class="qty-pill px-4 py-2.5 rounded-xl border text-sm font-bold font-mono transition-all ${isFirst ? 'bg-cyan text-slate-950 border-cyan shadow-lg shadow-cyan/20' : 'bg-slate-900 text-slate-300 border-white/10 hover:border-cyan/50'}">
+                        ${val}
+                    </button>
+                `;
             });
-        } else {
-            selectHtml += `<option value="1">1</option>`;
         }
-        selectHtml += `</select>`;
-        inputHtml = selectHtml;
+        pillsHtml += `
+                </div>
+                <input type="hidden" name="quantity" id="quantity-input" value="${listOptions[0] || 1}">
+            </div>
+        `;
+        inputHtml = pillsHtml;
     } else {
-        // Fixed package variant: hide quantity container and default quantity to 1 package
         container.classList.add('hidden');
         inputHtml = `<input type="hidden" name="quantity" id="quantity-input" value="1">`;
     }
     
     wrapper.innerHTML = inputHtml;
+    updateQuantityPrice();
+}
+
+function setListQty(val, btn) {
+    const input = document.getElementById('quantity-input');
+    if (input) input.value = val;
+    document.querySelectorAll('.qty-pill').forEach(p => {
+        p.className = 'qty-pill px-4 py-2.5 rounded-xl border text-sm font-bold font-mono transition-all bg-slate-900 text-slate-300 border-white/10 hover:border-cyan/50';
+    });
+    if (btn) {
+        btn.className = 'qty-pill px-4 py-2.5 rounded-xl border text-sm font-bold font-mono transition-all bg-cyan text-slate-950 border-cyan shadow-lg shadow-cyan/20';
+    }
     updateQuantityPrice();
 }
 
@@ -637,7 +849,12 @@ function updateQuantityPrice(isFromCoupon = false) {
     const card = document.querySelector(`.variant-card.selected`);
     if (!card) return;
     
-    const rawPriceStr = (card.getAttribute('data-price') || '0').replace(/,/g, '');
+    let rawPriceStr = (card.getAttribute('data-price') || '0').trim();
+    if (rawPriceStr.includes(',') && !rawPriceStr.includes('.')) {
+        rawPriceStr = rawPriceStr.replace(',', '.');
+    } else if (rawPriceStr.includes(',') && rawPriceStr.includes('.')) {
+        rawPriceStr = rawPriceStr.replace(/,/g, '');
+    }
     const basePrice = parseFloat(rawPriceStr) || 0;
     const qtyInput = document.getElementById('quantity-input');
     

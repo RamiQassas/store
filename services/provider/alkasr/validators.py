@@ -50,6 +50,11 @@ def validate_order_preconditions(
     parameters = provider_product.parameters.filter(required=True) if hasattr(provider_product, "parameters") else []
     for param in parameters:
         val = parameters_sent.get(param.name) or parameters_sent.get(param.label)
+        if not val and (param.name == "playerId" or "id" in (param.name or "").lower() or "ايدي" in (param.label or "")):
+            for k, v in parameters_sent.items():
+                if any(alias in k.lower() for alias in ["player", "user", "id", "ايدي", "آيدي"]):
+                    val = v
+                    break
         if not val or not str(val).strip():
             raise ValidationException(f"الحقل المطلوب '{param.label or param.name}' غير متوفر أو فارغ.")
 
