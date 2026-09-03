@@ -3543,19 +3543,20 @@ def control_products_list(request):
     page_obj = paginator.get_page(page_number)
 
     show_all_cats = request.GET.get('all_cats') == '1'
-    if store:
-        categories_qs = Category.objects.filter(store=store, is_active=True)
-    else:
-        categories_qs = Category.objects.filter(is_active=True)
-
     from django.db.models import Count
-    categories_qs = categories_qs.annotate(
-        product_count=Count('products')
-    )
-    if not show_all_cats:
-        categories = categories_qs.filter(product_count__gt=0).order_by('sort_order', 'name')
-    else:
-        categories = categories_qs.order_by('sort_order', 'name')
+    from apps.common.tenant_utils import bypass_tenant_filter
+    with bypass_tenant_filter():
+        categories_qs = Category.all_objects.filter(is_active=True).annotate(
+            product_count=Count('products')
+        )
+        if not show_all_cats:
+            categories = list(categories_qs.filter(product_count__gt=0).order_by('sort_order', 'name'))
+            if not categories:
+                categories = list(categories_qs.order_by('sort_order', 'name'))
+        else:
+            categories = list(categories_qs.order_by('sort_order', 'name'))
+
+        all_categories = list(Category.all_objects.all().order_by('sort_order', 'name'))
 
     return render(request, "site/control_products_list.html", {
         "products": page_obj,
@@ -3563,7 +3564,7 @@ def control_products_list(request):
         "view_mode": view_mode,
         "active_category": active_category,
         "categories": categories,
-        "all_categories": Category.objects.all().order_by('sort_order', 'name'),
+        "all_categories": all_categories,
         "show_all_cats": show_all_cats,
     })
 
@@ -3572,19 +3573,21 @@ def control_product_quick_image_ajax(request, pk):
     if request.method != "POST":
         return JsonResponse({"status": "error", "message": "طريقة الطلب غير صحيحة."}, status=405)
     
-    product = get_object_or_404(Product, pk=pk)
-    image_file = request.FILES.get("image")
-    if not image_file:
-        return JsonResponse({"status": "error", "message": "لم يتم تحديد أي ملف صورة."}, status=400)
-    
-    product.image = image_file
-    product.save(update_fields=["image"])
-    
-    return JsonResponse({
-        "status": "success",
-        "message": "تم تحديث صورة المنتج بنجاح.",
-        "image_url": product.image.url
-    })
+    from apps.common.tenant_utils import bypass_tenant_filter
+    with bypass_tenant_filter():
+        product = get_object_or_404(Product.all_objects, pk=pk)
+        image_file = request.FILES.get("image")
+        if not image_file:
+            return JsonResponse({"status": "error", "message": "لم يتم تحديد أي ملف صورة."}, status=400)
+        
+        product.image = image_file
+        product.save(update_fields=["image"])
+        
+        return JsonResponse({
+            "status": "success",
+            "message": "تم تحديث صورة المنتج بنجاح.",
+            "image_url": product.image.url
+        })
 
 @support_required
 def control_product_quick_rename_ajax(request, pk):
@@ -3592,52 +3595,57 @@ def control_product_quick_rename_ajax(request, pk):
         return JsonResponse({"status": "error", "message": "طريقة الطلب غير صحيحة."}, status=405)
     
     import json
-    product = get_object_or_404(Product, pk=pk)
-    
-    new_name = request.POST.get("name", "").strip()
-    if not new_name and request.body:
-        try:
-            body = json.loads(request.body.decode("utf-8"))
-            new_name = body.get("name", "").strip()
-        except Exception:
-            pass
-            
-    if not new_name:
-        return JsonResponse({"status": "error", "message": "الاسم لا يمكن أن يكون فارغاً."}, status=400)
+    from apps.common.tenant_utils import bypass_tenant_filter
+    with bypass_tenant_filter():
+        product = get_object_or_404(Product.all_objects, pk=pk)
         
-    product.name = new_name
-    product.save(update_fields=["name"])
-    
-    return JsonResponse({
-        "status": "success",
-        "message": "تم تعديل اسم المنتج بنجاح.",
-        "name": product.name
-    })
+        new_name = request.POST.get("name", "").strip()
+        if not new_name and request.body:
+            try:
+                body = json.loads(request.body.decode("utf-8"))
+                new_name = body.get("name", "").strip()
+            except Exception:
+                pass
+                
+        if not new_name:
+            return JsonResponse({"status": "error", "message": "الاسم لا يمكن أن يكون فارغاً."}, status=400)
+            
+        product.name = new_name
+        product.save(update_fields=["name"])
+        
+        return JsonResponse({
+            "status": "success",
+            "message": "تم تعديل اسم المنتج بنجاح.",
+            "name": product.name
+        })
 
 @support_required
 def control_product_change_category_ajax(request, pk):
     if request.method != "POST":
         return JsonResponse({"status": "error", "message": "طريقة الطلب غير صحيحة."}, status=405)
-    product = get_object_or_404(Product, pk=pk)
-    cat_id = request.POST.get("category_id")
-    if not cat_id and request.body:
-        try:
-            import json as _json
-            data = _json.loads(request.body.decode("utf-8"))
-            cat_id = data.get("category_id")
-        except Exception:
-            pass
-    if not cat_id:
-        return JsonResponse({"status": "error", "message": "لم يتم تحديد القسم الجديد."}, status=400)
-    category = get_object_or_404(Category, pk=cat_id)
-    product.category = category
-    product.save(update_fields=["category"])
-    return JsonResponse({
-        "status": "success",
-        "category_id": str(category.id),
-        "category_name": category.name,
-        "message": f"تم نقل المنتج '{product.name}' إلى قسم '{category.name}' بنجاح."
-    })
+    from apps.common.tenant_utils import bypass_tenant_filter
+    with bypass_tenant_filter():
+        product = get_object_or_404(Product.all_objects, pk=pk)
+        cat_id = request.POST.get("category_id")
+        if not cat_id and request.body:
+            try:
+                import json as _json
+                data = _json.loads(request.body.decode("utf-8"))
+                cat_id = data.get("category_id")
+            except Exception:
+                pass
+        if not cat_id:
+            return JsonResponse({"status": "error", "message": "لم يتم تحديد القسم الجديد."}, status=400)
+        category = get_object_or_404(Category.all_objects, pk=cat_id)
+        product.category = category
+        product.save(update_fields=["category"])
+        return JsonResponse({
+            "status": "success",
+            "category_id": str(category.id),
+            "category_name": category.name,
+            "message": f"تم نقل المنتج '{product.name}' إلى قسم '{category.name}' بنجاح."
+        })
+
 
 
 @support_required

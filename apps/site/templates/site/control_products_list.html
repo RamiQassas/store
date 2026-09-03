@@ -716,15 +716,43 @@ window.toggleFeatured = function(id, btn) {
     });
 };
 
-/* ── 4. Reorder (arrows) ───────────────────── */
+/* ── 4. Reorder (arrows - Instant DOM Swap, No Reload) ── */
 window.ajaxReorder = function(id, dir) {
     var row = document.querySelector('.product-row[data-id="' + id + '"]');
-    if (row) row.style.opacity = '0.5';
-    fetch('/control/products/' + id + '/reorder-ajax/?direction=' + dir, {headers:{'X-CSRFToken':getCsrf()}})
-    .then(function(r){return r.json();}).then(function(d){
-        if (d.status === 'success') { window.location.reload(); }
-        else { if (row) row.style.opacity='1'; showToast(d.message||'خطأ في الترتيب', true); }
-    }).catch(function(){ if(row) row.style.opacity='1'; showToast('فشل الاتصال', true); });
+    if (!row) return;
+
+    if (dir === 'up') {
+        var prev = row.previousElementSibling;
+        if (prev && prev.classList.contains('product-row')) {
+            row.parentNode.insertBefore(row, prev);
+        }
+    } else if (dir === 'down') {
+        var next = row.nextElementSibling;
+        if (next && next.classList.contains('product-row')) {
+            row.parentNode.insertBefore(next, row);
+        }
+    }
+
+    var allRows = Array.from(document.querySelectorAll('.product-row'));
+    var ids = allRows.map(function(r, idx) {
+        var b = r.querySelector('.sort-order-badge');
+        if (b) b.textContent = idx;
+        return r.getAttribute('data-id');
+    }).filter(Boolean);
+
+    fetch("{% url 'control_products_reorder_bulk_ajax' %}", {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json', 'X-CSRFToken': getCsrf()},
+        body: JSON.stringify({product_ids: ids})
+    }).then(function(r) { return r.json(); }).then(function(d) {
+        if (d.status === 'success') {
+            showToast('تم تحديث الترتيب!');
+        } else {
+            showToast(d.message || 'خطأ في الترتيب', true);
+        }
+    }).catch(function() {
+        showToast('فشل الاتصال بالسيرفر', true);
+    });
 };
 
 /* ── 5. Select All + Bulk Bar ──────────────── */
@@ -865,22 +893,43 @@ window.closeProdMergeModal = function() {
 };
 
 window.ajaxReorderCategory = function(id, direction) {
+    var grid = document.getElementById('prod-cats-sortable');
     var card = document.querySelector('.prod-cat-card[data-id="' + id + '"]');
-    if (card) card.style.opacity = '0.5';
-    fetch('/control/categories/' + id + '/reorder-ajax/?direction=' + direction, {
-        headers: {'X-CSRFToken': getCsrf()}
+    if (!grid || !card) return;
+
+    if (direction === 'up') {
+        var prev = card.previousElementSibling;
+        if (prev && prev.classList.contains('prod-cat-card')) {
+            grid.insertBefore(card, prev);
+        }
+    } else if (direction === 'down') {
+        var next = card.nextElementSibling;
+        if (next && next.classList.contains('prod-cat-card')) {
+            grid.insertBefore(next, card);
+        }
+    }
+
+    var cards = Array.from(grid.querySelectorAll('.prod-cat-card[data-id]'));
+    var ids = cards.map(function(c, i) {
+        var b = c.querySelector('.sort-badge');
+        if (b) b.textContent = '#' + i;
+        return c.getAttribute('data-id');
+    }).filter(Boolean);
+
+    fetch('/control/categories/reorder-bulk-ajax/', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json', 'X-CSRFToken': getCsrf()},
+        body: JSON.stringify({category_ids: ids})
     })
     .then(function(r) { return r.json(); })
     .then(function(d) {
         if (d.status === 'success') {
-            window.location.reload();
+            showToast('تم تحديث ترتيب القسم بنجاح!');
         } else {
-            if (card) card.style.opacity = '1';
             showToast(d.message || 'خطأ في الترتيب', true);
         }
     })
     .catch(function() {
-        if (card) card.style.opacity = '1';
         showToast('فشل الاتصال بالسيرفر', true);
     });
 };
@@ -956,8 +1005,11 @@ window.closeProductChangeCatModal = function() {
 
 window.submitProductChangeCat = function() {
     var prodId = document.getElementById('prod-move-id').value;
-    var catId = document.getElementById('prod-move-target-cat').value;
+    var catSel = document.getElementById('prod-move-target-cat');
+    var catId = catSel ? catSel.value : '';
+    var newCatName = catSel ? catSel.options[catSel.selectedIndex].text : '';
     if (!prodId || !catId) return;
+
     var btn = document.getElementById('prod-move-submit-btn');
     btn.disabled = true;
     btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري النقل...';
@@ -974,11 +1026,21 @@ window.submitProductChangeCat = function() {
             closeProductChangeCatModal();
             showToast(d.message || 'تم نقل المنتج بنجاح!');
             var badge = document.getElementById('product-cat-badge-' + prodId);
-            if (badge) badge.innerText = d.category_name;
+            if (badge) badge.innerText = d.category_name || newCatName;
             var gridRow = document.querySelector('.product-row[data-id="' + prodId + '"]');
             if (gridRow) {
                 var catHeader = gridRow.querySelector('.text-cyan\\/60');
-                if (catHeader) catHeader.innerText = d.category_name;
+                if (catHeader) catHeader.innerText = d.category_name || newCatName;
+            }
+            var curCat = new URLSearchParams(window.location.search).get('category');
+            if (curCat && curCat !== catId) {
+                var row = document.querySelector('.product-row[data-id="' + prodId + '"]');
+                if (row) {
+                    row.style.transition = 'all .4s ease';
+                    row.style.opacity = '0';
+                    row.style.transform = 'translateX(30px)';
+                    setTimeout(function() { row.remove(); }, 400);
+                }
             }
         } else {
             showToast(d.message || 'فشل نقل المنتج', true);
