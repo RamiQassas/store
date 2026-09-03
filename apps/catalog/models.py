@@ -75,7 +75,8 @@ class Product(TimeStampedModel):
     api_provider = models.CharField(
         max_length=50,
         choices=(
-            ("alkasr", "Alkasr VIP"),
+            ("alkasr", "رقميات"),
+            ("tafa3olcard", "تفاعل كارد (Tafa3ol Card)"),
             ("generic", "مزوّد عام (Generic API)"),
             ("smm", "مزوّد خدمات (SMM)"),
             ("other", "مزوّد آخر"),
@@ -331,7 +332,8 @@ class APIIntegration(TimeStampedModel):
     Enables storing credentials, active status, and sharing global APIs with tenant stores.
     """
     PROVIDER_CHOICES = (
-        ("alkasr", "Alkasr VIP"),
+        ("alkasr", "رقميات"),
+        ("tafa3olcard", "تفاعل كارد (Tafa3ol Card)"),
         ("generic", "مزوّد عام (Generic API)"),
         ("smm", "مزوّد خدمات (SMM)"),
         ("other", "مزوّد آخر"),

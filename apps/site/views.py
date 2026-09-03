@@ -5934,25 +5934,31 @@ def control_apicontrol_dashboard(request):
     from apps.catalog.models import Product, ProductVariant, APIIntegration
     
     store = getattr(request, "store", None)
+    from apps.common.tenant_utils import bypass_tenant_filter
     
-    # 1. Fetch active integrations from APIIntegration model
-    if store:
-        active_integrations = list(APIIntegration.objects.filter(store=store, is_active=True))
-    else:
-        active_integrations = list(APIIntegration.objects.filter(is_active=True))
+    with bypass_tenant_filter():
+        # Ensure any existing Alkasr VIP integration name is renamed to "رقميات"
+        APIIntegration.all_objects.filter(name__in=["Alkasr VIP", "الكسر VIP", "الكاسر VIP"]).update(name="رقميات")
+        ProviderProfile.all_objects.filter(provider_name__in=["Alkasr VIP", "الكسر VIP", "الكاسر VIP"]).update(provider_name="رقميات")
         
-    if not active_integrations and not ProviderProfile.objects.exists():
-        default_integ, _ = APIIntegration.objects.get_or_create(
-            store=store,
-            provider="alkasr",
-            defaults={
-                "name": "Alkasr VIP",
-                "base_url": "https://api.alkasr-vip.com/client/api",
-                "api_token": "DEFAULT_TOKEN",
-                "is_active": True,
-            }
-        )
-        active_integrations = [default_integ]
+        # 1. Fetch active integrations from APIIntegration model
+        if store:
+            active_integrations = list(APIIntegration.all_objects.filter(store=store, is_active=True))
+        else:
+            active_integrations = list(APIIntegration.all_objects.filter(is_active=True))
+            
+        if not active_integrations and not ProviderProfile.all_objects.exists():
+            default_integ, _ = APIIntegration.all_objects.get_or_create(
+                store=store,
+                provider="alkasr",
+                defaults={
+                    "name": "رقميات",
+                    "base_url": "https://api.alkasr-vip.com/client/api",
+                    "api_token": "DEFAULT_TOKEN",
+                    "is_active": True,
+                }
+            )
+            active_integrations = [default_integ]
 
     # Get selected integration ID from GET request
     integration_id = request.GET.get("integration_id")
@@ -5965,22 +5971,35 @@ def control_apicontrol_dashboard(request):
     # Bridge APIIntegration to ProviderProfile
     profile_obj = None
     if integration:
-        profile_obj, _ = ProviderProfile.objects.get_or_create(
-            store=store,
-            provider_name=integration.name,
-            defaults={
-                "base_url": integration.base_url,
-                "api_token": integration.api_token,
-                "is_active": integration.is_active,
-            }
-        )
-        if profile_obj.base_url != integration.base_url or profile_obj.api_token != integration.api_token:
-            profile_obj.base_url = integration.base_url
-            profile_obj.api_token = integration.api_token
-            profile_obj.is_active = integration.is_active
-            profile_obj.save(update_fields=["base_url", "api_token", "is_active"])
+        with bypass_tenant_filter():
+            profile_obj = ProviderProfile.all_objects.filter(
+                store=store,
+                provider_name=integration.name
+            ).first()
+            if not profile_obj:
+                profile_obj = ProviderProfile.all_objects.create(
+                    store=store,
+                    provider_name=integration.name,
+                    base_url=integration.base_url,
+                    api_token=integration.api_token,
+                    is_active=integration.is_active,
+                )
+            else:
+                fields_to_update = []
+                if profile_obj.base_url != integration.base_url:
+                    profile_obj.base_url = integration.base_url
+                    fields_to_update.append("base_url")
+                if profile_obj.api_token != integration.api_token:
+                    profile_obj.api_token = integration.api_token
+                    fields_to_update.append("api_token")
+                if profile_obj.is_active != integration.is_active:
+                    profile_obj.is_active = integration.is_active
+                    fields_to_update.append("is_active")
+                if fields_to_update:
+                    profile_obj.save(update_fields=fields_to_update)
     else:
-        profile_obj = ProviderProfile.objects.filter(store=store, is_active=True).first() or ProviderProfile.objects.filter(is_active=True).first()
+        with bypass_tenant_filter():
+            profile_obj = ProviderProfile.all_objects.filter(store=store, is_active=True).first() or ProviderProfile.all_objects.filter(is_active=True).first()
 
     # Check if GET sync progress endpoint requested
     if request.GET.get("action") == "get_sync_progress" or request.GET.get("sync_progress") == "1":
@@ -6276,37 +6295,40 @@ def control_apicontrol_dashboard(request):
                 messages.error(request, f"فشل التعديل الجماعي: {str(e)}")
             return redirect(redirect_url)
             
-    # Fetch Profile Info
+    # Fetch Profile Info & Live Connection Test
     profile = None
+    is_connected = False
+    connection_error = None
+    
     if profile_obj:
+        test_res = ProviderManager.test_connection(profile_obj)
+        if test_res.get("success"):
+            is_connected = True
+            profile_balance = test_res.get("balance", profile_obj.balance)
+            profile_currency = test_res.get("currency", profile_obj.currency)
+        else:
+            is_connected = False
+            profile_balance = 0.0
+            profile_currency = profile_obj.currency
+            connection_error = test_res.get("error")
+
         profile = {
-            "status": "success",
-            "balance": float(profile_obj.balance),
-            "currency": profile_obj.currency,
+            "status": "success" if is_connected else "failed",
+            "balance": float(profile_balance or 0),
+            "currency": profile_currency or "USD",
             "email": profile_obj.provider_name
         }
-    is_connected = bool(profile_obj)
     
-    # Fetch Categories and Products
+    # Fetch Categories and Products strictly for this profile
     categories = []
     products_count = 0
     alkasr_products = []
     local_linked_count = 0
     
     if profile_obj:
-        # Link any orphaned ProviderProducts to the current active profile
-        if profile_obj.products.count() == 0 and ProviderProduct.objects.exists():
-            ProviderProduct.objects.all().update(profile=profile_obj)
-            ProviderCategory.objects.all().update(profile=profile_obj)
-
         categories = list(ProviderCategory.objects.filter(profile=profile_obj).values("id", "name", "remote_id")[:100])
-        if not categories:
-            categories = list(ProviderCategory.objects.all().values("id", "name", "remote_id")[:100])
 
         all_p = ProviderProduct.objects.filter(profile=profile_obj, is_active=True).select_related("category", "category__parent")
-        if not all_p.exists():
-            all_p = ProviderProduct.objects.filter(is_active=True).select_related("category", "category__parent")
-            
         products_count = all_p.count()
         visible_products = list(all_p.order_by("category__name", "name")[:300])
         alkasr_products = [
@@ -6559,6 +6581,7 @@ def control_apicontrol_dashboard(request):
         "active_integrations": active_integrations,
         "selected_integration": integration or profile_obj,
         "recent_transactions": recent_transactions,
+        "connection_error": connection_error,
     })
 
 
@@ -6607,15 +6630,21 @@ def control_audit_logs(request):
 @support_required
 def control_api_integrations_list(request):
     from apps.catalog.models import APIIntegration
-    store = getattr(request, "store", None)
+    from apps.providers.models import ProviderProfile
+    from apps.common.tenant_utils import bypass_tenant_filter
     
-    # List private integrations AND global ones that have allow_sub_stores=True
-    if store:
-        integrations = APIIntegration.objects.filter(
-            Q(store=store) | Q(store__isnull=True, allow_sub_stores=True)
-        )
-    else:
-        integrations = APIIntegration.objects.all()
+    with bypass_tenant_filter():
+        # Automatically update any Alkasr VIP / الكسر VIP to "رقميات"
+        APIIntegration.all_objects.filter(name__in=["Alkasr VIP", "الكسر VIP", "الكاسر VIP"]).update(name="رقميات")
+        ProviderProfile.all_objects.filter(provider_name__in=["Alkasr VIP", "الكسر VIP", "الكاسر VIP"]).update(provider_name="رقميات")
+        
+        store = getattr(request, "store", None)
+        if store:
+            integrations = list(APIIntegration.all_objects.filter(
+                Q(store=store) | Q(store__isnull=True, allow_sub_stores=True)
+            ))
+        else:
+            integrations = list(APIIntegration.all_objects.all())
         
     return render(request, "site/control_api_integrations_list.html", {
         "integrations": integrations,

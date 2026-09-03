@@ -26,14 +26,23 @@ class ProviderManager:
             raise ValueError("Provider profile is required.")
 
         p_name = (profile.provider_name or "").lower()
-        if "alkasr" in p_name or p_name == "alkasr":
+        base_url = (profile.base_url or "").lower()
+
+        if "tafa3ol" in p_name or "تفاعل" in p_name or "tafa3ol" in base_url:
+            from services.provider.tafa3olcard import Tafa3olCardProviderService
+            return Tafa3olCardProviderService(
+                api_token=profile.api_token,
+                base_url=profile.base_url,
+                profile_model=profile
+            )
+        elif "alkasr" in p_name or "الكسر" in p_name or "رقميات" in p_name or "alkasr" in base_url:
             return AlkasrProviderService(
                 api_token=profile.api_token,
                 base_url=profile.base_url,
                 profile_model=profile
             )
         else:
-            # Fallback to Alkasr if provider_name is general
+            # Default to Alkasr
             return AlkasrProviderService(
                 api_token=profile.api_token,
                 base_url=profile.base_url,

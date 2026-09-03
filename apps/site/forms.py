@@ -738,8 +738,8 @@ class APIIntegrationForm(forms.ModelForm):
         fields = ["provider", "name", "base_url", "api_token", "is_active", "allow_sub_stores"]
         widgets = {
             "provider": forms.Select(attrs={"class": "builder-input"}),
-            "name": forms.TextInput(attrs={"class": "builder-input", "placeholder": "مثال: الكسر VIP"}),
-            "base_url": forms.URLInput(attrs={"class": "builder-input", "placeholder": "https://api.alkasr-vip.com/"}),
+            "name": forms.TextInput(attrs={"class": "builder-input", "placeholder": "مثال: رقميات"}),
+            "base_url": forms.URLInput(attrs={"class": "builder-input", "placeholder": "https://api.alkasr-vip.com/client/api أو https://tafa3olcard.com/api/v1/client-api"}),
             "api_token": forms.TextInput(attrs={"class": "builder-input", "placeholder": "أدخل الرمز السري للاتصال بالـ API"}),
             "is_active": forms.CheckboxInput(attrs={"class": "rounded text-cyan"}),
             "allow_sub_stores": forms.CheckboxInput(attrs={"class": "rounded text-cyan"}),

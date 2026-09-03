@@ -67,6 +67,9 @@
                 <strong class="text-sm font-black {% if is_connected %}text-emerald-400{% else %}text-rose-400{% endif %}">
                     {% if is_connected %}متصل بنجاح{% else %}فشل الاتصال{% endif %}
                 </strong>
+                {% if not is_connected and connection_error %}
+                <p class="text-[10px] text-rose-400 font-bold mt-1 leading-tight break-words max-w-[200px]">{{ connection_error }}</p>
+                {% endif %}
             </div>
         </div>
     </div>
@@ -230,7 +233,7 @@
                 <i class="fas fa-globe text-cyan text-xs"></i> إعدادات الـ Webhook
             </h3>
             <p class="text-xs text-slate-400 leading-relaxed mb-6">
-                قم بتكوين رابط الـ Webhook هذا داخل لوحة تحكم حسابك في <strong>Alkasr VIP</strong> لاستقبال تحديثات حالات الطلبات تلقائياً (عند القبول، الرفض، أو الانتظار) وتحديث حالة طلب العميل وتعديل رصيد محفظته فوراً.
+                قم بتكوين رابط الـ Webhook هذا داخل لوحة تحكم حسابك في <strong>{{ selected_integration.name|default:"بوابة الربط" }}</strong> لاستقبال تحديثات حالات الطلبات تلقائياً (عند القبول، الرفض، أو الانتظار) وتحديث حالة طلب العميل وتعديل رصيد محفظته فوراً.
             </p>
 
             <div>
@@ -340,7 +343,7 @@
             <div class="p-5 rounded-2xl bg-white/[0.02] border border-cyan/20 relative overflow-hidden flex flex-col justify-between shadow-lg shadow-cyan/5">
                 <div>
                     <div class="flex items-center justify-between mb-4">
-                        <span class="text-xs font-bold text-white">Alkasr VIP API</span>
+                        <span class="text-xs font-bold text-white">{{ selected_integration.name|default:"رقميات" }} API</span>
                         <span class="text-[9px] px-2.5 py-0.5 rounded-full {% if is_connected %}bg-emerald-500/10 text-emerald-400 border border-emerald-500/20{% else %}bg-rose-500/10 text-rose-400 border border-rose-500/20{% endif %} font-black">
                             {% if is_connected %}نشط ومتصل{% else %}غير متصل{% endif %}
                         </span>
