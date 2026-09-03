@@ -259,6 +259,7 @@
                 <span class="section-label">اختر الباقة المناسبة</span>
                 {% for v in variants %}
                 {% variant_price v as v_price %}
+                {% variant_card_price v as v_card_price %}
                 <div class="variant-card {% if v.is_temporarily_disabled or product.is_out_of_stock %}opacity-50 grayscale cursor-not-allowed{% endif %} {% if v.is_sale %}on-sale{% endif %}" 
                      {% if not v.is_temporarily_disabled and not product.is_out_of_stock %}onclick="selectVariant('{{ v.id }}', this)"{% endif %}
                      data-price="{{ v_price|unlocalize }}"
@@ -287,7 +288,7 @@
                             </div>
                         </div>
                     </div>
-                    <div class="price-tag">{% currency_format v_price %}</div>
+                    <div class="price-tag text-left">{{ v_card_price|safe }}</div>
                 </div>
                 {% empty %}
                 <div class="variant-card selected" 
@@ -1086,29 +1087,243 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 });
 
-function closeBalanceModal() {
-    document.getElementById('balance-modal').classList.add('hidden');
+<!-- Modal Popup for Instant In-Page Order Results & Server Responses -->
+<div id="purchase-result-modal" class="fixed inset-0 items-center justify-center p-4 bg-slate-950/85 backdrop-blur-md transition-all duration-300" style="z-index: 999999; display: none;">
+    <div id="purchase-modal-container" class="bg-slate-900 border-2 border-cyan/40 rounded-3xl p-6 sm:p-8 max-w-lg w-full shadow-2xl shadow-cyan/20 relative transform transition-all duration-300">
+        <!-- Close Button Top -->
+        <button type="button" onclick="closePurchaseModal()" class="absolute top-5 left-5 w-10 h-10 rounded-full bg-slate-800 text-slate-400 hover:text-white hover:bg-rose-500/20 hover:text-rose-400 flex items-center justify-center transition border border-white/10 cursor-pointer" title="إغلاق">
+            <i class="fas fa-times text-lg"></i>
+        </button>
+
+        <div class="flex items-center gap-4 mb-6">
+            <div id="modal-status-icon" class="w-12 h-12 rounded-2xl flex items-center justify-center text-xl shrink-0 bg-cyan/10 text-cyan border border-cyan/20 animate-pulse">
+                <i class="fas fa-sync-alt fa-spin"></i>
+            </div>
+            <div>
+                <h3 class="text-lg font-black text-white" id="modal-title">تم تنفيذ الطلب بنجاح</h3>
+                <span class="text-xs text-slate-400 font-mono" id="modal-order-number">الطلب #...</span>
+            </div>
+        </div>
+
+        <div class="mb-6 p-4 rounded-2xl bg-slate-950/80 border border-white/10 stack gap-3">
+            <div class="flex justify-between items-center text-xs pb-3 border-b border-white/5">
+                <span class="text-slate-400 font-bold">حالة الطلب:</span>
+                <span id="modal-status-badge" class="font-black font-mono px-3 py-1 rounded-lg bg-amber-500/20 text-amber-400 border border-amber-500/30">
+                    قيد المعالجة
+                </span>
+            </div>
+            
+            <div id="modal-ref-row" class="flex justify-between items-center text-xs pb-3 border-b border-white/5 hidden">
+                <span class="text-slate-400 font-bold">رقم المرجع:</span>
+                <div class="flex items-center gap-2">
+                    <span id="modal-ref-text" class="font-mono text-white font-bold"></span>
+                    <button id="modal-ref-btn" onclick="copyModalField('modal-ref-text', this)" class="text-xs px-2.5 py-1 bg-cyan/10 text-cyan rounded-lg hover:bg-cyan hover:text-slate-950 font-bold transition cursor-pointer">نسخ</button>
+                </div>
+            </div>
+
+            <!-- Dynamic Fulfillment Data (Delivery Codes, Phone numbers, Keys) -->
+            <div id="modal-fulfillment-box" class="stack gap-2.5">
+                <!-- Dynamically populated -->
+            </div>
+            
+            <div id="modal-waiting-msg" class="text-center py-4">
+                <div class="w-8 h-8 mx-auto mb-2 text-cyan animate-spin"><i class="fas fa-spinner"></i></div>
+                <p class="text-xs text-slate-300 font-bold">جاري استلام الرد من السيرفر، يتم التحديث آلياً لحظياً...</p>
+            </div>
+        </div>
+
+        <div class="flex flex-col sm:flex-row gap-3">
+            <a id="modal-order-link" href="#" class="btn btn-primary flex-1 py-3.5 rounded-xl font-bold text-xs text-center cursor-pointer shadow-lg shadow-cyan/20">
+                <i class="fas fa-receipt ml-1"></i> عرض الفاتورة وتفاصيل الطلب
+            </a>
+            <button type="button" onclick="closePurchaseModal()" class="btn btn-outline py-3.5 px-5 rounded-xl font-bold text-xs text-slate-300 border-white/10 hover:border-cyan cursor-pointer">
+                متابعة التسوق
+            </button>
+        </div>
+    </div>
+</div>
+
+<script>
+let currentActiveOrderId = null;
+let currentPollTimer = null;
+
+function openPurchaseModal(data) {
+    const modal = document.getElementById('purchase-result-modal');
+    if (!modal) return;
+    modal.style.display = 'flex';
+    updateModalContent(data);
 }
 
-// Select first available variant by default
-window.onload = () => {
-    const first = document.querySelector('.variant-card:not(.cursor-not-allowed)');
-    if(first) first.click();
+function closePurchaseModal() {
+    const modal = document.getElementById('purchase-result-modal');
+    if (modal) modal.style.display = 'none';
+    if (currentPollTimer) {
+        clearInterval(currentPollTimer);
+        currentPollTimer = null;
+    }
+}
+
+function updateModalContent(data) {
+    if (!data) return;
     
-    const observer = new IntersectionObserver((entries) => {
-        entries.forEach(entry => {
-            if (entry.isIntersecting) entry.target.classList.add('visible');
-        });
-    }, { threshold: 0.1 });
-    document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
-
-    // Handle missing amount modal
-    {% if missing_amount %}
-    const missingAmt = "{{ missing_amount }}";
-    const missingCurr = "{{ missing_currency }}";
-    document.getElementById('modal-missing-amount').innerText = missingAmt + " " + missingCurr;
-    document.getElementById('balance-modal').classList.remove('hidden');
-    {% endif %}
+    document.getElementById('modal-order-number').innerText = 'الطلب #' + (data.order_number || data.number || '...');
+    const badge = document.getElementById('modal-status-badge');
+    const icon = document.getElementById('modal-status-icon');
+    const waitingMsg = document.getElementById('modal-waiting-msg');
+    const refRow = document.getElementById('modal-ref-row');
+    const refText = document.getElementById('modal-ref-text');
+    const link = document.getElementById('modal-order-link');
+    
+    if (data.order_url) {
+        link.href = data.order_url;
+    }
+    
+    const status = data.order_status || data.status;
+    const statusDisplay = data.status_display || status;
+    badge.innerText = statusDisplay;
+    
+    if (status === 'completed') {
+        badge.className = 'font-black font-mono px-3 py-1 rounded-lg bg-emerald-500/20 text-emerald-400 border border-emerald-500/30';
+        icon.className = 'w-12 h-12 rounded-2xl flex items-center justify-center text-xl shrink-0 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20';
+        icon.innerHTML = '<i class="fas fa-check-circle"></i>';
+        if (waitingMsg) waitingMsg.style.display = 'none';
+    } else if (status === 'cancelled' || status === 'refunded') {
+        badge.className = 'font-black font-mono px-3 py-1 rounded-lg bg-rose-500/20 text-rose-400 border border-rose-500/30';
+        icon.className = 'w-12 h-12 rounded-2xl flex items-center justify-center text-xl shrink-0 bg-rose-500/10 text-rose-400 border border-rose-500/20';
+        icon.innerHTML = '<i class="fas fa-times-circle"></i>';
+        if (waitingMsg) waitingMsg.style.display = 'none';
+    } else {
+        badge.className = 'font-black font-mono px-3 py-1 rounded-lg bg-amber-500/20 text-amber-400 border border-amber-500/30';
+        icon.className = 'w-12 h-12 rounded-2xl flex items-center justify-center text-xl shrink-0 bg-cyan/10 text-cyan border border-cyan/20 animate-pulse';
+        icon.innerHTML = '<i class="fas fa-sync-alt fa-spin"></i>';
+    }
+    
+    if (data.api_order_id) {
+        refRow.classList.remove('hidden');
+        refText.innerText = data.api_order_id;
+    }
+    
+    // Populate fulfillment box
+    const fBox = document.getElementById('modal-fulfillment-box');
+    fBox.innerHTML = '';
+    const fulfillment = data.fulfillment || {};
+    let hasKeys = false;
+    for (const [k, v] of Object.entries(fulfillment)) {
+        hasKeys = true;
+        const valStr = Array.isArray(v) ? v.join(', ') : String(v);
+        const itemEl = document.createElement('div');
+        itemEl.className = 'p-3.5 rounded-2xl bg-slate-900 border border-cyan/40 stack gap-1.5 shadow-lg shadow-cyan/10';
+        itemEl.innerHTML = `
+            <span class="text-[11px] text-cyan font-black uppercase tracking-wider block">${k}</span>
+            <div class="flex items-center justify-between gap-3">
+                <span class="font-mono text-cyan-200 font-black text-base break-all">${valStr}</span>
+                <button type="button" onclick="copyDirect('${valStr.replace(/'/g, "\\'")}', this)" class="shrink-0 text-xs px-3 py-1.5 bg-cyan text-slate-950 rounded-xl hover:bg-cyan/80 font-black transition cursor-pointer flex items-center gap-1">
+                    <i class="far fa-copy"></i> نسخ
+                </button>
+            </div>
+        `;
+        fBox.appendChild(itemEl);
+    }
+    
+    if (hasKeys && waitingMsg) {
+        waitingMsg.style.display = 'none';
+    }
 }
+
+function copyModalField(elId, btn) {
+    const el = document.getElementById(elId);
+    if (!el) return;
+    copyDirect(el.innerText, btn);
+}
+
+function copyDirect(text, btn) {
+    navigator.clipboard.writeText(text).then(() => {
+        const originalText = btn.innerHTML;
+        btn.innerHTML = '<i class="fas fa-check"></i> تم النسخ!';
+        btn.style.background = '#10b981';
+        btn.style.color = '#fff';
+        setTimeout(() => {
+            btn.innerHTML = originalText;
+            btn.style.background = '';
+            btn.style.color = '';
+        }, 2000);
+    });
+}
+
+// Intercept form submit and use AJAX
+document.addEventListener('DOMContentLoaded', function() {
+    const pForm = document.getElementById('purchase-form');
+    if (!pForm) return;
+    
+    pForm.addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        const submitBtn = pForm.querySelector('button[type="submit"]');
+        const originalBtnHtml = submitBtn ? submitBtn.innerHTML : '';
+        if (submitBtn) {
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin ml-2"></i> جاري المعالجة...';
+        }
+        
+        const formData = new FormData(pForm);
+        formData.append('ajax', '1');
+        
+        fetch(pForm.action, {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        })
+        .then(async (res) => {
+            if (submitBtn) {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = originalBtnHtml;
+            }
+            if (!res.ok) {
+                const errData = await res.json().catch(() => ({}));
+                const errMsg = errData.error || 'حدث خطأ أثناء إتمام الطلب، يرجى التحقق من الرصيد والبيانات.';
+                alert(errMsg);
+                return;
+            }
+            const data = await res.json();
+            if (data.success) {
+                currentActiveOrderId = data.order_id;
+                openPurchaseModal(data);
+                
+                // Start live polling if processing
+                if (data.order_status === 'processing' && data.order_url) {
+                    if (currentPollTimer) clearInterval(currentPollTimer);
+                    let pollCount = 0;
+                    currentPollTimer = setInterval(() => {
+                        pollCount++;
+                        if (pollCount > 60) {
+                            clearInterval(currentPollTimer);
+                            return;
+                        }
+                        fetch(data.order_url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+                            .then(r => r.json())
+                            .then(pollData => {
+                                updateModalContent(pollData);
+                                if (pollData.status === 'completed' || pollData.status === 'cancelled' || pollData.status === 'refunded') {
+                                    clearInterval(currentPollTimer);
+                                }
+                            })
+                            .catch(() => {});
+                    }, 3500);
+                }
+            }
+        })
+        .catch((err) => {
+            if (submitBtn) {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = originalBtnHtml;
+            }
+            console.error("Purchase error:", err);
+            // Fallback: normal submit if fetch fails
+            pForm.submit();
+        });
+    });
+});
 </script>
 {% endblock %}

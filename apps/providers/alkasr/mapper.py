@@ -110,6 +110,12 @@ class AlkasrMapperService:
         # Group provider products by main service name (e.g. PUBG Mobile, Free Fire, Syriatel, MTN)
         grouped_products = {}
         for pp in products_list:
+            p_name = (pp.name or "").strip()
+            c_name = (pp.category.name if pp.category else "").strip()
+            if (not p_name or p_name.lower() in ("null", "none", "undefined")) and \
+               (not c_name or c_name.lower() in ("null", "none", "undefined")):
+                continue
+
             group_name = self._get_group_name(pp)
             if selected_group_names is not None and group_name not in selected_group_names:
                 continue
@@ -244,7 +250,8 @@ class AlkasrMapperService:
                         elif hasattr(pp, 'data') and isinstance(pp.data, dict) and pp.data.get("country"):
                             variant_name = f"تفعيل {pp.data.get('country')}"
                         else:
-                            variant_name = f"باقة {local_product.name} (#{pp.remote_id})"
+                            # Skip corrupted/un-named variant
+                            continue
 
                     sku_val = f"PRV-{self.profile.id}-{pp.remote_id}"
 

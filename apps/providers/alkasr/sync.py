@@ -84,9 +84,6 @@ class AlkasrSyncService:
                 # Disable products that were deleted from the provider
                 disabled_count = ProviderProduct.objects.filter(profile=self.profile).exclude(remote_id__in=active_remote_ids).update(is_active=False, local_is_active=False)
                 stats["disabled"] = disabled_count
-                
-                # Re-enable products that were found
-                ProviderProduct.objects.filter(profile=self.profile, remote_id__in=active_remote_ids).update(is_active=True, local_is_active=True)
 
                 # DO NOT automatically map to catalog here anymore.
                 # The user will explicitly select what to map via the UI.

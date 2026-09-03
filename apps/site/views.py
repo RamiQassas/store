@@ -880,6 +880,21 @@ def order_detail(request, pk):
         except Exception:
             pass
 
+    if request.headers.get('x-requested-with') == 'XMLHttpRequest':
+        fulfillment = {}
+        for k, v in order.fulfillment_data.items():
+            if k not in ("api_provider", "api_status", "api_last_response", "api_refunded", "response", "api_response", "api_error", "alkasr"):
+                fulfillment[k] = v
+        return JsonResponse({
+            "id": str(order.id),
+            "number": str(order.number),
+            "status": order.status,
+            "status_display": order.get_status_display(),
+            "api_order_id": order.api_order_id or "",
+            "fulfillment": fulfillment,
+            "order_url": reverse('dashboard_order_detail', kwargs={'pk': order.id})
+        })
+
     return render(request, "site/order_detail.html", {"order": order})
 
 from django.contrib.auth.hashers import make_password, check_password as check_password_hash
@@ -1958,9 +1973,26 @@ def product_detail(request, pk):
                 shipping_phone=shipping_phone,
                 shipping_address=shipping_address,
             )
+            if request.headers.get('x-requested-with') == 'XMLHttpRequest' or request.POST.get('ajax') == '1':
+                fulfillment = {}
+                for k, v in order.fulfillment_data.items():
+                    if k not in ("api_provider", "api_status", "api_last_response", "api_refunded", "response", "api_response", "api_error", "alkasr"):
+                        fulfillment[k] = v
+                return JsonResponse({
+                    "success": True,
+                    "order_id": str(order.id),
+                    "order_number": str(order.number),
+                    "order_status": order.status,
+                    "status_display": order.get_status_display(),
+                    "api_order_id": order.api_order_id or "",
+                    "fulfillment": fulfillment,
+                    "order_url": reverse('dashboard_order_detail', kwargs={'pk': order.id})
+                })
             # Redirect to order detail with new=1 to auto-open live status & details modal
             return redirect(f"{reverse('dashboard_order_detail', kwargs={'pk': order.id})}?new=1")
         except ValueError as e:
+            if request.headers.get('x-requested-with') == 'XMLHttpRequest' or request.POST.get('ajax') == '1':
+                return JsonResponse({"success": False, "error": str(e)}, status=400)
             messages.error(request, str(e))
             return redirect("product_detail", pk=pk)
 

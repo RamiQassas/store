@@ -41,6 +41,39 @@ def variant_price(context, variant):
     
     return variant.get_price_for_user(request.user)
 
+@register.simple_tag(takes_context=True)
+def variant_card_price(context, variant):
+    """
+    Returns the formatted starting/display price for a variant card.
+    For range/per-mille products with a min quantity (e.g. 100), calculates the starting price.
+    """
+    if variant is None:
+        return ""
+    
+    price = variant_price(context, variant)
+    if not price:
+        return currency_format(context, 0)
+    
+    meta = variant.metadata or {}
+    qty_type = meta.get("qty_type")
+    qty_min = meta.get("qty_min", 1)
+    is_per_mille = meta.get("is_per_mille", False)
+    
+    try:
+        min_val = Decimal(str(qty_min)) if qty_min else Decimal("1")
+    except Exception:
+        min_val = Decimal("1")
+        
+    if qty_type == "range" and min_val > 1:
+        if is_per_mille:
+            total = (Decimal(str(price)) * min_val) / Decimal("1000")
+        else:
+            total = Decimal(str(price)) * min_val
+        formatted = currency_format(context, total)
+        return f"{formatted} <span class='text-[10px] text-slate-400 block font-normal'>(تبدأ من {int(min_val)})</span>"
+    
+    return currency_format(context, price)
+
 @register.filter
 def to_usd(amount, currency):
     """Converts an amount in the given currency to USD."""
