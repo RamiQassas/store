@@ -897,6 +897,14 @@ def order_detail(request, pk):
 
     return render(request, "site/order_detail.html", {"order": order})
 
+@login_required
+def order_invoice(request, pk):
+    order = get_object_or_404(
+        Order.objects.filter(customer=request.user).prefetch_related('items__variant__product'),
+        pk=pk
+    )
+    return render(request, "site/order_invoice.html", {"order": order})
+
 from django.contrib.auth.hashers import make_password, check_password as check_password_hash
 
 # ... (rest of imports)

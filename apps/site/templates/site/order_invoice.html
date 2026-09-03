@@ -1,0 +1,317 @@
+{% load site_tags %}
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>فاتورة ضريبية #{{ order.number }} | رقميات</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&family=Tajawal:wght@400;500;700;800;900&family=JetBrains+Mono:wght@500;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        cyan: {
+                            DEFAULT: '#06b6d4',
+                            400: '#22d3ee',
+                            500: '#06b6d4',
+                            600: '#0891b2',
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Tajawal', 'Plus Jakarta Sans', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'monospace'],
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            background-color: #060b18;
+            color: #f1f5f9;
+            font-family: 'Tajawal', sans-serif;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+        }
+
+        .invoice-container {
+            max-width: 820px;
+            margin: 2rem auto;
+            background: linear-gradient(170deg, #0b1329 0%, #060b18 100%);
+            border: 1px solid rgba(6, 182, 212, 0.25);
+            border-radius: 28px;
+            box-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.7), 0 0 40px rgba(6, 182, 212, 0.08);
+            overflow: hidden;
+            position: relative;
+        }
+
+        .code-box {
+            background: #020617;
+            border: 1px solid rgba(6, 182, 212, 0.3);
+            border-radius: 14px;
+            padding: 0.75rem 1rem;
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        @media print {
+            body {
+                background: #ffffff !important;
+                color: #0f172a !important;
+                padding: 0 !important;
+            }
+            .no-print {
+                display: none !important;
+            }
+            .invoice-container {
+                max-width: 100% !important;
+                margin: 0 !important;
+                background: #ffffff !important;
+                border: 1px solid #cbd5e1 !important;
+                box-shadow: none !important;
+                border-radius: 0 !important;
+                padding: 0 !important;
+                color: #0f172a !important;
+            }
+            .print-text-dark {
+                color: #0f172a !important;
+            }
+            .print-text-muted {
+                color: #475569 !important;
+            }
+            .print-border {
+                border-color: #e2e8f0 !important;
+            }
+            .print-bg-light {
+                background-color: #f8fafc !important;
+            }
+            .code-box {
+                background-color: #f1f5f9 !important;
+                color: #0f172a !important;
+                border-color: #cbd5e1 !important;
+            }
+            @page {
+                size: A4;
+                margin: 12mm 15mm;
+            }
+        }
+    </style>
+</head>
+<body class="p-4 sm:p-6 min-h-screen flex flex-col justify-between">
+
+    <!-- Top Action Bar (Hidden in Print) -->
+    <div class="no-print max-w-[820px] mx-auto w-full mb-4 flex items-center justify-between gap-3">
+        <a href="{% url 'dashboard_order_detail' order.id %}" class="px-4 py-2 rounded-xl bg-slate-900/90 text-slate-300 hover:text-white border border-white/10 hover:border-cyan text-xs font-bold transition flex items-center gap-2">
+            <i class="fas fa-arrow-right"></i> العودة لتفاصيل الطلب
+        </a>
+        <div class="flex items-center gap-2">
+            <button onclick="window.print()" class="px-5 py-2 rounded-xl bg-gradient-to-r from-cyan-500 to-cyan-400 text-slate-950 hover:brightness-110 font-black text-xs transition flex items-center gap-2 shadow-lg shadow-cyan-500/20 cursor-pointer">
+                <i class="fas fa-print"></i> طباعة الفاتورة
+            </button>
+            <button onclick="window.print()" class="px-4 py-2 rounded-xl bg-slate-900/90 text-cyan hover:bg-cyan hover:text-slate-950 border border-cyan/30 text-xs font-bold transition flex items-center gap-2 cursor-pointer">
+                <i class="fas fa-file-pdf"></i> حفظ كـ PDF
+            </button>
+        </div>
+    </div>
+
+    <!-- Main Printable Invoice Container -->
+    <div class="invoice-container p-6 sm:p-10">
+
+        <!-- Top Header & Branding -->
+        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-6 pb-8 border-b border-white/10 print-border">
+            <div class="flex items-center gap-4">
+                <div class="w-14 h-14 rounded-2xl bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center text-cyan-400 text-2xl font-black shadow-lg shadow-cyan-500/10 print-bg-light">
+                    <i class="fas fa-bolt"></i>
+                </div>
+                <div>
+                    <h1 class="text-2xl font-black tracking-tight text-white print-text-dark flex items-center gap-2">
+                        رقميات <span class="text-cyan-400 text-xs font-mono font-bold px-2 py-0.5 rounded-lg bg-cyan-500/10 border border-cyan-500/20">RAQAMIYAT</span>
+                    </h1>
+                    <p class="text-xs text-slate-400 print-text-muted mt-0.5">منصة الخدمات والبطاقات الرقمية المعتمدة</p>
+                </div>
+            </div>
+
+            <div class="sm:text-left text-right">
+                <span class="inline-block px-3 py-1 rounded-xl text-xs font-black uppercase tracking-wider
+                    {% if order.status == 'completed' %}
+                        bg-emerald-500/10 text-emerald-400 border border-emerald-500/30
+                    {% elif order.status == 'cancelled' or order.status == 'refunded' %}
+                        bg-rose-500/10 text-rose-400 border border-rose-500/30
+                    {% else %}
+                        bg-amber-500/10 text-amber-400 border border-amber-500/30
+                    {% endif %}">
+                    {{ order.get_status_display }}
+                </span>
+                <div class="mt-2 font-mono text-sm font-bold text-slate-300 print-text-dark">
+                    فاتورة رقم: <span class="text-cyan-400">#{{ order.number }}</span>
+                </div>
+                <div class="text-[11px] text-slate-400 print-text-muted font-mono mt-0.5">
+                    {{ order.created_at|date:"Y-m-d H:i" }}
+                </div>
+            </div>
+        </div>
+
+        <!-- Order & Customer Meta Grid -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 py-6 border-b border-white/10 print-border text-xs">
+            <div class="p-4 rounded-2xl bg-slate-950/50 border border-white/5 print-bg-light print-border">
+                <span class="text-[10px] text-slate-400 print-text-muted font-black uppercase tracking-wider block mb-1">بيانات العميل</span>
+                <strong class="text-white print-text-dark text-sm block">{{ order.customer.get_full_name|default:order.customer.email }}</strong>
+                <span class="text-slate-400 print-text-muted font-mono text-[11px] block mt-0.5">{{ order.customer.email }}</span>
+            </div>
+
+            <div class="p-4 rounded-2xl bg-slate-950/50 border border-white/5 print-bg-light print-border">
+                <span class="text-[10px] text-slate-400 print-text-muted font-black uppercase tracking-wider block mb-1">تفاصيل الدفع والتنفيذ</span>
+                <strong class="text-white print-text-dark text-sm block">محفظة رقميات (خصم فوري)</strong>
+                {% if order.api_order_id %}
+                <span class="text-cyan-400 print-text-dark font-mono text-[11px] block mt-0.5">رقم الطلب: {{ order.api_order_id }}</span>
+                {% else %}
+                <span class="text-slate-400 print-text-muted font-mono text-[11px] block mt-0.5">حالة السداد: مكتمل بالكامل</span>
+                {% endif %}
+            </div>
+
+            <div class="p-4 rounded-2xl bg-slate-950/50 border border-white/5 print-bg-light print-border sm:col-span-2 lg:col-span-1">
+                <span class="text-[10px] text-slate-400 print-text-muted font-black uppercase tracking-wider block mb-1">البيانات المدخلة للطلب</span>
+                {% if order.metadata %}
+                    {% for k, v in order.metadata.items %}
+                        {% if k != 'api_provider' and k != 'api_error' and k != 'alkasr' and v %}
+                        <div class="flex items-center justify-between gap-2 mt-0.5">
+                            <span class="text-slate-400 print-text-muted">{{ k }}:</span>
+                            <strong class="text-white print-text-dark font-mono text-xs">{{ v }}</strong>
+                        </div>
+                        {% endif %}
+                    {% endfor %}
+                {% elif order.shipping_phone %}
+                    <div class="flex items-center justify-between gap-2 mt-0.5">
+                        <span class="text-slate-400 print-text-muted">الهاتف:</span>
+                        <strong class="text-white print-text-dark font-mono text-xs">{{ order.shipping_phone }}</strong>
+                    </div>
+                {% else %}
+                    <span class="text-slate-400 print-text-muted">لا توجد حقول إضافية</span>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Purchased Items Table -->
+        <div class="py-6">
+            <h3 class="text-xs font-black uppercase tracking-wider text-slate-400 print-text-muted mb-3">الخدمات والمنتجات المطلوبة</h3>
+            <div class="overflow-x-auto rounded-2xl border border-white/10 print-border bg-slate-950/40 print-bg-light">
+                <table class="w-full text-right text-xs">
+                    <thead>
+                        <tr class="border-b border-white/10 print-border bg-slate-900/60 print-bg-light text-slate-400 print-text-muted font-bold">
+                            <th class="p-3.5">الخدمة / الباقة</th>
+                            <th class="p-3.5 text-center">الكمية</th>
+                            <th class="p-3.5 text-left">سعر الوحدة</th>
+                            <th class="p-3.5 text-left">المجموع</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-white/5 print-border font-medium">
+                        {% for item in order.items.all %}
+                        <tr>
+                            <td class="p-3.5">
+                                <div class="font-bold text-white print-text-dark text-sm">{{ item.variant.product.name }}</div>
+                                <div class="text-[11px] text-cyan-400 print-text-muted font-mono mt-0.5">{{ item.variant.name }}</div>
+                            </td>
+                            <td class="p-3.5 text-center font-mono font-bold text-white print-text-dark">{{ item.quantity }}</td>
+                            <td class="p-3.5 text-left font-mono text-slate-300 print-text-dark">{{ item.unit_price }} $</td>
+                            <td class="p-3.5 text-left font-mono font-black text-white print-text-dark">{{ item.total_price }} $</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Fulfillment Codes & Delivery Keys Section (Highlight) -->
+        {% if order.fulfillment_data %}
+        <div class="py-6 border-t border-white/10 print-border">
+            <h3 class="text-xs font-black uppercase tracking-wider text-cyan-400 print-text-dark mb-3 flex items-center gap-2">
+                <i class="fas fa-key"></i> بيانات التسليم والأكواد المرفقة (Fulfillment Data)
+            </h3>
+            <div class="stack gap-3">
+                {% for key, val in order.fulfillment_data.items %}
+                    {% if key != 'api_provider' and key != 'api_status' and key != 'api_last_response' and key != 'api_refunded' and key != 'response' and key != 'api_response' and key != 'api_error' and key != 'alkasr' and val %}
+                    {% with val_list=val|as_list %}
+                    <div class="p-4 rounded-2xl bg-slate-950/90 border border-cyan/40 print-bg-light print-border">
+                        <span class="text-[10px] text-cyan-400 print-text-muted font-black uppercase tracking-wider block mb-1">{{ key }}</span>
+                        {% if val_list|length > 1 %}
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-2">
+                                {% for code in val_list %}
+                                <div class="code-box flex items-center justify-between">
+                                    <span class="font-bold text-sm text-cyan-200 print-text-dark select-all">{{ code }}</span>
+                                    <button type="button" onclick="navigator.clipboard.writeText('{{ code|escapejs }}')" class="no-print text-[10px] px-2 py-0.5 rounded bg-cyan-500/10 text-cyan-400 hover:bg-cyan-500 hover:text-slate-950 font-bold transition">
+                                        نسخ
+                                    </button>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        {% else %}
+                            <div class="code-box flex items-center justify-between mt-1">
+                                <strong class="font-bold text-base text-cyan-200 print-text-dark select-all font-mono">
+                                    {% if key == "keys" %}
+                                        {{ val|join:", " }}
+                                    {% else %}
+                                        {{ val }}
+                                    {% endif %}
+                                </strong>
+                                <button type="button" onclick="navigator.clipboard.writeText('{% if key == "keys" %}{{ val|join:", "|escapejs }}{% else %}{{ val|escapejs }}{% endif %}')" class="no-print text-xs px-3 py-1 rounded-lg bg-cyan text-slate-950 hover:bg-cyan/80 font-black transition cursor-pointer">
+                                    نسخ الكود
+                                </button>
+                            </div>
+                        {% endif %}
+                    </div>
+                    {% endwith %}
+                    {% endif %}
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Totals & Payment Summary -->
+        <div class="pt-6 border-t border-white/10 print-border flex flex-col sm:flex-row justify-between items-start sm:items-center gap-6">
+            <div class="text-xs text-slate-400 print-text-muted max-w-sm">
+                <p class="font-bold text-white print-text-dark mb-1">شكراً لتعاملكم مع منصة رقميات</p>
+                <p>هذا المستند يعتبر إشعاراً رسميّاً بتنفيذ وتسليم الخدمة المطلوبة بموجب الشروط والأحكام المعتمدة.</p>
+            </div>
+
+            <div class="w-full sm:w-64 p-4 rounded-2xl bg-slate-950/70 border border-white/10 print-bg-light print-border stack gap-2 text-xs">
+                <div class="flex justify-between text-slate-400 print-text-muted">
+                    <span>المجموع الفرعي:</span>
+                    <span class="font-mono font-bold text-white print-text-dark">{{ order.original_total|default:order.total_amount }} $</span>
+                </div>
+                {% if order.coupon %}
+                <div class="flex justify-between text-emerald-400">
+                    <span>الخصم (كوبون):</span>
+                    <span class="font-mono font-bold">-{{ order.discount_amount|default:"0.00" }} $</span>
+                </div>
+                {% endif %}
+                <div class="flex justify-between items-center pt-2 border-t border-white/10 print-border text-sm font-black">
+                    <span class="text-white print-text-dark">الإجمالي النهائي:</span>
+                    <span class="text-cyan-400 print-text-dark font-mono text-base font-black">{{ order.total_amount }} $</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Footer Verification & Stamp -->
+        <div class="mt-8 pt-6 border-t border-white/5 print-border flex flex-col sm:flex-row items-center justify-between gap-4 text-[10px] text-slate-500 print-text-muted">
+            <div class="flex items-center gap-2">
+                <i class="fas fa-shield-check text-cyan-400"></i>
+                <span>تم التحقق والاعتماد إلكترونياً عبر أنظمة رقميات الآمنة</span>
+            </div>
+            <div class="font-mono">
+                معرف الفاتورة: {{ order.id }}
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Bottom Print Disclaimer -->
+    <div class="no-print max-w-[820px] mx-auto w-full text-center text-xs text-slate-500 my-4">
+        © 2026 منصة رقميات للخدمات الرقمية. جميع الحقوق محفوظة.
+    </div>
+
+</body>
+</html>

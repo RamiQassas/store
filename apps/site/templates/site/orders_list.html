@@ -1,115 +1,396 @@
 {% extends "site/base.html" %}
 {% load static site_tags %}
 
-{% block title %}طلباتي | Raqamiyat{% endblock %}
+{% block title %}سجل طلباتي | Raqamiyat{% endblock %}
 
 {% block extra_head %}
 <style>
-    .order-card-v3 {
-        background: var(--panel);
-        border: 1px solid var(--panel-border);
-        border-radius: 24px;
+    .order-card-v4 {
+        background: linear-gradient(165deg, rgba(15, 23, 42, 0.85) 0%, rgba(6, 11, 24, 0.95) 100%);
+        border: 1px solid rgba(255, 255, 255, 0.07);
+        border-radius: 26px;
         padding: 1.5rem;
         transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        display: grid;
-        grid-template-columns: 80px 1fr auto;
-        gap: 1.5rem;
-        align-items: center;
-        text-decoration: none;
+        position: relative;
+        overflow: hidden;
     }
     
-    .order-card-v3:hover {
-        transform: scale(1.01);
-        border-color: var(--cyan);
-        background: rgba(6, 182, 212, 0.03);
+    .order-card-v4:hover {
+        transform: translateY(-2px);
+        border-color: rgba(6, 182, 212, 0.4);
+        box-shadow: 0 15px 35px -10px rgba(0, 0, 0, 0.6), 0 0 25px rgba(6, 182, 212, 0.1);
     }
 
-    .order-img-v3 {
-        width: 80px;
-        height: 80px;
+    .order-card-v4::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        right: 0;
+        width: 100px;
+        height: 100px;
+        background: radial-gradient(circle, rgba(6, 182, 212, 0.08) 0%, transparent 70%);
+        pointer-events: none;
+    }
+
+    .order-img-v4 {
+        width: 72px;
+        height: 72px;
         border-radius: 18px;
-        background: #0f172a;
+        background: #020617;
         display: flex;
         align-items: center;
         justify-content: center;
         overflow: hidden;
-        border: 1px solid rgba(255,255,255,0.05);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        flex-shrink: 0;
     }
-    .order-img-v3 img { width: 100%; height: 100%; object-fit: cover; }
+    .order-img-v4 img { width: 100%; height: 100%; object-fit: cover; }
 
-    .status-badge-v3 {
-        padding: 6px 12px;
+    .status-badge-v4 {
+        padding: 5px 12px;
         border-radius: 10px;
-        font-size: 10px;
-        font-weight: 900;
-        text-transform: uppercase;
-        letter-spacing: 1px;
+        font-size: 11px;
+        font-weight: 800;
+        letter-spacing: 0.3px;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
     }
     
-    .status-pending, .status-processing { background: rgba(245, 158, 11, 0.1); color: #f59e0b; }
-    .status-completed { background: rgba(16, 185, 129, 0.1); color: #10b981; }
-    .status-cancelled, .status-rejected, .status-refunded { background: rgba(244, 63, 94, 0.1); color: #f43f5e; }
+    .status-badge-v4.status-pending, 
+    .status-badge-v4.status-processing {
+        background: rgba(245, 158, 11, 0.12);
+        color: #fbbf24;
+        border: 1px solid rgba(245, 158, 11, 0.25);
+    }
 
-    @media (max-width: 768px) {
-        .order-card-v3 { grid-template-columns: 1fr; text-align: center; gap: 1rem; }
-        .order-img-v3 { margin: 0 auto; }
-        .order-actions-v3 { text-align: center !important; }
+    .status-badge-v4.status-completed {
+        background: rgba(16, 185, 129, 0.12);
+        color: #34d399;
+        border: 1px solid rgba(16, 185, 129, 0.25);
+    }
+
+    .status-badge-v4.status-cancelled, 
+    .status-badge-v4.status-rejected, 
+    .status-badge-v4.status-refunded {
+        background: rgba(244, 63, 94, 0.12);
+        color: #fb7185;
+        border: 1px solid rgba(244, 63, 94, 0.25);
+    }
+
+    .code-chip {
+        background: rgba(2, 6, 23, 0.95);
+        border: 1px solid rgba(6, 182, 212, 0.25);
+        border-radius: 12px;
+        padding: 0.5rem 0.85rem;
+        font-family: 'JetBrains Mono', monospace;
+    }
+
+    .tab-btn {
+        transition: all 0.2s ease;
+    }
+    .tab-btn.active {
+        background: linear-gradient(135deg, #06b6d4 0%, #0891b2 100%);
+        color: #020617;
+        font-weight: 800;
+        box-shadow: 0 4px 15px rgba(6, 182, 212, 0.3);
     }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="page-head flex justify-between items-center">
-    <div>
-        <span class="eyebrow">User Dashboard</span>
-        <h1>سجل الطلبات</h1>
-        <p class="text-muted">تتبع حالة مشترياتك وقم بالوصول إلى خدماتك الرقمية.</p>
-    </div>
-</div>
+<div class="space-y-8 max-w-6xl mx-auto pb-12">
 
-<div class="stack gap-4">
-    {% for order in orders %}
-    <a href="{% url 'dashboard_order_detail' order.id %}" class="order-card-v3">
-        <div class="order-img-v3">
-            {% with order.items.first as item %}
-                {% if item.variant.product.thumbnail %}
-                <img src="{{ item.variant.product.thumbnail.url }}">
-                {% else %}
-                <i class="fas fa-box text-2xl text-slate-700"></i>
-                {% endif %}
-            {% endwith %}
+    <!-- Header Section -->
+    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-slate-900/40 p-6 sm:p-8 rounded-3xl border border-white/5 backdrop-blur-md">
+        <div>
+            <div class="flex items-center gap-2 mb-2">
+                <span class="w-2.5 h-2.5 rounded-full bg-cyan animate-pulse"></span>
+                <span class="text-xs font-mono font-bold uppercase tracking-wider text-cyan">لوحة المستخدم / سجل المشتريات</span>
+            </div>
+            <h1 class="text-2xl sm:text-3xl font-black text-white">سجل طلباتي والخدمات الرقمية</h1>
+            <p class="text-sm text-slate-400 mt-1">تتبع كافة طلباتك، استعرض الأكواد المشحونة، وقم بطباعة الفواتير بضغطة واحدة.</p>
         </div>
-        
-        <div class="order-info-v3">
-            <div class="flex items-center gap-3 mb-1">
-                <span class="text-[10px] font-mono text-slate-500">#{{ order.number }}</span>
-                <span class="status-badge-v3 status-{{ order.status }}">
-                    {{ order.get_status_display }}
+
+        <a href="{% url 'catalog' %}" class="px-5 py-3 rounded-2xl bg-gradient-to-r from-cyan-500 to-cyan-400 text-slate-950 hover:brightness-110 font-black text-xs transition flex items-center gap-2 shadow-lg shadow-cyan-500/20 shrink-0 cursor-pointer">
+            <i class="fas fa-shopping-bag"></i> تصفح الخدمات والكتالوج
+        </a>
+    </div>
+
+    <!-- Search & Filter Controls -->
+    <div class="flex flex-col md:flex-row items-center justify-between gap-4">
+        <!-- Filter Tabs -->
+        <div class="flex items-center gap-2 overflow-x-auto w-full md:w-auto pb-2 md:pb-0 scrollbar-none" id="order-tabs">
+            <button onclick="filterOrders('all', this)" class="tab-btn active px-4 py-2.5 rounded-xl bg-slate-900/80 text-slate-300 hover:text-white border border-white/10 text-xs font-bold whitespace-nowrap cursor-pointer">
+                الكل ({{ orders|length }})
+            </button>
+            <button onclick="filterOrders('processing', this)" class="tab-btn px-4 py-2.5 rounded-xl bg-slate-900/80 text-slate-300 hover:text-white border border-white/10 text-xs font-bold whitespace-nowrap cursor-pointer">
+                <i class="fas fa-sync-alt text-amber-400 text-[10px] ml-1"></i> قيد التنفيذ
+            </button>
+            <button onclick="filterOrders('completed', this)" class="tab-btn px-4 py-2.5 rounded-xl bg-slate-900/80 text-slate-300 hover:text-white border border-white/10 text-xs font-bold whitespace-nowrap cursor-pointer">
+                <i class="fas fa-check-circle text-emerald-400 text-[10px] ml-1"></i> المكتملة
+            </button>
+            <button onclick="filterOrders('cancelled', this)" class="tab-btn px-4 py-2.5 rounded-xl bg-slate-900/80 text-slate-300 hover:text-white border border-white/10 text-xs font-bold whitespace-nowrap cursor-pointer">
+                <i class="fas fa-times-circle text-rose-400 text-[10px] ml-1"></i> الملغاة
+            </button>
+        </div>
+
+        <!-- Realtime Search Box -->
+        <div class="relative w-full md:w-80">
+            <i class="fas fa-search absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 text-xs"></i>
+            <input type="text" id="order-search" oninput="searchOrders()" placeholder="بحث برقم الطلب، الخدمة، أو الهاتف..." class="w-full pr-10 pl-4 py-2.5 bg-slate-900/90 border border-white/10 focus:border-cyan rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none transition">
+        </div>
+    </div>
+
+    <!-- Orders Cards List -->
+    <div class="space-y-4" id="orders-container">
+        {% for order in orders %}
+        <div class="order-card-v4 order-item-wrapper" data-status="{{ order.status }}" data-search="{{ order.number }} {% for item in order.items.all %}{{ item.variant.product.name }} {{ item.variant.name }}{% endfor %} {% for k, v in order.metadata.items %}{{ v }} {% endfor %} {{ order.api_order_id }}">
+            
+            <!-- Top Meta Line -->
+            <div class="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-white/5">
+                <div class="flex items-center gap-3">
+                    <span class="font-mono text-xs font-black text-cyan flex items-center gap-1.5">
+                        <i class="fas fa-receipt text-slate-400"></i> #{{ order.number }}
+                    </span>
+                    <button type="button" onclick="copyText('{{ order.number }}', this)" title="نسخ رقم الطلب" class="text-[10px] px-2 py-0.5 rounded bg-white/5 hover:bg-cyan/20 text-slate-400 hover:text-cyan transition cursor-pointer">
+                        <i class="far fa-copy"></i>
+                    </button>
+                    <span class="text-[11px] text-slate-400 font-mono">
+                        {{ order.created_at|date:"d M Y, H:i" }}
+                    </span>
+                </div>
+
+                <div class="flex items-center gap-3">
+                    {% if order.api_order_id %}
+                    <span class="text-[11px] text-slate-400 font-mono hidden sm:inline-block">
+                        رقم الطلب: <strong class="text-white">{{ order.api_order_id }}</strong>
+                    </span>
+                    {% endif %}
+                    
+                    <span class="status-badge-v4 status-{{ order.status }}">
+                        {% if order.status == 'completed' %}
+                            <i class="fas fa-check-circle"></i>
+                        {% elif order.status == 'cancelled' or order.status == 'refunded' %}
+                            <i class="fas fa-times-circle"></i>
+                        {% else %}
+                            <i class="fas fa-circle-notch fa-spin text-cyan"></i>
+                        {% endif %}
+                        {{ order.get_status_display }}
+                    </span>
+                </div>
+            </div>
+
+            <!-- Product & Price Details -->
+            <div class="py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div class="flex items-center gap-4">
+                    <div class="order-img-v4">
+                        {% with order.items.first as item %}
+                            {% if item.variant.product.thumbnail %}
+                            <img src="{{ item.variant.product.thumbnail.url }}" alt="{{ item.variant.product.name }}">
+                            {% else %}
+                            <i class="fas fa-cube text-2xl text-slate-600"></i>
+                            {% endif %}
+                        {% endwith %}
+                    </div>
+
+                    <div>
+                        <h3 class="text-base font-bold text-white mb-0.5">
+                            {% with order.items.first as item %}
+                                {{ item.variant.product.name }}
+                                <span class="text-xs font-mono font-medium text-cyan-400 mr-2">({{ item.variant.name }})</span>
+                            {% endwith %}
+                            {% if order.items.count > 1 %}
+                            <span class="text-xs text-slate-400 font-normal mr-1">+{{ order.items.count|add:"-1" }} أخرى</span>
+                            {% endif %}
+                        </h3>
+
+                        <!-- Custom Input Fields Summary (Phone / Player ID) -->
+                        <div class="flex flex-wrap items-center gap-2 mt-1.5">
+                            {% if order.metadata %}
+                                {% for k, v in order.metadata.items %}
+                                    {% if k != 'api_provider' and k != 'api_error' and k != 'alkasr' and v %}
+                                    <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-950 border border-white/5 text-[11px] text-slate-300">
+                                        <span class="text-slate-400">{{ k }}:</span>
+                                        <strong class="font-mono text-cyan-200">{{ v }}</strong>
+                                        <button type="button" onclick="copyText('{{ v|escapejs }}', this)" title="نسخ" class="text-slate-400 hover:text-cyan text-[10px] ml-1 cursor-pointer">
+                                            <i class="far fa-copy"></i>
+                                        </button>
+                                    </span>
+                                    {% endif %}
+                                {% endfor %}
+                            {% elif order.shipping_phone %}
+                                <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-950 border border-white/5 text-[11px] text-slate-300">
+                                    <span class="text-slate-400">الهاتف:</span>
+                                    <strong class="font-mono text-cyan-200">{{ order.shipping_phone }}</strong>
+                                    <button type="button" onclick="copyText('{{ order.shipping_phone|escapejs }}', this)" class="text-slate-400 hover:text-cyan text-[10px] ml-1 cursor-pointer">
+                                        <i class="far fa-copy"></i>
+                                    </button>
+                                </span>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Price & Quantity -->
+                <div class="sm:text-left text-right flex sm:flex-col justify-between items-center sm:items-end pt-2 sm:pt-0 border-t sm:border-t-0 border-white/5">
+                    <div class="text-xs text-slate-400 mb-0.5">
+                        {% with order.items.first as item %}
+                        الكمية: <span class="font-mono font-bold text-white">{{ item.quantity }}</span>
+                        {% endwith %}
+                    </div>
+                    <div class="text-xl font-black font-mono text-white tracking-tight">
+                        {% currency_format order.total_amount %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Fulfillment Codes / Delivery Section (Highlight on Card) -->
+            {% if order.fulfillment_data %}
+            <div class="my-2 p-3.5 rounded-2xl bg-slate-950/80 border border-cyan/30 space-y-2">
+                <div class="flex items-center justify-between">
+                    <span class="text-xs font-black text-cyan flex items-center gap-1.5">
+                        <i class="fas fa-key"></i> بيانات التسليم والأكواد:
+                    </span>
+                </div>
+
+                <div class="space-y-2">
+                    {% for key, val in order.fulfillment_data.items %}
+                        {% if key != 'api_provider' and key != 'api_status' and key != 'api_last_response' and key != 'api_refunded' and key != 'response' and key != 'api_response' and key != 'api_error' and key != 'alkasr' and val %}
+                        {% with val_list=val|as_list %}
+                            {% if val_list|length > 1 %}
+                            <div class="flex items-center justify-between pb-1 border-b border-white/5">
+                                <span class="text-[11px] text-slate-400 font-bold">{{ key }} ({{ val_list|length }})</span>
+                                <button type="button" onclick="copyText('{{ val_list|join:"\n"|escapejs }}', this)" class="text-[10px] px-2.5 py-1 bg-cyan text-slate-950 rounded-lg font-black hover:bg-cyan/80 transition cursor-pointer">
+                                    <i class="far fa-copy"></i> نسخ كافة الأكواد
+                                </button>
+                            </div>
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                {% for code in val_list %}
+                                <div class="code-chip flex items-center justify-between gap-2">
+                                    <span class="text-xs text-cyan-200 font-bold break-all select-all">{{ code }}</span>
+                                    <button type="button" onclick="copyText('{{ code|escapejs }}', this)" class="text-[10px] px-2 py-0.5 bg-cyan/10 text-cyan hover:bg-cyan hover:text-slate-950 rounded font-bold transition cursor-pointer">
+                                        نسخ
+                                    </button>
+                                </div>
+                                {% endfor %}
+                            </div>
+                            {% else %}
+                            <div class="code-chip flex items-center justify-between gap-3">
+                                <div>
+                                    <span class="text-[10px] text-slate-400 block mb-0.5">{{ key }}</span>
+                                    <span class="text-sm font-bold text-cyan-200 break-all select-all">
+                                        {% if key == "keys" %}
+                                            {{ val|join:", " }}
+                                        {% else %}
+                                            {{ val }}
+                                        {% endif %}
+                                    </span>
+                                </div>
+                                <button type="button" onclick="copyText('{% if key == "keys" %}{{ val|join:", "|escapejs }}{% else %}{{ val|escapejs }}{% endif %}', this)" class="text-xs px-3 py-1.5 bg-cyan text-slate-950 rounded-xl hover:bg-cyan/80 font-black transition cursor-pointer shrink-0">
+                                    <i class="far fa-copy"></i> نسخ
+                                </button>
+                            </div>
+                            {% endif %}
+                        {% endwith %}
+                        {% endif %}
+                    {% endfor %}
+                </div>
+            </div>
+            {% elif order.status == 'processing' %}
+            <div class="my-2 p-3 rounded-2xl bg-amber-500/[0.04] border border-amber-500/20 flex items-center justify-between text-xs text-amber-300/90">
+                <span class="flex items-center gap-2">
+                    <i class="fas fa-circle-notch fa-spin text-cyan"></i>
+                    يجري شحن وتنفيذ طلبك عبر المزود لحظياً...
                 </span>
+                <span class="font-mono text-[10px] text-slate-400">مزامنة حية</span>
             </div>
-            <h3 class="font-bold text-white mb-1">
-                {% with order.items.first as item %}{{ item.variant.product.name }}{% endwith %}
-                {% if order.items.count > 1 %}
-                <span class="text-xs text-muted">(+{{ order.items.count|add:"-1" }} أخرى)</span>
-                {% endif %}
-            </h3>
-            <div class="text-[10px] text-slate-500 font-bold uppercase tracking-widest">
-                {{ order.created_at|date:"d M Y, H:i" }}
-            </div>
-        </div>
+            {% endif %}
 
-        <div class="order-actions-v3 text-left">
-            <div class="font-black text-xl text-white mb-2">{% currency_format order.total_amount %}</div>
-            <div class="btn btn-outline btn-sm rounded-xl px-6">التفاصيل</div>
+            <!-- Card Actions Bottom Bar -->
+            <div class="pt-3 border-t border-white/5 flex flex-wrap items-center justify-between gap-3">
+                <div class="text-[11px] text-slate-400">
+                    {% if order.api_order_id %}
+                    <span class="inline-flex items-center gap-1.5">
+                        <i class="fas fa-hashtag text-cyan"></i>
+                        رقم الطلب: <strong class="text-white font-mono">{{ order.api_order_id }}</strong>
+                    </span>
+                    {% endif %}
+                </div>
+
+                <div class="flex items-center gap-2">
+                    <a href="{% url 'dashboard_order_invoice' order.id %}" target="_blank" class="px-3.5 py-2 rounded-xl bg-slate-900 text-slate-300 hover:text-white hover:border-cyan border border-white/10 text-xs font-bold transition flex items-center gap-1.5 cursor-pointer">
+                        <i class="fas fa-print text-cyan"></i> طباعة الفاتورة
+                    </a>
+                    <a href="{% url 'dashboard_order_detail' order.id %}" class="px-4 py-2 rounded-xl bg-gradient-to-r from-cyan-500 to-cyan-400 text-slate-950 hover:brightness-110 font-black text-xs transition flex items-center gap-1.5 shadow-md shadow-cyan-500/10 cursor-pointer">
+                        <span>عرض التفاصيل</span> <i class="fas fa-arrow-left text-[10px]"></i>
+                    </a>
+                </div>
+            </div>
+
         </div>
-    </a>
-    {% empty %}
-    <div class="panel p-24 text-center border-dashed opacity-50">
-        <i class="fas fa-shopping-cart text-5xl mb-6 text-slate-800"></i>
-        <h3 class="text-xl font-bold">لا توجد طلبات بعد</h3>
-        <p class="text-muted mt-2">ابدأ بالتسوق الآن من خلال تصفح الكتالوج الخاص بنا.</p>
-        <a href="{% url 'catalog' %}" class="btn btn-primary mt-8">تصفح الخدمات</a>
+        {% empty %}
+        <div class="p-16 rounded-3xl bg-slate-900/30 border-2 border-dashed border-white/10 text-center">
+            <div class="w-16 h-16 rounded-2xl bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center text-cyan-400 text-2xl mx-auto mb-4">
+                <i class="fas fa-shopping-cart"></i>
+            </div>
+            <h3 class="text-lg font-bold text-white mb-1">لا توجد طلبات بعد</h3>
+            <p class="text-xs text-slate-400 max-w-sm mx-auto mb-6">لم تقم بإجراء أي طلبات حتى الآن. يمكنك استعراض الكتالوج واختيار الخدمات والشحن الفوري.</p>
+            <a href="{% url 'catalog' %}" class="px-6 py-3 rounded-2xl bg-gradient-to-r from-cyan-500 to-cyan-400 text-slate-950 font-black text-xs transition inline-flex items-center gap-2 shadow-lg shadow-cyan-500/20">
+                <i class="fas fa-bolt"></i> تصفح الخدمات الآن
+            </a>
+        </div>
+        {% endfor %}
     </div>
-    {% endfor %}
+
 </div>
+
+<script>
+function copyText(text, btn) {
+    if (!text) return;
+    navigator.clipboard.writeText(text).then(() => {
+        const origHTML = btn.innerHTML;
+        btn.innerHTML = '<i class="fas fa-check text-emerald-400"></i> تم النسخ';
+        btn.classList.add('text-emerald-400');
+        setTimeout(() => {
+            btn.innerHTML = origHTML;
+            btn.classList.remove('text-emerald-400');
+        }, 1800);
+    });
+}
+
+function filterOrders(status, btn) {
+    document.querySelectorAll('#order-tabs button').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+
+    const cards = document.querySelectorAll('.order-item-wrapper');
+    cards.forEach(card => {
+        const cardStatus = card.getAttribute('data-status');
+        if (status === 'all') {
+            card.style.display = 'block';
+        } else if (status === 'processing' && (cardStatus === 'pending' || cardStatus === 'processing')) {
+            card.style.display = 'block';
+        } else if (status === 'completed' && cardStatus === 'completed') {
+            card.style.display = 'block';
+        } else if (status === 'cancelled' && (cardStatus === 'cancelled' || cardStatus === 'rejected' || cardStatus === 'refunded')) {
+            card.style.display = 'block';
+        } else {
+            card.style.display = 'none';
+        }
+    });
+}
+
+function searchOrders() {
+    const q = document.getElementById('order-search').value.toLowerCase().trim();
+    const cards = document.querySelectorAll('.order-item-wrapper');
+    cards.forEach(card => {
+        const data = (card.getAttribute('data-search') || '').toLowerCase();
+        if (!q || data.includes(q)) {
+            card.style.display = 'block';
+        } else {
+            card.style.display = 'none';
+        }
+    });
+}
+</script>
 {% endblock %}

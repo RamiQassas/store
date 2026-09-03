@@ -48,7 +48,12 @@
         <h1>طلب رقم #{{ order.number }}</h1>
         <p class="text-muted">عرض تفاصيل الطلب، المنتجات، ومعلومات التنفيذ والاستلام.</p>
     </div>
-    <a href="{% url 'dashboard_orders' %}" class="btn btn-outline btn-sm">العودة للسجل</a>
+    <div class="flex items-center gap-2">
+        <a href="{% url 'dashboard_order_invoice' order.id %}" target="_blank" class="px-4 py-2 rounded-xl bg-slate-900 border border-cyan/40 text-cyan hover:bg-cyan hover:text-slate-950 font-bold text-xs transition flex items-center gap-2 shadow-md shadow-cyan/10">
+            <i class="fas fa-print"></i> طباعة الفاتورة
+        </a>
+        <a href="{% url 'dashboard_orders' %}" class="btn btn-outline btn-sm">العودة للسجل</a>
+    </div>
 </div>
 
 <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -70,7 +75,7 @@
                     {% if order.api_order_id %}
                     <div class="fulfillment-item">
                         <div>
-                            <span class="text-[10px] text-slate-400 font-black uppercase tracking-widest block mb-1">رقم المرجع والتنفيذ (Reference ID)</span>
+                            <span class="text-[10px] text-slate-400 font-black uppercase tracking-widest block mb-1">رقم الطلب</span>
                             <strong class="text-white font-mono text-sm">{{ order.api_order_id }}</strong>
                         </div>
                         <button class="copy-button" onclick="copyToClipboard('{{ order.api_order_id }}', this)">نسخ</button>
@@ -190,7 +195,7 @@
                     {% if order.api_order_id %}
                     <div class="fulfillment-item">
                         <div>
-                            <span class="text-[10px] text-slate-400 font-black uppercase tracking-widest block mb-1">رقم المرجع والتنفيذ (Reference ID)</span>
+                            <span class="text-[10px] text-slate-400 font-black uppercase tracking-widest block mb-1">رقم الطلب</span>
                             <strong class="text-white font-mono text-sm">{{ order.api_order_id }}</strong>
                         </div>
                         <button class="copy-button" onclick="copyToClipboard('{{ order.api_order_id }}', this)">نسخ</button>
@@ -418,7 +423,7 @@
             
             {% if order.api_order_id %}
             <div class="flex justify-between items-center text-xs pb-2.5 border-b border-white/5">
-                <span class="text-slate-400 font-bold">رقم المرجع:</span>
+                <span class="text-slate-400 font-bold">رقم الطلب:</span>
                 <div class="flex items-center gap-2">
                     <span class="font-mono text-white font-bold text-xs">{{ order.api_order_id }}</span>
                     <button type="button" onclick="copyToClipboard('{{ order.api_order_id }}', this)" class="text-[10px] px-2 py-0.5 bg-cyan/10 text-cyan rounded-md hover:bg-cyan hover:text-slate-950 font-bold transition cursor-pointer">نسخ</button>

@@ -8,6 +8,7 @@ urlpatterns = [
     path("dashboard/wallet/", views.wallet_page, name="dashboard_wallet"),
     path("dashboard/orders/", views.orders_list, name="dashboard_orders"),
     path("dashboard/orders/<uuid:pk>/", views.order_detail, name="dashboard_order_detail"),
+    path("dashboard/orders/<uuid:pk>/invoice/", views.order_invoice, name="dashboard_order_invoice"),
     path("dashboard/deposits/", views.deposits, name="dashboard_deposits"),
     path("dashboard/withdrawals/", views.withdrawals, name="dashboard_withdrawals"),
     path("dashboard/transfer/", views.transfer_page, name="dashboard_transfer"),
