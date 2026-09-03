@@ -6356,14 +6356,16 @@ def control_apicontrol_dashboard(request):
         provider_groups = []
     
     from django.db.models import Q
+    provider_code = integration.provider if integration else "alkasr"
     if store:
-        linked_variants_qs = ProductVariant.objects.filter(product__store=store).filter(
-            Q(api_product_id__isnull=False) | Q(product__is_api_product=True) | Q(provider_mapping__isnull=False)
-        )
+        linked_variants_qs = ProductVariant.objects.filter(product__store=store)
     else:
-        linked_variants_qs = ProductVariant.objects.filter(
-            Q(api_product_id__isnull=False) | Q(product__is_api_product=True) | Q(provider_mapping__isnull=False)
-        )
+        linked_variants_qs = ProductVariant.objects.all()
+
+    linked_variants_qs = linked_variants_qs.filter(
+        Q(product__api_provider=provider_code) |
+        Q(provider_mapping__provider_product__profile=profile_obj)
+    )
 
     local_linked_count = linked_variants_qs.distinct().count()
 
@@ -6492,13 +6494,12 @@ def control_apicontrol_dashboard(request):
     if end_date:
         order_filter &= Q(created_at__date__lte=end_date)
 
+    provider_code = integration.provider if integration else "alkasr"
     api_orders = Order.objects.filter(
         order_filter & (
-            Q(api_order_id__isnull=False) |
-            Q(api_order_uuid__isnull=False) |
-            Q(provider_orders__isnull=False) |
-            Q(items__variant__api_product_id__isnull=False) |
-            Q(items__variant__product__is_api_product=True)
+            Q(provider_orders__profile=profile_obj) |
+            Q(items__variant__product__api_provider=provider_code) |
+            Q(items__variant__provider_mapping__provider_product__profile=profile_obj)
         )
     ).distinct().prefetch_related("items__variant__product", "provider_orders").order_by("-created_at")
     
@@ -6556,9 +6557,12 @@ def control_apicontrol_dashboard(request):
     # Fetch recent API transactions for template rendering
     from apps.catalog.models import APITransaction
     if store:
-        recent_transactions = list(APITransaction.objects.filter(store=store).order_by('-created_at')[:30])
+        recent_tx_qs = APITransaction.objects.filter(store=store)
     else:
-        recent_transactions = list(APITransaction.objects.all().order_by('-created_at')[:30])
+        recent_tx_qs = APITransaction.objects.all()
+    if profile_obj:
+        recent_tx_qs = recent_tx_qs.filter(Q(profile=profile_obj) | Q(provider=provider_code))
+    recent_transactions = list(recent_tx_qs.order_by('-created_at')[:30])
         
     return render(request, "site/control_apicontrol_dashboard.html", {
         "profile": profile if is_connected else None,
