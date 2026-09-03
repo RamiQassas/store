@@ -6466,10 +6466,12 @@ def control_apicontrol_dashboard(request):
             keys = []
             if v.api_product_id:
                 keys.append(str(v.api_product_id))
-            if v.product and v.product.api_product_id:
+            if v.product and getattr(v.product, 'api_product_id', None):
                 keys.append(str(v.product.api_product_id))
             if hasattr(v, 'provider_mapping') and v.provider_mapping and v.provider_mapping.provider_product:
                 keys.append(str(v.provider_mapping.provider_product.remote_id))
+            if v.metadata and isinstance(v.metadata, dict) and v.metadata.get("remote_id"):
+                keys.append(str(v.metadata["remote_id"]))
 
             for k in keys:
                 linked_map[k] = {
