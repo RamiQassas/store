@@ -71,9 +71,7 @@ def version_view(request):
 
     diag = {}
     try:
-        from apps.providers.models import ProviderProfile, ProviderProduct
-        from apps.catalog.models import ProductVariant, Product
-        from apps.site.models import APIIntegration
+        from apps.providers.models import ProviderProfile, ProviderProduct, APIIntegration
         
         diag["profiles"] = [
             {
