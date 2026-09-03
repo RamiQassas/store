@@ -1975,7 +1975,7 @@ def product_detail(request, pk):
             sku=f"AUTO-{str(product.id)[:8]}",
             price=p_price,
             wholesale_price=p_price,
-            cost=product.cost_price or Decimal("0.00"),
+            cost=getattr(product, 'base_cost', None) or getattr(product, 'cost_price', None) or Decimal("0.00"),
             is_active=True,
             metadata={"qty_type": "fixed", "qty_min": 1, "qty_max": 1}
         )

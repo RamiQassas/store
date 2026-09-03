@@ -201,12 +201,18 @@ class Order(TimeStampedModel):
         EXCLUDED_KEYS = {
             "api_provider", "api_status", "api_last_response", "api_refunded",
             "response", "api_response", "api_error", "alkasr", "provider",
-            "provider_order_id", "api_order_id", "api_order_uuid"
+            "provider_order_id", "api_order_id", "api_order_uuid", "provider_id",
+            "raw_response", "external_id", "external_order_id", "api"
         }
         for key, val in self.metadata.items():
-            if key in EXCLUDED_KEYS or str(key).lower() in EXCLUDED_KEYS:
+            k_lower = str(key).lower().strip()
+            v_lower = str(val).lower().strip()
+            if k_lower in EXCLUDED_KEYS or k_lower.startswith("api_") or v_lower == "alkasr":
                 continue
             label = label_map.get(key, key)
+            l_lower = str(label).lower().strip()
+            if l_lower in EXCLUDED_KEYS or l_lower.startswith("api"):
+                continue
             results.append({"label": label, "value": val})
                 
         return results
