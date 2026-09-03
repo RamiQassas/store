@@ -72,20 +72,24 @@ def version_view(request):
     diag = None
     if request.GET.get("sync_tafa3ol") == "1":
         try:
-            from apps.providers.models import ProviderProfile, ProviderProduct
-            from apps.catalog.models import Product, ProductVariant
+            import threading
+            from apps.providers.models import ProviderProfile
             from services.provider.tafa3olcard import Tafa3olCardProviderService
             
             p = ProviderProfile.all_objects.filter(base_url__icontains="tafa3ol").first()
             if p:
-                svc = Tafa3olCardProviderService(api_token=p.api_token, base_url=p.base_url, profile_model=p)
-                sync_result = svc.sync_catalog()
-                diag = {
-                    "sync_result": sync_result,
-                    "prods_count": Product.objects.filter(api_provider="tafa3olcard").count(),
-                    "variants_count": ProductVariant.objects.filter(product__api_provider="tafa3olcard").count(),
-                    "sample_variants": list(ProductVariant.objects.filter(product__api_provider="tafa3olcard")[:5].values("name", "price", "cost")),
-                }
+                def _bg_sync():
+                    from django.db import connection
+                    connection.close()
+                    try:
+                        svc = Tafa3olCardProviderService(api_token=p.api_token, base_url=p.base_url, profile_model=p)
+                        svc.sync_catalog()
+                    except Exception as err:
+                        import logging
+                        logging.getLogger("auto_deploy").exception(f"BG sync error: {err}")
+
+                threading.Thread(target=_bg_sync, daemon=True).start()
+                diag = {"status": "sync_started_in_background"}
         except Exception as e:
             import traceback
             diag = {"error": str(e), "traceback": traceback.format_exc()}
@@ -98,22 +102,29 @@ def version_view(request):
             
             p = ProviderProfile.all_objects.filter(base_url__icontains="tafa3ol").first()
             svc = Tafa3olCardProviderService(api_token=p.api_token, base_url=p.base_url, profile_model=p) if p else None
-            
-            api_services = svc.client.get_services() if svc else {}
-            api_categories = svc.client.get_categories() if svc else {}
-            sample_api_prods = svc.client.get_products(limit=3) if svc else {}
 
-            dot_prods = list(Product.objects.filter(api_provider="tafa3olcard", name__contains=".")[:5].values("id", "name"))
-            sample_variants = list(ProductVariant.objects.filter(product__api_provider="tafa3olcard")[:5].values("id", "name", "price", "cost", "sku", "metadata"))
-            recent_logs = list(OrderLog.objects.order_by("-created_at")[:5].values("order__number", "note"))
+            dot_prods_count = Product.objects.filter(api_provider="tafa3olcard", name__regex=r'^[\.\s\-_=~*#]+$').count()
+            prods_count = Product.objects.filter(api_provider="tafa3olcard").count()
+            variants_count = ProductVariant.objects.filter(product__api_provider="tafa3olcard").count()
+            
+            game_samples = list(ProductVariant.objects.filter(
+                product__api_provider="tafa3olcard"
+            ).exclude(cost=0).values("product__name", "name", "price", "cost")[:8])
+
+            zero_samples = list(ProductVariant.objects.filter(
+                product__api_provider="tafa3olcard",
+                cost=0
+            ).values("product__name", "name", "price", "cost")[:5])
+
+            categories = list(Product.objects.filter(api_provider="tafa3olcard").values_list("category__name", flat=True).distinct())
 
             diag = {
-                "api_services": api_services,
-                "api_categories": api_categories,
-                "sample_api_prods": sample_api_prods,
-                "dot_prods": dot_prods,
-                "sample_variants": sample_variants,
-                "recent_logs": recent_logs,
+                "prods_count": prods_count,
+                "variants_count": variants_count,
+                "dot_prods_count": dot_prods_count,
+                "categories": categories,
+                "priced_samples": game_samples,
+                "zero_cost_samples": zero_samples,
             }
         except Exception as e:
             import traceback
