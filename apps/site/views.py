@@ -3538,7 +3538,16 @@ def control_products_list(request):
         ]
         return export_to_excel(products, "Products", columns)
 
-    paginator = Paginator(products, 20)
+    per_page_param = request.GET.get('per_page', '20')
+    if per_page_param == 'all':
+        page_size = max(products.count(), 1)
+    else:
+        try:
+            page_size = max(1, int(per_page_param))
+        except (ValueError, TypeError):
+            page_size = 20
+
+    paginator = Paginator(products, page_size)
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
 
@@ -3566,6 +3575,7 @@ def control_products_list(request):
         "categories": categories,
         "all_categories": all_categories,
         "show_all_cats": show_all_cats,
+        "per_page": per_page_param,
     })
 
 @support_required

@@ -283,6 +283,7 @@
             {% if request.GET.category %}
             <input type="hidden" name="category" value="{{ request.GET.category }}">
             {% endif %}
+            <input type="hidden" name="per_page" value="{{ per_page|default:'20' }}">
             <div class="relative flex-grow group">
                 <i class="fas fa-search absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-cyan transition-colors"></i>
                 <input type="text" name="q" value="{{ query }}" placeholder="بحث بالاسم، التصنيف، SKU، أو ID..." class="text-xs pr-10 bg-slate-900/50 border-white/10 rounded-xl focus:border-cyan/50 focus:ring-4 focus:ring-cyan/10 transition-all w-full py-2.5">
@@ -294,13 +295,29 @@
             <input type="hidden" name="view" value="{{ view_mode|default:'list' }}">
         </form>
 
-        <div class="flex items-center gap-2">
+        <div class="flex flex-wrap items-center gap-3">
+            {# Per-Page Selector (5, 10, 20, 50, all) #}
+            <div class="flex items-center gap-1 bg-slate-900/40 p-1 rounded-xl border border-white/5 text-[10px] font-bold">
+                <span class="text-slate-400 px-1.5"><i class="fas fa-list-ol text-cyan ml-1"></i>عرض:</span>
+                <a href="?per_page=5&view={{ view_mode }}&q={{ query }}{% if request.GET.category %}&category={{ request.GET.category }}{% endif %}"
+                   class="px-2 py-1 rounded-lg transition-all {% if per_page == '5' %}bg-cyan text-black font-black{% else %}text-slate-400 hover:text-white hover:bg-white/5{% endif %}">5</a>
+                <a href="?per_page=10&view={{ view_mode }}&q={{ query }}{% if request.GET.category %}&category={{ request.GET.category }}{% endif %}"
+                   class="px-2 py-1 rounded-lg transition-all {% if per_page == '10' %}bg-cyan text-black font-black{% else %}text-slate-400 hover:text-white hover:bg-white/5{% endif %}">10</a>
+                <a href="?per_page=20&view={{ view_mode }}&q={{ query }}{% if request.GET.category %}&category={{ request.GET.category }}{% endif %}"
+                   class="px-2 py-1 rounded-lg transition-all {% if per_page == '20' or not per_page %}bg-cyan text-black font-black{% else %}text-slate-400 hover:text-white hover:bg-white/5{% endif %}">20</a>
+                <a href="?per_page=50&view={{ view_mode }}&q={{ query }}{% if request.GET.category %}&category={{ request.GET.category }}{% endif %}"
+                   class="px-2 py-1 rounded-lg transition-all {% if per_page == '50' %}bg-cyan text-black font-black{% else %}text-slate-400 hover:text-white hover:bg-white/5{% endif %}">50</a>
+                <a href="?per_page=all&view={{ view_mode }}&q={{ query }}{% if request.GET.category %}&category={{ request.GET.category }}{% endif %}"
+                   class="px-2 py-1 rounded-lg transition-all {% if per_page == 'all' %}bg-cyan text-black font-black{% else %}text-slate-400 hover:text-white hover:bg-white/5{% endif %}">الكل</a>
+            </div>
+
+            {# View Switcher (Grid / List) #}
             <div class="flex bg-slate-900/40 p-1 rounded-xl border border-white/5">
-                <a href="?view=grid&q={{ query }}{% if request.GET.category %}&category={{ request.GET.category }}{% endif %}" class="p-2 px-4 rounded-lg text-xs transition-all {% if view_mode == 'grid' %}bg-cyan text-black font-bold shadow-lg{% else %}text-slate-500 hover:text-white{% endif %}">
-                    <i class="fas fa-th-large ml-1"></i> عرض شبكي
+                <a href="?view=grid&per_page={{ per_page|default:'20' }}&q={{ query }}{% if request.GET.category %}&category={{ request.GET.category }}{% endif %}" class="p-2 px-3 rounded-lg text-xs transition-all {% if view_mode == 'grid' %}bg-cyan text-black font-bold shadow-lg{% else %}text-slate-500 hover:text-white{% endif %}">
+                    <i class="fas fa-th-large ml-1"></i> شبكي
                 </a>
-                <a href="?view=list&q={{ query }}{% if request.GET.category %}&category={{ request.GET.category }}{% endif %}" class="p-2 px-4 rounded-lg text-xs transition-all {% if view_mode != 'grid' %}bg-cyan text-black font-bold shadow-lg{% else %}text-slate-500 hover:text-white{% endif %}">
-                    <i class="fas fa-list ml-1"></i> عرض قائمة
+                <a href="?view=list&per_page={{ per_page|default:'20' }}&q={{ query }}{% if request.GET.category %}&category={{ request.GET.category }}{% endif %}" class="p-2 px-3 rounded-lg text-xs transition-all {% if view_mode != 'grid' %}bg-cyan text-black font-bold shadow-lg{% else %}text-slate-500 hover:text-white{% endif %}">
+                    <i class="fas fa-list ml-1"></i> قائمة
                 </a>
             </div>
         </div>
@@ -570,10 +587,10 @@
         </div>
         <div class="flex gap-2">
             {% if products.has_previous %}
-            <a href="?page={{ products.previous_page_number }}&q={{ query }}&view={{ view_mode }}{% if request.GET.category %}&category={{ request.GET.category }}{% endif %}{% if show_all_cats %}&all_cats=1{% endif %}" class="btn btn-outline btn-sm">السابق</a>
+            <a href="?page={{ products.previous_page_number }}&q={{ query }}&view={{ view_mode }}{% if request.GET.category %}&category={{ request.GET.category }}{% endif %}{% if show_all_cats %}&all_cats=1{% endif %}{% if per_page %}&per_page={{ per_page }}{% endif %}" class="btn btn-outline btn-sm">السابق</a>
             {% endif %}
             {% if products.has_next %}
-            <a href="?page={{ products.next_page_number }}&q={{ query }}&view={{ view_mode }}{% if request.GET.category %}&category={{ request.GET.category }}{% endif %}{% if show_all_cats %}&all_cats=1{% endif %}" class="btn btn-outline btn-sm">التالي</a>
+            <a href="?page={{ products.next_page_number }}&q={{ query }}&view={{ view_mode }}{% if request.GET.category %}&category={{ request.GET.category }}{% endif %}{% if show_all_cats %}&all_cats=1{% endif %}{% if per_page %}&per_page={{ per_page }}{% endif %}" class="btn btn-outline btn-sm">التالي</a>
             {% endif %}
         </div>
     </div>
@@ -581,10 +598,7 @@
 </div>
 {% endif %}
 
-
-{# ══════════════════════════════════════════════
-   QUICK RENAME MODAL
-══════════════════════════════════════════════ #}
+{# Quick Rename Modal #}
 <div id="quick-rename-modal" style="display:none; position:fixed; inset:0; z-index:9999; background:rgba(0,0,0,0.85); backdrop-filter:blur(8px); align-items:center; justify-content:center; padding:1rem;">
     <div style="background:#0f172a; border:1px solid rgba(6,182,212,0.3); border-radius:1.25rem; padding:1.5rem; max-width:28rem; width:100%; box-shadow:0 25px 50px rgba(0,0,0,0.5);">
         <h3 style="font-size:.875rem; font-weight:900; color:#fff; display:flex; align-items:center; gap:.5rem; margin-bottom:1rem;">
@@ -608,10 +622,7 @@
     </div>
 </div>
 
-{# ══════════════════════════════════════════════
-   ALL JAVASCRIPT — inside control_content because
-   control_base.html only has: extra_head + control_content
-══════════════════════════════════════════════ #}
+{# All JavaScript #}
 <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
 <script>
 (function() {
