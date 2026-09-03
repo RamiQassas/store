@@ -265,7 +265,7 @@
                      data-qty-type="{{ v.metadata.qty_type|default:'none' }}"
                      data-qty-min="{{ v.metadata.qty_min|default:1 }}"
                      data-qty-max="{{ v.metadata.qty_max|default:999999 }}"
-                     data-qty-list='{% if v.metadata.qty_list %}{{ v.metadata.qty_list|safe }}{% else %}[]{% endif %}'
+                     data-qty-list='{% if v.metadata.qty_list %}{{ v.metadata.qty_list|jsonify }}{% else %}[]{% endif %}'
                      data-is-per-mille="{% if v.metadata.is_per_mille %}true{% else %}false{% endif %}"
                      data-params='{% if v.metadata.params %}{{ v.metadata.params|jsonify }}{% else %}[]{% endif %}'>
                     <div class="flex items-center gap-5">
@@ -783,7 +783,14 @@ function renderQuantitySelector(qtyType, qtyMin, qtyMax, qtyListStr) {
         try {
             listOptions = JSON.parse(qtyListStr);
         } catch(e) {
-            console.error("Error parsing qty list", e);
+            try {
+                listOptions = JSON.parse(qtyListStr.replace(/'/g, '"'));
+            } catch(e2) {
+                console.error("Error parsing qty list", e2);
+            }
+        }
+        if (typeof listOptions === 'string') {
+            try { listOptions = JSON.parse(listOptions); } catch(e) {}
         }
         
         let pillsHtml = `
@@ -791,7 +798,7 @@ function renderQuantitySelector(qtyType, qtyMin, qtyMax, qtyListStr) {
                 <span class="text-xs text-slate-400 block mb-3 font-bold">الكميات المتاحة للشحن الفوري:</span>
                 <div class="flex flex-wrap gap-2.5 mb-2">
         `;
-        if (listOptions && listOptions.length > 0) {
+        if (listOptions && Array.isArray(listOptions) && listOptions.length > 0) {
             listOptions.forEach((val, idx) => {
                 const isFirst = idx === 0;
                 pillsHtml += `
@@ -804,7 +811,7 @@ function renderQuantitySelector(qtyType, qtyMin, qtyMax, qtyListStr) {
         }
         pillsHtml += `
                 </div>
-                <input type="hidden" name="quantity" id="quantity-input" value="${listOptions[0] || 1}">
+                <input type="hidden" name="quantity" id="quantity-input" value="${(listOptions && listOptions[0]) ? listOptions[0] : 1}">
             </div>
         `;
         inputHtml = pillsHtml;
@@ -832,11 +839,17 @@ function setListQty(val, btn) {
 function adjustQty(delta) {
     const input = document.getElementById('quantity-input');
     if (!input) return;
-    let val = parseInt(input.value) || 1;
-    val += delta;
-    const min = parseInt(input.getAttribute('min')) || 1;
+    let val = parseFloat(input.value) || 1;
+    const min = parseFloat(input.getAttribute('min')) || 1;
     const maxStr = input.getAttribute('max');
-    const max = maxStr ? (parseInt(maxStr) || 999999) : 999999;
+    const max = maxStr ? (parseFloat(maxStr) || 999999) : 999999;
+
+    let step = 1;
+    if (min >= 1000) step = 1000;
+    else if (min >= 100) step = 100;
+    else if (min >= 10) step = 10;
+
+    val += (delta * step);
     if (val < min) val = min;
     if (val > max) val = max;
     input.value = val;
@@ -854,7 +867,7 @@ function formatCurrencyAmount(baseAmount) {
     const currencySymbol = "{{ CURRENCY.symbol|default:'USD' }}";
     const currencyRate = parseFloat("{{ CURRENCY.buy_rate|default:1 }}") || 1.0;
     const currencyMethod = "{{ CURRENCY.conversion_method|default:'multiply' }}";
-    const currencyDecimals = parseInt("{{ CURRENCY.decimal_places|default:2 }}") || 2;
+    let currencyDecimals = parseInt("{{ CURRENCY.decimal_places|default:2 }}") || 2;
 
     let converted = baseAmount;
     if (currencyMethod === 'divide') {
@@ -862,6 +875,14 @@ function formatCurrencyAmount(baseAmount) {
     } else {
         converted = baseAmount * currencyRate;
     }
+
+    if (converted > 0 && converted < 0.01) {
+        currencyDecimals = 4;
+    }
+    if (converted > 0 && converted < 0.0001) {
+        currencyDecimals = 6;
+    }
+
     return converted.toLocaleString('en-US', {minimumFractionDigits: currencyDecimals, maximumFractionDigits: currencyDecimals}) + ' ' + currencySymbol;
 }
 

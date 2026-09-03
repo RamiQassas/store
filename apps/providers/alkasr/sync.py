@@ -26,16 +26,19 @@ class AlkasrSyncService:
         sync_log = ProviderSyncLog.objects.create(profile=self.profile, status="running")
 
         try:
-            from django.core.cache import cache
-            cache.set(f"sync_progress_{self.profile.id}", {
-                "status": "running",
-                "total": 0,
-                "current": 0,
-                "percent": 0,
-                "product_name": "جاري الاتصال بسيرفر المزود وسحب قائمة الخدمات...",
-                "created": 0,
-                "updated": 0
-            }, timeout=300)
+            try:
+                from django.core.cache import cache
+                cache.set(f"sync_progress_{self.profile.id}", {
+                    "status": "running",
+                    "total": 0,
+                    "current": 0,
+                    "percent": 0,
+                    "product_name": "جاري الاتصال بسيرفر المزود وسحب قائمة الخدمات...",
+                    "created": 0,
+                    "updated": 0
+                }, timeout=300)
+            except Exception:
+                pass
 
             raw_products = self.product_svc.fetch_products()
             content_by_id = self._fetch_content_tree()
@@ -106,7 +109,10 @@ class AlkasrSyncService:
                 "created": stats["created"],
                 "updated": stats["updated"]
             }
-            cache.set(f"sync_progress_{self.profile.id}", final_progress, timeout=300)
+            try:
+                cache.set(f"sync_progress_{self.profile.id}", final_progress, timeout=300)
+            except Exception:
+                pass
 
             return stats
 
@@ -116,17 +122,20 @@ class AlkasrSyncService:
             sync_log.error_message = str(exc)
             sync_log.errors_count = 1
             sync_log.save()
-            from django.core.cache import cache
-            cache.set(f"sync_progress_{self.profile.id}", {
-                "status": "failed",
-                "total": 0,
-                "current": 0,
-                "percent": 0,
-                "product_name": f"فشل الاستيراد: {str(exc)}",
-                "created": 0,
-                "updated": 0,
-                "error": str(exc)
-            }, timeout=300)
+            try:
+                from django.core.cache import cache
+                cache.set(f"sync_progress_{self.profile.id}", {
+                    "status": "failed",
+                    "total": 0,
+                    "current": 0,
+                    "percent": 0,
+                    "product_name": f"فشل الاستيراد: {str(exc)}",
+                    "created": 0,
+                    "updated": 0,
+                    "error": str(exc)
+                }, timeout=300)
+            except Exception:
+                pass
             raise
 
     def _fetch_content_tree(self, max_nodes=2000):

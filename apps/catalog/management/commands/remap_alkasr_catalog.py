@@ -30,6 +30,13 @@ class Command(BaseCommand):
             mapper = AlkasrMapperService(profile)
             mapper.map_all_to_catalog()
             
+            # Clean up empty Alkasr products that have 0 variants
+            empty_prods = Product.objects.filter(api_provider='alkasr', variants__isnull=True)
+            empty_count = empty_prods.count()
+            empty_prods.delete()
+            if empty_count > 0:
+                self.stdout.write(f'Cleaned up {empty_count} unused empty products.')
+
             # Also ensure all variants belonging to alkasr products are active
             ProductVariant.objects.filter(product__api_provider='alkasr').update(is_active=True, is_temporarily_disabled=False)
             Product.objects.filter(api_provider='alkasr').update(is_active=True, is_out_of_stock=False)

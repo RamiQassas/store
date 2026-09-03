@@ -87,7 +87,13 @@ def currency_format(context, amount, source_currency=None, mode="deposit"):
         if target_currency.code != "USD" and source and source.code != target_currency.code:
             prefix = "≈ "
             
-        formatted = f"{converted:,.{target_currency.decimal_places}f}"
+        places = target_currency.decimal_places
+        if converted > 0 and converted < Decimal("0.01"):
+            places = 4
+        if converted > 0 and converted < Decimal("0.0001"):
+            places = 6
+
+        formatted = f"{converted:,.{places}f}"
         return f"{prefix}{formatted} {target_currency.symbol}"
     except Exception:
         return f"{amount} {target_currency.symbol if target_currency else '???'}"
