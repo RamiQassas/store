@@ -56,30 +56,27 @@ def variant_card_price(context, variant):
     
     meta = variant.metadata or {}
     qty_type = meta.get("qty_type")
-    qty_min = meta.get("qty_min", 1)
+    qty_min = meta.get("qty_min")
     qty_list = meta.get("qty_list", [])
     is_per_mille = meta.get("is_per_mille", False)
     
     min_multiplier = Decimal("1")
-    if qty_type == "range":
-        try:
-            min_val = Decimal(str(qty_min)) if qty_min else Decimal("1")
-            if min_val > 1:
-                min_multiplier = min_val
-        except Exception:
-            pass
-    elif (qty_type == "list" or qty_list) and is_per_mille:
+    try:
+        if qty_min:
+            q_val = Decimal(str(qty_min))
+            if q_val > 1:
+                min_multiplier = q_val
+    except Exception:
+        pass
+        
+    if qty_list:
         try:
             valid_list = [Decimal(str(x)) for x in qty_list if Decimal(str(x)) > 0]
             if valid_list:
-                min_multiplier = min(valid_list)
-        except Exception:
-            pass
-    elif is_per_mille and qty_min:
-        try:
-            min_val = Decimal(str(qty_min))
-            if min_val > 1:
-                min_multiplier = min_val
+                min_in_list = min(valid_list)
+                if min_in_list > 1 and (is_per_mille or Decimal(str(price)) < Decimal("0.2") or qty_type in ("list", "range", "custom_qty")):
+                    if min_multiplier == 1 or min_in_list < min_multiplier:
+                        min_multiplier = min_in_list
         except Exception:
             pass
             
@@ -120,30 +117,27 @@ def product_starting_price(context, product):
             
         meta = v.metadata or {}
         qty_type = meta.get("qty_type")
-        qty_min = meta.get("qty_min", 1)
+        qty_min = meta.get("qty_min")
         qty_list = meta.get("qty_list", [])
         is_per_mille = meta.get("is_per_mille", False)
         
         min_multiplier = Decimal("1")
-        if qty_type == "range":
-            try:
-                min_val = Decimal(str(qty_min)) if qty_min else Decimal("1")
-                if min_val > 1:
-                    min_multiplier = min_val
-            except Exception:
-                pass
-        elif (qty_type == "list" or qty_list) and is_per_mille:
+        try:
+            if qty_min:
+                q_val = Decimal(str(qty_min))
+                if q_val > 1:
+                    min_multiplier = q_val
+        except Exception:
+            pass
+            
+        if qty_list:
             try:
                 valid_list = [Decimal(str(x)) for x in qty_list if Decimal(str(x)) > 0]
                 if valid_list:
-                    min_multiplier = min(valid_list)
-            except Exception:
-                pass
-        elif is_per_mille and qty_min:
-            try:
-                min_val = Decimal(str(qty_min))
-                if min_val > 1:
-                    min_multiplier = min_val
+                    min_in_list = min(valid_list)
+                    if min_in_list > 1 and (is_per_mille or Decimal(str(v_price)) < Decimal("0.2") or qty_type in ("list", "range", "custom_qty")):
+                        if min_multiplier == 1 or min_in_list < min_multiplier:
+                            min_multiplier = min_in_list
             except Exception:
                 pass
 
