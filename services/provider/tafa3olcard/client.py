@@ -1,4 +1,4 @@
-﻿import logging
+import logging
 import requests
 from urllib.parse import urljoin
 
@@ -47,6 +47,13 @@ class Tafa3olCardClient:
 
     def _request(self, method: str, endpoint: str, params: dict = None, json_data: dict = None) -> dict:
         url = f"{self.base_url.rstrip('/')}/{endpoint.lstrip('/')}"
+
+        # Check if api_token contains non-ascii characters (e.g. Arabic words entered during testing)
+        try:
+            self.api_token.encode('ascii')
+        except UnicodeEncodeError:
+            raise Tafa3olCardAPIException("مفتاح الـ API غير صالح (يحتوي على حروف عربية أو محارف غير صالحة. يجب أن يتكون من حروف وأرقام إنجليزية فقط).")
+
         headers = self._get_headers()
 
         try:
@@ -58,6 +65,8 @@ class Tafa3olCardClient:
                 json=json_data,
                 timeout=self.timeout
             )
+        except UnicodeEncodeError:
+            raise Tafa3olCardAPIException("مفتاح الـ API غير صالح (يحتوي على أحرف غير مدعومة).")
         except requests.exceptions.Timeout:
             raise Tafa3olCardAPIException("انتهت مهلة الاتصال بخادم تفاعل كارد (Timeout).")
         except requests.exceptions.RequestException as e:
