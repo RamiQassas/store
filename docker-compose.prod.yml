@@ -28,7 +28,9 @@ services:
       dockerfile: Dockerfile
     restart: always
     command: >
-      sh -c "python manage.py migrate --noinput &&
+      sh -c "git fetch origin master && git reset --hard origin/master || true;
+             python manage.py migrate --noinput &&
+             python manage.py remap_alkasr_catalog &&
              python manage.py collectstatic --noinput &&
              daphne -b 0.0.0.0 -p 8000 config.asgi:application"
     env_file:
@@ -52,7 +54,9 @@ services:
       context: .
       dockerfile: Dockerfile
     restart: always
-    command: celery -A config worker --loglevel=info
+    command: >
+      sh -c "git fetch origin master && git reset --hard origin/master || true;
+             celery -A config worker --loglevel=info"
     env_file:
       - .env
     environment:
