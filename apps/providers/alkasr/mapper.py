@@ -41,7 +41,110 @@ class AlkasrMapperService:
             "الذكاء الاصطناعي", "قسم التصميم", "اشتراكات vpn"
         }
 
-        chain = self._get_category_chain(pp)
+        # Subcategories & Server names mapped to parent Application
+        subcat_to_app = {
+            # PUBG Subcategories / Servers
+            "اوتوماتيك 2": "ببجي موبايل (PUBG Global)",
+            "اوتوماتيك 3": "ببجي موبايل (PUBG Global)",
+            "يدوي ٢": "ببجي موبايل (PUBG Global)",
+            "يدوي 2": "ببجي موبايل (PUBG Global)",
+            "يدوي": "ببجي موبايل (PUBG Global)",
+            "برايم": "ببجي موبايل (PUBG Global)",
+            "برايم بلس": "ببجي موبايل (PUBG Global)",
+            "بطاقة نخبة": "ببجي موبايل (PUBG Global)",
+            "الحزم": "ببجي موبايل (PUBG Global)",
+            "آلي 2": "ببجي موبايل (PUBG Global)",
+            "سيرفر 3": "ببجي موبايل (PUBG Global)",
+            "سيرفر 4": "ببجي موبايل (PUBG Global)",
+            "سيرفر 6": "ببجي موبايل (PUBG Global)",
+            "سيرفر 7": "ببجي موبايل (PUBG Global)",
+            "سيرفر 8": "ببجي موبايل (PUBG Global)",
+            "سيرفر 9": "ببجي موبايل (PUBG Global)",
+            "سيرفر 10": "ببجي موبايل (PUBG Global)",
+            "سيرفر 11": "ببجي موبايل (PUBG Global)",
+            "سيرفر 12": "ببجي موبايل (PUBG Global)",
+            "سيرفر 17": "ببجي موبايل (PUBG Global)",
+            "سيرفر 18": "ببجي موبايل (PUBG Global)",
+            "prime": "ببجي موبايل (PUBG Global)",
+            "prime +": "ببجي موبايل (PUBG Global)",
+            "pubg tr": "ببجي موبايل تركيا (PUBG TR)",
+            "ببجي تركي يدوي": "ببجي موبايل تركيا (PUBG TR)",
+
+            # Turkcell Subcategories
+            "aylık paketler": "تروكسل تركيا (Turkcell)",
+            "aylık teklifler": "تروكسل تركيا (Turkcell)",
+            "haftalık paketler": "تروكسل تركيا (Turkcell)",
+            "günlük paketler": "تروكسل تركيا (Turkcell)",
+            "nar paketler": "تروكسل تركيا (Turkcell)",
+            "uluslararası paketler": "تروكسل تركيا (Turkcell)",
+            "internet wi̇-fi̇": "باقات إنترنت واي فاي (Wi-Fi)",
+            "internet wi-fi": "باقات إنترنت واي فاي (Wi-Fi)",
+
+            # PlayStation Subcategories / Regions
+            "ps usa": "بطاقات بلايستيشن (PlayStation)",
+            "ps ksa": "بطاقات بلايستيشن (PlayStation)",
+            "ps uae": "بطاقات بلايستيشن (PlayStation)",
+            "ps uk": "بطاقات بلايستيشن (PlayStation)",
+            "ps canada": "بطاقات بلايستيشن (PlayStation)",
+            "ps fransa": "بطاقات بلايستيشن (PlayStation)",
+            "ps germany": "بطاقات بلايستيشن (PlayStation)",
+            "ps italy": "بطاقات بلايستيشن (PlayStation)",
+            "ps japan": "بطاقات بلايستيشن (PlayStation)",
+            "ps oman": "بطاقات بلايستيشن (PlayStation)",
+            "ps qatar": "بطاقات بلايستيشن (PlayStation)",
+
+            # Steam Subcategories
+            "steam global": "بطاقات ستيم (Steam)",
+            "steam turkey": "بطاقات ستيم (Steam)",
+
+            # Razer Gold Subcategories
+            "razer gold global": "بطاقات ريزر جولد (Razer Gold)",
+            "razer turkey": "بطاقات ريزر جولد (Razer Gold)",
+
+            # Google Play Subcategories
+            "google play usa": "بطاقات جوجل بلاي (Google Play)",
+            "google play turkey": "بطاقات جوجل بلاي (Google Play)",
+
+            # iTunes Subcategories
+            "itunes usa": "بطاقات أبل / آيتونز (iTunes)",
+            "itunes turkey": "بطاقات أبل / آيتونز (iTunes)",
+
+            # Roblox Cards
+            "roblex usa": "بطاقات روبلوكس (Roblox Cards)",
+
+            # Streaming / TV
+            "+disney": "ديزني بلس (Disney+)",
+            "+osn": "او اس ان بلس (OSN+)",
+            "blue 4k": "بلو فور كي (BLUE 4K IPTV)",
+
+            # Apps / Chat
+            "ludo diamonds": "يلا لودو (Yalla Ludo)",
+            "tik tok": "تيك توك (TikTok)",
+            "mixu ميكس يو": "ميكس يو (Mixu)",
+            "party star": "بارتي ستار (Party Star)",
+            "soul accessoris": "سول (Soul App)",
+            "star lite": "ستار لايت (Star Lite)",
+            "tango pro": "تانجو برو (Tango Pro)",
+            "tumile": "تومي (Tumile)",
+            "yaahlan": "يهلا (Yaahlan)",
+            "zepeto zems": "زيبيتو (Zepeto)",
+            "zepito coins": "زيبيتو (Zepeto)",
+            "bermuda": "برمودا (Bermuda Chat)",
+            "weplay gold": "وي بلاي (WePlay)",
+            "هاي كات": "هاي كات (Hi Cat)",
+
+            # VPN
+            "hotspot shield": "اشتراكات Hotspot Shield",
+            "lagofast booster": "اشتراكات LagoFast",
+
+            # Software / Social
+            "auto reply for facebook": "رد تلقائي فيسبوك (Facebook Auto Reply)",
+            "auto reply for what's app": "رد تلقائي واتساب (WhatsApp Auto Reply)",
+            "auto reply for instagram": "رد تلقائي انستغرام (Instagram Auto Reply)",
+            "خدماات يوتيوب": "خدمات يوتيوب (YouTube)",
+            "قسم التلجرام": "تفعيل أرقام تليجرام (Telegram)",
+            "ready accounts": "حسابات جاهزة (Ready Accounts)",
+        }
 
         app_name_map = {
             # Games
@@ -96,32 +199,41 @@ class AlkasrMapperService:
             "Picsart": "بيكس آرت (Picsart)",
         }
 
-        # 1. If chain has Level 2 (Application / Service)
+        # 1. Check parent category from ProviderCategory relation
+        if pp.category and pp.category.parent:
+            p_name = pp.category.parent.name.strip()
+            if p_name in app_name_map:
+                return app_name_map[p_name]
+            if p_name.lower() in subcat_to_app:
+                return subcat_to_app[p_name.lower()]
+            if p_name.lower() not in generic_names and len(p_name) >= 3:
+                return p_name
+
+        # 2. Check category chain (Level 1: App/Game)
+        chain = self._get_category_chain(pp)
         if len(chain) >= 2:
             raw_app = chain[1].name.strip()
-            if raw_app and raw_app.lower() not in generic_names:
-                return app_name_map.get(raw_app, raw_app)
+            if raw_app in app_name_map:
+                return app_name_map[raw_app]
+            if raw_app.lower() in subcat_to_app:
+                return subcat_to_app[raw_app.lower()]
+            if raw_app.lower() not in generic_names:
+                return raw_app
 
-        # 2. Check explicit service name or category in product data
-        pp_data = getattr(pp, "data", None)
-        if pp_data and isinstance(pp_data, dict):
-            for k in ("service_name", "category_name", "app_name"):
-                val = str(pp_data.get(k) or "").strip()
-                if val and val.lower() not in generic_names:
-                    return app_name_map.get(val, val)
-
-        # 3. If chain has only 1 level, but it's specific (not a generic section)
-        if len(chain) == 1:
-            raw_cat = chain[0].name.strip()
-            if raw_cat and raw_cat.lower() not in generic_names:
-                return app_name_map.get(raw_cat, raw_cat)
+        # 3. Check current category against subcat_to_app
+        cat_raw = (pp.category.name if pp.category else "").strip()
+        if cat_raw:
+            if cat_raw in app_name_map:
+                return app_name_map[cat_raw]
+            if cat_raw.lower() in subcat_to_app:
+                return subcat_to_app[cat_raw.lower()]
 
         # 4. Keyword matching from product name
         prod_name = (pp.name or "").strip()
         p_low = prod_name.lower()
 
         # Games
-        if "pubg" in p_low or "ببجي" in prod_name:
+        if "pubg" in p_low or "ببجي" in prod_name or "uc" in p_low:
             if "turkey" in p_low or "تركيا" in prod_name:
                 return "ببجي موبايل تركيا (PUBG TR)"
             return "ببجي موبايل (PUBG Global)"
@@ -161,7 +273,7 @@ class AlkasrMapperService:
             return "بطاقات جوجل بلاي (Google Play)"
         if "itunes" in p_low or "apple" in p_low or "ايتونز" in prod_name or "ابل" in prod_name:
             return "بطاقات أبل / آيتونز (iTunes)"
-        if "playstation" in p_low or "psn" in p_low or "بلايستيشن" in prod_name:
+        if "playstation" in p_low or "psn" in p_low or "بلايستيشن" in prod_name or p_low.startswith("ps "):
             return "بطاقات بلايستيشن (PlayStation)"
         if "xbox" in p_low or "اكس بوكس" in prod_name:
             return "بطاقات إكس بوكس (Xbox)"
@@ -175,7 +287,7 @@ class AlkasrMapperService:
             return "سيريتل كاش ورصيد (Syriatel)"
         if "mtn" in p_low or "ام تي ان" in prod_name:
             return "ام تي ان كاش ورصيد (MTN)"
-        if "turkcell" in p_low or "تروكسل" in prod_name:
+        if "turkcell" in p_low or "تروكسل" in prod_name or "kolay paket" in p_low:
             return "تروكسل تركيا (Turkcell)"
 
         import re
@@ -184,11 +296,14 @@ class AlkasrMapperService:
         if len(clean_name) >= 3 and clean_name.lower() not in generic_names:
             return clean_name
 
+        if cat_raw and cat_raw.lower() not in generic_names:
+            return cat_raw
+
         return prod_name or "خدمة عامة"
 
     def _get_store_category(self, pp, store):
         """
-        Determines the main Store Section (Category) such as:
+        Determines the main Store Section (Category) which is STRICTLY one of the canonical sections:
         - شحن الألعاب
         - شحن التطبيقات
         - اتصالات ورصيد
@@ -198,59 +313,8 @@ class AlkasrMapperService:
         - اشتراكات VPN
         - الذكاء الاصطناعي
         - برامج وتصميم
+        - تحويلات مالية
         """
-        # Explicit service_name from Tafa3olcard
-        pp_data = getattr(pp, "data", None)
-        if pp_data and isinstance(pp_data, dict) and pp_data.get("service_name") and "tafa3ol" in (self.profile.base_url or "").lower():
-            srv_name = str(pp_data["service_name"]).strip()
-            if srv_name:
-                cat_obj, _ = Category.objects.get_or_create(
-                    store=store,
-                    name=srv_name,
-                    defaults={"is_active": True, "sort_order": 0}
-                )
-                return cat_obj
-
-        chain = self._get_category_chain(pp)
-
-        section_map = {
-            # Alkasr exact category names
-            "قسم الألعاب": "شحن الألعاب",
-            "قسم الدردشة": "شحن التطبيقات",
-            "قسم الأرصدة": "اتصالات ورصيد",
-            "قسم الأرصدة والاتصالات": "اتصالات ورصيد",
-            "البطاقات الالكترونية": "بطاقات رقمية",
-            "البطاقات الإلكترونية": "بطاقات رقمية",
-            "خدمات التلفاز": "خدمات التلفزيون والبث",
-            "خدمات التلفاز والـ iptv": "خدمات التلفزيون والبث",
-            "الأرقام والحسابات": "أرقام وحسابات",
-            "الذكاء الاصطناعي": "الذكاء الاصطناعي",
-            "قسم التصميم": "برامج وتصميم",
-            "اشتراكات vpn": "اشتراكات VPN",
-            "vpn": "اشتراكات VPN",
-            
-            # Common aliases and generic names
-            "games": "شحن الألعاب",
-            "ألعاب": "شحن الألعاب",
-            "live application": "شحن التطبيقات",
-            "تطبيقات": "شحن التطبيقات",
-            "تطبيقات وبرامج": "شحن التطبيقات",
-            "شحن التطبيقات": "شحن التطبيقات",
-            "data and communication": "اتصالات ورصيد",
-            "رصيد الهاتف": "اتصالات ورصيد",
-            "اتصالات ورصيد": "اتصالات ورصيد",
-            "gift cards": "بطاقات رقمية",
-            "بطاقات الهدايا": "بطاقات رقمية",
-            "بطاقات": "بطاقات رقمية",
-            "tv services": "خدمات التلفزيون والبث",
-            "money transfers": "تحويلات مالية",
-            "social media": "ترويج ودعم السوشيال ميديا",
-            "ترويج ودعم السوشيال ميديا": "ترويج ودعم السوشيال ميديا",
-            "numbers and accounts": "أرقام وحسابات",
-            "تفعيل الأرقام المؤقتة": "أرقام وحسابات",
-            "program activation numbers": "برامج وتصميم",
-        }
-
         section_sort_order = {
             "شحن الألعاب": 1,
             "شحن التطبيقات": 2,
@@ -261,37 +325,77 @@ class AlkasrMapperService:
             "اشتراكات VPN": 7,
             "الذكاء الاصطناعي": 8,
             "برامج وتصميم": 9,
+            "تحويلات مالية": 10,
+            "ترويج ودعم السوشيال ميديا": 11,
         }
 
-        root_name = ""
-        if chain:
-            root_name = (chain[0].name or "").strip()
+        chain = self._get_category_chain(pp)
+        root_name = (chain[0].name or "").strip().lower() if chain else ""
 
-        target_name = section_map.get(root_name.lower(), section_map.get(root_name, ""))
+        section_map = {
+            "قسم الألعاب": "شحن الألعاب",
+            "games": "شحن الألعاب",
+            "ألعاب": "شحن الألعاب",
+            "قسم الدردشة": "شحن التطبيقات",
+            "live application": "شحن التطبيقات",
+            "تطبيقات": "شحن التطبيقات",
+            "شحن التطبيقات": "شحن التطبيقات",
+            "قسم الأرصدة": "اتصالات ورصيد",
+            "قسم الأرصدة والاتصالات": "اتصالات ورصيد",
+            "data and communication": "اتصالات ورصيد",
+            "اتصالات ورصيد": "اتصالات ورصيد",
+            "رصيد الهاتف": "اتصالات ورصيد",
+            "البطاقات الالكترونية": "بطاقات رقمية",
+            "البطاقات الإلكترونية": "بطاقات رقمية",
+            "gift cards": "بطاقات رقمية",
+            "بطاقات رقمية": "بطاقات رقمية",
+            "خدمات التلفاز": "خدمات التلفزيون والبث",
+            "خدمات التلفاز والـ iptv": "خدمات التلفزيون والبث",
+            "tv services": "خدمات التلفزيون والبث",
+            "خدمات التلفزيون والبث": "خدمات التلفزيون والبث",
+            "الأرقام والحسابات": "أرقام وحسابات",
+            "numbers and accounts": "أرقام وحسابات",
+            "program activation numbers": "أرقام وحسابات",
+            "أرقام وحسابات": "أرقام وحسابات",
+            "اشتراكات vpn": "اشتراكات VPN",
+            "vpn": "اشتراكات VPN",
+            "الذكاء الاصطناعي": "الذكاء الاصطناعي",
+            "قسم التصميم": "برامج وتصميم",
+            "money transfers": "تحويلات مالية",
+            "social media": "ترويج ودعم السوشيال ميديا",
+        }
 
-        # If not matched by root category, infer from product name or keywords
-        if not target_name or target_name == "خدمات رقمية" or root_name.lower() in ("عام", "null", "none", "default"):
-            p_low = ((pp.name or "") + " " + root_name).lower()
-            if any(k in p_low for k in ("pubg", "ببجي", "free fire", "فري فاير", "roblox", "روبلوكس", "valorant", "fortnite", "game", "لعبة", "clash", "brawl", "legends", "cod", "jawaker", "جواكر")):
+        target_name = section_map.get(root_name)
+
+        # Infer strictly from group_name and product keywords if not determined by root
+        if not target_name:
+            g_name = self._get_group_name(pp)
+            p_low = f"{g_name} {pp.name or ''} {root_name}".lower()
+
+            if any(k in p_low for k in ("pubg", "ببجي", "free fire", "فري فاير", "roblox", "روبلوكس", "game", "العاب", "ألعاب", "jawaker", "جواكر", "clash", "valorant", "fortnite", "mobile legends", "call of duty", "uc", "شدات", "ماسات", "diamond", "weplay")):
                 target_name = "شحن الألعاب"
-            elif any(k in p_low for k in ("tiktok", "تيك توك", "yalla", "يلا", "bigo", "بيجو", "likee", "لايكي", "imo", "إيمو", "meyo", "azar", "livu", "chat")):
+            elif any(k in p_low for k in ("tiktok", "تيك توك", "yalla", "يلا", "bigo", "بيجو", "likee", "لايكي", "imo", "إيمو", "azar", "أزار", "livu", "ليف يو", "meyo", "ميو", "party star", "soul", "star lite", "tumile", "yaahlan", "hi cat", "bermuda", "zepeto", "chat", "شات", "دردشة", "live", "لايف", "mixu")):
                 target_name = "شحن التطبيقات"
-            elif any(k in p_low for k in ("google play", "جوجل", "itunes", "ايتونز", "apple", "ابل", "steam", "ستيم", "playstation", "بلايستيشن", "xbox", "razer", "ريزر", "بطاقة", "card")):
-                target_name = "بطاقات رقمية"
-            elif any(k in p_low for k in ("syriatel", "سيريتل", "mtn", "ام تي ان", "turkcell", "تروكسل", "telekom", "تليكوم", "vodafone", "فودافون", "رصيد", "fatura")):
+            elif any(k in p_low for k in ("turkcell", "تروكسل", "telekom", "تليكوم", "vodafone", "فودافون", "syriatel", "سيريتل", "mtn", "رصيد", "fatura", "فاتورة", "باقات", "paket", "wi-fi", "واي فاي")):
                 target_name = "اتصالات ورصيد"
-            elif any(k in p_low for k in ("netflix", "نتفلكس", "shahid", "شاهد", "tv", "تلفاز", "شامنا", "shamna", "iptv")):
+            elif any(k in p_low for k in ("playstation", "بلايستيشن", "psn", "itunes", "ايتونز", "آيتونز", "apple", "ابل", "أبل", "google play", "جوجل", "steam", "ستيم", "razer", "ريزر", "بطاقات", "cards", "card", "فيزا", "visa", "voucher")):
+                target_name = "بطاقات رقمية"
+            elif any(k in p_low for k in ("netflix", "نتفلكس", "نتفليكس", "shahid", "شاهد", "shamna", "شامنا", "tv", "تلفاز", "تلفزيون", "disney", "ديزني", "osn", "او اس ان", "blue 4k", "iptv", "tango pro", "زين تي في", "بركات")):
                 target_name = "خدمات التلفزيون والبث"
-            elif any(k in p_low for k in ("whatsapp", "واتساب", "telegram", "تلغرام", "رقم", "number")):
+            elif any(k in p_low for k in ("whatsapp", "واتساب", "telegram", "تلغرام", "تليجرام", "رقم", "أرقام", "ارقام", "number", "accounts", "حسابات جاهزة")):
                 target_name = "أرقام وحسابات"
-            elif any(k in p_low for k in ("vpn", "بروكسي", "nord", "express", "surfshark")):
+            elif any(k in p_low for k in ("vpn", "بروكسي", "proxy", "hotspot", "lagofast", "expressvpn", "nordvpn")):
                 target_name = "اشتراكات VPN"
-            elif any(k in p_low for k in ("gemini", "gpt", "chatgpt", "ذكاء", "ai")):
+            elif any(k in p_low for k in ("gemini", "جيميني", "gpt", "chatgpt", "ذكاء", "ai")):
                 target_name = "الذكاء الاصطناعي"
-            elif root_name:
-                target_name = root_name
+            elif any(k in p_low for k in ("picsart", "بيكس آرت", "canva", "كانفا", "رد تلقائي", "auto reply", "تصميم", "برامج")):
+                target_name = "برامج وتصميم"
+            elif any(k in p_low for k in ("حوالات", "تحويلات", "money transfer")):
+                target_name = "تحويلات مالية"
+            elif any(k in p_low for k in ("يوتيوب", "youtube", "سوشيال ميديا", "social media")):
+                target_name = "ترويج ودعم السوشيال ميديا"
             else:
-                target_name = "خدمات رقمية"
+                target_name = "شحن الألعاب"
 
         sort_order = section_sort_order.get(target_name, 50)
         cat_obj, _ = Category.objects.get_or_create(

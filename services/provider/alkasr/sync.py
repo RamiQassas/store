@@ -139,27 +139,43 @@ class AlkasrSyncService:
                     # Ensure Category exists and has hierarchy
                     cat_name = item.get("category_name") or "عام"
                     cat_remote_id = str(item.get("category_id") or "1")
+                    raw_parent_id = item.get("parent_id")
+                    parent_name = item.get("parent_name")
+
+                    parent_obj = None
+                    if raw_parent_id and str(raw_parent_id) not in ("0", ""):
+                        parent_obj = categories_by_remote.get(str(raw_parent_id))
+                        if not parent_obj and parent_name:
+                            parent_obj, _ = ProviderCategory.objects.get_or_create(
+                                profile=self.profile,
+                                remote_id=str(raw_parent_id),
+                                defaults={"name": parent_name}
+                            )
+                            if parent_obj.name != parent_name:
+                                parent_obj.name = parent_name
+                                parent_obj.save(update_fields=["name", "updated_at"])
+                            categories_by_remote[str(raw_parent_id)] = parent_obj
 
                     cat_obj = categories_by_remote.get(cat_remote_id)
                     if not cat_obj:
                         cat_obj, _ = ProviderCategory.objects.get_or_create(
                             profile=self.profile,
                             remote_id=cat_remote_id,
-                            defaults={"name": cat_name}
+                            defaults={
+                                "name": cat_name,
+                                "parent": parent_obj,
+                                "parent_remote_id": str(raw_parent_id) if raw_parent_id else None
+                            }
                         )
                         if cat_obj.name != cat_name:
                             cat_obj.name = cat_name
                             cat_obj.save(update_fields=["name", "updated_at"])
                         categories_by_remote[cat_remote_id] = cat_obj
 
-                    # Check parent link if product explicitly has parent_id
-                    raw_parent_id = item.get("parent_id")
-                    if raw_parent_id and str(raw_parent_id) not in ("0", ""):
-                        p_obj = categories_by_remote.get(str(raw_parent_id))
-                        if p_obj and cat_obj.parent_id != p_obj.id:
-                            cat_obj.parent = p_obj
-                            cat_obj.parent_remote_id = str(raw_parent_id)
-                            cat_obj.save(update_fields=["parent", "parent_remote_id", "updated_at"])
+                    if parent_obj and (cat_obj.parent_id != parent_obj.id or cat_obj.parent_remote_id != str(raw_parent_id)):
+                        cat_obj.parent = parent_obj
+                        cat_obj.parent_remote_id = str(raw_parent_id)
+                        cat_obj.save(update_fields=["parent", "parent_remote_id", "updated_at"])
 
                     # Get or create ProviderProduct
                     prod_obj, created = ProviderProduct.objects.get_or_create(

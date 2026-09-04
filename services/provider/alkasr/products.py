@@ -84,18 +84,25 @@ class AlkasrProductService:
                 except (ValueError, TypeError):
                     qty_max = None
 
-            category_name = str(item.get("category_name") or item.get("category") or "General")[:100]
+            raw_parent_id = item.get("parent_id") or item.get("parent")
+            parent_name = str(item.get("parent_name") or item.get("app_name") or "").strip()[:100]
+            raw_category_name = str(item.get("category_name") or item.get("category") or "").strip()[:100]
             raw_cat_id = item.get("category_id") or item.get("cat_id")
             
-            parent_id = item.get("parent_id") or item.get("parent")
+            # If category_name is empty, fallback to parent_name or General
+            category_name = raw_category_name or parent_name or "عام"
             
-            if parent_id and str(parent_id) not in ("0", ""):
-                category_id = str(parent_id)[:100]
-            elif not raw_cat_id:
+            # Keep raw category_id as the subcategory ID, fallback to parent_id if missing
+            if raw_cat_id and str(raw_cat_id) not in ("0", ""):
+                category_id = str(raw_cat_id)[:100]
+            elif raw_parent_id and str(raw_parent_id) not in ("0", ""):
+                category_id = str(raw_parent_id)[:100]
+            else:
                 import hashlib
                 category_id = hashlib.md5(category_name.encode('utf-8')).hexdigest()[:15]
-            else:
-                category_id = str(raw_cat_id)[:100]
+
+            parent_id_val = str(raw_parent_id)[:100] if raw_parent_id and str(raw_parent_id) not in ("0", "") else None
+            parent_name_val = parent_name if parent_name else None
             
             try:
                 cp = str(cost_price).strip()
@@ -118,7 +125,8 @@ class AlkasrProductService:
                 "qty_list": qty_list if isinstance(qty_list, list) else [],
                 "category_id": str(category_id),
                 "category_name": str(category_name),
-                "parent_id": str(parent_id) if parent_id else None,
+                "parent_id": parent_id_val,
+                "parent_name": parent_name_val,
                 "parameters": params if isinstance(params, list) else [],
                 "raw_data": item,
             })
