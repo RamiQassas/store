@@ -6396,10 +6396,20 @@ def control_apicontrol_dashboard(request):
             for p in visible_products
         ]
         
-        # Build provider groups instead of categories
+        # Build provider groups instead of raw categories
         groups_dict = {}
+        mapper_svc = None
+        try:
+            from apps.providers.alkasr.mapper import AlkasrMapperService
+            mapper_svc = AlkasrMapperService(profile_obj)
+        except Exception:
+            pass
+
         for pp in all_p:
-            g_name = pp.category.name if pp.category else "عام"
+            if mapper_svc:
+                g_name = mapper_svc._get_group_name(pp)
+            else:
+                g_name = pp.category.name if pp.category else "عام"
             if not g_name or g_name.lower() in ("null", "none"):
                 continue
             if g_name not in groups_dict:

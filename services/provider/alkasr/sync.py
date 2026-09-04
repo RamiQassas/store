@@ -23,6 +23,55 @@ class AlkasrSyncService:
         self.profile = profile_model
         self.product_service = AlkasrProductService(client)
 
+    def _fetch_category_tree(self) -> dict:
+        """
+        Fetches the category hierarchy from Alkasr API recursively.
+        Returns dict mapping category_id -> {remote_id, name, parent_remote_id}
+        """
+        queue = ["0"]
+        seen = set()
+        tree = {}
+
+        while queue and len(seen) < 1000:
+            cat_id = str(queue.pop(0))
+            if cat_id in seen:
+                continue
+            seen.add(cat_id)
+
+            try:
+                content = self.client.get_content(cat_id)
+            except Exception as e:
+                logger.warning("Failed to fetch Alkasr content for category %s: %s", cat_id, e)
+                continue
+
+            raw_categories = []
+            if isinstance(content, dict):
+                for k in ("categories", "subcategories", "children", "data"):
+                    val = content.get(k)
+                    if isinstance(val, list):
+                        raw_categories.extend(val)
+                    elif isinstance(val, dict):
+                        raw_categories.append(val)
+            elif isinstance(content, list):
+                raw_categories = content
+
+            for c in raw_categories:
+                if not isinstance(c, dict):
+                    continue
+                cid = str(c.get("id") or "").strip()
+                cname = str(c.get("name") or "").strip()
+                if cid and cname:
+                    parent_remote = None if cat_id == "0" else cat_id
+                    tree[cid] = {
+                        "remote_id": cid,
+                        "name": cname,
+                        "parent_remote_id": parent_remote,
+                    }
+                    if cid not in seen:
+                        queue.append(cid)
+
+        return tree
+
     def sync_catalog(self, selected_group_names=None, progress_callback=None) -> dict:
         """
         Executes catalog synchronization.
@@ -49,6 +98,35 @@ class AlkasrSyncService:
         error_message = ""
 
         try:
+            # 1. Fetch category hierarchy tree and sync ProviderCategories with parents
+            categories_by_remote = {}
+            try:
+                category_tree = self._fetch_category_tree()
+                for cid, cinfo in category_tree.items():
+                    parent_obj = categories_by_remote.get(cinfo["parent_remote_id"]) if cinfo["parent_remote_id"] else None
+                    cat_obj, _ = ProviderCategory.objects.update_or_create(
+                        profile=self.profile,
+                        remote_id=cid,
+                        defaults={
+                            "name": cinfo["name"],
+                            "parent_remote_id": cinfo["parent_remote_id"],
+                            "parent": parent_obj,
+                        }
+                    )
+                    categories_by_remote[cid] = cat_obj
+
+                # Second pass to ensure parent link is saved if parent was created after child
+                for cid, cinfo in category_tree.items():
+                    p_id = cinfo["parent_remote_id"]
+                    if p_id and p_id in categories_by_remote:
+                        cat_obj = categories_by_remote[cid]
+                        exp_parent = categories_by_remote[p_id]
+                        if cat_obj.parent_id != exp_parent.id:
+                            cat_obj.parent = exp_parent
+                            cat_obj.save(update_fields=["parent", "updated_at"])
+            except Exception as cat_tree_err:
+                logger.warning("Category tree fetch warning: %s", cat_tree_err)
+
             remote_products = self.product_service.fetch_all_products()
             total_items = len(remote_products)
             seen_remote_ids = set()
@@ -58,18 +136,30 @@ class AlkasrSyncService:
                 seen_remote_ids.add(remote_id)
 
                 with transaction.atomic():
-                    # Ensure Category exists
+                    # Ensure Category exists and has hierarchy
                     cat_name = item.get("category_name") or "عام"
-                    cat_remote_id = item.get("category_id") or "1"
+                    cat_remote_id = str(item.get("category_id") or "1")
 
-                    cat_obj, _ = ProviderCategory.objects.get_or_create(
-                        profile=self.profile,
-                        remote_id=cat_remote_id,
-                        defaults={"name": cat_name}
-                    )
-                    if cat_obj.name != cat_name:
-                        cat_obj.name = cat_name
-                        cat_obj.save(update_fields=["name", "updated_at"])
+                    cat_obj = categories_by_remote.get(cat_remote_id)
+                    if not cat_obj:
+                        cat_obj, _ = ProviderCategory.objects.get_or_create(
+                            profile=self.profile,
+                            remote_id=cat_remote_id,
+                            defaults={"name": cat_name}
+                        )
+                        if cat_obj.name != cat_name:
+                            cat_obj.name = cat_name
+                            cat_obj.save(update_fields=["name", "updated_at"])
+                        categories_by_remote[cat_remote_id] = cat_obj
+
+                    # Check parent link if product explicitly has parent_id
+                    raw_parent_id = item.get("parent_id")
+                    if raw_parent_id and str(raw_parent_id) not in ("0", ""):
+                        p_obj = categories_by_remote.get(str(raw_parent_id))
+                        if p_obj and cat_obj.parent_id != p_obj.id:
+                            cat_obj.parent = p_obj
+                            cat_obj.parent_remote_id = str(raw_parent_id)
+                            cat_obj.save(update_fields=["parent", "parent_remote_id", "updated_at"])
 
                     # Get or create ProviderProduct
                     prod_obj, created = ProviderProduct.objects.get_or_create(

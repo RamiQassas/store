@@ -165,6 +165,10 @@ class AlkasrClient:
         """Fetches full catalog from /products endpoint."""
         return self.request("GET", ENDPOINT_PRODUCTS)
 
+    def get_content(self, category_id: str = "0") -> dict:
+        """Fetches category tree content from /content/{category_id}."""
+        return self.request("GET", f"content/{category_id}")
+
     def create_order(self, order_uuid: str, product_id: str, quantity: int = 1, player_params: dict = None) -> dict:
         """
         Submits a new order using UUID v4.

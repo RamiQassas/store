@@ -15,12 +15,11 @@ class Command(BaseCommand):
         for profile in profiles:
             self.stdout.write(f'Processing profile: {profile.provider_name} (ID: {profile.id})...')
             
-            # Sync from Alkasr to get latest availability
+            # Sync from Alkasr to get latest availability and category tree
             try:
-                from apps.providers.alkasr.sync import AlkasrSyncService
-                sync_svc = AlkasrSyncService(profile)
-                sync_svc.sync_catalog()
-                self.stdout.write(self.style.SUCCESS('Synced live availability from Alkasr.'))
+                from services.provider.manager import ProviderManager
+                ProviderManager.sync_catalog(profile)
+                self.stdout.write(self.style.SUCCESS('Synced live availability and category tree from Alkasr.'))
             except Exception as e:
                 self.stdout.write(self.style.ERROR(f'Sync error: {e}'))
 
