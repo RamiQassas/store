@@ -7,7 +7,7 @@ class Command(BaseCommand):
     help = 'Remaps Alkasr products into properly grouped and categorized store catalog.'
 
     def handle(self, *args, **options):
-        profiles = ProviderProfile.objects.filter(is_active=True)
+        profiles = ProviderProfile.all_objects.filter(is_active=True)
         if not profiles.exists():
             self.stdout.write(self.style.WARNING('No active ProviderProfile found.'))
             return

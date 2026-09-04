@@ -23,8 +23,9 @@ class AlkasrMapperService:
         }
 
         # 0. If provider product has explicit category_name in its data dict
-        if pp.data and isinstance(pp.data, dict) and pp.data.get("category_name"):
-            c_name = str(pp.data["category_name"]).strip()
+        pp_data = getattr(pp, "data", None)
+        if pp_data and isinstance(pp_data, dict) and pp_data.get("category_name"):
+            c_name = str(pp_data["category_name"]).strip()
             if c_name and c_name.lower() not in generic_names:
                 return c_name
 
@@ -132,8 +133,9 @@ class AlkasrMapperService:
 
     def _get_store_category(self, pp, store):
         # 0. Check Tafa3ol Card explicit service name from parent or data
-        if pp.data and isinstance(pp.data, dict) and pp.data.get("service_name"):
-            srv_name = str(pp.data["service_name"]).strip()
+        pp_data = getattr(pp, "data", None)
+        if pp_data and isinstance(pp_data, dict) and pp_data.get("service_name"):
+            srv_name = str(pp_data["service_name"]).strip()
             if srv_name:
                 cat_obj, _ = Category.objects.get_or_create(
                     store=store,
@@ -236,6 +238,12 @@ class AlkasrMapperService:
         if not store:
             from apps.stores.models import Store
             store = Store.objects.first()
+            if store and not self.profile.store:
+                try:
+                    self.profile.store = store
+                    self.profile.save(update_fields=['store'])
+                except Exception:
+                    pass
 
         provider_code = "tafa3olcard" if ("tafa3ol" in (self.profile.base_url or "").lower() or "تفاعل" in (self.profile.provider_name or "").lower()) else "alkasr"
 
@@ -255,7 +263,7 @@ class AlkasrMapperService:
             if re.match(r'^[\.\s\-_=~*#]+$', group_name) or len(group_name) < 2:
                 continue
 
-            if selected_group_names is not None and group_name not in selected_group_names:
+            if selected_group_names and group_name not in selected_group_names:
                 continue
             grouped_products.setdefault(group_name, []).append(pp)
 
@@ -274,8 +282,9 @@ class AlkasrMapperService:
                     # Find any image URL
                     img_url = ""
                     for item_p in p_items:
-                        if item_p.data and isinstance(item_p.data, dict) and item_p.data.get("image_url"):
-                            img_url = item_p.data["image_url"]
+                        item_data = getattr(item_p, "data", None)
+                        if item_data and isinstance(item_data, dict) and item_data.get("image_url"):
+                            img_url = item_data["image_url"]
                             break
 
                     # Build combined parameters form_schema for this product

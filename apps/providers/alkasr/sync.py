@@ -85,8 +85,12 @@ class AlkasrSyncService:
                 disabled_count = ProviderProduct.objects.filter(profile=self.profile).exclude(remote_id__in=active_remote_ids).update(is_active=False, local_is_active=False)
                 stats["disabled"] = disabled_count
 
-                # DO NOT automatically map to catalog here anymore.
-                # The user will explicitly select what to map via the UI.
+                # Automatically map to catalog
+                try:
+                    from .mapper import AlkasrMapperService
+                    AlkasrMapperService(self.profile).map_all_to_catalog()
+                except Exception as map_err:
+                    logger.warning(f"Catalog mapping warning: {map_err}")
 
                 sync_log.status = "success"
                 sync_log.products_created = stats["created"]

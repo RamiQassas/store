@@ -6182,6 +6182,13 @@ def control_apicontrol_dashboard(request):
 
                         res = ProviderManager.sync_catalog(p_obj, selected_group_names=selected_groups, progress_callback=on_progress)
                         
+                        try:
+                            from apps.providers.alkasr.mapper import AlkasrMapperService
+                            AlkasrMapperService(p_obj).map_all_to_catalog(selected_group_names=selected_groups)
+                        except Exception as map_err:
+                            import logging
+                            logging.getLogger(__name__).warning(f"Mapper call warning after sync: {map_err}")
+
                         total = res.get("total", 0) if isinstance(res, dict) else 0
                         created = res.get("created", 0) if isinstance(res, dict) else 0
                         updated = res.get("updated", 0) if isinstance(res, dict) else 0
@@ -6210,7 +6217,7 @@ def control_apicontrol_dashboard(request):
                     }, timeout=600)
 
             import threading
-            selected_groups = request.POST.getlist("categories")
+            selected_groups = request.POST.getlist("categories") or None
             threading.Thread(target=_background_sync, args=(profile_obj.id, selected_groups), daemon=True).start()
             
             if request.headers.get("X-Requested-With") == "XMLHttpRequest" or action == "sync_ajax":

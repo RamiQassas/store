@@ -23,7 +23,7 @@ class AlkasrSyncService:
         self.profile = profile_model
         self.product_service = AlkasrProductService(client)
 
-    def sync_catalog(self, selected_group_names=None) -> dict:
+    def sync_catalog(self, selected_group_names=None, progress_callback=None) -> dict:
         """
         Executes catalog synchronization.
         """
@@ -144,6 +144,11 @@ class AlkasrSyncService:
                     "percent": pct, "created": created_count, "updated": updated_count,
                     "disabled": disabled_count, "product_name": item["name"]
                 }, timeout=600)
+                if progress_callback:
+                    try:
+                        progress_callback(index, total_items, item["name"], created_count, updated_count)
+                    except Exception:
+                        pass
 
             # Soft disable products missing from provider payload
             with transaction.atomic():
@@ -154,7 +159,8 @@ class AlkasrSyncService:
             # Automatically map ProviderProducts to store catalog Product & ProductVariant
             try:
                 from .mapper import AlkasrMapperService
-                AlkasrMapperService(self.profile).map_all_to_catalog(selected_group_names=selected_group_names)
+                groups_filter = selected_group_names if selected_group_names else None
+                AlkasrMapperService(self.profile).map_all_to_catalog(selected_group_names=groups_filter)
             except Exception as map_err:
                 logger.warning(f"Catalog mapping warning for profile {self.profile}: {map_err}")
 
