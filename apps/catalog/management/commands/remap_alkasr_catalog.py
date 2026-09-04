@@ -89,6 +89,19 @@ class Command(BaseCommand):
             ProductVariant.objects.filter(product__api_provider='alkasr', price__gt=0).update(is_active=True, is_temporarily_disabled=False)
             Product.objects.filter(api_provider='alkasr').update(is_active=True, is_out_of_stock=False)
 
+            # Fix any mistakenly named products like "3 شهور"
+            snap_app_cat = canonical_objs.get("شحن التطبيقات")
+            duration_prods = Product.objects.filter(name__iregex=r'^\d+\s*(شهر|شهور|سنة|سنوات|أيام|يوم)')
+            for dp in duration_prods:
+                dp.name = "سناب شات بلس (Snapchat Plus)"
+                if snap_app_cat:
+                    dp.category = snap_app_cat
+                dp.save(update_fields=['name', 'category'])
+                for s_idx, var in enumerate(dp.variants.all(), start=1):
+                    var.name = f"اشتراك 3 شهور (سيرفر {s_idx})"
+                    var.save(update_fields=['name'])
+                self.stdout.write(self.style.SUCCESS(f'Fixed duration product {dp.id}: renamed to سناب شات بلس (Snapchat Plus)'))
+
             # Clean up empty Alkasr products that have 0 variants
             empty_prods = Product.objects.filter(api_provider='alkasr', variants__isnull=True)
             empty_count = empty_prods.count()

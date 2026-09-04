@@ -78,7 +78,7 @@ class ProviderProduct(TimeStampedModel):
     is_active = models.BooleanField(default=True, verbose_name="نشط في المزود")
     
     # Pricing
-    cost_price = models.DecimalField(max_digits=14, decimal_places=4, default=Decimal('0.00'), verbose_name="سعر التكلفة من المزود")
+    cost_price = models.DecimalField(max_digits=18, decimal_places=8, default=Decimal('0.00000000'), verbose_name="سعر التكلفة من المزود")
     
     # Store Customizations (These survive syncs)
     local_name = models.CharField(max_length=255, null=True, blank=True, verbose_name="الاسم المخصص")
@@ -125,7 +125,7 @@ class ProviderPrice(TimeStampedModel):
     retail_margin_value = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal('5.00'), verbose_name="ربح المفرق")
     dealer_margin_value = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal('2.00'), verbose_name="ربح التجار")
     vip_margin_value = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal('1.00'), verbose_name="ربح VIP")
-    manual_price = models.DecimalField(max_digits=14, decimal_places=2, null=True, blank=True)
+    manual_price = models.DecimalField(max_digits=18, decimal_places=8, null=True, blank=True)
     round_to_nearest = models.BooleanField(default=False)
 
     def calculate_price_for_margin(self, margin_val):
@@ -171,10 +171,10 @@ class ProviderPriceHistory(TimeStampedModel):
     """History of price changes for audit purposes."""
     product = models.ForeignKey(ProviderProduct, on_delete=models.CASCADE, related_name="price_history")
     changed_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True)
-    old_cost = models.DecimalField(max_digits=14, decimal_places=4)
-    new_cost = models.DecimalField(max_digits=14, decimal_places=4)
-    old_final_price = models.DecimalField(max_digits=14, decimal_places=2)
-    new_final_price = models.DecimalField(max_digits=14, decimal_places=2)
+    old_cost = models.DecimalField(max_digits=18, decimal_places=8)
+    new_cost = models.DecimalField(max_digits=18, decimal_places=8)
+    old_final_price = models.DecimalField(max_digits=18, decimal_places=8)
+    new_final_price = models.DecimalField(max_digits=18, decimal_places=8)
     reason = models.CharField(max_length=255, blank=True)
 
 
@@ -191,7 +191,7 @@ class ProviderOrder(TimeStampedModel):
     remote_order_id = models.CharField(max_length=100, null=True, blank=True)
     
     status = models.CharField(max_length=50, default="pending")
-    cost = models.DecimalField(max_digits=14, decimal_places=4, null=True, blank=True)
+    cost = models.DecimalField(max_digits=18, decimal_places=8, null=True, blank=True)
     quantity = models.IntegerField(default=1)
     parameters_sent = models.JSONField(default=dict)
 

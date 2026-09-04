@@ -105,12 +105,16 @@ class AlkasrProductService:
             parent_name_val = parent_name if parent_name else None
             
             try:
-                cp = str(cost_price).strip()
-                if not cp: cp = "0.00"
-                float(cp)  # Just test if it's a valid number
-                cost_price = cp
-            except (ValueError, TypeError):
-                cost_price = "0.00"
+                from decimal import Decimal
+                if isinstance(cost_price, (int, float)):
+                    cost_price = f"{Decimal(str(cost_price)):.8f}"
+                else:
+                    cp = str(cost_price).strip()
+                    if not cp:
+                        cp = "0.00"
+                    cost_price = f"{Decimal(cp):.8f}"
+            except Exception:
+                cost_price = "0.00000000"
 
             params = item.get("params") or item.get("parameters") or item.get("fields") or []
 

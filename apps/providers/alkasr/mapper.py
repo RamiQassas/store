@@ -144,6 +144,12 @@ class AlkasrMapperService:
             "خدماات يوتيوب": "خدمات يوتيوب (YouTube)",
             "قسم التلجرام": "تفعيل أرقام تليجرام (Telegram)",
             "ready accounts": "حسابات جاهزة (Ready Accounts)",
+            "1370": "سناب شات بلس (Snapchat Plus)",
+            "1332": "ببجي موبايل (PUBG Global)",
+            "1350": "تفعيل أرقام واتساب (WhatsApp)",
+            "snapchat": "سناب شات بلس (Snapchat Plus)",
+            "سناب شات": "سناب شات بلس (Snapchat Plus)",
+            "سناب شات بلس": "سناب شات بلس (Snapchat Plus)",
         }
 
         app_name_map = {
@@ -198,6 +204,27 @@ class AlkasrMapperService:
             "GeMini Pro": "جيميني برو (Gemini Pro AI)",
             "Picsart": "بيكس آرت (Picsart)",
         }
+
+        # Check remote category ID directly from subcat_to_app
+        cat_remote = str(getattr(pp.category, 'remote_id', '') or '').strip()
+        cat_parent_remote = str(getattr(pp.category, 'parent_remote_id', '') or '').strip()
+        if cat_remote in subcat_to_app:
+            return subcat_to_app[cat_remote]
+        if cat_parent_remote in subcat_to_app:
+            return subcat_to_app[cat_parent_remote]
+
+        # Guard against pure duration names like "3 شهور" becoming application names
+        import re
+        if re.match(r'^\d+\s*(شهر|شهور|سنة|سنوات|أيام|يوم|day|days|month|months|year|years)$', (pp.name or '').strip(), re.IGNORECASE):
+            if cat_remote in ("1370", "null") or (pp.category and pp.category.parent and "social" in (pp.category.parent.name or '').lower()):
+                return "سناب شات بلس (Snapchat Plus)"
+            chain = self._get_category_chain(pp)
+            if chain and len(chain) >= 2 and chain[1].name.strip().lower() not in generic_names:
+                return chain[1].name.strip()
+            cat_raw_name = (pp.category.name if pp.category else "").strip()
+            if cat_raw_name and cat_raw_name.lower() not in generic_names:
+                return cat_raw_name
+            return "سناب شات بلس (Snapchat Plus)"
 
         # 1. Check parent category from ProviderCategory relation
         if pp.category and pp.category.parent:
@@ -618,6 +645,12 @@ class AlkasrMapperService:
                             if subcat_name and subcat_name.lower() not in ("null", "none", "default"):
                                 if subcat_name.lower() not in variant_name.lower():
                                     variant_name = f"{variant_name} ({subcat_name})"
+
+                        # If multiple items in this product group share the exact same variant_name, append server/option index
+                        same_name_items = [x for x in p_items if (x.local_name or x.name or '').strip() == (pp.local_name or pp.name or '').strip()]
+                        if len(same_name_items) > 1 and "(سيرفر" not in variant_name:
+                            item_idx = same_name_items.index(pp) + 1
+                            variant_name = f"{variant_name} (سيرفر {item_idx})"
 
                         sku_val = f"PRV-{self.profile.id}-{pp.remote_id}"[:80]
 

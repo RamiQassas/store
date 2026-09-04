@@ -175,10 +175,10 @@ class ProductVariant(TimeStampedModel):
     sku = models.CharField(max_length=80, unique=True, verbose_name="SKU")
     
     # Default Prices
-    price = models.DecimalField(max_digits=14, decimal_places=4, verbose_name="السعر الافتراضي (Retail)")
-    wholesale_price = models.DecimalField(max_digits=14, decimal_places=4, default=Decimal("0.0000"), verbose_name="سعر الجملة")
-    vip_price = models.DecimalField(max_digits=14, decimal_places=4, default=Decimal("0.0000"), verbose_name="سعر VIP")
-    cost = models.DecimalField(max_digits=14, decimal_places=4, default=Decimal("0.0000"), verbose_name="التكلفة")
+    price = models.DecimalField(max_digits=18, decimal_places=8, default=Decimal("0.00000000"), verbose_name="السعر الأساسي")
+    wholesale_price = models.DecimalField(max_digits=18, decimal_places=8, default=Decimal("0.00000000"), verbose_name="سعر الجملة")
+    vip_price = models.DecimalField(max_digits=18, decimal_places=8, default=Decimal("0.00000000"), verbose_name="سعر VIP")
+    cost = models.DecimalField(max_digits=18, decimal_places=8, default=Decimal("0.00000000"), verbose_name="التكلفة")
     
     discount_percent = models.DecimalField(max_digits=5, decimal_places=2, default=Decimal("0.00"), verbose_name="خصم (%)")
     is_sale = models.BooleanField(default=False, verbose_name="عليه عرض خاص")
@@ -261,7 +261,7 @@ class ProductTierPrice(TimeStampedModel):
     """
     variant = models.ForeignKey(ProductVariant, related_name="tier_prices", on_delete=models.CASCADE)
     tier = models.CharField(max_length=20, verbose_name="الفئة")
-    price = models.DecimalField(max_digits=12, decimal_places=2, verbose_name="السعر")
+    price = models.DecimalField(max_digits=18, decimal_places=8, verbose_name="السعر")
 
     class Meta:
         unique_together = ("variant", "tier")
@@ -276,7 +276,7 @@ class ProductUserPrice(TimeStampedModel):
     """
     variant = models.ForeignKey(ProductVariant, related_name="user_prices", on_delete=models.CASCADE)
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
-    price = models.DecimalField(max_digits=12, decimal_places=2)
+    price = models.DecimalField(max_digits=18, decimal_places=8)
 
     class Meta:
         unique_together = ("variant", "user")
