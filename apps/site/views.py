@@ -826,21 +826,32 @@ def orders_list(request):
     # On store tenant: returns only orders placed within that store.
     pending_api_orders = Order.objects.filter(
         customer=request.user,
-        status=Order.Status.PROCESSING
+        status__in=[Order.Status.PROCESSING, Order.Status.PENDING]
     ).exclude(api_order_uuid=None, api_order_id=None)
     
     if pending_api_orders.exists():
         try:
             from services.provider.manager import ProviderManager
             from apps.orders.provider_status import apply_provider_status
+            from apps.providers.models import ProviderProfile
+            default_profile = ProviderProfile.objects.filter(is_active=True).first()
             for p_order in pending_api_orders[:5]:
                 po = p_order.provider_orders.select_related("profile").first()
-                if po and po.profile:
-                    identifiers = [str(p_order.api_order_uuid)] if p_order.api_order_uuid else ([str(p_order.api_order_id)] if p_order.api_order_id else [])
+                profile = po.profile if (po and po.profile) else default_profile
+                if profile:
+                    if p_order.api_order_id:
+                        identifiers = [str(p_order.api_order_id)]
+                        is_uuid = False
+                    elif p_order.api_order_uuid:
+                        identifiers = [str(p_order.api_order_uuid)]
+                        is_uuid = True
+                    else:
+                        continue
+
                     data_list = ProviderManager.check_orders(
-                        po.profile,
+                        profile,
                         identifiers,
-                        is_uuid=bool(p_order.api_order_uuid)
+                        is_uuid=is_uuid
                     )
                     if data_list and len(data_list) > 0:
                         order_data = data_list[0]
@@ -860,29 +871,41 @@ def order_detail(request, pk):
         pk=pk
     )
     
-    # Auto-refresh status from provider if order is still processing
-    if order.status == Order.Status.PROCESSING and (order.api_order_uuid or order.api_order_id):
+    # Auto-refresh status from provider if order is still pending or processing
+    if order.status in (Order.Status.PROCESSING, Order.Status.PENDING) and (order.api_order_uuid or order.api_order_id or order.provider_orders.exists()):
         try:
             from services.provider.manager import ProviderManager
             from apps.orders.provider_status import apply_provider_status
+            from apps.providers.models import ProviderProfile
             provider_order = order.provider_orders.select_related("profile").first()
-            if provider_order and provider_order.profile:
-                identifiers = [str(order.api_order_uuid)] if order.api_order_uuid else ([str(order.api_order_id)] if order.api_order_id else [])
-                data_list = ProviderManager.check_orders(
-                    provider_order.profile,
-                    identifiers,
-                    is_uuid=bool(order.api_order_uuid)
-                )
-                if data_list and len(data_list) > 0:
-                    order_data = data_list[0]
-                    api_status = order_data.get("status")
-                    order = apply_provider_status(order, api_status, raw_response=order_data, actor=None, note_prefix="تحديث تلقائي")
+            profile = provider_order.profile if (provider_order and provider_order.profile) else ProviderProfile.objects.filter(is_active=True).first()
+            if profile:
+                if order.api_order_id:
+                    identifiers = [str(order.api_order_id)]
+                    is_uuid = False
+                elif order.api_order_uuid:
+                    identifiers = [str(order.api_order_uuid)]
+                    is_uuid = True
+                else:
+                    identifiers = []
+                    is_uuid = False
+                    
+                if identifiers:
+                    data_list = ProviderManager.check_orders(
+                        profile,
+                        identifiers,
+                        is_uuid=is_uuid
+                    )
+                    if data_list and len(data_list) > 0:
+                        order_data = data_list[0]
+                        api_status = order_data.get("status")
+                        order = apply_provider_status(order, api_status, raw_response=order_data, actor=None, note_prefix="تحديث تلقائي")
         except Exception:
             pass
 
-    if request.headers.get('x-requested-with') == 'XMLHttpRequest':
+    if request.headers.get('x-requested-with') == 'XMLHttpRequest' or request.GET.get('format') == 'json':
         fulfillment = {}
-        for k, v in order.fulfillment_data.items():
+        for k, v in (order.fulfillment_data or {}).items():
             if k not in ("api_provider", "api_status", "api_last_response", "api_refunded", "response", "api_response", "api_error", "alkasr"):
                 fulfillment[k] = v
         return JsonResponse({
@@ -892,6 +915,7 @@ def order_detail(request, pk):
             "status_display": order.get_status_display(),
             "api_order_id": order.api_order_id or "",
             "fulfillment": fulfillment,
+            "is_terminal": order.status in (Order.Status.COMPLETED, Order.Status.CANCELLED, Order.Status.REFUNDED),
             "order_url": reverse('dashboard_order_detail', kwargs={'pk': order.id})
         })
 

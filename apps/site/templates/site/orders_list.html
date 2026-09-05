@@ -297,7 +297,19 @@
                     {% endfor %}
                 </div>
             </div>
-            {% elif order.status == 'processing' %}
+            {% elif order.status == 'cancelled' or order.status == 'refunded' %}
+            <div class="my-2 p-3.5 rounded-2xl bg-rose-500/[0.05] border border-rose-500/20 text-xs">
+                <div class="flex items-center gap-2 text-rose-400 font-bold mb-1">
+                    <i class="fas fa-times-circle"></i> تم إلغاء الطلب واسترداد الرصيد إلى المحفظة تلقائياً
+                </div>
+                {% if order.fulfillment_data.سبب_الإلغاء_من_السيرفر or order.fulfillment_data.رد_السيرفر %}
+                <div class="text-[11px] text-rose-300 font-bold mt-1.5 p-2 rounded-xl bg-rose-500/10 border border-rose-500/20 flex items-start gap-2">
+                    <span class="text-rose-400 shrink-0 font-black">رد السيرفر:</span>
+                    <span class="text-white">{{ order.fulfillment_data.سبب_الإلغاء_من_السيرفر|default:order.fulfillment_data.رد_السيرفر }}</span>
+                </div>
+                {% endif %}
+            </div>
+            {% elif order.status == 'processing' or order.status == 'pending' %}
             <div class="my-2 p-3 rounded-2xl bg-amber-500/[0.04] border border-amber-500/20 flex items-center justify-between text-xs text-amber-300/90">
                 <span class="flex items-center gap-2">
                     <i class="fas fa-circle-notch fa-spin text-cyan"></i>

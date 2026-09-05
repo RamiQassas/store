@@ -150,23 +150,24 @@
                     </div>
                     <div>
                         <h3 class="text-lg font-bold text-white">تم إلغاء الطلب</h3>
-                        <p class="text-xs text-rose-400/80">تم إرجاع قيمة الطلب تلقائياً إلى رصيد محفظتك في الموقع.</p>
+                        <p class="text-xs text-rose-400/80">تم إرجاع كامل قيمة الطلب تلقائياً إلى رصيد محفظتك في الموقع.</p>
                     </div>
                 </div>
 
                 {% if order.fulfillment_data %}
                 <div class="mt-4 stack gap-3 bg-slate-950/60 p-4 rounded-2xl border border-white/5">
                     {% if order.api_order_id %}
-                    <div class="flex items-center justify-between text-xs text-slate-400">
-                        <span>رقم المرجع:</span>
-                        <span class="font-mono text-white">{{ order.api_order_id }}</span>
+                    <div class="flex items-center justify-between text-xs text-slate-400 pb-2 border-b border-white/5">
+                        <span>رقم المرجع الخارجي (Server ID):</span>
+                        <span class="font-mono text-white font-bold">{{ order.api_order_id }}</span>
                     </div>
                     {% endif %}
+
                     {% for key, val in order.fulfillment_data.items %}
                         {% if key != 'api_provider' and key != 'api_status' and key != 'api_last_response' and key != 'api_refunded' and key != 'response' and key != 'api_response' and key != 'api_error' and key != 'alkasr' and key != 'api_order_id' %}
-                        <div class="flex items-center justify-between text-xs">
-                            <span class="text-slate-400">{{ key }}:</span>
-                            <span class="font-mono text-rose-300 font-bold">{{ val }}</span>
+                        <div class="p-3 rounded-xl bg-rose-500/10 border border-rose-500/20">
+                            <span class="text-[10px] text-rose-400 font-black uppercase tracking-wider block mb-1">{{ key }}</span>
+                            <span class="text-sm font-bold text-white break-all block">{{ val }}</span>
                         </div>
                         {% endif %}
                     {% endfor %}
@@ -183,11 +184,11 @@
                         </div>
                         <div>
                             <h3 class="text-lg font-black text-white">الطلب قيد المعالجة والتنفيذ</h3>
-                            <p class="text-xs text-slate-400">يجري تنفيذ طلبك لحظياً. يتم تحديث البيانات فور وصولها من السيرفر.</p>
+                            <p class="text-xs text-slate-400">يجري تنفيذ وشحن طلبك لحظياً. يتم جلب ردود السيرفر فور صدورها.</p>
                         </div>
                     </div>
                     <span class="px-3 py-1 bg-amber-500/10 border border-amber-500/20 text-amber-400 rounded-full text-xs font-bold font-mono">
-                        قيد الانتظار
+                        {{ order.get_status_display }}
                     </span>
                 </div>
 
@@ -195,7 +196,7 @@
                     {% if order.api_order_id %}
                     <div class="fulfillment-item">
                         <div>
-                            <span class="text-[10px] text-slate-400 font-black uppercase tracking-widest block mb-1">رقم الطلب</span>
+                            <span class="text-[10px] text-slate-400 font-black uppercase tracking-widest block mb-1">رقم الطلب في السيرفر</span>
                             <strong class="text-white font-mono text-sm">{{ order.api_order_id }}</strong>
                         </div>
                         <button class="copy-button" onclick="copyToClipboard('{{ order.api_order_id }}', this)">نسخ</button>
@@ -226,10 +227,10 @@
                 <div class="mt-6 pt-4 border-t border-white/5 flex items-center justify-between text-xs text-slate-400">
                     <span class="flex items-center gap-2">
                         <span class="w-2 h-2 rounded-full bg-cyan animate-ping inline-block"></span>
-                        المزامنة التلقائية مفعلة (يتم التحديث لحظياً)
+                        المزامنة التلقائية مفعلة (يتم الفحص كل 3 ثوانٍ)
                     </span>
-                    <button onclick="window.location.reload()" class="btn btn-outline btn-xs px-3 rounded-lg border-white/10 hover:border-cyan text-slate-300">
-                        <i class="fas fa-redo ml-1"></i> تحديث يدوي
+                    <button type="button" onclick="forceCheckStatus(this)" class="btn btn-outline btn-xs px-3 py-1.5 rounded-lg border-cyan/30 hover:border-cyan text-cyan hover:bg-cyan hover:text-slate-950 font-bold transition">
+                        <i class="fas fa-redo ml-1"></i> فحص الحالة الآن من السيرفر
                     </button>
                 </div>
             </div>
@@ -512,29 +513,52 @@ document.addEventListener('click', function(e) {
     }
 });
 
-// Auto-poll for status updates in background if order is processing (updates page seamlessly when completed)
+// Auto-poll for status updates in background if order is pending or processing
 document.addEventListener('DOMContentLoaded', function() {
-    {% if order.status == 'processing' %}
+    {% if order.status == 'processing' or order.status == 'pending' %}
     let pollCount = 0;
+    const initialStatus = '{{ order.status }}';
     const pollInterval = setInterval(function() {
         pollCount++;
-        if (pollCount > 60) { // Stop polling after 5 minutes
+        if (pollCount > 150) { // Stop polling after ~7.5 minutes
             clearInterval(pollInterval);
             return;
         }
-        fetch(window.location.href, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
-            .then(res => res.json())
-            .then(data => {
-                if (data && data.status && data.status !== 'processing') {
+        fetch(window.location.href, { 
+            headers: { 'X-Requested-With': 'XMLHttpRequest' },
+            cache: 'no-store'
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data && data.status) {
+                if (data.status !== initialStatus || data.is_terminal) {
                     clearInterval(pollInterval);
-                    // Reload only ONCE when status actually completes or cancels
                     window.location.reload();
                 }
-            })
-            .catch(() => {});
-    }, 5000);
+            }
+        })
+        .catch(() => {});
+    }, 3000); // 3 seconds poll interval
     {% endif %}
 });
+
+function forceCheckStatus(btn) {
+    if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin ml-1"></i> جاري فحص السيرفر...';
+    }
+    fetch(window.location.href, { 
+        headers: { 'X-Requested-With': 'XMLHttpRequest' },
+        cache: 'no-store'
+    })
+    .then(res => res.json())
+    .then(data => {
+        window.location.reload();
+    })
+    .catch(() => {
+        window.location.reload();
+    });
+}
 
 function copyToClipboard(text, btn) {
     navigator.clipboard.writeText(text).then(() => {

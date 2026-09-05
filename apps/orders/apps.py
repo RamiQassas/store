@@ -21,25 +21,37 @@ class OrdersConfig(AppConfig):
                 def _run_order_sync():
                     while True:
                         try:
-                            time.sleep(25)
+                            time.sleep(12)
                             connection.close()
                             from apps.orders.models import Order
                             from services.provider.manager import ProviderManager
                             from apps.orders.provider_status import apply_provider_status
+                            from apps.providers.models import ProviderProfile
+
+                            default_profile = ProviderProfile.objects.filter(is_active=True).first()
 
                             pending_orders = Order.all_objects.filter(
-                                status=Order.Status.PROCESSING
-                            ).exclude(api_order_uuid=None, api_order_id=None)[:15]
+                                status__in=[Order.Status.PROCESSING, Order.Status.PENDING]
+                            ).exclude(api_order_uuid=None, api_order_id=None)[:25]
 
                             for order in pending_orders:
                                 try:
                                     po = order.provider_orders.select_related("profile").first()
-                                    if po and po.profile:
-                                        identifiers = [str(order.api_order_uuid)] if order.api_order_uuid else ([str(order.api_order_id)] if order.api_order_id else [])
+                                    profile = po.profile if (po and po.profile) else default_profile
+                                    if profile:
+                                        if order.api_order_id:
+                                            identifiers = [str(order.api_order_id)]
+                                            is_uuid = False
+                                        elif order.api_order_uuid:
+                                            identifiers = [str(order.api_order_uuid)]
+                                            is_uuid = True
+                                        else:
+                                            continue
+
                                         data_list = ProviderManager.check_orders(
-                                            po.profile,
+                                            profile,
                                             identifiers,
-                                            is_uuid=bool(order.api_order_uuid)
+                                            is_uuid=is_uuid
                                         )
                                         if data_list and len(data_list) > 0:
                                             order_data = data_list[0]

@@ -46,7 +46,7 @@ class OrderSerializer(serializers.ModelSerializer):
 
 
 class OrderCreateSerializer(serializers.Serializer):
-    variant_id = serializers.IntegerField(min_value=1)
+    variant_id = serializers.CharField()
     quantity = serializers.IntegerField(min_value=1, default=1)
     fulfillment_data = serializers.JSONField(default=dict)
     metadata = serializers.JSONField(default=dict)

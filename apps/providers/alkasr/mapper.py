@@ -587,27 +587,46 @@ class AlkasrMapperService:
 
                         qty_list = getattr(pp, 'qty_list', None) or []
 
+                        # Fixed amount package detection: when min == max and min > 1 (e.g. TikTok 400 coins, TikTok 150 coins)
+                        is_fixed_amount_package = (
+                            qty_min is not None and qty_max is not None and qty_min == qty_max and qty_min > 1
+                        )
+
                         if qty_list and len(qty_list) > 0:
                             qty_type = "list"
-                        elif qty_max is not None and qty_min is not None and (qty_max > qty_min or (qty_min > 1 and qty_max > 1)):
+                        elif is_fixed_amount_package:
+                            qty_type = "fixed"
+                        elif qty_max is not None and qty_min is not None and qty_max > qty_min:
                             qty_type = "range"
-                        elif pp.product_type == "amount":
+                        elif pp.product_type == "amount" and qty_max is not None and qty_min is not None and qty_max > qty_min:
+                            qty_type = "range"
+                        elif pp.product_type == "amount" and (qty_min is None or qty_max is None):
                             qty_type = "range"
                         elif pp.product_type in ("fixed_quantities", "specificPackage"):
                             qty_type = "list"
                         else:
                             qty_type = "fixed"
 
+                        variant_cost = pp.cost_price
+                        if is_fixed_amount_package:
+                            multiplier = Decimal(str(qty_min))
+                            final_price = final_price * multiplier
+                            wholesale_price = wholesale_price * multiplier
+                            vip_price = vip_price * multiplier
+                            variant_cost = variant_cost * multiplier
+
                         is_per_mille = False
-                        if qty_min is not None and qty_min >= 100:
-                            is_per_mille = True
-                        elif pp.product_type == "amount" and (qty_min is None or qty_min >= 10):
-                            is_per_mille = True
+                        if not is_fixed_amount_package:
+                            if qty_min is not None and qty_min >= 100:
+                                is_per_mille = True
+                            elif pp.product_type == "amount" and (qty_min is None or qty_min >= 10):
+                                is_per_mille = True
 
                         meta = {
                             "qty_type": qty_type,
-                            "qty_min": qty_min or 1,
-                            "qty_max": qty_max or 999999,
+                            "qty_min": 1 if is_fixed_amount_package else (qty_min or 1),
+                            "qty_max": 1 if is_fixed_amount_package else (qty_max or 999999),
+                            "package_qty": qty_min if is_fixed_amount_package else None,
                             "qty_list": qty_list,
                             "is_per_mille": is_per_mille,
                             "product_type": pp.product_type,
@@ -636,6 +655,27 @@ class AlkasrMapperService:
                             else:
                                 # Skip corrupted/un-named variant
                                 continue
+
+                        # Clean up naming for TikTok and typos
+                        if "tik yok" in variant_name.lower():
+                            variant_name = variant_name.replace("Tik Yok", "تيك توك").replace("tik yok", "تيك توك")
+                            if "400" in variant_name and "عملة" not in variant_name:
+                                variant_name = "تيك توك 400 عملة"
+                            elif "150" in variant_name and "عملة" not in variant_name:
+                                variant_name = "تيك توك 150 عملة"
+
+                        if ("tik tok" in variant_name.lower() or "تيك توك" in variant_name) and qty_type == "range":
+                            if not any(k in variant_name for k in ("400", "150", "متابعين", "لايك", "مشاهدات")):
+                                variant_name = "تعبئة رصيد عملات تيك توك (1,000 - 5,000,000)"
+
+                        # Determine display sort order
+                        sort_num = 0
+                        if "150" in variant_name:
+                            sort_num = 1
+                        elif "400" in variant_name:
+                            sort_num = 2
+                        elif "تعبئة" in variant_name:
+                            sort_num = 3
 
                         # If there is a Level 3 subcategory (e.g. اوتوماتيك 2, يدوي, أمريكي, سعودي, عضويات)
                         # and it is not already in the variant name, append it for clear identification
@@ -673,7 +713,8 @@ class AlkasrMapperService:
                                 price=final_price,
                                 wholesale_price=wholesale_price,
                                 vip_price=vip_price,
-                                cost=pp.cost_price,
+                                cost=variant_cost,
+                                sort_order=sort_num,
                                 is_active=variant_is_active,
                                 is_temporarily_disabled=not variant_is_active,
                                 metadata=meta,
@@ -685,7 +726,9 @@ class AlkasrMapperService:
                             local_variant.price = final_price
                             local_variant.wholesale_price = wholesale_price
                             local_variant.vip_price = vip_price
-                            local_variant.cost = pp.cost_price
+                            local_variant.cost = variant_cost
+                            if sort_num > 0:
+                                local_variant.sort_order = sort_num
                             local_variant.is_active = variant_is_active
                             local_variant.is_temporarily_disabled = not variant_is_active
                             local_variant.metadata = meta

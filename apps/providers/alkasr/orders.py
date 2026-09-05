@@ -36,9 +36,13 @@ class AlkasrOrderService:
         provider_order.parameters_sent = parameters
         provider_order.save()
 
+        provider_qty = quantity
+        if provider_product.qty_min and provider_product.qty_max and provider_product.qty_min == provider_product.qty_max and provider_product.qty_min > 1:
+            provider_qty = quantity * provider_product.qty_min
+
         payload = {
             "product_id": provider_product.remote_id,
-            "qty": quantity,
+            "qty": provider_qty,
             "order_uuid": str(provider_order_uuid)
         }
         
@@ -55,7 +59,8 @@ class AlkasrOrderService:
 
             provider_order.remote_order_id = remote_order_id
             provider_order.status = api_status
-            provider_order.save(update_fields=["remote_order_id", "status"])
+            provider_order.quantity = provider_qty
+            provider_order.save(update_fields=["remote_order_id", "status", "quantity"])
 
             ProviderOrderStatus.objects.create(
                 provider_order=provider_order,
@@ -103,16 +108,31 @@ class AlkasrOrderService:
             if not isinstance(order_data, dict):
                 continue
             remote_id = order_data.get("order_id")
+            item_uuid = order_data.get("order_uuid") or order_data.get("uuid")
             api_status = order_data.get("status")
             
             # Update ProviderOrder status
-            po = ProviderOrder.objects.filter(profile=self.profile, remote_order_id=remote_id).first()
-            if po and po.status != api_status:
-                po.status = api_status
-                po.save(update_fields=["status"])
-                ProviderOrderStatus.objects.create(
-                    provider_order=po,
-                    status=api_status,
-                    raw_response=order_data
-                )
+            po = None
+            if remote_id:
+                po = ProviderOrder.objects.filter(profile=self.profile, remote_order_id=str(remote_id)).first()
+            if not po and item_uuid:
+                po = ProviderOrder.objects.filter(profile=self.profile, uuid=item_uuid).first()
+
+            if po:
+                if po.status != api_status:
+                    po.status = api_status
+                    if remote_id and not po.remote_order_id:
+                        po.remote_order_id = str(remote_id)
+                    po.save(update_fields=["status", "remote_order_id"])
+                    ProviderOrderStatus.objects.create(
+                        provider_order=po,
+                        status=api_status,
+                        raw_response=order_data
+                    )
+                if po.local_order:
+                    try:
+                        from apps.orders.provider_status import apply_provider_status
+                        apply_provider_status(po.local_order, api_status, raw_response=order_data, actor=None, note_prefix="فحص المزود")
+                    except Exception:
+                        pass
         return data_list

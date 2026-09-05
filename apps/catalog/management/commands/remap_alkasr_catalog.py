@@ -1,3 +1,4 @@
+from decimal import Decimal
 from django.core.management.base import BaseCommand
 from apps.providers.models import ProviderProfile, ProviderProduct
 from apps.providers.alkasr.mapper import AlkasrMapperService
@@ -101,6 +102,52 @@ class Command(BaseCommand):
                     var.name = f"اشتراك 3 شهور (سيرفر {s_idx})"
                     var.save(update_fields=['name'])
                 self.stdout.write(self.style.SUCCESS(f'Fixed duration product {dp.id}: renamed to سناب شات بلس (Snapchat Plus)'))
+
+            # Clean and align TikTok packages (150 coins, 400 coins, range recharge)
+            tiktok_prods = Product.objects.filter(name__icontains="تيك توك")
+            for tp in tiktok_prods:
+                tp.name = "تيك توك (TikTok)"
+                if canonical_objs.get("شحن التطبيقات"):
+                    tp.category = canonical_objs["شحن التطبيقات"]
+                tp.save(update_fields=['name', 'category'])
+                
+                for var in tp.variants.all():
+                    meta = dict(var.metadata or {})
+                    rem_id = str(meta.get("remote_id") or "")
+                    if rem_id == "9391" or "150" in var.name:
+                        var.name = "تيك توك 150 عملة"
+                        var.sort_order = 1
+                        meta["qty_type"] = "fixed"
+                        meta["qty_min"] = 1
+                        meta["qty_max"] = 1
+                        var.metadata = meta
+                        # Ensure package price is at least cost * 150
+                        if var.cost and var.cost < 1:
+                            var.cost = (var.cost * 150).quantize(Decimal("0.01"))
+                        if var.price and var.price < 2:
+                            var.price = Decimal("2.94")
+                        var.save(update_fields=['name', 'sort_order', 'metadata', 'cost', 'price'])
+                    elif rem_id == "9390" or "400" in var.name:
+                        var.name = "تيك توك 400 عملة"
+                        var.sort_order = 2
+                        meta["qty_type"] = "fixed"
+                        meta["qty_min"] = 1
+                        meta["qty_max"] = 1
+                        var.metadata = meta
+                        if var.cost and var.cost < 1:
+                            var.cost = (var.cost * 400).quantize(Decimal("0.01"))
+                        if var.price and var.price < 4:
+                            var.price = Decimal("5.88")
+                        var.save(update_fields=['name', 'sort_order', 'metadata', 'cost', 'price'])
+                    elif rem_id == "9389" or "تعبئة" in var.name or "رصيد" in var.name or "tik tok" in var.name.lower():
+                        var.name = "تعبئة رصيد عملات تيك توك (1,000 - 5,000,000)"
+                        var.sort_order = 3
+                        meta["qty_type"] = "range"
+                        meta["qty_min"] = 1000
+                        meta["qty_max"] = 5000000
+                        var.metadata = meta
+                        var.save(update_fields=['name', 'sort_order', 'metadata'])
+                self.stdout.write(self.style.SUCCESS(f'Cleanly aligned TikTok (Product {tp.id}) into 3 provider options: 150 coins, 400 coins, and custom recharge.'))
 
             # Clean up empty Alkasr products that have 0 variants
             empty_prods = Product.objects.filter(api_provider='alkasr', variants__isnull=True)

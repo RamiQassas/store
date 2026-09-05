@@ -39,15 +39,23 @@ class AlkasrOrderService:
 
         params = player_params or {}
 
+        # Handle fixed amount products where min == max > 1 (e.g. TikTok 400 or 150 coins package)
+        provider_qty = quantity
+        q_min = getattr(provider_product, 'qty_min', None)
+        q_max = getattr(provider_product, 'qty_max', None)
+        if q_min and q_max and q_min == q_max and q_min > 1:
+            if quantity < q_min:
+                provider_qty = quantity * q_min
+
         # 1. Fetch current profile balance for validation if profile is available
         current_balance = getattr(self.profile, "balance", None)
         cost_price = getattr(provider_product, "cost_price", Decimal("0.00"))
-        estimated_cost = cost_price * Decimal(str(quantity))
+        estimated_cost = cost_price * Decimal(str(provider_qty))
 
         # 2. Validate Preconditions
         validate_order_preconditions(
             provider_product=provider_product,
-            quantity=quantity,
+            quantity=provider_qty,
             parameters_sent=params,
             provider_balance=current_balance,
             order_cost=estimated_cost
@@ -90,7 +98,7 @@ class AlkasrOrderService:
         api_response = self.client.create_order(
             order_uuid=final_uuid,
             product_id=remote_product_id,
-            quantity=quantity,
+            quantity=provider_qty,
             player_params=final_params
         )
 
@@ -111,7 +119,7 @@ class AlkasrOrderService:
                 "remote_order_id": str(remote_order_id) if remote_order_id else None,
                 "status": mapped_status,
                 "cost": estimated_cost,
-                "quantity": quantity,
+                "quantity": provider_qty,
                 "parameters_sent": params,
             }
         )
