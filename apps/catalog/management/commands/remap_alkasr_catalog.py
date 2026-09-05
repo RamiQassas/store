@@ -156,6 +156,21 @@ class Command(BaseCommand):
             if empty_count > 0:
                 self.stdout.write(f'Cleaned up {empty_count} unused empty products.')
 
+            # Clean and deduplicate existing order fulfillment data in the database
+            from apps.orders.models import Order
+            from apps.orders.provider_status import cleanup_fulfillment_data
+            orders_with_fulfillment = Order.objects.exclude(fulfillment_data={}).exclude(fulfillment_data__isnull=True)
+            cleaned_orders_count = 0
+            for ord_obj in orders_with_fulfillment:
+                old_ful = ord_obj.fulfillment_data or {}
+                new_ful = cleanup_fulfillment_data(dict(old_ful))
+                if old_ful != new_ful:
+                    ord_obj.fulfillment_data = new_ful
+                    ord_obj.save(update_fields=['fulfillment_data'])
+                    cleaned_orders_count += 1
+            if cleaned_orders_count > 0:
+                self.stdout.write(self.style.SUCCESS(f'Cleaned up and deduplicated fulfillment data for {cleaned_orders_count} orders.'))
+
             total_cats = Category.objects.count()
             total_prods = Product.objects.filter(api_provider='alkasr').count()
             total_vars = ProductVariant.objects.filter(product__api_provider='alkasr').count()
@@ -163,3 +178,4 @@ class Command(BaseCommand):
             self.stdout.write(self.style.SUCCESS(
                 f'Successfully remapped Alkasr catalog: {total_prods} products, {total_vars} variants across {total_cats} categories.'
             ))
+

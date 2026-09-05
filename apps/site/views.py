@@ -904,10 +904,8 @@ def order_detail(request, pk):
             pass
 
     if request.headers.get('x-requested-with') == 'XMLHttpRequest' or request.GET.get('format') == 'json':
-        fulfillment = {}
-        for k, v in (order.fulfillment_data or {}).items():
-            if k not in ("api_provider", "api_status", "api_last_response", "api_refunded", "response", "api_response", "api_error", "alkasr"):
-                fulfillment[k] = v
+        from apps.site.templatetags.site_tags import clean_fulfillment_items
+        fulfillment = dict(clean_fulfillment_items(order.fulfillment_data))
         return JsonResponse({
             "id": str(order.id),
             "number": str(order.number),
@@ -2018,10 +2016,8 @@ def product_detail(request, pk):
                 shipping_address=shipping_address,
             )
             if request.headers.get('x-requested-with') == 'XMLHttpRequest' or request.POST.get('ajax') == '1':
-                fulfillment = {}
-                for k, v in order.fulfillment_data.items():
-                    if k not in ("api_provider", "api_status", "api_last_response", "api_refunded", "response", "api_response", "api_error", "alkasr"):
-                        fulfillment[k] = v
+                from apps.site.templatetags.site_tags import clean_fulfillment_items
+                fulfillment = dict(clean_fulfillment_items(order.fulfillment_data))
                 return JsonResponse({
                     "success": True,
                     "order_id": str(order.id),

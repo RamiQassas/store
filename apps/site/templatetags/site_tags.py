@@ -358,10 +358,70 @@ def as_list(val):
     if isinstance(val, str):
         if "\n" in val:
             return [x.strip() for x in val.split("\n") if x.strip()]
+        if " | " in val:
+            return [x.strip() for x in val.split(" | ") if x.strip()]
         if "," in val:
             return [x.strip() for x in val.split(",") if x.strip()]
     if val is not None and val != "":
         return [val]
     return []
+
+
+@register.filter
+def clean_fulfillment_items(fulfillment):
+    """
+    Returns a list of (key, cleaned_value) tuples for rendering to customers,
+    filtering out internal API keys, raw json/dict structures, and suppressing duplicates.
+    """
+    if not fulfillment or not isinstance(fulfillment, dict):
+        return []
+        
+    from apps.orders.provider_status import extract_clean_text
+
+    ignored_keys = {
+        "api_provider", "api_status", "api_last_response", 
+        "api_refunded", "response", "api_response", 
+        "api_error", "alkasr", "api_order_id",
+        "ملاحظات وبيانات التنفيذ"
+    }
+
+    delivery_val = extract_clean_text(fulfillment.get("بيانات التسليم والأكواد") or fulfillment.get("keys") or fulfillment.get("كود التفعيل / البطاقة"))
+    cancel_val = extract_clean_text(fulfillment.get("سبب الإلغاء من السيرفر"))
+    server_msg = extract_clean_text(fulfillment.get("رد السيرفر"))
+
+    result = []
+    seen_values = set()
+
+    # 1. Delivery codes / keys (Highest priority for customer)
+    for deliv_key in ("بيانات التسليم والأكواد", "keys", "كود التفعيل / البطاقة", "رقم الهاتف المستلم"):
+        if deliv_key in fulfillment:
+            c_val = extract_clean_text(fulfillment[deliv_key])
+            if c_val and c_val not in seen_values:
+                result.append((deliv_key, c_val))
+                seen_values.add(c_val)
+
+    # 2. Cancellation reason (High priority if cancelled)
+    if cancel_val and cancel_val not in seen_values:
+        result.append(("سبب الإلغاء من السيرفر", cancel_val))
+        seen_values.add(cancel_val)
+
+    # 3. Server reply (Only if not already represented in delivery codes or cancellation reason)
+    if server_msg and server_msg not in seen_values:
+        is_redundant = any(server_msg in sv or sv in server_msg for sv in seen_values)
+        if not is_redundant:
+            result.append(("رد السيرفر", server_msg))
+            seen_values.add(server_msg)
+
+    # 4. Any other remaining custom keys
+    for k, v in fulfillment.items():
+        if k in ignored_keys or any(k == r[0] for r in result):
+            continue
+        c_val = extract_clean_text(v)
+        if c_val and c_val not in seen_values:
+            result.append((k, c_val))
+            seen_values.add(c_val)
+
+    return result
+
 
 

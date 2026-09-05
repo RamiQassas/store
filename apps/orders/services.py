@@ -410,8 +410,9 @@ def create_order(customer, variant_id, quantity=1, fulfillment_data=None,
             raw_response = api_resp.get("raw_response") or api_resp
 
             fulfillment = dict(order.fulfillment_data or {})
+            fulfillment.pop("api_order_id", None)
+            fulfillment.pop("ملاحظات وبيانات التنفيذ", None)
             fulfillment.update({
-                "api_order_id": api_order_id,
                 "api_status": api_status,
             })
             order_meta = dict(order.metadata or {})

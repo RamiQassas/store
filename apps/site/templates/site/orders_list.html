@@ -164,7 +164,7 @@
                 <div class="flex items-center gap-3">
                     {% if order.api_order_id %}
                     <span class="text-[11px] text-slate-400 font-mono hidden sm:inline-block">
-                        رقم الطلب: <strong class="text-white">{{ order.api_order_id }}</strong>
+                        رقم معرف الطلب: <strong class="text-white">{{ order.api_order_id }}</strong>
                     </span>
                     {% endif %}
                     
@@ -255,8 +255,7 @@
                 </div>
 
                 <div class="space-y-2">
-                    {% for key, val in order.fulfillment_data.items %}
-                        {% if key != 'api_provider' and key != 'api_status' and key != 'api_last_response' and key != 'api_refunded' and key != 'response' and key != 'api_response' and key != 'api_error' and key != 'alkasr' and key != 'api_order_id' and val %}
+                    {% for key, val in order.fulfillment_data|clean_fulfillment_items %}
                         {% with val_list=val|as_list %}
                             {% if val_list|length > 1 %}
                             <div class="flex items-center justify-between pb-1 border-b border-white/5">
@@ -293,7 +292,6 @@
                             </div>
                             {% endif %}
                         {% endwith %}
-                        {% endif %}
                     {% endfor %}
                 </div>
             </div>
@@ -302,12 +300,12 @@
                 <div class="flex items-center gap-2 text-rose-400 font-bold mb-1">
                     <i class="fas fa-times-circle"></i> تم إلغاء الطلب واسترداد الرصيد إلى المحفظة تلقائياً
                 </div>
-                {% if order.fulfillment_data.سبب_الإلغاء_من_السيرفر or order.fulfillment_data.رد_السيرفر %}
+                {% for key, val in order.fulfillment_data|clean_fulfillment_items %}
                 <div class="text-[11px] text-rose-300 font-bold mt-1.5 p-2 rounded-xl bg-rose-500/10 border border-rose-500/20 flex items-start gap-2">
-                    <span class="text-rose-400 shrink-0 font-black">رد السيرفر:</span>
-                    <span class="text-white">{{ order.fulfillment_data.سبب_الإلغاء_من_السيرفر|default:order.fulfillment_data.رد_السيرفر }}</span>
+                    <span class="text-rose-400 shrink-0 font-black">{{ key }}:</span>
+                    <span class="text-white">{{ val }}</span>
                 </div>
-                {% endif %}
+                {% endfor %}
             </div>
             {% elif order.status == 'processing' or order.status == 'pending' %}
             <div class="my-2 p-3 rounded-2xl bg-amber-500/[0.04] border border-amber-500/20 flex items-center justify-between text-xs text-amber-300/90">
@@ -325,7 +323,7 @@
                     {% if order.api_order_id %}
                     <span class="inline-flex items-center gap-1.5">
                         <i class="fas fa-hashtag text-cyan"></i>
-                        رقم الطلب: <strong class="text-white font-mono">{{ order.api_order_id }}</strong>
+                        رقم معرف الطلب: <strong class="text-white font-mono">{{ order.api_order_id }}</strong>
                     </span>
                     {% endif %}
                 </div>
