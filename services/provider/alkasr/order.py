@@ -161,7 +161,10 @@ class AlkasrOrderService:
             item_uuid = item.get("order_uuid") or item.get("uuid")
             item_id = item.get("order_id") or item.get("id")
             raw_status = str(item.get("status") or "").lower()
-            mapped_status = PROVIDER_STATUS_MAP.get(raw_status, "processing")
+            if item.get("error") or (isinstance(item.get("code"), int) and item.get("code") not in (0, 200) and item.get("code") < 600):
+                mapped_status = PROVIDER_STATUS_MAP.get(raw_status, "failed")
+            else:
+                mapped_status = PROVIDER_STATUS_MAP.get(raw_status, "processing")
 
             parsed_results.append({
                 "order_uuid": item_uuid,

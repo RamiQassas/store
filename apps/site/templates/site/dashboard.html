@@ -486,10 +486,15 @@
             </div>
             <div class="p-4 stack gap-2">
                 {% for n in notifications %}
-                <div class="p-3 border-b border-white/5 last:border-0 hover:bg-white/5 rounded transition-colors cursor-pointer">
-                    <h4 class="text-sm font-bold mb-1">{{ n.title }}</h4>
-                    <p class="text-xs text-muted line-clamp-2">{{ n.body }}</p>
-                    <span class="text-[10px] text-slate-500 mt-2 block">{{ n.created_at|timesince }}</span>
+                <div class="p-3 border-b border-white/5 last:border-0 hover:bg-white/5 rounded transition-colors cursor-pointer flex items-center gap-3" {% if n.action_url %}onclick="window.location='{{ n.action_url }}'"{% endif %}>
+                    {% if n.image_url %}
+                    <img src="{{ n.image_url }}" alt="" class="w-10 h-10 rounded-xl object-cover border border-cyan/30 shrink-0">
+                    {% endif %}
+                    <div class="flex-grow min-w-0">
+                        <h4 class="text-sm font-bold mb-1">{{ n.title }}</h4>
+                        <p class="text-xs text-muted line-clamp-2">{{ n.body }}</p>
+                        <span class="text-[10px] text-slate-500 mt-1 block">{{ n.created_at|timesince }}</span>
+                    </div>
                 </div>
                 {% empty %}
                 <div class="p-6 text-center">

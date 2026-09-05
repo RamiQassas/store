@@ -38,11 +38,11 @@
         <div class="flex items-center gap-3">
             <div id="bulk-controls" class="hidden flex items-center gap-3 animate-in fade-in slide-in-from-left-4">
                 <span class="text-[10px] font-black text-cyan uppercase ml-2">الإجراءات الجماعية:</span>
-                <select name="bulk_tier" class="bg-slate-800 border-none rounded-lg text-[9px] font-black p-2">
+                <select name="bulk_tier" class="bg-slate-800 border-none rounded-lg text-[9px] font-black p-2 text-white">
                     <option value="">تغيير الفئة...</option>
-                    <option value="customer">عميل عادي</option>
-                    <option value="dealer">تاجر معتمد</option>
-                    <option value="vip">VIP</option>
+                    {% for val, label in tiers %}
+                    <option value="{{ val }}">{{ label }}</option>
+                    {% endfor %}
                 </select>
                 <button type="submit" name="action" value="bulk_update" class="btn btn-primary btn-sm py-2 px-4 rounded-lg text-[9px]">تطبيق</button>
             </div>
@@ -55,6 +55,7 @@
                 <tr>
                     <th class="p-5 w-10"><input type="checkbox" id="select-all" class="rounded border-white/10 bg-slate-800 text-cyan focus:ring-cyan/20"></th>
                     <th class="p-5">المستخدم</th>
+                    <th class="p-5 text-center">الفئة (Tier)</th>
                     <th class="p-5 text-center">الرصيد والديون</th>
                     <th class="p-5 text-center">أمن الحساب</th>
                     <th class="p-5 text-center">الحالة والانضمام</th>
@@ -79,6 +80,13 @@
                                 </div>
                             </div>
                         </div>
+                    </td>
+                    <td class="p-5 text-center">
+                        <select onchange="updateUserTier('{{ user.id }}', this.value, this)" data-current="{{ user.tier }}" class="tier-select bg-slate-900/80 border border-white/10 rounded-xl px-3 py-1.5 text-[11px] font-black text-cyan hover:border-cyan/50 focus:border-cyan focus:ring-1 focus:ring-cyan transition-all cursor-pointer">
+                            {% for val, label in tiers %}
+                            <option value="{{ val }}" {% if user.tier == val %}selected{% endif %}>{{ label }}</option>
+                            {% endfor %}
+                        </select>
                     </td>
                     <td class="p-5">
                         <div class="flex flex-col items-center gap-1.5">
@@ -127,7 +135,7 @@
                     </td>
                 </tr>
                 {% empty %}
-                <tr><td colspan="6" class="p-20 text-center text-slate-600 italic">لا يوجد مستخدمين يطابقون معايير البحث.</td></tr>
+                <tr><td colspan="7" class="p-20 text-center text-slate-600 italic">لا يوجد مستخدمين يطابقون معايير البحث.</td></tr>
                 {% endfor %}
             </tbody>
         </table>
@@ -153,6 +161,48 @@
     checkboxes.forEach(cb => {
         cb.addEventListener('change', updateBulkVisibility);
     });
+
+    // Instant Inline Tier Update
+    function updateUserTier(userId, newTier, selectEl) {
+        const originalValue = selectEl.getAttribute('data-current') || selectEl.value;
+        selectEl.disabled = true;
+        selectEl.classList.add('opacity-50');
+
+        const formData = new FormData();
+        formData.append('action', 'update_single_tier');
+        formData.append('user_id', userId);
+        formData.append('tier', newTier);
+        formData.append('csrfmiddlewaretoken', '{{ csrf_token }}');
+
+        fetch(window.location.href, {
+            method: 'POST',
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest'
+            },
+            body: formData
+        })
+        .then(r => r.json())
+        .then(data => {
+            selectEl.disabled = false;
+            selectEl.classList.remove('opacity-50');
+            if (data.status === 'success') {
+                selectEl.setAttribute('data-current', newTier);
+                selectEl.classList.add('!border-emerald-500', '!text-emerald-400');
+                setTimeout(() => {
+                    selectEl.classList.remove('!border-emerald-500', '!text-emerald-400');
+                }, 1500);
+            } else {
+                alert(data.message || 'حدث خطأ أثناء تحديث الفئة');
+                selectEl.value = originalValue;
+            }
+        })
+        .catch(err => {
+            selectEl.disabled = false;
+            selectEl.classList.remove('opacity-50');
+            alert('فشل الاتصال بالخادم أثناء تحديث الفئة.');
+            selectEl.value = originalValue;
+        });
+    }
 
     // Reveal animation
     const observer = new IntersectionObserver((entries) => {

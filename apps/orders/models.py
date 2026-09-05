@@ -218,6 +218,95 @@ class Order(TimeStampedModel):
                 
         return results
 
+    def get_server_responses(self):
+        """
+        Returns a list of structured server response dictionaries:
+        [
+            {
+                "text": "...",
+                "avatar": "https://...",
+                "account_name": "...",
+                "status_msg": "...",
+                "package_info": "...",
+                "reason": "...",
+            },
+            ...
+        ]
+        Extracts from fulfillment_data (all_server_responses, ردود السيرفر, رد السيرفر, سبب الإلغاء),
+        order logs (notes recorded by provider updates), and metadata.
+        """
+        from apps.orders.provider_status import parse_server_response_details, extract_clean_text
+        import re
+
+        raw_candidates = []
+        seen_texts = set()
+
+        ff = self.fulfillment_data or {}
+        
+        # 1. Direct lists or fields in fulfillment_data
+        for key in ("all_server_responses", "server_responses", "ردود السيرفر"):
+            val = ff.get(key)
+            if isinstance(val, list):
+                for item in val:
+                    if item:
+                        raw_candidates.append(item)
+            elif isinstance(val, str) and val.strip():
+                raw_candidates.append(val.strip())
+
+        for key in ("رد السيرفر", "سبب الإلغاء من السيرفر", "كود التفعيل / البطاقة"):
+            val = ff.get(key)
+            if isinstance(val, str) and val.strip():
+                raw_candidates.append(val.strip())
+
+        # 2. Extract from OrderLogs (captures historical provider updates)
+        try:
+            for log in self.logs.all():
+                note = log.note or ""
+                matches = re.findall(r'\((?:رد السيرفر|سبب الإلغاء من السيرفر):\s*([^)]+)\)', note)
+                for m in matches:
+                    if m.strip():
+                        raw_candidates.append(m.strip())
+        except Exception:
+            pass
+
+        # 3. Process each candidate and deduplicate
+        structured_responses = []
+        avatar_global = ff.get("صورة الحساب / الأفاتار") or ff.get("image_url")
+
+        for cand in raw_candidates:
+            if isinstance(cand, dict):
+                c_text = cand.get("clean_text") or cand.get("text") or cand.get("raw") or ""
+            else:
+                c_text = extract_clean_text(cand)
+
+            if not c_text:
+                continue
+
+            parsed = parse_server_response_details(cand if isinstance(cand, str) else c_text)
+            display_text = parsed.get("clean_text") or parsed.get("raw_clean") or c_text
+            display_text = display_text.strip()
+
+            if not display_text or display_text in seen_texts:
+                continue
+
+            # Skip if this text is an exact substring of an already recorded response
+            if any(display_text in st for st in seen_texts):
+                continue
+
+            seen_texts.add(display_text)
+            avatar = parsed.get("image_url") or avatar_global
+
+            structured_responses.append({
+                "text": display_text,
+                "avatar": avatar,
+                "account_name": parsed.get("account_name"),
+                "status_msg": parsed.get("status_msg"),
+                "package_info": parsed.get("package_info"),
+                "reason": parsed.get("reason"),
+            })
+
+        return structured_responses
+
     class Meta:
         indexes = [
             models.Index(fields=["customer", "created_at"]),

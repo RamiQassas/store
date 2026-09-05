@@ -36,6 +36,11 @@ class OrdersConfig(AppConfig):
 
                             for order in pending_orders:
                                 try:
+                                    current_api_status = str((order.fulfillment_data or {}).get("api_status") or "").lower()
+                                    if current_api_status in ("error", "failed", "reject", "rejected", "cancel", "cancelled", "refused", "declined"):
+                                        apply_provider_status(order, current_api_status, raw_response=order.fulfillment_data, actor=None, note_prefix="مزامنة خلفية")
+                                        continue
+
                                     po = order.provider_orders.select_related("profile").first()
                                     profile = po.profile if (po and po.profile) else default_profile
                                     if profile:

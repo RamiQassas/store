@@ -1,5 +1,6 @@
 {% extends "site/control_base.html" %}
 {% load static %}
+{% load site_tags %}
 
 {% block title %}لوحة القيادة الاستراتيجية | Raqamiyat Elite{% endblock %}
 
@@ -185,7 +186,7 @@
                 <div class="text-xs font-black text-white mb-1 truncate">{{ order.customer.email }}</div>
                 <div class="flex justify-between items-center mt-3">
                     <span class="text-[10px] text-slate-500 font-bold">{{ order.created_at|date:"H:i" }}</span>
-                    <span class="text-xs font-black text-rose-400">{{ order.total_amount }} SYP</span>
+                    <span class="text-xs font-black text-rose-400">{% currency_format order.total_amount %}</span>
                 </div>
             </div>
             {% empty %}

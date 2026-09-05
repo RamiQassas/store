@@ -111,17 +111,25 @@
                         <div class="fulfillment-item p-4 rounded-2xl bg-slate-900/90 border-2 border-cyan/30 flex items-center justify-between gap-4 shadow-lg shadow-cyan/5">
                             <div class="flex-grow">
                                 <span class="text-xs text-cyan font-black uppercase tracking-wider block mb-1.5">{{ key }}</span>
-                                <strong class="text-white font-mono text-lg sm:text-xl font-black break-all text-cyan-200 block">
+                                {% if val|is_image_url %}
+                                <div class="mt-2">
+                                    <img src="{{ val }}" alt="Avatar" class="w-16 h-16 rounded-2xl object-cover border-2 border-cyan/50 shadow-md shadow-cyan/20">
+                                </div>
+                                {% else %}
+                                <strong class="text-white font-mono text-lg sm:text-xl font-black break-all text-cyan-200 block whitespace-pre-line">
                                     {% if key == "keys" %}
                                         {{ val|join:", " }}
                                     {% else %}
                                         {{ val }}
                                     {% endif %}
                                 </strong>
+                                {% endif %}
                             </div>
+                            {% if not val|is_image_url %}
                             <button class="shrink-0 text-xs px-4 py-2.5 bg-cyan text-slate-950 rounded-xl hover:bg-cyan/80 font-black transition cursor-pointer flex items-center gap-1.5 shadow-lg shadow-cyan/20" onclick="copyToClipboard('{% if key == "keys" %}{{ val|join:", " }}{% else %}{{ val }}{% endif %}', this)">
                                 <i class="far fa-copy"></i> نسخ
                             </button>
+                            {% endif %}
                         </div>
                         {% endif %}
                         {% endwith %}
@@ -452,14 +460,23 @@
                     {% else %}
                     <div class="p-3 rounded-2xl bg-slate-900/90 border border-cyan/40 stack gap-1 shadow-lg shadow-cyan/10">
                         <span class="text-[10px] text-cyan font-black uppercase tracking-wider block">{{ key }}</span>
+                        {% if val|is_image_url or key == 'صورة الحساب / الأفاتار' %}
+                        <div class="mt-1 flex items-center gap-3">
+                            <div class="w-14 h-14 rounded-xl bg-slate-950 border border-white/10 overflow-hidden shrink-0 shadow-md">
+                                <img src="{{ val }}" alt="Avatar" class="w-full h-full object-cover">
+                            </div>
+                            <span class="text-xs font-bold text-cyan-200">صورة الحساب المستلم</span>
+                        </div>
+                        {% else %}
                         <div class="flex items-center justify-between gap-2">
-                            <span class="font-mono text-cyan-200 font-bold text-sm break-all">
+                            <span class="font-mono text-cyan-200 font-bold text-sm break-all whitespace-pre-line">
                                 {% if key == "keys" %}{{ val|join:", " }}{% else %}{{ val }}{% endif %}
                             </span>
                             <button type="button" onclick="copyToClipboard('{% if key == "keys" %}{{ val|join:", " }}{% else %}{{ val }}{% endif %}', this)" class="shrink-0 text-[10px] px-2.5 py-1 bg-cyan text-slate-950 rounded-lg hover:bg-cyan/80 font-black transition cursor-pointer flex items-center gap-1">
                                 <i class="far fa-copy"></i> نسخ
                             </button>
                         </div>
+                        {% endif %}
                     </div>
                     {% endif %}
                     {% endwith %}

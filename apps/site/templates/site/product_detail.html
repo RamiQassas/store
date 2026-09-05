@@ -1221,9 +1221,84 @@ function updateModalContent(data) {
     fBox.innerHTML = '';
     const fulfillment = data.fulfillment || {};
     let hasKeys = false;
+
+    // 1. Render Dedicated Server Response(s) from Provider
+    const serverResponses = data.server_responses || [];
+    if (serverResponses && serverResponses.length > 0) {
+        hasKeys = true;
+        const resBox = document.createElement('div');
+        const isComp = (status === 'completed');
+        const isCanc = (status === 'cancelled' || status === 'refunded');
+        resBox.className = `p-4 rounded-2xl ${isComp ? 'bg-emerald-500/[0.08] border border-emerald-500/30' : isCanc ? 'bg-rose-500/[0.08] border border-rose-500/30' : 'bg-cyan-500/[0.08] border border-cyan-500/30'} stack gap-3 shadow-lg`;
+        
+        let headerTitle = 'رد السيرفر من المزود';
+        if (serverResponses.length > 1) {
+            headerTitle += ` (${serverResponses.length} ردود)`;
+        }
+        
+        let responsesHtml = `
+            <div class="flex items-center justify-between border-b border-white/5 pb-2">
+                <span class="text-xs font-black ${isComp ? 'text-emerald-400' : isCanc ? 'text-rose-400' : 'text-cyan-400'} flex items-center gap-2">
+                    <i class="fas ${isComp ? 'fa-check-circle' : isCanc ? 'fa-times-circle' : 'fa-satellite-dish'}"></i> ${headerTitle}:
+                </span>
+                <span class="text-[9px] font-mono text-slate-400 font-bold">مباشر</span>
+            </div>
+            <div class="stack gap-2.5">
+        `;
+
+        serverResponses.forEach((res) => {
+            const avatarHtml = res.avatar ? `
+                <div class="w-12 h-12 rounded-xl bg-slate-900 border border-white/10 overflow-hidden shrink-0 shadow-md">
+                    <img src="${res.avatar}" alt="Avatar" class="w-full h-full object-cover">
+                </div>
+            ` : '';
+
+            let metaBadges = '';
+            if (res.status_msg || res.account_name || res.package_info) {
+                metaBadges += '<div class="flex flex-wrap items-center gap-2 text-xs font-black text-white mb-1">';
+                if (res.status_msg) {
+                    metaBadges += `<span class="px-2 py-0.5 rounded text-[10px] ${isComp ? 'bg-emerald-500/20 text-emerald-300' : isCanc ? 'bg-rose-500/20 text-rose-300' : 'bg-cyan-500/20 text-cyan-300'} font-bold">${res.status_msg}</span>`;
+                }
+                if (res.account_name) {
+                    metaBadges += `<span class="text-cyan-300 font-mono">${res.account_name}</span>`;
+                }
+                if (res.package_info) {
+                    metaBadges += `<span class="text-slate-400 text-[11px] font-normal">(${res.package_info})</span>`;
+                }
+                metaBadges += '</div>';
+            }
+
+            const cleanText = (res.text || '').replace(/'/g, "\\'");
+
+            responsesHtml += `
+                <div class="p-3 rounded-xl bg-slate-950/80 border border-white/5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                    <div class="flex items-center gap-3">
+                        ${avatarHtml}
+                        <div>
+                            ${metaBadges}
+                            <div class="text-xs text-slate-200 font-mono leading-relaxed whitespace-pre-line select-all">
+                                ${res.text || ''}
+                            </div>
+                        </div>
+                    </div>
+                    <button type="button" onclick="copyDirect('${cleanText}', this)" class="shrink-0 text-[10px] px-2.5 py-1.5 bg-white/5 hover:bg-cyan hover:text-slate-950 text-slate-300 rounded-lg font-bold transition flex items-center gap-1 cursor-pointer self-end sm:self-center">
+                        <i class="far fa-copy"></i> نسخ
+                    </button>
+                </div>
+            `;
+        });
+
+        responsesHtml += '</div>';
+        resBox.innerHTML = responsesHtml;
+        fBox.appendChild(resBox);
+    }
     
+    // 2. Render Delivery Codes and Other Fulfillment Keys
     for (const [k, v] of Object.entries(fulfillment)) {
         if (!v) continue;
+        if (k.startsWith('رد السيرفر') || k === 'all_server_responses' || k === 'server_responses' || k === 'ردود السيرفر') {
+            if (serverResponses.length > 0) continue; // Already rendered in dedicated section
+        }
         hasKeys = true;
         
         let itemsList = [];
@@ -1240,7 +1315,7 @@ function updateModalContent(data) {
             multiContainer.className = 'p-3.5 rounded-2xl bg-slate-900/90 border border-cyan/40 stack gap-2 shadow-lg shadow-cyan/10';
             
             let codesHtml = '';
-            itemsList.forEach((code, idx) => {
+            itemsList.forEach((code) => {
                 const cleanCode = String(code).trim();
                 if (!cleanCode) return;
                 codesHtml += `
@@ -1268,22 +1343,37 @@ function updateModalContent(data) {
         } else {
             // Render single key item
             const valStr = Array.isArray(v) ? v.join(', ') : String(v);
+            const isAvatar = (k === 'صورة الحساب / الأفاتار' || (typeof valStr === 'string' && valStr.startsWith('http') && (valStr.includes('/Avatar/') || valStr.match(/\.(png|jpg|jpeg|gif|webp)/i))));
+            
             const itemEl = document.createElement('div');
             itemEl.className = 'p-3 rounded-2xl bg-slate-900/90 border border-cyan/40 stack gap-1 shadow-lg shadow-cyan/10';
-            itemEl.innerHTML = `
-                <span class="text-[10px] text-cyan font-black uppercase tracking-wider block">${k}</span>
-                <div class="flex items-center justify-between gap-2">
-                    <span class="font-mono text-cyan-200 font-bold text-sm break-all">${valStr}</span>
-                    <button type="button" onclick="copyDirect('${valStr.replace(/'/g, "\\'")}', this)" class="shrink-0 text-[10px] px-2.5 py-1 bg-cyan text-slate-950 rounded-lg hover:bg-cyan/80 font-black transition cursor-pointer flex items-center gap-1">
-                        <i class="far fa-copy"></i> نسخ
-                    </button>
-                </div>
-            `;
+            
+            if (isAvatar) {
+                itemEl.innerHTML = `
+                    <span class="text-[10px] text-slate-400 block mb-0.5">${k}</span>
+                    <div class="flex items-center gap-3">
+                        <div class="w-14 h-14 rounded-xl bg-slate-950 border border-white/10 overflow-hidden shrink-0 shadow-md">
+                            <img src="${valStr}" alt="Avatar" class="w-full h-full object-cover">
+                        </div>
+                        <span class="text-xs font-bold text-cyan-200">صورة الحساب المستلم</span>
+                    </div>
+                `;
+            } else {
+                itemEl.innerHTML = `
+                    <span class="text-[10px] text-cyan font-black uppercase tracking-wider block">${k}</span>
+                    <div class="flex items-center justify-between gap-2">
+                        <span class="font-mono text-cyan-200 font-bold text-sm break-all whitespace-pre-line">${valStr}</span>
+                        <button type="button" onclick="copyDirect('${valStr.replace(/'/g, "\\'")}', this)" class="shrink-0 text-[10px] px-2.5 py-1 bg-cyan text-slate-950 rounded-lg hover:bg-cyan/80 font-black transition cursor-pointer flex items-center gap-1">
+                            <i class="far fa-copy"></i> نسخ
+                        </button>
+                    </div>
+                `;
+            }
             fBox.appendChild(itemEl);
         }
     }
     
-    if (hasKeys && waitingMsg) {
+    if ((hasKeys || status === 'completed' || status === 'cancelled' || status === 'refunded') && waitingMsg) {
         waitingMsg.style.display = 'none';
     }
 }

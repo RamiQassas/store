@@ -32,6 +32,7 @@ class User(AbstractUser):
         CUSTOMER = "customer", "عميل"
         DEALER = "dealer", "تاجر معتمد"
         VIP = "vip", "VIP"
+        COST = "cost", "سعر التكلفة"
 
     username = models.CharField(max_length=150, blank=True)
     email = models.EmailField()

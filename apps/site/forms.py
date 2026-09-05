@@ -234,10 +234,43 @@ class ModerateUserForm(forms.ModelForm):
             "suspension_reason", "admin_notes", "suspension_expires_at", "is_permanently_suspended"
         ]
         widgets = {
-            "suspension_expires_at": forms.DateTimeInput(attrs={"type": "datetime-local"}),
-            "suspension_reason": forms.Textarea(attrs={"rows": 3}),
-            "admin_notes": forms.Textarea(attrs={"rows": 3}),
+            "role": forms.Select(attrs={"class": "modern-input"}),
+            "status": forms.Select(attrs={"class": "modern-input"}),
+            "tier": forms.Select(attrs={"class": "modern-input"}),
+            "phone": forms.TextInput(attrs={"class": "modern-input", "placeholder": "+963..."}),
+            "daily_deposit_limit": forms.NumberInput(attrs={"class": "modern-input", "step": "0.01"}),
+            "daily_withdrawal_limit": forms.NumberInput(attrs={"class": "modern-input", "step": "0.01"}),
+            "suspension_expires_at": forms.DateTimeInput(attrs={"type": "datetime-local", "class": "modern-input"}),
+            "suspension_reason": forms.Textarea(attrs={"rows": 3, "class": "modern-input", "placeholder": "سبب الإيقاف..."}),
+            "admin_notes": forms.Textarea(attrs={"rows": 3, "class": "modern-input", "placeholder": "ملاحظات داخلية..."}),
+            "restriction_withdrawals": forms.CheckboxInput(attrs={"class": "rounded text-cyan"}),
+            "restriction_deposits": forms.CheckboxInput(attrs={"class": "rounded text-cyan"}),
+            "restriction_purchases": forms.CheckboxInput(attrs={"class": "rounded text-cyan"}),
+            "is_permanently_suspended": forms.CheckboxInput(attrs={"class": "rounded text-rose-500"}),
+            "is_kyc_verified": forms.CheckboxInput(attrs={"class": "rounded text-cyan"}),
         }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        for f in [
+            "phone", "is_kyc_verified", "daily_deposit_limit", "daily_withdrawal_limit",
+            "restriction_withdrawals", "restriction_deposits", "restriction_purchases",
+            "suspension_reason", "admin_notes", "suspension_expires_at", "is_permanently_suspended"
+        ]:
+            if f in self.fields:
+                self.fields[f].required = False
+
+    def clean_daily_deposit_limit(self):
+        val = self.cleaned_data.get("daily_deposit_limit")
+        if val is None and self.instance and self.instance.pk:
+            return self.instance.daily_deposit_limit
+        return val or Decimal("100.00")
+
+    def clean_daily_withdrawal_limit(self):
+        val = self.cleaned_data.get("daily_withdrawal_limit")
+        if val is None and self.instance and self.instance.pk:
+            return self.instance.daily_withdrawal_limit
+        return val or Decimal("100.00")
 
     def clean_phone(self):
         phone = self.cleaned_data.get("phone")

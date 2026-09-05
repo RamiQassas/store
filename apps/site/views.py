@@ -913,6 +913,7 @@ def order_detail(request, pk):
             "status_display": order.get_status_display(),
             "api_order_id": order.api_order_id or "",
             "fulfillment": fulfillment,
+            "server_responses": order.get_server_responses(),
             "is_terminal": order.status in (Order.Status.COMPLETED, Order.Status.CANCELLED, Order.Status.REFUNDED),
             "order_url": reverse('dashboard_order_detail', kwargs={'pk': order.id})
         })
@@ -2026,6 +2027,7 @@ def product_detail(request, pk):
                     "status_display": order.get_status_display(),
                     "api_order_id": order.api_order_id or "",
                     "fulfillment": fulfillment,
+                    "server_responses": order.get_server_responses(),
                     "order_url": reverse('dashboard_order_detail', kwargs={'pk': order.id})
                 })
             # Redirect to order detail with new=1 to auto-open live status & details modal
@@ -3218,18 +3220,41 @@ def control_users_list(request):
     store = getattr(request, "store", None)
     if request.method == "POST":
         action = request.POST.get("action")
+        if action == "update_single_tier":
+            user_id = request.POST.get("user_id")
+            tier = request.POST.get("tier")
+            valid_tiers = dict(User.Tier.choices)
+            if tier in valid_tiers:
+                qs = User.objects.filter(id=user_id)
+                if store:
+                    qs = qs.filter(store=store)
+                else:
+                    qs = qs.filter(store__isnull=True)
+                qs.update(tier=tier)
+                if request.headers.get("x-requested-with") == "XMLHttpRequest" or request.POST.get("ajax"):
+                    return JsonResponse({"status": "success", "tier": tier, "tier_display": str(valid_tiers.get(tier, tier))})
+                messages.success(request, "تم تحديث فئة العميل بنجاح.")
+            else:
+                if request.headers.get("x-requested-with") == "XMLHttpRequest" or request.POST.get("ajax"):
+                    return JsonResponse({"status": "error", "message": "فئة غير صالحة."}, status=400)
+                messages.error(request, "فئة غير صالحة.")
+            return redirect("control_users_list")
+
         user_ids = request.POST.getlist("user_ids")
         if not user_ids:
             messages.warning(request, "يرجى اختيار مستخدمين لتنفيذ العملية.")
             return redirect("control_users_list")
         if action == "bulk_update":
             tier = request.POST.get("bulk_tier")
-            if tier:
+            valid_tiers = dict(User.Tier.choices)
+            if tier in valid_tiers:
                 if store:
                     User.objects.filter(id__in=user_ids, store=store).update(tier=tier)
                 else:
                     User.objects.filter(id__in=user_ids, store__isnull=True).update(tier=tier)
                 messages.success(request, f"تم تحديث فئة {len(user_ids)} مستخدم بنجاح.")
+            else:
+                messages.warning(request, "يرجى اختيار فئة صالحة للتحديث الجماعي.")
         return redirect("control_users_list")
 
     if store:
@@ -3858,10 +3883,15 @@ def control_user_moderate(request, public_uuid):
                 messages.success(request, f"تم حذف الحد المخصص للوسيلة المحددة للمستخدم.")
             return redirect("control_user_moderate", public_uuid=public_uuid)
 
-        elif form.is_valid():
-            form.save()
-            messages.success(request, "تم التحديث.")
-            return redirect("control_users_list")
+        elif action == "update_profile" or not action:
+            if form.is_valid():
+                form.save()
+                messages.success(request, "تم حفظ وتحديث بيانات المستخدم بنجاح.")
+                return redirect("control_user_moderate", public_uuid=public_uuid)
+            else:
+                for field_name, errs in form.errors.items():
+                    for err in errs:
+                        messages.error(request, f"خطأ في حقل ({field_name}): {err}")
     from apps.payments.models import DepositRequest, WithdrawalRequest
     from apps.orders.models import Order
     from apps.accounts.models import ActivityLog

@@ -368,6 +368,14 @@ def as_list(val):
 
 
 @register.filter
+def is_image_url(val):
+    if not isinstance(val, str):
+        return False
+    val_clean = val.strip().lower()
+    return val_clean.startswith("http") and any(ext in val_clean for ext in [".png", ".jpg", ".jpeg", ".gif", ".webp", "/avatar/"])
+
+
+@register.filter
 def clean_fulfillment_items(fulfillment):
     """
     Returns a list of (key, cleaned_value) tuples for rendering to customers,
@@ -382,12 +390,13 @@ def clean_fulfillment_items(fulfillment):
         "api_provider", "api_status", "api_last_response", 
         "api_refunded", "response", "api_response", 
         "api_error", "alkasr", "api_order_id",
-        "ملاحظات وبيانات التنفيذ"
+        "ملاحظات وبيانات التنفيذ", "image_url"
     }
 
     delivery_val = extract_clean_text(fulfillment.get("بيانات التسليم والأكواد") or fulfillment.get("keys") or fulfillment.get("كود التفعيل / البطاقة"))
     cancel_val = extract_clean_text(fulfillment.get("سبب الإلغاء من السيرفر"))
     server_msg = extract_clean_text(fulfillment.get("رد السيرفر"))
+    avatar_val = fulfillment.get("صورة الحساب / الأفاتار") or fulfillment.get("image_url")
 
     result = []
     seen_values = set()
@@ -400,19 +409,36 @@ def clean_fulfillment_items(fulfillment):
                 result.append((deliv_key, c_val))
                 seen_values.add(c_val)
 
-    # 2. Cancellation reason (High priority if cancelled)
+    # 2. Account info / Avatar
+    if avatar_val and str(avatar_val).strip() not in seen_values:
+        result.append(("صورة الحساب / الأفاتار", str(avatar_val).strip()))
+        seen_values.add(str(avatar_val).strip())
+
+    for acc_key in ("اسم الحساب المستلم", "حالة العملية", "الباقة المنفذة"):
+        if acc_key in fulfillment:
+            c_val = extract_clean_text(fulfillment[acc_key])
+            if c_val and c_val not in seen_values:
+                result.append((acc_key, c_val))
+                seen_values.add(c_val)
+
+    # 3. Cancellation reason (High priority if cancelled)
     if cancel_val and cancel_val not in seen_values:
         result.append(("سبب الإلغاء من السيرفر", cancel_val))
         seen_values.add(cancel_val)
 
-    # 3. Server reply (Only if not already represented in delivery codes or cancellation reason)
-    if server_msg and server_msg not in seen_values:
-        is_redundant = any(server_msg in sv or sv in server_msg for sv in seen_values)
-        if not is_redundant:
-            result.append(("رد السيرفر", server_msg))
-            seen_values.add(server_msg)
+    # 4. Server reply / replies
+    multi_responses = fulfillment.get("all_server_responses") or fulfillment.get("ردود السيرفر")
+    if isinstance(multi_responses, list) and len(multi_responses) > 1:
+        for idx, r_msg in enumerate(multi_responses, 1):
+            r_clean = extract_clean_text(r_msg)
+            if r_clean and r_clean not in seen_values:
+                result.append((f"رد السيرفر ({idx})", r_clean))
+                seen_values.add(r_clean)
+    elif server_msg and server_msg not in seen_values:
+        result.append(("رد السيرفر", server_msg))
+        seen_values.add(server_msg)
 
-    # 4. Any other remaining custom keys
+    # 5. Any other remaining custom keys
     for k, v in fulfillment.items():
         if k in ignored_keys or any(k == r[0] for r in result):
             continue

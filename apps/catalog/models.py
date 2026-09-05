@@ -248,7 +248,9 @@ class ProductVariant(TimeStampedModel):
             
         # 3 & 4. Fallback to default prices based on tier
         from apps.accounts.models import User
-        if user_tier == User.Tier.VIP:
+        if user_tier == User.Tier.COST:
+            return self.cost if (self.cost and self.cost > 0) else self.price
+        elif user_tier == User.Tier.VIP:
             return self.vip_price or self.price
         elif user_tier == User.Tier.DEALER:
             return self.wholesale_price or self.price

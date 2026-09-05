@@ -19,6 +19,9 @@
         <div class="stack gap-4">
             {% for n in notifications %}
             <div class="panel p-6 flex gap-6 items-start {% if not n.is_read %}border-cyan/30 bg-cyan/[0.02]{% else %}opacity-70{% endif %} hover:opacity-100 transition-all rounded-[2rem]">
+                {% if n.image_url %}
+                <img src="{{ n.image_url }}" alt="avatar" class="w-12 h-12 rounded-2xl object-cover border border-cyan/40 flex-shrink-0 shadow-md">
+                {% else %}
                 <div class="w-12 h-12 rounded-2xl flex-shrink-0 flex items-center justify-center 
                     {% if 'order' in n.category or 'طلب' in n.title %}bg-blue-500/10 text-blue-500
                     {% elif 'wallet' in n.category or 'رصيد' in n.title or 'محفظة' in n.title %}bg-emerald-500/10 text-emerald-500
@@ -27,13 +30,14 @@
                                 {% elif 'wallet' in n.category or 'رصيد' in n.title or 'محفظة' in n.title %}fa-wallet
                                 {% else %}fa-bell{% endif %} text-xl"></i>
                 </div>
+                {% endif %}
                 
                 <div class="flex-grow">
                     <div class="flex justify-between items-start mb-1">
                         <h3 class="font-bold text-white">{{ n.title }}</h3>
                         <span class="text-[10px] font-bold text-slate-500 uppercase tracking-widest">{{ n.created_at|timesince }}</span>
                     </div>
-                    <p class="text-slate-400 text-sm leading-relaxed mb-4">{{ n.body }}</p>
+                    <p class="text-slate-400 text-sm leading-relaxed mb-4 whitespace-pre-line">{{ n.body }}</p>
                     
                     {% if n.action_url %}
                     <a href="{{ n.action_url }}" class="text-xs font-black text-cyan hover:underline">عرض التفاصيل <i class="fas fa-chevron-left mr-1 text-[8px]"></i></a>

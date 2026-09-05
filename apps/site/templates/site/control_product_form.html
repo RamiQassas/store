@@ -1,5 +1,6 @@
 {% extends "site/control_base.html" %}
 {% load static %}
+{% load site_tags %}
 
 {% block title %}{{ title }} | Raqamiyat Admin{% endblock %}
 
@@ -154,7 +155,7 @@
                 <div class="p-3 bg-slate-800/30 rounded-lg border border-white/5 flex justify-between items-center">
                     <div>
                         <div class="text-xs font-bold">{{ v.name }}</div>
-                        <div class="text-[10px] text-cyan font-mono">{{ v.price }} SYP</div>
+                        <div class="text-[10px] text-cyan font-mono">{% currency_format v.price %}</div>
                     </div>
                     <a href="{% url 'control_variant_edit' v.pk %}" class="w-8 h-8 rounded bg-slate-800 flex items-center justify-center hover:text-cyan transition">
                         <i class="fas fa-edit text-xs"></i>

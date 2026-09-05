@@ -431,22 +431,19 @@ def create_order(customer, variant_id, quantity=1, fulfillment_data=None,
                 note_prefix="النظام الآلي",
             )
         except Exception as exc:
-            fulfillment = dict(order.fulfillment_data or {})
-            fulfillment.update({
-                "api_status": "error",
-            })
+            from apps.orders.provider_status import apply_provider_status
+            order = apply_provider_status(
+                order,
+                "failed",
+                raw_response={"error": str(exc), "msg": str(exc)},
+                actor=customer,
+                note_prefix="النظام الآلي (فشل الإرسال للمزود)",
+            )
             order_meta = dict(order.metadata or {})
             order_meta["api_provider"] = provider
             order_meta["api_error"] = str(exc)
             order.metadata = order_meta
-            order.fulfillment_data = fulfillment
-            order.save(update_fields=["fulfillment_data", "metadata", "updated_at"])
-            OrderLog.objects.create(
-                order=order,
-                status=order.status,
-                note=f"فشل إرسال الطلب إلى المزود: {exc}",
-                created_by=customer,
-            )
+            order.save(update_fields=["metadata", "updated_at"])
             try:
                 from apps.notifications.services import notify_provider_error
                 notify_provider_error(
