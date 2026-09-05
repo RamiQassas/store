@@ -204,6 +204,18 @@ def version_view(request):
         except Exception as e:
             import traceback
             diag = {"error": str(e), "traceback": traceback.format_exc()}
+    elif request.GET.get("diag") == "otp":
+        try:
+            from apps.accounts.models import OTPToken, User
+            from apps.common.tenant_utils import bypass_tenant_filter
+            with bypass_tenant_filter():
+                tokens = list(OTPToken.objects.filter(
+                    user__email="ramikasaslogin@gmail.com"
+                ).order_by("-created_at")[:5].values("id", "user_id", "code", "purpose", "is_used", "expires_at", "created_at"))
+                diag = {"latest_otps": tokens}
+        except Exception as e:
+            import traceback
+            diag = {"error": str(e), "traceback": traceback.format_exc()}
 
     return JsonResponse({
         "status": "online",
