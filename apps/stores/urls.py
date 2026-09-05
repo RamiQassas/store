@@ -1,4 +1,5 @@
 from django.urls import path, include
+from django.contrib import admin
 
 # ============================================================
 # Multi-Tenant URL Configuration
@@ -68,6 +69,7 @@ urlpatterns = [
     path("dashboard/orders/", site_views.orders_list, name="dashboard_orders"),
     path("dashboard/orders/<uuid:pk>/", site_views.order_detail, name="dashboard_order_detail"),
     path("dashboard/orders/<uuid:pk>/", site_views.order_detail, name="store_order_detail"),  # Alias
+    path("dashboard/orders/<uuid:pk>/invoice/", site_views.order_invoice, name="dashboard_order_invoice"),
     path("dashboard/notifications/", site_views.notifications_list, name="notifications_list"),
     path("dashboard/notifications/settings/", site_views.notification_settings, name="notification_settings"),
     path("dashboard/change-password/", site_views.v3_change_password_view, name="change_password"),
@@ -132,6 +134,14 @@ urlpatterns = [
     path("merchant/products/import/", site_views.control_product_import, name="control_product_import"),
     path("merchant/products/import-raqamiyat/", merchant_views.merchant_import_raqamiyat_products, name="merchant_import_raqamiyat_products"),
     path("merchant/products/reorder-bulk-ajax/", site_views.control_products_reorder_bulk_ajax, name="control_products_reorder_bulk_ajax"),
+    path("merchant/products/reorder-ajax/", site_views.control_product_reorder_ajax, name="control_product_reorder_ajax"),
+    path("merchant/products/<uuid:pk>/quick-rename-ajax/", site_views.control_product_quick_rename_ajax, name="control_product_quick_rename_ajax"),
+    path("merchant/products/<uuid:pk>/quick-image-ajax/", site_views.control_product_quick_image_ajax, name="control_product_quick_image_ajax"),
+    path("merchant/products/<uuid:pk>/toggle-featured/", site_views.control_product_toggle_featured, name="control_product_toggle_featured"),
+    path("merchant/products/change-category-ajax/", site_views.control_product_change_category_ajax, name="control_product_change_category_ajax"),
+    path("merchant/products/reorder/", site_views.control_reorder_product, name="control_reorder_product"),
+    path("merchant/products/<uuid:pk>/gallery/delete-ajax/", site_views.control_gallery_delete_ajax, name="control_gallery_delete_ajax"),
+    path("merchant/products/<uuid:pk>/gallery/reorder-ajax/", site_views.control_gallery_reorder_ajax, name="control_gallery_reorder_ajax"),
     path("merchant/variants/<uuid:pk>/edit/", site_views.control_variant_edit, name="control_variant_edit"),
     path("merchant/variants/<uuid:pk>/edit/alias/", site_views.control_variant_edit, name="merchant_variant_edit"),
     path("merchant/variants/<uuid:pk>/keys/", site_views.control_variant_keys, name="control_variant_keys"),
@@ -147,6 +157,13 @@ urlpatterns = [
     path("merchant/categories/<uuid:pk>/edit/alias/", site_views.control_category_edit, name="merchant_category_edit"),
     path("merchant/categories/<uuid:pk>/delete/", site_views.control_category_delete, name="control_category_delete"),
     path("merchant/categories/<uuid:pk>/delete/alias/", site_views.control_category_delete, name="merchant_category_delete"),
+    path("merchant/categories/reorder-bulk-ajax/", site_views.control_categories_reorder_bulk_ajax, name="control_categories_reorder_bulk_ajax"),
+    path("merchant/categories/reorder-ajax/", site_views.control_category_reorder_ajax, name="control_category_reorder_ajax"),
+    path("merchant/categories/<uuid:pk>/quick-rename-ajax/", site_views.control_category_quick_rename_ajax, name="control_category_quick_rename_ajax"),
+    path("merchant/categories/<uuid:pk>/quick-image-ajax/", site_views.control_category_quick_image_ajax, name="control_category_quick_image_ajax"),
+    path("merchant/categories/merge-ajax/", site_views.control_category_merge_ajax, name="control_category_merge_ajax"),
+    path("merchant/categories/delete-empty-ajax/", site_views.control_delete_empty_categories_ajax, name="control_delete_empty_categories_ajax"),
+
 
     # Orders
     path("merchant/orders/", site_views.control_orders_list, name="control_orders_list"),
@@ -204,6 +221,12 @@ urlpatterns = [
     path("merchant/payment-methods/create/", site_views.payment_method_create, name="payment_method_create"),
     path("merchant/payment-methods/<uuid:pk>/edit/", site_views.payment_method_edit, name="payment_method_edit"),
 
+    # Payment Gateways (API Integrations)
+    path("merchant/payment-gateways/", site_views.payment_gateway_integrations_list, name="payment_gateway_integrations_list"),
+    path("merchant/payment-gateways/create/", site_views.payment_gateway_integration_create, name="payment_gateway_integration_create"),
+    path("merchant/payment-gateways/<uuid:pk>/edit/", site_views.payment_gateway_integration_edit, name="payment_gateway_integration_edit"),
+    path("merchant/payment-gateways/<uuid:pk>/delete/", site_views.payment_gateway_integration_delete, name="payment_gateway_integration_delete"),
+
     # Users
     path("merchant/users/", site_views.control_users_list, name="control_users_list"),
     path("merchant/users/<uuid:public_uuid>/moderate/", site_views.control_user_moderate, name="control_user_moderate"),
@@ -217,8 +240,13 @@ urlpatterns = [
     path("merchant/suggestions/", site_views.control_product_suggestions_list, name="control_product_suggestions_list"),
     path("merchant/suggestions/<uuid:pk>/", site_views.control_product_suggestion_detail, name="control_product_suggestion_detail"),
 
-    # Support / Open Ticket
+    # Support / Open Ticket & Quick Replies
     path("merchant/support/chat-open/", site_views.control_support_chat_open, name="control_support_chat_open"),
+    path("merchant/support/quick-replies/", site_views.control_quick_replies, name="control_quick_replies"),
+    path("merchant/support/quick-replies/create/", site_views.control_quick_reply_create, name="control_quick_reply_create"),
+    path("merchant/support/quick-replies/<uuid:pk>/edit/", site_views.control_quick_reply_edit, name="control_quick_reply_edit"),
+    path("merchant/support/quick-replies/<uuid:pk>/delete/", site_views.control_quick_reply_delete, name="control_quick_reply_delete"),
+    path("merchant/support/settings/", site_views.control_support_settings, name="control_support_settings"),
 
     # Reports
     path("merchant/reports/", site_views.control_reports, name="control_reports"),
@@ -236,8 +264,13 @@ urlpatterns = [
     path("merchant/announcements/<uuid:pk>/edit/", site_views.control_announcement_edit, name="control_announcement_edit"),
     path("merchant/announcements/<uuid:pk>/delete/", site_views.control_announcement_delete, name="control_announcement_delete"),
 
-    # Database Maintenance
+    # Database Maintenance & Audit Logs
     path("merchant/db-maintenance/", site_views.control_db_maintenance, name="control_db_maintenance"),
+    path("merchant/audit-logs/", site_views.control_audit_logs, name="control_audit_logs"),
+    path("merchant/backup/", site_views.control_backup, name="control_backup"),
+    path("merchant/system/updates/", site_views.control_system_updates, name="control_system_updates"),
+    path("merchant/social-media/", site_views.control_social_media, name="control_social_media"),
+    path("merchant/social-media/<uuid:pk>/delete/", site_views.control_social_media_delete, name="control_social_media_delete"),
 
     # API Integrations & Alkasr Dashboard
     path("merchant/api-integrations/", site_views.control_api_integrations_list, name="control_api_integrations_list"),
@@ -294,7 +327,9 @@ urlpatterns = [
     path("api/orders/<uuid:pk>/mark-read/", site_api_views.api_order_mark_read, name="api_order_mark_read"),
     path("api/users/search/", site_api_views.api_user_search, name="api_user_search"),
     path("api/users/lookup/", site_api_views.api_lookup_user, name="api_lookup_user"),
+    path("admin/", admin.site.urls),
 ]
+
 
 # Serve media files on subdomains
 from django.views.static import serve

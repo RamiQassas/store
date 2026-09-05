@@ -373,6 +373,7 @@
             <a href="{% url 'control_db_maintenance' %}" class="admin-nav-link {% if 'maintenance' in request.path %}active{% endif %}">
                 <i class="fas fa-database"></i> صيانة النظام
             </a>
+            {% if not is_tenant %}
             <a href="{% url 'control_backup' %}" class="admin-nav-link {% if 'backup' in request.path %}active{% endif %}">
                 <i class="fas fa-cloud-arrow-up" style="color: #10b981;"></i> <span style="color: {% if 'backup' in request.path %}#fff{% else %}#10b981{% endif %};">النسخ الاحتياطي والصيانة</span>
             </a>
@@ -381,6 +382,8 @@
                 <i class="fas fa-code-branch text-purple-400"></i> <span>إدارة التحديثات والإصدارات</span>
             </a>
             {% endif %}
+            {% endif %}
+
         </nav>
 
         <div class="mt-10 pt-8 border-t border-white/5">
