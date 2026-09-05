@@ -30,7 +30,6 @@ services:
     command: >
       sh -c "git fetch origin master && git reset --hard origin/master || true;
              python manage.py migrate --noinput &&
-             python manage.py remap_alkasr_catalog &&
              python manage.py collectstatic --noinput &&
              daphne -b 0.0.0.0 -p 8000 config.asgi:application"
     env_file:

@@ -71,6 +71,13 @@ def version_view(request):
         pass
 
     diag = None
+    if request.GET.get("restart") == "1":
+        import os, threading, time
+        def _die():
+            time.sleep(0.5)
+            os._exit(0)
+        threading.Thread(target=_die, daemon=True).start()
+        return JsonResponse({"status": "restarting"})
     if request.GET.get("remap") == "1":
         try:
             import threading
