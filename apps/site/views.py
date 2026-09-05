@@ -460,8 +460,12 @@ def v3_verify_otp_view(request):
     otp_sent_success = request.session.get("v3_otp_sent_success", True)
     
     settings_obj = KYCSettings.get_settings()
-    current_cooldown_limit = min(settings_obj.otp_base_cooldown * (2 ** user.otp_resend_count), 600)
     last_otp = OTPToken.objects.filter(user=user, purpose=purpose).order_by("-created_at").first()
+    if last_otp and (timezone.now() - last_otp.created_at).total_seconds() > 180:
+        user.otp_resend_count = 0
+        user.save(update_fields=["otp_resend_count"])
+    base_cd = getattr(settings_obj, 'otp_base_cooldown', 30) or 30
+    current_cooldown_limit = min(base_cd * (2 ** min(user.otp_resend_count, 2)), 60)
     remaining_cooldown = 0
     if last_otp and otp_sent_success:
         seconds_passed = (timezone.now() - last_otp.created_at).total_seconds()
