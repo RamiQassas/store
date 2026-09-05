@@ -248,12 +248,31 @@ class ProductVariant(TimeStampedModel):
             
         # 3 & 4. Fallback to default prices based on tier
         from apps.accounts.models import User
+        store = getattr(self.product, 'store', None)
+        store_margins = getattr(store, 'tier_margins', {}) if store else {}
+
         if user_tier == User.Tier.COST:
             return self.cost if (self.cost and self.cost > 0) else self.price
         elif user_tier == User.Tier.VIP:
-            return self.vip_price or self.price
+            if self.vip_price and self.vip_price > 0:
+                return self.vip_price
+            vip_m = store_margins.get("vip")
+            if vip_m and self.cost and self.cost > 0:
+                try:
+                    from decimal import Decimal
+                    return (self.cost * (Decimal("1") + Decimal(str(vip_m)) / Decimal("100"))).quantize(Decimal("0.01"))
+                except: pass
+            return self.price
         elif user_tier == User.Tier.DEALER:
-            return self.wholesale_price or self.price
+            if self.wholesale_price and self.wholesale_price > 0:
+                return self.wholesale_price
+            deal_m = store_margins.get("dealer")
+            if deal_m and self.cost and self.cost > 0:
+                try:
+                    from decimal import Decimal
+                    return (self.cost * (Decimal("1") + Decimal(str(deal_m)) / Decimal("100"))).quantize(Decimal("0.01"))
+                except: pass
+            return self.price
         return self.price
 
 

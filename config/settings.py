@@ -111,6 +111,7 @@ CSRF_TRUSTED_ORIGINS = [
     "https://*.raqamiyatapp.com",
     "https://www.raqamiyatapp.com",
     "http://raqamiyatapp.com",
+    "http://*.raqamiyatapp.com",
     "http://www.raqamiyatapp.com",
     "https://raqamiyat.onrender.com",
     "http://2.29.26.113",

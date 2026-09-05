@@ -39,6 +39,51 @@ class StoreCreateForm(forms.ModelForm):
         initial=True,
         label="استيراد منتجات رقميات"
     )
+    # Admin Credentials for Sub-store
+    admin_email = forms.EmailField(
+        required=True,
+        label="البريد الإلكتروني لمدير المتجر الفرعي",
+        help_text="البريد المخصص لتسجيل الدخول للوحة تحكم المتجر الفرعي بشكل مستقل"
+    )
+    admin_password = forms.CharField(
+        widget=forms.PasswordInput(attrs={"placeholder": "••••••••"}),
+        required=True,
+        min_length=6,
+        label="كلمة مرور مدير المتجر الفرعي"
+    )
+    admin_password_confirm = forms.CharField(
+        widget=forms.PasswordInput(attrs={"placeholder": "••••••••"}),
+        required=True,
+        min_length=6,
+        label="تأكيد كلمة المرور"
+    )
+
+    # Initial Tier Profit Margins (%)
+    margin_customer = forms.DecimalField(
+        required=False,
+        initial=15.0,
+        min_value=0,
+        max_value=500,
+        label="نسبة ربح العميل العادي (%)",
+        help_text="تضاف إلى تكلفة الجملة عند البيع للعملاء"
+    )
+    margin_dealer = forms.DecimalField(
+        required=False,
+        initial=10.0,
+        min_value=0,
+        max_value=500,
+        label="نسبة ربح التاجر (%)",
+        help_text="تضاف إلى تكلفة الجملة لفئة التاجر"
+    )
+    margin_vip = forms.DecimalField(
+        required=False,
+        initial=5.0,
+        min_value=0,
+        max_value=500,
+        label="نسبة ربح VIP (%)",
+        help_text="تضاف إلى تكلفة الجملة لفئة VIP"
+    )
+
     accept_legal_terms = forms.BooleanField(
         required=True,
         label="الموافقة على الشروط القانونية"
@@ -66,6 +111,14 @@ class StoreCreateForm(forms.ModelForm):
             if Store.objects.filter(subdomain__iexact=subdomain).exists():
                 raise forms.ValidationError("هذا الرابط الفرعي مستخدم بالفعل، يرجى اختيار رابط آخر.")
         return subdomain
+
+    def clean(self):
+        cleaned_data = super().clean()
+        pwd = cleaned_data.get("admin_password")
+        pwd_conf = cleaned_data.get("admin_password_confirm")
+        if pwd and pwd_conf and pwd != pwd_conf:
+            self.add_error("admin_password_confirm", "كلمتا المرور غير متطابقتين.")
+        return cleaned_data
 
 class StorePageForm(forms.ModelForm):
     class Meta:

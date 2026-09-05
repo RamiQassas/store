@@ -43,6 +43,11 @@ def store_registration_landing(request):
                 "plan_id": str(form.cleaned_data["subscription_plan"].id),
                 "billing_cycle": form.cleaned_data["billing_cycle"],
                 "import_products_from_raqamiyat": form.cleaned_data.get("import_products_from_raqamiyat", True),
+                "admin_email": form.cleaned_data["admin_email"],
+                "admin_password": form.cleaned_data["admin_password"],
+                "margin_customer": float(form.cleaned_data.get("margin_customer") or 15.0),
+                "margin_dealer": float(form.cleaned_data.get("margin_dealer") or 10.0),
+                "margin_vip": float(form.cleaned_data.get("margin_vip") or 5.0),
             }
             # Handle logo upload separately
             if request.FILES.get("logo"):
@@ -126,6 +131,11 @@ def store_registration_payment(request):
                     # Create Store
                     duration_days = 365 if billing_cycle == "yearly" else 30
                     import_products_enabled = reg_data.get("import_products_from_raqamiyat", True)
+                    tier_margins = {
+                        "customer": float(reg_data.get("margin_customer") or 15.0),
+                        "dealer": float(reg_data.get("margin_dealer") or 10.0),
+                        "vip": float(reg_data.get("margin_vip") or 5.0),
+                    }
                     store = Store.objects.create(
                         owner=request.user,
                         name=reg_data["name"],
@@ -138,6 +148,7 @@ def store_registration_payment(request):
                         subscription_end=timezone.now() + timedelta(days=duration_days),
                         billing_cycle=billing_cycle,
                         import_products_from_raqamiyat=import_products_enabled,
+                        tier_margins=tier_margins,
                         is_active=True
                     )
                     
@@ -164,13 +175,12 @@ def store_registration_payment(request):
                             is_default=gc.is_default
                         )
                         
-                    # Update request.user role
+                    # Update request.user role on main platform
                     user = request.user
                     user.role = User.Role.VERIFIED_MERCHANT
-                    user.store = None  # Do NOT link owner to store_id to keep their account global
+                    user.store = None  # Owner stays global on main site
                     user.save()
                         
-                    # Create Owner as first employee with full permissions
                     permissions_list = [
                         "manage_products", 
                         "manage_orders", 
@@ -180,12 +190,38 @@ def store_registration_payment(request):
                         "manage_employees", 
                         "view_reports"
                     ]
-                    StoreEmployee.objects.create(
-                        store=store,
-                        user=user,
-                        role=StoreEmployee.Role.OWNER,
-                        permissions=permissions_list
-                    )
+
+                    # Create isolated store admin account
+                    admin_email = reg_data.get("admin_email", "").strip().lower()
+                    admin_pwd = reg_data.get("admin_password")
+                    
+                    if admin_email and admin_pwd:
+                        store_admin = User.all_objects.filter(store=store, email=admin_email).first()
+                        if not store_admin:
+                            store_admin = User.objects.create(
+                                email=admin_email,
+                                username=f"{store.subdomain}_{admin_email.split('@')[0]}",
+                                store=store,
+                                role=User.Role.ADMIN,
+                                is_staff=False,
+                                is_superuser=False
+                            )
+                        store_admin.set_password(admin_pwd)
+                        store_admin.save()
+
+                        StoreEmployee.objects.create(
+                            store=store,
+                            user=store_admin,
+                            role=StoreEmployee.Role.OWNER,
+                            permissions=permissions_list
+                        )
+                    else:
+                        StoreEmployee.objects.create(
+                            store=store,
+                            user=user,
+                            role=StoreEmployee.Role.OWNER,
+                            permissions=permissions_list
+                        )
                     
                     # Create Subscription Invoice
                     SubscriptionInvoice.objects.create(

@@ -360,6 +360,34 @@ def create_order(customer, variant_id, quantity=1, fulfillment_data=None,
         created_by=customer,
     )
 
+    # ── For tenant stores: Debit store owner's Raqmiyat wallet for wholesale cost ──
+    if order_store and order_store.owner:
+        base_cost = getattr(variant, "cost", Decimal("0")) or Decimal("0")
+        if base_cost > Decimal("0"):
+            total_wholesale_cost = (base_cost * quantity).quantize(Decimal("0.01"))
+            if total_wholesale_cost > Decimal("0"):
+                owner_wallet = get_or_create_wallet(order_store.owner)
+                if owner_wallet.currency.code != "USD":
+                    owner_cost_amt = owner_wallet.currency.from_base(total_wholesale_cost)
+                else:
+                    owner_cost_amt = total_wholesale_cost
+                owner_cost_amt = Decimal(owner_cost_amt).quantize(Decimal("0.01"))
+
+                if owner_wallet.available_balance < owner_cost_amt:
+                    raise ValueError(
+                        f"عذراً، رصيد مالك المتجر في مزود الخدمة (رقميات) غير كافٍ لإتمام وتوريد هذا الطلب. "
+                        f"(التكلفة المطلوبة: {owner_cost_amt} {owner_wallet.currency.code})"
+                    )
+
+                debit_wallet(
+                    owner_wallet.id,
+                    owner_cost_amt,
+                    reference=f"substore_wholesale:{order.id}",
+                    description=f"تكلفة توريد طلب #{order.number} لمتجر {order_store.name}",
+                    created_by=order_store.owner,
+                    source="Raqmiyat Wholesale Fulfillment"
+                )
+
     if variant.product.is_api_product or variant.api_product_id or getattr(variant.product, 'api_product_id', None):
         provider = variant.product.api_provider or "alkasr"
         api_order_id = None

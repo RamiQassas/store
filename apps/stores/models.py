@@ -132,6 +132,12 @@ class Store(TimeStampedModel):
         verbose_name="استيراد منتجات من رقميات",
         help_text="تفعيل استيراد ومزامنة منتجات وخدمات منصة رقميات في المتجر"
     )
+    tier_margins = models.JSONField(
+        default=dict,
+        blank=True,
+        verbose_name="نسب أرباح الفئات (%)",
+        help_text='مثال: {"customer": 15.0, "dealer": 10.0, "vip": 5.0}'
+    )
     billing_cycle = models.CharField(
         max_length=20,
         choices=[("monthly", "شهري"), ("yearly", "سنوي")],

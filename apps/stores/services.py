@@ -43,6 +43,19 @@ def import_raqamiyat_products_for_store(store):
                 stats["categories_updated"] += 1
             cat_mapping[g_cat.id] = store_cat
 
+        # Extract tier margins if configured by store owner
+        from decimal import Decimal
+        tier_margins = getattr(store, "tier_margins", {}) or {}
+        try:
+            cust_m = Decimal(str(tier_margins.get("customer", 0) or 0))
+        except: cust_m = Decimal("0")
+        try:
+            deal_m = Decimal(str(tier_margins.get("dealer", 0) or 0))
+        except: deal_m = Decimal("0")
+        try:
+            vip_m = Decimal(str(tier_margins.get("vip", 0) or 0))
+        except: vip_m = Decimal("0")
+
         # 2. Map and clone global products to the store
         global_products = Product.all_objects.filter(
             store__isnull=True, 
@@ -90,15 +103,33 @@ def import_raqamiyat_products_for_store(store):
             store_id_short = str(store.id)[:6] if hasattr(store, 'id') and store.id else "sub"
             for g_var in g_prod.variants.all():
                 var_sku = f"{g_var.sku or 'SKU'}-{store_id_short}"
+                base_cost = g_var.cost or Decimal("0")
+                
+                # Calculate prices using store tier profit margins
+                if cust_m > 0 and base_cost > 0:
+                    var_price = (base_cost * (Decimal("1") + cust_m / Decimal("100"))).quantize(Decimal("0.01"))
+                else:
+                    var_price = g_var.price
+
+                if deal_m > 0 and base_cost > 0:
+                    var_wholesale = (base_cost * (Decimal("1") + deal_m / Decimal("100"))).quantize(Decimal("0.01"))
+                else:
+                    var_wholesale = g_var.wholesale_price or g_var.price
+
+                if vip_m > 0 and base_cost > 0:
+                    var_vip = (base_cost * (Decimal("1") + vip_m / Decimal("100"))).quantize(Decimal("0.01"))
+                else:
+                    var_vip = g_var.vip_price or g_var.price
+
                 store_var, v_created = ProductVariant.objects.get_or_create(
                     product=store_prod,
                     name=g_var.name,
                     defaults={
                         "sku": var_sku,
-                        "price": g_var.price,
+                        "price": var_price,
                         "cost": g_var.cost,
-                        "wholesale_price": g_var.wholesale_price,
-                        "vip_price": g_var.vip_price,
+                        "wholesale_price": var_wholesale,
+                        "vip_price": var_vip,
                         "is_active": g_var.is_active,
                         "is_temporarily_disabled": g_var.is_temporarily_disabled,
                         "is_sale": g_var.is_sale,
@@ -116,6 +147,13 @@ def import_raqamiyat_products_for_store(store):
                 if v_created:
                     stats["variants_created"] += 1
                 else:
+                    # Update prices and cost upon re-sync
+                    store_var.cost = g_var.cost
+                    if cust_m > 0 or deal_m > 0 or vip_m > 0:
+                        store_var.price = var_price
+                        store_var.wholesale_price = var_wholesale
+                        store_var.vip_price = var_vip
+                    store_var.save(update_fields=["cost", "price", "wholesale_price", "vip_price"])
                     stats["variants_updated"] += 1
 
     logger.info(f"Imported Raqamiyat products for store '{store.name}' ({store.subdomain}): {stats}")

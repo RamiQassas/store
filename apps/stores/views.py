@@ -868,6 +868,27 @@ def merchant_settings(request):
                 domain_form.save()
                 messages.success(request, "تم تحديث النطاق المخصص بنجاح.")
                 return redirect("merchant_settings")
+        elif "save_tier_margins" in request.POST:
+            try:
+                cust_m = float(request.POST.get("margin_customer") or 15.0)
+                deal_m = float(request.POST.get("margin_dealer") or 10.0)
+                vip_m = float(request.POST.get("margin_vip") or 5.0)
+                store.tier_margins = {
+                    "customer": max(0.0, cust_m),
+                    "dealer": max(0.0, deal_m),
+                    "vip": max(0.0, vip_m),
+                }
+                store.save(update_fields=["tier_margins"])
+                
+                if request.POST.get("recalculate_now") == "1":
+                    from apps.stores.services import import_raqamiyat_products_for_store
+                    import_raqamiyat_products_for_store(store)
+                    messages.success(request, "تم حفظ نسب وهوامش الأرباح وتحديث أسعار منتجات المتجر بالكامل بنجاح!")
+                else:
+                    messages.success(request, "تم حفظ نسب أرباح الفئات بنجاح.")
+            except Exception as e:
+                messages.error(request, f"حدث خطأ أثناء حفظ نسب الأرباح: {str(e)}")
+            return redirect("merchant_settings")
         else:
             if form.is_valid():
                 form.save()
@@ -879,6 +900,7 @@ def merchant_settings(request):
         "form": form,
         "domain_form": domain_form,
         "custom_domain_allowed": custom_domain_allowed,
+        "tier_margins": store.tier_margins or {"customer": 15.0, "dealer": 10.0, "vip": 5.0},
     })
 
 @employee_required("manage_products")

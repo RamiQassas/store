@@ -144,6 +144,45 @@
                     </div>
                 </div>
 
+                <!-- Tier Profit Margins -->
+                <h4 style="font-size: 1.1rem; font-weight: 700; margin-top: 2.5rem; margin-bottom: 1rem; color: #f59e0b; display: flex; align-items: center; gap: 0.5rem;">
+                    <i class="fa-solid fa-percent"></i> نسب وهوامش أرباح الفئات للمنتجات المستوردة (%)
+                </h4>
+
+                <div style="background: rgba(245, 158, 11, 0.05); padding: 1.5rem; border-radius: 16px; border: 1px solid rgba(245, 158, 11, 0.25); margin-bottom: 1.5rem;">
+                    <p style="font-size: 0.85rem; opacity: 0.8; margin-bottom: 1.25rem; line-height: 1.6;">
+                        حدد نسبة الربح (%) التي ترغب في إضافتها فوق سعر التكلفة بالجملة لكل فئة من فئات عملائك. تطبق هذه النسب تلقائياً على كافة المنتجات المستوردة من رقميات.
+                    </p>
+
+                    <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1.25rem;">
+                        <div class="form-group">
+                            <label class="form-label" style="font-weight: 700; color: #fff;">ربح العميل العادي (%):</label>
+                            <input type="number" step="0.1" min="0" max="500" name="margin_customer" value="{{ tier_margins.customer|default:'15.0' }}" class="form-input" style="font-weight: 700;">
+                            <span style="font-size: 0.78rem; opacity: 0.6; margin-top: 0.25rem;">سعر البيع الافتراضي</span>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label" style="font-weight: 700; color: #fff;">ربح التاجر (%):</label>
+                            <input type="number" step="0.1" min="0" max="500" name="margin_dealer" value="{{ tier_margins.dealer|default:'10.0' }}" class="form-input" style="font-weight: 700;">
+                            <span style="font-size: 0.78rem; opacity: 0.6; margin-top: 0.25rem;">سعر الجملة للتاجر</span>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label" style="font-weight: 700; color: #fff;">ربح VIP (%):</label>
+                            <input type="number" step="0.1" min="0" max="500" name="margin_vip" value="{{ tier_margins.vip|default:'5.0' }}" class="form-input" style="font-weight: 700;">
+                            <span style="font-size: 0.78rem; opacity: 0.6; margin-top: 0.25rem;">سعر العملاء المميزين</span>
+                        </div>
+                    </div>
+
+                    <div style="margin-top: 1.25rem; padding-top: 1rem; border-top: 1px solid rgba(255,255,255,0.08); display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1rem;">
+                        <label style="display: flex; align-items: center; gap: 0.6rem; cursor: pointer; font-size: 0.88rem;">
+                            <input type="checkbox" name="recalculate_now" value="1" style="width: 18px; height: 18px; accent-color: #f59e0b;">
+                            <span>إعادة احتساب وتحديث أسعار جميع المنتجات المستوردة الحالية فوراً بناءً على هذه النسب</span>
+                        </label>
+                        <button type="submit" name="save_tier_margins" value="1" class="btn" style="background: #f59e0b; color: #020617; font-weight: 800; font-size: 0.85rem; padding: 0.5rem 1.2rem; border-radius: 20px;">
+                            <i class="fa-solid fa-check"></i> حفظ وتطبيق نسب الأرباح
+                        </button>
+                    </div>
+                </div>
+
                 <div style="margin-top: 2rem; display: flex; justify-content: flex-end;">
                     <button type="submit" class="btn btn-primary"><i class="fa-solid fa-save"></i> حفظ جميع الإعدادات</button>
                 </div>
