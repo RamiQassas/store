@@ -116,6 +116,34 @@
                     </div>
                 </div>
 
+                <!-- Raqamiyat Integration Settings -->
+                <h4 style="font-size: 1.1rem; font-weight: 700; margin-top: 2rem; margin-bottom: 1rem; color: var(--primary); display: flex; align-items: center; gap: 0.5rem;">
+                    <i class="fa-solid fa-cloud-arrow-down"></i> الربط واستيراد المنتجات من رقميات
+                </h4>
+
+                <div style="background: rgba(6,182,212,0.05); padding: 1.25rem; border-radius: 16px; border: 1px solid rgba(6,182,212,0.25); margin-bottom: 1.5rem;">
+                    <div style="display: flex; align-items: flex-start; gap: 1rem;">
+                        <div style="margin-top: 0.2rem;">
+                            {{ form.import_products_from_raqamiyat }}
+                        </div>
+                        <div style="flex-grow: 1;">
+                            <label for="{{ form.import_products_from_raqamiyat.id_for_label }}" style="font-weight: 800; font-size: 1rem; cursor: pointer; color: #fff; display: block;">
+                                تفعيل استيراد ومزامنة منتجات وخدمات منصة رقميات
+                            </label>
+                            <span style="font-size: 0.85rem; opacity: 0.75; display: block; margin-top: 0.25rem; line-height: 1.5;">
+                                عند تفعيل هذا الخيار، يمكنك استيراد وتحديث كافة أقسام وباقات منصة رقميات تلقائياً داخل متجرك. يمكنك تعديل الأسعار وهوامش الربح الخاصة بك دون التأثير على المنصة الرئيسية.
+                            </span>
+                        </div>
+                    </div>
+
+                    <div style="margin-top: 1.2rem; padding-top: 1rem; border-top: 1px solid rgba(255,255,255,0.08); display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1rem;">
+                        <span style="font-size: 0.85rem; opacity: 0.7;">تريد استيراد أو تحديث منتجات رقميات في متجرك الآن؟</span>
+                        <a href="{% url 'merchant_import_raqamiyat_products' %}" class="btn" style="background: linear-gradient(135deg, var(--primary), var(--secondary)); color: #020617; font-weight: 800; font-size: 0.85rem; padding: 0.5rem 1.2rem; border-radius: 20px; display: inline-flex; align-items: center; gap: 0.5rem; text-decoration: none;" onclick="return confirm('هل تريد استيراد ومزامنة أحدث منتجات رقميات إلى متجرك الآن؟');">
+                            <i class="fa-solid fa-rotate"></i> استيراد ومزامنة المنتجات الآن
+                        </a>
+                    </div>
+                </div>
+
                 <div style="margin-top: 2rem; display: flex; justify-content: flex-end;">
                     <button type="submit" class="btn btn-primary"><i class="fa-solid fa-save"></i> حفظ جميع الإعدادات</button>
                 </div>

@@ -881,6 +881,30 @@ def merchant_settings(request):
         "custom_domain_allowed": custom_domain_allowed,
     })
 
+@employee_required("manage_products")
+def merchant_import_raqamiyat_products(request):
+    """Imports and syncs all active products from Raqamiyat into this tenant store."""
+    store = request.store
+    from apps.stores.services import import_raqamiyat_products_for_store
+    try:
+        stats = import_raqamiyat_products_for_store(store)
+        store.import_products_from_raqamiyat = True
+        store.save(update_fields=["import_products_from_raqamiyat"])
+        msg = (
+            f"تمت مزامنة واستيراد منتجات رقميات بنجاح! "
+            f"(التصنيفات: {stats['categories_created']} جديد / {stats['categories_updated']} محدث، "
+            f"المنتجات: {stats['products_created']} جديد / {stats['products_updated']} محدث، "
+            f"الباقات: {stats['variants_created']} جديد / {stats['variants_updated']} محدث)"
+        )
+        messages.success(request, msg)
+    except Exception as e:
+        messages.error(request, f"حدث خطأ أثناء استيراد المنتجات: {str(e)}")
+
+    referer = request.META.get("HTTP_REFERER", "")
+    if "settings" in referer:
+        return redirect("merchant_settings")
+    return redirect("control_products_list")
+
 @employee_required()
 def merchant_subscription(request):
     store = request.store

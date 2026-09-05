@@ -127,6 +127,11 @@ class Store(TimeStampedModel):
     is_featured = models.BooleanField(default=False, verbose_name="متجر مميز للترويج")
     display_order = models.IntegerField(default=0, verbose_name="ترتيب الظهور")
     auto_renew = models.BooleanField(default=True, verbose_name="تجديد تلقائي للاشتراك")
+    import_products_from_raqamiyat = models.BooleanField(
+        default=True, 
+        verbose_name="استيراد منتجات من رقميات",
+        help_text="تفعيل استيراد ومزامنة منتجات وخدمات منصة رقميات في المتجر"
+    )
     billing_cycle = models.CharField(
         max_length=20,
         choices=[("monthly", "شهري"), ("yearly", "سنوي")],
@@ -190,7 +195,7 @@ class Store(TimeStampedModel):
         plan_price_wallet = wallet.currency.from_base(plan_price_usd, "withdraw")
         plan_price_wallet = Decimal(plan_price_wallet).quantize(Decimal("0.01"))
         
-        if wallet.available_balance < plan_price_wallet:
+        if plan_price_wallet > Decimal("0") and wallet.available_balance < plan_price_wallet:
             self.subscription_status = self.Status.SUSPENDED
             self.is_active = False
             self.save()
@@ -200,32 +205,25 @@ class Store(TimeStampedModel):
             with transaction.atomic():
                 from apps.wallets.models import Wallet
                 user_wallet = Wallet.objects.select_for_update().get(id=wallet.id)
-                if user_wallet.available_balance < plan_price_wallet:
+                if plan_price_wallet > Decimal("0") and user_wallet.available_balance < plan_price_wallet:
                     self.subscription_status = self.Status.SUSPENDED
                     self.is_active = False
                     self.save()
                     return False
                     
-                # Deduct balance
                 invoice_ref = f"INV-REN-{uuid.uuid4().hex[:8].upper()}"
-                debit_wallet(
-                    wallet_id=user_wallet.id,
-                    amount=plan_price_wallet,
-                    source="Store Subscription Renewal",
-                    reason=f"تجديد اشتراك متجر '{self.name}' في باقة {self.subscription_plan.name}",
-                    reference=invoice_ref,
-                    created_by=self.owner
-                )
+                if plan_price_wallet > Decimal("0"):
+                    # Deduct balance
+                    debit_wallet(
+                        wallet_id=user_wallet.id,
+                        amount=plan_price_wallet,
+                        source="Store Subscription Renewal",
+                        reason=f"تجديد اشتراك متجر '{self.name}' في باقة {self.subscription_plan.name}",
+                        reference=invoice_ref,
+                        created_by=self.owner
+                    )
                 
-                # Extend subscription
-                duration_days = 30 if self.billing_cycle == 'monthly' else 365
-                self.subscription_start = timezone.now()
-                self.subscription_end = timezone.now() + timedelta(days=duration_days)
-                self.subscription_status = self.Status.ACTIVE
-                self.is_active = True
-                self.save()
-                
-                # Create Invoice
+                # Create renewal invoice record
                 SubscriptionInvoice.objects.create(
                     user=self.owner,
                     store=self,
@@ -235,6 +233,14 @@ class Store(TimeStampedModel):
                     currency=wallet.currency,
                     status="paid"
                 )
+
+                # Extend subscription
+                duration_days = 30 if self.billing_cycle == 'monthly' else 365
+                self.subscription_start = timezone.now()
+                self.subscription_end = timezone.now() + timedelta(days=duration_days)
+                self.subscription_status = self.Status.ACTIVE
+                self.is_active = True
+                self.save()
                 return True
         except Exception as e:
             self.subscription_status = self.Status.SUSPENDED

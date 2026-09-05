@@ -42,6 +42,7 @@ def store_registration_landing(request):
                 "description": form.cleaned_data["description"],
                 "plan_id": str(form.cleaned_data["subscription_plan"].id),
                 "billing_cycle": form.cleaned_data["billing_cycle"],
+                "import_products_from_raqamiyat": form.cleaned_data.get("import_products_from_raqamiyat", True),
             }
             # Handle logo upload separately
             if request.FILES.get("logo"):
@@ -82,10 +83,12 @@ def store_registration_payment(request):
     plan_price_wallet = wallet.currency.from_base(plan_price_usd, "withdraw")
     plan_price_wallet = Decimal(plan_price_wallet).quantize(Decimal("0.01"))
     
-    insufficient_balance = wallet.available_balance < plan_price_wallet
+    # If plan is free or 0.00, insufficient_balance is False
+    is_free_plan = (plan_price_wallet <= Decimal("0.00"))
+    insufficient_balance = False if is_free_plan else (wallet.available_balance < plan_price_wallet)
     
     balance_display = f"{wallet.available_balance:,.2f} {wallet.currency.symbol}"
-    price_display = f"{plan_price_wallet:,.2f} {wallet.currency.symbol}"
+    price_display = "مجاني (0.00)" if is_free_plan else f"{plan_price_wallet:,.2f} {wallet.currency.symbol}"
     
     if request.method == "POST":
         if insufficient_balance:
@@ -104,23 +107,25 @@ def store_registration_payment(request):
                         
                     # Lock wallet to prevent race conditions
                     user_wallet = Wallet.objects.select_for_update().get(id=wallet.id)
-                    if user_wallet.available_balance < plan_price_wallet:
+                    if not is_free_plan and user_wallet.available_balance < plan_price_wallet:
                         messages.error(request, "رصيد المحفظة غير كافٍ لإتمام العملية.")
                         return redirect("store_registration_payment")
                         
-                    # Deduct balance from wallet
                     invoice_ref = f"INV-SUB-{uuid.uuid4().hex[:8].upper()}"
-                    debit_wallet(
-                        wallet_id=user_wallet.id,
-                        amount=plan_price_wallet,
-                        source="Store Subscription",
-                        reason=f"اشتراك متجر '{reg_data['name']}' في باقة {plan.name} ({'سنوي' if billing_cycle == 'yearly' else 'شهري'})",
-                        reference=invoice_ref,
-                        created_by=request.user
-                    )
+                    if not is_free_plan and plan_price_wallet > Decimal("0"):
+                        # Deduct balance from wallet only if amount > 0
+                        debit_wallet(
+                            wallet_id=user_wallet.id,
+                            amount=plan_price_wallet,
+                            source="Store Subscription",
+                            reason=f"اشتراك متجر '{reg_data['name']}' في باقة {plan.name} ({'سنوي' if billing_cycle == 'yearly' else 'شهري'})",
+                            reference=invoice_ref,
+                            created_by=request.user
+                        )
                     
                     # Create Store
                     duration_days = 365 if billing_cycle == "yearly" else 30
+                    import_products_enabled = reg_data.get("import_products_from_raqamiyat", True)
                     store = Store.objects.create(
                         owner=request.user,
                         name=reg_data["name"],
@@ -132,6 +137,7 @@ def store_registration_payment(request):
                         subscription_start=timezone.now(),
                         subscription_end=timezone.now() + timedelta(days=duration_days),
                         billing_cycle=billing_cycle,
+                        import_products_from_raqamiyat=import_products_enabled,
                         is_active=True
                     )
                     
@@ -191,6 +197,15 @@ def store_registration_payment(request):
                         currency=wallet.currency,
                         status="paid"
                     )
+
+                    # Auto import Raqamiyat products if selected
+                    if import_products_enabled:
+                        try:
+                            from apps.stores.services import import_raqamiyat_products_for_store
+                            import_raqamiyat_products_for_store(store)
+                        except Exception as imp_err:
+                            import logging
+                            logging.getLogger(__name__).warning(f"Error importing Raqamiyat products for store: {imp_err}")
                     
             # Clear session
             request.session.pop("store_reg_data", None)

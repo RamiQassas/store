@@ -1121,6 +1121,7 @@ def deposits(request):
         with transaction.atomic():
             deposit = DepositRequest.objects.create(
                 user=request.user,
+                store=getattr(request, "store", None),
                 payment_method=method,
                 currency=currency,
                 amount=amount,
@@ -1254,26 +1255,6 @@ def withdrawals(request):
                          return redirect("dashboard_withdrawals")
                 except: pass
 
-        # Create request (unverified)
-        with transaction.atomic():
-            # Wallet check happens in freeze_funds
-            wallet_amount = currency.to_base(amount, "withdraw")
-            if request.user.wallet.currency.code != "USD":
-                wallet_amount = request.user.wallet.currency.from_base(wallet_amount, "withdraw")
-
-            withdrawal = WithdrawalRequest.objects.create(
-                user=request.user,
-                payment_method=method,
-                currency=currency,
-                amount=amount,
-                wallet_amount=wallet_amount,
-                status=WithdrawalRequest.Status.PENDING,
-                is_verified=False
-            )
-            # Increment Usage
-            request.user.add_withdrawal_usage(amount_in_usd)
-            method.add_withdrawal_usage(amount_in_usd)
-
         # Extract payout details
         payout_details = {"dynamic": {}}
         schema = method.withdrawal_form_schema
@@ -1303,6 +1284,8 @@ def withdrawals(request):
                 # Correctly convert the withdrawal amount to the wallet's currency (usually USD)
                 # wallet_amount is the actual amount to be frozen from the balance
                 wallet_amount = currency.to_base(amount, "withdraw")
+                if request.user.wallet.currency.code != "USD":
+                    wallet_amount = request.user.wallet.currency.from_base(wallet_amount, "withdraw")
                 
                 # Wallet check happens in freeze_funds
                 freeze_funds(
@@ -1314,6 +1297,7 @@ def withdrawals(request):
                 
                 withdrawal = WithdrawalRequest.objects.create(
                     user=request.user,
+                    store=getattr(request, "store", None),
                     payment_method=method,
                     currency=currency,
                     amount=amount,
@@ -1322,6 +1306,9 @@ def withdrawals(request):
                     status=WithdrawalRequest.Status.PENDING,
                     is_verified=False
                 )
+                # Increment Usage
+                request.user.add_withdrawal_usage(amount_in_usd)
+                method.add_withdrawal_usage(amount_in_usd)
             
             # Notify user about the request submission
             send_financial_notification(
@@ -3962,7 +3949,10 @@ def control_category_edit(request, pk=None):
     category = get_object_or_404(Category, pk=pk) if pk else None
     form = CategoryForm(request.POST or None, request.FILES or None, instance=category)
     if request.method == "POST" and form.is_valid():
-        form.save()
+        cat = form.save(commit=False)
+        if not cat.store:
+            cat.store = getattr(request, "store", None)
+        cat.save()
         messages.success(request, "تم حفظ التصنيف بنجاح.")
         return redirect("control_categories_list")
     return render(request, "site/control_category_form.html", {"form": form, "category": category})
@@ -4793,12 +4783,25 @@ def control_coupons_list(request): return render(request, "site/control_coupons_
 @admin_required
 def control_coupon_create(request):
     form = CouponForm(request.POST or None)
-    if request.method == "POST" and form.is_valid(): form.save(); return redirect("control_coupons_list")
+    if request.method == "POST" and form.is_valid():
+        coupon = form.save(commit=False)
+        coupon.store = getattr(request, "store", None)
+        coupon.save()
+        form.save_m2m()
+        return redirect("control_coupons_list")
     return render(request, "site/control_coupon_form.html", {"form": form})
+
 @admin_required
 def control_coupon_edit(request, pk):
-    c = get_object_or_404(Coupon, pk=pk); form = CouponForm(request.POST or None, instance=c)
-    if request.method == "POST" and form.is_valid(): form.save(); return redirect("control_coupons_list")
+    c = get_object_or_404(Coupon, pk=pk)
+    form = CouponForm(request.POST or None, instance=c)
+    if request.method == "POST" and form.is_valid():
+        coupon = form.save(commit=False)
+        if not coupon.store:
+            coupon.store = getattr(request, "store", None)
+        coupon.save()
+        form.save_m2m()
+        return redirect("control_coupons_list")
     return render(request, "site/control_coupon_form.html", {"form": form})
 @admin_required
 def control_coupon_delete(request, pk): get_object_or_404(Coupon, pk=pk).delete(); return redirect("control_coupons_list")

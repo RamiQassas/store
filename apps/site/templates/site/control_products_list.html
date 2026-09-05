@@ -74,6 +74,11 @@
             {% csrf_token %}
             <input type="file" id="import-file-input" name="file" onchange="document.getElementById('import-form').submit()">
         </form>
+        {% if request.store %}
+        <a href="{% url 'merchant_import_raqamiyat_products' %}" class="btn btn-outline btn-sm border-cyan/40 text-cyan hover:bg-cyan hover:text-slate-950 font-bold transition" onclick="return confirm('هل تريد استيراد ومزامنة أحدث منتجات رقميات إلى متجرك الآن؟');">
+            <i class="fas fa-cloud-arrow-down ml-2"></i> استيراد منتجات رقميات
+        </a>
+        {% endif %}
         <a href="{% url 'control_product_create' %}" class="btn btn-primary btn-sm">
             <i class="fas fa-plus ml-2"></i> إضافة منتج جديد
         </a>

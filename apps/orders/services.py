@@ -308,8 +308,14 @@ def create_order(customer, variant_id, quantity=1, fulfillment_data=None,
     if locked_keys:
         final_fulfillment["keys"] = [k.key_code for k in locked_keys]
 
+    order_store = getattr(variant.product, "store", None)
+    if not order_store:
+        from apps.common.tenant_utils import get_current_store
+        order_store = get_current_store()
+
     order = Order.objects.create(
         customer=customer,
+        store=order_store,
         number=next_order_number(),
         status=order_status,
         total_amount=total,

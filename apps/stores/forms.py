@@ -10,6 +10,7 @@ class StoreForm(forms.ModelForm):
         fields = [
             "name", "subdomain", "description", "logo", "banner", 
             "primary_color", "secondary_color", "background_color", "text_color",
+            "import_products_from_raqamiyat",
             "phone", "email", "address", 
             "social_facebook", "social_instagram", "social_twitter", "social_tiktok"
         ]
@@ -33,13 +34,18 @@ class StoreCreateForm(forms.ModelForm):
         required=True,
         label="خطة الاشتراك"
     )
+    import_products_from_raqamiyat = forms.BooleanField(
+        required=False,
+        initial=True,
+        label="استيراد منتجات رقميات"
+    )
     accept_legal_terms = forms.BooleanField(
         required=True,
         label="الموافقة على الشروط القانونية"
     )
     class Meta:
         model = Store
-        fields = ["name", "subdomain", "description", "logo", "subscription_plan", "billing_cycle"]
+        fields = ["name", "subdomain", "description", "logo", "subscription_plan", "billing_cycle", "import_products_from_raqamiyat"]
         widgets = {
             "description": forms.Textarea(attrs={"rows": 3}),
         }
