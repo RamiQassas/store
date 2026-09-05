@@ -226,6 +226,7 @@ def version_view(request):
                 "content-type": "application/json",
             }
             acc_resp = requests.get("https://api.brevo.com/v3/account", headers=headers, timeout=10)
+            senders_resp = requests.get("https://api.brevo.com/v3/senders", headers=headers, timeout=10)
             
             # Also test sending an email or checking send response
             send_payload = {
@@ -239,7 +240,7 @@ def version_view(request):
                 "api_key_len": len(settings.BREVO_API_KEY) if settings.BREVO_API_KEY else 0,
                 "api_key_prefix": settings.BREVO_API_KEY[:10] if settings.BREVO_API_KEY else None,
                 "account_status": acc_resp.status_code,
-                "account_body": acc_resp.json() if acc_resp.headers.get("content-type", "").startswith("application/json") else acc_resp.text,
+                "senders": senders_resp.json() if senders_resp.status_code == 200 else senders_resp.text,
                 "send_status": send_resp.status_code,
                 "send_body": send_resp.json() if send_resp.headers.get("content-type", "").startswith("application/json") else send_resp.text,
             }
