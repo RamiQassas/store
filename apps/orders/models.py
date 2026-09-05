@@ -76,6 +76,7 @@ class Coupon(TimeStampedModel):
 
 class Order(TimeStampedModel):
     class Status(models.TextChoices):
+        PENDING = "pending", "قيد الانتظار"
         PROCESSING = "processing", "قيد المعالجة"
         SHIPPED = "shipped", "قيد الشحن"
         DELIVERED = "delivered", "مسلّم"
