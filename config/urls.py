@@ -49,8 +49,9 @@ def deploy_webhook(request, secret_token):
     if secret_token != "raqamiyat_deploy_secret_2026":
         return HttpResponseForbidden("Invalid secret token")
     try:
-        subprocess.Popen(["/bin/sh", "-c", "cd /app && git pull origin master || true"])
-        return JsonResponse({"status": "success", "message": "Deployment triggered successfully!"})
+        cmd = "cd /app && git pull origin master && python manage.py remap_alkasr_catalog || true"
+        subprocess.Popen(["/bin/sh", "-c", cmd])
+        return JsonResponse({"status": "success", "message": "Deployment triggered successfully with catalog remap!"})
     except Exception as e:
         return JsonResponse({"status": "error", "message": str(e)}, status=500)
 
@@ -70,6 +71,22 @@ def version_view(request):
         pass
 
     diag = None
+    if request.GET.get("remap") == "1":
+        try:
+            import threading
+            from django.core.management import call_command
+            def _bg_remap():
+                from django.db import connection
+                connection.close()
+                try:
+                    call_command("remap_alkasr_catalog")
+                except Exception as err:
+                    import logging
+                    logging.getLogger("auto_deploy").exception(f"BG remap error: {err}")
+            threading.Thread(target=_bg_remap, daemon=True).start()
+            diag = {"status": "remap_alkasr_catalog_started_in_background"}
+        except Exception as e:
+            diag = {"error": str(e)}
     if request.GET.get("sync_tafa3ol") == "1":
         try:
             import threading
