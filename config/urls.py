@@ -178,6 +178,32 @@ def version_view(request):
         except Exception as e:
             import traceback
             diag = {"error": str(e), "traceback": traceback.format_exc()}
+    elif request.GET.get("diag") == "users":
+        try:
+            from apps.accounts.models import User
+            from apps.stores.models import Store, StoreEmployee
+            from apps.common.tenant_utils import bypass_tenant_filter
+            with bypass_tenant_filter():
+                u_list = list(User.all_objects.filter(email__icontains="ramikasas").values(
+                    "id", "email", "role", "store_id", "is_staff", "is_superuser", "is_active", "status", "last_session_key", "email_verified"
+                ))
+                pubg_store = Store.unfiltered.filter(subdomain="pubg").first()
+                membership_info = []
+                for u_dict in u_list:
+                    u = User.all_objects.get(id=u_dict["id"])
+                    membership_info.append({
+                        "user_id": u.id,
+                        "store_id": str(u.store_id),
+                        "pubg_store_id": str(pubg_store.id) if pubg_store else None,
+                        "pubg_owner_id": str(pubg_store.owner_id) if pubg_store else None,
+                        "user_store_equals": (u.store_id == pubg_store.id) if pubg_store else None,
+                        "owner_equals": (pubg_store.owner_id == u.pk) if pubg_store else None,
+                        "employee_exists": StoreEmployee.objects.filter(store=pubg_store, user=u).exists() if pubg_store else None,
+                    })
+                diag = {"users": u_list, "memberships": membership_info}
+        except Exception as e:
+            import traceback
+            diag = {"error": str(e), "traceback": traceback.format_exc()}
 
     return JsonResponse({
         "status": "online",
