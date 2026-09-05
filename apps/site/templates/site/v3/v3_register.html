@@ -24,7 +24,7 @@
 {% block auth_content %}
 <div class="glass-panel p-8 md:p-10 !max-w-2xl mx-auto">
     <div class="mb-8">
-        <h2 class="text-2xl font-black text-white mb-2">انضم إلى رقميات</h2>
+        <h2 class="text-2xl font-black text-white mb-2">انضم إلى {% if is_tenant %}{{ STORE_NAME }}{% else %}رقميات{% endif %}</h2>
         <p class="text-slate-400 text-sm">ابدأ رحلتك في عالم الخدمات الرقمية والألعاب اليوم.</p>
     </div>
 
@@ -134,7 +134,7 @@
             {% for provider_group in provider_list %}
                 {% if provider_group.grouper == 'google' %}
                 {% if is_tenant %}
-                <a href="{{ PLATFORM_URL }}/accounts/google/login/?next={{ PLATFORM_URL }}/auth/sso-callback/%3Fnext%3D{{ request.build_absolute_uri|urlencode }}" class="btn-secondary w-full group !py-4">
+                <a href="{{ PLATFORM_URL }}/accounts/google/login/?next={{ PLATFORM_URL }}/auth/sso-callback/%3Fnext%3D{{ request.scheme }}%3A//{{ request.get_host }}%2Fdashboard%2F" class="btn-secondary w-full group !py-4">
                     <img src="https://upload.wikimedia.org/wikipedia/commons/c/c1/Google_%22G%22_logo.svg" class="w-5 h-5 group-hover:scale-110 transition-transform">
                     <span class="text-sm">التسجيل بواسطة Google</span>
                 </a>

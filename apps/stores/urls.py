@@ -40,8 +40,8 @@ urlpatterns = [
     path("", site_views.home, name="store_home"),          # Alias for backward compat
     path("catalog/", site_views.catalog, name="catalog"),
     path("catalog/", site_views.catalog, name="store_catalog"),  # Alias
-    path("catalog/<uuid:pk>/", site_views.product_detail, name="product_detail"),
-    path("catalog/<uuid:pk>/", site_views.product_detail, name="store_product_detail"),  # Alias
+    path("catalog/<str:pk>/", site_views.product_detail, name="product_detail"),
+    path("catalog/<str:pk>/", site_views.product_detail, name="store_product_detail"),  # Alias
 
     # Authentication — same auth flow as main platform
     path("auth/login/", site_views.v3_login_view, name="site_login"),

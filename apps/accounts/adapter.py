@@ -232,14 +232,22 @@ class MySocialAccountAdapter(DefaultSocialAccountAdapter):
             from django.http import HttpResponseRedirect
             from allauth.core.exceptions import ImmediateHttpResponse
 
-            redirect_url = getattr(settings, "LOGIN_REDIRECT_URL", "/dashboard/")
+            # Determine redirect URL: preserve next param from OAuth state, GET or session to return to sub-store
+            next_url = None
+            if hasattr(sociallogin, "state") and isinstance(sociallogin.state, dict):
+                next_url = sociallogin.state.get("next")
+            if not next_url:
+                next_url = request.GET.get("next") or request.session.get("next")
+            if not next_url:
+                next_url = getattr(settings, "LOGIN_REDIRECT_URL", "/dashboard/")
+
             resp = perform_login(
                 request,
                 user,
                 email_verification="none",
-                redirect_url=redirect_url
+                redirect_url=next_url
             )
-            raise ImmediateHttpResponse(resp or HttpResponseRedirect(redirect_url))
+            raise ImmediateHttpResponse(resp or HttpResponseRedirect(next_url))
             
         except ImmediateHttpResponse:
             raise
@@ -279,6 +287,13 @@ class MySocialAccountAdapter(DefaultSocialAccountAdapter):
         )
         
         return user
+
+    def get_login_redirect_url(self, request):
+        next_url = request.GET.get("next") or request.session.get("next")
+        if next_url:
+            return next_url
+        from django.conf import settings
+        return getattr(settings, "LOGIN_REDIRECT_URL", "/dashboard/")
 
     def authentication_error(self, request, provider_id, error=None, exception=None, extra_context=None):
         logger.error(f"Social authentication error for {provider_id}: {error} | {exception}")

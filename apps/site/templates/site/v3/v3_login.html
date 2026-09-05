@@ -62,7 +62,7 @@
             {% for provider_group in provider_list %}
                 {% if provider_group.grouper == 'google' %}
                 {% if is_tenant %}
-                <a href="{{ PLATFORM_URL }}/accounts/google/login/?next={{ PLATFORM_URL }}/auth/sso-callback/%3Fnext%3D{{ request.build_absolute_uri|urlencode }}" class="btn-secondary w-full group">
+                <a href="{{ PLATFORM_URL }}/accounts/google/login/?next={{ PLATFORM_URL }}/auth/sso-callback/%3Fnext%3D{{ request.scheme }}%3A//{{ request.get_host }}%2Fdashboard%2F" class="btn-secondary w-full group">
                     <img src="https://upload.wikimedia.org/wikipedia/commons/c/c1/Google_%22G%22_logo.svg" class="w-5 h-5 group-hover:scale-110 transition-transform">
                     <span class="text-sm">المتابعة باستخدام Google</span>
                 </a>

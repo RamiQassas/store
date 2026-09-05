@@ -171,6 +171,10 @@ class Command(BaseCommand):
             if cleaned_orders_count > 0:
                 self.stdout.write(self.style.SUCCESS(f'Cleaned up and deduplicated fulfillment data for {cleaned_orders_count} orders.'))
 
+            from apps.stores.services import deduplicate_all_stores
+            dedup_res = deduplicate_all_stores()
+            self.stdout.write(self.style.SUCCESS(f'Deduplicated all stores: {dedup_res}'))
+
             total_cats = Category.objects.count()
             total_prods = Product.objects.filter(api_provider='alkasr').count()
             total_vars = ProductVariant.objects.filter(product__api_provider='alkasr').count()

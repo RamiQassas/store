@@ -450,4 +450,41 @@ def clean_fulfillment_items(fulfillment):
     return result
 
 
+@register.filter
+def tenant_title(raw_title, store_name=None):
+    """
+    Replaces static 'رقميات' or 'Raqamiyat' references in page titles
+    with the current tenant store's name.
+    """
+    if not store_name:
+        try:
+            from apps.common.tenant_utils import get_current_store
+            store = get_current_store()
+            if store and hasattr(store, "name") and store.name:
+                store_name = store.name
+        except Exception:
+            pass
 
+    if not raw_title:
+        return store_name or "رقميات"
+    
+    if not store_name or store_name.strip() in ["رقميات", "Raqamiyat"]:
+        return raw_title
+
+    t = str(raw_title).strip()
+    replacements = [
+        ("رقميات | كل ما تحتاجه من خدمات رقمية في مكان واحد", store_name),
+        ("Raqamiyat | رقميات", store_name),
+        ("رقميات - Raqamiyat", store_name),
+        ("Raqamiyat Admin", f"{store_name} Admin"),
+        ("Raqamiyat Elite", store_name),
+        ("Raqamiyat Control", store_name),
+        ("Raqamiyat Builder", store_name),
+        ("رقميات SaaS", store_name),
+        ("Raqamiyat", store_name),
+        ("رقميات", store_name),
+    ]
+    for old, new in replacements:
+        if old in t:
+            t = t.replace(old, new)
+    return t

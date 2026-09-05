@@ -3375,7 +3375,11 @@ def control_product_import(request):
 
 @support_required
 def control_categories_list(request):
-    categories = Category.objects.all().order_by('sort_order', 'name')
+    store = getattr(request, "store", None)
+    if store:
+        categories = Category.all_objects.filter(store=store).order_by('sort_order', 'name')
+    else:
+        categories = Category.all_objects.filter(store__isnull=True).order_by('sort_order', 'name')
     return render(request, "site/control_categories_list.html", {"categories": categories})
 
 @support_required
@@ -3546,12 +3550,20 @@ def control_products_list(request):
                 messages.error(request, f"فشل التعديل الجماعي: {str(e)}")
             return redirect("control_products_list")
 
-    products = Product.objects.select_related('category').prefetch_related('variants').all().order_by('sort_order', 'name')
+    if store:
+        products = Product.all_objects.filter(store=store)
+        base_cat_qs = Category.all_objects.filter(store=store)
+    else:
+        products = Product.all_objects.filter(store__isnull=True)
+        base_cat_qs = Category.all_objects.filter(store__isnull=True)
+
+    products = products.select_related('category').prefetch_related('variants').order_by('sort_order', 'name')
     cat_id = request.GET.get('category')
     active_category = None
     if cat_id:
-        active_category = get_object_or_404(Category, id=cat_id)
-        products = products.filter(category_id=cat_id)
+        active_category = base_cat_qs.filter(id=cat_id).first()
+        if active_category:
+            products = products.filter(category_id=cat_id)
 
     q = request.GET.get('q', '').strip()
     view_mode = request.GET.get('view', 'list')
@@ -3569,42 +3581,43 @@ def control_products_list(request):
         columns = [
             ("ID", lambda p: str(p.id)),
             ("اسم المنتج", lambda p: p.name),
-            ("التصنيف", lambda p: p.category.name),
-            ("عدد الباقات", lambda p: p.variants.count()),
+            ("القسم", lambda p: p.category.name if p.category else ""),
+            ("النوع", lambda p: p.get_product_type_display()),
             ("نشط", lambda p: "نعم" if p.is_active else "لا"),
-            ("مميز", lambda p: "نعم" if p.is_featured else "لا"),
             ("ترتيب العرض", lambda p: p.sort_order),
         ]
         return export_to_excel(products, "Products", columns)
 
-    per_page_param = request.GET.get('per_page', '20')
+    # Per-page selector support (10, 25, 50, 100, or all)
+    per_page_param = request.GET.get('per_page', '25')
     if per_page_param == 'all':
-        page_size = max(products.count(), 1)
+        per_page = 10000
     else:
         try:
-            page_size = max(1, int(per_page_param))
+            per_page = int(per_page_param)
+            if per_page not in [10, 25, 50, 100]:
+                per_page = 25
         except (ValueError, TypeError):
-            page_size = 20
+            per_page = 25
 
-    paginator = Paginator(products, page_size)
+    from django.core.paginator import Paginator
+    paginator = Paginator(products, per_page)
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
 
     show_all_cats = request.GET.get('all_cats') == '1'
     from django.db.models import Count
-    from apps.common.tenant_utils import bypass_tenant_filter
-    with bypass_tenant_filter():
-        categories_qs = Category.all_objects.filter(is_active=True).annotate(
-            product_count=Count('products')
-        )
-        if not show_all_cats:
-            categories = list(categories_qs.filter(product_count__gt=0).order_by('sort_order', 'name'))
-            if not categories:
-                categories = list(categories_qs.order_by('sort_order', 'name'))
-        else:
+    categories_qs = base_cat_qs.filter(is_active=True).annotate(
+        product_count=Count('products')
+    )
+    if not show_all_cats:
+        categories = list(categories_qs.filter(product_count__gt=0).order_by('sort_order', 'name'))
+        if not categories:
             categories = list(categories_qs.order_by('sort_order', 'name'))
+    else:
+        categories = list(categories_qs.order_by('sort_order', 'name'))
 
-        all_categories = list(Category.all_objects.all().order_by('sort_order', 'name'))
+    all_categories = list(base_cat_qs.order_by('sort_order', 'name'))
 
     return render(request, "site/control_products_list.html", {
         "products": page_obj,
@@ -3699,7 +3712,12 @@ def control_product_change_category_ajax(request, pk):
 
 @support_required
 def control_orders_list(request):
-    orders = Order.objects.select_related('customer').prefetch_related('items__variant__product').all().order_by('-created_at')
+    store = getattr(request, "store", None)
+    if store:
+        orders = Order.all_objects.filter(store=store)
+    else:
+        orders = Order.all_objects.filter(store__isnull=True)
+    orders = orders.select_related('customer').prefetch_related('items__variant__product').order_by('-created_at')
     q = request.GET.get('q', '').strip()
     status = request.GET.get('status', '')
 
@@ -3918,31 +3936,6 @@ def currency_edit(request, pk):
     if request.method == "POST" and form.is_valid(): form.save(); return redirect("currencies_list")
     return render(request, "site/currency_form.html", {"form": form, "currency": c})
 
-@support_required
-def control_categories_list(request):
-    categories = Category.objects.all().order_by('sort_order', 'name')
-    return render(request, "site/control_categories_list.html", {"categories": categories})
-
-@support_required
-def control_category_edit(request, pk=None):
-    category = get_object_or_404(Category, pk=pk) if pk else None
-    form = CategoryForm(request.POST or None, request.FILES or None, instance=category)
-    if request.method == "POST" and form.is_valid():
-        form.save()
-        messages.success(request, "تم حفظ التصنيف بنجاح.")
-        return redirect("control_categories_list")
-    return render(request, "site/control_category_form.html", {"form": form, "category": category})
-
-@support_required
-def control_category_delete(request, pk):
-    get_object_or_404(Category, pk=pk).delete()
-    messages.success(request, "تم حذف التصنيف.")
-    return redirect("control_categories_list")
-
-@support_required
-def control_categories_list(request):
-    categories = Category.objects.all().order_by('sort_order', 'name')
-    return render(request, "site/control_categories_list.html", {"categories": categories})
 
 @support_required
 def control_category_edit(request, pk=None):
@@ -5919,6 +5912,7 @@ def sso_transfer_view(request):
                             email_verified=True,
                             is_active=True
                         )
+                        get_or_create_wallet(tenant_user)
                         user_to_login = tenant_user
 
                 # Verify if user_to_login belongs to this store
@@ -5943,7 +5937,9 @@ def sso_transfer_view(request):
             login(request, user_to_login)
 
             messages.success(request, "تم مزامنة تسجيل الدخول بنجاح.")
-            return redirect(next_url or "/dashboard/")
+            if not next_url or next_url in ["/auth/login/", "/auth/register/"]:
+                next_url = "/dashboard/"
+            return redirect(next_url)
         except (signing.SignatureExpired, signing.BadSignature, User.DoesNotExist) as e:
             messages.error(request, "رابط تسجيل الدخول غير صالح أو منتهي الصلاحية. يرجى المحاولة مرة أخرى.")
             return redirect("site_login")
@@ -5961,8 +5957,9 @@ def sso_transfer_view(request):
             if parsed.query:
                 target_path += f"?{parsed.query}"
 
+            scheme = parsed.scheme or ("https" if ("raqamiyatapp.com" in parsed.netloc or request.is_secure()) else "http")
             sso_url = urlunparse((
-                parsed.scheme or "http",
+                scheme,
                 parsed.netloc,
                 callback_path,
                 "",

@@ -1,10 +1,10 @@
-{% load static %}
+{% load static site_tags %}
 <!DOCTYPE html>
 <html lang="ar" dir="rtl" class="dark">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}المصادقة | رقميات{% endblock %}</title>
+    <title>{% filter tenant_title %}{% block title %}{% if is_tenant %}{{ STORE_NAME }}{% else %}المصادقة | رقميات{% endif %}{% endblock %}{% endfilter %}</title>
     
     <!-- Fonts: Cairo & Rajdhani for a techy look -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
