@@ -129,9 +129,9 @@
                 </div>
                 <div>
                     <h1 class="text-2xl font-black tracking-tight text-white print-text-dark flex items-center gap-2">
-                        رقميات <span class="text-cyan-400 text-xs font-mono font-bold px-2 py-0.5 rounded-lg bg-cyan-500/10 border border-cyan-500/20">RAQAMIYAT</span>
+                        {% if is_tenant %}{{ STORE_NAME }}{% else %}رقميات <span class="text-cyan-400 text-xs font-mono font-bold px-2 py-0.5 rounded-lg bg-cyan-500/10 border border-cyan-500/20">RAQAMIYAT</span>{% endif %}
                     </h1>
-                    <p class="text-xs text-slate-400 print-text-muted mt-0.5">منصة الخدمات والبطاقات الرقمية المعتمدة</p>
+                    <p class="text-xs text-slate-400 print-text-muted mt-0.5">{% if is_tenant %}{{ STORE_DESCRIPTION|default:"متجر رقمي معتمد" }}{% else %}منصة الخدمات والبطاقات الرقمية المعتمدة{% endif %}</p>
                 </div>
             </div>
 
@@ -165,7 +165,7 @@
 
             <div class="p-4 rounded-2xl bg-slate-950/50 border border-white/5 print-bg-light print-border">
                 <span class="text-[10px] text-slate-400 print-text-muted font-black uppercase tracking-wider block mb-1">تفاصيل الدفع والتنفيذ</span>
-                <strong class="text-white print-text-dark text-sm block">محفظة رقميات (خصم فوري)</strong>
+                <strong class="text-white print-text-dark text-sm block">محفظة {% if is_tenant %}{{ STORE_NAME }}{% else %}رقميات{% endif %} (خصم فوري)</strong>
                 {% if order.api_order_id %}
                 <span class="text-cyan-400 print-text-dark font-mono text-[11px] block mt-0.5">رقم الطلب: {{ order.api_order_id }}</span>
                 {% else %}
@@ -273,7 +273,7 @@
         <!-- Totals & Payment Summary -->
         <div class="pt-6 border-t border-white/10 print-border flex flex-col sm:flex-row justify-between items-start sm:items-center gap-6">
             <div class="text-xs text-slate-400 print-text-muted max-w-sm">
-                <p class="font-bold text-white print-text-dark mb-1">شكراً لتعاملكم مع منصة رقميات</p>
+                <p class="font-bold text-white print-text-dark mb-1">شكراً لتعاملكم مع {% if is_tenant %}{{ STORE_NAME }}{% else %}منصة رقميات{% endif %}</p>
                 <p>هذا المستند يعتبر إشعاراً رسميّاً بتنفيذ وتسليم الخدمة المطلوبة بموجب الشروط والأحكام المعتمدة.</p>
             </div>
 
@@ -299,7 +299,7 @@
         <div class="mt-8 pt-6 border-t border-white/5 print-border flex flex-col sm:flex-row items-center justify-between gap-4 text-[10px] text-slate-500 print-text-muted">
             <div class="flex items-center gap-2">
                 <i class="fas fa-shield-check text-cyan-400"></i>
-                <span>تم التحقق والاعتماد إلكترونياً عبر أنظمة رقميات الآمنة</span>
+                <span>تم التحقق والاعتماد إلكترونياً عبر أنظمة {% if is_tenant %}{{ STORE_NAME }}{% else %}رقميات{% endif %} الآمنة</span>
             </div>
             <div class="font-mono">
                 معرف الفاتورة: {{ order.id }}
@@ -310,7 +310,7 @@
 
     <!-- Bottom Print Disclaimer -->
     <div class="no-print max-w-[820px] mx-auto w-full text-center text-xs text-slate-500 my-4">
-        © 2026 منصة رقميات للخدمات الرقمية. جميع الحقوق محفوظة.
+        © 2026 {% if is_tenant %}{{ STORE_NAME }}{% else %}منصة رقميات للخدمات الرقمية{% endif %}. جميع الحقوق محفوظة.
     </div>
 
 </body>

@@ -1,5 +1,5 @@
 {% extends "site/base.html" %}
-{% block title %}سياسة الخصوصية | Raqamiyat - رقميات{% endblock %}
+{% block title %}سياسة الخصوصية | {% if is_tenant %}{{ STORE_NAME }}{% else %}Raqamiyat - رقميات{% endif %}{% endblock %}
 {% block content %}
 <section class="page-head">
   <div>

@@ -289,7 +289,7 @@
     <section style="background: var(--brand-surface); padding: 100px 0;">
         <div class="home-container">
             <span style="color: var(--brand-sky); font-weight: 800; letter-spacing: 3px; display: block; text-align: center; margin-bottom: 1rem;">لماذا نحن</span>
-            <h2 class="section-title reveal">مميزات تجربة رقميات</h2>
+            <h2 class="section-title reveal">{% if is_tenant %}مميزات متجر {{ STORE_NAME }}{% else %}مميزات تجربة رقميات{% endif %}</h2>
             <div class="features-grid">
                 <div class="feature-card reveal">
                     <i class="fas fa-bolt"></i>
@@ -449,8 +449,8 @@
     <section style="padding: 80px 0;">
         <div class="home-container">
             <div class="reveal" style="background: var(--gradient-main); border-radius: 40px; padding: 6rem 4rem; text-align: center; box-shadow: 0 40px 80px var(--brand-glow);">
-                <h2 style="font-size: 3.5rem; color: #fff; margin-bottom: 1.5rem;">ابدأ تجربتك الرقمية الآن مع رقميات</h2>
-                <p style="font-size: 1.35rem; color: rgba(255,255,255,0.8); margin-bottom: 3rem; max-width: 700px; margin-inline: auto; font-weight: 600;">انضم إلى أكثر من 20,000 مستخدم يستمتعون بأسرع خدمة شحن في المنطقة.</p>
+                <h2 style="font-size: 3.5rem; color: #fff; margin-bottom: 1.5rem;">{% if is_tenant %}ابدأ تجربتك الرقمية الآن مع {{ STORE_NAME }}{% else %}ابدأ تجربتك الرقمية الآن مع رقميات{% endif %}</h2>
+                <p style="font-size: 1.35rem; color: rgba(255,255,255,0.8); margin-bottom: 3rem; max-width: 700px; margin-inline: auto; font-weight: 600;">{% if is_tenant %}انضم إلينا واستمتع بأسرع خدمة شحن وتسليم فوري.{% else %}انضم إلى أكثر من 20,000 مستخدم يستمتعون بأسرع خدمة شحن في المنطقة.{% endif %}</p>
                 <a href="{% url 'site_register' %}" class="btn-premium" style="background: #fff; color: var(--brand-primary); font-size: 1.2rem; padding: 0 4rem;">تسوق الآن</a>
             </div>
         </div>

@@ -1,5 +1,5 @@
 {% extends "site/base.html" %}
-{% block title %}تواصل معنا | Raqamiyat - رقميات{% endblock %}
+{% block title %}تواصل معنا | {% if is_tenant %}{{ STORE_NAME }}{% else %}Raqamiyat - رقميات{% endif %}{% endblock %}
 {% block content %}
 <section class="page-head">
   <div>

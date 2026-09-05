@@ -208,9 +208,9 @@
     <!-- Hero -->
     <section class="hero-v6">
         <div class="reveal">
-            <span class="text-[10px] font-black text-cyan uppercase tracking-widest mb-4 block">منصة رقميات الموثوقة</span>
+            <span class="text-[10px] font-black text-cyan uppercase tracking-widest mb-4 block">{% if is_tenant %}{{ STORE_NAME }}{% else %}منصة رقميات الموثوقة{% endif %}</span>
             <h1>بوابتك لأفضل الخدمات الرقمية</h1>
-            <p>منصة رقميات توفر لك كافة بطاقات الشحن والاشتراكات العالمية بأسعار تنافسية وتسليم آلي فوري على مدار الساعة.</p>
+            <p>{% if is_tenant %}{{ STORE_DESCRIPTION|default:"نوفر لك كافة بطاقات الشحن والاشتراكات العالمية بأسعار تنافسية وتسليم آلي فوري على مدار الساعة." }}{% else %}منصة رقميات توفر لك كافة بطاقات الشحن والاشتراكات العالمية بأسعار تنافسية وتسليم آلي فوري على مدار الساعة.{% endif %}</p>
             
             <div class="cta-v6">
                 <a href="{% url 'catalog' %}" class="btn btn-primary px-10">تصفح المتجر</a>
@@ -246,7 +246,7 @@
     <section class="py-20 border-t border-white/5">
         <div class="text-center reveal">
             <span class="text-[10px] font-black text-slate-500 uppercase mb-2 block">خطوات العمل</span>
-            <h2 class="text-3xl font-black mb-12">كيف يعمل رقميات؟</h2>
+            <h2 class="text-3xl font-black mb-12">{% if is_tenant %}كيف يعمل متجرنا؟{% else %}كيف يعمل رقميات؟{% endif %}</h2>
             
             <div class="steps-v6">
                 <div class="step-v6 reveal">

@@ -1,6 +1,6 @@
 {% extends "site/v3/auth_base.html" %}
 
-{% block title %}التحقق الثنائي 2FA | رقميات{% endblock %}
+{% block title %}التحقق الثنائي 2FA | {% if is_tenant %}{{ STORE_NAME }}{% else %}رقميات{% endif %}{% endblock %}
 
 {% block auth_content %}
 <div class="glass-panel p-8 md:p-10 text-center">

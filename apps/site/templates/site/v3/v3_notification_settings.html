@@ -1,5 +1,5 @@
 {% extends "site/v3/auth_base.html" %}
-{% block title %}إعدادات الإشعارات | رقميات{% endblock %}
+{% block title %}إعدادات الإشعارات | {% if is_tenant %}{{ STORE_NAME }}{% else %}رقميات{% endif %}{% endblock %}
 
 {% block auth_content %}
 <div class="glass-panel p-8 md:p-10 !max-w-3xl mx-auto">

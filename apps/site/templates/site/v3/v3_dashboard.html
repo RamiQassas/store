@@ -1,7 +1,7 @@
 {% extends "site/base.html" %}
 {% load static site_tags %}
 
-{% block title %}لوحتي | Raqamiyat - رقميات{% endblock %}
+{% block title %}لوحتي | {% if is_tenant %}{{ STORE_NAME }}{% else %}Raqamiyat - رقميات{% endif %}{% endblock %}
 
 {% block extra_head %}
 <style>
@@ -326,7 +326,7 @@
     <div>
         <span class="eyebrow">أهلاً بك، {{ user.display_name }}</span>
         <h1>لوحة التحكم</h1>
-        <p class="text-muted">مرحباً بك مجدداً في منصة رقميات. إليك نظرة سريعة على حسابك.</p>
+        <p class="text-muted">مرحباً بك مجدداً في {% if is_tenant %}متجر {{ STORE_NAME }}{% else %}منصة رقميات{% endif %}. إليك نظرة سريعة على حسابك.</p>
     </div>
     <div class="hide-mobile">
         <span class="badge primary p-2 px-4">
