@@ -1,7 +1,7 @@
 {% extends "site/v3/auth_base.html" %}
 {% load socialaccount %}
 
-{% block title %}إنشاء حساب جديد | رقميات{% endblock %}
+{% block title %}إنشاء حساب جديد | {% if is_tenant %}{{ STORE_NAME }}{% else %}رقميات{% endif %}{% endblock %}
 
 {% block extra_head %}
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/intl-tel-input@23.0.10/build/css/intlTelInput.css">

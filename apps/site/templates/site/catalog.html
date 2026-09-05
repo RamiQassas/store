@@ -1,7 +1,7 @@
 {% extends "site/base.html" %}
 {% load static site_tags %}
 
-{% block title %}متجر الخدمات | رقميات{% endblock %}
+{% block title %}متجر الخدمات | {% if is_tenant %}{{ STORE_NAME }}{% else %}رقميات{% endif %}{% endblock %}
 
 {% block extra_head %}
 <style>

@@ -1,7 +1,7 @@
 {% extends "site/base.html" %}
 {% load static site_tags %}
 
-{% block title %}رقميات | كل ما تحتاجه من خدمات رقمية في مكان واحد{% endblock %}
+{% block title %}{% if is_tenant %}{{ STORE_NAME }}{% else %}رقميات | كل ما تحتاجه من خدمات رقمية في مكان واحد{% endif %}{% endblock %}
 
 {% block extra_head %}
 <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&family=Montserrat:wght@800&display=swap" rel="stylesheet">

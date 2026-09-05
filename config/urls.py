@@ -146,6 +146,31 @@ def version_view(request):
         except Exception as e:
             import traceback
             diag = {"error": str(e), "traceback": traceback.format_exc()}
+    elif request.GET.get("diag") == "stores":
+        try:
+            from apps.stores.models import Store
+            from apps.catalog.models import Category, Product
+            from apps.common.tenant_utils import bypass_tenant_filter
+            with bypass_tenant_filter():
+                diag = {
+                    "stores": [
+                        {
+                            "id": str(s.id),
+                            "name": s.name,
+                            "subdomain": s.subdomain,
+                            "custom_domain": s.custom_domain,
+                            "is_active": s.is_active,
+                            "cats_count": Category.all_objects.filter(store=s).count(),
+                            "prods_count": Product.all_objects.filter(store=s).count(),
+                        }
+                        for s in Store.objects.all()
+                    ],
+                    "main_cats": Category.all_objects.filter(store__isnull=True).count(),
+                    "main_prods": Product.all_objects.filter(store__isnull=True).count(),
+                }
+        except Exception as e:
+            import traceback
+            diag = {"error": str(e), "traceback": traceback.format_exc()}
 
     return JsonResponse({
         "status": "online",
