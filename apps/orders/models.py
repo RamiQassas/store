@@ -232,8 +232,7 @@ class Order(TimeStampedModel):
             },
             ...
         ]
-        Extracts from fulfillment_data (all_server_responses, ردود السيرفر, رد السيرفر, سبب الإلغاء),
-        order logs (notes recorded by provider updates), and metadata.
+        Extracts from fulfillment_data, metadata, OrderLogs, and ProviderOrders.
         """
         from apps.orders.provider_status import parse_server_response_details, extract_clean_text
         import re
@@ -242,6 +241,7 @@ class Order(TimeStampedModel):
         seen_texts = set()
 
         ff = self.fulfillment_data or {}
+        meta = self.metadata or {}
         
         # 1. Direct lists or fields in fulfillment_data
         for key in ("all_server_responses", "server_responses", "ردود السيرفر"):
@@ -253,12 +253,26 @@ class Order(TimeStampedModel):
             elif isinstance(val, str) and val.strip():
                 raw_candidates.append(val.strip())
 
-        for key in ("رد السيرفر", "سبب الإلغاء من السيرفر", "كود التفعيل / البطاقة"):
+        for key in (
+            "رد السيرفر", "سبب الإلغاء من السيرفر", "كود التفعيل / البطاقة",
+            "replay", "replay_api", "notes", "note", "msg", "message",
+            "details", "server_response", "response", "api_error", "error", "reason",
+            "api_last_response"
+        ):
             val = ff.get(key)
-            if isinstance(val, str) and val.strip():
-                raw_candidates.append(val.strip())
+            if val:
+                raw_candidates.append(val)
 
-        # 2. Extract from OrderLogs (captures historical provider updates)
+        # 2. Check metadata
+        for key in (
+            "api_last_response", "server_response", "api_error", "replay",
+            "error", "msg", "notes", "response", "reason"
+        ):
+            val = meta.get(key)
+            if val:
+                raw_candidates.append(val)
+
+        # 3. Extract from OrderLogs (captures historical provider updates)
         try:
             for log in self.logs.all():
                 note = log.note or ""
@@ -269,24 +283,45 @@ class Order(TimeStampedModel):
         except Exception:
             pass
 
-        # 3. Process each candidate and deduplicate
+        # 4. Check ProviderOrder status history if available
+        try:
+            for po in self.provider_orders.all():
+                for sh in po.status_history.all():
+                    if sh.raw_response:
+                        raw_candidates.append(sh.raw_response)
+        except Exception:
+            pass
+
+        # 5. Admin note if any
+        if getattr(self, 'admin_note', None):
+            raw_candidates.append(self.admin_note)
+
+        # 6. Process each candidate and deduplicate
         structured_responses = []
-        avatar_global = ff.get("صورة الحساب / الأفاتار") or ff.get("image_url")
+        avatar_global = ff.get("صورة الحساب / الأفاتار") or ff.get("image_url") or meta.get("avatar") or meta.get("image_url")
 
         for cand in raw_candidates:
+            if not cand:
+                continue
+            cand_img = None
             if isinstance(cand, dict):
-                c_text = cand.get("clean_text") or cand.get("text") or cand.get("raw") or ""
+                cand_img = cand.get("image_url") or cand.get("avatar")
+                c_text = cand.get("clean_text") or cand.get("text") or cand.get("raw") or extract_clean_text(cand)
             else:
                 c_text = extract_clean_text(cand)
 
-            if not c_text:
+            if not c_text or not str(c_text).strip():
                 continue
 
-            parsed = parse_server_response_details(cand if isinstance(cand, str) else c_text)
-            display_text = parsed.get("clean_text") or parsed.get("raw_clean") or c_text
+            parsed = parse_server_response_details(str(c_text).strip())
+            display_text = parsed.get("clean_text") or parsed.get("raw_clean") or str(c_text).strip()
             display_text = display_text.strip()
 
             if not display_text or display_text in seen_texts:
+                continue
+
+            # Skip technical internal status words alone
+            if display_text.lower() in ("completed", "processing", "pending", "success", "failed", "cancelled", "none", "null", "ok"):
                 continue
 
             # Skip if this text is an exact substring of an already recorded response
@@ -294,7 +329,7 @@ class Order(TimeStampedModel):
                 continue
 
             seen_texts.add(display_text)
-            avatar = parsed.get("image_url") or avatar_global
+            avatar = parsed.get("image_url") or cand_img or avatar_global
 
             structured_responses.append({
                 "text": display_text,

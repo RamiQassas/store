@@ -58,6 +58,63 @@
 
 <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
     <div class="lg:col-span-2 stack gap-8">
+        <!-- Prominent Server Response(s) at the Top of Order Detail -->
+        {% with responses=order.get_server_responses %}
+        {% if responses %}
+        <div class="p-5 sm:p-6 rounded-3xl {% if order.status == 'completed' %}bg-emerald-500/[0.08] border-2 border-emerald-500/30 shadow-lg shadow-emerald-500/5{% elif order.status == 'cancelled' or order.status == 'refunded' %}bg-rose-500/[0.08] border-2 border-rose-500/30 shadow-lg shadow-rose-500/5{% else %}bg-cyan-500/[0.08] border-2 border-cyan-500/30 shadow-lg shadow-cyan/5{% endif %} space-y-4">
+            <div class="flex items-center justify-between border-b border-white/5 pb-3">
+                <span class="text-sm font-black {% if order.status == 'completed' %}text-emerald-400{% elif order.status == 'cancelled' or order.status == 'refunded' %}text-rose-400{% else %}text-cyan-400{% endif %} flex items-center gap-2">
+                    <i class="fas {% if order.status == 'completed' %}fa-check-circle text-emerald-400{% elif order.status == 'cancelled' or order.status == 'refunded' %}fa-times-circle text-rose-400{% else %}fa-satellite-dish text-cyan-400{% endif %}"></i>
+                    رد السيرفر من المزود {% if responses|length > 1 %}<span class="px-2.5 py-0.5 rounded-full bg-white/10 text-xs text-white">({{ responses|length }} ردود)</span>{% endif %}
+                </span>
+                <span class="text-xs font-mono text-slate-400 font-bold flex items-center gap-1.5">
+                    <span class="w-2 h-2 rounded-full {% if order.status == 'completed' %}bg-emerald-400{% elif order.status == 'cancelled' or order.status == 'refunded' %}bg-rose-400{% else %}bg-cyan-400 animate-ping{% endif %}"></span>
+                    مباشر ومحدث
+                </span>
+            </div>
+
+            <div class="space-y-3">
+                {% for res in responses %}
+                <div class="p-4 rounded-2xl bg-slate-950/80 border border-white/10 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                    <div class="flex items-start sm:items-center gap-4">
+                        {% if res.avatar %}
+                        <div class="w-16 h-16 rounded-2xl bg-slate-900 border-2 border-white/10 overflow-hidden shrink-0 shadow-lg">
+                            <img src="{{ res.avatar }}" alt="Avatar" class="w-full h-full object-cover">
+                        </div>
+                        {% endif %}
+                        <div>
+                            {% if res.account_name or res.package_info or res.status_msg %}
+                            <div class="flex flex-wrap items-center gap-2 text-xs font-black text-white mb-1.5">
+                                {% if res.status_msg %}
+                                <span class="px-2.5 py-0.5 rounded-md text-xs {% if order.status == 'completed' %}bg-emerald-500/20 text-emerald-300{% elif order.status == 'cancelled' or order.status == 'refunded' %}bg-rose-500/20 text-rose-300{% else %}bg-cyan-500/20 text-cyan-300{% endif %} font-bold">
+                                    {{ res.status_msg }}
+                                </span>
+                                {% endif %}
+                                {% if res.account_name %}
+                                <span class="text-cyan-300 font-mono text-sm font-black">{{ res.account_name }}</span>
+                                {% endif %}
+                                {% if res.package_info %}
+                                <span class="text-slate-400 text-xs font-normal">({{ res.package_info }})</span>
+                                {% endif %}
+                            </div>
+                            {% endif %}
+
+                            <div class="text-sm text-slate-200 font-mono leading-relaxed whitespace-pre-line select-all">
+                                {{ res.text }}
+                            </div>
+                        </div>
+                    </div>
+
+                    <button type="button" onclick="copyToClipboard('{{ res.text|escapejs }}', this)" class="shrink-0 text-xs px-4 py-2 bg-white/5 hover:bg-cyan hover:text-slate-950 text-slate-300 rounded-xl font-bold transition flex items-center gap-1.5 cursor-pointer self-end sm:self-center">
+                        <i class="far fa-copy"></i> نسخ
+                    </button>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+        {% endwith %}
+
         <!-- Fulfillment Data (Delivery Info) -->
         {% if not order.has_physical_products %}
             {% if order.status == 'completed' %}

@@ -224,7 +224,7 @@ def cleanup_fulfillment_data(fulfillment, delivery_values=None):
                 seen_values.add(val)
 
     for k in list(fulfillment.keys()):
-        if k in ("api_provider", "api_status", "api_last_response", "api_refunded", "image_url"):
+        if k in ("api_provider", "api_status", "api_last_response", "api_refunded", "image_url", "all_server_responses", "ردود السيرفر"):
             continue
         val = extract_clean_text(fulfillment[k])
         if not val or val in seen_values:
