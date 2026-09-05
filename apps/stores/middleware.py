@@ -189,8 +189,13 @@ class TenantMiddleware:
         from apps.stores.models import StoreEmployee
 
         with bypass_tenant_filter():
+            user_store_id = str(user.store_id) if user.store_id else None
+            store_pk = str(store.pk) if getattr(store, "pk", None) else None
+            store_owner_id = str(store.owner_id) if getattr(store, "owner_id", None) else None
+            user_pk = str(user.pk) if getattr(user, "pk", None) else None
+
             return (
-                user.store_id == store.pk
-                or store.owner_id == user.pk
+                (user_store_id is not None and user_store_id == store_pk)
+                or (store_owner_id is not None and store_owner_id == user_pk)
                 or StoreEmployee.objects.filter(store=store, user=user).exists()
             )

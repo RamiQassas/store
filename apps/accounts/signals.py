@@ -33,7 +33,11 @@ def update_user_ip_info(sender, request, user, **kwargs):
     info = get_ip_info(ip)
     user.last_country = info.get("country", "Unknown")
     user.last_city = info.get("city", "Unknown")
-    user.save(update_fields=["last_ip", "last_country", "last_city"])
+    update_fields = ["last_ip", "last_country", "last_city"]
+    if request and hasattr(request, 'session') and request.session.session_key:
+        user.last_session_key = request.session.session_key
+        update_fields.append("last_session_key")
+    user.save(update_fields=update_fields)
 
     # Create detailed history entry
     SecurityEvent.objects.create(

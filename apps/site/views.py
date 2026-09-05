@@ -312,7 +312,9 @@ def complete_pending_purchase(request, user):
 def v3_verify_sp_view(request):
     uid, purpose = request.session.get("v3_auth_uid"), request.session.get("v3_auth_purpose")
     if not uid: return redirect("site_login")
-    user = get_object_or_404(User, id=uid)
+    from apps.common.tenant_utils import bypass_tenant_filter
+    with bypass_tenant_filter():
+        user = get_object_or_404(User.all_objects, id=uid)
     methods = request.session.get("v3_auth_methods", ["SP"])
     
     if request.method == "POST":
@@ -329,9 +331,8 @@ def v3_verify_sp_view(request):
                 return v3_redirect_to_verification(request, remaining)
             
             # All verified
-            if not request.user.is_authenticated:
-                user.backend = 'apps.stores.auth_backend.TenantModelBackend'
-                login(request, user)
+            user.backend = 'apps.stores.auth_backend.TenantModelBackend'
+            login(request, user)
             
             # Set grace period for BOTH keys
             now_iso = timezone.now().isoformat()
@@ -350,7 +351,9 @@ def v3_verify_sp_view(request):
             next_url = request.session.get("v3_auth_next")
             clean_verification_session(request)
                 
-            if next_url: return redirect(next_url)
+            invalid_redirects = ["/auth/login/", "/auth/verify-otp/", "/auth/register/", reverse("site_login"), reverse("site_verify_otp"), reverse("site_register")]
+            if next_url and next_url not in invalid_redirects:
+                return redirect(next_url)
             return redirect("control_dashboard" if (user.is_staff and getattr(request, 'store', None) is None) else "dashboard")
             
         messages.error(request, "كلمة مرور الحماية غير صحيحة.")
@@ -448,7 +451,9 @@ def v3_register_view(request):
 def v3_verify_otp_view(request):
     uid, purpose = request.session.get("v3_auth_uid"), request.session.get("v3_auth_purpose")
     if not uid: return redirect("site_login")
-    user = get_object_or_404(User, id=uid)
+    from apps.common.tenant_utils import bypass_tenant_filter
+    with bypass_tenant_filter():
+        user = get_object_or_404(User.all_objects, id=uid)
     methods = request.session.get("v3_auth_methods", ["EMAIL"])
     
     # Check if the initial OTP send failed
@@ -511,9 +516,8 @@ def v3_verify_otp_view(request):
             if remaining:
                 return v3_redirect_to_verification(request, remaining)
             
-            if not request.user.is_authenticated:
-                user.backend = 'apps.stores.auth_backend.TenantModelBackend'
-                login(request, user)
+            user.backend = 'apps.stores.auth_backend.TenantModelBackend'
+            login(request, user)
             
             now_iso = timezone.now().isoformat()
             request.session["v3_action_verified_at"] = now_iso
@@ -531,7 +535,9 @@ def v3_verify_otp_view(request):
             next_url = request.session.get("v3_auth_next")
             clean_verification_session(request)
             
-            if next_url: return redirect(next_url)
+            invalid_redirects = ["/auth/login/", "/auth/verify-otp/", "/auth/register/", reverse("site_login"), reverse("site_verify_otp"), reverse("site_register")]
+            if next_url and next_url not in invalid_redirects:
+                return redirect(next_url)
             return redirect("control_dashboard" if (user.is_staff and getattr(request, 'store', None) is None) else "dashboard")
         user.otp_failed_attempts += 1
         if user.otp_failed_attempts >= settings_obj.otp_max_attempts:
@@ -544,7 +550,9 @@ def v3_verify_otp_view(request):
 def v3_2fa_verify_view(request):
     uid, purpose = request.session.get("v3_auth_uid"), request.session.get("v3_auth_purpose")
     if not uid: return redirect("site_login")
-    user = get_object_or_404(User, id=uid)
+    from apps.common.tenant_utils import bypass_tenant_filter
+    with bypass_tenant_filter():
+        user = get_object_or_404(User.all_objects, id=uid)
     methods = request.session.get("v3_auth_methods", ["APP"])
     if request.method == "POST":
         code = request.POST.get("code")
@@ -556,9 +564,8 @@ def v3_2fa_verify_view(request):
                 request.session["v3_otp_sent_success"] = otp_sent
                 return redirect("site_verify_otp")
             
-            if not request.user.is_authenticated:
-                user.backend = 'apps.stores.auth_backend.TenantModelBackend'
-                login(request, user)
+            user.backend = 'apps.stores.auth_backend.TenantModelBackend'
+            login(request, user)
                 
             request.session["v3_action_verified_at"] = timezone.now().isoformat()
             
@@ -574,7 +581,9 @@ def v3_2fa_verify_view(request):
             next_url = request.session.get("v3_auth_next")
             clean_verification_session(request)
             
-            if next_url: return redirect(next_url)
+            invalid_redirects = ["/auth/login/", "/auth/verify-otp/", "/auth/register/", reverse("site_login"), reverse("site_verify_otp"), reverse("site_register")]
+            if next_url and next_url not in invalid_redirects:
+                return redirect(next_url)
             return redirect("control_dashboard" if (user.is_staff and getattr(request, 'store', None) is None) else "dashboard")
         messages.error(request, "الرمز غير صحيح.")
     return render(request, "site/v3/v3_2fa_verify.html")

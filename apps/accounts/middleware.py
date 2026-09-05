@@ -24,12 +24,17 @@ class AccountStatusMiddleware:
                 return redirect("site_login")
             
             # 2. Enforce Single Session Login
-            if not request.user.is_staff and request.user.last_session_key:
-                if request.user.last_session_key != request.session.session_key:
-                    print(f"[AccountStatusMiddleware] Session mismatch! User last_session_key: {request.user.last_session_key}, Current: {request.session.session_key}. Logging out.")
-                    logout(request)
-                    messages.warning(request, "تم تسجيل الدخول من جهاز آخر. تم إنهاء الجلسة الحالية.")
-                    return redirect("site_login")
+            if not request.user.is_staff:
+                if request.user.last_session_key:
+                    if request.session.session_key and request.user.last_session_key != request.session.session_key:
+                        print(f"[AccountStatusMiddleware] Session mismatch! User last_session_key: {request.user.last_session_key}, Current: {request.session.session_key}. Logging out.")
+                        logout(request)
+                        messages.warning(request, "تم تسجيل الدخول من جهاز آخر. تم إنهاء الجلسة الحالية.")
+                        return redirect("site_login")
+                elif request.session.session_key:
+                    # Sync initial session key
+                    request.user.last_session_key = request.session.session_key
+                    request.user.save(update_fields=["last_session_key"])
 
             # 3. Country-Based Block (Compliance)
             # Skip for staff/admin

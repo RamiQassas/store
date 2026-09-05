@@ -15,6 +15,7 @@ _auto_deploy_thread_started = False
 
 def get_local_commit_sha():
     try:
+        subprocess.run(["git", "config", "--global", "--add", "safe.directory", "*"], capture_output=True, timeout=3)
         res = subprocess.run(["git", "rev-parse", "HEAD"], capture_output=True, text=True, timeout=5)
         if res.returncode == 0:
             return res.stdout.strip()
@@ -46,8 +47,8 @@ def apply_git_update():
     success = False
     output = ""
     try:
-        cmd = "git fetch origin master && git reset --hard origin/master && python manage.py migrate --noinput && python manage.py collectstatic --noinput"
-        proc = subprocess.run(cmd, shell=True, capture_output=True, text=True, timeout=60)
+        cmd = "git config --global --add safe.directory '*' && git fetch origin master && git reset --hard origin/master"
+        proc = subprocess.run(cmd, shell=True, capture_output=True, text=True, timeout=30)
         logger.info(f"🚀 [AUTO-DEPLOY] Output: {proc.stdout[:300]}")
         if proc.stderr:
             logger.warning(f"🚀 [AUTO-DEPLOY] Stderr: {proc.stderr[:300]}")
@@ -56,7 +57,8 @@ def apply_git_update():
     except Exception as e:
         logger.error(f"❌ [AUTO-DEPLOY] Failed to apply update: {e}")
         output = str(e)
-    finally:
+    
+    if success:
         restart_process_soon()
     return success, output
 
