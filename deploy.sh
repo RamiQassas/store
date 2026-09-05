@@ -4,8 +4,8 @@ set -e
 cat << 'EOF' > .env
 DJANGO_SECRET_KEY=django-insecure-prod-hetzner-key-9823419823
 DJANGO_DEBUG=False
-DJANGO_ALLOWED_HOSTS=raqamiyatapp.com,.raqamiyatapp.com,www.raqamiyatapp.com,2.29.26.113,localhost,127.0.0.1
-DJANGO_CSRF_TRUSTED_ORIGINS=https://raqamiyatapp.com,https://*.raqamiyatapp.com,http://*.raqamiyatapp.com,https://www.raqamiyatapp.com,http://2.29.26.113,http://2.29.26.113:8000
+DJANGO_ALLOWED_HOSTS=raqamiyatapp.com,.raqamiyatapp.com,www.raqamiyatapp.com,167.233.150.164,2.29.26.113,localhost,127.0.0.1
+DJANGO_CSRF_TRUSTED_ORIGINS=https://raqamiyatapp.com,https://*.raqamiyatapp.com,http://*.raqamiyatapp.com,https://www.raqamiyatapp.com,http://167.233.150.164,http://2.29.26.113,http://167.233.150.164:8000,http://2.29.26.113:8000
 
 POSTGRES_DB=store
 POSTGRES_USER=store
