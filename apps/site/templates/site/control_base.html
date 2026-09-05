@@ -273,9 +273,11 @@
             <a href="{% url 'control_kycs_list' %}" class="admin-nav-link {% if 'control/kyc' in request.path and 'settings' not in request.path %}active{% endif %}">
                 <i class="fas fa-user-shield"></i> طلبات التوثيق (KYC)
             </a>
+            {% if not is_tenant %}
             <a href="{% url 'control_kyc_settings' %}" class="admin-nav-link {% if 'kyc/settings' in request.path %}active{% endif %}">
                 <i class="fas fa-user-lock"></i> إعدادات التوثيق والحدود
             </a>
+            {% endif %}
             <a href="{% url 'control_send_notification' %}" class="admin-nav-link {% if 'notifications/send' in request.path %}active{% endif %}">
                 <i class="fas fa-paper-plane"></i> إرسال إشعارات
             </a>
@@ -371,7 +373,7 @@
                 <i class="fas fa-comments"></i> الدعم المباشر
             </a>
             <a href="{% url 'control_db_maintenance' %}" class="admin-nav-link {% if 'maintenance' in request.path %}active{% endif %}">
-                <i class="fas fa-database"></i> صيانة النظام
+                <i class="fas fa-database"></i> {% if is_tenant %}صيانة وتصفير بيانات المتجر{% else %}صيانة النظام{% endif %}
             </a>
             {% if not is_tenant %}
             <a href="{% url 'control_backup' %}" class="admin-nav-link {% if 'backup' in request.path %}active{% endif %}">

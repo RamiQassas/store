@@ -2944,6 +2944,9 @@ def control_kyc_detail(request, pk):
 
 @kyc_required
 def control_kyc_settings(request):
+    if getattr(request, "store", None):
+        messages.error(request, "غير مسموح للمتاجر الفرعية الوصول لإعدادات التوثيق العامة للمنصة.")
+        return redirect("control_dashboard")
     obj = KYCSettings.get_settings()
     form = KYCSettingsForm(request.POST or None, instance=obj)
     
@@ -3418,15 +3421,13 @@ def control_category_quick_rename_ajax(request, pk):
 def control_category_quick_image_ajax(request, pk):
     if request.method != "POST":
         return JsonResponse({"status": "error", "message": "طريقة غير مدعومة"}, status=405)
-    from apps.common.tenant_utils import bypass_tenant_filter
-    with bypass_tenant_filter():
-        category = get_object_or_404(Category.all_objects, pk=pk)
-        image_file = request.FILES.get("image")
-        if not image_file:
-            return JsonResponse({"status": "error", "message": "لم يتم تحديد صورة"}, status=400)
-        category.image = image_file
-        category.save(update_fields=["image"])
-        return JsonResponse({"status": "success", "image_url": category.image.url})
+    category = get_object_or_404(Category, pk=pk)
+    image_file = request.FILES.get("image")
+    if not image_file:
+        return JsonResponse({"status": "error", "message": "لم يتم تحديد صورة"}, status=400)
+    category.image = image_file
+    category.save(update_fields=["image"])
+    return JsonResponse({"status": "success", "image_url": category.image.url})
 
 @support_required
 def control_categories_reorder_bulk_ajax(request):
@@ -3648,21 +3649,19 @@ def control_product_quick_image_ajax(request, pk):
     if request.method != "POST":
         return JsonResponse({"status": "error", "message": "طريقة الطلب غير صحيحة."}, status=405)
     
-    from apps.common.tenant_utils import bypass_tenant_filter
-    with bypass_tenant_filter():
-        product = get_object_or_404(Product.all_objects, pk=pk)
-        image_file = request.FILES.get("image")
-        if not image_file:
-            return JsonResponse({"status": "error", "message": "لم يتم تحديد أي ملف صورة."}, status=400)
-        
-        product.image = image_file
-        product.save(update_fields=["image"])
-        
-        return JsonResponse({
-            "status": "success",
-            "message": "تم تحديث صورة المنتج بنجاح.",
-            "image_url": product.image.url
-        })
+    product = get_object_or_404(Product, pk=pk)
+    image_file = request.FILES.get("image")
+    if not image_file:
+        return JsonResponse({"status": "error", "message": "لم يتم تحديد أي ملف صورة."}, status=400)
+    
+    product.image = image_file
+    product.save(update_fields=["image"])
+    
+    return JsonResponse({
+        "status": "success",
+        "message": "تم تحديث صورة المنتج بنجاح.",
+        "image_url": product.image.url
+    })
 
 @support_required
 def control_product_quick_rename_ajax(request, pk):
@@ -3670,56 +3669,63 @@ def control_product_quick_rename_ajax(request, pk):
         return JsonResponse({"status": "error", "message": "طريقة الطلب غير صحيحة."}, status=405)
     
     import json
-    from apps.common.tenant_utils import bypass_tenant_filter
-    with bypass_tenant_filter():
-        product = get_object_or_404(Product.all_objects, pk=pk)
-        
-        new_name = request.POST.get("name", "").strip()
-        if not new_name and request.body:
-            try:
-                body = json.loads(request.body.decode("utf-8"))
-                new_name = body.get("name", "").strip()
-            except Exception:
-                pass
-                
-        if not new_name:
-            return JsonResponse({"status": "error", "message": "الاسم لا يمكن أن يكون فارغاً."}, status=400)
+    product = get_object_or_404(Product, pk=pk)
+    
+    new_name = request.POST.get("name", "").strip()
+    if not new_name and request.body:
+        try:
+            body = json.loads(request.body.decode("utf-8"))
+            new_name = body.get("name", "").strip()
+        except Exception:
+            pass
             
-        product.name = new_name
-        product.save(update_fields=["name"])
+    if not new_name:
+        return JsonResponse({"status": "error", "message": "الاسم لا يمكن أن يكون فارغاً."}, status=400)
         
-        return JsonResponse({
-            "status": "success",
-            "message": "تم تعديل اسم المنتج بنجاح.",
-            "name": product.name
-        })
+    product.name = new_name
+    product.save(update_fields=["name"])
+    
+    return JsonResponse({
+        "status": "success",
+        "message": "تم تعديل اسم المنتج بنجاح.",
+        "name": product.name
+    })
 
 @support_required
-def control_product_change_category_ajax(request, pk):
+def control_product_change_category_ajax(request, pk=None):
     if request.method != "POST":
         return JsonResponse({"status": "error", "message": "طريقة الطلب غير صحيحة."}, status=405)
-    from apps.common.tenant_utils import bypass_tenant_filter
-    with bypass_tenant_filter():
-        product = get_object_or_404(Product.all_objects, pk=pk)
-        cat_id = request.POST.get("category_id")
-        if not cat_id and request.body:
+    if not pk:
+        pk = request.POST.get("product_id")
+        if not pk and request.body:
             try:
                 import json as _json
                 data = _json.loads(request.body.decode("utf-8"))
-                cat_id = data.get("category_id")
+                pk = data.get("product_id")
             except Exception:
                 pass
-        if not cat_id:
-            return JsonResponse({"status": "error", "message": "لم يتم تحديد القسم الجديد."}, status=400)
-        category = get_object_or_404(Category.all_objects, pk=cat_id)
-        product.category = category
-        product.save(update_fields=["category"])
-        return JsonResponse({
-            "status": "success",
-            "category_id": str(category.id),
-            "category_name": category.name,
-            "message": f"تم نقل المنتج '{product.name}' إلى قسم '{category.name}' بنجاح."
-        })
+    if not pk:
+        return JsonResponse({"status": "error", "message": "لم يتم تحديد المنتج."}, status=400)
+    product = get_object_or_404(Product, pk=pk)
+    cat_id = request.POST.get("category_id")
+    if not cat_id and request.body:
+        try:
+            import json as _json
+            data = _json.loads(request.body.decode("utf-8"))
+            cat_id = data.get("category_id")
+        except Exception:
+            pass
+    if not cat_id:
+        return JsonResponse({"status": "error", "message": "لم يتم تحديد القسم الجديد."}, status=400)
+    category = get_object_or_404(Category, pk=cat_id)
+    product.category = category
+    product.save(update_fields=["category"])
+    return JsonResponse({
+        "status": "success",
+        "category_id": str(category.id),
+        "category_name": category.name,
+        "message": f"تم نقل المنتج '{product.name}' إلى قسم '{category.name}' بنجاح."
+    })
 
 
 
@@ -3940,7 +3946,11 @@ def currencies_list(request):
 @admin_required
 def currency_create(request):
     form = CurrencyForm(request.POST or None)
-    if request.method == "POST" and form.is_valid(): form.save(); return redirect("currencies_list")
+    if request.method == "POST" and form.is_valid():
+        curr = form.save(commit=False)
+        curr.store = getattr(request, "store", None)
+        curr.save()
+        return redirect("currencies_list")
     return render(request, "site/currency_form.html", {"form": form})
 
 @admin_required
@@ -4175,6 +4185,9 @@ def control_backup(request):
     """
     Backup & Restore management page with scheduled email delivery and site maintenance toggle.
     """
+    if getattr(request, "store", None):
+        messages.error(request, "غير مسموح للمتاجر الفرعية الوصول لإعدادات النسخ الاحتياطي للمنصة.")
+        return redirect("control_dashboard")
     import json
     import zipfile
     import io
@@ -4524,6 +4537,9 @@ def control_announcement_delete(request, pk): get_object_or_404(SiteAnnouncement
 
 @admin_required
 def control_social_media(request):
+    if getattr(request, "store", None):
+        messages.error(request, "غير مسموح للمتاجر الفرعية الوصول لوسائل تواصل المنصة.")
+        return redirect("control_dashboard")
     from apps.site.forms import SocialMediaLinkForm
     from django.core.exceptions import ValidationError
     if request.method == "POST":
@@ -4539,7 +4555,12 @@ def control_social_media(request):
     return render(request, "site/control_social_media.html", {"links": SocialMediaLink.objects.all(), "form": SocialMediaLinkForm()})
 
 @admin_required
-def control_social_media_delete(request, pk): get_object_or_404(SocialMediaLink, pk=pk).delete(); return redirect("control_social_media")
+def control_social_media_delete(request, pk):
+    if getattr(request, "store", None):
+        messages.error(request, "غير مسموح للمتاجر الفرعية الوصول لوسائل تواصل المنصة.")
+        return redirect("control_dashboard")
+    get_object_or_404(SocialMediaLink, pk=pk).delete()
+    return redirect("control_social_media")
 
 @support_required
 def ajax_user_search(request):
@@ -4740,34 +4761,59 @@ def control_send_notification(request):
 
 @admin_required
 def control_support_settings(request):
-    obj, _ = SupportSettings.objects.get_or_create(id=1); form = SupportSettingsForm(request.POST or None, instance=obj)
-    if request.method == "POST" and form.is_valid(): form.save(); messages.success(request, "تم الحفظ."); return redirect("control_support_settings")
+    if getattr(request, "store", None):
+        messages.error(request, "غير مسموح للمتاجر الفرعية الوصول لإعدادات الدعم العامة للمنصة.")
+        return redirect("control_dashboard")
+    obj, _ = SupportSettings.objects.get_or_create(id=1)
+    form = SupportSettingsForm(request.POST or None, instance=obj)
+    if request.method == "POST" and form.is_valid():
+        form.save()
+        messages.success(request, "تم الحفظ.")
+        return redirect("control_support_settings")
     return render(request, "site/control_support_settings.html", {"form": form})
 
 @support_required
-def control_quick_replies(request): return render(request, "site/control_quick_replies.html", {"replies": ChatCannedReply.objects.all().order_by("-created_at")})
+def control_quick_replies(request):
+    if getattr(request, "store", None):
+        messages.error(request, "هذه الخاصية غير متاحة للمتاجر الفرعية حالياً.")
+        return redirect("control_dashboard")
+    return render(request, "site/control_quick_replies.html", {"replies": ChatCannedReply.objects.all().order_by("-created_at")})
 
 @support_required
 def control_quick_reply_create(request):
+    if getattr(request, "store", None):
+        messages.error(request, "هذه الخاصية غير متاحة للمتاجر الفرعية حالياً.")
+        return redirect("control_dashboard")
     form = ChatCannedReplyForm(request.POST or None)
     if request.method == "POST" and form.is_valid(): form.save(); return redirect("control_quick_replies")
     return render(request, "site/control_quick_reply_form.html", {"form": form})
 
 @support_required
 def control_quick_reply_edit(request, pk):
-    reply = get_object_or_404(ChatCannedReply, pk=pk); form = ChatCannedReplyForm(request.POST or None, instance=reply)
+    if getattr(request, "store", None):
+        messages.error(request, "هذه الخاصية غير متاحة للمتاجر الفرعية حالياً.")
+        return redirect("control_dashboard")
+    reply = get_object_or_404(ChatCannedReply, pk=pk)
+    form = ChatCannedReplyForm(request.POST or None, instance=reply)
     if request.method == "POST" and form.is_valid(): form.save(); return redirect("control_quick_replies")
     return render(request, "site/control_quick_reply_form.html", {"form": form})
 
 @support_required
-def control_quick_reply_delete(request, pk): get_object_or_404(ChatCannedReply, pk=pk).delete(); return redirect("control_quick_replies")
+def control_quick_reply_delete(request, pk):
+    if getattr(request, "store", None):
+        messages.error(request, "هذه الخاصية غير متاحة للمتاجر الفرعية حالياً.")
+        return redirect("control_dashboard")
+    get_object_or_404(ChatCannedReply, pk=pk).delete()
+    return redirect("control_quick_replies")
 
 @support_required
 def control_support_chat_open(request):
+    store = getattr(request, "store", None)
     form = AdminChatForm(request.POST or None)
     if request.method == "POST" and form.is_valid():
         q = form.cleaned_data["user_identifier"]
-        user = User.objects.filter(
+        user_qs = User.objects.filter(store=store) if store else User.objects.filter(store__isnull=True)
+        user = user_qs.filter(
             Q(email__icontains=q) | 
             Q(first_name__icontains=q) | 
             Q(last_name__icontains=q) | 
@@ -4776,8 +4822,16 @@ def control_support_chat_open(request):
         
         if user:
             with transaction.atomic():
-                room = ChatRoom.objects.create(user=user, assigned_agent=request.user, subject=form.cleaned_data["subject"], status=ChatRoom.Status.ASSIGNED)
-                ChatMessage.objects.create(room=room, sender=request.user, text=form.cleaned_data["message"], is_staff_reply=True); room.unread_user_count = 1; room.save()
+                room = ChatRoom.objects.create(
+                    store=store,
+                    user=user, 
+                    assigned_agent=request.user, 
+                    subject=form.cleaned_data["subject"], 
+                    status=ChatRoom.Status.ASSIGNED
+                )
+                ChatMessage.objects.create(room=room, sender=request.user, text=form.cleaned_data["message"], is_staff_reply=True)
+                room.unread_user_count = 1
+                room.save()
                 notify_user(user, title="رسالة من الدعم", body=room.subject, action_url=reverse("dashboard"), category='support')
             messages.success(request, f"تم فتح التذكرة بنجاح مع {user.get_full_name() or user.email}.")
             return redirect("control_dashboard")
@@ -4879,26 +4933,43 @@ def control_reports(request):
     
     analytics = FinancialAnalyticsService(clean_filters, store=getattr(request, "store", None))
     
+    store = getattr(request, "store", None)
     from apps.wallets.models import RechargeCard
     from apps.catalog.models import ProductKey, Product
     from django.db.models import Sum, F
 
-    recharge_cards_stats = {
-        "total": RechargeCard.objects.count(),
-        "active": RechargeCard.objects.filter(status='active').count(),
-        "redeemed": RechargeCard.objects.filter(status='redeemed').count(),
-        "cancelled": RechargeCard.objects.filter(status='cancelled').count(),
-    }
-    
-    product_keys_stats = {
-        "total": ProductKey.objects.count(),
-        "unused": ProductKey.objects.filter(is_used=False).count(),
-        "used": ProductKey.objects.filter(is_used=True).count(),
-    }
+    if store:
+        recharge_cards_stats = {
+            "total": RechargeCard.objects.filter(store=store).count(),
+            "active": RechargeCard.objects.filter(store=store, status='active').count(),
+            "redeemed": RechargeCard.objects.filter(store=store, status='redeemed').count(),
+            "cancelled": RechargeCard.objects.filter(store=store, status='cancelled').count(),
+        }
+        product_keys_stats = {
+            "total": ProductKey.objects.filter(variant__product__store=store).count(),
+            "unused": ProductKey.objects.filter(variant__product__store=store, is_used=False).count(),
+            "used": ProductKey.objects.filter(variant__product__store=store, is_used=True).count(),
+        }
+        product_qs = Product.objects.filter(store=store)
+        currencies_qs = Currency.objects.filter(store=store, is_active=True)
+        payment_methods_qs = PaymentMethod.objects.filter(store=store, is_active=True)
+    else:
+        recharge_cards_stats = {
+            "total": RechargeCard.objects.count(),
+            "active": RechargeCard.objects.filter(status='active').count(),
+            "redeemed": RechargeCard.objects.filter(status='redeemed').count(),
+            "cancelled": RechargeCard.objects.filter(status='cancelled').count(),
+        }
+        product_keys_stats = {
+            "total": ProductKey.objects.count(),
+            "unused": ProductKey.objects.filter(is_used=False).count(),
+            "used": ProductKey.objects.filter(is_used=True).count(),
+        }
+        product_qs = Product.objects.all()
+        currencies_qs = Currency.objects.filter(store__isnull=True, is_active=True)
+        payment_methods_qs = PaymentMethod.objects.filter(store__isnull=True, is_active=True)
 
     # Product Stock/Inventory Statistics
-    store = getattr(request, "store", None)
-    product_qs = Product.objects.filter(store=store) if store else Product.objects.all()
     low_stock_products = product_qs.filter(is_active=True, track_inventory=True, quantity__lte=F('low_stock_threshold'), quantity__gt=0)
     out_of_stock_products = product_qs.filter(is_active=True, track_inventory=True, quantity__lte=0)
     total_qty = product_qs.filter(track_inventory=True).aggregate(total=Sum('quantity'))['total'] or 0
@@ -4920,8 +4991,8 @@ def control_reports(request):
         "trends": analytics.get_trends(),
         "cash_logs": analytics.get_cash_collection_logs(),
         "filters": filters,
-        "currencies": Currency.objects.filter(is_active=True),
-        "payment_methods": PaymentMethod.objects.filter(is_active=True),
+        "currencies": currencies_qs,
+        "payment_methods": payment_methods_qs,
         "tiers": User.Tier.choices,
         "recharge_cards_stats": recharge_cards_stats,
         "product_keys_stats": product_keys_stats,
@@ -4941,291 +5012,13 @@ logger = logging.getLogger(__name__)
 def control_db_maintenance(request):
     from apps.accounts.models import User
     from apps.common.tenant_utils import bypass_tenant_filter
-    
-    if request.method == "POST":
-        action = request.POST.get("action")
-        if action == "cleanup":
-            targets = request.POST.getlist("targets")
-            deleted_counts = {}
-            
-            from django.db.models import ProtectedError
-            from decimal import Decimal
-            from django.utils import timezone
-            from django.contrib.auth.models import Group
-            from django.contrib.sites.models import Site
-            
-            try:
-                from rest_framework_simplejwt.token_blacklist.models import OutstandingToken, BlacklistedToken
-            except ImportError:
-                OutstandingToken, BlacklistedToken = None, None
-                
-            try:
-                with bypass_tenant_filter():
-                    with transaction.atomic():
-                        # Define safe dependency execution order to prevent ProtectedError cascading
-                        ordered_cleanup_keys = [
-                            "social_tokens",
-                            "social_accounts",
-                            "social_apps",
-                            "email_addresses",
-                            "blacklisted_tokens",
-                            "outstanding_tokens",
-                            "invoices",
-                            "coupons",
-                            "orders",
-                            "deposits",
-                            "withdrawals",
-                            "ledger_entries",
-                            "wallet_transactions",
-                            "balance_transfers",
-                            "recharge_cards",
-                            "wallets",
-                            "store_employees",
-                            "store_pages",
-                            "store_settings",
-                            "subscription_invoices",
-                            "store_templates",
-                            "saas_audit_logs",
-                            "stores",
-                            "subscription_plans",
-                            "users",
-                            "saas_admin_roles",
-                            "saas_global_settings",
-                            "payment_methods",
-                            "payment_methods_reset",
-                            "product_variants",
-                            "products",
-                            "categories",
-                            "services",
-                            "chat_rooms",
-                            "chat_canned_replies",
-                            "support_settings",
-                            "platform_stats",
-                            "currencies",
-                            "social_links",
-                            "system_audit_logs",
-                            "testimonials",
-                            "site_announcements",
-                            "notifications",
-                            "security_events",
-                            "user_sessions",
-                            "groups",
-                            "sites"
-                        ]
-                        
-                        for key in ordered_cleanup_keys:
-                            if key in targets:
-                                if key == "social_tokens":
-                                    from allauth.socialaccount.models import SocialToken
-                                    c = SocialToken.objects.all().delete()[0]
-                                    deleted_counts["أكواد التطبيقات الاجتماعية"] = c
-                                elif key == "social_accounts":
-                                    from allauth.socialaccount.models import SocialAccount
-                                    c = SocialAccount.objects.all().delete()[0]
-                                    deleted_counts["حسابات تواصل اجتماعي"] = c
-                                elif key == "social_apps":
-                                    from allauth.socialaccount.models import SocialApp
-                                    c = SocialApp.objects.all().delete()[0]
-                                    deleted_counts["تطبيقات اجتماعية"] = c
-                                elif key == "email_addresses":
-                                    from allauth.account.models import EmailAddress
-                                    c = EmailAddress.objects.all().delete()[0]
-                                    deleted_counts["عناوين البريد الإلكتروني"] = c
-                                elif key == "blacklisted_tokens":
-                                    if BlacklistedToken:
-                                        c = BlacklistedToken.objects.all().delete()[0]
-                                        deleted_counts["رموز مميزة محظورة"] = c
-                                elif key == "outstanding_tokens":
-                                    if OutstandingToken:
-                                        c = OutstandingToken.objects.all().delete()[0]
-                                        deleted_counts["رموز مميزة نشطة"] = c
-                                elif key == "coupons":
-                                    from apps.orders.models import Coupon
-                                    c = Coupon.objects.all().delete()[0]
-                                    deleted_counts["الكوبونات"] = c
-                                elif key == "invoices":
-                                    from apps.orders.models import Invoice
-                                    c = Invoice.objects.all().delete()[0]
-                                    deleted_counts["الفواتير"] = c
-                                elif key == "orders":
-                                    from apps.orders.models import Order, OrderItem, OrderLog
-                                    c1 = OrderItem.objects.all().delete()[0]
-                                    c2 = OrderLog.objects.all().delete()[0]
-                                    c3 = Order.objects.all().delete()[0]
-                                    deleted_counts["الطلبات والمبيعات"] = c1 + c2 + c3
-                                elif key == "deposits":
-                                    from apps.payments.models import DepositRequest
-                                    c = DepositRequest.objects.all().delete()[0]
-                                    deleted_counts["طلبات الإيداع"] = c
-                                elif key == "withdrawals":
-                                    from apps.payments.models import WithdrawalRequest
-                                    c = WithdrawalRequest.objects.all().delete()[0]
-                                    deleted_counts["طلبات السحب"] = c
-                                elif key == "ledger_entries":
-                                    from apps.wallets.models import LedgerEntry
-                                    c = LedgerEntry.objects.all().delete()[0]
-                                    deleted_counts["سجلات حركة المحفظة"] = c
-                                elif key == "wallet_transactions":
-                                    from apps.wallets.models import WalletTransaction
-                                    c = WalletTransaction.objects.all().delete()[0]
-                                    deleted_counts["العمليات المالية للمحافظ"] = c
-                                elif key == "balance_transfers":
-                                    from apps.wallets.models import BalanceTransfer
-                                    c = BalanceTransfer.objects.all().delete()[0]
-                                    deleted_counts["تحويلات الأرصدة"] = c
-                                elif key == "recharge_cards":
-                                    from apps.wallets.models import RechargeCard
-                                    c = RechargeCard.objects.all().delete()[0]
-                                    deleted_counts["بطاقات الشحن"] = c
-                                elif key == "wallets":
-                                    from apps.wallets.models import Wallet
-                                    c = Wallet.objects.all().delete()[0]
-                                    deleted_counts["المحافظ"] = c
-                                elif key == "store_employees":
-                                    from apps.stores.models import StoreEmployee
-                                    c = StoreEmployee.objects.all().delete()[0]
-                                    deleted_counts["موظفو المتاجر"] = c
-                                elif key == "store_pages":
-                                    from apps.stores.models import StorePage
-                                    c = StorePage.objects.all().delete()[0]
-                                    deleted_counts["صفحات المتاجر"] = c
-                                elif key == "store_settings":
-                                    from apps.stores.models import StoreSetting
-                                    c = StoreSetting.objects.all().delete()[0]
-                                    deleted_counts["إعدادات المتاجر"] = c
-                                elif key == "subscription_invoices":
-                                    from apps.stores.models import SubscriptionInvoice
-                                    c = SubscriptionInvoice.objects.all().delete()[0]
-                                    deleted_counts["فواتير اشتراكات المتاجر"] = c
-                                elif key == "store_templates":
-                                    from apps.stores.models import StoreTemplate
-                                    c = StoreTemplate.objects.all().delete()[0]
-                                    deleted_counts["قوالب المتاجر"] = c
-                                elif key == "saas_audit_logs":
-                                    from apps.stores.models import SaaSAuditLog
-                                    c = SaaSAuditLog.objects.all().delete()[0]
-                                    deleted_counts["سجلات تدقيق SaaS"] = c
-                                elif key == "stores":
-                                    from apps.stores.models import Store
-                                    User.objects.all().update(store=None)
-                                    c = Store.objects.all().delete()[0]
-                                    deleted_counts["المتاجر"] = c
-                                elif key == "subscription_plans":
-                                    from apps.stores.models import SubscriptionPlan
-                                    c = SubscriptionPlan.objects.all().delete()[0]
-                                    deleted_counts["خطط اشتراكات SaaS"] = c
-                                elif key == "users":
-                                    c = User.objects.exclude(is_superuser=True).exclude(is_staff=True).exclude(role__in=[User.Role.SUPER_ADMIN, User.Role.ADMIN]).exclude(id=request.user.id).delete()[0]
-                                    deleted_counts["المستخدمين (غير المدراء)"] = c
-                                elif key == "saas_admin_roles":
-                                    from apps.stores.models import SaaSAdminRole
-                                    c = SaaSAdminRole.objects.all().delete()[0]
-                                    deleted_counts["أدوار SaaS الإدارية"] = c
-                                elif key == "saas_global_settings":
-                                    from apps.stores.models import SaaSGlobalSetting
-                                    c = SaaSGlobalSetting.objects.all().delete()[0]
-                                    deleted_counts["إعدادات عامة SaaS"] = c
-                                elif key == "payment_methods":
-                                    from apps.payments.models import PaymentMethod
-                                    c = PaymentMethod.objects.all().delete()[0]
-                                    deleted_counts["وسائل الدفع"] = c
-                                elif key == "payment_methods_reset":
-                                    from apps.payments.models import PaymentMethod
-                                    PaymentMethod.objects.all().update(
-                                        daily_deposit_usage=Decimal("0.00"),
-                                        daily_withdrawal_usage=Decimal("0.00"),
-                                        last_limit_reset=timezone.now()
-                                    )
-                                    User.objects.all().update(
-                                        daily_deposit_usage=Decimal("0.00"),
-                                        daily_withdrawal_usage=Decimal("0.00"),
-                                        last_limit_reset=timezone.now()
-                                    )
-                                    deleted_counts["حدود الاستخدام اليومية"] = "تم التصفير"
-                                elif key == "product_variants":
-                                    from apps.catalog.models import ProductVariant
-                                    c = ProductVariant.objects.all().delete()[0]
-                                    deleted_counts["باقات المنتجات"] = c
-                                elif key == "products":
-                                    from apps.catalog.models import Product
-                                    c = Product.objects.all().delete()[0]
-                                    deleted_counts["المنتجات"] = c
-                                elif key == "categories":
-                                    from apps.catalog.models import Category
-                                    c = Category.objects.all().delete()[0]
-                                    deleted_counts["الأقسام والتصنيفات"] = c
-                                elif key == "services":
-                                    from apps.services.models import Service
-                                    c = Service.objects.all().delete()[0]
-                                    deleted_counts["الخدمات"] = c
-                                elif key == "chat_rooms":
-                                    from apps.support.models import ChatRoom
-                                    c = ChatRoom.objects.all().delete()[0]
-                                    deleted_counts["غرف محادثات الدعم"] = c
-                                elif key == "chat_canned_replies":
-                                    from apps.support.models import ChatCannedReply
-                                    c = ChatCannedReply.objects.all().delete()[0]
-                                    deleted_counts["الردود الجاهزة"] = c
-                                elif key == "support_settings":
-                                    from apps.support.models import SupportSettings
-                                    c = SupportSettings.objects.all().delete()[0]
-                                    deleted_counts["إعدادات الدعم الفني"] = c
-                                elif key == "platform_stats":
-                                    from apps.common.models import PlatformStatistic
-                                    c = PlatformStatistic.objects.all().delete()[0]
-                                    deleted_counts["إحصائيات المنصة"] = c
-                                elif key == "currencies":
-                                    from apps.common.models import Currency
-                                    c = Currency.objects.all().delete()[0]
-                                    deleted_counts["العملات"] = c
-                                elif key == "social_links":
-                                    from apps.common.models import SocialMediaLink
-                                    c = SocialMediaLink.objects.all().delete()[0]
-                                    deleted_counts["روابط التواصل الاجتماعي"] = c
-                                elif key == "system_audit_logs":
-                                    from apps.common.models import SystemAuditLog
-                                    c = SystemAuditLog.objects.all().delete()[0]
-                                    deleted_counts["سجلات تدقيق النظام"] = c
-                                elif key == "testimonials":
-                                    from apps.common.models import Testimonial
-                                    c = Testimonial.objects.all().delete()[0]
-                                    deleted_counts["شهادات العملاء"] = c
-                                elif key == "site_announcements":
-                                    from apps.common.models import SiteAnnouncement
-                                    c = SiteAnnouncement.objects.all().delete()[0]
-                                    deleted_counts["ملاحظات شريط الموقع"] = c
-                                elif key == "notifications":
-                                    from apps.notifications.models import Notification
-                                    c = Notification.objects.all().delete()[0]
-                                    deleted_counts["الإشعارات"] = c
-                                elif key == "security_events":
-                                    from apps.accounts.models import SecurityEvent
-                                    c = SecurityEvent.objects.all().delete()[0]
-                                    deleted_counts["سجلات الأمان"] = c
-                                elif key == "user_sessions":
-                                    from apps.accounts.models import UserSession
-                                    c = UserSession.objects.all().delete()[0]
-                                    deleted_counts["جلسات النشاط"] = c
-                                elif key == "groups":
-                                    c = Group.objects.all().delete()[0]
-                                    deleted_counts["المجموعات الإدارية"] = c
-                                elif key == "sites":
-                                    c = Site.objects.all().delete()[0]
-                                    from django.conf import settings
-                                    Site.objects.create(id=settings.SITE_ID, domain="raqamiyatapp.com", name="Raqamiyat")
-                                    deleted_counts["مواقع النظام"] = c
-
-                msg = "تم تصفير البيانات المختارة بنجاح: " + ", ".join([f"{k} ({v})" for k, v in deleted_counts.items()])
-                messages.success(request, msg)
-                return redirect("control_db_maintenance")
-            except ProtectedError as e:
-                messages.error(request, f"لا يمكن حذف بعض البيانات لوجود ارتباطات محمية بها. تفاصيل الخطأ: {str(e)}")
-                return redirect("control_db_maintenance")
-            
-    from apps.orders.models import Order, Invoice, Coupon
-    from apps.accounts.models import User, SecurityEvent, UserSession
+    from django.db.models import ProtectedError
+    from decimal import Decimal
+    from django.utils import timezone
+    from apps.orders.models import Order, OrderItem, OrderLog, Invoice, Coupon
+    from apps.accounts.models import SecurityEvent, UserSession
     from apps.payments.models import DepositRequest, WithdrawalRequest, PaymentMethod
-    from apps.catalog.models import Product, Category, ProductVariant
+    from apps.catalog.models import Product, Category, ProductVariant, ProductKey, ProductImage
     from apps.common.models import PlatformStatistic, Currency, SocialMediaLink, SystemAuditLog, Testimonial, SiteAnnouncement
     from apps.notifications.models import Notification
     from apps.services.models import Service
@@ -5242,69 +5035,478 @@ def control_db_maintenance(request):
     except ImportError:
         OutstandingToken, BlacklistedToken = None, None
 
-    with bypass_tenant_filter():
+    store = getattr(request, "store", None)
+    is_tenant = bool(store)
+
+    if request.method == "POST":
+        action = request.POST.get("action")
+        if action == "cleanup":
+            targets = request.POST.getlist("targets")
+            deleted_counts = {}
+
+            if is_tenant:
+                # ============================================================
+                # TENANT SUB-STORE CLEANUP: Strictly scoped to request.store
+                # NEVER bypass tenant filter, NEVER touch platform records
+                # ============================================================
+                try:
+                    with transaction.atomic():
+                        tenant_allowed_keys = [
+                            "coupons",
+                            "invoices",
+                            "orders",
+                            "deposits",
+                            "withdrawals",
+                            "recharge_cards",
+                            "store_pages",
+                            "payment_methods_reset",
+                            "payment_methods",
+                            "product_variants",
+                            "products",
+                            "categories",
+                            "chat_rooms",
+                            "testimonials",
+                            "site_announcements",
+                            "users"
+                        ]
+
+                        for key in tenant_allowed_keys:
+                            if key not in targets:
+                                continue
+
+                            if key == "coupons":
+                                c = Coupon.objects.filter(store=store).delete()[0]
+                                deleted_counts["الكوبونات"] = c
+                            elif key == "invoices":
+                                c = Invoice.objects.filter(order__store=store).delete()[0]
+                                deleted_counts["الفواتير"] = c
+                            elif key == "orders":
+                                c1 = OrderItem.objects.filter(order__store=store).delete()[0]
+                                c2 = OrderLog.objects.filter(order__store=store).delete()[0]
+                                c3 = Order.objects.filter(store=store).delete()[0]
+                                deleted_counts["الطلبات والمبيعات"] = c1 + c2 + c3
+                            elif key == "deposits":
+                                c = DepositRequest.objects.filter(store=store).delete()[0]
+                                deleted_counts["طلبات الإيداع"] = c
+                            elif key == "withdrawals":
+                                c = WithdrawalRequest.objects.filter(store=store).delete()[0]
+                                deleted_counts["طلبات السحب"] = c
+                            elif key == "recharge_cards":
+                                c = RechargeCard.objects.filter(store=store).delete()[0]
+                                deleted_counts["بطاقات الشحن"] = c
+                            elif key == "store_pages":
+                                c = StorePage.objects.filter(store=store).delete()[0]
+                                deleted_counts["صفحات المتجر"] = c
+                            elif key == "payment_methods":
+                                c = PaymentMethod.objects.filter(store=store).delete()[0]
+                                deleted_counts["وسائل الدفع الخاصة بالمتجر"] = c
+                            elif key == "payment_methods_reset":
+                                PaymentMethod.objects.filter(store=store).update(
+                                    daily_deposit_usage=Decimal("0.00"),
+                                    daily_withdrawal_usage=Decimal("0.00"),
+                                    last_limit_reset=timezone.now()
+                                )
+                                User.objects.filter(store=store).update(
+                                    daily_deposit_usage=Decimal("0.00"),
+                                    daily_withdrawal_usage=Decimal("0.00"),
+                                    last_limit_reset=timezone.now()
+                                )
+                                deleted_counts["حدود الاستخدام اليومية للمتجر"] = "تم التصفير"
+                            elif key == "product_variants":
+                                ProductKey.objects.filter(variant__product__store=store).delete()
+                                c = ProductVariant.objects.filter(product__store=store).delete()[0]
+                                deleted_counts["باقات المنتجات"] = c
+                            elif key == "products":
+                                ProductKey.objects.filter(variant__product__store=store).delete()
+                                ProductImage.objects.filter(product__store=store).delete()
+                                ProductVariant.objects.filter(product__store=store).delete()
+                                c = Product.objects.filter(store=store).delete()[0]
+                                deleted_counts["المنتجات"] = c
+                            elif key == "categories":
+                                c = Category.objects.filter(store=store).delete()[0]
+                                deleted_counts["الأقسام والتصنيفات"] = c
+                            elif key == "chat_rooms":
+                                c = ChatRoom.objects.filter(store=store).delete()[0]
+                                deleted_counts["محادثات الدعم للمتجر"] = c
+                            elif key == "testimonials":
+                                c = Testimonial.objects.filter(user__store=store).delete()[0]
+                                deleted_counts["شهادات ومراجعات العملاء"] = c
+                            elif key == "site_announcements":
+                                c = SiteAnnouncement.objects.filter(store=store).delete()[0]
+                                deleted_counts["إعلانات المتجر"] = c
+                            elif key == "users":
+                                c = User.objects.filter(store=store).exclude(
+                                    id=request.user.id
+                                ).exclude(is_staff=True).exclude(is_superuser=True).exclude(role=User.Role.ADMIN).delete()[0]
+                                deleted_counts["عملاء المتجر"] = c
+
+                    msg = "تم تصفير بيانات المتجر المختارة بنجاح: " + ", ".join([f"{k} ({v})" for k, v in deleted_counts.items()])
+                    messages.success(request, msg)
+                    return redirect("control_db_maintenance")
+                except ProtectedError as e:
+                    messages.error(request, f"لا يمكن حذف بعض البيانات لوجود ارتباطات محمية بها. تفاصيل الخطأ: {str(e)}")
+                    return redirect("control_db_maintenance")
+
+            else:
+                # ============================================================
+                # PLATFORM-WIDE CLEANUP: Super Admin ONLY
+                # ============================================================
+                if not (request.user.role == User.Role.SUPER_ADMIN or request.user.is_superuser):
+                    messages.error(request, "عذراً، تصفير قاعدة بيانات المنصة بالكامل مخصص للمدير العام (Super Admin) فقط.")
+                    return redirect("control_db_maintenance")
+
+                try:
+                    with bypass_tenant_filter():
+                        with transaction.atomic():
+                            ordered_cleanup_keys = [
+                                "social_tokens",
+                                "social_accounts",
+                                "social_apps",
+                                "email_addresses",
+                                "blacklisted_tokens",
+                                "outstanding_tokens",
+                                "invoices",
+                                "coupons",
+                                "orders",
+                                "deposits",
+                                "withdrawals",
+                                "ledger_entries",
+                                "wallet_transactions",
+                                "balance_transfers",
+                                "recharge_cards",
+                                "wallets",
+                                "store_employees",
+                                "store_pages",
+                                "store_settings",
+                                "subscription_invoices",
+                                "store_templates",
+                                "saas_audit_logs",
+                                "stores",
+                                "subscription_plans",
+                                "users",
+                                "saas_admin_roles",
+                                "saas_global_settings",
+                                "payment_methods",
+                                "payment_methods_reset",
+                                "product_variants",
+                                "products",
+                                "categories",
+                                "services",
+                                "chat_rooms",
+                                "chat_canned_replies",
+                                "support_settings",
+                                "platform_stats",
+                                "currencies",
+                                "social_links",
+                                "system_audit_logs",
+                                "testimonials",
+                                "site_announcements",
+                                "notifications",
+                                "security_events",
+                                "user_sessions",
+                                "groups",
+                                "sites"
+                            ]
+
+                            for key in ordered_cleanup_keys:
+                                if key in targets:
+                                    if key == "social_tokens":
+                                        c = SocialToken.objects.all().delete()[0]
+                                        deleted_counts["أكواد التطبيقات الاجتماعية"] = c
+                                    elif key == "social_accounts":
+                                        c = SocialAccount.objects.all().delete()[0]
+                                        deleted_counts["حسابات تواصل اجتماعي"] = c
+                                    elif key == "social_apps":
+                                        c = SocialApp.objects.all().delete()[0]
+                                        deleted_counts["تطبيقات اجتماعية"] = c
+                                    elif key == "email_addresses":
+                                        c = EmailAddress.objects.all().delete()[0]
+                                        deleted_counts["عناوين البريد الإلكتروني"] = c
+                                    elif key == "blacklisted_tokens":
+                                        if BlacklistedToken:
+                                            c = BlacklistedToken.objects.all().delete()[0]
+                                            deleted_counts["رموز مميزة محظورة"] = c
+                                    elif key == "outstanding_tokens":
+                                        if OutstandingToken:
+                                            c = OutstandingToken.objects.all().delete()[0]
+                                            deleted_counts["رموز مميزة نشطة"] = c
+                                    elif key == "coupons":
+                                        c = Coupon.objects.all().delete()[0]
+                                        deleted_counts["الكوبونات"] = c
+                                    elif key == "invoices":
+                                        c = Invoice.objects.all().delete()[0]
+                                        deleted_counts["الفواتير"] = c
+                                    elif key == "orders":
+                                        c1 = OrderItem.objects.all().delete()[0]
+                                        c2 = OrderLog.objects.all().delete()[0]
+                                        c3 = Order.objects.all().delete()[0]
+                                        deleted_counts["الطلبات والمبيعات"] = c1 + c2 + c3
+                                    elif key == "deposits":
+                                        c = DepositRequest.objects.all().delete()[0]
+                                        deleted_counts["طلبات الإيداع"] = c
+                                    elif key == "withdrawals":
+                                        c = WithdrawalRequest.objects.all().delete()[0]
+                                        deleted_counts["طلبات السحب"] = c
+                                    elif key == "ledger_entries":
+                                        c = LedgerEntry.objects.all().delete()[0]
+                                        deleted_counts["سجلات حركة المحفظة"] = c
+                                    elif key == "wallet_transactions":
+                                        c = WalletTransaction.objects.all().delete()[0]
+                                        deleted_counts["العمليات المالية للمحافظ"] = c
+                                    elif key == "balance_transfers":
+                                        c = BalanceTransfer.objects.all().delete()[0]
+                                        deleted_counts["تحويلات الأرصدة"] = c
+                                    elif key == "recharge_cards":
+                                        c = RechargeCard.objects.all().delete()[0]
+                                        deleted_counts["بطاقات الشحن"] = c
+                                    elif key == "wallets":
+                                        c = Wallet.objects.all().delete()[0]
+                                        deleted_counts["المحافظ"] = c
+                                    elif key == "store_employees":
+                                        c = StoreEmployee.objects.all().delete()[0]
+                                        deleted_counts["موظفو المتاجر"] = c
+                                    elif key == "store_pages":
+                                        c = StorePage.objects.all().delete()[0]
+                                        deleted_counts["صفحات المتاجر"] = c
+                                    elif key == "store_settings":
+                                        c = StoreSetting.objects.all().delete()[0]
+                                        deleted_counts["إعدادات المتاجر"] = c
+                                    elif key == "subscription_invoices":
+                                        c = SubscriptionInvoice.objects.all().delete()[0]
+                                        deleted_counts["فواتير اشتراكات المتاجر"] = c
+                                    elif key == "store_templates":
+                                        c = StoreTemplate.objects.all().delete()[0]
+                                        deleted_counts["قوالب المتاجر"] = c
+                                    elif key == "saas_audit_logs":
+                                        c = SaaSAuditLog.objects.all().delete()[0]
+                                        deleted_counts["سجلات تدقيق SaaS"] = c
+                                    elif key == "stores":
+                                        User.objects.all().update(store=None)
+                                        c = Store.objects.all().delete()[0]
+                                        deleted_counts["المتاجر"] = c
+                                    elif key == "subscription_plans":
+                                        c = SubscriptionPlan.objects.all().delete()[0]
+                                        deleted_counts["خطط اشتراكات SaaS"] = c
+                                    elif key == "users":
+                                        c = User.objects.exclude(is_superuser=True).exclude(is_staff=True).exclude(role__in=[User.Role.SUPER_ADMIN, User.Role.ADMIN]).exclude(id=request.user.id).delete()[0]
+                                        deleted_counts["المستخدمين (غير المدراء)"] = c
+                                    elif key == "saas_admin_roles":
+                                        c = SaaSAdminRole.objects.all().delete()[0]
+                                        deleted_counts["أدوار SaaS الإدارية"] = c
+                                    elif key == "saas_global_settings":
+                                        c = SaaSGlobalSetting.objects.all().delete()[0]
+                                        deleted_counts["إعدادات عامة SaaS"] = c
+                                    elif key == "payment_methods":
+                                        c = PaymentMethod.objects.all().delete()[0]
+                                        deleted_counts["وسائل الدفع"] = c
+                                    elif key == "payment_methods_reset":
+                                        PaymentMethod.objects.all().update(
+                                            daily_deposit_usage=Decimal("0.00"),
+                                            daily_withdrawal_usage=Decimal("0.00"),
+                                            last_limit_reset=timezone.now()
+                                        )
+                                        User.objects.all().update(
+                                            daily_deposit_usage=Decimal("0.00"),
+                                            daily_withdrawal_usage=Decimal("0.00"),
+                                            last_limit_reset=timezone.now()
+                                        )
+                                        deleted_counts["حدود الاستخدام اليومية"] = "تم التصفير"
+                                    elif key == "product_variants":
+                                        c = ProductVariant.objects.all().delete()[0]
+                                        deleted_counts["باقات المنتجات"] = c
+                                    elif key == "products":
+                                        c = Product.objects.all().delete()[0]
+                                        deleted_counts["المنتجات"] = c
+                                    elif key == "categories":
+                                        c = Category.objects.all().delete()[0]
+                                        deleted_counts["الأقسام والتصنيفات"] = c
+                                    elif key == "services":
+                                        c = Service.objects.all().delete()[0]
+                                        deleted_counts["الخدمات"] = c
+                                    elif key == "chat_rooms":
+                                        c = ChatRoom.objects.all().delete()[0]
+                                        deleted_counts["غرف محادثات الدعم"] = c
+                                    elif key == "chat_canned_replies":
+                                        c = ChatCannedReply.objects.all().delete()[0]
+                                        deleted_counts["الردود الجاهزة"] = c
+                                    elif key == "support_settings":
+                                        c = SupportSettings.objects.all().delete()[0]
+                                        deleted_counts["إعدادات الدعم الفني"] = c
+                                    elif key == "platform_stats":
+                                        c = PlatformStatistic.objects.all().delete()[0]
+                                        deleted_counts["إحصائيات المنصة"] = c
+                                    elif key == "currencies":
+                                        c = Currency.objects.all().delete()[0]
+                                        deleted_counts["العملات"] = c
+                                    elif key == "social_links":
+                                        c = SocialMediaLink.objects.all().delete()[0]
+                                        deleted_counts["روابط التواصل الاجتماعي"] = c
+                                    elif key == "system_audit_logs":
+                                        c = SystemAuditLog.objects.all().delete()[0]
+                                        deleted_counts["سجلات تدقيق النظام"] = c
+                                    elif key == "testimonials":
+                                        c = Testimonial.objects.all().delete()[0]
+                                        deleted_counts["شهادات العملاء"] = c
+                                    elif key == "site_announcements":
+                                        c = SiteAnnouncement.objects.all().delete()[0]
+                                        deleted_counts["ملاحظات شريط الموقع"] = c
+                                    elif key == "notifications":
+                                        c = Notification.objects.all().delete()[0]
+                                        deleted_counts["الإشعارات"] = c
+                                    elif key == "security_events":
+                                        c = SecurityEvent.objects.all().delete()[0]
+                                        deleted_counts["سجلات الأمان"] = c
+                                    elif key == "user_sessions":
+                                        c = UserSession.objects.all().delete()[0]
+                                        deleted_counts["جلسات النشاط"] = c
+                                    elif key == "groups":
+                                        c = Group.objects.all().delete()[0]
+                                        deleted_counts["المجموعات الإدارية"] = c
+                                    elif key == "sites":
+                                        c = Site.objects.all().delete()[0]
+                                        from django.conf import settings
+                                        Site.objects.create(id=settings.SITE_ID, domain="raqamiyatapp.com", name="Raqamiyat")
+                                        deleted_counts["مواقع النظام"] = c
+
+                    msg = "تم تصفير البيانات المختارة بنجاح: " + ", ".join([f"{k} ({v})" for k, v in deleted_counts.items()])
+                    messages.success(request, msg)
+                    return redirect("control_db_maintenance")
+                except ProtectedError as e:
+                    messages.error(request, f"لا يمكن حذف بعض البيانات لوجود ارتباطات محمية بها. تفاصيل الخطأ: {str(e)}")
+                    return redirect("control_db_maintenance")
+
+    # ============================================================
+    # CALCULATE STATS: Store-specific for tenant, Platform-wide for admin
+    # ============================================================
+    if is_tenant:
         stats = {
-            "users": User.objects.count(),
-            "security_events": SecurityEvent.objects.count(),
-            "user_sessions": UserSession.objects.count(),
+            "users": User.objects.filter(store=store).count(),
+            "security_events": 0,
+            "user_sessions": 0,
             
-            "categories": Category.objects.count(),
-            "products": Product.objects.count(),
-            "product_variants": ProductVariant.objects.count(),
+            "categories": Category.objects.filter(store=store).count(),
+            "products": Product.objects.filter(store=store).count(),
+            "product_variants": ProductVariant.objects.filter(product__store=store).count(),
             
-            "platform_stats": PlatformStatistic.objects.count(),
-            "currencies": Currency.objects.count(),
-            "social_links": SocialMediaLink.objects.count(),
-            "system_audit_logs": SystemAuditLog.objects.count(),
-            "testimonials": Testimonial.objects.count(),
-            "site_announcements": SiteAnnouncement.objects.count(),
+            "platform_stats": 0,
+            "currencies": Currency.objects.filter(store=store).count(),
+            "social_links": 0,
+            "system_audit_logs": SystemAuditLog.objects.filter(actor__store=store).count(),
+            "testimonials": Testimonial.objects.filter(user__store=store).count(),
+            "site_announcements": SiteAnnouncement.objects.filter(store=store).count(),
             
-            "notifications": Notification.objects.count(),
+            "notifications": Notification.objects.filter(user__store=store).count(),
             
-            "orders": Order.objects.count(),
-            "invoices": Invoice.objects.count(),
-            "coupons": Coupon.objects.count(),
+            "orders": Order.objects.filter(store=store).count(),
+            "invoices": Invoice.objects.filter(order__store=store).count(),
+            "coupons": Coupon.objects.filter(store=store).count(),
             
-            "deposits": DepositRequest.objects.count(),
-            "withdrawals": WithdrawalRequest.objects.count(),
-            "payment_methods": PaymentMethod.objects.count(),
+            "deposits": DepositRequest.objects.filter(store=store).count(),
+            "withdrawals": WithdrawalRequest.objects.filter(store=store).count(),
+            "payment_methods": PaymentMethod.objects.filter(store=store).count(),
             
-            "services": Service.objects.count(),
+            "services": 0,
             
-            "support_settings": SupportSettings.objects.count(),
-            "chat_canned_replies": ChatCannedReply.objects.count(),
-            "chat_rooms": ChatRoom.objects.count(),
+            "support_settings": 0,
+            "chat_canned_replies": 0,
+            "chat_rooms": ChatRoom.objects.filter(store=store).count(),
             
-            "outstanding_tokens": OutstandingToken.objects.count() if OutstandingToken else 0,
-            "blacklisted_tokens": BlacklistedToken.objects.count() if BlacklistedToken else 0,
+            "outstanding_tokens": 0,
+            "blacklisted_tokens": 0,
             
-            "wallets": Wallet.objects.count(),
-            "wallet_transactions": WalletTransaction.objects.count(),
-            "ledger_entries": LedgerEntry.objects.count(),
-            "balance_transfers": BalanceTransfer.objects.count(),
-            "recharge_cards": RechargeCard.objects.count(),
+            "wallets": Wallet.objects.filter(user__store=store).count(),
+            "wallet_transactions": WalletTransaction.objects.filter(wallet__user__store=store).count(),
+            "ledger_entries": LedgerEntry.objects.filter(wallet__user__store=store).count(),
+            "balance_transfers": BalanceTransfer.objects.filter(sender__store=store).count(),
+            "recharge_cards": RechargeCard.objects.filter(store=store).count(),
             
-            "stores": Store.objects.count(),
-            "store_settings": StoreSetting.objects.count(),
-            "saas_global_settings": SaaSGlobalSetting.objects.count(),
-            "saas_admin_roles": SaaSAdminRole.objects.count(),
-            "subscription_plans": SubscriptionPlan.objects.count(),
-            "saas_audit_logs": SaaSAuditLog.objects.count(),
-            "store_pages": StorePage.objects.count(),
-            "subscription_invoices": SubscriptionInvoice.objects.count(),
-            "store_templates": StoreTemplate.objects.count(),
-            "store_employees": StoreEmployee.objects.count(),
+            "stores": 0,
+            "store_settings": 0,
+            "saas_global_settings": 0,
+            "saas_admin_roles": 0,
+            "subscription_plans": 0,
+            "saas_audit_logs": 0,
+            "store_pages": StorePage.objects.filter(store=store).count(),
+            "subscription_invoices": SubscriptionInvoice.objects.filter(store=store).count(),
+            "store_templates": 0,
+            "store_employees": StoreEmployee.objects.filter(store=store).count(),
             
-            "email_addresses": EmailAddress.objects.count(),
-            "groups": Group.objects.count(),
-            "sites": Site.objects.count(),
+            "email_addresses": 0,
+            "groups": 0,
+            "sites": 0,
             
-            "social_accounts": SocialAccount.objects.count(),
-            "social_apps": SocialApp.objects.count(),
-            "social_tokens": SocialToken.objects.count(),
+            "social_accounts": 0,
+            "social_apps": 0,
+            "social_tokens": 0,
         }
+    else:
+        with bypass_tenant_filter():
+            stats = {
+                "users": User.objects.count(),
+                "security_events": SecurityEvent.objects.count(),
+                "user_sessions": UserSession.objects.count(),
+                
+                "categories": Category.objects.count(),
+                "products": Product.objects.count(),
+                "product_variants": ProductVariant.objects.count(),
+                
+                "platform_stats": PlatformStatistic.objects.count(),
+                "currencies": Currency.objects.count(),
+                "social_links": SocialMediaLink.objects.count(),
+                "system_audit_logs": SystemAuditLog.objects.count(),
+                "testimonials": Testimonial.objects.count(),
+                "site_announcements": SiteAnnouncement.objects.count(),
+                
+                "notifications": Notification.objects.count(),
+                
+                "orders": Order.objects.count(),
+                "invoices": Invoice.objects.count(),
+                "coupons": Coupon.objects.count(),
+                
+                "deposits": DepositRequest.objects.count(),
+                "withdrawals": WithdrawalRequest.objects.count(),
+                "payment_methods": PaymentMethod.objects.count(),
+                
+                "services": Service.objects.count(),
+                
+                "support_settings": SupportSettings.objects.count(),
+                "chat_canned_replies": ChatCannedReply.objects.count(),
+                "chat_rooms": ChatRoom.objects.count(),
+                
+                "outstanding_tokens": OutstandingToken.objects.count() if OutstandingToken else 0,
+                "blacklisted_tokens": BlacklistedToken.objects.count() if BlacklistedToken else 0,
+                
+                "wallets": Wallet.objects.count(),
+                "wallet_transactions": WalletTransaction.objects.count(),
+                "ledger_entries": LedgerEntry.objects.count(),
+                "balance_transfers": BalanceTransfer.objects.count(),
+                "recharge_cards": RechargeCard.objects.count(),
+                
+                "stores": Store.objects.count(),
+                "store_settings": StoreSetting.objects.count(),
+                "saas_global_settings": SaaSGlobalSetting.objects.count(),
+                "saas_admin_roles": SaaSAdminRole.objects.count(),
+                "subscription_plans": SubscriptionPlan.objects.count(),
+                "saas_audit_logs": SaaSAuditLog.objects.count(),
+                "store_pages": StorePage.objects.count(),
+                "subscription_invoices": SubscriptionInvoice.objects.count(),
+                "store_templates": StoreTemplate.objects.count(),
+                "store_employees": StoreEmployee.objects.count(),
+                
+                "email_addresses": EmailAddress.objects.count(),
+                "groups": Group.objects.count(),
+                "sites": Site.objects.count(),
+                
+                "social_accounts": SocialAccount.objects.count(),
+                "social_apps": SocialApp.objects.count(),
+                "social_tokens": SocialToken.objects.count(),
+            }
         
-    return render(request, "site/control_db_maintenance.html", {"stats": stats})
+    return render(request, "site/control_db_maintenance.html", {
+        "stats": stats,
+        "is_tenant": is_tenant,
+        "store": store,
+    })
 
 @admin_required
 def control_geo_stats(request):
@@ -5492,19 +5694,41 @@ def set_currency(request):
     return redirect(request.META.get('HTTP_REFERER', 'home'))
 
 @admin_required
-def payment_methods_list(request): return render(request, "site/payment_methods_list.html", {"methods": PaymentMethod.objects.all().order_by("display_order")})
+def payment_methods_list(request):
+    store = getattr(request, "store", None)
+    if store:
+        methods = PaymentMethod.objects.filter(store=store).order_by("display_order")
+    else:
+        methods = PaymentMethod.objects.filter(store__isnull=True).order_by("display_order")
+    return render(request, "site/payment_methods_list.html", {"methods": methods, "is_tenant": bool(store)})
+
 @admin_required
 def payment_method_create(request):
+    store = getattr(request, "store", None)
     form = PaymentMethodForm(request.POST or None, request.FILES or None)
-    if request.method == "POST" and form.is_valid(): form.save(); return redirect("payment_methods_list")
-    return render(request, "site/payment_method_builder.html", {"form": form})
+    if request.method == "POST" and form.is_valid():
+        pm = form.save(commit=False)
+        pm.store = store
+        pm.save()
+        form.save_m2m()
+        messages.success(request, "تمت إضافة وسيلة الدفع بنجاح.")
+        return redirect("payment_methods_list")
+    return render(request, "site/payment_method_builder.html", {"form": form, "is_tenant": bool(store)})
+
 @admin_required
 def payment_method_edit(request, pk):
-    method = get_object_or_404(PaymentMethod, pk=pk)
+    store = getattr(request, "store", None)
+    if store:
+        method = get_object_or_404(PaymentMethod, pk=pk, store=store)
+    else:
+        method = get_object_or_404(PaymentMethod, pk=pk, store__isnull=True)
     old_rate = method.capital_exchange_rate
     form = PaymentMethodForm(request.POST or None, request.FILES or None, instance=method)
     if request.method == "POST" and form.is_valid():
-        saved_method = form.save()
+        saved_method = form.save(commit=False)
+        saved_method.store = store
+        saved_method.save()
+        form.save_m2m()
         if saved_method.capital_exchange_rate != old_rate:
             from apps.payments.models import PaymentMethodExchangeRateLog
             PaymentMethodExchangeRateLog.objects.create(
@@ -5514,17 +5738,18 @@ def payment_method_edit(request, pk):
                 changed_by=request.user,
                 reason="Admin Manual Update"
             )
+        messages.success(request, "تم تحديث وسيلة الدفع بنجاح.")
         return redirect("payment_methods_list")
-    return render(request, "site/payment_method_builder.html", {"form": form, "method": method})
+    return render(request, "site/payment_method_builder.html", {"form": form, "method": method, "is_tenant": bool(store)})
 
 
 @admin_required
 def payment_gateway_integrations_list(request):
     store = getattr(request, "store", None)
     if store:
-        gateways = PaymentGatewayIntegration.objects.filter(Q(store=store) | Q(store__isnull=True))
+        gateways = PaymentGatewayIntegration.objects.filter(store=store)
     else:
-        gateways = PaymentGatewayIntegration.objects.all()
+        gateways = PaymentGatewayIntegration.objects.filter(store__isnull=True)
     return render(request, "site/payment_gateway_integrations_list.html", {"gateways": gateways, "is_tenant": bool(store)})
 
 
@@ -6007,25 +6232,21 @@ def control_apicontrol_dashboard(request):
     store = getattr(request, "store", None)
     from apps.common.tenant_utils import bypass_tenant_filter
     
-    with bypass_tenant_filter():
-        # Ensure any existing Alkasr VIP integration name is renamed to "رقميات" and set providers correctly
-        APIIntegration.objects.filter(name__in=["Alkasr VIP", "الكسر VIP", "الكاسر VIP", "ramiqassas2002@gmail.com"]).update(name="رقميات", provider="alkasr")
-        APIIntegration.objects.filter(base_url__icontains="alkasr").update(provider="alkasr")
-        APIIntegration.objects.filter(base_url__icontains="tafa3olcard").update(provider="tafa3olcard")
-        APIIntegration.objects.filter(name__icontains="تفاعل").update(provider="tafa3olcard")
+    if not store:
+        with bypass_tenant_filter():
+            # Ensure any existing Alkasr VIP integration name is renamed to "رقميات" and set providers correctly
+            APIIntegration.all_objects.filter(name__in=["Alkasr VIP", "الكسر VIP", "الكاسر VIP", "ramiqassas2002@gmail.com"]).update(name="رقميات", provider="alkasr")
+            APIIntegration.all_objects.filter(base_url__icontains="alkasr").update(provider="alkasr")
+            APIIntegration.all_objects.filter(base_url__icontains="tafa3olcard").update(provider="tafa3olcard")
+            APIIntegration.all_objects.filter(name__icontains="تفاعل").update(provider="tafa3olcard")
 
-        ProviderProfile.all_objects.filter(provider_name__in=["Alkasr VIP", "الكسر VIP", "الكاسر VIP", "ramiqassas2002@gmail.com"]).update(provider_name="رقميات")
-        ProviderProfile.all_objects.filter(base_url__icontains="alkasr").update(provider_name="رقميات")
+            ProviderProfile.all_objects.filter(provider_name__in=["Alkasr VIP", "الكسر VIP", "الكاسر VIP", "ramiqassas2002@gmail.com"]).update(provider_name="رقميات")
+            ProviderProfile.all_objects.filter(base_url__icontains="alkasr").update(provider_name="رقميات")
 
-        # 1. Fetch active integrations from APIIntegration model
-        if store:
-            active_integrations = list(APIIntegration.objects.filter(store=store, is_active=True))
-        else:
-            active_integrations = list(APIIntegration.objects.filter(is_active=True))
-            
-        if not active_integrations and not ProviderProfile.all_objects.exists():
+        active_integrations = list(APIIntegration.objects.filter(store__isnull=True, is_active=True))
+        if not active_integrations and not ProviderProfile.all_objects.filter(store__isnull=True).exists():
             default_integ, _ = APIIntegration.objects.get_or_create(
-                store=store,
+                store=None,
                 provider="alkasr",
                 defaults={
                     "name": "رقميات",
@@ -6035,6 +6256,8 @@ def control_apicontrol_dashboard(request):
                 }
             )
             active_integrations = [default_integ]
+    else:
+        active_integrations = list(APIIntegration.objects.filter(store=store, is_active=True))
 
     # Get selected integration ID from GET or POST request
     integration_id = request.POST.get("integration_id") or request.GET.get("integration_id")
@@ -6049,28 +6272,15 @@ def control_apicontrol_dashboard(request):
     is_alkasr = False
     is_tafa3ol = False
     if integration:
-        is_alkasr = "alkasr" in (integration.base_url or "").lower() or integration.provider == "alkasr" or "رقميات" in (integration.name or "")
-        is_tafa3ol = "tafa3ol" in (integration.base_url or "").lower() or integration.provider == "tafa3olcard" or "تفاعل" in (integration.name or "")
-        with bypass_tenant_filter():
-            if is_alkasr:
-                profile_obj = ProviderProfile.all_objects.filter(
-                    Q(base_url__icontains="alkasr") | Q(products__isnull=False) | Q(provider_name="رقميات")
-                ).distinct().first()
-                if profile_obj and profile_obj.provider_name != integration.name:
-                    profile_obj.provider_name = integration.name
-                    profile_obj.save(update_fields=["provider_name"])
-            elif is_tafa3ol:
-                profile_obj = ProviderProfile.all_objects.filter(
-                    Q(base_url__icontains="tafa3ol") | Q(provider_name__icontains="تفاعل")
-                ).first()
-            else:
-                profile_obj = ProviderProfile.all_objects.filter(
-                    store=store,
-                    provider_name=integration.name
-                ).first()
-
+        is_alkasr = "alkasr" in (integration.base_url or "").lower() or getattr(integration, 'provider', '') == "alkasr" or "رقميات" in (integration.name or "")
+        is_tafa3ol = "tafa3ol" in (integration.base_url or "").lower() or getattr(integration, 'provider', '') == "tafa3olcard" or "تفاعل" in (integration.name or "")
+        if store:
+            profile_obj = ProviderProfile.objects.filter(
+                store=store,
+                provider_name=integration.name
+            ).first()
             if not profile_obj:
-                profile_obj = ProviderProfile.all_objects.create(
+                profile_obj = ProviderProfile.objects.create(
                     store=store,
                     provider_name=integration.name,
                     base_url=integration.base_url,
@@ -6090,9 +6300,57 @@ def control_apicontrol_dashboard(request):
                     fields_to_update.append("is_active")
                 if fields_to_update:
                     profile_obj.save(update_fields=fields_to_update)
+        else:
+            is_alkasr = "alkasr" in (integration.base_url or "").lower() or integration.provider == "alkasr" or "رقميات" in (integration.name or "")
+            is_tafa3ol = "tafa3ol" in (integration.base_url or "").lower() or integration.provider == "tafa3olcard" or "تفاعل" in (integration.name or "")
+            with bypass_tenant_filter():
+                if is_alkasr:
+                    profile_obj = ProviderProfile.all_objects.filter(
+                        store__isnull=True
+                    ).filter(
+                        Q(base_url__icontains="alkasr") | Q(products__isnull=False) | Q(provider_name="رقميات")
+                    ).distinct().first()
+                    if profile_obj and profile_obj.provider_name != integration.name:
+                        profile_obj.provider_name = integration.name
+                        profile_obj.save(update_fields=["provider_name"])
+                elif is_tafa3ol:
+                    profile_obj = ProviderProfile.all_objects.filter(
+                        store__isnull=True
+                    ).filter(
+                        Q(base_url__icontains="tafa3ol") | Q(provider_name__icontains="تفاعل")
+                    ).first()
+                else:
+                    profile_obj = ProviderProfile.all_objects.filter(
+                        store__isnull=True,
+                        provider_name=integration.name
+                    ).first()
+
+                if not profile_obj:
+                    profile_obj = ProviderProfile.all_objects.create(
+                        store=None,
+                        provider_name=integration.name,
+                        base_url=integration.base_url,
+                        api_token=integration.api_token,
+                        is_active=integration.is_active,
+                    )
+                else:
+                    fields_to_update = []
+                    if profile_obj.base_url != integration.base_url:
+                        profile_obj.base_url = integration.base_url
+                        fields_to_update.append("base_url")
+                    if profile_obj.api_token != integration.api_token:
+                        profile_obj.api_token = integration.api_token
+                        fields_to_update.append("api_token")
+                    if profile_obj.is_active != integration.is_active:
+                        profile_obj.is_active = integration.is_active
+                        fields_to_update.append("is_active")
+                    if fields_to_update:
+                        profile_obj.save(update_fields=fields_to_update)
     else:
-        with bypass_tenant_filter():
-            profile_obj = ProviderProfile.all_objects.filter(store=store, is_active=True).first() or ProviderProfile.all_objects.filter(is_active=True).first()
+        if store:
+            profile_obj = ProviderProfile.objects.filter(store=store, is_active=True).first()
+        else:
+            profile_obj = ProviderProfile.objects.filter(store__isnull=True, is_active=True).first()
 
     # Check if GET sync progress endpoint requested
     if request.GET.get("action") == "get_sync_progress" or request.GET.get("sync_progress") == "1":
@@ -6834,23 +7092,20 @@ def control_api_integrations_list(request):
     from apps.providers.models import ProviderProfile
     from apps.common.tenant_utils import bypass_tenant_filter
     
-    with bypass_tenant_filter():
-        # Automatically update any Alkasr VIP / الكسر VIP / ramiqassas to "رقميات"
-        APIIntegration.objects.filter(name__in=["Alkasr VIP", "الكسر VIP", "الكاسر VIP", "ramiqassas2002@gmail.com"]).update(name="رقميات", provider="alkasr")
-        APIIntegration.objects.filter(base_url__icontains="alkasr").update(provider="alkasr")
-        APIIntegration.objects.filter(base_url__icontains="tafa3olcard").update(provider="tafa3olcard")
-        APIIntegration.objects.filter(name__icontains="تفاعل").update(provider="tafa3olcard")
-        
-        ProviderProfile.all_objects.filter(provider_name__in=["Alkasr VIP", "الكسر VIP", "الكاسر VIP", "ramiqassas2002@gmail.com"]).update(provider_name="رقميات")
-        ProviderProfile.all_objects.filter(base_url__icontains="alkasr").update(provider_name="رقميات")
-        
-        store = getattr(request, "store", None)
-        if store:
-            integrations = list(APIIntegration.objects.filter(
-                Q(store=store) | Q(store__isnull=True, allow_sub_stores=True)
-            ))
-        else:
-            integrations = list(APIIntegration.objects.all())
+    store = getattr(request, "store", None)
+    if not store:
+        with bypass_tenant_filter():
+            # Automatically update any Alkasr VIP / الكسر VIP / ramiqassas to "رقميات"
+            APIIntegration.all_objects.filter(name__in=["Alkasr VIP", "الكسر VIP", "الكاسر VIP", "ramiqassas2002@gmail.com"]).update(name="رقميات", provider="alkasr")
+            APIIntegration.all_objects.filter(base_url__icontains="alkasr").update(provider="alkasr")
+            APIIntegration.all_objects.filter(base_url__icontains="tafa3olcard").update(provider="tafa3olcard")
+            APIIntegration.all_objects.filter(name__icontains="تفاعل").update(provider="tafa3olcard")
+            
+            ProviderProfile.all_objects.filter(provider_name__in=["Alkasr VIP", "الكسر VIP", "الكاسر VIP", "ramiqassas2002@gmail.com"]).update(provider_name="رقميات")
+            ProviderProfile.all_objects.filter(base_url__icontains="alkasr").update(provider_name="رقميات")
+        integrations = list(APIIntegration.objects.filter(store__isnull=True))
+    else:
+        integrations = list(APIIntegration.objects.filter(store=store))
         
     return render(request, "site/control_api_integrations_list.html", {
         "integrations": integrations,
@@ -6931,6 +7186,9 @@ def control_system_updates(request):
     Control dashboard view to display system versions (Git commits),
     status against remote origin, and allow rollbacks to previous versions or updates to latest master.
     """
+    if getattr(request, "store", None):
+        messages.error(request, "غير مسموح للمتاجر الفرعية الوصول لإعدادات تحديثات النظام.")
+        return redirect("control_dashboard")
     from apps.accounts.models import User
     if not (request.user.role == User.Role.SUPER_ADMIN or request.user.is_superuser):
         messages.error(request, "عذراً، هذه الصفحة مخصصة للمدير العام فقط.")

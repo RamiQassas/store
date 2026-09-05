@@ -391,7 +391,7 @@ class APIIntegration(TimeStampedModel):
         related_name="api_integrations",
         verbose_name="المتجر"
     )
-    objects = models.Manager()
+    objects = TenantManager()
     all_objects = models.Manager()
     provider = models.CharField(
         max_length=20,
@@ -451,6 +451,8 @@ class APITransaction(TimeStampedModel):
         related_name="api_transactions",
         verbose_name="المتجر"
     )
+    objects = TenantManager()
+    all_objects = models.Manager()
     provider = models.CharField(max_length=50, verbose_name="المزود")
     action = models.CharField(max_length=100, verbose_name="العملية") # e.g. "newOrder", "check", "profile", "products"
     product_id = models.CharField(max_length=100, blank=True, null=True, verbose_name="رقم المنتج في المزود")

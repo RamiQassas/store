@@ -5,9 +5,9 @@
 {% block control_content %}
 <div class="page-head">
     <div>
-        <span class="eyebrow">Database Maintenance</span>
-        <h1>تصفير وصيانة قاعدة البيانات</h1>
-        <p class="text-rose-400 font-bold mt-2"><i class="fas fa-exclamation-triangle"></i> تنبيه: هذه العمليات نهائية ولا يمكن التراجع عنها. يرجى أخذ نسخة احتياطية قبل البدء.</p>
+        <span class="eyebrow">{% if is_tenant %}Store Data Maintenance{% else %}Database Maintenance{% endif %}</span>
+        <h1>{% if is_tenant %}تصفير وصيانة بيانات المتجر{% else %}تصفير وصيانة قاعدة البيانات{% endif %}</h1>
+        <p class="text-rose-400 font-bold mt-2"><i class="fas fa-exclamation-triangle"></i> {% if is_tenant %}تنبيه: هذه العمليات نهائية ولا يمكن التراجع عنها. ستقوم بحذف بيانات متجرك المحددة فقط دون التأثير على المنصة أو المتاجر الأخرى.{% else %}تنبيه: هذه العمليات نهائية ولا يمكن التراجع عنها. يرجى أخذ نسخة احتياطية قبل البدء.{% endif %}</p>
     </div>
 </div>
 
@@ -15,9 +15,9 @@
     <div class="panel p-8 bg-slate-900/40 border-white/5 rounded-3xl max-h-[85vh] overflow-y-auto">
         <h3 class="text-xl font-black mb-4 flex items-center gap-3">
             <i class="fas fa-trash-alt text-rose-500"></i>
-            تنظيف البيانات الانتقائي الشامل
+            {% if is_tenant %}تنظيف وتصفير بيانات المتجر{% else %}تنظيف البيانات الانتقائي الشامل{% endif %}
         </h3>
-        <p class="text-slate-400 text-xs mb-6">حدد الجداول أو المجموعات التي تريد تصفيرها. يتم تنفيذ الحذف بترتيب آمن لمنع تعطل قاعدة البيانات.</p>
+        <p class="text-slate-400 text-xs mb-6">{% if is_tenant %}حدد أقسام المتجر التي تريد تصفيرها. لن يتم حذف أي بيانات تتبع لمتاجر أخرى أو للنظام العام.{% else %}حدد الجداول أو المجموعات التي تريد تصفيرها. يتم تنفيذ الحذف بترتيب آمن لمنع تعطل قاعدة البيانات.{% endif %}</p>
         
         <div class="mb-6 flex gap-3 text-right" dir="rtl">
             <button type="button" onclick="selectAllTargets(true)" class="btn btn-xs bg-rose-600/20 hover:bg-rose-600/40 text-rose-200 border-none font-bold px-3 py-1 rounded-lg">تحديد الكل</button>
@@ -32,7 +32,7 @@
                 <!-- Accounts Group -->
                 <div class="bg-white/[0.01] border border-white/5 rounded-2xl p-4">
                     <div class="flex justify-between items-center mb-3 pb-1 border-b border-white/5">
-                        <span class="text-xs font-bold text-slate-300">Accounts (الحسابات)</span>
+                        <span class="text-xs font-bold text-slate-300">{% if is_tenant %}Accounts (عملاء المتجر){% else %}Accounts (الحسابات){% endif %}</span>
                         <label class="flex items-center gap-1 cursor-pointer">
                             <input type="checkbox" onclick="toggleGroup(this, 'group_accounts')" class="w-4 h-4 rounded text-rose-600 bg-slate-900 border-white/10">
                             <span class="text-[10px] text-slate-500 mr-1">تحديد الكل</span>
@@ -42,10 +42,11 @@
                         <label class="flex items-center gap-2 p-2.5 rounded-xl bg-white/[0.02] border border-white/5 cursor-pointer hover:bg-white/[0.05] transition">
                             <input type="checkbox" name="targets" value="users" class="w-4 h-4 rounded text-rose-600 bg-slate-900 border-white/10">
                             <div class="flex-1 flex justify-between items-center">
-                                <span class="text-xs text-white font-medium">المستخدمون</span>
+                                <span class="text-xs text-white font-medium">{% if is_tenant %}عملاء متجرك المسجلين{% else %}المستخدمون{% endif %}</span>
                                 <span class="text-[10px] text-rose-400 font-bold">({{ stats.users }})</span>
                             </div>
                         </label>
+                        {% if not is_tenant %}
                         <label class="flex items-center gap-2 p-2.5 rounded-xl bg-white/[0.02] border border-white/5 cursor-pointer hover:bg-white/[0.05] transition">
                             <input type="checkbox" name="targets" value="security_events" class="w-4 h-4 rounded text-rose-600 bg-slate-900 border-white/10">
                             <div class="flex-1 flex justify-between items-center">
@@ -67,6 +68,7 @@
                                 <span class="text-[10px] text-rose-400 font-bold">({{ stats.email_addresses }})</span>
                             </div>
                         </label>
+                        {% endif %}
                     </div>
                 </div>
 
@@ -114,6 +116,7 @@
                         </label>
                     </div>
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-3" id="group_common">
+                        {% if not is_tenant %}
                         <label class="flex items-center gap-2 p-2.5 rounded-xl bg-white/[0.02] border border-white/5 cursor-pointer hover:bg-white/[0.05] transition">
                             <input type="checkbox" name="targets" value="platform_stats" class="w-4 h-4 rounded text-rose-600 bg-slate-900 border-white/10">
                             <div class="flex-1 flex justify-between items-center">
@@ -142,23 +145,25 @@
                                 <span class="text-[10px] text-rose-400 font-bold">({{ stats.system_audit_logs }})</span>
                             </div>
                         </label>
+                        {% endif %}
                         <label class="flex items-center gap-2 p-2.5 rounded-xl bg-white/[0.02] border border-white/5 cursor-pointer hover:bg-white/[0.05] transition">
                             <input type="checkbox" name="targets" value="testimonials" class="w-4 h-4 rounded text-rose-600 bg-slate-900 border-white/10">
                             <div class="flex-1 flex justify-between items-center">
-                                <span class="text-xs text-white font-medium">شهادات العملاء</span>
+                                <span class="text-xs text-white font-medium">{% if is_tenant %}شهادات عملاء المتجر{% else %}شهادات العملاء{% endif %}</span>
                                 <span class="text-[10px] text-rose-400 font-bold">({{ stats.testimonials }})</span>
                             </div>
                         </label>
                         <label class="flex items-center gap-2 p-2.5 rounded-xl bg-white/[0.02] border border-white/5 cursor-pointer hover:bg-white/[0.05] transition">
                             <input type="checkbox" name="targets" value="site_announcements" class="w-4 h-4 rounded text-rose-600 bg-slate-900 border-white/10">
                             <div class="flex-1 flex justify-between items-center">
-                                <span class="text-xs text-white font-medium">ملاحظات شريط الموقع</span>
+                                <span class="text-xs text-white font-medium">{% if is_tenant %}إعلانات شريط المتجر{% else %}ملاحظات شريط الموقع{% endif %}</span>
                                 <span class="text-[10px] text-rose-400 font-bold">({{ stats.site_announcements }})</span>
                             </div>
                         </label>
                     </div>
                 </div>
 
+                {% if not is_tenant %}
                 <!-- Notifications Group -->
                 <div class="bg-white/[0.01] border border-white/5 rounded-2xl p-4">
                     <div class="flex justify-between items-center mb-3 pb-1 border-b border-white/5">
@@ -178,6 +183,7 @@
                         </label>
                     </div>
                 </div>
+                {% endif %}
 
                 <!-- Orders Group -->
                 <div class="bg-white/[0.01] border border-white/5 rounded-2xl p-4">
@@ -254,6 +260,7 @@
                     </div>
                 </div>
 
+                {% if not is_tenant %}
                 <!-- Services Group -->
                 <div class="bg-white/[0.01] border border-white/5 rounded-2xl p-4">
                     <div class="flex justify-between items-center mb-3 pb-1 border-b border-white/5">
@@ -273,6 +280,7 @@
                         </label>
                     </div>
                 </div>
+                {% endif %}
 
                 <!-- Support Group -->
                 <div class="bg-white/[0.01] border border-white/5 rounded-2xl p-4">
@@ -284,6 +292,7 @@
                         </label>
                     </div>
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-3" id="group_support">
+                        {% if not is_tenant %}
                         <label class="flex items-center gap-2 p-2.5 rounded-xl bg-white/[0.02] border border-white/5 cursor-pointer hover:bg-white/[0.05] transition">
                             <input type="checkbox" name="targets" value="support_settings" class="w-4 h-4 rounded text-rose-600 bg-slate-900 border-white/10">
                             <div class="flex-1 flex justify-between items-center">
@@ -298,16 +307,18 @@
                                 <span class="text-[10px] text-rose-400 font-bold">({{ stats.chat_canned_replies }})</span>
                             </div>
                         </label>
+                        {% endif %}
                         <label class="flex items-center gap-2 p-2.5 rounded-xl bg-white/[0.02] border border-white/5 cursor-pointer hover:bg-white/[0.05] transition">
                             <input type="checkbox" name="targets" value="chat_rooms" class="w-4 h-4 rounded text-rose-600 bg-slate-900 border-white/10">
                             <div class="flex-1 flex justify-between items-center">
-                                <span class="text-xs text-white font-medium">غرف المحادثة</span>
+                                <span class="text-xs text-white font-medium">{% if is_tenant %}محادثات الدعم لمتجرك{% else %}غرف المحادثة{% endif %}</span>
                                 <span class="text-[10px] text-rose-400 font-bold">({{ stats.chat_rooms }})</span>
                             </div>
                         </label>
                     </div>
                 </div>
 
+                {% if not is_tenant %}
                 <!-- Token Blacklist Group -->
                 <div class="bg-white/[0.01] border border-white/5 rounded-2xl p-4">
                     <div class="flex justify-between items-center mb-3 pb-1 border-b border-white/5">
@@ -334,6 +345,7 @@
                         </label>
                     </div>
                 </div>
+                {% endif %}
 
                 <!-- Wallets Group -->
                 <div class="bg-white/[0.01] border border-white/5 rounded-2xl p-4">
@@ -348,7 +360,7 @@
                         <label class="flex items-center gap-2 p-2.5 rounded-xl bg-white/[0.02] border border-white/5 cursor-pointer hover:bg-white/[0.05] transition">
                             <input type="checkbox" name="targets" value="wallets" class="w-4 h-4 rounded text-rose-600 bg-slate-900 border-white/10">
                             <div class="flex-1 flex justify-between items-center">
-                                <span class="text-xs text-white font-medium">المحافظ</span>
+                                <span class="text-xs text-white font-medium">{% if is_tenant %}محافظ عملاء المتجر{% else %}المحافظ{% endif %}</span>
                                 <span class="text-[10px] text-rose-400 font-bold">({{ stats.wallets }})</span>
                             </div>
                         </label>
@@ -359,6 +371,7 @@
                                 <span class="text-[10px] text-rose-400 font-bold">({{ stats.wallet_transactions }})</span>
                             </div>
                         </label>
+                        {% if not is_tenant %}
                         <label class="flex items-center gap-2 p-2.5 rounded-xl bg-white/[0.02] border border-white/5 cursor-pointer hover:bg-white/[0.05] transition">
                             <input type="checkbox" name="targets" value="ledger_entries" class="w-4 h-4 rounded text-rose-600 bg-slate-900 border-white/10">
                             <div class="flex-1 flex justify-between items-center">
@@ -366,6 +379,7 @@
                                 <span class="text-[10px] text-rose-400 font-bold">({{ stats.ledger_entries }})</span>
                             </div>
                         </label>
+                        {% endif %}
                         <label class="flex items-center gap-2 p-2.5 rounded-xl bg-white/[0.02] border border-white/5 cursor-pointer hover:bg-white/[0.05] transition">
                             <input type="checkbox" name="targets" value="balance_transfers" class="w-4 h-4 rounded text-rose-600 bg-slate-900 border-white/10">
                             <div class="flex-1 flex justify-between items-center">
@@ -386,13 +400,14 @@
                 <!-- Store Management Group -->
                 <div class="bg-white/[0.01] border border-white/5 rounded-2xl p-4">
                     <div class="flex justify-between items-center mb-3 pb-1 border-b border-white/5">
-                        <span class="text-xs font-bold text-slate-300">Store Management (إدارة المتاجر)</span>
+                        <span class="text-xs font-bold text-slate-300">{% if is_tenant %}Store Pages (صفحات المتجر){% else %}Store Management (إدارة المتاجر){% endif %}</span>
                         <label class="flex items-center gap-1 cursor-pointer">
                             <input type="checkbox" onclick="toggleGroup(this, 'group_stores')" class="w-4 h-4 rounded text-rose-600 bg-slate-900 border-white/10">
                             <span class="text-[10px] text-slate-500 mr-1">تحديد الكل</span>
                         </label>
                     </div>
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-3" id="group_stores">
+                        {% if not is_tenant %}
                         <label class="flex items-center gap-2 p-2.5 rounded-xl bg-white/[0.02] border border-white/5 cursor-pointer hover:bg-white/[0.05] transition">
                             <input type="checkbox" name="targets" value="stores" class="w-4 h-4 rounded text-rose-600 bg-slate-900 border-white/10">
                             <div class="flex-1 flex justify-between items-center">
@@ -435,13 +450,15 @@
                                 <span class="text-[10px] text-rose-400 font-bold">({{ stats.saas_audit_logs }})</span>
                             </div>
                         </label>
+                        {% endif %}
                         <label class="flex items-center gap-2 p-2.5 rounded-xl bg-white/[0.02] border border-white/5 cursor-pointer hover:bg-white/[0.05] transition">
                             <input type="checkbox" name="targets" value="store_pages" class="w-4 h-4 rounded text-rose-600 bg-slate-900 border-white/10">
                             <div class="flex-1 flex justify-between items-center">
-                                <span class="text-xs text-white font-medium">صفحات المتاجر</span>
+                                <span class="text-xs text-white font-medium">{% if is_tenant %}صفحات متجرك الإضافية{% else %}صفحات المتاجر{% endif %}</span>
                                 <span class="text-[10px] text-rose-400 font-bold">({{ stats.store_pages }})</span>
                             </div>
                         </label>
+                        {% if not is_tenant %}
                         <label class="flex items-center gap-2 p-2.5 rounded-xl bg-white/[0.02] border border-white/5 cursor-pointer hover:bg-white/[0.05] transition">
                             <input type="checkbox" name="targets" value="subscription_invoices" class="w-4 h-4 rounded text-rose-600 bg-slate-900 border-white/10">
                             <div class="flex-1 flex justify-between items-center">
@@ -463,9 +480,11 @@
                                 <span class="text-[10px] text-rose-400 font-bold">({{ stats.store_employees }})</span>
                             </div>
                         </label>
+                        {% endif %}
                     </div>
                 </div>
 
+                {% if not is_tenant %}
                 <!-- Auth & Sites Group -->
                 <div class="bg-white/[0.01] border border-white/5 rounded-2xl p-4">
                     <div class="flex justify-between items-center mb-3 pb-1 border-b border-white/5">
@@ -526,6 +545,7 @@
                         </label>
                     </div>
                 </div>
+                {% endif %}
             </div>
 
             <div class="mt-8 p-6 bg-rose-500/10 border border-rose-500/20 rounded-2xl">
@@ -545,12 +565,13 @@
         <div class="stack gap-6 text-right" dir="rtl">
             <!-- Accounts Group -->
             <div>
-                <h4 class="text-xs font-bold text-slate-400 mb-3 border-b border-white/5 pb-1 uppercase tracking-widest">Accounts (الحسابات)</h4>
+                <h4 class="text-xs font-bold text-slate-400 mb-3 border-b border-white/5 pb-1 uppercase tracking-widest">{% if is_tenant %}Accounts (عملاء المتجر){% else %}Accounts (الحسابات){% endif %}</h4>
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
                     <div class="p-3 bg-white/[0.02] border border-white/5 rounded-xl flex justify-between items-center">
-                        <span class="text-xs text-slate-400">المستخدمون</span>
+                        <span class="text-xs text-slate-400">{% if is_tenant %}عملاء متجرك المسجلين{% else %}المستخدمون{% endif %}</span>
                         <span class="font-bold text-white">{{ stats.users }}</span>
                     </div>
+                    {% if not is_tenant %}
                     <div class="p-3 bg-white/[0.02] border border-white/5 rounded-xl flex justify-between items-center">
                         <span class="text-xs text-slate-400">سجلات الأمان</span>
                         <span class="font-bold text-white">{{ stats.security_events }}</span>
@@ -559,6 +580,7 @@
                         <span class="text-xs text-slate-400">جلسات النشاط</span>
                         <span class="font-bold text-white">{{ stats.user_sessions }}</span>
                     </div>
+                    {% endif %}
                 </div>
             </div>
 
@@ -585,6 +607,7 @@
             <div>
                 <h4 class="text-xs font-bold text-slate-400 mb-3 border-b border-white/5 pb-1 uppercase tracking-widest">Common (البيانات العامة)</h4>
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    {% if not is_tenant %}
                     <div class="p-3 bg-white/[0.02] border border-white/5 rounded-xl flex justify-between items-center">
                         <span class="text-xs text-slate-400">إحصائيات المنصة</span>
                         <span class="font-bold text-white">{{ stats.platform_stats }}</span>
@@ -601,17 +624,19 @@
                         <span class="text-xs text-slate-400">سجلات تدقيق النظام</span>
                         <span class="font-bold text-white">{{ stats.system_audit_logs }}</span>
                     </div>
+                    {% endif %}
                     <div class="p-3 bg-white/[0.02] border border-white/5 rounded-xl flex justify-between items-center">
-                        <span class="text-xs text-slate-400">شهادات العملاء</span>
+                        <span class="text-xs text-slate-400">{% if is_tenant %}شهادات عملاء متجرك{% else %}شهادات العملاء{% endif %}</span>
                         <span class="font-bold text-white">{{ stats.testimonials }}</span>
                     </div>
                     <div class="p-3 bg-white/[0.02] border border-white/5 rounded-xl flex justify-between items-center">
-                        <span class="text-xs text-slate-400">ملاحظات الشريط</span>
+                        <span class="text-xs text-slate-400">{% if is_tenant %}إعلانات شريط متجرك{% else %}ملاحظات الشريط{% endif %}</span>
                         <span class="font-bold text-white">{{ stats.site_announcements }}</span>
                     </div>
                 </div>
             </div>
 
+            {% if not is_tenant %}
             <!-- Notifications Group -->
             <div>
                 <h4 class="text-xs font-bold text-slate-400 mb-3 border-b border-white/5 pb-1 uppercase tracking-widest">Notifications (الإشعارات)</h4>
@@ -622,6 +647,7 @@
                     </div>
                 </div>
             </div>
+            {% endif %}
 
             <!-- Orders Group -->
             <div>
@@ -661,6 +687,7 @@
                 </div>
             </div>
 
+            {% if not is_tenant %}
             <!-- Services Group -->
             <div>
                 <h4 class="text-xs font-bold text-slate-400 mb-3 border-b border-white/5 pb-1 uppercase tracking-widest">Services (الخدمات)</h4>
@@ -671,11 +698,13 @@
                     </div>
                 </div>
             </div>
+            {% endif %}
 
             <!-- Support Group -->
             <div>
                 <h4 class="text-xs font-bold text-slate-400 mb-3 border-b border-white/5 pb-1 uppercase tracking-widest">Support (الدعم الفني)</h4>
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    {% if not is_tenant %}
                     <div class="p-3 bg-white/[0.02] border border-white/5 rounded-xl flex justify-between items-center">
                         <span class="text-xs text-slate-400">إعدادات الدعم</span>
                         <span class="font-bold text-white">{{ stats.support_settings }}</span>
@@ -684,13 +713,15 @@
                         <span class="text-xs text-slate-400">الردود الجاهزة (محادثة)</span>
                         <span class="font-bold text-white">{{ stats.chat_canned_replies }}</span>
                     </div>
+                    {% endif %}
                     <div class="p-3 bg-white/[0.02] border border-white/5 rounded-xl flex justify-between items-center">
-                        <span class="text-xs text-slate-400">غرف المحادثة</span>
+                        <span class="text-xs text-slate-400">{% if is_tenant %}محادثات الدعم لمتجرك{% else %}غرف المحادثة{% endif %}</span>
                         <span class="font-bold text-white">{{ stats.chat_rooms }}</span>
                     </div>
                 </div>
             </div>
 
+            {% if not is_tenant %}
             <!-- Token Blacklist Group -->
             <div>
                 <h4 class="text-xs font-bold text-slate-400 mb-3 border-b border-white/5 pb-1 uppercase tracking-widest">Token Blacklist (رموز المصادقة)</h4>
@@ -705,23 +736,26 @@
                     </div>
                 </div>
             </div>
+            {% endif %}
 
             <!-- Wallets Group -->
             <div>
                 <h4 class="text-xs font-bold text-slate-400 mb-3 border-b border-white/5 pb-1 uppercase tracking-widest">Wallets (المحافظ والتحويلات)</h4>
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
                     <div class="p-3 bg-white/[0.02] border border-white/5 rounded-xl flex justify-between items-center">
-                        <span class="text-xs text-slate-400">المحافظ</span>
+                        <span class="text-xs text-slate-400">{% if is_tenant %}محافظ عملاء المتجر{% else %}المحافظ{% endif %}</span>
                         <span class="font-bold text-white">{{ stats.wallets }}</span>
                     </div>
                     <div class="p-3 bg-white/[0.02] border border-white/5 rounded-xl flex justify-between items-center">
                         <span class="text-xs text-slate-400">العمليات المالية</span>
                         <span class="font-bold text-white">{{ stats.wallet_transactions }}</span>
                     </div>
+                    {% if not is_tenant %}
                     <div class="p-3 bg-white/[0.02] border border-white/5 rounded-xl flex justify-between items-center">
                         <span class="text-xs text-slate-400">سجلات الحركة</span>
                         <span class="font-bold text-white">{{ stats.ledger_entries }}</span>
                     </div>
+                    {% endif %}
                     <div class="p-3 bg-white/[0.02] border border-white/5 rounded-xl flex justify-between items-center">
                         <span class="text-xs text-slate-400">تحويلات الأرصدة</span>
                         <span class="font-bold text-white">{{ stats.balance_transfers }}</span>
@@ -735,8 +769,9 @@
 
             <!-- Store Management Group -->
             <div>
-                <h4 class="text-xs font-bold text-slate-400 mb-3 border-b border-white/5 pb-1 uppercase tracking-widest">Store Management (إدارة المتاجر)</h4>
+                <h4 class="text-xs font-bold text-slate-400 mb-3 border-b border-white/5 pb-1 uppercase tracking-widest">{% if is_tenant %}Store Pages (صفحات المتجر){% else %}Store Management (إدارة المتاجر){% endif %}</h4>
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    {% if not is_tenant %}
                     <div class="p-3 bg-white/[0.02] border border-white/5 rounded-xl flex justify-between items-center">
                         <span class="text-xs text-slate-400">المتاجر</span>
                         <span class="font-bold text-white">{{ stats.stores }}</span>
@@ -761,10 +796,12 @@
                         <span class="text-xs text-slate-400">سجلات تدقيق SaaS</span>
                         <span class="font-bold text-white">{{ stats.saas_audit_logs }}</span>
                     </div>
+                    {% endif %}
                     <div class="p-3 bg-white/[0.02] border border-white/5 rounded-xl flex justify-between items-center">
-                        <span class="text-xs text-slate-400">صفحات المتاجر</span>
+                        <span class="text-xs text-slate-400">{% if is_tenant %}صفحات متجرك الإضافية{% else %}صفحات المتاجر{% endif %}</span>
                         <span class="font-bold text-white">{{ stats.store_pages }}</span>
                     </div>
+                    {% if not is_tenant %}
                     <div class="p-3 bg-white/[0.02] border border-white/5 rounded-xl flex justify-between items-center">
                         <span class="text-xs text-slate-400">فواتير الاشتراكات</span>
                         <span class="font-bold text-white">{{ stats.subscription_invoices }}</span>
@@ -777,9 +814,11 @@
                         <span class="text-xs text-slate-400">موظفو المتاجر</span>
                         <span class="font-bold text-white">{{ stats.store_employees }}</span>
                     </div>
+                    {% endif %}
                 </div>
             </div>
 
+            {% if not is_tenant %}
             <!-- System Core / accounts / socialaccount Group -->
             <div>
                 <h4 class="text-xs font-bold text-slate-400 mb-3 border-b border-white/5 pb-1 uppercase tracking-widest">System Core (النواة والحسابات)</h4>
@@ -810,6 +849,7 @@
                     </div>
                 </div>
             </div>
+            {% endif %}
         </div>
         
         <div class="mt-8">
