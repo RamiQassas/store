@@ -24,13 +24,24 @@ class AccountStatusMiddleware:
                 return redirect("site_login")
             
             # 2. Enforce Single Session Login
-            if not request.user.is_staff:
+            # Skip concurrent session enforcement for staff, super admins, sub-stores, or store owners switching across domains
+            skip_single_session = (
+                request.user.is_staff
+                or getattr(request.user, "role", None) == "super_admin"
+                or getattr(request, "store", None) is not None
+                or request.user.owned_stores.exists()
+            )
+            if not skip_single_session:
                 if request.user.last_session_key:
                     if request.session.session_key and request.user.last_session_key != request.session.session_key:
-                        print(f"[AccountStatusMiddleware] Session mismatch! User last_session_key: {request.user.last_session_key}, Current: {request.session.session_key}. Logging out.")
-                        logout(request)
-                        messages.warning(request, "تم تسجيل الدخول من جهاز آخر. تم إنهاء الجلسة الحالية.")
-                        return redirect("site_login")
+                        if Session.objects.filter(session_key=request.user.last_session_key).exists():
+                            print(f"[AccountStatusMiddleware] Session mismatch! User last_session_key: {request.user.last_session_key}, Current: {request.session.session_key}. Logging out.")
+                            logout(request)
+                            messages.warning(request, "تم تسجيل الدخول من جهاز آخر. تم إنهاء الجلسة الحالية.")
+                            return redirect("site_login")
+                        else:
+                            request.user.last_session_key = request.session.session_key
+                            request.user.save(update_fields=["last_session_key"])
                 elif request.session.session_key:
                     # Sync initial session key
                     request.user.last_session_key = request.session.session_key

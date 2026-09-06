@@ -62,6 +62,16 @@
     const form = document.querySelector('#otp-form');
     const formAction = document.querySelector('#form-action');
 
+    let isSubmitting = false;
+
+    function submitOnce() {
+        if (isSubmitting) return;
+        if (fullOtpInput.value.length === 6) {
+            const submitBtn = document.querySelector('button[type="submit"]');
+            if (submitBtn) submitBtn.click();
+        }
+    }
+
     inputs.forEach((input, index) => {
         // Handle digit input and auto-fill/paste
         input.addEventListener('input', (e) => {
@@ -81,7 +91,7 @@
                 if (index < inputs.length - 1) inputs[index + 1].focus();
             }
             updateFullOtp();
-            if (fullOtpInput.value.length === 6) document.querySelector('button[type="submit"]').click();
+            if (fullOtpInput.value.length === 6) submitOnce();
         });
 
         // Handle backspace
@@ -100,7 +110,7 @@
                     if (inputs[i]) inputs[i].value = char;
                 });
                 updateFullOtp();
-                if (fullOtpInput.value.length === 6) document.querySelector('button[type="submit"]').click();
+                if (fullOtpInput.value.length === 6) submitOnce();
                 inputs[Math.min(pasteData.length, inputs.length - 1)].focus();
             }
         });
@@ -113,9 +123,23 @@
     }
 
     form.addEventListener('submit', (e) => {
-        if (formAction.value === 'verify' && fullOtpInput.value.length !== 6) {
-            e.preventDefault();
-            alert('يرجى إدخال الرمز كاملاً');
+        if (formAction.value === 'verify') {
+            if (fullOtpInput.value.length !== 6) {
+                e.preventDefault();
+                alert('يرجى إدخال الرمز كاملاً');
+                return;
+            }
+            if (isSubmitting) {
+                e.preventDefault();
+                return false;
+            }
+            isSubmitting = true;
+            const submitBtn = document.querySelector('button[type="submit"]');
+            if (submitBtn) {
+                submitBtn.disabled = true;
+                submitBtn.style.opacity = '0.7';
+                submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i> جاري التحقق...';
+            }
         }
     });
 
@@ -136,7 +160,7 @@
                         if (inputs[i]) inputs[i].value = char;
                     });
                     updateFullOtp();
-                    if (fullOtpInput.value.length === 6) form.submit();
+                    if (fullOtpInput.value.length === 6) submitOnce();
                 } else {
                     alert('لم يتم العثور على رمز صالح في الحافظة.');
                 }

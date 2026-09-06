@@ -394,15 +394,19 @@ def v3_login_view(request):
                         messages.error(request, "هذا الحساب مرتبط بمتجر فرعي ولا يمكنه تسجيل الدخول هنا. يرجى التوجه إلى صفحة تسجيل الدخول الخاصة بمتجرك.")
                         return render(request, "site/v3/v3_login.html", {"form": form})
             else:
-                # Store tenant: only allow users who belong to this store (or superusers)
-                if not user.is_superuser:
+                # Store tenant: only allow users who belong to this store (or superusers/staff/admin)
+                if not (user.is_superuser or user.is_staff or getattr(user, "role", None) == "super_admin"):
                     from apps.stores.models import StoreEmployee
                     from apps.common.tenant_utils import bypass_tenant_filter
                     with bypass_tenant_filter():
+                        user_pk_str = str(user.pk)
+                        owner_id_str = str(active_store.owner_id) if getattr(active_store, 'owner_id', None) else None
+                        user_store_str = str(user.store_id) if user.store_id else None
+                        store_pk_str = str(active_store.pk) if getattr(active_store, 'pk', None) else None
                         is_store_member = (
-                            user.store_id == active_store.pk or
-                            StoreEmployee.objects.filter(store=active_store, user=user).exists() or
-                            active_store.owner_id == user.pk
+                            (user_store_str and user_store_str == store_pk_str) or
+                            (owner_id_str and owner_id_str == user_pk_str) or
+                            StoreEmployee.objects.filter(store=active_store, user=user).exists()
                         )
                     if not is_store_member:
                         messages.error(request, "هذا الحساب غير مرتبط بهذا المتجر.")
@@ -421,8 +425,11 @@ def v3_login_view(request):
                 login(request, user)
                 return redirect("dashboard")
 
-            # If it's a login action, we don't want to redirect back to login page after verification
-            if request.session.get("v3_auth_purpose") == "login":
+            # If next param is present and safe, store it; otherwise default to dashboard
+            next_param = request.GET.get("next") or request.POST.get("next")
+            if next_param and _is_safe_redirect(next_param):
+                request.session["v3_auth_next"] = next_param
+            elif request.session.get("v3_auth_purpose") == "login":
                 request.session["v3_auth_next"] = reverse("dashboard")
 
             return v3_redirect_to_verification(request, methods)
@@ -453,9 +460,36 @@ def v3_register_view(request):
         except Exception as e: form.add_error(None, str(e))
     return render(request, "site/v3/v3_register.html", {"form": form})
 
+def _is_safe_redirect(url):
+    if not url:
+        return False
+    try:
+        from urllib.parse import urlparse
+        parsed = urlparse(url)
+        path = parsed.path.rstrip("/")
+        blocked = [
+            "/auth/login",
+            "/auth/verify-otp",
+            "/auth/register",
+            "/auth/logout",
+            "/auth/forgot-password",
+            "/auth/reset-password",
+            "/auth/2fa-verify",
+            "/auth/sp-verify",
+        ]
+        for b in blocked:
+            if path == b.rstrip("/"):
+                return False
+        return True
+    except Exception:
+        return False
+
 def v3_verify_otp_view(request):
     uid, purpose = request.session.get("v3_auth_uid"), request.session.get("v3_auth_purpose")
-    if not uid: return redirect("site_login")
+    if not uid:
+        if request.user.is_authenticated:
+            return redirect("control_dashboard" if (request.user.is_staff and getattr(request, 'store', None) is None) else "dashboard")
+        return redirect("site_login")
     from apps.common.tenant_utils import bypass_tenant_filter
     with bypass_tenant_filter():
         user = get_object_or_404(User.all_objects, id=uid)
@@ -527,6 +561,11 @@ def v3_verify_otp_view(request):
             
             user.backend = 'apps.stores.auth_backend.TenantModelBackend'
             login(request, user)
+
+            # Explicitly sync user.last_session_key to avoid race condition with AccountStatusMiddleware
+            if request.session.session_key:
+                user.last_session_key = request.session.session_key
+                user.save(update_fields=["last_session_key"])
             
             now_iso = timezone.now().isoformat()
             request.session["v3_action_verified_at"] = now_iso
@@ -544,21 +583,23 @@ def v3_verify_otp_view(request):
             next_url = request.session.get("v3_auth_next")
             clean_verification_session(request)
             
-            invalid_redirects = ["/auth/login/", "/auth/verify-otp/", "/auth/register/", reverse("site_login"), reverse("site_verify_otp"), reverse("site_register")]
-            if next_url and next_url not in invalid_redirects:
+            if next_url and _is_safe_redirect(next_url):
                 return redirect(next_url)
             return redirect("control_dashboard" if (user.is_staff and getattr(request, 'store', None) is None) else "dashboard")
         user.otp_failed_attempts += 1
         if user.otp_failed_attempts >= settings_obj.otp_max_attempts:
             user.otp_lockout_until = timezone.now() + timedelta(minutes=15)
             user.otp_failed_attempts = 0 
-        user.save()
+            user.save()
         messages.error(request, "رمز التحقق غير صحيح.")
     return render(request, "site/v3/v3_otp_verify.html", {"user_email": user.email, "remaining_cooldown": remaining_cooldown, "is_locked": is_locked})
 
 def v3_2fa_verify_view(request):
     uid, purpose = request.session.get("v3_auth_uid"), request.session.get("v3_auth_purpose")
-    if not uid: return redirect("site_login")
+    if not uid:
+        if request.user.is_authenticated:
+            return redirect("control_dashboard" if (request.user.is_staff and getattr(request, 'store', None) is None) else "dashboard")
+        return redirect("site_login")
     from apps.common.tenant_utils import bypass_tenant_filter
     with bypass_tenant_filter():
         user = get_object_or_404(User.all_objects, id=uid)
@@ -575,6 +616,10 @@ def v3_2fa_verify_view(request):
             
             user.backend = 'apps.stores.auth_backend.TenantModelBackend'
             login(request, user)
+
+            if request.session.session_key:
+                user.last_session_key = request.session.session_key
+                user.save(update_fields=["last_session_key"])
                 
             request.session["v3_action_verified_at"] = timezone.now().isoformat()
             
@@ -590,8 +635,7 @@ def v3_2fa_verify_view(request):
             next_url = request.session.get("v3_auth_next")
             clean_verification_session(request)
             
-            invalid_redirects = ["/auth/login/", "/auth/verify-otp/", "/auth/register/", reverse("site_login"), reverse("site_verify_otp"), reverse("site_register")]
-            if next_url and next_url not in invalid_redirects:
+            if next_url and _is_safe_redirect(next_url):
                 return redirect(next_url)
             return redirect("control_dashboard" if (user.is_staff and getattr(request, 'store', None) is None) else "dashboard")
         messages.error(request, "الرمز غير صحيح.")
