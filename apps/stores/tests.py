@@ -670,8 +670,82 @@ class StoreSaaSNewFeaturesTests(TestCase):
             "subscription_plan": str(self.plan.id),
             "billing_cycle": "monthly",
             "accept_legal_terms": "true",
+            "admin_email": "adminf@example.com",
+            "admin_password": "Password123!",
+            "admin_password_confirm": "Password123!",
         })
         self.assertEqual(response_success.status_code, 302)
         self.assertTrue(response_success.url.endswith(reverse("store_registration_payment")))
+
+    def test_substore_customer_isolated_from_main_platform(self):
+        """Verifies that a customer of a sub-store cannot have an active session on the main platform."""
+        with bypass_tenant_filter():
+            customer = User.objects.create_user(
+                email="substore_cust@example.com",
+                password="CustPassword123!",
+                store=self.store,
+                role=User.Role.CUSTOMER
+            )
+
+        client = Client()
+        client.force_login(customer, backend='apps.stores.auth_backend.TenantModelBackend')
+
+        # 1. On sub-store subdomain: customer is authenticated
+        res_substore = client.get(reverse("home"), HTTP_HOST="test-store.testserver")
+        self.assertEqual(res_substore.status_code, 200)
+        self.assertTrue(res_substore.wsgi_request.user.is_authenticated)
+        self.assertEqual(res_substore.wsgi_request.user.email, "substore_cust@example.com")
+
+        # 2. On main platform (testserver / raqamiyatapp.com): customer is strictly logged out
+        res_main = client.get(reverse("home"), HTTP_HOST="testserver")
+        self.assertEqual(res_main.status_code, 200)
+        self.assertFalse(res_main.wsgi_request.user.is_authenticated)
+
+        # 3. Accessing /dashboard/ on main platform redirects to login
+        res_dash = client.get("/dashboard/", HTTP_HOST="testserver")
+        self.assertEqual(res_dash.status_code, 302)
+        self.assertIn("/auth/login/", res_dash.url)
+
+    def test_store_owner_remains_authenticated_on_main_platform(self):
+        """Verifies that store owners (merchants) remain authenticated on the main platform to manage their stores."""
+        client = Client()
+        logged_in = client.login(email="merchant@example.com", password="Password123!")
+        self.assertTrue(logged_in)
+
+        # On main platform: owner stays authenticated
+        res_main = client.get(reverse("home"), HTTP_HOST="testserver")
+        self.assertEqual(res_main.status_code, 200)
+        self.assertTrue(res_main.wsgi_request.user.is_authenticated)
+        self.assertEqual(res_main.wsgi_request.user.email, "merchant@example.com")
+
+    def test_customer_of_store_a_isolated_from_store_b(self):
+        """Verifies that a customer belonging to store A is logged out if visiting store B."""
+        store_b = Store.objects.create(
+            owner=self.user,
+            name="Store B",
+            subdomain="store-b",
+            subscription_plan=self.plan,
+            subscription_status=Store.Status.ACTIVE,
+            subscription_start=timezone.now(),
+            subscription_end=timezone.now() + timezone.timedelta(days=30),
+            is_active=True
+        )
+
+        with bypass_tenant_filter():
+            customer_a = User.objects.create_user(
+                email="cust_a@example.com",
+                password="CustPassword123!",
+                store=self.store,
+                role=User.Role.CUSTOMER
+            )
+
+        client = Client()
+        client.force_login(customer_a, backend='apps.stores.auth_backend.TenantModelBackend')
+
+        # Customer A visits Store B: should be logged out
+        res_b = client.get(reverse("home"), HTTP_HOST="store-b.testserver")
+        self.assertEqual(res_b.status_code, 200)
+        self.assertFalse(res_b.wsgi_request.user.is_authenticated)
+
 
 

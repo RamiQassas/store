@@ -6204,7 +6204,27 @@ def sso_transfer_view(request):
                 f"token={token}&next={target_path or '/dashboard/'}",
                 ""
             ))
-            return redirect(sso_url)
+
+            # If transferring from main platform to a tenant store, check if user should stay logged into main site
+            # Regular customers signing in to a sub-store must NOT retain an active session on the main platform
+            is_owner = False
+            if hasattr(request.user, "owned_stores"):
+                from apps.common.tenant_utils import bypass_tenant_filter
+                with bypass_tenant_filter():
+                    is_owner = request.user.owned_stores.exists()
+            is_admin = request.user.is_superuser or request.user.is_staff or getattr(request.user, "role", None) in ["super_admin", "admin"]
+
+            should_logout = not is_owner and not is_admin
+            if should_logout:
+                from django.contrib.auth import logout
+                logout(request)
+
+            response = redirect(sso_url)
+            if should_logout:
+                from django.conf import settings
+                response.delete_cookie(settings.SESSION_COOKIE_NAME, path="/")
+
+            return response
         else:
             return redirect(next_url)
 

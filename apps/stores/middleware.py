@@ -133,6 +133,7 @@ class TenantMiddleware:
                 if not self._user_belongs_to_store(request.user, request.store):
                     logout(request)
                     request.user = AnonymousUser()
+                    request._delete_session_cookie = True
                     if request.path.startswith(("/dashboard/", "/merchant/")):
                         from django.http import HttpResponseRedirect
                         from apps.common.tenant_utils import reset_current_store
@@ -157,6 +158,7 @@ class TenantMiddleware:
                         from apps.common.tenant_utils import _bypass_tenant_filter
                         token = _bypass_tenant_filter.set(True)
                         request._bypass_token = token
+                else:
                     # Strict isolation: log out store-scoped users from the main site (except store owners)
                     # Bypass isolation for login/SSO callback paths to allow cross-domain login sync to work
                     if not (request.path.startswith('/auth/sso-callback/') or request.path.startswith('/accounts/')):
@@ -167,6 +169,7 @@ class TenantMiddleware:
                             if not is_owner:
                                 logout(request)
                                 request.user = AnonymousUser()
+                                request._delete_session_cookie = True
 
         try:
             response = self.get_response(request)
@@ -178,6 +181,9 @@ class TenantMiddleware:
             if hasattr(request, '_bypass_token'):
                 from apps.common.tenant_utils import _bypass_tenant_filter
                 _bypass_tenant_filter.reset(request._bypass_token)
+
+        if getattr(request, '_delete_session_cookie', False):
+            response.delete_cookie(settings.SESSION_COOKIE_NAME, path="/")
 
         return response
 
