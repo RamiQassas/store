@@ -390,7 +390,7 @@ def credit_wallet(wallet_id, amount, reference="", description="", created_by=No
     source_currency_code = metadata.get("source_currency")
 
     with transaction.atomic():
-        wallet = Wallet.objects.select_for_update().get(id=wallet_id)
+        wallet = Wallet.all_objects.select_for_update().get(id=wallet_id)
         
         # If we were tracking this as pending, reduce pending balance
         if metadata and metadata.get("from_pending"):
@@ -497,7 +497,7 @@ def pay_debt(wallet_id, amount, reference="", description="", created_by=None, m
     if amount <= 0:
         raise WalletError("Amount must be positive.")
     with transaction.atomic():
-        wallet = Wallet.objects.select_for_update().get(id=wallet_id)
+        wallet = Wallet.all_objects.select_for_update().get(id=wallet_id)
         if wallet.debt_balance < amount:
             raise WalletError("Payment exceeds outstanding debt.")
             
@@ -544,7 +544,7 @@ def debit_wallet(wallet_id, amount, reference="", description="", created_by=Non
     if amount <= 0:
         raise WalletError("Amount must be positive.")
     with transaction.atomic():
-        wallet = Wallet.objects.select_for_update().get(id=wallet_id)
+        wallet = Wallet.all_objects.select_for_update().get(id=wallet_id)
         if wallet.available_balance < amount:
             raise WalletError("Insufficient wallet balance.")
         wallet.available_balance -= amount
@@ -578,7 +578,7 @@ def freeze_funds(wallet_id, amount, reference="", description="", created_by=Non
     if amount <= 0:
         raise WalletError("Amount must be positive.")
     with transaction.atomic():
-        wallet = Wallet.objects.select_for_update().get(id=wallet_id)
+        wallet = Wallet.all_objects.select_for_update().get(id=wallet_id)
         if wallet.withdrawable_balance < amount:
             raise WalletError("رصيد غير كافٍ للسحب (رصيد الدين غير قابل للسحب).")
         wallet.available_balance -= amount

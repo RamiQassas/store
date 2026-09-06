@@ -87,6 +87,7 @@ urlpatterns = [
     
     # Control Panel
     path("control/", views.control_dashboard, name="control_dashboard"),
+    path("control/merchant/", views.control_dashboard, name="merchant_dashboard"),
     path("control/kyc/", views.control_kycs_list, name="control_kycs_list"),
     path("control/kyc/settings/", views.control_kyc_settings, name="control_kyc_settings"),
     path("control/kyc/<uuid:pk>/", views.control_kyc_detail, name="control_kyc_detail"),
@@ -207,4 +208,13 @@ urlpatterns = [
     # Backup & Maintenance
     path("control/backup/", views.control_backup, name="control_backup"),
     path("control/system/updates/", views.control_system_updates, name="control_system_updates"),
+
+    # Merchant Dashboard fallbacks (for template reverse safety)
+    path("control/merchant/", views.control_dashboard, name="merchant_dashboard"),
+    path("control/merchant/settings/", views.control_dashboard, name="merchant_settings"),
+    path("control/merchant/theme-builder/", views.control_dashboard, name="merchant_theme_builder"),
+    path("control/merchant/employees/", views.control_dashboard, name="merchant_employees"),
+    path("control/merchant/pages/", views.control_dashboard, name="merchant_pages"),
+    path("control/merchant/subscription/", views.control_dashboard, name="merchant_subscription"),
+    path("control/merchant/domains/", views.control_dashboard, name="merchant_domains"),
 ]

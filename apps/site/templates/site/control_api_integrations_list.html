@@ -47,7 +47,10 @@
                         {{ integration.base_url }}
                     </td>
                     <td class="p-4 text-center">
-                        {% if not integration.store %}
+                        {% if integration.provider == 'raqamiyat' %}
+                            <span class="badge success text-[8px] font-black bg-cyan/10 text-cyan border border-cyan/20">مزود المنصة الأساسي (رقميات)</span>
+                            <div class="text-[9px] text-slate-400 mt-1 font-bold">بوابة افتراضية للمتجر الفرعي</div>
+                        {% elif not integration.store %}
                             <span class="badge success text-[8px] font-black bg-cyan/10 text-cyan border border-cyan/20">منصة عامة (كل المتاجر)</span>
                             {% if integration.allow_sub_stores %}
                                 <div class="text-[9px] text-emerald-400 font-bold mt-1"><i class="fas fa-circle-check ml-1"></i> مسموح للمتاجر الفرعية</div>
@@ -71,9 +74,13 @@
                                 <a href="{% url 'control_api_integration_edit' integration.pk %}" class="btn btn-outline btn-sm py-1 px-2.5 text-[10px] font-bold">
                                     تعديل
                                 </a>
+                                {% if integration.provider != 'raqamiyat' %}
                                 <a href="{% url 'control_api_integration_delete' integration.pk %}" class="btn btn-outline btn-sm py-1 px-2.5 text-[10px] font-bold text-rose-500 border-rose-500/20" onclick="return confirm('هل أنت متأكد من حذف إعدادات الربط هذه نهائياً؟');">
                                     حذف
                                 </a>
+                                {% else %}
+                                <span class="badge primary text-[9px] text-cyan border border-cyan/20 py-1 px-2">بوابة افتراضية</span>
+                                {% endif %}
                             </div>
                         {% else %}
                             <span class="text-[9px] text-slate-500 italic font-bold">مشاركة من المنصة (عرض فقط)</span>

@@ -6246,6 +6246,7 @@ def sso_transfer_view(request):
 
 @support_required
 def control_apicontrol_dashboard(request):
+    from decimal import Decimal
     from apps.providers.models import ProviderProfile, ProviderProduct, ProviderCategory
     from services.provider.manager import ProviderManager
     from django.conf import settings
@@ -6282,6 +6283,20 @@ def control_apicontrol_dashboard(request):
             )
             active_integrations = [default_integ]
     else:
+        # In a tenant sub-store:
+        # Automatically ensure default Raqamiyat integration exists for this tenant store!
+        tier_margins = store.tier_margins or {"customer": 15.0, "dealer": 10.0, "vip": 5.0}
+        default_integ, _ = APIIntegration.objects.get_or_create(
+            store=store,
+            provider="raqamiyat",
+            defaults={
+                "name": "رقميات (المتجر الأساسي)",
+                "base_url": getattr(settings, "SITE_URL", "https://raqamiyatapp.com"),
+                "api_token": "INTERNAL_PLATFORM",
+                "is_active": True,
+                "allow_sub_stores": False,
+            }
+        )
         active_integrations = list(APIIntegration.objects.filter(store=store, is_active=True))
 
     # Get selected integration ID from GET or POST request
@@ -6296,10 +6311,13 @@ def control_apicontrol_dashboard(request):
     profile_obj = None
     is_alkasr = False
     is_tafa3ol = False
+    is_raqamiyat = False
     if integration:
-        is_alkasr = "alkasr" in (integration.base_url or "").lower() or getattr(integration, 'provider', '') == "alkasr" or "رقميات" in (integration.name or "")
-        is_tafa3ol = "tafa3ol" in (integration.base_url or "").lower() or getattr(integration, 'provider', '') == "tafa3olcard" or "تفاعل" in (integration.name or "")
+        is_raqamiyat = getattr(integration, 'provider', '') == "raqamiyat" or (store and "رقميات" in (integration.name or ""))
+        is_alkasr = not is_raqamiyat and ("alkasr" in (integration.base_url or "").lower() or getattr(integration, 'provider', '') == "alkasr" or (not store and "رقميات" in (integration.name or "")))
+        is_tafa3ol = not is_raqamiyat and ("tafa3ol" in (integration.base_url or "").lower() or getattr(integration, 'provider', '') == "tafa3olcard" or "تفاعل" in (integration.name or ""))
         if store:
+            tier_margins = store.tier_margins or {"customer": 15.0, "dealer": 10.0, "vip": 5.0}
             profile_obj = ProviderProfile.objects.filter(
                 store=store,
                 provider_name=integration.name
@@ -6311,6 +6329,9 @@ def control_apicontrol_dashboard(request):
                     base_url=integration.base_url,
                     api_token=integration.api_token,
                     is_active=integration.is_active,
+                    default_retail_margin=Decimal(str(tier_margins.get("customer", 15.0))),
+                    default_dealer_margin=Decimal(str(tier_margins.get("dealer", 10.0))),
+                    default_vip_margin=Decimal(str(tier_margins.get("vip", 5.0))),
                 )
             else:
                 fields_to_update = []
@@ -6424,23 +6445,38 @@ def control_apicontrol_dashboard(request):
         if integration:
             redirect_url += f"?integration_id={integration.id}"
 
-        # Update profile margins if submitted in POST
+        # Update profile and store margins if submitted in POST
+        ret_m = request.POST.get("retail_margin") or request.POST.get("default_retail_margin")
+        deal_m = request.POST.get("dealer_margin") or request.POST.get("default_dealer_margin")
+        vip_m = request.POST.get("vip_margin") or request.POST.get("default_vip_margin")
+        m_type = request.POST.get("margin_type") or request.POST.get("default_margin_type")
+
+        if store and (ret_m is not None or deal_m is not None or vip_m is not None):
+            try:
+                curr_tier = dict(store.tier_margins or {})
+                if ret_m is not None and ret_m != "":
+                    curr_tier["customer"] = float(Decimal(str(ret_m)))
+                if deal_m is not None and deal_m != "":
+                    curr_tier["dealer"] = float(Decimal(str(deal_m)))
+                if vip_m is not None and vip_m != "":
+                    curr_tier["vip"] = float(Decimal(str(vip_m)))
+                store.tier_margins = curr_tier
+                store.save(update_fields=["tier_margins"])
+            except Exception:
+                pass
+
         if profile_obj:
-            m_type = request.POST.get("margin_type") or request.POST.get("default_margin_type")
             if m_type in ("percentage", "fixed"):
                 profile_obj.default_margin_type = m_type
 
-            ret_m = request.POST.get("retail_margin") or request.POST.get("default_retail_margin")
             if ret_m is not None and ret_m != "":
                 try: profile_obj.default_retail_margin = Decimal(str(ret_m))
                 except Exception: pass
 
-            deal_m = request.POST.get("dealer_margin") or request.POST.get("default_dealer_margin")
             if deal_m is not None and deal_m != "":
                 try: profile_obj.default_dealer_margin = Decimal(str(deal_m))
                 except Exception: pass
 
-            vip_m = request.POST.get("vip_margin") or request.POST.get("default_vip_margin")
             if vip_m is not None and vip_m != "":
                 try: profile_obj.default_vip_margin = Decimal(str(vip_m))
                 except Exception: pass
@@ -6448,6 +6484,12 @@ def control_apicontrol_dashboard(request):
             profile_obj.save()
 
         if action == "update_margins":
+            if store:
+                from apps.stores.services import import_raqamiyat_products_for_store
+                import_raqamiyat_products_for_store(store)
+                messages.success(request, "تم بنجاح حفظ وتطبيق نسب وهوامش الأرباح على كافة الخدمات في المتجر!")
+                return redirect(redirect_url)
+
             if profile_obj:
                 from apps.providers.models import ProviderPrice
                 for pp in profile_obj.products.all():
@@ -6475,8 +6517,17 @@ def control_apicontrol_dashboard(request):
                 messages.success(request, "تم تحديث نوع إعدادات الهامش (نسبة/مبلغ) وأسعار فئات العملاء بنجاح.")
             return redirect(redirect_url)
             
-        elif action in ("sync", "sync_ajax"):
+        elif action in ("sync", "sync_ajax", "sync_raqamiyat"):
             from django.http import JsonResponse
+            if is_raqamiyat and store:
+                from apps.stores.services import import_raqamiyat_products_for_store
+                res = import_raqamiyat_products_for_store(store)
+                msg = f"تمت مزامنة واستيراد منتجات رقميات بنجاح! تم استيراد/تحديث {res.get('variants_created', 0) + res.get('variants_updated', 0)} باقة وخدمة."
+                if request.headers.get("X-Requested-With") == "XMLHttpRequest" or action == "sync_ajax":
+                    return JsonResponse({"status": "completed", "message": msg, "created": res.get("products_created", 0), "updated": res.get("products_updated", 0)})
+                messages.success(request, msg)
+                return redirect(redirect_url)
+
             if not profile_obj:
                 if request.headers.get("X-Requested-With") == "XMLHttpRequest" or action == "sync_ajax":
                     return JsonResponse({"status": "failed", "error": "لا توجد بوابة ربط نشطة لبدء المزامنة."}, status=400)
@@ -6573,6 +6624,12 @@ def control_apicontrol_dashboard(request):
             return redirect(redirect_url)
             
         elif action == "refresh_cache":
+            if is_raqamiyat and store:
+                from apps.stores.services import import_raqamiyat_products_for_store
+                import_raqamiyat_products_for_store(store)
+                messages.success(request, "⚡ تم تحديث الرصيد ومزامنة الخدمات من رقميات بنجاح.")
+                return redirect(redirect_url)
+
             if profile_obj:
                 def _background_refresh(profile_id):
                     from apps.providers.models import ProviderProfile
@@ -6594,14 +6651,14 @@ def control_apicontrol_dashboard(request):
             from apps.catalog.models import Product
             from apps.providers.models import ProviderProduct, ProviderMapping, ProviderProductParameter
             
-            cat_qs = Product.all_objects.filter(store=store, is_api_product=True)
+            cat_qs = Product.all_objects.filter(store=store)
             deleted_count, _ = cat_qs.delete()
 
-            if profile_obj:
+            if profile_obj and not is_raqamiyat:
                 ProviderProductParameter.objects.filter(product__profile=profile_obj).delete()
                 ProviderProduct.objects.filter(profile=profile_obj).delete()
 
-            messages.success(request, f"تم مسح وحذف كافة منتجات المزود نهائياً ({deleted_count} منتج). يمكنك الآن إجراء مزامنة جديدة ناصعة.")
+            messages.success(request, f"تم مسح وحذف كافة منتجات المتجر نهائياً ({deleted_count} منتج). يمكنك الآن إجراء مزامنة جديدة ناصعة.")
             return redirect(redirect_url)
             
         elif action == "toggle_active":
@@ -6701,7 +6758,41 @@ def control_apicontrol_dashboard(request):
     is_connected = False
     connection_error = None
     
-    if profile_obj:
+    if is_raqamiyat and store:
+        is_connected = True
+        owner_wallet = None
+        if store.owner:
+            from apps.wallets.models import Wallet
+            from apps.common.models import Currency
+            from apps.common.tenant_utils import bypass_tenant_filter
+            with bypass_tenant_filter():
+                owner_wallet = Wallet.all_objects.filter(user=store.owner, store__isnull=True).select_related("currency").first()
+                if not owner_wallet:
+                    default_curr = Currency.all_objects.filter(is_default=True).first() or Currency.all_objects.first()
+                    owner_wallet = Wallet.all_objects.create(
+                        user=store.owner,
+                        store=None,
+                        currency=default_curr,
+                        available_balance=Decimal("0.00")
+                    )
+            profile_balance = float(owner_wallet.available_balance or 0)
+            profile_currency = owner_wallet.currency.code
+        else:
+            profile_balance = 0.0
+            profile_currency = "USD"
+            
+        tier_m = store.tier_margins or {"customer": 15.0, "dealer": 10.0, "vip": 5.0}
+        profile = {
+            "status": "success",
+            "balance": profile_balance,
+            "currency": profile_currency,
+            "email": f"منصة رقميات الأساسية ({store.owner.email if store.owner else 'المتجر الرئيسي'})",
+            "default_margin_type": "percentage",
+            "default_retail_margin": Decimal(str(tier_m.get("customer", 15.0))),
+            "default_dealer_margin": Decimal(str(tier_m.get("dealer", 10.0))),
+            "default_vip_margin": Decimal(str(tier_m.get("vip", 5.0))),
+        }
+    elif profile_obj:
         test_res = ProviderManager.test_connection(profile_obj)
         if test_res.get("success"):
             is_connected = True
@@ -6717,7 +6808,11 @@ def control_apicontrol_dashboard(request):
             "status": "success" if is_connected else "failed",
             "balance": float(profile_balance or 0),
             "currency": profile_currency or "USD",
-            "email": profile_obj.provider_name
+            "email": profile_obj.provider_name,
+            "default_margin_type": profile_obj.default_margin_type or "percentage",
+            "default_retail_margin": profile_obj.default_retail_margin,
+            "default_dealer_margin": profile_obj.default_dealer_margin,
+            "default_vip_margin": profile_obj.default_vip_margin,
         }
     
     # Fetch Categories and Products strictly for this profile
@@ -6725,8 +6820,62 @@ def control_apicontrol_dashboard(request):
     products_count = 0
     alkasr_products = []
     local_linked_count = 0
+    provider_groups = []
     
-    if profile_obj:
+    if is_raqamiyat and store:
+        from apps.catalog.models import Category
+        cats = list(Category.objects.filter(store=store, is_active=True).values("id", "name"))
+        categories = [{"id": c["id"], "name": c["name"], "remote_id": str(c["id"])} for c in cats]
+
+        prods = list(
+            Product.objects.filter(store=store)
+            .select_related("category")
+            .prefetch_related("variants")
+            .order_by("category__name", "name")
+        )
+        if not prods:
+            from apps.stores.services import import_raqamiyat_products_for_store
+            import_raqamiyat_products_for_store(store)
+            prods = list(
+                Product.objects.filter(store=store)
+                .select_related("category")
+                .prefetch_related("variants")
+                .order_by("category__name", "name")
+            )
+
+        products_count = len(prods)
+        groups_dict = {}
+
+        for p in prods:
+            c_name = p.category.name if p.category else "عام"
+            if c_name not in groups_dict:
+                groups_dict[c_name] = {"name": c_name, "count": 0}
+
+            for v in p.variants.all():
+                local_linked_count += 1
+                groups_dict[c_name]["count"] += 1
+                cost_val = float(v.cost or 0)
+                price_val = float(v.price or 0)
+                profit_val = round(max(0.0, price_val - cost_val), 2)
+
+                alkasr_products.append({
+                    "id": v.api_product_id or v.sku or str(v.id),
+                    "name": f"{p.name} - {v.name}" if v.name and v.name != p.name else p.name,
+                    "product_type": getattr(p, "product_type", "package"),
+                    "category_name": c_name,
+                    "price": cost_val,
+                    "local_price": price_val,
+                    "local_cost": cost_val,
+                    "profit": profit_val,
+                    "local_product_id": p.id,
+                    "local_variant_id": v.id,
+                    "local_active": p.is_active and v.is_active,
+                    "is_linked": True,
+                    "available": True,
+                    "api_provider": "raqamiyat",
+                })
+        provider_groups = sorted(groups_dict.values(), key=lambda x: x["name"])
+    elif profile_obj:
         categories = list(ProviderCategory.objects.filter(profile=profile_obj).values("id", "name", "remote_id")[:100])
 
         all_p = ProviderProduct.objects.filter(profile=profile_obj).select_related("category", "category__parent")
@@ -6767,39 +6916,45 @@ def control_apicontrol_dashboard(request):
         provider_groups = []
     
     from django.db.models import Q
-    if is_tafa3ol:
+    if is_raqamiyat:
+        provider_code = "raqamiyat"
+    elif is_tafa3ol:
         provider_code = "tafa3olcard"
     elif is_alkasr:
         provider_code = "alkasr"
     else:
         provider_code = integration.provider if integration else "alkasr"
 
-    if store:
+    if is_raqamiyat and store:
         linked_variants_qs = ProductVariant.objects.filter(product__store=store)
+        local_linked_count = linked_variants_qs.count()
     else:
-        linked_variants_qs = ProductVariant.objects.all()
+        if store:
+            linked_variants_qs = ProductVariant.objects.filter(product__store=store)
+        else:
+            linked_variants_qs = ProductVariant.objects.all()
 
-    if is_tafa3ol:
-        linked_variants_qs = linked_variants_qs.filter(
-            Q(product__api_provider="tafa3olcard") |
-            Q(provider_mapping__provider_product__profile=profile_obj)
-        )
-    elif is_alkasr:
-        linked_variants_qs = linked_variants_qs.filter(
-            Q(product__api_provider__in=["alkasr", "generic", ""]) |
-            Q(provider_mapping__provider_product__profile=profile_obj) |
-            Q(product__is_api_product=True)
-        ).exclude(product__api_provider="tafa3olcard")
-    else:
-        linked_variants_qs = linked_variants_qs.filter(
-            Q(product__api_provider=provider_code) |
-            Q(provider_mapping__provider_product__profile=profile_obj)
-        )
+        if is_tafa3ol:
+            linked_variants_qs = linked_variants_qs.filter(
+                Q(product__api_provider="tafa3olcard") |
+                Q(provider_mapping__provider_product__profile=profile_obj)
+            )
+        elif is_alkasr:
+            linked_variants_qs = linked_variants_qs.filter(
+                Q(product__api_provider__in=["alkasr", "generic", ""]) |
+                Q(provider_mapping__provider_product__profile=profile_obj) |
+                Q(product__is_api_product=True)
+            ).exclude(product__api_provider="tafa3olcard")
+        else:
+            linked_variants_qs = linked_variants_qs.filter(
+                Q(product__api_provider=provider_code) |
+                Q(provider_mapping__provider_product__profile=profile_obj)
+            )
 
-    local_linked_count = linked_variants_qs.distinct().count()
+        local_linked_count = linked_variants_qs.distinct().count()
 
     # If provider has imported ProviderProducts but local_linked_count is 0, auto-map them to catalog!
-    if profile_obj and local_linked_count == 0:
+    if profile_obj and not is_raqamiyat and local_linked_count == 0:
         with bypass_tenant_filter():
             from apps.providers.models import ProviderProduct
             if ProviderProduct.objects.filter(profile=profile_obj, is_active=True).exists():
@@ -6955,7 +7110,9 @@ def control_apicontrol_dashboard(request):
     if end_date:
         order_filter &= Q(created_at__date__lte=end_date)
 
-    if is_tafa3ol:
+    if is_raqamiyat:
+        api_orders = Order.objects.filter(order_filter).distinct().prefetch_related("items__variant__product", "provider_orders").order_by("-created_at")
+    elif is_tafa3ol:
         api_orders = Order.objects.filter(
             order_filter & (
                 Q(provider_orders__profile=profile_obj) |
@@ -7116,6 +7273,7 @@ def control_api_integrations_list(request):
     from apps.catalog.models import APIIntegration
     from apps.providers.models import ProviderProfile
     from apps.common.tenant_utils import bypass_tenant_filter
+    from django.conf import settings
     
     store = getattr(request, "store", None)
     if not store:
@@ -7130,6 +7288,18 @@ def control_api_integrations_list(request):
             ProviderProfile.all_objects.filter(base_url__icontains="alkasr").update(provider_name="رقميات")
         integrations = list(APIIntegration.objects.filter(store__isnull=True))
     else:
+        # Ensure default Raqamiyat integration exists for this tenant store
+        APIIntegration.objects.get_or_create(
+            store=store,
+            provider="raqamiyat",
+            defaults={
+                "name": "رقميات (المتجر الأساسي)",
+                "base_url": getattr(settings, "SITE_URL", "https://raqamiyatapp.com"),
+                "api_token": "INTERNAL_PLATFORM",
+                "is_active": True,
+                "allow_sub_stores": False,
+            }
+        )
         integrations = list(APIIntegration.objects.filter(store=store))
         
     return render(request, "site/control_api_integrations_list.html", {
@@ -7147,6 +7317,8 @@ def control_api_integration_create(request):
     if request.method == "POST" and form.is_valid():
         integration = form.save(commit=False)
         integration.store = store
+        if store:
+            integration.allow_sub_stores = False
         integration.save()
         messages.success(request, "تمت إضافة إعدادات ربط الـ API الجديد بنجاح.")
         return redirect("control_api_integrations_list")
@@ -7196,6 +7368,10 @@ def control_api_integration_delete(request, pk):
         else:
             integration = APIIntegration.objects.get(pk=pk)
         
+        if integration.provider == "raqamiyat":
+            messages.error(request, "لا يمكن حذف بوابة رقميات لأنها البوابة الافتراضية للمتجر.")
+            return redirect("control_api_integrations_list")
+
         name = integration.name
         integration.delete()
         messages.success(request, f"تم حذف بوابة الربط '{name}' بنجاح.")

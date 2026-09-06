@@ -272,7 +272,12 @@ def create_order(customer, variant_id, quantity=1, fulfillment_data=None,
         if not (shipping_name and shipping_phone and shipping_address):
             raise ValueError("جميع حقول الشحن مطلوبة للمنتجات المادية.")
 
-    # ── Auto-delivery keys (digital codes stored locally) ─────────────────────
+    # ── Auto-delivery keys (digital codes stored locally or via Raqamiyat) ────
+    order_store = getattr(variant.product, "store", None)
+    if not order_store:
+        from apps.common.tenant_utils import get_current_store
+        order_store = get_current_store()
+
     locked_keys = []
     if variant.delivery_type == "keys":
         key_ids = list(
@@ -280,11 +285,29 @@ def create_order(customer, variant_id, quantity=1, fulfillment_data=None,
             .filter(variant=variant, is_used=False)
             .values_list("id", flat=True)[:quantity]
         )
+        if len(key_ids) < quantity and order_store:
+            from apps.common.tenant_utils import bypass_tenant_filter
+            with bypass_tenant_filter():
+                global_var = ProductVariant.all_objects.filter(
+                    product__store__isnull=True,
+                    name=variant.name,
+                    product__name=variant.product.name
+                ).first()
+                if global_var:
+                    key_ids = list(
+                        ProductKey.objects
+                        .filter(variant=global_var, is_used=False)
+                        .values_list("id", flat=True)[:quantity]
+                    )
+
         if len(key_ids) < quantity:
             raise ValueError("المخزون غير كافٍ لتلبية الكمية المطلوبة.")
-        locked_keys = list(
-            ProductKey.objects.filter(id__in=key_ids).select_for_update()
-        )
+
+        from apps.common.tenant_utils import bypass_tenant_filter
+        with bypass_tenant_filter():
+            locked_keys = list(
+                ProductKey.objects.filter(id__in=key_ids).select_for_update()
+            )
         if len(locked_keys) < quantity:
             raise ValueError("المخزون غير كافٍ لتلبية الكمية المطلوبة.")
 
@@ -301,17 +324,61 @@ def create_order(customer, variant_id, quantity=1, fulfillment_data=None,
 
     total = max(subtotal - discount, Decimal("0.00"))
 
+    order_store = getattr(variant.product, "store", None)
+    if not order_store:
+        from apps.common.tenant_utils import get_current_store
+        order_store = get_current_store()
+
+    # ── 1. Check customer wallet balance ──────────────────────────────────────
+    wallet = get_or_create_wallet(customer)
+    debit_amount = total
+    if wallet.currency.code != "USD":
+        debit_amount = wallet.currency.from_base(total)
+    if wallet.available_balance < debit_amount:
+        raise ValueError(f"رصيدك غير كافٍ لإتمام هذا الطلب. الرصيد المطلوب: {debit_amount} {wallet.currency.code}")
+
+    # ── 2. For tenant stores: Check store owner's Raqamiyat platform wallet balance ──
+    owner_wallet = None
+    owner_cost_amt = Decimal("0.00")
+    if order_store and order_store.owner:
+        base_cost = getattr(variant, "cost", Decimal("0")) or Decimal("0")
+        if base_cost > Decimal("0"):
+            total_wholesale_cost = (base_cost * quantity).quantize(Decimal("0.01"))
+            if total_wholesale_cost > Decimal("0"):
+                from apps.wallets.models import Wallet
+                from apps.common.models import Currency
+                from apps.common.tenant_utils import bypass_tenant_filter
+                with bypass_tenant_filter():
+                    owner_wallet = Wallet.all_objects.filter(
+                        user=order_store.owner,
+                        store__isnull=True
+                    ).select_related("currency").first()
+                    if not owner_wallet:
+                        default_curr = Currency.all_objects.filter(is_default=True).first() or Currency.all_objects.first()
+                        owner_wallet = Wallet.all_objects.create(
+                            user=order_store.owner,
+                            store=None,
+                            currency=default_curr,
+                            available_balance=Decimal("0.00")
+                        )
+                if owner_wallet.currency.code != "USD":
+                    owner_cost_amt = owner_wallet.currency.from_base(total_wholesale_cost)
+                else:
+                    owner_cost_amt = total_wholesale_cost
+                owner_cost_amt = Decimal(owner_cost_amt).quantize(Decimal("0.01"))
+
+                if owner_wallet.available_balance < owner_cost_amt:
+                    raise ValueError(
+                        f"عذراً، رصيد مالك المتجر في مزود الخدمة (رقميات) غير كافٍ لإتمام وتوريد هذا الطلب. "
+                        f"(التكلفة المطلوبة: {owner_cost_amt} {owner_wallet.currency.code})"
+                    )
+
     order_status = Order.Status.COMPLETED if variant.delivery_type == "keys" else Order.Status.PROCESSING
     final_fulfillment = dict(fulfillment_data or {})
     api_order_uuid = uuid.uuid4() if (variant.product.is_api_product or variant.api_product_id or getattr(variant.product, 'api_product_id', None)) else None
     api_order_id = None
     if locked_keys:
         final_fulfillment["keys"] = [k.key_code for k in locked_keys]
-
-    order_store = getattr(variant.product, "store", None)
-    if not order_store:
-        from apps.common.tenant_utils import get_current_store
-        order_store = get_current_store()
 
     order = Order.objects.create(
         customer=customer,
@@ -347,11 +414,7 @@ def create_order(customer, variant_id, quantity=1, fulfillment_data=None,
             key.order    = order
             key.save(update_fields=["is_used", "used_by", "used_at", "order"])
 
-    # ── Debit wallet ──────────────────────────────────────────────────────────
-    wallet = get_or_create_wallet(customer)
-    debit_amount = total
-    if wallet.currency.code != "USD":
-        debit_amount = wallet.currency.from_base(total)
+    # ── Debit customer wallet ─────────────────────────────────────────────────
     debit_wallet(
         wallet.id,
         debit_amount,
@@ -360,33 +423,19 @@ def create_order(customer, variant_id, quantity=1, fulfillment_data=None,
         created_by=customer,
     )
 
-    # ── For tenant stores: Debit store owner's Raqmiyat wallet for wholesale cost ──
-    if order_store and order_store.owner:
-        base_cost = getattr(variant, "cost", Decimal("0")) or Decimal("0")
-        if base_cost > Decimal("0"):
-            total_wholesale_cost = (base_cost * quantity).quantize(Decimal("0.01"))
-            if total_wholesale_cost > Decimal("0"):
-                owner_wallet = get_or_create_wallet(order_store.owner)
-                if owner_wallet.currency.code != "USD":
-                    owner_cost_amt = owner_wallet.currency.from_base(total_wholesale_cost)
-                else:
-                    owner_cost_amt = total_wholesale_cost
-                owner_cost_amt = Decimal(owner_cost_amt).quantize(Decimal("0.01"))
+    # ── Debit store owner's Raqamiyat platform wallet for wholesale cost ──────
+    if owner_wallet and owner_cost_amt > Decimal("0"):
+        debit_wallet(
+            owner_wallet.id,
+            owner_cost_amt,
+            reference=f"substore_wholesale:{order.id}",
+            description=f"تكلفة توريد طلب #{order.number} لمتجر {order_store.name}",
+            created_by=order_store.owner,
+            source="Raqmiyat Wholesale Fulfillment"
+        )
 
-                if owner_wallet.available_balance < owner_cost_amt:
-                    raise ValueError(
-                        f"عذراً، رصيد مالك المتجر في مزود الخدمة (رقميات) غير كافٍ لإتمام وتوريد هذا الطلب. "
-                        f"(التكلفة المطلوبة: {owner_cost_amt} {owner_wallet.currency.code})"
-                    )
-
-                debit_wallet(
-                    owner_wallet.id,
-                    owner_cost_amt,
-                    reference=f"substore_wholesale:{order.id}",
-                    description=f"تكلفة توريد طلب #{order.number} لمتجر {order_store.name}",
-                    created_by=order_store.owner,
-                    source="Raqmiyat Wholesale Fulfillment"
-                )
+    if locked_keys:
+        return order
 
     if variant.product.is_api_product or variant.api_product_id or getattr(variant.product, 'api_product_id', None):
         provider = variant.product.api_provider or "alkasr"
@@ -424,7 +473,44 @@ def create_order(customer, variant_id, quantity=1, fulfillment_data=None,
                     profile = provider_product.profile
             
             if not provider_product or not profile:
-                raise ValueError(f"المنتج غير مربوط بمزود خدمة فعال.")
+                from apps.common.tenant_utils import bypass_tenant_filter
+                with bypass_tenant_filter():
+                    if variant.api_product_id:
+                        provider_product = ProviderProduct.objects.filter(remote_id=variant.api_product_id).select_related("profile").first()
+                    elif getattr(variant.product, 'api_product_id', None):
+                        provider_product = ProviderProduct.objects.filter(remote_id=variant.product.api_product_id).select_related("profile").first()
+                    elif variant.metadata and isinstance(variant.metadata, dict) and variant.metadata.get("remote_id"):
+                        provider_product = ProviderProduct.objects.filter(remote_id=str(variant.metadata["remote_id"])).select_related("profile").first()
+                    elif variant.sku and "PRV-" in variant.sku:
+                        rem_id = variant.sku.split("-")[-1]
+                        provider_product = ProviderProduct.objects.filter(remote_id=rem_id).select_related("profile").first()
+
+                    if not provider_product:
+                        g_var = ProductVariant.all_objects.filter(
+                            product__store__isnull=True,
+                            name=variant.name,
+                            product__name=variant.product.name
+                        ).first()
+                        if g_var:
+                            g_map = getattr(g_var, "provider_mapping", None) or ProviderMapping.objects.filter(local_variant=g_var).select_related("provider_product__profile").first()
+                            if g_map and g_map.provider_product:
+                                provider_product = g_map.provider_product
+                            elif g_var.api_product_id:
+                                provider_product = ProviderProduct.objects.filter(remote_id=g_var.api_product_id).select_related("profile").first()
+
+                    if provider_product:
+                        profile = provider_product.profile
+
+            if not provider_product or not profile:
+                if order_store:
+                    order.status = Order.Status.PROCESSING
+                    fulfillment = dict(order.fulfillment_data or {})
+                    fulfillment["notes"] = "تم خصم تكلفة التوريد من رصيد المتجر في رقميات بنجاح، وبانتظار التنفيذ."
+                    order.fulfillment_data = fulfillment
+                    order.save(update_fields=["status", "fulfillment_data", "updated_at"])
+                    return order
+                else:
+                    raise ValueError(f"المنتج غير مربوط بمزود خدمة فعال.")
 
             if not api_order_uuid:
                 api_order_uuid = uuid.uuid4()

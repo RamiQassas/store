@@ -75,6 +75,7 @@ class Product(TimeStampedModel):
     api_provider = models.CharField(
         max_length=50,
         choices=(
+            ("raqamiyat", "بوابة رقميات (Raqamiyat Platform)"),
             ("alkasr", "الكاسر VIP"),
             ("tafa3olcard", "تفاعل كارد (Tafa3ol Card)"),
             ("generic", "مزوّد عام (Generic API)"),
@@ -91,7 +92,9 @@ class Product(TimeStampedModel):
 
     @property
     def api_provider_display_name(self):
-        if self.api_provider == "alkasr":
+        if self.api_provider == "raqamiyat":
+            return "رقميات"
+        elif self.api_provider == "alkasr":
             return "الكاسر VIP"
         elif self.api_provider == "tafa3olcard":
             return "تفاعل كارد"
@@ -200,6 +203,9 @@ class ProductVariant(TimeStampedModel):
     recharge_currency = models.ForeignKey("common.Currency", on_delete=models.SET_NULL, null=True, blank=True, verbose_name="عملة كود الشحن التلقائي")
     sort_order = models.PositiveIntegerField(default=0, verbose_name="ترتيب العرض")
     metadata = models.JSONField(default=dict, blank=True, verbose_name="بيانات إضافية")
+
+    objects = models.Manager()
+    all_objects = models.Manager()
 
     class Meta:
         verbose_name = "باقة منتج"
@@ -376,7 +382,8 @@ class APIIntegration(TimeStampedModel):
     Enables storing credentials, active status, and sharing global APIs with tenant stores.
     """
     PROVIDER_CHOICES = (
-        ("alkasr", "رقميات"),
+        ("raqamiyat", "بوابة رقميات (Raqamiyat Platform)"),
+        ("alkasr", "الكاسر VIP (Alkasr VIP)"),
         ("tafa3olcard", "تفاعل كارد (Tafa3ol Card)"),
         ("generic", "مزوّد عام (Generic API)"),
         ("smm", "مزوّد خدمات (SMM)"),

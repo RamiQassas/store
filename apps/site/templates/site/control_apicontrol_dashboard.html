@@ -84,10 +84,17 @@
                 <i class="fas fa-wallet"></i>
             </div>
             <div>
-                <span class="text-[10px] text-slate-500 font-black uppercase tracking-widest block mb-1">الرصيد لدى المزود (API Balance)</span>
+                <span class="text-[10px] text-slate-500 font-black uppercase tracking-widest block mb-1">
+                    {% if selected_integration.provider == 'raqamiyat' or is_tenant %}رصيدك في رقميات للتوريد{% else %}الرصيد لدى المزود (API Balance){% endif %}
+                </span>
                 <strong class="text-base font-black text-white">
                     {% if is_connected and profile.balance %}{{ profile.balance }}{% else %}0.00{% endif %} <span class="text-[10px] text-slate-400">USD</span>
                 </strong>
+                {% if selected_integration.provider == 'raqamiyat' or is_tenant %}
+                <a href="https://raqamiyatapp.com/dashboard/wallet/" target="_blank" class="text-[10px] text-cyan hover:underline font-bold mt-1 block">
+                    <i class="fas fa-plus-circle ml-1"></i> شحن رصيدك في رقميات
+                </a>
+                {% endif %}
             </div>
         </div>
     </div>
@@ -178,6 +185,73 @@
 
 <!-- Tab 1: Settings -->
 <div id="tab-settings" class="tab-content stack gap-8 reveal">
+    <!-- Profit Margins Configuration Card -->
+    <div class="glass-panel p-8 border border-cyan/20 bg-cyan/5 relative overflow-hidden">
+        <div class="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 mb-6 pb-6 border-b border-white/5">
+            <div>
+                <h3 class="text-base font-black text-white flex items-center gap-2">
+                    <i class="fas fa-percent text-cyan text-sm"></i> إعداد وهوامش الأرباح لفئات العملاء (Profit Margins)
+                </h3>
+                <p class="text-xs text-slate-400 mt-1 leading-relaxed">
+                    حدد نسبة أو هامش ربحك المضاف فوق سعر التكلفة من المزود ({% if selected_integration.provider == 'raqamiyat' or is_tenant %}رقميات الأساسي{% else %}{{ selected_integration.name }}{% endif %}). عند الحفظ يتم فوراً إعادة احتساب وتحديث كافة أسعار الخدمات والكتالوج في متجرك.
+                </p>
+            </div>
+            <span class="badge primary text-[10px] font-black bg-cyan/10 text-cyan border border-cyan/20 py-1.5 px-3 whitespace-nowrap">
+                <i class="fas fa-bolt ml-1"></i> تحديث فوري لكامل الكتالوج
+            </span>
+        </div>
+
+        <form method="POST" action="." class="stack gap-6">
+            {% csrf_token %}
+            <input type="hidden" name="integration_id" value="{{ selected_integration.id }}">
+            <input type="hidden" name="action" value="update_margins">
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                <!-- Retail Profit -->
+                <div class="p-5 rounded-2xl bg-black/40 border border-emerald-500/20">
+                    <label class="text-xs text-emerald-400 font-black block mb-2">
+                        <i class="fas fa-user ml-1"></i> هامش ربح العميل / المفرق (%)
+                    </label>
+                    <div class="relative">
+                        <input type="number" step="0.1" min="0" max="500" name="retail_margin" value="{{ profile.default_retail_margin|default:'15.0' }}" class="builder-input w-full text-sm font-bold text-white font-mono" style="background: rgba(0,0,0,0.6); border: 1px solid rgba(16,185,129,0.3); padding: 0.75rem 1rem; border-radius: 14px;" required>
+                        <span class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 font-bold text-xs">%</span>
+                    </div>
+                    <span class="text-[10px] text-slate-400 mt-2 block">النسبة المضافة فوق التكلفة لعملاء المفرق.</span>
+                </div>
+
+                <!-- Dealer Profit -->
+                <div class="p-5 rounded-2xl bg-black/40 border border-amber-500/20">
+                    <label class="text-xs text-amber-400 font-black block mb-2">
+                        <i class="fas fa-store ml-1"></i> هامش ربح التجار / الجملة (%)
+                    </label>
+                    <div class="relative">
+                        <input type="number" step="0.1" min="0" max="500" name="dealer_margin" value="{{ profile.default_dealer_margin|default:'10.0' }}" class="builder-input w-full text-sm font-bold text-white font-mono" style="background: rgba(0,0,0,0.6); border: 1px solid rgba(245,158,11,0.3); padding: 0.75rem 1rem; border-radius: 14px;" required>
+                        <span class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 font-bold text-xs">%</span>
+                    </div>
+                    <span class="text-[10px] text-slate-400 mt-2 block">النسبة المضافة لأسعار فئة تجار الجملة.</span>
+                </div>
+
+                <!-- VIP Profit -->
+                <div class="p-5 rounded-2xl bg-black/40 border border-cyan/20">
+                    <label class="text-xs text-cyan font-black block mb-2">
+                        <i class="fas fa-crown ml-1"></i> هامش ربح كبار العملاء / VIP (%)
+                    </label>
+                    <div class="relative">
+                        <input type="number" step="0.1" min="0" max="500" name="vip_margin" value="{{ profile.default_vip_margin|default:'5.0' }}" class="builder-input w-full text-sm font-bold text-white font-mono" style="background: rgba(0,0,0,0.6); border: 1px solid rgba(6,182,212,0.3); padding: 0.75rem 1rem; border-radius: 14px;" required>
+                        <span class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 font-bold text-xs">%</span>
+                    </div>
+                    <span class="text-[10px] text-slate-400 mt-2 block">النسبة المضافة لأسعار فئة VIP الخاصة.</span>
+                </div>
+            </div>
+
+            <div class="flex justify-end">
+                <button type="submit" class="btn btn-primary px-8 py-3 rounded-xl font-black text-xs shadow-lg shadow-cyan/20 flex items-center gap-2">
+                    <i class="fas fa-floppy-disk"></i> حفظ وتطبيق نسب الأرباح على كافة الخدمات فوراً
+                </button>
+            </div>
+        </form>
+    </div>
+
     <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
         <!-- Settings Form Info -->
         <div class="lg:col-span-7 glass-panel p-8">
@@ -452,7 +526,7 @@
 
             <div class="pt-4 border-t border-white/5 flex justify-end">
                 <button type="button" class="btn btn-primary shadow-lg shadow-cyan/20" onclick="startInteractiveSync(event)">
-                    <i class="fas fa-arrows-rotate mr-2"></i> بدء مزامنة واستيراد الخدمات المختارة
+                    <i class="fas fa-arrows-rotate mr-2"></i> {% if selected_integration.provider == 'raqamiyat' or is_tenant %}بدء مزامنة واستيراد منتجات رقميات للمتجر{% else %}بدء مزامنة واستيراد الخدمات المختارة{% endif %}
                 </button>
             </div>
         </form>
@@ -525,7 +599,8 @@
                         <th class="p-4 text-[10px] font-black text-slate-500 uppercase tracking-widest">الخدمة</th>
                         <th class="p-4 text-[10px] font-black text-slate-500 uppercase tracking-widest">التصنيف</th>
                         <th class="p-4 text-[10px] font-black text-slate-500 uppercase tracking-widest">التكلفة (API)</th>
-                        <th class="p-4 text-[10px] font-black text-slate-500 uppercase tracking-widest">المبيع المحلي</th>
+                        <th class="p-4 text-[10px] font-black text-slate-500 uppercase tracking-widest">المبيع للعميل</th>
+                        <th class="p-4 text-[10px] font-black text-slate-500 uppercase tracking-widest">صافي الربح</th>
                         <th class="p-4 text-[10px] font-black text-slate-500 uppercase tracking-widest text-center">حقول الإدخال المطلوب</th>
                         <th class="p-4 text-[10px] font-black text-slate-500 uppercase tracking-widest text-center">حالة الخدمة</th>
                         <th class="p-4 text-[10px] font-black text-slate-500 uppercase tracking-widest text-center">حالة العرض والربط</th>
@@ -565,6 +640,17 @@
                                 </div>
                             {% else %}
                                 <span class="text-slate-600 italic text-[10px]">غير مستورد</span>
+                            {% endif %}
+                        </td>
+
+                        <!-- Net Profit -->
+                        <td class="p-4 font-mono font-black text-cyan text-xs">
+                            {% if prod.profit is not None %}
+                                +${{ prod.profit|floatformat:2 }}
+                            {% elif prod.is_linked and prod.local_price and prod.price %}
+                                +${{ prod.local_price|floatformat:2 }}
+                            {% else %}
+                                -
                             {% endif %}
                         </td>
                         
