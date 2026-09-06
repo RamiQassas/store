@@ -191,6 +191,10 @@ class TenantMiddleware:
         if user.is_superuser or user.is_staff or getattr(user, "role", None) == "super_admin":
             return True
 
+        if getattr(user, "store_id", None) is None:
+            # Main platform users can access and purchase from sub-stores
+            return True
+
         from apps.common.tenant_utils import bypass_tenant_filter
         from apps.stores.models import StoreEmployee
 

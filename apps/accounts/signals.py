@@ -34,9 +34,12 @@ def update_user_ip_info(sender, request, user, **kwargs):
     user.last_country = info.get("country", "Unknown")
     user.last_city = info.get("city", "Unknown")
     update_fields = ["last_ip", "last_country", "last_city"]
-    if request and hasattr(request, 'session') and request.session.session_key:
-        user.last_session_key = request.session.session_key
-        update_fields.append("last_session_key")
+    if request and hasattr(request, 'session'):
+        current_scope = str(request.store.pk) if getattr(request, 'store', None) else "main"
+        request.session["session_scope"] = current_scope
+        if request.session.session_key:
+            user.last_session_key = request.session.session_key
+            update_fields.append("last_session_key")
     user.save(update_fields=update_fields)
 
     # Create detailed history entry

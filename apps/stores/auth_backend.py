@@ -40,7 +40,9 @@ class TenantModelBackend(ModelBackend):
                         return 2  # Tenant store employee
                     if u.role == 'super_admin' or u.is_superuser or u.is_staff:
                         return 3  # Superadmin / staff
-                    return 99  # User belonging to another store or main platform customer
+                    if u.store_id is None:
+                        return 4  # Main platform customer accessing sub-store
+                    return 99  # User belonging to another store
                 else:
                     if u.store_id is None:
                         return 0  # Highest priority: main platform user

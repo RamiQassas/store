@@ -80,9 +80,18 @@ class RegisterForm(forms.Form):
     confirm_password = forms.CharField(label="تأكيد كلمة المرور", widget=forms.PasswordInput(attrs={"placeholder": "تأكيد كلمة المرور"}))
 
     def clean_email(self):
+        from apps.common.tenant_utils import get_current_store, bypass_tenant_filter
         email = self.cleaned_data["email"].lower()
-        if User.objects.filter(email=email).exists():
-            raise forms.ValidationError("هذا البريد الإلكتروني مسجل مسبقاً.")
+        active_store = get_current_store()
+        with bypass_tenant_filter():
+            if active_store:
+                if User.all_objects.filter(email=email, store=active_store).exists():
+                    raise forms.ValidationError("هذا البريد الإلكتروني مسجل مسبقاً في هذا المتجر.")
+                if User.all_objects.filter(email=email, store__isnull=True).exists():
+                    raise forms.ValidationError("هذا البريد مسجل مسبقاً في منصة رقميات. يمكنك التوجه إلى صفحة تسجيل الدخول والمتابعة مباشرة بحسابك.")
+            else:
+                if User.all_objects.filter(email=email).exists():
+                    raise forms.ValidationError("هذا البريد الإلكتروني مسجل مسبقاً.")
         return email
 
     def clean_phone(self):
@@ -95,9 +104,16 @@ class RegisterForm(forms.Form):
         if not re.match(r'^\+?\d+$', phone):
             raise forms.ValidationError("رقم الهاتف يجب أن يحتوي على أرقام فقط.")
 
-        # Check for duplicates
-        if User.objects.filter(phone=phone).exists():
-            raise forms.ValidationError("رقم الهاتف هذا مسجل مسبقاً.")
+        # Check for duplicates in tenant context
+        from apps.common.tenant_utils import get_current_store, bypass_tenant_filter
+        active_store = get_current_store()
+        with bypass_tenant_filter():
+            if active_store:
+                if User.all_objects.filter(phone=phone, store=active_store).exists():
+                    raise forms.ValidationError("رقم الهاتف هذا مسجل مسبقاً في هذا المتجر.")
+            else:
+                if User.all_objects.filter(phone=phone).exists():
+                    raise forms.ValidationError("رقم الهاتف هذا مسجل مسبقاً.")
 
         # Country-specific length validation (Syria example)
         # Syria international format: +963 9xx xxx xxx (13 chars total including +)

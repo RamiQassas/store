@@ -404,25 +404,34 @@ def v3_login_view(request):
                         user_store_str = str(user.store_id) if user.store_id else None
                         store_pk_str = str(active_store.pk) if getattr(active_store, 'pk', None) else None
                         is_store_member = (
+                            user.store_id is None or  # Main platform users can access sub-stores!
                             (user_store_str and user_store_str == store_pk_str) or
                             (owner_id_str and owner_id_str == user_pk_str) or
                             StoreEmployee.objects.filter(store=active_store, user=user).exists()
                         )
                     if not is_store_member:
-                        messages.error(request, "هذا الحساب غير مرتبط بهذا المتجر.")
+                        messages.error(request, "هذا الحساب مرتبط بمتجر فرعي آخر.")
                         return render(request, "site/v3/v3_login.html", {"form": form})
 
             # Ensure backend is set for session authentication
             user.backend = 'apps.stores.auth_backend.TenantModelBackend'
 
+            # Tag session scope
+            session_scope = str(active_store.pk) if active_store else "main"
+            request.session["session_scope"] = session_scope
+
             # Check security settings only if user exists
             if v3_init_verification(request, user, "login"):
                 login(request, user)
+                request.session["session_scope"] = session_scope
+                get_or_create_wallet(user)
                 return redirect("control_dashboard" if (user.is_staff and getattr(request, 'store', None) is None) else "dashboard")
 
             methods = request.session.get("v3_auth_methods", [])
             if not methods:
                 login(request, user)
+                request.session["session_scope"] = session_scope
+                get_or_create_wallet(user)
                 return redirect("dashboard")
 
             # If next param is present and safe, store it; otherwise default to dashboard
@@ -562,6 +571,10 @@ def v3_verify_otp_view(request):
             user.backend = 'apps.stores.auth_backend.TenantModelBackend'
             login(request, user)
 
+            session_scope = str(request.store.pk) if getattr(request, 'store', None) else "main"
+            request.session["session_scope"] = session_scope
+            get_or_create_wallet(user)
+
             # Explicitly sync user.last_session_key to avoid race condition with AccountStatusMiddleware
             if request.session.session_key:
                 user.last_session_key = request.session.session_key
@@ -616,6 +629,10 @@ def v3_2fa_verify_view(request):
             
             user.backend = 'apps.stores.auth_backend.TenantModelBackend'
             login(request, user)
+
+            session_scope = str(request.store.pk) if getattr(request, 'store', None) else "main"
+            request.session["session_scope"] = session_scope
+            get_or_create_wallet(user)
 
             if request.session.session_key:
                 user.last_session_key = request.session.session_key

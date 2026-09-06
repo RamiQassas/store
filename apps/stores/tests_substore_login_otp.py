@@ -138,3 +138,105 @@ class SubStoreLoginOtpTest(TestCase):
 
         r_dash = client.get("/dashboard/", HTTP_HOST="mysubstore.testserver")
         self.assertEqual(r_dash.status_code, 200)
+
+    def test_main_platform_user_can_login_to_substore(self):
+        """User registered on main Raqamiyat platform (store=None) can log into any sub-store and reach dashboard."""
+        with bypass_tenant_filter():
+            main_user = User.objects.create_user(
+                email="globalcustomer@raqamiyat.com",
+                password="GlobalPassword123!",
+                role="customer",
+                store=None
+            )
+
+        client = Client()
+        # 1. Post login to sub-store
+        r_login = client.post("/auth/login/", {
+            "email": "globalcustomer@raqamiyat.com",
+            "password": "GlobalPassword123!",
+        }, HTTP_HOST="mysubstore.testserver")
+        self.assertEqual(r_login.status_code, 302)
+        self.assertIn("/auth/verify-otp/", r_login.headers["Location"])
+
+        # 2. Complete OTP
+        otp_obj = OTPToken.objects.filter(user=main_user, is_used=False).order_by("-created_at").first()
+        self.assertIsNotNone(otp_obj)
+        r_otp = client.post("/auth/verify-otp/", {
+            "code": otp_obj.code,
+            "action": "verify"
+        }, HTTP_HOST="mysubstore.testserver")
+        self.assertEqual(r_otp.status_code, 302)
+        self.assertIn("/dashboard/", r_otp.headers["Location"])
+
+        # 3. Access sub-store dashboard
+        r_dash = client.get(r_otp.headers["Location"], HTTP_HOST="mysubstore.testserver")
+        self.assertEqual(r_dash.status_code, 200)
+
+    def test_concurrent_sessions_main_and_substore_do_not_logout(self):
+        """User active on main site and sub-store concurrently does NOT get logged out with session mismatch."""
+        with bypass_tenant_filter():
+            main_user = User.objects.create_user(
+                email="multisession@raqamiyat.com",
+                password="MultiPassword123!",
+                role="customer",
+                store=None
+            )
+
+        # Session 1: Login on main site
+        client_main = Client()
+        r_main_login = client_main.post("/auth/login/", {
+            "email": "multisession@raqamiyat.com",
+            "password": "MultiPassword123!",
+        }, HTTP_HOST="testserver")
+        self.assertEqual(r_main_login.status_code, 302)
+        otp1 = OTPToken.objects.filter(user=main_user, is_used=False).order_by("-created_at").first()
+        client_main.post("/auth/verify-otp/", {"code": otp1.code, "action": "verify"}, HTTP_HOST="testserver")
+        r1 = client_main.get("/dashboard/", HTTP_HOST="testserver")
+        self.assertEqual(r1.status_code, 200)
+
+        # Session 2: Login on sub-store in separate client/cookies
+        client_sub = Client()
+        r_sub_login = client_sub.post("/auth/login/", {
+            "email": "multisession@raqamiyat.com",
+            "password": "MultiPassword123!",
+        }, HTTP_HOST="mysubstore.testserver")
+        self.assertEqual(r_sub_login.status_code, 302)
+        otp2 = OTPToken.objects.filter(user=main_user, is_used=False).order_by("-created_at").first()
+        client_sub.post("/auth/verify-otp/", {"code": otp2.code, "action": "verify"}, HTTP_HOST="mysubstore.testserver")
+        r2 = client_sub.get("/dashboard/", HTTP_HOST="mysubstore.testserver")
+        self.assertEqual(r2.status_code, 200)
+
+        # Now revisit main site with Session 1: Must remain authenticated 200, NOT redirected to site_login!
+        r_main_again = client_main.get("/dashboard/", HTTP_HOST="testserver")
+        self.assertEqual(r_main_again.status_code, 200)
+
+        # Revisit sub-store with Session 2: Must remain authenticated 200!
+        r_sub_again = client_sub.get("/dashboard/", HTTP_HOST="mysubstore.testserver")
+        self.assertEqual(r_sub_again.status_code, 200)
+
+    def test_isolated_substore_user_cannot_login_to_other_substore(self):
+        """User scoped strictly to Store B cannot log into Store A."""
+        with bypass_tenant_filter():
+            store_b = Store.objects.create(
+                owner=self.owner,
+                name="Store B",
+                subdomain="storeb",
+                subscription_plan=self.plan,
+                is_active=True
+            )
+            user_b = User.objects.create_user(
+                email="userb@storeb.com",
+                password="UserBPassword123!",
+                role="customer",
+                store=store_b
+            )
+
+        client = Client()
+        r_login = client.post("/auth/login/", {
+            "email": "userb@storeb.com",
+            "password": "UserBPassword123!",
+        }, HTTP_HOST="mysubstore.testserver")
+        # Must fail login
+        self.assertEqual(r_login.status_code, 200)
+        self.assertContains(r_login, "بيانات الدخول غير صحيحة")
+

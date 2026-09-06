@@ -76,6 +76,7 @@ urlpatterns = [
     path("auth/login/", views.v3_login_view, name="site_login"),
     path("auth/register/", views.v3_register_view, name="site_register"),
     path("auth/verify/", views.v3_verify_otp_view, name="site_verify_otp"),
+    path("auth/verify-otp/", views.v3_verify_otp_view),
     path("auth/forgot-password/", views.v3_forgot_password_view, name="site_forgot_password"),
     path("auth/reset-password/", views.v3_reset_password_view, name="site_reset_password"),
     path("auth/logout/", views.v3_logout_view, name="site_logout"),

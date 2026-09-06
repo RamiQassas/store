@@ -24,21 +24,33 @@ class AccountStatusMiddleware:
                 return redirect("site_login")
             
             # 2. Enforce Single Session Login
-            # Skip concurrent session enforcement for staff, super admins, sub-stores, or store owners switching across domains
+            current_scope = str(request.store.pk) if getattr(request, "store", None) else "main"
+            if request.session.get("session_scope") != current_scope:
+                request.session["session_scope"] = current_scope
+
+            # Skip concurrent session enforcement for staff, super admins, or sub-stores
             skip_single_session = (
                 request.user.is_staff
                 or getattr(request.user, "role", None) == "super_admin"
                 or getattr(request, "store", None) is not None
-                or request.user.owned_stores.exists()
             )
             if not skip_single_session:
                 if request.user.last_session_key:
                     if request.session.session_key and request.user.last_session_key != request.session.session_key:
-                        if Session.objects.filter(session_key=request.user.last_session_key).exists():
-                            print(f"[AccountStatusMiddleware] Session mismatch! User last_session_key: {request.user.last_session_key}, Current: {request.session.session_key}. Logging out.")
-                            logout(request)
-                            messages.warning(request, "تم تسجيل الدخول من جهاز آخر. تم إنهاء الجلسة الحالية.")
-                            return redirect("site_login")
+                        old_session = Session.objects.filter(session_key=request.user.last_session_key).first()
+                        if old_session:
+                            try:
+                                old_data = old_session.get_decoded()
+                                old_scope = old_data.get("session_scope", "main")
+                            except Exception:
+                                old_scope = "main"
+
+                            # If old session belongs to a different domain/tenant (e.g. sub-store vs main), do not log out
+                            if old_scope == current_scope:
+                                print(f"[AccountStatusMiddleware] Session mismatch in scope '{current_scope}'! User last_session_key: {request.user.last_session_key}, Current: {request.session.session_key}. Logging out.")
+                                logout(request)
+                                messages.warning(request, "تم تسجيل الدخول من جهاز آخر. تم إنهاء الجلسة الحالية.")
+                                return redirect("site_login")
                         else:
                             request.user.last_session_key = request.session.session_key
                             request.user.save(update_fields=["last_session_key"])

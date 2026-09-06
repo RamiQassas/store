@@ -72,6 +72,7 @@ def store_login_required(view_func):
             user = request.user
             with bypass_tenant_filter():
                 is_associated = (
+                    user.store_id is None or  # Main platform users can use sub-stores!
                     user.store_id == store.pk or
                     store.owner_id == user.pk or
                     StoreEmployee.objects.filter(store=store, user=user).exists()
@@ -379,12 +380,14 @@ def store_login(request):
     if request.user.is_authenticated:
         with bypass_tenant_filter():
             is_associated = (
+                request.user.store_id is None or  # Main platform users
                 request.user.store_id == store.pk or
+                store.owner_id == request.user.pk or
                 StoreEmployee.objects.filter(store=store, user=request.user).exists()
             )
         if is_associated:
             return redirect("store_dashboard")
-        # User authenticated but from a different store/platform — log them out
+        # User authenticated but from a different store — log them out
         logout(request)
 
     if request.method == "POST":
@@ -397,22 +400,28 @@ def store_login(request):
                 messages.error(request, "هذا الحساب معطل.")
                 return render(request, "stores/frontend/login.html", {"store": store})
 
-            # Strict isolation: only users explicitly associated with THIS store can login
+            # Check store association: allow store owner, employees, store users, and main platform users
             with bypass_tenant_filter():
-                is_store_owner = (user.store_id == store.pk or store.owner_id == user.pk)
-                is_employee = StoreEmployee.objects.filter(store=store, user=user).exists()
+                is_associated = (
+                    user.store_id is None or  # Main platform users can access sub-stores!
+                    user.store_id == store.pk or
+                    store.owner_id == user.pk or
+                    StoreEmployee.objects.filter(store=store, user=user).exists()
+                )
 
-            if is_store_owner or is_employee:
+            if is_associated:
                 user.backend = 'apps.stores.auth_backend.TenantModelBackend'
                 login(request, user)
+                request.session["session_scope"] = str(store.pk)
+                from apps.wallets.services import get_or_create_wallet
+                get_or_create_wallet(user)
                 messages.success(request, "أهلاً بك! تم تسجيل الدخول بنجاح.")
                 next_url = request.GET.get('next', '')
                 if next_url and next_url.startswith('/'):
                     return redirect(next_url)
                 return redirect("store_dashboard")
             else:
-                # Block platform users (admins, customers from other stores, etc.)
-                messages.error(request, "هذا الحساب غير مرتبط بهذا المتجر. إذا كنت عميلاً جديداً يرجى إنشاء حساب.")
+                messages.error(request, "هذا الحساب مرتبط بمتجر فرعي آخر.")
         else:
             messages.error(request, "البريد الإلكتروني أو كلمة المرور غير صحيحة.")
 
