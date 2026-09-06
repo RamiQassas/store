@@ -139,13 +139,10 @@
                     <span class="text-sm">التسجيل بواسطة Google</span>
                 </a>
                 {% else %}
-                <form action="{% url 'google_login' %}" method="post">
-                    {% csrf_token %}
-                    <button type="submit" class="btn-secondary w-full group !py-4">
-                        <img src="https://upload.wikimedia.org/wikipedia/commons/c/c1/Google_%22G%22_logo.svg" class="w-5 h-5 group-hover:scale-110 transition-transform">
-                        <span class="text-sm">التسجيل بواسطة Google</span>
-                    </button>
-                </form>
+                <a href="{% provider_login_url 'google' %}" class="btn-secondary w-full group !py-4">
+                    <img src="https://upload.wikimedia.org/wikipedia/commons/c/c1/Google_%22G%22_logo.svg" class="w-5 h-5 group-hover:scale-110 transition-transform">
+                    <span class="text-sm">التسجيل بواسطة Google</span>
+                </a>
                 {% endif %}
                 {% endif %}
             {% endfor %}

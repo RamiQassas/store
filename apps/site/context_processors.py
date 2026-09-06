@@ -10,14 +10,16 @@ def preferred_currency(request):
     all_currencies = list(Currency.objects.filter(is_active=True).order_by("display_order", "code"))
     
     pref_currency = None
+    user = getattr(request, "user", None)
+    session = getattr(request, "session", None)
     
     # 1. Check logged in user preference
-    if request.user.is_authenticated and request.user.preferred_currency:
-        pref_currency = request.user.preferred_currency
+    if user and user.is_authenticated and getattr(user, "preferred_currency", None):
+        pref_currency = user.preferred_currency
     
     # 2. Check session for guest/override
-    if not pref_currency:
-        session_currency_id = request.session.get("preferred_currency_id")
+    if not pref_currency and session:
+        session_currency_id = session.get("preferred_currency_id")
         if session_currency_id:
             pref_currency = next((c for c in all_currencies if str(c.id) == str(session_currency_id)), None)
     

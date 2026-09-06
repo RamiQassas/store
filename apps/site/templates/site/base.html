@@ -889,5 +889,42 @@
       }
   </script>
   {% endif %}
+  <!-- Global CSRF Token Auto-Sync (Prevents 403 on stale tab, back button, or rotated token) -->
+  <script>
+  (function() {
+      function getCookie(name) {
+          let cookieValue = null;
+          if (document.cookie && document.cookie !== '') {
+              const cookies = document.cookie.split(';');
+              for (let i = 0; i < cookies.length; i++) {
+                  const cookie = cookies[i].trim();
+                  if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                      cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                      break;
+                  }
+              }
+          }
+          return cookieValue;
+      }
+
+      function syncCsrfTokens() {
+          const token = getCookie('csrftoken');
+          if (token) {
+              document.querySelectorAll('input[name="csrfmiddlewaretoken"]').forEach(function(el) {
+                  el.value = token;
+              });
+          }
+      }
+
+      document.addEventListener('DOMContentLoaded', syncCsrfTokens);
+      window.addEventListener('pageshow', syncCsrfTokens);
+
+      document.addEventListener('submit', function(e) {
+          if (e.target && e.target.tagName === 'FORM') {
+              syncCsrfTokens();
+          }
+      }, true);
+  })();
+  </script>
 </body>
 </html>

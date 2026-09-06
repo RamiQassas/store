@@ -13,6 +13,7 @@ from datetime import timedelta
 from django.contrib import messages
 from django.contrib.auth import authenticate, login, logout, update_session_auth_hash
 from django.contrib.auth.decorators import login_required
+from django.views.decorators.csrf import ensure_csrf_cookie
 from django.core.paginator import Paginator
 from django.db import transaction
 from django.db.models import Q, Count, Sum
@@ -363,7 +364,10 @@ def v3_verify_sp_view(request):
 # ==========================================
 # --- AUTH VIEWS (V3) ---
 # ==========================================
+# --- AUTHENTICATION (V3) ---
+# ==========================================
 
+@ensure_csrf_cookie
 def v3_login_view(request):
     active_store = getattr(request, 'store', None)
 
@@ -425,6 +429,7 @@ def v3_login_view(request):
         messages.error(request, "بيانات الدخول غير صحيحة.")
     return render(request, "site/v3/v3_login.html", {"form": form})
 
+@ensure_csrf_cookie
 def v3_register_view(request):
     if request.user.is_authenticated: return redirect("dashboard")
     form = RegisterForm(request.POST or None)

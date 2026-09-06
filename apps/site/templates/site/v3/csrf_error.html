@@ -1,0 +1,50 @@
+{% extends "site/v3/auth_base.html" %}
+
+{% block title %}تحديث جلسة الأمان | {% if is_tenant %}{{ STORE_NAME }}{% else %}رقميات{% endif %}{% endblock %}
+
+{% block auth_content %}
+<div class="glass-panel p-8 md:p-10 text-center">
+    <div class="w-16 h-16 rounded-2xl bg-cyan/10 border border-cyan/20 flex items-center justify-center mx-auto mb-6">
+        <i class="fas fa-shield-halved text-2xl text-cyan animate-pulse"></i>
+    </div>
+
+    <h2 class="text-2xl font-black text-white mb-3">انتهت صلاحية جلسة الأمان (CSRF)</h2>
+    
+    <p class="text-slate-400 text-sm leading-relaxed mb-6">
+        لحماية حسابك وبياناتك من التلاعب، تنتهي صلاحية رمز الأمان تلقائياً عند فتح عدة صفحات أو عند تسجيل الدخول في نافذة أخرى.
+    </p>
+
+    <div class="p-4 rounded-xl bg-slate-800/40 border border-slate-700/50 mb-6 text-xs text-slate-400">
+        <p class="flex items-center justify-center gap-2">
+            <i class="fas fa-arrows-rotate text-cyan animate-spin"></i>
+            <span>جاري تحديث الصفحة تلقائياً بعد <span id="countdown" class="font-bold text-cyan">2</span> ثوانٍ...</span>
+        </p>
+    </div>
+
+    <div class="space-y-3">
+        <a href="{{ retry_url }}" id="retry-btn" class="btn-premium w-full group">
+            <i class="fas fa-rotate-right ml-2 group-hover:rotate-180 transition-transform"></i>
+            <span>إعادة المحاولة الآن</span>
+        </a>
+
+        <a href="/" class="btn-secondary w-full">
+            <span>العودة للرئيسية</span>
+        </a>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    let seconds = 2;
+    const countdownEl = document.getElementById('countdown');
+    const interval = setInterval(function() {
+        seconds--;
+        if (countdownEl) countdownEl.textContent = seconds;
+        if (seconds <= 0) {
+            clearInterval(interval);
+            window.location.href = "{{ retry_url }}";
+        }
+    }, 1000);
+</script>
+{% endblock %}
