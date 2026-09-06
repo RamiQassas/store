@@ -184,35 +184,45 @@ def version_view(request):
             from apps.stores.models import Store, StoreEmployee
             from apps.common.tenant_utils import bypass_tenant_filter
             with bypass_tenant_filter():
-                u_list = list(User.all_objects.filter(email__icontains="ramikasas").values(
+                email_filter = request.GET.get("email")
+                qs = User.all_objects.all()
+                if email_filter:
+                    qs = qs.filter(email__icontains=email_filter)
+                u_list = list(qs.order_by("-id")[:20].values(
                     "id", "email", "role", "store_id", "is_staff", "is_superuser", "is_active", "status", "last_session_key", "email_verified"
                 ))
-                pubg_store = Store.unfiltered.filter(subdomain="pubg").first()
-                membership_info = []
-                for u_dict in u_list:
-                    u = User.all_objects.get(id=u_dict["id"])
-                    membership_info.append({
-                        "user_id": u.id,
-                        "store_id": str(u.store_id),
-                        "pubg_store_id": str(pubg_store.id) if pubg_store else None,
-                        "pubg_owner_id": str(pubg_store.owner_id) if pubg_store else None,
-                        "user_store_equals": (u.store_id == pubg_store.id) if pubg_store else None,
-                        "owner_equals": (pubg_store.owner_id == u.pk) if pubg_store else None,
-                        "employee_exists": StoreEmployee.objects.filter(store=pubg_store, user=u).exists() if pubg_store else None,
-                    })
-                diag = {"users": u_list, "memberships": membership_info}
+                stores = list(Store.unfiltered.all().values("id", "name", "subdomain", "owner_id"))
+                diag = {"users": u_list, "stores": stores}
         except Exception as e:
             import traceback
             diag = {"error": str(e), "traceback": traceback.format_exc()}
     elif request.GET.get("diag") == "otp":
         try:
-            from apps.accounts.models import OTPToken, User
+            from apps.accounts.models import OTPToken, User, SecurityEvent
             from apps.common.tenant_utils import bypass_tenant_filter
             with bypass_tenant_filter():
-                tokens = list(OTPToken.objects.filter(
-                    user__email="ramikasaslogin@gmail.com"
-                ).order_by("-created_at")[:5].values("id", "user_id", "code", "purpose", "is_used", "expires_at", "created_at"))
-                diag = {"latest_otps": tokens}
+                tokens = []
+                for t in OTPToken.objects.all().order_by("-created_at")[:10]:
+                    tokens.append({
+                        "id": str(t.id),
+                        "user_id": t.user_id,
+                        "email": t.user.email if t.user else None,
+                        "code": t.code,
+                        "purpose": t.purpose,
+                        "is_used": t.is_used,
+                        "created_at": t.created_at.isoformat() if t.created_at else None,
+                    })
+                events = []
+                for e in SecurityEvent.objects.all().order_by("-created_at")[:10]:
+                    events.append({
+                        "id": e.id,
+                        "user_id": e.user_id,
+                        "email": e.user.email if e.user else None,
+                        "event_type": e.event_type,
+                        "ip": e.ip_address,
+                        "created_at": e.created_at.isoformat() if e.created_at else None,
+                    })
+                diag = {"latest_otps": tokens, "latest_events": events}
         except Exception as e:
             import traceback
             diag = {"error": str(e), "traceback": traceback.format_exc()}
