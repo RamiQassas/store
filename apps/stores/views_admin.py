@@ -10,6 +10,7 @@ from django.db import connection, transaction
 from django.db.models import Sum, Count
 from django.http import Http404
 from django.utils import timezone
+from django.conf import settings
 from apps.common.decorators import admin_required
 
 from apps.stores.models import Store, SubscriptionPlan, StoreEmployee, SubscriptionInvoice
