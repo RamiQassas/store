@@ -27,9 +27,11 @@ class AlkasrMapperService:
 
     def _get_group_name(self, pp):
         """
-        Determines the parent Product name (Application / Service / Brand),
+        Determines the canonical parent Product name (Application / Service / Brand),
         e.g. ببجي موبايل (PUBG Global), فري فاير (Free Fire), سيريتل (Syriatel), نتفلكس (Netflix).
+        Prevents fragmentation, duplicate products, and country-split entries.
         """
+        import re
         generic_names = {
             "null", "none", "games", "live application", "data and communication", 
             "gift cards", "tv services", "money transfers", "social media", 
@@ -38,297 +40,248 @@ class AlkasrMapperService:
             "ترويج ودعم السوشيال ميديا", "بطاقات الهدايا", "العملات الرقمية", "default",
             "قسم الألعاب", "قسم الدردشة", "قسم الأرصدة", "قسم الأرصدة والاتصالات",
             "البطاقات الالكترونية", "البطاقات الإلكترونية", "خدمات التلفاز", "الأرقام والحسابات",
-            "الذكاء الاصطناعي", "قسم التصميم", "اشتراكات vpn"
+            "الذكاء الاصطناعي", "قسم التصميم", "اشتراكات vpn", "1370", "1332", "1350", "code"
         }
 
-        # Subcategories & Server names mapped to parent Application
-        subcat_to_app = {
-            # PUBG Subcategories / Servers
-            "اوتوماتيك 2": "ببجي موبايل (PUBG Global)",
-            "اوتوماتيك 3": "ببجي موبايل (PUBG Global)",
-            "يدوي ٢": "ببجي موبايل (PUBG Global)",
-            "يدوي 2": "ببجي موبايل (PUBG Global)",
-            "يدوي": "ببجي موبايل (PUBG Global)",
-            "برايم": "ببجي موبايل (PUBG Global)",
-            "برايم بلس": "ببجي موبايل (PUBG Global)",
-            "بطاقة نخبة": "ببجي موبايل (PUBG Global)",
-            "الحزم": "ببجي موبايل (PUBG Global)",
-            "آلي 2": "ببجي موبايل (PUBG Global)",
-            "سيرفر 3": "ببجي موبايل (PUBG Global)",
-            "سيرفر 4": "ببجي موبايل (PUBG Global)",
-            "سيرفر 6": "ببجي موبايل (PUBG Global)",
-            "سيرفر 7": "ببجي موبايل (PUBG Global)",
-            "سيرفر 8": "ببجي موبايل (PUBG Global)",
-            "سيرفر 9": "ببجي موبايل (PUBG Global)",
-            "سيرفر 10": "ببجي موبايل (PUBG Global)",
-            "سيرفر 11": "ببجي موبايل (PUBG Global)",
-            "سيرفر 12": "ببجي موبايل (PUBG Global)",
-            "سيرفر 17": "ببجي موبايل (PUBG Global)",
-            "سيرفر 18": "ببجي موبايل (PUBG Global)",
-            "prime": "ببجي موبايل (PUBG Global)",
-            "prime +": "ببجي موبايل (PUBG Global)",
-            "pubg tr": "ببجي موبايل تركيا (PUBG TR)",
-            "ببجي تركي يدوي": "ببجي موبايل تركيا (PUBG TR)",
-
-            # Turkcell Subcategories
-            "aylık paketler": "تروكسل تركيا (Turkcell)",
-            "aylık teklifler": "تروكسل تركيا (Turkcell)",
-            "haftalık paketler": "تروكسل تركيا (Turkcell)",
-            "günlük paketler": "تروكسل تركيا (Turkcell)",
-            "nar paketler": "تروكسل تركيا (Turkcell)",
-            "uluslararası paketler": "تروكسل تركيا (Turkcell)",
-            "internet wi̇-fi̇": "باقات إنترنت واي فاي (Wi-Fi)",
-            "internet wi-fi": "باقات إنترنت واي فاي (Wi-Fi)",
-
-            # PlayStation Subcategories / Regions
-            "ps usa": "بطاقات بلايستيشن (PlayStation)",
-            "ps ksa": "بطاقات بلايستيشن (PlayStation)",
-            "ps uae": "بطاقات بلايستيشن (PlayStation)",
-            "ps uk": "بطاقات بلايستيشن (PlayStation)",
-            "ps canada": "بطاقات بلايستيشن (PlayStation)",
-            "ps fransa": "بطاقات بلايستيشن (PlayStation)",
-            "ps germany": "بطاقات بلايستيشن (PlayStation)",
-            "ps italy": "بطاقات بلايستيشن (PlayStation)",
-            "ps japan": "بطاقات بلايستيشن (PlayStation)",
-            "ps oman": "بطاقات بلايستيشن (PlayStation)",
-            "ps qatar": "بطاقات بلايستيشن (PlayStation)",
-
-            # Steam Subcategories
-            "steam global": "بطاقات ستيم (Steam)",
-            "steam turkey": "بطاقات ستيم (Steam)",
-
-            # Razer Gold Subcategories
-            "razer gold global": "بطاقات ريزر جولد (Razer Gold)",
-            "razer turkey": "بطاقات ريزر جولد (Razer Gold)",
-
-            # Google Play Subcategories
-            "google play usa": "بطاقات جوجل بلاي (Google Play)",
-            "google play turkey": "بطاقات جوجل بلاي (Google Play)",
-
-            # iTunes Subcategories
-            "itunes usa": "بطاقات أبل / آيتونز (iTunes)",
-            "itunes turkey": "بطاقات أبل / آيتونز (iTunes)",
-
-            # Roblox Cards
-            "roblex usa": "بطاقات روبلوكس (Roblox Cards)",
-
-            # Streaming / TV
-            "+disney": "ديزني بلس (Disney+)",
-            "+osn": "او اس ان بلس (OSN+)",
-            "blue 4k": "بلو فور كي (BLUE 4K IPTV)",
-
-            # Apps / Chat
-            "ludo diamonds": "يلا لودو (Yalla Ludo)",
-            "tik tok": "تيك توك (TikTok)",
-            "mixu ميكس يو": "ميكس يو (Mixu)",
-            "party star": "بارتي ستار (Party Star)",
-            "soul accessoris": "سول (Soul App)",
-            "star lite": "ستار لايت (Star Lite)",
-            "tango pro": "تانجو برو (Tango Pro)",
-            "tumile": "تومي (Tumile)",
-            "yaahlan": "يهلا (Yaahlan)",
-            "zepeto zems": "زيبيتو (Zepeto)",
-            "zepito coins": "زيبيتو (Zepeto)",
-            "bermuda": "برمودا (Bermuda Chat)",
-            "weplay gold": "وي بلاي (WePlay)",
-            "هاي كات": "هاي كات (Hi Cat)",
-
-            # VPN
-            "hotspot shield": "اشتراكات Hotspot Shield",
-            "lagofast booster": "اشتراكات LagoFast",
-
-            # Software / Social
-            "auto reply for facebook": "رد تلقائي فيسبوك (Facebook Auto Reply)",
-            "auto reply for what's app": "رد تلقائي واتساب (WhatsApp Auto Reply)",
-            "auto reply for instagram": "رد تلقائي انستغرام (Instagram Auto Reply)",
-            "خدماات يوتيوب": "خدمات يوتيوب (YouTube)",
-            "قسم التلجرام": "تفعيل أرقام تليجرام (Telegram)",
-            "ready accounts": "حسابات جاهزة (Ready Accounts)",
-            "1370": "سناب شات بلس (Snapchat Plus)",
-            "1332": "ببجي موبايل (PUBG Global)",
-            "1350": "تفعيل أرقام واتساب (WhatsApp)",
-            "snapchat": "سناب شات بلس (Snapchat Plus)",
-            "سناب شات": "سناب شات بلس (Snapchat Plus)",
-            "سناب شات بلس": "سناب شات بلس (Snapchat Plus)",
-        }
-
-        app_name_map = {
-            # Games
-            "PUBG GLOBAL ببجي عالمية": "ببجي موبايل (PUBG Global)",
-            "Pupg Turkey ببجي تركيا": "ببجي موبايل تركيا (PUBG TR)",
-            "FREE FIRE GLOBAL": "فري فاير (Free Fire)",
-            "ROBLOX": "روبلوكس (Roblox)",
-            "Jawaker جواكر": "جواكر (Jawaker)",
-            
-            # Live & Chat Apps
-            "IMO CHAT": "إيمو شات (IMO Chat)",
-            "LIVU": "ليف يو (LivU)",
-            "MEYO LIVE": "ميو لايف (Meyo Live)",
-            "YALLA LIVE": "يلا لايف (Yalla Live)",
-            "YALLA LUDO": "يلا لودو (Yalla Ludo)",
-            "AZAR CHAT": "أزار شات (Azar Chat)",
-            "بارتي ستار": "بارتي ستار (Party Star)",
-            "Yaahlan": "يهلا (Yaahlan)",
-            "Hi Cat": "هاي كات (Hi Cat)",
-            "TIKTOK": "تيك توك (TikTok)",
-            "BIGO LIVE": "بيجو لايف (Bigo Live)",
-            "LIKEE": "لايكي (Likee)",
-
-            # Telecom / Balance
-            "Syriatell": "سيريتل كاش ورصيد (Syriatel)",
-            "MTN سوريا": "ام تي ان كاش ورصيد (MTN)",
-            "تروكسل Turkcell": "تروكسل تركيا (Turkcell)",
-            "ترك تليكوم Türk Telekom": "ترك تليكوم تركيا (Türk Telekom)",
-            "فودافون Vodafone": "فودافون تركيا (Vodafone)",
-            "Selam Telekom": "سلام تليكوم (Selam)",
-
-            # Cards
-            "ITUNES": "بطاقات أبل / آيتونز (iTunes)",
-            "PLAYSTATION CARDS": "بطاقات بلايستيشن (PlayStation)",
-            "GOOGLE PLAY": "بطاقات جوجل بلاي (Google Play)",
-            "STEAM": "بطاقات ستيم (Steam)",
-            "RAZER GOLD": "بطاقات ريزر جولد (Razer Gold)",
-            "ROBLEX Cards": "بطاقات روبلوكس (Roblox Cards)",
-            "Visa Cards": "بطاقات فيزا (Visa Cards)",
-
-            # TV & Streaming
-            "NETFLIX": "نتفلكس (Netflix)",
-            "SHAHID": "شاهد VIP (Shahid VIP)",
-            "شامنا SHAMNA": "شامنا تي في (Shamna TV)",
-            "Zain TV": "زين تي في (Zain TV)",
-            "BARAKAT TV": "بركات تي في (Barakat TV)",
-            "TANGO PRO": "تانجو برو (Tango Pro)",
-
-            # Accounts & Numbers
-            "قسم الواتساب": "تفعيل أرقام واتساب (WhatsApp)",
-            "GeMini Pro": "جيميني برو (Gemini Pro AI)",
-            "Picsart": "بيكس آرت (Picsart)",
-        }
-
-        # Check remote category ID directly from subcat_to_app
+        p_name = (pp.name or "").strip()
+        c_name = (pp.category.name if pp.category else "").strip()
+        parent_name = (pp.category.parent.name if pp.category and pp.category.parent else "").strip()
         cat_remote = str(getattr(pp.category, 'remote_id', '') or '').strip()
         cat_parent_remote = str(getattr(pp.category, 'parent_remote_id', '') or '').strip()
-        if cat_remote in subcat_to_app:
-            return subcat_to_app[cat_remote]
-        if cat_parent_remote in subcat_to_app:
-            return subcat_to_app[cat_parent_remote]
 
-        # Guard against pure duration names like "3 شهور" becoming application names
-        import re
-        if re.match(r'^\d+\s*(شهر|شهور|سنة|سنوات|أيام|يوم|day|days|month|months|year|years)$', (pp.name or '').strip(), re.IGNORECASE):
-            if cat_remote in ("1370", "null") or (pp.category and pp.category.parent and "social" in (pp.category.parent.name or '').lower()):
-                return "سناب شات بلس (Snapchat Plus)"
-            chain = self._get_category_chain(pp)
-            if chain and len(chain) >= 2 and chain[1].name.strip().lower() not in generic_names:
-                return chain[1].name.strip()
-            cat_raw_name = (pp.category.name if pp.category else "").strip()
-            if cat_raw_name and cat_raw_name.lower() not in generic_names:
-                return cat_raw_name
-            return "سناب شات بلس (Snapchat Plus)"
+        combined = f"{p_name} {c_name} {parent_name}".lower()
 
-        # 1. Check parent category from ProviderCategory relation
-        if pp.category and pp.category.parent:
-            p_name = pp.category.parent.name.strip()
-            if p_name in app_name_map:
-                return app_name_map[p_name]
-            if p_name.lower() in subcat_to_app:
-                return subcat_to_app[p_name.lower()]
-            if p_name.lower() not in generic_names and len(p_name) >= 3:
-                return p_name
-
-        # 2. Check category chain (Level 1: App/Game)
-        chain = self._get_category_chain(pp)
-        if len(chain) >= 2:
-            raw_app = chain[1].name.strip()
-            if raw_app in app_name_map:
-                return app_name_map[raw_app]
-            if raw_app.lower() in subcat_to_app:
-                return subcat_to_app[raw_app.lower()]
-            if raw_app.lower() not in generic_names:
-                return raw_app
-
-        # 3. Check current category against subcat_to_app
-        cat_raw = (pp.category.name if pp.category else "").strip()
-        if cat_raw:
-            if cat_raw in app_name_map:
-                return app_name_map[cat_raw]
-            if cat_raw.lower() in subcat_to_app:
-                return subcat_to_app[cat_raw.lower()]
-
-        # 4. Keyword matching from product name
-        prod_name = (pp.name or "").strip()
-        p_low = prod_name.lower()
-
-        # Games
-        if "pubg" in p_low or "ببجي" in prod_name or "uc" in p_low:
-            if "turkey" in p_low or "تركيا" in prod_name:
+        # 1. PUBG Global vs Turkey
+        if "pubg" in combined or "ببجي" in combined or "uc" in combined or cat_remote == "1332" or "red package" in combined:
+            if any(k in combined for k in ("turkey", "تركي", " tr", "tr ", "tr/")):
                 return "ببجي موبايل تركيا (PUBG TR)"
             return "ببجي موبايل (PUBG Global)"
-        if "free fire" in p_low or "فري فاير" in prod_name:
+
+        # 2. Free Fire
+        if "free fire" in combined or "فري فاير" in combined:
             return "فري فاير (Free Fire)"
-        if "roblox" in p_low or "روبلوكس" in prod_name:
+
+        # 3. Roblox (merge all countries & cards into one)
+        if "roblox" in combined or "roblex" in combined or "روبلوكس" in combined:
             return "روبلوكس (Roblox)"
-        if "jawaker" in p_low or "جواكر" in prod_name:
+
+        # 4. Jawaker
+        if "jawaker" in combined or "جواكر" in combined:
             return "جواكر (Jawaker)"
-        if "mobile legends" in p_low or "موبايل ليجند" in prod_name:
+
+        # 5. Mobile Legends
+        if "mobile legends" in combined or "موبايل ليجند" in combined:
             return "موبايل ليجندز (Mobile Legends)"
-        if "call of duty" in p_low or "كول اوف ديوتي" in prod_name or "كود موبايل" in prod_name:
-            return "كول أوف ديوتي (Call of Duty)"
-        if "valorant" in p_low or "فالورانت" in prod_name:
-            return "فالورانت (Valorant)"
-        if "fortnite" in p_low or "فورتنايت" in prod_name or "فورت نايت" in prod_name:
-            return "فورت نايت (Fortnite)"
-        if "clash of clans" in p_low or "كلاش" in prod_name:
+
+        # 6. Clash Royale & Clash of Clans
+        if "clash royale" in combined or "كلاش رويال" in combined:
+            return "كلاش رويال (Clash Royale)"
+        if "clash of clans" in combined or "كلاش أوف كلانس" in combined:
             return "كلاش أوف كلانس (Clash of Clans)"
 
-        # Apps
-        if "tiktok" in p_low or "تيك توك" in prod_name:
-            return "تيك توك (TikTok)"
-        if "yalla" in p_low or "يلا" in prod_name:
-            return "يلا لودو (Yalla Ludo)"
-        if "bigo" in p_low or "بيجو" in prod_name:
-            return "بيجو لايف (Bigo Live)"
-        if "likee" in p_low or "لايكي" in prod_name:
-            return "لايكي (Likee)"
-        if "shahid" in p_low or "شاهد" in prod_name:
-            return "شاهد VIP (Shahid VIP)"
-        if "netflix" in p_low or "نتفلكس" in prod_name:
-            return "نتفلكس (Netflix)"
+        # 7. WePlay
+        if "weplay" in combined or "وي بلاي" in combined:
+            return "وي بلاي (WePlay)"
 
-        # Cards
-        if "google play" in p_low or "جوجل بلاي" in prod_name:
-            return "بطاقات جوجل بلاي (Google Play)"
-        if "itunes" in p_low or "apple" in p_low or "ايتونز" in prod_name or "ابل" in prod_name:
-            return "بطاقات أبل / آيتونز (iTunes)"
-        if "playstation" in p_low or "psn" in p_low or "بلايستيشن" in prod_name or p_low.startswith("ps "):
+        # 8. Yalla Ludo
+        if "yalla ludo" in combined or "يلا لودو" in combined or "ludo diamond" in combined:
+            return "يلا لودو (Yalla Ludo)"
+
+        # 9. PlayStation (merge all regions: Bahrain, Kuwait, USA, KSA, UAE, etc.)
+        if "playstation" in combined or "بلايستيشن" in combined or "psn" in combined or re.search(r'\bps\s+(usa|ksa|uae|uk|ger|bah|kwt|canada|fransa|germany|italy|japan|oman|qatar|spain|bahrain|kuwait)', combined):
             return "بطاقات بلايستيشن (PlayStation)"
-        if "xbox" in p_low or "اكس بوكس" in prod_name:
-            return "بطاقات إكس بوكس (Xbox)"
-        if "steam" in p_low or "ستيم" in prod_name:
+
+        # 10. iTunes / Apple (merge all regions into one canonical app)
+        if "itunes" in combined or "آيتونز" in combined or "ايتونز" in combined or ("apple" in combined and "card" in combined):
+            return "بطاقات أبل / آيتونز (iTunes)"
+
+        # 11. Google Play (merge all regions)
+        if "google play" in combined or "جوجل بلاي" in combined:
+            return "بطاقات جوجل بلاي (Google Play)"
+
+        # 12. Steam (merge sudi, usa, global)
+        if "steam" in combined or "ستيم" in combined or ("sudi" in combined and any(x in combined for x in ("20", "100", "card"))) or ("usa" in combined and "5" in combined):
             return "بطاقات ستيم (Steam)"
-        if "razer" in p_low or "ريزر" in prod_name:
+
+        # 13. Razer Gold
+        if "razer" in combined or "ريزر" in combined:
             return "بطاقات ريزر جولد (Razer Gold)"
 
-        # Telecom
-        if "syriatel" in p_low or "سيريتل" in prod_name:
-            return "سيريتل كاش ورصيد (Syriatel)"
-        if "mtn" in p_low or "ام تي ان" in prod_name:
-            return "ام تي ان كاش ورصيد (MTN)"
-        if "turkcell" in p_low or "تروكسل" in prod_name or "kolay paket" in p_low:
+        # 14. Syriatel
+        if "syriatel" in combined or "سيريتل" in combined or "سيريتيل" in combined:
+            if any(k in combined for k in ("حوالات", "تحويلات", "transfer")):
+                return "سيريتل كاش (تحويلات مالية)"
+            return "سيريتل (Syriatel)"
+
+        # 15. MTN
+        if "mtn" in combined or "ام تي ان" in combined:
+            return "ام تي ان (MTN)"
+
+        # 16. Turkcell, Telekom, Vodafone
+        if "turkcell" in combined or "تروكسل" in combined or "nar paket" in combined or "kolay paket" in combined:
             return "تروكسل تركيا (Turkcell)"
+        if "telekom" in combined or "تليكوم" in combined:
+            return "ترك تليكوم تركيا (Türk Telekom)"
+        if "vodafone" in combined or "فودافون" in combined:
+            return "فودافون تركيا (Vodafone)"
+        if "selam" in combined or "سلام تليكوم" in combined:
+            return "سلام تليكوم (Selam)"
+        if "wi-fi" in combined or "واي فاي" in combined or "cep magnet" in combined:
+            return "باقات إنترنت واي فاي (Wi-Fi)"
+        if "hgs" in combined:
+            return "شحن HGS الطرق السريعة تركيا"
 
-        import re
-        clean_name = re.sub(r'[\d\+\$].*', '', prod_name).strip()
-        clean_name = re.sub(r'(\s*-\s*|\s*_\s*)$', '', clean_name).strip()
-        if len(clean_name) >= 3 and clean_name.lower() not in generic_names:
-            return clean_name
+        # 17. TikTok (split currencies vs social media services)
+        if "tiktok" in combined or "تيك توك" in combined or "tik yok" in combined:
+            if any(x in combined for x in ("متابعين", "لايكات", "مشاهدات", "تعليقات", "followers", "likes", "views", "shares")):
+                return "خدمات تيك توك (TikTok Services)"
+            return "تيك توك (TikTok)"
 
-        if cat_raw and cat_raw.lower() not in generic_names:
-            return cat_raw
+        # 18. Social Media Services
+        if "instagram" in combined or "انستغرام" in combined or "انستا" in combined:
+            return "خدمات إنستغرام (Instagram)"
+        if "facebook" in combined or "فيسبوك" in combined or "فيس بوك" in combined:
+            return "خدمات فيسبوك (Facebook)"
+        if "twitter" in combined or "تويتر" in combined:
+            return "خدمات تويتر / X (Twitter)"
+        if "youtube" in combined or "يوتيوب" in combined:
+            return "خدمات يوتيوب (YouTube)"
+        if "telegram" in combined or "تليجرام" in combined or "تلغرام" in combined:
+            if "premium" in combined or "بريميوم" in combined:
+                return "تليجرام بريميوم (Telegram Premium)"
+            return "تفعيل أرقام تليجرام (Telegram)"
 
-        return prod_name or "خدمة عامة"
+        # 19. WhatsApp
+        if "whatsapp" in combined or "واتساب" in combined or "واتس اب" in combined or cat_remote == "1350":
+            return "تفعيل أرقام واتساب (WhatsApp)"
 
-    def _get_store_category(self, pp, store):
+        # 20. Streaming / TV
+        if "netflix" in combined or "نتفلكس" in combined or "نتفليكس" in combined:
+            return "نتفلكس (Netflix)"
+        if "shahid" in combined or "شاهد" in combined:
+            return "شاهد VIP (Shahid VIP)"
+        if "osn" in combined:
+            return "او اس ان بلس (OSN+)"
+        if "disney" in combined or "ديزني" in combined:
+            return "ديزني بلس (Disney+)"
+        if "blue 4k" in combined or "بلو فور كي" in combined:
+            return "بلو فور كي (BLUE 4K IPTV)"
+        if "shamna" in combined or "شامنا" in combined:
+            return "شامنا تي في (Shamna TV)"
+        if "zain tv" in combined or "زين تي في" in combined:
+            return "زين تي في (Zain TV)"
+        if "barakat" in combined or "بركات" in combined:
+            return "بركات تي في (Barakat TV)"
+        if "tango pro" in combined or "تانجو برو" in combined:
+            return "تانجو برو (Tango Pro)"
+
+        # 21. Chat & Live Apps
+        if "soul" in combined or "سول" in combined:
+            return "سول (Soul App)"
+        if "lions" in combined or "ليونس" in combined:
+            return "لايونز شات (Lions Chat)"
+        if "siya" in combined or "سيا" in combined:
+            return "سيا (Siya)"
+        if "yalla live" in combined or "يلا لايف" in combined:
+            return "يلا لايف (Yalla Live)"
+        if "azar" in combined or "أزار" in combined:
+            return "أزار شات (Azar Chat)"
+        if "bigo" in combined or "بيجو" in combined:
+            return "بيجو لايف (Bigo Live)"
+        if "likee" in combined or "لايكي" in combined:
+            return "لايكي (Likee)"
+        if "imo" in combined or "إيمو" in combined or "ايمو" in combined:
+            return "إيمو شات (IMO Chat)"
+        if "livu" in combined or "لايف يو" in combined or "ليف يو" in combined:
+            return "ليف يو (LivU)"
+        if "meyo" in combined or "ميو لايف" in combined:
+            return "ميو لايف (Meyo Live)"
+        if "party star" in combined or "بارتي ستار" in combined:
+            return "بارتي ستار (Party Star)"
+        if "tumile" in combined or "تومي" in combined:
+            return "تومي (Tumile)"
+        if "mixu" in combined or "ميكس يو" in combined:
+            return "ميكس يو (Mixu)"
+        if "bermuda" in combined or "برمودا" in combined:
+            return "برمودا (Bermuda Chat)"
+        if "hi cat" in combined or "هاي كات" in combined:
+            return "هاي كات (Hi Cat)"
+        if "star lite" in combined or "ستار لايت" in combined:
+            return "ستار لايت (Star Lite)"
+        if "zepeto" in combined or "زيبيتو" in combined:
+            return "زيبيتو (Zepeto)"
+        if "snapchat" in combined or "سناب شات" in combined or cat_remote == "1370":
+            return "سناب شات بلس (Snapchat Plus)"
+
+        # 22. AI & Software
+        if "gemini" in combined or "جيميني" in combined:
+            return "جيميني برو (Gemini Pro AI)"
+        if "canva" in combined or "كانفا" in combined:
+            return "كانفا برو (Canva Pro)"
+        if "picsart" in combined or "بيكس آرت" in combined:
+            return "بيكس آرت (Picsart)"
+        if "perplexity" in combined:
+            return "Perplexity Pro"
+        if "gamma" in combined:
+            return "Gamma AI Pro"
+
+        # 23. VPN
+        if "adguard" in combined:
+            return "ADguard VPN"
+        if "browsec" in combined:
+            return "Browsec VPN"
+        if "cyber ghost" in combined or "cyberghost" in combined:
+            return "Cyber Ghost VPN"
+        if "express vpn" in combined or "expressvpn" in combined:
+            return "Express VPN"
+        if "hotspot" in combined:
+            return "اشتراكات Hotspot Shield"
+        if "lagofast" in combined:
+            return "اشتراكات LagoFast"
+        if "nord" in combined:
+            return "Nord VPN"
+        if "proton" in combined:
+            return "Proton VPN"
+        if "surfshark" in combined:
+            return "Surfshark VPN"
+        if "pure vpn" in combined:
+            return "Pure VPN Premium"
+        if "windscribe" in combined:
+            return "Windscribe Traffic VPN"
+        if "ipvanish" in combined:
+            return "IPVanish VPN"
+        if "zoog" in combined:
+            return "Zoog VPN"
+        if "pia vpn" in combined:
+            return "PIA VPN"
+        if "open vpn" in combined or "openvpn" in combined:
+            return "Open VPN"
+        if "tunnelbar" in combined or "tunnelbear" in combined:
+            return "TunnelBar VPN"
+        if "planet vpn" in combined:
+            return "Planet VPN"
+
+        # 24. Money transfers
+        if any(k in combined for k in ("حوالات", "شام كاش", "الهرم", "محافظ", "بنوك")):
+            if c_name and c_name.lower() not in generic_names:
+                return c_name
+            if p_name and p_name.lower() not in generic_names:
+                return p_name
+
+        # 25. Fallback cleanly to category or clean product name
+        if c_name and c_name.lower() not in generic_names:
+            return c_name
+        if parent_name and parent_name.lower() not in generic_names:
+            return parent_name
+        
+        clean = re.sub(r'[\d\+\$].*', '', p_name).strip()
+        clean = re.sub(r'(\s*-\s*|\s*_\s*)$', '', clean).strip()
+        if len(clean) >= 3 and clean.lower() not in generic_names:
+            return clean
+
+        return p_name or "خدمة عامة"
+
+    def _get_store_category(self, pp, store, group_name=""):
         """
         Determines the main Store Section (Category) which is STRICTLY one of the canonical sections:
         - شحن الألعاب
@@ -341,6 +294,7 @@ class AlkasrMapperService:
         - الذكاء الاصطناعي
         - برامج وتصميم
         - تحويلات مالية
+        - ترويج ودعم السوشيال ميديا
         """
         section_sort_order = {
             "شحن الألعاب": 1,
@@ -356,73 +310,34 @@ class AlkasrMapperService:
             "ترويج ودعم السوشيال ميديا": 11,
         }
 
-        chain = self._get_category_chain(pp)
-        root_name = (chain[0].name or "").strip().lower() if chain else ""
+        g_low = (group_name or self._get_group_name(pp)).lower()
+        p_low = f"{g_low} {pp.name or ''}".lower()
 
-        section_map = {
-            "قسم الألعاب": "شحن الألعاب",
-            "games": "شحن الألعاب",
-            "ألعاب": "شحن الألعاب",
-            "قسم الدردشة": "شحن التطبيقات",
-            "live application": "شحن التطبيقات",
-            "تطبيقات": "شحن التطبيقات",
-            "شحن التطبيقات": "شحن التطبيقات",
-            "قسم الأرصدة": "اتصالات ورصيد",
-            "قسم الأرصدة والاتصالات": "اتصالات ورصيد",
-            "data and communication": "اتصالات ورصيد",
-            "اتصالات ورصيد": "اتصالات ورصيد",
-            "رصيد الهاتف": "اتصالات ورصيد",
-            "البطاقات الالكترونية": "بطاقات رقمية",
-            "البطاقات الإلكترونية": "بطاقات رقمية",
-            "gift cards": "بطاقات رقمية",
-            "بطاقات رقمية": "بطاقات رقمية",
-            "خدمات التلفاز": "خدمات التلفزيون والبث",
-            "خدمات التلفاز والـ iptv": "خدمات التلفزيون والبث",
-            "tv services": "خدمات التلفزيون والبث",
-            "خدمات التلفزيون والبث": "خدمات التلفزيون والبث",
-            "الأرقام والحسابات": "أرقام وحسابات",
-            "numbers and accounts": "أرقام وحسابات",
-            "program activation numbers": "أرقام وحسابات",
-            "أرقام وحسابات": "أرقام وحسابات",
-            "اشتراكات vpn": "اشتراكات VPN",
-            "vpn": "اشتراكات VPN",
-            "الذكاء الاصطناعي": "الذكاء الاصطناعي",
-            "قسم التصميم": "برامج وتصميم",
-            "money transfers": "تحويلات مالية",
-            "social media": "ترويج ودعم السوشيال ميديا",
-        }
-
-        target_name = section_map.get(root_name)
-
-        # Infer strictly from group_name and product keywords if not determined by root
-        if not target_name:
-            g_name = self._get_group_name(pp)
-            p_low = f"{g_name} {pp.name or ''} {root_name}".lower()
-
-            if any(k in p_low for k in ("pubg", "ببجي", "free fire", "فري فاير", "roblox", "روبلوكس", "game", "العاب", "ألعاب", "jawaker", "جواكر", "clash", "valorant", "fortnite", "mobile legends", "call of duty", "uc", "شدات", "ماسات", "diamond", "weplay")):
-                target_name = "شحن الألعاب"
-            elif any(k in p_low for k in ("tiktok", "تيك توك", "yalla", "يلا", "bigo", "بيجو", "likee", "لايكي", "imo", "إيمو", "azar", "أزار", "livu", "ليف يو", "meyo", "ميو", "party star", "soul", "star lite", "tumile", "yaahlan", "hi cat", "bermuda", "zepeto", "chat", "شات", "دردشة", "live", "لايف", "mixu")):
-                target_name = "شحن التطبيقات"
-            elif any(k in p_low for k in ("turkcell", "تروكسل", "telekom", "تليكوم", "vodafone", "فودافون", "syriatel", "سيريتل", "mtn", "رصيد", "fatura", "فاتورة", "باقات", "paket", "wi-fi", "واي فاي")):
-                target_name = "اتصالات ورصيد"
-            elif any(k in p_low for k in ("playstation", "بلايستيشن", "psn", "itunes", "ايتونز", "آيتونز", "apple", "ابل", "أبل", "google play", "جوجل", "steam", "ستيم", "razer", "ريزر", "بطاقات", "cards", "card", "فيزا", "visa", "voucher")):
-                target_name = "بطاقات رقمية"
-            elif any(k in p_low for k in ("netflix", "نتفلكس", "نتفليكس", "shahid", "شاهد", "shamna", "شامنا", "tv", "تلفاز", "تلفزيون", "disney", "ديزني", "osn", "او اس ان", "blue 4k", "iptv", "tango pro", "زين تي في", "بركات")):
-                target_name = "خدمات التلفزيون والبث"
-            elif any(k in p_low for k in ("whatsapp", "واتساب", "telegram", "تلغرام", "تليجرام", "رقم", "أرقام", "ارقام", "number", "accounts", "حسابات جاهزة")):
-                target_name = "أرقام وحسابات"
-            elif any(k in p_low for k in ("vpn", "بروكسي", "proxy", "hotspot", "lagofast", "expressvpn", "nordvpn")):
-                target_name = "اشتراكات VPN"
-            elif any(k in p_low for k in ("gemini", "جيميني", "gpt", "chatgpt", "ذكاء", "ai")):
-                target_name = "الذكاء الاصطناعي"
-            elif any(k in p_low for k in ("picsart", "بيكس آرت", "canva", "كانفا", "رد تلقائي", "auto reply", "تصميم", "برامج")):
-                target_name = "برامج وتصميم"
-            elif any(k in p_low for k in ("حوالات", "تحويلات", "money transfer")):
-                target_name = "تحويلات مالية"
-            elif any(k in p_low for k in ("يوتيوب", "youtube", "سوشيال ميديا", "social media")):
-                target_name = "ترويج ودعم السوشيال ميديا"
-            else:
-                target_name = "شحن الألعاب"
+        # 1. Direct App Mapping based on verified group_name
+        if any(k in g_low for k in ("ببجي", "pubg", "فري فاير", "free fire", "روبلوكس", "roblox", "جواكر", "jawaker", "موبايل ليجند", "mobile legends", "كلاش", "clash", "وي بلاي", "weplay", "valorant", "fortnite", "call of duty")):
+            target_name = "شحن الألعاب"
+        elif any(k in g_low for k in ("خدمات تيك توك", "خدمات إنستغرام", "خدمات فيسبوك", "خدمات تويتر", "خدمات يوتيوب", "سوشيال ميديا", "social media")) or any(k in p_low for k in ("متابعين", "لايكات", "مشاهدات", "followers", "likes", "views")):
+            target_name = "ترويج ودعم السوشيال ميديا"
+        elif any(k in g_low for k in ("سيريتل كاش (تحويلات مالية)", "شام كاش", "حوالات", "الهرم", "محافظ", "بنوك")):
+            target_name = "تحويلات مالية"
+        elif any(k in g_low for k in ("سيريتل", "syriatel", "mtn", "ام تي ان", "تروكسل", "turkcell", "تليكوم", "telekom", "فودافون", "vodafone", "سلام", "selam", "واي فاي", "wi-fi", "hgs", "آسيا سيل", "asiacell")):
+            target_name = "اتصالات ورصيد"
+        elif any(k in g_low for k in ("بلايستيشن", "playstation", "آيتونز", "itunes", "جوجل بلاي", "google play", "ستيم", "steam", "ريزر", "razer", "بطاقات", "visa", "فيزا", "إكس بوكس", "xbox")):
+            target_name = "بطاقات رقمية"
+        elif any(k in g_low for k in ("نتفلكس", "netflix", "شاهد", "shahid", "osn", "ديزني", "disney", "بلو فور كي", "blue 4k", "شامنا", "shamna", "زين تي في", "zain", "بركات", "barakat", "تانجو برو", "tango pro", "ip tv", "tv")):
+            target_name = "خدمات التلفزيون والبث"
+        elif any(k in g_low for k in ("واتساب", "whatsapp", "تليجرام", "telegram", "أرقام", "ارقام", "accounts", "حسابات جاهزة")):
+            target_name = "أرقام وحسابات"
+        elif any(k in g_low for k in ("vpn", "hotspot", "lagofast", "surfshark", "nord", "proton", "express")):
+            target_name = "اشتراكات VPN"
+        elif any(k in g_low for k in ("جيميني", "gemini", "perplexity", "gamma", "ذكاء", "ai", "chatgpt", "gpt")):
+            target_name = "الذكاء الاصطناعي"
+        elif any(k in g_low for k in ("كانفا", "canva", "بيكس آرت", "picsart", "flaticon", "تصميم", "برامج", "رد تلقائي", "auto reply")):
+            target_name = "برامج وتصميم"
+        elif any(k in g_low for k in ("تيك توك", "tiktok", "يلا لودو", "yalla", "بيجو", "bigo", "لايكي", "likee", "إيمو", "imo", "ليف يو", "livu", "أزار", "azar", "سول", "soul", "تومي", "tumile", "ميكس يو", "mixu", "هاي كات", "بارتي", "party", "دردشة", "شات", "chat", "live", "لايف", "سناب شات", "snapchat", "لايونز", "lions")):
+            target_name = "شحن التطبيقات"
+        else:
+            target_name = "شحن التطبيقات"
 
         sort_order = section_sort_order.get(target_name, 50)
         cat_obj, _ = Category.objects.get_or_create(
@@ -485,7 +400,7 @@ class AlkasrMapperService:
             try:
                 with transaction.atomic():
                     # Find or create store category for this group
-                    store_category = self._get_store_category(p_items[0], store)
+                    store_category = self._get_store_category(p_items[0], store, group_name)
 
                     # Check if Product already exists for this group
                     local_product = Product.objects.filter(
@@ -563,6 +478,20 @@ class AlkasrMapperService:
                         wholesale_price = pricing.final_wholesale_price if pricing else pp.cost_price
                         vip_price = pricing.final_vip_price if pricing else pp.cost_price
 
+                        # Extract and clean variant name first
+                        variant_name = (pp.local_name or "").strip()
+                        if not variant_name or variant_name.lower() in ("null", "none", "undefined", "false"):
+                            variant_name = (pp.name or "").strip()
+                        if not variant_name or variant_name.lower() in ("null", "none", "undefined", "false"):
+                            if pp.category and pp.category.name and pp.category.name.strip().lower() not in ("null", "none"):
+                                variant_name = pp.category.name.strip()
+                            elif hasattr(pp, 'data') and isinstance(pp.data, dict) and pp.data.get("title") and str(pp.data.get("title")).lower() not in ("null", "none"):
+                                variant_name = str(pp.data.get("title")).strip()
+                            elif hasattr(pp, 'data') and isinstance(pp.data, dict) and pp.data.get("country"):
+                                variant_name = f"تفعيل {pp.data.get('country')}"
+                            else:
+                                continue
+
                         # Determine quantity type, min, max, list, and per-mille flag
                         qty_min = getattr(pp, 'qty_min', None)
                         try:
@@ -583,13 +512,19 @@ class AlkasrMapperService:
                             qty_min is not None and qty_max is not None and qty_min == qty_max and qty_min > 1
                         )
 
-                        if qty_list and len(qty_list) > 0:
-                            qty_type = "list"
-                        elif is_fixed_amount_package:
+                        # Detect if the variant name represents a fixed-denomination pack (e.g. 60 UC, 360 Coins, 50 TL, 1 Month)
+                        import re
+                        is_fixed_denom = bool(re.search(r'\b\d+\s*(uc|gems|diamond|diamonds|coins|gold|tl|aed|sar|eur|usd|\$|€|£|month|months|year|years|شهور|شهر|سنة|عملة|جواهر|شدات|ماسات|كود|elmas)\b', variant_name, re.IGNORECASE))
+
+                        if is_fixed_amount_package:
                             qty_type = "fixed"
-                        elif qty_max is not None and qty_min is not None and qty_max > qty_min:
+                        elif qty_list and len(qty_list) > 0:
+                            qty_type = "list"
+                        elif is_fixed_denom:
+                            qty_type = "fixed"
+                        elif any(k in variant_name.lower() for k in ("فواتير", "fatura", "كاش", "cash", "تعبئة", "متابعين", "لايكات", "مشاهدات", "تعليقات", "followers", "likes", "views")):
                             qty_type = "range"
-                        elif pp.product_type == "amount" and qty_max is not None and qty_min is not None and qty_max > qty_min:
+                        elif pp.product_type == "amount" and qty_max is not None and qty_min is not None and (qty_max - qty_min) >= 100:
                             qty_type = "range"
                         elif pp.product_type == "amount" and (qty_min is None or qty_max is None):
                             qty_type = "range"
@@ -607,7 +542,7 @@ class AlkasrMapperService:
                             variant_cost = variant_cost * multiplier
 
                         is_per_mille = False
-                        if not is_fixed_amount_package:
+                        if not is_fixed_amount_package and not is_fixed_denom:
                             if qty_min is not None and qty_min >= 100:
                                 is_per_mille = True
                             elif pp.product_type == "amount" and (qty_min is None or qty_min >= 10):
@@ -615,8 +550,8 @@ class AlkasrMapperService:
 
                         meta = {
                             "qty_type": qty_type,
-                            "qty_min": 1 if is_fixed_amount_package else (qty_min or 1),
-                            "qty_max": 1 if is_fixed_amount_package else (qty_max or 999999),
+                            "qty_min": 1 if (is_fixed_amount_package or is_fixed_denom) else (qty_min or 1),
+                            "qty_max": 1 if is_fixed_amount_package else (999999 if is_fixed_denom else (qty_max or 999999)),
                             "package_qty": qty_min if is_fixed_amount_package else None,
                             "qty_list": qty_list,
                             "is_per_mille": is_per_mille,
@@ -633,20 +568,6 @@ class AlkasrMapperService:
                             ]
                         }
 
-                        variant_name = (pp.local_name or "").strip()
-                        if not variant_name or variant_name.lower() in ("null", "none", "undefined", "false"):
-                            variant_name = (pp.name or "").strip()
-                        if not variant_name or variant_name.lower() in ("null", "none", "undefined", "false"):
-                            if pp.category and pp.category.name and pp.category.name.strip().lower() not in ("null", "none"):
-                                variant_name = pp.category.name.strip()
-                            elif hasattr(pp, 'data') and isinstance(pp.data, dict) and pp.data.get("title") and str(pp.data.get("title")).lower() not in ("null", "none"):
-                                variant_name = str(pp.data.get("title")).strip()
-                            elif hasattr(pp, 'data') and isinstance(pp.data, dict) and pp.data.get("country"):
-                                variant_name = f"تفعيل {pp.data.get('country')}"
-                            else:
-                                # Skip corrupted/un-named variant
-                                continue
-
                         # Clean up naming for TikTok and typos
                         if "tik yok" in variant_name.lower():
                             variant_name = variant_name.replace("Tik Yok", "تيك توك").replace("tik yok", "تيك توك")
@@ -661,6 +582,7 @@ class AlkasrMapperService:
 
                         # Clean up naming and options for Syriatel (سيريتل)
                         v_low = variant_name.lower()
+                        sort_num = 0
                         if "syriatel" in v_low or "سيريتل" in v_low or ("fatura" in v_low and "mtn" not in v_low and "turk" not in v_low):
                             if "cash" in v_low or "كاش" in v_low:
                                 variant_name = "سيريتل كاش (Syriatel Cash)"

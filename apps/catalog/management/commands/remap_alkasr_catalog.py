@@ -128,7 +128,6 @@ class Command(BaseCommand):
                         meta["qty_min"] = 1
                         meta["qty_max"] = 1
                         var.metadata = meta
-                        # Ensure package price is at least cost * 150
                         if var.cost and var.cost < 1:
                             var.cost = (var.cost * 150).quantize(Decimal("0.01"))
                         if var.price and var.price < 2:
@@ -159,7 +158,9 @@ class Command(BaseCommand):
             # Clean and align Syriatel packages and denominations
             syriatel_prods = Product.objects.filter(name__icontains="سيريتل") | Product.objects.filter(name__icontains="syriatel")
             for sp in syriatel_prods:
-                sp.name = "سيريتل كاش ورصيد (Syriatel)"
+                if "تحويل" in sp.name or "transfer" in sp.name.lower():
+                    continue
+                sp.name = "سيريتل (Syriatel)"
                 if canonical_objs.get("اتصالات ورصيد"):
                     sp.category = canonical_objs["اتصالات ورصيد"]
                 sp.form_schema = {
@@ -201,7 +202,7 @@ class Command(BaseCommand):
             # Clean and align MTN packages
             mtn_prods = Product.objects.filter(name__icontains="mtn") | Product.objects.filter(name__icontains="ام تي ان")
             for mp in mtn_prods:
-                mp.name = "ام تي ان كاش ورصيد (MTN)"
+                mp.name = "ام تي ان (MTN)"
                 if canonical_objs.get("اتصالات ورصيد"):
                     mp.category = canonical_objs["اتصالات ورصيد"]
                 mp.form_schema = {
@@ -240,6 +241,82 @@ class Command(BaseCommand):
                     var.metadata = meta
                     var.save(update_fields=['name', 'sort_order', 'metadata'])
                 self.stdout.write(self.style.SUCCESS(f'Cleanly aligned MTN (Product {mp.id}) with denominations and categories.'))
+
+            # System-wide consolidation of duplicates and re-linking variants to single canonical products
+            consolidation_map = [
+                # Target Canonical Name, Target Category Name, list of alias regexes
+                ("ببجي موبايل (PUBG Global)", "شحن الألعاب", [r"^pubg global$", r"^code$", r"^red package$"]),
+                ("ببجي موبايل تركيا (PUBG TR)", "شحن الألعاب", [r"^pupg turkey$", r"^pubg tr$"]),
+                ("فري فاير (Free Fire)", "شحن الألعاب", [r"^free fire$", r"^free fire tr$", r"^free fire global$"]),
+                ("روبلوكس (Roblox)", "شحن الألعاب", [r"^roblex\b", r"^بطاقات روبلوكس"]),
+                ("بطاقات بلايستيشن (PlayStation)", "بطاقات رقمية", [r"^ps\s+(bahrain|kuwait|ger|usa|uk|uae|ksa|canada)", r"^playstation cards$"]),
+                ("بطاقات أبل / آيتونز (iTunes)", "بطاقات رقمية", [r"^itunes\b", r"^itunes\s+", r"^itunes\s+"]),
+                ("بطاقات جوجل بلاي (Google Play)", "بطاقات رقمية", [r"^google play\b"]),
+                ("بطاقات ستيم (Steam)", "بطاقات رقمية", [r"^sudi$", r"^usa$", r"^steam global$"]),
+                ("بطاقات ريزر جولد (Razer Gold)", "بطاقات رقمية", [r"^razer gold\b"]),
+                ("تروكسل تركيا (Turkcell)", "اتصالات ورصيد", [r"^tl turkcell$", r"^turkcell$", r"^خدمات تروكسل$"]),
+                ("ترك تليكوم تركيا (Türk Telekom)", "اتصالات ورصيد", [r"^tl türk telekom$"]),
+                ("فودافون تركيا (Vodafone)", "اتصالات ورصيد", [r"^tl vodafone$", r"^vodafone$"]),
+                ("تفعيل أرقام واتساب (WhatsApp)", "أرقام وحسابات", [r"^whatsapp\b", r"^واتساب يدوي"]),
+                ("تليجرام بريميوم (Telegram Premium)", "أرقام وحسابات", [r"^telegram premium"]),
+                ("خدمات تويتر / X (Twitter)", "ترويج ودعم السوشيال ميديا", [r"^twitter\b", r"^لايكات تويتر$", r"^متابعين تويتر$"]),
+                ("خدمات إنستغرام (Instagram)", "ترويج ودعم السوشيال ميديا", [r"^خدمات الانستغرام$"]),
+                ("خدمات فيسبوك (Facebook)", "ترويج ودعم السوشيال ميديا", [r"^خدمات الفيس بوك$"]),
+                ("سول (Soul App)", "شحن التطبيقات", [r"^soul chat", r"^soul chill", r"^soul u", r"^soulfa"]),
+                ("لايونز شات (Lions Chat)", "شحن التطبيقات", [r"^lions chat"]),
+                ("شحن HGS الطرق السريعة تركيا", "اتصالات ورصيد", [r"^hgs$"]),
+            ]
+
+            import re
+            for target_name, cat_name, aliases in consolidation_map:
+                target_cat = canonical_objs.get(cat_name)
+                # Find or create primary product
+                primary = Product.objects.filter(name=target_name, store=None).first()
+                if not primary:
+                    primary = Product.objects.create(
+                        name=target_name,
+                        category=target_cat,
+                        store=None,
+                        is_active=True,
+                        api_provider='alkasr'
+                    )
+                else:
+                    if target_cat and primary.category != target_cat:
+                        primary.category = target_cat
+                        primary.save(update_fields=['category'])
+
+                for alias_pattern in aliases:
+                    alias_prods = Product.objects.filter(store=None).exclude(id=primary.id).filter(name__iregex=alias_pattern)
+                    for ap in alias_prods:
+                        # Move all variants to primary
+                        ap.variants.all().update(product=primary)
+                        ap.delete()
+                        self.stdout.write(self.style.SUCCESS(f"Merged duplicate product '{ap.name}' into '{target_name}'"))
+
+            # Clean any bogus products (null, placeholder, empty)
+            Product.objects.filter(name__in=["null", "none", "", "."], store=None).delete()
+
+            # Normalize and correct qty_type on all variants across catalog
+            for var in ProductVariant.objects.filter(product__api_provider='alkasr'):
+                meta = dict(var.metadata or {})
+                v_name = var.name
+                
+                # Check for fixed denominations
+                import re
+                is_fixed = bool(re.search(r'\b\d+\s*(uc|gems|diamond|diamonds|coins|gold|tl|aed|sar|eur|usd|\$|€|£|month|months|year|years|شهور|شهر|سنة|عملة|جواهر|شدات|ماسات|كود|elmas)\b', v_name, re.IGNORECASE))
+                
+                if "رصيد وباقات" in v_name or "canva pro" in v_name.lower():
+                    meta["qty_type"] = "list"
+                elif any(k in v_name.lower() for k in ("فواتير", "كاش", "تعبئة رصيد", "متابعين", "لايكات", "مشاهدات", "تعليقات")):
+                    meta["qty_type"] = "range"
+                elif is_fixed:
+                    meta["qty_type"] = "fixed"
+                    meta["qty_min"] = 1
+                    meta["qty_max"] = 999999
+                
+                if var.metadata != meta:
+                    var.metadata = meta
+                    var.save(update_fields=['metadata'])
 
             # Clean up empty Alkasr products that have 0 variants
             empty_prods = Product.objects.filter(api_provider='alkasr', variants__isnull=True)
