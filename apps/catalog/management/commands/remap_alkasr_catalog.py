@@ -23,6 +23,7 @@ class Command(BaseCommand):
             "الذكاء الاصطناعي": 8,
             "برامج وتصميم": 9,
             "تحويلات مالية": 10,
+            "ترويج ودعم السوشيال ميديا": 11,
         }
 
         canonical_objs = {}
@@ -49,6 +50,8 @@ class Command(BaseCommand):
             c_low = (old_cat.name or "").lower()
             if any(k in c_low for k in ("pubg", "ببجي", "free fire", "فري فاير", "roblox", "روبلوكس", "jawaker", "جواكر", "لعبة", "العاب", "ألعاب", "game", "سيرفر", "اوتوماتيك", "يدوي", "برايم", "نخبة", "حزم")):
                 target = canonical_objs["شحن الألعاب"]
+            elif any(k in c_low for k in ("تويتر", "انستغرام", "إنستغرام", "فيسبوك", "فيس بوك", "social", "ميديا", "سوشيال", "متابعين", "لايكات", "مشاهدات", "tiktok services", "خدمات تيك توك")):
+                target = canonical_objs["ترويج ودعم السوشيال ميديا"]
             elif any(k in c_low for k in ("tiktok", "تيك توك", "yalla", "يلا", "bigo", "بيجو", "likee", "لايكي", "imo", "ايمو", "إيمو", "azar", "أزار", "livu", "ليف", "meyo", "ميو", "party star", "soul", "star lite", "tumile", "yaahlan", "hi cat", "bermuda", "zepeto", "chat", "شات", "دردشة", "live", "لايف", "mixu")):
                 target = canonical_objs["شحن التطبيقات"]
             elif any(k in c_low for k in ("turkcell", "تروكسل", "telekom", "تليكوم", "vodafone", "فودافون", "syriatel", "سيريتل", "mtn", "رصيد", "fatura", "فاتورة", "باقات", "paket", "wi-fi", "واي فاي")):
@@ -81,6 +84,9 @@ class Command(BaseCommand):
             return
 
         for profile in profiles:
+            if not ProviderProduct.objects.filter(profile=profile).exists():
+                self.stdout.write(f'Skipping profile with no products: {profile.provider_name} (ID: {profile.id})')
+                continue
             self.stdout.write(f'Processing profile: {profile.provider_name} (ID: {profile.id})...')
             
             # Sync from Alkasr to get latest availability and category tree only if requested
@@ -250,23 +256,23 @@ class Command(BaseCommand):
             # System-wide consolidation of duplicates and re-linking variants to single canonical products
             consolidation_map = [
                 # Target Canonical Name, Target Category Name, list of alias regexes
-                ("ببجي موبايل (PUBG Global)", "شحن الألعاب", [r"^pubg global$", r"^code$", r"^red package$"]),
+                ("ببجي موبايل (PUBG Global)", "شحن الألعاب", [r"^pubg global$", r"^code$", r"^red package$", r"^ببجي موبايل$"]),
                 ("ببجي موبايل تركيا (PUBG TR)", "شحن الألعاب", [r"^pupg turkey$", r"^pubg tr$"]),
-                ("فري فاير (Free Fire)", "شحن الألعاب", [r"^free fire$", r"^free fire tr$", r"^free fire global$"]),
-                ("روبلوكس (Roblox)", "شحن الألعاب", [r"^roblex\b", r"^roblox\b", r"^بطاقات روبلوكس"]),
-                ("بطاقات بلايستيشن (PlayStation)", "بطاقات رقمية", [r"^ps\s+(bahrain|kuwait|ger|usa|uk|uae|ksa|canada)", r"^playstation cards$"]),
-                ("بطاقات أبل / آيتونز (iTunes)", "بطاقات رقمية", [r"^itunes\b", r"^itunes\s+"]),
-                ("بطاقات جوجل بلاي (Google Play)", "بطاقات رقمية", [r"^google play\b"]),
-                ("بطاقات ستيم (Steam)", "بطاقات رقمية", [r"^sudi$", r"^usa$", r"^steam global$"]),
-                ("بطاقات ريزر جولد (Razer Gold)", "بطاقات رقمية", [r"^razer gold\b"]),
-                ("تروكسل تركيا (Turkcell)", "اتصالات ورصيد", [r"^tl turkcell$", r"^turkcell$", r"^خدمات تروكسل$"]),
-                ("ترك تليكوم تركيا (Türk Telekom)", "اتصالات ورصيد", [r"^tl türk telekom$"]),
-                ("فودافون تركيا (Vodafone)", "اتصالات ورصيد", [r"^tl vodafone$", r"^vodafone$"]),
-                ("تفعيل أرقام واتساب (WhatsApp)", "أرقام وحسابات", [r"^whatsapp\b", r"^واتساب يدوي"]),
-                ("تليجرام بريميوم (Telegram Premium)", "أرقام وحسابات", [r"^telegram premium"]),
-                ("خدمات تويتر / X (Twitter)", "ترويج ودعم السوشيال ميديا", [r"^twitter\b", r"^لايكات تويتر$", r"^متابعين تويتر$"]),
-                ("خدمات إنستغرام (Instagram)", "ترويج ودعم السوشيال ميديا", [r"^خدمات الانستغرام$"]),
-                ("خدمات فيسبوك (Facebook)", "ترويج ودعم السوشيال ميديا", [r"^خدمات الفيس بوك$"]),
+                ("فري فاير (Free Fire)", "شحن الألعاب", [r"^free fire$", r"^free fire tr$", r"^free fire global$", r"^فري فاير$"]),
+                ("روبلوكس (Roblox)", "شحن الألعاب", [r"^roblex\b", r"^roblox\b", r"^بطاقات روبلوكس", r"^روبلوكس"]),
+                ("بطاقات بلايستيشن (PlayStation)", "بطاقات رقمية", [r"^ps\s+", r"^playstation", r"^بلايستيشن"]),
+                ("بطاقات أبل / آيتونز (iTunes)", "بطاقات رقمية", [r"^itunes\b", r"^itunes\s+", r"^ابل\b", r"^آيتونز\b", r"^ايتونز\b"]),
+                ("بطاقات جوجل بلاي (Google Play)", "بطاقات رقمية", [r"^google play\b", r"^جوجل بلاي\b"]),
+                ("بطاقات ستيم (Steam)", "بطاقات رقمية", [r"^sudi$", r"^usa$", r"^steam global$", r"^ستيم\b"]),
+                ("بطاقات ريزر جولد (Razer Gold)", "بطاقات رقمية", [r"^razer gold\b", r"^ريزر\b"]),
+                ("تروكسل تركيا (Turkcell)", "اتصالات ورصيد", [r"^tl turkcell$", r"^turkcell$", r"^خدمات تروكسل$", r"^تروكسل\b"]),
+                ("ترك تليكوم تركيا (Türk Telekom)", "اتصالات ورصيد", [r"^tl türk telekom$", r"^türk telekom$", r"^تليكوم\b", r"^تيليكوم\b"]),
+                ("فودافون تركيا (Vodafone)", "اتصالات ورصيد", [r"^tl vodafone$", r"^vodafone$", r"^فودافون\b"]),
+                ("تفعيل أرقام واتساب (WhatsApp)", "أرقام وحسابات", [r"^whatsapp\b", r"^واتساب يدوي", r"^واتساب\b"]),
+                ("تليجرام بريميوم (Telegram Premium)", "أرقام وحسابات", [r"^telegram premium", r"^تلغرام\b", r"^تليجرام\b"]),
+                ("خدمات تويتر / X (Twitter)", "ترويج ودعم السوشيال ميديا", [r"^twitter\b", r"^لايكات تويتر$", r"^متابعين تويتر$", r"^تويتر\b"]),
+                ("خدمات إنستغرام (Instagram)", "ترويج ودعم السوشيال ميديا", [r"^خدمات الانستغرام$", r"^انستغرام\b", r"^إنستغرام\b"]),
+                ("خدمات فيسبوك (Facebook)", "ترويج ودعم السوشيال ميديا", [r"^خدمات الفيس بوك$", r"^فيسبوك\b", r"^فيس بوك\b"]),
                 ("خدمات تيك توك (TikTok Services)", "ترويج ودعم السوشيال ميديا", [r"^سيرفر 1$", r"^سيرفر 2$"]),
                 ("سول (Soul App)", "شحن التطبيقات", [r"^soul chat", r"^soul chill", r"^soul u", r"^soulfa"]),
                 ("لايونز شات (Lions Chat)", "شحن التطبيقات", [r"^lions chat"]),
@@ -294,9 +300,21 @@ class Command(BaseCommand):
                         primary.category = target_cat
                         primary.save(update_fields=['category'])
 
+                # Merge any duplicate products with the exact same name
+                for dup in Product.objects.filter(store=None, name=target_name).exclude(id=primary.id):
+                    if not primary.image and dup.image:
+                        primary.image = dup.image
+                        primary.save(update_fields=['image'])
+                    dup.variants.all().update(product=primary)
+                    dup.delete()
+                    self.stdout.write(self.style.SUCCESS(f"Merged identical product '{dup.name}' into '{target_name}'"))
+
                 for alias_pattern in aliases:
                     alias_prods = Product.objects.filter(store=None).exclude(id=primary.id).filter(name__iregex=alias_pattern)
                     for ap in alias_prods:
+                        if not primary.image and ap.image:
+                            primary.image = ap.image
+                            primary.save(update_fields=['image'])
                         # Move all variants to primary
                         ap.variants.all().update(product=primary)
                         ap.delete()
