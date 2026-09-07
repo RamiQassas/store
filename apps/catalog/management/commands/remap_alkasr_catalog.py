@@ -253,9 +253,9 @@ class Command(BaseCommand):
                 ("ببجي موبايل (PUBG Global)", "شحن الألعاب", [r"^pubg global$", r"^code$", r"^red package$"]),
                 ("ببجي موبايل تركيا (PUBG TR)", "شحن الألعاب", [r"^pupg turkey$", r"^pubg tr$"]),
                 ("فري فاير (Free Fire)", "شحن الألعاب", [r"^free fire$", r"^free fire tr$", r"^free fire global$"]),
-                ("روبلوكس (Roblox)", "شحن الألعاب", [r"^roblex\b", r"^بطاقات روبلوكس"]),
+                ("روبلوكس (Roblox)", "شحن الألعاب", [r"^roblex\b", r"^roblox\b", r"^بطاقات روبلوكس"]),
                 ("بطاقات بلايستيشن (PlayStation)", "بطاقات رقمية", [r"^ps\s+(bahrain|kuwait|ger|usa|uk|uae|ksa|canada)", r"^playstation cards$"]),
-                ("بطاقات أبل / آيتونز (iTunes)", "بطاقات رقمية", [r"^itunes\b", r"^itunes\s+", r"^itunes\s+"]),
+                ("بطاقات أبل / آيتونز (iTunes)", "بطاقات رقمية", [r"^itunes\b", r"^itunes\s+"]),
                 ("بطاقات جوجل بلاي (Google Play)", "بطاقات رقمية", [r"^google play\b"]),
                 ("بطاقات ستيم (Steam)", "بطاقات رقمية", [r"^sudi$", r"^usa$", r"^steam global$"]),
                 ("بطاقات ريزر جولد (Razer Gold)", "بطاقات رقمية", [r"^razer gold\b"]),
@@ -267,8 +267,12 @@ class Command(BaseCommand):
                 ("خدمات تويتر / X (Twitter)", "ترويج ودعم السوشيال ميديا", [r"^twitter\b", r"^لايكات تويتر$", r"^متابعين تويتر$"]),
                 ("خدمات إنستغرام (Instagram)", "ترويج ودعم السوشيال ميديا", [r"^خدمات الانستغرام$"]),
                 ("خدمات فيسبوك (Facebook)", "ترويج ودعم السوشيال ميديا", [r"^خدمات الفيس بوك$"]),
+                ("خدمات تيك توك (TikTok Services)", "ترويج ودعم السوشيال ميديا", [r"^سيرفر 1$", r"^سيرفر 2$"]),
                 ("سول (Soul App)", "شحن التطبيقات", [r"^soul chat", r"^soul chill", r"^soul u", r"^soulfa"]),
                 ("لايونز شات (Lions Chat)", "شحن التطبيقات", [r"^lions chat"]),
+                ("ليف يو (LivU)", "شحن التطبيقات", [r"^livu\b"]),
+                ("شاهد VIP (Shahid VIP)", "خدمات التلفزيون والبث", [r"^shahid\b", r"^شاهد\b"]),
+                ("لايكي (Likee)", "شحن التطبيقات", [r"^likee\b"]),
                 ("شحن HGS الطرق السريعة تركيا", "اتصالات ورصيد", [r"^hgs$"]),
             ]
 
@@ -298,6 +302,33 @@ class Command(BaseCommand):
                         ap.delete()
                         self.stdout.write(self.style.SUCCESS(f"Merged duplicate product '{ap.name}' into '{target_name}'"))
 
+            # Re-route any misfiled individual variants into their strictly correct products
+            prod_ig = Product.objects.filter(name="خدمات إنستغرام (Instagram)", store=None).first()
+            prod_tw = Product.objects.filter(name="خدمات تويتر / X (Twitter)", store=None).first()
+            prod_fb = Product.objects.filter(name="خدمات فيسبوك (Facebook)", store=None).first()
+            prod_tk_sm = Product.objects.filter(name="خدمات تيك توك (TikTok Services)", store=None).first()
+            
+            for var in ProductVariant.objects.filter(product__api_provider='alkasr'):
+                v_low = var.name.lower()
+                cur_prod_name = var.product.name if var.product else ""
+                
+                # Instagram variants
+                if prod_ig and ("انستا" in v_low or "انستغرام" in v_low) and cur_prod_name != prod_ig.name:
+                    var.product = prod_ig
+                    var.save(update_fields=['product'])
+                # Twitter variants
+                elif prod_tw and ("تويتر" in v_low or "twitter" in v_low) and cur_prod_name != prod_tw.name:
+                    var.product = prod_tw
+                    var.save(update_fields=['product'])
+                # Facebook variants
+                elif prod_fb and ("فيسبوك" in v_low or "فيس بوك" in v_low) and cur_prod_name != prod_fb.name:
+                    var.product = prod_fb
+                    var.save(update_fields=['product'])
+                # TikTok followers/views
+                elif prod_tk_sm and any(k in v_low for k in ("متابعين تيك توك", "مشاهدات تيك توك", "لايكات تيك توك")) and cur_prod_name != prod_tk_sm.name:
+                    var.product = prod_tk_sm
+                    var.save(update_fields=['product'])
+
             # Clean any bogus products (null, placeholder, empty)
             Product.objects.filter(name__in=["null", "none", "", "."], store=None).delete()
 
@@ -318,6 +349,10 @@ class Command(BaseCommand):
                     meta["qty_type"] = "fixed"
                     meta["qty_min"] = 1
                     meta["qty_max"] = 999999
+                
+                if var.metadata != meta:
+                    var.metadata = meta
+                    var.save(update_fields=['metadata'])
                 
                 if var.metadata != meta:
                     var.metadata = meta
