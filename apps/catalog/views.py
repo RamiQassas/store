@@ -22,7 +22,7 @@ class CategoryViewSet(viewsets.ModelViewSet):
 class ProductViewSet(viewsets.ModelViewSet):
     serializer_class = ProductSerializer
     permission_classes = [ReadOnlyOrAdmin]
-    filterset_fields = ("category", "delivery_type", "is_featured")
+    filterset_fields = ("category", "product_type", "is_featured")
     search_fields = ("name", "slug", "description")
     ordering_fields = ("sort_order", "name", "created_at")
 
