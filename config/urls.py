@@ -80,20 +80,14 @@ def version_view(request):
         return JsonResponse({"status": "restarting"})
     if request.GET.get("remap") == "1":
         try:
-            import threading
+            import io
             from django.core.management import call_command
-            def _bg_remap():
-                from django.db import connection
-                connection.close()
-                try:
-                    call_command("remap_alkasr_catalog")
-                except Exception as err:
-                    import logging
-                    logging.getLogger("auto_deploy").exception(f"BG remap error: {err}")
-            threading.Thread(target=_bg_remap, daemon=True).start()
-            diag = {"status": "remap_alkasr_catalog_started_in_background"}
+            buf = io.StringIO()
+            call_command("remap_alkasr_catalog", stdout=buf, stderr=buf)
+            diag = {"status": "completed", "output": buf.getvalue()[-3000:]}
         except Exception as e:
-            diag = {"error": str(e)}
+            import traceback
+            diag = {"error": str(e), "traceback": traceback.format_exc()}
     if request.GET.get("sync_tafa3ol") == "1":
         try:
             import threading
