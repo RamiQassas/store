@@ -2168,16 +2168,45 @@ def ajax_validate_coupon(request):
 @staff_required
 def control_dashboard(request):
     from apps.payments.models import DepositRequest, WithdrawalRequest
+    from apps.stores.models import Store
     store = getattr(request, "store", None)
     
+    # On the main platform, support filtering by sub-store
+    store_filter_id = request.GET.get("store_id", "").strip() if not store else None
+    selected_store = None
+    all_stores_list = []
+
     if store:
+        # We're inside a sub-store context
         users_qs = User.objects.filter(store=store)
+        deposits_qs = DepositRequest.objects.filter(is_verified=True, status=DepositRequest.Status.PENDING)
+        orders_qs = Order.objects.all()
     else:
-        users_qs = User.objects.filter(store__isnull=True)
+        # Main platform — show cross-store data
+        all_stores_list = Store.objects.order_by("name")
+        if store_filter_id == "main":
+            users_qs = User.all_objects.filter(store__isnull=True)
+            deposits_qs = DepositRequest.all_objects.filter(is_verified=True, status=DepositRequest.Status.PENDING, store__isnull=True)
+            orders_qs = Order.all_objects.filter(store__isnull=True)
+        elif store_filter_id:
+            try:
+                selected_store = Store.objects.get(pk=store_filter_id)
+                users_qs = User.all_objects.filter(store=selected_store)
+                deposits_qs = DepositRequest.all_objects.filter(is_verified=True, status=DepositRequest.Status.PENDING, store=selected_store)
+                orders_qs = Order.all_objects.filter(store=selected_store)
+            except Store.DoesNotExist:
+                users_qs = User.all_objects.none()
+                deposits_qs = DepositRequest.all_objects.none()
+                orders_qs = Order.all_objects.none()
+        else:
+            # Default: show ALL across all stores
+            users_qs = User.all_objects.all()
+            deposits_qs = DepositRequest.all_objects.filter(is_verified=True, status=DepositRequest.Status.PENDING)
+            orders_qs = Order.all_objects.all()
 
     stats = {
         "users": users_qs.count(),
-        "pending_deposits": DepositRequest.objects.filter(status=DepositRequest.Status.PENDING, is_verified=True).count(),
+        "pending_deposits": deposits_qs.count(),
         "pending_withdrawals": WithdrawalRequest.objects.filter(status=WithdrawalRequest.Status.PENDING, is_verified=True).count(),
         "open_tickets": ChatRoom.objects.exclude(status=ChatRoom.Status.CLOSED).count()
     }
@@ -2186,9 +2215,12 @@ def control_dashboard(request):
     return render(request, "site/control_dashboard.html", {
         "stats": stats,
         "categories_summary": categories_summary,
-        "recent_orders": Order.objects.select_related('customer').order_by('-created_at')[:5],
-        "recent_deposits": DepositRequest.objects.filter(status=DepositRequest.Status.PENDING, is_verified=True).select_related('user', 'payment_method').order_by('-created_at')[:5],
-        "recent_users": users_qs.order_by('-date_joined')[:5]
+        "recent_orders": orders_qs.select_related('customer').order_by('-created_at')[:5],
+        "recent_deposits": deposits_qs.select_related('user', 'payment_method').order_by('-created_at')[:5],
+        "recent_users": users_qs.order_by('-date_joined')[:5],
+        "all_stores_list": all_stores_list,
+        "selected_store_id": store_filter_id or "",
+        "selected_store": selected_store,
     })
 
 @finance_required
@@ -3325,21 +3357,24 @@ def control_users_list(request):
     all_stores = request.GET.get("all_stores") == "1"
     store_filter = request.GET.get("store_id", "").strip()
     from apps.stores.models import Store
+    from django.db.models import Prefetch
     all_stores_list = []
 
     if store:
         users = User.objects.filter(store=store).select_related("store").order_by("-date_joined")
     else:
         all_stores_list = Store.objects.all().order_by("name")
+        # Use Prefetch with explicit queryset so TenantManager doesn't hide owned_stores
+        owned_stores_prefetch = Prefetch("owned_stores", queryset=Store.objects.all())
         if all_stores or store_filter:
-            users = User.all_objects.all().select_related("store").prefetch_related("owned_stores").order_by("-date_joined")
+            users = User.all_objects.all().select_related("store").prefetch_related(owned_stores_prefetch).order_by("-date_joined")
             if store_filter:
                 if store_filter == "main":
                     users = users.filter(store__isnull=True)
                 else:
                     users = users.filter(store_id=store_filter)
         else:
-            users = User.objects.filter(store__isnull=True).select_related("store").prefetch_related("owned_stores").order_by("-date_joined")
+            users = User.all_objects.filter(store__isnull=True).select_related("store").prefetch_related(owned_stores_prefetch).order_by("-date_joined")
         
     q = request.GET.get('q', '').strip()
     status = request.GET.get('status', '')
