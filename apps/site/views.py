@@ -6463,17 +6463,21 @@ def control_apicontrol_dashboard(request):
     if request.GET.get("action") == "get_sync_progress" or request.GET.get("sync_progress") == "1":
         from django.core.cache import cache
         from django.http import JsonResponse
+        def _safe_cache_get(k):
+            try:
+                return cache.get(k)
+            except Exception:
+                return None
+
+        progress = None
         if profile_obj:
-            progress = cache.get(f"sync_progress_{profile_obj.id}") or {
-                "status": "idle",
-                "total": 0,
-                "current": 0,
-                "percent": 0,
-                "product_name": "",
-                "created": 0,
-                "updated": 0
-            }
-        else:
+            progress = _safe_cache_get(f"sync_progress_{profile_obj.id}")
+        if not progress and integration:
+            progress = _safe_cache_get(f"sync_progress_{integration.id}")
+        if not progress and store:
+            progress = _safe_cache_get(f"sync_progress_store_{store.id}")
+
+        if not progress:
             progress = {
                 "status": "idle",
                 "total": 0,
@@ -6581,12 +6585,114 @@ def control_apicontrol_dashboard(request):
         elif action in ("sync", "sync_ajax", "sync_raqamiyat"):
             from django.http import JsonResponse
             if is_raqamiyat and store:
-                from apps.stores.services import import_raqamiyat_products_for_store
-                res = import_raqamiyat_products_for_store(store)
-                msg = f"تمت مزامنة واستيراد منتجات رقميات بنجاح! تم استيراد/تحديث {res.get('variants_created', 0) + res.get('variants_updated', 0)} باقة وخدمة."
+                from django.core.cache import cache
+                selected_groups = request.POST.getlist("categories") or None
+
+                cache_keys = []
+                if profile_obj:
+                    cache_keys.append(f"sync_progress_{profile_obj.id}")
+                if integration:
+                    cache_keys.append(f"sync_progress_{integration.id}")
+                cache_keys.append(f"sync_progress_store_{store.id}")
+
+                def _safe_cache_set(k, v, timeout=600):
+                    try:
+                        cache.set(k, v, timeout=timeout)
+                    except Exception:
+                        pass
+
+                init_prog = {
+                    "status": "running",
+                    "total": 0,
+                    "current": 0,
+                    "percent": 5,
+                    "product_name": "جاري التواصل مع سيرفر رقميات وسحب قائمة الخدمات المتاحة...",
+                    "created": 0,
+                    "updated": 0
+                }
+                for k in cache_keys:
+                    _safe_cache_set(k, init_prog, timeout=600)
+
+                def _background_raqamiyat_sync(store_id, keys, sel_groups):
+                    from django.db import connection
+                    from apps.stores.models import Store
+                    from apps.stores.services import import_raqamiyat_products_for_store
+                    try:
+                        connection.close()
+                        store_obj = Store.objects.get(id=store_id)
+
+                        def on_progress(current, total, item_name, created, updated):
+                            pct = int((current / max(total, 1)) * 100) if total > 0 else 50
+                            prog = {
+                                "status": "running",
+                                "total": total,
+                                "current": current,
+                                "percent": min(pct, 99),
+                                "product_name": f"يتم استيراد: {item_name}",
+                                "created": created,
+                                "updated": updated
+                            }
+                            for k in keys:
+                                _safe_cache_set(k, prog, timeout=600)
+
+                        res = import_raqamiyat_products_for_store(
+                            store_obj, 
+                            selected_group_names=sel_groups, 
+                            progress_callback=on_progress
+                        )
+                        
+                        total = res.get("total_available", 0) or (res.get("products_created", 0) + res.get("products_updated", 0))
+                        created = res.get("variants_created", 0) + res.get("products_created", 0)
+                        updated = res.get("variants_updated", 0) + res.get("products_updated", 0)
+
+                        if total == 0:
+                            msg = "تم الاتصال بنجاح. لا توجد منتجات أو خدمات متاحة في منصة رقميات الأساسية للاستيراد حالياً."
+                        else:
+                            msg = f"تمت المزامنة بنجاح! تم استيراد وتحديث {res.get('variants_created', 0) + res.get('variants_updated', 0)} باقة وخدمة."
+
+                        done_prog = {
+                            "status": "completed",
+                            "total": total,
+                            "current": total,
+                            "percent": 100,
+                            "product_name": msg,
+                            "message": msg,
+                            "created": created,
+                            "updated": updated
+                        }
+                        for k in keys:
+                            _safe_cache_set(k, done_prog, timeout=600)
+                    except Exception as e:
+                        import logging
+                        logging.getLogger(__name__).exception(f"Background Raqamiyat sync failed for store {store_id}: {e}")
+                        err_prog = {
+                            "status": "failed",
+                            "total": 0,
+                            "current": 0,
+                            "percent": 0,
+                            "product_name": f"فشل الاستيراد: {str(e)}",
+                            "error": str(e),
+                            "created": 0,
+                            "updated": 0
+                        }
+                        for k in keys:
+                            _safe_cache_set(k, err_prog, timeout=600)
+
+                import sys
+                if "test" in sys.argv:
+                    _background_raqamiyat_sync(store.id, cache_keys, selected_groups)
+                else:
+                    import threading
+                    threading.Thread(
+                        target=_background_raqamiyat_sync, 
+                        args=(store.id, cache_keys, selected_groups), 
+                        daemon=True
+                    ).start()
+
                 if request.headers.get("X-Requested-With") == "XMLHttpRequest" or action == "sync_ajax":
-                    return JsonResponse({"status": "completed", "message": msg, "created": res.get("products_created", 0), "updated": res.get("products_updated", 0)})
-                messages.success(request, msg)
+                    return JsonResponse({"status": "started", "message": "بدأت عملية المزامنة والاستيراد من رقميات بنجاح"})
+
+                messages.success(request, "🚀 بدأت عملية مزامنة منتجات رقميات في الخلفية بنجاح!")
                 return redirect(redirect_url)
 
             if not profile_obj:
@@ -6894,48 +7000,79 @@ def control_apicontrol_dashboard(request):
             .prefetch_related("variants")
             .order_by("category__name", "name")
         )
-        if not prods:
-            from apps.stores.services import import_raqamiyat_products_for_store
-            import_raqamiyat_products_for_store(store)
-            prods = list(
-                Product.objects.filter(store=store)
+
+        with bypass_tenant_filter():
+            global_prods = list(
+                Product.all_objects.filter(store__isnull=True, is_active=True)
                 .select_related("category")
                 .prefetch_related("variants")
                 .order_by("category__name", "name")
             )
 
-        products_count = len(prods)
+        products_count = len(prods) if prods else len(global_prods)
         groups_dict = {}
 
-        for p in prods:
-            c_name = p.category.name if p.category else "عام"
+        # Build provider groups from available services (prefer global platform catalog so store owner can pick)
+        source_for_groups = global_prods if global_prods else prods
+        for p in source_for_groups:
+            c_name = p.category.name if p.category else (p.name or "عام")
             if c_name not in groups_dict:
                 groups_dict[c_name] = {"name": c_name, "count": 0}
+            groups_dict[c_name]["count"] += p.variants.count()
 
-            for v in p.variants.all():
-                local_linked_count += 1
-                groups_dict[c_name]["count"] += 1
-                cost_val = float(v.cost or 0)
-                price_val = float(v.price or 0)
-                profit_val = round(max(0.0, price_val - cost_val), 2)
-
-                alkasr_products.append({
-                    "id": v.api_product_id or v.sku or str(v.id),
-                    "name": f"{p.name} - {v.name}" if v.name and v.name != p.name else p.name,
-                    "product_type": getattr(p, "product_type", "package"),
-                    "category_name": c_name,
-                    "price": cost_val,
-                    "local_price": price_val,
-                    "local_cost": cost_val,
-                    "profit": profit_val,
-                    "local_product_id": p.id,
-                    "local_variant_id": v.id,
-                    "local_active": p.is_active and v.is_active,
-                    "is_linked": True,
-                    "available": True,
-                    "api_provider": "raqamiyat",
-                })
         provider_groups = sorted(groups_dict.values(), key=lambda x: x["name"])
+
+        if prods:
+            for p in prods:
+                c_name = p.category.name if p.category else "عام"
+                for v in p.variants.all():
+                    local_linked_count += 1
+                    cost_val = float(v.cost or 0)
+                    price_val = float(v.price or 0)
+                    profit_val = round(max(0.0, price_val - cost_val), 2)
+
+                    alkasr_products.append({
+                        "id": v.api_product_id or v.sku or str(v.id),
+                        "name": f"{p.name} - {v.name}" if v.name and v.name != p.name else p.name,
+                        "product_type": getattr(p, "product_type", "package"),
+                        "category_name": c_name,
+                        "price": cost_val,
+                        "local_price": price_val,
+                        "local_cost": cost_val,
+                        "profit": profit_val,
+                        "local_product_id": p.id,
+                        "local_variant_id": v.id,
+                        "local_active": p.is_active and v.is_active,
+                        "is_linked": True,
+                        "available": True,
+                        "api_provider": "raqamiyat",
+                    })
+        elif global_prods:
+            tier_margins = store.tier_margins or {"customer": 15.0, "dealer": 10.0, "vip": 5.0}
+            cust_m = float(tier_margins.get("customer", 15.0) or 15.0)
+            for p in global_prods:
+                c_name = p.category.name if p.category else "عام"
+                for v in p.variants.all():
+                    cost_val = float(v.cost or 0)
+                    calc_price = round(cost_val * (1 + cust_m / 100.0), 2) if cust_m > 0 and cost_val > 0 else float(v.price or 0)
+                    profit_val = round(max(0.0, calc_price - cost_val), 2)
+
+                    alkasr_products.append({
+                        "id": v.api_product_id or v.sku or str(v.id),
+                        "name": f"{p.name} - {v.name}" if v.name and v.name != p.name else p.name,
+                        "product_type": getattr(p, "product_type", "package"),
+                        "category_name": c_name,
+                        "price": cost_val,
+                        "local_price": calc_price,
+                        "local_cost": cost_val,
+                        "profit": profit_val,
+                        "local_product_id": None,
+                        "local_variant_id": None,
+                        "local_active": False,
+                        "is_linked": False,
+                        "available": True,
+                        "api_provider": "raqamiyat",
+                    })
     elif profile_obj:
         categories = list(ProviderCategory.objects.filter(profile=profile_obj).values("id", "name", "remote_id")[:100])
 

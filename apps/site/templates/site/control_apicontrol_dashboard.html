@@ -886,6 +886,9 @@
 <!-- Interactive Sync Progress Modal -->
 <div id="sync-progress-modal" class="fixed inset-0 bg-black/85 backdrop-filter backdrop-blur-lg z-50 flex items-center justify-center hidden">
     <div class="glass-panel w-full max-w-lg p-8 relative overflow-hidden text-center stack gap-6 border border-cyan/30 shadow-[0_0_50px_rgba(6,182,212,0.2)] animate-zoom-in" style="background: rgba(10, 15, 30, 0.95); border-radius: 24px;">
+        <button type="button" onclick="closeSyncModal()" class="absolute top-4 right-4 text-slate-400 hover:text-white transition-colors p-2 text-base rounded-lg hover:bg-white/10 z-10" title="إغلاق النافذة">
+            <i class="fas fa-times"></i>
+        </button>
         
         <!-- Glow Effect Header -->
         <div class="w-16 h-16 rounded-2xl bg-cyan/10 border border-cyan/30 flex items-center justify-center mx-auto text-cyan shadow-inner relative">
@@ -1142,7 +1145,58 @@
         document.getElementById('log-modal').classList.add('hidden');
     }
 
+    function closeSyncModal() {
+        if (syncPollTimer) {
+            clearInterval(syncPollTimer);
+            syncPollTimer = null;
+        }
+        const modal = document.getElementById('sync-progress-modal');
+        if (modal) modal.classList.add('hidden');
+    }
+
     let syncPollTimer = null;
+
+    function renderSyncCompleted(data) {
+        if (syncPollTimer) {
+            clearInterval(syncPollTimer);
+            syncPollTimer = null;
+        }
+        const icon = document.getElementById('sync-icon');
+        if (icon) icon.className = 'fas fa-check-circle text-2xl text-emerald-400';
+        const ping = document.getElementById('sync-ping');
+        if (ping) ping.classList.add('hidden');
+
+        document.getElementById('sync-percent-text').innerText = '100%';
+        document.getElementById('sync-progress-bar').style.width = '100%';
+        
+        const total = data.total || data.current || (data.created || 0) + (data.updated || 0);
+        const current = data.current || (data.created || 0) + (data.updated || 0);
+        document.getElementById('sync-total-count').innerText = total;
+        document.getElementById('sync-current-count').innerText = current;
+
+        document.getElementById('sync-modal-title').innerText = 'تمت المزامنة واستيراد كافة المنتجات بنجاح!';
+        const successMsg = data.message || data.product_name || `تم استيراد ${current} خدمة وتحديث كتالوج متجرك بنجاح.`;
+        document.getElementById('sync-modal-subtitle').innerText = successMsg;
+        document.getElementById('sync-current-product').innerText = successMsg;
+        document.getElementById('sync-finish-btn-container').classList.remove('hidden');
+    }
+
+    function renderSyncFailed(data) {
+        if (syncPollTimer) {
+            clearInterval(syncPollTimer);
+            syncPollTimer = null;
+        }
+        const icon = document.getElementById('sync-icon');
+        if (icon) icon.className = 'fas fa-exclamation-triangle text-2xl text-rose-500';
+        const ping = document.getElementById('sync-ping');
+        if (ping) ping.classList.add('hidden');
+
+        document.getElementById('sync-modal-title').innerText = 'فشل الاتصال وسحب الخدمات من المزود';
+        const errMsg = data.error || data.product_name || 'يرجى التأكد من صلاحية مفتاح API والاتصال.';
+        document.getElementById('sync-modal-subtitle').innerText = errMsg;
+        document.getElementById('sync-current-product').innerText = errMsg;
+        document.getElementById('sync-finish-btn-container').classList.remove('hidden');
+    }
 
     function startInteractiveSync(event) {
         if (event) event.preventDefault();
@@ -1155,13 +1209,15 @@
         document.getElementById('sync-progress-bar').style.width = '0%';
         document.getElementById('sync-total-count').innerText = '0';
         document.getElementById('sync-current-count').innerText = '0';
-        document.getElementById('sync-current-product').innerText = 'جاري التوصيل بالسيرفر...';
+        document.getElementById('sync-current-product').innerText = 'جاري الاتصال بالسيرفر...';
         document.getElementById('sync-finish-btn-container').classList.add('hidden');
         document.getElementById('sync-modal-title').innerText = 'جاري مزامنة واستيراد منتجات API...';
         document.getElementById('sync-modal-subtitle').innerText = 'يتم التواصل مع سيرفر المزود لبناء الكتالوج واستيراد الخدمات والباكجات تلقائياً.';
         
         const icon = document.getElementById('sync-icon');
         if (icon) icon.className = 'fas fa-arrows-rotate fa-spin text-2xl text-cyan';
+        const ping = document.getElementById('sync-ping');
+        if (ping) ping.classList.remove('hidden');
 
         const btn = event ? (event.target.closest('button') || event.target) : null;
         const form = btn ? btn.closest('form') : null;
@@ -1183,6 +1239,13 @@
         })
         .then(r => r.json())
         .then(data => {
+            if (data && data.status === 'completed') {
+                renderSyncCompleted(data);
+                return;
+            } else if (data && data.status === 'failed') {
+                renderSyncFailed(data);
+                return;
+            }
             if (syncPollTimer) clearInterval(syncPollTimer);
             syncPollTimer = setInterval(pollSyncProgress, 500);
         })
@@ -1215,26 +1278,9 @@
             document.getElementById('sync-current-product').innerText = name;
 
             if (status === 'completed' || (total > 0 && current >= total && status !== 'running')) {
-                if (syncPollTimer) clearInterval(syncPollTimer);
-                const icon = document.getElementById('sync-icon');
-                if (icon) icon.className = 'fas fa-check-circle text-2xl text-emerald-400';
-                const ping = document.getElementById('sync-ping');
-                if (ping) ping.classList.add('hidden');
-                
-                document.getElementById('sync-modal-title').innerText = 'تمت المزامنة واستيراد كافة المنتجات بنجاح!';
-                document.getElementById('sync-modal-subtitle').innerText = data.product_name || `تم استيراد ${current} من أصل ${total} منتج وتحديث كتالوج متجرك بنجاح.`;
-                document.getElementById('sync-finish-btn-container').classList.remove('hidden');
+                renderSyncCompleted(data);
             } else if (status === 'failed') {
-                if (syncPollTimer) clearInterval(syncPollTimer);
-                const icon = document.getElementById('sync-icon');
-                if (icon) icon.className = 'fas fa-exclamation-triangle text-2xl text-rose-500';
-                const ping = document.getElementById('sync-ping');
-                if (ping) ping.classList.add('hidden');
-
-                document.getElementById('sync-modal-title').innerText = 'فشل الاتصال وسحب الخدمات من المزود';
-                document.getElementById('sync-modal-subtitle').innerText = data.error || data.product_name || 'يرجى التأكد من صلاحية مفتاح API والاتصال.';
-                document.getElementById('sync-current-product').innerText = data.error || data.product_name || 'فشل الاتصال بخادم المزود.';
-                document.getElementById('sync-finish-btn-container').classList.remove('hidden');
+                renderSyncFailed(data);
             }
         })
         .catch(err => console.error("Poll error:", err));

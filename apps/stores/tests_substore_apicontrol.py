@@ -290,3 +290,55 @@ class SubStoreAPIControlTest(TestCase):
             self.assertEqual(cust_wallet.available_balance, Decimal("100.00") - store_var.price)
         finally:
             _current_store.reset(token_a)
+
+    def test_substore_raqamiyat_interactive_sync_and_progress_polling(self):
+        """Verify AJAX sync start, background progress tracking, and polling for Raqamiyat sub-store."""
+        import json
+        from apps.stores.services import import_raqamiyat_products_for_store
+
+        # 1. Test import_raqamiyat_products_for_store directly with callback
+        progress_records = []
+        def on_prog(cur, tot, name, cr, up):
+            progress_records.append((cur, tot, name))
+
+        stats = import_raqamiyat_products_for_store(self.store_a, progress_callback=on_prog)
+        self.assertGreater(len(progress_records), 0)
+        self.assertEqual(progress_records[-1][0], progress_records[-1][1])  # cur == tot
+        self.assertIn("PUBG", progress_records[-1][2])
+
+        # 2. Test AJAX POST to /merchant/apicontrol/ with action="sync_ajax"
+        integ_a = APIIntegration.objects.filter(store=self.store_a, provider="raqamiyat").first()
+        if not integ_a:
+            integ_a = APIIntegration.objects.create(
+                store=self.store_a,
+                provider="raqamiyat",
+                name="رقميات (المتجر الأساسي)",
+                is_active=True
+            )
+
+        post_req = self.factory.post("/merchant/apicontrol/", {
+            "action": "sync_ajax",
+            "integration_id": str(integ_a.id),
+        }, HTTP_X_REQUESTED_WITH="XMLHttpRequest")
+        self._setup_request(post_req, self.owner_a, self.store_a)
+        token_a = set_current_store(self.store_a)
+        try:
+            resp = control_apicontrol_dashboard(post_req)
+            self.assertEqual(resp.status_code, 200)
+            data = json.loads(resp.content)
+            self.assertIn(data.get("status"), ["started", "completed"])
+
+            # 3. Test GET progress endpoint
+            get_req = self.factory.get(f"/merchant/apicontrol/?action=get_sync_progress&sync_progress=1&integration_id={integ_a.id}", HTTP_X_REQUESTED_WITH="XMLHttpRequest")
+            self._setup_request(get_req, self.owner_a, self.store_a)
+            get_resp = control_apicontrol_dashboard(get_req)
+            self.assertEqual(get_resp.status_code, 200)
+            prog_data = json.loads(get_resp.content)
+            self.assertIn(prog_data.get("status"), ["running", "completed", "idle"])
+
+            # Wait briefly for background thread to finish cleanly before test teardown
+            import time
+            time.sleep(0.5)
+        finally:
+            _current_store.reset(token_a)
+

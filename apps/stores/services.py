@@ -128,14 +128,14 @@ def deduplicate_all_stores():
         return all_res
 
 
-def import_raqamiyat_products_for_store(store):
+def import_raqamiyat_products_for_store(store, selected_group_names=None, progress_callback=None):
     """
     Imports and synchronizes all active global Raqamiyat categories, products,
     and variants into a specific tenant store with full tenant isolation.
     Guarantees no duplicate categories or products are created.
     """
     if not store:
-        return {"categories_created": 0, "products_created": 0, "variants_created": 0}
+        return {"categories_created": 0, "products_created": 0, "variants_created": 0, "total_available": 0}
 
     stats = {
         "categories_created": 0,
@@ -144,6 +144,7 @@ def import_raqamiyat_products_for_store(store):
         "products_updated": 0,
         "variants_created": 0,
         "variants_updated": 0,
+        "total_available": 0,
     }
 
     with bypass_tenant_filter():
@@ -151,7 +152,10 @@ def import_raqamiyat_products_for_store(store):
         deduplicate_store_catalog(store)
 
         # 1. Map and clone global categories to the store
-        global_categories = Category.all_objects.filter(store__isnull=True, is_active=True).order_by("sort_order", "name")
+        global_categories_qs = Category.all_objects.filter(store__isnull=True, is_active=True).order_by("sort_order", "name")
+        if selected_group_names:
+            global_categories_qs = global_categories_qs.filter(name__in=selected_group_names)
+        global_categories = list(global_categories_qs)
         cat_mapping = {}  # global_cat_id -> store_cat
 
         for g_cat in global_categories:
@@ -192,12 +196,28 @@ def import_raqamiyat_products_for_store(store):
             vip_m = Decimal("0")
 
         # 2. Map and clone global products to the store
-        global_products = Product.all_objects.filter(
+        global_products_qs = Product.all_objects.filter(
             store__isnull=True, 
             is_active=True
         ).prefetch_related("variants").order_by("sort_order", "id")
 
-        for g_prod in global_products:
+        if selected_group_names:
+            from django.db.models import Q
+            global_products_qs = global_products_qs.filter(
+                Q(category__name__in=selected_group_names) | Q(name__in=selected_group_names)
+            )
+
+        global_products = list(global_products_qs)
+        total_items = len(global_products)
+        stats["total_available"] = total_items
+
+        if total_items == 0 and progress_callback:
+            progress_callback(0, 0, "لا توجد خدمات متاحة للاستيراد في المنصة الأساسية حالياً", 0, 0)
+
+        for idx, g_prod in enumerate(global_products, 1):
+            if progress_callback:
+                progress_callback(idx, total_items, g_prod.name, stats["products_created"], stats["products_updated"])
+
             target_cat = cat_mapping.get(g_prod.category_id) if g_prod.category_id else None
             
             # Check if this product already exists in the store by name

@@ -458,15 +458,6 @@ class AlkasrMapperService:
             
         products_list = list(products_qs.select_related('category', 'category__parent', 'pricing').prefetch_related('parameters'))
         store = self.profile.store
-        if not store:
-            from apps.stores.models import Store
-            store = Store.objects.first()
-            if store and not self.profile.store:
-                try:
-                    self.profile.store = store
-                    self.profile.save(update_fields=['store'])
-                except Exception:
-                    pass
 
         provider_code = "tafa3olcard" if ("tafa3ol" in (self.profile.base_url or "").lower() or "تفاعل" in (self.profile.provider_name or "").lower()) else "alkasr"
 
