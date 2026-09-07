@@ -23,17 +23,24 @@ class Command(BaseCommand):
 
         canonical_objs = {}
         for name, order in CANONICAL_SECTIONS.items():
-            cat, _ = Category.objects.get_or_create(
-                name=name,
-                defaults={"sort_order": order, "is_active": True}
-            )
-            cat.sort_order = order
-            cat.is_active = True
-            cat.save(update_fields=["sort_order", "is_active"])
+            cat = Category.objects.filter(name=name, store=None).first()
+            if not cat:
+                cat = Category.objects.filter(name=name).first()
+            if not cat:
+                cat = Category.objects.create(
+                    name=name,
+                    store=None,
+                    sort_order=order,
+                    is_active=True
+                )
+            else:
+                cat.sort_order = order
+                cat.is_active = True
+                cat.save(update_fields=["sort_order", "is_active"])
             canonical_objs[name] = cat
 
-        # Remap and delete all non-canonical categories
-        non_canonical = Category.objects.exclude(name__in=list(CANONICAL_SECTIONS.keys()))
+        # Remap and delete only platform non-canonical categories
+        non_canonical = Category.objects.filter(store=None).exclude(name__in=list(CANONICAL_SECTIONS.keys()))
         for old_cat in non_canonical:
             c_low = (old_cat.name or "").lower()
             if any(k in c_low for k in ("pubg", "ببجي", "free fire", "فري فاير", "roblox", "روبلوكس", "jawaker", "جواكر", "لعبة", "العاب", "ألعاب", "game", "سيرفر", "اوتوماتيك", "يدوي", "برايم", "نخبة", "حزم")):
