@@ -17,6 +17,7 @@ class ProductTierPriceSerializer(serializers.ModelSerializer):
 
 class ProductVariantSerializer(serializers.ModelSerializer):
     tier_prices = ProductTierPriceSerializer(many=True, read_only=True)
+    delivery_type = serializers.CharField(required=False, default="manual")
     # Expose qty metadata so the frontend knows how to render the quantity selector
     qty_type = serializers.SerializerMethodField()
     qty_min = serializers.SerializerMethodField()
