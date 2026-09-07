@@ -156,6 +156,91 @@ class Command(BaseCommand):
                         var.save(update_fields=['name', 'sort_order', 'metadata'])
                 self.stdout.write(self.style.SUCCESS(f'Cleanly aligned TikTok (Product {tp.id}) into 3 provider options: 150 coins, 400 coins, and custom recharge.'))
 
+            # Clean and align Syriatel packages and denominations
+            syriatel_prods = Product.objects.filter(name__icontains="سيريتل") | Product.objects.filter(name__icontains="syriatel")
+            for sp in syriatel_prods:
+                sp.name = "سيريتل كاش ورصيد (Syriatel)"
+                if canonical_objs.get("اتصالات ورصيد"):
+                    sp.category = canonical_objs["اتصالات ورصيد"]
+                sp.form_schema = {
+                    "version": 1,
+                    "fields": [
+                        {"name": "phone", "label": "رقم الهاتف", "type": "text", "required": True, "placeholder": "مثال: 09XXXXXXXX"},
+                        {"name": "service_type", "label": "نوع الخدمة", "type": "select", "options": ["رصيد تعبئة وباقات", "دفع فواتير لاحق الدفع", "سيريتل كاش"], "required": False}
+                    ]
+                }
+                sp.save(update_fields=['name', 'category', 'form_schema'])
+                for var in sp.variants.all():
+                    meta = dict(var.metadata or {})
+                    v_low = var.name.lower()
+                    if "cash" in v_low or "كاش" in v_low:
+                        var.name = "سيريتل كاش (Syriatel Cash)"
+                        var.sort_order = 3
+                        meta["qty_type"] = "range"
+                        meta["qty_min"] = 100
+                        meta["qty_max"] = 500000
+                    elif "fatura" in v_low or "فاتورة" in v_low or "فواتير" in v_low:
+                        var.name = "فواتير سيريتل (Syriatel Fatura)"
+                        var.sort_order = 2
+                        meta["qty_type"] = "range"
+                        meta["qty_min"] = 100
+                        meta["qty_max"] = 5000000
+                    elif "credit" in v_low or "رصيد" in v_low or "باقات" in v_low:
+                        var.name = "رصيد وباقات سيريتل (Syriatel Credit)"
+                        var.sort_order = 1
+                        meta["qty_type"] = "list"
+                        meta["qty_list"] = [
+                            "1000", "2000", "3000", "5000", "10000", "15000", "20000",
+                            "25000", "30000", "50000", "75000", "100000", "150000",
+                            "200000", "250000", "500000", "1000000"
+                        ]
+                    var.metadata = meta
+                    var.save(update_fields=['name', 'sort_order', 'metadata'])
+                self.stdout.write(self.style.SUCCESS(f'Cleanly aligned Syriatel (Product {sp.id}) with denominations and categories.'))
+
+            # Clean and align MTN packages
+            mtn_prods = Product.objects.filter(name__icontains="mtn") | Product.objects.filter(name__icontains="ام تي ان")
+            for mp in mtn_prods:
+                mp.name = "ام تي ان كاش ورصيد (MTN)"
+                if canonical_objs.get("اتصالات ورصيد"):
+                    mp.category = canonical_objs["اتصالات ورصيد"]
+                mp.form_schema = {
+                    "version": 1,
+                    "fields": [
+                        {"name": "phone", "label": "رقم الهاتف", "type": "text", "required": True, "placeholder": "مثال: 09XXXXXXXX"},
+                        {"name": "service_type", "label": "نوع الخدمة", "type": "select", "options": ["رصيد تعبئة وباقات", "دفع فواتير لاحق الدفع", "ام تي ان كاش"], "required": False}
+                    ]
+                }
+                mp.save(update_fields=['name', 'category', 'form_schema'])
+                for var in mp.variants.all():
+                    meta = dict(var.metadata or {})
+                    v_low = var.name.lower()
+                    if "fatura" in v_low or "فاتورة" in v_low or "فواتير" in v_low:
+                        var.name = "فواتير ام تي ان (MTN Fatura)"
+                        var.sort_order = 2
+                        meta["qty_type"] = "range"
+                        meta["qty_min"] = 100
+                        meta["qty_max"] = 5000000
+                    elif "credit" in v_low or "رصيد" in v_low or "باقات" in v_low:
+                        var.name = "رصيد وباقات ام تي ان (MTN Credit)"
+                        var.sort_order = 1
+                        meta["qty_type"] = "list"
+                        if not meta.get("qty_list"):
+                            meta["qty_list"] = [
+                                "1000", "2000", "3000", "5000", "10000", "15000", "20000",
+                                "25000", "30000", "50000", "75000", "100000", "150000",
+                                "200000", "250000", "500000", "1000000"
+                            ]
+                    elif "cash" in v_low or "كاش" in v_low:
+                        var.name = "ام تي ان كاش (MTN Cash)"
+                        var.sort_order = 3
+                        meta["qty_type"] = "range"
+                        meta["qty_min"] = 100
+                        meta["qty_max"] = 500000
+                    var.metadata = meta
+                    var.save(update_fields=['name', 'sort_order', 'metadata'])
+                self.stdout.write(self.style.SUCCESS(f'Cleanly aligned MTN (Product {mp.id}) with denominations and categories.'))
+
             # Clean up empty Alkasr products that have 0 variants
             empty_prods = Product.objects.filter(api_provider='alkasr', variants__isnull=True)
             empty_count = empty_prods.count()

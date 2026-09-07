@@ -19,12 +19,15 @@ Quantity validation rules (mirrors API docs)
   qty_type == "range"  → qty_min ≤ qty ≤ qty_max
 """
 
+import logging
 import re
 import uuid
 from decimal import Decimal
 
 from django.db import transaction
 from django.utils import timezone
+
+logger = logging.getLogger(__name__)
 
 from apps.catalog.models import ProductKey, ProductVariant
 from apps.orders.models import Coupon, Invoice, Order, OrderItem, OrderLog
@@ -171,14 +174,25 @@ def validate_coupon(coupon, user, variant, subtotal=None):
     return discount
 
 
+class WholesaleInsufficientBalanceError(ValueError):
+    def __init__(self, owner, variant_name, required_cost, curr_code, store_name=None, store_id=None):
+        self.owner = owner
+        self.variant_name = variant_name
+        self.required_cost = required_cost
+        self.curr_code = curr_code
+        self.store_name = store_name
+        self.store_id = store_id
+        super().__init__("لم يتم إكمال الطلب، يرجى التواصل مع دعم المتجر.")
+
+
 # ---------------------------------------------------------------------------
 # Main order creation
 # ---------------------------------------------------------------------------
 
 @transaction.atomic
-def create_order(customer, variant_id, quantity=1, fulfillment_data=None,
-                 coupon=None, metadata=None,
-                 shipping_name=None, shipping_phone=None, shipping_address=None):
+def _create_order_atomic(customer, variant_id, quantity=1, fulfillment_data=None,
+                         coupon=None, metadata=None,
+                         shipping_name=None, shipping_phone=None, shipping_address=None):
     """
     Creates a new order, debits the customer's wallet, and calls the API
     provider if needed.
@@ -368,9 +382,13 @@ def create_order(customer, variant_id, quantity=1, fulfillment_data=None,
                 owner_cost_amt = Decimal(owner_cost_amt).quantize(Decimal("0.01"))
 
                 if owner_wallet.available_balance < owner_cost_amt:
-                    raise ValueError(
-                        f"عذراً، رصيد مالك المتجر في مزود الخدمة (رقميات) غير كافٍ لإتمام وتوريد هذا الطلب. "
-                        f"(التكلفة المطلوبة: {owner_cost_amt} {owner_wallet.currency.code})"
+                    raise WholesaleInsufficientBalanceError(
+                        owner=order_store.owner,
+                        variant_name=f"{variant.product.name} - {variant.name}",
+                        required_cost=owner_cost_amt,
+                        curr_code=owner_wallet.currency.code,
+                        store_name=order_store.name,
+                        store_id=order_store.id
                     )
 
     order_status = Order.Status.COMPLETED if variant.delivery_type == "keys" else Order.Status.PROCESSING
@@ -603,3 +621,52 @@ def create_order(customer, variant_id, quantity=1, fulfillment_data=None,
         pass
 
     return order
+
+
+def create_order(customer, variant_id, quantity=1, fulfillment_data=None,
+                 coupon=None, metadata=None,
+                 shipping_name=None, shipping_phone=None, shipping_address=None):
+    """
+    Public order creation entrypoint.
+    Executes atomic order creation. If store owner has insufficient wholesale
+    balance in Raqamiyat, notifies the store owner outside the rolled-back
+    transaction and presents a friendly error message to the customer.
+    """
+    try:
+        return _create_order_atomic(
+            customer=customer,
+            variant_id=variant_id,
+            quantity=quantity,
+            fulfillment_data=fulfillment_data,
+            coupon=coupon,
+            metadata=metadata,
+            shipping_name=shipping_name,
+            shipping_phone=shipping_phone,
+            shipping_address=shipping_address,
+        )
+    except WholesaleInsufficientBalanceError as e:
+        try:
+            from apps.notifications.services import notify_user
+            from apps.notifications.models import Notification
+            notify_user(
+                user=e.owner,
+                title="⚠️ رصيد الجملة في رقميات غير كافٍ لإتمام طلب عميل",
+                body=(
+                    f"تعذر إكمال طلب للعميل على باقة '{e.variant_name}' "
+                    f"لعدم توفر رصيد كافٍ في محفظتك بمنصة رقميات "
+                    f"(المطلوب: {e.required_cost} {e.curr_code}). "
+                    f"يرجى شحن محفظتك في رقميات لتتمكن من مواصلة تزويد وتوريد طلبات العملاء تلقائياً."
+                ),
+                action_url="/dashboard/wallet/",
+                category="financial",
+                priority=Notification.Priority.HIGH,
+                metadata={
+                    "store_id": str(e.store_id) if e.store_id else None,
+                    "store_name": e.store_name,
+                    "required_cost": str(e.required_cost),
+                    "currency": e.curr_code,
+                },
+            )
+        except Exception as notif_err:
+            logger.warning("Failed to notify store owner about wholesale insufficient balance: %s", notif_err)
+        raise ValueError("لم يتم إكمال الطلب، يرجى التواصل مع دعم المتجر.")

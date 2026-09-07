@@ -254,14 +254,20 @@ class SubStoreAPIControlTest(TestCase):
             cust_wallet.available_balance = Decimal("100.00")
             cust_wallet.save(update_fields=["available_balance"])
 
-            # 1. Order should FAIL due to store owner's insufficient balance in Raqamiyat
+            # 1. Order should FAIL with friendly message without exposing store owner balance
             with self.assertRaises(ValueError) as ctx_err:
                 create_order(
                     customer=self.customer_a,
                     variant_id=store_var.id,
                     quantity=1
                 )
-            self.assertIn("رصيد مالك المتجر في مزود الخدمة (رقميات) غير كافٍ", str(ctx_err.exception))
+            self.assertIn("لم يتم إكمال الطلب، يرجى التواصل مع دعم المتجر", str(ctx_err.exception))
+
+            # Verify store owner received an alert notification
+            from apps.notifications.models import Notification
+            notif = Notification.objects.filter(user=self.store_a.owner).first()
+            self.assertIsNotNone(notif)
+            self.assertIn("رصيد الجملة في رقميات غير كافٍ", notif.title)
 
             # 2. Now top up merchant A's Raqamiyat platform wallet with 10.00 USD
             with bypass_tenant_filter():
@@ -341,4 +347,96 @@ class SubStoreAPIControlTest(TestCase):
             time.sleep(0.5)
         finally:
             _current_store.reset(token_a)
+
+    def test_substore_currency_isolation_and_context_processor(self):
+        """Verify currencies and exchange rates are isolated per sub-store and auto-provisioned."""
+        from apps.common.models import Currency
+        from apps.site.context_processors import preferred_currency
+
+        # Ensure Store A has no currencies initially
+        Currency.all_objects.filter(store=self.store_a).delete()
+        self.assertEqual(Currency.all_objects.filter(store=self.store_a).count(), 0)
+
+        # Call preferred_currency context processor for Store A request
+        req = self.factory.get("/")
+        self._setup_request(req, self.customer_a, self.store_a)
+        ctx = preferred_currency(req)
+
+        # 1. Currencies should be auto-provisioned for Store A
+        store_a_currencies = Currency.all_objects.filter(store=self.store_a)
+        self.assertGreater(store_a_currencies.count(), 0)
+        self.assertIsNotNone(ctx.get("CURRENCY"))
+        self.assertEqual(ctx["CURRENCY"].store, self.store_a)
+
+        # 2. Modify exchange rate in Store A: SYP buy rate = 15500
+        syp_a = store_a_currencies.filter(code="SYP").first()
+        if syp_a:
+            syp_a.buy_rate = Decimal("15500.00")
+            syp_a.save()
+
+            # Global SYP rate must remain unaffected
+            global_syp = Currency.all_objects.filter(store__isnull=True, code="SYP").first()
+            if global_syp:
+                self.assertNotEqual(global_syp.buy_rate, Decimal("15500.00"))
+
+        # 3. Test Currency.save is_default scoping to store
+        usd_a = store_a_currencies.filter(code="USD").first()
+        if usd_a and syp_a:
+            syp_a.is_default = True
+            syp_a.save()
+            usd_a.refresh_from_db()
+            self.assertFalse(usd_a.is_default)
+
+            # Global default currency should NOT be affected
+            global_def = Currency.all_objects.filter(store__isnull=True, is_default=True).first()
+            if global_def:
+                self.assertTrue(global_def.is_default)
+
+    def test_control_users_list_store_filtering_and_isolation(self):
+        """Verify /control/users/ isolates platform users by default and shows all on toggle."""
+        from apps.site.views import control_users_list
+
+        admin_user = User.objects.create_user(
+            email="platform_admin@example.com",
+            password="Password123!",
+            role=User.Role.ADMIN,
+            is_staff=True,
+            is_superuser=True,
+        )
+        store_customer = User.objects.create_user(
+            email="store_customer_unique@example.com",
+            password="Password123!",
+            role=User.Role.CUSTOMER,
+            store=self.store_a,
+        )
+
+        # Admin request without all_stores: should ONLY show platform users (store__isnull=True)
+        req_default = self.factory.get("/control/users/")
+        self._setup_request(req_default, admin_user, None)
+        resp_default = control_users_list(req_default)
+        self.assertEqual(resp_default.status_code, 200)
+        content_default = resp_default.content.decode("utf-8")
+        self.assertNotIn(store_customer.email, content_default)
+        self.assertIn("إظهار جميع حسابات المتاجر", content_default)
+
+        # Admin request with all_stores=1: should show ALL users across all stores
+        req_all = self.factory.get("/control/users/?all_stores=1")
+        self._setup_request(req_all, admin_user, None)
+        resp_all = control_users_list(req_all)
+        self.assertEqual(resp_all.status_code, 200)
+        content_all = resp_all.content.decode("utf-8")
+        self.assertIn(store_customer.email, content_all)
+        self.assertIn(self.store_a.name, content_all)
+        self.assertIn("إظهار حسابات رقميات فقط", content_all)
+
+        # Admin request filtered by store_id=store_a.id: should show Store A users
+        req_store_a = self.factory.get(f"/control/users/?all_stores=1&store_id={self.store_a.id}")
+        self._setup_request(req_store_a, admin_user, None)
+        resp_store_a = control_users_list(req_store_a)
+        self.assertEqual(resp_store_a.status_code, 200)
+        content_store_a = resp_store_a.content.decode("utf-8")
+        self.assertIn(store_customer.email, content_store_a)
+        self.assertIn(self.store_a.name, content_store_a)
+
+
 

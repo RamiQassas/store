@@ -3294,11 +3294,7 @@ def control_users_list(request):
             tier = request.POST.get("tier")
             valid_tiers = dict(User.Tier.choices)
             if tier in valid_tiers:
-                qs = User.objects.filter(id=user_id)
-                if store:
-                    qs = qs.filter(store=store)
-                else:
-                    qs = qs.filter(store__isnull=True)
+                qs = User.objects.filter(id=user_id) if store else User.all_objects.filter(id=user_id)
                 qs.update(tier=tier)
                 if request.headers.get("x-requested-with") == "XMLHttpRequest" or request.POST.get("ajax"):
                     return JsonResponse({"status": "success", "tier": tier, "tier_display": str(valid_tiers.get(tier, tier))})
@@ -3307,12 +3303,12 @@ def control_users_list(request):
                 if request.headers.get("x-requested-with") == "XMLHttpRequest" or request.POST.get("ajax"):
                     return JsonResponse({"status": "error", "message": "فئة غير صالحة."}, status=400)
                 messages.error(request, "فئة غير صالحة.")
-            return redirect("control_users_list")
+            return redirect(request.get_full_path())
 
         user_ids = request.POST.getlist("user_ids")
         if not user_ids:
             messages.warning(request, "يرجى اختيار مستخدمين لتنفيذ العملية.")
-            return redirect("control_users_list")
+            return redirect(request.get_full_path())
         if action == "bulk_update":
             tier = request.POST.get("bulk_tier")
             valid_tiers = dict(User.Tier.choices)
@@ -3320,16 +3316,30 @@ def control_users_list(request):
                 if store:
                     User.objects.filter(id__in=user_ids, store=store).update(tier=tier)
                 else:
-                    User.objects.filter(id__in=user_ids, store__isnull=True).update(tier=tier)
+                    User.all_objects.filter(id__in=user_ids).update(tier=tier)
                 messages.success(request, f"تم تحديث فئة {len(user_ids)} مستخدم بنجاح.")
             else:
                 messages.warning(request, "يرجى اختيار فئة صالحة للتحديث الجماعي.")
-        return redirect("control_users_list")
+        return redirect(request.get_full_path())
+
+    all_stores = request.GET.get("all_stores") == "1"
+    store_filter = request.GET.get("store_id", "").strip()
+    from apps.stores.models import Store
+    all_stores_list = []
 
     if store:
-        users = User.objects.filter(store=store).order_by("-date_joined")
+        users = User.objects.filter(store=store).select_related("store").order_by("-date_joined")
     else:
-        users = User.objects.filter(store__isnull=True).order_by("-date_joined")
+        all_stores_list = Store.objects.all().order_by("name")
+        if all_stores or store_filter:
+            users = User.all_objects.all().select_related("store").prefetch_related("owned_stores").order_by("-date_joined")
+            if store_filter:
+                if store_filter == "main":
+                    users = users.filter(store__isnull=True)
+                else:
+                    users = users.filter(store_id=store_filter)
+        else:
+            users = User.objects.filter(store__isnull=True).select_related("store").prefetch_related("owned_stores").order_by("-date_joined")
         
     q = request.GET.get('q', '').strip()
     status = request.GET.get('status', '')
@@ -3344,15 +3354,24 @@ def control_users_list(request):
             ("الاسم", lambda u: u.get_full_name()),
             ("البريد الإلكتروني", lambda u: u.email),
             ("الهاتف", lambda u: u.phone),
+            ("المتجر التابع له", lambda u: u.store.name if u.store else ("مالك متجر" if u.owned_stores.exists() else "رقميات (المنصة الرئيسية)")),
             ("الفئة", lambda u: u.get_tier_display()),
             ("الحالة", lambda u: u.get_status_display()),
-            ("الرصيد المتاح", lambda u: u.wallet.available_balance),
-            ("الديون", lambda u: u.wallet.debt_balance),
+            ("الرصيد المتاح", lambda u: u.wallet.available_balance if hasattr(u, "wallet") and u.wallet else Decimal("0.00")),
+            ("الديون", lambda u: u.wallet.debt_balance if hasattr(u, "wallet") and u.wallet else Decimal("0.00")),
             ("تاريخ الانضمام", lambda u: u.date_joined.strftime("%Y-%m-%d")),
         ]
         return export_to_excel(users, "Users", columns)
 
-    return render(request, "site/control_users_list.html", {"users": users, "query": q, "current_status": status, "tiers": User.Tier.choices})
+    return render(request, "site/control_users_list.html", {
+        "users": users,
+        "query": q,
+        "current_status": status,
+        "tiers": User.Tier.choices,
+        "all_stores": all_stores,
+        "all_stores_list": all_stores_list,
+        "selected_store_id": store_filter,
+    })
 
 @support_required
 def control_product_toggle_featured(request, pk):
@@ -4002,28 +4021,63 @@ def control_user_moderate(request, public_uuid):
 
 @admin_required
 def currencies_list(request):
+    store = getattr(request, "store", None)
+    if store and not Currency.all_objects.filter(store=store).exists():
+        global_currencies = Currency.all_objects.filter(store__isnull=True)
+        for gc in global_currencies:
+            Currency.all_objects.create(
+                store=store,
+                name=gc.name,
+                code=gc.code,
+                symbol=gc.symbol,
+                buy_rate=gc.buy_rate,
+                sell_rate=gc.sell_rate,
+                capital_rate=gc.capital_rate,
+                conversion_method=gc.conversion_method,
+                decimal_places=gc.decimal_places,
+                display_order=gc.display_order,
+                is_active=gc.is_active,
+                is_default=gc.is_default
+            )
+
     if request.method == "POST":
         for c in Currency.objects.all():
             buy, sell = request.POST.get(f"buy_rate_{c.id}"), request.POST.get(f"sell_rate_{c.id}")
-            if buy and sell: c.buy_rate, c.sell_rate = Decimal(buy), Decimal(sell); c.save()
+            if buy and sell:
+                c.buy_rate, c.sell_rate = Decimal(buy), Decimal(sell)
+                c.save()
+        messages.success(request, "تم حفظ أسعار الصرف بنجاح.")
         return redirect("currencies_list")
-    return render(request, "site/currencies_list.html", {"currencies": Currency.objects.all().order_by('display_order')})
+    return render(request, "site/currencies_list.html", {"currencies": Currency.objects.all().order_by('display_order'), "is_tenant": bool(store)})
 
 @admin_required
 def currency_create(request):
+    store = getattr(request, "store", None)
     form = CurrencyForm(request.POST or None)
     if request.method == "POST" and form.is_valid():
         curr = form.save(commit=False)
-        curr.store = getattr(request, "store", None)
+        curr.store = store
         curr.save()
+        messages.success(request, "تم إضافة العملة بنجاح.")
         return redirect("currencies_list")
     return render(request, "site/currency_form.html", {"form": form})
 
 @admin_required
 def currency_edit(request, pk):
-    c = get_object_or_404(Currency, pk=pk); form = CurrencyForm(request.POST or None, instance=c)
-    if request.method == "POST" and form.is_valid(): form.save(); return redirect("currencies_list")
+    store = getattr(request, "store", None)
+    if store:
+        c = get_object_or_404(Currency.all_objects.filter(store=store), pk=pk)
+    else:
+        c = get_object_or_404(Currency.all_objects.filter(store__isnull=True), pk=pk)
+    form = CurrencyForm(request.POST or None, instance=c)
+    if request.method == "POST" and form.is_valid():
+        curr = form.save(commit=False)
+        curr.store = store
+        curr.save()
+        messages.success(request, "تم تحديث بيانات العملة بنجاح.")
+        return redirect("currencies_list")
     return render(request, "site/currency_form.html", {"form": form, "currency": c})
+
 
 
 @support_required

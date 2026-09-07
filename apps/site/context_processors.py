@@ -7,7 +7,29 @@ def preferred_currency(request):
     Returns:
         Currency object and a list of all active currencies.
     """
-    all_currencies = list(Currency.objects.filter(is_active=True).order_by("display_order", "code"))
+    store = getattr(request, "store", None)
+    if store and not Currency.all_objects.filter(store=store).exists():
+        global_currencies = Currency.all_objects.filter(store__isnull=True)
+        for gc in global_currencies:
+            Currency.all_objects.create(
+                store=store,
+                name=gc.name,
+                code=gc.code,
+                symbol=gc.symbol,
+                buy_rate=gc.buy_rate,
+                sell_rate=gc.sell_rate,
+                capital_rate=gc.capital_rate,
+                conversion_method=gc.conversion_method,
+                decimal_places=gc.decimal_places,
+                display_order=gc.display_order,
+                is_active=gc.is_active,
+                is_default=gc.is_default
+            )
+
+    if store:
+        all_currencies = list(Currency.all_objects.filter(store=store, is_active=True).order_by("display_order", "code"))
+    else:
+        all_currencies = list(Currency.all_objects.filter(store__isnull=True, is_active=True).order_by("display_order", "code"))
     
     pref_currency = None
     user = getattr(request, "user", None)
@@ -15,7 +37,11 @@ def preferred_currency(request):
     
     # 1. Check logged in user preference
     if user and user.is_authenticated and getattr(user, "preferred_currency", None):
-        pref_currency = user.preferred_currency
+        user_pref = user.preferred_currency
+        if user_pref in all_currencies:
+            pref_currency = user_pref
+        else:
+            pref_currency = next((c for c in all_currencies if c.code == user_pref.code), None)
     
     # 2. Check session for guest/override
     if not pref_currency and session:

@@ -294,6 +294,18 @@
             </ul>
 
             <div class="nav-actions">
+                {% if ALL_CURRENCIES %}
+                <div class="currency-selector" style="position: relative;">
+                    <select onchange="location.href='{% url 'set_currency' %}?currency=' + this.value" style="background: rgba(255, 255, 255, 0.05); border: 1px solid var(--card-border); color: var(--text-color); padding: 0.45rem 0.8rem; border-radius: 20px; font-weight: 700; font-size: 0.82rem; cursor: pointer; outline: none; transition: var(--transition);">
+                        {% for c in ALL_CURRENCIES %}
+                        <option value="{{ c.id }}" {% if c.id == CURRENCY.id %}selected{% endif %} style="background: var(--bg-color); color: var(--text-color);">
+                            {{ c.code }} ({{ c.symbol }})
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                {% endif %}
+
                 {% if user.is_authenticated %}
                     <a href="{% url 'store_dashboard' %}" class="btn btn-outline"><i class="fa-solid fa-user-gear"></i> حسابي</a>
                     <a href="{% url 'store_logout' %}" class="btn btn-outline" style="border-color: rgba(239, 68, 68, 0.4); color: #f87171;"><i class="fa-solid fa-right-from-bracket"></i> خروج</a>
@@ -303,6 +315,7 @@
                 {% endif %}
             </div>
         </div>
+
     </header>
 
     <!-- Alerts Notification -->

@@ -83,8 +83,9 @@ class Currency(TimeStampedModel):
 
     def save(self, *args, **kwargs):
         if self.is_default:
-            Currency.objects.filter(is_default=True).update(is_default=False)
+            Currency.all_objects.filter(store=self.store, is_default=True).exclude(pk=self.pk).update(is_default=False)
         super().save(*args, **kwargs)
+
 
 
 class SystemAuditLog(TimeStampedModel):

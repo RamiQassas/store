@@ -659,14 +659,70 @@ class AlkasrMapperService:
                             if not any(k in variant_name for k in ("400", "150", "متابعين", "لايك", "مشاهدات")):
                                 variant_name = "تعبئة رصيد عملات تيك توك (1,000 - 5,000,000)"
 
+                        # Clean up naming and options for Syriatel (سيريتل)
+                        v_low = variant_name.lower()
+                        if "syriatel" in v_low or "سيريتل" in v_low or ("fatura" in v_low and "mtn" not in v_low and "turk" not in v_low):
+                            if "cash" in v_low or "كاش" in v_low:
+                                variant_name = "سيريتل كاش (Syriatel Cash)"
+                                sort_num = 3
+                                meta["qty_type"] = "range"
+                                meta["qty_min"] = 100
+                                meta["qty_max"] = 500000
+                            elif "fatura" in v_low or "فاتورة" in v_low or "فواتير" in v_low:
+                                variant_name = "فواتير سيريتل (Syriatel Fatura)"
+                                sort_num = 2
+                                meta["qty_type"] = "range"
+                                meta["qty_min"] = 100
+                                meta["qty_max"] = 5000000
+                            elif "credit" in v_low or "رصيد" in v_low or "باقات" in v_low:
+                                variant_name = "رصيد وباقات سيريتل (Syriatel Credit)"
+                                sort_num = 1
+                                meta["qty_type"] = "list"
+                                meta["qty_list"] = [
+                                    "1000", "2000", "3000", "5000", "10000", "15000", "20000",
+                                    "25000", "30000", "50000", "75000", "100000", "150000",
+                                    "200000", "250000", "500000", "1000000"
+                                ]
+
+                        # Clean up naming and options for MTN (ام تي ان)
+                        if "mtn" in v_low or "ام تي ان" in v_low:
+                            if "fatura" in v_low or "فاتورة" in v_low or "فواتير" in v_low:
+                                variant_name = "فواتير ام تي ان (MTN Fatura)"
+                                sort_num = 2
+                                meta["qty_type"] = "range"
+                                meta["qty_min"] = 100
+                                meta["qty_max"] = 5000000
+                            elif "credit" in v_low or "رصيد" in v_low or "باقات" in v_low:
+                                variant_name = "رصيد وباقات ام تي ان (MTN Credit)"
+                                sort_num = 1
+                                meta["qty_type"] = "list"
+                                if not meta.get("qty_list"):
+                                    meta["qty_list"] = [
+                                        "1000", "2000", "3000", "5000", "10000", "15000", "20000",
+                                        "25000", "30000", "50000", "75000", "100000", "150000",
+                                        "200000", "250000", "500000", "1000000"
+                                    ]
+                            elif "cash" in v_low or "كاش" in v_low:
+                                variant_name = "ام تي ان كاش (MTN Cash)"
+                                sort_num = 3
+                                meta["qty_type"] = "range"
+                                meta["qty_min"] = 100
+                                meta["qty_max"] = 500000
+
                         # Determine display sort order
-                        sort_num = 0
-                        if "150" in variant_name:
-                            sort_num = 1
-                        elif "400" in variant_name:
-                            sort_num = 2
-                        elif "تعبئة" in variant_name:
-                            sort_num = 3
+                        if sort_num == 0:
+                            if "150" in variant_name:
+                                sort_num = 1
+                            elif "400" in variant_name:
+                                sort_num = 2
+                            elif "تعبئة" in variant_name:
+                                sort_num = 3
+                            elif "رصيد" in variant_name:
+                                sort_num = 1
+                            elif "فواتير" in variant_name or "فاتورة" in variant_name:
+                                sort_num = 2
+                            elif "كاش" in variant_name:
+                                sort_num = 3
 
                         # If there is a Level 3 subcategory (e.g. اوتوماتيك 2, يدوي, أمريكي, سعودي, عضويات)
                         # and it is not already in the variant name, append it for clear identification
