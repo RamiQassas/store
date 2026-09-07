@@ -178,6 +178,72 @@ def version_view(request):
         except Exception as e:
             import traceback
             diag = {"error": str(e), "traceback": traceback.format_exc()}
+    elif request.GET.get("diag") == "catalog_audit":
+        try:
+            from apps.catalog.models import Category, Product, ProductVariant
+            from apps.providers.models import ProviderProduct, ProviderProfile, ProviderMapping
+            from apps.common.tenant_utils import bypass_tenant_filter
+            import re
+
+            with bypass_tenant_filter():
+                # 1. Categories
+                cats = list(Category.all_objects.filter(store__isnull=True).order_by("sort_order").values("id", "name", "sort_order"))
+                
+                # 2. All main products
+                prods_qs = Product.all_objects.filter(store__isnull=True).select_related("category").prefetch_related("variants").order_by("category__sort_order", "name")
+                
+                products_data = []
+                for p in prods_qs:
+                    vars_data = []
+                    for v in p.variants.all():
+                        meta = v.metadata or {}
+                        vars_data.append({
+                            "id": v.id,
+                            "name": v.name,
+                            "remote_id": v.api_product_id,
+                            "price": str(v.price),
+                            "cost": str(v.cost),
+                            "qty_type": meta.get("qty_type", "fixed"),
+                            "qty_min": meta.get("qty_min"),
+                            "qty_max": meta.get("qty_max"),
+                            "qty_list": meta.get("qty_list", []),
+                            "is_active": v.is_active,
+                        })
+                    products_data.append({
+                        "id": p.id,
+                        "name": p.name,
+                        "category_name": p.category.name if p.category else "Uncategorized",
+                        "api_provider": p.api_provider,
+                        "variants_count": len(vars_data),
+                        "variants": vars_data
+                    })
+
+                # 3. Detect duplicate products
+                from collections import defaultdict
+                def clean_name(s):
+                    return re.sub(r'[\s\-_\(\)]+', '', (s or "").lower())
+                
+                grouped = defaultdict(list)
+                for pd in products_data:
+                    grouped[clean_name(pd["name"])].append({"id": pd["id"], "name": pd["name"], "cat": pd["category_name"], "vars": pd["variants_count"]})
+                
+                duplicates = {k: v for k, v in grouped.items() if len(v) > 1 and k}
+
+                # 4. Provider stats
+                pp_total = ProviderProduct.objects.count()
+                pp_active = ProviderProduct.objects.filter(is_active=True).count()
+                
+                diag = {
+                    "categories": cats,
+                    "total_products": len(products_data),
+                    "duplicates": duplicates,
+                    "products": products_data,
+                    "provider_products_total": pp_total,
+                    "provider_products_active": pp_active
+                }
+        except Exception as e:
+            import traceback
+            diag = {"error": str(e), "traceback": traceback.format_exc()}
     elif request.GET.get("diag") == "users":
         try:
             from apps.accounts.models import User
