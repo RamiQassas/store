@@ -7,7 +7,11 @@ from apps.catalog.models import Product, ProductVariant, Category
 class Command(BaseCommand):
     help = 'Remaps Alkasr products into properly grouped and categorized store catalog.'
 
+    def add_arguments(self, parser):
+        parser.add_argument('--sync', action='store_true', default=False, help='Sync live catalog from provider API before remapping')
+
     def handle(self, *args, **options):
+        do_sync = options.get('sync', False)
         CANONICAL_SECTIONS = {
             "شحن الألعاب": 1,
             "شحن التطبيقات": 2,
@@ -79,13 +83,14 @@ class Command(BaseCommand):
         for profile in profiles:
             self.stdout.write(f'Processing profile: {profile.provider_name} (ID: {profile.id})...')
             
-            # Sync from Alkasr to get latest availability and category tree
-            try:
-                from services.provider.manager import ProviderManager
-                ProviderManager.sync_catalog(profile)
-                self.stdout.write(self.style.SUCCESS('Synced live availability and category tree from Alkasr.'))
-            except Exception as e:
-                self.stdout.write(self.style.ERROR(f'Sync error: {e}'))
+            # Sync from Alkasr to get latest availability and category tree only if requested
+            if do_sync:
+                try:
+                    from services.provider.manager import ProviderManager
+                    ProviderManager.sync_catalog(profile)
+                    self.stdout.write(self.style.SUCCESS('Synced live availability and category tree from Alkasr.'))
+                except Exception as e:
+                    self.stdout.write(self.style.ERROR(f'Sync error: {e}'))
 
             mapper = AlkasrMapperService(profile)
             mapper.map_all_to_catalog()
