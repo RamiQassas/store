@@ -1230,14 +1230,21 @@
             formData.append('csrfmiddlewaretoken', '{{ csrf_token }}');
         }
 
-        fetch('.', {
+        const targetUrl = window.location.pathname.endsWith('/') ? window.location.pathname : (window.location.pathname + '/');
+
+        fetch(targetUrl, {
             method: 'POST',
             headers: {
                 'X-Requested-With': 'XMLHttpRequest'
             },
             body: formData
         })
-        .then(r => r.json())
+        .then(r => {
+            if (!r.ok) {
+                return r.json().catch(() => ({ status: 'failed', error: 'خطأ في استجابة الخادم (' + r.status + ')' }));
+            }
+            return r.json();
+        })
         .then(data => {
             if (data && data.status === 'completed') {
                 renderSyncCompleted(data);
@@ -1251,17 +1258,22 @@
         })
         .catch(err => {
             console.error("Sync start error:", err);
-            if (syncPollTimer) clearInterval(syncPollTimer);
-            syncPollTimer = setInterval(pollSyncProgress, 500);
+            renderSyncFailed({ error: "تعذر بدء المزامنة: " + (err.message || "خطأ غير متوقع") });
         });
     }
 
     function pollSyncProgress() {
         const integId = document.getElementById('provider-select-dropdown')?.value || "{{ selected_integration.id }}";
-        fetch('.?action=get_sync_progress&sync_progress=1&integration_id=' + encodeURIComponent(integId), {
+        const targetUrl = window.location.pathname.endsWith('/') ? window.location.pathname : (window.location.pathname + '/');
+        const pollUrl = targetUrl + '?action=get_sync_progress&sync_progress=1&integration_id=' + encodeURIComponent(integId);
+
+        fetch(pollUrl, {
             headers: { 'X-Requested-With': 'XMLHttpRequest' }
         })
-        .then(r => r.json())
+        .then(r => {
+            if (!r.ok) throw new Error("HTTP " + r.status);
+            return r.json();
+        })
         .then(data => {
             if (!data) return;
 

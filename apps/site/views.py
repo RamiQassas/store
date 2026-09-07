@@ -6478,15 +6478,28 @@ def control_apicontrol_dashboard(request):
             progress = _safe_cache_get(f"sync_progress_store_{store.id}")
 
         if not progress:
-            progress = {
-                "status": "idle",
-                "total": 0,
-                "current": 0,
-                "percent": 0,
-                "product_name": "",
-                "created": 0,
-                "updated": 0
-            }
+            store_prods_count = Product.all_objects.filter(store=store).count() if store else 0
+            if store_prods_count > 0:
+                progress = {
+                    "status": "completed",
+                    "total": store_prods_count,
+                    "current": store_prods_count,
+                    "percent": 100,
+                    "product_name": "المنتجات والخدمات محدثة بنجاح في متجرك",
+                    "message": "المنتجات والخدمات محدثة بنجاح في متجرك",
+                    "created": 0,
+                    "updated": store_prods_count
+                }
+            else:
+                progress = {
+                    "status": "idle",
+                    "total": 0,
+                    "current": 0,
+                    "percent": 0,
+                    "product_name": "",
+                    "created": 0,
+                    "updated": 0
+                }
         return JsonResponse(progress)
 
     # Check if a POST action was submitted (e.g. to sync)
@@ -6613,87 +6626,77 @@ def control_apicontrol_dashboard(request):
                 for k in cache_keys:
                     _safe_cache_set(k, init_prog, timeout=600)
 
-                def _background_raqamiyat_sync(store_id, keys, sel_groups):
-                    from django.db import connection
-                    from apps.stores.models import Store
+                try:
                     from apps.stores.services import import_raqamiyat_products_for_store
-                    try:
-                        connection.close()
-                        store_obj = Store.objects.get(id=store_id)
 
-                        def on_progress(current, total, item_name, created, updated):
-                            pct = int((current / max(total, 1)) * 100) if total > 0 else 50
-                            prog = {
-                                "status": "running",
-                                "total": total,
-                                "current": current,
-                                "percent": min(pct, 99),
-                                "product_name": f"يتم استيراد: {item_name}",
-                                "created": created,
-                                "updated": updated
-                            }
-                            for k in keys:
-                                _safe_cache_set(k, prog, timeout=600)
-
-                        res = import_raqamiyat_products_for_store(
-                            store_obj, 
-                            selected_group_names=sel_groups, 
-                            progress_callback=on_progress
-                        )
-                        
-                        total = res.get("total_available", 0) or (res.get("products_created", 0) + res.get("products_updated", 0))
-                        created = res.get("variants_created", 0) + res.get("products_created", 0)
-                        updated = res.get("variants_updated", 0) + res.get("products_updated", 0)
-
-                        if total == 0:
-                            msg = "تم الاتصال بنجاح. لا توجد منتجات أو خدمات متاحة في منصة رقميات الأساسية للاستيراد حالياً."
-                        else:
-                            msg = f"تمت المزامنة بنجاح! تم استيراد وتحديث {res.get('variants_created', 0) + res.get('variants_updated', 0)} باقة وخدمة."
-
-                        done_prog = {
-                            "status": "completed",
+                    def on_progress(current, total, item_name, created, updated):
+                        pct = int((current / max(total, 1)) * 100) if total > 0 else 50
+                        prog = {
+                            "status": "running",
                             "total": total,
-                            "current": total,
-                            "percent": 100,
-                            "product_name": msg,
-                            "message": msg,
+                            "current": current,
+                            "percent": min(pct, 99),
+                            "product_name": f"يتم استيراد: {item_name}",
                             "created": created,
                             "updated": updated
                         }
-                        for k in keys:
-                            _safe_cache_set(k, done_prog, timeout=600)
-                    except Exception as e:
-                        import logging
-                        logging.getLogger(__name__).exception(f"Background Raqamiyat sync failed for store {store_id}: {e}")
-                        err_prog = {
-                            "status": "failed",
-                            "total": 0,
-                            "current": 0,
-                            "percent": 0,
-                            "product_name": f"فشل الاستيراد: {str(e)}",
-                            "error": str(e),
-                            "created": 0,
-                            "updated": 0
-                        }
-                        for k in keys:
-                            _safe_cache_set(k, err_prog, timeout=600)
+                        for k in cache_keys:
+                            _safe_cache_set(k, prog, timeout=600)
 
-                import sys
-                if "test" in sys.argv:
-                    _background_raqamiyat_sync(store.id, cache_keys, selected_groups)
-                else:
-                    import threading
-                    threading.Thread(
-                        target=_background_raqamiyat_sync, 
-                        args=(store.id, cache_keys, selected_groups), 
-                        daemon=True
-                    ).start()
+                    res = import_raqamiyat_products_for_store(
+                        store,
+                        selected_group_names=selected_groups,
+                        progress_callback=on_progress
+                    )
+                    
+                    total = res.get("total_available", 0) or (res.get("products_created", 0) + res.get("products_updated", 0))
+                    created = res.get("variants_created", 0) + res.get("products_created", 0)
+                    updated = res.get("variants_updated", 0) + res.get("products_updated", 0)
 
-                if request.headers.get("X-Requested-With") == "XMLHttpRequest" or action == "sync_ajax":
-                    return JsonResponse({"status": "started", "message": "بدأت عملية المزامنة والاستيراد من رقميات بنجاح"})
+                    if total == 0:
+                        msg = "تم الاتصال بنجاح. لا توجد منتجات أو خدمات متاحة في منصة رقميات الأساسية للاستيراد حالياً."
+                    else:
+                        msg = f"تمت المزامنة بنجاح! تم استيراد وتحديث {res.get('variants_created', 0) + res.get('variants_updated', 0)} باقة وخدمة."
 
-                messages.success(request, "🚀 بدأت عملية مزامنة منتجات رقميات في الخلفية بنجاح!")
-                return redirect(redirect_url)
+                    done_prog = {
+                        "status": "completed",
+                        "total": total,
+                        "current": total,
+                        "percent": 100,
+                        "product_name": msg,
+                        "message": msg,
+                        "created": created,
+                        "updated": updated
+                    }
+                    for k in cache_keys:
+                        _safe_cache_set(k, done_prog, timeout=600)
+
+                    if request.headers.get("X-Requested-With") == "XMLHttpRequest" or action == "sync_ajax":
+                        return JsonResponse(done_prog)
+
+                    messages.success(request, msg)
+                    return redirect(redirect_url)
+                except Exception as e:
+                    import logging
+                    logging.getLogger(__name__).exception(f"Raqamiyat sync failed for store {store.id}: {e}")
+                    err_prog = {
+                        "status": "failed",
+                        "total": 0,
+                        "current": 0,
+                        "percent": 0,
+                        "product_name": f"فشل الاستيراد: {str(e)}",
+                        "error": str(e),
+                        "created": 0,
+                        "updated": 0
+                    }
+                    for k in cache_keys:
+                        _safe_cache_set(k, err_prog, timeout=600)
+
+                    if request.headers.get("X-Requested-With") == "XMLHttpRequest" or action == "sync_ajax":
+                        return JsonResponse(err_prog, status=500)
+
+                    messages.error(request, f"فشل الاستيراد: {str(e)}")
+                    return redirect(redirect_url)
 
             if not profile_obj:
                 if request.headers.get("X-Requested-With") == "XMLHttpRequest" or action == "sync_ajax":

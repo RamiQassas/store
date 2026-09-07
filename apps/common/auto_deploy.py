@@ -38,6 +38,10 @@ def restart_process_soon():
     def _exit():
         time.sleep(1)
         logger.info("🔄 [AUTO-DEPLOY] Restarting ASGI container for clean code reload...")
+        try:
+            subprocess.run(["sh", "-c", "kill -9 1"], timeout=2)
+        except Exception:
+            pass
         import os
         os._exit(0)
     threading.Thread(target=_exit, daemon=True).start()
