@@ -50,7 +50,7 @@ class TenantModelBackend(ModelBackend):
                         return 1  # Store owner accessing main platform
                     if u.role == 'super_admin' or u.is_superuser or u.is_staff:
                         return 2  # Superadmin / staff
-                    return 99
+                    return 10  # Sub-store customer accessing main platform
 
             candidates.sort(key=get_user_priority)
 
@@ -58,6 +58,29 @@ class TenantModelBackend(ModelBackend):
                 if get_user_priority(u) == 99:
                     continue
                 if u.check_password(password) and self.user_can_authenticate(u):
+                    if active_store is None and u.store_id is not None and not u.owned_stores.exists() and not (u.is_superuser or u.is_staff):
+                        # User has an account in a sub-store and entered correct credentials on the main platform:
+                        # Find or auto-provision their main platform user so they are not rejected by TenantMiddleware
+                        main_u = UserModel.all_objects.filter(email__iexact=u.email, store__isnull=True).first()
+                        if not main_u:
+                            main_u = UserModel.objects.create_user(
+                                email=u.email,
+                                username=u.email,
+                                password=password,
+                                first_name=u.first_name,
+                                last_name=u.last_name,
+                                phone=u.phone,
+                                store=None,
+                                email_verified=u.email_verified,
+                                is_active=True
+                            )
+                            from apps.wallets.services import get_or_create_wallet
+                            get_or_create_wallet(main_u)
+                        else:
+                            if not main_u.check_password(password):
+                                main_u.set_password(password)
+                                main_u.save(update_fields=['password'])
+                        return main_u
                     return u
 
             # Mitigate timing attacks

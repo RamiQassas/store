@@ -76,8 +76,22 @@ class RegisterForm(forms.Form):
     last_name = forms.CharField(label="الاسم الأخير", max_length=150, required=False, widget=forms.TextInput(attrs={"placeholder": "الاسم الأخير"}))
     email = forms.EmailField(label="البريد الإلكتروني", widget=forms.EmailInput(attrs={"placeholder": "name@example.com"}))
     phone = forms.CharField(label="الهاتف", max_length=32, widget=forms.TextInput(attrs={"placeholder": "05xxxxxxxx"}))
-    password = forms.CharField(label="كلمة المرور", widget=forms.PasswordInput(attrs={"placeholder": "كلمة مرور قوية"}), min_length=10)
-    confirm_password = forms.CharField(label="تأكيد كلمة المرور", widget=forms.PasswordInput(attrs={"placeholder": "تأكيد كلمة المرور"}))
+    password = forms.CharField(
+        label="كلمة المرور",
+        widget=forms.PasswordInput(attrs={"placeholder": "كلمة مرور قوية"}),
+        min_length=10,
+        error_messages={
+            "required": "يرجى إدخال كلمة المرور.",
+            "min_length": "كلمة المرور قصيرة جداً، يجب ألا تقل عن 10 خانات."
+        }
+    )
+    confirm_password = forms.CharField(
+        label="تأكيد كلمة المرور",
+        widget=forms.PasswordInput(attrs={"placeholder": "تأكيد كلمة المرور"}),
+        error_messages={
+            "required": "يرجى تأكيد كلمة المرور."
+        }
+    )
 
     def clean_email(self):
         from apps.common.tenant_utils import get_current_store, bypass_tenant_filter
@@ -90,8 +104,8 @@ class RegisterForm(forms.Form):
                 if User.all_objects.filter(email=email, store__isnull=True).exists():
                     raise forms.ValidationError("هذا البريد مسجل مسبقاً في منصة رقميات. يمكنك التوجه إلى صفحة تسجيل الدخول والمتابعة مباشرة بحسابك.")
             else:
-                if User.all_objects.filter(email=email).exists():
-                    raise forms.ValidationError("هذا البريد الإلكتروني مسجل مسبقاً.")
+                if User.all_objects.filter(email=email, store__isnull=True).exists():
+                    raise forms.ValidationError("هذا البريد الإلكتروني مسجل مسبقاً في منصة رقميات.")
         return email
 
     def clean_phone(self):
@@ -112,7 +126,7 @@ class RegisterForm(forms.Form):
                 if User.all_objects.filter(phone=phone, store=active_store).exists():
                     raise forms.ValidationError("رقم الهاتف هذا مسجل مسبقاً في هذا المتجر.")
             else:
-                if User.all_objects.filter(phone=phone).exists():
+                if User.all_objects.filter(phone=phone, store__isnull=True).exists():
                     raise forms.ValidationError("رقم الهاتف هذا مسجل مسبقاً.")
 
         # Country-specific length validation (Syria example)
@@ -134,6 +148,7 @@ class RegisterForm(forms.Form):
 
         if password and confirm_password and password != confirm_password:
             self.add_error("confirm_password", "كلمات المرور غير متطابقة.")
+            self.add_error("password", "كلمة المرور وتأكيد كلمة المرور غير متطابقتين.")
         
         # Basic strength check if not already handled by min_length
         if password:
@@ -365,8 +380,22 @@ class KYCSettingsForm(forms.ModelForm):
 
 class ChangePasswordForm(forms.Form):
     current_password = forms.CharField(label="كلمة المرور الحالية", required=False, widget=forms.PasswordInput(attrs={"class": "builder-input", "placeholder": "********"}))
-    new_password = forms.CharField(label="كلمة المرور الجديدة", widget=forms.PasswordInput(attrs={"class": "builder-input", "placeholder": "********"}), min_length=10)
-    confirm_password = forms.CharField(label="تأكيد كلمة المرور الجديدة", widget=forms.PasswordInput(attrs={"class": "builder-input", "placeholder": "********"}))
+    new_password = forms.CharField(
+        label="كلمة المرور الجديدة",
+        widget=forms.PasswordInput(attrs={"class": "builder-input", "placeholder": "********"}),
+        min_length=10,
+        error_messages={
+            "required": "يرجى إدخال كلمة المرور الجديدة.",
+            "min_length": "كلمة المرور الجديدة قصيرة جداً، يجب ألا تقل عن 10 خانات."
+        }
+    )
+    confirm_password = forms.CharField(
+        label="تأكيد كلمة المرور الجديدة",
+        widget=forms.PasswordInput(attrs={"class": "builder-input", "placeholder": "********"}),
+        error_messages={
+            "required": "يرجى تأكيد كلمة المرور الجديدة."
+        }
+    )
 
     def __init__(self, *args, **kwargs):
         self.has_password = kwargs.pop('has_password', True)
@@ -390,6 +419,7 @@ class ChangePasswordForm(forms.Form):
 
         if new_password and confirm_password and new_password != confirm_password:
             self.add_error("confirm_password", "كلمات المرور غير متطابقة.")
+            self.add_error("new_password", "كلمة المرور الجديدة وتأكيدها غير متطابقتين.")
         return cleaned_data
 
 

@@ -97,6 +97,7 @@
                 </div>
             </div>
             {% for error in form.password.errors %}<p class="text-[10px] text-rose-500 mt-1 mr-2">{{ error }}</p>{% endfor %}
+            <p id="pass-client-error" class="text-[10px] text-rose-500 mt-1 mr-2 hidden"></p>
         </div>
 
         <div class="space-y-2">
@@ -104,7 +105,12 @@
             <div class="relative">
                 <i class="fas fa-shield-alt absolute right-5 top-1/2 -translate-y-1/2 text-slate-500 text-sm"></i>
                 <input type="password" name="confirm_password" required class="auth-input pr-12 pl-12" placeholder="••••••••" id="id_confirm_password">
+                <button type="button" class="toggle-password absolute left-5 top-1/2 -translate-y-1/2 text-slate-500 hover:text-cyan transition-colors" data-target="id_confirm_password">
+                    <i class="fas fa-eye"></i>
+                </button>
             </div>
+            {% for error in form.confirm_password.errors %}<p class="text-[10px] text-rose-500 mt-1 mr-2">{{ error }}</p>{% endfor %}
+            <p id="confirm-pass-client-error" class="text-[10px] text-rose-500 mt-1 mr-2 hidden"></p>
         </div>
 
         <div class="p-4 bg-cyan/5 border border-cyan/10 rounded-2xl">
@@ -170,7 +176,44 @@
         utilsScript: "https://cdn.jsdelivr.net/npm/intl-tel-input@23.0.10/build/js/utils.js",
     });
 
+    const passInput = document.querySelector('input[name="password"]');
+    const confirmInput = document.querySelector('input[name="confirm_password"]');
+    const passErr = document.querySelector("#pass-client-error");
+    const confirmErr = document.querySelector("#confirm-pass-client-error");
+
+    function validatePasswords() {
+        let valid = true;
+        const p1 = passInput ? passInput.value : "";
+        const p2 = confirmInput ? confirmInput.value : "";
+
+        if (p1 && p1.length < 10) {
+            passErr.textContent = "كلمة المرور قصيرة جداً، يجب ألا تقل عن 10 خانات.";
+            passErr.classList.remove("hidden");
+            valid = false;
+        } else {
+            passErr.textContent = "";
+            passErr.classList.add("hidden");
+        }
+
+        if (p2 && p1 !== p2) {
+            confirmErr.textContent = "كلمات المرور غير متطابقة، يرجى التأكد من تطابق كلمة المرور وتأكيدها.";
+            confirmErr.classList.remove("hidden");
+            valid = false;
+        } else {
+            confirmErr.textContent = "";
+            confirmErr.classList.add("hidden");
+        }
+        return valid;
+    }
+
+    if (passInput) passInput.addEventListener("input", validatePasswords);
+    if (confirmInput) confirmInput.addEventListener("input", validatePasswords);
+
     document.querySelector("#register-form").addEventListener("submit", function(e) {
+        if (!validatePasswords()) {
+            e.preventDefault();
+            return;
+        }
         if (!iti.isValidNumber()) {
             e.preventDefault();
             alert("رقم الهاتف غير صحيح لهذه الدولة.");

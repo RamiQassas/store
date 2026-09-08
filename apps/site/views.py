@@ -726,19 +726,29 @@ def v3_reset_password_view(request):
     token = request.GET.get("token") or request.POST.get("token")
     uid = request.GET.get("uid") or request.POST.get("uid")
     if not token or not uid: return redirect("site_forgot_password")
-    user = get_object_or_404(User, id=uid)
+    user = get_object_or_404(User.all_objects, id=uid)
     from django.contrib.auth.tokens import default_token_generator
     if not default_token_generator.check_token(user, token):
         messages.error(request, "الرابط غير صالح أو منتهي الصلاحية."); return redirect("site_forgot_password")
+    error_msg = None
     if request.method == "POST":
-        p1, p2 = request.POST.get("password"), request.POST.get("confirm_password")
-        if p1 and p1 == p2 and len(p1) >= 10:
-            user.set_password(p1); user.save(); 
+        p1 = (request.POST.get("password") or "").strip()
+        p2 = (request.POST.get("confirm_password") or "").strip()
+        if not p1:
+            error_msg = "يرجى إدخال كلمة المرور الجديدة."
+        elif len(p1) < 10:
+            error_msg = "كلمة المرور قصيرة جداً، يجب أن تتكون من 10 خانات على الأقل."
+        elif p1 != p2:
+            error_msg = "كلمات المرور غير متطابقة، يرجى التأكد من تطابق كلمة المرور وتأكيدها."
+        else:
+            user.set_password(p1)
+            user.save()
             login(request, user, backend='apps.stores.auth_backend.TenantModelBackend')
             messages.success(request, "تم تغيير كلمة المرور بنجاح. تم تسجيل دخولك تلقائياً.")
             return redirect("dashboard")
-        messages.error(request, "كلمات المرور غير متطابقة أو لا تستوفي شروط الطول (10 خانات على الأقل).")
-    return render(request, "site/v3/v3_reset_password.html", {"user_email": user.email, "token": token, "uid": uid})
+        if error_msg:
+            messages.error(request, error_msg)
+    return render(request, "site/v3/v3_reset_password.html", {"user_email": user.email, "token": token, "uid": uid, "error_msg": error_msg})
 
 @login_required
 def v3_logout_view(request):
@@ -3907,9 +3917,9 @@ def control_wallets_list(request):
 def control_user_moderate(request, public_uuid):
     store = getattr(request, "store", None)
     if store:
-        user = get_object_or_404(User, public_uuid=public_uuid, store=store)
+        user = get_object_or_404(User.all_objects, public_uuid=public_uuid, store=store)
     else:
-        user = get_object_or_404(User, public_uuid=public_uuid, store__isnull=True)
+        user = get_object_or_404(User.all_objects, public_uuid=public_uuid)
     form = ModerateUserForm(request.POST or None, instance=user)
     if request.method == "POST":
         action = request.POST.get("action")
@@ -4039,11 +4049,13 @@ def control_user_moderate(request, public_uuid):
     from apps.payments.models import DepositRequest, WithdrawalRequest
     from apps.orders.models import Order
     from apps.accounts.models import ActivityLog
+    from apps.common.tenant_utils import bypass_tenant_filter
 
-    recent_deposits = DepositRequest.objects.filter(user=user).select_related('payment_method', 'currency').order_by('-created_at')[:20]
-    recent_withdrawals = WithdrawalRequest.objects.filter(user=user).select_related('payment_method', 'currency').order_by('-created_at')[:20]
-    recent_orders = Order.objects.filter(customer=user).prefetch_related('items__variant__product').order_by('-created_at')[:20]
-    recent_activities = ActivityLog.objects.filter(user=user).order_by('-created_at')[:50]
+    with bypass_tenant_filter():
+        recent_deposits = DepositRequest.all_objects.filter(user=user).select_related('payment_method', 'currency').order_by('-created_at')[:20]
+        recent_withdrawals = WithdrawalRequest.all_objects.filter(user=user).select_related('payment_method', 'currency').order_by('-created_at')[:20]
+        recent_orders = Order.all_objects.filter(customer=user).prefetch_related('items__variant__product').order_by('-created_at')[:20]
+        recent_activities = ActivityLog.objects.filter(user=user).order_by('-created_at')[:50]
 
     return render(request, "site/control_user_moderate.html", {
         "form": form, 
@@ -6325,6 +6337,30 @@ def sso_transfer_view(request):
                 if not is_store_member:
                     messages.error(request, "هذا الحساب غير مرتبط بهذا المتجر.")
                     return redirect("site_login")
+            else:
+                # Main platform: ensure user has a main platform user record so TenantMiddleware won't reject them
+                if getattr(sso_user, 'store_id', None) is not None:
+                    main_user = User.all_objects.filter(email__iexact=sso_user.email, store__isnull=True).first()
+                    if main_user:
+                        user_to_login = main_user
+                    else:
+                        from django.utils.crypto import get_random_string
+                        from apps.wallets.services import get_or_create_wallet
+                        main_user = User.objects.create_user(
+                            email=sso_user.email,
+                            username=sso_user.email,
+                            password=get_random_string(32),
+                            first_name=sso_user.first_name,
+                            last_name=sso_user.last_name,
+                            phone=sso_user.phone,
+                            store=None,
+                            role=sso_user.role,
+                            preferred_language=sso_user.preferred_language,
+                            email_verified=True,
+                            is_active=True
+                        )
+                        get_or_create_wallet(main_user)
+                        user_to_login = main_user
 
             user_to_login.backend = "apps.stores.auth_backend.TenantModelBackend"
             login(request, user_to_login)

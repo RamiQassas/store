@@ -82,6 +82,16 @@ class MyAccountAdapter(DefaultAccountAdapter):
                 raise self.validation_error("username_taken")
         return username
 
+    def add_message(self, request, level, message_template, message_context=None, extra_tags=''):
+        # Clean up greeting message to display user's real name instead of internal randomized username
+        if message_template == 'account/messages/logged_in.txt' and message_context and 'user' in message_context:
+            user = message_context['user']
+            name = user.first_name or user.get_full_name() or user.email.split('@')[0]
+            from django.contrib import messages
+            messages.add_message(request, level, f"مرحباً بك، تم تسجيل الدخول بنجاح يا {name}.", extra_tags=extra_tags)
+            return
+        super().add_message(request, level, message_template, message_context=message_context, extra_tags=extra_tags)
+
     def clean_email(self, email):
         active_store = get_store_from_request(self.request)
         if active_store:
@@ -179,10 +189,32 @@ class MySocialAccountAdapter(DefaultSocialAccountAdapter):
             user = None
             if active_store:
                 user = User._base_manager.filter(email__iexact=email, store=active_store).first()
-            if not user:
+                if not user:
+                    user = User._base_manager.filter(email__iexact=email, store__isnull=True).first()
+            else:
                 user = User._base_manager.filter(email__iexact=email, store__isnull=True).first()
-            if not user:
-                user = User._base_manager.filter(email__iexact=email).first()
+                if not user:
+                    # User only has an account in a sub-store, but is now signing in on the main platform!
+                    # Auto-provision a clean main platform user record for them so they are not rejected by TenantMiddleware
+                    existing_sub_user = User._base_manager.filter(email__iexact=email).first()
+                    first_name = existing_sub_user.first_name if existing_sub_user else (sociallogin.account.extra_data.get("given_name") or "")
+                    last_name = existing_sub_user.last_name if existing_sub_user else (sociallogin.account.extra_data.get("family_name") or "")
+                    phone = existing_sub_user.phone if existing_sub_user else None
+                    
+                    from django.utils.crypto import get_random_string
+                    user = User.objects.create_user(
+                        email=email,
+                        username=email,
+                        password=get_random_string(32),
+                        first_name=first_name,
+                        last_name=last_name,
+                        phone=phone,
+                        store=None,
+                        email_verified=True,
+                        is_active=True
+                    )
+                    from apps.wallets.services import get_or_create_wallet
+                    get_or_create_wallet(user)
 
             if not user:
                 return
