@@ -435,8 +435,15 @@ def store_register(request):
         password = request.POST.get("password", "")
         confirm_password = request.POST.get("confirm_password", "")
         
+        has_err = False
+        if not password or len(password) < 10:
+            messages.error(request, "كلمة المرور قصيرة جداً، يجب ألا تقل عن 10 خانات.")
+            has_err = True
         if password != confirm_password:
             messages.error(request, "كلمات المرور غير متطابقة.")
+            has_err = True
+            
+        if has_err:
             return redirect("store_register")
             
         with bypass_tenant_filter():

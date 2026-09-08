@@ -372,6 +372,14 @@ def v3_login_view(request):
     active_store = getattr(request, 'store', None)
 
     if request.user.is_authenticated:
+        # Multi-Tenant isolation: if logged in with a sub-store account on the main platform, logout immediately
+        if active_store is None and getattr(request.user, "store_id", None) is not None:
+            from apps.common.tenant_utils import bypass_tenant_filter
+            with bypass_tenant_filter():
+                is_owner = request.user.owned_stores.exists()
+            if not is_owner:
+                logout(request)
+                return redirect("site_login")
         return redirect("control_dashboard" if (request.user.is_staff and getattr(request, 'store', None) is None) else "dashboard")
     form = LoginForm(request.POST or None)
     if request.method == "POST" and form.is_valid():
@@ -449,24 +457,31 @@ def v3_login_view(request):
 def v3_register_view(request):
     if request.user.is_authenticated: return redirect("dashboard")
     form = RegisterForm(request.POST or None)
-    if request.method == "POST" and form.is_valid():
-        try:
-            with transaction.atomic():
-                user = User.objects.create_user(
-                    email=form.cleaned_data["email"],
-                    password=form.cleaned_data["password"],
-                    phone=request.POST.get("phone"),
-                    first_name=form.cleaned_data["first_name"],
-                    last_name=form.cleaned_data["last_name"],
-                    store=getattr(request, 'store', None)
-                )
-                get_or_create_wallet(user)
-                otp = v3_generate_otp(user, OTPToken.Purpose.REGISTRATION)
-                if v3_send_otp_email(user, otp):
-                    request.session["v3_auth_uid"], request.session["v3_auth_purpose"] = str(user.id), OTPToken.Purpose.REGISTRATION
-                    return redirect("site_verify_otp")
-                else: raise Exception("فشل إرسال البريد الإلكتروني.")
-        except Exception as e: form.add_error(None, str(e))
+    if request.method == "POST":
+        if form.is_valid():
+            try:
+                with transaction.atomic():
+                    user = User.objects.create_user(
+                        email=form.cleaned_data["email"],
+                        password=form.cleaned_data["password"],
+                        phone=request.POST.get("phone"),
+                        first_name=form.cleaned_data["first_name"],
+                        last_name=form.cleaned_data["last_name"],
+                        store=getattr(request, 'store', None)
+                    )
+                    get_or_create_wallet(user)
+                    otp = v3_generate_otp(user, OTPToken.Purpose.REGISTRATION)
+                    if v3_send_otp_email(user, otp):
+                        request.session["v3_auth_uid"], request.session["v3_auth_purpose"] = str(user.id), OTPToken.Purpose.REGISTRATION
+                        return redirect("site_verify_otp")
+                    else: raise Exception("فشل إرسال البريد الإلكتروني.")
+            except Exception as e:
+                form.add_error(None, str(e))
+                messages.error(request, str(e))
+        else:
+            for field, errors in form.errors.items():
+                for error in errors:
+                    messages.error(request, error)
     return render(request, "site/v3/v3_register.html", {"form": form})
 
 def _is_safe_redirect(url):
@@ -734,20 +749,27 @@ def v3_reset_password_view(request):
     if request.method == "POST":
         p1 = (request.POST.get("password") or "").strip()
         p2 = (request.POST.get("confirm_password") or "").strip()
+        errors = []
         if not p1:
-            error_msg = "يرجى إدخال كلمة المرور الجديدة."
+            errors.append("يرجى إدخال كلمة المرور الجديدة.")
         elif len(p1) < 10:
-            error_msg = "كلمة المرور قصيرة جداً، يجب أن تتكون من 10 خانات على الأقل."
-        elif p1 != p2:
-            error_msg = "كلمات المرور غير متطابقة، يرجى التأكد من تطابق كلمة المرور وتأكيدها."
-        else:
+            errors.append("كلمة المرور قصيرة جداً، يجب أن تتكون من 10 خانات على الأقل.")
+        
+        if not p2:
+            errors.append("يرجى تأكيد كلمة المرور الجديدة.")
+        elif p1 and p1 != p2:
+            errors.append("كلمات المرور غير متطابقة، يرجى التأكد من تطابق كلمة المرور وتأكيدها.")
+        
+        if not errors:
             user.set_password(p1)
             user.save()
             login(request, user, backend='apps.stores.auth_backend.TenantModelBackend')
             messages.success(request, "تم تغيير كلمة المرور بنجاح. تم تسجيل دخولك تلقائياً.")
             return redirect("dashboard")
-        if error_msg:
-            messages.error(request, error_msg)
+        else:
+            error_msg = " | ".join(errors)
+            for err in errors:
+                messages.error(request, err)
     return render(request, "site/v3/v3_reset_password.html", {"user_email": user.email, "token": token, "uid": uid, "error_msg": error_msg})
 
 @login_required
@@ -1512,23 +1534,28 @@ def v3_change_password_view(request):
 
     has_password = request.user.has_usable_password()
     form = ChangePasswordForm(request.POST or None, has_password=has_password)
-    if request.method == "POST" and form.is_valid():
-        success = False
-        if not has_password:
-            request.user.set_password(form.cleaned_data["new_password"])
-            request.user.save()
-            success = True
-        elif request.user.check_password(form.cleaned_data["current_password"]):
-            request.user.set_password(form.cleaned_data["new_password"])
-            request.user.save()
-            success = True
-        else:
-            messages.error(request, "كلمة المرور الحالية غير صحيحة.")
+    if request.method == "POST":
+        if form.is_valid():
+            success = False
+            if not has_password:
+                request.user.set_password(form.cleaned_data["new_password"])
+                request.user.save()
+                success = True
+            elif request.user.check_password(form.cleaned_data["current_password"]):
+                request.user.set_password(form.cleaned_data["new_password"])
+                request.user.save()
+                success = True
+            else:
+                messages.error(request, "كلمة المرور الحالية غير صحيحة.")
 
-        if success:
-            update_session_auth_hash(request, request.user)
-            messages.success(request, "تم تعيين/تغيير كلمة المرور بنجاح.")
-            return redirect("dashboard")
+            if success:
+                update_session_auth_hash(request, request.user)
+                messages.success(request, "تم تعيين/تغيير كلمة المرور بنجاح.")
+                return redirect("dashboard")
+        else:
+            for field, errors in form.errors.items():
+                for error in errors:
+                    messages.error(request, error)
 
     return render(request, "site/v3/v3_change_password.html", {
         "form": form,
@@ -3916,10 +3943,24 @@ def control_wallets_list(request):
 @admin_required
 def control_user_moderate(request, public_uuid):
     store = getattr(request, "store", None)
-    if store:
-        user = get_object_or_404(User.all_objects, public_uuid=public_uuid, store=store)
-    else:
-        user = get_object_or_404(User.all_objects, public_uuid=public_uuid)
+    from apps.common.tenant_utils import bypass_tenant_filter
+    with bypass_tenant_filter():
+        if store:
+            user = User.all_objects.filter(public_uuid=public_uuid, store=store).first()
+            if not user:
+                try:
+                    user = User.all_objects.filter(Q(pk=public_uuid) | Q(uid=str(public_uuid)), store=store).first()
+                except Exception:
+                    pass
+        else:
+            user = User.all_objects.filter(public_uuid=public_uuid).first()
+            if not user:
+                try:
+                    user = User.all_objects.filter(Q(pk=public_uuid) | Q(uid=str(public_uuid))).first()
+                except Exception:
+                    pass
+    if not user:
+        raise Http404("No User matches the given query.")
     form = ModerateUserForm(request.POST or None, instance=user)
     if request.method == "POST":
         action = request.POST.get("action")

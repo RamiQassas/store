@@ -181,7 +181,7 @@
     const passErr = document.querySelector("#pass-client-error");
     const confirmErr = document.querySelector("#confirm-pass-client-error");
 
-    function validatePasswords() {
+    function validatePasswords(isSubmit = false) {
         let valid = true;
         const p1 = passInput ? passInput.value : "";
         const p2 = confirmInput ? confirmInput.value : "";
@@ -190,13 +190,21 @@
             passErr.textContent = "كلمة المرور قصيرة جداً، يجب ألا تقل عن 10 خانات.";
             passErr.classList.remove("hidden");
             valid = false;
+        } else if (!p1 && isSubmit) {
+            passErr.textContent = "يرجى إدخال كلمة المرور (10 خانات على الأقل).";
+            passErr.classList.remove("hidden");
+            valid = false;
         } else {
             passErr.textContent = "";
             passErr.classList.add("hidden");
         }
 
-        if (p2 && p1 !== p2) {
+        if (p1 && p2 && p1 !== p2) {
             confirmErr.textContent = "كلمات المرور غير متطابقة، يرجى التأكد من تطابق كلمة المرور وتأكيدها.";
+            confirmErr.classList.remove("hidden");
+            valid = false;
+        } else if (p1 && !p2 && isSubmit) {
+            confirmErr.textContent = "يرجى تأكيد كلمة المرور.";
             confirmErr.classList.remove("hidden");
             valid = false;
         } else {
@@ -206,12 +214,16 @@
         return valid;
     }
 
-    if (passInput) passInput.addEventListener("input", validatePasswords);
-    if (confirmInput) confirmInput.addEventListener("input", validatePasswords);
+    if (passInput) passInput.addEventListener("input", () => validatePasswords(false));
+    if (confirmInput) confirmInput.addEventListener("input", () => validatePasswords(false));
 
     document.querySelector("#register-form").addEventListener("submit", function(e) {
-        if (!validatePasswords()) {
+        if (!validatePasswords(true)) {
             e.preventDefault();
+            const firstErr = document.querySelector("#pass-client-error:not(.hidden), #confirm-pass-client-error:not(.hidden)");
+            if (firstErr) {
+                firstErr.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
             return;
         }
         if (!iti.isValidNumber()) {

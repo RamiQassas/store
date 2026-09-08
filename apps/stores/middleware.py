@@ -160,8 +160,12 @@ class TenantMiddleware:
                         request._bypass_token = token
                 else:
                     # Strict isolation: log out store-scoped users from the main site (except store owners)
-                    # Bypass isolation for login/SSO callback paths to allow cross-domain login sync to work
-                    if not (request.path.startswith('/auth/sso-callback/') or request.path.startswith('/accounts/')):
+                    # Only bypass isolation for actual cross-domain SSO callback requests
+                    next_url_val = str(request.GET.get('next', '')) or str(request.session.get('next', ''))
+                    is_sso = request.path.startswith('/auth/sso-callback/') or (
+                        request.path.startswith('/accounts/') and 'sso-callback' in next_url_val
+                    )
+                    if not is_sso:
                         if getattr(request.user, "store_id", None) is not None:
                             from apps.common.tenant_utils import bypass_tenant_filter
                             with bypass_tenant_filter():

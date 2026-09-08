@@ -145,16 +145,22 @@ class RegisterForm(forms.Form):
         cleaned_data = super().clean()
         password = cleaned_data.get("password")
         confirm_password = cleaned_data.get("confirm_password")
+        raw_password = self.data.get("password", "")
+        raw_confirm = self.data.get("confirm_password", "")
 
-        if password and confirm_password and password != confirm_password:
+        # Always check mismatch, even if password failed min_length validation
+        if raw_password and raw_confirm and raw_password != raw_confirm:
             self.add_error("confirm_password", "كلمات المرور غير متطابقة.")
             self.add_error("password", "كلمة المرور وتأكيد كلمة المرور غير متطابقتين.")
+        elif raw_password and not raw_confirm:
+            self.add_error("confirm_password", "يرجى تأكيد كلمة المرور.")
         
-        # Basic strength check if not already handled by min_length
-        if password:
-            if not any(char.isdigit() for char in password):
+        # Basic strength check
+        check_pass = password or raw_password
+        if check_pass:
+            if not any(char.isdigit() for char in check_pass):
                 self.add_error("password", "يجب أن تحتوي كلمة المرور على رقم واحد على الأقل.")
-            if not any(char.isupper() for char in password):
+            if not any(char.isupper() for char in check_pass):
                 self.add_error("password", "يجب أن تحتوي كلمة المرور على حرف كبير واحد على الأقل.")
         
         return cleaned_data
@@ -406,20 +412,23 @@ class ChangePasswordForm(forms.Form):
 
     def clean_new_password(self):
         password = self.cleaned_data.get("new_password")
-        if not any(char.isdigit() for char in password):
-            raise forms.ValidationError("يجب أن تحتوي كلمة المرور على رقم واحد على الأقل.")
-        if not any(char.isupper() for char in password):
-            raise forms.ValidationError("يجب أن تحتوي كلمة المرور على حرف كبير واحد على الأقل.")
+        if password:
+            if not any(char.isdigit() for char in password):
+                raise forms.ValidationError("يجب أن تحتوي كلمة المرور على رقم واحد على الأقل.")
+            if not any(char.isupper() for char in password):
+                raise forms.ValidationError("يجب أن تحتوي كلمة المرور على حرف كبير واحد على الأقل.")
         return password
 
     def clean(self):
         cleaned_data = super().clean()
-        new_password = cleaned_data.get("new_password")
-        confirm_password = cleaned_data.get("confirm_password")
+        raw_new = self.data.get("new_password", "")
+        raw_confirm = self.data.get("confirm_password", "")
 
-        if new_password and confirm_password and new_password != confirm_password:
+        if raw_new and raw_confirm and raw_new != raw_confirm:
             self.add_error("confirm_password", "كلمات المرور غير متطابقة.")
             self.add_error("new_password", "كلمة المرور الجديدة وتأكيدها غير متطابقتين.")
+        elif raw_new and not raw_confirm:
+            self.add_error("confirm_password", "يرجى تأكيد كلمة المرور الجديدة.")
         return cleaned_data
 
 

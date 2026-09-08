@@ -84,12 +84,17 @@ class MyAccountAdapter(DefaultAccountAdapter):
 
     def add_message(self, request, level, message_template, message_context=None, extra_tags=''):
         # Clean up greeting message to display user's real name instead of internal randomized username
-        if message_template == 'account/messages/logged_in.txt' and message_context and 'user' in message_context:
-            user = message_context['user']
-            name = user.first_name or user.get_full_name() or user.email.split('@')[0]
-            from django.contrib import messages
-            messages.add_message(request, level, f"مرحباً بك، تم تسجيل الدخول بنجاح يا {name}.", extra_tags=extra_tags)
-            return
+        if message_template == 'account/messages/logged_in.txt':
+            user = None
+            if message_context and 'user' in message_context:
+                user = message_context['user']
+            elif hasattr(request, 'user') and request.user.is_authenticated:
+                user = request.user
+            if user:
+                name = user.first_name or user.get_full_name() or (user.email.split('@')[0] if user.email else user.username)
+                from django.contrib import messages
+                messages.add_message(request, level, f"مرحباً بك، تم تسجيل الدخول بنجاح يا {name}.", extra_tags=extra_tags)
+                return
         super().add_message(request, level, message_template, message_context=message_context, extra_tags=extra_tags)
 
     def clean_email(self, email):
@@ -186,6 +191,19 @@ class MySocialAccountAdapter(DefaultSocialAccountAdapter):
         try:
             active_store = get_store_from_request(request)
             
+            # If logged in with a sub-store account on the main platform, disconnect that session
+            if active_store is None and request.user.is_authenticated and getattr(request.user, "store_id", None) is not None:
+                from apps.common.tenant_utils import bypass_tenant_filter
+                with bypass_tenant_filter():
+                    is_owner = request.user.owned_stores.exists()
+                if not is_owner:
+                    from django.contrib.auth import logout
+                    from django.contrib.auth.models import AnonymousUser
+                    logout(request)
+                    request.user = AnonymousUser()
+                    if hasattr(sociallogin, "state") and isinstance(sociallogin.state, dict):
+                        sociallogin.state["process"] = "login"
+
             user = None
             if active_store:
                 user = User._base_manager.filter(email__iexact=email, store=active_store).first()
@@ -202,9 +220,14 @@ class MySocialAccountAdapter(DefaultSocialAccountAdapter):
                     phone = existing_sub_user.phone if existing_sub_user else None
                     
                     from django.utils.crypto import get_random_string
+                    base_user = email.split('@')[0][:30]
+                    username = email
+                    if User._base_manager.filter(username=username).exists():
+                        username = f"{base_user}_{get_random_string(8)}"
+
                     user = User.objects.create_user(
                         email=email,
-                        username=email,
+                        username=username,
                         password=get_random_string(32),
                         first_name=first_name,
                         last_name=last_name,
