@@ -400,6 +400,126 @@
     <!-- Main Content -->
     <div class="dashboard-main stack gap-6">
         
+        <!-- Personal Account Information Card -->
+        <div class="panel p-6 border-cyan/20 bg-slate-900/40 relative overflow-hidden">
+            <div class="absolute top-0 right-0 w-48 h-48 bg-cyan/5 rounded-full blur-3xl pointer-events-none"></div>
+            <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6 pb-4 border-b border-white/5">
+                <div class="flex items-center gap-4">
+                    <div class="w-14 h-14 rounded-2xl bg-gradient-to-br from-cyan to-blue-600 flex items-center justify-center text-slate-950 font-black text-2xl shadow-lg shadow-cyan/20">
+                        {{ user.display_name|slice:":1"|upper }}
+                    </div>
+                    <div>
+                        <div class="flex items-center gap-2">
+                            <h2 class="text-xl font-black text-white">{% if user.get_full_name %}{{ user.get_full_name }}{% else %}{{ user.display_name }}{% endif %}</h2>
+                            <span class="badge primary text-[10px]"><i class="fas fa-crown text-amber-400 ml-1"></i> {{ user.get_tier_display }}</span>
+                        </div>
+                        <div class="flex items-center gap-3 text-xs text-slate-400 mt-1 font-mono">
+                            <span>@{{ user.username }}</span>
+                            <span>•</span>
+                            <span class="flex items-center gap-1">
+                                معرف الحساب (UID): <strong class="text-cyan">{{ user.uid|default:user.public_uuid|truncatechars:18 }}</strong>
+                                <button type="button" onclick="copyToClipboard('{{ user.uid|default:user.public_uuid }}', this)" class="text-slate-400 hover:text-white" title="نسخ المعرف"><i class="fas fa-copy text-[10px]"></i></button>
+                            </span>
+                        </div>
+                    </div>
+                </div>
+                <div class="flex items-center gap-2 flex-wrap">
+                    <a href="{% url 'change_email' %}" class="btn btn-outline btn-sm text-xs font-bold"><i class="fas fa-envelope ml-1"></i> تعديل البريد</a>
+                    <a href="{% url 'change_password' %}" class="btn btn-outline btn-sm text-xs font-bold"><i class="fas fa-key ml-1"></i> كلمة المرور</a>
+                    <a href="{% url 'site_security_triggers' %}" class="btn btn-outline btn-sm text-xs font-bold text-cyan border-cyan/20"><i class="fas fa-shield-alt ml-1"></i> الأمان</a>
+                </div>
+            </div>
+
+            <!-- Account Details Grid -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <!-- Phone -->
+                <div class="p-4 bg-white/[0.02] border border-white/5 rounded-xl">
+                    <span class="text-[10px] font-black uppercase tracking-wider text-slate-500 block mb-1">رقم الهاتف</span>
+                    <div class="flex items-center gap-2">
+                        <i class="fas fa-phone text-emerald-400 text-sm"></i>
+                        <span class="text-sm font-bold text-white font-mono" dir="ltr">{{ user.phone|default:"غير محدد" }}</span>
+                    </div>
+                </div>
+
+                <!-- Email -->
+                <div class="p-4 bg-white/[0.02] border border-white/5 rounded-xl">
+                    <span class="text-[10px] font-black uppercase tracking-wider text-slate-500 block mb-1">البريد الإلكتروني</span>
+                    <div class="flex items-center justify-between gap-1">
+                        <div class="truncate text-sm font-bold text-white font-mono" title="{{ user.email }}">{{ user.email }}</div>
+                        {% if user.email_verified %}
+                            <span class="badge success text-[8px] flex-shrink-0">موثق</span>
+                        {% else %}
+                            <span class="badge warning text-[8px] flex-shrink-0">غير موثق</span>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- Preferred Currency -->
+                <div class="p-4 bg-white/[0.02] border border-white/5 rounded-xl">
+                    <span class="text-[10px] font-black uppercase tracking-wider text-slate-500 block mb-1">العملة المعتمدة</span>
+                    <div class="flex items-center gap-2">
+                        <i class="fas fa-coins text-amber-400 text-sm"></i>
+                        <span class="text-sm font-bold text-white">{{ user.preferred_currency.name|default:CURRENCY.name }} ({{ user.preferred_currency.code|default:CURRENCY.code }})</span>
+                    </div>
+                </div>
+
+                <!-- Join Date -->
+                <div class="p-4 bg-white/[0.02] border border-white/5 rounded-xl">
+                    <span class="text-[10px] font-black uppercase tracking-wider text-slate-500 block mb-1">تاريخ الانضمام</span>
+                    <div class="flex items-center gap-2">
+                        <i class="fas fa-calendar-check text-cyan text-sm"></i>
+                        <span class="text-sm font-bold text-white font-mono">{{ user.date_joined|date:"Y-m-d" }}</span>
+                    </div>
+                </div>
+
+                <!-- KYC Verification -->
+                <div class="p-4 bg-white/[0.02] border border-white/5 rounded-xl">
+                    <span class="text-[10px] font-black uppercase tracking-wider text-slate-500 block mb-1">توثيق الهوية (KYC)</span>
+                    <div class="flex items-center justify-between">
+                        <span class="text-sm font-bold {% if user.is_kyc_verified %}text-emerald-400{% else %}text-amber-400{% endif %}">
+                            {% if user.is_kyc_verified %}
+                            <i class="fas fa-check-circle ml-1"></i> موثق بالكامل
+                            {% else %}
+                            <i class="fas fa-id-card ml-1"></i> غير موثق
+                            {% endif %}
+                        </span>
+                        {% if not user.is_kyc_verified %}
+                        <a href="{% url 'site_kyc_request' %}" class="text-[10px] text-cyan hover:underline font-bold">توثيق</a>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- Account Status -->
+                <div class="p-4 bg-white/[0.02] border border-white/5 rounded-xl">
+                    <span class="text-[10px] font-black uppercase tracking-wider text-slate-500 block mb-1">حالة الحساب</span>
+                    <div class="flex items-center gap-2">
+                        <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                        <span class="text-sm font-bold text-emerald-400">{{ user.get_status_display }}</span>
+                    </div>
+                </div>
+
+                <!-- Two Factor Authentication -->
+                <div class="p-4 bg-white/[0.02] border border-white/5 rounded-xl">
+                    <span class="text-[10px] font-black uppercase tracking-wider text-slate-500 block mb-1">التحقق بخطوتين (2FA)</span>
+                    <div class="flex items-center justify-between">
+                        <span class="text-sm font-bold {% if user.totp_enabled or user.two_factor_enabled %}text-emerald-400{% else %}text-slate-400{% endif %}">
+                            {% if user.totp_enabled or user.two_factor_enabled %}مفعل{% else %}معطل{% endif %}
+                        </span>
+                        <a href="{% url 'site_2fa_setup' %}" class="text-[10px] text-cyan hover:underline font-bold">إدارة</a>
+                    </div>
+                </div>
+
+                <!-- Last Login -->
+                <div class="p-4 bg-white/[0.02] border border-white/5 rounded-xl">
+                    <span class="text-[10px] font-black uppercase tracking-wider text-slate-500 block mb-1">آخر تسجيل دخول</span>
+                    <div class="flex items-center gap-2">
+                        <i class="fas fa-clock text-slate-400 text-sm"></i>
+                        <span class="text-xs font-mono text-slate-300">{{ user.last_login|date:"Y-m-d H:i"|default:"اليوم" }}</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <!-- Wallet Summary Section -->
         <div class="panel premium-wallet-card p-8">
             <div class="flex justify-between items-start mb-6">

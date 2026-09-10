@@ -214,6 +214,69 @@
             text-decoration: underline;
         }
 
+        /* Mobile Responsive Header Styles */
+        .mobile-menu-btn {
+            display: none;
+        }
+
+        @media (max-width: 768px) {
+            .nav-container {
+                padding: 0.75rem 1rem;
+                flex-wrap: wrap;
+                gap: 0.5rem;
+            }
+            .logo-area {
+                gap: 0.5rem;
+            }
+            .logo-img {
+                height: 34px;
+                width: 34px;
+            }
+            .store-name {
+                font-size: 1.15rem;
+            }
+            .nav-menu {
+                display: none;
+                width: 100%;
+                flex-direction: column;
+                align-items: flex-start;
+                background: rgba(15, 23, 42, 0.96);
+                border: 1px solid var(--card-border);
+                border-radius: 14px;
+                padding: 1rem;
+                margin-top: 0.5rem;
+                gap: 0.75rem;
+                order: 3;
+            }
+            .nav-menu.mobile-open {
+                display: flex;
+            }
+            .nav-actions {
+                gap: 0.4rem;
+                flex-wrap: nowrap;
+            }
+            .currency-selector select {
+                padding: 0.35rem 0.5rem !important;
+                font-size: 0.75rem !important;
+            }
+            .btn {
+                padding: 0.4rem 0.75rem;
+                font-size: 0.8rem;
+            }
+            .mobile-menu-btn {
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+                background: rgba(255, 255, 255, 0.05);
+                border: 1px solid var(--card-border);
+                color: var(--text-color);
+                padding: 0.4rem 0.65rem;
+                border-radius: 10px;
+                font-size: 1rem;
+                cursor: pointer;
+            }
+        }
+
         /* Alert notifications */
         .alerts-container {
             max-width: 1200px;
@@ -282,7 +345,7 @@
                 <span class="store-name">{{ store.name }}</span>
             </a>
             
-            <ul class="nav-menu">
+            <ul class="nav-menu" id="storeNavMenu">
                 <li><a href="{% url 'store_home' %}" class="nav-link">الرئيسية</a></li>
                 <li><a href="{% url 'store_catalog' %}" class="nav-link">المنتجات</a></li>
                 <!-- Pages dynamic -->
@@ -313,6 +376,11 @@
                     <a href="{% url 'store_login' %}" class="btn btn-outline">دخول</a>
                     <a href="{% url 'store_register' %}" class="btn btn-primary">تسجيل</a>
                 {% endif %}
+
+                <!-- Mobile Menu Button -->
+                <button type="button" class="mobile-menu-btn" onclick="toggleStoreNav()" aria-label="القائمة">
+                    <i class="fa-solid fa-bars"></i>
+                </button>
             </div>
         </div>
 
@@ -353,5 +421,13 @@
         {% endif %}
     </footer>
 
+    <script>
+        function toggleStoreNav() {
+            var menu = document.getElementById('storeNavMenu');
+            if (menu) {
+                menu.classList.toggle('mobile-open');
+            }
+        }
+    </script>
 </body>
 </html>

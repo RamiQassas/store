@@ -459,28 +459,41 @@
   {% endif %}
   <!-- Mobile Header -->
   <div class="mobile-header">
-      <button onclick="toggleDrawer()" class="text-slate-400 text-xl"><i class="fas fa-bars"></i></button>
-      <a href="{% url 'home' %}" class="brand" style="font-size: 1.25rem;">
-          {% if is_tenant and STORE_LOGO %}
-          <img src="{{ STORE_LOGO.url }}" alt="{{ STORE_NAME }}" style="height: 32px; width: auto; border-radius: 4px; object-fit: contain; vertical-align: middle;">
-          {% else %}
-          <i class="fas fa-bolt text-cyan"></i>
-          <span>{% if is_tenant %}{{ STORE_NAME }}{% else %}RAQAMIYAT{% endif %}</span>
+      <div class="flex items-center gap-2">
+          <button onclick="toggleDrawer()" class="text-slate-400 text-xl p-1" aria-label="القائمة"><i class="fas fa-bars"></i></button>
+          <a href="{% url 'home' %}" class="brand" style="font-size: 1.15rem;">
+              {% if is_tenant and STORE_LOGO %}
+              <img src="{{ STORE_LOGO.url }}" alt="{{ STORE_NAME }}" style="height: 28px; width: auto; border-radius: 4px; object-fit: contain; vertical-align: middle;">
+              {% else %}
+              <i class="fas fa-bolt text-cyan"></i>
+              <span>{% if is_tenant %}{{ STORE_NAME }}{% else %}RAQAMIYAT{% endif %}</span>
+              {% endif %}
+          </a>
+      </div>
+      <div class="flex items-center gap-2">
+          <!-- Mobile Currency Switcher -->
+          {% if ALL_CURRENCIES %}
+          <div class="currency-selector mobile-currency-selector">
+              <select onchange="location.href='{% url 'set_currency' %}?currency=' + this.value" aria-label="تبديل العملة" style="background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15); color: #fff; padding: 0.3rem 0.5rem; border-radius: 8px; font-weight: 800; font-size: 0.72rem; cursor: pointer; outline: none;">
+                  {% for c in ALL_CURRENCIES %}
+                  <option value="{{ c.id }}" {% if c.id == CURRENCY.id %}selected{% endif %}>{{ c.code }}</option>
+                  {% endfor %}
+              </select>
+          </div>
           {% endif %}
-      </a>
-      <div class="flex items-center gap-3">
+
           {% if user.is_authenticated %}
-          <div class="relative ml-2">
-              <a href="{% url 'notifications_list' %}" class="text-slate-400 text-xl relative">
+          <div class="relative">
+              <a href="{% url 'notifications_list' %}" class="text-slate-400 text-lg relative flex items-center">
                   <i class="fas fa-bell"></i>
                   {% if UNREAD_NOTIFICATIONS_COUNT > 0 %}
-                  <span class="absolute -top-1 -right-1 w-4 h-4 bg-rose-500 rounded-full border-2 border-[#050811] flex items-center justify-center text-[8px] text-white font-black">{{ UNREAD_NOTIFICATIONS_COUNT }}</span>
+                  <span class="absolute -top-1.5 -right-1.5 w-4 h-4 bg-rose-500 rounded-full border-2 border-[#050811] flex items-center justify-center text-[8px] text-white font-black">{{ UNREAD_NOTIFICATIONS_COUNT }}</span>
                   {% endif %}
               </a>
           </div>
           <a href="{% url 'dashboard_wallet' %}" class="text-cyan font-black text-xs">{% currency_format user.wallet.available_balance user.wallet.currency mode="withdraw" %}</a>
           {% else %}
-          <a href="{% url 'site_login' %}" class="btn btn-sm btn-primary">دخول</a>
+          <a href="{% url 'site_login' %}" class="btn btn-sm btn-primary py-1 px-3 text-xs">دخول</a>
           {% endif %}
       </div>
   </div>
@@ -501,6 +514,22 @@
           <div>
               <div class="font-bold text-white text-sm truncate max-w-[150px]">{% if user.first_name %}{{ user.get_full_name }}{% else %}{{ user.display_name }}{% endif %}</div>
               <div class="text-[10px] text-cyan">{{ user.get_tier_display }}</div>
+          </div>
+      </div>
+      {% endif %}
+
+      <!-- Mobile Drawer Currency Switcher -->
+      {% if ALL_CURRENCIES %}
+      <div class="p-3 bg-white/[0.04] rounded-xl border border-white/5 flex items-center justify-between mb-4">
+          <span class="text-xs font-bold text-slate-300 flex items-center gap-2">
+              <i class="fas fa-coins text-amber-400"></i> العملة:
+          </span>
+          <div class="currency-selector">
+              <select onchange="location.href='{% url 'set_currency' %}?currency=' + this.value" style="background: rgba(15,23,42,0.9); border: 1px solid rgba(255,255,255,0.15); color: #fff; padding: 0.35rem 0.65rem; border-radius: 8px; font-weight: 700; font-size: 0.75rem; cursor: pointer;">
+                  {% for c in ALL_CURRENCIES %}
+                  <option value="{{ c.id }}" {% if c.id == CURRENCY.id %}selected{% endif %}>{{ c.code }} ({{ c.symbol }})</option>
+                  {% endfor %}
+              </select>
           </div>
       </div>
       {% endif %}
