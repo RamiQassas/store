@@ -12,9 +12,9 @@ class PaymentMethodAdmin(admin.ModelAdmin):
 
 @admin.register(PaymentGatewayIntegration)
 class PaymentGatewayIntegrationAdmin(admin.ModelAdmin):
-    list_display = ("name", "provider", "mode", "store", "is_active", "can_deposit", "can_withdraw", "last_health_status")
+    list_display = ("name", "provider", "mode", "terminal_id", "store", "is_active", "can_deposit", "can_withdraw", "last_health_status")
     list_filter = ("provider", "mode", "is_active", "can_deposit", "can_withdraw")
-    search_fields = ("name", "base_url")
+    search_fields = ("name", "terminal_id", "base_url")
 
 
 @admin.register(DepositRequest)

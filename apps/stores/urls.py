@@ -227,6 +227,10 @@ urlpatterns = [
     path("merchant/payment-gateways/create/", site_views.payment_gateway_integration_create, name="payment_gateway_integration_create"),
     path("merchant/payment-gateways/<uuid:pk>/edit/", site_views.payment_gateway_integration_edit, name="payment_gateway_integration_edit"),
     path("merchant/payment-gateways/<uuid:pk>/delete/", site_views.payment_gateway_integration_delete, name="payment_gateway_integration_delete"),
+    path("control/payment-gateways/", site_views.payment_gateway_integrations_list),
+    path("control/payment-gateways/create/", site_views.payment_gateway_integration_create),
+    path("control/payment-gateways/<uuid:pk>/edit/", site_views.payment_gateway_integration_edit),
+    path("control/payment-gateways/<uuid:pk>/delete/", site_views.payment_gateway_integration_delete),
 
     # Users
     path("merchant/users/", site_views.control_users_list, name="control_users_list"),

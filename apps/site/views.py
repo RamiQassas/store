@@ -372,15 +372,32 @@ def v3_login_view(request):
     active_store = getattr(request, 'store', None)
 
     if request.user.is_authenticated:
-        # Multi-Tenant isolation: if logged in with a sub-store account on the main platform, logout immediately
-        if active_store is None and getattr(request.user, "store_id", None) is not None:
-            from apps.common.tenant_utils import bypass_tenant_filter
-            with bypass_tenant_filter():
-                is_owner = request.user.owned_stores.exists()
-            if not is_owner:
-                logout(request)
-                return redirect("site_login")
-        return redirect("control_dashboard" if (request.user.is_staff and getattr(request, 'store', None) is None) else "dashboard")
+        # Multi-Tenant isolation: check if user belongs to this context
+        user_belongs = True
+        if active_store is None:
+            if getattr(request.user, "store_id", None) is not None:
+                from apps.common.tenant_utils import bypass_tenant_filter
+                with bypass_tenant_filter():
+                    is_owner = request.user.owned_stores.exists()
+                if not is_owner and not (request.user.is_superuser or request.user.is_staff):
+                    user_belongs = False
+        else:
+            if not (request.user.is_superuser or request.user.is_staff or getattr(request.user, "role", None) == "super_admin"):
+                from apps.stores.models import StoreEmployee
+                from apps.common.tenant_utils import bypass_tenant_filter
+                with bypass_tenant_filter():
+                    user_belongs = (
+                        request.user.store_id == active_store.pk or
+                        request.user.pk == active_store.owner_id or
+                        StoreEmployee.objects.filter(store=active_store, user=request.user).exists()
+                    )
+
+        if user_belongs:
+            return redirect("control_dashboard" if (request.user.is_staff and getattr(request, 'store', None) is None) else "dashboard")
+        else:
+            # Alien session: do not flush session, simply treat as anonymous so user can log in
+            request.user = AnonymousUser()
+
     form = LoginForm(request.POST or None)
     if request.method == "POST" and form.is_valid():
         user = authenticate(request, username=form.cleaned_data["email"], password=form.cleaned_data["password"])
@@ -390,19 +407,17 @@ def v3_login_view(request):
                 return render(request, "site/v3/v3_login.html", {"form": form})
 
             # Multi-Tenant isolation:
-            # - On main platform (active_store=None): reject users linked to any store
-            # - On store tenant (active_store set): only allow users linked to THIS store
+            # - On main platform (active_store=None): reject users linked to any store (except store owners/staff)
+            # - On store tenant (active_store set): only allow users linked to THIS store (or owner/employees/staff)
             if active_store is None:
-                # Main platform: users with store_id cannot login here (except store owners)
                 if user.store_id is not None:
                     from apps.common.tenant_utils import bypass_tenant_filter
                     with bypass_tenant_filter():
                         is_owner = user.owned_stores.exists()
-                    if not is_owner:
+                    if not is_owner and not (user.is_superuser or user.is_staff):
                         messages.error(request, "هذا الحساب مرتبط بمتجر فرعي ولا يمكنه تسجيل الدخول هنا. يرجى التوجه إلى صفحة تسجيل الدخول الخاصة بمتجرك.")
                         return render(request, "site/v3/v3_login.html", {"form": form})
             else:
-                # Store tenant: only allow users who belong to this store (or superusers/staff/admin)
                 if not (user.is_superuser or user.is_staff or getattr(user, "role", None) == "super_admin"):
                     from apps.stores.models import StoreEmployee
                     from apps.common.tenant_utils import bypass_tenant_filter
@@ -412,7 +427,7 @@ def v3_login_view(request):
                         user_store_str = str(user.store_id) if user.store_id else None
                         store_pk_str = str(active_store.pk) if getattr(active_store, 'pk', None) else None
                         is_store_member = (
-                            user.store_id is None or  # Main platform users can access sub-stores!
+                            user.store_id is None or  # Main platform users can access sub-stores
                             (user_store_str and user_store_str == store_pk_str) or
                             (owner_id_str and owner_id_str == user_pk_str) or
                             StoreEmployee.objects.filter(store=active_store, user=user).exists()
@@ -450,7 +465,11 @@ def v3_login_view(request):
                 request.session["v3_auth_next"] = reverse("dashboard")
 
             return v3_redirect_to_verification(request, methods)
-        messages.error(request, "بيانات الدخول غير صحيحة.")
+
+        if getattr(request, '_sub_store_account_detected', False):
+            messages.error(request, "هذا الحساب مرتبط بمتجر فرعي ولا يمكنه تسجيل الدخول في المنصة الرئيسية. يرجى تسجيل الدخول من رابط المتجر الخاص بك.")
+        else:
+            messages.error(request, "بيانات الدخول غير صحيحة.")
     return render(request, "site/v3/v3_login.html", {"form": form})
 
 @ensure_csrf_cookie
@@ -1251,6 +1270,25 @@ def deposits(request):
                 ActivityLog.objects.create(user=request.user, action="deposit_requested", description=f"Requested {amount} {currency.code} via {method.name}")
             except:
                 pass
+
+        # Automated Payment Gateway Check (e.g. Paymera)
+        if method.gateway and method.gateway.is_active:
+            from apps.payments.gateways import gateway_for, PaymentGatewayError
+            try:
+                gw = gateway_for(method.gateway)
+                gw_res = gw.create_payment(deposit, request=request)
+                redirect_url = gw_res.get("url")
+                if redirect_url:
+                    messages.info(request, "جارٍ تحويلك إلى بوابة الدفع الآمنة لإتمام العملية...")
+                    return redirect(redirect_url)
+            except PaymentGatewayError as gw_err:
+                import logging
+                logging.getLogger(__name__).error(f"Gateway error for deposit {deposit.id}: {gw_err}")
+                messages.error(request, f"حدث خطأ أثناء الاتصال ببوابة الدفع: {gw_err}")
+                deposit.status = DepositRequest.Status.REJECTED
+                deposit.admin_note = f"Gateway error: {gw_err}"
+                deposit.save(update_fields=["status", "admin_note"])
+                return redirect("dashboard_deposits")
 
         # AFTER creation: Check if verification is needed
         if v3_init_verification(request, request.user, "deposit"):
@@ -5953,11 +5991,12 @@ def payment_method_edit(request, pk):
 
 @admin_required
 def payment_gateway_integrations_list(request):
+    from django.db.models import Q
     store = getattr(request, "store", None)
     if store:
-        gateways = PaymentGatewayIntegration.objects.filter(store=store)
+        gateways = PaymentGatewayIntegration.all_objects.filter(Q(store=store) | Q(store__isnull=True))
     else:
-        gateways = PaymentGatewayIntegration.objects.filter(store__isnull=True)
+        gateways = PaymentGatewayIntegration.all_objects.all()
     return render(request, "site/payment_gateway_integrations_list.html", {"gateways": gateways, "is_tenant": bool(store)})
 
 
@@ -5976,8 +6015,9 @@ def payment_gateway_integration_create(request):
 
 @admin_required
 def payment_gateway_integration_edit(request, pk):
+    from django.db.models import Q
     store = getattr(request, "store", None)
-    qs = PaymentGatewayIntegration.objects.filter(store=store) if store else PaymentGatewayIntegration.objects.all()
+    qs = PaymentGatewayIntegration.all_objects.filter(Q(store=store) | Q(store__isnull=True)) if store else PaymentGatewayIntegration.all_objects.all()
     gateway = get_object_or_404(qs, pk=pk)
     form = PaymentGatewayIntegrationForm(request.POST or None, instance=gateway)
     if request.method == "POST" and form.is_valid():

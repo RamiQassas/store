@@ -69,6 +69,15 @@ class PaymentMethod(TimeStampedModel):
     withdrawal_exchange_rate = models.DecimalField(max_digits=14, decimal_places=6, null=True, blank=True, verbose_name="سعر صرف السحب (الربح)", help_text="سعر صرف مخصص لعمليات السحب لهذه الوسيلة. إذا ترك فارغاً سيتم اعتماد السعر الافتراضي.")
 
     supported_currencies = models.ManyToManyField("common.Currency", blank=True, verbose_name="العملات المدعومة")
+    gateway = models.ForeignKey(
+        "payments.PaymentGatewayIntegration",
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="payment_methods",
+        verbose_name="بوابة الدفع الإلكترونية المرتبطة",
+        help_text="في حال تحديد بوابة دفع إلكترونية، سيتم توجيه العميل للدفع الإلكتروني التلقائي."
+    )
     can_deposit = models.BooleanField(default=True, verbose_name="متاحة للإيداع")
     can_withdraw = models.BooleanField(default=False, verbose_name="متاحة للسحب")
 
@@ -315,6 +324,7 @@ class PaymentMethodExchangeRateLog(TimeStampedModel):
 
 class PaymentGatewayIntegration(TimeStampedModel):
     class Provider(models.TextChoices):
+        PAYMERA = "paymera", "Paymera (بيميرا)"
         BANIYAS_CRYPTO = "baniyas_crypto", "Baniyas Crypto"
         CUSTOM = "custom", "Custom API"
 
@@ -336,6 +346,7 @@ class PaymentGatewayIntegration(TimeStampedModel):
     name = models.CharField(max_length=120, verbose_name="اسم بوابة الدفع")
     provider = models.CharField(max_length=40, choices=Provider.choices, default=Provider.BANIYAS_CRYPTO, verbose_name="المزود")
     mode = models.CharField(max_length=20, choices=Mode.choices, default=Mode.SANDBOX, verbose_name="وضع التشغيل")
+    terminal_id = models.CharField(max_length=64, blank=True, verbose_name="رقم نقطة البيع (Terminal ID)", help_text="المعرف المخصص من بيميرا والمؤلف من 8 خانات")
     base_url = models.URLField(max_length=255, blank=True, verbose_name="رابط API الأساسي")
     api_key = models.CharField(max_length=255, blank=True, verbose_name="API Key")
     api_secret = models.CharField(max_length=255, blank=True, verbose_name="API Secret")
@@ -384,6 +395,7 @@ class DepositRequest(TimeStampedModel):
     currency = models.ForeignKey("common.Currency", on_delete=models.PROTECT, verbose_name="العملة")
     status = models.CharField(max_length=20, choices=Status.choices, default=Status.PENDING, verbose_name="الحالة")
     transaction_id = models.CharField(max_length=160, blank=True, db_index=True, verbose_name="رقم العملية / المرجع")
+    gateway_payment_id = models.CharField(max_length=128, blank=True, db_index=True, verbose_name="معرف دفعة البوابة")
     proof_image = models.ImageField(upload_to="deposit-proofs/", blank=True, null=True, verbose_name="وصل الدفع")
     customer_note = models.TextField(blank=True, verbose_name="ملاحظات العميل")
     admin_note = models.TextField(blank=True, verbose_name="ملاحظات المدير")

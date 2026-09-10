@@ -62,9 +62,10 @@
         <div class="builder-section-header"><h3 class="font-bold">المعلومات الأساسية المشتركة</h3></div>
         <div class="builder-body grid grid-cols-12 gap-8">
             <div class="col-span-12 lg:col-span-8 stack gap-6">
-                <div class="grid grid-2 gap-6">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
                     <div class="field-group"><label>اسم وسيلة الدفع</label>{{ form.name }}</div>
                     <div class="field-group"><label>نوع الوسيلة (نص حر)</label>{{ form.method_type }}</div>
+                    <div class="field-group"><label>بوابة الدفع التلقائية (اختياري)</label>{{ form.gateway }}</div>
                 </div>
                 <div class="grid grid-3 gap-6">
                     <div class="field-group"><label>ترتيب العرض</label>{{ form.display_order }}</div>

@@ -29,8 +29,14 @@
                 {{ form.mode }}
             </div>
             <div class="field-group">
+                <label>{{ form.terminal_id.label }}</label>
+                {{ form.terminal_id }}
+                {% if form.terminal_id.help_text %}<span class="text-xs text-muted">{{ form.terminal_id.help_text }}</span>{% endif %}
+            </div>
+            <div class="field-group md:col-span-2">
                 <label>{{ form.base_url.label }}</label>
                 {{ form.base_url }}
+                <span class="text-xs text-muted">للبيئة التجريبية (Sandbox): https://egate-t.paymera.cc | للبيئة الحية (Live): https://egate.paymera.cc</span>
             </div>
         </div>
 

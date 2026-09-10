@@ -20,70 +20,61 @@ class TenantModelBackend(ModelBackend):
 
         with bypass_tenant_filter():
             lookup = {f"{UserModel.USERNAME_FIELD}__iexact": username}
-            candidates = list(UserModel.all_objects.filter(**lookup))
-            if not candidates and UserModel.USERNAME_FIELD != "email":
-                candidates = list(UserModel.all_objects.filter(email__iexact=username))
+            all_candidates = list(UserModel.all_objects.filter(**lookup))
+            if not all_candidates and UserModel.USERNAME_FIELD != "email":
+                all_candidates = list(UserModel.all_objects.filter(email__iexact=username))
 
-            if not candidates:
+            if not all_candidates:
                 # Mitigate timing attacks
                 UserModel().set_password(password)
                 return None
 
-            # Prioritize candidates based on active_store context:
-            def get_user_priority(u):
-                if active_store is not None:
-                    if u.store_id == active_store.pk:
-                        return 0  # Highest priority: tenant store direct user
-                    if active_store.owner_id == u.pk:
-                        return 1  # Tenant store owner
-                    if u.store_employments.filter(store=active_store).exists():
-                        return 2  # Tenant store employee
-                    if u.role == 'super_admin' or u.is_superuser or u.is_staff:
-                        return 3  # Superadmin / staff
-                    if u.store_id is None:
-                        return 4  # Main platform customer accessing sub-store
-                    return 99  # User belonging to another store
-                else:
-                    if u.store_id is None:
-                        return 0  # Highest priority: main platform user
-                    if u.owned_stores.exists():
-                        return 1  # Store owner accessing main platform
-                    if u.role == 'super_admin' or u.is_superuser or u.is_staff:
-                        return 2  # Superadmin / staff
-                    return 10  # Sub-store customer accessing main platform
+            valid_candidates = []
+            if active_store is not None:
+                # Tenant Store context: strictly allow store direct users, store owner, employees, and platform staff
+                store_pk = active_store.pk
+                owner_id = active_store.owner_id
 
-            candidates.sort(key=get_user_priority)
+                for u in all_candidates:
+                    if u.store_id == store_pk:
+                        valid_candidates.append((0, u))  # Highest priority: direct tenant user
+                    elif u.pk == owner_id:
+                        valid_candidates.append((1, u))  # Store owner
+                    elif u.store_employments.filter(store=active_store).exists():
+                        valid_candidates.append((2, u))  # Store employee
+                    elif u.role == 'super_admin' or u.is_superuser or u.is_staff:
+                        valid_candidates.append((3, u))  # Platform admin/staff
+                    elif u.store_id is None:
+                        valid_candidates.append((4, u))  # Main platform customer accessing sub-store
 
-            for u in candidates:
-                if get_user_priority(u) == 99:
-                    continue
+                if not valid_candidates:
+                    UserModel().set_password(password)
+                    return None
+            else:
+                # Main Platform context: strictly allow main platform users, store owners, and platform staff
+                for u in all_candidates:
+                    if u.store_id is None:
+                        valid_candidates.append((0, u))  # Main platform user
+                    elif u.owned_stores.exists():
+                        valid_candidates.append((1, u))  # Store owner accessing main platform
+                    elif u.role == 'super_admin' or u.is_superuser or u.is_staff:
+                        valid_candidates.append((2, u))  # Platform admin/staff
+
+                if not valid_candidates:
+                    # Account only exists in a sub-store
+                    if request is not None:
+                        request._sub_store_account_detected = True
+                    UserModel().set_password(password)
+                    return None
+
+            # Sort by priority
+            valid_candidates.sort(key=lambda item: item[0])
+
+            for _, u in valid_candidates:
                 if u.check_password(password) and self.user_can_authenticate(u):
-                    if active_store is None and u.store_id is not None and not u.owned_stores.exists() and not (u.is_superuser or u.is_staff):
-                        # User has an account in a sub-store and entered correct credentials on the main platform:
-                        # Find or auto-provision their main platform user so they are not rejected by TenantMiddleware
-                        main_u = UserModel.all_objects.filter(email__iexact=u.email, store__isnull=True).first()
-                        if not main_u:
-                            main_u = UserModel.objects.create_user(
-                                email=u.email,
-                                username=u.email,
-                                password=password,
-                                first_name=u.first_name,
-                                last_name=u.last_name,
-                                phone=u.phone,
-                                store=None,
-                                email_verified=u.email_verified,
-                                is_active=True
-                            )
-                            from apps.wallets.services import get_or_create_wallet
-                            get_or_create_wallet(main_u)
-                        else:
-                            if not main_u.check_password(password):
-                                main_u.set_password(password)
-                                main_u.save(update_fields=['password'])
-                        return main_u
                     return u
 
-            # Mitigate timing attacks
+            # Password check failed
             UserModel().set_password(password)
             return None
 

@@ -191,15 +191,13 @@ class MySocialAccountAdapter(DefaultSocialAccountAdapter):
         try:
             active_store = get_store_from_request(request)
             
-            # If logged in with a sub-store account on the main platform, disconnect that session
+            # If logged in with a sub-store account on the main platform, decouple that session safely
             if active_store is None and request.user.is_authenticated and getattr(request.user, "store_id", None) is not None:
                 from apps.common.tenant_utils import bypass_tenant_filter
                 with bypass_tenant_filter():
                     is_owner = request.user.owned_stores.exists()
-                if not is_owner:
-                    from django.contrib.auth import logout
+                if not is_owner and not (request.user.is_superuser or request.user.is_staff):
                     from django.contrib.auth.models import AnonymousUser
-                    logout(request)
                     request.user = AnonymousUser()
                     if hasattr(sociallogin, "state") and isinstance(sociallogin.state, dict):
                         sociallogin.state["process"] = "login"
@@ -208,30 +206,33 @@ class MySocialAccountAdapter(DefaultSocialAccountAdapter):
             if active_store:
                 user = User._base_manager.filter(email__iexact=email, store=active_store).first()
                 if not user:
-                    user = User._base_manager.filter(email__iexact=email, store__isnull=True).first()
-            else:
-                user = User._base_manager.filter(email__iexact=email, store__isnull=True).first()
-                if not user:
-                    # User only has an account in a sub-store, but is now signing in on the main platform!
-                    # Auto-provision a clean main platform user record for them so they are not rejected by TenantMiddleware
-                    existing_sub_user = User._base_manager.filter(email__iexact=email).first()
-                    first_name = existing_sub_user.first_name if existing_sub_user else (sociallogin.account.extra_data.get("given_name") or "")
-                    last_name = existing_sub_user.last_name if existing_sub_user else (sociallogin.account.extra_data.get("family_name") or "")
-                    phone = existing_sub_user.phone if existing_sub_user else None
-                    
                     from django.utils.crypto import get_random_string
-                    base_user = email.split('@')[0][:30]
-                    username = email
-                    if User._base_manager.filter(username=username).exists():
-                        username = f"{base_user}_{get_random_string(8)}"
-
+                    first_name = sociallogin.account.extra_data.get("given_name") or ""
+                    last_name = sociallogin.account.extra_data.get("family_name") or ""
                     user = User.objects.create_user(
                         email=email,
-                        username=username,
+                        username=email,
                         password=get_random_string(32),
                         first_name=first_name,
                         last_name=last_name,
-                        phone=phone,
+                        store=active_store,
+                        email_verified=True,
+                        is_active=True
+                    )
+                    from apps.wallets.services import get_or_create_wallet
+                    get_or_create_wallet(user)
+            else:
+                user = User._base_manager.filter(email__iexact=email, store__isnull=True).first()
+                if not user:
+                    from django.utils.crypto import get_random_string
+                    first_name = sociallogin.account.extra_data.get("given_name") or ""
+                    last_name = sociallogin.account.extra_data.get("family_name") or ""
+                    user = User.objects.create_user(
+                        email=email,
+                        username=email,
+                        password=get_random_string(32),
+                        first_name=first_name,
+                        last_name=last_name,
                         store=None,
                         email_verified=True,
                         is_active=True

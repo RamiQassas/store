@@ -1,5 +1,6 @@
 from django.urls import path
 from apps.site import views, api_views
+from apps.payments import views_paymera
 from apps.stores import views_admin, views_saas
 
 urlpatterns = [
@@ -71,6 +72,10 @@ urlpatterns = [
     path("api/orders/<uuid:pk>/mark-read/", api_views.api_order_mark_read, name="api_order_mark_read"),
     path("api/users/search/", api_views.api_user_search, name="api_user_search"),
     path("api/users/lookup/", api_views.api_lookup_user, name="api_lookup_user"),
+
+    # Paymera Gateway Endpoints
+    path("payments/paymera/callback/", views_paymera.paymera_callback_view, name="paymera_callback"),
+    path("payments/paymera/trigger/", views_paymera.paymera_trigger_view, name="paymera_trigger"),
 
     # AUTHENTICATION (STANDARDIZED NAMES)
     path("auth/login/", views.v3_login_view, name="site_login"),

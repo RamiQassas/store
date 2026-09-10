@@ -101,8 +101,6 @@ class RegisterForm(forms.Form):
             if active_store:
                 if User.all_objects.filter(email=email, store=active_store).exists():
                     raise forms.ValidationError("هذا البريد الإلكتروني مسجل مسبقاً في هذا المتجر.")
-                if User.all_objects.filter(email=email, store__isnull=True).exists():
-                    raise forms.ValidationError("هذا البريد مسجل مسبقاً في منصة رقميات. يمكنك التوجه إلى صفحة تسجيل الدخول والمتابعة مباشرة بحسابك.")
             else:
                 if User.all_objects.filter(email=email, store__isnull=True).exists():
                     raise forms.ValidationError("هذا البريد الإلكتروني مسجل مسبقاً في منصة رقميات.")
@@ -205,11 +203,13 @@ class PaymentMethodForm(forms.ModelForm):
             "deposit_info_schema", "withdrawal_info_schema",
             "deposit_form_schema", "withdrawal_form_schema",
             "deposit_fee_settings", "withdrawal_fee_settings",
-            "capital_exchange_rate", "deposit_exchange_rate", "withdrawal_exchange_rate"
+            "capital_exchange_rate", "deposit_exchange_rate", "withdrawal_exchange_rate",
+            "gateway"
         ]
         widgets = {
             "name": forms.TextInput(attrs={"class": "builder-input"}),
             "method_type": forms.TextInput(attrs={"class": "builder-input"}),
+            "gateway": forms.Select(attrs={"class": "builder-input"}),
             "display_order": forms.NumberInput(attrs={"class": "builder-input"}),
             "deposit_min_amount": forms.NumberInput(attrs={"class": "builder-input"}),
             "deposit_max_amount": forms.NumberInput(attrs={"class": "builder-input"}),
@@ -241,7 +241,7 @@ class PaymentGatewayIntegrationForm(forms.ModelForm):
     class Meta:
         model = PaymentGatewayIntegration
         fields = [
-            "name", "provider", "mode", "base_url", "api_key", "api_secret",
+            "name", "provider", "mode", "terminal_id", "base_url", "api_key", "api_secret",
             "webhook_secret", "is_active", "can_deposit", "can_withdraw",
             "supported_assets", "settings",
         ]
@@ -249,7 +249,8 @@ class PaymentGatewayIntegrationForm(forms.ModelForm):
             "name": forms.TextInput(attrs={"class": "builder-input", "placeholder": "Baniyas Crypto"}),
             "provider": forms.Select(attrs={"class": "builder-input"}),
             "mode": forms.Select(attrs={"class": "builder-input"}),
-            "base_url": forms.URLInput(attrs={"class": "builder-input", "placeholder": "https://api.example.com/"}),
+            "terminal_id": forms.TextInput(attrs={"class": "builder-input", "placeholder": "مثلاً 99990001 (8 خانات مخصصة من بيميرا)"}),
+            "base_url": forms.URLInput(attrs={"class": "builder-input", "placeholder": "https://egate-t.paymera.cc"}),
             "api_key": forms.TextInput(attrs={"class": "builder-input", "autocomplete": "off"}),
             "api_secret": forms.PasswordInput(attrs={"class": "builder-input", "autocomplete": "new-password", "render_value": True}),
             "webhook_secret": forms.PasswordInput(attrs={"class": "builder-input", "autocomplete": "new-password", "render_value": True}),
