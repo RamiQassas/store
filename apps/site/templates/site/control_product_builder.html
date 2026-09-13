@@ -136,7 +136,15 @@
                     <label class="mini-label">الصورة الأساسية</label>
                     {{ form.image }}
                     {% if product.image %}
-                    <img src="{{ product.image.url }}" class="mt-2 w-full h-32 object-cover rounded-lg border border-white/10">
+                    <img id="product-main-image-preview" src="{{ product.image.url }}" class="mt-2 w-full h-32 object-cover rounded-lg border border-white/10">
+                    {% else %}
+                    <img id="product-main-image-preview" src="" class="mt-2 w-full h-32 object-cover rounded-lg border border-white/10 hidden">
+                    {% endif %}
+                    {% if product.pk %}
+                    <button type="button" onclick="generateAiBrandedImage('{{ product.pk }}')" class="btn btn-secondary btn-sm w-full mt-3 flex items-center justify-center gap-2" id="btn-generate-ai">
+                        <i class="fas fa-wand-magic-sparkles text-cyan"></i>
+                        <span>توليد صورة وهوية رقميات بالذكاء الاصطناعي</span>
+                    </button>
                     {% endif %}
                 </div>
                 <div class="panel p-4 bg-slate-800/30 border-white/5">
@@ -764,5 +772,49 @@ window.onload = () => {
         renderFields();
     }
 };
+
+function generateAiBrandedImage(productId) {
+    const btn = document.getElementById('btn-generate-ai');
+    const preview = document.getElementById('product-main-image-preview');
+    const originalText = btn ? btn.innerHTML : '';
+    if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin ml-2"></i> جاري التوليد...';
+    }
+
+    const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]')?.value || '';
+
+    fetch(`/control/products/${productId}/generate-ai-image/`, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': csrfToken,
+            'X-Requested-With': 'XMLHttpRequest'
+        }
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (btn) {
+            btn.disabled = false;
+            btn.innerHTML = originalText;
+        }
+        if (data.status === 'success') {
+            if (preview) {
+                preview.src = data.image_url + '?t=' + new Date().getTime();
+                preview.classList.remove('hidden');
+                preview.style.display = 'block';
+            }
+            alert('تم توليد الصورة وتطبيق هوية رقميات بنجاح!');
+        } else {
+            alert(data.message || 'حدث خطأ أثناء التوليد');
+        }
+    })
+    .catch(err => {
+        if (btn) {
+            btn.disabled = false;
+            btn.innerHTML = originalText;
+        }
+        alert('فشل الاتصال بالسيرفر: ' + err);
+    });
+}
 </script>
 {% endblock %}

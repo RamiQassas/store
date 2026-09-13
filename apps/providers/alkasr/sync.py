@@ -285,7 +285,18 @@ class AlkasrSyncService:
                 )
 
         ProviderProductParameter.objects.filter(product=product_obj).delete()
-        for param in pdata.get("params") or []:
+        raw_params = (
+            pdata.get("params")
+            or pdata.get("parameters")
+            or pdata.get("inputs")
+            or pdata.get("fields")
+            or pdata.get("custom_fields")
+            or []
+        )
+        if isinstance(raw_params, dict):
+            raw_params = [{"name": k, "label": v.get("label", k) if isinstance(v, dict) else str(v)} for k, v in raw_params.items()]
+
+        for param in raw_params:
             name_key, label, field_type = self._normalize_param(param)
             ProviderProductParameter.objects.create(
                 product=product_obj,
@@ -293,6 +304,16 @@ class AlkasrSyncService:
                 label=label,
                 required=True,
                 parameter_type=field_type,
+            )
+
+        # Auto-detect if provider product requires player_id/playerId flag
+        if not raw_params and (pdata.get("player_id") or pdata.get("has_player_id") or pdata.get("requires_player_id")):
+            ProviderProductParameter.objects.create(
+                product=product_obj,
+                name="playerId",
+                label="معرّف اللاعب (Player ID)",
+                required=True,
+                parameter_type="text",
             )
 
         return is_new

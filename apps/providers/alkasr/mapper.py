@@ -570,6 +570,47 @@ class AlkasrMapperService:
                                     "type": param.parameter_type,
                                     "required": param.required
                                 }
+
+                    # Intelligent Field Fallback if provider did not return explicit input parameters
+                    if not schema_fields:
+                        cat_title = store_category.name if store_category else ""
+                        g_lower = f"{group_name} {cat_title}".lower()
+                        if any(k in g_lower for k in ("ألعاب", "game", "pubg", "ببجي", "free fire", "فري فاير", "roblox", "روبلوكس", "jawaker", "جواكر", "mobile legends", "كلاش", "clash", "cod", "fortnite", "valorant")):
+                            schema_fields["playerId"] = {
+                                "name": "playerId",
+                                "label": "معرّف اللاعب (Player ID)",
+                                "type": "text",
+                                "required": True
+                            }
+                            if "mobile legends" in g_lower or "ليجند" in g_lower:
+                                schema_fields["zoneId"] = {
+                                    "name": "zoneId",
+                                    "label": "معرّف السيرفر (Zone ID)",
+                                    "type": "text",
+                                    "required": True
+                                }
+                        elif any(k in g_lower for k in ("اتصالات", "رصيد", "syriatel", "سيريتل", "mtn", "ام تي ان", "تروكسل", "turkcell", "telekom", "تليكوم", "vodafone", "فودافون")):
+                            schema_fields["phone_number"] = {
+                                "name": "phone_number",
+                                "label": "رقم الهاتف / الحساب المستلم",
+                                "type": "text",
+                                "required": True
+                            }
+                        elif any(k in g_lower for k in ("سوشيال", "social", "متابعين", "followers", "لايكات", "likes", "مشاهدات", "views", "تيك توك", "tiktok")):
+                            schema_fields["link"] = {
+                                "name": "link",
+                                "label": "رابط الحساب أو المنشور (Link / URL)",
+                                "type": "url",
+                                "required": True
+                            }
+                        elif any(k in g_lower for k in ("تطبيقات", "دردشة", "شات", "chat", "live", "لايف", "bigo", "بيجو", "likee", "لايكي", "yalla", "يلا", "toptop", "توب توب")):
+                            schema_fields["playerId"] = {
+                                "name": "playerId",
+                                "label": "معرّف الحساب في التطبيق (User ID)",
+                                "type": "text",
+                                "required": True
+                            }
+
                     schema = {"version": 1, "fields": list(schema_fields.values())}
 
                     prod_meta = dict(local_product.metadata or {}) if local_product else {}
@@ -607,6 +648,13 @@ class AlkasrMapperService:
                         if prod_meta:
                             local_product.metadata = prod_meta
                         local_product.save()
+
+                    # Apply automated branding with Raqamiyat badge
+                    try:
+                        from apps.catalog.smart_branding import apply_branding_to_product
+                        apply_branding_to_product(local_product, force=False)
+                    except Exception as brand_err:
+                        logger.warning(f"Branding application warning for {local_product.name}: {brand_err}")
 
                     # Map each ProviderProduct as a ProductVariant (باقة) inside this single Product
                     for pp in p_items:
@@ -708,7 +756,7 @@ class AlkasrMapperService:
                                     "required": param.required
                                 }
                                 for param in pp.parameters.all()
-                            ]
+                            ] or list(schema_fields.values())
                         }
 
                         # Clean up naming for TikTok and typos

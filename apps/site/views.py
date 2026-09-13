@@ -4570,6 +4570,22 @@ def control_product_edit(request, pk):
 
 
 @support_required
+def control_product_generate_image(request, pk):
+    if request.method != "POST":
+        return JsonResponse({"status": "error", "message": "Method not allowed"}, status=405)
+    product = get_object_or_404(Product, pk=pk)
+    try:
+        from apps.catalog.smart_branding import apply_branding_to_product
+        success = apply_branding_to_product(product, force=True)
+        if success and product.image:
+            return JsonResponse({
+                "status": "success",
+                "message": "تم توليد الصورة وتطبيق هوية رقميات بنجاح!",
+                "image_url": product.image.url
+            })
+        return JsonResponse({"status": "error", "message": "لم نتمكن من توليد الصورة"}, status=400)
+    except Exception as e:
+        return JsonResponse({"status": "error", "message": str(e)}, status=500)
 def control_product_delete(request, pk):
     product = get_object_or_404(Product, pk=pk)
     product.delete()

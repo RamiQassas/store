@@ -9,9 +9,21 @@ class Command(BaseCommand):
 
     def add_arguments(self, parser):
         parser.add_argument('--sync', action='store_true', default=False, help='Sync live catalog from provider API before remapping')
+        parser.add_argument('--clear', action='store_true', default=False, help='Clear imported products before remapping')
+        parser.add_argument('--brand', action='store_true', default=False, help='Apply smart branding to all products')
 
     def handle(self, *args, **options):
         do_sync = options.get('sync', False)
+        do_clear = options.get('clear', False)
+        do_brand = options.get('brand', False)
+
+        if do_clear:
+            self.stdout.write(self.style.WARNING('Clearing all previously imported provider products and mappings...'))
+            from apps.providers.models import ProviderMapping, ProviderProductParameter
+            ProviderMapping.objects.filter(provider_product__profile__in=ProviderProfile.all_objects.filter(is_active=True)).delete()
+            ProductVariant.objects.filter(product__api_provider='alkasr').delete()
+            Product.objects.filter(api_provider='alkasr').delete()
+            self.stdout.write(self.style.SUCCESS('Catalog cleared cleanly.'))
         CANONICAL_SECTIONS = {
             "شحن الألعاب": 1,
             "شحن التطبيقات": 2,
@@ -43,6 +55,9 @@ class Command(BaseCommand):
                 cat.is_active = True
                 cat.save(update_fields=["sort_order", "is_active"])
             canonical_objs[name] = cat
+
+        def get_canon_cat(c_name):
+            return Category.objects.filter(name=c_name, store=None).first() or canonical_objs.get(c_name)
 
         # Remap and delete only platform non-canonical categories
         non_canonical = Category.objects.filter(store=None).exclude(name__in=list(CANONICAL_SECTIONS.keys()))
@@ -109,7 +124,7 @@ class Command(BaseCommand):
             Product.objects.filter(api_provider='alkasr').update(is_active=True, is_out_of_stock=False)
 
             # Fix any mistakenly named products like "3 شهور"
-            snap_app_cat = canonical_objs.get("شحن التطبيقات")
+            snap_app_cat = get_canon_cat("شحن التطبيقات")
             duration_prods = Product.objects.filter(name__iregex=r'^\d+\s*(شهر|شهور|سنة|سنوات|أيام|يوم)')
             for dp in duration_prods:
                 dp.name = "سناب شات بلس (Snapchat Plus)"
@@ -125,8 +140,9 @@ class Command(BaseCommand):
             tiktok_prods = Product.objects.filter(name__icontains="تيك توك")
             for tp in tiktok_prods:
                 tp.name = "تيك توك (TikTok)"
-                if canonical_objs.get("شحن التطبيقات"):
-                    tp.category = canonical_objs["شحن التطبيقات"]
+                snap_cat = get_canon_cat("شحن التطبيقات")
+                if snap_cat:
+                    tp.category = snap_cat
                 tp.save(update_fields=['name', 'category'])
                 
                 for var in tp.variants.all():
@@ -172,8 +188,9 @@ class Command(BaseCommand):
                 if "تحويل" in sp.name or "transfer" in sp.name.lower():
                     continue
                 sp.name = "سيريتل (Syriatel)"
-                if canonical_objs.get("اتصالات ورصيد"):
-                    sp.category = canonical_objs["اتصالات ورصيد"]
+                syr_cat = get_canon_cat("اتصالات ورصيد")
+                if syr_cat:
+                    sp.category = syr_cat
                 sp.form_schema = {
                     "version": 1,
                     "fields": [
@@ -214,8 +231,9 @@ class Command(BaseCommand):
             mtn_prods = Product.objects.filter(name__icontains="mtn") | Product.objects.filter(name__icontains="ام تي ان")
             for mp in mtn_prods:
                 mp.name = "ام تي ان (MTN)"
-                if canonical_objs.get("اتصالات ورصيد"):
-                    mp.category = canonical_objs["اتصالات ورصيد"]
+                mtn_cat = get_canon_cat("اتصالات ورصيد")
+                if mtn_cat:
+                    mp.category = mtn_cat
                 mp.form_schema = {
                     "version": 1,
                     "fields": [
@@ -284,7 +302,7 @@ class Command(BaseCommand):
 
             import re
             for target_name, cat_name, aliases in consolidation_map:
-                target_cat = canonical_objs.get(cat_name)
+                target_cat = get_canon_cat(cat_name)
                 # Find or create primary product
                 primary = Product.objects.filter(name=target_name, store=None).first()
                 if not primary:
@@ -456,6 +474,18 @@ class Command(BaseCommand):
             total_cats = Category.objects.count()
             total_prods = Product.objects.filter(api_provider='alkasr').count()
             total_vars = ProductVariant.objects.filter(product__api_provider='alkasr').count()
+
+            if do_brand:
+                self.stdout.write('Applying smart branding and Raqamiyat badge to catalog products...')
+                from apps.catalog.smart_branding import apply_branding_to_product
+                branded_count = 0
+                for prod in Product.objects.filter(is_active=True):
+                    try:
+                        if apply_branding_to_product(prod, force=True):
+                            branded_count += 1
+                    except Exception as b_err:
+                        self.stdout.write(self.style.WARNING(f'Branding error for {prod.name}: {b_err}'))
+                self.stdout.write(self.style.SUCCESS(f'Successfully applied smart branding to {branded_count} products.'))
 
             self.stdout.write(self.style.SUCCESS(
                 f'Successfully remapped Alkasr catalog: {total_prods} products, {total_vars} variants across {total_cats} categories.'
