@@ -174,9 +174,6 @@ class AlkasrMapperService:
         e.g. ببجي موبايل (PUBG Global), فري فاير (Free Fire), سيريتل (Syriatel), نتفلكس (Netflix).
         Prevents fragmentation, duplicate products, and country-split entries.
         """
-        e.g. ببجي موبايل (PUBG Global), فري فاير (Free Fire), سيريتل (Syriatel), نتفلكس (Netflix).
-        Prevents fragmentation, duplicate products, and country-split entries.
-        """
         import re
         generic_names = {
             "null", "none", "games", "live application", "data and communication", 
