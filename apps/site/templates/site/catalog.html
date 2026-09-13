@@ -1273,11 +1273,12 @@
 
                         <!-- Image -->
                         <a href="{% url 'product_detail' p.id %}" class="card-img-wrap">
-                            {% if p.image %}
-                            <img src="{{ p.image.url }}" alt="{{ p.name }}" loading="lazy">
+                            {% product_display_image p as p_img %}
+                            {% if p_img %}
+                            <img src="{{ p_img }}" alt="{{ p.name }}" loading="lazy">
                             {% else %}
                             <div class="card-no-img">
-                                <i class="fas fa-box"></i>
+                                <i class="fas fa-bolt text-cyan/30"></i>
                             </div>
                             {% endif %}
                             <!-- Product type chip -->

@@ -17,3 +17,4 @@ server.err.log
 artifacts/
 .pytest_cache/
 .mypy_cache/
+scratch/

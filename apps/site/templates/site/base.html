@@ -999,13 +999,13 @@
           <i class="fas fa-boxes-stacked"></i>
           <span>الخدمات</span>
       </a>
-      <button type="button" onclick="openCurrencyModal()" class="mobile-nav-item" style="background: none; border: none; cursor: pointer; padding: 0;" aria-label="تبديل العملة">
-          <i class="fas fa-coins text-amber-400"></i>
-          <span style="color: #fbbf24; font-weight: 800;">{{ CURRENCY.code }}</span>
-      </button>
       <a href="{% url 'dashboard_wallet' %}" class="mobile-nav-item {% if request.resolver_match.url_name == 'dashboard_wallet' %}active{% endif %}">
           <i class="fas fa-wallet"></i>
           <span>المحفظة</span>
+      </a>
+      <a href="{% url 'dashboard_orders' %}" class="mobile-nav-item {% if request.resolver_match.url_name == 'dashboard_orders' %}active{% endif %}">
+          <i class="fas fa-receipt"></i>
+          <span>طلباتي</span>
       </a>
       <a href="{% url 'dashboard' %}" class="mobile-nav-item {% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}">
           <i class="fas fa-user"></i>

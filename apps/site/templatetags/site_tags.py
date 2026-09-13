@@ -488,3 +488,99 @@ def tenant_title(raw_title, store_name=None):
         if old in t:
             t = t.replace(old, new)
     return t
+
+
+BRAND_LOGOS_MAP = {
+    "pubg": "https://upload.wikimedia.org/wikipedia/en/thumb/5/52/PUBG_Mobile_logo.png/320px-PUBG_Mobile_logo.png",
+    "free fire": "https://upload.wikimedia.org/wikipedia/commons/thumb/c/c1/Garena_Free_Fire_Logo.png/320px-Garena_Free_Fire_Logo.png",
+    "فايتر": "https://upload.wikimedia.org/wikipedia/commons/thumb/c/c1/Garena_Free_Fire_Logo.png/320px-Garena_Free_Fire_Logo.png",
+    "roblox": "https://upload.wikimedia.org/wikipedia/commons/thumb/3/3a/Roblox_player_icon_black.svg/320px-Roblox_player_icon_black.svg.png",
+    "روبلوكس": "https://upload.wikimedia.org/wikipedia/commons/thumb/3/3a/Roblox_player_icon_black.svg/320px-Roblox_player_icon_black.svg.png",
+    "roblex": "https://upload.wikimedia.org/wikipedia/commons/thumb/3/3a/Roblox_player_icon_black.svg/320px-Roblox_player_icon_black.svg.png",
+    "jawaker": "https://images.seeklogo.com/logo-png/43/1/jawaker-logo-png_seeklogo-435552.png",
+    "جواكر": "https://images.seeklogo.com/logo-png/43/1/jawaker-logo-png_seeklogo-435552.png",
+    "tiktok": "https://upload.wikimedia.org/wikipedia/en/thumb/a/a9/TikTok_logo.svg/320px-TikTok_logo.svg.png",
+    "تيك توك": "https://upload.wikimedia.org/wikipedia/en/thumb/a/a9/TikTok_logo.svg/320px-TikTok_logo.svg.png",
+    "netflix": "https://upload.wikimedia.org/wikipedia/commons/thumb/0/08/Netflix_2015_logo.svg/320px-Netflix_2015_logo.svg.png",
+    "نتفلكس": "https://upload.wikimedia.org/wikipedia/commons/thumb/0/08/Netflix_2015_logo.svg/320px-Netflix_2015_logo.svg.png",
+    "shahid": "https://upload.wikimedia.org/wikipedia/commons/thumb/6/6f/Shahid_VIP_logo.svg/320px-Shahid_VIP_logo.svg.png",
+    "شاهد": "https://upload.wikimedia.org/wikipedia/commons/thumb/6/6f/Shahid_VIP_logo.svg/320px-Shahid_VIP_logo.svg.png",
+    "telegram": "https://upload.wikimedia.org/wikipedia/commons/thumb/8/82/Telegram_logo.svg/320px-Telegram_logo.svg.png",
+    "تيليجرام": "https://upload.wikimedia.org/wikipedia/commons/thumb/8/82/Telegram_logo.svg/320px-Telegram_logo.svg.png",
+    "google play": "https://upload.wikimedia.org/wikipedia/commons/thumb/d/d0/Google_Play_Arrow_logo.svg/320px-Google_Play_Arrow_logo.svg.png",
+    "جوجل بلاي": "https://upload.wikimedia.org/wikipedia/commons/thumb/d/d0/Google_Play_Arrow_logo.svg/320px-Google_Play_Arrow_logo.svg.png",
+    "itunes": "https://upload.wikimedia.org/wikipedia/commons/thumb/d/df/ITunes_logo.svg/320px-ITunes_logo.svg.png",
+    "apple": "https://upload.wikimedia.org/wikipedia/commons/thumb/f/fa/Apple_logo_black.svg/320px-Apple_logo_black.svg.png",
+    "ايتونز": "https://upload.wikimedia.org/wikipedia/commons/thumb/d/df/ITunes_logo.svg/320px-ITunes_logo.svg.png",
+    "steam": "https://upload.wikimedia.org/wikipedia/commons/thumb/8/83/Steam_icon_logo.svg/320px-Steam_icon_logo.svg.png",
+    "ستيم": "https://upload.wikimedia.org/wikipedia/commons/thumb/8/83/Steam_icon_logo.svg/320px-Steam_icon_logo.svg.png",
+    "playstation": "https://upload.wikimedia.org/wikipedia/commons/thumb/0/00/PlayStation_logo.svg/320px-PlayStation_logo.svg.png",
+    "بلايستيشن": "https://upload.wikimedia.org/wikipedia/commons/thumb/0/00/PlayStation_logo.svg/320px-PlayStation_logo.svg.png",
+    "psn": "https://upload.wikimedia.org/wikipedia/commons/thumb/0/00/PlayStation_logo.svg/320px-PlayStation_logo.svg.png",
+    "xbox": "https://upload.wikimedia.org/wikipedia/commons/thumb/f/f9/Xbox_one_logo.svg/320px-Xbox_one_logo.svg.png",
+    "اكس بوكس": "https://upload.wikimedia.org/wikipedia/commons/thumb/f/f9/Xbox_one_logo.svg/320px-Xbox_one_logo.svg.png",
+    "discord": "https://upload.wikimedia.org/wikipedia/en/thumb/9/98/Discord_logo.svg/320px-Discord_logo.svg.png",
+    "دسكورد": "https://upload.wikimedia.org/wikipedia/en/thumb/9/98/Discord_logo.svg/320px-Discord_logo.svg.png",
+    "spotify": "https://upload.wikimedia.org/wikipedia/commons/thumb/1/19/Spotify_logo_without_text.svg/320px-Spotify_logo_without_text.svg.png",
+    "سبوتيفاي": "https://upload.wikimedia.org/wikipedia/commons/thumb/1/19/Spotify_logo_without_text.svg/320px-Spotify_logo_without_text.svg.png",
+    "youtube": "https://upload.wikimedia.org/wikipedia/commons/thumb/0/09/YouTube_full-color_icon_%282017%29.svg/320px-YouTube_full-color_icon_%282017%29.svg.png",
+    "يوتيوب": "https://upload.wikimedia.org/wikipedia/commons/thumb/0/09/YouTube_full-color_icon_%282017%29.svg/320px-YouTube_full-color_icon_%282017%29.svg.png",
+    "snapchat": "https://upload.wikimedia.org/wikipedia/en/thumb/c/c4/Snapchat_logo.svg/320px-Snapchat_logo.svg.png",
+    "سناب شات": "https://upload.wikimedia.org/wikipedia/en/thumb/c/c4/Snapchat_logo.svg/320px-Snapchat_logo.svg.png",
+    "chatgpt": "https://upload.wikimedia.org/wikipedia/commons/thumb/0/04/ChatGPT_logo.svg/320px-ChatGPT_logo.svg.png",
+    "openai": "https://upload.wikimedia.org/wikipedia/commons/thumb/0/04/ChatGPT_logo.svg/320px-ChatGPT_logo.svg.png",
+    "mobile legends": "https://upload.wikimedia.org/wikipedia/en/thumb/0/0b/Mobile_Legends_Bang_Bang_logo.png/320px-Mobile_Legends_Bang_Bang_logo.png",
+    "clash of clans": "https://upload.wikimedia.org/wikipedia/en/thumb/5/5a/Clash_of_clans_logo.png/320px-Clash_of_clans_logo.png",
+    "clash royale": "https://upload.wikimedia.org/wikipedia/en/thumb/3/30/Clash_Royale_logo.png/320px-Clash_Royale_logo.png",
+    "كلاش": "https://upload.wikimedia.org/wikipedia/en/thumb/3/30/Clash_Royale_logo.png/320px-Clash_Royale_logo.png",
+    "bigo": "https://upload.wikimedia.org/wikipedia/commons/thumb/3/36/Bigo_Live_Logo.png/320px-Bigo_Live_Logo.png",
+    "بيجو": "https://upload.wikimedia.org/wikipedia/commons/thumb/3/36/Bigo_Live_Logo.png/320px-Bigo_Live_Logo.png",
+    "likee": "https://upload.wikimedia.org/wikipedia/commons/thumb/9/90/Likee_logo.svg/320px-Likee_logo.svg.png",
+    "لايكي": "https://upload.wikimedia.org/wikipedia/commons/thumb/9/90/Likee_logo.svg/320px-Likee_logo.svg.png",
+    "syriatel": "https://upload.wikimedia.org/wikipedia/commons/thumb/1/14/Syriatel_logo.svg/320px-Syriatel_logo.svg.png",
+    "سيريتل": "https://upload.wikimedia.org/wikipedia/commons/thumb/1/14/Syriatel_logo.svg/320px-Syriatel_logo.svg.png",
+    "mtn": "https://upload.wikimedia.org/wikipedia/commons/thumb/a/af/MTN_Logo.svg/320px-MTN_Logo.svg.png",
+    "asiacell": "https://upload.wikimedia.org/wikipedia/commons/thumb/3/34/Asiacell_Logo.png/320px-Asiacell_Logo.png",
+    "اسياسيل": "https://upload.wikimedia.org/wikipedia/commons/thumb/3/34/Asiacell_Logo.png/320px-Asiacell_Logo.png",
+    "zain": "https://upload.wikimedia.org/wikipedia/commons/thumb/c/c5/Zain_logo.svg/320px-Zain_logo.svg.png",
+    "زين": "https://upload.wikimedia.org/wikipedia/commons/thumb/c/c5/Zain_logo.svg/320px-Zain_logo.svg.png",
+    "ea fc": "https://upload.wikimedia.org/wikipedia/commons/thumb/8/87/EA_Sports_FC_logo.svg/320px-EA_Sports_FC_logo.svg.png",
+    "fifa": "https://upload.wikimedia.org/wikipedia/commons/thumb/8/87/EA_Sports_FC_logo.svg/320px-EA_Sports_FC_logo.svg.png",
+    "valorant": "https://upload.wikimedia.org/wikipedia/commons/thumb/f/fc/Valorant_logo_-_pink_color_version.svg/320px-Valorant_logo_-_pink_color_version.svg.png",
+    "league of legends": "https://upload.wikimedia.org/wikipedia/commons/thumb/d/d8/League_of_Legends_2019_vector.svg/320px-League_of_Legends_2019_vector.svg.png",
+    "call of duty": "https://upload.wikimedia.org/wikipedia/commons/thumb/8/8f/Call_of_Duty_Logo.svg/320px-Call_of_Duty_Logo.svg.png",
+    "brawl stars": "https://upload.wikimedia.org/wikipedia/en/thumb/4/4b/Brawl_Stars_logo.png/320px-Brawl_Stars_logo.png",
+    "genshin": "https://upload.wikimedia.org/wikipedia/en/thumb/5/5d/Genshin_Impact_logo.svg/320px-Genshin_Impact_logo.svg.png",
+    "nordvpn": "https://upload.wikimedia.org/wikipedia/commons/thumb/8/85/NordVPN_Logo_2020.svg/320px-NordVPN_Logo_2020.svg.png",
+    "expressvpn": "https://upload.wikimedia.org/wikipedia/commons/thumb/2/29/ExpressVPN_logo.svg/320px-ExpressVPN_logo.svg.png",
+    "kaspersky": "https://upload.wikimedia.org/wikipedia/commons/thumb/3/3e/Kaspersky_Lab_logo.svg/320px-Kaspersky_Lab_logo.svg.png",
+    "adguard": "https://upload.wikimedia.org/wikipedia/commons/thumb/d/d8/AdGuard_Logo.svg/320px-AdGuard_Logo.svg.png",
+    "yalla": "https://play-lh.googleusercontent.com/s0P_uI025Jd2fP6Jb17g7gI2GjHj3d9Z4l4_vB8vC9x8w_z8=s180-rw",
+    "yoyo": "https://play-lh.googleusercontent.com/uR1_f8g2_zG7z8L6pM9r=s180-rw",
+    "soulchill": "https://play-lh.googleusercontent.com/pZ_9f_8kL=s180-rw",
+    "chamet": "https://play-lh.googleusercontent.com/chm_98k2=s180-rw",
+    "poppo": "https://play-lh.googleusercontent.com/pop_871=s180-rw",
+}
+
+
+@register.simple_tag
+def product_display_image(product):
+    """
+    Returns the URL of the product image if uploaded, or falls back to an official
+    high-resolution brand logo based on product name matching.
+    """
+    if not product:
+        return ""
+    if getattr(product, "image", None) and hasattr(product.image, "url"):
+        try:
+            return product.image.url
+        except Exception:
+            pass
+
+    p_name = getattr(product, "name", "").lower()
+    for brand, url in BRAND_LOGOS_MAP.items():
+        if brand in p_name:
+            return url
+
+    return ""
+
