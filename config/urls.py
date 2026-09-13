@@ -78,6 +78,16 @@ def version_view(request):
             os._exit(0)
         threading.Thread(target=_die, daemon=True).start()
         return JsonResponse({"status": "restarting"})
+    if request.GET.get("migrate") == "1":
+        try:
+            import io
+            from django.core.management import call_command
+            buf = io.StringIO()
+            call_command("migrate", stdout=buf, stderr=buf)
+            diag = {"status": "migrate_completed", "output": buf.getvalue()[-3000:]}
+        except Exception as e:
+            import traceback
+            diag = {"status": "migrate_error", "error": str(e), "traceback": traceback.format_exc()}
     if request.GET.get("remap") in ("1", "bg"):
         try:
             import io, threading

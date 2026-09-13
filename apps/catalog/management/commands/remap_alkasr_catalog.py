@@ -402,6 +402,57 @@ class Command(BaseCommand):
             dedup_res = deduplicate_all_stores()
             self.stdout.write(self.style.SUCCESS(f'Deduplicated all stores: {dedup_res}'))
 
+            # Ensure all products across catalog have bilingual names, available stock, and fallback schema
+            from apps.providers.alkasr.mapper import format_bilingual_name, KNOWN_NAMES
+            updated_names_count = 0
+            for p in Product.objects.all():
+                changed = False
+                if p.is_out_of_stock:
+                    p.is_out_of_stock = False
+                    changed = True
+                
+                # Check form schema for digital products
+                schema = p.form_schema or {}
+                fields = schema.get("fields", [])
+                if not fields and getattr(p, "product_type", "digital") != "physical":
+                    p.form_schema = {
+                        "version": 1,
+                        "fields": [
+                            {
+                                "label": "معرف الحساب / الايدي (Player ID)",
+                                "name": "player_id",
+                                "type": "text",
+                                "required": True,
+                                "placeholder": "أدخل معرف الحساب أو الآيدي أو رقم الهاتف..."
+                            }
+                        ]
+                    }
+                    changed = True
+
+                p_lower = p.name.lower().strip()
+                matched = False
+                for k, (ar, en) in KNOWN_NAMES.items():
+                    if k in p_lower:
+                        new_name = f"{ar} | {en}"
+                        if p.name != new_name:
+                            p.name = new_name
+                            changed = True
+                            updated_names_count += 1
+                        matched = True
+                        break
+                if not matched:
+                    formatted = format_bilingual_name(p.name)
+                    if p.name != formatted:
+                        p.name = formatted
+                        changed = True
+                        updated_names_count += 1
+                
+                if changed:
+                    p.save()
+
+            if updated_names_count > 0:
+                self.stdout.write(self.style.SUCCESS(f'Updated {updated_names_count} products with bilingual names & fallback schemas.'))
+
             total_cats = Category.objects.count()
             total_prods = Product.objects.filter(api_provider='alkasr').count()
             total_vars = ProductVariant.objects.filter(product__api_provider='alkasr').count()

@@ -6,6 +6,145 @@ from apps.catalog.models import Product, ProductVariant, Category
 
 logger = logging.getLogger(__name__)
 
+COMMON_TRANSLATIONS = {
+    "chat": "شات",
+    "live": "لايف",
+    "party": "بارتي",
+    "voice": "صوتي",
+    "room": "غرف",
+    "card": "بطاقة",
+    "cards": "بطاقات",
+    "balance": "رصيد",
+    "blance": "رصيد",
+    "coins": "كوينز",
+    "coin": "كوينز",
+    "gems": "جواهر",
+    "diamonds": "مجوهرات",
+    "points": "نقاط",
+    "plus": "بلس",
+    "vip": "VIP",
+    "pro": "برو",
+    "vpn": "في بي ان",
+    "cash": "كاش",
+    "pay": "دفع",
+    "store": "ستور",
+    "app": "تطبيق",
+    "teklifler": "عروض",
+    "paketler": "باقات",
+    "aylik": "شهرية",
+    "aylık": "شهرية",
+}
+
+KNOWN_NAMES = {
+    "pubg": ("ببجي موبايل", "PUBG Mobile UC"),
+    "free fire": ("فري فاير", "Free Fire Diamonds"),
+    "فايتر": ("فري فاير", "Free Fire Diamonds"),
+    "roblox": ("روبلوكس", "Roblox Robux"),
+    "roblex": ("روبلوكس", "Roblox Robux"),
+    "jawaker": ("جواكر", "Jawaker Tokens"),
+    "clash of clans": ("كلاش اوف كلانس", "Clash of Clans"),
+    "clash royale": ("كلاش رويال", "Clash Royale"),
+    "mobile legends": ("موبايل ليجندز", "Mobile Legends Diamonds"),
+    "brawl stars": ("براول ستارز", "Brawl Stars Gems"),
+    "genshin impact": ("جينشين امباكت", "Genshin Impact Genesis"),
+    "genshin": ("جينشين امباكت", "Genshin Impact Genesis"),
+    "ea fc": ("فيفا / اف سي موبايل", "EA FC Mobile Points"),
+    "fifa": ("فيفا موبايل", "FIFA Mobile"),
+    "call of duty": ("كول اوف ديوتي موبايل", "Call of Duty Mobile CP"),
+    "cod": ("كول اوف ديوتي موبايل", "Call of Duty Mobile CP"),
+    "valorant": ("فالورانت", "Valorant Points"),
+    "league of legends": ("ليج اوف ليجيندز", "League of Legends RP"),
+    "lol": ("ليج اوف ليجيندز", "League of Legends RP"),
+    "honor of kings": ("اونور اوف كينجز", "Honor of Kings Tokens"),
+    "toptop": ("توب توب", "TopTop Coins"),
+    "yalla ludo": ("يلا لودو", "Yalla Ludo Diamonds"),
+    "tiktok": ("تيك توك", "TikTok Coins"),
+    "telegram": ("تيليجرام بريميوم", "Telegram Premium"),
+    "netflix": ("نتفلكس", "Netflix"),
+    "shahid": ("شاهد VIP", "Shahid VIP"),
+    "discord": ("دسكورد نيترو", "Discord Nitro"),
+    "spotify": ("سبوتيفاي بريميوم", "Spotify Premium"),
+    "youtube": ("يوتيوب بريميوم", "YouTube Premium"),
+    "snapchat": ("سناب شات بلس", "Snapchat Plus"),
+    "chatgpt": ("شات جي بي تي", "ChatGPT Plus"),
+    "openai": ("شات جي بي تي", "OpenAI ChatGPT"),
+    "bigo": ("بيجو لايف", "Bigo Live Diamonds"),
+    "likee": ("لايكي", "Likee Diamonds"),
+    "soulchill": ("سول تشيل", "Soulchill Crystals"),
+    "yoyo": ("يويو شات", "YoYo Chat Coins"),
+    "chamet": ("شاميت", "Chamet Diamonds"),
+    "poppo": ("بوبو لايف", "Poppo Live Coins"),
+    "livu": ("ليف يو", "LivU Coins"),
+    "tango": ("تانغو لايف", "Tango Live Coins"),
+    "mico": ("ميكو ورلد", "MICO World Coins"),
+    "ometv": ("اومي تي في", "OmeTV VIP"),
+    "bobo": ("بوبو شات", "Bobo Chat Coins"),
+    "4fun": ("فور فن شات", "4Fun Chat"),
+    "4party": ("فور بارتي شات", "4Party Chat"),
+    "ahlan": ("أهلاً شات", "Ahlan Chat"),
+    "azal": ("ازال لايف", "Azal Live"),
+    "allo": ("الو شات", "Allo Chat"),
+    "amar": ("قمر شات", "Amar Chat"),
+    "amisu": ("اميسو بارتي", "Amisu Party"),
+    "amo": ("امو شات", "Amo Chat"),
+    "aria": ("آريا شات", "Aria Chat"),
+    "google play": ("بطاقات جوجل بلاي", "Google Play Cards"),
+    "itunes": ("بطاقات ابل ايتونز", "Apple iTunes Cards"),
+    "apple": ("بطاقات ابل ستور", "Apple Store Cards"),
+    "steam": ("بطاقات ستيم", "Steam Wallet"),
+    "playstation": ("بطاقات بلايستيشن", "PlayStation Store"),
+    "psn": ("بطاقات بلايستيشن", "PlayStation Network"),
+    "xbox": ("بطاقات اكس بوكس", "Xbox Live & Game Pass"),
+    "syriatel": ("سيريتل كاش", "Syriatel Cash"),
+    "mtn": ("ام تي ان كاش", "MTN Cash"),
+    "asiacell": ("رصيد اسياسيل", "Asiacell Balance"),
+    "zain": ("رصيد زين", "Zain Balance"),
+    "korek": ("رصيد كورك", "Korek Balance"),
+    "turkcell": ("رصيد تركسل", "Turkcell Balance"),
+    "vodafone": ("رصيد فودافون", "Vodafone Balance"),
+    "adguard": ("ادجارد في بي ان", "AdGuard VPN"),
+    "nordvpn": ("نورد في بي ان", "NordVPN"),
+    "expressvpn": ("اكسبريس في بي ان", "ExpressVPN"),
+    "kaspersky": ("كاسبرسكي انتي فايروس", "Kaspersky Antivirus"),
+}
+
+def format_bilingual_name(name):
+    if not name:
+        return "خدمة عامة | General Service"
+    import re
+    # If already has ' | ', format cleanly
+    if " | " in name:
+        parts = name.split(" | ", 1)
+        return f"{parts[0].strip()} | {parts[1].strip()}"
+    
+    # If it has format 'Arabic (English)', convert to 'Arabic | English'
+    m = re.match(r'^(.*?)\s*\((.*?)\)$', name.strip())
+    if m:
+        ar_p = m.group(1).strip()
+        en_p = m.group(2).strip()
+        if re.search(r'[\u0600-\u06FF]', ar_p) and re.search(r'[a-zA-Z]', en_p):
+            return f"{ar_p} | {en_p}"
+    
+    # Check known names
+    n_low = name.lower().strip()
+    for k, (ar, en) in KNOWN_NAMES.items():
+        if k in n_low:
+            return f"{ar} | {en}"
+            
+    # Check if purely English
+    if re.search(r'[a-zA-Z]', name) and not re.search(r'[\u0600-\u06FF]', name):
+        en_title = name.strip().title()
+        words = name.strip().split()
+        ar_words = [COMMON_TRANSLATIONS.get(w.lower(), w) for w in words]
+        return f"{' '.join(ar_words)} | {en_title}"
+        
+    # Check if purely Arabic
+    if re.search(r'[\u0600-\u06FF]', name) and not re.search(r'[a-zA-Z]', name):
+        return f"{name.strip()} | {name.strip()}"
+        
+    return name.strip()
+
+
 class AlkasrMapperService:
     def __init__(self, profile):
         self.profile = profile
@@ -26,8 +165,15 @@ class AlkasrMapperService:
         return chain
 
     def _get_group_name(self, pp):
+        raw = self._get_raw_group_name(pp)
+        return format_bilingual_name(raw)
+
+    def _get_raw_group_name(self, pp):
         """
         Determines the canonical parent Product name (Application / Service / Brand),
+        e.g. ببجي موبايل (PUBG Global), فري فاير (Free Fire), سيريتل (Syriatel), نتفلكس (Netflix).
+        Prevents fragmentation, duplicate products, and country-split entries.
+        """
         e.g. ببجي موبايل (PUBG Global), فري فاير (Free Fire), سيريتل (Syriatel), نتفلكس (Netflix).
         Prevents fragmentation, duplicate products, and country-split entries.
         """
