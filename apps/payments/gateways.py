@@ -1,3 +1,5 @@
+from decimal import Decimal
+
 from apps.payments.paymera import PaymeraClient, PaymeraError
 
 
@@ -93,7 +95,7 @@ class PaymeraGateway(BasePaymentGateway):
             syp_amount = deposit.amount
         else:
             from apps.common.models import Currency
-            syp_currency = Currency.objects.filter(code="SYP").first()
+            syp_currency = Currency.objects.filter(code="SYP", is_active=True).first() or Currency.all_objects.filter(code="SYP", is_active=True).first()
             if syp_currency and hasattr(deposit.currency, "to_base"):
                 usd_val = deposit.currency.to_base(deposit.amount, "deposit")
                 syp_amount = syp_currency.from_base(usd_val, "deposit")
@@ -103,7 +105,7 @@ class PaymeraGateway(BasePaymentGateway):
         notes = f"Deposit {deposit.id} for user {deposit.user.email}"
         try:
             res = client.create_payment(
-                amount=syp_amount,
+                amount=round(float(syp_amount), 2),
                 callback_url=callback_url,
                 trigger_url=trigger_url,
                 notes=notes,
@@ -114,7 +116,7 @@ class PaymeraGateway(BasePaymentGateway):
                 deposit.metadata = {}
             deposit.metadata["paymera_url"] = res["url"]
             deposit.metadata["paymera_payment_id"] = res["payment_id"]
-            deposit.metadata["syp_amount"] = int(round(float(syp_amount)))
+            deposit.metadata["syp_amount"] = round(float(syp_amount), 2)
             deposit.save(update_fields=["gateway_payment_id", "metadata"])
             return res
         except PaymeraError as err:
@@ -148,13 +150,33 @@ class PaymeraGateway(BasePaymentGateway):
         callback_url = f"{callback_base}?order_id={order.id}"
         trigger_url = f"{trigger_base}?order_id={order.id}"
 
-        # Order total amount
-        order_amount = order.total_amount
+        # Paymera processes transactions exclusively in Syrian Pounds (SYP).
+        # Convert the order total amount from USD to SYP using the store's SYP exchange rate.
+        from apps.common.models import Currency
+        store = getattr(order, "store", None)
+        syp_currency = None
+        if store:
+            syp_currency = Currency.all_objects.filter(store=store, code="SYP", is_active=True).first()
+        if not syp_currency:
+            syp_currency = Currency.all_objects.filter(code="SYP", is_active=True).first()
+
+        # Compute exact USD total (preserving fractional precision before 2-decimal truncation)
+        exact_usd = Decimal("0.00")
+        for item in order.items.all():
+            exact_usd += Decimal(str(item.unit_price)) * item.quantity
+        if exact_usd <= 0:
+            exact_usd = order.total_amount
+
+        if syp_currency:
+            syp_val = syp_currency.from_base(exact_usd, "deposit")
+            charge_amount = round(float(syp_val), 2)
+        else:
+            charge_amount = round(float(exact_usd), 2)
 
         notes = f"Order {order.number} for {order.customer.email}"
         try:
             res = client.create_payment(
-                amount=order_amount,
+                amount=charge_amount,
                 callback_url=callback_url,
                 trigger_url=trigger_url,
                 notes=notes,
@@ -164,7 +186,8 @@ class PaymeraGateway(BasePaymentGateway):
                 order.metadata = {}
             order.metadata["gateway_payment_id"] = res["payment_id"]
             order.metadata["paymera_url"] = res["url"]
-            order.metadata["gateway_charge_amount"] = float(order_amount)
+            order.metadata["gateway_charge_amount"] = float(charge_amount)
+            order.metadata["gateway_charge_currency"] = "SYP"
             order.metadata["payment_provider"] = self.code
             order.save(update_fields=["metadata"])
             return res
