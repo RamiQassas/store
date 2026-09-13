@@ -5,6 +5,7 @@ Documentation: Paymera eGate API Specification v4.0 (2026-07-05)
 
 import base64
 import logging
+import re
 from decimal import Decimal
 from typing import Any, Dict, Optional
 
