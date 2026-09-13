@@ -161,7 +161,13 @@
                     </span>
                 </div>
 
-                <div class="flex items-center gap-3">
+                <div class="flex items-center gap-2 sm:gap-3 flex-wrap">
+                    <!-- Payment Method Badge -->
+                    <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[10px] font-bold border {% if order.payment_gateway_charge_info %}bg-emerald-500/10 text-emerald-400 border-emerald-500/25{% else %}bg-cyan-500/10 text-cyan-400 border-cyan-500/25{% endif %}">
+                        <i class="fas {% if order.payment_gateway_charge_info %}fa-credit-card{% else %}fa-wallet{% endif %} text-[9px]"></i>
+                        <span>{{ order.payment_method_display }}</span>
+                    </span>
+
                     {% if order.api_order_id %}
                     <span class="text-[11px] text-slate-400 font-mono hidden sm:inline-block">
                         رقم معرف الطلب: <strong class="text-white">{{ order.api_order_id }}</strong>
@@ -294,6 +300,11 @@
                     <div class="text-xl font-black font-mono text-white tracking-tight">
                         {% currency_format order.total_amount %}
                     </div>
+                    {% if order.payment_gateway_charge_info %}
+                    <div class="text-[11px] font-mono font-bold text-emerald-400 mt-0.5">
+                        {{ order.payment_gateway_charge_info.amount }} {{ order.payment_gateway_charge_info.currency }}
+                    </div>
+                    {% endif %}
                 </div>
             </div>
 

@@ -204,23 +204,71 @@ class Order(TimeStampedModel):
             "response", "api_response", "api_error", "alkasr", "provider",
             "provider_order_id", "api_order_id", "api_order_uuid", "provider_id",
             "raw_response", "external_id", "external_order_id", "api",
-            "payment_gateway", "gateway_payment_id", "is_direct_gateway_purchase",
+            "payment_gateway", "payment_provider", "gateway_payment_id", "is_direct_gateway_purchase",
+            "direct_gateway_purchase", "gateway_order", "direct_gateway", "checkout_session_id",
+            "stripe_session_id", "transaction_id", "payment_id", "payment_reference",
+            "payment_method", "client_secret", "payment_status", "order_channel",
             "paymera_url", "paymera_payment_id", "syp_amount", "paymera",
+            "gateway_charge_amount", "gateway_charge_currency", "tafa3ol",
+            "notes", "admin_notes", "price_adjustment_reason"
         }
         for key, val in self.metadata.items():
             if val is None or val == "" or isinstance(val, (dict, list)):
                 continue
             k_lower = str(key).lower().strip()
             v_lower = str(val).lower().strip()
-            if k_lower in EXCLUDED_KEYS or k_lower.startswith("api_") or k_lower.startswith("paymera") or v_lower in ("alkasr", "paymera"):
+            if (
+                k_lower in EXCLUDED_KEYS
+                or k_lower.startswith(("api_", "paymera", "gateway_", "payment_"))
+                or v_lower in ("alkasr", "paymera")
+            ):
                 continue
             label = label_map.get(key, key)
             l_lower = str(label).lower().strip()
-            if l_lower in EXCLUDED_KEYS or l_lower.startswith("api") or l_lower.startswith("paymera"):
+            if (
+                l_lower in EXCLUDED_KEYS
+                or l_lower.startswith(("api", "paymera", "gateway", "payment"))
+            ):
                 continue
             results.append({"label": label, "value": val})
                 
         return results
+
+    @property
+    def payment_method_display(self):
+        meta = self.metadata or {}
+        gw = meta.get("payment_gateway") or meta.get("payment_provider")
+        if gw or meta.get("is_direct_gateway_purchase"):
+            gw_str = str(gw or "بوابة دفع").strip().lower()
+            if "paymera" in gw_str:
+                return "بيميرا (Paymera)"
+            elif "sham" in gw_str:
+                return "شام كاش (Sham Cash)"
+            elif "fmp" in gw_str:
+                return "FMP بوابة"
+            return f"بوابة دفع ({gw})"
+        return "محفظة رقميات"
+
+    @property
+    def payment_gateway_charge_info(self):
+        meta = self.metadata or {}
+        amt = meta.get("gateway_charge_amount") or meta.get("syp_amount")
+        curr = meta.get("gateway_charge_currency") or ("SYP" if meta.get("syp_amount") else None)
+        if amt:
+            return {
+                "amount": str(amt),
+                "currency": curr or "SYP",
+                "gateway": self.payment_method_display,
+                "is_direct": True,
+            }
+        elif meta.get("is_direct_gateway_purchase") or meta.get("payment_gateway"):
+            return {
+                "amount": str(self.total_amount),
+                "currency": "USD",
+                "gateway": self.payment_method_display,
+                "is_direct": True,
+            }
+        return None
 
     def get_server_responses(self):
         """

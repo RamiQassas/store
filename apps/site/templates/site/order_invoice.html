@@ -164,25 +164,30 @@
             </div>
 
             <div class="p-4 rounded-2xl bg-slate-950/50 border border-white/5 print-bg-light print-border">
-                <span class="text-[10px] text-slate-400 print-text-muted font-black uppercase tracking-wider block mb-1">تفاصيل الدفع والتنفيذ</span>
-                <strong class="text-white print-text-dark text-sm block">محفظة {% if is_tenant %}{{ STORE_NAME }}{% else %}رقميات{% endif %} (خصم فوري)</strong>
-                {% if order.api_order_id %}
-                <span class="text-cyan-400 print-text-dark font-mono text-[11px] block mt-0.5">رقم الطلب: {{ order.api_order_id }}</span>
+                <span class="text-[10px] text-slate-400 print-text-muted font-black uppercase tracking-wider block mb-1">تفاصيل وسيلة الدفع</span>
+                <strong class="text-white print-text-dark text-sm block">{{ order.payment_method_display }}</strong>
+                {% if order.payment_gateway_charge_info %}
+                <span class="text-emerald-400 print-text-dark font-mono text-[11px] block mt-0.5">
+                    المبلغ المسدد: {{ order.payment_gateway_charge_info.amount }} {{ order.payment_gateway_charge_info.currency }}
+                </span>
                 {% else %}
-                <span class="text-slate-400 print-text-muted font-mono text-[11px] block mt-0.5">حالة السداد: مكتمل بالكامل</span>
+                <span class="text-cyan-400 print-text-dark font-mono text-[11px] block mt-0.5">
+                    حالة السداد: خصم فوري مكتمل
+                </span>
+                {% endif %}
+                {% if order.api_order_id %}
+                <span class="text-slate-400 print-text-muted font-mono text-[10px] block mt-0.5">رقم العملية: {{ order.api_order_id }}</span>
                 {% endif %}
             </div>
 
             <div class="p-4 rounded-2xl bg-slate-950/50 border border-white/5 print-bg-light print-border sm:col-span-2 lg:col-span-1">
                 <span class="text-[10px] text-slate-400 print-text-muted font-black uppercase tracking-wider block mb-1">البيانات المدخلة للطلب</span>
-                {% if order.metadata %}
-                    {% for k, v in order.metadata.items %}
-                        {% if k != 'api_provider' and k != 'api_error' and k != 'alkasr' and v %}
-                        <div class="flex items-center justify-between gap-2 mt-0.5">
-                            <span class="text-slate-400 print-text-muted">{{ k }}:</span>
-                            <strong class="text-white print-text-dark font-mono text-xs">{{ v }}</strong>
-                        </div>
-                        {% endif %}
+                {% if order.formatted_metadata %}
+                    {% for meta in order.formatted_metadata %}
+                    <div class="flex items-center justify-between gap-2 mt-0.5">
+                        <span class="text-slate-400 print-text-muted">{{ meta.label }}:</span>
+                        <strong class="text-white print-text-dark font-mono text-xs">{{ meta.value }}</strong>
+                    </div>
                     {% endfor %}
                 {% elif order.shipping_phone %}
                     <div class="flex items-center justify-between gap-2 mt-0.5">
@@ -226,14 +231,14 @@
         </div>
 
         <!-- Fulfillment Codes & Delivery Keys Section (Highlight) -->
-        {% if order.fulfillment_data %}
+        {% with clean_items=order.fulfillment_data|clean_fulfillment_items %}
+        {% if clean_items %}
         <div class="py-6 border-t border-white/10 print-border">
             <h3 class="text-xs font-black uppercase tracking-wider text-cyan-400 print-text-dark mb-3 flex items-center gap-2">
                 <i class="fas fa-key"></i> بيانات التسليم والأكواد المرفقة (Fulfillment Data)
             </h3>
             <div class="stack gap-3">
-                {% for key, val in order.fulfillment_data.items %}
-                    {% if key != 'api_provider' and key != 'api_status' and key != 'api_last_response' and key != 'api_refunded' and key != 'response' and key != 'api_response' and key != 'api_error' and key != 'alkasr' and key != 'api_order_id' and val %}
+                {% for key, val in clean_items %}
                     {% with val_list=val|as_list %}
                     <div class="p-4 rounded-2xl bg-slate-950/90 border border-cyan/40 print-bg-light print-border">
                         <span class="text-[10px] text-cyan-400 print-text-muted font-black uppercase tracking-wider block mb-1">{{ key }}</span>
@@ -264,11 +269,11 @@
                         {% endif %}
                     </div>
                     {% endwith %}
-                    {% endif %}
                 {% endfor %}
             </div>
         </div>
         {% endif %}
+        {% endwith %}
 
         <!-- Totals & Payment Summary -->
         <div class="pt-6 border-t border-white/10 print-border flex flex-col sm:flex-row justify-between items-start sm:items-center gap-6">
@@ -277,7 +282,7 @@
                 <p>هذا المستند يعتبر إشعاراً رسميّاً بتنفيذ وتسليم الخدمة المطلوبة بموجب الشروط والأحكام المعتمدة.</p>
             </div>
 
-            <div class="w-full sm:w-64 p-4 rounded-2xl bg-slate-950/70 border border-white/10 print-bg-light print-border stack gap-2 text-xs">
+            <div class="w-full sm:w-72 p-4 rounded-2xl bg-slate-950/70 border border-white/10 print-bg-light print-border stack gap-2 text-xs">
                 <div class="flex justify-between text-slate-400 print-text-muted">
                     <span>المجموع الفرعي:</span>
                     <span class="font-mono font-bold text-white print-text-dark">{{ order.original_total|default:order.total_amount }} $</span>
@@ -292,6 +297,12 @@
                     <span class="text-white print-text-dark">الإجمالي النهائي:</span>
                     <span class="text-cyan-400 print-text-dark font-mono text-base font-black">{{ order.total_amount }} $</span>
                 </div>
+                {% if order.payment_gateway_charge_info %}
+                <div class="flex justify-between items-center pt-2 border-t border-dashed border-white/10 print-border text-xs">
+                    <span class="text-emerald-400 font-bold">المسدد عبر {{ order.payment_gateway_charge_info.gateway }}:</span>
+                    <span class="text-emerald-300 print-text-dark font-mono font-black text-sm">{{ order.payment_gateway_charge_info.amount }} {{ order.payment_gateway_charge_info.currency }}</span>
+                </div>
+                {% endif %}
             </div>
         </div>
 

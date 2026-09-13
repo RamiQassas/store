@@ -2263,24 +2263,31 @@ def product_detail(request, pk):
     active_gateways = PaymentGatewayIntegration.objects.filter(is_active=True)
     for gw in active_gateways:
         seen_gw_ids.add(gw.id)
+        gw_logo = None
+        if gw.provider == "paymera" or "paymera" in (gw.name or "").lower() or "بيميرا" in (gw.name or ""):
+            gw_logo = "/media/payment-methods/logos/paymera.png"
+
         gateway_methods.append({
             "id": f"gateway:{gw.id}",
             "code": gw.provider,
             "name": gw.name,
             "provider_name": gw.get_provider_display(),
-            "logo": None,
+            "logo": gw_logo,
         })
 
     methods_with_gw = PaymentMethod.objects.filter(is_active=True, gateway__isnull=False, gateway__is_active=True)
     for pm in methods_with_gw:
         if pm.gateway_id not in seen_gw_ids:
             seen_gw_ids.add(pm.gateway_id)
+            pm_logo = pm.logo.url if pm.logo else None
+            if not pm_logo and (pm.gateway.provider == "paymera" or "paymera" in (pm.name or "").lower() or "بيميرا" in (pm.name or "")):
+                pm_logo = "/media/payment-methods/logos/paymera.png"
             gateway_methods.append({
                 "id": f"method:{pm.id}",
                 "code": pm.gateway.provider,
                 "name": pm.name,
                 "provider_name": pm.gateway.get_provider_display(),
-                "logo": pm.logo.url if pm.logo else None,
+                "logo": pm_logo,
             })
 
     return render(request, "site/product_detail.html", {

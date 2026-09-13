@@ -156,6 +156,14 @@
             </span>
             <span class="text-xs font-mono text-slate-500">•</span>
             <span class="text-xs font-mono text-slate-400">{{ order.created_at|date:"Y-m-d H:i" }}</span>
+            <span class="text-xs font-mono text-slate-500">•</span>
+            <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold border {% if order.payment_gateway_charge_info %}bg-emerald-500/10 text-emerald-400 border-emerald-500/20{% else %}bg-cyan-500/10 text-cyan-400 border-cyan-500/20{% endif %}">
+                <i class="fas {% if order.payment_gateway_charge_info %}fa-credit-card{% else %}fa-wallet{% endif %} text-[10px]"></i>
+                {{ order.payment_method_display }}
+                {% if order.payment_gateway_charge_info %}
+                <span class="font-mono font-black text-emerald-300">({{ order.payment_gateway_charge_info.amount }} {{ order.payment_gateway_charge_info.currency }})</span>
+                {% endif %}
+            </span>
         </div>
         
         <div class="flex items-center gap-3">
@@ -268,6 +276,21 @@
                         <span class="font-black text-white text-xs sm:text-sm">المبلغ النهائي المخصوم:</span>
                         <span class="font-black text-cyan text-xl sm:text-2xl font-mono tracking-tight">{% currency_format order.total_amount %}</span>
                     </div>
+
+                    <div class="pt-2 border-t border-white/5 flex justify-between items-center text-xs">
+                        <span class="text-slate-400 font-bold">وسيلة وطريقة الدفع:</span>
+                        <span class="font-bold text-white flex items-center gap-1.5">
+                            <i class="fas {% if order.payment_gateway_charge_info %}fa-credit-card text-emerald-400{% else %}fa-wallet text-cyan{% endif %} text-[11px]"></i>
+                            {{ order.payment_method_display }}
+                        </span>
+                    </div>
+
+                    {% if order.payment_gateway_charge_info %}
+                    <div class="flex justify-between items-center text-xs">
+                        <span class="text-emerald-400 font-bold">المبلغ المسدد عبر البوابة:</span>
+                        <span class="text-emerald-300 font-mono font-bold">{{ order.payment_gateway_charge_info.amount }} {{ order.payment_gateway_charge_info.currency }}</span>
+                    </div>
+                    {% endif %}
                 </div>
             </div>
         </div>

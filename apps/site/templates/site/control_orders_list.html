@@ -371,6 +371,17 @@
                         <div class="font-black text-white text-sm font-mono tracking-tight">
                             {% currency_format order.total_amount %}
                         </div>
+                        <div class="mt-1">
+                            <span class="inline-flex items-center gap-1 text-[9px] px-2 py-0.5 rounded font-bold border {% if order.payment_gateway_charge_info %}bg-emerald-500/10 text-emerald-400 border-emerald-500/20{% else %}bg-cyan-500/10 text-cyan-400 border-cyan-500/20{% endif %}">
+                                <i class="fas {% if order.payment_gateway_charge_info %}fa-credit-card{% else %}fa-wallet{% endif %} text-[8px]"></i>
+                                {{ order.payment_method_display }}
+                            </span>
+                            {% if order.payment_gateway_charge_info %}
+                            <div class="text-[9px] font-mono text-emerald-300 font-bold mt-0.5">
+                                {{ order.payment_gateway_charge_info.amount }} {{ order.payment_gateway_charge_info.currency }}
+                            </div>
+                            {% endif %}
+                        </div>
                         {% if order.coupon %}
                         <div class="text-[9px] text-rose-400 font-mono mt-0.5">
                             كوبون: {{ order.coupon.code }}

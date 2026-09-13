@@ -75,6 +75,28 @@
     .buy-btn-v3:hover:not(:disabled) { transform: translateY(-4px); box-shadow: 0 30px 60px -10px rgba(6, 182, 212, 0.6); }
     .buy-btn-v3:disabled { opacity: 0.3; cursor: not-allowed; filter: grayscale(1); }
 
+    /* Payment Method Selection Animation */
+    .payment-method-card {
+        position: relative;
+        transition: all 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+        overflow: hidden;
+    }
+    .payment-method-card:hover {
+        transform: translateY(-2px);
+    }
+    .payment-method-card.is-active-wallet {
+        border-color: #06b6d4 !important;
+        background: radial-gradient(circle at top right, rgba(6, 182, 212, 0.18) 0%, rgba(15, 23, 42, 0.95) 75%) !important;
+        box-shadow: 0 0 25px rgba(6, 182, 212, 0.35), inset 0 0 15px rgba(6, 182, 212, 0.08) !important;
+        transform: translateY(-2px) scale(1.015);
+    }
+    .payment-method-card.is-active-gateway {
+        border-color: #10b981 !important;
+        background: radial-gradient(circle at top right, rgba(16, 185, 129, 0.18) 0%, rgba(15, 23, 42, 0.95) 75%) !important;
+        box-shadow: 0 0 25px rgba(16, 185, 129, 0.35), inset 0 0 15px rgba(16, 185, 129, 0.08) !important;
+        transform: translateY(-2px) scale(1.015);
+    }
+
     /* Section Headers */
     .section-label { font-size: 10px; font-weight: 900; color: #475569; text-transform: uppercase; letter-spacing: 2px; margin-bottom: 1.25rem; display: block; }
 
@@ -468,29 +490,36 @@
             <div class="mt-8">
                 <div class="flex items-center justify-between mb-3">
                     <span class="section-label mb-0">طريقة الدفع المعتمدة</span>
-                    <span id="pm-active-badge" class="text-[11px] font-black px-3 py-1 rounded-full bg-cyan/10 text-cyan border border-cyan/20 flex items-center gap-1.5 transition-all">
+                    <span id="pm-active-badge" class="text-[11px] font-black px-3.5 py-1 rounded-full bg-cyan/10 text-cyan border border-cyan/30 flex items-center gap-2 transition-all shadow-sm shadow-cyan/20">
                         <span class="w-2 h-2 rounded-full bg-cyan animate-pulse"></span>
-                        محفظة المتجر
+                        محفظة {% if is_tenant %}{{ STORE_NAME }}{% else %}رقميات{% endif %}
                     </span>
                 </div>
                 <input type="hidden" name="payment_method" id="selected-payment-method" value="wallet">
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-3.5 mt-2">
-                    <!-- Store Wallet Option -->
+                    <!-- Store / Raqamiyat Wallet Option -->
                     <div class="payment-method-card is-active-wallet p-4 rounded-2xl border-2 border-cyan bg-cyan/10 transition-all duration-300 cursor-pointer flex items-center justify-between shadow-[0_0_25px_rgba(6,182,212,0.25)] scale-[1.01]"
                          id="pm-card-wallet"
                          data-type="wallet"
                          onclick="selectPaymentMethod('wallet', this, 'wallet')">
                         <div class="flex items-center gap-3">
-                            <div class="radio-circle-pm w-6 h-6 rounded-full border-2 border-cyan bg-cyan flex items-center justify-center shrink-0 transition-transform duration-300">
-                                <div class="w-2.5 h-2.5 rounded-full bg-slate-950"></div>
+                            <div class="radio-circle-pm w-6 h-6 rounded-full border-2 border-cyan bg-cyan flex items-center justify-center shrink-0 transition-transform duration-300 shadow-sm shadow-cyan/30">
+                                <i class="fas fa-check text-[10px] text-slate-950 font-black"></i>
                             </div>
+                            <!-- Raqamiyat / Store Brand Logo -->
+                            {% if is_tenant and STORE_LOGO %}
+                            <img src="{{ STORE_LOGO.url }}" alt="{{ STORE_NAME }}" class="w-10 h-10 rounded-xl object-contain p-1 bg-white/5 border border-cyan/30 shadow-sm shadow-cyan/10 shrink-0">
+                            {% else %}
+                            <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-cyan-500/20 to-blue-600/20 border border-cyan/40 flex items-center justify-center text-cyan shadow-sm shadow-cyan/20 shrink-0">
+                                <i class="fas fa-bolt text-lg text-cyan"></i>
+                            </div>
+                            {% endif %}
                             <div>
                                 <div class="font-black text-white text-sm flex items-center gap-2">
-                                    <i class="fas fa-wallet text-cyan text-base"></i>
-                                    <span>محفظة المتجر</span>
+                                    <span>محفظة {% if is_tenant %}{{ STORE_NAME }}{% else %}رقميات{% endif %}</span>
                                 </div>
                                 <div class="text-[11px] text-slate-400 mt-0.5 font-medium">
-                                    الرصيد: <span class="text-emerald-400 font-black">{% currency_format request.user.wallet.available_balance|default:0 %}</span>
+                                    الرصيد المتاح: <span class="text-emerald-400 font-black">{% currency_format request.user.wallet.available_balance|default:0 %}</span>
                                 </div>
                             </div>
                         </div>
@@ -508,11 +537,20 @@
                          onclick="selectPaymentMethod('{{ gw.id }}', this, 'gateway')">
                         <div class="flex items-center gap-3">
                             <div class="radio-circle-pm w-6 h-6 rounded-full border-2 border-white/20 flex items-center justify-center shrink-0 transition-transform duration-300">
-                                <div class="w-2.5 h-2.5 rounded-full bg-slate-950 hidden"></div>
+                                <i class="fas fa-check text-[10px] text-slate-950 font-black hidden"></i>
                             </div>
+                            <!-- Gateway Logo (Paymera) -->
+                            {% if gw.logo %}
+                            <div class="w-10 h-10 rounded-xl bg-slate-950 border border-emerald-500/30 flex items-center justify-center p-1.5 shadow-sm shrink-0 overflow-hidden">
+                                <img src="{{ gw.logo }}" alt="{{ gw.name }}" class="w-full h-full object-contain">
+                            </div>
+                            {% else %}
+                            <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500/20 to-teal-600/20 border border-emerald-500/40 flex items-center justify-center text-emerald-400 shadow-sm shrink-0">
+                                <i class="fas fa-credit-card text-base"></i>
+                            </div>
+                            {% endif %}
                             <div>
                                 <div class="font-black text-white text-sm flex items-center gap-2">
-                                    <i class="fas fa-credit-card text-emerald-400 text-base"></i>
                                     <span>{{ gw.name }}</span>
                                 </div>
                                 <div class="text-[11px] text-slate-400 mt-0.5 font-medium">
@@ -998,9 +1036,9 @@ function updateQuantityPrice(isFromCoupon = false) {
     if (submitBtn && !submitBtn.disabled) {
         const pMethod = document.getElementById('selected-payment-method') ? document.getElementById('selected-payment-method').value : 'wallet';
         if (pMethod === 'wallet') {
-            submitBtn.innerHTML = `<i class="fas fa-wallet ml-2"></i> إتمام الشراء من المحفظة (${formatCurrencyAmount(total)})`;
+            submitBtn.innerHTML = `<i class="fas fa-wallet ml-2"></i> إتمام الشراء من محفظة {% if is_tenant %}{{ STORE_NAME }}{% else %}رقميات{% endif %} (${formatCurrencyAmount(total)})`;
         } else {
-            submitBtn.innerHTML = `<i class="fas fa-credit-card ml-2"></i> دفع مباشر بواسطة بيميرا (${formatCurrencyAmount(total)})`;
+            submitBtn.innerHTML = `<i class="fas fa-credit-card ml-2"></i> المتابعة والدفع عبر بيميرا (${formatCurrencyAmount(total)})`;
         }
     }
 }
@@ -1509,7 +1547,7 @@ function selectPaymentMethod(methodVal, cardEl, type = 'wallet') {
         if (radio) {
             radio.classList.remove('border-cyan', 'bg-cyan', 'border-emerald-500', 'bg-emerald-500');
             radio.classList.add('border-white/20');
-            const inner = radio.querySelector('div');
+            const inner = radio.querySelector('i, div');
             if (inner) inner.classList.add('hidden');
         }
     });
@@ -1520,7 +1558,7 @@ function selectPaymentMethod(methodVal, cardEl, type = 'wallet') {
     if (cardEl) {
         cardEl.classList.remove('border-white/10', 'bg-slate-900/60');
         const radio = cardEl.querySelector('.radio-circle-pm');
-        const inner = radio ? radio.querySelector('div') : null;
+        const inner = radio ? radio.querySelector('i, div') : null;
         if (inner) inner.classList.remove('hidden');
 
         if (type === 'wallet' || methodVal === 'wallet') {
@@ -1530,8 +1568,8 @@ function selectPaymentMethod(methodVal, cardEl, type = 'wallet') {
                 radio.classList.add('border-cyan', 'bg-cyan');
             }
             if (badge) {
-                badge.className = 'text-[11px] font-black px-3 py-1 rounded-full bg-cyan/10 text-cyan border border-cyan/20 flex items-center gap-1.5 transition-all';
-                badge.innerHTML = '<span class="w-2 h-2 rounded-full bg-cyan animate-pulse"></span> محفظة المتجر';
+                badge.className = 'text-[11px] font-black px-3.5 py-1 rounded-full bg-cyan/10 text-cyan border border-cyan/30 flex items-center gap-2 transition-all shadow-sm shadow-cyan/20';
+                badge.innerHTML = '<span class="w-2 h-2 rounded-full bg-cyan animate-pulse"></span> محفظة {% if is_tenant %}{{ STORE_NAME }}{% else %}رقميات{% endif %}';
             }
             if (submitBtn) {
                 submitBtn.style.background = '';
@@ -1546,7 +1584,7 @@ function selectPaymentMethod(methodVal, cardEl, type = 'wallet') {
             }
             const gwName = cardEl.getAttribute('data-gateway-name') || 'بيميرا';
             if (badge) {
-                badge.className = 'text-[11px] font-black px-3 py-1 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 flex items-center gap-1.5 transition-all';
+                badge.className = 'text-[11px] font-black px-3.5 py-1 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 flex items-center gap-2 transition-all shadow-sm shadow-emerald-500/20';
                 badge.innerHTML = `<span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span> ${gwName} (دفع إلكتروني مباشر)`;
             }
             if (submitBtn) {

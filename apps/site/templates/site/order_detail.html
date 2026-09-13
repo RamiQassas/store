@@ -429,10 +429,19 @@
                     <span class="text-slate-500">تاريخ الطلب</span>
                     <span class="text-slate-300 font-bold">{{ order.created_at|date:"d M Y, H:i" }}</span>
                 </div>
-                <div class="flex justify-between text-xs">
+                <div class="flex justify-between items-center text-xs">
                     <span class="text-slate-500">طريقة الدفع</span>
-                    <span class="text-slate-300 font-bold">رصيد المحفظة</span>
+                    <span class="text-slate-200 font-bold flex items-center gap-1.5">
+                        <i class="fas {% if order.payment_gateway_charge_info %}fa-credit-card text-emerald-400{% else %}fa-wallet text-cyan{% endif %} text-[11px]"></i>
+                        {{ order.payment_method_display }}
+                    </span>
                 </div>
+                {% if order.payment_gateway_charge_info %}
+                <div class="flex justify-between items-center text-xs">
+                    <span class="text-slate-500">المسدد إلكترونياً</span>
+                    <span class="text-emerald-400 font-mono font-bold">{{ order.payment_gateway_charge_info.amount }} {{ order.payment_gateway_charge_info.currency }}</span>
+                </div>
+                {% endif %}
             </div>
         </div>
 
@@ -494,6 +503,17 @@
                 </div>
             </div>
             {% endif %}
+
+            <div class="flex justify-between items-center text-xs pb-2.5 border-b border-white/5">
+                <span class="text-slate-400 font-bold">طريقة وسداد الدفع:</span>
+                <span class="font-bold text-white flex items-center gap-1.5">
+                    <i class="fas {% if order.payment_gateway_charge_info %}fa-credit-card text-emerald-400{% else %}fa-wallet text-cyan{% endif %} text-[10px]"></i>
+                    {{ order.payment_method_display }}
+                    {% if order.payment_gateway_charge_info %}
+                    <span class="text-emerald-400 font-mono text-[10px]">({{ order.payment_gateway_charge_info.amount }} {{ order.payment_gateway_charge_info.currency }})</span>
+                    {% endif %}
+                </span>
+            </div>
 
             <!-- Dynamic Fulfillment Data (Delivery Codes, Phone numbers, Keys) -->
             <div class="stack gap-2">
