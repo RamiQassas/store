@@ -340,14 +340,13 @@ def version_view(request):
     })
 
 
-from apps.common.auto_deploy import github_auto_deploy_view, paymera_diagnostics_view
+from apps.common.auto_deploy import github_auto_deploy_view
 
 urlpatterns = [
     path("robots.txt", robots_txt),
     path("api/version/", version_view, name="version_view"),
     path("api/deploy-webhook/<str:secret_token>/", deploy_webhook, name="deploy_webhook"),
     path("api/github-auto-deploy/", github_auto_deploy_view, name="github_auto_deploy"),
-    path("api/paymera-diagnostics/", paymera_diagnostics_view, name="paymera_diagnostics"),
     path("", include("apps.site.urls")),
 
     path("support/", include("apps.support.urls")),

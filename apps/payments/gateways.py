@@ -100,7 +100,7 @@ class PaymeraGateway(BasePaymentGateway):
             else:
                 syp_amount = deposit.amount
 
-        notes = f"Deposit #{deposit.id} for user {deposit.user.email}"
+        notes = f"Deposit {deposit.id} for user {deposit.user.email}"
         try:
             res = client.create_payment(
                 amount=syp_amount,
@@ -155,7 +155,7 @@ class PaymeraGateway(BasePaymentGateway):
         else:
             syp_amount = order.total_amount
 
-        notes = f"Order #{order.number} for {order.customer.email}"
+        notes = f"Order {order.number} for {order.customer.email}"
         try:
             res = client.create_payment(
                 amount=syp_amount,

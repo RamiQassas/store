@@ -112,6 +112,9 @@ class PaymeraClient:
             raise PaymeraError(f"Invalid payment amount: {int_amount}")
 
         url = f"{self.base_url}/api/create-payment"
+        # Sanitize notes: remove characters like '#' and quotes that trigger Cloudflare WAF SQLi blocks
+        clean_notes = re.sub(r"[#;'\"<>]", " ", str(notes or ""))[:250].strip()
+
         payload = {
             "lang": lang if lang in ("ar", "en") else "ar",
             "terminalId": str(self.terminal_id),
@@ -119,7 +122,7 @@ class PaymeraClient:
             "callbackURL": callback_url,
             "triggerURL": trigger_url,
             "savedCards": "1" if saved_cards else "0",
-            "notes": str(notes)[:250] if notes else "",
+            "notes": clean_notes,
         }
         if saved_cards and app_user:
             payload["appUser"] = str(app_user)
