@@ -108,9 +108,10 @@ class PaymeraClient:
             raise PaymeraError("Paymera Terminal ID is not configured.")
 
         # Ensure amount is clean integer without decimals
-        int_amount = int(round(float(amount)))
-        if int_amount <= 0:
-            raise PaymeraError(f"Invalid payment amount: {int_amount}")
+        clean_amount = round(float(amount), 2)
+        if clean_amount <= 0:
+            raise PaymeraError(f"Invalid payment amount: {clean_amount}")
+        final_amount = int(clean_amount) if clean_amount == int(clean_amount) else clean_amount
 
         url = f"{self.base_url}/api/create-payment"
         # Sanitize notes: remove characters like '#' and quotes that trigger Cloudflare WAF SQLi blocks
@@ -119,7 +120,7 @@ class PaymeraClient:
         payload = {
             "lang": lang if lang in ("ar", "en") else "ar",
             "terminalId": str(self.terminal_id),
-            "amount": int_amount,
+            "amount": final_amount,
             "callbackURL": callback_url,
             "triggerURL": trigger_url,
             "savedCards": "1" if saved_cards else "0",
@@ -128,7 +129,7 @@ class PaymeraClient:
         if saved_cards and app_user:
             payload["appUser"] = str(app_user)
 
-        logger.info(f"Paymera create_payment request to {url} with amount={int_amount}, terminal={self.terminal_id}")
+        logger.info(f"Paymera create_payment request to {url} with amount={final_amount}, terminal={self.terminal_id}")
 
         try:
             resp = requests.post(url, json=payload, headers=self._get_headers(), timeout=self.timeout)

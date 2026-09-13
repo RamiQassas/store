@@ -148,17 +148,13 @@ class PaymeraGateway(BasePaymentGateway):
         callback_url = f"{callback_base}?order_id={order.id}"
         trigger_url = f"{trigger_base}?order_id={order.id}"
 
-        # Order total_amount is in USD. Convert to Syrian Liras (SYP)
-        syp_currency = Currency.all_objects.filter(code="SYP").first()
-        if syp_currency:
-            syp_amount = syp_currency.from_base(order.total_amount, "deposit")
-        else:
-            syp_amount = order.total_amount
+        # Order total amount
+        order_amount = order.total_amount
 
         notes = f"Order {order.number} for {order.customer.email}"
         try:
             res = client.create_payment(
-                amount=syp_amount,
+                amount=order_amount,
                 callback_url=callback_url,
                 trigger_url=trigger_url,
                 notes=notes,
@@ -168,7 +164,7 @@ class PaymeraGateway(BasePaymentGateway):
                 order.metadata = {}
             order.metadata["gateway_payment_id"] = res["payment_id"]
             order.metadata["paymera_url"] = res["url"]
-            order.metadata["syp_amount"] = int(round(float(syp_amount)))
+            order.metadata["gateway_charge_amount"] = float(order_amount)
             order.metadata["payment_provider"] = self.code
             order.save(update_fields=["metadata"])
             return res
