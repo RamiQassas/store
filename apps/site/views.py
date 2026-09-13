@@ -2096,22 +2096,55 @@ def product_detail(request, pk):
                     messages.error(request, f"خطأ في الكوبون: {str(e)}")
                     coupon = None
 
-        # Check balance
-        if request.user.wallet.available_balance < price:
-            missing_amount = price - request.user.wallet.available_balance
-            wallet = request.user.wallet
-            display_missing = missing_amount
-            if wallet.currency.code != "USD":
-                display_missing = wallet.currency.from_base(missing_amount)
-            
-            currency_symbol = wallet.currency.symbol
-            err_msg = f"رصيدك في المتجر غير كافٍ. تحتاج إلى {display_missing:,.2f} {currency_symbol} إضافية لإتمام الطلب."
-            if request.headers.get('x-requested-with') == 'XMLHttpRequest' or request.POST.get('ajax') == '1':
-                return JsonResponse({"success": False, "error": err_msg}, status=400)
-            messages.error(request, err_msg)
-            request.session['missing_amount'] = str(display_missing)
-            request.session['missing_currency'] = wallet.currency.code
-            return redirect("product_detail", pk=pk)
+        payment_method = request.POST.get("payment_method", "wallet")
+        is_direct_gateway = (payment_method != "wallet")
+        selected_gateway = None
+
+        if is_direct_gateway:
+            from apps.payments.models import PaymentGatewayIntegration, PaymentMethod
+            if payment_method.startswith("gateway:"):
+                gw_val = payment_method.split(":", 1)[1]
+                selected_gateway = PaymentGatewayIntegration.objects.filter(pk=gw_val, is_active=True).first() or PaymentGatewayIntegration.objects.filter(provider=gw_val, is_active=True).first()
+            elif payment_method.startswith("method:"):
+                pm_id = payment_method.split(":", 1)[1]
+                pm = PaymentMethod.objects.filter(pk=pm_id, is_active=True).first()
+                if pm and pm.gateway and pm.gateway.is_active:
+                    selected_gateway = pm.gateway
+            else:
+                selected_gateway = PaymentGatewayIntegration.objects.filter(provider=payment_method, is_active=True).first() or PaymentGatewayIntegration.objects.filter(pk=payment_method, is_active=True).first()
+                if not selected_gateway:
+                    pm = PaymentMethod.objects.filter(pk=payment_method, is_active=True).first()
+                    if pm and pm.gateway and pm.gateway.is_active:
+                        selected_gateway = pm.gateway
+
+            if not selected_gateway:
+                if payment_method in ("paymera", "direct_paymera"):
+                    selected_gateway = PaymentGatewayIntegration.objects.filter(provider=PaymentGatewayIntegration.Provider.PAYMERA, is_active=True).first()
+
+            if not selected_gateway:
+                err_msg = "بوابة الدفع الإلكتروني المحددة غير مفعلة حالياً."
+                if request.headers.get('x-requested-with') == 'XMLHttpRequest' or request.POST.get('ajax') == '1':
+                    return JsonResponse({"success": False, "error": err_msg}, status=400)
+                messages.error(request, err_msg)
+                return redirect("product_detail", pk=pk)
+
+        # Check balance only for wallet payments
+        if not is_direct_gateway:
+            if request.user.wallet.available_balance < price:
+                missing_amount = price - request.user.wallet.available_balance
+                wallet = request.user.wallet
+                display_missing = missing_amount
+                if wallet.currency.code != "USD":
+                    display_missing = wallet.currency.from_base(missing_amount)
+                
+                currency_symbol = wallet.currency.symbol
+                err_msg = f"رصيدك في المتجر غير كافٍ. تحتاج إلى {display_missing:,.2f} {currency_symbol} إضافية لإتمام الطلب."
+                if request.headers.get('x-requested-with') == 'XMLHttpRequest' or request.POST.get('ajax') == '1':
+                    return JsonResponse({"success": False, "error": err_msg}, status=400)
+                messages.error(request, err_msg)
+                request.session['missing_amount'] = str(display_missing)
+                request.session['missing_currency'] = wallet.currency.code
+                return redirect("product_detail", pk=pk)
 
         # Physical product shipping validation
         shipping_name = ""
@@ -2129,7 +2162,6 @@ def product_detail(request, pk):
 
         # Verification check
         if not v3_init_verification(request, request.user, "purchase"):
-            # Save pending purchase details in session
             request.session["v3_pending_purchase"] = {
                 "variant_id": str(variant.id),
                 "coupon_code": coupon_code,
@@ -2138,46 +2170,80 @@ def product_detail(request, pk):
                 "shipping_phone": shipping_phone,
                 "shipping_address": shipping_address,
                 "quantity": quantity,
+                "payment_method": payment_method,
             }
             last_verified = request.session.get("v3_action_verified_at")
             if not last_verified or (timezone.now() - timezone.datetime.fromisoformat(last_verified)).total_seconds() > 300:
                 methods = request.session.get("v3_auth_methods", [])
                 return redirect("site_2fa_verify" if methods[0] == "APP" else "site_verify_otp")
 
-        # Purchase Logic using create_order service
-        from apps.orders.services import create_order
-        try:
-            order = create_order(
-                customer=request.user,
-                variant_id=variant.id,
-                quantity=quantity,
-                coupon=coupon,
-                metadata=metadata,
-                shipping_name=shipping_name,
-                shipping_phone=shipping_phone,
-                shipping_address=shipping_address,
-            )
-            if request.headers.get('x-requested-with') == 'XMLHttpRequest' or request.POST.get('ajax') == '1':
-                from apps.site.templatetags.site_tags import clean_fulfillment_items
-                fulfillment = dict(clean_fulfillment_items(order.fulfillment_data))
-                return JsonResponse({
-                    "success": True,
-                    "order_id": str(order.id),
-                    "order_number": str(order.number),
-                    "order_status": order.status,
-                    "status_display": order.get_status_display(),
-                    "api_order_id": order.api_order_id or "",
-                    "fulfillment": fulfillment,
-                    "server_responses": order.get_server_responses(),
-                    "order_url": reverse('dashboard_order_detail', kwargs={'pk': order.id})
-                })
-            # Redirect to order detail with new=1 to auto-open live status & details modal
-            return redirect(f"{reverse('dashboard_order_detail', kwargs={'pk': order.id})}?new=1")
-        except Exception as e:
-            if request.headers.get('x-requested-with') == 'XMLHttpRequest' or request.POST.get('ajax') == '1':
-                return JsonResponse({"success": False, "error": str(e)}, status=400)
-            messages.error(request, str(e))
-            return redirect("product_detail", pk=pk)
+        # Purchase Logic: Direct Gateway vs Wallet
+        if is_direct_gateway:
+            from apps.orders.services import create_pending_gateway_order
+            from apps.payments.gateways import gateway_for, PaymentGatewayError
+            try:
+                order = create_pending_gateway_order(
+                    customer=request.user,
+                    variant_id=variant.id,
+                    quantity=quantity,
+                    coupon=coupon,
+                    metadata=metadata,
+                    shipping_name=shipping_name,
+                    shipping_phone=shipping_phone,
+                    shipping_address=shipping_address,
+                    gateway_code=selected_gateway.provider,
+                )
+                gw_instance = gateway_for(selected_gateway)
+                gw_res = gw_instance.create_order_payment(order, request=request)
+                payment_url = gw_res.get("url")
+                if not payment_url:
+                    raise PaymentGatewayError("لم يتم استلام رابط الدفع من بوابة الدفع.")
+
+                if request.headers.get('x-requested-with') == 'XMLHttpRequest' or request.POST.get('ajax') == '1':
+                    return JsonResponse({
+                        "success": True,
+                        "redirect_url": payment_url,
+                        "order_id": str(order.id),
+                    })
+                return redirect(payment_url)
+            except Exception as e:
+                if request.headers.get('x-requested-with') == 'XMLHttpRequest' or request.POST.get('ajax') == '1':
+                    return JsonResponse({"success": False, "error": str(e)}, status=400)
+                messages.error(request, str(e))
+                return redirect("product_detail", pk=pk)
+        else:
+            from apps.orders.services import create_order
+            try:
+                order = create_order(
+                    customer=request.user,
+                    variant_id=variant.id,
+                    quantity=quantity,
+                    coupon=coupon,
+                    metadata=metadata,
+                    shipping_name=shipping_name,
+                    shipping_phone=shipping_phone,
+                    shipping_address=shipping_address,
+                )
+                if request.headers.get('x-requested-with') == 'XMLHttpRequest' or request.POST.get('ajax') == '1':
+                    from apps.site.templatetags.site_tags import clean_fulfillment_items
+                    fulfillment = dict(clean_fulfillment_items(order.fulfillment_data))
+                    return JsonResponse({
+                        "success": True,
+                        "order_id": str(order.id),
+                        "order_number": str(order.number),
+                        "order_status": order.status,
+                        "status_display": order.get_status_display(),
+                        "api_order_id": order.api_order_id or "",
+                        "fulfillment": fulfillment,
+                        "server_responses": order.get_server_responses(),
+                        "order_url": reverse('dashboard_order_detail', kwargs={'pk': order.id})
+                    })
+                return redirect(f"{reverse('dashboard_order_detail', kwargs={'pk': order.id})}?new=1")
+            except Exception as e:
+                if request.headers.get('x-requested-with') == 'XMLHttpRequest' or request.POST.get('ajax') == '1':
+                    return JsonResponse({"success": False, "error": str(e)}, status=400)
+                messages.error(request, str(e))
+                return redirect("product_detail", pk=pk)
 
     variants = product.variants.filter(is_active=True, is_temporarily_disabled=False).exclude(name__icontains='(#').exclude(name__icontains='null').order_by('sort_order')
     if not variants.exists():
@@ -2188,14 +2254,44 @@ def product_detail(request, pk):
     
     missing_amount = request.session.pop('missing_amount', None)
     missing_currency = request.session.pop('missing_currency', None)
-    
+
+    # Prepare available payment gateways for direct checkout
+    from apps.payments.models import PaymentGatewayIntegration, PaymentMethod
+    gateway_methods = []
+    seen_gw_ids = set()
+
+    active_gateways = PaymentGatewayIntegration.objects.filter(is_active=True)
+    for gw in active_gateways:
+        seen_gw_ids.add(gw.id)
+        gateway_methods.append({
+            "id": f"gateway:{gw.id}",
+            "code": gw.provider,
+            "name": gw.name,
+            "provider_name": gw.get_provider_display(),
+            "logo": None,
+        })
+
+    methods_with_gw = PaymentMethod.objects.filter(is_active=True, gateway__isnull=False, gateway__is_active=True)
+    for pm in methods_with_gw:
+        if pm.gateway_id not in seen_gw_ids:
+            seen_gw_ids.add(pm.gateway_id)
+            gateway_methods.append({
+                "id": f"method:{pm.id}",
+                "code": pm.gateway.provider,
+                "name": pm.name,
+                "provider_name": pm.gateway.get_provider_display(),
+                "logo": pm.logo.url if pm.logo else None,
+            })
+
     return render(request, "site/product_detail.html", {
         "product": product, 
         "variants": variants, 
         "related_products": related_products,
         "missing_amount": missing_amount,
-        "missing_currency": missing_currency
+        "missing_currency": missing_currency,
+        "gateway_methods": gateway_methods,
     })
+
 
 def ajax_validate_coupon(request):
     try:
@@ -4166,15 +4262,20 @@ def currencies_list(request):
                 is_default=gc.is_default
             )
 
+    if store:
+        currencies_qs = Currency.all_objects.filter(store=store).order_by('display_order', 'code')
+    else:
+        currencies_qs = Currency.all_objects.filter(store__isnull=True).order_by('display_order', 'code')
+
     if request.method == "POST":
-        for c in Currency.objects.all():
+        for c in currencies_qs:
             buy, sell = request.POST.get(f"buy_rate_{c.id}"), request.POST.get(f"sell_rate_{c.id}")
             if buy and sell:
                 c.buy_rate, c.sell_rate = Decimal(buy), Decimal(sell)
-                c.save()
+                c.save(update_fields=["buy_rate", "sell_rate"])
         messages.success(request, "تم حفظ أسعار الصرف بنجاح.")
         return redirect("currencies_list")
-    return render(request, "site/currencies_list.html", {"currencies": Currency.objects.all().order_by('display_order'), "is_tenant": bool(store)})
+    return render(request, "site/currencies_list.html", {"currencies": currencies_qs, "is_tenant": bool(store)})
 
 @admin_required
 def currency_create(request):
@@ -5933,10 +6034,31 @@ def contact_page(request): return render(request, "site/contact.html")
 def privacy_policy(request): return render(request, "site/privacy_policy.html")
 def service_worker(request): return HttpResponse(open("apps/site/static/site/js/sw.js").read() if os.path.exists("apps/site/static/site/js/sw.js") else "", content_type="application/javascript")
 def set_currency(request):
-    curr = Currency.objects.filter(id=request.GET.get("currency") or request.POST.get("currency"), is_active=True).first()
+    val = request.GET.get("currency") or request.POST.get("currency")
+    curr = None
+    if val:
+        # 1. Try by UUID on active tenant manager
+        try:
+            curr = Currency.objects.filter(id=val, is_active=True).first()
+        except Exception:
+            curr = None
+        # 2. Try by Code on active tenant manager
+        if not curr:
+            curr = Currency.objects.filter(code__iexact=str(val).strip(), is_active=True).first()
+        # 3. Fallback to all_objects (global currencies)
+        if not curr:
+            try:
+                curr = Currency.all_objects.filter(id=val, is_active=True).first()
+            except Exception:
+                pass
+            if not curr:
+                curr = Currency.all_objects.filter(code__iexact=str(val).strip(), is_active=True).first()
+
     if curr:
         request.session["preferred_currency_id"] = str(curr.id)
-        if request.user.is_authenticated: request.user.preferred_currency = curr; request.user.save(update_fields=["preferred_currency"])
+        if request.user.is_authenticated:
+            request.user.preferred_currency = curr
+            request.user.save(update_fields=["preferred_currency"])
     return redirect(request.META.get('HTTP_REFERER', 'home'))
 
 @admin_required

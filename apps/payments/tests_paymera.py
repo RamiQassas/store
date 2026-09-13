@@ -199,3 +199,67 @@ class PaymeraViewsTestCase(TestCase):
         self.assertEqual(self.deposit.status, DepositRequest.Status.REJECTED)
         self.wallet.refresh_from_db()
         self.assertEqual(self.wallet.available_balance, Decimal("0.00"))
+
+    @patch("apps.notifications.services.notify_staff")
+    @patch("apps.notifications.services.notify_user")
+    @patch("apps.payments.views_paymera.finalize_paid_gateway_order")
+    @patch.object(PaymeraClient, "get_payment_status")
+    def test_paymera_direct_order_trigger_accepted(self, mock_status, mock_finalize, mock_notify_user, mock_notify_staff):
+        from apps.catalog.models import Category, Product, ProductVariant, ProductKey
+        from apps.orders.models import Order, Invoice
+        from apps.orders.services import create_pending_gateway_order, finalize_paid_gateway_order
+        from apps.payments.gateways import gateway_for
+
+        cat = Category.objects.create(name="Gaming Cards")
+        prod = Product.objects.create(category=cat, name="PUBG UC", is_active=True)
+        var = ProductVariant.objects.create(
+            product=prod,
+            name="60 UC",
+            sku="UC-60",
+            price=Decimal("1.00"),
+            cost=Decimal("0.80"),
+            delivery_type="keys",
+            is_active=True,
+            metadata={"qty_type": "fixed", "qty_min": 1, "qty_max": 1}
+        )
+        ProductKey.objects.create(variant=var, key_code="PUBG-KEY-123", is_used=False)
+
+        # 1. Create Pending Order
+        order = create_pending_gateway_order(
+            customer=self.user,
+            variant_id=var.id,
+            quantity=1,
+            gateway_code="paymera",
+        )
+        self.assertEqual(order.status, Order.Status.PENDING)
+        self.assertEqual(order.metadata.get("payment_gateway"), "paymera")
+
+        # 2. Mock create payment
+        gw = gateway_for("paymera")
+        with patch.object(PaymeraClient, "create_payment", return_value={"payment_id": "ord-pay-99", "url": "https://egate.paymera.cc/start/99"}):
+            res = gw.create_order_payment(order)
+            self.assertEqual(res["payment_id"], "ord-pay-99")
+            order.refresh_from_db()
+            self.assertEqual(order.metadata["gateway_payment_id"], "ord-pay-99")
+
+        # 3. Trigger view
+        mock_status.return_value = {
+            "status": "A",
+            "rrn": "RRN-ORDER-5544",
+            "amount": 15000,
+            "raw": {"ErrorCode": 0}
+        }
+        # Let mock_finalize call the real finalize_paid_gateway_order
+        mock_finalize.side_effect = finalize_paid_gateway_order
+
+        request = self.factory.get(f"/payments/paymera/trigger/?order_id={order.id}")
+        response = paymera_trigger_view(request)
+        self.assertEqual(response.status_code, 200)
+
+        order.refresh_from_db()
+        self.assertEqual(order.status, Order.Status.COMPLETED)
+        self.assertIn("keys", order.fulfillment_data)
+        self.assertEqual(order.fulfillment_data["keys"], ["PUBG-KEY-123"])
+        self.assertTrue(Invoice.objects.filter(order=order).exists())
+
+

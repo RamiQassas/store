@@ -214,6 +214,180 @@
             text-decoration: underline;
         }
 
+        
+    /* Mobile Currency Button & Bottom Sheet Modal */
+    .mobile-currency-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        background: rgba(255, 255, 255, 0.08);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        color: #fff;
+        padding: 0.35rem 0.65rem;
+        border-radius: 12px;
+        font-weight: 800;
+        font-size: 0.74rem;
+        cursor: pointer;
+        flex-shrink: 0;
+        transition: all 0.2s ease;
+        line-height: 1;
+        outline: none;
+    }
+    .mobile-currency-btn:hover, .mobile-currency-btn:active {
+        background: rgba(6, 182, 212, 0.15);
+        border-color: var(--cyan);
+        color: #fff;
+    }
+    .mobile-currency-btn i.fa-coins {
+        color: #fbbf24;
+        font-size: 0.85rem;
+    }
+
+    .currency-modal-backdrop {
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.75);
+        backdrop-filter: blur(8px);
+        -webkit-backdrop-filter: blur(8px);
+        z-index: 99999;
+        opacity: 0;
+        visibility: hidden;
+        transition: opacity 0.25s ease, visibility 0.25s ease;
+        display: flex;
+        align-items: flex-end;
+        justify-content: center;
+    }
+    .currency-modal-backdrop.active {
+        opacity: 1;
+        visibility: visible;
+    }
+    .currency-modal-sheet {
+        background: #0a0f1d;
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        border-bottom: none;
+        border-radius: 24px 24px 0 0;
+        width: 100%;
+        max-width: 480px;
+        padding: 1.25rem 1.25rem 2.25rem;
+        transform: translateY(100%);
+        transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+        box-shadow: 0 -15px 50px rgba(0, 0, 0, 0.8);
+        max-height: 85vh;
+        overflow-y: auto;
+        direction: rtl;
+        text-align: right;
+    }
+    .currency-modal-backdrop.active .currency-modal-sheet {
+        transform: translateY(0);
+    }
+    .currency-modal-handle {
+        width: 44px;
+        height: 5px;
+        background: rgba(255, 255, 255, 0.2);
+        border-radius: 3px;
+        margin: 0 auto 1.25rem;
+    }
+    .currency-modal-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 0.75rem;
+    }
+    .currency-modal-close {
+        background: rgba(255, 255, 255, 0.08);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        color: #94a3b8;
+        width: 34px;
+        height: 34px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        font-size: 0.95rem;
+        transition: all 0.2s;
+    }
+    .currency-modal-close:hover {
+        background: rgba(239, 68, 68, 0.2);
+        color: #ef4444;
+    }
+    .currency-modal-list {
+        display: flex;
+        flex-direction: column;
+        gap: 0.65rem;
+        margin-top: 1rem;
+    }
+    .currency-option-item {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0.85rem 1.1rem;
+        background: rgba(255, 255, 255, 0.03);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 16px;
+        text-decoration: none;
+        color: #fff;
+        transition: all 0.2s ease;
+    }
+    .currency-option-item:hover, .currency-option-item:active {
+        background: rgba(6, 182, 212, 0.08);
+        border-color: rgba(6, 182, 212, 0.4);
+        transform: translateY(-1px);
+    }
+    .currency-option-item.active {
+        background: rgba(6, 182, 212, 0.12);
+        border-color: #06b6d4;
+        box-shadow: 0 0 20px rgba(6, 182, 212, 0.15);
+    }
+    .currency-flag-circle {
+        width: 42px;
+        height: 42px;
+        border-radius: 12px;
+        background: rgba(255, 255, 255, 0.06);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.4rem;
+        flex-shrink: 0;
+    }
+    .currency-title-row {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        margin-bottom: 2px;
+    }
+    .currency-name {
+        font-weight: 800;
+        font-size: 0.95rem;
+        color: #fff;
+    }
+    .currency-badge-code {
+        background: rgba(255, 255, 255, 0.1);
+        padding: 0.15rem 0.45rem;
+        border-radius: 6px;
+        font-size: 0.72rem;
+        font-weight: 900;
+        color: var(--cyan);
+        font-family: monospace;
+    }
+    .currency-inactive-circle {
+        width: 20px;
+        height: 20px;
+        border-radius: 50%;
+        border: 2px solid rgba(255, 255, 255, 0.2);
+        display: block;
+    }
+
+    /* Prevent mobile brand text from overflowing */
+    .mobile-header .brand span {
+        max-width: 140px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        display: inline-block;
+        vertical-align: middle;
+    }
+
         /* Mobile Responsive Header Styles */
         .mobile-menu-btn {
             display: none;
@@ -358,15 +532,11 @@
 
             <div class="nav-actions">
                 {% if ALL_CURRENCIES %}
-                <div class="currency-selector" style="position: relative;">
-                    <select onchange="location.href='{% url 'set_currency' %}?currency=' + this.value" style="background: rgba(255, 255, 255, 0.05); border: 1px solid var(--card-border); color: var(--text-color); padding: 0.45rem 0.8rem; border-radius: 20px; font-weight: 700; font-size: 0.82rem; cursor: pointer; outline: none; transition: var(--transition);">
-                        {% for c in ALL_CURRENCIES %}
-                        <option value="{{ c.id }}" {% if c.id == CURRENCY.id %}selected{% endif %} style="background: var(--bg-color); color: var(--text-color);">
-                            {{ c.code }} ({{ c.symbol }})
-                        </option>
-                        {% endfor %}
-                    </select>
-                </div>
+                <button type="button" onclick="openCurrencyModal()" class="mobile-currency-btn" aria-label="تبديل العملة" title="تبديل العملة">
+                    <i class="fa-solid fa-coins text-amber-400" style="color: #fbbf24;"></i>
+                    <span>{{ CURRENCY.code }}</span>
+                    <i class="fa-solid fa-chevron-down" style="font-size: 8px; opacity: 0.7;"></i>
+                </button>
                 {% endif %}
 
                 {% if user.is_authenticated %}
@@ -422,6 +592,22 @@
     </footer>
 
     <script>
+        
+      function openCurrencyModal() {
+          const modal = document.getElementById('currencyModal');
+          if (modal) {
+              modal.classList.add('active');
+              document.body.style.overflow = 'hidden';
+          }
+      }
+      function closeCurrencyModal(e) {
+          const modal = document.getElementById('currencyModal');
+          if (modal) {
+              modal.classList.remove('active');
+              document.body.style.overflow = '';
+          }
+      }
+
         function toggleStoreNav() {
             var menu = document.getElementById('storeNavMenu');
             if (menu) {
@@ -429,5 +615,61 @@
             }
         }
     </script>
+
+  <!-- Mobile Currency Bottom Sheet Modal -->
+  <div id="currencyModal" class="currency-modal-backdrop" onclick="closeCurrencyModal(event)">
+      <div class="currency-modal-sheet" onclick="event.stopPropagation()">
+          <div class="currency-modal-handle"></div>
+          <div class="currency-modal-header">
+              <div class="flex items-center gap-2">
+                  <div class="w-8 h-8 rounded-lg bg-amber-400/10 flex items-center justify-center text-amber-400 text-base">
+                      <i class="fas fa-coins"></i>
+                  </div>
+                  <h3 class="text-base font-black text-white m-0">تغيير العملة</h3>
+              </div>
+              <button type="button" onclick="closeCurrencyModal()" class="currency-modal-close" aria-label="إغلاق">
+                  <i class="fas fa-times"></i>
+              </button>
+          </div>
+          <p class="text-xs text-slate-400 mb-3">اختر العملة المفضلة لعرض أسعار المنتجات والخدمات:</p>
+          <div class="currency-modal-list">
+              {% for c in ALL_CURRENCIES %}
+              <a href="{% url 'set_currency' %}?currency={{ c.id }}" class="currency-option-item {% if c.id == CURRENCY.id %}active{% endif %}">
+                  <div class="flex items-center gap-3">
+                      <div class="currency-flag-circle">
+                          {% if c.code == 'SYP' %}🇸🇾
+                          {% elif c.code == 'TRY' %}🇹🇷
+                          {% elif c.code == 'USD' %}🇺🇸
+                          {% elif c.code == 'EUR' %}🇪🇺
+                          {% elif c.code == 'AED' %}🇦🇪
+                          {% elif c.code == 'SAR' %}🇸🇦
+                          {% elif c.code == 'EGP' %}🇪🇬
+                          {% elif c.code == 'JOD' %}🇯🇴
+                          {% elif c.code == 'KWD' %}🇰🇼
+                          {% elif c.code == 'LBP' %}🇱🇧
+                          {% elif c.code == 'IQD' %}🇮🇶
+                          {% else %}🪙{% endif %}
+                      </div>
+                      <div>
+                          <div class="currency-title-row">
+                              <span class="currency-name">{{ c.name }}</span>
+                              <span class="currency-badge-code">{{ c.code }}</span>
+                          </div>
+                          <div class="text-[11px] text-slate-400 font-mono">الرمز: {{ c.symbol }}</div>
+                      </div>
+                  </div>
+                  <div>
+                      {% if c.id == CURRENCY.id %}
+                      <i class="fas fa-check-circle text-emerald-400 text-lg"></i>
+                      {% else %}
+                      <span class="currency-inactive-circle"></span>
+                      {% endif %}
+                  </div>
+              </a>
+              {% endfor %}
+          </div>
+      </div>
+  </div>
+
 </body>
 </html>

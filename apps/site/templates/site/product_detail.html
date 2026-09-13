@@ -445,7 +445,62 @@
                 </div>
             </div>
 
-            <div class="mt-12">
+            <!-- Payment Method Selection -->
+            <div class="mt-8">
+                <span class="section-label">طريقة الدفع</span>
+                <input type="hidden" name="payment_method" id="selected-payment-method" value="wallet">
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-3">
+                    <!-- Store Wallet Option -->
+                    <div class="payment-method-card selected p-4 rounded-2xl border border-cyan bg-cyan/5 transition-all cursor-pointer flex items-center justify-between"
+                         id="pm-card-wallet"
+                         onclick="selectPaymentMethod('wallet', this)">
+                        <div class="flex items-center gap-3">
+                            <div class="radio-circle-pm w-5 h-5 rounded-full border-2 border-cyan bg-cyan flex items-center justify-center shrink-0">
+                                <div class="w-2 h-2 rounded-full bg-slate-950"></div>
+                            </div>
+                            <div>
+                                <div class="font-bold text-white text-sm flex items-center gap-2">
+                                    <i class="fas fa-wallet text-cyan"></i>
+                                    <span>محفظة المتجر</span>
+                                </div>
+                                <div class="text-[11px] text-slate-400 mt-0.5">
+                                    الرصيد: <span class="text-emerald-400 font-bold">{% currency_format request.user.wallet.available_balance|default:0 %}</span>
+                                </div>
+                            </div>
+                        </div>
+                        <span class="text-[10px] bg-cyan/10 text-cyan border border-cyan/20 px-2.5 py-1 rounded-lg font-bold">
+                            رصيد
+                        </span>
+                    </div>
+
+                    <!-- Direct Payment Gateways (Paymera & others) -->
+                    {% for gw in gateway_methods %}
+                    <div class="payment-method-card p-4 rounded-2xl border border-white/5 bg-slate-900/40 transition-all cursor-pointer flex items-center justify-between hover:border-purple-500/40"
+                         id="pm-card-{{ forloop.counter }}"
+                         onclick="selectPaymentMethod('{{ gw.id }}', this)">
+                        <div class="flex items-center gap-3">
+                            <div class="radio-circle-pm w-5 h-5 rounded-full border-2 border-white/20 flex items-center justify-center shrink-0">
+                                <div class="w-2 h-2 rounded-full bg-slate-950 hidden"></div>
+                            </div>
+                            <div>
+                                <div class="font-bold text-white text-sm flex items-center gap-2">
+                                    <i class="fas fa-credit-card text-purple-400"></i>
+                                    <span>{{ gw.name }}</span>
+                                </div>
+                                <div class="text-[11px] text-slate-400 mt-0.5">
+                                    شراء مباشر دون الحاجة لشحن المحفظة
+                                </div>
+                            </div>
+                        </div>
+                        <span class="text-[10px] bg-purple-500/10 text-purple-400 border border-purple-500/20 px-2.5 py-1 rounded-lg font-bold">
+                            شراء مباشر
+                        </span>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <div class="mt-10">
                 {% if product.is_out_of_stock %}
                 <button type="button" class="buy-btn-v3" style="background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.2); color: #ef4444; cursor: not-allowed; opacity: 0.6;" disabled>
                     <i class="fas fa-exclamation-circle ml-2"></i> المنتج غير متوفر حالياً
@@ -1400,6 +1455,35 @@ function copyDirect(text, btn) {
     });
 }
 
+function selectPaymentMethod(methodVal, cardEl) {
+    const input = document.getElementById('selected-payment-method');
+    if (input) input.value = methodVal;
+    
+    document.querySelectorAll('.payment-method-card').forEach(c => {
+        c.classList.remove('selected', 'border-cyan', 'bg-cyan/5');
+        c.classList.add('border-white/5', 'bg-slate-900/40');
+        const radio = c.querySelector('.radio-circle-pm');
+        if (radio) {
+            radio.classList.remove('border-cyan', 'bg-cyan');
+            radio.classList.add('border-white/20');
+            const inner = radio.querySelector('div');
+            if (inner) inner.classList.add('hidden');
+        }
+    });
+    
+    if (cardEl) {
+        cardEl.classList.add('selected', 'border-cyan', 'bg-cyan/5');
+        cardEl.classList.remove('border-white/5', 'bg-slate-900/40');
+        const radio = cardEl.querySelector('.radio-circle-pm');
+        if (radio) {
+            radio.classList.add('border-cyan', 'bg-cyan');
+            radio.classList.remove('border-white/20');
+            const inner = radio.querySelector('div');
+            if (inner) inner.classList.remove('hidden');
+        }
+    }
+}
+
 // Intercept form submit and use AJAX
 document.addEventListener('DOMContentLoaded', function() {
     const pForm = document.getElementById('purchase-form');
@@ -1437,6 +1521,10 @@ document.addEventListener('DOMContentLoaded', function() {
                 return;
             }
             const data = await res.json();
+            if (data.redirect_url) {
+                window.location.href = data.redirect_url;
+                return;
+            }
             if (data.success) {
                 currentActiveOrderId = data.order_id;
                 openPurchaseModal(data);

@@ -670,3 +670,352 @@ def create_order(customer, variant_id, quantity=1, fulfillment_data=None,
         except Exception as notif_err:
             logger.warning("Failed to notify store owner about wholesale insufficient balance: %s", notif_err)
         raise ValueError("لم يتم إكمال الطلب، يرجى التواصل مع دعم المتجر.")
+
+
+def create_pending_gateway_order(
+    customer,
+    variant_id,
+    quantity=1,
+    fulfillment_data=None,
+    coupon=None,
+    metadata=None,
+    shipping_name=None,
+    shipping_phone=None,
+    shipping_address=None,
+    gateway_code="paymera",
+):
+    """
+    Creates an Order in PENDING status for direct payment through an electronic gateway.
+    Does NOT debit the user's wallet.
+    """
+    if customer.restriction_purchases:
+        raise ValueError("حسابك مقيد من عمليات الشراء.")
+
+    quantity = int(quantity)
+    if quantity < 1:
+        raise ValueError("الكمية يجب أن تكون 1 على الأقل.")
+
+    # Fetch variant
+    variant = (
+        ProductVariant.objects
+        .select_related("product")
+        .get(id=variant_id, is_active=True, product__is_active=True)
+    )
+
+    # Read qty metadata
+    meta = variant.metadata if isinstance(variant.metadata, dict) else {}
+    qty_type = meta.get("qty_type", "fixed")
+    qty_list = meta.get("qty_list", [])
+    qty_min = _safe_int(meta.get("qty_min"), 1)
+    qty_max = _safe_int(meta.get("qty_max"), 999_999_999)
+
+    if qty_type == "fixed":
+        quantity = 1
+    elif qty_type == "list":
+        if str(quantity) not in [str(x) for x in qty_list]:
+            raise ValueError(
+                f"الكمية المسموح بها لهذه الباقة هي إحدى القيم التالية فقط: {', '.join(str(x) for x in qty_list)}"
+            )
+    elif qty_type == "range":
+        if quantity < qty_min:
+            raise ValueError(f"الحد الأدنى المسموح به للكمية هو {qty_min:,}")
+        if quantity > qty_max:
+            raise ValueError(f"الحد الأقصى المسموح به للكمية هو {qty_max:,}")
+
+    # Inventory check
+    product = variant.product
+    if product.track_inventory:
+        if product.quantity < quantity:
+            raise ValueError(
+                f"الكمية المطلوبة ({quantity}) غير متوفرة. "
+                f"الكمية المتوفرة حالياً: {product.quantity}"
+            )
+
+    # Shipping validation for physical products
+    if (
+        product.product_type == "physical"
+        and not (product.form_schema or {}).get("fields")
+    ):
+        if not (shipping_name and shipping_phone and shipping_address):
+            raise ValueError("جميع حقول الشحن مطلوبة للمنتجات المادية.")
+
+    # Digital Keys Availability check
+    order_store = getattr(variant.product, "store", None)
+    if not order_store:
+        from apps.common.tenant_utils import get_current_store
+        order_store = get_current_store()
+
+    if variant.delivery_type == "keys":
+        key_count = ProductKey.objects.filter(variant=variant, is_used=False).count()
+        if key_count < quantity and order_store:
+            from apps.common.tenant_utils import bypass_tenant_filter
+            with bypass_tenant_filter():
+                global_var = ProductVariant.all_objects.filter(
+                    product__store__isnull=True,
+                    name=variant.name,
+                    product__name=variant.product.name
+                ).first()
+                if global_var:
+                    key_count = ProductKey.objects.filter(variant=global_var, is_used=False).count()
+        if key_count < quantity:
+            raise ValueError("المخزون الرقمي غير كافٍ حالياً لتلبية هذا الطلب.")
+
+    price = variant.get_price_for_user(customer)
+    subtotal = calculate_variant_subtotal(variant, customer, quantity)
+
+    discount = Decimal("0.00")
+    if coupon:
+        discount = validate_coupon(coupon, customer, variant, subtotal=subtotal)
+        coupon.used_count += 1
+        coupon.save(update_fields=["used_count"])
+
+    total = max(subtotal - discount, Decimal("0.00"))
+
+    order_meta = dict(metadata or {})
+    order_meta["payment_gateway"] = gateway_code
+    order_meta["is_direct_gateway_purchase"] = True
+
+    with transaction.atomic():
+        order = Order.objects.create(
+            customer=customer,
+            store=order_store,
+            number=next_order_number(),
+            status=Order.Status.PENDING,
+            total_amount=total,
+            original_total=subtotal,
+            coupon=coupon,
+            fulfillment_data=dict(fulfillment_data or {}),
+            metadata=order_meta,
+            shipping_name=shipping_name or "",
+            shipping_phone=shipping_phone or "",
+            shipping_address=shipping_address or "",
+        )
+        OrderItem.objects.create(
+            order=order,
+            variant=variant,
+            quantity=quantity,
+            unit_price=price,
+            unit_cost=variant.cost,
+            total_price=subtotal,
+        )
+        OrderLog.objects.create(
+            order=order,
+            status=Order.Status.PENDING,
+            note=f"تم إنشاء الطلب بانتظار إتمام الدفع عبر بوابة {gateway_code}.",
+            created_by=customer,
+        )
+
+    return order
+
+
+def finalize_paid_gateway_order(order, gateway_data=None):
+    """
+    Finalizes an Order after payment gateway confirmation.
+    Idempotent: skips if status is already completed or processing.
+    """
+    with transaction.atomic():
+        locked_order = Order.objects.select_for_update().get(id=order.id)
+        if locked_order.status not in (Order.Status.PENDING,):
+            logger.info(f"Order {order.id} is already in status {locked_order.status}, skipping finalize.")
+            return locked_order
+
+        item = locked_order.items.select_related("variant", "variant__product").first()
+        if not item or not item.variant:
+            locked_order.status = Order.Status.PROCESSING
+            locked_order.save(update_fields=["status", "updated_at"])
+            return locked_order
+
+        variant = item.variant
+        quantity = item.quantity
+        order_store = locked_order.store
+        customer = locked_order.customer
+
+        # 1. Wholesale cost for tenant store owner
+        if order_store and order_store.owner:
+            base_cost = getattr(variant, "cost", Decimal("0")) or Decimal("0")
+            if base_cost > Decimal("0"):
+                total_wholesale_cost = (base_cost * quantity).quantize(Decimal("0.01"))
+                if total_wholesale_cost > Decimal("0"):
+                    from apps.wallets.models import Wallet
+                    from apps.common.models import Currency
+                    from apps.common.tenant_utils import bypass_tenant_filter
+                    with bypass_tenant_filter():
+                        owner_wallet = Wallet.all_objects.filter(
+                            user=order_store.owner,
+                            store__isnull=True
+                        ).select_related("currency").first()
+                        if not owner_wallet:
+                            default_curr = Currency.all_objects.filter(is_default=True).first() or Currency.all_objects.first()
+                            owner_wallet = Wallet.all_objects.create(
+                                user=order_store.owner,
+                                store=None,
+                                currency=default_curr,
+                                available_balance=Decimal("0.00")
+                            )
+                    if owner_wallet.currency.code != "USD":
+                        owner_cost_amt = owner_wallet.currency.from_base(total_wholesale_cost)
+                    else:
+                        owner_cost_amt = total_wholesale_cost
+                    owner_cost_amt = Decimal(owner_cost_amt).quantize(Decimal("0.01"))
+
+                    if owner_wallet.available_balance >= owner_cost_amt:
+                        debit_wallet(
+                            owner_wallet.id,
+                            owner_cost_amt,
+                            reference=f"substore_wholesale:{locked_order.id}",
+                            description=f"تكلفة توريد طلب #{locked_order.number} لمتجر {order_store.name}",
+                            created_by=customer,
+                        )
+                    else:
+                        logger.warning(
+                            f"Store owner {order_store.owner.email} wholesale balance insufficient for paid order {locked_order.id}"
+                        )
+
+        # 2. Fulfillment
+        locked_keys = []
+        if variant.delivery_type == "keys":
+            key_ids = list(
+                ProductKey.objects
+                .filter(variant=variant, is_used=False)
+                .values_list("id", flat=True)[:quantity]
+            )
+            if len(key_ids) < quantity and order_store:
+                from apps.common.tenant_utils import bypass_tenant_filter
+                with bypass_tenant_filter():
+                    global_var = ProductVariant.all_objects.filter(
+                        product__store__isnull=True,
+                        name=variant.name,
+                        product__name=variant.product.name
+                    ).first()
+                    if global_var:
+                        key_ids = list(
+                            ProductKey.objects
+                            .filter(variant=global_var, is_used=False)
+                            .values_list("id", flat=True)[:quantity]
+                        )
+            if key_ids:
+                from apps.common.tenant_utils import bypass_tenant_filter
+                with bypass_tenant_filter():
+                    locked_keys = list(
+                        ProductKey.objects.filter(id__in=key_ids).select_for_update()
+                    )
+            
+            if len(locked_keys) >= quantity:
+                for k in locked_keys:
+                    k.is_used = True
+                    k.used_by = customer
+                    k.used_at = timezone.now()
+                    k.order = locked_order
+                    k.save(update_fields=["is_used", "used_by", "used_at", "order"])
+                
+                fulfillment = dict(locked_order.fulfillment_data or {})
+                fulfillment["keys"] = [k.key_code for k in locked_keys]
+                locked_order.fulfillment_data = fulfillment
+                locked_order.status = Order.Status.COMPLETED
+            else:
+                locked_order.status = Order.Status.PROCESSING
+                fulfillment = dict(locked_order.fulfillment_data or {})
+                fulfillment["notes"] = "تم الدفع بنجاح ولكن نفدت الأكواد من المخزون، بانتظار تسليمها يدوياً من الإدارة."
+                locked_order.fulfillment_data = fulfillment
+
+        elif variant.product.is_api_product and (variant.api_product_id or getattr(variant.product, 'api_product_id', None)):
+            locked_order.status = Order.Status.PROCESSING
+            try:
+                from apps.providers.services import ProviderManager
+                from apps.providers.models import ProviderProfile, ProviderProduct, ProviderMapping
+                provider = (
+                    variant.api_provider
+                    or getattr(variant.product, "api_provider", None)
+                    or "alkasr"
+                )
+                profile = None
+                provider_product = None
+                if variant.api_product_id:
+                    provider_product = ProviderProduct.objects.filter(remote_id=str(variant.api_product_id)).select_related("profile").first()
+                    if provider_product:
+                        profile = provider_product.profile
+
+                if not provider_product:
+                    mapping = getattr(variant, "provider_mapping", None) or ProviderMapping.objects.filter(local_variant=variant).select_related("provider_product__profile").first()
+                    if mapping and mapping.provider_product:
+                        provider_product = mapping.provider_product
+                        profile = mapping.provider_product.profile
+                
+                if provider_product and profile:
+                    api_order_uuid = locked_order.api_order_uuid or uuid.uuid4()
+                    locked_order.api_order_uuid = api_order_uuid
+                    api_resp = ProviderManager.place_order(
+                        profile=profile,
+                        local_order=locked_order,
+                        provider_product=provider_product,
+                        quantity=quantity,
+                        player_params=locked_order.metadata or {},
+                        order_uuid=api_order_uuid,
+                    )
+                    api_status = api_resp.get("status") or "wait"
+                    api_order_id = api_resp.get("remote_order_id")
+                    raw_response = api_resp.get("raw_response") or api_resp
+                    fulfillment = dict(locked_order.fulfillment_data or {})
+                    fulfillment["api_status"] = api_status
+                    locked_order.api_order_id = api_order_id
+                    locked_order.fulfillment_data = fulfillment
+                    locked_order.save(update_fields=["api_order_id", "fulfillment_data", "api_order_uuid", "updated_at"])
+                    from apps.orders.provider_status import apply_provider_status
+                    locked_order = apply_provider_status(
+                        locked_order,
+                        api_status,
+                        raw_response=raw_response,
+                        actor=customer,
+                        note_prefix="النظام الآلي (دفع مباشر)",
+                    )
+            except Exception as api_exc:
+                logger.error(f"Error placing API order for paid order {locked_order.id}: {api_exc}")
+        else:
+            locked_order.status = Order.Status.PROCESSING
+
+        # 3. Invoice
+        Invoice.objects.get_or_create(
+            order=locked_order,
+            defaults={
+                "invoice_number": locked_order.number.replace("ORD", "INV", 1),
+                "total_amount": locked_order.total_amount,
+            }
+        )
+
+        # 4. OrderLog
+        gw_label = "بوابة الدفع الإلكتروني"
+        if gateway_data and isinstance(gateway_data, dict):
+            rrn = gateway_data.get("rrn")
+            if rrn:
+                gw_label += f" (RRN: {rrn})"
+        OrderLog.objects.create(
+            order=locked_order,
+            status=locked_order.status,
+            note=f"تم تأكيد السداد بنجاح عبر {gw_label}.",
+            created_by=customer,
+        )
+
+        locked_order.save()
+
+        # 5. Notifications
+        try:
+            from apps.notifications.services import notify_staff, notify_user
+            notify_staff(
+                title="طلب مدفوع إلكترونياً",
+                body=f"تم سداد الطلب رقم {locked_order.number} بقيمة {locked_order.total_amount} USD إلكترونياً من {customer.email}",
+                action_url=f"/control/orders/{locked_order.id}/",
+                category="admin_new_order",
+            )
+            notify_user(
+                user=customer,
+                title="تم تأكيد طلبك بنجاح",
+                body=f"تم استلام دفعتك للطلب رقم {locked_order.number} بنجاح وجاري تنفيذه.",
+                action_url=f"/dashboard/orders/{locked_order.id}/",
+                category="order_update",
+                priority="high"
+            )
+        except Exception:
+            pass
+
+        return locked_order
+

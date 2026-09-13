@@ -72,6 +72,7 @@ class PaymeraClient:
             "Authorization": f"Basic {auth_b64}",
             "Content-Type": "application/json",
             "Accept": "application/json",
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36 PaymeraClient/4.0",
         }
 
     def create_payment(
@@ -123,7 +124,15 @@ class PaymeraClient:
         try:
             data = resp.json()
         except ValueError:
-            logger.error(f"Paymera returned non-JSON response ({resp.status_code}): {resp.text}")
+            logger.error(f"Paymera returned non-JSON response ({resp.status_code}): {resp.text[:500]}")
+            if resp.status_code == 403:
+                raise PaymeraError(
+                    "بوابة بيميرا رفضت الاتصال (HTTP 403 Forbidden). "
+                    "يرجى التأكد من: "
+                    "1) صحة رقم نقطة البيع (Terminal ID) والمفتاح السري (API Key). "
+                    "2) اعتماد عنوان IP الخارجي لسيرفر المتجر لدى بيميرا (IP Whitelisting). "
+                    "3) تطابق وضع التشغيل والرابط (تجريبي egate-t.paymera.cc أو حقيقي egate.paymera.cc)."
+                )
             raise PaymeraError(f"Paymera invalid response (HTTP {resp.status_code})")
 
         error_code = data.get("ErrorCode")

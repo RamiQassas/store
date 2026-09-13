@@ -101,27 +101,82 @@ def _complete_successful_deposit(deposit: DepositRequest, status_data: dict) -> 
         return True
 
 
+from django.urls import reverse
+from apps.orders.models import Order
+from apps.orders.services import finalize_paid_gateway_order
+
+
 @csrf_exempt
 def paymera_trigger_view(request):
     """
     Webhook / Server-to-server trigger invoked by Paymera upon transaction completion.
+    Supports both wallet deposits (deposit_id) and direct order checkouts (order_id).
     Endpoint: /payments/paymera/trigger/
     """
+    order_id = request.GET.get("order_id") or request.POST.get("order_id")
     deposit_id = request.GET.get("deposit_id") or request.POST.get("deposit_id")
     payment_id = request.GET.get("payment_id") or request.POST.get("payment_id")
 
     # If payload is in JSON body
-    if not deposit_id and request.body:
+    if not order_id and not deposit_id and request.body:
         try:
             body_data = json.loads(request.body.decode("utf-8"))
             if isinstance(body_data, dict):
-                deposit_id = body_data.get("deposit_id")
+                order_id = body_data.get("order_id")
+                deposit_id = deposit_id or body_data.get("deposit_id")
                 payment_id = payment_id or body_data.get("payment_id") or body_data.get("paymentId")
         except Exception:
             pass
 
-    logger.info(f"Paymera trigger received. deposit_id={deposit_id}, payment_id={payment_id}")
+    logger.info(f"Paymera trigger received. order_id={order_id}, deposit_id={deposit_id}, payment_id={payment_id}")
 
+    # Resolve integration
+    integration = PaymentGatewayIntegration.objects.filter(
+        provider=PaymentGatewayIntegration.Provider.PAYMERA,
+        is_active=True
+    ).first()
+
+    # ── Handle Direct Order Payment ──────────────────────────────────────────
+    order = None
+    if order_id:
+        order = Order.objects.filter(pk=order_id).first()
+    if not order and not deposit_id and payment_id:
+        order = Order.objects.filter(metadata__gateway_payment_id=payment_id).first()
+
+    if order:
+        if not integration:
+            logger.error("Paymera trigger (Order): No active Paymera integration found.")
+            return JsonResponse({"status": "error", "message": "Integration not configured"}, status=500)
+
+        client = PaymeraClient.from_integration(integration)
+        active_payment_id = (
+            order.metadata.get("gateway_payment_id")
+            if isinstance(order.metadata, dict) else None
+        ) or payment_id
+
+        try:
+            status_res = client.get_payment_status(active_payment_id)
+            payment_status = status_res.get("status")
+            logger.info(f"Paymera trigger status for order {order.id}: {payment_status}")
+
+            if payment_status == PaymeraClient.STATUS_ACCEPTED:
+                finalize_paid_gateway_order(order, status_res)
+                return JsonResponse({"status": "ok", "message": "Order payment accepted and processed"})
+
+            elif payment_status in (PaymeraClient.STATUS_FAILED, PaymeraClient.STATUS_CANCELED):
+                if order.status == Order.Status.PENDING:
+                    order.status = Order.Status.CANCELLED
+                    order.admin_note = f"Paymera status: {payment_status}"
+                    order.save(update_fields=["status", "admin_note", "updated_at"])
+                return JsonResponse({"status": "ok", "message": f"Order payment {payment_status}"})
+
+            return JsonResponse({"status": "ok", "message": f"Order payment pending ({payment_status})"})
+
+        except PaymeraError as exc:
+            logger.error(f"Paymera trigger API error for order: {exc}")
+            return JsonResponse({"status": "error", "message": str(exc)}, status=400)
+
+    # ── Handle Deposit Payment ───────────────────────────────────────────────
     deposit = None
     if deposit_id:
         deposit = DepositRequest.objects.filter(pk=deposit_id).first()
@@ -129,22 +184,19 @@ def paymera_trigger_view(request):
         deposit = DepositRequest.objects.filter(gateway_payment_id=payment_id).first()
 
     if not deposit:
-        logger.warning(f"Paymera trigger: Deposit not found (deposit_id={deposit_id}, payment_id={payment_id})")
-        return JsonResponse({"status": "error", "message": "Deposit not found"}, status=404)
+        logger.warning(f"Paymera trigger: Neither Order nor Deposit found (order_id={order_id}, deposit_id={deposit_id}, payment_id={payment_id})")
+        return JsonResponse({"status": "error", "message": "Transaction record not found"}, status=404)
 
-    # Resolve integration & client
-    integration = getattr(deposit.payment_method, "gateway", None)
-    if not integration or integration.provider != PaymentGatewayIntegration.Provider.PAYMERA:
-        integration = PaymentGatewayIntegration.objects.filter(
-            provider=PaymentGatewayIntegration.Provider.PAYMERA,
-            is_active=True
-        ).first()
+    # Resolve integration & client for deposit
+    dep_integration = getattr(deposit.payment_method, "gateway", None)
+    if not dep_integration or dep_integration.provider != PaymentGatewayIntegration.Provider.PAYMERA:
+        dep_integration = integration
 
-    if not integration:
+    if not dep_integration:
         logger.error("Paymera trigger: No active Paymera integration found.")
         return JsonResponse({"status": "error", "message": "Integration not configured"}, status=500)
 
-    client = PaymeraClient.from_integration(integration)
+    client = PaymeraClient.from_integration(dep_integration)
     active_payment_id = deposit.gateway_payment_id or payment_id
 
     try:
@@ -176,11 +228,65 @@ def paymera_trigger_view(request):
 def paymera_callback_view(request):
     """
     User Return URL called when user clicks Finish or Cancel in Paymera.
+    Supports both direct order checkouts (order_id) and wallet deposits (deposit_id).
     Endpoint: /payments/paymera/callback/
     """
+    order_id = request.GET.get("order_id")
     deposit_id = request.GET.get("deposit_id")
     payment_id = request.GET.get("payment_id")
 
+    integration = PaymentGatewayIntegration.objects.filter(
+        provider=PaymentGatewayIntegration.Provider.PAYMERA,
+        is_active=True
+    ).first()
+
+    # ── 1. Check for Direct Order Payment ────────────────────────────────────
+    order = None
+    if order_id:
+        order = Order.objects.filter(pk=order_id).first()
+    if not order and not deposit_id and payment_id:
+        order = Order.objects.filter(metadata__gateway_payment_id=payment_id).first()
+
+    if order:
+        active_payment_id = (
+            order.metadata.get("gateway_payment_id")
+            if isinstance(order.metadata, dict) else None
+        ) or payment_id
+
+        if integration and active_payment_id:
+            client = PaymeraClient.from_integration(integration)
+            try:
+                status_res = client.get_payment_status(active_payment_id)
+                payment_status = status_res.get("status")
+
+                if payment_status == PaymeraClient.STATUS_ACCEPTED:
+                    finalize_paid_gateway_order(order, status_res)
+                    messages.success(request, "تم سداد قيمة طلبك بنجاح وجاري تنفيذه فوراً!")
+                    return redirect(f"{reverse('dashboard_order_detail', kwargs={'pk': order.id})}?new=1")
+
+                elif payment_status == PaymeraClient.STATUS_CANCELED:
+                    messages.warning(request, "تم إلغاء عملية الدفع من قبلك.")
+                    return redirect("dashboard_orders")
+
+                elif payment_status == PaymeraClient.STATUS_FAILED:
+                    messages.error(request, "فشلت عملية الدفع عبر بيميرا. يرجى التأكد من بيانات البطاقة أو المحاولة مجدداً.")
+                    return redirect("dashboard_orders")
+
+                else:
+                    messages.info(request, "عملية الدفع لا تزال قيد المعالجة. سيتم إكمال طلبك فور استلام التأكيد.")
+                    return redirect(f"{reverse('dashboard_order_detail', kwargs={'pk': order.id})}?new=1")
+
+            except Exception as exc:
+                logger.warning(f"Paymera callback status check for order failed: {exc}")
+
+        if order.status in (Order.Status.COMPLETED, Order.Status.PROCESSING):
+            messages.success(request, "تم تأكيد طلبك بنجاح.")
+            return redirect(f"{reverse('dashboard_order_detail', kwargs={'pk': order.id})}?new=1")
+
+        messages.info(request, "تم استلام عودتك من بوابة الدفع. سيتم تحديث حالة طلبك قريباً.")
+        return redirect("dashboard_orders")
+
+    # ── 2. Check for Wallet Deposit ──────────────────────────────────────────
     deposit = None
     if deposit_id:
         deposit = DepositRequest.objects.filter(pk=deposit_id).first()
@@ -188,18 +294,13 @@ def paymera_callback_view(request):
         deposit = DepositRequest.objects.filter(gateway_payment_id=payment_id).first()
 
     if not deposit:
-        messages.error(request, "لم يتم العثور على طلب الإيداع المرتبط بالعملية.")
+        messages.error(request, "لم يتم العثور على العملية المرتبطة ببوابة الدفع.")
         return redirect("dashboard_deposits")
 
-    integration = getattr(deposit.payment_method, "gateway", None)
-    if not integration:
-        integration = PaymentGatewayIntegration.objects.filter(
-            provider=PaymentGatewayIntegration.Provider.PAYMERA,
-            is_active=True
-        ).first()
+    dep_integration = getattr(deposit.payment_method, "gateway", None) or integration
 
-    if integration:
-        client = PaymeraClient.from_integration(integration)
+    if dep_integration:
+        client = PaymeraClient.from_integration(dep_integration)
         active_payment_id = deposit.gateway_payment_id or payment_id
 
         try:
@@ -233,3 +334,4 @@ def paymera_callback_view(request):
 
     messages.info(request, "تم استلام عودتك من بوابة الدفع. سيتم تحديث حالة طلبك قريباً.")
     return redirect("dashboard_deposits")
+

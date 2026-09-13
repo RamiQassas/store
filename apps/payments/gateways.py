@@ -14,6 +14,12 @@ class BasePaymentGateway:
     def verify_payment(self, deposit):
         raise NotImplementedError
 
+    def create_order_payment(self, order, request=None):
+        raise NotImplementedError
+
+    def verify_order_payment(self, order):
+        raise NotImplementedError
+
 
 class ShamCashPlaceholderGateway(BasePaymentGateway):
     code = "sham_cash"
@@ -110,6 +116,64 @@ class PaymeraGateway(BasePaymentGateway):
             return client.get_payment_status(payment_id)
         except PaymeraError as err:
             raise PaymentGatewayError(str(err)) from err
+
+    def create_order_payment(self, order, request=None):
+        from django.urls import reverse
+        from apps.common.models import Currency
+        client = self.get_client()
+
+        if request:
+            callback_base = request.build_absolute_uri(reverse("paymera_callback"))
+            trigger_base = request.build_absolute_uri(reverse("paymera_trigger"))
+        else:
+            callback_base = reverse("paymera_callback")
+            trigger_base = reverse("paymera_trigger")
+
+        callback_url = f"{callback_base}?order_id={order.id}"
+        trigger_url = f"{trigger_base}?order_id={order.id}"
+
+        # Order total_amount is in USD. Convert to Syrian Liras (SYP)
+        syp_currency = Currency.all_objects.filter(code="SYP").first()
+        if syp_currency:
+            syp_amount = syp_currency.from_base(order.total_amount, "deposit")
+        else:
+            syp_amount = order.total_amount
+
+        notes = f"Order #{order.number} for {order.customer.email}"
+        try:
+            res = client.create_payment(
+                amount=syp_amount,
+                callback_url=callback_url,
+                trigger_url=trigger_url,
+                notes=notes,
+                lang="ar",
+            )
+            if not isinstance(order.metadata, dict):
+                order.metadata = {}
+            order.metadata["gateway_payment_id"] = res["payment_id"]
+            order.metadata["paymera_url"] = res["url"]
+            order.metadata["syp_amount"] = int(round(float(syp_amount)))
+            order.metadata["payment_provider"] = self.code
+            order.save(update_fields=["metadata"])
+            return res
+        except PaymeraError as err:
+            raise PaymentGatewayError(str(err)) from err
+
+    def verify_order_payment(self, order):
+        payment_id = (
+            order.metadata.get("gateway_payment_id")
+            if isinstance(order.metadata, dict)
+            else None
+        )
+        if not payment_id:
+            raise PaymentGatewayError("لا يوجد معرف دفعة بيميرا لهذا الطلب.")
+
+        client = self.get_client()
+        try:
+            return client.get_payment_status(payment_id)
+        except PaymeraError as err:
+            raise PaymentGatewayError(str(err)) from err
+
 
 
 def gateway_for(provider_or_obj):
