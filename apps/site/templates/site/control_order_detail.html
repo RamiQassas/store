@@ -1,422 +1,728 @@
 {% extends "site/control_base.html" %}
 {% load static site_tags %}
 
-{% block title %}تفاصيل الطلب #{{ order.number }} | Raqamiyat Admin{% endblock %}
+{% block title %}تفاصيل الطلب #{{ order.number }} | Raqamiyat Control{% endblock %}
 
 {% block extra_head %}
+{{ block.super }}
 <style>
-    .order-grid { display: grid; grid-template-columns: 1fr 350px; gap: 24px; }
-    @media (max-width: 1024px) { .order-grid { grid-template-columns: 1fr; } }
-    
-    .info-item { display: flex; flex-direction: column; gap: 4px; padding: 12px; background: rgba(255,255,255,0.02); border-radius: 12px; border: 1px solid rgba(255,255,255,0.05); }
-    .info-label { font-size: 10px; font-weight: 800; color: #64748b; text-transform: uppercase; }
-    .info-value { font-size: 14px; font-weight: 600; color: #f1f5f9; }
-    
-    .fulfillment-row { display: grid; grid-template-columns: 150px 1fr 50px; gap: 12px; align-items: start; }
+    .order-detail-grid {
+        display: grid;
+        grid-template-columns: 1fr 380px;
+        gap: 1.5rem;
+        align-items: start;
+    }
+    @media (max-width: 1100px) {
+        .order-detail-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    .detail-card {
+        background: linear-gradient(145deg, rgba(15, 23, 42, 0.8) 0%, rgba(6, 11, 24, 0.9) 100%);
+        border: 1px solid rgba(255, 255, 255, 0.07);
+        border-radius: 24px;
+        overflow: hidden;
+        transition: border-color 0.2s ease;
+    }
+    .detail-card:hover {
+        border-color: rgba(255, 255, 255, 0.12);
+    }
+    .detail-header {
+        padding: 1.25rem 1.5rem;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        background: rgba(255, 255, 255, 0.015);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 1rem;
+    }
+    .detail-body {
+        padding: 1.5rem;
+    }
+
+    .status-glow-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 5px 12px;
+        border-radius: 12px;
+        font-size: 11px;
+        font-weight: 800;
+        letter-spacing: 0.02em;
+    }
+    .status-glow-badge.completed {
+        background: rgba(16, 185, 129, 0.12);
+        color: #34d399;
+        border: 1px solid rgba(16, 185, 129, 0.25);
+    }
+    .status-glow-badge.processing {
+        background: rgba(245, 158, 11, 0.12);
+        color: #fbbf24;
+        border: 1px solid rgba(245, 158, 11, 0.25);
+    }
+    .status-glow-badge.pending {
+        background: rgba(14, 165, 233, 0.12);
+        color: #38bdf8;
+        border: 1px solid rgba(14, 165, 233, 0.25);
+    }
+    .status-glow-badge.cancelled,
+    .status-glow-badge.refunded {
+        background: rgba(244, 63, 94, 0.12);
+        color: #fb7185;
+        border: 1px solid rgba(244, 63, 94, 0.25);
+    }
+
+    .field-box {
+        background: rgba(15, 23, 42, 0.6);
+        border: 1px solid rgba(255, 255, 255, 0.06);
+        border-radius: 16px;
+        padding: 1rem;
+        transition: all 0.2s ease;
+    }
+    .field-box:hover {
+        border-color: rgba(6, 182, 212, 0.25);
+        background: rgba(15, 23, 42, 0.85);
+    }
+
+    /* Fulfillment Row Responsive */
+    .ff-row-grid {
+        display: grid;
+        grid-template-columns: 160px 1fr 44px;
+        gap: 0.75rem;
+        align-items: start;
+    }
+    @media (max-width: 640px) {
+        .ff-row-grid {
+            grid-template-columns: 1fr 44px;
+        }
+        .ff-row-grid input[name="ff_key[]"] {
+            grid-column: span 2;
+        }
+    }
+
+    /* Form Controls */
+    .admin-input {
+        width: 100%;
+        background: rgba(2, 6, 23, 0.8);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 12px;
+        padding: 0.75rem 1rem;
+        font-size: 0.8rem;
+        color: #fff;
+        transition: all 0.2s ease;
+    }
+    .admin-input:focus {
+        outline: none;
+        border-color: rgba(6, 182, 212, 0.6);
+        box-shadow: 0 0 0 3px rgba(6, 182, 212, 0.15);
+    }
+
+    .timeline-dot {
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        background: #06b6d4;
+        box-shadow: 0 0 8px rgba(6, 182, 212, 0.6);
+        flex-shrink: 0;
+        margin-top: 5px;
+    }
 </style>
 {% endblock %}
 
 {% block control_content %}
-<nav class="breadcrumb">
-    <a href="{% url 'control_dashboard' %}" class="breadcrumb-item">الرئيسية</a>
-    <a href="{% url 'control_orders_list' %}" class="breadcrumb-item">إدارة الطلبات</a>
-    <span class="breadcrumb-item active">تفاصيل الطلب</span>
+<!-- Breadcrumb Navigation -->
+<nav class="breadcrumb mb-4">
+    <a href="{% url 'control_dashboard' %}" class="breadcrumb-item text-slate-400 hover:text-cyan">الرئيسية</a>
+    <a href="{% url 'control_orders_list' %}" class="breadcrumb-item text-slate-400 hover:text-cyan">إدارة الطلبات</a>
+    <span class="breadcrumb-item active text-slate-200">طلب #{{ order.number }}</span>
 </nav>
 
-<div class="page-head flex justify-between items-center">
+<!-- Page Header with Quick Actions -->
+<div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
     <div>
-        <span class="eyebrow">Content Management / Orders</span>
-        <h1>تفاصيل الطلب: #{{ order.number }}</h1>
-        <p class="text-muted">مراجعة ومعالجة الطلب المقدم من {{ order.customer.email }}</p>
+        <div class="flex items-center gap-2 mb-1.5">
+            <span class="status-glow-badge {{ order.status }}">
+                {% if order.status == 'completed' %}
+                <i class="fas fa-check-circle"></i>
+                {% elif order.status == 'processing' %}
+                <i class="fas fa-circle-notch fa-spin"></i>
+                {% elif order.status == 'pending' %}
+                <i class="fas fa-clock"></i>
+                {% else %}
+                <i class="fas fa-times-circle"></i>
+                {% endif %}
+                <span>{{ order.get_status_display }}</span>
+            </span>
+            <span class="text-xs font-mono text-slate-500">•</span>
+            <span class="text-xs font-mono text-slate-400">{{ order.created_at|date:"Y-m-d H:i" }}</span>
+        </div>
+        
+        <div class="flex items-center gap-3">
+            <h1 class="text-2xl sm:text-3xl font-black text-white tracking-tight">تفاصيل الطلب: #{{ order.number }}</h1>
+            <button type="button" onclick="copyToClipboard('{{ order.number }}', this)" class="p-1.5 rounded-lg bg-slate-900 border border-white/10 text-slate-400 hover:text-cyan transition cursor-pointer" title="نسخ رقم الطلب">
+                <i class="far fa-copy text-xs"></i>
+            </button>
+        </div>
+        <p class="text-xs text-slate-400 mt-1">العميل: <strong class="text-slate-200">{{ order.customer.get_full_name|default:order.customer.username }}</strong> ({{ order.customer.email }})</p>
     </div>
-    <div class="flex gap-3">
-        <a href="{% url 'control_orders_list' %}" class="btn btn-outline btn-sm">
-            <i class="fas fa-arrow-right ml-2"></i> العودة للقائمة
+
+    <!-- Header Actions -->
+    <div class="flex flex-wrap items-center gap-2.5 shrink-0">
+        <a href="{% url 'dashboard_order_invoice' order.id %}" target="_blank" class="px-4 py-2.5 rounded-xl bg-slate-900 border border-cyan/40 text-cyan hover:bg-cyan hover:text-slate-950 font-bold text-xs transition flex items-center gap-2 shadow-md shadow-cyan/10 cursor-pointer">
+            <i class="fas fa-print"></i>
+            <span>طباعة الفاتورة</span>
+        </a>
+        
+        {% if order.api_order_id %}
+        <button type="button" onclick="syncAlkasrStatus('{{ order.id }}', this)" class="px-4 py-2.5 rounded-xl bg-sky-500/10 border border-sky-500/30 text-sky-400 hover:bg-sky-500 hover:text-slate-950 font-bold text-xs transition flex items-center gap-2 shadow-md shadow-sky-500/10 cursor-pointer">
+            <i class="fas fa-sync-alt"></i>
+            <span>مزامنة المزود</span>
+        </button>
+        {% endif %}
+
+        <a href="{% url 'control_orders_list' %}" class="px-4 py-2.5 rounded-xl bg-slate-900 border border-white/10 hover:border-white/20 text-slate-300 hover:text-white font-bold text-xs transition flex items-center gap-2 cursor-pointer">
+            <i class="fas fa-arrow-right"></i>
+            <span>العودة للقائمة</span>
         </a>
     </div>
 </div>
 
-<div class="order-grid">
-    <!-- Main Content -->
-    <div class="stack gap-6">
-        <!-- Order Items -->
-        <div class="management-card">
-            <div class="management-header">
-                <h3 class="font-bold flex items-center gap-2">
-                    <i class="fas fa-box text-cyan"></i> بنود الطلب
-                </h3>
-            </div>
-            <div class="p-6">
-                <div class="stack gap-4">
-                    {% for item in order.items.all %}
-                    <div class="flex items-center justify-between p-4 bg-slate-900/40 rounded-2xl border border-white/5">
-                        <div class="flex items-center gap-4">
-                            {% if item.variant.product.thumbnail %}
-                            <img src="{{ item.variant.product.thumbnail.url }}" class="w-12 h-12 rounded-xl object-cover border border-white/10">
-                            {% else %}
-                            <div class="w-12 h-12 rounded-xl bg-slate-800 flex items-center justify-center text-slate-600">
-                                <i class="fas fa-cube text-xl"></i>
-                            </div>
-                            {% endif %}
-                            <div>
-                                <div class="font-bold text-white">{{ item.variant.product.name }}</div>
-                                <div class="text-[10px] text-slate-500">الباقة: <span class="text-cyan">{{ item.variant.name }}</span> × {{ item.quantity }}</div>
-                            </div>
-                        </div>
-                        <div class="text-left">
-                            <div class="font-black text-white">{% currency_format item.total_price %}</div>
-                            <div class="text-[9px] text-slate-500">سعر الوحدة: {% currency_format item.unit_price %}</div>
-                        </div>
+<!-- Main Grid Layout -->
+<div class="order-detail-grid">
+    
+    <!-- Left Column: Items, Metadata, Fulfillment, Logs -->
+    <div class="space-y-6">
+        
+        <!-- Card 1: Order Items & Pricing Summary -->
+        <div class="detail-card">
+            <div class="detail-header">
+                <div class="flex items-center gap-2.5">
+                    <div class="w-8 h-8 rounded-xl bg-cyan/10 border border-cyan/20 flex items-center justify-center text-cyan text-xs">
+                        <i class="fas fa-box-open"></i>
                     </div>
-                    {% endfor %}
-                    
-            <div class="summary-card bg-slate-900/50 p-4 rounded-2xl border border-white/5 mt-4">
-                <div class="stack gap-2">
-                    <div class="flex justify-between text-[10px] text-slate-500 uppercase font-black">
-                        <span>إجمالي البنود:</span>
-                        <span class="text-white">{% currency_format order.original_total|default:order.total_amount %}</span>
-                    </div>
-                    {% if order.coupon %}
-                    <div class="flex justify-between text-[10px] text-rose-500 uppercase font-black">
-                        <span>الخصم (كوبون: {{ order.coupon.code }}):</span>
-                        <span>- {% currency_format order.original_total|subtract:order.total_amount %}</span>
-                    </div>
-                    {% endif %}
-                    <div class="h-px bg-white/5 my-1"></div>
-                    <div class="flex justify-between items-center">
-                        <span class="font-bold text-cyan text-sm">المبلغ الإجمالي المخصوم:</span>
-                        <span class="font-black text-cyan text-2xl">{% currency_format order.total_amount %}</span>
+                    <div>
+                        <h3 class="text-sm font-black text-white">بنود ومنتجات الطلب</h3>
+                        <span class="text-[10px] text-slate-400 font-mono">{{ order.items.count }} عنصر في الطلب</span>
                     </div>
                 </div>
             </div>
+
+            <div class="detail-body space-y-4">
+                <!-- Items List -->
+                <div class="space-y-3">
+                    {% for item in order.items.all %}
+                    <div class="flex items-center justify-between p-3.5 bg-slate-950/60 rounded-2xl border border-white/5 gap-4">
+                        <div class="flex items-center gap-3 min-w-0">
+                            <div class="w-12 h-12 rounded-xl bg-slate-900 border border-white/10 flex items-center justify-center text-slate-500 shrink-0 overflow-hidden">
+                                {% if item.variant.product.thumbnail %}
+                                <img src="{{ item.variant.product.thumbnail.url }}" class="w-full h-full object-cover">
+                                {% else %}
+                                <i class="fas fa-cube text-lg"></i>
+                                {% endif %}
+                            </div>
+                            <div class="min-w-0">
+                                <h4 class="font-bold text-white text-xs sm:text-sm truncate">{{ item.variant.product.name }}</h4>
+                                <div class="flex items-center gap-2 text-[11px] text-slate-400 mt-0.5">
+                                    <span>الباقة: <strong class="text-cyan">{{ item.variant.name }}</strong></span>
+                                    <span class="px-2 py-0.2 rounded bg-white/5 font-mono text-[10px] text-slate-300">الكمية: {{ item.quantity }}</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="text-left shrink-0">
+                            <div class="font-black text-white text-sm font-mono">{% currency_format item.total_price %}</div>
+                            <div class="text-[10px] text-slate-500 font-mono">الوحدة: {% currency_format item.unit_price %}</div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+
+                <!-- Price Summary Box -->
+                <div class="p-4 rounded-2xl bg-slate-950/80 border border-white/5 space-y-2 mt-4">
+                    <div class="flex justify-between text-xs text-slate-400 font-bold">
+                        <span>إجمالي المنتجات:</span>
+                        <span class="text-white font-mono">{% currency_format order.original_total|default:order.total_amount %}</span>
+                    </div>
+                    
+                    {% if order.coupon %}
+                    <div class="flex justify-between text-xs text-rose-400 font-bold">
+                        <span>خصم الكوبون ({{ order.coupon.code }}):</span>
+                        <span class="font-mono">- {% currency_format order.original_total|subtract:order.total_amount %}</span>
+                    </div>
+                    {% endif %}
+
+                    {% if order.price_adjustment_reason %}
+                    <div class="p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/20 text-xs text-amber-300 flex items-start gap-2">
+                        <i class="fas fa-info-circle text-amber-400 mt-0.5 shrink-0"></i>
+                        <div>
+                            <span class="font-bold block text-[11px]">ملاحظة تعديل السعر:</span>
+                            <span>{{ order.price_adjustment_reason }}</span>
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    <div class="h-px bg-white/5 my-2"></div>
+                    
+                    <div class="flex justify-between items-center">
+                        <span class="font-black text-white text-xs sm:text-sm">المبلغ النهائي المخصوم:</span>
+                        <span class="font-black text-cyan text-xl sm:text-2xl font-mono tracking-tight">{% currency_format order.total_amount %}</span>
+                    </div>
                 </div>
             </div>
         </div>
 
         {% if order.has_physical_products %}
-        <!-- Shipping Details -->
-        <div class="management-card">
-            <div class="management-header">
-                <h3 class="font-bold flex items-center gap-2 text-amber-500">
-                    <i class="fas fa-truck text-amber-500"></i> معلومات شحن وتوصيل الطلب
-                </h3>
+        <!-- Card: Shipping & Delivery Info -->
+        <div class="detail-card border-amber-500/20">
+            <div class="detail-header">
+                <div class="flex items-center gap-2.5">
+                    <div class="w-8 h-8 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-400 text-xs">
+                        <i class="fas fa-truck"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-sm font-black text-white">معلومات الشحن والتوصيل</h3>
+                        <span class="text-[10px] text-amber-400/80 font-mono">شحن منتجات مادية</span>
+                    </div>
+                </div>
             </div>
-            <div class="p-6">
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div class="info-item">
-                        <span class="info-label">اسم المستلم</span>
-                        <span class="info-value font-bold text-white">{{ order.shipping_name|default:"---" }}</span>
+            <div class="detail-body">
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <div class="field-box">
+                        <span class="text-[10px] font-black uppercase text-slate-500 block mb-1">اسم المستلم</span>
+                        <span class="text-xs font-bold text-white">{{ order.shipping_name|default:"---" }}</span>
                     </div>
-                    <div class="info-item">
-                        <span class="info-label">رقم هاتف الشحن</span>
-                        <span class="info-value font-bold text-white">{{ order.shipping_phone|default:"---" }}</span>
+                    <div class="field-box">
+                        <span class="text-[10px] font-black uppercase text-slate-500 block mb-1">رقم هاتف الشحن</span>
+                        <span class="text-xs font-bold text-white font-mono">{{ order.shipping_phone|default:"---" }}</span>
                     </div>
-                    <div class="info-item">
-                        <span class="info-label">عنوان التوصيل</span>
-                        <span class="info-value font-bold text-white">{{ order.shipping_address|default:"---" }}</span>
+                    <div class="field-box">
+                        <span class="text-[10px] font-black uppercase text-slate-500 block mb-1">عنوان التوصيل</span>
+                        <span class="text-xs font-bold text-white">{{ order.shipping_address|default:"---" }}</span>
                     </div>
                 </div>
             </div>
         </div>
         {% endif %}
 
-        <!-- Customer Metadata (Dynamic Fields) -->
-        <div class="management-card">
-            <div class="management-header">
-                <h3 class="font-bold flex items-center gap-2">
-                    <i class="fas fa-user-edit text-cyan"></i> البيانات المدخلة من العميل
-                </h3>
+        <!-- Card 2: Customer Input Metadata (Player ID, Phone, Link, etc.) -->
+        <div class="detail-card">
+            <div class="detail-header">
+                <div class="flex items-center gap-2.5">
+                    <div class="w-8 h-8 rounded-xl bg-cyan/10 border border-cyan/20 flex items-center justify-center text-cyan text-xs">
+                        <i class="fas fa-user-edit"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-sm font-black text-white">البيانات المدخلة من العميل</h3>
+                        <span class="text-[10px] text-slate-400 font-mono">الحقول المخصصة والمطلوبة للخدمة</span>
+                    </div>
+                </div>
+                
                 {% if mapped_metadata %}
-                <button onclick="copyAllMeta()" class="btn btn-sm btn-outline"><i class="fas fa-copy ml-1"></i> نسخ الكل</button>
+                <button type="button" onclick="copyAllMeta()" class="px-3 py-1.5 rounded-xl bg-slate-900 border border-white/10 hover:border-cyan text-slate-300 hover:text-cyan text-xs font-bold transition flex items-center gap-1.5 cursor-pointer">
+                    <i class="far fa-copy"></i>
+                    <span>نسخ الكل</span>
+                </button>
                 {% endif %}
             </div>
-            <div class="p-6">
+
+            <div class="detail-body">
                 {% if mapped_metadata %}
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4" id="metadata-container">
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3" id="metadata-container">
                     {% for item in mapped_metadata %}
-                    <div class="info-item p-4 bg-white/[0.02] border border-white/5 rounded-2xl flex justify-between items-center group/meta">
-                        <div>
-                            <span class="info-label block text-[10px] uppercase tracking-widest text-slate-500 mb-1">{{ item.label }}</span>
+                    <div class="field-box flex items-center justify-between gap-3 group/meta">
+                        <div class="min-w-0 flex-grow">
+                            <span class="text-[10px] font-black uppercase tracking-wider text-slate-500 block mb-1">{{ item.label }}</span>
                             {% if item.value|is_location_url %}
-                            <span class="info-value text-sm font-bold text-white meta-value">
-                                <a href="{{ item.value }}" target="_blank" class="inline-flex items-center gap-1.5 text-cyan hover:underline">
-                                    <i class="fas fa-map-marked-alt text-cyan"></i>
-                                    <span>فتح الموقع في خرائط جوجل</span>
-                                </a>
-                            </span>
+                            <a href="{{ item.value }}" target="_blank" class="text-xs font-bold text-cyan hover:underline inline-flex items-center gap-1.5 truncate max-w-full">
+                                <i class="fas fa-map-marked-alt text-cyan shrink-0"></i>
+                                <span class="truncate">عرض الموقع في خرائط جوجل</span>
+                            </a>
                             {% else %}
-                            <span class="info-value text-sm font-bold text-white meta-value">{{ item.value|default:"---" }}</span>
+                            <div class="text-xs font-mono font-bold text-white truncate meta-value max-w-full" title="{{ item.value }}">{{ item.value|default:"---" }}</div>
                             {% endif %}
                         </div>
-                        <button onclick="copyToClipboard('{{ item.value|escapejs }}', this)" class="text-slate-500 hover:text-cyan transition opacity-0 group-hover/meta:opacity-100">
-                            <i class="fas fa-copy"></i>
+
+                        <button type="button" onclick="copyToClipboard('{{ item.value|escapejs }}', this)" class="p-2 rounded-lg bg-slate-900 border border-white/10 text-slate-500 hover:text-cyan hover:border-cyan transition shrink-0 cursor-pointer" title="نسخ">
+                            <i class="far fa-copy text-xs"></i>
                         </button>
                     </div>
                     {% endfor %}
                 </div>
                 {% else %}
-                <div class="p-10 text-center bg-slate-900/50 rounded-2xl border border-dashed border-white/10">
-                    <p class="text-slate-500 font-bold">لم يتم إدخال بيانات مخصصة لهذا الطلب.</p>
+                <div class="p-8 text-center bg-slate-950/40 rounded-2xl border border-dashed border-white/10">
+                    <i class="fas fa-inbox text-slate-600 text-2xl mb-2"></i>
+                    <p class="text-slate-400 font-bold text-xs">لم يقم العميل بإدخال بيانات إضافية مخصصة لهذا الطلب.</p>
                 </div>
                 {% endif %}
             </div>
         </div>
 
-        <!-- Fulfillment Data -->
-        <div class="management-card">
-            <div class="management-header">
-                <h3 class="font-bold flex items-center gap-2">
-                    <i class="fas fa-paper-plane text-cyan"></i> بيانات التنفيذ (Fulfillment)
-                </h3>
+        <!-- Card 3: Fulfillment Delivery Data (Keys, Codes, Accounts) -->
+        <div class="detail-card">
+            <div class="detail-header">
+                <div class="flex items-center gap-2.5">
+                    <div class="w-8 h-8 rounded-xl bg-cyan/10 border border-cyan/20 flex items-center justify-center text-cyan text-xs">
+                        <i class="fas fa-paper-plane"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-sm font-black text-white">بيانات التنفيذ والشحن للعميل</h3>
+                        <span class="text-[10px] text-slate-400 font-mono">تظهر للعميل في واجهة تفاصيل طلبه فور اكتماله</span>
+                    </div>
+                </div>
             </div>
-            <div class="p-6">
-                <p class="text-[11px] text-slate-500 mb-6">هذه البيانات تظهر للمستخدم عند اكتمال الطلب (مثلاً: أكواد الشحن، روابط التحميل، أو رسالة تأكيد).</p>
-                
-                <form method="post" class="stack gap-4" id="fulfillment-form">
+
+            <div class="detail-body">
+                <p class="text-[11px] text-slate-400 mb-4">أدخل هنا أكواد التفعيل، بيانات الحسابات، أو رسالة التسليم. يمكنك إضافة عدة أسطر وسيتم عرضها للمستخدم بطريقة منسقة مع زر نسخ لكل كود.</p>
+
+                <form method="post" id="fulfillment-form" class="space-y-4">
                     {% csrf_token %}
                     <input type="hidden" name="action" value="update_fulfillment">
-                    <div id="ff-container" class="stack gap-3">
+                    
+                    <div id="ff-container" class="space-y-3">
                         {% for key, val in readable_fulfillment.items %}
-                        <div class="fulfillment-row">
-                            <input type="text" name="ff_key[]" value="{{ key }}" placeholder="المفتاح" class="bg-slate-900 border-white/10 rounded-xl p-3 text-xs text-white">
-                            <textarea name="ff_value[]" placeholder="القيمة" class="bg-slate-900 border-white/10 rounded-xl p-3 text-xs text-cyan font-mono" rows="1">{{ val }}</textarea>
-                            <button type="button" class="btn btn-outline danger h-full" onclick="this.parentElement.remove()"><i class="fas fa-times"></i></button>
+                        <div class="ff-row-grid p-3 rounded-2xl bg-slate-950/60 border border-white/5">
+                            <input type="text" name="ff_key[]" value="{{ key }}" placeholder="المفتاح (مثال: كود الشحن)" class="admin-input font-bold text-xs">
+                            <textarea name="ff_value[]" placeholder="القيمة (الكود أو الرابط أو النص)" rows="1" class="admin-input font-mono text-cyan text-xs resize-y">{{ val }}</textarea>
+                            <button type="button" onclick="this.closest('.ff-row-grid').remove()" class="w-10 h-10 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-400 hover:bg-rose-500 hover:text-white transition flex items-center justify-center shrink-0 cursor-pointer" title="حذف السطر">
+                                <i class="fas fa-times text-xs"></i>
+                            </button>
+                        </div>
+                        {% empty %}
+                        <div class="ff-row-grid p-3 rounded-2xl bg-slate-950/60 border border-white/5">
+                            <input type="text" name="ff_key[]" placeholder="المفتاح (مثال: كود الشحن)" class="admin-input font-bold text-xs">
+                            <textarea name="ff_value[]" placeholder="القيمة (الكود أو الرابط أو النص)" rows="1" class="admin-input font-mono text-cyan text-xs resize-y"></textarea>
+                            <button type="button" onclick="this.closest('.ff-row-grid').remove()" class="w-10 h-10 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-400 hover:bg-rose-500 hover:text-white transition flex items-center justify-center shrink-0 cursor-pointer" title="حذف السطر">
+                                <i class="fas fa-times text-xs"></i>
+                            </button>
                         </div>
                         {% endfor %}
                     </div>
-                    
-                    <div class="flex justify-between items-center mt-4">
-                        <button type="button" class="btn btn-outline btn-sm" onclick="addFfRow()">
-                            <i class="fas fa-plus ml-1"></i> إضافة حقل
+
+                    <!-- Action Buttons -->
+                    <div class="flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-white/5">
+                        <button type="button" onclick="addFfRow()" class="px-4 py-2 rounded-xl bg-slate-900 border border-white/10 hover:border-cyan text-slate-300 hover:text-white text-xs font-bold transition flex items-center gap-1.5 cursor-pointer">
+                            <i class="fas fa-plus text-cyan"></i>
+                            <span>إضافة حقل جديد</span>
                         </button>
-                        <button type="submit" class="btn btn-primary px-8">حفظ بيانات التنفيذ</button>
+
+                        <button type="submit" class="px-6 py-2.5 rounded-xl bg-gradient-to-r from-cyan-500 to-cyan-400 hover:brightness-110 text-slate-950 font-black text-xs transition flex items-center gap-2 shadow-lg shadow-cyan-500/10 cursor-pointer">
+                            <i class="fas fa-save"></i>
+                            <span>حفظ بيانات التنفيذ</span>
+                        </button>
                     </div>
                 </form>
             </div>
         </div>
-        
-        <!-- Logs -->
-        <div class="management-card">
-            <div class="management-header">
-                <h3 class="font-bold">سجل الحالات (Logs)</h3>
+
+        <!-- Card 4: Order History & Logs -->
+        <div class="detail-card">
+            <div class="detail-header">
+                <div class="flex items-center gap-2.5">
+                    <div class="w-8 h-8 rounded-xl bg-slate-800 border border-white/10 flex items-center justify-center text-slate-400 text-xs">
+                        <i class="fas fa-history"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-sm font-black text-white">سجل العمليات والحالات (Order Timeline)</h3>
+                        <span class="text-[10px] text-slate-500 font-mono">{{ order.logs.count }} أحداث مسجلة</span>
+                    </div>
+                </div>
             </div>
-            <div class="p-6">
-                <div class="stack gap-4">
+
+            <div class="detail-body">
+                <div class="space-y-4">
                     {% for log in order.logs.all %}
-                    <div class="flex gap-4 items-start">
-                        <div class="w-2 h-2 rounded-full bg-slate-700 mt-1.5 flex-shrink-0"></div>
-                        <div class="flex-grow">
-                            <div class="flex items-center gap-2">
-                                <span class="font-bold text-xs text-white">{{ log.get_status_display }}</span>
-                                <span class="text-[9px] text-slate-600 font-mono">{{ log.created_at|date:"Y-m-d H:i" }}</span>
+                    <div class="flex items-start gap-3 pb-3 border-b border-white/5 last:border-0 last:pb-0">
+                        <div class="timeline-dot"></div>
+                        <div class="min-w-0 flex-grow">
+                            <div class="flex flex-wrap items-center gap-2">
+                                <span class="text-xs font-black text-white">{{ log.get_status_display }}</span>
+                                <span class="text-[10px] font-mono text-slate-500">{{ log.created_at|date:"Y-m-d H:i:s" }}</span>
                                 {% if log.created_by %}
-                                <span class="badge primary text-[8px] py-0.5">{{ log.created_by.first_name|default:log.created_by.email }}</span>
+                                <span class="px-2 py-0.2 rounded-md bg-cyan/10 border border-cyan/20 text-[9px] text-cyan font-bold">
+                                    {{ log.created_by.first_name|default:log.created_by.email }}
+                                </span>
                                 {% endif %}
                             </div>
                             {% if log.note %}
-                            <div class="text-[11px] text-slate-400 mt-1 p-2 bg-slate-900/50 rounded-lg border border-white/5">{{ log.note }}</div>
+                            <div class="mt-1.5 p-2.5 rounded-xl bg-slate-950/60 border border-white/5 text-xs text-slate-300 font-mono leading-relaxed">
+                                {{ log.note }}
+                            </div>
                             {% endif %}
                         </div>
                     </div>
+                    {% empty %}
+                    <p class="text-xs text-slate-500 font-bold">لا يوجد سجل تاريخي لهذا الطلب بعد.</p>
                     {% endfor %}
                 </div>
             </div>
         </div>
+
     </div>
 
-    <!-- Sidebar -->
-    <div class="stack gap-6">
-        {% if order.api_order_id or order.api_order_uuid %}
-        <!-- Alkasr API Order Status -->
-        <div class="management-card border-sky-500/20 bg-sky-950/5">
-            <div class="management-header">
-                <h3 class="font-bold flex items-center gap-2 text-sky-400">
-                    <i class="fas fa-plug text-sky-400"></i> تفاصيل مزود الخدمة (Alkasr)
-                </h3>
+    <!-- Right Sidebar: Operation Center & Quick Tools -->
+    <div class="space-y-6">
+        
+        <!-- Sidebar Card 1: Update Status Form -->
+        <div class="detail-card border-cyan/30 shadow-lg shadow-cyan/5">
+            <div class="detail-header bg-cyan-500/[0.03]">
+                <div class="flex items-center gap-2">
+                    <i class="fas fa-sliders-h text-cyan text-sm"></i>
+                    <h3 class="text-sm font-black text-white">تحديث حالة الطلب</h3>
+                </div>
+                <span class="status-glow-badge {{ order.status }} text-[10px] py-1 px-2.5">
+                    {{ order.get_status_display }}
+                </span>
             </div>
-            <div class="p-6 stack gap-4">
-                <div class="info-item">
-                    <span class="info-label">رقم الطلب الخارجي (Alkasr ID)</span>
-                    <span class="info-value text-slate-300 font-mono">{{ order.api_order_id|default:"---" }}</span>
-                </div>
-                {% if order.api_order_uuid %}
-                <div class="info-item">
-                    <span class="info-label">UUID الطلب الخارجي</span>
-                    <span class="info-value text-slate-300 font-mono text-[10px]">{{ order.api_order_uuid }}</span>
-                </div>
-                {% endif %}
-                <div class="info-item">
-                    <span class="info-label">آخر حالة في الـ API</span>
-                    <span class="info-value">
-                        {% if order.fulfillment_data.api_status == "accept" %}
-                        <span class="text-emerald-500 font-bold">مقبول (accept)</span>
-                        {% elif order.fulfillment_data.api_status == "reject" %}
-                        <span class="text-rose-500 font-bold">مرفوض (reject)</span>
-                        {% elif order.fulfillment_data.api_status == "wait" %}
-                        <span class="text-amber-500 font-bold">قيد المعالجة (wait)</span>
-                        {% else %}
-                        <span class="text-slate-400 font-bold">{{ order.fulfillment_data.api_status|default:"غير متوفر" }}</span>
-                        {% endif %}
-                    </span>
-                </div>
-                
-                <button type="button" onclick="syncAlkasrStatus('{{ order.id }}', this)" class="btn btn-sm btn-outline text-sky-400 border-sky-500/20 hover:bg-sky-500 hover:text-black w-full py-2.5 font-bold">
-                    <i class="fas fa-sync ml-1"></i> تحديث الحالة من المزود
-                </button>
-            </div>
-        </div>
-        {% endif %}
 
-        <!-- Update Status -->
-        <div class="management-card border-cyan/20">
-            <div class="management-header">
-                <h3 class="font-bold flex items-center gap-2">
-                    <i class="fas fa-sync text-cyan"></i> تحديث الحالة
-                </h3>
-            </div>
-            <div class="p-6">
-                <form method="post" class="stack gap-4">
+            <div class="detail-body">
+                <form method="post" class="space-y-4">
                     {% csrf_token %}
                     <input type="hidden" name="action" value="update_status">
-                    <div class="field-group">
-                        <label class="info-label">الحالة</label>
-                        <select name="status" class="w-full bg-slate-900 border-white/10 rounded-xl p-3 text-xs text-white">
+                    
+                    <div>
+                        <label class="block text-[10px] font-black uppercase text-slate-400 mb-1.5">الحالة الجديدة</label>
+                        <select name="status" class="admin-input font-bold text-xs cursor-pointer">
                             {% for val, label in order.Status.choices %}
                             <option value="{{ val }}" {% if order.status == val %}selected{% endif %}>{{ label }}</option>
                             {% endfor %}
                         </select>
                     </div>
-                    <div class="field-group">
-                        <label class="info-label">ملاحظة المدير</label>
-                        <textarea name="admin_note" rows="3" class="w-full bg-slate-900 border-white/10 rounded-xl p-3 text-xs text-white" placeholder="سبب التحديث..."></textarea>
+
+                    <div>
+                        <label class="block text-[10px] font-black uppercase text-slate-400 mb-1.5">ملاحظة التحديث (تظهر في السجل)</label>
+                        <textarea name="admin_note" rows="3" placeholder="اكتب سبب تغيير الحالة أو أي ملاحظات للمتابعة..." class="admin-input text-xs resize-none"></textarea>
                     </div>
-                    <button type="submit" class="btn btn-primary w-full py-3 font-bold">تحديث حالة الطلب</button>
+
+                    <div class="p-2.5 rounded-xl bg-slate-950/60 border border-white/5 text-[10px] text-slate-400 leading-relaxed">
+                        <i class="fas fa-info-circle text-cyan ml-1"></i>
+                        عند التحويل إلى <strong class="text-rose-400">ملغي أو مسترد</strong>، يتم إرجاع المبلغ كاملاً إلى محفظة العميل آلياً.
+                    </div>
+
+                    <button type="submit" class="w-full py-3 rounded-xl bg-gradient-to-r from-cyan-500 to-cyan-400 hover:brightness-110 text-slate-950 font-black text-xs transition flex items-center justify-center gap-2 shadow-lg shadow-cyan-500/20 cursor-pointer">
+                        <i class="fas fa-check"></i>
+                        <span>تأكيد تحديث الحالة</span>
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        {% if order.api_order_id or order.api_order_uuid %}
+        <!-- Sidebar Card 2: Alkasr API Integration Info -->
+        <div class="detail-card border-sky-500/25 bg-sky-950/10">
+            <div class="detail-header border-sky-500/15">
+                <div class="flex items-center gap-2">
+                    <i class="fas fa-plug text-sky-400 text-sm"></i>
+                    <h3 class="text-sm font-black text-sky-400">مزود الخدمة الخارجي (Alkasr)</h3>
+                </div>
+            </div>
+
+            <div class="detail-body space-y-3">
+                <div class="field-box">
+                    <span class="text-[10px] font-black uppercase text-slate-500 block mb-1">رقم الطلب لدى المزود (ID)</span>
+                    <div class="flex items-center justify-between gap-2">
+                        <span class="font-mono text-sm font-bold text-white">{{ order.api_order_id|default:"---" }}</span>
+                        {% if order.api_order_id %}
+                        <button type="button" onclick="copyToClipboard('{{ order.api_order_id }}', this)" class="text-slate-500 hover:text-sky-400 cursor-pointer p-1">
+                            <i class="far fa-copy text-xs"></i>
+                        </button>
+                        {% endif %}
+                    </div>
+                </div>
+
+                {% if order.api_order_uuid %}
+                <div class="field-box">
+                    <span class="text-[10px] font-black uppercase text-slate-500 block mb-1">UUID المزود الخارجي</span>
+                    <div class="flex items-center justify-between gap-2">
+                        <span class="font-mono text-[10px] text-slate-300 truncate max-w-[220px]">{{ order.api_order_uuid }}</span>
+                        <button type="button" onclick="copyToClipboard('{{ order.api_order_uuid }}', this)" class="text-slate-500 hover:text-sky-400 cursor-pointer p-1">
+                            <i class="far fa-copy text-xs"></i>
+                        </button>
+                    </div>
+                </div>
+                {% endif %}
+
+                <div class="field-box">
+                    <span class="text-[10px] font-black uppercase text-slate-500 block mb-1">آخر استجابة من API</span>
+                    <div class="mt-0.5">
+                        {% if order.fulfillment_data.api_status == "accept" %}
+                        <span class="text-emerald-400 font-bold text-xs inline-flex items-center gap-1.5">
+                            <i class="fas fa-check-circle"></i> مقبول ومكتمل (accept)
+                        </span>
+                        {% elif order.fulfillment_data.api_status == "reject" %}
+                        <span class="text-rose-400 font-bold text-xs inline-flex items-center gap-1.5">
+                            <i class="fas fa-times-circle"></i> مرفوض من المزود (reject)
+                        </span>
+                        {% elif order.fulfillment_data.api_status == "wait" %}
+                        <span class="text-amber-400 font-bold text-xs inline-flex items-center gap-1.5">
+                            <i class="fas fa-clock fa-spin"></i> بانتظار المعالجة (wait)
+                        </span>
+                        {% else %}
+                        <span class="text-slate-400 font-bold text-xs">{{ order.fulfillment_data.api_status|default:"غير متوفر" }}</span>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <button type="button" onclick="syncAlkasrStatus('{{ order.id }}', this)" class="w-full py-2.5 rounded-xl bg-sky-500/15 border border-sky-500/30 hover:bg-sky-500 hover:text-slate-950 text-sky-300 font-bold text-xs transition flex items-center justify-center gap-2 cursor-pointer">
+                    <i class="fas fa-sync-alt"></i>
+                    <span>تحديث ومزامنة الحالة من المزود</span>
+                </button>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Sidebar Card 3: Price Adjustment -->
+        <div class="detail-card border-amber-500/20">
+            <div class="detail-header">
+                <div class="flex items-center gap-2">
+                    <i class="fas fa-tag text-amber-400 text-sm"></i>
+                    <h3 class="text-sm font-black text-white">تعديل سعر الطلب</h3>
+                </div>
+            </div>
+
+            <div class="detail-body">
+                <form method="post" class="space-y-4">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="update_price">
+                    
+                    <div>
+                        <div class="flex justify-between items-center mb-1.5">
+                            <label class="text-[10px] font-black uppercase text-slate-400">السعر الجديد (USD)</label>
+                            <span class="text-[10px] text-slate-400 font-mono">الحالي: <strong class="text-white">{% currency_format order.total_amount %}</strong></span>
+                        </div>
+                        <input type="number" step="0.01" name="total_amount" value="{{ order.total_amount }}" class="admin-input font-mono font-bold text-white text-sm" placeholder="0.00">
+                    </div>
+
+                    <div>
+                        <label class="block text-[10px] font-black uppercase text-slate-400 mb-1.5">سبب تعديل السعر</label>
+                        <textarea name="adjustment_reason" rows="2" placeholder="أخبر المستخدم بسبب تغيير السعر (يظهر له في تفاصيل الطلب)..." class="admin-input text-xs resize-none">{{ order.price_adjustment_reason|default:'' }}</textarea>
+                    </div>
+
+                    <div class="p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/20 text-[10px] text-amber-300/90 leading-relaxed">
+                        <i class="fas fa-shield-alt text-amber-400 ml-1"></i>
+                        يتم خصم أو إيداع فرق السعر تلقائياً في محفظة العميل.
+                    </div>
+
+                    <button type="submit" class="w-full py-2.5 rounded-xl bg-amber-500/20 border border-amber-500/40 hover:bg-amber-500 hover:text-slate-950 text-amber-300 font-bold text-xs transition flex items-center justify-center gap-2 cursor-pointer">
+                        <i class="fas fa-check-double"></i>
+                        <span>تأكيد تعديل السعر</span>
+                    </button>
                 </form>
             </div>
         </div>
 
         {% if order.has_physical_products %}
-        <!-- Update Shipping Carrier and Tracking -->
-        <div class="management-card border-amber-500/20">
-            <div class="management-header">
-                <h3 class="font-bold flex items-center gap-2 text-amber-500">
-                    <i class="fas fa-shipping-fast text-amber-500"></i> معلومات الشحن والتتبع
-                </h3>
+        <!-- Sidebar Card: Physical Shipping Information -->
+        <div class="detail-card border-amber-500/20">
+            <div class="detail-header">
+                <div class="flex items-center gap-2">
+                    <i class="fas fa-shipping-fast text-amber-400 text-sm"></i>
+                    <h3 class="text-sm font-black text-white">تحديث شركة وتتبع الشحن</h3>
+                </div>
             </div>
-            <div class="p-6">
-                <form method="post" class="stack gap-4">
+
+            <div class="detail-body">
+                <form method="post" class="space-y-4">
                     {% csrf_token %}
                     <input type="hidden" name="action" value="update_shipping">
-                    <div class="field-group">
-                        <label class="info-label">شركة الشحن</label>
-                        <input type="text" name="shipping_carrier" value="{{ order.shipping_carrier }}" class="w-full bg-slate-900 border-white/10 rounded-xl p-3 text-xs text-white" placeholder="مثال: Aramex, DHL, SMSA">
+                    
+                    <div>
+                        <label class="block text-[10px] font-black uppercase text-slate-400 mb-1.5">شركة الشحن</label>
+                        <input type="text" name="shipping_carrier" value="{{ order.shipping_carrier }}" placeholder="مثال: Aramex, DHL, SMSA" class="admin-input text-xs font-bold">
                     </div>
-                    <div class="field-group">
-                        <label class="info-label">رقم التتبع (Tracking Number)</label>
-                        <input type="text" name="tracking_number" value="{{ order.tracking_number }}" class="w-full bg-slate-900 border-white/10 rounded-xl p-3 text-xs text-white" placeholder="أدخل رقم التتبع هنا">
+
+                    <div>
+                        <label class="block text-[10px] font-black uppercase text-slate-400 mb-1.5">رقم التتبع (Tracking Number)</label>
+                        <input type="text" name="tracking_number" value="{{ order.tracking_number }}" placeholder="أدخل رقم بوليصة التتبع" class="admin-input font-mono text-xs text-cyan">
                     </div>
-                    <button type="submit" class="btn btn-warning w-full py-3 font-bold bg-amber-600 border-amber-600 hover:bg-amber-700 text-white">حفظ معلومات الشحن</button>
+
+                    <button type="submit" class="w-full py-2.5 rounded-xl bg-amber-500/20 border border-amber-500/40 hover:bg-amber-500 hover:text-slate-950 text-amber-300 font-bold text-xs transition flex items-center justify-center gap-2 cursor-pointer">
+                        <i class="fas fa-save"></i>
+                        <span>حفظ بيانات التتبع</span>
+                    </button>
                 </form>
             </div>
         </div>
         {% endif %}
 
-        <!-- Update Price -->
-        <div class="management-card border-amber-500/20">
-            <div class="management-header">
-                <h3 class="font-bold flex items-center gap-2">
-                    <i class="fas fa-tag text-amber-500"></i> تعديل سعر الطلب
-                </h3>
+        <!-- Sidebar Card 4: Customer Profile & Balance -->
+        <div class="detail-card">
+            <div class="detail-header">
+                <div class="flex items-center gap-2">
+                    <i class="fas fa-user-circle text-cyan text-sm"></i>
+                    <h3 class="text-sm font-black text-white">ملف العميل</h3>
+                </div>
             </div>
-            <div class="p-6">
-                <form method="post" class="stack gap-4">
-                    {% csrf_token %}
-                    <input type="hidden" name="action" value="update_price">
-                    <div class="field-group">
-                        <label class="info-label">السعر الجديد (USD)</label>
-                        <input type="number" step="0.01" name="total_amount" value="{{ order.total_amount }}" class="w-full bg-slate-900 border-white/10 rounded-xl p-3 text-xs text-white">
-                        <p class="text-[9px] text-slate-500 mt-1">السعر الحالي: {% currency_format order.total_amount %}</p>
-                    </div>
-                    <div class="field-group">
-                        <label class="info-label">سبب التعديل</label>
-                        <textarea name="adjustment_reason" rows="2" class="w-full bg-slate-900 border-white/10 rounded-xl p-3 text-xs text-white" placeholder="أخبر المستخدم لماذا قمت بتغيير السعر..."></textarea>
-                    </div>
-                    <button type="submit" class="btn btn-warning w-full py-3 font-bold bg-amber-600 border-amber-600 hover:bg-amber-700 text-white">حفظ السعر الجديد</button>
-                </form>
-            </div>
-        </div>
 
-        <!-- Customer Profile -->
-        <div class="management-card">
-            <div class="management-header">
-                <h3 class="font-bold">معلومات العميل</h3>
-            </div>
-            <div class="p-6 stack gap-4">
-                <div class="flex items-center gap-4 mb-2">
-                    <div class="w-12 h-12 rounded-2xl bg-gradient-to-br from-cyan to-blue-600 flex items-center justify-center text-black font-black text-lg">
+            <div class="detail-body space-y-4">
+                <div class="flex items-center gap-3">
+                    <div class="w-11 h-11 rounded-2xl bg-gradient-to-br from-cyan to-blue-600 flex items-center justify-center text-slate-950 font-black text-base shrink-0 shadow-md shadow-cyan/20">
                         {{ order.customer.email|slice:":1"|upper }}
                     </div>
                     <div class="min-w-0">
-                        <div class="font-bold text-white truncate">{{ order.customer.get_full_name|default:order.customer.username }}</div>
-                        <div class="text-[10px] text-slate-500 truncate">{{ order.customer.email }}</div>
+                        <h4 class="font-bold text-white text-xs sm:text-sm truncate">{{ order.customer.get_full_name|default:order.customer.username }}</h4>
+                        <span class="text-[10px] text-slate-400 font-mono truncate block">{{ order.customer.email }}</span>
                     </div>
                 </div>
-                
-                <div class="info-item">
-                    <span class="info-label">الرصيد المتاح</span>
-                    <span class="info-value text-cyan">{% currency_format order.customer.wallet.available_balance order.customer.wallet.currency %}</span>
+
+                <div class="field-box">
+                    <span class="text-[10px] font-black uppercase text-slate-500 block mb-1">الرصيد المتاح بالمحفظة</span>
+                    <div class="text-base font-black text-cyan font-mono">
+                        {% currency_format order.customer.wallet.available_balance order.customer.wallet.currency %}
+                    </div>
                 </div>
 
-                <a href="{% url 'control_user_moderate' order.customer.public_uuid %}" class="btn btn-outline btn-sm w-full">
-                    <i class="fas fa-user-shield ml-1"></i> إدارة الحساب
+                <a href="{% url 'control_user_moderate' order.customer.public_uuid %}" class="w-full py-2.5 rounded-xl bg-slate-900 border border-white/10 hover:border-cyan text-slate-300 hover:text-white font-bold text-xs transition flex items-center justify-center gap-2 cursor-pointer">
+                    <i class="fas fa-user-shield text-cyan"></i>
+                    <span>إدارة حساب العميل</span>
                 </a>
             </div>
         </div>
+
     </div>
+
 </div>
 
 <script>
 function copyToClipboard(text, btn) {
+    if (!text) return;
     navigator.clipboard.writeText(text).then(() => {
         const icon = btn.querySelector('i');
-        const originalClass = icon.className;
-        icon.className = 'fas fa-check text-emerald-500';
-        setTimeout(() => {
-            icon.className = originalClass;
-        }, 2000);
+        if (icon) {
+            const originalClass = icon.className;
+            icon.className = 'fas fa-check text-emerald-400';
+            setTimeout(() => {
+                icon.className = originalClass;
+            }, 1800);
+        }
+    }).catch(err => {
+        console.error('Failed to copy: ', err);
     });
 }
 
 function copyAllMeta() {
     const values = Array.from(document.querySelectorAll('#metadata-container .meta-value'))
         .map(el => el.innerText.trim())
+        .filter(t => t && t !== '---')
         .join('\n');
     
-    navigator.clipboard.writeText(values).then(() => {
-        alert('تم نسخ جميع البيانات بنجاح');
-    });
-}
-
-document.addEventListener('DOMContentLoaded', function() {
-    const priceInput = document.querySelector('input[name="total_amount"]');
-    if (priceInput) {
-        priceInput.addEventListener('input', function(e) {
-            let val = e.target.value;
-            if (val.includes(',')) {
-                e.target.value = val.replace(',', '.');
-            }
+    if (values) {
+        navigator.clipboard.writeText(values).then(() => {
+            alert('تم نسخ جميع بيانات العميل بنجاح');
         });
     }
-});
+}
 
 function addFfRow() {
     const container = document.getElementById('ff-container');
     const row = document.createElement('div');
-    row.className = 'fulfillment-row';
+    row.className = 'ff-row-grid p-3 rounded-2xl bg-slate-950/60 border border-white/5';
     row.innerHTML = `
-        <input type="text" name="ff_key[]" placeholder="المفتاح" class="bg-slate-900 border-white/10 rounded-xl p-3 text-xs text-white">
-        <textarea name="ff_value[]" placeholder="القيمة" class="bg-slate-900 border-white/10 rounded-xl p-3 text-xs text-cyan font-mono" rows="1"></textarea>
-        <button type="button" class="btn btn-outline danger h-full" onclick="this.parentElement.remove()"><i class="fas fa-times"></i></button>
+        <input type="text" name="ff_key[]" placeholder="المفتاح (مثال: كود الشحن)" class="admin-input font-bold text-xs">
+        <textarea name="ff_value[]" placeholder="القيمة (الكود أو الرابط أو النص)" rows="1" class="admin-input font-mono text-cyan text-xs resize-y"></textarea>
+        <button type="button" onclick="this.closest('.ff-row-grid').remove()" class="w-10 h-10 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-400 hover:bg-rose-500 hover:text-white transition flex items-center justify-center shrink-0 cursor-pointer" title="حذف السطر">
+            <i class="fas fa-times text-xs"></i>
+        </button>
     `;
     container.appendChild(row);
 }
@@ -424,10 +730,9 @@ function addFfRow() {
 function syncAlkasrStatus(orderId, btn) {
     const originalText = btn.innerHTML;
     btn.disabled = true;
-    btn.innerHTML = '<i class="fas fa-spinner fa-spin ml-1"></i> جاري التحديث...';
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin ml-1"></i> جاري المزامنة...';
     
-    // Get csrf token
-    const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+    const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]') ? document.querySelector('[name=csrfmiddlewaretoken]').value : '';
     
     fetch(`/api/orders/${orderId}/sync_alkasr_status/`, {
         method: 'POST',
@@ -444,12 +749,12 @@ function syncAlkasrStatus(orderId, btn) {
         return response.json();
     })
     .then(data => {
-        alert(data.message || 'تم تحديث حالة الطلب بنجاح');
+        alert(data.message || 'تم تحديث حالة الطلب من المزود بنجاح');
         window.location.reload();
     })
     .catch(error => {
         console.error('Error:', error);
-        alert(error.detail || 'حدث خطأ أثناء محاولة تحديث الحالة');
+        alert(error.detail || 'حدث خطأ أثناء محاولة تحديث الحالة من المزود');
     })
     .finally(() => {
         btn.disabled = false;

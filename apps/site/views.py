@@ -3249,13 +3249,6 @@ def control_kyc_settings(request):
     return render(request, "site/control_kyc_settings.html", {"form": form, "settings": obj})
 
 @support_required
-def control_orders_list(request):
-    orders = Order.objects.select_related('customer').all().order_by('-created_at')
-    if request.GET.get('status'): orders = orders.filter(status=request.GET.get('status'))
-    if request.GET.get('q'): orders = orders.filter(Q(number__icontains=request.GET.get('q')) | Q(customer__email__icontains=request.GET.get('q')))
-    return render(request, "site/control_orders_list.html", {"orders": orders, "order_status_choices": Order.Status.choices})
-
-@support_required
 def control_order_detail(request, pk):
     order = get_object_or_404(Order.objects.select_related('customer'), pk=pk)
     if request.method == "POST":
@@ -4041,15 +4034,41 @@ def control_product_change_category_ajax(request, pk=None):
 def control_orders_list(request):
     store = getattr(request, "store", None)
     if store:
-        orders = Order.all_objects.filter(store=store)
+        base_qs = Order.all_objects.filter(store=store)
     else:
-        orders = Order.all_objects.filter(store__isnull=True)
-    orders = orders.select_related('customer').prefetch_related('items__variant__product').order_by('-created_at')
-    q = request.GET.get('q', '').strip()
-    status = request.GET.get('status', '')
+        base_qs = Order.all_objects.filter(store__isnull=True)
+    
+    total_count = base_qs.count()
+    pending_count = base_qs.filter(status=Order.Status.PENDING).count()
+    processing_count = base_qs.filter(status=Order.Status.PROCESSING).count()
+    completed_count = base_qs.filter(status=Order.Status.COMPLETED).count()
+    cancelled_count = base_qs.filter(status__in=[Order.Status.CANCELLED, Order.Status.REFUNDED]).count()
+    total_revenue = base_qs.filter(status=Order.Status.COMPLETED).aggregate(total=Sum('total_amount'))['total'] or Decimal('0.00')
 
-    if q: orders = orders.filter(Q(number__icontains=q) | Q(customer__email__icontains=q))
-    if status: orders = orders.filter(status=status)
+    status_counts = {
+        'all': total_count,
+        'pending': pending_count,
+        'processing': processing_count,
+        'completed': completed_count,
+        'cancelled': cancelled_count,
+    }
+
+    orders = base_qs.select_related('customer').prefetch_related('items__variant__product').order_by('-created_at')
+    q = request.GET.get('q', '').strip()
+    status = request.GET.get('status', '').strip()
+
+    if q:
+        orders = orders.filter(
+            Q(number__icontains=q) | 
+            Q(customer__email__icontains=q) | 
+            Q(customer__username__icontains=q) | 
+            Q(customer__first_name__icontains=q) | 
+            Q(customer__last_name__icontains=q) | 
+            Q(api_order_id__icontains=q) | 
+            Q(shipping_phone__icontains=q)
+        )
+    if status:
+        orders = orders.filter(status=status)
 
     if request.GET.get("export") == "excel":
         columns = [
@@ -4063,7 +4082,20 @@ def control_orders_list(request):
         ]
         return export_to_excel(orders, "Orders", columns)
 
-    return render(request, "site/control_orders_list.html", {"orders": orders, "query": q, "current_status": status, "order_status_choices": Order.Status.choices})
+    paginator = Paginator(orders, 25)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+
+    return render(request, "site/control_orders_list.html", {
+        "orders": page_obj,
+        "page_obj": page_obj,
+        "query": q,
+        "current_status": status,
+        "order_status_choices": Order.Status.choices,
+        "status_counts": status_counts,
+        "total_revenue": total_revenue,
+        "total_count": total_count,
+    })
 
 @finance_required
 def control_wallets_list(request):
