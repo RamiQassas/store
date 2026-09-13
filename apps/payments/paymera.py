@@ -53,15 +53,26 @@ class PaymeraClient:
     @classmethod
     def from_integration(cls, integration) -> "PaymeraClient":
         """Instantiate client from PaymentGatewayIntegration model."""
-        terminal_id = integration.terminal_id
-        if not terminal_id and isinstance(integration.settings, dict):
-            terminal_id = integration.settings.get("terminal_id", "")
+        from django.conf import settings
+
+        api_key = (getattr(integration, "api_key", None) or "").strip()
+        terminal_id = (getattr(integration, "terminal_id", None) or "").strip()
+        if not terminal_id and hasattr(integration, "settings") and isinstance(integration.settings, dict):
+            terminal_id = str(integration.settings.get("terminal_id", "")).strip()
+
+        if not api_key:
+            api_key = getattr(settings, "PAYMERA_API_KEY", "70504_FSdHLdNbZaa2KC6PthtNSuKqtgc88fiABRGxPczJ")
+        if not terminal_id:
+            terminal_id = getattr(settings, "PAYMERA_TERMINAL_ID", "14740429")
+
+        base_url = getattr(integration, "base_url", None) or getattr(settings, "PAYMERA_BASE_URL", "https://egate-t.paymera.cc")
+        mode = getattr(integration, "mode", None) or getattr(settings, "PAYMERA_MODE", "sandbox")
 
         return cls(
-            api_key=integration.api_key,
+            api_key=api_key,
             terminal_id=terminal_id,
-            base_url=integration.base_url,
-            mode=integration.mode,
+            base_url=base_url,
+            mode=mode,
         )
 
     def _get_headers(self) -> Dict[str, str]:

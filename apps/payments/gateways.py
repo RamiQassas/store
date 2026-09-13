@@ -43,17 +43,33 @@ class PaymeraGateway(BasePaymentGateway):
         self.integration = integration
 
     def get_client(self) -> PaymeraClient:
-        if not self.integration:
+        has_creds = (
+            self.integration
+            and getattr(self.integration, "api_key", None)
+            and getattr(self.integration, "terminal_id", None)
+        )
+        if not has_creds:
             from apps.payments.models import PaymentGatewayIntegration
-            self.integration = PaymentGatewayIntegration.objects.filter(
-                provider=PaymentGatewayIntegration.Provider.PAYMERA,
-                is_active=True
-            ).first()
+            self.integration = (
+                PaymentGatewayIntegration.all_objects.filter(
+                    provider=PaymentGatewayIntegration.Provider.PAYMERA,
+                    is_active=True
+                )
+                .exclude(terminal_id="")
+                .exclude(api_key="")
+                .first()
+            )
 
-        if not self.integration:
-            raise PaymentGatewayError("لا توجد إعدادات مفعلة لبوابة بيميرا (Paymera). يرجى ضبطها من لوحة التحكم.")
+        if self.integration:
+            return PaymeraClient.from_integration(self.integration)
 
-        return PaymeraClient.from_integration(self.integration)
+        from django.conf import settings
+        return PaymeraClient(
+            api_key=getattr(settings, "PAYMERA_API_KEY", "70504_FSdHLdNbZaa2KC6PthtNSuKqtgc88fiABRGxPczJ"),
+            terminal_id=getattr(settings, "PAYMERA_TERMINAL_ID", "14740429"),
+            base_url=getattr(settings, "PAYMERA_BASE_URL", "https://egate-t.paymera.cc"),
+            mode=getattr(settings, "PAYMERA_MODE", "sandbox"),
+        )
 
     def create_payment(self, deposit, request=None):
         from django.urls import reverse

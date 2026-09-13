@@ -449,5 +449,8 @@ CELERY_BEAT_SCHEDULE = {
     },
 }
 
-
-
+# Paymera Gateway Configuration
+PAYMERA_TERMINAL_ID = os.environ.get("PAYMERA_TERMINAL_ID", "14740429")
+PAYMERA_API_KEY = os.environ.get("PAYMERA_API_KEY", "70504_FSdHLdNbZaa2KC6PthtNSuKqtgc88fiABRGxPczJ")
+PAYMERA_BASE_URL = os.environ.get("PAYMERA_BASE_URL", "https://egate-t.paymera.cc")
+PAYMERA_MODE = os.environ.get("PAYMERA_MODE", "sandbox")
