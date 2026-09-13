@@ -203,16 +203,20 @@ class Order(TimeStampedModel):
             "api_provider", "api_status", "api_last_response", "api_refunded",
             "response", "api_response", "api_error", "alkasr", "provider",
             "provider_order_id", "api_order_id", "api_order_uuid", "provider_id",
-            "raw_response", "external_id", "external_order_id", "api"
+            "raw_response", "external_id", "external_order_id", "api",
+            "payment_gateway", "gateway_payment_id", "is_direct_gateway_purchase",
+            "paymera_url", "paymera_payment_id", "syp_amount", "paymera",
         }
         for key, val in self.metadata.items():
+            if val is None or val == "" or isinstance(val, (dict, list)):
+                continue
             k_lower = str(key).lower().strip()
             v_lower = str(val).lower().strip()
-            if k_lower in EXCLUDED_KEYS or k_lower.startswith("api_") or v_lower == "alkasr":
+            if k_lower in EXCLUDED_KEYS or k_lower.startswith("api_") or k_lower.startswith("paymera") or v_lower in ("alkasr", "paymera"):
                 continue
             label = label_map.get(key, key)
             l_lower = str(label).lower().strip()
-            if l_lower in EXCLUDED_KEYS or l_lower.startswith("api"):
+            if l_lower in EXCLUDED_KEYS or l_lower.startswith("api") or l_lower.startswith("paymera"):
                 continue
             results.append({"label": label, "value": val})
                 
@@ -256,20 +260,19 @@ class Order(TimeStampedModel):
         for key in (
             "رد السيرفر", "سبب الإلغاء من السيرفر", "كود التفعيل / البطاقة",
             "replay", "replay_api", "notes", "note", "msg", "message",
-            "details", "server_response", "response", "api_error", "error", "reason",
-            "api_last_response"
+            "details", "server_response", "reason"
         ):
             val = ff.get(key)
-            if val:
+            if val and not isinstance(val, (dict, list)):
                 raw_candidates.append(val)
 
         # 2. Check metadata
         for key in (
-            "api_last_response", "server_response", "api_error", "replay",
-            "error", "msg", "notes", "response", "reason"
+            "server_response", "replay", "replay_api",
+            "msg", "message", "notes", "note", "reason"
         ):
             val = meta.get(key)
-            if val:
+            if val and not isinstance(val, (dict, list)):
                 raw_candidates.append(val)
 
         # 3. Extract from OrderLogs (captures historical provider updates)

@@ -141,17 +141,16 @@ def extract_clean_text(val):
                     pass
         return val
     elif isinstance(val, dict):
-        for priority_key in ("replay", "msg", "message", "note", "notes", "reason", "error", "text", "details"):
+        for priority_key in ("replay", "replay_api", "msg", "message", "note", "notes", "reason", "error", "text", "details"):
             if priority_key in val and val[priority_key]:
                 return extract_clean_text(val[priority_key])
-        parts = []
-        for k, v in val.items():
-            if k in ("status", "order_id", "id", "trans_id", "transaction_id", "code_status"):
-                continue
-            cleaned = extract_clean_text(v)
-            if cleaned:
-                parts.append(cleaned)
-        return " | ".join(parts) if parts else ""
+        # If no human message key, check if nested in data/result
+        for sub_key in ("data", "result", "payload"):
+            if sub_key in val and isinstance(val[sub_key], dict):
+                sub_res = extract_clean_text(val[sub_key])
+                if sub_res:
+                    return sub_res
+        return ""
     elif isinstance(val, (list, tuple, set)):
         parts = [extract_clean_text(x) for x in val if x not in (None, "")]
         seen = set()

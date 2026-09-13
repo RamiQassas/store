@@ -262,4 +262,76 @@ class PaymeraViewsTestCase(TestCase):
         self.assertEqual(order.fulfillment_data["keys"], ["PUBG-KEY-123"])
         self.assertTrue(Invoice.objects.filter(order=order).exists())
 
+    @patch("apps.notifications.services.notify_staff")
+    @patch("apps.notifications.services.notify_user")
+    @patch("services.provider.manager.ProviderManager.place_order")
+    @patch.object(PaymeraClient, "get_payment_status")
+    def test_paymera_api_product_trigger_accepted(self, mock_status, mock_place_order, mock_notify_user, mock_notify_staff):
+        from apps.catalog.models import Category, Product, ProductVariant
+        from apps.orders.models import Order
+        from apps.orders.services import create_pending_gateway_order, finalize_paid_gateway_order
+        from apps.providers.models import ProviderProfile, ProviderProduct
+
+        profile = ProviderProfile.objects.create(
+            provider_name="Alkasr",
+            base_url="https://api.alkasr-vip.com/client/api",
+            api_token="test-token",
+            is_active=True
+        )
+        prov_prod = ProviderProduct.objects.create(
+            profile=profile,
+            remote_id="998877",
+            name="PUBG 60 UC API",
+            cost_price=Decimal("0.85"),
+            product_type="package",
+            is_active=True
+        )
+
+        cat = Category.objects.create(name="Topup Games")
+        prod = Product.objects.create(category=cat, name="PUBG Direct", is_active=True, is_api_product=True, api_provider="alkasr")
+        var = ProductVariant.objects.create(
+            product=prod,
+            name="60 UC",
+            sku="UC-API-60",
+            price=Decimal("1.10"),
+            cost=Decimal("0.85"),
+            is_active=True,
+            api_product_id="998877",
+            metadata={"qty_type": "fixed", "qty_min": 1, "qty_max": 1}
+        )
+
+        order = create_pending_gateway_order(
+            customer=self.user,
+            variant_id=var.id,
+            quantity=1,
+            gateway_code="paymera",
+            metadata={"player_id": "5123456789"}
+        )
+        self.assertEqual(order.status, Order.Status.PENDING)
+
+        mock_status.return_value = {
+            "status": "A",
+            "rrn": "RRN-API-7788",
+            "amount": 16000,
+            "raw": {"ErrorCode": 0}
+        }
+        mock_place_order.return_value = {
+            "status": "accept",
+            "remote_order_id": "ALKASR-ORD-4455",
+            "raw_response": {"order_id": "ALKASR-ORD-4455", "msg": "عملية التحويل تمت بنجاح"}
+        }
+
+        request = self.factory.get(f"/payments/paymera/trigger/?order_id={order.id}")
+        response = paymera_trigger_view(request)
+        self.assertEqual(response.status_code, 200)
+
+        order.refresh_from_db()
+        self.assertEqual(order.status, Order.Status.COMPLETED)
+        self.assertEqual(order.api_order_id, "ALKASR-ORD-4455")
+        mock_place_order.assert_called_once()
+        formatted = order.formatted_metadata()
+        self.assertTrue(any(item["label"] == "player_id" and item["value"] == "5123456789" for item in formatted))
+        self.assertFalse(any(item["label"] in ("payment_gateway", "gateway_payment_id") for item in formatted))
+
+
 

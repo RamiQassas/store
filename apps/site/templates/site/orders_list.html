@@ -261,17 +261,15 @@
 
                         <!-- Custom Input Fields Summary (Phone / Player ID) -->
                         <div class="flex flex-wrap items-center gap-2 mt-1.5">
-                            {% if order.metadata %}
-                                {% for k, v in order.metadata.items %}
-                                    {% if k != 'api_provider' and k != 'api_error' and k != 'alkasr' and v %}
+                            {% if order.formatted_metadata %}
+                                {% for meta in order.formatted_metadata %}
                                     <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-950 border border-white/5 text-[11px] text-slate-300">
-                                        <span class="text-slate-400">{{ k }}:</span>
-                                        <strong class="font-mono text-cyan-200">{{ v }}</strong>
-                                        <button type="button" onclick="copyText('{{ v|escapejs }}', this)" title="نسخ" class="text-slate-400 hover:text-cyan text-[10px] ml-1 cursor-pointer">
+                                        <span class="text-slate-400">{{ meta.label }}:</span>
+                                        <strong class="font-mono text-cyan-200">{{ meta.value }}</strong>
+                                        <button type="button" onclick="copyText('{{ meta.value|escapejs }}', this)" title="نسخ" class="text-slate-400 hover:text-cyan text-[10px] ml-1 cursor-pointer">
                                             <i class="far fa-copy"></i>
                                         </button>
                                     </span>
-                                    {% endif %}
                                 {% endfor %}
                             {% elif order.shipping_phone %}
                                 <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-950 border border-white/5 text-[11px] text-slate-300">

@@ -3395,10 +3395,27 @@ def control_order_detail(request, pk):
             
         return redirect("control_order_detail", pk=pk)
     
+    internal_ff_keys = {
+        "api_provider", "api_status", "api_last_response", "api_refunded",
+        "raw_response", "response", "api_error"
+    }
+    raw_ff = order.fulfillment_data or {}
+    readable_ff = {}
+    for k, v in raw_ff.items():
+        if k in internal_ff_keys or k.startswith("api_"):
+            continue
+        if isinstance(v, (dict, list)):
+            from apps.orders.provider_status import extract_clean_text
+            cleaned_val = extract_clean_text(v)
+            if cleaned_val:
+                readable_ff[k] = cleaned_val
+        else:
+            readable_ff[k] = v
+
     ctx = {
         "order": order,
         "mapped_metadata": order.formatted_metadata(),
-        "readable_fulfillment": order.fulfillment_data or {}
+        "readable_fulfillment": readable_ff
     }
     return render(request, "site/control_order_detail.html", ctx)
 
