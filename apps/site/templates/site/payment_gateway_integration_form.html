@@ -23,13 +23,13 @@
                 <span class="text-[10px] text-slate-400 font-normal">PNG / SVG / JPG (يفضل أبعاد مربعة وخلفية شفافة)</span>
             </label>
             <div class="flex items-center gap-4 p-4 rounded-2xl bg-slate-900/60 border border-white/10">
-                <div class="w-16 h-16 rounded-2xl bg-slate-950 border border-white/10 flex items-center justify-center p-2 shrink-0 overflow-hidden relative shadow-md">
+                <div style="width: 56px; height: 56px; min-width: 56px; min-height: 56px; border-radius: 14px; background: #020617; border: 1px solid rgba(255,255,255,0.1); display: flex; align-items: center; justify-content: center; padding: 6px; overflow: hidden; flex-shrink: 0; position: relative;">
                     {% if gateway and gateway.logo %}
-                        <img id="logo-preview" src="{{ gateway.logo.url }}" alt="{{ gateway.name }}" class="w-full h-full object-contain">
+                        <img id="logo-preview" src="{{ gateway.logo.url }}" alt="{{ gateway.name }}" style="max-width: 100%; max-height: 100%; width: auto; height: auto; object-fit: contain; display: block;">
                     {% elif gateway and gateway.logo_url %}
-                        <img id="logo-preview" src="{{ gateway.logo_url }}" alt="{{ gateway.name }}" class="w-full h-full object-contain">
+                        <img id="logo-preview" src="{{ gateway.logo_url }}" alt="{{ gateway.name }}" style="max-width: 100%; max-height: 100%; width: auto; height: auto; object-fit: contain; display: block;">
                     {% else %}
-                        <img id="logo-preview" src="" alt="Preview" class="w-full h-full object-contain hidden">
+                        <img id="logo-preview" src="" alt="Preview" style="max-width: 100%; max-height: 100%; width: auto; height: auto; object-fit: contain; display: none;">
                         <i id="logo-placeholder" class="fas fa-image text-slate-600 text-2xl"></i>
                     {% endif %}
                 </div>
@@ -130,8 +130,12 @@ document.addEventListener('DOMContentLoaded', function() {
                 const reader = new FileReader();
                 reader.onload = function(e) {
                     logoPreview.src = e.target.result;
+                    logoPreview.style.display = 'block';
                     logoPreview.classList.remove('hidden');
-                    if (placeholder) placeholder.classList.add('hidden');
+                    if (placeholder) {
+                        placeholder.style.display = 'none';
+                        placeholder.classList.add('hidden');
+                    }
                 };
                 reader.readAsDataURL(this.files[0]);
             }

@@ -197,8 +197,8 @@
         <div class="brand-elite">
             {% if is_tenant %}
                 {% if STORE_LOGO %}
-                    <div class="brand-logo p-2 overflow-hidden shrink-0" style="background: rgba(255,255,255,0.03); border: 1px solid var(--admin-border);">
-                        <img src="{{ STORE_LOGO.url }}" alt="{{ STORE_NAME }}" class="w-full h-full object-contain">
+                    <div class="brand-logo" style="width: 44px; height: 44px; min-width: 44px; min-height: 44px; border-radius: 14px; background: rgba(255,255,255,0.03); border: 1px solid var(--admin-border); display: flex; align-items: center; justify-content: center; padding: 6px; overflow: hidden; flex-shrink: 0;">
+                        <img src="{{ STORE_LOGO.url }}" alt="{{ STORE_NAME }}" style="max-width: 100%; max-height: 100%; width: auto; height: auto; object-fit: contain; display: block;">
                     </div>
                 {% else %}
                     <div class="brand-logo"><i class="fas fa-shop"></i></div>
