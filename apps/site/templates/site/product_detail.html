@@ -508,10 +508,12 @@
                             </div>
                             <!-- Raqamiyat / Store Brand Logo -->
                             {% if is_tenant and STORE_LOGO %}
-                            <img src="{{ STORE_LOGO.url }}" alt="{{ STORE_NAME }}" class="w-10 h-10 rounded-xl object-contain p-1 bg-white/5 border border-cyan/30 shadow-sm shadow-cyan/10 shrink-0">
+                            <div class="w-10 h-10 rounded-xl bg-white/5 border border-cyan/30 flex items-center justify-center p-2 shadow-sm shadow-cyan/10 shrink-0 overflow-hidden">
+                                <img src="{{ STORE_LOGO.url }}" alt="{{ STORE_NAME }}" class="w-6 h-6 max-w-6 max-h-6 object-contain">
+                            </div>
                             {% else %}
                             <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-cyan-500/20 to-blue-600/20 border border-cyan/40 flex items-center justify-center text-cyan shadow-sm shadow-cyan/20 shrink-0">
-                                <i class="fas fa-bolt text-lg text-cyan"></i>
+                                <i class="fas fa-bolt text-base text-cyan"></i>
                             </div>
                             {% endif %}
                             <div>
@@ -541,8 +543,8 @@
                             </div>
                             <!-- Gateway Logo (Paymera) -->
                             {% if gw.logo %}
-                            <div class="w-10 h-10 rounded-xl bg-slate-950 border border-emerald-500/30 flex items-center justify-center p-1.5 shadow-sm shrink-0 overflow-hidden">
-                                <img src="{{ gw.logo }}" alt="{{ gw.name }}" class="w-full h-full object-contain">
+                            <div class="w-10 h-10 rounded-xl bg-slate-950 border border-emerald-500/30 flex items-center justify-center p-2 shadow-sm shrink-0 overflow-hidden">
+                                <img src="{{ gw.logo }}" alt="{{ gw.name }}" class="w-6 h-6 max-w-6 max-h-6 object-contain">
                             </div>
                             {% else %}
                             <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500/20 to-teal-600/20 border border-emerald-500/40 flex items-center justify-center text-emerald-400 shadow-sm shrink-0">

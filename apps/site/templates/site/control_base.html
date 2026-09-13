@@ -197,7 +197,9 @@
         <div class="brand-elite">
             {% if is_tenant %}
                 {% if STORE_LOGO %}
-                    <img src="{{ STORE_LOGO.url }}" alt="{{ STORE_NAME }}" class="brand-logo object-cover" style="width: 44px; height: 44px; border-radius: 14px; border: 1px solid var(--admin-border);">
+                    <div class="brand-logo p-2 overflow-hidden shrink-0" style="background: rgba(255,255,255,0.03); border: 1px solid var(--admin-border);">
+                        <img src="{{ STORE_LOGO.url }}" alt="{{ STORE_NAME }}" class="w-full h-full object-contain">
+                    </div>
                 {% else %}
                     <div class="brand-logo"><i class="fas fa-shop"></i></div>
                 {% endif %}

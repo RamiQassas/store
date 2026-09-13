@@ -102,7 +102,7 @@
             <div class="col-span-12 lg:col-span-4 stack gap-6">
                 <div class="panel p-4 bg-slate-800/30 border-white/5">
                     <label class="mini-label">شعار الوسيلة الرئيسي</label>{{ form.logo }}
-                    {% if method.logo %}<img src="{{ method.logo.url }}" class="mt-4 w-32 h-32 object-contain rounded-2xl bg-white/5 border border-white/5 p-4 mx-auto">{% endif %}
+                    {% if method.logo %}<img src="{{ method.logo.url }}" class="mt-3 w-16 h-16 object-contain rounded-xl bg-white/5 border border-white/10 p-2 mx-auto">{% endif %}
                 </div>
                 <div class="field-group"><label>العملات المدعومة</label><div class="p-3 bg-slate-800/30 rounded-xl">{{ form.supported_currencies }}</div></div>
             </div>

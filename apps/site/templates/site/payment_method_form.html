@@ -123,6 +123,14 @@
                 <div class="field-group">
                     <label>{{ form.logo.label }}</label>
                     {{ form.logo }}
+                    {% if method.logo %}
+                    <div class="mt-2 flex items-center gap-2">
+                        <div class="w-12 h-12 rounded-xl bg-slate-900 border border-white/10 flex items-center justify-center p-2">
+                            <img src="{{ method.logo.url }}" class="w-full h-full object-contain">
+                        </div>
+                        <span class="text-xs text-muted">الشعار الحالي</span>
+                    </div>
+                    {% endif %}
                 </div>
                 <div class="field-group">
                     <label>{{ form.qr_image.label }}</label>

@@ -637,7 +637,8 @@
           <button onclick="toggleDrawer()" class="text-slate-400 text-xl p-1" aria-label="القائمة"><i class="fas fa-bars"></i></button>
           <a href="{% url 'home' %}" class="brand" style="font-size: 1.15rem;">
               {% if is_tenant and STORE_LOGO %}
-              <img src="{{ STORE_LOGO.url }}" alt="{{ STORE_NAME }}" style="height: 28px; width: auto; border-radius: 4px; object-fit: contain; vertical-align: middle;">
+              <img src="{{ STORE_LOGO.url }}" alt="{{ STORE_NAME }}" style="height: 24px; max-height: 24px; max-width: 100px; width: auto; border-radius: 6px; object-fit: contain; vertical-align: middle;">
+              <span class="text-sm font-black">{{ STORE_NAME }}</span>
               {% else %}
               <i class="fas fa-bolt text-cyan"></i>
               <span>{% if is_tenant %}{{ STORE_NAME }}{% else %}RAQAMIYAT{% endif %}</span>
@@ -779,7 +780,8 @@
       <div class="header-container">
         <a href="{% url 'home' %}" class="brand">
           {% if is_tenant and STORE_LOGO %}
-          <img src="{{ STORE_LOGO.url }}" alt="{{ STORE_NAME }}" style="height: 40px; width: auto; border-radius: 4px; object-fit: contain; vertical-align: middle;">
+          <img src="{{ STORE_LOGO.url }}" alt="{{ STORE_NAME }}" style="height: 32px; max-height: 32px; max-width: 120px; width: auto; border-radius: 8px; object-fit: contain; vertical-align: middle;">
+          <span class="text-xl font-black">{{ STORE_NAME }}</span>
           {% else %}
           <i class="fas fa-bolt"></i>
           <span>{% if is_tenant %}{{ STORE_NAME }}{% else %}RAQAMIYAT{% endif %}</span>
@@ -887,7 +889,8 @@
             <div class="md:col-span-2">
                 <div class="brand mb-6" style="font-size: 1.75rem;">
                     {% if is_tenant and STORE_LOGO %}
-                    <img src="{{ STORE_LOGO.url }}" alt="{{ STORE_NAME }}" style="height: 48px; width: auto; border-radius: 4px; object-fit: contain; vertical-align: middle;">
+                    <img src="{{ STORE_LOGO.url }}" alt="{{ STORE_NAME }}" style="height: 38px; max-height: 38px; max-width: 130px; width: auto; border-radius: 8px; object-fit: contain; vertical-align: middle;">
+                    <span>{{ STORE_NAME }}</span>
                     {% else %}
                     <i class="fas fa-bolt text-cyan"></i>
                     <span>{% if is_tenant %}{{ STORE_NAME }}{% else %}RAQAMIYAT{% endif %}</span>
