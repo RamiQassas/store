@@ -344,6 +344,13 @@ class PaymentGatewayIntegration(TimeStampedModel):
     all_objects = models.Manager()
 
     name = models.CharField(max_length=120, verbose_name="اسم بوابة الدفع")
+    logo = models.ImageField(
+        upload_to="payment-gateways/logos/",
+        blank=True,
+        null=True,
+        verbose_name="شعار البوابة",
+        help_text="الشعار الرسمي الذي يظهر للعملاء عند الدفع عبر هذه البوابة."
+    )
     provider = models.CharField(max_length=40, choices=Provider.choices, default=Provider.BANIYAS_CRYPTO, verbose_name="المزود")
     mode = models.CharField(max_length=20, choices=Mode.choices, default=Mode.SANDBOX, verbose_name="وضع التشغيل")
     terminal_id = models.CharField(max_length=64, blank=True, verbose_name="رقم نقطة البيع (Terminal ID)", help_text="المعرف المخصص من بيميرا والمؤلف من 8 خانات")
@@ -358,6 +365,17 @@ class PaymentGatewayIntegration(TimeStampedModel):
     settings = models.JSONField(default=dict, blank=True, verbose_name="إعدادات إضافية")
     last_health_check_at = models.DateTimeField(null=True, blank=True, verbose_name="آخر فحص اتصال")
     last_health_status = models.CharField(max_length=30, blank=True, verbose_name="نتيجة آخر فحص")
+
+    @property
+    def logo_url(self):
+        if self.logo:
+            try:
+                return self.logo.url
+            except Exception:
+                pass
+        if self.provider == "paymera" or "paymera" in (self.name or "").lower() or "بيميرا" in (self.name or ""):
+            return "/media/payment-methods/logos/paymera.png"
+        return None
 
     class Meta:
         ordering = ["provider", "name"]

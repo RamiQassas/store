@@ -12,9 +12,41 @@
     <a href="{% url 'payment_gateway_integrations_list' %}" class="btn btn-outline btn-sm">العودة</a>
 </div>
 
-<form method="post" class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+<form method="post" enctype="multipart/form-data" class="grid grid-cols-1 lg:grid-cols-12 gap-8">
     {% csrf_token %}
     <div class="lg:col-span-8 glass-panel p-8 stack gap-6">
+        
+        <!-- Gateway Logo Upload & Preview -->
+        <div class="field-group">
+            <label class="font-bold flex items-center justify-between">
+                <span>شعار بوابة الدفع (Logo)</span>
+                <span class="text-[10px] text-slate-400 font-normal">PNG / SVG / JPG (يفضل أبعاد مربعة وخلفية شفافة)</span>
+            </label>
+            <div class="flex items-center gap-4 p-4 rounded-2xl bg-slate-900/60 border border-white/10">
+                <div class="w-16 h-16 rounded-2xl bg-slate-950 border border-white/10 flex items-center justify-center p-2 shrink-0 overflow-hidden relative shadow-md">
+                    {% if gateway and gateway.logo %}
+                        <img id="logo-preview" src="{{ gateway.logo.url }}" alt="{{ gateway.name }}" class="w-full h-full object-contain">
+                    {% elif gateway and gateway.logo_url %}
+                        <img id="logo-preview" src="{{ gateway.logo_url }}" alt="{{ gateway.name }}" class="w-full h-full object-contain">
+                    {% else %}
+                        <img id="logo-preview" src="" alt="Preview" class="w-full h-full object-contain hidden">
+                        <i id="logo-placeholder" class="fas fa-image text-slate-600 text-2xl"></i>
+                    {% endif %}
+                </div>
+                <div class="flex-grow min-w-0">
+                    {{ form.logo }}
+                    {% if form.logo.help_text %}
+                    <span class="text-xs text-muted block mt-1.5">{{ form.logo.help_text }}</span>
+                    {% else %}
+                    <span class="text-xs text-muted block mt-1.5">اختر صورة الشعار لعرضها للعملاء في بطاقات الدفع وصفحة المتجر والفاتورة.</span>
+                    {% endif %}
+                </div>
+            </div>
+            {% if form.logo.errors %}
+            <div class="text-xs text-rose-400 mt-1">{{ form.logo.errors }}</div>
+            {% endif %}
+        </div>
+
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div class="field-group">
                 <label>{{ form.name.label }}</label>
@@ -86,4 +118,25 @@
         </button>
     </div>
 </form>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const logoInput = document.querySelector('input[type="file"][name="logo"]');
+    const logoPreview = document.getElementById('logo-preview');
+    const placeholder = document.getElementById('logo-placeholder');
+    if (logoInput && logoPreview) {
+        logoInput.addEventListener('change', function() {
+            if (this.files && this.files[0]) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    logoPreview.src = e.target.result;
+                    logoPreview.classList.remove('hidden');
+                    if (placeholder) placeholder.classList.add('hidden');
+                };
+                reader.readAsDataURL(this.files[0]);
+            }
+        });
+    }
+});
+</script>
 {% endblock %}

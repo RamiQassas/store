@@ -10,11 +10,21 @@ class PaymentMethodAdmin(admin.ModelAdmin):
     ordering = ("display_order", "name")
 
 
+from django.utils.html import format_html
+
+
 @admin.register(PaymentGatewayIntegration)
 class PaymentGatewayIntegrationAdmin(admin.ModelAdmin):
-    list_display = ("name", "provider", "mode", "terminal_id", "store", "is_active", "can_deposit", "can_withdraw", "last_health_status")
+    list_display = ("name", "logo_preview", "provider", "mode", "terminal_id", "store", "is_active", "can_deposit", "can_withdraw", "last_health_status")
     list_filter = ("provider", "mode", "is_active", "can_deposit", "can_withdraw")
     search_fields = ("name", "terminal_id", "base_url")
+
+    def logo_preview(self, obj):
+        url = obj.logo_url
+        if url:
+            return format_html('<img src="{}" style="height: 24px; width: 24px; object-fit: contain; border-radius: 4px;" />', url)
+        return "-"
+    logo_preview.short_description = "الشعار"
 
 
 @admin.register(DepositRequest)

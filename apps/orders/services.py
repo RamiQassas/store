@@ -814,7 +814,9 @@ def finalize_paid_gateway_order(order, gateway_data=None):
     Idempotent: skips if status is already completed or processing.
     """
     with transaction.atomic():
-        locked_order = Order.objects.select_for_update().get(id=order.id)
+        from apps.common.tenant_utils import bypass_tenant_filter
+        with bypass_tenant_filter():
+            locked_order = Order.all_objects.select_for_update().get(id=order.id)
         if locked_order.status not in (Order.Status.PENDING,):
             logger.info(f"Order {order.id} is already in status {locked_order.status}, skipping finalize.")
             return locked_order
@@ -830,46 +832,59 @@ def finalize_paid_gateway_order(order, gateway_data=None):
         order_store = locked_order.store
         customer = locked_order.customer
 
-        # 1. Wholesale cost for tenant store owner
+        # 1. Direct gateway order for tenant store:
+        # The customer paid retail directly via gateway (Raqamiyat collected total_amount).
+        # Raqamiyat retains wholesale supply cost, and credits the merchant's profit to their platform wallet!
         if order_store and order_store.owner:
             base_cost = getattr(variant, "cost", Decimal("0")) or Decimal("0")
-            if base_cost > Decimal("0"):
-                total_wholesale_cost = (base_cost * quantity).quantize(Decimal("0.01"))
-                if total_wholesale_cost > Decimal("0"):
-                    from apps.wallets.models import Wallet
-                    from apps.common.models import Currency
-                    from apps.common.tenant_utils import bypass_tenant_filter
-                    with bypass_tenant_filter():
-                        owner_wallet = Wallet.all_objects.filter(
-                            user=order_store.owner,
-                            store__isnull=True
-                        ).select_related("currency").first()
-                        if not owner_wallet:
-                            default_curr = Currency.all_objects.filter(is_default=True).first() or Currency.all_objects.first()
-                            owner_wallet = Wallet.all_objects.create(
-                                user=order_store.owner,
-                                store=None,
-                                currency=default_curr,
-                                available_balance=Decimal("0.00")
-                            )
-                    if owner_wallet.currency.code != "USD":
-                        owner_cost_amt = owner_wallet.currency.from_base(total_wholesale_cost)
-                    else:
-                        owner_cost_amt = total_wholesale_cost
-                    owner_cost_amt = Decimal(owner_cost_amt).quantize(Decimal("0.01"))
+            total_wholesale_cost = (base_cost * quantity).quantize(Decimal("0.01"))
+            
+            # Merchant profit = total retail paid - wholesale cost
+            profit_usd = (locked_order.total_amount - total_wholesale_cost).quantize(Decimal("0.01"))
+            
+            from apps.wallets.models import Wallet
+            from apps.wallets.services import credit_wallet
+            from apps.common.models import Currency
+            from apps.common.tenant_utils import bypass_tenant_filter
+            
+            with bypass_tenant_filter():
+                owner_wallet = Wallet.all_objects.filter(
+                    user=order_store.owner,
+                    store__isnull=True
+                ).select_related("currency").first()
+                if not owner_wallet:
+                    default_curr = Currency.all_objects.filter(is_default=True).first() or Currency.all_objects.first()
+                    owner_wallet = Wallet.all_objects.create(
+                        user=order_store.owner,
+                        store=None,
+                        currency=default_curr,
+                        available_balance=Decimal("0.00")
+                    )
 
-                    if owner_wallet.available_balance >= owner_cost_amt:
-                        debit_wallet(
-                            owner_wallet.id,
-                            owner_cost_amt,
-                            reference=f"substore_wholesale:{locked_order.id}",
-                            description=f"تكلفة توريد طلب #{locked_order.number} لمتجر {order_store.name}",
-                            created_by=customer,
-                        )
-                    else:
-                        logger.warning(
-                            f"Store owner {order_store.owner.email} wholesale balance insufficient for paid order {locked_order.id}"
-                        )
+            if profit_usd > Decimal("0.00"):
+                if owner_wallet.currency.code != "USD":
+                    profit_amt = owner_wallet.currency.from_base(profit_usd)
+                else:
+                    profit_amt = profit_usd
+                profit_amt = Decimal(profit_amt).quantize(Decimal("0.01"))
+
+                if profit_amt > Decimal("0.00"):
+                    credit_wallet(
+                        owner_wallet.id,
+                        profit_amt,
+                        reference=f"substore_profit:{locked_order.id}",
+                        description=f"أرباح طلب #{locked_order.number} لمتجر {order_store.name} (دفع مباشر عبر بيميرا)",
+                        created_by=customer,
+                    )
+                    OrderLog.objects.create(
+                        order=locked_order,
+                        status=locked_order.status,
+                        note=f"تم إيداع أرباح المتجر بقيمة {profit_amt} {owner_wallet.currency.code} في محفظة صاحب المتجر ({order_store.owner.email}).",
+                        created_by=None,
+                    )
+                    logger.info(
+                        f"Credited profit {profit_amt} {owner_wallet.currency.code} to store owner {order_store.owner.email} for order {locked_order.number}"
+                    )
 
         # 2. Fulfillment
         locked_keys = []

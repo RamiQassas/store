@@ -125,6 +125,20 @@
     .table-order-row:hover {
         background-color: rgba(255, 255, 255, 0.02);
     }
+    
+    .sticky-actions-col {
+        position: sticky;
+        left: 0;
+        z-index: 20;
+        background: #090e1a;
+        box-shadow: -8px 0 16px -2px rgba(0, 0, 0, 0.75);
+    }
+    .table-order-row:hover .sticky-actions-col {
+        background: #0f182c;
+    }
+    thead th.sticky-actions-col {
+        background: #050a15;
+    }
 </style>
 {% endblock %}
 
@@ -270,12 +284,12 @@
         <table class="w-full text-right border-collapse min-w-[950px]">
             <thead>
                 <tr class="bg-slate-950/70 text-slate-400 text-[11px] font-black uppercase tracking-wider border-b border-white/5">
-                    <th class="py-3.5 px-4 min-w-[130px]">رقم وتاريخ الطلب</th>
+                    <th class="py-3.5 px-4 min-w-[140px]">رقم وتاريخ الطلب</th>
                     <th class="py-3.5 px-4 min-w-[170px]">العميل المستفيد</th>
                     <th class="py-3.5 px-4 min-w-[250px]">الخدمة / الباقة والمدخلات</th>
                     <th class="py-3.5 px-4 min-w-[110px]">المبلغ الإجمالي</th>
                     <th class="py-3.5 px-4 min-w-[120px]">الحالة الحالية</th>
-                    <th class="py-3.5 px-4 min-w-[140px] text-left">الإجراءات</th>
+                    <th class="py-3.5 px-4 min-w-[140px] text-left sticky-actions-col">الإجراءات والتحكم</th>
                 </tr>
             </thead>
             <tbody class="divide-y divide-white/5 text-xs">
@@ -284,7 +298,7 @@
                     <!-- Order Number & Date -->
                     <td class="py-3.5 px-4 align-top">
                         <div class="flex items-center gap-1.5">
-                            <span class="font-black text-white font-mono text-sm">#{{ order.number }}</span>
+                            <a href="{% url 'control_order_detail' order.id %}" class="font-black text-cyan hover:underline font-mono text-sm" title="فتح ومعالجة الطلب">#{{ order.number }}</a>
                             <button type="button" onclick="copyToClipboard('{{ order.number }}', this)" title="نسخ رقم الطلب" class="text-slate-500 hover:text-cyan p-1 transition cursor-pointer">
                                 <i class="far fa-copy text-[11px]"></i>
                             </button>
@@ -293,13 +307,17 @@
                             <i class="far fa-calendar-alt text-slate-500"></i>
                             <span>{{ order.created_at|date:"Y-m-d H:i" }}</span>
                         </div>
-                        {% if order.api_order_id %}
-                        <div class="mt-1.5">
+                        <div class="mt-2 flex flex-wrap items-center gap-1.5">
+                            <a href="{% url 'control_order_detail' order.id %}" class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-cyan-500/15 hover:bg-cyan-500/25 border border-cyan-500/30 text-[10px] font-black text-cyan transition cursor-pointer shadow-sm">
+                                <i class="fas fa-sliders-h text-[9px]"></i>
+                                <span>معالجة الطلب</span>
+                            </a>
+                            {% if order.api_order_id %}
                             <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-sky-500/10 border border-sky-500/20 text-[9px] font-mono text-sky-300" title="معرف الطلب لدى المزود">
                                 <i class="fas fa-plug text-[8px]"></i> #{{ order.api_order_id }}
                             </span>
+                            {% endif %}
                         </div>
-                        {% endif %}
                     </td>
 
                     <!-- Customer -->
@@ -405,12 +423,12 @@
                         </span>
                     </td>
 
-                    <!-- Actions -->
-                    <td class="py-3.5 px-4 align-top text-left">
+                    <!-- Actions (Sticky on Left) -->
+                    <td class="py-3.5 px-4 align-top text-left sticky-actions-col">
                         <div class="flex items-center justify-end gap-1.5 whitespace-nowrap">
                             <a href="{% url 'control_order_detail' order.id %}" class="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-cyan-500 to-cyan-400 hover:brightness-110 text-slate-950 font-black text-[11px] transition inline-flex items-center gap-1.5 shadow-md shadow-cyan-500/10 cursor-pointer">
                                 <i class="fas fa-sliders-h text-[10px]"></i>
-                                <span>إدارة الطلب</span>
+                                <span>معالجة الطلب</span>
                             </a>
                             <a href="{% url 'dashboard_order_invoice' order.id %}" target="_blank" class="p-1.5 rounded-xl bg-slate-900 border border-white/10 hover:border-cyan text-slate-400 hover:text-cyan transition inline-flex items-center justify-center cursor-pointer" title="معاينة الفاتورة">
                                 <i class="fas fa-print text-xs"></i>

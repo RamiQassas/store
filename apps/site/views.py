@@ -2096,30 +2096,51 @@ def product_detail(request, pk):
                     messages.error(request, f"خطأ في الكوبون: {str(e)}")
                     coupon = None
 
+        is_raqamiyat_product = False
+        if not product.store:
+            is_raqamiyat_product = True
+        else:
+            is_raqamiyat_product = bool(
+                product.is_api_product or
+                (product.api_provider and product.api_provider not in ("generic", "")) or
+                product.variants.filter(cost__gt=Decimal("0")).exists() or
+                Product.all_objects.filter(store__isnull=True, name=product.name).exists()
+            )
+
         payment_method = request.POST.get("payment_method", "wallet")
         is_direct_gateway = (payment_method != "wallet")
         selected_gateway = None
 
         if is_direct_gateway:
+            # Custom merchant products cannot use platform electronic gateway (Paymera)
+            if product.store and not is_raqamiyat_product:
+                err_msg = "الدفع عبر بوابة الدفع الإلكتروني متاح فقط لمنتجات وخدمات رقميات المعتمدة. بالنسبة لمنتجات المتجر الخاصة، يرجى إتمام الدفع عبر رصيد المحفظة."
+                if request.headers.get('x-requested-with') == 'XMLHttpRequest' or request.POST.get('ajax') == '1':
+                    return JsonResponse({"success": False, "error": err_msg}, status=400)
+                messages.error(request, err_msg)
+                return redirect("product_detail", pk=pk)
+
             from apps.payments.models import PaymentGatewayIntegration, PaymentMethod
-            if payment_method.startswith("gateway:"):
-                gw_val = payment_method.split(":", 1)[1]
-                selected_gateway = PaymentGatewayIntegration.objects.filter(pk=gw_val, is_active=True).first() or PaymentGatewayIntegration.objects.filter(provider=gw_val, is_active=True).first()
-            elif payment_method.startswith("method:"):
-                pm_id = payment_method.split(":", 1)[1]
-                pm = PaymentMethod.objects.filter(pk=pm_id, is_active=True).first()
-                if pm and pm.gateway and pm.gateway.is_active:
-                    selected_gateway = pm.gateway
-            else:
-                selected_gateway = PaymentGatewayIntegration.objects.filter(provider=payment_method, is_active=True).first() or PaymentGatewayIntegration.objects.filter(pk=payment_method, is_active=True).first()
-                if not selected_gateway:
-                    pm = PaymentMethod.objects.filter(pk=payment_method, is_active=True).first()
+            from apps.common.tenant_utils import bypass_tenant_filter
+            with bypass_tenant_filter():
+                if payment_method.startswith("gateway:"):
+                    gw_val = payment_method.split(":", 1)[1]
+                    selected_gateway = PaymentGatewayIntegration.all_objects.filter(pk=gw_val, is_active=True).first() or PaymentGatewayIntegration.all_objects.filter(provider=gw_val, is_active=True).first()
+                elif payment_method.startswith("method:"):
+                    pm_id = payment_method.split(":", 1)[1]
+                    pm = PaymentMethod.all_objects.filter(pk=pm_id, is_active=True).first()
                     if pm and pm.gateway and pm.gateway.is_active:
                         selected_gateway = pm.gateway
+                else:
+                    selected_gateway = PaymentGatewayIntegration.all_objects.filter(provider=payment_method, is_active=True).first() or PaymentGatewayIntegration.all_objects.filter(pk=payment_method, is_active=True).first()
+                    if not selected_gateway:
+                        pm = PaymentMethod.all_objects.filter(pk=payment_method, is_active=True).first()
+                        if pm and pm.gateway and pm.gateway.is_active:
+                            selected_gateway = pm.gateway
 
-            if not selected_gateway:
-                if payment_method in ("paymera", "direct_paymera"):
-                    selected_gateway = PaymentGatewayIntegration.objects.filter(provider=PaymentGatewayIntegration.Provider.PAYMERA, is_active=True).first()
+                if not selected_gateway:
+                    if payment_method in ("paymera", "direct_paymera"):
+                        selected_gateway = PaymentGatewayIntegration.all_objects.filter(provider=PaymentGatewayIntegration.Provider.PAYMERA, is_active=True).first()
 
             if not selected_gateway:
                 err_msg = "بوابة الدفع الإلكتروني المحددة غير مفعلة حالياً."
@@ -2256,39 +2277,73 @@ def product_detail(request, pk):
     missing_currency = request.session.pop('missing_currency', None)
 
     # Prepare available payment gateways for direct checkout
-    from apps.payments.models import PaymentGatewayIntegration, PaymentMethod
+    is_raqamiyat_product = False
+    if not product.store:
+        is_raqamiyat_product = True
+    else:
+        is_raqamiyat_product = bool(
+            product.is_api_product or
+            (product.api_provider and product.api_provider not in ("generic", "")) or
+            product.variants.filter(cost__gt=Decimal("0")).exists() or
+            Product.all_objects.filter(store__isnull=True, name=product.name).exists()
+        )
+
     gateway_methods = []
-    seen_gw_ids = set()
+    # If product is a merchant custom product, do not offer Paymera / platform direct gateways
+    if is_raqamiyat_product:
+        from apps.payments.models import PaymentGatewayIntegration, PaymentMethod
+        from apps.common.tenant_utils import bypass_tenant_filter
+        seen_gw_ids = set()
 
-    active_gateways = PaymentGatewayIntegration.objects.filter(is_active=True)
-    for gw in active_gateways:
-        seen_gw_ids.add(gw.id)
-        gw_logo = None
-        if gw.provider == "paymera" or "paymera" in (gw.name or "").lower() or "بيميرا" in (gw.name or ""):
-            gw_logo = "/media/payment-methods/logos/paymera.png"
+        with bypass_tenant_filter():
+            if product.store:
+                active_gateways = PaymentGatewayIntegration.all_objects.filter(
+                    Q(store=product.store) | Q(store__isnull=True),
+                    is_active=True
+                ).order_by("store_id")
+            else:
+                active_gateways = PaymentGatewayIntegration.all_objects.filter(
+                    store__isnull=True,
+                    is_active=True
+                )
 
-        gateway_methods.append({
-            "id": f"gateway:{gw.id}",
-            "code": gw.provider,
-            "name": gw.name,
-            "provider_name": gw.get_provider_display(),
-            "logo": gw_logo,
-        })
+            for gw in active_gateways:
+                if gw.id not in seen_gw_ids:
+                    seen_gw_ids.add(gw.id)
+                    gateway_methods.append({
+                        "id": f"gateway:{gw.id}",
+                        "code": gw.provider,
+                        "name": gw.name,
+                        "provider_name": gw.get_provider_display(),
+                        "logo": gw.logo_url,
+                    })
 
-    methods_with_gw = PaymentMethod.objects.filter(is_active=True, gateway__isnull=False, gateway__is_active=True)
-    for pm in methods_with_gw:
-        if pm.gateway_id not in seen_gw_ids:
-            seen_gw_ids.add(pm.gateway_id)
-            pm_logo = pm.logo.url if pm.logo else None
-            if not pm_logo and (pm.gateway.provider == "paymera" or "paymera" in (pm.name or "").lower() or "بيميرا" in (pm.name or "")):
-                pm_logo = "/media/payment-methods/logos/paymera.png"
-            gateway_methods.append({
-                "id": f"method:{pm.id}",
-                "code": pm.gateway.provider,
-                "name": pm.name,
-                "provider_name": pm.gateway.get_provider_display(),
-                "logo": pm_logo,
-            })
+            if product.store:
+                methods_with_gw = PaymentMethod.all_objects.filter(
+                    Q(store=product.store) | Q(store__isnull=True),
+                    is_active=True,
+                    gateway__isnull=False,
+                    gateway__is_active=True
+                )
+            else:
+                methods_with_gw = PaymentMethod.all_objects.filter(
+                    store__isnull=True,
+                    is_active=True,
+                    gateway__isnull=False,
+                    gateway__is_active=True
+                )
+
+            for pm in methods_with_gw:
+                if pm.gateway_id not in seen_gw_ids:
+                    seen_gw_ids.add(pm.gateway_id)
+                    pm_logo = pm.logo.url if pm.logo else pm.gateway.logo_url
+                    gateway_methods.append({
+                        "id": f"method:{pm.id}",
+                        "code": pm.gateway.provider,
+                        "name": pm.name,
+                        "provider_name": pm.gateway.get_provider_display(),
+                        "logo": pm_logo,
+                    })
 
     return render(request, "site/product_detail.html", {
         "product": product, 
@@ -6181,7 +6236,7 @@ def payment_gateway_integrations_list(request):
 @admin_required
 def payment_gateway_integration_create(request):
     store = getattr(request, "store", None)
-    form = PaymentGatewayIntegrationForm(request.POST or None)
+    form = PaymentGatewayIntegrationForm(request.POST or None, request.FILES or None)
     if request.method == "POST" and form.is_valid():
         gateway = form.save(commit=False)
         gateway.store = store
@@ -6197,7 +6252,7 @@ def payment_gateway_integration_edit(request, pk):
     store = getattr(request, "store", None)
     qs = PaymentGatewayIntegration.all_objects.filter(Q(store=store) | Q(store__isnull=True)) if store else PaymentGatewayIntegration.all_objects.all()
     gateway = get_object_or_404(qs, pk=pk)
-    form = PaymentGatewayIntegrationForm(request.POST or None, instance=gateway)
+    form = PaymentGatewayIntegrationForm(request.POST or None, request.FILES or None, instance=gateway)
     if request.method == "POST" and form.is_valid():
         form.save()
         messages.success(request, "تم تحديث بوابة دفع API بنجاح.")

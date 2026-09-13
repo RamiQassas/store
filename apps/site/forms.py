@@ -241,12 +241,13 @@ class PaymentGatewayIntegrationForm(forms.ModelForm):
     class Meta:
         model = PaymentGatewayIntegration
         fields = [
-            "name", "provider", "mode", "terminal_id", "base_url", "api_key", "api_secret",
+            "name", "logo", "provider", "mode", "terminal_id", "base_url", "api_key", "api_secret",
             "webhook_secret", "is_active", "can_deposit", "can_withdraw",
             "supported_assets", "settings",
         ]
         widgets = {
             "name": forms.TextInput(attrs={"class": "builder-input", "placeholder": "Baniyas Crypto"}),
+            "logo": forms.FileInput(attrs={"class": "builder-input", "accept": "image/*"}),
             "provider": forms.Select(attrs={"class": "builder-input"}),
             "mode": forms.Select(attrs={"class": "builder-input"}),
             "terminal_id": forms.TextInput(attrs={"class": "builder-input", "placeholder": "مثلاً 99990001 (8 خانات مخصصة من بيميرا)"}),
