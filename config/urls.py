@@ -330,6 +330,51 @@ def version_view(request):
         except Exception as e:
             import traceback
             diag = {"error": str(e), "traceback": traceback.format_exc()}
+    elif request.GET.get("diag") == "paymera":
+        try:
+            from apps.orders.models import Order
+            from apps.common.models import Currency
+            from apps.common.tenant_utils import bypass_tenant_filter
+            with bypass_tenant_filter():
+                currencies = [
+                    {
+                        "id": str(c.id),
+                        "code": c.code,
+                        "name": c.name,
+                        "buy_rate": str(c.buy_rate),
+                        "sell_rate": str(c.sell_rate),
+                        "conversion_method": c.conversion_method,
+                        "is_default": c.is_default,
+                        "is_active": c.is_active,
+                        "store_id": str(c.store_id) if c.store_id else None,
+                    }
+                    for c in Currency.all_objects.all()
+                ]
+                orders = []
+                for o in Order.all_objects.order_by("-created_at")[:5]:
+                    orders.append({
+                        "id": str(o.id),
+                        "number": o.number,
+                        "status": o.status,
+                        "total_amount": str(o.total_amount),
+                        "original_total": str(o.original_total),
+                        "metadata": o.metadata,
+                        "items": [
+                            {
+                                "variant_name": item.variant.name if item.variant else None,
+                                "variant_price": str(item.variant.price) if item.variant else None,
+                                "quantity": item.quantity,
+                                "unit_price": str(item.unit_price),
+                                "total_price": str(item.total_price),
+                            }
+                            for item in o.items.all()
+                        ],
+                        "created_at": o.created_at.isoformat(),
+                    })
+                diag = {"currencies": currencies, "recent_orders": orders}
+        except Exception as e:
+            import traceback
+            diag = {"error": str(e), "traceback": traceback.format_exc()}
 
     return JsonResponse({
         "status": "online",
