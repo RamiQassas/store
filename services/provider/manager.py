@@ -86,15 +86,54 @@ class ProviderManager:
     ) -> dict:
         """
         Submits order to provider via unified service layer.
+        Sanitizes player_params to guarantee private payment & technical details are never sent to external providers.
         """
+        clean_params = cls.sanitize_player_params(player_params)
         svc = cls.get_service(profile)
         return svc.place_order(
             local_order=local_order,
             provider_product=provider_product,
             quantity=quantity,
-            player_params=player_params,
+            player_params=clean_params,
             order_uuid=order_uuid
         )
+
+    @classmethod
+    def sanitize_player_params(cls, params: Optional[Dict[str, Any]]) -> Dict[str, Any]:
+        """Strips payment gateway, checkout, and technical keys from metadata before provider submission."""
+        if not params or not isinstance(params, dict):
+            return {}
+
+        excluded_keys = {
+            "paymera_url", "payment_gateway", "payment_provider", "gateway_payment_id",
+            "gateway_charge_amount", "gateway_charge_currency", "is_direct_gateway_purchase",
+            "direct_gateway_purchase", "gateway_order", "direct_gateway", "checkout_session_id",
+            "stripe_session_id", "transaction_id", "payment_id", "payment_reference",
+            "payment_method", "client_secret", "payment_status", "order_channel",
+            "api_provider", "api_status", "api_last_response", "api_refunded",
+            "raw_response", "response", "api_error", "alkasr", "tafa3ol",
+            "notes", "admin_notes", "price_adjustment_reason", "fulfillment_data"
+        }
+        excluded_prefixes = (
+            "gateway_", "payment_", "paymera_", "sham_", "fmp_", "stripe_", "api_", "_", "internal_"
+        )
+
+        clean = {}
+        for k, v in params.items():
+            if not k:
+                continue
+            k_str = str(k).strip()
+            k_lower = k_str.lower()
+            if k_lower in excluded_keys:
+                continue
+            if k_lower.startswith(excluded_prefixes):
+                continue
+            if v is None or v == "":
+                continue
+            if isinstance(v, (dict, list)):
+                continue
+            clean[k_str] = v
+        return clean
 
     @classmethod
     def check_orders(cls, profile, order_identifiers: List[str], is_uuid: bool = True) -> list:

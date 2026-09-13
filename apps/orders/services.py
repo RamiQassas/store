@@ -540,7 +540,7 @@ def _create_order_atomic(customer, variant_id, quantity=1, fulfillment_data=None
                 local_order=order,
                 provider_product=provider_product,
                 quantity=quantity,
-                player_params=metadata or {},
+                player_params=ProviderManager.sanitize_player_params(metadata or {}),
                 order_uuid=api_order_uuid,
             )
             api_status = api_resp.get("status") or "wait"
@@ -994,7 +994,7 @@ def finalize_paid_gateway_order(order, gateway_data=None):
                         local_order=locked_order,
                         provider_product=provider_product,
                         quantity=quantity,
-                        player_params=locked_order.metadata or {},
+                        player_params=ProviderManager.sanitize_player_params(locked_order.metadata or {}),
                         order_uuid=api_order_uuid,
                     )
                     api_status = api_resp.get("status") or "wait"

@@ -37,7 +37,33 @@ class AlkasrOrderService:
         """
         from apps.providers.models import ProviderOrder, ProviderOrderStatus
 
-        params = player_params or {}
+        EXCLUDED_PARAM_KEYS = {
+            "paymera_url", "payment_gateway", "payment_provider", "gateway_payment_id",
+            "gateway_charge_amount", "gateway_charge_currency", "is_direct_gateway_purchase",
+            "direct_gateway_purchase", "gateway_order", "direct_gateway", "checkout_session_id",
+            "stripe_session_id", "transaction_id", "payment_id", "payment_reference",
+            "payment_method", "client_secret", "payment_status", "order_channel",
+            "api_provider", "api_status", "api_last_response", "api_refunded",
+            "raw_response", "response", "api_error", "alkasr", "tafa3ol",
+            "notes", "admin_notes", "price_adjustment_reason", "fulfillment_data"
+        }
+        EXCLUDED_PARAM_PREFIXES = (
+            "gateway_", "payment_", "paymera_", "sham_", "fmp_", "stripe_", "api_", "_", "internal_"
+        )
+
+        clean_params = {}
+        for k, v in (player_params or {}).items():
+            if not k:
+                continue
+            k_str = str(k).strip()
+            k_lower = k_str.lower()
+            if k_lower in EXCLUDED_PARAM_KEYS or k_lower.startswith(EXCLUDED_PARAM_PREFIXES):
+                continue
+            if v is None or v == "" or isinstance(v, (dict, list)):
+                continue
+            clean_params[k_str] = str(v).strip()
+
+        params = clean_params
 
         # Handle fixed amount products where min == max > 1 (e.g. TikTok 400 or 150 coins package)
         provider_qty = quantity
@@ -70,7 +96,9 @@ class AlkasrOrderService:
 
         # Map player_params to the ProviderProduct's actual parameter names
         final_params = {}
-        if hasattr(provider_product, 'parameters'):
+        has_defined_parameters = hasattr(provider_product, 'parameters') and provider_product.parameters.exists()
+
+        if has_defined_parameters:
             for p in provider_product.parameters.all():
                 val = params.get(p.name) or params.get(p.label)
                 if not val:
@@ -81,17 +109,27 @@ class AlkasrOrderService:
                         if k_clean == p_name_clean or k_clean == p_label_clean:
                             val = v
                             break
-                        if any(alias in k_clean for alias in ["player", "user", "id", "ايدي", "آيدي", "phone", "هاتف", "جوال"]):
+                        if any(alias in k_clean for alias in ["player", "user", "id", "ايدي", "آيدي", "phone", "هاتف", "جوال", "معرف"]):
                             val = v
                             break
                 if not val and len(params) == 1:
                     val = list(params.values())[0]
                 if val:
                     final_params[p.name] = str(val).strip()
-        
-        for k, v in params.items():
-            if k not in final_params and v:
+        else:
+            # When provider_product does not have explicit parameters defined, use only sanitized customer input parameters
+            for k, v in params.items():
                 final_params[k] = str(v).strip()
+
+        # Ensure playerId is populated if common ID alias is found
+        if "playerId" not in final_params:
+            for k, v in list(final_params.items()):
+                k_lower = k.lower()
+                if any(alias in k_lower for alias in ["player", "user", "id", "ايدي", "آيدي", "phone", "هاتف", "جوال", "حساب", "معرف"]):
+                    final_params["playerId"] = v
+                    break
+            if "playerId" not in final_params and len(final_params) == 1:
+                final_params["playerId"] = list(final_params.values())[0]
 
         # 4. Submit to API Client
         remote_product_id = str(provider_product.remote_id)

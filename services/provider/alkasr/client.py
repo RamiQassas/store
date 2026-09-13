@@ -180,16 +180,35 @@ class AlkasrClient:
             "qty": int(quantity),
         }
         if player_params:
+            EXCLUDED_PARAM_KEYS = {
+                "paymera_url", "payment_gateway", "payment_provider", "gateway_payment_id",
+                "gateway_charge_amount", "gateway_charge_currency", "is_direct_gateway_purchase",
+                "direct_gateway_purchase", "gateway_order", "direct_gateway", "checkout_session_id",
+                "stripe_session_id", "transaction_id", "payment_id", "payment_reference",
+                "payment_method", "client_secret", "payment_status", "order_channel",
+                "api_provider", "api_status", "api_last_response", "api_refunded",
+                "raw_response", "response", "api_error", "alkasr", "tafa3ol",
+                "notes", "admin_notes", "price_adjustment_reason", "fulfillment_data"
+            }
+            EXCLUDED_PARAM_PREFIXES = (
+                "gateway_", "payment_", "paymera_", "sham_", "fmp_", "stripe_", "api_", "_", "internal_"
+            )
+
             cleaned_params = {}
             for k, v in player_params.items():
-                if v is not None and str(v).strip() != "":
-                    cleaned_params[str(k).strip()] = str(v).strip()
+                if not k or v is None or str(v).strip() == "" or isinstance(v, (dict, list)):
+                    continue
+                k_str = str(k).strip()
+                k_lower = k_str.lower()
+                if k_lower in EXCLUDED_PARAM_KEYS or k_lower.startswith(EXCLUDED_PARAM_PREFIXES):
+                    continue
+                cleaned_params[k_str] = str(v).strip()
             
             # If playerId is not explicitly present, find matching ID alias and populate playerId
             if "playerId" not in cleaned_params:
                 for k, v in list(cleaned_params.items()):
                     k_lower = k.lower()
-                    if any(term in k_lower for term in ["player", "user", "id", "ايدي", "آيدي", "معرف", "حساب"]):
+                    if any(term in k_lower for term in ["player", "user", "id", "ايدي", "آيدي", "معرف", "حساب", "phone", "هاتف", "جوال"]):
                         cleaned_params["playerId"] = v
                         break
 
