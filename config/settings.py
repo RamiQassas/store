@@ -153,6 +153,8 @@ AUTHENTICATION_BACKENDS = [
     'apps.stores.auth_backend.TenantAuthenticationBackend',
 ]
 
+SITE_ID = 1
+
 # Allauth / Social Account Settings
 GOOGLE_CLIENT_ID = env("GOOGLE_CLIENT_ID", "")
 GOOGLE_CLIENT_SECRET = env("GOOGLE_CLIENT_SECRET", "")
