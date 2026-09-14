@@ -12,19 +12,24 @@
   
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800;900&family=Cairo:wght@400;600;700;900&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-  <link rel="stylesheet" href="{% static 'site/css/app.css' %}?v=4">
+  <link rel="stylesheet" href="{% static 'site/css/app.css' %}?v=5">
   
   <style>
-    /* Premium Desktop Header Styles */
+    /* ═══════════════════════════════════════════
+       VELVET NOIR & ROYAL GOLD — Header System
+       ═══════════════════════════════════════════ */
+
+    /* Desktop Header */
     .desktop-header {
         position: sticky;
         top: 0;
         z-index: 1000;
-        background: rgba(5, 8, 22, 0.85);
-        backdrop-filter: blur(20px);
-        border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        background: rgba(10, 10, 15, 0.88);
+        backdrop-filter: blur(24px);
+        -webkit-backdrop-filter: blur(24px);
+        border-bottom: 1px solid rgba(212, 168, 83, 0.06);
         padding: 0.75rem 0;
         transition: all 0.3s ease;
     }
@@ -43,33 +48,33 @@
         align-items: center;
         gap: 0.75rem;
         text-decoration: none;
-        font-weight: 900;
+        font-weight: 800;
         font-size: 1.5rem;
         color: #fff;
         flex-shrink: 0;
     }
 
-    .brand i { color: var(--cyan); text-shadow: 0 0 15px var(--cyan); }
+    .brand i { color: var(--gold); text-shadow: 0 0 20px rgba(212, 168, 83, 0.4); }
 
     .nav-links {
         display: flex;
         align-items: center;
-        gap: 1.5rem;
+        gap: 1.25rem;
         flex-grow: 1;
         justify-content: center;
     }
 
     .nav-links a {
-        color: #94a3b8;
+        color: var(--muted);
         text-decoration: none;
         font-weight: 700;
-        font-size: 0.9rem;
+        font-size: 0.85rem;
         transition: all 0.3s ease;
         position: relative;
-        padding: 0.5rem 0;
+        padding: 0.5rem 0.25rem;
     }
 
-    .nav-links a:hover, .nav-links a.active { color: #fff; }
+    .nav-links a:hover, .nav-links a.active { color: var(--gold); }
     .nav-links a::after {
         content: '';
         position: absolute;
@@ -77,20 +82,20 @@
         left: 0;
         width: 0;
         height: 2px;
-        background: var(--cyan);
+        background: linear-gradient(90deg, var(--gold), var(--gold-light));
         transition: width 0.3s ease;
-        box-shadow: 0 0 10px var(--cyan);
+        border-radius: 1px;
     }
     .nav-links a:hover::after, .nav-links a.active::after { width: 100%; }
 
     .admin-link {
-        color: #fbbf24 !important;
-        background: rgba(251, 191, 36, 0.1);
+        color: var(--gold) !important;
+        background: rgba(212, 168, 83, 0.08);
         padding: 0.4rem 1rem !important;
         border-radius: 100px;
-        border: 1px solid rgba(251, 191, 36, 0.2);
+        border: 1px solid rgba(212, 168, 83, 0.15);
     }
-    .admin-link:hover { background: rgba(251, 191, 36, 0.2) !important; }
+    .admin-link:hover { background: rgba(212, 168, 83, 0.15) !important; }
 
     .header-actions {
         display: flex;
@@ -100,33 +105,33 @@
     }
 
     .currency-selector select {
-        background: rgba(255, 255, 255, 0.1);
-        border: 1px solid rgba(255, 255, 255, 0.2);
+        background: rgba(255, 255, 255, 0.06);
+        border: 1px solid rgba(212, 168, 83, 0.12);
         color: #fff;
         padding: 0.4rem 0.75rem;
         border-radius: 10px;
-        font-weight: 800;
+        font-weight: 700;
         font-size: 0.75rem;
         cursor: pointer;
         outline: none;
     }
 
     .currency-selector select option {
-        background: #0f172a;
+        background: #12121a;
         color: #fff;
     }
 
     .notification-trigger i {
         font-size: 1.25rem;
-        color: #94a3b8;
+        color: var(--muted);
         transition: color 0.3s;
     }
-    .notification-trigger:hover i { color: #fff; }
+    .notification-trigger:hover i { color: var(--gold); }
     .count-badge {
         position: absolute;
         top: -8px;
         right: -8px;
-        background: #ef4444;
+        background: var(--danger);
         color: #fff;
         font-size: 0.6rem;
         font-weight: 900;
@@ -136,7 +141,7 @@
         display: flex;
         align-items: center;
         justify-content: center;
-        border: 2px solid #050816;
+        border: 2px solid #0a0a0f;
     }
 
     .user-profile-hub {
@@ -144,7 +149,7 @@
         align-items: center;
         gap: 1rem;
         padding-left: 1rem;
-        border-left: 1px solid rgba(255, 255, 255, 0.1);
+        border-left: 1px solid rgba(212, 168, 83, 0.08);
     }
 
     .user-meta {
@@ -164,8 +169,8 @@
     }
 
     .user-balance {
-        color: var(--cyan);
-        font-weight: 900;
+        color: var(--gold);
+        font-weight: 800;
         font-size: 0.75rem;
     }
 
@@ -173,16 +178,16 @@
         width: 36px;
         height: 36px;
         border-radius: 10px;
-        background: rgba(239, 68, 68, 0.1);
-        color: #ef4444;
+        background: rgba(232, 93, 117, 0.08);
+        color: var(--danger);
         display: flex;
         align-items: center;
         justify-content: center;
         text-decoration: none;
         transition: all 0.3s;
-        border: 1px solid rgba(239, 68, 68, 0.2);
+        border: 1px solid rgba(232, 93, 117, 0.15);
     }
-    .logout-btn:hover { background: #ef4444; color: #fff; }
+    .logout-btn:hover { background: var(--danger); color: #fff; }
 
     .btn-premium-sm {
         padding: 0.5rem 1.25rem;
@@ -192,8 +197,11 @@
         text-decoration: none;
         transition: all 0.3s;
     }
-    .btn-premium-sm.primary { background: var(--cyan); color: #000; }
-    .btn-premium-sm.ghost { border: 1px solid rgba(255,255,255,0.1); color: #fff; }
+    .btn-premium-sm.primary {
+        background: linear-gradient(135deg, var(--gold) 0%, var(--gold-light) 100%);
+        color: #0a0a0f;
+    }
+    .btn-premium-sm.ghost { border: 1px solid rgba(212, 168, 83, 0.12); color: #fff; }
 
     
     /* Mobile Currency Button & Bottom Sheet Modal */
@@ -201,8 +209,8 @@
         display: inline-flex;
         align-items: center;
         gap: 5px;
-        background: rgba(255, 255, 255, 0.08);
-        border: 1px solid rgba(255, 255, 255, 0.2);
+        background: rgba(212, 168, 83, 0.08);
+        border: 1px solid rgba(212, 168, 83, 0.15);
         color: #fff;
         padding: 0.35rem 0.65rem;
         border-radius: 12px;
@@ -215,21 +223,21 @@
         outline: none;
     }
     .mobile-currency-btn:hover, .mobile-currency-btn:active {
-        background: rgba(6, 182, 212, 0.15);
-        border-color: var(--cyan);
+        background: rgba(212, 168, 83, 0.15);
+        border-color: var(--gold);
         color: #fff;
     }
     .mobile-currency-btn i.fa-coins {
-        color: #fbbf24;
+        color: var(--gold);
         font-size: 0.85rem;
     }
 
     .currency-modal-backdrop {
         position: fixed;
         inset: 0;
-        background: rgba(0, 0, 0, 0.75);
-        backdrop-filter: blur(8px);
-        -webkit-backdrop-filter: blur(8px);
+        background: rgba(0, 0, 0, 0.8);
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
         z-index: 99999;
         opacity: 0;
         visibility: hidden;
@@ -243,8 +251,8 @@
         visibility: visible;
     }
     .currency-modal-sheet {
-        background: #0a0f1d;
-        border: 1px solid rgba(255, 255, 255, 0.12);
+        background: #0f0f17;
+        border: 1px solid rgba(212, 168, 83, 0.1);
         border-bottom: none;
         border-radius: 24px 24px 0 0;
         width: 100%;
@@ -264,7 +272,7 @@
     .currency-modal-handle {
         width: 44px;
         height: 5px;
-        background: rgba(255, 255, 255, 0.2);
+        background: rgba(212, 168, 83, 0.15);
         border-radius: 3px;
         margin: 0 auto 1.25rem;
     }
@@ -275,9 +283,9 @@
         margin-bottom: 0.75rem;
     }
     .currency-modal-close {
-        background: rgba(255, 255, 255, 0.08);
-        border: 1px solid rgba(255, 255, 255, 0.1);
-        color: #94a3b8;
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        color: var(--muted);
         width: 34px;
         height: 34px;
         border-radius: 50%;
@@ -289,8 +297,8 @@
         transition: all 0.2s;
     }
     .currency-modal-close:hover {
-        background: rgba(239, 68, 68, 0.2);
-        color: #ef4444;
+        background: rgba(232, 93, 117, 0.15);
+        color: var(--danger);
     }
     .currency-modal-list {
         display: flex;
@@ -303,28 +311,28 @@
         align-items: center;
         justify-content: space-between;
         padding: 0.85rem 1.1rem;
-        background: rgba(255, 255, 255, 0.03);
-        border: 1px solid rgba(255, 255, 255, 0.08);
+        background: rgba(255, 255, 255, 0.02);
+        border: 1px solid rgba(255, 255, 255, 0.05);
         border-radius: 16px;
         text-decoration: none;
         color: #fff;
         transition: all 0.2s ease;
     }
     .currency-option-item:hover, .currency-option-item:active {
-        background: rgba(6, 182, 212, 0.08);
-        border-color: rgba(6, 182, 212, 0.4);
+        background: rgba(212, 168, 83, 0.06);
+        border-color: rgba(212, 168, 83, 0.3);
         transform: translateY(-1px);
     }
     .currency-option-item.active {
-        background: rgba(6, 182, 212, 0.12);
-        border-color: #06b6d4;
-        box-shadow: 0 0 20px rgba(6, 182, 212, 0.15);
+        background: rgba(212, 168, 83, 0.08);
+        border-color: var(--gold);
+        box-shadow: 0 0 20px rgba(212, 168, 83, 0.1);
     }
     .currency-flag-circle {
         width: 42px;
         height: 42px;
         border-radius: 12px;
-        background: rgba(255, 255, 255, 0.06);
+        background: rgba(255, 255, 255, 0.04);
         display: flex;
         align-items: center;
         justify-content: center;
@@ -343,19 +351,19 @@
         color: #fff;
     }
     .currency-badge-code {
-        background: rgba(255, 255, 255, 0.1);
+        background: rgba(212, 168, 83, 0.1);
         padding: 0.15rem 0.45rem;
         border-radius: 6px;
         font-size: 0.72rem;
         font-weight: 900;
-        color: var(--cyan);
+        color: var(--gold);
         font-family: monospace;
     }
     .currency-inactive-circle {
         width: 20px;
         height: 20px;
         border-radius: 50%;
-        border: 2px solid rgba(255, 255, 255, 0.2);
+        border: 2px solid rgba(255, 255, 255, 0.12);
         display: block;
     }
 
@@ -369,14 +377,15 @@
         vertical-align: middle;
     }
 
-    /* Mobile Navigation Fixes */
+    /* Mobile Navigation */
     .mobile-header {
         position: sticky;
         top: 0;
         z-index: 1000;
-        background: rgba(5, 8, 17, 0.95);
-        backdrop-filter: blur(15px);
-        border-bottom: 1px solid var(--panel-border);
+        background: rgba(10, 10, 15, 0.96);
+        backdrop-filter: blur(20px);
+        -webkit-backdrop-filter: blur(20px);
+        border-bottom: 1px solid rgba(212, 168, 83, 0.06);
         padding: 0.75rem 1.25rem;
         display: flex;
         justify-content: space-between;
@@ -390,15 +399,16 @@
         width: 85%;
         max-width: 320px;
         height: 100vh;
-        background: #0a0f1c;
+        background: #0a0a0f;
         z-index: 1100;
         transition: all 0.4s cubic-bezier(0.23, 1, 0.32, 1);
         padding: 2rem;
-        box-shadow: -10px 0 30px rgba(0,0,0,0.5);
+        box-shadow: -10px 0 40px rgba(0,0,0,0.6);
         display: flex;
         flex-direction: column;
-        overflow-y: auto; /* Enable scrolling */
+        overflow-y: auto;
         -webkit-overflow-scrolling: touch;
+        border-left: 1px solid rgba(212, 168, 83, 0.06);
     }
 
     .mobile-drawer.open { right: 0; }
@@ -406,7 +416,7 @@
     .drawer-overlay {
         position: fixed;
         inset: 0;
-        background: rgba(0,0,0,0.6);
+        background: rgba(0,0,0,0.7);
         backdrop-filter: blur(4px);
         z-index: 1050;
         opacity: 0;
@@ -420,15 +430,15 @@
         align-items: center;
         gap: 1rem;
         padding: 1rem;
-        color: #94a3b8;
+        color: var(--muted);
         font-weight: 700;
         text-decoration: none;
-        border-radius: 16px;
+        border-radius: 14px;
         transition: all 0.2s;
     }
-    .drawer-link:active { background: rgba(6, 182, 212, 0.1); color: var(--cyan); }
+    .drawer-link:active { background: rgba(212, 168, 83, 0.08); color: var(--gold); }
     .drawer-link i { width: 24px; text-align: center; font-size: 1.25rem; }
-    .drawer-link.active { background: rgba(6, 182, 212, 0.1); color: var(--cyan); }
+    .drawer-link.active { background: rgba(212, 168, 83, 0.08); color: var(--gold); }
 
     .mobile-nav-bar {
         position: fixed;
@@ -436,8 +446,8 @@
         left: 0;
         right: 0;
         height: 65px;
-        background: #0f172a;
-        border-top: 1px solid var(--panel-border);
+        background: #0a0a0f;
+        border-top: 1px solid rgba(212, 168, 83, 0.06);
         display: flex;
         justify-content: space-around;
         align-items: center;
@@ -457,7 +467,7 @@
     }
 
     .mobile-nav-item i { font-size: 1.25rem; margin-bottom: 4px; }
-    .mobile-nav-item.active { color: var(--cyan); }
+    .mobile-nav-item.active { color: var(--gold); }
 
     @media (min-width: 1024px) {
         .mobile-nav-bar { display: none; }
@@ -469,22 +479,22 @@
         .shell { padding-top: 1rem; padding-bottom: 80px; }
     }
 
-    /* Standardized Social Icons - Modern Compact (40px) */
+    /* Social Icons — Gold Edition */
     .social-icon-btn {
         width: 40px !important;
         height: 40px !important;
         display: inline-flex !important;
         align-items: center !important;
         justify-content: center !important;
-        background: rgba(255,255,255,0.03) !important;
-        border: 1px solid rgba(255,255,255,0.08) !important;
+        background: rgba(255,255,255,0.02) !important;
+        border: 1px solid rgba(212, 168, 83, 0.08) !important;
         border-radius: 12px !important;
         overflow: hidden !important;
-        color: #94a3b8 !important;
+        color: var(--muted) !important;
         transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
         vertical-align: middle;
     }
-    .social-icon-btn:hover { border-color: var(--cyan) !important; color: #fff !important; transform: translateY(-3px); background: rgba(6, 182, 212, 0.1) !important; }
+    .social-icon-btn:hover { border-color: var(--gold) !important; color: var(--gold) !important; transform: translateY(-3px); background: rgba(212, 168, 83, 0.06) !important; }
     .social-icon-btn img, .social-icon-btn i {
         width: 20px !important;
         height: 20px !important;
@@ -513,8 +523,8 @@
       --brand-accent: {{ STORE_PRIMARY }} !important;
       --brand-sky: {{ STORE_SECONDARY }} !important;
       --brand-text: {{ STORE_TEXT }} !important;
-      --brand-border: rgba(255, 255, 255, 0.08) !important;
-      --brand-glow: rgba(6, 182, 212, 0.25) !important;
+      --brand-border: rgba(255, 255, 255, 0.06) !important;
+      --brand-glow: rgba(212, 168, 83, 0.2) !important;
       --gradient-main: linear-gradient(135deg, {{ STORE_PRIMARY }} 0%, {{ STORE_SECONDARY }} 100%) !important;
     }
     
@@ -640,7 +650,7 @@
               <img src="{{ STORE_LOGO.url }}" alt="{{ STORE_NAME }}" style="height: 24px; max-height: 24px; max-width: 100px; width: auto; border-radius: 6px; object-fit: contain; vertical-align: middle;">
               <span class="text-sm font-black">{{ STORE_NAME }}</span>
               {% else %}
-              <i class="fas fa-bolt text-cyan"></i>
+              <i class="fas fa-bolt" style="color: var(--gold);"></i>
               <span>{% if is_tenant %}{{ STORE_NAME }}{% else %}RAQAMIYAT{% endif %}</span>
               {% endif %}
           </a>
@@ -664,7 +674,7 @@
                   {% endif %}
               </a>
           </div>
-          <a href="{% url 'dashboard_wallet' %}" class="text-cyan font-black text-xs">{% currency_format user.wallet.available_balance user.wallet.currency mode="withdraw" %}</a>
+          <a href="{% url 'dashboard_wallet' %}" class="font-black text-xs" style="color: var(--gold);">{% currency_format user.wallet.available_balance user.wallet.currency mode="withdraw" %}</a>
           {% else %}
           <a href="{% url 'site_login' %}" class="btn btn-sm btn-primary py-1 px-3 text-xs">دخول</a>
           {% endif %}
@@ -681,12 +691,12 @@
 
       {% if user.is_authenticated %}
       <div class="flex items-center gap-4 mb-8 p-4 bg-white/[0.03] rounded-2xl border border-white/5">
-          <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-cyan to-blue-600 flex items-center justify-center text-black font-black">
+          <div class="w-10 h-10 rounded-xl flex items-center justify-center text-black font-black" style="background: linear-gradient(135deg, #d4a853, #f0c674);">
               {{ user.display_name|slice:":1"|upper }}
           </div>
           <div>
               <div class="font-bold text-white text-sm truncate max-w-[150px]">{% if user.first_name %}{{ user.get_full_name }}{% else %}{{ user.display_name }}{% endif %}</div>
-              <div class="text-[10px] text-cyan">{{ user.get_tier_display }}</div>
+              <div class="text-[10px]" style="color: var(--gold);">{{ user.get_tier_display }}</div>
           </div>
       </div>
       {% endif %}
@@ -892,7 +902,7 @@
                     <img src="{{ STORE_LOGO.url }}" alt="{{ STORE_NAME }}" style="height: 38px; max-height: 38px; max-width: 130px; width: auto; border-radius: 8px; object-fit: contain; vertical-align: middle;">
                     <span>{{ STORE_NAME }}</span>
                     {% else %}
-                    <i class="fas fa-bolt text-cyan"></i>
+                    <i class="fas fa-bolt" style="color: var(--gold);"></i>
                     <span>{% if is_tenant %}{{ STORE_NAME }}{% else %}RAQAMIYAT{% endif %}</span>
                     {% endif %}
                 </div>

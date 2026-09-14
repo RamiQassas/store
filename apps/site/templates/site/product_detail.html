@@ -11,7 +11,7 @@
     .p-gallery { position: sticky; top: 120px; }
     .main-img-box { 
         aspect-ratio: 1; border-radius: 40px; overflow: hidden; 
-        background: radial-gradient(circle at center, #1e293b, #050811); 
+        background: radial-gradient(circle at center, #1a1a28, #0a0a0f); 
         border: 1px solid rgba(255,255,255,0.05); margin-bottom: 2rem; 
         display: flex; align-items: center; justify-content: center;
         box-shadow: 0 40px 80px -20px rgba(0,0,0,0.6);
@@ -27,7 +27,7 @@
         opacity: 0.4; transition: all 0.3s; padding: 0.5rem;
         display: flex; align-items: center; justify-content: center;
     }
-    .thumb-item:hover, .thumb-item.active { opacity: 1; border-color: var(--cyan); background: rgba(6, 182, 212, 0.05); transform: translateY(-4px); }
+    .thumb-item:hover, .thumb-item.active { opacity: 1; border-color: var(--gold); background: rgba(212, 168, 83, 0.05); transform: translateY(-4px); }
     .thumb-item img { width: 100%; height: 100%; object-fit: contain; }
 
     /* Selection Styles */
@@ -37,15 +37,15 @@
         display: flex; justify-content: space-between; align-items: center;
         margin-bottom: 1rem; position: relative; overflow: hidden;
     }
-    .variant-card:hover { border-color: rgba(6, 182, 212, 0.4); background: rgba(6, 182, 212, 0.03); transform: translateX(-8px); }
+    .variant-card:hover { border-color: rgba(212, 168, 83, 0.4); background: rgba(212, 168, 83, 0.03); transform: translateX(-8px); }
     .variant-card.selected { 
-        border-color: var(--cyan); background: rgba(6, 182, 212, 0.08); 
-        box-shadow: 0 20px 40px -10px rgba(6, 182, 212, 0.15); 
+        border-color: var(--gold); background: rgba(212, 168, 83, 0.08); 
+        box-shadow: 0 20px 40px -10px rgba(212, 168, 83, 0.15); 
     }
     
     .variant-card .radio-circle { width: 20px; height: 20px; border: 2px solid rgba(255,255,255,0.1); border-radius: 50%; transition: all 0.3s; position: relative; }
-    .variant-card.selected .radio-circle { border-color: var(--cyan); }
-    .variant-card.selected .radio-circle::after { content: ''; position: absolute; top: 4px; right: 4px; width: 8px; height: 8px; background: var(--cyan); border-radius: 50%; }
+    .variant-card.selected .radio-circle { border-color: var(--gold); }
+    .variant-card.selected .radio-circle::after { content: ''; position: absolute; top: 4px; right: 4px; width: 8px; height: 8px; background: var(--gold); border-radius: 50%; }
 
     .variant-card.on-sale {
         border-color: rgba(245, 158, 11, 0.2);
@@ -62,17 +62,17 @@
     }
 
     .price-tag { font-size: 1.5rem; font-weight: 950; color: #fff; letter-spacing: -0.5px; }
-    .selected .price-tag { color: var(--cyan); text-shadow: 0 0 20px rgba(6, 182, 212, 0.3); }
+    .selected .price-tag { color: var(--gold); text-shadow: 0 0 20px rgba(212, 168, 83, 0.3); }
 
     .buy-btn-v3 { 
         width: 100%; padding: 1.35rem; border-radius: 20px; font-size: 1.15rem; font-weight: 900; 
-        background: var(--cyan); color: #000; border: none; cursor: pointer; 
+        background: var(--gold); color: #000; border: none; cursor: pointer; 
         transition: all 0.4s cubic-bezier(0.23, 1, 0.32, 1);
         display: flex; justify-content: center; align-items: center; gap: 1rem;
-        box-shadow: 0 20px 40px -10px rgba(6, 182, 212, 0.4);
+        box-shadow: 0 20px 40px -10px rgba(212, 168, 83, 0.4);
         text-transform: uppercase; letter-spacing: 1px;
     }
-    .buy-btn-v3:hover:not(:disabled) { transform: translateY(-4px); box-shadow: 0 30px 60px -10px rgba(6, 182, 212, 0.6); }
+    .buy-btn-v3:hover:not(:disabled) { transform: translateY(-4px); box-shadow: 0 30px 60px -10px rgba(212, 168, 83, 0.6); }
     .buy-btn-v3:disabled { opacity: 0.3; cursor: not-allowed; filter: grayscale(1); }
 
     /* Payment Method Selection Animation */
@@ -85,20 +85,20 @@
         transform: translateY(-2px);
     }
     .payment-method-card.is-active-wallet {
-        border-color: #06b6d4 !important;
-        background: radial-gradient(circle at top right, rgba(6, 182, 212, 0.18) 0%, rgba(15, 23, 42, 0.95) 75%) !important;
-        box-shadow: 0 0 25px rgba(6, 182, 212, 0.35), inset 0 0 15px rgba(6, 182, 212, 0.08) !important;
+        border-color: #d4a853 !important;
+        background: radial-gradient(circle at top right, rgba(212, 168, 83, 0.18) 0%, #1a1a28 75%) !important;
+        box-shadow: 0 0 25px rgba(212, 168, 83, 0.35), inset 0 0 15px rgba(212, 168, 83, 0.08) !important;
         transform: translateY(-2px) scale(1.015);
     }
     .payment-method-card.is-active-gateway {
-        border-color: #10b981 !important;
-        background: radial-gradient(circle at top right, rgba(16, 185, 129, 0.18) 0%, rgba(15, 23, 42, 0.95) 75%) !important;
-        box-shadow: 0 0 25px rgba(16, 185, 129, 0.35), inset 0 0 15px rgba(16, 185, 129, 0.08) !important;
+        border-color: #d4a853 !important;
+        background: radial-gradient(circle at top right, rgba(212, 168, 83, 0.18) 0%, #1a1a28 75%) !important;
+        box-shadow: 0 0 25px rgba(212, 168, 83, 0.35), inset 0 0 15px rgba(212, 168, 83, 0.08) !important;
         transform: translateY(-2px) scale(1.015);
     }
 
     /* Section Headers */
-    .section-label { font-size: 10px; font-weight: 900; color: #475569; text-transform: uppercase; letter-spacing: 2px; margin-bottom: 1.25rem; display: block; }
+    .section-label { font-size: 10px; font-weight: 900; color: var(--gold); text-transform: uppercase; letter-spacing: 2px; margin-bottom: 1.25rem; display: block; }
 
     @media (max-width: 1024px) {
         .product-layout { grid-template-columns: 1fr; gap: 3rem; }
@@ -128,8 +128,8 @@
     }
     
     .related-card:hover {
-        border-color: rgba(6, 182, 212, 0.3);
-        background: rgba(6, 182, 212, 0.02);
+        border-color: rgba(212, 168, 83, 0.3);
+        background: rgba(212, 168, 83, 0.02);
         transform: translateY(-2px);
     }
     
@@ -137,7 +137,7 @@
         width: 56px;
         height: 56px;
         border-radius: 14px;
-        background: #0f172a;
+        background: #12121a;
         border: 1px solid rgba(255, 255, 255, 0.08);
         padding: 6px;
         display: flex;
@@ -174,7 +174,7 @@
     .related-price {
         font-size: 0.75rem;
         font-weight: 800;
-        color: var(--cyan);
+        color: var(--gold);
     }
 
     @media (max-width: 640px) {
@@ -508,12 +508,12 @@
                             </div>
                             <!-- Raqamiyat / Store Brand Logo -->
                             {% if is_tenant and STORE_LOGO %}
-                            <div style="width: 40px; height: 40px; min-width: 40px; min-height: 40px; border-radius: 12px; background: rgba(255,255,255,0.05); border: 1px solid rgba(6,182,212,0.3); display: flex; align-items: center; justify-content: center; padding: 6px; overflow: hidden; flex-shrink: 0;">
+                            <div style="width: 40px; height: 40px; min-width: 40px; min-height: 40px; border-radius: 12px; background: rgba(255,255,255,0.05); border: 1px solid rgba(212,168,83,0.3); display: flex; align-items: center; justify-content: center; padding: 6px; overflow: hidden; flex-shrink: 0;">
                                 <img src="{{ STORE_LOGO.url }}" alt="{{ STORE_NAME }}" style="max-width: 100%; max-height: 100%; width: auto; height: auto; object-fit: contain; display: block;">
                             </div>
                             {% else %}
-                            <div style="width: 40px; height: 40px; min-width: 40px; min-height: 40px; border-radius: 12px; background: linear-gradient(135deg, rgba(6,182,212,0.2), rgba(59,130,246,0.2)); border: 1px solid rgba(6,182,212,0.4); display: flex; align-items: center; justify-content: center; color: var(--cyan); flex-shrink: 0;">
-                                <i class="fas fa-bolt" style="font-size: 16px; color: var(--cyan);"></i>
+                            <div style="width: 40px; height: 40px; min-width: 40px; min-height: 40px; border-radius: 12px; background: linear-gradient(135deg, rgba(212,168,83,0.2), rgba(160,124,58,0.2)); border: 1px solid rgba(212,168,83,0.4); display: flex; align-items: center; justify-content: center; color: var(--gold); flex-shrink: 0;">
+                                <i class="fas fa-bolt" style="font-size: 16px; color: var(--gold);"></i>
                             </div>
                             {% endif %}
                             <div>
@@ -543,11 +543,11 @@
                             </div>
                             <!-- Gateway Logo (Paymera) -->
                             {% if gw.logo %}
-                            <div style="width: 40px; height: 40px; min-width: 40px; min-height: 40px; border-radius: 12px; background: #030712; border: 1px solid rgba(16,185,129,0.3); display: flex; align-items: center; justify-content: center; padding: 6px; overflow: hidden; flex-shrink: 0;">
+                            <div style="width: 40px; height: 40px; min-width: 40px; min-height: 40px; border-radius: 12px; background: #0a0a0f; border: 1px solid rgba(52,211,153,0.3); display: flex; align-items: center; justify-content: center; padding: 6px; overflow: hidden; flex-shrink: 0;">
                                 <img src="{{ gw.logo }}" alt="{{ gw.name }}" style="max-width: 100%; max-height: 100%; width: auto; height: auto; object-fit: contain; display: block;">
                             </div>
                             {% else %}
-                            <div style="width: 40px; height: 40px; min-width: 40px; min-height: 40px; border-radius: 12px; background: linear-gradient(135deg, rgba(16,185,129,0.2), rgba(20,184,166,0.2)); border: 1px solid rgba(16,185,129,0.4); display: flex; align-items: center; justify-content: center; color: #34d399; flex-shrink: 0;">
+                            <div style="width: 40px; height: 40px; min-width: 40px; min-height: 40px; border-radius: 12px; background: linear-gradient(135deg, rgba(52,211,153,0.2), rgba(52,211,153,0.1)); border: 1px solid rgba(52,211,153,0.4); display: flex; align-items: center; justify-content: center; color: #34d399; flex-shrink: 0;">
                                 <i class="fas fa-credit-card" style="font-size: 16px;"></i>
                             </div>
                             {% endif %}
@@ -570,7 +570,7 @@
 
             <div class="mt-10">
                 {% if product.is_out_of_stock and not variants %}
-                <button type="button" class="buy-btn-v3" style="background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.2); color: #ef4444; cursor: not-allowed; opacity: 0.6;" disabled>
+                <button type="button" class="buy-btn-v3" style="background: rgba(232, 93, 117, 0.1); border: 1px solid rgba(232, 93, 117, 0.2); color: #e85d75; cursor: not-allowed; opacity: 0.6;" disabled>
                     <i class="fas fa-exclamation-circle ml-2"></i> المنتج غير متوفر حالياً
                 </button>
                 {% else %}
@@ -1222,7 +1222,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
 <!-- Modal Popup for Instant In-Page Order Results & Server Responses -->
 <div id="purchase-result-modal" style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; width: 100vw; height: 100vh; z-index: 9999999; display: none; align-items: center; justify-content: center; padding: 1.25rem; background-color: rgba(2, 6, 23, 0.88); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);">
-    <div id="purchase-modal-container" style="max-width: 440px; width: 100%; margin: auto; background: linear-gradient(165deg, #0f172a 0%, #060b18 100%); border: 1px solid rgba(6, 182, 212, 0.4); box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.8), 0 0 35px rgba(6, 182, 212, 0.15); border-radius: 28px;" class="p-6 sm:p-7 relative transform transition-all duration-300">
+    <div id="purchase-modal-container" style="max-width: 440px; width: 100%; margin: auto; background: linear-gradient(165deg, #12121a 0%, #0a0a0f 100%); border: 1px solid rgba(212, 168, 83, 0.4); box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.8), 0 0 35px rgba(212, 168, 83, 0.15); border-radius: 28px;" class="p-6 sm:p-7 relative transform transition-all duration-300">
         <!-- Close Button Top -->
         <button type="button" onclick="closePurchaseModal()" class="absolute top-4 left-4 w-9 h-9 rounded-full bg-slate-800/80 text-slate-400 hover:text-white hover:bg-rose-500/20 hover:text-rose-400 flex items-center justify-center transition border border-white/10 cursor-pointer" title="إغلاق">
             <i class="fas fa-times text-sm"></i>

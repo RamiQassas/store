@@ -1,4 +1,4 @@
-{% extends "site/base.html" %}
+﻿{% extends "site/base.html" %}
 {% load static site_tags %}
 
 {% block title %}متجر الخدمات | {% if is_tenant %}{{ STORE_NAME }}{% else %}رقميات{% endif %}{% endblock %}
@@ -16,8 +16,8 @@
     min-height: 100vh;
     padding: 3rem 0 6rem;
     direction: rtl;
-    background: radial-gradient(circle at 85% 8%, rgba(34,211,238,0.06) 0%, transparent 45%),
-                radial-gradient(circle at 15% 18%, rgba(99,102,241,0.06) 0%, transparent 45%);
+    background: radial-gradient(circle at 85% 8%, rgba(212,168,83,0.06) 0%, transparent 45%),
+                radial-gradient(circle at 15% 18%, rgba(124,92,191,0.06) 0%, transparent 45%);
 }
 .catalog-container {
     width: min(100% - 2rem, 1400px);
@@ -41,15 +41,15 @@
 .catalog-hero-label {
     font-size: 0.7rem;
     font-weight: 900;
-    color: var(--cyan, #2dd4bf);
+    color: var(--gold, #d4a853);
     text-transform: uppercase;
     letter-spacing: 0.25em;
     display: inline-flex;
     align-items: center;
     gap: 0.4rem;
     margin-bottom: 0.6rem;
-    background: rgba(45,212,191,0.08);
-    border: 1px solid rgba(45,212,191,0.2);
+    background: rgba(212,168,83,0.08);
+    border: 1px solid rgba(212,168,83,0.2);
     padding: 0.25rem 0.75rem;
     border-radius: 999px;
 }
@@ -88,7 +88,7 @@
     transition: color 0.3s;
 }
 .catalog-search-wrap form:focus-within i {
-    color: var(--cyan, #2dd4bf);
+    color: var(--gold, #d4a853);
 }
 .catalog-search-input {
     width: 100%;
@@ -108,8 +108,8 @@
     box-shadow: 0 8px 24px rgba(0,0,0,0.3);
 }
 .catalog-search-input:focus {
-    border-color: rgba(45,212,191,0.6);
-    box-shadow: 0 0 0 4px rgba(45,212,191,0.12), 0 10px 30px rgba(0,0,0,0.4);
+    border-color: rgba(212,168,83,0.6);
+    box-shadow: 0 0 0 4px rgba(212,168,83,0.12), 0 10px 30px rgba(0,0,0,0.4);
 }
 .catalog-search-input::placeholder { color: #64748b; }
 
@@ -142,9 +142,9 @@
 }
 .cat-pill:hover { background: rgba(255,255,255,0.08); color: #fff; }
 .cat-pill.active {
-    background: var(--cyan, #2dd4bf);
+    background: var(--gold, #d4a853);
     color: #000;
-    border-color: var(--cyan, #2dd4bf);
+    border-color: var(--gold, #d4a853);
     font-weight: 900;
 }
 
@@ -213,9 +213,9 @@
     color: #e2e8f0;
 }
 .sidebar-cat-link.active {
-    background: var(--cyan, #2dd4bf);
+    background: var(--gold, #d4a853);
     color: #000;
-    border-color: var(--cyan, #2dd4bf);
+    border-color: var(--gold, #d4a853);
     font-weight: 900;
 }
 .sidebar-cat-count {
@@ -232,8 +232,8 @@
 
 /* ---- Sidebar Suggestion Card ---- */
 .sidebar-suggest-card {
-    background: linear-gradient(135deg, rgba(99,102,241,0.08) 0%, rgba(45,212,191,0.05) 100%);
-    border: 1px solid rgba(99,102,241,0.2);
+    background: linear-gradient(135deg, rgba(124,92,191,0.08) 0%, rgba(212,168,83,0.05) 100%);
+    border: 1px solid rgba(124,92,191,0.2);
     border-radius: 16px;
     padding: 1.25rem;
     position: relative;
@@ -246,7 +246,7 @@
     right: -30px;
     width: 80px;
     height: 80px;
-    background: rgba(99,102,241,0.15);
+    background: rgba(124,92,191,0.15);
     border-radius: 50%;
     filter: blur(20px);
     pointer-events: none;
@@ -254,12 +254,12 @@
 .sidebar-suggest-icon {
     width: 36px;
     height: 36px;
-    background: rgba(99,102,241,0.15);
+    background: rgba(124,92,191,0.15);
     border-radius: 10px;
     display: flex;
     align-items: center;
     justify-content: center;
-    color: #a5b4fc;
+    color: #b8a5e8;
     margin-bottom: 0.75rem;
 }
 .sidebar-suggest-card h4 {
@@ -281,7 +281,7 @@
     padding: 0.6rem;
     border: none;
     border-radius: 10px;
-    background: linear-gradient(135deg, var(--cyan, #2dd4bf), #6366f1);
+    background: linear-gradient(135deg, var(--gold, #d4a853), #7c5cbf);
     color: #000;
     font-size: 0.75rem;
     font-weight: 900;
@@ -291,7 +291,7 @@
 }
 .btn-suggest-sidebar:hover {
     transform: translateY(-2px);
-    box-shadow: 0 8px 20px rgba(45,212,191,0.3);
+    box-shadow: 0 8px 20px rgba(212,168,83,0.3);
 }
 
 /* ---- Content Area ---- */
@@ -323,10 +323,10 @@
     width: calc(50% - 4px);
     right: 4px;
     border-radius: 10px;
-    background: linear-gradient(135deg, var(--cyan, #2dd4bf) 0%, #6366f1 100%);
+    background: linear-gradient(135deg, var(--gold, #d4a853) 0%, #7c5cbf 100%);
     transition: transform 0.3s cubic-bezier(0.4,0,0.2,1);
     z-index: 0;
-    box-shadow: 0 4px 15px rgba(45,212,191,0.3);
+    box-shadow: 0 4px 15px rgba(212,168,83,0.3);
 }
 .toggle-indicator.at-left {
     transform: translateX(-100%);
@@ -376,7 +376,7 @@
     font-weight: 700;
     color: #64748b;
 }
-.topbar-info span { color: var(--cyan, #2dd4bf); }
+.topbar-info span { color: var(--gold, #d4a853); }
 .topbar-actions {
     display: flex;
     align-items: center;
@@ -404,9 +404,9 @@
     align-items: center;
     gap: 0.4rem;
     padding: 0.5rem 0.85rem;
-    border: 1px solid rgba(99,102,241,0.3);
-    background: rgba(99,102,241,0.1);
-    color: #a5b4fc;
+    border: 1px solid rgba(124,92,191,0.3);
+    background: rgba(124,92,191,0.1);
+    color: #b8a5e8;
     border-radius: 10px;
     font-size: 0.75rem;
     font-weight: 700;
@@ -415,7 +415,7 @@
     font-family: inherit;
 }
 .btn-suggest-mobile-bar:hover {
-    background: rgba(99,102,241,0.2);
+    background: rgba(124,92,191,0.2);
     color: #fff;
 }
 @media (min-width: 1024px) { .btn-suggest-mobile-bar { display: none; } }
@@ -463,8 +463,8 @@
 }
 .p-card:hover {
     transform: translateY(-8px);
-    border-color: rgba(45,212,191,0.45);
-    box-shadow: 0 20px 45px rgba(45,212,191,0.15), 0 0 25px rgba(45,212,191,0.08);
+    border-color: rgba(212,168,83,0.45);
+    box-shadow: 0 20px 45px rgba(212,168,83,0.15), 0 0 25px rgba(212,168,83,0.08);
 }
 
 /* Card badge */
@@ -481,11 +481,11 @@
     box-shadow: 0 4px 12px rgba(0,0,0,0.3);
 }
 .badge-sale {
-    background: linear-gradient(135deg, #f59e0b, #ea580c);
+    background: linear-gradient(135deg, #f59e0b, #e85d75);
     color: #000;
 }
 .badge-physical {
-    background: linear-gradient(135deg, #6366f1, #8b5cf6);
+    background: linear-gradient(135deg, #7c5cbf, #8b5cf6);
     color: #fff;
 }
 /* Out of stock overlay */
@@ -516,7 +516,7 @@
     position: relative;
     width: 100%;
     aspect-ratio: 1 / 1;
-    background: radial-gradient(circle at 50% 40%, rgba(34,211,238,0.08) 0%, rgba(10,15,30,0.95) 75%);
+    background: radial-gradient(circle at 50% 40%, rgba(212,168,83,0.08) 0%, rgba(10,15,30,0.95) 75%);
     border-bottom: 1px solid rgba(255,255,255,0.06);
     overflow: hidden;
     display: flex;
@@ -563,8 +563,8 @@
     gap: 0.35rem;
     z-index: 5;
 }
-.card-type-chip.digital { color: var(--cyan, #2dd4bf); border-color: rgba(45,212,191,0.25); }
-.card-type-chip.physical { color: #a5b4fc; border-color: rgba(99,102,241,0.25); }
+.card-type-chip.digital { color: var(--gold, #d4a853); border-color: rgba(212,168,83,0.25); }
+.card-type-chip.physical { color: #b8a5e8; border-color: rgba(124,92,191,0.25); }
 
 /* Card body */
 .card-body {
@@ -577,7 +577,7 @@
 .card-cat {
     font-size: 0.68rem;
     font-weight: 800;
-    color: var(--cyan, #2dd4bf);
+    color: var(--gold, #d4a853);
     text-transform: uppercase;
     letter-spacing: 0.05em;
     opacity: 0.85;
@@ -595,7 +595,7 @@
     transition: color 0.2s;
     min-height: 2.6rem;
 }
-.p-card:hover .card-name { color: var(--cyan, #2dd4bf); }
+.p-card:hover .card-name { color: var(--gold, #d4a853); }
 
 /* Variants preview */
 .card-variants {
@@ -619,7 +619,7 @@
 .variant-more {
     font-size: 0.65rem;
     font-weight: 800;
-    color: var(--cyan, #2dd4bf);
+    color: var(--gold, #d4a853);
     padding: 0.2rem 0.3rem;
 }
 
@@ -644,7 +644,7 @@
     width: 38px;
     height: 38px;
     flex-shrink: 0;
-    background: linear-gradient(135deg, var(--cyan, #2dd4bf) 0%, #06b6d4 100%);
+    background: linear-gradient(135deg, var(--gold, #d4a853) 0%, #d4a853 100%);
     color: #000;
     border-radius: 12px;
     display: flex;
@@ -652,14 +652,14 @@
     justify-content: center;
     text-decoration: none;
     font-size: 0.8rem;
-    box-shadow: 0 4px 12px rgba(45,212,191,0.3);
+    box-shadow: 0 4px 12px rgba(212,168,83,0.3);
     transition: transform 0.25s, box-shadow 0.25s, background 0.25s, color 0.25s;
 }
 .card-buy-btn:hover {
     transform: scale(1.1);
-    background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+    background: linear-gradient(135deg, #7c5cbf 0%, #8b5cf6 100%);
     color: #fff;
-    box-shadow: 0 6px 20px rgba(99,102,241,0.45);
+    box-shadow: 0 6px 20px rgba(124,92,191,0.45);
 }
 
 /* Empty state */
@@ -733,8 +733,8 @@
 }
 .cat-card:hover {
     transform: translateY(-8px);
-    border-color: rgba(45,212,191,0.45);
-    box-shadow: 0 20px 45px rgba(45,212,191,0.18), 0 0 30px rgba(45,212,191,0.08);
+    border-color: rgba(212,168,83,0.45);
+    box-shadow: 0 20px 45px rgba(212,168,83,0.18), 0 0 30px rgba(212,168,83,0.08);
 }
 
 .cat-card-cover {
@@ -742,7 +742,7 @@
     width: 100%;
     aspect-ratio: 16 / 10;
     overflow: hidden;
-    background: radial-gradient(circle at center, rgba(34,211,238,0.08) 0%, #0b1120 80%);
+    background: radial-gradient(circle at center, rgba(212,168,83,0.08) 0%, #0b1120 80%);
     border-bottom: 1px solid rgba(255,255,255,0.06);
     display: flex;
     align-items: center;
@@ -769,7 +769,7 @@
     transition: color 0.35s, transform 0.35s;
 }
 .cat-card:hover .cat-card-placeholder {
-    color: var(--cyan, #2dd4bf);
+    color: var(--gold, #d4a853);
     transform: scale(1.1);
 }
 .cat-card-overlay {
@@ -786,7 +786,7 @@
     background: rgba(2,6,23,0.8);
     backdrop-filter: blur(8px);
     border: 1px solid rgba(255,255,255,0.12);
-    color: var(--cyan, #2dd4bf);
+    color: var(--gold, #d4a853);
     font-size: 0.68rem;
     font-weight: 800;
     padding: 0.25rem 0.65rem;
@@ -819,7 +819,7 @@
     transition: color 0.25s;
 }
 .cat-card:hover .cat-card-name {
-    color: var(--cyan, #2dd4bf);
+    color: var(--gold, #d4a853);
 }
 .cat-card-action {
     display: inline-flex;
@@ -827,7 +827,7 @@
     gap: 0.35rem;
     font-size: 0.75rem;
     font-weight: 800;
-    color: var(--cyan, #2dd4bf);
+    color: var(--gold, #d4a853);
     opacity: 0.9;
     transition: transform 0.25s, opacity 0.25s;
 }
@@ -838,8 +838,8 @@
 
 /* ---- Suggestion Card (bottom) ---- */
 .suggest-cta {
-    background: linear-gradient(135deg, rgba(99,102,241,0.08) 0%, rgba(45,212,191,0.06) 100%);
-    border: 1px solid rgba(99,102,241,0.2);
+    background: linear-gradient(135deg, rgba(124,92,191,0.08) 0%, rgba(212,168,83,0.06) 100%);
+    border: 1px solid rgba(124,92,191,0.2);
     border-radius: 20px;
     padding: 2.5rem 2rem;
     text-align: center;
@@ -851,7 +851,7 @@
     position: absolute;
     top: -50px; right: -50px;
     width: 150px; height: 150px;
-    background: rgba(99,102,241,0.1);
+    background: rgba(124,92,191,0.1);
     border-radius: 50%;
     filter: blur(40px);
     pointer-events: none;
@@ -861,7 +861,7 @@
     position: absolute;
     bottom: -40px; left: -40px;
     width: 120px; height: 120px;
-    background: rgba(45,212,191,0.08);
+    background: rgba(212,168,83,0.08);
     border-radius: 50%;
     filter: blur(30px);
     pointer-events: none;
@@ -869,14 +869,14 @@
 .suggest-cta-icon {
     width: 56px;
     height: 56px;
-    background: rgba(99,102,241,0.12);
+    background: rgba(124,92,191,0.12);
     border-radius: 16px;
     display: flex;
     align-items: center;
     justify-content: center;
     margin: 0 auto 1.25rem;
     font-size: 1.3rem;
-    color: #a5b4fc;
+    color: #b8a5e8;
     position: relative;
     z-index: 1;
 }
@@ -904,7 +904,7 @@
     justify-content: center;
     gap: 0.5rem;
     padding: 0.85rem 2rem;
-    background: linear-gradient(135deg, var(--cyan, #2dd4bf) 0%, #6366f1 100%);
+    background: linear-gradient(135deg, var(--gold, #d4a853) 0%, #7c5cbf 100%);
     color: #000;
     font-weight: 900;
     font-size: 0.875rem;
@@ -918,7 +918,7 @@
 }
 .btn-suggest-main:hover {
     transform: translateY(-3px);
-    box-shadow: 0 12px 30px rgba(45,212,191,0.35);
+    box-shadow: 0 12px 30px rgba(212,168,83,0.35);
 }
 
 /* ---- Suggestion Modal ---- */
@@ -997,8 +997,8 @@
     box-sizing: border-box;
 }
 .form-input:focus, .form-textarea:focus {
-    border-color: rgba(45,212,191,0.5);
-    box-shadow: 0 0 0 3px rgba(45,212,191,0.1);
+    border-color: rgba(212,168,83,0.5);
+    box-shadow: 0 0 0 3px rgba(212,168,83,0.1);
 }
 .form-input::placeholder, .form-textarea::placeholder { color: #334155; }
 .form-textarea { resize: vertical; min-height: 90px; }
@@ -1006,7 +1006,7 @@
 .btn-submit {
     width: 100%;
     padding: 0.9rem;
-    background: linear-gradient(135deg, var(--cyan, #2dd4bf) 0%, #6366f1 100%);
+    background: linear-gradient(135deg, var(--gold, #d4a853) 0%, #7c5cbf 100%);
     color: #000;
     font-weight: 900;
     font-size: 0.9rem;
@@ -1020,7 +1020,7 @@
     justify-content: center;
     gap: 0.5rem;
 }
-.btn-submit:hover { transform: translateY(-2px); box-shadow: 0 10px 25px rgba(45,212,191,0.3); }
+.btn-submit:hover { transform: translateY(-2px); box-shadow: 0 10px 25px rgba(212,168,83,0.3); }
 .btn-submit:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
 
 /* Modal feedback states */
@@ -1087,7 +1087,7 @@
     gap: 0.5rem;
     width: 100%;
     padding: 0.9rem;
-    background: linear-gradient(135deg, var(--cyan, #2dd4bf), #6366f1);
+    background: linear-gradient(135deg, var(--gold, #d4a853), #7c5cbf);
     color: #000;
     font-weight: 900;
     font-size: 0.9rem;
@@ -1095,7 +1095,7 @@
     text-decoration: none;
     transition: transform 0.2s, box-shadow 0.2s;
 }
-.btn-login-modal:hover { transform: translateY(-2px); box-shadow: 0 10px 25px rgba(45,212,191,0.3); }
+.btn-login-modal:hover { transform: translateY(-2px); box-shadow: 0 10px 25px rgba(212,168,83,0.3); }
 
 /* ---- Stagger animation delays for cards ---- */
 .p-card:nth-child(1)  { animation-delay: 0.00s; }
@@ -1133,7 +1133,7 @@
         <div class="catalog-search-wrap">
             <form method="get" action="{% url 'catalog' %}" class="relative flex items-center">
                 {% if active_category %}<input type="hidden" name="category" value="{{ active_category }}">{% endif %}
-                <button type="submit" aria-label="بحث" style="position: absolute; right: 0.75rem; top: 50%; transform: translateY(-50%); background: transparent; border: none; color: #2dd4bf; cursor: pointer; z-index: 5; font-size: 1.1rem; padding: 0.5rem;">
+                <button type="submit" aria-label="بحث" style="position: absolute; right: 0.75rem; top: 50%; transform: translateY(-50%); background: transparent; border: none; color: #d4a853; cursor: pointer; z-index: 5; font-size: 1.1rem; padding: 0.5rem;">
                     <i class="fas fa-search"></i>
                 </button>
                 <input type="text" name="q" value="{{ query }}" 
@@ -1247,10 +1247,10 @@
 
             {% if subcategories %}
             <div class="subcategories-bar" style="background: rgba(15,23,42,0.6); border: 1px solid rgba(255,255,255,0.06); border-radius: 16px; padding: 1rem; margin-top: 1rem; margin-bottom: 1rem; display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center;">
-                <span style="font-size: 0.75rem; font-weight: 900; color: #94a3b8; margin-left: 0.5rem;"><i class="fas fa-folder-tree text-cyan ml-1"></i> الأقسام الفرعية:</span>
+                <span style="font-size: 0.75rem; font-weight: 900; color: #94a3b8; margin-left: 0.5rem;"><i class="fas fa-folder-tree text-gold ml-1"></i> الأقسام الفرعية:</span>
                 {% for sub in subcategories %}
                 <a href="?category={{ sub.id }}{% if query %}&q={{ query }}{% endif %}" class="cat-pill" style="font-size: 0.75rem; padding: 0.4rem 0.85rem; background: rgba(255,255,255,0.05); color: #64748b; border: 1px solid rgba(255,255,255,0.08); border-radius: 999px; text-decoration: none; font-weight: 700; transition: all 0.2s;">
-                    {{ sub.name }} <span style="font-size: 0.65rem; color: #06b6d4;">({{ sub.product_count }})</span>
+                    {{ sub.name }} <span style="font-size: 0.65rem; color: #d4a853;">({{ sub.product_count }})</span>
                 </a>
                 {% endfor %}
             </div>
@@ -1278,7 +1278,7 @@
                             <img src="{{ p_img }}" alt="{{ p.name }}" loading="lazy">
                             {% else %}
                             <div class="card-no-img">
-                                <i class="fas fa-bolt text-cyan/30"></i>
+                                <i class="fas fa-bolt text-gold/30"></i>
                             </div>
                             {% endif %}
                             <!-- Product type chip -->

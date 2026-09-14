@@ -6,10 +6,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% filter tenant_title %}{% block title %}{% if is_tenant %}{{ STORE_NAME }}{% else %}المصادقة | رقميات{% endif %}{% endblock %}{% endfilter %}</title>
     
-    <!-- Fonts: Cairo & Rajdhani for a techy look -->
+    <!-- Fonts: Tajawal & Cairo -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@200;300;400;500;600;700;800;900&family=Rajdhani:wght@500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800;900&family=Cairo:wght@400;600;700;800;900&display=swap" rel="stylesheet">
     
     <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -22,16 +22,18 @@
             theme: {
                 extend: {
                     colors: {
-                        'dark-bg': '#020617',
-                        'panel-bg': 'rgba(15, 23, 42, 0.7)',
-                        'cyan': '#06b6d4',
-                        'indigo': '#6366f1',
-                        'purple': '#a855f7',
-                        'rose': '#f43f5e',
+                        'dark-bg': '#0a0a0f',
+                        'panel-bg': 'rgba(18, 18, 26, 0.7)',
+                        'gold': '#d4a853',
+                        'gold-light': '#f0c674',
+                        'cyan': '#d4a853',
+                        'indigo': '#7c5cbf',
+                        'purple': '#9b6dd7',
+                        'rose': '#e85d75',
                     },
                     fontFamily: {
-                        'cairo': ['Cairo', 'sans-serif'],
-                        'tech': ['Rajdhani', 'sans-serif'],
+                        'cairo': ['Tajawal', 'Cairo', 'sans-serif'],
+                        'tech': ['Tajawal', 'sans-serif'],
                     },
                     animation: {
                         'glow': 'glow 3s infinite alternate',
@@ -39,8 +41,8 @@
                     },
                     keyframes: {
                         glow: {
-                            '0%': { boxShadow: '0 0 5px rgba(6, 182, 212, 0.2)' },
-                            '100%': { boxShadow: '0 0 20px rgba(6, 182, 212, 0.6)' },
+                            '0%': { boxShadow: '0 0 5px rgba(212, 168, 83, 0.2)' },
+                            '100%': { boxShadow: '0 0 20px rgba(212, 168, 83, 0.5)' },
                         },
                         float: {
                             '0%, 100%': { transform: 'translateY(0)' },
@@ -63,10 +65,10 @@
                 @apply bg-slate-900/60 backdrop-blur-xl border border-white/10 rounded-[2rem] shadow-2xl;
             }
             .auth-input {
-                @apply w-full bg-slate-800/50 border border-slate-700/50 rounded-2xl px-5 py-4 text-white placeholder-slate-500 transition-all focus:outline-none focus:border-cyan/50 focus:ring-4 focus:ring-cyan/10;
+                @apply w-full bg-slate-800/50 border border-slate-700/50 rounded-2xl px-5 py-4 text-white placeholder-slate-500 transition-all focus:outline-none focus:border-gold/50 focus:ring-4 focus:ring-gold/10;
             }
             .btn-premium {
-                @apply relative overflow-hidden bg-gradient-to-r from-cyan to-indigo text-white font-bold py-4 rounded-2xl transition-all hover:scale-[1.02] active:scale-[0.98] shadow-lg shadow-cyan/20 flex items-center justify-center gap-2;
+                @apply relative overflow-hidden bg-gradient-to-r from-gold to-indigo text-white font-bold py-4 rounded-2xl transition-all hover:scale-[1.02] active:scale-[0.98] shadow-lg shadow-gold/20 flex items-center justify-center gap-2;
             }
             .btn-secondary {
                 @apply bg-slate-800 hover:bg-slate-700 border border-slate-700 text-white font-bold py-4 rounded-2xl transition-all flex items-center justify-center gap-2;
@@ -83,14 +85,14 @@
         }
         
         .otp-input {
-            @apply w-12 h-14 bg-slate-800 border border-slate-700 rounded-xl text-center text-2xl font-bold text-cyan focus:border-cyan focus:ring-4 focus:ring-cyan/20 outline-none transition-all;
+            @apply w-12 h-14 bg-slate-800 border border-slate-700 rounded-xl text-center text-2xl font-bold text-gold focus:border-gold focus:ring-4 focus:ring-gold/20 outline-none transition-all;
         }
 
         /* Custom Scrollbar */
         ::-webkit-scrollbar { width: 6px; }
-        ::-webkit-scrollbar-track { background: #020617; }
-        ::-webkit-scrollbar-thumb { background: #1e293b; border-radius: 10px; }
-        ::-webkit-scrollbar-thumb:hover { background: #334155; }
+        ::-webkit-scrollbar-track { background: #0a0a0f; }
+        ::-webkit-scrollbar-thumb { background: #1a1a28; border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: #2a2a40; }
 
         /* Syrian Revolution Flag Override for intl-tel-input */
         .iti__flag.iti__sy {
@@ -104,7 +106,7 @@
 </head>
 <body class="min-h-screen flex items-center justify-center p-4 relative">
     <!-- Animated Background Decor -->
-    <div class="glow-effect w-[400px] h-[400px] bg-cyan top-[-100px] right-[-100px] animate-float"></div>
+    <div class="glow-effect w-[400px] h-[400px] bg-gold top-[-100px] right-[-100px] animate-float"></div>
     <div class="glow-effect w-[300px] h-[300px] bg-purple bottom-[-50px] left-[-50px] animate-float" style="animation-delay: -2s;"></div>
     
     <div class="w-full max-w-md relative z-10">
@@ -112,7 +114,7 @@
         <div class="text-center mb-8">
             <a href="/" class="inline-block group">
                 <div class="relative">
-                    <div class="absolute inset-0 bg-cyan blur-2xl opacity-20 group-hover:opacity-40 transition-opacity"></div>
+                    <div class="absolute inset-0 bg-gold blur-2xl opacity-20 group-hover:opacity-40 transition-opacity"></div>
                     {% if is_tenant and STORE_LOGO %}
                         <div class="flex flex-col items-center gap-3">
                             <img src="{{ STORE_LOGO.url }}" alt="{{ STORE_NAME }}" style="max-height: 80px; width: auto; border-radius: 8px; object-fit: contain;">
@@ -120,8 +122,8 @@
                         </div>
                     {% else %}
                         <h1 class="text-4xl font-black tracking-tighter text-white relative flex items-center gap-2">
-                            <span class="bg-gradient-to-l from-cyan to-indigo bg-clip-text text-transparent">{% if is_tenant %}{{ STORE_NAME }}{% else %}رقميات{% endif %}</span>
-                            <i class="fas fa-bolt text-cyan text-2xl"></i>
+                            <span class="bg-gradient-to-l from-gold to-indigo bg-clip-text text-transparent">{% if is_tenant %}{{ STORE_NAME }}{% else %}رقميات{% endif %}</span>
+                            <i class="fas fa-bolt text-gold text-2xl"></i>
                         </h1>
                     {% endif %}
                 </div>
@@ -144,9 +146,9 @@
         
         <!-- Footer Links -->
         <div class="mt-8 flex flex-wrap justify-center gap-x-6 gap-y-2 text-[11px] text-slate-500 font-medium">
-            <a href="{% url 'privacy_policy' %}" class="hover:text-cyan transition-colors">سياسة الخصوصية</a>
-            <a href="{% url 'terms_of_service' %}" class="hover:text-cyan transition-colors">شروط الخدمة</a>
-            <a href="{% url 'contact' %}" class="hover:text-cyan transition-colors">الدعم الفني</a>
+            <a href="{% url 'privacy_policy' %}" class="hover:text-gold transition-colors">سياسة الخصوصية</a>
+            <a href="{% url 'terms_of_service' %}" class="hover:text-gold transition-colors">شروط الخدمة</a>
+            <a href="{% url 'contact' %}" class="hover:text-gold transition-colors">الدعم الفني</a>
         </div>
     </div>
 

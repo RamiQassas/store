@@ -22,8 +22,8 @@
 
     /* Wallet Card */
     .premium-wallet-card {
-        background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
-        border: 1px solid rgba(6, 182, 212, 0.2);
+        background: linear-gradient(135deg, #12121a 0%, #1a1a28 100%);
+        border: 1px solid rgba(212, 168, 83, 0.2);
         position: relative;
         overflow: hidden;
     }
@@ -35,7 +35,7 @@
         left: -50%;
         width: 200%;
         height: 200%;
-        background: radial-gradient(circle, rgba(6, 182, 212, 0.05) 0%, transparent 70%);
+        background: radial-gradient(circle, rgba(212, 168, 83, 0.05) 0%, transparent 70%);
         pointer-events: none;
     }
 
@@ -43,7 +43,7 @@
         font-size: 2.5rem;
         font-weight: 900;
         letter-spacing: -1px;
-        background: linear-gradient(to right, #fff, var(--cyan));
+        background: linear-gradient(to right, #fff, var(--gold));
         -webkit-background-clip: text;
         -webkit-text-fill-color: transparent;
     }
@@ -68,14 +68,14 @@
     }
 
     .action-btn:hover {
-        border-color: var(--cyan);
-        background: rgba(6, 182, 212, 0.05);
+        border-color: var(--gold);
+        background: rgba(212, 168, 83, 0.05);
         transform: translateY(-3px);
     }
 
     .action-btn i {
         font-size: 1.5rem;
-        color: var(--cyan);
+        color: var(--gold);
     }
 
     .action-btn span {
@@ -153,15 +153,15 @@
 {% if digital_deliveries %}
 <div class="mb-10" id="digital-deliveries-section">
     <div class="section-head mb-4">
-        <h2 class="text-xl font-black text-cyan flex items-center gap-3">
+        <h2 class="text-xl font-black text-gold flex items-center gap-3">
             <i class="fas fa-gift"></i> منتجاتك الرقمية المستلمة
         </h2>
     </div>
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {% for order in digital_deliveries %}
-        <div class="panel delivery-card p-6 bg-cyan/5 border-cyan/20 flex flex-col justify-between">
+        <div class="panel delivery-card p-6 bg-gold/5 border-gold/20 flex flex-col justify-between">
             <div class="flex gap-4 mb-4">
-                <div class="w-12 h-12 rounded-xl bg-slate-900 flex items-center justify-center text-cyan flex-shrink-0">
+                <div class="w-12 h-12 rounded-xl bg-slate-900 flex items-center justify-center text-gold flex-shrink-0">
                     <i class="fas fa-key text-xl"></i>
                 </div>
                 <div>
@@ -176,7 +176,7 @@
                 <div class="flex justify-between items-center p-2 bg-slate-900/50 rounded-lg border border-white/5">
                     <span class="text-[10px] text-slate-500 font-black uppercase">{{ key }}</span>
                     <div class="flex items-center gap-2">
-                        <span class="text-xs font-mono text-cyan">{{ val|truncatechars:20 }}</span>
+                        <span class="text-xs font-mono text-gold">{{ val|truncatechars:20 }}</span>
                         <button onclick="copyToClipboard('{{ val }}', this)" class="text-[10px] text-slate-400 hover:text-white"><i class="fas fa-copy"></i></button>
                     </div>
                 </div>
@@ -217,7 +217,7 @@
         <div class="panel premium-wallet-card p-8">
             <div class="flex justify-between items-start mb-6">
                 <div>
-                    <span class="text-sm font-bold text-cyan uppercase tracking-wider">الرصيد المتاح</span>
+                    <span class="text-sm font-bold text-gold uppercase tracking-wider">الرصيد المتاح</span>
                     <div class="balance-display mt-2">{% currency_format wallet.available_balance wallet.currency mode="withdraw" %}</div>
                 </div>
                 <div class="text-left">
@@ -285,7 +285,7 @@
             <div class="panel stack">
                 <div class="section-head p-6 pb-0">
                     <h2 class="text-lg">أحدث الطلبات</h2>
-                    <a href="{% url 'dashboard_orders' %}" class="text-cyan text-sm font-bold">كل الطلبات</a>
+                    <a href="{% url 'dashboard_orders' %}" class="text-gold text-sm font-bold">كل الطلبات</a>
                 </div>
                 <div class="p-4 stack">
                     {% for order in orders %}
@@ -317,7 +317,7 @@
             <div class="panel stack">
                 <div class="section-head p-6 pb-0">
                     <h2 class="text-lg">آخر الإيداعات</h2>
-                    <a href="{% url 'dashboard_deposits' %}" class="text-cyan text-sm font-bold">سجل العمليات</a>
+                    <a href="{% url 'dashboard_deposits' %}" class="text-gold text-sm font-bold">سجل العمليات</a>
                 </div>
                 <div class="p-4 stack">
                     {% for deposit in deposits %}
@@ -447,19 +447,19 @@
         </div>
 
         <!-- Security Quick Settings -->
-        <div class="panel p-6 border-cyan/20">
-            <h2 class="text-lg mb-4 text-cyan"><i class="fas fa-shield-alt ml-2"></i> الأمن والحماية</h2>
+        <div class="panel p-6 border-gold/20">
+            <h2 class="text-lg mb-4 text-gold"><i class="fas fa-shield-alt ml-2"></i> الأمن والحماية</h2>
             <div class="stack gap-3">
-                <a href="{% url 'site_security_triggers' %}" class="flex items-center justify-between p-3 bg-slate-800/30 rounded-lg hover:bg-cyan/5 transition-colors">
+                <a href="{% url 'site_security_triggers' %}" class="flex items-center justify-between p-3 bg-slate-800/30 rounded-lg hover:bg-gold/5 transition-colors">
                     <div class="flex items-center gap-3">
-                        <i class="fas fa-toggle-on text-cyan"></i>
+                        <i class="fas fa-toggle-on text-gold"></i>
                         <span class="text-sm">مشغلات الأمان</span>
                     </div>
                     <i class="fas fa-chevron-left text-[10px] text-slate-600"></i>
                 </a>
-                <a href="{% url 'site_2fa_setup' %}" class="flex items-center justify-between p-3 bg-slate-800/30 rounded-lg hover:bg-cyan/5 transition-colors">
+                <a href="{% url 'site_2fa_setup' %}" class="flex items-center justify-between p-3 bg-slate-800/30 rounded-lg hover:bg-gold/5 transition-colors">
                     <div class="flex items-center gap-3">
-                        <i class="fas fa-key text-cyan"></i>
+                        <i class="fas fa-key text-gold"></i>
                         <span class="text-sm">المصادقة الثنائية (2FA)</span>
                     </div>
                     {% if user.totp_enabled %}
@@ -468,9 +468,9 @@
                     <span class="text-[8px] text-slate-500 bg-slate-500/10 px-2 py-1 rounded">معطل</span>
                     {% endif %}
                 </a>
-                <a href="{% url 'change_password' %}" class="flex items-center justify-between p-3 bg-slate-800/30 rounded-lg hover:bg-cyan/5 transition-colors">
+                <a href="{% url 'change_password' %}" class="flex items-center justify-between p-3 bg-slate-800/30 rounded-lg hover:bg-gold/5 transition-colors">
                     <div class="flex items-center gap-3">
-                        <i class="fas fa-lock text-cyan"></i>
+                        <i class="fas fa-lock text-gold"></i>
                         <span class="text-sm">تغيير كلمة المرور</span>
                     </div>
                     <i class="fas fa-chevron-left text-[10px] text-slate-600"></i>
@@ -488,7 +488,7 @@
                 {% for n in notifications %}
                 <div class="p-3 border-b border-white/5 last:border-0 hover:bg-white/5 rounded transition-colors cursor-pointer flex items-center gap-3" {% if n.action_url %}onclick="window.location='{{ n.action_url }}'"{% endif %}>
                     {% if n.image_url %}
-                    <img src="{{ n.image_url }}" alt="" class="w-10 h-10 rounded-xl object-cover border border-cyan/30 shrink-0">
+                    <img src="{{ n.image_url }}" alt="" class="w-10 h-10 rounded-xl object-cover border border-gold/30 shrink-0">
                     {% endif %}
                     <div class="flex-grow min-w-0">
                         <h4 class="text-sm font-bold mb-1">{{ n.title }}</h4>

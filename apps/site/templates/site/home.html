@@ -4,25 +4,25 @@
 {% block title %}{% if is_tenant %}{{ STORE_NAME }}{% else %}رقميات | المتجر الأسرع لشحن الألعاب والبطاقات الرقمية{% endif %}{% endblock %}
 
 {% block extra_head %}
-<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800;900&family=Space+Grotesk:wght@600;700;800&family=Plus+Jakarta+Sans:wght@700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800;900&family=Tajawal:wght@400;500;700;800;900&family=Space+Grotesk:wght@600;700;800&family=Plus+Jakarta+Sans:wght@700;800&display=swap" rel="stylesheet">
 <style>
     /* ==========================================================================
-       OBSIDIAN & ELECTRIC MINT — BESPOKE GAMING STOREFRONT
+       VELVET NOIR & ROYAL GOLD — BESPOKE GAMING STOREFRONT
        ========================================================================== */
     :root {
-        --obsidian: #08090d;
-        --obsidian-surface: #0e1118;
-        --obsidian-card: #131722;
-        --obsidian-card-hover: #191f2e;
+        --noir: #0a0a0f;
+        --noir-surface: #0f0f17;
+        --noir-card: #12121a;
+        --noir-card-hover: #1a1a28;
         --border-subtle: rgba(255, 255, 255, 0.07);
-        --border-active: rgba(0, 240, 118, 0.4);
+        --border-active: rgba(212, 168, 83, 0.4);
         
-        --mint: #00f076;
-        --mint-dim: #059669;
-        --mint-glow: rgba(0, 240, 118, 0.22);
+        --gold: #d4a853;
+        --gold-dim: #a07c3a;
+        --gold-glow: rgba(212, 168, 83, 0.22);
         
-        --flame: #ff5533;
-        --flame-glow: rgba(255, 85, 51, 0.25);
+        --rose: #e85d75;
+        --rose-glow: rgba(232, 93, 117, 0.25);
         
         --text-pure: #ffffff;
         --text-sub: #94a3b8;
@@ -30,9 +30,9 @@
     }
 
     body {
-        background-color: var(--obsidian) !important;
+        background-color: var(--noir) !important;
         color: var(--text-pure);
-        font-family: 'Cairo', system-ui, -apple-system, sans-serif;
+        font-family: 'Tajawal', 'Cairo', system-ui, sans-serif;
         margin: 0;
         overflow-x: hidden;
     }
@@ -48,9 +48,9 @@
         inset: 0;
         height: 680px;
         background: 
-            radial-gradient(circle at 50% -10%, rgba(0, 240, 118, 0.08) 0%, transparent 60%),
+            radial-gradient(circle at 50% -10%, rgba(212, 168, 83, 0.08) 0%, transparent 60%),
             radial-gradient(circle at 90% 20%, rgba(14, 165, 233, 0.05) 0%, transparent 40%),
-            linear-gradient(180deg, rgba(8, 9, 13, 0) 0%, var(--obsidian) 100%);
+            linear-gradient(180deg, rgba(8, 9, 13, 0) 0%, var(--noir) 100%);
         pointer-events: none;
         z-index: 0;
     }
@@ -90,8 +90,8 @@
         width: 7px;
         height: 7px;
         border-radius: 50%;
-        background: var(--mint);
-        box-shadow: 0 0 8px var(--mint);
+        background: var(--gold);
+        box-shadow: 0 0 8px var(--gold);
         display: inline-block;
     }
 
@@ -118,13 +118,13 @@
         display: inline-flex;
         align-items: center;
         gap: 0.5rem;
-        background: rgba(0, 240, 118, 0.08);
-        border: 1px solid rgba(0, 240, 118, 0.2);
+        background: rgba(212, 168, 83, 0.08);
+        border: 1px solid rgba(212, 168, 83, 0.2);
         padding: 0.35rem 0.85rem;
         border-radius: 8px;
         font-size: 0.78rem;
         font-weight: 800;
-        color: var(--mint);
+        color: var(--gold);
         margin-bottom: 1.25rem;
         text-transform: uppercase;
         letter-spacing: 0.05em;
@@ -138,9 +138,9 @@
         color: #fff;
         margin: 0 0 1.25rem;
     }
-    .mint-highlight {
-        color: var(--mint);
-        text-shadow: 0 0 25px rgba(0, 240, 118, 0.3);
+    .gold-highlight {
+        color: var(--gold);
+        text-shadow: 0 0 25px rgba(212, 168, 83, 0.3);
     }
 
     .hero-paragraph {
@@ -153,7 +153,7 @@
 
     /* Floating Search Dock */
     .search-dock-container {
-        background: var(--obsidian-card);
+        background: var(--noir-card);
         border: 1px solid var(--border-subtle);
         border-radius: 18px;
         padding: 0.5rem;
@@ -163,8 +163,8 @@
         transition: border-color 0.25s, box-shadow 0.25s;
     }
     .search-dock-container:focus-within {
-        border-color: var(--mint);
-        box-shadow: 0 20px 50px rgba(0, 0, 0, 0.8), 0 0 0 3px rgba(0, 240, 118, 0.15);
+        border-color: var(--gold);
+        box-shadow: 0 20px 50px rgba(0, 0, 0, 0.8), 0 0 0 3px rgba(212, 168, 83, 0.15);
     }
     .search-dock-form {
         display: flex;
@@ -186,7 +186,7 @@
         color: var(--text-muted);
     }
     .search-dock-btn {
-        background: var(--mint);
+        background: linear-gradient(135deg, var(--gold) 0%, var(--gold-dim) 100%);
         color: #040806;
         border: none;
         border-radius: 12px;
@@ -213,8 +213,8 @@
         flex-wrap: wrap;
         margin-top: 1.5rem;
     }
-    .btn-luxe-mint {
-        background: var(--mint);
+    .btn-luxe-gold {
+        background: linear-gradient(135deg, var(--gold) 0%, var(--gold-dim) 100%);
         color: #040806 !important;
         font-weight: 800;
         font-size: 0.95rem;
@@ -225,11 +225,11 @@
         align-items: center;
         gap: 0.5rem;
         transition: all 0.2s;
-        box-shadow: 0 10px 25px var(--mint-glow);
+        box-shadow: 0 10px 25px var(--gold-glow);
     }
-    .btn-luxe-mint:hover {
+    .btn-luxe-gold:hover {
         transform: translateY(-2px);
-        box-shadow: 0 15px 30px rgba(0, 240, 118, 0.4);
+        box-shadow: 0 15px 30px rgba(212, 168, 83, 0.4);
     }
     .btn-luxe-ghost {
         background: rgba(255, 255, 255, 0.03);
@@ -256,7 +256,7 @@
         position: relative;
     }
     .hero-spotlight-card {
-        background: var(--obsidian-surface);
+        background: var(--noir-surface);
         border: 1px solid var(--border-subtle);
         border-radius: 26px;
         padding: 1.5rem;
@@ -265,7 +265,7 @@
         transition: border-color 0.3s;
     }
     .hero-spotlight-card:hover {
-        border-color: rgba(0, 240, 118, 0.35);
+        border-color: rgba(212, 168, 83, 0.35);
     }
     .spotlight-cover {
         width: 100%;
@@ -290,8 +290,8 @@
         top: 12px;
         right: 12px;
         background: rgba(8, 9, 13, 0.8);
-        border: 1px solid rgba(0, 240, 118, 0.35);
-        color: var(--mint);
+        border: 1px solid rgba(212, 168, 83, 0.35);
+        color: var(--gold);
         padding: 0.3rem 0.75rem;
         border-radius: 8px;
         font-size: 0.72rem;
@@ -353,15 +353,15 @@
         position: relative;
     }
     .cat-ring-item:hover .cat-avatar-circle {
-        border-color: var(--mint);
-        box-shadow: 0 0 20px rgba(0, 240, 118, 0.3);
+        border-color: var(--gold);
+        box-shadow: 0 0 20px rgba(212, 168, 83, 0.3);
     }
     .cat-avatar-inner {
         width: 100%;
         height: 100%;
         border-radius: 50%;
         overflow: hidden;
-        background: var(--obsidian-card);
+        background: var(--noir-card);
         display: flex;
         align-items: center;
         justify-content: center;
@@ -373,7 +373,7 @@
     }
     .cat-avatar-inner i {
         font-size: 1.5rem;
-        color: var(--mint);
+        color: var(--gold);
     }
     .cat-ring-title {
         font-size: 0.8rem;
@@ -386,7 +386,7 @@
         width: 100%;
     }
     .cat-ring-item:hover .cat-ring-title {
-        color: var(--mint);
+        color: var(--gold);
     }
 
     /* ==========================================================================
@@ -411,7 +411,7 @@
     }
 
     .pass-card {
-        background: var(--obsidian-surface);
+        background: var(--noir-surface);
         border: 1px solid var(--border-subtle);
         border-radius: 20px;
         overflow: hidden;
@@ -424,7 +424,7 @@
     .pass-card:hover {
         transform: translateY(-5px);
         border-color: var(--border-active);
-        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.7), 0 0 20px rgba(0, 240, 118, 0.1);
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.7), 0 0 20px rgba(212, 168, 83, 0.1);
     }
 
     .pass-thumb {
@@ -461,11 +461,11 @@
         z-index: 2;
     }
     .tag-hot {
-        background: var(--flame);
+        background: var(--rose);
         color: #fff;
     }
     .tag-featured {
-        background: var(--mint);
+        background: var(--gold);
         color: #040806;
     }
 
@@ -478,7 +478,7 @@
     .pass-cat-name {
         font-size: 0.72rem;
         font-weight: 800;
-        color: var(--mint);
+        color: var(--gold);
         margin-bottom: 0.35rem;
         text-transform: uppercase;
     }
@@ -510,9 +510,9 @@
         color: #fff;
     }
     .pass-action-btn {
-        background: rgba(0, 240, 118, 0.1);
-        border: 1px solid rgba(0, 240, 118, 0.25);
-        color: var(--mint);
+        background: rgba(212, 168, 83, 0.1);
+        border: 1px solid rgba(212, 168, 83, 0.25);
+        color: var(--gold);
         padding: 0.45rem 0.85rem;
         border-radius: 8px;
         font-size: 0.75rem;
@@ -523,9 +523,9 @@
         transition: all 0.2s;
     }
     .pass-card:hover .pass-action-btn {
-        background: var(--mint);
+        background: linear-gradient(135deg, var(--gold) 0%, var(--gold-dim) 100%);
         color: #040806;
-        border-color: var(--mint);
+        border-color: var(--gold);
     }
 
     /* ==========================================================================
@@ -542,7 +542,7 @@
     .section-super-title {
         font-size: 0.75rem;
         font-weight: 800;
-        color: var(--mint);
+        color: var(--gold);
         text-transform: uppercase;
         letter-spacing: 0.15em;
         margin-bottom: 0.4rem;
@@ -562,8 +562,8 @@
        FLASH DROPS (EDITORIAL DEALS BANNER)
        ========================================================================== */
     .flash-drop-box {
-        background: linear-gradient(135deg, rgba(255, 85, 51, 0.08) 0%, rgba(20, 24, 34, 0.8) 100%);
-        border: 1px solid rgba(255, 85, 51, 0.25);
+        background: linear-gradient(135deg, rgba(232, 93, 117, 0.08) 0%, rgba(20, 24, 34, 0.8) 100%);
+        border: 1px solid rgba(232, 93, 117, 0.25);
         border-radius: 24px;
         padding: 2rem;
         margin-bottom: 4rem;
@@ -580,7 +580,7 @@
         margin-top: 2rem;
     }
     .trust-card {
-        background: var(--obsidian-surface);
+        background: var(--noir-surface);
         border: 1px solid var(--border-subtle);
         border-radius: 18px;
         padding: 1.75rem;
@@ -594,9 +594,9 @@
         width: 46px;
         height: 46px;
         border-radius: 12px;
-        background: rgba(0, 240, 118, 0.08);
-        border: 1px solid rgba(0, 240, 118, 0.2);
-        color: var(--mint);
+        background: rgba(212, 168, 83, 0.08);
+        border: 1px solid rgba(212, 168, 83, 0.2);
+        color: var(--gold);
         display: flex;
         align-items: center;
         justify-content: center;
@@ -620,7 +620,7 @@
        STATS & SOCIAL PROOF
        ========================================================================== */
     .metric-strip {
-        background: var(--obsidian-surface);
+        background: var(--noir-surface);
         border: 1px solid var(--border-subtle);
         border-radius: 22px;
         padding: 2.25rem 1.5rem;
@@ -660,7 +660,7 @@
         gap: 1.25rem;
     }
     .review-card {
-        background: var(--obsidian-surface);
+        background: var(--noir-surface);
         border: 1px solid var(--border-subtle);
         border-radius: 18px;
         padding: 1.5rem;
@@ -687,12 +687,12 @@
        ========================================================================== */
     .vip-cta-box {
         background: linear-gradient(135deg, #0e121a 0%, #151a24 100%);
-        border: 1px solid rgba(0, 240, 118, 0.3);
+        border: 1px solid rgba(212, 168, 83, 0.3);
         border-radius: 28px;
         padding: clamp(2.5rem, 5vw, 4.5rem) 2rem;
         text-align: center;
         margin: 3rem 0 6rem;
-        box-shadow: 0 25px 60px rgba(0, 0, 0, 0.6), 0 0 40px rgba(0, 240, 118, 0.08);
+        box-shadow: 0 25px 60px rgba(0, 0, 0, 0.6), 0 0 40px rgba(212, 168, 83, 0.08);
     }
 </style>
 {% endblock %}
@@ -736,9 +736,9 @@
 
                     <h1 class="hero-headline">
                         {% if is_tenant %}
-                        مرحباً بكم في <br><span class="mint-highlight">{{ STORE_NAME }}</span>
+                        مرحباً بكم في <br><span class="gold-highlight">{{ STORE_NAME }}</span>
                         {% else %}
-                        شحن ألعابك وبطاقاتك المفضلة <br><span class="mint-highlight">بسرعة البرق وبأفضل الأسعار</span>
+                        شحن ألعابك وبطاقاتك المفضلة <br><span class="gold-highlight">بسرعة البرق وبأفضل الأسعار</span>
                         {% endif %}
                     </h1>
 
@@ -753,7 +753,7 @@
                     <!-- Floating Search Dock -->
                     <div class="search-dock-container">
                         <form action="{% url 'catalog' %}" method="get" class="search-dock-form">
-                            <i class="fas fa-search" style="color: var(--mint); font-size: 1.1rem; padding-right: 0.75rem;"></i>
+                            <i class="fas fa-search" style="color: var(--gold); font-size: 1.1rem; padding-right: 0.75rem;"></i>
                             <input type="text" name="q" class="search-dock-input" placeholder="ابحث باسم اللعبة أو البطاقة (ببجي، تيك توك، فري فاير)..." autocomplete="off">
                             <button type="submit" class="search-dock-btn">
                                 <span>بحث فوري</span>
@@ -764,13 +764,13 @@
 
                     <!-- Quick Hero Action Buttons -->
                     <div class="hero-btn-row">
-                        <a href="{% url 'catalog' %}" class="btn-luxe-mint">
+                        <a href="{% url 'catalog' %}" class="btn-luxe-gold">
                             <span>تصفح كامل الخدمات</span>
                             <i class="fas fa-arrow-left"></i>
                         </a>
                         {% if not is_tenant %}
                         <a href="{% url 'store_registration' %}" class="btn-luxe-ghost">
-                            <i class="fas fa-shop" style="color: var(--mint);"></i>
+                            <i class="fas fa-shop" style="color: var(--gold);"></i>
                             <span>أنشئ متجرك الخاص</span>
                         </a>
                         {% endif %}
@@ -787,7 +787,7 @@
                             {% elif is_tenant and STORE_LOGO %}
                             <img src="{{ STORE_LOGO.url }}" alt="{{ STORE_NAME }}" style="object-fit: contain; padding: 20%;">
                             {% else %}
-                            <div style="font-size: 5rem; color: var(--mint); opacity: 0.9;">
+                            <div style="font-size: 5rem; color: var(--gold); opacity: 0.9;">
                                 <i class="fas fa-gamepad"></i>
                             </div>
                             {% endif %}
@@ -797,10 +797,10 @@
                         </div>
 
                         <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.4rem;">
-                            <span style="font-size: 0.72rem; font-weight: 800; color: var(--mint); text-transform: uppercase;">
+                            <span style="font-size: 0.72rem; font-weight: 800; color: var(--gold); text-transform: uppercase;">
                                 {{ hero_p.category.name|default:"الخدمة الأكثر طلباً" }}
                             </span>
-                            <span style="font-size: 0.72rem; color: #10b981; font-weight: 800; display: flex; align-items: center; gap: 0.3rem;">
+                            <span style="font-size: 0.72rem; color: var(--gold); font-weight: 800; display: flex; align-items: center; gap: 0.3rem;">
                                 <span class="ticker-dot"></span> متاح الآن
                             </span>
                         </div>
@@ -812,17 +812,17 @@
                         <div style="display: flex; align-items: center; justify-content: space-between; padding-top: 0.75rem; border-top: 1px solid var(--border-subtle);">
                             <div>
                                 <div style="font-size: 0.7rem; color: var(--text-muted);">السعر المتاح:</div>
-                                <div style="font-size: 1.3rem; font-weight: 900; color: var(--mint); font-family: 'Space Grotesk', sans-serif;">
+                                <div style="font-size: 1.3rem; font-weight: 900; color: var(--gold); font-family: 'Space Grotesk', sans-serif;">
                                     {% if hero_p %}{% product_starting_price hero_p %}{% else %}متوفر{% endif %}
                                 </div>
                             </div>
                             {% if hero_p %}
-                            <a href="{% url 'product_detail' hero_p.id %}" class="btn-luxe-mint" style="padding: 0.6rem 1.3rem; font-size: 0.85rem;">
+                            <a href="{% url 'product_detail' hero_p.id %}" class="btn-luxe-gold" style="padding: 0.6rem 1.3rem; font-size: 0.85rem;">
                                 <span>شحن الآن</span>
                                 <i class="fas fa-cart-shopping"></i>
                             </a>
                             {% else %}
-                            <a href="{% url 'catalog' %}" class="btn-luxe-mint" style="padding: 0.6rem 1.3rem; font-size: 0.85rem;">
+                            <a href="{% url 'catalog' %}" class="btn-luxe-gold" style="padding: 0.6rem 1.3rem; font-size: 0.85rem;">
                                 <span>الكتالوج</span>
                             </a>
                             {% endif %}
@@ -844,7 +844,7 @@
                 <div class="section-super-title">
                     <i class="fas fa-th-large"></i> تصنيفات سريعة
                 </div>
-                <a href="{% url 'catalog' %}" style="color: var(--mint); text-decoration: none; font-size: 0.82rem; font-weight: 800;">
+                <a href="{% url 'catalog' %}" style="color: var(--gold); text-decoration: none; font-size: 0.82rem; font-weight: 800;">
                     عرض كافة الأقسام ({{ categories|length }}) <i class="fas fa-arrow-left ml-1"></i>
                 </a>
             </div>
@@ -852,12 +852,12 @@
             <!-- Horizontal Avatar Rings -->
             <div class="rings-scroll-track">
                 <a href="{% url 'catalog' %}" class="cat-ring-item">
-                    <div class="cat-avatar-circle" style="border-color: var(--mint);">
+                    <div class="cat-avatar-circle" style="border-color: var(--gold);">
                         <div class="cat-avatar-inner">
-                            <i class="fas fa-fire" style="color: var(--mint);"></i>
+                            <i class="fas fa-fire" style="color: var(--gold);"></i>
                         </div>
                     </div>
-                    <span class="cat-ring-title" style="color: var(--mint);">الكل</span>
+                    <span class="cat-ring-title" style="color: var(--gold);">الكل</span>
                 </a>
 
                 {% for c in categories %}
@@ -887,12 +887,12 @@
             <div class="flash-drop-box">
                 <div class="section-head-wrap">
                     <div>
-                        <div class="section-super-title" style="color: var(--flame);">
+                        <div class="section-super-title" style="color: var(--rose);">
                             <i class="fas fa-fire"></i> تخفيضات لفترة محدودة
                         </div>
                         <h2 class="section-main-title">عروض وخصومات حصرية</h2>
                     </div>
-                    <a href="{% url 'catalog' %}?sale=1" class="btn-luxe-ghost" style="border-color: rgba(255, 85, 51, 0.3); color: var(--flame) !important;">
+                    <a href="{% url 'catalog' %}?sale=1" class="btn-luxe-ghost" style="border-color: rgba(232, 93, 117, 0.3); color: var(--rose) !important;">
                         <span>جميع العروض</span>
                         <i class="fas fa-arrow-left"></i>
                     </a>
@@ -906,15 +906,15 @@
                             {% if p.image %}
                             <img src="{{ p.image.url }}" alt="{{ p.name }}" loading="lazy">
                             {% else %}
-                            <i class="fas fa-box" style="font-size: 3rem; color: var(--flame); opacity: 0.5;"></i>
+                            <i class="fas fa-box" style="font-size: 3rem; color: var(--rose); opacity: 0.5;"></i>
                             {% endif %}
                         </div>
                         <div class="pass-content">
-                            <span class="pass-cat-name" style="color: var(--flame);">{{ p.category.name }}</span>
+                            <span class="pass-cat-name" style="color: var(--rose);">{{ p.category.name }}</span>
                             <h4 class="pass-title">{{ p.name }}</h4>
                             <div class="pass-footer">
-                                <span class="pass-price" style="color: var(--flame);">{% product_starting_price p %}</span>
-                                <span class="pass-action-btn" style="background: rgba(255, 85, 51, 0.1); border-color: rgba(255, 85, 51, 0.3); color: var(--flame);">
+                                <span class="pass-price" style="color: var(--rose);">{% product_starting_price p %}</span>
+                                <span class="pass-action-btn" style="background: rgba(232, 93, 117, 0.1); border-color: rgba(232, 93, 117, 0.3); color: var(--rose);">
                                     اطلب الآن
                                 </span>
                             </div>
@@ -958,7 +958,7 @@
                         {% if p.image %}
                         <img src="{{ p.image.url }}" alt="{{ p.name }}" loading="lazy">
                         {% else %}
-                        <i class="fas fa-box" style="font-size: 3rem; color: var(--mint); opacity: 0.4;"></i>
+                        <i class="fas fa-box" style="font-size: 3rem; color: var(--gold); opacity: 0.4;"></i>
                         {% endif %}
                     </div>
                     <div class="pass-content">
@@ -973,8 +973,8 @@
                     </div>
                 </a>
                 {% empty %}
-                <div style="grid-column: 1 / -1; text-align: center; padding: 4rem 2rem; background: var(--obsidian-surface); border-radius: 20px; border: 1px dashed var(--border-subtle);">
-                    <i class="fas fa-box-open fa-3x mb-3" style="color: var(--mint);"></i>
+                <div style="grid-column: 1 / -1; text-align: center; padding: 4rem 2rem; background: var(--noir-surface); border-radius: 20px; border: 1px dashed var(--border-subtle);">
+                    <i class="fas fa-box-open fa-3x mb-3" style="color: var(--gold);"></i>
                     <h3 style="color: #fff; font-size: 1.2rem;">المنتجات قيد التحديث</h3>
                     <p style="color: var(--text-muted); font-size: 0.9rem;">سيتم نشر باقات جديدة خلال لحظات.</p>
                 </div>
@@ -986,7 +986,7 @@
     <!-- ==========================================================================
          5. CORE PILLARS & TRUST (AUTHENTIC & DIRECT)
          ========================================================================== -->
-    <section style="padding: 4rem 0 5rem; background: var(--obsidian-surface); border-top: 1px solid var(--border-subtle); border-bottom: 1px solid var(--border-subtle);">
+    <section style="padding: 4rem 0 5rem; background: var(--noir-surface); border-top: 1px solid var(--border-subtle); border-bottom: 1px solid var(--border-subtle);">
         <div class="luxe-container">
             <div style="text-align: center; max-width: 600px; margin: 0 auto 2.5rem;">
                 <div class="section-super-title" style="justify-content: center;">
@@ -1005,7 +1005,7 @@
                 </div>
 
                 <div class="trust-card">
-                    <div class="trust-card-icon" style="color: #38bdf8; background: rgba(56, 189, 248, 0.08); border-color: rgba(56, 189, 248, 0.2);">
+                    <div class="trust-card-icon" style="color: #7c5cbf; background: rgba(124, 92, 191, 0.08); border-color: rgba(124, 92, 191, 0.2);">
                         <i class="fas fa-lock"></i>
                     </div>
                     <h4 class="trust-card-title">حماية مالية وتشفير 100%</h4>
@@ -1013,7 +1013,7 @@
                 </div>
 
                 <div class="trust-card">
-                    <div class="trust-card-icon" style="color: #fbbf24; background: rgba(251, 191, 36, 0.08); border-color: rgba(251, 191, 36, 0.2);">
+                    <div class="trust-card-icon" style="color: #e85d75; background: rgba(232, 93, 117, 0.08); border-color: rgba(232, 93, 117, 0.2);">
                         <i class="fas fa-headset"></i>
                     </div>
                     <h4 class="trust-card-title">دعم فني حقيقي متواصل</h4>
@@ -1021,7 +1021,7 @@
                 </div>
 
                 <div class="trust-card">
-                    <div class="trust-card-icon" style="color: #a855f7; background: rgba(168, 85, 247, 0.08); border-color: rgba(168, 85, 247, 0.2);">
+                    <div class="trust-card-icon" style="color: #4f8feb; background: rgba(79, 143, 235, 0.08); border-color: rgba(79, 143, 235, 0.2);">
                         <i class="fas fa-circle-check"></i>
                     </div>
                     <h4 class="trust-card-title">ضمان رسمي لجميع الأكواد</h4>
@@ -1044,7 +1044,7 @@
                     </div>
                     <h2 class="section-main-title">متاجر رقمية تعمل بنظام رقميات</h2>
                 </div>
-                <a href="{% url 'store_registration' %}" class="btn-luxe-mint" style="font-size: 0.85rem; padding: 0.65rem 1.3rem;">
+                <a href="{% url 'store_registration' %}" class="btn-luxe-gold" style="font-size: 0.85rem; padding: 0.65rem 1.3rem;">
                     <i class="fas fa-plus ml-1"></i> أنشئ متجرك مجاناً
                 </a>
             </div>
@@ -1058,12 +1058,12 @@
                                 {% if s.logo %}
                                 <img src="{{ s.logo.url }}" alt="{{ s.name }}" style="width: 100%; height: 100%; object-fit: contain; padding: 10%;">
                                 {% else %}
-                                <i class="fas fa-store" style="color: var(--mint); font-size: 1.3rem;"></i>
+                                <i class="fas fa-store" style="color: var(--gold); font-size: 1.3rem;"></i>
                                 {% endif %}
                             </div>
                             <div>
                                 <h4 style="font-size: 1.1rem; font-weight: 800; color: #fff; margin: 0 0 0.2rem;">{{ s.name }}</h4>
-                                <span style="font-size: 0.7rem; color: #10b981; font-weight: 800; display: inline-flex; align-items: center; gap: 0.25rem;">
+                                <span style="font-size: 0.7rem; color: var(--gold); font-weight: 800; display: inline-flex; align-items: center; gap: 0.25rem;">
                                     <i class="fas fa-badge-check"></i> متجر معتمد
                                 </span>
                             </div>
@@ -1132,7 +1132,7 @@
                     <h2 class="section-main-title">آراء عملائنا الموثقة</h2>
                 </div>
                 <a href="{% url 'site_submit_testimonial' %}" class="btn-luxe-ghost" style="font-size: 0.85rem; padding: 0.6rem 1.25rem;">
-                    <i class="fas fa-plus ml-1 text-mint"></i> شارك تجربتك معنا
+                    <i class="fas fa-plus ml-1 text-gold"></i> شارك تجربتك معنا
                 </a>
             </div>
 
@@ -1149,7 +1149,7 @@
                     </div>
                     <div style="display: flex; align-items: center; justify-content: space-between; padding-top: 1rem; border-top: 1px solid var(--border-subtle);">
                         <div style="display: flex; align-items: center; gap: 0.75rem;">
-                            <div style="width: 38px; height: 38px; border-radius: 10px; background: rgba(0, 240, 118, 0.1); border: 1px solid rgba(0, 240, 118, 0.25); display: flex; align-items: center; justify-content: center; font-weight: 800; color: var(--mint); font-size: 0.85rem;">
+                            <div style="width: 38px; height: 38px; border-radius: 10px; background: rgba(212, 168, 83, 0.1); border: 1px solid rgba(212, 168, 83, 0.25); display: flex; align-items: center; justify-content: center; font-weight: 800; color: var(--gold); font-size: 0.85rem;">
                                 {% if t.display_name_publicly %}
                                     {{ t.user.display_name|slice:":1"|upper }}
                                 {% else %}
@@ -1160,7 +1160,7 @@
                                 <div style="font-size: 0.85rem; font-weight: 800; color: #fff;">
                                     {% if t.display_name_publicly %}{{ t.user.display_name }}{% else %}عميل معتمد{% endif %}
                                 </div>
-                                <div style="font-size: 0.7rem; color: var(--mint);">عملية شراء مؤكدة</div>
+                                <div style="font-size: 0.7rem; color: var(--gold);">عملية شراء مؤكدة</div>
                             </div>
                         </div>
                     </div>
@@ -1190,7 +1190,7 @@
                 انضم إلى الآلاف من مجتمع اللاعبين والمستخدمين الذين يعتمدون على منصتنا لتلبية كافة احتياجاتهم الرقمية بأمان وسرعة مطلقة.
             </p>
             <div style="display: flex; align-items: center; justify-content: center; gap: 1rem; flex-wrap: wrap;">
-                <a href="{% url 'catalog' %}" class="btn-luxe-mint" style="padding: 0.9rem 2.5rem; font-size: 1rem;">
+                <a href="{% url 'catalog' %}" class="btn-luxe-gold" style="padding: 0.9rem 2.5rem; font-size: 1rem;">
                     <span>ابدأ الشراء الآن</span>
                     <i class="fas fa-arrow-left"></i>
                 </a>
