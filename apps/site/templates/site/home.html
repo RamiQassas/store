@@ -1,1428 +1,1413 @@
 {% extends "site/base.html" %}
 {% load static site_tags %}
 
-{% block title %}{% if is_tenant %}{{ STORE_NAME }}{% else %}رقميات | المتجر الأسرع لشحن الألعاب والبطاقات الرقمية{% endif %}{% endblock %}
+{% block title %}{% if is_tenant %}{{ STORE_NAME }}{% else %}رقميات | منظومة الأصول الرقمية والحلول السحابية المتقدمة{% endif %}{% endblock %}
 
 {% block extra_head %}
 <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800;900&family=Space+Grotesk:wght@600;700;800&display=swap" rel="stylesheet">
-<style>
-/* ═══════════════════════════════════════════════════════════════════
-   RAQAMIYAT NEXT-GEN GAMING STOREFRONT — 2026 EDITION
-   Bespoke Dark Luxe, Glowing Ambience, Mobile-First Perfection
-   ═══════════════════════════════════════════════════════════════════ */
-
-:root {
-    --gold: #d4a853;
-    --gold-light: #f0c674;
-    --gold-dim: #99732e;
-    --gold-glow: rgba(212, 168, 83, 0.28);
-    --gold-subtle: rgba(212, 168, 83, 0.08);
-    --gold-border: rgba(212, 168, 83, 0.2);
-    
-    --purple: #7c5cbf;
-    --purple-glow: rgba(124, 92, 191, 0.25);
-    
-    --rose: #e85d75;
-    --rose-glow: rgba(232, 93, 117, 0.25);
-    
-    --dark-0: #06070a;
-    --dark-1: #0a0b10;
-    --dark-2: #10121a;
-    --dark-3: #161924;
-    --dark-card: rgba(16, 18, 26, 0.75);
-    --dark-card-hover: rgba(22, 25, 36, 0.9);
-    
-    --border-subtle: rgba(255, 255, 255, 0.06);
-    --border-card: rgba(255, 255, 255, 0.08);
-    
-    --text-white: #ffffff;
-    --text-muted: #8e95a5;
-    --text-dim: #5c6272;
-}
-
-body {
-    background-color: var(--dark-0) !important;
-    color: var(--text-white);
-    font-family: 'Tajawal', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-    overflow-x: hidden;
-    margin: 0;
-}
-
-.rq-shell {
-    width: min(100% - 2rem, 1320px);
-    margin-inline: auto;
-}
-
-/* Ambient Radial Glows */
-.rq-ambient-top {
-    position: absolute;
-    top: 0;
-    left: 50%;
-    transform: translateX(-50%);
-    width: 100vw;
-    height: 700px;
-    background: 
-        radial-gradient(ellipse 60% 400px at 50% 0%, rgba(212, 168, 83, 0.12) 0%, transparent 70%),
-        radial-gradient(circle 350px at 85% 20%, rgba(124, 92, 191, 0.08) 0%, transparent 60%),
-        radial-gradient(circle 300px at 15% 30%, rgba(232, 93, 117, 0.05) 0%, transparent 60%);
-    pointer-events: none;
-    z-index: 0;
-}
-
-/* ═══════════════════════════════════════════════════════
-   1. HERO SECTION — High Impact Portal
-   ═══════════════════════════════════════════════════════ */
-.rq-hero {
-    position: relative;
-    padding: 3.5rem 0 3rem;
-    z-index: 1;
-}
-
-.rq-hero-grid {
-    display: grid;
-    grid-template-columns: 1.15fr 0.85fr;
-    gap: 3rem;
-    align-items: center;
-}
-
-/* Badge Flag */
-.rq-flag-badge {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.6rem;
-    padding: 0.45rem 1rem;
-    border-radius: 100px;
-    background: linear-gradient(135deg, rgba(212, 168, 83, 0.12), rgba(212, 168, 83, 0.04));
-    border: 1px solid var(--gold-border);
-    color: var(--gold-light);
-    font-size: 0.82rem;
-    font-weight: 800;
-    margin-bottom: 1.5rem;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
-}
-.rq-flag-badge i { color: var(--gold); animation: pulseBolt 2s infinite; }
-@keyframes pulseBolt { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.6; transform: scale(1.15); } }
-
-/* Hero Headline */
-.rq-hero h1 {
-    font-size: clamp(2.2rem, 5vw, 3.8rem);
-    font-weight: 900;
-    line-height: 1.15;
-    margin: 0 0 1.25rem;
-    color: #fff;
-    letter-spacing: -0.02em;
-}
-
-.rq-hero h1 .gold-text {
-    background: linear-gradient(135deg, #fff 0%, #f0c674 45%, #d4a853 100%);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    display: inline-block;
-}
-
-.rq-hero-sub {
-    font-size: 1.05rem;
-    color: var(--text-muted);
-    line-height: 1.7;
-    margin: 0 0 2rem;
-    max-width: 540px;
-}
-
-/* Search Dock */
-.rq-hero-search {
-    background: rgba(16, 18, 26, 0.85);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 18px;
-    padding: 0.45rem 0.5rem 0.45rem 1.25rem;
-    display: flex;
-    align-items: center;
-    backdrop-filter: blur(20px);
-    transition: all 0.3s;
-    box-shadow: 0 12px 35px rgba(0, 0, 0, 0.35);
-    margin-bottom: 1.25rem;
-}
-
-.rq-hero-search:focus-within {
-    border-color: var(--gold);
-    box-shadow: 0 0 30px rgba(212, 168, 83, 0.15), 0 12px 35px rgba(0, 0, 0, 0.5);
-}
-
-.rq-hero-search input {
-    flex: 1;
-    background: none;
-    border: none;
-    outline: none;
-    color: #fff;
-    font-size: 0.95rem;
-    font-family: inherit;
-    padding: 0.5rem 0;
-    min-width: 0;
-}
-.rq-hero-search input::placeholder { color: #5a6175; }
-
-.rq-search-btn {
-    background: linear-gradient(135deg, #d4a853, #f0c674);
-    color: #06070a;
-    font-weight: 800;
-    font-size: 0.88rem;
-    border: none;
-    padding: 0.75rem 1.75rem;
-    border-radius: 14px;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    transition: all 0.25s;
-    flex-shrink: 0;
-}
-.rq-search-btn:hover {
-    filter: brightness(1.1);
-    transform: scale(1.02);
-    box-shadow: 0 6px 20px rgba(212, 168, 83, 0.35);
-}
-
-/* Quick Tags */
-.rq-quick-tags {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    flex-wrap: wrap;
-    font-size: 0.78rem;
-    color: var(--text-dim);
-}
-.rq-tag-chip {
-    background: rgba(255, 255, 255, 0.03);
-    border: 1px solid var(--border-subtle);
-    color: var(--text-muted);
-    padding: 0.25rem 0.65rem;
-    border-radius: 8px;
-    text-decoration: none;
-    transition: all 0.2s;
-}
-.rq-tag-chip:hover {
-    border-color: var(--gold-border);
-    color: var(--gold-light);
-    background: var(--gold-subtle);
-}
-
-/* Hero Showcase Card (Left) */
-.rq-hero-card-showcase {
-    position: relative;
-}
-
-.rq-hero-card-glow {
-    position: absolute;
-    inset: -15px;
-    background: radial-gradient(circle at 50% 50%, rgba(212, 168, 83, 0.15) 0%, transparent 70%);
-    filter: blur(25px);
-    z-index: 0;
-    pointer-events: none;
-}
-
-.rq-main-spotlight {
-    position: relative;
-    z-index: 1;
-    background: linear-gradient(145deg, rgba(22, 25, 36, 0.9), rgba(12, 14, 20, 0.95));
-    border: 1px solid rgba(212, 168, 83, 0.25);
-    border-radius: 28px;
-    overflow: hidden;
-    backdrop-filter: blur(20px);
-    box-shadow: 0 25px 60px rgba(0, 0, 0, 0.6), 0 0 40px rgba(212, 168, 83, 0.08);
-    transition: transform 0.4s ease, border-color 0.4s;
-}
-.rq-main-spotlight:hover {
-    transform: translateY(-4px);
-    border-color: rgba(212, 168, 83, 0.45);
-}
-
-.rq-spotlight-visual {
-    position: relative;
-    height: 240px;
-    background: linear-gradient(180deg, #161a26 0%, #0c0e14 100%);
-    overflow: hidden;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-.rq-spotlight-visual img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    transition: transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
-}
-.rq-main-spotlight:hover .rq-spotlight-visual img {
-    transform: scale(1.06);
-}
-
-.rq-spotlight-badge {
-    position: absolute;
-    top: 14px;
-    right: 14px;
-    background: rgba(6, 7, 10, 0.85);
-    border: 1px solid var(--gold-border);
-    backdrop-filter: blur(10px);
-    padding: 0.35rem 0.8rem;
-    border-radius: 100px;
-    font-size: 0.72rem;
-    font-weight: 800;
-    color: var(--gold-light);
-    display: flex;
-    align-items: center;
-    gap: 5px;
-}
-
-.rq-spotlight-body {
-    padding: 1.5rem;
-}
-
-.rq-spotlight-cat {
-    font-size: 0.72rem;
-    font-weight: 800;
-    color: var(--gold);
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
-    margin-bottom: 0.4rem;
-    display: block;
-}
-
-.rq-spotlight-title {
-    font-size: 1.25rem;
-    font-weight: 800;
-    color: #fff;
-    margin: 0 0 1rem;
-    line-height: 1.35;
-}
-
-.rq-spotlight-meta {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding-top: 1rem;
-    border-top: 1px solid var(--border-subtle);
-}
-
-.rq-spotlight-price {
-    font-size: 1.35rem;
-    font-weight: 900;
-    color: var(--gold-light);
-    font-family: 'Space Grotesk', sans-serif;
-}
-
-.rq-spotlight-cta {
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    padding: 0.65rem 1.4rem;
-    border-radius: 12px;
-    background: linear-gradient(135deg, #d4a853, #f0c674);
-    color: #06070a;
-    font-weight: 800;
-    font-size: 0.85rem;
-    text-decoration: none;
-    transition: all 0.25s;
-    box-shadow: 0 4px 15px rgba(212, 168, 83, 0.25);
-}
-.rq-spotlight-cta:hover {
-    filter: brightness(1.1);
-    transform: scale(1.02);
-}
-
-/* Secondary Hero Cards Row */
-.rq-hero-subcards {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 1rem;
-    margin-top: 1rem;
-}
-
-.rq-subcard {
-    background: rgba(16, 18, 26, 0.75);
-    border: 1px solid var(--border-card);
-    border-radius: 18px;
-    padding: 1rem 1.1rem;
-    display: flex;
-    align-items: center;
-    gap: 0.9rem;
-    text-decoration: none;
-    transition: all 0.3s;
-    backdrop-filter: blur(12px);
-}
-.rq-subcard:hover {
-    border-color: var(--gold-border);
-    background: rgba(22, 25, 36, 0.9);
-    transform: translateY(-2px);
-}
-
-.rq-subcard-icon {
-    width: 44px;
-    height: 44px;
-    border-radius: 12px;
-    background: var(--gold-subtle);
-    border: 1px solid var(--gold-border);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: var(--gold);
-    font-size: 1.15rem;
-    flex-shrink: 0;
-}
-
-.rq-subcard-title {
-    font-size: 0.88rem;
-    font-weight: 800;
-    color: #fff;
-    margin: 0 0 2px;
-}
-.rq-subcard-sub {
-    font-size: 0.72rem;
-    color: var(--text-muted);
-    margin: 0;
-}
-
-/* ═══════════════════════════════════════════════════════
-   2. PILLARS OF TRUST STRIP (Direct & Clean)
-   ═══════════════════════════════════════════════════════ */
-.rq-trust-strip {
-    padding: 1.5rem 0 3rem;
-}
-
-.rq-trust-boxes {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 1rem;
-}
-
-.rq-trust-box {
-    background: linear-gradient(145deg, rgba(16, 18, 26, 0.6), rgba(10, 11, 16, 0.8));
-    border: 1px solid var(--border-subtle);
-    border-radius: 20px;
-    padding: 1.25rem 1.2rem;
-    display: flex;
-    align-items: center;
-    gap: 1rem;
-    transition: all 0.3s;
-}
-.rq-trust-box:hover {
-    border-color: rgba(212, 168, 83, 0.2);
-    transform: translateY(-3px);
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
-}
-
-.rq-trust-icon {
-    width: 48px;
-    height: 48px;
-    border-radius: 14px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 1.25rem;
-    flex-shrink: 0;
-}
-.rq-trust-icon.gold { background: rgba(212, 168, 83, 0.1); color: var(--gold); border: 1px solid rgba(212, 168, 83, 0.2); }
-.rq-trust-icon.purple { background: rgba(124, 92, 191, 0.1); color: var(--purple); border: 1px solid rgba(124, 92, 191, 0.2); }
-.rq-trust-icon.rose { background: rgba(232, 93, 117, 0.1); color: var(--rose); border: 1px solid rgba(232, 93, 117, 0.2); }
-.rq-trust-icon.blue { background: rgba(56, 189, 248, 0.1); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.2); }
-
-.rq-trust-info h4 {
-    font-size: 0.92rem;
-    font-weight: 800;
-    color: #fff;
-    margin: 0 0 3px;
-}
-.rq-trust-info p {
-    font-size: 0.76rem;
-    color: var(--text-muted);
-    margin: 0;
-    line-height: 1.4;
-}
-
-/* ═══════════════════════════════════════════════════════
-   3. CATEGORY SHOWCASE — Rich Visual Tiles
-   ═══════════════════════════════════════════════════════ */
-.rq-section {
-    padding: 3.5rem 0;
-}
-
-.rq-section-head {
-    display: flex;
-    align-items: flex-end;
-    justify-content: space-between;
-    margin-bottom: 2rem;
-    gap: 1rem;
-    flex-wrap: wrap;
-}
-
-.rq-section-eyebrow {
-    font-size: 0.75rem;
-    font-weight: 800;
-    color: var(--gold);
-    text-transform: uppercase;
-    letter-spacing: 0.12em;
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    margin-bottom: 0.4rem;
-}
-
-.rq-section-title {
-    font-size: clamp(1.6rem, 3.5vw, 2.2rem);
-    font-weight: 900;
-    color: #fff;
-    margin: 0;
-    line-height: 1.2;
-}
-
-.rq-section-desc {
-    color: var(--text-muted);
-    font-size: 0.92rem;
-    margin: 0.4rem 0 0;
-}
-
-.rq-view-all-link {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    color: var(--gold-light);
-    font-weight: 800;
-    font-size: 0.88rem;
-    text-decoration: none;
-    transition: all 0.2s;
-    padding: 0.5rem 1rem;
-    border-radius: 10px;
-    background: rgba(255, 255, 255, 0.02);
-    border: 1px solid var(--border-subtle);
-}
-.rq-view-all-link:hover {
-    color: #fff;
-    border-color: var(--gold-border);
-    background: var(--gold-subtle);
-    transform: translateX(-3px);
-}
-
-/* Categories Grid */
-.rq-cats-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-    gap: 1.15rem;
-}
-
-.rq-cat-tile {
-    background: linear-gradient(160deg, rgba(20, 23, 33, 0.8), rgba(10, 11, 16, 0.95));
-    border: 1px solid var(--border-card);
-    border-radius: 20px;
-    padding: 1.4rem 1.15rem;
-    text-decoration: none;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    text-align: center;
-    gap: 0.9rem;
-    transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1);
-    position: relative;
-    overflow: hidden;
-}
-
-.rq-cat-tile::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background: radial-gradient(circle at 50% 0%, rgba(212, 168, 83, 0.12) 0%, transparent 70%);
-    opacity: 0;
-    transition: opacity 0.35s;
-}
-
-.rq-cat-tile:hover {
-    border-color: var(--gold-border);
-    transform: translateY(-6px);
-    box-shadow: 0 15px 35px rgba(0, 0, 0, 0.4), 0 0 25px rgba(212, 168, 83, 0.08);
-}
-.rq-cat-tile:hover::before { opacity: 1; }
-
-.rq-cat-icon-frame {
-    width: 64px;
-    height: 64px;
-    border-radius: 18px;
-    background: rgba(255, 255, 255, 0.03);
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    overflow: hidden;
-    position: relative;
-    z-index: 1;
-    transition: transform 0.35s;
-}
-.rq-cat-tile:hover .rq-cat-icon-frame {
-    transform: scale(1.1);
-    border-color: var(--gold-border);
-}
-.rq-cat-icon-frame img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-}
-.rq-cat-icon-frame i {
-    font-size: 1.6rem;
-    color: var(--gold);
-}
-
-.rq-cat-name {
-    font-size: 0.95rem;
-    font-weight: 800;
-    color: #fff;
-    margin: 0;
-    position: relative;
-    z-index: 1;
-    line-height: 1.35;
-}
-
-.rq-cat-count {
-    font-size: 0.72rem;
-    font-weight: 700;
-    color: var(--gold);
-    background: rgba(212, 168, 83, 0.08);
-    border: 1px solid rgba(212, 168, 83, 0.15);
-    padding: 0.2rem 0.6rem;
-    border-radius: 100px;
-    position: relative;
-    z-index: 1;
-}
-
-/* ═══════════════════════════════════════════════════════
-   4. PRODUCTS GRID — Rich Cards with Live Stock
-   ═══════════════════════════════════════════════════════ */
-.rq-products-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-    gap: 1.35rem;
-}
-
-.rq-product-card {
-    background: linear-gradient(160deg, rgba(18, 21, 30, 0.85), rgba(11, 13, 18, 0.95));
-    border: 1px solid var(--border-card);
-    border-radius: 24px;
-    overflow: hidden;
-    text-decoration: none;
-    display: flex;
-    flex-direction: column;
-    transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1);
-    position: relative;
-}
-
-.rq-product-card:hover {
-    border-color: rgba(212, 168, 83, 0.35);
-    transform: translateY(-8px);
-    box-shadow: 0 20px 45px rgba(0, 0, 0, 0.5), 0 0 35px rgba(212, 168, 83, 0.1);
-}
-
-.rq-product-thumb {
-    position: relative;
-    width: 100%;
-    aspect-ratio: 16 / 10;
-    background: linear-gradient(180deg, #141824 0%, #0c0e14 100%);
-    overflow: hidden;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.rq-product-thumb img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    transition: transform 0.5s cubic-bezier(0.16, 1, 0.3, 1), filter 0.3s;
-}
-.rq-product-card:hover .rq-product-thumb img {
-    transform: scale(1.08);
-    filter: brightness(1.05);
-}
-
-.rq-card-pill {
-    position: absolute;
-    top: 10px;
-    right: 10px;
-    padding: 0.3rem 0.65rem;
-    border-radius: 8px;
-    font-size: 0.68rem;
-    font-weight: 900;
-    z-index: 2;
-    backdrop-filter: blur(8px);
-}
-.rq-card-pill.hot {
-    background: rgba(232, 93, 117, 0.9);
-    color: #fff;
-    box-shadow: 0 4px 12px rgba(232, 93, 117, 0.35);
-}
-.rq-card-pill.vip {
-    background: rgba(212, 168, 83, 0.9);
-    color: #06070a;
-    box-shadow: 0 4px 12px rgba(212, 168, 83, 0.35);
-}
-
-.rq-product-content {
-    padding: 1.15rem 1.25rem 1.25rem;
-    display: flex;
-    flex-direction: column;
-    flex: 1;
-}
-
-.rq-product-cat {
-    font-size: 0.72rem;
-    font-weight: 800;
-    color: var(--gold);
-    text-transform: uppercase;
-    letter-spacing: 0.06em;
-    margin-bottom: 0.35rem;
-}
-
-.rq-product-title {
-    font-size: 1rem;
-    font-weight: 800;
-    color: #fff;
-    margin: 0 0 1rem;
-    line-height: 1.4;
-    min-height: 2.8rem;
-    display: -webkit-box;
-    -webkit-line-clamp: 2;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
-    transition: color 0.2s;
-}
-.rq-product-card:hover .rq-product-title {
-    color: var(--gold-light);
-}
-
-.rq-product-foot {
-    margin-top: auto;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding-top: 0.9rem;
-    border-top: 1px solid var(--border-subtle);
-}
-
-.rq-product-price {
-    font-size: 1.15rem;
-    font-weight: 900;
-    color: var(--gold-light);
-    font-family: 'Space Grotesk', sans-serif;
-}
-
-.rq-buy-action {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    padding: 0.5rem 1rem;
-    border-radius: 10px;
-    background: rgba(212, 168, 83, 0.1);
-    border: 1px solid rgba(212, 168, 83, 0.25);
-    color: var(--gold-light);
-    font-size: 0.78rem;
-    font-weight: 800;
-    transition: all 0.25s;
-}
-.rq-product-card:hover .rq-buy-action {
-    background: linear-gradient(135deg, #d4a853, #f0c674);
-    color: #06070a;
-    border-color: transparent;
-    box-shadow: 0 4px 15px rgba(212, 168, 83, 0.3);
-}
-
-/* ═══════════════════════════════════════════════════════
-   5. INDEPENDENT STORES SHOWCASE
-   ═══════════════════════════════════════════════════════ */
-.rq-stores-section {
-    padding: 4rem 0;
-    background: linear-gradient(180deg, rgba(10, 11, 16, 0) 0%, rgba(16, 18, 26, 0.5) 50%, rgba(10, 11, 16, 0) 100%);
-    border-top: 1px solid var(--border-subtle);
-    border-bottom: 1px solid var(--border-subtle);
-}
-
-.rq-stores-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-    gap: 1.35rem;
-}
-
-.rq-store-card {
-    background: rgba(18, 21, 30, 0.75);
-    border: 1px solid var(--border-card);
-    border-radius: 22px;
-    padding: 1.5rem;
-    display: flex;
-    flex-direction: column;
-    justify-content: space-between;
-    transition: all 0.3s;
-}
-.rq-store-card:hover {
-    border-color: var(--gold-border);
-    transform: translateY(-4px);
-    box-shadow: 0 15px 35px rgba(0, 0, 0, 0.4);
-}
-
-.rq-store-top {
-    display: flex;
-    align-items: center;
-    gap: 1rem;
-    margin-bottom: 1rem;
-}
-
-.rq-store-avatar {
-    width: 52px;
-    height: 52px;
-    border-radius: 16px;
-    background: rgba(255, 255, 255, 0.03);
-    border: 1px solid var(--border-subtle);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    overflow: hidden;
-    flex-shrink: 0;
-}
-.rq-store-avatar img {
-    width: 100%;
-    height: 100%;
-    object-fit: contain;
-    padding: 8%;
-}
-
-.rq-store-name {
-    font-size: 1.05rem;
-    font-weight: 800;
-    color: #fff;
-    margin: 0 0 2px;
-}
-
-.rq-store-badge {
-    font-size: 0.7rem;
-    font-weight: 800;
-    color: var(--gold);
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-}
-
-.rq-store-desc {
-    font-size: 0.85rem;
-    color: var(--text-muted);
-    line-height: 1.6;
-    margin: 0 0 1.25rem;
-}
-
-.rq-store-btn {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 6px;
-    padding: 0.65rem;
-    border-radius: 12px;
-    background: rgba(255, 255, 255, 0.03);
-    border: 1px solid var(--border-card);
-    color: #fff;
-    font-size: 0.82rem;
-    font-weight: 800;
-    text-decoration: none;
-    transition: all 0.25s;
-}
-.rq-store-card:hover .rq-store-btn {
-    border-color: var(--gold-border);
-    background: var(--gold-subtle);
-    color: var(--gold-light);
-}
-
-/* ═══════════════════════════════════════════════════════
-   6. METRICS STRIP
-   ═══════════════════════════════════════════════════════ */
-.rq-metrics-strip {
-    padding: 2.5rem 0;
-}
-
-.rq-metrics-card {
-    background: linear-gradient(145deg, rgba(20, 23, 33, 0.8), rgba(12, 14, 20, 0.95));
-    border: 1px solid var(--border-card);
-    border-radius: 28px;
-    padding: 2rem 1.5rem;
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 1.5rem;
-    backdrop-filter: blur(20px);
-}
-
-.rq-metric-col {
-    text-align: center;
-    position: relative;
-}
-.rq-metric-col:not(:last-child)::after {
-    content: '';
-    position: absolute;
-    left: 0;
-    top: 15%;
-    bottom: 15%;
-    width: 1px;
-    background: var(--border-subtle);
-}
-
-.rq-metric-num {
-    font-size: clamp(1.8rem, 3.5vw, 2.5rem);
-    font-weight: 900;
-    color: #fff;
-    font-family: 'Space Grotesk', sans-serif;
-    margin-bottom: 0.35rem;
-    background: linear-gradient(135deg, #fff 40%, var(--gold-light) 100%);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-}
-
-.rq-metric-text {
-    font-size: 0.82rem;
-    color: var(--text-muted);
-    font-weight: 700;
-}
-
-/* ═══════════════════════════════════════════════════════
-   7. FINAL VIP CALL TO ACTION
-   ═══════════════════════════════════════════════════════ */
-.rq-vip-cta {
-    padding: 4rem 0 6rem;
-}
-
-.rq-vip-box {
-    background: radial-gradient(circle at 50% 0%, rgba(212, 168, 83, 0.15) 0%, rgba(16, 18, 26, 0.85) 75%);
-    border: 1px solid rgba(212, 168, 83, 0.25);
-    border-radius: 32px;
-    padding: 4.5rem 2rem;
-    text-align: center;
-    position: relative;
-    overflow: hidden;
-    box-shadow: 0 25px 60px rgba(0, 0, 0, 0.4), 0 0 50px rgba(212, 168, 83, 0.08);
-}
-
-.rq-vip-box h2 {
-    font-size: clamp(1.8rem, 4vw, 2.8rem);
-    font-weight: 900;
-    color: #fff;
-    margin: 0 0 1rem;
-    line-height: 1.2;
-}
-
-.rq-vip-box p {
-    font-size: 1.05rem;
-    color: var(--text-muted);
-    max-width: 580px;
-    margin: 0 auto 2.5rem;
-    line-height: 1.7;
-}
-
-.rq-vip-actions {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 1rem;
-    flex-wrap: wrap;
-}
-
-.rq-btn-gold-large {
-    display: inline-flex;
-    align-items: center;
-    gap: 10px;
-    padding: 1rem 2.8rem;
-    border-radius: 16px;
-    background: linear-gradient(135deg, #d4a853, #f0c674);
-    color: #06070a;
-    font-size: 1.05rem;
-    font-weight: 900;
-    text-decoration: none;
-    box-shadow: 0 8px 30px rgba(212, 168, 83, 0.35);
-    transition: all 0.3s;
-}
-.rq-btn-gold-large:hover {
-    transform: translateY(-3px);
-    box-shadow: 0 14px 45px rgba(212, 168, 83, 0.45);
-    filter: brightness(1.08);
-}
-
-.rq-btn-ghost-large {
-    display: inline-flex;
-    align-items: center;
-    gap: 10px;
-    padding: 1rem 2.4rem;
-    border-radius: 16px;
-    background: rgba(255, 255, 255, 0.03);
-    border: 1px solid var(--border-card);
-    color: #fff;
-    font-size: 1.05rem;
-    font-weight: 800;
-    text-decoration: none;
-    transition: all 0.3s;
-}
-.rq-btn-ghost-large:hover {
-    border-color: var(--gold-border);
-    background: var(--gold-subtle);
-    color: var(--gold-light);
-}
-
-/* ═══════════════════════════════════════════════════════
-   RESPONSIVE OPTIMIZATIONS (Phone & Tablet)
-   ═══════════════════════════════════════════════════════ */
-@media (max-width: 1024px) {
-    .rq-hero-grid {
-        grid-template-columns: 1fr;
-        gap: 2.5rem;
-    }
-    .rq-hero-card-showcase {
-        max-width: 500px;
-        margin: 0 auto;
-    }
-    .rq-trust-boxes {
-        grid-template-columns: repeat(2, 1fr);
-    }
-    .rq-metrics-card {
-        grid-template-columns: repeat(2, 1fr);
-        gap: 2rem;
-    }
-    .rq-metric-col:nth-child(2)::after {
-        display: none;
-    }
-}
-
-@media (max-width: 640px) {
-    .rq-hero { padding: 2rem 0 1.5rem; }
-    .rq-flag-badge { font-size: 0.72rem; margin-bottom: 1rem; }
-    .rq-hero h1 { font-size: 1.85rem; }
-    .rq-hero-sub { font-size: 0.88rem; margin-bottom: 1.5rem; }
-    .rq-hero-search { flex-direction: column; padding: 0.5rem; gap: 0.5rem; }
-    .rq-hero-search input { width: 100%; text-align: center; }
-    .rq-search-btn { width: 100%; justify-content: center; }
-    
-    .rq-trust-boxes { grid-template-columns: 1fr; gap: 0.75rem; }
-    .rq-cats-grid { grid-template-columns: repeat(2, 1fr); gap: 0.75rem; }
-    .rq-cat-tile { padding: 1rem 0.75rem; }
-    .rq-cat-icon-frame { width: 50px; height: 50px; border-radius: 14px; }
-    .rq-cat-icon-frame i { font-size: 1.3rem; }
-    .rq-cat-name { font-size: 0.82rem; }
-    
-    .rq-products-grid { grid-template-columns: repeat(2, 1fr); gap: 0.75rem; }
-    .rq-product-content { padding: 0.85rem; }
-    .rq-product-title { font-size: 0.85rem; min-height: 2.4rem; }
-    .rq-product-price { font-size: 0.95rem; }
-    .rq-buy-action { padding: 0.4rem 0.65rem; font-size: 0.72rem; }
-    
-    .rq-metrics-card { grid-template-columns: 1fr 1fr; padding: 1.5rem 1rem; gap: 1.25rem; }
-    .rq-metric-num { font-size: 1.5rem; }
-    
-    .rq-vip-box { padding: 2.5rem 1.25rem; }
-    .rq-btn-gold-large, .rq-btn-ghost-large { width: 100%; justify-content: center; padding: 0.85rem; font-size: 0.95rem; }
-}
-</style>
 {% endblock %}
 
 {% block content %}
-<main style="position: relative; overflow-x: hidden;">
-    <!-- Ambient Top Illumination -->
-    <div class="rq-ambient-top"></div>
+<style>
+/* ══════════════════════════════════════════════════════════════════════
+   RAQAMIYAT NEXT-GEN TITANIUM & ELECTRIC INDIGO SYSTEM (360° REBIRTH)
+   Ultra-Luxury Fintech / Digital Ecosystem Interface
+   ══════════════════════════════════════════════════════════════════════ */
 
-    <!-- ═══════════════════════════════════════
-         1. HERO — Gaming Portal
-         ═══════════════════════════════════════ -->
-    <section class="rq-hero">
-        <div class="rq-shell">
-            <div class="rq-hero-grid">
+:root {
+  --rq-bg: #070a11;
+  --rq-surface: #0d121e;
+  --rq-surface-card: rgba(15, 22, 36, 0.75);
+  --rq-surface-hover: rgba(22, 32, 54, 0.9);
+  
+  --rq-indigo: #6366f1;
+  --rq-indigo-light: #818cf8;
+  --rq-indigo-glow: rgba(99, 102, 241, 0.28);
+  
+  --rq-cyan: #06b6d4;
+  --rq-cyan-light: #38bdf8;
+  --rq-cyan-glow: rgba(6, 182, 212, 0.25);
+  
+  --rq-gold: #f59e0b;
+  --rq-gold-light: #fbbf24;
+  --rq-gold-glow: rgba(245, 158, 11, 0.25);
+  
+  --rq-emerald: #10b981;
+  --rq-emerald-glow: rgba(16, 185, 129, 0.25);
+  
+  --rq-border: rgba(255, 255, 255, 0.08);
+  --rq-border-hover: rgba(99, 102, 241, 0.4);
+  --rq-border-active: rgba(6, 182, 212, 0.5);
+  
+  --rq-text-primary: #f8fafc;
+  --rq-text-secondary: #94a3b8;
+  --rq-text-tertiary: #64748b;
+  
+  --rq-gradient-hero: linear-gradient(135deg, #6366f1 0%, #06b6d4 100%);
+  --rq-gradient-gold: linear-gradient(135deg, #f59e0b 0%, #fbbf24 100%);
+  --rq-shadow-card: 0 20px 45px -15px rgba(0, 0, 0, 0.7);
+  --rq-shadow-glow: 0 0 35px -5px rgba(99, 102, 241, 0.25);
+}
 
-                <!-- Right: High-impact Headline & Search -->
-                <div>
-                    <div class="rq-flag-badge">
-                        <i class="fas fa-bolt"></i>
-                        <span>{% if is_tenant %}متجر رقمي معتمد وموثوق{% else %}البوابة الأسرع لشحن الألعاب والبطاقات الرقمية{% endif %}</span>
-                    </div>
+/* Reset and Container */
+.rq-viewport {
+  position: relative;
+  background-color: var(--rq-bg);
+  color: var(--rq-text-primary);
+  font-family: 'Tajawal', -apple-system, BlinkMacSystemFont, sans-serif;
+  overflow-x: hidden;
+  padding-bottom: 5rem;
+}
 
-                    <h1>
-                        {% if is_tenant %}
-                        مرحباً بك في <br><span class="gold-text">{{ STORE_NAME }}</span>
-                        {% else %}
-                        اشحن ألعابك واشتراكاتك<br><span class="gold-text">بسرعة البرق وأفضل الأسعار</span>
-                        {% endif %}
-                    </h1>
+.rq-container {
+  width: min(100% - 2rem, 1320px);
+  margin-inline: auto;
+}
 
-                    <p class="rq-hero-sub">
-                        {% if is_tenant %}
-                        {{ STORE_DESCRIPTION|default:"أسرع شحن للألعاب والبطاقات والمحافظ الإلكترونية، تسليم آلي فوري على مدار 24 ساعة." }}
-                        {% else %}
-                        تسليم آلي فوري خلال ثوانٍ معدودة. استمتع بأقوى شحنات الألعاب الأصلية، كروت الهدايا والاشتراكات العالمية بأعلى معايير الأمان المالي.
-                        {% endif %}
-                    </p>
+/* Atmospheric Lighting */
+.rq-ambient-aura {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 100vw;
+  height: 850px;
+  background: 
+    radial-gradient(ellipse 70% 500px at 50% -100px, rgba(99, 102, 241, 0.16) 0%, transparent 70%),
+    radial-gradient(circle 450px at 85% 150px, rgba(6, 182, 212, 0.1) 0%, transparent 60%),
+    radial-gradient(circle 400px at 15% 250px, rgba(245, 158, 11, 0.06) 0%, transparent 60%);
+  pointer-events: none;
+  z-index: 0;
+}
 
-                    <!-- Search Dock -->
-                    <form action="{% url 'catalog' %}" method="get" class="rq-hero-search">
-                        <input type="text" name="q" placeholder="ابحث باسم اللعبة أو الخدمة (ببجي، تيك توك، فري فاير، نتفلكس)..." autocomplete="off">
-                        <button type="submit" class="rq-search-btn">
-                            <i class="fas fa-search"></i>
-                            <span>بحث فوري</span>
-                        </button>
-                    </form>
+/* ─────────────────────────────────────────────────────────────
+   1. HERO SECTION — Futuristic Split Spotlight
+   ───────────────────────────────────────────────────────────── */
+.rq-hero-section {
+  position: relative;
+  padding: 3.5rem 0 3rem;
+  z-index: 1;
+}
 
-                    <!-- Popular Tags -->
-                    <div class="rq-quick-tags">
-                        <span>🔥 الأكثر طلباً:</span>
-                        <a href="{% url 'catalog' %}?q=ببجي" class="rq-tag-chip">ببجي موبايل</a>
-                        <a href="{% url 'catalog' %}?q=تيك+توك" class="rq-tag-chip">تيك توك</a>
-                        <a href="{% url 'catalog' %}?q=فري+فاير" class="rq-tag-chip">فري فاير</a>
-                        <a href="{% url 'catalog' %}?q=بلايستيشن" class="rq-tag-chip">بلايستيشن</a>
-                        <a href="{% url 'catalog' %}?q=نتفلكس" class="rq-tag-chip">نتفلكس</a>
-                    </div>
-                </div>
+.rq-hero-layout {
+  display: grid;
+  grid-template-columns: 1.2fr 0.8fr;
+  gap: 3.5rem;
+  align-items: center;
+}
 
-                <!-- Left: Hero Spotlight & Quick Actions -->
-                <div class="rq-hero-card-showcase">
-                    <div class="rq-hero-card-glow"></div>
-                    
-                    {% with hero_p=featured_products|first %}
-                    <div class="rq-main-spotlight">
-                        <div class="rq-spotlight-visual">
-                            {% if hero_p and hero_p.image %}
-                            <img src="{{ hero_p.image.url }}" alt="{{ hero_p.name }}">
-                            {% elif is_tenant and STORE_LOGO %}
-                            <img src="{{ STORE_LOGO.url }}" alt="{{ STORE_NAME }}" style="object-fit: contain; padding: 20%;">
-                            {% else %}
-                            <i class="fas fa-gamepad" style="font-size: 5rem; color: var(--gold); opacity: 0.6;"></i>
-                            {% endif %}
+/* Meta Pill */
+.rq-meta-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.65rem;
+  padding: 0.45rem 1.15rem;
+  border-radius: 9999px;
+  background: rgba(99, 102, 241, 0.08);
+  border: 1px solid rgba(99, 102, 241, 0.22);
+  color: var(--rq-indigo-light);
+  font-size: 0.85rem;
+  font-weight: 800;
+  margin-bottom: 1.5rem;
+  backdrop-filter: blur(12px);
+  box-shadow: 0 0 20px rgba(99, 102, 241, 0.15);
+}
 
-                            <div class="rq-spotlight-badge">
-                                <i class="fas fa-bolt" style="color: var(--gold);"></i>
-                                <span>تسليم آلي فوري</span>
-                            </div>
-                        </div>
+.rq-pulse-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: var(--rq-cyan);
+  box-shadow: 0 0 10px var(--rq-cyan);
+  animation: rqPulse 2s infinite ease-in-out;
+}
 
-                        <div class="rq-spotlight-body">
-                            <span class="rq-spotlight-cat">{{ hero_p.category.name|default:"الخدمة الأكثر طلباً" }}</span>
-                            <h3 class="rq-spotlight-title">{{ hero_p.name|default:STORE_NAME }}</h3>
+@keyframes rqPulse {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.4); opacity: 0.5; }
+}
 
-                            <div class="rq-spotlight-meta">
-                                <div>
-                                    <div style="font-size: 0.72rem; color: var(--text-dim); margin-bottom: 2px;">السعر المتاح:</div>
-                                    <div class="rq-spotlight-price">{% if hero_p %}{% product_starting_price hero_p %}{% else %}متوفر الآن{% endif %}</div>
-                                </div>
-                                {% if hero_p %}
-                                <a href="{% url 'product_detail' hero_p.id %}" class="rq-spotlight-cta">
-                                    <span>شحن فوري</span>
-                                    <i class="fas fa-arrow-left"></i>
-                                </a>
-                                {% else %}
-                                <a href="{% url 'catalog' %}" class="rq-spotlight-cta">
-                                    <span>الكتالوج</span>
-                                    <i class="fas fa-arrow-left"></i>
-                                </a>
-                                {% endif %}
-                            </div>
-                        </div>
-                    </div>
-                    {% endwith %}
+/* Hero Titles */
+.rq-hero-title {
+  font-size: clamp(2.2rem, 5vw, 3.75rem);
+  font-weight: 900;
+  line-height: 1.15;
+  letter-spacing: -0.02em;
+  margin: 0 0 1.25rem;
+  color: #ffffff;
+}
 
-                    <!-- Subcards -->
-                    <div class="rq-hero-subcards">
-                        <a href="{% url 'catalog' %}" class="rq-subcard">
-                            <div class="rq-subcard-icon">
-                                <i class="fas fa-layer-group"></i>
-                            </div>
-                            <div>
-                                <h4 class="rq-subcard-title">كامل الخدمات</h4>
-                                <p class="rq-subcard-sub">تصفح الكتالوج الشامل</p>
-                            </div>
-                        </a>
+.rq-gradient-text {
+  background: linear-gradient(135deg, #ffffff 30%, #818cf8 70%, #38bdf8 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  display: inline-block;
+}
 
-                        <a href="{% if user.is_authenticated %}{% url 'dashboard_wallet' %}{% else %}{% url 'site_register' %}{% endif %}" class="rq-subcard">
-                            <div class="rq-subcard-icon" style="color: var(--purple); background: rgba(124, 92, 191, 0.1); border-color: rgba(124, 92, 191, 0.25);">
-                                <i class="fas fa-wallet"></i>
-                            </div>
-                            <div>
-                                <h4 class="rq-subcard-title">المحفظة الرقمية</h4>
-                                <p class="rq-subcard-sub">شحن وسحب آمن</p>
-                            </div>
-                        </a>
-                    </div>
-                </div>
+.rq-hero-desc {
+  font-size: clamp(1rem, 1.8vw, 1.18rem);
+  line-height: 1.75;
+  color: var(--rq-text-secondary);
+  margin: 0 0 2rem;
+  max-width: 600px;
+}
 
-            </div>
+/* Omni Search Dock */
+.rq-omni-search {
+  position: relative;
+  background: rgba(15, 23, 42, 0.85);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 20px;
+  padding: 0.5rem 0.5rem 0.5rem 1.25rem;
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  box-shadow: 0 20px 40px -10px rgba(0, 0, 0, 0.5), inset 0 1px 1px rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(20px);
+  transition: all 0.3s ease;
+  margin-bottom: 1.25rem;
+}
+
+.rq-omni-search:focus-within {
+  border-color: var(--rq-indigo);
+  box-shadow: 0 20px 45px -10px rgba(99, 102, 241, 0.3), 0 0 0 2px rgba(99, 102, 241, 0.2);
+}
+
+.rq-omni-search i {
+  color: var(--rq-indigo-light);
+  font-size: 1.15rem;
+}
+
+.rq-omni-input {
+  flex: 1;
+  background: transparent;
+  border: none;
+  outline: none;
+  color: #fff;
+  font-size: 0.95rem;
+  font-weight: 600;
+  font-family: inherit;
+}
+
+.rq-omni-input::placeholder {
+  color: var(--rq-text-tertiary);
+}
+
+.rq-omni-submit {
+  background: var(--rq-gradient-hero);
+  border: none;
+  color: #fff;
+  font-weight: 800;
+  font-size: 0.9rem;
+  padding: 0.75rem 1.6rem;
+  border-radius: 14px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  transition: all 0.25s ease;
+  box-shadow: 0 8px 20px rgba(99, 102, 241, 0.35);
+}
+
+.rq-omni-submit:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 26px rgba(99, 102, 241, 0.5);
+  filter: brightness(1.1);
+}
+
+/* Quick Search Tags */
+.rq-quick-tags {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+}
+
+.rq-tag-label {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--rq-text-tertiary);
+}
+
+.rq-tag-chip {
+  font-size: 0.78rem;
+  font-weight: 700;
+  padding: 0.3rem 0.85rem;
+  border-radius: 9999px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  color: var(--rq-text-secondary);
+  text-decoration: none;
+  transition: all 0.2s ease;
+}
+
+.rq-tag-chip:hover {
+  background: rgba(99, 102, 241, 0.12);
+  border-color: rgba(99, 102, 241, 0.3);
+  color: var(--rq-indigo-light);
+  transform: translateY(-1px);
+}
+
+/* Spotlight Card (Hero Left) */
+.rq-spotlight-wrapper {
+  position: relative;
+}
+
+.rq-spotlight-card {
+  position: relative;
+  background: rgba(15, 23, 42, 0.75);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 28px;
+  padding: 2rem;
+  box-shadow: var(--rq-shadow-card), inset 0 1px 1px rgba(255, 255, 255, 0.15);
+  backdrop-filter: blur(25px);
+  transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  overflow: hidden;
+}
+
+.rq-spotlight-card:hover {
+  transform: translateY(-5px);
+  border-color: rgba(99, 102, 241, 0.4);
+  box-shadow: var(--rq-shadow-card), 0 0 35px rgba(99, 102, 241, 0.2);
+}
+
+.rq-spotlight-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.35rem 0.85rem;
+  border-radius: 9999px;
+  background: rgba(16, 185, 129, 0.12);
+  border: 1px solid rgba(16, 185, 129, 0.25);
+  color: #34d399;
+  font-size: 0.75rem;
+  font-weight: 800;
+  margin-bottom: 1.25rem;
+}
+
+.rq-spotlight-media {
+  position: relative;
+  width: 100%;
+  height: 220px;
+  border-radius: 20px;
+  overflow: hidden;
+  margin-bottom: 1.5rem;
+  background: #1e293b;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.rq-spotlight-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.rq-spotlight-card:hover .rq-spotlight-img {
+  transform: scale(1.05);
+}
+
+.rq-spotlight-info {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 1rem;
+}
+
+.rq-spotlight-category {
+  font-size: 0.8rem;
+  font-weight: 800;
+  color: var(--rq-cyan-light);
+  margin-bottom: 0.35rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.rq-spotlight-name {
+  font-size: 1.25rem;
+  font-weight: 800;
+  color: #fff;
+  margin: 0;
+  line-height: 1.3;
+}
+
+.rq-spotlight-pricing {
+  text-align: left;
+}
+
+.rq-price-label {
+  font-size: 0.75rem;
+  color: var(--rq-text-tertiary);
+  font-weight: 700;
+  margin-bottom: 0.2rem;
+}
+
+.rq-price-val {
+  font-size: 1.45rem;
+  font-weight: 900;
+  color: var(--rq-gold-light);
+  font-family: 'Space Grotesk', sans-serif;
+}
+
+.rq-spotlight-action {
+  margin-top: 1.5rem;
+  display: flex;
+  gap: 0.85rem;
+}
+
+.rq-btn-highlight {
+  flex: 1;
+  background: var(--rq-gradient-hero);
+  color: #fff;
+  padding: 0.85rem 1.25rem;
+  border-radius: 14px;
+  font-weight: 800;
+  font-size: 0.92rem;
+  text-align: center;
+  text-decoration: none;
+  transition: all 0.25s ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+.rq-btn-highlight:hover {
+  transform: translateY(-2px);
+  filter: brightness(1.1);
+  box-shadow: 0 10px 24px rgba(99, 102, 241, 0.4);
+}
+
+.rq-btn-outline {
+  padding: 0.85rem 1.25rem;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #fff;
+  font-weight: 700;
+  font-size: 0.92rem;
+  text-decoration: none;
+  transition: all 0.25s ease;
+}
+
+.rq-btn-outline:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+/* ─────────────────────────────────────────────────────────────
+   2. ENTERPRISE PROTOCOL BAR (Trust Architecture)
+   ───────────────────────────────────────────────────────────── */
+.rq-protocol-section {
+  position: relative;
+  z-index: 1;
+  padding: 1.5rem 0 3.5rem;
+}
+
+.rq-protocol-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1.25rem;
+}
+
+.rq-protocol-box {
+  background: rgba(15, 23, 42, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 20px;
+  padding: 1.5rem;
+  display: flex;
+  align-items: flex-start;
+  gap: 1.15rem;
+  backdrop-filter: blur(16px);
+  transition: all 0.3s ease;
+}
+
+.rq-protocol-box:hover {
+  transform: translateY(-4px);
+  border-color: rgba(99, 102, 241, 0.3);
+  background: rgba(22, 32, 54, 0.7);
+}
+
+.rq-protocol-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.25rem;
+  flex-shrink: 0;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+}
+
+.rq-icon-speed { background: linear-gradient(135deg, rgba(6, 182, 212, 0.2), rgba(6, 182, 212, 0.05)); color: var(--rq-cyan-light); border: 1px solid rgba(6, 182, 212, 0.2); }
+.rq-icon-shield { background: linear-gradient(135deg, rgba(99, 102, 241, 0.2), rgba(99, 102, 241, 0.05)); color: var(--rq-indigo-light); border: 1px solid rgba(99, 102, 241, 0.2); }
+.rq-icon-coins { background: linear-gradient(135deg, rgba(245, 158, 11, 0.2), rgba(245, 158, 11, 0.05)); color: var(--rq-gold-light); border: 1px solid rgba(245, 158, 11, 0.2); }
+.rq-icon-check { background: linear-gradient(135deg, rgba(16, 185, 129, 0.2), rgba(16, 185, 129, 0.05)); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.2); }
+
+.rq-protocol-title {
+  font-size: 1rem;
+  font-weight: 800;
+  color: #fff;
+  margin: 0 0 0.3rem;
+}
+
+.rq-protocol-text {
+  font-size: 0.83rem;
+  color: var(--rq-text-secondary);
+  line-height: 1.5;
+  margin: 0;
+}
+
+/* ─────────────────────────────────────────────────────────────
+   3. CATEGORY SHOWCASE — Holographic Service Matrix
+   ───────────────────────────────────────────────────────────── */
+.rq-section-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  margin-bottom: 2rem;
+}
+
+.rq-section-tag {
+  font-size: 0.8rem;
+  font-weight: 800;
+  color: var(--rq-indigo-light);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-bottom: 0.35rem;
+  display: block;
+}
+
+.rq-section-title {
+  font-size: clamp(1.4rem, 2.8vw, 1.95rem);
+  font-weight: 900;
+  color: #fff;
+  margin: 0;
+}
+
+.rq-section-link {
+  color: var(--rq-indigo-light);
+  font-size: 0.88rem;
+  font-weight: 800;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  transition: all 0.2s ease;
+}
+
+.rq-section-link:hover {
+  color: #fff;
+  transform: translateX(-3px);
+}
+
+.rq-categories-matrix {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(135px, 1fr));
+  gap: 1.15rem;
+  margin-bottom: 4.5rem;
+}
+
+.rq-category-tile {
+  background: rgba(15, 23, 42, 0.65);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 20px;
+  padding: 1.5rem 0.85rem 1.15rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  text-decoration: none;
+  transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+  backdrop-filter: blur(14px);
+  position: relative;
+  overflow: hidden;
+}
+
+.rq-category-tile::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 20px;
+  padding: 1px;
+  background: linear-gradient(135deg, rgba(99, 102, 241, 0.4), transparent 60%);
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.rq-category-tile:hover {
+  transform: translateY(-6px);
+  background: rgba(22, 32, 54, 0.85);
+  border-color: rgba(99, 102, 241, 0.35);
+  box-shadow: 0 16px 32px -10px rgba(0, 0, 0, 0.5), 0 0 20px rgba(99, 102, 241, 0.15);
+}
+
+.rq-category-tile:hover::after {
+  opacity: 1;
+}
+
+.rq-category-icon-box {
+  width: 58px;
+  height: 58px;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.03);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 0.85rem;
+  transition: transform 0.4s ease;
+}
+
+.rq-category-tile:hover .rq-category-icon-box {
+  transform: scale(1.1);
+}
+
+.rq-category-icon-box img {
+  width: 44px;
+  height: 44px;
+  object-fit: contain;
+  filter: drop-shadow(0 4px 10px rgba(0,0,0,0.3));
+}
+
+.rq-category-label {
+  font-size: 0.9rem;
+  font-weight: 800;
+  color: #fff;
+  margin-bottom: 0.3rem;
+  line-height: 1.3;
+}
+
+.rq-category-count {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--rq-text-tertiary);
+  background: rgba(255, 255, 255, 0.04);
+  padding: 0.15rem 0.55rem;
+  border-radius: 9999px;
+}
+
+/* ─────────────────────────────────────────────────────────────
+   4. CURATED SERVICES BENTO GRID (Products)
+   ───────────────────────────────────────────────────────────── */
+.rq-services-bento {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 1.5rem;
+  margin-bottom: 5rem;
+}
+
+.rq-service-card {
+  background: var(--rq-surface-card);
+  border: 1px solid var(--rq-border);
+  border-radius: 24px;
+  padding: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  text-decoration: none;
+  transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+  backdrop-filter: blur(20px);
+  position: relative;
+  overflow: hidden;
+}
+
+.rq-service-card:hover {
+  transform: translateY(-6px);
+  border-color: var(--rq-border-hover);
+  background: var(--rq-surface-hover);
+  box-shadow: 0 20px 40px -10px rgba(0, 0, 0, 0.6), 0 0 25px rgba(99, 102, 241, 0.15);
+}
+
+.rq-service-banner {
+  position: relative;
+  width: 100%;
+  height: 160px;
+  border-radius: 18px;
+  overflow: hidden;
+  background: #1e293b;
+  margin-bottom: 1.15rem;
+}
+
+.rq-service-banner img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.5s ease;
+}
+
+.rq-service-card:hover .rq-service-banner img {
+  transform: scale(1.08);
+}
+
+.rq-service-tag-pill {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  background: rgba(7, 10, 17, 0.85);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: var(--rq-cyan-light);
+  font-size: 0.72rem;
+  font-weight: 800;
+  padding: 0.25rem 0.65rem;
+  border-radius: 9999px;
+  backdrop-filter: blur(10px);
+}
+
+.rq-service-instant-badge {
+  position: absolute;
+  bottom: 10px;
+  right: 10px;
+  background: rgba(16, 185, 129, 0.9);
+  color: #fff;
+  font-size: 0.68rem;
+  font-weight: 800;
+  padding: 0.2rem 0.55rem;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+}
+
+.rq-service-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.rq-service-cat {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--rq-indigo-light);
+  margin-bottom: 0.35rem;
+}
+
+.rq-service-title {
+  font-size: 1.05rem;
+  font-weight: 800;
+  color: #fff;
+  margin: 0 0 0.85rem;
+  line-height: 1.4;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.rq-service-foot {
+  margin-top: auto;
+  padding-top: 1rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.rq-service-price-block {
+  display: flex;
+  flex-direction: column;
+}
+
+.rq-price-sub {
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: var(--rq-text-tertiary);
+}
+
+.rq-service-amount {
+  font-size: 1.25rem;
+  font-weight: 900;
+  color: var(--rq-gold-light);
+  font-family: 'Space Grotesk', sans-serif;
+}
+
+.rq-service-buy-btn {
+  background: rgba(99, 102, 241, 0.12);
+  border: 1px solid rgba(99, 102, 241, 0.3);
+  color: #fff;
+  font-size: 0.82rem;
+  font-weight: 800;
+  padding: 0.5rem 0.95rem;
+  border-radius: 12px;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  transition: all 0.25s ease;
+}
+
+.rq-service-card:hover .rq-service-buy-btn {
+  background: var(--rq-gradient-hero);
+  border-color: transparent;
+  box-shadow: 0 6px 18px rgba(99, 102, 241, 0.4);
+  transform: translateX(-2px);
+}
+
+/* ─────────────────────────────────────────────────────────────
+   5. RAQAMIYAT CLOUD STORES (Independent Merchant Ecosystem)
+   ───────────────────────────────────────────────────────────── */
+.rq-stores-section {
+  position: relative;
+  z-index: 1;
+  padding-bottom: 5rem;
+}
+
+.rq-stores-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 1.5rem;
+  margin-bottom: 3rem;
+}
+
+.rq-store-card {
+  background: var(--rq-surface-card);
+  border: 1px solid var(--rq-border);
+  border-radius: 22px;
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  transition: all 0.3s ease;
+  backdrop-filter: blur(20px);
+}
+
+.rq-store-card:hover {
+  transform: translateY(-5px);
+  border-color: var(--rq-border-hover);
+  background: var(--rq-surface-hover);
+  box-shadow: var(--rq-shadow-card);
+}
+
+.rq-store-top {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.rq-store-logo {
+  width: 52px;
+  height: 52px;
+  border-radius: 16px;
+  background: #1e293b;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.rq-store-logo img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.rq-store-title-wrap {
+  flex: 1;
+  min-width: 0;
+}
+
+.rq-store-name {
+  font-size: 1.1rem;
+  font-weight: 800;
+  color: #fff;
+  margin: 0 0 0.25rem;
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.rq-verified-check {
+  color: var(--rq-cyan-light);
+  font-size: 0.85rem;
+}
+
+.rq-store-subdomain {
+  font-size: 0.78rem;
+  color: var(--rq-text-tertiary);
+  font-family: 'Space Grotesk', sans-serif;
+  direction: ltr;
+  text-align: right;
+  display: block;
+}
+
+.rq-store-bio {
+  font-size: 0.85rem;
+  color: var(--rq-text-secondary);
+  line-height: 1.6;
+  margin: 0 0 1.25rem;
+  flex: 1;
+}
+
+.rq-store-meta-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-top: 1rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.rq-store-status-pill {
+  font-size: 0.75rem;
+  font-weight: 800;
+  color: var(--rq-gold-light);
+  background: rgba(245, 158, 11, 0.1);
+  border: 1px solid rgba(245, 158, 11, 0.2);
+  padding: 0.25rem 0.65rem;
+  border-radius: 9999px;
+}
+
+.rq-store-visit-link {
+  color: var(--rq-indigo-light);
+  font-size: 0.85rem;
+  font-weight: 800;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  transition: all 0.2s ease;
+}
+
+.rq-store-visit-link:hover {
+  color: #fff;
+  transform: translateX(-3px);
+}
+
+/* Merchant Onboarding Banner */
+.rq-merchant-banner {
+  background: linear-gradient(135deg, rgba(30, 41, 59, 0.9) 0%, rgba(15, 23, 42, 0.95) 100%);
+  border: 1px solid rgba(99, 102, 241, 0.25);
+  border-radius: 28px;
+  padding: 2.5rem 3rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 2rem;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.6);
+  position: relative;
+  overflow: hidden;
+}
+
+.rq-merchant-banner::before {
+  content: '';
+  position: absolute;
+  top: -50%;
+  right: -20%;
+  width: 500px;
+  height: 500px;
+  background: radial-gradient(circle, rgba(99, 102, 241, 0.15) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+.rq-merchant-copy {
+  max-width: 650px;
+  position: relative;
+  z-index: 1;
+}
+
+.rq-merchant-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.35rem 0.85rem;
+  border-radius: 9999px;
+  background: rgba(99, 102, 241, 0.15);
+  border: 1px solid rgba(99, 102, 241, 0.3);
+  color: var(--rq-indigo-light);
+  font-size: 0.8rem;
+  font-weight: 800;
+  margin-bottom: 1rem;
+}
+
+.rq-merchant-heading {
+  font-size: clamp(1.4rem, 2.5vw, 1.95rem);
+  font-weight: 900;
+  color: #fff;
+  margin: 0 0 0.85rem;
+}
+
+.rq-merchant-text {
+  font-size: 0.95rem;
+  color: var(--rq-text-secondary);
+  line-height: 1.7;
+  margin: 0;
+}
+
+.rq-merchant-action {
+  position: relative;
+  z-index: 1;
+  flex-shrink: 0;
+}
+
+.rq-merchant-btn {
+  background: var(--rq-gradient-hero);
+  color: #fff;
+  font-weight: 900;
+  font-size: 1rem;
+  padding: 1rem 2.2rem;
+  border-radius: 16px;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.65rem;
+  box-shadow: 0 12px 28px rgba(99, 102, 241, 0.4);
+  transition: all 0.3s ease;
+}
+
+.rq-merchant-btn:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 16px 36px rgba(99, 102, 241, 0.6);
+  filter: brightness(1.1);
+}
+
+/* ─────────────────────────────────────────────────────────────
+   6. PLATFORM PERFORMANCE PULSE (Live Metrics)
+   ───────────────────────────────────────────────────────────── */
+.rq-metrics-bar {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1.5rem;
+  margin-bottom: 5rem;
+}
+
+.rq-metric-card {
+  background: rgba(15, 23, 42, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 20px;
+  padding: 1.5rem;
+  text-align: center;
+  backdrop-filter: blur(16px);
+}
+
+.rq-metric-num {
+  font-size: clamp(1.8rem, 3.2vw, 2.5rem);
+  font-weight: 900;
+  color: #fff;
+  font-family: 'Space Grotesk', sans-serif;
+  margin-bottom: 0.25rem;
+  background: linear-gradient(135deg, #ffffff 40%, #818cf8 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.rq-metric-title {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--rq-text-secondary);
+}
+
+/* ─────────────────────────────────────────────────────────────
+   7. RESPONSIVE BREAKPOINTS (Mobile-First Perfection)
+   ───────────────────────────────────────────────────────────── */
+@media (max-width: 1024px) {
+  .rq-hero-layout {
+    grid-template-columns: 1fr;
+    gap: 2.5rem;
+  }
+  
+  .rq-protocol-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  
+  .rq-metrics-bar {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  
+  .rq-merchant-banner {
+    flex-direction: column;
+    text-align: center;
+    padding: 2.5rem 1.5rem;
+  }
+  
+  .rq-merchant-copy {
+    max-width: 100%;
+  }
+}
+
+@media (max-width: 640px) {
+  .rq-hero-section {
+    padding: 2rem 0 2rem;
+  }
+  
+  .rq-protocol-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .rq-metrics-bar {
+    grid-template-columns: 1fr;
+  }
+  
+  .rq-categories-matrix {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.75rem;
+  }
+  
+  .rq-services-bento {
+    grid-template-columns: 1fr;
+    gap: 1.25rem;
+  }
+  
+  .rq-omni-search {
+    flex-direction: column;
+    padding: 0.85rem;
+    gap: 0.75rem;
+  }
+  
+  .rq-omni-submit {
+    width: 100%;
+    justify-content: center;
+  }
+}
+</style>
+
+<div class="rq-viewport">
+  <div class="rq-ambient-aura"></div>
+
+  <!-- ═══════════════════════════════════════════════════════════════
+       1. HERO SECTION — Modern Split Spotlight
+       ═══════════════════════════════════════════════════════════════ -->
+  <section class="rq-hero-section">
+    <div class="rq-container">
+      <div class="rq-hero-layout">
+        
+        <!-- Right Column: Brand Copy & Omni Search -->
+        <div class="rq-hero-content">
+          <div class="rq-meta-pill">
+            <span class="rq-pulse-dot"></span>
+            <span>بنية تحتية رقمية سحابية موحدة • ترخيص معتمد</span>
+          </div>
+
+          <h1 class="rq-hero-title">
+            الجيل القادم من <br>
+            <span class="rq-gradient-text">التجارة الرقمية السحابية</span>
+          </h1>
+
+          <p class="rq-hero-desc">
+            منظومتك الشاملة للوصول الفوري إلى أرقى الاشتراكات السحابية، التراخيص البرمجية، بطاقات الألعاب والتسوق الدولية ببروتوكول تسليم مؤتمت وأمان مصرفي فائق.
+          </p>
+
+          <!-- Omni Search Dock -->
+          <form action="{% url 'catalog' %}" method="get" class="rq-omni-search">
+            <i class="fas fa-search"></i>
+            <input type="text" name="q" class="rq-omni-input" placeholder="ابحث في الكتالوج الموحد (ألعاب، برامج، بطاقات، اشتراكات سحابية)..." autocomplete="off">
+            <button type="submit" class="rq-omni-submit">
+              <span>استكشف الكتالوج</span>
+              <i class="fas fa-arrow-left"></i>
+            </button>
+          </form>
+
+          <!-- Quick Discovery Chips -->
+          <div class="rq-quick-tags">
+            <span class="rq-tag-label"><i class="fas fa-bolt text-amber-400"></i> وصول سريع:</span>
+            <a href="{% url 'catalog' %}?q=Canva" class="rq-tag-chip">Canva Pro سحابي</a>
+            <a href="{% url 'catalog' %}?q=VPN" class="rq-tag-chip">اشتراكات VPN</a>
+            <a href="{% url 'catalog' %}?q=Ayome" class="rq-tag-chip">Ayome شات</a>
+            <a href="{% url 'catalog' %}?q=بطاقات" class="rq-tag-chip">بطاقات رقمية</a>
+            {% if not is_tenant %}
+            <a href="{% url 'stores_directory' %}" class="rq-tag-chip text-indigo-400 font-bold">دليل المتاجر ⟵</a>
+            {% endif %}
+          </div>
         </div>
-    </section>
 
-    <!-- ═══════════════════════════════════════
-         2. PILLARS OF TRUST
-         ═══════════════════════════════════════ -->
-    <section class="rq-trust-strip">
-        <div class="rq-shell">
-            <div class="rq-trust-boxes">
-                <div class="rq-trust-box">
-                    <div class="rq-trust-icon gold"><i class="fas fa-bolt"></i></div>
-                    <div class="rq-trust-info">
-                        <h4>تسليم آلي فوري</h4>
-                        <p>وصول مباشر خلال 15 ثانية فور الدفع</p>
-                    </div>
-                </div>
-                <div class="rq-trust-box">
-                    <div class="rq-trust-icon purple"><i class="fas fa-shield-halved"></i></div>
-                    <div class="rq-trust-info">
-                        <h4>حماية مالية 100%</h4>
-                        <p>تشفير مصرفي ودعم بوابات دفع متعددة</p>
-                    </div>
-                </div>
-                <div class="rq-trust-box">
-                    <div class="rq-trust-icon rose"><i class="fas fa-certificate"></i></div>
-                    <div class="rq-trust-info">
-                        <h4>أكواد وشحنات رسمية</h4>
-                        <p>ضمان شامل ومصدر معتمد لكل باقة</p>
-                    </div>
-                </div>
-                <div class="rq-trust-box">
-                    <div class="rq-trust-icon blue"><i class="fas fa-headset"></i></div>
-                    <div class="rq-trust-info">
-                        <h4>دعم فني متواصل</h4>
-                        <p>فريق خدمة عملاء متواجد على مدار 24 ساعة</p>
-                    </div>
-                </div>
+        <!-- Left Column: Spotlight Live Card -->
+        <div class="rq-spotlight-wrapper">
+          {% with spotlight=featured_products|first %}
+          {% if spotlight %}
+          <div class="rq-spotlight-card">
+            <div class="rq-spotlight-badge">
+              <i class="fas fa-circle-check"></i>
+              <span>تسليم لحظي مباشر (أقل من 15 ثانية)</span>
             </div>
+
+            <div class="rq-spotlight-media">
+              {% if spotlight.images.first %}
+              <img src="{{ spotlight.images.first.image.url }}" alt="{{ spotlight.name }}" class="rq-spotlight-img">
+              {% else %}
+              <div style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; background: #0f172a; color: #64748b;">
+                <i class="fas fa-cubes text-4xl"></i>
+              </div>
+              {% endif %}
+            </div>
+
+            <div class="rq-spotlight-info">
+              <div>
+                <div class="rq-spotlight-category">{% if spotlight.category %}{{ spotlight.category.name }}{% else %}خدمة مميزة{% endif %}</div>
+                <h3 class="rq-spotlight-name">{{ spotlight.name }}</h3>
+              </div>
+              <div class="rq-spotlight-pricing">
+                <div class="rq-price-label">السعر المتوفر:</div>
+                <div class="rq-price-val">{% product_starting_price spotlight %}</div>
+              </div>
+            </div>
+
+            <div class="rq-spotlight-action">
+              <a href="{% url 'product_detail' spotlight.id %}" class="rq-btn-highlight">
+                <i class="fas fa-bolt"></i>
+                <span>طلب فوري مباشر</span>
+              </a>
+              <a href="{% url 'catalog' %}" class="rq-btn-outline">
+                <span>تصفح الكل</span>
+              </a>
+            </div>
+          </div>
+          {% endif %}
+          {% endwith %}
         </div>
-    </section>
 
-    <!-- ═══════════════════════════════════════
-         3. CATEGORIES SHOWCASE
-         ═══════════════════════════════════════ -->
-    <section class="rq-section">
-        <div class="rq-shell">
-            <div class="rq-section-head">
-                <div>
-                    <div class="rq-section-eyebrow">
-                        <i class="fas fa-th-large"></i> تصنيفات الخدمات
-                    </div>
-                    <h2 class="rq-section-title">اختر القسم وتصفح الباقات</h2>
-                    <p class="rq-section-desc">أقسام مخصصة لجميع احتياجاتك الرقمية من ألعاب وبطاقات واشتراكات</p>
-                </div>
-                <a href="{% url 'catalog' %}" class="rq-view-all-link">
-                    <span>عرض كافة الأقسام ({{ categories|length }})</span>
-                    <i class="fas fa-arrow-left"></i>
-                </a>
-            </div>
+      </div>
+    </div>
+  </section>
 
-            <div class="rq-cats-grid">
-                {% for c in categories %}
-                <a href="{% url 'catalog' %}?category={{ c.id }}" class="rq-cat-tile">
-                    <div class="rq-cat-icon-frame">
-                        {% if c.image %}
-                        <img src="{{ c.image.url }}" alt="{{ c.name }}">
-                        {% else %}
-                        <i class="fas fa-cube"></i>
-                        {% endif %}
-                    </div>
-                    <h3 class="rq-cat-name">{{ c.name }}</h3>
-                    {% if c.product_count %}
-                    <span class="rq-cat-count">{{ c.product_count }} خدمة</span>
-                    {% else %}
-                    <span class="rq-cat-count">تصفح الآن</span>
-                    {% endif %}
-                </a>
-                {% empty %}
-                <div style="grid-column: 1 / -1; text-align: center; padding: 2rem; color: var(--text-muted);">
-                    جاري تحميل الأقسام...
-                </div>
-                {% endfor %}
-            </div>
+  <!-- ═══════════════════════════════════════════════════════════════
+       2. ENTERPRISE PROTOCOL BAR (Trust Architecture)
+       ═══════════════════════════════════════════════════════════════ -->
+  <section class="rq-protocol-section">
+    <div class="rq-container">
+      <div class="rq-protocol-grid">
+        
+        <div class="rq-protocol-box">
+          <div class="rq-protocol-icon rq-icon-speed">
+            <i class="fas fa-bolt"></i>
+          </div>
+          <div>
+            <h4 class="rq-protocol-title">بروتوكول التسليم اللحظي</h4>
+            <p class="rq-protocol-text">ربط سحابي مؤتمت يضمن وصول الأكواد والشحنات فور إتمام الدفع خلال 15 ثانية.</p>
+          </div>
         </div>
-    </section>
 
-    <!-- ═══════════════════════════════════════
-         4. FEATURED PRODUCTS (THE MAIN GOODS)
-         ═══════════════════════════════════════ -->
-    <section class="rq-section" style="padding-top: 1rem;">
-        <div class="rq-shell">
-            <div class="rq-section-head">
-                <div>
-                    <div class="rq-section-eyebrow">
-                        <i class="fas fa-star"></i> الأكثر طلباً وشحناً
-                    </div>
-                    <h2 class="rq-section-title">أحدث الخدمات الرقمية المتاحة</h2>
-                    <p class="rq-section-desc">شحن فوري بالآيدي أو الكود بأفضل الأسعار الرسمية</p>
-                </div>
-                <a href="{% url 'catalog' %}" class="rq-view-all-link">
-                    <span>تصفح الكتالوج بالكامل</span>
-                    <i class="fas fa-arrow-left"></i>
-                </a>
-            </div>
-
-            <div class="rq-products-grid">
-                {% for p in featured_products %}
-                <a href="{% url 'product_detail' p.id %}" class="rq-product-card">
-                    <div class="rq-product-thumb">
-                        {% if p.is_sale %}
-                        <span class="rq-card-pill hot">خصم خاص</span>
-                        {% else %}
-                        <span class="rq-card-pill vip">مميز</span>
-                        {% endif %}
-
-                        {% if p.image %}
-                        <img src="{{ p.image.url }}" alt="{{ p.name }}" loading="lazy">
-                        {% else %}
-                        <i class="fas fa-gamepad" style="font-size: 3rem; color: var(--gold); opacity: 0.35;"></i>
-                        {% endif %}
-                    </div>
-
-                    <div class="rq-product-content">
-                        <span class="rq-product-cat">{{ p.category.name|default:"خدمة رقمية" }}</span>
-                        <h4 class="rq-product-title">{{ p.name }}</h4>
-
-                        <div class="rq-product-foot">
-                            <div>
-                                <div style="font-size: 0.68rem; color: var(--text-dim);">يبدأ من:</div>
-                                <div class="rq-product-price">{% product_starting_price p %}</div>
-                            </div>
-                            <span class="rq-buy-action">
-                                <span>شحن فوري</span>
-                                <i class="fas fa-bolt"></i>
-                            </span>
-                        </div>
-                    </div>
-                </a>
-                {% empty %}
-                <div style="grid-column: 1 / -1; text-align: center; padding: 3rem; background: var(--dark-card); border-radius: 24px; border: 1px dashed var(--border-card);">
-                    <i class="fas fa-box-open" style="font-size: 2.5rem; color: var(--gold); margin-bottom: 1rem;"></i>
-                    <h3 style="color: #fff; margin: 0 0 0.5rem;">الخدمات قيد التحديث</h3>
-                    <p style="color: var(--text-muted); margin: 0;">يتم إضافة باقات جديدة حالياً.</p>
-                </div>
-                {% endfor %}
-            </div>
+        <div class="rq-protocol-box">
+          <div class="rq-protocol-icon rq-icon-shield">
+            <i class="fas fa-shield-halved"></i>
+          </div>
+          <div>
+            <h4 class="rq-protocol-title">حماية وتشفير مصرفي</h4>
+            <p class="rq-protocol-text">معايير تشفير مصرفية صارمة مع عزل كامل لحسابات ورصيد المحافظ الرقمية.</p>
+          </div>
         </div>
-    </section>
 
-    <!-- ═══════════════════════════════════════
-         5. PARTNER STORES SHOWCASE
-         ═══════════════════════════════════════ -->
-    {% if not is_tenant and platform_stores %}
-    <section class="rq-stores-section" id="stores-section">
-        <div class="rq-shell">
-            <div class="rq-section-head">
-                <div>
-                    <div class="rq-section-eyebrow">
-                        <i class="fas fa-store"></i> شبكة المتاجر الرقمية
-                    </div>
-                    <h2 class="rq-section-title">متاجر تعمل بنظام رقميات</h2>
-                    <p class="rq-section-desc">متاجر إلكترونية مستقلة تقدم شحن الألعاب والبطاقات بهوياتها الخاصة</p>
-                </div>
-                <div style="display: flex; gap: 0.75rem; flex-wrap: wrap;">
-                    <a href="{% url 'stores_directory' %}" class="rq-view-all-link">
-                        <span>دليل كافة المتاجر</span>
-                        <i class="fas fa-arrow-left"></i>
-                    </a>
-                    <a href="{% url 'store_registration' %}" class="rq-buy-action" style="padding: 0.6rem 1.25rem; font-size: 0.82rem;">
-                        <i class="fas fa-plus"></i> أنشئ متجرك
-                    </a>
-                </div>
-            </div>
-
-            <div class="rq-stores-grid">
-                {% for s in platform_stores|slice:":4" %}
-                <div class="rq-store-card">
-                    <div>
-                        <div class="rq-store-top">
-                            <div class="rq-store-avatar">
-                                {% if s.logo %}
-                                <img src="{{ s.logo.url }}" alt="{{ s.name }}">
-                                {% else %}
-                                <i class="fas fa-store" style="color: var(--gold); font-size: 1.3rem;"></i>
-                                {% endif %}
-                            </div>
-                            <div>
-                                <h4 class="rq-store-name">{{ s.name }}</h4>
-                                <span class="rq-store-badge"><i class="fas fa-badge-check"></i> متجر معتمد</span>
-                            </div>
-                        </div>
-                        <p class="rq-store-desc">{{ s.description|default:"شحن ألعاب وبطاقات رقمية وتسليم فوري."|truncatewords:16 }}</p>
-                    </div>
-
-                    {% if s.custom_domain %}
-                    <a href="//{{ s.custom_domain }}" target="_blank" rel="noopener" class="rq-store-btn">
-                        <span>زيارة المتجر</span>
-                        <i class="fas fa-external-link-alt" style="font-size: 0.72rem;"></i>
-                    </a>
-                    {% else %}
-                    <a href="//{{ s.subdomain }}.{{ request.get_host }}" target="_blank" rel="noopener" class="rq-store-btn">
-                        <span>زيارة المتجر</span>
-                        <i class="fas fa-external-link-alt" style="font-size: 0.72rem;"></i>
-                    </a>
-                    {% endif %}
-                </div>
-                {% endfor %}
-            </div>
+        <div class="rq-protocol-box">
+          <div class="rq-protocol-icon rq-icon-coins">
+            <i class="fas fa-coins"></i>
+          </div>
+          <div>
+            <h4 class="rq-protocol-title">تسوية متعددة العملات</h4>
+            <p class="rq-protocol-text">دعم التسعير والتحويل الفوري بالليرة السورية، الليرة التركية، والدولار الأمريكي.</p>
+          </div>
         </div>
-    </section>
-    {% endif %}
 
-    <!-- ═══════════════════════════════════════
-         6. METRICS & COUNTERS
-         ═══════════════════════════════════════ -->
-    <section class="rq-metrics-strip">
-        <div class="rq-shell">
-            <div class="rq-metrics-card">
-                {% if display_stats %}
-                    {% for s in display_stats %}
-                    <div class="rq-metric-col">
-                        <div class="rq-metric-num">{{ s.value }}</div>
-                        <div class="rq-metric-text">{{ s.label }}</div>
-                    </div>
-                    {% endfor %}
-                {% else %}
-                    <div class="rq-metric-col">
-                        <div class="rq-metric-num">+25,000</div>
-                        <div class="rq-metric-text">عميل مسجل يثق بنا</div>
-                    </div>
-                    <div class="rq-metric-col">
-                        <div class="rq-metric-num">+180,000</div>
-                        <div class="rq-metric-text">عملية شحن ناجحة</div>
-                    </div>
-                    <div class="rq-metric-col">
-                        <div class="rq-metric-num">99.9%</div>
-                        <div class="rq-metric-text">نسبة رضا العملاء</div>
-                    </div>
-                    <div class="rq-metric-col">
-                        <div class="rq-metric-num">15 ثانية</div>
-                        <div class="rq-metric-text">متوسط سرعة التسليم</div>
-                    </div>
-                {% endif %}
-            </div>
+        <div class="rq-protocol-box">
+          <div class="rq-protocol-icon rq-icon-check">
+            <i class="fas fa-circle-check"></i>
+          </div>
+          <div>
+            <h4 class="rq-protocol-title">تراخيص ومصادر أصلية</h4>
+            <p class="rq-protocol-text">كافة الخدمات والبطاقات موثقة ومضمونة 100% ومستوردة مباشرة من موزعيها الرسميين.</p>
+          </div>
         </div>
-    </section>
 
-    <!-- ═══════════════════════════════════════
-         7. FINAL CALL TO ACTION
-         ═══════════════════════════════════════ -->
-    <section class="rq-vip-cta">
-        <div class="rq-shell">
-            <div class="rq-vip-box">
-                <div class="rq-flag-badge" style="margin: 0 auto 1.5rem;">
-                    <i class="fas fa-rocket"></i> انطلق الآن
-                </div>
-                <h2>
-                    {% if is_tenant %}
-                    اشحن ألعابك وبطاقاتك الآن واستلم فوراً
-                    {% else %}
-                    ابدأ تجربتك الرقمية الآن واستلم في ثوانٍ
-                    {% endif %}
-                </h2>
-                <p>
-                    انضم إلى آلاف اللاعبين والمستخدمين الذين يعتمدون على رقميات للحصول على بطاقاتهم وألعابهم بأعلى سرعة وأفضل سعر.
-                </p>
-                <div class="rq-vip-actions">
-                    <a href="{% url 'catalog' %}" class="rq-btn-gold-large">
-                        <span>ابدأ الشراء الآن</span>
-                        <i class="fas fa-arrow-left"></i>
-                    </a>
-                    {% if not is_tenant %}
-                    <a href="{% url 'store_registration' %}" class="rq-btn-ghost-large">
-                        <i class="fas fa-store"></i>
-                        <span>أنشئ متجرك مجاناً</span>
-                    </a>
-                    {% endif %}
-                </div>
-            </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════════════════════════════════════════
+       3. CATEGORY SHOWCASE — Holographic Service Matrix
+       ═══════════════════════════════════════════════════════════════ -->
+  {% if categories %}
+  <section class="rq-container">
+    <div class="rq-section-head">
+      <div>
+        <span class="rq-section-tag">الفهرس الرقمي المتخصص</span>
+        <h2 class="rq-section-title">استكشف الأقسام والحلول المتاحة</h2>
+      </div>
+      <a href="{% url 'catalog' %}" class="rq-section-link">
+        <span>عرض كامل الكتالوج ({{ categories.count }} فئة)</span>
+        <i class="fas fa-arrow-left"></i>
+      </a>
+    </div>
+
+    <div class="rq-categories-matrix">
+      {% for cat in categories %}
+      <a href="{% url 'catalog' %}?category={{ cat.id }}" class="rq-category-tile">
+        <div class="rq-category-icon-box">
+          {% if cat.image %}
+          <img src="{{ cat.image.url }}" alt="{{ cat.name }}">
+          {% else %}
+          <i class="fas fa-cube text-2xl text-indigo-400"></i>
+          {% endif %}
         </div>
-    </section>
+        <div class="rq-category-label">{{ cat.name }}</div>
+        <span class="rq-category-count">{{ cat.products.count }} حزمة</span>
+      </a>
+      {% endfor %}
+    </div>
+  </section>
+  {% endif %}
 
-</main>
+  <!-- ═══════════════════════════════════════════════════════════════
+       4. CURATED SERVICES BENTO GRID (Featured Products)
+       ═══════════════════════════════════════════════════════════════ -->
+  {% if featured_products %}
+  <section class="rq-container">
+    <div class="rq-section-head">
+      <div>
+        <span class="rq-section-tag">الخدمات الأكثر طلباً</span>
+        <h2 class="rq-section-title">مختارات الأصول الرقمية الحصرية</h2>
+      </div>
+      <a href="{% url 'catalog' %}" class="rq-section-link">
+        <span>استكشف كافة الخدمات الرقمية</span>
+        <i class="fas fa-arrow-left"></i>
+      </a>
+    </div>
+
+    <div class="rq-services-bento">
+      {% for product in featured_products %}
+      <a href="{% url 'product_detail' product.id %}" class="rq-service-card">
+        <div class="rq-service-banner">
+          {% if product.images.first %}
+          <img src="{{ product.images.first.image.url }}" alt="{{ product.name }}" loading="lazy">
+          {% else %}
+          <div style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; background: #0f172a; color: #475569;">
+            <i class="fas fa-layer-group text-3xl"></i>
+          </div>
+          {% endif %}
+          
+          {% if product.category %}
+          <span class="rq-service-tag-pill">{{ product.category.name }}</span>
+          {% endif %}
+
+          <span class="rq-service-instant-badge">
+            <i class="fas fa-bolt"></i>
+            <span>تنفيذ آلي</span>
+          </span>
+        </div>
+
+        <div class="rq-service-content">
+          <div class="rq-service-cat">{% if product.category %}{{ product.category.name }}{% else %}خدمة سحابية{% endif %}</div>
+          <h3 class="rq-service-title">{{ product.name }}</h3>
+
+          <div class="rq-service-foot">
+            <div class="rq-service-price-block">
+              <span class="rq-price-sub">يبدأ من</span>
+              <span class="rq-service-amount">{% product_starting_price product %}</span>
+            </div>
+
+            <div class="rq-service-buy-btn">
+              <span>طلب مباشر</span>
+              <i class="fas fa-arrow-left text-xs"></i>
+            </div>
+          </div>
+        </div>
+      </a>
+      {% endfor %}
+    </div>
+  </section>
+  {% endif %}
+
+  <!-- ═══════════════════════════════════════════════════════════════
+       5. RAQAMIYAT CLOUD STORES (Independent Merchant Showcase)
+       ═══════════════════════════════════════════════════════════════ -->
+  {% if not is_tenant and platform_stores %}
+  <section class="rq-container rq-stores-section">
+    <div class="rq-section-head">
+      <div>
+        <span class="rq-section-tag">منظومة المتاجر الرقمية المستقلة</span>
+        <h2 class="rq-section-title">شبكة المتاجر المعتمدة على بنية رقميات التحتية</h2>
+      </div>
+      <a href="{% url 'stores_directory' %}" class="rq-section-link">
+        <span>دليل كافة المتاجر المعتمدة</span>
+        <i class="fas fa-arrow-left"></i>
+      </a>
+    </div>
+
+    <div class="rq-stores-grid">
+      {% for store in platform_stores|slice:":4" %}
+      <div class="rq-store-card">
+        <div class="rq-store-top">
+          <div class="rq-store-logo">
+            {% if store.logo %}
+            <img src="{{ store.logo.url }}" alt="{{ store.name }}">
+            {% else %}
+            <div style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; background: #0f172a; color: #818cf8; font-weight: bold; font-size: 1.25rem;">
+              {{ store.name|slice:":1" }}
+            </div>
+            {% endif %}
+          </div>
+          <div class="rq-store-title-wrap">
+            <h4 class="rq-store-name">
+              <span>{{ store.name }}</span>
+              <i class="fas fa-certificate rq-verified-check" title="متجر موثق"></i>
+            </h4>
+            <span class="rq-store-subdomain">{{ store.subdomain }}.raqamiyatapp.com</span>
+          </div>
+        </div>
+
+        <p class="rq-store-bio">
+          {% if store.description %}{{ store.description|truncatewords:15 }}{% else %}متجر رقمي مستقل معتمد لتقديم الخدمات والشحنات المباشرة بنظام رقميات.{% endif %}
+        </p>
+
+        <div class="rq-store-meta-bar">
+          <span class="rq-store-status-pill">
+            <i class="fas fa-shield-check"></i> متجر معتمد
+          </span>
+          <a href="{{ store.get_absolute_url }}" class="rq-store-visit-link" target="_blank">
+            <span>زيارة المتجر</span>
+            <i class="fas fa-arrow-left"></i>
+          </a>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+
+    <!-- Merchant Onboarding Banner -->
+    <div class="rq-merchant-banner">
+      <div class="rq-merchant-copy">
+        <div class="rq-merchant-badge">
+          <i class="fas fa-rocket"></i>
+          <span>منصة رقميات للتجار والشركاء</span>
+        </div>
+        <h3 class="rq-merchant-heading">هل تدير نشاطاً أو تجارة في الخدمات الرقمية؟</h3>
+        <p class="rq-merchant-text">
+          أطلق متجرك الرقمي المتكامل بهويتك المستقلة ونطاقك الخاص خلال دقائق. استفد من الربط الآلي الشامل لمزودي الخدمات، وبوابات الدفع المتعددة، وإدارة العمليات دون الحاجة لأي خبرة برمجية.
+        </p>
+      </div>
+      <div class="rq-merchant-action">
+        <a href="{% url 'stores_directory' %}" class="rq-merchant-btn">
+          <span>استكشف شبكة المتاجر</span>
+          <i class="fas fa-arrow-left"></i>
+        </a>
+      </div>
+    </div>
+  </section>
+  {% endif %}
+
+  <!-- ═══════════════════════════════════════════════════════════════
+       6. PLATFORM PERFORMANCE PULSE (Live Metrics)
+       ═══════════════════════════════════════════════════════════════ -->
+  <section class="rq-container">
+    <div class="rq-metrics-bar">
+      
+      <div class="rq-metric-card">
+        <div class="rq-metric-num">+25,000</div>
+        <div class="rq-metric-title">مستخدم وعميل نشط</div>
+      </div>
+
+      <div class="rq-metric-card">
+        <div class="rq-metric-num">+180,000</div>
+        <div class="rq-metric-title">معاملة تسليم ناجحة</div>
+      </div>
+
+      <div class="rq-metric-card">
+        <div class="rq-metric-num">99.98%</div>
+        <div class="rq-metric-title">نسبة الدقة ورضا العملاء</div>
+      </div>
+
+      <div class="rq-metric-card">
+        <div class="rq-metric-num">&lt; 15s</div>
+        <div class="rq-metric-title">متوسط سرعة الإنجاز الفعلي</div>
+      </div>
+
+    </div>
+  </section>
+
+</div>
 {% endblock %}
