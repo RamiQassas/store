@@ -1,0 +1,460 @@
+{% extends "site/base.html" %}
+{% load static site_tags %}
+
+{% block title %}دليل المتاجر المعتمدة | رقميات{% endblock %}
+
+{% block extra_head %}
+<style>
+/* ═══════════════════════════════════════════════════════
+   STORES DIRECTORY — MODERN BENTO SHOWCASE
+   ═══════════════════════════════════════════════════════ */
+.stores-page {
+    min-height: 100vh;
+    padding: 3rem 0 6rem;
+    direction: rtl;
+    background:
+        radial-gradient(ellipse at 85% 10%, rgba(212,168,83,0.06) 0%, transparent 50%),
+        radial-gradient(ellipse at 15% 30%, rgba(124,92,191,0.05) 0%, transparent 45%);
+}
+
+.stores-wrap {
+    width: min(100% - 2rem, 1280px);
+    margin-inline: auto;
+}
+
+/* Header */
+.stores-hero {
+    text-align: center;
+    max-width: 720px;
+    margin: 0 auto 3.5rem;
+}
+
+.stores-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 16px;
+    background: rgba(212,168,83,0.06);
+    border: 1px solid rgba(212,168,83,0.18);
+    border-radius: 100px;
+    font-size: 0.78rem;
+    font-weight: 800;
+    color: #d4a853;
+    margin-bottom: 1.25rem;
+}
+
+.stores-hero h1 {
+    font-size: clamp(2rem, 5vw, 3rem);
+    font-weight: 900;
+    color: #fff;
+    margin: 0 0 1rem;
+    line-height: 1.2;
+}
+
+.stores-hero h1 span {
+    background: linear-gradient(135deg, #d4a853, #f0c674);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+.stores-hero p {
+    font-size: 1rem;
+    color: #8a8a9e;
+    line-height: 1.7;
+    margin: 0 0 2rem;
+}
+
+/* Search dock */
+.stores-search-dock {
+    max-width: 520px;
+    margin: 0 auto;
+    position: relative;
+}
+
+.stores-search-dock form {
+    display: flex;
+    align-items: center;
+    background: rgba(18,18,26,0.85);
+    border: 1px solid rgba(255,255,255,0.07);
+    border-radius: 16px;
+    padding: 6px;
+    backdrop-filter: blur(20px);
+    transition: all 0.3s;
+}
+
+.stores-search-dock form:focus-within {
+    border-color: rgba(212,168,83,0.35);
+    box-shadow: 0 0 30px rgba(212,168,83,0.08);
+}
+
+.stores-search-dock input {
+    flex: 1;
+    background: none;
+    border: none;
+    color: #fff;
+    padding: 0.8rem 1rem;
+    font-size: 0.9rem;
+    outline: none;
+    min-width: 0;
+}
+
+.stores-search-dock input::placeholder {
+    color: #5e5e74;
+}
+
+.stores-search-dock button {
+    background: linear-gradient(135deg, #d4a853, #f0c674);
+    color: #0a0a0f;
+    border: none;
+    padding: 0.7rem 1.4rem;
+    border-radius: 12px;
+    font-weight: 800;
+    font-size: 0.82rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    transition: all 0.25s;
+}
+
+.stores-search-dock button:hover {
+    filter: brightness(1.1);
+    transform: scale(1.02);
+}
+
+/* Stores Grid */
+.stores-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 1.5rem;
+    margin-bottom: 4rem;
+}
+
+.store-card {
+    background: rgba(18,18,26,0.65);
+    border: 1px solid rgba(255,255,255,0.05);
+    border-radius: 24px;
+    padding: 1.75rem;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    transition: all 0.35s cubic-bezier(0.4,0,0.2,1);
+    position: relative;
+    overflow: hidden;
+}
+
+.store-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, transparent, rgba(212,168,83,0.3), transparent);
+    opacity: 0;
+    transition: opacity 0.3s;
+}
+
+.store-card:hover {
+    border-color: rgba(212,168,83,0.25);
+    transform: translateY(-5px);
+    box-shadow: 0 20px 45px rgba(0,0,0,0.4), 0 0 30px rgba(212,168,83,0.05);
+}
+
+.store-card:hover::before {
+    opacity: 1;
+}
+
+.store-head {
+    display: flex;
+    align-items: center;
+    gap: 1.15rem;
+    margin-bottom: 1.25rem;
+}
+
+.store-logo-frame {
+    width: 64px;
+    height: 64px;
+    border-radius: 18px;
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(255,255,255,0.07);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    flex-shrink: 0;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+}
+
+.store-logo-frame img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    padding: 8%;
+}
+
+.store-title-area {
+    flex: 1;
+    min-width: 0;
+}
+
+.store-name {
+    font-size: 1.15rem;
+    font-weight: 800;
+    color: #fff;
+    margin: 0 0 4px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.store-verified-tag {
+    font-size: 0.7rem;
+    font-weight: 800;
+    color: #d4a853;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.store-desc {
+    font-size: 0.88rem;
+    color: #8a8a9e;
+    line-height: 1.65;
+    margin: 0 0 1.5rem;
+    flex: 1;
+}
+
+.store-meta-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.85rem 1rem;
+    background: rgba(255,255,255,0.02);
+    border: 1px solid rgba(255,255,255,0.04);
+    border-radius: 14px;
+    margin-bottom: 1.25rem;
+}
+
+.store-meta-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.75rem;
+    color: #8a8a9e;
+    font-weight: 700;
+}
+
+.store-meta-item i {
+    color: #d4a853;
+    font-size: 0.8rem;
+}
+
+.store-visit-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 0.8rem;
+    border-radius: 14px;
+    background: linear-gradient(135deg, rgba(212,168,83,0.1), rgba(240,198,116,0.05));
+    border: 1px solid rgba(212,168,83,0.25);
+    color: #d4a853;
+    font-weight: 800;
+    font-size: 0.85rem;
+    text-decoration: none;
+    transition: all 0.25s;
+}
+
+.store-card:hover .store-visit-btn {
+    background: linear-gradient(135deg, #d4a853, #f0c674);
+    color: #0a0a0f;
+    border-color: transparent;
+    box-shadow: 0 6px 20px rgba(212,168,83,0.25);
+}
+
+/* Empty state */
+.stores-empty {
+    text-align: center;
+    padding: 4rem 2rem;
+    background: rgba(18,18,26,0.6);
+    border: 1px dashed rgba(255,255,255,0.07);
+    border-radius: 24px;
+    grid-column: 1 / -1;
+}
+
+.stores-empty i {
+    font-size: 3rem;
+    color: #d4a853;
+    margin-bottom: 1rem;
+}
+
+.stores-empty h3 {
+    color: #fff;
+    font-size: 1.25rem;
+    margin: 0 0 0.5rem;
+}
+
+.stores-empty p {
+    color: #8a8a9e;
+    font-size: 0.9rem;
+    margin: 0;
+}
+
+/* CTA Register Store */
+.stores-create-cta {
+    background: linear-gradient(135deg, rgba(212,168,83,0.05), rgba(124,92,191,0.05));
+    border: 1px solid rgba(212,168,83,0.15);
+    border-radius: 28px;
+    padding: 3rem 2rem;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+}
+
+.stores-create-cta h2 {
+    font-size: clamp(1.5rem, 3.5vw, 2.2rem);
+    font-weight: 900;
+    color: #fff;
+    margin: 0 0 0.75rem;
+}
+
+.stores-create-cta p {
+    color: #8a8a9e;
+    max-width: 520px;
+    margin: 0 auto 2rem;
+    font-size: 0.95rem;
+    line-height: 1.65;
+}
+
+.btn-cta-gold {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 0.85rem 2.25rem;
+    border-radius: 14px;
+    background: linear-gradient(135deg, #d4a853, #f0c674);
+    color: #0a0a0f;
+    font-weight: 800;
+    font-size: 0.95rem;
+    text-decoration: none;
+    box-shadow: 0 8px 25px rgba(212,168,83,0.25);
+    transition: all 0.3s;
+}
+
+.btn-cta-gold:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 12px 35px rgba(212,168,83,0.35);
+}
+
+@media (max-width: 640px) {
+    .stores-grid {
+        grid-template-columns: 1fr;
+    }
+    .stores-hero h1 {
+        font-size: 1.75rem;
+    }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<main class="stores-page">
+    <div class="stores-wrap">
+
+        <!-- Hero Header -->
+        <div class="stores-hero">
+            <div class="stores-badge">
+                <i class="fas fa-store"></i> شبكة المتاجر الرقمية المستقلة
+            </div>
+            <h1>متاجر رقمية تعمل بنظام <span>رقميات</span></h1>
+            <p>تصفح مئات المتاجر المعتمدة لشحن الألعاب والبطاقات الرقمية بحسابات مستقلة وضمان أمان عالي.</p>
+
+            <!-- Search Dock -->
+            <div class="stores-search-dock">
+                <form method="get" action="{% url 'stores_directory' %}">
+                    <input type="text" name="q" value="{{ search_query }}" placeholder="ابحث باسم المتجر أو نشاطه..." autocomplete="off">
+                    <button type="submit">
+                        <i class="fas fa-search"></i> بحث
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Stores Grid -->
+        <div class="stores-grid">
+            {% for item in stores_data %}
+            <div class="store-card">
+                <div>
+                    <div class="store-head">
+                        <div class="store-logo-frame">
+                            {% if item.store.logo %}
+                            <img src="{{ item.store.logo.url }}" alt="{{ item.store.name }}">
+                            {% else %}
+                            <i class="fas fa-store" style="color: #d4a853; font-size: 1.5rem;"></i>
+                            {% endif %}
+                        </div>
+                        <div class="store-title-area">
+                            <h3 class="store-name">{{ item.store.name }}</h3>
+                            <span class="store-verified-tag">
+                                <i class="fas fa-badge-check"></i> متجر معتمد
+                            </span>
+                        </div>
+                    </div>
+
+                    <p class="store-desc">
+                        {{ item.store.description|default:"متجر رقمي متخصص في شحن الألعاب وكروت الهدايا والمحافظ الإلكترونية بتسليم فوري."|truncatewords:20 }}
+                    </p>
+                </div>
+
+                <div>
+                    <div class="store-meta-bar">
+                        <div class="store-meta-item">
+                            <i class="fas fa-box"></i>
+                            <span>{{ item.product_count }} خدمة متاحة</span>
+                        </div>
+                        <div class="store-meta-item">
+                            <i class="fas fa-shield-check"></i>
+                            <span>دفع آمن 100%</span>
+                        </div>
+                    </div>
+
+                    {% if item.store.custom_domain %}
+                    <a href="//{{ item.store.custom_domain }}" target="_blank" rel="noopener" class="store-visit-btn">
+                        <span>زيارة المتجر</span>
+                        <i class="fas fa-arrow-left"></i>
+                    </a>
+                    {% else %}
+                    <a href="//{{ item.store.subdomain }}.{{ request.get_host }}" target="_blank" rel="noopener" class="store-visit-btn">
+                        <span>زيارة المتجر</span>
+                        <i class="fas fa-arrow-left"></i>
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+            {% empty %}
+            <div class="stores-empty">
+                <i class="fas fa-store-slash"></i>
+                <h3>لم يتم العثور على متاجر</h3>
+                <p>{% if search_query %}لا توجد متاجر تطابق بحثك "{{ search_query }}"{% else %}سيتم إضافة متاجر معتمدة قريباً.{% endif %}</p>
+                {% if search_query %}
+                <a href="{% url 'stores_directory' %}" class="btn-cta-gold" style="margin-top: 1.5rem; font-size: 0.85rem; padding: 0.6rem 1.5rem;">
+                    عرض كافة المتاجر
+                </a>
+                {% endif %}
+            </div>
+            {% endfor %}
+        </div>
+
+        <!-- CTA Section -->
+        <div class="stores-create-cta">
+            <h2>هل ترغب في إطلاق متجرك الرقمي؟</h2>
+            <p>أنشئ متجرك الخاص بهويتك المستقلة ونطاقك المخصص وابدأ بيع الألعاب والبطاقات بربط آلي متكامل.</p>
+            <a href="{% url 'store_registration' %}" class="btn-cta-gold">
+                <i class="fas fa-rocket"></i> أنشئ متجرك مجاناً
+            </a>
+        </div>
+
+    </div>
+</main>
+{% endblock %}

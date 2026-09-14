@@ -51,7 +51,7 @@ def apply_git_update():
     success = False
     output = ""
     try:
-        cmd = "git config --global --add safe.directory '*' && git fetch origin master && git reset --hard origin/master && python manage.py migrate --noinput"
+        cmd = "git config --global --add safe.directory '*' && git fetch origin master && git reset --hard origin/master && python manage.py migrate --noinput && python manage.py collectstatic --noinput"
         proc = subprocess.run(cmd, shell=True, capture_output=True, text=True, timeout=60)
         logger.info(f"🚀 [AUTO-DEPLOY] Output: {proc.stdout[:300]}")
         if proc.stderr:

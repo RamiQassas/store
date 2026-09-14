@@ -14,7 +14,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800;900&family=Cairo:wght@400;600;700;900&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-  <link rel="stylesheet" href="{% static 'site/css/app.css' %}?v=5">
+  <link rel="stylesheet" href="{% static 'site/css/app.css' %}?v=20260914_bento">
   
   <style>
     /* ═══════════════════════════════════════════
@@ -722,7 +722,7 @@
               <i class="fas fa-house"></i> الرئيسية
           </a>
           {% if not is_tenant %}
-          <a href="{% url 'home' %}#stores-section" class="drawer-link">
+          <a href="{% url 'stores_directory' %}" class="drawer-link {% if request.resolver_match.url_name == 'stores_directory' %}active{% endif %}">
               <i class="fas fa-store"></i> المتاجر
           </a>
           {% endif %}
@@ -801,7 +801,7 @@
         <nav class="nav-links">
           <a href="{% url 'home' %}" class="{% if request.resolver_match.url_name == 'home' %}active{% endif %}">الرئيسية</a>
           {% if not is_tenant %}
-          <a href="{% url 'home' %}#stores-section">المتاجر</a>
+          <a href="{% url 'stores_directory' %}" class="{% if request.resolver_match.url_name == 'stores_directory' %}active{% endif %}">المتاجر</a>
           {% endif %}
           <a href="{% url 'catalog' %}" class="{% if request.resolver_match.url_name == 'catalog' %}active{% endif %}">الخدمات</a>
           {% if user.is_authenticated %}

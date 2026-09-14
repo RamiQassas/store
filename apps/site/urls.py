@@ -25,6 +25,7 @@ urlpatterns = [
     path("auth/sso-callback/", views.sso_transfer_view, name="sso_transfer"),
 
     path("", views.home, name="home"),
+    path("stores/", views.stores_directory, name="stores_directory"),
     path("create-store/", views_admin.store_registration_landing, name="store_registration"),
     path("create-store/payment/", views_admin.store_registration_payment, name="store_registration_payment"),
     path("control/stores/", views_admin.platform_super_admin_dashboard, name="platform_super_admin_dashboard"),

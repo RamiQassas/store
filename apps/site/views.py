@@ -1761,6 +1761,35 @@ def home(request):
     return render(request, "site/home.html", ctx)
 
 
+def stores_directory(request):
+    """Public directory of all independent stores hosted on Raqamiyat."""
+    from apps.stores.models import Store
+    from apps.catalog.models import Product
+    from django.db.models import Q
+    
+    q = request.GET.get("q", "").strip()
+    stores_qs = Store.objects.filter(is_active=True)
+    if q:
+        stores_qs = stores_qs.filter(Q(name__icontains=q) | Q(description__icontains=q))
+    
+    stores = stores_qs.order_by("-is_featured", "display_order", "name")
+    
+    stores_data = []
+    for s in stores:
+        p_count = Product.all_objects.filter(store=s, is_active=True).count()
+        stores_data.append({
+            "store": s,
+            "product_count": p_count,
+        })
+
+    ctx = {
+        "stores_data": stores_data,
+        "search_query": q,
+        "stores_count": len(stores_data),
+    }
+    return render(request, "site/stores_directory.html", ctx)
+
+
 def catalog(request):
     store = getattr(request, "store", None)
     cat_id = request.GET.get("category")

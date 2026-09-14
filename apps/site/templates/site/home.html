@@ -894,7 +894,7 @@
          6. PARTNER STORES
          ═══════════════════════════════════════ -->
     {% if not is_tenant and platform_stores %}
-    <section class="rq-stores-section">
+    <section class="rq-stores-section" id="stores-section">
         <div class="rq-wrap">
             <div class="rq-section-header">
                 <div>
@@ -903,9 +903,15 @@
                     </div>
                     <h2>متاجر رقمية تعمل بنظام رقميات</h2>
                 </div>
-                <a href="{% url 'store_registration' %}" class="rq-btn rq-btn-primary" style="font-size: 0.82rem; padding: 0.65rem 1.3rem;">
-                    <i class="fas fa-plus"></i> أنشئ متجرك مجاناً
-                </a>
+                <div style="display: flex; gap: 0.75rem; flex-wrap: wrap;">
+                    <a href="{% url 'stores_directory' %}" class="rq-btn rq-btn-ghost" style="font-size: 0.82rem; padding: 0.65rem 1.2rem;">
+                        <span>تصفح كافة المتاجر</span>
+                        <i class="fas fa-arrow-left"></i>
+                    </a>
+                    <a href="{% url 'store_registration' %}" class="rq-btn rq-btn-primary" style="font-size: 0.82rem; padding: 0.65rem 1.3rem;">
+                        <i class="fas fa-plus"></i> أنشئ متجرك مجاناً
+                    </a>
+                </div>
             </div>
 
             <div class="rq-stores-grid">
