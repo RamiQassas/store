@@ -64,6 +64,14 @@
         <p class="text-muted">إدارة مخزون الخدمات الرقمية، تحديث الأسعار، تغيير الصور والأسماء سريعاً، والتحكم في ظهور المنتجات.</p>
     </div>
     <div class="flex flex-wrap gap-3 items-center">
+        <button type="button" onclick="startBulkAiBranding('all')" class="btn btn-outline btn-sm border-cyan/40 text-cyan hover:bg-cyan hover:text-slate-950 font-bold transition flex items-center gap-1.5 shadow-sm" title="البحث في الإنترنت وتوليد وضبط صور لجميع المنتجات مع ختم رقميات">
+            <i class="fas fa-wand-magic-sparkles text-cyan"></i>
+            <span>توليد صور للجميع (ذكاء اصطناعي + ختم رقميات)</span>
+        </button>
+        <button type="button" onclick="startBulkAiBranding('missing')" class="btn btn-outline btn-sm border-amber-500/40 text-amber-400 hover:bg-amber-500 hover:text-slate-950 font-bold transition flex items-center gap-1.5 shadow-sm" title="توليد الصور فقط للمنتجات التي لا تملك صورة حالياً">
+            <i class="fas fa-image text-amber-400"></i>
+            <span>توليد للمنتجات بدون صور فقط</span>
+        </button>
         <a href="?export=excel" class="btn btn-outline btn-sm">
             <i class="fas fa-file-excel ml-2"></i> تصدير Excel
         </a>
@@ -171,6 +179,47 @@
             <button type="button" onclick="closeProductChangeCatModal()" style="padding:.45rem .9rem;border-radius:.65rem;font-size:.7rem;font-weight:700;color:#94a3b8;background:rgba(255,255,255,0.05);border:none;cursor:pointer;">إلغاء</button>
             <button type="button" onclick="submitProductChangeCat()" id="prod-move-submit-btn" style="padding:.45rem 1rem;border-radius:.65rem;font-size:.7rem;font-weight:900;color:#000;background:#22d3ee;border:none;cursor:pointer;display:flex;align-items:center;gap:.35rem;">
                 <i class="fas fa-check"></i> نقل الآن
+            </button>
+        </div>
+    </div>
+</div>
+
+{# ── Bulk AI Branding Progress Modal ── #}
+<div id="bulk-branding-modal" style="display:none;position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,0.85);backdrop-filter:blur(8px);align-items:center;justify-content:center;padding:1rem;">
+    <div style="background:#0b1329;border:1.5px solid rgba(34,211,238,0.4);border-radius:1.5rem;padding:2rem;max-width:32rem;width:100%;box-shadow:0 25px 60px rgba(0,0,0,0.8);text-align:center;">
+        <div style="width:60px;height:60px;border-radius:50%;background:rgba(34,211,238,0.1);border:1px solid rgba(34,211,238,0.3);display:flex;align-items:center;justify-content:center;margin:0 auto 1.25rem;font-size:1.75rem;color:#22d3ee;" id="branding-modal-icon">
+            <i class="fas fa-wand-magic-sparkles fa-spin"></i>
+        </div>
+        <h3 style="font-size:1.25rem;font-weight:900;color:#fff;margin-bottom:0.5rem;" id="branding-modal-title">
+            جاري توليد وضبط صور المنتجات بالذكاء الاصطناعي
+        </h3>
+        <p style="font-size:0.875rem;color:#94a3b8;margin-bottom:1.5rem;" id="branding-modal-subtitle">
+            يتم البحث في الإنترنت وجلب الشعارات الرسمية وإضافة ختم "رقميات معتمد" تلقائياً
+        </p>
+        
+        <!-- Progress Bar Container -->
+        <div style="background:rgba(255,255,255,0.06);border-radius:999px;height:14px;overflow:hidden;margin-bottom:1rem;border:1px solid rgba(255,255,255,0.1);position:relative;">
+            <div id="branding-progress-bar" style="background:linear-gradient(90deg, #06b6d4, #3b82f6);height:100%;width:0%;transition:width 0.3s ease;border-radius:999px;"></div>
+        </div>
+
+        <div style="display:flex;justify-content:space-between;align-items:center;font-size:0.8rem;color:#cbd5e1;margin-bottom:1.25rem;">
+            <span id="branding-progress-counts">0 / 0</span>
+            <span id="branding-progress-percent" style="font-weight:bold;color:#22d3ee;">0%</span>
+        </div>
+
+        <div style="background:rgba(15,23,42,0.6);border:1px solid rgba(255,255,255,0.08);border-radius:0.75rem;padding:0.75rem 1rem;margin-bottom:1.5rem;text-align:right;">
+            <div style="font-size:0.75rem;color:#64748b;margin-bottom:0.25rem;">المنتج الحالي:</div>
+            <div id="branding-current-item" style="font-size:0.875rem;font-weight:bold;color:#f8fafc;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
+                بدء الاتصال...
+            </div>
+        </div>
+
+        <div id="branding-modal-footer" style="display:flex;justify-content:center;gap:0.75rem;">
+            <button id="branding-cancel-btn" type="button" onclick="closeBulkBrandingModal()" class="btn btn-outline btn-sm text-slate-400 hover:text-white" style="display:none;">
+                إغلاق
+            </button>
+            <button id="branding-reload-btn" type="button" onclick="location.reload()" class="btn btn-primary btn-sm" style="display:none;">
+                <i class="fas fa-rotate ml-1"></i> تحديث الصفحة وعرض الصور
             </button>
         </div>
     </div>
@@ -348,7 +397,12 @@
 
                 <!-- Quick Image Upload Overlay Button in Grid -->
                 <button type="button" onclick="triggerQuickImageUpload('{{ p.id }}')" class="absolute bottom-2 right-2 px-2.5 py-1 rounded-lg bg-black/70 hover:bg-cyan hover:text-black text-cyan text-[10px] font-bold backdrop-blur-md flex items-center gap-1.5 transition-all shadow-lg border border-white/10" title="تغيير صورة المنتج سريعاً">
-                    <i class="fas fa-camera"></i> <span>تغيير الصورة</span>
+                    <i class="fas fa-camera"></i> <span>تغيير</span>
+                </button>
+
+                <!-- Quick AI Generate Button in Grid -->
+                <button type="button" onclick="generateSingleProductAiImage('{{ p.id }}', this)" class="absolute bottom-2 left-2 px-2.5 py-1 rounded-lg bg-black/70 hover:bg-cyan hover:text-black text-cyan text-[10px] font-bold backdrop-blur-md flex items-center gap-1.5 transition-all shadow-lg border border-white/10" title="توليد صورة بالذكاء الاصطناعي">
+                    <i class="fas fa-wand-magic-sparkles"></i> <span>توليد AI</span>
                 </button>
 
                 <div class="absolute top-2 right-2 flex flex-col gap-1.5 items-end">
@@ -564,6 +618,11 @@
                     </td>
                     <td class="p-4 text-left">
                         <div class="flex justify-end gap-2">
+                            <button type="button" onclick="generateSingleProductAiImage('{{ p.id }}', this)"
+                                    class="btn btn-sm btn-outline text-[10px] py-1 px-2.5 text-cyan hover:bg-cyan hover:text-black transition flex items-center gap-1"
+                                    title="توليد صورة بالذكاء الاصطناعي (بحث إنترنت + ختم رقميات)">
+                                <i class="fas fa-wand-magic-sparkles"></i> AI
+                            </button>
                             <button type="button" onclick="openProductChangeCatModal('{{ p.id }}', '{{ p.name|escapejs }}', '{{ p.category.id }}')"
                                     class="btn btn-sm btn-outline text-[10px] py-1 px-2.5 text-cyan hover:bg-cyan hover:text-black transition flex items-center gap-1"
                                     title="نقل إلى قسم آخر">
@@ -1223,6 +1282,157 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 });
+
+/* ── Bulk AI Branding & Single Product AI Branding ── */
+window.startBulkAiBranding = function(mode) {
+    var isAll = (mode === 'all');
+    var confirmMsg = isAll 
+        ? 'هل أنت متأكد من توليد وتعيين صور لجميع المنتجات من الإنترنت مع ختم وهوية رقميات؟\n\n(سيتم البحث عن الشعارات الأصلية لكل المنتجات ووضع ختم رقميات معتمد عليها)'
+        : 'هل تريد توليد وتعيين صور بالذكاء الاصطناعي للمنتجات التي لا تملك صورة فقط؟';
+    
+    if (!confirm(confirmMsg)) return;
+
+    var modal = document.getElementById('bulk-branding-modal');
+    var pBar = document.getElementById('branding-progress-bar');
+    var pCounts = document.getElementById('branding-progress-counts');
+    var pPercent = document.getElementById('branding-progress-percent');
+    var curItem = document.getElementById('branding-current-item');
+    var cancelBtn = document.getElementById('branding-cancel-btn');
+    var reloadBtn = document.getElementById('branding-reload-btn');
+    var modalIcon = document.getElementById('branding-modal-icon');
+    var modalTitle = document.getElementById('branding-modal-title');
+    var modalSub = document.getElementById('branding-modal-subtitle');
+
+    modal.style.display = 'flex';
+    pBar.style.width = '0%';
+    pCounts.textContent = '0 / ...';
+    pPercent.textContent = '0%';
+    curItem.textContent = 'جاري الاتصال والتحضير...';
+    cancelBtn.style.display = 'none';
+    reloadBtn.style.display = 'none';
+    modalIcon.innerHTML = '<i class="fas fa-wand-magic-sparkles fa-spin"></i>';
+    modalTitle.textContent = 'جاري توليد وضبط صور المنتجات بالذكاء الاصطناعي';
+    modalSub.textContent = 'يتم البحث في الإنترنت وجلب الشعارات الرسمية وإضافة ختم "رقميات معتمد" تلقائياً';
+
+    var formData = new FormData();
+    formData.append('mode', mode);
+
+    fetch('/control/products/bulk-ai-branding/', {
+        method: 'POST',
+        headers: { 'X-CSRFToken': getCsrf() },
+        body: formData
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+        if (data.status === 'started') {
+            curItem.textContent = 'تم بدء العملية لـ ' + data.total + ' منتج...';
+            pollBrandingProgress();
+        } else if (data.status === 'empty') {
+            curItem.textContent = data.message || 'لا توجد منتجات مطابقة.';
+            modalIcon.innerHTML = '<i class="fas fa-info-circle text-cyan"></i>';
+            cancelBtn.style.display = 'inline-flex';
+        } else {
+            alert(data.message || 'حدث خطأ أثناء بدء العملية');
+            modal.style.display = 'none';
+        }
+    })
+    .catch(function(err) {
+        alert('فشل الاتصال بالخادم: ' + err);
+        modal.style.display = 'none';
+    });
+};
+
+window.pollBrandingProgress = function() {
+    var modal = document.getElementById('bulk-branding-modal');
+    var pBar = document.getElementById('branding-progress-bar');
+    var pCounts = document.getElementById('branding-progress-counts');
+    var pPercent = document.getElementById('branding-progress-percent');
+    var curItem = document.getElementById('branding-current-item');
+    var cancelBtn = document.getElementById('branding-cancel-btn');
+    var reloadBtn = document.getElementById('branding-reload-btn');
+    var modalIcon = document.getElementById('branding-modal-icon');
+    var modalTitle = document.getElementById('branding-modal-title');
+
+    var timer = setInterval(function() {
+        fetch('/control/products/bulk-ai-branding/progress/')
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+            if (data.status === 'running') {
+                pBar.style.width = data.percent + '%';
+                pPercent.textContent = data.percent + '%';
+                pCounts.textContent = data.current + ' / ' + data.total + ' (تم بنجاح: ' + data.success_count + ')';
+                curItem.textContent = data.current_item || 'جاري المعالجة...';
+            } else if (data.status === 'completed') {
+                clearInterval(timer);
+                pBar.style.width = '100%';
+                pPercent.textContent = '100%';
+                pCounts.textContent = data.total + ' / ' + data.total + ' (تم بنجاح: ' + data.success_count + ')';
+                curItem.textContent = data.current_item || 'اكتملت العملية بنجاح!';
+                modalIcon.innerHTML = '<i class="fas fa-check-circle text-emerald-400"></i>';
+                modalTitle.textContent = 'اكتمل توليد وتعيين الصور بنجاح!';
+                cancelBtn.style.display = 'inline-flex';
+                reloadBtn.style.display = 'inline-flex';
+            }
+        })
+        .catch(function(e) {
+            console.error('Progress poll error:', e);
+        });
+    }, 1500);
+};
+
+window.closeBulkBrandingModal = function() {
+    document.getElementById('bulk-branding-modal').style.display = 'none';
+};
+
+window.generateSingleProductAiImage = function(productId, btnEl) {
+    if (!confirm('هل تريد البحث في الإنترنت وتوليد صورة رسمية مع هوية رقميات لهذا المنتج؟')) return;
+    var originalHtml = btnEl ? btnEl.innerHTML : '';
+    if (btnEl) {
+        btnEl.disabled = true;
+        btnEl.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+    }
+    showToast('جاري البحث وتوليد الصورة...');
+    
+    fetch('/control/products/' + productId + '/generate-ai-image/', {
+        method: 'POST',
+        headers: { 'X-CSRFToken': getCsrf() }
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(d) {
+        if (btnEl) {
+            btnEl.disabled = false;
+            btnEl.innerHTML = originalHtml;
+        }
+        if (d.status === 'success') {
+            showToast(d.message || 'تم توليد الصورة بنجاح!');
+            var listImg = document.getElementById('list-img-' + productId);
+            if (listImg) {
+                if (listImg.tagName === 'IMG') {
+                    listImg.src = d.image_url + '?t=' + Date.now();
+                } else {
+                    listImg.outerHTML = '<img src="' + d.image_url + '?t=' + Date.now() + '" class="p-list-img w-full h-full object-cover" id="list-img-' + productId + '">';
+                }
+            }
+            var gridImg = document.getElementById('grid-img-' + productId);
+            if (gridImg) {
+                if (gridImg.tagName === 'IMG') {
+                    gridImg.src = d.image_url + '?t=' + Date.now();
+                } else {
+                    gridImg.outerHTML = '<img src="' + d.image_url + '?t=' + Date.now() + '" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" id="grid-img-' + productId + '">';
+                }
+            }
+        } else {
+            showToast(d.message || 'فشل توليد الصورة', true);
+        }
+    })
+    .catch(function(err) {
+        if (btnEl) {
+            btnEl.disabled = false;
+            btnEl.innerHTML = originalHtml;
+        }
+        showToast('خطأ أثناء توليد الصورة: ' + err, true);
+    });
+};
 
 })();
 </script>

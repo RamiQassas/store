@@ -4586,6 +4586,122 @@ def control_product_generate_image(request, pk):
         return JsonResponse({"status": "error", "message": "لم نتمكن من توليد الصورة"}, status=400)
     except Exception as e:
         return JsonResponse({"status": "error", "message": str(e)}, status=500)
+
+
+@support_required
+def control_products_bulk_ai_branding(request):
+    if request.method != "POST":
+        return JsonResponse({"status": "error", "message": "Method not allowed"}, status=405)
+
+    import threading
+    import logging
+    from django.core.cache import cache
+    from django.db import close_old_connections
+
+    logger = logging.getLogger(__name__)
+
+    mode = request.POST.get("mode", "missing")  # "all" or "missing"
+    store = getattr(request, "store", None)
+
+    if store:
+        qs = Product.all_objects.filter(store=store)
+    else:
+        qs = Product.all_objects.filter(store__isnull=True)
+
+    if mode == "missing":
+        qs = qs.filter(Q(image="") | Q(image__isnull=True))
+
+    product_ids = list(qs.values_list("id", flat=True))
+    total = len(product_ids)
+
+    if total == 0:
+        return JsonResponse({
+            "status": "empty",
+            "message": "لا توجد منتجات مطابقة لهذا الخيار.",
+            "total": 0
+        })
+
+    cache_key = f"bulk_ai_branding_{request.user.id}"
+    cache.set(cache_key, {
+        "status": "running",
+        "current": 0,
+        "total": total,
+        "percent": 0,
+        "current_item": "بدء معالجة المنتجات...",
+        "success_count": 0,
+        "fail_count": 0
+    }, timeout=3600)
+
+    force = (mode == "all")
+
+    def process_branding_worker(p_ids, c_key, force_flag):
+        close_old_connections()
+        from apps.catalog.models import Product
+        from apps.catalog.smart_branding import apply_branding_to_product
+
+        success_c = 0
+        fail_c = 0
+        t = len(p_ids)
+        for idx, pid in enumerate(p_ids, start=1):
+            try:
+                close_old_connections()
+                p = Product.all_objects.get(id=pid)
+                cache.set(c_key, {
+                    "status": "running",
+                    "current": idx,
+                    "total": t,
+                    "percent": int((idx / t) * 100),
+                    "current_item": p.name,
+                    "success_count": success_c,
+                    "fail_count": fail_c
+                }, timeout=3600)
+
+                res = apply_branding_to_product(p, force=force_flag)
+                if res:
+                    success_c += 1
+                else:
+                    fail_c += 1
+            except Exception as e:
+                fail_c += 1
+                logger.error("Error in bulk branding for product %s: %s", pid, e)
+
+        close_old_connections()
+        cache.set(c_key, {
+            "status": "completed",
+            "current": t,
+            "total": t,
+            "percent": 100,
+            "current_item": "اكتملت العملية بنجاح!",
+            "success_count": success_c,
+            "fail_count": fail_c
+        }, timeout=3600)
+
+    thread = threading.Thread(target=process_branding_worker, args=(product_ids, cache_key, force), daemon=True)
+    thread.start()
+
+    return JsonResponse({
+        "status": "started",
+        "total": total,
+        "message": f"تم بدء توليد وتعيين الصور لـ {total} منتج بنجاح."
+    })
+
+
+@support_required
+def control_products_bulk_ai_branding_progress(request):
+    from django.core.cache import cache
+    cache_key = f"bulk_ai_branding_{request.user.id}"
+    data = cache.get(cache_key)
+    if not data:
+        return JsonResponse({
+            "status": "idle",
+            "current": 0,
+            "total": 0,
+            "percent": 0,
+            "current_item": "",
+            "success_count": 0,
+            "fail_count": 0
+        })
+    return JsonResponse(data)
 def control_product_delete(request, pk):
     product = get_object_or_404(Product, pk=pk)
     product.delete()
