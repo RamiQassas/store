@@ -1,13 +1,16 @@
 import os
 import sys
+import hashlib
+import hmac
 import logging
 import threading
 import time
 import subprocess
 import requests
 from django.conf import settings
-from django.http import JsonResponse, HttpResponse
+from django.http import HttpResponseForbidden, HttpResponseNotFound, JsonResponse
 from django.views.decorators.csrf import csrf_exempt
+from django.views.decorators.http import require_POST
 
 logger = logging.getLogger(__name__)
 
@@ -96,12 +99,25 @@ def start_auto_deploy_background_thread():
     t = threading.Thread(target=auto_deploy_poller, daemon=True)
     t.start()
 
+@require_POST
 @csrf_exempt
 def github_auto_deploy_view(request):
-    """Webhook endpoint for instant GitHub deployment."""
+    """GitHub webhook and deployment endpoint, active when AUTO_DEPLOY_ENABLED."""
+    if not settings.AUTO_DEPLOY_ENABLED:
+        return HttpResponseNotFound()
+
+    if settings.GITHUB_WEBHOOK_SECRET:
+        signature = request.headers.get("X-Hub-Signature-256", "")
+        expected = "sha256=" + hmac.new(
+            settings.GITHUB_WEBHOOK_SECRET.encode("utf-8"),
+            request.body,
+            hashlib.sha256,
+        ).hexdigest()
+        if not hmac.compare_digest(signature, expected):
+            return HttpResponseForbidden("Invalid webhook signature")
+
     success, output = apply_git_update()
     if success:
         return JsonResponse({"status": "success", "message": "Deployed successfully", "output": output[:300]})
     return JsonResponse({"status": "error", "message": output}, status=500)
-
 

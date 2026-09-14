@@ -1,5 +1,6 @@
 import json
 import logging
+import hmac
 from decimal import Decimal
 
 from django.contrib import messages
@@ -15,6 +16,23 @@ from apps.payments.paymera import PaymeraClient, PaymeraError
 from apps.wallets.services import credit_wallet, get_or_create_wallet
 
 logger = logging.getLogger(__name__)
+
+
+def _stored_payment_id(record) -> str:
+    """Return the payment ID created by us, never an ID supplied by a caller."""
+    if isinstance(record, DepositRequest):
+        return str(record.gateway_payment_id or "").strip()
+    metadata = record.metadata if isinstance(record.metadata, dict) else {}
+    return str(metadata.get("gateway_payment_id") or "").strip()
+
+
+def _payment_id_is_bound(stored_payment_id: str, reported_payment_id) -> bool:
+    """Reject callbacks that try to substitute a different gateway payment."""
+    if not stored_payment_id:
+        return False
+    if not reported_payment_id:
+        return True
+    return hmac.compare_digest(stored_payment_id, str(reported_payment_id).strip())
 
 
 def _complete_successful_deposit(deposit: DepositRequest, status_data: dict) -> bool:
@@ -139,9 +157,9 @@ def paymera_trigger_view(request):
     # ── Handle Direct Order Payment ──────────────────────────────────────────
     order = None
     if order_id:
-        order = Order.objects.filter(pk=order_id).first()
+        order = Order.all_objects.filter(pk=order_id).first()
     if not order and not deposit_id and payment_id:
-        order = Order.objects.filter(metadata__gateway_payment_id=payment_id).first()
+        order = Order.all_objects.filter(metadata__gateway_payment_id=payment_id).first()
 
     if order:
         if not integration:
@@ -149,10 +167,10 @@ def paymera_trigger_view(request):
             return JsonResponse({"status": "error", "message": "Integration not configured"}, status=500)
 
         client = PaymeraClient.from_integration(integration)
-        active_payment_id = (
-            order.metadata.get("gateway_payment_id")
-            if isinstance(order.metadata, dict) else None
-        ) or payment_id
+        active_payment_id = _stored_payment_id(order)
+        if not _payment_id_is_bound(active_payment_id, payment_id):
+            logger.warning("Rejected Paymera order callback with an unbound payment ID.")
+            return JsonResponse({"status": "error", "message": "Invalid payment reference"}, status=400)
 
         try:
             status_res = client.get_payment_status(active_payment_id)
@@ -179,9 +197,9 @@ def paymera_trigger_view(request):
     # ── Handle Deposit Payment ───────────────────────────────────────────────
     deposit = None
     if deposit_id:
-        deposit = DepositRequest.objects.filter(pk=deposit_id).first()
+        deposit = DepositRequest.all_objects.filter(pk=deposit_id).first()
     if not deposit and payment_id:
-        deposit = DepositRequest.objects.filter(gateway_payment_id=payment_id).first()
+        deposit = DepositRequest.all_objects.filter(gateway_payment_id=payment_id).first()
 
     if not deposit:
         logger.warning(f"Paymera trigger: Neither Order nor Deposit found (order_id={order_id}, deposit_id={deposit_id}, payment_id={payment_id})")
@@ -197,7 +215,10 @@ def paymera_trigger_view(request):
         return JsonResponse({"status": "error", "message": "Integration not configured"}, status=500)
 
     client = PaymeraClient.from_integration(dep_integration)
-    active_payment_id = deposit.gateway_payment_id or payment_id
+    active_payment_id = _stored_payment_id(deposit)
+    if not _payment_id_is_bound(active_payment_id, payment_id):
+        logger.warning("Rejected Paymera deposit callback with an unbound payment ID.")
+        return JsonResponse({"status": "error", "message": "Invalid payment reference"}, status=400)
 
     try:
         status_res = client.get_payment_status(active_payment_id)

@@ -14,12 +14,14 @@ from django.contrib import messages
 from django.contrib.auth import authenticate, login, logout, update_session_auth_hash
 from django.contrib.auth.decorators import login_required
 from django.views.decorators.csrf import ensure_csrf_cookie
+from django.views.decorators.http import require_POST
 from django.core.paginator import Paginator
 from django.db import transaction
 from django.db.models import Q, Count, Sum
 from django.http import HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
+from django.utils.http import url_has_allowed_host_and_scheme
 from django.utils import timezone
 from django.conf import settings
 from django.core.signing import TimestampSigner, SignatureExpired, BadSignature
@@ -58,11 +60,11 @@ def v3_generate_otp(user, purpose):
     code = ''.join(random.choices(string.digits, k=6))
     expires_at = timezone.now() + timedelta(minutes=10)
     token = OTPToken.objects.create(user=user, code=code, purpose=purpose, expires_at=expires_at)
-    logger.info("🔑 [V3 OTP GENERATED] User: %s (%s) | Code: %s | Purpose: %s", user.email, user.pk, code, purpose)
+    logger.info("V3 OTP generated for user=%s purpose=%s", user.pk, purpose)
     return token
 
 def v3_send_otp_email(user, otp_token):
-    logger.info("📧 [V3 SENDING OTP EMAIL] To: %s | Code: %s", user.email, otp_token.code)
+    logger.info("Sending V3 OTP email for user=%s purpose=%s", user.pk, otp_token.purpose)
     from apps.common.tenant_utils import get_current_store
     active_store = getattr(user, 'store', None) or get_current_store()
     store_name = active_store.name if active_store else "رقميات"
@@ -509,6 +511,14 @@ def _is_safe_redirect(url):
     try:
         from urllib.parse import urlparse
         parsed = urlparse(url)
+        if not url_has_allowed_host_and_scheme(
+            url,
+            allowed_hosts=set(),
+            require_https=not settings.DEBUG,
+        ):
+            return False
+        if parsed.netloc or parsed.scheme or url.startswith("//"):
+            return False
         path = parsed.path.rstrip("/")
         blocked = [
             "/auth/login",
@@ -793,7 +803,8 @@ def v3_reset_password_view(request):
 
 @login_required
 def v3_logout_view(request):
-    logout(request); return redirect("site_login")
+    logout(request)
+    return redirect("site_login")
 
 @login_required
 def resend_verification(request):

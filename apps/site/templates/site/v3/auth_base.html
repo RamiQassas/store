@@ -103,8 +103,9 @@
         }
     </style>
     {% block extra_head %}{% endblock %}
+    <link rel="stylesheet" href="{% static 'site/css/aurora.css' %}?v=20260914_aurora">
 </head>
-<body class="min-h-screen flex items-center justify-center p-4 relative">
+<body class="is-customer auth-surface min-h-screen flex items-center justify-center p-4 relative">
     <!-- Animated Background Decor -->
     <div class="glow-effect w-[400px] h-[400px] bg-gold top-[-100px] right-[-100px] animate-float"></div>
     <div class="glow-effect w-[300px] h-[300px] bg-purple bottom-[-50px] left-[-50px] animate-float" style="animation-delay: -2s;"></div>

@@ -62,7 +62,7 @@ class PaymeraClient:
             terminal_id = str(integration.settings.get("terminal_id", "")).strip()
 
         if not api_key:
-            api_key = getattr(settings, "PAYMERA_API_KEY", "70504_FSdHLdNbZaa2KC6PthtNSuKqtgc88fiABRGxPczJ")
+            api_key = getattr(settings, "PAYMERA_API_KEY", "")
         if not terminal_id:
             terminal_id = getattr(settings, "PAYMERA_TERMINAL_ID", "14740429")
 

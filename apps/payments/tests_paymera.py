@@ -307,6 +307,8 @@ class PaymeraViewsTestCase(TestCase):
             gateway_code="paymera",
             metadata={"player_id": "5123456789"}
         )
+        order.metadata["gateway_payment_id"] = "ord-api-pay-99"
+        order.save(update_fields=["metadata"])
         self.assertEqual(order.status, Order.Status.PENDING)
 
         mock_status.return_value = {
@@ -332,6 +334,5 @@ class PaymeraViewsTestCase(TestCase):
         formatted = order.formatted_metadata()
         self.assertTrue(any(item["label"] == "player_id" and item["value"] == "5123456789" for item in formatted))
         self.assertFalse(any(item["label"] in ("payment_gateway", "gateway_payment_id") for item in formatted))
-
 
 

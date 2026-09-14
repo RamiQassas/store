@@ -67,8 +67,8 @@ class PaymeraGateway(BasePaymentGateway):
 
         from django.conf import settings
         return PaymeraClient(
-            api_key=getattr(settings, "PAYMERA_API_KEY", "70504_FSdHLdNbZaa2KC6PthtNSuKqtgc88fiABRGxPczJ"),
-            terminal_id=getattr(settings, "PAYMERA_TERMINAL_ID", "14740429"),
+            api_key=getattr(settings, "PAYMERA_API_KEY", ""),
+            terminal_id=getattr(settings, "PAYMERA_TERMINAL_ID", ""),
             base_url=getattr(settings, "PAYMERA_BASE_URL", "https://egate-t.paymera.cc"),
             mode=getattr(settings, "PAYMERA_MODE", "sandbox"),
         )

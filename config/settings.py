@@ -1,7 +1,10 @@
 import os
+import sys
 from datetime import timedelta
 from pathlib import Path
 from urllib.parse import urlparse
+
+from django.core.exceptions import ImproperlyConfigured
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -48,22 +51,22 @@ def env_int(name, default=0):
         return default
 
 
-SECRET_KEY = env(
-    "DJANGO_SECRET_KEY",
-    "dev-only-secret-key-change-me-please-use-env-in-production-2026"
-)
+DEBUG = env_bool("DJANGO_DEBUG", False)
+_is_local_management_command = any(arg in {"runserver", "test"} for arg in sys.argv)
 
-DEBUG = True # env_bool("DEBUG", False)
+SECRET_KEY = env("DJANGO_SECRET_KEY", "django-insecure-prod-hetzner-key-9823419823" if not DEBUG else "local-development-key-not-for-production")
 
 SITE_URL = env("SITE_URL", "https://raqamiyatapp.com")
 
 # Render Reverse Proxy Configuration
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 
-ALLOWED_HOSTS = ["*"]
-
-if DEBUG and "testserver" not in ALLOWED_HOSTS:
-    ALLOWED_HOSTS.append("testserver")
+_default_hosts = "raqamiyatapp.com,.raqamiyatapp.com,www.raqamiyatapp.com,167.233.150.164,2.29.26.113,localhost,127.0.0.1,testserver"
+ALLOWED_HOSTS = [host.strip() for host in env("DJANGO_ALLOWED_HOSTS", _default_hosts).split(",") if host.strip()]
+if "test" in sys.argv:
+    for test_host in ("testserver", ".testserver"):
+        if test_host not in ALLOWED_HOSTS:
+            ALLOWED_HOSTS.append(test_host)
 
 SESSION_COOKIE_SAMESITE = 'Lax'
 CSRF_COOKIE_SAMESITE = 'Lax'
@@ -107,25 +110,9 @@ LOGGING = {
     },
 }
 
-CSRF_TRUSTED_ORIGINS = [
-    "https://raqamiyatapp.com",
-    "https://*.raqamiyatapp.com",
-    "https://www.raqamiyatapp.com",
-    "http://raqamiyatapp.com",
-    "http://*.raqamiyatapp.com",
-    "http://www.raqamiyatapp.com",
-    "https://raqamiyat.onrender.com",
-    "http://2.29.26.113",
-    "http://167.233.150.164",
-    "http://127.0.0.1",
-    "http://localhost"
-]
-_env_csrf = env("DJANGO_CSRF_TRUSTED_ORIGINS", "")
-if _env_csrf:
-    for _item in _env_csrf.split(","):
-        _item = _item.strip()
-        if _item and _item not in CSRF_TRUSTED_ORIGINS:
-            CSRF_TRUSTED_ORIGINS.append(_item)
+_default_csrf = "https://raqamiyatapp.com,https://*.raqamiyatapp.com,https://www.raqamiyatapp.com,http://167.233.150.164,http://2.29.26.113,http://127.0.0.1,http://localhost"
+_env_csrf = env("DJANGO_CSRF_TRUSTED_ORIGINS", _default_csrf)
+CSRF_TRUSTED_ORIGINS = [origin.strip() for origin in _env_csrf.split(",") if origin.strip()]
 
 INSTALLED_APPS = [
     "daphne",
@@ -166,19 +153,9 @@ AUTHENTICATION_BACKENDS = [
     'apps.stores.auth_backend.TenantAuthenticationBackend',
 ]
 
-SITE_ID = 1
-
 # Allauth / Social Account Settings
-_DEFAULT_GOOGLE_ID = "336118175688-2qar3i1rbedgd9m3ah037o4lfkpvamiq" + ".apps.googleusercontent.com"
-_DEFAULT_GOOGLE_SECRET = "GOCSPX-" + "Vfwt8D6VOoHRW5pQngmbxAPZjzgx"
-
-GOOGLE_CLIENT_ID = env("GOOGLE_CLIENT_ID")
-if not GOOGLE_CLIENT_ID or "dgh580lvgds8" in GOOGLE_CLIENT_ID or "h9erhh2qklh8" in GOOGLE_CLIENT_ID:
-    GOOGLE_CLIENT_ID = _DEFAULT_GOOGLE_ID
-
-GOOGLE_CLIENT_SECRET = env("GOOGLE_CLIENT_SECRET")
-if not GOOGLE_CLIENT_SECRET or "WfbIg32LWhkbq" in GOOGLE_CLIENT_SECRET or "wxYCCBFlNvK" in GOOGLE_CLIENT_SECRET:
-    GOOGLE_CLIENT_SECRET = _DEFAULT_GOOGLE_SECRET
+GOOGLE_CLIENT_ID = env("GOOGLE_CLIENT_ID", "")
+GOOGLE_CLIENT_SECRET = env("GOOGLE_CLIENT_SECRET", "")
 
 SOCIALACCOUNT_PROVIDERS = {
     'google': {
@@ -318,6 +295,8 @@ MEDIA_URL = "/media/"
 # Render persistence: /var/data is the standard mount point for disks
 MEDIA_ROOT_DEFAULT = "/var/data" if os.path.exists("/var/data") else BASE_DIR / "media"
 MEDIA_ROOT = env("MEDIA_ROOT", MEDIA_ROOT_DEFAULT)
+FILE_UPLOAD_MAX_MEMORY_SIZE = env_int("DJANGO_FILE_UPLOAD_MAX_MEMORY_SIZE", 5 * 1024 * 1024)
+DATA_UPLOAD_MAX_MEMORY_SIZE = env_int("DJANGO_DATA_UPLOAD_MAX_MEMORY_SIZE", 10 * 1024 * 1024)
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 LOGIN_URL = "/auth/login/"
@@ -359,7 +338,6 @@ if not REDIS_URL:
     # Fallback only for local development if not provided in env
     REDIS_URL = "redis://127.0.0.1:6379/0"
 
-import sys
 if (DEBUG or "test" in sys.argv) and not env_bool("DJANGO_USE_REDIS_CACHE", False):
     CACHES = {
         "default": {
@@ -379,10 +357,7 @@ CELERY_BROKER_URL = REDIS_URL
 CELERY_RESULT_BACKEND = REDIS_URL
 
 # Email Configuration (Brevo SMTP & API)
-_DEFAULT_BREVO_KEY = "xkeysib-4ee5dd71322192c6110f1f55a8d0093b02fc55853d5eabfb95511c401d55f5b1-" + "Yqd0DJewB3QXWuRx"
-BREVO_API_KEY = env("BREVO_API_KEY")
-if not BREVO_API_KEY or "Tfr55Aa07L" in BREVO_API_KEY:
-    BREVO_API_KEY = _DEFAULT_BREVO_KEY
+BREVO_API_KEY = env("BREVO_API_KEY", "")
 
 BREVO_API_URL = "https://api.brevo.com/v3/smtp/email"
 DEFAULT_FROM_EMAIL = env("DEFAULT_FROM_EMAIL", "noreply@raqamiyatapp.com")
@@ -404,12 +379,14 @@ SESSION_COOKIE_SECURE = not DEBUG
 CSRF_COOKIE_SECURE = not DEBUG
 CSRF_COOKIE_SAMESITE = "Lax"
 SESSION_COOKIE_SAMESITE = "Lax"
-SECURE_SSL_REDIRECT = env_bool("DJANGO_SECURE_SSL_REDIRECT", not DEBUG)
+SECURE_SSL_REDIRECT = env_bool("DJANGO_SECURE_SSL_REDIRECT", not (DEBUG or _is_local_management_command))
 SECURE_HSTS_SECONDS = 0 if DEBUG else 31536000
 SECURE_HSTS_INCLUDE_SUBDOMAINS = not DEBUG
 SECURE_HSTS_PRELOAD = not DEBUG
 SECURE_CONTENT_TYPE_NOSNIFF = True
 X_FRAME_OPTIONS = "DENY"
+SECURE_REFERRER_POLICY = "same-origin"
+SECURE_CROSS_ORIGIN_OPENER_POLICY = "same-origin"
 
 ASGI_APPLICATION = "config.asgi.application"
 
@@ -450,7 +427,12 @@ CELERY_BEAT_SCHEDULE = {
 }
 
 # Paymera Gateway Configuration
-PAYMERA_TERMINAL_ID = os.environ.get("PAYMERA_TERMINAL_ID", "14740429")
-PAYMERA_API_KEY = os.environ.get("PAYMERA_API_KEY", "70504_FSdHLdNbZaa2KC6PthtNSuKqtgc88fiABRGxPczJ")
+PAYMERA_TERMINAL_ID = env("PAYMERA_TERMINAL_ID", "")
+PAYMERA_API_KEY = env("PAYMERA_API_KEY", "")
 PAYMERA_BASE_URL = os.environ.get("PAYMERA_BASE_URL", "https://egate-t.paymera.cc")
 PAYMERA_MODE = os.environ.get("PAYMERA_MODE", "sandbox")
+
+# Deployment endpoints and background worker
+AUTO_DEPLOY_ENABLED = env_bool("AUTO_DEPLOY_ENABLED", True)
+GITHUB_WEBHOOK_SECRET = env("GITHUB_WEBHOOK_SECRET", "")
+LEGACY_DEPLOY_WEBHOOK_TOKEN = env("LEGACY_DEPLOY_WEBHOOK_TOKEN", "")

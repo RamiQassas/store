@@ -625,8 +625,9 @@
   {% endif %}
 
   {% endif %}
+  <link rel="stylesheet" href="{% static 'site/css/aurora.css' %}?v=20260914_aurora">
 </head>
-<body>
+<body class="{% if request.path|slice:':9' == '/control/' %}is-control{% else %}is-customer{% endif %}">
   {% if active_announcement %}
   <div class="announcement-bar group relative overflow-hidden" style="background: {{ active_announcement.background_color }}; color: {{ active_announcement.text_color }}; padding: 12px; text-align: center; font-size: 13px; position: sticky; top: 0; z-index: 9999; font-weight: 800; border-bottom: 1px solid rgba(255,255,255,0.1);">
     <div class="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000"></div>
@@ -1212,5 +1213,14 @@
       </div>
   </div>
 
+  <form id="logout-post-form" method="post" action="{% url 'site_logout' %}" class="hidden">{% csrf_token %}</form>
+  <script>
+    document.querySelectorAll('a[href$="/auth/logout/"]').forEach(function(link) {
+      link.addEventListener('click', function(event) {
+        event.preventDefault();
+        document.getElementById('logout-post-form').submit();
+      });
+    });
+  </script>
 </body>
 </html>

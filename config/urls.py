@@ -2,7 +2,6 @@ from django.conf import settings
 from django.conf.urls.static import static
 from django.contrib import admin
 from django.urls import include, path, re_path
-from django.views.static import serve
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
@@ -16,6 +15,7 @@ from apps.orders.views import CouponViewSet, OrderViewSet
 from apps.payments.views import DepositRequestViewSet, PaymentMethodViewSet, WithdrawalRequestViewSet
 from apps.services.views import ServiceViewSet
 from apps.wallets.views import WalletViewSet
+from apps.common.views import protected_media
 
 router = DefaultRouter()
 router.register("categories", CategoryViewSet, basename="category")
@@ -37,26 +37,40 @@ def health(request):
     return Response({"status": "ok", "service": "digital-marketplace"})
 
 
-from django.http import HttpResponse, JsonResponse, HttpResponseForbidden
+import hmac
+import threading
+
+from django.http import HttpResponse, HttpResponseForbidden, HttpResponseNotFound, JsonResponse
 from django.views.decorators.csrf import csrf_exempt
+from django.views.decorators.http import require_GET, require_POST
 import subprocess
 
 def robots_txt(request):
     return HttpResponse("User-agent: *\nDisallow: /control/\n", content_type="text/plain")
 
+@require_POST
 @csrf_exempt
 def deploy_webhook(request, secret_token):
-    if secret_token != "raqamiyat_deploy_secret_2026":
+    """Legacy deployment hook, disabled unless explicitly configured."""
+    token = settings.LEGACY_DEPLOY_WEBHOOK_TOKEN
+    if not settings.AUTO_DEPLOY_ENABLED or not token:
+        return HttpResponseNotFound()
+    if not hmac.compare_digest(str(secret_token), token):
         return HttpResponseForbidden("Invalid secret token")
-    try:
-        cmd = "cd /app && git pull origin master && python manage.py remap_alkasr_catalog || true"
-        subprocess.Popen(["/bin/sh", "-c", cmd])
-        return JsonResponse({"status": "success", "message": "Deployment triggered successfully with catalog remap!"})
-    except Exception as e:
-        return JsonResponse({"status": "error", "message": str(e)}, status=500)
+
+    def run_deploy():
+        try:
+            subprocess.run(["git", "pull", "origin", "master"], cwd="/app", check=True, timeout=60)
+            subprocess.run(["python", "manage.py", "remap_alkasr_catalog"], cwd="/app", check=True, timeout=120)
+        except (OSError, subprocess.SubprocessError):
+            # The operation is intentionally not reflected to an unauthenticated caller.
+            return
+
+    threading.Thread(target=run_deploy, daemon=True).start()
+    return JsonResponse({"status": "accepted"}, status=202)
 
 
-def version_view(request):
+def _legacy_version_view(request):
     import subprocess
     commit_sha = "unknown"
     commit_msg = "unknown"
@@ -395,6 +409,12 @@ def version_view(request):
     })
 
 
+@require_GET
+def version_view(request):
+    """Public liveness endpoint with no operational controls or sensitive data."""
+    return JsonResponse({"status": "online"})
+
+
 from apps.common.auto_deploy import github_auto_deploy_view
 
 urlpatterns = [
@@ -412,5 +432,5 @@ urlpatterns = [
     path("api/auth/token/refresh/", TokenRefreshView.as_view(), name="token_refresh"),
     path("api/", include(router.urls)),
     path('accounts/', include('allauth.urls')),
-    re_path(r"^media/(?P<path>.*)$", serve, {"document_root": settings.MEDIA_ROOT}),
+    path("media/<path:path>", protected_media, name="protected_media"),
 ]

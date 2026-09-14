@@ -170,10 +170,18 @@ class TenantSessionMiddleware(SessionMiddleware):
         if not session_key and cookie_name != settings.SESSION_COOKIE_NAME:
             # Fallback for clients (e.g. Django test client / force_login) that only set standard sessionid
             session_key = request.COOKIES.get(settings.SESSION_COOKIE_NAME)
+            request._using_legacy_session_cookie = bool(session_key)
         request.session = self.SessionStore(session_key)
 
     def process_response(self, request, response):
         cookie_name = getattr(request, '_tenant_session_cookie_name', None) or self.get_cookie_name(request)
+        if getattr(request, "_delete_legacy_session_cookie", False):
+            response.delete_cookie(
+                settings.SESSION_COOKIE_NAME,
+                path=settings.SESSION_COOKIE_PATH,
+                domain=settings.SESSION_COOKIE_DOMAIN,
+                samesite=settings.SESSION_COOKIE_SAMESITE,
+            )
         try:
             accessed = request.session.accessed
             modified = request.session.modified
@@ -241,6 +249,11 @@ class TenantSecurityMiddleware:
             if request.store:
                 if not self._user_belongs_to_store(request.user, request.store):
                     # Alien session presented: decouple user from request context WITHOUT destroying the session
+                    # A legacy platform cookie is not allowed to survive on a
+                    # foreign tenant, otherwise a later fallback could revive it.
+                    if getattr(request, "_using_legacy_session_cookie", False):
+                        request.session.flush()
+                        request._delete_legacy_session_cookie = True
                     request.user = AnonymousUser()
                     if request.path.startswith(("/dashboard/", "/merchant/")):
                         return HttpResponseRedirect("/auth/login/")
@@ -296,4 +309,3 @@ class TenantSecurityMiddleware:
 
 # Backward compatibility alias
 TenantMiddleware = TenantSecurityMiddleware
-

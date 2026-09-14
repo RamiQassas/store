@@ -1,3 +1,4 @@
+{% load static %}
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
@@ -504,8 +505,9 @@
         }
     </style>
     {% block extra_css %}{% endblock %}
+    <link rel="stylesheet" href="{% static 'site/css/aurora.css' %}?v=20260914_aurora">
 </head>
-<body>
+<body class="is-customer store-surface">
 
     <!-- Header / Nav -->
     <header>
@@ -673,5 +675,14 @@
       </div>
   </div>
 
+    <form id="logout-post-form" method="post" action="{% url 'store_logout' %}" style="display: none;">{% csrf_token %}</form>
+    <script>
+      document.querySelectorAll('a[href$="/logout/"]').forEach(function(link) {
+        link.addEventListener('click', function(event) {
+          event.preventDefault();
+          document.getElementById('logout-post-form').submit();
+        });
+      });
+    </script>
 </body>
 </html>

@@ -71,7 +71,7 @@ class OrderViewSet(viewsets.ModelViewSet):
             except Exception:
                 pass
             
-        logger.info(f"Alkasr webhook payload received: {data}")
+        logger.info("Alkasr webhook received with %d payload item(s).", len(data) if isinstance(data, list) else 1)
         
         # Unpack nested item if wrapped
         item = data

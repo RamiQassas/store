@@ -7,6 +7,9 @@ class CommonConfig(AppConfig):
 
     def ready(self):
         try:
+            from django.conf import settings
+            if not settings.AUTO_DEPLOY_ENABLED:
+                return
             import sys
             # Avoid starting poller during manage.py tasks or celery workers
             cmd_line = " ".join(sys.argv)

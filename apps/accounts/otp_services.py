@@ -22,12 +22,12 @@ def generate_otp(user, purpose):
         purpose=purpose,
         expires_at=expires_at
     )
-    logger.info("🔑 [OTP GENERATED] User: %s (%s) | Code: %s | Purpose: %s", user.email, user.pk, code, purpose)
+    logger.info("OTP generated for user=%s purpose=%s", user.pk, purpose)
     return token
 
 def send_otp_email(user, otp_token):
     """Sends the OTP code via email."""
-    logger.info("📧 [SENDING OTP EMAIL] To: %s | Code: %s", user.email, otp_token.code)
+    logger.info("Sending OTP email for user=%s purpose=%s", user.pk, otp_token.purpose)
     subject = "رمز التحقق | Raqamiyat"
     
     purpose_text = "لتفعيل حسابك" if otp_token.purpose == OTPToken.Purpose.REGISTRATION else \

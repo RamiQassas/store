@@ -13,6 +13,7 @@ from django.db import transaction
 from django.db.models import Q, Count, Sum
 from django.utils import timezone
 from django.core.paginator import Paginator
+from django.views.decorators.http import require_POST
 
 from apps.accounts.models import User
 from apps.catalog.models import Product, Category, ProductVariant, ProductKey, ProductImage
