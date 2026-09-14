@@ -1701,14 +1701,32 @@ def home(request):
 
     active_categories = [cat for cat in all_cats if cat.product_count > 0 or cat.parent_id is None]
 
-    featured_products = Product.objects.filter(
+    featured_qs = list(Product.objects.filter(
         is_active=True, is_featured=True
-    ).select_related("category").prefetch_related("variants")[:12]
+    ).select_related("category").prefetch_related("variants")[:12])
 
-    sale_products = Product.objects.filter(
+    if len(featured_qs) < 8:
+        existing_ids = [p.id for p in featured_qs]
+        extra_products = list(Product.objects.filter(
+            is_active=True
+        ).exclude(id__in=existing_ids).select_related("category").prefetch_related("variants")[:12 - len(featured_qs)])
+        featured_products = featured_qs + extra_products
+    else:
+        featured_products = featured_qs
+
+    sale_qs = list(Product.objects.filter(
         Q(is_sale=True) | Q(variants__is_sale=True),
         is_active=True,
-    ).select_related("category").prefetch_related("variants").distinct()[:6]
+    ).select_related("category").prefetch_related("variants").distinct()[:6])
+
+    if len(sale_qs) < 4:
+        existing_ids = [p.id for p in sale_qs]
+        extra_sales = list(Product.objects.filter(
+            is_active=True
+        ).exclude(id__in=existing_ids).select_related("category").prefetch_related("variants")[:4 - len(sale_qs)])
+        sale_products = sale_qs + extra_sales
+    else:
+        sale_products = sale_qs
 
     ctx = {
         "featured_products": featured_products,
