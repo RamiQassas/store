@@ -560,6 +560,25 @@ BRAND_LOGOS_MAP = {
     "soulchill": "https://play-lh.googleusercontent.com/pZ_9f_8kL=s180-rw",
     "chamet": "https://play-lh.googleusercontent.com/chm_98k2=s180-rw",
     "poppo": "https://play-lh.googleusercontent.com/pop_871=s180-rw",
+    "canva": "https://upload.wikimedia.org/wikipedia/commons/thumb/0/08/Canva_icon_2021.svg/320px-Canva_icon_2021.svg.png",
+    "كانفا": "https://upload.wikimedia.org/wikipedia/commons/thumb/0/08/Canva_icon_2021.svg/320px-Canva_icon_2021.svg.png",
+    "vpn": "https://upload.wikimedia.org/wikipedia/commons/thumb/8/85/NordVPN_Logo_2020.svg/320px-NordVPN_Logo_2020.svg.png",
+    "browsec": "https://upload.wikimedia.org/wikipedia/commons/thumb/8/85/NordVPN_Logo_2020.svg/320px-NordVPN_Logo_2020.svg.png",
+    "ayome": "https://play-lh.googleusercontent.com/s0P_uI025Jd2fP6Jb17g7gI2GjHj3d9Z4l4_vB8vC9x8w_z8=s180-rw",
+    "ايومي": "https://play-lh.googleusercontent.com/s0P_uI025Jd2fP6Jb17g7gI2GjHj3d9Z4l4_vB8vC9x8w_z8=s180-rw",
+    "beela": "https://play-lh.googleusercontent.com/uR1_f8g2_zG7z8L6pM9r=s180-rw",
+    "بيلا": "https://play-lh.googleusercontent.com/uR1_f8g2_zG7z8L6pM9r=s180-rw",
+    "binmo": "https://play-lh.googleusercontent.com/pZ_9f_8kL=s180-rw",
+    "بينمو": "https://play-lh.googleusercontent.com/pZ_9f_8kL=s180-rw",
+    "chirp": "https://play-lh.googleusercontent.com/chm_98k2=s180-rw",
+    "شيري": "https://play-lh.googleusercontent.com/chm_98k2=s180-rw",
+    "cocco": "https://play-lh.googleusercontent.com/pop_871=s180-rw",
+    "كوكو": "https://play-lh.googleusercontent.com/pop_871=s180-rw",
+    "best live": "https://play-lh.googleusercontent.com/s0P_uI025Jd2fP6Jb17g7gI2GjHj3d9Z4l4_vB8vC9x8w_z8=s180-rw",
+    "carrot": "https://play-lh.googleusercontent.com/uR1_f8g2_zG7z8L6pM9r=s180-rw",
+    "جزر": "https://play-lh.googleusercontent.com/uR1_f8g2_zG7z8L6pM9r=s180-rw",
+    "crashlive": "https://play-lh.googleusercontent.com/pZ_9f_8kL=s180-rw",
+    "كراش": "https://play-lh.googleusercontent.com/pZ_9f_8kL=s180-rw",
 }
 
 
@@ -571,16 +590,59 @@ def product_display_image(product):
     """
     if not product:
         return ""
-    if getattr(product, "image", None) and hasattr(product.image, "url"):
+
+    # 1. Direct product.image
+    img = getattr(product, "image", None)
+    if img:
         try:
-            return product.image.url
+            if hasattr(img, "url") and img.url:
+                return img.url
         except Exception:
             pass
 
+    # 2. Thumbnail
+    thumb = getattr(product, "thumbnail", None)
+    if thumb:
+        try:
+            if hasattr(thumb, "url") and thumb.url:
+                return thumb.url
+        except Exception:
+            pass
+
+    # 3. Cover image
+    cover = getattr(product, "cover_image", None)
+    if cover:
+        try:
+            if hasattr(cover, "url") and cover.url:
+                return cover.url
+        except Exception:
+            pass
+
+    # 4. First gallery image
+    try:
+        gallery_mgr = getattr(product, "gallery", None)
+        if gallery_mgr:
+            first_gal = gallery_mgr.first()
+            if first_gal and getattr(first_gal, "url", None):
+                return first_gal.url
+    except Exception:
+        pass
+
+    # 5. Category image fallback
+    cat = getattr(product, "category", None)
+    if cat and getattr(cat, "image", None):
+        try:
+            if hasattr(cat.image, "url") and cat.image.url:
+                return cat.image.url
+        except Exception:
+            pass
+
+    # 6. Brand logo matching
     p_name = getattr(product, "name", "").lower()
     for brand, url in BRAND_LOGOS_MAP.items():
         if brand in p_name:
             return url
 
     return ""
+
 
