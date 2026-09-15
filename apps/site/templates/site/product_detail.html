@@ -479,7 +479,27 @@
                     {% endif %}
                 </div>
                 <div id="dynamic-fields-wrapper" class="grid grid-1 gap-5">
-                    {% if product.form_schema.fields %}
+                    {% if is_instant_product %}
+                        <!-- Instant delivery reassurance card -->
+                        <div class="p-5 rounded-2xl bg-gradient-to-r from-emerald-500/10 via-amber-500/5 to-slate-900/60 border border-emerald-500/30 flex items-start gap-4 shadow-lg shadow-emerald-500/5">
+                            <div class="w-11 h-11 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center shrink-0 border border-emerald-500/30 text-lg">
+                                <i class="fas fa-bolt"></i>
+                            </div>
+                            <div class="flex-grow">
+                                <div class="flex items-center justify-between gap-2 mb-1">
+                                    <h4 class="text-sm font-black text-white flex items-center gap-2">
+                                        <span>تسليم فوري ومباشر للكود / الرقم</span>
+                                    </h4>
+                                    <span class="text-[9px] px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 font-bold border border-emerald-500/30">
+                                        آلي 100%
+                                    </span>
+                                </div>
+                                <p class="text-xs text-slate-300 leading-relaxed">
+                                    ⚡ <strong>لا يتطلب هذا المنتج أي إدخال بيانات أو آيدي مسبقاً.</strong> بمجرد الضغط على زر الشراء أدناه وتأكيد طلبك، ستستلم الرقم / الكود وتفاصيل التفعيل مباشرة على الشاشة وفي تفاصيل طلبك بشكل فوري وتلقائي.
+                                </p>
+                            </div>
+                        </div>
+                    {% elif product.form_schema.fields %}
                         {% for f in product.form_schema.fields %}
                         <div class="field-group bg-slate-950/60 p-4 rounded-2xl border border-white/5 focus-within:border-gold/50 transition-all">
                             <label class="text-xs font-bold text-slate-200 flex items-center justify-between mb-2">
@@ -862,7 +882,40 @@ function renderDynamicFields(paramsJson, el) {
 
     container.classList.remove('hidden');
 
-    // Case 1: Variant has specific parameters defined
+    // Case 1: Instant Digital Delivery Product (e.g. WhatsApp numbers, keys, codes, accounts, vouchers)
+    // No extra input required from customer! Display a clear, reassuring badge/panel.
+    if (isInstantDigitalProduct(el)) {
+        if (headerTitle) headerTitle.innerText = 'معلومات الاستلام والتسليم التلقائي';
+        if (helpText) helpText.innerText = 'التسليم فوري وتلقائي — كود التفعيل أو الرقم سيصلك مباشرة في تفاصيل الطلب فور إتمام الدفع.';
+        if (instantPill) {
+            instantPill.classList.remove('hidden');
+            instantPill.innerHTML = '<span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span> تسليم فوري وتلقائي';
+        }
+
+        wrapper.innerHTML = `
+            <div class="p-5 rounded-2xl bg-gradient-to-r from-emerald-500/10 via-amber-500/5 to-slate-900/60 border border-emerald-500/30 flex items-start gap-4 shadow-lg shadow-emerald-500/5">
+                <div class="w-12 h-12 rounded-2xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center shrink-0 border border-emerald-500/30 text-xl">
+                    <i class="fas fa-bolt"></i>
+                </div>
+                <div class="flex-grow">
+                    <div class="flex items-center justify-between gap-2 mb-1.5">
+                        <h4 class="text-sm font-black text-white flex items-center gap-2">
+                            <span>تسليم فوري ومباشر للكود / الرقم</span>
+                        </h4>
+                        <span class="text-[10px] px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 font-bold border border-emerald-500/30">
+                            آلي 100%
+                        </span>
+                    </div>
+                    <p class="text-xs text-slate-300 leading-relaxed">
+                        ⚡ <strong>لا يتطلب هذا المنتج إدخال أي بيانات أو آيدي مسبقاً.</strong> بمجرد الضغط على زر الشراء أدناه وتأكيد طلبك، ستستلم الرقم / كود التفعيل مباشرة على الشاشة وفي تفاصيل طلبك بشكل فوري وتلقائي.
+                    </p>
+                </div>
+            </div>
+        `;
+        return;
+    }
+
+    // Case 2: Variant has specific parameters defined
     if (Array.isArray(params) && params.length > 0) {
         if (headerTitle) headerTitle.innerText = 'بيانات تنفيذ وشحن الطلب';
         if (helpText) helpText.innerText = 'يرجى كتابة البيانات المطلوبة بعناية لضمان سرعة التنفيذ المباشر للطلب.';
@@ -925,7 +978,7 @@ function renderDynamicFields(paramsJson, el) {
         return;
     }
 
-    // Case 2: Product has form_schema fields
+    // Case 3: Product has form_schema fields
     if (Array.isArray(PRODUCT_FORM_FIELDS) && PRODUCT_FORM_FIELDS.length > 0) {
         if (headerTitle) headerTitle.innerText = 'بيانات تنفيذ وشحن الطلب';
         if (helpText) helpText.innerText = 'يرجى كتابة البيانات المطلوبة بعناية لضمان سرعة التنفيذ المباشر للطلب.';
@@ -964,39 +1017,6 @@ function renderDynamicFields(paramsJson, el) {
             `;
         });
         wrapper.innerHTML = html;
-        return;
-    }
-
-    // Case 3: Instant Digital Delivery Product (e.g. WhatsApp numbers, keys, codes, accounts, vouchers)
-    // No extra input required from customer! Display a clear, reassuring badge/panel.
-    if (isInstantDigitalProduct(el)) {
-        if (headerTitle) headerTitle.innerText = 'معلومات الاستلام والتسليم التلقائي';
-        if (helpText) helpText.innerText = 'التسليم فوري وتلقائي — كود التفعيل أو الرقم سيصلك مباشرة في تفاصيل الطلب فور إتمام الدفع.';
-        if (instantPill) {
-            instantPill.classList.remove('hidden');
-            instantPill.innerHTML = '<span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span> تسليم فوري وتلقائي';
-        }
-
-        wrapper.innerHTML = `
-            <div class="p-5 rounded-2xl bg-gradient-to-r from-emerald-500/10 via-amber-500/5 to-slate-900/60 border border-emerald-500/30 flex items-start gap-4 shadow-lg shadow-emerald-500/5">
-                <div class="w-12 h-12 rounded-2xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center shrink-0 border border-emerald-500/30 text-xl">
-                    <i class="fas fa-bolt"></i>
-                </div>
-                <div class="flex-grow">
-                    <div class="flex items-center justify-between gap-2 mb-1.5">
-                        <h4 class="text-sm font-black text-white flex items-center gap-2">
-                            <span>تسليم فوري ومباشر للكود / الرقم</span>
-                        </h4>
-                        <span class="text-[10px] px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 font-bold border border-emerald-500/30">
-                            آلي 100%
-                        </span>
-                    </div>
-                    <p class="text-xs text-slate-300 leading-relaxed">
-                        ⚡ <strong>لا يتطلب هذا المنتج إدخال أي بيانات أو آيدي مسبقاً.</strong> بمجرد الضغط على زر الشراء أدناه وتأكيد طلبك، ستستلم الرقم / كود التفعيل مباشرة على الشاشة وفي تفاصيل طلبك بشكل فوري وتلقائي.
-                    </p>
-                </div>
-            </div>
-        `;
         return;
     }
 

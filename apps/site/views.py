@@ -2424,6 +2424,17 @@ def product_detail(request, pk):
     if not next_product and category_qs != catalog_qs:
         next_product = catalog_qs.filter(sort_order__gt=product.sort_order).order_by('sort_order', 'created_at').first()
 
+    # Determine if this product is an instant delivery product (numbers, accounts, keys, vouchers, software)
+    is_instant_product = False
+    if product.product_type != "physical":
+        prod_name_lower = product.name.lower()
+        cat_name_lower = (product.category.name.lower() if product.category else "")
+        instant_keywords = ["whatsapp", "واتساب", "رقم", "أرقام", "ارقام", "تفعيل", "كود", "أكواد", "اكواد", "قسيمة", "بطاقة", "كرت", "سيريال", "مفتاح", "key", "license", "gift", "voucher", "card", "vpn", "telegram", "تيليجرام", "حساب", "اشتراك"]
+        if any(k in prod_name_lower or k in cat_name_lower for k in instant_keywords):
+            is_instant_product = True
+        elif variants.filter(delivery_type="keys").exists():
+            is_instant_product = True
+
     return render(request, "site/product_detail.html", {
         "product": product, 
         "variants": variants, 
@@ -2433,6 +2444,7 @@ def product_detail(request, pk):
         "gateway_methods": gateway_methods,
         "prev_product": prev_product,
         "next_product": next_product,
+        "is_instant_product": is_instant_product,
     })
 
 
