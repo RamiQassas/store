@@ -27,47 +27,116 @@ def extract_strings(obj):
     return []
 
 
-def get_store_from_request(request):
+def get_store_from_request(request, sociallogin=None):
     if getattr(request, 'store', None):
         return request.store
-        
+
     import re
-    from urllib.parse import unquote
+    from urllib.parse import unquote, urlparse, parse_qs
     from apps.stores.models import Store
     from apps.common.tenant_utils import bypass_tenant_filter
-    
+
+    # Check direct session keys first
+    if hasattr(request, 'session'):
+        store_id = request.session.get('sso_target_store_id')
+        if store_id:
+            with bypass_tenant_filter():
+                s = Store.objects.filter(pk=store_id).first()
+                if s:
+                    return s
+        store_sub = request.session.get('sso_target_subdomain')
+        if store_sub:
+            with bypass_tenant_filter():
+                s = Store.objects.filter(subdomain__iexact=store_sub).first()
+                if s:
+                    return s
+
     candidates = []
-    
+
+    # Check sociallogin if provided
+    if sociallogin:
+        if hasattr(sociallogin, 'state') and isinstance(sociallogin.state, dict):
+            candidates.extend(extract_strings(sociallogin.state))
+        if getattr(sociallogin, 'token', None):
+            candidates.extend(extract_strings(getattr(sociallogin.token, 'params', {})))
+
+    # Check request attributes
+    if hasattr(request, '_sociallogin'):
+        sl = getattr(request, '_sociallogin')
+        if hasattr(sl, 'state') and isinstance(sl.state, dict):
+            candidates.extend(extract_strings(sl.state))
+
     # Check request parameters
     for k, v in request.GET.items():
         candidates.extend(extract_strings(v))
     for k, v in request.POST.items():
         candidates.extend(extract_strings(v))
-        
+
     # Check session
     if hasattr(request, 'session'):
         for k, v in request.session.items():
             candidates.extend(extract_strings(v))
-                
-    for val in candidates:
-        if not val or not isinstance(val, str):
-            continue
-        # Decode the value to handle URL-encoded URLs (e.g. inside next parameter)
-        decoded_val = unquote(val)
-        # Find all occurrences of subdomain pattern
-        matches = re.findall(r'https?://([^./]+)\.(?:raqamiyatapp\.com|localhost|testserver)', decoded_val, re.IGNORECASE)
-        for subdomain in matches:
-            if subdomain.lower() not in ["www", "raqamiyatapp"]:
-                with bypass_tenant_filter():
-                    try:
-                        return Store.objects.get(subdomain__iexact=subdomain)
-                    except Store.DoesNotExist:
-                        pass
-                        
+
+    with bypass_tenant_filter():
+        for val in candidates:
+            if not val or not isinstance(val, str):
+                continue
+            decoded_val = unquote(val)
+            urls_to_check = [decoded_val]
+            # Check for nested next parameter in query string
+            if 'next=' in decoded_val:
+                try:
+                    p = urlparse(decoded_val)
+                    qs = parse_qs(p.query)
+                    if 'next' in qs:
+                        urls_to_check.extend([unquote(x) for x in qs['next']])
+                except Exception:
+                    pass
+
+            for u in urls_to_check:
+                # 1. Regex check for subdomain in domain
+                sub_matches = re.findall(r'https?://([^./:]+)\.(?:raqamiyatapp\.com|localhost|testserver)', u, re.IGNORECASE)
+                for sm in sub_matches:
+                    if sm.lower() not in ["www", "raqamiyatapp"]:
+                        store = Store.objects.filter(subdomain__iexact=sm).first()
+                        if store:
+                            return store
+
+                # 2. Parse hostname
+                try:
+                    p = urlparse(u)
+                    host = (p.hostname or p.netloc.split(':')[0]).lower()
+                    if host and host not in ["raqamiyatapp.com", "www.raqamiyatapp.com", "localhost", "127.0.0.1", "testserver"]:
+                        if host.endswith(".raqamiyatapp.com"):
+                            sub = host[:-len(".raqamiyatapp.com")]
+                            store = Store.objects.filter(subdomain__iexact=sub).first()
+                            if store:
+                                return store
+                        store = Store.objects.filter(custom_domain__iexact=host).first()
+                        if store:
+                            return store
+                        store = Store.objects.filter(subdomain__iexact=host).first()
+                        if store:
+                            return store
+                except Exception:
+                    pass
+
+                # 3. Direct subdomain check
+                if re.match(r'^[a-zA-Z0-9_-]{2,50}$', u):
+                    if u.lower() not in ["www", "raqamiyatapp", "dashboard", "control", "admin", "auth"]:
+                        store = Store.objects.filter(subdomain__iexact=u).first()
+                        if store:
+                            return store
+
     return None
 
 
 class MyAccountAdapter(DefaultAccountAdapter):
+    def is_login_by_code_required(self, login):
+        if not getattr(self, "request", None) or not getattr(self.request, "session", None):
+            return False
+        return super().is_login_by_code_required(login)
+
     def clean_username(self, username, shallow=False):
         username = super().clean_username(username, shallow=shallow)
         
@@ -189,7 +258,7 @@ class MySocialAccountAdapter(DefaultSocialAccountAdapter):
         email = email.strip().lower()
 
         try:
-            active_store = get_store_from_request(request)
+            active_store = get_store_from_request(request, sociallogin=sociallogin)
             
             # If logged in with a sub-store account on the main platform, decouple that session safely
             if active_store is None and request.user.is_authenticated and getattr(request.user, "store_id", None) is not None:
@@ -204,25 +273,41 @@ class MySocialAccountAdapter(DefaultSocialAccountAdapter):
 
             user = None
             if active_store:
-                user = User._base_manager.filter(email__iexact=email, store=active_store).first()
-                if not user:
-                    from django.utils.crypto import get_random_string
-                    first_name = sociallogin.account.extra_data.get("given_name") or ""
-                    last_name = sociallogin.account.extra_data.get("family_name") or ""
-                    user = User.objects.create_user(
-                        email=email,
-                        username=email,
-                        password=get_random_string(32),
-                        first_name=first_name,
-                        last_name=last_name,
-                        store=active_store,
-                        email_verified=True,
-                        is_active=True
-                    )
-                    from apps.wallets.services import get_or_create_wallet
-                    get_or_create_wallet(user)
+                from apps.common.tenant_utils import bypass_tenant_filter
+                from django.db.models import Q
+                with bypass_tenant_filter():
+                    is_owner = bool(active_store.owner and active_store.owner.email.lower() == email)
+                    admin_user = User.all_objects.filter(
+                        email__iexact=email,
+                        store__isnull=True
+                    ).filter(
+                        Q(is_superuser=True) | Q(is_staff=True) | Q(role__in=["super_admin", "admin"])
+                    ).first()
+
+                if is_owner:
+                    user = active_store.owner
+                elif admin_user:
+                    user = admin_user
+                else:
+                    user = User.all_objects.filter(email__iexact=email, store=active_store).first()
+                    if not user:
+                        from django.utils.crypto import get_random_string
+                        first_name = sociallogin.account.extra_data.get("given_name") or ""
+                        last_name = sociallogin.account.extra_data.get("family_name") or ""
+                        user = User.objects.create_user(
+                            email=email,
+                            username=email,
+                            password=get_random_string(32),
+                            first_name=first_name,
+                            last_name=last_name,
+                            store=active_store,
+                            email_verified=True,
+                            is_active=True
+                        )
+                        from apps.wallets.services import get_or_create_wallet
+                        get_or_create_wallet(user)
             else:
-                user = User._base_manager.filter(email__iexact=email, store__isnull=True).first()
+                user = User.all_objects.filter(email__iexact=email, store__isnull=True).first()
                 if not user:
                     from django.utils.crypto import get_random_string
                     first_name = sociallogin.account.extra_data.get("given_name") or ""
@@ -293,7 +378,20 @@ class MySocialAccountAdapter(DefaultSocialAccountAdapter):
             if hasattr(sociallogin, "state") and isinstance(sociallogin.state, dict):
                 next_url = sociallogin.state.get("next")
             if not next_url:
-                next_url = request.GET.get("next") or request.session.get("next")
+                next_url = request.GET.get("next") or request.session.get("next") or request.session.get("sso_target_url")
+
+            if active_store:
+                from django.conf import settings
+                from urllib.parse import quote
+                platform_url = getattr(settings, "SITE_URL", "https://raqamiyatapp.com")
+                target_domain = active_store.custom_domain or f"{active_store.subdomain}.raqamiyatapp.com"
+
+                # If next_url is directly to the tenant domain (without sso-callback), wrap it so it gets an SSO token
+                if next_url and (target_domain in next_url) and ("/auth/sso-callback" not in next_url):
+                    next_url = f"{platform_url}/auth/sso-callback/?store_id={active_store.pk}&subdomain={active_store.subdomain}&next={quote(next_url)}"
+                elif not next_url or ("/auth/sso-callback" not in next_url and target_domain not in next_url):
+                    next_url = f"{platform_url}/auth/sso-callback/?store_id={active_store.pk}&subdomain={active_store.subdomain}&next=https://{target_domain}/dashboard/"
+
             if not next_url:
                 next_url = getattr(settings, "LOGIN_REDIRECT_URL", "/dashboard/")
 
@@ -321,16 +419,21 @@ class MySocialAccountAdapter(DefaultSocialAccountAdapter):
             user.phone = None
             
         # Associate the new user with the active store context
-        active_store = get_store_from_request(request)
+        active_store = get_store_from_request(request, sociallogin=sociallogin)
         if active_store:
-            user.store = active_store
+            from apps.common.tenant_utils import bypass_tenant_filter
+            with bypass_tenant_filter():
+                is_owner = bool(active_store.owner and active_store.owner.email.lower() == user.email.lower())
+                is_admin = user.is_superuser or user.is_staff or getattr(user, 'role', None) in ['super_admin', 'admin']
+            if not is_owner and not is_admin:
+                user.store = active_store
             
         # For social signups, we trust the provider (Google)
         user.email_verified = True
         user.is_active = True
         
         fields = ["email_verified", "is_active", "phone"]
-        if active_store:
+        if user.store_id:
             fields.append("store")
             
         user.save(update_fields=fields)

@@ -6820,6 +6820,7 @@ def sso_transfer_view(request):
     from urllib.parse import urlparse, urlunparse, quote
     from django.contrib import messages
     from django.shortcuts import redirect
+    from apps.wallets.services import get_or_create_wallet
 
     User = get_user_model()
     token = request.GET.get("token")
@@ -6847,9 +6848,11 @@ def sso_transfer_view(request):
                         from django.utils.crypto import get_random_string
                         tenant_user = User.objects.create_user(
                             email=sso_user.email,
+                            username=sso_user.email,
                             password=get_random_string(32),
                             first_name=sso_user.first_name,
                             last_name=sso_user.last_name,
+                            phone=sso_user.phone,
                             store=active_store,
                             role=sso_user.role,
                             preferred_language=sso_user.preferred_language,
@@ -6884,7 +6887,6 @@ def sso_transfer_view(request):
                         user_to_login = main_user
                     else:
                         from django.utils.crypto import get_random_string
-                        from apps.wallets.services import get_or_create_wallet
                         main_user = User.objects.create_user(
                             email=sso_user.email,
                             username=sso_user.email,
@@ -6904,9 +6906,18 @@ def sso_transfer_view(request):
             user_to_login.backend = "apps.stores.auth_backend.TenantModelBackend"
             login(request, user_to_login)
 
-            messages.success(request, "تم مزامنة تسجيل الدخول بنجاح.")
+            messages.success(request, "تم تسجيل الدخول بنجاح.")
             if not next_url or next_url in ["/auth/login/", "/auth/register/"]:
                 next_url = "/dashboard/"
+            else:
+                parsed_next = urlparse(next_url)
+                if parsed_next.netloc:
+                    if parsed_next.netloc == request.get_host():
+                        next_url = parsed_next.path
+                        if parsed_next.query:
+                            next_url += f"?{parsed_next.query}"
+                    else:
+                        next_url = "/dashboard/"
             return redirect(next_url)
         except (signing.SignatureExpired, signing.BadSignature, User.DoesNotExist) as e:
             messages.error(request, "رابط تسجيل الدخول غير صالح أو منتهي الصلاحية. يرجى المحاولة مرة أخرى.")
@@ -6931,7 +6942,7 @@ def sso_transfer_view(request):
                 parsed.netloc,
                 callback_path,
                 "",
-                f"token={token}&next={target_path or '/dashboard/'}",
+                f"token={token}&next={quote(target_path or '/dashboard/')}",
                 ""
             ))
 
@@ -6963,7 +6974,8 @@ def sso_transfer_view(request):
         from django.conf import settings
         platform_url = getattr(settings, "SITE_URL", "https://raqamiyatapp.com")
         current_absolute_uri = request.build_absolute_uri(next_url or "/dashboard/")
-        sso_login_url = f"{platform_url}/accounts/google/login/?next={platform_url}/auth/sso-callback/%3Fnext%3D{quote(current_absolute_uri)}"
+        callback_with_next = f"{platform_url}/auth/sso-callback/?store_id={active_store.pk}&subdomain={active_store.subdomain}&next={quote(current_absolute_uri)}"
+        sso_login_url = f"{platform_url}/accounts/google/login/?store_id={active_store.pk}&subdomain={active_store.subdomain}&next={quote(callback_with_next)}"
         return redirect(sso_login_url)
     else:
         return redirect("site_login")

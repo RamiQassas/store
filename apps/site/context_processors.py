@@ -101,8 +101,17 @@ def tenant_context(request):
     store = getattr(request, 'store', None)
     
     if store:
+        from urllib.parse import quote
+        next_target = request.GET.get("next") or "/dashboard/"
+        if not next_target.startswith("http://") and not next_target.startswith("https://"):
+            next_target = request.build_absolute_uri(next_target)
+
+        sso_callback = f"{platform_url}/auth/sso-callback/?store_id={store.pk}&subdomain={store.subdomain}&next={quote(next_target)}"
+        sso_google_login_url = f"{platform_url}/accounts/google/login/?store_id={store.pk}&subdomain={store.subdomain}&next={quote(sso_callback)}"
+
         return {
             "PLATFORM_URL": platform_url,
+            "SSO_GOOGLE_LOGIN_URL": sso_google_login_url,
             # Core store object (available as {{ store }} in all templates)
             "store": store,
             "is_tenant": True,
@@ -145,6 +154,7 @@ def tenant_context(request):
         # Main Raqamiyat platform — no store, use platform defaults
         return {
             "PLATFORM_URL": platform_url,
+            "SSO_GOOGLE_LOGIN_URL": "/accounts/google/login/",
             "store": None,
             "is_tenant": False,
 

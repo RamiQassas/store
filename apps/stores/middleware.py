@@ -173,6 +173,18 @@ class TenantSessionMiddleware(SessionMiddleware):
             request._using_legacy_session_cookie = bool(session_key)
         request.session = self.SessionStore(session_key)
 
+        # Capture SSO tenant redirection parameters during login/OAuth flows
+        if request.path.startswith('/accounts/'):
+            store_id = request.GET.get('store_id')
+            subdomain = request.GET.get('subdomain')
+            next_param = request.GET.get('next')
+            if store_id:
+                request.session['sso_target_store_id'] = store_id
+            if subdomain:
+                request.session['sso_target_subdomain'] = subdomain
+            if next_param:
+                request.session['sso_target_url'] = next_param
+
     def process_response(self, request, response):
         cookie_name = getattr(request, '_tenant_session_cookie_name', None) or self.get_cookie_name(request)
         if getattr(request, "_delete_legacy_session_cookie", False):

@@ -63,6 +63,8 @@ SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 
 _default_hosts = "raqamiyatapp.com,.raqamiyatapp.com,www.raqamiyatapp.com,167.233.150.164,2.29.26.113,localhost,127.0.0.1,testserver"
 ALLOWED_HOSTS = [host.strip() for host in env("DJANGO_ALLOWED_HOSTS", _default_hosts).split(",") if host.strip()]
+if ".raqamiyatapp.com" not in ALLOWED_HOSTS:
+    ALLOWED_HOSTS.append(".raqamiyatapp.com")
 if "test" in sys.argv:
     for test_host in ("testserver", ".testserver"):
         if test_host not in ALLOWED_HOSTS:
