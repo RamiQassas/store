@@ -199,7 +199,94 @@
 {% endblock %}
 
 {% block content %}
-<div class="product-layout container py-12">
+<div class="container pt-6 pb-2">
+    <!-- Product Navigation Bar (Breadcrumb + Previous / Next Products) -->
+    <div class="product-nav-dock p-3 sm:p-4 rounded-2xl bg-[#12121a]/85 backdrop-blur-xl border border-white/5 flex flex-wrap items-center justify-between gap-3 shadow-xl mb-2">
+        <!-- Breadcrumb / Category -->
+        <nav class="flex items-center gap-2 text-xs font-bold text-slate-400">
+            <a href="{% url 'home' %}" class="hover:text-gold transition flex items-center gap-1.5">
+                <i class="fas fa-home text-[11px] text-gold"></i>
+                <span class="hidden xs:inline">الرئيسية</span>
+            </a>
+            <i class="fas fa-chevron-left text-[9px] opacity-40"></i>
+            <a href="{% url 'catalog' %}" class="hover:text-gold transition">الكتالوج</a>
+            {% if product.category %}
+            <i class="fas fa-chevron-left text-[9px] opacity-40"></i>
+            <a href="{% url 'catalog' %}?category={{ product.category.id }}" class="hover:text-gold text-slate-300 transition">{{ product.category.name }}</a>
+            {% endif %}
+            <i class="fas fa-chevron-left text-[9px] opacity-40"></i>
+            <span class="text-gold font-black truncate max-w-[140px] sm:max-w-[220px]">{{ product.name }}</span>
+        </nav>
+
+        <!-- Prev / Next Navigation Buttons -->
+        <div class="flex items-center gap-2 mr-auto">
+            {% if prev_product %}
+            <a href="{% url 'product_detail' prev_product.id %}" 
+               class="nav-prod-btn group flex items-center gap-2 px-3 sm:px-3.5 py-1.5 sm:py-2 rounded-xl bg-slate-900/90 border border-white/10 hover:border-gold/50 hover:bg-gold/10 text-white transition-all shadow-md active:scale-95" 
+               title="المنتج السابق: {{ prev_product.name }}">
+                <div class="w-6 h-6 rounded-lg bg-gold/10 text-gold flex items-center justify-center text-xs group-hover:translate-x-0.5 transition-transform">
+                    <i class="fas fa-arrow-right"></i>
+                </div>
+                <div class="hidden md:flex flex-col text-right leading-tight">
+                    <span class="text-[9px] text-slate-400 font-bold">المنتج السابق</span>
+                    <span class="text-[11px] font-black text-white group-hover:text-gold truncate max-w-[100px] transition-colors">{{ prev_product.name }}</span>
+                </div>
+                <span class="md:hidden text-xs font-bold text-slate-300">السابق</span>
+            </a>
+            {% else %}
+            <span class="opacity-25 cursor-not-allowed flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-900/40 border border-white/5 text-slate-500 text-xs">
+                <i class="fas fa-arrow-right text-[10px]"></i>
+                <span class="hidden sm:inline">السابق</span>
+            </span>
+            {% endif %}
+
+            <a href="{% url 'catalog' %}{% if product.category %}?category={{ product.category.id }}{% endif %}" 
+               class="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-slate-900/90 border border-white/10 hover:border-gold/40 hover:text-gold text-slate-400 flex items-center justify-center transition shadow-md"
+               title="جميع منتجات القسم">
+                <i class="fas fa-th-large text-xs"></i>
+            </a>
+
+            {% if next_product %}
+            <a href="{% url 'product_detail' next_product.id %}" 
+               class="nav-prod-btn group flex items-center gap-2 px-3 sm:px-3.5 py-1.5 sm:py-2 rounded-xl bg-slate-900/90 border border-white/10 hover:border-gold/50 hover:bg-gold/10 text-white transition-all shadow-md active:scale-95" 
+               title="المنتج التالي: {{ next_product.name }}">
+                <span class="md:hidden text-xs font-bold text-slate-300">التالي</span>
+                <div class="hidden md:flex flex-col text-left leading-tight">
+                    <span class="text-[9px] text-slate-400 font-bold">المنتج التالي</span>
+                    <span class="text-[11px] font-black text-white group-hover:text-gold truncate max-w-[100px] transition-colors">{{ next_product.name }}</span>
+                </div>
+                <div class="w-6 h-6 rounded-lg bg-gold/10 text-gold flex items-center justify-center text-xs group-hover:-translate-x-0.5 transition-transform">
+                    <i class="fas fa-arrow-left"></i>
+                </div>
+            </a>
+            {% else %}
+            <span class="opacity-25 cursor-not-allowed flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-900/40 border border-white/5 text-slate-500 text-xs">
+                <span class="hidden sm:inline">التالي</span>
+                <i class="fas fa-arrow-left text-[10px]"></i>
+            </span>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Floating Next/Prev Side Controls for Desktop -->
+{% if prev_product %}
+<a href="{% url 'product_detail' prev_product.id %}" 
+   class="hidden 2xl:flex fixed right-6 top-1/2 -translate-y-1/2 z-40 w-12 h-16 rounded-2xl bg-[#12121a]/90 backdrop-blur-md border border-white/10 hover:border-gold/60 text-slate-400 hover:text-gold shadow-2xl items-center justify-center transition-all hover:scale-110 group"
+   title="المنتج السابق: {{ prev_product.name }}">
+    <i class="fas fa-chevron-right text-lg group-hover:translate-x-0.5 transition-transform"></i>
+</a>
+{% endif %}
+
+{% if next_product %}
+<a href="{% url 'product_detail' next_product.id %}" 
+   class="hidden 2xl:flex fixed left-6 top-1/2 -translate-y-1/2 z-40 w-12 h-16 rounded-2xl bg-[#12121a]/90 backdrop-blur-md border border-white/10 hover:border-gold/60 text-slate-400 hover:text-gold shadow-2xl items-center justify-center transition-all hover:scale-110 group"
+   title="المنتج التالي: {{ next_product.name }}">
+    <i class="fas fa-chevron-left text-lg group-hover:-translate-x-0.5 transition-transform"></i>
+</a>
+{% endif %}
+
+<div class="product-layout container pb-12">
     <!-- Left: Gallery -->
     <div class="p-gallery">
         <div class="main-img-box relative bg-slate-950/40 border border-white/5" id="main-media-box" style="aspect-ratio: 16/9; overflow: hidden; display: flex; align-items: center; justify-content: center;">
@@ -272,14 +359,14 @@
         <form method="post" action="{% url 'product_detail' product.id %}" id="purchase-form">
             {% csrf_token %}
             <input type="hidden" name="product" value="{{ product.id }}">
-            <input type="hidden" name="variant_id" id="selected-variant-id">
+            <input type="hidden" name="variant_id" id="selected-variant-id" value="{% if variants.0 and not variants.0.is_temporarily_disabled and not product.is_out_of_stock %}{{ variants.0.id }}{% endif %}">
 
             <div class="stack gap-4">
                 <span class="section-label">اختر الباقة المناسبة</span>
                 {% for v in variants %}
                 {% variant_price v as v_price %}
                 {% variant_card_price v as v_card_price %}
-                <div class="variant-card {% if v.is_temporarily_disabled or product.is_out_of_stock %}opacity-50 grayscale cursor-not-allowed{% endif %} {% if v.is_sale %}on-sale{% endif %}" 
+                <div class="variant-card {% if forloop.first and not v.is_temporarily_disabled and not product.is_out_of_stock %}selected{% endif %} {% if v.is_temporarily_disabled or product.is_out_of_stock %}opacity-50 grayscale cursor-not-allowed{% endif %} {% if v.is_sale %}on-sale{% endif %}" 
                      {% if not v.is_temporarily_disabled and not product.is_out_of_stock %}onclick="selectVariant('{{ v.id }}', this)"{% endif %}
                      data-price="{{ v_price|unlocalize }}"
                      data-qty-type="{{ v.metadata.qty_type|default:'none' }}"
@@ -287,6 +374,8 @@
                      data-qty-max="{{ v.metadata.qty_max|default:999999 }}"
                      data-qty-list='{% if v.metadata.qty_list %}{{ v.metadata.qty_list|jsonify }}{% else %}[]{% endif %}'
                      data-is-per-mille="{% if v.metadata.is_per_mille %}true{% else %}false{% endif %}"
+                     data-delivery-type="{{ v.delivery_type|default:'manual' }}"
+                     data-is-recharge="{% if v.is_recharge_card %}true{% else %}false{% endif %}"
                      data-params='{% if v.metadata.params %}{{ v.metadata.params|jsonify }}{% else %}[]{% endif %}'>
                     <div class="flex items-center gap-5">
                         <div class="radio-circle"></div>
@@ -371,39 +460,39 @@
             {% endif %}
 
             <!-- Dynamic Form Fields Container -->
-            <div id="dynamic-fields-container" class="panel p-7 mt-8 stack gap-5 bg-slate-900/90 border border-cyan/20 rounded-[2.5rem] shadow-2xl shadow-cyan/5 {% if not product.form_schema.fields and not product.is_api_product and product.product_type == 'physical' %}hidden{% endif %}">
+            <div id="dynamic-fields-container" class="panel p-7 mt-8 stack gap-5 bg-slate-900/90 border border-gold/20 rounded-[2.5rem] shadow-2xl shadow-gold/5 {% if not product.form_schema.fields and not product.is_api_product and product.product_type == 'physical' %}hidden{% endif %}">
                 <div class="flex items-center justify-between border-b border-white/5 pb-4">
                     <div>
                         <h3 class="font-black text-xl text-white flex items-center gap-3">
-                            <span class="w-8 h-8 rounded-xl bg-cyan/10 border border-cyan/20 flex items-center justify-center text-cyan text-sm">
+                            <span class="w-8 h-8 rounded-xl bg-gold/10 border border-gold/20 flex items-center justify-center text-gold text-sm">
                                 <i class="fas fa-id-card"></i>
                             </span>
-                            <span>بيانات تنفيذ وشحن الطلب</span>
+                            <span id="fields-header-title">معلومات وتفاصيل استلام الطلب</span>
                         </h3>
-                        <p id="fields-help-text" class="text-xs text-slate-400 mt-1">يرجى كتابة البيانات المطلوبة بعناية لضمان سرعة التنفيذ المباشر للطلب.</p>
+                        <p id="fields-help-text" class="text-xs text-slate-400 mt-1">يرجى التحقق من البيانات المطلوبة لضمان سرعة التنفيذ المباشر للطلب.</p>
                     </div>
                     {% if product.is_api_product or product.product_type != 'physical' %}
-                    <span class="text-[10px] bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-3 py-1 rounded-full font-bold flex items-center gap-1.5">
+                    <span id="instant-delivery-pill" class="text-[10px] bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-3 py-1 rounded-full font-bold flex items-center gap-1.5">
                         <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
-                        شحن فوري مباشر
+                        تسليم فوري تلقائي
                     </span>
                     {% endif %}
                 </div>
                 <div id="dynamic-fields-wrapper" class="grid grid-1 gap-5">
                     {% if product.form_schema.fields %}
                         {% for f in product.form_schema.fields %}
-                        <div class="field-group bg-slate-950/60 p-4 rounded-2xl border border-white/5 focus-within:border-cyan/50 transition-all">
+                        <div class="field-group bg-slate-950/60 p-4 rounded-2xl border border-white/5 focus-within:border-gold/50 transition-all">
                             <label class="text-xs font-bold text-slate-200 flex items-center justify-between mb-2">
                                 <span class="flex items-center gap-2">
-                                    <i class="fas fa-edit text-cyan text-xs"></i>
+                                    <i class="fas fa-edit text-gold text-xs"></i>
                                     <span>{{ f.label }}</span>
                                 </span>
                                 {% if f.required %}<span class="text-[10px] text-rose-400 font-bold">* مطلوب</span>{% else %}<span class="text-[10px] text-slate-500">اختياري</span>{% endif %}
                             </label>
                             {% if f.type == 'textarea' %}
-                            <textarea name="custom_{{ f.name|default:f.label }}" placeholder="{{ f.placeholder }}" class="w-full bg-slate-900 border border-white/10 rounded-xl p-3.5 text-white focus:border-cyan transition" {% if f.required %}required{% endif %}></textarea>
+                            <textarea name="custom_{{ f.name|default:f.label }}" placeholder="{{ f.placeholder }}" class="w-full bg-slate-900 border border-white/10 rounded-xl p-3.5 text-white focus:border-gold transition" {% if f.required %}required{% endif %}></textarea>
                             {% elif f.options %}
-                            <select name="custom_{{ f.name|default:f.label }}" class="w-full bg-slate-900 border border-white/10 rounded-xl p-3.5 text-white focus:border-cyan transition" {% if f.required %}required{% endif %}>
+                            <select name="custom_{{ f.name|default:f.label }}" class="w-full bg-slate-900 border border-white/10 rounded-xl p-3.5 text-white focus:border-gold transition" {% if f.required %}required{% endif %}>
                                 <option value="">-- اختر من القائمة --</option>
                                 {% if f.options|is_list %}
                                     {% for opt in f.options %}
@@ -419,8 +508,8 @@
                             <input type="file" name="custom_{{ f.name|default:f.label }}" class="w-full bg-slate-900 border border-white/10 rounded-xl p-3 text-xs text-slate-400" accept="image/*" {% if f.required %}required{% endif %}>
                             {% elif f.type == 'location' %}
                             <div class="relative flex items-center">
-                                <input type="text" id="loc_{{ forloop.counter }}" name="custom_{{ f.name|default:f.label }}" placeholder="{{ f.placeholder|default:'مثال: https://www.google.com/maps?q=24.7136,46.6753' }}" class="w-full bg-slate-900 border border-white/10 rounded-xl p-3.5 pl-36 text-white focus:border-cyan transition" {% if f.required %}required{% endif %}>
-                                <button type="button" onclick="detectGPSLocation('loc_{{ forloop.counter }}', this)" class="absolute left-2 bg-cyan/10 hover:bg-cyan/20 border border-cyan/20 hover:border-cyan/30 text-cyan text-[11px] font-bold py-2 px-3 rounded-lg flex items-center gap-1.5 transition-all">
+                                <input type="text" id="loc_{{ forloop.counter }}" name="custom_{{ f.name|default:f.label }}" placeholder="{{ f.placeholder|default:'مثال: https://www.google.com/maps?q=24.7136,46.6753' }}" class="w-full bg-slate-900 border border-white/10 rounded-xl p-3.5 pl-36 text-white focus:border-gold transition" {% if f.required %}required{% endif %}>
+                                <button type="button" onclick="detectGPSLocation('loc_{{ forloop.counter }}', this)" class="absolute left-2 bg-gold/10 hover:bg-gold/20 border border-gold/20 hover:border-gold/30 text-gold text-[11px] font-bold py-2 px-3 rounded-lg flex items-center gap-1.5 transition-all">
                                     <i class="fas fa-map-marker-alt"></i>
                                     <span>تحديد موقعي (GPS)</span>
                                 </button>
@@ -428,31 +517,34 @@
                             <span class="text-[9px] text-slate-500 mt-1 block">يمكنك نسخ ولصق رابط موقعك من خرائط جوجل مباشرة أو استخدام زر تحديد الموقع الحالي.</span>
                             {% else %}
                             <div class="flex items-center gap-3">
-                                <input type="text" name="custom_{{ f.name|default:f.label }}" id="custom_{{ f.name|default:f.label }}" placeholder="{{ f.placeholder|default:'أدخل البيانات المطلوبة هنا...' }}" class="flex-grow bg-slate-900 border border-white/10 rounded-2xl p-4 text-white font-mono text-base focus:border-cyan transition" {% if f.required %}required{% endif %}>
-                                <button type="button" onclick="pasteToInput('custom_{{ f.name|default:f.label }}')" class="shrink-0 h-[56px] px-5 rounded-2xl bg-cyan/10 hover:bg-cyan/20 border border-cyan/20 hover:border-cyan/40 text-cyan text-xs font-black flex items-center gap-2 transition active:scale-95 cursor-pointer" title="لصق من الحافظة">
-                                    <i class="far fa-paste text-sm"></i>
-                                    <span>لصق</span>
-                                </button>
-                            {% endif %}
-                        </div>
-                        {% endfor %}
-                    {% elif product.product_type != "physical" %}
-                        <div class="field-group bg-slate-950/60 p-4 rounded-2xl border border-white/5 focus-within:border-cyan/50 transition-all">
-                            <label class="text-xs font-bold text-slate-200 flex items-center justify-between mb-2">
-                                <span class="flex items-center gap-2">
-                                    <i class="fas fa-gamepad text-cyan text-xs"></i>
-                                    <span>معرف الحساب / الآيدي (Player ID / Account):</span>
-                                </span>
-                                <span class="text-[10px] text-rose-400 font-bold">* مطلوب</span>
-                            </label>
-                            <div class="flex items-center gap-3">
-                                <input type="text" name="custom_player_id" id="custom_player_id" placeholder="أدخل آيدي الحساب أو رقم الهاتف المطلوب شحنه..." class="flex-grow bg-slate-900 border border-white/10 rounded-2xl p-4 text-white font-mono text-base focus:border-cyan transition" required>
-                                <button type="button" onclick="pasteToInput('custom_player_id')" class="shrink-0 h-[56px] px-5 rounded-2xl bg-cyan/10 hover:bg-cyan/20 border border-cyan/20 hover:border-cyan/40 text-cyan text-xs font-black flex items-center gap-2 transition active:scale-95 cursor-pointer" title="لصق من الحافظة">
+                                <input type="text" name="custom_{{ f.name|default:f.label }}" id="custom_{{ f.name|default:f.label }}" placeholder="{{ f.placeholder|default:'أدخل البيانات المطلوبة هنا...' }}" class="flex-grow bg-slate-900 border border-white/10 rounded-2xl p-4 text-white font-mono text-base focus:border-gold transition" {% if f.required %}required{% endif %}>
+                                <button type="button" onclick="pasteToInput('custom_{{ f.name|default:f.label }}')" class="shrink-0 h-[56px] px-5 rounded-2xl bg-gold/10 hover:bg-gold/20 border border-gold/20 hover:border-gold/40 text-gold text-xs font-black flex items-center gap-2 transition active:scale-95 cursor-pointer" title="لصق من الحافظة">
                                     <i class="far fa-paste text-sm"></i>
                                     <span>لصق</span>
                                 </button>
                             </div>
-                            <span class="text-[10px] text-slate-400 mt-1.5 block">يرجى كتابة رقم الحساب أو الآيدي بدقة لضمان سرعة إرسال الشحن مباشرة إلى حسابك فوراً.</span>
+                            {% endif %}
+                        </div>
+                        {% endfor %}
+                    {% elif product.product_type != "physical" %}
+                        <!-- Instant delivery reassurance card -->
+                        <div class="p-5 rounded-2xl bg-gradient-to-r from-emerald-500/10 via-amber-500/5 to-slate-900/60 border border-emerald-500/30 flex items-start gap-4 shadow-lg shadow-emerald-500/5">
+                            <div class="w-11 h-11 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center shrink-0 border border-emerald-500/30 text-lg">
+                                <i class="fas fa-bolt"></i>
+                            </div>
+                            <div class="flex-grow">
+                                <div class="flex items-center justify-between gap-2 mb-1">
+                                    <h4 class="text-sm font-black text-white flex items-center gap-2">
+                                        <span>تسليم فوري ومباشر للكود / الرقم</span>
+                                    </h4>
+                                    <span class="text-[9px] px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 font-bold border border-emerald-500/30">
+                                        آلي 100%
+                                    </span>
+                                </div>
+                                <p class="text-xs text-slate-300 leading-relaxed">
+                                    ⚡ <strong>لا يتطلب هذا المنتج أي إدخال بيانات أو آيدي مسبقاً.</strong> بمجرد الضغط على زر الشراء أدناه وتأكيد طلبك، ستستلم الرقم / الكود وتفاصيل التفعيل مباشرة على الشاشة وفي تفاصيل طلبك بشكل فوري وتلقائي.
+                                </p>
+                            </div>
                         </div>
                     {% endif %}
                 </div>
@@ -462,26 +554,26 @@
             <div class="mt-10">
                 <span class="section-label">كوبون الخصم</span>
                 <div class="flex gap-3">
-                    <input type="text" name="coupon_code" id="coupon-code-input" placeholder="لديك كود خصم؟ أدخله هنا..." class="flex-grow bg-slate-900/50 border-white/5 rounded-2xl p-4 text-sm text-white focus:border-cyan transition">
-                    <button type="button" onclick="applyCoupon()" class="btn btn-outline px-8 rounded-2xl font-bold border-white/5 text-cyan hover:bg-cyan/10 transition-all">تطبيق</button>
+                    <input type="text" name="coupon_code" id="coupon-code-input" placeholder="لديك كود خصم؟ أدخله هنا..." class="flex-grow bg-slate-900/50 border-white/5 rounded-2xl p-4 text-sm text-white focus:border-gold transition">
+                    <button type="button" onclick="applyCoupon()" class="btn btn-outline px-8 rounded-2xl font-bold border-white/5 text-gold hover:bg-gold/10 transition-all">تطبيق</button>
                 </div>
                 <div id="coupon-feedback" class="mt-3 text-[10px] hidden"></div>
             </div>
 
-            <div id="price-breakdown" class="mt-8 p-8 bg-slate-900/40 border border-white/5 rounded-[2rem] hidden">
+            <div id="price-breakdown" class="mt-8 p-8 bg-slate-900/40 border border-white/5 rounded-[2rem] {% if not variants and not product.price %}hidden{% endif %}">
                 <div class="stack gap-4">
                     <div class="flex justify-between text-xs">
                         <span class="text-slate-500 font-bold uppercase tracking-widest">المجموع:</span>
-                        <span id="subtotal-display" class="text-white font-black"></span>
+                        <span id="subtotal-display" class="text-white font-black">{% if variants.0 %}{% variant_price variants.0 as fvp %}{% currency_format fvp %}{% else %}{% currency_format product.price|default:0 %}{% endif %}</span>
                     </div>
                     <div class="flex justify-between text-xs">
                         <span class="text-slate-500 font-bold uppercase tracking-widest">الخصم:</span>
-                        <span id="discount-display" class="text-emerald-500 font-black"></span>
+                        <span id="discount-display" class="text-emerald-500 font-black">0.00 {{ CURRENCY.symbol|default:'USD' }}</span>
                     </div>
                     <div class="h-px bg-white/5 my-2"></div>
                     <div class="flex justify-between text-xl">
                         <span class="text-white font-black">الإجمالي النهائي:</span>
-                        <span id="total-display" class="text-cyan font-black"></span>
+                        <span id="total-display" class="text-gold font-black">{% if variants.0 %}{% variant_price variants.0 as fvp %}{% currency_format fvp %}{% else %}{% currency_format product.price|default:0 %}{% endif %}</span>
                     </div>
                 </div>
             </div>
@@ -490,20 +582,20 @@
             <div class="mt-8">
                 <div class="flex items-center justify-between mb-3">
                     <span class="section-label mb-0">طريقة الدفع المعتمدة</span>
-                    <span id="pm-active-badge" class="text-[11px] font-black px-3.5 py-1 rounded-full bg-cyan/10 text-cyan border border-cyan/30 flex items-center gap-2 transition-all shadow-sm shadow-cyan/20">
-                        <span class="w-2 h-2 rounded-full bg-cyan animate-pulse"></span>
+                    <span id="pm-active-badge" class="text-[11px] font-black px-3.5 py-1 rounded-full bg-gold/10 text-gold border border-gold/30 flex items-center gap-2 transition-all shadow-sm shadow-gold/20">
+                        <span class="w-2 h-2 rounded-full bg-gold animate-pulse"></span>
                         محفظة {% if is_tenant %}{{ STORE_NAME }}{% else %}رقميات{% endif %}
                     </span>
                 </div>
                 <input type="hidden" name="payment_method" id="selected-payment-method" value="wallet">
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-3.5 mt-2">
                     <!-- Store / Raqamiyat Wallet Option -->
-                    <div class="payment-method-card is-active-wallet p-4 rounded-2xl border-2 border-cyan bg-cyan/10 transition-all duration-300 cursor-pointer flex items-center justify-between shadow-[0_0_25px_rgba(6,182,212,0.25)] scale-[1.01]"
+                    <div class="payment-method-card is-active-wallet p-4 rounded-2xl border-2 border-gold bg-gold/10 transition-all duration-300 cursor-pointer flex items-center justify-between shadow-[0_0_25px_rgba(212,168,83,0.25)] scale-[1.01]"
                          id="pm-card-wallet"
                          data-type="wallet"
                          onclick="selectPaymentMethod('wallet', this, 'wallet')">
                         <div class="flex items-center gap-3">
-                            <div class="radio-circle-pm w-6 h-6 rounded-full border-2 border-cyan bg-cyan flex items-center justify-center shrink-0 transition-transform duration-300 shadow-sm shadow-cyan/30">
+                            <div class="radio-circle-pm w-6 h-6 rounded-full border-2 border-gold bg-gold flex items-center justify-center shrink-0 transition-transform duration-300 shadow-sm shadow-gold/30">
                                 <i class="fas fa-check text-[10px] text-slate-950 font-black"></i>
                             </div>
                             <!-- Raqamiyat / Store Brand Logo -->
@@ -525,7 +617,7 @@
                                 </div>
                             </div>
                         </div>
-                        <span class="text-[10px] bg-cyan/20 text-cyan border border-cyan/30 px-3 py-1 rounded-xl font-black uppercase tracking-wider">
+                        <span class="text-[10px] bg-gold/20 text-gold border border-gold/30 px-3 py-1 rounded-xl font-black uppercase tracking-wider">
                             رصيد فوري
                         </span>
                     </div>
@@ -575,7 +667,7 @@
                 </button>
                 {% else %}
                 <button type="submit" class="buy-btn-v3" id="submit-btn">
-                    <i class="fas fa-wallet ml-2"></i> إتمام الشراء من رصيد المحفظة
+                    <i class="fas fa-wallet ml-2"></i> إتمام الشراء من رصيد المحفظة ({% if variants.0 %}{% variant_price variants.0 as fvp %}{% currency_format fvp %}{% else %}{% currency_format product.price|default:0 %}{% endif %})
                 </button>
                 {% endif %}
                 <div class="flex items-center justify-center gap-4 mt-6 opacity-40">
@@ -715,10 +807,35 @@ function pasteToInput(id) {
     }
 }
 
+const PRODUCT_CATEGORY_NAME = "{{ product.category.name|default:''|escapejs }}".toLowerCase();
+const PRODUCT_NAME = "{{ product.name|default:''|escapejs }}".toLowerCase();
+const PRODUCT_FORM_FIELDS = {% if product.form_schema.fields %}{{ product.form_schema.fields|jsonify }}{% else %}[]{% endif %};
+const IS_PHYSICAL = {% if product.product_type == 'physical' %}true{% else %}false{% endif %};
+
+function isInstantDigitalProduct(el) {
+    if (IS_PHYSICAL) return false;
+    const deliveryType = el ? el.getAttribute('data-delivery-type') : '';
+    const isRecharge = el ? el.getAttribute('data-is-recharge') === 'true' : false;
+    if (deliveryType === 'keys' || isRecharge) return true;
+    
+    // Check keywords in product name or category
+    const keywords = ['whatsapp', 'واتساب', 'رقم', 'أرقام', 'ارقام', 'تفعيل', 'كود', 'أكواد', 'اكواد', 'قسيمة', 'بطاقة', 'كرت', 'اشتراك', 'حساب', 'سيريال', 'مفتاح', 'key', 'license', 'gift', 'voucher', 'card', 'netflix', 'canva', 'chatgpt', 'vpn'];
+    return keywords.some(k => PRODUCT_NAME.includes(k) || PRODUCT_CATEGORY_NAME.includes(k));
+}
+
 function renderDynamicFields(paramsJson, el) {
     const container = document.getElementById('dynamic-fields-container');
     const wrapper = document.getElementById('dynamic-fields-wrapper');
+    const headerTitle = document.getElementById('fields-header-title');
+    const helpText = document.getElementById('fields-help-text');
+    const instantPill = document.getElementById('instant-delivery-pill');
     if (!container || !wrapper) return;
+
+    if (IS_PHYSICAL) {
+        container.classList.add('hidden');
+        wrapper.innerHTML = '';
+        return;
+    }
 
     let params = [];
     if (paramsJson) {
@@ -743,8 +860,14 @@ function renderDynamicFields(paramsJson, el) {
         }
     });
 
+    container.classList.remove('hidden');
+
+    // Case 1: Variant has specific parameters defined
     if (Array.isArray(params) && params.length > 0) {
-        container.classList.remove('hidden');
+        if (headerTitle) headerTitle.innerText = 'بيانات تنفيذ وشحن الطلب';
+        if (helpText) helpText.innerText = 'يرجى كتابة البيانات المطلوبة بعناية لضمان سرعة التنفيذ المباشر للطلب.';
+        if (instantPill) instantPill.classList.remove('hidden');
+
         let html = '';
         params.forEach((param, idx) => {
             const pName = typeof param === 'string' ? param : (param.name || param.label || `param_${idx}`);
@@ -762,19 +885,22 @@ function renderDynamicFields(paramsJson, el) {
             } else if (labelLower.includes('server') || labelLower.includes('zone') || labelLower.includes('سيرفر')) {
                 placeholder = 'مثال: Europe / 1234';
                 iconClass = 'fa-server';
-            } else if (labelLower.includes('phone') || labelLower.includes('هاتف') || labelLower.includes('جوال')) {
-                placeholder = 'مثال: 09XXXXXXXX';
+            } else if (labelLower.includes('phone') || labelLower.includes('هاتف') || labelLower.includes('جوال') || labelLower.includes('رقم')) {
+                placeholder = 'مثال: 09XXXXXXXX أو +963...';
                 iconClass = 'fa-phone-alt';
             } else if (labelLower.includes('link') || labelLower.includes('رابط')) {
                 placeholder = 'https://...';
                 iconClass = 'fa-link';
+            } else if (labelLower.includes('email') || labelLower.includes('بريد') || labelLower.includes('ايميل')) {
+                placeholder = 'user@example.com';
+                iconClass = 'fa-envelope';
             }
 
             html += `
-                <div class="field-group bg-slate-950/60 p-4 rounded-2xl border border-white/5 focus-within:border-cyan/50 transition-all">
+                <div class="field-group bg-slate-950/60 p-4 rounded-2xl border border-white/5 focus-within:border-gold/50 transition-all">
                     <label class="text-xs font-bold text-slate-200 flex items-center justify-between mb-2">
                         <span class="flex items-center gap-2">
-                            <i class="fas ${iconClass} text-cyan text-xs"></i>
+                            <i class="fas ${iconClass} text-gold text-xs"></i>
                             <span>${pLabel}</span>
                         </span>
                         ${isRequired ? '<span class="text-[10px] text-rose-400 font-bold">* مطلوب</span>' : '<span class="text-[10px] text-slate-500">اختياري</span>'}
@@ -785,9 +911,9 @@ function renderDynamicFields(paramsJson, el) {
                                id="custom_${pName}" 
                                value="${prevVal}" 
                                placeholder="${placeholder}" 
-                               class="flex-grow bg-slate-900/90 border border-white/10 rounded-2xl p-4 text-white font-mono text-base focus:border-cyan focus:ring-1 focus:ring-cyan transition" 
+                               class="flex-grow bg-slate-900/90 border border-white/10 rounded-2xl p-4 text-white font-mono text-base focus:border-gold focus:ring-1 focus:ring-gold transition" 
                                ${isRequired ? 'required' : ''}>
-                        <button type="button" onclick="pasteToInput('custom_${pName}')" class="shrink-0 h-[56px] px-5 rounded-2xl bg-cyan/10 hover:bg-cyan/20 border border-cyan/20 hover:border-cyan/40 text-cyan text-xs font-black flex items-center gap-2 transition active:scale-95 cursor-pointer" title="لصق من الحافظة">
+                        <button type="button" onclick="pasteToInput('custom_${pName}')" class="shrink-0 h-[56px] px-5 rounded-2xl bg-gold/10 hover:bg-gold/20 border border-gold/20 hover:border-gold/40 text-gold text-xs font-black flex items-center gap-2 transition active:scale-95 cursor-pointer" title="لصق من الحافظة">
                             <i class="far fa-paste text-sm"></i>
                             <span>لصق</span>
                         </button>
@@ -796,22 +922,132 @@ function renderDynamicFields(paramsJson, el) {
             `;
         });
         wrapper.innerHTML = html;
-    } else {
-        container.classList.add('hidden');
-        wrapper.innerHTML = '';
+        return;
     }
+
+    // Case 2: Product has form_schema fields
+    if (Array.isArray(PRODUCT_FORM_FIELDS) && PRODUCT_FORM_FIELDS.length > 0) {
+        if (headerTitle) headerTitle.innerText = 'بيانات تنفيذ وشحن الطلب';
+        if (helpText) helpText.innerText = 'يرجى كتابة البيانات المطلوبة بعناية لضمان سرعة التنفيذ المباشر للطلب.';
+        if (instantPill) instantPill.classList.remove('hidden');
+
+        let html = '';
+        PRODUCT_FORM_FIELDS.forEach((f, idx) => {
+            const fName = f.name || f.label || `field_${idx}`;
+            const fLabel = f.label || f.name || `حقل ${idx+1}`;
+            const isReq = f.required !== false;
+            const prevVal = existingValues[fName] || '';
+
+            html += `
+                <div class="field-group bg-slate-950/60 p-4 rounded-2xl border border-white/5 focus-within:border-gold/50 transition-all">
+                    <label class="text-xs font-bold text-slate-200 flex items-center justify-between mb-2">
+                        <span class="flex items-center gap-2">
+                            <i class="fas fa-edit text-gold text-xs"></i>
+                            <span>${fLabel}</span>
+                        </span>
+                        ${isReq ? '<span class="text-[10px] text-rose-400 font-bold">* مطلوب</span>' : '<span class="text-[10px] text-slate-500">اختياري</span>'}
+                    </label>
+                    <div class="flex items-center gap-3">
+                        <input type="text" 
+                               name="custom_${fName}" 
+                               id="custom_${fName}" 
+                               value="${prevVal}" 
+                               placeholder="${f.placeholder || 'أدخل ' + fLabel + '...'}" 
+                               class="flex-grow bg-slate-900/90 border border-white/10 rounded-2xl p-4 text-white font-mono text-base focus:border-gold focus:ring-1 focus:ring-gold transition" 
+                               ${isReq ? 'required' : ''}>
+                        <button type="button" onclick="pasteToInput('custom_${fName}')" class="shrink-0 h-[56px] px-5 rounded-2xl bg-gold/10 hover:bg-gold/20 border border-gold/20 hover:border-gold/40 text-gold text-xs font-black flex items-center gap-2 transition active:scale-95 cursor-pointer" title="لصق من الحافظة">
+                            <i class="far fa-paste text-sm"></i>
+                            <span>لصق</span>
+                        </button>
+                    </div>
+                </div>
+            `;
+        });
+        wrapper.innerHTML = html;
+        return;
+    }
+
+    // Case 3: Instant Digital Delivery Product (e.g. WhatsApp numbers, keys, codes, accounts, vouchers)
+    // No extra input required from customer! Display a clear, reassuring badge/panel.
+    if (isInstantDigitalProduct(el)) {
+        if (headerTitle) headerTitle.innerText = 'معلومات الاستلام والتسليم التلقائي';
+        if (helpText) helpText.innerText = 'التسليم فوري وتلقائي — كود التفعيل أو الرقم سيصلك مباشرة في تفاصيل الطلب فور إتمام الدفع.';
+        if (instantPill) {
+            instantPill.classList.remove('hidden');
+            instantPill.innerHTML = '<span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span> تسليم فوري وتلقائي';
+        }
+
+        wrapper.innerHTML = `
+            <div class="p-5 rounded-2xl bg-gradient-to-r from-emerald-500/10 via-amber-500/5 to-slate-900/60 border border-emerald-500/30 flex items-start gap-4 shadow-lg shadow-emerald-500/5">
+                <div class="w-12 h-12 rounded-2xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center shrink-0 border border-emerald-500/30 text-xl">
+                    <i class="fas fa-bolt"></i>
+                </div>
+                <div class="flex-grow">
+                    <div class="flex items-center justify-between gap-2 mb-1.5">
+                        <h4 class="text-sm font-black text-white flex items-center gap-2">
+                            <span>تسليم فوري ومباشر للكود / الرقم</span>
+                        </h4>
+                        <span class="text-[10px] px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 font-bold border border-emerald-500/30">
+                            آلي 100%
+                        </span>
+                    </div>
+                    <p class="text-xs text-slate-300 leading-relaxed">
+                        ⚡ <strong>لا يتطلب هذا المنتج إدخال أي بيانات أو آيدي مسبقاً.</strong> بمجرد الضغط على زر الشراء أدناه وتأكيد طلبك، ستستلم الرقم / كود التفعيل مباشرة على الشاشة وفي تفاصيل طلبك بشكل فوري وتلقائي.
+                    </p>
+                </div>
+            </div>
+        `;
+        return;
+    }
+
+    // Case 4: General Digital / Game Recharge Product requiring Account/Player ID
+    if (headerTitle) headerTitle.innerText = 'بيانات الحساب للشحن المباشر';
+    if (helpText) helpText.innerText = 'يرجى إدخال معرف الحساب أو الآيدي بدقة لضمان سرعة إرسال الرصيد لحسابك فوراً.';
+    if (instantPill) instantPill.classList.remove('hidden');
+
+    const prevId = existingValues['player_id'] || existingValues['playerId'] || existingValues['custom_player_id'] || '';
+    wrapper.innerHTML = `
+        <div class="field-group bg-slate-950/60 p-4 rounded-2xl border border-white/5 focus-within:border-gold/50 transition-all">
+            <label class="text-xs font-bold text-slate-200 flex items-center justify-between mb-2">
+                <span class="flex items-center gap-2">
+                    <i class="fas fa-gamepad text-gold text-xs"></i>
+                    <span>معرف الحساب / الآيدي (Player ID / Account):</span>
+                </span>
+                <span class="text-[10px] text-rose-400 font-bold">* مطلوب</span>
+            </label>
+            <div class="flex items-center gap-3">
+                <input type="text" 
+                       name="custom_player_id" 
+                       id="custom_player_id" 
+                       value="${prevId}" 
+                       placeholder="أدخل آيدي الحساب أو رقم الهاتف المطلوب شحنه..." 
+                       class="flex-grow bg-slate-900/90 border border-white/10 rounded-2xl p-4 text-white font-mono text-base focus:border-gold focus:ring-1 focus:ring-gold transition" 
+                       required>
+                <button type="button" onclick="pasteToInput('custom_player_id')" class="shrink-0 h-[56px] px-5 rounded-2xl bg-gold/10 hover:bg-gold/20 border border-gold/20 hover:border-gold/40 text-gold text-xs font-black flex items-center gap-2 transition active:scale-95 cursor-pointer" title="لصق من الحافظة">
+                    <i class="far fa-paste text-sm"></i>
+                    <span>لصق</span>
+                </button>
+            </div>
+            <span class="text-[10px] text-slate-400 mt-1.5 block">يرجى كتابة رقم الحساب أو الآيدي بدقة لضمان سرعة إرسال الشحن مباشرة إلى حسابك فوراً.</span>
+        </div>
+    `;
 }
 
 function selectVariant(id, el) {
-    document.getElementById('selected-variant-id').value = id;
+    if (!el) {
+        el = document.querySelector(`.variant-card[onclick*="${id}"]`) || document.querySelector('.variant-card');
+    }
+    if (!el) return;
+
+    const vInput = document.getElementById('selected-variant-id');
+    if (vInput) vInput.value = id;
+
     document.querySelectorAll('.variant-card').forEach(c => c.classList.remove('selected'));
     el.classList.add('selected');
-    document.getElementById('submit-btn').disabled = false;
-    
-    // Reset coupon if variant changes
-    document.getElementById('price-breakdown').classList.add('hidden');
-    document.getElementById('coupon-feedback').classList.add('hidden');
 
+    const submitBtn = document.getElementById('submit-btn');
+    if (submitBtn) submitBtn.disabled = false;
+    
     // Parse parameters and render dynamic fields for this variant
     const paramsData = el.getAttribute('data-params');
     renderDynamicFields(paramsData, el);
@@ -939,10 +1175,7 @@ function adjustQty(delta) {
 }
 
 document.addEventListener('DOMContentLoaded', function() {
-    let firstAvailableCard = document.querySelector('.variant-card:not(.opacity-50)');
-    if (!firstAvailableCard) {
-        firstAvailableCard = document.querySelector('.variant-card');
-    }
+    let firstAvailableCard = document.querySelector('.variant-card.selected') || document.querySelector('.variant-card:not(.opacity-50):not(.cursor-not-allowed)') || document.querySelector('.variant-card');
     if (firstAvailableCard) {
         firstAvailableCard.click();
     } else {
@@ -953,7 +1186,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
 function formatCurrencyAmount(baseAmount) {
     const currencySymbol = "{{ CURRENCY.symbol|default:'USD' }}";
-    const currencyRate = parseFloat("{{ CURRENCY.buy_rate|default:1 }}") || 1.0;
+    const currencyRate = parseFloat("{{ CURRENCY.buy_rate|default:1|unlocalize }}".replace(',', '.')) || 1.0;
     const currencyMethod = "{{ CURRENCY.conversion_method|default:'multiply' }}";
     let currencyDecimals = parseInt("{{ CURRENCY.decimal_places|default:2 }}") || 2;
 

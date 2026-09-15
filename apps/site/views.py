@@ -2403,6 +2403,27 @@ def product_detail(request, pk):
                         "logo": pm_logo,
                     })
 
+    # Navigation: previous and next products in current catalog / category
+    catalog_qs = Product.objects.filter(is_active=True)
+    if product.store:
+        catalog_qs = catalog_qs.filter(store=product.store)
+    else:
+        catalog_qs = catalog_qs.filter(store__isnull=True)
+
+    category_qs = catalog_qs.filter(category=product.category) if product.category else catalog_qs
+
+    prev_product = category_qs.filter(sort_order__lt=product.sort_order).order_by('-sort_order', '-created_at').first()
+    if not prev_product:
+        prev_product = category_qs.filter(sort_order=product.sort_order, created_at__lt=product.created_at).order_by('-created_at').first()
+    if not prev_product and category_qs != catalog_qs:
+        prev_product = catalog_qs.filter(sort_order__lt=product.sort_order).order_by('-sort_order', '-created_at').first()
+
+    next_product = category_qs.filter(sort_order__gt=product.sort_order).order_by('sort_order', 'created_at').first()
+    if not next_product:
+        next_product = category_qs.filter(sort_order=product.sort_order, created_at__gt=product.created_at).order_by('created_at').first()
+    if not next_product and category_qs != catalog_qs:
+        next_product = catalog_qs.filter(sort_order__gt=product.sort_order).order_by('sort_order', 'created_at').first()
+
     return render(request, "site/product_detail.html", {
         "product": product, 
         "variants": variants, 
@@ -2410,6 +2431,8 @@ def product_detail(request, pk):
         "missing_amount": missing_amount,
         "missing_currency": missing_currency,
         "gateway_methods": gateway_methods,
+        "prev_product": prev_product,
+        "next_product": next_product,
     })
 
 
