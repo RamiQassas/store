@@ -553,8 +553,21 @@ class AlkasrMapperService:
             if re.match(r'^[\.\s\-_=~*#]+$', group_name) or len(group_name) < 2:
                 continue
 
-            if selected_group_names and group_name not in selected_group_names:
-                continue
+            if selected_group_names:
+                matched = False
+                for sel in selected_group_names:
+                    sel_s = (sel or "").strip().lower()
+                    g_s = group_name.strip().lower()
+                    if sel_s == g_s or sel_s in g_s or g_s in sel_s:
+                        matched = True
+                        break
+                    sel_parts = [p.strip().lower() for p in sel_s.split("|") if p.strip()]
+                    g_parts = [p.strip().lower() for p in g_s.split("|") if p.strip()]
+                    if any(sp in g_parts or any(sp in gp for gp in g_parts) for sp in sel_parts):
+                        matched = True
+                        break
+                if not matched:
+                    continue
             grouped_products.setdefault(group_name, []).append(pp)
 
         for group_name, p_items in grouped_products.items():

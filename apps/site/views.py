@@ -1828,11 +1828,11 @@ def catalog(request):
 
     # Default to categories view if user opened /catalog/ directly without query or specific category
     if "view" in request.GET:
-        view_type = request.GET.get("view", "categories")
+        view_type = request.GET.get("view", "products")
     elif cat_id or q:
         view_type = "products"
     else:
-        view_type = "categories"
+        view_type = "products"
 
     if store:
         all_cats = list(Category.objects.filter(store=store, is_active=True).order_by("sort_order", "name"))
@@ -7843,6 +7843,32 @@ def control_apicontrol_dashboard(request):
             for p in visible_products
         ]
         
+        if products_count == 0 and profile_obj.api_token and is_connected:
+            try:
+                from services.provider.manager import ProviderManager
+                ProviderManager.sync_catalog(profile_obj)
+                all_p = ProviderProduct.objects.filter(profile=profile_obj).select_related("category", "category__parent").prefetch_related("parameters")
+                products_count = all_p.count()
+                visible_products = list(all_p.order_by("category__name", "name")[:300])
+                alkasr_products = [
+                    {
+                        "id": p.remote_id,
+                        "name": p.local_name or p.name,
+                        "product_type": getattr(p, "product_type", "amount"),
+                        "category_name": p.category.name if p.category else "عام",
+                        "price": float(p.cost_price),
+                        "category": p.category.remote_id if p.category else "",
+                        "available": bool(p.is_active),
+                        "params": [param.label for param in p.parameters.all()],
+                        "local_active": bool(p.local_is_active),
+                        "is_linked": False,
+                    }
+                    for p in visible_products
+                ]
+            except Exception as sync_err:
+                import logging
+                logging.getLogger(__name__).warning(f"Auto sync on empty catalog: {sync_err}")
+
         # Build provider groups instead of raw categories
         groups_dict = {}
         mapper_svc = None
@@ -7862,6 +7888,36 @@ def control_apicontrol_dashboard(request):
             if g_name not in groups_dict:
                 groups_dict[g_name] = {"name": g_name, "count": 0}
             groups_dict[g_name]["count"] += 1
+
+        if not groups_dict:
+            canonical_presets = [
+                ("ببجي موبايل | PUBG Global", 1),
+                ("فري فاير | Free Fire", 1),
+                ("روبلوكس | Roblox", 1),
+                ("جواكر | Jawaker", 1),
+                ("موبايل ليجندز | Mobile Legends", 1),
+                ("كلاش أوف كلانس | Clash of Clans", 1),
+                ("يلا لودو | Yalla Ludo", 1),
+                ("تيك توك | TikTok", 1),
+                ("خدمات تيك توك | TikTok Services", 1),
+                ("تليجرام بريميوم | Telegram Premium", 1),
+                ("تفعيل أرقام واتساب | WhatsApp", 1),
+                ("بطاقات بلايستيشن | PlayStation Store", 1),
+                ("بطاقات ابل ايتونز | Apple iTunes Cards", 1),
+                ("بطاقات جوجل بلاي | Google Play Cards", 1),
+                ("بطاقات ستيم | Steam Wallet", 1),
+                ("بطاقات ريزر جولد | Razer Gold", 1),
+                ("سيريتل | Syriatel", 1),
+                ("ام تي ان | MTN", 1),
+                ("تروكسل تركيا | Turkcell", 1),
+                ("ترك تليكوم تركيا | Türk Telekom", 1),
+                ("فودافون تركيا | Vodafone", 1),
+                ("كانفا برو | Canva Pro", 1),
+                ("شاهد VIP | Shahid VIP", 1),
+                ("نتفلكس | Netflix", 1),
+            ]
+            for g_name, g_cnt in canonical_presets:
+                groups_dict[g_name] = {"name": g_name, "count": g_cnt}
             
         provider_groups = sorted(groups_dict.values(), key=lambda x: x["name"])
     else:

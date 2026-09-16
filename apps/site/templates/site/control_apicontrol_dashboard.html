@@ -511,7 +511,17 @@
 
             <!-- Group Checklist -->
             <div>
-                <label class="text-[10px] text-slate-400 font-black block mb-3 uppercase tracking-wider">التطبيقات والخدمات المتاحة للاستيراد (حدد ما ترغب بإضافته لمتجرك)</label>
+                <div class="flex items-center justify-between mb-3">
+                    <label class="text-[10px] text-slate-400 font-black uppercase tracking-wider">التطبيقات والخدمات المتاحة للاستيراد (حدد ما ترغب بإضافته لمتجرك)</label>
+                    <div class="flex items-center gap-2">
+                        <button type="button" onclick="document.querySelectorAll('input[name=categories]').forEach(cb => cb.checked = true)" class="text-[10px] font-bold text-cyan hover:underline bg-cyan/10 px-2.5 py-1 rounded-lg border border-cyan/20">
+                            <i class="fas fa-check-double ml-1"></i> تحديد الكل
+                        </button>
+                        <button type="button" onclick="document.querySelectorAll('input[name=categories]').forEach(cb => cb.checked = false)" class="text-[10px] font-bold text-slate-400 hover:text-white bg-white/5 px-2.5 py-1 rounded-lg border border-white/10">
+                            <i class="fas fa-times ml-1"></i> إلغاء التحديد
+                        </button>
+                    </div>
+                </div>
                 <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 p-6 bg-black/30 border border-white/5 rounded-2xl max-h-96 overflow-y-auto">
                     {% for group in provider_groups %}
                     <label class="flex items-center gap-3 p-3 bg-white/[0.02] border border-white/5 rounded-xl cursor-pointer hover:bg-white/[0.05] transition-all">
@@ -519,7 +529,12 @@
                         <span class="text-xs text-white font-bold">{{ group.name }} <span class="text-[9px] text-slate-500 mr-1">({{ group.count }} باقة)</span></span>
                     </label>
                     {% empty %}
-                    <div class="col-span-full py-12 text-center text-slate-600 text-xs italic">لا توجد تطبيقات لعرضها. انقر على تحديث القائمة من المزود من الإعدادات.</div>
+                    <div class="col-span-full py-12 text-center text-slate-600 text-xs italic">
+                        <p class="mb-3">لا توجد تطبيقات معروضة حالياً.</p>
+                        <button type="button" onclick="startInteractiveSync(event)" class="btn btn-primary btn-sm">
+                            <i class="fas fa-arrows-rotate mr-1"></i> سحب وتحديث قائمة الخدمات من المزود الآن
+                        </button>
+                    </div>
                     {% endfor %}
                 </div>
             </div>

@@ -1529,7 +1529,7 @@
 
     // Init view: prefer URL param, fallback to server-rendered default
     var urlView = new URLSearchParams(window.location.search).get('view');
-    var serverView = '{{ view_type|default:"categories" }}';
+    var serverView = '{{ view_type|default:"products" }}';
     switchView(urlView || serverView);
 
     /* ──────────────────────────────────────────
