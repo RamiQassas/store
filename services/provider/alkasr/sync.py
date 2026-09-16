@@ -25,25 +25,12 @@ class AlkasrSyncService:
 
     def _fetch_category_tree(self) -> dict:
         """
-        Fetches the category hierarchy from Alkasr API recursively.
+        Fetches category content from Alkasr API safely without deep recursive blocking.
         Returns dict mapping category_id -> {remote_id, name, parent_remote_id}
         """
-        queue = ["0"]
-        seen = set()
         tree = {}
-
-        while queue and len(seen) < 1000:
-            cat_id = str(queue.pop(0))
-            if cat_id in seen:
-                continue
-            seen.add(cat_id)
-
-            try:
-                content = self.client.get_content(cat_id)
-            except Exception as e:
-                logger.warning("Failed to fetch Alkasr content for category %s: %s", cat_id, e)
-                continue
-
+        try:
+            content = self.client.get_content("0")
             raw_categories = []
             if isinstance(content, dict):
                 for k in ("categories", "subcategories", "children", "data"):
@@ -61,14 +48,13 @@ class AlkasrSyncService:
                 cid = str(c.get("id") or "").strip()
                 cname = str(c.get("name") or "").strip()
                 if cid and cname:
-                    parent_remote = None if cat_id == "0" else cat_id
                     tree[cid] = {
                         "remote_id": cid,
                         "name": cname,
-                        "parent_remote_id": parent_remote,
+                        "parent_remote_id": None,
                     }
-                    if cid not in seen:
-                        queue.append(cid)
+        except Exception as e:
+            logger.warning("Optional Alkasr content/0 fetch warning: %s", e)
 
         return tree
 
@@ -144,8 +130,13 @@ class AlkasrSyncService:
 
                 with transaction.atomic():
                     # Ensure Category exists and has hierarchy
-                    cat_name = item.get("category_name") or "عام"
-                    cat_remote_id = str(item.get("category_id") or "1")
+                    cat_name = (item.get("category_name") or "").strip() or "عام"
+                    raw_cat_id = item.get("category_id")
+                    if raw_cat_id and str(raw_cat_id) not in ("0", ""):
+                        cat_remote_id = str(raw_cat_id)
+                    else:
+                        cat_remote_id = f"cat_{cat_name}"
+
                     raw_parent_id = item.get("parent_id")
                     parent_name = item.get("parent_name")
 
@@ -193,6 +184,7 @@ class AlkasrSyncService:
                             "category": cat_obj,
                             "product_type": item["product_type"],
                             "is_active": item["is_active"],
+                            "local_is_active": item["is_active"],
                             "cost_price": Decimal(str(item["cost_price"] or "0.00")),
                             "qty_min": item["qty_min"],
                             "qty_max": item["qty_max"],
@@ -200,17 +192,21 @@ class AlkasrSyncService:
                         }
                     )
 
+                    # Default profit margins
+                    ret_margin = getattr(self.profile, "default_retail_margin", None) or Decimal("15.00")
+                    deal_margin = getattr(self.profile, "default_dealer_margin", None) or Decimal("10.00")
+                    vip_margin = getattr(self.profile, "default_vip_margin", None) or Decimal("5.00")
+
                     if created:
                         created_count += 1
-                        # Create default price entry
                         ProviderPrice.objects.get_or_create(
                             product=prod_obj,
                             defaults={
                                 "margin_type": getattr(self.profile, "default_margin_type", "percentage"),
-                                "margin_value": getattr(self.profile, "default_retail_margin", Decimal("5.00")),
-                                "retail_margin_value": getattr(self.profile, "default_retail_margin", Decimal("5.00")),
-                                "dealer_margin_value": getattr(self.profile, "default_dealer_margin", Decimal("2.00")),
-                                "vip_margin_value": getattr(self.profile, "default_vip_margin", Decimal("1.00")),
+                                "margin_value": ret_margin,
+                                "retail_margin_value": ret_margin,
+                                "dealer_margin_value": deal_margin,
+                                "vip_margin_value": vip_margin,
                             }
                         )
                     else:
@@ -219,7 +215,10 @@ class AlkasrSyncService:
                         prod_obj.category = cat_obj
                         prod_obj.product_type = item["product_type"]
                         prod_obj.is_active = item["is_active"]
-                        if not item["is_active"]:
+                        # Restore local_is_active if product is active
+                        if item["is_active"]:
+                            prod_obj.local_is_active = True
+                        else:
                             prod_obj.local_is_active = False
                         prod_obj.cost_price = Decimal(str(item["cost_price"] or "0.00"))
                         prod_obj.qty_min = item["qty_min"]

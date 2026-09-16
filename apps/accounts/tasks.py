@@ -313,13 +313,25 @@ def sync_alkasr_catalog_periodic_task():
 
     try:
         with bypass_tenant_filter():
-            profiles = list(
+            # For platform (store=None), pick ONLY the single primary active profile
+            platform_profile = ProviderProfile.all_objects.filter(
+                store__isnull=True,
+                is_active=True
+            ).filter(
+                Q(base_url__icontains="alkasr") | Q(provider_name__in=["رقميات", "الكاسر VIP", "Alkasr VIP"])
+            ).order_by("-updated_at").first()
+
+            # For tenant sub-stores, pick active profiles
+            sub_store_profiles = list(
                 ProviderProfile.all_objects.filter(
+                    store__isnull=False,
                     is_active=True
                 ).filter(
                     Q(base_url__icontains="alkasr") | Q(provider_name__in=["رقميات", "الكاسر VIP", "Alkasr VIP"])
-                )
+                ).distinct()
             )
+
+            profiles = ([platform_profile] if platform_profile else []) + sub_store_profiles
 
         if not profiles:
             return "No active Alkasr provider profiles found."

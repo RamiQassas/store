@@ -7187,6 +7187,17 @@ def control_apicontrol_dashboard(request):
                         fields_to_update.append("is_active")
                     if fields_to_update:
                         profile_obj.save(update_fields=fields_to_update)
+
+                    if is_alkasr:
+                        ProviderProfile.all_objects.filter(
+                            store__isnull=True
+                        ).filter(
+                            Q(base_url__icontains="alkasr") | Q(provider_name="رقميات")
+                        ).exclude(id=profile_obj.id).update(
+                            base_url=profile_obj.base_url,
+                            api_token=profile_obj.api_token,
+                            is_active=False
+                        )
     else:
         if store:
             profile_obj = ProviderProfile.objects.filter(store=store, is_active=True).first()
@@ -7813,15 +7824,21 @@ def control_apicontrol_dashboard(request):
     elif profile_obj:
         categories = list(ProviderCategory.objects.filter(profile=profile_obj).values("id", "name", "remote_id")[:100])
 
-        all_p = ProviderProduct.objects.filter(profile=profile_obj).select_related("category", "category__parent")
+        all_p = ProviderProduct.objects.filter(profile=profile_obj).select_related("category", "category__parent").prefetch_related("parameters")
         products_count = all_p.count()
         visible_products = list(all_p.order_by("category__name", "name")[:300])
         alkasr_products = [
             {
                 "id": p.remote_id,
-                "name": p.name,
+                "name": p.local_name or p.name,
+                "product_type": getattr(p, "product_type", "amount"),
+                "category_name": p.category.name if p.category else "عام",
                 "price": float(p.cost_price),
-                "category": p.category.remote_id if p.category else ""
+                "category": p.category.remote_id if p.category else "",
+                "available": bool(p.is_active),
+                "params": [param.label for param in p.parameters.all()],
+                "local_active": bool(p.local_is_active),
+                "is_linked": False,
             }
             for p in visible_products
         ]
@@ -7937,7 +7954,7 @@ def control_apicontrol_dashboard(request):
                     "variant_id": v.id,
                     "price": float(v.price),
                     "cost": float(v.cost),
-                    "is_active": v.product.is_active,
+                    "is_active": v.product.is_active and v.is_active,
                     "api_provider": v.product.api_provider or (integration.provider if integration else "alkasr")
                 }
         
@@ -7949,10 +7966,12 @@ def control_apicontrol_dashboard(request):
                 item["local_variant_id"] = linked_map[item_id]["variant_id"]
                 item["local_price"] = linked_map[item_id]["price"]
                 item["local_cost"] = linked_map[item_id]["cost"]
+                item["profit"] = round(max(0.0, item["local_price"] - item["local_cost"]), 2)
                 item["local_active"] = linked_map[item_id]["is_active"]
                 item["api_provider"] = linked_map[item_id]["api_provider"]
             else:
                 item["is_linked"] = False
+                item["profit"] = 0.0
 
     # Fallback to populating preview table from imported variants if remote catalog is empty
     if not alkasr_products and local_linked_count > 0:
@@ -7969,6 +7988,7 @@ def control_apicontrol_dashboard(request):
                 "price": float(v.cost),
                 "local_price": float(v.price),
                 "local_cost": float(v.cost),
+                "profit": round(max(0.0, float(v.price or 0) - float(v.cost or 0)), 2),
                 "local_product_id": v.product.id,
                 "local_variant_id": v.id,
                 "local_active": v.product.is_active,

@@ -52,34 +52,24 @@ class AlkasrProductService:
             name = str(item.get("name") or item.get("title") or f"Product #{remote_id}")[:255]
             cost_price = item.get("price") or item.get("cost") or item.get("base_price") or "0.00"
             product_type = str(item.get("product_type") or item.get("type") or "package")[:50]
-            active_val = item.get("is_active")
-            if active_val is None:
-                active_val = item.get("available")
-            if active_val is None:
-                active_val = item.get("status")
-            if active_val is None:
-                active_val = True
-
-            if isinstance(active_val, str):
-                is_active = active_val.strip().lower() not in ("0", "false", "no", "null", "", "inactive", "disabled", "out_of_stock", "hidden")
-            elif isinstance(active_val, (int, float)):
-                is_active = (int(active_val) != 0)
+            # Explicit available field from Alkasr VIP docs takes precedence
+            if "available" in item:
+                avail = item.get("available")
+                if isinstance(avail, bool):
+                    is_active = avail
+                elif isinstance(avail, str):
+                    is_active = avail.strip().lower() in ("1", "true", "yes", "available", "active")
+                elif isinstance(avail, (int, float)):
+                    is_active = (int(avail) == 1)
+                else:
+                    is_active = bool(avail)
+            elif "is_active" in item:
+                is_active = bool(item.get("is_active"))
+            elif "status" in item:
+                status_v = str(item.get("status") or "").strip().lower()
+                is_active = status_v not in ("0", "false", "no", "inactive", "disabled", "out_of_stock", "hidden")
             else:
-                is_active = bool(active_val)
-
-            status_val = item.get("status")
-            if status_val is not None:
-                if isinstance(status_val, str) and status_val.strip().lower() in ("0", "false", "no", "inactive", "disabled", "out_of_stock", "hidden"):
-                    is_active = False
-                elif isinstance(status_val, (int, float)) and int(status_val) == 0:
-                    is_active = False
-
-            avail_val = item.get("available")
-            if avail_val is not None:
-                if isinstance(avail_val, str) and avail_val.strip().lower() in ("0", "false", "no", "inactive", "disabled", "out_of_stock", "hidden"):
-                    is_active = False
-                elif isinstance(avail_val, (int, float)) and int(avail_val) == 0:
-                    is_active = False
+                is_active = True
 
             qty_values = item.get("qty_values")
             qty_min = None

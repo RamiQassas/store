@@ -77,9 +77,8 @@ class AlkasrClient:
         base_clean = base.rstrip("/")
         while base_clean.lower().endswith("/client/api"):
             base_clean = base_clean[:-11].rstrip("/")
-        url = urljoin(base_clean + "/", rel_path.lstrip("/"))
-
-        method = "POST"
+        # Alkasr VIP API uses GET for profile, products, content, newOrder, check
+        method = "GET"
 
         req_log = ProviderRequestLog.objects.create(
             profile=self.profile,
@@ -91,9 +90,9 @@ class AlkasrClient:
         start_time = time.time()
 
         try:
-            response = self.session.post(
+            response = self.session.get(
                 url,
-                data=dict(data),
+                params=dict(data) if data else None,
                 headers=headers,
                 timeout=TIMEOUT
             )

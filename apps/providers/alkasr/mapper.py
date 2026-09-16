@@ -499,7 +499,7 @@ class AlkasrMapperService:
         """
         import re
         if products_qs is None:
-            products_qs = ProviderProduct.objects.filter(profile=self.profile, is_active=True, local_is_active=True)
+            products_qs = ProviderProduct.objects.filter(profile=self.profile, is_active=True)
 
         # Clean up any dot/placeholder products from previous runs
         Product.objects.filter(api_provider="tafa3olcard", name__regex=r'^[\.\s\-_=~*#]+$').delete()
