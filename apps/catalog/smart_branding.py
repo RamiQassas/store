@@ -250,47 +250,121 @@ def search_and_download_logo(product_name):
     return None
 
 
-def draw_raqamiyat_verified_badge(draw, width=600, height=600, store_name=None):
+def draw_raqamiyat_verified_badge(card, width=600, height=600, store_name=None):
     """
-    Draws the official Raqamiyat Verified watermark badge:
-    Glassmorphic pill at bottom center with glowing cyan bolt and crisp typography.
+    Draws the official luxury Raqamiyat Verified watermark badge:
+    2x Supersampled anti-aliased glass capsule with glowing cyber shield,
+    dual-layer official lightning bolt (cyan + white highlight),
+    crisp connected Arabic brandmark, and verified emerald checkmark.
     """
-    badge_w = 230
-    badge_h = 46
-    bx = (width - badge_w) // 2
-    by = height - badge_h - 26
+    scale = 2
+    target_w, target_h = 320, 60
+    bw, bh = target_w * scale, target_h * scale
 
-    # Glass container background
+    badge = Image.new("RGBA", (bw, bh), (0, 0, 0, 0))
+    draw = ImageDraw.Draw(badge)
+
+    # 1. Ambient cyan glow
+    glow = Image.new("RGBA", (bw, bh), (0, 0, 0, 0))
+    g_draw = ImageDraw.Draw(glow)
+    g_draw.rounded_rectangle([6, 6, bw - 6, bh - 6], radius=36, fill=(6, 182, 212, 60))
+    glow = glow.filter(ImageFilter.GaussianBlur(8))
+    badge.paste(glow, (0, 0), glow)
+
+    # 2. Luxury Glass capsule background
     draw.rounded_rectangle(
-        [bx, by, bx + badge_w, by + badge_h],
-        radius=14,
-        fill=(10, 16, 30, 240),
-        outline=(6, 182, 212, 190),
-        width=1
+        [4, 4, bw - 4, bh - 4],
+        radius=34,
+        fill=(10, 16, 32, 248),
+        outline=(6, 182, 212, 210),
+        width=3
     )
 
-    # Official Raqamiyat Lightning Bolt Emblem (Vector Polygon)
-    bolt = [
-        (bx + 26, by + 11),
-        (bx + 14, by + 25),
-        (bx + 23, by + 25),
-        (bx + 20, by + 35),
-        (bx + 32, by + 20),
-        (bx + 24, by + 20)
+    # 3. Inner top specular rim
+    draw.line([(40, 6), (bw - 40, 6)], fill=(255, 255, 255, 75), width=2)
+
+    # 4. Hexagonal Cyber Shield for Raqamiyat Icon
+    sx, sy = 24, 18
+    sw, sh = 84, 84
+    shield_pts = [
+        (sx + sw // 2, sy),
+        (sx + sw, sy + sh // 4),
+        (sx + sw, sy + sh * 3 // 4),
+        (sx + sw // 2, sy + sh),
+        (sx, sy + sh * 3 // 4),
+        (sx, sy + sh // 4)
     ]
-    draw.polygon(bolt, fill=(6, 182, 212, 255))
+    draw.polygon(shield_pts, fill=(14, 25, 52, 255), outline=(34, 211, 238, 240), width=3)
 
-    # Crisp Latin Typography
-    text = "RAQAMIYAT VERIFIED" if not store_name else f"{store_name.upper()} STORE"[:20]
-    try:
-        font = ImageFont.truetype("arialbd.ttf", 15)
-    except Exception:
+    # 5. Official Raqamiyat Twin-Layer Lightning Bolt (Cyan Outer + Pure White Specular Core)
+    bolt_outer = [
+        (sx + sw // 2 + 8, sy + 10),
+        (sx + 18, sy + 44),
+        (sx + sw // 2 - 2, sy + 44),
+        (sx + sw // 2 - 10, sy + sh - 10),
+        (sx + sw - 16, sy + 38),
+        (sx + sw // 2 + 4, sy + 38)
+    ]
+    draw.polygon(bolt_outer, fill=(6, 182, 212, 255))
+
+    bolt_inner = [
+        (sx + sw // 2 + 6, sy + 18),
+        (sx + 26, sy + 42),
+        (sx + sw // 2 - 2, sy + 42),
+        (sx + sw // 2 - 7, sy + sh - 22),
+        (sx + sw - 24, sy + 40),
+        (sx + sw // 2 + 3, sy + 40)
+    ]
+    draw.polygon(bolt_inner, fill=(255, 255, 255, 250))
+
+    # 6. Typography
+    font_ar = None
+    for font_name in ("segoeuib.ttf", "tahoma.ttf", "arialbd.ttf", "arial.ttf"):
         try:
-            font = ImageFont.truetype("arial.ttf", 15)
+            font_ar = ImageFont.truetype(f"C:/Windows/Fonts/{font_name}", 38)
+            break
         except Exception:
-            font = ImageFont.load_default()
+            pass
+    if not font_ar:
+        try:
+            font_ar = ImageFont.truetype("arialbd.ttf", 38)
+        except Exception:
+            font_ar = ImageFont.load_default()
 
-    draw.text((bx + 40, by + 14), text, fill=(255, 255, 255, 245), font=font)
+    font_en = None
+    for font_name in ("segoeuib.ttf", "arialbd.ttf", "arial.ttf"):
+        try:
+            font_en = ImageFont.truetype(f"C:/Windows/Fonts/{font_name}", 20)
+            break
+        except Exception:
+            pass
+    if not font_en:
+        try:
+            font_en = ImageFont.truetype("arial.ttf", 20)
+        except Exception:
+            font_en = ImageFont.load_default()
+
+    # Connected Arabic Brandmark ('رقميات' in Presentation Forms)
+    ar_text = "\uFE95\uFE8E\uFEF4\uFEE4\uFED7\uFEAD"
+    draw.text((128, 14), ar_text, fill=(255, 255, 255, 255), font=font_ar)
+
+    # Subtitle / Store name
+    en_text = "RAQAMIYAT \u2022 VERIFIED" if not store_name else f"{str(store_name).upper()[:16]} \u2022 STORE"
+    draw.text((130, 68), en_text, fill=(34, 211, 238, 240), font=font_en)
+
+    # 7. Emerald Verified Badge
+    vx, vy, vr = bw - 60, bh // 2, 22
+    draw.ellipse([vx - vr, vy - vr, vx + vr, vy + vr], fill=(16, 185, 129, 255), outline=(255, 255, 255, 60), width=2)
+    draw.line([(vx - 10, vy), (vx - 2, vy + 8), (vx + 11, vy - 8)], fill=(255, 255, 255, 255), width=5)
+
+    # Downscale with Lanczos for razor-sharp anti-aliasing
+    final_badge = badge.resize((target_w, target_h), Image.Resampling.LANCZOS)
+
+    # Paste onto card
+    badge_x = (width - target_w) // 2
+    badge_y = height - target_h - 22
+    if isinstance(card, Image.Image):
+        card.paste(final_badge, (badge_x, badge_y), final_badge)
 
 
 def compose_branded_card(logo_img, product_name, store_name=None, width=600, height=600):
@@ -350,8 +424,8 @@ def compose_branded_card(logo_img, product_name, store_name=None, width=600, hei
 
     card.paste(container, (bx, by), container)
 
-    # 4. Draw Raqamiyat Watermark Badge
-    draw_raqamiyat_verified_badge(draw, width, height, store_name)
+    # 4. Draw Official Raqamiyat Luxury Watermark Badge
+    draw_raqamiyat_verified_badge(card, width, height, store_name)
 
     return card.convert("RGB")
 

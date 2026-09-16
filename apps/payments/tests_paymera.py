@@ -429,4 +429,107 @@ class PaymeraViewsTestCase(TestCase):
         finally:
             set_current_store(None)
 
+    @patch("apps.payments.views_paymera.finalize_paid_gateway_order")
+    def test_paymera_callback_url_cancelled_marks_order_cancelled(self, mock_finalize):
+        """Test that user clicking cancel or returning with status=cancel immediately cancels the order."""
+        from apps.catalog.models import Category, Product, ProductVariant
+        from apps.orders.models import Order
+        from apps.orders.services import create_pending_gateway_order
+        from django.contrib.messages.storage.cookie import CookieStorage
+
+        cat = Category.objects.create(name="Cards")
+        prod = Product.objects.create(category=cat, name="Gift Card", is_active=True)
+        var = ProductVariant.objects.create(
+            product=prod, name="10 USD", sku="GC-10", price=Decimal("10.00"), cost=Decimal("8.00"), is_active=True
+        )
+        order = create_pending_gateway_order(
+            customer=self.user,
+            variant_id=var.id,
+            quantity=1,
+            gateway_code="paymera",
+        )
+        order.metadata["gateway_payment_id"] = "pay-canc-1"
+        order.save(update_fields=["metadata"])
+
+        request = self.factory.get(f"/payments/paymera/callback/?order_id={order.id}&status=cancel")
+        request.user = self.user
+        setattr(request, "_messages", CookieStorage(request))
+        response = paymera_callback_view(request)
+
+        self.assertEqual(response.status_code, 302)
+        order.refresh_from_db()
+        self.assertEqual(order.status, Order.Status.CANCELLED)
+        mock_finalize.assert_not_called()
+
+    @patch("apps.payments.views_paymera.finalize_paid_gateway_order")
+    @patch.object(PaymeraClient, "get_payment_status")
+    def test_paymera_callback_api_cancelled_marks_order_cancelled(self, mock_status, mock_finalize):
+        """Test that Paymera API returning status='C' immediately cancels the order."""
+        from apps.catalog.models import Category, Product, ProductVariant
+        from apps.orders.models import Order
+        from apps.orders.services import create_pending_gateway_order
+        from django.contrib.messages.storage.cookie import CookieStorage
+
+        cat = Category.objects.create(name="Cards2")
+        prod = Product.objects.create(category=cat, name="Gift Card 2", is_active=True)
+        var = ProductVariant.objects.create(
+            product=prod, name="20 USD", sku="GC-20", price=Decimal("20.00"), cost=Decimal("18.00"), is_active=True
+        )
+        order = create_pending_gateway_order(
+            customer=self.user,
+            variant_id=var.id,
+            quantity=1,
+            gateway_code="paymera",
+        )
+        order.metadata["gateway_payment_id"] = "pay-canc-2"
+        order.save(update_fields=["metadata"])
+
+        mock_status.return_value = {
+            "status": "C",
+            "amount": 20000,
+            "raw": {"ErrorCode": 0}
+        }
+
+        request = self.factory.get(f"/payments/paymera/callback/?order_id={order.id}")
+        request.user = self.user
+        setattr(request, "_messages", CookieStorage(request))
+        response = paymera_callback_view(request)
+
+        self.assertEqual(response.status_code, 302)
+        order.refresh_from_db()
+        self.assertEqual(order.status, Order.Status.CANCELLED)
+        mock_finalize.assert_not_called()
+
+    def test_finalize_paid_gateway_order_rejects_non_accepted_status(self):
+        """Test defensive security: finalize_paid_gateway_order refuses to fulfill if status is not 'A'."""
+        from apps.catalog.models import Category, Product, ProductVariant, ProductKey
+        from apps.orders.models import Order
+        from apps.orders.services import create_pending_gateway_order, finalize_paid_gateway_order
+
+        cat = Category.objects.create(name="Security Cat")
+        prod = Product.objects.create(category=cat, name="Security Product", is_active=True)
+        var = ProductVariant.objects.create(
+            product=prod, name="Security Var", sku="SEC-1", price=Decimal("5.00"), cost=Decimal("4.00"), delivery_type="keys", is_active=True
+        )
+        ProductKey.objects.create(variant=var, key_code="SHOULD-NOT-BE-DELIVERED", is_used=False)
+
+        order = create_pending_gateway_order(
+            customer=self.user,
+            variant_id=var.id,
+            quantity=1,
+            gateway_code="paymera",
+        )
+
+        # Calling finalize with None or non-A status
+        res1 = finalize_paid_gateway_order(order, None)
+        order.refresh_from_db()
+        self.assertEqual(order.status, Order.Status.PENDING)
+        self.assertNotIn("keys", order.fulfillment_data or {})
+
+        res2 = finalize_paid_gateway_order(order, {"status": "C"})
+        order.refresh_from_db()
+        self.assertEqual(order.status, Order.Status.PENDING)
+        self.assertNotIn("keys", order.fulfillment_data or {})
+
+
 

@@ -821,7 +821,16 @@ def finalize_paid_gateway_order(order, gateway_data=None):
     """
     Finalizes an Order after payment gateway confirmation.
     Idempotent: skips if status is already completed or processing.
+    STRICT SECURITY: Refuses to fulfill or finalize any order without confirmed 'A' (ACCEPTED) gateway status.
     """
+    gw_status = (gateway_data.get("status") if isinstance(gateway_data, dict) else None)
+    if not gw_status or str(gw_status).strip().upper() != "A":
+        logger.error(
+            f"SECURITY: Refusing to finalize order {order.id} without confirmed ACCEPTED ('A') gateway status. "
+            f"Received gateway_data: {gateway_data}"
+        )
+        return order
+
     with transaction.atomic():
         from apps.common.tenant_utils import bypass_tenant_filter
         with bypass_tenant_filter():

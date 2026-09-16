@@ -120,7 +120,7 @@ def _complete_successful_deposit(deposit: DepositRequest, status_data: dict) -> 
 
 
 from django.urls import reverse
-from apps.orders.models import Order
+from apps.orders.models import Order, OrderLog
 from apps.orders.services import finalize_paid_gateway_order
 
 
@@ -134,6 +134,7 @@ def paymera_trigger_view(request):
     order_id = request.GET.get("order_id") or request.POST.get("order_id")
     deposit_id = request.GET.get("deposit_id") or request.POST.get("deposit_id")
     payment_id = request.GET.get("payment_id") or request.POST.get("payment_id")
+    payload_status = (request.GET.get("status") or request.POST.get("status") or "").strip().lower()
 
     # If payload is in JSON body
     if not order_id and not deposit_id and request.body:
@@ -143,10 +144,12 @@ def paymera_trigger_view(request):
                 order_id = body_data.get("order_id")
                 deposit_id = deposit_id or body_data.get("deposit_id")
                 payment_id = payment_id or body_data.get("payment_id") or body_data.get("paymentId")
+                if not payload_status and body_data.get("status"):
+                    payload_status = str(body_data.get("status")).strip().lower()
         except Exception:
             pass
 
-    logger.info(f"Paymera trigger received. order_id={order_id}, deposit_id={deposit_id}, payment_id={payment_id}")
+    logger.info(f"Paymera trigger received. order_id={order_id}, deposit_id={deposit_id}, payment_id={payment_id}, payload_status={payload_status}")
 
     from apps.common.tenant_utils import bypass_tenant_filter
 
@@ -175,6 +178,20 @@ def paymera_trigger_view(request):
                 logger.warning("Rejected Paymera order callback with an unbound payment ID.")
                 return JsonResponse({"status": "error", "message": "Invalid payment reference"}, status=400)
 
+            # Direct check if payload indicates cancellation/failure
+            if payload_status in ("cancel", "c", "canceled", "cancelled", "failed", "f"):
+                if order.status == Order.Status.PENDING:
+                    order.status = Order.Status.CANCELLED
+                    order.admin_note = f"Paymera webhook reported cancellation/failure: {payload_status}"
+                    order.save(update_fields=["status", "admin_note", "updated_at"])
+                    OrderLog.objects.create(
+                        order=order,
+                        status=Order.Status.CANCELLED,
+                        note=f"تم استلام إشعار إلغاء/فشل الدفع من بوابة بيميرا ({payload_status}).",
+                        created_by=None,
+                    )
+                return JsonResponse({"status": "ok", "message": f"Order payment marked as {payload_status}"})
+
             try:
                 status_res = client.get_payment_status(active_payment_id)
                 payment_status = status_res.get("status")
@@ -189,6 +206,12 @@ def paymera_trigger_view(request):
                         order.status = Order.Status.CANCELLED
                         order.admin_note = f"Paymera status: {payment_status}"
                         order.save(update_fields=["status", "admin_note", "updated_at"])
+                        OrderLog.objects.create(
+                            order=order,
+                            status=Order.Status.CANCELLED,
+                            note=f"تم إلغاء الطلب بناءً على استعلام حالة بيميرا ({payment_status}).",
+                            created_by=None,
+                        )
                     return JsonResponse({"status": "ok", "message": f"Order payment {payment_status}"})
 
                 return JsonResponse({"status": "ok", "message": f"Order payment pending ({payment_status})"})
@@ -222,6 +245,13 @@ def paymera_trigger_view(request):
         if not _payment_id_is_bound(active_payment_id, payment_id):
             logger.warning("Rejected Paymera deposit callback with an unbound payment ID.")
             return JsonResponse({"status": "error", "message": "Invalid payment reference"}, status=400)
+
+        if payload_status in ("cancel", "c", "canceled", "cancelled", "failed", "f"):
+            if deposit.status == DepositRequest.Status.PENDING:
+                deposit.status = DepositRequest.Status.REJECTED
+                deposit.admin_note = f"Paymera transaction webhook reported: {payload_status}"
+                deposit.save(update_fields=["status", "admin_note", "updated_at"])
+            return JsonResponse({"status": "ok", "message": f"Payment {payload_status}"})
 
         try:
             status_res = client.get_payment_status(active_payment_id)
@@ -262,6 +292,14 @@ def paymera_callback_view(request):
     deposit_id = request.GET.get("deposit_id")
     payment_id = request.GET.get("payment_id")
 
+    # Detect cancellation from GET query parameters
+    status_param = (request.GET.get("status") or "").strip().lower()
+    is_cancelled_url = (
+        status_param in ("cancel", "c", "canceled", "cancelled", "failed", "f")
+        or request.GET.get("cancelled") in ("1", "true", "True")
+        or request.GET.get("cancel") in ("1", "true", "True")
+    )
+
     with bypass_tenant_filter():
         integration = PaymentGatewayIntegration.all_objects.filter(
             provider=PaymentGatewayIntegration.Provider.PAYMERA,
@@ -291,6 +329,21 @@ def paymera_callback_view(request):
                 order_dest_url = detail_path
                 order_list_url = reverse("dashboard_orders")
 
+            # Handle direct cancellation indicated in URL
+            if is_cancelled_url:
+                if order.status == Order.Status.PENDING:
+                    order.status = Order.Status.CANCELLED
+                    order.admin_note = f"Paymera payment cancelled by customer via URL (status={status_param or 'cancelled'})"
+                    order.save(update_fields=["status", "admin_note", "updated_at"])
+                    OrderLog.objects.create(
+                        order=order,
+                        status=Order.Status.CANCELLED,
+                        note="تم إلغاء عملية الدفع من قبل العميل وإلغاء الطلب.",
+                        created_by=request.user if request.user.is_authenticated else None,
+                    )
+                messages.warning(request, "تم إلغاء عملية الدفع وإلغاء طلبك بنجاح.")
+                return redirect(order_list_url)
+
             if integration and active_payment_id:
                 client = PaymeraClient.from_integration(integration)
                 try:
@@ -302,17 +355,26 @@ def paymera_callback_view(request):
                         messages.success(request, "تم سداد قيمة طلبك بنجاح وجاري تنفيذه فوراً!")
                         return redirect(order_dest_url)
 
-                    elif payment_status == PaymeraClient.STATUS_CANCELED:
-                        messages.warning(request, "تم إلغاء عملية الدفع من قبلك.")
-                        return redirect(order_list_url)
-
-                    elif payment_status == PaymeraClient.STATUS_FAILED:
-                        messages.error(request, "فشلت عملية الدفع عبر بيميرا. يرجى التأكد من بيانات البطاقة أو المحاولة مجدداً.")
+                    elif payment_status in (PaymeraClient.STATUS_CANCELED, PaymeraClient.STATUS_FAILED):
+                        if order.status == Order.Status.PENDING:
+                            order.status = Order.Status.CANCELLED
+                            order.admin_note = f"Paymera status: {payment_status}"
+                            order.save(update_fields=["status", "admin_note", "updated_at"])
+                            OrderLog.objects.create(
+                                order=order,
+                                status=Order.Status.CANCELLED,
+                                note=f"تم إلغاء الطلب بناءً على رد بوابة الدفع بيميرا ({payment_status}).",
+                                created_by=request.user if request.user.is_authenticated else None,
+                            )
+                        if payment_status == PaymeraClient.STATUS_CANCELED:
+                            messages.warning(request, "تم إلغاء عملية الدفع من قبلك.")
+                        else:
+                            messages.error(request, "فشلت عملية الدفع عبر بيميرا. يرجى التأكد من بيانات البطاقة أو المحاولة مجدداً.")
                         return redirect(order_list_url)
 
                     else:
-                        messages.info(request, "عملية الدفع لا تزال قيد المعالجة. سيتم إكمال طلبك فور استلام التأكيد.")
-                        return redirect(order_dest_url)
+                        messages.info(request, "عملية الدفع لم تكتمل بعد أو بانتظار السداد. لن يتم تنفيذ الطلب حتى تأكيد الدفع بنجاح.")
+                        return redirect(order_list_url)
 
                 except Exception as exc:
                     logger.warning(f"Paymera callback status check for order failed: {exc}")
@@ -321,7 +383,7 @@ def paymera_callback_view(request):
                 messages.success(request, "تم تأكيد طلبك بنجاح.")
                 return redirect(order_dest_url)
 
-            messages.info(request, "تم استلام عودتك من بوابة الدفع. سيتم تحديث حالة طلبك قريباً.")
+            messages.info(request, "تم استلام عودتك من بوابة الدفع. الطلب معلق بانتظار إتمام السداد ولن يتم تنفيذه حتى السداد.")
             return redirect(order_list_url)
 
         # ── 2. Check for Wallet Deposit ──────────────────────────────────────────
@@ -333,6 +395,15 @@ def paymera_callback_view(request):
 
         if not deposit:
             messages.error(request, "لم يتم العثور على العملية المرتبطة ببوابة الدفع.")
+            return redirect("dashboard_deposits")
+
+        # Handle direct cancellation indicated in URL for deposit
+        if is_cancelled_url:
+            if deposit.status == DepositRequest.Status.PENDING:
+                deposit.status = DepositRequest.Status.REJECTED
+                deposit.admin_note = f"Paymera deposit cancelled by user via URL (status={status_param or 'cancelled'})"
+                deposit.save(update_fields=["status", "admin_note", "updated_at"])
+            messages.warning(request, "تم إلغاء عملية الإيداع.")
             return redirect("dashboard_deposits")
 
         dep_integration = getattr(deposit.payment_method, "gateway", None) or integration
@@ -350,16 +421,22 @@ def paymera_callback_view(request):
                     messages.success(request, "تمت عملية الدفع بنجاح عبر بيميرا وتمت إضافة الرصيد إلى محفظتك!")
                     return redirect("dashboard_wallet")
 
-                elif payment_status == PaymeraClient.STATUS_CANCELED:
-                    messages.warning(request, "تم إلغاء عملية الدفع من قبلك.")
-                    return redirect("dashboard_deposits")
-
-                elif payment_status == PaymeraClient.STATUS_FAILED:
-                    messages.error(request, "فشلت عملية الدفع عبر بيميرا. يرجى التأكد من بيانات البطاقة أو المحاولة مجدداً.")
+                elif payment_status in (PaymeraClient.STATUS_CANCELED, PaymeraClient.STATUS_FAILED):
+                    if deposit.status == DepositRequest.Status.PENDING:
+                        deposit.status = DepositRequest.Status.REJECTED
+                        deposit.admin_note = f"Paymera transaction status: {payment_status}"
+                        if not isinstance(deposit.metadata, dict):
+                            deposit.metadata = {}
+                        deposit.metadata["paymera_status_data"] = status_res
+                        deposit.save(update_fields=["status", "admin_note", "metadata", "updated_at"])
+                    if payment_status == PaymeraClient.STATUS_CANCELED:
+                        messages.warning(request, "تم إلغاء عملية الدفع من قبلك.")
+                    else:
+                        messages.error(request, "فشلت عملية الدفع عبر بيميرا. يرجى التأكد من بيانات البطاقة أو المحاولة مجدداً.")
                     return redirect("dashboard_deposits")
 
                 else:
-                    messages.info(request, "عملية الدفع لا تزال قيد المعالجة. سيتم تحديث رصيدك تلقائياً عند اكتمالها.")
+                    messages.info(request, "عملية الدفع لم تكتمل بعد. سيتم تحديث رصيدك تلقائياً عند اكتمالها وسدادها.")
                     return redirect("dashboard_deposits")
 
             except Exception as exc:
