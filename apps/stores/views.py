@@ -191,9 +191,9 @@ def store_product_detail(request, pk):
     store = request.store
     product = get_object_or_404(Product, pk=pk, store=store, is_active=True)
     
-    # Adjust variant pricing if dealer/VIP is logged in
+    # Adjust variant pricing if dealer/VIP is logged in, ordered from cheapest to most expensive
     variants_data = []
-    for var in product.variants.filter(is_active=True):
+    for var in product.variants.filter(is_active=True).order_by("price", "sort_order"):
         price = var.price
         if request.user.is_authenticated:
             price = var.get_price_for_user(request.user)
@@ -208,6 +208,8 @@ def store_product_detail(request, pk):
             "qty_list": meta.get("qty_list", []),
             "product_type": meta.get("product_type", "package"),
         })
+    # Guarantee variants are sorted from lowest price to highest price
+    variants_data.sort(key=lambda x: (Decimal(str(x["display_price"])) if x["display_price"] is not None else Decimal("0")))
         
     return render(request, "stores/frontend/product_detail.html", {
         "store": store,

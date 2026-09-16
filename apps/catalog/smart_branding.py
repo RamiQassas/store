@@ -11,18 +11,39 @@ from django.utils.text import slugify
 
 logger = logging.getLogger(__name__)
 
-# Direct High-Resolution Fallback Logos for Top Games, Brands & Services
-CURATED_FALLBACK_LOGOS = {
-    "steam": "https://cdn.iconscout.com/icon/free/png-512/free-steam-logo-icon-download-in-svg-png-gif-file-formats--social-media-pack-logos-icons-461794.png?f=webp&w=512",
-    "playstation": "https://cdn.iconscout.com/icon/free/png-512/free-playstation-logo-icon-download-in-svg-png-gif-file-formats--social-media-pack-logos-icons-461789.png?f=webp&w=512",
-    "razer": "https://cdn.iconscout.com/icon/free/png-512/free-razer-logo-icon-download-in-svg-png-gif-file-formats--logos-brands-pack-icons-3442938.png?f=webp&w=512",
-    "xbox": "https://cdn.iconscout.com/icon/free/png-512/free-xbox-logo-icon-download-in-svg-png-gif-file-formats--social-media-pack-logos-icons-461807.png?f=webp&w=512",
-    "google play": "https://cdn.iconscout.com/icon/free/png-512/free-google-play-logo-icon-download-in-svg-png-gif-file-formats--social-media-pack-logos-icons-461782.png?f=webp&w=512",
-    "apple": "https://cdn.iconscout.com/icon/free/png-512/free-apple-logo-icon-download-in-svg-png-gif-file-formats--social-media-pack-logos-icons-461769.png?f=webp&w=512",
-    "itunes": "https://cdn.iconscout.com/icon/free/png-512/free-apple-logo-icon-download-in-svg-png-gif-file-formats--social-media-pack-logos-icons-461769.png?f=webp&w=512",
-}
+
 
 KNOWN_SEARCH_TERMS = {
+    "facebook": "Facebook",
+    "فيسبوك": "Facebook",
+    "فيس": "Facebook",
+    "fb": "Facebook",
+    "whatsapp": "WhatsApp",
+    "واتساب": "WhatsApp",
+    "واتس": "WhatsApp",
+    "instagram": "Instagram",
+    "انستغرام": "Instagram",
+    "انستقرام": "Instagram",
+    "انستا": "Instagram",
+    "twitter": "X",
+    "تويتر": "X",
+    "flaticon": "Flaticon",
+    "فلاتيكون": "Flaticon",
+    "freepik": "Freepik",
+    "فري بيك": "Freepik",
+    "envato": "Envato",
+    "adobe": "Adobe",
+    "ادوبي": "Adobe",
+    "photoshop": "Adobe Photoshop",
+    "فوتوشوب": "Adobe Photoshop",
+    "illustrator": "Adobe Illustrator",
+    "windows": "Microsoft Windows",
+    "ويندوز": "Microsoft Windows",
+    "office": "Microsoft 365",
+    "اوفيس": "Microsoft 365",
+    "kaspersky": "Kaspersky",
+    "كاسبر": "Kaspersky",
+    "midjourney": "Midjourney",
     "pubg": "PUBG MOBILE",
     "ببجي": "PUBG MOBILE",
     "free fire": "Free Fire",
@@ -83,16 +104,55 @@ KNOWN_SEARCH_TERMS = {
     "ديزني": "Disney+",
     "osn": "OSN+",
     "او اس ان": "OSN+",
+    "cyberghost": "CyberGhost VPN",
+    "cyber ghost": "CyberGhost VPN",
+    "browsec": "Browsec VPN",
+    "ipvanish": "IPVanish VPN",
+    "pia": "Private Internet Access",
+    "planet vpn": "Planet VPN",
+    "openvpn": "OpenVPN",
+    "adguard": "AdGuard",
+}
+
+KNOWN_DOMAINS = {
+    "facebook": "facebook.com",
+    "فيسبوك": "facebook.com",
+    "فيس": "facebook.com",
+    "whatsapp": "whatsapp.com",
+    "واتساب": "whatsapp.com",
+    "واتس": "whatsapp.com",
+    "instagram": "instagram.com",
+    "انستغرام": "instagram.com",
+    "انستا": "instagram.com",
+    "flaticon": "flaticon.com",
+    "فلاتيكون": "flaticon.com",
+    "freepik": "freepik.com",
+    "adobe": "adobe.com",
+    "ادوبي": "adobe.com",
+    "photoshop": "adobe.com",
+    "windows": "microsoft.com",
+    "ويندوز": "microsoft.com",
+    "office": "office.com",
+    "اوفيس": "office.com",
+    "cyberghost": "cyberghostvpn.com",
+    "cyber ghost": "cyberghostvpn.com",
+    "browsec": "browsec.com",
+    "ipvanish": "ipvanish.com",
+    "pia": "privateinternetaccess.com",
+    "planet vpn": "freevpnplanet.com",
+    "openvpn": "openvpn.net",
+    "adguard": "adguard.com",
+    "kaspersky": "kaspersky.com",
+    "كاسبر": "kaspersky.com",
+    "midjourney": "midjourney.com",
+    "tradingview": "tradingview.com",
+    "duolingo": "duolingo.com",
 }
 
 
 def extract_search_query(product_name):
     """
     Intelligently extracts the best English or search keyword from a product name.
-    Examples:
-    'ببجي موبايل (PUBG Global)' -> 'PUBG MOBILE'
-    'تيك توك (TikTok)' -> 'TikTok'
-    'فري فاير (Free Fire)' -> 'Free Fire'
     """
     p_lower = (product_name or "").lower()
 
@@ -142,34 +202,40 @@ def fetch_image_from_itunes(query):
                         return Image.open(io.BytesIO(img_resp.content)).convert("RGBA")
     except Exception as e:
         logger.debug("iTunes search error for query '%s': %s", query, e)
-    return None
-
-
-def fetch_image_from_curated(query, product_name):
+def fetch_image_from_domain(product_name):
     """
-    Checks direct curated fallback URLs for top brands.
+    Fetches high-resolution 256x256 official brand icons via Google High-Res Favicon API.
     """
-    combined = f"{query} {product_name}".lower()
-    for key, cdn_url in CURATED_FALLBACK_LOGOS.items():
-        if key in combined:
+    p_lower = (product_name or "").lower()
+    for key, domain in KNOWN_DOMAINS.items():
+        if key in p_lower:
             try:
-                resp = requests.get(cdn_url, timeout=4, headers={"User-Agent": "Mozilla/5.0"})
-                if resp.status_code == 200:
-                    return Image.open(io.BytesIO(resp.content)).convert("RGBA")
+                url = f"https://t2.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE,URL&url=http://{domain}&size=256"
+                resp = requests.get(url, timeout=4, headers={"User-Agent": "Mozilla/5.0"})
+                if resp.status_code == 200 and len(resp.content) > 500:
+                    img = Image.open(io.BytesIO(resp.content)).convert("RGBA")
+                    if img.width >= 48 and img.height >= 48:
+                        return img
             except Exception as e:
-                logger.debug("Curated logo fetch error for '%s': %s", key, e)
+                logger.debug("Domain logo fetch error for '%s': %s", domain, e)
     return None
 
 
 def search_and_download_logo(product_name):
     """
-    Primary internet search pipeline:
-    1. iTunes App Store Official Icon Search (highest quality, transparent 512x512 PNGs)
-    2. Curated High-Definition CDN Library
+    Multi-source official logo search:
+    1. Google High-Res Brand Domain API (Known Domains)
+    2. iTunes App Store Official Icon Search (query)
+    3. iTunes App Store Official Icon Search (broad keyword)
     """
+    # 1. Known Domain Brand Logo
+    img = fetch_image_from_domain(product_name)
+    if img:
+        return img
+
     query = extract_search_query(product_name)
-    
-    # 1. iTunes App Store API
+
+    # 2. iTunes App Store API
     img = fetch_image_from_itunes(query)
     if img:
         return img
@@ -180,11 +246,6 @@ def search_and_download_logo(product_name):
         img = fetch_image_from_itunes(first_word)
         if img:
             return img
-
-    # 2. Curated CDN Library
-    img = fetch_image_from_curated(query, product_name)
-    if img:
-        return img
 
     return None
 
@@ -237,16 +298,20 @@ def compose_branded_card(logo_img, product_name, store_name=None, width=600, hei
     Composes a studio-quality 600x600px square card:
     - Dark tech background with smooth cyan radial glow
     - Rounded card boundary with subtle 1px border
-    - Centered official logo with rounded corners and realistic drop shadow
+    - Centered official logo inside a soft glass container with realistic drop shadow
     - Official Raqamiyat Verified watermark badge
+    Returns None if no real logo_img is provided (prevents generic dummy icon generation).
     """
+    if not logo_img:
+        return None
+
     card = Image.new("RGBA", (width, height), (8, 12, 22, 255))
     draw = ImageDraw.Draw(card)
 
     # 1. Background radial glow
-    cx, cy = width // 2, (height // 2) - 15
-    for r in range(250, 20, -10):
-        alpha = int(24 * (1 - r / 250))
+    cx, cy = width // 2, (height // 2) - 20
+    for r in range(260, 20, -10):
+        alpha = int(28 * (1 - r / 260))
         draw.ellipse([cx - r, cy - r, cx + r, cy + r], fill=(6, 182, 212, alpha))
 
     # 2. Outer rounded border
@@ -257,43 +322,35 @@ def compose_branded_card(logo_img, product_name, store_name=None, width=600, hei
         width=1
     )
 
-    if logo_img:
-        # Resize logo to 340x340
-        logo_size = 340
-        logo_copy = logo_img.copy().convert("RGBA")
-        logo_copy = logo_copy.resize((logo_size, logo_size), Image.Resampling.LANCZOS)
+    # 3. Luxury App Icon Container
+    box_size = 320
+    bx = (width - box_size) // 2
+    by = (height - box_size) // 2 - 15
 
-        # Smooth rounded corners on logo
-        mask = Image.new("L", (logo_size, logo_size), 0)
-        mask_draw = ImageDraw.Draw(mask)
-        mask_draw.rounded_rectangle([0, 0, logo_size, logo_size], radius=68, fill=255)
+    # Realistic drop shadow behind container
+    shadow_size = box_size + 40
+    shadow = Image.new("RGBA", (shadow_size, shadow_size), (0, 0, 0, 0))
+    s_draw = ImageDraw.Draw(shadow)
+    s_draw.rounded_rectangle([20, 20, box_size + 20, box_size + 20], radius=64, fill=(0, 0, 0, 160))
+    shadow = shadow.filter(ImageFilter.GaussianBlur(18))
+    card.paste(shadow, (bx - 20, by - 15), shadow)
 
-        # Realistic drop shadow behind the logo
-        shadow_size = logo_size + 40
-        shadow = Image.new("RGBA", (shadow_size, shadow_size), (0, 0, 0, 0))
-        s_draw = ImageDraw.Draw(shadow)
-        s_draw.rounded_rectangle([15, 15, logo_size + 25, logo_size + 25], radius=68, fill=(0, 0, 0, 180))
-        shadow = shadow.filter(ImageFilter.GaussianBlur(16))
+    # Glass container box
+    container = Image.new("RGBA", (box_size, box_size), (0, 0, 0, 0))
+    c_draw = ImageDraw.Draw(container)
+    c_draw.rounded_rectangle([0, 0, box_size, box_size], radius=64, fill=(15, 23, 42, 245), outline=(255, 255, 255, 35), width=2)
 
-        pos_x = (width - logo_size) // 2
-        pos_y = (height - logo_size) // 2 - 12
+    # Centered Logo inside container
+    icon_size = 220
+    logo_copy = logo_img.copy().convert("RGBA")
+    logo_copy.thumbnail((icon_size, icon_size), Image.Resampling.LANCZOS)
+    icon_x = (box_size - logo_copy.width) // 2
+    icon_y = (box_size - logo_copy.height) // 2
+    container.paste(logo_copy, (icon_x, icon_y), logo_copy)
 
-        card.paste(shadow, (pos_x - 20, pos_y - 15), shadow)
-        card.paste(logo_copy, (pos_x, pos_y), mask)
-    else:
-        # Clean geometric tech fallback if no internet logo was found
-        draw.ellipse([cx - 100, cy - 100, cx + 100, cy + 100], fill=(15, 23, 42, 255), outline=(6, 182, 212, 200), width=2)
-        bolt = [
-            (cx + 10, cy - 50),
-            (cx - 30, cy + 5),
-            (cx - 2, cy + 5),
-            (cx - 15, cy + 50),
-            (cx + 30, cy - 10),
-            (cx + 5, cy - 10)
-        ]
-        draw.polygon(bolt, fill=(6, 182, 212, 255))
+    card.paste(container, (bx, by), container)
 
-    # 3. Draw Raqamiyat Watermark Badge
+    # 4. Draw Raqamiyat Watermark Badge
     draw_raqamiyat_verified_badge(draw, width, height, store_name)
 
     return card.convert("RGB")
@@ -304,6 +361,8 @@ def apply_branding_to_product(product, force=False):
     Main function to brand a single product:
     Searches the internet for the official logo, composes the branded card with Raqamiyat badge,
     and updates product.image.
+    If no real logo is found and force=True, clears any old dummy generated image so that
+    the product falls back cleanly to static brand SVGs or category assets.
     """
     if product.image and not force:
         return False
@@ -313,11 +372,25 @@ def apply_branding_to_product(product, force=False):
     # Search internet for real official app/service logo
     logo_img = search_and_download_logo(product.name)
 
+    if not logo_img:
+        # If forcing update and no logo could be found,
+        # clear any previously saved dummy card image so the system falls back cleanly to static brand SVGs
+        if force and product.image:
+            try:
+                product.image.delete(save=False)
+            except Exception:
+                pass
+            product.image = None
+            product.save(update_fields=['image'])
+        return False
+
     card_img = compose_branded_card(
         logo_img=logo_img,
         product_name=product.name,
         store_name=store_name
     )
+    if not card_img:
+        return False
 
     buf = io.BytesIO()
     card_img.save(buf, format="JPEG", quality=93)

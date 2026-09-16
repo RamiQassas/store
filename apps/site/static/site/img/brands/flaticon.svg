@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
+  <rect width="128" height="128" rx="28" fill="#10b981"/>
+  <circle cx="64" cy="52" r="32" fill="#047857"/>
+  <path d="M48 42 L80 42 L80 50 L58 50 L58 58 L76 58 L76 66 L58 66 L58 82 L48 82 Z" fill="#ffffff"/>
+  <text x="64" y="114" text-anchor="middle" fill="#ffffff" font-size="13" font-weight="900" font-family="sans-serif">FLATICON</text>
+</svg>

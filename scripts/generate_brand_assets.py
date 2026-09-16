@@ -54,6 +54,45 @@ brands = {
   <text x="64" y="114" text-anchor="middle" fill="#f87171" font-size="14" font-weight="900" font-family="sans-serif">JAWAKER</text>
 </svg>""",
 
+    "facebook": """<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
+  <rect width="128" height="128" rx="28" fill="#1877f2"/>
+  <path d="M84 66 L87 46 L68 46 L68 33 C68 27.5 70.7 22 79.3 22 L88 22 L88 5 C88 5 80.1 3.6 72.6 3.6 C57 3.6 47 13.1 47 30.5 L47 46 L29 46 L29 66 L47 66 L47 114 L68 114 L68 66 Z" fill="#ffffff"/>
+  <text x="64" y="124" text-anchor="middle" fill="#ffffff" font-size="10" font-weight="900" font-family="sans-serif">FACEBOOK</text>
+</svg>""",
+
+    "whatsapp": """<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
+  <rect width="128" height="128" rx="28" fill="#25d366"/>
+  <g transform="translate(18, 14)">
+    <path d="M46 10 C25.6 10 9 26.6 9 47 C9 54.1 11 60.7 14.6 66.4 L10 83 L27.2 78.5 C32.6 81.7 39.1 83.6 46 83.6 C66.4 83.6 83 67 83 46.6 C83 26.2 66.4 10 46 10 Z" fill="#ffffff"/>
+    <path d="M64 56.5 C63.2 55.4 60.8 54.2 59.6 53.6 C58.4 53 57.2 52.8 56.4 54 C55.6 55.2 53.2 58.1 52.4 59 C51.6 59.9 50.8 60.1 49.6 59.5 C48.4 58.9 44.5 57.6 39.9 53.5 C36.3 50.3 33.9 46.3 33.2 45.1 C32.5 43.9 33.1 43.3 33.7 42.7 C34.2 42.2 34.8 41.4 35.4 40.7 C36 40 36.3 39.4 36.7 38.6 C37.1 37.8 36.9 37.1 36.6 36.5 C36.3 35.9 33.9 30 32.9 27.6 C31.9 25.2 30.9 25.5 30.2 25.5 L27.8 25.5 C27 25.5 25.7 25.8 24.6 27 C23.5 28.2 20.3 31.2 20.3 37.3 C20.3 43.4 24.7 49.2 25.3 50 C25.9 50.8 34 63.2 46.4 68.6 C49.3 69.9 51.6 70.6 53.4 71.2 C56.4 72.1 59.1 72 61.2 71.7 C63.6 71.3 68.5 68.7 69.5 65.8 C70.5 62.9 70.5 60.4 70.2 59.9 C69.9 59.4 69.1 59.1 67.9 58.5 L64 56.5 Z" fill="#25d366"/>
+  </g>
+  <text x="64" y="118" text-anchor="middle" fill="#ffffff" font-size="11" font-weight="900" font-family="sans-serif">WHATSAPP</text>
+</svg>""",
+
+    "instagram": """<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
+  <defs>
+    <linearGradient id="g_insta" x1="0%" y1="100%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#f09433"/>
+      <stop offset="25%" stop-color="#e6683c"/>
+      <stop offset="50%" stop-color="#dc2743"/>
+      <stop offset="75%" stop-color="#cc2366"/>
+      <stop offset="100%" stop-color="#bc1888"/>
+    </linearGradient>
+  </defs>
+  <rect width="128" height="128" rx="28" fill="url(#g_insta)"/>
+  <rect x="30" y="24" width="68" height="68" rx="18" fill="none" stroke="#ffffff" stroke-width="6"/>
+  <circle cx="64" cy="58" r="16" fill="none" stroke="#ffffff" stroke-width="6"/>
+  <circle cx="81" cy="41" r="4.5" fill="#ffffff"/>
+  <text x="64" y="116" text-anchor="middle" fill="#ffffff" font-size="11" font-weight="900" font-family="sans-serif">INSTAGRAM</text>
+</svg>""",
+
+    "flaticon": """<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
+  <rect width="128" height="128" rx="28" fill="#10b981"/>
+  <circle cx="64" cy="52" r="32" fill="#047857"/>
+  <path d="M48 42 L80 42 L80 50 L58 50 L58 58 L76 58 L76 66 L58 66 L58 82 L48 82 Z" fill="#ffffff"/>
+  <text x="64" y="114" text-anchor="middle" fill="#ffffff" font-size="13" font-weight="900" font-family="sans-serif">FLATICON</text>
+</svg>""",
+
     "tiktok": """<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
   <rect width="128" height="128" rx="28" fill="#000000"/>
   <g transform="translate(8, 0)">

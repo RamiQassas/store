@@ -210,7 +210,7 @@ class ProductVariant(TimeStampedModel):
     class Meta:
         verbose_name = "باقة منتج"
         verbose_name_plural = "باقات المنتجات"
-        ordering = ("sort_order", "price")
+        ordering = ("price", "sort_order", "id")
         indexes = [models.Index(fields=["sku"]), models.Index(fields=["is_active"])]
 
     def __str__(self):
