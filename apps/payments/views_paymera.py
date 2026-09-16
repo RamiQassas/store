@@ -351,8 +351,11 @@ def paymera_callback_view(request):
                     payment_status = status_res.get("status")
 
                     if payment_status == PaymeraClient.STATUS_ACCEPTED:
-                        finalize_paid_gateway_order(order, status_res)
-                        messages.success(request, "تم سداد قيمة طلبك بنجاح وجاري تنفيذه فوراً!")
+                        finalized = finalize_paid_gateway_order(order, status_res)
+                        if finalized.status == Order.Status.CANCELLED:
+                            messages.warning(request, "تم سداد المبلغ بنجاح، ولكن المنتج غير متوفر حالياً لدى المزود وقد تم استرداد كامل المبلغ في محفظتك فوراً.")
+                        else:
+                            messages.success(request, "تم سداد قيمة طلبك بنجاح وجاري تنفيذه فوراً!")
                         return redirect(order_dest_url)
 
                     elif payment_status in (PaymeraClient.STATUS_CANCELED, PaymeraClient.STATUS_FAILED):

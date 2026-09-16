@@ -72,6 +72,13 @@ class AlkasrSyncService:
 
         return tree
 
+    @staticmethod
+    def _set_cache(key, val, timeout=600):
+        try:
+            cache.set(key, val, timeout=timeout)
+        except Exception:
+            pass
+
     def sync_catalog(self, selected_group_names=None, progress_callback=None) -> dict:
         """
         Executes catalog synchronization.
@@ -87,7 +94,7 @@ class AlkasrSyncService:
         )
 
         progress_key = f"sync_progress_{self.profile.id}"
-        cache.set(progress_key, {
+        self._set_cache(progress_key, {
             "status": "running", "total": 0, "current": 0,
             "percent": 0, "created": 0, "updated": 0, "disabled": 0
         }, timeout=600)
@@ -212,6 +219,8 @@ class AlkasrSyncService:
                         prod_obj.category = cat_obj
                         prod_obj.product_type = item["product_type"]
                         prod_obj.is_active = item["is_active"]
+                        if not item["is_active"]:
+                            prod_obj.local_is_active = False
                         prod_obj.cost_price = Decimal(str(item["cost_price"] or "0.00"))
                         prod_obj.qty_min = item["qty_min"]
                         prod_obj.qty_max = item["qty_max"]
@@ -245,7 +254,7 @@ class AlkasrSyncService:
 
                 # Update Cache Progress
                 pct = int((index / total_items) * 100) if total_items > 0 else 100
-                cache.set(progress_key, {
+                self._set_cache(progress_key, {
                     "status": "running", "total": total_items, "current": index,
                     "percent": pct, "created": created_count, "updated": updated_count,
                     "disabled": disabled_count, "product_name": item["name"]
@@ -258,9 +267,9 @@ class AlkasrSyncService:
 
             # Soft disable products missing from provider payload
             with transaction.atomic():
-                disabled_qs = ProviderProduct.objects.filter(profile=self.profile, is_active=True).exclude(remote_id__in=seen_remote_ids)
-                disabled_count = disabled_qs.count()
-                disabled_qs.update(is_active=False)
+                disabled_qs = ProviderProduct.objects.filter(profile=self.profile).exclude(remote_id__in=seen_remote_ids)
+                disabled_count = disabled_qs.filter(is_active=True).count()
+                disabled_qs.update(is_active=False, local_is_active=False)
 
             # Automatically map ProviderProducts to store catalog Product & ProductVariant
             try:
@@ -287,7 +296,7 @@ class AlkasrSyncService:
                 "disabled": disabled_count,
                 "percent": 100
             }
-            cache.set(progress_key, result_data, timeout=600)
+            self._set_cache(progress_key, result_data, timeout=600)
             return result_data
 
         except Exception as exc:
@@ -297,5 +306,5 @@ class AlkasrSyncService:
             log_entry.error_message = error_message
             log_entry.save()
             err_data = {"status": "error", "error": error_message, "percent": 0}
-            cache.set(progress_key, err_data, timeout=600)
+            self._set_cache(progress_key, err_data, timeout=600)
             raise exc

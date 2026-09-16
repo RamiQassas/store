@@ -499,20 +499,38 @@ class AlkasrMapperService:
         """
         import re
         if products_qs is None:
-            ProviderProduct.objects.filter(profile=self.profile).update(is_active=True, local_is_active=True)
-            products_qs = ProviderProduct.objects.filter(profile=self.profile, local_is_active=True)
+            products_qs = ProviderProduct.objects.filter(profile=self.profile, is_active=True, local_is_active=True)
 
         # Clean up any dot/placeholder products from previous runs
         Product.objects.filter(api_provider="tafa3olcard", name__regex=r'^[\.\s\-_=~*#]+$').delete()
         ProviderProduct.objects.filter(profile=self.profile, name__regex=r'^[\.\s\-_=~*#]+$').delete()
 
-        # Deactivate any variants whose provider product is disabled or deleted
+        # Deactivate any variants whose provider product is disabled, inactive, or deleted
         try:
-            inactive_remote_ids = list(ProviderProduct.objects.filter(profile=self.profile, local_is_active=False).values_list('remote_id', flat=True))
+            from django.db.models import Q
+            inactive_remote_ids = list(
+                ProviderProduct.objects.filter(profile=self.profile)
+                .filter(Q(is_active=False) | Q(local_is_active=False))
+                .values_list('remote_id', flat=True)
+            )
             if inactive_remote_ids:
-                ProductVariant.objects.filter(api_product_id__in=[int(x) for x in inactive_remote_ids if str(x).isdigit()]).update(is_active=False, is_temporarily_disabled=True)
-        except Exception:
-            pass
+                int_pids = [int(x) for x in inactive_remote_ids if str(x).isdigit()]
+                sku_patterns = [f"PRV-{self.profile.id}-{x}" for x in inactive_remote_ids]
+
+                # Deactivate platform variants
+                ProductVariant.objects.filter(
+                    Q(sku__in=sku_patterns) | Q(api_product_id__in=int_pids)
+                ).update(is_active=False, is_temporarily_disabled=True)
+
+                # Deactivate sub-store cloned variants
+                from apps.common.tenant_utils import bypass_tenant_filter
+                with bypass_tenant_filter():
+                    for rid in inactive_remote_ids:
+                        ProductVariant.all_objects.filter(
+                            sku__icontains=f"-{rid}"
+                        ).update(is_active=False, is_temporarily_disabled=True)
+        except Exception as inact_err:
+            logger.warning(f"Error deactivating inactive variants: {inact_err}")
             
         products_list = list(products_qs.select_related('category', 'category__parent', 'pricing').prefetch_related('parameters'))
         store = self.profile.store
@@ -912,6 +930,41 @@ class AlkasrMapperService:
             ).delete()
         except Exception:
             pass
+
+        # Update is_active and is_out_of_stock on Product models based on active variants
+        try:
+            from django.db.models import Exists, OuterRef
+            active_vars = ProductVariant.objects.filter(product=OuterRef("pk"), is_active=True)
+
+            # Products with NO active variants -> hide them!
+            Product.objects.filter(
+                api_provider=provider_code,
+                store=store,
+            ).annotate(
+                has_active=Exists(active_vars)
+            ).filter(has_active=False).update(is_active=False, is_out_of_stock=True)
+
+            # Products WITH active variants -> activate them!
+            Product.objects.filter(
+                api_provider=provider_code,
+                store=store,
+            ).annotate(
+                has_active=Exists(active_vars)
+            ).filter(has_active=True).update(is_active=True, is_out_of_stock=False)
+
+            # Sync sub-stores: if platform product is inactive or deleted, sub-store cloned products are also updated
+            from apps.common.tenant_utils import bypass_tenant_filter
+            with bypass_tenant_filter():
+                inactive_platform_names = list(Product.all_objects.filter(store__isnull=True, is_active=False).values_list("name", flat=True))
+                if inactive_platform_names:
+                    Product.all_objects.filter(store__isnull=False, name__in=inactive_platform_names).update(is_active=False, is_out_of_stock=True)
+                    ProductVariant.all_objects.filter(product__store__isnull=False, product__name__in=inactive_platform_names).update(is_active=False, is_temporarily_disabled=True)
+                
+                active_platform_names = list(Product.all_objects.filter(store__isnull=True, is_active=True).values_list("name", flat=True))
+                if active_platform_names:
+                    Product.all_objects.filter(store__isnull=False, name__in=active_platform_names).update(is_active=True, is_out_of_stock=False)
+        except Exception as stock_err:
+            logger.warning(f"Product availability status sync error: {stock_err}")
 
         # Clean up empty categories (except standard storefront sections)
         try:

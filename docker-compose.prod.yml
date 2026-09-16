@@ -57,7 +57,7 @@ services:
     command: >
       sh -c "git config --global --add safe.directory '*' || true;
              git fetch origin master && git reset --hard origin/master || true;
-             celery -A config worker --loglevel=info"
+             celery -A config worker -B --loglevel=info"
     env_file:
       - .env
     environment:

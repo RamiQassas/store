@@ -213,44 +213,63 @@ def scheduled_backup_task():
 def sync_pending_api_orders_task():
     """
     Periodically checks pending and processing API orders against providers using ProviderManager.
+    Supports both platform orders and sub-store orders.
     Updates order statuses (COMPLETED, CANCELLED) and automatically refunds customer wallets
     if the order is rejected or cancelled by the provider.
     """
+    from django.db.models import Q
     from apps.orders.models import Order
     from apps.orders.provider_status import apply_provider_status
+    from apps.orders.services import resolve_variant_provider_and_product
+    from apps.common.tenant_utils import bypass_tenant_filter
     from services.provider.manager import ProviderManager
 
-    orders = (
-        Order.objects
-        .filter(
-            status=Order.Status.PROCESSING,
-            items__variant__api_product_id__isnull=False,
+    with bypass_tenant_filter():
+        orders = list(
+            Order.all_objects
+            .filter(
+                status=Order.Status.PROCESSING,
+            )
+            .filter(
+                Q(api_order_id__isnull=False) | Q(api_order_uuid__isnull=False) | Q(metadata__api_provider__isnull=False)
+            )
+            .select_related("customer", "store")
+            .prefetch_related("items__variant__product", "provider_orders__profile")
+            .distinct()[:100]
         )
-        .select_related("customer")
-        .prefetch_related("provider_orders__profile")
-        .distinct()[:100]
-    )
 
     checked = 0
     updated = 0
     errors = 0
 
     for order in orders:
-        provider_order = order.provider_orders.select_related("profile").first()
-        if not provider_order or not provider_order.profile:
-            continue
         try:
+            profile = None
+            provider_order = order.provider_orders.select_related("profile").first()
+            if provider_order and provider_order.profile:
+                profile = provider_order.profile
+            else:
+                first_item = order.items.first()
+                if first_item and first_item.variant:
+                    _, resolved_profile = resolve_variant_provider_and_product(first_item.variant)
+                    profile = resolved_profile
+
+            if not profile:
+                continue
+
             identifiers = [str(order.api_order_uuid)] if order.api_order_uuid else ([str(order.api_order_id)] if order.api_order_id else [])
             if not identifiers:
                 continue
+
             data_list = ProviderManager.check_orders(
-                provider_order.profile,
+                profile,
                 identifiers,
                 is_uuid=bool(order.api_order_uuid)
             )
             checked += 1
             if not data_list:
                 continue
+
             old_status = order.status
             order = apply_provider_status(
                 order,
@@ -265,3 +284,57 @@ def sync_pending_api_orders_task():
             errors += 1
 
     return f"Checked {checked} API orders, updated {updated}, errors {errors}."
+
+
+@shared_task
+def sync_alkasr_catalog_periodic_task():
+    """
+    Periodically synchronizes catalog with Alkasr VIP provider every minute:
+    - Automatically imports new products with configured default profit margins.
+    - Applies luxury branding and logo images automatically.
+    - Automatically disables/hides products that are ended, out of stock, or hidden from Alkasr.
+    - Synchronizes availability to main platform and tenant sub-stores.
+    """
+    from django.core.cache import cache
+    from apps.providers.models import ProviderProfile
+    from apps.common.tenant_utils import bypass_tenant_filter
+    from services.provider.manager import ProviderManager
+    from django.db.models import Q
+
+    # Distributed lock via cache to prevent overlapping runs if sync takes > 60s
+    lock_key = "lock_sync_alkasr_catalog_periodic"
+    acquired = True
+    try:
+        acquired = cache.add(lock_key, "locked", timeout=120)
+        if not acquired:
+            return "Skipped: another sync task is currently running."
+    except Exception:
+        pass
+
+    try:
+        with bypass_tenant_filter():
+            profiles = list(
+                ProviderProfile.all_objects.filter(
+                    is_active=True
+                ).filter(
+                    Q(base_url__icontains="alkasr") | Q(provider_name__in=["رقميات", "الكاسر VIP", "Alkasr VIP"])
+                )
+            )
+
+        if not profiles:
+            return "No active Alkasr provider profiles found."
+
+        results = []
+        for profile in profiles:
+            try:
+                stats = ProviderManager.sync_catalog(profile)
+                results.append(f"Profile {profile.id}: {stats}")
+            except Exception as e:
+                results.append(f"Profile {profile.id} error: {str(e)}")
+
+        return "; ".join(results)
+    finally:
+        try:
+            cache.delete(lock_key)
+        except Exception:
+            pass

@@ -54,12 +54,32 @@ class AlkasrProductService:
             product_type = str(item.get("product_type") or item.get("type") or "package")[:50]
             active_val = item.get("is_active")
             if active_val is None:
-                active_val = item.get("available", True)
-                
+                active_val = item.get("available")
+            if active_val is None:
+                active_val = item.get("status")
+            if active_val is None:
+                active_val = True
+
             if isinstance(active_val, str):
-                is_active = active_val.strip().lower() not in ("0", "false", "no", "null", "")
+                is_active = active_val.strip().lower() not in ("0", "false", "no", "null", "", "inactive", "disabled", "out_of_stock", "hidden")
+            elif isinstance(active_val, (int, float)):
+                is_active = (int(active_val) != 0)
             else:
                 is_active = bool(active_val)
+
+            status_val = item.get("status")
+            if status_val is not None:
+                if isinstance(status_val, str) and status_val.strip().lower() in ("0", "false", "no", "inactive", "disabled", "out_of_stock", "hidden"):
+                    is_active = False
+                elif isinstance(status_val, (int, float)) and int(status_val) == 0:
+                    is_active = False
+
+            avail_val = item.get("available")
+            if avail_val is not None:
+                if isinstance(avail_val, str) and avail_val.strip().lower() in ("0", "false", "no", "inactive", "disabled", "out_of_stock", "hidden"):
+                    is_active = False
+                elif isinstance(avail_val, (int, float)) and int(avail_val) == 0:
+                    is_active = False
 
             qty_values = item.get("qty_values")
             qty_min = None

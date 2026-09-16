@@ -940,19 +940,18 @@ def finalize_paid_gateway_order(order, gateway_data=None):
 
         # 1. Direct gateway order for tenant store:
         # The customer paid retail directly via gateway (Raqamiyat collected total_amount).
-        # Raqamiyat retains wholesale supply cost, and credits the merchant's profit to their platform wallet!
+        # Calculate profit parameters (credited after fulfillment verification)
+        owner_wallet = None
+        profit_amt = Decimal("0.00")
         if order_store and order_store.owner:
             base_cost = getattr(variant, "cost", Decimal("0")) or Decimal("0")
             total_wholesale_cost = (base_cost * quantity).quantize(Decimal("0.01"))
-            
-            # Merchant profit = total retail paid - wholesale cost
             profit_usd = (locked_order.total_amount - total_wholesale_cost).quantize(Decimal("0.01"))
-            
+
             from apps.wallets.models import Wallet
-            from apps.wallets.services import credit_wallet
             from apps.common.models import Currency
             from apps.common.tenant_utils import bypass_tenant_filter
-            
+
             with bypass_tenant_filter():
                 owner_wallet = Wallet.all_objects.filter(
                     user=order_store.owner,
@@ -973,24 +972,6 @@ def finalize_paid_gateway_order(order, gateway_data=None):
                 else:
                     profit_amt = profit_usd
                 profit_amt = Decimal(profit_amt).quantize(Decimal("0.01"))
-
-                if profit_amt > Decimal("0.00"):
-                    credit_wallet(
-                        owner_wallet.id,
-                        profit_amt,
-                        reference=f"substore_profit:{locked_order.id}",
-                        description=f"أرباح طلب #{locked_order.number} لمتجر {order_store.name} (دفع مباشر عبر بيميرا)",
-                        created_by=customer,
-                    )
-                    OrderLog.objects.create(
-                        order=locked_order,
-                        status=locked_order.status,
-                        note=f"تم إيداع أرباح المتجر بقيمة {profit_amt} {owner_wallet.currency.code} في محفظة صاحب المتجر ({order_store.owner.email}).",
-                        created_by=None,
-                    )
-                    logger.info(
-                        f"Credited profit {profit_amt} {owner_wallet.currency.code} to store owner {order_store.owner.email} for order {locked_order.number}"
-                    )
 
         # 2. Fulfillment
         locked_keys = []
@@ -1034,10 +1015,18 @@ def finalize_paid_gateway_order(order, gateway_data=None):
                 locked_order.fulfillment_data = fulfillment
                 locked_order.status = Order.Status.COMPLETED
             else:
-                locked_order.status = Order.Status.PROCESSING
+                from apps.orders.provider_status import apply_provider_status
+                err_msg = "نفدت الأكواد من المخزون حالياً."
                 fulfillment = dict(locked_order.fulfillment_data or {})
-                fulfillment["notes"] = "تم الدفع بنجاح ولكن نفدت الأكواد من المخزون، بانتظار تسليمها يدوياً من الإدارة."
+                fulfillment["سبب الإلغاء من السيرفر"] = err_msg
                 locked_order.fulfillment_data = fulfillment
+                locked_order = apply_provider_status(
+                    locked_order,
+                    "reject",
+                    raw_response={"error": err_msg, "reason": err_msg},
+                    actor=customer,
+                    note_prefix="النظام الآلي (دفع مباشر - بيميرا)",
+                )
 
         else:
             from apps.common.tenant_utils import bypass_tenant_filter
@@ -1052,7 +1041,7 @@ def finalize_paid_gateway_order(order, gateway_data=None):
 
                     provider_product, profile = resolve_variant_provider_and_product(variant)
 
-                    if provider_product and profile:
+                    if provider_product and profile and provider_product.is_active and provider_product.local_is_active:
                         locked_order.status = Order.Status.PROCESSING
                         api_order_uuid = locked_order.api_order_uuid or uuid.uuid4()
                         locked_order.api_order_uuid = api_order_uuid
@@ -1100,18 +1089,59 @@ def finalize_paid_gateway_order(order, gateway_data=None):
                             note_prefix="النظام الآلي (دفع مباشر - بيميرا)",
                         )
                     else:
-                        locked_order.status = Order.Status.PROCESSING
-                        logger.info(f"Paid gateway order {locked_order.id} marked as PROCESSING (manual fulfillment or provider not mapped).")
+                        from apps.orders.provider_status import apply_provider_status
+                        err_msg = "المنتج غير متوفر حالياً لدى المزود الخارجي."
+                        fulfillment = dict(locked_order.fulfillment_data or {})
+                        fulfillment["سبب الإلغاء من السيرفر"] = err_msg
+                        locked_order.fulfillment_data = fulfillment
+                        order_meta = dict(locked_order.metadata or {})
+                        order_meta["api_provider"] = provider
+                        order_meta["api_error"] = err_msg
+                        locked_order.metadata = order_meta
+                        locked_order = apply_provider_status(
+                            locked_order,
+                            "reject",
+                            raw_response={"error": err_msg, "reason": err_msg},
+                            actor=customer,
+                            note_prefix="النظام الآلي (دفع مباشر - بيميرا)",
+                        )
                 except Exception as api_exc:
                     logger.error(f"Error placing API order for paid order {locked_order.id}: {api_exc}", exc_info=True)
+                    from apps.orders.provider_status import apply_provider_status
+                    err_msg = f"تعذر تنفيذ الطلب لدى المزود: {str(api_exc)}"
+                    fulfillment = dict(locked_order.fulfillment_data or {})
+                    fulfillment["سبب الإلغاء من السيرفر"] = err_msg
+                    locked_order.fulfillment_data = fulfillment
                     order_meta = dict(locked_order.metadata or {})
                     order_meta["api_provider"] = provider
                     order_meta["api_error"] = str(api_exc)
-                    locked_order.status = Order.Status.PROCESSING
                     locked_order.metadata = order_meta
-                    locked_order.save(update_fields=["status", "metadata", "updated_at"])
+                    locked_order = apply_provider_status(
+                        locked_order,
+                        "reject",
+                        raw_response={"error": str(api_exc), "reason": err_msg},
+                        actor=customer,
+                        note_prefix="النظام الآلي (دفع مباشر - بيميرا)",
+                    )
 
-        # 3. Invoice
+        # 3. Credit merchant profit if fulfillment was NOT cancelled
+        if locked_order.status != Order.Status.CANCELLED and owner_wallet and profit_amt > Decimal("0.00"):
+            from apps.wallets.services import credit_wallet
+            credit_wallet(
+                owner_wallet.id,
+                profit_amt,
+                reference=f"substore_profit:{locked_order.id}",
+                description=f"أرباح طلب #{locked_order.number} لمتجر {order_store.name} (دفع مباشر عبر بيميرا)",
+                created_by=customer,
+            )
+            OrderLog.objects.create(
+                order=locked_order,
+                status=locked_order.status,
+                note=f"تم إيداع أرباح المتجر بقيمة {profit_amt} {owner_wallet.currency.code} في محفظة صاحب المتجر ({order_store.owner.email}).",
+                created_by=None,
+            )
+
+        # 4. Invoice
         Invoice.objects.get_or_create(
             order=locked_order,
             defaults={
@@ -1120,7 +1150,7 @@ def finalize_paid_gateway_order(order, gateway_data=None):
             }
         )
 
-        # 4. OrderLog
+        # 5. OrderLog
         gw_label = "بوابة الدفع الإلكتروني"
         if gateway_data and isinstance(gateway_data, dict):
             rrn = gateway_data.get("rrn")
@@ -1135,23 +1165,33 @@ def finalize_paid_gateway_order(order, gateway_data=None):
 
         locked_order.save()
 
-        # 5. Notifications
+        # 6. Notifications
         try:
             from apps.notifications.services import notify_staff, notify_user
             notify_staff(
                 title="طلب مدفوع إلكترونياً",
-                body=f"تم سداد الطلب رقم {locked_order.number} بقيمة {locked_order.total_amount} USD إلكترونياً من {customer.email}",
+                body=f"تم سداد الطلب رقم {locked_order.number} بقيمة {locked_order.total_amount} USD إلكترونياً من {customer.email} (الحالة: {locked_order.status})",
                 action_url=f"/control/orders/{locked_order.id}/",
                 category="admin_new_order",
             )
-            notify_user(
-                user=customer,
-                title="تم تأكيد طلبك بنجاح",
-                body=f"تم استلام دفعتك للطلب رقم {locked_order.number} بنجاح وجاري تنفيذه.",
-                action_url=f"/dashboard/orders/{locked_order.id}/",
-                category="order_update",
-                priority="high"
-            )
+            if locked_order.status == Order.Status.CANCELLED:
+                notify_user(
+                    user=customer,
+                    title="تعذر توفر المنتج - تم استرداد المبلغ للمحفظة",
+                    body=f"نعتذر منك، المنتج المطلوب في طلبك رقم {locked_order.number} غير متوفر حالياً. تم استرداد كامل المبلغ إلى محفظتك بنجاح.",
+                    action_url=f"/dashboard/orders/{locked_order.id}/",
+                    category="order_update",
+                    priority="high"
+                )
+            else:
+                notify_user(
+                    user=customer,
+                    title="تم تأكيد طلبك بنجاح",
+                    body=f"تم استلام دفعتك للطلب رقم {locked_order.number} بنجاح وجاري تنفيذه.",
+                    action_url=f"/dashboard/orders/{locked_order.id}/",
+                    category="order_update",
+                    priority="high"
+                )
         except Exception:
             pass
 

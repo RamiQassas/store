@@ -424,9 +424,13 @@ CELERY_BEAT_SCHEDULE = {
         "task": "apps.accounts.tasks.scheduled_backup_task",
         "schedule": crontab(minute=0),  # Every hour at minute 0
     },
-    "sync_pending_api_orders_every_3_mins": {
+    "sync_alkasr_catalog_every_minute": {
+        "task": "apps.accounts.tasks.sync_alkasr_catalog_periodic_task",
+        "schedule": 60.0,  # Every 1 minute
+    },
+    "sync_pending_api_orders_every_minute": {
         "task": "apps.accounts.tasks.sync_pending_api_orders_task",
-        "schedule": 180.0,  # Every 3 minutes
+        "schedule": 60.0,  # Every 1 minute
     },
 }
 
