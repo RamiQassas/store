@@ -140,11 +140,19 @@ class PaymeraGateway(BasePaymentGateway):
         from apps.common.models import Currency
         client = self.get_client()
 
+        from django.conf import settings
+
         if request:
             callback_base = request.build_absolute_uri(reverse("paymera_callback"))
-            trigger_base = request.build_absolute_uri(reverse("paymera_trigger"))
         else:
             callback_base = reverse("paymera_callback")
+
+        site_url = getattr(settings, "SITE_URL", "").rstrip("/")
+        if site_url:
+            trigger_base = f"{site_url}{reverse('paymera_trigger')}"
+        elif request:
+            trigger_base = request.build_absolute_uri(reverse("paymera_trigger"))
+        else:
             trigger_base = reverse("paymera_trigger")
 
         callback_url = f"{callback_base}?order_id={order.id}"

@@ -20,6 +20,7 @@ from django.contrib import admin
 from apps.site import views as site_views
 from apps.support import views as support_views
 from apps.site import api_views as site_api_views
+from apps.payments import views_paymera as site_views_paymera
 
 # Import API components from config and REST framework
 from config.urls import health, router
@@ -106,6 +107,10 @@ urlpatterns = [
     path("set-currency/", site_views.set_currency, name="set_currency"),
     path("ajax/validate-coupon/", site_views.ajax_validate_coupon, name="ajax_validate_coupon"),
     path("suggestions/new/", site_views.site_product_suggestion, name="site_product_suggestion"),
+
+    # Paymera Gateway Endpoints (Tenant Sub-store context)
+    path("payments/paymera/callback/", site_views_paymera.paymera_callback_view, name="paymera_callback"),
+    path("payments/paymera/trigger/", site_views_paymera.paymera_trigger_view, name="paymera_trigger"),
 
     # Custom Pages (store-specific static pages created by merchant)
     path("page/<slug:slug>/", merchant_views.store_custom_page, name="store_custom_page"),

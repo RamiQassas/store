@@ -455,7 +455,16 @@ def _create_order_atomic(customer, variant_id, quantity=1, fulfillment_data=None
     if locked_keys:
         return order
 
-    if variant.product.is_api_product or variant.api_product_id or getattr(variant.product, 'api_product_id', None):
+    is_api_candidate = bool(
+        variant.product.is_api_product
+        or variant.api_product_id
+        or getattr(variant.product, 'api_product_id', None)
+        or hasattr(variant, 'provider_mapping')
+        or (variant.sku and "PRV-" in variant.sku)
+        or (variant.metadata and isinstance(variant.metadata, dict) and variant.metadata.get("remote_id"))
+        or (order_store and ProductVariant.all_objects.filter(product__store__isnull=True, name=variant.name, product__name=variant.product.name).exists())
+    )
+    if is_api_candidate:
         provider = variant.product.api_provider or "alkasr"
         api_order_id = None
         try:
@@ -933,121 +942,131 @@ def finalize_paid_gateway_order(order, gateway_data=None):
                 fulfillment["notes"] = "تم الدفع بنجاح ولكن نفدت الأكواد من المخزون، بانتظار تسليمها يدوياً من الإدارة."
                 locked_order.fulfillment_data = fulfillment
 
-        elif variant.product.is_api_product or variant.api_product_id or getattr(variant.product, 'api_product_id', None):
-            locked_order.status = Order.Status.PROCESSING
-            provider = (
-                getattr(variant, "api_provider", None)
-                or getattr(variant.product, "api_provider", None)
-                or "alkasr"
-            )
-            try:
-                from services.provider.manager import ProviderManager
-                from apps.providers.models import ProviderMapping, ProviderProduct
+        else:
+            from apps.common.tenant_utils import bypass_tenant_filter
+            with bypass_tenant_filter():
+                provider = (
+                    getattr(variant, "api_provider", None)
+                    or getattr(variant.product, "api_provider", None)
+                    or "alkasr"
+                )
+                try:
+                    from services.provider.manager import ProviderManager
+                    from apps.providers.models import ProviderMapping, ProviderProduct, ProviderProfile
 
-                provider_product = None
-                profile = None
+                    provider_product = None
+                    profile = None
 
-                mapping = getattr(variant, "provider_mapping", None)
-                if not mapping or not mapping.provider_product:
-                    mapping = ProviderMapping.objects.filter(local_variant=variant).select_related("provider_product__profile").first()
+                    mapping = getattr(variant, "provider_mapping", None)
+                    if not mapping or not mapping.provider_product:
+                        mapping = ProviderMapping.objects.filter(local_variant=variant).select_related("provider_product__profile").first()
 
-                if mapping and mapping.provider_product:
-                    provider_product = mapping.provider_product
-                    profile = provider_product.profile
-                elif variant.metadata and isinstance(variant.metadata, dict) and variant.metadata.get("remote_id"):
-                    provider_product = ProviderProduct.objects.filter(remote_id=str(variant.metadata["remote_id"])).select_related("profile").first()
-                    if provider_product:
+                    if mapping and mapping.provider_product:
+                        provider_product = mapping.provider_product
                         profile = provider_product.profile
-                elif variant.sku and "PRV-" in variant.sku:
-                    rem_id = variant.sku.split("-")[-1]
-                    provider_product = ProviderProduct.objects.filter(remote_id=rem_id).select_related("profile").first()
-                    if provider_product:
-                        profile = provider_product.profile
-                elif variant.api_product_id:
-                    provider_product = ProviderProduct.objects.filter(remote_id=str(variant.api_product_id)).select_related("profile").first()
-                    if provider_product:
-                        profile = provider_product.profile
-                elif getattr(variant.product, 'api_product_id', None):
-                    provider_product = ProviderProduct.objects.filter(remote_id=str(variant.product.api_product_id)).select_related("profile").first()
-                    if provider_product:
-                        profile = provider_product.profile
-
-                if not provider_product or not profile:
-                    from apps.common.tenant_utils import bypass_tenant_filter
-                    with bypass_tenant_filter():
-                        if variant.api_product_id:
-                            provider_product = ProviderProduct.objects.filter(remote_id=str(variant.api_product_id)).select_related("profile").first()
-                        elif getattr(variant.product, 'api_product_id', None):
-                            provider_product = ProviderProduct.objects.filter(remote_id=str(variant.product.api_product_id)).select_related("profile").first()
-                        elif variant.metadata and isinstance(variant.metadata, dict) and variant.metadata.get("remote_id"):
-                            provider_product = ProviderProduct.objects.filter(remote_id=str(variant.metadata["remote_id"])).select_related("profile").first()
-                        elif variant.sku and "PRV-" in variant.sku:
-                            rem_id = variant.sku.split("-")[-1]
-                            provider_product = ProviderProduct.objects.filter(remote_id=rem_id).select_related("profile").first()
-
-                        if not provider_product:
-                            g_var = ProductVariant.all_objects.filter(
-                                product__store__isnull=True,
-                                name=variant.name,
-                                product__name=variant.product.name
-                            ).first()
-                            if g_var:
-                                g_map = getattr(g_var, "provider_mapping", None) or ProviderMapping.objects.filter(local_variant=g_var).select_related("provider_product__profile").first()
-                                if g_map and g_map.provider_product:
-                                    provider_product = g_map.provider_product
-                                elif g_var.api_product_id:
-                                    provider_product = ProviderProduct.objects.filter(remote_id=str(g_var.api_product_id)).select_related("profile").first()
-
+                    elif variant.metadata and isinstance(variant.metadata, dict) and variant.metadata.get("remote_id"):
+                        provider_product = ProviderProduct.objects.filter(remote_id=str(variant.metadata["remote_id"])).select_related("profile").first()
+                        if provider_product:
+                            profile = provider_product.profile
+                    elif variant.sku and "PRV-" in variant.sku:
+                        rem_id = variant.sku.split("-")[-1]
+                        provider_product = ProviderProduct.objects.filter(remote_id=rem_id).select_related("profile").first()
+                        if provider_product:
+                            profile = provider_product.profile
+                    elif variant.api_product_id:
+                        provider_product = ProviderProduct.objects.filter(remote_id=str(variant.api_product_id)).select_related("profile").first()
+                        if provider_product:
+                            profile = provider_product.profile
+                    elif getattr(variant.product, 'api_product_id', None):
+                        provider_product = ProviderProduct.objects.filter(remote_id=str(variant.product.api_product_id)).select_related("profile").first()
                         if provider_product:
                             profile = provider_product.profile
 
-                if provider_product and profile:
-                    api_order_uuid = locked_order.api_order_uuid or uuid.uuid4()
-                    locked_order.api_order_uuid = api_order_uuid
-                    api_resp = ProviderManager.place_order(
-                        profile=profile,
-                        local_order=locked_order,
-                        provider_product=provider_product,
-                        quantity=quantity,
-                        player_params=ProviderManager.sanitize_player_params(locked_order.metadata or {}),
-                        order_uuid=api_order_uuid,
-                    )
-                    api_status = api_resp.get("status") or "wait"
-                    api_order_id = api_resp.get("remote_order_id")
-                    raw_response = api_resp.get("raw_response") or api_resp
+                    if not provider_product or not profile:
+                        # Check global catalog template variant
+                        g_var = ProductVariant.all_objects.filter(
+                            product__store__isnull=True,
+                            name=variant.name,
+                            product__name=variant.product.name
+                        ).first()
+                        if g_var:
+                            g_map = getattr(g_var, "provider_mapping", None) or ProviderMapping.objects.filter(local_variant=g_var).select_related("provider_product__profile").first()
+                            if g_map and g_map.provider_product:
+                                provider_product = g_map.provider_product
+                            elif g_var.api_product_id:
+                                provider_product = ProviderProduct.objects.filter(remote_id=str(g_var.api_product_id)).select_related("profile").first()
+                            elif getattr(g_var.product, 'api_product_id', None):
+                                provider_product = ProviderProduct.objects.filter(remote_id=str(g_var.product.api_product_id)).select_related("profile").first()
+                            elif g_var.sku and "PRV-" in g_var.sku:
+                                rem_id = g_var.sku.split("-")[-1]
+                                provider_product = ProviderProduct.objects.filter(remote_id=rem_id).select_related("profile").first()
+                            elif g_var.metadata and isinstance(g_var.metadata, dict) and g_var.metadata.get("remote_id"):
+                                provider_product = ProviderProduct.objects.filter(remote_id=str(g_var.metadata["remote_id"])).select_related("profile").first()
 
-                    fulfillment = dict(locked_order.fulfillment_data or {})
-                    fulfillment.pop("api_order_id", None)
-                    fulfillment.pop("ملاحظات وبيانات التنفيذ", None)
-                    fulfillment["api_status"] = api_status
-                    locked_order.api_order_id = api_order_id
-                    locked_order.fulfillment_data = fulfillment
+                            if provider_product:
+                                profile = provider_product.profile
 
+                    if provider_product and not profile and getattr(provider_product, 'profile_id', None):
+                        profile = ProviderProfile.all_objects.filter(pk=provider_product.profile_id).first()
+
+                    if provider_product and profile:
+                        locked_order.status = Order.Status.PROCESSING
+                        api_order_uuid = locked_order.api_order_uuid or uuid.uuid4()
+                        locked_order.api_order_uuid = api_order_uuid
+
+                        # Merge player parameters from both fulfillment_data and metadata
+                        combined_params = dict(locked_order.fulfillment_data or {})
+                        if isinstance(locked_order.metadata, dict):
+                            for k, v in locked_order.metadata.items():
+                                if k not in combined_params or not combined_params[k]:
+                                    combined_params[k] = v
+
+                        sanitized_params = ProviderManager.sanitize_player_params(combined_params)
+
+                        api_resp = ProviderManager.place_order(
+                            profile=profile,
+                            local_order=locked_order,
+                            provider_product=provider_product,
+                            quantity=quantity,
+                            player_params=sanitized_params,
+                            order_uuid=api_order_uuid,
+                        )
+                        api_status = api_resp.get("status") or "wait"
+                        api_order_id = api_resp.get("remote_order_id")
+                        raw_response = api_resp.get("raw_response") or api_resp
+
+                        fulfillment = dict(locked_order.fulfillment_data or {})
+                        fulfillment.pop("api_order_id", None)
+                        fulfillment.pop("ملاحظات وبيانات التنفيذ", None)
+                        fulfillment["api_status"] = api_status
+                        locked_order.api_order_id = api_order_id
+                        locked_order.fulfillment_data = fulfillment
+
+                        order_meta = dict(locked_order.metadata or {})
+                        order_meta["api_provider"] = provider or getattr(profile, "provider_name", "alkasr")
+                        locked_order.metadata = order_meta
+
+                        locked_order.save(update_fields=["api_order_id", "fulfillment_data", "metadata", "api_order_uuid", "updated_at"])
+
+                        from apps.orders.provider_status import apply_provider_status
+                        locked_order = apply_provider_status(
+                            locked_order,
+                            api_status,
+                            raw_response=raw_response,
+                            actor=customer,
+                            note_prefix="النظام الآلي (دفع مباشر - بيميرا)",
+                        )
+                    else:
+                        locked_order.status = Order.Status.PROCESSING
+                        logger.info(f"Paid gateway order {locked_order.id} marked as PROCESSING (manual fulfillment or provider not mapped).")
+                except Exception as api_exc:
+                    logger.error(f"Error placing API order for paid order {locked_order.id}: {api_exc}", exc_info=True)
                     order_meta = dict(locked_order.metadata or {})
                     order_meta["api_provider"] = provider
+                    order_meta["api_error"] = str(api_exc)
+                    locked_order.status = Order.Status.PROCESSING
                     locked_order.metadata = order_meta
-
-                    locked_order.save(update_fields=["api_order_id", "fulfillment_data", "metadata", "api_order_uuid", "updated_at"])
-
-                    from apps.orders.provider_status import apply_provider_status
-                    locked_order = apply_provider_status(
-                        locked_order,
-                        api_status,
-                        raw_response=raw_response,
-                        actor=customer,
-                        note_prefix="النظام الآلي (دفع مباشر)",
-                    )
-                else:
-                    logger.warning(f"No active provider profile/product found for paid order {locked_order.id}")
-            except Exception as api_exc:
-                logger.error(f"Error placing API order for paid order {locked_order.id}: {api_exc}")
-                order_meta = dict(locked_order.metadata or {})
-                order_meta["api_provider"] = provider
-                order_meta["api_error"] = str(api_exc)
-                locked_order.metadata = order_meta
-                locked_order.save(update_fields=["metadata", "updated_at"])
-        else:
-            locked_order.status = Order.Status.PROCESSING
+                    locked_order.save(update_fields=["status", "metadata", "updated_at"])
 
         # 3. Invoice
         Invoice.objects.get_or_create(

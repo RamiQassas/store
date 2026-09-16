@@ -2265,6 +2265,7 @@ def product_detail(request, pk):
                     customer=request.user,
                     variant_id=variant.id,
                     quantity=quantity,
+                    fulfillment_data=metadata,
                     coupon=coupon,
                     metadata=metadata,
                     shipping_name=shipping_name,

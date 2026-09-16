@@ -335,4 +335,98 @@ class PaymeraViewsTestCase(TestCase):
         self.assertTrue(any(item["label"] == "player_id" and item["value"] == "5123456789" for item in formatted))
         self.assertFalse(any(item["label"] in ("payment_gateway", "gateway_payment_id") for item in formatted))
 
+    @patch("apps.notifications.services.notify_staff")
+    @patch("apps.notifications.services.notify_user")
+    @patch("services.provider.manager.ProviderManager.place_order")
+    @patch.object(PaymeraClient, "get_payment_status")
+    def test_paymera_substore_api_order_fulfillment(self, mock_status, mock_place_order, mock_notify_user, mock_notify_staff):
+        from apps.catalog.models import Category, Product, ProductVariant
+        from apps.orders.models import Order
+        from apps.orders.services import create_pending_gateway_order
+        from apps.providers.models import ProviderProfile, ProviderProduct, ProviderMapping
+        from apps.stores.models import Store, SubscriptionPlan
+        from apps.common.tenant_utils import set_current_store
+
+        # 1. Setup Store
+        plan = SubscriptionPlan.objects.create(name="Pro Plan", price_monthly=Decimal("20.00"))
+        store = Store.objects.create(
+            owner=self.user,
+            name="Gamer Shop",
+            subdomain="gamershop",
+            subscription_plan=plan,
+            is_active=True
+        )
+
+        # 2. Setup Global Provider
+        profile = ProviderProfile.objects.create(
+            provider_name="Alkasr",
+            base_url="https://api.alkasr-vip.com/client/api",
+            api_token="token-substore-test",
+            is_active=True
+        )
+        prov_prod = ProviderProduct.objects.create(
+            profile=profile,
+            remote_id="888111",
+            name="FreeFire 100 Diamonds",
+            cost_price=Decimal("0.90"),
+            product_type="package",
+            is_active=True
+        )
+
+        # 3. Setup Sub-store product & variant (mapped to provider)
+        cat = Category.objects.create(name="FreeFire", store=store)
+        prod = Product.objects.create(category=cat, store=store, name="FF Diamonds", is_active=True)
+        var = ProductVariant.objects.create(
+            product=prod,
+            name="100 Diamonds",
+            sku="PRV-888111",
+            price=Decimal("1.25"),
+            cost=Decimal("0.90"),
+            is_active=True,
+            metadata={"qty_type": "fixed", "qty_min": 1, "qty_max": 1, "remote_id": "888111"}
+        )
+        ProviderMapping.objects.create(local_variant=var, provider_product=prov_prod)
+
+        # 4. Create pending order on sub-store
+        order = create_pending_gateway_order(
+            customer=self.user,
+            variant_id=var.id,
+            quantity=1,
+            fulfillment_data={"player_id": "999888777"},
+            gateway_code="paymera",
+            metadata={"player_id": "999888777"}
+        )
+        order.metadata["gateway_payment_id"] = "substore-pay-123"
+        order.save(update_fields=["metadata"])
+        self.assertEqual(order.store, store)
+        self.assertEqual(order.status, Order.Status.PENDING)
+
+        # 5. Simulate Paymera Webhook arriving at sub-store context
+        mock_status.return_value = {
+            "status": "A",
+            "rrn": "RRN-SUBSTORE-999",
+            "amount": 18000,
+            "raw": {"ErrorCode": 0}
+        }
+        mock_place_order.return_value = {
+            "status": "accept",
+            "remote_order_id": "ALKASR-SUB-1010",
+            "raw_response": {"order_id": "ALKASR-SUB-1010"}
+        }
+
+        # Set tenant in thread-local storage as TenantMiddleware would
+        set_current_store(store)
+        try:
+            request = self.factory.get(f"/payments/paymera/trigger/?order_id={order.id}")
+            request.store = store
+            response = paymera_trigger_view(request)
+            self.assertEqual(response.status_code, 200)
+
+            order.refresh_from_db()
+            self.assertEqual(order.status, Order.Status.COMPLETED)
+            self.assertEqual(order.api_order_id, "ALKASR-SUB-1010")
+            mock_place_order.assert_called_once()
+        finally:
+            set_current_store(None)
+
 
