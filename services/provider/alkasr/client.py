@@ -73,9 +73,16 @@ class AlkasrClient:
         }
 
     def _build_url(self, endpoint: str) -> str:
-        base = (self.base_url or DEFAULT_BASE_URL).rstrip("/") + "/"
-        clean_endpoint = endpoint.lstrip("/")
-        return urljoin(base, clean_endpoint)
+        base = (self.base_url or DEFAULT_BASE_URL).strip().rstrip("/")
+        while base.lower().endswith("/client/api/client/api"):
+            base = base[:-11].rstrip("/")
+        if not base.lower().endswith("/client/api"):
+            if "client/api" not in base.lower():
+                base = f"{base}/client/api"
+        clean_endpoint = endpoint.strip().lstrip("/")
+        if clean_endpoint.startswith("client/api/"):
+            clean_endpoint = clean_endpoint[11:].lstrip("/")
+        return f"{base}/{clean_endpoint}"
 
     def request(self, method: str, endpoint: str, params: dict = None, json_data: dict = None, retries_left: int = 2) -> dict:
         """

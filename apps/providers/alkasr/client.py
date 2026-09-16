@@ -74,7 +74,10 @@ class AlkasrClient:
         else:
             rel_path = f"/client/api/{action}"
 
-        url = urljoin(base.rstrip("/") + "/", rel_path.lstrip("/"))
+        base_clean = base.rstrip("/")
+        while base_clean.lower().endswith("/client/api"):
+            base_clean = base_clean[:-11].rstrip("/")
+        url = urljoin(base_clean + "/", rel_path.lstrip("/"))
 
         method = "POST"
 

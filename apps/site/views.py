@@ -3443,6 +3443,63 @@ def control_order_detail(request, pk):
             order.fulfillment_data = fulfillment_data
             order.save()
             messages.success(request, "تم تحديث بيانات التنفيذ.")
+        elif action == "retry_provider_order":
+            first_item = order.items.first()
+            if not first_item or not first_item.variant:
+                messages.error(request, "لا يمكن إعادة الإرسال: لا توجد باقة محددة في هذا الطلب.")
+            else:
+                from apps.orders.services import resolve_variant_provider_and_product
+                from services.provider.manager import ProviderManager
+                provider_product, profile = resolve_variant_provider_and_product(first_item.variant)
+                if not provider_product or not profile:
+                    messages.error(request, "فشل الربط: لم يتم العثور على منتج مطابق أو ملف مزود نشط.")
+                else:
+                    try:
+                        import uuid
+                        api_order_uuid = order.api_order_uuid or uuid.uuid4()
+                        order.api_order_uuid = api_order_uuid
+
+                        combined_params = dict(order.fulfillment_data or {})
+                        if isinstance(order.metadata, dict):
+                            for k, v in order.metadata.items():
+                                if k not in combined_params or not combined_params[k]:
+                                    combined_params[k] = v
+
+                        sanitized_params = ProviderManager.sanitize_player_params(combined_params)
+
+                        api_resp = ProviderManager.place_order(
+                            profile=profile,
+                            local_order=order,
+                            provider_product=provider_product,
+                            quantity=first_item.quantity,
+                            player_params=sanitized_params,
+                            order_uuid=api_order_uuid,
+                        )
+                        api_status = api_resp.get("status") or "wait"
+                        api_order_id = api_resp.get("remote_order_id")
+                        raw_response = api_resp.get("raw_response") or api_resp
+
+                        fulfillment = dict(order.fulfillment_data or {})
+                        fulfillment["api_status"] = api_status
+                        order.api_order_id = api_order_id
+                        order.fulfillment_data = fulfillment
+                        order_meta = dict(order.metadata or {})
+                        order_meta["api_provider"] = getattr(profile, "provider_name", "alkasr")
+                        order_meta.pop("api_error", None)
+                        order.metadata = order_meta
+                        order.save(update_fields=["api_order_id", "fulfillment_data", "metadata", "api_order_uuid", "updated_at"])
+
+                        from apps.orders.provider_status import apply_provider_status
+                        order = apply_provider_status(
+                            order,
+                            api_status,
+                            raw_response=raw_response,
+                            actor=request.user,
+                            note_prefix="إعادة إرسال يدوية بواسطة الإدارة",
+                        )
+                        messages.success(request, f"تم إرسال الطلب بنجاح إلى المزود (رقم العملية: {api_order_id or 'بانتظار التأكيد'}).")
+                    except Exception as e:
+                        messages.error(request, f"فشل الإرسال إلى المزود: {str(e)}")
         elif action == "update_shipping":
             order.shipping_carrier = request.POST.get("shipping_carrier", "").strip()
             order.tracking_number = request.POST.get("tracking_number", "").strip()
@@ -8186,6 +8243,34 @@ def control_api_integrations_list(request):
     })
 
 
+def _sync_api_integration_to_provider_profile(integration):
+    from apps.providers.models import ProviderProfile
+    from apps.common.tenant_utils import bypass_tenant_filter
+    from django.db.models import Q
+    with bypass_tenant_filter():
+        is_tafa3ol = "tafa3ol" in (integration.base_url or "").lower() or integration.provider == "tafa3olcard" or "تفاعل" in (integration.name or "")
+        q_filter = Q(store=integration.store)
+        if is_tafa3ol:
+            q_filter &= (Q(base_url__icontains="tafa3ol") | Q(provider_name__icontains="تفاعل"))
+        else:
+            q_filter &= (Q(base_url__icontains="alkasr") | Q(provider_name__in=["رقميات", "الكاسر VIP", "Alkasr VIP"]))
+
+        profile = ProviderProfile.all_objects.filter(q_filter).first()
+        if not profile:
+            ProviderProfile.all_objects.create(
+                store=integration.store,
+                provider_name="رقميات" if (not is_tafa3ol and not integration.store) else integration.name,
+                base_url=integration.base_url,
+                api_token=integration.api_token,
+                is_active=integration.is_active,
+            )
+        else:
+            profile.api_token = integration.api_token
+            profile.base_url = integration.base_url
+            profile.is_active = integration.is_active
+            profile.save(update_fields=["api_token", "base_url", "is_active"])
+
+
 @support_required
 def control_api_integration_create(request):
     from apps.site.forms import APIIntegrationForm
@@ -8198,6 +8283,7 @@ def control_api_integration_create(request):
         if store:
             integration.allow_sub_stores = False
         integration.save()
+        _sync_api_integration_to_provider_profile(integration)
         messages.success(request, "تمت إضافة إعدادات ربط الـ API الجديد بنجاح.")
         return redirect("control_api_integrations_list")
         
@@ -8224,7 +8310,8 @@ def control_api_integration_edit(request, pk):
         
     form = APIIntegrationForm(request.POST or None, instance=integration)
     if request.method == "POST" and form.is_valid():
-        form.save()
+        saved_integ = form.save()
+        _sync_api_integration_to_provider_profile(saved_integ)
         messages.success(request, "تم تحديث إعدادات الربط بنجاح.")
         return redirect("control_api_integrations_list")
         
