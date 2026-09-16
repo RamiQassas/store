@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
+  <rect width="128" height="128" rx="28" fill="#003791"/>
+  <g transform="translate(20, 24)">
+    <path d="M38 6 L38 68 L50 64 L50 20 L38 24 Z" fill="#ffffff"/>
+    <path d="M50 20 C64 16, 76 22, 76 34 C76 46, 62 52, 50 52 Z" fill="none" stroke="#ffffff" stroke-width="8"/>
+    <path d="M14 62 C28 58, 68 58, 76 68 C80 72, 74 76, 58 76 C32 76, 12 72, 14 62 Z" fill="#0070d1" opacity="0.9"/>
+  </g>
+  <text x="64" y="116" text-anchor="middle" fill="#ffffff" font-size="12" font-weight="900" font-family="sans-serif">PLAYSTATION</text>
+</svg>

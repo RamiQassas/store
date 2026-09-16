@@ -1,4 +1,4 @@
-﻿{% extends "site/base.html" %}
+{% extends "site/base.html" %}
 {% load static site_tags %}
 
 {% block title %}متجر الخدمات | {% if is_tenant %}{{ STORE_NAME }}{% else %}رقميات{% endif %}{% endblock %}
@@ -1275,7 +1275,7 @@
                         <a href="{% url 'product_detail' p.id %}" class="card-img-wrap">
                             {% product_display_image p as p_img %}
                             {% if p_img %}
-                            <img src="{{ p_img }}" alt="{{ p.name }}" loading="lazy">
+                            <img src="{{ p_img }}" alt="{{ p.name }}" loading="lazy" onerror="this.onerror=null; this.src='{% static 'site/img/brands/generic_digital.svg' %}';">
                             {% else %}
                             <div class="card-no-img">
                                 <i class="fas fa-bolt text-gold/30"></i>

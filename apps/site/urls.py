@@ -73,6 +73,7 @@ urlpatterns = [
     path("api/orders/<uuid:pk>/mark-read/", api_views.api_order_mark_read, name="api_order_mark_read"),
     path("api/users/search/", api_views.api_user_search, name="api_user_search"),
     path("api/users/lookup/", api_views.api_lookup_user, name="api_lookup_user"),
+    path("api/products/live-search/", api_views.api_live_product_search, name="api_live_product_search"),
 
     # Paymera Gateway Endpoints
     path("payments/paymera/callback/", views_paymera.paymera_callback_view, name="paymera_callback"),

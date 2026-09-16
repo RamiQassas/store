@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
+  <defs>
+    <linearGradient id="g_tg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#38bdf8"/>
+      <stop offset="100%" stop-color="#0284c7"/>
+    </linearGradient>
+  </defs>
+  <rect width="128" height="128" rx="28" fill="#0c1929"/>
+  <circle cx="64" cy="58" r="36" fill="url(#g_tg)"/>
+  <path d="M46 56 L82 42 C84 41, 86 43, 85 45 L79 73 C78 76, 75 77, 72 75 L63 68 L58 73 C57 74, 56 74, 55 73 L54 64 L74 48 C75 47, 74 46, 73 47 L49 61 L45 60 C42 59, 42 57, 46 56 Z" fill="#ffffff"/>
+  <text x="64" y="114" text-anchor="middle" fill="#38bdf8" font-size="13" font-weight="800" font-family="sans-serif">TELEGRAM</text>
+</svg>

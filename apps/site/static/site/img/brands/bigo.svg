@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
+  <rect width="128" height="128" rx="28" fill="#0284c7"/>
+  <circle cx="64" cy="52" r="30" fill="#38bdf8"/>
+  <circle cx="54" cy="48" r="5" fill="#ffffff"/>
+  <circle cx="74" cy="48" r="5" fill="#ffffff"/>
+  <path d="M52 64 Q64 74 76 64" fill="none" stroke="#ffffff" stroke-width="4" stroke-linecap="round"/>
+  <text x="64" y="114" text-anchor="middle" fill="#ffffff" font-size="14" font-weight="900" font-family="sans-serif">BIGO LIVE</text>
+</svg>

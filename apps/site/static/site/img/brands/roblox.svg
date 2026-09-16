@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
+  <rect width="128" height="128" rx="28" fill="#1e293b"/>
+  <g transform="rotate(-15 64 64)">
+    <rect x="36" y="36" width="56" height="56" rx="10" fill="#ef4444"/>
+    <rect x="54" y="54" width="20" height="20" rx="3" fill="#1e293b"/>
+  </g>
+  <text x="64" y="116" text-anchor="middle" fill="#f8fafc" font-size="13" font-weight="900" font-family="sans-serif" letter-spacing="1.5">ROBLOX</text>
+</svg>

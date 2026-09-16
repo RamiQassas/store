@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
+  <rect width="128" height="128" rx="28" fill="#10a37f"/>
+  <g transform="translate(34, 24)" stroke="#ffffff" stroke-width="4" stroke-linecap="round" fill="none">
+    <circle cx="30" cy="30" r="24" opacity="0.2" fill="#ffffff"/>
+    <path d="M30 6 C42 6, 50 14, 50 26 C50 34, 46 40, 38 42 L38 52 M18 42 C10 40, 6 34, 6 26 C6 14, 14 6, 26 6"/>
+    <circle cx="30" cy="30" r="8" fill="#ffffff"/>
+  </g>
+  <text x="64" y="112" text-anchor="middle" fill="#ffffff" font-size="12" font-weight="900" font-family="sans-serif">CHATGPT / AI</text>
+</svg>

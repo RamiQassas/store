@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
+  <rect width="128" height="128" rx="28" fill="#ec4899"/>
+  <path d="M64 36 C72 24, 90 32, 90 48 C90 66, 68 82, 64 86 C60 82, 38 66, 38 48 C38 32, 56 24, 64 36 Z" fill="#ffffff"/>
+  <text x="64" y="114" text-anchor="middle" fill="#ffffff" font-size="14" font-weight="900" font-family="sans-serif">LIKEE</text>
+</svg>

@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
+  <rect width="128" height="128" rx="28" fill="#1e293b"/>
+  <g transform="translate(32, 22)">
+    <path d="M2 4 L42 42 L2 80 Z" fill="#00d3ff"/>
+    <path d="M42 42 L56 28 L10 2 C6 -0.5, 2 0.5, 2 4 Z" fill="#00f076"/>
+    <path d="M42 42 L66 42 L56 56 L42 42 Z" fill="#ff3a44"/>
+    <path d="M42 42 L56 56 L10 82 C6 84.5, 2 83.5, 2 80 Z" fill="#ffe000"/>
+  </g>
+  <text x="64" y="116" text-anchor="middle" fill="#94a3b8" font-size="12" font-weight="800" font-family="sans-serif">GOOGLE PLAY</text>
+</svg>

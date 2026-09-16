@@ -1,4 +1,4 @@
-﻿#!/usr/bin/env python3
+#!/usr/bin/env python3
 import os
 import sys
 import subprocess
@@ -99,6 +99,18 @@ def main():
     py_sync_script = f"from allauth.socialaccount.models import SocialApp; app, _ = SocialApp.objects.get_or_create(provider='google'); app.client_id='{cid}'; app.secret='{csec}'; app.save(); print('SocialApp in database updated to:', app.client_id)"
     for compose_cmd in [["docker", "compose"], ["docker-compose"]]:
         if run_cmd(compose_cmd + ["-f", "docker-compose.prod.yml", "exec", "-T", "web", "python", "-c", py_sync_script]):
+            break
+
+    # Run collectstatic to collect brand SVGs into static root
+    print(">> Collecting static files (brand vector assets)...")
+    for compose_cmd in [["docker", "compose"], ["docker-compose"]]:
+        if run_cmd(compose_cmd + ["-f", "docker-compose.prod.yml", "exec", "-T", "web", "python", "manage.py", "collectstatic", "--noinput"]):
+            break
+
+    # Cache missing product images on server disk
+    print(">> Checking product image cache...")
+    for compose_cmd in [["docker", "compose"], ["docker-compose"]]:
+        if run_cmd(compose_cmd + ["-f", "docker-compose.prod.yml", "exec", "-T", "web", "python", "manage.py", "cache_product_images"]):
             break
 
     print("==========================================")

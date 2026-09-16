@@ -233,3 +233,60 @@ def api_user_search(request):
         })
         
     return JsonResponse(results, safe=False)
+
+
+def api_live_product_search(request):
+    """
+    Instant live search API for products with guaranteed local cached images.
+    Returns matched products with id, name, image, price_display, category_name, url, in_stock.
+    """
+    q = request.GET.get('q', '').strip()
+    if not q or len(q) < 1:
+        return JsonResponse({"results": [], "total": 0})
+
+    from django.db.models import Q
+    from django.urls import reverse
+    from apps.catalog.models import Product
+    from apps.catalog.image_caching import get_product_image_url
+    from apps.site.templatetags.site_tags import product_starting_price
+
+    store = getattr(request, "store", None)
+    if store:
+        qs = Product.objects.filter(store=store, is_active=True)
+    else:
+        qs = Product.objects.filter(is_active=True)
+
+    qs = qs.select_related("category").prefetch_related("variants").filter(
+        Q(name__icontains=q) |
+        Q(description__icontains=q) |
+        Q(category__name__icontains=q) |
+        Q(variants__name__icontains=q)
+    ).distinct()[:8]
+
+    currency = getattr(request, "currency", None)
+    dummy_context = {"CURRENCY": currency, "request": request}
+
+    results = []
+    for p in qs:
+        try:
+            p_price = product_starting_price(dummy_context, p)
+        except Exception:
+            p_price = ""
+
+        try:
+            p_url = reverse("product_detail", args=[p.id])
+        except Exception:
+            p_url = f"/catalog/{p.id}/"
+
+        results.append({
+            "id": str(p.id),
+            "name": p.name,
+            "image": get_product_image_url(p),
+            "category_name": p.category.name if p.category else "",
+            "price_display": p_price,
+            "url": p_url,
+            "in_stock": not p.is_out_of_stock,
+        })
+
+    return JsonResponse({"results": results, "total": len(results)})
+

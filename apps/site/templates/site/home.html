@@ -215,6 +215,147 @@
   filter: brightness(1.1);
 }
 
+/* Omni Search Floating Results Dropdown */
+.rq-omni-dropdown {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 0;
+  right: 0;
+  background: rgba(15, 23, 42, 0.97);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 18px;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.75), 0 0 0 1px rgba(99, 102, 241, 0.25);
+  backdrop-filter: blur(25px);
+  -webkit-backdrop-filter: blur(25px);
+  z-index: 1000;
+  overflow: hidden;
+  display: none;
+  animation: rqDropdownFadeIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes rqDropdownFadeIn {
+  from { opacity: 0; transform: translateY(-6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.rq-omni-dropdown.active {
+  display: block;
+}
+
+.rq-omni-item {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  padding: 0.75rem 1.1rem;
+  color: #fff;
+  text-decoration: none;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  transition: all 0.2s ease;
+}
+
+.rq-omni-item:last-child {
+  border-bottom: none;
+}
+
+.rq-omni-item:hover, .rq-omni-item.selected {
+  background: rgba(99, 102, 241, 0.18);
+  padding-right: 1.35rem;
+}
+
+.rq-omni-thumb {
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
+  object-fit: cover;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  flex-shrink: 0;
+}
+
+.rq-omni-meta {
+  flex: 1;
+  min-width: 0;
+}
+
+.rq-omni-title {
+  font-size: 0.88rem;
+  font-weight: 750;
+  color: #f8fafc;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin: 0 0 0.2rem;
+}
+
+.rq-omni-title mark {
+  background: rgba(99, 102, 241, 0.35);
+  color: #a5b4fc;
+  border-radius: 4px;
+  padding: 0 2px;
+}
+
+.rq-omni-sub {
+  font-size: 0.75rem;
+  color: var(--rq-text-secondary);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.rq-omni-cat-badge {
+  background: rgba(255, 255, 255, 0.08);
+  padding: 0.15rem 0.45rem;
+  border-radius: 6px;
+  font-size: 0.68rem;
+  color: #94a3b8;
+}
+
+.rq-omni-price {
+  font-weight: 800;
+  font-size: 0.85rem;
+  color: #38bdf8;
+  white-space: nowrap;
+}
+
+.rq-omni-footer {
+  padding: 0.65rem 1rem;
+  background: rgba(10, 15, 29, 0.85);
+  text-align: center;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.rq-omni-footer a {
+  color: var(--rq-indigo-light);
+  font-size: 0.82rem;
+  font-weight: 700;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.rq-omni-footer a:hover {
+  text-decoration: underline;
+}
+
+.rq-omni-empty {
+  padding: 1.5rem 1rem;
+  text-align: center;
+  color: #94a3b8;
+  font-size: 0.85rem;
+}
+
+.rq-omni-loading {
+  padding: 1.25rem 1rem;
+  text-align: center;
+  color: #94a3b8;
+  font-size: 0.85rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
 /* Quick Search Tags */
 .rq-quick-tags {
   display: flex;
@@ -1087,13 +1228,14 @@
           </p>
 
           <!-- Omni Search Dock -->
-          <form action="{% url 'catalog' %}" method="get" class="rq-omni-search">
+          <form action="{% url 'catalog' %}" method="get" class="rq-omni-search" id="rq-hero-search-form">
             <i class="fas fa-search"></i>
-            <input type="text" name="q" class="rq-omni-input" placeholder="ابحث في الكتالوج الموحد (ألعاب، برامج، بطاقات، اشتراكات سحابية)..." autocomplete="off">
+            <input type="text" name="q" id="rq-hero-search-input" class="rq-omni-input" placeholder="ابحث في الكتالوج الموحد (ألعاب، برامج، بطاقات، اشتراكات سحابية)..." autocomplete="off">
             <button type="submit" class="rq-omni-submit">
               <span>استكشف الكتالوج</span>
               <i class="fas fa-arrow-left"></i>
             </button>
+            <div class="rq-omni-dropdown" id="rq-hero-search-dropdown" role="listbox" aria-label="نتائج البحث اللحظي"></div>
           </form>
 
           <!-- Quick Discovery Chips -->
@@ -1122,7 +1264,7 @@
             <div class="rq-spotlight-media">
               {% product_display_image spotlight as spot_img %}
               {% if spot_img %}
-              <img src="{{ spot_img }}" alt="{{ spotlight.name }}" class="rq-spotlight-img">
+              <img src="{{ spot_img }}" alt="{{ spotlight.name }}" class="rq-spotlight-img" onerror="this.onerror=null; this.src='{% static 'site/img/brands/generic_digital.svg' %}';">
               {% else %}
               <div style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; background: #0f172a; color: #64748b;">
                 <i class="fas fa-cubes text-4xl"></i>
@@ -1266,7 +1408,7 @@
         <div class="rq-service-banner">
           {% product_display_image product as p_img %}
           {% if p_img %}
-          <img src="{{ p_img }}" alt="{{ product.name }}" loading="lazy">
+          <img src="{{ p_img }}" alt="{{ product.name }}" loading="lazy" onerror="this.onerror=null; this.src='{% static 'site/img/brands/generic_digital.svg' %}';">
           {% else %}
           <div style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; background: #0f172a; color: #475569;">
             <i class="fas fa-layer-group text-3xl"></i>
@@ -1412,4 +1554,182 @@
   </section>
 
 </div>
+
+<script>
+(function() {
+  const input = document.getElementById('rq-hero-search-input');
+  const dropdown = document.getElementById('rq-hero-search-dropdown');
+  const form = document.getElementById('rq-hero-search-form');
+  const fallbackImg = "{% static 'site/img/brands/generic_digital.svg' %}";
+  const catalogUrl = "{% url 'catalog' %}";
+
+  if (!input || !dropdown) return;
+
+  let debounceTimer = null;
+  let currentController = null;
+  let selectedIndex = -1;
+  let currentResults = [];
+
+  function highlightMatch(text, query) {
+    if (!query) return text;
+    const safeQ = query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const regex = new RegExp(`(${safeQ})`, 'gi');
+    return text.replace(regex, '<mark>$1</mark>');
+  }
+
+  function closeDropdown() {
+    dropdown.classList.remove('active');
+    dropdown.innerHTML = '';
+    selectedIndex = -1;
+    currentResults = [];
+  }
+
+  function updateSelection(items) {
+    items.forEach((item, idx) => {
+      if (idx === selectedIndex) {
+        item.classList.add('selected');
+        item.scrollIntoView({ block: 'nearest' });
+      } else {
+        item.classList.remove('selected');
+      }
+    });
+  }
+
+  function renderResults(data, query) {
+    const results = data.results || [];
+    currentResults = results;
+    selectedIndex = -1;
+
+    if (results.length === 0) {
+      dropdown.innerHTML = `
+        <div class="rq-omni-empty">
+          <i class="fas fa-search-minus text-slate-500 text-2xl mb-2 block"></i>
+          <div>لم نجد نتائج مطابقة لـ "<strong>${escapeHtml(query)}</strong>"</div>
+          <a href="${catalogUrl}?q=${encodeURIComponent(query)}" class="inline-block mt-2 text-xs text-indigo-400 font-bold hover:underline">
+            البحث في الكتالوج الشامل ⟵
+          </a>
+        </div>
+      `;
+      dropdown.classList.add('active');
+      return;
+    }
+
+    let html = '';
+    results.forEach((p, idx) => {
+      const highlightedName = highlightMatch(escapeHtml(p.name), query);
+      const catBadge = p.category_name ? `<span class="rq-omni-cat-badge">${escapeHtml(p.category_name)}</span>` : '';
+      const priceText = p.price_display ? `<span class="rq-omni-price">${p.price_display}</span>` : '';
+      const stockBadge = !p.in_stock ? `<span class="text-[10px] text-rose-400 font-bold">(نفدت الكمية)</span>` : '';
+
+      html += `
+        <a href="${p.url}" class="rq-omni-item" data-idx="${idx}">
+          <img src="${p.image}" alt="${escapeHtml(p.name)}" class="rq-omni-thumb" onerror="this.onerror=null;this.src='${fallbackImg}';" loading="lazy">
+          <div class="rq-omni-meta">
+            <div class="rq-omni-title">${highlightedName}</div>
+            <div class="rq-omni-sub">
+              ${catBadge}
+              ${stockBadge}
+            </div>
+          </div>
+          ${priceText}
+        </a>
+      `;
+    });
+
+    html += `
+      <div class="rq-omni-footer">
+        <a href="${catalogUrl}?q=${encodeURIComponent(query)}">
+          <span>عرض كافة النتائج في الكتالوج (${data.total || results.length})</span>
+          <i class="fas fa-arrow-left"></i>
+        </a>
+      </div>
+    `;
+
+    dropdown.innerHTML = html;
+    dropdown.classList.add('active');
+  }
+
+  function escapeHtml(str) {
+    return (str || '').replace(/[&<>"']/g, function(m) {
+      return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[m];
+    });
+  }
+
+  input.addEventListener('input', function() {
+    const q = this.value.trim();
+    clearTimeout(debounceTimer);
+
+    if (currentController) {
+      currentController.abort();
+    }
+
+    if (q.length < 1) {
+      closeDropdown();
+      return;
+    }
+
+    dropdown.innerHTML = `
+      <div class="rq-omni-loading">
+        <i class="fas fa-spinner fa-spin text-indigo-400"></i>
+        <span>جاري البحث الفوري في المنتجات والخدمات...</span>
+      </div>
+    `;
+    dropdown.classList.add('active');
+
+    debounceTimer = setTimeout(() => {
+      currentController = new AbortController();
+      fetch(`/api/products/live-search/?q=${encodeURIComponent(q)}`, {
+        signal: currentController.signal,
+        headers: { 'X-Requested-With': 'XMLHttpRequest' }
+      })
+      .then(res => res.json())
+      .then(data => {
+        if (input.value.trim() === q) {
+          renderResults(data, q);
+        }
+      })
+      .catch(err => {
+        if (err.name !== 'AbortError') {
+          console.error('Search error:', err);
+        }
+      });
+    }, 160);
+  });
+
+  input.addEventListener('keydown', function(e) {
+    if (!dropdown.classList.contains('active')) return;
+    const items = dropdown.querySelectorAll('.rq-omni-item');
+    if (!items.length) return;
+
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      selectedIndex = (selectedIndex + 1) % items.length;
+      updateSelection(items);
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      selectedIndex = (selectedIndex - 1 + items.length) % items.length;
+      updateSelection(items);
+    } else if (e.key === 'Enter') {
+      if (selectedIndex >= 0 && selectedIndex < items.length) {
+        e.preventDefault();
+        items[selectedIndex].click();
+      }
+    } else if (e.key === 'Escape') {
+      closeDropdown();
+    }
+  });
+
+  document.addEventListener('click', function(e) {
+    if (!form.contains(e.target)) {
+      closeDropdown();
+    }
+  });
+
+  input.addEventListener('focus', function() {
+    if (this.value.trim().length >= 1 && currentResults.length > 0) {
+      dropdown.classList.add('active');
+    }
+  });
+})();
+</script>
 {% endblock %}

@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
+  <defs>
+    <linearGradient id="g_pubg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#f59e0b"/>
+      <stop offset="100%" stop-color="#d97706"/>
+    </linearGradient>
+  </defs>
+  <rect width="128" height="128" rx="28" fill="#111827"/>
+  <circle cx="64" cy="64" r="48" fill="url(#g_pubg)" opacity="0.15"/>
+  <path d="M40 38 L88 38 L88 56 L68 56 L68 90 L48 90 L48 56 L40 56 Z" fill="url(#g_pubg)"/>
+  <rect x="72" y="46" width="16" height="44" rx="4" fill="#fbbf24"/>
+  <text x="64" y="114" text-anchor="middle" fill="#f59e0b" font-size="14" font-weight="900" font-family="sans-serif" letter-spacing="2">PUBG</text>
+</svg>

@@ -43,6 +43,7 @@ urlpatterns = [
     path("catalog/", site_views.catalog, name="store_catalog"),  # Alias
     path("catalog/<str:pk>/", site_views.product_detail, name="product_detail"),
     path("catalog/<str:pk>/", site_views.product_detail, name="store_product_detail"),  # Alias
+    path("api/products/live-search/", site_api_views.api_live_product_search, name="api_live_product_search"),
 
     # Authentication — same auth flow as main platform
     path("auth/login/", site_views.v3_login_view, name="site_login"),

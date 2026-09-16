@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
+  <rect width="128" height="128" rx="28" fill="#0e141b"/>
+  <circle cx="64" cy="54" r="36" fill="#107c10"/>
+  <path d="M42 34 C50 44, 58 54, 64 64 C70 54, 78 44, 86 34 C74 24, 54 24, 42 34 Z" fill="#ffffff"/>
+  <path d="M34 46 C44 56, 54 68, 64 80 C56 86, 44 88, 34 84 C28 74, 28 58, 34 46 Z" fill="#ffffff"/>
+  <path d="M94 46 C84 56, 74 68, 64 80 C72 86, 84 88, 94 84 C100 74, 100 58, 94 46 Z" fill="#ffffff"/>
+  <text x="64" y="114" text-anchor="middle" fill="#107c10" font-size="13" font-weight="900" font-family="sans-serif" letter-spacing="2">XBOX</text>
+</svg>

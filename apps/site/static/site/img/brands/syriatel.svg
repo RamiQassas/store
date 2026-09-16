@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
+  <rect width="128" height="128" rx="28" fill="#991b1b"/>
+  <circle cx="64" cy="54" r="32" fill="#ef4444"/>
+  <path d="M50 44 Q64 34 78 44 Q64 76 50 44 Z" fill="#ffffff"/>
+  <text x="64" y="114" text-anchor="middle" fill="#ffffff" font-size="13" font-weight="900" font-family="sans-serif">SYRIATEL</text>
+</svg>

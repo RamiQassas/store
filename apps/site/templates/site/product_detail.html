@@ -292,7 +292,7 @@
         <div class="main-img-box relative bg-slate-950/40 border border-white/5" id="main-media-box" style="aspect-ratio: 16/9; overflow: hidden; display: flex; align-items: center; justify-content: center;">
             {% product_display_image product as p_img %}
             {% if p_img %}
-            <img id="main-product-img" src="{{ p_img }}" alt="{{ product.name }}" class="w-full h-full object-contain cursor-zoom-in hover:scale-[1.02] transition-transform duration-300" onclick="openImageLightbox(this.src)">
+            <img id="main-product-img" src="{{ p_img }}" alt="{{ product.name }}" class="w-full h-full object-contain cursor-zoom-in hover:scale-[1.02] transition-transform duration-300" onclick="openImageLightbox(this.src)" onerror="this.onerror=null; this.src='{% static 'site/img/brands/generic_digital.svg' %}';">
             <video id="main-product-video" class="w-full h-full object-contain hidden" controls muted playsinline></video>
             {% else %}
             <div class="w-full h-full flex items-center justify-center text-slate-700 bg-slate-900"><i class="fas fa-bolt text-7xl text-cyan/30"></i></div>
@@ -301,7 +301,7 @@
         <div class="thumb-grid">
             {% if p_img %}
             <div class="thumb-item active" onclick="changeMedia('{{ p_img }}', false, this)">
-                <img src="{{ p_img }}">
+                <img src="{{ p_img }}" onerror="this.onerror=null; this.src='{% static 'site/img/brands/generic_digital.svg' %}';">
             </div>
             {% endif %}
             {% for img in product.gallery.all %}
