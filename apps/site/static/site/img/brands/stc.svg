@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
+  <rect width="128" height="128" rx="28" fill="#4f008c"/>
+  <path d="M40 54 Q64 34 88 54 Q64 74 40 54 Z" fill="#ff375f"/>
+  <text x="64" y="114" text-anchor="middle" fill="#ffffff" font-size="15" font-weight="900" font-family="sans-serif">STC</text>
+</svg>

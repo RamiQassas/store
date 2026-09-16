@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
+  <rect width="128" height="128" rx="28" fill="#00205b"/>
+  <circle cx="64" cy="54" r="30" fill="#facc15"/>
+  <path d="M50 48 Q64 36 78 48 Q64 68 50 48 Z" fill="#00205b"/>
+  <text x="64" y="114" text-anchor="middle" fill="#facc15" font-size="13" font-weight="900" font-family="sans-serif">TURKCELL</text>
+</svg>

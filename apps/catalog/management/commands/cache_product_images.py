@@ -1,4 +1,4 @@
-﻿import os
+import os
 import logging
 from django.core.management.base import BaseCommand
 from django.conf import settings
@@ -20,7 +20,7 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         force = options.get('force', False)
-        products = Product.objects.all()
+        products = Product.all_objects.all()
         total = products.count()
         self.stdout.write(f'Scanning {total} products for image caching...')
 
@@ -39,6 +39,19 @@ class Command(BaseCommand):
             if has_valid_image and not force:
                 skipped_count += 1
                 continue
+
+            # If tenant product, try inheriting from global parent product first
+            if getattr(p, 'store_id', None):
+                parent = Product.all_objects.filter(store__isnull=True, name=p.name).exclude(image="").exclude(image__isnull=True).first()
+                if parent and parent.image:
+                    try:
+                        p.image = parent.image
+                        p.save(update_fields=['image'])
+                        updated_count += 1
+                        self.stdout.write(self.style.SUCCESS(f'Inherited image from parent for: {p.name}'))
+                        continue
+                    except Exception:
+                        pass
 
             try:
                 success = apply_branding_to_product(p, force=force)

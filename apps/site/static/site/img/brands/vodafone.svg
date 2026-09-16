@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
+  <rect width="128" height="128" rx="28" fill="#e60000"/>
+  <circle cx="64" cy="52" r="30" fill="#ffffff"/>
+  <path d="M64 38 C56 38 50 44 50 52 C50 62 60 68 64 74 C68 68 78 62 78 52 C78 44 72 38 64 38 Z" fill="#e60000"/>
+  <circle cx="64" cy="52" r="6" fill="#ffffff"/>
+  <text x="64" y="114" text-anchor="middle" fill="#ffffff" font-size="12" font-weight="900" font-family="sans-serif">VODAFONE</text>
+</svg>

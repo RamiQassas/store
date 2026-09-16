@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
+  <rect width="128" height="128" rx="28" fill="#042f2e"/>
+  <path d="M44 38 L84 38 L48 72 L84 72" fill="none" stroke="#14b8a6" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="64" y="114" text-anchor="middle" fill="#2dd4bf" font-size="15" font-weight="900" font-family="sans-serif">ZAIN</text>
+</svg>

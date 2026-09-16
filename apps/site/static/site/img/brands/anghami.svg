@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
+  <defs>
+    <linearGradient id="g_ang" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#9333ea"/>
+      <stop offset="100%" stop-color="#db2777"/>
+    </linearGradient>
+  </defs>
+  <rect width="128" height="128" rx="28" fill="#180c2e"/>
+  <circle cx="64" cy="54" r="34" fill="url(#g_ang)"/>
+  <polygon points="56,38 78,54 56,70" fill="#ffffff"/>
+  <circle cx="64" cy="54" r="28" fill="none" stroke="#ffffff" stroke-width="2" opacity="0.4"/>
+  <text x="64" y="114" text-anchor="middle" fill="#f472b6" font-size="13" font-weight="900" font-family="sans-serif">ANGHAMI</text>
+</svg>

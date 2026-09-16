@@ -248,11 +248,21 @@ def import_raqamiyat_products_for_store(store, selected_group_names=None, progre
                 )
                 stats["products_created"] += 1
             else:
-                # Update category and active state
+                # Update category and active state, and sync images if missing
                 store_prod.category = target_cat
                 store_prod.is_active = g_prod.is_active
                 store_prod.is_out_of_stock = g_prod.is_out_of_stock
-                store_prod.save(update_fields=["category", "is_active", "is_out_of_stock"])
+                update_fields = ["category", "is_active", "is_out_of_stock"]
+                if not store_prod.image and g_prod.image:
+                    store_prod.image = g_prod.image
+                    update_fields.append("image")
+                if not store_prod.cover_image and g_prod.cover_image:
+                    store_prod.cover_image = g_prod.cover_image
+                    update_fields.append("cover_image")
+                if not store_prod.thumbnail and g_prod.thumbnail:
+                    store_prod.thumbnail = g_prod.thumbnail
+                    update_fields.append("thumbnail")
+                store_prod.save(update_fields=update_fields)
                 stats["products_updated"] += 1
 
             # 3. Clone / sync variants

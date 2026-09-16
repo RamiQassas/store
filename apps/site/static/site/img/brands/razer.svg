@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
+  <rect width="128" height="128" rx="28" fill="#000000"/>
+  <circle cx="64" cy="52" r="32" fill="#00ff00" opacity="0.12"/>
+  <polygon points="64,24 88,40 88,68 64,84 40,68 40,40" fill="none" stroke="#00ff00" stroke-width="4"/>
+  <polygon points="64,36 78,46 78,62 64,72 50,62 50,46" fill="#00ff00"/>
+  <text x="64" y="114" text-anchor="middle" fill="#00ff00" font-size="12" font-weight="900" font-family="sans-serif" letter-spacing="1.5">RAZER GOLD</text>
+</svg>

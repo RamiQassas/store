@@ -268,18 +268,275 @@ brands = {
   <text x="64" y="114" text-anchor="middle" fill="#ffffff" font-size="13" font-weight="900" font-family="sans-serif">SYRIATEL</text>
 </svg>""",
 
-    "generic_digital": """<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
+    "yallaludo": """<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
   <defs>
-    <linearGradient id="g_rq" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#6366f1"/>
-      <stop offset="100%" stop-color="#06b6d4"/>
+    <linearGradient id="g_yl" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#047857"/>
+      <stop offset="100%" stop-color="#065f46"/>
     </linearGradient>
   </defs>
-  <rect width="128" height="128" rx="28" fill="#0d1322"/>
-  <polygon points="64,22 96,40 96,76 64,94 32,76 32,40" fill="none" stroke="url(#g_rq)" stroke-width="4"/>
-  <path d="M64 22 L64 94 M32 40 L96 76 M96 40 L32 76" stroke="url(#g_rq)" stroke-width="2" opacity="0.4"/>
-  <circle cx="64" cy="58" r="10" fill="url(#g_rq)"/>
-  <text x="64" y="114" text-anchor="middle" fill="#38bdf8" font-size="12" font-weight="800" font-family="sans-serif">RAQAMIYAT</text>
+  <rect width="128" height="128" rx="28" fill="url(#g_yl)"/>
+  <g transform="translate(34, 22)">
+    <rect x="0" y="8" width="42" height="42" rx="8" fill="#ffffff" stroke="#e2e8f0" stroke-width="2"/>
+    <circle cx="21" cy="29" r="6" fill="#ef4444"/>
+    <rect x="26" y="24" width="40" height="40" rx="8" fill="#fbbf24" stroke="#f59e0b" stroke-width="2"/>
+    <circle cx="36" cy="34" r="4" fill="#1e293b"/>
+    <circle cx="56" cy="54" r="4" fill="#1e293b"/>
+    <circle cx="46" cy="44" r="4" fill="#1e293b"/>
+  </g>
+  <text x="64" y="114" text-anchor="middle" fill="#fde047" font-size="12" font-weight="900" font-family="sans-serif" letter-spacing="1">YALLA LUDO</text>
+</svg>""",
+
+    "razer": """<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
+  <rect width="128" height="128" rx="28" fill="#000000"/>
+  <circle cx="64" cy="52" r="32" fill="#00ff00" opacity="0.12"/>
+  <polygon points="64,24 88,40 88,68 64,84 40,68 40,40" fill="none" stroke="#00ff00" stroke-width="4"/>
+  <polygon points="64,36 78,46 78,62 64,72 50,62 50,46" fill="#00ff00"/>
+  <text x="64" y="114" text-anchor="middle" fill="#00ff00" font-size="12" font-weight="900" font-family="sans-serif" letter-spacing="1.5">RAZER GOLD</text>
+</svg>""",
+
+    "brawlstars": """<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
+  <rect width="128" height="128" rx="28" fill="#1e1b4b"/>
+  <circle cx="64" cy="52" r="34" fill="#f59e0b"/>
+  <polygon points="64,22 74,44 98,44 80,60 86,84 64,70 42,84 48,60 30,44 54,44" fill="#fbbf24"/>
+  <circle cx="56" cy="50" r="5" fill="#1e1b4b"/>
+  <circle cx="72" cy="50" r="5" fill="#1e1b4b"/>
+  <text x="64" y="114" text-anchor="middle" fill="#fbbf24" font-size="11" font-weight="900" font-family="sans-serif" letter-spacing="1">BRAWL STARS</text>
+</svg>""",
+
+    "hayday": """<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
+  <rect width="128" height="128" rx="28" fill="#713f12"/>
+  <circle cx="64" cy="54" r="34" fill="#eab308"/>
+  <ellipse cx="64" cy="58" rx="22" ry="16" fill="#fef08a"/>
+  <circle cx="56" cy="54" r="4" fill="#713f12"/>
+  <circle cx="72" cy="54" r="4" fill="#713f12"/>
+  <text x="64" y="114" text-anchor="middle" fill="#fef08a" font-size="14" font-weight="900" font-family="sans-serif">HAY DAY</text>
+</svg>""",
+
+    "anghami": """<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
+  <defs>
+    <linearGradient id="g_ang" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#9333ea"/>
+      <stop offset="100%" stop-color="#db2777"/>
+    </linearGradient>
+  </defs>
+  <rect width="128" height="128" rx="28" fill="#180c2e"/>
+  <circle cx="64" cy="54" r="34" fill="url(#g_ang)"/>
+  <polygon points="56,38 78,54 56,70" fill="#ffffff"/>
+  <circle cx="64" cy="54" r="28" fill="none" stroke="#ffffff" stroke-width="2" opacity="0.4"/>
+  <text x="64" y="114" text-anchor="middle" fill="#f472b6" font-size="13" font-weight="900" font-family="sans-serif">ANGHAMI</text>
+</svg>""",
+
+    "osn": """<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
+  <rect width="128" height="128" rx="28" fill="#881337"/>
+  <circle cx="64" cy="52" r="32" fill="#be123c"/>
+  <text x="56" y="62" text-anchor="middle" fill="#ffffff" font-size="24" font-weight="900" font-family="sans-serif">OSN</text>
+  <text x="86" y="58" text-anchor="middle" fill="#f43f5e" font-size="28" font-weight="900" font-family="sans-serif">+</text>
+  <text x="64" y="114" text-anchor="middle" fill="#fda4af" font-size="14" font-weight="900" font-family="sans-serif">OSN+</text>
+</svg>""",
+
+    "stc": """<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
+  <rect width="128" height="128" rx="28" fill="#4f008c"/>
+  <path d="M40 54 Q64 34 88 54 Q64 74 40 54 Z" fill="#ff375f"/>
+  <text x="64" y="114" text-anchor="middle" fill="#ffffff" font-size="15" font-weight="900" font-family="sans-serif">STC</text>
+</svg>""",
+
+    "zain": """<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
+  <rect width="128" height="128" rx="28" fill="#042f2e"/>
+  <path d="M44 38 L84 38 L48 72 L84 72" fill="none" stroke="#14b8a6" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="64" y="114" text-anchor="middle" fill="#2dd4bf" font-size="15" font-weight="900" font-family="sans-serif">ZAIN</text>
+</svg>""",
+
+    "turkcell": """<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
+  <rect width="128" height="128" rx="28" fill="#00205b"/>
+  <circle cx="64" cy="54" r="30" fill="#facc15"/>
+  <path d="M50 48 Q64 36 78 48 Q64 68 50 48 Z" fill="#00205b"/>
+  <text x="64" y="114" text-anchor="middle" fill="#facc15" font-size="13" font-weight="900" font-family="sans-serif">TURKCELL</text>
+</svg>""",
+
+    "vodafone": """<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
+  <rect width="128" height="128" rx="28" fill="#e60000"/>
+  <circle cx="64" cy="52" r="30" fill="#ffffff"/>
+  <path d="M64 38 C56 38 50 44 50 52 C50 62 60 68 64 74 C68 68 78 62 78 52 C78 44 72 38 64 38 Z" fill="#e60000"/>
+  <circle cx="64" cy="52" r="6" fill="#ffffff"/>
+  <text x="64" y="114" text-anchor="middle" fill="#ffffff" font-size="12" font-weight="900" font-family="sans-serif">VODAFONE</text>
+</svg>""",
+
+    "mtn": """<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
+  <rect width="128" height="128" rx="28" fill="#ffcc00"/>
+  <ellipse cx="64" cy="52" rx="42" ry="26" fill="#000000"/>
+  <text x="64" y="60" text-anchor="middle" fill="#ffcc00" font-size="20" font-weight="900" font-family="sans-serif" letter-spacing="1">MTN</text>
+  <text x="64" y="114" text-anchor="middle" fill="#000000" font-size="14" font-weight="900" font-family="sans-serif">MTN</text>
+</svg>""",
+
+    "generic_digital": """<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="100%" height="100%">
+  <defs>
+    <!-- Background Space Gradients -->
+    <linearGradient id="rq_bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#050814"/>
+      <stop offset="45%" stop-color="#0a1226"/>
+      <stop offset="100%" stop-color="#03060f"/>
+    </linearGradient>
+
+    <!-- Glowing Ambient Lights -->
+    <radialGradient id="cyan_ambient" cx="25%" cy="20%" r="50%">
+      <stop offset="0%" stop-color="#06b6d4" stop-opacity="0.32"/>
+      <stop offset="50%" stop-color="#0891b2" stop-opacity="0.12"/>
+      <stop offset="100%" stop-color="#06b6d4" stop-opacity="0"/>
+    </radialGradient>
+
+    <radialGradient id="violet_ambient" cx="80%" cy="75%" r="55%">
+      <stop offset="0%" stop-color="#8b5cf6" stop-opacity="0.25"/>
+      <stop offset="60%" stop-color="#6366f1" stop-opacity="0.08"/>
+      <stop offset="100%" stop-color="#8b5cf6" stop-opacity="0"/>
+    </radialGradient>
+
+    <radialGradient id="amber_flare" cx="85%" cy="18%" r="40%">
+      <stop offset="0%" stop-color="#f59e0b" stop-opacity="0.22"/>
+      <stop offset="70%" stop-color="#f59e0b" stop-opacity="0"/>
+    </radialGradient>
+
+    <!-- Card Edge Glow -->
+    <linearGradient id="card_border" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#38bdf8" stop-opacity="0.5"/>
+      <stop offset="35%" stop-color="#818cf8" stop-opacity="0.25"/>
+      <stop offset="70%" stop-color="#c084fc" stop-opacity="0.15"/>
+      <stop offset="100%" stop-color="#38bdf8" stop-opacity="0.4"/>
+    </linearGradient>
+
+    <!-- Shield & Emblem Gradients -->
+    <linearGradient id="shield_fill" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0e172f" stop-opacity="0.95"/>
+      <stop offset="50%" stop-color="#0b1326" stop-opacity="0.88"/>
+      <stop offset="100%" stop-color="#060b17" stop-opacity="0.98"/>
+    </linearGradient>
+
+    <linearGradient id="shield_stroke" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#22d3ee"/>
+      <stop offset="50%" stop-color="#6366f1"/>
+      <stop offset="100%" stop-color="#06b6d4"/>
+    </linearGradient>
+
+    <!-- Bolt Gradients (Official Brand Colors) -->
+    <linearGradient id="bolt_primary" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#2dd4bf"/>
+      <stop offset="50%" stop-color="#06b6d4"/>
+      <stop offset="100%" stop-color="#2563eb"/>
+    </linearGradient>
+
+    <linearGradient id="bolt_highlight" x1="20%" y1="0%" x2="80%" y2="100%">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.98"/>
+      <stop offset="60%" stop-color="#e0f2fe" stop-opacity="0.92"/>
+      <stop offset="100%" stop-color="#bae6fd" stop-opacity="0.85"/>
+    </linearGradient>
+
+    <!-- Typography Gradients -->
+    <linearGradient id="text_gold" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#ffffff"/>
+      <stop offset="50%" stop-color="#38bdf8"/>
+      <stop offset="100%" stop-color="#22d3ee"/>
+    </linearGradient>
+
+    <!-- Glow Filter -->
+    <filter id="glow_cyan" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="8" result="blur"/>
+      <feComposite in="SourceGraphic" in2="blur" operator="over"/>
+    </filter>
+
+    <filter id="soft_drop" x="-15%" y="-15%" width="130%" height="130%">
+      <feDropShadow dx="0" dy="8" stdDeviation="12" flood-color="#000000" flood-opacity="0.65"/>
+    </filter>
+
+    <!-- Pattern -->
+    <pattern id="circuit_pattern" width="40" height="40" patternUnits="userSpaceOnUse">
+      <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#38bdf8" stroke-width="0.75" stroke-opacity="0.06"/>
+      <circle cx="40" cy="0" r="1.5" fill="#38bdf8" fill-opacity="0.12"/>
+      <circle cx="0" cy="40" r="1.5" fill="#818cf8" fill-opacity="0.12"/>
+    </pattern>
+  </defs>
+
+  <!-- 1. Background Rect -->
+  <rect width="512" height="512" rx="72" fill="url(#rq_bg)"/>
+  <rect width="512" height="512" rx="72" fill="url(#circuit_pattern)"/>
+
+  <!-- Ambient Light Orbs -->
+  <circle cx="120" cy="110" r="180" fill="url(#cyan_ambient)"/>
+  <circle cx="390" cy="380" r="170" fill="url(#violet_ambient)"/>
+  <circle cx="410" cy="110" r="120" fill="url(#amber_flare)"/>
+
+  <!-- 2. Outer Border with subtle glow -->
+  <rect x="12" y="12" width="488" height="488" rx="62" fill="none" stroke="url(#card_border)" stroke-width="2"/>
+  <rect x="18" y="18" width="476" height="476" rx="56" fill="none" stroke="#ffffff" stroke-width="1" stroke-opacity="0.05"/>
+
+  <!-- 3. Top Digital Tag Pill -->
+  <g transform="translate(156, 36)">
+    <rect width="200" height="30" rx="15" fill="#0b152d" stroke="#06b6d4" stroke-width="1" stroke-opacity="0.45"/>
+    <circle cx="20" cy="15" r="4" fill="#10b981"/>
+    <text x="110" y="19" text-anchor="middle" fill="#67e8f9" font-family="'Segoe UI', system-ui, sans-serif" font-size="11" font-weight="800" letter-spacing="2">RAQAMIYAT CLOUD</text>
+  </g>
+
+  <!-- 4. Central High-Tech Shield & Emblem -->
+  <g filter="url(#soft_drop)" transform="translate(0, 5)">
+    <!-- Outer Cyber Hexagon / Shield -->
+    <polygon points="256,92 384,166 384,286 256,360 128,286 128,166" 
+             fill="url(#shield_fill)" 
+             stroke="url(#shield_stroke)" 
+             stroke-width="2.5"/>
+    
+    <!-- Inner Accent Ring -->
+    <polygon points="256,106 368,174 368,276 256,344 144,276 144,174" 
+             fill="none" 
+             stroke="#38bdf8" 
+             stroke-width="1" 
+             stroke-opacity="0.3" 
+             stroke-dasharray="6,4"/>
+
+    <!-- Decorative Corner Circuit Accents -->
+    <line x1="128" y1="166" x2="108" y2="154" stroke="#06b6d4" stroke-width="1.5" stroke-opacity="0.6"/>
+    <circle cx="108" cy="154" r="2.5" fill="#06b6d4"/>
+    <line x1="384" y1="166" x2="404" y2="154" stroke="#06b6d4" stroke-width="1.5" stroke-opacity="0.6"/>
+    <circle cx="404" cy="154" r="2.5" fill="#06b6d4"/>
+
+    <line x1="128" y1="286" x2="108" y2="298" stroke="#8b5cf6" stroke-width="1.5" stroke-opacity="0.6"/>
+    <circle cx="108" cy="298" r="2.5" fill="#8b5cf6"/>
+    <line x1="384" y1="286" x2="404" y2="298" stroke="#8b5cf6" stroke-width="1.5" stroke-opacity="0.6"/>
+    <circle cx="404" cy="298" r="2.5" fill="#8b5cf6"/>
+
+    <!-- Official Raqamiyat Lightning Bolt Emblem (Centered & Scaled) -->
+    <g transform="translate(256, 226) scale(0.52) translate(-256, -256)">
+      <!-- Outer Cyan/Teal Bolt Body -->
+      <path d="M285 52 128 282h108l-33 178 181-252H274L285 52Z" 
+            fill="url(#bolt_primary)" 
+            filter="url(#glow_cyan)"/>
+      <!-- Inner Crisp White/Cyan Core Specular Highlight -->
+      <path d="M260 86 158 250h108l-22 116 110-158H244l16-122Z" 
+            fill="url(#bolt_highlight)"/>
+    </g>
+  </g>
+
+  <!-- 5. Modern Raqamiyat Brand Typography -->
+  <!-- Arabic Brand Name -->
+  <text x="256" y="416" text-anchor="middle" 
+        fill="url(#text_gold)" 
+        font-family="'Cairo', 'Tajawal', 'Segoe UI', Arial, sans-serif" 
+        font-size="34" 
+        font-weight="900" 
+        letter-spacing="1">رَقْمِيَّات</text>
+
+  <!-- English Brand Name -->
+  <text x="256" y="444" text-anchor="middle" 
+        fill="#94a3b8" 
+        font-family="'Segoe UI', -apple-system, sans-serif" 
+        font-size="13" 
+        font-weight="800" 
+        letter-spacing="5">RAQAMIYAT</text>
+
+  <!-- Verified Security Badge Pill -->
+  <g transform="translate(136, 458)">
+    <rect width="240" height="26" rx="13" fill="#091326" stroke="#38bdf8" stroke-width="1" stroke-opacity="0.35"/>
+    <path d="M22 13 L25 16 L31 10" fill="none" stroke="#22d3ee" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+    <text x="135" y="17" text-anchor="middle" fill="#38bdf8" font-family="'Cairo', 'Segoe UI', system-ui, sans-serif" font-size="10.5" font-weight="700" letter-spacing="1.2">منصة رقمية موثوقة • VERIFIED</text>
+  </g>
 </svg>"""
 }
 
