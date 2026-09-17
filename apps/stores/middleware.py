@@ -129,6 +129,29 @@ class TenantResolutionMiddleware:
                 except Exception as e:
                     print(f"[TenantResolutionMiddleware] Error during custom domain lookup: {str(e)}")
 
+        # Check query param / session tenant resolution (ensures sub-stores work reliably even without wildcard DNS)
+        if not request.store:
+            exit_store = request.GET.get("exit_store")
+            if exit_store:
+                if hasattr(request, 'session') and "active_sub_store" in request.session:
+                    del request.session["active_sub_store"]
+            else:
+                store_param = request.GET.get("store")
+                if not store_param and hasattr(request, 'session'):
+                    store_param = request.session.get("active_sub_store")
+                if store_param:
+                    try:
+                        with bypass_tenant_filter():
+                            matched_store = Store.objects.filter(subdomain__iexact=store_param, is_active=True).first()
+                            if not matched_store and len(str(store_param)) == 36:
+                                matched_store = Store.objects.filter(id=store_param, is_active=True).first()
+                        if matched_store:
+                            request.store = matched_store
+                            if hasattr(request, 'session'):
+                                request.session["active_sub_store"] = matched_store.subdomain
+                    except Exception:
+                        pass
+
         # 4. Bind tenant routing and threadlocal context
         if request.store:
             request.urlconf = 'apps.stores.urls'

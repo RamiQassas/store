@@ -1114,8 +1114,46 @@
 .cat-card:nth-child(2)  { animation-delay: 0.05s; }
 .cat-card:nth-child(3)  { animation-delay: 0.10s; }
 .cat-card:nth-child(4)  { animation-delay: 0.15s; }
-.cat-card:nth-child(5)  { animation-delay: 0.20s; }
-.cat-card:nth-child(6)  { animation-delay: 0.25s; }
+/* ---- Ultra-Compact Mobile Layout & Horizontal Overflow Prevention ---- */
+@media (max-width: 640px) {
+    .catalog-page, .catalog-container, .catalog-layout {
+        max-width: 100vw;
+        overflow-x: hidden;
+        padding-left: 0.5rem !important;
+        padding-right: 0.5rem !important;
+    }
+    .product-grid, .categories-section {
+        grid-template-columns: repeat(2, 1fr) !important;
+        gap: 0.6rem !important;
+    }
+    .p-card, .cat-card {
+        border-radius: 16px !important;
+    }
+    .p-card-body, .cat-card-info {
+        padding: 0.75rem 0.65rem !important;
+    }
+    .p-card-name, .cat-card-name {
+        font-size: 0.82rem !important;
+        line-height: 1.25 !important;
+    }
+    .p-card-price {
+        font-size: 0.92rem !important;
+    }
+    .p-card-action, .cat-card-action {
+        width: 32px !important;
+        height: 32px !important;
+        font-size: 0.8rem !important;
+    }
+    .catalog-controls {
+        flex-direction: column !important;
+        align-items: stretch !important;
+        gap: 0.6rem !important;
+    }
+    .view-toggle {
+        width: 100% !important;
+        justify-content: center !important;
+    }
+}
 </style>
 {% endblock %}
 
@@ -1529,7 +1567,7 @@
 
     // Init view: prefer URL param, fallback to server-rendered default
     var urlView = new URLSearchParams(window.location.search).get('view');
-    var serverView = '{{ view_type|default:"products" }}';
+    var serverView = '{{ view_type|default:"categories" }}';
     switchView(urlView || serverView);
 
     /* ──────────────────────────────────────────

@@ -1797,6 +1797,26 @@ def home(request):
     return render(request, "site/home.html", ctx)
 
 
+def visit_store(request, subdomain):
+    """Direct transition handler for visiting a sub-store reliably."""
+    from apps.common.tenant_utils import bypass_tenant_filter
+    from apps.stores.models import Store
+    with bypass_tenant_filter():
+        target_store = Store.objects.filter(subdomain__iexact=subdomain, is_active=True).first()
+        if not target_store:
+            target_store = Store.objects.filter(id=subdomain, is_active=True).first() if len(str(subdomain)) == 36 else None
+
+    if not target_store:
+        messages.error(request, "المتجر المطلوب غير موجود أو غير نشط حالياً.")
+        return redirect("stores_directory")
+
+    if target_store.custom_domain:
+        return redirect(f"https://{target_store.custom_domain}")
+
+    # Set session so the sub-store opens seamlessly with its products & theme
+    request.session["active_sub_store"] = target_store.subdomain
+    return redirect(f"/?store={target_store.subdomain}")
+
 def stores_directory(request):
     """Public directory of all independent stores hosted on Raqamiyat."""
     from apps.stores.models import Store
@@ -1835,11 +1855,11 @@ def catalog(request):
 
     # Default to categories view if user opened /catalog/ directly without query or specific category
     if "view" in request.GET:
-        view_type = request.GET.get("view", "products")
+        view_type = request.GET.get("view", "categories")
     elif cat_id or q:
         view_type = "products"
     else:
-        view_type = "products"
+        view_type = "categories"
 
     if store:
         all_cats = list(Category.objects.filter(store=store, is_active=True).order_by("sort_order", "name"))
@@ -2479,6 +2499,13 @@ def product_detail(request, pk):
         catalog_qs = catalog_qs.filter(store__isnull=True)
 
     category_qs = catalog_qs.filter(category=product.category) if product.category else catalog_qs
+    total_category_products = category_qs.count()
+    product_index = category_qs.filter(
+        Q(sort_order__lt=product.sort_order) |
+        Q(sort_order=product.sort_order, created_at__lte=product.created_at)
+    ).count()
+    if product_index == 0:
+        product_index = 1
 
     prev_product = category_qs.filter(sort_order__lt=product.sort_order).order_by('-sort_order', '-created_at').first()
     if not prev_product:
@@ -2512,6 +2539,8 @@ def product_detail(request, pk):
         "gateway_methods": gateway_methods,
         "prev_product": prev_product,
         "next_product": next_product,
+        "product_index": product_index,
+        "total_category_products": total_category_products,
         "is_instant_product": is_instant_product,
         "is_inactive_product": is_inactive_product,
     })

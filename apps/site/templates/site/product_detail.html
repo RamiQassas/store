@@ -279,6 +279,9 @@
 {% endblock %}
 
 {% block content %}
+{% if prev_product %}<link rel="prefetch" href="{% url 'product_detail' prev_product.id %}">{% endif %}
+{% if next_product %}<link rel="prefetch" href="{% url 'product_detail' next_product.id %}">{% endif %}
+<div id="product-page-wrapper" class="transition-opacity duration-200">
 <div class="container pt-6 pb-2">
     <!-- Product Navigation Bar (Breadcrumb + Previous / Next Products) -->
     <div class="product-nav-dock p-3 sm:p-4 rounded-2xl bg-[#12121a]/85 backdrop-blur-xl border border-white/5 flex flex-wrap items-center justify-between gap-3 shadow-xl mb-2">
@@ -296,10 +299,22 @@
             {% endif %}
             <i class="fas fa-chevron-left text-[9px] opacity-40"></i>
             <span class="text-gold font-black truncate max-w-[140px] sm:max-w-[220px]">{{ product.name }}</span>
+            {% if total_category_products and total_category_products > 1 %}
+            <span class="sm:hidden text-[10px] px-2 py-0.5 rounded-lg bg-gold/10 text-gold font-bold border border-gold/20 mr-1">
+                #{{ product_index }}/{{ total_category_products }}
+            </span>
+            {% endif %}
         </nav>
 
-        <!-- Prev / Next Navigation Buttons -->
+        <!-- Prev / Next Navigation Buttons & Indicator -->
         <div class="flex items-center gap-2 mr-auto">
+            {% if total_category_products and total_category_products > 1 %}
+            <div class="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-gold/10 border border-gold/20 text-gold text-xs font-black shadow-sm" title="موقع المنتج في هذا القسم">
+                <i class="fas fa-layer-group text-[10px]"></i>
+                <span>المنتج {{ product_index }} من {{ total_category_products }}</span>
+            </div>
+            {% endif %}
+
             {% if prev_product %}
             <a href="{% url 'product_detail' prev_product.id %}" 
                class="nav-prod-btn group flex items-center gap-2 px-3 sm:px-3.5 py-1.5 sm:py-2 rounded-xl bg-slate-900/90 border border-white/10 hover:border-gold/50 hover:bg-gold/10 text-white transition-all shadow-md active:scale-95" 
@@ -872,8 +887,60 @@
         <img id="lightbox-img" src="" class="max-w-full max-h-full object-contain transition-transform duration-200 select-none pointer-events-none" style="transform: scale(1) rotate(0deg); transform-origin: center;">
     </div>
 </div>
+</div><!-- /#product-page-wrapper -->
 
 <script>
+// Instant Next / Previous Product AJAX Navigation with Smooth Transition
+document.addEventListener('click', function(e) {
+    const navBtn = e.target.closest('.nav-prod-btn');
+    if (!navBtn) return;
+    const url = navBtn.getAttribute('href');
+    if (!url || url === '#' || navBtn.target === '_blank') return;
+
+    const wrapper = document.getElementById('product-page-wrapper');
+    if (!wrapper) return;
+
+    e.preventDefault();
+    wrapper.style.opacity = '0.35';
+    wrapper.style.pointerEvents = 'none';
+
+    fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+        .then(response => {
+            if (!response.ok) throw new Error("HTTP error " + response.status);
+            return response.text();
+        })
+        .then(html => {
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(html, 'text/html');
+            const newWrapper = doc.getElementById('product-page-wrapper');
+            if (newWrapper) {
+                wrapper.innerHTML = newWrapper.innerHTML;
+                document.title = doc.title;
+                history.pushState(null, doc.title, url);
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+                // Automatically select first available variant
+                const firstVariant = wrapper.querySelector('.variant-card.selected') || wrapper.querySelector('.variant-card');
+                if (firstVariant) {
+                    firstVariant.click();
+                }
+            } else {
+                window.location.href = url;
+            }
+        })
+        .catch(err => {
+            console.warn("Instant nav fallback:", err);
+            window.location.href = url;
+        })
+        .finally(() => {
+            wrapper.style.opacity = '1';
+            wrapper.style.pointerEvents = 'auto';
+        });
+});
+
+window.addEventListener('popstate', function() {
+    window.location.reload();
+});
+
 function changeMedia(url, isVideo, el) {
     const mainImg = document.getElementById('main-product-img');
     const mainVideo = document.getElementById('main-product-video');
@@ -930,9 +997,9 @@ function isInstantDigitalProduct(el) {
     const isRecharge = el ? el.getAttribute('data-is-recharge') === 'true' : false;
     if (deliveryType === 'keys' || isRecharge) return true;
     
-    // Check keywords in product name or category
-    const keywords = ['whatsapp', 'واتساب', 'رقم', 'أرقام', 'ارقام', 'تفعيل', 'كود', 'أكواد', 'اكواد', 'قسيمة', 'بطاقة', 'كرت', 'اشتراك', 'حساب', 'سيريال', 'مفتاح', 'key', 'license', 'gift', 'voucher', 'card', 'netflix', 'canva', 'chatgpt', 'vpn'];
-    return keywords.some(k => PRODUCT_NAME.includes(k) || PRODUCT_CATEGORY_NAME.includes(k));
+    // Only static ready-to-deliver codes or accounts without any user input
+    const keywords = ['واتساب', 'whatsapp', 'مفتاح تفعيل', 'سيريال تفعيل', 'رقم جاهز', 'ready account'];
+    return keywords.some(k => PRODUCT_NAME.includes(k));
 }
 
 function renderDynamicFields(paramsJson, el) {
@@ -974,40 +1041,7 @@ function renderDynamicFields(paramsJson, el) {
 
     container.classList.remove('hidden');
 
-    // Case 1: Instant Digital Delivery Product (e.g. WhatsApp numbers, keys, codes, accounts, vouchers)
-    // No extra input required from customer! Display a clear, reassuring badge/panel.
-    if (isInstantDigitalProduct(el)) {
-        if (headerTitle) headerTitle.innerText = 'معلومات الاستلام والتسليم التلقائي';
-        if (helpText) helpText.innerText = 'التسليم فوري وتلقائي — كود التفعيل أو الرقم سيصلك مباشرة في تفاصيل الطلب فور إتمام الدفع.';
-        if (instantPill) {
-            instantPill.classList.remove('hidden');
-            instantPill.innerHTML = '<span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span> تسليم فوري وتلقائي';
-        }
-
-        wrapper.innerHTML = `
-            <div class="p-5 rounded-2xl bg-gradient-to-r from-emerald-500/10 via-amber-500/5 to-slate-900/60 border border-emerald-500/30 flex items-start gap-4 shadow-lg shadow-emerald-500/5">
-                <div class="w-12 h-12 rounded-2xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center shrink-0 border border-emerald-500/30 text-xl">
-                    <i class="fas fa-bolt"></i>
-                </div>
-                <div class="flex-grow">
-                    <div class="flex items-center justify-between gap-2 mb-1.5">
-                        <h4 class="text-sm font-black text-white flex items-center gap-2">
-                            <span>تسليم فوري ومباشر للكود / الرقم</span>
-                        </h4>
-                        <span class="text-[10px] px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 font-bold border border-emerald-500/30">
-                            آلي 100%
-                        </span>
-                    </div>
-                    <p class="text-xs text-slate-300 leading-relaxed">
-                        ⚡ <strong>لا يتطلب هذا المنتج إدخال أي بيانات أو آيدي مسبقاً.</strong> بمجرد الضغط على زر الشراء أدناه وتأكيد طلبك، ستستلم الرقم / كود التفعيل مباشرة على الشاشة وفي تفاصيل طلبك بشكل فوري وتلقائي.
-                    </p>
-                </div>
-            </div>
-        `;
-        return;
-    }
-
-    // Case 2: Variant has specific parameters defined
+    // Case 1: Variant has specific parameters defined (e.g. playerId, serverId) -> ALWAYS prioritize!
     if (Array.isArray(params) && params.length > 0) {
         if (headerTitle) headerTitle.innerText = 'بيانات تنفيذ وشحن الطلب';
         if (helpText) helpText.innerText = 'يرجى كتابة البيانات المطلوبة بعناية لضمان سرعة التنفيذ المباشر للطلب.';
@@ -1109,6 +1143,38 @@ function renderDynamicFields(paramsJson, el) {
             `;
         });
         wrapper.innerHTML = html;
+        return;
+    }
+
+    // Case 3.5: Pure Instant Digital Code / Pre-generated Voucher (Keys only)
+    if (isInstantDigitalProduct(el)) {
+        if (headerTitle) headerTitle.innerText = 'معلومات الاستلام والتسليم التلقائي';
+        if (helpText) helpText.innerText = 'التسليم فوري وتلقائي — كود التفعيل سيصلك مباشرة في تفاصيل الطلب فور إتمام الدفع.';
+        if (instantPill) {
+            instantPill.classList.remove('hidden');
+            instantPill.innerHTML = '<span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span> تسليم فوري وتلقائي';
+        }
+
+        wrapper.innerHTML = `
+            <div class="p-5 rounded-2xl bg-gradient-to-r from-emerald-500/10 via-amber-500/5 to-slate-900/60 border border-emerald-500/30 flex items-start gap-4 shadow-lg shadow-emerald-500/5">
+                <div class="w-12 h-12 rounded-2xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center shrink-0 border border-emerald-500/30 text-xl">
+                    <i class="fas fa-bolt"></i>
+                </div>
+                <div class="flex-grow">
+                    <div class="flex items-center justify-between gap-2 mb-1.5">
+                        <h4 class="text-sm font-black text-white flex items-center gap-2">
+                            <span>تسليم فوري ومباشر للكود الرقمي</span>
+                        </h4>
+                        <span class="text-[10px] px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 font-bold border border-emerald-500/30">
+                            آلي 100%
+                        </span>
+                    </div>
+                    <p class="text-xs text-slate-300 leading-relaxed">
+                        ⚡ <strong>لا يتطلب هذا المنتج إدخال أي بيانات أو آيدي مسبقاً.</strong> بمجرد إتمام الشراء، ستستلم كود التفعيل مباشرة على الشاشة وفي تفاصيل طلبك بشكل فوري.
+                    </p>
+                </div>
+            </div>
+        `;
         return;
     }
 
@@ -1345,7 +1411,9 @@ function updateQuantityPrice(isFromCoupon = false) {
     const isPerMille = card.getAttribute('data-is-per-mille') === 'true';
     
     let subtotal = basePrice;
-    if (qtyType === 'range' || qtyType === 'list') {
+    if (isPerMille) {
+        subtotal = (basePrice / 1000.0) * qty;
+    } else if (qtyType === 'range' || qtyType === 'list') {
         subtotal = basePrice * qty;
     }
     

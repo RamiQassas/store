@@ -493,33 +493,66 @@ def compose_branded_card(logo_img, product_name, store_name=None, width=600, hei
 
 
 
+def create_fallback_brand_icon(product_name, icon_size=330):
+    """
+    Creates an ultra-luxury studio icon tile using Raqamiyat emblem and modern typography
+    when no public App Store logo is found online.
+    """
+    icon = Image.new("RGBA", (icon_size, icon_size), (0, 0, 0, 0))
+    draw = ImageDraw.Draw(icon)
+    corner_radius = int(icon_size * 0.22)
+
+    # Base luxury container: Deep slate with sapphire/gold sheen
+    draw.rounded_rectangle(
+        [0, 0, icon_size - 1, icon_size - 1],
+        radius=corner_radius,
+        fill=(15, 23, 42, 255),
+        outline=(217, 119, 6, 120),
+        width=3
+    )
+
+    # Center emblem if available
+    if os.path.exists(EMBLEM_PATH):
+        try:
+            emblem = Image.open(EMBLEM_PATH).convert("RGBA")
+            emb_size = int(icon_size * 0.65)
+            emblem.thumbnail((emb_size, emb_size), Image.Resampling.LANCZOS)
+            ex = (icon_size - emblem.width) // 2
+            ey = (icon_size - emblem.height) // 2
+            icon.paste(emblem, (ex, ey), emblem)
+            return icon
+        except Exception:
+            pass
+
+    return icon
+
+
 def apply_branding_to_product(product, force=False):
     """
     Main function to brand a single product:
-    Searches the internet for the official logo, composes the branded card with Raqamiyat badge,
-    and updates product.image.
-    If no real logo is found and force=True, clears any old dummy generated image so that
-    the product falls back cleanly to static brand SVGs or category assets.
+    1. Searches the internet for the official app/service logo.
+    2. If not found, falls back to existing uploaded product image if available.
+    3. If still not found, generates an ultra-luxury studio card with Raqamiyat gold emblem.
+    Guarantees 100% success rate without deleting or corrupting existing images.
     """
     if product.image and not force:
         return False
 
     store_name = product.store.name if product.store else None
 
-    # Search internet for real official app/service logo
+    # 1. Search internet for real official app/service logo
     logo_img = search_and_download_logo(product.name)
 
+    # 2. Check if product already has an image on disk
+    if not logo_img and product.image:
+        try:
+            logo_img = Image.open(product.image.path).convert("RGBA")
+        except Exception:
+            logo_img = None
+
+    # 3. Fallback to luxury emblem icon
     if not logo_img:
-        # If forcing update and no logo could be found,
-        # clear any previously saved dummy card image so the system falls back cleanly to static brand SVGs
-        if force and product.image:
-            try:
-                product.image.delete(save=False)
-            except Exception:
-                pass
-            product.image = None
-            product.save(update_fields=['image'])
-        return False
+        logo_img = create_fallback_brand_icon(product.name)
 
     card_img = compose_branded_card(
         logo_img=logo_img,

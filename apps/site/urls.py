@@ -26,6 +26,7 @@ urlpatterns = [
 
     path("", views.home, name="home"),
     path("stores/", views.stores_directory, name="stores_directory"),
+    path("stores/visit/<str:subdomain>/", views.visit_store, name="visit_store"),
     path("create-store/", views_admin.store_registration_landing, name="store_registration"),
     path("create-store/payment/", views_admin.store_registration_payment, name="store_registration_payment"),
     path("control/stores/", views_admin.platform_super_admin_dashboard, name="platform_super_admin_dashboard"),

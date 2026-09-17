@@ -81,7 +81,15 @@ def variant_card_price(context, variant):
             pass
             
     if min_multiplier > 1:
-        total = Decimal(str(price)) * min_multiplier
+        if is_per_mille:
+            total = (Decimal(str(price)) / Decimal("1000")) * min_multiplier
+        elif qty_type in ("range", "custom_qty"):
+            total = Decimal(str(price)) * min_multiplier
+        else:
+            if Decimal(str(price)) < Decimal("0.05"):
+                total = Decimal(str(price)) * min_multiplier
+            else:
+                total = Decimal(str(price))
         formatted = currency_format(context, total)
         return f"{formatted} <span class='text-[10px] text-slate-400 block font-normal'>(تبدأ من {int(min_multiplier)})</span>"
     
@@ -141,7 +149,18 @@ def product_starting_price(context, product):
             except Exception:
                 pass
 
-        total = Decimal(str(v_price)) * min_multiplier
+        if min_multiplier > 1:
+            if is_per_mille:
+                total = (Decimal(str(v_price)) / Decimal("1000")) * min_multiplier
+            elif qty_type in ("range", "custom_qty"):
+                total = Decimal(str(v_price)) * min_multiplier
+            else:
+                if Decimal(str(v_price)) < Decimal("0.05"):
+                    total = Decimal(str(v_price)) * min_multiplier
+                else:
+                    total = Decimal(str(v_price))
+        else:
+            total = Decimal(str(v_price))
             
         if lowest_price is None or total < lowest_price:
             lowest_price = total

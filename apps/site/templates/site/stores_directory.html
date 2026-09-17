@@ -419,17 +419,10 @@
                         </div>
                     </div>
 
-                    {% if item.store.custom_domain %}
-                    <a href="//{{ item.store.custom_domain }}" target="_blank" rel="noopener" class="store-visit-btn">
+                    <a href="{% url 'visit_store' item.store.subdomain %}" class="store-visit-btn" title="زيارة متجر {{ item.store.name }}">
                         <span>زيارة المتجر</span>
                         <i class="fas fa-arrow-left"></i>
                     </a>
-                    {% else %}
-                    <a href="//{{ item.store.subdomain }}.{{ request.get_host }}" target="_blank" rel="noopener" class="store-visit-btn">
-                        <span>زيارة المتجر</span>
-                        <i class="fas fa-arrow-left"></i>
-                    </a>
-                    {% endif %}
                 </div>
             </div>
             {% empty %}

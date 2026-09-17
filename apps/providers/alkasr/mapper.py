@@ -706,9 +706,7 @@ class AlkasrMapperService:
                             qty_type = "list"
                         elif is_fixed_denom:
                             qty_type = "fixed"
-                        elif any(k in variant_name.lower() for k in ("فواتير", "fatura", "كاش", "cash", "تعبئة", "متابعين", "لايكات", "مشاهدات", "تعليقات", "followers", "likes", "views")):
-                            qty_type = "range"
-                        elif pp.product_type == "amount" and qty_max is not None and qty_min is not None and (qty_max - qty_min) >= 100:
+                        elif qty_max is not None and qty_min is not None and (qty_max - qty_min) >= 10:
                             qty_type = "range"
                         elif pp.product_type == "amount" and (qty_min is None or qty_max is None):
                             qty_type = "range"
@@ -718,7 +716,7 @@ class AlkasrMapperService:
                             qty_type = "fixed"
 
                         variant_cost = pp.cost_price
-                        if is_fixed_amount_package:
+                        if is_fixed_amount_package and pp.cost_price < Decimal("0.05"):
                             multiplier = Decimal(str(qty_min))
                             final_price = final_price * multiplier
                             wholesale_price = wholesale_price * multiplier
