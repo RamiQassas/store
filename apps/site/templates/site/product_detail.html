@@ -618,6 +618,7 @@
                     <select id="alkasr-variant-select" class="alkasr-select-box" onchange="onVariantDropdownChange(this.value)">
                         {% for v in variants %}
                         {% variant_price v as v_price %}
+                        {% variant_card_price v as v_card_price %}
                         <option value="{{ v.id }}"
                                 data-price="{{ v_price|unlocalize }}"
                                 data-qty-type="{{ v.metadata.qty_type|default:'none' }}"
@@ -631,7 +632,7 @@
                                 data-variant-name="{{ v.name }}"
                                 {% if forloop.first and not v.is_temporarily_disabled and not product.is_out_of_stock %}selected{% endif %}
                                 {% if v.is_temporarily_disabled or product.is_out_of_stock %}disabled{% endif %}>
-                            {{ v.name }} — {% variant_starting_price v %}
+                            {{ v.name }} — {{ v_card_price }}
                         </option>
                         {% endfor %}
                     </select>
