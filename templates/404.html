@@ -1,0 +1,68 @@
+{% extends "site/base.html" %}
+{% load static %}
+
+{% block title %}الصفحة غير موجودة (404) | رقميات{% endblock %}
+
+{% block content %}
+<div class="min-h-[75vh] flex items-center justify-center px-4 py-16">
+    <div class="max-w-xl w-full text-center relative">
+        <!-- Ambient Glowing Aura -->
+        <div class="absolute -top-24 left-1/2 -translate-x-1/2 w-80 h-80 bg-amber-500/10 rounded-full blur-3xl pointer-events-none"></div>
+        <div class="absolute -bottom-24 left-1/2 -translate-x-1/2 w-80 h-80 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none"></div>
+
+        <div class="relative bg-slate-900/70 backdrop-blur-2xl border border-white/10 rounded-3xl p-8 md:p-12 shadow-2xl">
+            <!-- Icon -->
+            <div class="w-20 h-20 mx-auto mb-6 rounded-2xl bg-gradient-to-tr from-amber-500/20 to-indigo-500/20 border border-amber-500/30 flex items-center justify-center text-amber-400 text-3xl shadow-lg shadow-amber-500/10">
+                <i class="fas fa-search-minus animate-pulse"></i>
+            </div>
+
+            <!-- Error Code & Title -->
+            <span class="inline-block px-3 py-1 rounded-full text-xs font-black uppercase tracking-widest bg-amber-400/10 text-amber-400 border border-amber-400/20 mb-3">
+                خطأ 404 • Not Found
+            </span>
+            <h1 class="text-2xl md:text-3xl font-black text-white mb-3">
+                الصفحة أو المنتج غير متوفر
+            </h1>
+            <p class="text-sm md:text-base text-slate-400 leading-relaxed mb-8">
+                عذراً، يبدو أن الرابط الذي تبحث عنه قد تم نقله أو حذفه، أو أن المنتج غير متاح حالياً في النظام. يمكنك استخدام البحث أدناه للوصول السريع لما تريد.
+            </p>
+
+            <!-- Search Form -->
+            <form action="{% url 'catalog' %}" method="get" class="relative max-w-md mx-auto mb-8">
+                <input type="text" name="q" placeholder="ابحث عن اسم المنتج، اللعبة، أو الخدمة..." 
+                       class="w-full bg-slate-800/80 border border-white/15 focus:border-amber-400/60 rounded-2xl py-3.5 pr-12 pl-24 text-white text-sm outline-none transition-all placeholder:text-slate-500 shadow-inner">
+                <i class="fas fa-search absolute right-4 top-1/2 -translate-y-1/2 text-slate-400"></i>
+                <button type="submit" class="absolute left-2 top-1/2 -translate-y-1/2 px-4 py-2 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 text-slate-950 font-black text-xs hover:brightness-110 transition-all shadow-md">
+                    بحث
+                </button>
+            </form>
+
+            <!-- Quick Suggestions -->
+            <div class="flex flex-wrap items-center justify-center gap-2 mb-8">
+                <span class="text-xs text-slate-500 font-bold ml-1">روابط سريعة:</span>
+                <a href="{% url 'catalog' %}?q=شحن" class="px-3 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-xs text-slate-300 transition-all">
+                    ⚡ شحن التطبيقات
+                </a>
+                <a href="{% url 'catalog' %}?q=VPN" class="px-3 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-xs text-slate-300 transition-all">
+                    🔒 اشتراكات VPN
+                </a>
+                <a href="{% url 'catalog' %}?q=بطاقات" class="px-3 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-xs text-slate-300 transition-all">
+                    💳 بطاقات رقمية
+                </a>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="flex flex-col sm:flex-row items-center justify-center gap-3">
+                <a href="{% url 'home' %}" class="w-full sm:w-auto px-6 py-3 rounded-2xl bg-gradient-to-r from-amber-400 via-amber-500 to-amber-600 text-slate-950 font-black text-sm flex items-center justify-center gap-2 hover:shadow-lg hover:shadow-amber-500/25 transition-all">
+                    <i class="fas fa-home"></i>
+                    <span>العودة للرئيسية</span>
+                </a>
+                <a href="{% url 'catalog' %}" class="w-full sm:w-auto px-6 py-3 rounded-2xl bg-white/5 hover:bg-white/10 border border-white/10 text-white font-bold text-sm flex items-center justify-center gap-2 transition-all">
+                    <i class="fas fa-boxes-stacked text-amber-400"></i>
+                    <span>استكشاف الكتالوج</span>
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

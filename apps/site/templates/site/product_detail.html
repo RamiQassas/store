@@ -4,6 +4,86 @@
 {% block title %}{{ product.name }} | Raqamiyat{% endblock %}
 
 {% block extra_head %}
+<!-- SEO & OpenGraph Meta Tags for Google & Social Media -->
+<link rel="canonical" href="{{ request.scheme }}://{{ request.get_host }}/catalog/{{ product.id }}/">
+<meta name="description" content="{{ product.description|default:product.name|striptags|truncatechars:160 }}">
+<meta property="og:title" content="{{ product.name }} | رقميات Raqamiyat">
+<meta property="og:description" content="{{ product.description|default:product.name|striptags|truncatechars:200 }}">
+<meta property="og:url" content="{{ request.scheme }}://{{ request.get_host }}/catalog/{{ product.id }}/">
+<meta property="og:type" content="product">
+{% if product.image %}
+<meta property="og:image" content="{{ request.scheme }}://{{ request.get_host }}{{ product.image.url }}">
+<meta name="twitter:image" content="{{ request.scheme }}://{{ request.get_host }}{{ product.image.url }}">
+{% endif %}
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="{{ product.name }} | رقميات Raqamiyat">
+<meta name="twitter:description" content="{{ product.description|default:product.name|striptags|truncatechars:200 }}">
+
+<!-- Schema.org JSON-LD Structured Data for Google Rich Snippets -->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org/",
+  "@type": "Product",
+  "name": "{{ product.name|escapejs }}",
+  {% if product.image %}
+  "image": ["{{ request.scheme }}://{{ request.get_host }}{{ product.image.url }}"],
+  {% endif %}
+  "description": "{{ product.description|default:product.name|striptags|truncatechars:300|escapejs }}",
+  "sku": "{{ product.id }}",
+  "brand": {
+    "@type": "Brand",
+    "name": "رقميات | Raqamiyat"
+  },
+  "offers": {
+    "@type": "Offer",
+    "url": "{{ request.scheme }}://{{ request.get_host }}/catalog/{{ product.id }}/",
+    "priceCurrency": "USD",
+    "price": "{% if variants.0 %}{{ variants.0.price|unlocalize }}{% else %}1.00{% endif %}",
+    "priceValidUntil": "2030-12-31",
+    "itemCondition": "https://schema.org/NewCondition",
+    "availability": "{% if product.is_out_of_stock or is_inactive_product %}https://schema.org/OutOfStock{% else %}https://schema.org/InStock{% endif %}",
+    "seller": {
+      "@type": "Organization",
+      "name": "رقميات"
+    }
+  }
+}
+</script>
+
+<!-- BreadcrumbList Structured Data -->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "BreadcrumbList",
+  "itemListElement": [
+    {
+      "@type": "ListItem",
+      "position": 1,
+      "name": "الرئيسية",
+      "item": "{{ request.scheme }}://{{ request.get_host }}/"
+    },
+    {
+      "@type": "ListItem",
+      "position": 2,
+      "name": "الكتالوج",
+      "item": "{{ request.scheme }}://{{ request.get_host }}/catalog/"
+    }{% if product.category %},
+    {
+      "@type": "ListItem",
+      "position": 3,
+      "name": "{{ product.category.name|escapejs }}",
+      "item": "{{ request.scheme }}://{{ request.get_host }}/catalog/?category={{ product.category.id }}"
+    }{% endif %},
+    {
+      "@type": "ListItem",
+      "position": {% if product.category %}4{% else %}3{% endif %},
+      "name": "{{ product.name|escapejs }}",
+      "item": "{{ request.scheme }}://{{ request.get_host }}/catalog/{{ product.id }}/"
+    }
+  ]
+}
+</script>
+
 <style>
     .product-layout { display: grid; grid-template-columns: 460px 1fr; gap: 4rem; align-items: start; }
     
@@ -356,6 +436,18 @@
             <p class="text-slate-400 leading-relaxed text-lg">{{ product.description }}</p>
         </div>
 
+        {% if is_inactive_product %}
+        <div class="p-5 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-300 text-sm flex items-start gap-4 mb-6 shadow-lg shadow-amber-500/5">
+            <i class="fas fa-exclamation-triangle text-amber-400 text-xl flex-shrink-0 mt-0.5"></i>
+            <div>
+                <div class="font-black text-white text-base">المنتج غير متوفر للطلب حالياً</div>
+                <div class="text-xs text-amber-200/80 mt-1 leading-relaxed">
+                    هذا المنتج غير متاح للشراء في الوقت الراهن أو تم إيقافه مؤقتاً. يمكنك استكشاف المنتجات البديلة المشابهة أدناه في الكتالوج.
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
         <form method="post" action="{% url 'product_detail' product.id %}" id="purchase-form">
             {% csrf_token %}
             <input type="hidden" name="product" value="{{ product.id }}">
@@ -681,9 +773,9 @@
             </div>
 
             <div class="mt-10">
-                {% if product.is_out_of_stock and not variants %}
+                {% if is_inactive_product or product.is_out_of_stock and not variants %}
                 <button type="button" class="buy-btn-v3" style="background: rgba(232, 93, 117, 0.1); border: 1px solid rgba(232, 93, 117, 0.2); color: #e85d75; cursor: not-allowed; opacity: 0.6;" disabled>
-                    <i class="fas fa-exclamation-circle ml-2"></i> المنتج غير متوفر حالياً
+                    <i class="fas fa-ban ml-2"></i> المنتج غير متوفر للطلب حالياً
                 </button>
                 {% else %}
                 <button type="submit" class="buy-btn-v3" id="submit-btn">

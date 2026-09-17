@@ -2086,25 +2086,82 @@ def v3_security_triggers_view(request):
 
 def product_detail(request, pk):
     from django.http import Http404
+    import uuid
+    clean_pk = str(pk).strip()
     product = None
-    if str(pk).isdigit():
-        product = Product.objects.filter(pk=int(pk), is_active=True).prefetch_related('variants').first()
+    is_inactive_product = False
+
+    # 1. Numeric ID lookup
+    if clean_pk.isdigit():
+        product = Product.objects.filter(pk=int(clean_pk), is_active=True).prefetch_related('variants').first()
+        if not product:
+            product = Product.all_objects.filter(pk=int(clean_pk), is_active=True).prefetch_related('variants').first()
+
+    # 2. Direct PK lookup (tenant-aware first, then all_objects)
     if not product:
-        product = Product.objects.filter(pk=pk, is_active=True).prefetch_related('variants').first()
+        try:
+            product = Product.objects.filter(pk=clean_pk, is_active=True).prefetch_related('variants').first()
+        except Exception:
+            pass
+
+    if not product:
+        try:
+            product = Product.all_objects.filter(pk=clean_pk, is_active=True).prefetch_related('variants').first()
+        except Exception:
+            pass
+
+    # 3. Normalized UUID lookup (handles UUIDs with or without hyphens)
+    if not product:
+        try:
+            val_uuid = uuid.UUID(clean_pk)
+            product = Product.objects.filter(pk=val_uuid, is_active=True).prefetch_related('variants').first()
+            if not product:
+                product = Product.all_objects.filter(pk=val_uuid, is_active=True).prefetch_related('variants').first()
+        except Exception:
+            pass
+
+    # 4. ProductVariant lookup (api_product_id, pk, or sku)
     if not product:
         variant = None
-        if str(pk).isdigit():
-            variant = ProductVariant.objects.filter(api_product_id=int(pk)).select_related('product').first()
+        if clean_pk.isdigit():
+            variant = ProductVariant.all_objects.filter(api_product_id=int(clean_pk)).select_related('product').first()
         if not variant:
             try:
-                variant = ProductVariant.objects.filter(pk=pk).select_related('product').first()
+                variant = ProductVariant.all_objects.filter(pk=clean_pk).select_related('product').first()
             except Exception:
                 pass
-        if variant and variant.product and variant.product.is_active:
+        if not variant:
+            try:
+                val_uuid = uuid.UUID(clean_pk)
+                variant = ProductVariant.all_objects.filter(pk=val_uuid).select_related('product').first()
+            except Exception:
+                pass
+        if not variant:
+            variant = ProductVariant.all_objects.filter(sku__iexact=clean_pk).select_related('product').first()
+
+        if variant and variant.product:
             product = variant.product
+
+    # 5. Inactive Product Fallback (Graceful display instead of 404)
+    if not product:
+        try:
+            val_uuid = uuid.UUID(clean_pk)
+            product = Product.all_objects.filter(pk=val_uuid).prefetch_related('variants').first()
+        except Exception:
+            try:
+                product = Product.all_objects.filter(pk=clean_pk).prefetch_related('variants').first()
+            except Exception:
+                pass
+        if product:
+            is_inactive_product = True
+
     if not product:
         raise Http404("المنتج غير موجود.")
+
     if request.method == "POST":
+        if is_inactive_product or not product.is_active:
+            messages.error(request, "⚠️ هذا المنتج غير متوفر للطلب حالياً.")
+            return redirect("catalog")
         if not request.user.is_authenticated: return redirect("site_login")
 
         # â”€â”€ Maintenance Mode Check â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
@@ -2456,6 +2513,7 @@ def product_detail(request, pk):
         "prev_product": prev_product,
         "next_product": next_product,
         "is_instant_product": is_instant_product,
+        "is_inactive_product": is_inactive_product,
     })
 
 

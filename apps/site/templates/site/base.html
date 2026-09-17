@@ -6,6 +6,30 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <meta name="theme-color" content="#0a0a0f">
   <title>{% filter tenant_title %}{% block title %}{% if is_tenant %}{{ STORE_NAME }}{% else %}Raqamiyat | رقميات{% endif %}{% endblock %}{% endfilter %}</title>
+  
+  <!-- Primary SEO Meta Tags for Google & Search Engines -->
+  <meta name="description" content="منصة رقميات - وجهتك الرائدة لشراء وتفعيل الاشتراكات الرقمية، شحن التطبيقات والألعاب، التراخيص البرمجية، وبطاقات الهدايا فورياً بأعلى معايير الأمان.">
+  <meta name="keywords" content="رقميات, متجر رقميات, شحن تطبيقات, شحن ألعاب, بطاقات رقمية, اشتراكات, برامج, مفاتيح برامج, VPN, Canva, Raqamiyat">
+  <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1">
+  <meta property="og:site_name" content="رقميات | Raqamiyat">
+  <meta property="og:locale" content="ar_AR">
+  <meta property="og:type" content="website">
+
+  <!-- SearchAction Schema for Google Sitelinks Searchbox -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "WebSite",
+    "name": "رقميات | Raqamiyat Store",
+    "url": "https://raqamiyatapp.com/",
+    "potentialAction": {
+      "@type": "SearchAction",
+      "target": "https://raqamiyatapp.com/catalog/?q={search_term_string}",
+      "query-input": "required name=search_term_string"
+    }
+  }
+  </script>
+
   <link rel="manifest" href="{% static 'site/manifest.webmanifest' %}">
   <link rel="icon" href="{% static 'site/img/app-icon.svg' %}" type="image/svg+xml">
   <link rel="apple-touch-icon" href="{% static 'site/img/app-icon.svg' %}">

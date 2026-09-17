@@ -45,8 +45,31 @@ from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_GET, require_POST
 import subprocess
 
+from apps.site.seo_views import sitemap_xml_view, custom_404_view, custom_500_view
+
 def robots_txt(request):
-    return HttpResponse("User-agent: *\nDisallow: /control/\n", content_type="text/plain")
+    host = request.get_host()
+    scheme = "https" if (request.is_secure() or request.headers.get("X-Forwarded-Proto") == "https") else "http"
+    content = (
+        "User-agent: *\n"
+        "Allow: /\n"
+        "Allow: /catalog/\n"
+        "Allow: /stores/\n"
+        "Allow: /privacy-policy/\n"
+        "Allow: /terms-of-service/\n"
+        "Allow: /refund-policy/\n"
+        "Allow: /contact/\n"
+        "Allow: /media/\n"
+        "Allow: /static/\n"
+        "Disallow: /control/\n"
+        "Disallow: /dashboard/\n"
+        "Disallow: /api/\n"
+        "Disallow: /payments/\n"
+        "Disallow: /auth/\n"
+        "Disallow: /ajax/\n"
+        f"\nSitemap: {scheme}://{host}/sitemap.xml\n"
+    )
+    return HttpResponse(content, content_type="text/plain")
 
 @require_POST
 @csrf_exempt
@@ -80,6 +103,7 @@ from apps.common.auto_deploy import github_auto_deploy_view
 
 urlpatterns = [
     path("robots.txt", robots_txt),
+    path("sitemap.xml", sitemap_xml_view, name="sitemap_xml"),
     path("api/version/", version_view, name="version_view"),
     path("api/deploy-webhook/<str:secret_token>/", deploy_webhook, name="deploy_webhook"),
     path("api/github-auto-deploy/", github_auto_deploy_view, name="github_auto_deploy"),
@@ -95,3 +119,6 @@ urlpatterns = [
     path('accounts/', include('allauth.urls')),
     path("media/<path:path>", protected_media, name="protected_media"),
 ]
+
+handler404 = "apps.site.seo_views.custom_404_view"
+handler500 = "apps.site.seo_views.custom_500_view"
