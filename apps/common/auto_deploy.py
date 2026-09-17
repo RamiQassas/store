@@ -18,8 +18,7 @@ _auto_deploy_thread_started = False
 
 def get_local_commit_sha():
     try:
-        subprocess.run(["git", "config", "--global", "--add", "safe.directory", "*"], capture_output=True, timeout=3)
-        res = subprocess.run(["git", "rev-parse", "HEAD"], capture_output=True, text=True, timeout=5)
+        res = subprocess.run(["git", "rev-parse", "HEAD"], cwd=str(settings.BASE_DIR), capture_output=True, text=True, timeout=5)
         if res.returncode == 0:
             return res.stdout.strip()
     except Exception:
