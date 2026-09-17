@@ -632,7 +632,7 @@
                                 data-variant-name="{{ v.name }}"
                                 {% if forloop.first and not v.is_temporarily_disabled and not product.is_out_of_stock %}selected{% endif %}
                                 {% if v.is_temporarily_disabled or product.is_out_of_stock %}disabled{% endif %}>
-                            {{ v.name }} — {{ v_card_price }}
+                            {{ v.name }} — {{ v_card_price|striptags }}
                         </option>
                         {% endfor %}
                     </select>
