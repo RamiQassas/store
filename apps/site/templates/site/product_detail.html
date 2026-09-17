@@ -240,44 +240,29 @@
         letter-spacing: 0.02em;
     }
 
-    /* Variant Horizontal Scroll Chips */
-    .alkasr-variants-scroll {
-        display: flex;
-        gap: 0.45rem;
-        overflow-x: auto;
-        padding-bottom: 0.4rem;
-        margin-bottom: 0.85rem;
-        scrollbar-width: none;
-        -webkit-overflow-scrolling: touch;
+    /* Luxury Variant Dropdown Menu */
+    .alkasr-select-wrapper {
+        position: relative;
+        margin-bottom: 0.95rem;
     }
-    .alkasr-variants-scroll::-webkit-scrollbar {
-        display: none;
-    }
-    .alkasr-variant-chip {
-        flex-shrink: 0;
-        padding: 0.4rem 0.75rem;
-        border-radius: 9999px;
-        background: rgba(255, 255, 255, 0.05);
-        border: 1px solid rgba(255, 255, 255, 0.09);
-        color: #cbd5e1;
-        font-size: 0.75rem;
-        font-weight: 800;
-        cursor: pointer;
-        transition: all 0.2s;
-        user-select: none;
+    .alkasr-select-label {
         display: flex;
         align-items: center;
-        gap: 0.35rem;
+        justify-content: space-between;
+        font-size: 0.78rem;
+        font-weight: 800;
+        color: #cbd5e1;
+        margin-bottom: 0.45rem;
     }
-    .alkasr-variant-chip:hover {
-        border-color: rgba(245, 158, 11, 0.4);
-        background: rgba(245, 158, 11, 0.08);
-    }
-    .alkasr-variant-chip.selected {
-        background: linear-gradient(135deg, rgba(245, 158, 11, 0.2) 0%, rgba(180, 83, 9, 0.35) 100%);
-        border-color: #f59e0b;
-        color: #fff;
-        box-shadow: 0 0 14px rgba(245, 158, 11, 0.25);
+    .alkasr-select-arrow {
+        position: absolute;
+        left: 1.1rem;
+        top: 50%;
+        transform: translateY(-50%);
+        pointer-events: none;
+        color: #f59e0b;
+        font-size: 0.85rem;
+        transition: transform 0.2s;
     }
 
     /* Metrics Row (العدد & الاجمالي) */
@@ -434,25 +419,29 @@
     /* Dropdown Variant Select Box */
     .alkasr-select-box {
         width: 100%;
-        background: rgba(6, 4, 14, 0.95);
-        border: 1.5px solid rgba(139, 92, 246, 0.3);
+        background: linear-gradient(180deg, rgba(16, 12, 34, 0.95) 0%, rgba(9, 6, 20, 0.98) 100%);
+        border: 1.5px solid rgba(168, 85, 247, 0.35);
         border-radius: 16px;
         padding: 0.85rem 1rem 0.85rem 2.5rem;
         color: #fff;
-        font-size: 0.95rem;
+        font-size: 0.92rem;
         font-weight: 800;
         outline: none;
-        transition: all 0.25s;
+        transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
         text-align: right;
         direction: rtl;
         appearance: none;
         cursor: pointer;
         box-sizing: border-box;
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+    }
+    .alkasr-select-box:hover {
+        border-color: rgba(245, 158, 11, 0.5);
     }
     .alkasr-select-box:focus {
         border-color: #f59e0b;
-        box-shadow: 0 0 16px rgba(245, 158, 11, 0.25);
-        background: rgba(10, 7, 22, 0.98);
+        box-shadow: 0 0 20px rgba(245, 158, 11, 0.3);
+        background: rgba(14, 10, 30, 0.98);
     }
     .alkasr-select-box option {
         background: #0f0c22;
@@ -604,15 +593,15 @@
             <input type="hidden" name="variant_id" id="selected-variant-id" value="{% if variants.0 and not variants.0.is_temporarily_disabled and not product.is_out_of_stock %}{{ variants.0.id }}{% endif %}">
             <input type="hidden" name="payment_method" id="selected-payment-method" value="wallet">
 
-            <!-- Variants Selection: Dropdown Menu & Quick Chips -->
+            <!-- Variants Selection: Clean Luxury Dropdown Menu -->
             {% if variants %}
-            <div class="mb-3">
-                <label for="alkasr-variant-select" class="text-xs font-bold text-slate-300 block mb-1.5 flex items-center justify-between">
+            <div class="alkasr-select-wrapper">
+                <label for="alkasr-variant-select" class="alkasr-select-label">
                     <span class="flex items-center gap-1.5">
                         <i class="fas fa-layer-group text-amber-400 text-xs"></i>
                         <span>اختر الفئة أو الباقة المطلوبة:</span>
                     </span>
-                    <span class="text-[11px] text-amber-400/80 font-mono">({{ variants|length }} خيارات)</span>
+                    <span class="text-[11px] text-amber-400 font-mono font-bold bg-amber-500/10 border border-amber-500/20 px-2 py-0.5 rounded-full">({{ variants|length }} خيارات)</span>
                 </label>
                 <div class="relative">
                     <select id="alkasr-variant-select" class="alkasr-select-box" onchange="onVariantDropdownChange(this.value)">
@@ -636,41 +625,14 @@
                         </option>
                         {% endfor %}
                     </select>
-                    <div class="absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none text-amber-400/80 text-xs">
+                    <div class="alkasr-select-arrow">
                         <i class="fas fa-chevron-down"></i>
                     </div>
                 </div>
             </div>
-
-            <!-- Horizontal Variant Chips for instant visual touch selection -->
-            <div class="alkasr-variants-scroll" id="variants-scroll-bar">
-                {% for v in variants %}
-                {% variant_price v as v_price %}
-                {% variant_card_price v as v_card_price %}
-                <div class="alkasr-variant-chip variant-card {% if forloop.first and not v.is_temporarily_disabled and not product.is_out_of_stock %}selected{% endif %} {% if v.is_temporarily_disabled or product.is_out_of_stock %}opacity-40 grayscale cursor-not-allowed{% endif %}"
-                     {% if not v.is_temporarily_disabled and not product.is_out_of_stock %}onclick="selectVariant('{{ v.id }}', this)"{% endif %}
-                     data-id="{{ v.id }}"
-                     data-price="{{ v_price|unlocalize }}"
-                     data-qty-type="{{ v.metadata.qty_type|default:'none' }}"
-                     data-qty-min="{{ v.metadata.qty_min|default:1 }}"
-                     data-qty-max="{{ v.metadata.qty_max|default:999999 }}"
-                     data-qty-list='{% if v.metadata.qty_list %}{{ v.metadata.qty_list|jsonify }}{% else %}[]{% endif %}'
-                     data-is-per-mille="{% if v.metadata.is_per_mille %}true{% else %}false{% endif %}"
-                     data-delivery-type="{{ v.delivery_type|default:'manual' }}"
-                     data-is-recharge="{% if v.is_recharge_card %}true{% else %}false{% endif %}"
-                     data-params='{% if v.metadata.params %}{{ v.metadata.params|jsonify }}{% else %}[]{% endif %}'
-                     data-variant-name="{{ v.name }}">
-                    <span>{{ v.name }}</span>
-                    {% if v.is_sale %}
-                    <span class="text-amber-400 text-[10px]"><i class="fas fa-fire"></i></span>
-                    {% endif %}
-                </div>
-                {% endfor %}
-            </div>
             {% else %}
-            <!-- Single product dummy variant card for script selection -->
-            <div class="variant-card selected hidden"
-                 onclick="selectVariant('default', this)"
+            <!-- Single product dummy variant option for script selection -->
+            <div id="single-product-dummy-variant" class="hidden"
                  data-price="{{ product.price|default:'0.00'|unlocalize }}"
                  data-qty-type="fixed"
                  data-qty-min="1"
@@ -919,11 +881,16 @@ function navigateProduct(url, pushState = true) {
                 window.scrollTo({ top: 0, behavior: 'smooth' });
 
                 // Select first active variant
-                const firstVariant = wrapper.querySelector('.variant-card.selected') || wrapper.querySelector('.variant-card');
-                if (firstVariant) {
-                    firstVariant.click();
+                const sel = wrapper.querySelector('#alkasr-variant-select');
+                if (sel && sel.value) {
+                    selectVariant(sel.value);
                 } else {
-                    updateQuantityPrice();
+                    const dummy = wrapper.querySelector('#single-product-dummy-variant');
+                    if (dummy) {
+                        selectVariant('default', dummy);
+                    } else {
+                        updateQuantityPrice();
+                    }
                 }
             } else {
                 window.location.href = url;
@@ -1228,54 +1195,51 @@ function renderDynamicFields(paramsJson, el) {
     `;
 }
 
+function getSelectedVariantOption() {
+    const sel = document.getElementById('alkasr-variant-select');
+    if (sel && sel.selectedIndex >= 0 && sel.options[sel.selectedIndex]) {
+        return sel.options[sel.selectedIndex];
+    }
+    return document.getElementById('single-product-dummy-variant');
+}
+
 function onVariantDropdownChange(variantId) {
-    const chip = document.querySelector(`.variant-card[data-id="${variantId}"]`) || document.querySelector(`.variant-card[onclick*="${variantId}"]`);
-    selectVariant(variantId, chip);
+    selectVariant(variantId);
 }
 
 function selectVariant(id, el) {
-    if (!el) {
-        el = document.querySelector(`.variant-card[data-id="${id}"]`) || document.querySelector(`.variant-card[onclick*="${id}"]`) || document.querySelector('.variant-card');
-    }
-    if (!el) return;
-
-    const vInput = document.getElementById('selected-variant-id');
-    if (vInput) vInput.value = id;
-
-    // Synchronize the dropdown select menu
     const selectEl = document.getElementById('alkasr-variant-select');
-    if (selectEl && selectEl.value !== id) {
+    if (selectEl && id && selectEl.value !== id) {
         selectEl.value = id;
     }
 
-    document.querySelectorAll('.variant-card').forEach(c => c.classList.remove('selected'));
-    el.classList.add('selected');
+    const option = el || (selectEl ? (selectEl.querySelector(`option[value="${id}"]`) || (selectEl.selectedIndex >= 0 ? selectEl.options[selectEl.selectedIndex] : null)) : null) || document.getElementById('single-product-dummy-variant');
+    if (!option) return;
 
-    // Scroll chip into view smoothly
-    if (el.scrollIntoView) {
-        el.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
-    }
+    const actualId = option.value || id || '';
+    const vInput = document.getElementById('selected-variant-id');
+    if (vInput) vInput.value = actualId;
 
     // Update Number / Count metric display
     const countEl = document.getElementById('metric-count');
     if (countEl) {
-        const vName = el.getAttribute('data-variant-name') || el.innerText || '';
+        const vName = option.getAttribute('data-variant-name') || option.innerText || '';
         const matchNum = vName.match(/\b\d+[\d,.]*\b/);
-        countEl.innerText = matchNum ? matchNum[0] : (vName.trim() || '1');
+        countEl.innerText = matchNum ? matchNum[0] : (vName.split('—')[0].trim() || '1');
     }
 
     const submitBtn = document.getElementById('submit-btn');
     if (submitBtn) submitBtn.disabled = false;
     
     // Parse parameters and render dynamic fields for this variant
-    const paramsData = el.getAttribute('data-params');
-    renderDynamicFields(paramsData, el);
+    const paramsData = option.getAttribute('data-params');
+    renderDynamicFields(paramsData, option);
 
     // Parse quantity specifications
-    const qtyType = el.getAttribute('data-qty-type') || 'none';
-    const qtyMin = parseInt(el.getAttribute('data-qty-min') || 1);
-    const qtyMax = parseInt(el.getAttribute('data-qty-max') || 1);
-    const qtyListStr = el.getAttribute('data-qty-list') || '[]';
+    const qtyType = option.getAttribute('data-qty-type') || 'none';
+    const qtyMin = parseInt(option.getAttribute('data-qty-min') || 1);
+    const qtyMax = parseInt(option.getAttribute('data-qty-max') || 1);
+    const qtyListStr = option.getAttribute('data-qty-list') || '[]';
     
     renderQuantitySelector(qtyType, qtyMin, qtyMax, qtyListStr);
     
@@ -1332,7 +1296,7 @@ function renderQuantitySelector(qtyType, qtyMin, qtyMax, qtyListStr) {
             try { listOptions = JSON.parse(listOptions); } catch(e) {}
         }
         
-        const card = document.querySelector('.variant-card.selected') || document.querySelector('.variant-card');
+        const card = getSelectedVariantOption();
         let basePrice = 0;
         if (card) {
             let rawPriceStr = (card.getAttribute('data-price') || '0').trim();
@@ -1423,12 +1387,17 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    let firstAvailableCard = document.querySelector('.variant-card.selected') || document.querySelector('.variant-card:not(.opacity-50):not(.cursor-not-allowed)') || document.querySelector('.variant-card');
-    if (firstAvailableCard) {
-        firstAvailableCard.click();
+    const sel = document.getElementById('alkasr-variant-select');
+    if (sel && sel.value) {
+        selectVariant(sel.value);
     } else {
-        const submitBtn = document.getElementById('submit-btn');
-        if (submitBtn) submitBtn.disabled = false;
+        const dummy = document.getElementById('single-product-dummy-variant');
+        if (dummy) {
+            selectVariant('default', dummy);
+        } else {
+            const submitBtn = document.getElementById('submit-btn');
+            if (submitBtn) submitBtn.disabled = false;
+        }
     }
 });
 
@@ -1459,7 +1428,7 @@ function updateQuantityPrice(isFromCoupon = false) {
     const variantId = document.getElementById('selected-variant-id').value;
     if (!variantId) return;
     
-    const card = document.querySelector(`.variant-card.selected`);
+    const card = getSelectedVariantOption();
     if (!card) return;
     
     let rawPriceStr = (card.getAttribute('data-price') || '0').trim();
@@ -2115,9 +2084,12 @@ document.addEventListener('submit', function(e) {
     // Auto-select first variant if not yet selected
     const vInput = document.getElementById('selected-variant-id');
     if (!vInput || !vInput.value) {
-        const firstCard = document.querySelector('.variant-card');
-        if (firstCard) {
-            firstCard.click();
+        const sel = document.getElementById('alkasr-variant-select');
+        if (sel && sel.value) {
+            selectVariant(sel.value);
+        } else {
+            const dummy = document.getElementById('single-product-dummy-variant');
+            if (dummy) selectVariant('default', dummy);
         }
     }
     

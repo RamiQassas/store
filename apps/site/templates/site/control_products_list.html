@@ -72,6 +72,10 @@
             <i class="fas fa-image text-amber-400"></i>
             <span>توليد للمنتجات بدون صور فقط</span>
         </button>
+        <button type="button" onclick="openTransferVariantModal()" class="btn btn-outline btn-sm border-purple-500/40 text-purple-400 hover:bg-purple-500 hover:text-white font-bold transition flex items-center gap-1.5 shadow-sm" title="نقل باقة من منتج إلى منتج آخر بسهولة">
+            <i class="fas fa-arrow-right-arrow-left text-purple-400"></i>
+            <span>نقل باقة لمنتج آخر</span>
+        </button>
         <a href="?export=excel" class="btn btn-outline btn-sm">
             <i class="fas fa-file-excel ml-2"></i> تصدير Excel
         </a>
@@ -179,6 +183,58 @@
             <button type="button" onclick="closeProductChangeCatModal()" style="padding:.45rem .9rem;border-radius:.65rem;font-size:.7rem;font-weight:700;color:#94a3b8;background:rgba(255,255,255,0.05);border:none;cursor:pointer;">إلغاء</button>
             <button type="button" onclick="submitProductChangeCat()" id="prod-move-submit-btn" style="padding:.45rem 1rem;border-radius:.65rem;font-size:.7rem;font-weight:900;color:#000;background:#22d3ee;border:none;cursor:pointer;display:flex;align-items:center;gap:.35rem;">
                 <i class="fas fa-check"></i> نقل الآن
+            </button>
+        </div>
+    </div>
+</div>
+
+{# ── Quick Transfer Variant to Another Product Modal ── #}
+<div id="variant-transfer-modal" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.85);backdrop-filter:blur(8px);align-items:center;justify-content:center;padding:1rem;">
+    <div style="background:#0f172a;border:1.5px solid rgba(168,85,247,0.4);border-radius:1.25rem;padding:1.5rem;max-width:28rem;width:100%;box-shadow:0 30px 60px rgba(0,0,0,0.7);direction:rtl;">
+        <div style="display:flex;align-items:center;gap:.65rem;margin-bottom:.9rem;">
+            <div style="width:2.25rem;height:2.25rem;border-radius:50%;background:rgba(168,85,247,0.15);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                <i class="fas fa-arrow-right-arrow-left" style="color:#c084fc;font-size:.875rem;"></i>
+            </div>
+            <div>
+                <h3 style="font-size:.95rem;font-weight:900;color:#fff;margin:0;">نقل باقة من منتج إلى منتج آخر</h3>
+                <p style="font-size:.75rem;color:#94a3b8;margin:0;">اختر الباقة والمنتج الهدف لنقلها فورياً</p>
+            </div>
+        </div>
+
+        <div style="margin-bottom:1rem;">
+            <label style="display:block;font-size:.75rem;color:#cbd5e1;font-weight:700;margin-bottom:.4rem;">1. المنتج المصدر (الحالي):</label>
+            <select id="transfer-source-product" onchange="onTransferSourceProductChange(this.value)" style="width:100%;background:#020617;border:1.5px solid rgba(255,255,255,0.1);border-radius:.75rem;padding:.65rem 1rem;font-size:.85rem;color:#fff;outline:none;box-sizing:border-box;">
+                <option value="">-- اختر المنتج المصدر --</option>
+                {% for prod in all_products %}
+                <option value="{{ prod.id }}">{{ prod.name }} ({{ prod.category__name }})</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div style="margin-bottom:1rem;">
+            <label style="display:block;font-size:.75rem;color:#cbd5e1;font-weight:700;margin-bottom:.4rem;">2. الباقة المطلوب نقلها:</label>
+            <select id="transfer-variant-select" style="width:100%;background:#020617;border:1.5px solid rgba(255,255,255,0.1);border-radius:.75rem;padding:.65rem 1rem;font-size:.85rem;color:#fbbf24;font-weight:700;outline:none;box-sizing:border-box;">
+                <option value="">-- اختر المنتج المصدر أولاً --</option>
+            </select>
+            <span id="transfer-variant-loading" style="display:none;font-size:11px;color:#38bdf8;margin-top:4px;">
+                <i class="fas fa-spinner fa-spin"></i> جاري تحميل باقات المنتج...
+            </span>
+        </div>
+
+        <div style="margin-bottom:1.25rem;">
+            <label style="display:block;font-size:.75rem;color:#cbd5e1;font-weight:700;margin-bottom:.4rem;">3. المنتج الهدف (المستقبل):</label>
+            <select id="transfer-target-product" style="width:100%;background:#020617;border:1.5px solid rgba(255,255,255,0.1);border-radius:.75rem;padding:.65rem 1rem;font-size:.85rem;color:#fff;outline:none;box-sizing:border-box;">
+                <option value="">-- اختر المنتج الهدف --</option>
+                {% for prod in all_products %}
+                <option value="{{ prod.id }}">{{ prod.name }} ({{ prod.category__name }})</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div style="display:flex;justify-content:flex-end;gap:.5rem;">
+            <button type="button" onclick="closeTransferVariantModal()" style="padding:.45rem .9rem;border-radius:.65rem;font-size:.75rem;font-weight:700;color:#94a3b8;background:rgba(255,255,255,0.05);border:none;cursor:pointer;">إلغاء</button>
+            <button type="button" onclick="submitTransferVariant()" id="transfer-variant-submit-btn" style="padding:.5rem 1.15rem;border-radius:.65rem;font-size:.78rem;font-weight:900;color:#fff;background:linear-gradient(135deg, #a855f7 0%, #7c3aed 100%);border:none;cursor:pointer;display:flex;align-items:center;gap:.4rem;box-shadow:0 4px 14px rgba(147,51,234,0.4);">
+                <i class="fas fa-check"></i> تأكيد نقل الباقة
             </button>
         </div>
     </div>
@@ -587,6 +643,11 @@
                                 <span class="text-[10px] text-rose-500 italic">بدون باقات</span>
                             {% endif %}
                             {% endwith %}
+                            <button type="button" onclick="openTransferVariantModal('{{ p.id }}')"
+                                    class="text-[9px] text-purple-400 hover:text-purple-300 hover:underline flex items-center gap-1 font-bold transition mt-0.5"
+                                    title="نقل باقة من هذا المنتج إلى منتج آخر">
+                                <i class="fas fa-arrow-right-arrow-left text-[8px]"></i> نقل باقة
+                            </button>
                         </div>
                     </td>
                     <td class="p-4">
@@ -1431,6 +1492,125 @@ window.generateSingleProductAiImage = function(productId, btnEl) {
             btnEl.innerHTML = originalHtml;
         }
         showToast('خطأ أثناء توليد الصورة: ' + err, true);
+    });
+/* ── Variant Transfer to Another Product ── */
+window.openTransferVariantModal = function(sourceProductId) {
+    var modal = document.getElementById('variant-transfer-modal');
+    if (!modal) return;
+    var srcSel = document.getElementById('transfer-source-product');
+    var varSel = document.getElementById('transfer-variant-select');
+    var tgtSel = document.getElementById('transfer-target-product');
+    
+    if (srcSel && sourceProductId) {
+        srcSel.value = sourceProductId;
+        window.onTransferSourceProductChange(sourceProductId);
+    } else if (srcSel) {
+        srcSel.value = '';
+        if (varSel) varSel.innerHTML = '<option value="">-- اختر المنتج المصدر أولاً --</option>';
+    }
+    if (tgtSel) tgtSel.value = '';
+    
+    modal.style.display = 'flex';
+};
+
+window.closeTransferVariantModal = function() {
+    var modal = document.getElementById('variant-transfer-modal');
+    if (modal) modal.style.display = 'none';
+};
+
+window.onTransferSourceProductChange = function(productId) {
+    var varSel = document.getElementById('transfer-variant-select');
+    var loading = document.getElementById('transfer-variant-loading');
+    if (!varSel) return;
+    
+    if (!productId) {
+        varSel.innerHTML = '<option value="">-- اختر المنتج المصدر أولاً --</option>';
+        return;
+    }
+    
+    if (loading) loading.style.display = 'inline-block';
+    varSel.innerHTML = '<option value="">جاري تحميل الباقات...</option>';
+    
+    fetch('/control/variants/transfer-ajax/?product_id=' + encodeURIComponent(productId))
+        .then(function(r) { return r.json(); })
+        .then(function(d) {
+            if (loading) loading.style.display = 'none';
+            if (d.status === 'success') {
+                if (!d.variants || d.variants.length === 0) {
+                    varSel.innerHTML = '<option value="">(لا توجد باقات في هذا المنتج)</option>';
+                } else {
+                    var html = '<option value="">-- اختر الباقة المراد نقلها --</option>';
+                    d.variants.forEach(function(v) {
+                        html += '<option value="' + v.id + '">' + v.name + ' (' + v.price + ' $)</option>';
+                    });
+                    varSel.innerHTML = html;
+                }
+            } else {
+                varSel.innerHTML = '<option value="">خطأ في جلب الباقات</option>';
+                showToast(d.message || 'فشل جلب باقات المنتج', true);
+            }
+        })
+        .catch(function(err) {
+            if (loading) loading.style.display = 'none';
+            varSel.innerHTML = '<option value="">خطأ في الاتصال</option>';
+            showToast('خطأ في الاتصال: ' + err, true);
+        });
+};
+
+window.submitTransferVariant = function() {
+    var srcProdId = document.getElementById('transfer-source-product').value;
+    var variantId = document.getElementById('transfer-variant-select').value;
+    var targetProdId = document.getElementById('transfer-target-product').value;
+    var btn = document.getElementById('transfer-variant-submit-btn');
+
+    if (!srcProdId) {
+        showToast('يرجى اختيار المنتج المصدر أولاً', true);
+        return;
+    }
+    if (!variantId) {
+        showToast('يرجى اختيار الباقة المطلوب نقلها', true);
+        return;
+    }
+    if (!targetProdId) {
+        showToast('يرجى اختيار المنتج الهدف', true);
+        return;
+    }
+    if (srcProdId === targetProdId) {
+        showToast('لا يمكن نقل الباقة لنفس المنتج الحالي!', true);
+        return;
+    }
+
+    btn.disabled = true;
+    var origHtml = btn.innerHTML;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري النقل...';
+
+    var fd = new FormData();
+    fd.append('variant_id', variantId);
+    fd.append('target_product_id', targetProdId);
+
+    fetch('/control/variants/transfer-ajax/', {
+        method: 'POST',
+        headers: { 'X-CSRFToken': getCsrf() },
+        body: fd
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(d) {
+        btn.disabled = false;
+        btn.innerHTML = origHtml;
+        if (d.status === 'success') {
+            showToast(d.message || 'تم نقل الباقة بنجاح!');
+            window.closeTransferVariantModal();
+            setTimeout(function() {
+                window.location.reload();
+            }, 1000);
+        } else {
+            showToast(d.message || 'فشل نقل الباقة', true);
+        }
+    })
+    .catch(function(err) {
+        btn.disabled = false;
+        btn.innerHTML = origHtml;
+        showToast('خطأ في الاتصال: ' + err, true);
     });
 };
 

@@ -4181,6 +4181,7 @@ def control_products_list(request):
         products = Product.all_objects.filter(store__isnull=True)
         base_cat_qs = Category.all_objects.filter(store__isnull=True)
 
+    base_prod_qs = products
     products = products.select_related('category').prefetch_related('variants').order_by('sort_order', 'name')
     cat_id = request.GET.get('category')
     active_category = None
@@ -4246,9 +4247,11 @@ def control_products_list(request):
         categories = list(categories_qs.order_by('sort_order', 'name'))
 
     all_categories = list(base_cat_qs.order_by('sort_order', 'name'))
+    all_products = list(base_prod_qs.order_by('name').values('id', 'name', 'category__name'))
 
     return render(request, "site/control_products_list.html", {
         "products": page_obj,
+        "all_products": all_products,
         "query": q,
         "view_mode": view_mode,
         "active_category": active_category,
@@ -4340,6 +4343,78 @@ def control_product_change_category_ajax(request, pk=None):
         "category_name": category.name,
         "message": f"تم نقل المنتج '{product.name}' إلى قسم '{category.name}' بنجاح."
     })
+
+
+@support_required
+def control_variant_transfer_ajax(request):
+    """
+    Transfers a ProductVariant from one Product to another.
+    GET: returns JSON list of variants for a given product_id.
+    POST: transfers variant_id to target_product_id.
+    """
+    from apps.catalog.models import ProductVariant, Product
+
+    if request.method == "GET":
+        product_id = request.GET.get("product_id")
+        if not product_id:
+            return JsonResponse({"status": "error", "message": "لم يتم تحديد المنتج."}, status=400)
+        store = getattr(request, "store", None)
+        qs = ProductVariant.objects.filter(product_id=product_id)
+        if store:
+            qs = qs.filter(product__store=store)
+        variants = [{"id": str(v.id), "name": v.name, "price": str(v.price)} for v in qs]
+        return JsonResponse({"status": "success", "variants": variants})
+
+    if request.method != "POST":
+        return JsonResponse({"status": "error", "message": "طريقة الطلب غير صحيحة."}, status=405)
+
+    import json as _json
+    variant_id = request.POST.get("variant_id")
+    target_product_id = request.POST.get("target_product_id")
+
+    if (not variant_id or not target_product_id) and request.body:
+        try:
+            data = _json.loads(request.body.decode("utf-8"))
+            variant_id = variant_id or data.get("variant_id")
+            target_product_id = target_product_id or data.get("target_product_id")
+        except Exception:
+            pass
+
+    if not variant_id:
+        return JsonResponse({"status": "error", "message": "يرجى اختيار الباقة المراد نقلها."}, status=400)
+    if not target_product_id:
+        return JsonResponse({"status": "error", "message": "يرجى اختيار المنتج الهدف المراد نقل الباقة إليه."}, status=400)
+
+    store = getattr(request, "store", None)
+    try:
+        if store:
+            variant = ProductVariant.objects.get(pk=variant_id, product__store=store)
+            target_product = Product.objects.get(pk=target_product_id, store=store)
+        else:
+            variant = ProductVariant.all_objects.get(pk=variant_id)
+            target_product = Product.all_objects.get(pk=target_product_id)
+    except ProductVariant.DoesNotExist:
+        return JsonResponse({"status": "error", "message": "الباقة غير موجودة أو ليس لديك صلاحية الوصول إليها."}, status=404)
+    except Product.DoesNotExist:
+        return JsonResponse({"status": "error", "message": "المنتج الهدف غير موجود."}, status=404)
+
+    old_product = variant.product
+    if str(old_product.id) == str(target_product.id):
+        return JsonResponse({"status": "error", "message": "الباقة تتبع بالفعل لهذا المنتج."}, status=400)
+
+    # Move variant
+    variant.product = target_product
+    variant.save(update_fields=["product"])
+
+    return JsonResponse({
+        "status": "success",
+        "message": f"تم نقل باقة '{variant.name}' من منتج '{old_product.name}' إلى منتج '{target_product.name}' بنجاح.",
+        "variant_id": str(variant.id),
+        "old_product_id": str(old_product.id),
+        "target_product_id": str(target_product.id),
+        "target_product_name": target_product.name
+    })
+
 
 
 
