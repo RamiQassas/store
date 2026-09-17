@@ -1855,13 +1855,16 @@ def catalog(request):
         view_type = "products"
 
     if q:
-        # If user explicitly searched, expand query to match variants (packages) and categories
-        products = products.filter(
+        q_filter = (
             Q(name__icontains=q) |
             Q(description__icontains=q) |
             Q(variants__name__icontains=q) |
             Q(category__name__icontains=q)
-        ).distinct()
+        )
+        for w in q.split():
+            if len(w) > 1:
+                q_filter |= Q(name__icontains=w) | Q(variants__name__icontains=w)
+        products = products.filter(q_filter).distinct()
         view_type = "products"
 
     if sort == "price_low":
@@ -4097,13 +4100,17 @@ def control_products_list(request):
     view_mode = request.GET.get('view', 'list')
 
     if q:
-        products = products.filter(
+        q_filter = (
             Q(name__icontains=q) |
             Q(category__name__icontains=q) |
             Q(id__icontains=q) |
             Q(variants__sku__icontains=q) |
             Q(variants__name__icontains=q)
-        ).distinct()
+        )
+        for w in q.split():
+            if len(w) > 1:
+                q_filter |= Q(name__icontains=w) | Q(variants__name__icontains=w)
+        products = products.filter(q_filter).distinct()
 
     if request.GET.get("export") == "excel":
         columns = [
@@ -4731,7 +4738,7 @@ def control_product_generate_image(request, pk):
         if success and product.image:
             return JsonResponse({
                 "status": "success",
-                "message": "تم توليد الصورة وتطبيق هوية رقميات بنجاح!",
+                "message": "تم توليد صورة الأيقونة باحترافية بنجاح!",
                 "image_url": product.image.url
             })
         return JsonResponse({"status": "error", "message": "لم نتمكن من توليد الصورة"}, status=400)

@@ -64,9 +64,9 @@
         <p class="text-muted">إدارة مخزون الخدمات الرقمية، تحديث الأسعار، تغيير الصور والأسماء سريعاً، والتحكم في ظهور المنتجات.</p>
     </div>
     <div class="flex flex-wrap gap-3 items-center">
-        <button type="button" onclick="startBulkAiBranding('all')" class="btn btn-outline btn-sm border-cyan/40 text-cyan hover:bg-cyan hover:text-slate-950 font-bold transition flex items-center gap-1.5 shadow-sm" title="البحث في الإنترنت وتوليد وضبط صور لجميع المنتجات مع ختم رقميات">
+        <button type="button" onclick="startBulkAiBranding('all')" class="btn btn-outline btn-sm border-cyan/40 text-cyan hover:bg-cyan hover:text-slate-950 font-bold transition flex items-center gap-1.5 shadow-sm" title="البحث في الإنترنت وتوليد وضبط صور أيقونات احترافية لجميع المنتجات">
             <i class="fas fa-wand-magic-sparkles text-cyan"></i>
-            <span>توليد صور للجميع (ذكاء اصطناعي + ختم رقميات)</span>
+            <span>توليد صور للجميع (أيقونات احترافية)</span>
         </button>
         <button type="button" onclick="startBulkAiBranding('missing')" class="btn btn-outline btn-sm border-amber-500/40 text-amber-400 hover:bg-amber-500 hover:text-slate-950 font-bold transition flex items-center gap-1.5 shadow-sm" title="توليد الصور فقط للمنتجات التي لا تملك صورة حالياً">
             <i class="fas fa-image text-amber-400"></i>
@@ -194,7 +194,7 @@
             جاري توليد وضبط صور المنتجات بالذكاء الاصطناعي
         </h3>
         <p style="font-size:0.875rem;color:#94a3b8;margin-bottom:1.5rem;" id="branding-modal-subtitle">
-            يتم البحث في الإنترنت وجلب الشعارات الرسمية وإضافة ختم "رقميات معتمد" تلقائياً
+            يتم البحث وجلب الأيقونات والشعارات الرسمية وتنسيقها باحترافية
         </p>
         
         <!-- Progress Bar Container -->
@@ -620,7 +620,7 @@
                         <div class="flex justify-end gap-2">
                             <button type="button" onclick="generateSingleProductAiImage('{{ p.id }}', this)"
                                     class="btn btn-sm btn-outline text-[10px] py-1 px-2.5 text-cyan hover:bg-cyan hover:text-black transition flex items-center gap-1"
-                                    title="توليد صورة بالذكاء الاصطناعي (بحث إنترنت + ختم رقميات)">
+                                    title="توليد صورة أيقونة احترافية (بحث ذكي)">
                                 <i class="fas fa-wand-magic-sparkles"></i> AI
                             </button>
                             <button type="button" onclick="openProductChangeCatModal('{{ p.id }}', '{{ p.name|escapejs }}', '{{ p.category.id }}')"
@@ -1287,8 +1287,8 @@ document.addEventListener('DOMContentLoaded', function() {
 window.startBulkAiBranding = function(mode) {
     var isAll = (mode === 'all');
     var confirmMsg = isAll 
-        ? 'هل أنت متأكد من توليد وتعيين صور لجميع المنتجات من الإنترنت مع ختم وهوية رقميات؟\n\n(سيتم البحث عن الشعارات الأصلية لكل المنتجات ووضع ختم رقميات معتمد عليها)'
-        : 'هل تريد توليد وتعيين صور بالذكاء الاصطناعي للمنتجات التي لا تملك صورة فقط؟';
+        ? 'هل أنت متأكد من توليد وتعيين صور أيقونات رسمية واحترافية لجميع المنتجات من الإنترنت؟\n\n(سيتم البحث عن الأيقونات الأصلية لكل المنتجات وتنسيقها باحترافية وبدون أي أختام)'
+        : 'هل تريد توليد وتعيين صور أيقونات احترافية للمنتجات التي لا تملك صورة فقط؟';
     
     if (!confirm(confirmMsg)) return;
 
@@ -1312,7 +1312,7 @@ window.startBulkAiBranding = function(mode) {
     reloadBtn.style.display = 'none';
     modalIcon.innerHTML = '<i class="fas fa-wand-magic-sparkles fa-spin"></i>';
     modalTitle.textContent = 'جاري توليد وضبط صور المنتجات بالذكاء الاصطناعي';
-    modalSub.textContent = 'يتم البحث في الإنترنت وجلب الشعارات الرسمية وإضافة ختم "رقميات معتمد" تلقائياً';
+    modalSub.textContent = 'يتم البحث وجلب الأيقونات والشعارات الرسمية وتنسيقها باحترافية';
 
     var formData = new FormData();
     formData.append('mode', mode);
@@ -1385,13 +1385,13 @@ window.closeBulkBrandingModal = function() {
 };
 
 window.generateSingleProductAiImage = function(productId, btnEl) {
-    if (!confirm('هل تريد البحث في الإنترنت وتوليد صورة رسمية مع هوية رقميات لهذا المنتج؟')) return;
+    if (!confirm('هل تريد البحث وتوليد صورة أيقونة احترافية لهذا المنتج؟')) return;
     var originalHtml = btnEl ? btnEl.innerHTML : '';
     if (btnEl) {
         btnEl.disabled = true;
         btnEl.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
     }
-    showToast('جاري البحث وتوليد الصورة...');
+    showToast('جاري البحث وتوليد صورة الأيقونة...');
     
     fetch('/control/products/' + productId + '/generate-ai-image/', {
         method: 'POST',

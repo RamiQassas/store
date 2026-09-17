@@ -108,41 +108,8 @@ KNOWN_NAMES = {
     "kaspersky": ("كاسبرسكي انتي فايروس", "Kaspersky Antivirus"),
 }
 
-def format_bilingual_name(name):
-    if not name:
-        return "خدمة عامة | General Service"
-    import re
-    # If already has ' | ', format cleanly
-    if " | " in name:
-        parts = name.split(" | ", 1)
-        return f"{parts[0].strip()} | {parts[1].strip()}"
-    
-    # If it has format 'Arabic (English)', convert to 'Arabic | English'
-    m = re.match(r'^(.*?)\s*\((.*?)\)$', name.strip())
-    if m:
-        ar_p = m.group(1).strip()
-        en_p = m.group(2).strip()
-        if re.search(r'[\u0600-\u06FF]', ar_p) and re.search(r'[a-zA-Z]', en_p):
-            return f"{ar_p} | {en_p}"
-    
-    # Check known names
-    n_low = name.lower().strip()
-    for k, (ar, en) in KNOWN_NAMES.items():
-        if k in n_low:
-            return f"{ar} | {en}"
-            
-    # Check if purely English
-    if re.search(r'[a-zA-Z]', name) and not re.search(r'[\u0600-\u06FF]', name):
-        en_title = name.strip().title()
-        words = name.strip().split()
-        ar_words = [COMMON_TRANSLATIONS.get(w.lower(), w) for w in words]
-        return f"{' '.join(ar_words)} | {en_title}"
-        
-    # Check if purely Arabic
-    if re.search(r'[\u0600-\u06FF]', name) and not re.search(r'[a-zA-Z]', name):
-        return f"{name.strip()} | {name.strip()}"
-        
-    return name.strip()
+from apps.catalog.naming import format_bilingual_name
+
 
 
 class AlkasrMapperService:
@@ -680,12 +647,7 @@ class AlkasrMapperService:
                             local_product.metadata = prod_meta
                         local_product.save()
 
-                    # Apply automated branding with Raqamiyat badge
-                    try:
-                        from apps.catalog.smart_branding import apply_branding_to_product
-                        apply_branding_to_product(local_product, force=False)
-                    except Exception as brand_err:
-                        logger.warning(f"Branding application warning for {local_product.name}: {brand_err}")
+                    # Note: Automatic branding disabled so images are generated only on explicit button click
 
                     # Map each ProviderProduct as a ProductVariant (باقة) inside this single Product
                     for pp in p_items:

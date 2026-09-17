@@ -447,23 +447,11 @@ class Command(BaseCommand):
                     }
                     changed = True
 
-                p_lower = p.name.lower().strip()
-                matched = False
-                for k, (ar, en) in KNOWN_NAMES.items():
-                    if k in p_lower:
-                        new_name = f"{ar} | {en}"
-                        if p.name != new_name:
-                            p.name = new_name
-                            changed = True
-                            updated_names_count += 1
-                        matched = True
-                        break
-                if not matched:
-                    formatted = format_bilingual_name(p.name)
-                    if p.name != formatted:
-                        p.name = formatted
-                        changed = True
-                        updated_names_count += 1
+                formatted = format_bilingual_name(p.name)
+                if p.name != formatted:
+                    p.name = formatted
+                    changed = True
+                    updated_names_count += 1
                 
                 if changed:
                     p.save()

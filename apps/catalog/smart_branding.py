@@ -9,6 +9,17 @@ from PIL import Image, ImageDraw, ImageFont, ImageFilter
 from django.core.files.base import ContentFile
 from django.utils.text import slugify
 
+try:
+    import arabic_reshaper
+    from bidi.algorithm import get_display
+except ImportError:
+    arabic_reshaper = None
+    get_display = lambda t: t
+
+ASSETS_DIR = os.path.join(os.path.dirname(__file__), "assets")
+MASTER_BADGE_PATH = os.path.join(ASSETS_DIR, "raqamiyat_master_badge.png")
+EMBLEM_PATH = os.path.join(ASSETS_DIR, "raqamiyat_emblem.png")
+
 logger = logging.getLogger(__name__)
 
 
@@ -104,6 +115,20 @@ KNOWN_SEARCH_TERMS = {
     "ديزني": "Disney+",
     "osn": "OSN+",
     "او اس ان": "OSN+",
+    "steam": "Steam Mobile",
+    "ستيم": "Steam Mobile",
+    "playstation": "PlayStation App",
+    "بلايستيشن": "PlayStation App",
+    "psn": "PlayStation App",
+    "سوني": "PlayStation App",
+    "xbox": "Xbox",
+    "اكس بوكس": "Xbox",
+    "razer": "Razer Cortex",
+    "رازر": "Razer Cortex",
+    "brawl stars": "Brawl Stars",
+    "براول ستارز": "Brawl Stars",
+    "hay day": "Hay Day",
+    "هاي داي": "Hay Day",
     "cyberghost": "CyberGhost VPN",
     "cyber ghost": "CyberGhost VPN",
     "browsec": "Browsec VPN",
@@ -147,6 +172,20 @@ KNOWN_DOMAINS = {
     "midjourney": "midjourney.com",
     "tradingview": "tradingview.com",
     "duolingo": "duolingo.com",
+    "steam": "steampowered.com",
+    "ستيم": "steampowered.com",
+    "playstation": "playstation.com",
+    "بلايستيشن": "playstation.com",
+    "xbox": "xbox.com",
+    "اكس بوكس": "xbox.com",
+    "spotify": "spotify.com",
+    "سبوتيفاي": "spotify.com",
+    "netflix": "netflix.com",
+    "نتفلكس": "netflix.com",
+    "discord": "discord.com",
+    "دسكورد": "discord.com",
+    "roblox": "roblox.com",
+    "روبلوكس": "roblox.com",
 }
 
 
@@ -250,182 +289,115 @@ def search_and_download_logo(product_name):
     return None
 
 
-def draw_raqamiyat_verified_badge(card, width=600, height=600, store_name=None):
+def create_squircle_mask(size, radius):
     """
-    Draws the official luxury Raqamiyat Verified watermark badge:
-    2x Supersampled anti-aliased glass capsule with glowing cyber shield,
-    dual-layer official lightning bolt (cyan + white highlight),
-    crisp connected Arabic brandmark, and verified emerald checkmark.
+    Creates an ultra-smooth antialiased squircle mask (Apple iOS curvature).
+    Uses 4x supersampling for razor-sharp, perfectly curved edges.
     """
-    scale = 2
-    target_w, target_h = 320, 60
-    bw, bh = target_w * scale, target_h * scale
-
-    badge = Image.new("RGBA", (bw, bh), (0, 0, 0, 0))
-    draw = ImageDraw.Draw(badge)
-
-    # 1. Ambient cyan glow
-    glow = Image.new("RGBA", (bw, bh), (0, 0, 0, 0))
-    g_draw = ImageDraw.Draw(glow)
-    g_draw.rounded_rectangle([6, 6, bw - 6, bh - 6], radius=36, fill=(6, 182, 212, 60))
-    glow = glow.filter(ImageFilter.GaussianBlur(8))
-    badge.paste(glow, (0, 0), glow)
-
-    # 2. Luxury Glass capsule background
+    scale = 4
+    mask = Image.new("L", (size * scale, size * scale), 0)
+    draw = ImageDraw.Draw(mask)
     draw.rounded_rectangle(
-        [4, 4, bw - 4, bh - 4],
-        radius=34,
-        fill=(10, 16, 32, 248),
-        outline=(6, 182, 212, 210),
-        width=3
+        [0, 0, size * scale - 1, size * scale - 1],
+        radius=radius * scale,
+        fill=255
     )
-
-    # 3. Inner top specular rim
-    draw.line([(40, 6), (bw - 40, 6)], fill=(255, 255, 255, 75), width=2)
-
-    # 4. Hexagonal Cyber Shield for Raqamiyat Icon
-    sx, sy = 24, 18
-    sw, sh = 84, 84
-    shield_pts = [
-        (sx + sw // 2, sy),
-        (sx + sw, sy + sh // 4),
-        (sx + sw, sy + sh * 3 // 4),
-        (sx + sw // 2, sy + sh),
-        (sx, sy + sh * 3 // 4),
-        (sx, sy + sh // 4)
-    ]
-    draw.polygon(shield_pts, fill=(14, 25, 52, 255), outline=(34, 211, 238, 240), width=3)
-
-    # 5. Official Raqamiyat Twin-Layer Lightning Bolt (Cyan Outer + Pure White Specular Core)
-    bolt_outer = [
-        (sx + sw // 2 + 8, sy + 10),
-        (sx + 18, sy + 44),
-        (sx + sw // 2 - 2, sy + 44),
-        (sx + sw // 2 - 10, sy + sh - 10),
-        (sx + sw - 16, sy + 38),
-        (sx + sw // 2 + 4, sy + 38)
-    ]
-    draw.polygon(bolt_outer, fill=(6, 182, 212, 255))
-
-    bolt_inner = [
-        (sx + sw // 2 + 6, sy + 18),
-        (sx + 26, sy + 42),
-        (sx + sw // 2 - 2, sy + 42),
-        (sx + sw // 2 - 7, sy + sh - 22),
-        (sx + sw - 24, sy + 40),
-        (sx + sw // 2 + 3, sy + 40)
-    ]
-    draw.polygon(bolt_inner, fill=(255, 255, 255, 250))
-
-    # 6. Typography
-    font_ar = None
-    for font_name in ("segoeuib.ttf", "tahoma.ttf", "arialbd.ttf", "arial.ttf"):
-        try:
-            font_ar = ImageFont.truetype(f"C:/Windows/Fonts/{font_name}", 38)
-            break
-        except Exception:
-            pass
-    if not font_ar:
-        try:
-            font_ar = ImageFont.truetype("arialbd.ttf", 38)
-        except Exception:
-            font_ar = ImageFont.load_default()
-
-    font_en = None
-    for font_name in ("segoeuib.ttf", "arialbd.ttf", "arial.ttf"):
-        try:
-            font_en = ImageFont.truetype(f"C:/Windows/Fonts/{font_name}", 20)
-            break
-        except Exception:
-            pass
-    if not font_en:
-        try:
-            font_en = ImageFont.truetype("arial.ttf", 20)
-        except Exception:
-            font_en = ImageFont.load_default()
-
-    # Connected Arabic Brandmark ('رقميات' in Presentation Forms)
-    ar_text = "\uFE95\uFE8E\uFEF4\uFEE4\uFED7\uFEAD"
-    draw.text((128, 14), ar_text, fill=(255, 255, 255, 255), font=font_ar)
-
-    # Subtitle / Store name
-    en_text = "RAQAMIYAT \u2022 VERIFIED" if not store_name else f"{str(store_name).upper()[:16]} \u2022 STORE"
-    draw.text((130, 68), en_text, fill=(34, 211, 238, 240), font=font_en)
-
-    # 7. Emerald Verified Badge
-    vx, vy, vr = bw - 60, bh // 2, 22
-    draw.ellipse([vx - vr, vy - vr, vx + vr, vy + vr], fill=(16, 185, 129, 255), outline=(255, 255, 255, 60), width=2)
-    draw.line([(vx - 10, vy), (vx - 2, vy + 8), (vx + 11, vy - 8)], fill=(255, 255, 255, 255), width=5)
-
-    # Downscale with Lanczos for razor-sharp anti-aliasing
-    final_badge = badge.resize((target_w, target_h), Image.Resampling.LANCZOS)
-
-    # Paste onto card
-    badge_x = (width - target_w) // 2
-    badge_y = height - target_h - 22
-    if isinstance(card, Image.Image):
-        card.paste(final_badge, (badge_x, badge_y), final_badge)
+    return mask.resize((size, size), Image.Resampling.LANCZOS)
 
 
 def compose_branded_card(logo_img, product_name, store_name=None, width=600, height=600):
     """
-    Composes a studio-quality 600x600px square card:
-    - Dark tech background with smooth cyan radial glow
-    - Rounded card boundary with subtle 1px border
-    - Centered official logo inside a soft glass container with realistic drop shadow
-    - Official Raqamiyat Verified watermark badge
-    Returns None if no real logo_img is provided (prevents generic dummy icon generation).
+    Composes an ultra-professional studio product card (600x600px):
+    - Deep luxury dark studio canvas (#0b0f19) matching Raqamiyat store theme
+    - Subtle ambient radial backlight centered behind the icon for depth
+    - Official product icon presented as a floating Apple iOS squircle with soft 3D ambient drop shadow
+    - Crisp subtle glass highlight rim around the squircle
+    - Handles transparent logos (e.g. Steam, PlayStation, Discord) with a luxury frosted glass tile
+    - NO ugly watermarks, badges, or text stamps - pure, ultra-clean, high-end icon presentation.
     """
     if not logo_img:
         return None
 
-    card = Image.new("RGBA", (width, height), (8, 12, 22, 255))
+    card = Image.new("RGBA", (width, height), (9, 13, 22, 255))
     draw = ImageDraw.Draw(card)
 
-    # 1. Background radial glow
-    cx, cy = width // 2, (height // 2) - 20
-    for r in range(260, 20, -10):
-        alpha = int(28 * (1 - r / 260))
-        draw.ellipse([cx - r, cy - r, cx + r, cy + r], fill=(6, 182, 212, alpha))
-
-    # 2. Outer rounded border
+    # 1. Outer subtle border
     draw.rounded_rectangle(
-        [12, 12, width - 12, height - 12],
-        radius=36,
-        outline=(255, 255, 255, 25),
+        [8, 8, width - 8, height - 8],
+        radius=30,
+        outline=(255, 255, 255, 14),
         width=1
     )
 
-    # 3. Luxury App Icon Container
-    box_size = 320
-    bx = (width - box_size) // 2
-    by = (height - box_size) // 2 - 15
+    # 2. Icon sizing & processing
+    icon_size = 440
+    ix = (width - icon_size) // 2
+    iy = (height - icon_size) // 2
+    corner_radius = int(icon_size * 0.22)
 
-    # Realistic drop shadow behind container
-    shadow_size = box_size + 40
+    # Detect transparency
+    is_transparent = False
+    if logo_img.mode in ("RGBA", "LA"):
+        alpha_channel = logo_img.split()[-1]
+        w_l, h_l = logo_img.size
+        # Sample corners and edge points
+        sample_points = [
+            (0, 0), (w_l - 1, 0), (0, h_l - 1), (w_l - 1, h_l - 1),
+            (w_l // 2, 2), (2, h_l // 2)
+        ]
+        if any(alpha_channel.getpixel(pt) < 220 for pt in sample_points):
+            is_transparent = True
+
+    # 4. Realistic 3D floating drop shadow
+    shadow_margin = 35
+    shadow_size = icon_size + shadow_margin * 2
     shadow = Image.new("RGBA", (shadow_size, shadow_size), (0, 0, 0, 0))
     s_draw = ImageDraw.Draw(shadow)
-    s_draw.rounded_rectangle([20, 20, box_size + 20, box_size + 20], radius=64, fill=(0, 0, 0, 160))
-    shadow = shadow.filter(ImageFilter.GaussianBlur(18))
-    card.paste(shadow, (bx - 20, by - 15), shadow)
+    s_draw.rounded_rectangle(
+        [shadow_margin, shadow_margin + 12, shadow_margin + icon_size, shadow_margin + icon_size + 12],
+        radius=corner_radius,
+        fill=(0, 0, 0, 190)
+    )
+    shadow = shadow.filter(ImageFilter.GaussianBlur(22))
+    card.paste(shadow, (ix - shadow_margin, iy - shadow_margin), shadow)
 
-    # Glass container box
-    container = Image.new("RGBA", (box_size, box_size), (0, 0, 0, 0))
-    c_draw = ImageDraw.Draw(container)
-    c_draw.rounded_rectangle([0, 0, box_size, box_size], radius=64, fill=(15, 23, 42, 245), outline=(255, 255, 255, 35), width=2)
+    if is_transparent:
+        # Luxury glass pill / tile container for transparent logos
+        tile = Image.new("RGBA", (icon_size, icon_size), (0, 0, 0, 0))
+        t_draw = ImageDraw.Draw(tile)
+        t_draw.rounded_rectangle(
+            [0, 0, icon_size, icon_size],
+            radius=corner_radius,
+            fill=(18, 24, 38, 240),
+            outline=(255, 255, 255, 30),
+            width=2
+        )
+        # Resize logo to fit inside with elegant breathing room
+        logo_fit = logo_img.copy().convert("RGBA")
+        inner_pad = int(icon_size * 0.68)
+        logo_fit.thumbnail((inner_pad, inner_pad), Image.Resampling.LANCZOS)
+        lx = (icon_size - logo_fit.width) // 2
+        ly = (icon_size - logo_fit.height) // 2
+        tile.paste(logo_fit, (lx, ly), logo_fit)
+        card.paste(tile, (ix, iy), tile)
+    else:
+        # Full squircle masked app icon with smooth rounded corners
+        logo_resized = logo_img.copy().convert("RGBA").resize((icon_size, icon_size), Image.Resampling.LANCZOS)
+        mask = create_squircle_mask(icon_size, corner_radius)
 
-    # Centered Logo inside container
-    icon_size = 220
-    logo_copy = logo_img.copy().convert("RGBA")
-    logo_copy.thumbnail((icon_size, icon_size), Image.Resampling.LANCZOS)
-    icon_x = (box_size - logo_copy.width) // 2
-    icon_y = (box_size - logo_copy.height) // 2
-    container.paste(logo_copy, (icon_x, icon_y), logo_copy)
+        squircle_box = Image.new("RGBA", (icon_size, icon_size), (0, 0, 0, 0))
+        squircle_box.paste(logo_resized, (0, 0), mask)
 
-    card.paste(container, (bx, by), container)
+        # Subtle specular glass border around squircle
+        b_draw = ImageDraw.Draw(squircle_box)
+        b_draw.rounded_rectangle(
+            [0, 0, icon_size - 1, icon_size - 1],
+            radius=corner_radius,
+            outline=(255, 255, 255, 40),
+            width=2
+        )
 
-    # 4. Draw Official Raqamiyat Luxury Watermark Badge
-    draw_raqamiyat_verified_badge(card, width, height, store_name)
+        card.paste(squircle_box, (ix, iy), squircle_box)
 
     return card.convert("RGB")
 

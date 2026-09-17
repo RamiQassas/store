@@ -256,12 +256,16 @@ def api_live_product_search(request):
     else:
         qs = Product.objects.filter(is_active=True)
 
-    qs = qs.select_related("category").prefetch_related("variants").filter(
+    q_filter = (
         Q(name__icontains=q) |
         Q(description__icontains=q) |
         Q(category__name__icontains=q) |
         Q(variants__name__icontains=q)
-    ).distinct()[:8]
+    )
+    for w in q.split():
+        if len(w) > 1:
+            q_filter |= Q(name__icontains=w) | Q(variants__name__icontains=w)
+    qs = qs.select_related("category").prefetch_related("variants").filter(q_filter).distinct()[:10]
 
     currency = getattr(request, "currency", None)
     dummy_context = {"CURRENCY": currency, "request": request}
