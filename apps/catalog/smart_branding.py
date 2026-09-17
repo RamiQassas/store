@@ -129,6 +129,10 @@ KNOWN_SEARCH_TERMS = {
     "براول ستارز": "Brawl Stars",
     "hay day": "Hay Day",
     "هاي داي": "Hay Day",
+    "upfun": "Upfun",
+    "up fun": "Upfun",
+    "اب فن": "Upfun",
+    "ابفن": "Upfun",
     "cyberghost": "CyberGhost VPN",
     "cyber ghost": "CyberGhost VPN",
     "browsec": "Browsec VPN",
@@ -281,6 +285,10 @@ def search_and_download_logo(product_name):
 
     # Try broader query if specific query failed
     if " " in query:
+        no_spaces = query.replace(" ", "")
+        img = fetch_image_from_itunes(no_spaces)
+        if img:
+            return img
         first_word = query.split()[0]
         img = fetch_image_from_itunes(first_word)
         if img:
@@ -307,126 +315,114 @@ def create_squircle_mask(size, radius):
 
 def draw_luxury_stamp(card, width, height, store_name=None):
     """
-    Renders an ultra-luxurious, official Raqamiyat hallmark stamp:
-    - Frosted dark glass capsule (pill) with subtle metallic gold rim
-    - Sharp golden Raqamiyat lightning bolt emblem
-    - Connected Arabic & English brandmark: 'رقميات • RAQAMIYAT VERIFIED'
-    - Official emerald verified checkmark badge
+    Renders the official Raqamiyat hallmark verified master badge:
+    Uses the master pre-rendered vector-crisp badge (raqamiyat_master_badge.png)
+    which contains the 3D crystal lightning shield, Arabic 'رقميات',
+    'RAQAMIYAT • VERIFIED PLATFORM', and emerald checkmark.
+    Immune to OS font limitations and identical on Linux Docker and Windows.
     """
+    if os.path.exists(MASTER_BADGE_PATH):
+        try:
+            badge = Image.open(MASTER_BADGE_PATH).convert("RGBA")
+            target_w = 460
+            target_h = int(badge.height * (target_w / badge.width))
+            badge_resized = badge.resize((target_w, target_h), Image.Resampling.LANCZOS)
+
+            bx = (width - target_w) // 2
+            by = height - target_h - 28
+
+            # Soft ambient drop shadow + cyan glow aura
+            b_shadow = Image.new("RGBA", (target_w + 30, target_h + 30), (0, 0, 0, 0))
+            bs_draw = ImageDraw.Draw(b_shadow)
+            bs_draw.rounded_rectangle(
+                [15, 18, 15 + target_w, 18 + target_h],
+                radius=target_h // 2,
+                fill=(0, 0, 0, 220)
+            )
+            bs_draw.rounded_rectangle(
+                [15, 15, 15 + target_w, 15 + target_h],
+                radius=target_h // 2,
+                outline=(6, 182, 212, 100),
+                width=3
+            )
+            b_shadow = b_shadow.filter(ImageFilter.GaussianBlur(8))
+
+            card.paste(b_shadow, (bx - 15, by - 15), b_shadow)
+            card.paste(badge_resized, (bx, by), badge_resized)
+            return
+        except Exception as e:
+            logger.warning("Error rendering master badge asset: %s", e)
+
+    # Fallback if badge asset is missing
     scale = 3
-    pill_w = 400
-    pill_h = 50
+    pill_w = 420
+    pill_h = 56
     pill = Image.new("RGBA", (pill_w * scale, pill_h * scale), (0, 0, 0, 0))
     draw = ImageDraw.Draw(pill)
-
-    # Frosted dark glass capsule
     draw.rounded_rectangle(
         [0, 0, pill_w * scale - 1, pill_h * scale - 1],
-        radius=25 * scale,
-        fill=(14, 20, 36, 235),
-        outline=(212, 168, 83, 160),
+        radius=28 * scale,
+        fill=(14, 20, 36, 240),
+        outline=(6, 182, 212, 180),
         width=2 * scale
     )
-
-    # Gold lightning bolt
-    bw = 18 * scale
-    bh = 26 * scale
-    bx = 22 * scale
-    by = (pill_h * scale - bh) // 2
-    bolt_pts = [
-        (bx + int(bw * 0.56), by),
-        (bx, by + int(bh * 0.52)),
-        (bx + int(bw * 0.42), by + int(bh * 0.52)),
-        (bx + int(bw * 0.32), by + bh),
-        (bx + bw, by + int(bh * 0.42)),
-        (bx + int(bw * 0.52), by + int(bh * 0.42)),
-    ]
-    draw.polygon(bolt_pts, fill=(245, 212, 138, 255))
-
-    # Font setup
-    font = None
-    for fn in ("tahoma.ttf", "segoeuib.ttf", "arialbd.ttf"):
-        try:
-            font = ImageFont.truetype(f"C:/Windows/Fonts/{fn}", 15 * scale)
-            break
-        except Exception:
-            pass
-    if not font:
-        font = ImageFont.load_default()
-
-    # Arabic 'رقميات' in connected presentation forms + English brandmark
-    if store_name:
-        brand_text = f"\uFE95\uFE8E\uFEF4\uFEE4\uFED7\uFEAD \u2022 {str(store_name).upper()[:12]} VERIFIED"
-    else:
-        brand_text = "\uFE95\uFE8E\uFEF4\uFEE4\uFED7\uFEAD \u2022 RAQAMIYAT VERIFIED"
-
-    tx = bx + bw + 16 * scale
-    ty = (pill_h * scale - 15 * scale) // 2 - 2 * scale
-    draw.text((tx, ty), brand_text, fill=(255, 255, 255, 245), font=font)
-
-    # Emerald verified dot/badge
-    ex = pill_w * scale - 26 * scale
-    ey = (pill_h * scale) // 2
-    er = 8 * scale
-    draw.ellipse([ex - er, ey - er, ex + er, ey + er], fill=(16, 185, 129, 255))
-    # White checkmark inside badge
-    draw.line([(ex - 4 * scale, ey), (ex - scale, ey + 3 * scale), (ex + 4 * scale, ey - 3 * scale)], fill=(255, 255, 255, 255), width=2 * scale)
-
     pill_final = pill.resize((pill_w, pill_h), Image.Resampling.LANCZOS)
-
-    # Soft ambient drop shadow for the stamp
-    shadow = Image.new("RGBA", (pill_w + 24, pill_h + 24), (0, 0, 0, 0))
-    s_draw = ImageDraw.Draw(shadow)
-    s_draw.rounded_rectangle([12, 14, pill_w + 12, pill_h + 14], radius=25, fill=(0, 0, 0, 200))
-    shadow = shadow.filter(ImageFilter.GaussianBlur(10))
-
     px = (width - pill_w) // 2
-    py = height - pill_h - 22
-    card.paste(shadow, (px - 12, py - 12), shadow)
+    py = height - pill_h - 28
     card.paste(pill_final, (px, py), pill_final)
 
 
 def compose_branded_card(logo_img, product_name, store_name=None, width=600, height=600):
     """
     Composes an ultra-professional studio product card (600x600px):
-    - Deep luxury dark obsidian canvas (#070b14) matching Raqamiyat store theme
-    - Atmospheric radial backlight behind the icon for premium visual depth
-    - Official product icon presented as a floating Apple iOS squircle with soft 3D ambient drop shadow
+    - Deep luxury dark obsidian canvas (#0a0e1a) matching Raqamiyat store theme
+    - Atmospheric radial backlight behind the icon for premium visual depth (indigo + cyan)
+    - Double luxury outer rim with subtle rounded bevel
+    - Official product icon presented as a floating Apple iOS squircle (330x330) with soft 3D ambient drop shadow
     - Crisp specular glass highlight rim around the squircle
     - Handles transparent logos (e.g. Steam, PlayStation, Discord) with a luxury frosted glass tile
-    - Official Raqamiyat Certified stamp pill at the bottom with gold lightning bolt and emerald seal
+    - Official Raqamiyat Verified master badge at the bottom with 3D crystal lightning shield, Arabic 'رقميات', and emerald seal
     """
     if not logo_img:
         return None
 
     # 1. Base dark obsidian studio canvas
-    base = Image.new("RGBA", (width, height), (7, 11, 20, 255))
-    gradient = Image.new("RGBA", (width, height), (0, 0, 0, 0))
-    g_draw = ImageDraw.Draw(gradient)
+    base = Image.new("RGBA", (width, height), (10, 14, 26, 255))
+    glow = Image.new("RGBA", (width, height), (0, 0, 0, 0))
+    g_draw = ImageDraw.Draw(glow)
 
-    # Smooth atmospheric sapphire/dark glow centered behind icon
-    cx, cy = width // 2, int(height * 0.43)
-    max_r = 330
-    for r in range(max_r, 0, -4):
-        factor = (1 - r / max_r) ** 2
-        alpha = int(35 * factor)
-        g_draw.ellipse([cx - r, cy - r, cx + r, cy + r], fill=(45, 80, 150, alpha))
+    # Center sapphire/cyan glow behind icon
+    cx, cy = width // 2, int(height * 0.38)
+    for r in range(290, 0, -5):
+        f = (1 - r / 290) ** 1.8
+        g_draw.ellipse([cx - r, cy - r, cx + r, cy + r], fill=(16, 110, 190, int(45 * f)))
 
-    card = Image.alpha_composite(base, gradient)
+    # Top subtle ambient indigo glow
+    for r in range(200, 0, -6):
+        f = (1 - r / 200) ** 1.5
+        g_draw.ellipse([width // 2 - r, -40 - r, width // 2 + r, -40 + r], fill=(99, 102, 241, int(28 * f)))
+
+    card = Image.alpha_composite(base, glow)
     draw = ImageDraw.Draw(card)
 
-    # Outer subtle border
+    # Outer double luxury border
     draw.rounded_rectangle(
-        [8, 8, width - 8, height - 8],
-        radius=30,
-        outline=(255, 255, 255, 16),
+        [6, 6, width - 7, height - 7],
+        radius=28,
+        outline=(99, 102, 241, 45),
+        width=2
+    )
+    draw.rounded_rectangle(
+        [10, 10, width - 11, height - 11],
+        radius=24,
+        outline=(255, 255, 255, 14),
         width=1
     )
 
-    # 2. Icon sizing & positioning
-    icon_size = 390
+    # 2. Icon sizing & positioning (330x330)
+    icon_size = 330
     ix = (width - icon_size) // 2
-    iy = (height - icon_size) // 2 - 24
+    iy = 56
     corner_radius = int(icon_size * 0.22)
 
     # Detect transparency
@@ -447,11 +443,11 @@ def compose_branded_card(logo_img, product_name, store_name=None, width=600, hei
     shadow = Image.new("RGBA", (shadow_size, shadow_size), (0, 0, 0, 0))
     s_draw = ImageDraw.Draw(shadow)
     s_draw.rounded_rectangle(
-        [shadow_margin, shadow_margin + 14, shadow_margin + icon_size, shadow_margin + icon_size + 14],
+        [shadow_margin, shadow_margin + 16, shadow_margin + icon_size, shadow_margin + icon_size + 16],
         radius=corner_radius,
-        fill=(0, 0, 0, 210)
+        fill=(0, 0, 0, 215)
     )
-    shadow = shadow.filter(ImageFilter.GaussianBlur(22))
+    shadow = shadow.filter(ImageFilter.GaussianBlur(20))
     card.paste(shadow, (ix - shadow_margin, iy - shadow_margin), shadow)
 
     if is_transparent:
@@ -485,12 +481,12 @@ def compose_branded_card(logo_img, product_name, store_name=None, width=600, hei
         b_draw.rounded_rectangle(
             [0, 0, icon_size - 1, icon_size - 1],
             radius=corner_radius,
-            outline=(255, 255, 255, 45),
+            outline=(255, 255, 255, 55),
             width=2
         )
         card.paste(squircle_box, (ix, iy), squircle_box)
 
-    # 4. Draw Official Raqamiyat Luxury Stamp
+    # 4. Draw Official Raqamiyat Master Verified Badge
     draw_luxury_stamp(card, width, height, store_name)
 
     return card.convert("RGB")

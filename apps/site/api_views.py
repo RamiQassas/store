@@ -244,6 +244,7 @@ def api_live_product_search(request):
     if not q or len(q) < 1:
         return JsonResponse({"results": [], "total": 0})
 
+    from django.core.cache import cache
     from django.db.models import Q
     from django.urls import reverse
     from apps.catalog.models import Product
@@ -251,6 +252,12 @@ def api_live_product_search(request):
     from apps.site.templatetags.site_tags import product_starting_price
 
     store = getattr(request, "store", None)
+    currency = getattr(request, "currency", None)
+    cache_key = f"live_search_v2_{getattr(store, 'id', 'global')}_{q.lower()}_{currency}"
+    cached_res = cache.get(cache_key)
+    if cached_res is not None:
+        return JsonResponse(cached_res)
+
     if store:
         qs = Product.objects.filter(store=store, is_active=True)
     else:
@@ -267,7 +274,6 @@ def api_live_product_search(request):
             q_filter |= Q(name__icontains=w) | Q(variants__name__icontains=w)
     qs = qs.select_related("category").prefetch_related("variants").filter(q_filter).distinct()[:10]
 
-    currency = getattr(request, "currency", None)
     dummy_context = {"CURRENCY": currency, "request": request}
 
     results = []
@@ -285,12 +291,14 @@ def api_live_product_search(request):
         results.append({
             "id": str(p.id),
             "name": p.name,
-            "image": get_product_image_url(p),
+            "image": get_product_image_url(p, allow_db=False),
             "category_name": p.category.name if p.category else "",
             "price_display": p_price,
             "url": p_url,
             "in_stock": not p.is_out_of_stock,
         })
 
-    return JsonResponse({"results": results, "total": len(results)})
+    data = {"results": results, "total": len(results)}
+    cache.set(cache_key, data, 120)
+    return JsonResponse(data)
 

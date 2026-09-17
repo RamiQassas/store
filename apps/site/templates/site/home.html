@@ -1655,6 +1655,8 @@
     });
   }
 
+  const searchCache = new Map();
+
   input.addEventListener('input', function() {
     const q = this.value.trim();
     clearTimeout(debounceTimer);
@@ -1665,6 +1667,11 @@
 
     if (q.length < 1) {
       closeDropdown();
+      return;
+    }
+
+    if (searchCache.has(q)) {
+      renderResults(searchCache.get(q), q);
       return;
     }
 
@@ -1684,6 +1691,7 @@
       })
       .then(res => res.json())
       .then(data => {
+        searchCache.set(q, data);
         if (input.value.trim() === q) {
           renderResults(data, q);
         }
@@ -1693,7 +1701,7 @@
           console.error('Search error:', err);
         }
       });
-    }, 160);
+    }, 240);
   });
 
   input.addEventListener('keydown', function(e) {

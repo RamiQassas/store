@@ -29,6 +29,8 @@ def protected_media(request, path):
     response = serve(request, normalized_path, document_root=settings.MEDIA_ROOT)
     if normalized_path.startswith(_PRIVATE_MEDIA_PREFIXES):
         patch_cache_control(response, private=True, no_cache=True, no_store=True)
+    else:
+        patch_cache_control(response, public=True, max_age=86400 * 7)
     return response
 
 

@@ -1704,88 +1704,95 @@ def annotate_category_counts(categories):
 
 
 def home(request):
+    from django.core.cache import cache
+
     store = getattr(request, 'store', None)
+    cache_key = f"home_page_ctx_v2_{getattr(store, 'id', 'global')}"
+    ctx = cache.get(cache_key)
 
-    # Categories with total product count (including subcategories) â€” 2 SQL queries total!
-    all_cats = list(Category.objects.filter(is_active=True).order_by("sort_order", "name"))
-    annotate_category_counts(all_cats)
+    if ctx is None:
+        # Categories with total product count (including subcategories) — 2 SQL queries total!
+        all_cats = list(Category.objects.filter(is_active=True).order_by("sort_order", "name"))
+        annotate_category_counts(all_cats)
 
-    active_categories = [cat for cat in all_cats if cat.product_count > 0 or cat.parent_id is None]
+        active_categories = [cat for cat in all_cats if cat.product_count > 0 or cat.parent_id is None]
 
-    featured_qs = list(Product.objects.filter(
-        is_active=True, is_featured=True
-    ).select_related("category").prefetch_related("variants")[:12])
+        featured_qs = list(Product.objects.filter(
+            is_active=True, is_featured=True
+        ).select_related("category").prefetch_related("variants")[:12])
 
-    if len(featured_qs) < 8:
-        existing_ids = [p.id for p in featured_qs]
-        extra_products = list(Product.objects.filter(
-            is_active=True
-        ).exclude(id__in=existing_ids).select_related("category").prefetch_related("variants")[:12 - len(featured_qs)])
-        featured_products = featured_qs + extra_products
-    else:
-        featured_products = featured_qs
+        if len(featured_qs) < 8:
+            existing_ids = [p.id for p in featured_qs]
+            extra_products = list(Product.objects.filter(
+                is_active=True
+            ).exclude(id__in=existing_ids).select_related("category").prefetch_related("variants")[:12 - len(featured_qs)])
+            featured_products = featured_qs + extra_products
+        else:
+            featured_products = featured_qs
 
-    sale_qs = list(Product.objects.filter(
-        Q(is_sale=True) | Q(variants__is_sale=True),
-        is_active=True,
-    ).select_related("category").prefetch_related("variants").distinct()[:6])
+        sale_qs = list(Product.objects.filter(
+            Q(is_sale=True) | Q(variants__is_sale=True),
+            is_active=True,
+        ).select_related("category").prefetch_related("variants").distinct()[:6])
 
-    if len(sale_qs) < 4:
-        existing_ids = [p.id for p in sale_qs]
-        extra_sales = list(Product.objects.filter(
-            is_active=True
-        ).exclude(id__in=existing_ids).select_related("category").prefetch_related("variants")[:4 - len(sale_qs)])
-        sale_products = sale_qs + extra_sales
-    else:
-        sale_products = sale_qs
+        if len(sale_qs) < 4:
+            existing_ids = [p.id for p in sale_qs]
+            extra_sales = list(Product.objects.filter(
+                is_active=True
+            ).exclude(id__in=existing_ids).select_related("category").prefetch_related("variants")[:4 - len(sale_qs)])
+            sale_products = sale_qs + extra_sales
+        else:
+            sale_products = sale_qs
 
-    ctx = {
-        "featured_products": featured_products,
-        "sale_products": sale_products,
-        "categories": active_categories,
-    }
-
-    if not store:
-        from apps.common.models import PlatformStatistic, Testimonial
-
-        base_stats = {
-            "orders": Order.objects.count(),
-            "users": User.objects.count(),
-            "tickets": ChatRoom.objects.count(),
-            "deposits": DepositRequest.objects.filter(status=DepositRequest.Status.COMPLETED).count(),
-            "withdrawals": WithdrawalRequest.objects.filter(status=WithdrawalRequest.Status.COMPLETED).count(),
-            "products": Product.objects.filter(is_active=True).count()
+        ctx = {
+            "featured_products": featured_products,
+            "sale_products": sale_products,
+            "categories": active_categories,
         }
 
-        custom_stats_qs = PlatformStatistic.objects.filter(is_active=True).order_by('display_order')
-        display_stats = []
-        for stat in custom_stats_qs:
-            val = stat.value_override
-            if stat.stat_type == PlatformStatistic.StatType.USERS:
-                val += base_stats['users']
-            elif stat.stat_type == PlatformStatistic.StatType.ORDERS:
-                val += base_stats['orders']
-            elif stat.stat_type == PlatformStatistic.StatType.DEPOSITS:
-                val += base_stats['deposits']
-            elif stat.stat_type == PlatformStatistic.StatType.WITHDRAWALS:
-                val += base_stats['withdrawals']
-            elif stat.stat_type == PlatformStatistic.StatType.PRODUCTS:
-                val += base_stats['products']
+        if not store:
+            from apps.common.models import PlatformStatistic, Testimonial
 
-            display_stats.append({
-                'label': stat.label,
-                'value': stat.string_value or f"{val}{stat.value_suffix}",
-                'icon_class': stat.icon_class or 'fas fa-star',
-                'stat_type': stat.stat_type
-            })
+            base_stats = {
+                "orders": Order.objects.count(),
+                "users": User.objects.count(),
+                "tickets": ChatRoom.objects.count(),
+                "deposits": DepositRequest.objects.filter(status=DepositRequest.Status.COMPLETED).count(),
+                "withdrawals": WithdrawalRequest.objects.filter(status=WithdrawalRequest.Status.COMPLETED).count(),
+                "products": Product.objects.filter(is_active=True).count()
+            }
 
-        testimonials = Testimonial.objects.filter(is_approved=True).order_by('-created_at')[:6]
-        ctx["display_stats"] = display_stats
-        ctx["testimonials"] = testimonials
+            custom_stats_qs = PlatformStatistic.objects.filter(is_active=True).order_by('display_order')
+            display_stats = []
+            for stat in custom_stats_qs:
+                val = stat.value_override
+                if stat.stat_type == PlatformStatistic.StatType.USERS:
+                    val += base_stats['users']
+                elif stat.stat_type == PlatformStatistic.StatType.ORDERS:
+                    val += base_stats['orders']
+                elif stat.stat_type == PlatformStatistic.StatType.DEPOSITS:
+                    val += base_stats['deposits']
+                elif stat.stat_type == PlatformStatistic.StatType.WITHDRAWALS:
+                    val += base_stats['withdrawals']
+                elif stat.stat_type == PlatformStatistic.StatType.PRODUCTS:
+                    val += base_stats['products']
 
-        from apps.stores.models import Store
-        platform_stores = Store.objects.filter(is_active=True).order_by('-is_featured', 'display_order', 'name')
-        ctx["platform_stores"] = platform_stores
+                display_stats.append({
+                    'label': stat.label,
+                    'value': stat.string_value or f"{val}{stat.value_suffix}",
+                    'icon_class': stat.icon_class or 'fas fa-star',
+                    'stat_type': stat.stat_type
+                })
+
+            testimonials = list(Testimonial.objects.filter(is_approved=True).order_by('-created_at')[:6])
+            ctx["display_stats"] = display_stats
+            ctx["testimonials"] = testimonials
+
+            from apps.stores.models import Store
+            platform_stores = list(Store.objects.filter(is_active=True).order_by('-is_featured', 'display_order', 'name')[:8])
+            ctx["platform_stores"] = platform_stores
+
+        cache.set(cache_key, ctx, 120)
 
     return render(request, "site/home.html", ctx)
 

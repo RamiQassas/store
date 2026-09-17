@@ -190,16 +190,15 @@ def _extract_url_from_field(val):
         pass
     return None
 
-def get_product_image_url(product, depth=0):
+def get_product_image_url(product, depth=0, allow_db=True):
     """
     Multi-tier intelligent image resolution for catalog products:
-    1. Direct product media: image, thumbnail, cover_image, gallery.
-    2. Product metadata image URLs (Alkasr/Tafa3ol/SMM API fields).
-    3. Linked ProviderProduct local_image.
-    4. If tenant sub-store product: resolve from global parent product template.
-    5. High-resolution brand static SVG matching.
-    6. Category image / brand matching.
-    7. High-end Raqamiyat brand luxury SVG fallback.
+    1. Direct product media: image, thumbnail, cover_image.
+    2. High-resolution brand static SVG matching (0ms in-memory).
+    3. Product metadata image URLs (Alkasr/Tafa3ol/SMM API fields).
+    4. Category image / brand matching.
+    5. (If allow_db) Check gallery, linked ProviderProduct, or parent product.
+    6. High-end Raqamiyat brand luxury SVG fallback.
     """
     if not product:
         return static(DEFAULT_FALLBACK_SVG)
@@ -211,19 +210,13 @@ def get_product_image_url(product, depth=0):
         if u:
             return u
 
-    # Check gallery images
-    try:
-        gallery_mgr = getattr(product, 'gallery', None)
-        if gallery_mgr:
-            first_gal = gallery_mgr.first()
-            if first_gal:
-                u = _extract_url_from_field(getattr(first_gal, 'image', None)) or _extract_url_from_field(getattr(first_gal, 'url', None))
-                if u:
-                    return u
-    except Exception:
-        pass
+    # 2. High-resolution brand static SVG matching by product name (instant in-memory)
+    p_name = getattr(product, 'name', '')
+    brand_asset = match_brand_static_asset(p_name)
+    if brand_asset:
+        return brand_asset
 
-    # 2. Product metadata (image_url, icon_url, artworkUrl512, etc.)
+    # 3. Product metadata (image_url, icon_url, artworkUrl512, etc.)
     try:
         meta = getattr(product, 'metadata', None)
         if isinstance(meta, dict):
@@ -235,37 +228,7 @@ def get_product_image_url(product, depth=0):
     except Exception:
         pass
 
-    # 3. Linked ProviderProduct image via provider mappings
-    try:
-        if hasattr(product, 'provider_mappings'):
-            first_m = product.provider_mappings.select_related('provider_product').first()
-            if first_m and first_m.provider_product:
-                pp = first_m.provider_product
-                u = _extract_url_from_field(getattr(pp, 'local_image', None))
-                if u:
-                    return u
-    except Exception:
-        pass
-
-    # 4. If this is a tenant sub-store product, check the global platform parent product
-    if depth == 0 and getattr(product, 'store_id', None):
-        try:
-            from apps.catalog.models import Product
-            parent = Product.all_objects.filter(store__isnull=True, name=product.name).first()
-            if parent and parent.id != product.id:
-                parent_img = get_product_image_url(parent, depth=depth + 1)
-                if parent_img and not parent_img.endswith(DEFAULT_FALLBACK_SVG):
-                    return parent_img
-        except Exception:
-            pass
-
-    # 5. High-resolution brand static SVG matching by product name
-    p_name = getattr(product, 'name', '')
-    brand_asset = match_brand_static_asset(p_name)
-    if brand_asset:
-        return brand_asset
-
-    # 6. Category image & category brand matching
+    # 4. Category image & category brand matching
     cat = getattr(product, 'category', None)
     if cat:
         u = _extract_url_from_field(getattr(cat, 'image', None))
@@ -276,7 +239,45 @@ def get_product_image_url(product, depth=0):
         if cat_asset:
             return cat_asset
 
-    # 7. Fallback to official Raqamiyat high-tech luxury brand emblem
+    # 5. Database fallbacks (only if allow_db is True)
+    if allow_db:
+        # Check gallery images
+        try:
+            gallery_mgr = getattr(product, 'gallery', None)
+            if gallery_mgr:
+                first_gal = gallery_mgr.first()
+                if first_gal:
+                    u = _extract_url_from_field(getattr(first_gal, 'image', None)) or _extract_url_from_field(getattr(first_gal, 'url', None))
+                    if u:
+                        return u
+        except Exception:
+            pass
+
+        # Linked ProviderProduct image via provider mappings
+        try:
+            if hasattr(product, 'provider_mappings'):
+                first_m = product.provider_mappings.select_related('provider_product').first()
+                if first_m and first_m.provider_product:
+                    pp = first_m.provider_product
+                    u = _extract_url_from_field(getattr(pp, 'local_image', None))
+                    if u:
+                        return u
+        except Exception:
+            pass
+
+        # If this is a tenant sub-store product, check the global platform parent product
+        if depth == 0 and getattr(product, 'store_id', None):
+            try:
+                from apps.catalog.models import Product
+                parent = Product.all_objects.filter(store__isnull=True, name=product.name).first()
+                if parent and parent.id != product.id:
+                    parent_img = get_product_image_url(parent, depth=depth + 1, allow_db=False)
+                    if parent_img and not parent_img.endswith(DEFAULT_FALLBACK_SVG):
+                        return parent_img
+            except Exception:
+                pass
+
+    # 6. Fallback to official Raqamiyat high-tech luxury brand emblem
     return static(DEFAULT_FALLBACK_SVG)
 
 
