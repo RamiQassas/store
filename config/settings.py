@@ -360,18 +360,23 @@ if not REDIS_URL:
     # Fallback only for local development if not provided in env
     REDIS_URL = "redis://127.0.0.1:6379/0"
 
-if (DEBUG or "test" in sys.argv) and not env_bool("DJANGO_USE_REDIS_CACHE", False):
+if env_bool("DJANGO_USE_REDIS_CACHE", False) and REDIS_URL:
     CACHES = {
         "default": {
-            "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
-            "LOCATION": "dev-cache",
+            "BACKEND": "django.core.cache.backends.redis.RedisCache",
+            "LOCATION": REDIS_URL,
+            "TIMEOUT": 300,
         }
     }
 else:
     CACHES = {
         "default": {
-            "BACKEND": "django.core.cache.backends.redis.RedisCache",
-            "LOCATION": REDIS_URL,
+            "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
+            "LOCATION": "raqamiyat-locmem-cache",
+            "TIMEOUT": 300,
+            "OPTIONS": {
+                "MAX_ENTRIES": 10000,
+            }
         }
     }
 

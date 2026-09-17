@@ -263,21 +263,31 @@ def api_live_product_search(request):
     else:
         qs = Product.objects.filter(is_active=True)
 
-    q_filter = (
-        Q(name__icontains=q) |
-        Q(description__icontains=q) |
-        Q(category__name__icontains=q) |
-        Q(variants__name__icontains=q)
-    )
+    # Tier 1: Search by product name (instant indexed scan)
+    name_q = Q(name__icontains=q)
     for w in q.split():
         if len(w) > 1:
-            q_filter |= Q(name__icontains=w) | Q(variants__name__icontains=w)
-    qs = qs.select_related("category").prefetch_related("variants").filter(q_filter).distinct()[:10]
+            name_q |= Q(name__icontains=w)
+
+    primary_products = list(qs.filter(name_q).select_related("category").prefetch_related("variants")[:10])
+
+    # Tier 2: If less than 10 results, search by category name
+    if len(primary_products) < 10:
+        seen_ids = {p.id for p in primary_products}
+        extra_products = list(
+            qs.exclude(id__in=seen_ids)
+            .filter(category__name__icontains=q)
+            .select_related("category")
+            .prefetch_related("variants")[:10 - len(primary_products)]
+        )
+        matched_products = primary_products + extra_products
+    else:
+        matched_products = primary_products
 
     dummy_context = {"CURRENCY": currency, "request": request}
 
     results = []
-    for p in qs:
+    for p in matched_products:
         try:
             p_price = product_starting_price(dummy_context, p)
         except Exception:
