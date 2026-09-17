@@ -296,9 +296,27 @@ STATICFILES_STORAGE = (
 )
 
 MEDIA_URL = "/media/"
-# Render persistence: /var/data is the standard mount point for disks
-MEDIA_ROOT_DEFAULT = "/var/data" if os.path.exists("/var/data") else BASE_DIR / "media"
-MEDIA_ROOT = env("MEDIA_ROOT", MEDIA_ROOT_DEFAULT)
+MEDIA_ROOT_DEFAULT = BASE_DIR / "media"
+MEDIA_ROOT = Path(env("MEDIA_ROOT", str(MEDIA_ROOT_DEFAULT)))
+
+# Ensure media directory exists and migrate legacy /var/data if present
+try:
+    MEDIA_ROOT.mkdir(parents=True, exist_ok=True)
+    if os.path.exists("/var/data") and os.path.abspath("/var/data") != os.path.abspath(str(MEDIA_ROOT)):
+        import shutil
+        for item in os.listdir("/var/data"):
+            src = os.path.join("/var/data", item)
+            dst = os.path.join(str(MEDIA_ROOT), item)
+            if not os.path.exists(dst):
+                try:
+                    if os.path.isdir(src):
+                        shutil.copytree(src, dst)
+                    else:
+                        shutil.copy2(src, dst)
+                except Exception:
+                    pass
+except Exception:
+    pass
 FILE_UPLOAD_MAX_MEMORY_SIZE = env_int("DJANGO_FILE_UPLOAD_MAX_MEMORY_SIZE", 5 * 1024 * 1024)
 DATA_UPLOAD_MAX_MEMORY_SIZE = env_int("DJANGO_DATA_UPLOAD_MAX_MEMORY_SIZE", 10 * 1024 * 1024)
 
