@@ -73,8 +73,10 @@ PHRASE_MAPPINGS = [
     (r'\bpure\s*vpn\b', 'بيور في بي ان', 'Pure VPN'),
     (r'\badguard\s*vpn\b', 'أدجارد في بي ان', 'AdGuard VPN'),
     (r'\bsurfshark\s*vpn\b', 'سيرف شارك في بي ان', 'Surfshark VPN'),
-    (r'\bwindscribe\s*vpn\b', 'ويندسكرايب في بي ان', 'Windscribe VPN'),
-    (r'\bhotspot\s*shield\s*vpn\b', 'هوت سبوت شيلد في بي ان', 'Hotspot Shield VPN'),
+    (r'\bwindscribe(\s*traffic)?(\s*vpn)?\b', 'ويندسكرايب في بي ان', 'Windscribe VPN'),
+    (r'\b(hotspot\s*shield|هوت\s*سبوت(\s*شيلد)?)(\s*vpn)?\b', 'هوت سبوت شيلد في بي ان', 'Hotspot Shield VPN'),
+    (r'\b(tunnelbear|tunnelbar)(\s*vpn)?\b', 'تونيل بير في بي ان', 'TunnelBear VPN'),
+    (r'\bzoog(\s*vpn)?\b', 'زوغ في بي ان', 'Zoog VPN'),
     (r'\bkaspersky\s*vpn\b', 'كاسبرسكي في بي ان', 'Kaspersky VPN'),
 
     # Apps and Social
@@ -277,22 +279,33 @@ def format_bilingual_name(name):
     
     raw = name.strip()
     
-    # 1. If already formatted as 'Arabic | English'
-    if ' | ' in raw:
-        ar_candidate, en_candidate = raw.split(' | ', 1)
-        ar_candidate = ar_candidate.strip()
-        en_candidate = en_candidate.strip()
-        
-        # Check phrase mappings first
-        for pattern, ar_rep, en_rep in PHRASE_MAPPINGS:
-            if re.search(pattern, en_candidate, flags=re.IGNORECASE) or re.search(pattern, ar_candidate, flags=re.IGNORECASE):
-                return f"{ar_rep} | {en_rep}"
-                
-        # If en_candidate is clean English, use it as basis
-        if re.search(r'[a-zA-Z]', en_candidate) and not re.search(r'[\u0600-\u06FF]', en_candidate):
-            ar_res = translate_en_to_ar(en_candidate)
-            en_res = format_official_title_case(en_candidate)
-            return f"{ar_res} | {en_res}"
+    # 1. If already formatted as 'Arabic | English' or contains multiple pipes
+    if ' | ' in raw or '|' in raw:
+        parts = [p.strip() for p in re.split(r'\s*\|\s*', raw) if p.strip()]
+        unique_parts = []
+        for p in parts:
+            if p not in unique_parts:
+                unique_parts.append(p)
+        if len(unique_parts) == 1:
+            raw = unique_parts[0]
+        elif len(unique_parts) >= 2:
+            ar_candidate = unique_parts[0]
+            en_candidate = unique_parts[-1]
+            # Check phrase mappings first
+            for pattern, ar_rep, en_rep in PHRASE_MAPPINGS:
+                if re.search(pattern, en_candidate, flags=re.IGNORECASE) or re.search(pattern, ar_candidate, flags=re.IGNORECASE):
+                    return f"{ar_rep} | {en_rep}"
+                    
+            # If en_candidate is clean English, use it as basis
+            if re.search(r'[a-zA-Z]', en_candidate) and not re.search(r'[\u0600-\u06FF]', en_candidate):
+                ar_res = translate_en_to_ar(en_candidate)
+                en_res = format_official_title_case(en_candidate)
+                return f"{ar_res} | {en_res}"
+            # If ar_candidate is clean Arabic, translate to English
+            if re.search(r'[\u0600-\u06FF]', ar_candidate) and not re.search(r'[a-zA-Z]', ar_candidate):
+                en_res = translate_ar_to_en(ar_candidate)
+                return f"{ar_candidate} | {en_res}"
+            raw = f"{ar_candidate} {en_candidate}"
 
     # 2. Check phrase mappings for raw input
     for pattern, ar_rep, en_rep in PHRASE_MAPPINGS:
