@@ -77,8 +77,9 @@ class AlkasrClient:
         base_clean = base.rstrip("/")
         while base_clean.lower().endswith("/client/api"):
             base_clean = base_clean[:-11].rstrip("/")
-        # Alkasr VIP API uses GET for profile, products, content, newOrder, check
+        # Alkasr VIP API uses GET for all endpoints
         method = "GET"
+        url = base_clean + rel_path
 
         req_log = ProviderRequestLog.objects.create(
             profile=self.profile,
@@ -86,6 +87,7 @@ class AlkasrClient:
             method=method,
             payload=str({k: v for k, v in data.items() if k not in ("api_token", "key")})
         )
+
 
         start_time = time.time()
 
