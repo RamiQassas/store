@@ -360,25 +360,17 @@ if not REDIS_URL:
     # Fallback only for local development if not provided in env
     REDIS_URL = "redis://127.0.0.1:6379/0"
 
-if env_bool("DJANGO_USE_REDIS_CACHE", False) and REDIS_URL:
-    CACHES = {
-        "default": {
-            "BACKEND": "django.core.cache.backends.redis.RedisCache",
-            "LOCATION": REDIS_URL,
-            "TIMEOUT": 300,
+# Ultra-fast, zero-overhead in-process memory cache to prevent Redis socket timeouts
+CACHES = {
+    "default": {
+        "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
+        "LOCATION": "raqamiyat-fast-memcache",
+        "TIMEOUT": 300,
+        "OPTIONS": {
+            "MAX_ENTRIES": 10000,
         }
     }
-else:
-    CACHES = {
-        "default": {
-            "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
-            "LOCATION": "raqamiyat-locmem-cache",
-            "TIMEOUT": 300,
-            "OPTIONS": {
-                "MAX_ENTRIES": 10000,
-            }
-        }
-    }
+}
 
 CELERY_BROKER_URL = REDIS_URL
 CELERY_RESULT_BACKEND = REDIS_URL
