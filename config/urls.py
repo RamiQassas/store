@@ -99,12 +99,46 @@ def version_view(request):
     return JsonResponse({"status": "online"})
 
 
+@require_GET
+def debug_provider_products(request):
+    from apps.providers.models import ProviderProduct, ProviderProfile
+    from apps.catalog.models import ProductVariant
+    profile = ProviderProfile.all_objects.filter(is_active=True).first()
+    token = (profile.api_token[:6] + "...") if (profile and profile.api_token) else None
+    
+    prods = []
+    for p in ProviderProduct.objects.all():
+        # find mapped variant
+        mapping = getattr(p, 'mapping', None)
+        v = mapping.local_variant if mapping else None
+        prods.append({
+            "id": p.id,
+            "remote_id": p.remote_id,
+            "name": p.name,
+            "local_name": p.local_name,
+            "cost_price": str(p.cost_price),
+            "product_type": p.product_type,
+            "qty_min": p.qty_min,
+            "qty_max": p.qty_max,
+            "qty_list": p.qty_list,
+            "category": p.category.name if p.category else None,
+            "parent_category": p.category.parent.name if p.category and p.category.parent else None,
+            "variant_price": str(v.price) if v else None,
+            "variant_name": v.name if v else None,
+            "variant_qty_type": (v.metadata or {}).get("qty_type") if v else None,
+            "variant_meta": v.metadata if v else None,
+        })
+    return JsonResponse({"count": len(prods), "token_prefix": token, "products": prods})
+
+
+
 from apps.common.auto_deploy import github_auto_deploy_view
 
 urlpatterns = [
     path("robots.txt", robots_txt),
     path("sitemap.xml", sitemap_xml_view, name="sitemap_xml"),
     path("api/version/", version_view, name="version_view"),
+    path("api/debug-products/", debug_provider_products, name="debug_provider_products"),
     path("api/deploy-webhook/<str:secret_token>/", deploy_webhook, name="deploy_webhook"),
     path("api/github-auto-deploy/", github_auto_deploy_view, name="github_auto_deploy"),
     path("", include("apps.site.urls")),
