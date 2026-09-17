@@ -132,6 +132,27 @@ def debug_provider_products(request):
 
 
 
+@require_GET
+def alkasr_raw_products(request):
+    from apps.providers.models import ProviderProfile
+    from services.provider.alkasr.client import AlkasrClient
+    profile = ProviderProfile.all_objects.filter(is_active=True).first()
+    if not profile:
+        return JsonResponse({"error": "No profile"})
+    client = AlkasrClient(api_token=profile.api_token, base_url=profile.base_url, profile=profile)
+    raw = client.get_products()
+    raw_list = raw if isinstance(raw, list) else raw.get("data", [])
+    
+    # filter if query param 'ids' passed
+    ids_param = request.GET.get("ids")
+    if ids_param:
+        target_ids = [x.strip() for x in ids_param.split(",") if x.strip()]
+        filtered = [item for item in raw_list if str(item.get("id")) in target_ids or str(item.get("name")).lower() in [t.lower() for t in target_ids]]
+        return JsonResponse({"count": len(filtered), "items": filtered})
+    
+    return JsonResponse({"total": len(raw_list), "sample": raw_list[:20]})
+
+
 from apps.common.auto_deploy import github_auto_deploy_view
 
 urlpatterns = [
@@ -139,6 +160,7 @@ urlpatterns = [
     path("sitemap.xml", sitemap_xml_view, name="sitemap_xml"),
     path("api/version/", version_view, name="version_view"),
     path("api/debug-products/", debug_provider_products, name="debug_provider_products"),
+    path("api/alkasr-raw/", alkasr_raw_products, name="alkasr_raw_products"),
     path("api/deploy-webhook/<str:secret_token>/", deploy_webhook, name="deploy_webhook"),
     path("api/github-auto-deploy/", github_auto_deploy_view, name="github_auto_deploy"),
     path("", include("apps.site.urls")),
