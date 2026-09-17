@@ -273,8 +273,8 @@
         background: rgba(7, 5, 16, 0.7);
         border: 1px solid rgba(255, 255, 255, 0.06);
         border-radius: 18px;
-        padding: 0.8rem 1.25rem;
-        margin-bottom: 0.95rem;
+        padding: 0.65rem 1.15rem;
+        margin-bottom: 0.75rem;
     }
     .alkasr-metric-col {
         display: flex;
@@ -284,10 +284,10 @@
         font-size: 0.75rem;
         font-weight: 800;
         color: #94a3b8;
-        margin-bottom: 0.15rem;
+        margin-bottom: 0.1rem;
     }
     .alkasr-metric-value {
-        font-size: 1.15rem;
+        font-size: 1.1rem;
         font-weight: 900;
         color: #fff;
         letter-spacing: -0.01em;
@@ -295,7 +295,7 @@
 
     /* Centered Input Box */
     .alkasr-input-wrap {
-        margin-bottom: 1rem;
+        margin-bottom: 0.75rem;
     }
     .alkasr-input-box {
         width: 100%;
@@ -516,6 +516,187 @@
         padding: 0.25rem 0;
         font-size: 0.78rem;
     }
+
+    /* Topbar Navigation Product Counter Badge */
+    .alkasr-nav-counter {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.25rem;
+        padding: 0.25rem 0.65rem;
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid rgba(255, 255, 255, 0.09);
+        border-radius: 12px;
+        font-size: 0.8rem;
+        font-weight: 800;
+        min-width: 56px;
+        height: 38px;
+        box-sizing: border-box;
+        user-select: none;
+    }
+    .alkasr-nav-current {
+        color: #fbbf24;
+        font-family: monospace;
+        font-weight: 900;
+    }
+    .alkasr-nav-sep {
+        color: #64748b;
+        font-size: 0.72rem;
+    }
+    .alkasr-nav-total {
+        color: #94a3b8;
+        font-family: monospace;
+        font-weight: 700;
+    }
+
+    /* Stepper + and - Buttons & Container */
+    .alkasr-qty-box {
+        background: rgba(10, 7, 24, 0.75);
+        border: 1px solid rgba(168, 85, 247, 0.25);
+        border-radius: 18px;
+        padding: 0.75rem 0.9rem;
+        margin-bottom: 0.85rem;
+        box-shadow: 0 4px 18px rgba(0, 0, 0, 0.35);
+    }
+    .alkasr-stepper-btn {
+        width: 44px;
+        height: 44px;
+        border-radius: 14px;
+        background: linear-gradient(135deg, rgba(245, 158, 11, 0.2) 0%, rgba(180, 83, 9, 0.35) 100%);
+        border: 1.5px solid rgba(245, 158, 11, 0.5);
+        color: #fbbf24;
+        font-size: 1.05rem;
+        font-weight: 900;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+        user-select: none;
+        flex-shrink: 0;
+    }
+    .alkasr-stepper-btn:hover {
+        background: linear-gradient(135deg, rgba(245, 158, 11, 0.35) 0%, rgba(217, 119, 6, 0.5) 100%);
+        border-color: #f59e0b;
+        color: #fff;
+        transform: translateY(-1px);
+        box-shadow: 0 6px 18px rgba(245, 158, 11, 0.4);
+    }
+    .alkasr-stepper-btn:active {
+        transform: scale(0.92);
+    }
+
+    /* Paste Button */
+    .alkasr-paste-btn {
+        position: absolute;
+        left: 0.65rem;
+        top: 50%;
+        transform: translateY(-50%);
+        padding: 0.35rem 0.75rem;
+        border-radius: 10px;
+        background: rgba(245, 158, 11, 0.15);
+        border: 1px solid rgba(245, 158, 11, 0.35);
+        color: #fbbf24;
+        font-size: 0.75rem;
+        font-weight: 800;
+        cursor: pointer;
+        transition: all 0.2s;
+        display: flex;
+        align-items: center;
+        gap: 0.35rem;
+    }
+    .alkasr-paste-btn:hover {
+        background: rgba(245, 158, 11, 0.25);
+        border-color: #f59e0b;
+        color: #fff;
+        transform: translateY(-50%) scale(1.04);
+    }
+    .alkasr-paste-btn:active {
+        transform: translateY(-50%) scale(0.95);
+    }
+
+    /* Luxury Coupon Box & Golden Apply Button */
+    .alkasr-coupon-box {
+        background: rgba(10, 7, 24, 0.7);
+        border: 1px solid rgba(168, 85, 247, 0.2);
+        border-radius: 16px;
+        padding: 0.65rem 0.85rem;
+        margin-top: 0.75rem;
+    }
+    .alkasr-coupon-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        cursor: pointer;
+        user-select: none;
+    }
+    .alkasr-coupon-toggle-btn {
+        background: rgba(245, 158, 11, 0.12);
+        border: 1px solid rgba(245, 158, 11, 0.3);
+        color: #fbbf24;
+        border-radius: 10px;
+        padding: 0.3rem 0.65rem;
+        font-size: 0.75rem;
+        font-weight: 800;
+        display: flex;
+        align-items: center;
+        gap: 0.35rem;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+    .alkasr-coupon-toggle-btn:hover {
+        background: rgba(245, 158, 11, 0.22);
+        border-color: #f59e0b;
+        color: #fff;
+    }
+    .alkasr-coupon-input-group {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    .alkasr-coupon-input {
+        flex-grow: 1;
+        background: rgba(0, 0, 0, 0.65);
+        border: 1.5px solid rgba(255, 255, 255, 0.12);
+        border-radius: 12px;
+        padding: 0.6rem 0.85rem;
+        font-size: 0.82rem;
+        color: #fff;
+        outline: none;
+        font-weight: 700;
+        transition: all 0.2s;
+        text-align: right;
+    }
+    .alkasr-coupon-input:focus {
+        border-color: #f59e0b;
+        box-shadow: 0 0 14px rgba(245, 158, 11, 0.25);
+        background: rgba(14, 10, 30, 0.95);
+    }
+    .alkasr-coupon-apply-btn {
+        background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+        color: #000;
+        font-weight: 900;
+        font-size: 0.82rem;
+        padding: 0.6rem 1.15rem;
+        border-radius: 12px;
+        border: none;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        gap: 0.35rem;
+        box-shadow: 0 4px 14px rgba(245, 158, 11, 0.35);
+        transition: all 0.2s;
+        white-space: nowrap;
+    }
+    .alkasr-coupon-apply-btn:hover {
+        filter: brightness(1.15);
+        transform: translateY(-1px);
+        box-shadow: 0 6px 18px rgba(245, 158, 11, 0.5);
+    }
+    .alkasr-coupon-apply-btn:active {
+        transform: scale(0.96);
+    }
 </style>
 {% endblock %}
 
@@ -529,7 +710,7 @@
 <div class="alkasr-container">
     <!-- Top Navigation Dock: Back to catalog, Previous, Next, and Wallet balance -->
     <div class="alkasr-topbar">
-        <div class="flex items-center gap-2">
+        <div class="flex items-center gap-1.5">
             <a href="{% url 'catalog' %}" class="alkasr-top-btn" title="الرجوع للكتالوج">
                 <i class="fas fa-arrow-right"></i>
             </a>
@@ -538,6 +719,14 @@
                 <i class="fas fa-chevron-right text-xs"></i>
             </a>
             {% endif %}
+
+            <!-- Product Navigation Counter (e.g. 5 / 40) -->
+            <div class="alkasr-nav-counter" id="alkasr-nav-counter" title="رقم المنتج الحالي من إجمالي منتجات المتجر">
+                <span class="alkasr-nav-current">{{ product_index|default:1 }}</span>
+                <span class="alkasr-nav-sep">/</span>
+                <span class="alkasr-nav-total">{{ total_category_products|default:1 }}</span>
+            </div>
+
             {% if next_product %}
             <a href="{% url 'product_detail' next_product.id %}" data-dir="next" class="nav-prod-btn alkasr-top-btn" title="المنتج التالي: {{ next_product.name }}">
                 <i class="fas fa-chevron-left text-xs"></i>
@@ -691,8 +880,9 @@
                             {% else %}
                             <div class="relative flex items-center">
                                 <input type="text" name="custom_{{ f.name|default:f.label }}" id="custom_{{ f.name|default:f.label }}" placeholder="{{ f.placeholder|default:'ايدي المستخدم' }}" class="alkasr-input-box text-center" {% if f.required %}required{% endif %}>
-                                <button type="button" onclick="pasteToInput('custom_{{ f.name|default:f.label }}')" class="absolute left-2.5 top-1/2 -translate-y-1/2 px-2.5 py-1 rounded-lg bg-white/10 hover:bg-white/20 text-[10px] text-slate-300 font-bold">
-                                    لصق
+                                <button type="button" onclick="pasteToInput('custom_{{ f.name|default:f.label }}')" class="alkasr-paste-btn">
+                                    <i class="fas fa-paste text-[10px]"></i>
+                                    <span>لصق</span>
                                 </button>
                             </div>
                             {% endif %}
@@ -702,8 +892,9 @@
                     <!-- Default Player ID / Account input -->
                     <div class="relative flex items-center">
                         <input type="text" name="custom_player_id" id="custom_player_id" placeholder="ايدي المستخدم" class="alkasr-input-box text-center" required>
-                        <button type="button" onclick="pasteToInput('custom_player_id')" class="absolute left-2.5 top-1/2 -translate-y-1/2 px-2.5 py-1 rounded-lg bg-white/10 hover:bg-white/20 text-[10px] text-slate-300 font-bold">
-                            لصق
+                        <button type="button" onclick="pasteToInput('custom_player_id')" class="alkasr-paste-btn">
+                            <i class="fas fa-paste text-[10px]"></i>
+                            <span>لصق</span>
                         </button>
                     </div>
                     {% endif %}
@@ -778,17 +969,30 @@
                     </div>
                 </div>
 
-                <!-- Coupon drawer trigger -->
-                <div class="border-t border-white/5 pt-2.5">
-                    <button type="button" onclick="document.getElementById('alkasr-coupon-drawer').classList.toggle('hidden')" class="text-xs text-slate-400 hover:text-amber-400 font-bold transition flex items-center justify-center gap-1.5 w-full py-1">
-                        <i class="fas fa-tag text-amber-400 text-xs"></i>
-                        <span>هل لديك كود خصم؟ اضغط هنا</span>
-                    </button>
-                    <div id="alkasr-coupon-drawer" class="hidden mt-2 flex gap-2">
-                        <input type="text" name="coupon_code" id="coupon-code-input" placeholder="أدخل كود الخصم هنا..." class="flex-grow bg-slate-900 border border-white/10 rounded-xl px-3 py-2 text-xs text-white focus:border-amber-400 outline-none">
-                        <button type="button" onclick="applyCoupon(event)" class="px-4 py-2 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/40 text-amber-300 text-xs font-bold transition active:scale-95">تطبيق</button>
+                <!-- Coupon Drawer with Luxury Amber Styling -->
+                <div class="alkasr-coupon-box">
+                    <div class="alkasr-coupon-header" onclick="toggleCouponDrawer()">
+                        <div class="flex items-center gap-2">
+                            <div class="w-6 h-6 rounded-lg bg-amber-500/15 border border-amber-500/30 text-amber-400 flex items-center justify-center text-xs">
+                                <i class="fas fa-tag"></i>
+                            </div>
+                            <span class="text-xs font-bold text-slate-300">هل لديك كود خصم؟</span>
+                        </div>
+                        <button type="button" class="alkasr-coupon-toggle-btn">
+                            <span>إدخال الكود</span>
+                            <i class="fas fa-chevron-down text-[10px]" id="coupon-chevron"></i>
+                        </button>
                     </div>
-                    <div id="coupon-feedback" class="mt-2 text-xs text-center hidden"></div>
+                    <div id="alkasr-coupon-drawer" class="hidden mt-2.5">
+                        <div class="alkasr-coupon-input-group">
+                            <input type="text" name="coupon_code" id="coupon-code-input" placeholder="أدخل كود الخصم هنا..." class="alkasr-coupon-input" autocomplete="off">
+                            <button type="button" onclick="applyCoupon(event)" class="alkasr-coupon-apply-btn">
+                                <i class="fas fa-check text-xs"></i>
+                                <span>تطبيق</span>
+                            </button>
+                        </div>
+                        <div id="coupon-feedback" class="mt-2 text-xs text-center hidden"></div>
+                    </div>
                 </div>
             </div>
 
@@ -1144,8 +1348,9 @@ function renderDynamicFields(paramsJson, el) {
                                placeholder="${f.placeholder || 'أدخل ' + fLabel + '...'}" 
                                class="alkasr-input-box text-center" 
                                ${isReq ? 'required' : ''}>
-                        <button type="button" onclick="pasteToInput('custom_${fName}')" class="absolute left-2.5 top-1/2 -translate-y-1/2 px-2.5 py-1 rounded-lg bg-white/10 hover:bg-white/20 text-[10px] text-slate-300 font-bold">
-                            لصق
+                        <button type="button" onclick="pasteToInput('custom_${fName}')" class="alkasr-paste-btn">
+                            <i class="fas fa-paste text-[10px]"></i>
+                            <span>لصق</span>
                         </button>
                     </div>
                 </div>
@@ -1188,8 +1393,9 @@ function renderDynamicFields(paramsJson, el) {
                    placeholder="ايدي المستخدم" 
                    class="alkasr-input-box text-center" 
                    required>
-            <button type="button" onclick="pasteToInput('custom_player_id')" class="absolute left-2.5 top-1/2 -translate-y-1/2 px-2.5 py-1 rounded-lg bg-white/10 hover:bg-white/20 text-[10px] text-slate-300 font-bold">
-                لصق
+            <button type="button" onclick="pasteToInput('custom_player_id')" class="alkasr-paste-btn">
+                <i class="fas fa-paste text-[10px]"></i>
+                <span>لصق</span>
             </button>
         </div>
     `;
@@ -1265,18 +1471,25 @@ function renderQuantitySelector(qtyType, qtyMin, qtyMax, qtyListStr) {
     if (qtyType === 'range') {
         container.classList.remove('hidden');
         inputHtml = `
-            <div class="bg-black/30 p-2.5 rounded-2xl border border-white/10 mb-2">
-                <div class="flex items-center justify-between mb-1.5 text-xs">
-                    <span class="text-slate-400 font-bold">الكمية المطلوبة:</span>
-                    <span class="text-[10px] text-slate-400 font-mono">(${qtyMin.toLocaleString()} - ${qtyMax.toLocaleString()})</span>
+            <div class="alkasr-qty-box">
+                <div class="flex items-center justify-between mb-2 text-xs">
+                    <span class="text-slate-300 font-bold flex items-center gap-1.5">
+                        <i class="fas fa-cubes text-amber-400 text-xs"></i>
+                        <span>الكمية المطلوبة:</span>
+                    </span>
+                    <span class="text-[11px] text-amber-400 font-mono font-bold bg-amber-500/10 border border-amber-500/20 px-2 py-0.5 rounded-full">(${qtyMin.toLocaleString()} - ${qtyMax.toLocaleString()})</span>
                 </div>
-                <div class="flex items-center gap-2">
-                    <button type="button" onclick="adjustQty(-1)" class="w-10 h-10 rounded-xl bg-white/10 hover:bg-white/20 active:scale-95 text-white font-black text-xl flex items-center justify-center border border-white/10 transition">-</button>
+                <div class="flex items-center gap-2.5">
+                    <button type="button" onclick="adjustQty(-1)" class="alkasr-stepper-btn" title="إنقاص الكمية">
+                        <i class="fas fa-minus text-xs"></i>
+                    </button>
                     <input type="number" name="quantity" id="quantity-input" 
                            min="${qtyMin}" max="${qtyMax}" value="${qtyMin}" 
                            oninput="updateQuantityPrice()" onkeyup="updateQuantityPrice()" onchange="updateQuantityPrice()"
-                           class="flex-grow text-center alkasr-input-box font-mono font-black text-amber-400">
-                    <button type="button" onclick="adjustQty(1)" class="w-10 h-10 rounded-xl bg-white/10 hover:bg-white/20 active:scale-95 text-white font-black text-xl flex items-center justify-center border border-white/10 transition">+</button>
+                           class="flex-grow text-center alkasr-input-box font-mono font-black text-amber-400 text-lg">
+                    <button type="button" onclick="adjustQty(1)" class="alkasr-stepper-btn" title="زيادة الكمية">
+                        <i class="fas fa-plus text-xs"></i>
+                    </button>
                 </div>
             </div>
         `;
@@ -1313,13 +1526,17 @@ function renderQuantitySelector(qtyType, qtyMin, qtyMax, qtyListStr) {
             .filter(v => v !== 'None' && v !== 'null' && v !== '' && !isNaN(parseFloat(v)) && parseFloat(v) > 0);
 
         let selectHtml = `
-            <div class="bg-black/30 p-2.5 rounded-2xl border border-white/10 mb-2">
-                <label for="quantity-select" class="text-[11px] text-slate-400 block mb-1 font-bold">
-                    اختر فئة أو كمية الرصيد:
+            <div class="alkasr-qty-box">
+                <label for="quantity-select" class="text-xs font-bold text-slate-300 block mb-1.5 flex items-center justify-between">
+                    <span class="flex items-center gap-1.5">
+                        <i class="fas fa-layer-group text-amber-400 text-xs"></i>
+                        <span>اختر فئة أو كمية الرصيد:</span>
+                    </span>
+                    <span class="text-[11px] text-amber-400 font-mono font-bold bg-amber-500/10 border border-amber-500/20 px-2 py-0.5 rounded-full">(${validOptions.length} خيارات)</span>
                 </label>
                 <div class="relative">
                     <select id="quantity-select" onchange="setListQty(this.value)" 
-                            class="alkasr-input-box text-center cursor-pointer text-amber-400 font-black">
+                            class="alkasr-select-box text-center cursor-pointer text-amber-400 font-black">
         `;
         if (validOptions.length > 0) {
             validOptions.forEach((val, idx) => {
@@ -1485,6 +1702,22 @@ function updateQuantityPrice(isFromCoupon = false) {
     const submitBtn = document.getElementById('submit-btn');
     if (submitBtn && !submitBtn.disabled) {
         submitBtn.innerHTML = `شراء`;
+    }
+}
+
+function toggleCouponDrawer() {
+    const drawer = document.getElementById('alkasr-coupon-drawer');
+    const chevron = document.getElementById('coupon-chevron');
+    if (!drawer) return;
+    const isHidden = drawer.classList.contains('hidden');
+    if (isHidden) {
+        drawer.classList.remove('hidden');
+        if (chevron) chevron.className = 'fas fa-chevron-up text-[10px]';
+        const inp = document.getElementById('coupon-code-input');
+        if (inp) setTimeout(() => inp.focus(), 50);
+    } else {
+        drawer.classList.add('hidden');
+        if (chevron) chevron.className = 'fas fa-chevron-down text-[10px]';
     }
 }
 
