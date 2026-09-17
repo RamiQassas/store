@@ -691,7 +691,7 @@
                 <div class="stack gap-4">
                     <div class="flex justify-between text-xs">
                         <span class="text-slate-500 font-bold uppercase tracking-widest">المجموع:</span>
-                        <span id="subtotal-display" class="text-white font-black">{% if variants.0 %}{% variant_price variants.0 as fvp %}{% currency_format fvp %}{% else %}{% currency_format product.price|default:0 %}{% endif %}</span>
+                        <span id="subtotal-display" class="text-white font-black">{% product_starting_price product %}</span>
                     </div>
                     <div class="flex justify-between text-xs">
                         <span class="text-slate-500 font-bold uppercase tracking-widest">الخصم:</span>
@@ -700,7 +700,7 @@
                     <div class="h-px bg-white/5 my-2"></div>
                     <div class="flex justify-between text-xl">
                         <span class="text-white font-black">الإجمالي النهائي:</span>
-                        <span id="total-display" class="text-gold font-black">{% if variants.0 %}{% variant_price variants.0 as fvp %}{% currency_format fvp %}{% else %}{% currency_format product.price|default:0 %}{% endif %}</span>
+                        <span id="total-display" class="text-gold font-black">{% product_starting_price product %}</span>
                     </div>
                 </div>
             </div>
@@ -794,7 +794,7 @@
                 </button>
                 {% else %}
                 <button type="submit" class="buy-btn-v3" id="submit-btn">
-                    <i class="fas fa-wallet ml-2"></i> إتمام الشراء من رصيد المحفظة ({% if variants.0 %}{% variant_price variants.0 as fvp %}{% currency_format fvp %}{% else %}{% currency_format product.price|default:0 %}{% endif %})
+                    <i class="fas fa-wallet ml-2"></i> إتمام الشراء من رصيد المحفظة ({% product_starting_price product %})
                 </button>
                 {% endif %}
                 <div class="flex items-center justify-center gap-4 mt-6 opacity-40">
@@ -1274,7 +1274,7 @@ function renderQuantitySelector(qtyType, qtyMin, qtyMax, qtyListStr) {
         `;
     } else if (qtyType === 'list') {
         container.classList.remove('hidden');
-        helpText.innerText = "اختر الكمية المناسبة من باقات الشحن المحددة أدناه:";
+        helpText.innerText = "اختر فئة الرصيد المناسبة من الباقات المتاحة أدناه:";
         let listOptions = [];
         try {
             listOptions = JSON.parse(qtyListStr);
@@ -1289,6 +1289,22 @@ function renderQuantitySelector(qtyType, qtyMin, qtyMax, qtyListStr) {
             try { listOptions = JSON.parse(listOptions); } catch(e) {}
         }
         
+        const card = document.querySelector('.variant-card.selected') || document.querySelector('.variant-card');
+        let basePrice = 0;
+        if (card) {
+            let rawPriceStr = (card.getAttribute('data-price') || '0').trim();
+            if (rawPriceStr.includes(',') && !rawPriceStr.includes('.')) {
+                rawPriceStr = rawPriceStr.replace(',', '.');
+            } else if (rawPriceStr.includes(',') && rawPriceStr.includes('.')) {
+                rawPriceStr = rawPriceStr.replace(/,/g, '');
+            }
+            basePrice = parseFloat(rawPriceStr) || 0;
+        }
+
+        const validOptions = (Array.isArray(listOptions) ? listOptions : [])
+            .map(v => String(v).trim())
+            .filter(v => v !== 'None' && v !== 'null' && v !== '' && !isNaN(parseFloat(v)) && parseFloat(v) > 0);
+
         let selectHtml = `
             <div class="bg-slate-950/60 p-5 rounded-2xl border border-white/5">
                 <label for="quantity-select" class="text-xs text-slate-400 block mb-3 font-bold flex items-center gap-2">
@@ -1298,11 +1314,14 @@ function renderQuantitySelector(qtyType, qtyMin, qtyMax, qtyListStr) {
                     <select id="quantity-select" onchange="setListQty(this.value)" 
                             class="w-full bg-slate-900 border border-white/10 rounded-2xl px-5 py-4 text-cyan text-lg font-black font-mono focus:border-cyan focus:ring-1 focus:ring-cyan outline-none transition appearance-none cursor-pointer">
         `;
-        if (listOptions && Array.isArray(listOptions) && listOptions.length > 0) {
-            listOptions.forEach((val, idx) => {
+        if (validOptions.length > 0) {
+            validOptions.forEach((val, idx) => {
+                const numericVal = parseFloat(val);
+                const pkgPrice = basePrice * numericVal;
+                const formattedPrice = formatCurrencyAmount(pkgPrice);
                 selectHtml += `
                     <option value="${val}" ${idx === 0 ? 'selected' : ''}>
-                        ${val} وحدة / ليرة
+                        ${numericVal.toLocaleString()} رصيد — ${formattedPrice}
                     </option>
                 `;
             });
@@ -1313,7 +1332,7 @@ function renderQuantitySelector(qtyType, qtyMin, qtyMax, qtyListStr) {
                         <i class="fas fa-chevron-down text-sm"></i>
                     </div>
                 </div>
-                <input type="hidden" name="quantity" id="quantity-input" value="${(listOptions && listOptions[0]) ? listOptions[0] : 1}">
+                <input type="hidden" name="quantity" id="quantity-input" value="${(validOptions && validOptions[0]) ? validOptions[0] : 1}">
             </div>
         `;
         inputHtml = selectHtml;

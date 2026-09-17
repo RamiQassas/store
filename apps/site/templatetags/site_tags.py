@@ -58,31 +58,34 @@ def variant_card_price(context, variant):
     meta = variant.metadata or {}
     qty_type = meta.get("qty_type")
     qty_min = meta.get("qty_min")
-    qty_list = meta.get("qty_list", [])
+    qty_list = meta.get("qty_list") or []
     
     min_multiplier = Decimal("1")
     try:
         if qty_type == "range" and qty_min:
-            q_val = Decimal(str(qty_min))
+            q_val = Decimal(str(qty_min).strip())
             if q_val > 1:
                 min_multiplier = q_val
     except Exception:
         pass
         
     if qty_type == "list" and qty_list:
-        try:
-            valid_list = [Decimal(str(x)) for x in qty_list if Decimal(str(x)) > 0]
-            if valid_list:
-                min_in_list = min(valid_list)
-                if min_in_list > 1:
-                    min_multiplier = min_in_list
-        except Exception:
-            pass
+        clean_quantities = []
+        for x in qty_list:
+            try:
+                if x is not None and str(x).strip().lower() not in ("none", "null", ""):
+                    val = Decimal(str(x).strip())
+                    if val > 0:
+                        clean_quantities.append(val)
+            except Exception:
+                pass
+        if clean_quantities:
+            min_multiplier = min(clean_quantities)
             
     if min_multiplier > 1:
         total = Decimal(str(price)) * min_multiplier
         formatted = currency_format(context, total)
-        return f"{formatted} <span class='text-[10px] text-slate-400 block font-normal'>(تبدأ من {int(min_multiplier)})</span>"
+        return f"{formatted} <span class='text-[10px] text-slate-400 block font-normal'>(تبدأ من {int(min_multiplier):,})</span>"
     
     return currency_format(context, price)
 
@@ -118,27 +121,31 @@ def product_starting_price(context, product):
         meta = v.metadata or {}
         qty_type = meta.get("qty_type")
         qty_min = meta.get("qty_min")
-        qty_list = meta.get("qty_list", [])
+        qty_list = meta.get("qty_list") or []
         
         min_multiplier = Decimal("1")
         try:
             if qty_type == "range" and qty_min:
-                q_val = Decimal(str(qty_min))
+                q_val = Decimal(str(qty_min).strip())
                 if q_val > 1:
                     min_multiplier = q_val
         except Exception:
             pass
             
         if qty_type == "list" and qty_list:
-            try:
-                valid_list = [Decimal(str(x)) for x in qty_list if Decimal(str(x)) > 0]
-                if valid_list:
-                    min_in_list = min(valid_list)
-                    if min_in_list > 1:
-                        if min_multiplier == 1 or min_in_list < min_multiplier:
-                            min_multiplier = min_in_list
-            except Exception:
-                pass
+            clean_quantities = []
+            for x in qty_list:
+                try:
+                    if x is not None and str(x).strip().lower() not in ("none", "null", ""):
+                        val = Decimal(str(x).strip())
+                        if val > 0:
+                            clean_quantities.append(val)
+                except Exception:
+                    pass
+            if clean_quantities:
+                min_in_list = min(clean_quantities)
+                if min_in_list > 1:
+                    min_multiplier = min_in_list
 
         if min_multiplier > 1:
             total = Decimal(str(v_price)) * min_multiplier

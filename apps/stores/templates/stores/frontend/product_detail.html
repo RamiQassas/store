@@ -372,8 +372,9 @@ function selectVariant(id, el) {
         try { listOptions = JSON.parse(qtyListStr.replace(/'/g, '"')); } catch(e) {}
         
         let selectHtml = `<select name="quantity" id="quantity-input" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid var(--card-border); background: var(--card-bg); color: inherit;">`;
-        if (listOptions.length > 0) {
-            listOptions.forEach(val => { selectHtml += `<option value="${val}">${val}</option>`; });
+        const validOptions = (Array.isArray(listOptions) ? listOptions : []).filter(val => val !== 'None' && val !== 'null' && val !== '' && !isNaN(parseFloat(val)) && parseFloat(val) > 0);
+        if (validOptions.length > 0) {
+            validOptions.forEach(val => { selectHtml += `<option value="${val}">${parseFloat(val).toLocaleString()} رصيد</option>`; });
         } else {
             selectHtml += `<option value="1">1</option>`;
         }

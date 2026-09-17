@@ -79,9 +79,12 @@ class AlkasrProductService:
             if qty_values is None:
                 qty_min = 1
                 qty_max = 1
+                product_type = "package"
             elif isinstance(qty_values, list):
-                qty_list = [str(x) for x in qty_values]
+                product_type = "fixed_quantities"
+                qty_list = [str(x).strip() for x in qty_values if x is not None and str(x).strip().lower() not in ("none", "null", "")]
             elif isinstance(qty_values, dict):
+                product_type = "amount"
                 try:
                     qmin = qty_values.get("min")
                     qty_min = int(qmin) if qmin not in (None, "") else None
@@ -116,13 +119,24 @@ class AlkasrProductService:
             
             try:
                 from decimal import Decimal
-                if isinstance(cost_price, (int, float)):
-                    cost_price = f"{Decimal(str(cost_price)):.8f}"
-                else:
-                    cp = str(cost_price).strip()
-                    if not cp:
-                        cp = "0.00"
-                    cost_price = f"{Decimal(cp):.8f}"
+                dec_cost = Decimal(str(cost_price if cost_price not in (None, "") else "0.00").strip())
+                
+                # SMM / Per-Mille (Rate per 1,000 units in Alkasr API)
+                remote_id_str = str(remote_id).strip()
+                cat_lower = str(category_name or "").lower()
+                name_lower = name.lower()
+                is_smm = (
+                    remote_id_str in ("9364", "7346", "7350", "7354", "7359", "7370", "7373", "7377")
+                    or (product_type == "amount" and (qty_min or 0) >= 1000 and dec_cost >= Decimal("0.50"))
+                    or (any(k in cat_lower for k in ("likee", "x", "twitter", "instagram", "tiktok")) and any(k in name_lower for k in ("متابعين", "followers", "likes", "views", "مشاهدات", "لايكات")))
+                )
+                if is_smm and dec_cost >= Decimal("0.50"):
+                    dec_cost = dec_cost / Decimal("1000")
+
+                if dec_cost > Decimal("10000") or remote_id_str == "9486":
+                    is_active = False
+
+                cost_price = f"{dec_cost:.8f}"
             except Exception:
                 cost_price = "0.00000000"
 

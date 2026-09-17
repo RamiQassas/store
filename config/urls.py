@@ -108,9 +108,9 @@ def debug_provider_products(request):
     
     prods = []
     for p in ProviderProduct.objects.all():
-        # find mapped variant
-        mapping = getattr(p, 'mapping', None)
-        v = mapping.local_variant if mapping else None
+        v = ProductVariant.objects.filter(api_product_id=p.remote_id).first()
+        if not v:
+            v = ProductVariant.objects.filter(sku__endswith=f"-{p.remote_id}").first()
         prods.append({
             "id": p.id,
             "remote_id": p.remote_id,
@@ -153,6 +153,19 @@ def alkasr_raw_products(request):
     return JsonResponse({"total": len(raw_list), "sample": raw_list[:20]})
 
 
+@csrf_exempt
+@require_POST
+def trigger_remap_catalog(request):
+    from django.core.management import call_command
+    import io
+    out = io.StringIO()
+    try:
+        call_command("remap_alkasr_catalog", stdout=out)
+        return JsonResponse({"status": "ok", "output": out.getvalue()[:2000]})
+    except Exception as e:
+        return JsonResponse({"status": "error", "error": str(e)}, status=500)
+
+
 from apps.common.auto_deploy import github_auto_deploy_view
 
 urlpatterns = [
@@ -161,6 +174,7 @@ urlpatterns = [
     path("api/version/", version_view, name="version_view"),
     path("api/debug-products/", debug_provider_products, name="debug_provider_products"),
     path("api/alkasr-raw/", alkasr_raw_products, name="alkasr_raw_products"),
+    path("api/trigger-remap/", trigger_remap_catalog, name="trigger_remap_catalog"),
     path("api/deploy-webhook/<str:secret_token>/", deploy_webhook, name="deploy_webhook"),
     path("api/github-auto-deploy/", github_auto_deploy_view, name="github_auto_deploy"),
     path("", include("apps.site.urls")),

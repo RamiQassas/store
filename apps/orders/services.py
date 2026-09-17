@@ -358,9 +358,10 @@ def _create_order_atomic(customer, variant_id, quantity=1, fulfillment_data=None
         quantity = 1
 
     elif qty_type == "list":
-        if str(quantity) not in [str(x) for x in qty_list]:
+        clean_valid_quantities = [str(x).strip() for x in qty_list if x is not None and str(x).strip().lower() not in ('none', 'null', '')]
+        if str(quantity) not in clean_valid_quantities:
             raise ValueError(
-                f"الكمية المسموح بها لهذه الباقة هي إحدى القيم التالية فقط: {', '.join(str(x) for x in qty_list)}"
+                f"الكمية المسموح بها لهذه الباقة هي إحدى القيم التالية فقط: {', '.join(clean_valid_quantities)}"
             )
 
     elif qty_type == "range":

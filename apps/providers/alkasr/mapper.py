@@ -690,7 +690,8 @@ class AlkasrMapperService:
                         except (ValueError, TypeError):
                             qty_max = None
 
-                        qty_list = getattr(pp, 'qty_list', None) or []
+                        raw_qty_list = getattr(pp, 'qty_list', None) or []
+                        qty_list = [str(x).strip() for x in raw_qty_list if x is not None and str(x).strip().lower() not in ("none", "null", "")]
 
                         if pp.product_type == "fixed_quantities" or (qty_list and len(qty_list) > 0):
                             qty_type = "list"
@@ -706,11 +707,27 @@ class AlkasrMapperService:
                         vip_price = pricing.final_vip_price if pricing else pp.cost_price
                         variant_cost = pp.cost_price
 
+                        # Check if product is SMM per-mille and not yet divided by 1000
+                        remote_id_str = str(pp.remote_id).strip()
+                        cat_lower = str(pp.category.name if pp.category else "").lower()
+                        name_lower = (pp.name or "").lower()
+                        is_smm = (
+                            remote_id_str in ("9364", "7346", "7350", "7354", "7359", "7370", "7373", "7377")
+                            or (qty_type == "range" and (qty_min or 0) >= 1000 and variant_cost >= Decimal("0.50"))
+                            or (any(k in cat_lower for k in ("likee", "x", "twitter", "instagram", "tiktok")) and any(k in name_lower for k in ("متابعين", "followers", "likes", "views", "مشاهدات", "لايكات")))
+                        )
+                        if is_smm and variant_cost >= Decimal("0.50"):
+                            final_price = (final_price / Decimal("1000")).quantize(Decimal("0.00000001"))
+                            wholesale_price = (wholesale_price / Decimal("1000")).quantize(Decimal("0.00000001"))
+                            vip_price = (vip_price / Decimal("1000")).quantize(Decimal("0.00000001"))
+                            variant_cost = (variant_cost / Decimal("1000")).quantize(Decimal("0.00000001"))
+
                         meta = {
                             "qty_type": qty_type,
                             "qty_min": (qty_min or 1) if qty_type == "range" else 1,
                             "qty_max": (qty_max or 999999) if qty_type == "range" else 1,
                             "qty_list": qty_list,
+                            "is_per_mille": is_smm,
                             "product_type": pp.product_type,
                             "remote_id": str(pp.remote_id),
                             "params": [
@@ -830,6 +847,8 @@ class AlkasrMapperService:
                             local_variant = ProductVariant.objects.filter(api_product_id=api_pid, product=local_product).first()
 
                         variant_is_active = bool(pp.is_active and pp.local_is_active)
+                        if variant_cost > Decimal("10000") or remote_id_str == "9486":
+                            variant_is_active = False
 
                         if not local_variant:
                             local_variant = ProductVariant.objects.create(

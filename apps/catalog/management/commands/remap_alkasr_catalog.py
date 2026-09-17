@@ -377,18 +377,30 @@ class Command(BaseCommand):
                 import re
                 is_fixed = bool(re.search(r'\b\d+\s*(uc|gems|diamond|diamonds|coins|gold|tl|aed|sar|eur|usd|\$|€|£|month|months|year|years|شهور|شهر|سنة|عملة|جواهر|شدات|ماسات|كود|elmas)\b', v_name, re.IGNORECASE))
                 
-                if "رصيد وباقات" in v_name or "canva pro" in v_name.lower():
+                # Clean qty_list from None/null
+                if meta.get("qty_list"):
+                    meta["qty_list"] = [str(x).strip() for x in meta["qty_list"] if x is not None and str(x).strip().lower() not in ("none", "null", "")]
+
+                if meta.get("qty_type") == "list" or (meta.get("qty_list") and len(meta.get("qty_list")) > 0) or "رصيد وباقات" in v_name or "canva pro" in v_name.lower() or "asiacell" in v_name.lower():
                     meta["qty_type"] = "list"
-                elif any(k in v_name.lower() for k in ("فواتير", "كاش", "تعبئة رصيد", "متابعين", "لايكات", "مشاهدات", "تعليقات")):
+                elif meta.get("qty_type") == "range" or any(k in v_name.lower() for k in ("فواتير", "كاش", "تعبئة رصيد", "متابعين", "لايكات", "مشاهدات", "تعليقات")):
                     meta["qty_type"] = "range"
                 elif is_fixed:
                     meta["qty_type"] = "fixed"
                     meta["qty_min"] = 1
-                    meta["qty_max"] = 999999
-                
-                if var.metadata != meta:
-                    var.metadata = meta
-                    var.save(update_fields=['metadata'])
+                    meta["qty_max"] = 1
+
+                # Ensure SMM rates are not multiplied astronomically
+                rem_id = str(meta.get("remote_id") or "")
+                if rem_id in ("9364", "7346", "7350", "7354", "7359", "7370", "7373", "7377") and var.price and var.price >= Decimal("0.50"):
+                    var.price = (var.price / Decimal("1000")).quantize(Decimal("0.00000001"))
+                    if var.wholesale_price:
+                        var.wholesale_price = (var.wholesale_price / Decimal("1000")).quantize(Decimal("0.00000001"))
+                    if var.vip_price:
+                        var.vip_price = (var.vip_price / Decimal("1000")).quantize(Decimal("0.00000001"))
+                    if var.cost:
+                        var.cost = (var.cost / Decimal("1000")).quantize(Decimal("0.00000001"))
+                    var.save(update_fields=['price', 'wholesale_price', 'vip_price', 'cost'])
                 
                 if var.metadata != meta:
                     var.metadata = meta

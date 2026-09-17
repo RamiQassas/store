@@ -215,6 +215,22 @@ class AlkasrSyncService:
         category_obj = self._category_for_product(pdata, categories_by_remote)
         product_type, qty_min, qty_max, qty_list = self._quantity_config(pdata)
 
+        # Handle SMM / Per-Mille rates (Rate per 1,000 units in Alkasr API)
+        remote_id_str = str(remote_id).strip()
+        cat_name = str(pdata.get("category_name") or pdata.get("category") or "").lower()
+        name_lower = name.lower()
+        is_smm = (
+            remote_id_str in ("9364", "7346", "7350", "7354", "7359", "7370", "7373", "7377")
+            or (product_type == "amount" and (qty_min or 0) >= 1000 and cost >= Decimal("0.50"))
+            or (any(k in cat_name for k in ("likee", "x", "twitter", "instagram", "tiktok")) and any(k in name_lower for k in ("متابعين", "followers", "likes", "views", "مشاهدات", "لايكات")))
+        )
+        if is_smm and cost >= Decimal("0.50"):
+            cost = (cost / Decimal("1000")).quantize(Decimal("0.00000001"))
+
+        # Disable abnormal corrupt products (e.g. Hago 9486 with million-dollar cost)
+        if cost > Decimal("10000") or remote_id_str == "9486":
+            is_available = False
+
         product_obj = ProviderProduct.objects.filter(
             profile=self.profile,
             remote_id=remote_id,
@@ -354,7 +370,8 @@ class AlkasrSyncService:
         if isinstance(qty_values, dict):
             return product_type, self._int_or_none(qty_values.get("min")), self._int_or_none(qty_values.get("max")), []
         if isinstance(qty_values, list):
-            return product_type, None, None, [str(item) for item in qty_values]
+            clean_list = [str(item).strip() for item in qty_values if item is not None and str(item).strip().lower() not in ("none", "null", "")]
+            return product_type, None, None, clean_list
         return product_type, None, None, []
 
     def _extract_products(self, obj):
