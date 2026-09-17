@@ -305,34 +305,128 @@ def create_squircle_mask(size, radius):
     return mask.resize((size, size), Image.Resampling.LANCZOS)
 
 
+def draw_luxury_stamp(card, width, height, store_name=None):
+    """
+    Renders an ultra-luxurious, official Raqamiyat hallmark stamp:
+    - Frosted dark glass capsule (pill) with subtle metallic gold rim
+    - Sharp golden Raqamiyat lightning bolt emblem
+    - Connected Arabic & English brandmark: 'رقميات • RAQAMIYAT VERIFIED'
+    - Official emerald verified checkmark badge
+    """
+    scale = 3
+    pill_w = 400
+    pill_h = 50
+    pill = Image.new("RGBA", (pill_w * scale, pill_h * scale), (0, 0, 0, 0))
+    draw = ImageDraw.Draw(pill)
+
+    # Frosted dark glass capsule
+    draw.rounded_rectangle(
+        [0, 0, pill_w * scale - 1, pill_h * scale - 1],
+        radius=25 * scale,
+        fill=(14, 20, 36, 235),
+        outline=(212, 168, 83, 160),
+        width=2 * scale
+    )
+
+    # Gold lightning bolt
+    bw = 18 * scale
+    bh = 26 * scale
+    bx = 22 * scale
+    by = (pill_h * scale - bh) // 2
+    bolt_pts = [
+        (bx + int(bw * 0.56), by),
+        (bx, by + int(bh * 0.52)),
+        (bx + int(bw * 0.42), by + int(bh * 0.52)),
+        (bx + int(bw * 0.32), by + bh),
+        (bx + bw, by + int(bh * 0.42)),
+        (bx + int(bw * 0.52), by + int(bh * 0.42)),
+    ]
+    draw.polygon(bolt_pts, fill=(245, 212, 138, 255))
+
+    # Font setup
+    font = None
+    for fn in ("tahoma.ttf", "segoeuib.ttf", "arialbd.ttf"):
+        try:
+            font = ImageFont.truetype(f"C:/Windows/Fonts/{fn}", 15 * scale)
+            break
+        except Exception:
+            pass
+    if not font:
+        font = ImageFont.load_default()
+
+    # Arabic 'رقميات' in connected presentation forms + English brandmark
+    if store_name:
+        brand_text = f"\uFE95\uFE8E\uFEF4\uFEE4\uFED7\uFEAD \u2022 {str(store_name).upper()[:12]} VERIFIED"
+    else:
+        brand_text = "\uFE95\uFE8E\uFEF4\uFEE4\uFED7\uFEAD \u2022 RAQAMIYAT VERIFIED"
+
+    tx = bx + bw + 16 * scale
+    ty = (pill_h * scale - 15 * scale) // 2 - 2 * scale
+    draw.text((tx, ty), brand_text, fill=(255, 255, 255, 245), font=font)
+
+    # Emerald verified dot/badge
+    ex = pill_w * scale - 26 * scale
+    ey = (pill_h * scale) // 2
+    er = 8 * scale
+    draw.ellipse([ex - er, ey - er, ex + er, ey + er], fill=(16, 185, 129, 255))
+    # White checkmark inside badge
+    draw.line([(ex - 4 * scale, ey), (ex - scale, ey + 3 * scale), (ex + 4 * scale, ey - 3 * scale)], fill=(255, 255, 255, 255), width=2 * scale)
+
+    pill_final = pill.resize((pill_w, pill_h), Image.Resampling.LANCZOS)
+
+    # Soft ambient drop shadow for the stamp
+    shadow = Image.new("RGBA", (pill_w + 24, pill_h + 24), (0, 0, 0, 0))
+    s_draw = ImageDraw.Draw(shadow)
+    s_draw.rounded_rectangle([12, 14, pill_w + 12, pill_h + 14], radius=25, fill=(0, 0, 0, 200))
+    shadow = shadow.filter(ImageFilter.GaussianBlur(10))
+
+    px = (width - pill_w) // 2
+    py = height - pill_h - 22
+    card.paste(shadow, (px - 12, py - 12), shadow)
+    card.paste(pill_final, (px, py), pill_final)
+
+
 def compose_branded_card(logo_img, product_name, store_name=None, width=600, height=600):
     """
     Composes an ultra-professional studio product card (600x600px):
-    - Deep luxury dark studio canvas (#0b0f19) matching Raqamiyat store theme
-    - Subtle ambient radial backlight centered behind the icon for depth
+    - Deep luxury dark obsidian canvas (#070b14) matching Raqamiyat store theme
+    - Atmospheric radial backlight behind the icon for premium visual depth
     - Official product icon presented as a floating Apple iOS squircle with soft 3D ambient drop shadow
-    - Crisp subtle glass highlight rim around the squircle
+    - Crisp specular glass highlight rim around the squircle
     - Handles transparent logos (e.g. Steam, PlayStation, Discord) with a luxury frosted glass tile
-    - NO ugly watermarks, badges, or text stamps - pure, ultra-clean, high-end icon presentation.
+    - Official Raqamiyat Certified stamp pill at the bottom with gold lightning bolt and emerald seal
     """
     if not logo_img:
         return None
 
-    card = Image.new("RGBA", (width, height), (9, 13, 22, 255))
+    # 1. Base dark obsidian studio canvas
+    base = Image.new("RGBA", (width, height), (7, 11, 20, 255))
+    gradient = Image.new("RGBA", (width, height), (0, 0, 0, 0))
+    g_draw = ImageDraw.Draw(gradient)
+
+    # Smooth atmospheric sapphire/dark glow centered behind icon
+    cx, cy = width // 2, int(height * 0.43)
+    max_r = 330
+    for r in range(max_r, 0, -4):
+        factor = (1 - r / max_r) ** 2
+        alpha = int(35 * factor)
+        g_draw.ellipse([cx - r, cy - r, cx + r, cy + r], fill=(45, 80, 150, alpha))
+
+    card = Image.alpha_composite(base, gradient)
     draw = ImageDraw.Draw(card)
 
-    # 1. Outer subtle border
+    # Outer subtle border
     draw.rounded_rectangle(
         [8, 8, width - 8, height - 8],
         radius=30,
-        outline=(255, 255, 255, 14),
+        outline=(255, 255, 255, 16),
         width=1
     )
 
-    # 2. Icon sizing & processing
-    icon_size = 440
+    # 2. Icon sizing & positioning
+    icon_size = 390
     ix = (width - icon_size) // 2
-    iy = (height - icon_size) // 2
+    iy = (height - icon_size) // 2 - 24
     corner_radius = int(icon_size * 0.22)
 
     # Detect transparency
@@ -340,7 +434,6 @@ def compose_branded_card(logo_img, product_name, store_name=None, width=600, hei
     if logo_img.mode in ("RGBA", "LA"):
         alpha_channel = logo_img.split()[-1]
         w_l, h_l = logo_img.size
-        # Sample corners and edge points
         sample_points = [
             (0, 0), (w_l - 1, 0), (0, h_l - 1), (w_l - 1, h_l - 1),
             (w_l // 2, 2), (2, h_l // 2)
@@ -348,15 +441,15 @@ def compose_branded_card(logo_img, product_name, store_name=None, width=600, hei
         if any(alpha_channel.getpixel(pt) < 220 for pt in sample_points):
             is_transparent = True
 
-    # 4. Realistic 3D floating drop shadow
+    # 3. Realistic 3D floating drop shadow
     shadow_margin = 35
     shadow_size = icon_size + shadow_margin * 2
     shadow = Image.new("RGBA", (shadow_size, shadow_size), (0, 0, 0, 0))
     s_draw = ImageDraw.Draw(shadow)
     s_draw.rounded_rectangle(
-        [shadow_margin, shadow_margin + 12, shadow_margin + icon_size, shadow_margin + icon_size + 12],
+        [shadow_margin, shadow_margin + 14, shadow_margin + icon_size, shadow_margin + icon_size + 14],
         radius=corner_radius,
-        fill=(0, 0, 0, 190)
+        fill=(0, 0, 0, 210)
     )
     shadow = shadow.filter(ImageFilter.GaussianBlur(22))
     card.paste(shadow, (ix - shadow_margin, iy - shadow_margin), shadow)
@@ -372,7 +465,6 @@ def compose_branded_card(logo_img, product_name, store_name=None, width=600, hei
             outline=(255, 255, 255, 30),
             width=2
         )
-        # Resize logo to fit inside with elegant breathing room
         logo_fit = logo_img.copy().convert("RGBA")
         inner_pad = int(icon_size * 0.68)
         logo_fit.thumbnail((inner_pad, inner_pad), Image.Resampling.LANCZOS)
@@ -381,25 +473,28 @@ def compose_branded_card(logo_img, product_name, store_name=None, width=600, hei
         tile.paste(logo_fit, (lx, ly), logo_fit)
         card.paste(tile, (ix, iy), tile)
     else:
-        # Full squircle masked app icon with smooth rounded corners
+        # Full squircle masked app icon
         logo_resized = logo_img.copy().convert("RGBA").resize((icon_size, icon_size), Image.Resampling.LANCZOS)
         mask = create_squircle_mask(icon_size, corner_radius)
 
         squircle_box = Image.new("RGBA", (icon_size, icon_size), (0, 0, 0, 0))
         squircle_box.paste(logo_resized, (0, 0), mask)
 
-        # Subtle specular glass border around squircle
+        # Specular glass border around squircle
         b_draw = ImageDraw.Draw(squircle_box)
         b_draw.rounded_rectangle(
             [0, 0, icon_size - 1, icon_size - 1],
             radius=corner_radius,
-            outline=(255, 255, 255, 40),
+            outline=(255, 255, 255, 45),
             width=2
         )
-
         card.paste(squircle_box, (ix, iy), squircle_box)
 
+    # 4. Draw Official Raqamiyat Luxury Stamp
+    draw_luxury_stamp(card, width, height, store_name)
+
     return card.convert("RGB")
+
 
 
 def apply_branding_to_product(product, force=False):
