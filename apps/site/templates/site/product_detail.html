@@ -431,27 +431,101 @@
         line-height: 1.4;
     }
 
+    /* Dropdown Variant Select Box */
+    .alkasr-select-box {
+        width: 100%;
+        background: rgba(6, 4, 14, 0.95);
+        border: 1.5px solid rgba(139, 92, 246, 0.3);
+        border-radius: 16px;
+        padding: 0.85rem 1rem 0.85rem 2.5rem;
+        color: #fff;
+        font-size: 0.95rem;
+        font-weight: 800;
+        outline: none;
+        transition: all 0.25s;
+        text-align: right;
+        direction: rtl;
+        appearance: none;
+        cursor: pointer;
+        box-sizing: border-box;
+    }
+    .alkasr-select-box:focus {
+        border-color: #f59e0b;
+        box-shadow: 0 0 16px rgba(245, 158, 11, 0.25);
+        background: rgba(10, 7, 22, 0.98);
+    }
+    .alkasr-select-box option {
+        background: #0f0c22;
+        color: #fff;
+        font-weight: 700;
+        padding: 10px 12px;
+    }
+
     /* Extra Tools: Payment Selector & Coupon */
     .alkasr-extra-tools {
         margin-top: 0.85rem;
         padding-top: 0.75rem;
         border-top: 1px solid rgba(255, 255, 255, 0.06);
     }
+    .alkasr-pm-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 0.5rem;
+        margin-top: 0.4rem;
+    }
+    @media (max-width: 360px) {
+        .alkasr-pm-grid {
+            grid-template-columns: 1fr;
+        }
+    }
     .alkasr-pm-tab {
-        padding: 0.35rem 0.75rem;
-        border-radius: 9999px;
-        font-size: 0.72rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+        padding: 0.65rem 0.75rem;
+        border-radius: 14px;
+        font-size: 0.8rem;
         font-weight: 800;
-        background: rgba(255, 255, 255, 0.04);
-        border: 1px solid rgba(255, 255, 255, 0.08);
-        color: #94a3b8;
+        background: rgba(255, 255, 255, 0.03);
+        border: 1.5px solid rgba(255, 255, 255, 0.08);
+        color: #cbd5e1;
         cursor: pointer;
         transition: all 0.2s;
+        user-select: none;
+        min-height: 44px;
+    }
+    .alkasr-pm-tab:hover {
+        background: rgba(255, 255, 255, 0.06);
+        border-color: rgba(255, 255, 255, 0.15);
     }
     .alkasr-pm-tab.is-active {
-        background: rgba(245, 158, 11, 0.15);
+        background: linear-gradient(135deg, rgba(245, 158, 11, 0.18) 0%, rgba(180, 83, 9, 0.12) 100%);
         border-color: #f59e0b;
-        color: #f59e0b;
+        color: #fbbf24;
+        box-shadow: 0 0 16px rgba(245, 158, 11, 0.2);
+    }
+    .alkasr-pm-tab img {
+        height: 18px;
+        max-width: 28px;
+        object-fit: contain;
+    }
+
+    /* Price breakdown receipt styling */
+    .alkasr-breakdown-card {
+        background: rgba(0, 0, 0, 0.45);
+        border: 1px solid rgba(245, 158, 11, 0.25);
+        border-radius: 16px;
+        padding: 0.75rem 1rem;
+        margin-top: 0.75rem;
+        direction: rtl;
+    }
+    .alkasr-breakdown-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0.25rem 0;
+        font-size: 0.78rem;
     }
 </style>
 {% endblock %}
@@ -530,14 +604,51 @@
             <input type="hidden" name="variant_id" id="selected-variant-id" value="{% if variants.0 and not variants.0.is_temporarily_disabled and not product.is_out_of_stock %}{{ variants.0.id }}{% endif %}">
             <input type="hidden" name="payment_method" id="selected-payment-method" value="wallet">
 
-            <!-- Horizontal Variant Chips (if multiple variants) -->
+            <!-- Variants Selection: Dropdown Menu & Quick Chips -->
             {% if variants %}
+            <div class="mb-3">
+                <label for="alkasr-variant-select" class="text-xs font-bold text-slate-300 block mb-1.5 flex items-center justify-between">
+                    <span class="flex items-center gap-1.5">
+                        <i class="fas fa-layer-group text-amber-400 text-xs"></i>
+                        <span>اختر الفئة أو الباقة المطلوبة:</span>
+                    </span>
+                    <span class="text-[11px] text-amber-400/80 font-mono">({{ variants|length }} خيارات)</span>
+                </label>
+                <div class="relative">
+                    <select id="alkasr-variant-select" class="alkasr-select-box" onchange="onVariantDropdownChange(this.value)">
+                        {% for v in variants %}
+                        {% variant_price v as v_price %}
+                        <option value="{{ v.id }}"
+                                data-price="{{ v_price|unlocalize }}"
+                                data-qty-type="{{ v.metadata.qty_type|default:'none' }}"
+                                data-qty-min="{{ v.metadata.qty_min|default:1 }}"
+                                data-qty-max="{{ v.metadata.qty_max|default:999999 }}"
+                                data-qty-list='{% if v.metadata.qty_list %}{{ v.metadata.qty_list|jsonify }}{% else %}[]{% endif %}'
+                                data-is-per-mille="{% if v.metadata.is_per_mille %}true{% else %}false{% endif %}"
+                                data-delivery-type="{{ v.delivery_type|default:'manual' }}"
+                                data-is-recharge="{% if v.is_recharge_card %}true{% else %}false{% endif %}"
+                                data-params='{% if v.metadata.params %}{{ v.metadata.params|jsonify }}{% else %}[]{% endif %}'
+                                data-variant-name="{{ v.name }}"
+                                {% if forloop.first and not v.is_temporarily_disabled and not product.is_out_of_stock %}selected{% endif %}
+                                {% if v.is_temporarily_disabled or product.is_out_of_stock %}disabled{% endif %}>
+                            {{ v.name }} — {% variant_starting_price v %}
+                        </option>
+                        {% endfor %}
+                    </select>
+                    <div class="absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none text-amber-400/80 text-xs">
+                        <i class="fas fa-chevron-down"></i>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Horizontal Variant Chips for instant visual touch selection -->
             <div class="alkasr-variants-scroll" id="variants-scroll-bar">
                 {% for v in variants %}
                 {% variant_price v as v_price %}
                 {% variant_card_price v as v_card_price %}
                 <div class="alkasr-variant-chip variant-card {% if forloop.first and not v.is_temporarily_disabled and not product.is_out_of_stock %}selected{% endif %} {% if v.is_temporarily_disabled or product.is_out_of_stock %}opacity-40 grayscale cursor-not-allowed{% endif %}"
                      {% if not v.is_temporarily_disabled and not product.is_out_of_stock %}onclick="selectVariant('{{ v.id }}', this)"{% endif %}
+                     data-id="{{ v.id }}"
                      data-price="{{ v_price|unlocalize }}"
                      data-qty-type="{{ v.metadata.qty_type|default:'none' }}"
                      data-qty-min="{{ v.metadata.qty_min|default:1 }}"
@@ -669,41 +780,69 @@
                 </span>
             </div>
 
-            <!-- Extra Sleek Tools: Payment Selector & Coupon Drawer (Collapsible) -->
+            <!-- Extra Sleek Tools: Payment Selector & Coupon Drawer -->
             <div class="alkasr-extra-tools">
-                <!-- Payment methods switch -->
-                <div class="flex items-center justify-between text-[11px] text-slate-400">
-                    <span class="font-bold">طريقة الدفع:</span>
-                    <div class="flex items-center gap-1.5">
+                <!-- Payment methods switch with official logos -->
+                <div class="mb-3">
+                    <span class="text-xs font-bold text-slate-300 block mb-1.5 flex items-center gap-1.5">
+                        <i class="fas fa-credit-card text-amber-400 text-xs"></i>
+                        <span>طريقة الدفع المتوفرة:</span>
+                    </span>
+                    <div class="alkasr-pm-grid">
                         <button type="button" class="alkasr-pm-tab is-active" id="pm-tab-wallet" onclick="selectAlkasrPayment('wallet', this)">
-                            المحفظة
+                            <div class="w-6 h-6 rounded-full bg-amber-500/20 text-amber-400 flex items-center justify-center text-xs shrink-0 border border-amber-500/30">
+                                <i class="fas fa-wallet"></i>
+                            </div>
+                            <div class="text-right">
+                                <span class="font-bold block leading-tight">محفظة رقميات</span>
+                                <span class="text-[10px] text-amber-400/90 font-mono">{% currency_format request.user.wallet.available_balance|default:0 %}</span>
+                            </div>
                         </button>
                         {% for gw in gateway_methods %}
                         <button type="button" class="alkasr-pm-tab" id="pm-tab-{{ gw.id }}" onclick="selectAlkasrPayment('{{ gw.id }}', this)">
-                            {{ gw.name }}
+                            {% if gw.logo %}
+                            <img src="{{ gw.logo }}" class="h-5 w-auto object-contain rounded shrink-0" alt="{{ gw.name }}" onerror="this.style.display='none'; this.nextElementSibling.classList.remove('hidden');">
+                            <i class="fas fa-shield-alt text-sky-400 text-sm hidden shrink-0"></i>
+                            {% else %}
+                            <i class="fas fa-shield-alt text-sky-400 text-sm shrink-0"></i>
+                            {% endif %}
+                            <div class="text-right">
+                                <span class="font-bold block leading-tight">{{ gw.name }}</span>
+                                <span class="text-[10px] text-slate-400">دفع مباشر</span>
+                            </div>
                         </button>
                         {% endfor %}
                     </div>
                 </div>
 
                 <!-- Coupon drawer trigger -->
-                <div class="text-center mt-2">
-                    <button type="button" onclick="document.getElementById('alkasr-coupon-drawer').classList.toggle('hidden')" class="text-[11px] text-slate-400 hover:text-amber-400 font-bold transition">
-                        <i class="fas fa-tag ml-1"></i> لديك كود خصم؟
+                <div class="border-t border-white/5 pt-2.5">
+                    <button type="button" onclick="document.getElementById('alkasr-coupon-drawer').classList.toggle('hidden')" class="text-xs text-slate-400 hover:text-amber-400 font-bold transition flex items-center justify-center gap-1.5 w-full py-1">
+                        <i class="fas fa-tag text-amber-400 text-xs"></i>
+                        <span>هل لديك كود خصم؟ اضغط هنا</span>
                     </button>
                     <div id="alkasr-coupon-drawer" class="hidden mt-2 flex gap-2">
-                        <input type="text" name="coupon_code" id="coupon-code-input" placeholder="أدخل كود الخصم" class="flex-grow bg-slate-900 border border-white/10 rounded-xl px-3 py-1.5 text-xs text-white">
-                        <button type="button" onclick="applyCoupon()" class="px-3 py-1.5 rounded-xl bg-amber-500/20 border border-amber-500/30 text-amber-300 text-xs font-bold">تطبيق</button>
+                        <input type="text" name="coupon_code" id="coupon-code-input" placeholder="أدخل كود الخصم هنا..." class="flex-grow bg-slate-900 border border-white/10 rounded-xl px-3 py-2 text-xs text-white focus:border-amber-400 outline-none">
+                        <button type="button" onclick="applyCoupon(event)" class="px-4 py-2 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/40 text-amber-300 text-xs font-bold transition active:scale-95">تطبيق</button>
                     </div>
-                    <div id="coupon-feedback" class="mt-1 text-[10px] hidden"></div>
+                    <div id="coupon-feedback" class="mt-2 text-xs text-center hidden"></div>
                 </div>
             </div>
 
-            <!-- Hidden Price Breakdown elements for calculation -->
-            <div id="price-breakdown" class="hidden">
-                <span id="subtotal-display"></span>
-                <span id="discount-display">0.00</span>
-                <span id="total-display"></span>
+            <!-- Price Breakdown Card with clear Arabic labels (Visible ONLY when coupon discount > 0) -->
+            <div id="price-breakdown" class="alkasr-breakdown-card hidden">
+                <div class="alkasr-breakdown-row border-b border-white/5 text-slate-400">
+                    <span>السعر الأساسي:</span>
+                    <span id="subtotal-display" class="font-bold text-slate-200"></span>
+                </div>
+                <div class="alkasr-breakdown-row border-b border-white/5 text-emerald-400">
+                    <span>قيمة الخصم بالكوبون:</span>
+                    <span id="discount-display" class="font-bold">0.00</span>
+                </div>
+                <div class="alkasr-breakdown-row pt-1.5 text-sm font-black text-amber-400">
+                    <span>المبلغ الإجمالي بعد الخصم:</span>
+                    <span id="total-display"></span>
+                </div>
             </div>
         </form>
     </div>
@@ -1088,17 +1227,33 @@ function renderDynamicFields(paramsJson, el) {
     `;
 }
 
+function onVariantDropdownChange(variantId) {
+    const chip = document.querySelector(`.variant-card[data-id="${variantId}"]`) || document.querySelector(`.variant-card[onclick*="${variantId}"]`);
+    selectVariant(variantId, chip);
+}
+
 function selectVariant(id, el) {
     if (!el) {
-        el = document.querySelector(`.variant-card[onclick*="${id}"]`) || document.querySelector('.variant-card');
+        el = document.querySelector(`.variant-card[data-id="${id}"]`) || document.querySelector(`.variant-card[onclick*="${id}"]`) || document.querySelector('.variant-card');
     }
     if (!el) return;
 
     const vInput = document.getElementById('selected-variant-id');
     if (vInput) vInput.value = id;
 
+    // Synchronize the dropdown select menu
+    const selectEl = document.getElementById('alkasr-variant-select');
+    if (selectEl && selectEl.value !== id) {
+        selectEl.value = id;
+    }
+
     document.querySelectorAll('.variant-card').forEach(c => c.classList.remove('selected'));
     el.classList.add('selected');
+
+    // Scroll chip into view smoothly
+    if (el.scrollIntoView) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+    }
 
     // Update Number / Count metric display
     const countEl = document.getElementById('metric-count');
@@ -1123,6 +1278,14 @@ function selectVariant(id, el) {
     
     renderQuantitySelector(qtyType, qtyMin, qtyMax, qtyListStr);
     
+    // Reset coupon when variant is changed
+    const breakdown = document.getElementById('price-breakdown');
+    if (breakdown) breakdown.classList.add('hidden');
+    const couponInput = document.getElementById('coupon-code-input');
+    if (couponInput) couponInput.value = '';
+    const feedback = document.getElementById('coupon-feedback');
+    if (feedback) { feedback.classList.add('hidden'); feedback.innerText = ''; }
+
     // Immediately calculate starting subtotal and submit button text
     updateQuantityPrice();
 }
@@ -1248,6 +1411,17 @@ function adjustQty(delta) {
 }
 
 document.addEventListener('DOMContentLoaded', function() {
+    const couponInp = document.getElementById('coupon-code-input');
+    if (couponInp) {
+        couponInp.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                e.stopPropagation();
+                applyCoupon(e);
+            }
+        });
+    }
+
     let firstAvailableCard = document.querySelector('.variant-card.selected') || document.querySelector('.variant-card:not(.opacity-50):not(.cursor-not-allowed)') || document.querySelector('.variant-card');
     if (firstAvailableCard) {
         firstAvailableCard.click();
@@ -1303,36 +1477,23 @@ function updateQuantityPrice(isFromCoupon = false) {
     }
     
     const qtyType = card.getAttribute('data-qty-type') || 'fixed';
-    
     let subtotal = basePrice * qty;
     
     const breakdown = document.getElementById('price-breakdown');
-    const feedback = document.getElementById('coupon-feedback');
-    
     let discount = 0;
     
     if (!isFromCoupon) {
-        const couponInput = document.getElementById('coupon-code-input');
-        if (couponInput) {
-            couponInput.value = '';
-        }
-        if (feedback) {
-            feedback.classList.add('hidden');
-            feedback.innerText = '';
-        }
         document.getElementById('discount-display').innerText = formatCurrencyAmount(0);
+        if (breakdown) breakdown.classList.add('hidden');
     } else {
         const discountText = document.getElementById('discount-display').innerText;
         discount = parseFloat(discountText.replace(/[^\d.-]/g, '') || 0);
-        if (discount > 0) {
-            discount = Math.abs(discount);
-        }
+        if (discount > 0) discount = Math.abs(discount);
+        if (discount > 0 && breakdown) breakdown.classList.remove('hidden');
     }
     
     const total = Math.max(0, subtotal - discount);
     
-    // Always show breakdown
-    breakdown.classList.remove('hidden');
     document.getElementById('subtotal-display').innerText = formatCurrencyAmount(subtotal);
     document.getElementById('total-display').innerText = formatCurrencyAmount(total);
 
@@ -1348,7 +1509,7 @@ function updateQuantityPrice(isFromCoupon = false) {
 
     const countEl = document.getElementById('metric-count');
     if (countEl && qtyInput && qtyType === 'range') {
-        countEl.innerText = qtyInput.value;
+        countEl.innerText = Number(qtyInput.value).toLocaleString();
     }
 
     const submitBtn = document.getElementById('submit-btn');
@@ -1365,8 +1526,10 @@ function selectAlkasrPayment(pmId, btnEl) {
     if (btnEl) btnEl.classList.add('is-active');
 }
 
-function applyCoupon() {
-    const code = document.getElementById('coupon-code-input').value;
+function applyCoupon(e) {
+    if (e && e.preventDefault) e.preventDefault();
+    const codeInput = document.getElementById('coupon-code-input');
+    const code = codeInput ? codeInput.value.trim() : '';
     const variantId = document.getElementById('selected-variant-id').value;
     const feedback = document.getElementById('coupon-feedback');
     const breakdown = document.getElementById('price-breakdown');
@@ -1374,42 +1537,63 @@ function applyCoupon() {
     const qty = qtyInput ? parseInt(qtyInput.value || 1) : 1;
     
     if (!code) {
-        feedback.innerText = "يرجى إدخال كود الكوبون.";
-        feedback.className = "mt-2 text-[10px] text-rose-500 block";
+        if (feedback) {
+            feedback.innerText = "يرجى إدخال كود الخصم أولاً.";
+            feedback.className = "mt-2 text-xs text-rose-400 block font-bold";
+        }
         return;
     }
     
     if (!variantId) {
-        feedback.innerText = "يرجى اختيار باقة أولاً.";
-        feedback.className = "mt-2 text-[10px] text-rose-500 block";
+        if (feedback) {
+            feedback.innerText = "يرجى اختيار الباقة أولاً.";
+            feedback.className = "mt-2 text-xs text-rose-400 block font-bold";
+        }
         return;
     }
 
-    fetch(`/ajax/validate-coupon/?code=${code}&variant_id=${variantId}&quantity=${qty}`)
+    if (feedback) {
+        feedback.innerText = "جاري التحقق من كود الخصم...";
+        feedback.className = "mt-2 text-xs text-amber-400 block font-bold";
+    }
+
+    fetch(`/ajax/validate-coupon/?code=${encodeURIComponent(code)}&variant_id=${encodeURIComponent(variantId)}&quantity=${qty}`)
         .then(response => response.json())
         .then(data => {
+            if (!feedback) return;
             feedback.classList.remove('hidden');
             if (data.valid) {
-                feedback.innerText = data.message;
-                feedback.className = "mt-2 text-[10px] text-emerald-500 block";
+                feedback.innerText = `✓ ${data.message || 'تم تطبيق الخصم بنجاح!'}`;
+                feedback.className = "mt-2 text-xs text-emerald-400 block font-bold";
                 
-                // Show breakdown and set discount
-                breakdown.classList.remove('hidden');
-                document.getElementById('discount-display').innerText = "- " + data.discount_amount.toFixed(2) + " USD";
-                
-                // Recalculate subtotal, total and submit button price using the discount
-                updateQuantityPrice(true);
+                const disc = parseFloat(data.discount_amount) || 0;
+                const newTot = parseFloat(data.new_total) || 0;
+                const origSub = newTot + disc;
+
+                if (breakdown) {
+                    breakdown.classList.remove('hidden');
+                    document.getElementById('subtotal-display').innerText = formatCurrencyAmount(origSub);
+                    document.getElementById('discount-display').innerText = "- " + formatCurrencyAmount(disc);
+                    document.getElementById('total-display').innerText = formatCurrencyAmount(newTot);
+                }
+
+                const metricTotal = document.getElementById('metric-total');
+                if (metricTotal) metricTotal.innerText = formatCurrencyAmount(newTot);
+                const topPriceBadge = document.getElementById('alkasr-top-price');
+                if (topPriceBadge) topPriceBadge.innerText = formatCurrencyAmount(newTot);
             } else {
-                feedback.innerText = data.error;
-                feedback.className = "mt-2 text-[10px] text-rose-500 block";
-                document.getElementById('discount-display').innerText = "0.00 USD";
+                feedback.innerText = `✕ ${data.error || 'كود الخصم غير صالح أو منتهي الصلاحية.'}`;
+                feedback.className = "mt-2 text-xs text-rose-400 block font-bold";
+                if (breakdown) breakdown.classList.add('hidden');
                 updateQuantityPrice(false);
             }
         })
-        .catch(error => {
-            console.error('Error:', error);
-            feedback.innerText = "خطأ في الاتصال بالسيرفر.";
-            feedback.className = "mt-2 text-[10px] text-rose-500 block";
+        .catch(err => {
+            console.error('Coupon validation error:', err);
+            if (feedback) {
+                feedback.innerText = "تعذر الاتصال بالسيرفر للتحقق من الكوبون.";
+                feedback.className = "mt-2 text-xs text-rose-400 block font-bold";
+            }
         });
 }
 
