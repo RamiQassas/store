@@ -153,6 +153,36 @@ KNOWN_DOMAINS = {
     "instagram": "instagram.com",
     "انستغرام": "instagram.com",
     "انستا": "instagram.com",
+    "twitter": "x.com",
+    "تويتر": "x.com",
+    "snapchat": "snapchat.com",
+    "سناب": "snapchat.com",
+    "telegram": "telegram.org",
+    "تيليجرام": "telegram.org",
+    "تليجرام": "telegram.org",
+    "tiktok": "tiktok.com",
+    "تيك توك": "tiktok.com",
+    "youtube": "youtube.com",
+    "يوتيوب": "youtube.com",
+    "asiacell": "asiacell.com",
+    "آسيا سيل": "asiacell.com",
+    "اسياسيل": "asiacell.com",
+    "korek": "korektelecom.com",
+    "كورك": "korektelecom.com",
+    "zain": "iq.zain.com",
+    "زين": "iq.zain.com",
+    "turkcell": "turkcell.com.tr",
+    "تروكسل": "turkcell.com.tr",
+    "vodafone": "vodafone.com.tr",
+    "فودافون": "vodafone.com.tr",
+    "telekom": "turktelekom.com.tr",
+    "ترك تليكوم": "turktelekom.com.tr",
+    "syriatel": "syriatel.sy",
+    "سيريتل": "syriatel.sy",
+    "mtn": "mtn.com.sy",
+    "ام تي ان": "mtn.com.sy",
+    "binance": "binance.com",
+    "بينانس": "binance.com",
     "flaticon": "flaticon.com",
     "فلاتيكون": "flaticon.com",
     "freepik": "freepik.com",
@@ -190,6 +220,21 @@ KNOWN_DOMAINS = {
     "دسكورد": "discord.com",
     "roblox": "roblox.com",
     "روبلوكس": "roblox.com",
+    "jawaker": "jawaker.com",
+    "جواكر": "jawaker.com",
+    "yalla": "yalla.live",
+    "يلا": "yalla.live",
+    "meyo": "meyo.one",
+    "ميو": "meyo.one",
+    "livu": "livu.me",
+    "mixu": "mixu.me",
+    "tumile": "tumile.me",
+    "razer": "razer.com",
+    "canva": "canva.com",
+    "picsart": "picsart.com",
+    "apple": "apple.com",
+    "itunes": "apple.com",
+    "google": "google.com",
 }
 
 
@@ -232,7 +277,7 @@ def fetch_image_from_itunes(query):
         return None
     try:
         url = f"https://itunes.apple.com/search?term={urllib.parse.quote(query)}&entity=software&limit=1"
-        resp = requests.get(url, timeout=4, headers={"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"})
+        resp = requests.get(url, timeout=1.5, headers={"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"})
         if resp.status_code == 200:
             data = resp.json()
             if data.get("results"):
@@ -240,11 +285,13 @@ def fetch_image_from_itunes(query):
                 img_url = res.get("artworkUrl512") or res.get("artworkUrl100")
                 if img_url:
                     img_url = img_url.replace("100x100bb", "512x512bb")
-                    img_resp = requests.get(img_url, timeout=5, headers={"User-Agent": "Mozilla/5.0"})
+                    img_resp = requests.get(img_url, timeout=1.5, headers={"User-Agent": "Mozilla/5.0"})
                     if img_resp.status_code == 200:
                         return Image.open(io.BytesIO(img_resp.content)).convert("RGBA")
     except Exception as e:
         logger.debug("iTunes search error for query '%s': %s", query, e)
+    return None
+
 def fetch_image_from_domain(product_name):
     """
     Fetches high-resolution 256x256 official brand icons via Google High-Res Favicon API.
@@ -254,7 +301,7 @@ def fetch_image_from_domain(product_name):
         if key in p_lower:
             try:
                 url = f"https://t2.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE,URL&url=http://{domain}&size=256"
-                resp = requests.get(url, timeout=4, headers={"User-Agent": "Mozilla/5.0"})
+                resp = requests.get(url, timeout=1.5, headers={"User-Agent": "Mozilla/5.0"})
                 if resp.status_code == 200 and len(resp.content) > 500:
                     img = Image.open(io.BytesIO(resp.content)).convert("RGBA")
                     if img.width >= 48 and img.height >= 48:

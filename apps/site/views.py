@@ -2491,33 +2491,32 @@ def product_detail(request, pk):
                         "logo": pm_logo,
                     })
 
-    # Navigation: previous and next products in current catalog / category
+    # Navigation: previous and next products across ALL products in current store catalog
     catalog_qs = Product.objects.filter(is_active=True)
     if product.store:
         catalog_qs = catalog_qs.filter(store=product.store)
     else:
         catalog_qs = catalog_qs.filter(store__isnull=True)
 
-    category_qs = catalog_qs.filter(category=product.category) if product.category else catalog_qs
-    total_category_products = category_qs.count()
-    product_index = category_qs.filter(
-        Q(sort_order__lt=product.sort_order) |
-        Q(sort_order=product.sort_order, created_at__lte=product.created_at)
-    ).count()
-    if product_index == 0:
-        product_index = 1
-
-    prev_product = category_qs.filter(sort_order__lt=product.sort_order).order_by('-sort_order', '-created_at').first()
-    if not prev_product:
-        prev_product = category_qs.filter(sort_order=product.sort_order, created_at__lt=product.created_at).order_by('-created_at').first()
-    if not prev_product and category_qs != catalog_qs:
-        prev_product = catalog_qs.filter(sort_order__lt=product.sort_order).order_by('-sort_order', '-created_at').first()
-
-    next_product = category_qs.filter(sort_order__gt=product.sort_order).order_by('sort_order', 'created_at').first()
-    if not next_product:
-        next_product = category_qs.filter(sort_order=product.sort_order, created_at__gt=product.created_at).order_by('created_at').first()
-    if not next_product and category_qs != catalog_qs:
-        next_product = catalog_qs.filter(sort_order__gt=product.sort_order).order_by('sort_order', 'created_at').first()
+    all_cat_ids = list(catalog_qs.order_by('category__sort_order', 'category__id', 'sort_order', 'created_at', 'id').values_list('id', flat=True))
+    total_catalog_products = len(all_cat_ids)
+    
+    prev_product = None
+    next_product = None
+    product_index = 1
+    
+    if total_catalog_products > 0:
+        try:
+            cur_idx = all_cat_ids.index(product.id)
+            product_index = cur_idx + 1
+            if total_catalog_products > 1:
+                prev_id = all_cat_ids[(cur_idx - 1) % total_catalog_products]
+                next_id = all_cat_ids[(cur_idx + 1) % total_catalog_products]
+                prev_product = Product.objects.filter(id=prev_id).only('id', 'name', 'category', 'image').first()
+                next_product = Product.objects.filter(id=next_id).only('id', 'name', 'category', 'image').first()
+        except (ValueError, IndexError):
+            product_index = 1
+    total_category_products = total_catalog_products
 
     # Determine if this product is an instant delivery product (numbers, accounts, keys, vouchers, software)
     is_instant_product = False

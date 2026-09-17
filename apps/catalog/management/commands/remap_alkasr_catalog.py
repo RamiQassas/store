@@ -1,4 +1,5 @@
 from decimal import Decimal
+from django.db.models import Q
 from django.core.management.base import BaseCommand
 from apps.providers.models import ProviderProfile, ProviderProduct
 from apps.providers.alkasr.mapper import AlkasrMapperService
@@ -475,16 +476,20 @@ class Command(BaseCommand):
             total_prods = Product.objects.filter(api_provider='alkasr').count()
             total_vars = ProductVariant.objects.filter(product__api_provider='alkasr').count()
 
-            if do_brand:
-                self.stdout.write('Applying smart branding and Raqamiyat badge to catalog products...')
-                from apps.catalog.smart_branding import apply_branding_to_product
-                branded_count = 0
-                for prod in Product.objects.filter(is_active=True):
-                    try:
-                        if apply_branding_to_product(prod, force=True):
-                            branded_count += 1
-                    except Exception as b_err:
-                        self.stdout.write(self.style.WARNING(f'Branding error for {prod.name}: {b_err}'))
+            from apps.catalog.smart_branding import apply_branding_to_product
+            branded_count = 0
+            # Always ensure any product missing an image gets branded
+            target_prods = Product.objects.filter(is_active=True)
+            if not do_brand:
+                target_prods = target_prods.filter(Q(image='') | Q(image__isnull=True))
+
+            for prod in target_prods:
+                try:
+                    if apply_branding_to_product(prod, force=do_brand):
+                        branded_count += 1
+                except Exception as b_err:
+                    self.stdout.write(self.style.WARNING(f'Branding error for {prod.name}: {b_err}'))
+            if branded_count > 0:
                 self.stdout.write(self.style.SUCCESS(f'Successfully applied smart branding to {branded_count} products.'))
 
             self.stdout.write(self.style.SUCCESS(
