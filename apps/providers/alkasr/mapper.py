@@ -657,10 +657,7 @@ class AlkasrMapperService:
 
                         mapping.local_product = local_product
 
-                        pricing = getattr(pp, 'pricing', None)
-                        final_price = pricing.final_price if pricing else pp.cost_price
-                        wholesale_price = pricing.final_wholesale_price if pricing else pp.cost_price
-                        vip_price = pricing.final_vip_price if pricing else pp.cost_price
+
 
                         # Extract and clean variant name first
                         variant_name = (pp.local_name or "").strip()
@@ -676,7 +673,11 @@ class AlkasrMapperService:
                             else:
                                 continue
 
-                        # Determine quantity type, min, max, list, and per-mille flag
+                        # Determine quantity type from product_type stored during sync
+                        # This mirrors exactly what the API spec says:
+                        # - product_type=="package" (qty_values=null) → fixed, qty=1
+                        # - product_type=="fixed_quantities" (qty_values=[list]) → list
+                        # - product_type=="amount" (qty_values={min,max}) → range
                         qty_min = getattr(pp, 'qty_min', None)
                         try:
                             qty_min = int(qty_min) if qty_min is not None else None
@@ -691,52 +692,26 @@ class AlkasrMapperService:
 
                         qty_list = getattr(pp, 'qty_list', None) or []
 
-                        # Fixed amount package detection: when min == max and min > 1 (e.g. TikTok 400 coins, TikTok 150 coins)
-                        is_fixed_amount_package = (
-                            qty_min is not None and qty_max is not None and qty_min == qty_max and qty_min > 1
-                        )
-
-                        # Detect if the variant name represents a fixed-denomination pack (e.g. 60 UC, 360 Coins, 50 TL, 1 Month)
-                        import re
-                        is_fixed_denom = bool(re.search(r'\b\d+\s*(uc|gems|diamond|diamonds|coins|gold|tl|aed|sar|eur|usd|\$|€|£|month|months|year|years|شهور|شهر|سنة|عملة|جواهر|شدات|ماسات|كود|elmas)\b', variant_name, re.IGNORECASE))
-
-                        if is_fixed_amount_package:
-                            qty_type = "fixed"
-                        elif qty_list and len(qty_list) > 0:
+                        if pp.product_type == "fixed_quantities" or (qty_list and len(qty_list) > 0):
                             qty_type = "list"
-                        elif is_fixed_denom:
-                            qty_type = "fixed"
-                        elif qty_max is not None and qty_min is not None and (qty_max - qty_min) >= 10:
+                        elif pp.product_type == "amount" or (qty_min is not None and qty_max is not None):
                             qty_type = "range"
-                        elif pp.product_type == "amount" and (qty_min is None or qty_max is None):
-                            qty_type = "range"
-                        elif pp.product_type in ("fixed_quantities", "specificPackage"):
-                            qty_type = "list"
                         else:
                             qty_type = "fixed"
 
+                        # Prices are stored as per-unit from the API — no multiplication needed
+                        pricing = getattr(pp, 'pricing', None)
+                        final_price = pricing.final_price if pricing else pp.cost_price
+                        wholesale_price = pricing.final_wholesale_price if pricing else pp.cost_price
+                        vip_price = pricing.final_vip_price if pricing else pp.cost_price
                         variant_cost = pp.cost_price
-                        if is_fixed_amount_package and pp.cost_price < Decimal("0.05"):
-                            multiplier = Decimal(str(qty_min))
-                            final_price = final_price * multiplier
-                            wholesale_price = wholesale_price * multiplier
-                            vip_price = vip_price * multiplier
-                            variant_cost = variant_cost * multiplier
 
-                        is_per_mille = False
-                        if not is_fixed_amount_package and not is_fixed_denom:
-                            if qty_min is not None and qty_min >= 100:
-                                is_per_mille = True
-                            elif pp.product_type == "amount" and (qty_min is None or qty_min >= 10):
-                                is_per_mille = True
 
                         meta = {
                             "qty_type": qty_type,
-                            "qty_min": 1 if (is_fixed_amount_package or is_fixed_denom) else (qty_min or 1),
-                            "qty_max": 1 if is_fixed_amount_package else (999999 if is_fixed_denom else (qty_max or 999999)),
-                            "package_qty": qty_min if is_fixed_amount_package else None,
+                            "qty_min": qty_min or 1,
+                            "qty_max": qty_max or 999999,
                             "qty_list": qty_list,
-                            "is_per_mille": is_per_mille,
                             "product_type": pp.product_type,
                             "remote_id": str(pp.remote_id),
                             "params": [
@@ -749,6 +724,7 @@ class AlkasrMapperService:
                                 for param in pp.parameters.all()
                             ] or list(schema_fields.values())
                         }
+
 
                         # Clean up naming for TikTok and typos
                         if "tik yok" in variant_name.lower():

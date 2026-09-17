@@ -53,8 +53,9 @@ def calculate_variant_subtotal(variant, user, quantity=1):
     """
     Return the payable subtotal for a variant and provider quantity.
 
-    Provider list quantities are selectable denominations/options, not a
-    multiplier. Range quantities are the only API quantity type priced per unit.
+    The API stores prices as per-unit values. For range/amount type products,
+    the customer pays: unit_price * quantity. For fixed/list type, qty is 1 or
+    a selected denomination — still multiply by qty (which will be 1 for fixed).
     """
     try:
         qty = int(quantity)
@@ -62,13 +63,7 @@ def calculate_variant_subtotal(variant, user, quantity=1):
         qty = 1
     qty = max(qty, 1)
 
-    meta = variant.metadata if isinstance(variant.metadata, dict) else {}
-    qty_type = meta.get("qty_type", "fixed")
-    is_per_mille = meta.get("is_per_mille", False)
     unit_price = variant.get_price_for_user(user)
-
-    if is_per_mille:
-        return (unit_price / Decimal("1000")) * Decimal(qty)
     return unit_price * Decimal(qty)
 
 

@@ -45,7 +45,8 @@ def variant_price(context, variant):
 def variant_card_price(context, variant):
     """
     Returns the formatted starting/display price for a variant card.
-    For range/per-mille products with a min quantity (e.g. 100), calculates the starting price.
+    For range products with a min quantity, shows price * qty_min as the starting price.
+    For list products, shows price * min(qty_list) as the starting price.
     """
     if variant is None:
         return ""
@@ -58,48 +59,39 @@ def variant_card_price(context, variant):
     qty_type = meta.get("qty_type")
     qty_min = meta.get("qty_min")
     qty_list = meta.get("qty_list", [])
-    is_per_mille = meta.get("is_per_mille", False)
     
     min_multiplier = Decimal("1")
     try:
-        if qty_min:
+        if qty_type == "range" and qty_min:
             q_val = Decimal(str(qty_min))
             if q_val > 1:
                 min_multiplier = q_val
     except Exception:
         pass
         
-    if qty_list:
+    if qty_type == "list" and qty_list:
         try:
             valid_list = [Decimal(str(x)) for x in qty_list if Decimal(str(x)) > 0]
             if valid_list:
                 min_in_list = min(valid_list)
-                if min_in_list > 1 and (is_per_mille or Decimal(str(price)) < Decimal("0.2") or qty_type in ("list", "range", "custom_qty")):
-                    if min_multiplier == 1 or min_in_list < min_multiplier:
-                        min_multiplier = min_in_list
+                if min_in_list > 1:
+                    min_multiplier = min_in_list
         except Exception:
             pass
             
     if min_multiplier > 1:
-        if is_per_mille:
-            total = (Decimal(str(price)) / Decimal("1000")) * min_multiplier
-        elif qty_type in ("range", "custom_qty"):
-            total = Decimal(str(price)) * min_multiplier
-        else:
-            if Decimal(str(price)) < Decimal("0.05"):
-                total = Decimal(str(price)) * min_multiplier
-            else:
-                total = Decimal(str(price))
+        total = Decimal(str(price)) * min_multiplier
         formatted = currency_format(context, total)
         return f"{formatted} <span class='text-[10px] text-slate-400 block font-normal'>(تبدأ من {int(min_multiplier)})</span>"
     
     return currency_format(context, price)
 
+
 @register.simple_tag(takes_context=True)
 def product_starting_price(context, product):
     """
     Returns the starting minimum price for a product card across active variants.
-    Calculates the true starting cost by factoring in qty_min and qty_list for range/per-mille products.
+    Calculates the true starting cost by factoring in qty_min and qty_list for range products.
     """
     if not product:
         return ""
@@ -127,38 +119,29 @@ def product_starting_price(context, product):
         qty_type = meta.get("qty_type")
         qty_min = meta.get("qty_min")
         qty_list = meta.get("qty_list", [])
-        is_per_mille = meta.get("is_per_mille", False)
         
         min_multiplier = Decimal("1")
         try:
-            if qty_min:
+            if qty_type == "range" and qty_min:
                 q_val = Decimal(str(qty_min))
                 if q_val > 1:
                     min_multiplier = q_val
         except Exception:
             pass
             
-        if qty_list:
+        if qty_type == "list" and qty_list:
             try:
                 valid_list = [Decimal(str(x)) for x in qty_list if Decimal(str(x)) > 0]
                 if valid_list:
                     min_in_list = min(valid_list)
-                    if min_in_list > 1 and (is_per_mille or Decimal(str(v_price)) < Decimal("0.2") or qty_type in ("list", "range", "custom_qty")):
+                    if min_in_list > 1:
                         if min_multiplier == 1 or min_in_list < min_multiplier:
                             min_multiplier = min_in_list
             except Exception:
                 pass
 
         if min_multiplier > 1:
-            if is_per_mille:
-                total = (Decimal(str(v_price)) / Decimal("1000")) * min_multiplier
-            elif qty_type in ("range", "custom_qty"):
-                total = Decimal(str(v_price)) * min_multiplier
-            else:
-                if Decimal(str(v_price)) < Decimal("0.05"):
-                    total = Decimal(str(v_price)) * min_multiplier
-                else:
-                    total = Decimal(str(v_price))
+            total = Decimal(str(v_price)) * min_multiplier
         else:
             total = Decimal(str(v_price))
             
