@@ -1408,14 +1408,8 @@ function updateQuantityPrice(isFromCoupon = false) {
     }
     
     const qtyType = card.getAttribute('data-qty-type') || 'fixed';
-    const isPerMille = card.getAttribute('data-is-per-mille') === 'true';
     
-    let subtotal = basePrice;
-    if (isPerMille) {
-        subtotal = (basePrice / 1000.0) * qty;
-    } else if (qtyType === 'range' || qtyType === 'list') {
-        subtotal = basePrice * qty;
-    }
+    let subtotal = basePrice * qty;
     
     const breakdown = document.getElementById('price-breakdown');
     const feedback = document.getElementById('coupon-feedback');

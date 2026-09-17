@@ -694,7 +694,7 @@ class AlkasrMapperService:
 
                         if pp.product_type == "fixed_quantities" or (qty_list and len(qty_list) > 0):
                             qty_type = "list"
-                        elif pp.product_type == "amount" or (qty_min is not None and qty_max is not None):
+                        elif pp.product_type == "amount" or (qty_min is not None and qty_max is not None and qty_max > qty_min and qty_max > 1):
                             qty_type = "range"
                         else:
                             qty_type = "fixed"
@@ -706,11 +706,10 @@ class AlkasrMapperService:
                         vip_price = pricing.final_vip_price if pricing else pp.cost_price
                         variant_cost = pp.cost_price
 
-
                         meta = {
                             "qty_type": qty_type,
-                            "qty_min": qty_min or 1,
-                            "qty_max": qty_max or 999999,
+                            "qty_min": (qty_min or 1) if qty_type == "range" else 1,
+                            "qty_max": (qty_max or 999999) if qty_type == "range" else 1,
                             "qty_list": qty_list,
                             "product_type": pp.product_type,
                             "remote_id": str(pp.remote_id),
