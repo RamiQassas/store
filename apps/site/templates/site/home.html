@@ -68,16 +68,18 @@
 .rq-ambient-aura {
   position: absolute;
   top: 0;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 100vw;
-  height: 850px;
+  left: 0;
+  right: 0;
+  width: 100%;
+  max-width: 100%;
+  height: 650px;
   background: 
-    radial-gradient(ellipse 70% 500px at 50% -100px, rgba(99, 102, 241, 0.16) 0%, transparent 70%),
-    radial-gradient(circle 450px at 85% 150px, rgba(6, 182, 212, 0.1) 0%, transparent 60%),
-    radial-gradient(circle 400px at 15% 250px, rgba(245, 158, 11, 0.06) 0%, transparent 60%);
+    radial-gradient(ellipse 70% 400px at 50% -50px, rgba(99, 102, 241, 0.16) 0%, transparent 70%),
+    radial-gradient(circle 400px at 85% 100px, rgba(6, 182, 212, 0.1) 0%, transparent 60%),
+    radial-gradient(circle 350px at 15% 200px, rgba(245, 158, 11, 0.06) 0%, transparent 60%);
   pointer-events: none;
   z-index: 0;
+  overflow: hidden;
 }
 
 /* ─────────────────────────────────────────────────────────────
