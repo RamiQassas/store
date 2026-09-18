@@ -68,6 +68,20 @@
                                 <span class="text-[10px] text-rose-400 font-bold">({{ stats.email_addresses }})</span>
                             </div>
                         </label>
+                        <label class="flex items-center gap-2 p-2.5 rounded-xl bg-white/[0.02] border border-white/5 cursor-pointer hover:bg-white/[0.05] transition">
+                            <input type="checkbox" name="targets" value="moderation_logs" class="w-4 h-4 rounded text-rose-600 bg-slate-900 border-white/10">
+                            <div class="flex-1 flex justify-between items-center">
+                                <span class="text-xs text-white font-medium">سجلات الإشراف والحظر</span>
+                                <span class="text-[10px] text-rose-400 font-bold">({{ stats.moderation_logs }})</span>
+                            </div>
+                        </label>
+                        <label class="flex items-center gap-2 p-2.5 rounded-xl bg-white/[0.02] border border-white/5 cursor-pointer hover:bg-white/[0.05] transition">
+                            <input type="checkbox" name="targets" value="verification_tokens" class="w-4 h-4 rounded text-rose-600 bg-slate-900 border-white/10">
+                            <div class="flex-1 flex justify-between items-center">
+                                <span class="text-xs text-white font-medium">رموز التحقق و OTP</span>
+                                <span class="text-[10px] text-rose-400 font-bold">({{ stats.verification_tokens }})</span>
+                            </div>
+                        </label>
                         {% endif %}
                     </div>
                 </div>
@@ -103,6 +117,22 @@
                                 <span class="text-[10px] text-rose-400 font-bold">({{ stats.product_variants }})</span>
                             </div>
                         </label>
+                        {% if not is_tenant %}
+                        <label class="flex items-center gap-2 p-2.5 rounded-xl bg-white/[0.02] border border-white/5 cursor-pointer hover:bg-white/[0.05] transition">
+                            <input type="checkbox" name="targets" value="product_suggestions" class="w-4 h-4 rounded text-rose-600 bg-slate-900 border-white/10">
+                            <div class="flex-1 flex justify-between items-center">
+                                <span class="text-xs text-white font-medium">اقتراحات المنتجات</span>
+                                <span class="text-[10px] text-rose-400 font-bold">({{ stats.product_suggestions }})</span>
+                            </div>
+                        </label>
+                        <label class="flex items-center gap-2 p-2.5 rounded-xl bg-white/[0.02] border border-white/5 cursor-pointer hover:bg-white/[0.05] transition">
+                            <input type="checkbox" name="targets" value="api_integrations" class="w-4 h-4 rounded text-rose-600 bg-slate-900 border-white/10">
+                            <div class="flex-1 flex justify-between items-center">
+                                <span class="text-xs text-white font-medium">تكاملات واجهات الـ API</span>
+                                <span class="text-[10px] text-rose-400 font-bold">({{ stats.api_integrations }})</span>
+                            </div>
+                        </label>
+                        {% endif %}
                     </div>
                 </div>
 
@@ -181,6 +211,13 @@
                                 <span class="text-[10px] text-rose-400 font-bold">({{ stats.notifications }})</span>
                             </div>
                         </label>
+                        <label class="flex items-center gap-2 p-2.5 rounded-xl bg-white/[0.02] border border-white/5 cursor-pointer hover:bg-white/[0.05] transition">
+                            <input type="checkbox" name="targets" value="notification_settings" class="w-4 h-4 rounded text-rose-600 bg-slate-900 border-white/10">
+                            <div class="flex-1 flex justify-between items-center">
+                                <span class="text-xs text-white font-medium">إعدادات وتفضيلات الإشعارات</span>
+                                <span class="text-[10px] text-rose-400 font-bold">({{ stats.notification_settings }})</span>
+                            </div>
+                        </label>
                     </div>
                 </div>
                 {% endif %}
@@ -250,6 +287,22 @@
                                 <span class="text-[10px] text-rose-400 font-bold">({{ stats.payment_methods }})</span>
                             </div>
                         </label>
+                        {% if not is_tenant %}
+                        <label class="flex items-center gap-2 p-2.5 rounded-xl bg-white/[0.02] border border-white/5 cursor-pointer hover:bg-white/[0.05] transition">
+                            <input type="checkbox" name="targets" value="payment_exchange_logs" class="w-4 h-4 rounded text-rose-600 bg-slate-900 border-white/10">
+                            <div class="flex-1 flex justify-between items-center">
+                                <span class="text-xs text-white font-medium">سجلات أسعار صرف الدفع</span>
+                                <span class="text-[10px] text-rose-400 font-bold">({{ stats.payment_exchange_logs }})</span>
+                            </div>
+                        </label>
+                        <label class="flex items-center gap-2 p-2.5 rounded-xl bg-white/[0.02] border border-white/5 cursor-pointer hover:bg-white/[0.05] transition">
+                            <input type="checkbox" name="targets" value="payment_gateways" class="w-4 h-4 rounded text-rose-600 bg-slate-900 border-white/10">
+                            <div class="flex-1 flex justify-between items-center">
+                                <span class="text-xs text-white font-medium">إعدادات بوابات الدفع</span>
+                                <span class="text-[10px] text-rose-400 font-bold">({{ stats.payment_gateways }})</span>
+                            </div>
+                        </label>
+                        {% endif %}
                         <label class="flex items-center gap-2 p-2.5 rounded-xl bg-emerald-500/[0.03] border border-emerald-500/10 cursor-pointer hover:bg-emerald-500/[0.08] transition">
                             <input type="checkbox" name="targets" value="payment_methods_reset" class="w-4 h-4 rounded text-emerald-600 bg-slate-900 border-white/10">
                             <div class="flex-1 flex justify-between items-center">
@@ -642,6 +695,13 @@
                             </div>
                         </label>
                         <label class="flex items-center gap-2 p-2.5 rounded-xl bg-white/[0.02] border border-white/5 cursor-pointer hover:bg-white/[0.05] transition">
+                            <input type="checkbox" name="targets" value="kyc_settings" class="w-4 h-4 rounded text-rose-600 bg-slate-900 border-white/10">
+                            <div class="flex-1 flex justify-between items-center">
+                                <span class="text-xs text-white font-medium">إعدادات التحقق (KYC Settings)</span>
+                                <span class="text-[10px] text-rose-400 font-bold">({{ stats.kyc_settings }})</span>
+                            </div>
+                        </label>
+                        <label class="flex items-center gap-2 p-2.5 rounded-xl bg-white/[0.02] border border-white/5 cursor-pointer hover:bg-white/[0.05] transition">
                             <input type="checkbox" name="targets" value="push_subscriptions" class="w-4 h-4 rounded text-rose-600 bg-slate-900 border-white/10">
                             <div class="flex-1 flex justify-between items-center">
                                 <span class="text-xs text-white font-medium">اشتراكات الإشعارات</span>
@@ -685,6 +745,14 @@
                         <span class="text-xs text-slate-400">جلسات النشاط</span>
                         <span class="font-bold text-white">{{ stats.user_sessions }}</span>
                     </div>
+                    <div class="p-3 bg-white/[0.02] border border-white/5 rounded-xl flex justify-between items-center">
+                        <span class="text-xs text-slate-400">سجلات الإشراف والحظر</span>
+                        <span class="font-bold text-white">{{ stats.moderation_logs }}</span>
+                    </div>
+                    <div class="p-3 bg-white/[0.02] border border-white/5 rounded-xl flex justify-between items-center">
+                        <span class="text-xs text-slate-400">رموز التحقق و OTP</span>
+                        <span class="font-bold text-white">{{ stats.verification_tokens }}</span>
+                    </div>
                     {% endif %}
                 </div>
             </div>
@@ -704,6 +772,10 @@
                     <div class="p-3 bg-white/[0.02] border border-white/5 rounded-xl flex justify-between items-center">
                         <span class="text-xs text-slate-400">باقات المنتجات</span>
                         <span class="font-bold text-white">{{ stats.product_variants }}</span>
+                    </div>
+                    <div class="p-3 bg-white/[0.02] border border-white/5 rounded-xl flex justify-between items-center">
+                        <span class="text-xs text-slate-400">اقتراحات المنتجات</span>
+                        <span class="font-bold text-white">{{ stats.product_suggestions }}</span>
                     </div>
                 </div>
             </div>
@@ -750,6 +822,10 @@
                         <span class="text-xs text-slate-400">الإشعارات</span>
                         <span class="font-bold text-white">{{ stats.notifications }}</span>
                     </div>
+                    <div class="p-3 bg-white/[0.02] border border-white/5 rounded-xl flex justify-between items-center">
+                        <span class="text-xs text-slate-400">إعدادات وتفضيلات الإشعارات</span>
+                        <span class="font-bold text-white">{{ stats.notification_settings }}</span>
+                    </div>
                 </div>
             </div>
             {% endif %}
@@ -789,6 +865,16 @@
                         <span class="text-xs text-slate-400">وسائل الدفع</span>
                         <span class="font-bold text-white">{{ stats.payment_methods }}</span>
                     </div>
+                    {% if not is_tenant %}
+                    <div class="p-3 bg-white/[0.02] border border-white/5 rounded-xl flex justify-between items-center">
+                        <span class="text-xs text-slate-400">سجلات أسعار صرف وسائل الدفع</span>
+                        <span class="font-bold text-white">{{ stats.payment_exchange_logs }}</span>
+                    </div>
+                    <div class="p-3 bg-white/[0.02] border border-white/5 rounded-xl flex justify-between items-center">
+                        <span class="text-xs text-slate-400">بوابات الدفع الإلكتروني</span>
+                        <span class="font-bold text-white">{{ stats.payment_gateways }}</span>
+                    </div>
+                    {% endif %}
                 </div>
             </div>
 
@@ -998,6 +1084,18 @@
                     <div class="p-3 bg-white/[0.02] border border-white/5 rounded-xl flex justify-between items-center">
                         <span class="text-xs text-slate-400">طلبات التحقق (KYC)</span>
                         <span class="font-bold text-white">{{ stats.kyc_requests }}</span>
+                    </div>
+                    <div class="p-3 bg-white/[0.02] border border-white/5 rounded-xl flex justify-between items-center">
+                        <span class="text-xs text-slate-400">إعدادات التحقق (KYC Settings)</span>
+                        <span class="font-bold text-white">{{ stats.kyc_settings }}</span>
+                    </div>
+                    <div class="p-3 bg-white/[0.02] border border-white/5 rounded-xl flex justify-between items-center">
+                        <span class="text-xs text-slate-400">تكاملات واجهات الـ API</span>
+                        <span class="font-bold text-white">{{ stats.api_integrations }}</span>
+                    </div>
+                    <div class="p-3 bg-white/[0.02] border border-white/5 rounded-xl flex justify-between items-center">
+                        <span class="text-xs text-slate-400">اشتراكات الإشعارات</span>
+                        <span class="font-bold text-white">{{ stats.push_subscriptions }}</span>
                     </div>
                 </div>
             </div>

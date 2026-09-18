@@ -5951,9 +5951,13 @@ def control_db_maintenance(request):
         ProviderOrderStatus, ProviderSyncLog, ProviderRequestLog,
         ProviderResponseLog, ProviderErrorLog, ProviderMapping
     )
-    from apps.accounts.models import ActivityLog, KYCRequest
-    from apps.catalog.models import APITransaction, ProductSuggestion
-    from apps.notifications.models import PushSubscription
+    from apps.accounts.models import ActivityLog, KYCRequest, ModerationLog, OTPToken, EmailVerificationToken, KYCSettings
+    from apps.catalog.models import APITransaction, ProductSuggestion, ProductTierPrice, ProductUserPrice, APIIntegration
+    from apps.payments.models import PaymentMethodExchangeRateLog, PaymentGatewayIntegration
+    from apps.notifications.models import PushSubscription, NotificationSetting
+    from apps.support.models import ChatMessage
+    from apps.services.models import ServiceField
+    from allauth.account.models import EmailConfirmation
     from django.contrib.admin.models import LogEntry
     
     try:
@@ -6044,20 +6048,26 @@ def control_db_maintenance(request):
                                 )
                                 deleted_counts["حدود الاستخدام اليومية للمتجر"] = "تم التصفير"
                             elif key == "product_variants":
+                                ProductTierPrice.objects.filter(variant__product__store=store).delete()
+                                ProductUserPrice.objects.filter(variant__product__store=store).delete()
                                 ProductKey.objects.filter(variant__product__store=store).delete()
+                                ProviderMapping.objects.filter(local_variant__product__store=store).delete()
                                 c = ProductVariant.objects.filter(product__store=store).delete()[0]
                                 deleted_counts["باقات المنتجات"] = c
                             elif key == "products":
+                                ProductTierPrice.objects.filter(product__store=store).delete()
+                                ProductUserPrice.objects.filter(product__store=store).delete()
                                 ProductKey.objects.filter(variant__product__store=store).delete()
                                 ProductImage.objects.filter(product__store=store).delete()
                                 ProductVariant.objects.filter(product__store=store).delete()
-                                ProviderMapping.objects.filter(product__store=store).delete()
+                                ProviderMapping.objects.filter(Q(local_product__store=store) | Q(local_variant__product__store=store)).delete()
                                 c = Product.objects.filter(store=store).delete()[0]
                                 deleted_counts["المنتجات"] = c
                             elif key == "categories":
                                 c = Category.objects.filter(store=store).delete()[0]
                                 deleted_counts["الأقسام والتصنيفات"] = c
                             elif key == "chat_rooms":
+                                ChatMessage.objects.filter(room__store=store).delete()
                                 ChatCannedReply.objects.filter(store=store).delete()
                                 c = ChatRoom.objects.filter(store=store).delete()[0]
                                 deleted_counts["محادثات الدعم للمتجر"] = c
@@ -6110,18 +6120,25 @@ def control_db_maintenance(request):
                                 "provider_profiles",
                                 "activity_logs",
                                 "admin_log_entries",
+                                "moderation_logs",
                                 "api_transactions",
+                                "api_integrations",
                                 "kyc_requests",
+                                "kyc_settings",
                                 "push_subscriptions",
+                                "notification_settings",
                                 "social_tokens",
                                 "social_accounts",
                                 "social_apps",
+                                "verification_tokens",
                                 "email_addresses",
                                 "blacklisted_tokens",
                                 "outstanding_tokens",
                                 "invoices",
                                 "coupons",
                                 "orders",
+                                "payment_exchange_logs",
+                                "payment_gateways",
                                 "deposits",
                                 "withdrawals",
                                 "ledger_entries",
@@ -6142,6 +6159,7 @@ def control_db_maintenance(request):
                                 "saas_global_settings",
                                 "payment_methods",
                                 "payment_methods_reset",
+                                "product_suggestions",
                                 "product_variants",
                                 "products",
                                 "categories",
@@ -6195,15 +6213,27 @@ def control_db_maintenance(request):
                                     elif key == "admin_log_entries":
                                         c = LogEntry.objects.all().delete()[0]
                                         deleted_counts["سجلات إجراءات لوحة التحكم"] = c
+                                    elif key == "moderation_logs":
+                                        c = ModerationLog.objects.all().delete()[0]
+                                        deleted_counts["سجلات الإشراف والحظر"] = c
                                     elif key == "api_transactions":
                                         c = APITransaction.objects.all().delete()[0]
                                         deleted_counts["سجلات عمليات الـ API"] = c
+                                    elif key == "api_integrations":
+                                        c = APIIntegration.objects.all().delete()[0]
+                                        deleted_counts["تكاملات واجهات الـ API"] = c
                                     elif key == "kyc_requests":
                                         c = KYCRequest.objects.all().delete()[0]
                                         deleted_counts["طلبات التحقق من الهوية (KYC)"] = c
+                                    elif key == "kyc_settings":
+                                        c = KYCSettings.objects.all().delete()[0]
+                                        deleted_counts["إعدادات التحقق KYC"] = c
                                     elif key == "push_subscriptions":
                                         c = PushSubscription.objects.all().delete()[0]
                                         deleted_counts["اشتراكات الإشعارات الفورية"] = c
+                                    elif key == "notification_settings":
+                                        c = NotificationSetting.objects.all().delete()[0]
+                                        deleted_counts["إعدادات وتفضيلات الإشعارات"] = c
                                     elif key == "social_tokens":
                                         c = SocialToken.objects.all().delete()[0]
                                         deleted_counts["أكواد التطبيقات الاجتماعية"] = c
@@ -6213,7 +6243,12 @@ def control_db_maintenance(request):
                                     elif key == "social_apps":
                                         c = SocialApp.objects.all().delete()[0]
                                         deleted_counts["تطبيقات اجتماعية"] = c
+                                    elif key == "verification_tokens":
+                                        c1 = EmailVerificationToken.objects.all().delete()[0]
+                                        c2 = OTPToken.objects.all().delete()[0]
+                                        deleted_counts["رموز التحقق و OTP"] = c1 + c2
                                     elif key == "email_addresses":
+                                        EmailConfirmation.objects.all().delete()
                                         c = EmailAddress.objects.all().delete()[0]
                                         deleted_counts["عناوين البريد الإلكتروني"] = c
                                     elif key == "blacklisted_tokens":
@@ -6238,6 +6273,12 @@ def control_db_maintenance(request):
                                         c2 = OrderLog.objects.all().delete()[0]
                                         c3 = Order.objects.all().delete()[0]
                                         deleted_counts["الطلبات والمبيعات"] = c1 + c2 + c3
+                                    elif key == "payment_exchange_logs":
+                                        c = PaymentMethodExchangeRateLog.objects.all().delete()[0]
+                                        deleted_counts["سجلات أسعار صرف وسائل الدفع"] = c
+                                    elif key == "payment_gateways":
+                                        c = PaymentGatewayIntegration.objects.all().delete()[0]
+                                        deleted_counts["إعدادات بوابات الدفع الإلكتروني"] = c
                                     elif key == "deposits":
                                         c = DepositRequest.objects.all().delete()[0]
                                         deleted_counts["طلبات الإيداع"] = c
@@ -6333,12 +6374,15 @@ def control_db_maintenance(request):
                                         Currency.all_objects.filter(store__isnull=False).delete()
 
                                         # 5. Clean up store catalog, pages, settings, etc.
+                                        ProductTierPrice.objects.filter(product__store__isnull=False).delete()
+                                        ProductUserPrice.objects.filter(product__store__isnull=False).delete()
                                         ProductKey.objects.filter(variant__product__store__isnull=False).delete()
                                         ProductImage.objects.filter(product__store__isnull=False).delete()
                                         ProductVariant.objects.filter(product__store__isnull=False).delete()
-                                        ProviderMapping.objects.filter(product__store__isnull=False).delete()
+                                        ProviderMapping.objects.filter(Q(local_product__store__isnull=False) | Q(local_variant__product__store__isnull=False)).delete()
                                         Product.objects.filter(store__isnull=False).delete()
                                         Category.objects.filter(store__isnull=False).delete()
+                                        ServiceField.objects.filter(service__store__isnull=False).delete()
                                         Service.objects.filter(store__isnull=False).delete()
                                         PaymentMethod.objects.filter(store__isnull=False).delete()
                                         StoreEmployee.objects.all().delete()
@@ -6346,8 +6390,9 @@ def control_db_maintenance(request):
                                         StoreSetting.objects.all().delete()
                                         StoreTemplate.objects.all().delete()
                                         SaaSAuditLog.objects.all().delete()
-                                        ChatRoom.objects.filter(store__isnull=False).delete()
+                                        ChatMessage.objects.filter(room__store__isnull=False).delete()
                                         ChatCannedReply.objects.filter(store__isnull=False).delete()
+                                        ChatRoom.objects.filter(store__isnull=False).delete()
                                         SupportSettings.objects.filter(store__isnull=False).delete()
                                         SiteAnnouncement.objects.filter(store__isnull=False).delete()
 
@@ -6423,10 +6468,19 @@ def control_db_maintenance(request):
                                             last_limit_reset=timezone.now()
                                         )
                                         deleted_counts["حدود الاستخدام اليومية"] = "تم التصفير"
+                                    elif key == "product_suggestions":
+                                        c = ProductSuggestion.objects.all().delete()[0]
+                                        deleted_counts["اقتراحات المنتجات"] = c
                                     elif key == "product_variants":
+                                        ProductTierPrice.objects.all().delete()
+                                        ProductUserPrice.objects.all().delete()
+                                        ProductKey.objects.all().delete()
+                                        ProviderMapping.objects.all().delete()
                                         c = ProductVariant.objects.all().delete()[0]
                                         deleted_counts["باقات المنتجات"] = c
                                     elif key == "products":
+                                        ProductTierPrice.objects.all().delete()
+                                        ProductUserPrice.objects.all().delete()
                                         ProductKey.objects.all().delete()
                                         ProductImage.objects.all().delete()
                                         ProductVariant.objects.all().delete()
@@ -6437,9 +6491,11 @@ def control_db_maintenance(request):
                                         c = Category.objects.all().delete()[0]
                                         deleted_counts["الأقسام والتصنيفات"] = c
                                     elif key == "services":
+                                        ServiceField.objects.all().delete()
                                         c = Service.objects.all().delete()[0]
                                         deleted_counts["الخدمات"] = c
                                     elif key == "chat_rooms":
+                                        ChatMessage.objects.all().delete()
                                         ChatCannedReply.objects.all().delete()
                                         c = ChatRoom.objects.all().delete()[0]
                                         deleted_counts["غرف محادثات الدعم"] = c
@@ -6589,7 +6645,15 @@ def control_db_maintenance(request):
             "admin_log_entries": 0,
             "api_transactions": 0,
             "kyc_requests": 0,
+            "kyc_settings": 0,
             "push_subscriptions": 0,
+            "notification_settings": 0,
+            "moderation_logs": 0,
+            "verification_tokens": 0,
+            "product_suggestions": 0,
+            "api_integrations": 0,
+            "payment_exchange_logs": 0,
+            "payment_gateways": 0,
         }
     else:
         with bypass_tenant_filter():
@@ -6601,6 +6665,7 @@ def control_db_maintenance(request):
                 "categories": Category.objects.count(),
                 "products": Product.objects.count(),
                 "product_variants": ProductVariant.objects.count(),
+                "product_suggestions": ProductSuggestion.objects.count(),
                 
                 "platform_stats": PlatformStatistic.objects.count(),
                 "currencies": Currency.objects.count(),
@@ -6610,6 +6675,7 @@ def control_db_maintenance(request):
                 "site_announcements": SiteAnnouncement.objects.count(),
                 
                 "notifications": Notification.objects.count(),
+                "notification_settings": NotificationSetting.objects.count(),
                 
                 "orders": Order.objects.count(),
                 "invoices": Invoice.objects.count(),
@@ -6618,6 +6684,8 @@ def control_db_maintenance(request):
                 "deposits": DepositRequest.objects.count(),
                 "withdrawals": WithdrawalRequest.objects.count(),
                 "payment_methods": PaymentMethod.objects.count(),
+                "payment_exchange_logs": PaymentMethodExchangeRateLog.objects.count(),
+                "payment_gateways": PaymentGatewayIntegration.objects.count(),
                 
                 "services": Service.objects.count(),
                 
@@ -6664,9 +6732,13 @@ def control_db_maintenance(request):
                 "provider_profiles": ProviderProfile.all_objects.count(),
                 "activity_logs": ActivityLog.objects.count(),
                 "admin_log_entries": LogEntry.objects.count(),
+                "moderation_logs": ModerationLog.objects.count(),
                 "api_transactions": APITransaction.objects.count(),
+                "api_integrations": APIIntegration.objects.count(),
                 "kyc_requests": KYCRequest.objects.count(),
+                "kyc_settings": KYCSettings.objects.count(),
                 "push_subscriptions": PushSubscription.objects.count(),
+                "verification_tokens": EmailVerificationToken.objects.count() + OTPToken.objects.count(),
             }
         
     return render(request, "site/control_db_maintenance.html", {
