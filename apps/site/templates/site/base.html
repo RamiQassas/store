@@ -50,12 +50,13 @@
         position: sticky;
         top: 0;
         z-index: 1000;
-        background: rgba(10, 10, 15, 0.88);
+        background: rgba(10, 14, 26, 0.9);
         backdrop-filter: blur(24px);
         -webkit-backdrop-filter: blur(24px);
-        border-bottom: 1px solid rgba(212, 168, 83, 0.06);
-        padding: 0.75rem 0;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+        padding: 0.85rem 0;
         transition: all 0.3s ease;
+        box-shadow: 0 4px 30px rgba(0, 0, 0, 0.4);
     }
 
     .header-container {
@@ -401,19 +402,84 @@
         vertical-align: middle;
     }
 
-    /* Mobile Navigation */
+    /* Mobile Navigation — Luxury Glass Dock */
     .mobile-header {
         position: sticky;
         top: 0;
         z-index: 1000;
-        background: rgba(10, 10, 15, 0.96);
-        backdrop-filter: blur(20px);
-        -webkit-backdrop-filter: blur(20px);
-        border-bottom: 1px solid rgba(212, 168, 83, 0.06);
-        padding: 0.75rem 1.25rem;
+        background: rgba(10, 14, 26, 0.92);
+        backdrop-filter: blur(24px);
+        -webkit-backdrop-filter: blur(24px);
+        border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+        padding: 0.65rem 1rem;
         display: flex;
         justify-content: space-between;
         align-items: center;
+        gap: 0.5rem;
+    }
+
+    .mobile-menu-btn {
+        width: 38px;
+        height: 38px;
+        border-radius: 12px;
+        background: rgba(255, 255, 255, 0.04);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        color: #94a3b8;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.05rem;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        flex-shrink: 0;
+    }
+    .mobile-menu-btn:active {
+        background: rgba(255, 255, 255, 0.1);
+        color: #fff;
+        transform: scale(0.95);
+    }
+
+    .mobile-wallet-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        background: linear-gradient(135deg, rgba(245, 158, 11, 0.14), rgba(212, 168, 83, 0.06));
+        border: 1px solid rgba(245, 158, 11, 0.28);
+        color: #fbbf24 !important;
+        padding: 0.35rem 0.65rem;
+        border-radius: 12px;
+        font-weight: 800;
+        font-size: 0.76rem;
+        text-decoration: none;
+        box-shadow: 0 2px 10px rgba(245, 158, 11, 0.1);
+        transition: all 0.2s ease;
+        line-height: 1;
+        white-space: nowrap;
+    }
+    .mobile-wallet-pill:active {
+        background: rgba(245, 158, 11, 0.25);
+        transform: scale(0.96);
+    }
+
+    .mobile-notif-btn {
+        width: 36px;
+        height: 36px;
+        border-radius: 11px;
+        background: rgba(255, 255, 255, 0.04);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        color: #94a3b8;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        position: relative;
+        text-decoration: none;
+        transition: all 0.2s ease;
+        flex-shrink: 0;
+    }
+    .mobile-notif-btn:active {
+        color: #fff;
+        background: rgba(255, 255, 255, 0.1);
     }
 
     .mobile-drawer {
@@ -423,7 +489,7 @@
         width: 85%;
         max-width: 320px;
         height: 100vh;
-        background: #0a0a0f;
+        background: #0a0e1a;
         z-index: 1100;
         transition: all 0.4s cubic-bezier(0.23, 1, 0.32, 1);
         padding: 2rem;
@@ -432,7 +498,7 @@
         flex-direction: column;
         overflow-y: auto;
         -webkit-overflow-scrolling: touch;
-        border-left: 1px solid rgba(212, 168, 83, 0.06);
+        border-left: 1px solid rgba(255, 255, 255, 0.08);
     }
 
     .mobile-drawer.open { right: 0; }
@@ -440,8 +506,9 @@
     .drawer-overlay {
         position: fixed;
         inset: 0;
-        background: rgba(0,0,0,0.7);
-        backdrop-filter: blur(4px);
+        background: rgba(0,0,0,0.75);
+        backdrop-filter: blur(6px);
+        -webkit-backdrop-filter: blur(6px);
         z-index: 1050;
         opacity: 0;
         visibility: hidden;
@@ -453,29 +520,34 @@
         display: flex;
         align-items: center;
         gap: 1rem;
-        padding: 1rem;
+        padding: 0.9rem 1rem;
         color: var(--muted);
         font-weight: 700;
         text-decoration: none;
         border-radius: 14px;
         transition: all 0.2s;
     }
-    .drawer-link:active { background: rgba(212, 168, 83, 0.08); color: var(--gold); }
-    .drawer-link i { width: 24px; text-align: center; font-size: 1.25rem; }
-    .drawer-link.active { background: rgba(212, 168, 83, 0.08); color: var(--gold); }
+    .drawer-link:active, .drawer-link:hover { background: rgba(212, 168, 83, 0.08); color: var(--gold); }
+    .drawer-link i { width: 24px; text-align: center; font-size: 1.2rem; }
+    .drawer-link.active { background: rgba(212, 168, 83, 0.1); color: var(--gold); }
 
+    /* Mobile Nav Bar — Sleek Floating Glass Dock */
     .mobile-nav-bar {
         position: fixed;
         bottom: 0;
         left: 0;
         right: 0;
-        height: 65px;
-        background: #0a0a0f;
-        border-top: 1px solid rgba(212, 168, 83, 0.06);
+        height: 64px;
+        background: rgba(10, 14, 26, 0.94);
+        backdrop-filter: blur(24px);
+        -webkit-backdrop-filter: blur(24px);
+        border-top: 1px solid rgba(255, 255, 255, 0.08);
+        box-shadow: 0 -8px 30px rgba(0, 0, 0, 0.55);
         display: flex;
         justify-content: space-around;
         align-items: center;
         z-index: 1000;
+        padding: 0 0.5rem;
         padding-bottom: env(safe-area-inset-bottom);
     }
 
@@ -483,15 +555,38 @@
         display: flex;
         flex-direction: column;
         align-items: center;
-        color: var(--muted);
-        font-size: 10px;
-        font-weight: bold;
+        justify-content: center;
+        color: #94a3b8;
+        font-size: 10.5px;
+        font-weight: 700;
         text-decoration: none;
-        transition: all 0.3s;
+        transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+        padding: 0.35rem 0.65rem;
+        border-radius: 14px;
+        min-width: 52px;
+        position: relative;
     }
 
-    .mobile-nav-item i { font-size: 1.25rem; margin-bottom: 4px; }
-    .mobile-nav-item.active { color: var(--gold); }
+    .mobile-nav-item i {
+        font-size: 1.25rem;
+        margin-bottom: 3px;
+        transition: transform 0.25s ease, color 0.25s ease;
+    }
+
+    .mobile-nav-item:active {
+        transform: scale(0.92);
+    }
+
+    .mobile-nav-item.active {
+        color: #fbbf24;
+        background: rgba(245, 158, 11, 0.08);
+    }
+
+    .mobile-nav-item.active i {
+        color: #fbbf24;
+        transform: translateY(-1px);
+        filter: drop-shadow(0 0 8px rgba(245, 158, 11, 0.5));
+    }
 
     @media (min-width: 1024px) {
         .mobile-nav-bar { display: none; }
@@ -787,7 +882,7 @@
   <!-- Mobile Header -->
   <div class="mobile-header">
       <div class="flex items-center gap-2">
-          <button onclick="toggleDrawer()" class="text-slate-400 text-xl p-1" aria-label="القائمة"><i class="fas fa-bars"></i></button>
+          <button onclick="toggleDrawer()" class="mobile-menu-btn" aria-label="القائمة"><i class="fas fa-bars"></i></button>
           <a href="{% url 'home' %}" class="brand" style="font-size: 1.15rem;">
               {% if is_tenant and STORE_LOGO %}
               <img src="{{ STORE_LOGO.url }}" alt="{{ STORE_NAME }}" style="height: 24px; max-height: 24px; max-width: 100px; width: auto; border-radius: 6px; object-fit: contain; vertical-align: middle;">
@@ -809,15 +904,13 @@
           {% endif %}
 
           {% if user.is_authenticated %}
-          <div class="relative">
-              <a href="{% url 'notifications_list' %}" class="text-slate-400 text-lg relative flex items-center">
-                  <i class="fas fa-bell"></i>
-                  {% if UNREAD_NOTIFICATIONS_COUNT > 0 %}
-                  <span class="absolute -top-1.5 -right-1.5 w-4 h-4 bg-rose-500 rounded-full border-2 border-[#050811] flex items-center justify-center text-[8px] text-white font-black">{{ UNREAD_NOTIFICATIONS_COUNT }}</span>
-                  {% endif %}
-              </a>
-          </div>
-          <a href="{% url 'dashboard_wallet' %}" class="font-black text-xs" style="color: var(--gold);">{% currency_format user.wallet.available_balance user.wallet.currency mode="withdraw" %}</a>
+          <a href="{% url 'notifications_list' %}" class="mobile-notif-btn" aria-label="الإشعارات">
+              <i class="fas fa-bell"></i>
+              {% if UNREAD_NOTIFICATIONS_COUNT > 0 %}
+              <span class="absolute -top-1 -right-1 w-4 h-4 bg-rose-500 rounded-full border-2 border-[#0a0e1a] flex items-center justify-center text-[8px] text-white font-black">{{ UNREAD_NOTIFICATIONS_COUNT }}</span>
+              {% endif %}
+          </a>
+          <a href="{% url 'dashboard_wallet' %}" class="mobile-wallet-pill"><i class="fas fa-wallet text-[10px]"></i> {% currency_format user.wallet.available_balance user.wallet.currency mode="withdraw" %}</a>
           {% else %}
           <a href="{% url 'site_login' %}" class="btn btn-sm btn-primary py-1 px-3 text-xs">دخول</a>
           {% endif %}
