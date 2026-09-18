@@ -64,15 +64,19 @@
         <p class="text-muted">إدارة مخزون الخدمات الرقمية، تحديث الأسعار، تغيير الصور والأسماء سريعاً، والتحكم في ظهور المنتجات.</p>
     </div>
     <div class="flex flex-wrap gap-3 items-center">
-        <button type="button" onclick="startBulkAiBranding('all')" class="btn btn-outline btn-sm border-cyan/40 text-cyan hover:bg-cyan hover:text-slate-950 font-bold transition flex items-center gap-1.5 shadow-sm" title="البحث في الإنترنت وتوليد وضبط صور أيقونات احترافية لجميع المنتجات">
+        <button type="button" onclick="startBulkAiBranding('all', 'both')" class="btn btn-outline btn-sm border-cyan/40 text-cyan hover:bg-cyan hover:text-slate-950 font-bold transition flex items-center gap-1.5 shadow-sm" title="البحث في الإنترنت وتوليد وضبط صور أيقونات احترافية لجميع الأقسام والمنتجات">
             <i class="fas fa-wand-magic-sparkles text-cyan"></i>
-            <span>توليد صور للجميع (أيقونات احترافية)</span>
+            <span>توليد صور للجميع (أقسام + منتجات)</span>
         </button>
-        <button type="button" onclick="startBulkAiBranding('missing')" class="btn btn-outline btn-sm border-amber-500/40 text-amber-400 hover:bg-amber-500 hover:text-slate-950 font-bold transition flex items-center gap-1.5 shadow-sm" title="توليد الصور فقط للمنتجات التي لا تملك صورة حالياً">
+        <button type="button" onclick="startBulkAiBranding('missing', 'both')" class="btn btn-outline btn-sm border-amber-500/40 text-amber-400 hover:bg-amber-500 hover:text-slate-950 font-bold transition flex items-center gap-1.5 shadow-sm" title="توليد وتعيين الصور فقط للعناصر التي لا تملك صوراً حالياً (أقسام ومنتجات)">
             <i class="fas fa-image text-amber-400"></i>
-            <span>توليد للمنتجات بدون صور فقط</span>
+            <span>توليد للناقص فقط (أقسام + منتجات)</span>
         </button>
-        <button type="button" onclick="openTransferVariantModal()" class="btn btn-outline btn-sm border-purple-500/40 text-purple-400 hover:bg-purple-500 hover:text-white font-bold transition flex items-center gap-1.5 shadow-sm" title="نقل باقة من منتج إلى منتج آخر بسهولة">
+        <button type="button" onclick="startBulkAiBranding('all', 'categories')" class="btn btn-outline btn-sm border-purple-500/40 text-purple-400 hover:bg-purple-500 hover:text-white font-bold transition flex items-center gap-1.5 shadow-sm" title="البحث وجلب الأيقونات والشعارات لجميع الأقسام والتصنيفات فقط">
+            <i class="fas fa-layer-group text-purple-400"></i>
+            <span>توليد صور الأقسام فقط</span>
+        </button>
+        <button type="button" onclick="openTransferVariantModal()" class="btn btn-outline btn-sm border-slate-700 text-slate-300 hover:border-purple-500/40 hover:text-white font-bold transition flex items-center gap-1.5 shadow-sm" title="نقل باقة من منتج إلى منتج آخر بسهولة">
             <i class="fas fa-arrow-right-arrow-left text-purple-400"></i>
             <span>نقل باقة لمنتج آخر</span>
         </button>
@@ -332,6 +336,11 @@
                 </div>
                 {# Quick Action Buttons #}
                 <div class="flex items-center gap-1">
+                    <button type="button" onclick="generateSingleCategoryAiImage('{{ cat.id }}', this); event.stopPropagation();"
+                            class="w-5 h-5 flex items-center justify-center rounded text-cyan hover:text-white hover:bg-cyan/20 text-[10px]"
+                            title="توليد صورة احترافية لهذا القسم بالذكاء الاصطناعي">
+                        <i class="fas fa-wand-magic-sparkles"></i>
+                    </button>
                     <button type="button" onclick="openProdCatRenameModal('{{ cat.id }}', '{{ cat.name|escapejs }}')"
                             class="w-5 h-5 flex items-center justify-center rounded text-slate-400 hover:text-cyan hover:bg-white/5 text-[10px]"
                             title="تعديل اسم القسم">
@@ -756,7 +765,13 @@
 /* ── Helpers ───────────────────────────────── */
 function getCsrf() {
     var el = document.querySelector('[name=csrfmiddlewaretoken]');
-    return el ? el.value : '';
+    if (el && el.value) return el.value;
+    var cookies = document.cookie.split(';');
+    for (var i = 0; i < cookies.length; i++) {
+        var c = cookies[i].trim();
+        if (c.indexOf('csrftoken=') === 0) return c.substring('csrftoken='.length);
+    }
+    return '';
 }
 function showToast(msg, isErr) {
     var t = document.createElement('div');
@@ -1345,11 +1360,13 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 /* ── Bulk AI Branding & Single Product AI Branding ── */
-window.startBulkAiBranding = function(mode) {
+window.startBulkAiBranding = function(mode, target) {
+    target = target || 'both';
     var isAll = (mode === 'all');
+    var targetLabel = target === 'both' ? 'الأقسام والمنتجات' : (target === 'categories' ? 'الأقسام' : 'المنتجات');
     var confirmMsg = isAll 
-        ? 'هل أنت متأكد من توليد وتعيين صور أيقونات رسمية واحترافية لجميع المنتجات من الإنترنت؟\n\n(سيتم البحث عن الأيقونات الأصلية لكل المنتجات وتنسيقها باحترافية وبدون أي أختام)'
-        : 'هل تريد توليد وتعيين صور أيقونات احترافية للمنتجات التي لا تملك صورة فقط؟';
+        ? 'هل أنت متأكد من توليد وتعيين صور أيقونات رسمية واحترافية لجميع (' + targetLabel + ') من الإنترنت؟\n\n(سيتم البحث عن الأيقونات الأصلية وتنسيقها باحترافية وبدون أي أختام)'
+        : 'هل تريد توليد وتعيين صور أيقونات احترافية لـ (' + targetLabel + ') التي لا تملك صورة فقط؟';
     
     if (!confirm(confirmMsg)) return;
 
@@ -1372,11 +1389,12 @@ window.startBulkAiBranding = function(mode) {
     cancelBtn.style.display = 'none';
     reloadBtn.style.display = 'none';
     modalIcon.innerHTML = '<i class="fas fa-wand-magic-sparkles fa-spin"></i>';
-    modalTitle.textContent = 'جاري توليد وضبط صور المنتجات بالذكاء الاصطناعي';
+    modalTitle.textContent = 'جاري توليد وضبط صور ' + targetLabel + ' بالذكاء الاصطناعي';
     modalSub.textContent = 'يتم البحث وجلب الأيقونات والشعارات الرسمية وتنسيقها باحترافية';
 
     var formData = new FormData();
     formData.append('mode', mode);
+    formData.append('target', target);
 
     fetch('/control/products/bulk-ai-branding/', {
         method: 'POST',
@@ -1391,12 +1409,12 @@ window.startBulkAiBranding = function(mode) {
     })
     .then(function(data) {
         if (data.status === 'started') {
-            curItem.textContent = 'تم بدء العملية لـ ' + data.total + ' منتج...';
+            curItem.textContent = 'تم بدء العملية لـ ' + data.total + ' عنصر...';
             pollBrandingProgress();
         } else if (data.status === 'empty') {
-            curItem.textContent = data.message || 'لا توجد منتجات مطابقة.';
+            curItem.textContent = data.message || 'لا توجد عناصر مطابقة.';
             modalIcon.innerHTML = '<i class="fas fa-info-circle text-cyan"></i>';
-            modalTitle.textContent = 'اكتمل الفحص: لا توجد منتجات';
+            modalTitle.textContent = 'اكتمل الفحص: لا توجد عناصر ناقصة';
             pCounts.textContent = '0 / 0';
             pPercent.textContent = '100%';
             pBar.style.width = '100%';
@@ -1409,6 +1427,44 @@ window.startBulkAiBranding = function(mode) {
     .catch(function(err) {
         alert('فشل الاتصال بالخادم: ' + err);
         modal.style.display = 'none';
+    });
+};
+
+window.generateSingleCategoryAiImage = function(catId, btnEl) {
+    if (!confirm('هل تريد البحث وتوليد صورة أيقونة احترافية لهذا القسم بالذكاء الاصطناعي؟')) return;
+    var originalHtml = btnEl ? btnEl.innerHTML : '';
+    if (btnEl) {
+        btnEl.disabled = true;
+        btnEl.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+    }
+    showToast('جاري البحث وتوليد صورة أيقونة القسم...');
+    
+    fetch('/control/categories/' + catId + '/generate-ai-image/', {
+        method: 'POST',
+        headers: { 'X-CSRFToken': getCsrf() }
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(d) {
+        if (btnEl) {
+            btnEl.disabled = false;
+            btnEl.innerHTML = originalHtml;
+        }
+        if (d.status === 'success') {
+            showToast(d.message || 'تم توليد وتعيين صورة القسم بنجاح!');
+            var catImg = document.getElementById('pcat-img-' + catId);
+            if (catImg) {
+                catImg.outerHTML = '<img src="' + d.image_url + '?t=' + Date.now() + '" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" id="pcat-img-' + catId + '">';
+            }
+        } else {
+            showToast(d.message || 'فشل توليد صورة القسم', true);
+        }
+    })
+    .catch(function(err) {
+        if (btnEl) {
+            btnEl.disabled = false;
+            btnEl.innerHTML = originalHtml;
+        }
+        showToast('خطأ في الاتصال: ' + err, true);
     });
 };
 

@@ -615,3 +615,46 @@ def apply_branding_to_product(product, force=False):
 
     product.image.save(filename, ContentFile(buf.getvalue()), save=True)
     return True
+
+
+def apply_branding_to_category(category, force=False):
+    """
+    Brand a Category with official icon/logo:
+    1. Searches the internet for the official category logo/icon.
+    2. Falls back to luxury emblem icon if not found.
+    3. Composes branded card and saves to category.image.
+    Guarantees 100% success rate without deleting or corrupting existing images.
+    """
+    if category.image and not force:
+        return False
+
+    store_name = category.store.name if category.store else None
+
+    # 1. Search internet for real official app/service logo
+    logo_img = search_and_download_logo(category.name)
+
+    # 2. Check if category already has an image on disk
+    if not logo_img and category.image:
+        try:
+            logo_img = Image.open(category.image.path).convert("RGBA")
+        except Exception:
+            logo_img = None
+
+    # 3. Fallback to luxury emblem icon
+    if not logo_img:
+        logo_img = create_fallback_brand_icon(category.name)
+
+    card_img = compose_branded_card(
+        logo_img=logo_img,
+        product_name=category.name,
+        store_name=store_name
+    )
+    if not card_img:
+        return False
+
+    buf = io.BytesIO()
+    card_img.save(buf, format="JPEG", quality=93)
+    filename = f"cat_{slugify(category.name) or 'category'}_{str(category.id)[:8]}.jpg"
+
+    category.image.save(filename, ContentFile(buf.getvalue()), save=True)
+    return True

@@ -4930,6 +4930,25 @@ def control_product_generate_image(request, pk):
         return JsonResponse({"status": "error", "message": str(e)}, status=500)
 
 
+@support_required
+def control_category_generate_image(request, pk):
+    if request.method != "POST":
+        return JsonResponse({"status": "error", "message": "Method not allowed"}, status=405)
+    category = get_object_or_404(Category, pk=pk)
+    try:
+        from apps.catalog.smart_branding import apply_branding_to_category
+        success = apply_branding_to_category(category, force=True)
+        if success and category.image:
+            return JsonResponse({
+                "status": "success",
+                "message": "تم توليد وتعيين صورة القسم بنجاح!",
+                "image_url": category.image.url
+            })
+        return JsonResponse({"status": "error", "message": "لم نتمكن من توليد صورة القسم"}, status=400)
+    except Exception as e:
+        return JsonResponse({"status": "error", "message": str(e)}, status=500)
+
+
 def _get_bulk_branding_filepath(user_id):
     import tempfile
     safe_uid = str(user_id).replace("-", "_")
@@ -4991,34 +5010,55 @@ def control_products_bulk_ai_branding(request):
     logger = logging.getLogger(__name__)
 
     mode = request.POST.get("mode", "missing")  # "all" or "missing"
+    target = request.POST.get("target", "both")  # "products", "categories", "both"
     store = getattr(request, "store", None)
 
     if store:
-        qs = Product.all_objects.filter(store=store)
+        prod_qs = Product.all_objects.filter(store=store)
+        cat_qs = Category.all_objects.filter(store=store)
     else:
-        qs = Product.all_objects.filter(store__isnull=True)
+        prod_qs = Product.all_objects.filter(store__isnull=True)
+        if not prod_qs.exists() or (mode == "missing" and not prod_qs.filter(Q(image="") | Q(image__isnull=True)).exists()):
+            prod_qs = Product.all_objects.all()
 
-    if mode == "missing":
-        missing_ids = []
-        for p in qs:
-            if not p.image:
-                missing_ids.append(p.id)
-            else:
+        cat_qs = Category.all_objects.filter(store__isnull=True)
+        if not cat_qs.exists() or (mode == "missing" and not cat_qs.filter(Q(image="") | Q(image__isnull=True)).exists()):
+            cat_qs = Category.all_objects.all()
+
+    work_items = []
+
+    # 1. Add categories if requested
+    if target in ("categories", "both"):
+        for c in cat_qs:
+            has_valid_img = bool(c.image)
+            if has_valid_img:
+                try:
+                    if not c.image.storage.exists(c.image.name):
+                        has_valid_img = False
+                except Exception:
+                    pass
+            if mode == "all" or not has_valid_img:
+                work_items.append({"type": "category", "id": str(c.id), "name": c.name})
+
+    # 2. Add products if requested
+    if target in ("products", "both"):
+        for p in prod_qs:
+            has_valid_img = bool(p.image)
+            if has_valid_img:
                 try:
                     if not p.image.storage.exists(p.image.name):
-                        missing_ids.append(p.id)
+                        has_valid_img = False
                 except Exception:
-                    missing_ids.append(p.id)
-        product_ids = missing_ids
-    else:
-        product_ids = list(qs.values_list("id", flat=True))
+                    pass
+            if mode == "all" or not has_valid_img:
+                work_items.append({"type": "product", "id": str(p.id), "name": p.name})
 
-    total = len(product_ids)
+    total = len(work_items)
 
     if total == 0:
         return JsonResponse({
             "status": "empty",
-            "message": "لا توجد منتجات مطابقة لهذا الخيار.",
+            "message": "لا توجد عناصر مطابقة لهذا الخيار (كافة العناصر تملك صوراً بالفعل).",
             "total": 0
         })
 
@@ -5028,43 +5068,52 @@ def control_products_bulk_ai_branding(request):
         "current": 0,
         "total": total,
         "percent": 0,
-        "current_item": "بدء معالجة المنتجات...",
+        "current_item": "بدء معالجة العناصر...",
         "success_count": 0,
         "fail_count": 0
     })
 
     force = (mode == "all")
 
-    def process_branding_worker(p_ids, u_id, force_flag):
+    def process_branding_worker(items, u_id, force_flag):
         close_old_connections()
-        from apps.catalog.models import Product
-        from apps.catalog.smart_branding import apply_branding_to_product
+        from apps.catalog.models import Product, Category
+        from apps.catalog.smart_branding import apply_branding_to_product, apply_branding_to_category
 
         success_c = 0
         fail_c = 0
-        t = len(p_ids)
-        for idx, pid in enumerate(p_ids, start=1):
+        t = len(items)
+        for idx, item in enumerate(items, start=1):
             try:
                 close_old_connections()
-                p = Product.all_objects.get(id=pid)
+                itype = item["type"]
+                iid = item["id"]
+                iname = item["name"]
+                item_label = f"[{'قسم' if itype == 'category' else 'منتج'}]: {iname}"
                 _write_bulk_branding_progress(u_id, {
                     "status": "running",
                     "current": idx,
                     "total": t,
                     "percent": int((idx / t) * 100),
-                    "current_item": p.name,
+                    "current_item": item_label,
                     "success_count": success_c,
                     "fail_count": fail_c
                 })
 
-                res = apply_branding_to_product(p, force=force_flag)
+                if itype == "category":
+                    obj = Category.all_objects.filter(id=iid).first()
+                    res = apply_branding_to_category(obj, force=force_flag) if obj else False
+                else:
+                    obj = Product.all_objects.filter(id=iid).first()
+                    res = apply_branding_to_product(obj, force=force_flag) if obj else False
+
                 if res:
                     success_c += 1
                 else:
                     fail_c += 1
             except Exception as e:
                 fail_c += 1
-                logger.error("Error in bulk branding for product %s: %s", pid, e)
+                logger.error("Error in bulk branding for %s (%s): %s", itype, iid, e)
 
         close_old_connections()
         _write_bulk_branding_progress(u_id, {
@@ -5077,13 +5126,14 @@ def control_products_bulk_ai_branding(request):
             "fail_count": fail_c
         })
 
-    thread = threading.Thread(target=process_branding_worker, args=(product_ids, user_id, force), daemon=True)
+    thread = threading.Thread(target=process_branding_worker, args=(work_items, user_id, force), daemon=True)
     thread.start()
 
+    target_ar = "الأقسام والمنتجات" if target == "both" else ("الأقسام" if target == "categories" else "المنتجات")
     return JsonResponse({
         "status": "started",
         "total": total,
-        "message": f"تم بدء توليد وتعيين الصور لـ {total} منتج بنجاح."
+        "message": f"تم بدء توليد وتعيين الصور لـ {total} عنصر من {target_ar} بنجاح."
     })
 
 

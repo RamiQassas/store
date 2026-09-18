@@ -111,6 +111,47 @@
     </div>
 </div>
 
+{# ══ BULK AI BRANDING PROGRESS MODAL ══ #}
+<div id="bulk-branding-modal" style="display:none;position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,0.85);backdrop-filter:blur(8px);align-items:center;justify-content:center;padding:1rem;">
+    <div style="background:#0b1329;border:1.5px solid rgba(168,85,247,0.4);border-radius:1.5rem;padding:2rem;max-width:32rem;width:100%;box-shadow:0 25px 60px rgba(0,0,0,0.8);text-align:center;">
+        <div style="width:60px;height:60px;border-radius:50%;background:rgba(168,85,247,0.1);border:1px solid rgba(168,85,247,0.3);display:flex;align-items:center;justify-content:center;margin:0 auto 1.25rem;font-size:1.75rem;color:#c084fc;" id="branding-modal-icon">
+            <i class="fas fa-wand-magic-sparkles fa-spin"></i>
+        </div>
+        <h3 style="font-size:1.25rem;font-weight:900;color:#fff;margin-bottom:0.5rem;" id="branding-modal-title">
+            جاري توليد وضبط صور الأقسام بالذكاء الاصطناعي
+        </h3>
+        <p style="font-size:0.875rem;color:#94a3b8;margin-bottom:1.5rem;" id="branding-modal-subtitle">
+            يتم البحث وجلب الأيقونات والشعارات الرسمية للأقسام وتنسيقها باحترافية
+        </p>
+        
+        <!-- Progress Bar Container -->
+        <div style="background:rgba(255,255,255,0.06);border-radius:999px;height:14px;overflow:hidden;margin-bottom:1rem;border:1px solid rgba(255,255,255,0.1);position:relative;">
+            <div id="branding-progress-bar" style="background:linear-gradient(90deg, #a855f7, #06b6d4);height:100%;width:0%;transition:width 0.3s ease;border-radius:999px;"></div>
+        </div>
+
+        <div style="display:flex;justify-content:space-between;align-items:center;font-size:0.8rem;color:#cbd5e1;margin-bottom:1.25rem;">
+            <span id="branding-progress-counts">0 / 0</span>
+            <span id="branding-progress-percent" style="font-weight:bold;color:#c084fc;">0%</span>
+        </div>
+
+        <div style="background:rgba(15,23,42,0.6);border:1px solid rgba(255,255,255,0.08);border-radius:0.75rem;padding:0.75rem 1rem;margin-bottom:1.5rem;text-align:right;">
+            <div style="font-size:0.75rem;color:#64748b;margin-bottom:0.25rem;">القسم الحالي:</div>
+            <div id="branding-current-item" style="font-size:0.875rem;font-weight:bold;color:#f8fafc;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
+                بدء الاتصال...
+            </div>
+        </div>
+
+        <div id="branding-modal-footer" style="display:flex;justify-content:center;gap:0.75rem;">
+            <button id="branding-cancel-btn" type="button" onclick="closeBulkBrandingModal()" class="btn btn-outline btn-sm text-slate-400 hover:text-white" style="display:none;">
+                إغلاق
+            </button>
+            <button id="branding-reload-btn" type="button" onclick="location.reload()" class="btn btn-primary btn-sm" style="display:none;">
+                <i class="fas fa-rotate ml-1"></i> تحديث الصفحة وعرض الصور
+            </button>
+        </div>
+    </div>
+</div>
+
 {# ══ PAGE HEADER ══ #}
 <div class="page-head mb-8">
     <div>
@@ -125,6 +166,14 @@
         <span class="text-xs text-slate-500 bg-slate-800 px-3 py-1.5 rounded-lg border border-white/5">
             <i class="fas fa-layer-group ml-1 text-cyan"></i> {{ categories|length }} قسم
         </span>
+        <button type="button" onclick="startBulkAiCategoryBranding('all')" class="btn btn-outline btn-sm border-purple-500/40 text-purple-400 hover:bg-purple-500 hover:text-white font-bold transition flex items-center gap-1.5 shadow-sm" title="البحث وجلب الأيقونات والشعارات لجميع الأقسام والتصنيفات من الإنترنت">
+            <i class="fas fa-wand-magic-sparkles text-purple-400"></i>
+            <span>توليد صور لجميع الأقسام</span>
+        </button>
+        <button type="button" onclick="startBulkAiCategoryBranding('missing')" class="btn btn-outline btn-sm border-amber-500/40 text-amber-400 hover:bg-amber-500 hover:text-slate-950 font-bold transition flex items-center gap-1.5 shadow-sm" title="توليد الصور فقط للأقسام التي لا تملك صورة حالياً">
+            <i class="fas fa-image text-amber-400"></i>
+            <span>توليد للأقسام بدون صور فقط</span>
+        </button>
         <a href="{% url 'control_category_create' %}" class="btn btn-primary btn-sm">
             <i class="fas fa-plus ml-2"></i> إضافة قسم جديد
         </a>
@@ -190,12 +239,19 @@
         <div class="p-3">
             <div class="flex items-start justify-between gap-1 mb-2">
                 <h3 class="text-xs font-black text-slate-200 leading-tight flex-grow" id="cat-name-{{ cat.id }}">{{ cat.name }}</h3>
-                {# Quick Rename button #}
-                <button type="button" onclick="openCatRenameModal('{{ cat.id }}', '{{ cat.name|escapejs }}')"
-                        class="quick-action-btn flex-shrink-0 w-6 h-6 rounded-md bg-white/5 text-slate-400 hover:text-cyan hover:bg-cyan/10 transition-all flex items-center justify-center"
-                        title="تعديل الاسم سريعاً">
-                    <i class="fas fa-pen text-[9px]"></i>
-                </button>
+                {# AI and Quick Rename buttons #}
+                <div class="flex items-center gap-1">
+                    <button type="button" onclick="generateSingleCategoryAiImage('{{ cat.id }}', this)"
+                            class="quick-action-btn flex-shrink-0 w-6 h-6 rounded-md bg-white/5 text-cyan hover:text-white hover:bg-cyan/20 transition-all flex items-center justify-center"
+                            title="توليد صورة ذكية للقسم بالذكاء الاصطناعي">
+                        <i class="fas fa-wand-magic-sparkles text-[9px]"></i>
+                    </button>
+                    <button type="button" onclick="openCatRenameModal('{{ cat.id }}', '{{ cat.name|escapejs }}')"
+                            class="quick-action-btn flex-shrink-0 w-6 h-6 rounded-md bg-white/5 text-slate-400 hover:text-cyan hover:bg-cyan/10 transition-all flex items-center justify-center"
+                            title="تعديل الاسم سريعاً">
+                        <i class="fas fa-pen text-[9px]"></i>
+                    </button>
+                </div>
             </div>
 
             <div class="flex items-center justify-between">
@@ -253,7 +309,13 @@
 /* ── Helpers ── */
 function getCsrf(){
     var el = document.querySelector('[name=csrfmiddlewaretoken]');
-    return el ? el.value : '';
+    if (el && el.value) return el.value;
+    var cookies = document.cookie.split(';');
+    for (var i = 0; i < cookies.length; i++) {
+        var c = cookies[i].trim();
+        if (c.indexOf('csrftoken=') === 0) return c.substring('csrftoken='.length);
+    }
+    return '';
 }
 function showToast(msg, isErr){
     var t = document.createElement('div');
@@ -459,6 +521,175 @@ document.addEventListener('DOMContentLoaded', function(){
         }
     });
 });
+
+/* ── Bulk AI Branding for Categories ── */
+window.startBulkAiCategoryBranding = function(mode) {
+    var isAll = (mode === 'all');
+    var confirmMsg = isAll 
+        ? 'هل أنت متأكد من توليد وتعيين صور أيقونات رسمية واحترافية لجميع الأقسام من الإنترنت؟\n\n(سيتم البحث عن الأيقونات والشعارات وتنسيقها باحترافية وبدون أي أختام)'
+        : 'هل تريد توليد وتعيين صور أيقونات احترافية للأقسام التي لا تملك صورة فقط؟';
+    
+    if (!confirm(confirmMsg)) return;
+
+    var modal = document.getElementById('bulk-branding-modal');
+    var pBar = document.getElementById('branding-progress-bar');
+    var pCounts = document.getElementById('branding-progress-counts');
+    var pPercent = document.getElementById('branding-progress-percent');
+    var curItem = document.getElementById('branding-current-item');
+    var cancelBtn = document.getElementById('branding-cancel-btn');
+    var reloadBtn = document.getElementById('branding-reload-btn');
+    var modalIcon = document.getElementById('branding-modal-icon');
+    var modalTitle = document.getElementById('branding-modal-title');
+    var modalSub = document.getElementById('branding-modal-subtitle');
+
+    modal.style.display = 'flex';
+    pBar.style.width = '0%';
+    pPercent.textContent = '0%';
+    pCounts.textContent = '0 / 0';
+    curItem.textContent = 'جاري الاتصال بالسيرفر والبحث عن الأقسام...';
+    cancelBtn.style.display = 'none';
+    reloadBtn.style.display = 'none';
+    modalIcon.innerHTML = '<i class="fas fa-wand-magic-sparkles fa-spin"></i>';
+    modalTitle.textContent = 'جاري توليد وضبط صور الأقسام بالذكاء الاصطناعي';
+    modalSub.textContent = 'يتم البحث وجلب الأيقونات والشعارات الرسمية وتنسيقها باحترافية';
+
+    var formData = new FormData();
+    formData.append('mode', mode);
+    formData.append('target', 'categories');
+
+    fetch('/control/products/bulk-ai-branding/', {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': getCsrf()
+        },
+        body: formData
+    })
+    .then(function(res) {
+        return res.json();
+    })
+    .then(function(data) {
+        if (data.status === 'started') {
+            curItem.textContent = 'تم بدء العملية لـ ' + data.total + ' قسم...';
+            pollCatBrandingProgress();
+        } else if (data.status === 'empty') {
+            curItem.textContent = data.message || 'لا توجد أقسام مطابقة.';
+            modalIcon.innerHTML = '<i class="fas fa-info-circle text-cyan"></i>';
+            modalTitle.textContent = 'اكتمل الفحص: لا توجد أقسام ناقصة';
+            pCounts.textContent = '0 / 0';
+            pPercent.textContent = '100%';
+            pBar.style.width = '100%';
+            cancelBtn.style.display = 'inline-flex';
+        } else if (data.status === 'already_running') {
+            curItem.textContent = 'هناك عملية توليد تعمل بالفعل، جاري تتبع التقدم...';
+            pollCatBrandingProgress();
+        } else {
+            curItem.textContent = 'خطأ: ' + (data.message || 'فشل البدء');
+            cancelBtn.style.display = 'inline-flex';
+        }
+    })
+    .catch(function(err) {
+        curItem.textContent = 'خطأ في الاتصال: ' + err;
+        cancelBtn.style.display = 'inline-flex';
+    });
+};
+
+window.pollCatBrandingProgress = function() {
+    var pBar = document.getElementById('branding-progress-bar');
+    var pCounts = document.getElementById('branding-progress-counts');
+    var pPercent = document.getElementById('branding-progress-percent');
+    var curItem = document.getElementById('branding-current-item');
+    var cancelBtn = document.getElementById('branding-cancel-btn');
+    var reloadBtn = document.getElementById('branding-reload-btn');
+    var modalIcon = document.getElementById('branding-modal-icon');
+    var modalTitle = document.getElementById('branding-modal-title');
+
+    var idleCount = 0;
+    var timer = setInterval(function() {
+        fetch('/control/products/bulk-ai-branding/progress/')
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+            if (data.status === 'running') {
+                idleCount = 0;
+                pBar.style.width = data.percent + '%';
+                pPercent.textContent = data.percent + '%';
+                pCounts.textContent = data.current + ' / ' + data.total + ' (تم بنجاح: ' + data.success_count + ')';
+                curItem.textContent = data.current_item || 'جاري المعالجة...';
+            } else if (data.status === 'completed') {
+                clearInterval(timer);
+                pBar.style.width = '100%';
+                pPercent.textContent = '100%';
+                pCounts.textContent = data.total + ' / ' + data.total + ' (تم بنجاح: ' + data.success_count + ')';
+                curItem.textContent = data.current_item || 'اكتملت العملية بنجاح!';
+                modalIcon.innerHTML = '<i class="fas fa-check-circle text-emerald-400"></i>';
+                modalTitle.textContent = 'اكتمل توليد وتعيين صور الأقسام بنجاح!';
+                cancelBtn.style.display = 'inline-flex';
+                reloadBtn.style.display = 'inline-flex';
+            } else if (data.status === 'idle') {
+                idleCount++;
+                if (idleCount > 8) {
+                    clearInterval(timer);
+                    curItem.textContent = 'لا توجد مهمة نشطة حالياً أو اكتملت العملية.';
+                    cancelBtn.style.display = 'inline-flex';
+                    reloadBtn.style.display = 'inline-flex';
+                }
+            }
+        })
+        .catch(function(e) {
+            console.error('Progress poll error:', e);
+        });
+    }, 1500);
+};
+
+window.closeBulkBrandingModal = function() {
+    document.getElementById('bulk-branding-modal').style.display = 'none';
+};
+
+window.generateSingleCategoryAiImage = function(catId, btnEl) {
+    if (!confirm('هل تريد البحث وتوليد صورة أيقونة احترافية لهذا القسم بالذكاء الاصطناعي؟')) return;
+    var originalHtml = btnEl ? btnEl.innerHTML : '';
+    if (btnEl) {
+        btnEl.disabled = true;
+        btnEl.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+    }
+    showToast('جاري البحث وتوليد صورة أيقونة القسم...');
+    
+    fetch('/control/categories/' + catId + '/generate-ai-image/', {
+        method: 'POST',
+        headers: { 'X-CSRFToken': getCsrf() }
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(d) {
+        if (btnEl) {
+            btnEl.disabled = false;
+            btnEl.innerHTML = originalHtml;
+        }
+        if (d.status === 'success') {
+            showToast(d.message || 'تم توليد وتعيين صورة القسم بنجاح!');
+            var catImg = document.getElementById('cat-img-' + catId);
+            if (catImg) {
+                if (catImg.tagName === 'IMG') {
+                    catImg.src = d.image_url + '?t=' + Date.now();
+                } else {
+                    var img = document.createElement('img');
+                    img.src = d.image_url + '?t=' + Date.now();
+                    img.alt = '';
+                    img.className = 'w-full h-full object-cover hover:scale-105 transition-transform duration-500';
+                    img.id = 'cat-img-' + catId;
+                    catImg.parentNode.replaceChild(img, catImg);
+                }
+            }
+        } else {
+            showToast(d.message || 'فشل توليد صورة القسم', true);
+        }
+    })
+    .catch(function(err) {
+        if (btnEl) {
+            btnEl.disabled = false;
+            btnEl.innerHTML = originalHtml;
+        }
+        showToast('خطأ في الاتصال: ' + err, true);
+    });
+};
 
 })();
 </script>
