@@ -297,7 +297,13 @@ class TenantSecurityMiddleware:
                 is_staff_or_admin = (
                     request.user.is_superuser
                     or request.user.is_staff
-                    or getattr(request.user, "role", None) == "super_admin"
+                    or getattr(request.user, "role", None) in (
+                        "super_admin",
+                        "admin",
+                        "support",
+                        "finance",
+                        "moderator",
+                    )
                 )
                 if is_staff_or_admin:
                     if request.path.startswith('/admin/') or request.path.startswith('/control/'):
@@ -313,7 +319,7 @@ class TenantSecurityMiddleware:
                         if getattr(request.user, "store_id", None) is not None:
                             with bypass_tenant_filter():
                                 is_owner = request.user.owned_stores.exists()
-                            if not is_owner:
+                            if not is_owner and not is_staff_or_admin:
                                 # Sub-store customer accessing main platform: decouple without destroying DB session
                                 request.user = AnonymousUser()
                                 if request.path.startswith(("/dashboard/", "/control/")):
@@ -322,7 +328,13 @@ class TenantSecurityMiddleware:
         return self.get_response(request)
 
     def _user_belongs_to_store(self, user, store):
-        if user.is_superuser or user.is_staff or getattr(user, "role", None) == "super_admin":
+        if user.is_superuser or user.is_staff or getattr(user, "role", None) in (
+            "super_admin",
+            "admin",
+            "support",
+            "finance",
+            "moderator",
+        ):
             return True
 
         if getattr(user, "store_id", None) is None:

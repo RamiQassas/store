@@ -381,10 +381,10 @@ def v3_login_view(request):
                 from apps.common.tenant_utils import bypass_tenant_filter
                 with bypass_tenant_filter():
                     is_owner = request.user.owned_stores.exists()
-                if not is_owner and not (request.user.is_superuser or request.user.is_staff):
+                if not is_owner and not (request.user.is_superuser or request.user.is_staff or getattr(request.user, "role", None) in ["super_admin", "admin"]):
                     user_belongs = False
         else:
-            if not (request.user.is_superuser or request.user.is_staff or getattr(request.user, "role", None) == "super_admin"):
+            if not (request.user.is_superuser or request.user.is_staff or getattr(request.user, "role", None) in ["super_admin", "admin"]):
                 from apps.stores.models import StoreEmployee
                 from apps.common.tenant_utils import bypass_tenant_filter
                 with bypass_tenant_filter():
@@ -416,11 +416,11 @@ def v3_login_view(request):
                     from apps.common.tenant_utils import bypass_tenant_filter
                     with bypass_tenant_filter():
                         is_owner = user.owned_stores.exists()
-                    if not is_owner and not (user.is_superuser or user.is_staff):
+                    if not is_owner and not (user.is_superuser or user.is_staff or getattr(user, "role", None) in ["super_admin", "admin"]):
                         messages.error(request, "هذا الحساب مرتبط بمتجر فرعي ولا يمكنه تسجيل الدخول هنا. يرجى التوجه إلى صفحة تسجيل الدخول الخاصة بمتجرك.")
                         return render(request, "site/v3/v3_login.html", {"form": form})
             else:
-                if not (user.is_superuser or user.is_staff or getattr(user, "role", None) == "super_admin"):
+                if not (user.is_superuser or user.is_staff or getattr(user, "role", None) in ["super_admin", "admin"]):
                     from apps.stores.models import StoreEmployee
                     from apps.common.tenant_utils import bypass_tenant_filter
                     with bypass_tenant_filter():
@@ -4717,14 +4717,22 @@ def currencies_list(request):
 @admin_required
 def currency_create(request):
     store = getattr(request, "store", None)
-    form = CurrencyForm(request.POST or None)
-    if request.method == "POST" and form.is_valid():
-        curr = form.save(commit=False)
-        curr.store = store
-        curr.save()
-        messages.success(request, "تم إضافة العملة بنجاح.")
-        return redirect("currencies_list")
-    return render(request, "site/currency_form.html", {"form": form})
+    curr_instance = Currency(store=store)
+    form = CurrencyForm(request.POST or None, instance=curr_instance)
+    if request.method == "POST":
+        if form.is_valid():
+            curr = form.save(commit=False)
+            curr.store = store
+            curr.save()
+            messages.success(request, "تم إضافة العملة بنجاح.")
+            return redirect("currencies_list")
+        else:
+            messages.error(request, "يرجى تصحيح الأخطاء في النموذج أدناه.")
+    return render(request, "site/currency_form.html", {
+        "form": form,
+        "title": "إضافة عملة جديدة",
+        "is_tenant": bool(store)
+    })
 
 @admin_required
 def currency_edit(request, pk):
@@ -4734,13 +4742,21 @@ def currency_edit(request, pk):
     else:
         c = get_object_or_404(Currency.all_objects.filter(store__isnull=True), pk=pk)
     form = CurrencyForm(request.POST or None, instance=c)
-    if request.method == "POST" and form.is_valid():
-        curr = form.save(commit=False)
-        curr.store = store
-        curr.save()
-        messages.success(request, "تم تحديث بيانات العملة بنجاح.")
-        return redirect("currencies_list")
-    return render(request, "site/currency_form.html", {"form": form, "currency": c})
+    if request.method == "POST":
+        if form.is_valid():
+            curr = form.save(commit=False)
+            curr.store = store
+            curr.save()
+            messages.success(request, "تم تحديث بيانات العملة بنجاح.")
+            return redirect("currencies_list")
+        else:
+            messages.error(request, "يرجى تصحيح الأخطاء في النموذج أدناه.")
+    return render(request, "site/currency_form.html", {
+        "form": form,
+        "currency": c,
+        "title": f"تعديل العملة ({c.code})",
+        "is_tenant": bool(store)
+    })
 
 
 
@@ -4914,6 +4930,55 @@ def control_product_generate_image(request, pk):
         return JsonResponse({"status": "error", "message": str(e)}, status=500)
 
 
+def _get_bulk_branding_filepath(user_id):
+    import tempfile
+    safe_uid = str(user_id).replace("-", "_")
+    return os.path.join(tempfile.gettempdir(), f"bulk_ai_branding_{safe_uid}.json")
+
+def _write_bulk_branding_progress(user_id, data):
+    from django.core.cache import cache
+    import json
+    import time
+    cache_key = f"bulk_ai_branding_{user_id}"
+    cache.set(cache_key, data, timeout=3600)
+    try:
+        fpath = _get_bulk_branding_filepath(user_id)
+        tmp_fpath = fpath + ".tmp"
+        data_copy = dict(data)
+        data_copy["_updated_at"] = time.time()
+        with open(tmp_fpath, "w", encoding="utf-8") as f:
+            json.dump(data_copy, f)
+        os.replace(tmp_fpath, fpath)
+    except Exception as e:
+        logger.warning("Could not persist branding progress to file: %s", e)
+
+def _read_bulk_branding_progress(user_id):
+    from django.core.cache import cache
+    import json
+    import time
+    cache_key = f"bulk_ai_branding_{user_id}"
+    data = cache.get(cache_key)
+    if data and isinstance(data, dict) and data.get("status") in ("running", "completed"):
+        return data
+    try:
+        fpath = _get_bulk_branding_filepath(user_id)
+        if os.path.exists(fpath):
+            with open(fpath, "r", encoding="utf-8") as f:
+                fdata = json.load(f)
+            if time.time() - fdata.get("_updated_at", 0) < 14400:
+                return fdata
+    except Exception as e:
+        logger.warning("Could not read branding progress from file: %s", e)
+    return data or {
+        "status": "idle",
+        "current": 0,
+        "total": 0,
+        "percent": 0,
+        "current_item": "",
+        "success_count": 0,
+        "fail_count": 0
+    }
+
 @support_required
 def control_products_bulk_ai_branding(request):
     if request.method != "POST":
@@ -4921,7 +4986,6 @@ def control_products_bulk_ai_branding(request):
 
     import threading
     import logging
-    from django.core.cache import cache
     from django.db import close_old_connections
 
     logger = logging.getLogger(__name__)
@@ -4935,9 +4999,20 @@ def control_products_bulk_ai_branding(request):
         qs = Product.all_objects.filter(store__isnull=True)
 
     if mode == "missing":
-        qs = qs.filter(Q(image="") | Q(image__isnull=True))
+        missing_ids = []
+        for p in qs:
+            if not p.image:
+                missing_ids.append(p.id)
+            else:
+                try:
+                    if not p.image.storage.exists(p.image.name):
+                        missing_ids.append(p.id)
+                except Exception:
+                    missing_ids.append(p.id)
+        product_ids = missing_ids
+    else:
+        product_ids = list(qs.values_list("id", flat=True))
 
-    product_ids = list(qs.values_list("id", flat=True))
     total = len(product_ids)
 
     if total == 0:
@@ -4947,8 +5022,8 @@ def control_products_bulk_ai_branding(request):
             "total": 0
         })
 
-    cache_key = f"bulk_ai_branding_{request.user.id}"
-    cache.set(cache_key, {
+    user_id = str(request.user.id)
+    _write_bulk_branding_progress(user_id, {
         "status": "running",
         "current": 0,
         "total": total,
@@ -4956,11 +5031,11 @@ def control_products_bulk_ai_branding(request):
         "current_item": "بدء معالجة المنتجات...",
         "success_count": 0,
         "fail_count": 0
-    }, timeout=3600)
+    })
 
     force = (mode == "all")
 
-    def process_branding_worker(p_ids, c_key, force_flag):
+    def process_branding_worker(p_ids, u_id, force_flag):
         close_old_connections()
         from apps.catalog.models import Product
         from apps.catalog.smart_branding import apply_branding_to_product
@@ -4972,7 +5047,7 @@ def control_products_bulk_ai_branding(request):
             try:
                 close_old_connections()
                 p = Product.all_objects.get(id=pid)
-                cache.set(c_key, {
+                _write_bulk_branding_progress(u_id, {
                     "status": "running",
                     "current": idx,
                     "total": t,
@@ -4980,7 +5055,7 @@ def control_products_bulk_ai_branding(request):
                     "current_item": p.name,
                     "success_count": success_c,
                     "fail_count": fail_c
-                }, timeout=3600)
+                })
 
                 res = apply_branding_to_product(p, force=force_flag)
                 if res:
@@ -4992,7 +5067,7 @@ def control_products_bulk_ai_branding(request):
                 logger.error("Error in bulk branding for product %s: %s", pid, e)
 
         close_old_connections()
-        cache.set(c_key, {
+        _write_bulk_branding_progress(u_id, {
             "status": "completed",
             "current": t,
             "total": t,
@@ -5000,9 +5075,9 @@ def control_products_bulk_ai_branding(request):
             "current_item": "اكتملت العملية بنجاح!",
             "success_count": success_c,
             "fail_count": fail_c
-        }, timeout=3600)
+        })
 
-    thread = threading.Thread(target=process_branding_worker, args=(product_ids, cache_key, force), daemon=True)
+    thread = threading.Thread(target=process_branding_worker, args=(product_ids, user_id, force), daemon=True)
     thread.start()
 
     return JsonResponse({
@@ -5014,19 +5089,7 @@ def control_products_bulk_ai_branding(request):
 
 @support_required
 def control_products_bulk_ai_branding_progress(request):
-    from django.core.cache import cache
-    cache_key = f"bulk_ai_branding_{request.user.id}"
-    data = cache.get(cache_key)
-    if not data:
-        return JsonResponse({
-            "status": "idle",
-            "current": 0,
-            "total": 0,
-            "percent": 0,
-            "current_item": "",
-            "success_count": 0,
-            "fail_count": 0
-        })
+    data = _read_bulk_branding_progress(str(request.user.id))
     return JsonResponse(data)
 def control_product_delete(request, pk):
     product = get_object_or_404(Product, pk=pk)
@@ -7418,7 +7481,7 @@ def sso_transfer_view(request):
                 is_store_member = False
                 
                 # Check roles that are allowed everywhere
-                if user_to_login.is_superuser or user_to_login.is_staff or getattr(user_to_login, "role", None) == "super_admin":
+                if user_to_login.is_superuser or user_to_login.is_staff or getattr(user_to_login, "role", None) in ["super_admin", "admin"]:
                     is_store_member = True
                 else:
                     is_store_member = (

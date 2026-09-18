@@ -1383,7 +1383,12 @@ window.startBulkAiBranding = function(mode) {
         headers: { 'X-CSRFToken': getCsrf() },
         body: formData
     })
-    .then(function(r) { return r.json(); })
+    .then(function(r) { 
+        if (!r.ok) {
+            throw new Error('رمز الاستجابة: ' + r.status);
+        }
+        return r.json(); 
+    })
     .then(function(data) {
         if (data.status === 'started') {
             curItem.textContent = 'تم بدء العملية لـ ' + data.total + ' منتج...';
@@ -1391,6 +1396,10 @@ window.startBulkAiBranding = function(mode) {
         } else if (data.status === 'empty') {
             curItem.textContent = data.message || 'لا توجد منتجات مطابقة.';
             modalIcon.innerHTML = '<i class="fas fa-info-circle text-cyan"></i>';
+            modalTitle.textContent = 'اكتمل الفحص: لا توجد منتجات';
+            pCounts.textContent = '0 / 0';
+            pPercent.textContent = '100%';
+            pBar.style.width = '100%';
             cancelBtn.style.display = 'inline-flex';
         } else {
             alert(data.message || 'حدث خطأ أثناء بدء العملية');
@@ -1414,11 +1423,13 @@ window.pollBrandingProgress = function() {
     var modalIcon = document.getElementById('branding-modal-icon');
     var modalTitle = document.getElementById('branding-modal-title');
 
+    var idleCount = 0;
     var timer = setInterval(function() {
         fetch('/control/products/bulk-ai-branding/progress/')
         .then(function(r) { return r.json(); })
         .then(function(data) {
             if (data.status === 'running') {
+                idleCount = 0;
                 pBar.style.width = data.percent + '%';
                 pPercent.textContent = data.percent + '%';
                 pCounts.textContent = data.current + ' / ' + data.total + ' (تم بنجاح: ' + data.success_count + ')';
@@ -1433,6 +1444,14 @@ window.pollBrandingProgress = function() {
                 modalTitle.textContent = 'اكتمل توليد وتعيين الصور بنجاح!';
                 cancelBtn.style.display = 'inline-flex';
                 reloadBtn.style.display = 'inline-flex';
+            } else if (data.status === 'idle') {
+                idleCount++;
+                if (idleCount > 8) {
+                    clearInterval(timer);
+                    curItem.textContent = 'لا توجد مهمة نشطة حالياً أو اكتملت العملية.';
+                    cancelBtn.style.display = 'inline-flex';
+                    reloadBtn.style.display = 'inline-flex';
+                }
             }
         })
         .catch(function(e) {

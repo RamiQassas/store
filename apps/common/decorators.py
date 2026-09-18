@@ -20,17 +20,28 @@ def role_required(allowed_roles):
                 is_store_member = (
                     active_store.owner_id == request.user.pk or
                     request.user.store_id == active_store.pk or
-                    request.user.store_employments.filter(store=active_store).exists()
+                    request.user.store_employments.filter(store=active_store).exists() or
+                    request.user.is_superuser or
+                    request.user.is_staff or
+                    getattr(request.user, "role", None) in [User.Role.SUPER_ADMIN, User.Role.ADMIN]
                 )
                 if is_store_member:
                     return view_func(request, *args, **kwargs)
                 raise PermissionDenied
 
-            if request.user.is_superuser or request.user.role == User.Role.SUPER_ADMIN:
+            if request.user.is_superuser or getattr(request.user, "role", None) == User.Role.SUPER_ADMIN:
                 return view_func(request, *args, **kwargs)
             
             if request.user.role in allowed_roles:
                 return view_func(request, *args, **kwargs)
+
+            # Allow verified merchants and store owners managing merchant routes
+            if request.path.startswith('/merchant/'):
+                if (
+                    getattr(request.user, "role", None) in [User.Role.VERIFIED_MERCHANT, User.Role.ADMIN, User.Role.SUPER_ADMIN]
+                    or (hasattr(request.user, "owned_stores") and request.user.owned_stores.exists())
+                ):
+                    return view_func(request, *args, **kwargs)
             
             raise PermissionDenied
         return _wrapped_view

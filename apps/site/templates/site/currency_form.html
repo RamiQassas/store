@@ -12,11 +12,27 @@
     </div>
     <div class="flex gap-3">
         <a href="{% url 'currencies_list' %}" class="btn btn-outline btn-sm">العودة للقائمة</a>
-        <button class="btn btn-primary btn-sm" onclick="document.querySelector('form').submit()">حفظ العملة</button>
+        <button type="submit" form="currency-form" class="btn btn-primary btn-sm">حفظ العملة</button>
     </div>
 </div>
 
-<form method="post" class="max-w-4xl mx-auto">
+{% if form.errors %}
+<div class="max-w-4xl mx-auto mb-6 p-4 bg-rose-500/10 border border-rose-500/30 rounded-2xl text-rose-300 text-sm">
+    <div class="font-bold flex items-center gap-2 mb-2">
+        <i class="fas fa-triangle-exclamation text-rose-400"></i>
+        <span>يرجى تصحيح الأخطاء التالية قبل الحفظ:</span>
+    </div>
+    <ul class="list-disc list-inside space-y-1 text-xs">
+        {% for field, errors in form.errors.items %}
+            {% for error in errors %}
+                <li><strong>{% if field != '__all__' %}{{ field }}: {% endif %}</strong>{{ error }}</li>
+            {% endfor %}
+        {% endfor %}
+    </ul>
+</div>
+{% endif %}
+
+<form id="currency-form" method="post" class="max-w-4xl mx-auto">
     {% csrf_token %}
     
     <div class="management-card">

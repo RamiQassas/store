@@ -33,7 +33,14 @@ class AccountStatusMiddleware:
             # Skip concurrent session enforcement for staff, super admins, or sub-stores
             skip_single_session = (
                 request.user.is_staff
-                or getattr(request.user, "role", None) == "super_admin"
+                or request.user.is_superuser
+                or getattr(request.user, "role", None) in [
+                    "super_admin",
+                    "admin",
+                    "support",
+                    "finance",
+                    "moderator",
+                ]
                 or getattr(request, "store", None) is not None
             )
             if not skip_single_session:
@@ -63,7 +70,7 @@ class AccountStatusMiddleware:
 
             # 3. Country-Based Block (Compliance)
             # Skip for staff/admin
-            if not request.user.is_staff:
+            if not (request.user.is_staff or request.user.is_superuser or getattr(request.user, "role", None) in ["super_admin", "admin"]):
                 kyc_settings = KYCSettings.get_settings()
                 restricted = kyc_settings.restricted_countries or []
                 if restricted:
