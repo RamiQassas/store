@@ -101,67 +101,6 @@
     </div>
 </div>
 
-<!-- Hidden File Input for Instant Quick Image Upload -->
-<input type="file" id="quick-image-file-input" accept="image/*" class="hidden" onchange="handleQuickImageFileSelected(this)">
-
-{% if not active_category and not query %}
-
-{# ── Hidden input for category image upload ── #}
-<input type="file" id="prod-cat-image-input" accept="image/*" class="hidden" onchange="handleProdCatImage(this)">
-
-{# ── Category Quick Rename Modal ── #}
-<div id="prod-cat-rename-modal" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.85);backdrop-filter:blur(8px);align-items:center;justify-content:center;padding:1rem;">
-    <div style="background:#0f172a;border:1.5px solid rgba(34,211,238,0.3);border-radius:1.25rem;padding:1.5rem;max-width:24rem;width:100%;box-shadow:0 30px 60px rgba(0,0,0,0.6);">
-        <h3 style="font-size:.875rem;font-weight:900;color:#fff;display:flex;align-items:center;gap:.5rem;margin-bottom:1rem;">
-            <i class="fas fa-pen" style="color:#22d3ee;font-size:.7rem;"></i> تعديل اسم القسم
-        </h3>
-        <input type="hidden" id="prod-cat-rename-id">
-        <input type="text" id="prod-cat-rename-input"
-               placeholder="اسم القسم الجديد"
-               style="width:100%;background:#020617;border:1.5px solid rgba(255,255,255,0.1);border-radius:.75rem;padding:.65rem 1rem;font-size:.85rem;color:#fff;outline:none;box-sizing:border-box;margin-bottom:1rem;"
-               onfocus="this.style.borderColor='#22d3ee'" onblur="this.style.borderColor='rgba(255,255,255,0.1)'">
-        <div style="display:flex;justify-content:flex-end;gap:.5rem;">
-            <button onclick="closeProdCatRenameModal()" style="padding:.45rem .9rem;border-radius:.65rem;font-size:.7rem;font-weight:700;color:#94a3b8;background:rgba(255,255,255,0.05);border:none;cursor:pointer;">إلغاء</button>
-            <button onclick="submitProdCatRename()" id="prod-cat-rename-btn" style="padding:.45rem 1rem;border-radius:.65rem;font-size:.7rem;font-weight:900;color:#000;background:#22d3ee;border:none;cursor:pointer;display:flex;align-items:center;gap:.35rem;">
-                <i class="fas fa-check"></i> حفظ
-            </button>
-        </div>
-    </div>
-</div>
-
-{# ── Category Merge Modal (via button or drag-and-drop) ── #}
-<div id="prod-cat-merge-modal" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.85);backdrop-filter:blur(8px);align-items:center;justify-content:center;padding:1rem;">
-    <div style="background:#0f172a;border:1.5px solid rgba(245,158,11,0.4);border-radius:1.25rem;padding:1.5rem;max-width:26rem;width:100%;box-shadow:0 30px 60px rgba(0,0,0,0.6);">
-        <div style="display:flex;align-items:center;gap:.65rem;margin-bottom:.9rem;">
-            <div style="width:2.25rem;height:2.25rem;border-radius:50%;background:rgba(245,158,11,0.15);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
-                <i class="fas fa-object-group" style="color:#f59e0b;font-size:.875rem;"></i>
-            </div>
-            <h3 style="font-size:.875rem;font-weight:900;color:#fff;margin:0;">دمج القسم مع قسم آخر</h3>
-        </div>
-        <p style="font-size:.8rem;color:#94a3b8;margin-bottom:.75rem;line-height:1.5;">
-            نقل منتجات: <strong style="color:#f59e0b;" id="pmerge-src-name">—</strong>
-        </p>
-        <input type="hidden" id="pmerge-src-id">
-        <div style="margin-bottom:1rem;">
-            <label style="display:block;font-size:.7rem;color:#94a3b8;font-weight:700;margin-bottom:.4rem;">اختر القسم الهدف (الذي ستُنقل إليه المنتجات):</label>
-            <select id="pmerge-tgt-select" style="width:100%;background:#020617;border:1.5px solid rgba(255,255,255,0.1);border-radius:.75rem;padding:.65rem 1rem;font-size:.85rem;color:#fff;outline:none;box-sizing:border-box;">
-                {% for c in all_categories %}
-                <option value="{{ c.id }}">{{ c.name }}</option>
-                {% endfor %}
-            </select>
-        </div>
-        <div style="background:rgba(244,63,94,0.08);border:1px solid rgba(244,63,94,0.2);border-radius:.6rem;padding:.6rem .9rem;font-size:.7rem;color:#fca5a5;margin-bottom:1rem;">
-            ⚠️ سيتم نقل كل المنتجات ثم حذف القسم المصدر نهائياً.
-        </div>
-        <div style="display:flex;justify-content:flex-end;gap:.5rem;">
-            <button type="button" onclick="closeProdMergeModal()" style="padding:.45rem .9rem;border-radius:.65rem;font-size:.7rem;font-weight:700;color:#94a3b8;background:rgba(255,255,255,0.05);border:none;cursor:pointer;">إلغاء</button>
-            <button type="button" onclick="confirmProdMerge()" id="prod-merge-confirm-btn" style="padding:.45rem 1rem;border-radius:.65rem;font-size:.7rem;font-weight:900;color:#000;background:#f59e0b;border:none;cursor:pointer;display:flex;align-items:center;gap:.35rem;">
-                <i class="fas fa-object-group"></i> تأكيد الدمج
-            </button>
-        </div>
-    </div>
-</div>
-
 {# ── Quick Move Product to Category Modal ── #}
 <div id="product-change-cat-modal" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.85);backdrop-filter:blur(8px);align-items:center;justify-content:center;padding:1rem;">
     <div style="background:#0f172a;border:1.5px solid rgba(34,211,238,0.3);border-radius:1.25rem;padding:1.5rem;max-width:26rem;width:100%;box-shadow:0 30px 60px rgba(0,0,0,0.6);">
@@ -280,6 +219,67 @@
             </button>
             <button id="branding-reload-btn" type="button" onclick="location.reload()" class="btn btn-primary btn-sm" style="display:none;">
                 <i class="fas fa-rotate ml-1"></i> تحديث الصفحة وعرض الصور
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Hidden File Input for Instant Quick Image Upload -->
+<input type="file" id="quick-image-file-input" accept="image/*" class="hidden" onchange="handleQuickImageFileSelected(this)">
+
+{% if not active_category and not query %}
+
+{# ── Hidden input for category image upload ── #}
+<input type="file" id="prod-cat-image-input" accept="image/*" class="hidden" onchange="handleProdCatImage(this)">
+
+{# ── Category Quick Rename Modal ── #}
+<div id="prod-cat-rename-modal" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.85);backdrop-filter:blur(8px);align-items:center;justify-content:center;padding:1rem;">
+    <div style="background:#0f172a;border:1.5px solid rgba(34,211,238,0.3);border-radius:1.25rem;padding:1.5rem;max-width:24rem;width:100%;box-shadow:0 30px 60px rgba(0,0,0,0.6);">
+        <h3 style="font-size:.875rem;font-weight:900;color:#fff;display:flex;align-items:center;gap:.5rem;margin-bottom:1rem;">
+            <i class="fas fa-pen" style="color:#22d3ee;font-size:.7rem;"></i> تعديل اسم القسم
+        </h3>
+        <input type="hidden" id="prod-cat-rename-id">
+        <input type="text" id="prod-cat-rename-input"
+               placeholder="اسم القسم الجديد"
+               style="width:100%;background:#020617;border:1.5px solid rgba(255,255,255,0.1);border-radius:.75rem;padding:.65rem 1rem;font-size:.85rem;color:#fff;outline:none;box-sizing:border-box;margin-bottom:1rem;"
+               onfocus="this.style.borderColor='#22d3ee'" onblur="this.style.borderColor='rgba(255,255,255,0.1)'">
+        <div style="display:flex;justify-content:flex-end;gap:.5rem;">
+            <button onclick="closeProdCatRenameModal()" style="padding:.45rem .9rem;border-radius:.65rem;font-size:.7rem;font-weight:700;color:#94a3b8;background:rgba(255,255,255,0.05);border:none;cursor:pointer;">إلغاء</button>
+            <button onclick="submitProdCatRename()" id="prod-cat-rename-btn" style="padding:.45rem 1rem;border-radius:.65rem;font-size:.7rem;font-weight:900;color:#000;background:#22d3ee;border:none;cursor:pointer;display:flex;align-items:center;gap:.35rem;">
+                <i class="fas fa-check"></i> حفظ
+            </button>
+        </div>
+    </div>
+</div>
+
+{# ── Category Merge Modal (via button or drag-and-drop) ── #}
+<div id="prod-cat-merge-modal" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.85);backdrop-filter:blur(8px);align-items:center;justify-content:center;padding:1rem;">
+    <div style="background:#0f172a;border:1.5px solid rgba(245,158,11,0.4);border-radius:1.25rem;padding:1.5rem;max-width:26rem;width:100%;box-shadow:0 30px 60px rgba(0,0,0,0.6);">
+        <div style="display:flex;align-items:center;gap:.65rem;margin-bottom:.9rem;">
+            <div style="width:2.25rem;height:2.25rem;border-radius:50%;background:rgba(245,158,11,0.15);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                <i class="fas fa-object-group" style="color:#f59e0b;font-size:.875rem;"></i>
+            </div>
+            <h3 style="font-size:.875rem;font-weight:900;color:#fff;margin:0;">دمج القسم مع قسم آخر</h3>
+        </div>
+        <p style="font-size:.8rem;color:#94a3b8;margin-bottom:.75rem;line-height:1.5;">
+            نقل منتجات: <strong style="color:#f59e0b;" id="pmerge-src-name">—</strong>
+        </p>
+        <input type="hidden" id="pmerge-src-id">
+        <div style="margin-bottom:1rem;">
+            <label style="display:block;font-size:.7rem;color:#94a3b8;font-weight:700;margin-bottom:.4rem;">اختر القسم الهدف (الذي ستُنقل إليه المنتجات):</label>
+            <select id="pmerge-tgt-select" style="width:100%;background:#020617;border:1.5px solid rgba(255,255,255,0.1);border-radius:.75rem;padding:.65rem 1rem;font-size:.85rem;color:#fff;outline:none;box-sizing:border-box;">
+                {% for c in all_categories %}
+                <option value="{{ c.id }}">{{ c.name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div style="background:rgba(244,63,94,0.08);border:1px solid rgba(244,63,94,0.2);border-radius:.6rem;padding:.6rem .9rem;font-size:.7rem;color:#fca5a5;margin-bottom:1rem;">
+            ⚠️ سيتم نقل كل المنتجات ثم حذف القسم المصدر نهائياً.
+        </div>
+        <div style="display:flex;justify-content:flex-end;gap:.5rem;">
+            <button type="button" onclick="closeProdMergeModal()" style="padding:.45rem .9rem;border-radius:.65rem;font-size:.7rem;font-weight:700;color:#94a3b8;background:rgba(255,255,255,0.05);border:none;cursor:pointer;">إلغاء</button>
+            <button type="button" onclick="confirmProdMerge()" id="prod-merge-confirm-btn" style="padding:.45rem 1rem;border-radius:.65rem;font-size:.7rem;font-weight:900;color:#000;background:#f59e0b;border:none;cursor:pointer;display:flex;align-items:center;gap:.35rem;">
+                <i class="fas fa-object-group"></i> تأكيد الدمج
             </button>
         </div>
     </div>
@@ -1568,6 +1568,8 @@ window.generateSingleProductAiImage = function(productId, btnEl) {
         }
         showToast('خطأ أثناء توليد الصورة: ' + err, true);
     });
+};
+
 /* ── Variant Transfer to Another Product ── */
 window.openTransferVariantModal = function(sourceProductId) {
     var modal = document.getElementById('variant-transfer-modal');
