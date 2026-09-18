@@ -6055,8 +6055,8 @@ def control_db_maintenance(request):
                                 c = ProductVariant.objects.filter(product__store=store).delete()[0]
                                 deleted_counts["باقات المنتجات"] = c
                             elif key == "products":
-                                ProductTierPrice.objects.filter(product__store=store).delete()
-                                ProductUserPrice.objects.filter(product__store=store).delete()
+                                ProductTierPrice.objects.filter(variant__product__store=store).delete()
+                                ProductUserPrice.objects.filter(variant__product__store=store).delete()
                                 ProductKey.objects.filter(variant__product__store=store).delete()
                                 ProductImage.objects.filter(product__store=store).delete()
                                 ProductVariant.objects.filter(product__store=store).delete()
@@ -6068,7 +6068,6 @@ def control_db_maintenance(request):
                                 deleted_counts["الأقسام والتصنيفات"] = c
                             elif key == "chat_rooms":
                                 ChatMessage.objects.filter(room__store=store).delete()
-                                ChatCannedReply.objects.filter(store=store).delete()
                                 c = ChatRoom.objects.filter(store=store).delete()[0]
                                 deleted_counts["محادثات الدعم للمتجر"] = c
                             elif key == "testimonials":
@@ -6374,16 +6373,14 @@ def control_db_maintenance(request):
                                         Currency.all_objects.filter(store__isnull=False).delete()
 
                                         # 5. Clean up store catalog, pages, settings, etc.
-                                        ProductTierPrice.objects.filter(product__store__isnull=False).delete()
-                                        ProductUserPrice.objects.filter(product__store__isnull=False).delete()
+                                        ProductTierPrice.objects.filter(variant__product__store__isnull=False).delete()
+                                        ProductUserPrice.objects.filter(variant__product__store__isnull=False).delete()
                                         ProductKey.objects.filter(variant__product__store__isnull=False).delete()
                                         ProductImage.objects.filter(product__store__isnull=False).delete()
                                         ProductVariant.objects.filter(product__store__isnull=False).delete()
                                         ProviderMapping.objects.filter(Q(local_product__store__isnull=False) | Q(local_variant__product__store__isnull=False)).delete()
                                         Product.objects.filter(store__isnull=False).delete()
                                         Category.objects.filter(store__isnull=False).delete()
-                                        ServiceField.objects.filter(service__store__isnull=False).delete()
-                                        Service.objects.filter(store__isnull=False).delete()
                                         PaymentMethod.objects.filter(store__isnull=False).delete()
                                         StoreEmployee.objects.all().delete()
                                         StorePage.objects.all().delete()
@@ -6391,9 +6388,7 @@ def control_db_maintenance(request):
                                         StoreTemplate.objects.all().delete()
                                         SaaSAuditLog.objects.all().delete()
                                         ChatMessage.objects.filter(room__store__isnull=False).delete()
-                                        ChatCannedReply.objects.filter(store__isnull=False).delete()
                                         ChatRoom.objects.filter(store__isnull=False).delete()
-                                        SupportSettings.objects.filter(store__isnull=False).delete()
                                         SiteAnnouncement.objects.filter(store__isnull=False).delete()
 
                                         # 6. Clean up tenant users safely without violating unique email constraints
