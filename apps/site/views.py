@@ -5928,7 +5928,7 @@ logger = logging.getLogger(__name__)
 def control_db_maintenance(request):
     from apps.accounts.models import User
     from apps.common.tenant_utils import bypass_tenant_filter
-    from django.db.models import ProtectedError
+    from django.db.models import ProtectedError, Q
     from decimal import Decimal
     from django.utils import timezone
     from apps.orders.models import Order, OrderItem, OrderLog, Invoice, Coupon
@@ -6007,6 +6007,9 @@ def control_db_maintenance(request):
                                 c = Invoice.objects.filter(order__store=store).delete()[0]
                                 deleted_counts["الفواتير"] = c
                             elif key == "orders":
+                                ProviderOrderStatus.objects.filter(provider_order__local_order__store=store).delete()
+                                ProviderOrder.objects.filter(local_order__store=store).delete()
+                                Invoice.objects.filter(order__store=store).delete()
                                 c1 = OrderItem.objects.filter(order__store=store).delete()[0]
                                 c2 = OrderLog.objects.filter(order__store=store).delete()[0]
                                 c3 = Order.objects.filter(store=store).delete()[0]
@@ -6024,6 +6027,8 @@ def control_db_maintenance(request):
                                 c = StorePage.objects.filter(store=store).delete()[0]
                                 deleted_counts["صفحات المتجر"] = c
                             elif key == "payment_methods":
+                                DepositRequest.objects.filter(payment_method__store=store).delete()
+                                WithdrawalRequest.objects.filter(payment_method__store=store).delete()
                                 c = PaymentMethod.objects.filter(store=store).delete()[0]
                                 deleted_counts["وسائل الدفع الخاصة بالمتجر"] = c
                             elif key == "payment_methods_reset":
@@ -6046,12 +6051,14 @@ def control_db_maintenance(request):
                                 ProductKey.objects.filter(variant__product__store=store).delete()
                                 ProductImage.objects.filter(product__store=store).delete()
                                 ProductVariant.objects.filter(product__store=store).delete()
+                                ProviderMapping.objects.filter(product__store=store).delete()
                                 c = Product.objects.filter(store=store).delete()[0]
                                 deleted_counts["المنتجات"] = c
                             elif key == "categories":
                                 c = Category.objects.filter(store=store).delete()[0]
                                 deleted_counts["الأقسام والتصنيفات"] = c
                             elif key == "chat_rooms":
+                                ChatCannedReply.objects.filter(store=store).delete()
                                 c = ChatRoom.objects.filter(store=store).delete()[0]
                                 deleted_counts["محادثات الدعم للمتجر"] = c
                             elif key == "testimonials":
@@ -6061,9 +6068,19 @@ def control_db_maintenance(request):
                                 c = SiteAnnouncement.objects.filter(store=store).delete()[0]
                                 deleted_counts["إعلانات المتجر"] = c
                             elif key == "users":
-                                c = User.objects.filter(store=store).exclude(
+                                tenant_users = User.objects.filter(store=store).exclude(
                                     id=request.user.id
-                                ).exclude(is_staff=True).exclude(is_superuser=True).exclude(role=User.Role.ADMIN).delete()[0]
+                                ).exclude(is_staff=True).exclude(is_superuser=True).exclude(role=User.Role.ADMIN)
+                                LedgerEntry.objects.filter(wallet__user__in=tenant_users).delete()
+                                WalletTransaction.objects.filter(wallet__user__in=tenant_users).delete()
+                                Wallet.objects.filter(user__in=tenant_users).delete()
+                                DepositRequest.objects.filter(user__in=tenant_users).delete()
+                                WithdrawalRequest.objects.filter(user__in=tenant_users).delete()
+                                BalanceTransfer.objects.filter(Q(sender__in=tenant_users) | Q(recipient__in=tenant_users)).delete()
+                                OrderItem.objects.filter(order__customer__in=tenant_users).delete()
+                                OrderLog.objects.filter(order__customer__in=tenant_users).delete()
+                                Order.objects.filter(customer__in=tenant_users).delete()
+                                c = tenant_users.delete()[0]
                                 deleted_counts["عملاء المتجر"] = c
 
                     msg = "تم تصفير بيانات المتجر المختارة بنجاح: " + ", ".join([f"{k} ({v})" for k, v in deleted_counts.items()])
@@ -6216,6 +6233,7 @@ def control_db_maintenance(request):
                                     elif key == "orders":
                                         ProviderOrderStatus.objects.all().delete()
                                         ProviderOrder.objects.all().delete()
+                                        Invoice.objects.all().delete()
                                         c1 = OrderItem.objects.all().delete()[0]
                                         c2 = OrderLog.objects.all().delete()[0]
                                         c3 = Order.objects.all().delete()[0]
@@ -6239,6 +6257,8 @@ def control_db_maintenance(request):
                                         c = RechargeCard.objects.all().delete()[0]
                                         deleted_counts["بطاقات الشحن"] = c
                                     elif key == "wallets":
+                                        LedgerEntry.objects.all().delete()
+                                        WalletTransaction.objects.all().delete()
                                         c = Wallet.objects.all().delete()[0]
                                         deleted_counts["المحافظ"] = c
                                     elif key == "store_employees":
@@ -6260,19 +6280,99 @@ def control_db_maintenance(request):
                                         c = SaaSAuditLog.objects.all().delete()[0]
                                         deleted_counts["سجلات تدقيق SaaS"] = c
                                     elif key == "stores":
-                                        # 1. Delete any tenant users that share email with an existing main platform user
-                                        main_emails = set(User.objects.filter(store__isnull=True).exclude(email='').values_list('email', flat=True))
-                                        User.objects.filter(store__isnull=False, email__in=main_emails).delete()
+                                        # 0. Global currencies fallback
+                                        global_currencies = {c.code: c for c in Currency.all_objects.filter(store__isnull=True)}
+                                        fallback_global = Currency.all_objects.filter(store__isnull=True, is_default=True).first() or Currency.all_objects.filter(store__isnull=True).first()
+                                        if not fallback_global:
+                                            fallback_global = Currency.objects.create(
+                                                code="USD", name="الدولار الأمريكي", symbol="$",
+                                                buy_rate=1.0, sell_rate=1.0, capital_rate=1.0,
+                                                is_default=True, is_active=True, store=None
+                                            )
+                                            global_currencies["USD"] = fallback_global
 
-                                        # 2. Delete any tenant users that share phone with an existing main platform user
+                                        # 1. Clean all tenant financial records & logs protecting wallets or currencies
+                                        LedgerEntry.objects.filter(wallet__store__isnull=False).delete()
+                                        WalletTransaction.objects.filter(wallet__store__isnull=False).delete()
+                                        BalanceTransfer.objects.filter(currency__store__isnull=False).delete()
+                                        DepositRequest.objects.filter(store__isnull=False).delete()
+                                        WithdrawalRequest.objects.filter(store__isnull=False).delete()
+                                        RechargeCard.objects.filter(store__isnull=False).delete()
+                                        SubscriptionInvoice.objects.filter(store__isnull=False).delete()
+                                        OrderItem.objects.filter(order__store__isnull=False).delete()
+                                        OrderLog.objects.filter(order__store__isnull=False).delete()
+                                        ProviderOrderStatus.objects.filter(provider_order__local_order__store__isnull=False).delete()
+                                        ProviderOrder.objects.filter(local_order__store__isnull=False).delete()
+                                        Order.objects.filter(store__isnull=False).delete()
+
+                                        # 2. Re-point or clear any Wallets pointing to tenant currencies
+                                        Wallet.objects.filter(store__isnull=False).delete()
+                                        for w in Wallet.objects.filter(currency__store__isnull=False):
+                                            target_curr = global_currencies.get(w.currency.code, fallback_global)
+                                            dup_wallet = Wallet.objects.filter(user=w.user, store=w.store, currency=target_curr).exclude(id=w.id).first()
+                                            if dup_wallet:
+                                                LedgerEntry.objects.filter(wallet=w).update(wallet=dup_wallet)
+                                                WalletTransaction.objects.filter(wallet=w).update(wallet=dup_wallet)
+                                                w.delete()
+                                            else:
+                                                w.currency = target_curr
+                                                w.save(update_fields=['currency'])
+
+                                        # 3. Re-point any remaining deposit/withdrawal/transfer records that might reference a tenant currency
+                                        for dr in DepositRequest.objects.filter(currency__store__isnull=False):
+                                            dr.currency = global_currencies.get(dr.currency.code, fallback_global)
+                                            dr.save(update_fields=['currency'])
+                                        for wr in WithdrawalRequest.objects.filter(currency__store__isnull=False):
+                                            wr.currency = global_currencies.get(wr.currency.code, fallback_global)
+                                            wr.save(update_fields=['currency'])
+                                        for si in SubscriptionInvoice.objects.filter(currency__store__isnull=False):
+                                            si.currency = global_currencies.get(si.currency.code, fallback_global)
+                                            si.save(update_fields=['currency'])
+
+                                        # 4. Safely delete all tenant currencies (now completely unreferenced)
+                                        Currency.all_objects.filter(store__isnull=False).delete()
+
+                                        # 5. Clean up store catalog, pages, settings, etc.
+                                        ProductKey.objects.filter(variant__product__store__isnull=False).delete()
+                                        ProductImage.objects.filter(product__store__isnull=False).delete()
+                                        ProductVariant.objects.filter(product__store__isnull=False).delete()
+                                        ProviderMapping.objects.filter(product__store__isnull=False).delete()
+                                        Product.objects.filter(store__isnull=False).delete()
+                                        Category.objects.filter(store__isnull=False).delete()
+                                        Service.objects.filter(store__isnull=False).delete()
+                                        PaymentMethod.objects.filter(store__isnull=False).delete()
+                                        StoreEmployee.objects.all().delete()
+                                        StorePage.objects.all().delete()
+                                        StoreSetting.objects.all().delete()
+                                        StoreTemplate.objects.all().delete()
+                                        SaaSAuditLog.objects.all().delete()
+                                        ChatRoom.objects.filter(store__isnull=False).delete()
+                                        ChatCannedReply.objects.filter(store__isnull=False).delete()
+                                        SupportSettings.objects.filter(store__isnull=False).delete()
+                                        SiteAnnouncement.objects.filter(store__isnull=False).delete()
+
+                                        # 6. Clean up tenant users safely without violating unique email constraints
+                                        main_emails = set(User.objects.filter(store__isnull=True).exclude(email='').values_list('email', flat=True))
+                                        dup_users = User.objects.filter(store__isnull=False, email__in=main_emails)
+                                        LedgerEntry.objects.filter(wallet__user__in=dup_users).delete()
+                                        WalletTransaction.objects.filter(wallet__user__in=dup_users).delete()
+                                        Wallet.objects.filter(user__in=dup_users).delete()
+                                        dup_users.delete()
+
                                         main_phones = set(User.objects.filter(store__isnull=True).exclude(phone__in=['', None]).values_list('phone', flat=True))
                                         if main_phones:
-                                            User.objects.filter(store__isnull=False, phone__in=main_phones).delete()
+                                            dup_phone_users = User.objects.filter(store__isnull=False, phone__in=main_phones)
+                                            LedgerEntry.objects.filter(wallet__user__in=dup_phone_users).delete()
+                                            WalletTransaction.objects.filter(wallet__user__in=dup_phone_users).delete()
+                                            Wallet.objects.filter(user__in=dup_phone_users).delete()
+                                            dup_phone_users.delete()
 
-                                        # 3. Delete non-admin tenant users
-                                        User.objects.filter(store__isnull=False).exclude(is_superuser=True).exclude(is_staff=True).exclude(role__in=[User.Role.SUPER_ADMIN, User.Role.ADMIN]).delete()
+                                        non_admin_tenant = User.objects.filter(store__isnull=False).exclude(is_superuser=True).exclude(is_staff=True).exclude(role__in=[User.Role.SUPER_ADMIN, User.Role.ADMIN])
+                                        LedgerEntry.objects.filter(wallet__user__in=non_admin_tenant).delete()
+                                        WalletTransaction.objects.filter(wallet__user__in=non_admin_tenant).delete()
+                                        Wallet.objects.filter(user__in=non_admin_tenant).delete()
+                                        non_admin_tenant.delete()
 
-                                        # 4. For any remaining users with a store, unlink safely without creating duplicates
                                         for u in User.objects.filter(store__isnull=False):
                                             if User.objects.filter(store__isnull=True, email=u.email).exists():
                                                 u.delete()
@@ -6280,13 +6380,25 @@ def control_db_maintenance(request):
                                                 u.store = None
                                                 u.save(update_fields=['store'])
 
+                                        # 7. Finally delete Store instances
                                         c = Store.objects.all().delete()[0]
                                         deleted_counts["المتاجر"] = c
                                     elif key == "subscription_plans":
+                                        SubscriptionInvoice.objects.all().delete()
                                         c = SubscriptionPlan.objects.all().delete()[0]
                                         deleted_counts["خطط اشتراكات SaaS"] = c
                                     elif key == "users":
-                                        c = User.objects.exclude(is_superuser=True).exclude(is_staff=True).exclude(role__in=[User.Role.SUPER_ADMIN, User.Role.ADMIN]).exclude(id=request.user.id).delete()[0]
+                                        non_admins = User.objects.exclude(is_superuser=True).exclude(is_staff=True).exclude(role__in=[User.Role.SUPER_ADMIN, User.Role.ADMIN]).exclude(id=request.user.id)
+                                        LedgerEntry.objects.filter(wallet__user__in=non_admins).delete()
+                                        WalletTransaction.objects.filter(wallet__user__in=non_admins).delete()
+                                        Wallet.objects.filter(user__in=non_admins).delete()
+                                        DepositRequest.objects.filter(user__in=non_admins).delete()
+                                        WithdrawalRequest.objects.filter(user__in=non_admins).delete()
+                                        BalanceTransfer.objects.filter(Q(sender__in=non_admins) | Q(recipient__in=non_admins)).delete()
+                                        OrderItem.objects.filter(order__customer__in=non_admins).delete()
+                                        OrderLog.objects.filter(order__customer__in=non_admins).delete()
+                                        Order.objects.filter(customer__in=non_admins).delete()
+                                        c = non_admins.delete()[0]
                                         deleted_counts["المستخدمين (غير المدراء)"] = c
                                     elif key == "saas_admin_roles":
                                         c = SaaSAdminRole.objects.all().delete()[0]
@@ -6295,6 +6407,8 @@ def control_db_maintenance(request):
                                         c = SaaSGlobalSetting.objects.all().delete()[0]
                                         deleted_counts["إعدادات عامة SaaS"] = c
                                     elif key == "payment_methods":
+                                        DepositRequest.objects.all().delete()
+                                        WithdrawalRequest.objects.all().delete()
                                         c = PaymentMethod.objects.all().delete()[0]
                                         deleted_counts["وسائل الدفع"] = c
                                     elif key == "payment_methods_reset":
@@ -6326,6 +6440,7 @@ def control_db_maintenance(request):
                                         c = Service.objects.all().delete()[0]
                                         deleted_counts["الخدمات"] = c
                                     elif key == "chat_rooms":
+                                        ChatCannedReply.objects.all().delete()
                                         c = ChatRoom.objects.all().delete()[0]
                                         deleted_counts["غرف محادثات الدعم"] = c
                                     elif key == "chat_canned_replies":
@@ -6338,7 +6453,22 @@ def control_db_maintenance(request):
                                         c = PlatformStatistic.objects.all().delete()[0]
                                         deleted_counts["إحصائيات المنصة"] = c
                                     elif key == "currencies":
-                                        c = Currency.objects.all().delete()[0]
+                                        DepositRequest.objects.all().delete()
+                                        WithdrawalRequest.objects.all().delete()
+                                        BalanceTransfer.objects.all().delete()
+                                        RechargeCard.objects.all().delete()
+                                        LedgerEntry.objects.all().delete()
+                                        WalletTransaction.objects.all().delete()
+                                        Wallet.objects.all().delete()
+                                        SubscriptionInvoice.objects.all().delete()
+                                        SubscriptionPlan.objects.all().delete()
+                                        c = Currency.all_objects.all().delete()[0]
+                                        def_curr = Currency.objects.create(
+                                            code="USD", name="الدولار الأمريكي", symbol="$",
+                                            buy_rate=1.0, sell_rate=1.0, capital_rate=1.0,
+                                            is_default=True, is_active=True, store=None
+                                        )
+                                        Wallet.objects.get_or_create(user=request.user, store=None, defaults={"currency": def_curr})
                                         deleted_counts["العملات"] = c
                                     elif key == "social_links":
                                         c = SocialMediaLink.objects.all().delete()[0]
