@@ -5943,8 +5943,17 @@ def control_db_maintenance(request):
     from apps.stores.models import Store, StoreSetting, SaaSGlobalSetting, SaaSAdminRole, SubscriptionPlan, SaaSAuditLog, StorePage, SubscriptionInvoice, StoreTemplate, StoreEmployee
     from allauth.account.models import EmailAddress
     from django.contrib.auth.models import Group
-    from django.contrib.sites.models import Site
     from allauth.socialaccount.models import SocialAccount, SocialApp, SocialToken
+    from apps.providers.models import (
+        ProviderProfile, ProviderCategory, ProviderProduct, ProviderPrice,
+        ProviderProductParameter, ProviderPriceHistory, ProviderOrder,
+        ProviderOrderStatus, ProviderSyncLog, ProviderRequestLog,
+        ProviderResponseLog, ProviderErrorLog, ProviderMapping
+    )
+    from apps.accounts.models import ActivityLog, KYCRequest
+    from apps.catalog.models import APITransaction, ProductSuggestion
+    from apps.notifications.models import PushSubscription
+    from django.contrib.admin.models import LogEntry
     
     try:
         from rest_framework_simplejwt.token_blacklist.models import OutstandingToken, BlacklistedToken
@@ -6075,6 +6084,17 @@ def control_db_maintenance(request):
                     with bypass_tenant_filter():
                         with transaction.atomic():
                             ordered_cleanup_keys = [
+                                "provider_request_logs",
+                                "provider_sync_logs",
+                                "provider_price_history",
+                                "provider_orders",
+                                "provider_catalog",
+                                "provider_profiles",
+                                "activity_logs",
+                                "admin_log_entries",
+                                "api_transactions",
+                                "kyc_requests",
+                                "push_subscriptions",
                                 "social_tokens",
                                 "social_accounts",
                                 "social_apps",
@@ -6126,7 +6146,47 @@ def control_db_maintenance(request):
 
                             for key in ordered_cleanup_keys:
                                 if key in targets:
-                                    if key == "social_tokens":
+                                    if key == "provider_request_logs":
+                                        c_resp = ProviderResponseLog.objects.all().delete()[0]
+                                        c_err = ProviderErrorLog.objects.all().delete()[0]
+                                        c_req = ProviderRequestLog.objects.all().delete()[0]
+                                        deleted_counts["سجلات طلبات واستجابات المزودين"] = c_req + c_resp + c_err
+                                    elif key == "provider_sync_logs":
+                                        c = ProviderSyncLog.objects.all().delete()[0]
+                                        deleted_counts["سجلات مزامنة المزودين"] = c
+                                    elif key == "provider_price_history":
+                                        c = ProviderPriceHistory.objects.all().delete()[0]
+                                        deleted_counts["سجلات تاريخ أسعار المزودين"] = c
+                                    elif key == "provider_orders":
+                                        c1 = ProviderOrderStatus.objects.all().delete()[0]
+                                        c2 = ProviderOrder.objects.all().delete()[0]
+                                        deleted_counts["طلبات المزودين وحالاتها"] = c1 + c2
+                                    elif key == "provider_catalog":
+                                        c1 = ProviderMapping.objects.all().delete()[0]
+                                        c2 = ProviderPrice.objects.all().delete()[0]
+                                        c3 = ProviderProductParameter.objects.all().delete()[0]
+                                        c4 = ProviderProduct.objects.all().delete()[0]
+                                        c5 = ProviderCategory.objects.all().delete()[0]
+                                        deleted_counts["كتالوج وأقسام المزودين"] = c1 + c2 + c3 + c4 + c5
+                                    elif key == "provider_profiles":
+                                        c = ProviderProfile.all_objects.all().delete()[0]
+                                        deleted_counts["ملفات تعريف المزودين"] = c
+                                    elif key == "activity_logs":
+                                        c = ActivityLog.objects.all().delete()[0]
+                                        deleted_counts["سجلات نشاط المستخدمين"] = c
+                                    elif key == "admin_log_entries":
+                                        c = LogEntry.objects.all().delete()[0]
+                                        deleted_counts["سجلات إجراءات لوحة التحكم"] = c
+                                    elif key == "api_transactions":
+                                        c = APITransaction.objects.all().delete()[0]
+                                        deleted_counts["سجلات عمليات الـ API"] = c
+                                    elif key == "kyc_requests":
+                                        c = KYCRequest.objects.all().delete()[0]
+                                        deleted_counts["طلبات التحقق من الهوية (KYC)"] = c
+                                    elif key == "push_subscriptions":
+                                        c = PushSubscription.objects.all().delete()[0]
+                                        deleted_counts["اشتراكات الإشعارات الفورية"] = c
+                                    elif key == "social_tokens":
                                         c = SocialToken.objects.all().delete()[0]
                                         deleted_counts["أكواد التطبيقات الاجتماعية"] = c
                                     elif key == "social_accounts":
@@ -6281,7 +6341,8 @@ def control_db_maintenance(request):
                                     elif key == "sites":
                                         c = Site.objects.all().delete()[0]
                                         from django.conf import settings
-                                        Site.objects.create(id=settings.SITE_ID, domain="raqamiyatapp.com", name="Raqamiyat")
+                                        site_id = getattr(settings, "SITE_ID", 1)
+                                        Site.objects.create(id=site_id, domain="raqamiyatapp.com", name="Raqamiyat")
                                         deleted_counts["مواقع النظام"] = c
 
                     msg = "تم تصفير البيانات المختارة بنجاح: " + ", ".join([f"{k} ({v})" for k, v in deleted_counts.items()])
@@ -6289,6 +6350,10 @@ def control_db_maintenance(request):
                     return redirect("control_db_maintenance")
                 except ProtectedError as e:
                     messages.error(request, f"لا يمكن حذف بعض البيانات لوجود ارتباطات محمية بها. تفاصيل الخطأ: {str(e)}")
+                    return redirect("control_db_maintenance")
+                except Exception as e:
+                    logger.exception("Error during db maintenance: %s", e)
+                    messages.error(request, f"حدث خطأ أثناء عملية التنظيف: {str(e)}")
                     return redirect("control_db_maintenance")
 
     # ============================================================
@@ -6354,6 +6419,21 @@ def control_db_maintenance(request):
             "social_accounts": 0,
             "social_apps": 0,
             "social_tokens": 0,
+
+            "provider_request_logs": 0,
+            "provider_response_logs": 0,
+            "provider_error_logs": 0,
+            "provider_sync_logs": 0,
+            "provider_price_history": 0,
+            "provider_orders": 0,
+            "provider_catalog": 0,
+            "provider_categories": 0,
+            "provider_profiles": 0,
+            "activity_logs": 0,
+            "admin_log_entries": 0,
+            "api_transactions": 0,
+            "kyc_requests": 0,
+            "push_subscriptions": 0,
         }
     else:
         with bypass_tenant_filter():
@@ -6416,6 +6496,21 @@ def control_db_maintenance(request):
                 "social_accounts": SocialAccount.objects.count(),
                 "social_apps": SocialApp.objects.count(),
                 "social_tokens": SocialToken.objects.count(),
+
+                "provider_request_logs": ProviderRequestLog.objects.count(),
+                "provider_response_logs": ProviderResponseLog.objects.count(),
+                "provider_error_logs": ProviderErrorLog.objects.count(),
+                "provider_sync_logs": ProviderSyncLog.objects.count(),
+                "provider_price_history": ProviderPriceHistory.objects.count(),
+                "provider_orders": ProviderOrder.objects.count(),
+                "provider_catalog": ProviderProduct.objects.count(),
+                "provider_categories": ProviderCategory.objects.count(),
+                "provider_profiles": ProviderProfile.all_objects.count(),
+                "activity_logs": ActivityLog.objects.count(),
+                "admin_log_entries": LogEntry.objects.count(),
+                "api_transactions": APITransaction.objects.count(),
+                "kyc_requests": KYCRequest.objects.count(),
+                "push_subscriptions": PushSubscription.objects.count(),
             }
         
     return render(request, "site/control_db_maintenance.html", {

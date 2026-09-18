@@ -546,6 +546,111 @@
                     </div>
                 </div>
                 {% endif %}
+
+                {% if not is_tenant %}
+                <!-- Providers & API Logs Group -->
+                <div class="bg-white/[0.01] border border-white/5 rounded-2xl p-4">
+                    <div class="flex justify-between items-center mb-3 pb-1 border-b border-white/5">
+                        <span class="text-xs font-bold text-slate-300">Providers & API (سجلات وبيانات المزودين)</span>
+                        <label class="flex items-center gap-1 cursor-pointer">
+                            <input type="checkbox" onclick="toggleGroup(this, 'group_providers')" class="w-4 h-4 rounded text-rose-600 bg-slate-900 border-white/10">
+                            <span class="text-[10px] text-slate-500 mr-1">تحديد الكل</span>
+                        </label>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3" id="group_providers">
+                        <label class="flex items-center gap-2 p-2.5 rounded-xl bg-rose-500/[0.04] border border-rose-500/20 cursor-pointer hover:bg-rose-500/[0.08] transition">
+                            <input type="checkbox" name="targets" value="provider_request_logs" class="w-4 h-4 rounded text-rose-600 bg-slate-900 border-white/10">
+                            <div class="flex-1 flex justify-between items-center">
+                                <span class="text-xs text-rose-200 font-bold">سجلات طلبات المزودين (25K+)</span>
+                                <span class="text-[10px] text-rose-400 font-bold">({{ stats.provider_request_logs }})</span>
+                            </div>
+                        </label>
+                        <label class="flex items-center gap-2 p-2.5 rounded-xl bg-white/[0.02] border border-white/5 cursor-pointer hover:bg-white/[0.05] transition">
+                            <input type="checkbox" name="targets" value="provider_sync_logs" class="w-4 h-4 rounded text-rose-600 bg-slate-900 border-white/10">
+                            <div class="flex-1 flex justify-between items-center">
+                                <span class="text-xs text-white font-medium">سجلات مزامنة المزودين</span>
+                                <span class="text-[10px] text-rose-400 font-bold">({{ stats.provider_sync_logs }})</span>
+                            </div>
+                        </label>
+                        <label class="flex items-center gap-2 p-2.5 rounded-xl bg-white/[0.02] border border-white/5 cursor-pointer hover:bg-white/[0.05] transition">
+                            <input type="checkbox" name="targets" value="provider_price_history" class="w-4 h-4 rounded text-rose-600 bg-slate-900 border-white/10">
+                            <div class="flex-1 flex justify-between items-center">
+                                <span class="text-xs text-white font-medium">سجلات أسعار المزودين</span>
+                                <span class="text-[10px] text-rose-400 font-bold">({{ stats.provider_price_history }})</span>
+                            </div>
+                        </label>
+                        <label class="flex items-center gap-2 p-2.5 rounded-xl bg-white/[0.02] border border-white/5 cursor-pointer hover:bg-white/[0.05] transition">
+                            <input type="checkbox" name="targets" value="provider_orders" class="w-4 h-4 rounded text-rose-600 bg-slate-900 border-white/10">
+                            <div class="flex-1 flex justify-between items-center">
+                                <span class="text-xs text-white font-medium">طلبات المزودين</span>
+                                <span class="text-[10px] text-rose-400 font-bold">({{ stats.provider_orders }})</span>
+                            </div>
+                        </label>
+                        <label class="flex items-center gap-2 p-2.5 rounded-xl bg-white/[0.02] border border-white/5 cursor-pointer hover:bg-white/[0.05] transition">
+                            <input type="checkbox" name="targets" value="provider_catalog" class="w-4 h-4 rounded text-rose-600 bg-slate-900 border-white/10">
+                            <div class="flex-1 flex justify-between items-center">
+                                <span class="text-xs text-white font-medium">كتالوج وأقسام المزودين</span>
+                                <span class="text-[10px] text-rose-400 font-bold">({{ stats.provider_catalog }})</span>
+                            </div>
+                        </label>
+                        <label class="flex items-center gap-2 p-2.5 rounded-xl bg-white/[0.02] border border-white/5 cursor-pointer hover:bg-white/[0.05] transition">
+                            <input type="checkbox" name="targets" value="provider_profiles" class="w-4 h-4 rounded text-rose-600 bg-slate-900 border-white/10">
+                            <div class="flex-1 flex justify-between items-center">
+                                <span class="text-xs text-white font-medium">ملفات تعريف المزودين</span>
+                                <span class="text-[10px] text-rose-400 font-bold">({{ stats.provider_profiles }})</span>
+                            </div>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- System Logs & Audits Group -->
+                <div class="bg-white/[0.01] border border-white/5 rounded-2xl p-4">
+                    <div class="flex justify-between items-center mb-3 pb-1 border-b border-white/5">
+                        <span class="text-xs font-bold text-slate-300">System Logs & Audits (سجلات النظام والنشاط)</span>
+                        <label class="flex items-center gap-1 cursor-pointer">
+                            <input type="checkbox" onclick="toggleGroup(this, 'group_system_logs')" class="w-4 h-4 rounded text-rose-600 bg-slate-900 border-white/10">
+                            <span class="text-[10px] text-slate-500 mr-1">تحديد الكل</span>
+                        </label>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3" id="group_system_logs">
+                        <label class="flex items-center gap-2 p-2.5 rounded-xl bg-white/[0.02] border border-white/5 cursor-pointer hover:bg-white/[0.05] transition">
+                            <input type="checkbox" name="targets" value="activity_logs" class="w-4 h-4 rounded text-rose-600 bg-slate-900 border-white/10">
+                            <div class="flex-1 flex justify-between items-center">
+                                <span class="text-xs text-white font-medium">سجلات نشاط المستخدمين</span>
+                                <span class="text-[10px] text-rose-400 font-bold">({{ stats.activity_logs }})</span>
+                            </div>
+                        </label>
+                        <label class="flex items-center gap-2 p-2.5 rounded-xl bg-white/[0.02] border border-white/5 cursor-pointer hover:bg-white/[0.05] transition">
+                            <input type="checkbox" name="targets" value="admin_log_entries" class="w-4 h-4 rounded text-rose-600 bg-slate-900 border-white/10">
+                            <div class="flex-1 flex justify-between items-center">
+                                <span class="text-xs text-white font-medium">سجلات إجراءات لوحة التحكم</span>
+                                <span class="text-[10px] text-rose-400 font-bold">({{ stats.admin_log_entries }})</span>
+                            </div>
+                        </label>
+                        <label class="flex items-center gap-2 p-2.5 rounded-xl bg-white/[0.02] border border-white/5 cursor-pointer hover:bg-white/[0.05] transition">
+                            <input type="checkbox" name="targets" value="api_transactions" class="w-4 h-4 rounded text-rose-600 bg-slate-900 border-white/10">
+                            <div class="flex-1 flex justify-between items-center">
+                                <span class="text-xs text-white font-medium">سجلات عمليات الـ API</span>
+                                <span class="text-[10px] text-rose-400 font-bold">({{ stats.api_transactions }})</span>
+                            </div>
+                        </label>
+                        <label class="flex items-center gap-2 p-2.5 rounded-xl bg-white/[0.02] border border-white/5 cursor-pointer hover:bg-white/[0.05] transition">
+                            <input type="checkbox" name="targets" value="kyc_requests" class="w-4 h-4 rounded text-rose-600 bg-slate-900 border-white/10">
+                            <div class="flex-1 flex justify-between items-center">
+                                <span class="text-xs text-white font-medium">طلبات التحقق (KYC)</span>
+                                <span class="text-[10px] text-rose-400 font-bold">({{ stats.kyc_requests }})</span>
+                            </div>
+                        </label>
+                        <label class="flex items-center gap-2 p-2.5 rounded-xl bg-white/[0.02] border border-white/5 cursor-pointer hover:bg-white/[0.05] transition">
+                            <input type="checkbox" name="targets" value="push_subscriptions" class="w-4 h-4 rounded text-rose-600 bg-slate-900 border-white/10">
+                            <div class="flex-1 flex justify-between items-center">
+                                <span class="text-xs text-white font-medium">اشتراكات الإشعارات</span>
+                                <span class="text-[10px] text-rose-400 font-bold">({{ stats.push_subscriptions }})</span>
+                            </div>
+                        </label>
+                    </div>
+                </div>
+                {% endif %}
             </div>
 
             <div class="mt-8 p-6 bg-rose-500/10 border border-rose-500/20 rounded-2xl">
@@ -846,6 +951,53 @@
                     <div class="p-3 bg-white/[0.02] border border-white/5 rounded-xl flex justify-between items-center">
                         <span class="text-xs text-slate-400">أكواد التطبيقات الاجتماعية</span>
                         <span class="font-bold text-white">{{ stats.social_tokens }}</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Providers & System Logs Stats -->
+            <div>
+                <h4 class="text-xs font-bold text-slate-400 mb-3 border-b border-white/5 pb-1 uppercase tracking-widest">Providers & System Logs (المزودون وسجلات النظام)</h4>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <div class="p-3 bg-rose-500/[0.04] border border-rose-500/20 rounded-xl flex justify-between items-center">
+                        <span class="text-xs text-rose-200 font-bold">سجلات المزودين (Requests)</span>
+                        <span class="font-bold text-rose-400">{{ stats.provider_request_logs }}</span>
+                    </div>
+                    <div class="p-3 bg-white/[0.02] border border-white/5 rounded-xl flex justify-between items-center">
+                        <span class="text-xs text-slate-400">سجلات مزامنة المزودين</span>
+                        <span class="font-bold text-white">{{ stats.provider_sync_logs }}</span>
+                    </div>
+                    <div class="p-3 bg-white/[0.02] border border-white/5 rounded-xl flex justify-between items-center">
+                        <span class="text-xs text-slate-400">سجلات أسعار المزودين</span>
+                        <span class="font-bold text-white">{{ stats.provider_price_history }}</span>
+                    </div>
+                    <div class="p-3 bg-white/[0.02] border border-white/5 rounded-xl flex justify-between items-center">
+                        <span class="text-xs text-slate-400">طلبات المزودين</span>
+                        <span class="font-bold text-white">{{ stats.provider_orders }}</span>
+                    </div>
+                    <div class="p-3 bg-white/[0.02] border border-white/5 rounded-xl flex justify-between items-center">
+                        <span class="text-xs text-slate-400">منتجات المزودين</span>
+                        <span class="font-bold text-white">{{ stats.provider_catalog }}</span>
+                    </div>
+                    <div class="p-3 bg-white/[0.02] border border-white/5 rounded-xl flex justify-between items-center">
+                        <span class="text-xs text-slate-400">ملفات تعريف المزودين</span>
+                        <span class="font-bold text-white">{{ stats.provider_profiles }}</span>
+                    </div>
+                    <div class="p-3 bg-white/[0.02] border border-white/5 rounded-xl flex justify-between items-center">
+                        <span class="text-xs text-slate-400">سجلات نشاط المستخدمين</span>
+                        <span class="font-bold text-white">{{ stats.activity_logs }}</span>
+                    </div>
+                    <div class="p-3 bg-white/[0.02] border border-white/5 rounded-xl flex justify-between items-center">
+                        <span class="text-xs text-slate-400">سجلات إجراءات الإدارة</span>
+                        <span class="font-bold text-white">{{ stats.admin_log_entries }}</span>
+                    </div>
+                    <div class="p-3 bg-white/[0.02] border border-white/5 rounded-xl flex justify-between items-center">
+                        <span class="text-xs text-slate-400">سجلات عمليات الـ API</span>
+                        <span class="font-bold text-white">{{ stats.api_transactions }}</span>
+                    </div>
+                    <div class="p-3 bg-white/[0.02] border border-white/5 rounded-xl flex justify-between items-center">
+                        <span class="text-xs text-slate-400">طلبات التحقق (KYC)</span>
+                        <span class="font-bold text-white">{{ stats.kyc_requests }}</span>
                     </div>
                 </div>
             </div>

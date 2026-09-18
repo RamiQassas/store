@@ -111,6 +111,41 @@ class ProviderRequestLogAdmin(admin.ModelAdmin):
     list_filter = ('profile', 'method')
     search_fields = ('endpoint', 'payload')
     readonly_fields = ('profile', 'endpoint', 'method', 'payload', 'execution_time_ms')
+    show_full_result_count = False
+    actions = ['fast_delete_selected']
+
+    def get_urls(self):
+        urls = super().get_urls()
+        custom_urls = [
+            path('clear-all-logs/', self.admin_site.admin_view(self.clear_all_logs_view), name='providers_clear_all_request_logs'),
+        ]
+        return custom_urls + urls
+
+    def clear_all_logs_view(self, request):
+        if not (request.user.is_superuser or request.user.is_staff):
+            messages.error(request, "غير مصرح لك بتنفيذ هذه العملية.")
+            return redirect('admin:providers_providerrequestlog_changelist')
+        
+        from .models import ProviderResponseLog, ProviderErrorLog, ProviderRequestLog
+        from django.db import transaction
+        try:
+            with transaction.atomic():
+                c_resp = ProviderResponseLog.objects.all().delete()[0]
+                c_err = ProviderErrorLog.objects.all().delete()[0]
+                c_req = ProviderRequestLog.objects.all().delete()[0]
+            messages.success(request, f"تم مسح كافة سجلات المزودين بنجاح فوري: {c_req} طلب، {c_resp} استجابة، {c_err} خطأ.")
+        except Exception as e:
+            messages.error(request, f"فشل مسح السجلات: {e}")
+        return redirect('admin:providers_providerrequestlog_changelist')
+
+    @admin.action(description="حذف فوري سريع للسجلات المحددة بدون تجميد (Fast Delete)")
+    def fast_delete_selected(self, request, queryset):
+        from .models import ProviderResponseLog, ProviderErrorLog
+        ids = list(queryset.values_list('id', flat=True))
+        ProviderResponseLog.objects.filter(request_log_id__in=ids).delete()
+        ProviderErrorLog.objects.filter(related_request_id__in=ids).delete()
+        c = queryset.delete()[0]
+        self.message_user(request, f"تم حذف {c} سجل فورياً بنجاح.", messages.SUCCESS)
 
 
 @admin.register(ProviderResponseLog)
@@ -119,6 +154,13 @@ class ProviderResponseLogAdmin(admin.ModelAdmin):
     list_filter = ('is_success', 'status_code')
     search_fields = ('body',)
     readonly_fields = ('request_log', 'status_code', 'body', 'is_success')
+    show_full_result_count = False
+    actions = ['fast_delete_selected']
+
+    @admin.action(description="حذف فوري سريع للسجلات المحددة")
+    def fast_delete_selected(self, request, queryset):
+        c = queryset.delete()[0]
+        self.message_user(request, f"تم حذف {c} سجل بنجاح.", messages.SUCCESS)
 
 
 @admin.register(ProviderErrorLog)
@@ -127,6 +169,13 @@ class ProviderErrorLogAdmin(admin.ModelAdmin):
     list_filter = ('profile', 'error_code')
     search_fields = ('message', 'traceback')
     readonly_fields = ('profile', 'error_code', 'message', 'traceback', 'related_request')
+    show_full_result_count = False
+    actions = ['fast_delete_selected']
+
+    @admin.action(description="حذف فوري سريع للسجلات المحددة")
+    def fast_delete_selected(self, request, queryset):
+        c = queryset.delete()[0]
+        self.message_user(request, f"تم حذف {c} سجل بنجاح.", messages.SUCCESS)
 
 
 @admin.register(ProviderSyncLog)
@@ -134,6 +183,13 @@ class ProviderSyncLogAdmin(admin.ModelAdmin):
     list_display = ('profile', 'status', 'products_created', 'products_updated', 'created_at')
     list_filter = ('profile', 'status')
     readonly_fields = ('profile', 'status', 'products_created', 'products_updated', 'products_disabled', 'errors_count', 'error_message')
+    show_full_result_count = False
+    actions = ['fast_delete_selected']
+
+    @admin.action(description="حذف فوري سريع للسجلات المحددة")
+    def fast_delete_selected(self, request, queryset):
+        c = queryset.delete()[0]
+        self.message_user(request, f"تم حذف {c} سجل بنجاح.", messages.SUCCESS)
 
 admin.site.register(ProviderProductParameter)
 admin.site.register(ProviderPriceHistory)

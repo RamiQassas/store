@@ -89,14 +89,24 @@ def tenant_context(request):
     This is the core of the Shared Template architecture: one template,
     multiple tenants, data isolation via store context.
     """
-    from django.conf import settings
-    from django.contrib.sites.models import Site
-    if not Site.objects.filter(id=settings.SITE_ID).exists():
-        Site.objects.create(
-            id=settings.SITE_ID,
-            domain="raqamiyatapp.com",
-            name="Raqamiyat"
-        )
+    try:
+        from django.conf import settings
+        from django.contrib.sites.models import Site
+        site_id = getattr(settings, "SITE_ID", 1)
+        site = Site.objects.filter(id=site_id).first()
+        if not site:
+            existing = Site.objects.filter(domain="raqamiyatapp.com").first() or Site.objects.first()
+            if existing:
+                if existing.id != site_id:
+                    Site.objects.filter(id=existing.id).update(id=site_id, domain="raqamiyatapp.com", name="Raqamiyat")
+                elif existing.domain != "raqamiyatapp.com":
+                    existing.domain = "raqamiyatapp.com"
+                    existing.name = "Raqamiyat"
+                    existing.save(update_fields=["domain", "name"])
+            else:
+                Site.objects.create(id=site_id, domain="raqamiyatapp.com", name="Raqamiyat")
+    except Exception:
+        pass
     platform_url = getattr(settings, "SITE_URL", "https://raqamiyatapp.com")
     store = getattr(request, 'store', None)
     
