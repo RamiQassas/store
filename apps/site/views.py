@@ -6214,6 +6214,8 @@ def control_db_maintenance(request):
                                         c = Invoice.objects.all().delete()[0]
                                         deleted_counts["الفواتير"] = c
                                     elif key == "orders":
+                                        ProviderOrderStatus.objects.all().delete()
+                                        ProviderOrder.objects.all().delete()
                                         c1 = OrderItem.objects.all().delete()[0]
                                         c2 = OrderLog.objects.all().delete()[0]
                                         c3 = Order.objects.all().delete()[0]
@@ -6258,7 +6260,26 @@ def control_db_maintenance(request):
                                         c = SaaSAuditLog.objects.all().delete()[0]
                                         deleted_counts["سجلات تدقيق SaaS"] = c
                                     elif key == "stores":
-                                        User.objects.all().update(store=None)
+                                        # 1. Delete any tenant users that share email with an existing main platform user
+                                        main_emails = set(User.objects.filter(store__isnull=True).exclude(email='').values_list('email', flat=True))
+                                        User.objects.filter(store__isnull=False, email__in=main_emails).delete()
+
+                                        # 2. Delete any tenant users that share phone with an existing main platform user
+                                        main_phones = set(User.objects.filter(store__isnull=True).exclude(phone__in=['', None]).values_list('phone', flat=True))
+                                        if main_phones:
+                                            User.objects.filter(store__isnull=False, phone__in=main_phones).delete()
+
+                                        # 3. Delete non-admin tenant users
+                                        User.objects.filter(store__isnull=False).exclude(is_superuser=True).exclude(is_staff=True).exclude(role__in=[User.Role.SUPER_ADMIN, User.Role.ADMIN]).delete()
+
+                                        # 4. For any remaining users with a store, unlink safely without creating duplicates
+                                        for u in User.objects.filter(store__isnull=False):
+                                            if User.objects.filter(store__isnull=True, email=u.email).exists():
+                                                u.delete()
+                                            else:
+                                                u.store = None
+                                                u.save(update_fields=['store'])
+
                                         c = Store.objects.all().delete()[0]
                                         deleted_counts["المتاجر"] = c
                                     elif key == "subscription_plans":
@@ -6292,6 +6313,10 @@ def control_db_maintenance(request):
                                         c = ProductVariant.objects.all().delete()[0]
                                         deleted_counts["باقات المنتجات"] = c
                                     elif key == "products":
+                                        ProductKey.objects.all().delete()
+                                        ProductImage.objects.all().delete()
+                                        ProductVariant.objects.all().delete()
+                                        ProviderMapping.objects.all().delete()
                                         c = Product.objects.all().delete()[0]
                                         deleted_counts["المنتجات"] = c
                                     elif key == "categories":
