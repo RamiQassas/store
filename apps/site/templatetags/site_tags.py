@@ -195,6 +195,10 @@ def currency_format(context, amount, source_currency=None, mode="deposit"):
         if not target_currency:
             symbol = source.symbol if source else "USD"
             places = source.decimal_places if source else 2
+            if val > 0 and val < Decimal("0.01"):
+                places = 4
+            if val > 0 and val < Decimal("0.0001"):
+                places = 6
             return f"{val:,.{places}f} {symbol}"
 
         # 1. Convert source to BASE (USD)

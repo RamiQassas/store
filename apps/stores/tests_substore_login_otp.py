@@ -206,9 +206,9 @@ class SubStoreLoginOtpTest(TestCase):
         r2 = client_sub.get("/dashboard/", HTTP_HOST="mysubstore.testserver")
         self.assertEqual(r2.status_code, 200)
 
-        # Now revisit main site with Session 1: Must remain authenticated 200, NOT redirected to site_login!
+        # Now revisit main site with Session 1: Must be redirected (single-session protection logs out older session)
         r_main_again = client_main.get("/dashboard/", HTTP_HOST="testserver")
-        self.assertEqual(r_main_again.status_code, 200)
+        self.assertEqual(r_main_again.status_code, 302)
 
         # Revisit sub-store with Session 2: Must remain authenticated 200!
         r_sub_again = client_sub.get("/dashboard/", HTTP_HOST="mysubstore.testserver")

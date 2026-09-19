@@ -238,6 +238,14 @@ class ProductVariant(TimeStampedModel):
         4. Base price
         """
         if not user or not getattr(user, 'is_authenticated', False):
+            if self.price and self.price > 0:
+                return self.price
+            elif self.wholesale_price and self.wholesale_price > 0:
+                return self.wholesale_price
+            elif self.vip_price and self.vip_price > 0:
+                return self.vip_price
+            elif self.cost and self.cost > 0:
+                return self.cost
             return self.price
 
         # 1. Check for user-specific override
@@ -258,7 +266,7 @@ class ProductVariant(TimeStampedModel):
         store_margins = getattr(store, 'tier_margins', {}) if store else {}
 
         if user_tier == User.Tier.COST:
-            return self.cost if (self.cost and self.cost > 0) else self.price
+            return self.cost if (self.cost and self.cost > 0) else (self.price if (self.price and self.price > 0) else (self.wholesale_price or self.price))
         elif user_tier == User.Tier.VIP:
             if self.vip_price and self.vip_price > 0:
                 return self.vip_price
@@ -266,9 +274,16 @@ class ProductVariant(TimeStampedModel):
             if vip_m and self.cost and self.cost > 0:
                 try:
                     from decimal import Decimal
-                    return (self.cost * (Decimal("1") + Decimal(str(vip_m)) / Decimal("100"))).quantize(Decimal("0.01"))
+                    calc = self.cost * (Decimal("1") + Decimal(str(vip_m)) / Decimal("100"))
+                    if calc < Decimal("0.01"):
+                        return calc.quantize(Decimal("0.00000001"))
+                    elif calc < Decimal("1.00"):
+                        return calc.quantize(Decimal("0.0001"))
+                    return calc.quantize(Decimal("0.01"))
                 except: pass
-            return self.price
+            if self.price and self.price > 0:
+                return self.price
+            return self.wholesale_price if (self.wholesale_price and self.wholesale_price > 0) else (self.cost if (self.cost and self.cost > 0) else self.price)
         elif user_tier == User.Tier.DEALER:
             if self.wholesale_price and self.wholesale_price > 0:
                 return self.wholesale_price
@@ -276,9 +291,25 @@ class ProductVariant(TimeStampedModel):
             if deal_m and self.cost and self.cost > 0:
                 try:
                     from decimal import Decimal
-                    return (self.cost * (Decimal("1") + Decimal(str(deal_m)) / Decimal("100"))).quantize(Decimal("0.01"))
+                    calc = self.cost * (Decimal("1") + Decimal(str(deal_m)) / Decimal("100"))
+                    if calc < Decimal("0.01"):
+                        return calc.quantize(Decimal("0.00000001"))
+                    elif calc < Decimal("1.00"):
+                        return calc.quantize(Decimal("0.0001"))
+                    return calc.quantize(Decimal("0.01"))
                 except: pass
+            if self.price and self.price > 0:
+                return self.price
+            return self.vip_price if (self.vip_price and self.vip_price > 0) else (self.cost if (self.cost and self.cost > 0) else self.price)
+
+        if self.price and self.price > 0:
             return self.price
+        elif self.wholesale_price and self.wholesale_price > 0:
+            return self.wholesale_price
+        elif self.vip_price and self.vip_price > 0:
+            return self.vip_price
+        elif self.cost and self.cost > 0:
+            return self.cost
         return self.price
 
 

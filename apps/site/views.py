@@ -8543,7 +8543,10 @@ def control_apicontrol_dashboard(request):
                     local_linked_count += 1
                     cost_val = float(v.cost or 0)
                     price_val = float(v.price or 0)
-                    profit_val = round(max(0.0, price_val - cost_val), 2)
+                    if cost_val <= 0 and price_val > 0:
+                        cost_val = float(v.wholesale_price or price_val)
+                    decimals = 4 if (price_val > 0 and price_val < 1.0) or (cost_val > 0 and cost_val < 1.0) else 2
+                    profit_val = round(max(0.0, price_val - cost_val), decimals)
 
                     alkasr_products.append({
                         "id": v.api_product_id or v.sku or str(v.id),
@@ -8567,9 +8570,10 @@ def control_apicontrol_dashboard(request):
             for p in global_prods:
                 c_name = p.category.name if p.category else "عام"
                 for v in p.variants.all():
-                    cost_val = float(v.cost or 0)
-                    calc_price = round(cost_val * (1 + cust_m / 100.0), 2) if cust_m > 0 and cost_val > 0 else float(v.price or 0)
-                    profit_val = round(max(0.0, calc_price - cost_val), 2)
+                    cost_val = float(v.wholesale_price or v.cost or v.price or 0)
+                    decimals = 4 if cost_val > 0 and cost_val < 1.0 else 2
+                    calc_price = round(cost_val * (1 + cust_m / 100.0), decimals) if cust_m > 0 and cost_val > 0 else float(v.price or cost_val)
+                    profit_val = round(max(0.0, calc_price - cost_val), decimals)
 
                     alkasr_products.append({
                         "id": v.api_product_id or v.sku or str(v.id),
