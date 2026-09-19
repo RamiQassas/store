@@ -25,47 +25,45 @@ class AccountStatusMiddleware:
                 messages.error(request, "تم إيقاف حسابك أو حظره. يرجى التواصل مع الإدارة.")
                 return redirect("site_login")
             
-            # 2. Enforce Single Session Login
+            # 2. Check Session Inactivity Timeout (1 week = 7 days)
+            from django.utils import timezone
+            from django.conf import settings
+            session_idle_timeout = getattr(settings, "SESSION_IDLE_TIMEOUT", 7 * 24 * 3600)
+            now_ts = timezone.now().timestamp()
+            last_activity = request.session.get("last_activity")
+            if last_activity:
+                try:
+                    idle_seconds = now_ts - float(last_activity)
+                    if idle_seconds > session_idle_timeout:
+                        logger.info("Session expired due to inactivity for user=%s (idle %ss)", request.user.pk, int(idle_seconds))
+                        logout(request)
+                        messages.info(request, "تم تسجيل خروجك تلقائياً لمرور أكثر من أسبوع دون نشاط، وذلك لحماية أمان حسابك.")
+                        return redirect("site_login")
+                except Exception:
+                    pass
+            request.session["last_activity"] = now_ts
+
+            # 3. Enforce Single Active Session (One Device at a time)
             current_scope = str(request.store.pk) if getattr(request, "store", None) else "main"
             if request.session.get("session_scope") != current_scope:
                 request.session["session_scope"] = current_scope
 
-            # Skip concurrent session enforcement for staff, super admins, or sub-stores
             skip_single_session = (
-                request.user.is_staff
-                or request.user.is_superuser
-                or getattr(request.user, "role", None) in [
-                    "super_admin",
-                    "admin",
-                    "support",
-                    "finance",
-                    "moderator",
-                ]
+                request.user.is_superuser
                 or getattr(request, "store", None) is not None
             )
             if not skip_single_session:
-                if request.user.last_session_key:
-                    if request.session.session_key and request.user.last_session_key != request.session.session_key:
-                        old_session = Session.objects.filter(session_key=request.user.last_session_key).first()
-                        if old_session:
-                            try:
-                                old_data = old_session.get_decoded()
-                                old_scope = old_data.get("session_scope", "main")
-                            except Exception:
-                                old_scope = "main"
-
-                            # If old session belongs to a different domain/tenant (e.g. sub-store vs main), do not log out
-                            if old_scope == current_scope:
-                                logger.info("Session mismatch rejected for user=%s scope=%s", request.user.pk, current_scope)
-                                logout(request)
-                                messages.warning(request, "تم تسجيل الدخول من جهاز آخر. تم إنهاء الجلسة الحالية.")
-                                return redirect("site_login")
-                        else:
-                            request.user.last_session_key = request.session.session_key
-                            request.user.save(update_fields=["last_session_key"])
-                elif request.session.session_key:
+                curr_key = request.session.session_key
+                user_key = request.user.last_session_key
+                if user_key and curr_key and user_key != curr_key:
+                    # Current device's session was superseded by a login from another device
+                    logger.info("Session superseded: session %s != user.last_session_key %s for user=%s", curr_key, user_key, request.user.pk)
+                    logout(request)
+                    messages.warning(request, "تم تسجيل الدخول إلى حسابك من جهاز آخر. تم إنهاء هذه الجلسة تلقائياً لحماية أمان حسابك.")
+                    return redirect("site_login")
+                elif curr_key and not user_key:
                     # Sync initial session key
-                    request.user.last_session_key = request.session.session_key
+                    request.user.last_session_key = curr_key
                     request.user.save(update_fields=["last_session_key"])
 
             # 3. Country-Based Block (Compliance)

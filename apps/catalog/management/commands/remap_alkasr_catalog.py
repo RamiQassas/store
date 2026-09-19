@@ -389,23 +389,101 @@ class Command(BaseCommand):
                 elif is_fixed:
                     meta["qty_type"] = "fixed"
                     meta["qty_min"] = 1
-                    meta["qty_max"] = 1
+                    meta["qty_max"] = 999999
 
-                # Ensure SMM rates are not multiplied astronomically
+                # Ensure SMM rates are accurate and prevent double-division
                 rem_id = str(meta.get("remote_id") or "")
-                if rem_id in ("9364", "7346", "7350", "7354", "7359", "7370", "7373", "7377") and var.price and var.price >= Decimal("0.50"):
-                    var.price = (var.price / Decimal("1000")).quantize(Decimal("0.00000001"))
-                    if var.wholesale_price:
-                        var.wholesale_price = (var.wholesale_price / Decimal("1000")).quantize(Decimal("0.00000001"))
-                    if var.vip_price:
-                        var.vip_price = (var.vip_price / Decimal("1000")).quantize(Decimal("0.00000001"))
-                    if var.cost:
-                        var.cost = (var.cost / Decimal("1000")).quantize(Decimal("0.00000001"))
-                    var.save(update_fields=['price', 'wholesale_price', 'vip_price', 'cost'])
+                if rem_id in ("9364", "7346", "7350", "7354", "7359", "7370", "7373", "7377"):
+                    if var.price and var.price >= Decimal("0.50"):
+                        var.price = (var.price / Decimal("1000")).quantize(Decimal("0.00000001"))
+                        if var.wholesale_price:
+                            var.wholesale_price = (var.wholesale_price / Decimal("1000")).quantize(Decimal("0.00000001"))
+                        if var.vip_price:
+                            var.vip_price = (var.vip_price / Decimal("1000")).quantize(Decimal("0.00000001"))
+                        if var.cost:
+                            var.cost = (var.cost / Decimal("1000")).quantize(Decimal("0.00000001"))
+                        var.save(update_fields=['price', 'wholesale_price', 'vip_price', 'cost'])
+                    elif var.price and var.price < Decimal("0.0001") and var.price > Decimal("0.00000000"):
+                        # Fix accidental double-division (e.g. Instagram Server 3: 0.00000473 -> 0.00473)
+                        var.price = (var.price * Decimal("1000")).quantize(Decimal("0.00000001"))
+                        if var.wholesale_price:
+                            var.wholesale_price = (var.wholesale_price * Decimal("1000")).quantize(Decimal("0.00000001"))
+                        if var.vip_price:
+                            var.vip_price = (var.vip_price * Decimal("1000")).quantize(Decimal("0.00000001"))
+                        if var.cost:
+                            var.cost = (var.cost * Decimal("1000")).quantize(Decimal("0.00000001"))
+                        var.save(update_fields=['price', 'wholesale_price', 'vip_price', 'cost'])
+
+                # Fix Vodafone Cash Egypt / Egyptian Money Transfers rate
+                if any(k in v_name.lower() for k in ("مصر", "فودافون كاش", "egypt")) or (var.product and "مصر" in var.product.name):
+                    if var.price and var.price > Decimal("1.0"):
+                        var.price = Decimal("0.02150000")
+                        var.wholesale_price = Decimal("0.02100000")
+                        var.vip_price = Decimal("0.02070000")
+                        var.cost = Decimal("0.02050000")
+                        meta["qty_type"] = "range"
+                        meta["qty_min"] = 100
+                        meta["qty_max"] = 1000000
+                        var.save(update_fields=['price', 'wholesale_price', 'vip_price', 'cost'])
+
+                # Fix Visa Card product so user is not forced to buy 5 cards at once
+                if ("visa" in v_name.lower() or "فيزا" in v_name) and ("5$" in v_name or "بطاقة" in v_name or "card" in v_name):
+                    if var.price and var.price >= Decimal("50.0"):
+                        var.name = "بطاقة فيزا برصيد 5$ (VISA Card 5$)"
+                        var.price = Decimal("12.99000000")
+                        var.wholesale_price = Decimal("12.50000000")
+                        var.vip_price = Decimal("12.20000000")
+                        var.cost = Decimal("11.50000000")
+                        meta["qty_type"] = "fixed"
+                        meta["qty_min"] = 1
+                        meta["qty_max"] = 999999
+                        var.save(update_fields=['name', 'price', 'wholesale_price', 'vip_price', 'cost'])
                 
                 if var.metadata != meta:
                     var.metadata = meta
                     var.save(update_fields=['metadata'])
+
+            # Clean up and assign explicit durations to all VPN and AI subscription variants
+            vpn_ai_prods = Product.objects.filter(
+                Q(category__name__in=["اشتراكات VPN", "الذكاء الاصطناعي", "خدمات التلفزيون والبث", "برامج وتصميم"]) |
+                Q(name__icontains="vpn") | Q(name__icontains="gemini") | Q(name__icontains="جيميني")
+            )
+            for sprod in vpn_ai_prods:
+                s_vars = list(sprod.variants.all())
+                if len(s_vars) > 1:
+                    s_vars.sort(key=lambda x: x.price or 0)
+                    total_v = len(s_vars)
+                    for idx, sv in enumerate(s_vars):
+                        s_name = sv.name
+                        import re
+                        cleaned_base = re.sub(r'\s*\(سيرفر\s*\d+\)', '', s_name).strip()
+                        cleaned_base = re.sub(r'\s*-\s*اشتراك.*', '', cleaned_base).strip()
+                        
+                        has_dur = any(k in s_name for k in ("شهر", "شهور", "سنة", "سنوات", "أيام", "يوم", "Month", "Year", "Day"))
+                        if not has_dur or "(سيرفر" in s_name:
+                            if total_v == 2:
+                                dur = "اشتراك شهر (1 Month)" if idx == 0 else "اشتراك سنة كاملة (1 Year)"
+                            elif total_v == 3:
+                                if idx == 0: dur = "اشتراك شهر (1 Month)"
+                                elif idx == 1: dur = "اشتراك 3 أشهر (3 Months)"
+                                else: dur = "اشتراك سنة كاملة (1 Year)"
+                            elif total_v >= 4:
+                                if idx == 0: dur = "اشتراك شهر (1 Month)"
+                                elif idx == 1: dur = "اشتراك 3 أشهر (3 Months)"
+                                elif idx == 2: dur = "اشتراك 6 أشهر (6 Months)"
+                                else: dur = "اشتراك سنة كاملة (1 Year)"
+                            
+                            # Check for special Gemini Pro naming
+                            if "gemini" in sprod.name.lower() or "جيميني" in sprod.name:
+                                if idx == 0: dur = "اشتراك شهر (دعوة على ايميلك)"
+                                elif idx == 1: dur = "اشتراك شهر (حساب خاص مباشر)"
+                                elif idx == 2: dur = "اشتراك 3 أشهر (حساب رسمي)"
+                                elif idx == 3: dur = "اشتراك 6 أشهر"
+                                else: dur = "اشتراك سنة كاملة (12 شهر)"
+                            
+                            sv.name = f"{cleaned_base} - {dur}"
+                            sv.sort_order = idx + 1
+                            sv.save(update_fields=['name', 'sort_order'])
 
             # Clean up empty Alkasr products that have 0 variants
             empty_prods = Product.objects.filter(api_provider='alkasr', variants__isnull=True)

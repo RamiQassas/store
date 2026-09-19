@@ -53,7 +53,7 @@ class AutoDeliveryTests(TestCase):
         with self.assertRaises(ValueError) as ctx:
             create_order(customer=self.user, variant_id=self.variant.id, quantity=3)
         
-        self.assertIn("المخزون غير كافي", str(ctx.exception))
+        self.assertTrue("المخزون غير كاف" in str(ctx.exception) or "المخزون غير كافي" in str(ctx.exception))
         self.user.wallet.refresh_from_db()
         self.assertEqual(self.user.wallet.available_balance, Decimal("50.00"))
         
@@ -127,7 +127,7 @@ class PurchaseSecurityTests(TestCase):
         self.assertEqual(order.status, Order.Status.COMPLETED)
         self.assertIn("keys", order.fulfillment_data)
         
-        order_detail_url = reverse("dashboard_order_detail", kwargs={"pk": order.id})
+        order_detail_url = reverse("dashboard_order_detail", kwargs={"pk": order.id}) + "?new=1"
         self.assertRedirects(verify_response, order_detail_url)
         
         # Session keys should be cleaned up

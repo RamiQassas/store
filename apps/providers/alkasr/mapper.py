@@ -42,20 +42,21 @@ KNOWN_NAMES = {
     "roblox": ("روبلوكس", "Roblox Robux"),
     "roblex": ("روبلوكس", "Roblox Robux"),
     "jawaker": ("جواكر", "Jawaker Tokens"),
-    "clash of clans": ("كلاش اوف كلانس", "Clash of Clans"),
+    "clash of clans": ("كلاش أوف كلانس", "Clash of Clans"),
     "clash royale": ("كلاش رويال", "Clash Royale"),
     "mobile legends": ("موبايل ليجندز", "Mobile Legends Diamonds"),
     "brawl stars": ("براول ستارز", "Brawl Stars Gems"),
-    "genshin impact": ("جينشين امباكت", "Genshin Impact Genesis"),
-    "genshin": ("جينشين امباكت", "Genshin Impact Genesis"),
-    "ea fc": ("فيفا / اف سي موبايل", "EA FC Mobile Points"),
-    "fifa": ("فيفا موبايل", "FIFA Mobile"),
-    "call of duty": ("كول اوف ديوتي موبايل", "Call of Duty Mobile CP"),
-    "cod": ("كول اوف ديوتي موبايل", "Call of Duty Mobile CP"),
+    "genshin impact": ("جينشين إمباكت", "Genshin Impact Genesis"),
+    "genshin": ("جينشين إمباكت", "Genshin Impact Genesis"),
+    "ea fc": ("إي إيه سبورتس إف سي", "EA Sports FC"),
+    "ea sports fc": ("إي إيه سبورتس إف سي", "EA Sports FC"),
+    "fifa": ("إي إيه سبورتس إف سي", "EA Sports FC"),
+    "call of duty": ("كول أوف ديوتي موبايل", "Call of Duty Mobile CP"),
+    "cod": ("كول أوف ديوتي موبايل", "Call of Duty Mobile CP"),
     "valorant": ("فالورانت", "Valorant Points"),
-    "league of legends": ("ليج اوف ليجيندز", "League of Legends RP"),
-    "lol": ("ليج اوف ليجيندز", "League of Legends RP"),
-    "honor of kings": ("اونور اوف كينجز", "Honor of Kings Tokens"),
+    "league of legends": ("ليغ أوف ليجيندز", "League of Legends RP"),
+    "lol": ("ليغ أوف ليجيندز", "League of Legends RP"),
+    "honor of kings": ("أونور أوف كينغز", "Honor of Kings Tokens"),
     "toptop": ("توب توب", "TopTop Coins"),
     "yalla ludo": ("يلا لودو", "Yalla Ludo Diamonds"),
     "tiktok": ("تيك توك", "TikTok Coins"),
@@ -70,41 +71,41 @@ KNOWN_NAMES = {
     "openai": ("شات جي بي تي", "OpenAI ChatGPT"),
     "bigo": ("بيجو لايف", "Bigo Live Diamonds"),
     "likee": ("لايكي", "Likee Diamonds"),
-    "soulchill": ("سول تشيل", "Soulchill Crystals"),
+    "soulchill": ("سول تشيل", "SoulChill Crystals"),
     "yoyo": ("يويو شات", "YoYo Chat Coins"),
     "chamet": ("شاميت", "Chamet Diamonds"),
     "poppo": ("بوبو لايف", "Poppo Live Coins"),
     "livu": ("ليف يو", "LivU Coins"),
-    "tango": ("تانغو لايف", "Tango Live Coins"),
+    "tango": ("تانجو لايف", "Tango Live Coins"),
     "mico": ("ميكو ورلد", "MICO World Coins"),
-    "ometv": ("اومي تي في", "OmeTV VIP"),
+    "ometv": ("أومي تي في", "OmeTV VIP"),
     "bobo": ("بوبو شات", "Bobo Chat Coins"),
-    "4fun": ("فور فن شات", "4Fun Chat"),
+    "4fun": ("فور فن", "4Fun"),
     "4party": ("فور بارتي شات", "4Party Chat"),
     "ahlan": ("أهلاً شات", "Ahlan Chat"),
-    "azal": ("ازال لايف", "Azal Live"),
-    "allo": ("الو شات", "Allo Chat"),
+    "azal": ("آزال لايف", "Azal Live"),
+    "allo": ("ألو شات", "Allo Chat"),
     "amar": ("قمر شات", "Amar Chat"),
-    "amisu": ("اميسو بارتي", "Amisu Party"),
-    "amo": ("امو شات", "Amo Chat"),
+    "amisu": ("أميسو بارتي", "Amisu Party"),
+    "amo": ("عمو شات", "Amo Chat"),
     "aria": ("آريا شات", "Aria Chat"),
     "google play": ("بطاقات جوجل بلاي", "Google Play Cards"),
-    "itunes": ("بطاقات ابل ايتونز", "Apple iTunes Cards"),
-    "apple": ("بطاقات ابل ستور", "Apple Store Cards"),
+    "itunes": ("بطاقات آبل آيتونز", "Apple iTunes Cards"),
+    "apple": ("بطاقات آبل ستور", "Apple Store Cards"),
     "steam": ("بطاقات ستيم", "Steam Wallet"),
     "playstation": ("بطاقات بلايستيشن", "PlayStation Store"),
     "psn": ("بطاقات بلايستيشن", "PlayStation Network"),
-    "xbox": ("بطاقات اكس بوكس", "Xbox Live & Game Pass"),
+    "xbox": ("بطاقات إكس بوكس", "Xbox Live & Game Pass"),
     "syriatel": ("سيريتل كاش", "Syriatel Cash"),
     "mtn": ("ام تي ان كاش", "MTN Cash"),
-    "asiacell": ("رصيد اسياسيل", "Asiacell Balance"),
+    "asiacell": ("رصيد آسيا سيل", "Asiacell Balance"),
     "zain": ("رصيد زين", "Zain Balance"),
     "korek": ("رصيد كورك", "Korek Balance"),
-    "turkcell": ("رصيد تركسل", "Turkcell Balance"),
+    "turkcell": ("رصيد تروكسل", "Turkcell Balance"),
     "vodafone": ("رصيد فودافون", "Vodafone Balance"),
-    "adguard": ("ادجارد في بي ان", "AdGuard VPN"),
+    "adguard": ("أدجارد في بي ان", "AdGuard VPN"),
     "nordvpn": ("نورد في بي ان", "NordVPN"),
-    "expressvpn": ("اكسبريس في بي ان", "ExpressVPN"),
+    "expressvpn": ("إكسبريس في بي ان", "ExpressVPN"),
     "kaspersky": ("كاسبرسكي انتي فايروس", "Kaspersky Antivirus"),
 }
 
@@ -716,16 +717,22 @@ class AlkasrMapperService:
                             or (qty_type == "range" and (qty_min or 0) >= 1000 and variant_cost >= Decimal("0.50"))
                             or (any(k in cat_lower for k in ("likee", "x", "twitter", "instagram", "tiktok")) and any(k in name_lower for k in ("متابعين", "followers", "likes", "views", "مشاهدات", "لايكات")))
                         )
-                        if is_smm and variant_cost >= Decimal("0.50"):
+                        if is_smm and variant_cost >= Decimal("0.50") and final_price >= Decimal("0.50"):
                             final_price = (final_price / Decimal("1000")).quantize(Decimal("0.00000001"))
                             wholesale_price = (wholesale_price / Decimal("1000")).quantize(Decimal("0.00000001"))
                             vip_price = (vip_price / Decimal("1000")).quantize(Decimal("0.00000001"))
                             variant_cost = (variant_cost / Decimal("1000")).quantize(Decimal("0.00000001"))
+                        elif is_smm and final_price < Decimal("0.0001") and final_price > Decimal("0.00000000"):
+                            # Recover from accidental double-division by 1000
+                            final_price = (final_price * Decimal("1000")).quantize(Decimal("0.00000001"))
+                            wholesale_price = (wholesale_price * Decimal("1000")).quantize(Decimal("0.00000001"))
+                            vip_price = (vip_price * Decimal("1000")).quantize(Decimal("0.00000001"))
+                            variant_cost = (variant_cost * Decimal("1000")).quantize(Decimal("0.00000001"))
 
                         meta = {
                             "qty_type": qty_type,
                             "qty_min": (qty_min or 1) if qty_type == "range" else 1,
-                            "qty_max": (qty_max or 999999) if qty_type == "range" else 1,
+                            "qty_max": (qty_max or 999999) if (qty_max and qty_max > 1) else 999999,
                             "qty_list": qty_list,
                             "is_per_mille": is_smm,
                             "product_type": pp.product_type,
@@ -820,6 +827,30 @@ class AlkasrMapperService:
                             elif "كاش" in variant_name:
                                 sort_num = 3
 
+                        # Clean up naming and options for Vodafone Cash Egypt / Egyptian Money Transfers
+                        if "مصر" in v_low or "فودافون كاش" in v_low or "egypt" in v_low:
+                            if "كاش" in v_low or "vodafone" in v_low or "محافظ" in v_low:
+                                variant_name = "فودافون كاش مصر (Vodafone Cash Egypt)"
+                                meta["qty_type"] = "range"
+                                meta["qty_min"] = 100
+                                meta["qty_max"] = 1000000
+                                final_price = Decimal("0.02150000")
+                                wholesale_price = Decimal("0.02100000")
+                                vip_price = Decimal("0.02070000")
+                                variant_cost = Decimal("0.02050000")
+
+                        # Clean up Visa Cards (single card price instead of 5-pack bundle)
+                        if ("visa" in v_low or "فيزا" in v_low) and ("5$" in v_low or "card" in v_low or "بطاقة" in v_low):
+                            if final_price >= Decimal("50.0"):
+                                variant_name = "بطاقة فيزا برصيد 5$ (VISA Card 5$)"
+                                final_price = Decimal("12.99000000")
+                                wholesale_price = Decimal("12.50000000")
+                                vip_price = Decimal("12.20000000")
+                                variant_cost = Decimal("11.50000000")
+                                meta["qty_type"] = "fixed"
+                                meta["qty_min"] = 1
+                                meta["qty_max"] = 999999
+
                         # If there is a Level 3 subcategory (e.g. اوتوماتيك 2, يدوي, أمريكي, سعودي, عضويات)
                         # and it is not already in the variant name, append it for clear identification
                         chain = self._get_category_chain(pp)
@@ -829,11 +860,35 @@ class AlkasrMapperService:
                                 if subcat_name.lower() not in variant_name.lower():
                                     variant_name = f"{variant_name} ({subcat_name})"
 
-                        # If multiple items in this product group share the exact same variant_name, append server/option index
+                        # Smart Duration Naming for Subscriptions (VPN, AI, Streaming, Software)
                         same_name_items = [x for x in p_items if (x.local_name or x.name or '').strip() == (pp.local_name or pp.name or '').strip()]
-                        if len(same_name_items) > 1 and "(سيرفر" not in variant_name:
+                        is_subscription = any(k in group_name.lower() for k in ("vpn", "gemini", "جيميني", "ذكاء", "ai", "canva", "كانفا", "نتفلكس", "netflix", "shahid", "شاهد", "اشتراك", "proxy", "بروكسي"))
+                        
+                        if is_subscription and len(same_name_items) > 1:
+                            sorted_items = sorted(same_name_items, key=lambda x: getattr(x, 'cost_price', 0) or 0)
+                            pos = sorted_items.index(pp) if pp in sorted_items else 0
+                            total_opts = len(sorted_items)
+                            has_duration = any(k in variant_name.lower() for k in ("شهر", "شهور", "سنة", "سنوات", "أيام", "يوم", "month", "year", "day"))
+                            
+                            if not has_duration:
+                                if total_opts == 2:
+                                    duration_label = "اشتراك شهر (1 Month)" if pos == 0 else "اشتراك سنة كاملة (1 Year)"
+                                elif total_opts == 3:
+                                    if pos == 0: duration_label = "اشتراك شهر (1 Month)"
+                                    elif pos == 1: duration_label = "اشتراك 3 أشهر (3 Months)"
+                                    else: duration_label = "اشتراك سنة كاملة (1 Year)"
+                                elif total_opts >= 4:
+                                    if pos == 0: duration_label = "اشتراك شهر (1 Month)"
+                                    elif pos == 1: duration_label = "اشتراك 3 أشهر (3 Months)"
+                                    elif pos == 2: duration_label = "اشتراك 6 أشهر (6 Months)"
+                                    else: duration_label = "اشتراك سنة كاملة (1 Year)"
+                                variant_name = f"{variant_name} - {duration_label}"
+                        elif len(same_name_items) > 1 and "(سيرفر" not in variant_name and "(خيار" not in variant_name and "اشتراك" not in variant_name:
                             item_idx = same_name_items.index(pp) + 1
-                            variant_name = f"{variant_name} (سيرفر {item_idx})"
+                            if any(k in group_name.lower() for k in ("لايكات", "متابعين", "مشاهدات", "سوشيال", "ببجي", "فري فاير", "العاب", "ألعاب")):
+                                variant_name = f"{variant_name} (سيرفر {item_idx})"
+                            else:
+                                variant_name = f"{variant_name} (خيار {item_idx})"
 
                         sku_val = f"PRV-{self.profile.id}-{pp.remote_id}"[:80]
 

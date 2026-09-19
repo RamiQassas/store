@@ -23,16 +23,21 @@ class OrdersConfig(AppConfig):
                         try:
                             time.sleep(12)
                             connection.close()
+                            from django.db.models import Q
                             from apps.orders.models import Order
                             from services.provider.manager import ProviderManager
                             from apps.orders.provider_status import apply_provider_status
                             from apps.providers.models import ProviderProfile
+                            from apps.common.tenant_utils import bypass_tenant_filter
 
-                            default_profile = ProviderProfile.objects.filter(is_active=True).first()
+                            with bypass_tenant_filter():
+                                default_profile = ProviderProfile.all_objects.filter(is_active=True).first()
 
-                            pending_orders = Order.all_objects.filter(
-                                status__in=[Order.Status.PROCESSING, Order.Status.PENDING]
-                            ).exclude(api_order_uuid=None, api_order_id=None)[:25]
+                                pending_orders = list(Order.all_objects.filter(
+                                    status__in=[Order.Status.PROCESSING, Order.Status.PENDING]
+                                ).filter(
+                                    Q(api_order_uuid__isnull=False) | Q(api_order_id__isnull=False) | Q(provider_orders__isnull=False)
+                                ).select_related("customer", "store").prefetch_related("provider_orders__profile")[:25])
 
                             for order in pending_orders:
                                 try:
@@ -41,23 +46,23 @@ class OrdersConfig(AppConfig):
                                         apply_provider_status(order, current_api_status, raw_response=order.fulfillment_data, actor=None, note_prefix="مزامنة خلفية")
                                         continue
 
-                                    po = order.provider_orders.select_related("profile").first()
+                                    po = order.provider_orders.all().first()
                                     profile = po.profile if (po and po.profile) else default_profile
                                     if profile:
+                                        data_list = []
                                         if order.api_order_id:
-                                            identifiers = [str(order.api_order_id)]
-                                            is_uuid = False
-                                        elif order.api_order_uuid:
-                                            identifiers = [str(order.api_order_uuid)]
-                                            is_uuid = True
-                                        else:
-                                            continue
+                                            data_list = ProviderManager.check_orders(
+                                                profile,
+                                                [str(order.api_order_id)],
+                                                is_uuid=False
+                                            )
+                                        if not data_list and order.api_order_uuid:
+                                            data_list = ProviderManager.check_orders(
+                                                profile,
+                                                [str(order.api_order_uuid)],
+                                                is_uuid=True
+                                            )
 
-                                        data_list = ProviderManager.check_orders(
-                                            profile,
-                                            identifiers,
-                                            is_uuid=is_uuid
-                                        )
                                         if data_list and len(data_list) > 0:
                                             order_data = data_list[0]
                                             api_status = order_data.get("status")

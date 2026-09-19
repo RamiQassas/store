@@ -849,8 +849,17 @@
                 </div>
             </div>
 
-            <!-- Dynamic Quantity Stepper if range or list -->
-            <div id="quantity-container" class="hidden mb-3">
+            <!-- Subscription Duration Indicator (if applicable) -->
+            <div id="duration-indicator-box" class="hidden mb-3 p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/25 flex items-center justify-between text-xs">
+                <span class="text-slate-300 font-bold flex items-center gap-1.5">
+                    <i class="fas fa-hourglass-half text-amber-400 text-xs"></i>
+                    <span>مدة الباقة / الاشتراك:</span>
+                </span>
+                <span id="duration-indicator-text" class="text-amber-400 font-bold font-mono bg-amber-500/20 px-2.5 py-1 rounded-lg border border-amber-500/30"></span>
+            </div>
+
+            <!-- Dynamic Quantity Stepper if range, list, or fixed -->
+            <div id="quantity-container" class="mb-3">
                 <div id="quantity-input-wrapper"></div>
             </div>
 
@@ -1437,6 +1446,10 @@ function selectVariant(id, el) {
     const submitBtn = document.getElementById('submit-btn');
     if (submitBtn) submitBtn.disabled = false;
     
+    // Update subscription duration indicator if applicable
+    const vNameStr = option.getAttribute('data-variant-name') || option.innerText || '';
+    updateDurationIndicator(vNameStr);
+
     // Parse parameters and render dynamic fields for this variant
     const paramsData = option.getAttribute('data-params');
     renderDynamicFields(paramsData, option);
@@ -1459,6 +1472,39 @@ function selectVariant(id, el) {
 
     // Immediately calculate starting subtotal and submit button text
     updateQuantityPrice();
+}
+
+function updateDurationIndicator(variantName) {
+    const box = document.getElementById('duration-indicator-box');
+    const textEl = document.getElementById('duration-indicator-text');
+    if (!box || !textEl) return;
+    
+    if (!variantName) {
+        box.classList.add('hidden');
+        return;
+    }
+    
+    const nameLower = variantName.toLowerCase();
+    let duration = null;
+    if (nameLower.includes('سنة') || nameLower.includes('سنوات') || nameLower.includes('12 شهر') || nameLower.includes('1 year') || nameLower.includes('yearly') || nameLower.includes('سنوي')) {
+        duration = 'سنة كاملة (12 شهراً)';
+    } else if (nameLower.includes('6 أشهر') || nameLower.includes('6 شهور') || nameLower.includes('6 months')) {
+        duration = '6 أشهر (نصف سنوي)';
+    } else if (nameLower.includes('3 أشهر') || nameLower.includes('3 شهور') || nameLower.includes('3 months')) {
+        duration = '3 أشهر (ربع سنوي)';
+    } else if (nameLower.includes('شهر') || nameLower.includes('1 month') || nameLower.includes('monthly') || nameLower.includes('شهري')) {
+        duration = 'شهر واحد (30 يوماً)';
+    } else if (nameLower.includes('يوم') || nameLower.includes('أيام') || nameLower.includes('day') || nameLower.includes('days')) {
+        const dayMatch = variantName.match(/(\d+)\s*(يوم|أيام|day|days)/i);
+        if (dayMatch) duration = `${dayMatch[1]} يوماً`;
+    }
+    
+    if (duration) {
+        textEl.innerText = duration;
+        box.classList.remove('hidden');
+    } else {
+        box.classList.add('hidden');
+    }
 }
 
 function renderQuantitySelector(qtyType, qtyMin, qtyMax, qtyListStr) {
@@ -1558,8 +1604,31 @@ function renderQuantitySelector(qtyType, qtyMin, qtyMax, qtyListStr) {
         `;
         inputHtml = selectHtml;
     } else {
-        container.classList.add('hidden');
-        inputHtml = `<input type="hidden" name="quantity" id="quantity-input" value="1">`;
+        container.classList.remove('hidden');
+        const maxLimit = (qtyMax && qtyMax > 1) ? qtyMax : 999999;
+        inputHtml = `
+            <div class="alkasr-qty-box">
+                <div class="flex items-center justify-between mb-2 text-xs">
+                    <span class="text-slate-300 font-bold flex items-center gap-1.5">
+                        <i class="fas fa-cubes text-amber-400 text-xs"></i>
+                        <span>الكمية المطلوبة:</span>
+                    </span>
+                    <span class="text-[11px] text-slate-400 font-mono">حدد الكمية التي تريد شراءها</span>
+                </div>
+                <div class="flex items-center gap-2.5">
+                    <button type="button" onclick="adjustQty(-1)" class="alkasr-stepper-btn" title="إنقاص الكمية">
+                        <i class="fas fa-minus text-xs"></i>
+                    </button>
+                    <input type="number" name="quantity" id="quantity-input" 
+                           min="1" max="${maxLimit}" value="1" 
+                           oninput="updateQuantityPrice()" onkeyup="updateQuantityPrice()" onchange="updateQuantityPrice()"
+                           class="flex-grow text-center alkasr-input-box font-mono font-black text-amber-400 text-lg">
+                    <button type="button" onclick="adjustQty(1)" class="alkasr-stepper-btn" title="زيادة الكمية">
+                        <i class="fas fa-plus text-xs"></i>
+                    </button>
+                </div>
+            </div>
+        `;
     }
     
     wrapper.innerHTML = inputHtml;
@@ -1695,8 +1764,18 @@ function updateQuantityPrice(isFromCoupon = false) {
     }
 
     const countEl = document.getElementById('metric-count');
-    if (countEl && qtyInput && qtyType === 'range') {
-        countEl.innerText = Number(qtyInput.value).toLocaleString();
+    if (countEl && qtyInput) {
+        if (qtyType === 'range' || qtyType === 'list') {
+            countEl.innerText = Number(qtyInput.value).toLocaleString();
+        } else {
+            const vName = card.getAttribute('data-variant-name') || card.innerText || '';
+            const valNum = Number(qtyInput.value) || 1;
+            if (valNum > 1) {
+                countEl.innerText = `${valNum.toLocaleString()} × ${vName.split('—')[0].trim()}`;
+            } else {
+                countEl.innerText = vName.split('—')[0].trim() || '1';
+            }
+        }
     }
 
     const submitBtn = document.getElementById('submit-btn');

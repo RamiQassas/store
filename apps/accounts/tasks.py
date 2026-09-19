@@ -234,16 +234,18 @@ def sync_pending_api_orders_task():
     from apps.orders.provider_status import apply_provider_status
     from apps.orders.services import resolve_variant_provider_and_product
     from apps.common.tenant_utils import bypass_tenant_filter
+    from apps.providers.models import ProviderProfile
     from services.provider.manager import ProviderManager
 
     with bypass_tenant_filter():
+        default_profile = ProviderProfile.all_objects.filter(is_active=True).first()
         orders = list(
             Order.all_objects
             .filter(
-                status=Order.Status.PROCESSING,
+                status__in=[Order.Status.PROCESSING, Order.Status.PENDING],
             )
             .filter(
-                Q(api_order_id__isnull=False) | Q(api_order_uuid__isnull=False) | Q(metadata__api_provider__isnull=False)
+                Q(api_order_id__isnull=False) | Q(api_order_uuid__isnull=False) | Q(metadata__api_provider__isnull=False) | Q(provider_orders__isnull=False)
             )
             .select_related("customer", "store")
             .prefetch_related("items__variant__product", "provider_orders__profile")
@@ -267,17 +269,25 @@ def sync_pending_api_orders_task():
                     profile = resolved_profile
 
             if not profile:
+                profile = default_profile
+
+            if not profile:
                 continue
 
-            identifiers = [str(order.api_order_uuid)] if order.api_order_uuid else ([str(order.api_order_id)] if order.api_order_id else [])
-            if not identifiers:
-                continue
+            data_list = []
+            if order.api_order_id:
+                data_list = ProviderManager.check_orders(
+                    profile,
+                    [str(order.api_order_id)],
+                    is_uuid=False
+                )
+            if not data_list and order.api_order_uuid:
+                data_list = ProviderManager.check_orders(
+                    profile,
+                    [str(order.api_order_uuid)],
+                    is_uuid=True
+                )
 
-            data_list = ProviderManager.check_orders(
-                profile,
-                identifiers,
-                is_uuid=bool(order.api_order_uuid)
-            )
             checked += 1
             if not data_list:
                 continue

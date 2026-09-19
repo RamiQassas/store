@@ -81,7 +81,23 @@ class Currency(TimeStampedModel):
             return Decimal(str(base_amount)) / Decimal(str(rate))
         return Decimal(str(base_amount)) * Decimal(str(rate))
 
+    def clean(self):
+        super().clean()
+        from django.core.exceptions import ValidationError
+        if self.buy_rate is not None and self.sell_rate is not None:
+            if self.conversion_method == self.ConversionMethod.MULTIPLY:
+                if self.sell_rate > self.buy_rate:
+                    raise ValidationError({
+                        "sell_rate": "سعر المبيع (للسحب) يجب ألا يتجاوز سعر الشراء (للإيداع) لتجنب ثغرات المراجحة المالية (Arbitrage)."
+                    })
+            elif self.conversion_method == self.ConversionMethod.DIVIDE:
+                if self.buy_rate > self.sell_rate:
+                    raise ValidationError({
+                        "buy_rate": "سعر الشراء (للإيداع) يجب ألا يتجاوز سعر المبيع (للسحب) لطريقة التحويل بالقسمة."
+                    })
+
     def save(self, *args, **kwargs):
+        self.clean()
         if self.is_default:
             Currency.all_objects.filter(store=self.store, is_default=True).exclude(pk=self.pk).update(is_default=False)
         super().save(*args, **kwargs)

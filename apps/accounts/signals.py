@@ -35,9 +35,13 @@ def update_user_ip_info(sender, request, user, **kwargs):
     user.last_city = info.get("city", "Unknown")
     update_fields = ["last_ip", "last_country", "last_city"]
     if request and hasattr(request, 'session'):
+        from django.utils import timezone
         current_scope = str(request.store.pk) if getattr(request, 'store', None) else "main"
         request.session["session_scope"] = current_scope
+        request.session["last_activity"] = timezone.now().timestamp()
         if request.session.session_key:
+            if user.last_session_key and user.last_session_key != request.session.session_key:
+                Session.objects.filter(session_key=user.last_session_key).delete()
             user.last_session_key = request.session.session_key
             update_fields.append("last_session_key")
     user.save(update_fields=update_fields)

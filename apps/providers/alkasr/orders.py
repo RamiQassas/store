@@ -97,10 +97,15 @@ class AlkasrOrderService:
         
         data_list = []
         if isinstance(resp, dict):
-            if resp.get("status") == "OK" and isinstance(resp.get("data"), list):
-                data_list = resp["data"]
-            elif isinstance(resp.get("data"), list):
-                data_list = resp["data"]
+            raw_d = resp.get("data")
+            if isinstance(raw_d, list):
+                data_list = raw_d
+            elif isinstance(raw_d, dict):
+                data_list = [raw_d]
+            elif isinstance(resp.get("orders"), list):
+                data_list = resp["orders"]
+            else:
+                data_list = [resp]
         elif isinstance(resp, list):
             data_list = resp
 

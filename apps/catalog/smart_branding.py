@@ -141,6 +141,31 @@ KNOWN_SEARCH_TERMS = {
     "planet vpn": "Planet VPN",
     "openvpn": "OpenVPN",
     "adguard": "AdGuard",
+    "ea fc": "EA SPORTS FC",
+    "ea sports fc": "EA SPORTS FC",
+    "fifa": "EA SPORTS FC",
+    "call of duty": "Call of Duty Mobile",
+    "cod": "Call of Duty Mobile",
+    "honor of kings": "Honor of Kings",
+    "league of legends": "League of Legends: Wild Rift",
+    "genshin": "Genshin Impact",
+    "genshin impact": "Genshin Impact",
+    "fortnite": "Fortnite",
+    "valorant": "Valorant",
+    "apex legends": "Apex Legends",
+    "ometv": "OmeTV",
+    "4fun": "4Fun",
+    "soulchill": "SoulChill",
+    "poppo": "Poppo Live",
+    "poppo live": "Poppo Live",
+    "chamet": "Chamet",
+    "meyo": "MeYo",
+    "livu": "LivU",
+    "chattube": "Chattube",
+    "yoyo": "YoYo",
+    "bobo": "Bobo",
+    "ahlan": "Ahlan",
+    "azal": "Azal",
 }
 
 KNOWN_DOMAINS = {
@@ -269,25 +294,41 @@ def extract_search_query(product_name):
     return clean_ar or product_name
 
 
-def fetch_image_from_itunes(query):
+def fetch_image_from_itunes(query, required_keywords=None):
     """
     Searches Apple App Store API for the query and downloads the official 512x512 app icon.
+    Validates that the returned app name or bundle matches the intended app keyword
+    to prevent unrelated random images from being used.
     """
     if not query:
         return None
     try:
-        url = f"https://itunes.apple.com/search?term={urllib.parse.quote(query)}&entity=software&limit=1"
-        resp = requests.get(url, timeout=1.5, headers={"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"})
+        url = f"https://itunes.apple.com/search?term={urllib.parse.quote(query)}&entity=software&limit=3"
+        resp = requests.get(url, timeout=3.0, headers={"User-Agent": "iTunes/12.11.3 (Windows; Microsoft Windows 10 x64) AppleWebKit/537.36"})
         if resp.status_code == 200:
             data = resp.json()
-            if data.get("results"):
-                res = data["results"][0]
-                img_url = res.get("artworkUrl512") or res.get("artworkUrl100")
-                if img_url:
-                    img_url = img_url.replace("100x100bb", "512x512bb")
-                    img_resp = requests.get(img_url, timeout=1.5, headers={"User-Agent": "Mozilla/5.0"})
-                    if img_resp.status_code == 200:
-                        return Image.open(io.BytesIO(img_resp.content)).convert("RGBA")
+            results = data.get("results", [])
+            if results:
+                target_words = [w.lower() for w in (required_keywords or query).split() if len(w) > 2 and w.lower() not in ("mobile", "points", "diamonds", "coins", "live", "chat", "vpn", "app")]
+                chosen = None
+                for candidate in results:
+                    tname = candidate.get("trackName", "").lower()
+                    bundle = candidate.get("bundleId", "").lower()
+                    if not target_words or any(w in tname or w in bundle for w in target_words):
+                        chosen = candidate
+                        break
+                
+                # If no strict keyword match, only accept candidate if required_keywords wasn't explicitly given
+                if not chosen and not required_keywords:
+                    chosen = results[0]
+
+                if chosen:
+                    img_url = chosen.get("artworkUrl512") or chosen.get("artworkUrl100")
+                    if img_url:
+                        img_url = img_url.replace("100x100bb", "512x512bb")
+                        img_resp = requests.get(img_url, timeout=3.0, headers={"User-Agent": "Mozilla/5.0"})
+                        if img_resp.status_code == 200:
+                            return Image.open(io.BytesIO(img_resp.content)).convert("RGBA")
     except Exception as e:
         logger.debug("iTunes search error for query '%s': %s", query, e)
     return None
@@ -301,7 +342,7 @@ def fetch_image_from_domain(product_name):
         if key in p_lower:
             try:
                 url = f"https://t2.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE,URL&url=http://{domain}&size=256"
-                resp = requests.get(url, timeout=1.5, headers={"User-Agent": "Mozilla/5.0"})
+                resp = requests.get(url, timeout=2.0, headers={"User-Agent": "Mozilla/5.0"})
                 if resp.status_code == 200 and len(resp.content) > 500:
                     img = Image.open(io.BytesIO(resp.content)).convert("RGBA")
                     if img.width >= 48 and img.height >= 48:
@@ -313,9 +354,9 @@ def fetch_image_from_domain(product_name):
 
 def search_and_download_logo(product_name):
     """
-    Multi-source official logo search:
+    Multi-source verified official logo search:
     1. Google High-Res Brand Domain API (Known Domains)
-    2. iTunes App Store Official Icon Search (query)
+    2. iTunes App Store Official Icon Search with relevance verification
     3. iTunes App Store Official Icon Search (broad keyword)
     """
     # 1. Known Domain Brand Logo
@@ -325,19 +366,19 @@ def search_and_download_logo(product_name):
 
     query = extract_search_query(product_name)
 
-    # 2. iTunes App Store API
-    img = fetch_image_from_itunes(query)
+    # 2. iTunes App Store API with keyword relevance check
+    img = fetch_image_from_itunes(query, required_keywords=query)
     if img:
         return img
 
     # Try broader query if specific query failed
     if " " in query:
         no_spaces = query.replace(" ", "")
-        img = fetch_image_from_itunes(no_spaces)
+        img = fetch_image_from_itunes(no_spaces, required_keywords=query)
         if img:
             return img
         first_word = query.split()[0]
-        img = fetch_image_from_itunes(first_word)
+        img = fetch_image_from_itunes(first_word, required_keywords=first_word)
         if img:
             return img
 
@@ -542,27 +583,53 @@ def compose_branded_card(logo_img, product_name, store_name=None, width=600, hei
 
 def create_fallback_brand_icon(product_name, icon_size=330):
     """
-    Creates an ultra-luxury studio icon tile using Raqamiyat emblem and modern typography
+    Creates an ultra-luxury studio icon tile using dynamic brand color palettes,
+    ambient radial glow, Apple squircle glass geometry, and crisp typography / emblem
     when no public App Store logo is found online.
     """
     icon = Image.new("RGBA", (icon_size, icon_size), (0, 0, 0, 0))
     draw = ImageDraw.Draw(icon)
     corner_radius = int(icon_size * 0.22)
 
-    # Base luxury container: Deep slate with sapphire/gold sheen
+    # Hash product name to deterministically select a curated luxury studio theme
+    name_str = (product_name or "Service").strip()
+    theme_hash = sum(ord(c) for c in name_str)
+    
+    PALETTES = [
+        {"bg": (15, 23, 42), "accent": (56, 189, 248), "border": (14, 165, 233, 140)},   # Cyan / Sapphire
+        {"bg": (24, 24, 27), "accent": (245, 158, 11), "border": (217, 119, 6, 150)},   # Amber / Imperial Gold
+        {"bg": (19, 24, 38), "accent": (99, 102, 241), "border": (79, 70, 229, 140)},   # Indigo / Royal Velvet
+        {"bg": (20, 28, 26), "accent": (16, 185, 129), "border": (5, 150, 105, 140)},   # Emerald / Jade
+        {"bg": (30, 20, 32), "accent": (236, 72, 153), "border": (219, 39, 119, 140)},  # Rose / Magenta
+        {"bg": (28, 25, 23), "accent": (249, 115, 22), "border": (234, 88, 12, 140)},   # Sunset / Coral
+    ]
+    p = PALETTES[theme_hash % len(PALETTES)]
+
+    # 1. Base luxury gradient/solid container
     draw.rounded_rectangle(
         [0, 0, icon_size - 1, icon_size - 1],
         radius=corner_radius,
-        fill=(15, 23, 42, 255),
-        outline=(217, 119, 6, 120),
+        fill=p["bg"] + (255,),
+        outline=p["border"],
         width=3
     )
 
-    # Center emblem if available
+    # 2. Subtle interior glass ambient glow
+    glow_size = int(icon_size * 0.6)
+    gx = (icon_size - glow_size) // 2
+    gy = (icon_size - glow_size) // 2
+    for r in range(glow_size // 2, 0, -4):
+        f = (1 - r / (glow_size // 2)) ** 1.5
+        alpha = int(40 * f)
+        draw.ellipse([gx + (glow_size // 2 - r), gy + (glow_size // 2 - r),
+                      gx + (glow_size // 2 + r), gy + (glow_size // 2 + r)],
+                     fill=p["accent"] + (alpha,))
+
+    # 3. Center emblem or crisp initials
     if os.path.exists(EMBLEM_PATH):
         try:
             emblem = Image.open(EMBLEM_PATH).convert("RGBA")
-            emb_size = int(icon_size * 0.65)
+            emb_size = int(icon_size * 0.58)
             emblem.thumbnail((emb_size, emb_size), Image.Resampling.LANCZOS)
             ex = (icon_size - emblem.width) // 2
             ey = (icon_size - emblem.height) // 2
@@ -570,6 +637,26 @@ def create_fallback_brand_icon(product_name, icon_size=330):
             return icon
         except Exception:
             pass
+
+    # 4. Fallback stylish typography badge
+    words = [w for w in re.findall(r'[a-zA-Z0-9\u0600-\u06FF]+', name_str) if w.lower() not in ('vip', 'pro', 'card')]
+    initials = words[0][:3].upper() if words else "APP"
+    font = None
+    for fp in ["C:/Windows/Fonts/segoeuib.ttf", "C:/Windows/Fonts/arialbd.ttf", "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"]:
+        if os.path.exists(fp):
+            try:
+                font = ImageFont.truetype(fp, 52)
+                break
+            except Exception:
+                pass
+    if not font:
+        font = ImageFont.load_default()
+
+    bbox = draw.textbbox((0, 0), initials, font=font)
+    tw, th = bbox[2] - bbox[0], bbox[3] - bbox[1]
+    tx = (icon_size - tw) // 2
+    ty = (icon_size - th) // 2
+    draw.text((tx, ty), initials, font=font, fill=(255, 255, 255, 230))
 
     return icon
 

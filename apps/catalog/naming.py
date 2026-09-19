@@ -5,7 +5,7 @@ ACRONYMS = {
     'VPN', 'VIP', 'UC', 'CP', 'TR', 'USA', 'UK', 'KSA', 'UAE', 'ID', 'AI',
     'HGS', 'HDO', 'IPTV', 'OSN', 'MTN', 'STC', 'EA', 'FC', 'RP', 'SMS', 'API',
     'FIFA', 'COD', 'PUBG', 'LOL', 'PSN', 'USD', 'EUR', 'TL', 'SAR', 'AED', 'PIA',
-    '4K', 'GPS', 'URL', 'USDT', 'BTC', 'ETH', 'TRC20', 'ERC20'
+    '4K', 'GPS', 'URL', 'USDT', 'BTC', 'ETH', 'TRC20', 'ERC20', '4FUN'
 }
 
 SPECIAL_CASING = {
@@ -76,6 +76,19 @@ SPECIAL_CASING = {
     'starmaker': 'StarMaker',
     'livechat': 'LiveChat',
     'lagofast': 'LagoFast',
+    'ometv': 'OmeTV',
+    '4fun': '4Fun',
+    'brawlstars': 'Brawl Stars',
+    'genshin': 'Genshin Impact',
+    'genshinimpact': 'Genshin Impact',
+    'honorofkings': 'Honor of Kings',
+    'leagueoflegends': 'League of Legends',
+    'callofduty': 'Call of Duty',
+    'poppo': 'Poppo Live',
+    'chamet': 'Chamet',
+    'chattube': 'Chattube',
+    'fortnite': 'Fortnite',
+    'valorant': 'Valorant',
 }
 
 # (regex pattern, Arabic translation, English title)
@@ -99,9 +112,17 @@ PHRASE_MAPPINGS = [
     (r'\b(british\s*whatsapp|واتساب\s*بريطاني)\b', 'واتساب بريطاني', 'British WhatsApp'),
     (r'\b(whatsapp|واتساب|واتس\s*اب)\b', 'واتساب', 'WhatsApp'),
     (r'\b(ready\s*accounts|حسابات\s*جاهزة)\b', 'حسابات جاهزة', 'Ready Accounts'),
-    (r'\b(program\s*activation\s*numbers|أرقام\s*تفعيل\s*البرامج)\b', 'أرقام تفعيل البرامج', 'Program Activation Numbers'),
-    (r'\b(data\s*and\s*communication|بيانات\s*واتصالات)\b', 'بيانات واتصالات', 'Data and Communication'),
+    (r'\b(program\s*activation\s*numbers|أرقام\s*تفعيل\s*البرامج|أرقام\s*وحسابات)\b', 'أرقام وحسابات', 'Numbers & Accounts'),
+    (r'\b(data\s*and\s*communication|بيانات\s*واتصالات|اتصالات\s*ورصيد)\b', 'اتصالات ورصيد', 'Telecom & Balance'),
     (r'\b(money\s*transfers|تحويلات\s*مالية)\b', 'تحويلات مالية', 'Money Transfers'),
+    (r'\b(games\s*recharge|game\s*recharge|شحن\s*الألعاب|شحن\s*ألعاب)\b', 'شحن الألعاب', 'Games Top-Up'),
+    (r'\b(apps\s*recharge|app\s*recharge|شحن\s*التطبيقات|شحن\s*تطبيقات)\b', 'شحن التطبيقات', 'Apps Top-Up'),
+    (r'\b(digital\s*cards|بطاقات\s*رقمية|بطاقات\s*إلكترونية)\b', 'بطاقات رقمية', 'Digital Cards'),
+    (r'\b(tv\s*and\s*streaming\s*services|tv\s*services|خدمات\s*التلفزيون\s*والبث|خدمات\s*التلفاز)\b', 'خدمات التلفزيون والبث', 'TV & Streaming Services'),
+    (r'\b(vpn\s*subscriptions|اشتراكات\s*vpn|اشتراكات\s*الفي\s*بي\s*ان)\b', 'اشتراكات VPN', 'VPN Subscriptions'),
+    (r'\b(ai\s*services|الذكاء\s*الاصطناعي)\b', 'الذكاء الاصطناعي', 'Artificial Intelligence'),
+    (r'\b(software\s*and\s*design|برامج\s*وتصميم|قسم\s*التصميم)\b', 'برامج وتصميم', 'Software & Design'),
+    (r'\b(social\s*media\s*promotion|ترويج\s*ودعم\s*السوشيال\s*ميديا|سوشيال\s*ميديا)\b', 'ترويج ودعم السوشيال ميديا', 'Social Media Services'),
 
     # Telecom - Iraq & Middle East
     (r'\b(asiacell\s*balance|رصيد\s*آسيا\s*سيل)\b', 'رصيد آسيا سيل', 'Asiacell Balance'),
@@ -140,13 +161,24 @@ PHRASE_MAPPINGS = [
 
     # Gaming & App Stores
     (r'\b(pubg\s*mobile\s*uc|شدات\s+ببجي(\s+موبايل)?)\b', 'شدات ببجي موبايل', 'PUBG Mobile UC'),
-    (r'\b(pupg\s*turkey|ببجي\s*تركيا)\b', 'ببجي تركيا', 'PUBG Turkey'),
+    (r'\b(pupg\s*turkey|pubg\s*turkey|ببجي\s*تركيا)\b', 'ببجي تركيا', 'PUBG Turkey'),
     (r'\b(pubg\s*mobile|ببجي\s+موبايل|ببجي)\b', 'ببجي موبايل', 'PUBG Mobile'),
     (r'\b(free\s*fire\s*diamonds|جواهر\s+فري\s+فاير)\b', 'جواهر فري فاير', 'Free Fire Diamonds'),
     (r'\b(free\s*fire\s*tr|فري\s*فاير\s*تركي)\b', 'فري فاير تركي', 'Free Fire TR'),
     (r'\b(free\s*fire|فري\s+فاير)\b', 'فري فاير', 'Free Fire'),
     (r'\b(roblox\s*robux|روبوكس\s+روبلوكس)\b', 'روبوكس روبلوكس', 'Roblox Robux'),
     (r'\b(roblex|roblox|روبلوكس)\b', 'روبلوكس', 'Roblox'),
+    (r'\b(ea\s*sports\s*fc|ea\s*fc\s*2\d|ea\s*fc|fifa\s*mobile|فيفا\s*موبايل|إي\s*إيه\s*سبورتس\s*إف\s*سي|اف\s*سي\s*موبايل)\b', 'إي إيه سبورتس إف سي', 'EA Sports FC'),
+    (r'\b(fifa|فيفا)\b', 'فيفا', 'FIFA'),
+    (r'\b(call\s*of\s*duty\s*mobile\s*cp|call\s*of\s*duty\s*cp|كود\s*موبايل\s*cp)\b', 'نقاط كول أوف ديوتي موبايل', 'Call of Duty Mobile CP'),
+    (r'\b(call\s*of\s*duty\s*mobile|call\s*of\s*duty|كول\s*أوف\s*ديوتي(\s*موبايل)?|كود\s*موبايل)\b', 'كول أوف ديوتي موبايل', 'Call of Duty Mobile'),
+    (r'\b(league\s*of\s*legends\s*(wild\s*rift)?|ليغ\s*أوف\s*ليجيندز|ليج\s*أوف\s*ليجيندز)\b', 'ليغ أوف ليجيندز', 'League of Legends'),
+    (r'\b(honor\s*of\s*kings|أونور\s*أوف\s*كينغز|اونور\s*اوف\s*كينجز)\b', 'أونور أوف كينغز', 'Honor of Kings'),
+    (r'\b(brawl\s*stars|براول\s*ستارز|براول\s*ستارس)\b', 'براول ستارز', 'Brawl Stars'),
+    (r'\b(genshin\s*impact|جينشين\s*إمباكت|غينشين\s*إمباكت)\b', 'جينشين إمباكت', 'Genshin Impact'),
+    (r'\b(fortnite|فورتنايت|فورتنيت)\b', 'فورتنايت', 'Fortnite'),
+    (r'\b(valorant|فالورانت)\b', 'فالورانت', 'Valorant'),
+    (r'\b(apex\s*legends|أيبكس\s*ليجندز)\b', 'أيبكس ليجندز', 'Apex Legends'),
     (r'\b(yalla\s*ludo\s*(diamonds|gold)|مجوهرات\s+يلا\s+لودو)\b', 'مجوهرات يلا لودو', 'Yalla Ludo Diamonds'),
     (r'\b(yalla\s*ludo|يلا\s+لودو)\b', 'يلا لودو', 'Yalla Ludo'),
     (r'\b(jawaker\s*tokens|توكنز\s+جواكر)\b', 'توكنز جواكر', 'Jawaker Tokens'),
@@ -175,9 +207,15 @@ PHRASE_MAPPINGS = [
     (r'\b(steam|ستيم)\b', 'ستيم', 'Steam'),
 
     # Live & Voice Apps
+    (r'\b(ometv|أومي\s*تي\s*في|اومي\s*تي\s*في)\b', 'أومي تي في', 'OmeTV'),
+    (r'\b(4fun|4\s*fun|فور\s*فن)\b', 'فور فن', '4Fun'),
+    (r'\b(soulchill|سول\s*تشيل|سولتشيل)\b', 'سول تشيل', 'SoulChill'),
+    (r'\b(poppo\s*live|poppo|بوبو\s*لايف)\b', 'بوبو لايف', 'Poppo Live'),
+    (r'\b(chamet|شاميت)\b', 'شاميت', 'Chamet'),
+    (r'\b(chattube|شات\s*تيوب)\b', 'شات تيوب', 'Chattube'),
     (r'\b(meyo\s*live|ميو\s*لايف)\b', 'ميو لايف', 'MeYo Live'),
     (r'\b(meyo|ميو)\b', 'ميو', 'MeYo'),
-    (r'\b(livu\s*live|livu|لايف\s*يو)\b', 'لايف يو', 'LivU'),
+    (r'\b(livu\s*live|livu|ليف\s*يو|لايف\s*يو)\b', 'ليف يو', 'LivU'),
     (r'\b(mixu|ميكس\s*يو)\b', 'ميكس يو', 'MixU'),
     (r'\b(tumile|توميل)\b', 'توميل', 'Tumile'),
     (r'\b(party\s*star|بارتي\s*ستار)\b', 'بارتي ستار', 'Party Star'),
@@ -189,6 +227,11 @@ PHRASE_MAPPINGS = [
     (r'\b(toptop|توب\s*توب)\b', 'توب توب', 'TopTop'),
     (r'\b(weplay\s*gold|وي\s*بلاي\s*ذهبي)\b', 'وي بلاي ذهبي', 'WePlay Gold'),
     (r'\b(weplay|وي\s*بلاي)\b', 'وي بلاي', 'WePlay'),
+    (r'\b(yoyo\s*chat|yoyo|يويو\s*شات|يويو)\b', 'يويو شات', 'YoYo Chat'),
+    (r'\b(bobo\s*chat|bobo|بوبو\s*شات)\b', 'بوبو شات', 'Bobo Chat'),
+    (r'\b(ahlan\s*chat|ahlan|أهلاً\s*شات|اهلاً\s*شات)\b', 'أهلاً شات', 'Ahlan Chat'),
+    (r'\b(azal\s*live|azal|آزال\s*لايف|ازال\s*لايف|آزال)\b', 'آزال لايف', 'Azal Live'),
+    (r'\b(upfun|up\s*fun|أب\s*فن|اب\s*فن)\b', 'أب فن', 'Upfun'),
     (r'\b(azar\s*chat|أزار\s*شات)\b', 'أزار شات', 'Azar Chat'),
     (r'\b(azar|أزار)\b', 'أزار', 'Azar'),
     (r'\b(tango\s*pro|تانجو\s*برو)\b', 'تانجو برو', 'Tango Pro'),
@@ -274,7 +317,7 @@ KNOWN_WORDS_EN_AR = {
     'syria': 'سوريا', 'lebanon': 'لبنان', 'jordan': 'الأردن', 'egypt': 'مصر',
     'kazakhstan': 'كازاخستان', 'ukraine': 'أوكرانيا', 'vietnam': 'فيتنام',
 
-    # Brand Transliterations
+    # Brand Transliterations & Gaming
     'browsec': 'بروسك', 'cyberghost': 'سايبر غوست', 'express': 'إكسبريس',
     'ipvanish': 'آي بي فانيش', 'nord': 'نورد', 'open': 'أوبن', 'pia': 'بي آي إيه',
     'planet': 'بلانيت', 'proton': 'بروتون', 'pure': 'بيور', 'ahlan': 'أهلاً',
@@ -287,9 +330,15 @@ KNOWN_WORDS_EN_AR = {
     'steam': 'ستيم', 'playstation': 'بلايستيشن', 'xbox': 'إكس بوكس',
     'kaspersky': 'كاسبرسكي', 'adguard': 'أدجارد', 'free': 'فري', 'fire': 'فاير',
     'gemini': 'جيميناي', 'binance': 'بينانس', 'razer': 'رازر',
-    'meyo': 'ميو', 'livu': 'لايف يو', 'mixu': 'ميكس يو', 'tumile': 'توميل',
+    'meyo': 'ميو', 'livu': 'ليف يو', 'mixu': 'ميكس يو', 'tumile': 'توميل',
     'zepeto': 'زيبيتو', 'zepito': 'زيبيتو', 'zems': 'زيمز', 'azar': 'أزار',
-    'tango': 'تانجو', 'imo': 'إيمو', 'for': 'لـ'
+    'tango': 'تانجو', 'imo': 'إيمو', 'for': 'لـ', 'of': 'أوف', 'the': 'الـ',
+    'ea': 'إي إيه', 'fc': 'إف سي', 'fifa': 'فيفا', 'duty': 'ديوتي', 'call': 'كول',
+    'brawl': 'براول', 'stars': 'ستارز', 'legends': 'ليجيندز', 'league': 'ليغ',
+    'kings': 'كينغز', 'honor': 'أونور', 'impact': 'إمباكت', 'genshin': 'جينشين',
+    'fortnite': 'فورتنايت', 'valorant': 'فالورانت', 'apex': 'أيبكس',
+    'ometv': 'أومي تي في', 'poppo': 'بوبو لايف', 'chattube': 'شات تيوب',
+    'upfun': 'أب فن', 'yoyo': 'يويو شات'
 }
 
 KNOWN_WORDS_AR_EN = {
@@ -312,7 +361,12 @@ KNOWN_WORDS_AR_EN = {
     'تروكسل': 'Turkcell', 'فودافون': 'Vodafone', 'فيسبوك': 'Facebook',
     'فيس بوك': 'Facebook', 'إنستغرام': 'Instagram', 'انستغرام': 'Instagram',
     'تويتر': 'Twitter', 'سناب شات': 'Snapchat', 'تيليجرام': 'Telegram',
-    'واتساب': 'WhatsApp', 'آسيا سيل': 'Asiacell', 'كورك': 'Korek', 'زين': 'Zain'
+    'واتساب': 'WhatsApp', 'آسيا سيل': 'Asiacell', 'كورك': 'Korek', 'زين': 'Zain',
+    'أومي تي في': 'OmeTV', 'فور فن': '4Fun', 'سول تشيل': 'SoulChill',
+    'بوبو لايف': 'Poppo Live', 'شاميت': 'Chamet', 'شات تيوب': 'Chattube',
+    'براول ستارز': 'Brawl Stars', 'جينشين إمباكت': 'Genshin Impact',
+    'أونور أوف كينغز': 'Honor of Kings', 'ليغ أوف ليجيندز': 'League of Legends',
+    'كول أوف ديوتي موبايل': 'Call of Duty Mobile', 'إي إيه سبورتس إف سي': 'EA Sports FC'
 }
 
 def transliterate_en_to_ar(text):
@@ -327,6 +381,19 @@ def transliterate_en_to_ar(text):
     
     # Strip any brackets or punctuation
     w = re.sub(r'[\(\)\[\]\{\}\"\']', '', w)
+
+    # Special short words
+    special_words = {
+        'of': 'أوف', 'for': 'لـ', 'the': 'الـ', 'ea': 'إي إيه', 'fc': 'إف سي',
+        'tv': 'تي في', 'pro': 'برو', 'vip': 'VIP', 'plus': 'بلس', 'max': 'ماكس',
+        'stars': 'ستارز', 'kings': 'كينغز', 'legends': 'ليجيندز', 'call': 'كول',
+        'duty': 'ديوتي', 'impact': 'إمباكت', 'brawl': 'براول', 'tube': 'تيوب',
+        'zone': 'زون', 'war': 'وار', 'strike': 'سترايك', 'hero': 'هيرو',
+        'heroes': 'هيروز', 'craft': 'كرافت', 'clash': 'كلاش', 'crush': 'كراش',
+        'speed': 'سبيد', 'rush': 'راش', 'party': 'بارتي', 'voice': 'فويس'
+    }
+    if w in special_words:
+        return special_words[w]
 
     # 1. Collapse double consonants
     for double_c in ['bb', 'cc', 'dd', 'ff', 'gg', 'll', 'mm', 'nn', 'pp', 'rr', 'ss', 'tt']:

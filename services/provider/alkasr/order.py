@@ -190,7 +190,16 @@ class AlkasrOrderService:
         if isinstance(response_data, list):
             items = response_data
         elif isinstance(response_data, dict):
-            items = response_data.get("data") or response_data.get("orders") or [response_data]
+            raw_data = response_data.get("data")
+            if raw_data is not None:
+                if isinstance(raw_data, list):
+                    items = raw_data
+                elif isinstance(raw_data, dict):
+                    items = [raw_data]
+            elif "orders" in response_data and isinstance(response_data["orders"], list):
+                items = response_data["orders"]
+            else:
+                items = [response_data]
 
         parsed_results = []
         for item in items:
@@ -199,10 +208,32 @@ class AlkasrOrderService:
             item_uuid = item.get("order_uuid") or item.get("uuid")
             item_id = item.get("order_id") or item.get("id")
             raw_status = str(item.get("status") or "").lower()
-            if item.get("error") or (isinstance(item.get("code"), int) and item.get("code") not in (0, 200) and item.get("code") < 600):
+            if item.get("error") or (isinstance(item.get("code"), int) and item.get("code") not in (0, 200, 201) and item.get("code") < 600):
                 mapped_status = PROVIDER_STATUS_MAP.get(raw_status, "failed")
             else:
                 mapped_status = PROVIDER_STATUS_MAP.get(raw_status, "processing")
+
+            # Synchronize ProviderOrder and status history if existing
+            try:
+                po = None
+                if item_id:
+                    po = ProviderOrder.objects.filter(profile=self.profile, remote_order_id=str(item_id)).first()
+                if not po and item_uuid:
+                    po = ProviderOrder.objects.filter(profile=self.profile, uuid=item_uuid).first()
+
+                if po:
+                    if po.status != mapped_status:
+                        po.status = mapped_status
+                        if item_id and not po.remote_order_id:
+                            po.remote_order_id = str(item_id)
+                        po.save(update_fields=["status", "remote_order_id"])
+                        ProviderOrderStatus.objects.create(
+                            provider_order=po,
+                            status=mapped_status,
+                            raw_response=item
+                        )
+            except Exception:
+                pass
 
             parsed_results.append({
                 "order_uuid": item_uuid,

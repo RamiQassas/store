@@ -621,8 +621,12 @@ def v3_verify_otp_view(request):
 
             # Explicitly sync user.last_session_key to avoid race condition with AccountStatusMiddleware
             if request.session.session_key:
+                from django.contrib.sessions.models import Session
+                if user.last_session_key and user.last_session_key != request.session.session_key:
+                    Session.objects.filter(session_key=user.last_session_key).delete()
                 user.last_session_key = request.session.session_key
                 user.save(update_fields=["last_session_key"])
+            request.session["last_activity"] = timezone.now().timestamp()
             
             now_iso = timezone.now().isoformat()
             request.session["v3_action_verified_at"] = now_iso
@@ -678,9 +682,14 @@ def v3_2fa_verify_view(request):
             request.session["session_scope"] = session_scope
             get_or_create_wallet(user)
 
+            # Explicitly sync user.last_session_key and terminate previous session
             if request.session.session_key:
+                from django.contrib.sessions.models import Session
+                if user.last_session_key and user.last_session_key != request.session.session_key:
+                    Session.objects.filter(session_key=user.last_session_key).delete()
                 user.last_session_key = request.session.session_key
                 user.save(update_fields=["last_session_key"])
+            request.session["last_activity"] = timezone.now().timestamp()
                 
             request.session["v3_action_verified_at"] = timezone.now().isoformat()
             
@@ -965,39 +974,48 @@ def wallet_page(request):
 def orders_list(request):
     # Multi-Tenant: Order.objects filtered by TenantManager automatically.
     # On store tenant: returns only orders placed within that store.
+    from django.db.models import Q
     pending_api_orders = Order.objects.filter(
         customer=request.user,
         status__in=[Order.Status.PROCESSING, Order.Status.PENDING]
-    ).exclude(api_order_uuid=None, api_order_id=None)
+    ).filter(
+        Q(api_order_uuid__isnull=False) | Q(api_order_id__isnull=False) | Q(provider_orders__isnull=False)
+    ).distinct()
     
     if pending_api_orders.exists():
         try:
             from services.provider.manager import ProviderManager
             from apps.orders.provider_status import apply_provider_status
             from apps.providers.models import ProviderProfile
-            default_profile = ProviderProfile.objects.filter(is_active=True).first()
+            from apps.common.tenant_utils import bypass_tenant_filter
+
+            with bypass_tenant_filter():
+                default_profile = ProviderProfile.all_objects.filter(is_active=True).first()
+
             for p_order in pending_api_orders[:5]:
                 po = p_order.provider_orders.select_related("profile").first()
                 profile = po.profile if (po and po.profile) else default_profile
-                if profile:
-                    if p_order.api_order_id:
-                        identifiers = [str(p_order.api_order_id)]
-                        is_uuid = False
-                    elif p_order.api_order_uuid:
-                        identifiers = [str(p_order.api_order_uuid)]
-                        is_uuid = True
-                    else:
-                        continue
+                if not profile:
+                    continue
 
+                data_list = []
+                if p_order.api_order_id:
                     data_list = ProviderManager.check_orders(
                         profile,
-                        identifiers,
-                        is_uuid=is_uuid
+                        [str(p_order.api_order_id)],
+                        is_uuid=False
                     )
-                    if data_list and len(data_list) > 0:
-                        order_data = data_list[0]
-                        api_status = order_data.get("status")
-                        apply_provider_status(p_order, api_status, raw_response=order_data, actor=None, note_prefix="تحديث تلقائي")
+                if not data_list and p_order.api_order_uuid:
+                    data_list = ProviderManager.check_orders(
+                        profile,
+                        [str(p_order.api_order_uuid)],
+                        is_uuid=True
+                    )
+
+                if data_list and len(data_list) > 0:
+                    order_data = data_list[0]
+                    api_status = order_data.get("status")
+                    apply_provider_status(p_order, api_status, raw_response=order_data, actor=None, note_prefix="تحديث تلقائي")
         except Exception:
             pass
 
@@ -1018,29 +1036,33 @@ def order_detail(request, pk):
             from services.provider.manager import ProviderManager
             from apps.orders.provider_status import apply_provider_status
             from apps.providers.models import ProviderProfile
+            from apps.common.tenant_utils import bypass_tenant_filter
+
             provider_order = order.provider_orders.select_related("profile").first()
-            profile = provider_order.profile if (provider_order and provider_order.profile) else ProviderProfile.objects.filter(is_active=True).first()
+            profile = provider_order.profile if (provider_order and provider_order.profile) else None
+            if not profile:
+                with bypass_tenant_filter():
+                    profile = ProviderProfile.all_objects.filter(is_active=True).first()
+
             if profile:
+                data_list = []
                 if order.api_order_id:
-                    identifiers = [str(order.api_order_id)]
-                    is_uuid = False
-                elif order.api_order_uuid:
-                    identifiers = [str(order.api_order_uuid)]
-                    is_uuid = True
-                else:
-                    identifiers = []
-                    is_uuid = False
-                    
-                if identifiers:
                     data_list = ProviderManager.check_orders(
                         profile,
-                        identifiers,
-                        is_uuid=is_uuid
+                        [str(order.api_order_id)],
+                        is_uuid=False
                     )
-                    if data_list and len(data_list) > 0:
-                        order_data = data_list[0]
-                        api_status = order_data.get("status")
-                        order = apply_provider_status(order, api_status, raw_response=order_data, actor=None, note_prefix="تحديث تلقائي")
+                if not data_list and order.api_order_uuid:
+                    data_list = ProviderManager.check_orders(
+                        profile,
+                        [str(order.api_order_uuid)],
+                        is_uuid=True
+                    )
+                    
+                if data_list and len(data_list) > 0:
+                    order_data = data_list[0]
+                    api_status = order_data.get("status")
+                    order = apply_provider_status(order, api_status, raw_response=order_data, actor=None, note_prefix="تحديث تلقائي")
         except Exception:
             pass
 
@@ -1562,19 +1584,75 @@ def kyc_request_view(request):
 
 @login_required
 def notifications_list(request):
+    from apps.notifications.models import NotificationSetting
+    from apps.site.forms import NotificationSettingForm
+    from django.http import JsonResponse
+    
+    settings_obj, _ = NotificationSetting.objects.get_or_create(user=request.user)
+
+    # Handle AJAX quick toggle
+    if request.method == "POST" and (request.headers.get("x-requested-with") == "XMLHttpRequest" or request.POST.get("ajax_toggle")):
+        field = request.POST.get("field")
+        val = request.POST.get("value")
+        if field and hasattr(settings_obj, field):
+            if field.startswith("admin_") and not request.user.is_platform_staff:
+                return JsonResponse({"success": False, "error": "غير مصرح"}, status=403)
+            bool_val = True if str(val).lower() in ("true", "1", "on") else False
+            setattr(settings_obj, field, bool_val)
+            settings_obj.save(update_fields=[field])
+            return JsonResponse({"success": True, "field": field, "value": bool_val})
+        return JsonResponse({"success": False, "error": "حقل غير صالح"}, status=400)
+
+    # Handle standard POST form submit
+    if request.method == "POST" and request.POST.get("save_notification_settings"):
+        form = NotificationSettingForm(request.POST, instance=settings_obj, is_staff=request.user.is_platform_staff)
+        if form.is_valid():
+            form.save()
+            messages.success(request, "تم حفظ تفضيلات الإشعارات بنجاح.")
+            return redirect("notifications_list")
+        else:
+            messages.error(request, "يرجى التحقق من صحة الخيارات المدخلة.")
+
+    form = NotificationSettingForm(instance=settings_obj, is_staff=request.user.is_platform_staff)
     notifications = Notification.objects.filter(user=request.user).order_by("-created_at")
     Notification.objects.filter(user=request.user, is_read=False).update(is_read=True, read_at=timezone.now())
-    return render(request, "site/notifications_list.html", {"notifications": notifications})
+
+    tab = request.GET.get("tab", "list")
+
+    return render(request, "site/notifications_list.html", {
+        "notifications": notifications,
+        "settings": settings_obj,
+        "form": form,
+        "active_tab": tab,
+    })
 
 @login_required
 def notification_settings(request):
+    from apps.notifications.models import NotificationSetting
+    from apps.site.forms import NotificationSettingForm
+    from django.http import JsonResponse
+
     obj, _ = NotificationSetting.objects.get_or_create(user=request.user)
+
+    # Handle AJAX quick toggle
+    if request.method == "POST" and (request.headers.get("x-requested-with") == "XMLHttpRequest" or request.POST.get("ajax_toggle")):
+        field = request.POST.get("field")
+        val = request.POST.get("value")
+        if field and hasattr(obj, field):
+            if field.startswith("admin_") and not request.user.is_platform_staff:
+                return JsonResponse({"success": False, "error": "غير مصرح"}, status=403)
+            bool_val = True if str(val).lower() in ("true", "1", "on") else False
+            setattr(obj, field, bool_val)
+            obj.save(update_fields=[field])
+            return JsonResponse({"success": True, "field": field, "value": bool_val})
+        return JsonResponse({"success": False, "error": "حقل غير صالح"}, status=400)
+
     form = NotificationSettingForm(request.POST or None, instance=obj, is_staff=request.user.is_platform_staff)
     if request.method == "POST" and form.is_valid():
         form.save()
         messages.success(request, "تم حفظ إعدادات الإشعارات بنجاح.")
         return redirect("notification_settings")
-    return render(request, "site/v3/v3_notification_settings.html", {"form": form})
+    return render(request, "site/v3/v3_notification_settings.html", {"form": form, "settings": obj})
 
 @login_required
 def v3_change_password_view(request):
@@ -1789,7 +1867,9 @@ def home(request):
             ctx["testimonials"] = testimonials
 
             from apps.stores.models import Store
-            platform_stores = list(Store.objects.filter(is_active=True).order_by('-is_featured', 'display_order', 'name')[:8])
+            from apps.common.tenant_utils import bypass_tenant_filter
+            with bypass_tenant_filter():
+                platform_stores = list(Store.objects.filter(is_active=True).order_by('-is_featured', 'display_order', 'name')[:8])
             ctx["platform_stores"] = platform_stores
 
         cache.set(cache_key, ctx, 120)

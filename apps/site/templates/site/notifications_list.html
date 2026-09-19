@@ -1,63 +1,570 @@
 {% extends "site/base.html" %}
 {% load static site_tags %}
 
-{% block title %}الإشعارات | Raqamiyat{% endblock %}
+{% block title %}مركز الإشعارات وتفضيلات التنبيهات | {% if is_tenant %}{{ STORE_NAME }}{% else %}رقميات{% endif %}{% endblock %}
+
+{% block extra_head %}
+<style>
+/* Modern Rock-Solid Toggle Switch */
+.rq-switch {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    width: 46px;
+    height: 25px;
+    cursor: pointer;
+    flex-shrink: 0;
+    user-select: none;
+}
+.rq-switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+    position: absolute;
+}
+.rq-slider {
+    position: absolute;
+    inset: 0;
+    background-color: rgba(255, 255, 255, 0.12);
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    border-radius: 9999px;
+    transition: all 0.25s ease;
+}
+.rq-slider:before {
+    position: absolute;
+    content: "";
+    height: 19px;
+    width: 19px;
+    right: 2px;
+    bottom: 2px;
+    background-color: #ffffff;
+    border-radius: 50%;
+    transition: all 0.25s ease;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.35);
+}
+.rq-switch input:checked + .rq-slider {
+    background-color: #06b6d4;
+    border-color: #22d3ee;
+    box-shadow: 0 0 12px rgba(6, 182, 212, 0.45);
+}
+.rq-switch input:checked + .rq-slider:before {
+    transform: translateX(-21px);
+}
+.rq-switch input:focus + .rq-slider {
+    outline: 2px solid rgba(6, 182, 212, 0.4);
+}
+
+/* Tab Navigation */
+.notif-nav-btn {
+    padding: 0.75rem 1.4rem;
+    font-weight: 800;
+    font-size: 0.9rem;
+    border-radius: 14px;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.6rem;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    color: #94a3b8;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    text-decoration: none;
+}
+.notif-nav-btn:hover {
+    background: rgba(255, 255, 255, 0.08);
+    color: #fff;
+}
+.notif-nav-btn.active {
+    background: linear-gradient(135deg, rgba(6, 182, 212, 0.2) 0%, rgba(99, 102, 241, 0.2) 100%);
+    border-color: rgba(6, 182, 212, 0.4);
+    color: #38bdf8;
+    box-shadow: 0 4px 15px rgba(6, 182, 212, 0.15);
+}
+
+/* Category Card */
+.pref-category-card {
+    background: rgba(15, 23, 42, 0.65);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 20px;
+    padding: 1.5rem;
+    margin-bottom: 1.25rem;
+    backdrop-filter: blur(16px);
+    transition: all 0.25s ease;
+}
+.pref-category-card:hover {
+    border-color: rgba(6, 182, 212, 0.25);
+    box-shadow: 0 10px 30px -10px rgba(0,0,0,0.5);
+}
+
+/* Toast alert */
+#live-toast {
+    position: fixed;
+    bottom: 24px;
+    left: 24px;
+    background: #0f172a;
+    border: 1px solid #10b981;
+    color: #10b981;
+    padding: 0.75rem 1.25rem;
+    border-radius: 12px;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+    display: none;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.85rem;
+    font-weight: 700;
+    z-index: 9999;
+}
+</style>
+{% endblock %}
 
 {% block content %}
-<div class="container py-12">
-    <div class="max-w-3xl mx-auto">
-        <div class="flex justify-between items-center mb-10">
-            <div>
-                <h1 class="text-4xl font-black text-white">مركز الإشعارات</h1>
-                <p class="text-slate-500 mt-2">تابع آخر التحديثات والعمليات على حسابك.</p>
-            </div>
-            <a href="{% url 'notification_settings' %}" class="btn btn-outline btn-sm rounded-xl">
-                <i class="fas fa-cog ml-2"></i> الإعدادات
-            </a>
+<div class="container py-8 max-w-4xl mx-auto px-4">
+    <!-- Header Section -->
+    <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
+        <div>
+            <span class="text-xs font-bold text-cyan uppercase tracking-widest block mb-1">مركز التحكم والتنبيهات</span>
+            <h1 class="text-3xl font-black text-white">مركز الإشعارات والتفضيلات</h1>
+            <p class="text-slate-400 text-sm mt-1">تابع كافة التحديثات والعمليات على حسابك، أو خصص إعدادات وتفضيلات وصول الإشعارات بحرية تامة.</p>
         </div>
+        
+        <!-- Tab Switcher -->
+        <div class="flex items-center gap-2 bg-slate-900/60 p-1.5 rounded-2xl border border-white/5 w-full md:w-auto">
+            <button type="button" onclick="switchNotifTab('list')" id="tab-btn-list" class="notif-nav-btn flex-1 md:flex-initial justify-center {% if active_tab != 'preferences' %}active{% endif %}">
+                <i class="fas fa-bell"></i>
+                <span>سجل الإشعارات</span>
+                {% if notifications %}
+                <span class="bg-cyan/20 text-cyan text-xs font-mono px-2 py-0.5 rounded-full border border-cyan/30">{{ notifications.count }}</span>
+                {% endif %}
+            </button>
+            <button type="button" onclick="switchNotifTab('preferences')" id="tab-btn-preferences" class="notif-nav-btn flex-1 md:flex-initial justify-center {% if active_tab == 'preferences' %}active{% endif %}">
+                <i class="fas fa-sliders"></i>
+                <span>تفضيلات الإشعارات</span>
+            </button>
+        </div>
+    </div>
 
+    <!-- TAB 1: NOTIFICATIONS FEED -->
+    <div id="tab-content-list" class="{% if active_tab == 'preferences' %}hidden{% endif %}">
         <div class="stack gap-4">
             {% for n in notifications %}
-            <div class="panel p-6 flex gap-6 items-start {% if not n.is_read %}border-cyan/30 bg-cyan/[0.02]{% else %}opacity-70{% endif %} hover:opacity-100 transition-all rounded-[2rem]">
+            <div class="panel p-6 flex gap-4 md:gap-6 items-start {% if not n.is_read %}border-cyan/30 bg-cyan/[0.03]{% else %}opacity-75{% endif %} hover:opacity-100 transition-all rounded-[1.75rem]">
                 {% if n.image_url %}
                 <img src="{{ n.image_url }}" alt="avatar" class="w-12 h-12 rounded-2xl object-cover border border-cyan/40 flex-shrink-0 shadow-md">
                 {% else %}
                 <div class="w-12 h-12 rounded-2xl flex-shrink-0 flex items-center justify-center 
-                    {% if 'order' in n.category or 'طلب' in n.title %}bg-blue-500/10 text-blue-500
-                    {% elif 'wallet' in n.category or 'رصيد' in n.title or 'محفظة' in n.title %}bg-emerald-500/10 text-emerald-500
-                    {% else %}bg-slate-500/10 text-slate-500{% endif %}">
+                    {% if 'order' in n.category or 'طلب' in n.title %}bg-blue-500/10 text-blue-400 border border-blue-500/20
+                    {% elif 'wallet' in n.category or 'رصيد' in n.title or 'محفظة' in n.title or 'إيداع' in n.title or 'سحب' in n.title %}bg-emerald-500/10 text-emerald-400 border border-emerald-500/20
+                    {% elif 'support' in n.category or 'دعم' in n.title %}bg-purple-500/10 text-purple-400 border border-purple-500/20
+                    {% elif 'kyc' in n.category or 'توثيق' in n.title or 'أمان' in n.title %}bg-amber-500/10 text-amber-400 border border-amber-500/20
+                    {% else %}bg-slate-500/10 text-slate-400 border border-white/5{% endif %}">
                     <i class="fas {% if 'order' in n.category or 'طلب' in n.title %}fa-receipt
-                                {% elif 'wallet' in n.category or 'رصيد' in n.title or 'محفظة' in n.title %}fa-wallet
-                                {% else %}fa-bell{% endif %} text-xl"></i>
+                                {% elif 'wallet' in n.category or 'رصيد' in n.title or 'محفظة' in n.title or 'إيداع' in n.title or 'سحب' in n.title %}fa-wallet
+                                {% elif 'support' in n.category or 'دعم' in n.title %}fa-headset
+                                {% elif 'kyc' in n.category or 'توثيق' in n.title or 'أمان' in n.title %}fa-shield-halved
+                                {% else %}fa-bell{% endif %} text-lg"></i>
                 </div>
                 {% endif %}
                 
-                <div class="flex-grow">
-                    <div class="flex justify-between items-start mb-1">
-                        <h3 class="font-bold text-white">{{ n.title }}</h3>
-                        <span class="text-[10px] font-bold text-slate-500 uppercase tracking-widest">{{ n.created_at|timesince }}</span>
+                <div class="flex-grow min-w-0">
+                    <div class="flex justify-between items-start mb-1 gap-2">
+                        <h3 class="font-bold text-white text-sm md:text-base">{{ n.title }}</h3>
+                        <span class="text-[10px] font-bold text-slate-500 font-mono flex-shrink-0">{{ n.created_at|timesince }}</span>
                     </div>
-                    <p class="text-slate-400 text-sm leading-relaxed mb-4 whitespace-pre-line">{{ n.body }}</p>
+                    <p class="text-slate-400 text-xs md:text-sm leading-relaxed mb-3 whitespace-pre-line">{{ n.body }}</p>
                     
                     {% if n.action_url %}
-                    <a href="{{ n.action_url }}" class="text-xs font-black text-cyan hover:underline">عرض التفاصيل <i class="fas fa-chevron-left mr-1 text-[8px]"></i></a>
+                    <a href="{{ n.action_url }}" class="inline-flex items-center gap-1.5 text-xs font-bold text-cyan hover:underline">
+                        <span>عرض التفاصيل</span>
+                        <i class="fas fa-arrow-left text-[10px]"></i>
+                    </a>
                     {% endif %}
                 </div>
 
                 {% if not n.is_read %}
-                <div class="w-2 h-2 rounded-full bg-cyan shadow-[0_0_10px_var(--cyan)] mt-2"></div>
+                <div class="w-2.5 h-2.5 rounded-full bg-cyan shadow-[0_0_10px_var(--cyan)] mt-2 flex-shrink-0"></div>
                 {% endif %}
             </div>
             {% empty %}
-            <div class="panel p-20 text-center rounded-[3rem] border-dashed border-white/5 bg-transparent">
-                <div class="w-20 h-20 bg-slate-900/50 rounded-full flex items-center justify-center text-slate-700 mx-auto mb-6">
-                    <i class="fas fa-bell-slash text-3xl"></i>
+            <div class="panel p-16 text-center rounded-[2.5rem] border-dashed border-white/10 bg-slate-900/30">
+                <div class="w-16 h-16 bg-slate-900/80 rounded-2xl flex items-center justify-center text-slate-600 mx-auto mb-4 border border-white/5">
+                    <i class="fas fa-bell-slash text-2xl"></i>
                 </div>
-                <h2 class="text-xl font-bold text-white">لا توجد إشعارات حالياً</h2>
-                <p class="text-slate-500 text-sm mt-2">عندما تتلقى إشعارات جديدة، ستظهر هنا.</p>
+                <h3 class="text-lg font-bold text-white">لا توجد إشعارات حالياً</h3>
+                <p class="text-slate-500 text-xs mt-1">عندما تتلقى إشعارات جديدة بخصوص طلباتك أو محفظتك ستظهر هنا فوراً.</p>
             </div>
             {% endfor %}
         </div>
     </div>
+
+    <!-- TAB 2: COMPREHENSIVE NOTIFICATION PREFERENCES -->
+    <div id="tab-content-preferences" class="{% if active_tab != 'preferences' %}hidden{% endif %}">
+        
+        <form method="post" id="preferences-form">
+            {% csrf_token %}
+            <input type="hidden" name="save_notification_settings" value="1">
+
+            <!-- Master Global Toggle -->
+            <div class="p-6 rounded-2xl bg-gradient-to-r from-slate-900/90 to-cyan/10 border border-cyan/30 flex items-center justify-between mb-8 shadow-lg">
+                <div class="flex items-center gap-4">
+                    <div class="w-12 h-12 rounded-xl bg-cyan/20 text-cyan flex items-center justify-center text-xl flex-shrink-0">
+                        <i class="fas fa-power-off"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-base font-black text-white">المفتاح العام لتفعيل الإشعارات</h3>
+                        <p class="text-xs text-slate-400">عند إيقاف هذا الخيار، سيتم كتم وتعطيل جميع التنبيهات الصادرة من المنصة فوراً.</p>
+                    </div>
+                </div>
+                <label class="rq-switch" title="تبديل الإشعارات عامة">
+                    <input type="checkbox" name="is_enabled" id="id_is_enabled" data-field="is_enabled" onchange="toggleSettingLive(this)" {% if settings.is_enabled %}checked{% endif %}>
+                    <span class="rq-slider"></span>
+                </label>
+            </div>
+
+            <!-- Categories Control Grid -->
+            <div class="stack gap-2">
+
+                <!-- 1. Orders & Digital Deliveries -->
+                <div class="pref-category-card">
+                    <div class="flex items-center justify-between border-b border-white/5 pb-3 mb-4">
+                        <div class="flex items-center gap-3">
+                            <div class="w-9 h-9 rounded-lg bg-blue-500/10 text-blue-400 flex items-center justify-center text-sm">
+                                <i class="fas fa-box-open"></i>
+                            </div>
+                            <div>
+                                <h4 class="font-bold text-white text-sm">إشعارات الطلبات والشحنات الرقمية</h4>
+                                <span class="text-[11px] text-slate-400">تحديثات حالة الطلب، وصول الأكواد والتسليم اللحظي، وإشعارات الاسترجاع</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                        <div class="flex items-center justify-between p-3 bg-white/[0.02] border border-white/5 rounded-xl">
+                            <span class="text-xs font-bold text-slate-300"><i class="fas fa-mobile ml-1.5 text-cyan"></i> داخل التطبيق</span>
+                            <label class="rq-switch">
+                                <input type="checkbox" name="in_app_orders" data-field="in_app_orders" onchange="toggleSettingLive(this)" {% if settings.in_app_orders %}checked{% endif %}>
+                                <span class="rq-slider"></span>
+                            </label>
+                        </div>
+                        <div class="flex items-center justify-between p-3 bg-white/[0.02] border border-white/5 rounded-xl">
+                            <span class="text-xs font-bold text-slate-300"><i class="fas fa-bell ml-1.5 text-amber-400"></i> إشعار فوري Push</span>
+                            <label class="rq-switch">
+                                <input type="checkbox" name="push_orders" data-field="push_orders" onchange="toggleSettingLive(this)" {% if settings.push_orders %}checked{% endif %}>
+                                <span class="rq-slider"></span>
+                            </label>
+                        </div>
+                        <div class="flex items-center justify-between p-3 bg-white/[0.02] border border-white/5 rounded-xl">
+                            <span class="text-xs font-bold text-slate-300"><i class="fas fa-envelope ml-1.5 text-indigo-400"></i> البريد الإلكتروني</span>
+                            <label class="rq-switch">
+                                <input type="checkbox" name="email_orders" data-field="email_orders" onchange="toggleSettingLive(this)" {% if settings.email_orders %}checked{% endif %}>
+                                <span class="rq-slider"></span>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 2. Financial & Wallet -->
+                <div class="pref-category-card">
+                    <div class="flex items-center justify-between border-b border-white/5 pb-3 mb-4">
+                        <div class="flex items-center gap-3">
+                            <div class="w-9 h-9 rounded-lg bg-emerald-500/10 text-emerald-400 flex items-center justify-center text-sm">
+                                <i class="fas fa-wallet"></i>
+                            </div>
+                            <div>
+                                <h4 class="font-bold text-white text-sm">إشعارات العمليات المالية والمحفظة</h4>
+                                <span class="text-[11px] text-slate-400">تأكيد الإيداعات، معالجة السحوبات، تحويلات الرصيد P2P وشحن البطاقات</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                        <div class="flex items-center justify-between p-3 bg-white/[0.02] border border-white/5 rounded-xl">
+                            <span class="text-xs font-bold text-slate-300"><i class="fas fa-mobile ml-1.5 text-cyan"></i> داخل التطبيق</span>
+                            <label class="rq-switch">
+                                <input type="checkbox" name="in_app_financial" data-field="in_app_financial" onchange="toggleSettingLive(this)" {% if settings.in_app_financial %}checked{% endif %}>
+                                <span class="rq-slider"></span>
+                            </label>
+                        </div>
+                        <div class="flex items-center justify-between p-3 bg-white/[0.02] border border-white/5 rounded-xl">
+                            <span class="text-xs font-bold text-slate-300"><i class="fas fa-bell ml-1.5 text-amber-400"></i> إشعار فوري Push</span>
+                            <label class="rq-switch">
+                                <input type="checkbox" name="push_financial" data-field="push_financial" onchange="toggleSettingLive(this)" {% if settings.push_financial %}checked{% endif %}>
+                                <span class="rq-slider"></span>
+                            </label>
+                        </div>
+                        <div class="flex items-center justify-between p-3 bg-white/[0.02] border border-white/5 rounded-xl">
+                            <span class="text-xs font-bold text-slate-300"><i class="fas fa-envelope ml-1.5 text-indigo-400"></i> البريد الإلكتروني</span>
+                            <label class="rq-switch">
+                                <input type="checkbox" name="email_financial" data-field="email_financial" onchange="toggleSettingLive(this)" {% if settings.email_financial %}checked{% endif %}>
+                                <span class="rq-slider"></span>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 3. Support & Tickets -->
+                <div class="pref-category-card">
+                    <div class="flex items-center justify-between border-b border-white/5 pb-3 mb-4">
+                        <div class="flex items-center gap-3">
+                            <div class="w-9 h-9 rounded-lg bg-purple-500/10 text-purple-400 flex items-center justify-center text-sm">
+                                <i class="fas fa-headset"></i>
+                            </div>
+                            <div>
+                                <h4 class="font-bold text-white text-sm">إشعارات الدعم الفني وتذاكر المساعدة</h4>
+                                <span class="text-[11px] text-slate-400">ردود موظفي الدعم، تحديثات المحادثات وتأكيد إغلاق التذاكر</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                        <div class="flex items-center justify-between p-3 bg-white/[0.02] border border-white/5 rounded-xl">
+                            <span class="text-xs font-bold text-slate-300"><i class="fas fa-mobile ml-1.5 text-cyan"></i> داخل التطبيق</span>
+                            <label class="rq-switch">
+                                <input type="checkbox" name="in_app_support" data-field="in_app_support" onchange="toggleSettingLive(this)" {% if settings.in_app_support %}checked{% endif %}>
+                                <span class="rq-slider"></span>
+                            </label>
+                        </div>
+                        <div class="flex items-center justify-between p-3 bg-white/[0.02] border border-white/5 rounded-xl">
+                            <span class="text-xs font-bold text-slate-300"><i class="fas fa-bell ml-1.5 text-amber-400"></i> إشعار فوري Push</span>
+                            <label class="rq-switch">
+                                <input type="checkbox" name="push_support" data-field="push_support" onchange="toggleSettingLive(this)" {% if settings.push_support %}checked{% endif %}>
+                                <span class="rq-slider"></span>
+                            </label>
+                        </div>
+                        <div class="flex items-center justify-between p-3 bg-white/[0.02] border border-white/5 rounded-xl">
+                            <span class="text-xs font-bold text-slate-300"><i class="fas fa-envelope ml-1.5 text-indigo-400"></i> البريد الإلكتروني</span>
+                            <label class="rq-switch">
+                                <input type="checkbox" name="email_support" data-field="email_support" onchange="toggleSettingLive(this)" {% if settings.email_support %}checked{% endif %}>
+                                <span class="rq-slider"></span>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 4. Security & KYC -->
+                <div class="pref-category-card">
+                    <div class="flex items-center justify-between border-b border-white/5 pb-3 mb-4">
+                        <div class="flex items-center gap-3">
+                            <div class="w-9 h-9 rounded-lg bg-amber-500/10 text-amber-400 flex items-center justify-center text-sm">
+                                <i class="fas fa-shield-halved"></i>
+                            </div>
+                            <div>
+                                <h4 class="font-bold text-white text-sm">إشعارات الأمان وتوثيق الهوية (KYC)</h4>
+                                <span class="text-[11px] text-slate-400">حالة قبول أو رفض وثائق التحقق، تنبيهات تسجيل الدخول، وتغيير كلمات المرور</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                        <div class="flex items-center justify-between p-3 bg-white/[0.02] border border-white/5 rounded-xl">
+                            <span class="text-xs font-bold text-slate-300"><i class="fas fa-mobile ml-1.5 text-cyan"></i> داخل التطبيق</span>
+                            <label class="rq-switch">
+                                <input type="checkbox" name="in_app_kyc" data-field="in_app_kyc" onchange="toggleSettingLive(this)" {% if settings.in_app_kyc %}checked{% endif %}>
+                                <span class="rq-slider"></span>
+                            </label>
+                        </div>
+                        <div class="flex items-center justify-between p-3 bg-white/[0.02] border border-white/5 rounded-xl">
+                            <span class="text-xs font-bold text-slate-300"><i class="fas fa-bell ml-1.5 text-amber-400"></i> إشعار فوري Push</span>
+                            <label class="rq-switch">
+                                <input type="checkbox" name="push_kyc" data-field="push_kyc" onchange="toggleSettingLive(this)" {% if settings.push_kyc %}checked{% endif %}>
+                                <span class="rq-slider"></span>
+                            </label>
+                        </div>
+                        <div class="flex items-center justify-between p-3 bg-white/[0.02] border border-white/5 rounded-xl">
+                            <span class="text-xs font-bold text-slate-300"><i class="fas fa-envelope ml-1.5 text-indigo-400"></i> البريد الإلكتروني</span>
+                            <label class="rq-switch">
+                                <input type="checkbox" name="email_kyc" data-field="email_kyc" onchange="toggleSettingLive(this)" {% if settings.email_kyc %}checked{% endif %}>
+                                <span class="rq-slider"></span>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 5. Promotions & Special Deals -->
+                <div class="pref-category-card">
+                    <div class="flex items-center justify-between border-b border-white/5 pb-3 mb-4">
+                        <div class="flex items-center gap-3">
+                            <div class="w-9 h-9 rounded-lg bg-rose-500/10 text-rose-400 flex items-center justify-center text-sm">
+                                <i class="fas fa-tag"></i>
+                            </div>
+                            <div>
+                                <h4 class="font-bold text-white text-sm">العروض والتخفيضات والكوبونات الحصرية</h4>
+                                <span class="text-[11px] text-slate-400">إشعارات التخفيضات على الألعاب والتطبيقات، وأكواد الخصم الترويجية</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                        <div class="flex items-center justify-between p-3 bg-white/[0.02] border border-white/5 rounded-xl">
+                            <span class="text-xs font-bold text-slate-300"><i class="fas fa-mobile ml-1.5 text-cyan"></i> داخل التطبيق</span>
+                            <label class="rq-switch">
+                                <input type="checkbox" name="in_app_promotions" data-field="in_app_promotions" onchange="toggleSettingLive(this)" {% if settings.in_app_promotions %}checked{% endif %}>
+                                <span class="rq-slider"></span>
+                            </label>
+                        </div>
+                        <div class="flex items-center justify-between p-3 bg-white/[0.02] border border-white/5 rounded-xl">
+                            <span class="text-xs font-bold text-slate-300"><i class="fas fa-bell ml-1.5 text-amber-400"></i> إشعار فوري Push</span>
+                            <label class="rq-switch">
+                                <input type="checkbox" name="push_promotions" data-field="push_promotions" onchange="toggleSettingLive(this)" {% if settings.push_promotions %}checked{% endif %}>
+                                <span class="rq-slider"></span>
+                            </label>
+                        </div>
+                        <div class="flex items-center justify-between p-3 bg-white/[0.02] border border-white/5 rounded-xl">
+                            <span class="text-xs font-bold text-slate-300"><i class="fas fa-envelope ml-1.5 text-indigo-400"></i> البريد الإلكتروني</span>
+                            <label class="rq-switch">
+                                <input type="checkbox" name="email_promotions" data-field="email_promotions" onchange="toggleSettingLive(this)" {% if settings.email_promotions %}checked{% endif %}>
+                                <span class="rq-slider"></span>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                {% if user.is_platform_staff %}
+                <!-- 6. Admin / Staff Alerts -->
+                <div class="pref-category-card border-indigo-500/25 bg-indigo-950/20">
+                    <div class="flex items-center justify-between border-b border-indigo-500/20 pb-3 mb-4">
+                        <div class="flex items-center gap-3">
+                            <div class="w-9 h-9 rounded-lg bg-indigo-500/20 text-indigo-400 flex items-center justify-center text-sm">
+                                <i class="fas fa-user-gear"></i>
+                            </div>
+                            <div>
+                                <h4 class="font-bold text-white text-sm">إشعارات الإدارة والموظفين (خاصة بطاقم العمل)</h4>
+                                <span class="text-[11px] text-indigo-300/80">تنبيهات العمليات الإدارية والمراجعات المالية وتنبيهات المزودين</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                        <div class="flex items-center justify-between p-3 bg-white/[0.02] border border-white/5 rounded-xl">
+                            <span class="text-xs font-bold text-slate-300">طلبات إيداع جديدة</span>
+                            <label class="rq-switch">
+                                <input type="checkbox" name="admin_new_deposit" data-field="admin_new_deposit" onchange="toggleSettingLive(this)" {% if settings.admin_new_deposit %}checked{% endif %}>
+                                <span class="rq-slider"></span>
+                            </label>
+                        </div>
+                        <div class="flex items-center justify-between p-3 bg-white/[0.02] border border-white/5 rounded-xl">
+                            <span class="text-xs font-bold text-slate-300">طلبات سحب جديدة</span>
+                            <label class="rq-switch">
+                                <input type="checkbox" name="admin_new_withdrawal" data-field="admin_new_withdrawal" onchange="toggleSettingLive(this)" {% if settings.admin_new_withdrawal %}checked{% endif %}>
+                                <span class="rq-slider"></span>
+                            </label>
+                        </div>
+                        <div class="flex items-center justify-between p-3 bg-white/[0.02] border border-white/5 rounded-xl">
+                            <span class="text-xs font-bold text-slate-300">طلبات شراء جديدة</span>
+                            <label class="rq-switch">
+                                <input type="checkbox" name="admin_new_order" data-field="admin_new_order" onchange="toggleSettingLive(this)" {% if settings.admin_new_order %}checked{% endif %}>
+                                <span class="rq-slider"></span>
+                            </label>
+                        </div>
+                        <div class="flex items-center justify-between p-3 bg-white/[0.02] border border-white/5 rounded-xl">
+                            <span class="text-xs font-bold text-slate-300">تذاكر دعم جديدة</span>
+                            <label class="rq-switch">
+                                <input type="checkbox" name="admin_new_support" data-field="admin_new_support" onchange="toggleSettingLive(this)" {% if settings.admin_new_support %}checked{% endif %}>
+                                <span class="rq-slider"></span>
+                            </label>
+                        </div>
+                        <div class="flex items-center justify-between p-3 bg-white/[0.02] border border-white/5 rounded-xl">
+                            <span class="text-xs font-bold text-slate-300">طلبات توثيق جديدة</span>
+                            <label class="rq-switch">
+                                <input type="checkbox" name="admin_new_kyc" data-field="admin_new_kyc" onchange="toggleSettingLive(this)" {% if settings.admin_new_kyc %}checked{% endif %}>
+                                <span class="rq-slider"></span>
+                            </label>
+                        </div>
+                        <div class="flex items-center justify-between p-3 bg-white/[0.02] border border-white/5 rounded-xl">
+                            <span class="text-xs font-bold text-slate-300">تنبيهات أخطاء المزودين</span>
+                            <label class="rq-switch">
+                                <input type="checkbox" name="admin_provider_alert" data-field="admin_provider_alert" onchange="toggleSettingLive(this)" {% if settings.admin_provider_alert %}checked{% endif %}>
+                                <span class="rq-slider"></span>
+                            </label>
+                        </div>
+                        <div class="flex items-center justify-between p-3 bg-white/[0.02] border border-white/5 rounded-xl sm:col-span-2 lg:col-span-3">
+                            <span class="text-xs font-bold text-slate-300">استلام إشعارات الإدارة عبر البريد الإلكتروني</span>
+                            <label class="rq-switch">
+                                <input type="checkbox" name="admin_email_notifications" data-field="admin_email_notifications" onchange="toggleSettingLive(this)" {% if settings.admin_email_notifications %}checked{% endif %}>
+                                <span class="rq-slider"></span>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+
+            </div>
+
+            <!-- Manual Save Fallback Button -->
+            <div class="mt-8 pt-4 flex items-center justify-between">
+                <span class="text-xs text-slate-500">* يتم حفظ كافة الخيارات تلقائياً بمجرد النقر عليها.</span>
+                <button type="submit" class="btn btn-primary py-3 px-8 rounded-xl font-bold text-sm shadow-lg shadow-cyan/20">
+                    <i class="fas fa-check ml-1.5"></i>
+                    <span>حفظ التفضيلات</span>
+                </button>
+            </div>
+        </form>
+
+    </div>
 </div>
+
+<!-- Toast Indicator -->
+<div id="live-toast">
+    <i class="fas fa-circle-check"></i>
+    <span id="toast-text">تم حفظ التغيير بنجاح ✓</span>
+</div>
+
+{% block extra_js %}
+<script>
+function switchNotifTab(tabName) {
+    const listBtn = document.getElementById('tab-btn-list');
+    const prefBtn = document.getElementById('tab-btn-preferences');
+    const listContent = document.getElementById('tab-content-list');
+    const prefContent = document.getElementById('tab-content-preferences');
+    
+    if (tabName === 'preferences') {
+        listBtn.classList.remove('active');
+        prefBtn.classList.add('active');
+        listContent.classList.add('hidden');
+        prefContent.classList.remove('hidden');
+    } else {
+        prefBtn.classList.remove('active');
+        listBtn.classList.add('active');
+        prefContent.classList.add('hidden');
+        listContent.classList.remove('hidden');
+    }
+}
+
+function showToast(msg) {
+    const toast = document.getElementById('live-toast');
+    const toastText = document.getElementById('toast-text');
+    if (!toast) return;
+    toastText.innerText = msg || 'تم حفظ التغيير بنجاح ✓';
+    toast.style.display = 'flex';
+    setTimeout(() => {
+        toast.style.display = 'none';
+    }, 2200);
+}
+
+function toggleSettingLive(checkbox) {
+    const fieldName = checkbox.getAttribute('data-field');
+    const isChecked = checkbox.checked;
+    
+    const formData = new FormData();
+    formData.append('csrfmiddlewaretoken', '{{ csrf_token }}');
+    formData.append('ajax_toggle', '1');
+    formData.append('field', fieldName);
+    formData.append('value', isChecked ? 'true' : 'false');
+    
+    fetch('{% url "notifications_list" %}', {
+        method: 'POST',
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest'
+        },
+        body: formData
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.success) {
+            showToast('تم تحديث التفضيل بنجاح ✓');
+        } else {
+            checkbox.checked = !isChecked; // revert
+            alert('حدث خطأ أثناء حفظ الإعداد: ' + (data.error || 'يرجى المحاولة مجدداً'));
+        }
+    })
+    .catch(err => {
+        checkbox.checked = !isChecked; // revert
+        console.error(err);
+    });
+}
+</script>
+{% endblock %}
 {% endblock %}

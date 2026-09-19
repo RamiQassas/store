@@ -10,6 +10,25 @@
         display: grid;
         grid-template-columns: 1fr;
         gap: 1.5rem;
+        width: 100%;
+        max-width: 100%;
+        min-width: 0;
+        box-sizing: border-box;
+    }
+    
+    .dashboard-main,
+    .dashboard-sidebar {
+        width: 100%;
+        max-width: 100%;
+        min-width: 0;
+        box-sizing: border-box;
+    }
+
+    .panel {
+        max-width: 100%;
+        min-width: 0;
+        box-sizing: border-box;
+        overflow-wrap: break-word;
     }
     
     @media (min-width: 1024px) {
@@ -317,6 +336,15 @@
     /* Mobile Utility Fix */
     @media (max-width: 768px) {
         .hide-mobile { display: none !important; }
+        .p-6 { padding: 1rem !important; }
+        .p-8 { padding: 1.15rem 1rem !important; }
+        .px-8 { padding-left: 1rem !important; padding-right: 1rem !important; }
+        .dashboard-grid { gap: 1rem !important; }
+        .balance-display { font-size: 1.85rem !important; word-break: break-all; }
+        .quick-actions { grid-template-columns: repeat(2, 1fr) !important; gap: 0.65rem !important; }
+        .action-btn { padding: 0.85rem !important; gap: 0.5rem !important; }
+        .action-btn i { font-size: 1.25rem !important; }
+        .action-btn span { font-size: 0.72rem !important; }
     }
 </style>
 {% endblock %}
@@ -404,29 +432,29 @@
         <div class="panel p-6 border-cyan/20 bg-slate-900/40 relative overflow-hidden">
             <div class="absolute top-0 right-0 w-48 h-48 bg-cyan/5 rounded-full blur-3xl pointer-events-none"></div>
             <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6 pb-4 border-b border-white/5">
-                <div class="flex items-center gap-4">
-                    <div class="w-14 h-14 rounded-2xl bg-gradient-to-br from-cyan to-blue-600 flex items-center justify-center text-slate-950 font-black text-2xl shadow-lg shadow-cyan/20">
+                <div class="flex items-center gap-4 min-w-0 max-w-full">
+                    <div class="w-14 h-14 rounded-2xl bg-gradient-to-br from-cyan to-blue-600 flex items-center justify-center text-slate-950 font-black text-2xl shadow-lg shadow-cyan/20 flex-shrink-0">
                         {{ user.display_name|slice:":1"|upper }}
                     </div>
-                    <div>
-                        <div class="flex items-center gap-2">
-                            <h2 class="text-xl font-black text-white">{% if user.get_full_name %}{{ user.get_full_name }}{% else %}{{ user.display_name }}{% endif %}</h2>
-                            <span class="badge primary text-[10px]"><i class="fas fa-crown text-amber-400 ml-1"></i> {{ user.get_tier_display }}</span>
+                    <div class="min-w-0 flex-1">
+                        <div class="flex items-center gap-2 flex-wrap">
+                            <h2 class="text-xl font-black text-white break-words">{{ user.display_name }}</h2>
+                            <span class="badge primary text-[10px] flex-shrink-0"><i class="fas fa-crown text-amber-400 ml-1"></i> {{ user.get_tier_display }}</span>
                         </div>
-                        <div class="flex items-center gap-3 text-xs text-slate-400 mt-1 font-mono">
-                            <span>@{{ user.username }}</span>
+                        <div class="flex items-center gap-2 flex-wrap text-xs text-slate-400 mt-1 font-mono">
+                            <span class="break-all font-bold text-slate-300">@{{ user.username }}</span>
                             <span>•</span>
-                            <span class="flex items-center gap-1">
-                                معرف الحساب (UID): <strong class="text-cyan">{{ user.uid|default:user.public_uuid|truncatechars:18 }}</strong>
+                            <span class="flex items-center gap-1 break-all">
+                                <span>معرف (UID):</span> <strong class="text-cyan">{{ user.uid|default:user.public_uuid|truncatechars:18 }}</strong>
                                 <button type="button" onclick="copyToClipboard('{{ user.uid|default:user.public_uuid }}', this)" class="text-slate-400 hover:text-white" title="نسخ المعرف"><i class="fas fa-copy text-[10px]"></i></button>
                             </span>
                         </div>
                     </div>
                 </div>
-                <div class="flex items-center gap-2 flex-wrap">
-                    <a href="{% url 'change_email' %}" class="btn btn-outline btn-sm text-xs font-bold"><i class="fas fa-envelope ml-1"></i> تعديل البريد</a>
-                    <a href="{% url 'change_password' %}" class="btn btn-outline btn-sm text-xs font-bold"><i class="fas fa-key ml-1"></i> كلمة المرور</a>
-                    <a href="{% url 'site_security_triggers' %}" class="btn btn-outline btn-sm text-xs font-bold text-cyan border-cyan/20"><i class="fas fa-shield-alt ml-1"></i> الأمان</a>
+                <div class="flex items-center gap-2 flex-wrap w-full md:w-auto">
+                    <a href="{% url 'change_email' %}" class="btn btn-outline btn-sm text-xs font-bold flex-1 md:flex-initial text-center"><i class="fas fa-envelope ml-1"></i> البريد</a>
+                    <a href="{% url 'change_password' %}" class="btn btn-outline btn-sm text-xs font-bold flex-1 md:flex-initial text-center"><i class="fas fa-key ml-1"></i> كلمة المرور</a>
+                    <a href="{% url 'site_security_triggers' %}" class="btn btn-outline btn-sm text-xs font-bold text-cyan border-cyan/20 flex-1 md:flex-initial text-center"><i class="fas fa-shield-alt ml-1"></i> الأمان</a>
                 </div>
             </div>
 

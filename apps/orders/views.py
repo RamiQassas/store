@@ -179,29 +179,29 @@ class OrderViewSet(viewsets.ModelViewSet):
         if not order.api_order_uuid and not order.api_order_id:
             return response.Response({"detail": "هذا الطلب غير مربوط بـ API خارجي."}, status=status.HTTP_400_BAD_REQUEST)
             
+        from apps.common.tenant_utils import bypass_tenant_filter
         provider_order = order.provider_orders.select_related("profile").first()
         profile = provider_order.profile if (provider_order and provider_order.profile) else None
         if not profile:
-            profile = ProviderProfile.objects.filter(is_active=True).first()
+            with bypass_tenant_filter():
+                profile = ProviderProfile.all_objects.filter(is_active=True).first()
             
         if not profile:
             return response.Response({"detail": "لا يوجد مزود خدمة فعال مرتبط."}, status=status.HTTP_400_BAD_REQUEST)
 
+        data_list = []
         if order.api_order_id:
-            identifiers = [str(order.api_order_id)]
-            is_uuid = False
-        elif order.api_order_uuid:
-            identifiers = [str(order.api_order_uuid)]
-            is_uuid = True
-        else:
-            identifiers = []
-            is_uuid = False
-
-        data_list = ProviderManager.check_orders(
-            profile,
-            identifiers,
-            is_uuid=is_uuid
-        )
+            data_list = ProviderManager.check_orders(
+                profile,
+                [str(order.api_order_id)],
+                is_uuid=False
+            )
+        if not data_list and order.api_order_uuid:
+            data_list = ProviderManager.check_orders(
+                profile,
+                [str(order.api_order_uuid)],
+                is_uuid=True
+            )
         res = {"status": "OK", "data": data_list}
             
         if res.get("status") == "OK" and isinstance(res.get("data"), list) and len(res["data"]) > 0:
