@@ -358,6 +358,14 @@ class MetaPixelConfiguration(TimeStampedModel):
         verbose_name="رمز اختبار الأحداث (Test Event Code)"
     )
 
+    # Sync state and metrics cache
+    last_synced_at = models.DateTimeField(null=True, blank=True, verbose_name="آخر مزامنة مع ميتا")
+    last_sync_status = models.CharField(max_length=50, default="idle", verbose_name="حالة المزامنة")
+    last_sync_error = models.TextField(blank=True, verbose_name="آخر رسالة خطأ من ميتا")
+    cached_campaigns_count = models.IntegerField(default=0, verbose_name="عدد الحملات")
+    cached_adsets_count = models.IntegerField(default=0, verbose_name="عدد المجموعات الإعلانية")
+    cached_ads_count = models.IntegerField(default=0, verbose_name="عدد الإعلانات")
+
     updated_by = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         null=True,
@@ -370,9 +378,6 @@ class MetaPixelConfiguration(TimeStampedModel):
     class Meta:
         verbose_name = "إعدادات بيكسل ميتا (Meta Pixel)"
         verbose_name_plural = "إعدادات بيكسل ميتا (Meta Pixel)"
-
-    def __str__(self):
-        return f"{self.pixel_name} ({self.pixel_id or 'غير معين'})"
 
     @classmethod
     def get_settings(cls, store=None):
@@ -389,4 +394,54 @@ class MetaPixelConfiguration(TimeStampedModel):
             return obj
         except Exception:
             return None
+
+
+class MetaCampaignSnapshot(TimeStampedModel):
+    """
+    Stores synchronized Meta Ads campaign metrics and performance snapshots.
+    """
+    store = models.ForeignKey(
+        "stores.Store",
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name="meta_campaign_snapshots",
+        verbose_name="المتجر"
+    )
+    objects = TenantManager()
+    all_objects = models.Manager()
+
+    campaign_id = models.CharField(max_length=80, verbose_name="معرّف الحملة في ميتا")
+    name = models.CharField(max_length=255, verbose_name="اسم الحملة")
+    status = models.CharField(max_length=40, default="UNKNOWN", verbose_name="الحالة")
+    effective_status = models.CharField(max_length=40, default="UNKNOWN", verbose_name="الحالة الفعلية")
+    objective = models.CharField(max_length=80, blank=True, verbose_name="هدف الحملة")
+    daily_budget = models.DecimalField(max_digits=14, decimal_places=2, default=Decimal("0.00"), verbose_name="الميزانية اليومية")
+    lifetime_budget = models.DecimalField(max_digits=14, decimal_places=2, default=Decimal("0.00"), verbose_name="الميزانية الإجمالية")
+    
+    spend = models.DecimalField(max_digits=14, decimal_places=2, default=Decimal("0.00"), verbose_name="المصروف")
+    impressions = models.PositiveIntegerField(default=0, verbose_name="مرات الظهور")
+    reach = models.PositiveIntegerField(default=0, verbose_name="الوصول")
+    clicks = models.PositiveIntegerField(default=0, verbose_name="النقرات")
+    cpc = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal("0.00"), verbose_name="تكلفة النقرة")
+    cpm = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal("0.00"), verbose_name="تكلفة الألف ظهور")
+    ctr = models.DecimalField(max_digits=6, decimal_places=2, default=Decimal("0.00"), verbose_name="نسبة النقر CTR")
+    
+    registrations = models.PositiveIntegerField(default=0, verbose_name="التسجيلات")
+    purchases = models.PositiveIntegerField(default=0, verbose_name="المشتريات")
+    revenue = models.DecimalField(max_digits=14, decimal_places=2, default=Decimal("0.00"), verbose_name="قيمة المبيعات")
+    cpa = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal("0.00"), verbose_name="تكلفة الشراء CPA")
+    roas = models.DecimalField(max_digits=8, decimal_places=2, default=Decimal("0.00"), verbose_name="العائد الإعلاني ROAS")
+
+    raw_data = models.JSONField(default=dict, blank=True, verbose_name="البيانات الخام من ميتا")
+    last_synced_at = models.DateTimeField(auto_now=True, verbose_name="تاريخ المزامنة")
+
+    class Meta:
+        verbose_name = "لقطة حملة إعلانية لميتا"
+        verbose_name_plural = "لقطات حملات ميتا الإعلانية"
+        ordering = ("-spend", "-created_at")
+
+    def __str__(self):
+        return f"{self.name} ({self.effective_status})"
+
 
