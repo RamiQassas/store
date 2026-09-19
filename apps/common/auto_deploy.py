@@ -102,18 +102,20 @@ def start_auto_deploy_background_thread():
 @csrf_exempt
 def github_auto_deploy_view(request):
     """GitHub webhook and deployment endpoint, active when AUTO_DEPLOY_ENABLED."""
-    if not settings.AUTO_DEPLOY_ENABLED:
+    if not settings.AUTO_DEPLOY_ENABLED or not getattr(settings, "GITHUB_WEBHOOK_SECRET", ""):
         return HttpResponseNotFound()
 
-    if settings.GITHUB_WEBHOOK_SECRET:
-        signature = request.headers.get("X-Hub-Signature-256", "")
-        expected = "sha256=" + hmac.new(
-            settings.GITHUB_WEBHOOK_SECRET.encode("utf-8"),
-            request.body,
-            hashlib.sha256,
-        ).hexdigest()
-        if not hmac.compare_digest(signature, expected):
-            return HttpResponseForbidden("Invalid webhook signature")
+    signature = request.headers.get("X-Hub-Signature-256", "")
+    if not signature:
+        return HttpResponseForbidden("Missing webhook signature")
+
+    expected = "sha256=" + hmac.new(
+        settings.GITHUB_WEBHOOK_SECRET.encode("utf-8"),
+        request.body,
+        hashlib.sha256,
+    ).hexdigest()
+    if not hmac.compare_digest(signature, expected):
+        return HttpResponseForbidden("Invalid webhook signature")
 
     success, output = apply_git_update()
     if success:

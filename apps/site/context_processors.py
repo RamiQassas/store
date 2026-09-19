@@ -1,4 +1,5 @@
 from apps.common.models import Currency, SocialMediaLink
+from apps.common.security import sanitize_custom_css
 from apps.payments.models import PaymentMethod
 
 def preferred_currency(request):
@@ -144,7 +145,7 @@ def tenant_context(request):
             "STORE_FOOTER_STYLE": store.footer_style or "classic",
             "STORE_BUTTON_STYLE": store.button_style or "pill",
             "STORE_SHADOW_STYLE": store.shadow_style or "soft",
-            "STORE_CUSTOM_CSS": store.custom_css or "",
+            "STORE_CUSTOM_CSS": sanitize_custom_css(store.custom_css or ""),
 
             # Store contact details
             "STORE_PHONE": store.phone or "",

@@ -101,6 +101,10 @@ def version_view(request):
 
 @require_GET
 def debug_provider_products(request):
+    if not settings.DEBUG and not (request.user.is_authenticated and request.user.is_superuser):
+        return JsonResponse({"detail": "Not found."}, status=404)
+    if not (request.user.is_authenticated and request.user.is_superuser):
+        return JsonResponse({"detail": "Authentication required."}, status=403)
     from apps.providers.models import ProviderProduct, ProviderProfile
     from apps.catalog.models import ProductVariant
     profile = ProviderProfile.all_objects.filter(is_active=True).first()
@@ -134,6 +138,10 @@ def debug_provider_products(request):
 
 @require_GET
 def alkasr_raw_products(request):
+    if not settings.DEBUG and not (request.user.is_authenticated and request.user.is_superuser):
+        return JsonResponse({"detail": "Not found."}, status=404)
+    if not (request.user.is_authenticated and request.user.is_superuser):
+        return JsonResponse({"detail": "Authentication required."}, status=403)
     from apps.providers.models import ProviderProfile
     from services.provider.alkasr.client import AlkasrClient
     profile = ProviderProfile.all_objects.filter(is_active=True).first()
@@ -153,9 +161,11 @@ def alkasr_raw_products(request):
     return JsonResponse({"total": len(raw_list), "sample": raw_list[:20]})
 
 
-@csrf_exempt
+
 @require_POST
 def trigger_remap_catalog(request):
+    if not (request.user.is_authenticated and request.user.is_superuser):
+        return JsonResponse({"detail": "Authentication required."}, status=403)
     from django.core.management import call_command
     import io
     out = io.StringIO()

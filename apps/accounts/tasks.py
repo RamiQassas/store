@@ -24,6 +24,18 @@ def cleanup_unverified_users_task():
     
     count_deleted = 0
     for user in unverified_to_delete:
+        # Safety guards: Never delete users who have money, orders, deposits, or stores
+        has_balance = user.wallets.filter(available_balance__gt=0).exists() or user.wallets.filter(held_balance__gt=0).exists()
+        has_orders = hasattr(user, "orders") and user.orders.exists()
+        has_deposits = hasattr(user, "deposit_requests") and user.deposit_requests.exists()
+        has_stores = hasattr(user, "owned_stores") and user.owned_stores.exists()
+
+        if has_balance or has_orders or has_deposits or has_stores:
+            # Preserve account and financial integrity; simply deactivate instead of hard delete
+            user.is_active = False
+            user.save(update_fields=["is_active"])
+            continue
+
         email = user.email
         name = user.get_full_name() or email
         subject = "إشعار حذف الحساب لعدم التفعيل | Raqamiyat"

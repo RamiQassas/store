@@ -215,14 +215,20 @@ class User(AbstractUser):
             self.save(update_fields=["daily_deposit_usage", "daily_withdrawal_usage", "last_limit_reset"])
 
     def add_deposit_usage(self, amount_in_usd):
+        from django.db.models import F
         self.reset_daily_limits_if_needed()
-        self.daily_deposit_usage += Decimal(str(amount_in_usd))
-        self.save(update_fields=["daily_deposit_usage"])
+        User.all_objects.filter(pk=self.pk).update(
+            daily_deposit_usage=F("daily_deposit_usage") + Decimal(str(amount_in_usd))
+        )
+        self.refresh_from_db(fields=["daily_deposit_usage"])
 
     def add_withdrawal_usage(self, amount_in_usd):
+        from django.db.models import F
         self.reset_daily_limits_if_needed()
-        self.daily_withdrawal_usage += Decimal(str(amount_in_usd))
-        self.save(update_fields=["daily_withdrawal_usage"])
+        User.all_objects.filter(pk=self.pk).update(
+            daily_withdrawal_usage=F("daily_withdrawal_usage") + Decimal(str(amount_in_usd))
+        )
+        self.refresh_from_db(fields=["daily_withdrawal_usage"])
 
     @property
     def remaining_deposit_limit(self):

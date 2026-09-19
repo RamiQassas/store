@@ -17,15 +17,14 @@ def role_required(allowed_roles):
             # Subdomain store context
             active_store = getattr(request, 'store', None)
             if active_store:
-                is_store_member = (
+                is_store_admin_or_staff = (
                     active_store.owner_id == request.user.pk or
-                    request.user.store_id == active_store.pk or
                     request.user.store_employments.filter(store=active_store).exists() or
                     request.user.is_superuser or
                     request.user.is_staff or
                     getattr(request.user, "role", None) in [User.Role.SUPER_ADMIN, User.Role.ADMIN]
                 )
-                if is_store_member:
+                if is_store_admin_or_staff or request.user.role in allowed_roles:
                     return view_func(request, *args, **kwargs)
                 raise PermissionDenied
 

@@ -91,7 +91,7 @@ class DepositRequestViewSet(viewsets.ModelViewSet):
                 wallet_final_amount = final_amount
             else:
                 base_val = deposit.currency.to_base(final_amount, "deposit")
-                wallet_final_amount = wallet.currency.from_base(base_val, "deposit")
+                wallet_final_amount = wallet.currency.from_base(base_val, "withdraw")
 
             if wallet_final_amount <= 0:
                 return response.Response({"detail": "خطأ في حساب المبلغ المودع: يجب أن يكون المبلغ أكبر من صفر."}, status=status.HTTP_400_BAD_REQUEST)
@@ -167,7 +167,7 @@ class DepositRequestViewSet(viewsets.ModelViewSet):
                 wallet_diff = diff_amount
             else:
                 base_diff = deposit.currency.to_base(diff_amount, "deposit")
-                wallet_diff = wallet.currency.from_base(base_diff, "deposit")
+                wallet_diff = wallet.currency.from_base(base_diff, "withdraw")
 
             # 3. Apply adjustment to wallet
             from apps.wallets.services import debit_wallet
@@ -252,8 +252,10 @@ class WithdrawalRequestViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         with transaction.atomic():
-            # Check daily limit BEFORE creation
-            user = self.request.user
+            from apps.accounts.models import User
+            # Lock user row to eliminate concurrent withdrawal limit bypass
+            user = User.all_objects.select_for_update().get(pk=self.request.user.pk)
+            user.reset_daily_limits_if_needed()
             currency = serializer.validated_data.get('currency')
             amount = serializer.validated_data.get('amount')
             
@@ -261,7 +263,7 @@ class WithdrawalRequestViewSet(viewsets.ModelViewSet):
             if amount_in_usd > user.remaining_withdrawal_limit:
                 raise permissions.exceptions.ValidationError(f"لقد تجاوزت حد السحب اليومي المتبقي ({user.remaining_withdrawal_limit:,.2f} USD).")
 
-            withdrawal = serializer.save()
+            withdrawal = serializer.save(user=user)
             wallet = get_or_create_wallet(withdrawal.user)
             # Freeze funds immediately upon request
             freeze_funds(

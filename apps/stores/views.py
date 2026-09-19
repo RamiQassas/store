@@ -1090,7 +1090,8 @@ def merchant_theme_builder(request):
         store.footer_style = request.POST.get("footer_style", store.footer_style)
         store.button_style = request.POST.get("button_style", store.button_style)
         store.shadow_style = request.POST.get("shadow_style", store.shadow_style)
-        store.custom_css = request.POST.get("custom_css", store.custom_css)
+        from apps.common.security import sanitize_custom_css
+        store.custom_css = sanitize_custom_css(request.POST.get("custom_css", store.custom_css))
         
         store.save()
         messages.success(request, "تم حفظ تصميم ومظهر المتجر بنجاح.")

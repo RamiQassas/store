@@ -30,47 +30,61 @@ def execute_p2p_transfer(sender, recipient, amount, currency, note=""):
     if settings.require_kyc_for_transfer and (not sender.is_kyc_verified or not recipient.is_kyc_verified):
         raise ValidationError("يجب أن يكون كلا الحسابين موثقين لإتمام التحويل.")
 
-    # Calculate daily cumulative limit in USD
-    limit_usd = sender.custom_p2p_transfer_limit if sender.has_custom_limits and sender.custom_p2p_transfer_limit else (settings.verified_transfer_limit if sender.is_kyc_verified else settings.unverified_transfer_limit)
-    
-    # Convert current amount to USD
-    amount_usd = currency.to_base(amount, "withdraw")
-
-    # Get transfers by this user today (Damascus midnight onwards)
     from django.utils import timezone
-    from django.db.models import Sum
-    today_start = timezone.localtime(timezone.now()).replace(hour=0, minute=0, second=0, microsecond=0)
-    sent_transfers_today = BalanceTransfer.objects.filter(
-        sender=sender,
-        status=BalanceTransfer.Status.COMPLETED,
-        created_at__gte=today_start
-    )
-    
-    daily_usage_usd = Decimal("0.00")
-    for tr in sent_transfers_today:
-        daily_usage_usd += tr.currency.to_base(tr.amount, "withdraw")
-
-    if daily_usage_usd + amount_usd > limit_usd:
-        remaining_usd = max(Decimal("0.00"), limit_usd - daily_usage_usd)
-        remaining_in_currency = currency.from_base(remaining_usd, "withdraw")
-        remaining_in_currency = remaining_in_currency.quantize(Decimal(f"0.{'0'*currency.decimal_places}"))
-        raise ValidationError(
-            f"لقد تجاوزت حد التحويل اليومي المسموح به. المتبقي لليوم: {remaining_in_currency} {currency.code} (يعادل {remaining_usd:.2f} USD) من أصل {limit_usd} USD."
-        )
-
-    fee_amount = (amount * settings.transfer_fee_percent) / Decimal("100.00")
-    net_amount = amount - fee_amount
-
-    # Mask emails for ledger descriptions
-    email_parts_sender = sender.email.split('@')
-    masked_sender_email = f"{email_parts_sender[0][:3]}***@{email_parts_sender[1]}" if len(email_parts_sender) == 2 and len(email_parts_sender[0]) > 3 else sender.email
-    
-    email_parts_recipient = recipient.email.split('@')
-    masked_recipient_email = f"{email_parts_recipient[0][:3]}***@{email_parts_recipient[1]}" if len(email_parts_recipient) == 2 and len(email_parts_recipient[0]) > 3 else recipient.email
+    from apps.accounts.models import User
 
     with transaction.atomic():
-        sender_wallet = Wallet.objects.select_for_update().get(user=sender, currency=currency)
-        recipient_wallet = Wallet.objects.select_for_update().get(user=recipient, currency=currency)
+        # 1. Lock sender user record to serialize KYC daily limit checks and prevent concurrency bypass
+        locked_sender = User.all_objects.select_for_update().get(id=sender.id)
+
+        # Calculate daily cumulative limit in USD
+        limit_usd = locked_sender.custom_p2p_transfer_limit if locked_sender.has_custom_limits and locked_sender.custom_p2p_transfer_limit else (settings.verified_transfer_limit if locked_sender.is_kyc_verified else settings.unverified_transfer_limit)
+        
+        # Convert current amount to USD
+        amount_usd = currency.to_base(amount, "withdraw")
+
+        # Get transfers by this user today (Damascus midnight onwards)
+        today_start = timezone.localtime(timezone.now()).replace(hour=0, minute=0, second=0, microsecond=0)
+        sent_transfers_today = BalanceTransfer.objects.filter(
+            sender=locked_sender,
+            status=BalanceTransfer.Status.COMPLETED,
+            created_at__gte=today_start
+        )
+        
+        daily_usage_usd = Decimal("0.00")
+        for tr in sent_transfers_today:
+            daily_usage_usd += tr.currency.to_base(tr.amount, "withdraw")
+
+        if daily_usage_usd + amount_usd > limit_usd:
+            remaining_usd = max(Decimal("0.00"), limit_usd - daily_usage_usd)
+            remaining_in_currency = currency.from_base(remaining_usd, "withdraw")
+            remaining_in_currency = remaining_in_currency.quantize(Decimal(f"0.{'0'*currency.decimal_places}"))
+            raise ValidationError(
+                f"لقد تجاوزت حد التحويل اليومي المسموح به. المتبقي لليوم: {remaining_in_currency} {currency.code} (يعادل {remaining_usd:.2f} USD) من أصل {limit_usd} USD."
+            )
+
+        fee_amount = (amount * settings.transfer_fee_percent) / Decimal("100.00")
+        net_amount = amount - fee_amount
+
+        # Mask emails for ledger descriptions
+        email_parts_sender = sender.email.split('@')
+        masked_sender_email = f"{email_parts_sender[0][:3]}***@{email_parts_sender[1]}" if len(email_parts_sender) == 2 and len(email_parts_sender[0]) > 3 else sender.email
+        
+        email_parts_recipient = recipient.email.split('@')
+        masked_recipient_email = f"{email_parts_recipient[0][:3]}***@{email_parts_recipient[1]}" if len(email_parts_recipient) == 2 and len(email_parts_recipient[0]) > 3 else recipient.email
+
+        # 2. Prevent deadlocks: resolve IDs and acquire locks in strict ascending order
+        s_w = Wallet.objects.filter(user=locked_sender, currency=currency).first()
+        r_w = Wallet.objects.filter(user=recipient, currency=currency).first()
+        if not s_w or not r_w:
+            raise ValidationError("محفظة المرسل أو المستلم غير متوفرة بهذه العملة.")
+
+        if s_w.id < r_w.id:
+            sender_wallet = Wallet.objects.select_for_update().get(id=s_w.id)
+            recipient_wallet = Wallet.objects.select_for_update().get(id=r_w.id)
+        else:
+            recipient_wallet = Wallet.objects.select_for_update().get(id=r_w.id)
+            sender_wallet = Wallet.objects.select_for_update().get(id=s_w.id)
 
         # Ensure that the debt balance is never transferable via P2P
         transferable_balance = sender_wallet.available_balance - sender_wallet.debt_balance
@@ -114,6 +128,27 @@ def execute_p2p_transfer(sender, recipient, amount, currency, note=""):
             reference=transfer.reference,
             created_by=sender
         )
+
+        # Credit Platform Revenue Wallet for collected fee
+        if fee_amount > Decimal("0.00"):
+            system_user = User.all_objects.filter(is_superuser=True).order_by("id").first()
+            if system_user:
+                sys_wallet = Wallet.all_objects.filter(user=system_user, currency=currency, store__isnull=True).first()
+                if not sys_wallet:
+                    sys_wallet = Wallet.all_objects.create(
+                        user=system_user,
+                        currency=currency,
+                        store=None,
+                        available_balance=Decimal("0.00")
+                    )
+                credit_wallet(
+                    wallet_id=sys_wallet.id,
+                    amount=fee_amount,
+                    source="P2P Transfer Fee",
+                    reason=f"Fee collected from P2P transfer {transfer.reference}",
+                    reference=f"FEE-{transfer.reference}",
+                    created_by=sender
+                )
 
     # Send notifications (after commit)
     try:
@@ -203,6 +238,21 @@ def reverse_p2p_transfer(transfer, admin_user=None):
             reference=f"REV-{transfer.reference}",
             created_by=admin_user
         )
+
+        # Debit Platform Revenue Wallet for refunded fee
+        if transfer.fee_amount > Decimal("0.00"):
+            system_user = User.all_objects.filter(is_superuser=True).order_by("id").first()
+            if system_user:
+                sys_wallet = Wallet.all_objects.filter(user=system_user, currency=transfer.currency, store__isnull=True).first()
+                if sys_wallet and sys_wallet.available_balance >= transfer.fee_amount:
+                    debit_wallet(
+                        wallet_id=sys_wallet.id,
+                        amount=transfer.fee_amount,
+                        source="P2P Fee Reversal",
+                        reason=f"Fee reversal for cancelled P2P transfer {transfer.reference}",
+                        reference=f"REV-FEE-{transfer.reference}",
+                        created_by=admin_user
+                    )
 
 def suspend_p2p_transfer(transfer, admin_user=None):
     """

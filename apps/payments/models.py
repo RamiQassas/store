@@ -479,7 +479,7 @@ class DepositRequest(TimeStampedModel):
                 else:
                     # Convert via base currency (USD)
                     base_val = self.currency.to_base(self.amount, "deposit")
-                    self.wallet_amount = wallet.currency.from_base(base_val, "deposit")
+                    self.wallet_amount = wallet.currency.from_base(base_val, "withdraw")
             except Exception:
                 # Fallback to base currency equivalent
                 self.wallet_amount = self.currency.to_base(self.amount, "deposit")
@@ -682,7 +682,7 @@ class WithdrawalRequest(TimeStampedModel):
                         self.wallet_amount = self.amount
                     else:
                         base_val = self.currency.to_base(self.amount, "withdraw")
-                        self.wallet_amount = wallet.currency.from_base(base_val, "withdraw")
+                        self.wallet_amount = wallet.currency.from_base(base_val, "deposit")
                 except Exception:
                     self.wallet_amount = self.currency.to_base(self.amount, "withdraw")
 

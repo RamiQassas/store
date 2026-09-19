@@ -449,7 +449,7 @@ def _create_order_atomic(customer, variant_id, quantity=1, fulfillment_data=None
         from apps.common.tenant_utils import bypass_tenant_filter
         with bypass_tenant_filter():
             locked_keys = list(
-                ProductKey.objects.filter(id__in=key_ids).select_for_update()
+                ProductKey.objects.filter(id__in=key_ids, is_used=False).select_for_update()
             )
         if len(locked_keys) < quantity:
             raise ValueError("المخزون غير كافٍ لتلبية الكمية المطلوبة.")
@@ -461,9 +461,12 @@ def _create_order_atomic(customer, variant_id, quantity=1, fulfillment_data=None
     # ── Coupon discount ───────────────────────────────────────────────────────
     discount = Decimal("0.00")
     if coupon:
+        from apps.orders.models import Coupon
+        from django.db.models import F
+        coupon = Coupon.objects.select_for_update().get(id=coupon.id)
         discount = validate_coupon(coupon, customer, variant, subtotal=subtotal)
-        coupon.used_count += 1
-        coupon.save(update_fields=["used_count"])
+        Coupon.objects.filter(id=coupon.id).update(used_count=F("used_count") + 1)
+        coupon.refresh_from_db(fields=["used_count"])
 
     total = max(subtotal - discount, Decimal("0.00"))
 
@@ -997,7 +1000,7 @@ def finalize_paid_gateway_order(order, gateway_data=None):
                 from apps.common.tenant_utils import bypass_tenant_filter
                 with bypass_tenant_filter():
                     locked_keys = list(
-                        ProductKey.objects.filter(id__in=key_ids).select_for_update()
+                        ProductKey.objects.filter(id__in=key_ids, is_used=False).select_for_update()
                     )
             
             if len(locked_keys) >= quantity:

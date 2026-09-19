@@ -48,8 +48,29 @@ class OrderViewSet(viewsets.ModelViewSet):
         import json
         from apps.orders.provider_status import apply_provider_status
         from apps.providers.models import ProviderOrder, ProviderOrderStatus
+        from django.conf import settings
         
         logger = logging.getLogger(__name__)
+
+        # Security: Validate webhook secret from settings or active provider profile
+        import hmac
+        from apps.providers.models import ProviderProfile
+        configured_secret = str(getattr(settings, "PROVIDER_WEBHOOK_SECRET", "") or "").strip()
+        if not configured_secret:
+            profile = ProviderProfile.all_objects.filter(is_active=True).first()
+            if profile and profile.api_token:
+                configured_secret = str(profile.api_token).strip()
+
+        provided_token = str(
+            request.headers.get("X-Webhook-Secret") or
+            request.GET.get("token") or
+            request.GET.get("secret") or
+            request.POST.get("secret") or ""
+        ).strip()
+
+        if not configured_secret or not provided_token or not hmac.compare_digest(provided_token, configured_secret):
+            logger.warning("Alkasr Webhook: Rejected unauthorized request (invalid, missing, or unconfigured secret)")
+            return response.Response({"status": "error", "message": "Unauthorized"}, status=status.HTTP_401_UNAUTHORIZED)
         
         data = {}
         if request.data:

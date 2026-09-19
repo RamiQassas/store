@@ -395,6 +395,15 @@ def apply_provider_status(order, provider_status, raw_response=None, actor=None,
 
         clean_server_reply = parsed_res.get("clean_text") or parsed_res.get("raw_clean") or provider_msg_str
 
+        # CRITICAL SECURITY: Protect already finalized/completed orders from cancellation/refund attacks
+        if old_status in (Order.Status.COMPLETED, Order.Status.CANCELLED, Order.Status.REFUNDED):
+            if is_cancelled:
+                logger.warning(
+                    "Security: Rejected attempt to cancel already finalized order %s (status=%s) via %s",
+                    locked_order.number, old_status, note_prefix
+                )
+                return locked_order
+
         if is_completed:
             locked_order.status = Order.Status.COMPLETED
             note = f"{note_prefix}: تم إكمال وتنفيذ الطلب بنجاح."

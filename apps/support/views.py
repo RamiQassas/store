@@ -208,7 +208,21 @@ def chat_file_upload(request, room_id):
             return JsonResponse({"status": "error", "message": "Permission denied"}, status=403)
             
         file = request.FILES.get("file")
-        is_image = file.content_type.startswith("image/")
+        if not file:
+            return JsonResponse({"status": "error", "message": "لم يتم اختيار أي ملف."}, status=400)
+
+        # File size validation (max 10MB)
+        if file.size > 10 * 1024 * 1024:
+            return JsonResponse({"status": "error", "message": "حجم الملف كبير جداً (الحد الأقصى 10 ميجابايت)."}, status=400)
+
+        # File extension whitelist
+        import os
+        ext = os.path.splitext(file.name)[1].lower().lstrip(".")
+        ALLOWED_EXTENSIONS = {"jpg", "jpeg", "png", "webp", "gif", "pdf", "txt"}
+        if ext not in ALLOWED_EXTENSIONS:
+            return JsonResponse({"status": "error", "message": "نوع الملف غير مسموح به. الامتدادات المسموحة: JPG, PNG, WEBP, GIF, PDF, TXT."}, status=400)
+
+        is_image = ext in {"jpg", "jpeg", "png", "webp", "gif"} and (file.content_type or "").startswith("image/")
         
         # For guest sender, we use the system guest user
         sender = request.user if request.user.is_authenticated else room.user

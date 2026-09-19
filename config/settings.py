@@ -54,7 +54,27 @@ def env_int(name, default=0):
 DEBUG = env_bool("DJANGO_DEBUG", False)
 _is_local_management_command = any(arg in {"runserver", "test"} for arg in sys.argv)
 
-SECRET_KEY = env("DJANGO_SECRET_KEY", "django-insecure-prod-hetzner-key-9823419823" if not DEBUG else "local-development-key-not-for-production")
+def _get_secret_key():
+    key = env("DJANGO_SECRET_KEY")
+    if key:
+        return key
+    if DEBUG:
+        return "local-development-key-not-for-production"
+    secret_file = BASE_DIR / ".secret_key"
+    try:
+        if secret_file.exists():
+            with open(secret_file, "r") as f:
+                return f.read().strip()
+        import secrets
+        new_key = secrets.token_urlsafe(50)
+        with open(secret_file, "w") as f:
+            f.write(new_key)
+        return new_key
+    except Exception:
+        import secrets
+        return secrets.token_urlsafe(50)
+
+SECRET_KEY = _get_secret_key()
 
 SITE_URL = env("SITE_URL", "https://raqamiyatapp.com")
 
@@ -178,7 +198,7 @@ SOCIALACCOUNT_PROVIDERS = {
 }
 
 LOGIN_REDIRECT_URL = '/dashboard/'
-ACCOUNT_LOGOUT_ON_GET = True
+ACCOUNT_LOGOUT_ON_GET = False
 ACCOUNT_EMAIL_REQUIRED = True
 ACCOUNT_USERNAME_REQUIRED = False
 ACCOUNT_AUTHENTICATION_METHOD = 'email'
