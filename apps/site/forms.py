@@ -459,15 +459,17 @@ class KYCRequestForm(forms.ModelForm):
         }
 
     def clean_id_number(self):
-        id_number = self.cleaned_data.get("id_number", "").strip()
-        if id_number:
-            # Check for duplicate ID number across all accounts (excluding current instance)
-            qs = KYCRequest.objects.filter(id_number__iexact=id_number)
-            if self.instance.pk:
-                qs = qs.exclude(pk=self.instance.pk)
+        id_number = self.cleaned_data.get("id_number", "")
+        if not id_number or not str(id_number).strip():
+            return None
+        id_number = str(id_number).strip()
+        # Check for duplicate ID number across all accounts (excluding current instance)
+        qs = KYCRequest.objects.filter(id_number__iexact=id_number)
+        if self.instance.pk:
+            qs = qs.exclude(pk=self.instance.pk)
 
-            if qs.exists():
-                raise forms.ValidationError("هذا الرقم الوطني موجود سابقاً، إذا كنت تعتقد أن هذا خطأ تواصل مع الإدارة.")
+        if qs.exists():
+            raise forms.ValidationError("هذا الرقم الوطني موجود سابقاً، إذا كنت تعتقد أن هذا خطأ تواصل مع الإدارة.")
         return id_number
 
     def __init__(self, *args, **kwargs):
@@ -475,43 +477,48 @@ class KYCRequestForm(forms.ModelForm):
         user = kwargs.pop('user', None)
         super().__init__(*args, **kwargs)
         
-        # Add phone field if missing on user (None or empty string)
-        if user and (user.phone is None or user.phone == ''):
-            self.fields['phone'] = forms.CharField(
-                label="رقم الهاتف",
-                max_length=32,
-                widget=forms.TextInput(attrs={"class": "builder-input", "placeholder": "05xxxxxxxx"}),
-                required=True,
-                help_text="رقم الهاتف مطلوب لإتمام عملية التوثيق."
-            )
+        if is_admin:
+            # When admin edits or creates KYC, NOTHING is required - accept partial or empty info
+            for field_name, field in self.fields.items():
+                field.required = False
+        else:
+            # Add phone field if missing on user (None or empty string)
+            if user and (user.phone is None or user.phone == ''):
+                self.fields['phone'] = forms.CharField(
+                    label="رقم الهاتف",
+                    max_length=32,
+                    widget=forms.TextInput(attrs={"class": "builder-input", "placeholder": "05xxxxxxxx"}),
+                    required=True,
+                    help_text="رقم الهاتف مطلوب لإتمام عملية التوثيق."
+                )
 
-        # Add password fields if user doesn't have a password (social signup)
-        if user and not user.has_usable_password():
-            self.fields['password'] = forms.CharField(
-                label="تعيين كلمة مرور (إجباري للتوثيق)",
-                min_length=10,
-                widget=forms.PasswordInput(attrs={"class": "builder-input", "placeholder": "********"}),
-                required=True,
-                help_text="مطلوب: يجب تعيين كلمة مرور لحسابك لضمان أمانه والقدرة على الدخول مستقبلاً."
-            )
-            self.fields['confirm_password'] = forms.CharField(
-                label="تأكيد كلمة المرور",
-                widget=forms.PasswordInput(attrs={"class": "builder-input", "placeholder": "********"}),
-                required=True
-            )
+            # Add password fields if user doesn't have a password (social signup)
+            if user and not user.has_usable_password():
+                self.fields['password'] = forms.CharField(
+                    label="تعيين كلمة مرور (إجباري للتوثيق)",
+                    min_length=10,
+                    widget=forms.PasswordInput(attrs={"class": "builder-input", "placeholder": "********"}),
+                    required=True,
+                    help_text="مطلوب: يجب تعيين كلمة مرور لحسابك لضمان أمانه والقدرة على الدخول مستقبلاً."
+                )
+                self.fields['confirm_password'] = forms.CharField(
+                    label="تأكيد كلمة المرور",
+                    widget=forms.PasswordInput(attrs={"class": "builder-input", "placeholder": "********"}),
+                    required=True
+                )
 
-        # Ensure all fields are required for users, but allow optional images for admin updates
-        # OR if the user already has images uploaded (persistent images)
-        for field_name, field in self.fields.items():
-            if field_name in ["identity_front", "identity_back", "selfie_verification"]:
-                if is_admin or (self.instance and self.instance.pk and getattr(self.instance, field_name)):
-                    field.required = False
+            # Ensure all fields are required for users, but allow optional images for admin updates
+            # OR if the user already has images uploaded (persistent images)
+            for field_name, field in self.fields.items():
+                if field_name in ["identity_front", "identity_back", "selfie_verification"]:
+                    if self.instance and self.instance.pk and getattr(self.instance, field_name):
+                        field.required = False
+                    else:
+                        field.required = True
+                elif field_name in ['phone', 'password', 'confirm_password']:
+                    field.required = True
                 else:
                     field.required = True
-            elif field_name in ['phone', 'password', 'confirm_password']:
-                field.required = True
-            else:
-                field.required = True
 
     def clean(self):
         cleaned_data = super().clean()

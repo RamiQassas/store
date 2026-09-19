@@ -3458,7 +3458,152 @@ def control_withdrawal_detail(request, pk):
 
 @support_required
 def control_kycs_list(request):
+    from apps.common.countries import COUNTRIES
     store = getattr(request, "store", None)
+
+    if request.method == "POST":
+        action = request.POST.get("action")
+        if action == "manual_verify":
+            user_id = request.POST.get("user_id")
+            if not user_id:
+                messages.error(request, "يرجى تحديد المستخدم المطلوب توثيقه.")
+                return redirect("control_kycs_list")
+
+            if store:
+                target_user = get_object_or_404(User, id=user_id, role=User.Role.CUSTOMER, store=store)
+            else:
+                target_user = get_object_or_404(User, id=user_id, role=User.Role.CUSTOMER, store__isnull=True)
+
+            kyc = getattr(target_user, "kyc_request", None)
+            if not kyc:
+                kyc = KYCRequest(user=target_user)
+
+            first_name = request.POST.get("first_name", "").strip()
+            father_name = request.POST.get("father_name", "").strip()
+            last_name = request.POST.get("last_name", "").strip()
+            mother_name = request.POST.get("mother_name", "").strip()
+            id_number = request.POST.get("id_number", "").strip()
+            nationality = request.POST.get("nationality", "").strip()
+            issuing_country = request.POST.get("issuing_country", "").strip()
+            document_type = request.POST.get("document_type", "").strip()
+            gender = request.POST.get("gender", "").strip()
+            place_of_birth = request.POST.get("place_of_birth", "").strip()
+            current_residence = request.POST.get("current_residence", "").strip()
+            dob_str = request.POST.get("date_of_birth", "").strip()
+
+            if first_name:
+                kyc.first_name = first_name
+            elif not kyc.first_name and target_user.first_name:
+                kyc.first_name = target_user.first_name
+
+            if father_name:
+                kyc.father_name = father_name
+            if last_name:
+                kyc.last_name = last_name
+            elif not kyc.last_name and target_user.last_name:
+                kyc.last_name = target_user.last_name
+
+            if mother_name:
+                kyc.mother_name = mother_name
+
+            if id_number:
+                dup = KYCRequest.objects.filter(id_number__iexact=id_number)
+                if kyc.pk:
+                    dup = dup.exclude(pk=kyc.pk)
+                if dup.exists():
+                    messages.error(request, f"رقم الهوية / الوثيقة '{id_number}' مسجل مسبقاً لمستخدم آخر.")
+                    return redirect("control_kycs_list")
+                kyc.id_number = id_number
+            else:
+                if not kyc.id_number:
+                    kyc.id_number = None
+
+            if nationality:
+                kyc.nationality = nationality
+            elif not kyc.nationality:
+                kyc.nationality = "SA"
+
+            if issuing_country:
+                kyc.issuing_country = issuing_country
+            elif not kyc.issuing_country:
+                kyc.issuing_country = kyc.nationality or "SA"
+
+            if document_type:
+                kyc.document_type = document_type
+            elif not kyc.document_type:
+                kyc.document_type = KYCRequest.DocumentType.NATIONAL_ID
+
+            if gender:
+                kyc.gender = gender
+            if place_of_birth:
+                kyc.place_of_birth = place_of_birth
+            if current_residence:
+                kyc.current_residence = current_residence
+            if dob_str:
+                try:
+                    kyc.date_of_birth = dob_str
+                except Exception:
+                    pass
+
+            kyc.status = KYCRequest.Status.APPROVED
+            kyc.reviewed_by = request.user
+            kyc.reviewed_at = timezone.now()
+            kyc.rejection_reason = ""
+            kyc.save()
+
+            target_user.is_kyc_verified = True
+
+            name_parts = [p for p in [kyc.first_name, kyc.father_name, kyc.last_name] if p and p.strip()]
+            if name_parts:
+                target_user.first_name = " ".join(name_parts)
+                target_user.last_name = ""
+
+            dep_limit = request.POST.get("deposit_limit", "").strip()
+            with_limit = request.POST.get("withdrawal_limit", "").strip()
+            if dep_limit or with_limit:
+                if dep_limit:
+                    try:
+                        target_user.daily_deposit_limit = Decimal(dep_limit)
+                    except Exception:
+                        pass
+                if with_limit:
+                    try:
+                        target_user.daily_withdrawal_limit = Decimal(with_limit)
+                    except Exception:
+                        pass
+                target_user.has_custom_limits = True
+            elif not target_user.has_custom_limits:
+                kyc_settings = KYCSettings.get_settings()
+                target_user.daily_deposit_limit = kyc_settings.verified_daily_deposit_limit
+                target_user.daily_withdrawal_limit = kyc_settings.verified_daily_withdrawal_limit
+
+            target_user.save()
+
+            try:
+                from apps.accounts.services import send_kyc_status_email
+                send_kyc_status_email(target_user, 'approved')
+            except Exception:
+                pass
+
+            try:
+                notify_user(
+                    user=target_user,
+                    title="✅ تم توثيق حسابك يدوياً",
+                    body="تهانينا، تم توثيق حسابك بنجاح من قبل الإدارة. يمكنك الآن الاستمتاع بحدود مالية ومزايا الحساب الموثق.",
+                    action_url="/dashboard/",
+                    category='kyc',
+                    priority=Notification.Priority.HIGH
+                )
+            except Exception:
+                pass
+
+            messages.success(request, f"تم التوثيق اليدوي لحساب {target_user.email} بنجاح وتفعيل الحدود المالية.")
+
+            if request.POST.get("redirect_to_detail"):
+                return redirect("control_kyc_detail", pk=kyc.pk)
+
+            return redirect("control_kycs_list")
+
     q = request.GET.get('q', '')
     status = request.GET.get('status', '') # This will refer to user.is_kyc_verified or kyc_request.status
     
@@ -3486,8 +3631,17 @@ def control_kycs_list(request):
         
     return render(request, "site/control_kycs_list.html", {
         "users": users, 
+        "unverified_users": users.filter(is_kyc_verified=False)[:100],
+        "countries": COUNTRIES,
+        "document_types": KYCRequest.DocumentType.choices,
         "query": q, 
         "status_filter": status,
+        "kyc_status_choices": [
+            ("verified", "موثق"),
+            ("pending", "قيد المراجعة"),
+            ("unverified", "غير موثق"),
+            ("rejected", "مرفوض"),
+        ]
     })
 
 @support_required
@@ -3543,9 +3697,11 @@ def control_kyc_detail(request, pk):
             kyc.status = KYCRequest.Status.APPROVED
             kyc.user.is_kyc_verified = True
             
-            # Update User Display Name: First Father Last (with spaces)
-            kyc.user.first_name = f"{kyc.first_name} {kyc.father_name} {kyc.last_name}"
-            kyc.user.last_name = "" # Clear last name to avoid duplication in some templates
+            # Update User Display Name: First Father Last (with spaces) only if name parts exist
+            name_parts = [p for p in [kyc.first_name, kyc.father_name, kyc.last_name] if p and p.strip()]
+            if name_parts:
+                kyc.user.first_name = " ".join(name_parts)
+                kyc.user.last_name = "" # Clear last name to avoid duplication in some templates
             
             # Apply global limits if user doesn't have custom ones
             if not kyc.user.has_custom_limits:

@@ -1,11 +1,17 @@
 {% extends "site/control_base.html" %}
-{% block title %}طلبات توثيق الهوية | Raqamiyat Admin{% endblock %}
+{% block title %}طلبات وتوثيق الهوية | Raqamiyat Admin{% endblock %}
 
 {% block control_content %}
-<div class="page-head">
+<div class="page-head flex flex-wrap justify-between items-center gap-4">
     <div>
         <span class="eyebrow">KYC Management</span>
-        <h1>طلبات توثيق هوية المستخدمين</h1>
+        <h1>طلبات وتوثيق هوية المستخدمين</h1>
+    </div>
+    <div>
+        <button type="button" onclick="openManualVerifyModal()" class="btn btn-primary h-[42px] px-6 flex items-center gap-2 font-bold shadow-cyan hover:scale-[1.02] transition-transform">
+            <i class="fas fa-user-check"></i>
+            <span>+ توثيق يدوي لعميل</span>
+        </button>
     </div>
 </div>
 
@@ -13,9 +19,9 @@
     <!-- Search & Filters -->
     <div class="panel p-6 mb-8 bg-white/[0.01] border-white/5">
         <form method="GET" class="flex flex-wrap gap-4 items-end">
-            <div class="flex-grow">
+            <div class="flex-grow min-w-[220px]">
                 <label class="text-[10px] font-black text-slate-500 uppercase block mb-2">بحث (بريد، اسم، أو رقم الهوية)</label>
-                <input type="text" name="q" value="{{ query }}" class="builder-input w-full" placeholder="ابحث هنا...">
+                <input type="text" name="q" value="{{ query }}" class="builder-input w-full" placeholder="ابحث هنا بالبريد، الاسم أو رقم الهوية...">
             </div>
             <div style="width: 200px;">
                 <label class="text-[10px] font-black text-slate-500 uppercase block mb-2">تصفية بالحالة</label>
@@ -26,7 +32,7 @@
                     {% endfor %}
                 </select>
             </div>
-            <button type="submit" class="btn btn-primary h-[42px] px-8">تطبيق الفلاتر</button>
+            <button type="submit" class="btn btn-primary h-[42px] px-8 font-bold">تطبيق الفلاتر</button>
             <a href="{% url 'control_kycs_list' %}" class="btn btn-outline h-[42px]">إعادة ضبط</a>
         </form>
     </div>
@@ -39,7 +45,7 @@
                     <th class="p-4">الاسم بالكامل</th>
                     <th class="p-4">الوثيقة</th>
                     <th class="p-4">الجنسية / المصدر</th>
-                    <th class="p-4">الحالة</th>
+                    <th class="p-4">حالة التوثيق</th>
                     <th class="p-4">تاريخ الطلب</th>
                     <th class="p-4">إجراءات</th>
                 </tr>
@@ -50,11 +56,11 @@
                 <tr class="border-b border-white/[0.02] last:border-0 hover:bg-white/[0.02] transition">
                     <td class="p-4">
                         <div class="font-bold text-slate-200">{{ u.email }}</div>
-                        <div class="text-[10px] text-slate-500">{{ u.phone }}</div>
+                        <div class="text-[10px] text-slate-500">{{ u.phone|default:"بدون هاتف" }}</div>
                     </td>
                     <td class="p-4">
                         <div class="text-sm">
-                            {% if kyc %}
+                            {% if kyc and kyc.first_name %}
                                 {{ kyc.first_name }} {{ kyc.father_name }} {{ kyc.last_name }}
                             {% else %}
                                 {{ u.get_full_name|default:"لم يحدد" }}
@@ -62,25 +68,32 @@
                         </div>
                     </td>
                     <td class="p-4">
-                        {% if kyc %}
+                        {% if kyc and kyc.document_type %}
                             <span class="badge primary text-[9px]">{{ kyc.get_document_type_display }}</span>
+                            {% if kyc.id_number %}
+                            <div class="text-[10px] font-mono text-slate-400 mt-1">{{ kyc.id_number }}</div>
+                            {% endif %}
                         {% else %}
                             <span class="text-[10px] text-slate-600">N/A</span>
                         {% endif %}
                     </td>
                     <td class="p-4">
-                        {% if kyc %}
+                        {% if kyc and kyc.nationality %}
                             <div class="flex flex-col gap-1">
                                 <div class="text-[10px] text-slate-300">{{ kyc.get_nationality_display }}</div>
+                                {% if kyc.issuing_country %}
                                 <div class="text-[8px] text-slate-500 uppercase tracking-tighter">صادر عن: {{ kyc.get_issuing_country_display }}</div>
+                                {% endif %}
                             </div>
                         {% else %}
-                            -
+                            <span class="text-slate-600">-</span>
                         {% endif %}
                     </td>
                     <td class="p-4">
                         {% if u.is_kyc_verified %}
-                            <span class="badge success text-[9px]">موثق</span>
+                            <span class="badge success text-[9px] flex items-center gap-1 w-fit">
+                                <i class="fas fa-check-circle"></i> موثق
+                            </span>
                         {% elif kyc %}
                             <span class="badge {% if kyc.status == 'rejected' %}danger{% else %}warning{% endif %} text-[9px]">
                                 {{ kyc.get_status_display }}
@@ -93,17 +106,26 @@
                         {% if kyc %}
                             {{ kyc.created_at|date:"d M Y, H:i" }}
                         {% else %}
-                            -
+                            <span class="text-slate-600">-</span>
                         {% endif %}
                     </td>
                     <td class="p-4">
-                        {% if kyc %}
-                        <a href="{% url 'control_kyc_detail' kyc.pk %}" class="btn btn-sm btn-outline text-[10px] py-1 px-4 hover:bg-cyan hover:text-black transition">
-                            مراجعة الطلب
-                        </a>
-                        {% else %}
-                        <span class="text-[10px] text-slate-600 italic">لا يوجد طلب</span>
-                        {% endif %}
+                        <div class="flex flex-wrap items-center gap-2">
+                            {% if kyc %}
+                            <a href="{% url 'control_kyc_detail' kyc.pk %}" class="btn btn-sm btn-outline text-[10px] py-1 px-3 hover:bg-cyan hover:text-black transition">
+                                مراجعة وتعديل
+                            </a>
+                            {% endif %}
+
+                            {% if not u.is_kyc_verified %}
+                            <button type="button" 
+                                    onclick="openManualVerifyModal('{{ u.id }}', '{{ u.email|escapejs }}', '{% if kyc %}{{ kyc.first_name|escapejs }}{% else %}{{ u.first_name|escapejs }}{% endif %}', '{% if kyc %}{{ kyc.father_name|escapejs }}{% endif %}', '{% if kyc %}{{ kyc.last_name|escapejs }}{% else %}{{ u.last_name|escapejs }}{% endif %}', '{% if kyc %}{{ kyc.id_number|default:''|escapejs }}{% endif %}', '{% if kyc %}{{ kyc.nationality|default:''|escapejs }}{% endif %}')" 
+                                    class="btn btn-sm btn-primary text-[10px] py-1 px-3 flex items-center gap-1 font-bold shadow-cyan">
+                                <i class="fas fa-bolt"></i>
+                                <span>توثيق يدوي</span>
+                            </button>
+                            {% endif %}
+                        </div>
                     </td>
                 </tr>
                 {% endwith %}
@@ -116,4 +138,234 @@
         </table>
     </div>
 </div>
+
+<!-- Manual Verification Modal -->
+<div id="manualVerifyModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 hidden">
+    <div class="bg-slate-900 border border-white/10 rounded-2xl max-w-xl w-full max-h-[92vh] flex flex-col shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-200">
+        <!-- Modal Head -->
+        <div class="flex justify-between items-center px-6 py-4 border-b border-white/5 bg-slate-800/40">
+            <div class="flex items-center gap-2 text-cyan font-bold text-base">
+                <i class="fas fa-user-check"></i>
+                <span>توثيق يدوي لحساب عميل</span>
+            </div>
+            <button type="button" onclick="closeManualVerifyModal()" class="text-slate-400 hover:text-white transition text-lg w-8 h-8 flex items-center justify-center rounded-lg hover:bg-white/5">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+
+        <!-- Modal Body (Scrollable) -->
+        <div class="p-6 overflow-y-auto space-y-6">
+            <form method="POST" action="{% url 'control_kycs_list' %}" id="manualVerifyForm">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="manual_verify">
+                <input type="hidden" name="redirect_to_detail" id="mv_redirect_to_detail" value="">
+
+                <!-- Quick Verification Callout -->
+                <div class="p-4 rounded-xl bg-cyan/10 border border-cyan/30 flex items-center justify-between gap-4 mb-6">
+                    <div class="text-xs text-slate-300">
+                        <span class="text-cyan font-bold block mb-1">⚡ توثيق فوري بنقرة واحدة:</span>
+                        لا يشترط إدخال أي بيانات. يمكنك الضغط مباشرة لتوثيق الحساب ورفع الحدود فوراً.
+                    </div>
+                    <button type="submit" class="btn btn-sm btn-primary shrink-0 py-2.5 px-5 font-black text-xs shadow-cyan flex items-center gap-1.5">
+                        <i class="fas fa-bolt"></i>
+                        <span>توثيق فوري الآن</span>
+                    </button>
+                </div>
+
+                <!-- Target User Selection -->
+                <div class="space-y-2 mb-6">
+                    <label class="text-[10px] font-black text-slate-400 uppercase tracking-wider block">العميل المطلوب توثيقه</label>
+                    
+                    <!-- Badge when specific user selected -->
+                    <div id="selected_user_badge" class="p-3 bg-white/5 border border-cyan/20 rounded-xl flex items-center justify-between hidden">
+                        <div class="flex items-center gap-2">
+                            <i class="fas fa-user text-cyan text-sm"></i>
+                            <span id="selected_user_badge_text" class="text-xs font-bold text-white"></span>
+                        </div>
+                        <span class="text-[10px] bg-cyan/20 text-cyan px-2 py-0.5 rounded-full font-bold">محدد</span>
+                    </div>
+
+                    <!-- User Dropdown (for global + button) -->
+                    <div id="user_select_container">
+                        <select name="user_id" id="manual_verify_user_id" class="builder-input w-full text-xs" required>
+                            <option value="">-- اختر العميل من القائمة --</option>
+                            {% for u in unverified_users %}
+                            <option value="{{ u.id }}">{{ u.email }} ({{ u.get_full_name|default:"بدون اسم" }})</option>
+                            {% endfor %}
+                            {% for u in users %}
+                            {% if u.is_kyc_verified %}
+                            <option value="{{ u.id }}">{{ u.email }} ({{ u.get_full_name|default:"بدون اسم" }}) [موثق حالياً - إعادة تحديث]</option>
+                            {% endif %}
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Optional Personal Information -->
+                <div class="border border-white/5 rounded-xl p-4 bg-white/[0.01] space-y-4">
+                    <div class="text-xs font-bold text-slate-300 flex items-center justify-between pb-2 border-b border-white/5">
+                        <span>البيانات الشخصية للعميل (اختياري بالكامل)</span>
+                        <span class="text-[10px] text-slate-500">يقبل الحفظ حتى لو تُركت فارغة</span>
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                        <div>
+                            <label class="text-[10px] font-bold text-slate-400 block mb-1">الاسم الأول</label>
+                            <input type="text" name="first_name" id="mv_first_name" class="builder-input w-full text-xs" placeholder="مثال: أحمد">
+                        </div>
+                        <div>
+                            <label class="text-[10px] font-bold text-slate-400 block mb-1">اسم الأب</label>
+                            <input type="text" name="father_name" id="mv_father_name" class="builder-input w-full text-xs" placeholder="مثال: محمد">
+                        </div>
+                        <div>
+                            <label class="text-[10px] font-bold text-slate-400 block mb-1">الكنية / النسبة</label>
+                            <input type="text" name="last_name" id="mv_last_name" class="builder-input w-full text-xs" placeholder="مثال: العلي">
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                            <label class="text-[10px] font-bold text-slate-400 block mb-1">رقم الهوية / الوثيقة</label>
+                            <input type="text" name="id_number" id="mv_id_number" class="builder-input w-full text-xs font-mono" placeholder="رقم الهوية أو اتركه فارغاً">
+                        </div>
+                        <div>
+                            <label class="text-[10px] font-bold text-slate-400 block mb-1">نوع الوثيقة</label>
+                            <select name="document_type" id="mv_document_type" class="builder-input w-full text-xs">
+                                {% for val, lbl in document_types %}
+                                <option value="{{ val }}">{{ lbl }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                            <label class="text-[10px] font-bold text-slate-400 block mb-1">الجنسية</label>
+                            <select name="nationality" id="mv_nationality" class="builder-input w-full text-xs">
+                                <option value="">غير محدد</option>
+                                {% for code, name in countries %}
+                                <option value="{{ code }}">{{ name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div>
+                            <label class="text-[10px] font-bold text-slate-400 block mb-1">تاريخ الميلاد</label>
+                            <input type="date" name="date_of_birth" id="mv_dob" class="builder-input w-full text-xs">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Custom Financial Limits Override (Optional) -->
+                <div class="border border-white/5 rounded-xl p-4 bg-white/[0.01] space-y-4 mt-4">
+                    <div class="text-xs font-bold text-slate-300 flex items-center justify-between pb-2 border-b border-white/5">
+                        <span>الحدود المالية المخصصة (اختياري)</span>
+                        <span class="text-[10px] text-slate-500">فارغة = الحدود الافتراضية للموثقين</span>
+                    </div>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                            <label class="text-[10px] font-bold text-slate-400 block mb-1">الحد اليومي للإيداع (USD)</label>
+                            <input type="number" step="0.01" name="deposit_limit" class="builder-input w-full text-xs font-mono" placeholder="افتراضي: 10,000.00">
+                        </div>
+                        <div>
+                            <label class="text-[10px] font-bold text-slate-400 block mb-1">الحد اليومي للسحب (USD)</label>
+                            <input type="number" step="0.01" name="withdrawal_limit" class="builder-input w-full text-xs font-mono" placeholder="افتراضي: 10,000.00">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Modal Actions -->
+                <div class="pt-6 flex flex-wrap items-center justify-end gap-3 border-t border-white/5 mt-6">
+                    <button type="button" onclick="closeManualVerifyModal()" class="btn btn-outline text-xs py-2.5 px-5">
+                        إلغاء
+                    </button>
+                    <button type="button" onclick="submitAndOpenDetail()" class="btn btn-outline text-xs py-2.5 px-5 hover:bg-white/10 text-slate-300">
+                        توثيق وفتح صفحة التفاصيل
+                    </button>
+                    <button type="submit" class="btn btn-primary text-xs py-2.5 px-6 font-bold shadow-cyan">
+                        <i class="fas fa-check-circle ml-1"></i>
+                        حفظ وتوثيق الحساب
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+function openManualVerifyModal(userId, userEmail, firstName, fatherName, lastName, idNumber, nationality) {
+    var modal = document.getElementById('manualVerifyModal');
+    var select = document.getElementById('manual_verify_user_id');
+    var userBadge = document.getElementById('selected_user_badge');
+    var userBadgeText = document.getElementById('selected_user_badge_text');
+    var selectContainer = document.getElementById('user_select_container');
+    document.getElementById('mv_redirect_to_detail').value = '';
+    
+    if (userId) {
+        // Specific user selected from row
+        var found = false;
+        for (var i = 0; i < select.options.length; i++) {
+            if (select.options[i].value === userId) {
+                select.selectedIndex = i;
+                found = true;
+                break;
+            }
+        }
+        if (!found) {
+            var opt = document.createElement('option');
+            opt.value = userId;
+            opt.text = userEmail || userId;
+            opt.selected = true;
+            select.appendChild(opt);
+        }
+        select.value = userId;
+
+        if (userBadge && userBadgeText) {
+            userBadgeText.textContent = userEmail ? (userEmail + (firstName ? ' (' + firstName + ')' : '')) : userId;
+            userBadge.classList.remove('hidden');
+        }
+        if (selectContainer) selectContainer.classList.add('hidden');
+    } else {
+        // Opened from general "+ توثيق يدوي" button
+        if (userBadge) userBadge.classList.add('hidden');
+        if (selectContainer) selectContainer.classList.remove('hidden');
+        select.selectedIndex = 0;
+    }
+
+    document.getElementById('mv_first_name').value = firstName || '';
+    document.getElementById('mv_father_name').value = fatherName || '';
+    document.getElementById('mv_last_name').value = lastName || '';
+    document.getElementById('mv_id_number').value = idNumber || '';
+    if (nationality) {
+        document.getElementById('mv_nationality').value = nationality;
+    } else {
+        document.getElementById('mv_nationality').value = '';
+    }
+
+    modal.classList.remove('hidden');
+    document.body.style.overflow = 'hidden';
+}
+
+function closeManualVerifyModal() {
+    var modal = document.getElementById('manualVerifyModal');
+    modal.classList.add('hidden');
+    document.body.style.overflow = '';
+}
+
+function submitAndOpenDetail() {
+    document.getElementById('mv_redirect_to_detail').value = '1';
+    document.getElementById('manualVerifyForm').submit();
+}
+
+// Close modal when clicking outside of modal container
+document.addEventListener('DOMContentLoaded', function() {
+    var modal = document.getElementById('manualVerifyModal');
+    if (modal) {
+        modal.addEventListener('click', function(e) {
+            if (e.target === modal) {
+                closeManualVerifyModal();
+            }
+        });
+    }
+});
+</script>
 {% endblock %}

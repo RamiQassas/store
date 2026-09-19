@@ -355,29 +355,36 @@ class KYCRequest(TimeStampedModel):
     status = models.CharField(max_length=20, choices=Status.choices, default=Status.PENDING)
     
     # Personal Info
-    nationality = models.CharField(max_length=2, choices=COUNTRIES, verbose_name="الجنسية")
-    id_number = models.CharField(max_length=50, unique=True, verbose_name="رقم الهوية / الوثيقة")
-    issuing_country = models.CharField(max_length=2, choices=COUNTRIES, verbose_name="بلد إصدار الوثيقة")
-    first_name = models.CharField(max_length=100, verbose_name="الاسم الأول")
-    father_name = models.CharField(max_length=100, verbose_name="اسم الأب")
-    last_name = models.CharField(max_length=100, verbose_name="النسبة / الكنية")
-    mother_name = models.CharField(max_length=255, default="", verbose_name="اسم الأم بالكامل")
-    gender = models.CharField(max_length=10, choices=Gender.choices, default=Gender.MALE, verbose_name="الجنس")
-    date_of_birth = models.DateField(verbose_name="تاريخ الميلاد")
-    place_of_birth = models.CharField(max_length=255, verbose_name="مكان الميلاد")
-    current_residence = models.TextField(verbose_name="عنوان الإقامة الحالي")
+    nationality = models.CharField(max_length=2, choices=COUNTRIES, blank=True, default="", verbose_name="الجنسية")
+    id_number = models.CharField(max_length=50, unique=True, null=True, blank=True, verbose_name="رقم الهوية / الوثيقة")
+    issuing_country = models.CharField(max_length=2, choices=COUNTRIES, blank=True, default="", verbose_name="بلد إصدار الوثيقة")
+    first_name = models.CharField(max_length=100, blank=True, default="", verbose_name="الاسم الأول")
+    father_name = models.CharField(max_length=100, blank=True, default="", verbose_name="اسم الأب")
+    last_name = models.CharField(max_length=100, blank=True, default="", verbose_name="النسبة / الكنية")
+    mother_name = models.CharField(max_length=255, default="", blank=True, verbose_name="اسم الأم بالكامل")
+    gender = models.CharField(max_length=10, choices=Gender.choices, default=Gender.MALE, blank=True, verbose_name="الجنس")
+    date_of_birth = models.DateField(null=True, blank=True, verbose_name="تاريخ الميلاد")
+    place_of_birth = models.CharField(max_length=255, blank=True, default="", verbose_name="مكان الميلاد")
+    current_residence = models.TextField(blank=True, default="", verbose_name="عنوان الإقامة الحالي")
     
-    document_type = models.CharField(max_length=20, choices=DocumentType.choices, verbose_name="نوع الوثيقة")
+    document_type = models.CharField(max_length=20, choices=DocumentType.choices, default=DocumentType.NATIONAL_ID, blank=True, verbose_name="نوع الوثيقة")
     
     # Images
-    identity_front = models.ImageField(upload_to="kyc/front/", verbose_name="وجه الوثيقة")
-    identity_back = models.ImageField(upload_to="kyc/back/", verbose_name="ظهر الوثيقة")
-    selfie_verification = models.ImageField(upload_to="kyc/selfie/", verbose_name="صورة سيلفي مع الوثيقة")
+    identity_front = models.ImageField(upload_to="kyc/front/", null=True, blank=True, verbose_name="وجه الوثيقة")
+    identity_back = models.ImageField(upload_to="kyc/back/", null=True, blank=True, verbose_name="ظهر الوثيقة")
+    selfie_verification = models.ImageField(upload_to="kyc/selfie/", null=True, blank=True, verbose_name="صورة سيلفي مع الوثيقة")
     
     # Admin review
     reviewed_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name="reviewed_kycs")
     reviewed_at = models.DateTimeField(null=True, blank=True)
     rejection_reason = models.TextField(blank=True, verbose_name="سبب الرفض")
+
+    def save(self, *args, **kwargs):
+        if not self.id_number or not str(self.id_number).strip():
+            self.id_number = None
+        else:
+            self.id_number = str(self.id_number).strip()
+        super().save(*args, **kwargs)
 
     class Meta:
         verbose_name = "طلب توثيق هوية"
