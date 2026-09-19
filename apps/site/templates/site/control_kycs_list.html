@@ -149,17 +149,17 @@
     bottom: 0 !important;
     width: 100vw !important;
     height: 100vh !important;
-    z-index: 99999 !important;
+    z-index: 999999 !important;
     background: rgba(3, 7, 18, 0.85) !important;
-    backdrop-filter: blur(12px) !important;
-    -webkit-backdrop-filter: blur(12px) !important;
+    backdrop-filter: blur(8px) !important;
+    -webkit-backdrop-filter: blur(8px) !important;
     display: none;
     align-items: center !important;
     justify-content: center !important;
-    padding: 1.5rem !important;
-    overflow-y: auto !important;
-    overflow-x: hidden !important;
+    padding: 1rem !important;
     box-sizing: border-box !important;
+    overflow-y: auto !important;
+    -webkit-overflow-scrolling: touch !important;
 }
 
 #manualVerifyModal.active {
@@ -169,23 +169,25 @@
 .mv-modal-dialog {
     position: relative !important;
     width: 100% !important;
-    max-width: 650px !important;
+    max-width: 620px !important;
     margin: auto !important;
     background: #0b1329 !important;
-    border: 1px solid rgba(6, 182, 212, 0.3) !important;
-    border-radius: 24px !important;
-    box-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.9), 0 0 40px rgba(6, 182, 212, 0.15) !important;
+    border: 1.5px solid rgba(6, 182, 212, 0.4) !important;
+    border-radius: 20px !important;
+    box-shadow: 0 25px 60px rgba(0, 0, 0, 0.95), 0 0 30px rgba(6, 182, 212, 0.15) !important;
     display: flex !important;
     flex-direction: column !important;
-    max-height: 88vh !important;
+    max-height: 85vh !important;
+    min-height: 0 !important;
     overflow: hidden !important;
-    animation: mvModalZoomIn 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards !important;
+    box-sizing: border-box !important;
+    animation: mvModalZoomIn 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards !important;
 }
 
 @keyframes mvModalZoomIn {
     from {
         opacity: 0;
-        transform: scale(0.96) translateY(12px);
+        transform: scale(0.96) translateY(10px);
     }
     to {
         opacity: 1;
@@ -194,39 +196,47 @@
 }
 
 .mv-modal-header {
-    flex-shrink: 0 !important;
-    padding: 1.25rem 1.75rem !important;
+    flex: 0 0 auto !important;
+    padding: 1.1rem 1.5rem !important;
     background: #0f172a !important;
     border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
     display: flex !important;
     align-items: center !important;
     justify-content: space-between !important;
+    z-index: 10 !important;
 }
 
 .mv-modal-body {
     flex: 1 1 auto !important;
+    min-height: 0 !important;
+    max-height: 55vh !important;
     overflow-y: auto !important;
     overflow-x: hidden !important;
-    padding: 1.75rem !important;
-    max-height: calc(88vh - 150px) !important;
-    scrollbar-width: thin;
-    scrollbar-color: rgba(6, 182, 212, 0.4) transparent;
+    padding: 1.5rem !important;
+    -webkit-overflow-scrolling: touch !important;
+    touch-action: pan-y !important;
+    scrollbar-width: thin !important;
+    scrollbar-color: #06b6d4 rgba(255, 255, 255, 0.05) !important;
 }
 
 .mv-modal-body::-webkit-scrollbar {
-    width: 6px;
-}
-.mv-modal-body::-webkit-scrollbar-thumb {
-    background: rgba(6, 182, 212, 0.4);
-    border-radius: 9999px;
+    width: 8px !important;
 }
 .mv-modal-body::-webkit-scrollbar-track {
-    background: transparent;
+    background: rgba(255, 255, 255, 0.05) !important;
+    border-radius: 4px !important;
+}
+.mv-modal-body::-webkit-scrollbar-thumb {
+    background: #06b6d4 !important;
+    border-radius: 4px !important;
+}
+.mv-modal-body::-webkit-scrollbar-thumb:hover {
+    background: #22d3ee !important;
 }
 
 .mv-modal-footer {
-    flex-shrink: 0 !important;
-    padding: 1.25rem 1.75rem !important;
+    flex: 0 0 auto !important;
+    padding: 1rem 1.5rem !important;
     background: #0f172a !important;
     border-top: 1px solid rgba(255, 255, 255, 0.08) !important;
     display: flex !important;
@@ -234,12 +244,13 @@
     align-items: center !important;
     justify-content: flex-end !important;
     gap: 0.75rem !important;
+    z-index: 10 !important;
 }
 </style>
 
 <div id="manualVerifyModal">
     <div class="mv-modal-dialog">
-        <form method="POST" action="{% url 'control_kycs_list' %}" id="manualVerifyForm" style="display: flex; flex-direction: column; height: 100%; max-height: 88vh; margin: 0;">
+        <form method="POST" action="{% url 'control_kycs_list' %}" id="manualVerifyForm" style="display: flex; flex-direction: column; height: 100%; max-height: 85vh; min-height: 0; margin: 0;">
             {% csrf_token %}
             <input type="hidden" name="action" value="manual_verify">
             <input type="hidden" name="redirect_to_detail" id="mv_redirect_to_detail" value="">
@@ -389,7 +400,15 @@
 </div>
 
 <script>
+function ensureModalInBody() {
+    var modal = document.getElementById('manualVerifyModal');
+    if (modal && modal.parentElement !== document.body) {
+        document.body.appendChild(modal);
+    }
+}
+
 function openManualVerifyModal(userId, userEmail, firstName, fatherName, lastName, idNumber, nationality) {
+    ensureModalInBody();
     var modal = document.getElementById('manualVerifyModal');
     if (!modal) return;
 
@@ -443,6 +462,12 @@ function openManualVerifyModal(userId, userEmail, firstName, fatherName, lastNam
     modal.classList.add('active');
     modal.style.display = 'flex';
     document.body.style.overflow = 'hidden';
+
+    // Reset scroll to top
+    var modalBody = modal.querySelector('.mv-modal-body');
+    if (modalBody) {
+        modalBody.scrollTop = 0;
+    }
 }
 
 function closeManualVerifyModal() {
@@ -458,8 +483,9 @@ function submitAndOpenDetail() {
     document.getElementById('manualVerifyForm').submit();
 }
 
-// Close modal when clicking outside of modal dialog or on Escape key
+// Attach to body on DOM load and setup click/escape listeners
 document.addEventListener('DOMContentLoaded', function() {
+    ensureModalInBody();
     var modal = document.getElementById('manualVerifyModal');
     if (modal) {
         modal.addEventListener('click', function(e) {
