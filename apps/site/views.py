@@ -9221,10 +9221,12 @@ def control_system_updates(request):
                 cache.set("auto_deploy_paused", True, None)
                 cache.delete("github_remote_master_sha")
                 
-                cmd = f"git reset --hard {commit_hash} && python manage.py migrate --noinput && python manage.py collectstatic --noinput"
+                cmd = f"git config --global --add safe.directory '*' && git reset --hard {commit_hash} && python manage.py migrate --noinput && python manage.py collectstatic --noinput"
                 proc = subprocess.run(cmd, shell=True, cwd=str(settings.BASE_DIR), capture_output=True, text=True, timeout=120)
                 if proc.returncode == 0:
-                    messages.success(request, f"تم التراجع بنجاح إلى الإصدار ({commit_hash[:7]}). تم إيقاف التحديث التلقائي مؤقتاً لضمان استقرار هذا الإصدار.")
+                    messages.success(request, f"تم التراجع بنجاح إلى الإصدار ({commit_hash[:7]}). جاري إعادة تشغيل الخادم لتطبيق التغييرات...")
+                    from apps.common.auto_deploy import restart_process_soon
+                    restart_process_soon()
                 else:
                     messages.error(request, f"فشل التراجع: {proc.stderr[:300]}")
             except Exception as e:
@@ -9237,14 +9239,25 @@ def control_system_updates(request):
                 cache.delete("auto_deploy_paused")
                 cache.delete("github_remote_master_sha")
                 
-                cmd = "git fetch origin master && git reset --hard origin/master && python manage.py migrate --noinput && python manage.py collectstatic --noinput"
+                cmd = "git config --global --add safe.directory '*' && git fetch origin master && git reset --hard origin/master && python manage.py migrate --noinput && python manage.py collectstatic --noinput"
                 proc = subprocess.run(cmd, shell=True, cwd=str(settings.BASE_DIR), capture_output=True, text=True, timeout=120)
                 if proc.returncode == 0:
-                    messages.success(request, "تم تحديث النظام بنجاح إلى أحدث إصدار من Master، واستئناف التحديث التلقائي.")
+                    messages.success(request, "تم تحديث النظام بنجاح إلى أحدث إصدار من Master. جاري إعادة تشغيل الخادم فوراً لتطبيق التغييرات...")
+                    from apps.common.auto_deploy import restart_process_soon
+                    restart_process_soon()
                 else:
                     messages.error(request, f"فشل التحديث إلى Master: {proc.stderr[:300]}")
             except Exception as e:
                 messages.error(request, f"حدث خطأ أثناء التحديث: {str(e)}")
+            return redirect("control_system_updates")
+
+        elif action == "restart_server":
+            try:
+                from apps.common.auto_deploy import restart_process_soon
+                restart_process_soon()
+                messages.success(request, "جاري إعادة تشغيل حاوية خادم التطبيق (Restart Server)... سيعود الموقع للعمل خلال ثوانٍ معدودة.")
+            except Exception as e:
+                messages.error(request, f"حدث خطأ أثناء إعادة التشغيل: {str(e)}")
             return redirect("control_system_updates")
 
         elif action == "toggle_pause":

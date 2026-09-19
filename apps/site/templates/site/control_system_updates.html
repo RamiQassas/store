@@ -193,6 +193,15 @@
                 </button>
                 {% endif %}
             </form>
+            <!-- Restart Server Process -->
+            <form method="POST" onsubmit="return confirm('هل تريد إعادة تشغيل حاوية خادم التطبيق الآن؟ سيتم تطبيق أي كود مسحوب من المستودع.');">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="restart_server">
+                <button type="submit" class="px-3.5 py-2.5 bg-rose-500/15 border border-rose-500/30 hover:bg-rose-500/25 text-rose-300 font-bold text-xs rounded-xl flex items-center gap-2 transition-all" title="إعادة تشغيل خادم التطبيق (Restart Web Container)">
+                    <i class="fas fa-power-off"></i>
+                    <span>إعادة تشغيل الخادم</span>
+                </button>
+            </form>
         </div>
     </div>
 
