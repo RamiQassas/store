@@ -341,7 +341,13 @@ class MetaPixelConfiguration(TimeStampedModel):
         verbose_name="تتبع تسجيل الحسابات الجديدة (CompleteRegistration)"
     )
 
-    # Conversions API & testing (optional)
+    # Conversions API & Marketing Insights
+    ad_account_id = models.CharField(
+        max_length=60,
+        blank=True,
+        verbose_name="معرّف حساب الإعلانات (Ad Account ID)",
+        help_text="معرف حساب إعلانات ميتا (مثال: act_1234567890 أو 1234567890)"
+    )
     conversions_api_token = models.TextField(
         blank=True,
         verbose_name="رمز وصول واجهة تحويلات ميتا (Conversions API Token)"

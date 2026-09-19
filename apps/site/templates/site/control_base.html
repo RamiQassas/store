@@ -305,8 +305,11 @@
             <a href="{% url 'control_social_media' %}" class="admin-nav-link {% if 'social-media' in request.path %}active{% endif %}">
                 <i class="fas fa-share-nodes"></i> وسائل التواصل الاجتماعي
             </a>
+            <a href="{% url 'control_meta_ads_dashboard' %}" class="admin-nav-link {% if 'meta-ads' in request.path %}active{% endif %}">
+                <i class="fas fa-chart-pie text-emerald-400"></i> لوحة إعلانات ميتا (Meta Ads)
+            </a>
             <a href="{% url 'control_meta_pixel' %}" class="admin-nav-link {% if 'meta-pixel' in request.path %}active{% endif %}">
-                <i class="fab fa-facebook text-blue-400"></i> إعلانات وبيكسل ميتا (Meta Pixel)
+                <i class="fab fa-facebook text-blue-400"></i> إعدادات بيكسل ميتا (Meta Pixel)
             </a>
             {% endif %}
 
@@ -356,6 +359,9 @@
             </a>
             <a href="{% url 'merchant_pages' %}" class="admin-nav-link {% if 'merchant/pages' in request.path or 'merchant/page/' in request.path %}active{% endif %}">
                 <i class="fas fa-file-alt"></i> إدارة الصفحات
+            </a>
+            <a href="{% url 'merchant_meta_ads_dashboard' %}" class="admin-nav-link {% if 'meta-ads' in request.path %}active{% endif %}">
+                <i class="fas fa-chart-pie text-emerald-400"></i> إحصائيات إعلانات ميتا
             </a>
             <a href="{% url 'merchant_meta_pixel' %}" class="admin-nav-link {% if 'meta-pixel' in request.path %}active{% endif %}">
                 <i class="fab fa-facebook text-blue-400"></i> بيكسل ميتا (Meta Pixel)

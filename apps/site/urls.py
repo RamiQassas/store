@@ -183,6 +183,7 @@ urlpatterns = [
     path("control/settings/social-media/", views.control_social_media, name="control_social_media"),
     path("control/settings/social-media/<uuid:pk>/delete/", views.control_social_media_delete, name="control_social_media_delete"),
     path("control/settings/meta-pixel/", views.control_meta_pixel, name="control_meta_pixel"),
+    path("control/marketing/meta-ads/", views.control_meta_ads_dashboard, name="control_meta_ads_dashboard"),
     path("control/notifications/send/", views.control_send_notification, name="control_send_notification"),
     path("control/maintenance/db/", views.control_db_maintenance, name="control_db_maintenance"),
     path("control/audit-logs/", views.control_audit_logs, name="control_audit_logs"),

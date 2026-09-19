@@ -14,6 +14,9 @@
             <p class="text-slate-400 text-sm mt-1">تتبع زيارات وسلوك العملاء، استعراض المنتجات، عمليات الشراء، وتحسين نتائج حملاتك الإعلانية على فيسبوك وإنستغرام.</p>
         </div>
         <div class="flex items-center gap-3">
+            <a href="{% if is_tenant %}{% url 'merchant_meta_ads_dashboard' %}{% else %}{% url 'control_meta_ads_dashboard' %}{% endif %}" class="btn bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold text-xs py-2.5 px-4 rounded-xl flex items-center gap-2 shadow-lg shadow-blue-500/20 transition">
+                <i class="fas fa-chart-pie"></i> لوحة إحصائيات الإعلانات الحية
+            </a>
             <a href="https://business.facebook.com/events_manager2/" target="_blank" rel="noopener noreferrer" class="btn btn-outline border-white/10 hover:border-cyan text-xs py-2.5 px-4 rounded-xl flex items-center gap-2 text-slate-300 hover:text-white transition">
                 <i class="fas fa-external-link-alt text-cyan"></i> مدير أحداث ميتا (Events Manager)
             </a>
@@ -204,6 +207,17 @@
                         </label>
                         <input type="text" name="test_event_code" value="{{ config.test_event_code|default:'' }}" placeholder="مثال: TEST12345" class="w-full bg-slate-900/80 border border-white/10 focus:border-purple-400 focus:ring-1 focus:ring-purple-400 rounded-xl px-4 py-2.5 text-sm font-mono text-purple-300 placeholder-slate-600 transition">
                         <p class="text-[11px] text-slate-500 mt-1">تجد هذا الرمز في تبويب "اختبار الأحداث" (Test Events) في مدير أحداث ميتا. اتركه فارغاً عند الانتهاء من الاختبار.</p>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-bold text-slate-300 mb-2">
+                            <span>معرّف حساب الإعلانات</span>
+                            <span class="text-blue-400 font-mono mr-1">(Meta Ad Account ID - اختياري)</span>
+                        </label>
+                        <div class="relative">
+                            <input type="text" name="ad_account_id" value="{{ config.ad_account_id|default:'' }}" placeholder="مثال: act_1234567890 أو 1234567890" class="w-full bg-slate-900/80 border border-white/10 focus:border-blue-400 focus:ring-1 focus:ring-blue-400 rounded-xl px-4 py-2.5 text-sm font-mono text-white placeholder-slate-600 transition">
+                        </div>
+                        <p class="text-[11px] text-slate-500 mt-1">يُستخدم لسحب المصروفات والنقرات وعائد الإعلانات (ROAS) تلقائياً وعرضها في لوحة تحكم متجرك.</p>
                     </div>
 
                     <div>

@@ -5945,6 +5945,7 @@ def control_meta_pixel(request):
         track_initiate_checkout = request.POST.get("track_initiate_checkout") == "on"
         track_purchases = request.POST.get("track_purchases") == "on"
         track_registrations = request.POST.get("track_registrations") == "on"
+        ad_account_id = request.POST.get("ad_account_id", "").strip()
         conversions_api_token = request.POST.get("conversions_api_token", "").strip()
         test_event_code = request.POST.get("test_event_code", "").strip()
 
@@ -5960,6 +5961,7 @@ def control_meta_pixel(request):
         config.track_initiate_checkout = track_initiate_checkout
         config.track_purchases = track_purchases
         config.track_registrations = track_registrations
+        config.ad_account_id = ad_account_id
         config.conversions_api_token = conversions_api_token
         config.test_event_code = test_event_code
         config.updated_by = request.user
@@ -5995,6 +5997,107 @@ src="https://www.facebook.net/tr?id={preview_pixel_id}&ev=PageView&noscript=1"
         "generated_snippet": generated_snippet,
     }
     return render(request, "site/control_meta_pixel.html", context)
+
+
+@admin_required
+def control_meta_ads_dashboard(request):
+    from apps.common.models import MetaPixelConfiguration
+    from apps.common.meta_api import MetaAdsService
+    from apps.orders.models import Order
+    from apps.accounts.models import User
+    from django.utils import timezone
+    from datetime import timedelta
+    from django.db.models import Sum, Count, Q
+    from decimal import Decimal
+
+    store = getattr(request, "store", None)
+    config = MetaPixelConfiguration.get_settings(store=store)
+    period = request.GET.get("period", "last_30d")
+    is_refresh = request.GET.get("refresh") == "1"
+
+    # Meta Graph API Live Insights
+    meta_service = MetaAdsService(config.ad_account_id, config.conversions_api_token)
+    insights_result = None
+    campaigns_result = []
+    meta_error = None
+
+    if meta_service.is_configured:
+        ins_resp = meta_service.get_insights(date_preset=period, force_refresh=is_refresh)
+        if ins_resp.get("success"):
+            insights_result = ins_resp.get("data")
+        else:
+            meta_error = ins_resp.get("error")
+
+        camp_resp = meta_service.get_campaigns(force_refresh=is_refresh)
+        if camp_resp.get("success"):
+            campaigns_result = camp_resp.get("campaigns", [])
+    else:
+        if not config.ad_account_id and not config.conversions_api_token:
+            meta_error = "لم يتم ربط معرّف حساب الإعلانات (Ad Account ID) أو رمز وصول الـ API بعد."
+        elif not config.ad_account_id:
+            meta_error = "يرجى إدخال معرّف حساب الإعلانات (Ad Account ID) لتفعيل سحب البيانات الحية."
+        else:
+            meta_error = "يرجى إدخال رمز وصول الـ API (Conversions / Graph API Token)."
+
+    # Local Store Conversion Metrics for the selected timeframe
+    now = timezone.now()
+    if period == "today":
+        start_date = now.replace(hour=0, minute=0, second=0, microsecond=0)
+    elif period == "yesterday":
+        start_date = (now - timedelta(days=1)).replace(hour=0, minute=0, second=0, microsecond=0)
+    elif period == "last_7d":
+        start_date = now - timedelta(days=7)
+    elif period == "last_30d":
+        start_date = now - timedelta(days=30)
+    else:
+        start_date = now - timedelta(days=90)
+
+    orders_qs = Order.objects.filter(created_at__gte=start_date)
+    users_qs = User.objects.filter(date_joined__gte=start_date)
+    if store:
+        orders_qs = orders_qs.filter(store=store)
+        users_qs = users_qs.filter(store=store)
+    else:
+        orders_qs = orders_qs.filter(store__isnull=True)
+        users_qs = users_qs.filter(store__isnull=True)
+
+    from apps.orders.models import OrderItem
+
+    total_orders = orders_qs.count()
+    completed_orders = orders_qs.filter(status="completed").count()
+    total_revenue = orders_qs.filter(status="completed").aggregate(total=Sum("total_amount"))["total"] or Decimal("0.00")
+    new_registrations = users_qs.count()
+
+    # Top selling items
+    top_items = OrderItem.objects.filter(order__in=orders_qs.filter(status="completed")).values(
+        "variant__name", "variant__product__name"
+    ).annotate(
+        count=Sum("quantity"),
+        revenue=Sum("total_price")
+    ).order_by("-count")[:5]
+
+    # Quick links
+    clean_acc_num = (config.ad_account_id or "").replace("act_", "")
+    ad_manager_url = f"https://adsmanager.facebook.com/adsmanager/manage/campaigns?act={clean_acc_num}" if clean_acc_num else "https://adsmanager.facebook.com/"
+    events_manager_url = f"https://business.facebook.com/events_manager2/list/dataset/{config.pixel_id}" if config.pixel_id else "https://business.facebook.com/events_manager2/"
+
+    context = {
+        "config": config,
+        "is_tenant": bool(store),
+        "period": period,
+        "is_configured": meta_service.is_configured,
+        "insights": insights_result,
+        "campaigns": campaigns_result,
+        "meta_error": meta_error,
+        "total_orders": total_orders,
+        "completed_orders": completed_orders,
+        "total_revenue": total_revenue,
+        "new_registrations": new_registrations,
+        "top_items": top_items,
+        "ad_manager_url": ad_manager_url,
+        "events_manager_url": events_manager_url,
+    }
+    return render(request, "site/control_meta_ads.html", context)
 
 @support_required
 def ajax_user_search(request):
