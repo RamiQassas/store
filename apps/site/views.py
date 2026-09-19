@@ -3545,6 +3545,14 @@ def control_kycs_list(request):
                 except Exception:
                     pass
 
+            # Handle document image uploads if provided by admin
+            if 'identity_front' in request.FILES:
+                kyc.identity_front = request.FILES['identity_front']
+            if 'identity_back' in request.FILES:
+                kyc.identity_back = request.FILES['identity_back']
+            if 'selfie_verification' in request.FILES:
+                kyc.selfie_verification = request.FILES['selfie_verification']
+
             kyc.status = KYCRequest.Status.APPROVED
             kyc.reviewed_by = request.user
             kyc.reviewed_at = timezone.now()
@@ -3634,6 +3642,7 @@ def control_kycs_list(request):
         "unverified_users": users.filter(is_kyc_verified=False)[:100],
         "countries": COUNTRIES,
         "document_types": KYCRequest.DocumentType.choices,
+        "genders": KYCRequest.Gender.choices,
         "query": q, 
         "status_filter": status,
         "kyc_status_choices": [

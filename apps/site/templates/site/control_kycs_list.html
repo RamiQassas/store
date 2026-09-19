@@ -119,7 +119,7 @@
 
                             {% if not u.is_kyc_verified %}
                             <button type="button" 
-                                    onclick="openManualVerifyModal('{{ u.id }}', '{{ u.email|escapejs }}', '{% if kyc %}{{ kyc.first_name|escapejs }}{% else %}{{ u.first_name|escapejs }}{% endif %}', '{% if kyc %}{{ kyc.father_name|escapejs }}{% endif %}', '{% if kyc %}{{ kyc.last_name|escapejs }}{% else %}{{ u.last_name|escapejs }}{% endif %}', '{% if kyc %}{{ kyc.id_number|default:''|escapejs }}{% endif %}', '{% if kyc %}{{ kyc.nationality|default:''|escapejs }}{% endif %}')" 
+                                    onclick="openManualVerifyModal('{{ u.id }}', '{{ u.email|escapejs }}', '{% if kyc %}{{ kyc.first_name|escapejs }}{% else %}{{ u.first_name|escapejs }}{% endif %}', '{% if kyc %}{{ kyc.father_name|escapejs }}{% endif %}', '{% if kyc %}{{ kyc.last_name|escapejs }}{% else %}{{ u.last_name|escapejs }}{% endif %}', '{% if kyc %}{{ kyc.mother_name|escapejs }}{% endif %}', '{% if kyc %}{{ kyc.id_number|default:''|escapejs }}{% endif %}', '{% if kyc %}{{ kyc.document_type|escapejs }}{% endif %}', '{% if kyc %}{{ kyc.nationality|default:''|escapejs }}{% endif %}', '{% if kyc %}{{ kyc.issuing_country|default:''|escapejs }}{% endif %}', '{% if kyc %}{{ kyc.gender|escapejs }}{% endif %}', '{% if kyc and kyc.date_of_birth %}{{ kyc.date_of_birth|date:'Y-m-d' }}{% endif %}', '{% if kyc %}{{ kyc.place_of_birth|escapejs }}{% endif %}', '{% if kyc %}{{ kyc.current_residence|escapejs }}{% endif %}', '{% if kyc and kyc.identity_front %}{{ kyc.identity_front.url }}{% endif %}', '{% if kyc and kyc.identity_back %}{{ kyc.identity_back.url }}{% endif %}', '{% if kyc and kyc.selfie_verification %}{{ kyc.selfie_verification.url }}{% endif %}')" 
                                     class="btn btn-sm btn-primary text-[10px] py-1 px-3 flex items-center gap-1 font-bold shadow-cyan">
                                 <i class="fas fa-bolt"></i>
                                 <span>توثيق يدوي</span>
@@ -150,9 +150,9 @@
     width: 100vw !important;
     height: 100vh !important;
     z-index: 999999 !important;
-    background: rgba(3, 7, 18, 0.85) !important;
-    backdrop-filter: blur(8px) !important;
-    -webkit-backdrop-filter: blur(8px) !important;
+    background: rgba(3, 7, 18, 0.88) !important;
+    backdrop-filter: blur(10px) !important;
+    -webkit-backdrop-filter: blur(10px) !important;
     display: none;
     align-items: center !important;
     justify-content: center !important;
@@ -169,15 +169,15 @@
 .mv-modal-dialog {
     position: relative !important;
     width: 100% !important;
-    max-width: 620px !important;
+    max-width: 720px !important;
     margin: auto !important;
     background: #0b1329 !important;
     border: 1.5px solid rgba(6, 182, 212, 0.4) !important;
-    border-radius: 20px !important;
-    box-shadow: 0 25px 60px rgba(0, 0, 0, 0.95), 0 0 30px rgba(6, 182, 212, 0.15) !important;
+    border-radius: 24px !important;
+    box-shadow: 0 25px 60px rgba(0, 0, 0, 0.95), 0 0 35px rgba(6, 182, 212, 0.15) !important;
     display: flex !important;
     flex-direction: column !important;
-    max-height: 85vh !important;
+    max-height: 88vh !important;
     min-height: 0 !important;
     overflow: hidden !important;
     box-sizing: border-box !important;
@@ -197,7 +197,7 @@
 
 .mv-modal-header {
     flex: 0 0 auto !important;
-    padding: 1.1rem 1.5rem !important;
+    padding: 1.25rem 1.75rem !important;
     background: #0f172a !important;
     border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
     display: flex !important;
@@ -209,10 +209,10 @@
 .mv-modal-body {
     flex: 1 1 auto !important;
     min-height: 0 !important;
-    max-height: 55vh !important;
+    max-height: 60vh !important;
     overflow-y: auto !important;
     overflow-x: hidden !important;
-    padding: 1.5rem !important;
+    padding: 1.75rem !important;
     -webkit-overflow-scrolling: touch !important;
     touch-action: pan-y !important;
     scrollbar-width: thin !important;
@@ -236,7 +236,7 @@
 
 .mv-modal-footer {
     flex: 0 0 auto !important;
-    padding: 1rem 1.5rem !important;
+    padding: 1.25rem 1.75rem !important;
     background: #0f172a !important;
     border-top: 1px solid rgba(255, 255, 255, 0.08) !important;
     display: flex !important;
@@ -250,7 +250,7 @@
 
 <div id="manualVerifyModal">
     <div class="mv-modal-dialog">
-        <form method="POST" action="{% url 'control_kycs_list' %}" id="manualVerifyForm" style="display: flex; flex-direction: column; height: 100%; max-height: 85vh; min-height: 0; margin: 0;">
+        <form method="POST" action="{% url 'control_kycs_list' %}" id="manualVerifyForm" enctype="multipart/form-data" style="display: flex; flex-direction: column; height: 100%; max-height: 88vh; min-height: 0; margin: 0;">
             {% csrf_token %}
             <input type="hidden" name="action" value="manual_verify">
             <input type="hidden" name="redirect_to_detail" id="mv_redirect_to_detail" value="">
@@ -272,7 +272,7 @@
                 <div class="p-4 rounded-xl bg-cyan/10 border border-cyan/30 flex items-center justify-between gap-4">
                     <div class="text-xs text-slate-300">
                         <span class="text-cyan font-bold block mb-1">⚡ توثيق فوري بنقرة واحدة:</span>
-                        لا يشترط إدخال أي بيانات. يمكنك الضغط مباشرة لتوثيق الحساب ورفع الحدود فوراً.
+                        لا يشترط إدخال أي بيانات أو صور. يمكنك الضغط مباشرة لتوثيق الحساب ورفع الحدود فوراً.
                     </div>
                     <button type="submit" class="btn btn-sm btn-primary shrink-0 py-2.5 px-5 font-black text-xs shadow-cyan flex items-center gap-1.5">
                         <i class="fas fa-bolt"></i>
@@ -309,41 +309,14 @@
                     </div>
                 </div>
 
-                <!-- Optional Personal Information -->
+                <!-- 1. Document & Identification Information -->
                 <div class="border border-white/5 rounded-xl p-4 bg-white/[0.01] space-y-4">
-                    <div class="text-xs font-bold text-slate-300 flex items-center justify-between pb-2 border-b border-white/5">
-                        <span>البيانات الشخصية للعميل (اختياري بالكامل)</span>
+                    <div class="text-xs font-bold text-cyan flex items-center justify-between pb-2 border-b border-white/5">
+                        <span class="flex items-center gap-1.5">
+                            <i class="fas fa-id-card"></i>
+                            <span>بيانات الوثيقة والهوية (اختياري)</span>
+                        </span>
                         <span class="text-[10px] text-slate-500">يقبل الحفظ حتى لو تُركت فارغة</span>
-                    </div>
-
-                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                        <div>
-                            <label class="text-[10px] font-bold text-slate-400 block mb-1">الاسم الأول</label>
-                            <input type="text" name="first_name" id="mv_first_name" class="builder-input w-full text-xs" placeholder="مثال: أحمد">
-                        </div>
-                        <div>
-                            <label class="text-[10px] font-bold text-slate-400 block mb-1">اسم الأب</label>
-                            <input type="text" name="father_name" id="mv_father_name" class="builder-input w-full text-xs" placeholder="مثال: محمد">
-                        </div>
-                        <div>
-                            <label class="text-[10px] font-bold text-slate-400 block mb-1">الكنية / النسبة</label>
-                            <input type="text" name="last_name" id="mv_last_name" class="builder-input w-full text-xs" placeholder="مثال: العلي">
-                        </div>
-                    </div>
-
-                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        <div>
-                            <label class="text-[10px] font-bold text-slate-400 block mb-1">رقم الهوية / الوثيقة</label>
-                            <input type="text" name="id_number" id="mv_id_number" class="builder-input w-full text-xs font-mono" placeholder="رقم الهوية أو اتركه فارغاً">
-                        </div>
-                        <div>
-                            <label class="text-[10px] font-bold text-slate-400 block mb-1">نوع الوثيقة</label>
-                            <select name="document_type" id="mv_document_type" class="builder-input w-full text-xs">
-                                {% for val, lbl in document_types %}
-                                <option value="{{ val }}">{{ lbl }}</option>
-                                {% endfor %}
-                            </select>
-                        </div>
                     </div>
 
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -357,16 +330,152 @@
                             </select>
                         </div>
                         <div>
-                            <label class="text-[10px] font-bold text-slate-400 block mb-1">تاريخ الميلاد</label>
-                            <input type="date" name="date_of_birth" id="mv_dob" class="builder-input w-full text-xs">
+                            <label class="text-[10px] font-bold text-slate-400 block mb-1">بلد إصدار الوثيقة</label>
+                            <select name="issuing_country" id="mv_issuing_country" class="builder-input w-full text-xs">
+                                <option value="">غير محدد</option>
+                                {% for code, name in countries %}
+                                <option value="{{ code }}">{{ name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                            <label class="text-[10px] font-bold text-slate-400 block mb-1">نوع الوثيقة</label>
+                            <select name="document_type" id="mv_document_type" class="builder-input w-full text-xs">
+                                {% for val, lbl in document_types %}
+                                <option value="{{ val }}">{{ lbl }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div>
+                            <label class="text-[10px] font-bold text-slate-400 block mb-1">رقم الوطني / الوثيقة</label>
+                            <input type="text" name="id_number" id="mv_id_number" class="builder-input w-full text-xs font-mono" placeholder="رقم الهوية أو اتركه فارغاً">
                         </div>
                     </div>
                 </div>
 
-                <!-- Custom Financial Limits Override (Optional) -->
+                <!-- 2. Personal Information -->
                 <div class="border border-white/5 rounded-xl p-4 bg-white/[0.01] space-y-4">
-                    <div class="text-xs font-bold text-slate-300 flex items-center justify-between pb-2 border-b border-white/5">
-                        <span>الحدود المالية المخصصة (اختياري)</span>
+                    <div class="text-xs font-bold text-cyan flex items-center justify-between pb-2 border-b border-white/5">
+                        <span class="flex items-center gap-1.5">
+                            <i class="fas fa-user"></i>
+                            <span>البيانات الشخصية (اختياري)</span>
+                        </span>
+                        <span class="text-[10px] text-slate-500">نفس حقول نموذج العميل</span>
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                        <div>
+                            <label class="text-[10px] font-bold text-slate-400 block mb-1">الاسم الأول</label>
+                            <input type="text" name="first_name" id="mv_first_name" class="builder-input w-full text-xs" placeholder="الاسم الأول">
+                        </div>
+                        <div>
+                            <label class="text-[10px] font-bold text-slate-400 block mb-1">اسم الأب</label>
+                            <input type="text" name="father_name" id="mv_father_name" class="builder-input w-full text-xs" placeholder="اسم الأب">
+                        </div>
+                        <div>
+                            <label class="text-[10px] font-bold text-slate-400 block mb-1">النسبة / الكنية</label>
+                            <input type="text" name="last_name" id="mv_last_name" class="builder-input w-full text-xs" placeholder="الكنية">
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                        <div>
+                            <label class="text-[10px] font-bold text-slate-400 block mb-1">اسم الأم ونسبتها</label>
+                            <input type="text" name="mother_name" id="mv_mother_name" class="builder-input w-full text-xs" placeholder="اسم الأم الثلاثي">
+                        </div>
+                        <div>
+                            <label class="text-[10px] font-bold text-slate-400 block mb-1">الجنس</label>
+                            <select name="gender" id="mv_gender" class="builder-input w-full text-xs">
+                                {% for val, lbl in genders %}
+                                <option value="{{ val }}">{{ lbl }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div>
+                            <label class="text-[10px] font-bold text-slate-400 block mb-1">تاريخ الميلاد</label>
+                            <div class="relative flex items-center">
+                                <input type="date" name="date_of_birth" id="mv_dob" class="builder-input w-full text-xs font-mono pl-10" style="color-scheme: dark;">
+                                <button type="button" onclick="try { document.getElementById('mv_dob').showPicker(); } catch(e) { document.getElementById('mv_dob').focus(); }" class="absolute left-2.5 top-1/2 -translate-y-1/2 w-7 h-7 rounded-lg bg-white/5 hover:bg-cyan hover:text-black flex items-center justify-center text-cyan transition" title="فتح التقويم لاختيار تاريخ الميلاد">
+                                    <i class="fas fa-calendar-alt text-xs"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                            <label class="text-[10px] font-bold text-slate-400 block mb-1">مكان الميلاد</label>
+                            <input type="text" name="place_of_birth" id="mv_place_of_birth" class="builder-input w-full text-xs" placeholder="مكان الميلاد">
+                        </div>
+                        <div>
+                            <label class="text-[10px] font-bold text-slate-400 block mb-1">عنوان الإقامة الحالي</label>
+                            <input type="text" name="current_residence" id="mv_current_residence" class="builder-input w-full text-xs" placeholder="عنوان الإقامة الحالي">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 3. Document Images Upload (Optional - Same as customer) -->
+                <div class="border border-white/5 rounded-xl p-4 bg-white/[0.01] space-y-4">
+                    <div class="text-xs font-bold text-cyan flex items-center justify-between pb-2 border-b border-white/5">
+                        <span class="flex items-center gap-1.5">
+                            <i class="fas fa-camera"></i>
+                            <span>تحميل صور وثائق الهوية (اختياري)</span>
+                        </span>
+                        <span class="text-[10px] text-slate-500">انقر على المربع لاختيار صورة</span>
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                        <!-- Front ID -->
+                        <div class="text-center space-y-2">
+                            <span class="text-[10px] font-bold text-slate-400 block">وجه الوثيقة (الأمامي)</span>
+                            <label for="mv_identity_front" class="block aspect-[4/3] w-full bg-slate-900 border-2 border-dashed border-white/10 hover:border-cyan/50 rounded-xl cursor-pointer relative overflow-hidden transition group">
+                                <img id="preview_mv_front" src="" class="w-full h-full object-contain hidden" alt="وجه الوثيقة">
+                                <div id="placeholder_mv_front" class="h-full flex flex-col items-center justify-center p-3 text-slate-500 group-hover:text-cyan transition">
+                                    <i class="fas fa-id-card text-2xl mb-1"></i>
+                                    <span class="text-[9px] font-bold">رفع وجه الوثيقة</span>
+                                </div>
+                                <input type="file" name="identity_front" id="mv_identity_front" accept="image/*" class="hidden" onchange="previewKycUpload(this, 'preview_mv_front', 'placeholder_mv_front')">
+                            </label>
+                        </div>
+
+                        <!-- Back ID -->
+                        <div class="text-center space-y-2">
+                            <span class="text-[10px] font-bold text-slate-400 block">ظهر الوثيقة (الخلفي)</span>
+                            <label for="mv_identity_back" class="block aspect-[4/3] w-full bg-slate-900 border-2 border-dashed border-white/10 hover:border-cyan/50 rounded-xl cursor-pointer relative overflow-hidden transition group">
+                                <img id="preview_mv_back" src="" class="w-full h-full object-contain hidden" alt="ظهر الوثيقة">
+                                <div id="placeholder_mv_back" class="h-full flex flex-col items-center justify-center p-3 text-slate-500 group-hover:text-cyan transition">
+                                    <i class="fas fa-id-card-alt text-2xl mb-1"></i>
+                                    <span class="text-[9px] font-bold">رفع ظهر الوثيقة</span>
+                                </div>
+                                <input type="file" name="identity_back" id="mv_identity_back" accept="image/*" class="hidden" onchange="previewKycUpload(this, 'preview_mv_back', 'placeholder_mv_back')">
+                            </label>
+                        </div>
+
+                        <!-- Selfie with ID -->
+                        <div class="text-center space-y-2">
+                            <span class="text-[10px] font-bold text-slate-400 block">سيلفي مع حمل الوثيقة</span>
+                            <label for="mv_selfie_verification" class="block aspect-[4/3] w-full bg-slate-900 border-2 border-dashed border-white/10 hover:border-cyan/50 rounded-xl cursor-pointer relative overflow-hidden transition group">
+                                <img id="preview_mv_selfie" src="" class="w-full h-full object-contain hidden" alt="صورة السيلفي">
+                                <div id="placeholder_mv_selfie" class="h-full flex flex-col items-center justify-center p-3 text-slate-500 group-hover:text-cyan transition">
+                                    <i class="fas fa-camera text-2xl mb-1"></i>
+                                    <span class="text-[9px] font-bold">رفع صورة السيلفي</span>
+                                </div>
+                                <input type="file" name="selfie_verification" id="mv_selfie_verification" accept="image/*" class="hidden" onchange="previewKycUpload(this, 'preview_mv_selfie', 'placeholder_mv_selfie')">
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 4. Custom Financial Limits Override (Optional) -->
+                <div class="border border-white/5 rounded-xl p-4 bg-white/[0.01] space-y-4">
+                    <div class="text-xs font-bold text-cyan flex items-center justify-between pb-2 border-b border-white/5">
+                        <span class="flex items-center gap-1.5">
+                            <i class="fas fa-sliders-h"></i>
+                            <span>الحدود المالية المخصصة (اختياري)</span>
+                        </span>
                         <span class="text-[10px] text-slate-500">فارغة = الحدود الافتراضية للموثقين</span>
                     </div>
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -407,7 +516,86 @@ function ensureModalInBody() {
     }
 }
 
-function openManualVerifyModal(userId, userEmail, firstName, fatherName, lastName, idNumber, nationality) {
+function previewKycUpload(input, previewId, placeholderId) {
+    if (input.files && input.files[0]) {
+        var reader = new FileReader();
+        reader.onload = function(e) {
+            var img = document.getElementById(previewId);
+            var ph = document.getElementById(placeholderId);
+            if (img) {
+                img.src = e.target.result;
+                img.classList.remove('hidden');
+                img.style.display = 'block';
+            }
+            if (ph) {
+                ph.classList.add('hidden');
+                ph.style.display = 'none';
+            }
+        };
+        reader.readAsDataURL(input.files[0]);
+    }
+}
+
+function resetKycImagePreviews(frontUrl, backUrl, selfieUrl) {
+    // Front
+    var imgFront = document.getElementById('preview_mv_front');
+    var phFront = document.getElementById('placeholder_mv_front');
+    var inputFront = document.getElementById('mv_identity_front');
+    if (inputFront) inputFront.value = '';
+    if (frontUrl) {
+        imgFront.src = frontUrl;
+        imgFront.classList.remove('hidden');
+        imgFront.style.display = 'block';
+        phFront.classList.add('hidden');
+        phFront.style.display = 'none';
+    } else {
+        imgFront.src = '';
+        imgFront.classList.add('hidden');
+        imgFront.style.display = 'none';
+        phFront.classList.remove('hidden');
+        phFront.style.display = 'flex';
+    }
+
+    // Back
+    var imgBack = document.getElementById('preview_mv_back');
+    var phBack = document.getElementById('placeholder_mv_back');
+    var inputBack = document.getElementById('mv_identity_back');
+    if (inputBack) inputBack.value = '';
+    if (backUrl) {
+        imgBack.src = backUrl;
+        imgBack.classList.remove('hidden');
+        imgBack.style.display = 'block';
+        phBack.classList.add('hidden');
+        phBack.style.display = 'none';
+    } else {
+        imgBack.src = '';
+        imgBack.classList.add('hidden');
+        imgBack.style.display = 'none';
+        phBack.classList.remove('hidden');
+        phBack.style.display = 'flex';
+    }
+
+    // Selfie
+    var imgSelfie = document.getElementById('preview_mv_selfie');
+    var phSelfie = document.getElementById('placeholder_mv_selfie');
+    var inputSelfie = document.getElementById('mv_selfie_verification');
+    if (inputSelfie) inputSelfie.value = '';
+    if (selfieUrl) {
+        imgSelfie.src = selfieUrl;
+        imgSelfie.classList.remove('hidden');
+        imgSelfie.style.display = 'block';
+        phSelfie.classList.add('hidden');
+        phSelfie.style.display = 'none';
+    } else {
+        imgSelfie.src = '';
+        imgSelfie.classList.add('hidden');
+        imgSelfie.style.display = 'none';
+        phSelfie.classList.remove('hidden');
+        phSelfie.style.display = 'flex';
+    }
+}
+
+function openManualVerifyModal(userId, userEmail, firstName, fatherName, lastName, motherName, idNumber, documentType, nationality, issuingCountry, gender, dob, placeOfBirth, residence, frontUrl, backUrl, selfieUrl) {
     ensureModalInBody();
     var modal = document.getElementById('manualVerifyModal');
     if (!modal) return;
@@ -449,15 +637,24 @@ function openManualVerifyModal(userId, userEmail, firstName, fatherName, lastNam
         select.selectedIndex = 0;
     }
 
+    // Set text fields
     document.getElementById('mv_first_name').value = firstName || '';
     document.getElementById('mv_father_name').value = fatherName || '';
     document.getElementById('mv_last_name').value = lastName || '';
+    document.getElementById('mv_mother_name').value = motherName || '';
     document.getElementById('mv_id_number').value = idNumber || '';
-    if (nationality) {
-        document.getElementById('mv_nationality').value = nationality;
-    } else {
-        document.getElementById('mv_nationality').value = '';
-    }
+    if (documentType) document.getElementById('mv_document_type').value = documentType;
+    if (nationality) document.getElementById('mv_nationality').value = nationality;
+    else document.getElementById('mv_nationality').value = '';
+    if (issuingCountry) document.getElementById('mv_issuing_country').value = issuingCountry;
+    else document.getElementById('mv_issuing_country').value = '';
+    if (gender) document.getElementById('mv_gender').value = gender;
+    document.getElementById('mv_dob').value = dob || '';
+    document.getElementById('mv_place_of_birth').value = placeOfBirth || '';
+    document.getElementById('mv_current_residence').value = residence || '';
+
+    // Setup image previews
+    resetKycImagePreviews(frontUrl, backUrl, selfieUrl);
 
     modal.classList.add('active');
     modal.style.display = 'flex';
