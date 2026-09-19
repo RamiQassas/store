@@ -288,3 +288,99 @@ class SiteMaintenanceMode(models.Model):
     @property
     def is_any_disabled(self):
         return not self.is_fully_operational
+
+
+class MetaPixelConfiguration(TimeStampedModel):
+    store = models.ForeignKey(
+        "stores.Store",
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name="meta_pixel_configurations",
+        verbose_name="المتجر"
+    )
+    objects = TenantManager()
+    all_objects = models.Manager()
+
+    pixel_name = models.CharField(
+        max_length=120,
+        blank=True,
+        default="بيكسل إعلانات ميتا",
+        verbose_name="تسمية البيكسل الخاص بك"
+    )
+    pixel_id = models.CharField(
+        max_length=50,
+        blank=True,
+        verbose_name="معرّف البيكسل (Pixel ID)",
+        help_text="معرف بيكسل ميتا المكون من 15-16 رقماً من مدير أحداث فيسبوك/ميتا"
+    )
+    is_active = models.BooleanField(
+        default=True,
+        verbose_name="تفعيل البيكسل"
+    )
+    
+    # Event tracking switches
+    track_pageviews = models.BooleanField(
+        default=True,
+        verbose_name="تتبع مشاهدة الصفحات (PageView)"
+    )
+    track_view_content = models.BooleanField(
+        default=True,
+        verbose_name="تتبع تصفح المنتجات (ViewContent)"
+    )
+    track_initiate_checkout = models.BooleanField(
+        default=True,
+        verbose_name="تتبع بدء الشراء وإضافة السلة (AddToCart / InitiateCheckout)"
+    )
+    track_purchases = models.BooleanField(
+        default=True,
+        verbose_name="تتبع عمليات الشراء المكتملة (Purchase)"
+    )
+    track_registrations = models.BooleanField(
+        default=True,
+        verbose_name="تتبع تسجيل الحسابات الجديدة (CompleteRegistration)"
+    )
+
+    # Conversions API & testing (optional)
+    conversions_api_token = models.TextField(
+        blank=True,
+        verbose_name="رمز وصول واجهة تحويلات ميتا (Conversions API Token)"
+    )
+    test_event_code = models.CharField(
+        max_length=50,
+        blank=True,
+        verbose_name="رمز اختبار الأحداث (Test Event Code)"
+    )
+
+    updated_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="meta_pixel_updates",
+        verbose_name="آخر تعديل بواسطة"
+    )
+
+    class Meta:
+        verbose_name = "إعدادات بيكسل ميتا (Meta Pixel)"
+        verbose_name_plural = "إعدادات بيكسل ميتا (Meta Pixel)"
+
+    def __str__(self):
+        return f"{self.pixel_name} ({self.pixel_id or 'غير معين'})"
+
+    @classmethod
+    def get_settings(cls, store=None):
+        """Returns the MetaPixelConfiguration instance for the given store or platform."""
+        try:
+            if store:
+                obj = cls.all_objects.filter(store=store).first()
+                if not obj:
+                    obj = cls.all_objects.create(store=store, pixel_name=f"بيكسل {store.name}")
+                return obj
+            obj = cls.all_objects.filter(store__isnull=True).first()
+            if not obj:
+                obj = cls.all_objects.create(store=None, pixel_name="بيكسل منصة رقميات")
+            return obj
+        except Exception:
+            return None
+

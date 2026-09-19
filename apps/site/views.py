@@ -5916,6 +5916,73 @@ def control_social_media_delete(request, pk):
     get_object_or_404(SocialMediaLink, pk=pk).delete()
     return redirect("control_social_media")
 
+@admin_required
+def control_meta_pixel(request):
+    import re
+    from apps.common.models import MetaPixelConfiguration
+    store = getattr(request, "store", None)
+    config = MetaPixelConfiguration.get_settings(store=store)
+
+    if request.method == "POST":
+        pixel_name = request.POST.get("pixel_name", "").strip()
+        raw_pixel_id = request.POST.get("pixel_id", "").strip()
+        is_active = request.POST.get("is_active") == "on"
+        track_pageviews = request.POST.get("track_pageviews") == "on"
+        track_view_content = request.POST.get("track_view_content") == "on"
+        track_initiate_checkout = request.POST.get("track_initiate_checkout") == "on"
+        track_purchases = request.POST.get("track_purchases") == "on"
+        track_registrations = request.POST.get("track_registrations") == "on"
+        conversions_api_token = request.POST.get("conversions_api_token", "").strip()
+        test_event_code = request.POST.get("test_event_code", "").strip()
+
+        # Clean pixel ID - extract digits if user pasted full script, URL, or spaces
+        extracted_digits = re.findall(r'\d{8,24}', raw_pixel_id)
+        cleaned_pixel_id = extracted_digits[0] if extracted_digits else re.sub(r'\D', '', raw_pixel_id)
+
+        config.pixel_name = pixel_name or ("بيكسل إعلانات ميتا" if not store else f"بيكسل {store.name}")
+        config.pixel_id = cleaned_pixel_id
+        config.is_active = is_active
+        config.track_pageviews = track_pageviews
+        config.track_view_content = track_view_content
+        config.track_initiate_checkout = track_initiate_checkout
+        config.track_purchases = track_purchases
+        config.track_registrations = track_registrations
+        config.conversions_api_token = conversions_api_token
+        config.test_event_code = test_event_code
+        config.updated_by = request.user
+        config.save()
+
+        messages.success(request, "تم حفظ وتحديث إعدادات بيكسل إعلانات ميتا (Meta Pixel) بنجاح.")
+        if store:
+            return redirect("merchant_meta_pixel")
+        return redirect("control_meta_pixel")
+
+    preview_pixel_id = config.pixel_id if (config and config.pixel_id) else "YOUR_PIXEL_ID"
+    generated_snippet = f"""<!-- Meta Pixel Code -->
+<script>
+!function(f,b,e,v,n,t,s)
+{{if(f.fbq)return;n=f.fbq=function(){{n.callMethod?
+n.callMethod.apply(n,arguments):n.queue.push(arguments)}};
+if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
+n.queue=[];t=b.createElement(e);t.async=!0;
+t.src=v;s=b.getElementsByTagName(e)[0];
+s.parentNode.insertBefore(t,s)}}(window, document,'script',
+'https://connect.facebook.net/en_US/fbevents.js');
+fbq('init', '{preview_pixel_id}');
+fbq('track', 'PageView');
+</script>
+<noscript><img height="1" width="1" style="display:none"
+src="https://www.facebook.net/tr?id={preview_pixel_id}&ev=PageView&noscript=1"
+/></noscript>
+<!-- End Meta Pixel Code -->"""
+
+    context = {
+        "config": config,
+        "is_tenant": bool(store),
+        "generated_snippet": generated_snippet,
+    }
+    return render(request, "site/control_meta_pixel.html", context)
+
 @support_required
 def ajax_user_search(request):
     store = getattr(request, "store", None)

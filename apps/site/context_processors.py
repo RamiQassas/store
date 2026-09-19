@@ -1,4 +1,4 @@
-from apps.common.models import Currency, SocialMediaLink
+from apps.common.models import Currency, SocialMediaLink, MetaPixelConfiguration
 from apps.common.security import sanitize_custom_css
 from apps.payments.models import PaymentMethod
 
@@ -120,6 +120,9 @@ def tenant_context(request):
         sso_callback = f"{platform_url}/auth/sso-callback/?store_id={store.pk}&subdomain={store.subdomain}&next={quote(next_target)}"
         sso_google_login_url = f"{platform_url}/accounts/google/login/?store_id={store.pk}&subdomain={store.subdomain}&next={quote(sso_callback)}"
 
+        pixel_config = MetaPixelConfiguration.get_settings(store=store)
+        pixel_id = pixel_config.pixel_id.strip() if (pixel_config and pixel_config.is_active and pixel_config.pixel_id) else None
+
         return {
             "PLATFORM_URL": platform_url,
             "SSO_GOOGLE_LOGIN_URL": sso_google_login_url,
@@ -160,9 +163,16 @@ def tenant_context(request):
 
             # Store subscription info (for feature gating in templates)
             "STORE_PLAN": store.subscription_plan,
+
+            # Meta Pixel Integration
+            "META_PIXEL_CONFIG": pixel_config,
+            "META_PIXEL_ID": pixel_id,
         }
     else:
         # Main Raqamiyat platform — no store, use platform defaults
+        pixel_config = MetaPixelConfiguration.get_settings(store=None)
+        pixel_id = pixel_config.pixel_id.strip() if (pixel_config and pixel_config.is_active and pixel_config.pixel_id) else None
+
         return {
             "PLATFORM_URL": platform_url,
             "SSO_GOOGLE_LOGIN_URL": "/accounts/google/login/",
@@ -199,5 +209,9 @@ def tenant_context(request):
             "STORE_TIKTOK": "",
 
             "STORE_PLAN": None,
+
+            # Meta Pixel Integration
+            "META_PIXEL_CONFIG": pixel_config,
+            "META_PIXEL_ID": pixel_id,
         }
 

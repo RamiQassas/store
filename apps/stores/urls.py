@@ -282,6 +282,7 @@ urlpatterns = [
     path("merchant/system/updates/", site_views.control_system_updates, name="control_system_updates"),
     path("merchant/social-media/", site_views.control_social_media, name="control_social_media"),
     path("merchant/social-media/<uuid:pk>/delete/", site_views.control_social_media_delete, name="control_social_media_delete"),
+    path("merchant/settings/meta-pixel/", site_views.control_meta_pixel, name="merchant_meta_pixel"),
 
     # API Integrations & Alkasr Dashboard
     path("merchant/api-integrations/", site_views.control_api_integrations_list, name="control_api_integrations_list"),

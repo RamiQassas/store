@@ -1,0 +1,312 @@
+{% extends "site/control_base.html" %}
+{% load static %}
+
+{% block title %}بيكسل إعلانات ميتا (Meta Pixel) | لوحة التحكم{% endblock %}
+
+{% block control_content %}
+<div class="page-head mb-8">
+    <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+            <span class="eyebrow text-cyan text-xs font-bold uppercase tracking-wider flex items-center gap-2">
+                <i class="fab fa-facebook text-blue-400"></i> Marketing & Analytics / Meta Pixel
+            </span>
+            <h1 class="text-2xl lg:text-3xl font-black text-white mt-1">إعلانات وبيكسل ميتا (Meta / Facebook Pixel)</h1>
+            <p class="text-slate-400 text-sm mt-1">تتبع زيارات وسلوك العملاء، استعراض المنتجات، عمليات الشراء، وتحسين نتائج حملاتك الإعلانية على فيسبوك وإنستغرام.</p>
+        </div>
+        <div class="flex items-center gap-3">
+            <a href="https://business.facebook.com/events_manager2/" target="_blank" rel="noopener noreferrer" class="btn btn-outline border-white/10 hover:border-cyan text-xs py-2.5 px-4 rounded-xl flex items-center gap-2 text-slate-300 hover:text-white transition">
+                <i class="fas fa-external-link-alt text-cyan"></i> مدير أحداث ميتا (Events Manager)
+            </a>
+        </div>
+    </div>
+</div>
+
+<!-- Status Overview Cards -->
+<div class="grid grid-cols-1 md:grid-cols-3 gap-5 mb-8">
+    <div class="management-card p-5 bg-white/[0.02] border border-white/5 rounded-2xl relative overflow-hidden">
+        <div class="flex items-center justify-between">
+            <span class="text-xs text-slate-400 font-medium">حالة البيكسل في المتجر</span>
+            {% if config.is_active and config.pixel_id %}
+            <span class="badge success text-[10px] px-2.5 py-1 flex items-center gap-1.5 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 rounded-lg">
+                <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span> نشط ويعمل
+            </span>
+            {% elif config.pixel_id and not config.is_active %}
+            <span class="badge muted text-[10px] px-2.5 py-1 bg-amber-500/10 text-amber-400 border border-amber-500/20 rounded-lg">
+                <i class="fas fa-pause-circle text-xs"></i> متوقف مؤقتاً
+            </span>
+            {% else %}
+            <span class="badge muted text-[10px] px-2.5 py-1 bg-red-500/10 text-red-400 border border-red-500/20 rounded-lg">
+                <i class="fas fa-exclamation-circle text-xs"></i> بانتظار إدخال المعرف
+            </span>
+            {% endif %}
+        </div>
+        <div class="mt-3">
+            <h3 class="text-lg font-black text-white truncate">{{ config.pixel_name|default:"بيكسل إعلانات ميتا" }}</h3>
+            <p class="text-xs font-mono text-cyan mt-0.5">
+                {% if config.pixel_id %}
+                ID: {{ config.pixel_id }}
+                {% else %}
+                <span class="text-slate-500">لم يتم إدخال معرف بعد</span>
+                {% endif %}
+            </p>
+        </div>
+    </div>
+
+    <div class="management-card p-5 bg-white/[0.02] border border-white/5 rounded-2xl">
+        <span class="text-xs text-slate-400 font-medium">الأحداث المعيارية النشطة</span>
+        <div class="mt-3 flex items-center gap-2 flex-wrap">
+            {% if config.track_pageviews %}<span class="text-[10px] bg-cyan/10 text-cyan border border-cyan/20 px-2 py-0.5 rounded font-mono">PageView</span>{% endif %}
+            {% if config.track_view_content %}<span class="text-[10px] bg-blue-500/10 text-blue-400 border border-blue-500/20 px-2 py-0.5 rounded font-mono">ViewContent</span>{% endif %}
+            {% if config.track_initiate_checkout %}<span class="text-[10px] bg-purple-500/10 text-purple-400 border border-purple-500/20 px-2 py-0.5 rounded font-mono">InitiateCheckout</span>{% endif %}
+            {% if config.track_purchases %}<span class="text-[10px] bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-2 py-0.5 rounded font-mono">Purchase</span>{% endif %}
+            {% if config.track_registrations %}<span class="text-[10px] bg-amber-500/10 text-amber-400 border border-amber-500/20 px-2 py-0.5 rounded font-mono">Registration</span>{% endif %}
+        </div>
+        <p class="text-[11px] text-slate-500 mt-2">تُرسل الأحداث تلقائياً دون الحاجة لكتابة كود برمجي.</p>
+    </div>
+
+    <div class="management-card p-5 bg-white/[0.02] border border-white/5 rounded-2xl">
+        <span class="text-xs text-slate-400 font-medium">أداة الفحص والتحقق</span>
+        <div class="mt-2 flex items-center justify-between">
+            <span class="text-sm font-bold text-slate-200">Meta Pixel Helper</span>
+            <a href="https://chromewebstore.google.com/detail/meta-pixel-helper/fdgfkebogiimcoedlicjlajpkdmockpc" target="_blank" rel="noopener noreferrer" class="text-xs text-cyan hover:underline flex items-center gap-1">
+                تثبيت الإضافة <i class="fas fa-arrow-up-right-from-square text-[10px]"></i>
+            </a>
+        </div>
+        <p class="text-[11px] text-slate-500 mt-2">إضافة مجانية لمتصفح Chrome لفحص ومراقبة إرسال أحداث البيكسل لحظياً على صفحات متجرك.</p>
+    </div>
+</div>
+
+<div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+    <!-- Configuration Form -->
+    <div class="lg:col-span-7 space-y-6">
+        <form method="post" class="space-y-6">
+            {% csrf_token %}
+
+            <!-- 1. Pixel Basic Setup Card -->
+            <div class="management-card p-6 bg-white/[0.02] border border-white/5 rounded-2xl space-y-5">
+                <div class="flex items-center justify-between pb-4 border-b border-white/5">
+                    <div class="flex items-center gap-2.5">
+                        <div class="w-8 h-8 rounded-xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-blue-400">
+                            <i class="fab fa-facebook-f"></i>
+                        </div>
+                        <div>
+                            <h2 class="text-base font-bold text-white">إعدادات البيكسل الأساسية</h2>
+                            <p class="text-xs text-slate-400">أدخل اسم ومعرّف البيكسل الخاص بحسابك الإعلاني في ميتا.</p>
+                        </div>
+                    </div>
+                    <div>
+                        <label class="relative inline-flex items-center cursor-pointer">
+                            <input type="checkbox" name="is_active" class="sr-only peer" {% if config.is_active %}checked{% endif %}>
+                            <div class="w-11 h-6 bg-slate-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-cyan"></div>
+                            <span class="mr-2 text-xs font-bold text-slate-300">تفعيل البيكسل</span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-300 mb-2">
+                            <span>تسمية البيكسل الخاص بك</span>
+                            <span class="text-slate-500 font-normal mr-1">(Pixel Name)</span>
+                        </label>
+                        <input type="text" name="pixel_name" value="{{ config.pixel_name|default:'' }}" placeholder="مثال: بيكسل متجر رقميات" class="w-full bg-slate-900/80 border border-white/10 focus:border-cyan focus:ring-1 focus:ring-cyan rounded-xl px-4 py-2.5 text-sm text-white placeholder-slate-600 transition" required>
+                        <p class="text-[11px] text-slate-500 mt-1">اختر اسماً يطابق اسم البيكسل الذي أنشأته في مدير أحداث ميتا لسهولة التعرف عليه.</p>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-bold text-slate-300 mb-2">
+                            <span>معرّف البيكسل الخاص بك</span>
+                            <span class="text-cyan font-mono mr-1">(Meta Pixel ID)</span>
+                            <span class="text-red-400">*</span>
+                        </label>
+                        <div class="relative">
+                            <input type="text" name="pixel_id" id="pixel_id_input" value="{{ config.pixel_id|default:'' }}" placeholder="مثال: 1234567890123456" class="w-full bg-slate-900/80 border border-white/10 focus:border-cyan focus:ring-1 focus:ring-cyan rounded-xl px-4 py-2.5 pl-10 text-sm font-mono text-cyan placeholder-slate-600 transition" required>
+                            <div class="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500">
+                                <i class="fas fa-hashtag"></i>
+                            </div>
+                        </div>
+                        <p class="text-[11px] text-slate-500 mt-1 flex items-center gap-1.5">
+                            <i class="fas fa-info-circle text-cyan"></i>
+                            <span>المعرّف يتكون عادة من 15 إلى 16 رقماً، تجده في زاوية مدير الأحداث أسفل اسم البيكسل.</span>
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 2. Standard Web Events Toggles -->
+            <div class="management-card p-6 bg-white/[0.02] border border-white/5 rounded-2xl space-y-5">
+                <div class="pb-3 border-b border-white/5">
+                    <h2 class="text-base font-bold text-white flex items-center gap-2">
+                        <i class="fas fa-chart-line text-cyan"></i>
+                        <span>تتبع أحداث ومعلمات الويب (Standard Events)</span>
+                    </h2>
+                    <p class="text-xs text-slate-400 mt-0.5">حدد الأحداث التي ترغب بإرسالها تلقائياً إلى خوارزميات ميتا لتحسين الحملات واستهداف المهتمين.</p>
+                </div>
+
+                <div class="space-y-3.5">
+                    <label class="flex items-start justify-between gap-4 p-3 rounded-xl bg-white/[0.01] hover:bg-white/[0.03] border border-white/5 cursor-pointer transition">
+                        <div>
+                            <div class="text-sm font-bold text-white">مشاهدات الصفحات (PageView)</div>
+                            <div class="text-xs text-slate-400">تتبع زيارات كافة صفحات المتجر تلقائياً لبناء جماهير مخصصة (Custom Audiences).</div>
+                        </div>
+                        <input type="checkbox" name="track_pageviews" class="mt-1 w-4 h-4 rounded text-cyan focus:ring-cyan bg-slate-800 border-white/20" {% if config.track_pageviews %}checked{% endif %}>
+                    </label>
+
+                    <label class="flex items-start justify-between gap-4 p-3 rounded-xl bg-white/[0.01] hover:bg-white/[0.03] border border-white/5 cursor-pointer transition">
+                        <div>
+                            <div class="text-sm font-bold text-white">تصفح المنتجات والخدمات (ViewContent)</div>
+                            <div class="text-xs text-slate-400">إرسال تفاصيل المنتج المعروض (اسم المنتج، التصنيف، السعر، والعملة) عند فتح صفحته.</div>
+                        </div>
+                        <input type="checkbox" name="track_view_content" class="mt-1 w-4 h-4 rounded text-cyan focus:ring-cyan bg-slate-800 border-white/20" {% if config.track_view_content %}checked{% endif %}>
+                    </label>
+
+                    <label class="flex items-start justify-between gap-4 p-3 rounded-xl bg-white/[0.01] hover:bg-white/[0.03] border border-white/5 cursor-pointer transition">
+                        <div>
+                            <div class="text-sm font-bold text-white">بدء الشراء وإضافة السلة (AddToCart / InitiateCheckout)</div>
+                            <div class="text-xs text-slate-400">تتبع العملاء الذين ضغطوا على زر الشراء أو فتحوا نموذج إتمام الطلب.</div>
+                        </div>
+                        <input type="checkbox" name="track_initiate_checkout" class="mt-1 w-4 h-4 rounded text-cyan focus:ring-cyan bg-slate-800 border-white/20" {% if config.track_initiate_checkout %}checked{% endif %}>
+                    </label>
+
+                    <label class="flex items-start justify-between gap-4 p-3 rounded-xl bg-white/[0.01] hover:bg-white/[0.03] border border-white/5 cursor-pointer transition">
+                        <div>
+                            <div class="text-sm font-bold text-white">عمليات الشراء المكتملة (Purchase)</div>
+                            <div class="text-xs text-slate-400">تسجيل عمليات الدفع الناجحة مع قيمة الطلب المحققة والعملة لحساب عائد الإنفاق الإعلاني (ROAS).</div>
+                        </div>
+                        <input type="checkbox" name="track_purchases" class="mt-1 w-4 h-4 rounded text-cyan focus:ring-cyan bg-slate-800 border-white/20" {% if config.track_purchases %}checked{% endif %}>
+                    </label>
+
+                    <label class="flex items-start justify-between gap-4 p-3 rounded-xl bg-white/[0.01] hover:bg-white/[0.03] border border-white/5 cursor-pointer transition">
+                        <div>
+                            <div class="text-sm font-bold text-white">تسجيل حساب جديد (CompleteRegistration)</div>
+                            <div class="text-xs text-slate-400">تتبع إنشاء الحسابات الجديدة عند تأكيد التسجيل بنجاح.</div>
+                        </div>
+                        <input type="checkbox" name="track_registrations" class="mt-1 w-4 h-4 rounded text-cyan focus:ring-cyan bg-slate-800 border-white/20" {% if config.track_registrations %}checked{% endif %}>
+                    </label>
+                </div>
+            </div>
+
+            <!-- 3. Advanced & Test Events Card -->
+            <div class="management-card p-6 bg-white/[0.02] border border-white/5 rounded-2xl space-y-5">
+                <div class="pb-3 border-b border-white/5">
+                    <h2 class="text-base font-bold text-white flex items-center gap-2">
+                        <i class="fas fa-vial text-purple-400"></i>
+                        <span>إعدادات متقدمة واختبار الأحداث (اختياري)</span>
+                    </h2>
+                    <p class="text-xs text-slate-400 mt-0.5">لتجربة فحص وصول الأحداث فورياً في لوحة تحكم ميتا.</p>
+                </div>
+
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-300 mb-2">
+                            <span>رمز اختبار الأحداث</span>
+                            <span class="text-purple-400 font-mono mr-1">(Test Event Code)</span>
+                        </label>
+                        <input type="text" name="test_event_code" value="{{ config.test_event_code|default:'' }}" placeholder="مثال: TEST12345" class="w-full bg-slate-900/80 border border-white/10 focus:border-purple-400 focus:ring-1 focus:ring-purple-400 rounded-xl px-4 py-2.5 text-sm font-mono text-purple-300 placeholder-slate-600 transition">
+                        <p class="text-[11px] text-slate-500 mt-1">تجد هذا الرمز في تبويب "اختبار الأحداث" (Test Events) في مدير أحداث ميتا. اتركه فارغاً عند الانتهاء من الاختبار.</p>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-bold text-slate-300 mb-2">
+                            <span>رمز وصول واجهة تحويلات ميتا</span>
+                            <span class="text-slate-500 font-normal mr-1">(Conversions API Access Token - اختياري)</span>
+                        </label>
+                        <textarea name="conversions_api_token" rows="2" placeholder="EAAB..." class="w-full bg-slate-900/80 border border-white/10 focus:border-cyan focus:ring-1 focus:ring-cyan rounded-xl p-3 text-xs font-mono text-slate-300 placeholder-slate-600 transition">{{ config.conversions_api_token|default:'' }}</textarea>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Submit Button -->
+            <div class="flex items-center justify-end gap-3 pt-2">
+                <button type="submit" class="btn btn-primary bg-cyan hover:bg-cyan/90 text-slate-950 font-bold px-7 py-3 rounded-xl shadow-lg shadow-cyan/20 flex items-center gap-2 transition">
+                    <i class="fas fa-save"></i> حفظ وتحديث إعدادات البيكسل
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <!-- Sidebar: Code Preview & Step-by-Step Guide -->
+    <div class="lg:col-span-5 space-y-6">
+        <!-- Live Code Preview Card -->
+        <div class="management-card p-6 bg-white/[0.02] border border-white/5 rounded-2xl space-y-4">
+            <div class="flex items-center justify-between pb-3 border-b border-white/5">
+                <div class="flex items-center gap-2">
+                    <i class="fas fa-code text-cyan text-sm"></i>
+                    <h3 class="text-sm font-bold text-white">معاينة الكود المولد تلقائياً</h3>
+                </div>
+                <button type="button" onclick="copySnippet()" class="text-xs text-cyan hover:text-white flex items-center gap-1.5 transition">
+                    <i class="fas fa-copy" id="copyIcon"></i> <span id="copyText">نسخ الكود</span>
+                </button>
+            </div>
+            <div class="relative">
+                <pre class="bg-slate-950 p-4 rounded-xl text-[11px] font-mono text-slate-300 overflow-x-auto border border-white/5 leading-relaxed dir-ltr text-left" id="snippetCode">{{ generated_snippet }}</pre>
+            </div>
+            <p class="text-[11px] text-slate-500 leading-normal flex items-start gap-1.5">
+                <i class="fas fa-check-circle text-emerald-400 mt-0.5"></i>
+                <span>يتم حقن هذا الكود تلقائياً في وسم &lt;head&gt; لجميع صفحات متجرك دون الحاجة لنسخه أو تعديل أي ملف يدوياً.</span>
+            </p>
+        </div>
+
+        <!-- Meta Compliance & Privacy Notice -->
+        <div class="management-card p-5 bg-blue-500/[0.04] border border-blue-500/20 rounded-2xl space-y-3">
+            <div class="flex items-center gap-2 text-blue-400 text-xs font-bold">
+                <i class="fas fa-shield-alt text-sm"></i>
+                <span>الامتثال لسياسات أدوات Meta للأعمال وحماية الخصوصية</span>
+            </div>
+            <p class="text-xs text-slate-400 leading-relaxed">
+                وفقاً لشروط أدوات Meta للأعمال، لا يشارك هذا التكامل أي بيانات حساسة كالمعلومات المالية البنكية أو معلومات تقرير المستهلك، ويقتصر على إرسال معلمات وأحداث تصفح الويب والطلب المعيارية.
+            </p>
+            <div class="pt-2 border-t border-white/5 flex items-center justify-between text-[11px]">
+                <a href="https://adsmanager.facebook.com/legal/technology_terms" target="_blank" rel="noopener noreferrer" class="text-cyan hover:underline flex items-center gap-1">
+                    شروط أدوات Meta للأعمال <i class="fas fa-external-link-alt text-[9px]"></i>
+                </a>
+                <a href="https://www.facebook.com/business/help/1057016521436966" target="_blank" rel="noopener noreferrer" class="text-slate-400 hover:underline flex items-center gap-1">
+                    مركز المساعدة <i class="fas fa-external-link-alt text-[9px]"></i>
+                </a>
+            </div>
+        </div>
+
+        <!-- Step-by-Step Setup Guide Card -->
+        <div class="management-card p-6 bg-white/[0.02] border border-white/5 rounded-2xl space-y-4">
+            <h3 class="text-sm font-bold text-white flex items-center gap-2 pb-3 border-b border-white/5">
+                <i class="fas fa-lightbulb text-amber-400"></i>
+                <span>كيفية إنشاء واستخراج البيكسل من ميتا:</span>
+            </h3>
+
+            <ol class="space-y-3 text-xs text-slate-300 list-decimal list-inside leading-relaxed">
+                <li class="pl-1">
+                    توجه إلى <a href="https://business.facebook.com/events_manager2/" target="_blank" rel="noopener noreferrer" class="text-cyan underline font-bold">مدير أحداث ميتا (Events Manager)</a>.
+                </li>
+                <li class="pl-1">
+                    اضغط على زر <strong class="text-white">ربط مصادر البيانات (Connect data sources)</strong> ثم اختر <strong class="text-cyan">الويب (Web)</strong>.
+                </li>
+                <li class="pl-1">
+                    قم بإدخال <strong class="text-white">تسمية البيكسل الخاص بك</strong> (مثال: بيكسل رقميات).
+                </li>
+                <li class="pl-1">
+                    انسخ <strong class="text-cyan font-mono">معرف البيكسل (Pixel ID)</strong> المكون من 15-16 رقماً والصقه في الحقل المخصص هنا.
+                </li>
+                <li class="pl-1">
+                    تأكد من تفعيل زر <strong class="text-white">تفعيل البيكسل</strong> ثم اضغط <strong class="text-cyan">حفظ وتحديث</strong>.
+                </li>
+            </ol>
+        </div>
+    </div>
+</div>
+
+<script>
+function copySnippet() {
+    var code = document.getElementById('snippetCode').innerText;
+    navigator.clipboard.writeText(code).then(function() {
+        var copyText = document.getElementById('copyText');
+        var copyIcon = document.getElementById('copyIcon');
+        copyText.innerText = 'تم النسخ!';
+        copyIcon.className = 'fas fa-check text-emerald-400';
+        setTimeout(function() {
+            copyText.innerText = 'نسخ الكود';
+            copyIcon.className = 'fas fa-copy';
+        }, 2000);
+    });
+}
+</script>
+{% endblock %}

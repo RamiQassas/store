@@ -2415,6 +2415,18 @@ document.addEventListener('submit', function(e) {
     const formData = new FormData(pForm);
     formData.append('ajax', '1');
     
+    {% if META_PIXEL_ID and META_PIXEL_CONFIG.track_initiate_checkout %}
+    if (typeof fbq === 'function') {
+        fbq('track', 'InitiateCheckout', {
+            content_name: '{{ product.name|escapejs }}',
+            content_ids: ['{{ product.id }}'],
+            content_type: 'product',
+            value: Number('{{ active_variant.price|default:product.base_price|default:0 }}') || 0,
+            currency: '{{ CURRENCY.code|default:"USD" }}'
+        });
+    }
+    {% endif %}
+
     fetch(pForm.action, {
         method: 'POST',
         body: formData,
@@ -2439,6 +2451,18 @@ document.addEventListener('submit', function(e) {
             return;
         }
         if (data.success) {
+            {% if META_PIXEL_ID and META_PIXEL_CONFIG.track_purchases %}
+            if (typeof fbq === 'function') {
+                fbq('track', 'Purchase', {
+                    content_name: '{{ product.name|escapejs }}',
+                    content_ids: ['{{ product.id }}'],
+                    content_type: 'product',
+                    value: Number(data.amount || '{{ active_variant.price|default:product.base_price|default:0 }}') || 0,
+                    currency: '{{ CURRENCY.code|default:"USD" }}'
+                });
+            }
+            {% endif %}
+
             currentActiveOrderId = data.order_id;
             openPurchaseModal(data);
             
@@ -2475,5 +2499,21 @@ document.addEventListener('submit', function(e) {
         pForm.submit();
     });
 });
+
+// Meta Pixel ViewContent event
+{% if META_PIXEL_ID and META_PIXEL_CONFIG.track_view_content %}
+document.addEventListener('DOMContentLoaded', function() {
+    if (typeof fbq === 'function') {
+        fbq('track', 'ViewContent', {
+            content_name: '{{ product.name|escapejs }}',
+            content_category: '{{ product.category.name|default:""|escapejs }}',
+            content_ids: ['{{ product.id }}'],
+            content_type: 'product',
+            value: Number('{{ active_variant.price|default:product.base_price|default:0 }}') || 0,
+            currency: '{{ CURRENCY.code|default:"USD" }}'
+        });
+    }
+});
+{% endif %}
 </script>
 {% endblock %}
