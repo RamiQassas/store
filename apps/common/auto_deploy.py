@@ -25,15 +25,52 @@ def get_local_commit_sha():
         pass
     return None
 
-def get_remote_commit_sha():
+def get_remote_commit_sha(bypass_cache=False):
+    from django.core.cache import cache
+    cache_key = "github_remote_master_sha"
+    if not bypass_cache:
+        cached_sha = cache.get(cache_key)
+        if cached_sha:
+            return cached_sha
+
+    # 1. Primary method: git ls-remote (fast, highly reliable, immune to GitHub REST API 60 req/hr rate limits)
     try:
-        headers = {"User-Agent": "Raqamiyat-AutoDeploy/1.0"}
-        res = requests.get("https://api.github.com/repos/RamiQassas/store/commits/master", headers=headers, timeout=10)
+        res = subprocess.run(
+            ["git", "ls-remote", "origin", "refs/heads/master"],
+            cwd=str(settings.BASE_DIR),
+            capture_output=True,
+            text=True,
+            timeout=8
+        )
+        if res.returncode == 0 and res.stdout.strip():
+            sha = res.stdout.strip().split()[0]
+            if len(sha) == 40:
+                cache.set(cache_key, sha, 60)
+                return sha
+    except Exception as e:
+        logger.debug(f"Git ls-remote error: {e}")
+
+    # 2. Fallback method: GitHub REST API
+    try:
+        headers = {
+            "User-Agent": "Raqamiyat-AutoDeploy/1.0",
+            "Accept": "application/vnd.github.v3+json",
+        }
+        token = os.environ.get("GITHUB_TOKEN") or getattr(settings, "GITHUB_TOKEN", None)
+        if token:
+            headers["Authorization"] = f"token {token}"
+        res = requests.get("https://api.github.com/repos/RamiQassas/store/commits/master", headers=headers, timeout=8)
         if res.status_code == 200:
             data = res.json()
-            return data.get("sha")
+            sha = data.get("sha")
+            if sha:
+                cache.set(cache_key, sha, 60)
+                return sha
+        else:
+            logger.warning(f"GitHub API commit fetch status {res.status_code}: {res.text[:150]}")
     except Exception as e:
         logger.debug(f"GitHub SHA fetch error: {e}")
+
     return None
 
 def restart_process_soon():

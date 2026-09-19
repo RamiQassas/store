@@ -161,6 +161,12 @@
         </div>
 
         <div class="flex items-center flex-wrap gap-2">
+            <!-- Refresh Status from GitHub -->
+            <a href="?refresh=1" class="px-3.5 py-2.5 bg-slate-800 border border-slate-700 hover:bg-slate-700 text-slate-300 font-bold text-xs rounded-xl flex items-center gap-2 transition-all" title="تحديث حالة المستودع من GitHub مباشرة">
+                <i class="fas fa-arrows-rotate"></i>
+                <span>فحص التحديثات</span>
+            </a>
+
             <!-- Update to Latest Master -->
             <form method="POST" onsubmit="return confirm('هل تريد بالتأكيد تحديث النظام إلى أحدث إصدار من Master؟');">
                 {% csrf_token %}
@@ -224,11 +230,16 @@
             <div>
                 <span class="text-[11px] text-slate-400 font-bold">أحدث إصدار على GitHub</span>
                 <div class="flex items-center gap-2 mt-0.5">
-                    <span class="hash-pill font-mono">{{ short_remote_sha|default:"غير متاح" }}</span>
+                    {% if short_remote_sha %}
+                    <span class="hash-pill font-mono">{{ short_remote_sha }}</span>
                     {% if is_up_to_date %}
-                    <span class="text-[10px] text-emerald-400 font-bold bg-emerald-500/10 px-2 py-0.5 rounded-md border border-emerald-500/20">محدّث</span>
+                    <span class="text-[10px] text-emerald-400 font-bold bg-emerald-500/10 px-2 py-0.5 rounded-md border border-emerald-500/20">محدّث لأحدث إصدار</span>
                     {% else %}
-                    <span class="text-[10px] text-amber-400 font-bold bg-amber-500/10 px-2 py-0.5 rounded-md border border-amber-500/20">يوجد تحديث</span>
+                    <span class="text-[10px] text-amber-400 font-bold bg-amber-500/10 px-2 py-0.5 rounded-md border border-amber-500/20">يوجد تحديث جديد</span>
+                    {% endif %}
+                    {% else %}
+                    <span class="hash-pill font-mono text-slate-400">غير متاح</span>
+                    <span class="text-[10px] text-slate-400 font-bold bg-slate-500/10 px-2 py-0.5 rounded-md border border-slate-500/20">تعذر جلب البيانات</span>
                     {% endif %}
                 </div>
             </div>

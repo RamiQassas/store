@@ -1985,18 +1985,98 @@ def catalog(request):
 
     total_products_count = products.distinct().count()
 
-    from django.core.paginator import Paginator
-    paginator = Paginator(products.distinct(), 24)
-    page_number = request.GET.get('page')
-    page_obj = paginator.get_page(page_number)
+    PAGE_SIZE = 24
+    start_param = request.GET.get("start") or request.GET.get("product_num")
+    page_param = request.GET.get("page")
+
+    total_pages = max(1, ((total_products_count - 1) // PAGE_SIZE) + 1) if total_products_count > 0 else 1
+
+    if total_products_count > 0:
+        if start_param:
+            try:
+                start_num = int(start_param)
+            except (ValueError, TypeError):
+                start_num = 1
+            start_num = max(1, min(start_num, total_products_count))
+        elif page_param:
+            try:
+                page_num = int(page_param)
+            except (ValueError, TypeError):
+                page_num = 1
+            page_num = max(1, min(page_num, total_pages))
+            start_num = (page_num - 1) * PAGE_SIZE + 1
+        else:
+            start_num = 1
+
+        end_num = min(start_num + PAGE_SIZE - 1, total_products_count)
+        offset = start_num - 1
+        current_products = list(products.distinct()[offset:offset + PAGE_SIZE])
+    else:
+        start_num = 0
+        end_num = 0
+        current_products = []
+
+    # Attach 1-based catalog index to each product
+    for i, p in enumerate(current_products, start=start_num):
+        p.catalog_index = i
+
+    has_previous = start_num > 1
+    has_next = end_num < total_products_count
+    prev_start = max(1, start_num - PAGE_SIZE) if has_previous else 1
+    next_start = (end_num + 1) if has_next else total_products_count
+    current_page_num = ((start_num - 1) // PAGE_SIZE) + 1 if total_products_count > 0 else 1
+
+    class CustomCatalogPage(list):
+        def __init__(self, items, start, end, total, page_num, total_pgs, has_prev, has_nxt, p_start, n_start):
+            super().__init__(items)
+            self.object_list = items
+            self.start_num = start
+            self.end_num = end
+            self.total = total
+            self.number = page_num
+            self.has_other_pages = total > PAGE_SIZE
+            self.has_previous = has_prev
+            self.has_next = has_nxt
+            self.prev_start = p_start
+            self.next_start = n_start
+            self.previous_page_number = max(1, page_num - 1)
+            self.next_page_number = min(total_pgs, page_num + 1)
+            self.paginator = type('PaginatorStub', (), {
+                'num_pages': total_pgs,
+                'count': total,
+                'page_range': range(1, total_pgs + 1)
+            })()
+
+        def start_index(self):
+            return self.start_num
+
+        def end_index(self):
+            return self.end_num
+
+    page_obj = CustomCatalogPage(
+        items=current_products,
+        start=start_num,
+        end=end_num,
+        total=total_products_count,
+        page_num=current_page_num,
+        total_pgs=total_pages,
+        has_prev=has_previous,
+        has_nxt=has_next,
+        p_start=prev_start,
+        n_start=next_start
+    )
 
     ctx = {
         "categories": all_cats,
         "subcategories": subcategories,
         "selected_category": selected_category,
         "page_obj": page_obj,
-        "products": page_obj.object_list,
+        "products": current_products,
         "total_products_count": total_products_count,
+        "start_num": start_num,
+        "end_num": end_num,
+        "prev_start": prev_start,
+        "next_start": next_start,
         "active_category": cat_id,
         "query": q,
         "sort": sort,
@@ -9139,9 +9219,10 @@ def control_system_updates(request):
             try:
                 # Pause auto_deploy so it won't overwrite the rollback
                 cache.set("auto_deploy_paused", True, None)
+                cache.delete("github_remote_master_sha")
                 
                 cmd = f"git reset --hard {commit_hash} && python manage.py migrate --noinput && python manage.py collectstatic --noinput"
-                proc = subprocess.run(cmd, shell=True, capture_output=True, text=True, timeout=120)
+                proc = subprocess.run(cmd, shell=True, cwd=str(settings.BASE_DIR), capture_output=True, text=True, timeout=120)
                 if proc.returncode == 0:
                     messages.success(request, f"تم التراجع بنجاح إلى الإصدار ({commit_hash[:7]}). تم إيقاف التحديث التلقائي مؤقتاً لضمان استقرار هذا الإصدار.")
                 else:
@@ -9152,11 +9233,12 @@ def control_system_updates(request):
 
         elif action == "update_latest":
             try:
-                # Resume auto deploy
+                # Resume auto deploy and clear cached remote SHA
                 cache.delete("auto_deploy_paused")
+                cache.delete("github_remote_master_sha")
                 
                 cmd = "git fetch origin master && git reset --hard origin/master && python manage.py migrate --noinput && python manage.py collectstatic --noinput"
-                proc = subprocess.run(cmd, shell=True, capture_output=True, text=True, timeout=120)
+                proc = subprocess.run(cmd, shell=True, cwd=str(settings.BASE_DIR), capture_output=True, text=True, timeout=120)
                 if proc.returncode == 0:
                     messages.success(request, "تم تحديث النظام بنجاح إلى أحدث إصدار من Master، واستئناف التحديث التلقائي.")
                 else:
@@ -9176,18 +9258,21 @@ def control_system_updates(request):
             return redirect("control_system_updates")
 
     # Read current state
-    current_hash = ""
-    try:
-        res = subprocess.run(["git", "rev-parse", "HEAD"], capture_output=True, text=True, timeout=5)
-        if res.returncode == 0:
-            current_hash = res.stdout.strip()
-    except Exception:
-        pass
+    from apps.common.auto_deploy import get_local_commit_sha
+    current_hash = get_local_commit_sha() or ""
+    if not current_hash:
+        try:
+            res = subprocess.run(["git", "rev-parse", "HEAD"], cwd=str(settings.BASE_DIR), capture_output=True, text=True, timeout=5)
+            if res.returncode == 0:
+                current_hash = res.stdout.strip()
+        except Exception:
+            pass
 
     commits = []
     try:
         res = subprocess.run(
             ["git", "log", "-n", "30", "--pretty=format:%H|%h|%an|%ad|%s", "--date=iso"],
+            cwd=str(settings.BASE_DIR),
             capture_output=True,
             text=True,
             timeout=10
@@ -9209,9 +9294,18 @@ def control_system_updates(request):
     except Exception as e:
         logger.error(f"Error fetching git log: {e}")
 
-    remote_sha = get_remote_commit_sha()
+    bypass_cache = bool(request.GET.get("refresh"))
+    if bypass_cache:
+        cache.delete("github_remote_master_sha")
+        messages.info(request, "تم تحديث بيانات الاتصال بـ GitHub مباشرة.")
+
+    remote_sha = get_remote_commit_sha(bypass_cache=bypass_cache)
     is_paused = cache.get("auto_deploy_paused", False)
-    is_up_to_date = bool(remote_sha and current_hash and remote_sha == current_hash)
+
+    if remote_sha and current_hash:
+        is_up_to_date = bool(remote_sha.strip().lower() == current_hash.strip().lower())
+    else:
+        is_up_to_date = None
 
     context = {
         "current_hash": current_hash,
@@ -9219,6 +9313,7 @@ def control_system_updates(request):
         "remote_sha": remote_sha,
         "short_remote_sha": remote_sha[:7] if remote_sha else "",
         "is_up_to_date": is_up_to_date,
+        "has_remote": bool(remote_sha),
         "commits": commits,
         "is_paused": is_paused,
     }

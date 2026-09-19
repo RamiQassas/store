@@ -488,6 +488,156 @@
     background: linear-gradient(135deg, #7c5cbf, #8b5cf6);
     color: #fff;
 }
+/* Card product number index badge */
+.card-index-badge {
+    position: absolute;
+    top: 0.65rem;
+    left: 0.65rem;
+    z-index: 10;
+    padding: 0.2rem 0.55rem;
+    border-radius: 8px;
+    font-size: 0.65rem;
+    font-weight: 900;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    background: rgba(15, 23, 42, 0.82);
+    color: #e2e8f0;
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    backdrop-filter: blur(8px);
+    box-shadow: 0 4px 10px rgba(0,0,0,0.35);
+    direction: ltr;
+}
+
+/* Range indicator pill */
+.catalog-range-pill {
+    background: rgba(212, 168, 83, 0.12);
+    border: 1px solid rgba(212, 168, 83, 0.3);
+    color: #fbbf24;
+    padding: 0.2rem 0.6rem;
+    border-radius: 999px;
+    font-size: 0.75rem;
+    font-weight: 800;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    direction: ltr;
+}
+
+/* Catalog Jump Form */
+.catalog-jump-box {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    background: rgba(15, 23, 42, 0.75);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    padding: 0.25rem 0.5rem;
+    backdrop-filter: blur(8px);
+}
+.catalog-jump-box label {
+    font-size: 0.72rem;
+    font-weight: 800;
+    color: #94a3b8;
+    white-space: nowrap;
+}
+.catalog-jump-input {
+    width: 70px;
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(212, 168, 83, 0.35);
+    border-radius: 8px;
+    color: #fff;
+    font-family: ui-monospace, monospace;
+    font-size: 0.85rem;
+    font-weight: 800;
+    padding: 0.25rem 0.4rem;
+    text-align: center;
+    outline: none;
+    transition: all 0.2s;
+    direction: ltr;
+}
+.catalog-jump-input:focus {
+    border-color: var(--gold, #d4a853);
+    box-shadow: 0 0 10px rgba(212, 168, 83, 0.35);
+    background: rgba(255, 255, 255, 0.14);
+}
+.catalog-jump-total {
+    font-size: 0.75rem;
+    font-family: ui-monospace, monospace;
+    color: #94a3b8;
+    font-weight: 700;
+    direction: ltr;
+    white-space: nowrap;
+}
+.catalog-jump-btn {
+    background: linear-gradient(135deg, var(--gold, #d4a853), #b8862d);
+    color: #000;
+    border: none;
+    border-radius: 8px;
+    padding: 0.3rem 0.7rem;
+    font-size: 0.72rem;
+    font-weight: 900;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    white-space: nowrap;
+}
+.catalog-jump-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(212, 168, 83, 0.35);
+}
+
+/* Enhanced Pagination Container */
+.catalog-pagination-wrap {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    align-items: center;
+    gap: 1rem;
+    margin-top: 3rem;
+    margin-bottom: 2rem;
+    padding: 1rem;
+    background: rgba(15, 23, 42, 0.5);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 18px;
+}
+.catalog-nav-btn {
+    background: rgba(255, 255, 255, 0.05);
+    padding: 0.65rem 1.15rem;
+    border-radius: 12px;
+    color: #fff;
+    text-decoration: none;
+    font-size: 0.8rem;
+    font-weight: 800;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    transition: all 0.2s;
+}
+.catalog-nav-btn:hover:not(.is-disabled) {
+    background: rgba(212, 168, 83, 0.15);
+    border-color: rgba(212, 168, 83, 0.35);
+    color: var(--gold, #d4a853);
+    transform: translateY(-1px);
+}
+.catalog-nav-btn.is-disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+    pointer-events: none;
+}
+.catalog-pagination-center {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+    gap: 0.85rem;
+}
+.catalog-pagination-info {
+    color: #94a3b8;
+    font-size: 0.8rem;
+    font-weight: 700;
+}
 /* Out of stock overlay */
 .card-oos-overlay {
     position: absolute;
@@ -1257,19 +1407,44 @@
 
             <!-- Top Bar -->
             <div class="catalog-topbar">
-                <div class="topbar-info">
+                <div class="topbar-info flex items-center flex-wrap gap-2">
                     {% if query %}
-                        نتائج البحث عن: <span>"{{ query }}"</span> ({{ total_products_count }} منتج)
+                        نتائج البحث عن: <span>"{{ query }}"</span>
                     {% elif active_category %}
                         معروض: <span>{% for cat in categories %}{% if active_category == cat.id|stringformat:'s' %}{{ cat.name }}{% endif %}{% endfor %}</span>
                     {% else %}
                         تصفح جميع الخدمات والمنتجات المتاحة
                     {% endif %}
+                    {% if total_products_count > 0 %}
+                    <span class="catalog-range-pill font-mono" title="نطاق المنتجات المعروضة حالياً من الإجمالي">
+                        <i class="fas fa-boxes text-[10px]"></i>
+                        {{ start_num }} - {{ end_num }} / {{ total_products_count }}
+                    </span>
+                    {% endif %}
                 </div>
-                <div class="topbar-actions">
+                <div class="topbar-actions flex items-center flex-wrap gap-2">
+                    {% if total_products_count > 0 %}
+                    <!-- Quick Jump Form in Topbar -->
+                    <form method="get" action="{% url 'catalog' %}" class="catalog-jump-box">
+                        {% if active_category %}<input type="hidden" name="category" value="{{ active_category }}">{% endif %}
+                        {% if query %}<input type="hidden" name="q" value="{{ query }}">{% endif %}
+                        {% if sort %}<input type="hidden" name="sort" value="{{ sort }}">{% endif %}
+                        {% if cols %}<input type="hidden" name="cols" value="{{ cols }}">{% endif %}
+                        <input type="hidden" name="view" value="products">
+                        <label><i class="fas fa-hashtag text-gold"></i> البدء من:</label>
+                        <input type="number" name="start" class="catalog-jump-input" min="1" max="{{ total_products_count }}" value="{{ start_num }}" placeholder="رقم">
+                        <span class="catalog-jump-total">/ {{ total_products_count }}</span>
+                        <button type="submit" class="catalog-jump-btn" title="الانتقال للمنتج">
+                            <span>عرض</span>
+                            <i class="fas fa-angle-left"></i>
+                        </button>
+                    </form>
+                    {% endif %}
+
                     <form method="get" style="display:flex;">
                         {% if active_category %}<input type="hidden" name="category" value="{{ active_category }}">{% endif %}
                         {% if query %}<input type="hidden" name="q" value="{{ query }}">{% endif %}
+                        <input type="hidden" name="view" value="products">
                         <select name="sort" onchange="this.form.submit()" class="sort-select">
                             <option value="newest" {% if sort == "newest" %}selected{% endif %}>الأحدث أولاً</option>
                             <option value="price_low" {% if sort == "price_low" %}selected{% endif %}>السعر: من الأقل للأعلى</option>
@@ -1300,6 +1475,9 @@
                     {% for p in page_obj %}
                     <div class="p-card">
                         <!-- Badges -->
+                        {% if p.catalog_index %}
+                        <span class="card-index-badge" title="رقم المنتج في الدليل">#{{ p.catalog_index }}</span>
+                        {% endif %}
                         {% if p.is_sale %}
                         <span class="card-badge badge-sale">عرض خاص</span>
                         {% endif %}
@@ -1367,21 +1545,49 @@
                     {% endfor %}
                 </div>
                 
-                <!-- Pagination -->
-                {% if page_obj.has_other_pages %}
-                <div class="flex justify-center items-center gap-4 mt-8" style="display: flex; justify-content: center; align-items: center; gap: 1rem; margin-top: 3rem; margin-bottom: 2rem;">
+                <!-- Pagination & Product Jump Bar -->
+                {% if total_products_count > 0 %}
+                <div class="catalog-pagination-wrap">
                     {% if page_obj.has_previous %}
-                    <a href="?page={{ page_obj.previous_page_number }}{% if query %}&q={{ query }}{% endif %}{% if active_category %}&category={{ active_category }}{% endif %}{% if sort %}&sort={{ sort }}{% endif %}" class="card-buy-btn" style="background: rgba(255, 255, 255, 0.05); padding: 0.75rem 1.25rem; border-radius: 12px; color: #fff; text-decoration: none; font-size: 0.8rem; font-weight: bold; border: 1px solid rgba(255,255,255,0.05); display: inline-flex; align-items: center; gap: 0.5rem;">
+                    <a href="?start={{ prev_start }}{% if query %}&q={{ query }}{% endif %}{% if active_category %}&category={{ active_category }}{% endif %}{% if sort %}&sort={{ sort }}{% endif %}&view=products" class="catalog-nav-btn prev-btn">
                         <i class="fas fa-chevron-right"></i> السابق
                     </a>
+                    {% else %}
+                    <span class="catalog-nav-btn is-disabled">
+                        <i class="fas fa-chevron-right"></i> السابق
+                    </span>
                     {% endif %}
 
-                    <span style="color: rgba(255,255,255,0.5); font-size: 0.8rem; font-weight: bold;">الصفحة {{ page_obj.number }} من {{ page_obj.paginator.num_pages }}</span>
+                    <!-- Center Info & Jump -->
+                    <div class="catalog-pagination-center">
+                        <span class="catalog-pagination-info">
+                            عرض المنتجات <b class="text-gold font-mono">{{ start_num }} - {{ end_num }}</b> من أصل <b class="text-white font-mono">{{ total_products_count }}</b>
+                        </span>
+
+                        <form method="get" action="{% url 'catalog' %}" class="catalog-jump-box">
+                            {% if active_category %}<input type="hidden" name="category" value="{{ active_category }}">{% endif %}
+                            {% if query %}<input type="hidden" name="q" value="{{ query }}">{% endif %}
+                            {% if sort %}<input type="hidden" name="sort" value="{{ sort }}">{% endif %}
+                            {% if cols %}<input type="hidden" name="cols" value="{{ cols }}">{% endif %}
+                            <input type="hidden" name="view" value="products">
+                            <label>انتقال للمنتج:</label>
+                            <input type="number" name="start" class="catalog-jump-input" min="1" max="{{ total_products_count }}" value="{{ start_num }}" placeholder="رقم">
+                            <span class="catalog-jump-total">/ {{ total_products_count }}</span>
+                            <button type="submit" class="catalog-jump-btn">
+                                <span>انتقال</span>
+                                <i class="fas fa-arrow-left"></i>
+                            </button>
+                        </form>
+                    </div>
 
                     {% if page_obj.has_next %}
-                    <a href="?page={{ page_obj.next_page_number }}{% if query %}&q={{ query }}{% endif %}{% if active_category %}&category={{ active_category }}{% endif %}{% if sort %}&sort={{ sort }}{% endif %}" class="card-buy-btn" style="background: rgba(255, 255, 255, 0.05); padding: 0.75rem 1.25rem; border-radius: 12px; color: #fff; text-decoration: none; font-size: 0.8rem; font-weight: bold; border: 1px solid rgba(255,255,255,0.05); display: inline-flex; align-items: center; gap: 0.5rem;">
+                    <a href="?start={{ next_start }}{% if query %}&q={{ query }}{% endif %}{% if active_category %}&category={{ active_category }}{% endif %}{% if sort %}&sort={{ sort }}{% endif %}&view=products" class="catalog-nav-btn next-btn">
                         التالي <i class="fas fa-chevron-left"></i>
                     </a>
+                    {% else %}
+                    <span class="catalog-nav-btn is-disabled">
+                        التالي <i class="fas fa-chevron-left"></i>
+                    </span>
                     {% endif %}
                 </div>
                 {% endif %}
