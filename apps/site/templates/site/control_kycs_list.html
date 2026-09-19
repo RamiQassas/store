@@ -140,28 +140,125 @@
 </div>
 
 <!-- Manual Verification Modal -->
-<div id="manualVerifyModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 hidden">
-    <div class="bg-slate-900 border border-white/10 rounded-2xl max-w-xl w-full max-h-[92vh] flex flex-col shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-200">
-        <!-- Modal Head -->
-        <div class="flex justify-between items-center px-6 py-4 border-b border-white/5 bg-slate-800/40">
-            <div class="flex items-center gap-2 text-cyan font-bold text-base">
-                <i class="fas fa-user-check"></i>
-                <span>توثيق يدوي لحساب عميل</span>
+<style>
+#manualVerifyModal {
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    bottom: 0 !important;
+    width: 100vw !important;
+    height: 100vh !important;
+    z-index: 99999 !important;
+    background: rgba(3, 7, 18, 0.85) !important;
+    backdrop-filter: blur(12px) !important;
+    -webkit-backdrop-filter: blur(12px) !important;
+    display: none;
+    align-items: center !important;
+    justify-content: center !important;
+    padding: 1.5rem !important;
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+    box-sizing: border-box !important;
+}
+
+#manualVerifyModal.active {
+    display: flex !important;
+}
+
+.mv-modal-dialog {
+    position: relative !important;
+    width: 100% !important;
+    max-width: 650px !important;
+    margin: auto !important;
+    background: #0b1329 !important;
+    border: 1px solid rgba(6, 182, 212, 0.3) !important;
+    border-radius: 24px !important;
+    box-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.9), 0 0 40px rgba(6, 182, 212, 0.15) !important;
+    display: flex !important;
+    flex-direction: column !important;
+    max-height: 88vh !important;
+    overflow: hidden !important;
+    animation: mvModalZoomIn 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards !important;
+}
+
+@keyframes mvModalZoomIn {
+    from {
+        opacity: 0;
+        transform: scale(0.96) translateY(12px);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+    }
+}
+
+.mv-modal-header {
+    flex-shrink: 0 !important;
+    padding: 1.25rem 1.75rem !important;
+    background: #0f172a !important;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+}
+
+.mv-modal-body {
+    flex: 1 1 auto !important;
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+    padding: 1.75rem !important;
+    max-height: calc(88vh - 150px) !important;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(6, 182, 212, 0.4) transparent;
+}
+
+.mv-modal-body::-webkit-scrollbar {
+    width: 6px;
+}
+.mv-modal-body::-webkit-scrollbar-thumb {
+    background: rgba(6, 182, 212, 0.4);
+    border-radius: 9999px;
+}
+.mv-modal-body::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.mv-modal-footer {
+    flex-shrink: 0 !important;
+    padding: 1.25rem 1.75rem !important;
+    background: #0f172a !important;
+    border-top: 1px solid rgba(255, 255, 255, 0.08) !important;
+    display: flex !important;
+    flex-wrap: wrap !important;
+    align-items: center !important;
+    justify-content: flex-end !important;
+    gap: 0.75rem !important;
+}
+</style>
+
+<div id="manualVerifyModal">
+    <div class="mv-modal-dialog">
+        <form method="POST" action="{% url 'control_kycs_list' %}" id="manualVerifyForm" style="display: flex; flex-direction: column; height: 100%; max-height: 88vh; margin: 0;">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="manual_verify">
+            <input type="hidden" name="redirect_to_detail" id="mv_redirect_to_detail" value="">
+
+            <!-- Modal Header (Fixed at top) -->
+            <div class="mv-modal-header">
+                <div class="flex items-center gap-2 text-cyan font-bold text-base">
+                    <i class="fas fa-user-check"></i>
+                    <span>توثيق يدوي لحساب عميل</span>
+                </div>
+                <button type="button" onclick="closeManualVerifyModal()" class="text-slate-400 hover:text-white transition text-lg w-8 h-8 flex items-center justify-center rounded-lg hover:bg-white/5" title="إغلاق">
+                    <i class="fas fa-times"></i>
+                </button>
             </div>
-            <button type="button" onclick="closeManualVerifyModal()" class="text-slate-400 hover:text-white transition text-lg w-8 h-8 flex items-center justify-center rounded-lg hover:bg-white/5">
-                <i class="fas fa-times"></i>
-            </button>
-        </div>
 
-        <!-- Modal Body (Scrollable) -->
-        <div class="p-6 overflow-y-auto space-y-6">
-            <form method="POST" action="{% url 'control_kycs_list' %}" id="manualVerifyForm">
-                {% csrf_token %}
-                <input type="hidden" name="action" value="manual_verify">
-                <input type="hidden" name="redirect_to_detail" id="mv_redirect_to_detail" value="">
-
+            <!-- Modal Body (Scrollable in center) -->
+            <div class="mv-modal-body space-y-6">
                 <!-- Quick Verification Callout -->
-                <div class="p-4 rounded-xl bg-cyan/10 border border-cyan/30 flex items-center justify-between gap-4 mb-6">
+                <div class="p-4 rounded-xl bg-cyan/10 border border-cyan/30 flex items-center justify-between gap-4">
                     <div class="text-xs text-slate-300">
                         <span class="text-cyan font-bold block mb-1">⚡ توثيق فوري بنقرة واحدة:</span>
                         لا يشترط إدخال أي بيانات. يمكنك الضغط مباشرة لتوثيق الحساب ورفع الحدود فوراً.
@@ -173,11 +270,11 @@
                 </div>
 
                 <!-- Target User Selection -->
-                <div class="space-y-2 mb-6">
+                <div class="space-y-2">
                     <label class="text-[10px] font-black text-slate-400 uppercase tracking-wider block">العميل المطلوب توثيقه</label>
                     
                     <!-- Badge when specific user selected -->
-                    <div id="selected_user_badge" class="p-3 bg-white/5 border border-cyan/20 rounded-xl flex items-center justify-between hidden">
+                    <div id="selected_user_badge" class="p-3 bg-white/5 border border-cyan/20 rounded-xl items-center justify-between" style="display: none;">
                         <div class="flex items-center gap-2">
                             <i class="fas fa-user text-cyan text-sm"></i>
                             <span id="selected_user_badge_text" class="text-xs font-bold text-white"></span>
@@ -256,7 +353,7 @@
                 </div>
 
                 <!-- Custom Financial Limits Override (Optional) -->
-                <div class="border border-white/5 rounded-xl p-4 bg-white/[0.01] space-y-4 mt-4">
+                <div class="border border-white/5 rounded-xl p-4 bg-white/[0.01] space-y-4">
                     <div class="text-xs font-bold text-slate-300 flex items-center justify-between pb-2 border-b border-white/5">
                         <span>الحدود المالية المخصصة (اختياري)</span>
                         <span class="text-[10px] text-slate-500">فارغة = الحدود الافتراضية للموثقين</span>
@@ -272,28 +369,30 @@
                         </div>
                     </div>
                 </div>
+            </div>
 
-                <!-- Modal Actions -->
-                <div class="pt-6 flex flex-wrap items-center justify-end gap-3 border-t border-white/5 mt-6">
-                    <button type="button" onclick="closeManualVerifyModal()" class="btn btn-outline text-xs py-2.5 px-5">
-                        إلغاء
-                    </button>
-                    <button type="button" onclick="submitAndOpenDetail()" class="btn btn-outline text-xs py-2.5 px-5 hover:bg-white/10 text-slate-300">
-                        توثيق وفتح صفحة التفاصيل
-                    </button>
-                    <button type="submit" class="btn btn-primary text-xs py-2.5 px-6 font-bold shadow-cyan">
-                        <i class="fas fa-check-circle ml-1"></i>
-                        حفظ وتوثيق الحساب
-                    </button>
-                </div>
-            </form>
-        </div>
+            <!-- Modal Footer (Fixed at bottom) -->
+            <div class="mv-modal-footer">
+                <button type="button" onclick="closeManualVerifyModal()" class="btn btn-outline text-xs py-2.5 px-5">
+                    إلغاء
+                </button>
+                <button type="button" onclick="submitAndOpenDetail()" class="btn btn-outline text-xs py-2.5 px-5 hover:bg-white/10 text-slate-300">
+                    توثيق وفتح صفحة التفاصيل
+                </button>
+                <button type="submit" class="btn btn-primary text-xs py-2.5 px-6 font-bold shadow-cyan">
+                    <i class="fas fa-check-circle ml-1"></i>
+                    حفظ وتوثيق الحساب
+                </button>
+            </div>
+        </form>
     </div>
 </div>
 
 <script>
 function openManualVerifyModal(userId, userEmail, firstName, fatherName, lastName, idNumber, nationality) {
     var modal = document.getElementById('manualVerifyModal');
+    if (!modal) return;
+
     var select = document.getElementById('manual_verify_user_id');
     var userBadge = document.getElementById('selected_user_badge');
     var userBadgeText = document.getElementById('selected_user_badge_text');
@@ -321,13 +420,13 @@ function openManualVerifyModal(userId, userEmail, firstName, fatherName, lastNam
 
         if (userBadge && userBadgeText) {
             userBadgeText.textContent = userEmail ? (userEmail + (firstName ? ' (' + firstName + ')' : '')) : userId;
-            userBadge.classList.remove('hidden');
+            userBadge.style.display = 'flex';
         }
-        if (selectContainer) selectContainer.classList.add('hidden');
+        if (selectContainer) selectContainer.style.display = 'none';
     } else {
         // Opened from general "+ توثيق يدوي" button
-        if (userBadge) userBadge.classList.add('hidden');
-        if (selectContainer) selectContainer.classList.remove('hidden');
+        if (userBadge) userBadge.style.display = 'none';
+        if (selectContainer) selectContainer.style.display = 'block';
         select.selectedIndex = 0;
     }
 
@@ -341,13 +440,16 @@ function openManualVerifyModal(userId, userEmail, firstName, fatherName, lastNam
         document.getElementById('mv_nationality').value = '';
     }
 
-    modal.classList.remove('hidden');
+    modal.classList.add('active');
+    modal.style.display = 'flex';
     document.body.style.overflow = 'hidden';
 }
 
 function closeManualVerifyModal() {
     var modal = document.getElementById('manualVerifyModal');
-    modal.classList.add('hidden');
+    if (!modal) return;
+    modal.classList.remove('active');
+    modal.style.display = 'none';
     document.body.style.overflow = '';
 }
 
@@ -356,7 +458,7 @@ function submitAndOpenDetail() {
     document.getElementById('manualVerifyForm').submit();
 }
 
-// Close modal when clicking outside of modal container
+// Close modal when clicking outside of modal dialog or on Escape key
 document.addEventListener('DOMContentLoaded', function() {
     var modal = document.getElementById('manualVerifyModal');
     if (modal) {
@@ -366,6 +468,11 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     }
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+            closeManualVerifyModal();
+        }
+    });
 });
 </script>
 {% endblock %}
