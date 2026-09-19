@@ -141,6 +141,18 @@ class Product(TimeStampedModel):
     def __str__(self):
         return self.name
 
+    @property
+    def base_price(self):
+        try:
+            v = self.variants.filter(is_active=True).order_by("price").first() or self.variants.first()
+            return v.price if v else Decimal("0.00")
+        except Exception:
+            return Decimal("0.00")
+
+    @property
+    def starting_price(self):
+        return self.base_price
+
     def save(self, *args, **kwargs):
         if self.track_inventory and self.quantity > 0 and self.is_out_of_stock:
             self.is_out_of_stock = False

@@ -2336,11 +2336,21 @@ def product_detail(request, pk):
             is_inactive_product = True
 
     if not product:
-        raise Http404("المنتج غير موجود.")
+        from apps.catalog.models import Category
+        cat_filter = Product.objects.filter(is_active=True, is_out_of_stock=False)
+        suggested_products = cat_filter.select_related('category')[:8]
+        categories = Category.objects.filter(is_active=True, parent__isnull=True)[:10]
+        return render(request, "site/product_unavailable.html", {
+            "requested_id": clean_pk,
+            "suggested_products": suggested_products,
+            "categories": categories,
+        }, status=200)
 
     if request.method == "POST":
-        if is_inactive_product or not product.is_active:
-            messages.error(request, "⚠️ هذا المنتج غير متوفر للطلب حالياً.")
+        if is_inactive_product or not product.is_active or product.is_out_of_stock:
+            if request.headers.get('x-requested-with') == 'XMLHttpRequest' or request.POST.get('ajax') == '1':
+                return JsonResponse({"success": False, "error": "⚠️ هذا المنتج غير متوفر للطلب حالياً، يجري تحديثه لدى المزود."}, status=400)
+            messages.error(request, "⚠️ هذا المنتج غير متوفر للطلب حالياً، يجري تحديثه لدى المزود.")
             return redirect("catalog")
         if not request.user.is_authenticated: return redirect("site_login")
 
@@ -2689,9 +2699,12 @@ def product_detail(request, pk):
         elif variants.filter(delivery_type="keys").exists():
             is_instant_product = True
 
+    active_variant = variants.first() if hasattr(variants, 'first') else (variants[0] if variants else None)
+
     return render(request, "site/product_detail.html", {
         "product": product, 
         "variants": variants, 
+        "active_variant": active_variant,
         "related_products": related_products,
         "missing_amount": missing_amount,
         "missing_currency": missing_currency,
@@ -2701,7 +2714,7 @@ def product_detail(request, pk):
         "product_index": product_index,
         "total_category_products": total_category_products,
         "is_instant_product": is_instant_product,
-        "is_inactive_product": is_inactive_product,
+        "is_inactive_product": is_inactive_product or not product.is_active or product.is_out_of_stock,
     })
 
 

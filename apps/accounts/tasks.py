@@ -323,11 +323,11 @@ def sync_alkasr_catalog_periodic_task():
     from services.provider.manager import ProviderManager
     from django.db.models import Q
 
-    # Distributed lock via cache to prevent overlapping runs if sync takes > 60s
+    # Distributed lock via cache to prevent overlapping runs if sync takes > 25s
     lock_key = "lock_sync_alkasr_catalog_periodic"
     acquired = True
     try:
-        acquired = cache.add(lock_key, "locked", timeout=120)
+        acquired = cache.add(lock_key, "locked", timeout=25)
         if not acquired:
             return "Skipped: another sync task is currently running."
     except Exception:

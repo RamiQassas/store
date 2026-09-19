@@ -1,0 +1,108 @@
+{% extends "site/base.html" %}
+{% load static %}
+
+{% block title %}المنتج غير متوفر حالياً | رقميات{% endblock %}
+
+{% block extra_head %}
+<meta name="robots" content="noindex, follow">
+<link rel="canonical" href="{% url 'catalog' %}">
+{% endblock %}
+
+{% block content %}
+<div class="min-h-[70vh] flex flex-col items-center justify-center px-4 py-12">
+    <!-- Main Unavailable Notice Card -->
+    <div class="max-w-2xl w-full text-center relative mb-12">
+        <!-- Ambient Glowing Aura -->
+        <div class="absolute -top-20 left-1/2 -translate-x-1/2 w-72 h-72 bg-amber-500/10 rounded-full blur-3xl pointer-events-none"></div>
+        <div class="absolute -bottom-20 left-1/2 -translate-x-1/2 w-72 h-72 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none"></div>
+
+        <div class="relative bg-slate-900/80 backdrop-blur-2xl border border-amber-500/20 rounded-3xl p-8 md:p-10 shadow-2xl">
+            <!-- Icon -->
+            <div class="w-16 h-16 mx-auto mb-5 rounded-2xl bg-gradient-to-tr from-amber-500/20 to-amber-600/10 border border-amber-500/30 flex items-center justify-center text-amber-400 text-2xl shadow-lg shadow-amber-500/10">
+                <i class="fas fa-boxes-packing animate-pulse"></i>
+            </div>
+
+            <!-- Status Badge -->
+            <span class="inline-block px-3.5 py-1 rounded-full text-xs font-black uppercase tracking-wider bg-amber-400/10 text-amber-400 border border-amber-400/20 mb-3">
+                تنبيه • غير متوفر حالياً
+            </span>
+
+            <h1 class="text-2xl md:text-3xl font-black text-white mb-3">
+                هذا التطبيق أو المنتج غير متاح حالياً
+            </h1>
+            <p class="text-sm md:text-base text-slate-300 leading-relaxed mb-6">
+                نعتذر منك، يبدو أن هذا المنتج قد تم نقله، أو يجري تحديث أسعاره وخدماته لدى المزوّد، أو لم يعد متاحاً. يمكنك استخدام البحث أدناه أو تفقد المنتجات البديلة المتاحة فوراً.
+            </p>
+
+            <!-- Quick Search Bar -->
+            <form action="{% url 'catalog' %}" method="get" class="relative max-w-lg mx-auto mb-6">
+                <input type="text" name="q" placeholder="ابحث عن لعبة، بطاقة، أو تطبيق بديل..." 
+                       class="w-full bg-slate-800/90 border border-white/15 focus:border-amber-400/60 rounded-2xl py-3.5 pr-12 pl-24 text-white text-sm outline-none transition-all placeholder:text-slate-500 shadow-inner">
+                <i class="fas fa-search absolute right-4 top-1/2 -translate-y-1/2 text-slate-400"></i>
+                <button type="submit" class="absolute left-2 top-1/2 -translate-y-1/2 px-4 py-2 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 text-slate-950 font-black text-xs hover:brightness-110 transition-all shadow-md">
+                    بحث
+                </button>
+            </form>
+
+            <!-- Quick Navigation Buttons -->
+            <div class="flex flex-wrap items-center justify-center gap-3">
+                <a href="{% url 'catalog' %}" class="px-5 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 text-slate-950 font-black text-xs sm:text-sm hover:brightness-110 transition-all shadow-md flex items-center gap-2">
+                    <i class="fas fa-boxes-stacked"></i>
+                    <span>تصفح كتالوج المنتجات الكامل</span>
+                </a>
+                <a href="{% url 'home' %}" class="px-5 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-white font-bold text-xs sm:text-sm transition-all flex items-center gap-2">
+                    <i class="fas fa-home text-amber-400"></i>
+                    <span>الصفحة الرئيسية</span>
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Suggested Alternative Products -->
+    {% if suggested_products %}
+    <div class="w-full max-w-5xl">
+        <div class="flex items-center justify-between mb-6">
+            <div>
+                <h2 class="text-lg md:text-xl font-black text-white flex items-center gap-2">
+                    <i class="fas fa-fire text-amber-400"></i>
+                    <span>منتجات وتطبيقات بديلة مقترحة</span>
+                </h2>
+                <p class="text-xs text-slate-400 mt-1">منتجات متوفرة حالياً مع تسليم فوري</p>
+            </div>
+            <a href="{% url 'catalog' %}" class="text-xs font-bold text-amber-400 hover:text-amber-300 transition-colors flex items-center gap-1">
+                <span>عرض المزيد</span>
+                <i class="fas fa-arrow-left text-[10px]"></i>
+            </a>
+        </div>
+
+        <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+            {% for prod in suggested_products %}
+            <a href="{% url 'product_detail' prod.id %}" class="group bg-slate-900/60 hover:bg-slate-800/80 border border-white/10 hover:border-amber-400/40 rounded-2xl p-3.5 flex flex-col transition-all hover:shadow-xl hover:shadow-amber-500/5 hover:-translate-y-1">
+                <div class="aspect-square w-full rounded-xl overflow-hidden bg-slate-950/60 mb-3 relative flex items-center justify-center">
+                    {% if prod.image %}
+                    <img src="{{ prod.image.url }}" alt="{{ prod.name }}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" loading="lazy">
+                    {% else %}
+                    <i class="fas fa-gamepad text-3xl text-slate-700"></i>
+                    {% endif %}
+                    {% if prod.category %}
+                    <span class="absolute top-2 right-2 px-2 py-0.5 rounded-lg bg-slate-950/80 backdrop-blur-md text-[10px] text-amber-400 font-bold border border-white/10">
+                        {{ prod.category.name }}
+                    </span>
+                    {% endif %}
+                </div>
+                <h3 class="text-xs sm:text-sm font-bold text-white line-clamp-1 group-hover:text-amber-400 transition-colors mb-1">
+                    {{ prod.name }}
+                </h3>
+                <div class="mt-auto pt-2 flex items-center justify-between border-t border-white/5">
+                    <span class="text-[11px] text-slate-400">يبدأ من</span>
+                    <span class="text-xs sm:text-sm font-black text-amber-400">
+                        {{ prod.base_price|floatformat:2 }} $
+                    </span>
+                </div>
+            </a>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

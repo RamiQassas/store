@@ -775,6 +775,16 @@
             </div>
         </div>
 
+        {% if is_inactive_product or product.is_out_of_stock or not product.is_active %}
+        <div class="mx-3 my-2.5 p-3 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs flex items-center gap-2.5">
+            <i class="fas fa-circle-exclamation text-amber-400 text-base shrink-0"></i>
+            <div>
+                <span class="font-bold block">هذا التطبيق أو المنتج غير متوفر حالياً</span>
+                <span class="text-slate-300 text-[11px]">يجري تحديث هذا المنتج من قِبل المزوّد، أو قد يكون نافداً مؤقتاً. يمكنك استعراض الكتالوج للحصول على بدائل.</span>
+            </div>
+        </div>
+        {% endif %}
+
         <!-- Form Begin -->
         <form method="post" action="{% url 'product_detail' product.id %}" id="purchase-form">
             {% csrf_token %}
@@ -922,9 +932,9 @@
 
             <!-- Actions Row: شراء & الغاء -->
             <div class="alkasr-actions-row">
-                {% if is_inactive_product or product.is_out_of_stock and not variants %}
-                <button type="button" class="alkasr-btn-buy opacity-50 cursor-not-allowed" disabled>
-                    غير متوفر
+                {% if is_inactive_product or product.is_out_of_stock or not product.is_active %}
+                <button type="button" class="alkasr-btn-buy opacity-60 cursor-not-allowed !bg-slate-700 !text-slate-400 !shadow-none" disabled>
+                    غير متوفر حالياً
                 </button>
                 {% else %}
                 <button type="submit" class="alkasr-btn-buy" id="submit-btn">

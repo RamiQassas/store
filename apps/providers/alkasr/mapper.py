@@ -943,13 +943,13 @@ class AlkasrMapperService:
                 logger.exception("Error mapping group '%s' to catalog: %s", group_name, e)
                 continue
 
-        # Clean up any leftover empty products for this provider that have 0 variants
+        # Instead of deleting products (which breaks Google SEO indexing), mark them inactive and out of stock
         try:
             Product.objects.filter(
                 store=store,
                 api_provider=provider_code,
                 variants__isnull=True
-            ).delete()
+            ).update(is_active=False, is_out_of_stock=True)
         except Exception:
             pass
 
