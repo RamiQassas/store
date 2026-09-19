@@ -14,7 +14,10 @@ class DomainRedirectMiddleware:
             new_url = f"https://{primary_domain}{request.get_full_path()}"
             return HttpResponsePermanentRedirect(new_url)
             
-        # Also handle the 'www' if we want to force non-www or vice-versa
-        # The user specified 'https://raqamiyatapp.com/' so we enforce non-www or just the domain
-        
+        # If the request comes from www.raqamiyatapp.com, redirect to canonical apex domain
+        clean_host = host.split(':')[0]
+        if clean_host == 'www.raqamiyatapp.com':
+            new_url = f"https://{primary_domain}{request.get_full_path()}"
+            return HttpResponsePermanentRedirect(new_url)
+
         return self.get_response(request)
