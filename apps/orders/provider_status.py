@@ -473,13 +473,19 @@ def apply_provider_status(order, provider_status, raw_response=None, actor=None,
         fulfillment = cleanup_fulfillment_data(fulfillment, delivery_values=delivery_values)
 
         # Automatic Wallet Refund on Cancellation
-        refunded = bool(fulfillment.get("api_refunded"))
-        if is_cancelled and not refunded:
+        meta = dict(locked_order.metadata or {})
+        refunded = bool(fulfillment.get("api_refunded") or meta.get("wallet_refunded"))
+        is_direct_gw = bool(meta.get("is_direct_gateway_purchase") or meta.get("direct_gateway_purchase"))
+        gw_confirmed = bool(meta.get("gateway_payment_confirmed") or meta.get("is_paid"))
+        can_refund = not refunded and (not is_direct_gw or gw_confirmed) and old_status != Order.Status.PENDING
+
+        if is_cancelled and can_refund:
             err_code_tag = fulfillment.get("error_code") or "ERR-PROVIDER"
             wallet = get_or_create_wallet(locked_order.customer)
             refund_amount = locked_order.total_amount
             if wallet.currency and wallet.currency.code != "USD":
                 refund_amount = wallet.currency.from_base(locked_order.total_amount)
+            refund_amount = Decimal(refund_amount).quantize(Decimal("0.01"))
             credit_wallet(
                 wallet_id=wallet.id,
                 amount=refund_amount,
@@ -491,7 +497,11 @@ def apply_provider_status(order, provider_status, raw_response=None, actor=None,
                 metadata={"provider_status": provider_status, "error_code": err_code_tag},
             )
             fulfillment["api_refunded"] = True
+            meta["wallet_refunded"] = True
+            locked_order.metadata = meta
             note += " وتم استرداد المبلغ إلى محفظة العميل تلقائياً."
+        elif is_cancelled and not can_refund and is_direct_gw and not gw_confirmed:
+            note += " (لم يتم استرداد رصيد لأن الطلب غير مسدد عبر بوابة الدفع)."
 
         changed = old_status != locked_order.status or delivery_values or fulfillment != (locked_order.fulfillment_data or {})
         if changed:

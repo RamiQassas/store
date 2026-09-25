@@ -333,10 +333,23 @@
 
                     <div class="pt-2 border-t border-white/5 flex justify-between items-center text-xs">
                         <span class="text-slate-400 font-bold">وسيلة وطريقة الدفع:</span>
-                        <span class="font-bold text-white flex items-center gap-1.5">
-                            <i class="fas {% if order.payment_gateway_charge_info %}fa-credit-card text-emerald-400{% else %}fa-wallet text-cyan{% endif %} text-[11px]"></i>
-                            {{ order.payment_method_display }}
-                        </span>
+                        <div class="flex items-center gap-2">
+                            {% if order.metadata.is_direct_gateway_purchase %}
+                                {% if order.metadata.gateway_payment_confirmed or order.metadata.is_paid %}
+                                <span class="px-2 py-0.5 rounded bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[10px] font-bold">
+                                    <i class="fas fa-check-circle ml-0.5"></i> مسدد عبر البوابة
+                                </span>
+                                {% else %}
+                                <span class="px-2 py-0.5 rounded bg-amber-500/10 border border-amber-500/20 text-amber-400 text-[10px] font-bold">
+                                    <i class="fas fa-clock ml-0.5"></i> غير مسدد (بانتظار السداد)
+                                </span>
+                                {% endif %}
+                            {% endif %}
+                            <span class="font-bold text-white flex items-center gap-1.5">
+                                <i class="fas {% if order.payment_gateway_charge_info %}fa-credit-card text-emerald-400{% else %}fa-wallet text-cyan{% endif %} text-[11px]"></i>
+                                {{ order.payment_method_display }}
+                            </span>
+                        </div>
                     </div>
 
                     {% if order.payment_gateway_charge_info %}
@@ -572,8 +585,15 @@
                     </div>
 
                     <div class="p-2.5 rounded-xl bg-slate-950/60 border border-white/5 text-[10px] text-slate-400 leading-relaxed">
+                        {% if order.metadata.is_direct_gateway_purchase and not order.metadata.gateway_payment_confirmed and not order.metadata.is_paid %}
+                        <div class="text-amber-300 font-bold flex items-start gap-1.5">
+                            <i class="fas fa-exclamation-triangle text-amber-400 mt-0.5 shrink-0"></i>
+                            <span>تنبيه: هذا الطلب عبر بوابة دفع ولم يُسدد بعد. إلغاء الطلب لن يقوم بإيداع أي رصيد للمحفظة لأنه غير مسدد.</span>
+                        </div>
+                        {% else %}
                         <i class="fas fa-info-circle text-cyan ml-1"></i>
-                        عند التحويل إلى <strong class="text-rose-400">ملغي أو مسترد</strong>، يتم إرجاع المبلغ كاملاً إلى محفظة العميل آلياً.
+                        عند التحويل إلى <strong class="text-rose-400">ملغي أو مسترد</strong>، يتم إرجاع المبلغ المسدد إلى محفظة العميل آلياً (إذا لم يكن مسترداً من قبل).
+                        {% endif %}
                     </div>
 
                     <button type="submit" class="w-full py-3 rounded-xl bg-gradient-to-r from-cyan-500 to-cyan-400 hover:brightness-110 text-slate-950 font-black text-xs transition flex items-center justify-center gap-2 shadow-lg shadow-cyan-500/20 cursor-pointer">

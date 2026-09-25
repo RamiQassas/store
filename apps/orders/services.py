@@ -932,10 +932,22 @@ def finalize_paid_gateway_order(order, gateway_data=None):
             logger.info(f"Order {order.id} is already in status {locked_order.status}, skipping finalize.")
             return locked_order
 
+        meta = dict(locked_order.metadata or {})
+        meta["gateway_payment_confirmed"] = True
+        meta["is_paid"] = True
+        meta["gateway_charge_amount"] = str(locked_order.total_amount)
+        if isinstance(gateway_data, dict):
+            meta["gateway_payment_status"] = gateway_data.get("status")
+            if gateway_data.get("id"):
+                meta["gateway_payment_id"] = str(gateway_data.get("id"))
+            if gateway_data.get("rrn"):
+                meta["gateway_rrn"] = str(gateway_data.get("rrn"))
+        locked_order.metadata = meta
+
         item = locked_order.items.select_related("variant", "variant__product").first()
         if not item or not item.variant:
             locked_order.status = Order.Status.PROCESSING
-            locked_order.save(update_fields=["status", "updated_at"])
+            locked_order.save(update_fields=["status", "metadata", "updated_at"])
             return locked_order
 
         variant = item.variant
@@ -1205,4 +1217,85 @@ def finalize_paid_gateway_order(order, gateway_data=None):
             pass
 
         return locked_order
+
+
+def process_order_refund_to_wallet(order, actor=None, old_status=None, source="admin", reason=None):
+    """
+    Safely refunds order amount to customer's wallet IF AND ONLY IF the order was actually paid
+    and has not already been refunded.
+    
+    Returns (refunded: bool, message: str)
+    """
+    from apps.wallets.services import get_or_create_wallet, credit_wallet
+
+    # 1. Check if already refunded
+    ff = dict(order.fulfillment_data or {})
+    meta = dict(order.metadata or {})
+    if bool(ff.get("api_refunded") or meta.get("wallet_refunded")):
+        return False, "تم استرداد مبلغ هذا الطلب مسبقاً، لن يتم تكرار الاسترداد."
+
+    # 2. Check if direct gateway order and payment never completed
+    is_direct_gw = bool(meta.get("is_direct_gateway_purchase") or meta.get("direct_gateway_purchase"))
+    gw_confirmed = bool(meta.get("gateway_payment_confirmed") or meta.get("is_paid"))
+    if is_direct_gw and not gw_confirmed:
+        OrderLog.objects.create(
+            order=order,
+            status=order.status,
+            note="تم إلغاء الطلب دون استرداد رصيد لعدم إتمام الدفع عبر بوابة الدفع (طلب غير مسدد).",
+            created_by=actor,
+        )
+        return False, "تم إلغاء الطلب (لم يتم تحويل رصيد للمحفظة لأن الطلب غير مسدد أصلاً عبر بوابة الدفع)."
+
+    # 3. Check if order was cancelled from PENDING without confirmed gateway payment
+    if old_status == Order.Status.PENDING and not gw_confirmed:
+        OrderLog.objects.create(
+            order=order,
+            status=order.status,
+            note="تم إلغاء الطلب دون استرداد رصيد لأن الطلب كان قيد الانتظار وغير مسدد.",
+            created_by=actor,
+        )
+        return False, "تم إلغاء الطلب (لم يتم تحويل رصيد للمحفظة لأن الطلب كان قيد الانتظار ولم يتم تحصيل قيمته)."
+
+    # 4. Check total amount
+    if order.total_amount <= Decimal("0.00"):
+        return False, "مبلغ الطلب صفر، لا يوجد رصيد للاسترداد."
+
+    # 5. Execute refund
+    wallet = get_or_create_wallet(order.customer)
+    refund_amount = order.total_amount
+    if wallet.currency and wallet.currency.code != "USD":
+        refund_amount = wallet.currency.from_base(order.total_amount)
+    refund_amount = Decimal(refund_amount).quantize(Decimal("0.01"))
+
+    credit_wallet(
+        wallet_id=wallet.id,
+        amount=refund_amount,
+        reference=f"refund:{order.id}",
+        description=f"استرداد مبلغ الطلب رقم #{order.number}",
+        created_by=actor,
+        source=source,
+        reason=reason or f"استرداد رصيد لإلغاء/استرداد الطلب #{order.number}",
+        metadata={"order_id": str(order.id), "order_number": order.number}
+    )
+
+    ff["api_refunded"] = True
+    order.fulfillment_data = ff
+
+    meta["wallet_refunded"] = True
+    meta["wallet_refunded_amount"] = str(refund_amount)
+    meta["wallet_refunded_at"] = timezone.now().isoformat()
+    if actor and getattr(actor, "username", None):
+        meta["wallet_refunded_by"] = actor.username
+    order.metadata = meta
+
+    order.save(update_fields=["fulfillment_data", "metadata", "updated_at"])
+
+    OrderLog.objects.create(
+        order=order,
+        status=order.status,
+        note=f"تم استرداد مبلغ {refund_amount} {wallet.currency.code} إلى محفظة العميل بنجاح.",
+        created_by=actor,
+    )
+    return True, f"تم استرداد مبلغ {refund_amount} {wallet.currency.code} إلى محفظة العميل بنجاح."
+
 

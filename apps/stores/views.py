@@ -697,15 +697,21 @@ def merchant_order_status_update(request, pk):
     store = request.store
     order = get_object_or_404(Order, pk=pk, store=store)
     new_status = request.POST.get("status")
-    
     if new_status in Order.Status.values:
+        old_status = order.status
         order.status = new_status
         order.save()
         
-        # If cancelled, refund user wallet
-        if new_status == Order.Status.CANCELLED:
-            wallet = get_object_or_404(Wallet, user=order.customer)
-            credit_wallet(wallet, order.total_amount, reference=f"REF-{order.number}", description=f"استرداد رصيد الطلب الملغى: {order.number}")
+        # If cancelled, safely refund user wallet if eligible
+        if new_status in (Order.Status.CANCELLED, Order.Status.REFUNDED) and old_status not in (Order.Status.CANCELLED, Order.Status.REFUNDED):
+            from apps.orders.services import process_order_refund_to_wallet
+            refunded, refund_msg = process_order_refund_to_wallet(
+                order, actor=request.user, old_status=old_status, source="merchant_order_status_update"
+            )
+            if refunded:
+                messages.success(request, refund_msg)
+            else:
+                messages.info(request, refund_msg)
             
         messages.success(request, "تم تحديث حالة الطلب بنجاح.")
     return redirect("merchant_order_detail", pk=order.pk)

@@ -109,6 +109,11 @@ class PaymeraViewsTestCase(TestCase):
             email="tester@example.com",
             password="Password123!"
         )
+        self.admin_user = User.objects.create_superuser(
+            username="admin_tester",
+            email="admin@example.com",
+            password="Password123!"
+        )
         self.currency, _ = Currency.objects.get_or_create(
             code="SYP",
             defaults={"name": "Syrian Pound", "symbol": "LS", "buy_rate": Decimal("1.0"), "sell_rate": Decimal("1.0"), "is_active": True}
@@ -530,6 +535,199 @@ class PaymeraViewsTestCase(TestCase):
         order.refresh_from_db()
         self.assertEqual(order.status, Order.Status.PENDING)
         self.assertNotIn("keys", order.fulfillment_data or {})
+
+    @patch("apps.payments.views_paymera.finalize_paid_gateway_order")
+    @patch.object(PaymeraClient, "get_payment_status")
+    def test_paymera_callback_pending_status_cancels_order_without_wallet_credit(self, mock_status, mock_finalize):
+        """Test that user returning from Paymera with uncompleted/pending payment causes order cancellation with zero wallet credit."""
+        from apps.catalog.models import Category, Product, ProductVariant
+        from apps.orders.models import Order
+        from apps.orders.services import create_pending_gateway_order
+        from apps.wallets.services import get_or_create_wallet
+        from django.contrib.messages.storage.cookie import CookieStorage
+
+        wallet = get_or_create_wallet(self.user)
+        initial_balance = wallet.available_balance
+
+        cat = Category.objects.create(name="CardsPending")
+        prod = Product.objects.create(category=cat, name="Gift Card P", is_active=True)
+        var = ProductVariant.objects.create(
+            product=prod, name="15 USD", sku="GC-15", price=Decimal("15.00"), cost=Decimal("12.00"), is_active=True
+        )
+        order = create_pending_gateway_order(
+            customer=self.user,
+            variant_id=var.id,
+            quantity=1,
+            gateway_code="paymera",
+        )
+        order.metadata["gateway_payment_id"] = "pay-pend-1"
+        order.save(update_fields=["metadata"])
+
+        mock_status.return_value = {
+            "status": "P",
+            "amount": 15000,
+            "raw": {"ErrorCode": 0}
+        }
+
+        request = self.factory.get(f"/payments/paymera/callback/?order_id={order.id}")
+        request.user = self.user
+        setattr(request, "_messages", CookieStorage(request))
+        response = paymera_callback_view(request)
+
+        self.assertEqual(response.status_code, 302)
+        order.refresh_from_db()
+        self.assertEqual(order.status, Order.Status.CANCELLED)
+        mock_finalize.assert_not_called()
+
+        wallet.refresh_from_db()
+        self.assertEqual(wallet.available_balance, initial_balance, "Wallet should NOT receive any balance for uncompleted payment!")
+
+    def test_admin_cancelling_unpaid_gateway_order_does_not_credit_wallet(self):
+        """Test that admin cancelling an unpaid pending gateway order does NOT credit customer wallet."""
+        from apps.catalog.models import Category, Product, ProductVariant
+        from apps.orders.models import Order
+        from apps.orders.services import create_pending_gateway_order
+        from apps.wallets.services import get_or_create_wallet
+        from apps.site.views import control_order_detail
+        from django.contrib.messages.storage.cookie import CookieStorage
+
+        wallet = get_or_create_wallet(self.user)
+        initial_balance = wallet.available_balance
+
+        cat = Category.objects.create(name="CardsAdminCancel")
+        prod = Product.objects.create(category=cat, name="Gift Card Admin", is_active=True)
+        var = ProductVariant.objects.create(
+            product=prod, name="25 USD", sku="GC-25", price=Decimal("25.00"), cost=Decimal("20.00"), is_active=True
+        )
+        order = create_pending_gateway_order(
+            customer=self.user,
+            variant_id=var.id,
+            quantity=1,
+            gateway_code="paymera",
+        )
+        self.assertEqual(order.status, Order.Status.PENDING)
+
+        # Admin cancels this order via control_order_detail POST
+        request = self.factory.post(f"/control/orders/{order.id}/", {
+            "action": "update_status",
+            "status": "cancelled",
+            "admin_note": "Admin cancelled unpaid order"
+        })
+        request.user = self.admin_user
+        setattr(request, "_messages", CookieStorage(request))
+        response = control_order_detail(request, pk=order.id)
+
+        order.refresh_from_db()
+        self.assertEqual(order.status, Order.Status.CANCELLED)
+
+        wallet.refresh_from_db()
+        self.assertEqual(wallet.available_balance, initial_balance, "Wallet balance MUST NOT increase when cancelling unpaid order!")
+
+    def test_admin_cancelling_paid_wallet_order_refunds_wallet(self):
+        """Test that admin cancelling an order actually paid from wallet correctly refunds the customer wallet."""
+        from apps.catalog.models import Category, Product, ProductVariant
+        from apps.orders.models import Order
+        from apps.orders.services import create_order
+        from apps.wallets.services import get_or_create_wallet, credit_wallet
+        from apps.site.views import control_order_detail
+        from django.contrib.messages.storage.cookie import CookieStorage
+
+        from apps.common.models import Currency
+        usd_curr, _ = Currency.objects.get_or_create(
+            code="USD",
+            defaults={"name": "US Dollar", "symbol": "$", "buy_rate": Decimal("1.0"), "sell_rate": Decimal("1.0"), "is_active": True, "is_default": True}
+        )
+        wallet = get_or_create_wallet(self.user)
+        wallet.currency = usd_curr
+        wallet.available_balance = Decimal("0.00")
+        wallet.save()
+
+        credit_wallet(wallet.id, Decimal("50.00"), "test_fund", "Fund user for purchase")
+        wallet.refresh_from_db()
+        balance_before_order = wallet.available_balance
+
+        cat = Category.objects.create(name="CardsWalletPaid")
+        prod = Product.objects.create(category=cat, name="Wallet Paid Prod", is_active=True)
+        var = ProductVariant.objects.create(
+            product=prod, name="30 USD", sku="WP-30", price=Decimal("30.00"), cost=Decimal("25.00"), is_active=True
+        )
+        order = create_order(
+            customer=self.user,
+            variant_id=var.id,
+            quantity=1,
+        )
+        wallet.refresh_from_db()
+        self.assertEqual(wallet.available_balance, balance_before_order - Decimal("30.00"))
+        self.assertEqual(order.status, Order.Status.PROCESSING)
+
+        # Admin cancels the paid order
+        request = self.factory.post(f"/control/orders/{order.id}/", {
+            "action": "update_status",
+            "status": "cancelled",
+            "admin_note": "Order cancelled, refund expected"
+        })
+        request.user = self.admin_user
+        setattr(request, "_messages", CookieStorage(request))
+        response = control_order_detail(request, pk=order.id)
+
+        order.refresh_from_db()
+        self.assertEqual(order.status, Order.Status.CANCELLED)
+
+        wallet.refresh_from_db()
+        self.assertEqual(wallet.available_balance, balance_before_order, "Wallet MUST receive the refunded balance for paid order!")
+
+        # Second cancellation attempt should NOT double refund
+        request2 = self.factory.post(f"/control/orders/{order.id}/", {
+            "action": "update_status",
+            "status": "cancelled",
+            "admin_note": "Duplicate cancel attempt"
+        })
+        request2.user = self.admin_user
+        setattr(request2, "_messages", CookieStorage(request2))
+        control_order_detail(request2, pk=order.id)
+
+        wallet.refresh_from_db()
+        self.assertEqual(wallet.available_balance, balance_before_order, "Wallet MUST NOT be refunded twice!")
+
+    def test_customer_cancels_pending_order_from_dashboard(self):
+        """Test that customer can cancel their own pending unpaid order from order detail page."""
+        from apps.catalog.models import Category, Product, ProductVariant
+        from apps.orders.models import Order
+        from apps.orders.services import create_pending_gateway_order
+        from apps.wallets.services import get_or_create_wallet
+        from apps.site.views import order_detail
+        from django.contrib.messages.storage.cookie import CookieStorage
+
+        wallet = get_or_create_wallet(self.user)
+        initial_balance = wallet.available_balance
+
+        cat = Category.objects.create(name="CardsCustomerCancel")
+        prod = Product.objects.create(category=cat, name="Customer Cancel Prod", is_active=True)
+        var = ProductVariant.objects.create(
+            product=prod, name="10 USD", sku="CC-10", price=Decimal("10.00"), cost=Decimal("8.00"), is_active=True
+        )
+        order = create_pending_gateway_order(
+            customer=self.user,
+            variant_id=var.id,
+            quantity=1,
+            gateway_code="paymera",
+        )
+        self.assertEqual(order.status, Order.Status.PENDING)
+
+        request = self.factory.post(f"/dashboard/orders/{order.id}/", {
+            "action": "cancel_order",
+        })
+        request.user = self.user
+        setattr(request, "_messages", CookieStorage(request))
+        response = order_detail(request, pk=order.id)
+
+        self.assertEqual(response.status_code, 302)
+        order.refresh_from_db()
+        self.assertEqual(order.status, Order.Status.CANCELLED)
+
+        wallet.refresh_from_db()
+        self.assertEqual(wallet.available_balance, initial_balance, "Wallet balance MUST NOT increase when customer cancels unpaid pending order!")
+
 
 
 

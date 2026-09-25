@@ -1001,6 +1001,24 @@ def order_detail(request, pk):
         pk=pk
     )
     
+    # Allow customer to cancel unpaid pending order
+    if request.method == "POST" and request.POST.get("action") == "cancel_order":
+        if order.status == Order.Status.PENDING:
+            order.status = Order.Status.CANCELLED
+            order.admin_note = "تم إلغاء الطلب المعلق من قبل العميل."
+            order.save(update_fields=["status", "admin_note", "updated_at"])
+            OrderLog.objects.create(
+                order=order,
+                status=Order.Status.CANCELLED,
+                note="قام العميل بإلغاء الطلب المعلق.",
+                created_by=request.user,
+            )
+            messages.success(request, "تم إلغاء طلبك بنجاح.")
+            return redirect("dashboard_orders")
+        else:
+            messages.error(request, "لا يمكن إلغاء هذا الطلب لأنه ليس في حالة الانتظار.")
+            return redirect("dashboard_order_detail", pk=order.id)
+
     # Auto-refresh status from provider if order is still pending or processing
     if order.status in (Order.Status.PROCESSING, Order.Status.PENDING) and (order.api_order_uuid or order.api_order_id or order.provider_orders.exists()):
         try:
@@ -3792,12 +3810,15 @@ def control_order_detail(request, pk):
             order.save()
             OrderLog.objects.create(order=order, status=order.status, note=request.POST.get("admin_note", ""), created_by=request.user)
             
-            if order.status in [Order.Status.REFUNDED, Order.Status.CANCELLED] and old_status not in [Order.Status.REFUNDED, Order.Status.CANCELLED]: 
-                wallet = get_or_create_wallet(order.customer)
-                refund_amount = order.total_amount
-                if wallet.currency and wallet.currency.code != "USD":
-                    refund_amount = wallet.currency.from_base(order.total_amount)
-                credit_wallet(wallet.id, refund_amount, f"refund:{order.id}", f"استرداد مبلغ الطلب رقم #{order.number}", request.user)
+            if order.status in [Order.Status.REFUNDED, Order.Status.CANCELLED] and old_status not in [Order.Status.REFUNDED, Order.Status.CANCELLED]:
+                from apps.orders.services import process_order_refund_to_wallet
+                refunded, refund_msg = process_order_refund_to_wallet(
+                    order, actor=request.user, old_status=old_status, source="control_order_detail"
+                )
+                if refunded:
+                    messages.success(request, refund_msg)
+                else:
+                    messages.info(request, refund_msg)
             
             messages.success(request, f"تم تحديث حالة الطلب إلى: {order.get_status_display()}")
             
@@ -4030,11 +4051,14 @@ def control_order_status_update(request, pk):
         order.save()
         OrderLog.objects.create(order=order, status=order.status, note=request.POST.get("admin_note", ""), created_by=request.user)
         if order.status in [Order.Status.REFUNDED, Order.Status.CANCELLED] and old_status not in [Order.Status.REFUNDED, Order.Status.CANCELLED]:
-            wallet = get_or_create_wallet(order.customer)
-            refund_amount = order.total_amount
-            if wallet.currency and wallet.currency.code != "USD":
-                refund_amount = wallet.currency.from_base(order.total_amount)
-            credit_wallet(wallet.id, refund_amount, f"refund:{order.id}", f"استرداد مبلغ الطلب رقم #{order.number}", request.user)
+            from apps.orders.services import process_order_refund_to_wallet
+            refunded, refund_msg = process_order_refund_to_wallet(
+                order, actor=request.user, old_status=old_status, source="control_order_status_update"
+            )
+            if refunded:
+                messages.success(request, refund_msg)
+            else:
+                messages.info(request, refund_msg)
         messages.success(request, f"تم تحديث حالة الطلب إلى: {order.get_status_display()}")
         try:
             notify_user(

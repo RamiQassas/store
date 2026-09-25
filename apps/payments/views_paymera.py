@@ -294,8 +294,14 @@ def paymera_callback_view(request):
 
     # Detect cancellation from GET query parameters
     status_param = (request.GET.get("status") or "").strip().lower()
+    action_param = (request.GET.get("action") or "").strip().lower()
+    state_param = (request.GET.get("state") or "").strip().lower()
+    result_param = (request.GET.get("result") or "").strip().lower()
     is_cancelled_url = (
-        status_param in ("cancel", "c", "canceled", "cancelled", "failed", "f")
+        status_param in ("cancel", "c", "canceled", "cancelled", "failed", "f", "reject", "rejected")
+        or action_param in ("cancel", "cancelled", "abort", "back")
+        or state_param in ("cancel", "cancelled", "failed")
+        or result_param in ("cancel", "cancelled", "failed")
         or request.GET.get("cancelled") in ("1", "true", "True")
         or request.GET.get("cancel") in ("1", "true", "True")
     )
@@ -333,7 +339,7 @@ def paymera_callback_view(request):
             if is_cancelled_url:
                 if order.status == Order.Status.PENDING:
                     order.status = Order.Status.CANCELLED
-                    order.admin_note = f"Paymera payment cancelled by customer via URL (status={status_param or 'cancelled'})"
+                    order.admin_note = f"Paymera payment cancelled by customer via URL (status={status_param or action_param or 'cancelled'})"
                     order.save(update_fields=["status", "admin_note", "updated_at"])
                     OrderLog.objects.create(
                         order=order,
@@ -370,13 +376,24 @@ def paymera_callback_view(request):
                                 created_by=request.user if request.user.is_authenticated else None,
                             )
                         if payment_status == PaymeraClient.STATUS_CANCELED:
-                            messages.warning(request, "تم إلغاء عملية الدفع من قبلك.")
+                            messages.warning(request, "تم إلغاء عملية الدفع من قبلك وإلغاء الطلب.")
                         else:
-                            messages.error(request, "فشلت عملية الدفع عبر بيميرا. يرجى التأكد من بيانات البطاقة أو المحاولة مجدداً.")
+                            messages.error(request, "فشلت عملية الدفع عبر بيميرا. تم إلغاء الطلب.")
                         return redirect(order_list_url)
 
                     else:
-                        messages.info(request, "عملية الدفع لم تكتمل بعد أو بانتظار السداد. لن يتم تنفيذ الطلب حتى تأكيد الدفع بنجاح.")
+                        # User returned without payment being completed (e.g. status "P" / uncompleted)
+                        if order.status == Order.Status.PENDING:
+                            order.status = Order.Status.CANCELLED
+                            order.admin_note = f"Paymera payment not completed (status={payment_status}). Cancelled on return."
+                            order.save(update_fields=["status", "admin_note", "updated_at"])
+                            OrderLog.objects.create(
+                                order=order,
+                                status=Order.Status.CANCELLED,
+                                note=f"تم إلغاء الطلب لعدم استكمال السداد عبر بيميرا ({payment_status or 'معلق'}).",
+                                created_by=request.user if request.user.is_authenticated else None,
+                            )
+                        messages.warning(request, "لم يتم استكمال عملية الدفع عبر بيميرا، وتم إلغاء الطلب المعلق.")
                         return redirect(order_list_url)
 
                 except Exception as exc:
@@ -386,8 +403,19 @@ def paymera_callback_view(request):
                 messages.success(request, "تم تأكيد طلبك بنجاح.")
                 return redirect(order_dest_url)
 
-            messages.info(request, "تم استلام عودتك من بوابة الدفع. الطلب معلق بانتظار إتمام السداد ولن يتم تنفيذه حتى السداد.")
-            return redirect(order_list_url)
+            # If order is still pending, cancel it on return
+            if order.status == Order.Status.PENDING:
+                order.status = Order.Status.CANCELLED
+                order.admin_note = "Paymera payment not confirmed on callback return. Cancelled."
+                order.save(update_fields=["status", "admin_note", "updated_at"])
+                OrderLog.objects.create(
+                    order=order,
+                    status=Order.Status.CANCELLED,
+                    note="تم إلغاء الطلب لعدم تأكيد عملية السداد عند العودة من بوابة بيميرا.",
+                    created_by=request.user if request.user.is_authenticated else None,
+                )
+                messages.warning(request, "لم يتم استكمال عملية الدفع عبر بيميرا وتم إلغاء الطلب.")
+                return redirect(order_list_url)
 
         # ── 2. Check for Wallet Deposit ──────────────────────────────────────────
         deposit = None
