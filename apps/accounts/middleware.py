@@ -50,6 +50,14 @@ class AccountStatusMiddleware:
 
             skip_single_session = (
                 request.user.is_superuser
+                or request.user.is_staff
+                or getattr(request.user, "role", None) in [
+                    "super_admin",
+                    "admin",
+                    "support",
+                    "finance",
+                    "moderator",
+                ]
                 or getattr(request, "store", None) is not None
             )
             if not skip_single_session:

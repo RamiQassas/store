@@ -19,58 +19,14 @@ class OrdersConfig(AppConfig):
                 logger = logging.getLogger("order_sync_daemon")
 
                 def _run_order_sync():
+                    from apps.orders.sync_service import sync_pending_orders_batch
                     while True:
                         try:
-                            time.sleep(12)
+                            time.sleep(8)
                             connection.close()
-                            from django.db.models import Q
-                            from apps.orders.models import Order
-                            from services.provider.manager import ProviderManager
-                            from apps.orders.provider_status import apply_provider_status
-                            from apps.providers.models import ProviderProfile
-                            from apps.common.tenant_utils import bypass_tenant_filter
-
-                            with bypass_tenant_filter():
-                                default_profile = ProviderProfile.all_objects.filter(is_active=True).first()
-
-                                pending_orders = list(Order.all_objects.filter(
-                                    status__in=[Order.Status.PROCESSING, Order.Status.PENDING]
-                                ).filter(
-                                    Q(api_order_uuid__isnull=False) | Q(api_order_id__isnull=False) | Q(provider_orders__isnull=False)
-                                ).select_related("customer", "store").prefetch_related("provider_orders__profile")[:25])
-
-                            for order in pending_orders:
-                                try:
-                                    current_api_status = str((order.fulfillment_data or {}).get("api_status") or "").lower()
-                                    if current_api_status in ("error", "failed", "reject", "rejected", "cancel", "cancelled", "refused", "declined"):
-                                        apply_provider_status(order, current_api_status, raw_response=order.fulfillment_data, actor=None, note_prefix="مزامنة خلفية")
-                                        continue
-
-                                    po = order.provider_orders.all().first()
-                                    profile = po.profile if (po and po.profile) else default_profile
-                                    if profile:
-                                        data_list = []
-                                        if order.api_order_id:
-                                            data_list = ProviderManager.check_orders(
-                                                profile,
-                                                [str(order.api_order_id)],
-                                                is_uuid=False
-                                            )
-                                        if not data_list and order.api_order_uuid:
-                                            data_list = ProviderManager.check_orders(
-                                                profile,
-                                                [str(order.api_order_uuid)],
-                                                is_uuid=True
-                                            )
-
-                                        if data_list and len(data_list) > 0:
-                                            order_data = data_list[0]
-                                            api_status = order_data.get("status")
-                                            apply_provider_status(order, api_status, raw_response=order_data, actor=None, note_prefix="مزامنة خلفية")
-                                except Exception:
-                                    pass
-                        except Exception:
-                            pass
+                            sync_pending_orders_batch(limit=30)
+                        except Exception as exc:
+                            logger.error("OrderSyncDaemon error: %s", exc)
                         finally:
                             try:
                                 connection.close()
@@ -79,6 +35,6 @@ class OrdersConfig(AppConfig):
 
                 t = threading.Thread(target=_run_order_sync, daemon=True, name="OrderSyncDaemon")
                 t.start()
-                logger.info("⚡ [ORDER-SYNC] Background order status sync daemon started.")
+                logger.info("⚡ [ORDER-SYNC] Background order status sync daemon started (interval=8s).")
             except Exception:
                 pass

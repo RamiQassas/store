@@ -222,8 +222,13 @@ def cleanup_fulfillment_data(fulfillment, delivery_values=None):
             else:
                 seen_values.add(val)
 
+    protected_keys = {
+        "api_provider", "api_status", "api_last_response", "api_refunded",
+        "image_url", "all_server_responses", "ردود السيرفر",
+        "error_code", "admin_error_reason", "admin_error_tip", "admin_error_raw"
+    }
     for k in list(fulfillment.keys()):
-        if k in ("api_provider", "api_status", "api_last_response", "api_refunded", "image_url", "all_server_responses", "ردود السيرفر"):
+        if k in protected_keys or k in priority:
             continue
         val = extract_clean_text(fulfillment[k])
         if not val or val in seen_values:
@@ -411,10 +416,25 @@ def apply_provider_status(order, provider_status, raw_response=None, actor=None,
                 note += f" (رد السيرفر: {clean_server_reply})"
         elif is_cancelled:
             locked_order.status = Order.Status.CANCELLED
-            note = f"{note_prefix}: تم إلغاء الطلب."
-            cancel_reason_str = parsed_res.get("reason") or provider_msg_str or "تم رفض الطلب من قبل المزود"
-            fulfillment["سبب الإلغاء من السيرفر"] = cancel_reason_str
-            note += f" (سبب الإلغاء من السيرفر: {cancel_reason_str})"
+            fulfillment.pop("كود التفعيل / البطاقة", None)
+            fulfillment.pop("بيانات التسليم والأكواد", None)
+            cancel_source_val = parsed_res.get("reason") or provider_msg_str or raw_response.get("error") or raw_response.get("message") or "تم رفض الطلب من قبل المزود"
+            
+            from apps.orders.error_codes import sanitize_provider_error, sanitize_text_for_customer
+            err_info = sanitize_provider_error(raw_response or cancel_source_val)
+            
+            # Customer facing keys
+            fulfillment["error_code"] = err_info["code_tag"]
+            fulfillment["سبب الإلغاء"] = err_info["customer_message"]
+            fulfillment["سبب الإلغاء من السيرفر"] = err_info["customer_message"]
+            
+            # Admin exclusive keys (Real translated reason & instructions)
+            fulfillment["admin_error_reason"] = err_info["admin_message"]
+            fulfillment["admin_error_tip"] = err_info["admin_tip"]
+            fulfillment["admin_error_raw"] = err_info["raw_detail"] or str(raw_response)
+            
+            # Note for admin log: shows error code AND translated real reason
+            note = f"{note_prefix}: تم إلغاء الطلب. ({err_info['code_tag']} | السبب الحقيقي للإدارة: {err_info['admin_message']})"
         elif provider_status in status_processing_aliases:
             locked_order.status = Order.Status.PROCESSING
             note = f"{note_prefix}: الطلب قيد المعالجة والتنفيذ."
@@ -425,8 +445,12 @@ def apply_provider_status(order, provider_status, raw_response=None, actor=None,
             if clean_server_reply:
                 note += f" (رد السيرفر: {clean_server_reply})"
 
-        # Store server reply if useful
+        # Store server reply if useful (sanitized for customer)
         if clean_server_reply:
+            from apps.orders.error_codes import sanitize_text_for_customer
+            if is_cancelled:
+                clean_server_reply = sanitize_text_for_customer(clean_server_reply)
+
             cur_deliv = fulfillment.get("بيانات التسليم والأكواد", "")
             cur_cancel = fulfillment.get("سبب الإلغاء من السيرفر", "")
             if clean_server_reply not in delivery_values and clean_server_reply != cur_deliv and clean_server_reply != cur_cancel:
@@ -451,6 +475,7 @@ def apply_provider_status(order, provider_status, raw_response=None, actor=None,
         # Automatic Wallet Refund on Cancellation
         refunded = bool(fulfillment.get("api_refunded"))
         if is_cancelled and not refunded:
+            err_code_tag = fulfillment.get("error_code") or "ERR-PROVIDER"
             wallet = get_or_create_wallet(locked_order.customer)
             refund_amount = locked_order.total_amount
             if wallet.currency and wallet.currency.code != "USD":
@@ -462,8 +487,8 @@ def apply_provider_status(order, provider_status, raw_response=None, actor=None,
                 description=f"Refund for cancelled order {locked_order.number}",
                 created_by=actor,
                 source="provider_api",
-                reason=f"إلغاء الطلب آلياً ({fulfillment.get('سبب الإلغاء من السيرفر') or provider_status})",
-                metadata={"provider_status": provider_status, "server_response": clean_server_reply},
+                reason=f"إلغاء الطلب آلياً (رمز الخطأ: {err_code_tag})",
+                metadata={"provider_status": provider_status, "error_code": err_code_tag},
             )
             fulfillment["api_refunded"] = True
             note += " وتم استرداد المبلغ إلى محفظة العميل تلقائياً."
@@ -507,12 +532,16 @@ def apply_provider_status(order, provider_status, raw_response=None, actor=None,
                             priority="high"
                         )
                     elif locked_order.status in (Order.Status.CANCELLED, Order.Status.REFUNDED):
-                        cancel_reason_clean = (
+                        from apps.orders.error_codes import sanitize_text_for_customer
+                        raw_cancel_reason = (
                             fulfillment.get("سبب الإلغاء من السيرفر") or
+                            fulfillment.get("سبب الإلغاء") or
                             parsed_res.get("reason") or
                             clean_server_reply or
                             "تعذر تنفيذ الطلب لدى مزود الخدمة"
                         )
+                        cancel_reason_clean = sanitize_text_for_customer(raw_cancel_reason)
+
                         wallet = get_or_create_wallet(locked_order.customer)
                         curr_code = wallet.currency.code if (wallet.currency and wallet.currency.code) else "USD"
                         refund_val = locked_order.total_amount

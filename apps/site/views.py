@@ -984,38 +984,9 @@ def orders_list(request):
     
     if pending_api_orders.exists():
         try:
-            from services.provider.manager import ProviderManager
-            from apps.orders.provider_status import apply_provider_status
-            from apps.providers.models import ProviderProfile
-            from apps.common.tenant_utils import bypass_tenant_filter
-
-            with bypass_tenant_filter():
-                default_profile = ProviderProfile.all_objects.filter(is_active=True).first()
-
+            from apps.orders.sync_service import sync_single_order_status
             for p_order in pending_api_orders[:5]:
-                po = p_order.provider_orders.select_related("profile").first()
-                profile = po.profile if (po and po.profile) else default_profile
-                if not profile:
-                    continue
-
-                data_list = []
-                if p_order.api_order_id:
-                    data_list = ProviderManager.check_orders(
-                        profile,
-                        [str(p_order.api_order_id)],
-                        is_uuid=False
-                    )
-                if not data_list and p_order.api_order_uuid:
-                    data_list = ProviderManager.check_orders(
-                        profile,
-                        [str(p_order.api_order_uuid)],
-                        is_uuid=True
-                    )
-
-                if data_list and len(data_list) > 0:
-                    order_data = data_list[0]
-                    api_status = order_data.get("status")
-                    apply_provider_status(p_order, api_status, raw_response=order_data, actor=None, note_prefix="تحديث تلقائي")
+                sync_single_order_status(p_order, actor=None, note_prefix="تحديث تلقائي")
         except Exception:
             pass
 
@@ -1033,36 +1004,8 @@ def order_detail(request, pk):
     # Auto-refresh status from provider if order is still pending or processing
     if order.status in (Order.Status.PROCESSING, Order.Status.PENDING) and (order.api_order_uuid or order.api_order_id or order.provider_orders.exists()):
         try:
-            from services.provider.manager import ProviderManager
-            from apps.orders.provider_status import apply_provider_status
-            from apps.providers.models import ProviderProfile
-            from apps.common.tenant_utils import bypass_tenant_filter
-
-            provider_order = order.provider_orders.select_related("profile").first()
-            profile = provider_order.profile if (provider_order and provider_order.profile) else None
-            if not profile:
-                with bypass_tenant_filter():
-                    profile = ProviderProfile.all_objects.filter(is_active=True).first()
-
-            if profile:
-                data_list = []
-                if order.api_order_id:
-                    data_list = ProviderManager.check_orders(
-                        profile,
-                        [str(order.api_order_id)],
-                        is_uuid=False
-                    )
-                if not data_list and order.api_order_uuid:
-                    data_list = ProviderManager.check_orders(
-                        profile,
-                        [str(order.api_order_uuid)],
-                        is_uuid=True
-                    )
-                    
-                if data_list and len(data_list) > 0:
-                    order_data = data_list[0]
-                    api_status = order_data.get("status")
-                    order = apply_provider_status(order, api_status, raw_response=order_data, actor=None, note_prefix="تحديث تلقائي")
+            from apps.orders.sync_service import sync_single_order_status
+            _, order, _ = sync_single_order_status(order, actor=None, note_prefix="تحديث تلقائي")
         except Exception:
             pass
 
@@ -3876,7 +3819,16 @@ def control_order_detail(request, pk):
                 if k.strip(): fulfillment_data[k.strip()] = v
             order.fulfillment_data = fulfillment_data
             order.save()
-            messages.success(request, "تم تحديث بيانات التنفيذ.")
+        elif action == "check_provider_status":
+            from apps.orders.sync_service import sync_single_order_status
+            changed, order, current_status = sync_single_order_status(
+                order, actor=request.user, note_prefix="فحص يدوي من الإدارة"
+            )
+            if changed:
+                messages.success(request, f"تم تحديث حالة الطلب من المزود إلى: {order.get_status_display()}")
+            else:
+                messages.info(request, f"حالة الطلب لدى المزود حالياً هي: {order.get_status_display()}")
+            return redirect("control_order_detail", pk=pk)
         elif action == "retry_provider_order":
             first_item = order.items.first()
             if not first_item or not first_item.variant:
@@ -4035,6 +3987,14 @@ def control_order_detail(request, pk):
             
         return redirect("control_order_detail", pk=pk)
     
+    # Auto-refresh status from provider if order is still pending or processing
+    if order.status in (Order.Status.PROCESSING, Order.Status.PENDING) and (order.api_order_uuid or order.api_order_id or order.provider_orders.exists()):
+        try:
+            from apps.orders.sync_service import sync_single_order_status
+            changed, order, _ = sync_single_order_status(order, actor=None, note_prefix="تحديث تلقائي عند فتح الطلب")
+        except Exception:
+            pass
+
     internal_ff_keys = {
         "api_provider", "api_status", "api_last_response", "api_refunded",
         "raw_response", "response", "api_error"
@@ -4764,6 +4724,30 @@ def control_orders_list(request):
     else:
         base_qs = Order.all_objects.filter(store__isnull=True)
     
+    # Explicit manual sync trigger via button ?sync=1
+    if request.GET.get("sync") == "1":
+        try:
+            from apps.orders.sync_service import sync_pending_orders_batch
+            res = sync_pending_orders_batch(limit=30)
+            if res.get("updated", 0) > 0:
+                messages.success(request, f"تم فحص وتحديث حالة {res['updated']} طلب بنجاح من المزود.")
+            else:
+                messages.info(request, "تم فحص حالات الطلبات مع المزود وجميع الحالات محدثة.")
+        except Exception as exc:
+            messages.warning(request, f"تعذر استكمال المزامنة الفورية: {exc}")
+
+    # Auto-sync active pending/processing orders on view load (top 10)
+    else:
+        active_pending = base_qs.filter(
+            status__in=[Order.Status.PROCESSING, Order.Status.PENDING]
+        )[:10]
+        if active_pending.exists():
+            try:
+                from apps.orders.sync_service import sync_pending_orders_batch
+                sync_pending_orders_batch(orders_qs=active_pending, limit=10)
+            except Exception:
+                pass
+
     total_count = base_qs.count()
     pending_count = base_qs.filter(status=Order.Status.PENDING).count()
     processing_count = base_qs.filter(status=Order.Status.PROCESSING).count()
@@ -4822,6 +4806,116 @@ def control_orders_list(request):
         "total_revenue": total_revenue,
         "total_count": total_count,
     })
+
+
+@support_required
+def control_orders_sync_live_ajax(request):
+    """
+    Live real-time polling endpoint for /control/orders/.
+    Receives order IDs or checks active pending/processing orders.
+    Returns JSON with updated statuses, badges, and stats counts.
+    """
+    store = getattr(request, "store", None)
+    if store:
+        base_qs = Order.all_objects.filter(store=store)
+    else:
+        base_qs = Order.all_objects.filter(store__isnull=True)
+
+    order_ids = request.GET.getlist("order_ids[]") or request.POST.getlist("order_ids[]")
+    if not order_ids:
+        raw_ids = request.GET.get("order_ids") or request.POST.get("order_ids")
+        if raw_ids:
+            order_ids = [x.strip() for x in raw_ids.split(",") if x.strip()]
+
+    if order_ids:
+        targets = list(base_qs.filter(id__in=order_ids))
+    else:
+        targets = list(base_qs.filter(status__in=[Order.Status.PROCESSING, Order.Status.PENDING])[:20])
+
+    from apps.orders.sync_service import sync_pending_orders_batch
+    sync_res = sync_pending_orders_batch(orders_qs=targets, limit=len(targets) or 20)
+
+    results = []
+    for order in targets:
+        order.refresh_from_db()
+        results.append({
+            "id": str(order.id),
+            "number": order.number,
+            "status": order.status,
+            "status_display": order.get_status_display(),
+            "api_order_id": order.api_order_id or "",
+            "is_terminal": order.status in (Order.Status.COMPLETED, Order.Status.CANCELLED, Order.Status.REFUNDED)
+        })
+
+    status_counts = {
+        'all': base_qs.count(),
+        'pending': base_qs.filter(status=Order.Status.PENDING).count(),
+        'processing': base_qs.filter(status=Order.Status.PROCESSING).count(),
+        'completed': base_qs.filter(status=Order.Status.COMPLETED).count(),
+        'cancelled': base_qs.filter(status__in=[Order.Status.CANCELLED, Order.Status.REFUNDED]).count(),
+    }
+
+    return JsonResponse({
+        "success": True,
+        "updated_count": sync_res.get("updated", 0),
+        "orders": results,
+        "status_counts": status_counts
+    })
+
+
+@support_required
+def control_orders_sync_all_view(request):
+    """
+    Mass-sync action to check and update all pending, processing, and unfinalized
+    orders against external providers.
+    Supports both AJAX requests and direct POST/GET redirects with Django messages.
+    """
+    store = getattr(request, "store", None)
+    if store:
+        base_qs = Order.all_objects.filter(store=store)
+    else:
+        base_qs = Order.all_objects.filter(store__isnull=True)
+
+    # Fetch non-terminal orders, oldest first
+    non_terminal = list(
+        base_qs.filter(status__in=[Order.Status.PROCESSING, Order.Status.PENDING])
+        .select_related("customer", "store")
+        .prefetch_related("items__variant__product", "provider_orders__profile")
+        .order_by("created_at")[:150]
+    )
+
+    from apps.orders.sync_service import sync_pending_orders_batch
+    sync_res = sync_pending_orders_batch(orders_qs=non_terminal, limit=len(non_terminal) or 150)
+
+    checked = sync_res.get("checked", 0)
+    updated = sync_res.get("updated", 0)
+    completed = sync_res.get("completed", 0)
+    cancelled = sync_res.get("cancelled", 0)
+
+    if updated > 0:
+        msg_text = f"تم فحص {checked} طلبات قديمة مع المزود: تم تحديث {updated} طلب بنجاح (المكتملة: {completed} | الملغية: {cancelled})."
+    else:
+        msg_text = f"تم فحص {checked} طلبات مع المزود الخارجي، وجميع الحالات محدثة ومطابقة لردود المزود."
+
+    if request.headers.get("x-requested-with") == "XMLHttpRequest" or request.GET.get("ajax") == "1" or request.POST.get("ajax") == "1":
+        return JsonResponse({
+            "success": True,
+            "checked": checked,
+            "updated": updated,
+            "completed": completed,
+            "cancelled": cancelled,
+            "message": msg_text,
+            "updated_orders": sync_res.get("updated_orders", [])
+        })
+
+    from django.contrib import messages
+    if updated > 0:
+        messages.success(request, msg_text)
+    else:
+        messages.info(request, msg_text)
+
+    return redirect("control_orders_list")
+
 
 @finance_required
 def control_wallets_list(request):

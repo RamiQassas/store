@@ -160,12 +160,23 @@
         <p class="text-slate-400 text-xs sm:text-sm mt-1">متابعة تنفيذ الخدمات، مراجعة المدخلات، ومزامنة ردود المزودين لحظياً.</p>
     </div>
     
-    <div class="flex items-center gap-2.5 shrink-0">
+    <div class="flex items-center gap-2.5 shrink-0 flex-wrap">
+        <!-- Dedicated Button to Sync All Old/Pending Orders with Provider -->
+        <button type="button" id="sync-old-orders-btn" onclick="triggerSyncOldOrders()" class="px-4 py-2.5 rounded-xl bg-gradient-to-r from-amber-500/20 to-amber-600/20 border border-amber-500/40 hover:border-amber-400 hover:bg-amber-500/30 text-amber-300 hover:text-white font-black text-xs transition flex items-center gap-2 shadow-lg shadow-amber-500/10 cursor-pointer" title="فحص وتحديث حالات كافة الطلبات القديمة غير المكتملة بناءً على رد المزود">
+            <i class="fas fa-history text-amber-400" id="sync-old-orders-icon"></i>
+            <span id="sync-old-orders-text">تحديث الطلبات القديمة من المزود</span>
+        </button>
+
+        <button type="button" id="manual-sync-btn" onclick="triggerManualSync()" class="px-3.5 py-2.5 rounded-xl bg-cyan-500/10 border border-cyan-500/30 hover:border-cyan-500 hover:bg-cyan-500/20 text-cyan-400 font-bold text-xs transition flex items-center gap-2 shadow-lg shadow-cyan-500/5 cursor-pointer" title="فحص ومزامنة حالات الطلبات المعروضة حالياً مع المزودات فوراً">
+            <i class="fas fa-sync-alt" id="manual-sync-icon"></i>
+            <span id="manual-sync-text">مزامنة الحالات المعروضة</span>
+        </button>
+
         <a href="?{% if request.GET.urlencode %}{{ request.GET.urlencode }}&{% endif %}export=excel" class="px-4 py-2.5 rounded-xl bg-slate-900/90 border border-emerald-500/30 hover:border-emerald-500 text-emerald-400 hover:bg-emerald-500/10 font-bold text-xs transition flex items-center gap-2 shadow-lg shadow-emerald-500/5 cursor-pointer">
             <i class="fas fa-file-excel text-emerald-400"></i>
-            <span>تصدير تقرير Excel</span>
+            <span>تصدير Excel</span>
         </a>
-        <a href="{% url 'control_orders_list' %}" class="px-3 py-2.5 rounded-xl bg-slate-900 border border-white/10 hover:border-white/20 text-slate-300 hover:text-white text-xs transition flex items-center gap-1.5" title="تحديث القائمة">
+        <a href="{% url 'control_orders_list' %}" class="px-3 py-2.5 rounded-xl bg-slate-900 border border-white/10 hover:border-white/20 text-slate-300 hover:text-white text-xs transition flex items-center gap-1.5" title="إعادة تحميل الصفحة">
             <i class="fas fa-redo text-slate-400"></i>
         </a>
     </div>
@@ -294,7 +305,7 @@
             </thead>
             <tbody class="divide-y divide-white/5 text-xs">
                 {% for order in orders %}
-                <tr class="table-order-row">
+                <tr class="table-order-row" id="order-row-{{ order.id }}" data-order-id="{{ order.id }}" data-order-number="{{ order.number }}" data-order-status="{{ order.status }}">
                     <!-- Order Number & Date -->
                     <td class="py-3.5 px-4 align-top">
                         <div class="flex items-center gap-1.5">
@@ -409,7 +420,7 @@
 
                     <!-- Status -->
                     <td class="py-3.5 px-4 align-top">
-                        <span class="status-glow-badge {{ order.status }}">
+                        <span id="order-status-badge-{{ order.id }}" class="status-glow-badge {{ order.status }}">
                             {% if order.status == 'completed' %}
                             <i class="fas fa-check-circle text-emerald-400"></i>
                             {% elif order.status == 'processing' %}
@@ -421,11 +432,29 @@
                             {% endif %}
                             <span>{{ order.get_status_display }}</span>
                         </span>
+                        {% if order.fulfillment_data.error_code %}
+                        <div class="mt-1.5 flex flex-col gap-0.5">
+                            <span class="px-2 py-0.5 rounded-md bg-rose-500/20 text-rose-300 font-mono font-black text-[10px] border border-rose-500/30 inline-flex items-center gap-1 self-start" title="{{ order.fulfillment_data.admin_error_reason|default:'خطأ من المزود' }}">
+                                <i class="fas fa-exclamation-triangle text-[9px]"></i>
+                                {{ order.fulfillment_data.error_code }}
+                            </span>
+                            {% if order.fulfillment_data.admin_error_reason %}
+                            <span class="text-[10px] text-slate-400 truncate max-w-[140px] font-bold mt-0.5" title="{{ order.fulfillment_data.admin_error_reason }}">
+                                {{ order.fulfillment_data.admin_error_reason }}
+                            </span>
+                            {% endif %}
+                        </div>
+                        {% endif %}
                     </td>
 
                     <!-- Actions (Sticky on Left) -->
                     <td class="py-3.5 px-4 align-top text-left sticky-actions-col">
                         <div class="flex items-center justify-end gap-1.5 whitespace-nowrap">
+                            {% if order.status == 'pending' or order.status == 'processing' or order.api_order_id or order.api_order_uuid %}
+                            <button type="button" onclick="syncSingleOrderRow('{{ order.id }}', this)" class="p-1.5 rounded-xl bg-sky-500/10 border border-sky-500/25 hover:border-sky-400 text-sky-400 hover:text-white hover:bg-sky-500 transition inline-flex items-center justify-center cursor-pointer shadow-sm" title="فحص ومزامنة حالة هذا الطلب من المزود فوراً">
+                                <i class="fas fa-sync-alt text-xs"></i>
+                            </button>
+                            {% endif %}
                             <a href="{% url 'control_order_detail' order.id %}" class="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-cyan-500 to-cyan-400 hover:brightness-110 text-slate-950 font-black text-[11px] transition inline-flex items-center gap-1.5 shadow-md shadow-cyan-500/10 cursor-pointer">
                                 <i class="fas fa-sliders-h text-[10px]"></i>
                                 <span>معالجة الطلب</span>
@@ -492,7 +521,45 @@
 
 </div>
 
+<!-- Live Toast Container -->
+<div id="sync-toast-container" class="fixed bottom-6 left-6 z-50 flex flex-col gap-2 pointer-events-none"></div>
+
 <script>
+function showSyncToast(message, type = 'info') {
+    const container = document.getElementById('sync-toast-container');
+    if (!container) return;
+
+    const toast = document.createElement('div');
+    const isSuccess = type === 'success';
+    const isWarning = type === 'warning' || type === 'error';
+
+    toast.className = `pointer-events-auto flex items-center gap-3 px-4 py-3 rounded-2xl border shadow-2xl backdrop-blur-md text-xs font-bold transition-all duration-300 transform translate-y-4 opacity-0 ${
+        isSuccess ? 'bg-emerald-950/90 border-emerald-500/40 text-emerald-200 shadow-emerald-500/10' :
+        isWarning ? 'bg-rose-950/90 border-rose-500/40 text-rose-200 shadow-rose-500/10' :
+        'bg-slate-900/90 border-cyan-500/40 text-cyan-200 shadow-cyan-500/10'
+    }`;
+
+    const icon = isSuccess ? 'fa-check-circle text-emerald-400' :
+                 isWarning ? 'fa-exclamation-circle text-rose-400' :
+                 'fa-sync-alt fa-spin text-cyan-400';
+
+    toast.innerHTML = `
+        <i class="fas ${icon} text-sm"></i>
+        <span>${message}</span>
+    `;
+
+    container.appendChild(toast);
+
+    requestAnimationFrame(() => {
+        toast.classList.remove('translate-y-4', 'opacity-0');
+    });
+
+    setTimeout(() => {
+        toast.classList.add('translate-y-4', 'opacity-0');
+        setTimeout(() => toast.remove(), 350);
+    }, 4500);
+}
+
 function copyToClipboard(text, btn) {
     if (!text) return;
     navigator.clipboard.writeText(text).then(() => {
@@ -508,5 +575,195 @@ function copyToClipboard(text, btn) {
         console.error('Failed to copy text: ', err);
     });
 }
+
+function updateOrderStatusUI(order) {
+    const badge = document.getElementById(`order-status-badge-${order.id}`);
+    const row = document.getElementById(`order-row-${order.id}`);
+    if (!badge || !row) return;
+
+    const oldStatus = row.getAttribute('data-order-status');
+    if (oldStatus === order.status) return;
+
+    row.setAttribute('data-order-status', order.status);
+    badge.className = `status-glow-badge ${order.status}`;
+
+    let iconHtml = '';
+    if (order.status === 'completed') {
+        iconHtml = '<i class="fas fa-check-circle text-emerald-400"></i>';
+    } else if (order.status === 'processing') {
+        iconHtml = '<i class="fas fa-circle-notch fa-spin text-amber-400"></i>';
+    } else if (order.status === 'pending') {
+        iconHtml = '<i class="fas fa-clock text-sky-400"></i>';
+    } else {
+        iconHtml = '<i class="fas fa-times-circle text-rose-400"></i>';
+    }
+
+    badge.innerHTML = `${iconHtml}<span>${order.status_display}</span>`;
+
+    // Highlight row briefly
+    row.style.transition = 'background-color 0.4s ease';
+    row.style.backgroundColor = order.status === 'completed' ? 'rgba(16, 185, 129, 0.15)' : 'rgba(244, 63, 94, 0.15)';
+    setTimeout(() => {
+        row.style.backgroundColor = '';
+    }, 3000);
+
+    showSyncToast(`تم تحديث الطلب #${order.number}: ${order.status_display}`, order.status === 'completed' ? 'success' : 'warning');
+}
+
+let isSyncing = false;
+
+async function triggerManualSync() {
+    if (isSyncing) return;
+    isSyncing = true;
+
+    const btn = document.getElementById('manual-sync-btn');
+    const icon = document.getElementById('manual-sync-icon');
+    const text = document.getElementById('manual-sync-text');
+
+    if (icon) icon.className = 'fas fa-sync-alt fa-spin text-cyan-400';
+    if (text) text.innerText = 'جارٍ المزامنة...';
+    if (btn) btn.classList.add('opacity-75', 'pointer-events-none');
+
+    try {
+        const rows = document.querySelectorAll('tr[data-order-id]');
+        const ids = Array.from(rows).map(r => r.getAttribute('data-order-id')).filter(Boolean);
+
+        const url = new URL("{% url 'control_orders_sync_live_ajax' %}", window.location.origin);
+        ids.forEach(id => url.searchParams.append('order_ids[]', id));
+
+        const res = await fetch(url.toString(), {
+            headers: { 'X-Requested-With': 'XMLHttpRequest' }
+        });
+        const data = await res.json();
+
+        if (data.success && data.orders) {
+            data.orders.forEach(order => updateOrderStatusUI(order));
+            if (data.updated_count > 0) {
+                showSyncToast(`تم تحديث ${data.updated_count} طلب من المزود بنجاح.`, 'success');
+            } else {
+                showSyncToast('تم فحص الحالات مع المزود، وجميع الطلبات محدثة.', 'info');
+            }
+        }
+    } catch (e) {
+        console.error('Manual sync error:', e);
+        showSyncToast('تعذر استكمال المزامنة مع المزود.', 'error');
+    } finally {
+        isSyncing = false;
+        if (icon) icon.className = 'fas fa-sync-alt';
+        if (text) text.innerText = 'مزامنة الحالات المعروضة';
+        if (btn) btn.classList.remove('opacity-75', 'pointer-events-none');
+    }
+}
+
+let isSyncingOldOrders = false;
+
+async function triggerSyncOldOrders() {
+    if (isSyncingOldOrders) return;
+    isSyncingOldOrders = true;
+
+    const btn = document.getElementById('sync-old-orders-btn');
+    const icon = document.getElementById('sync-old-orders-icon');
+    const text = document.getElementById('sync-old-orders-text');
+
+    if (icon) icon.className = 'fas fa-spinner fa-spin text-amber-300';
+    if (text) text.innerText = 'جارٍ فحص المزود...';
+    if (btn) btn.classList.add('opacity-75', 'pointer-events-none');
+
+    showSyncToast('جارٍ فحص ومزامنة حالات كافة الطلبات القديمة غير المكتملة مع المزود الخارجي...', 'info');
+
+    try {
+        const url = "{% url 'control_orders_sync_all' %}";
+        const res = await fetch(url, {
+            headers: { 'X-Requested-With': 'XMLHttpRequest' }
+        });
+        const data = await res.json();
+
+        if (data.success) {
+            if (data.updated > 0) {
+                showSyncToast(data.message, 'success');
+                setTimeout(() => {
+                    window.location.reload();
+                }, 1500);
+            } else {
+                showSyncToast(data.message, 'info');
+            }
+        } else {
+            showSyncToast(data.message || 'حدث خطأ أثناء فحص الطلبات مع المزود.', 'error');
+        }
+    } catch (e) {
+        console.error('Sync old orders error:', e);
+        showSyncToast('تعذر الاتصال بالمزود لفحص الطلبات القديمة.', 'error');
+    } finally {
+        isSyncingOldOrders = false;
+        if (icon) icon.className = 'fas fa-history text-amber-400';
+        if (text) text.innerText = 'تحديث الطلبات القديمة من المزود';
+        if (btn) btn.classList.remove('opacity-75', 'pointer-events-none');
+    }
+}
+
+async function syncSingleOrderRow(orderId, btn) {
+    if (!orderId || !btn) return;
+    const icon = btn.querySelector('i');
+    if (icon) icon.className = 'fas fa-sync-alt fa-spin text-sky-400';
+    btn.disabled = true;
+
+    try {
+        const url = new URL("{% url 'control_orders_sync_live_ajax' %}", window.location.origin);
+        url.searchParams.append('order_ids[]', orderId);
+
+        const res = await fetch(url.toString(), {
+            headers: { 'X-Requested-With': 'XMLHttpRequest' }
+        });
+        const data = await res.json();
+
+        if (data.success && data.orders && data.orders.length) {
+            data.orders.forEach(order => updateOrderStatusUI(order));
+            if (data.updated_count > 0) {
+                showSyncToast('تم تحديث حالة الطلب من المزود بنجاح.', 'success');
+            } else {
+                showSyncToast('حالة الطلب محدثة ومطابقة لرد المزود.', 'info');
+            }
+        }
+    } catch (e) {
+        console.error('Sync single order error:', e);
+        showSyncToast('تعذر مزامنة هذا الطلب مع المزود.', 'error');
+    } finally {
+        if (icon) icon.className = 'fas fa-sync-alt text-xs';
+        btn.disabled = false;
+    }
+}
+
+// Automatic live background polling every 10 seconds for active orders
+function initLivePolling() {
+    setInterval(async () => {
+        if (document.hidden) return; // Save resources when tab is inactive
+
+        const activeRows = document.querySelectorAll('tr[data-order-status="processing"], tr[data-order-status="pending"]');
+        if (!activeRows.length) return;
+
+        const ids = Array.from(activeRows).map(r => r.getAttribute('data-order-id')).filter(Boolean);
+        if (!ids.length) return;
+
+        try {
+            const url = new URL("{% url 'control_orders_sync_live_ajax' %}", window.location.origin);
+            ids.forEach(id => url.searchParams.append('order_ids[]', id));
+
+            const res = await fetch(url.toString(), {
+                headers: { 'X-Requested-With': 'XMLHttpRequest' }
+            });
+            const data = await res.json();
+
+            if (data.success && data.orders) {
+                data.orders.forEach(order => updateOrderStatusUI(order));
+            }
+        } catch (e) {
+            console.debug('Background order sync silent tick error:', e);
+        }
+    }, 10000);
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    initLivePolling();
+});
 </script>
 {% endblock %}

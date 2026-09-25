@@ -398,17 +398,20 @@ def clean_fulfillment_items(fulfillment):
         return []
         
     from apps.orders.provider_status import extract_clean_text
+    from apps.orders.error_codes import sanitize_text_for_customer
 
     ignored_keys = {
         "api_provider", "api_status", "api_last_response", 
         "api_refunded", "response", "api_response", 
         "api_error", "alkasr", "api_order_id",
-        "ملاحظات وبيانات التنفيذ", "image_url"
+        "ملاحظات وبيانات التنفيذ", "image_url",
+        "all_server_responses", "ردود السيرفر", "error_code",
+        "admin_error_reason", "admin_error_tip", "admin_error_raw", "admin_cancel_reason"
     }
 
     delivery_val = extract_clean_text(fulfillment.get("بيانات التسليم والأكواد") or fulfillment.get("keys") or fulfillment.get("كود التفعيل / البطاقة"))
-    cancel_val = extract_clean_text(fulfillment.get("سبب الإلغاء من السيرفر"))
-    server_msg = extract_clean_text(fulfillment.get("رد السيرفر"))
+    cancel_val = sanitize_text_for_customer(extract_clean_text(fulfillment.get("سبب الإلغاء من السيرفر") or fulfillment.get("سبب الإلغاء")))
+    server_msg = sanitize_text_for_customer(extract_clean_text(fulfillment.get("رد السيرفر")))
     avatar_val = fulfillment.get("صورة الحساب / الأفاتار") or fulfillment.get("image_url")
 
     result = []
@@ -443,7 +446,7 @@ def clean_fulfillment_items(fulfillment):
     multi_responses = fulfillment.get("all_server_responses") or fulfillment.get("ردود السيرفر")
     if isinstance(multi_responses, list) and len(multi_responses) > 1:
         for idx, r_msg in enumerate(multi_responses, 1):
-            r_clean = extract_clean_text(r_msg)
+            r_clean = sanitize_text_for_customer(extract_clean_text(r_msg))
             if r_clean and r_clean not in seen_values:
                 result.append((f"رد السيرفر ({idx})", r_clean))
                 seen_values.add(r_clean)
@@ -455,7 +458,7 @@ def clean_fulfillment_items(fulfillment):
     for k, v in fulfillment.items():
         if k in ignored_keys or any(k == r[0] for r in result):
             continue
-        c_val = extract_clean_text(v)
+        c_val = sanitize_text_for_customer(extract_clean_text(v))
         if c_val and c_val not in seen_values:
             result.append((k, c_val))
             seen_values.add(c_val)

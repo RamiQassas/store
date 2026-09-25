@@ -671,7 +671,11 @@ def _create_order_atomic(customer, variant_id, quantity=1, fulfillment_data=None
             order = apply_provider_status(
                 order,
                 "failed",
-                raw_response={"error": str(exc), "msg": str(exc)},
+                raw_response={
+                    "error": str(exc),
+                    "msg": str(exc),
+                    "code": getattr(exc, "code", None)
+                },
                 actor=customer,
                 note_prefix="النظام الآلي (فشل الإرسال للمزود)",
             )
@@ -1120,7 +1124,11 @@ def finalize_paid_gateway_order(order, gateway_data=None):
                     locked_order = apply_provider_status(
                         locked_order,
                         "reject",
-                        raw_response={"error": str(api_exc), "reason": err_msg},
+                        raw_response={
+                            "error": str(api_exc),
+                            "reason": str(api_exc),
+                            "code": getattr(api_exc, "code", None)
+                        },
                         actor=customer,
                         note_prefix="النظام الآلي (دفع مباشر - بيميرا)",
                     )

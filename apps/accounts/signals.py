@@ -37,8 +37,10 @@ def update_user_ip_info(sender, request, user, **kwargs):
     if request and hasattr(request, 'session'):
         from django.utils import timezone
         current_scope = str(request.store.pk) if getattr(request, 'store', None) else "main"
+        from django.conf import settings
         request.session["session_scope"] = current_scope
         request.session["last_activity"] = timezone.now().timestamp()
+        request.session.set_expiry(getattr(settings, "SESSION_COOKIE_AGE", 7 * 24 * 3600))
         if request.session.session_key:
             if user.last_session_key and user.last_session_key != request.session.session_key:
                 Session.objects.filter(session_key=user.last_session_key).delete()

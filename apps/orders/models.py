@@ -366,7 +366,8 @@ class Order(TimeStampedModel):
 
             parsed = parse_server_response_details(str(c_text).strip())
             display_text = parsed.get("clean_text") or parsed.get("raw_clean") or str(c_text).strip()
-            display_text = display_text.strip()
+            from apps.orders.error_codes import sanitize_text_for_customer
+            display_text = sanitize_text_for_customer(display_text)
 
             if not display_text or display_text in seen_texts:
                 continue
@@ -381,6 +382,7 @@ class Order(TimeStampedModel):
 
             seen_texts.add(display_text)
             avatar = parsed.get("image_url") or cand_img or avatar_global
+            clean_reason = sanitize_text_for_customer(parsed.get("reason")) if parsed.get("reason") else None
 
             structured_responses.append({
                 "text": display_text,
@@ -388,7 +390,7 @@ class Order(TimeStampedModel):
                 "account_name": parsed.get("account_name"),
                 "status_msg": parsed.get("status_msg"),
                 "package_info": parsed.get("package_info"),
-                "reason": parsed.get("reason"),
+                "reason": clean_reason,
             })
 
         return structured_responses

@@ -184,7 +184,29 @@ class AlkasrOrderService:
         if not order_identifiers:
             return []
 
-        response_data = self.client.check_orders(order_identifiers, is_uuid=is_uuid)
+        from .exceptions import AlkasrAPIException
+
+        response_data = None
+        try:
+            response_data = self.client.check_orders(order_identifiers, is_uuid=is_uuid)
+        except AlkasrAPIException as exc:
+            logger.warning("Alkasr check_orders API exception: %s (code=%s)", exc, exc.code)
+            if exc.raw_response and isinstance(exc.raw_response, (dict, list)):
+                response_data = exc.raw_response
+            else:
+                return [{
+                    "order_uuid": order_identifiers[0] if is_uuid else None,
+                    "order_id": order_identifiers[0] if not is_uuid else None,
+                    "status": "failed",
+                    "raw_status": "error",
+                    "error": str(exc),
+                    "msg": str(exc),
+                    "raw_response": {"error": str(exc), "code": exc.code}
+                }]
+        except Exception as exc:
+            logger.error("Alkasr check_orders unexpected error: %s", exc)
+            return []
+
         items = []
 
         if isinstance(response_data, list):
@@ -208,10 +230,20 @@ class AlkasrOrderService:
             item_uuid = item.get("order_uuid") or item.get("uuid")
             item_id = item.get("order_id") or item.get("id")
             raw_status = str(item.get("status") or "").lower()
-            if item.get("error") or (isinstance(item.get("code"), int) and item.get("code") not in (0, 200, 201) and item.get("code") < 600):
-                mapped_status = PROVIDER_STATUS_MAP.get(raw_status, "failed")
+
+            has_error = bool(
+                item.get("error") or
+                (isinstance(item.get("code"), int) and item.get("code") not in (0, 200, 201) and item.get("code") < 600)
+            )
+
+            if raw_status in PROVIDER_STATUS_MAP:
+                mapped_status = PROVIDER_STATUS_MAP[raw_status]
+            elif has_error:
+                mapped_status = "failed"
+            elif raw_status:
+                mapped_status = raw_status
             else:
-                mapped_status = PROVIDER_STATUS_MAP.get(raw_status, "processing")
+                mapped_status = "processing"
 
             # Synchronize ProviderOrder and status history if existing
             try:
@@ -241,7 +273,9 @@ class AlkasrOrderService:
                 "status": mapped_status,
                 "raw_status": raw_status,
                 "cost": item.get("cost") or item.get("price"),
+                "msg": item.get("msg") or item.get("message") or item.get("error") or item.get("replay_api") or item.get("replay"),
                 "raw_response": item,
             })
 
         return parsed_results
+

@@ -224,87 +224,17 @@ def scheduled_backup_task():
 @shared_task
 def sync_pending_api_orders_task():
     """
-    Periodically checks pending and processing API orders against providers using ProviderManager.
+    Periodically checks pending and processing API orders against providers using centralized sync service.
     Supports both platform orders and sub-store orders.
     Updates order statuses (COMPLETED, CANCELLED) and automatically refunds customer wallets
     if the order is rejected or cancelled by the provider.
     """
-    from django.db.models import Q
-    from apps.orders.models import Order
-    from apps.orders.provider_status import apply_provider_status
-    from apps.orders.services import resolve_variant_provider_and_product
-    from apps.common.tenant_utils import bypass_tenant_filter
-    from apps.providers.models import ProviderProfile
-    from services.provider.manager import ProviderManager
+    from apps.orders.sync_service import sync_pending_orders_batch
 
-    with bypass_tenant_filter():
-        default_profile = ProviderProfile.all_objects.filter(is_active=True).first()
-        orders = list(
-            Order.all_objects
-            .filter(
-                status__in=[Order.Status.PROCESSING, Order.Status.PENDING],
-            )
-            .filter(
-                Q(api_order_id__isnull=False) | Q(api_order_uuid__isnull=False) | Q(metadata__api_provider__isnull=False) | Q(provider_orders__isnull=False)
-            )
-            .select_related("customer", "store")
-            .prefetch_related("items__variant__product", "provider_orders__profile")
-            .distinct()[:100]
-        )
-
-    checked = 0
-    updated = 0
-    errors = 0
-
-    for order in orders:
-        try:
-            profile = None
-            provider_order = order.provider_orders.select_related("profile").first()
-            if provider_order and provider_order.profile:
-                profile = provider_order.profile
-            else:
-                first_item = order.items.first()
-                if first_item and first_item.variant:
-                    _, resolved_profile = resolve_variant_provider_and_product(first_item.variant)
-                    profile = resolved_profile
-
-            if not profile:
-                profile = default_profile
-
-            if not profile:
-                continue
-
-            data_list = []
-            if order.api_order_id:
-                data_list = ProviderManager.check_orders(
-                    profile,
-                    [str(order.api_order_id)],
-                    is_uuid=False
-                )
-            if not data_list and order.api_order_uuid:
-                data_list = ProviderManager.check_orders(
-                    profile,
-                    [str(order.api_order_uuid)],
-                    is_uuid=True
-                )
-
-            checked += 1
-            if not data_list:
-                continue
-
-            old_status = order.status
-            order = apply_provider_status(
-                order,
-                data_list[0].get("status"),
-                raw_response=data_list[0],
-                actor=None,
-                note_prefix="فحص تلقائي",
-            )
-            if order.status != old_status:
-                updated += 1
-        except Exception:
-            errors += 1
-
+    res = sync_pending_orders_batch(limit=100)
+    checked = res.get("checked", 0)
+    updated = res.get("updated", 0)
+    errors = res.get("errors", 0)
     return f"Checked {checked} API orders, updated {updated}, errors {errors}."
 
 

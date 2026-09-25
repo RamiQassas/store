@@ -168,59 +168,21 @@ class OrderViewSet(viewsets.ModelViewSet):
 
     @decorators.action(detail=True, methods=["post"])
     def sync_alkasr_status(self, request, pk=None):
-        from apps.orders.provider_status import apply_provider_status
-        from services.provider.manager import ProviderManager
-        from apps.providers.models import ProviderProfile
-        
-        if not request.user.is_staff:
+        if not (request.user.is_staff or getattr(request.user, "role", None) in ["super_admin", "admin", "support", "finance"]):
             return response.Response({"detail": "غير مصرح."}, status=status.HTTP_403_FORBIDDEN)
             
         order = self.get_object()
-        if not order.api_order_uuid and not order.api_order_id:
-            return response.Response({"detail": "هذا الطلب غير مربوط بـ API خارجي."}, status=status.HTTP_400_BAD_REQUEST)
-            
-        from apps.common.tenant_utils import bypass_tenant_filter
-        provider_order = order.provider_orders.select_related("profile").first()
-        profile = provider_order.profile if (provider_order and provider_order.profile) else None
-        if not profile:
-            with bypass_tenant_filter():
-                profile = ProviderProfile.all_objects.filter(is_active=True).first()
-            
-        if not profile:
-            return response.Response({"detail": "لا يوجد مزود خدمة فعال مرتبط."}, status=status.HTTP_400_BAD_REQUEST)
-
-        data_list = []
-        if order.api_order_id:
-            data_list = ProviderManager.check_orders(
-                profile,
-                [str(order.api_order_id)],
-                is_uuid=False
-            )
-        if not data_list and order.api_order_uuid:
-            data_list = ProviderManager.check_orders(
-                profile,
-                [str(order.api_order_uuid)],
-                is_uuid=True
-            )
-        res = {"status": "OK", "data": data_list}
-            
-        if res.get("status") == "OK" and isinstance(res.get("data"), list) and len(res["data"]) > 0:
-            order_data = res["data"][0]
-            api_status = order_data.get("status")
-            api_order_id = order_data.get("order_id")
-            
-            if api_order_id and not order.api_order_id:
-                order.api_order_id = api_order_id
-                order.save(update_fields=["api_order_id", "updated_at"])
-            order = apply_provider_status(order, api_status, raw_response=order_data, actor=request.user, note_prefix="فحص يدوي")
-            return response.Response({
-                "status": "success",
-                "message": f"تم فحص الحالة وتحديث الطلب بنجاح إلى: {order.get_status_display()}",
-                "api_status": api_status
-            })
-        else:
-            error_msg = res.get("message") or "لم يتم العثور على بيانات الطلب في الـ API."
-            return response.Response({"detail": f"فشل فحص الحالة: {error_msg}"}, status=status.HTTP_400_BAD_REQUEST)
+        from apps.orders.sync_service import sync_single_order_status
+        changed, order, current_status = sync_single_order_status(
+            order, actor=request.user, note_prefix="فحص يدوي من الإدارة"
+        )
+        return response.Response({
+            "status": "success",
+            "changed": changed,
+            "message": f"تم فحص الحالة من المزود بنجاح: {order.get_status_display()}",
+            "order_status": order.status,
+            "status_display": order.get_status_display()
+        })
 
 
 class CouponViewSet(viewsets.ModelViewSet):
