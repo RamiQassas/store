@@ -12,7 +12,8 @@ from apps.providers.models import (
     ProviderProductParameter,
     ProviderSyncLog,
 )
-from .products import AlkasrProductService
+from .products import AlkasrProductService as LegacyAlkasrProductService
+from services.provider.alkasr.products import AlkasrProductService
 
 logger = logging.getLogger(__name__)
 
@@ -20,7 +21,7 @@ logger = logging.getLogger(__name__)
 class AlkasrSyncService:
     def __init__(self, profile):
         self.profile = profile
-        self.product_svc = AlkasrProductService(profile)
+        self.product_svc = LegacyAlkasrProductService(profile)
 
     def sync_catalog(self, callback=None):
         sync_log = ProviderSyncLog.objects.create(profile=self.profile, status="running")
@@ -203,14 +204,8 @@ class AlkasrSyncService:
         )
         cost = self._decimal(raw_cost)
 
-        # Respect provider availability flag (available / status)
-        available_val = pdata.get("available")
-        status_val = pdata.get("status")
-        is_available = True
-        if available_val is False or available_val == 0 or available_val == "0" or str(available_val).lower() in ("false", "0"):
-            is_available = False
-        elif status_val is False or status_val == 0 or status_val == "0" or str(status_val).lower() in ("false", "0", "inactive", "disabled", "out_of_stock"):
-            is_available = False
+        # Respect provider availability flag with 100% precision
+        is_available = AlkasrProductService.extract_item_availability(pdata)
 
         category_obj = self._category_for_product(pdata, categories_by_remote)
         product_type, qty_min, qty_max, qty_list = self._quantity_config(pdata)
@@ -274,8 +269,25 @@ class AlkasrSyncService:
 
             if not is_available:
                 try:
-                    from apps.catalog.models import ProductVariant
-                    ProductVariant.objects.filter(api_product_id=str(remote_id)).update(is_active=False, is_temporarily_disabled=True)
+                    from apps.catalog.models import ProductVariant, Product
+                    from apps.providers.models import ProviderMapping
+                    from django.db.models import Q
+                    from apps.common.tenant_utils import bypass_tenant_filter
+
+                    with bypass_tenant_filter():
+                        # 1. Update by direct mapping
+                        mapped_vids = list(ProviderMapping.objects.filter(provider_product=product_obj).values_list("local_variant_id", flat=True))
+                        if mapped_vids:
+                            ProductVariant.all_objects.filter(id__in=mapped_vids).update(is_active=False, is_temporarily_disabled=True)
+
+                        # 2. Update by api_product_id
+                        if str(remote_id).isdigit():
+                            ProductVariant.all_objects.filter(api_product_id=int(remote_id)).update(is_active=False, is_temporarily_disabled=True)
+
+                        # 3. Update by SKU
+                        ProductVariant.all_objects.filter(
+                            Q(sku=f"PRV-{self.profile.id}-{remote_id}") | Q(sku__icontains=f"-{remote_id}")
+                        ).update(is_active=False, is_temporarily_disabled=True)
                 except Exception:
                     pass
 

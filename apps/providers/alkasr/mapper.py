@@ -467,7 +467,7 @@ class AlkasrMapperService:
         """
         import re
         if products_qs is None:
-            products_qs = ProviderProduct.objects.filter(profile=self.profile, is_active=True)
+            products_qs = ProviderProduct.objects.filter(profile=self.profile)
 
         # Clean up any dot/placeholder products from previous runs
         Product.objects.filter(api_provider="tafa3olcard", name__regex=r'^[\.\s\-_=~*#]+$').delete()
@@ -492,17 +492,14 @@ class AlkasrMapperService:
                         .values_list('local_variant_id', flat=True)
                     )
                     if mapped_var_ids:
-                        ProductVariant.all_objects.filter(id__in=mapped_var_ids).update(is_active=False, is_temporarily_disabled=True)
-
-                    # 2. Deactivate platform variants by SKU / api_product_id
-                    ProductVariant.all_objects.filter(
-                        Q(sku__in=sku_patterns) | Q(api_product_id__in=int_pids)
-                    ).update(is_active=False, is_temporarily_disabled=True)
-
-                    # 3. Deactivate sub-store cloned variants
-                    for rid in inactive_remote_ids:
                         ProductVariant.all_objects.filter(
-                            sku__icontains=f"-{rid}"
+                            Q(id__in=mapped_var_ids) | Q(parent_variant_id__in=mapped_var_ids)
+                        ).update(is_active=False, is_temporarily_disabled=True)
+
+                    # 2. Deactivate platform variants by exact SKU / api_product_id
+                    if sku_patterns or int_pids:
+                        ProductVariant.all_objects.filter(
+                            Q(sku__in=sku_patterns) | Q(api_product_id__in=int_pids)
                         ).update(is_active=False, is_temporarily_disabled=True)
 
             # Re-activate any variants whose provider product has become available again
@@ -520,15 +517,13 @@ class AlkasrMapperService:
                         .values_list('local_variant_id', flat=True)
                     )
                     if mapped_active_var_ids:
-                        ProductVariant.all_objects.filter(id__in=mapped_active_var_ids).update(is_active=True, is_temporarily_disabled=False)
-
-                    ProductVariant.all_objects.filter(
-                        Q(sku__in=sku_active_patterns) | Q(api_product_id__in=int_active_pids)
-                    ).update(is_active=True, is_temporarily_disabled=False)
-
-                    for arid in active_remote_ids:
                         ProductVariant.all_objects.filter(
-                            sku__icontains=f"-{arid}"
+                            Q(id__in=mapped_active_var_ids) | Q(parent_variant_id__in=mapped_active_var_ids)
+                        ).update(is_active=True, is_temporarily_disabled=False)
+
+                    if sku_active_patterns or int_active_pids:
+                        ProductVariant.all_objects.filter(
+                            Q(sku__in=sku_active_patterns) | Q(api_product_id__in=int_active_pids)
                         ).update(is_active=True, is_temporarily_disabled=False)
         except Exception as inact_err:
             logger.warning(f"Error updating variant availability flags: {inact_err}")
@@ -943,6 +938,10 @@ class AlkasrMapperService:
 
                         variant_is_active = bool(pp.is_active and pp.local_is_active)
                         if variant_cost > Decimal("10000") or remote_id_str == "9486":
+                            variant_is_active = False
+                        if variant_cost <= Decimal("0") or final_price <= Decimal("0"):
+                            variant_is_active = False
+                        if pp.category and hasattr(pp.category, 'is_active') and not pp.category.is_active:
                             variant_is_active = False
 
                         if not local_variant:

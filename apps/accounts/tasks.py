@@ -285,12 +285,10 @@ def sync_alkasr_catalog_periodic_task():
 
     try:
         with bypass_tenant_filter():
-            # For platform (store=None), pick ONLY the single primary active profile
+            # For platform (store=None), pick the primary active profile
             platform_profile = ProviderProfile.all_objects.filter(
                 store__isnull=True,
                 is_active=True
-            ).filter(
-                Q(base_url__icontains="alkasr") | Q(provider_name__in=["رقميات", "الكاسر VIP", "Alkasr VIP"])
             ).order_by("-updated_at").first()
 
             # For tenant sub-stores, pick active profiles
@@ -298,8 +296,6 @@ def sync_alkasr_catalog_periodic_task():
                 ProviderProfile.all_objects.filter(
                     store__isnull=False,
                     is_active=True
-                ).filter(
-                    Q(base_url__icontains="alkasr") | Q(provider_name__in=["رقميات", "الكاسر VIP", "Alkasr VIP"])
                 ).distinct()
             )
 

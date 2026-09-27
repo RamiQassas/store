@@ -264,6 +264,12 @@
         font-size: 0.85rem;
         transition: transform 0.2s;
     }
+    .alkasr-select-box option:disabled {
+        color: #ef4444 !important;
+        background: #1c1427 !important;
+        opacity: 0.6;
+        font-style: italic;
+    }
 
     /* Metrics Row (العدد & الاجمالي) */
     .alkasr-metrics-row {
@@ -789,7 +795,7 @@
         <form method="post" action="{% url 'product_detail' product.id %}" id="purchase-form">
             {% csrf_token %}
             <input type="hidden" name="product" value="{{ product.id }}">
-            <input type="hidden" name="variant_id" id="selected-variant-id" value="{% if variants.0 and not variants.0.is_temporarily_disabled and not product.is_out_of_stock %}{{ variants.0.id }}{% endif %}">
+            <input type="hidden" name="variant_id" id="selected-variant-id" value="{% if active_variant and not active_variant.is_temporarily_disabled and not product.is_out_of_stock %}{{ active_variant.id }}{% endif %}">
             <input type="hidden" name="payment_method" id="selected-payment-method" value="wallet">
 
             <!-- Variants Selection: Clean Luxury Dropdown Menu -->
@@ -818,7 +824,7 @@
                                 data-is-recharge="{% if v.is_recharge_card %}true{% else %}false{% endif %}"
                                 data-params='{% if v.metadata.params %}{{ v.metadata.params|jsonify }}{% else %}[]{% endif %}'
                                 data-variant-name="{{ v.name }}"
-                                {% if forloop.first and not v.is_temporarily_disabled and v.is_active and not product.is_out_of_stock %}selected{% endif %}
+                                {% if active_variant and v.id == active_variant.id and not product.is_out_of_stock %}selected{% elif forloop.first and not active_variant %}selected{% endif %}
                                 {% if v.is_temporarily_disabled or not v.is_active or product.is_out_of_stock %}disabled{% endif %}>
                             {{ v.name }} — {{ v_card_price|striptags }}{% if v.is_temporarily_disabled or not v.is_active %} (غير متوفر حالياً){% endif %}
                         </option>
@@ -2422,6 +2428,16 @@ document.addEventListener('submit', function(e) {
         } else {
             const dummy = document.getElementById('single-product-dummy-variant');
             if (dummy) selectVariant('default', dummy);
+        }
+    }
+
+    // Check if selected variant is disabled
+    const selDropdown = document.getElementById('alkasr-variant-select');
+    if (selDropdown && selDropdown.selectedIndex >= 0) {
+        const selectedOpt = selDropdown.options[selDropdown.selectedIndex];
+        if (selectedOpt && (selectedOpt.disabled || selectedOpt.hasAttribute('disabled'))) {
+            alert('⚠️ هذه الفئة أو الباقة غير متوفرة حالياً لدى المزود.');
+            return;
         }
     }
     

@@ -2569,13 +2569,49 @@ def product_detail(request, pk):
                 messages.error(request, str(e))
                 return redirect("product_detail", pk=pk)
 
-    variants = product.variants.filter(is_active=True, is_temporarily_disabled=False).exclude(name__icontains='(#').exclude(name__icontains='null').order_by('price', 'sort_order')
-    if not variants.exists():
+    # 1. Real-time availability check for provider-linked variants:
+    try:
+        from apps.providers.models import ProviderMapping
+        # Deactivate mapped variants whose provider product is inactive
+        inactive_mapped_var_ids = list(
+            ProviderMapping.objects.filter(
+                local_variant__product=product
+            ).filter(
+                Q(provider_product__is_active=False) | Q(provider_product__local_is_active=False)
+            ).values_list("local_variant_id", flat=True)
+        )
+        if inactive_mapped_var_ids:
+            ProductVariant.all_objects.filter(id__in=inactive_mapped_var_ids).update(is_active=False, is_temporarily_disabled=True)
+
+        # Restore mapped variants whose provider product is active
+        active_mapped_var_ids = list(
+            ProviderMapping.objects.filter(
+                local_variant__product=product,
+                provider_product__is_active=True,
+                provider_product__local_is_active=True
+            ).values_list("local_variant_id", flat=True)
+        )
+        if active_mapped_var_ids:
+            ProductVariant.all_objects.filter(id__in=active_mapped_var_ids).update(is_active=True, is_temporarily_disabled=False)
+    except Exception:
+        pass
+
+    all_vars_qs = product.variants.all().exclude(name__icontains='(#').exclude(name__icontains='null').order_by('sort_order', 'price')
+    variants = list(all_vars_qs)
+    active_variants = [v for v in variants if v.is_active and not v.is_temporarily_disabled]
+
+    if not active_variants:
         if not product.is_out_of_stock:
             product.is_out_of_stock = True
             product.save(update_fields=["is_out_of_stock"])
-        variants = product.variants.all().order_by('price', 'sort_order')
         is_inactive_product = True
+        active_variant = variants[0] if variants else None
+    else:
+        if product.is_out_of_stock:
+            product.is_out_of_stock = False
+            product.save(update_fields=["is_out_of_stock"])
+        is_inactive_product = False
+        active_variant = active_variants[0]
     related_products = Product.objects.filter(category=product.category, is_active=True).exclude(pk=product.pk)[:3]
     
     missing_amount = request.session.pop('missing_amount', None)
@@ -2690,10 +2726,8 @@ def product_detail(request, pk):
         instant_keywords = ["whatsapp", "واتساب", "رقم", "أرقام", "ارقام", "تفعيل", "كود", "أكواد", "اكواد", "قسيمة", "بطاقة", "كرت", "سيريال", "مفتاح", "key", "license", "gift", "voucher", "card", "vpn", "telegram", "تيليجرام", "حساب", "اشتراك"]
         if any(k in prod_name_lower or k in cat_name_lower for k in instant_keywords):
             is_instant_product = True
-        elif variants.filter(delivery_type="keys").exists():
+        elif any(getattr(v, 'delivery_type', '') == "keys" for v in variants):
             is_instant_product = True
-
-    active_variant = variants.first() if hasattr(variants, 'first') else (variants[0] if variants else None)
 
     return render(request, "site/product_detail.html", {
         "product": product, 

@@ -18,6 +18,69 @@ class AlkasrProductService:
         return self.parse_products_response(raw_data)
 
     @classmethod
+    def extract_item_availability(cls, item: dict) -> bool:
+        """
+        Determines item availability status with 100% precision:
+        Defaults to True unless the provider explicitly marks the item as disabled, inactive, or out of stock.
+        Never treats None/missing fields or parameter names ('qty') as out-of-stock.
+        """
+        if not isinstance(item, dict):
+            return False
+
+        # 1. Check explicit availability keys
+        for k in ("available", "isAvailable", "is_available"):
+            if k in item:
+                val = item.get(k)
+                if val is False or val == 0 or val == "0":
+                    return False
+                if isinstance(val, str) and val.strip().lower() in (
+                    "0", "false", "no", "off", "unavailable", "out_of_stock", "disabled", "inactive"
+                ):
+                    return False
+
+        # 2. Check active / enabled keys
+        for k in ("is_active", "isActive", "active", "enabled", "is_enabled", "isEnabled"):
+            if k in item:
+                val = item.get(k)
+                if val is False or val == 0 or val == "0":
+                    return False
+                if isinstance(val, str) and val.strip().lower() in (
+                    "0", "false", "no", "off", "disabled", "inactive"
+                ):
+                    return False
+
+        # 3. Check status string values
+        for k in ("status", "state", "product_status", "item_status"):
+            if k in item and item.get(k) is not None:
+                st = str(item.get(k)).strip().lower()
+                if st in (
+                    "0", "false", "no", "inactive", "disabled", "off",
+                    "out_of_stock", "out of stock", "out-of-stock", "oos",
+                    "unavailable", "not_available", "not available",
+                    "closed", "stop", "stopped", "paused", "maintenance",
+                    "sold_out", "sold out", "soldout", "hidden", "deleted"
+                ):
+                    return False
+
+        # 4. Check explicit in_stock boolean / string
+        for k in ("in_stock", "inStock"):
+            if k in item and item.get(k) is not None:
+                val = item.get(k)
+                if val is False or val == 0 or val == "0":
+                    return False
+                if isinstance(val, str) and val.strip().lower() in ("0", "false", "no", "out_of_stock", "out of stock"):
+                    return False
+
+        # 5. Check category status if provided as a dict
+        cat_info = item.get("category")
+        if isinstance(cat_info, dict):
+            cat_st = str(cat_info.get("status") or cat_info.get("available") or cat_info.get("isAvailable") or "").strip().lower()
+            if cat_st in ("0", "false", "no", "inactive", "disabled", "unavailable", "out_of_stock", "closed"):
+                return False
+
+        return True
+
+    @classmethod
     def parse_products_response(cls, response_data: dict) -> List[Dict[str, Any]]:
         """
         Parses raw API JSON response into standardized Product DTO dicts.
@@ -52,43 +115,8 @@ class AlkasrProductService:
             name = str(item.get("name") or item.get("title") or f"Product #{remote_id}")[:255]
             cost_price = item.get("price") or item.get("cost") or item.get("base_price") or "0.00"
             product_type = str(item.get("product_type") or item.get("type") or "package")[:50]
-            # Explicit available field from Alkasr VIP docs takes precedence
-            if "available" in item or "isAvailable" in item:
-                avail = item.get("available") if "available" in item else item.get("isAvailable")
-                if isinstance(avail, bool):
-                    is_active = avail
-                elif isinstance(avail, str):
-                    is_active = avail.strip().lower() in ("1", "true", "yes", "available", "active")
-                elif isinstance(avail, (int, float)):
-                    is_active = (int(avail) == 1)
-                else:
-                    is_active = bool(avail)
-            elif "is_active" in item or "isActive" in item:
-                is_active = bool(item.get("is_active") if "is_active" in item else item.get("isActive"))
-            elif "active" in item:
-                is_active = bool(item.get("active"))
-            elif "enabled" in item:
-                is_active = bool(item.get("enabled"))
-            elif "status" in item:
-                status_v = str(item.get("status") or "").strip().lower()
-                is_active = status_v not in ("0", "false", "no", "inactive", "disabled", "out_of_stock", "hidden", "off")
-            else:
-                is_active = True
-
-            # Also check stock or inventory if provided by the API
-            for stock_key in ("stock", "qty", "quantity"):
-                if stock_key in item and item.get(stock_key) is not None:
-                    try:
-                        if int(item.get(stock_key)) <= 0:
-                            is_active = False
-                    except (ValueError, TypeError):
-                        pass
-
-            for in_stock_key in ("in_stock", "inStock"):
-                if in_stock_key in item and item.get(in_stock_key) is not None:
-                    if not bool(item.get(in_stock_key)):
-                        is_active = False
-
+            
+            is_active = cls.extract_item_availability(item)
 
             qty_values = item.get("qty_values")
             qty_min = None

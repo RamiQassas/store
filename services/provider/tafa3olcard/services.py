@@ -218,40 +218,15 @@ class Tafa3olCardProviderService:
             max_qty = item.get("maxQuantity", 10)
 
             # Availability / active check from Tafa3ol Card payload
-            is_active = True
-            if "isAvailable" in item:
-                avail = item.get("isAvailable")
-                if isinstance(avail, bool):
-                    is_active = avail
-                elif isinstance(avail, (int, float)):
-                    is_active = (int(avail) == 1)
-                elif isinstance(avail, str):
-                    is_active = avail.strip().lower() in ("1", "true", "yes", "available", "active")
-            elif "isActive" in item:
-                is_active = bool(item.get("isActive"))
-            elif "available" in item:
-                avail = item.get("available")
-                if isinstance(avail, bool):
-                    is_active = avail
-                elif isinstance(avail, (int, float)):
-                    is_active = (int(avail) == 1)
-                elif isinstance(avail, str):
-                    is_active = avail.strip().lower() in ("1", "true", "yes", "available", "active")
-            elif "active" in item:
-                is_active = bool(item.get("active"))
-            elif "status" in item:
-                status_v = str(item.get("status") or "").strip().lower()
-                is_active = status_v not in ("0", "false", "no", "inactive", "disabled", "out_of_stock", "hidden", "off")
+            from services.provider.alkasr.products import AlkasrProductService
+            is_active = AlkasrProductService.extract_item_availability(item)
 
-            if "stock" in item and item.get("stock") is not None:
-                try:
-                    if int(item.get("stock")) <= 0:
+            # Check category / service availability in item
+            for fld in (item.get("serviceId"), item.get("service"), item.get("categoryId"), item.get("category")):
+                if isinstance(fld, dict):
+                    if not AlkasrProductService.extract_item_availability(fld):
                         is_active = False
-                except (ValueError, TypeError):
-                    pass
-            if "inStock" in item and item.get("inStock") is not None:
-                if not bool(item.get("inStock")):
-                    is_active = False
+                        break
 
             final_total = pricing_obj.get("finalTotalPrice") if isinstance(pricing_obj, dict) else None
             final_unit = pricing_obj.get("finalUnitPrice") if isinstance(pricing_obj, dict) else None
