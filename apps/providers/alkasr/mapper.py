@@ -458,34 +458,62 @@ class AlkasrMapperService:
             "ترويج ودعم السوشيال ميديا": 11,
         }
 
-        g_low = (group_name or self._get_group_name(pp)).lower()
-        p_low = f"{g_low} {pp.name or ''}".lower()
+        target_name = None
+        chain = self._get_category_chain(pp)
+        if chain and chain[0] and chain[0].name:
+            root_raw = chain[0].name.strip().lower()
+            if any(k in root_raw for k in ("ألعاب", "العاب", "games", "game")):
+                target_name = "شحن الألعاب"
+            elif any(k in root_raw for k in ("تطبيقات", "live application", "دردشة", "شات", "chat")):
+                target_name = "شحن التطبيقات"
+            elif any(k in root_raw for k in ("اتصالات", "رصيد", "data and communication", "telecom")):
+                target_name = "اتصالات ورصيد"
+            elif any(k in root_raw for k in ("بطاق", "gift cards", "cards")):
+                target_name = "بطاقات رقمية"
+            elif any(k in root_raw for k in ("تلفزيون", "بث", "تلفاز", "tv services", "tv")):
+                target_name = "خدمات التلفزيون والبث"
+            elif any(k in root_raw for k in ("أرقام", "ارقام", "حسابات", "numbers and accounts", "program activation numbers")):
+                target_name = "أرقام وحسابات"
+            elif any(k in root_raw for k in ("vpn", "في بي ان")):
+                target_name = "اشتراكات VPN"
+            elif any(k in root_raw for k in ("ذكاء", "ai")):
+                target_name = "الذكاء الاصطناعي"
+            elif any(k in root_raw for k in ("تحويل", "money transfers", "حوالات")):
+                target_name = "تحويلات مالية"
+            elif any(k in root_raw for k in ("سوشيال", "social media", "ترويج")):
+                target_name = "ترويج ودعم السوشيال ميديا"
+            elif any(k in root_raw for k in ("تصميم", "برامج")):
+                target_name = "برامج وتصميم"
 
-        # 1. Direct App Mapping based on verified group_name
-        if any(k in g_low for k in ("ببجي", "pubg", "فري فاير", "free fire", "روبلوكس", "roblox", "جواكر", "jawaker", "موبايل ليجند", "mobile legends", "كلاش", "clash", "وي بلاي", "weplay", "valorant", "fortnite", "call of duty")):
-            target_name = "شحن الألعاب"
-        elif any(k in g_low for k in ("خدمات تيك توك", "خدمات إنستغرام", "خدمات فيسبوك", "خدمات تويتر", "خدمات يوتيوب", "سوشيال ميديا", "social media")) or any(k in p_low for k in ("متابعين", "لايكات", "مشاهدات", "followers", "likes", "views")):
-            target_name = "ترويج ودعم السوشيال ميديا"
-        elif any(k in g_low for k in ("سيريتل كاش (تحويلات مالية)", "شام كاش", "حوالات", "الهرم", "محافظ", "بنوك")):
-            target_name = "تحويلات مالية"
-        elif any(k in g_low for k in ("سيريتل", "syriatel", "mtn", "ام تي ان", "تروكسل", "turkcell", "تليكوم", "telekom", "فودافون", "vodafone", "سلام", "selam", "واي فاي", "wi-fi", "hgs", "آسيا سيل", "asiacell")):
-            target_name = "اتصالات ورصيد"
-        elif any(k in g_low for k in ("بلايستيشن", "playstation", "آيتونز", "itunes", "جوجل بلاي", "google play", "ستيم", "steam", "ريزر", "razer", "بطاقات", "visa", "فيزا", "إكس بوكس", "xbox")):
-            target_name = "بطاقات رقمية"
-        elif any(k in g_low for k in ("نتفلكس", "netflix", "شاهد", "shahid", "osn", "ديزني", "disney", "بلو فور كي", "blue 4k", "شامنا", "shamna", "زين تي في", "zain", "بركات", "barakat", "تانجو برو", "tango pro", "ip tv", "tv")):
-            target_name = "خدمات التلفزيون والبث"
-        elif any(k in g_low for k in ("واتساب", "whatsapp", "تليجرام", "telegram", "أرقام", "ارقام", "accounts", "حسابات جاهزة")):
-            target_name = "أرقام وحسابات"
-        elif any(k in g_low for k in ("vpn", "hotspot", "lagofast", "surfshark", "nord", "proton", "express")):
-            target_name = "اشتراكات VPN"
-        elif any(k in g_low for k in ("جيميني", "gemini", "perplexity", "gamma", "ذكاء", "ai", "chatgpt", "gpt")):
-            target_name = "الذكاء الاصطناعي"
-        elif any(k in g_low for k in ("كانفا", "canva", "بيكس آرت", "picsart", "flaticon", "تصميم", "برامج", "رد تلقائي", "auto reply")):
-            target_name = "برامج وتصميم"
-        elif any(k in g_low for k in ("تيك توك", "tiktok", "يلا لودو", "yalla", "بيجو", "bigo", "لايكي", "likee", "إيمو", "imo", "ليف يو", "livu", "أزار", "azar", "سول", "soul", "تومي", "tumile", "ميكس يو", "mixu", "هاي كات", "بارتي", "party", "دردشة", "شات", "chat", "live", "لايف", "سناب شات", "snapchat", "لايونز", "lions")):
-            target_name = "شحن التطبيقات"
-        else:
-            target_name = "شحن التطبيقات"
+        if not target_name:
+            g_low = (group_name or self._get_group_name(pp)).lower()
+            p_low = f"{g_low} {pp.name or ''}".lower()
+
+            # 1. Direct App Mapping based on verified group_name
+            if any(k in g_low for k in ("ببجي", "pubg", "فري فاير", "free fire", "روبلوكس", "roblox", "جواكر", "jawaker", "موبايل ليجند", "mobile legends", "كلاش", "clash", "وي بلاي", "weplay", "valorant", "fortnite", "call of duty")):
+                target_name = "شحن الألعاب"
+            elif any(k in g_low for k in ("خدمات تيك توك", "خدمات إنستغرام", "خدمات فيسبوك", "خدمات تويتر", "خدمات يوتيوب", "سوشيال ميديا", "social media")) or any(k in p_low for k in ("متابعين", "لايكات", "مشاهدات", "followers", "likes", "views")):
+                target_name = "ترويج ودعم السوشيال ميديا"
+            elif any(k in g_low for k in ("سيريتل كاش (تحويلات مالية)", "شام كاش", "حوالات", "الهرم", "محافظ", "بنوك")):
+                target_name = "تحويلات مالية"
+            elif any(k in g_low for k in ("سيريتل", "syriatel", "mtn", "ام تي ان", "تروكسل", "turkcell", "تليكوم", "telekom", "فودافون", "vodafone", "سلام", "selam", "واي فاي", "wi-fi", "hgs", "آسيا سيل", "asiacell")):
+                target_name = "اتصالات ورصيد"
+            elif any(k in g_low for k in ("بلايستيشن", "playstation", "آيتونز", "itunes", "جوجل بلاي", "google play", "ستيم", "steam", "ريزر", "razer", "بطاقات", "visa", "فيزا", "إكس بوكس", "xbox")):
+                target_name = "بطاقات رقمية"
+            elif any(k in g_low for k in ("نتفلكس", "netflix", "شاهد", "shahid", "osn", "ديزني", "disney", "بلو فور كي", "blue 4k", "شامنا", "shamna", "زين تي في", "zain", "بركات", "barakat", "تانجو برو", "tango pro", "ip tv", "tv")):
+                target_name = "خدمات التلفزيون والبث"
+            elif any(k in g_low for k in ("واتساب", "whatsapp", "تليجرام", "telegram", "أرقام", "ارقام", "accounts", "حسابات جاهزة")):
+                target_name = "أرقام وحسابات"
+            elif any(k in g_low for k in ("vpn", "hotspot", "lagofast", "surfshark", "nord", "proton", "express")):
+                target_name = "اشتراكات VPN"
+            elif any(k in g_low for k in ("جيميني", "gemini", "perplexity", "gamma", "ذكاء", "ai", "chatgpt", "gpt")):
+                target_name = "الذكاء الاصطناعي"
+            elif any(k in g_low for k in ("كانفا", "canva", "بيكس آرت", "picsart", "flaticon", "تصميم", "برامج", "رد تلقائي", "auto reply")):
+                target_name = "برامج وتصميم"
+            elif any(k in g_low for k in ("تيك توك", "tiktok", "يلا لودو", "yalla", "بيجو", "bigo", "لايكي", "likee", "إيمو", "imo", "ليف يو", "livu", "أزار", "azar", "سول", "soul", "تومي", "tumile", "ميكس يو", "mixu", "هاي كات", "بارتي", "party", "دردشة", "شات", "chat", "live", "لايف", "سناب شات", "snapchat", "لايونز", "lions")):
+                target_name = "شحن التطبيقات"
+            else:
+                target_name = "شحن التطبيقات"
 
         sort_order = section_sort_order.get(target_name, 50)
         cat_obj, _ = Category.objects.get_or_create(
@@ -616,9 +644,13 @@ class AlkasrMapperService:
                         name=group_name[:255]
                     ).first()
 
-                    # Find any image URL
+                    # Find official provider image URL (stored in local_seo_keywords) or fallback
                     img_url = ""
                     for item_p in p_items:
+                        cand_img = getattr(item_p, "local_seo_keywords", "")
+                        if cand_img and cand_img.startswith("http"):
+                            img_url = cand_img
+                            break
                         item_data = getattr(item_p, "data", None)
                         if item_data and isinstance(item_data, dict) and item_data.get("image_url"):
                             img_url = item_data["image_url"]
@@ -749,7 +781,7 @@ class AlkasrMapperService:
                     if not local_product.image:
                         try:
                             from apps.catalog.smart_branding import apply_branding_to_product
-                            apply_branding_to_product(local_product, force=False)
+                            apply_branding_to_product(local_product, force=False, custom_image_url=img_url)
                         except Exception as brand_err:
                             logger.warning(f"Auto-branding error for product {local_product.id}: {brand_err}")
 

@@ -353,6 +353,15 @@ class AlkasrSyncService:
                     reason="Alkasr API sync cost update",
                 )
 
+        # Store official provider image (category_img) from API
+        raw_img = str(pdata.get("category_img") or pdata.get("image") or pdata.get("img") or pdata.get("icon") or "").strip()
+        if raw_img and raw_img.lower() not in ("null", "none"):
+            if not raw_img.startswith("http"):
+                raw_img = f"https://api.alkasr-vip.com/{raw_img.lstrip('/')}"
+            if product_obj.local_seo_keywords != raw_img:
+                product_obj.local_seo_keywords = raw_img
+                product_obj.save(update_fields=["local_seo_keywords"])
+
         ProviderProductParameter.objects.filter(product=product_obj).delete()
         raw_params = (
             pdata.get("params")

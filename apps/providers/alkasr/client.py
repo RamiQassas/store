@@ -91,10 +91,15 @@ class AlkasrClient:
 
         start_time = time.time()
 
+        if action == "newOrder":
+            clean_params = {k: v for k, v in data.items() if k not in ("product_id", "key", "api_token")} if data else None
+        else:
+            clean_params = dict(data) if data else None
+
         try:
             response = self.session.get(
                 url,
-                params=dict(data) if data else None,
+                params=clean_params,
                 headers=headers,
                 timeout=TIMEOUT
             )

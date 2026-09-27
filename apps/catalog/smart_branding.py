@@ -661,21 +661,33 @@ def create_fallback_brand_icon(product_name, icon_size=330):
     return icon
 
 
-def apply_branding_to_product(product, force=False):
+def apply_branding_to_product(product, force=False, custom_image_url=None):
     """
     Main function to brand a single product:
-    1. Searches the internet for the official app/service logo.
-    2. If not found, falls back to existing uploaded product image if available.
-    3. If still not found, generates an ultra-luxury studio card with Raqamiyat gold emblem.
+    1. If custom_image_url is provided, download and use provider's official logo.
+    2. Searches the internet for the official app/service logo.
+    3. If not found, falls back to existing uploaded product image if available.
+    4. If still not found, generates an ultra-luxury studio card with Raqamiyat gold emblem.
     Guarantees 100% success rate without deleting or corrupting existing images.
     """
     if product.image and not force:
         return False
 
     store_name = product.store.name if product.store else None
+    logo_img = None
+
+    # 0. Official Provider Category Image
+    if custom_image_url and str(custom_image_url).startswith("http"):
+        try:
+            resp = requests.get(custom_image_url, timeout=3.0, headers={"User-Agent": "Mozilla/5.0"})
+            if resp.status_code == 200 and len(resp.content) > 500:
+                logo_img = Image.open(io.BytesIO(resp.content)).convert("RGBA")
+        except Exception as e:
+            logger.debug("Failed to download custom logo url %s: %s", custom_image_url, e)
 
     # 1. Search internet for real official app/service logo
-    logo_img = search_and_download_logo(product.name)
+    if not logo_img:
+        logo_img = search_and_download_logo(product.name)
 
     # 2. Check if product already has an image on disk
     if not logo_img and product.image:
