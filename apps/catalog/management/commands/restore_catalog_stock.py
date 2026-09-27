@@ -32,15 +32,20 @@ class Command(BaseCommand):
             ).update(is_active=True, is_out_of_stock=False)
             self.stdout.write(f"Restored {prod_updated} Products to in-stock (is_out_of_stock=False, is_active=True).")
 
-            # 4. Run AlkasrMapperService for active profiles to ensure exact status
+            # 4. Run AlkasrProductSyncService & AlkasrMapperService for active profiles
+            from apps.providers.alkasr.sync import AlkasrProductSyncService
             from apps.providers.alkasr.mapper import AlkasrMapperService
             profiles = ProviderProfile.all_objects.filter(is_active=True)
             for prof in profiles:
                 try:
-                    self.stdout.write(f">> Remapping catalog for profile: {prof}...")
-                    AlkasrMapperService(prof).map_all_to_catalog()
+                    if prof.api_token:
+                        self.stdout.write(f">> Running live sync from provider API for: {prof}...")
+                        AlkasrProductSyncService(prof).sync_products()
+                    else:
+                        self.stdout.write(f">> Remapping catalog for profile: {prof}...")
+                        AlkasrMapperService(prof).map_all_to_catalog()
                 except Exception as e:
-                    self.stdout.write(self.style.WARNING(f"Mapping error for {prof}: {e}"))
+                    self.stdout.write(self.style.WARNING(f"Sync/Mapping warning for {prof}: {e}"))
 
             # 5. Final pass: ensure all products with at least one active variant are in-stock
             fixed_count = 0

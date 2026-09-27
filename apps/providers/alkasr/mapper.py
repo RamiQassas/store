@@ -493,7 +493,7 @@ class AlkasrMapperService:
                     )
                     if mapped_var_ids:
                         ProductVariant.all_objects.filter(
-                            Q(id__in=mapped_var_ids) | Q(parent_variant_id__in=mapped_var_ids)
+                            id__in=mapped_var_ids
                         ).update(is_active=False, is_temporarily_disabled=True)
 
                     # 2. Deactivate platform variants by exact SKU / api_product_id
@@ -518,7 +518,7 @@ class AlkasrMapperService:
                     )
                     if mapped_active_var_ids:
                         ProductVariant.all_objects.filter(
-                            Q(id__in=mapped_active_var_ids) | Q(parent_variant_id__in=mapped_active_var_ids)
+                            id__in=mapped_active_var_ids
                         ).update(is_active=True, is_temporarily_disabled=False)
 
                     if sku_active_patterns or int_active_pids:
@@ -645,6 +645,35 @@ class AlkasrMapperService:
                     if img_url:
                         prod_meta["image_url"] = img_url
 
+                    # Determine app order matching provider's home page & canonical priority
+                    app_priority = {
+                        "ببجي": 10, "pubg": 10,
+                        "فري فاير": 20, "free fire": 20,
+                        "تيك توك": 30, "tiktok": 30,
+                        "سيريتل": 40, "syriatel": 40,
+                        "ام تي ان": 50, "mtn": 50,
+                        "يلا لودو": 60, "yalla": 60,
+                        "روبلوكس": 70, "roblox": 70,
+                        "جواكر": 80, "jawaker": 80,
+                        "موبايل ليجند": 85, "mobile legends": 85,
+                        "بيجو": 90, "bigo": 90,
+                        "لايكي": 100, "likee": 100,
+                        "نتفلكس": 110, "netflix": 110,
+                        "شاهد": 120, "shahid": 120,
+                    }
+                    g_low_sort = group_name.lower()
+                    provider_ranks = [
+                        pp.local_sort_order for pp in p_items if getattr(pp, 'local_sort_order', 0) and pp.local_sort_order < 900
+                    ]
+                    if provider_ranks:
+                        prod_sort_order = min(provider_ranks)
+                    else:
+                        prod_sort_order = 500
+                        for k, v in app_priority.items():
+                            if k in g_low_sort:
+                                prod_sort_order = v
+                                break
+
                     if not local_product:
                         local_product = Product.objects.create(
                             store=store,
@@ -657,6 +686,7 @@ class AlkasrMapperService:
                             is_api_product=True,
                             api_provider=provider_code,
                             description=p_items[0].local_description or "",
+                            sort_order=prod_sort_order,
                             form_schema=schema,
                             metadata=prod_meta
                         )
@@ -671,6 +701,7 @@ class AlkasrMapperService:
                         local_product.quantity = 999999
                         local_product.is_api_product = True
                         local_product.api_provider = provider_code
+                        local_product.sort_order = prod_sort_order
                         if schema_fields:
                             local_product.form_schema = schema
                         if prod_meta:
@@ -685,8 +716,11 @@ class AlkasrMapperService:
                         except Exception as brand_err:
                             logger.warning(f"Auto-branding error for product {local_product.id}: {brand_err}")
 
+                    # Sort variants by cost ascending so packages appear neatly from lowest to highest
+                    p_items = sorted(p_items, key=lambda x: getattr(x, 'cost_price', 0) or Decimal("0"))
+
                     # Map each ProviderProduct as a ProductVariant (باقة) inside this single Product
-                    for pp in p_items:
+                    for item_idx, pp in enumerate(p_items):
                         mapping = ProviderMapping.objects.filter(provider_product=pp).first()
                         if not mapping:
                             mapping = ProviderMapping(provider_product=pp)
@@ -861,6 +895,8 @@ class AlkasrMapperService:
                                 sort_num = 2
                             elif "كاش" in variant_name:
                                 sort_num = 3
+                            else:
+                                sort_num = (item_idx + 1) * 10
 
                         # Clean up naming and options for Vodafone Cash Egypt / Egyptian Money Transfers
                         if "مصر" in v_low or "فودافون كاش" in v_low or "egypt" in v_low:

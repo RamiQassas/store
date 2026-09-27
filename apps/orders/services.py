@@ -295,13 +295,10 @@ def mark_variant_unavailable(variant, reason=None, error_code=None, provider_pro
                 affected_product_ids.update(mapped_vars.values_list("product_id", flat=True))
                 mapped_vars.update(is_active=False, is_temporarily_disabled=True)
 
-        # Also search for cloned variants in sub-stores matching SKU or api_product_id
+        # Also search for cloned variants in sub-stores matching SKU
         sku_clean = variant.sku
         if sku_clean:
-            base_sku = sku_clean.rsplit("-", 1)[0]
-            cloned_vars = ProductVariant.all_objects.filter(
-                Q(sku=sku_clean) | Q(sku__startswith=base_sku)
-            )
+            cloned_vars = ProductVariant.all_objects.filter(sku=sku_clean)
             affected_product_ids.update(cloned_vars.values_list("product_id", flat=True))
             cloned_vars.update(is_active=False, is_temporarily_disabled=True)
 

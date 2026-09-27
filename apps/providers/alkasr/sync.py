@@ -45,11 +45,9 @@ class AlkasrSyncService:
             content_by_id = self._fetch_content_tree()
             stats = {"created": 0, "updated": 0, "disabled": 0}
 
-            categories_by_remote = self._sync_categories(content_by_id)
-            products = self._dedupe_products(
-                self._extract_products(raw_products)
-                + self._extract_products(list(content_by_id.values()))
-            )
+            categories_by_remote, category_order_map = self._sync_categories(content_by_id)
+            # raw_products from GET /client/api/products is the single authoritative source of truth for products & availability
+            products = self._dedupe_products(self._extract_products(raw_products))
             
             total_count = len(products)
             active_remote_ids = set()
@@ -75,7 +73,7 @@ class AlkasrSyncService:
                     except Exception:
                         pass
 
-                is_new = self._upsert_product(remote_id, pdata, categories_by_remote)
+                is_new = self._upsert_product(remote_id, pdata, categories_by_remote, category_order_map)
                 if is_new:
                     stats["created"] += 1
                 else:
@@ -168,6 +166,18 @@ class AlkasrSyncService:
     def _sync_categories(self, content_by_id):
         categories_by_remote = {}
         pending = []
+        category_order_map = {}
+
+        # 1. Capture provider's natural home page order from content/0
+        root_content = content_by_id.get("0") or content_by_id.get(0) or []
+        for idx, cat in enumerate(self._extract_categories(root_content)):
+            cid = self._clean_remote_id(cat.get("id"))
+            cname = str(cat.get("name") or "").strip().lower()
+            rank = (idx + 1) * 10
+            if cid:
+                category_order_map[cid] = rank
+            if cname:
+                category_order_map[cname] = rank
 
         for parent_remote_id, content in content_by_id.items():
             for cat in self._extract_categories(content):
@@ -190,9 +200,9 @@ class AlkasrSyncService:
             )
             categories_by_remote[remote_id] = obj
 
-        return categories_by_remote
+        return categories_by_remote, category_order_map
 
-    def _upsert_product(self, remote_id, pdata, categories_by_remote):
+    def _upsert_product(self, remote_id, pdata, categories_by_remote, category_order_map=None):
         name = str(pdata.get("name") or pdata.get("title") or pdata.get("service") or f"Product {remote_id}")
         raw_cost = (
             pdata.get("price")
@@ -209,6 +219,13 @@ class AlkasrSyncService:
 
         category_obj = self._category_for_product(pdata, categories_by_remote)
         product_type, qty_min, qty_max, qty_list = self._quantity_config(pdata)
+
+        # Calculate display sort order from provider category hierarchy
+        order_map = category_order_map or {}
+        cat_rid = str(category_obj.remote_id) if category_obj else ""
+        parent_rid = str(category_obj.parent_remote_id) if category_obj and category_obj.parent_remote_id else ""
+        cname = str(category_obj.name or "").strip().lower() if category_obj else ""
+        item_sort_order = order_map.get(cat_rid) or order_map.get(parent_rid) or order_map.get(cname) or 999
 
         # Handle SMM / Per-Mille rates (Rate per 1,000 units in Alkasr API)
         remote_id_str = str(remote_id).strip()
@@ -245,6 +262,7 @@ class AlkasrSyncService:
                 qty_list=qty_list,
                 is_active=is_available,
                 local_is_active=is_available,
+                local_sort_order=item_sort_order,
             )
             ProviderPrice.objects.create(
                 product=product_obj,
@@ -265,6 +283,8 @@ class AlkasrSyncService:
             product_obj.qty_list = qty_list
             product_obj.is_active = is_available
             product_obj.local_is_active = is_available
+            if item_sort_order < 900 or product_obj.local_sort_order == 0:
+                product_obj.local_sort_order = item_sort_order
             product_obj.save()
 
             if not is_available:
@@ -284,9 +304,9 @@ class AlkasrSyncService:
                         if str(remote_id).isdigit():
                             ProductVariant.all_objects.filter(api_product_id=int(remote_id)).update(is_active=False, is_temporarily_disabled=True)
 
-                        # 3. Update by SKU
+                        # 3. Update by exact SKU
                         ProductVariant.all_objects.filter(
-                            Q(sku=f"PRV-{self.profile.id}-{remote_id}") | Q(sku__icontains=f"-{remote_id}")
+                            sku=f"PRV-{self.profile.id}-{remote_id}"
                         ).update(is_active=False, is_temporarily_disabled=True)
                 except Exception:
                     pass
@@ -417,19 +437,24 @@ class AlkasrSyncService:
     def _looks_like_product(self, obj):
         if not isinstance(obj, dict):
             return False
-        return (
+        has_id = (
             obj.get("id") is not None
             or obj.get("service") is not None
             or obj.get("service_id") is not None
             or obj.get("product_id") is not None
         )
+        if not has_id:
+            return False
+        return any(
+            k in obj for k in ("price", "cost", "rate", "base_price", "price_usd", "qty_values", "params", "parameters", "product_type")
+        )
 
     def _looks_like_category(self, obj):
-        return bool(
-            obj.get("id") is not None
-            and obj.get("name")
-            and not self._looks_like_product(obj)
-        )
+        if not isinstance(obj, dict):
+            return False
+        has_id = obj.get("id") is not None or obj.get("category_id") is not None
+        has_name = bool(obj.get("name") or obj.get("title") or obj.get("category_name"))
+        return has_id and has_name and not self._looks_like_product(obj)
 
     def _dedupe_products(self, raw_products):
         deduped = {}
