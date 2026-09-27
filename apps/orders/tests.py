@@ -132,3 +132,136 @@ class OrderApiTests(TestCase):
         product.refresh_from_db()
         self.assertEqual(product.quantity, 0)
         self.assertTrue(product.is_out_of_stock)
+
+
+@override_settings(SECURE_SSL_REDIRECT=False, CACHES=TEST_CACHES)
+class ProviderProductAvailabilityTests(TestCase):
+    def setUp(self):
+        from apps.providers.models import ProviderProfile, ProviderProduct, ProviderMapping
+        self.user = User.objects.create_user(email="buyer_avail@example.com", password="StrongPass12345")
+        credit_wallet(self.user.wallet.id, Decimal("50.00"), reference="test-credit")
+
+        self.profile = ProviderProfile.objects.create(
+            provider_name="رقميات",
+            base_url="https://api.alkasr-vip.com/client/api/",
+            api_token="TEST_TOKEN",
+            is_active=True
+        )
+        self.category = Category.objects.create(name="العاب")
+        self.product = Product.objects.create(name="ببجي موبايل", category=self.category, is_active=True, is_out_of_stock=False)
+        self.variant = ProductVariant.objects.create(
+            product=self.product,
+            name="60 شدة",
+            sku="PRV-TEST-60",
+            price=Decimal("1.00"),
+            cost=Decimal("0.90"),
+            is_active=True,
+            is_temporarily_disabled=False
+        )
+        self.provider_product = ProviderProduct.objects.create(
+            profile=self.profile,
+            remote_id="6001",
+            name="60 UC Global",
+            cost_price=Decimal("0.90"),
+            is_active=True,
+            local_is_active=True
+        )
+        self.mapping = ProviderMapping.objects.create(
+            local_product=self.product,
+            local_variant=self.variant,
+            provider_product=self.provider_product
+        )
+
+    def test_mark_variant_unavailable_direct(self):
+        from apps.orders.services import mark_variant_unavailable
+        mark_variant_unavailable(self.variant, reason="Product Unavailable from Provider", error_code=110)
+
+        self.variant.refresh_from_db()
+        self.provider_product.refresh_from_db()
+        self.product.refresh_from_db()
+
+        self.assertFalse(self.variant.is_active)
+        self.assertTrue(self.variant.is_temporarily_disabled)
+        self.assertFalse(self.provider_product.is_active)
+        self.assertFalse(self.provider_product.local_is_active)
+        self.assertTrue(self.product.is_out_of_stock)
+
+    def test_create_order_fails_immediately_for_inactive_variant(self):
+        from apps.orders.services import create_order
+        self.variant.is_active = False
+        self.variant.is_temporarily_disabled = True
+        self.variant.save()
+
+        with self.assertRaises(ValueError) as ctx:
+            create_order(self.user, str(self.variant.id), quantity=1)
+        self.assertIn("غير متوفر", str(ctx.exception))
+
+    def test_create_pending_gateway_order_fails_for_inactive_variant(self):
+        from apps.orders.services import create_pending_gateway_order
+        self.variant.is_temporarily_disabled = True
+        self.variant.save()
+
+        with self.assertRaises(ValueError) as ctx:
+            create_pending_gateway_order(self.user, str(self.variant.id), quantity=1, gateway_code="paymera")
+        self.assertIn("غير متوفر", str(ctx.exception))
+
+    def test_order_placement_deactivates_variant_on_code_110(self):
+        from unittest.mock import patch
+        from services.provider.alkasr.exceptions import ProductUnavailableException
+        from apps.orders.services import create_order
+
+        with patch("services.provider.manager.ProviderManager.place_order", side_effect=ProductUnavailableException(code=110)):
+            order = create_order(
+                customer=self.user,
+                variant_id=str(self.variant.id),
+                quantity=1,
+                fulfillment_data={"player_id": "12345"}
+            )
+
+        self.variant.refresh_from_db()
+        self.provider_product.refresh_from_db()
+        self.product.refresh_from_db()
+
+        # Variant and provider product must be immediately deactivated!
+        self.assertFalse(self.variant.is_active)
+        self.assertTrue(self.variant.is_temporarily_disabled)
+        self.assertFalse(self.provider_product.is_active)
+        self.assertTrue(self.product.is_out_of_stock)
+        self.assertEqual(order.status, "cancelled")
+
+    def test_apply_provider_status_cancellation_deactivates_variant(self):
+        from apps.orders.models import Order, OrderItem
+        from apps.orders.provider_status import apply_provider_status
+
+        order = Order.objects.create(
+            customer=self.user,
+            number="ORD-TEST-UNAVAIL",
+            status=Order.Status.PROCESSING,
+            total_amount=Decimal("1.00"),
+            original_total=Decimal("1.00"),
+        )
+        OrderItem.objects.create(
+            order=order,
+            variant=self.variant,
+            quantity=1,
+            unit_price=Decimal("1.00"),
+            unit_cost=Decimal("0.90"),
+            total_price=Decimal("1.00")
+        )
+
+        apply_provider_status(
+            order,
+            provider_status="reject",
+            raw_response={"code": 110, "error": "Product Unavailable"},
+            actor=self.user
+        )
+
+        self.variant.refresh_from_db()
+        self.provider_product.refresh_from_db()
+        self.product.refresh_from_db()
+
+        self.assertFalse(self.variant.is_active)
+        self.assertTrue(self.variant.is_temporarily_disabled)
+        self.assertFalse(self.provider_product.is_active)
+        self.assertTrue(self.product.is_out_of_stock)
+

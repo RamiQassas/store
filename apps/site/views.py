@@ -1904,15 +1904,19 @@ def catalog(request):
 
     if store:
         all_cats = list(Category.objects.filter(store=store, is_active=True).order_by("sort_order", "name"))
-        products = Product.objects.filter(store=store, is_active=True).select_related("category").prefetch_related("variants")
+        base_products = Product.objects.filter(store=store, is_active=True).select_related("category").prefetch_related("variants")
     else:
         all_cats = list(Category.objects.filter(is_active=True).order_by("sort_order", "name"))
-        products = Product.objects.filter(is_active=True).select_related("category").prefetch_related("variants")
+        base_products = Product.objects.filter(is_active=True).select_related("category").prefetch_related("variants")
 
     annotate_category_counts(all_cats)
+    all_products_count = base_products.distinct().count()
 
     selected_category = None
     subcategories = []
+    parent_category = None
+
+    products = base_products
 
     if cat_id:
         descendant_ids = get_category_with_descendants_ids(cat_id)
@@ -1920,6 +1924,10 @@ def catalog(request):
         selected_category = next((c for c in all_cats if str(c.id) == str(cat_id)), None)
         if selected_category:
             subcategories = [c for c in all_cats if c.parent_id == selected_category.id]
+            if selected_category.parent_id:
+                parent_category = next((c for c in all_cats if c.id == selected_category.parent_id), None)
+                if not subcategories and parent_category:
+                    subcategories = [c for c in all_cats if c.parent_id == parent_category.id]
         view_type = "products"
 
     if q:
@@ -2031,9 +2039,11 @@ def catalog(request):
         "categories": all_cats,
         "subcategories": subcategories,
         "selected_category": selected_category,
+        "parent_category": parent_category,
         "page_obj": page_obj,
         "products": current_products,
         "total_products_count": total_products_count,
+        "all_products_count": all_products_count,
         "start_num": start_num,
         "end_num": end_num,
         "prev_start": prev_start,
@@ -2339,8 +2349,24 @@ def product_detail(request, pk):
                 )
         else:
             variant = get_object_or_404(ProductVariant, id=variant_id, product=product)
-        
-        # Collect custom fields
+
+        if not variant.is_active or variant.is_temporarily_disabled:
+            msg = "⚠️ هذه الباقة / الخدمة غير متوفرة حالياً لدى المزود."
+            if request.headers.get('x-requested-with') == 'XMLHttpRequest' or request.POST.get('ajax') == '1':
+                return JsonResponse({"success": False, "error": msg}, status=400)
+            messages.error(request, msg)
+            return redirect("product_detail", pk=pk)
+
+        from apps.orders.services import resolve_variant_provider_and_product, mark_variant_unavailable
+        prov_prod, _ = resolve_variant_provider_and_product(variant)
+        if prov_prod and (not prov_prod.is_active or not prov_prod.local_is_active):
+            mark_variant_unavailable(variant, reason="Provider product is inactive", provider_product=prov_prod)
+            msg = "⚠️ هذه الباقة غير متوفرة حالياً لدى مزود الخدمة."
+            if request.headers.get('x-requested-with') == 'XMLHttpRequest' or request.POST.get('ajax') == '1':
+                return JsonResponse({"success": False, "error": msg}, status=400)
+            messages.error(request, msg)
+            return redirect("product_detail", pk=pk)
+
         metadata = {}
         for key in request.POST:
             if key.startswith("custom_"):
@@ -2545,9 +2571,11 @@ def product_detail(request, pk):
 
     variants = product.variants.filter(is_active=True, is_temporarily_disabled=False).exclude(name__icontains='(#').exclude(name__icontains='null').order_by('price', 'sort_order')
     if not variants.exists():
-        variants = product.variants.filter(is_active=True).order_by('price', 'sort_order')
-    if not variants.exists():
+        if not product.is_out_of_stock:
+            product.is_out_of_stock = True
+            product.save(update_fields=["is_out_of_stock"])
         variants = product.variants.all().order_by('price', 'sort_order')
+        is_inactive_product = True
     related_products = Product.objects.filter(category=product.category, is_active=True).exclude(pk=product.pk)[:3]
     
     missing_amount = request.session.pop('missing_amount', None)
@@ -2622,32 +2650,37 @@ def product_detail(request, pk):
                         "logo": pm_logo,
                     })
 
-    # Navigation: previous and next products across ALL products in current store catalog
-    catalog_qs = Product.objects.filter(is_active=True)
-    if product.store:
-        catalog_qs = catalog_qs.filter(store=product.store)
+    # Navigation: previous and next products across products in current category (or store catalog fallback)
+    if product.category:
+        category_qs = Product.objects.filter(category=product.category, is_active=True)
     else:
-        catalog_qs = catalog_qs.filter(store__isnull=True)
+        category_qs = Product.objects.filter(is_active=True)
 
-    all_cat_ids = list(catalog_qs.order_by('category__sort_order', 'category__id', 'sort_order', 'created_at', 'id').values_list('id', flat=True))
-    total_catalog_products = len(all_cat_ids)
+    if product.store:
+        category_qs = category_qs.filter(store=product.store)
+    else:
+        category_qs = category_qs.filter(store__isnull=True)
+
+    cat_product_ids = list(category_qs.order_by('sort_order', 'created_at', 'id').values_list('id', flat=True))
+    total_category_products = len(cat_product_ids)
     
     prev_product = None
     next_product = None
     product_index = 1
     
-    if total_catalog_products > 0:
+    if total_category_products > 0:
         try:
-            cur_idx = all_cat_ids.index(product.id)
+            cur_idx = cat_product_ids.index(product.id)
             product_index = cur_idx + 1
-            if total_catalog_products > 1:
-                prev_id = all_cat_ids[(cur_idx - 1) % total_catalog_products]
-                next_id = all_cat_ids[(cur_idx + 1) % total_catalog_products]
+            if total_category_products > 1:
+                prev_id = cat_product_ids[(cur_idx - 1) % total_category_products]
+                next_id = cat_product_ids[(cur_idx + 1) % total_category_products]
                 prev_product = Product.objects.filter(id=prev_id).only('id', 'name', 'category', 'image').first()
                 next_product = Product.objects.filter(id=next_id).only('id', 'name', 'category', 'image').first()
         except (ValueError, IndexError):
             product_index = 1
-    total_category_products = total_catalog_products
+    else:
+        total_category_products = 1
 
     # Determine if this product is an instant delivery product (numbers, accounts, keys, vouchers, software)
     is_instant_product = False
@@ -3801,50 +3834,69 @@ def control_kyc_settings(request):
 
 @support_required
 def control_order_detail(request, pk):
-    order = get_object_or_404(Order.objects.select_related('customer'), pk=pk)
+    order = get_object_or_404(Order.all_objects.select_related('customer'), pk=pk)
     if request.method == "POST":
         action = request.POST.get("action")
         if action == "update_status":
             old_status = order.status
-            order.status = request.POST.get("status")
+            new_status = request.POST.get("status")
+            order.status = new_status
             order.save()
             OrderLog.objects.create(order=order, status=order.status, note=request.POST.get("admin_note", ""), created_by=request.user)
             
             if order.status in [Order.Status.REFUNDED, Order.Status.CANCELLED] and old_status not in [Order.Status.REFUNDED, Order.Status.CANCELLED]:
-                refund_target = request.POST.get("refund_target", "wallet")
+                refund_target = request.POST.get("refund_target", "paymera_card")
                 meta = dict(order.metadata or {})
-                has_paymera = bool(meta.get("gateway_payment_id") or meta.get("payment_provider") == "paymera")
-                if refund_target == "paymera_card" and has_paymera:
+                has_paymera = bool(meta.get("gateway_payment_id") or meta.get("paymera_payment_id") or meta.get("payment_provider") == "paymera" or meta.get("is_direct_gateway_purchase"))
+                otp = request.POST.get("paymera_otp")
+                
+                if (refund_target == "paymera_card" or (has_paymera and refund_target != "wallet")) and has_paymera and not meta.get("paymera_refunded"):
                     from apps.orders.services import process_order_refund_to_paymera
                     refunded, refund_msg = process_order_refund_to_paymera(
-                        order, actor=request.user, reason=request.POST.get("admin_note", "استرداد للبطاقة عبر لوحة الإدارة")
+                        order, actor=request.user, reason=request.POST.get("admin_note", "إلغاء/استرداد للبطاقة عبر لوحة الإدارة"), otp=otp
                     )
+                    if refunded:
+                        messages.success(request, refund_msg)
+                    else:
+                        messages.error(request, refund_msg)
+                elif refund_target == "wallet":
+                    from apps.orders.services import process_order_refund_to_wallet
+                    refunded, refund_msg = process_order_refund_to_wallet(
+                        order, actor=request.user, old_status=old_status, source="explicit_wallet_choice"
+                    )
+                    if refunded:
+                        messages.success(request, refund_msg)
+                    else:
+                        messages.info(request, refund_msg)
                 else:
                     from apps.orders.services import process_order_refund_to_wallet
                     refunded, refund_msg = process_order_refund_to_wallet(
                         order, actor=request.user, old_status=old_status, source="control_order_detail"
                     )
-                if refunded:
-                    messages.success(request, refund_msg)
-                else:
-                    messages.info(request, refund_msg)
+                    if refunded:
+                        messages.success(request, refund_msg)
+                    else:
+                        messages.info(request, refund_msg)
             
             messages.success(request, f"تم تحديث حالة الطلب إلى: {order.get_status_display()}")
             
             # Notify user
             try:
-                notify_user(
-                    user=order.customer,
-                    title="تحديث حالة الطلب",
-                    body=f"تم تغيير حالة طلبك رقم #{order.number} إلى: {order.get_status_display()}",
-                    action_url=f"/dashboard/orders/{order.id}/",
-                    category="orders"
-                )
+                if order.customer:
+                    notify_user(
+                        user=order.customer,
+                        title="تحديث حالة الطلب",
+                        body=f"تم تغيير حالة طلبك رقم #{order.number} إلى: {order.get_status_display()}",
+                        action_url=f"/dashboard/orders/{order.id}/",
+                        category="orders"
+                    )
             except: pass
+            return redirect("control_order_detail", pk=pk)
         elif action == "paymera_refund_card":
             from apps.orders.services import process_order_refund_to_paymera
             refund_reason = request.POST.get("refund_reason") or "طلب استرداد الأموال إلى البطاقة البنكية عبر بوابة بيميرا"
-            success, msg = process_order_refund_to_paymera(order, actor=request.user, reason=refund_reason)
+            otp = request.POST.get("paymera_otp")
+            success, msg = process_order_refund_to_paymera(order, actor=request.user, reason=refund_reason, otp=otp)
             if success:
                 messages.success(request, msg)
             else:
@@ -4038,18 +4090,19 @@ def control_order_detail(request, pk):
         "api_provider", "api_status", "api_last_response", "api_refunded",
         "raw_response", "response", "api_error"
     }
-    raw_ff = order.fulfillment_data or {}
+    raw_ff = order.fulfillment_data if isinstance(order.fulfillment_data, dict) else {}
     readable_ff = {}
-    for k, v in raw_ff.items():
-        if k in internal_ff_keys or k.startswith("api_"):
-            continue
-        if isinstance(v, (dict, list)):
-            from apps.orders.provider_status import extract_clean_text
-            cleaned_val = extract_clean_text(v)
-            if cleaned_val:
-                readable_ff[k] = cleaned_val
-        else:
-            readable_ff[k] = v
+    if isinstance(raw_ff, dict):
+        for k, v in raw_ff.items():
+            if k in internal_ff_keys or k.startswith("api_"):
+                continue
+            if isinstance(v, (dict, list)):
+                from apps.orders.provider_status import extract_clean_text
+                cleaned_val = extract_clean_text(v)
+                if cleaned_val:
+                    readable_ff[k] = cleaned_val
+            else:
+                readable_ff[k] = v
 
     ctx = {
         "order": order,
@@ -4061,7 +4114,7 @@ def control_order_detail(request, pk):
 
 @support_required
 def control_order_status_update(request, pk):
-    order = get_object_or_404(Order, pk=pk)
+    order = get_object_or_404(Order.all_objects, pk=pk)
     new_status = request.POST.get("status")
     if new_status in Order.Status.values:
         old_status = order.status
@@ -4069,32 +4122,47 @@ def control_order_status_update(request, pk):
         order.save()
         OrderLog.objects.create(order=order, status=order.status, note=request.POST.get("admin_note", ""), created_by=request.user)
         if order.status in [Order.Status.REFUNDED, Order.Status.CANCELLED] and old_status not in [Order.Status.REFUNDED, Order.Status.CANCELLED]:
-            refund_target = request.POST.get("refund_target", "wallet")
+            refund_target = request.POST.get("refund_target", "paymera_card")
             meta = dict(order.metadata or {})
-            has_paymera = bool(meta.get("gateway_payment_id") or meta.get("payment_provider") == "paymera")
-            if refund_target == "paymera_card" and has_paymera:
+            has_paymera = bool(meta.get("gateway_payment_id") or meta.get("paymera_payment_id") or meta.get("payment_provider") == "paymera" or meta.get("is_direct_gateway_purchase"))
+            otp = request.POST.get("paymera_otp")
+            if (refund_target == "paymera_card" or (has_paymera and refund_target != "wallet")) and has_paymera and not meta.get("paymera_refunded"):
                 from apps.orders.services import process_order_refund_to_paymera
                 refunded, refund_msg = process_order_refund_to_paymera(
-                    order, actor=request.user, reason=request.POST.get("admin_note", "استرداد للبطاقة عبر لوحة الإدارة")
+                    order, actor=request.user, reason=request.POST.get("admin_note", "استرداد للبطاقة عبر لوحة الإدارة"), otp=otp
                 )
+                if refunded:
+                    messages.success(request, refund_msg)
+                else:
+                    messages.error(request, refund_msg)
+            elif refund_target == "wallet":
+                from apps.orders.services import process_order_refund_to_wallet
+                refunded, refund_msg = process_order_refund_to_wallet(
+                    order, actor=request.user, old_status=old_status, source="explicit_wallet_choice"
+                )
+                if refunded:
+                    messages.success(request, refund_msg)
+                else:
+                    messages.info(request, refund_msg)
             else:
                 from apps.orders.services import process_order_refund_to_wallet
                 refunded, refund_msg = process_order_refund_to_wallet(
                     order, actor=request.user, old_status=old_status, source="control_order_status_update"
                 )
-            if refunded:
-                messages.success(request, refund_msg)
-            else:
-                messages.info(request, refund_msg)
+                if refunded:
+                    messages.success(request, refund_msg)
+                else:
+                    messages.info(request, refund_msg)
         messages.success(request, f"تم تحديث حالة الطلب إلى: {order.get_status_display()}")
         try:
-            notify_user(
-                user=order.customer,
-                title="تحديث حالة الطلب",
-                body=f"تم تغيير حالة طلبك رقم #{order.number} إلى: {order.get_status_display()}",
-                action_url=f"/dashboard/orders/{order.id}/",
-                category="orders"
-            )
+            if order.customer:
+                notify_user(
+                    user=order.customer,
+                    title="تحديث حالة الطلب",
+                    body=f"تم تغيير حالة طلبك رقم #{order.number} إلى: {order.get_status_display()}",
+                    action_url=f"/dashboard/orders/{order.id}/",
+                    category="orders"
+                )
         except: pass
     if getattr(request, "store", None):
         return redirect("merchant_order_detail", pk=order.pk)

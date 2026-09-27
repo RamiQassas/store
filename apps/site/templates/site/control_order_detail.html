@@ -584,7 +584,7 @@
                         <textarea name="admin_note" rows="3" placeholder="اكتب سبب تغيير الحالة أو أي ملاحظات للمتابعة..." class="admin-input text-xs resize-none"></textarea>
                     </div>
 
-                    {% if order.metadata.gateway_payment_id or order.metadata.paymera_payment_id %}
+                    {% if order.metadata.gateway_payment_id or order.metadata.paymera_payment_id or order.metadata.payment_provider == 'paymera' %}
                     <div class="p-3 rounded-xl bg-slate-950/80 border border-emerald-500/20 text-xs space-y-2">
                         <span class="block text-[11px] font-black text-emerald-400 flex items-center gap-1.5">
                             <i class="fas fa-credit-card"></i> خيار الاسترداد (عند الإلغاء أو الاسترداد):
@@ -596,8 +596,12 @@
                             </label>
                             <label class="flex items-center gap-2 cursor-pointer text-slate-300 hover:text-white">
                                 <input type="radio" name="refund_target" value="wallet" class="text-cyan focus:ring-cyan">
-                                <span class="text-[11px]">إيداع المبلغ في محفظة العميل داخل المنصة</span>
+                                <span class="text-[11px]">إيداع المبلغ في محفظة العميل داخل المنصة (تحويل يدوي)</span>
                             </label>
+                        </div>
+                        <div class="pt-1.5">
+                            <label class="block text-[10px] font-black uppercase text-slate-400 mb-1">رمز التحقق OTP (إذا تطلبته بوابة بيميرا عند الإلغاء)</label>
+                            <input type="text" name="paymera_otp" placeholder="أدخل رمز OTP في حال تم طلبه لإتمام العملية..." class="admin-input text-xs font-mono">
                         </div>
                     </div>
                     {% endif %}
@@ -681,6 +685,9 @@
                     <input type="hidden" name="action" value="paymera_refund_card">
                     <div>
                         <input type="text" name="refund_reason" placeholder="سبب الإلغاء والاسترداد للبطاقة..." class="admin-input text-xs" required>
+                    </div>
+                    <div>
+                        <input type="text" name="paymera_otp" placeholder="رمز التحقق OTP (إذا تطلبته بوابة الدفع)" class="admin-input text-xs font-mono">
                     </div>
                     <button type="submit" class="w-full py-2.5 rounded-xl bg-rose-500/20 border border-rose-500/40 hover:bg-rose-600 hover:text-white text-rose-300 font-black text-xs transition flex items-center justify-center gap-2 cursor-pointer shadow-sm">
                         <i class="fas fa-undo"></i>
@@ -865,6 +872,7 @@
             </div>
 
             <div class="detail-body space-y-4">
+                {% if order.customer %}
                 <div class="flex items-center gap-3">
                     <div class="w-11 h-11 rounded-2xl bg-gradient-to-br from-cyan to-blue-600 flex items-center justify-center text-slate-950 font-black text-base shrink-0 shadow-md shadow-cyan/20">
                         {{ order.customer.email|slice:":1"|upper }}
@@ -875,17 +883,26 @@
                     </div>
                 </div>
 
+                {% if order.customer.wallet %}
                 <div class="field-box">
                     <span class="text-[10px] font-black uppercase text-slate-500 block mb-1">الرصيد المتاح بالمحفظة</span>
                     <div class="text-base font-black text-cyan font-mono">
                         {% currency_format order.customer.wallet.available_balance order.customer.wallet.currency %}
                     </div>
                 </div>
+                {% endif %}
 
+                {% if order.customer.public_uuid %}
                 <a href="{% url 'control_user_moderate' order.customer.public_uuid %}" class="w-full py-2.5 rounded-xl bg-slate-900 border border-white/10 hover:border-cyan text-slate-300 hover:text-white font-bold text-xs transition flex items-center justify-center gap-2 cursor-pointer">
                     <i class="fas fa-user-shield text-cyan"></i>
                     <span>إدارة حساب العميل</span>
                 </a>
+                {% endif %}
+                {% else %}
+                <div class="p-3 rounded-xl bg-slate-950/60 border border-white/5 text-xs text-slate-400 text-center">
+                    عميل زائر أو غير مسجل
+                </div>
+                {% endif %}
             </div>
         </div>
 

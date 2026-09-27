@@ -180,13 +180,16 @@ class Order(TimeStampedModel):
 
     def formatted_metadata(self):
         """Returns a list of dicts with 'label' and 'value' for metadata."""
-        if not self.metadata:
+        if not self.metadata or not isinstance(self.metadata, dict):
             return []
             
         results = []
-        first_item = self.items.first()
+        try:
+            first_item = self.items.first()
+        except Exception:
+            first_item = None
         schema = {}
-        if first_item and first_item.variant and first_item.variant.product:
+        if first_item and getattr(first_item, "variant", None) and getattr(first_item.variant, "product", None):
             schema = first_item.variant.product.form_schema
             
         fields = schema.get("fields", []) if isinstance(schema, dict) else []
@@ -194,10 +197,11 @@ class Order(TimeStampedModel):
         # Create a mapping of field key to label
         label_map = {}
         for f in fields:
-            lbl = f.get("label", "")
-            fid = f.get("name") or f.get("id") or f.get("key") or lbl
-            if fid:
-                label_map[fid] = lbl
+            if isinstance(f, dict):
+                lbl = f.get("label", "")
+                fid = f.get("name") or f.get("id") or f.get("key") or lbl
+                if fid:
+                    label_map[fid] = lbl
         
         EXCLUDED_KEYS = {
             "api_provider", "api_status", "api_last_response", "api_refunded",
@@ -236,7 +240,7 @@ class Order(TimeStampedModel):
 
     @property
     def payment_method_display(self):
-        meta = self.metadata or {}
+        meta = self.metadata if isinstance(self.metadata, dict) else {}
         gw = meta.get("payment_gateway") or meta.get("payment_provider")
         if gw or meta.get("is_direct_gateway_purchase"):
             gw_str = str(gw or "بوابة دفع").strip().lower()
@@ -251,7 +255,7 @@ class Order(TimeStampedModel):
 
     @property
     def payment_gateway_charge_info(self):
-        meta = self.metadata or {}
+        meta = self.metadata if isinstance(self.metadata, dict) else {}
         amt = meta.get("gateway_charge_amount") or meta.get("syp_amount")
         curr = meta.get("gateway_charge_currency") or ("SYP" if meta.get("syp_amount") else None)
         if amt:

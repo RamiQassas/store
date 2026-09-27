@@ -23,6 +23,7 @@ import logging
 import re
 import uuid
 from decimal import Decimal
+from typing import Optional, Dict, Any, Tuple
 
 from django.db import transaction
 from django.utils import timezone
@@ -198,8 +199,140 @@ def resolve_variant_provider_and_product(variant):
         return provider_product, profile
 
 
-# ---------------------------------------------------------------------------
-# Coupon validation
+def is_provider_unavailable_error(exc_or_data):
+    """
+    Returns True if an exception, error code, or raw response message
+    indicates that the product or quantity is unavailable, out of stock, or deleted at the provider.
+    """
+    if not exc_or_data:
+        return False
+
+    code = getattr(exc_or_data, "code", None)
+    if isinstance(exc_or_data, dict):
+        code = code or exc_or_data.get("code") or exc_or_data.get("error_code")
+
+    try:
+        if code is not None and int(code) in (105, 106, 109, 110):
+            return True
+    except (ValueError, TypeError):
+        pass
+
+    try:
+        from services.provider.alkasr.exceptions import (
+            ProductUnavailableException,
+            ProductDeletedException,
+            QuantityNotAvailableException,
+            QuantityNotAllowedException
+        )
+        if isinstance(exc_or_data, (ProductUnavailableException, ProductDeletedException, QuantityNotAvailableException, QuantityNotAllowedException)):
+            return True
+    except Exception:
+        pass
+
+    text = str(exc_or_data).lower()
+    keywords = [
+        "product unavailable", "quantity not available", "product deleted",
+        "product not found", "out of stock", "غير متوفر", "غير متاح",
+        "غير متوفرة", "الكمية غير متوفرة", "نفد المخزون", "محذوف",
+        "disabled", "not available", "is not available", "item unavailable",
+        "err-105", "err-106", "err-109", "err-110"
+    ]
+    return any(k in text for k in keywords)
+
+
+def mark_variant_unavailable(variant, reason=None, error_code=None, provider_product=None):
+    """
+    Immediately deactivates a variant and its mapped ProviderProduct across the entire system.
+    If no active variants remain for the parent Product, marks the parent Product as out of stock.
+    Also propagates deactivation to cloned variants/products in tenant sub-stores.
+    """
+    if not variant:
+        return
+
+    logger.warning(
+        f"Marking variant {variant.id} ({variant.name}) unavailable. Reason: {reason}, Code: {error_code}"
+    )
+
+    from apps.common.tenant_utils import bypass_tenant_filter
+    from apps.providers.models import ProviderMapping, ProviderProduct
+    from apps.catalog.models import Product, ProductVariant
+    from django.db.models import Q
+    from django.core.cache import cache
+
+    # 1. Update this variant
+    variant.is_active = False
+    variant.is_temporarily_disabled = True
+    variant.save(update_fields=["is_active", "is_temporarily_disabled", "updated_at"])
+
+    # 2. Resolve mapped ProviderProduct
+    if not provider_product:
+        mapping = getattr(variant, "provider_mapping", None)
+        if not mapping:
+            mapping = ProviderMapping.objects.filter(local_variant=variant).first()
+        if mapping and mapping.provider_product:
+            provider_product = mapping.provider_product
+        else:
+            resolved_prod, _ = resolve_variant_provider_and_product(variant)
+            if resolved_prod:
+                provider_product = resolved_prod
+
+    affected_product_ids = {variant.product_id}
+
+    with bypass_tenant_filter():
+        if provider_product:
+            # Deactivate provider product
+            provider_product.is_active = False
+            provider_product.local_is_active = False
+            provider_product.save(update_fields=["is_active", "local_is_active", "updated_at"])
+
+            # Find all local variants mapped to this provider product
+            mapped_var_ids = list(
+                ProviderMapping.objects.filter(provider_product=provider_product)
+                .values_list("local_variant_id", flat=True)
+            )
+            if mapped_var_ids:
+                mapped_vars = ProductVariant.all_objects.filter(id__in=mapped_var_ids)
+                affected_product_ids.update(mapped_vars.values_list("product_id", flat=True))
+                mapped_vars.update(is_active=False, is_temporarily_disabled=True)
+
+        # Also search for cloned variants in sub-stores matching SKU or api_product_id
+        sku_clean = variant.sku
+        if sku_clean:
+            base_sku = sku_clean.rsplit("-", 1)[0]
+            cloned_vars = ProductVariant.all_objects.filter(
+                Q(sku=sku_clean) | Q(sku__startswith=base_sku)
+            )
+            affected_product_ids.update(cloned_vars.values_list("product_id", flat=True))
+            cloned_vars.update(is_active=False, is_temporarily_disabled=True)
+
+        if variant.api_product_id:
+            api_vars = ProductVariant.all_objects.filter(api_product_id=variant.api_product_id)
+            affected_product_ids.update(api_vars.values_list("product_id", flat=True))
+            api_vars.update(is_active=False, is_temporarily_disabled=True)
+
+        # 3. Check parent products and mark out of stock if no active variants remain
+        for pid in affected_product_ids:
+            if not pid:
+                continue
+            prod = Product.all_objects.filter(id=pid).first()
+            if prod:
+                has_active = prod.variants.filter(is_active=True, is_temporarily_disabled=False).exists()
+                if not has_active:
+                    prod.is_out_of_stock = True
+                    prod.save(update_fields=["is_out_of_stock", "updated_at"])
+                cache.delete(f"product_detail_{pid}")
+
+    # Clear catalog caches
+    try:
+        store_id = getattr(variant.product, "store_id", None)
+        cache.delete_many([
+            "catalog_products_global",
+            f"catalog_products_store_{store_id}" if store_id else "catalog_products_global",
+            f"product_detail_{variant.product_id}",
+        ])
+    except Exception:
+        pass
+
 # ---------------------------------------------------------------------------
 
 def validate_coupon(coupon, user, variant, subtotal=None):
@@ -337,12 +470,25 @@ def _create_order_atomic(customer, variant_id, quantity=1, fulfillment_data=None
         raise ValueError("الكمية يجب أن تكون 1 على الأقل.")
 
     # ── Fetch variant (locked for this transaction) ───────────────────────────
-    variant = (
-        ProductVariant.objects
-        .select_related("product")
-        .select_for_update()
-        .get(id=variant_id, is_active=True, product__is_active=True)
-    )
+    try:
+        variant = (
+            ProductVariant.objects
+            .select_related("product")
+            .select_for_update()
+            .get(id=variant_id, is_active=True, is_temporarily_disabled=False, product__is_active=True)
+        )
+    except ProductVariant.DoesNotExist:
+        raise ValueError("هذه الباقة أو المنتج غير متوفر حالياً.")
+
+    if variant.product.is_out_of_stock:
+        raise ValueError("هذا المنتج غير متوفر حالياً (نفد المخزون).")
+
+    # Check mapped provider product if API product
+    prov_prod, _ = resolve_variant_provider_and_product(variant)
+    if prov_prod and (not prov_prod.is_active or not prov_prod.local_is_active):
+        mark_variant_unavailable(variant, reason="Provider product is inactive", provider_product=prov_prod)
+        raise ValueError("هذه الباقة غير متوفرة حالياً لدى مزود الخدمة.")
+
 
     # ── Read qty metadata stored during sync ─────────────────────────────────
     meta             = variant.metadata if isinstance(variant.metadata, dict) else {}
@@ -667,6 +813,8 @@ def _create_order_atomic(customer, variant_id, quantity=1, fulfillment_data=None
                 note_prefix="النظام الآلي",
             )
         except Exception as exc:
+            if is_provider_unavailable_error(exc):
+                mark_variant_unavailable(variant, reason=str(exc), error_code=getattr(exc, "code", None), provider_product=provider_product)
             from apps.orders.provider_status import apply_provider_status
             order = apply_provider_status(
                 order,
@@ -798,11 +946,24 @@ def create_pending_gateway_order(
         raise ValueError("الكمية يجب أن تكون 1 على الأقل.")
 
     # Fetch variant
-    variant = (
-        ProductVariant.objects
-        .select_related("product")
-        .get(id=variant_id, is_active=True, product__is_active=True)
-    )
+    try:
+        variant = (
+            ProductVariant.objects
+            .select_related("product")
+            .get(id=variant_id, is_active=True, is_temporarily_disabled=False, product__is_active=True)
+        )
+    except ProductVariant.DoesNotExist:
+        raise ValueError("هذه الباقة أو المنتج غير متوفر حالياً.")
+
+    product = variant.product
+    if product.is_out_of_stock or not product.is_active:
+        raise ValueError("هذا المنتج غير متوفر حالياً (نفد المخزون).")
+
+    prov_prod, _ = resolve_variant_provider_and_product(variant)
+    if prov_prod and (not prov_prod.is_active or not prov_prod.local_is_active):
+        mark_variant_unavailable(variant, reason="Provider product is inactive", provider_product=prov_prod)
+        raise ValueError("هذه الباقة غير متوفرة حالياً لدى مزود الخدمة.")
+
 
     # Read qty metadata
     meta = variant.metadata if isinstance(variant.metadata, dict) else {}
@@ -1106,8 +1267,9 @@ def finalize_paid_gateway_order(order, gateway_data=None):
                             note_prefix="النظام الآلي (دفع مباشر - بيميرا)",
                         )
                     else:
-                        from apps.orders.provider_status import apply_provider_status
                         err_msg = "المنتج غير متوفر حالياً لدى المزود الخارجي."
+                        mark_variant_unavailable(variant, reason=err_msg, provider_product=None)
+                        from apps.orders.provider_status import apply_provider_status
                         fulfillment = dict(locked_order.fulfillment_data or {})
                         fulfillment["سبب الإلغاء من السيرفر"] = err_msg
                         locked_order.fulfillment_data = fulfillment
@@ -1124,6 +1286,8 @@ def finalize_paid_gateway_order(order, gateway_data=None):
                         )
                 except Exception as api_exc:
                     logger.error(f"Error placing API order for paid order {locked_order.id}: {api_exc}", exc_info=True)
+                    if is_provider_unavailable_error(api_exc):
+                        mark_variant_unavailable(variant, reason=str(api_exc), error_code=getattr(api_exc, "code", None), provider_product=provider_product)
                     from apps.orders.provider_status import apply_provider_status
                     err_msg = f"تعذر تنفيذ الطلب لدى المزود: {str(api_exc)}"
                     fulfillment = dict(locked_order.fulfillment_data or {})
@@ -1239,32 +1403,57 @@ def process_order_refund_to_wallet(order, actor=None, old_status=None, source="a
         return False, "تم استرداد مبلغ هذا الطلب مسبقاً، لن يتم تكرار الاسترداد."
 
     # 2. Check if direct gateway order and payment never completed
-    is_direct_gw = bool(meta.get("is_direct_gateway_purchase") or meta.get("direct_gateway_purchase"))
+    is_direct_gw = bool(
+        meta.get("is_direct_gateway_purchase")
+        or meta.get("direct_gateway_purchase")
+        or meta.get("payment_provider") == "paymera"
+        or meta.get("gateway_payment_id")
+        or meta.get("paymera_payment_id")
+    )
     gw_confirmed = bool(meta.get("gateway_payment_confirmed") or meta.get("is_paid"))
     if is_direct_gw and not gw_confirmed:
-        OrderLog.objects.create(
-            order=order,
-            status=order.status,
-            note="تم إلغاء الطلب دون استرداد رصيد لعدم إتمام الدفع عبر بوابة الدفع (طلب غير مسدد).",
-            created_by=actor,
-        )
+        try:
+            OrderLog.objects.create(
+                order=order,
+                status=order.status,
+                note="تم إلغاء الطلب دون استرداد رصيد لعدم إتمام الدفع عبر بوابة الدفع (طلب غير مسدد).",
+                created_by=actor,
+            )
+        except Exception:
+            pass
         return False, "تم إلغاء الطلب (لم يتم تحويل رصيد للمحفظة لأن الطلب غير مسدد أصلاً عبر بوابة الدفع)."
 
-    # 3. Check if order was cancelled from PENDING without confirmed gateway payment
+    # 3. Direct gateway purchases must NOT be refunded to internal wallet unless explicitly requested as admin override
+    if is_direct_gw and source != "explicit_wallet_choice":
+        try:
+            OrderLog.objects.create(
+                order=order,
+                status=order.status,
+                note="لم يتم إيداع رصيد بمحفظة المنصة لأن الدفع تم مباشرة عبر البطاقة البنكية (بوابة الدفع).",
+                created_by=actor,
+            )
+        except Exception:
+            pass
+        return False, "تم تحديث حالة الطلب دون إضافة رصيد للمحفظة نظراً لأن الدفع كان مباشراً عبر بوابة الدفع (البطاقة البنكية)."
+
+    # 4. Check if order was cancelled from PENDING without confirmed gateway payment
     if old_status == Order.Status.PENDING and not gw_confirmed:
-        OrderLog.objects.create(
-            order=order,
-            status=order.status,
-            note="تم إلغاء الطلب دون استرداد رصيد لأن الطلب كان قيد الانتظار وغير مسدد.",
-            created_by=actor,
-        )
+        try:
+            OrderLog.objects.create(
+                order=order,
+                status=order.status,
+                note="تم إلغاء الطلب دون استرداد رصيد لأن الطلب كان قيد الانتظار وغير مسدد.",
+                created_by=actor,
+            )
+        except Exception:
+            pass
         return False, "تم إلغاء الطلب (لم يتم تحويل رصيد للمحفظة لأن الطلب كان قيد الانتظار ولم يتم تحصيل قيمته)."
 
-    # 4. Check total amount
+    # 5. Check total amount
     if order.total_amount <= Decimal("0.00"):
         return False, "مبلغ الطلب صفر، لا يوجد رصيد للاسترداد."
 
-    # 5. Execute refund
+    # 6. Execute refund
     wallet = get_or_create_wallet(order.customer)
     refund_amount = order.total_amount
     if wallet.currency and wallet.currency.code != "USD":
@@ -1303,10 +1492,11 @@ def process_order_refund_to_wallet(order, actor=None, old_status=None, source="a
     return True, f"تم استرداد مبلغ {refund_amount} {wallet.currency.code} إلى محفظة العميل بنجاح."
 
 
-def process_order_refund_to_paymera(order, actor=None, reason=None) -> tuple[bool, str]:
+def process_order_refund_to_paymera(order, actor=None, reason=None, otp: Optional[str] = None) -> tuple[bool, str]:
     """
     Cancels an order and executes a real-time Reversal (Refund) back to the customer's payment card
     via Paymera eGate v4.0 API (POST /api/cancel-payment).
+    Supports optional OTP verification if required by Paymera.
     
     Returns (success: bool, message: str)
     """
@@ -1334,8 +1524,8 @@ def process_order_refund_to_paymera(order, actor=None, reason=None) -> tuple[boo
     try:
         gw = gateway_for("paymera")
         client = gw.get_client()
-        logger.info(f"Initiating Paymera reversal for order #{order.number}, payment_id={payment_id}")
-        reversal_res = client.cancel_payment(payment_id=payment_id, lang="ar")
+        logger.info(f"Initiating Paymera reversal for order #{order.number}, payment_id={payment_id}, has_otp={bool(otp)}")
+        reversal_res = client.cancel_payment(payment_id=payment_id, lang="ar", otp=otp)
     except PaymeraError as exc:
         err_msg = str(exc)
         logger.warning(f"Paymera reversal failed for order #{order.number}: {err_msg}")
@@ -1353,8 +1543,9 @@ def process_order_refund_to_paymera(order, actor=None, reason=None) -> tuple[boo
     # 4. If reversal succeeded, update order and balance records atomically
     with transaction.atomic():
         old_status = order.status
-        order.status = Order.Status.REFUNDED
-        order.admin_note = (order.admin_note or "") + f"\n[استرداد عبر بيميرا]: تم استرداد المبلغ للبطاقة في {timezone.now().strftime('%Y-%m-%d %H:%M')}. السبب: {reason or 'طلب استرداد'}"
+        new_status = Order.Status.CANCELLED if old_status == Order.Status.PENDING else Order.Status.REFUNDED
+        order.status = new_status
+        order.admin_note = (order.admin_note or "") + f"\n[استرداد عبر بيميرا]: تم إلغاء/استرداد المبلغ للبطاقة في {timezone.now().strftime('%Y-%m-%d %H:%M')}. السبب: {reason or 'طلب استرداد'}"
 
         meta["paymera_refunded"] = True
         meta["paymera_refund_timestamp"] = timezone.now().isoformat()
@@ -1385,8 +1576,8 @@ def process_order_refund_to_paymera(order, actor=None, reason=None) -> tuple[boo
 
         OrderLog.objects.create(
             order=order,
-            status=Order.Status.REFUNDED,
-            note=f"تم استرداد كامل قيمة الطلب ({order.total_amount} USD) بنجاح إلى البطاقة البنكية للعميل عبر بوابة بيميرا. السبب: {reason or 'طلب استرداد'}.",
+            status=new_status,
+            note=f"تم إلغاء/استرداد كامل قيمة الطلب ({order.total_amount} USD) بنجاح إلى البطاقة البنكية للعميل عبر بوابة بيميرا. السبب: {reason or 'طلب استرداد'}.",
             created_by=actor,
         )
 
@@ -1402,21 +1593,21 @@ def process_order_refund_to_paymera(order, actor=None, reason=None) -> tuple[boo
         )
         notify_staff(
             title="استرداد بنكي ناجح عبر بيميرا",
-            body=f"تم استرداد الطلب رقم #{order.number} بنجاح إلى بطاقة العميل {order.customer.email} عبر بوابة بيميرا.",
+            body=f"تم استرداد الطلب رقم #{order.number} بنجاح إلى بطاقة العميل {getattr(order.customer, 'email', '')} عبر بوابة بيميرا.",
             action_url=f"/control/orders/{order.id}/",
             category="financial",
         )
     except Exception:
         pass
 
-    return True, "تمت عملية استرداد المبلغ بنجاح إلى البطاقة البنكية للعميل عبر بوابة بيميرا."
+    return True, "تمت عملية إلغاء واسترداد المبلغ بنجاح إلى البطاقة البنكية للعميل عبر بوابة بيميرا."
 
 
 def auto_cancel_expired_pending_orders(max_minutes: int = 5) -> dict:
     """
     Scans and automatically cancels pending orders that have remained uncompleted for more than max_minutes.
     Before cancellation, checks Paymera status if a gateway payment was initiated, ensuring
-    no completed payments are incorrectly cancelled.
+    no completed payments are incorrectly cancelled. Also terminates pending Paymera session.
     
     Returns a dict with statistics: {"checked": int, "cancelled": int, "finalized": int, "errors": int}
     """
@@ -1489,6 +1680,13 @@ def auto_cancel_expired_pending_orders(max_minutes: int = 5) -> dict:
                     )
                     stats["cancelled"] += 1
                     logger.info(f"Auto-cancelled expired pending order #{locked_order.number} (age > {max_minutes}m).")
+
+            # Try to cancel the gateway payment session on Paymera as well
+            if client and payment_id:
+                try:
+                    client.cancel_payment(payment_id=payment_id, lang="ar")
+                except Exception as cancel_exc:
+                    logger.info(f"Auto-cancel gateway call note for order #{order.number}: {cancel_exc}")
 
         except Exception as exc:
             stats["errors"] += 1

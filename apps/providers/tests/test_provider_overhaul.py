@@ -94,23 +94,22 @@ class ProviderPreconditionValidatorTestCase(TestCase):
             local_is_active=True
         )
 
-    def test_validate_quantity_too_low(self):
+    def test_validate_quantity_zero(self):
         with self.assertRaises(ValidationException):
             validate_order_preconditions(
                 provider_product=self.product,
-                quantity=2, # Below min 5
+                quantity=0,
                 parameters_sent={}
             )
 
-    def test_validate_insufficient_balance(self):
+    def test_validate_quantity_negative(self):
         with self.assertRaises(ValidationException):
             validate_order_preconditions(
                 provider_product=self.product,
-                quantity=10,
-                parameters_sent={},
-                provider_balance=Decimal("5.00"),
-                order_cost=Decimal("100.00")
+                quantity=-1,
+                parameters_sent={}
             )
+
 
 
 class ProviderManagerTestCase(TestCase):

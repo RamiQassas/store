@@ -1334,7 +1334,9 @@
     <!-- ── Mobile Category Pills ── -->
     <div class="mobile-cats">
         <a href="{% url 'catalog' %}{% if query %}?q={{ query }}{% endif %}" 
-           class="cat-pill {% if not active_category %}active{% endif %}">الكل</a>
+           class="cat-pill {% if not active_category %}active{% endif %}">
+           الكل <span style="font-size: 0.65rem; opacity: 0.85; margin-right: 0.25rem;">({{ all_products_count }})</span>
+        </a>
         {% for cat in categories %}
         {% if cat.product_count > 0 %}
         <a href="?category={{ cat.id }}{% if query %}&q={{ query }}{% endif %}" 
@@ -1358,7 +1360,7 @@
                         <a href="{% url 'catalog' %}{% if query %}?q={{ query }}{% endif %}" 
                            class="sidebar-cat-link {% if not active_category %}active{% endif %}">
                             <span>الكل</span>
-                            <span class="sidebar-cat-count">{{ total_products_count }}</span>
+                            <span class="sidebar-cat-count">{{ all_products_count }}</span>
                         </a>
                         {% for cat in categories %}
                         {% if cat.product_count > 0 %}
@@ -1409,14 +1411,16 @@
             <div class="catalog-topbar">
                 <div class="topbar-info flex items-center flex-wrap gap-2">
                     {% if query %}
-                        نتائج البحث عن: <span>"{{ query }}"</span>
+                        نتائج البحث عن: <span>"{{ query }}"</span> (<span>{{ total_products_count }}</span> منتج)
+                    {% elif selected_category %}
+                        قسم: <span>{{ selected_category.name }}</span> (<span>{{ total_products_count }}</span> منتج)
                     {% elif active_category %}
-                        معروض: <span>{% for cat in categories %}{% if active_category == cat.id|stringformat:'s' %}{{ cat.name }}{% endif %}{% endfor %}</span>
+                        معروض: <span>{% for cat in categories %}{% if active_category == cat.id|stringformat:'s' %}{{ cat.name }}{% endif %}{% endfor %}</span> (<span>{{ total_products_count }}</span> منتج)
                     {% else %}
-                        تصفح جميع الخدمات والمنتجات المتاحة
+                        تصفح جميع الخدمات والمنتجات المتاحة (<span>{{ all_products_count }}</span> منتج)
                     {% endif %}
                     {% if total_products_count > 0 %}
-                    <span class="catalog-range-pill font-mono" title="نطاق المنتجات المعروضة حالياً من الإجمالي">
+                    <span class="catalog-range-pill font-mono" title="نطاق المنتجات المعروضة حالياً من إجمالي منتجات القسم">
                         <i class="fas fa-boxes text-[10px]"></i>
                         {{ start_num }} - {{ end_num }} / {{ total_products_count }}
                     </span>
@@ -1458,7 +1462,35 @@
                 </div>
             </div>
 
-            {% if subcategories %}
+            {% if selected_category and subcategories %}
+            <div class="subcategories-bar" style="background: linear-gradient(135deg, rgba(15,23,42,0.85) 0%, rgba(30,41,59,0.7) 100%); border: 1px solid rgba(212,168,83,0.25); border-radius: 16px; padding: 1rem 1.25rem; margin-top: 1rem; margin-bottom: 1.25rem; display: flex; flex-direction: column; gap: 0.75rem; box-shadow: 0 8px 24px rgba(0,0,0,0.3);">
+                <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.5rem;">
+                    <div style="display: flex; align-items: center; gap: 0.5rem;">
+                        <i class="fas fa-layer-group text-gold" style="font-size: 0.9rem;"></i>
+                        <span style="font-size: 0.85rem; font-weight: 800; color: #fff;">
+                            أقسام وفئات {{ selected_category.name }}:
+                        </span>
+                    </div>
+                    {% if parent_category %}
+                    <a href="?category={{ parent_category.id }}{% if query %}&q={{ query }}{% endif %}" style="font-size: 0.75rem; font-weight: 700; color: #d4a853; text-decoration: none; display: inline-flex; align-items: center; gap: 0.3rem;">
+                        <i class="fas fa-arrow-up"></i> العودة إلى {{ parent_category.name }}
+                    </a>
+                    {% endif %}
+                </div>
+                <div style="display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center;">
+                    <a href="?category={{ selected_category.id }}{% if query %}&q={{ query }}{% endif %}" class="cat-pill {% if not parent_category %}active{% endif %}" style="font-size: 0.75rem; padding: 0.45rem 1rem;">
+                        عرض الكل في {{ selected_category.name }} <span style="font-size: 0.65rem; opacity: 0.85; margin-right: 0.25rem;">({{ selected_category.product_count }})</span>
+                    </a>
+                    {% for sub in subcategories %}
+                    {% if sub.id != selected_category.id %}
+                    <a href="?category={{ sub.id }}{% if query %}&q={{ query }}{% endif %}" class="cat-pill {% if active_category == sub.id|stringformat:'s' %}active{% endif %}" style="font-size: 0.75rem; padding: 0.45rem 1rem;">
+                        {{ sub.name }} <span style="font-size: 0.65rem; color: #d4a853; margin-right: 0.25rem;">({{ sub.product_count }})</span>
+                    </a>
+                    {% endif %}
+                    {% endfor %}
+                </div>
+            </div>
+            {% elif subcategories %}
             <div class="subcategories-bar" style="background: rgba(15,23,42,0.6); border: 1px solid rgba(255,255,255,0.06); border-radius: 16px; padding: 1rem; margin-top: 1rem; margin-bottom: 1rem; display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center;">
                 <span style="font-size: 0.75rem; font-weight: 900; color: #94a3b8; margin-left: 0.5rem;"><i class="fas fa-folder-tree text-gold ml-1"></i> الأقسام الفرعية:</span>
                 {% for sub in subcategories %}
@@ -1595,31 +1627,59 @@
 
             <!-- Categories Grid -->
             <div class="categories-section" id="categories-section">
-                {% for cat in categories %}
-                {% if cat.product_count > 0 %}
-                <a href="?category={{ cat.id }}{% if query %}&q={{ query }}{% endif %}" class="cat-card">
-                    <div class="cat-card-cover">
-                        {% if cat.image %}
-                        <img src="{{ cat.image.url }}" alt="{{ cat.name }}" loading="lazy">
-                        {% else %}
-                        <div class="cat-card-placeholder">
-                            <i class="fas fa-layer-group"></i>
+                {% if selected_category and subcategories %}
+                    {% for cat in subcategories %}
+                    {% if cat.product_count > 0 %}
+                    <a href="?category={{ cat.id }}{% if query %}&q={{ query }}{% endif %}" class="cat-card">
+                        <div class="cat-card-cover">
+                            {% if cat.image %}
+                            <img src="{{ cat.image.url }}" alt="{{ cat.name }}" loading="lazy">
+                            {% else %}
+                            <div class="cat-card-placeholder">
+                                <i class="fas fa-layer-group"></i>
+                            </div>
+                            {% endif %}
+                            <div class="cat-card-overlay"></div>
+                            <span class="cat-card-badge">
+                                <i class="fas fa-cubes"></i> {{ cat.product_count }} خدمة
+                            </span>
                         </div>
-                        {% endif %}
-                        <div class="cat-card-overlay"></div>
-                        <span class="cat-card-badge">
-                            <i class="fas fa-cubes"></i> {{ cat.product_count }} خدمة
-                        </span>
-                    </div>
-                    <div class="cat-card-info">
-                        <div class="cat-card-title-wrap">
-                            <h3 class="cat-card-name">{{ cat.name }}</h3>
-                            <span class="cat-card-action">استعراض <i class="fas fa-arrow-left"></i></span>
+                        <div class="cat-card-info">
+                            <div class="cat-card-title-wrap">
+                                <h3 class="cat-card-name">{{ cat.name }}</h3>
+                                <span class="cat-card-action">استعراض <i class="fas fa-arrow-left"></i></span>
+                            </div>
                         </div>
-                    </div>
-                </a>
+                    </a>
+                    {% endif %}
+                    {% endfor %}
+                {% else %}
+                    {% for cat in categories %}
+                    {% if cat.product_count > 0 %}
+                    <a href="?category={{ cat.id }}{% if query %}&q={{ query }}{% endif %}" class="cat-card">
+                        <div class="cat-card-cover">
+                            {% if cat.image %}
+                            <img src="{{ cat.image.url }}" alt="{{ cat.name }}" loading="lazy">
+                            {% else %}
+                            <div class="cat-card-placeholder">
+                                <i class="fas fa-layer-group"></i>
+                            </div>
+                            {% endif %}
+                            <div class="cat-card-overlay"></div>
+                            <span class="cat-card-badge">
+                                <i class="fas fa-cubes"></i> {{ cat.product_count }} خدمة
+                            </span>
+                        </div>
+                        <div class="cat-card-info">
+                            <div class="cat-card-title-wrap">
+                                <h3 class="cat-card-name">{{ cat.name }}</h3>
+                                <span class="cat-card-action">استعراض <i class="fas fa-arrow-left"></i></span>
+                            </div>
+                        </div>
+                    </a>
+                    {% endif %}
+                    {% endfor %}
                 {% endif %}
-                {% endfor %}
             </div>
 
             <!-- Suggestion CTA (always visible) -->

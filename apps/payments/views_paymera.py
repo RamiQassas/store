@@ -187,7 +187,43 @@ def paymera_trigger_view(request):
                     OrderLog.objects.create(
                         order=order,
                         status=Order.Status.CANCELLED,
-                        note=f"تم استلام إشعار إلغاء/فشل الدفع من بوابة بيميرا ({payload_status}).",
+                        note=f"تم استلام إشعار إلغاء/فشل الدفع من بوابة بيميرا ({payload_status}) دون إيداع رصيد بالمحفظة.",
+                        created_by=None,
+                    )
+                elif order.status in (Order.Status.PROCESSING, Order.Status.COMPLETED):
+                    # Gateway reversal on already paid order
+                    meta = dict(order.metadata or {})
+                    meta["paymera_refunded"] = True
+                    meta["paymera_refund_timestamp"] = timezone.now().isoformat()
+                    meta["paymera_refund_reason"] = f"إلغاء/استرداد مباشر من بوابة الدفع ({payload_status})"
+                    order.status = Order.Status.REFUNDED
+                    order.metadata = meta
+                    order.admin_note = (order.admin_note or "") + f"\n[بيميرا]: استرداد مباشر للبطاقة من بوابة الدفع ({payload_status})."
+                    
+                    # Reverse substore profit if any
+                    profit_amt_str = meta.get("substore_profit_amount")
+                    owner_wallet_id = meta.get("substore_owner_wallet_id")
+                    if profit_amt_str and owner_wallet_id:
+                        try:
+                            from apps.wallets.services import debit_wallet
+                            profit_amt = Decimal(profit_amt_str)
+                            if profit_amt > 0:
+                                debit_wallet(
+                                    wallet_id=owner_wallet_id,
+                                    amount=profit_amt,
+                                    reference=f"reversal_substore_profit:{order.id}",
+                                    description=f"خصم أرباح طلب مسترد #{order.number} (إلغاء مباشر من بوابة بيميرا)",
+                                    created_by=None,
+                                    source="gateway_reversal"
+                                )
+                        except Exception as w_exc:
+                            logger.error(f"Failed to reverse substore profit on gateway cancel: {w_exc}")
+
+                    order.save(update_fields=["status", "metadata", "admin_note", "updated_at"])
+                    OrderLog.objects.create(
+                        order=order,
+                        status=Order.Status.REFUNDED,
+                        note=f"تم استلام إشعار استرداد/إلغاء مباشر من بوابة بيميرا ({payload_status}) وتحديث الطلب لمسترد دون إيداع رصيد بالمحفظة (استرداد للبطاقة).",
                         created_by=None,
                     )
                 return JsonResponse({"status": "ok", "message": f"Order payment marked as {payload_status}"})
@@ -209,7 +245,41 @@ def paymera_trigger_view(request):
                         OrderLog.objects.create(
                             order=order,
                             status=Order.Status.CANCELLED,
-                            note=f"تم إلغاء الطلب بناءً على استعلام حالة بيميرا ({payment_status}).",
+                            note=f"تم إلغاء الطلب بناءً على استعلام حالة بيميرا ({payment_status}) دون إيداع رصيد.",
+                            created_by=None,
+                        )
+                    elif order.status in (Order.Status.PROCESSING, Order.Status.COMPLETED):
+                        meta = dict(order.metadata or {})
+                        meta["paymera_refunded"] = True
+                        meta["paymera_refund_timestamp"] = timezone.now().isoformat()
+                        meta["paymera_refund_reason"] = f"استرداد مباشر من بوابة الدفع ({payment_status})"
+                        order.status = Order.Status.REFUNDED
+                        order.metadata = meta
+                        order.admin_note = (order.admin_note or "") + f"\n[بيميرا]: استرداد مباشر للبطاقة من بوابة الدفع ({payment_status})."
+                        
+                        profit_amt_str = meta.get("substore_profit_amount")
+                        owner_wallet_id = meta.get("substore_owner_wallet_id")
+                        if profit_amt_str and owner_wallet_id:
+                            try:
+                                from apps.wallets.services import debit_wallet
+                                profit_amt = Decimal(profit_amt_str)
+                                if profit_amt > 0:
+                                    debit_wallet(
+                                        wallet_id=owner_wallet_id,
+                                        amount=profit_amt,
+                                        reference=f"reversal_substore_profit:{order.id}",
+                                        description=f"خصم أرباح طلب مسترد #{order.number} (إلغاء بوابة بيميرا)",
+                                        created_by=None,
+                                        source="gateway_reversal"
+                                    )
+                            except Exception as w_exc:
+                                logger.error(f"Failed to reverse substore profit on gateway cancel: {w_exc}")
+
+                        order.save(update_fields=["status", "metadata", "admin_note", "updated_at"])
+                        OrderLog.objects.create(
+                            order=order,
+                            status=Order.Status.REFUNDED,
+                            note=f"تم تحديث حالة الطلب إلى مسترد بناءً على استعلام حالة بيميرا ({payment_status}) دون إيداع رصيد بالمحفظة (استرداد للبطاقة).",
                             created_by=None,
                         )
                     return JsonResponse({"status": "ok", "message": f"Order payment {payment_status}"})
@@ -497,6 +567,7 @@ def paymera_refund_view(request):
     order_id = request.POST.get("order_id")
     deposit_id = request.POST.get("deposit_id")
     reason = request.POST.get("reason") or "طلب استرداد إلى البطاقة عبر الإدارة"
+    otp = request.POST.get("otp") or request.POST.get("paymera_otp")
 
     if order_id:
         from apps.orders.models import Order
@@ -505,7 +576,7 @@ def paymera_refund_view(request):
         if not order:
             return JsonResponse({"status": "error", "message": "الطلب غير موجود."}, status=404)
 
-        success, msg = process_order_refund_to_paymera(order, actor=request.user, reason=reason)
+        success, msg = process_order_refund_to_paymera(order, actor=request.user, reason=reason, otp=otp)
         if success:
             messages.success(request, msg)
             return JsonResponse({"status": "ok", "message": msg})
@@ -535,7 +606,7 @@ def paymera_refund_view(request):
 
         client = PaymeraClient.from_integration(dep_integration)
         try:
-            res = client.cancel_payment(payment_id=payment_id, lang="ar")
+            res = client.cancel_payment(payment_id=payment_id, lang="ar", otp=otp)
             with transaction.atomic():
                 deposit.status = DepositRequest.Status.REJECTED
                 deposit.admin_note = (deposit.admin_note or "") + f"\n[استرداد بيميرا]: تم استرداد المبلغ للبطاقة في {timezone.now().strftime('%Y-%m-%d %H:%M')}. السبب: {reason}"

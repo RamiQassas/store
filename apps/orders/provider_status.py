@@ -1,7 +1,11 @@
+import logging
+from decimal import Decimal
 from django.db import transaction
 
 from apps.orders.models import Order, OrderLog
 from apps.wallets.services import credit_wallet, get_or_create_wallet
+
+logger = logging.getLogger("apps.orders.provider_status")
 
 
 TERMINAL_PROVIDER_STATUSES = {"accept", "reject"}
@@ -435,6 +439,16 @@ def apply_provider_status(order, provider_status, raw_response=None, actor=None,
             
             # Note for admin log: shows error code AND translated real reason
             note = f"{note_prefix}: تم إلغاء الطلب. ({err_info['code_tag']} | السبب الحقيقي للإدارة: {err_info['admin_message']})"
+
+            try:
+                from apps.orders.services import is_provider_unavailable_error, mark_variant_unavailable
+                if is_provider_unavailable_error(raw_response or cancel_source_val):
+                    for order_item in locked_order.items.select_related("variant").all():
+                        if order_item.variant:
+                            err_code = raw_response.get("code") if isinstance(raw_response, dict) else None
+                            mark_variant_unavailable(order_item.variant, reason=cancel_source_val, error_code=err_code)
+            except Exception as unavail_err:
+                logger.warning(f"Error marking variant unavailable in apply_provider_status: {unavail_err}")
         elif provider_status in status_processing_aliases:
             locked_order.status = Order.Status.PROCESSING
             note = f"{note_prefix}: الطلب قيد المعالجة والتنفيذ."

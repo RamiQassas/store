@@ -217,12 +217,12 @@ class PaymeraClient:
             "raw": data,
         }
 
-    def cancel_payment(self, payment_id: str, lang: str = "ar") -> Dict[str, Any]:
+    def cancel_payment(self, payment_id: str, lang: str = "ar", otp: Optional[str] = None) -> Dict[str, Any]:
         """
         Cancel / Reversal payment.
         Endpoint: POST /api/cancel-payment
         Paymera eGate v4.0 specification:
-        - Request: {"lang": "ar"|"en", "payment_id": "the_payment_id"}
+        - Request: {"lang": "ar"|"en", "payment_id": "the_payment_id", "otp": "optional_otp"}
         - Response: {"ErrorMessage": "Success", "ErrorCode": 0} (or 100 on error, 1 on unauthorized)
         """
         if not payment_id:
@@ -233,8 +233,10 @@ class PaymeraClient:
             "lang": lang if lang in ("ar", "en") else "ar",
             "payment_id": str(payment_id).strip(),
         }
+        if otp:
+            payload["otp"] = str(otp).strip()
 
-        logger.info(f"Paymera canceling payment {payment_id} via {url}")
+        logger.info(f"Paymera canceling payment {payment_id} via {url} (with_otp={bool(otp)})")
         try:
             resp = requests.post(url, json=payload, headers=self._get_headers(), timeout=self.timeout)
         except requests.RequestException as exc:

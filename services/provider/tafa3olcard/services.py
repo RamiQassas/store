@@ -190,6 +190,7 @@ class Tafa3olCardProviderService:
 
         store = self.profile.store if self.profile else None
         known_requirements = {}
+        seen_remote_ids = set()
 
         for idx, item in enumerate(raw_products, start=1):
             if not isinstance(item, dict):
@@ -197,6 +198,7 @@ class Tafa3olCardProviderService:
             remote_id = str(item.get("_id") or item.get("id") or "")
             if not remote_id:
                 continue
+            seen_remote_ids.add(remote_id)
 
             raw_name = item.get("name")
             if isinstance(raw_name, dict):
@@ -214,6 +216,42 @@ class Tafa3olCardProviderService:
             qty_mode = str(item.get("quantityMode") or "FIXED").upper()
             min_qty = item.get("minQuantity", 1)
             max_qty = item.get("maxQuantity", 10)
+
+            # Availability / active check from Tafa3ol Card payload
+            is_active = True
+            if "isAvailable" in item:
+                avail = item.get("isAvailable")
+                if isinstance(avail, bool):
+                    is_active = avail
+                elif isinstance(avail, (int, float)):
+                    is_active = (int(avail) == 1)
+                elif isinstance(avail, str):
+                    is_active = avail.strip().lower() in ("1", "true", "yes", "available", "active")
+            elif "isActive" in item:
+                is_active = bool(item.get("isActive"))
+            elif "available" in item:
+                avail = item.get("available")
+                if isinstance(avail, bool):
+                    is_active = avail
+                elif isinstance(avail, (int, float)):
+                    is_active = (int(avail) == 1)
+                elif isinstance(avail, str):
+                    is_active = avail.strip().lower() in ("1", "true", "yes", "available", "active")
+            elif "active" in item:
+                is_active = bool(item.get("active"))
+            elif "status" in item:
+                status_v = str(item.get("status") or "").strip().lower()
+                is_active = status_v not in ("0", "false", "no", "inactive", "disabled", "out_of_stock", "hidden", "off")
+
+            if "stock" in item and item.get("stock") is not None:
+                try:
+                    if int(item.get("stock")) <= 0:
+                        is_active = False
+                except (ValueError, TypeError):
+                    pass
+            if "inStock" in item and item.get("inStock") is not None:
+                if not bool(item.get("inStock")):
+                    is_active = False
 
             final_total = pricing_obj.get("finalTotalPrice") if isinstance(pricing_obj, dict) else None
             final_unit = pricing_obj.get("finalUnitPrice") if isinstance(pricing_obj, dict) else None
@@ -308,14 +346,15 @@ class Tafa3olCardProviderService:
                         "name": p_name,
                         "category": p_cat,
                         "cost_price": cost_price,
-                        "is_active": True,
-                        "local_is_active": True,
+                        "is_active": is_active,
+                        "local_is_active": is_active,
                         "product_type": "package" if qty_mode == "FIXED" else "recharge",
                         "qty_min": min_qty,
                         "qty_max": max_qty,
                         "data": extra_data,
                     }
                 )
+
 
                 # Store product parameters / requirements safely
                 requirements = item.get("requirements") or []
@@ -413,9 +452,16 @@ class Tafa3olCardProviderService:
             if progress_callback:
                 progress_callback(idx, total_items, p_name, created_count, updated_count)
 
+        # Soft disable products missing from provider payload
         if self.profile:
+            with transaction.atomic():
+                disabled_qs = ProviderProduct.objects.filter(profile=self.profile).exclude(remote_id__in=seen_remote_ids)
+                disabled_count = disabled_qs.filter(is_active=True).count()
+                disabled_qs.update(is_active=False, local_is_active=False)
+
             self.profile.last_sync_at = timezone.now()
             self.profile.save(update_fields=["last_sync_at"])
+
 
             # Automatically map ProviderProducts to store catalog Product & ProductVariant
             try:

@@ -476,29 +476,63 @@ class AlkasrMapperService:
         # Deactivate any variants whose provider product is disabled, inactive, or deleted
         try:
             from django.db.models import Q
-            inactive_remote_ids = list(
-                ProviderProduct.objects.filter(profile=self.profile)
-                .filter(Q(is_active=False) | Q(local_is_active=False))
-                .values_list('remote_id', flat=True)
-            )
-            if inactive_remote_ids:
+            inactive_pps = ProviderProduct.objects.filter(profile=self.profile).filter(Q(is_active=False) | Q(local_is_active=False))
+            inactive_remote_ids = list(inactive_pps.values_list('remote_id', flat=True))
+            inactive_pp_ids = list(inactive_pps.values_list('id', flat=True))
+            
+            if inactive_remote_ids or inactive_pp_ids:
                 int_pids = [int(x) for x in inactive_remote_ids if str(x).isdigit()]
                 sku_patterns = [f"PRV-{self.profile.id}-{x}" for x in inactive_remote_ids]
 
-                # Deactivate platform variants
-                ProductVariant.objects.filter(
-                    Q(sku__in=sku_patterns) | Q(api_product_id__in=int_pids)
-                ).update(is_active=False, is_temporarily_disabled=True)
-
-                # Deactivate sub-store cloned variants
                 from apps.common.tenant_utils import bypass_tenant_filter
                 with bypass_tenant_filter():
+                    # 1. Direct mapping lookup
+                    mapped_var_ids = list(
+                        ProviderMapping.objects.filter(provider_product_id__in=inactive_pp_ids)
+                        .values_list('local_variant_id', flat=True)
+                    )
+                    if mapped_var_ids:
+                        ProductVariant.all_objects.filter(id__in=mapped_var_ids).update(is_active=False, is_temporarily_disabled=True)
+
+                    # 2. Deactivate platform variants by SKU / api_product_id
+                    ProductVariant.all_objects.filter(
+                        Q(sku__in=sku_patterns) | Q(api_product_id__in=int_pids)
+                    ).update(is_active=False, is_temporarily_disabled=True)
+
+                    # 3. Deactivate sub-store cloned variants
                     for rid in inactive_remote_ids:
                         ProductVariant.all_objects.filter(
                             sku__icontains=f"-{rid}"
                         ).update(is_active=False, is_temporarily_disabled=True)
+
+            # Re-activate any variants whose provider product has become available again
+            active_pps = ProviderProduct.objects.filter(profile=self.profile, is_active=True, local_is_active=True)
+            active_remote_ids = list(active_pps.values_list('remote_id', flat=True))
+            active_pp_ids = list(active_pps.values_list('id', flat=True))
+            if active_remote_ids or active_pp_ids:
+                int_active_pids = [int(x) for x in active_remote_ids if str(x).isdigit()]
+                sku_active_patterns = [f"PRV-{self.profile.id}-{x}" for x in active_remote_ids]
+
+                from apps.common.tenant_utils import bypass_tenant_filter
+                with bypass_tenant_filter():
+                    mapped_active_var_ids = list(
+                        ProviderMapping.objects.filter(provider_product_id__in=active_pp_ids)
+                        .values_list('local_variant_id', flat=True)
+                    )
+                    if mapped_active_var_ids:
+                        ProductVariant.all_objects.filter(id__in=mapped_active_var_ids).update(is_active=True, is_temporarily_disabled=False)
+
+                    ProductVariant.all_objects.filter(
+                        Q(sku__in=sku_active_patterns) | Q(api_product_id__in=int_active_pids)
+                    ).update(is_active=True, is_temporarily_disabled=False)
+
+                    for arid in active_remote_ids:
+                        ProductVariant.all_objects.filter(
+                            sku__icontains=f"-{arid}"
+                        ).update(is_active=True, is_temporarily_disabled=False)
         except Exception as inact_err:
-            logger.warning(f"Error deactivating inactive variants: {inact_err}")
+            logger.warning(f"Error updating variant availability flags: {inact_err}")
+
             
         products_list = list(products_qs.select_related('category', 'category__parent', 'pricing').prefetch_related('parameters'))
         store = self.profile.store
@@ -648,7 +682,13 @@ class AlkasrMapperService:
                             local_product.metadata = prod_meta
                         local_product.save()
 
-                    # Note: Automatic branding disabled so images are generated only on explicit button click
+                    # Automatically generate high quality studio branded image if product has none
+                    if not local_product.image:
+                        try:
+                            from apps.catalog.smart_branding import apply_branding_to_product
+                            apply_branding_to_product(local_product, force=False)
+                        except Exception as brand_err:
+                            logger.warning(f"Auto-branding error for product {local_product.id}: {brand_err}")
 
                     # Map each ProviderProduct as a ProductVariant (باقة) inside this single Product
                     for pp in p_items:
@@ -956,9 +996,9 @@ class AlkasrMapperService:
         # Update is_active and is_out_of_stock on Product models based on active variants
         try:
             from django.db.models import Exists, OuterRef
-            active_vars = ProductVariant.objects.filter(product=OuterRef("pk"), is_active=True)
+            active_vars = ProductVariant.objects.filter(product=OuterRef("pk"), is_active=True, is_temporarily_disabled=False)
 
-            # Products with NO active variants -> hide them!
+            # Products with NO active variants -> hide them and mark out of stock!
             Product.objects.filter(
                 api_provider=provider_code,
                 store=store,
@@ -974,17 +1014,20 @@ class AlkasrMapperService:
                 has_active=Exists(active_vars)
             ).filter(has_active=True).update(is_active=True, is_out_of_stock=False)
 
-            # Sync sub-stores: if platform product is inactive or deleted, sub-store cloned products are also updated
+            # Sync sub-stores: if platform product is inactive, out of stock, or deleted, sub-store cloned products are also updated
             from apps.common.tenant_utils import bypass_tenant_filter
             with bypass_tenant_filter():
-                inactive_platform_names = list(Product.all_objects.filter(store__isnull=True, is_active=False).values_list("name", flat=True))
+                inactive_platform_names = list(Product.all_objects.filter(store__isnull=True).filter(Q(is_active=False) | Q(is_out_of_stock=True)).values_list("name", flat=True))
                 if inactive_platform_names:
                     Product.all_objects.filter(store__isnull=False, name__in=inactive_platform_names).update(is_active=False, is_out_of_stock=True)
                     ProductVariant.all_objects.filter(product__store__isnull=False, product__name__in=inactive_platform_names).update(is_active=False, is_temporarily_disabled=True)
                 
-                active_platform_names = list(Product.all_objects.filter(store__isnull=True, is_active=True).values_list("name", flat=True))
+                active_platform_names = list(Product.all_objects.filter(store__isnull=True, is_active=True, is_out_of_stock=False).values_list("name", flat=True))
                 if active_platform_names:
                     Product.all_objects.filter(store__isnull=False, name__in=active_platform_names).update(is_active=True, is_out_of_stock=False)
+                    active_var_skus = list(ProductVariant.all_objects.filter(product__store__isnull=True, is_active=True, is_temporarily_disabled=False).values_list("sku", flat=True))
+                    if active_var_skus:
+                        ProductVariant.all_objects.filter(product__store__isnull=False, sku__in=active_var_skus).update(is_active=True, is_temporarily_disabled=False)
         except Exception as stock_err:
             logger.warning(f"Product availability status sync error: {stock_err}")
 

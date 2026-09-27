@@ -53,8 +53,8 @@ class AlkasrProductService:
             cost_price = item.get("price") or item.get("cost") or item.get("base_price") or "0.00"
             product_type = str(item.get("product_type") or item.get("type") or "package")[:50]
             # Explicit available field from Alkasr VIP docs takes precedence
-            if "available" in item:
-                avail = item.get("available")
+            if "available" in item or "isAvailable" in item:
+                avail = item.get("available") if "available" in item else item.get("isAvailable")
                 if isinstance(avail, bool):
                     is_active = avail
                 elif isinstance(avail, str):
@@ -63,13 +63,32 @@ class AlkasrProductService:
                     is_active = (int(avail) == 1)
                 else:
                     is_active = bool(avail)
-            elif "is_active" in item:
-                is_active = bool(item.get("is_active"))
+            elif "is_active" in item or "isActive" in item:
+                is_active = bool(item.get("is_active") if "is_active" in item else item.get("isActive"))
+            elif "active" in item:
+                is_active = bool(item.get("active"))
+            elif "enabled" in item:
+                is_active = bool(item.get("enabled"))
             elif "status" in item:
                 status_v = str(item.get("status") or "").strip().lower()
-                is_active = status_v not in ("0", "false", "no", "inactive", "disabled", "out_of_stock", "hidden")
+                is_active = status_v not in ("0", "false", "no", "inactive", "disabled", "out_of_stock", "hidden", "off")
             else:
                 is_active = True
+
+            # Also check stock or inventory if provided by the API
+            for stock_key in ("stock", "qty", "quantity"):
+                if stock_key in item and item.get(stock_key) is not None:
+                    try:
+                        if int(item.get(stock_key)) <= 0:
+                            is_active = False
+                    except (ValueError, TypeError):
+                        pass
+
+            for in_stock_key in ("in_stock", "inStock"):
+                if in_stock_key in item and item.get(in_stock_key) is not None:
+                    if not bool(item.get(in_stock_key)):
+                        is_active = False
+
 
             qty_values = item.get("qty_values")
             qty_min = None

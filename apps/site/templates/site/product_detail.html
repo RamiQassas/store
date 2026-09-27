@@ -818,9 +818,9 @@
                                 data-is-recharge="{% if v.is_recharge_card %}true{% else %}false{% endif %}"
                                 data-params='{% if v.metadata.params %}{{ v.metadata.params|jsonify }}{% else %}[]{% endif %}'
                                 data-variant-name="{{ v.name }}"
-                                {% if forloop.first and not v.is_temporarily_disabled and not product.is_out_of_stock %}selected{% endif %}
-                                {% if v.is_temporarily_disabled or product.is_out_of_stock %}disabled{% endif %}>
-                            {{ v.name }} — {{ v_card_price|striptags }}
+                                {% if forloop.first and not v.is_temporarily_disabled and v.is_active and not product.is_out_of_stock %}selected{% endif %}
+                                {% if v.is_temporarily_disabled or not v.is_active or product.is_out_of_stock %}disabled{% endif %}>
+                            {{ v.name }} — {{ v_card_price|striptags }}{% if v.is_temporarily_disabled or not v.is_active %} (غير متوفر حالياً){% endif %}
                         </option>
                         {% endfor %}
                     </select>
@@ -1454,7 +1454,17 @@ function selectVariant(id, el) {
     }
 
     const submitBtn = document.getElementById('submit-btn');
-    if (submitBtn) submitBtn.disabled = false;
+    if (submitBtn) {
+        if (option.disabled || option.hasAttribute('disabled')) {
+            submitBtn.disabled = true;
+            submitBtn.innerText = 'غير متوفر حالياً';
+            submitBtn.classList.add('opacity-60', 'cursor-not-allowed', '!bg-slate-700', '!text-slate-400');
+        } else {
+            submitBtn.disabled = false;
+            submitBtn.innerText = 'شراء';
+            submitBtn.classList.remove('opacity-60', 'cursor-not-allowed', '!bg-slate-700', '!text-slate-400');
+        }
+    }
     
     // Update subscription duration indicator if applicable
     const vNameStr = option.getAttribute('data-variant-name') || option.innerText || '';
