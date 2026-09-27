@@ -42,7 +42,7 @@ class AlkasrSyncService:
                 pass
 
             raw_products = self.product_svc.fetch_products()
-            content_by_id = self._fetch_content_tree()
+            content_by_id, product_to_category = self._fetch_content_tree()
             stats = {"created": 0, "updated": 0, "disabled": 0}
 
             categories_by_remote, category_order_map = self._sync_categories(content_by_id)
@@ -73,7 +73,7 @@ class AlkasrSyncService:
                     except Exception:
                         pass
 
-                is_new = self._upsert_product(remote_id, pdata, categories_by_remote, category_order_map)
+                is_new = self._upsert_product(remote_id, pdata, categories_by_remote, category_order_map, product_to_category)
                 if is_new:
                     stats["created"] += 1
                 else:
@@ -140,6 +140,7 @@ class AlkasrSyncService:
 
     def _fetch_content_tree(self, max_nodes=2000):
         content_by_id = {}
+        product_to_category = {}
         queue = ["0"]
         seen = set()
 
@@ -161,7 +162,12 @@ class AlkasrSyncService:
                 if cat_id and cat_id not in seen:
                     queue.append(cat_id)
 
-        return content_by_id
+            for prod in self._extract_products(content):
+                pid = self._clean_remote_id(prod.get("id") or prod.get("service") or prod.get("service_id") or prod.get("product_id"))
+                if pid and str(category_id) != "0":
+                    product_to_category[pid] = str(category_id)
+
+        return content_by_id, product_to_category
 
     def _sync_categories(self, content_by_id):
         categories_by_remote = {}
@@ -187,22 +193,37 @@ class AlkasrSyncService:
                 inferred_parent = None if str(parent_remote_id) == "0" else str(parent_remote_id)
                 pending.append((remote_id, str(cat.get("name") or f"Category {remote_id}"), inferred_parent))
 
+        # Pass 1: Upsert all ProviderCategory records
         for remote_id, name, parent_remote_id in pending:
-            parent = categories_by_remote.get(parent_remote_id)
             obj, _ = ProviderCategory.objects.update_or_create(
                 profile=self.profile,
                 remote_id=remote_id,
                 defaults={
                     "name": name,
                     "parent_remote_id": parent_remote_id,
-                    "parent": parent,
                 },
             )
             categories_by_remote[remote_id] = obj
 
+        # Pass 2: Link parent ForeignKeys now that all categories exist in memory & DB
+        categories_to_update = []
+        for remote_id, obj in categories_by_remote.items():
+            parent_remote = obj.parent_remote_id
+            if parent_remote and str(parent_remote) in categories_by_remote:
+                parent_obj = categories_by_remote[str(parent_remote)]
+                if obj.parent_id != parent_obj.id:
+                    obj.parent = parent_obj
+                    categories_to_update.append(obj)
+            elif obj.parent_id is not None and not parent_remote:
+                obj.parent = None
+                categories_to_update.append(obj)
+
+        if categories_to_update:
+            ProviderCategory.objects.bulk_update(categories_to_update, ["parent"])
+
         return categories_by_remote, category_order_map
 
-    def _upsert_product(self, remote_id, pdata, categories_by_remote, category_order_map=None):
+    def _upsert_product(self, remote_id, pdata, categories_by_remote, category_order_map=None, product_to_category=None):
         name = str(pdata.get("name") or pdata.get("title") or pdata.get("service") or f"Product {remote_id}")
         raw_cost = (
             pdata.get("price")
@@ -217,7 +238,7 @@ class AlkasrSyncService:
         # Respect provider availability flag with 100% precision
         is_available = AlkasrProductService.extract_item_availability(pdata)
 
-        category_obj = self._category_for_product(pdata, categories_by_remote)
+        category_obj = self._category_for_product(pdata, categories_by_remote, product_to_category)
         product_type, qty_min, qty_max, qty_list = self._quantity_config(pdata)
 
         # Calculate display sort order from provider category hierarchy
@@ -366,15 +387,30 @@ class AlkasrSyncService:
 
         return is_new
 
-    def _category_for_product(self, pdata, categories_by_remote):
+    def _category_for_product(self, pdata, categories_by_remote, product_to_category=None):
         parent_id = self._clean_remote_id(pdata.get("parent_id"))
-        if parent_id and parent_id in categories_by_remote:
-            return categories_by_remote[parent_id]
+        prod_id = self._clean_remote_id(pdata.get("id") or pdata.get("service") or pdata.get("service_id") or pdata.get("product_id"))
 
+        # 1. Direct parent_id from product data if known
+        if parent_id and str(parent_id) in categories_by_remote:
+            return categories_by_remote[str(parent_id)]
+
+        # 2. Check if product was located in a category folder during content tree walk
+        if product_to_category and prod_id and str(prod_id) in product_to_category:
+            tree_cat_id = str(product_to_category[str(prod_id)])
+            if tree_cat_id in categories_by_remote:
+                return categories_by_remote[tree_cat_id]
+
+        # 3. Match by category_name in existing categories
         category_name = str(pdata.get("category_name") or pdata.get("category") or "").strip()
         if not category_name:
             return None
 
+        for cat_obj in categories_by_remote.values():
+            if cat_obj.name and cat_obj.name.strip().lower() == category_name.lower():
+                return cat_obj
+
+        # 4. Fallback create
         remote_id = parent_id or f"name:{category_name}"
         obj, _ = ProviderCategory.objects.update_or_create(
             profile=self.profile,

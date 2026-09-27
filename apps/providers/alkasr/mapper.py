@@ -1,3 +1,4 @@
+import re
 import logging
 from decimal import Decimal
 from django.db import transaction
@@ -111,6 +112,35 @@ KNOWN_NAMES = {
 
 from apps.catalog.naming import format_bilingual_name
 
+ROOT_GENERIC_SECTIONS = {
+    "null", "none", "games", "live application", "data and communication", 
+    "gift cards", "tv services", "money transfers", "social media", 
+    "numbers and accounts", "program activation numbers", "ألعاب", "عام",
+    "شحن الألعاب", "شحن التطبيقات", "رصيد الهاتف", "تفعيل الأرقام المؤقتة",
+    "ترويج ودعم السوشيال ميديا", "بطاقات الهدايا", "العملات الرقمية", "default",
+    "قسم الألعاب", "قسم الدردشة", "قسم الأرصدة", "قسم الأرصدة والاتصالات",
+    "البطاقات الالكترونية", "البطاقات الإلكترونية", "خدمات التلفاز", "الأرقام والحسابات",
+    "الذكاء الاصطناعي", "قسم التصميم", "اشتراكات vpn", "1370", "1332", "1350", "code"
+}
+
+GENERIC_NAMES = ROOT_GENERIC_SECTIONS | {
+    "سيرفر 1", "سيرفر 2", "سيرفر 3", "سيرفر 4", "سيرفر 5", "سيرفر 6", "سيرفر 7", "سيرفر 8",
+    "server 1", "server 2", "server 3", "server 4", "server 5",
+    "اوتوماتيك", "اوتوماتيك 1", "اوتوماتيك 2", "يدوي", "تلقائي", "فوري", "سريع",
+    "عضويات", "ترقيات", "حزم", "باقات", "شحن مباشر", "كود", "أكواد", "codes"
+}
+
+def is_generic_or_server(name):
+    if not name:
+        return True
+    n = str(name).strip().lower()
+    if n in GENERIC_NAMES:
+        return True
+    if re.search(r'^(?:سيرفر|server)\s*\d*', n):
+        return True
+    if re.search(r'^(?:اوتوماتيك|يدوي|تلقائي|فوري|سريع)\s*\d*', n):
+        return True
+    return False
 
 
 class AlkasrMapperService:
@@ -142,28 +172,25 @@ class AlkasrMapperService:
         e.g. ببجي موبايل (PUBG Global), فري فاير (Free Fire), سيريتل (Syriatel), نتفلكس (Netflix).
         Prevents fragmentation, duplicate products, and country-split entries.
         """
-        import re
-        generic_names = {
-            "null", "none", "games", "live application", "data and communication", 
-            "gift cards", "tv services", "money transfers", "social media", 
-            "numbers and accounts", "program activation numbers", "ألعاب", "عام",
-            "شحن الألعاب", "شحن التطبيقات", "رصيد الهاتف", "تفعيل الأرقام المؤقتة",
-            "ترويج ودعم السوشيال ميديا", "بطاقات الهدايا", "العملات الرقمية", "default",
-            "قسم الألعاب", "قسم الدردشة", "قسم الأرصدة", "قسم الأرصدة والاتصالات",
-            "البطاقات الالكترونية", "البطاقات الإلكترونية", "خدمات التلفاز", "الأرقام والحسابات",
-            "الذكاء الاصطناعي", "قسم التصميم", "اشتراكات vpn", "1370", "1332", "1350", "code"
-        }
 
+
+        chain = self._get_category_chain(pp)
+        chain_names = [c.name.strip() for c in chain if c and c.name]
         p_name = (pp.name or "").strip()
         c_name = (pp.category.name if pp.category else "").strip()
         parent_name = (pp.category.parent.name if pp.category and pp.category.parent else "").strip()
         cat_remote = str(getattr(pp.category, 'remote_id', '') or '').strip()
         cat_parent_remote = str(getattr(pp.category, 'parent_remote_id', '') or '').strip()
 
-        combined = f"{p_name} {c_name} {parent_name}".lower()
+        combined = f"{p_name} {c_name} {parent_name} {' '.join(chain_names)}".lower()
 
         # 1. PUBG Global vs Turkey
-        if "pubg" in combined or "ببجي" in combined or "uc" in combined or cat_remote == "1332" or "red package" in combined:
+        is_pubg = (
+            any(k in combined for k in ("pubg", "ببجي", "بوبجي", " شدة", "شدات", "red package"))
+            or re.search(r'\buc\b|\b\d+\s*uc\b|\buc\s*\d+\b', combined)
+            or cat_remote == "1332"
+        )
+        if is_pubg:
             if any(k in combined for k in ("turkey", "تركي", " tr", "tr ", "tr/")):
                 return "ببجي موبايل تركيا (PUBG TR)"
             return "ببجي موبايل (PUBG Global)"
@@ -287,6 +314,11 @@ class AlkasrMapperService:
             return "تانجو برو (Tango Pro)"
 
         # 21. Chat & Live Apps
+        # Distinct Soul applications must NEVER be merged!
+        if "soul star" in combined or "سول ستار" in combined:
+            return "سول ستار (Soul Star)"
+        if "soul chill" in combined or "سول تشيل" in combined or "سوشيل" in combined or "سول شيل" in combined:
+            return "سول تشيل (Soul Chill)"
         if "soul" in combined or "سول" in combined:
             return "سول (Soul App)"
         if "lions" in combined or "ليونس" in combined:
@@ -374,20 +406,25 @@ class AlkasrMapperService:
 
         # 24. Money transfers
         if any(k in combined for k in ("حوالات", "شام كاش", "الهرم", "محافظ", "بنوك")):
-            if c_name and c_name.lower() not in generic_names:
+            if c_name and not is_generic_or_server(c_name):
                 return c_name
-            if p_name and p_name.lower() not in generic_names:
+            if p_name and not is_generic_or_server(p_name):
                 return p_name
 
-        # 25. Fallback cleanly to category or clean product name
-        if c_name and c_name.lower() not in generic_names:
+        # 25. Fallback cleanly: check ancestors in chain first (highest non-generic ancestor is the app)
+        for c in chain:
+            c_cand = (c.name or "").strip()
+            if not is_generic_or_server(c_cand):
+                return c_cand
+
+        if c_name and not is_generic_or_server(c_name):
             return c_name
-        if parent_name and parent_name.lower() not in generic_names:
+        if parent_name and not is_generic_or_server(parent_name):
             return parent_name
         
         clean = re.sub(r'[\d\+\$].*', '', p_name).strip()
         clean = re.sub(r'(\s*-\s*|\s*_\s*)$', '', clean).strip()
-        if len(clean) >= 3 and clean.lower() not in generic_names:
+        if len(clean) >= 3 and not is_generic_or_server(clean):
             return clean
 
         return p_name or "خدمة عامة"
@@ -716,8 +753,15 @@ class AlkasrMapperService:
                         except Exception as brand_err:
                             logger.warning(f"Auto-branding error for product {local_product.id}: {brand_err}")
 
-                    # Sort variants by cost ascending so packages appear neatly from lowest to highest
-                    p_items = sorted(p_items, key=lambda x: getattr(x, 'cost_price', 0) or Decimal("0"))
+                    # Sort variants by (server_number, cost_price) so packages are grouped logically by server and price
+                    def _variant_sort_key(item):
+                        c_name = (item.category.name if item.category else "")
+                        srv_match = re.search(r'(?:سيرفر|server)\s*(\d+)', c_name, re.IGNORECASE)
+                        srv_num = int(srv_match.group(1)) if srv_match else 0
+                        cost = getattr(item, 'cost_price', 0) or Decimal("0")
+                        return (srv_num, cost)
+
+                    p_items = sorted(p_items, key=_variant_sort_key)
 
                     # Map each ProviderProduct as a ProductVariant (باقة) inside this single Product
                     for item_idx, pp in enumerate(p_items):
@@ -922,14 +966,24 @@ class AlkasrMapperService:
                                 meta["qty_min"] = 1
                                 meta["qty_max"] = 999999
 
-                        # If there is a Level 3 subcategory (e.g. اوتوماتيك 2, يدوي, أمريكي, سعودي, عضويات)
+                        # If there is a subcategory or server label in chain (e.g. سيرفر 1, سيرفر 2, اوتوماتيك, يدوي)
                         # and it is not already in the variant name, append it for clear identification
                         chain = self._get_category_chain(pp)
-                        if len(chain) >= 3:
-                            subcat_name = chain[2].name.strip()
-                            if subcat_name and subcat_name.lower() not in ("null", "none", "default"):
-                                if subcat_name.lower() not in variant_name.lower():
-                                    variant_name = f"{variant_name} ({subcat_name})"
+                        subcat_label = ""
+                        for c in reversed(chain):
+                            c_cand = (c.name or "").strip()
+                            if not c_cand or c_cand.lower() in ROOT_GENERIC_SECTIONS:
+                                continue
+                            c_low = c_cand.lower()
+                            g_low = group_name.lower()
+                            # Check if c_cand is a server, delivery option, or distinct leaf subcategory
+                            if (re.search(r'(?:سيرفر|server|اوتوماتيك|يدوي|تلقائي|فوري)', c_cand, re.IGNORECASE)
+                                or (c_low not in g_low and g_low not in c_low)):
+                                subcat_label = c_cand
+                                break
+
+                        if subcat_label and subcat_label.lower() not in variant_name.lower():
+                            variant_name = f"{variant_name} ({subcat_label})"
 
                         # Smart Duration Naming for Subscriptions (VPN, AI, Streaming, Software)
                         same_name_items = [x for x in p_items if (x.local_name or x.name or '').strip() == (pp.local_name or pp.name or '').strip()]
@@ -1017,6 +1071,20 @@ class AlkasrMapperService:
             except Exception as e:
                 logger.exception("Error mapping group '%s' to catalog: %s", group_name, e)
                 continue
+
+        # Clean up any legacy corrupt server products (e.g. 'سيرفر 1', 'سيرفر 2', 'server 1')
+        try:
+            corrupt_patterns = Q(name__startswith="سيرفر ") | Q(name__istartswith="server ") | Q(name__in=["سيرفر 1", "سيرفر 2", "سيرفر 3", "سيرفر 4", "server 1", "server 2"])
+            corrupt_prods = Product.objects.filter(store=store).filter(corrupt_patterns)
+            for cp in corrupt_prods:
+                if cp.variants.count() == 0:
+                    cp.delete()
+                else:
+                    cp.is_active = False
+                    cp.is_out_of_stock = True
+                    cp.save(update_fields=['is_active', 'is_out_of_stock'])
+        except Exception as cl_err:
+            logger.warning(f"Error cleaning up corrupt server products: {cl_err}")
 
         # Instead of deleting products (which breaks Google SEO indexing), mark them inactive and out of stock
         try:
