@@ -1155,6 +1155,10 @@ def finalize_paid_gateway_order(order, gateway_data=None):
                 description=f"أرباح طلب #{locked_order.number} لمتجر {order_store.name} (دفع مباشر عبر بيميرا)",
                 created_by=customer,
             )
+            meta = dict(locked_order.metadata or {})
+            meta["substore_profit_amount"] = str(profit_amt)
+            meta["substore_owner_wallet_id"] = str(owner_wallet.id)
+            locked_order.metadata = meta
             OrderLog.objects.create(
                 order=locked_order,
                 status=locked_order.status,
@@ -1297,5 +1301,199 @@ def process_order_refund_to_wallet(order, actor=None, old_status=None, source="a
         created_by=actor,
     )
     return True, f"تم استرداد مبلغ {refund_amount} {wallet.currency.code} إلى محفظة العميل بنجاح."
+
+
+def process_order_refund_to_paymera(order, actor=None, reason=None) -> tuple[bool, str]:
+    """
+    Cancels an order and executes a real-time Reversal (Refund) back to the customer's payment card
+    via Paymera eGate v4.0 API (POST /api/cancel-payment).
+    
+    Returns (success: bool, message: str)
+    """
+    from datetime import timedelta
+    from apps.notifications.services import notify_user, notify_staff
+    from apps.payments.gateways import gateway_for
+    from apps.payments.paymera import PaymeraError
+    from apps.wallets.services import debit_wallet
+
+    meta = dict(order.metadata or {})
+    ff = dict(order.fulfillment_data or {})
+
+    # 1. Validation: check if already refunded
+    if meta.get("paymera_refunded"):
+        return False, "تم استرداد هذا الطلب بالفعل إلى البطاقة البنكية مسبقاً عبر بيميرا."
+    if meta.get("wallet_refunded") or ff.get("api_refunded"):
+        return False, "تم استرداد هذا الطلب مسبقاً إلى المحفظة الداخلية، لا يمكن تكرار الاسترداد إلى البطاقة."
+
+    # 2. Extract gateway payment ID
+    payment_id = meta.get("gateway_payment_id") or meta.get("paymera_payment_id")
+    if not payment_id:
+        return False, "لا يوجد معرف دفعة بيميرا (Payment ID) مسجل لهذا الطلب."
+
+    # 3. Call Paymera Cancel / Reversal API
+    try:
+        gw = gateway_for("paymera")
+        client = gw.get_client()
+        logger.info(f"Initiating Paymera reversal for order #{order.number}, payment_id={payment_id}")
+        reversal_res = client.cancel_payment(payment_id=payment_id, lang="ar")
+    except PaymeraError as exc:
+        err_msg = str(exc)
+        logger.warning(f"Paymera reversal failed for order #{order.number}: {err_msg}")
+        OrderLog.objects.create(
+            order=order,
+            status=order.status,
+            note=f"فشل طلب استرداد الأموال إلى البطاقة عبر بيميرا: {err_msg}",
+            created_by=actor,
+        )
+        return False, f"فشلت عملية استرداد الأموال عبر بيميرا: {err_msg}"
+    except Exception as exc:
+        logger.exception(f"Unexpected error during Paymera reversal for order #{order.number}: {exc}")
+        return False, f"حدث خطأ غير متوقع أثناء الاتصال ببوابة بيميرا: {exc}"
+
+    # 4. If reversal succeeded, update order and balance records atomically
+    with transaction.atomic():
+        old_status = order.status
+        order.status = Order.Status.REFUNDED
+        order.admin_note = (order.admin_note or "") + f"\n[استرداد عبر بيميرا]: تم استرداد المبلغ للبطاقة في {timezone.now().strftime('%Y-%m-%d %H:%M')}. السبب: {reason or 'طلب استرداد'}"
+
+        meta["paymera_refunded"] = True
+        meta["paymera_refund_timestamp"] = timezone.now().isoformat()
+        meta["paymera_refund_actor"] = getattr(actor, "email", str(actor)) if actor else "نظام"
+        meta["paymera_refund_reason"] = reason or "استرداد للبطاقة البنكية عبر بيميرا"
+        meta["paymera_refund_raw"] = reversal_res
+        order.metadata = meta
+
+        # 5. Reverse store owner profit if it was credited earlier
+        profit_amt_str = meta.get("substore_profit_amount")
+        owner_wallet_id = meta.get("substore_owner_wallet_id")
+        if profit_amt_str and owner_wallet_id:
+            try:
+                profit_amt = Decimal(profit_amt_str)
+                if profit_amt > 0:
+                    debit_wallet(
+                        wallet_id=owner_wallet_id,
+                        amount=profit_amt,
+                        reference=f"reversal_substore_profit:{order.id}",
+                        description=f"خصم أرباح طلب مسترد #{order.number} (استرداد بيميرا للبطاقة)",
+                        created_by=actor,
+                        source="refund_reversal"
+                    )
+            except Exception as w_exc:
+                logger.error(f"Failed to reverse substore owner profit for order #{order.number}: {w_exc}")
+
+        order.save(update_fields=["status", "admin_note", "metadata", "updated_at"])
+
+        OrderLog.objects.create(
+            order=order,
+            status=Order.Status.REFUNDED,
+            note=f"تم استرداد كامل قيمة الطلب ({order.total_amount} USD) بنجاح إلى البطاقة البنكية للعميل عبر بوابة بيميرا. السبب: {reason or 'طلب استرداد'}.",
+            created_by=actor,
+        )
+
+    # 6. Notifications
+    try:
+        notify_user(
+            user=order.customer,
+            title="تم استرداد المبلغ إلى بطاقتك البنكية",
+            body=f"تم استرداد كامل قيمة طلبك رقم #{order.number} إلى بطاقتك البنكية عبر بيميرا بنجاح. قد يستغرق ظهور الرصيد في حسابك البنكي بعض الوقت بحسب سياسة البنك المصدر للبطاقة.",
+            action_url=f"/dashboard/orders/{order.id}/",
+            category="financial",
+            priority="high",
+        )
+        notify_staff(
+            title="استرداد بنكي ناجح عبر بيميرا",
+            body=f"تم استرداد الطلب رقم #{order.number} بنجاح إلى بطاقة العميل {order.customer.email} عبر بوابة بيميرا.",
+            action_url=f"/control/orders/{order.id}/",
+            category="financial",
+        )
+    except Exception:
+        pass
+
+    return True, "تمت عملية استرداد المبلغ بنجاح إلى البطاقة البنكية للعميل عبر بوابة بيميرا."
+
+
+def auto_cancel_expired_pending_orders(max_minutes: int = 5) -> dict:
+    """
+    Scans and automatically cancels pending orders that have remained uncompleted for more than max_minutes.
+    Before cancellation, checks Paymera status if a gateway payment was initiated, ensuring
+    no completed payments are incorrectly cancelled.
+    
+    Returns a dict with statistics: {"checked": int, "cancelled": int, "finalized": int, "errors": int}
+    """
+    from datetime import timedelta
+    from apps.payments.gateways import gateway_for
+    from apps.payments.paymera import PaymeraClient, PaymeraError
+    from apps.common.tenant_utils import bypass_tenant_filter
+
+    cutoff_time = timezone.now() - timedelta(minutes=max_minutes)
+    stats = {"checked": 0, "cancelled": 0, "finalized": 0, "errors": 0}
+
+    with bypass_tenant_filter():
+        expired_pending_orders = list(
+            Order.all_objects.filter(
+                status=Order.Status.PENDING,
+                created_at__lte=cutoff_time
+            ).order_by("created_at")[:100]
+        )
+
+    if not expired_pending_orders:
+        return stats
+
+    gw = None
+    client = None
+
+    for order in expired_pending_orders:
+        stats["checked"] += 1
+        meta = dict(order.metadata or {})
+        payment_id = meta.get("gateway_payment_id") or meta.get("paymera_payment_id")
+
+        try:
+            # If the order is linked to a gateway payment, query Paymera first
+            if payment_id:
+                if not client:
+                    try:
+                        gw = gateway_for("paymera")
+                        client = gw.get_client()
+                    except Exception as gw_init_err:
+                        logger.error(f"Cannot initialize Paymera client for pending check: {gw_init_err}")
+
+                if client:
+                    try:
+                        status_res = client.get_payment_status(payment_id)
+                        gw_status = status_res.get("status")
+                        
+                        # If payment was actually completed right before timeout, finalize it!
+                        if gw_status == PaymeraClient.STATUS_ACCEPTED:
+                            logger.info(f"Order #{order.number} was accepted on Paymera, finalizing instead of cancelling.")
+                            finalize_paid_gateway_order(order, status_res)
+                            stats["finalized"] += 1
+                            continue
+                    except PaymeraError as p_err:
+                        logger.warning(f"Paymera status check error for order #{order.number} ({payment_id}): {p_err}")
+
+            # Otherwise, cancel the expired pending order
+            with transaction.atomic():
+                with bypass_tenant_filter():
+                    locked_order = Order.all_objects.select_for_update().get(pk=order.pk)
+                    if locked_order.status != Order.Status.PENDING:
+                        continue
+                    locked_order.status = Order.Status.CANCELLED
+                    locked_order.admin_note = (locked_order.admin_note or "") + f"\nتم إلغاء الطلب تلقائياً لتجاوز مهلة السداد المحددة ({max_minutes} دقائق دون إتمام الدفع)."
+                    locked_order.save(update_fields=["status", "admin_note", "updated_at"])
+
+                    OrderLog.objects.create(
+                        order=locked_order,
+                        status=Order.Status.CANCELLED,
+                        note=f"تم إلغاء الطلب تلقائياً لانتهاء مهلة السداد ({max_minutes} دقائق دون إتمام عملية الدفع).",
+                        created_by=None,
+                    )
+                    stats["cancelled"] += 1
+                    logger.info(f"Auto-cancelled expired pending order #{locked_order.number} (age > {max_minutes}m).")
+
+        except Exception as exc:
+            stats["errors"] += 1
+            logger.error(f"Error auto-cancelling pending order #{order.number}: {exc}")
+
+    return stats
 
 

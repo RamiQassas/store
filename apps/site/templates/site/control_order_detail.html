@@ -584,15 +584,33 @@
                         <textarea name="admin_note" rows="3" placeholder="اكتب سبب تغيير الحالة أو أي ملاحظات للمتابعة..." class="admin-input text-xs resize-none"></textarea>
                     </div>
 
+                    {% if order.metadata.gateway_payment_id or order.metadata.paymera_payment_id %}
+                    <div class="p-3 rounded-xl bg-slate-950/80 border border-emerald-500/20 text-xs space-y-2">
+                        <span class="block text-[11px] font-black text-emerald-400 flex items-center gap-1.5">
+                            <i class="fas fa-credit-card"></i> خيار الاسترداد (عند الإلغاء أو الاسترداد):
+                        </span>
+                        <div class="space-y-1.5">
+                            <label class="flex items-center gap-2 cursor-pointer text-slate-200 hover:text-white">
+                                <input type="radio" name="refund_target" value="paymera_card" checked class="text-emerald-500 focus:ring-emerald-400">
+                                <span class="font-bold text-[11px]">إعادة الأموال للبطاقة البنكية (Paymera Reversal)</span>
+                            </label>
+                            <label class="flex items-center gap-2 cursor-pointer text-slate-300 hover:text-white">
+                                <input type="radio" name="refund_target" value="wallet" class="text-cyan focus:ring-cyan">
+                                <span class="text-[11px]">إيداع المبلغ في محفظة العميل داخل المنصة</span>
+                            </label>
+                        </div>
+                    </div>
+                    {% endif %}
+
                     <div class="p-2.5 rounded-xl bg-slate-950/60 border border-white/5 text-[10px] text-slate-400 leading-relaxed">
                         {% if order.metadata.is_direct_gateway_purchase and not order.metadata.gateway_payment_confirmed and not order.metadata.is_paid %}
                         <div class="text-amber-300 font-bold flex items-start gap-1.5">
                             <i class="fas fa-exclamation-triangle text-amber-400 mt-0.5 shrink-0"></i>
-                            <span>تنبيه: هذا الطلب عبر بوابة دفع ولم يُسدد بعد. إلغاء الطلب لن يقوم بإيداع أي رصيد للمحفظة لأنه غير مسدد.</span>
+                            <span>تنبيه: هذا الطلب عبر بوابة دفع ولم يُسدد بعد. إلغاء الطلب لن يقوم بإيداع أي رصيد لأنه غير مسدد.</span>
                         </div>
                         {% else %}
                         <i class="fas fa-info-circle text-cyan ml-1"></i>
-                        عند التحويل إلى <strong class="text-rose-400">ملغي أو مسترد</strong>، يتم إرجاع المبلغ المسدد إلى محفظة العميل آلياً (إذا لم يكن مسترداً من قبل).
+                        عند التحويل إلى <strong class="text-rose-400">ملغي أو مسترد</strong>، يتم تنفيذ الاسترداد المالي المحدد تلقائياً وتوثيقه في السجل.
                         {% endif %}
                     </div>
 
@@ -603,6 +621,76 @@
                 </form>
             </div>
         </div>
+
+        {% if order.metadata.gateway_payment_id or order.metadata.paymera_payment_id or order.metadata.payment_provider == 'paymera' %}
+        <!-- Sidebar Card: Paymera Card Reversal & Status -->
+        <div class="detail-card border-emerald-500/30 bg-emerald-950/10 shadow-lg shadow-emerald-500/5">
+            <div class="detail-header border-emerald-500/20 bg-emerald-500/[0.04]">
+                <div class="flex items-center gap-2">
+                    <i class="fas fa-credit-card text-emerald-400 text-sm"></i>
+                    <h3 class="text-sm font-black text-emerald-300">بوابة بيميرا (Paymera eGate v4.0)</h3>
+                </div>
+                {% if order.metadata.paymera_refunded %}
+                <span class="px-2.5 py-0.5 rounded-lg bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 font-bold text-[10px]">
+                    مسترد للبطاقة
+                </span>
+                {% endif %}
+            </div>
+
+            <div class="detail-body space-y-3">
+                <div class="field-box">
+                    <span class="text-[10px] font-black uppercase text-slate-400 block mb-1">معرف العملية (Payment ID)</span>
+                    <div class="flex items-center justify-between gap-2">
+                        <span class="font-mono text-xs text-white truncate max-w-[210px]">{{ order.metadata.gateway_payment_id|default:order.metadata.paymera_payment_id }}</span>
+                        <button type="button" onclick="copyToClipboard('{{ order.metadata.gateway_payment_id|default:order.metadata.paymera_payment_id }}', this)" class="text-slate-400 hover:text-emerald-400 cursor-pointer p-1">
+                            <i class="far fa-copy text-xs"></i>
+                        </button>
+                    </div>
+                </div>
+
+                {% if order.metadata.gateway_rrn or order.metadata.rrn %}
+                <div class="field-box">
+                    <span class="text-[10px] font-black uppercase text-slate-400 block mb-1">رقم المعاملة البنكية (RRN)</span>
+                    <span class="font-mono text-xs font-bold text-emerald-400">{{ order.metadata.gateway_rrn|default:order.metadata.rrn }}</span>
+                </div>
+                {% endif %}
+
+                {% if order.metadata.gateway_charge_amount %}
+                <div class="field-box">
+                    <span class="text-[10px] font-black uppercase text-slate-400 block mb-1">المبلغ المخصوم من البطاقة</span>
+                    <span class="font-mono text-sm font-black text-white">{{ order.metadata.gateway_charge_amount }} {{ order.metadata.gateway_charge_currency|default:'SYP' }}</span>
+                </div>
+                {% endif %}
+
+                {% if order.metadata.paymera_refunded %}
+                <div class="p-3 rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 text-xs leading-relaxed">
+                    <i class="fas fa-check-circle text-emerald-400 ml-1"></i>
+                    <strong>تم استرداد المبلغ بنجاح إلى بطاقة العميل</strong>
+                    <div class="text-[10px] font-mono text-emerald-400/80 mt-1">
+                        {{ order.metadata.paymera_refund_timestamp|default:'' }}
+                    </div>
+                    {% if order.metadata.paymera_refund_reason %}
+                    <div class="text-[10px] text-slate-300 mt-1">
+                        السبب: {{ order.metadata.paymera_refund_reason }}
+                    </div>
+                    {% endif %}
+                </div>
+                {% else %}
+                <form method="post" onsubmit="return confirm('تنبيه هام: هل أنت متأكد تماماً من إلغاء هذا الطلب وإعادة كامل المبلغ مباشرة إلى البطاقة البنكية للعميل عبر بوابة بيميرا (Paymera Reversal)؟ لا يمكن التراجع عن هذا الإجراء.');" class="space-y-2 pt-1">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="paymera_refund_card">
+                    <div>
+                        <input type="text" name="refund_reason" placeholder="سبب الإلغاء والاسترداد للبطاقة..." class="admin-input text-xs" required>
+                    </div>
+                    <button type="submit" class="w-full py-2.5 rounded-xl bg-rose-500/20 border border-rose-500/40 hover:bg-rose-600 hover:text-white text-rose-300 font-black text-xs transition flex items-center justify-center gap-2 cursor-pointer shadow-sm">
+                        <i class="fas fa-undo"></i>
+                        <span>إلغاء واسترداد للبطاقة البنكية</span>
+                    </button>
+                </form>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
 
         {% if order.api_order_id or order.api_order_uuid or order.items.all %}
         <!-- Sidebar Card 2: Alkasr API Integration Info -->

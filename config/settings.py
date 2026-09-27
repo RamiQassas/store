@@ -475,6 +475,10 @@ CELERY_BEAT_SCHEDULE = {
         "task": "apps.accounts.tasks.sync_pending_api_orders_task",
         "schedule": 30.0,  # Every 30 seconds
     },
+    "auto_cancel_expired_pending_orders_every_minute": {
+        "task": "apps.accounts.tasks.auto_cancel_expired_pending_orders_task",
+        "schedule": 60.0,  # Every minute (enforces 5-minute maximum pending lifetime)
+    },
 }
 
 # Paymera Gateway Configuration

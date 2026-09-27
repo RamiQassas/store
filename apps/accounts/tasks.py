@@ -8,13 +8,13 @@ from apps.accounts.services import send_brevo_email
 @shared_task
 def cleanup_unverified_users_task():
     """
-    Deletes users who haven't verified their email within 24 hours.
-    Sends a reminder email to users who haven't verified within 12 hours.
+    Deletes users who haven't verified their email within 7 days (1 week).
+    Sends a reminder email to users who haven't verified within 5 days.
     """
     now = timezone.now()
     
-    # 1. Cleanup: Older than 24 hours
-    threshold_delete = now - timedelta(hours=24)
+    # 1. Cleanup: Older than 7 days (1 week)
+    threshold_delete = now - timedelta(days=7)
     unverified_to_delete = User.objects.filter(
         email_verified=False, 
         is_staff=False,
@@ -43,7 +43,7 @@ def cleanup_unverified_users_task():
         <div dir="rtl" style="font-family: sans-serif; max-width: 500px; margin: 0 auto; padding: 20px; border: 1px solid #eee; border-radius: 10px;">
             <h2 style="color: #ef4444;">رقميات | RAQAMIYAT</h2>
             <p>مرحباً {name}،</p>
-            <p>نحيطك علماً بأنه تم حذف حسابك ({email}) نظراً لعدم إتمام عملية تفعيل البريد الإلكتروني خلال المهلة المحددة (24 ساعة).</p>
+            <p>نحيطك علماً بأنه تم حذف حسابك ({email}) نظراً لعدم إتمام عملية تفعيل البريد الإلكتروني خلال المهلة المحددة (أسبوع كامل - 7 أيام).</p>
             <p>إذا كنت لا تزال ترغب في استخدام خدماتنا، يمكنك إنشاء حساب جديد في أي وقت.</p>
             <hr>
             <p style="font-size: 12px; color: #999;">© 2026 مؤسسة رامي قصاص بن ماهر لخدمات الوساطة الرقمية.</p>
@@ -53,8 +53,8 @@ def cleanup_unverified_users_task():
         user.delete()
         count_deleted += 1
     
-    # 2. Reminders: Between 12 and 24 hours
-    threshold_remind = now - timedelta(hours=12)
+    # 2. Reminders: Between 5 and 7 days
+    threshold_remind = now - timedelta(days=5)
     
     users_to_remind = User.objects.filter(
         email_verified=False,
@@ -65,19 +65,19 @@ def cleanup_unverified_users_task():
     
     count_reminded = 0
     for user in users_to_remind:
-        subject = "تنبيه: تبقت 12 ساعة لتفعيل حسابك | Raqamiyat"
+        subject = "تنبيه: تبقت مهلة لتفعيل حسابك | Raqamiyat"
         html_content = f"""
         <div dir="rtl" style="font-family: sans-serif; max-width: 500px; margin: 0 auto; padding: 20px; border: 1px solid #eee; border-radius: 10px;">
             <h2 style="color: #f59e0b;">رقميات | RAQAMIYAT</h2>
             <p>مرحباً {user.get_full_name() or user.email}،</p>
-            <p>نلاحظ أنك لم تقم بتفعيل حسابك بعد. يرجى العلم أنه سيتم حذف الحساب تلقائياً خلال 12 ساعة إذا لم يتم التحقق من البريد الإلكتروني.</p>
+            <p>نلاحظ أنك لم تقم بتفعيل حسابك بعد. يرجى العلم أنه سيتم حذف الحساب تلقائياً بعد مرور أسبوع كامل (7 أيام) على إنشائه إذا لم يتم التحقق من البريد الإلكتروني.</p>
             <p style="font-weight: bold;">يرجى تسجيل الدخول وإدخال رمز التحقق لتجنب حذف بياناتك.</p>
             <hr>
             <p style="font-size: 12px; color: #999;">إذا قمت بالتفعيل بالفعل، يرجى تجاهل هذا البريد.</p>
         </div>
         """
         if send_brevo_email(user.email, user.get_full_name() or user.email, subject, html_content):
-            ActivityLog.objects.create(user=user, action="deletion_reminder_sent", description="Sent 12h deletion warning")
+            ActivityLog.objects.create(user=user, action="deletion_reminder_sent", description="Sent 5d deletion warning")
             count_reminded += 1
             
     return f"Deleted {count_deleted} users, Reminded {count_reminded} users."
@@ -222,14 +222,34 @@ def scheduled_backup_task():
 
 
 @shared_task
+def auto_cancel_expired_pending_orders_task():
+    """
+    Periodically checks and auto-cancels orders that remain in PENDING status for more than 5 minutes.
+    If the order has an initiated Paymera payment, queries Paymera first to ensure no completed
+    payments are cancelled, and finalizes any late-accepted payments.
+    """
+    from apps.orders.services import auto_cancel_expired_pending_orders
+    stats = auto_cancel_expired_pending_orders(max_minutes=5)
+    return f"Auto-cancelled pending orders: checked={stats.get('checked')}, cancelled={stats.get('cancelled')}, finalized={stats.get('finalized')}, errors={stats.get('errors')}."
+
+
+@shared_task
 def sync_pending_api_orders_task():
     """
     Periodically checks pending and processing API orders against providers using centralized sync service.
     Supports both platform orders and sub-store orders.
     Updates order statuses (COMPLETED, CANCELLED) and automatically refunds customer wallets
     if the order is rejected or cancelled by the provider.
+    Also ensures abandoned pending orders (> 5 minutes) are cancelled automatically.
     """
     from apps.orders.sync_service import sync_pending_orders_batch
+    from apps.orders.services import auto_cancel_expired_pending_orders
+
+    # Auto-cancel expired pending orders (> 5 minutes)
+    try:
+        auto_cancel_expired_pending_orders(max_minutes=5)
+    except Exception as exc:
+        pass
 
     res = sync_pending_orders_batch(limit=100)
     checked = res.get("checked", 0)

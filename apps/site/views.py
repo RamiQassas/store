@@ -3811,10 +3811,19 @@ def control_order_detail(request, pk):
             OrderLog.objects.create(order=order, status=order.status, note=request.POST.get("admin_note", ""), created_by=request.user)
             
             if order.status in [Order.Status.REFUNDED, Order.Status.CANCELLED] and old_status not in [Order.Status.REFUNDED, Order.Status.CANCELLED]:
-                from apps.orders.services import process_order_refund_to_wallet
-                refunded, refund_msg = process_order_refund_to_wallet(
-                    order, actor=request.user, old_status=old_status, source="control_order_detail"
-                )
+                refund_target = request.POST.get("refund_target", "wallet")
+                meta = dict(order.metadata or {})
+                has_paymera = bool(meta.get("gateway_payment_id") or meta.get("payment_provider") == "paymera")
+                if refund_target == "paymera_card" and has_paymera:
+                    from apps.orders.services import process_order_refund_to_paymera
+                    refunded, refund_msg = process_order_refund_to_paymera(
+                        order, actor=request.user, reason=request.POST.get("admin_note", "استرداد للبطاقة عبر لوحة الإدارة")
+                    )
+                else:
+                    from apps.orders.services import process_order_refund_to_wallet
+                    refunded, refund_msg = process_order_refund_to_wallet(
+                        order, actor=request.user, old_status=old_status, source="control_order_detail"
+                    )
                 if refunded:
                     messages.success(request, refund_msg)
                 else:
@@ -3832,6 +3841,15 @@ def control_order_detail(request, pk):
                     category="orders"
                 )
             except: pass
+        elif action == "paymera_refund_card":
+            from apps.orders.services import process_order_refund_to_paymera
+            refund_reason = request.POST.get("refund_reason") or "طلب استرداد الأموال إلى البطاقة البنكية عبر بوابة بيميرا"
+            success, msg = process_order_refund_to_paymera(order, actor=request.user, reason=refund_reason)
+            if success:
+                messages.success(request, msg)
+            else:
+                messages.error(request, msg)
+            return redirect("control_order_detail", pk=pk)
         elif action == "update_fulfillment":
             keys = request.POST.getlist("ff_key[]")
             vals = request.POST.getlist("ff_value[]")
@@ -4051,10 +4069,19 @@ def control_order_status_update(request, pk):
         order.save()
         OrderLog.objects.create(order=order, status=order.status, note=request.POST.get("admin_note", ""), created_by=request.user)
         if order.status in [Order.Status.REFUNDED, Order.Status.CANCELLED] and old_status not in [Order.Status.REFUNDED, Order.Status.CANCELLED]:
-            from apps.orders.services import process_order_refund_to_wallet
-            refunded, refund_msg = process_order_refund_to_wallet(
-                order, actor=request.user, old_status=old_status, source="control_order_status_update"
-            )
+            refund_target = request.POST.get("refund_target", "wallet")
+            meta = dict(order.metadata or {})
+            has_paymera = bool(meta.get("gateway_payment_id") or meta.get("payment_provider") == "paymera")
+            if refund_target == "paymera_card" and has_paymera:
+                from apps.orders.services import process_order_refund_to_paymera
+                refunded, refund_msg = process_order_refund_to_paymera(
+                    order, actor=request.user, reason=request.POST.get("admin_note", "استرداد للبطاقة عبر لوحة الإدارة")
+                )
+            else:
+                from apps.orders.services import process_order_refund_to_wallet
+                refunded, refund_msg = process_order_refund_to_wallet(
+                    order, actor=request.user, old_status=old_status, source="control_order_status_update"
+                )
             if refunded:
                 messages.success(request, refund_msg)
             else:

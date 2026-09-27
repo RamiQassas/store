@@ -480,3 +480,88 @@ def paymera_callback_view(request):
 
         messages.info(request, "تم استلام عودتك من بوابة الدفع. سيتم تحديث حالة طلبك قريباً.")
         return redirect("dashboard_deposits")
+
+
+def paymera_refund_view(request):
+    """
+    Endpoint / View to execute Paymera Reversal (Refund to Card).
+    Requires staff/admin privileges. Supports order_id and deposit_id.
+    Endpoint: /payments/paymera/refund/
+    """
+    if not (request.user.is_authenticated and (request.user.is_staff or request.user.is_superuser or getattr(request.user, "role", None) in ["super_admin", "admin", "finance"])):
+        return JsonResponse({"status": "error", "message": "غير مصرح لك بتنفيذ هذه العملية."}, status=403)
+
+    if request.method != "POST":
+        return JsonResponse({"status": "error", "message": "Method not allowed. Use POST."}, status=405)
+
+    order_id = request.POST.get("order_id")
+    deposit_id = request.POST.get("deposit_id")
+    reason = request.POST.get("reason") or "طلب استرداد إلى البطاقة عبر الإدارة"
+
+    if order_id:
+        from apps.orders.models import Order
+        from apps.orders.services import process_order_refund_to_paymera
+        order = Order.all_objects.filter(pk=order_id).first()
+        if not order:
+            return JsonResponse({"status": "error", "message": "الطلب غير موجود."}, status=404)
+
+        success, msg = process_order_refund_to_paymera(order, actor=request.user, reason=reason)
+        if success:
+            messages.success(request, msg)
+            return JsonResponse({"status": "ok", "message": msg})
+        else:
+            messages.error(request, msg)
+            return JsonResponse({"status": "error", "message": msg}, status=400)
+
+    elif deposit_id:
+        from apps.payments.models import DepositRequest, PaymentGatewayIntegration
+        from apps.wallets.services import debit_wallet
+        deposit = DepositRequest.all_objects.filter(pk=deposit_id).first()
+        if not deposit:
+            return JsonResponse({"status": "error", "message": "طلب الإيداع غير موجود."}, status=404)
+
+        payment_id = deposit.gateway_payment_id or (
+            deposit.metadata.get("paymera_payment_id") if isinstance(deposit.metadata, dict) else None
+        )
+        if not payment_id:
+            return JsonResponse({"status": "error", "message": "لا يوجد معرف دفعة بيميرا مسجل لهذا الإيداع."}, status=400)
+
+        dep_integration = getattr(deposit.payment_method, "gateway", None)
+        if not dep_integration or dep_integration.provider != PaymentGatewayIntegration.Provider.PAYMERA:
+            dep_integration = PaymentGatewayIntegration.all_objects.filter(
+                provider=PaymentGatewayIntegration.Provider.PAYMERA,
+                is_active=True
+            ).first()
+
+        client = PaymeraClient.from_integration(dep_integration)
+        try:
+            res = client.cancel_payment(payment_id=payment_id, lang="ar")
+            with transaction.atomic():
+                deposit.status = DepositRequest.Status.REJECTED
+                deposit.admin_note = (deposit.admin_note or "") + f"\n[استرداد بيميرا]: تم استرداد المبلغ للبطاقة في {timezone.now().strftime('%Y-%m-%d %H:%M')}. السبب: {reason}"
+                if not isinstance(deposit.metadata, dict):
+                    deposit.metadata = {}
+                deposit.metadata["paymera_refunded"] = True
+                deposit.metadata["paymera_refund_timestamp"] = timezone.now().isoformat()
+                deposit.metadata["paymera_refund_raw"] = res
+                deposit.save()
+
+                # If deposit was previously completed and wallet was credited, debit the wallet
+                if deposit.is_verified and deposit.wallet_amount > 0:
+                    wallet = deposit.user.wallets.first()
+                    if wallet:
+                        debit_wallet(
+                            wallet_id=wallet.id,
+                            amount=deposit.wallet_amount,
+                            reference=f"reversal_deposit:{deposit.id}",
+                            description=f"إلغاء واسترداد إيداع بيميرا #{deposit.id} للبطاقة البنكية",
+                            created_by=request.user,
+                            source="deposit_reversal"
+                        )
+            messages.success(request, "تم استرداد مبلغ الإيداع بنجاح إلى البطاقة البنكية عبر بوابة بيميرا.")
+            return JsonResponse({"status": "ok", "message": "تم استرداد مبلغ الإيداع بنجاح إلى البطاقة البنكية."})
+        except PaymeraError as exc:
+            messages.error(request, str(exc))
+            return JsonResponse({"status": "error", "message": str(exc)}, status=400)
+
+    return JsonResponse({"status": "error", "message": "يجب تزويد order_id أو deposit_id."}, status=400)

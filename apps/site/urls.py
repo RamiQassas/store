@@ -79,6 +79,7 @@ urlpatterns = [
     # Paymera Gateway Endpoints
     path("payments/paymera/callback/", views_paymera.paymera_callback_view, name="paymera_callback"),
     path("payments/paymera/trigger/", views_paymera.paymera_trigger_view, name="paymera_trigger"),
+    path("payments/paymera/refund/", views_paymera.paymera_refund_view, name="paymera_refund"),
 
     # AUTHENTICATION (STANDARDIZED NAMES)
     path("auth/login/", views.v3_login_view, name="site_login"),

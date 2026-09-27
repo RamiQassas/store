@@ -111,6 +111,7 @@ urlpatterns = [
     # Paymera Gateway Endpoints (Tenant Sub-store context)
     path("payments/paymera/callback/", site_views_paymera.paymera_callback_view, name="paymera_callback"),
     path("payments/paymera/trigger/", site_views_paymera.paymera_trigger_view, name="paymera_trigger"),
+    path("payments/paymera/refund/", site_views_paymera.paymera_refund_view, name="paymera_refund"),
 
     # Custom Pages (store-specific static pages created by merchant)
     path("page/<slug:slug>/", merchant_views.store_custom_page, name="store_custom_page"),

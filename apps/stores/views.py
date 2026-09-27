@@ -702,12 +702,21 @@ def merchant_order_status_update(request, pk):
         order.status = new_status
         order.save()
         
-        # If cancelled, safely refund user wallet if eligible
+        # If cancelled, safely refund user wallet or paymera card if eligible
         if new_status in (Order.Status.CANCELLED, Order.Status.REFUNDED) and old_status not in (Order.Status.CANCELLED, Order.Status.REFUNDED):
-            from apps.orders.services import process_order_refund_to_wallet
-            refunded, refund_msg = process_order_refund_to_wallet(
-                order, actor=request.user, old_status=old_status, source="merchant_order_status_update"
-            )
+            refund_target = request.POST.get("refund_target", "wallet")
+            meta = dict(order.metadata or {})
+            has_paymera = bool(meta.get("gateway_payment_id") or meta.get("payment_provider") == "paymera")
+            if refund_target == "paymera_card" and has_paymera:
+                from apps.orders.services import process_order_refund_to_paymera
+                refunded, refund_msg = process_order_refund_to_paymera(
+                    order, actor=request.user, reason=request.POST.get("admin_note", "استرداد للبطاقة عبر لوحة التاجر")
+                )
+            else:
+                from apps.orders.services import process_order_refund_to_wallet
+                refunded, refund_msg = process_order_refund_to_wallet(
+                    order, actor=request.user, old_status=old_status, source="merchant_order_status_update"
+                )
             if refunded:
                 messages.success(request, refund_msg)
             else:

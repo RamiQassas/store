@@ -77,8 +77,10 @@ class PaymeraClient:
         )
 
     def _get_headers(self) -> Dict[str, str]:
+        from django.conf import settings
+        api_key = self.api_key or getattr(settings, "PAYMERA_API_KEY", "").strip()
         # Basic Auth: api_key as username, empty password with trailing colon
-        auth_bytes = f"{self.api_key}:".encode("utf-8")
+        auth_bytes = f"{api_key}:".encode("utf-8")
         auth_b64 = base64.b64encode(auth_bytes).decode("ascii")
         return {
             "Authorization": f"Basic {auth_b64}",
@@ -219,9 +221,12 @@ class PaymeraClient:
         """
         Cancel / Reversal payment.
         Endpoint: POST /api/cancel-payment
+        Paymera eGate v4.0 specification:
+        - Request: {"lang": "ar"|"en", "payment_id": "the_payment_id"}
+        - Response: {"ErrorMessage": "Success", "ErrorCode": 0} (or 100 on error, 1 on unauthorized)
         """
         if not payment_id:
-            raise PaymeraError("payment_id is required for cancellation.")
+            raise PaymeraError("معرف الدفعة (payment_id) مطلوب لإتمام عملية الإلغاء.")
 
         url = f"{self.base_url}/api/cancel-payment"
         payload = {
@@ -229,12 +234,34 @@ class PaymeraClient:
             "payment_id": str(payment_id).strip(),
         }
 
-        logger.info(f"Paymera canceling payment {payment_id}")
+        logger.info(f"Paymera canceling payment {payment_id} via {url}")
         try:
             resp = requests.post(url, json=payload, headers=self._get_headers(), timeout=self.timeout)
-            data = resp.json()
-        except Exception as exc:
-            logger.error(f"Paymera cancel error: {exc}")
-            raise PaymeraError(f"Paymera cancellation failed: {exc}") from exc
+        except requests.RequestException as exc:
+            logger.error(f"Paymera network error calling cancel-payment: {exc}")
+            raise PaymeraError(f"فشل الاتصال ببوابة بيميرا أثناء طلب الإلغاء: {exc}") from exc
 
-        return data
+        try:
+            data = resp.json()
+        except ValueError:
+            logger.error(f"Paymera cancel non-JSON response ({resp.status_code}): {resp.text[:500]}")
+            if resp.status_code in (401, 403):
+                raise PaymeraError(
+                    "بوابة بيميرا رفضت طلب الإلغاء (HTTP 401/403). يرجى التأكد من صلاحية المفتاح والترمينال وعنوان IP."
+                )
+            raise PaymeraError(f"استجابة غير صالحة من بيميرا (HTTP {resp.status_code})")
+
+        error_code = data.get("ErrorCode")
+        error_msg = data.get("ErrorMessage", "Unknown response")
+
+        if error_code != 0:
+            logger.warning(f"Paymera cancel-payment rejected ({error_code}): {error_msg}")
+            raise PaymeraError(f"بيميرا: {error_msg} (رمز الخطأ: {error_code})", error_code=error_code, raw_response=data)
+
+        logger.info(f"Paymera payment {payment_id} canceled/refunded successfully.")
+        return {
+            "success": True,
+            "error_code": 0,
+            "error_message": error_msg,
+            "raw": data,
+        }
